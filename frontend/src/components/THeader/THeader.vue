@@ -19,7 +19,7 @@ included in the LICENSE file.
           <t-icon class="t-header-nav-icon" icon="info" />
           <span class="t-header-nav-name">Documentation</span>
         </a>
-        <a href="https://github.com/siderolabs/omni-feedback/issues" target="_blank" class="flex hover:text-naturals-N14">
+        <a href="https://github.com/siderolabs/omni/issues" target="_blank" class="flex hover:text-naturals-N14">
           <t-icon class="t-header-nav-icon" icon="check-in-circle" />
           <span class="t-header-nav-name">Report an issue</span>
         </a>

@@ -262,7 +262,7 @@ const registerInterceptors = () => {
         } else if (url.indexOf("/image/") == 0) {
           config.headers.set(TimestampHeaderKey, ts);
 
-          const sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+          const sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"; // empty string sha256
           const payload = [config.method ?? "GET", url, ts, sha256].join("\n");
           const signature = await signDetached(payload);
           const fingerprint = keys?.publicKey.getFingerprint();

@@ -99,7 +99,7 @@ nice -n 10 ${ARTIFACTS}/omni-linux-amd64 \
     --advertised-api-url "${BASE_URL}" \
     --auth-auth0-client-id jS47T064CfFE1IqqIYZ8HfYLkZhFoa1Y \
     --auth-auth0-domain sidero-omni-dev.us.auth0.com \
-    --initial-users ${AUTH_USERNAME} \
+    --initial-users "${AUTH_USERNAME}" \
     --private-key-source "vault://secret/omni-private-key" \
     --public-key-files "internal/backend/runtime/omni/testdata/pgp/new_key.public" \
     --bind-addr 0.0.0.0:8099 \
