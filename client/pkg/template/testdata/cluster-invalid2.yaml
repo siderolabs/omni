@@ -1,0 +1,15 @@
+kind: Cluster
+name:
+patches:
+  - {}
+---
+kind: ControlPlane
+machines:
+  - 430d882a-51a8-48b3-ae00-90c5b0b5b0b0
+  - 4aed1106-6f44-4be9-9796-d4b5b0b5b0b0
+---
+kind: ControlPlane
+machines:
+  - 430d882a-51a8-48b3-ab00-d4b5b0b5b0b0
+patches:
+  - file: patches/prohibited.yaml

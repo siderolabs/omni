@@ -1,0 +1,14 @@
+machine:
+  systemDiskEncryption:
+    state:
+        provider: luks2
+        keys:
+          - kms:
+              endpoint: {{ .KmsEndpoint }}
+            slot: 0
+    ephemeral:
+        provider: luks2
+        keys:
+          - kms:
+              endpoint: {{ .KmsEndpoint }}
+            slot: 0

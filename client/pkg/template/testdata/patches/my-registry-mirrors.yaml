@@ -1,0 +1,7 @@
+machine:
+  registries:
+    mirrors:
+      ghcr.io:
+        endpoints:
+          - https://ghcr.io
+          - https://ghcr.mirror.com

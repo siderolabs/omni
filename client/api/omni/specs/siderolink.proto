@@ -1,0 +1,47 @@
+syntax = "proto3";
+package specs;
+
+option go_package = "github.com/siderolabs/omni/client/api/omni/specs";
+
+import "google/protobuf/timestamp.proto";
+
+// SiderolinkConfigSpec describes siderolink wireguard server state to persist it across restarts.
+message SiderolinkConfigSpec {
+  string private_key = 1;
+  string public_key = 2;
+  string wireguard_endpoint = 3;
+  string subnet = 5;
+  string server_address = 6;
+  string join_token = 7;
+  string advertised_endpoint = 8;
+}
+
+// SiderolinkConnectionSpec describes each node connection information.
+message SiderolinkSpec {
+  string node_subnet = 1;
+  string node_public_key = 2;
+  string last_endpoint = 3;
+  bool connected = 4;
+  reserved 5;
+  reserved 6;
+}
+
+// SiderolinkConnectionSpec describes each node connection information.
+message SiderolinkCounterSpec {
+  int64 bytes_received = 1;
+  int64 bytes_sent = 2;
+  google.protobuf.Timestamp last_alive = 3;
+}
+
+// ConnectionParamsSpec describes generated kernel parameters for connecting
+// the Talos node to Omni.
+message ConnectionParamsSpec {
+  // Args keeps the generated kernel arguments string.
+  string args = 1;
+  // ApiEndpoint is the service gRPC API endpoint (external domain/ip, schema and port).
+  string api_endpoint = 2;
+  // WireguardEndpoint is the service IP visible from the internal SideroLink network.
+  string wireguard_endpoint = 3;
+  // JoinToken is a join token required to connect to SideroLink.
+  string join_token = 4;
+}

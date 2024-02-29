@@ -1,0 +1,88 @@
+# THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
+#
+# Generated on 2024-02-23T20:48:03Z by kres 38f172c.
+
+policies:
+  - type: commit
+    spec:
+      dco: true
+      gpg:
+        required: true
+        identity:
+          gitHubOrganization: siderolabs
+      spellcheck:
+        locale: US
+      maximumOfOneCommit: true
+      header:
+        length: 89
+        imperative: true
+        case: lower
+        invalidLastCharacters: .
+      body:
+        required: true
+      conventional:
+        types:
+          - chore
+          - docs
+          - perf
+          - refactor
+          - style
+          - test
+          - release
+        scopes:
+          - .*
+  - type: license
+    spec:
+      root: .
+      skipPaths:
+        - .git
+        - testdata/
+        - client/
+        - frontend/node_modules/
+        - internal/pkg/kubernetes/resource/
+      includeSuffixes:
+        - .go
+        - .ts
+        - .js
+      excludeSuffixes:
+        - .pb.go
+        - .pb.gw.go
+        - .pb.ts
+        - babel.config.js
+      header: |
+        // Copyright (c) 2024 Sidero Labs, Inc.
+        //
+        // Use of this software is governed by the Business Source License
+        // included in the LICENSE file.
+  - type: license
+    spec:
+      root: client
+      skipPaths:
+        - .git/
+        - testdata/
+      includeSuffixes:
+        - .go
+      excludeSuffixes:
+        - .pb.go
+        - .pb.gw.go
+      header: |
+        // This Source Code Form is subject to the terms of the Mozilla Public
+        // License, v. 2.0. If a copy of the MPL was not distributed with this
+        // file, You can obtain one at http://mozilla.org/MPL/2.0/
+  - type: license
+    spec:
+      root: frontend/
+      skipPaths:
+        - node_modules/
+      includeSuffixes:
+        - .vue
+      excludeSuffixes:
+        - .pb.go
+        - .pb.gw.go
+      header: |
+        <!--
+        Copyright (c) 2024 Sidero Labs, Inc.
+
+        Use of this software is governed by the Business Source License
+        included in the LICENSE file.
+        -->

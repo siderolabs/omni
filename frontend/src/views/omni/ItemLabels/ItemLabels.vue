@@ -1,0 +1,174 @@
+<!--
+Copyright (c) 2024 Sidero Labs, Inc.
+
+Use of this software is governed by the Business Source License
+included in the LICENSE file.
+-->
+<template>
+  <div class="flex flex-wrap gap-1.5 items-center text-xs">
+    <item-label
+      @filterLabel="(label) => $emit('filterLabel', label)"
+      v-for="label in labels" :label="label" :key="label.key" :destroy-user-label="removeLabelFunc ? destroyUserLabel : undefined"/>
+    <t-input @keydown.enter="addUserLabel" v-model="currentLabel" compact @click.stop @blur="addingLabel = false" :focus="addingLabel" v-if="addingLabel" class="w-24 h-6"/>
+    <t-button icon="tag" type="compact" @click.stop="editLabels" v-else-if="addLabelFunc">new label</t-button>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, ref, toRefs } from "vue";
+import {Resource} from "@/api/grpc";
+
+import ItemLabel from "./ItemLabel.vue";
+import TButton from "@/components/common/Button/TButton.vue";
+import TInput from "@/components/common/TInput/TInput.vue";
+import { showError } from "@/notification";
+import { SystemLabelPrefix } from "@/api/resources";
+
+const props = defineProps<{
+  resource: Resource
+  addLabelFunc?: (resourceID: string, ...labels: string[]) => Promise<void> | void
+  removeLabelFunc?: (resourceID: string, ...labels: string[]) => Promise<void> | void
+}>();
+
+const { resource } = toRefs(props);
+
+type Label = {
+  key: string;
+  id: string,
+  value: string;
+  color: string;
+  user?: boolean;
+  description?: string,
+}
+
+defineEmits(['filterLabel']);
+
+const labelOrder = {
+  "reporting-events": -1,
+  "invalid-state": 0,
+  "cluster": 0,
+  "available": 5,
+  "connected": 10,
+  "disconnected": 10,
+  "platform": 20,
+  "cores": 30,
+  "mem": 40,
+  "storage": 50,
+  "net": 60,
+  "cpu": 70,
+  "arch": 80,
+  "region": 100,
+  "zone": 110,
+  "instance": 120,
+}
+
+const getLabelOrder = (l: Label) => {
+  if (l.user) {
+    return 1000;
+  }
+
+  return labelOrder[l.key];
+}
+
+const labelDescriptions = {
+  "invalid-state": "The machine is expected to be unallocated, but still has the configuration of a cluster.\nIt might be required to wipe the machine bypassing Omni."
+};
+
+const labelColors = {
+  "cluster": "light1",
+  "available": "yellow",
+  "invalid-state": "red",
+  "connected": "green",
+  "disconnected": "red",
+  "platform": "blue1",
+  "cores": "cyan",
+  "mem": "blue2",
+  "storage": "violet",
+  "net": "blue3",
+  "cpu": "orange",
+  "arch": "light2",
+  "region": "light3",
+  "zone": "light4",
+  "instance": "light5",
+}
+
+const labels = computed((): Array<Label> => {
+  const labels = resource.value.metadata?.labels || {};
+
+  let labelsArray: Array<Label> = [];
+
+  for (const key in labels) {
+    const isUser = key.indexOf(SystemLabelPrefix) !== 0;
+    const strippedKey = key.replace(new RegExp(`^${SystemLabelPrefix}`), "");
+
+    if (labelOrder[strippedKey] === -1) {
+      continue;
+    }
+
+    labelsArray.push({
+      key: key,
+      id: strippedKey,
+      value: labels[key],
+      color: labelColors[strippedKey] ?? "light6",
+      user: isUser,
+      description: labelDescriptions[strippedKey],
+    })
+  }
+
+  labelsArray.sort((a, b) => {
+    return getLabelOrder(a) - getLabelOrder(b);
+  });
+
+  return labelsArray
+});
+
+const addingLabel = ref(false);
+const currentLabel = ref("");
+let addPending = false;
+
+const editLabels = () => {
+  addingLabel.value = true;
+};
+
+const addUserLabel = async () => {
+  if (!addingLabel.value || !currentLabel.value || !resource.value.metadata.id || addPending || !props.addLabelFunc) {
+    return;
+  }
+
+  try {
+    addPending = true;
+    await props.addLabelFunc(resource.value.metadata.id, currentLabel.value);
+  } catch (e) {
+    showError(`Failed to Add Label ${currentLabel.value}`, e.message);
+  }
+
+  addingLabel.value = false;
+
+  currentLabel.value = "";
+  addPending = false;
+}
+
+const destroyUserLabel = async (key: string) => {
+  if (!resource.value.metadata.id || !props.removeLabelFunc) {
+    return;
+  }
+
+  if (key.startsWith(SystemLabelPrefix)) {
+    showError(
+        `Failed to Remove Label ${key}`,
+        `Label ${key} is not a user label and cannot be removed.`)
+
+    return;
+  }
+
+  try {
+    await props.removeLabelFunc(resource.value.metadata.id, key);
+  } catch (e) {
+    showError(`Failed to Remove Label ${key}`, e.message);
+  }
+
+  addingLabel.value = false;
+
+  currentLabel.value = "";
+};
+</script>

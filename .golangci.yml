@@ -1,0 +1,178 @@
+# THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
+#
+# Generated on 2024-02-09T09:47:03Z by kres decf506.
+
+# options for analysis running
+run:
+  timeout: 10m
+  issues-exit-code: 1
+  tests: true
+  build-tags: []
+  skip-dirs: []
+  skip-dirs-use-default: true
+  skip-files: []
+  modules-download-mode: readonly
+
+# output configuration options
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  uniq-by-line: true
+  path-prefix: ""
+
+# all available settings of specific linters
+linters-settings:
+  dogsled:
+    max-blank-identifiers: 2
+  dupl:
+    threshold: 150
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  exhaustive:
+    default-signifies-exhaustive: false
+  funlen:
+    lines: 60
+    statements: 40
+  gci:
+    local-prefixes: github.com/siderolabs/omni/
+  gocognit:
+    min-complexity: 30
+  ireturn:
+    allow:
+      - anon
+      - error
+      - empty
+      - stdlib
+      - github.com\/talos-systems\/kres\/internal\/dag.Node
+  nestif:
+    min-complexity: 5
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  gocritic:
+    disabled-checks: []
+  gocyclo:
+    min-complexity: 20
+  godot:
+    check-all: false
+  godox:
+    keywords: # default keywords are TODO, BUG, and FIXME, these can be overwritten by this setting
+      - NOTE
+      - OPTIMIZE # marks code that should be optimized before merging
+      - HACK # marks hack-arounds that should be removed before merging
+  gofmt:
+    simplify: true
+  goimports:
+    local-prefixes: github.com/siderolabs/omni/
+  golint:
+    min-confidence: 0.8
+  gomnd:
+    settings: {}
+  gomodguard: {}
+  govet:
+    check-shadowing: true
+    enable-all: true
+  lll:
+    line-length: 200
+    tab-width: 4
+  misspell:
+    locale: US
+    ignore-words: []
+  nakedret:
+    max-func-lines: 30
+  prealloc:
+    simple: true
+    range-loops: true # Report preallocation suggestions on range loops, true by default
+    for-loops: false # Report preallocation suggestions on for loops, false by default
+  nolintlint:
+    allow-unused: false
+    allow-leading-space: false
+    allow-no-explanation: []
+    require-explanation: false
+    require-specific: true
+  rowserrcheck: {}
+  testpackage: {}
+  unparam:
+    check-exported: false
+  unused:
+    check-exported: false
+  whitespace:
+    multi-if: false   # Enforces newlines (or comments) after every multi-line if statement
+    multi-func: false # Enforces newlines (or comments) after every multi-line function signature
+  wsl:
+    strict-append: true
+    allow-assign-and-call: true
+    allow-multiline-assign: true
+    allow-cuddle-declarations: false
+    allow-trailing-comment: false
+    force-case-trailing-whitespace: 0
+    force-err-cuddling: false
+    allow-separated-leading-comment: false
+  gofumpt:
+    extra-rules: false
+  cyclop:
+      # the maximal code complexity to report
+      max-complexity: 20
+  #  depguard:
+  #    Main:
+  #      deny:
+  #        - github.com/OpenPeeDeeP/depguard # this is just an example
+
+linters:
+  enable-all: true
+  disable-all: false
+  fast: false
+  disable:
+    - exhaustruct
+    - exhaustivestruct
+    - forbidigo
+    - funlen
+    - gas
+    - gochecknoglobals
+    - gochecknoinits
+    - godox
+    - goerr113
+    - gomnd
+    - gomoddirectives
+    - ireturn
+    - nestif
+    - nonamedreturns
+    - nosnakecase
+    - paralleltest
+    - tagliatelle
+    - thelper
+    - typecheck
+    - varnamelen
+    - wrapcheck
+    - depguard # Disabled because starting with golangci-lint 1.53.0 it doesn't allow denylist alone anymore
+    - tagalign
+    - inamedparam
+    - testifylint # complains about our assert recorder and has a number of false positives for assert.Greater(t, thing, 1)
+    - protogetter # complains about us using Value field on typed spec, instead of GetValue which has a different signature
+    - perfsprint # complains about us using fmt.Sprintf in non-performance critical code, updating just kres took too long
+    # abandoned linters for which golangci shows the warning that the repo is archived by the owner
+    - interfacer
+    - maligned
+    - golint
+    - scopelint
+    - varcheck
+    - deadcode
+    - structcheck
+    - ifshort
+    # disabled as it seems to be broken - goes into imported libraries and reports issues there
+    - musttag
+
+issues:
+  exclude: []
+  exclude-rules: []
+  exclude-use-default: false
+  exclude-case-sensitive: false
+  max-issues-per-linter: 10
+  max-same-issues: 3
+  new: false
+
+severity:
+  default-severity: error
+  case-sensitive: false

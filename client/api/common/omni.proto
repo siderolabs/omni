@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package common;
+
+option go_package = "github.com/siderolabs/omni/client/api/common";
+
+// Data source.
+enum Runtime {
+  // Kubernetes control plane.
+  Kubernetes = 0;
+  // Talos apid.
+  Talos = 1;
+  // Omni internal runtime.
+  Omni = 2;
+}
+// Context represents Kubernetes or Talos config source.
+message Context {
+  reserved 2, 3;
+
+  // Name fetches the config from the top level Kubeconfig or Talosconfig.
+  string name = 1;
+}

@@ -1,0 +1,20 @@
+# Copyright (c) 2024 Sidero Labs, Inc.
+#
+# Use of this software is governed by the Business Source License
+# included in the LICENSE file.
+
+email: test-user@siderolabs.com
+host: localhost
+additional-hosts: []
+bind_addr: 0.0.0.0:443
+client-id: jS47T064CfFE1IqqIYZ8HfYLkZhFoa1Y
+auth0-domain: sidero-omni-dev.us.auth0.com
+pprof-bind-addr: 0.0.0.0:2135
+# registry-mirrors: # optional, but speeds up deployments a lot
+#   docker.io: http://172.20.0.1:5000
+#   k8s.gcr.io: http://172.20.0.1:5001
+#   quay.io: http://172.20.0.1:5002
+#   gcr.io: http://172.20.0.1:5003
+#   ghcr.io: http://172.20.0.1:5004
+#   registry.k8s.io: http://172.20.0.1:5001
+#   factory.talos.dev: http://172.20.0.1:5006

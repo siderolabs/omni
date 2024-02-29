@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+// Resource package defines protobuf serialization of COSI resources.
+package cosi.resource;
+
+option go_package = "github.com/cosi-project/runtime/api/v1alpha1";
+
+import "google/protobuf/timestamp.proto";
+
+// Metadata represents resource metadata.
+//
+// (namespace, type, id) is a resource pointer.
+// (version) is a current resource version.
+// (owner) is filled in for controller-managed resources with controller name.
+// (phase) indicates whether resource is going through tear down phase.
+// (finalizers) are attached controllers blocking teardown of the resource.
+// (labels) and (annotations) are free-form key-value pairs; labels allow queries.
+message Metadata {
+    string namespace = 1;
+    string type = 2;
+    string id = 3;
+    string version = 4;
+    string owner = 5;
+    string phase = 6;
+    google.protobuf.Timestamp created = 7;
+    google.protobuf.Timestamp updated = 8;
+    repeated string finalizers = 9;
+    map<string, string> annotations = 11;
+    map<string, string> labels = 10;
+}
+
+// Spec defines content of the resource.
+message Spec {
+    // Protobuf-serialized representation of the resource.
+    bytes proto_spec = 1;
+    // YAML representation of the spec (optional).
+    string yaml_spec = 2;
+}
+
+// Resource is a combination of metadata and spec.
+message Resource {
+    Metadata metadata = 1;
+    Spec spec = 2;
+}
+
+// LabelTerm is an expression on a label.
+message LabelTerm {
+    enum Operation {
+        // Label exists.
+        EXISTS = 0;
+        // Label value is equal.
+        EQUAL = 1;
+        // Label doesn't exist.
+        NOT_EXISTS = 2 [deprecated=true];
+        // Label value is in the set.
+        IN = 3;
+        // Label value is less.
+        LT = 4;
+        // Label value is less or equal.
+        LTE = 5;
+        // Label value is less than number.
+        LT_NUMERIC = 6;
+        // Label value is less or equal numeric.
+        LTE_NUMERIC = 7;
+    }
+
+    string key = 1;
+    Operation op = 2;
+    repeated string value = 3;
+    // Inverts the condition.
+    bool invert = 5;
+}
+
+// LabelQuery is a query on resource metadata labels.
+//
+// Terms are combined with AND.
+message LabelQuery {
+    repeated LabelTerm terms = 1;
+}
+
+// IDQuery is a query on resource metadata ID.
+message IDQuery {
+    string regexp = 1;
+}

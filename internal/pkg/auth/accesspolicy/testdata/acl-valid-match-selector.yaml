@@ -1,0 +1,73 @@
+metadata:
+  namespace: default
+  type: AccessPolicies.omni.sidero.dev
+  id: access-policy
+spec:
+  usergroups:
+    user-group-1:
+      users:
+        - match: user-to-match-* # fnmatch syntax
+    user-group-2:
+      users:
+        - labelselectors:
+            - key-1=value-1 # key-1 must have value-1
+            - key-2 # key-2 must exist
+            - "!key-3" # key-3 must not exist
+  clustergroups:
+    cluster-group-1:
+      clusters:
+        - match: cluster-?-match # fnmatch syntax
+  rules:
+    - users:
+        - group/user-group-1
+      clusters:
+        - group/cluster-group-1
+      kubernetes:
+        impersonate:
+          groups:
+            - k8s-group-1
+    - users:
+        - group/user-group-2
+      clusters:
+        - cluster-x
+      kubernetes:
+        impersonate:
+          groups:
+            - k8s-group-1
+  tests:
+    - name: test-1
+      user:
+        name: user-to-match-1 # member of user-group-1
+      cluster:
+        name: cluster-b-match # member of cluster-group-1
+      expected:
+        kubernetes:
+          impersonate:
+            groups:
+              - k8s-group-1
+    - name: test-2
+      user:
+        name: doesnt-matter # member of user-group-2
+        labels:
+            key-1: value-1
+            key-2: value-2
+      cluster:
+        name: cluster-x
+      expected:
+        kubernetes:
+          impersonate:
+            groups:
+              - k8s-group-1
+    - name: test-2
+      user:
+        name: doesnt-matter # not a member of any groups because of the label "key-3"
+        labels:
+          key-1: value-1
+          key-2: value-2
+          key-3: something
+      cluster:
+        name: cluster-x
+      expected:
+        kubernetes:
+          impersonate:
+            groups: []

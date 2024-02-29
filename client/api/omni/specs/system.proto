@@ -1,0 +1,20 @@
+syntax = "proto3";
+package specs;
+
+option go_package = "github.com/siderolabs/omni/client/api/omni/specs";
+
+// DBVersionSpec keeps the current version of the COSI DB.
+message DBVersionSpec {
+  uint64 version = 1;
+}
+
+// SysVersionSpec keeps the current version of Omni.
+message SysVersionSpec {
+  string backend_version = 1;
+  string instance_name = 2;
+  uint32 backend_api_version = 3;
+}
+
+// CertRefreshTickSpec is a certificate refresh tick.
+message CertRefreshTickSpec {
+}

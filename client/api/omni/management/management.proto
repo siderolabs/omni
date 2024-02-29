@@ -1,0 +1,146 @@
+syntax = "proto3";
+package management;
+
+option go_package = "github.com/siderolabs/omni/client/api/omni/management";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+import "common/common.proto";
+
+message KubeconfigResponse {
+  // Kubeconfig is the kubeconfig for the cluster.
+  bytes kubeconfig = 1;
+}
+
+message TalosconfigResponse {
+  // talosconfig is the talos client configuration to access the cluster via the proxy.
+  bytes talosconfig = 1;
+}
+
+message OmniconfigResponse{
+  // omniconfig is the omnictl client configuration to access the omni instance.
+  bytes omniconfig = 1;
+}
+
+message MachineLogsRequest {
+  // MachineId is the ID of the machine.
+  string machine_id = 1;
+  // Follow is whether to follow the logs.
+  bool follow = 2;
+  // TailLines is the number of lines to tail.
+  int32 tail_lines = 3;
+}
+
+message ValidateConfigRequest {
+  // Config represents raw configuration string to validate.
+  string config = 1;
+}
+
+message TalosconfigRequest {
+  // Admin indicates whether to generate an admin talosconfig or a regular one.
+  bool admin = 1;
+}
+
+message CreateServiceAccountRequest {
+  string armored_pgp_public_key = 1;
+  reserved 2;
+  // UseUserRole indicates whether to use the role of the creating user.
+  // When true, role will be ignored and the service account will be created with the role of the creating user.
+  bool use_user_role = 3;
+  string role = 4;
+}
+
+message CreateServiceAccountResponse {
+  string public_key_id = 1;
+}
+
+message RenewServiceAccountRequest {
+  string name = 1;
+  string armored_pgp_public_key = 2;
+}
+
+message RenewServiceAccountResponse {
+  string public_key_id = 1;
+}
+
+message DestroyServiceAccountRequest {
+  string name = 1;
+}
+
+message ListServiceAccountsResponse {
+  message ServiceAccount {
+    message PgpPublicKey {
+      string id = 1;
+      string armored = 2;
+      google.protobuf.Timestamp expiration = 3;
+    }
+
+    string name = 1;
+    repeated PgpPublicKey pgp_public_keys = 2;
+    reserved 3;
+    string role = 4;
+  }
+
+  repeated ServiceAccount service_accounts = 1;
+}
+
+message KubeconfigRequest {
+  bool service_account = 1;
+  google.protobuf.Duration service_account_ttl = 2;
+  string service_account_user = 3;
+  repeated string service_account_groups = 4;
+}
+
+message KubernetesUpgradePreChecksRequest {
+  string new_version = 1;
+}
+
+message KubernetesUpgradePreChecksResponse {
+  bool ok = 1;
+  string reason = 2;
+}
+
+message KubernetesSyncManifestRequest {
+  bool dry_run = 1;
+}
+
+message KubernetesSyncManifestResponse {
+  enum ResponseType {
+    UNKNOWN = 0;
+    MANIFEST = 1;
+    ROLLOUT = 2;
+  };
+
+  ResponseType response_type = 1;
+  string path = 2;
+  bytes object = 3;
+  string diff = 4;
+  bool skipped = 5;
+}
+
+message CreateSchematicRequest {
+  repeated string extensions = 1;
+  repeated string extra_kernel_args = 2;
+  map<uint32, string> meta_values = 3;
+}
+
+message CreateSchematicResponse {
+  string schematic_id = 1;
+  string pxe_url = 2;
+}
+
+service ManagementService {
+  rpc Kubeconfig(KubeconfigRequest) returns (KubeconfigResponse);
+  rpc Talosconfig(TalosconfigRequest) returns (TalosconfigResponse);
+  rpc Omniconfig(google.protobuf.Empty) returns (OmniconfigResponse);
+  rpc MachineLogs(MachineLogsRequest) returns (stream common.Data);
+  rpc ValidateConfig(ValidateConfigRequest) returns (google.protobuf.Empty);
+  rpc CreateServiceAccount(CreateServiceAccountRequest) returns (CreateServiceAccountResponse);
+  rpc RenewServiceAccount(RenewServiceAccountRequest) returns (RenewServiceAccountResponse);
+  rpc ListServiceAccounts(google.protobuf.Empty) returns (ListServiceAccountsResponse);
+  rpc DestroyServiceAccount(DestroyServiceAccountRequest) returns (google.protobuf.Empty);
+  rpc KubernetesUpgradePreChecks(KubernetesUpgradePreChecksRequest) returns (KubernetesUpgradePreChecksResponse);
+  rpc KubernetesSyncManifests(KubernetesSyncManifestRequest) returns (stream KubernetesSyncManifestResponse);
+  rpc CreateSchematic(CreateSchematicRequest) returns (CreateSchematicResponse);
+}

@@ -1,0 +1,14 @@
+syntax = "proto3";
+package specs;
+
+option go_package = "github.com/siderolabs/omni/client/api/omni/specs";
+
+import "google/protobuf/timestamp.proto";
+
+// JWTPublicKeySpec keeps the active set of JWT signing keys.
+message JWTPublicKeySpec {
+  // PKCS1 encoded RSA public key.
+  bytes public_key = 1;
+  // Expiration time (when it's ready to be cleaned up).
+  google.protobuf.Timestamp expiration = 2;
+}

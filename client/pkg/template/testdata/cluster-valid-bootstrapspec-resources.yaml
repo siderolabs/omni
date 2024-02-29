@@ -1,0 +1,91 @@
+metadata:
+    namespace: default
+    type: Clusters.omni.sidero.dev
+    id: my-cluster-with-bootstrapspec
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    annotations:
+        omni.sidero.dev/managed-by-cluster-templates:
+spec:
+    installimage: ""
+    kubernetesversion: 1.18.2
+    talosversion: 1.3.0
+    features:
+        enableworkloadproxy: false
+        diskencryption: false
+    backupconfiguration: null
+---
+metadata:
+    namespace: default
+    type: MachineSets.omni.sidero.dev
+    id: my-cluster-with-bootstrapspec-control-planes
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    labels:
+        omni.sidero.dev/cluster: my-cluster-with-bootstrapspec
+        omni.sidero.dev/role-controlplane:
+spec:
+    updatestrategy: 1
+    machineclass: null
+    bootstrapspec:
+        clusteruuid: test-cluster-uuid
+        snapshot: TEST.snapshot
+    deletestrategy: 0
+    updatestrategyconfig: null
+    deletestrategyconfig: null
+---
+metadata:
+    namespace: default
+    type: MachineSetNodes.omni.sidero.dev
+    id: 430d882a-51a8-48b3-ae00-90c5b0b5b0b0
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    labels:
+        omni.sidero.dev/cluster: my-cluster-with-bootstrapspec
+        omni.sidero.dev/machine-set: my-cluster-with-bootstrapspec-control-planes
+        omni.sidero.dev/role-controlplane:
+spec: {}
+---
+metadata:
+    namespace: default
+    type: MachineSets.omni.sidero.dev
+    id: my-cluster-with-bootstrapspec-workers
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    labels:
+        omni.sidero.dev/cluster: my-cluster-with-bootstrapspec
+        omni.sidero.dev/role-worker:
+spec:
+    updatestrategy: 1
+    machineclass: null
+    bootstrapspec: null
+    deletestrategy: 0
+    updatestrategyconfig: null
+    deletestrategyconfig: null
+---
+metadata:
+    namespace: default
+    type: MachineSetNodes.omni.sidero.dev
+    id: 18308f52-b833-4376-a7c8-1cb9de2feafd
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    labels:
+        omni.sidero.dev/cluster: my-cluster-with-bootstrapspec
+        omni.sidero.dev/machine-set: my-cluster-with-bootstrapspec-workers
+        omni.sidero.dev/role-worker:
+spec: {}

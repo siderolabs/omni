@@ -1,0 +1,21 @@
+syntax = "proto3";
+package oidc;
+
+option go_package = "github.com/siderolabs/omni/client/api/omni/oidc";
+
+import "google/protobuf/empty.proto";
+
+message AuthenticateRequest {
+  // Auth Request ID.
+  string auth_request_id = 1;
+}
+
+message AuthenticateResponse {
+  // URL to redirect the user to.
+  string redirect_url = 1;
+}
+
+service OIDCService {
+  // Authenticate an OIDC auth request by ID.
+  rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse);
+}

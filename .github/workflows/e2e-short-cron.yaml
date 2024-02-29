@@ -1,0 +1,53 @@
+# THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
+#
+# Generated on 2024-02-28T11:30:58Z by kres latest.
+
+name: e2e-short-cron
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+"on":
+  schedule:
+    - cron: 30 1 * * *
+jobs:
+  default:
+    runs-on:
+      - self-hosted
+      - omni
+    services:
+      buildkitd:
+        image: moby/buildkit:v0.12.5
+        options: --privileged
+        ports:
+          - 1234:1234
+        volumes:
+          - /var/lib/buildkit/${{ github.repository }}:/var/lib/buildkit
+          - /usr/etc/buildkit/buildkitd.toml:/etc/buildkit/buildkitd.toml
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Unshallow
+        run: |
+          git fetch --prune --unshallow
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: remote
+          endpoint: tcp://localhost:1234
+        timeout-minutes: 1
+      - name: run-integration-test
+        env:
+          AUTH0_TEST_PASSWORD: ${{ secrets.AUTH0_TEST_PASSWORD }}
+          AUTH0_TEST_USERNAME: ${{ secrets.AUTH0_TEST_USERNAME }}
+          INTEGRATION_RUN_E2E_TEST: "false"
+          INTEGRATION_TEST_ARGS: --test.run CleanState/|TalosImageGeneration/|ImmediateClusterDestruction/|DefaultCluster/|EncryptedCluster/|SinglenodeCluster/|Auth/
+          WITH_DEBUG: "true"
+        run: |
+          sudo -E make run-integration-test
+      - name: save-talos-logs-artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: talos-logs
+          path: ~/.talos/clusters/**/*.log
+          retention-days: "5"

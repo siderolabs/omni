@@ -1,0 +1,17 @@
+kind: Cluster
+name: my-cluster-with-bootstrapspec
+kubernetes:
+  version: v1.18.2
+talos:
+  version: v1.3.0
+---
+kind: ControlPlane
+machines:
+  - 430d882a-51a8-48b3-ae00-90c5b0b5b0b0
+bootstrapSpec:
+  clusterUUID: test-cluster-uuid
+  snapshot: TEST.snapshot
+---
+kind: Workers
+machines:
+  - 18308f52-b833-4376-a7c8-1cb9de2feafd

@@ -1,0 +1,53 @@
+kind: Cluster
+name: my-first-cluster
+kubernetes:
+  version: v1.18.2
+talos:
+  version: v1.3.1
+
+# control plane
+---
+kind: Machine
+name: 4b9797ae-55d7-4717-a19e-b322a2d83d39
+---
+kind: ControlPlane
+name: dodo
+machines:
+  - 4b9797ae-55d7-4717-a19e-b322a2d83d39
+
+# default workers
+---
+kind: Machine
+name: 947f7a99-0f46-4a9e-ab02-205f4e1b7009
+---
+kind: Workers
+machines:
+  - 947f7a99-0f46-4a9e-ab02-205f4e1b7009
+
+# additional workers 1
+---
+kind: Machine
+name: b1ed45d8-4e79-4a07-a29a-b1b075843d41
+---
+kind: Workers
+name: additional-1
+machines:
+  - b1ed45d8-4e79-4a07-a29a-b1b075843d41
+
+# duplicate additional workers
+---
+kind: Machine
+name: 919b1d5b-daf8-4b82-bc0d-48929f05a405
+---
+kind: Workers
+name: additional-1
+machines:
+  - 919b1d5b-daf8-4b82-bc0d-48929f05a405
+
+# additional workers 2 with machines from additional-1
+---
+kind: Workers
+name: additional-2
+machines:
+  - b1ed45d8-4e79-4a07-a29a-b1b075843d41
+

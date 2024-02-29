@@ -1,0 +1,933 @@
+syntax = "proto3";
+package specs;
+
+option go_package = "github.com/siderolabs/omni/client/api/omni/specs";
+
+import "talos/machine/machine.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
+// MachineSpec describes a Machine.
+message MachineSpec {
+  // IP which can be used to access Talos API.
+  string management_address = 1;
+  // Connected is copied from the corresponding Link resource.
+  bool connected = 2;
+  reserved 3;
+  reserved 4;
+}
+
+// MachineStatusSpec describes state of a Machine.
+message MachineStatusSpec {
+  // HardwareStatus describes machine hardware status.
+  message HardwareStatus {
+    // Processor describes machine CPU.
+    message Processor {
+      // Number of cores.
+      uint32 core_count = 1;
+      // Number of threads.
+      uint32 thread_count = 2;
+      // CPU frequency in MHz.
+      uint32 frequency = 3;
+      // CPU manufacturer and model.
+      string description = 4;
+      // CPU manufacturer.
+      string manufacturer = 5;
+    }
+
+    // MemoryModule describes machine memory.
+    message MemoryModule {
+      // Size of memory in MB.
+      uint32 size_mb = 1;
+      // Memory manufacturer and model.
+      string description = 2;
+    }
+
+    // BlockDevice describes a block device.
+    message BlockDevice {
+      // Size indicates the disk size in bytes.
+      uint64 size = 1;
+      // Model idicates the disk model.
+      string model = 2;
+      // Linux blockdevice name (e.g. `/dev/sda`).
+      string linux_name = 3;
+      // Name as in `/sys/block/<dev>/device/name`.
+      string name = 4;
+      // Serial as in `/sys/block/<dev>/device/serial`.
+      string serial = 5;
+      // Uuid as in `/sys/block/<dev>/device/uuid`.
+      string uuid = 7;
+      // Wwid as in `/sys/block/<dev>/device/wwid`.
+      string wwid = 8;
+      // Type is a type of the disk: nvme, ssd, hdd, sd card.
+      string type = 9;
+      // BusPath is the bus path of the disk.
+      string bus_path = 10;
+      // SystemDisk is the system disk flag.
+      bool system_disk = 11;
+    }
+
+    // CPU information.
+    repeated Processor processors = 1;
+    // Memory information.
+    repeated MemoryModule memory_modules = 2;
+    // Blockdevice information.
+    repeated BlockDevice blockdevices = 3;
+    // Machine architecture.
+    string arch = 4;
+  }
+
+  // NetworkStatus describes the status of a machine network .
+  message NetworkStatus {
+    // Physical network interfaces.
+    message NetworkLinkStatus {
+      // Linux interface name.
+      string linux_name = 1;
+      // MAC address.
+      string hardware_address = 2;
+      // Speed in Mbps.
+      uint32 speed_mbps = 3;
+      // Link status.
+      bool link_up = 4;
+      // Hardware description.
+      string description = 5;
+    };
+
+    // Current machine hostname.
+    string hostname = 1;
+    // Current machine domainname.
+    string domainname = 2;
+    // List of machine IPs.
+    repeated string addresses = 3;
+    // List of default gateway IPs.
+    repeated string default_gateways = 4;
+    // List of physical network interfaces.
+    repeated NetworkLinkStatus network_links = 5;
+  }
+
+  // PlatformMetadata describes platform-specific information.
+  message PlatformMetadata {
+    // Platform is the name of the platform (e.g. `aws`, `gcp`, `azure`).
+    string platform = 1;
+    // Hostname is the hostname of the machine.
+    string hostname = 2;
+    // Region (in the cloud).
+    string region = 3;
+    // Availability zone (in the cloud).
+    string zone = 4;
+    // Instance type (in the cloud).
+    string instance_type = 5;
+    // Instance ID (in the cloud).
+    string instance_id = 6;
+    // Provider ID (for the Node resource).
+    string provider_id = 7;
+    // Spot instance flag.
+    bool spot = 8;
+  }
+
+  message Schematic {
+    // Id is the image factory schematic id used for the image generation.
+    string id = 1;
+
+    // Invalid marks the machine as having extensions installed bypassing image factory.
+    // Which makes it impossible to detect schematic id and manage the image generation
+    // using image factory.
+    bool invalid = 2;
+  }
+
+  // Talos version.
+  string talos_version = 1;
+
+  // Hardware-related information.
+  HardwareStatus hardware = 2;
+
+  // Network-related information.
+  NetworkStatus network = 3;
+
+  // Set if the last poll resulted in an error.
+  string last_error = 4;
+
+  // Management address is copied from the machine resource.
+  string management_address = 5;
+
+  // Connected is copied from the corresponding Link resource.
+  bool connected = 6;
+
+  // Maintenance flag means that the node is running in the maintenance mode.
+  bool maintenance = 7;
+
+  reserved 8;
+
+  // Cluster is the name of the cluster the machine belongs to.
+  string cluster = 9;
+
+  enum Role {
+    NONE = 0;
+    CONTROL_PLANE = 1;
+    WORKER = 2;
+  }
+
+  // Role is the role of the machine in the cluster.
+  Role role = 10;
+
+  // Platform-specific information.
+  PlatformMetadata platform_metadata = 11;
+
+  reserved 12;
+
+  map<string, string> image_labels = 13;
+
+  Schematic schematic = 14;
+}
+
+// TalosConfigSpec describes a Talos cluster config.
+message TalosConfigSpec {
+  // Ca certificate authority.
+  string ca = 1;
+
+  // Crt certificate.
+  string crt = 2;
+
+  // Key certificate key.
+  string key = 3;
+}
+
+// Cluster describes a Talos cluster.
+message ClusterSpec {
+  message Features {
+    // EnableWorkloadProxy enables workload proxy.
+    bool enable_workload_proxy = 1;
+    // DiskEncryption enables disk encryption on all nodes.
+    bool disk_encryption = 2;
+  }
+
+  // InstallImage the installer image to use.
+  string install_image = 1 [deprecated = true];
+
+  // KubernetesVersion to use on the node.
+  string kubernetes_version = 2;
+
+  // TalosVersion cluster wide Talos version.
+  string talos_version = 3;
+
+  // Features are the cluster features.
+  Features features = 4;
+
+  // Backup describes the backup configuration. If it set to null that means that backups are disabled for this cluster.
+  EtcdBackupConf backup_configuration = 5;
+}
+
+// EtcdBackupConf describes the backup configuration.
+message EtcdBackupConf {
+  // Interval is the interval between backups. If not set, backups are disabled.
+  google.protobuf.Duration interval = 1;
+  // Enabled etcd backups.
+  bool enabled = 2;
+}
+
+// EtcdBackupEncryptionSpec describes the backup encryption.
+message EtcdBackupEncryptionSpec {
+  bytes encryption_key = 1;
+}
+
+// EtcdBackupHeader describes the backup header.
+message EtcdBackupHeader {
+  // Version is the version of the backup creator.
+  int64 version = 1;
+}
+
+// EtcdBackupSpec describes the backup.
+message EtcdBackupSpec {
+  // CreatedAt is the time when the backup was created.
+  google.protobuf.Timestamp created_at = 1;
+
+  // Snapshot is the snapshot file name.
+  string snapshot = 2;
+
+  // Size specifies the etcd backup size.
+  uint64 size = 3;
+}
+
+// BackupDataSpec describes the data needed for etcd backup.
+message BackupDataSpec {
+  google.protobuf.Duration interval = 1;
+  string cluster_uuid = 2;
+  bytes encryption_key = 3;
+  string aes_cbc_encryption_secret = 4;
+  string secretbox_encryption_secret = 5;
+}
+
+// EtcdBackupS3ConfSpec describes the S3 configuration for the backup process.
+message EtcdBackupS3ConfSpec {
+  string bucket = 1;
+  string region = 2;
+  string endpoint = 3;
+  string access_key_id = 4;
+  string secret_access_key = 5;
+  string session_token = 6;
+}
+
+// EtcdBackupStatus describes cluster last backup status.
+message EtcdBackupStatusSpec {
+  enum Status {
+    Unknown = 0;
+    Ok = 1;
+    Error = 2;
+    Running = 3;
+  }
+
+  // Status is the status of the last backup.
+  Status status = 1;
+
+  // Error is the error message if the backup failed.
+  string error = 2;
+
+  // LastBackupTime is the time of the last backup.
+  google.protobuf.Timestamp last_backup_time = 3;
+
+  // LastBackupAttempt is the time of the last backup attempt.
+  google.protobuf.Timestamp last_backup_attempt = 4;
+}
+
+// EtcdManualBackupSpec describes the manual backup request.
+message EtcdManualBackupSpec {
+  // BackupAt is the time when the backup should be created.
+  google.protobuf.Timestamp backup_at = 1;
+}
+
+// EtcdBackupStoreStatusSpec is internal resource that decribes store configuration name and configuration last error.
+message EtcdBackupStoreStatusSpec {
+  // ConfigurationName is the name of the configuration (disabled|local|s3).
+  string configuration_name = 1;
+
+  // ConfigurationError is the error message if the configuration is invalid.
+  string configuration_error = 2;
+}
+
+// EtcdBackupOverallStatusSpec describes the overall etcd backup system status.
+message EtcdBackupOverallStatusSpec {
+  // ConfigurationName is the name of the configuration (disabled|local|s3).
+  string configuration_name = 1;
+
+  // ConfigurationError is the error message if the configuration is invalid.
+  string configuration_error = 2;
+
+  // LastBackupStatus is the status of the last backup.
+  EtcdBackupStatusSpec last_backup_status = 3;
+}
+
+// ClusterMachineSpec describes a machine attached to a Cluster.
+message ClusterMachineSpec {
+  reserved 1;
+  // KubernetesVersion to use on the machine (copied from Cluster at the moment of creation).
+  string kubernetes_version = 2;
+}
+
+// ClusterMachineConfigPatchesSpec keeps the list of config patches to be applied on the machine.
+message ClusterMachineConfigPatchesSpec {
+  // List of patches combined from all sources, as a final list of patches to apply.
+  repeated string patches = 1;
+}
+
+// ClusterMachineTalosVersionSpec describes a machine Talos version and schematic.
+message ClusterMachineTalosVersionSpec {
+  string talos_version = 1;
+  string schematic_id = 2;
+}
+
+// ClusterMachineConfigSpec stores generated Talos node machine config.
+message ClusterMachineConfigSpec {
+  bytes data = 1;
+  string cluster_machine_version = 2;
+  string generation_error = 3;
+}
+
+// ClusterMachineConfigSpec stores generated Talos node machine config.
+message RedactedClusterMachineConfigSpec {
+  string data = 1;
+}
+
+// ClusterMachineIdentity keeps ClusterMachine related node information.
+message ClusterMachineIdentitySpec {
+  // NodeIdentity is Talos node identity from Identity resource.
+  string node_identity = 1;
+  // EtcdMemberId is the id of the node how it's represented in the etcd quorum.
+  uint64 etcd_member_id = 2;
+  // Nodename is the Kubernetes node name.
+  string nodename = 3;
+  // NodeIps are the IPs of the Kubernetes node.
+  repeated string node_ips = 8;
+}
+
+// ClusterMachineTemplateSpec
+message ClusterMachineTemplateSpec {
+  // InstallImage the installer image to use.
+  string install_image = 1;
+
+  // KubernetesVersion to use on the node.
+  string kubernetes_version = 2;
+
+  // InstallDisk Talos system disk.
+  string install_disk = 3;
+
+  // Patch represents machinery config patch.
+  string patch = 5;
+}
+
+enum ConfigApplyStatus {
+  UNKNOWN = 0;
+  PENDING = 1;
+  APPLIED = 2;
+  FAILED = 3;
+}
+
+// ClusterMachineStatusSpec
+message ClusterMachineStatusSpec {
+  // Ready is true if all services are healthy.
+  bool ready = 1;
+
+  enum Stage {
+    UNKNOWN = 0;
+    BOOTING = 1;
+    INSTALLING = 2;
+    UPGRADING = 6;
+    CONFIGURING = 3;
+    RUNNING = 4;
+    REBOOTING = 7;
+    SHUTTING_DOWN = 8;
+    BEFORE_DESTROY = 9;
+    DESTROYING = 5;
+  }
+
+  Stage stage = 2;
+
+  // ApidAvailable is true if the node is a control plane node and the apid service is healthy.
+  bool apid_available = 3;
+
+  bool config_up_to_date = 4;
+  string last_config_error = 5;
+
+  // Management address is copied from the machine status resource.
+  string management_address = 6;
+
+  ConfigApplyStatus config_apply_status = 7;
+}
+
+// Machines counts the number of machines in a set including health status.
+message Machines {
+  // Total machines currently allocated.
+  uint32 total = 1;
+  // Healthy machines.
+  uint32 healthy = 2;
+  // Connected represents the number of machines in a machine set connected to the wireguard network.
+  uint32 connected = 3;
+  // Requested machines count, same as total for manual allocation, may differ for machine class mode.
+  uint32 requested = 4;
+}
+
+// ClusterStatusSpec aggregates general information about a cluster.
+message ClusterStatusSpec {
+  // Cluster is available when at least one controlplane node has APId up.
+  bool available = 1;
+
+  Machines machines = 2;
+
+  enum Phase {
+    UNKNOWN = 0;
+    SCALING_UP = 1;
+    SCALING_DOWN = 2;
+    RUNNING = 3;
+    DESTROYING = 4;
+  }
+
+  Phase phase = 3;
+
+  bool ready = 4;
+  bool kubernetesAPIReady = 5;
+  bool controlplaneReady = 6;
+  bool has_connected_control_planes = 7;
+}
+
+// ClusterUUID keeps the UUID of the cluster.
+message ClusterUUID {
+  string uuid = 1;
+}
+
+// ClusterConfigVersion keeps the version of Talos which was used for initial config generation.
+message ClusterConfigVersionSpec {
+  string version = 1;
+}
+
+// ClusterMachineConfigStatusSpec machine configuration status spec.
+message ClusterMachineConfigStatusSpec {
+  reserved 1;
+  reserved 2;
+
+  string cluster_machine_config_version = 3;
+  string cluster_machine_version = 4;
+  string cluster_machine_config_sha256 = 5;
+  string last_config_error = 6;
+  string talos_version = 7;
+  string schematic_id = 8;
+}
+
+// ClusterBootstrapStatusSpec keeps track of bootstrap calls for a cluster.
+message ClusterBootstrapStatusSpec {
+  bool bootstrapped = 1;
+}
+
+// ClusterSecretsSpec describes cluster secrets.
+message ClusterSecretsSpec {
+  // Bytes holding serialized cluster secrets.
+  bytes data = 1;
+}
+
+// LoadBalancerConfigSpec describes the configuration of a load balancer.
+message LoadBalancerConfigSpec {
+  reserved 1;
+  string bind_port = 2;
+  // Full URL of the loadbalancer inside Omni environment.
+  string  siderolink_endpoint = 4;
+  // IP adresses of the endpoints
+  repeated string endpoints = 3;
+}
+
+// LoadBalancerStatusSpec reflects the status of a load balancer.
+message LoadBalancerStatusSpec {
+  reserved 1;
+  reserved 2;
+  bool healthy = 3;
+  bool stopped = 4;
+}
+
+// KubernetesVersionSpec represents an available Kubernetes version.
+message KubernetesVersionSpec {
+  string version = 1;
+}
+
+// TalosVersionSpec represents an available Talos version.
+message TalosVersionSpec {
+  string version = 1;
+  repeated string compatible_kubernetes_versions = 2;
+}
+
+// InstallationMediaSpec resource describes a Talos installation media that can be generated by the image factory. It also describes the necessary parameters to be passed to the image factory.
+message InstallationMediaSpec {
+  // Name is the human readable name of the image.
+  string name = 1;
+  string architecture = 2;
+  string profile = 3;
+  string contentType = 6;
+  // SrcFilePrefix defines the src filename to download the image from.
+  string src_file_prefix = 7;
+  // DestFilePrefix defines the dest filename to download the image to.
+  string dest_file_prefix = 8;
+  // Extension defines the dest filename extension.
+  string extension = 9;
+  // NoSecureBoot means that the installation media doesn't support SecureBoot generation.
+  bool no_secure_boot = 11;
+}
+
+// ConfigPatchSpec represents the machine config patch.
+message ConfigPatchSpec {
+  string data = 1;
+}
+
+// MachineSetPhaseSpec is machine set phase.
+enum MachineSetPhase {
+  Unknown = 0;
+  ScalingUp = 1;
+  ScalingDown = 2;
+  Running = 3;
+  Destroying = 4;
+  Failed = 5;
+  Reconfiguring = 6;
+}
+
+// MachineSetSpec describes the cluster machine group.
+message MachineSetSpec {
+  // MachineClass defines the machine class configuration.
+  message MachineClass {
+    enum AllocationType {
+      // Static uses the count defined in the count field.
+      Static = 0;
+      // Unlimited allocates all available machines from the machine class.
+      Unlimited = 1;
+    }
+
+    // Name defines the machine class id to select the machines from.
+    string name = 1;
+    // MachineCount defines fixed amount of the machines to allocated from the machine class.
+    uint32 machine_count = 2;
+    // AllocationType defines special constants for the amount of machines to be allocated.
+    AllocationType allocation_type = 3;
+  }
+
+  // BootstrapSpec defines the bootstrap spec for the control plane machine set.
+  // It can contain a reference to an etcd backup, which can be used to bootstrap etcd.
+  message BootstrapSpec {
+    // ClusterUuid is the UUID of the cluster to bootstrap. It can be obtained via `omnictl get clusteruuid <cluster-name>`
+    string cluster_uuid = 1;
+
+    // Snapshot is the file name of the etcd snapshot to restore from. It follows the format similar to `FFFFFFFFFFFFFFFF.snapshot`.
+    string snapshot = 2;
+  }
+
+  // UpdateStrategy defines the update strategy of the machine set.
+  enum UpdateStrategy {
+    Unset = 0;
+    Rolling = 1;
+  }
+
+  // RollingUpdateStrategyConfig defines the rolling update strategy configuration.
+  message RollingUpdateStrategyConfig {
+    // MaxParallelism is the maximum number of machines that can be processed in parallel.
+    // When unset or set to 0, it defaults to 1.
+    uint32 max_parallelism = 1;
+  }
+
+  // UpdateConfig defines the update configuration.
+  message UpdateStrategyConfig {
+    // Rolling is the rolling update configuration.
+    // Used only when the UpdateStrategy is set to Rolling.
+    RollingUpdateStrategyConfig rolling = 1;
+  }
+
+  // UpdateStrategy is the update strategy of the machine set.
+  UpdateStrategy update_strategy = 1;
+
+  // MachineClass is the machine class to pick machines from for the machine set.
+  MachineClass machine_class = 2;
+
+  // BootstrapSpec defines the bootstrapping spec of the machine set.
+  // This field is immutable, only valid for the control plane machine set and used only once at the creation time.
+  // When set, the machine set won't be created from scratch, instead, it will be bootstrapped using the given spec.
+  BootstrapSpec bootstrap_spec = 3;
+
+  // DeleteStrategy defines the delete strategy of the machine set.
+  UpdateStrategy delete_strategy = 4;
+
+  // UpdateStrategyConfig defines the update strategy configuration.
+  UpdateStrategyConfig update_strategy_config = 5;
+
+  // DeleteStrategyConfig defines the delete strategy configuration.
+  UpdateStrategyConfig delete_strategy_config = 6;
+}
+
+// TalosUpgradeStatusSpec contains the status of the Talos upgrade process.
+message TalosUpgradeStatusSpec {
+  enum Phase {
+    Unknown = 0;
+    Upgrading = 1;
+    Done = 2;
+    Failed = 3;
+    Reverting = 4;
+  }
+
+  // Current upgrade phase.
+  Phase phase = 1;
+
+  // If phase is Failed, this contains the error message.
+  string error = 2;
+
+  // If phase is Upgrading, this contains the current upgrade step.
+  string step = 3;
+
+  // If phase is Upgrading, this contains the current upgrade step progress.
+  string status = 4;
+
+  // Last successful upgrade version.
+  string last_upgrade_version = 5;
+
+  // Current version of the upgrade (if phase == Upgrading).
+  string current_upgrade_version = 6;
+
+  // List of versions available for upgrade.
+  repeated string upgrade_versions = 7;
+}
+
+// MachineSetStatusSpec describes machine set status.
+message MachineSetStatusSpec {
+  MachineSetPhase phase = 1;
+  bool ready = 2;
+  string error = 3;
+  Machines machines = 4;
+  // config_hash is the combined hash of all cluster machines which are part of the machine set.
+  string config_hash = 5;
+  // MachineClass is copied from the input MachineSet resource.
+  MachineSetSpec.MachineClass machine_class = 6;
+}
+
+// MachineSetNodeSpec is a binding between ClusterMachine and MachineSet.
+message MachineSetNodeSpec {}
+
+// MachineLabelsSpec is the resource that adds user defined labels to the MachineStatus.
+message MachineLabelsSpec {}
+
+// MachineStatusSnapshotSpec describes latest known status of MachineStatus Talos resource.
+message MachineStatusSnapshotSpec {
+  machine.MachineStatusEvent machine_status = 1;
+}
+
+enum ConditionType {
+  UnknownCondition = 0;
+  Etcd = 1;
+  WireguardConnection = 2;
+}
+
+// ControlPlaneStatusSpec contains the status of the MachineSets which manage control plane nodes.
+message ControlPlaneStatusSpec {
+  message Condition {
+    enum Status {
+      Unknown = 0;
+      Ready = 1;
+      NotReady = 2;
+    }
+
+    enum Severity {
+      Info = 0;
+      Warning = 1;
+      Error = 2;
+    }
+
+    ConditionType type = 1;
+    string reason = 2;
+    Status status = 3;
+    Severity severity = 4;
+  }
+
+  repeated Condition conditions = 1;
+}
+
+// ClusterEndpointSpec contains a list of SideroLink (management) control plane endpoints.
+message ClusterEndpointSpec {
+  // List of SideroLink addresses for control plane nodes.
+  repeated string management_addresses = 1;
+}
+
+// KubernetesStatusSpec contains the status of the Kubernetes critical resources in the cluster.
+message KubernetesStatusSpec {
+  message NodeStatus {
+    string nodename = 1;
+    string kubelet_version = 2;
+    bool ready = 3;
+  }
+
+  // status of each node, sorted by nodename
+  repeated NodeStatus nodes = 1;
+
+  message StaticPodStatus {
+    string app = 1;
+    string version = 2;
+    bool ready = 3;
+  }
+
+  message NodeStaticPods {
+    string nodename = 1;
+    repeated StaticPodStatus static_pods = 2;
+  }
+
+  // status of each static pod on each node, sorted by nodename, then by pod's app
+  repeated NodeStaticPods static_pods = 2;
+}
+
+// KubernetesUpgradeStatus spec contains the status of the Kubernetes upgrade process.
+message KubernetesUpgradeStatusSpec {
+  enum Phase {
+    Unknown = 0;
+    Upgrading = 1;
+    Done = 2;
+    Failed = 3;
+    Reverting = 4;
+  }
+
+  // Current upgrade phase.
+  Phase phase = 1;
+
+  // If phase is Failed, this contains the error message.
+  string error = 2;
+
+  // If phase is Upgrading, this contains the current upgrade step.
+  string step = 3;
+
+  // If phase is Upgrading, this contains the current upgrade step progress.
+  string status = 4;
+
+  // Last successful upgrade version.
+  string last_upgrade_version = 5;
+
+  // Current version of the upgrade (if phase == Upgrading).
+  string current_upgrade_version = 7;
+
+  // List of versions available for upgrade.
+  repeated string upgrade_versions = 6;
+}
+
+// KubernetesUpgradeManifestStatus contains status of Kubernetes upgrade manifest sync.
+message KubernetesUpgradeManifestStatusSpec {
+  // Number of manifests out of sync.
+  int32 out_of_sync = 1;
+  // Last fatal error encountered (which prevented the sync).
+  string last_fatal_error = 2;
+}
+
+// DestroyStatusSpec describes the state of resource destroy.
+message DestroyStatusSpec {
+  // Phase describes the current destroy phase.
+  string phase = 1;
+}
+
+// OngoingTaskSpec describes any ongoing tasks.
+message OngoingTaskSpec {
+  // Title of the ongoing task.
+  string title = 1;
+
+  // Details contains the detailed task description.
+  oneof details {
+    TalosUpgradeStatusSpec talos_upgrade = 2;
+    KubernetesUpgradeStatusSpec kubernetes_upgrade = 3;
+    DestroyStatusSpec destroy = 4;
+  }
+}
+
+// ClusterMachineEncryptionKeySpec keeps generated encryption key for the machine disk encryption.
+message ClusterMachineEncryptionKeySpec {
+  // Data stores generated encryption key for the machine.
+  bytes data = 1;
+}
+
+// ExposedServiceSpec describes a Kubernetes service exposed through Omni from a workload cluster.
+message ExposedServiceSpec {
+  // Port is the host port the service is exposed on.
+  uint32 port = 1;
+
+  // Label is the human-readable label of the service to be displayed on Omni Web.
+  string label = 2;
+
+  // IconBase64 is the icon of the service to be displayed on Omni Web.
+  string icon_base64 = 3;
+}
+
+message FeaturesConfigSpec {
+  // EnableWorkloadProxying enables workload proxying feature.
+  bool enable_workload_proxying = 1;
+
+  // EtcdBackupSettings represents omni etcd backup settings.
+  EtcdBackupSettings etcd_backup_settings = 2;
+}
+
+message EtcdBackupSettings {
+  // TickInterval is the interval between checking for backups in controller.
+  google.protobuf.Duration tick_interval = 1;
+
+  // MinInterval is the minimum interval between backups.
+  google.protobuf.Duration min_interval = 2;
+
+  // MaxInterval is the maximum interval between backups.
+  google.protobuf.Duration max_interval = 3;
+
+  reserved 4;
+}
+
+// MachineClassSpec describes an Omni MachineClass resource spec.
+message MachineClassSpec {
+  // MatchLabels is the list of labels to match the machine to make it part of the machine class.
+  repeated string match_labels = 1;
+}
+
+// MachineConfigGenOptionsSpec describes machine related config generation inputs.
+message MachineConfigGenOptionsSpec {
+  string install_disk = 1;
+}
+
+// EtcdAuditResult is updated when the etcd audit removes a member.
+//
+// This resource is used to re-trigger the controlplane status checks when etcd audit removes a member.
+message EtcdAuditResultSpec {
+  // EtcdMemberIds contains the list of ids of the members that were last removed.
+  // The list is always sorted.
+  repeated uint64 etcd_member_ids = 1;
+}
+
+// KubeconfigSpec describes a Kubernetes client configuraiton for a cluster.
+message KubeconfigSpec {
+  // Marshalled kubeconfig.
+  bytes data = 1;
+}
+
+// KubernetesUsageSpec represents kubernetes resource usage for a cluster.
+message KubernetesUsageSpec {
+  message Quantity {
+    double requests = 1;
+    double limits = 2;
+    double capacity = 3;
+  }
+
+  message Pod {
+    int32 count = 1;
+    int32 capacity = 3;
+  }
+
+  Quantity cpu = 1;
+  Quantity mem = 2;
+  Quantity storage = 3;
+  Pod pods = 4;
+}
+
+// ImagePullRequestSpec describes an Omni ImagePullRequest resource spec.
+message ImagePullRequestSpec {
+  message NodeImageList {
+    string node = 1;
+    repeated string images = 2;
+  }
+
+  // NodeImageList are the images to be pulled into the node.
+  repeated NodeImageList node_image_list = 1;
+}
+
+// ImagePullStatusSpec describes an Omni ImagePullStatus resource spec.
+message ImagePullStatusSpec {
+  string last_processed_node = 1;
+  string last_processed_image = 2;
+  string last_processed_error = 3;
+  uint32 processed_count = 4;
+  uint32 total_count = 5;
+
+  // RequestVersion is the version of the ImagePullRequest that this status is for.
+  string request_version = 6;
+}
+
+// SchematicSpec keeps all schematics generated by Omni.
+// For each schematic it keeps information about the list of extensions.
+message SchematicSpec {
+  repeated string extensions = 1;
+}
+
+// TalosExtensionsSpec represents all available extensions for a particular Talos version.
+message TalosExtensionsSpec {
+  // Info is a merged representation of the extensions manifest and image factory versions response.
+  message Info {
+    string name = 1;
+    string author = 2;
+    string version = 3;
+    string description = 4;
+    string ref = 5;
+    string digest = 6;
+  }
+
+  repeated Info items = 1;
+}
+
+// SchematicConfigurationSpec is the desired Image Factory schematic for a machine, machine set or a cluster.
+message SchematicConfigurationSpec {
+  enum Target {
+    Unknown = 0;
+    ClusterMachine = 1;
+    MachineSet = 2;
+    Cluster = 3;
+  }
+
+  string schematic_id = 1;
+
+  Target target = 2;
+}

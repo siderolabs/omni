@@ -1,0 +1,16 @@
+syntax = "proto3";
+package specs;
+
+option go_package = "github.com/siderolabs/omni/client/api/omni/specs";
+
+import "omni/specs/omni.proto";
+import "omni/specs/siderolink.proto";
+
+
+// MachineStatusLinkSpec describes the combination of MessageStatusSpec and SideroLinkSpec and SiderolinkCounterSpec
+message MachineStatusLinkSpec {
+  specs.MachineStatusSpec message_status = 1;
+  specs.SiderolinkCounterSpec siderolink_counter = 2;
+  int64 machine_created_at = 3;
+}
+

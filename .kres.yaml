@@ -1,0 +1,511 @@
+---
+kind: auto.CommandConfig
+name: omnictl
+spec:
+  disableImage: true
+---
+kind: auto.CommandConfig
+name: omni-integration-test
+spec:
+  disableImage: true
+---
+kind: auto.CustomSteps
+spec:
+  steps:
+    - name: dev-server
+      toplevel: true
+    - name: docker-compose-up
+      toplevel: true
+    - name: docker-compose-down
+      toplevel: true
+    - name: mkcert-install
+      toplevel: true
+    - name: mkcert-generate
+      toplevel: true
+    - name: mkcert-uninstall
+      toplevel: true
+    - name: run-integration-test
+      toplevel: true
+---
+kind: custom.Step
+name: dev-server
+spec:
+  makefile:
+    enabled: true
+    phony: true
+    script:
+      - hack/dev-server.sh
+---
+kind: custom.Step
+name: docker-compose-up
+spec:
+  makefile:
+    enabled: true
+    phony: true
+    script:
+      - >-
+        ARTIFACTS="$(ARTIFACTS)"
+        SHA="$(SHA)"
+        TAG="$(TAG)"
+        USERNAME="$(USERNAME)"
+        REGISTRY="$(REGISTRY)"
+        JS_TOOLCHAIN="$(JS_TOOLCHAIN)"
+        PROTOBUF_TS_VERSION="$(PROTOBUF_TS_VERSION)"
+        PROTOBUF_GRPC_GATEWAY_TS_VERSION="$(PROTOBUF_GRPC_GATEWAY_TS_VERSION)"
+        NODE_BUILD_ARGS="$(NODE_BUILD_ARGS)"
+        TOOLCHAIN="$(TOOLCHAIN)"
+        CGO_ENABLED="$(CGO_ENABLED)"
+        GO_BUILDFLAGS="$(GO_BUILDFLAGS)"
+        GOLANGCILINT_VERSION="$(GOLANGCILINT_VERSION)"
+        GOFUMPT_VERSION="$(GOFUMPT_VERSION)"
+        GOIMPORTS_VERSION="$(GOIMPORTS_VERSION)"
+        PROTOBUF_GO_VERSION="$(PROTOBUF_GO_VERSION)"
+        GRPC_GO_VERSION="$(GRPC_GO_VERSION)"
+        GRPC_GATEWAY_VERSION="$(GRPC_GATEWAY_VERSION)"
+        VTPROTOBUF_VERSION="$(VTPROTOBUF_VERSION)"
+        DEEPCOPY_VERSION="$(DEEPCOPY_VERSION)"
+        TESTPKGS="$(TESTPKGS)"
+        COMPOSE_DOCKER_CLI_BUILD=1
+        DOCKER_BUILDKIT=1
+        GO_LDFLAGS="$(GO_LDFLAGS)"
+        docker compose --file ./hack/compose/docker-compose.yml --file ./hack/compose/docker-compose.override.yml up --build
+---
+kind: custom.Step
+name: mkcert-generate
+spec:
+  makefile:
+    enabled: true
+    phony: true
+    script:
+      - >-
+        go run ./hack/generate-certs -config ./hack/generate-certs.yml generate
+---
+kind: custom.Step
+name: mkcert-install
+spec:
+  makefile:
+    enabled: true
+    phony: true
+    script:
+      - >-
+        go run ./hack/generate-certs install
+---
+kind: custom.Step
+name: mkcert-uninstall
+spec:
+  makefile:
+    enabled: true
+    phony: true
+    script:
+      - >-
+        go run ./hack/generate-certs uninstall
+---
+kind: custom.Step
+name: docker-compose-down
+spec:
+  makefile:
+    enabled: true
+    phony: true
+    variables:
+      - name: REMOVE_VOLUMES
+        defaultValue: false
+    script:
+      - >-
+        ARTIFACTS="$(ARTIFACTS)"
+        SHA="$(SHA)"
+        TAG="$(TAG)"
+        USERNAME="$(USERNAME)"
+        REGISTRY="$(REGISTRY)"
+        JS_TOOLCHAIN="$(JS_TOOLCHAIN)"
+        PROTOBUF_TS_VERSION="$(PROTOBUF_TS_VERSION)"
+        PROTOBUF_GRPC_GATEWAY_TS_VERSION="$(PROTOBUF_GRPC_GATEWAY_TS_VERSION)"
+        NODE_BUILD_ARGS="$(NODE_BUILD_ARGS)"
+        TOOLCHAIN="$(TOOLCHAIN)"
+        CGO_ENABLED="$(CGO_ENABLED)"
+        GO_BUILDFLAGS="$(GO_BUILDFLAGS)"
+        GOLANGCILINT_VERSION="$(GOLANGCILINT_VERSION)"
+        GOFUMPT_VERSION="$(GOFUMPT_VERSION)"
+        GOIMPORTS_VERSION="$(GOIMPORTS_VERSION)"
+        PROTOBUF_GO_VERSION="$(PROTOBUF_GO_VERSION)"
+        GRPC_GO_VERSION="$(GRPC_GO_VERSION)"
+        GRPC_GATEWAY_VERSION="$(GRPC_GATEWAY_VERSION)"
+        VTPROTOBUF_VERSION="$(VTPROTOBUF_VERSION)"
+        DEEPCOPY_VERSION="$(DEEPCOPY_VERSION)"
+        TESTPKGS="$(TESTPKGS)"
+        COMPOSE_DOCKER_CLI_BUILD=1
+        DOCKER_BUILDKIT=1
+        GO_LDFLAGS="$(GO_LDFLAGS)"
+        docker compose --file ./hack/compose/docker-compose.yml --file ./hack/compose/docker-compose.override.yml down --rmi local --remove-orphans --volumes=$(REMOVE_VOLUMES)
+---
+kind: custom.Step
+name: run-integration-test
+spec:
+  sudoInCI: true
+  makefile:
+    enabled: true
+    depends:
+      - omni-integration-test-linux-amd64
+      - omnictl-linux-amd64
+      - omni-linux-amd64
+    script:
+      - >-
+        @hack/test/integration.sh
+  ghaction:
+    enabled: true
+    artifacts:
+      enabled: true
+      extraPaths:
+        - "!_out/etcd"
+        - "!_out/secondary-storage/**"
+      additional:
+        - name: talos-logs
+          always: true
+          continueOnError: true
+          paths:
+            - ~/.talos/clusters/**/*.log
+    environment:
+      WITH_DEBUG: "true"
+      INTEGRATION_RUN_E2E_TEST: "true"
+      INTEGRATION_TEST_ARGS: "--test.run CleanState/|Auth/|DefaultCluster/"
+      AUTH0_TEST_PASSWORD: ${{ secrets.AUTH0_TEST_PASSWORD }}
+      AUTH0_TEST_USERNAME: ${{ secrets.AUTH0_TEST_USERNAME }}
+    jobs:
+      - name: e2e-short
+        crons:
+          - '30 1 * * *'
+        runnerLabels:
+          - omni
+        triggerLabels:
+          - integration/e2e
+          - integration/e2e-short
+        environmentOverride:
+          INTEGRATION_RUN_E2E_TEST: "false"
+          INTEGRATION_TEST_ARGS: "--test.run CleanState/|TalosImageGeneration/|ImmediateClusterDestruction/|DefaultCluster/|EncryptedCluster/|SinglenodeCluster/|Auth/"
+      - name: e2e-scaling
+        crons:
+          - '30 1 * * *'
+        runnerLabels:
+          - omni
+        triggerLabels:
+          - integration/e2e
+          - integration/e2e-scaling
+        environmentOverride:
+          INTEGRATION_RUN_E2E_TEST: "false"
+          INTEGRATION_TEST_ARGS: "--test.run CleanState/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|RollingUpdateParallelism/|ForcedMachineRemoval/|ReplaceControlPlanes/|ConfigPatching/"
+      - name: e2e-upgrades
+        crons:
+          - '30 1 * * *'
+        runnerLabels:
+          - omni
+        triggerLabels:
+          - integration/e2e
+          - integration/e2e-upgrades
+        environmentOverride:
+          INTEGRATION_RUN_E2E_TEST: "false"
+          INTEGRATION_TEST_ARGS: "--test.run CleanState/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/"
+      - name: e2e-templates
+        crons:
+          - '30 1 * * *'
+        runnerLabels:
+          - omni
+        triggerLabels:
+          - integration/e2e
+          - integration/e2e-templates
+        environmentOverride:
+          INTEGRATION_RUN_E2E_TEST: "false"
+          INTEGRATION_TEST_ARGS: "--test.run CleanState/|ClusterTemplate/"
+      - name: e2e-backups
+        crons:
+          - '30 1 * * *'
+        runnerLabels:
+          - omni
+        triggerLabels:
+          - integration/e2e
+          - integration/e2e-backups
+        environmentOverride:
+          INTEGRATION_RUN_E2E_TEST: "false"
+          INTEGRATION_TEST_ARGS: "--test.run CleanState/|EtcdBackupAndRestore"
+---
+kind: common.Build
+spec:
+  ignoredPaths:
+    - "hack/generate-certs.yml"
+    - "hack/generate-certs/ca-root"
+    - "hack/generate-certs/certs"
+    - "hack/compose/docker-compose.override.yml"
+---
+kind: golang.Build
+name: omni
+spec:
+  outputs:
+    linux-amd64:
+      GOOS: linux
+      GOARCH: amd64
+    linux-arm64:
+      GOOS: linux
+      GOARCH: arm64
+    darwin-amd64:
+      GOOS: darwin
+      GOARCH: amd64
+    darwin-arm64:
+      GOOS: darwin
+      GOARCH: arm64
+---
+kind: golang.Build
+name: omnictl
+spec:
+  outputs:
+    linux-amd64:
+      GOOS: linux
+      GOARCH: amd64
+    linux-arm64:
+      GOOS: linux
+      GOARCH: arm64
+    darwin-amd64:
+      GOOS: darwin
+      GOARCH: amd64
+    darwin-arm64:
+      GOOS: darwin
+      GOARCH: arm64
+    windows-amd64.exe:
+      GOOS: windows
+      GOARCH: amd64
+---
+kind: golang.Build
+name: omni-integration-test
+spec:
+  outputs:
+    linux-amd64:
+      GOOS: linux
+      GOARCH: amd64
+---
+kind: golang.Generate
+spec:
+  versionPackagePath: internal/version
+  licenseText: |
+    Copyright (c) 2024 Sidero Labs, Inc.
+    
+    Use of this software is governed by the Business Source License
+    included in the LICENSE file.
+---
+kind: golang.Generate
+spec:
+  baseSpecPath: /client/api
+  goGenerateSpecs:
+    - source: ./internal
+      copy:
+        - frontend/
+  vtProtobufEnabled: true
+  specs:
+    - source: client/api/common/omni.proto
+      subdirectory: common
+    - source: client/api/omni/resources/resources.proto
+      subdirectory: omni/resources
+      genGateway: true
+    - source: client/api/omni/management/management.proto
+      subdirectory: omni/management
+      genGateway: true
+    - source: client/api/omni/oidc/oidc.proto
+      subdirectory: omni/oidc
+      genGateway: true
+    - source: client/api/omni/specs/auth.proto
+      subdirectory: omni/specs
+      genGateway: true
+    - source: client/api/omni/specs/virtual.proto
+      subdirectory: omni/specs
+      genGateway: true
+    - source: client/api/omni/specs/ephemeral.proto
+      subdirectory: omni/specs
+      genGateway: true
+    - source: client/api/omni/specs/oidc.proto # not used in the frontend
+      subdirectory: omni/specs
+      genGateway: true
+    - source: client/api/omni/specs/omni.proto
+      subdirectory: omni/specs
+      genGateway: true
+    - source: client/api/omni/specs/siderolink.proto
+      subdirectory: omni/specs
+      genGateway: true
+    - source: client/api/omni/specs/system.proto
+      subdirectory: omni/specs
+      genGateway: true
+    - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto
+      subdirectory: google/rpc/
+      genGateway: true
+    - source: https://raw.githubusercontent.com/siderolabs/talos/03a20da9da5916c63015d355f4b56823778e994f/api/common/common.proto
+      subdirectory: common/
+      genGateway: true
+    - source: https://raw.githubusercontent.com/siderolabs/talos/03a20da9da5916c63015d355f4b56823778e994f/api/machine/machine.proto
+      subdirectory: talos/machine/
+      genGateway: true
+    - source: https://raw.githubusercontent.com/cosi-project/specification/c644a4b0fd408ec41bd29193bcdbd1a5b7feead2/proto/v1alpha1/resource.proto
+      subdirectory: v1alpha1
+      genGateway: true
+---
+kind: js.Build
+spec:
+  licenseText: |
+    Copyright (c) 2024 Sidero Labs, Inc.
+    
+    Use of this software is governed by the Business Source License
+    included in the LICENSE file.
+---
+kind: js.Protobuf
+spec:
+  baseSpecPath: /client/api
+  files:
+     - source: https://www.talos.dev/v1.6/schemas/config.schema.json
+       destination: frontend/src/schemas/config.schema.json
+  destinationRoot: src/api
+  specs:
+    - source: client/api/common/omni.proto
+      subdirectory: common
+      genGateway: true
+    - source: client/api/omni/resources/resources.proto
+      subdirectory: omni/resources
+      genGateway: true
+    - source: client/api/omni/management/management.proto
+      subdirectory: omni/management
+      genGateway: true
+    - source: client/api/omni/oidc/oidc.proto
+      subdirectory: omni/oidc
+      genGateway: true
+    - source: https://raw.githubusercontent.com/siderolabs/go-api-signature/a034e9ff315ba4a56115acc7ad0fb99d0dc77800/api/auth/auth.proto
+      subdirectory: omni/auth
+      genGateway: true
+    - source: client/api/omni/specs/omni.proto
+      subdirectory: omni/specs
+      genGateway: true
+    - source: client/api/omni/specs/siderolink.proto
+      subdirectory: omni/specs
+      genGateway: true
+    - source: client/api/omni/specs/system.proto
+      subdirectory: omni/specs
+      genGateway: true
+    - source: client/api/omni/specs/auth.proto
+      subdirectory: omni/specs
+      genGateway: true
+    - source: client/api/omni/specs/virtual.proto
+      subdirectory: omni/specs
+      genGateway: true
+    - source: client/api/omni/specs/ephemeral.proto
+      subdirectory: omni/specs
+      genGateway: true
+    - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto
+      subdirectory: google/rpc/
+      genGateway: true
+    - source: https://raw.githubusercontent.com/siderolabs/talos/03a20da9da5916c63015d355f4b56823778e994f/api/machine/machine.proto
+      subdirectory: talos/machine
+      genGateway: true
+    - source: https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/any.proto
+      subdirectory: google/protobuf/
+      genGateway: true
+    - source: https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/duration.proto
+      subdirectory: google/protobuf/
+      genGateway: true
+    - source: https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/empty.proto
+      subdirectory: google/protobuf/
+      genGateway: true
+    - source: https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/timestamp.proto
+      subdirectory: google/protobuf/
+      genGateway: true
+    - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/code.proto
+      subdirectory: google/rpc/
+      genGateway: true
+    - source: https://raw.githubusercontent.com/siderolabs/talos/03a20da9da5916c63015d355f4b56823778e994f/api/common/common.proto
+      subdirectory: common/
+      genGateway: true
+    - source: https://raw.githubusercontent.com/cosi-project/specification/5c734257bfa6a3acb01417809797dbfbe0e73c71/proto/v1alpha1/resource.proto
+      subdirectory: v1alpha1
+      genGateway: true
+---
+kind: common.Release
+name: release
+spec:
+  artifacts:
+    - omnictl-*
+    - omni-*
+---
+kind: common.Image
+name: image-omni
+spec:
+  copyFrom:
+    - stage: omnictl-all
+      destination: /omnictl/
+---
+kind: service.CodeCov
+spec:
+  enabled: false
+---
+kind: common.Repository
+spec:
+  licenses:
+    - id: BSL-1.1
+      params:
+        Licensor: Sidero Labs, Inc.
+        LicensedWork: Omni
+        Copyright: (c) 2024 Sidero Labs, Inc.
+        ChangeDate: "2028-02-22"
+        ChangeLicense: Mozilla Public License, version 2.0
+        EnterpriseLink: https://www.siderolabs.com/contact/
+      header: |
+        // Copyright (c) 2024 Sidero Labs, Inc.
+        //
+        // Use of this software is governed by the Business Source License
+        // included in the LICENSE file.
+
+    - id: MPL-2.0
+      root: client
+      header: |
+        // This Source Code Form is subject to the terms of the Mozilla Public
+        // License, v. 2.0. If a copy of the MPL was not distributed with this
+        // file, You can obtain one at http://mozilla.org/MPL/2.0/.
+  licenseChecks:
+    - root: "."
+      header: |
+        // Copyright (c) 2024 Sidero Labs, Inc.
+        //
+        // Use of this software is governed by the Business Source License
+        // included in the LICENSE file.
+      includeSuffixes:
+        - .go
+        - .ts
+        - .js
+      excludeSuffixes:
+        - .pb.go
+        - .pb.gw.go
+        - .pb.ts
+        - babel.config.js
+      skipPaths:
+        - .git
+        - testdata/
+        - client/
+        - frontend/node_modules/
+        - internal/pkg/kubernetes/resource/ # contains a file copied from kubectl
+
+    - root: client
+      header: |
+        // This Source Code Form is subject to the terms of the Mozilla Public
+        // License, v. 2.0. If a copy of the MPL was not distributed with this
+        // file, You can obtain one at http://mozilla.org/MPL/2.0/
+
+    - root: frontend/
+      header: |
+        <!--
+        Copyright (c) 2024 Sidero Labs, Inc.
+        
+        Use of this software is governed by the Business Source License
+        included in the LICENSE file.
+        -->
+      includeSuffixes:
+        - .vue
+      skipPaths:
+        - node_modules/
+
+  enableConform: true
+  enforceContexts:
+    - e2e-short
+    - e2e-scaling
+    - e2e-templates
+    - e2e-upgrades
+    - e2e-backups

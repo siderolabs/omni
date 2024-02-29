@@ -1,0 +1,154 @@
+<!--
+Copyright (c) 2024 Sidero Labs, Inc.
+
+Use of this software is governed by the Business Source License
+included in the LICENSE file.
+-->
+<template>
+  <div class="border-t-8 border-naturals-N4" v-if="machines.length > 0">
+    <div class="flex items-center border-naturals-N4 border-b pr-4 pl-9 text-naturals-N14">
+      <div class="py-3 clusters-grid flex-1 items-center">
+        <div
+          class="flex-none text-xs text-center items-center justify-center px-3 py-1 bg-naturals-N4 w-40 rounded truncate">
+          {{ machineSetTitle(clusterID, machineSet?.metadata?.id) }}
+        </div>
+        <t-spinner class="w-4 h-4" v-if="scaling"/>
+        <div class="flex items-center gap-1" v-else-if="!editingMachinesCount">
+          {{ machineSet?.spec?.machines?.healthy || 0 }}/{{ machineSet?.spec?.machines?.requested || 0 }}
+          <icon-button icon="edit" v-if="machineSet.spec.machine_class?.name" @click="editingMachinesCount = !editingMachinesCount"/>
+        </div>
+        <div v-else class="flex items-center gap-1">
+          <div class="w-12">
+            <t-input :min="0" class="h-6" compact type="number" v-model="machineCount" @keydown.enter="() => updateMachineCount()"/>
+          </div>
+          <icon-button icon="check" @click="() => updateMachineCount()"/>
+          <t-button type="subtle" @click="() => updateMachineCount(MachineSetSpecMachineClassAllocationType.Unlimited)">
+            Use All
+          </t-button>
+        </div>
+        <machine-set-phase :item="machineSet"/>
+        <div v-if="machineSet.spec?.machine_class?.name" class="rounded bg-naturals-N4 px-3 py-1 max-w-min">
+          Machine Class: {{ machineSet.spec?.machine_class?.name }} ({{ machineClassMachineCount }})
+        </div>
+      </div>
+      <t-actions-box style="height: 24px" v-if="canRemoveMachineSet" @click.stop>
+        <t-actions-box-item icon="delete" danger
+          @click="() => openMachineSetDestroy(machineSet)">Destroy Machine Set</t-actions-box-item>
+      </t-actions-box>
+      <div v-else class="w-6"/>
+    </div>
+    <cluster-machine :id="machine.metadata.id" :machine-set="machineSet" :class="{ 'border-b': index != machines.length - 1 }"
+      class="border-naturals-N4" v-for="(machine, index) in machines" :key="itemID(machine)" :machine="machine"
+      :deleteDisabled="!canRemoveMachine" />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { Resource } from "@/api/grpc";
+import { MachineSetStatusSpec, ClusterMachineStatusSpec, MachineSetSpecMachineClassAllocationType } from "@/api/omni/specs/omni.pb";
+import { ClusterMachineStatusType, DefaultNamespace, LabelCluster, LabelControlPlaneRole, LabelMachineSet } from "@/api/resources";
+import { computed, ref, toRefs } from "vue";
+import { useRouter } from "vue-router";
+import { setupClusterPermissions } from "@/methods/auth";
+import Watch, { itemID } from "@/api/watch";
+import { Runtime } from "@/api/common/omni.pb";
+import { machineSetTitle, scaleMachineSet } from "@/methods/machineset";
+import { controlPlaneMachineSetId, defaultWorkersMachineSetId } from "@/methods/machineset";
+import { showError } from "@/notification";
+import pluralize from 'pluralize';
+
+import TActionsBox from "@/components/common/ActionsBox/TActionsBox.vue";
+import TActionsBoxItem from "@/components/common/ActionsBox/TActionsBoxItem.vue";
+import ClusterMachine from "./ClusterMachine.vue"
+import MachineSetPhase from "./MachineSetPhase.vue";
+import IconButton from "@/components/common/Button/IconButton.vue";
+import TButton from "@/components/common/Button/TButton.vue";
+import TInput from "@/components/common/TInput/TInput.vue";
+import TSpinner from "@/components/common/Spinner/TSpinner.vue";
+
+const props = defineProps<{
+  machineSet: Resource<MachineSetStatusSpec>
+}>();
+
+const { machineSet } = toRefs(props);
+
+const machines = ref<Resource<ClusterMachineStatusSpec>[]>([]);
+const machinesWatch = new Watch(machines);
+const clusterID = computed(() => machineSet.value.metadata.labels?.[LabelCluster] ?? "");
+const editingMachinesCount = ref(false);
+const machineCount = ref(machineSet.value.spec.machine_class?.machine_count ?? 1);
+const scaling = ref(false);
+
+machinesWatch.setup(computed(() => {
+  return {
+    resource: {
+      namespace: DefaultNamespace,
+      type: ClusterMachineStatusType,
+    },
+    runtime: Runtime.Omni,
+    selectors: [
+      `${LabelCluster}=${clusterID.value}`,
+      `${LabelMachineSet}=${machineSet.value.metadata.id!}`
+    ],
+  }
+}));
+
+const router = useRouter();
+
+const openMachineSetDestroy = (machineSet: Resource) => {
+  router.push({
+    query: { modal: "machineSetDestroy", machineSet: machineSet.metadata.id },
+  });
+};
+
+const { canRemoveClusterMachines } = setupClusterPermissions(clusterID);
+
+const canRemoveMachine = computed(() => {
+  if (!canRemoveClusterMachines.value) {
+    return false;
+  }
+
+  // don't allow destroying machines if the machine set is using machine class
+  if (machineSet.value.spec.machine_class?.name) {
+    return false;
+  }
+
+  if (machineSet.value.metadata.labels?.[LabelControlPlaneRole] === undefined) {
+    return true;
+  }
+
+  return machines.value.length > 1;
+});
+
+const canRemoveMachineSet = computed(() => {
+  if (!canRemoveClusterMachines.value) {
+    return false;
+  }
+
+  const deleteProtected = new Set<string>([controlPlaneMachineSetId(clusterID.value), defaultWorkersMachineSetId(clusterID.value)]);
+
+  return !deleteProtected.has(machineSet.value.metadata.id!)
+});
+
+const updateMachineCount = async (allocationType: MachineSetSpecMachineClassAllocationType = MachineSetSpecMachineClassAllocationType.Static) => {
+  scaling.value = true;
+
+  try {
+    await scaleMachineSet(machineSet.value.metadata.id!, machineCount.value, allocationType);
+  } catch (e) {
+    showError(`Failed to Scale Machine Set ${machineSet.value.metadata.id}`, `Error: ${e.message}`);
+  }
+
+  scaling.value = false;
+
+  editingMachinesCount.value = false;
+};
+
+const machineClassMachineCount = computed(() => {
+  if (machineSet.value.spec?.machine_class?.allocation_type === MachineSetSpecMachineClassAllocationType.Unlimited) {
+    return "All Machines";
+  }
+
+  return pluralize('Machine', machineSet.value.spec?.machine_class?.machine_count ?? 0, true)
+});
+</script>

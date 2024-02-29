@@ -1,0 +1,5 @@
+name: my-first-cluster
+kubernetes:
+  version: v1.18.2
+talos:
+  version: v1.3.0

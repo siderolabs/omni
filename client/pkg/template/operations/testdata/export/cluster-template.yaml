@@ -1,0 +1,137 @@
+kind: Cluster
+name: export-test
+labels:
+  cluster-label-1: val
+  cluster-label-2: val2
+kubernetes:
+  version: v1.28.2
+talos:
+  version: v1.5.5
+features:
+  diskEncryption: true
+  enableWorkloadProxy: true
+  backupConfiguration:
+    interval: 2h0m0s
+patches:
+  - idOverride: 499-2e4b9030-aade-47cf-8f7f-3031b7ae49bb
+    annotations:
+      name: User defined patch
+    inline:
+      machine:
+        network:
+          kubespan:
+            enabled: false
+  - idOverride: 500-ae981813-420d-464f-a246-fd7e861402f1
+    annotations:
+      description: Cluster Patch Description
+      name: User defined patch
+    inline:
+      machine:
+        network:
+          kubespan:
+            enabled: false
+            mtu: 1410
+  - idOverride: 600-3fb9b4d2-b13c-48a7-9929-3632e68ff5da
+    annotations:
+      description: Cluster Patch Description 2
+      name: User defined patch
+    inline:
+      machine:
+        network:
+          kubespan:
+            enabled: false
+            mtu: 1234
+---
+kind: ControlPlane
+bootstrapSpec:
+  clusterUUID: 98d00c6b-fae1-4bf2-afa3-0282ef443f84
+  snapshot: FFFFFFFF9AA169F0.snapshot
+machines:
+  - 3f8b33d2-52b1-42ed-8505-4025ddbc31f1
+patches:
+  - idOverride: 500-2e2a2a64-5085-407a-a205-f75f4c64a060
+    annotations:
+      description: Some Test Description 123
+      name: User defined patch
+    inline:
+      machine:
+        network:
+          kubespan:
+            enabled: false
+            mtu: 1111
+---
+kind: Workers
+machines:
+  - 024780fe-b0d6-43e0-a868-b142ba0a67a6
+updateStrategy:
+  rolling:
+    maxParallelism: 3
+deleteStrategy:
+  type: Rolling
+  rolling:
+    maxParallelism: 5
+patches:
+  - idOverride: 500-3792b0d9-0fc2-46fb-becf-4d5439bbe5ba
+    annotations:
+      description: Some Test Description ABC
+      name: User defined patch
+    inline:
+      machine:
+        network:
+          kubespan:
+            enabled: false
+            mtu: 1447
+---
+kind: Workers
+name: w07c5e8
+machineClass:
+  name: mc1
+  size: Unlimited
+patches:
+  - idOverride: 500-32fe29d6-221a-4e6e-a55e-6b1700cae09d
+    annotations:
+      description: Some Test Description 987
+      name: User defined patch
+    inline:
+      machine:
+        network:
+          kubespan:
+            enabled: false
+            mtu: 1217
+---
+kind: Workers
+name: w3c03cf
+machineClass:
+  name: mc2
+  size: 1
+patches:
+  - idOverride: 666-4a5ca2e0-4f57-4761-bf61-c1e4cf583170
+    annotations:
+      description: Some Test Description ZXC
+      name: User defined patch
+    inline:
+      machine:
+        network:
+          kubespan:
+            enabled: false
+            mtu: 1298
+---
+kind: Machine
+name: 024780fe-b0d6-43e0-a868-b142ba0a67a6
+locked: true
+patches:
+  - idOverride: 500-1104d832-79fb-4121-a67f-752fa8f763e9
+    annotations:
+      description: Some Test Description ASD
+      name: User defined patch
+    inline:
+      machine:
+        network:
+          kubespan:
+            enabled: false
+            mtu: 1166
+---
+kind: Machine
+name: 3f8b33d2-52b1-42ed-8505-4025ddbc31f1
+install:
+  disk: /dev/sdc

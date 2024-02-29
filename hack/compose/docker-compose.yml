@@ -1,0 +1,117 @@
+# Copyright (c) 2024 Sidero Labs, Inc.
+#
+# Use of this software is governed by the Business Source License
+# included in the LICENSE file.
+
+version: '3.8'
+services:
+  omni:
+    network_mode: host
+    depends_on:
+      - vault-dev
+      - node-dev
+      - minio-mc
+    volumes:
+      - etcd:/_out/etcd
+      - logs:/_out/logs
+      - secondary-storage:/_out/secondary-storage
+      - etcd-backup:/tmp/omni-data/etcd-backup
+      - ../generate-certs/certs:/etc/ssl/omni-certs:ro
+    container_name: local-omni
+    restart: on-failure
+    cap_add:
+      - NET_ADMIN
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      args:
+        - ARTIFACTS=${ARTIFACTS:?error}
+        - SHA=${SHA:?error}
+        - TAG=${TAG:?error}
+        - USERNAME=${USERNAME:?error}
+        - REGISTRY=${REGISTRY:?error}
+        - JS_TOOLCHAIN=${JS_TOOLCHAIN:?error}
+        - PROTOBUF_GRPC_GATEWAY_TS_VERSION=${PROTOBUF_GRPC_GATEWAY_TS_VERSION:?error}
+        - NODE_BUILD_ARGS=${NODE_BUILD_ARGS}
+        - TOOLCHAIN=${TOOLCHAIN:?error}
+        - CGO_ENABLED=${CGO_ENABLED:?error}
+        - GO_BUILDFLAGS=${GO_BUILDFLAGS}
+        - GOLANGCILINT_VERSION=${GOLANGCILINT_VERSION:?error}
+        - GOFUMPT_VERSION=${GOFUMPT_VERSION:?error}
+        - GOIMPORTS_VERSION=${GOIMPORTS_VERSION:?error}
+        - PROTOBUF_GO_VERSION=${PROTOBUF_GO_VERSION:?error}
+        - GRPC_GO_VERSION=${GRPC_GO_VERSION:?error}
+        - GRPC_GATEWAY_VERSION=${GRPC_GATEWAY_VERSION:?error}
+        - VTPROTOBUF_VERSION=${VTPROTOBUF_VERSION:?error}
+        - DEEPCOPY_VERSION=${DEEPCOPY_VERSION:?error}
+        - TESTPKGS=${TESTPKGS:?error}
+        - GO_LDFLAGS=${GO_LDFLAGS}
+    environment:
+      - VAULT_ADDR=http://127.0.0.1:8200
+      - VAULT_TOKEN=dev-o-token
+      - SIDEROLINK_DEV_JOIN_TOKEN=w7uVuW3zbVKIYQuzEcyetAHeYMeo5q2L9RvkAVfCfSCD
+
+  vault-dev:
+    container_name: local-vault
+    image: hashicorp/vault:1.15
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=dev-o-token
+    cap_add:
+      - IPC_LOCK
+    ports:
+      - "127.0.0.1:8200:8200"
+
+  vault-startup:
+    depends_on:
+      - vault-dev
+    restart: on-failure
+    container_name: local-vault-init
+    image: hashicorp/vault:1.15
+    volumes:
+      - ../../internal/backend/runtime/omni/testdata/pgp/new_key.private:/tmp/key.private:ro
+    environment:
+      - VAULT_ADDR=http://vault-dev:8200
+      - VAULT_TOKEN=dev-o-token
+    entrypoint: >-
+      vault kv put
+      -mount=secret
+      omni-private-key
+      private-key=@/tmp/key.private
+      || sleep 15 && exit 1
+
+  node-dev:
+    network_mode: host
+    container_name: local-node
+    image: node
+    volumes:
+      - ../../frontend:/app:rw
+    working_dir: /app
+    command: sh -c 'npm install && npm run serve'
+    stop_signal: SIGKILL
+
+  minio-server:
+    image: minio/minio:latest
+    volumes:
+      - minio:/minio-server
+    ports:
+      - "127.0.0.1:9000:9000"
+    environment:
+      MINIO_ACCESS_KEY: access
+      MINIO_SECRET_KEY: secret123
+    command: server /minio-server/export
+
+  minio-mc:
+    image: minio/mc:latest
+    container_name: minio-mc
+    depends_on:
+      - minio-server
+    entrypoint: /bin/sh
+    restart: on-failure
+    command: -c "mc alias set myminio http://minio-server:9000 access secret123 && mc mb --ignore-existing myminio/mybucket"
+
+volumes:
+  etcd:
+  logs:
+  minio:
+  secondary-storage:
+  etcd-backup:

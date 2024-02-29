@@ -1,0 +1,29 @@
+# THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
+#
+# Generated on 2024-02-26T21:35:48Z by kres latest.
+
+*
+!frontend/src
+!frontend/tests
+!frontend/public
+!client/api
+!client/pkg
+!cmd
+!internal
+!docs
+!frontend/*.json
+!frontend/*.js
+!frontend/.eslintrc.yaml
+!internal/frontend/frontend.go
+!client/go.mod
+!client/go.sum
+!go.mod
+!go.sum
+!client/.golangci.yml
+!.golangci.yml
+!CHANGELOG.md
+!CONTRIBUTING.md
+!DEVELOPMENT.md
+!README.md
+!.markdownlint.json
+!.license-header.go.txt

@@ -1,0 +1,164 @@
+/*
+Copyright (c) 2024 Sidero Labs, Inc.
+
+Use of this software is governed by the Business Source License
+included in the LICENSE file.
+*/
+
+/* ./src/index.css */
+@import url("fonts.css");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: "Roboto", sans-serif;
+}
+
+*:focus{
+  outline: none;
+}
+
+*::-webkit-scrollbar {
+  @apply w-1.5 h-1.5;
+  background-color: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  @apply w-1.5 h-1.5 bg-naturals-N5 border border-naturals-N4 rounded;
+}
+
+body {
+  --tw-bg-opacity: 1;
+  background-color: rgba(16, 17, 24, var(--tw-bg-opacity));
+}
+
+.modal-window {
+  @apply rounded bg-naturals-N3 z-30 p-8 flex flex-col w-1/3;
+}
+
+.list-item-link {
+  @apply font-bold text-naturals-N14 hover:text-naturals-N9 transition;
+}
+
+@layer components {
+  .resource-label {
+    @apply rounded border px-2 py-0.5;
+    --background-alpha: 0.18;
+    --border-alpha: 0.3;
+    --lighten-by: 20;
+    color: hsl(var(--label-h), calc(var(--label-s) * 1%), calc((var(--label-l) + var(--lighten-by)) * 1%));
+    background-color: hsla(var(--label-h), calc(var(--label-s) * 1%), calc((var(--label-l) + var(--lighten-by)) * 1%), var(--background-alpha));
+    border-color: hsla(var(--label-h), calc(var(--label-s) * 1%), calc((var(--label-l) + var(--lighten-by)) * 1%), var(--border-alpha));
+  }
+}
+
+.label-green {
+  --label-h: 142;
+  --label-s: 100;
+  --label-l: 49;
+}
+
+.label-red {
+  --label-h: 359;
+  --label-s: 97;
+  --label-l: 36;
+}
+
+.label-orange {
+  --label-h: 15;
+  --label-s: 90;
+  --label-l: 44;
+}
+
+.label-violet {
+  --label-h: 313;
+  --label-s: 97;
+  --label-l: 58;
+}
+
+.label-yellow {
+  --label-h: 48;
+  --label-s: 96;
+  --label-l: 50;
+}
+
+.label-cyan {
+  --label-h: 185;
+  --label-s: 100;
+  --label-l: 22;
+}
+
+.label-blue1 {
+  --label-h: 211;
+  --label-s: 76;
+  --label-l: 48;
+}
+
+.label-blue2 {
+  --label-h: 215;
+  --label-s: 100;
+  --label-l: 40;
+}
+
+.label-blue3 {
+  --label-h: 256;
+  --label-s: 81;
+  --label-l: 50;
+}
+
+.label-light1 {
+  --label-h: 0;
+  --label-s: 65;
+  --label-l: 74;
+  --lighten-by: 0;
+}
+
+.label-light2 {
+  --label-h: 13;
+  --label-s: 81;
+  --label-l: 87;
+  --lighten-by: 0;
+}
+
+.label-light3 {
+  --label-h: 48;
+  --label-s: 96;
+  --label-l: 87;
+  --lighten-by: 0;
+}
+
+.label-light4 {
+  --label-h: 128;
+  --label-s: 32;
+  --label-l: 81;
+  --lighten-by: 0;
+}
+
+.label-light5 {
+  --label-h: 184;
+  --label-s: 29;
+  --label-l: 80;
+  --lighten-by: 0;
+}
+
+.label-light6 {
+  --label-h: 208;
+  --label-s: 70;
+  --label-l: 86;
+  --lighten-by: 0;
+}
+
+.label-light7 {
+  --label-h: 257;
+  --label-s: 81;
+  --label-l: 87;
+  --lighten-by: 0;
+}
+
+.label-grayed-out {
+  --label-h: 257;
+  --label-s: 81;
+  --label-l: 87;
+  --lighten-by: 100;
+}

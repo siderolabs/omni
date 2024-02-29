@@ -1,0 +1,43 @@
+kind: Cluster
+name: my-cluster
+kubernetes:
+  version: v1.26.0
+talos:
+  version: v1.3.2
+patches:
+  - name: kubespan-enabled
+    inline:
+      machine:
+        network:
+          kubespan:
+            enabled: true
+---
+kind: ControlPlane
+machines:
+  - 27c16241-96bf-4f17-9579-ea3a6c4a3ca8
+  - 4bd92fba-998d-4ef3-ab43-638b806dd3fe
+  - 8fdb574a-a252-4d7d-94f0-5cdea73e140a
+---
+kind: Workers
+machines:
+  - b885f565-b64f-4c7a-a1ac-d2c8c2781373
+---
+kind: Machine
+name: 27c16241-96bf-4f17-9579-ea3a6c4a3ca8
+install:
+  disk: /dev/vda
+---
+kind: Machine
+name: 4bd92fba-998d-4ef3-ab43-638b806dd3fe
+install:
+  disk: /dev/vda
+---
+kind: Machine
+name: 8fdb574a-a252-4d7d-94f0-5cdea73e140a
+install:
+  disk: /dev/vda
+---
+kind: Machine
+name: b885f565-b64f-4c7a-a1ac-d2c8c2781373
+install:
+  disk: /dev/vda

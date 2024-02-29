@@ -1,0 +1,5 @@
+cluster:
+  apiServer:
+    extraArgs:
+      cloud-provider: external
+      cloud-config: /etc/kubernetes/cloud-config.yaml

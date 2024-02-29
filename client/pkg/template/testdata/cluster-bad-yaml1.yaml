@@ -1,0 +1,8 @@
+kind: Cluster
+name: my-first-cluster
+kubernetes:
+  version: v1.18.2
+talos:
+  version: v1.3.0
+containerd:
+  version: 1.6.12

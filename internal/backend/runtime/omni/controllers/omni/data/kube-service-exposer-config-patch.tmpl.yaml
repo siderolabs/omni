@@ -1,0 +1,60 @@
+cluster:
+  inlineManifests:
+    - name: omni-kube-service-exposer
+      # adapted from: https://github.com/siderolabs/kube-service-exposer/blob/main/deploy/kube-service-exposer.yaml
+      contents: |-
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata:
+          name: omni-kube-service-exposer
+        rules:
+          - apiGroups: [""]
+            resources: ["services"]
+            verbs: ["get", "list", "watch"]
+        ---
+        apiVersion: v1
+        kind: ServiceAccount
+        metadata:
+          name: omni-kube-service-exposer
+          namespace: kube-system
+        ---
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRoleBinding
+        metadata:
+          name: omni-kube-service-exposer
+        roleRef:
+          apiGroup: rbac.authorization.k8s.io
+          kind: ClusterRole
+          name: omni-kube-service-exposer
+        subjects:
+          - kind: ServiceAccount
+            name: omni-kube-service-exposer
+            namespace: kube-system
+        ---
+        apiVersion: apps/v1
+        kind: DaemonSet
+        metadata:
+          name: omni-kube-service-exposer
+          namespace: kube-system
+        spec:
+          selector:
+            matchLabels:
+              app.kubernetes.io/name: omni-kube-service-exposer
+          template:
+            metadata:
+              labels:
+                app.kubernetes.io/name: omni-kube-service-exposer
+            spec:
+              serviceAccountName: omni-kube-service-exposer
+              hostNetwork: true
+              dnsPolicy: ClusterFirstWithHostNet
+              tolerations:
+                - operator: Exists
+              containers:
+                - name: omni-kube-service-exposer
+                  image: ghcr.io/siderolabs/kube-service-exposer:v0.1.1
+                  args:
+                    - --debug=false
+                    - --annotation-key={{ .AnnotationKey }}
+                    # siderolink CIDR
+                    - --bind-cidrs="fdae:41e4:649b:9303::/64"

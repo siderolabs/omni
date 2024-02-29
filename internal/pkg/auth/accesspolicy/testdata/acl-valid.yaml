@@ -1,0 +1,82 @@
+metadata:
+  namespace: default
+  type: AccessPolicies.omni.sidero.dev
+  id: access-policy
+spec:
+  usergroups:
+    user-group-1:
+      users:
+        - name: user-group-1-user-1
+        - name: user-group-1-user-2
+    user-group-2:
+      users:
+        - name: user-group-2-user-1
+        - name: user-group-2-user-2
+        - name: user-group-2-user-3
+  clustergroups:
+    cluster-group-1:
+      clusters:
+        - name: cluster-group-1-cluster-1
+        - name: cluster-group-1-cluster-2
+    cluster-group-2:
+      clusters:
+        - name: cluster-group-2-cluster-1
+        - name: cluster-group-2-cluster-2
+        - name: cluster-group-2-cluster-3
+  rules:
+    - users:
+        - group/user-group-1
+        - standalone-user-1
+      clusters:
+        - group/cluster-group-1
+        - standalone-cluster-1
+      kubernetes:
+        impersonate:
+          groups:
+            - k8s-group-1
+            - k8s-group-2
+    - users:
+        - group/user-group-2
+        - standalone-user-2
+      clusters:
+        - group/cluster-group-2
+        - standalone-cluster-2
+      role: Operator
+      kubernetes:
+        impersonate:
+          groups:
+            - k8s-group-3
+            - k8s-group-4
+  tests:
+    - name: test-1
+      user:
+        name: user-group-1-user-1
+      cluster:
+        name: cluster-group-1-cluster-1
+      expected:
+        kubernetes:
+          impersonate:
+            groups:
+              - k8s-group-1
+              - k8s-group-2
+    - name: test-2
+      user:
+        name: standalone-user-2
+      cluster:
+        name: standalone-cluster-2
+      expected:
+        role: Operator
+        kubernetes:
+          impersonate:
+            groups:
+              - k8s-group-3
+              - k8s-group-4
+    - name: test-3
+      user:
+        name: user-group-1-user-1
+      cluster:
+        name: cluster-group-2-cluster-2
+      expected:
+        kubernetes:
+          impersonate:
+            groups: []

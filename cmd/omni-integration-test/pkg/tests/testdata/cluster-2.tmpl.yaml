@@ -1,0 +1,37 @@
+kind: Cluster
+name: tmpl-cluster
+kubernetes:
+  version: {{ .KubernetesVersion }}
+talos:
+  version: {{ .TalosVersion }}
+patches:
+  - name: kubespan-enabled
+    inline:
+      machine:
+        network:
+          kubespan:
+            enabled: false
+---
+kind: ControlPlane
+machines:
+  - {{ index .CP 0 }}
+---
+kind: Workers
+machines:
+  - {{ index .W 0 }}
+---
+kind: Workers
+name: additional-workers
+machines:
+  - {{ index .W 1 }}
+---
+kind: Machine
+name: {{ index .W 0 }}
+patches:
+  - name: dummy-if
+    inline:
+      machine:
+        network:
+          interfaces:
+            - interface: dummy-if
+              dummy: true

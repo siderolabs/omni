@@ -1,0 +1,41 @@
+kind: Cluster
+name: my first cluster # invalid: contains spaces
+kubernetes:
+  version: vN.2 # invalid version
+talos:
+  version: v1.3.0gamma.0 # invalid version
+patches:
+  - file: does-not-exist.yaml # doesn't exist
+  - inline: # no name
+      machine:
+        network:
+---
+kind: ControlPlane
+machines:
+  - 430d882a-51a8-48b3-ae00-90c5b0b5b0b0
+  - 4aed1106-6f44-4be9-9796-d4b5b0b5b0b0
+updateStrategy:
+  rolling:
+    maxParallelism: 2
+deleteStrategy:
+  type: Rolling
+patches:
+  - file: patches/invalid.yaml  # invalid content
+  - name: kubespan-enabled  # invalid content
+    inline:
+      machine:
+        network:
+          kubespan:
+            running: true
+---
+kind: Workers
+machines:
+  - 430d882a-51a8-48b3-ab00-d4b5b0b5b0b0
+  - 4aed1106-6f44-4be9-9796-d4b5b0b5b0b0 # duplicate across controlplanes and workers
+---
+kind: Machine
+name: 630d882a-51a8-48b3-ae00-90c5b0b5b0b0 # machine is not part of controlplane/workers
+---
+kind: Machine
+name: 430d882a-51a8-48b3-ae00-90c5b0b5b0b0
+locked: true

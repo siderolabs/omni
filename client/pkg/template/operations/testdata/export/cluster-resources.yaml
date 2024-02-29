@@ -1,0 +1,548 @@
+################################ Cluster
+metadata:
+  namespace: default
+  type: Clusters.omni.sidero.dev
+  id: export-test
+  version: 11
+  owner:
+  phase: running
+  created: 2023-12-07T13:36:21Z
+  updated: 2023-12-08T15:43:10Z
+  labels:
+    cluster-label-1: val
+    cluster-label-2: val2
+  annotations:
+    omni.sidero.dev/managed-by-cluster-templates:
+  finalizers:
+    - KubernetesUpgradeStatusController
+    - TalosUpgradeStatusController
+    - ClusterController
+    - SecretsController
+spec:
+  installimage: ""
+  kubernetesversion: 1.28.2
+  talosversion: 1.5.5
+  features:
+    enableworkloadproxy: true
+    diskencryption: true
+  backupconfiguration:
+    interval:
+      seconds: 7200
+      nanos: 0
+    enabled: true
+---
+
+
+
+################################ Control Plane MachineSet - with bootstrapspec
+metadata:
+  namespace: default
+  type: MachineSets.omni.sidero.dev
+  id: export-test-control-planes
+  version: 5
+  owner:
+  phase: running
+  created: 2023-12-07T13:36:21Z
+  updated: 2023-12-07T13:39:44Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+    omni.sidero.dev/role-controlplane:
+  finalizers:
+    - MachineSetController
+    - MachineSetStatusController
+spec:
+  updatestrategy: 1
+  machineclass: null
+  bootstrapspec:
+    clusteruuid: 98d00c6b-fae1-4bf2-afa3-0282ef443f84
+    snapshot: FFFFFFFF9AA169F0.snapshot
+---
+
+
+
+################################ Worker MachineSet - default
+metadata:
+  namespace: default
+  type: MachineSets.omni.sidero.dev
+  id: export-test-workers
+  version: 5
+  owner:
+  phase: running
+  created: 2023-12-07T13:36:21Z
+  updated: 2023-12-07T13:39:44Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+    omni.sidero.dev/role-worker:
+  finalizers:
+    - MachineSetController
+    - MachineSetStatusController
+spec:
+  updatestrategy: 1
+  machineclass: null
+  bootstrapspec: null
+  deletestrategy: 1
+  updatestrategyconfig:
+    rolling:
+      maxparallelism: 3
+  deletestrategyconfig:
+    type: Rolling
+    rolling:
+      maxparallelism: 5
+---
+
+
+
+################################ Worker MachineSet - additional, using machine class, unlimited allocation
+metadata:
+  namespace: default
+  type: MachineSets.omni.sidero.dev
+  id: export-test-w07c5e8
+  version: 4
+  owner:
+  phase: running
+  created: 2023-12-07T13:38:09Z
+  updated: 2023-12-07T13:39:44Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+    omni.sidero.dev/role-worker:
+  finalizers:
+    - MachineSetController
+    - MachineSetStatusController
+spec:
+  updatestrategy: 1
+  machineclass:
+    name: mc1
+    machinecount: 0
+    allocationtype: 1
+  bootstrapspec: null
+---
+
+
+
+################################ Worker MachineSet - additional, using machine class, static allocation
+metadata:
+  namespace: default
+  type: MachineSets.omni.sidero.dev
+  id: export-test-w3c03cf
+  version: 3
+  owner:
+  phase: running
+  created: 2023-12-07T13:39:44Z
+  updated: 2023-12-07T13:39:44Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+    omni.sidero.dev/role-worker:
+  finalizers:
+    - MachineSetController
+    - MachineSetStatusController
+spec:
+  updatestrategy: 1
+  machineclass:
+    name: mc2
+    machinecount: 1
+    allocationtype: 0
+  bootstrapspec: null
+---
+
+
+
+################################ MachineSetNodes
+metadata:
+  namespace: default
+  type: MachineSetNodes.omni.sidero.dev
+  id: 024780fe-b0d6-43e0-a868-b142ba0a67a6
+  version: 1
+  owner:
+  phase: running
+  created: 2023-12-07T13:36:21Z
+  updated: 1970-01-01T00:00:00Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+    omni.sidero.dev/machine-set: export-test-workers
+    omni.sidero.dev/role-worker:
+  annotations:
+    omni.sidero.dev/locked:
+spec: {}
+---
+metadata:
+  namespace: default
+  type: MachineSetNodes.omni.sidero.dev
+  id: 0313855d-e4ea-458b-8df9-8dbdc2e41e8c
+  version: 1
+  owner: MachineSetNodeController
+  phase: running
+  created: 2023-12-07T13:39:44Z
+  updated: 2023-12-07T13:39:44Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+    omni.sidero.dev/machine-set: export-test-w3c03cf
+    omni.sidero.dev/role-worker:
+spec: {}
+---
+metadata:
+  namespace: default
+  type: MachineSetNodes.omni.sidero.dev
+  id: 3f8b33d2-52b1-42ed-8505-4025ddbc31f1
+  version: 1
+  owner:
+  phase: running
+  created: 2023-12-07T13:36:21Z
+  updated: 1970-01-01T00:00:00Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+    omni.sidero.dev/machine-set: export-test-control-planes
+    omni.sidero.dev/role-controlplane:
+spec: {}
+---
+metadata:
+  namespace: default
+  type: MachineSetNodes.omni.sidero.dev
+  id: 7ee83506-4432-4499-9291-276e1319e8b4
+  version: 1
+  owner: MachineSetNodeController
+  phase: running
+  created: 2023-12-07T13:38:09Z
+  updated: 2023-12-07T13:38:09Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+    omni.sidero.dev/machine-set: export-test-w07c5e8
+    omni.sidero.dev/role-worker:
+spec: {}
+---
+metadata:
+  namespace: default
+  type: MachineSetNodes.omni.sidero.dev
+  id: a3ef5705-6ee0-4344-9d4a-da447909e0d4
+  version: 1
+  owner: MachineSetNodeController
+  phase: running
+  created: 2023-12-07T13:38:09Z
+  updated: 2023-12-07T13:38:09Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+    omni.sidero.dev/machine-set: export-test-w07c5e8
+    omni.sidero.dev/role-worker:
+spec: {}
+---
+
+
+
+################################ Config Patches - user defined
+metadata:
+  namespace: default
+  type: ConfigPatches.omni.sidero.dev
+  id: 499-2e4b9030-aade-47cf-8f7f-3031b7ae49bb
+  version: 2
+  owner:
+  phase: running
+  created: 2023-12-07T15:02:39Z
+  updated: 2023-12-08T15:43:10Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+  annotations:
+    name: User defined patch
+spec:
+  data: |
+    machine:
+        network:
+            kubespan:
+                enabled: false
+---
+metadata:
+  namespace: default
+  type: ConfigPatches.omni.sidero.dev
+  id: 500-1104d832-79fb-4121-a67f-752fa8f763e9
+  version: 2
+  owner:
+  phase: running
+  created: 2023-12-07T13:50:13Z
+  updated: 2023-12-08T15:43:10Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+    omni.sidero.dev/cluster-machine: 024780fe-b0d6-43e0-a868-b142ba0a67a6
+  annotations:
+    description: Some Test Description ASD
+    name: User defined patch
+spec:
+  data: |
+    machine:
+        network:
+            kubespan:
+                enabled: false
+                mtu: 1166
+---
+metadata:
+  namespace: default
+  type: ConfigPatches.omni.sidero.dev
+  id: 500-2e2a2a64-5085-407a-a205-f75f4c64a060
+  version: 2
+  owner:
+  phase: running
+  created: 2023-12-07T13:48:50Z
+  updated: 2023-12-08T15:43:10Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+    omni.sidero.dev/machine-set: export-test-control-planes
+  annotations:
+    description: Some Test Description 123
+    name: User defined patch
+spec:
+  data: |
+    machine:
+        network:
+            kubespan:
+                enabled: false
+                mtu: 1111
+---
+metadata:
+  namespace: default
+  type: ConfigPatches.omni.sidero.dev
+  id: 500-32fe29d6-221a-4e6e-a55e-6b1700cae09d
+  version: 2
+  owner:
+  phase: running
+  created: 2023-12-07T13:49:28Z
+  updated: 2023-12-08T15:43:10Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+    omni.sidero.dev/machine-set: export-test-w07c5e8
+  annotations:
+    description: Some Test Description 987
+    name: User defined patch
+spec:
+  data: |
+    machine:
+        network:
+            kubespan:
+                enabled: false
+                mtu: 1217
+---
+metadata:
+  namespace: default
+  type: ConfigPatches.omni.sidero.dev
+  id: 500-3792b0d9-0fc2-46fb-becf-4d5439bbe5ba
+  version: 2
+  owner:
+  phase: running
+  created: 2023-12-07T13:49:10Z
+  updated: 2023-12-08T15:43:10Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+    omni.sidero.dev/machine-set: export-test-workers
+  annotations:
+    description: Some Test Description ABC
+    name: User defined patch
+spec:
+  data: |
+    machine:
+        network:
+            kubespan:
+                enabled: false
+                mtu: 1447
+---
+metadata:
+  namespace: default
+  type: ConfigPatches.omni.sidero.dev
+  id: 500-ae981813-420d-464f-a246-fd7e861402f1
+  version: 2
+  owner:
+  phase: running
+  created: 2023-12-07T13:47:18Z
+  updated: 2023-12-08T15:43:10Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+  annotations:
+    description: Cluster Patch Description
+    name: User defined patch
+spec:
+  data: |
+    machine:
+        network:
+            kubespan:
+                enabled: false
+                mtu: 1410
+---
+metadata:
+  namespace: default
+  type: ConfigPatches.omni.sidero.dev
+  id: 600-3fb9b4d2-b13c-48a7-9929-3632e68ff5da
+  version: 2
+  owner:
+  phase: running
+  created: 2023-12-07T13:48:07Z
+  updated: 2023-12-08T15:43:10Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+  annotations:
+    description: Cluster Patch Description 2
+    name: User defined patch
+spec:
+  data: |
+    machine:
+        network:
+            kubespan:
+                enabled: false
+                mtu: 1234
+---
+metadata:
+  namespace: default
+  type: ConfigPatches.omni.sidero.dev
+  id: 666-4a5ca2e0-4f57-4761-bf61-c1e4cf583170
+  version: 2
+  owner:
+  phase: running
+  created: 2023-12-07T13:49:44Z
+  updated: 2023-12-08T15:43:10Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+    omni.sidero.dev/machine-set: export-test-w3c03cf
+  annotations:
+    description: Some Test Description ZXC
+    name: User defined patch
+spec:
+  data: |
+    machine:
+        network:
+            kubespan:
+                enabled: false
+                mtu: 1298
+---
+
+
+
+################################ Feature Config Patches - workload proxying
+metadata:
+  namespace: default
+  type: ConfigPatches.omni.sidero.dev
+  id: 950-cluster-export-test-workload-proxying
+  version: 1
+  owner: ClusterWorkloadProxyController
+  phase: running
+  created: 2023-12-07T13:36:21Z
+  updated: 2023-12-07T13:36:21Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+    omni.sidero.dev/system-patch:
+spec:
+  data: |
+    cluster:
+      inlineManifests:
+        - name: omni-kube-service-exposer
+          # adapted from: https://github.com/siderolabs/kube-service-exposer/blob/main/deploy/kube-service-exposer.yaml
+          contents: |-
+            apiVersion: rbac.authorization.k8s.io/v1
+            kind: ClusterRole
+            metadata:
+              name: omni-kube-service-exposer
+            rules:
+              - apiGroups: [""]
+                resources: ["services"]
+                verbs: ["get", "list", "watch"]
+            ---
+            apiVersion: v1
+            kind: ServiceAccount
+            metadata:
+              name: omni-kube-service-exposer
+              namespace: kube-system
+            ---
+            apiVersion: rbac.authorization.k8s.io/v1
+            kind: ClusterRoleBinding
+            metadata:
+              name: omni-kube-service-exposer
+            roleRef:
+              apiGroup: rbac.authorization.k8s.io
+              kind: ClusterRole
+              name: omni-kube-service-exposer
+            subjects:
+              - kind: ServiceAccount
+                name: omni-kube-service-exposer
+                namespace: kube-system
+            ---
+            apiVersion: apps/v1
+            kind: DaemonSet
+            metadata:
+              name: omni-kube-service-exposer
+              namespace: kube-system
+            spec:
+              selector:
+                matchLabels:
+                  app.kubernetes.io/name: omni-kube-service-exposer
+              template:
+                metadata:
+                  labels:
+                    app.kubernetes.io/name: omni-kube-service-exposer
+                spec:
+                  serviceAccountName: omni-kube-service-exposer
+                  hostNetwork: true
+                  dnsPolicy: ClusterFirstWithHostNet
+                  tolerations:
+                    - operator: Exists
+                  containers:
+                    - name: omni-kube-service-exposer
+                      image: ghcr.io/siderolabs/kube-service-exposer:v0.1.1
+                      args:
+                        - --debug=false
+                        - --annotation-key=omni-kube-service-exposer.sidero.dev/port
+                        # siderolink CIDR
+                        - --bind-cidrs="fdae:41e4:649b:9303::/64"
+---
+
+
+
+################################ Feature Config Patches - disk encryption
+metadata:
+  namespace: default
+  type: ConfigPatches.omni.sidero.dev
+  id: 950-export-test-encryption
+  version: 1
+  owner: ClusterMachineEncryptionController
+  phase: running
+  created: 2023-12-07T13:36:21Z
+  updated: 2023-12-07T13:36:21Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+    omni.sidero.dev/system-patch:
+  annotations:
+    description: Makes machine encrypt disks using Omni as a KMS server
+    name: disk encryption config
+spec:
+  data: |-
+    machine:
+      systemDiskEncryption:
+        state:
+            provider: luks2
+            keys:
+              - kms:
+                  endpoint: grpc://192.168.178.167:8090
+                slot: 0
+        ephemeral:
+            provider: luks2
+            keys:
+              - kms:
+                  endpoint: grpc://192.168.178.167:8090
+                slot: 0
+---
+
+
+
+################################ Special Config Patches - install disk
+metadata:
+  namespace: default
+  type: ConfigPatches.omni.sidero.dev
+  id: 000-cm-3f8b33d2-52b1-42ed-8505-4025ddbc31f1-install-disk
+  version: 1
+  owner:
+  phase: running
+  created: 2023-12-07T23:14:47Z
+  updated: 1970-01-01T00:00:00Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+    omni.sidero.dev/cluster-machine: 3f8b33d2-52b1-42ed-8505-4025ddbc31f1
+    omni.sidero.dev/system-patch:
+  annotations:
+    name: install-disk
+spec:
+  data: |
+    machine:
+      install:
+        disk: /dev/sdc

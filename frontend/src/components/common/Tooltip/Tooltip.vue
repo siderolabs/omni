@@ -1,0 +1,53 @@
+<!--
+Copyright (c) 2024 Sidero Labs, Inc.
+
+Use of this software is governed by the Business Source License
+included in the LICENSE file.
+-->
+<template>
+  <popper offsetDistance="10" offsetSkid="30" :placement="placement" :show="show && (!!description || !!$slots.description)">
+    <template #content>
+      <div class="text-xs bg-naturals-N4 rounded p-4 text-naturals-N12">
+        <p v-if="description" class="whitespace-pre">{{ description }}</p>
+        <slot v-else name="description"/>
+      </div>
+    </template>
+    <div @mouseover="show = true" @mouseleave="show = false">
+      <slot/>
+    </div>
+  </popper>
+</template>
+
+<script setup lang="ts">
+import { ref } from "vue";
+import Popper from "vue3-popper";
+
+type props = {
+  description?: string,
+  placement?:
+      | "auto"
+      | "auto-start"
+      | "auto-end"
+      | "top"
+      | "top-start"
+      | "top-end"
+      | "bottom"
+      | "bottom-start"
+      | "bottom-end"
+      | "right"
+      | "right-start"
+      | "right-end"
+      | "left"
+      | "left-start"
+      | "left-end";
+}
+
+withDefaults(
+  defineProps<props>(),
+  {
+    placement: "auto-start",
+  }
+);
+
+const show = ref(false);
+</script>

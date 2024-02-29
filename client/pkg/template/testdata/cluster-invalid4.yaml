@@ -1,0 +1,31 @@
+kind: Cluster
+name: my-first-cluster
+kubernetes:
+  version: v1.18.2
+talos:
+  version: v1.3.0
+features:
+  diskEncryption: true
+patches:
+  - file: patches/my-cluster-patch.yaml
+  - file: ../testdata/patches/my-registry-mirrors.yaml
+---
+kind: ControlPlane
+machineClass:
+  name: test
+  size: 1
+patches:
+  - file: patches/my-cp-patch.yaml  # name is derived from the filename
+  - name: kubespan-enabled  # weight is implied (000-999)
+    inline:
+      machine:
+        network:
+          kubespan:
+            enabled: true
+---
+kind: Workers
+machines:
+  - 430d882a-51a8-48b3-ab00-d4b5b0b5b0b0
+machineClass:
+  name: test
+  size: 1

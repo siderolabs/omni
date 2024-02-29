@@ -1,0 +1,108 @@
+syntax = "proto3";
+package omni.resources;
+
+option go_package = "github.com/siderolabs/omni/client/api/omni/resources";
+
+import "common/omni.proto";
+import "v1alpha1/resource.proto";
+
+message Resource {
+  cosi.resource.Metadata metadata = 1;
+  string spec = 2;
+}
+
+message GetRequest {
+  string namespace = 1;
+  string type = 2;
+  string id = 3;
+}
+
+message GetResponse {
+  // Body should contain JSON encoded spec.
+  string body = 1;
+}
+
+message ListRequest {
+  string namespace = 1;
+  string type = 2;
+  int32 offset = 3;
+  int32 limit = 4;
+  string sort_by_field = 5;
+  bool sort_descending = 6;
+  repeated string search_for = 7;
+}
+
+message ListResponse {
+  // Items should contain JSON encoded resources.
+  repeated string items = 1;
+  int32 total = 2;
+}
+
+enum EventType {
+  UNKNOWN = 0;
+  CREATED = 1;
+  UPDATED = 2;
+  DESTROYED = 3;
+  BOOTSTRAPPED = 4;
+}
+
+// Event is emitted when resource changes.
+// It's the same as COSI Event, but encodes resources into JSON.
+message Event {
+    string resource = 1;
+    string old = 2;
+    EventType event_type = 3;
+}
+
+message WatchRequest {
+  string namespace = 1;
+  string type = 2;
+  string id = 3;
+  int32 tail_events = 4;
+  int32 offset = 5;
+  int32 limit = 6;
+  string sort_by_field = 7;
+  bool sort_descending = 8;
+  repeated string search_for = 9;
+}
+
+message WatchResponse {
+  Event event = 1;
+  int32 total = 2;
+  string sort_field_data = 3;
+  bool sort_descending = 4;
+}
+
+message CreateRequest {
+  Resource resource = 1;
+}
+
+message CreateResponse {
+}
+
+message UpdateRequest {
+  string currentVersion = 1;
+  Resource resource = 2;
+}
+
+message UpdateResponse {
+}
+
+message DeleteRequest {
+  string namespace = 1;
+  string type = 2;
+  string id = 3;
+}
+
+message DeleteResponse {
+}
+
+service ResourceService {
+  rpc Get(GetRequest) returns (GetResponse);
+  rpc List(ListRequest) returns (ListResponse);
+  rpc Create(CreateRequest) returns (CreateResponse);
+  rpc Update(UpdateRequest) returns (UpdateResponse);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  rpc Teardown(DeleteRequest) returns (DeleteResponse);
+  rpc Watch(WatchRequest) returns (stream WatchResponse);
+}

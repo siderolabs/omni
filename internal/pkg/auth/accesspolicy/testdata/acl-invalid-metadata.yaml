@@ -1,0 +1,9 @@
+metadata:
+  namespace: invalid-ns
+  type: AccessPolicies.omni.sidero.dev
+  id: invalid-id
+spec:
+  usergroups: {}
+  clustergroups: {}
+  rules: []
+  tests: []
