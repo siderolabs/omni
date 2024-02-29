@@ -16,7 +16,6 @@ import (
 	"slices"
 	"sync"
 	"sync/atomic"
-	"testing"
 	"time"
 
 	cosiv1alpha1 "github.com/cosi-project/runtime/api/v1alpha1"
@@ -45,7 +44,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	rt "github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
-	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
 
 const (
@@ -566,26 +564,6 @@ func (suite *OmniSuite) destroyClusterByID(clusterID string) {
 
 	assertNoResource[*omni.BackupData](suite, omni.NewBackupData(clusterID))
 	assertNoResource[*omni.EtcdBackupStatus](suite, omni.NewEtcdBackupStatus(clusterID))
-}
-
-func TestUpdateInputsVersions(t *testing.T) {
-	out := omni.NewCluster("default", "test")
-
-	in := []resource.Resource{omni.NewMachine("default", "test1"), omni.NewMachine("default", "test2")}
-
-	assert.True(t, omnictrl.UpdateInputsVersions(out, in...))
-
-	v, _ := out.Metadata().Annotations().Get("inputResourceVersion")
-	assert.Equal(t, "a7a451e614fc3b4a7241798235001fea271c7ad5493c392f0a012104379bdb89", v)
-
-	assert.False(t, omnictrl.UpdateInputsVersions(out, in...))
-
-	in = append(in, omni.NewClusterMachine("default", "cm1"))
-
-	assert.True(t, omnictrl.UpdateInputsVersions(out, in...))
-
-	v, _ = out.Metadata().Annotations().Get("inputResourceVersion")
-	assert.Equal(t, "df4af53c3caf7ae4c0446bcf8b854ed3f5740a47eab0e5151f1962a4a4d52f6f", v)
 }
 
 type dynamicStateBuilder struct { //nolint:govet

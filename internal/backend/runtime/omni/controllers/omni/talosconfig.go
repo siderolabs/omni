@@ -21,6 +21,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/pkg/certs"
 )
 
@@ -47,7 +48,7 @@ func NewTalosConfigController(certificateValidity time.Duration) *TalosConfigCon
 				}
 
 				// should always call UpdateInputsVersions to update the annotations, due to short-circuiting
-				if !UpdateInputsVersions(talosConfig, secrets) && !staleCertificate {
+				if !helpers.UpdateInputsVersions(talosConfig, secrets) && !staleCertificate {
 					return nil
 				}
 

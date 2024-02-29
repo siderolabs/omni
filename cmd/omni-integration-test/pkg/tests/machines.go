@@ -180,7 +180,7 @@ func AssertForceRemoveWorkerNode(testCtx context.Context, st state.State, cluste
 // The VM is wiped & rebooted to bring it back as an available machine.
 func AssertControlPlaneForceReplaceMachine(testCtx context.Context, st state.State, clusterName string, options Options) TestFunc {
 	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, 90*time.Second)
+		ctx, cancel := context.WithTimeout(testCtx, 5*time.Minute)
 		defer cancel()
 
 		if options.WipeAMachineFunc == nil {

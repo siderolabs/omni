@@ -15,6 +15,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/gen/xslices"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -55,6 +56,11 @@ func (ctrl *MachineSetNodeController) Inputs() []controller.Input {
 			Namespace: resources.DefaultNamespace,
 			Type:      omni.MachineClassType,
 			Kind:      controller.InputWeak,
+		},
+		{
+			Namespace: resources.DefaultNamespace,
+			Type:      omni.MachineSetNodeType,
+			Kind:      controller.InputDestroyReady,
 		},
 	}
 }
@@ -250,7 +256,7 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 	r controller.Runtime,
 	machineSetNodes safe.List[*omni.MachineSetNode],
 	machineStatuses map[string]*omni.MachineStatus,
-	count int,
+	machinesToDestroyCount int,
 ) error {
 	usedMachineSetNodes, err := safe.Map(machineSetNodes, func(m *omni.MachineSetNode) (*omni.MachineSetNode, error) {
 		return m, nil
@@ -259,14 +265,49 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 		return err
 	}
 
+	// filter only running used machines
+	xslices.FilterInPlace(usedMachineSetNodes, func(r *omni.MachineSetNode) bool {
+		return r.Metadata().Phase() == resource.PhaseRunning
+	})
+
 	slices.SortStableFunc(usedMachineSetNodes, getSortFunction(machineStatuses))
 
-	for i := 0; i < count; i++ {
-		if i >= len(usedMachineSetNodes) {
+	// destroy all machines which are currently in tearing down phase and have no finalizers
+	if err = machineSetNodes.ForEachErr(func(machineSetNode *omni.MachineSetNode) error {
+		if machineSetNode.Metadata().Phase() == resource.PhaseRunning {
 			return nil
 		}
 
-		if err := r.Destroy(ctx, usedMachineSetNodes[i].Metadata()); err != nil {
+		machinesToDestroyCount--
+		if machineSetNode.Metadata().Finalizers().Empty() {
+			return r.Destroy(ctx, machineSetNode.Metadata())
+		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	iterations := len(usedMachineSetNodes)
+	if machinesToDestroyCount < iterations {
+		iterations = machinesToDestroyCount
+	}
+
+	for i := 0; i < iterations; i++ {
+		var (
+			ready bool
+			err   error
+		)
+
+		if ready, err = r.Teardown(ctx, usedMachineSetNodes[i].Metadata()); err != nil {
+			return err
+		}
+
+		if !ready {
+			return nil
+		}
+
+		if err = r.Destroy(ctx, usedMachineSetNodes[i].Metadata()); err != nil {
 			return err
 		}
 	}

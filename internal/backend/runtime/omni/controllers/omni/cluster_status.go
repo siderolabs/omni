@@ -18,6 +18,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 )
 
@@ -135,7 +136,7 @@ func NewClusterStatusController() *ClusterStatusController {
 					HasConnectedControlPlanes: clusterHasConnectedControlPlanes,
 				}
 
-				CopyUserLabels(clusterStatus, cluster.Metadata().Labels().Raw())
+				helpers.CopyUserLabels(clusterStatus, cluster.Metadata().Labels().Raw())
 
 				return nil
 			},

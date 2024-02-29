@@ -43,6 +43,7 @@ import (
 type IdentityCollectorTaskSpec struct {
 	config            *clientconfig.Config
 	configVersion     resource.Version
+	machineSetName    string
 	clusterName       string
 	managementAddress string
 	id                resource.ID
@@ -53,7 +54,9 @@ type IdentityCollectorTaskSpec struct {
 type IdentityCollectorChan chan<- *omni.ClusterMachineIdentity
 
 // NewIdentityCollectorTaskSpec creates new ClusterMachineCollector.
-func NewIdentityCollectorTaskSpec(id resource.ID, config *clientconfig.Config, configVersion resource.Version, address string, isControlPlane bool, clusterName string) IdentityCollectorTaskSpec {
+func NewIdentityCollectorTaskSpec(id resource.ID, config *clientconfig.Config, configVersion resource.Version, address string, isControlPlane bool,
+	clusterName, machineSetName string,
+) IdentityCollectorTaskSpec {
 	return IdentityCollectorTaskSpec{
 		id:                id,
 		config:            config,
@@ -61,6 +64,7 @@ func NewIdentityCollectorTaskSpec(id resource.ID, config *clientconfig.Config, c
 		managementAddress: address,
 		isControlPlane:    isControlPlane,
 		clusterName:       clusterName,
+		machineSetName:    machineSetName,
 	}
 }
 
@@ -108,6 +112,10 @@ func (spec IdentityCollectorTaskSpec) RunTask(ctx context.Context, _ *zap.Logger
 		clusterMachineIdentity.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
 	} else {
 		clusterMachineIdentity.Metadata().Labels().Set(omni.LabelWorkerRole, "")
+	}
+
+	if spec.machineSetName != "" {
+		clusterMachineIdentity.Metadata().Labels().Set(omni.LabelMachineSet, spec.machineSetName)
 	}
 
 	client, err := spec.getClient(ctx)

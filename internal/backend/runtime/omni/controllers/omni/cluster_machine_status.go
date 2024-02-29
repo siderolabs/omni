@@ -19,6 +19,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
 // ClusterMachineStatusController reflects the status of a machine that is a member of a cluster.
@@ -43,7 +44,7 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 					return err
 				}
 
-				CopyLabels(clusterMachine, clusterMachineStatus,
+				helpers.CopyLabels(clusterMachine, clusterMachineStatus,
 					omni.LabelCluster,
 					omni.LabelControlPlaneRole,
 					omni.LabelWorkerRole,
@@ -142,6 +143,7 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 					cmsVal.ApidAvailable = machine.TypedSpec().Value.Connected
 				}
 
+				// should we also mark it as not ready when the clustermachine is tearing down (?)
 				cmsVal.Ready = status.GetStatus().GetReady() && machine.TypedSpec().Value.Connected
 
 				if clusterMachine.Metadata().Phase() == resource.PhaseTearingDown {
@@ -226,4 +228,8 @@ func configApplyStatus(spec *specs.ClusterMachineStatusSpec) specs.ConfigApplySt
 	default:
 		return specs.ConfigApplyStatus_FAILED
 	}
+}
+
+func isOutdated(clusterMachine *omni.ClusterMachine, configStatus *omni.ClusterMachineConfigStatus) bool {
+	return configStatus.TypedSpec().Value.ClusterMachineVersion != clusterMachine.Metadata().Version().String() || configStatus.TypedSpec().Value.LastConfigError != ""
 }

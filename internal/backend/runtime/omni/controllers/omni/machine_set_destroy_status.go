@@ -95,7 +95,7 @@ func (ctrl *MachineSetDestroyStatusController) Run(ctx context.Context, r contro
 						continue
 					}
 
-					return fmt.Errorf("failed to destroy cluster: %w", err)
+					return fmt.Errorf("failed to destroy machine set: %w", err)
 				}
 			}
 		}

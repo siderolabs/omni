@@ -14,6 +14,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
 
@@ -63,7 +64,7 @@ func reconcileConfigInputs(ctx context.Context, st state.State, item *omni.Clust
 	}
 
 	_, err = safe.StateUpdateWithConflicts(ctx, st, config.Metadata(), func(machineConfig *omni.ClusterMachineConfig) error {
-		omnictrl.UpdateInputsVersions(machineConfig, inputs...)
+		helpers.UpdateInputsVersions(machineConfig, inputs...)
 
 		machineConfig.TypedSpec().Value.ClusterMachineVersion = item.Metadata().Version().String()
 

@@ -13,6 +13,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/siderolabs/gen/xslices"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
@@ -80,5 +81,7 @@ func (h *Helper) Get(machine *omni.ClusterMachine, machineSet *omni.MachineSet) 
 		patches = append(patches, patch)
 	}
 
-	return patches, nil
+	return xslices.Filter(patches, func(configPatch *omni.ConfigPatch) bool {
+		return configPatch.Metadata().Phase() == resource.PhaseRunning
+	}), nil
 }

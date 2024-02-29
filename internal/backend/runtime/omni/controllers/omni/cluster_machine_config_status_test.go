@@ -362,16 +362,13 @@ func (suite *ClusterMachineConfigStatusSuite) TestResetUngraceful() {
 	suite.destroyCluster(cluster)
 
 	for _, m := range machines {
-		suite.Assert().NoError(retry.Constant(5*time.Second, retry.WithUnits(100*time.Millisecond)).Retry(
+		suite.Assert().NoError(retry.Constant(30*time.Second, retry.WithUnits(100*time.Millisecond)).Retry(
 			suite.assertNoResource(*omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, m.Metadata().ID()).Metadata()),
 		))
 	}
 
-	for i, m := range machines {
-		count := 3
-		if i == brokenEtcdMachine {
-			count = 1
-		}
+	for _, m := range machines {
+		count := 5
 
 		suite.Assert().Len(machineServices[m.Metadata().ID()].getResetRequests(), count)
 	}

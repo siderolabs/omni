@@ -16,6 +16,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/image"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task"
 	imagetask "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task/image"
@@ -90,7 +91,7 @@ func (ctrl *ImagePullStatusController) updatePullStatus(ctx context.Context, r c
 	if err := safe.WriterModify[*omni.ImagePullStatus](ctx, r,
 		omni.NewImagePullStatus(resources.DefaultNamespace, pullStatus.Request.Metadata().ID()),
 		func(status *omni.ImagePullStatus) error {
-			CopyAllLabels(pullStatus.Request, status)
+			helpers.CopyAllLabels(pullStatus.Request, status)
 
 			status.TypedSpec().Value.LastProcessedNode = pullStatus.Node
 			status.TypedSpec().Value.LastProcessedImage = pullStatus.Image

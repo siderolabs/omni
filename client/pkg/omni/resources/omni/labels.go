@@ -46,9 +46,6 @@ const (
 	// tsgen:LabelMachine
 	LabelMachine = SystemLabelPrefix + "machine"
 
-	// LabelSkipTeardown is the test label that configures machine set controller to skip teardown sequence for the cluster machine.
-	LabelSkipTeardown = SystemLabelPrefix + "machine-set-skip-teardown"
-
 	// LabelSystemPatch marks the patch as the system patch, so it shouldn't be editable by the user.
 	// tsgen:LabelSystemPatch
 	LabelSystemPatch = SystemLabelPrefix + "system-patch"

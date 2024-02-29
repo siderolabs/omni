@@ -17,6 +17,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task/clustermachine"
 )
@@ -75,7 +76,7 @@ func (ctrl *ClusterMachineIdentityController) Run(ctx context.Context, r control
 			return nil
 		case clusterMachineIdentity := <-notifyCh:
 			err := safe.WriterModify(ctx, r, clusterMachineIdentity, func(res *omni.ClusterMachineIdentity) error {
-				CopyAllLabels(clusterMachineIdentity, res)
+				helpers.CopyAllLabels(clusterMachineIdentity, res)
 
 				spec := clusterMachineIdentity.TypedSpec().Value
 				if spec.EtcdMemberId != 0 {
@@ -136,6 +137,11 @@ func (ctrl *ClusterMachineIdentityController) reconcileCollectors(ctx context.Co
 			return fmt.Errorf("failed to determine the cluster of the cluster machine %s", id)
 		}
 
+		machineSetName, ok := clusterMachine.Metadata().Labels().Get(omni.LabelMachineSet)
+		if !ok {
+			return fmt.Errorf("failed to determine the machine set of the cluster machine %s", id)
+		}
+
 		machine, err := safe.ReaderGet[*omni.Machine](ctx, r,
 			omni.NewMachine(resources.DefaultNamespace, id).Metadata(),
 		)
@@ -173,6 +179,7 @@ func (ctrl *ClusterMachineIdentityController) reconcileCollectors(ctx context.Co
 			machine.TypedSpec().Value.ManagementAddress,
 			isControlPlane,
 			clusterName,
+			machineSetName,
 		)
 	}
 

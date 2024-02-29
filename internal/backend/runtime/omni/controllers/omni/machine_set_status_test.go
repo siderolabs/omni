@@ -30,6 +30,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
 
@@ -81,7 +82,6 @@ func (suite *MachineSetStatusSuite) createMachineSetWithOpts(clusterName string,
 
 	machineSet := omni.NewMachineSet(resources.DefaultNamespace, machineSetName)
 	machineSet.Metadata().Labels().Set(omni.LabelCluster, clusterName)
-	machineSet.Metadata().Labels().Set(omni.LabelSkipTeardown, "")
 	spec := machineSet.TypedSpec().Value
 
 	loadbalancer := omni.NewLoadBalancerStatus(resources.DefaultNamespace, clusterName)
@@ -181,6 +181,7 @@ func (suite *MachineSetStatusSuite) createMachineSetWithOpts(clusterName string,
 func (suite *MachineSetStatusSuite) updateStage(nodes []string, stage specs.ClusterMachineStatusSpec_Stage, ready bool) {
 	for _, node := range nodes {
 		cms := omni.NewClusterMachineStatus(resources.DefaultNamespace, node)
+		cms.Metadata().Labels().Set(omni.MachineStatusLabelConnected, "")
 		spec := cms.TypedSpec().Value
 
 		spec.Ready = ready
@@ -194,14 +195,14 @@ func (suite *MachineSetStatusSuite) updateStage(nodes []string, stage specs.Clus
 		))
 		suite.Require().NoError(err)
 
-		omnictrl.CopyLabels(machine, cms, omni.LabelControlPlaneRole, omni.LabelCluster, omni.LabelMachineSet, omni.LabelWorkerRole)
+		helpers.CopyLabels(machine, cms, omni.LabelControlPlaneRole, omni.LabelCluster, omni.LabelMachineSet, omni.LabelWorkerRole)
 
 		err = suite.state.Create(suite.ctx, cms)
 		if state.IsConflictError(err) {
 			_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, cms.Metadata(), func(res *omni.ClusterMachineStatus) error {
 				res.TypedSpec().Value = cms.TypedSpec().Value
 
-				omnictrl.CopyLabels(machine, res, omni.LabelControlPlaneRole, omni.LabelCluster, omni.LabelMachineSet, omni.LabelWorkerRole)
+				helpers.CopyLabels(machine, res, omni.LabelControlPlaneRole, omni.LabelCluster, omni.LabelMachineSet, omni.LabelWorkerRole)
 
 				return nil
 			})
@@ -225,7 +226,7 @@ func (suite *MachineSetStatusSuite) syncConfig(nodes []string) {
 		spec := cmcs.TypedSpec().Value
 		spec.ClusterMachineVersion = machine.Metadata().Version().String()
 
-		omnictrl.CopyLabels(machine, cmcs, omni.LabelControlPlaneRole, omni.LabelCluster, omni.LabelMachineSet, omni.LabelWorkerRole)
+		helpers.CopyLabels(machine, cmcs, omni.LabelControlPlaneRole, omni.LabelCluster, omni.LabelMachineSet, omni.LabelWorkerRole)
 
 		err = suite.state.Create(suite.ctx, cmcs)
 		if state.IsConflictError(err) {
@@ -233,7 +234,7 @@ func (suite *MachineSetStatusSuite) syncConfig(nodes []string) {
 				res.TypedSpec().Value = cmcs.TypedSpec().Value
 				res.TypedSpec().Value.ClusterMachineVersion = machine.Metadata().Version().String()
 
-				omnictrl.CopyLabels(machine, res, omni.LabelControlPlaneRole, omni.LabelCluster, omni.LabelMachineSet, omni.LabelWorkerRole)
+				helpers.CopyLabels(machine, res, omni.LabelControlPlaneRole, omni.LabelCluster, omni.LabelMachineSet, omni.LabelWorkerRole)
 
 				return nil
 			})
@@ -248,7 +249,7 @@ func (suite *MachineSetStatusSuite) SetupTest() {
 
 	suite.startRuntime()
 
-	suite.Require().NoError(suite.runtime.RegisterController(&omnictrl.MachineSetStatusController{}))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetStatusController()))
 
 	// create siderolink config as it's endpoint is used while generating kubernetes endpoint
 	siderolink := siderolink.NewConfig(resources.DefaultNamespace)
@@ -292,21 +293,20 @@ func (suite *MachineSetStatusSuite) TestScaleDown() {
 		"scaledown-3",
 	}
 
-	// We create machine with "Healthy=false" status, so that state.Destroy will not work.
+	// We create machine with "Healthy=false" status, so that rtestutils.Destroy will not work.
 	machineSet := suite.createMachineSetWithOpts(clusterName, "machine-set-scale-down", machines, withHealthy(false))
 
 	suite.assertMachinesState(machines, clusterName, machineSet.Metadata().ID())
 
-	suite.Require().NoError(suite.state.Destroy(
-		suite.ctx,
-		resource.NewMetadata(resources.DefaultNamespace, omni.MachineSetNodeType, machines[0], resource.VersionUndefined),
-	))
+	rtestutils.Destroy[*omni.MachineSetNode](suite.ctx, suite.T(), suite.state, []string{machines[0]})
 
 	suite.assertMachineSetPhase(machineSet, specs.MachineSetPhase_ScalingUp)
 
 	expectedMachines := []string{"scaledown-1", "scaledown-2", "scaledown-3"}
 
 	suite.assertMachinesState(expectedMachines, clusterName, machineSet.Metadata().ID())
+
+	suite.updateStage(expectedMachines, specs.ClusterMachineStatusSpec_RUNNING, true)
 
 	loadbalancer := omni.NewLoadBalancerStatus(resources.DefaultNamespace, clusterName)
 	_, err := safe.StateUpdateWithConflicts(
@@ -321,16 +321,9 @@ func (suite *MachineSetStatusSuite) TestScaleDown() {
 	)
 	suite.Require().NoError(err)
 
-	suite.updateStage(expectedMachines, specs.ClusterMachineStatusSpec_RUNNING, true)
-
-	suite.assertMachineSetPhase(machineSet, specs.MachineSetPhase_Running)
-
 	suite.Assert().NoError(retry.Constant(5*time.Second, retry.WithUnits(100*time.Millisecond)).Retry(
 		suite.assertNoResource(*omni.NewClusterMachine(resources.DefaultNamespace, expectedMachines[0]).Metadata()),
 	))
-
-	// this should be destroyed by the cluster machine status controller, simulate it here
-	suite.Assert().NoError(suite.state.Destroy(suite.ctx, omni.NewClusterMachineStatus(resources.DefaultNamespace, expectedMachines[0]).Metadata()))
 
 	suite.assertMachineSetPhase(machineSet, specs.MachineSetPhase_Running)
 }
@@ -376,7 +369,7 @@ func (suite *MachineSetStatusSuite) TestScaleDownWithMaxParallelism() {
 	suite.Require().NoError(err)
 
 	for _, machine := range machines[1:] {
-		suite.Require().NoError(suite.state.Destroy(suite.ctx, omni.NewMachineSetNode(resources.DefaultNamespace, machine, machineSet).Metadata()))
+		rtestutils.Destroy[*omni.MachineSetNode](suite.ctx, suite.T(), suite.state, []string{machine})
 	}
 
 	getTearingDownClusterMachines := func() []*omni.ClusterMachine {
@@ -453,11 +446,11 @@ func (suite *MachineSetStatusSuite) TestConfigUpdate() {
 		"patched3",
 	}
 
-	machineSet := suite.createMachineSet(clusterName, "machine-set-scale-up", machines, `machine:
+	machineSet := suite.createMachineSet(clusterName, "machine-set-configs-update", machines, `machine:
   install:
     disk: /dev/vdb`)
 
-	// initially, each machine must have 2 config patches
+	// initially, each machine should have 2 config patches
 	for _, m := range machines {
 		assertResource(
 			&suite.OmniSuite,
@@ -493,6 +486,20 @@ func (suite *MachineSetStatusSuite) TestConfigUpdate() {
 	machinePatch.TypedSpec().Value.Data = `machine:
   network:
    hostname: the-running-node-cluster-machine-patch`
+
+	rtestutils.AssertResource[*omni.MachineSetStatus](suite.ctx, suite.T(), suite.state, machineSet.Metadata().ID(), func(r *omni.MachineSetStatus, assertion *assert.Assertions) {
+		assertion.True(
+			r.TypedSpec().Value.Machines.EqualVT(
+				&specs.Machines{
+					Total:     3,
+					Healthy:   2,
+					Connected: 2,
+					Requested: 3,
+				},
+			),
+			"status %#v", r.TypedSpec().Value.Machines,
+		)
+	})
 
 	suite.Assert().NoError(suite.state.Create(suite.ctx, machinePatch))
 
@@ -603,6 +610,12 @@ func (suite *MachineSetStatusSuite) TestConfigUpdateWithMaxParallelism() {
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, machineSetPatch))
 
+	rtestutils.AssertResources[*omni.ClusterMachine](suite.ctx, suite.T(), suite.state, machines, func(r *omni.ClusterMachine, assert *assert.Assertions) {
+		_, ok := r.Metadata().Annotations().Get(helpers.InputResourceVersionAnnotation)
+
+		assert.True(ok)
+	})
+
 	expectEvents := func(num int) []resource.ID {
 		ids := make([]resource.ID, 0, num)
 
@@ -695,10 +708,7 @@ func (suite *MachineSetStatusSuite) TestTeardown() {
 					"test",
 				))
 
-				suite.Require().NoError(suite.state.Destroy(
-					suite.ctx,
-					resource.NewMetadata(resources.DefaultNamespace, omni.MachineSetNodeType, machines[0], resource.VersionUndefined),
-				))
+				rtestutils.Destroy[*omni.MachineSetNode](suite.ctx, suite.T(), suite.state, []string{machines[0]})
 
 				suite.assertMachineSetPhase(machineSet, specs.MachineSetPhase_ScalingDown)
 
@@ -741,13 +751,7 @@ func (suite *MachineSetStatusSuite) TestTeardown() {
 			))
 
 			suite.Assert().NoError(suite.state.Destroy(suite.ctx, machineSet.Metadata()))
-			for _, machine := range machines {
-				if err := suite.state.Destroy(suite.ctx,
-					resource.NewMetadata(resources.DefaultNamespace, omni.MachineSetNodeType, machine, resource.VersionUndefined),
-				); err != nil && !state.IsNotFoundError(err) {
-					suite.Require().NoError(err)
-				}
-			}
+			rtestutils.Destroy[*omni.MachineSetNode](suite.ctx, suite.T(), suite.state, machines)
 		}) {
 			break
 		}
@@ -779,6 +783,20 @@ func (suite *MachineSetStatusSuite) TestMachineLocks() {
 	})
 
 	suite.Require().NoError(err)
+
+	rtestutils.AssertResource[*omni.MachineSetStatus](suite.ctx, suite.T(), suite.state, machineSet.Metadata().ID(), func(r *omni.MachineSetStatus, assertion *assert.Assertions) {
+		assertion.True(
+			r.TypedSpec().Value.Machines.EqualVT(
+				&specs.Machines{
+					Total:     3,
+					Healthy:   3,
+					Connected: 3,
+					Requested: 3,
+				},
+			),
+			"status %#v", r.TypedSpec().Value.Machines,
+		)
+	})
 
 	patch := omni.NewConfigPatch(
 		resources.DefaultNamespace,

@@ -70,6 +70,8 @@ type Runtime struct {
 }
 
 // New creates a new Omni runtime.
+//
+//nolint:maintidx
 func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workloadProxyServiceRegistry *workloadproxy.ServiceRegistry,
 	resourceLogger *resourcelogger.Logger, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas, resourceState state.State,
 	virtualState *virtual.State, metricsRegistry prometheus.Registerer, logger *zap.Logger,
@@ -166,7 +168,6 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		&omnictrl.LoadBalancerController{},
 		&omnictrl.MachineSetNodeController{},
 		&omnictrl.MachineSetDestroyStatusController{},
-		&omnictrl.MachineSetStatusController{},
 		&omnictrl.MachineStatusController{},
 		omnictrl.NewMachineCleanupController(),
 		omnictrl.NewMachineStatusLinkController(linkCounterDeltaCh),
@@ -191,6 +192,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewClusterConfigVersionController(),
 		omnictrl.NewClusterEndpointController(),
 		omnictrl.NewClusterMachineConfigController(config.Config.DefaultConfigGenOptions),
+		omnictrl.NewClusterMachineTeardownController(),
 		omnictrl.NewMachineConfigGenOptionsController(),
 		omnictrl.NewClusterMachineConfigStatusController(),
 		omnictrl.NewClusterMachineEncryptionKeyController(),
@@ -203,6 +205,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewKubernetesUpgradeManifestStatusController(),
 		omnictrl.NewKubernetesUpgradeStatusController(),
 		omnictrl.NewMachineController(),
+		omnictrl.NewMachineSetStatusController(),
 		omnictrl.NewMachineSetEtcdAuditController(talosClientFactory, time.Minute),
 		omnictrl.NewRedactedClusterMachineConfigController(),
 		omnictrl.NewSecretsController(storeFactory),

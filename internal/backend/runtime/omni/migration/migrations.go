@@ -26,6 +26,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/registry"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/auth/scope"
@@ -99,7 +100,7 @@ func deprecateClusterMachineTemplates(ctx context.Context, s state.State, _ *zap
 				pair.MakePair("machine-uuid", iter.Value().Metadata().ID()),
 			)
 
-			omnictrl.CopyLabels(iter.Value(), patch, deprecatedCluster)
+			helpers.CopyLabels(iter.Value(), patch, deprecatedCluster)
 
 			if err = createOrUpdate(ctx, s, patch, func(p *omni.ConfigPatch) error {
 				p.TypedSpec().Value.Data = item.Value.Patch
@@ -117,7 +118,7 @@ func deprecateClusterMachineTemplates(ctx context.Context, s state.State, _ *zap
 			pair.MakePair("machine-uuid", iter.Value().Metadata().ID()),
 		)
 
-		omnictrl.CopyLabels(iter.Value(), patch, deprecatedCluster)
+		helpers.CopyLabels(iter.Value(), patch, deprecatedCluster)
 
 		if err = createOrUpdate(ctx, s, patch, func(p *omni.ConfigPatch) error {
 			var config struct {
@@ -178,7 +179,7 @@ func clusterMachinesToMachineSets(ctx context.Context, s state.State, logger *za
 		if _, ok = machineSets[machineSetID]; !ok {
 			machineSets[machineSetID] = omni.NewMachineSet(resources.DefaultNamespace, machineSetID)
 
-			omnictrl.CopyLabels(item, machineSets[machineSetID], deprecatedCluster, deprecatedWorkerRole, deprecatedControlPlaneRole)
+			helpers.CopyLabels(item, machineSets[machineSetID], deprecatedCluster, deprecatedWorkerRole, deprecatedControlPlaneRole)
 		}
 
 		var patches []*omni.ConfigPatch
@@ -191,9 +192,11 @@ func clusterMachinesToMachineSets(ctx context.Context, s state.State, logger *za
 		_, err = safe.StateUpdateWithConflicts(ctx, s, item.Metadata(), func(res *omni.ClusterMachine) error {
 			res.Metadata().Labels().Set("machine-set", machineSetID)
 
-			omnictrl.UpdateInputsVersions(res, patches...)
+			helpers.UpdateInputsVersions(res, patches...)
 
-			return res.Metadata().SetOwner((&omnictrl.MachineSetStatusController{}).Name())
+			owner := omnictrl.NewMachineSetController().ControllerName
+
+			return res.Metadata().SetOwner(owner)
 		}, state.WithExpectedPhaseAny(), state.WithUpdateOwner(item.Metadata().Owner()))
 		if err != nil {
 			return err
@@ -201,7 +204,7 @@ func clusterMachinesToMachineSets(ctx context.Context, s state.State, logger *za
 
 		machineSetNode := omni.NewMachineSetNode(resources.DefaultNamespace, item.Metadata().ID(), machineSets[machineSetID])
 		if err = createOrUpdate(ctx, s, machineSetNode, func(res *omni.MachineSetNode) error {
-			omnictrl.CopyLabels(machineSetNode, res, deprecatedCluster, deprecatedWorkerRole)
+			helpers.CopyLabels(machineSetNode, res, deprecatedCluster, deprecatedWorkerRole)
 
 			res.TypedSpec().Value = machineSetNode.TypedSpec().Value
 
@@ -213,7 +216,7 @@ func clusterMachinesToMachineSets(ctx context.Context, s state.State, logger *za
 
 	for _, ms := range machineSets {
 		if err = createOrUpdate(ctx, s, ms, func(res *omni.MachineSet) error {
-			omnictrl.CopyLabels(ms, res, deprecatedCluster, deprecatedWorkerRole)
+			helpers.CopyLabels(ms, res, deprecatedCluster, deprecatedWorkerRole)
 
 			res.TypedSpec().Value = ms.TypedSpec().Value
 
@@ -808,7 +811,7 @@ func lowercaseAllIdentities(ctx context.Context, st state.State, _ *zap.Logger) 
 		switch {
 		case existing == nil:
 			res := auth.NewIdentity(identity.Metadata().Namespace(), lowercase)
-			omnictrl.CopyAllLabels(identity, res)
+			helpers.CopyAllLabels(identity, res)
 
 			res.TypedSpec().Value = identity.TypedSpec().Value
 
@@ -818,7 +821,7 @@ func lowercaseAllIdentities(ctx context.Context, st state.State, _ *zap.Logger) 
 		case existing.Metadata().Created().After(identity.Metadata().Created()):
 		default:
 			if _, err = safe.StateUpdateWithConflicts(ctx, st, existing.Metadata(), func(res *auth.Identity) error {
-				omnictrl.CopyAllLabels(identity, res)
+				helpers.CopyAllLabels(identity, res)
 
 				res.TypedSpec().Value = identity.TypedSpec().Value
 
@@ -879,11 +882,11 @@ func removeConfigPatchesFromClusterMachines(ctx context.Context, st state.State,
 	}
 
 	return items.ForEachErr(func(item *omni.ClusterMachine) error {
-		owner := (&omnictrl.MachineSetStatusController{}).Name()
+		owner := omnictrl.NewMachineSetController().ControllerName
 
 		err = createOrUpdate(ctx, st, omni.NewClusterMachineConfigPatches(item.Metadata().Namespace(), item.Metadata().ID()),
 			func(res *omni.ClusterMachineConfigPatches) error {
-				omnictrl.CopyAllLabels(item, res)
+				helpers.CopyAllLabels(item, res)
 
 				machineSet, ok := item.Metadata().Labels().Get(omni.SystemLabelPrefix + "machine-set")
 				if !ok {

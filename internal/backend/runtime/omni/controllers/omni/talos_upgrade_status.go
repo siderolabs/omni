@@ -23,6 +23,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/talos"
 )
@@ -383,6 +384,7 @@ func reconcileTalosUpdateStatus(ctx context.Context, r controller.ReaderWriter,
 		if versionMismatch {
 			if upgradeStatus.TypedSpec().Value.Phase == specs.TalosUpgradeStatusSpec_Upgrading &&
 				upgradeStatus.TypedSpec().Value.Status == "" {
+				upgradeStatus.TypedSpec().Value.Step = "update paused"
 				upgradeStatus.TypedSpec().Value.Status = "waiting for the cluster to be ready"
 			}
 
@@ -475,7 +477,7 @@ func updateMachine(ctx context.Context, r controller.ReaderWriter, logger *zap.L
 func createInitialTalosVersion(ctx context.Context, r controller.ReaderWriter, machine *omni.ClusterMachine, talosVersion, schematicID string) error {
 	res := omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, machine.Metadata().ID())
 
-	CopyAllLabels(machine, res)
+	helpers.CopyAllLabels(machine, res)
 
 	res.TypedSpec().Value.TalosVersion = talosVersion
 	res.TypedSpec().Value.SchematicId = schematicID

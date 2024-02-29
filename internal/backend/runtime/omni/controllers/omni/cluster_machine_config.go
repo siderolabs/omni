@@ -31,10 +31,13 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	appconfig "github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/constants"
 )
+
+const clusterMachineConfigControllerName = "ClusterMachineConfigController"
 
 // ClusterMachineConfigController manages machine configurations for each ClusterMachine.
 //
@@ -45,7 +48,7 @@ type ClusterMachineConfigController = qtransform.QController[*omni.ClusterMachin
 func NewClusterMachineConfigController(defaultGenOptions []generate.Option) *ClusterMachineConfigController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.ClusterMachine, *omni.ClusterMachineConfig]{
-			Name: "ClusterMachineConfigController",
+			Name: clusterMachineConfigControllerName,
 			MapMetadataFunc: func(clusterMachine *omni.ClusterMachine) *omni.ClusterMachineConfig {
 				return omni.NewClusterMachineConfig(resources.DefaultNamespace, clusterMachine.Metadata().ID())
 			},
@@ -204,11 +207,11 @@ func reconcileClusterMachineConfig(
 		clusterMachineTalosVersion,
 	}
 
-	if !UpdateInputsVersions(machineConfig, inputs...) {
+	if !helpers.UpdateInputsVersions(machineConfig, inputs...) {
 		return xerrors.NewTagged[qtransform.SkipReconcileTag](errors.New("config inputs not changed"))
 	}
 
-	machineConfig.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+	helpers.CopyLabels(clusterMachine, machineConfig, omni.LabelMachineSet, omni.LabelCluster, omni.LabelControlPlaneRole, omni.LabelWorkerRole)
 
 	// TODO: temporary transition code, remove in the future
 	if clusterMachine.TypedSpec().Value.KubernetesVersion == "" {

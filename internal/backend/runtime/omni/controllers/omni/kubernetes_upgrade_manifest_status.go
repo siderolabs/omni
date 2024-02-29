@@ -29,6 +29,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
@@ -128,7 +129,7 @@ func NewKubernetesUpgradeManifestStatusController() *KubernetesUpgradeManifestSt
 				// - kubernetes upgrade status (Kubernetes version)
 				// - talos upgrade status (Talos version)
 				// - controlplane machine set aggregated config hash (controlplane ConfigPatches)
-				if !UpdateInputsAnnotation(
+				if !helpers.UpdateInputsAnnotation(
 					manifestStatus,
 					k8sUpgradeStatus.Metadata().Version().String(),
 					talosUpgradeStatus.Metadata().Version().String(),

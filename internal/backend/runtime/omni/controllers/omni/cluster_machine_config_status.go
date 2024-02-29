@@ -33,12 +33,16 @@ import (
 	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	talosutils "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/talos"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
-const gracefulResetAttemptCount = 2
+const (
+	gracefulResetAttemptCount = 4
+	etcdLeaveAttemptsLimit    = 2
+)
 
 // ClusterMachineConfigStatusController manages ClusterMachineStatus resource lifecycle.
 //
@@ -161,6 +165,8 @@ func NewClusterMachineConfigStatusController() *ClusterMachineConfigStatusContro
 					return fmt.Errorf("failed to apply config to machine '%s': %w", machineConfig.Metadata().ID(), err)
 				}
 
+				helpers.CopyLabels(machineConfig, configStatus, omni.LabelMachineSet, omni.LabelCluster, omni.LabelControlPlaneRole, omni.LabelWorkerRole)
+
 				configStatus.TypedSpec().Value.ClusterMachineVersion = machineConfig.TypedSpec().Value.ClusterMachineVersion
 				configStatus.TypedSpec().Value.ClusterMachineConfigVersion = machineConfig.Metadata().Version().String()
 				configStatus.TypedSpec().Value.ClusterMachineConfigSha256 = shaSumString
@@ -219,8 +225,8 @@ func NewClusterMachineConfigStatusController() *ClusterMachineConfigStatusContro
 }
 
 type resetStatus struct {
-	attempts        uint
-	forceUngraceful bool
+	resetAttempts     uint
+	etcdLeaveAttempts uint
 }
 
 type ongoingResets struct {
@@ -243,7 +249,16 @@ func (r *ongoingResets) isGraceful(id resource.ID) bool {
 		return true
 	}
 
-	return !rs.forceUngraceful && rs.attempts < gracefulResetAttemptCount
+	return rs.resetAttempts < gracefulResetAttemptCount
+}
+
+func (r *ongoingResets) shouldLeaveEtcd(id string) bool {
+	rs, ok := r.getStatus(id)
+	if !ok {
+		return true
+	}
+
+	return rs.etcdLeaveAttempts < etcdLeaveAttemptsLimit
 }
 
 func (r *ongoingResets) handleReset(id resource.ID) uint {
@@ -254,12 +269,12 @@ func (r *ongoingResets) handleReset(id resource.ID) uint {
 		r.statuses[id] = &resetStatus{}
 	}
 
-	r.statuses[id].attempts++
+	r.statuses[id].resetAttempts++
 
-	return r.statuses[id].attempts
+	return r.statuses[id].resetAttempts
 }
 
-func (r *ongoingResets) forceUngraceful(id resource.ID) {
+func (r *ongoingResets) handleEtcdLeave(id resource.ID) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -267,7 +282,7 @@ func (r *ongoingResets) forceUngraceful(id resource.ID) {
 		r.statuses[id] = &resetStatus{}
 	}
 
-	r.statuses[id].forceUngraceful = true
+	r.statuses[id].etcdLeaveAttempts++
 }
 
 func (r *ongoingResets) deleteStatus(id resource.ID) {
@@ -456,7 +471,7 @@ func (h *clusterMachineConfigStatusControllerHandler) reset(
 	machineConfig *omni.ClusterMachineConfig,
 	clusterMachine *omni.ClusterMachine,
 ) error {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	logger := h.logger.With(
@@ -512,6 +527,10 @@ func (h *clusterMachineConfigStatusControllerHandler) reset(
 
 	machineStage := statusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage()
 
+	if machineStage == machineapi.MachineStatusEvent_RESETTING {
+		return controller.NewRequeueErrorf(time.Minute, "the machine is already being reset")
+	}
+
 	logger.Debug("getting ready to reset the machine", zap.Stringer("stage", machineStage))
 
 	inMaintenance := machineStage == machineapi.MachineStatusEvent_MAINTENANCE
@@ -554,7 +573,7 @@ func (h *clusterMachineConfigStatusControllerHandler) reset(
 		graceful = false
 	}
 
-	isControlPlane := isControlPlane(clusterMachine)
+	_, isControlPlane := clusterMachine.Metadata().Labels().Get(omni.LabelControlPlaneRole)
 
 	switch {
 	// check that machine is ready to be reset
@@ -587,19 +606,12 @@ func (h *clusterMachineConfigStatusControllerHandler) reset(
 	}
 
 	// if is control plane first leave etcd
-	if graceful && isControlPlane {
-		_, err = c.EtcdForfeitLeadership(ctx, &machineapi.EtcdForfeitLeadershipRequest{})
+	if isControlPlane && h.ongoingResets.shouldLeaveEtcd(clusterMachine.Metadata().ID()) {
+		h.ongoingResets.handleEtcdLeave(clusterMachine.Metadata().ID())
+
+		err = h.gracefulEtcdLeave(ctx, c, clusterMachine.Metadata().ID())
 		if err != nil {
-			h.ongoingResets.forceUngraceful(clusterMachine.Metadata().ID())
-
-			return fmt.Errorf("failed to forfeit leadership, node %q: %w", machineConfig.Metadata().ID(), err)
-		}
-
-		err = c.EtcdLeaveCluster(ctx, &machineapi.EtcdLeaveClusterRequest{})
-		if err != nil {
-			h.ongoingResets.forceUngraceful(clusterMachine.Metadata().ID())
-
-			return fmt.Errorf("failed to leave etcd cluster, node %q: %w", machineConfig.Metadata().ID(), err)
+			return controller.NewRequeueError(err, time.Second)
 		}
 	}
 
@@ -630,6 +642,20 @@ func (h *clusterMachineConfigStatusControllerHandler) reset(
 	)
 
 	return fmt.Errorf("failed resetting node '%s': %w", machineConfig.Metadata().ID(), err)
+}
+
+func (h *clusterMachineConfigStatusControllerHandler) gracefulEtcdLeave(ctx context.Context, c *client.Client, id string) error {
+	_, err := c.EtcdForfeitLeadership(ctx, &machineapi.EtcdForfeitLeadershipRequest{})
+	if err != nil {
+		return fmt.Errorf("failed to forfeit leadership, node %q: %w", id, err)
+	}
+
+	err = c.EtcdLeaveCluster(ctx, &machineapi.EtcdLeaveClusterRequest{})
+	if err != nil {
+		return fmt.Errorf("failed to leave etcd cluster, node %q: %w", id, err)
+	}
+
+	return nil
 }
 
 func (h *clusterMachineConfigStatusControllerHandler) getClient(

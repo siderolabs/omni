@@ -19,6 +19,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
 
@@ -28,9 +29,6 @@ type TalosUpgradeStatusSuite struct {
 
 func (suite *TalosUpgradeStatusSuite) TestReconcile() {
 	suite.startRuntime()
-
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
-	suite.Require().NoError(suite.runtime.RegisterController(&omnictrl.MachineSetStatusController{}))
 
 	clusterName := "talos-upgrade-cluster"
 
@@ -42,6 +40,8 @@ func (suite *TalosUpgradeStatusSuite) TestReconcile() {
 	clusterStatus.TypedSpec().Value.Phase = specs.ClusterStatusSpec_RUNNING
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, clusterStatus))
+
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
 
 	for _, res := range machines {
 		assertResource(
@@ -55,8 +55,12 @@ func (suite *TalosUpgradeStatusSuite) TestReconcile() {
 		)
 
 		configStatus := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, res.Metadata().ID())
+
+		helpers.CopyAllLabels(res, configStatus)
+
 		configStatus.TypedSpec().Value.ClusterMachineConfigSha256 = "aaaa"
 		configStatus.TypedSpec().Value.TalosVersion = cluster.TypedSpec().Value.TalosVersion
+		configStatus.TypedSpec().Value.SchematicId = defaultSchematic
 
 		suite.Require().NoError(suite.state.Create(suite.ctx, configStatus))
 	}
@@ -199,7 +203,7 @@ func (suite *TalosUpgradeStatusSuite) TestUpdateVersionsMaintenance() {
 	suite.startRuntime()
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
-	suite.Require().NoError(suite.runtime.RegisterController(&omnictrl.MachineSetStatusController{}))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetStatusController()))
 
 	clusterName := "talos-upgrade-cluster"
 
