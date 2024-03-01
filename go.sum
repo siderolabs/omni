@@ -116,8 +116,8 @@ github.com/coreos/go-semver v0.3.1 h1:yi21YpKnrx1gt5R+la8n5WgS0kCrsPp33dmEyHReZr
 github.com/coreos/go-semver v0.3.1/go.mod h1:irMmmIw/7yzSRPWryHsK7EYSg09caPQL03VsM8rvUec=
 github.com/coreos/go-systemd/v22 v22.5.0 h1:RrqgGjYQKalulkV8NGVIfkXQf6YYmOyiJKk8iXXhfZs=
 github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
-github.com/cosi-project/runtime v0.4.0-alpha.8 h1:wpv0Vw6ENJMjlxftMKQ0im0woh5F57DlF+23dglgE74=
-github.com/cosi-project/runtime v0.4.0-alpha.8/go.mod h1:Was5rgpxPSJfNqbw01atuWHer5KYMtzhwJm02+xbU90=
+github.com/cosi-project/runtime v0.4.0-alpha.9 h1:c4PLjpZW19TYk7Y++gXDOpD+sM0YFSsr189p49/EHMY=
+github.com/cosi-project/runtime v0.4.0-alpha.9/go.mod h1:Was5rgpxPSJfNqbw01atuWHer5KYMtzhwJm02+xbU90=
 github.com/cosi-project/state-etcd v0.2.8 h1:77e3VoA+hw/CSoJH4ibKWwrJwY5pSbIdOli7pbgYBNQ=
 github.com/cosi-project/state-etcd v0.2.8/go.mod h1:P/QdrlDu1JTptfteGgt6ClR9BHnbpt5EXxPFMvg+RuY=
 github.com/cpuguy83/go-md2man/v2 v2.0.3 h1:qMCsGGgs+MAzDFyp9LpAe1Lqy/fY/qCovCm0qnXZOBM=

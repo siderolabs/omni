@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
+	"github.com/cosi-project/runtime/pkg/controller/generic/destroy"
 	cosiruntime "github.com/cosi-project/runtime/pkg/controller/runtime"
 	"github.com/cosi-project/runtime/pkg/controller/runtime/options"
 	cosiresource "github.com/cosi-project/runtime/pkg/resource"
@@ -19,6 +20,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
+	"github.com/siderolabs/gen/optional"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/common"
@@ -166,6 +168,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		&omnictrl.MachineSetDestroyStatusController{},
 		&omnictrl.MachineSetStatusController{},
 		&omnictrl.MachineStatusController{},
+		omnictrl.NewMachineCleanupController(),
 		omnictrl.NewMachineStatusLinkController(linkCounterDeltaCh),
 		&omnictrl.MachineStatusMetricsController{},
 		&omnictrl.VersionsController{},
@@ -181,6 +184,8 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 	}
 
 	qcontrollers := []controller.QController{
+		destroy.NewController[*siderolinkresources.Link](optional.Some[uint](4)),
+
 		omnictrl.NewBackupDataController(),
 		omnictrl.NewClusterBootstrapStatusController(storeFactory),
 		omnictrl.NewClusterConfigVersionController(),

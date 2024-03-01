@@ -10,7 +10,7 @@ import { Resource, ResourceService, ResourceTyped } from "@/api/grpc";
 import { MachineLabelsSpec } from "@/api/omni/specs/omni.pb";
 import { withRuntime } from "@/api/options";
 import { DefaultNamespace, MachineLabelsType, MachineLocked, MachineSetNodeType, MachineStatusType, SiderolinkResourceType, SystemLabelPrefix } from "@/api/resources";
-import { destroyNodes, destroyResources, getMachineConfigPatchesToDelete } from "@/methods/cluster";
+import { destroyResources, getMachineConfigPatchesToDelete } from "@/methods/cluster";
 import { parseLabels } from "@/methods/labels";
 
 export const addMachineLabels = async (machineID: string, ...labels: string[]) => {
@@ -103,19 +103,8 @@ export const removeMachineLabels = async (machineID: string, ...keys: string[]) 
   }
 }
 
-export const removeMachine = async (id: string, cluster?: string) => {
+export const removeMachine = async (id: string) => {
   await ResourceService.Teardown({
-    namespace: DefaultNamespace,
-    type: SiderolinkResourceType,
-    id: id,
-  }, withRuntime(Runtime.Omni));
-
-  // remove the machine from the cluster
-  if (cluster) {
-    await destroyNodes(cluster, [id], owner => owner !== "");
-  }
-
-  await ResourceService.Delete({
     namespace: DefaultNamespace,
     type: SiderolinkResourceType,
     id: id,

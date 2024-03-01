@@ -67,7 +67,7 @@ const remove = async () => {
   disabled.value = true;
 
   try {
-    await removeMachine(route.query.machine as string, route.query.cluster as string)
+    await removeMachine(route.query.machine as string)
   } catch (e) {
     showError("Failed to remove the machine", e.message)
   }
