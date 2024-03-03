@@ -21,15 +21,7 @@ RUN mkdir /home/omni-init/bin
 WORKDIR /home/omni-init/bin
 
 # Install kubectl based on the architecture
-RUN if [ "$TARGETARCH" = "amd64" ]; then \
-        KUBECTL_ARCH="amd64"; \
-    elif [ "$TARGETARCH" = "arm64" ]; then \
-        KUBECTL_ARCH="arm64"; \
-    else \
-        echo "Unsupported architecture: $TARGETARCH"; \
-        exit 1; \
-    fi && \
-    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/${KUBECTL_ARCH}/kubectl" \
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/${TARGETARCH}/kubectl" \
     && chmod +x kubectl
 
 # Append /home/omni-init/bin to PATH so kubectl can be executed directly
