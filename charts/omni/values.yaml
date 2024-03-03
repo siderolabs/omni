@@ -1,0 +1,323 @@
+# Default values for deploying Omni.
+# This configuration file contains the most common parameters
+# adjusted for a standard deployment. For a full list of available options,
+# refer to the documentation.
+
+omni:
+  # Image configuration for the Omni application
+  image:
+    # The repository of the Omni image
+    repository: "ghcr.io/siderolabs/omni"
+    # The tag of the Omni image
+    tag: "latest"
+    # Image pull policy
+    pullPolicy: IfNotPresent
+    # Optional image digest
+    # digest: ""
+
+  # The number of Omni pod replicas
+  replicaCount: 1
+
+  # Service account configuration
+  serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    # Name of the service account
+    name: "omni"
+
+  # RBAC
+  rbac:
+    # Specifies whether RBAC resources should be created
+    create: true
+
+  # TLS configuration
+  tls:
+    # Name of the secret that contains the TLS certificate and key
+    existingSecret: "omni-tls"
+
+  # GPG encryption key configuration
+  gpg:
+    # Whether to create the GPG key automatically
+    create: true
+    # Email address associated with the GPG key
+    email: "how-to-guide@siderolabs.com"
+    # Name of the secret that stores the GPG key (omni.asc)
+    secretName: "omni-gpg-secret"
+
+  # Unique instance account ID, should never be changed once set
+  # Generate a new account ID using `uuidgen` or a similar tool
+  # If left empty, a new account ID will be generated upon installation
+  accountId:
+    # Whether to create the account ID automatically
+    create: true
+    # Name of the config map that stores the account ID
+    configMapName: "omni-account-id"
+
+  # The hostname of the Omni instance
+  hostName: localhost
+
+  # The advertised IP address for machine API and wireguard
+  advertisedIP: "172.17.0.3"
+
+  # Deployment specific configuration
+  deployment:
+    # Labels specific to the deployment
+    labels: {}
+    # Annotations specific to the deployment
+    annotations: {}
+
+  # Labels for the Omni pods
+  podLabels: {}
+  # Annotations for the Omni pods
+  podAnnotations: {}
+
+  # Resource configuration
+  resources:
+    # Resource requests and limits for the omni container
+    omni:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+    # Resource requests and limits for the init container
+    init:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+
+  # Service configuration
+  service:
+    # Service type (ClusterIP, NodePort, LoadBalancer)
+    type: ClusterIP
+    # Annotations for the service
+    annotations: {}
+    # Additional labels for the service
+    labels: {}
+    # External IPs for the service
+    # externalIPs: []
+    # Specify IP for LoadBalancer service
+    # loadBalancerIP: ""
+    # Source IP ranges for LB
+    # loadBalancerSourceRanges: []
+    # Traffic policy for external access
+    # externalTrafficPolicy: "Local"
+    # Session affinity for the service
+    # sessionAffinity: "None"
+    # API endpoint configuration
+    api:
+      # Port the api service listens on
+      port: 443
+      # Target port on the pod
+      targetPort: 443
+      # [Optional] Specify if type is NodePort
+      # nodePort: 30443
+    # SideroLink endpoint configuration
+    siderolink:
+      api:
+        # Port the siderolink service listens on
+        port: 8090
+        # Target port on the pod
+        targetPort: 8090
+        # [Optional] Specify if type is NodePort
+        # nodePort: 300180
+      wireguard:
+        # Port the service listens on
+        port: 50180
+        # Target port on the pod
+        targetPort: 50180
+        # [Optional] Specify if type is NodePort
+        # nodePort: 30180
+    # Event sink endpoint configuration
+    eventSink:
+      # Port the event sink service listens on
+      port: 8091
+      # Target port on the pod
+      targetPort: 8091
+       # [Optional] Specify if type is NodePort
+      # nodePort: 30091
+    # k8s proxy endpoint configuration
+    k8sProxy:
+      # Port the service listens on
+      port: 8095
+       # Target port on the pod
+      targetPort: 8095
+       # [Optional] Specify if type is NodePort
+      # nodePort: 30095
+    logServer:
+      # Port the service listens on
+      port: 8092
+       # Target port on the pod
+      targetPort: 8092
+       # [Optional] Specify if type is NodePort
+      # nodePort: 30092
+
+  # SideroLink specific configuration
+  siderolink:
+    # Do not populate last known peer endpoint for the wireguard peers
+    disableLastEndpoint: false
+
+  # Authentication configuration
+  auth:
+    # Auth0 authentication configuration
+    auth0:
+      # Enable Auth0 authentication
+      enabled: false
+      # Auth0 application client ID
+      clientId: ""
+      # Auth0 application domain
+      domain: ""
+    # SAML authentication configuration
+    saml:
+      # Enable SAML authentication
+      enabled: false
+      # SAML identity provider metadata URL
+      url: ""
+      # Defines mapping of SAML assertion attributes into Omni identity labels
+      labelRules: {}
+    # WebAuthn authentication configuration
+    webauthn:
+      # Enable WebAuthn authentication
+      enabled: false
+      # Require WebAuthn authentication
+      required: false
+
+  # Debugging and performance tuning options
+  # Enable debug logs for troubleshooting
+  debug: false
+  # Disable the controller-runtime cache to potentially reduce memory usage
+  disableControllerRuntimeCache: false
+  # Include Talos pre-release versions in version discovery
+  enableTalosPreReleaseVersions: false
+
+  # ETCD backup configuration for data persistence and disaster recovery
+  etcd:
+    # Backup configuration for ETCD
+    backup:
+      # Enable ETCD backups
+      enabled: false
+      # Local directory path for ETCD backups. Leave empty to disable local backups
+      localPath: ""
+      # Maximum interval between backups. Adjust according to your data durability requirements
+      maxInterval: "24h0m0s"
+      # Minimum interval between backups to ensure data changes are captured
+      minInterval: "1h0m0s"
+      # Enable backups to an S3-compatible storage. Requires additional S3 configuration
+      s3: false
+      # Interval between backup checks. Shorter intervals increase the frequency of backup assessments
+      tickInterval: "1m0s"
+    # Use an embedded ETCD server. Set to false if using an external ETCD cluster
+    embedded: true
+    # External ETCD configuration. Required if `embedded` is set to false
+    # External ETCD client certificate
+    tls:
+      existingSecret: "etcd-client-tls"
+    # List of ETCD endpoints. Required if using an external ETCD cluster
+    endpoints: []
+      # - "http://localhost:2379"
+
+  # Frontend configuration for UI access
+  frontend:
+    # Proxy server to redirect non-API requests to a defined frontend server
+    bind: ""
+    # Destination address for non-API requests from the proxy server
+    dst: ""
+
+  # Image factory configuration for automated image building and provisioning
+  imageFactory:
+    # Base URL of the image factory. Used for building and retrieving images
+    address: "https://factory.talos.dev"
+    # Base PXE URL of the image factory. Used for network booting and provisioning
+    pxeAddress: ""
+
+  # Initial users configuration. Users specified here will be created upon startup
+  initialUsers: []
+    # - "user1@example.com"
+    # - "user2@example.com"
+
+  # Default container registry for Kubernetes images
+  kubernetesRegistry: "ghcr.io/siderolabs/kubelet"
+
+  # Load balancer and networking configuration
+  # Maximum port for the load balancer port range
+  # lbMaxPort: 35000
+  # Minimum port for the load balancer port range
+  # lbMinPort: 10000
+
+  # Local resource server port for serving static assets or resources
+  localResourceServerPort: 8081
+
+  # Logging and monitoring configuration
+  # Log level for resource updates
+  logResourceUpdatesLogLevel: "info"
+  # Types of resources for which updates will be logged. Empty array falls back to default.
+  logResourceUpdatesTypes: []
+    # - "Identities.omni.sidero.dev"
+    # - "Users.omni.sidero.dev"
+    # - "AccessPolicies.omni.sidero.dev"
+    # - "SAMLLabelRules.omni.sidero.dev"
+    # - "Clusters.omni.sidero.dev"
+    # - "ConfigPatches.omni.sidero.dev"
+    # - "EtcdManualBackups.omni.sidero.dev"
+    # - "MachineClasses.omni.sidero.dev"
+    # - "MachineLabels.omni.sidero.dev"
+    # - "MachineSets.omni.sidero.dev"
+    # - "MachineSetNodes.omni.sidero.dev"
+    # - "EtcdBackupS3Configs.omni.sidero.dev"
+    # - "SchematicConfigurations.omni.sidero.dev"
+  logStorage:
+    # Enable persistent log storage
+    enabled: false
+    # Period for flushing logs to storage
+    flushPeriod: "10m0s"
+    # Directory path for storing logs
+    path: "_out/logs"
+
+  # Machine API configuration for managing hardware and machines
+  machineApi:
+    # Bind address for the Machine API
+    bindAddr: "172.17.0.3:8090"
+    tls:
+      existingSecret: "omni-tls"
+
+  # Metrics and monitoring
+  # Bind address for Prometheus metrics endpoint
+  metricsBindAddr: "0.0.0.0:2122"
+
+  # Miscellaneous configuration
+  # User-facing name of the Omni instance
+  name: "omni-onprem"
+  # Bind address for pprof HTTP server, if enabled
+  pprofBindAddr: ""
+  # Path to the file containing the private key for decrypting the master key slot
+  privateKeySource: ""
+  # List of paths to public key files used for encrypting key slots
+  publicKeyFiles: []
+    # - "/path/to/public/key1.pub"
+
+  # Interval for pruning public keys
+  publicKeyPruningInterval: "10m0s"
+
+  # Registry mirrors configuration for Docker image pull through cache or mirror
+  registryMirror: []
+    # - "https://mirror1.example.com"
+    # - "https://mirror2.example.com"
+
+  # Path for boltdb-backed secondary storage
+  secondaryStoragePath: "_out/secondary-storage/bolt.db"
+
+  # Storage type, either 'etcd' or 'boltdb'
+  storageKind: "etcd"
+
+  # Suspension mode for read-only operations
+  suspended: false
+
+  # Talos installer registry for fetching Talos installer images
+  talosInstallerRegistry: "ghcr.io/siderolabs/installer"
+
+  # Workload proxying configuration
+  workloadProxyingEnabled: true

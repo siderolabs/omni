@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "omni.name" . }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+  {{- range $key, $value := .Values.omni.service.annotations }}
+    {{ $key }}: {{ tpl ($value | toString) $ | quote }}
+  {{- end }}
+  labels:
+    {{- include "omni.labels" . | nindent 4 }}
+    {{- if .Values.omni.service.labels }}
+    {{- toYaml .Values.omni.service.labels | nindent 4 }}
+    {{- end }}
+spec:
+  type: {{ .Values.omni.service.type }}
+  {{- if .Values.omni.service.clusterIP }}
+  clusterIP: {{ .Values.omni.service.clusterIP }}
+  {{- end }}
+  {{- if .Values.omni.service.externalIPs }}
+  externalIPs:
+    {{- toYaml .Values.omni.service.externalIPs | nindent 4 }}
+  {{- end }}
+  {{- if .Values.omni.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.omni.service.loadBalancerIP }}
+  {{- end }}
+  {{- if .Values.omni.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- toYaml .Values.omni.service.loadBalancerSourceRanges | nindent 4 }}
+  {{- end }}
+  {{- if .Values.omni.service.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ .Values.omni.service.externalTrafficPolicy }}
+  {{- end }}
+  {{- if .Values.omni.service.sessionAffinity }}
+  sessionAffinity: {{ .Values.omni.service.sessionAffinity }}
+  {{- end }}
+  ports:
+    - name: api
+      port: {{ .Values.omni.service.api.port }}
+      targetPort: {{ .Values.omni.service.api.targetPort }}
+      protocol: TCP
+      {{- if eq .Values.omni.service.type "NodePort" }}
+      nodePort: {{ .Values.omni.service.api.nodePort }}
+      {{- end }}
+    - name: event-sink
+      port: {{ .Values.omni.service.eventSink.port }}
+      targetPort: {{ .Values.omni.service.eventSink.targetPort }}
+      protocol: TCP
+      {{- if eq .Values.omni.service.type "NodePort" }}
+      nodePort: {{ .Values.omni.eventSink.service.nodePort }}
+      {{- end }}
+    - name: k8s-proxy
+      port: {{ .Values.omni.service.k8sProxy.port }}
+      targetPort: {{ .Values.omni.service.k8sProxy.targetPort }}
+      protocol: TCP
+      {{- if eq .Values.omni.service.type "NodePort" }}
+      nodePort: {{ .Values.omni.service.k8sProxy.nodePort }}
+      {{- end }}
+    - name: siderolink
+      port: {{ .Values.omni.service.siderolink.api.port }}
+      targetPort: {{ .Values.omni.service.siderolink.api.targetPort }}
+      protocol: TCP
+      {{- if eq .Values.omni.service.type "NodePort" }}
+      nodePort: {{ .Values.omni.service.siderolink.api.nodePort }}
+      {{- end }}
+    - name: wireguard
+      port: {{ .Values.omni.service.siderolink.wireguard.port }}
+      targetPort: {{ .Values.omni.service.siderolink.wireguard.targetPort }}
+      protocol: UDP
+      {{- if eq .Values.omni.service.type "NodePort" }}
+      nodePort: {{ .Values.omni.service.siderolink.wireguard.nodePort }}
+      {{- end }}
+    - name: log-server
+      port: {{ .Values.omni.service.logServer.port }}
+      targetPort: {{ .Values.omni.service.logServer.targetPort }}
+      protocol: TCP
+      {{- if eq .Values.omni.service.type "NodePort" }}
+      nodePort: {{ .Values.omni.service.logServer.nodePort }}
+      {{- end }}
+  selector:
+    {{- include "omni.selectorLabels" . | nindent 4 }}

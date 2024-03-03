@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "omni.name" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "omni.labels" . | nindent 4 }}
+    app.kubernetes.io/component: omni
+    {{- with .Values.omni.deployment.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- toYaml .Values.omni.deployment.annotations | nindent 4 }}
+spec:
+  replicas: {{ .Values.omni.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "omni.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- if .Values.omni.podAnnotations }}
+      annotations:
+      {{- range $key, $value := .Values.omni.podAnnotations }}
+        {{ $key }}: {{ $value | quote }}
+      {{- end }}
+    {{- end }}
+      labels:
+        {{- include "omni.labels" . | nindent 8 }}
+        app.kubernetes.io/component: omni
+        {{- with .Values.omni.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- if .Values.omni.podLabels }}
+        {{- toYaml .Values.omni.podLabels | nindent 8 }}
+      {{- end }}
+    spec:
+      containers:
+      - name: omni
+        image: {{ include "omni.image" . }}
+        imagePullPolicy: {{ .Values.omni.image.pullPolicy }}
+        resources:
+          {{- with .Values.omni.resources.omni }}
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+        ports:
+          - name: api
+            containerPort: {{ .Values.omni.service.api.port }}
+            protocol: TCP
+          - name: siderolink
+            containerPort: {{ .Values.omni.service.siderolink.api.port }}
+            protocol: TCP
+          - name: wireguard
+            containerPort: {{ .Values.omni.service.siderolink.wireguard.port }}
+            protocol: UDP
+          - name: event-sink
+            containerPort: {{ .Values.omni.service.eventSink.port }}
+            protocol: TCP
+          - name: k8s-proxy
+            containerPort: {{ .Values.omni.service.k8sProxy.port }}
+            protocol: TCP
+          - name: log-server
+            containerPort: {{ .Values.omni.service.logServer.port }}
+            protocol: TCP
+        env:
+        - name: OMNI_ACCOUNT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.omni.accountId.configMapName }}
+              key: accountId
+        volumeMounts:
+          - name: tls
+            mountPath: "/etc/omni/tls"
+            readOnly: true
+          - name: omni-asc
+            mountPath: "/omni.asc"
+            subPath: omni.asc
+            readOnly: true
+          {{- if and (not .Values.omni.etcd.embedded) (.Values.omni.etcd.secretName) }}
+          - name: etcd-certs
+            mountPath: "/etc/omni/etcd-certs"
+            readOnly: true
+          {{- end }}
+        args:
+          {{- include "omni.params" . | nindent 10 }}
+      volumes:
+        - name: tls
+          secret:
+            secretName: {{ .Values.omni.tls.existingSecret }}
+        - name: omni-asc
+          secret:
+            secretName: {{ .Values.omni.gpg.secretName }}
+        {{- if and (not .Values.omni.etcd.embedded) (.Values.omni.etcd.secretName) }}
+        - name: etcd-certs
+          secret:
+            secretName: {{ .Values.omni.etcd.secretName }}
+        {{- end }}
+      {{- with .Values.omni.securityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,13 @@
+apiVersion: v2
+appVersion: v0.30.0
+description: Siderolabs Omni for SaaS-simple deployment of Kubernetes
+home: https://github.com/siderolabs/omni
+icon: https://www.siderolabs.com/wp-content/uploads/2021/12/image-8-1.png
+keywords:
+- omni
+- talos
+kubeVersion: '>=1.27.0-0'
+name: omni
+sources:
+- https://github.com/siderolabs/omni
+version: 0.1.0

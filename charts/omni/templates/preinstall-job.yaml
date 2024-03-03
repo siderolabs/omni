@@ -1,0 +1,56 @@
+{{- if or (.Values.omni.accountId.create) (.Values.omni.gpg.create) }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ .Release.Name }}-preinstall"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    helm.sh/chart: "{{ include "omni.chart" . }}"
+  annotations:
+    helm.sh/hook: pre-install
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: hook-succeeded
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: "{{ .Release.Name }}-preinstall"
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000 
+      containers:
+      {{- if .Values.omni.accountId.create }}
+        - name: generate-account-id
+          image: local-registry.io/omni-utils:latest
+          volumeMounts:
+            - name: preinstall-scripts
+              mountPath: "/scripts"
+          resources:
+            {{- with .Values.omni.resources.init }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          command: ["/bin/sh", "-c", "/scripts/generate-account-id.sh"]
+      {{- end }}
+      {{- if .Values.omni.gpg.create }}
+        - name: generate-gpg-key
+          image: local-registry.io/omni-utils:latest
+          volumeMounts:
+            - name: preinstall-scripts
+              mountPath: "/scripts"
+          resources:
+            {{- with .Values.omni.resources.init }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          command: ["/bin/sh", "-c", "/scripts/generate-gpg-key.sh"]
+      {{- end }}
+      volumes:
+      {{- if or (.Values.omni.accountId.create) (.Values.omni.gpg.create) }}
+        - name: preinstall-scripts
+          configMap:
+            name: "{{ .Release.Name }}-preinstall-scripts"
+            defaultMode: 0755
+      {{- end }}
+{{- end }}

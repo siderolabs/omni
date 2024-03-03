@@ -1,0 +1,54 @@
+{{- if or (.Values.omni.accountId.create) (.Values.omni.gpg.create) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Release.Name }}-preinstall-scripts"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    helm.sh/chart: "{{ include "omni.chart" . }}"
+  annotations:
+    helm.sh/hook: pre-install
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: hook-succeeded
+data:
+  generate-account-id.sh: |
+    #!/bin/sh
+    set -eux
+    if ! kubectl get configmap {{ .Values.omni.accountId.configMapName }} --namespace {{ .Release.Namespace }}; then
+      kubectl create configmap {{ .Values.omni.accountId.configMapName }} \
+        --namespace {{ .Release.Namespace }} \
+        --from-literal=accountId=$(uuidgen)
+    fi
+  generate-gpg-key.sh: |
+    #!/bin/sh
+    set -eux
+    # Define a writable directory for GPG operations that doesn't require root
+    WORK_DIR="${HOME}/.gnupg"
+    mkdir -p "${WORK_DIR}"
+    chmod 700 "${WORK_DIR}"
+    # Ensure GPG uses this directory
+    export GNUPGHOME="${WORK_DIR}"
+    
+    if ! kubectl get secret "{{ .Values.omni.gpg.secretName }}" --namespace "{{ .Release.Namespace }}"; then
+      # Prepare a batch file for GPG key generation
+      cat >"${WORK_DIR}/gpg_batch" <<EOF
+    Key-Type: RSA
+    Key-Length: 4096
+    Subkey-Type: RSA
+    Subkey-Length: 4096
+    Name-Real: {{ .Values.omni.gpg.email }}
+    Expire-Date: 0
+    %no-protection
+    EOF
+      # Generate the GPG key non-interactively using the batch file
+      gpg --batch --generate-key "${WORK_DIR}/gpg_batch"
+      FINGERPRINT=$(gpg --list-secret-keys --with-colons | grep fpr | head -n 1 | cut -d: -f10)
+      gpg --batch --export-secret-keys --armor "$FINGERPRINT" > "${WORK_DIR}/omni.asc"
+      kubectl create secret generic "{{ .Values.omni.gpg.secretName }}" \
+        --namespace "{{ .Release.Namespace }}" \
+        --from-file=omni.asc="${WORK_DIR}/omni.asc"
+    fi
+{{- end }}
