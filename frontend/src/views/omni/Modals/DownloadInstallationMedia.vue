@@ -173,6 +173,7 @@ import TIcon from "@/components/common/Icon/TIcon.vue";
 import TInput from "@/components/common/TInput/TInput.vue";
 import WordHighlighter from "vue-word-highlighter";
 import IconButton from "@/components/common/Button/IconButton.vue";
+import yaml from "js-yaml";
 
 import { copyText } from "vue3-clipboard";
 import { DocumentArrowDownIcon } from "@heroicons/vue/24/outline";
@@ -316,7 +317,9 @@ const createSchematic = async () => {
         l[k] = labels.value[k].value;
       }
 
-      schematic.meta_values![LabelsMeta] = JSON.stringify(l);
+      schematic.meta_values![LabelsMeta] = yaml.dump({
+        machineLabels: l,
+      });
     }
 
     for (const key in installExtensions.value) {
@@ -380,7 +383,7 @@ const download = async () => {
   try {
     const schematicResponse = await createSchematic();
 
-    let url = `/image/${schematicResponse.schematic_id}/v${selectedTalosVersion.value}/${installationMedia.value.metadata.id}`;
+    let url = `/image/${schematicResponse!.schematic_id}/v${selectedTalosVersion.value}/${installationMedia.value.metadata.id}`;
 
     if (secureBoot.value && !installationMedia.value.spec.no_secure_boot) {
       url += `?${SecureBoot}=true`;
