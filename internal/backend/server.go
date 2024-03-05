@@ -202,7 +202,7 @@ func (s *Server) Run(ctx context.Context) error {
 		return err
 	}
 
-	serviceServers, err := grpcomni.MakeServiceServers(runtimeState, s.logHandler, oidcProvider, oidcStorage, s.logger)
+	serviceServers, err := grpcomni.MakeServiceServers(runtimeState, s.logHandler, oidcProvider, oidcStorage, s.dnsService, s.logger)
 	if err != nil {
 		return err
 	}

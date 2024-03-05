@@ -6,8 +6,12 @@
 package tests
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"io/fs"
 	"strings"
 	"testing"
 	"time"
@@ -26,6 +30,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/resources/etcd"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/protobuf/types/known/emptypb"
 
@@ -710,6 +715,92 @@ func AssertTalosServiceIsRestarted(testCtx context.Context, cli *client.Client, 
 				Id: service,
 			})
 			require.NoError(t, err)
+		}
+	}
+}
+
+// AssertSupportBundleContents tries to upgrade get Talos/Omni support bundle, and verifies that it has some contents.
+func AssertSupportBundleContents(testCtx context.Context, cli *client.Client, clusterName string) TestFunc {
+	return func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(testCtx, 1*time.Minute)
+		defer cancel()
+
+		require := require.New(t)
+
+		progress := make(chan *management.GetSupportBundleResponse_Progress)
+
+		var eg errgroup.Group
+
+		eg.Go(func() error {
+			for p := range progress {
+				if p.Error != "" {
+					return fmt.Errorf(p.Error)
+				}
+			}
+
+			return nil
+		})
+
+		data, err := cli.Management().GetSupportBundle(ctx, clusterName, progress)
+		require.NoError(err)
+
+		require.NoError(eg.Wait())
+
+		archive, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+		require.NoError(err)
+
+		readArchiveFile := func(path string) []byte {
+			var (
+				f    fs.File
+				data []byte
+			)
+
+			f, err = archive.Open(path)
+			require.NoError(err)
+
+			defer f.Close() //nolint:errcheck
+
+			data, err = io.ReadAll(f)
+			require.NoError(err)
+
+			return data
+		}
+
+		// check some resource that always exists
+		require.NotEmpty(readArchiveFile(fmt.Sprintf("omni/resources/Clusters.omni.sidero.dev-%s.yaml", clusterName)))
+
+		// check that all machines have logs
+		machines, err := safe.ReaderListAll[*omni.ClusterMachine](ctx, cli.Omni().State(), state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
+		require.NoError(err)
+
+		machines.ForEach(func(cm *omni.ClusterMachine) {
+			require.NotEmpty(readArchiveFile(fmt.Sprintf("omni/machine-logs/%s.log", cm.Metadata().ID())))
+		})
+
+		// check kubernetes resources
+		require.NotEmpty(readArchiveFile("kubernetesResources/systemPods.yaml"))
+		require.NotEmpty(readArchiveFile("kubernetesResources/nodes.yaml"))
+
+		nodes := map[string]struct{}{}
+
+		for _, file := range archive.File {
+			if strings.HasPrefix(file.Name, "omni/") || strings.HasPrefix(file.Name, "kubernetesResources/") {
+				continue
+			}
+
+			base, _, ok := strings.Cut(file.Name, "/")
+			if !ok {
+				continue
+			}
+
+			nodes[base] = struct{}{}
+		}
+
+		// check some Talos resources
+		for n := range nodes {
+			require.NotEmpty(readArchiveFile(fmt.Sprintf("%s/dmesg.log", n)))
+			require.NotEmpty(readArchiveFile(fmt.Sprintf("%s/service-logs/machined.log", n)))
+			require.NotEmpty(readArchiveFile(fmt.Sprintf("%s/resources/nodenames.kubernetes.talos.dev.yaml", n)))
 		}
 	}
 }

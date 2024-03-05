@@ -130,6 +130,23 @@ message CreateSchematicResponse {
   string pxe_url = 2;
 }
 
+message GetSupportBundleRequest {
+  string cluster = 1;
+}
+
+message GetSupportBundleResponse {
+  message Progress {
+    string source = 1;
+    string error = 2;
+    string state = 3;
+    int32 total = 4;
+    int32 value = 5;
+  }
+
+  Progress progress = 1;
+  bytes bundle_data = 2;
+}
+
 service ManagementService {
   rpc Kubeconfig(KubeconfigRequest) returns (KubeconfigResponse);
   rpc Talosconfig(TalosconfigRequest) returns (TalosconfigResponse);
@@ -143,4 +160,5 @@ service ManagementService {
   rpc KubernetesUpgradePreChecks(KubernetesUpgradePreChecksRequest) returns (KubernetesUpgradePreChecksResponse);
   rpc KubernetesSyncManifests(KubernetesSyncManifestRequest) returns (stream KubernetesSyncManifestResponse);
   rpc CreateSchematic(CreateSchematicRequest) returns (CreateSchematicResponse);
+  rpc GetSupportBundle(GetSupportBundleRequest) returns (stream GetSupportBundleResponse);
 }

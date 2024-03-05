@@ -251,6 +251,11 @@ func TestGroupClusterCreateAndReady(
 			TestBlockClusterAndTalosAPIAndKubernetesShouldBeReady(ctx, rootClient, clusterName, options.MachineOptions.TalosVersion, options.MachineOptions.KubernetesVersion, talosAPIKeyPrepare)...,
 		).Append(
 			subTest{
+				"AssertSupportBundleContents",
+				AssertSupportBundleContents(ctx, rootClient, clusterName),
+			},
+		).Append(
+			subTest{
 				"ClusterShouldBeDestroyed",
 				AssertDestroyCluster(ctx, rootClient.Omni().State(), clusterName),
 			},

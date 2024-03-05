@@ -46,6 +46,7 @@ import (
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	ctlcfg "github.com/siderolabs/omni/client/pkg/omnictl/config"
+	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
@@ -73,6 +74,7 @@ type managementServer struct {
 
 	logHandler     *siderolink.LogHandler
 	logger         *zap.Logger
+	dnsService     *dns.Service
 	omniconfigDest string
 }
 

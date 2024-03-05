@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-02-28T11:30:58Z by kres latest.
+# Generated on 2024-03-13T17:28:42Z by kres latest.
 
 name: e2e-backups-cron
 concurrency:
@@ -33,8 +33,8 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           driver: remote
-          endpoint: tcp://localhost:1234
-        timeout-minutes: 1
+          endpoint: tcp://127.0.0.1:1234
+        timeout-minutes: 10
       - name: run-integration-test
         env:
           AUTH0_TEST_PASSWORD: ${{ secrets.AUTH0_TEST_PASSWORD }}

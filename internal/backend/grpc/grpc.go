@@ -23,6 +23,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/siderolabs/omni/client/api/talos/machine"
+	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/monitoring"
 	"github.com/siderolabs/omni/internal/memconn"
@@ -43,6 +44,7 @@ func MakeServiceServers(
 	logHandler *siderolink.LogHandler,
 	oidcProvider OIDCProvider,
 	jwtSigningKeyProvider JWTSigningKeyProvider,
+	dnsService *dns.Service,
 	logger *zap.Logger,
 ) ([]ServiceServer, error) {
 	dest, err := generateDest(config.Config.APIURL)
@@ -59,6 +61,7 @@ func MakeServiceServers(
 			logHandler:            logHandler,
 			omniconfigDest:        dest,
 			omniState:             state,
+			dnsService:            dnsService,
 			jwtSigningKeyProvider: jwtSigningKeyProvider,
 			logger:                logger.With(logging.Component("management_server")),
 		},

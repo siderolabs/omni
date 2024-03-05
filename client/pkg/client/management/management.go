@@ -162,6 +162,37 @@ func (client *Client) DestroyServiceAccount(ctx context.Context, name string) er
 	return err
 }
 
+// GetSupportBundle generates support bundle on Omni server and returns it to the client.
+func (client *Client) GetSupportBundle(ctx context.Context, cluster string, progress chan *management.GetSupportBundleResponse_Progress) ([]byte, error) {
+	if progress != nil {
+		defer close(progress)
+	}
+
+	serv, err := client.conn.GetSupportBundle(ctx, &management.GetSupportBundleRequest{
+		Cluster: cluster,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		msg, err := serv.Recv()
+		if err != nil {
+			return nil, err
+		}
+
+		if msg.BundleData != nil {
+			return msg.BundleData, nil
+		}
+
+		if progress == nil {
+			continue
+		}
+
+		progress <- msg.Progress
+	}
+}
+
 // LogReader is a log client reader which implements io.Reader.
 type LogReader struct {
 	ctx    context.Context //nolint:containedctx

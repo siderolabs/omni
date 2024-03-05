@@ -34,6 +34,7 @@ const (
 	ManagementService_KubernetesUpgradePreChecks_FullMethodName = "/management.ManagementService/KubernetesUpgradePreChecks"
 	ManagementService_KubernetesSyncManifests_FullMethodName    = "/management.ManagementService/KubernetesSyncManifests"
 	ManagementService_CreateSchematic_FullMethodName            = "/management.ManagementService/CreateSchematic"
+	ManagementService_GetSupportBundle_FullMethodName           = "/management.ManagementService/GetSupportBundle"
 )
 
 // ManagementServiceClient is the client API for ManagementService service.
@@ -52,6 +53,7 @@ type ManagementServiceClient interface {
 	KubernetesUpgradePreChecks(ctx context.Context, in *KubernetesUpgradePreChecksRequest, opts ...grpc.CallOption) (*KubernetesUpgradePreChecksResponse, error)
 	KubernetesSyncManifests(ctx context.Context, in *KubernetesSyncManifestRequest, opts ...grpc.CallOption) (ManagementService_KubernetesSyncManifestsClient, error)
 	CreateSchematic(ctx context.Context, in *CreateSchematicRequest, opts ...grpc.CallOption) (*CreateSchematicResponse, error)
+	GetSupportBundle(ctx context.Context, in *GetSupportBundleRequest, opts ...grpc.CallOption) (ManagementService_GetSupportBundleClient, error)
 }
 
 type managementServiceClient struct {
@@ -216,6 +218,38 @@ func (c *managementServiceClient) CreateSchematic(ctx context.Context, in *Creat
 	return out, nil
 }
 
+func (c *managementServiceClient) GetSupportBundle(ctx context.Context, in *GetSupportBundleRequest, opts ...grpc.CallOption) (ManagementService_GetSupportBundleClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ManagementService_ServiceDesc.Streams[2], ManagementService_GetSupportBundle_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &managementServiceGetSupportBundleClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type ManagementService_GetSupportBundleClient interface {
+	Recv() (*GetSupportBundleResponse, error)
+	grpc.ClientStream
+}
+
+type managementServiceGetSupportBundleClient struct {
+	grpc.ClientStream
+}
+
+func (x *managementServiceGetSupportBundleClient) Recv() (*GetSupportBundleResponse, error) {
+	m := new(GetSupportBundleResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // ManagementServiceServer is the server API for ManagementService service.
 // All implementations must embed UnimplementedManagementServiceServer
 // for forward compatibility
@@ -232,6 +266,7 @@ type ManagementServiceServer interface {
 	KubernetesUpgradePreChecks(context.Context, *KubernetesUpgradePreChecksRequest) (*KubernetesUpgradePreChecksResponse, error)
 	KubernetesSyncManifests(*KubernetesSyncManifestRequest, ManagementService_KubernetesSyncManifestsServer) error
 	CreateSchematic(context.Context, *CreateSchematicRequest) (*CreateSchematicResponse, error)
+	GetSupportBundle(*GetSupportBundleRequest, ManagementService_GetSupportBundleServer) error
 	mustEmbedUnimplementedManagementServiceServer()
 }
 
@@ -274,6 +309,9 @@ func (UnimplementedManagementServiceServer) KubernetesSyncManifests(*KubernetesS
 }
 func (UnimplementedManagementServiceServer) CreateSchematic(context.Context, *CreateSchematicRequest) (*CreateSchematicResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateSchematic not implemented")
+}
+func (UnimplementedManagementServiceServer) GetSupportBundle(*GetSupportBundleRequest, ManagementService_GetSupportBundleServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetSupportBundle not implemented")
 }
 func (UnimplementedManagementServiceServer) mustEmbedUnimplementedManagementServiceServer() {}
 
@@ -510,6 +548,27 @@ func _ManagementService_CreateSchematic_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ManagementService_GetSupportBundle_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetSupportBundleRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ManagementServiceServer).GetSupportBundle(m, &managementServiceGetSupportBundleServer{stream})
+}
+
+type ManagementService_GetSupportBundleServer interface {
+	Send(*GetSupportBundleResponse) error
+	grpc.ServerStream
+}
+
+type managementServiceGetSupportBundleServer struct {
+	grpc.ServerStream
+}
+
+func (x *managementServiceGetSupportBundleServer) Send(m *GetSupportBundleResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // ManagementService_ServiceDesc is the grpc.ServiceDesc for ManagementService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -567,6 +626,11 @@ var ManagementService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "KubernetesSyncManifests",
 			Handler:       _ManagementService_KubernetesSyncManifests_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "GetSupportBundle",
+			Handler:       _ManagementService_GetSupportBundle_Handler,
 			ServerStreams: true,
 		},
 	},

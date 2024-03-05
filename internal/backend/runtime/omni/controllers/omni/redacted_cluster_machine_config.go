@@ -17,6 +17,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
 // RedactedClusterMachineConfigController manages machine configurations for each ClusterMachine.
@@ -55,6 +56,8 @@ func NewRedactedClusterMachineConfigController() *RedactedClusterMachineConfigCo
 				}
 
 				cmcr.TypedSpec().Value.Data = string(redactedData)
+
+				helpers.CopyAllLabels(cmc, cmcr)
 
 				return nil
 			},

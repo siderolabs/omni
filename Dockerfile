@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-03-08T09:31:20Z by kres latest.
+# Generated on 2024-03-13T17:28:42Z by kres latest.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -21,7 +21,7 @@ ENV GOPATH /go
 ENV PATH ${PATH}:/usr/local/go/bin
 
 # runs markdownlint
-FROM docker.io/node:21.6.2-alpine3.19 AS lint-markdown
+FROM docker.io/node:21.7.1-alpine3.19 AS lint-markdown
 WORKDIR /src
 RUN npm i -g markdownlint-cli@0.39.0
 RUN npm i sentences-per-line@0.2.1
@@ -47,8 +47,8 @@ ADD client/api/omni/specs/omni.proto /client/api/omni/specs/
 ADD client/api/omni/specs/siderolink.proto /client/api/omni/specs/
 ADD client/api/omni/specs/system.proto /client/api/omni/specs/
 ADD https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto /client/api/google/rpc/
-ADD https://raw.githubusercontent.com/siderolabs/talos/03a20da9da5916c63015d355f4b56823778e994f/api/common/common.proto /client/api/common/
-ADD https://raw.githubusercontent.com/siderolabs/talos/03a20da9da5916c63015d355f4b56823778e994f/api/machine/machine.proto /client/api/talos/machine/
+ADD https://raw.githubusercontent.com/siderolabs/talos/3c8f51d707b897fb34ed3a9f7c32b7cd3e5ee5b0/api/common/common.proto /client/api/common/
+ADD https://raw.githubusercontent.com/siderolabs/talos/3c8f51d707b897fb34ed3a9f7c32b7cd3e5ee5b0/api/machine/machine.proto /client/api/talos/machine/
 ADD https://raw.githubusercontent.com/cosi-project/specification/c644a4b0fd408ec41bd29193bcdbd1a5b7feead2/proto/v1alpha1/resource.proto /client/api/v1alpha1/
 
 # collects proto specs
