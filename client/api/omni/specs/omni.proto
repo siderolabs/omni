@@ -135,6 +135,11 @@ message MachineStatusSpec {
     bool invalid = 2;
   }
 
+  message MaintenanceConfig {
+    // Config is the machine config.
+    string config = 1;
+  }
+
   // Talos version.
   string talos_version = 1;
 
@@ -178,6 +183,8 @@ message MachineStatusSpec {
   map<string, string> image_labels = 13;
 
   Schematic schematic = 14;
+
+  MaintenanceConfig maintenance_config = 15;
 }
 
 // TalosConfigSpec describes a Talos cluster config.

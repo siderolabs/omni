@@ -11,15 +11,20 @@ import (
 	"fmt"
 	"maps"
 
+	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/value"
 	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/talos/pkg/machinery/client"
+	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
 	"github.com/siderolabs/talos/pkg/machinery/nethelpers"
+	"github.com/siderolabs/talos/pkg/machinery/resources/config"
 	"github.com/siderolabs/talos/pkg/machinery/resources/hardware"
 	"github.com/siderolabs/talos/pkg/machinery/resources/k8s"
 	"github.com/siderolabs/talos/pkg/machinery/resources/network"
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	omnimeta "github.com/siderolabs/omni/client/pkg/meta"
@@ -38,6 +43,7 @@ var resourcePollers = map[string]machinePollFunction{
 	runtime.PlatformMetadataType: pollPlatformMetadata,
 	runtime.MetaKeyType:          pollMeta,
 	runtime.ExtensionStatusType:  pollExtensions,
+	config.MachineConfigType:     pollMaintenanceConfig,
 }
 
 var machinePollers = map[string]machinePollFunction{
@@ -336,6 +342,50 @@ func pollExtensions(ctx context.Context, c *client.Client, info *Info) error {
 		}
 
 		return err
+	}
+
+	return nil
+}
+
+func pollMaintenanceConfig(ctx context.Context, c *client.Client, info *Info) error {
+	if !info.MaintenanceMode {
+		return nil
+	}
+
+	conf, err := safe.StateGetByID[*config.MachineConfig](ctx, c.COSI, config.V1Alpha1ID)
+	if err != nil {
+		if state.IsNotFoundError(err) { // if the config is not found (unset), we mark it as ready by setting it to a non-nil value by empty config.
+			info.MaintenanceConfig = &specs.MachineStatusSpec_MaintenanceConfig{}
+
+			return nil
+		}
+
+		// this resource might not be authorized to be read over siderolink in the maintenance mode on Talos versions < 1.6.5.
+		// in that case, if it was never set previously, we mark it as ready by setting it to a non-nil value with empty config.
+		if code := status.Code(err); code == codes.PermissionDenied {
+			if info.MaintenanceConfig == nil {
+				info.MaintenanceConfig = &specs.MachineStatusSpec_MaintenanceConfig{}
+			}
+
+			return nil
+		}
+
+		return fmt.Errorf("failed to get maintenance config: %w", err)
+	}
+
+	for _, document := range conf.Container().Documents() {
+		if document.Kind() == v1alpha1.Version {
+			return fmt.Errorf("unexpected v1alpha1.Config document in maintenance config: %w", err)
+		}
+	}
+
+	configBytes, err := conf.Container().Bytes()
+	if err != nil {
+		return fmt.Errorf("failed to read maintenance config bytes: %w", err)
+	}
+
+	info.MaintenanceConfig = &specs.MachineStatusSpec_MaintenanceConfig{
+		Config: string(configBytes),
 	}
 
 	return nil

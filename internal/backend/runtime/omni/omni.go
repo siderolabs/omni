@@ -207,6 +207,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewMachineController(),
 		omnictrl.NewMachineSetStatusController(),
 		omnictrl.NewMachineSetEtcdAuditController(talosClientFactory, time.Minute),
+		omnictrl.NewMaintenanceConfigPatchController(),
 		omnictrl.NewRedactedClusterMachineConfigController(),
 		omnictrl.NewSecretsController(storeFactory),
 		omnictrl.NewTalosConfigController(constants.CertificateValidityTime),

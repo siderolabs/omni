@@ -21,6 +21,7 @@ import (
 	"github.com/siderolabs/gen/channel"
 	"github.com/siderolabs/gen/maps"
 	"github.com/siderolabs/talos/pkg/machinery/client"
+	"github.com/siderolabs/talos/pkg/machinery/resources/config"
 	"github.com/siderolabs/talos/pkg/machinery/resources/hardware"
 	"github.com/siderolabs/talos/pkg/machinery/resources/network"
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
@@ -50,8 +51,9 @@ type Info struct { //nolint:govet
 	MemoryModules []*specs.MachineStatusSpec_HardwareStatus_MemoryModule
 	Blockdevices  []*specs.MachineStatusSpec_HardwareStatus_BlockDevice
 
-	PlatformMetadata *specs.MachineStatusSpec_PlatformMetadata
-	Schematic        *specs.MachineStatusSpec_Schematic
+	PlatformMetadata  *specs.MachineStatusSpec_PlatformMetadata
+	Schematic         *specs.MachineStatusSpec_Schematic
+	MaintenanceConfig *specs.MachineStatusSpec_MaintenanceConfig
 
 	LastError       error
 	MachineID       string
@@ -142,7 +144,7 @@ func (spec CollectTaskSpec) sendInfo(ctx context.Context, info Info, notifyCh In
 // It subscribes to resource updates and polls for resources that can't be watched.
 //
 //nolint:gocyclo,cyclop,gocognit
-func (spec CollectTaskSpec) RunTask(ctx context.Context, _ *zap.Logger, notifyCh InfoChan) error {
+func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, notifyCh InfoChan) error {
 	var (
 		c   *client.Client
 		err error
@@ -209,8 +211,9 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, _ *zap.Logger, notifyCh
 	// as Talos < 1.3.0 doesn't support Bootstrapped event, we use a mixed approach:
 	// watch is used to trigger polling on changes to the resources
 	watchers := map[resource.Type]struct {
-		filterFunc func(r resource.Resource) bool
-		namespace  resource.Namespace
+		filterFunc             func(r resource.Resource) bool
+		namespace              resource.Namespace
+		handlePermissionDenied bool
 	}{
 		// NB: keep in sync with machinePollers
 		network.HostnameStatusType: {
@@ -243,6 +246,13 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, _ *zap.Logger, notifyCh
 		runtime.ExtensionStatusType: {
 			namespace: runtime.NamespaceName,
 		},
+		config.MachineConfigType: {
+			namespace: config.NamespaceName,
+			filterFunc: func(r resource.Resource) bool {
+				return spec.MaintenanceMode && r.Metadata().ID() == config.V1Alpha1ID
+			},
+			handlePermissionDenied: true, // do not fail if the resource cannot be read due to permission denied error
+		},
 	}
 
 	for resourceType, watcher := range watchers {
@@ -251,6 +261,12 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, _ *zap.Logger, notifyCh
 		}
 
 		if err = c.COSI.WatchKind(ctx, resource.NewMetadata(watcher.namespace, resourceType, "", resource.VersionUndefined), watchCh); err != nil {
+			if code := status.Code(err); code == codes.PermissionDenied && watcher.handlePermissionDenied {
+				logger.Info("permission denied when watching resource, ignoring", zap.String("resource_type", resourceType))
+
+				continue
+			}
+
 			return fmt.Errorf("error watching COSI resource: %w", err)
 		}
 	}
@@ -279,7 +295,7 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, _ *zap.Logger, notifyCh
 			}
 
 			if err != nil {
-				return fmt.Errorf("poll failed %w", err)
+				return fmt.Errorf("poll failed: %w", err)
 			}
 
 			dirtyPollers = map[string]struct{}{}

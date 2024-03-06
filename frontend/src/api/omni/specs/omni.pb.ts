@@ -189,6 +189,10 @@ export type MachineStatusSpecSchematic = {
   invalid?: boolean
 }
 
+export type MachineStatusSpecMaintenanceConfig = {
+  config?: string
+}
+
 export type MachineStatusSpec = {
   talos_version?: string
   hardware?: MachineStatusSpecHardwareStatus
@@ -202,6 +206,7 @@ export type MachineStatusSpec = {
   platform_metadata?: MachineStatusSpecPlatformMetadata
   image_labels?: {[key: string]: string}
   schematic?: MachineStatusSpecSchematic
+  maintenance_config?: MachineStatusSpecMaintenanceConfig
 }
 
 export type TalosConfigSpec = {

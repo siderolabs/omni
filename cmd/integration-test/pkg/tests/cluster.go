@@ -33,6 +33,9 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
 )
 
+// BeforeClusterCreateFunc is a function that is called before a cluster is created.
+type BeforeClusterCreateFunc func(ctx context.Context, t *testing.T, cli *client.Client, machineIDs []resource.ID)
+
 // ClusterOptions are the options for cluster creation.
 //
 //nolint:govet
@@ -48,6 +51,8 @@ type ClusterOptions struct {
 	EtcdBackup             *specs.EtcdBackupConf
 
 	MachineOptions MachineOptions
+
+	BeforeClusterCreateFunc BeforeClusterCreateFunc
 }
 
 // MachineOptions are the options for machine creation.
@@ -67,6 +72,10 @@ func CreateCluster(testCtx context.Context, cli *client.Client, options ClusterO
 
 		pickUnallocatedMachines(ctx, t, st, options.ControlPlanes+options.Workers, func(machineIDs []resource.ID) {
 			checkExtensionWithRetries(ctx, t, cli, HelloWorldServiceExtensionName, machineIDs...)
+
+			if options.BeforeClusterCreateFunc != nil {
+				options.BeforeClusterCreateFunc(ctx, t, cli, machineIDs)
+			}
 
 			cluster := omni.NewCluster(resources.DefaultNamespace, options.Name)
 			cluster.TypedSpec().Value.TalosVersion = options.MachineOptions.TalosVersion
