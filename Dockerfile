@@ -1,8 +1,8 @@
-# syntax = docker/dockerfile-upstream:1.6.0-labs
+# syntax = docker/dockerfile-upstream:1.7.0-labs
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-02-26T21:35:48Z by kres latest.
+# Generated on 2024-03-07T20:47:59Z by kres latest.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN

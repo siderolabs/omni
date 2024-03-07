@@ -429,6 +429,8 @@ spec:
 kind: common.Image
 name: image-omni
 spec:
+  extraEnvironment:
+    PLATFORM: linux/amd64,linux/arm64
   copyFrom:
     - stage: omnictl-all
       destination: /omnictl/

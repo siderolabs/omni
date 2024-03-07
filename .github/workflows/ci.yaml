@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-02-28T11:30:58Z by kres latest.
+# Generated on 2024-03-07T20:47:59Z by kres latest.
 
 name: default
 concurrency:
@@ -95,12 +95,14 @@ jobs:
       - name: push-omni
         if: github.event_name != 'pull_request'
         env:
+          PLATFORM: linux/amd64,linux/arm64
           PUSH: "true"
         run: |
           make image-omni
       - name: push-omni-latest
         if: github.event_name != 'pull_request'
         env:
+          PLATFORM: linux/amd64,linux/arm64
           PUSH: "true"
         run: |
           make image-omni TAG=latest

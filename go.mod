@@ -1,6 +1,6 @@
 module github.com/siderolabs/omni
 
-go 1.22.0
+go 1.22.1
 
 replace (
 	// use nested module
@@ -69,7 +69,6 @@ require (
 	github.com/siderolabs/kms-client v0.1.0
 	github.com/siderolabs/omni/client v0.0.0-00010101000000-000000000000
 	github.com/siderolabs/siderolink v0.3.4
-	github.com/siderolabs/talos v1.6.0-alpha.2.0.20240123132418-e0dfbb8fba3c
 	github.com/siderolabs/talos/pkg/machinery v1.6.4
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
@@ -122,7 +121,6 @@ require (
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cloudflare/circl v1.3.6 // indirect
-	github.com/containerd/containerd v1.7.12 // indirect
 	github.com/containerd/go-cni v1.1.9 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.15.1 // indirect
 	github.com/containernetworking/cni v1.1.2 // indirect
@@ -204,7 +202,6 @@ require (
 	github.com/shabbyrobe/gocovmerge v0.0.0-20190829150210-3e036491d500 // indirect
 	github.com/siderolabs/go-blockdevice v0.4.7 // indirect
 	github.com/siderolabs/go-kubeconfig v0.1.0 // indirect
-	github.com/siderolabs/go-procfs v0.1.2 // indirect
 	github.com/siderolabs/net v0.4.0 // indirect
 	github.com/siderolabs/protoenc v0.2.1 // indirect
 	github.com/siderolabs/tcpproxy v0.1.0 // indirect
