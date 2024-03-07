@@ -1,3 +1,31 @@
+## [Omni 0.30.1](https://github.com/siderolabs/omni/releases/tag/v0.30.1) (2024-03-07)
+
+Welcome to the v0.30.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Andrey Smirnov
+* Artem Chernyshev
+
+### Changes
+<details><summary>3 commits</summary>
+<p>
+
+* [`93fbcae`](https://github.com/siderolabs/omni/commit/93fbcae456f6d4513050e53133e881b0e6aff457) fix: add missing `v` prefix when looking up version in the image factory
+* [`69dba26`](https://github.com/siderolabs/omni/commit/69dba26ece626b0b9627adc5f94f3105077afc57) fix: redirect omni feedback to omni repo
+* [`dfcbaae`](https://github.com/siderolabs/omni/commit/dfcbaae7d0b7d61d3af526f510db7e233cfb6807) chore: initial commit
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
 ## [Omni 0.20.0](https://github.com/siderolabs/omni/releases/tag/v0.20.0) (2023-10-17)
 
 Welcome to the v0.20.0 release of Omni!
