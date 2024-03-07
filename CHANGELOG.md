@@ -1,3 +1,33 @@
+## [Omni 0.31.0](https://github.com/siderolabs/omni/releases/tag/v0.31.0) (2024-03-07)
+
+Welcome to the v0.31.0 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>4 commits</summary>
+<p>
+
+* [`29e6414`](https://github.com/siderolabs/omni/commit/29e641490a414a844b163f98bf7fc72d046ab844) fix: add missing `v` prefix when looking up version in the image factory
+* [`0eed757`](https://github.com/siderolabs/omni/commit/0eed757c82085550ad6239f1336a0a6f0d2f4dc3) refactor: convert `MachineSetStatus` controller to `QController`
+* [`47d8429`](https://github.com/siderolabs/omni/commit/47d84296e02cdf18a7c7ebc57f7c66d778a2c567) fix: properly generate labels meta in the UI
+* [`1e5c2ce`](https://github.com/siderolabs/omni/commit/1e5c2cee7d6715f209baafe75b2a2649110d553a) fix: cleanup tearing down machine links without finalizers
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/cosi-project/runtime**  v0.4.0-alpha.8 -> v0.4.0-alpha.9
+
+Previous release can be found at [v0.30.1](https://github.com/siderolabs/omni/releases/tag/v0.30.1)
+
 ## [Omni 0.20.0](https://github.com/siderolabs/omni/releases/tag/v0.20.0) (2023-10-17)
 
 Welcome to the v0.20.0 release of Omni!

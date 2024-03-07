@@ -6,19 +6,4 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = false
-previous = "v0.19.0"
-
-[notes]
-
-  [notes.kubernetes-config]
-    title = "Kubeconfig Changes"
-    description = """\
-Omni now generates Kubernetes configs without accessing Talos API.
-"""
-
-  [notes.saml-roles]
-    title = ""
-    description = """\
-Omni can now define SAML user roles depending on the SAML labels it gets from the SAML assertion.
-Role is assigned only once on user creation.
-"""
+previous = "v0.30.1"
