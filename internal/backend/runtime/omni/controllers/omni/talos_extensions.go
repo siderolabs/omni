@@ -51,7 +51,7 @@ func NewTalosExtensionsController() *TalosExtensionsController {
 					return fmt.Errorf("failed to get existing image factory Talos versions %w", err)
 				}
 
-				hasVersion := slices.Index(versions, version.Metadata().ID()) != -1
+				hasVersion := slices.Index(versions, "v"+version.Metadata().ID()) != -1
 
 				// skip fetching Talos extensions for a version which isn't registered in the image factory
 				if !hasVersion {

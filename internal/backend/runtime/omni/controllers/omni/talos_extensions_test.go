@@ -17,6 +17,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/julienschmidt/httprouter"
+	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/image-factory/pkg/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -126,7 +127,7 @@ func (suite *TalosExtensionsSuite) TestReconcile() {
 
 	factory := imageFactoryMock{
 		extensionsVersions: map[string][]client.ExtensionInfo{
-			"v1.6.0": {
+			"1.6.0": {
 				{
 					Name:        "siderolabs/hello-world-service",
 					Ref:         "github.com/siderolabs/hello-world-service:v1.6.0",
@@ -135,7 +136,7 @@ func (suite *TalosExtensionsSuite) TestReconcile() {
 					Description: "This system extension provides an example Talos extension service.",
 				},
 			},
-			"v200.0.0": {
+			"200.0.0": {
 				{
 					Name:   "siderolabs/hello-future",
 					Ref:    "github.com/siderolabs/hello-future:v200.0.0",
@@ -161,10 +162,10 @@ func (suite *TalosExtensionsSuite) TestReconcile() {
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosExtensionsController()))
 
 	versions := []string{
-		"v0.14.0", "v1.6.0", "v200.0.0",
+		"0.14.0", "1.6.0", "200.0.0",
 	}
 
-	factory.talosVersions = versions[1:]
+	factory.talosVersions = xslices.Map(versions[1:], func(v string) string { return "v" + v })
 
 	for _, v := range versions {
 		version := omni.NewTalosVersion(resources.DefaultNamespace, v)
@@ -180,7 +181,7 @@ func (suite *TalosExtensionsSuite) TestReconcile() {
 		manifest := res.TypedSpec().Value.Items[0]
 
 		switch res.Metadata().ID() {
-		case "v1.6.0":
+		case "1.6.0":
 			assert.EqualValues("Sidero Labs", manifest.Author)
 			assert.EqualValues("This system extension provides an example Talos extension service.", manifest.Description)
 			assert.EqualValues("aaaa", manifest.Digest)
@@ -188,7 +189,7 @@ func (suite *TalosExtensionsSuite) TestReconcile() {
 			assert.EqualValues("siderolabs/hello-world-service", manifest.Name)
 			assert.EqualValues("github.com/siderolabs/hello-world-service:v1.6.0", manifest.Ref)
 			// no info in the manifests, should still be in the list but without additional info
-		case "v200.0.0":
+		case "200.0.0":
 			assert.EqualValues("v200.0.0", manifest.Version)
 			assert.EqualValues("siderolabs/hello-future", manifest.Name)
 			assert.EqualValues("aaaa", manifest.Digest)
