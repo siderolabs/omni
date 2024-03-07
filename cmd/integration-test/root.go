@@ -18,8 +18,8 @@ import (
 	"github.com/spf13/cobra"
 
 	clientconsts "github.com/siderolabs/omni/client/pkg/constants"
-	"github.com/siderolabs/omni/cmd/omni-integration-test/pkg/clientconfig"
-	"github.com/siderolabs/omni/cmd/omni-integration-test/pkg/tests"
+	"github.com/siderolabs/omni/cmd/integration-test/pkg/clientconfig"
+	"github.com/siderolabs/omni/cmd/integration-test/pkg/tests"
 	"github.com/siderolabs/omni/internal/pkg/constants"
 )
 

@@ -134,7 +134,7 @@ sleep 5
 # Run the integration test.
 
 SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
-${ARTIFACTS}/omni-integration-test-linux-amd64 \
+${ARTIFACTS}/integration-test-linux-amd64 \
     --endpoint https://localhost:8099 \
     --talos-version=${TALOS_VERSION} \
     --expected-machines=8 `# equal to the masters+workers above` \

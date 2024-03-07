@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-03-07T20:47:59Z by kres latest.
+# Generated on 2024-03-08T09:31:20Z by kres latest.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -329,6 +329,18 @@ COPY --from=unit-tests-client-run /src/client/coverage.txt /coverage-unit-tests-
 FROM scratch AS unit-tests
 COPY --from=unit-tests-run /src/coverage.txt /coverage-unit-tests.txt
 
+# builds integration-test-linux-amd64
+FROM base AS integration-test-linux-amd64-build
+COPY --from=generate / /
+COPY --from=embed-generate / /
+WORKDIR /src/cmd/integration-test
+ARG GO_BUILDFLAGS
+ARG GO_LDFLAGS
+ARG VERSION_PKG="internal/version"
+ARG SHA
+ARG TAG
+RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/go/pkg GOARCH=amd64 GOOS=linux go build ${GO_BUILDFLAGS} -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=integration-test -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /integration-test-linux-amd64
+
 # builds omni-darwin-amd64
 FROM base AS omni-darwin-amd64-build
 COPY --from=generate / /
@@ -352,18 +364,6 @@ ARG VERSION_PKG="internal/version"
 ARG SHA
 ARG TAG
 RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/go/pkg GOARCH=arm64 GOOS=darwin go build ${GO_BUILDFLAGS} -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omni -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /omni-darwin-arm64
-
-# builds omni-integration-test-linux-amd64
-FROM base AS omni-integration-test-linux-amd64-build
-COPY --from=generate / /
-COPY --from=embed-generate / /
-WORKDIR /src/cmd/omni-integration-test
-ARG GO_BUILDFLAGS
-ARG GO_LDFLAGS
-ARG VERSION_PKG="internal/version"
-ARG SHA
-ARG TAG
-RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/go/pkg GOARCH=amd64 GOOS=linux go build ${GO_BUILDFLAGS} -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omni-integration-test -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /omni-integration-test-linux-amd64
 
 # builds omni-linux-amd64
 FROM base AS omni-linux-amd64-build
@@ -449,14 +449,14 @@ ARG SHA
 ARG TAG
 RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/go/pkg GOARCH=amd64 GOOS=windows go build ${GO_BUILDFLAGS} -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omnictl -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /omnictl-windows-amd64.exe
 
+FROM scratch AS integration-test-linux-amd64
+COPY --from=integration-test-linux-amd64-build /integration-test-linux-amd64 /integration-test-linux-amd64
+
 FROM scratch AS omni-darwin-amd64
 COPY --from=omni-darwin-amd64-build /omni-darwin-amd64 /omni-darwin-amd64
 
 FROM scratch AS omni-darwin-arm64
 COPY --from=omni-darwin-arm64-build /omni-darwin-arm64 /omni-darwin-arm64
-
-FROM scratch AS omni-integration-test-linux-amd64
-COPY --from=omni-integration-test-linux-amd64-build /omni-integration-test-linux-amd64 /omni-integration-test-linux-amd64
 
 FROM scratch AS omni-linux-amd64
 COPY --from=omni-linux-amd64-build /omni-linux-amd64 /omni-linux-amd64
@@ -479,10 +479,10 @@ COPY --from=omnictl-linux-arm64-build /omnictl-linux-arm64 /omnictl-linux-arm64
 FROM scratch AS omnictl-windows-amd64.exe
 COPY --from=omnictl-windows-amd64.exe-build /omnictl-windows-amd64.exe /omnictl-windows-amd64.exe
 
-FROM omni-integration-test-linux-${TARGETARCH} AS omni-integration-test
+FROM integration-test-linux-${TARGETARCH} AS integration-test
 
-FROM scratch AS omni-integration-test-all
-COPY --from=omni-integration-test-linux-amd64 / /
+FROM scratch AS integration-test-all
+COPY --from=integration-test-linux-amd64 / /
 
 FROM omni-linux-${TARGETARCH} AS omni
 
