@@ -151,8 +151,8 @@ PASS
 Another way to run integration tests directly:
 
 ```shell
-$ make _out/omni-integration-test-linux-amd64
-$ sudo -E _out/omni-integration-test-linux-amd64 \
+$ make _out/integration-test-linux-amd64
+$ sudo -E _out/integration-test-linux-amd64 \
     --endpoint=https://my.host \
     --expected-machines=6
 ```

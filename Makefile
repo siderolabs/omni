@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-02-26T21:35:48Z by kres latest.
+# Generated on 2024-03-07T17:30:39Z by kres latest.
 
 # common variables
 
@@ -17,15 +17,15 @@ REGISTRY_AND_USERNAME ?= $(REGISTRY)/$(USERNAME)
 PROTOBUF_GRPC_GATEWAY_TS_VERSION ?= 1.2.1
 TESTPKGS ?= ./...
 NODE_BUILD_ARGS ?=
-PROTOBUF_GO_VERSION ?= 1.32.0
+PROTOBUF_GO_VERSION ?= 1.33.0
 GRPC_GO_VERSION ?= 1.3.0
 GRPC_GATEWAY_VERSION ?= 2.19.1
 VTPROTOBUF_VERSION ?= 0.6.0
 DEEPCOPY_VERSION ?= v0.5.6
 GOLANGCILINT_VERSION ?= v1.56.2
 GOFUMPT_VERSION ?= v0.6.0
-GO_VERSION ?= 1.22.0
-GOIMPORTS_VERSION ?= v0.18.0
+GO_VERSION ?= 1.22.1
+GOIMPORTS_VERSION ?= v0.19.0
 GO_BUILDFLAGS ?=
 GO_LDFLAGS ?=
 CGO_ENABLED ?= 0
@@ -138,7 +138,7 @@ else
 GO_LDFLAGS += -s
 endif
 
-all: unit-tests-frontend lint-eslint frontend unit-tests-client unit-tests omni image-omni omni-integration-test omnictl dev-server docker-compose-up docker-compose-down mkcert-install mkcert-generate mkcert-uninstall run-integration-test lint
+all: unit-tests-frontend lint-eslint frontend unit-tests-client unit-tests integration-test omni image-omni omnictl dev-server docker-compose-up docker-compose-down mkcert-install mkcert-generate mkcert-uninstall run-integration-test lint
 
 .PHONY: clean
 clean:  ## Cleans up all artifacts.
@@ -226,6 +226,16 @@ unit-tests:  ## Performs unit tests
 unit-tests-race:  ## Performs unit tests with race detection enabled.
 	@$(MAKE) target-$@
 
+.PHONY: $(ARTIFACTS)/integration-test-linux-amd64
+$(ARTIFACTS)/integration-test-linux-amd64:
+	@$(MAKE) local-integration-test-linux-amd64 DEST=$(ARTIFACTS)
+
+.PHONY: integration-test-linux-amd64
+integration-test-linux-amd64: $(ARTIFACTS)/integration-test-linux-amd64  ## Builds executable for integration-test-linux-amd64.
+
+.PHONY: integration-test
+integration-test: integration-test-linux-amd64  ## Builds executables for integration-test.
+
 .PHONY: $(ARTIFACTS)/omni-darwin-amd64
 $(ARTIFACTS)/omni-darwin-amd64:
 	@$(MAKE) local-omni-darwin-amd64 DEST=$(ARTIFACTS)
@@ -267,16 +277,6 @@ lint: lint-golangci-lint-client lint-gofumpt-client lint-govulncheck-client lint
 .PHONY: image-omni
 image-omni:  ## Builds image for omni.
 	@$(MAKE) target-$@ TARGET_ARGS="--tag=$(REGISTRY)/$(USERNAME)/omni:$(TAG)"
-
-.PHONY: $(ARTIFACTS)/omni-integration-test-linux-amd64
-$(ARTIFACTS)/omni-integration-test-linux-amd64:
-	@$(MAKE) local-omni-integration-test-linux-amd64 DEST=$(ARTIFACTS)
-
-.PHONY: omni-integration-test-linux-amd64
-omni-integration-test-linux-amd64: $(ARTIFACTS)/omni-integration-test-linux-amd64  ## Builds executable for omni-integration-test-linux-amd64.
-
-.PHONY: omni-integration-test
-omni-integration-test: omni-integration-test-linux-amd64  ## Builds executables for omni-integration-test.
 
 .PHONY: $(ARTIFACTS)/omnictl-darwin-amd64
 $(ARTIFACTS)/omnictl-darwin-amd64:
@@ -340,7 +340,7 @@ mkcert-generate:
 mkcert-uninstall:
 	go run ./hack/generate-certs uninstall
 
-run-integration-test: omni-integration-test-linux-amd64 omnictl-linux-amd64 omni-linux-amd64
+run-integration-test: integration-test-linux-amd64 omnictl-linux-amd64 omni-linux-amd64
 	@hack/test/integration.sh
 
 .PHONY: rekres

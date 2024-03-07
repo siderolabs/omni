@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-02-28T11:30:58Z by kres latest.
+# Generated on 2024-03-07T17:30:39Z by kres latest.
 
 name: default
 concurrency:
@@ -76,6 +76,9 @@ jobs:
       - name: unit-tests-race
         run: |
           make unit-tests-race
+      - name: integration-test
+        run: |
+          make integration-test
       - name: omni
         run: |
           make omni
@@ -104,9 +107,6 @@ jobs:
           PUSH: "true"
         run: |
           make image-omni TAG=latest
-      - name: omni-integration-test
-        run: |
-          make omni-integration-test
       - name: omnictl
         run: |
           make omnictl
