@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <router-link :to="route" active-class="item__active">
+  <component :is="componentType" v-bind="componentAttributes">
     <div class="item">
       <t-icon v-if="icon" class="item__icon" :icon="icon" :svg-base64="iconSvgBase64"/>
       <p class="item__name truncate">{{ name }}</p>
@@ -13,7 +13,7 @@ included in the LICENSE file.
         {{ label }}
       </div>
     </div>
-  </router-link>
+  </component>
 </template>
 
 <script setup lang="ts">
@@ -21,6 +21,7 @@ import TIcon, { IconType } from "@/components/common/Icon/TIcon.vue";
 
 type Props = {
   route: string | object,
+  regularLink?: boolean,
   name: string,
   icon?: IconType,
   iconSvgBase64?: string,
@@ -28,7 +29,12 @@ type Props = {
   labelColor?: string
 };
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+const componentType = props.regularLink ? "a" : "router-link";
+const componentAttributes = props.regularLink ?
+    { href: props.route, target: "_blank" } :
+    { to: props.route, activeClass: "item__active" };
 </script>
 
 <style scoped>

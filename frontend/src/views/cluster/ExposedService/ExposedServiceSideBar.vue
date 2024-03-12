@@ -18,10 +18,11 @@ included in the LICENSE file.
           <t-menu-item
               v-for="service in exposedServices"
               :key="service.metadata.id"
-              :route="'/cluster/' + route.params.cluster +  '/services/' + service.metadata.labels?.[LabelExposedServiceAlias]"
+              :route="exposedServiceUrl(service)"
               :name="service.spec.label"
               :icon-svg-base64="service.spec.icon_base64"
               icon="exposed-service"
+              regular-link
           />
         </template>
         <template v-else>
@@ -39,7 +40,7 @@ import { useRoute } from "vue-router";
 import { ResourceTyped } from "@/api/grpc";
 import Watch from "@/api/watch";
 import { ExposedServiceSpec } from "@/api/omni/specs/omni.pb";
-import { DefaultNamespace, LabelCluster, ExposedServiceType, LabelExposedServiceAlias } from "@/api/resources";
+import { DefaultNamespace, LabelCluster, ExposedServiceType, LabelExposedServiceAlias, workloadProxyHostPrefix } from "@/api/resources";
 import { Runtime } from "@/api/common/omni.pb";
 import TIcon from "@/components/common/Icon/TIcon.vue";
 import { Disclosure, DisclosureButton, DisclosurePanel } from "@headlessui/vue";
@@ -57,6 +58,12 @@ exposedServicesWatch.setup({
   },
   selectors: [`${LabelCluster}=${route.params.cluster}`]
 });
+
+const exposedServiceUrl = (service: ResourceTyped<ExposedServiceSpec>) => {
+  const alias = service.metadata.labels?.[LabelExposedServiceAlias];
+
+  return `${window.location.protocol}//${workloadProxyHostPrefix}-${alias}-${window.location.hostname}`
+}
 </script>
 
 <style scoped>

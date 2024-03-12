@@ -33,7 +33,6 @@ import ConfigPatches from "@/views/cluster/Config/Patches.vue";
 import PatchEdit from "@/views/cluster/Config/PatchEdit.vue";
 import KubernetesManifestSync from "@/views/cluster/Manifest/Sync.vue";
 import NodeDetails from "@/views/cluster/Nodes/NodeDetails.vue";
-import ExposedService from "@/views/cluster/ExposedService/ExposedService.vue";
 import ClusterBackups from "@/views/cluster/Backups/Backups.vue";
 
 import PageNotFound from "@/views/common/PageNotFound.vue";
@@ -296,14 +295,6 @@ const routes: RouteRecordRaw[] = [
       component: ClusterScoped,
       props: {
         inner: KubernetesManifestSync,
-      },
-    },
-    {
-      path: "/services/:service",
-      name: "ExposedService",
-      component: ClusterScoped,
-      props: {
-        inner: ExposedService,
       },
     },
     {
