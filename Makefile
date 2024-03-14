@@ -1,11 +1,11 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-02-26T21:35:48Z by kres latest.
+# Generated on 2024-03-14T17:43:23Z by kres latest.
 
 # common variables
 
 SHA := $(shell git describe --match=none --always --abbrev=8 --dirty)
-TAG := $(shell git describe --tag --always --dirty)
+TAG := $(shell git describe --tag --always --dirty --match v[0-9]\*)
 ABBREV_TAG := $(shell git describe --tags >/dev/null 2>/dev/null && git describe --tag --always --match v[0-9]\* --abbrev=0 || echo 'undefined')
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 ARTIFACTS := _out
@@ -17,15 +17,15 @@ REGISTRY_AND_USERNAME ?= $(REGISTRY)/$(USERNAME)
 PROTOBUF_GRPC_GATEWAY_TS_VERSION ?= 1.2.1
 TESTPKGS ?= ./...
 NODE_BUILD_ARGS ?=
-PROTOBUF_GO_VERSION ?= 1.32.0
+PROTOBUF_GO_VERSION ?= 1.33.0
 GRPC_GO_VERSION ?= 1.3.0
 GRPC_GATEWAY_VERSION ?= 2.19.1
 VTPROTOBUF_VERSION ?= 0.6.0
 DEEPCOPY_VERSION ?= v0.5.6
 GOLANGCILINT_VERSION ?= v1.56.2
 GOFUMPT_VERSION ?= v0.6.0
-GO_VERSION ?= 1.22.0
-GOIMPORTS_VERSION ?= v0.18.0
+GO_VERSION ?= 1.22.1
+GOIMPORTS_VERSION ?= v0.19.0
 GO_BUILDFLAGS ?=
 GO_LDFLAGS ?=
 CGO_ENABLED ?= 0
@@ -69,7 +69,7 @@ COMMON_ARGS += --build-arg=GOLANGCILINT_VERSION="$(GOLANGCILINT_VERSION)"
 COMMON_ARGS += --build-arg=GOIMPORTS_VERSION="$(GOIMPORTS_VERSION)"
 COMMON_ARGS += --build-arg=GOFUMPT_VERSION="$(GOFUMPT_VERSION)"
 COMMON_ARGS += --build-arg=TESTPKGS="$(TESTPKGS)"
-JS_TOOLCHAIN ?= docker.io/node:21.6.2-alpine3.19
+JS_TOOLCHAIN ?= docker.io/node:21.7.1-alpine3.19
 TOOLCHAIN ?= docker.io/golang:1.22-alpine
 
 # extra variables

@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-02-28T11:30:58Z by kres latest.
+# Generated on 2024-03-14T17:43:23Z by kres latest.
 
 name: default
 concurrency:
@@ -50,8 +50,8 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           driver: remote
-          endpoint: tcp://localhost:1234
-        timeout-minutes: 1
+          endpoint: tcp://127.0.0.1:1234
+        timeout-minutes: 10
       - name: js
         run: |
           make js
@@ -198,8 +198,8 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           driver: remote
-          endpoint: tcp://localhost:1234
-        timeout-minutes: 1
+          endpoint: tcp://127.0.0.1:1234
+        timeout-minutes: 10
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -251,8 +251,8 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           driver: remote
-          endpoint: tcp://localhost:1234
-        timeout-minutes: 1
+          endpoint: tcp://127.0.0.1:1234
+        timeout-minutes: 10
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -304,8 +304,8 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           driver: remote
-          endpoint: tcp://localhost:1234
-        timeout-minutes: 1
+          endpoint: tcp://127.0.0.1:1234
+        timeout-minutes: 10
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -357,8 +357,8 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           driver: remote
-          endpoint: tcp://localhost:1234
-        timeout-minutes: 1
+          endpoint: tcp://127.0.0.1:1234
+        timeout-minutes: 10
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -410,8 +410,8 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           driver: remote
-          endpoint: tcp://localhost:1234
-        timeout-minutes: 1
+          endpoint: tcp://127.0.0.1:1234
+        timeout-minutes: 10
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
