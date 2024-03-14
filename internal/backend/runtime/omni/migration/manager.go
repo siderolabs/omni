@@ -132,6 +132,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: fixClusterTalosVersionOwnership,
 				name:     "fixClusterTalosVersionOwnership",
 			},
+			{
+				callback: updateClusterMachineConfigPatchesLabels,
+				name:     "updateClusterMachineConfigPatchesLabels",
+			},
 		},
 	}
 }
