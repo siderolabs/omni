@@ -1025,3 +1025,28 @@ func fixClusterTalosVersionOwnership(ctx context.Context, s state.State, _ *zap.
 		return s.Update(ctx, updated, state.WithUpdateOwner(owner))
 	})
 }
+
+// add machine-set label to all cluster machine config patches resources.
+func updateClusterMachineConfigPatchesLabels(ctx context.Context, s state.State, _ *zap.Logger) error {
+	list, err := safe.StateListAll[*omni.ClusterMachineConfigPatches](ctx, s)
+	if err != nil {
+		return err
+	}
+
+	return list.ForEachErr(func(res *omni.ClusterMachineConfigPatches) error {
+		clusterMachine, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, s, res.Metadata().ID())
+		if err != nil {
+			if state.IsNotFoundError(err) {
+				return nil
+			}
+		}
+
+		_, err = safe.StateUpdateWithConflicts(ctx, s, res.Metadata(), func(r *omni.ClusterMachineConfigPatches) error {
+			helpers.CopyAllLabels(clusterMachine, r)
+
+			return nil
+		}, state.WithUpdateOwner(res.Metadata().Owner()), state.WithExpectedPhaseAny())
+
+		return err
+	})
+}

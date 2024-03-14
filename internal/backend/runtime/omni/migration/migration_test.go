@@ -1183,6 +1183,50 @@ func (suite *MigrationSuite) TestFixClusterConfigVersionOwnership() {
 	suite.Require().Equal(expectedName, c2.Metadata().Owner())
 }
 
+func (suite *MigrationSuite) TestUpdateClusterMachineConfigPatchesLabels() {
+	ctx := context.Background()
+
+	version := system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
+	version.TypedSpec().Value.Version = 23
+	suite.Require().NoError(suite.state.Create(ctx, version))
+
+	cp1 := omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "1")
+	cp2 := omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "2")
+
+	suite.Require().NoError(suite.state.Create(ctx, cp1, state.WithCreateOwner("MachineSetStatusController")))
+	suite.Require().NoError(suite.state.Create(ctx, cp2, state.WithCreateOwner("MachineSetStatusController")))
+
+	cm := omni.NewClusterMachine(resources.DefaultNamespace, "2")
+
+	cm.Metadata().Labels().Set(omni.LabelMachineSet, "some")
+	cm.Metadata().Labels().Set(omni.LabelCluster, "c1")
+
+	suite.Require().NoError(suite.state.Create(ctx, cm, state.WithCreateOwner("MachineSetStatusController")))
+
+	suite.Require().NoError(suite.manager.Run(ctx))
+
+	var err error
+
+	cp1, err = safe.StateGetByID[*omni.ClusterMachineConfigPatches](ctx, suite.state, "1")
+	suite.Require().NoError(err)
+
+	cp2, err = safe.StateGetByID[*omni.ClusterMachineConfigPatches](ctx, suite.state, "2")
+	suite.Require().NoError(err)
+
+	suite.Assert().True(cp1.Metadata().Labels().Empty())
+	suite.Assert().False(cp2.Metadata().Labels().Empty())
+
+	val, ok := cp2.Metadata().Labels().Get(omni.LabelMachineSet)
+	suite.Require().True(ok)
+
+	suite.Assert().Equal("some", val)
+
+	val, ok = cp2.Metadata().Labels().Get(omni.LabelCluster)
+	suite.Require().True(ok)
+
+	suite.Assert().Equal("c1", val)
+}
+
 func TestMigrationSuite(t *testing.T) {
 	suite.Run(t, new(MigrationSuite))
 }
