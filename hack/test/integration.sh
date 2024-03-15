@@ -9,7 +9,7 @@ set -eoux pipefail
 
 # Settings.
 
-TALOS_VERSION=1.6.6
+TALOS_VERSION=1.6.7
 ARTIFACTS=_out
 JOIN_TOKEN=testonly
 RUN_DIR=$(pwd)

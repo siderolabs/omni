@@ -333,7 +333,7 @@ func pollExtensions(ctx context.Context, c *client.Client, info *Info) error {
 
 	var err error
 
-	machineSchematic.Id, err = talos.GetSchematicID(ctx, c)
+	schematicInfo, err := talos.GetSchematicInfo(ctx, c)
 	if err != nil {
 		if errors.Is(err, talos.ErrInvalidSchematic) {
 			machineSchematic.Invalid = true
@@ -343,6 +343,9 @@ func pollExtensions(ctx context.Context, c *client.Client, info *Info) error {
 
 		return err
 	}
+
+	machineSchematic.Id = schematicInfo.ID
+	machineSchematic.Extensions = schematicInfo.Extensions
 
 	return nil
 }

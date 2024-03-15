@@ -585,6 +585,11 @@ func AssertTalosUpgradeIsCancelable(testCtx context.Context, st state.State, clu
 			}
 		}
 
+		// wait until the upgraded machine reports the new version
+		rtestutils.AssertResources(ctx, t, st, ids, func(r *omni.MachineStatus, assert *assert.Assertions) {
+			assert.Equal(newTalosVersion, strings.TrimLeft(r.TypedSpec().Value.TalosVersion, "v"), resourceDetails(r))
+		})
+
 		// revert the update
 		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata(), func(cluster *omni.Cluster) error {
 			cluster.TypedSpec().Value.TalosVersion = currentTalosVersion
@@ -593,11 +598,6 @@ func AssertTalosUpgradeIsCancelable(testCtx context.Context, st state.State, clu
 		})
 		require.NoError(t, err)
 
-		// wait until the upgraded machine reports the new version
-		rtestutils.AssertResources(ctx, t, st, ids, func(r *omni.MachineStatus, assert *assert.Assertions) {
-			assert.Equal(newTalosVersion, strings.TrimLeft(r.TypedSpec().Value.TalosVersion, "v"), resourceDetails(r))
-		})
-
 		rtestutils.AssertResources(ctx, t, st, ids, func(r *omni.ClusterMachineStatus, assert *assert.Assertions) {
 			assert.Equal(specs.ClusterMachineStatusSpec_RUNNING, r.TypedSpec().Value.Stage, resourceDetails(r))
 		})
@@ -605,6 +605,11 @@ func AssertTalosUpgradeIsCancelable(testCtx context.Context, st state.State, clu
 		// the upgraded machine version should be reverted back
 		rtestutils.AssertResources(ctx, t, st, ids, func(r *omni.MachineStatus, assert *assert.Assertions) {
 			assert.Equal(currentTalosVersion, strings.TrimLeft(r.TypedSpec().Value.TalosVersion, "v"), resourceDetails(r))
+		})
+
+		// the upgrade should be not running
+		rtestutils.AssertResources(ctx, t, st, []resource.ID{clusterName}, func(r *omni.TalosUpgradeStatus, assert *assert.Assertions) {
+			assert.Equal(specs.TalosUpgradeStatusSpec_Done, r.TypedSpec().Value.Phase, resourceDetails(r))
 		})
 	}
 }

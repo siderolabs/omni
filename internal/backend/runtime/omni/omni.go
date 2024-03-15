@@ -32,6 +32,7 @@ import (
 	virtualres "github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
 	pkgruntime "github.com/siderolabs/omni/client/pkg/runtime"
 	"github.com/siderolabs/omni/internal/backend/dns"
+	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/resourcelogger"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/cosi"
@@ -73,7 +74,7 @@ type Runtime struct {
 //
 //nolint:maintidx
 func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workloadProxyServiceRegistry *workloadproxy.ServiceRegistry,
-	resourceLogger *resourcelogger.Logger, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas, resourceState state.State,
+	resourceLogger *resourcelogger.Logger, imageFactoryClient *imagefactory.Client, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas, resourceState state.State,
 	virtualState *virtual.State, metricsRegistry prometheus.Registerer, logger *zap.Logger,
 ) (*Runtime, error) {
 	var opts []options.Option
@@ -168,7 +169,9 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		&omnictrl.LoadBalancerController{},
 		&omnictrl.MachineSetNodeController{},
 		&omnictrl.MachineSetDestroyStatusController{},
-		&omnictrl.MachineStatusController{},
+		&omnictrl.MachineStatusController{
+			ImageFactoryClient: imageFactoryClient,
+		},
 		omnictrl.NewMachineCleanupController(),
 		omnictrl.NewMachineStatusLinkController(linkCounterDeltaCh),
 		&omnictrl.MachineStatusMetricsController{},
@@ -211,7 +214,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewRedactedClusterMachineConfigController(),
 		omnictrl.NewSecretsController(storeFactory),
 		omnictrl.NewTalosConfigController(constants.CertificateValidityTime),
-		omnictrl.NewTalosExtensionsController(),
+		omnictrl.NewTalosExtensionsController(imageFactoryClient),
 		omnictrl.NewTalosUpgradeStatusController(),
 	}
 

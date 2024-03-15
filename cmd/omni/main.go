@@ -30,6 +30,7 @@ import (
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend"
 	"github.com/siderolabs/omni/internal/backend/dns"
+	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/resourcelogger"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
@@ -163,10 +164,16 @@ func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtua
 			}
 		}
 
+		imageFactoryClient, err := imagefactory.NewClient(resourceState, config.Config.ImageFactoryBaseURL)
+		if err != nil {
+			return fmt.Errorf("failed to set up image factory client: %w", err)
+		}
+
 		linkCounterDeltaCh := make(chan siderolink.LinkCounterDeltas)
 
 		omniRuntime, err := omni.New(talosClientFactory, dnsService, workloadProxyServiceRegistry, resourceLogger,
-			linkCounterDeltaCh, resourceState, virtualState, prometheus.DefaultRegisterer, logger.With(logging.Component("omni_runtime")))
+			imageFactoryClient, linkCounterDeltaCh, resourceState, virtualState,
+			prometheus.DefaultRegisterer, logger.With(logging.Component("omni_runtime")))
 		if err != nil {
 			return fmt.Errorf("failed to set up the controller runtime: %w", err)
 		}
@@ -209,6 +216,7 @@ func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtua
 			rootCmdArgs.pprofBindAddress,
 			dnsService,
 			workloadProxyServiceRegistry,
+			imageFactoryClient,
 			linkCounterDeltaCh,
 			omniRuntime,
 			talosRuntime,

@@ -303,6 +303,7 @@ func reconcileTalosUpdateStatus(ctx context.Context, r controller.ReaderWriter,
 
 		var clusterMachineTalosVersion *omni.ClusterMachineTalosVersion
 
+		// if we end up creating the ClusterMachineTalosVersion here, schematic won't be outdated, as we are setting it to the desired schematic ID
 		clusterMachineTalosVersion, err = getOrCreateResource(ctx, r, machine, talosVersion, schematicID)
 		if err != nil {
 			return err

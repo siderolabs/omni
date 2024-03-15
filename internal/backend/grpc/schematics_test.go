@@ -33,7 +33,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
-	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 type imageFactoryMock struct {
@@ -153,19 +152,6 @@ func (suite *GrpcSuite) TestSchematicCreate() {
 
 	suite.Require().NoError(suite.state.Create(ctx, params))
 
-	factory := imageFactoryMock{}
-	suite.Require().NoError(factory.run())
-
-	factory.serve(ctx)
-
-	defer func() {
-		cancel()
-
-		suite.Require().NoError(factory.eg.Wait())
-	}()
-
-	config.Config.ImageFactoryBaseURL = factory.address
-
 	client := management.NewManagementServiceClient(suite.conn)
 
 	for _, tt := range []struct {
@@ -240,14 +226,12 @@ func (suite *GrpcSuite) TestSchematicCreate() {
 			require.NoError(t, err)
 			require.NotEmpty(t, resp.SchematicId)
 
-			rtestutils.AssertResource(ctx, t, suite.state, resp.SchematicId, func(res *omni.Schematic, assert *assert.Assertions) {
-				assert.EqualValues(req.Extensions, res.TypedSpec().Value.Extensions)
-			})
+			rtestutils.AssertResource(ctx, t, suite.state, resp.SchematicId, func(*omni.Schematic, *assert.Assertions) {})
 
-			factory.schematicMu.Lock()
-			defer factory.schematicMu.Unlock()
+			suite.imageFactory.schematicMu.Lock()
+			defer suite.imageFactory.schematicMu.Unlock()
 
-			config, ok := factory.schematics[resp.SchematicId]
+			config, ok := suite.imageFactory.schematics[resp.SchematicId]
 			require.Truef(t, ok, "the schematic id %q doesn't exist in the image factory", resp.SchematicId)
 
 			meta := xslices.ToMap(config.Customization.Meta, func(k schematic.MetaValue) (uint32, string) {

@@ -25,8 +25,36 @@ import (
 	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
+
+type imageFactoryClientMock struct{}
+
+func (i *imageFactoryClientMock) EnsureSchematic(_ context.Context, sch schematic.Schematic) (imagefactory.EnsuredSchematic, error) {
+	fullID, err := sch.ID()
+	if err != nil {
+		return imagefactory.EnsuredSchematic{}, err
+	}
+
+	plainSchematic := schematic.Schematic{
+		Customization: schematic.Customization{
+			SystemExtensions: schematic.SystemExtensions{
+				OfficialExtensions: sch.Customization.SystemExtensions.OfficialExtensions,
+			},
+		},
+	}
+
+	plainID, err := plainSchematic.ID()
+	if err != nil {
+		return imagefactory.EnsuredSchematic{}, err
+	}
+
+	return imagefactory.EnsuredSchematic{
+		FullID:  fullID,
+		PlainID: plainID,
+	}, nil
+}
 
 type MachineStatusSuite struct {
 	OmniSuite
@@ -35,7 +63,9 @@ type MachineStatusSuite struct {
 func (suite *MachineStatusSuite) setup() {
 	suite.startRuntime()
 
-	suite.Require().NoError(suite.runtime.RegisterController(&omnictrl.MachineStatusController{}))
+	suite.Require().NoError(suite.runtime.RegisterController(&omnictrl.MachineStatusController{
+		ImageFactoryClient: &imageFactoryClientMock{},
+	}))
 }
 
 const testID = "testID"
@@ -247,18 +277,41 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 		extensions []*runtime.ExtensionStatusSpec
 	}{
 		{
-			name: "just schematic id",
+			name: "extensions",
 			extensions: []*runtime.ExtensionStatusSpec{
 				{
 					Metadata: extensions.Metadata{
-						Name:        "schematic",
-						Version:     "1234",
-						Description: constants.SchematicIDExtensionName,
+						Name:        "gvisor",
+						Description: "0",
+					},
+				},
+				{
+					Metadata: extensions.Metadata{
+						Name:        "hello-world-service",
+						Description: "1",
+					},
+				},
+				{
+					Metadata: extensions.Metadata{
+						Name:        "mdadm",
+						Description: "2",
+					},
+				},
+				{
+					Metadata: extensions.Metadata{
+						Name:        constants.SchematicIDExtensionName,
+						Description: "3",
+						Version:     "1",
 					},
 				},
 			},
 			expected: &specs.MachineStatusSpec_Schematic{
-				Id: "1234",
+				Id: "7d79f1ce28d7e6c099bc89ccf02238fb574165eb4834c2abf2a61eab998d4dc6",
+				Extensions: []string{
+					"siderolabs/gvisor",
+					"siderolabs/hello-world-service",
+					"siderolabs/mdadm",
+				},
 			},
 		},
 		{

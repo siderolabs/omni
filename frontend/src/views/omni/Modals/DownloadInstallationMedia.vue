@@ -311,7 +311,7 @@ const createSchematic = async () => {
       meta_values: {},
     };
 
-    if (labels.value) {
+    if (labels.value && Object.keys(labels.value).length > 0) {
       const l: Record<string, string> = {};
       for (const k in labels.value) {
         l[k] = labels.value[k].value;

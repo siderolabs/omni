@@ -34,7 +34,9 @@ func (suite *MachineStatusLinkSuite) SetupTest() {
 
 	suite.deltaCh = make(chan siderolinkmanager.LinkCounterDeltas)
 
-	suite.Require().NoError(suite.runtime.RegisterController(&omnictrl.MachineStatusController{}))
+	suite.Require().NoError(suite.runtime.RegisterController(&omnictrl.MachineStatusController{
+		ImageFactoryClient: &imageFactoryClientMock{},
+	}))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineStatusLinkController(suite.deltaCh)))
 }
 

@@ -25,8 +25,8 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
-	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 //nolint:govet
@@ -155,11 +155,12 @@ func (suite *TalosExtensionsSuite) TestReconcile() {
 		factory.eg.Wait() //nolint:errcheck
 	}()
 
-	config.Config.ImageFactoryBaseURL = factory.address
+	imageFactoryClient, err := imagefactory.NewClient(suite.state, factory.address)
+	suite.Require().NoError(err)
 
 	suite.startRuntime()
 
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosExtensionsController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosExtensionsController(imageFactoryClient)))
 
 	versions := []string{
 		"0.14.0", "1.6.0", "200.0.0",

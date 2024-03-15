@@ -41,6 +41,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	grpcomni "github.com/siderolabs/omni/internal/backend/grpc"
+	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
@@ -52,11 +53,12 @@ import (
 
 type GrpcSuite struct {
 	suite.Suite
-	runtime *omniruntime.Runtime
-	server  *grpc.Server
-	conn    *grpc.ClientConn
-	state   state.State
-	eg      errgroup.Group
+	runtime      *omniruntime.Runtime
+	server       *grpc.Server
+	conn         *grpc.ClientConn
+	imageFactory *imageFactoryMock
+	state        state.State
+	eg           errgroup.Group
 
 	ctx        context.Context //nolint:containedctx
 	ctxCancel  context.CancelFunc
@@ -76,11 +78,23 @@ func (suite *GrpcSuite) SetupTest() {
 
 	dnsService := dns.NewService(suite.state, logger)
 
+	suite.imageFactory = &imageFactoryMock{}
+
+	suite.Require().NoError(suite.imageFactory.run())
+	suite.imageFactory.serve(suite.ctx)
+
+	suite.T().Cleanup(func() {
+		suite.Require().NoError(suite.imageFactory.eg.Wait())
+	})
+
+	imageFactoryClient, err := imagefactory.NewClient(suite.state, suite.imageFactory.address)
+	suite.Require().NoError(err)
+
 	workloadProxyServiceRegistry, err := workloadproxy.NewServiceRegistry(suite.state, logger)
 	suite.Require().NoError(err)
 
 	suite.runtime, err = omniruntime.New(clientFactory, dnsService, workloadProxyServiceRegistry, nil,
-		nil, suite.state, nil, prometheus.NewRegistry(), logger)
+		imageFactoryClient, nil, suite.state, nil, prometheus.NewRegistry(), logger)
 	suite.Require().NoError(err)
 	runtime.Install(omniruntime.Name, suite.runtime)
 
@@ -91,6 +105,7 @@ func (suite *GrpcSuite) SetupTest() {
 	authConfigInterceptor := interceptor.NewAuthConfig(false, logger.With(logging.Component("interceptor")))
 
 	err = suite.newServer(
+		imageFactoryClient,
 		grpc.ChainUnaryInterceptor(authConfigInterceptor.Unary()),
 		grpc.ChainStreamInterceptor(authConfigInterceptor.Stream()),
 	)
@@ -262,7 +277,7 @@ func (suite *GrpcSuite) TestConfigValidation() {
 	suite.Require().Equalf(codes.InvalidArgument, status.Code(err), err.Error())
 }
 
-func (suite *GrpcSuite) newServer(opts ...grpc.ServerOption) error {
+func (suite *GrpcSuite) newServer(imageFactoryClient *imagefactory.Client, opts ...grpc.ServerOption) error {
 	var err error
 
 	suite.socketPath = filepath.Join(suite.T().TempDir(), "socket")
@@ -279,6 +294,7 @@ func (suite *GrpcSuite) newServer(opts ...grpc.ServerOption) error {
 	resapi.RegisterResourceServiceServer(suite.server, &grpcomni.ResourceServer{})
 	management.RegisterManagementServiceServer(suite.server, grpcomni.NewManagementServer(
 		suite.state,
+		imageFactoryClient,
 	))
 
 	go func() {

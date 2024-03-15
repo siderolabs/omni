@@ -14,20 +14,28 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/kvutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	cosistate "github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/image-factory/pkg/schematic"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task/machine"
 )
 
+// SchematicEnsurer ensures that the given schematic exists in the image factory.
+type SchematicEnsurer interface {
+	EnsureSchematic(ctx context.Context, inputSchematic schematic.Schematic) (imagefactory.EnsuredSchematic, error)
+}
+
 // MachineStatusController manages omni.MachineStatuses based on information from Talos API.
 type MachineStatusController struct {
-	runner *task.Runner[machine.InfoChan, machine.CollectTaskSpec]
+	runner             *task.Runner[machine.InfoChan, machine.CollectTaskSpec]
+	ImageFactoryClient SchematicEnsurer
 }
 
 // Name implements controller.Controller interface.
@@ -410,6 +418,20 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 		return nil
 	}); err != nil && !cosistate.IsPhaseConflictError(err) {
 		return fmt.Errorf("error modifying resource: %w", err)
+	}
+
+	if event.Schematic != nil && event.Schematic.Id != "" {
+		machineSchematic := schematic.Schematic{
+			Customization: schematic.Customization{
+				SystemExtensions: schematic.SystemExtensions{
+					OfficialExtensions: event.Schematic.Extensions,
+				},
+			},
+		}
+
+		if _, err := ctrl.ImageFactoryClient.EnsureSchematic(ctx, machineSchematic); err != nil {
+			return fmt.Errorf("error ensuring schematic: %w", err)
+		}
 	}
 
 	return nil

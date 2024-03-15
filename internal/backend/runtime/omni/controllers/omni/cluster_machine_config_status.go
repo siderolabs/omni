@@ -336,7 +336,7 @@ func (h *clusterMachineConfigStatusControllerHandler) syncTalosVersionAndSchemat
 		return false, err
 	}
 
-	actualSchematic, err := getSchematic(ctx, c)
+	schematicInfo, err := talosutils.GetSchematicInfo(ctx, c)
 	if err != nil {
 		if !errors.Is(err, talosutils.ErrInvalidSchematic) {
 			return false, err
@@ -345,12 +345,11 @@ func (h *clusterMachineConfigStatusControllerHandler) syncTalosVersionAndSchemat
 		// compatibility code for the machines running extensions installed bypassing image factory
 		// make schematic play no role in the checks
 		expectedSchematic = ""
-		actualSchematic = ""
 	}
 
-	if actualVersion == expectedVersion && actualSchematic == expectedSchematic {
+	if actualVersion == expectedVersion && schematicInfo.Equal(expectedSchematic) {
 		configStatus.TypedSpec().Value.TalosVersion = actualVersion
-		configStatus.TypedSpec().Value.SchematicId = actualSchematic
+		configStatus.TypedSpec().Value.SchematicId = expectedSchematic
 
 		return true, nil
 	}
@@ -363,7 +362,7 @@ func (h *clusterMachineConfigStatusControllerHandler) syncTalosVersionAndSchemat
 	h.logger.Info("upgrading the machine",
 		zap.String("from_version", actualVersion),
 		zap.String("to_version", expectedVersion),
-		zap.String("from_schematic", actualSchematic),
+		zap.String("from_schematic", schematicInfo.ID),
 		zap.String("to_schematic", expectedSchematic),
 		zap.String("image", image),
 		zap.String("machine", machineConfig.Metadata().ID()))
@@ -725,8 +724,4 @@ func getVersion(ctx context.Context, c *client.Client) (string, error) {
 	}
 
 	return "", errors.New("failed to get Talos version on the machine")
-}
-
-func getSchematic(ctx context.Context, c *client.Client) (string, error) {
-	return talosutils.GetSchematicID(ctx, c)
 }

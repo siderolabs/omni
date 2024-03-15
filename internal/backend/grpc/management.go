@@ -48,6 +48,7 @@ import (
 	ctlcfg "github.com/siderolabs/omni/client/pkg/omnictl/config"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
+	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
@@ -72,10 +73,11 @@ type managementServer struct {
 	omniState             state.State
 	jwtSigningKeyProvider JWTSigningKeyProvider
 
-	logHandler     *siderolink.LogHandler
-	logger         *zap.Logger
-	dnsService     *dns.Service
-	omniconfigDest string
+	logHandler         *siderolink.LogHandler
+	logger             *zap.Logger
+	dnsService         *dns.Service
+	imageFactoryClient *imagefactory.Client
+	omniconfigDest     string
 }
 
 func (s *managementServer) register(server grpc.ServiceRegistrar) {

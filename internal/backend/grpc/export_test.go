@@ -7,14 +7,17 @@ package grpc
 
 import (
 	"github.com/cosi-project/runtime/pkg/state"
+
+	"github.com/siderolabs/omni/internal/backend/imagefactory"
 )
 
 type ManagementServer = managementServer
 
 //nolint:revive
-func NewManagementServer(st state.State) *ManagementServer {
+func NewManagementServer(st state.State, imageFactoryClient *imagefactory.Client) *ManagementServer {
 	return &ManagementServer{
-		omniState: st,
+		omniState:          st,
+		imageFactoryClient: imageFactoryClient,
 	}
 }
 

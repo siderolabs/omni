@@ -28,7 +28,11 @@ const (
 	SchematicType = resource.Type("Schematics.omni.sidero.dev")
 )
 
-// Schematic describes previosly generated image factory schematic.
+// Schematic describes an image factory schematic.
+//
+// This resource is used as a cache for the schematics known by Omni:
+// - Schematics generated through Omni UI/APIs.
+// - Schematics generated/detected from the discovered Talos machines.
 type Schematic = typed.Resource[SchematicSpec, SchematicExtension]
 
 // SchematicSpec wraps specs.SchematicSpec.

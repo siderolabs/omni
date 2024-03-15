@@ -59,6 +59,7 @@ import (
 	grpcomni "github.com/siderolabs/omni/internal/backend/grpc"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	"github.com/siderolabs/omni/internal/backend/health"
+	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/k8sproxy"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/monitoring"
@@ -94,6 +95,7 @@ type Server struct {
 	authConfig                   *authres.Config
 	dnsService                   *dns.Service
 	workloadProxyServiceRegistry *workloadproxy.ServiceRegistry
+	imageFactoryClient           *imagefactory.Client
 
 	linkCounterDeltaCh chan<- siderolink.LinkCounterDeltas
 
@@ -111,6 +113,7 @@ func NewServer(
 	bindAddress, metricsBindAddress, k8sProxyBindAddress, pprofBindAddress string,
 	dnsService *dns.Service,
 	workloadProxyServiceRegistry *workloadproxy.ServiceRegistry,
+	imageFactoryClient *imagefactory.Client,
 	linkCounterDeltaCh chan<- siderolink.LinkCounterDeltas,
 	omniRuntime *omni.Runtime,
 	talosRuntime *talos.Runtime,
@@ -127,6 +130,7 @@ func NewServer(
 		authConfig:                   authConfig,
 		dnsService:                   dnsService,
 		workloadProxyServiceRegistry: workloadProxyServiceRegistry,
+		imageFactoryClient:           imageFactoryClient,
 		linkCounterDeltaCh:           linkCounterDeltaCh,
 		proxyServer:                  proxyServer,
 		bindAddress:                  bindAddress,
@@ -202,7 +206,7 @@ func (s *Server) Run(ctx context.Context) error {
 		return err
 	}
 
-	serviceServers, err := grpcomni.MakeServiceServers(runtimeState, s.logHandler, oidcProvider, oidcStorage, s.dnsService, s.logger)
+	serviceServers, err := grpcomni.MakeServiceServers(runtimeState, s.logHandler, oidcProvider, oidcStorage, s.dnsService, s.imageFactoryClient, s.logger)
 	if err != nil {
 		return err
 	}

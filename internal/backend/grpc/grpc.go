@@ -24,6 +24,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/talos/machine"
 	"github.com/siderolabs/omni/internal/backend/dns"
+	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/monitoring"
 	"github.com/siderolabs/omni/internal/memconn"
@@ -45,6 +46,7 @@ func MakeServiceServers(
 	oidcProvider OIDCProvider,
 	jwtSigningKeyProvider JWTSigningKeyProvider,
 	dnsService *dns.Service,
+	imageFactoryClient *imagefactory.Client,
 	logger *zap.Logger,
 ) ([]ServiceServer, error) {
 	dest, err := generateDest(config.Config.APIURL)
@@ -63,6 +65,7 @@ func MakeServiceServers(
 			omniState:             state,
 			dnsService:            dnsService,
 			jwtSigningKeyProvider: jwtSigningKeyProvider,
+			imageFactoryClient:    imageFactoryClient,
 			logger:                logger.With(logging.Component("management_server")),
 		},
 		&authServer{

@@ -86,7 +86,7 @@ func (suite *OmniRuntimeSuite) SetupTest() {
 	workloadProxyServiceRegistry, err := workloadproxy.NewServiceRegistry(resourceState, logger)
 	suite.Require().NoError(err)
 
-	suite.runtime, err = omniruntime.New(clientFactory, dnsService, workloadProxyServiceRegistry, nil, nil,
+	suite.runtime, err = omniruntime.New(clientFactory, dnsService, workloadProxyServiceRegistry, nil, nil, nil,
 		resourceState, nil, prometheus.NewRegistry(), logger)
 
 	suite.Require().NoError(err)

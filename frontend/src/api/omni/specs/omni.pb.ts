@@ -187,6 +187,7 @@ export type MachineStatusSpecPlatformMetadata = {
 export type MachineStatusSpecSchematic = {
   id?: string
   invalid?: boolean
+  extensions?: string[]
 }
 
 export type MachineStatusSpecMaintenanceConfig = {
@@ -605,7 +606,6 @@ export type ImagePullStatusSpec = {
 }
 
 export type SchematicSpec = {
-  extensions?: string[]
 }
 
 export type TalosExtensionsSpecInfo = {
