@@ -1,3 +1,31 @@
+## [Omni 0.31.1](https://github.com/siderolabs/omni/releases/tag/v0.31.1) (2024-03-15)
+
+Welcome to the v0.31.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>2 commits</summary>
+<p>
+
+* [`8ebd5ce`](https://github.com/siderolabs/omni/commit/8ebd5ce16d5941e9aa125ccda3fb8b26f8f236d8) chore: run rekres
+* [`4808369`](https://github.com/siderolabs/omni/commit/4808369fa2869c83fa3fbc9c4ec1b1adca0affbd) fix: get rid of the issue with `MachineSets` stuck in `Reconfiguring`
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.31.0](https://github.com/siderolabs/omni/releases/tag/v0.31.0)
+
 ## [Omni 0.31.0](https://github.com/siderolabs/omni/releases/tag/v0.31.0) (2024-03-07)
 
 Welcome to the v0.31.0 release of Omni!
