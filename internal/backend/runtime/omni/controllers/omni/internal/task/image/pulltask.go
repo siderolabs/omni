@@ -98,8 +98,9 @@ func (p PullTaskSpec) RunTask(ctx context.Context, _ *zap.Logger, pullStatusCh P
 
 			if nodeImageInfoMap.shouldPull(imageList.Node, img) {
 				currentError = p.pullImage(ctx, clusterID, imageList.Node, img)
-
-				errs = multierror.Append(errs, currentError)
+				if currentError != nil {
+					errs = multierror.Append(errs, currentError)
+				}
 
 				skipFinalEvent = true // we are already sending an event, so no need to send one at the end
 
