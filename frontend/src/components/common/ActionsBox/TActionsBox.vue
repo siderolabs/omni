@@ -11,7 +11,7 @@ included in the LICENSE file.
   >
     <Popper offsetDistance="10" :placement="placement" :show="open" offsetSkid="30">
       <template #content>
-        <div class="actions-list" @click="open = false">
+        <div class="actions-list" @click.stop="open = false">
           <slot/>
         </div>
       </template>

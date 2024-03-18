@@ -8,10 +8,11 @@ included in the LICENSE file.
   <t-actions-box style="height: 24px">
     <t-actions-box-item
       icon="log"
-      @click.stop="$router.push({ name: 'MachineLogs', params: { machine: clusterMachineStatus.metadata.id! } })"
+      @click="$router.push({ name: 'MachineLogs', params: { machine: clusterMachineStatus.metadata.id! } })"
     >
       Logs
     </t-actions-box-item>
+    <t-actions-box-item icon="copy" @click="copyMachineID">Copy Machine ID</t-actions-box-item>
     <t-actions-box-item
       icon="power"
       @click="shutdownNode"
@@ -23,7 +24,7 @@ included in the LICENSE file.
     <t-actions-box-item
       v-if="clusterMachineStatus.spec.stage === ClusterMachineStatusSpecStage.BEFORE_DESTROY"
       icon="rollback"
-      @click.stop="restoreNode"
+      @click="restoreNode"
     >
       Cancel Destroy
     </t-actions-box-item>
@@ -31,7 +32,7 @@ included in the LICENSE file.
       v-else-if="!deleteDisabled"
       icon="delete"
       danger
-      @click.stop="deleteNode"
+      @click="deleteNode"
     >
       Destroy
     </t-actions-box-item>
@@ -42,6 +43,7 @@ included in the LICENSE file.
 import { useRouter } from 'vue-router';
 import { Resource } from "@/api/grpc";
 import { ClusterMachineStatusSpec, ClusterMachineStatusSpecStage } from "@/api/omni/specs/omni.pb";
+import { copyText } from "vue3-clipboard";
 
 import TActionsBox from "@/components/common/ActionsBox/TActionsBox.vue";
 import TActionsBoxItem from "@/components/common/ActionsBox/TActionsBoxItem.vue";
@@ -95,5 +97,9 @@ const restoreNode = () => {
       goback: "true",
     },
   });
+};
+
+const copyMachineID = () => {
+  copyText(props.clusterMachineStatus.metadata.id!, undefined, () => {});
 };
 </script>

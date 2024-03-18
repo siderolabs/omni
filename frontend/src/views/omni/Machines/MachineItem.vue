@@ -21,10 +21,11 @@ included in the LICENSE file.
         <div class="flex-initial w-8">
           <div class="flex justify-end">
             <t-actions-box style="height: 24px">
-              <t-actions-box-item icon="settings" @click.stop="openConfigPatches">Config Patches</t-actions-box-item>
-              <t-actions-box-item icon="log" @click.stop="machineLogs" v-if="canReadMachineLogs">Logs</t-actions-box-item>
-              <t-actions-box-item icon="overview" @click.stop="showCluster" v-if="clusterName && canReadClusters">Show Cluster</t-actions-box-item>
-              <t-actions-box-item icon="delete" danger @click.stop="removeMachine" v-if="canRemoveMachines">Remove Machine</t-actions-box-item>
+              <t-actions-box-item icon="settings" @click="openConfigPatches">Config Patches</t-actions-box-item>
+              <t-actions-box-item icon="log" @click="machineLogs" v-if="canReadMachineLogs">Logs</t-actions-box-item>
+              <t-actions-box-item icon="copy" @click="copyMachineID">Copy Machine ID</t-actions-box-item>
+              <t-actions-box-item icon="overview" @click="showCluster" v-if="clusterName && canReadClusters">Show Cluster</t-actions-box-item>
+              <t-actions-box-item icon="delete" danger @click="removeMachine" v-if="canRemoveMachines">Remove Machine</t-actions-box-item>
             </t-actions-box>
           </div>
         </div>
@@ -113,6 +114,7 @@ included in the LICENSE file.
 import { computed, toRefs } from "vue";
 import { formatBytes } from "@/methods";
 import pluralize from 'pluralize';
+import { copyText } from "vue3-clipboard";
 
 import { useRouter } from "vue-router";
 import { ResourceTyped } from "@/api/grpc";
@@ -208,4 +210,8 @@ const timeGetter = (fn :() => string|undefined) => {
 
 const machineLastAlive = timeGetter(() => machine.value?.spec?.siderolink_counter?.last_alive);
 const machineCreatedAt = timeGetter(() => machine.value?.spec?.machine_created_at);
+
+const copyMachineID = () => {
+  copyText(machine.value.metadata.id!, undefined, () => {});
+};
 </script>
