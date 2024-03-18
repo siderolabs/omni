@@ -129,7 +129,7 @@ func NewClusterMachineConfigStatusController() *ClusterMachineConfigStatusContro
 					machineStatus.TypedSpec().Value.Schematic.Id != expectedSchematic
 
 				// don't run the upgrade check if the running version and expected versions match
-				if versionMismatch && talosVersion.TypedSpec().Value.TalosVersion != "" && talosVersion.TypedSpec().Value.SchematicId != "" {
+				if versionMismatch && talosVersion.TypedSpec().Value.TalosVersion != "" {
 					inSync, err := handler.syncTalosVersionAndSchematic(ctx, configStatus, machineStatus, machineConfig, statusSnapshot, talosVersion)
 					if err != nil {
 						return err
