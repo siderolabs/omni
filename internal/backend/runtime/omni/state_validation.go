@@ -687,8 +687,23 @@ func validateS3Configuration(ctx context.Context, s3Conf *omni.EtcdBackupS3Conf)
 }
 
 func validateSchematicConfiguration(schematicConfiguration *omni.SchematicConfiguration) error {
-	if schematicConfiguration.TypedSpec().Value.Target == specs.SchematicConfigurationSpec_Unknown {
-		return fmt.Errorf("schematic configuration target field can not be empty")
+	var targetValid bool
+
+	labels := []string{
+		omni.LabelClusterMachine,
+		omni.LabelMachineSet,
+		omni.LabelCluster,
+	}
+
+	for _, label := range labels {
+		_, targetValid = schematicConfiguration.Metadata().Labels().Get(label)
+		if targetValid {
+			break
+		}
+	}
+
+	if !targetValid {
+		return fmt.Errorf("schematic configuration should have one of %q labels", strings.Join(labels, ", "))
 	}
 
 	if schematicConfiguration.TypedSpec().Value.SchematicId == "" {

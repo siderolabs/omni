@@ -119,7 +119,8 @@ func (suite *TalosUpgradeStatusSuite) TestReconcile() {
 
 	schematicConfig := omni.NewSchematicConfiguration(resources.DefaultNamespace, machines[1].Metadata().ID())
 	schematicConfig.TypedSpec().Value.SchematicId = "abcd"
-	schematicConfig.TypedSpec().Value.Target = specs.SchematicConfigurationSpec_ClusterMachine
+
+	schematicConfig.Metadata().Labels().Set(omni.LabelClusterMachine, machines[1].Metadata().ID())
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, schematicConfig))
 

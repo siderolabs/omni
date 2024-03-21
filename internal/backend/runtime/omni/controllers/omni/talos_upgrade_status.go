@@ -39,8 +39,6 @@ type TalosUpgradeStatusController = qtransform.QController[*omni.Cluster, *omni.
 const TalosUpgradeStatusControllerName = "TalosUpgradeStatusController"
 
 // NewTalosUpgradeStatusController initializes TalosUpgradeStatusController.
-//
-//nolint:gocognit
 func NewTalosUpgradeStatusController() *TalosUpgradeStatusController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.Cluster, *omni.TalosUpgradeStatus]{
@@ -52,8 +50,8 @@ func NewTalosUpgradeStatusController() *TalosUpgradeStatusController {
 				return omni.NewCluster(resources.DefaultNamespace, upgradeStatus.Metadata().ID())
 			},
 			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, cluster *omni.Cluster, upgradeStatus *omni.TalosUpgradeStatus) error {
-				if cluster.Metadata().Phase() == resource.PhaseTearingDown {
-					return nil
+				if err := updateSchematicsFinalizers(ctx, r, cluster); err != nil {
+					return err
 				}
 
 				clusterMachines, err := safe.ReaderListAll[*omni.ClusterMachine](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID())))
@@ -77,6 +75,10 @@ func NewTalosUpgradeStatusController() *TalosUpgradeStatusController {
 				return reconcileTalosUpdateStatus(ctx, r, logger, upgradeStatus, cluster, clusterMachines, machineSetNodes)
 			},
 			FinalizerRemovalExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, cluster *omni.Cluster) error {
+				if err := updateSchematicsFinalizers(ctx, r, cluster); err != nil {
+					return err
+				}
+
 				clusterMachines, err := safe.ReaderListAll[*omni.ClusterMachine](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID())))
 				if err != nil {
 					return err
@@ -123,38 +125,7 @@ func NewTalosUpgradeStatusController() *TalosUpgradeStatusController {
 			mappers.MapByClusterLabel[*omni.MachineStatus, *omni.Cluster](),
 		),
 		qtransform.WithExtraMappedInput(
-			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, res *omni.SchematicConfiguration) ([]resource.Pointer, error) {
-				var target resource.Pointer
-
-				switch res.TypedSpec().Value.Target {
-				case specs.SchematicConfigurationSpec_Unknown:
-					return nil, nil
-				case specs.SchematicConfigurationSpec_Cluster:
-					return []resource.Pointer{omni.NewCluster(resources.DefaultNamespace, res.Metadata().ID()).Metadata()}, nil
-				case specs.SchematicConfigurationSpec_MachineSet:
-					target = omni.NewMachineSet(resources.DefaultNamespace, res.Metadata().ID()).Metadata()
-				case specs.SchematicConfigurationSpec_ClusterMachine:
-					target = omni.NewClusterMachine(resources.DefaultNamespace, res.Metadata().ID()).Metadata()
-				}
-
-				schematicTarget, err := r.Get(ctx, target)
-				if err != nil {
-					if state.IsNotFoundError(err) {
-						return nil, nil
-					}
-
-					return nil, err
-				}
-
-				clusterName, ok := schematicTarget.Metadata().Labels().Get(omni.LabelCluster)
-				if !ok {
-					return nil, nil
-				}
-
-				return []resource.Pointer{
-					omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata(),
-				}, nil
-			},
+			mappers.MapByClusterLabel[*omni.SchematicConfiguration, *omni.Cluster](),
 		),
 		qtransform.WithExtraMappedInput(
 			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, cmcs *omni.ClusterMachineConfigStatus) ([]resource.Pointer, error) {
@@ -326,9 +297,9 @@ func reconcileTalosUpdateStatus(ctx context.Context, r controller.ReaderWriter,
 
 		resourceNeedsUpdate := clusterMachineTalosVersion.TypedSpec().Value.TalosVersion != talosVersion || schematicOutdated
 
-		if schematicOutdated {
-			schematicUpdates = true
+		schematicUpdates = clusterMachineTalosVersion.TypedSpec().Value.SchematicId != schematicID || (configStatus != nil && configStatus.TypedSpec().Value.SchematicId != schematicID)
 
+		if schematicOutdated {
 			upgradeStatus.TypedSpec().Value.Phase = specs.TalosUpgradeStatusSpec_Upgrading
 		}
 
@@ -516,36 +487,30 @@ func getDesiredSchematic(ctx context.Context, r controller.ReaderWriter, machine
 	}
 
 	for _, res := range []struct {
-		id     string
-		target specs.SchematicConfigurationSpec_Target
+		id    string
+		label string
 	}{
 		{
-			id:     machine.Metadata().ID(),
-			target: specs.SchematicConfigurationSpec_ClusterMachine,
+			id:    machine.Metadata().ID(),
+			label: omni.LabelClusterMachine,
 		},
 		{
-			id:     machineSet,
-			target: specs.SchematicConfigurationSpec_MachineSet,
+			id:    machineSet,
+			label: omni.LabelMachineSet,
 		},
 		{
-			id:     clusterName,
-			target: specs.SchematicConfigurationSpec_Cluster,
+			id:    clusterName,
+			label: omni.LabelCluster,
 		},
 	} {
-		schematic, err := safe.ReaderGet[*omni.SchematicConfiguration](ctx, r, omni.NewSchematicConfiguration(resources.DefaultNamespace, res.id).Metadata())
+		schematics, err := safe.ReaderListAll[*omni.SchematicConfiguration](ctx, r, state.WithLabelQuery(resource.LabelEqual(res.label, res.id)))
 		if err != nil {
-			if state.IsNotFoundError(err) {
-				continue
-			}
-
 			return "", err
 		}
 
-		if schematic.TypedSpec().Value.Target != res.target {
-			continue
+		if schematics.Len() > 0 {
+			return schematics.Get(0).TypedSpec().Value.SchematicId, nil
 		}
-
-		return schematic.TypedSpec().Value.SchematicId, nil
 	}
 
 	ms, err := safe.ReaderGet[*omni.MachineStatus](ctx, r, omni.NewMachineStatus(resources.DefaultNamespace, machine.Metadata().ID()).Metadata())
@@ -555,6 +520,10 @@ func getDesiredSchematic(ctx context.Context, r controller.ReaderWriter, machine
 
 	if ms.TypedSpec().Value.Schematic == nil {
 		return "", nil
+	}
+
+	if ms.TypedSpec().Value.Schematic.InitialSchematic != "" {
+		return ms.TypedSpec().Value.Schematic.InitialSchematic, nil
 	}
 
 	return ms.TypedSpec().Value.Schematic.Id, nil
@@ -590,9 +559,30 @@ func populateEmptySchematics(ctx context.Context, r controller.ReaderWriter, clu
 		}
 
 		return safe.WriterModify(ctx, r, clusterMachineTalosVersion, func(res *omni.ClusterMachineTalosVersion) error {
-			res.TypedSpec().Value.SchematicId = schematic.Id
+			res.TypedSpec().Value.SchematicId = schematic.InitialSchematic
 
 			return nil
 		})
+	})
+}
+
+func updateSchematicsFinalizers(ctx context.Context, r controller.ReaderWriter, cluster *omni.Cluster) error {
+	schematicConfigurations, err := safe.ReaderListAll[*omni.SchematicConfiguration](ctx, r, state.WithLabelQuery(
+		resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID()),
+	))
+	if err != nil {
+		return err
+	}
+
+	return schematicConfigurations.ForEachErr(func(res *omni.SchematicConfiguration) error {
+		if res.Metadata().Phase() == resource.PhaseTearingDown {
+			return r.RemoveFinalizer(ctx, res.Metadata(), TalosUpgradeStatusControllerName)
+		}
+
+		if !res.Metadata().Finalizers().Has(TalosUpgradeStatusControllerName) {
+			return r.AddFinalizer(ctx, res.Metadata(), TalosUpgradeStatusControllerName)
+		}
+
+		return nil
 	})
 }

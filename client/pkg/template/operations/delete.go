@@ -63,7 +63,9 @@ func deleteTemplate(ctx context.Context, tmpl *template.Template, out io.Writer,
 		links := make([]resource.Resource, 0, len(machines.Items))
 
 		for _, machine := range machines.Items {
-			patches, err := st.List(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.ConfigPatchType, "", resource.VersionUndefined),
+			var patches resource.List
+
+			patches, err = st.List(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.ConfigPatchType, "", resource.VersionUndefined),
 				state.WithLabelQuery(resource.LabelEqual(omni.LabelMachine, machine.Metadata().ID())),
 			)
 			if err != nil {
@@ -74,8 +76,15 @@ func deleteTemplate(ctx context.Context, tmpl *template.Template, out io.Writer,
 			links = append(links, siderolink.NewLink(resources.DefaultNamespace, machine.Metadata().ID(), nil))
 		}
 
-		syncResult.Destroy = append([][]resource.Resource{links},
-			append([][]resource.Resource{allPatches}, syncResult.Destroy...)...)
+		extensionsConfigurations, err := st.List(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.ExtensionsConfigurationType, "", resource.VersionUndefined),
+			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
+		)
+		if err != nil {
+			return err
+		}
+
+		syncResult.Destroy = append([][]resource.Resource{extensionsConfigurations.Items}, append([][]resource.Resource{links},
+			append([][]resource.Resource{allPatches}, syncResult.Destroy...)...)...)
 	}
 
 	return syncDelete(ctx, syncResult, out, st, syncOptions)

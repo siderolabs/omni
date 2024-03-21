@@ -27,6 +27,12 @@ func NewMachineSetController() *MachineSetController {
 				cleanup.RemoveOutputs[*omni.MachineSetNode](func(machineSet *omni.MachineSet) state.ListOption {
 					return state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID()))
 				}),
+				cleanup.RemoveOutputs[*omni.SchematicConfiguration](func(machineSet *omni.MachineSet) state.ListOption {
+					return state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID()))
+				}),
+				cleanup.RemoveOutputs[*omni.ExtensionsConfiguration](func(machineSet *omni.MachineSet) state.ListOption {
+					return state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID()))
+				}),
 
 				withFinalizerCheck(cleanup.RemoveOutputs[*omni.ConfigPatch](func(machineSet *omni.MachineSet) state.ListOption {
 					clusterName, _ := machineSet.Metadata().Labels().Get(omni.LabelCluster)

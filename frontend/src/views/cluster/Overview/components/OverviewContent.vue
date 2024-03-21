@@ -141,7 +141,7 @@ included in the LICENSE file.
               </template>
             </div>
             <t-button
-              v-if="talosUpgradeStatus.spec.phase === TalosUpgradeStatusSpecPhase.Upgrading"
+              v-if="talosUpgradeStatus.spec.phase === TalosUpgradeStatusSpecPhase.Upgrading && talosUpgradeStatus.spec.current_upgrade_version"
               type="secondary"
               class="place-self-end"
               icon="close"

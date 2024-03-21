@@ -772,7 +772,7 @@ func TestSchematicConfigurationValidation(t *testing.T) {
 
 	require.True(t, validated.IsValidationError(st.Create(ctx, res)), "expected validation error")
 
-	res.TypedSpec().Value.Target = specs.SchematicConfigurationSpec_ClusterMachine
+	res.Metadata().Labels().Set(omnires.LabelClusterMachine, "test")
 
 	require.True(t, validated.IsValidationError(st.Create(ctx, res)), "expected validation error")
 
@@ -780,11 +780,11 @@ func TestSchematicConfigurationValidation(t *testing.T) {
 
 	require.NoError(t, st.Create(ctx, res))
 
-	res.TypedSpec().Value.Target = specs.SchematicConfigurationSpec_Unknown
+	res.Metadata().Labels().Delete(omnires.LabelClusterMachine)
 
 	require.True(t, validated.IsValidationError(st.Update(ctx, res)), "expected validation error")
 
-	res.TypedSpec().Value.Target = specs.SchematicConfigurationSpec_MachineSet
+	res.Metadata().Labels().Set(omnires.LabelMachineSet, "test")
 
 	require.NoError(t, st.Update(ctx, res))
 }

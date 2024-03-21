@@ -20,7 +20,8 @@ import (
 
 // MachineSet is a base model for controlplane and workers.
 type MachineSet struct {
-	Meta `yaml:",inline"`
+	Meta             `yaml:",inline"`
+	SystemExtensions `yaml:",inline"`
 
 	// Name is the name of the machine set. When empty, the default name will be used.
 	Name string `yaml:"name,omitempty"`
@@ -244,5 +245,13 @@ func (machineset *MachineSet) translate(ctx TranslateContext, nameSuffix, roleLa
 		return nil, err
 	}
 
-	return append(resourceList, patches...), nil
+	resourceList = append(resourceList, patches...)
+
+	schematicConfigurations := machineset.SystemExtensions.translate(
+		ctx,
+		id,
+		pair.MakePair(omni.LabelMachineSet, id),
+	)
+
+	return append(resourceList, schematicConfigurations...), nil
 }

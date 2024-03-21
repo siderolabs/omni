@@ -73,15 +73,18 @@ const testID = "testID"
 func (suite *MachineStatusSuite) TestMachineConnected() {
 	suite.setup()
 
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
+	defer cancel()
+
 	// given
 	machine := omni.NewMachine(resources.DefaultNamespace, testID)
 	machine.TypedSpec().Value.Connected = true
 
 	// when
-	suite.Assert().NoError(suite.state.Create(suite.ctx, machine))
+	suite.Assert().NoError(suite.state.Create(ctx, machine))
 
 	// then
-	rtestutils.AssertResource(suite.ctx, suite.T(), suite.state, testID, func(status *omni.MachineStatus, assert *assert.Assertions) {
+	rtestutils.AssertResource(ctx, suite.T(), suite.state, testID, func(status *omni.MachineStatus, assert *assert.Assertions) {
 		statusVal := status.TypedSpec().Value
 
 		suite.Truef(statusVal.Connected, "not connected")
@@ -91,7 +94,7 @@ func (suite *MachineStatusSuite) TestMachineConnected() {
 	})
 
 	// check that the connected label is removed again, if the machine becomes disconnected.
-	_, err := safe.StateUpdateWithConflicts(context.Background(), suite.state,
+	_, err := safe.StateUpdateWithConflicts(ctx, suite.state,
 		resource.NewMetadata(resources.DefaultNamespace, omni.MachineType, testID, resource.VersionUndefined), func(res *omni.Machine) error {
 			res.TypedSpec().Value.Connected = false
 
@@ -99,7 +102,7 @@ func (suite *MachineStatusSuite) TestMachineConnected() {
 		})
 	suite.Assert().NoError(err)
 
-	rtestutils.AssertResource(suite.ctx, suite.T(), suite.state, testID, func(status *omni.MachineStatus, assert *assert.Assertions) {
+	rtestutils.AssertResource(ctx, suite.T(), suite.state, testID, func(status *omni.MachineStatus, assert *assert.Assertions) {
 		statusVal := status.TypedSpec().Value
 
 		assert.Falsef(statusVal.Connected, "should not be connected anymore")
@@ -306,7 +309,8 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 				},
 			},
 			expected: &specs.MachineStatusSpec_Schematic{
-				Id: "7d79f1ce28d7e6c099bc89ccf02238fb574165eb4834c2abf2a61eab998d4dc6",
+				Id:               "7d79f1ce28d7e6c099bc89ccf02238fb574165eb4834c2abf2a61eab998d4dc6",
+				InitialSchematic: "7d79f1ce28d7e6c099bc89ccf02238fb574165eb4834c2abf2a61eab998d4dc6",
 				Extensions: []string{
 					"siderolabs/gvisor",
 					"siderolabs/hello-world-service",
@@ -332,7 +336,8 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 		{
 			name: "vanilla autodetect",
 			expected: &specs.MachineStatusSpec_Schematic{
-				Id: defaultSchematic,
+				Id:               defaultSchematic,
+				InitialSchematic: defaultSchematic,
 			},
 		},
 	} {

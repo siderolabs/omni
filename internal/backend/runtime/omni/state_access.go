@@ -62,6 +62,9 @@ var (
 		omni.MachineSetType,
 		omni.MachineSetNodeType,
 		omni.EtcdBackupType,
+		omni.SchematicConfigurationType,
+		omni.ExtensionsConfigurationType,
+		omni.ExtensionsConfigurationStatusType,
 	})
 
 	// userManagedResourceTypeSet is the set of resource types that are managed by the user.
@@ -383,6 +386,8 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.MachineConfigGenOptionsType,
 		omni.SchematicType,
 		omni.SchematicConfigurationType,
+		omni.ExtensionsConfigurationType,
+		omni.ExtensionsConfigurationStatusType,
 		virtual.KubernetesUsageType:
 		_, err = auth.CheckGRPC(ctx, auth.WithRole(verbToRole(access.Verb)))
 	case
@@ -504,6 +509,8 @@ func filterAccessByType(access state.Access) error {
 		omni.OngoingTaskType,
 		omni.RedactedClusterMachineConfigType,
 		omni.SchematicType,
+		omni.SchematicConfigurationType,
+		omni.ExtensionsConfigurationStatusType,
 		authres.AuthConfigType,
 		siderolink.ConnectionParamsType,
 		system.SysVersionType,

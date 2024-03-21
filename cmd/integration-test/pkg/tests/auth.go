@@ -597,8 +597,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 		machineSetNode := omni.NewMachineSetNode(resources.DefaultNamespace, uuid.New().String(), machineSet)
 		machineClass := omni.NewMachineClass(resources.DefaultNamespace, uuid.New().String())
-		schematicConfiguration := omni.NewSchematicConfiguration(resources.DefaultNamespace, uuid.New().String())
-		schematicConfiguration.TypedSpec().Value.Target = specs.SchematicConfigurationSpec_ClusterMachine
+
+		extensionsConfiguration := omni.NewExtensionsConfiguration(resources.DefaultNamespace, uuid.New().String())
+		extensionsConfiguration.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 
 		testCases := []resourceAuthzTestCase{
 			{
@@ -655,7 +656,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				isAdminOnly:    true,
 			},
 			{
-				resource:       schematicConfiguration,
+				resource:       extensionsConfiguration,
 				allowedVerbSet: allVerbsSet,
 			},
 		}
@@ -876,6 +877,14 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource:              omni.NewTalosExtensions(resources.DefaultNamespace, uuid.New().String()),
 				allowedVerbSet:        readOnlyVerbSet,
 				isSignatureSufficient: true,
+			},
+			{
+				resource:       omni.NewSchematicConfiguration(resources.DefaultNamespace, uuid.New().String()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
+				resource:       omni.NewExtensionsConfigurationStatus(resources.DefaultNamespace, uuid.New().String()),
+				allowedVerbSet: readOnlyVerbSet,
 			},
 		}...)
 

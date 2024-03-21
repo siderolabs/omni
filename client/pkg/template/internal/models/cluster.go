@@ -27,7 +27,8 @@ const KindCluster = "Cluster"
 
 // Cluster is a top-level template object.
 type Cluster struct { //nolint:govet
-	Meta `yaml:",inline"`
+	Meta             `yaml:",inline"`
+	SystemExtensions `yaml:",inline"`
 
 	// Name is the name of the cluster.
 	Name string `yaml:"name"`
@@ -146,7 +147,7 @@ func (talos *TalosCluster) Validate() error {
 }
 
 // Translate into Omni resources.
-func (cluster *Cluster) Translate(TranslateContext) ([]resource.Resource, error) {
+func (cluster *Cluster) Translate(ctx TranslateContext) ([]resource.Resource, error) {
 	clusterResource := omni.NewCluster(resources.DefaultNamespace, cluster.Name)
 
 	clusterResource.Metadata().Annotations().Set(omni.ResourceManagedByClusterTemplates, "")
@@ -175,7 +176,14 @@ func (cluster *Cluster) Translate(TranslateContext) ([]resource.Resource, error)
 		clusterResource.TypedSpec().Value.BackupConfiguration = &specs.EtcdBackupConf{Interval: durationpb.New(interval), Enabled: true}
 	}
 
-	return append([]resource.Resource{clusterResource}, patches...), nil
+	resourceList := append([]resource.Resource{clusterResource}, patches...)
+
+	schematicConfigurations := cluster.SystemExtensions.translate(
+		ctx,
+		cluster.Name,
+	)
+
+	return append(resourceList, schematicConfigurations...), nil
 }
 
 func init() {

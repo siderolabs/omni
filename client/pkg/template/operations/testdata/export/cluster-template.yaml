@@ -1,4 +1,6 @@
 kind: Cluster
+systemExtensions:
+  - siderolabs/hello-world-service
 name: export-test
 labels:
   cluster-label-1: val
@@ -43,6 +45,8 @@ patches:
             mtu: 1234
 ---
 kind: ControlPlane
+systemExtensions:
+  - siderolabs/qemu-guest-agent
 bootstrapSpec:
   clusterUUID: 98d00c6b-fae1-4bf2-afa3-0282ef443f84
   snapshot: FFFFFFFF9AA169F0.snapshot
@@ -61,6 +65,8 @@ patches:
             mtu: 1111
 ---
 kind: Workers
+systemExtensions:
+  - siderolabs/hello-world-service
 machines:
   - 024780fe-b0d6-43e0-a868-b142ba0a67a6
 updateStrategy:
@@ -132,6 +138,8 @@ patches:
             mtu: 1166
 ---
 kind: Machine
+systemExtensions:
+  - something-custom
 name: 3f8b33d2-52b1-42ed-8505-4025ddbc31f1
 install:
   disk: /dev/sdc

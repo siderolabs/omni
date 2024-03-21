@@ -160,6 +160,7 @@ func (t *Template) actualResources(ctx context.Context, st state.State) ([]resou
 		omni.MachineSetType,
 		omni.MachineSetNodeType,
 		omni.ConfigPatchType,
+		omni.ExtensionsConfigurationType,
 	} {
 		items, err := st.List(
 			ctx,

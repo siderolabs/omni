@@ -112,11 +112,10 @@ export enum KubernetesUpgradeStatusSpecPhase {
   Reverting = 4,
 }
 
-export enum SchematicConfigurationSpecTarget {
+export enum ExtensionsConfigurationStatusSpecPhase {
   Unknown = 0,
-  ClusterMachine = 1,
-  MachineSet = 2,
-  Cluster = 3,
+  Ready = 1,
+  Failed = 2,
 }
 
 export type MachineSpec = {
@@ -188,6 +187,7 @@ export type MachineStatusSpecSchematic = {
   id?: string
   invalid?: boolean
   extensions?: string[]
+  initial_schematic?: string
 }
 
 export type MachineStatusSpecMaintenanceConfig = {
@@ -623,5 +623,14 @@ export type TalosExtensionsSpec = {
 
 export type SchematicConfigurationSpec = {
   schematic_id?: string
-  target?: SchematicConfigurationSpecTarget
+}
+
+export type ExtensionsConfigurationSpec = {
+  extensions?: string[]
+}
+
+export type ExtensionsConfigurationStatusSpec = {
+  phase?: ExtensionsConfigurationStatusSpecPhase
+  error?: string
+  extensions?: string[]
 }

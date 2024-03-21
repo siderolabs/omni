@@ -296,6 +296,14 @@ func (s *managementServer) collectClusterResources(ctx context.Context, cluster 
 			rt:          omni.ClusterMachineIdentityType,
 			listOptions: clusterQuery,
 		},
+		{
+			rt:          omni.SchematicConfigurationType,
+			listOptions: clusterQuery,
+		},
+		{
+			rt:          omni.ExtensionsConfigurationType,
+			listOptions: clusterQuery,
+		},
 	}
 
 	machineIDs := map[string]struct{}{}

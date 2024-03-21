@@ -48,8 +48,13 @@ func (ctrl *MachineStatusController) Inputs() []controller.Input {
 	return []controller.Input{
 		{
 			Namespace: resources.DefaultNamespace,
+			Type:      omni.MachineStatusType,
+			Kind:      controller.InputDestroyReady,
+		},
+		{
+			Namespace: resources.DefaultNamespace,
 			Type:      omni.MachineType,
-			Kind:      controller.InputWeak,
+			Kind:      controller.InputStrong,
 		},
 		{
 			Namespace: resources.DefaultNamespace,
@@ -119,6 +124,10 @@ func (ctrl *MachineStatusController) reconcileCollectors(ctx context.Context, r 
 
 	tracker := trackResource(r, resources.DefaultNamespace, omni.MachineStatusType)
 
+	tracker.beforeDestroyCallback = func(res resource.Resource) error {
+		return r.RemoveFinalizer(ctx, omni.NewMachine(resources.DefaultNamespace, res.Metadata().ID()).Metadata(), ctrl.Name())
+	}
+
 	// figure out which collectors should run
 	shouldRun := map[string]machine.CollectTaskSpec{}
 	machines := map[resource.ID]*omni.Machine{}
@@ -144,6 +153,12 @@ func (ctrl *MachineStatusController) reconcileCollectors(ctx context.Context, r 
 
 		if item.Metadata().Phase() == resource.PhaseTearingDown {
 			continue
+		}
+
+		if !item.Metadata().Finalizers().Has(ctrl.Name()) {
+			if err = r.AddFinalizer(ctx, item.Metadata(), ctrl.Name()); err != nil {
+				return err
+			}
 		}
 
 		tracker.keep(item)
@@ -404,7 +419,19 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 		}
 
 		if event.Schematic != nil {
-			spec.Schematic = event.Schematic
+			if spec.Schematic == nil {
+				spec.Schematic = &specs.MachineStatusSpec_Schematic{}
+			}
+
+			spec.Schematic.Extensions = event.Schematic.Extensions
+			spec.Schematic.Id = event.Schematic.Id
+			spec.Schematic.Invalid = event.Schematic.Invalid
+
+			if spec.Schematic.Invalid {
+				spec.Schematic.InitialSchematic = ""
+			} else if spec.Schematic.InitialSchematic == "" {
+				spec.Schematic.InitialSchematic = spec.Schematic.Id
+			}
 		}
 
 		if event.MaintenanceConfig != nil { // never set the maintenance config back to nil if it was ever initialized

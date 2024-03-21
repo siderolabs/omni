@@ -27,7 +27,8 @@ const KindMachine = "Machine"
 
 // Machine provides customization for a specific machine.
 type Machine struct { //nolint:govet
-	Meta `yaml:",inline"`
+	Meta             `yaml:",inline"`
+	SystemExtensions `yaml:",inline"`
 
 	// Machine name (ID).
 	Name MachineID `yaml:"name"`
@@ -98,7 +99,7 @@ func (machine *Machine) Validate() error {
 }
 
 // Translate the model.
-func (machine *Machine) Translate(context TranslateContext) ([]resource.Resource, error) {
+func (machine *Machine) Translate(ctx TranslateContext) ([]resource.Resource, error) {
 	var resourceList []resource.Resource
 
 	if machine.Install.Disk != "" {
@@ -116,7 +117,7 @@ func (machine *Machine) Translate(context TranslateContext) ([]resource.Resource
 		patchResource, err := patch.Translate(
 			fmt.Sprintf("cm-%s", machine.Name),
 			constants.PatchWeightInstallDisk,
-			pair.MakePair(omni.LabelCluster, context.ClusterName),
+			pair.MakePair(omni.LabelCluster, ctx.ClusterName),
 			pair.MakePair(omni.LabelClusterMachine, string(machine.Name)),
 			pair.MakePair(omni.LabelSystemPatch, ""),
 		)
@@ -130,14 +131,22 @@ func (machine *Machine) Translate(context TranslateContext) ([]resource.Resource
 	patches, err := machine.Patches.Translate(
 		fmt.Sprintf("cm-%s", machine.Name),
 		constants.PatchBaseWeightClusterMachine,
-		pair.MakePair(omni.LabelCluster, context.ClusterName),
+		pair.MakePair(omni.LabelCluster, ctx.ClusterName),
 		pair.MakePair(omni.LabelClusterMachine, string(machine.Name)),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	return append(resourceList, patches...), nil
+	resourceList = append(resourceList, patches...)
+
+	schematicConfigurations := machine.SystemExtensions.translate(
+		ctx,
+		string(machine.Name),
+		pair.MakePair(omni.LabelClusterMachine, string(machine.Name)),
+	)
+
+	return append(resourceList, schematicConfigurations...), nil
 }
 
 func init() {

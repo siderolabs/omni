@@ -436,24 +436,18 @@ func AssertTalosSchematicUpdateFlow(testCtx context.Context, client *client.Clie
 		ctx, cancel := context.WithTimeout(testCtx, 15*time.Minute)
 		defer cancel()
 
-		resp, err := client.Management().CreateSchematic(ctx, &management.CreateSchematicRequest{
-			Extensions: []string{
-				"siderolabs/hello-world-service",
-				"siderolabs/qemu-guest-agent",
-			},
-		})
+		res := omni.NewExtensionsConfiguration(resources.DefaultNamespace, clusterName)
 
-		require.NoError(t, err)
-
-		t.Logf("upgrading cluster schematic %q to %q", clusterName, resp.SchematicId)
-		res := omni.NewSchematicConfiguration(resources.DefaultNamespace, clusterName)
 		res.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 
-		// trigger an update by creating the SchematicConfiguration resource
-		res.TypedSpec().Value.SchematicId = resp.SchematicId
-		res.TypedSpec().Value.Target = specs.SchematicConfigurationSpec_Cluster
+		res.TypedSpec().Value.Extensions = []string{
+			"siderolabs/hello-world-service",
+			"siderolabs/qemu-guest-agent",
+		}
 
-		err = client.Omni().State().Create(ctx, res)
+		t.Logf("upgrading cluster schematic %q to have extensions %#v", clusterName, res.TypedSpec().Value.Extensions)
+
+		err := client.Omni().State().Create(ctx, res)
 		require.NoError(t, err)
 
 		// upgrade should start
@@ -610,6 +604,13 @@ func AssertTalosUpgradeIsCancelable(testCtx context.Context, st state.State, clu
 		// the upgrade should be not running
 		rtestutils.AssertResources(ctx, t, st, []resource.ID{clusterName}, func(r *omni.TalosUpgradeStatus, assert *assert.Assertions) {
 			assert.Equal(specs.TalosUpgradeStatusSpec_Done, r.TypedSpec().Value.Phase, resourceDetails(r))
+		})
+
+		q := state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName))
+
+		// ensure all machines now have the right version
+		rtestutils.AssertResources(ctx, t, st, rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, st, q), func(r *omni.MachineStatus, assert *assert.Assertions) {
+			assert.Equal(currentTalosVersion, strings.TrimLeft(r.TypedSpec().Value.TalosVersion, "v"), resourceDetails(r))
 		})
 	}
 }

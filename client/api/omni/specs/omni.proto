@@ -138,6 +138,10 @@ message MachineStatusSpec {
 
     // Extensions is the list of extensions installed on the machine.
     repeated string extensions = 3;
+
+    // InitialSchematic is the one first schematic the machine was using when it was connected to Omni for the first time.
+    // Omni will always reset schematic configuration to this default value when no explicit schematic configuration is set.
+    string initial_schematic = 4;
   }
 
   message MaintenanceConfig {
@@ -932,14 +936,23 @@ message TalosExtensionsSpec {
 
 // SchematicConfigurationSpec is the desired Image Factory schematic for a machine, machine set or a cluster.
 message SchematicConfigurationSpec {
-  enum Target {
+  string schematic_id = 1;
+}
+
+// ExtensionsConfigurationSpec is the desired list of extensions to be installed on the machine or the set of machines.
+message ExtensionsConfigurationSpec {
+  repeated string extensions = 1;
+}
+
+// ExtensionsConfigurationStatusSpec is the status of the generated schematic.
+message ExtensionsConfigurationStatusSpec {
+  enum Phase {
     Unknown = 0;
-    ClusterMachine = 1;
-    MachineSet = 2;
-    Cluster = 3;
+    Ready = 1;
+    Failed = 2;
   }
 
-  string schematic_id = 1;
-
-  Target target = 2;
+  Phase phase = 1;
+  string error = 2;
+  repeated string extensions = 3;
 }

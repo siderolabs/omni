@@ -11,6 +11,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
@@ -77,7 +78,7 @@ func (suite *MachineStatusLinkSuite) TestBasicMachineOnAndOff() {
 		},
 	)
 
-	suite.destroy(machine)
+	rtestutils.Destroy[*omni.Machine](suite.ctx, suite.T(), suite.state, []string{machine.Metadata().ID()})
 
 	msl := omni.NewMachineStatusLink(resources.MetricsNamespace, testID)
 
@@ -125,7 +126,8 @@ func (suite *MachineStatusLinkSuite) TestTwoMachines() {
 	machine2.TypedSpec().Value.Connected = true
 
 	suite.create(machine2)
-	suite.destroy(machine1)
+
+	rtestutils.Destroy[*omni.Machine](suite.ctx, suite.T(), suite.state, []string{machine1.Metadata().ID()})
 
 	assertNoResource(&suite.OmniSuite, omni.NewMachineStatusLink(resources.MetricsNamespace, testID))
 
@@ -184,10 +186,6 @@ func (suite *MachineStatusLinkSuite) TestTwoMachines() {
 
 func (suite *MachineStatusLinkSuite) create(res resource.Resource) {
 	suite.Require().NoError(suite.state.Create(suite.ctx, res))
-}
-
-func (suite *MachineStatusLinkSuite) destroy(res resource.Resource) {
-	suite.Require().NoError(suite.state.Destroy(suite.ctx, res.Metadata()))
 }
 
 func makeMD[T generic.ResourceWithRD](id resource.ID) resource.Metadata {

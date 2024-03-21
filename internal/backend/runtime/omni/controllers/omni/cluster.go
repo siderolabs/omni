@@ -85,6 +85,9 @@ func NewClusterController() *ClusterController {
 					cleanup.RemoveOutputs[*omni.SchematicConfiguration](func(cluster *omni.Cluster) state.ListOption {
 						return state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID()))
 					}),
+					cleanup.RemoveOutputs[*omni.ExtensionsConfiguration](func(cluster *omni.Cluster) state.ListOption {
+						return state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID()))
+					}),
 					cleanup.HasNoOutputs[*omni.ClusterMachine](func(cluster *omni.Cluster) state.ListOption {
 						return state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID()))
 					}),

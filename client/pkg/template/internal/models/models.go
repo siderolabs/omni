@@ -10,8 +10,11 @@ import (
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/resource/kvutils"
 	"github.com/hashicorp/go-multierror"
+	"github.com/siderolabs/gen/pair"
 
+	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -28,6 +31,33 @@ type TranslateContext struct {
 
 	// ClusterName is the name of the cluster.
 	ClusterName string
+}
+
+// SystemExtensions is embedded in Cluster, MachineSet and Machine objects.
+type SystemExtensions struct {
+	SystemExtensions []string `yaml:"systemExtensions,omitempty"`
+}
+
+func (s *SystemExtensions) translate(ctx TranslateContext, nameSuffix string, labels ...pair.Pair[string, string]) []resource.Resource {
+	if len(s.SystemExtensions) == 0 {
+		return nil
+	}
+
+	configuration := omni.NewExtensionsConfiguration(resources.DefaultNamespace, fmt.Sprintf("schematic-%s", nameSuffix))
+
+	configuration.Metadata().Labels().Set(omni.LabelCluster, ctx.ClusterName)
+
+	configuration.Metadata().Labels().Do(func(temp kvutils.TempKV) {
+		for _, l := range labels {
+			temp.Set(l.F1, l.F2)
+		}
+	})
+
+	configuration.TypedSpec().Value.Extensions = s.SystemExtensions
+
+	return []resource.Resource{
+		configuration,
+	}
 }
 
 // Descriptors are the user descriptors (i.e. Labels, Annotations) to apply to the resource.

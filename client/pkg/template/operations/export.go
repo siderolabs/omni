@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
@@ -27,15 +28,15 @@ import (
 )
 
 type clusterResources struct {
-	machineSetNodes             map[string][]*omni.MachineSetNode
-	machineSetConfigPatches     map[string][]*omni.ConfigPatch
-	clusterMachineConfigPatches map[string][]*omni.ConfigPatch
-	clusterMachineInstallDisks  map[string]string
+	patches    *layeredResources[*omni.ConfigPatch]
+	extensions *layeredResources[*omni.ExtensionsConfiguration]
+
+	machineSetNodes            map[string][]*omni.MachineSetNode
+	clusterMachineInstallDisks map[string]string
 
 	cluster *omni.Cluster
 
-	machineSets          []*omni.MachineSet
-	clusterConfigPatches []*omni.ConfigPatch
+	machineSets []*omni.MachineSet
 }
 
 // ExportTemplate exports the cluster configuration as a template.
@@ -45,10 +46,12 @@ func ExportTemplate(ctx context.Context, st state.State, clusterID string, write
 		return nil, err
 	}
 
-	clusterModel, err := transformClusterToModel(resources.cluster, resources.clusterConfigPatches)
+	clusterModel, err := transformClusterToModel(resources.cluster, resources.patches.cluster)
 	if err != nil {
 		return nil, err
 	}
+
+	clusterModel.SystemExtensions = transformExtensions(resources.extensions.cluster)
 
 	var controlPlaneMachineSetModel models.ControlPlane
 
@@ -57,10 +60,12 @@ func ExportTemplate(ctx context.Context, st state.State, clusterID string, write
 	for _, machineSet := range resources.machineSets {
 		machineSetModel, transformErr := transformMachineSetToModel(machineSet,
 			resources.machineSetNodes[machineSet.Metadata().ID()],
-			resources.machineSetConfigPatches[machineSet.Metadata().ID()])
+			resources.patches.machineSet[machineSet.Metadata().ID()])
 		if transformErr != nil {
 			return nil, transformErr
 		}
+
+		machineSetModel.SystemExtensions = transformExtensions(resources.extensions.machineSet[machineSet.Metadata().ID()])
 
 		if _, isControlPlane := machineSet.Metadata().Labels().Get(omni.LabelControlPlaneRole); isControlPlane {
 			controlPlaneMachineSetModel = models.ControlPlane{MachineSet: machineSetModel}
@@ -76,12 +81,14 @@ func ExportTemplate(ctx context.Context, st state.State, clusterID string, write
 	for _, machineSetNodes := range resources.machineSetNodes {
 		for _, machineSetNode := range machineSetNodes {
 			machineModel, transformErr := transformMachineSetNodeToModel(machineSetNode,
-				resources.clusterMachineConfigPatches[machineSetNode.Metadata().ID()],
+				resources.patches.clusterMachine[machineSetNode.Metadata().ID()],
 				resources.clusterMachineInstallDisks[machineSetNode.Metadata().ID()],
 			)
 			if transformErr != nil {
 				return nil, transformErr
 			}
+
+			machineModel.SystemExtensions = transformExtensions(resources.extensions.clusterMachine[machineSetNode.Metadata().ID()])
 
 			machineModels = append(machineModels, machineModel)
 		}
@@ -406,59 +413,93 @@ func collectClusterResources(ctx context.Context, st state.State, clusterID stri
 		machineSetNodes[machineSetLabel] = append(machineSetNodes[machineSetLabel], machineSetNode)
 	}
 
-	configPatchList, err := safe.StateListAll[*omni.ConfigPatch](ctx, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterID)))
-	if err != nil {
-		return clusterResources{}, fmt.Errorf("error listing config patches of cluster %q: %w", clusterID, err)
-	}
+	clusterMachineInstallDisks := map[string]string{}
 
-	clusterConfigPatches := make([]*omni.ConfigPatch, 0, configPatchList.Len())
-	machineSetConfigPatches := make(map[string][]*omni.ConfigPatch, configPatchList.Len())
-	clusterMachineConfigPatches := make(map[string][]*omni.ConfigPatch, configPatchList.Len())
-	clusterMachineInstallDisks := make(map[string]string, configPatchList.Len())
-
-	for iter := configPatchList.Iterator(); iter.Next(); {
-		configPatch := iter.Value()
-
-		// skip the patches with an owner, as they are not user-defined
-		if configPatch.Metadata().Owner() != "" {
-			continue
-		}
-
-		if clusterMachineLabel, ok := configPatch.Metadata().Labels().Get(omni.LabelClusterMachine); ok {
-			installDisk := getInstallDiskFromConfigPatch(configPatch)
+	patches, err := collectResourceLayers[*omni.ConfigPatch](ctx, st, clusterID, func(item *omni.ConfigPatch) bool {
+		if clusterMachineLabel, ok := item.Metadata().Labels().Get(omni.LabelClusterMachine); ok {
+			installDisk := getInstallDiskFromConfigPatch(item)
 			if installDisk != "" {
 				clusterMachineInstallDisks[clusterMachineLabel] = installDisk
 
 				// this is an install disk patch, therefore it will be set as the machine's install disk on the Machine model,
 				// not in patches, so we skip adding it to the set of regular patches
-				continue
+				return true
 			}
-
-			clusterMachineConfigPatches[clusterMachineLabel] = append(clusterMachineConfigPatches[clusterMachineLabel], configPatch)
-
-			continue
 		}
 
-		if machineSetLabel, ok := configPatch.Metadata().Labels().Get(omni.LabelMachineSet); ok {
-			machineSetConfigPatches[machineSetLabel] = append(machineSetConfigPatches[machineSetLabel], configPatch)
+		return false
+	})
+	if err != nil {
+		return clusterResources{}, err
+	}
 
-			continue
-		}
-
-		if _, ok := configPatch.Metadata().Labels().Get(omni.LabelCluster); ok {
-			clusterConfigPatches = append(clusterConfigPatches, configPatch)
-		}
+	extensions, err := collectResourceLayers[*omni.ExtensionsConfiguration](ctx, st, clusterID, nil)
+	if err != nil {
+		return clusterResources{}, err
 	}
 
 	return clusterResources{
-		cluster:                     cluster,
-		machineSets:                 listToSlice(machineSetList),
-		machineSetNodes:             machineSetNodes,
-		clusterConfigPatches:        clusterConfigPatches,
-		machineSetConfigPatches:     machineSetConfigPatches,
-		clusterMachineConfigPatches: clusterMachineConfigPatches,
-		clusterMachineInstallDisks:  clusterMachineInstallDisks,
+		cluster:                    cluster,
+		machineSets:                listToSlice(machineSetList),
+		machineSetNodes:            machineSetNodes,
+		patches:                    patches,
+		extensions:                 extensions,
+		clusterMachineInstallDisks: clusterMachineInstallDisks,
 	}, nil
+}
+
+func transformExtensions(extensions []*omni.ExtensionsConfiguration) models.SystemExtensions {
+	if len(extensions) == 0 {
+		return models.SystemExtensions{}
+	}
+
+	return models.SystemExtensions{SystemExtensions: extensions[0].TypedSpec().Value.Extensions}
+}
+
+type layeredResources[T meta.ResourceWithRD] struct {
+	machineSet     map[string][]T
+	clusterMachine map[string][]T
+	cluster        []T
+}
+
+func collectResourceLayers[T meta.ResourceWithRD](ctx context.Context, st state.State, clusterID string, callback func(res T) bool) (*layeredResources[T], error) {
+	resources, err := safe.StateListAll[T](ctx, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterID)))
+	if err != nil {
+		return nil, fmt.Errorf("error listing config patches of cluster %q: %w", clusterID, err)
+	}
+
+	res := &layeredResources[T]{
+		cluster:        make([]T, 0, resources.Len()),
+		machineSet:     make(map[string][]T, resources.Len()),
+		clusterMachine: make(map[string][]T, resources.Len()),
+	}
+
+	resources.ForEach(func(item T) {
+		// skip the resources with an owner, as they are not user-defined
+		if item.Metadata().Owner() != "" {
+			return
+		}
+
+		if callback != nil && callback(item) {
+			return
+		}
+
+		if clusterMachineLabel, ok := item.Metadata().Labels().Get(omni.LabelClusterMachine); ok {
+			res.clusterMachine[clusterMachineLabel] = append(res.clusterMachine[clusterMachineLabel], item)
+
+			return
+		}
+
+		if machineSetLabel, ok := item.Metadata().Labels().Get(omni.LabelMachineSet); ok {
+			res.machineSet[machineSetLabel] = append(res.machineSet[machineSetLabel], item)
+
+			return
+		}
+
+		res.cluster = append(res.cluster, item)
+	})
+
+	return res, nil
 }
 
 func getInstallDiskFromConfigPatch(configPatch *omni.ConfigPatch) string {
