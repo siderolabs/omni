@@ -1,3 +1,108 @@
+## [Omni 0.32.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.32.0-beta.0) (2024-03-26)
+
+Welcome to the v0.32.0-beta.0 release of Omni!  
+*This is a pre-release of Omni*
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### `omnictl support`
+
+`omnictl` CLI tool now has support bundle collection utility.
+It collects all cluster related resources from Omni and includes all data which can be collected by `talosctl support` command.
+
+
+### Omni Workload Proxy
+
+Kubernetes services exposed through Omni now open on a new page, instead using the iframe.
+Iframe often doesn't work due to headers restrictions.
+
+
+### Contributors
+
+* Artem Chernyshev
+* Utku Ozdemir
+* Andrey Smirnov
+* Dmitriy Matrenichev
+* Noel Georgi
+
+### Changes
+<details><summary>11 commits</summary>
+<p>
+
+* [`78bb689`](https://github.com/siderolabs/omni/commit/78bb6899ed377ffd83b748371c84a937f02dc83f) release(v0.32.0-beta.0): prepare release
+* [`176f9d9`](https://github.com/siderolabs/omni/commit/176f9d9f57530832a9ebbb64d008bc98300b2cc7) feat: compute schematic id only from the extensions
+* [`1e4e303`](https://github.com/siderolabs/omni/commit/1e4e303c098fa18bd63913d7a1d09538ed637cd0) feat: implement `omnictl support` command
+* [`a835cc7`](https://github.com/siderolabs/omni/commit/a835cc730c9bedd7f16a9a8b5c2c38464b71e189) fix: fix error handling in image pre pull task
+* [`2d1b776`](https://github.com/siderolabs/omni/commit/2d1b776f6c61db029a72e62deef81eafe34c29e9) fix: properly handle upgrades for the machines with invalid schematics
+* [`4db7630`](https://github.com/siderolabs/omni/commit/4db76307924bf86bab458b029923ddd98a22ad0e) feat: add the context menu for copying the machine id
+* [`5a8abf5`](https://github.com/siderolabs/omni/commit/5a8abf584edd605ac7bfc6f72b31142c857128c4) fix: get rid of the issue with `MachineSets` stuck in `Reconfiguring`
+* [`8173377`](https://github.com/siderolabs/omni/commit/8173377c122e5ff0c6e710362f8481ce01ca929d) feat: preserve maintenance machine configs
+* [`190218a`](https://github.com/siderolabs/omni/commit/190218ad2fcf07f94d0d55178ad08a21b2bc3bfa) feat: open exposed services in a new window
+* [`0960100`](https://github.com/siderolabs/omni/commit/0960100f11b4229d67c84de5d136d6f56d5a05b0) chore: drop integration binary from releases
+* [`6e3ba5c`](https://github.com/siderolabs/omni/commit/6e3ba5c389622987028af4e5ee50ac638f70c32e) chore: bump Go, build arm64 container images, rekres
+</p>
+</details>
+
+### Changes from siderolabs/crypto
+<details><summary>1 commit</summary>
+<p>
+
+* [`1c94bb3`](https://github.com/siderolabs/crypto/commit/1c94bb3967a427ba52c779a1b705f5aea466dc57) chore: bump dependencies
+</p>
+</details>
+
+### Changes from siderolabs/gen
+<details><summary>1 commit</summary>
+<p>
+
+* [`238baf9`](https://github.com/siderolabs/gen/commit/238baf95e228d40f9f5b765b346688c704052715) chore: add typesafe `SyncMap` and bump stuff
+</p>
+</details>
+
+### Changes from siderolabs/go-api-signature
+<details><summary>1 commit</summary>
+<p>
+
+* [`cf2bd06`](https://github.com/siderolabs/go-api-signature/commit/cf2bd06af87c946d6cdd61e127528f89e6f50591) chore: bump dependencies
+</p>
+</details>
+
+### Changes from siderolabs/go-loadbalancer
+<details><summary>1 commit</summary>
+<p>
+
+* [`aab4671`](https://github.com/siderolabs/go-loadbalancer/commit/aab4671fae0d14662a8d7167829c8c6725d28b38) chore: rekres, update dependencies
+</p>
+</details>
+
+### Changes from siderolabs/go-talos-support
+<details><summary>2 commits</summary>
+<p>
+
+* [`20a1135`](https://github.com/siderolabs/go-talos-support/commit/20a11358e84e055e6f47d468e66e57f561c90249) feat: add modules for getting Talos support bundle (#1)
+* [`afa24c4`](https://github.com/siderolabs/go-talos-support/commit/afa24c4452a1cdb6f6836f9c8529645a2ccb9014) feat: initial commit
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/emicklei/dot**                    v1.6.0 -> v1.6.1
+* **github.com/siderolabs/crypto**               v0.4.1 -> v0.4.2
+* **github.com/siderolabs/gen**                  v0.4.7 -> v0.4.8
+* **github.com/siderolabs/go-api-signature**     v0.3.1 -> v0.3.2
+* **github.com/siderolabs/go-loadbalancer**      v0.3.2 -> v0.3.3
+* **github.com/siderolabs/go-talos-support**     v0.1.0 **_new_**
+* **github.com/siderolabs/talos/pkg/machinery**  v1.6.4 -> v1.7.0-alpha.1
+* **github.com/stretchr/testify**                v1.8.4 -> v1.9.0
+* **google.golang.org/grpc**                     v1.62.0 -> v1.62.1
+* **k8s.io/api**                                 v0.29.1 -> v0.29.2
+* **k8s.io/client-go**                           v0.29.1 -> v0.29.2
+
+Previous release can be found at [v0.31.0](https://github.com/siderolabs/omni/releases/tag/v0.31.0)
+
 ## [Omni 0.20.0](https://github.com/siderolabs/omni/releases/tag/v0.20.0) (2023-10-17)
 
 Welcome to the v0.20.0 release of Omni!

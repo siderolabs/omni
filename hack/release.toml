@@ -5,20 +5,28 @@ project_name = "Omni"
 github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
-pre_release = false
-previous = "v0.19.0"
+pre_release = true
+previous = "v0.31.0"
 
 [notes]
 
-  [notes.kubernetes-config]
-    title = "Kubeconfig Changes"
+  [notes.support]
+    title = "`omnictl support`"
     description = """\
-Omni now generates Kubernetes configs without accessing Talos API.
+`omnictl` CLI tool now has support bundle collection utility.
+It collects all cluster related resources from Omni and includes all data which can be collected by `talosctl support` command.
 """
 
-  [notes.saml-roles]
-    title = ""
+  [notes.ui]
+    title = "Omni Workload Proxy"
     description = """\
-Omni can now define SAML user roles depending on the SAML labels it gets from the SAML assertion.
-Role is assigned only once on user creation.
+Kubernetes services exposed through Omni now open on a new page, instead using the iframe.
+Iframe often doesn't work due to headers restrictions.
+"""
+
+  [nodes.maintenance-config]
+    title = "Maintenance Mode Configs"
+    description = """\
+Talos nodes which do not have Omni SideroLink parameters can now be joined by applying the maintenance machine config with the Omni parameters.
+Omni now properly handles them and preserves them over resets.
 """
