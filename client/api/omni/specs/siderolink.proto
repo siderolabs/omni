@@ -24,6 +24,7 @@ message SiderolinkSpec {
   bool connected = 4;
   reserved 5;
   reserved 6;
+  string virtual_addrport = 7;
 }
 
 // SiderolinkConnectionSpec describes each node connection information.
