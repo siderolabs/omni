@@ -5,7 +5,7 @@ project_name = "Omni"
 github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
-pre_release = true
+pre_release = false
 previous = "v0.31.0"
 
 [notes]
@@ -20,11 +20,11 @@ It collects all cluster related resources from Omni and includes all data which 
   [notes.ui]
     title = "Omni Workload Proxy"
     description = """\
-Kubernetes services exposed through Omni now open on a new page, instead using the iframe.
+Kubernetes services exposed through Omni now open on a new page, instead of using an iframe.
 Iframe often doesn't work due to headers restrictions.
 """
 
-  [nodes.maintenance-config]
+  [notes.maintenance-config]
     title = "Maintenance Mode Configs"
     description = """\
 Talos nodes which do not have Omni SideroLink parameters can now be joined by applying the maintenance machine config with the Omni parameters.
