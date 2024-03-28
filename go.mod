@@ -69,7 +69,7 @@ require (
 	github.com/siderolabs/image-factory v0.2.2
 	github.com/siderolabs/kms-client v0.1.0
 	github.com/siderolabs/omni/client v0.0.0-00010101000000-000000000000
-	github.com/siderolabs/siderolink v0.3.4
+	github.com/siderolabs/siderolink v0.3.5
 	github.com/siderolabs/talos/pkg/machinery v1.7.0-alpha.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
@@ -82,8 +82,8 @@ require (
 	go.etcd.io/etcd/server/v3 v3.5.12
 	go.uber.org/goleak v1.3.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.19.0
-	golang.org/x/net v0.21.0
+	golang.org/x/crypto v0.21.0
+	golang.org/x/net v0.22.0
 	golang.org/x/sync v0.6.0
 	golang.org/x/text v0.14.0
 	golang.org/x/tools v0.16.1
@@ -233,11 +233,11 @@ require (
 	golang.org/x/exp v0.0.0-20231219180239-dc181d75b848 // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/oauth2 v0.16.0 // indirect
-	golang.org/x/sys v0.17.0 // indirect
-	golang.org/x/term v0.17.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/term v0.18.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
-	golang.zx2c4.com/wireguard v0.0.0-20231022001213-2e0774f246fb // indirect
+	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto v0.0.0-20240123012728-ef4313101c80 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240125205218-1f4bbc51befe // indirect

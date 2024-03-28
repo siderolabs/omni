@@ -11,7 +11,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/netip"
 	"os"
@@ -25,15 +24,19 @@ import (
 	"github.com/jxskiss/base62"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/siderolabs/gen/channel"
+	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/go-retry/retry"
 	eventsapi "github.com/siderolabs/siderolink/api/events"
 	pb "github.com/siderolabs/siderolink/api/siderolink"
 	"github.com/siderolabs/siderolink/pkg/events"
+	"github.com/siderolabs/siderolink/pkg/wgtunnel/wgbind"
+	"github.com/siderolabs/siderolink/pkg/wgtunnel/wggrpc"
 	"github.com/siderolabs/siderolink/pkg/wireguard"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/proto"
 	"go.uber.org/zap"
+	"golang.zx2c4.com/wireguard/conn"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -61,6 +64,9 @@ type LinkCounterDelta struct {
 	BytesReceived int64
 }
 
+// maxPendingClientMessages sets the maximum number of messages for queue "from peers" after which it will block.
+const maxPendingClientMessages = 100
+
 // NewManager creates new Manager.
 func NewManager(
 	ctx context.Context,
@@ -72,12 +78,10 @@ func NewManager(
 	deltaCh chan<- LinkCounterDeltas,
 ) (*Manager, error) {
 	manager := &Manager{
+		logger:     logger,
 		state:      state,
 		wgHandler:  wgHandler,
-		logger:     logger,
 		logHandler: handler,
-		deltaCh:    deltaCh,
-
 		metricBytesReceived: prometheus.NewCounter(prometheus.CounterOpts{
 			Name: "omni_siderolink_received_bytes_total",
 			Help: "Number of bytes received from the SideroLink interface.",
@@ -98,6 +102,10 @@ func NewManager(
 				64 * 60, // more than hour... wth?
 			},
 		}),
+		deltaCh:       deltaCh,
+		allowedPeers:  wggrpc.NewAllowedPeers(),
+		peerTraffic:   wgbind.NewPeerTraffic(maxPendingClientMessages),
+		virtualPrefix: wireguard.VirtualNetworkPrefix(),
 	}
 
 	nodePrefix := wireguard.NetworkPrefix("")
@@ -131,6 +139,9 @@ type Manager struct {
 	metricLastHandshake prometheus.Histogram
 	deltaCh             chan<- LinkCounterDeltas
 	serverAddr          netip.Prefix
+	allowedPeers        *wggrpc.AllowedPeers
+	peerTraffic         *wgbind.PeerTraffic
+	virtualPrefix       netip.Prefix
 }
 
 // JoinTokenLen number of random bytes to be encoded in the join token.
@@ -230,10 +241,9 @@ func createListener(ctx context.Context, host, port string) (net.Listener, error
 }
 
 // Register implements controller.Manager interface.
-func (manager *Manager) Register(
-	server *grpc.Server,
-) {
+func (manager *Manager) Register(server *grpc.Server) {
 	pb.RegisterProvisionServiceServer(server, manager)
+	pb.RegisterWireGuardOverGRPCServiceServer(server, wggrpc.NewService(manager.peerTraffic, manager.allowedPeers, manager.logger))
 }
 
 // Run implements controller.Manager interface.
@@ -347,7 +357,28 @@ func (manager *Manager) startWireguard(ctx context.Context, eg *errgroup.Group, 
 		return fmt.Errorf("invalid private key: %w", err)
 	}
 
-	if err = manager.wgHandler.SetupDevice(serverAddr, key, manager.wgConfig().WireguardEndpoint, manager.logger); err != nil {
+	_, strPort, err := net.SplitHostPort(manager.wgConfig().WireguardEndpoint)
+	if err != nil {
+		return fmt.Errorf("invalid Wireguard endpoint: %w", err)
+	}
+
+	port, err := strconv.Atoi(strPort)
+	if err != nil {
+		return fmt.Errorf("invalid Wireguard endpoint port: %w", err)
+	}
+
+	peerHandler := &peerHandler{
+		allowedPeers: manager.allowedPeers,
+	}
+
+	if err = manager.wgHandler.SetupDevice(wireguard.DeviceConfig{
+		Bind:         wgbind.NewServerBind(conn.NewDefaultBind(), manager.virtualPrefix, manager.peerTraffic, manager.logger),
+		PeerHandler:  peerHandler,
+		Logger:       manager.logger,
+		ServerPrefix: serverAddr,
+		PrivateKey:   key,
+		ListenPort:   uint16(port),
+	}); err != nil {
 		return err
 	}
 
@@ -637,7 +668,7 @@ func (manager *Manager) Provision(ctx context.Context, req *pb.ProvisionRequest)
 	}
 
 	spec := link.TypedSpec().Value
-	if spec.NodePublicKey != req.NodePublicKey {
+	if spec.NodePublicKey != req.NodePublicKey || tunnelStatusChanged(req, link) {
 		if _, err = safe.StateUpdateWithConflicts(ctx, manager.state, link.Metadata(), func(r *siderolink.Link) error {
 			s := r.TypedSpec().Value
 
@@ -646,6 +677,10 @@ func (manager *Manager) Provision(ctx context.Context, req *pb.ProvisionRequest)
 			}
 
 			s.NodePublicKey = req.NodePublicKey
+			s.VirtualAddrport, err = manager.generateVirtualAddrPort(pointer.SafeDeref(req.WireguardOverGrpc))
+			if err != nil {
+				return err
+			}
 
 			spec = s
 
@@ -668,39 +703,71 @@ func (manager *Manager) Provision(ctx context.Context, req *pb.ProvisionRequest)
 		endpoint = manager.wgConfig().AdvertisedEndpoint
 	}
 
+	// If the virtual address is set, use it as the endpoint to prevent the client from connecting to the actual WG endpoint
+	if spec.VirtualAddrport != "" {
+		endpoint = spec.VirtualAddrport
+	}
+
 	return &pb.ProvisionResponse{
-		ServerEndpoint:    []string{endpoint},
+		ServerEndpoint:    pb.MakeEndpoints(endpoint),
 		ServerPublicKey:   manager.wgConfig().PublicKey,
-		ServerAddress:     manager.wgConfig().ServerAddress,
 		NodeAddressPrefix: spec.NodeSubnet,
+		ServerAddress:     manager.wgConfig().ServerAddress,
+		GrpcPeerAddrPort:  spec.VirtualAddrport,
 	}, nil
+}
+
+func tunnelStatusChanged(req *pb.ProvisionRequest, link *siderolink.Link) bool {
+	wgOverGRPC := pointer.SafeDeref(req.WireguardOverGrpc)
+	virtulAddrPort := link.TypedSpec().Value.VirtualAddrport
+
+	switch {
+	case wgOverGRPC && virtulAddrPort == "":
+		return true
+	case !wgOverGRPC && virtulAddrPort != "":
+		return true
+	default:
+		return false
+	}
 }
 
 func (manager *Manager) generateLinkSpec(req *pb.ProvisionRequest) (*specs.SiderolinkSpec, error) {
 	nodePrefix := netip.MustParsePrefix(manager.wgConfig().Subnet)
 
 	// generated random address for the node
-	raw := nodePrefix.Addr().As16()
-	salt := make([]byte, 8)
-
-	_, err := io.ReadFull(rand.Reader, salt)
+	nodeAddress, err := wireguard.GenerateRandomNodeAddr(nodePrefix)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error generating random node address: %w", err)
 	}
-
-	copy(raw[8:], salt)
-
-	nodeAddress := netip.PrefixFrom(netip.AddrFrom16(raw), nodePrefix.Bits())
 
 	pubKey, err := wgtypes.ParseKey(req.NodePublicKey)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("error parsing Wireguard key: %s", err))
 	}
 
+	virtualAddrPort, err := manager.generateVirtualAddrPort(pointer.SafeDeref(req.WireguardOverGrpc))
+	if err != nil {
+		return nil, err
+	}
+
 	return &specs.SiderolinkSpec{
-		NodeSubnet:    nodeAddress.String(),
-		NodePublicKey: pubKey.String(),
+		NodeSubnet:      nodeAddress.String(),
+		NodePublicKey:   pubKey.String(),
+		VirtualAddrport: virtualAddrPort,
 	}, nil
+}
+
+func (manager *Manager) generateVirtualAddrPort(generate bool) (string, error) {
+	if !generate {
+		return "", nil
+	}
+
+	generated, err := wireguard.GenerateRandomNodeAddr(manager.virtualPrefix)
+	if err != nil {
+		return "", fmt.Errorf("error generating random virtual node address: %w", err)
+	}
+
+	return net.JoinHostPort(generated.Addr().String(), "50889"), nil
 }
 
 // Describe implements prom.Collector interface.
@@ -716,3 +783,21 @@ func (manager *Manager) Collect(ch chan<- prometheus.Metric) {
 }
 
 var _ prometheus.Collector = &Manager{}
+
+type peerHandler struct {
+	allowedPeers *wggrpc.AllowedPeers
+}
+
+func (p *peerHandler) HandlePeerAdded(event wireguard.PeerEvent) error {
+	if event.VirtualAddr.IsValid() {
+		p.allowedPeers.AddToken(event.PubKey, event.VirtualAddr.String())
+	}
+
+	return nil
+}
+
+func (p *peerHandler) HandlePeerRemoved(pubKey wgtypes.Key) error {
+	p.allowedPeers.RemoveToken(pubKey)
+
+	return nil
+}
