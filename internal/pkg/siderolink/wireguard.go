@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/netip"
 
+	"github.com/siderolabs/gen/channel"
 	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/siderolink/pkg/wireguard"
 	"go.uber.org/zap"
@@ -20,7 +21,7 @@ import (
 
 // WireguardHandler abstraction around peer handler and wgDevice.
 type WireguardHandler interface {
-	SetupDevice(netip.Prefix, wgtypes.Key, string, *zap.Logger) error
+	SetupDevice(wireguard.DeviceConfig) error
 	Shutdown() error
 	Run(context.Context, *zap.Logger) error
 	PeerEvent(context.Context, *specs.SiderolinkSpec, bool) error
@@ -48,16 +49,23 @@ func (handler *PhysicalWireguardHandler) PeerEvent(ctx context.Context, spec *sp
 		return err
 	}
 
-	select {
-	case <-ctx.Done():
-	case handler.events <- wireguard.PeerEvent{
+	var virtualAddrPort netip.AddrPort
+
+	if spec.VirtualAddrport != "" {
+		virtualAddrPort, err = netip.ParseAddrPort(spec.VirtualAddrport)
+		if err != nil {
+			return err
+		}
+	}
+
+	channel.SendWithContext(ctx, handler.events, wireguard.PeerEvent{
 		PubKey:                      pubKey,
-		Address:                     address.Addr(),
 		Remove:                      deleted,
 		Endpoint:                    spec.LastEndpoint,
+		Address:                     address.Addr(),
 		PersistentKeepAliveInterval: pointer.To(wireguard.RecommendedPersistentKeepAliveInterval),
-	}:
-	}
+		VirtualAddr:                 virtualAddrPort.Addr(),
+	})
 
 	return nil
 }
@@ -68,13 +76,10 @@ func (handler *PhysicalWireguardHandler) EventCh() <-chan wireguard.PeerEvent {
 }
 
 // SetupDevice implements WireguardHandler.
-func (handler *PhysicalWireguardHandler) SetupDevice(serverAddr netip.Prefix, key wgtypes.Key, endpoint string, logger *zap.Logger) error {
-	wireguardEndpoint, err := netip.ParseAddrPort(endpoint)
-	if err != nil {
-		return fmt.Errorf("invalid Wireguard endpoint: %w", err)
-	}
+func (handler *PhysicalWireguardHandler) SetupDevice(cfg wireguard.DeviceConfig) error {
+	var err error
 
-	handler.wgDevice, err = wireguard.NewDevice(serverAddr, key, wireguardEndpoint.Port(), false, logger)
+	handler.wgDevice, err = wireguard.NewDevice(cfg)
 	if err != nil {
 		return fmt.Errorf("error initializing wgDevice: %w", err)
 	}

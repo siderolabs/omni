@@ -7,6 +7,8 @@ version: '3.8'
 services:
   omni:
     network_mode: host
+    devices:
+      - /dev/net/tun
     depends_on:
       - vault-dev
       - node-dev

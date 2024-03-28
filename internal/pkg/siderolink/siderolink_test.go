@@ -8,7 +8,6 @@ package siderolink_test
 import (
 	"context"
 	"errors"
-	"net/netip"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -20,8 +19,10 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
+	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/go-retry/retry"
 	pb "github.com/siderolabs/siderolink/api/siderolink"
+	"github.com/siderolabs/siderolink/pkg/wireguard"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -44,7 +45,7 @@ type fakeWireguardHandler struct {
 	loggerMu sync.Mutex
 }
 
-func (h *fakeWireguardHandler) SetupDevice(netip.Prefix, wgtypes.Key, string, *zap.Logger) error {
+func (h *fakeWireguardHandler) SetupDevice(wireguard.DeviceConfig) error {
 	return nil
 }
 
@@ -235,6 +236,126 @@ func (suite *SiderolinkSuite) TestNodes() {
 	resource, err := safe.StateGet[*siderolink.Link](suite.ctx, suite.state, resource.NewMetadata(siderolink.Namespace, siderolink.LinkType, "testnode", resource.VersionUndefined))
 	suite.Assert().NoError(err)
 	suite.Require().Equal(privateKey.PublicKey().String(), resource.TypedSpec().Value.NodePublicKey)
+}
+
+func (suite *SiderolinkSuite) TestVirtualNodes() {
+	var spec *specs.ConnectionParamsSpec
+
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*2)
+	defer cancel()
+
+	rtestutils.AssertResources[*siderolink.Config](ctx, suite.T(), suite.state, []string{
+		siderolink.ConfigID,
+	}, func(r *siderolink.Config, assertion *assert.Assertions) {
+		assertion.NotEmpty(r.TypedSpec().Value.JoinToken)
+		assertion.NotEmpty(r.TypedSpec().Value.PrivateKey)
+		assertion.NotEmpty(r.TypedSpec().Value.PublicKey)
+	})
+
+	rtestutils.AssertResources[*siderolink.ConnectionParams](ctx, suite.T(), suite.state, []string{
+		siderolink.ConfigID,
+	}, func(r *siderolink.ConnectionParams, assertion *assert.Assertions) {
+		assertion.NotEmpty(r.TypedSpec().Value.Args)
+		assertion.NotEmpty(r.TypedSpec().Value.ApiEndpoint)
+		assertion.NotEmpty(r.TypedSpec().Value.JoinToken)
+		assertion.NotEmpty(r.TypedSpec().Value.WireguardEndpoint)
+
+		spec = r.TypedSpec().Value
+	})
+
+	conn, err := grpc.DialContext(suite.ctx, suite.address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	suite.Require().NoError(err)
+
+	client := pb.NewProvisionServiceClient(conn)
+
+	privateKey, err := wgtypes.GeneratePrivateKey()
+	suite.Require().NoError(err)
+
+	resp, err := client.Provision(suite.ctx, &pb.ProvisionRequest{
+		NodeUuid:          "testnode",
+		NodePublicKey:     privateKey.PublicKey().String(),
+		JoinToken:         &spec.JoinToken,
+		WireguardOverGrpc: pointer.To(true),
+	})
+
+	suite.Require().NoError(err)
+
+	suite.Assert().NoError(
+		retry.Constant(time.Second * 2).Retry(func() error {
+			list, err := safe.ReaderList[*siderolink.Link](suite.ctx, suite.state, resource.NewMetadata(siderolink.Namespace, siderolink.LinkType, "", resource.VersionUndefined)) //nolint:govet
+			if err != nil {
+				return err
+			}
+
+			if list.Len() == 0 {
+				return retry.ExpectedErrorf("no links established yet")
+			}
+
+			for it := list.Iterator(); it.Next(); {
+				item := it.Value()
+
+				if item.Metadata().ID() == "" {
+					return errors.New("empty id in the resource list")
+				}
+
+				if item.TypedSpec().Value.VirtualAddrport == "" {
+					return errors.New("empty virtual address in the resource list")
+				}
+			}
+
+			return nil
+		}),
+	)
+
+	reprovision, err := client.Provision(suite.ctx, &pb.ProvisionRequest{
+		NodeUuid:      "testnode",
+		NodePublicKey: privateKey.PublicKey().String(),
+		JoinToken:     &spec.JoinToken,
+	})
+
+	expectedResp := resp.CloneVT()
+	expectedResp.GrpcPeerAddrPort = ""
+	expectedResp.ServerEndpoint = pb.MakeEndpoints(config.Config.SiderolinkWireguardAdvertisedAddress)
+
+	suite.Assert().NoError(err)
+
+	suite.Require().Equal(expectedResp.String(), reprovision.String())
+
+	privateKey, err = wgtypes.GeneratePrivateKey()
+	suite.Assert().NoError(err)
+
+	reprovision, err = client.Provision(suite.ctx, &pb.ProvisionRequest{
+		NodeUuid:      "testnode",
+		NodePublicKey: privateKey.PublicKey().String(),
+		JoinToken:     &spec.JoinToken,
+	})
+
+	suite.Assert().NoError(err)
+	suite.Require().Equal(expectedResp.String(), reprovision.String())
+
+	res, err := safe.StateGet[*siderolink.Link](suite.ctx, suite.state, resource.NewMetadata(siderolink.Namespace, siderolink.LinkType, "testnode", resource.VersionUndefined))
+	suite.Assert().NoError(err)
+	suite.Require().Equal(privateKey.PublicKey().String(), res.TypedSpec().Value.NodePublicKey)
+	suite.Require().Zero(res.TypedSpec().Value.VirtualAddrport)
+
+	reprovision, err = client.Provision(suite.ctx, &pb.ProvisionRequest{
+		NodeUuid:          "testnode",
+		NodePublicKey:     privateKey.PublicKey().String(),
+		JoinToken:         &spec.JoinToken,
+		WireguardOverGrpc: pointer.To(true),
+	})
+
+	resp.GrpcPeerAddrPort = reprovision.GrpcPeerAddrPort
+	resp.ServerEndpoint = reprovision.ServerEndpoint
+
+	suite.Assert().NoError(err)
+	suite.Require().Equal(resp.String(), reprovision.String())
+
+	res, err = safe.StateGet[*siderolink.Link](suite.ctx, suite.state, resource.NewMetadata(siderolink.Namespace, siderolink.LinkType, "testnode", resource.VersionUndefined))
+	suite.Assert().NoError(err)
+	suite.Require().Equal(privateKey.PublicKey().String(), res.TypedSpec().Value.NodePublicKey)
+	suite.Require().NotZero(res.TypedSpec().Value.VirtualAddrport)
+	suite.Require().Equal(reprovision.GrpcPeerAddrPort, res.TypedSpec().Value.VirtualAddrport)
 }
 
 func (suite *SiderolinkSuite) TestGenerateJoinToken() {
