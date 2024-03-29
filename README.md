@@ -1,7 +1,8 @@
 <!-- markdownlint-disable first-line-heading sentences-per-line -->
 
+![Omni screenshot](docs/img/omni.png)
+
 <p align="center">
-  <h1 align="center">Omni</h1>
   <p align="center">SaaS-simple deployment of Kubernetes - on your own hardware.</p>
   <p align="center">
     <a href="https://github.com/siderolabs/omni/releases/latest">
@@ -15,22 +16,24 @@
 
 ---
 
-Kubernetes is wonderful, but requires scarce time and expertise to set up and manage.
-Other solutions demand you have already set up Linux correctly, have all your servers in the same network, and meet their other criteria.
-And hybrid clusters that span cloud and data center?
-Good luck with that!
+Omni manages Kubernetes on bare metal, virtual machines, or in a cloud.
+Built on [Talos Linux](https://talos.dev) by the folks at [Sidero](https://siderolabs.com).
 
-Omni allows you to start with bare metal, virtual machines or a cloud provider, and create clusters spanning all of your locations, with a few clicks.
-
-You provide the machines – edge compute, bare metal, VMs, or in your cloud account. Boot from an Omni image. Click to allocate to a cluster. That’s it!
+Boot from an Omni image. Click to allocate to a cluster. That’s it!
 
 - Vanilla Kubernetes, on your machines, under your control.
 - Elegant UI for management and operations
 - Security taken care of – ties into your Enterprise ID provider
 - Highly Available Kubernetes API endpoint built in
-- Firewall friendly. Manage Edge nodes securely
+- Firewall friendly—manage edge nodes securely
 - From single-node clusters to the largest scale
-- Support for GPUs and most CSIs.
+- Support for GPUs and most CSIs
+
+## Install
+
+Omni is available via a [Business Source License](LICENSE) which allows free installations in non-production environments. If you would like to deploy Omni for production use please contact [Sidero sales](mailto:sales@siderolabs.com). If you would like to subscribe to the hosted version of Omni please see the [SaaS pricing](https://www.siderolabs.com/pricing/).
+
+If you would like to self-host Omni for non-production workloads please follow the [instructions in the documentation](https://omni.siderolabs.com/docs/how-to-guides/how-to-deploy-omni-on-prem/).
 
 ## Development
 
