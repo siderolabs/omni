@@ -10,7 +10,6 @@ import (
 	"errors"
 	"net/netip"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -20,6 +19,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
+	"github.com/siderolabs/gen/ensure"
 	"github.com/siderolabs/go-retry/retry"
 	pb "github.com/siderolabs/siderolink/api/siderolink"
 	"github.com/stretchr/testify/assert"
@@ -39,9 +39,11 @@ import (
 	sideromanager "github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
+//nolint:govet
 type fakeWireguardHandler struct {
-	logger   *zap.Logger
-	loggerMu sync.Mutex
+	logger           *zap.Logger
+	loggerMu         sync.Mutex
+	peerEventFailFor map[string]struct{} // public key for which to fail the peer event
 }
 
 func (h *fakeWireguardHandler) SetupDevice(netip.Prefix, wgtypes.Key, string, *zap.Logger) error {
@@ -67,6 +69,10 @@ func (h *fakeWireguardHandler) Shutdown() error {
 func (h *fakeWireguardHandler) PeerEvent(_ context.Context, spec *specs.SiderolinkSpec, deleted bool) error {
 	h.loggerMu.Lock()
 	defer h.loggerMu.Unlock()
+
+	if _, ok := h.peerEventFailFor[spec.NodePublicKey]; ok {
+		return errors.New("peer event failed")
+	}
 
 	msg := "updated peer"
 	if deleted {
@@ -108,7 +114,19 @@ func (suite *SiderolinkSuite) SetupTest() {
 
 	var err error
 
-	suite.manager, err = sideromanager.NewManager(suite.ctx, suite.state, &fakeWireguardHandler{}, params, zaptest.NewLogger(suite.T()), nil, nil)
+	suite.manager, err = sideromanager.NewManager(
+		suite.ctx,
+		suite.state,
+		&fakeWireguardHandler{
+			peerEventFailFor: map[string]struct{}{
+				peerEvenFailWGKey.PublicKey().String(): {},
+			},
+		},
+		params,
+		zaptest.NewLogger(suite.T()),
+		nil,
+		nil,
+	)
 	suite.Require().NoError(err)
 
 	suite.startManager(params)
@@ -237,6 +255,55 @@ func (suite *SiderolinkSuite) TestNodes() {
 	suite.Require().Equal(privateKey.PublicKey().String(), resource.TypedSpec().Value.NodePublicKey)
 }
 
+var peerEvenFailWGKey = ensure.Value(wgtypes.GeneratePrivateKey())
+
+func (suite *SiderolinkSuite) TestPeerEventShouldFail() {
+	var spec *specs.ConnectionParamsSpec
+
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*2)
+	defer cancel()
+
+	rtestutils.AssertResources[*siderolink.Config](ctx, suite.T(), suite.state, []string{
+		siderolink.ConfigID,
+	}, func(r *siderolink.Config, assertion *assert.Assertions) {
+		assertion.NotEmpty(r.TypedSpec().Value.JoinToken)
+		assertion.NotEmpty(r.TypedSpec().Value.PrivateKey)
+		assertion.NotEmpty(r.TypedSpec().Value.PublicKey)
+	})
+
+	rtestutils.AssertResources[*siderolink.ConnectionParams](ctx, suite.T(), suite.state, []string{
+		siderolink.ConfigID,
+	}, func(r *siderolink.ConnectionParams, assertion *assert.Assertions) {
+		assertion.NotEmpty(r.TypedSpec().Value.Args)
+		assertion.NotEmpty(r.TypedSpec().Value.ApiEndpoint)
+		assertion.NotEmpty(r.TypedSpec().Value.JoinToken)
+		assertion.NotEmpty(r.TypedSpec().Value.WireguardEndpoint)
+
+		spec = r.TypedSpec().Value
+	})
+
+	conn, err := grpc.DialContext(suite.ctx, suite.address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	suite.Require().NoError(err)
+
+	client := pb.NewProvisionServiceClient(conn)
+
+	_, err = client.Provision(suite.ctx, &pb.ProvisionRequest{
+		NodeUuid:      "testnode",
+		NodePublicKey: peerEvenFailWGKey.PublicKey().String(),
+		JoinToken:     &spec.JoinToken,
+	})
+
+	suite.Require().Error(err)
+
+	_, err = client.Provision(suite.ctx, &pb.ProvisionRequest{
+		NodeUuid:      "testnode",
+		NodePublicKey: peerEvenFailWGKey.PublicKey().String(),
+		JoinToken:     &spec.JoinToken,
+	})
+
+	suite.Assert().Error(err)
+}
+
 func (suite *SiderolinkSuite) TestGenerateJoinToken() {
 	token, err := sideromanager.GenerateJoinToken()
 
@@ -262,13 +329,5 @@ func TestSiderolinkSuite(t *testing.T) {
 func safeLock(mx sync.Locker) func() {
 	mx.Lock()
 
-	var locked atomic.Bool
-
-	locked.Store(true)
-
-	return func() {
-		if locked.Swap(false) {
-			mx.Unlock()
-		}
-	}
+	return sync.OnceFunc(mx.Unlock)
 }

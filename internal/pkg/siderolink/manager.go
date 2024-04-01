@@ -631,10 +631,12 @@ func (manager *Manager) getLink(ctx context.Context, req *pb.ProvisionRequest, i
 func (manager *Manager) Provision(ctx context.Context, req *pb.ProvisionRequest) (*pb.ProvisionResponse, error) {
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	link, dirty, err := manager.getLink(ctx, req, req.NodeUuid)
+	link, created, err := manager.getLink(ctx, req, req.NodeUuid)
 	if err != nil {
 		return nil, err
 	}
+
+	var updated isDirty
 
 	spec := link.TypedSpec().Value
 	if spec.NodePublicKey != req.NodePublicKey {
@@ -654,11 +656,31 @@ func (manager *Manager) Provision(ctx context.Context, req *pb.ProvisionRequest)
 			return nil, err
 		}
 
-		dirty = true
+		updated = true
 	}
 
-	if dirty {
+	if created || updated {
 		if err = manager.wgHandler.PeerEvent(ctx, spec, false); err != nil {
+			if !created {
+				return nil, err
+			}
+
+			// if the peer event fails and the link was just created, we need to teardown it
+			teardown, tdErr := manager.state.Teardown(ctx, link.Metadata())
+			if tdErr != nil {
+				return nil, tdErr
+			}
+
+			if !teardown {
+				return nil, err
+			}
+
+			// try to destroy the link immediately` if no finalizer is set
+			destroyErr := manager.state.Destroy(ctx, link.Metadata())
+			if destroyErr != nil {
+				return nil, destroyErr
+			}
+
 			return nil, err
 		}
 	}
