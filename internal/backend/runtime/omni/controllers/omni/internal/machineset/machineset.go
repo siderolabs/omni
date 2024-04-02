@@ -12,6 +12,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -92,6 +93,10 @@ func UpdateFinalizers(ctx context.Context, r controller.ReaderWriter, rc *Reconc
 	for _, clusterMachine := range rc.GetClusterMachines() {
 		if clusterMachine.Metadata().Phase() == resource.PhaseRunning && !clusterMachine.Metadata().Finalizers().Has(ControllerName) {
 			if err := r.AddFinalizer(ctx, omni.NewMachine(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata(), ControllerName); err != nil {
+				if state.IsNotFoundError(err) {
+					continue
+				}
+
 				return err
 			}
 		}
