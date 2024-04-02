@@ -38,7 +38,7 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
@@ -142,7 +142,7 @@ func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
 

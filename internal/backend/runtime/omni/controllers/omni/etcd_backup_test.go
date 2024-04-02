@@ -108,7 +108,7 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackup() {
 	clustersData := createClusters(suite, clusterNames, time.Hour)
 	start := fakeclock.Now()
 
-	blockAndAdvance(fakeclock, 11*time.Minute)
+	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 11*time.Minute)
 
 	rtestutils.AssertResources(
 		suite.ctx,
@@ -135,7 +135,7 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackup() {
 		suite.eventuallyFindBackups(sf, cd.Metadata().ID(), 1)
 	}
 
-	blockAndAdvance(fakeclock, time.Hour)
+	blockAndAdvance(suite.ctx, suite.T(), fakeclock, time.Hour)
 
 	for _, cd := range clustersData {
 		suite.eventuallyFindBackups(sf, cd.Metadata().ID(), 2)
@@ -144,7 +144,7 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackup() {
 	// Destroy the first cluster
 	suite.destroyClusterByID(clustersData[0].Metadata().ID())
 
-	blockAndAdvance(fakeclock, time.Hour)
+	blockAndAdvance(suite.ctx, suite.T(), fakeclock, time.Hour)
 
 	suite.eventuallyFindBackups(sf, clustersData[1].Metadata().ID(), 3)
 
@@ -187,7 +187,7 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackupFactoryFails() {
 
 	clustersData := createClusters(suite, clusterNames, time.Hour)
 
-	blockAndAdvance(fakeclock, 11*time.Minute)
+	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 11*time.Minute)
 
 	// Backups should be created for both clusters since those backups do not exist yet
 	for _, cluster := range clustersData {
@@ -200,7 +200,7 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackupFactoryFails() {
 		return nil, errors.New("failed to create client")
 	})
 
-	blockAndAdvance(fakeclock, time.Hour)
+	blockAndAdvance(suite.ctx, suite.T(), fakeclock, time.Hour)
 
 	assertResource(
 		&suite.OmniSuite,
@@ -251,7 +251,7 @@ func (suite *EtcdBackupControllerSuite) TestDecryptEtcdBackup() {
 	clusterNames := []string{"talos-default-6"}
 	clusters := createClusters(suite, clusterNames, time.Hour)
 
-	blockAndAdvance(fakeclock, 11*time.Minute)
+	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 11*time.Minute)
 
 	clusterBackups := suite.eventuallyFindBackups(sf, clusters[0].Metadata().ID(), 1)
 
@@ -318,13 +318,13 @@ func (suite *EtcdBackupControllerSuite) TestSingleListCall() {
 	clusterNames := []string{"talos-default-7", "talos-default-8"}
 	clusters := createClusters(suite, clusterNames, time.Hour)
 
-	blockAndAdvance(fakeclock, 11*time.Minute)
+	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 11*time.Minute)
 
 	suite.destroyClusterByID(clusters[0].Metadata().ID())
 
-	blockAndAdvance(fakeclock, time.Hour)
+	blockAndAdvance(suite.ctx, suite.T(), fakeclock, time.Hour)
 
-	fakeclock.BlockUntil(1)
+	suite.Require().NoError(fakeclock.BlockUntilContext(suite.ctx, 1))
 
 	for i := range clusterNames {
 		suite.destroyClusterByID(clusters[i].Metadata().ID())
@@ -373,13 +373,14 @@ func (suite *EtcdBackupControllerSuite) TestListBackupsWithExistingData() {
 		TickInterval: 10 * time.Minute,
 	}))
 
-	blockAndAdvance(fakeclock, 11*time.Minute)
+	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 11*time.Minute)
 
 	suite.destroyClusterByID(clusters[0].Metadata().ID())
 
-	blockAndAdvance(fakeclock, time.Hour)
-	blockAndAdvance(fakeclock, time.Hour)
-	fakeclock.BlockUntil(1)
+	blockAndAdvance(suite.ctx, suite.T(), fakeclock, time.Hour)
+	blockAndAdvance(suite.ctx, suite.T(), fakeclock, time.Hour)
+
+	suite.Require().NoError(fakeclock.BlockUntilContext(suite.ctx, 1))
 
 	suite.destroyClusterByID(clusters[1].Metadata().ID())
 }
@@ -418,7 +419,7 @@ func (suite *EtcdBackupControllerSuite) TestEtcdManualBackupFindResource() {
 	err := suite.state.Create(suite.ctx, manualBackup)
 	suite.Require().NoError(err)
 
-	blockAndAdvance(fakeclock, 15*time.Second)
+	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 15*time.Second)
 
 	backups := suite.eventuallyFindBackups(sf, clustersData[0].Metadata().ID(), 1)
 
@@ -480,7 +481,7 @@ func (suite *EtcdBackupControllerSuite) TestEtcdManualBackup() {
 	clusterNames := []string{"talos-default-12", "talos-default-13"}
 	clustersData := createClusters(suite, clusterNames, 0) // 0 means that automatic backups are disabled
 
-	blockAndAdvance(fakeclock, 15*time.Second)
+	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 15*time.Second)
 
 	assertNoResource(&suite.OmniSuite, omni.NewEtcdBackupStatus(clustersData[0].Metadata().ID()))
 	assertNoResource(&suite.OmniSuite, omni.NewEtcdBackupStatus(clustersData[1].Metadata().ID()))
@@ -496,7 +497,7 @@ func (suite *EtcdBackupControllerSuite) TestEtcdManualBackup() {
 	assertNoResource(&suite.OmniSuite, omni.NewEtcdBackupStatus(clustersData[0].Metadata().ID()))
 	suite.eventuallyFindBackups(sf, clustersData[0].Metadata().ID(), 0)
 
-	blockAndAdvance(fakeclock, 15*time.Second)
+	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 15*time.Second)
 
 	assertResource(
 		&suite.OmniSuite,
@@ -525,7 +526,7 @@ func (suite *EtcdBackupControllerSuite) TestEtcdManualBackup() {
 
 	suite.eventuallyFindBackups(sf, clustersData[0].Metadata().ID(), 1)
 
-	blockAndAdvance(fakeclock, 10*time.Minute)
+	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 10*time.Minute)
 
 	// Should ignore this backup
 	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, manualBackup.Metadata(), func(b *omni.EtcdManualBackup) error {
@@ -596,7 +597,7 @@ func (suite *EtcdBackupControllerSuite) TestS3Backup() {
 
 	now := fakeclock.Now()
 
-	blockAndAdvance(fakeclock, 11*time.Minute)
+	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 11*time.Minute)
 
 	assertResource(
 		&suite.OmniSuite,
@@ -780,12 +781,12 @@ func toSlice(iter etcdbackup.InfoIterator, t *testing.T) []etcdbackup.Info {
 	return result
 }
 
-func fakeClock() clockwork.FakeClock {
+func fakeClock() *clockwork.FakeClock {
 	return clockwork.NewFakeClockAt(time.Unix(0, 0).UTC())
 }
 
-func blockAndAdvance(fc clockwork.FakeClock, duration time.Duration) {
-	fc.BlockUntil(1)
+func blockAndAdvance(ctx context.Context, t *testing.T, fc *clockwork.FakeClock, duration time.Duration) {
+	require.NoError(t, fc.BlockUntilContext(ctx, 1))
 	fc.Advance(duration)
 }
 

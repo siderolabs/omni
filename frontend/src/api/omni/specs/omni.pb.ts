@@ -240,6 +240,7 @@ export type TalosConfigSpec = {
 export type ClusterSpecFeatures = {
   enable_workload_proxy?: boolean
   disk_encryption?: boolean
+  use_embedded_discovery_service?: boolean
 }
 
 export type ClusterSpec = {
@@ -371,6 +372,7 @@ export type ClusterStatusSpec = {
   kubernetesAPIReady?: boolean
   controlplaneReady?: boolean
   has_connected_control_planes?: boolean
+  use_embedded_discovery_service?: boolean
 }
 
 export type ClusterUUID = {
@@ -568,6 +570,7 @@ export type ExposedServiceSpec = {
 export type FeaturesConfigSpec = {
   enable_workload_proxying?: boolean
   etcd_backup_settings?: EtcdBackupSettings
+  embedded_discovery_service?: boolean
 }
 
 export type EtcdBackupSettings = {

@@ -55,6 +55,7 @@ describe("cluster-management-state", () => {
         },
         features: {
           enableWorkloadProxy: true,
+          useEmbeddedDiscoveryService: true,
           encryptDisks: true,
         },
         labels: {
@@ -131,6 +132,7 @@ describe("cluster-management-state", () => {
               features: {
                 disk_encryption: true,
                 enable_workload_proxy: true,
+                use_embedded_discovery_service: true,
               },
               kubernetes_version: "1.24.0",
               talos_version: "1.5.3",

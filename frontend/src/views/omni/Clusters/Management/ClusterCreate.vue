@@ -55,7 +55,15 @@ included in the LICENSE file.
           </template>
           <t-checkbox :checked="state.cluster.features?.encryptDisks" label="Encrypt Disks" @click="state.cluster.features.encryptDisks = !state.cluster.features.encryptDisks && supportsEncryption" :disabled="!supportsEncryption"/>
         </tooltip>
-        <cluster-workload-proxying-checkbox :checked="state.cluster.features.enableWorkloadProxy" @click="() => (state.cluster.features.enableWorkloadProxy = !state.cluster.features.enableWorkloadProxy)" class="h-8"/>
+        <cluster-workload-proxying-checkbox
+            class="h-8"
+            :checked="state.cluster.features.enableWorkloadProxy"
+            @click="() => (state.cluster.features.enableWorkloadProxy = !state.cluster.features.enableWorkloadProxy)"/>
+        <embedded-discovery-service-checkbox class="h-8"
+            :checked="state.cluster.features.useEmbeddedDiscoveryService"
+            :disabled="!isEmbeddedDiscoveryServiceAvailable"
+            :talos-version="state.cluster.talosVersion"
+            @click="toggleUseEmbeddedDiscoveryService"/>
         <cluster-etcd-backup-checkbox :backup-status="backupStatus" @update:cluster="(spec) => {
           state.cluster.etcdBackupConfig = spec.backup_configuration
         }" :cluster="{
@@ -145,7 +153,7 @@ import { MachineStatusSpec, TalosVersionSpec } from "@/api/omni/specs/omni.pb";
 import WatchResource, { itemID } from "@/api/watch";
 import { showError, showSuccess } from "@/notification";
 import { Resource } from "@/api/grpc";
-import { clusterSync, nextAvailableClusterName } from "@/methods/cluster";
+import { clusterSync, nextAvailableClusterName, embeddedDiscoveryServiceAvailable } from "@/methods/cluster";
 import { useRouter } from "vue-router";
 import { showModal } from "@/modal";
 import * as semver from "semver";
@@ -170,6 +178,7 @@ import UntaintSingleNode from "@/views/omni/Modals/UntaintSingleNode.vue";
 import MachineSets from "./MachineSets.vue";
 import { initState, PatchID } from "@/states/cluster-management";
 import { setupBackupStatus } from "@/methods";
+import EmbeddedDiscoveryServiceCheckbox from "@/views/omni/Clusters/EmbeddedDiscoveryServiceCheckbox.vue";
 
 const labelContainer: Ref<Resource> = computed(() => {
   return {
@@ -250,8 +259,31 @@ talosVersionsWatch.setup({
   },
 });
 
+const isEmbeddedDiscoveryServiceAvailable = ref(false);
+
+watch(state.value.cluster, async cluster => {
+  isEmbeddedDiscoveryServiceAvailable.value = await embeddedDiscoveryServiceAvailable(cluster?.talosVersion);
+
+  if (!isEmbeddedDiscoveryServiceAvailable.value) {
+    state.value.cluster.features.useEmbeddedDiscoveryService = false;
+  }
+});
+
+const toggleUseEmbeddedDiscoveryService = async () => {
+  isEmbeddedDiscoveryServiceAvailable.value = await embeddedDiscoveryServiceAvailable(state.value.cluster?.talosVersion);
+
+  if (!isEmbeddedDiscoveryServiceAvailable.value) {
+    state.value.cluster.features.useEmbeddedDiscoveryService = false;
+
+    return;
+  }
+
+  state.value.cluster.features.useEmbeddedDiscoveryService = !state.value.cluster.features.useEmbeddedDiscoveryService;
+}
+
 onMounted(async () => {
   state.value.cluster.name = await nextAvailableClusterName(state.value.cluster.name ?? "talos-default");
+  isEmbeddedDiscoveryServiceAvailable.value = await embeddedDiscoveryServiceAvailable(state.value.cluster?.talosVersion);
 });
 
 const createCluster = async () => {

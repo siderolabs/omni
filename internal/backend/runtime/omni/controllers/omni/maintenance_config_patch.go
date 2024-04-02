@@ -15,7 +15,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/safe"
-	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	"go.uber.org/zap"
@@ -55,16 +54,7 @@ func NewMaintenanceConfigPatchController() *MaintenanceConfigPatchController {
 				}
 
 				if !quirks.New(version).SupportsMultidoc() {
-					ready, err := r.Teardown(ctx, configPatch.Metadata())
-					if err != nil && !state.IsNotFoundError(err) {
-						return err
-					}
-
-					if ready {
-						return r.Destroy(ctx, configPatch.Metadata())
-					}
-
-					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the machine doesn't support partial configs")
+					return xerrors.NewTaggedf[qtransform.DestroyOutputTag]("the machine doesn't support partial configs")
 				}
 
 				connectionParams, err := safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, r, siderolink.ConfigID)

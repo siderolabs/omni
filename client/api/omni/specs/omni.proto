@@ -250,6 +250,8 @@ message ClusterSpec {
     bool enable_workload_proxy = 1;
     // DiskEncryption enables disk encryption on all nodes.
     bool disk_encryption = 2;
+    // UseEmbeddedDiscoveryService enables the embedded discovery service.
+    bool use_embedded_discovery_service = 3;
   }
 
   // InstallImage the installer image to use.
@@ -500,6 +502,11 @@ message ClusterStatusSpec {
   bool kubernetesAPIReady = 5;
   bool controlplaneReady = 6;
   bool has_connected_control_planes = 7;
+
+  // UseEmbeddedDiscoveryService indicates if the embedded discovery service should be used by this cluster or not.
+  //
+  // This is the final decision, taking the feature toggle, the version of the cluster and the Omni instance configuration (whether the feature is enabled or not) into account.
+  bool use_embedded_discovery_service = 8;
 }
 
 // ClusterUUID keeps the UUID of the cluster.
@@ -870,6 +877,9 @@ message FeaturesConfigSpec {
 
   // EtcdBackupSettings represents omni etcd backup settings.
   EtcdBackupSettings etcd_backup_settings = 2;
+
+  // EmbeddedDiscoveryService enables the embedded discovery service.
+  bool embedded_discovery_service = 3;
 }
 
 message EtcdBackupSettings {

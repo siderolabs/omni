@@ -55,6 +55,8 @@ type Features struct {
 	DiskEncryption bool `yaml:"diskEncryption,omitempty"`
 	// EnableWorkloadProxy enables workload proxy.
 	EnableWorkloadProxy bool `yaml:"enableWorkloadProxy,omitempty"`
+	// UseEmbeddedDiscoveryService enables the use of embedded discovery service.
+	UseEmbeddedDiscoveryService bool `yaml:"useEmbeddedDiscoveryService,omitempty"`
 	// BackupConfiguration contains backup configuration settings.
 	BackupConfiguration BackupConfiguration `yaml:"backupConfiguration,omitempty"`
 }
@@ -155,7 +157,8 @@ func (cluster *Cluster) Translate(ctx TranslateContext) ([]resource.Resource, er
 	cluster.Descriptors.Apply(clusterResource)
 
 	clusterResource.TypedSpec().Value.Features = &specs.ClusterSpec_Features{
-		EnableWorkloadProxy: cluster.Features.EnableWorkloadProxy,
+		EnableWorkloadProxy:         cluster.Features.EnableWorkloadProxy,
+		UseEmbeddedDiscoveryService: cluster.Features.UseEmbeddedDiscoveryService,
 	}
 
 	clusterResource.TypedSpec().Value.KubernetesVersion = strings.TrimLeft(cluster.Kubernetes.Version, "v")

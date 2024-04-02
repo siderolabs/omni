@@ -76,7 +76,7 @@ type Runtime struct {
 func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workloadProxyServiceRegistry *workloadproxy.ServiceRegistry,
 	resourceLogger *resourcelogger.Logger, imageFactoryClient *imagefactory.Client, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas,
 	siderolinkEventsCh <-chan *omni.MachineStatusSnapshot, resourceState state.State, virtualState *virtual.State, metricsRegistry prometheus.Registerer,
-	discoveryClient omnictrl.DiscoveryClient, logger *zap.Logger,
+	defaultDiscoveryClient, embeddedDiscoveryClient omnictrl.DiscoveryClient, logger *zap.Logger,
 ) (*Runtime, error) {
 	var opts []options.Option
 
@@ -194,15 +194,16 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewClusterEndpointController(),
 		omnictrl.NewClusterKubernetesNodesController(),
 		omnictrl.NewClusterMachineConfigController(config.Config.DefaultConfigGenOptions),
-		omnictrl.NewClusterMachineTeardownController(discoveryClient),
+		omnictrl.NewClusterMachineTeardownController(defaultDiscoveryClient, embeddedDiscoveryClient),
 		omnictrl.NewMachineConfigGenOptionsController(),
 		omnictrl.NewMachineStatusController(imageFactoryClient),
 		omnictrl.NewClusterMachineConfigStatusController(),
 		omnictrl.NewClusterMachineEncryptionKeyController(),
 		omnictrl.NewClusterMachineStatusController(),
-		omnictrl.NewClusterStatusController(),
+		omnictrl.NewClusterStatusController(config.Config.EmbeddedDiscoveryService.Enabled),
 		omnictrl.NewClusterUUIDController(),
 		omnictrl.NewControlPlaneStatusController(),
+		omnictrl.NewDiscoveryServiceConfigPatchController(config.Config.EmbeddedDiscoveryService.Port),
 		omnictrl.NewKubernetesNodeAuditController(nil, time.Minute),
 		omnictrl.NewEtcdBackupEncryptionController(),
 		omnictrl.NewKubeconfigController(constants.CertificateValidityTime),
@@ -269,7 +270,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 
 	metricsRegistry.MustRegister(expvarCollector)
 
-	validationOptions := clusterValidationOptions(resourceState)
+	validationOptions := clusterValidationOptions(resourceState, config.Config)
 	validationOptions = append(validationOptions, relationLabelsValidationOptions()...)
 	validationOptions = append(validationOptions, accessPolicyValidationOptions()...)
 	validationOptions = append(validationOptions, aclValidationOptions(resourceState)...)

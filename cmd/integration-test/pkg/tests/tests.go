@@ -1046,6 +1046,10 @@ Test authorization on accessing Omni API, some tests run without a cluster, some
 						ControlPlanes: 1,
 						Workers:       0,
 
+						Features: &specs.ClusterSpec_Features{
+							UseEmbeddedDiscoveryService: true,
+						},
+
 						MachineOptions: options.MachineOptions,
 					}),
 				},

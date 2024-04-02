@@ -25,6 +25,7 @@ spec:
   features:
     enableworkloadproxy: true
     diskencryption: true
+    useembeddeddiscoveryservice: true
   backupconfiguration:
     interval:
       seconds: 7200

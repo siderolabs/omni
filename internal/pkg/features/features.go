@@ -25,6 +25,7 @@ import (
 func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger) error {
 	updateFeaturesConfig := func(res *omni.FeaturesConfig) error {
 		res.TypedSpec().Value.EnableWorkloadProxying = config.Config.WorkloadProxying.Enabled
+		res.TypedSpec().Value.EmbeddedDiscoveryService = config.Config.EmbeddedDiscoveryService.Enabled
 		res.TypedSpec().Value.EtcdBackupSettings = &specs.EtcdBackupSettings{
 			TickInterval: durationpb.New(config.Config.EtcdBackup.TickInterval),
 			MinInterval:  durationpb.New(config.Config.EtcdBackup.MinInterval),

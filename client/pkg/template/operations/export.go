@@ -331,8 +331,9 @@ func transformClusterToModel(cluster *omni.Cluster, patches []*omni.ConfigPatch)
 			Version: "v" + spec.GetTalosVersion(),
 		},
 		Features: models.Features{
-			DiskEncryption:      spec.GetFeatures().GetDiskEncryption(),
-			EnableWorkloadProxy: spec.GetFeatures().GetEnableWorkloadProxy(),
+			DiskEncryption:              spec.GetFeatures().GetDiskEncryption(),
+			EnableWorkloadProxy:         spec.GetFeatures().GetEnableWorkloadProxy(),
+			UseEmbeddedDiscoveryService: spec.GetFeatures().GetUseEmbeddedDiscoveryService(),
 			BackupConfiguration: models.BackupConfiguration{
 				Interval: backupIntervalDuration,
 			},

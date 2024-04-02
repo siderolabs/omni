@@ -7,15 +7,21 @@ package discovery
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/url"
+	"strconv"
 	"time"
 
 	serverpb "github.com/siderolabs/discovery-api/api/v1alpha1/server/pb"
 	discoveryclient "github.com/siderolabs/discovery-client/pkg/client"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
 const (
@@ -29,9 +35,15 @@ type Client struct {
 	clusterClient serverpb.ClusterClient
 }
 
+// Options are the options for the discovery service client.
+type Options struct {
+	UseEmbeddedDiscoveryService  bool
+	EmbeddedDiscoveryServicePort int
+}
+
 // NewClient creates a new discovery service client.
-func NewClient() (*Client, error) {
-	conn, err := createConn()
+func NewClient(options Options) (*Client, error) {
+	conn, err := createConn(options)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create connection to discovery service: %w", err)
 	}
@@ -63,19 +75,32 @@ func (client *Client) Close() error {
 }
 
 // createConn creates a gRPC connection to the discovery service.
-func createConn() (*grpc.ClientConn, error) {
-	u, err := url.Parse(constants.DefaultDiscoveryServiceEndpoint)
-	if err != nil {
-		return nil, err
+func createConn(options Options) (*grpc.ClientConn, error) {
+	var (
+		transportCredentials credentials.TransportCredentials
+		target               string
+	)
+
+	if options.UseEmbeddedDiscoveryService {
+		target = net.JoinHostPort(siderolink.ListenHost, strconv.Itoa(options.EmbeddedDiscoveryServicePort))
+		transportCredentials = insecure.NewCredentials()
+	} else {
+		u, err := url.Parse(constants.DefaultDiscoveryServiceEndpoint)
+		if err != nil {
+			return nil, err
+		}
+
+		target = net.JoinHostPort(u.Host, "443")
+		transportCredentials = credentials.NewTLS(&tls.Config{})
 	}
 
 	opts := discoveryclient.GRPCDialOptions(discoveryclient.Options{
 		TTL: defaultTTL,
 	})
 
-	opts = append(opts, grpc.WithSharedWriteBuffer(true))
+	opts = append(opts, grpc.WithSharedWriteBuffer(true), grpc.WithTransportCredentials(transportCredentials))
 
-	discoveryConn, err := grpc.NewClient(net.JoinHostPort(u.Host, "443"), opts...)
+	discoveryConn, err := grpc.NewClient(target, opts...)
 	if err != nil {
 		return nil, err
 	}

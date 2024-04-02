@@ -28,7 +28,7 @@ type ClusterStatusSuite struct {
 func (suite *ClusterStatusSuite) TestReconcile() {
 	suite.startRuntime()
 
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
 
 	for _, tt := range []struct { //nolint:govet
 		name             string

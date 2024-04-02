@@ -86,8 +86,20 @@ type Params struct {
 
 	DisableControllerRuntimeCache bool `yaml:"disableControllerRuntimeCache"`
 
-	LogResourceUpdatesTypes    []string
-	LogResourceUpdatesLogLevel string
+	LogResourceUpdatesTypes    []string `yaml:"logResourceUpdatesTypes"`
+	LogResourceUpdatesLogLevel string   `yaml:"logResourceUpdatesLogLevel"`
+
+	EmbeddedDiscoveryService EmbeddedDiscoveryServiceParams `yaml:"embeddedDiscoveryService"`
+}
+
+// EmbeddedDiscoveryServiceParams defines embedded discovery service configs.
+type EmbeddedDiscoveryServiceParams struct {
+	SnapshotPath     string        `yaml:"snapshotPath"`
+	LogLevel         string        `yaml:"logLevel"`
+	Enabled          bool          `yaml:"enabled"`
+	SnapshotsEnabled bool          `yaml:"snapshotsEnabled"`
+	Port             int           `yaml:"port"`
+	SnapshotInterval time.Duration `yaml:"snapshotInterval"`
 }
 
 // EtcdBackupParams defines etcd backup configs.
@@ -249,6 +261,15 @@ var (
 
 		LogResourceUpdatesLogLevel: zapcore.InfoLevel.String(),
 		LogResourceUpdatesTypes:    common.UserManagedResourceTypes,
+
+		EmbeddedDiscoveryService: EmbeddedDiscoveryServiceParams{
+			Enabled:          true,
+			Port:             8093,
+			SnapshotsEnabled: true,
+			SnapshotPath:     "_out/secondary-storage/discovery-service-state.binpb",
+			SnapshotInterval: 10 * time.Minute,
+			LogLevel:         zapcore.WarnLevel.String(),
+		},
 	}
 )
 

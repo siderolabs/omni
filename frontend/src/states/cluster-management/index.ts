@@ -6,11 +6,21 @@
 // MachineSet is the state used in cluster creation flow.
 
 import { Resource, ResourceService } from "@/api/grpc"
-import { ClusterSpec, ConfigPatchSpec, MachineSetSpecBootstrapSpec, MachineSetSpecUpdateStrategy, EtcdBackupConf, ExtensionsConfigurationSpec, MachineSetSpecUpdateStrategyConfig } from "@/api/omni/specs/omni.pb"
-
-import { MachineSetNodeSpec, MachineSetSpec, MachineSetSpecMachineClassAllocationType } from "@/api/omni/specs/omni.pb";
 import {
-  ClusterType, ConfigPatchName,
+  ClusterSpec,
+  ConfigPatchSpec,
+  EtcdBackupConf,
+  ExtensionsConfigurationSpec,
+  MachineSetNodeSpec,
+  MachineSetSpec,
+  MachineSetSpecBootstrapSpec,
+  MachineSetSpecMachineClassAllocationType,
+  MachineSetSpecUpdateStrategy,
+  MachineSetSpecUpdateStrategyConfig
+} from "@/api/omni/specs/omni.pb"
+import {
+  ClusterType,
+  ConfigPatchName,
   ConfigPatchType,
   DefaultKubernetesVersion,
   DefaultNamespace,
@@ -110,6 +120,7 @@ export type Cluster = {
   features: {
     encryptDisks?: boolean
     enableWorkloadProxy?: boolean
+    useEmbeddedDiscoveryService?: boolean;
   }
   etcdBackupConfig?: EtcdBackupConf,
   patches: Record<string, ConfigPatch>
@@ -296,6 +307,13 @@ export class State {
       cluster.spec.features = {
         ...cluster.spec.features,
         enable_workload_proxy: this.cluster.features?.enableWorkloadProxy,
+      }
+    }
+
+    if (this.cluster.features.useEmbeddedDiscoveryService) {
+      cluster.spec.features = {
+        ...cluster.spec.features,
+        use_embedded_discovery_service: this.cluster.features?.useEmbeddedDiscoveryService
       }
     }
 

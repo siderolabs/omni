@@ -16,6 +16,7 @@ spec:
     features:
         enableworkloadproxy: false
         diskencryption: false
+        useembeddeddiscoveryservice: false
     backupconfiguration: null
 ---
 metadata:

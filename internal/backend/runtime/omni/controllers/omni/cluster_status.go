@@ -7,7 +7,9 @@ package omni
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/blang/semver"
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -30,7 +32,7 @@ type ClusterStatusController = qtransform.QController[*omni.Cluster, *omni.Clust
 // NewClusterStatusController initializes ClusterStatusController.
 //
 //nolint:gocognit,gocyclo,cyclop
-func NewClusterStatusController() *ClusterStatusController {
+func NewClusterStatusController(embeddedDiscoveryServiceEnabled bool) *ClusterStatusController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.Cluster, *omni.ClusterStatus]{
 			Name: "ClusterStatusController",
@@ -41,6 +43,23 @@ func NewClusterStatusController() *ClusterStatusController {
 				return omni.NewCluster(resources.DefaultNamespace, clusterStatus.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, cluster *omni.Cluster, clusterStatus *omni.ClusterStatus) error {
+				shouldUseEmbeddedDiscoveryService := func() (bool, error) {
+					if !embeddedDiscoveryServiceEnabled {
+						return false, nil
+					}
+
+					version, err := semver.ParseTolerant(cluster.TypedSpec().Value.GetTalosVersion())
+					if err != nil {
+						return false, err
+					}
+
+					if version.LT(semver.MustParse("1.5.0")) {
+						return false, nil
+					}
+
+					return cluster.TypedSpec().Value.GetFeatures().GetUseEmbeddedDiscoveryService(), nil
+				}
+
 				list, err := safe.ReaderListAll[*omni.MachineSetStatus](
 					ctx, r,
 					state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID())),
@@ -73,7 +92,9 @@ func NewClusterStatusController() *ClusterStatusController {
 
 					_, isControlPlane := iter.Value().Metadata().Labels().Get(omni.LabelControlPlaneRole)
 					if isControlPlane {
-						cpStatus, err := safe.ReaderGet[*omni.ControlPlaneStatus](
+						var cpStatus *omni.ControlPlaneStatus
+
+						cpStatus, err = safe.ReaderGet[*omni.ControlPlaneStatus](
 							ctx, r,
 							resource.NewMetadata(resources.DefaultNamespace, omni.ControlPlaneStatusType, iter.Value().Metadata().ID(), resource.VersionUndefined),
 						)
@@ -126,14 +147,20 @@ func NewClusterStatusController() *ClusterStatusController {
 					phase = specs.ClusterStatusSpec_RUNNING
 				}
 
+				useEmbeddedDiscoveryService, err := shouldUseEmbeddedDiscoveryService()
+				if err != nil {
+					return fmt.Errorf("failed to determine if embedded discovery service should be used: %w", err)
+				}
+
 				clusterStatus.TypedSpec().Value = &specs.ClusterStatusSpec{
-					Available:                 clusterIsAvailable,
-					Ready:                     allMachineSetsReady && phase == specs.ClusterStatusSpec_RUNNING,
-					KubernetesAPIReady:        lbStatus != nil && lbStatus.TypedSpec().Value.Healthy,
-					ControlplaneReady:         cpStatusReady && cpMachineSetHealthy,
-					Phase:                     phase,
-					Machines:                  &machines,
-					HasConnectedControlPlanes: clusterHasConnectedControlPlanes,
+					Available:                   clusterIsAvailable,
+					Ready:                       allMachineSetsReady && phase == specs.ClusterStatusSpec_RUNNING,
+					KubernetesAPIReady:          lbStatus != nil && lbStatus.TypedSpec().Value.Healthy,
+					ControlplaneReady:           cpStatusReady && cpMachineSetHealthy,
+					Phase:                       phase,
+					Machines:                    &machines,
+					HasConnectedControlPlanes:   clusterHasConnectedControlPlanes,
+					UseEmbeddedDiscoveryService: useEmbeddedDiscoveryService,
 				}
 
 				helpers.CopyUserLabels(clusterStatus, cluster.Metadata().Labels().Raw())

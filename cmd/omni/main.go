@@ -144,6 +144,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+//nolint:gocognit
 func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtual.State) error {
 	return func(ctx context.Context, resourceState state.State, virtualState *virtual.State) error {
 		talosClientFactory := talos.NewClientFactory(resourceState, logger)
@@ -174,20 +175,33 @@ func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtua
 		linkCounterDeltaCh := make(chan siderolink.LinkCounterDeltas)
 		siderolinkEventsCh := make(chan *omnires.MachineStatusSnapshot)
 
-		discoveryClient, err := discovery.NewClient()
+		defaultDiscoveryClient, err := discovery.NewClient(discovery.Options{
+			UseEmbeddedDiscoveryService: false,
+		})
 		if err != nil {
-			return fmt.Errorf("failed to create discovery client: %w", err)
+			return fmt.Errorf("failed to create default discovery client: %w", err)
+		}
+
+		var embeddedDiscoveryClient *discovery.Client
+
+		if config.Config.EmbeddedDiscoveryService.Enabled {
+			if embeddedDiscoveryClient, err = discovery.NewClient(discovery.Options{
+				UseEmbeddedDiscoveryService:  true,
+				EmbeddedDiscoveryServicePort: config.Config.EmbeddedDiscoveryService.Port,
+			}); err != nil {
+				return fmt.Errorf("failed to create embedded discovery client: %w", err)
+			}
 		}
 
 		defer func() {
-			if closeErr := discoveryClient.Close(); closeErr != nil {
+			if closeErr := defaultDiscoveryClient.Close(); closeErr != nil {
 				logger.Error("failed to close discovery client", zap.Error(closeErr))
 			}
 		}()
 
 		omniRuntime, err := omni.New(talosClientFactory, dnsService, workloadProxyServiceRegistry, resourceLogger,
 			imageFactoryClient, linkCounterDeltaCh, siderolinkEventsCh, resourceState, virtualState,
-			prometheus.DefaultRegisterer, discoveryClient, logger.With(logging.Component("omni_runtime")))
+			prometheus.DefaultRegisterer, defaultDiscoveryClient, embeddedDiscoveryClient, logger.With(logging.Component("omni_runtime")))
 		if err != nil {
 			return fmt.Errorf("failed to set up the controller runtime: %w", err)
 		}
@@ -446,5 +460,42 @@ func init() {
 		"disable-controller-runtime-cache",
 		config.Config.DisableControllerRuntimeCache,
 		"disable watch-based cache for controller-runtime (affects performance)",
+	)
+
+	rootCmd.Flags().BoolVar(
+		&config.Config.EmbeddedDiscoveryService.Enabled,
+		"embedded-discovery-service-enabled",
+		config.Config.EmbeddedDiscoveryService.Enabled,
+		"enable embedded discovery service, binds only to the siderolink wireguard address",
+	)
+	rootCmd.Flags().IntVar(
+		&config.Config.EmbeddedDiscoveryService.Port,
+		"embedded-discovery-service-endpoint",
+		config.Config.EmbeddedDiscoveryService.Port,
+		"embedded discovery service port to listen on",
+	)
+	rootCmd.Flags().BoolVar(
+		&config.Config.EmbeddedDiscoveryService.SnapshotsEnabled,
+		"embedded-discovery-service-snapshots-enabled",
+		config.Config.EmbeddedDiscoveryService.SnapshotsEnabled,
+		"enable snapshots for the embedded discovery service",
+	)
+	rootCmd.Flags().StringVar(
+		&config.Config.EmbeddedDiscoveryService.SnapshotPath,
+		"embedded-discovery-service-snapshot-path",
+		config.Config.EmbeddedDiscoveryService.SnapshotPath,
+		"path to the file for storing the embedded discovery service state",
+	)
+	rootCmd.Flags().DurationVar(
+		&config.Config.EmbeddedDiscoveryService.SnapshotInterval,
+		"embedded-discovery-service-snapshot-interval",
+		config.Config.EmbeddedDiscoveryService.SnapshotInterval,
+		"interval for saving the embedded discovery service state",
+	)
+	rootCmd.Flags().StringVar(
+		&config.Config.EmbeddedDiscoveryService.LogLevel,
+		"embedded-discovery-service-log-level",
+		config.Config.EmbeddedDiscoveryService.LogLevel,
+		"log level for the embedded discovery service - it has no effect if it is lower (more verbose) than the main log level",
 	)
 }

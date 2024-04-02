@@ -36,6 +36,8 @@ import { DeleteRequest } from "@/api/omni/resources/resources.pb";
 import { parseLabels } from "@/methods/labels";
 import { controlPlaneMachineSetId } from "@/methods/machineset";
 import { time } from "./time";
+import * as semver from "semver";
+import { embeddedDiscoveryServiceFeatureAvailable } from "@/methods/features";
 
 export type MachineConfig = {
   role?: string,
@@ -439,6 +441,22 @@ export const setClusterWorkloadProxy = async (clusterID: string, enabled: boolea
   await ResourceService.Update(resource, resource.metadata.version, withRuntime(Runtime.Omni));
 };
 
+export const setUseEmbeddedDiscoveryService = async (clusterID: string, enabled: boolean) => {
+  const resource: Resource<ClusterSpec> = await ResourceService.Get({
+    type: ClusterType,
+    namespace: DefaultNamespace,
+    id: clusterID
+  }, withRuntime(Runtime.Omni));
+
+  if (!resource.spec.features) {
+    resource.spec.features = {}
+  }
+
+  resource.spec.features.use_embedded_discovery_service = enabled;
+
+  await ResourceService.Update(resource, resource.metadata.version, withRuntime(Runtime.Omni));
+};
+
 export const setClusterEtcdBackupsConfig = async (clusterID: string, spec: ClusterSpec) => {
   const resource: Resource<ClusterSpec> = await ResourceService.Get({
     type: ClusterType,
@@ -488,4 +506,16 @@ export const triggerEtcdBackup = async (clusterID: string) => {
   }
 
   return await ResourceService.Update(manualBackup, undefined, withRuntime(Runtime.Omni));
+}
+
+export const embeddedDiscoveryServiceAvailable = async (talosVersion?: string): Promise<boolean> => {
+  if (!talosVersion) {
+    return false;
+  }
+
+  if (semver.compare(talosVersion, "v1.5.0") < 0) {
+    return false;
+  }
+
+  return await embeddedDiscoveryServiceFeatureAvailable();
 }

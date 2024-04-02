@@ -85,7 +85,7 @@ func (suite *OmniRuntimeSuite) SetupTest() {
 	suite.Require().NoError(err)
 
 	suite.runtime, err = omniruntime.New(clientFactory, dnsService, workloadProxyServiceRegistry, nil, nil, nil, nil,
-		resourceState, nil, prometheus.NewRegistry(), discoveryServiceClient, logger)
+		resourceState, nil, prometheus.NewRegistry(), discoveryServiceClient, nil, logger)
 
 	suite.Require().NoError(err)
 

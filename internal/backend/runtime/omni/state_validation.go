@@ -35,8 +35,12 @@ import (
 // clusterValidationOptions returns the validation options for the Talos and Kubernetes versions on the cluster resource.
 // Validation is only syntactic - they are checked whether they are valid semver strings.
 //
-//nolint:gocognit
-func clusterValidationOptions(st state.State) []validated.StateOption {
+//nolint:gocognit,gocyclo,cyclop
+func clusterValidationOptions(st state.State, config *config.Params) []validated.StateOption {
+	if config == nil {
+		panic("config is nil")
+	}
+
 	validateVersions := func(ctx context.Context, res *omni.Cluster, skipTalosVersion, skipKubernetesVersion bool) error {
 		if skipTalosVersion && skipKubernetesVersion {
 			return nil
@@ -90,16 +94,16 @@ func clusterValidationOptions(st state.State) []validated.StateOption {
 	validateBackupInterval := func(res *omni.Cluster) error {
 		if conf := res.TypedSpec().Value.GetBackupConfiguration(); conf != nil {
 			switch conf := conf.GetInterval().AsDuration(); {
-			case conf < config.Config.EtcdBackup.MinInterval:
+			case conf < config.EtcdBackup.MinInterval:
 				return fmt.Errorf(
 					"backup interval must be greater than %s, actual %s",
-					config.Config.EtcdBackup.MinInterval.String(),
+					config.EtcdBackup.MinInterval.String(),
 					conf.String(),
 				)
-			case conf > config.Config.EtcdBackup.MaxInterval:
+			case conf > config.EtcdBackup.MaxInterval:
 				return fmt.Errorf(
 					"backup interval must be less than %s, actual %s",
-					config.Config.EtcdBackup.MaxInterval.String(),
+					config.EtcdBackup.MaxInterval.String(),
 					conf.String(),
 				)
 			}
@@ -108,17 +112,43 @@ func clusterValidationOptions(st state.State) []validated.StateOption {
 		return nil
 	}
 
+	validateEmbeddedDiscoveryServiceSetting := func(oldRes, newRes *omni.Cluster) error {
+		newValue := newRes.TypedSpec().Value.GetFeatures().GetUseEmbeddedDiscoveryService()
+		if !newValue { // feature being disabled is always valid
+			return nil
+		}
+
+		// if this is a create operation or if the setting is changed, validate that the feature is available
+		if oldRes == nil || oldRes.TypedSpec().Value.GetFeatures().GetUseEmbeddedDiscoveryService() != newValue {
+			if !config.EmbeddedDiscoveryService.Enabled {
+				return errors.New("embedded discovery service is not enabled")
+			}
+		}
+
+		return nil
+	}
+
 	return []validated.StateOption{
 		validated.WithCreateValidations(validated.NewCreateValidationForType(func(ctx context.Context, res *omni.Cluster, _ ...state.CreateOption) error {
+			var multiErr error
+
 			if err := validateEncryption(res); err != nil {
-				return err
+				multiErr = multierror.Append(multiErr, err)
 			}
 
 			if err := validateBackupInterval(res); err != nil {
-				return err
+				multiErr = multierror.Append(multiErr, err)
 			}
 
-			return validateVersions(ctx, res, false, false)
+			if err := validateEmbeddedDiscoveryServiceSetting(nil, res); err != nil {
+				multiErr = multierror.Append(multiErr, err)
+			}
+
+			if err := validateVersions(ctx, res, false, false); err != nil {
+				multiErr = multierror.Append(multiErr, err)
+			}
+
+			return multiErr
 		})),
 		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(ctx context.Context, existingRes *omni.Cluster, newRes *omni.Cluster, _ ...state.UpdateOption) error {
 			if existingRes == nil {
@@ -126,18 +156,28 @@ func clusterValidationOptions(st state.State) []validated.StateOption {
 				return nil
 			}
 
+			var multiErr error
+
 			skipTalosVersion := existingRes.TypedSpec().Value.TalosVersion == newRes.TypedSpec().Value.TalosVersion
 			skipKubernetesVersion := existingRes.TypedSpec().Value.KubernetesVersion == newRes.TypedSpec().Value.KubernetesVersion
 
 			if omni.GetEncryptionEnabled(existingRes) != omni.GetEncryptionEnabled(newRes) {
-				return errors.New("updating disk encryption settings is not allowed")
+				multiErr = multierror.Append(multiErr, errors.New("updating disk encryption settings is not allowed"))
 			}
 
 			if err := validateBackupInterval(newRes); err != nil {
-				return err
+				multiErr = multierror.Append(multiErr, err)
 			}
 
-			return validateVersions(ctx, newRes, skipTalosVersion, skipKubernetesVersion)
+			if err := validateEmbeddedDiscoveryServiceSetting(existingRes, newRes); err != nil {
+				multiErr = multierror.Append(multiErr, err)
+			}
+
+			if err := validateVersions(ctx, newRes, skipTalosVersion, skipKubernetesVersion); err != nil {
+				multiErr = multierror.Append(multiErr, err)
+			}
+
+			return multiErr
 		})),
 	}
 }

@@ -30,8 +30,8 @@ func EtcdElections(ctx context.Context, client *clientv3.Client, electionKey str
 	return etcdElections(ctx, client, electionKey, logger, f)
 }
 
-func ClusterVersionValidationOptions(st state.State) []validated.StateOption {
-	return clusterValidationOptions(st)
+func ClusterValidationOptions(st state.State, config *config.Params) []validated.StateOption {
+	return clusterValidationOptions(st, config)
 }
 
 func RelationLabelsValidationOptions() []validated.StateOption {

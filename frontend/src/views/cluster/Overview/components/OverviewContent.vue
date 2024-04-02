@@ -161,7 +161,14 @@ included in the LICENSE file.
               <span class="overview-box-title">Features</span>
             </div>
             <div class="flex flex-col gap-2">
-              <cluster-workload-proxying-checkbox :checked="enableWorkloadProxy" @click="setClusterWorkloadProxy(context.cluster, !enableWorkloadProxy)" :disabled="!canManageClusterFeatures"/>
+              <cluster-workload-proxying-checkbox
+                  :checked="enableWorkloadProxy"
+                  @click="setClusterWorkloadProxy(context.cluster, !enableWorkloadProxy)"
+                  :disabled="!canManageClusterFeatures"/>
+              <embedded-discovery-service-checkbox
+                  :checked="useEmbeddedDiscoveryService"
+                  :disabled="!canManageClusterFeatures || !isEmbeddedDiscoveryServiceAvailable"
+                  @click="toggleUseEmbeddedDiscoveryService"/>
               <cluster-etcd-backup-checkbox :backup-status="backupStatus" @update:cluster="(spec) => setClusterEtcdBackupsConfig(context.cluster, spec)" :cluster="currentCluster.spec"/>
             </div>
           </div>
@@ -190,7 +197,7 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { computed, ref, Ref, toRefs, watch } from "vue";
+import { computed, onMounted, ref, Ref, toRefs, watch } from "vue";
 import { getContext } from "@/context";
 import { formatBytes, setupBackupStatus } from "@/methods";
 import { KubernetesUsageType, VirtualNamespace, TalosUpgradeStatusType, ClusterStatusType } from "@/api/resources";
@@ -203,7 +210,7 @@ import {
   revertKubernetesUpgrade,
   revertTalosUpgrade,
   setClusterWorkloadProxy,
-  setClusterEtcdBackupsConfig,
+  setClusterEtcdBackupsConfig, setUseEmbeddedDiscoveryService,
 } from "@/methods/cluster";
 import {
   ClusterSpec,
@@ -224,11 +231,12 @@ import ItemLabels from "@/views/omni/ItemLabels/ItemLabels.vue";
 import RadialBar from "@/components/common/Charts/RadialBar.vue";
 import { setupClusterPermissions } from "@/methods/auth";
 
-import { setupWorkloadProxyingEnabledFeatureWatch } from "@/methods/features";
+import { embeddedDiscoveryServiceFeatureAvailable, setupWorkloadProxyingEnabledFeatureWatch } from "@/methods/features";
 import ClusterWorkloadProxyingCheckbox from "@/views/omni/Clusters/ClusterWorkloadProxyingCheckbox.vue";
 import ClusterEtcdBackupCheckbox from "@/views/omni/Clusters/ClusterEtcdBackupCheckbox.vue";
+import EmbeddedDiscoveryServiceCheckbox from "@/views/omni/Clusters/EmbeddedDiscoveryServiceCheckbox.vue";
 
-// Do not show stats if the cluster has more than a hundred machines.
+// Do not show stats if the cluster has more than this number of machines.
 // Because it overloads the UI and the backend for no good reason.
 const clusterSizeStatsThreshold = 50;
 
@@ -240,9 +248,11 @@ const props = defineProps<Props>()
 const { currentCluster } = toRefs(props);
 
 const enableWorkloadProxy = ref(currentCluster.value.spec.features?.enable_workload_proxy || false);
+const useEmbeddedDiscoveryService = ref(currentCluster.value.spec.features?.use_embedded_discovery_service || false);
 
 watch(currentCluster, (cluster) => {
   enableWorkloadProxy.value = cluster.spec.features?.enable_workload_proxy || false;
+  useEmbeddedDiscoveryService.value = cluster.spec.features?.use_embedded_discovery_service || false;
 });
 
 const { status: backupStatus } = setupBackupStatus();
@@ -324,6 +334,18 @@ talosUpgradeStatusWatch.setup({
 const { canManageClusterFeatures } = setupClusterPermissions(computed(() => currentCluster.value.metadata.id as string));
 
 const workloadProxyingEnabled = setupWorkloadProxyingEnabledFeatureWatch();
+
+const isEmbeddedDiscoveryServiceAvailable = ref(false);
+
+const toggleUseEmbeddedDiscoveryService = async () => {
+  const newValue = isEmbeddedDiscoveryServiceAvailable.value ? !useEmbeddedDiscoveryService.value : false;
+
+  await setUseEmbeddedDiscoveryService(context.cluster, newValue);
+}
+
+onMounted(async () => {
+  isEmbeddedDiscoveryServiceAvailable.value = await embeddedDiscoveryServiceFeatureAvailable();
+});
 </script>
 
 <style scoped>

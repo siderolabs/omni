@@ -12,6 +12,7 @@ talos:
 features:
   diskEncryption: true
   enableWorkloadProxy: true
+  useEmbeddedDiscoveryService: true
   backupConfiguration:
     interval: 2h0m0s
 patches:

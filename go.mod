@@ -27,7 +27,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/containers/image v3.0.2+incompatible
-	github.com/cosi-project/runtime v0.4.3
+	github.com/cosi-project/runtime v0.4.4-0.20240604111456-15e9d678159d
 	github.com/cosi-project/state-etcd v0.2.9
 	github.com/crewjam/saml v0.4.14
 	github.com/dustin/go-humanize v1.0.1
@@ -41,7 +41,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.19.1
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/golang-lru/v2 v2.0.7
@@ -49,7 +49,7 @@ require (
 	github.com/hashicorp/vault/api/auth/kubernetes v0.7.0
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/johannesboyne/gofakes3 v0.0.0-20240513200200-99de01ee122d
-	github.com/jonboulle/clockwork v0.4.0
+	github.com/jonboulle/clockwork v0.4.1-0.20231224152657-fc59783b0293
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/jxskiss/base62 v1.1.0
 	github.com/mattn/go-shellwords v1.0.12
@@ -57,8 +57,8 @@ require (
 	github.com/rs/xid v1.5.0
 	github.com/siderolabs/crypto v0.4.4
 	github.com/siderolabs/discovery-api v0.1.4
-	github.com/siderolabs/discovery-client v0.1.9
-	github.com/siderolabs/gen v0.4.8
+	github.com/siderolabs/discovery-service v1.0.3-0.20240530092511-74bca2da5cc8
+	github.com/siderolabs/gen v0.5.0
 	github.com/siderolabs/go-api-signature v0.3.2
 	github.com/siderolabs/go-circular v0.2.0
 	github.com/siderolabs/go-debug v0.3.0
@@ -161,6 +161,8 @@ require (
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/gosuri/uilive v0.0.4 // indirect
 	github.com/gosuri/uiprogress v0.0.1 // indirect
+	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.0 // indirect
+	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.6 // indirect
@@ -207,6 +209,7 @@ require (
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/shabbyrobe/gocovmerge v0.0.0-20190829150210-3e036491d500 // indirect
+	github.com/siderolabs/discovery-client v0.1.9 // indirect
 	github.com/siderolabs/go-blockdevice v0.4.7 // indirect
 	github.com/siderolabs/go-kubeconfig v0.1.0 // indirect
 	github.com/siderolabs/net v0.4.0 // indirect

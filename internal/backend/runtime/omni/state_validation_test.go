@@ -40,9 +40,10 @@ func TestClusterValidation(t *testing.T) {
 	defer cancel()
 
 	talos15 := "1.5.0"
+	conf := *config.Config
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.ClusterVersionValidationOptions(state.WrapCore(innerSt))...)
+	st := validated.NewState(innerSt, omni.ClusterValidationOptions(state.WrapCore(innerSt), &conf)...)
 
 	talosVersion1 := omnires.NewTalosVersion(resources.DefaultNamespace, "1.4.0")
 	talosVersion1.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.27.0", "1.27.1"}
@@ -120,6 +121,42 @@ func TestClusterValidation(t *testing.T) {
 	cluster.TypedSpec().Value.KubernetesVersion = "1.28.1"
 
 	require.NoError(t, st.Create(ctx, cluster))
+
+	t.Run("useEmbeddedDiscoveryService", func(t *testing.T) {
+		// disable the feature instance-wide, enable for cluster, expect validation error
+		conf.EmbeddedDiscoveryService.Enabled = false
+
+		cluster.TypedSpec().Value.Features.UseEmbeddedDiscoveryService = true
+
+		updateErr := st.Update(ctx, cluster)
+
+		require.True(t, validated.IsValidationError(updateErr), "expected validation error")
+		assert.ErrorContains(t, updateErr, "embedded discovery service is not enabled")
+
+		// enable the feature instance-wide, expect no validation error
+
+		conf.EmbeddedDiscoveryService.Enabled = true
+
+		require.NoError(t, st.Update(ctx, cluster))
+
+		// disable the feature for the cluster, expect no validation error
+
+		cluster.TypedSpec().Value.Features.UseEmbeddedDiscoveryService = false
+
+		require.NoError(t, st.Update(ctx, cluster))
+
+		// re-enable the feature for the cluster, expect no validation error
+
+		cluster.TypedSpec().Value.Features.UseEmbeddedDiscoveryService = true
+
+		require.NoError(t, st.Update(ctx, cluster))
+
+		// disable the feature instance-wide, call update, expect no validation error because the setting is not updated
+
+		conf.EmbeddedDiscoveryService.Enabled = false
+
+		require.NoError(t, st.Update(ctx, cluster))
+	})
 }
 
 func TestRelationLabelsValidation(t *testing.T) {

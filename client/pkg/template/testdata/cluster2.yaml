@@ -6,6 +6,7 @@ talos:
   version: v1.3.1
 features:
   enableWorkloadProxy: true
+  useEmbeddedDiscoveryService: true
 patches:
   - file: patches/my-cluster-patch.yaml
   - file: ../testdata/patches/my-registry-mirrors.yaml

@@ -19,6 +19,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	pgpcrypto "github.com/ProtonMail/gopenpgp/v2/crypto"
@@ -37,8 +38,10 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	service "github.com/siderolabs/discovery-service/pkg/service"
 	"github.com/siderolabs/gen/value"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
+	"github.com/siderolabs/go-retry/retry"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -277,6 +280,16 @@ func (s *Server) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to run local resource server: %w", err)
 	}
 
+	if config.Config.EmbeddedDiscoveryService.Enabled {
+		eg.Go(func() error {
+			if err = runEmbeddedDiscoveryService(ctx, s.logger); err != nil {
+				return fmt.Errorf("failed to run discovery server over Siderolink: %w", err)
+			}
+
+			return nil
+		})
+	}
+
 	return eg.Wait()
 }
 
@@ -510,7 +523,7 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 
 	eg.Go(func() error {
 		return slink.Run(groupCtx,
-			"",
+			siderolink.ListenHost,
 			strconv.Itoa(config.Config.EventSinkPort),
 			strconv.Itoa(talosconstants.TrustdPort),
 			strconv.Itoa(config.Config.LogServerPort),
@@ -908,6 +921,40 @@ func runLocalResourceServer(ctx context.Context, st state.CoreState, serverOptio
 	logger.Info("starting local resource server")
 
 	grpcutil.RunServer(ctx, grpcServer, listener, eg)
+
+	return nil
+}
+
+// runEmbeddedDiscoveryService runs an embedded discovery service over Siderolink.
+func runEmbeddedDiscoveryService(ctx context.Context, logger *zap.Logger) error {
+	logLevel, err := zapcore.ParseLevel(config.Config.EmbeddedDiscoveryService.LogLevel)
+	if err != nil {
+		logLevel = zapcore.WarnLevel
+
+		logger.Warn("failed to parse log level, fallback", zap.String("fallback_level", logLevel.String()), zap.Error(err))
+	}
+
+	registerer := prometheus.WrapRegistererWithPrefix("discovery_", prometheus.DefaultRegisterer)
+
+	if err = retry.Constant(30*time.Second, retry.WithUnits(time.Second)).RetryWithContext(ctx, func(context.Context) error {
+		err = service.Run(ctx, service.Options{
+			ListenAddr:        net.JoinHostPort(siderolink.ListenHost, strconv.Itoa(config.Config.EmbeddedDiscoveryService.Port)),
+			GCInterval:        time.Minute,
+			MetricsRegisterer: registerer,
+
+			SnapshotsEnabled: config.Config.EmbeddedDiscoveryService.SnapshotsEnabled,
+			SnapshotInterval: config.Config.EmbeddedDiscoveryService.SnapshotInterval,
+			SnapshotPath:     config.Config.EmbeddedDiscoveryService.SnapshotPath,
+		}, logger.WithOptions(zap.IncreaseLevel(logLevel)).With(logging.Component("discovery_service")))
+
+		if errors.Is(err, syscall.EADDRNOTAVAIL) {
+			return retry.ExpectedError(err)
+		}
+
+		return err
+	}); err != nil {
+		return fmt.Errorf("failed to start discovery service: %w", err)
+	}
 
 	return nil
 }

@@ -381,6 +381,7 @@ func (m *ClusterSpec_Features) CloneVT() *ClusterSpec_Features {
 	r := new(ClusterSpec_Features)
 	r.EnableWorkloadProxy = m.EnableWorkloadProxy
 	r.DiskEncryption = m.DiskEncryption
+	r.UseEmbeddedDiscoveryService = m.UseEmbeddedDiscoveryService
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -805,6 +806,7 @@ func (m *ClusterStatusSpec) CloneVT() *ClusterStatusSpec {
 	r.KubernetesAPIReady = m.KubernetesAPIReady
 	r.ControlplaneReady = m.ControlplaneReady
 	r.HasConnectedControlPlanes = m.HasConnectedControlPlanes
+	r.UseEmbeddedDiscoveryService = m.UseEmbeddedDiscoveryService
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -1545,6 +1547,7 @@ func (m *FeaturesConfigSpec) CloneVT() *FeaturesConfigSpec {
 	r := new(FeaturesConfigSpec)
 	r.EnableWorkloadProxying = m.EnableWorkloadProxying
 	r.EtcdBackupSettings = m.EtcdBackupSettings.CloneVT()
+	r.EmbeddedDiscoveryService = m.EmbeddedDiscoveryService
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -2579,6 +2582,9 @@ func (this *ClusterSpec_Features) EqualVT(that *ClusterSpec_Features) bool {
 	if this.DiskEncryption != that.DiskEncryption {
 		return false
 	}
+	if this.UseEmbeddedDiscoveryService != that.UseEmbeddedDiscoveryService {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -3129,6 +3135,9 @@ func (this *ClusterStatusSpec) EqualVT(that *ClusterStatusSpec) bool {
 		return false
 	}
 	if this.HasConnectedControlPlanes != that.HasConnectedControlPlanes {
+		return false
+	}
+	if this.UseEmbeddedDiscoveryService != that.UseEmbeddedDiscoveryService {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -4132,6 +4141,9 @@ func (this *FeaturesConfigSpec) EqualVT(that *FeaturesConfigSpec) bool {
 		return false
 	}
 	if !this.EtcdBackupSettings.EqualVT(that.EtcdBackupSettings) {
+		return false
+	}
+	if this.EmbeddedDiscoveryService != that.EmbeddedDiscoveryService {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -5813,6 +5825,16 @@ func (m *ClusterSpec_Features) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.UseEmbeddedDiscoveryService {
+		i--
+		if m.UseEmbeddedDiscoveryService {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.DiskEncryption {
 		i--
 		if m.DiskEncryption {
@@ -6978,6 +7000,16 @@ func (m *ClusterStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.UseEmbeddedDiscoveryService {
+		i--
+		if m.UseEmbeddedDiscoveryService {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x40
 	}
 	if m.HasConnectedControlPlanes {
 		i--
@@ -8928,6 +8960,16 @@ func (m *FeaturesConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.EmbeddedDiscoveryService {
+		i--
+		if m.EmbeddedDiscoveryService {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.EtcdBackupSettings != nil {
 		size, err := m.EtcdBackupSettings.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -10540,6 +10582,9 @@ func (m *ClusterSpec_Features) SizeVT() (n int) {
 	if m.DiskEncryption {
 		n += 2
 	}
+	if m.UseEmbeddedDiscoveryService {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -11003,6 +11048,9 @@ func (m *ClusterStatusSpec) SizeVT() (n int) {
 		n += 2
 	}
 	if m.HasConnectedControlPlanes {
+		n += 2
+	}
+	if m.UseEmbeddedDiscoveryService {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -11748,6 +11796,9 @@ func (m *FeaturesConfigSpec) SizeVT() (n int) {
 	if m.EtcdBackupSettings != nil {
 		l = m.EtcdBackupSettings.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.EmbeddedDiscoveryService {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -15173,6 +15224,26 @@ func (m *ClusterSpec_Features) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.DiskEncryption = bool(v != 0)
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UseEmbeddedDiscoveryService", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.UseEmbeddedDiscoveryService = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -18203,6 +18274,26 @@ func (m *ClusterStatusSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.HasConnectedControlPlanes = bool(v != 0)
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UseEmbeddedDiscoveryService", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.UseEmbeddedDiscoveryService = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -22718,6 +22809,26 @@ func (m *FeaturesConfigSpec) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EmbeddedDiscoveryService", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.EmbeddedDiscoveryService = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

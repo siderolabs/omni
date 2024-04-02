@@ -8,6 +8,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -24,7 +25,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/playwright-community/playwright-go"
 	"github.com/siderolabs/go-retry/retry"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/wI2L/jsondiff"
 	"golang.org/x/sync/errgroup"
@@ -266,7 +267,7 @@ func (s *E2ESuite) TestTitle() {
 			return nil
 		})
 
-		s.Assert().NoError(err)
+		s.NoError(err)
 	})
 }
 
@@ -283,7 +284,7 @@ func (s *E2ESuite) TestClickViewAll() {
 		expectedURL, err := url.JoinPath(s.baseURL, "/omni/clusters")
 		s.Require().NoError(err)
 
-		s.Assert().Equal(expectedURL, page.MainFrame().URL())
+		s.Equal(expectedURL, page.MainFrame().URL())
 	})
 }
 
@@ -396,7 +397,7 @@ func (s *E2ESuite) assertClusterCreation() {
 
 		openPage()
 
-		s.Assert().NoError(retry.Constant(15*time.Minute, retry.WithUnits(5*time.Second)).Retry(func() error {
+		s.NoError(retry.Constant(15*time.Minute, retry.WithUnits(5*time.Second)).Retry(func() error {
 			element := page.Locator(`div.clusters-grid`)
 
 			count, err := element.Count()
@@ -505,22 +506,22 @@ func (s *E2ESuite) assertTemplateExportAndSync() {
 	// assert that only the cluster and a single config patch are updated
 
 	syncOutputLines := strings.Split(strings.TrimSpace(syncStdout), "\n")
-	if s.Assert().Len(syncOutputLines, 2, "sync output is not equal to expected") {
-		s.Assert().Equal("* updating Clusters.omni.sidero.dev(talos-default)", syncOutputLines[0], "sync output line 0 is not equal to expected")
+	if s.Len(syncOutputLines, 2, "sync output is not equal to expected") {
+		s.Equal("* updating Clusters.omni.sidero.dev(talos-default)", syncOutputLines[0], "sync output line 0 is not equal to expected")
 
 		// Assert the line to follow the format:
 		// * updating ConfigPatches.omni.sidero.dev(400-cm-f7f5fb9c-2aa3-42b7-b414-f2998ee153e9)
 		prefix := "* updating ConfigPatches.omni.sidero.dev(400-cm-"
 		suffix := ")"
-		hasPrefix := s.Assert().True(strings.HasPrefix(syncOutputLines[1], prefix), "sync output line 1 (%q) does not start with the expected prefix %q", syncOutputLines[1], prefix)
-		hasSuffix := s.Assert().True(strings.HasSuffix(syncOutputLines[1], suffix), "sync output line 1 (%q) does not end with the expected suffix %q", syncOutputLines[1], suffix)
+		hasPrefix := s.True(strings.HasPrefix(syncOutputLines[1], prefix), "sync output line 1 (%q) does not start with the expected prefix %q", syncOutputLines[1], prefix)
+		hasSuffix := s.True(strings.HasSuffix(syncOutputLines[1], suffix), "sync output line 1 (%q) does not end with the expected suffix %q", syncOutputLines[1], suffix)
 
 		if hasPrefix && hasSuffix {
 			machineID := strings.TrimPrefix(syncOutputLines[1], prefix)
 			machineID = strings.TrimSuffix(machineID, suffix)
 
 			_, err = uuid.Parse(machineID)
-			s.Assert().NoError(err, "machine id in sync output line 1 (%q) is not a valid UUID", syncOutputLines[1])
+			s.NoError(err, "machine id in sync output line 1 (%q) is not a valid UUID", syncOutputLines[1])
 		}
 	}
 
@@ -535,20 +536,55 @@ func (s *E2ESuite) assertTemplateExportAndSync() {
 	diff, err := jsondiff.CompareJSON([]byte(clusterBefore), []byte(clusterAfter), jsondiff.Ignores("/metadata/updated", "/metadata/version", "/metadata/annotations"))
 	s.Require().NoError(err, "failed to compare cluster before and after export. diff: %s", diff)
 
-	assert.Empty(s.T(), diff.String(), "cluster before and after export are not equal")
+	s.Empty(diff.String(), "cluster before and after export are not equal")
 
-	diff, err = jsondiff.CompareJSON([]byte(configPatchesBefore), []byte(configPatchesAfter), jsondiff.Ignores("/metadata/updated", "/metadata/version", "/metadata/annotations", "/spec/data"))
-	s.Require().NoError(err, "failed to compare config patches before and after export. diff: %s", diff)
+	configPatchListBefore := splitJSONObjects(s.T(), configPatchesBefore)
+	configPatchListAfter := splitJSONObjects(s.T(), configPatchesAfter)
 
-	assert.Empty(s.T(), diff.String(), "config patches before and after export are not equal")
+	s.Require().Equal(len(configPatchListBefore), len(configPatchListAfter), "config patch list before and after export are not equal")
 
-	patchDataBefore, err := jsonparser.GetString([]byte(configPatchesBefore), "spec", "data")
-	s.Require().NoError(err, "failed to get spec.data from config patches before export")
+	var patchDataBefore, patchDataAfter string
 
-	patchDataAfter, err := jsonparser.GetString([]byte(configPatchesAfter), "spec", "data")
-	s.Require().NoError(err, "failed to get spec.data from config patches after export")
+	for i, configPatchBefore := range configPatchListBefore {
+		configPatchAfter := configPatchListAfter[i]
 
-	s.YAMLEq(patchDataBefore, patchDataAfter, "spec.data from config patches before and after export are not equal")
+		diff, err = jsondiff.CompareJSON([]byte(configPatchBefore), []byte(configPatchAfter), jsondiff.Ignores("/metadata/updated", "/metadata/version", "/metadata/annotations", "/spec/data"))
+		s.Require().NoError(err, "failed to compare config patches before and after export. diff: %s", diff)
+
+		s.Empty(diff.String(), "config patches before and after export are not equal")
+
+		patchDataBefore, err = jsonparser.GetString([]byte(configPatchBefore), "spec", "data")
+		s.Require().NoError(err, "failed to get spec.data from config patches before export")
+
+		patchDataAfter, err = jsonparser.GetString([]byte(configPatchAfter), "spec", "data")
+		s.Require().NoError(err, "failed to get spec.data from config patches after export")
+
+		s.YAMLEq(patchDataBefore, patchDataAfter, "spec.data from config patches before and after export are not equal")
+	}
+}
+
+// splitJSONObjects splits a stream of JSON objects into individual JSON objects.
+func splitJSONObjects(t *testing.T, input string) []string {
+	decoder := json.NewDecoder(strings.NewReader(input))
+
+	var result []string
+
+	for {
+		var data map[string]any
+
+		err := decoder.Decode(&data)
+		if err == io.EOF {
+			// all done
+			break
+		}
+
+		marshaled, err := json.Marshal(data)
+		require.NoError(t, err)
+
+		result = append(result, string(marshaled))
+	}
+
+	return result
 }
 
 func (s *E2ESuite) TestOpenMachine() {
