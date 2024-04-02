@@ -40,7 +40,7 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, clusterMachine *omni.ClusterMachine, clusterMachineStatus *omni.ClusterMachineStatus) error {
 				machine, err := safe.ReaderGet[*omni.Machine](ctx, r, resource.NewMetadata(resources.DefaultNamespace, omni.MachineType, clusterMachine.Metadata().ID(), resource.VersionUndefined))
-				if err != nil {
+				if err != nil && !state.IsNotFoundError(err) {
 					return err
 				}
 
@@ -51,7 +51,7 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 					omni.LabelMachineSet,
 				)
 
-				if machine.TypedSpec().Value.Connected {
+				if machine != nil && machine.TypedSpec().Value.Connected {
 					clusterMachineStatus.Metadata().Labels().Set(omni.MachineStatusLabelConnected, "")
 				} else {
 					clusterMachineStatus.Metadata().Labels().Delete(omni.MachineStatusLabelConnected)
@@ -140,11 +140,12 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 
 				_, isControlPlaneNode := clusterMachineStatus.Metadata().Labels().Get(omni.LabelControlPlaneRole)
 				if (status.GetStage() == machineapi.MachineStatusEvent_BOOTING || status.GetStage() == machineapi.MachineStatusEvent_RUNNING) && isControlPlaneNode {
-					cmsVal.ApidAvailable = machine.TypedSpec().Value.Connected
+					cmsVal.ApidAvailable = machine != nil && machine.TypedSpec().Value.Connected
 				}
 
 				// should we also mark it as not ready when the clustermachine is tearing down (?)
-				cmsVal.Ready = status.GetStatus().GetReady() && machine.TypedSpec().Value.Connected
+				cmsVal.Ready = status.GetStatus().GetReady() &&
+					machine != nil && machine.TypedSpec().Value.Connected
 
 				if clusterMachine.Metadata().Phase() == resource.PhaseTearingDown {
 					cmsVal.Stage = specs.ClusterMachineStatusSpec_DESTROYING

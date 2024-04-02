@@ -49,7 +49,7 @@ func (h *sameIDHandler[I, O]) FinalizerRemoval(ctx context.Context, r controller
 		return nil
 	}
 
-	ready, err := r.Teardown(ctx, md)
+	ready, err := r.Teardown(ctx, md, controller.WithOwner(""))
 	if err != nil {
 		return err
 	}
