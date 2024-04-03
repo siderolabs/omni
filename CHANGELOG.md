@@ -1,3 +1,31 @@
+## [Omni 0.31.2](https://github.com/siderolabs/omni/releases/tag/v0.31.2) (2024-04-03)
+
+Welcome to the v0.31.2 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Utku Ozdemir
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`8759aa2`](https://github.com/siderolabs/omni/commit/8759aa242fc88dd94b5777242e8a6ccbfce4f3ee) fix: prevent link and clustermachine deletion from getting stuck
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.31.1](https://github.com/siderolabs/omni/releases/tag/v0.31.1)
+
+
 ## [Omni 0.31.1](https://github.com/siderolabs/omni/releases/tag/v0.31.1) (2024-03-15)
 
 Welcome to the v0.31.1 release of Omni!
