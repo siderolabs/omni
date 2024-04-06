@@ -30,6 +30,7 @@ func (m *AuthConfigSpec_Auth0) CloneVT() *AuthConfigSpec_Auth0 {
 	r.Enabled = m.Enabled
 	r.Domain = m.Domain
 	r.ClientId = m.ClientId
+	r.UseFormData = m.UseFormData
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -563,6 +564,9 @@ func (this *AuthConfigSpec_Auth0) EqualVT(that *AuthConfigSpec_Auth0) bool {
 		return false
 	}
 	if this.ClientId != that.ClientId {
+		return false
+	}
+	if this.UseFormData != that.UseFormData {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1287,6 +1291,16 @@ func (m *AuthConfigSpec_Auth0) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.UseFormData {
+		i--
+		if m.UseFormData {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
 	}
 	if len(m.ClientId) > 0 {
 		i -= len(m.ClientId)
@@ -2606,6 +2620,9 @@ func (m *AuthConfigSpec_Auth0) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if m.UseFormData {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -3209,6 +3226,26 @@ func (m *AuthConfigSpec_Auth0) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ClientId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UseFormData", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.UseFormData = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

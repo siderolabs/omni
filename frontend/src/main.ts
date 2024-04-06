@@ -53,13 +53,14 @@ const setupApp = async () => {
       appendToBody: true,
     })
 
-  if (authType.value === AuthType.Auth0) {
-    app = app.use(createAuth0({
-      domain: authConfigSpec!.auth0?.domain!,
-      client_id: authConfigSpec!.auth0?.client_id!,
-      redirect_uri: window.location.origin,
-    }))
-  }
+    if (authType.value === AuthType.Auth0) {
+      app = app.use(createAuth0({
+        domain: authConfigSpec!.auth0?.domain!,
+        client_id: authConfigSpec!.auth0?.client_id!,
+        redirect_uri: window.location.origin,
+        useFormData: authConfigSpec!.auth0?.useFormData!,
+      }))
+    }
 
   app.use(vClickOutside);
   app.mount('#app');

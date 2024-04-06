@@ -44,6 +44,7 @@ func EnsureAuthConfigResource(ctx context.Context, st state.State, logger *zap.L
 		res.TypedSpec().Value.Auth0.Enabled = authParams.Auth0.Enabled
 		res.TypedSpec().Value.Auth0.Domain = authParams.Auth0.Domain
 		res.TypedSpec().Value.Auth0.ClientId = authParams.Auth0.ClientID
+		res.TypedSpec().Value.Auth0.UseFormData = authParams.Auth0.UseFormData
 		res.TypedSpec().Value.Saml.Enabled = authParams.SAML.Enabled
 		res.TypedSpec().Value.Saml.Url = authParams.SAML.URL
 		res.TypedSpec().Value.Saml.Metadata = authParams.SAML.Metadata
