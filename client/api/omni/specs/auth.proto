@@ -12,6 +12,7 @@ message AuthConfigSpec {
     bool enabled = 1;
     string domain = 2;
     string client_id = 3;
+    bool useFormData = 4;
   }
 
   message Webauthn {

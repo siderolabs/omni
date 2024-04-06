@@ -9,6 +9,7 @@ export type AuthConfigSpecAuth0 = {
   enabled?: boolean
   domain?: string
   client_id?: string
+  useFormData?: boolean
 }
 
 export type AuthConfigSpecWebauthn = {

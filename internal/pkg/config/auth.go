@@ -20,9 +20,10 @@ type AuthParams struct {
 
 // Auth0Params holds configuration parameters for Auth0.
 type Auth0Params struct {
-	Domain   string `yaml:"domain"`
-	ClientID string `yaml:"clientID"`
-	Enabled  bool   `yaml:"enabled"`
+	Domain      string `yaml:"domain"`
+	ClientID    string `yaml:"clientID"`
+	UseFormData bool   `yaml:"useFormData"`
+	Enabled     bool   `yaml:"enabled"`
 }
 
 // WebAuthnParams holds configuration parameters for WebAuthn.

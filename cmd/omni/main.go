@@ -307,6 +307,8 @@ func init() {
 		"enable Auth0 authentication. Once set to true, it cannot be set back to false.")
 	rootCmd.Flags().StringVar(&config.Config.Auth.Auth0.ClientID, "auth-auth0-client-id", config.Config.Auth.Auth0.ClientID, "Auth0 application client ID.")
 	rootCmd.Flags().StringVar(&config.Config.Auth.Auth0.Domain, "auth-auth0-domain", config.Config.Auth.Auth0.Domain, "Auth0 application domain.")
+	rootCmd.Flags().BoolVar(&config.Config.Auth.Auth0.UseFormData, "auth-auth0-use-form-data", config.Config.Auth.Auth0.UseFormData,
+		"When true, data to the token endpoint is transmitted as x-www-form-urlencoded data instead of JSON. The default is false")
 
 	rootCmd.Flags().BoolVar(&config.Config.Auth.WebAuthn.Enabled, "auth-webauthn-enabled", config.Config.Auth.WebAuthn.Enabled,
 		"enable WebAuthn authentication. Once set to true, it cannot be set back to false.")
