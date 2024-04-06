@@ -58,7 +58,7 @@ const setupApp = async () => {
         domain: authConfigSpec!.auth0?.domain!,
         client_id: authConfigSpec!.auth0?.client_id!,
         redirect_uri: window.location.origin,
-        useFormData: authConfigSpec!.auth0?.useFormData!,
+        useFormData: !!authConfigSpec!.auth0?.useFormData,
       }))
     }
 
