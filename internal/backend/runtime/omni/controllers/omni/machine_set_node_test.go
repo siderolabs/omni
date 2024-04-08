@@ -55,6 +55,8 @@ func (suite *MachineSetNodeSuite) createMachines(labels ...map[string]string) []
 			}
 		})
 
+		machineStatus.TypedSpec().Value.TalosVersion = "v1.6.0"
+
 		res = append(res, machineStatus)
 
 		suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
@@ -109,7 +111,12 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 		)
 	}
 
-	machineSet.Metadata().Labels().Set(omni.LabelCluster, "cluster1")
+	cluster := omni.NewCluster(resources.DefaultNamespace, "cluster1")
+	cluster.TypedSpec().Value.TalosVersion = "1.6.0"
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, cluster))
+
+	machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 	machineSet.Metadata().Labels().Set(omni.LabelWorkerRole, "")
 
 	machineClass := newMachineClass(fmt.Sprintf("%s==amd64", omni.MachineStatusLabelArch))

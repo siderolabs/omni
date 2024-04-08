@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"strings"
 
+	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
@@ -40,6 +42,11 @@ func (ctrl *MachineSetNodeController) Inputs() []controller.Input {
 		{
 			Namespace: resources.DefaultNamespace,
 			Type:      omni.MachineSetType,
+			Kind:      controller.InputWeak,
+		},
+		{
+			Namespace: resources.DefaultNamespace,
+			Type:      omni.ClusterType,
 			Kind:      controller.InputWeak,
 		},
 		{
@@ -222,6 +229,21 @@ func (ctrl *MachineSetNodeController) createNodes(
 
 	created := 0
 
+	clusterName, ok := machineSet.Metadata().Labels().Get(omni.LabelCluster)
+	if !ok {
+		return fmt.Errorf("failed to get cluster name of the machine set %q", machineSet.Metadata().ID())
+	}
+
+	cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, r, clusterName)
+	if err != nil {
+		return err
+	}
+
+	clusterVersion, err := semver.Parse(cluster.TypedSpec().Value.TalosVersion)
+	if err != nil {
+		return fmt.Errorf("failed to parse talos version of the cluster %w", err)
+	}
+
 	for _, selector := range selectors {
 		selector.Terms = append(selector.Terms, resource.LabelTerm{
 			Key: omni.MachineStatusLabelAvailable,
@@ -231,7 +253,22 @@ func (ctrl *MachineSetNodeController) createNodes(
 		availableMachineClassMachines := allMachineStatuses.FilterLabelQuery(resource.RawLabelQuery(selector))
 
 		for i := 0; i < availableMachineClassMachines.Len(); i++ {
-			id := availableMachineClassMachines.Get(i).Metadata().ID()
+			machine := availableMachineClassMachines.Get(i)
+
+			var machineVersion semver.Version
+
+			machineVersion, err = semver.Parse(strings.TrimPrefix(machine.TypedSpec().Value.TalosVersion, "v"))
+			if err != nil {
+				continue
+			}
+
+			// do not try to allocate the machine if it's Talos major or minor version is greater than cluster Talos version
+			// this way we don't allow downgrading the machines while allocating them
+			if machineVersion.Major > clusterVersion.Major || machineVersion.Minor > clusterVersion.Minor {
+				continue
+			}
+
+			id := machine.Metadata().ID()
 
 			if err := r.Create(ctx, omni.NewMachineSetNode(resources.DefaultNamespace, id, machineSet)); err != nil {
 				if state.IsConflictError(err) {

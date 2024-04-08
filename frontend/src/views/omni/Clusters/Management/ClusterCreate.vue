@@ -98,6 +98,7 @@ included in the LICENSE file.
         <template #default="{ items, searchQuery }">
           <cluster-machine-item
             v-for="item in items"
+            :talos-version-not-allowed="!canAddMachine(item)"
             :key="itemID(item)"
             :reset="reset"
             :item="item"
@@ -140,7 +141,7 @@ import {
 PatchBaseWeightMachineSet,
 PatchBaseWeightCluster,
 } from "@/api/resources";
-import { TalosVersionSpec } from "@/api/omni/specs/omni.pb";
+import { MachineStatusSpec, TalosVersionSpec } from "@/api/omni/specs/omni.pb";
 import WatchResource, { itemID } from "@/api/watch";
 import { showError, showSuccess } from "@/notification";
 import { Resource, ResourceTyped } from "@/api/grpc";
@@ -260,6 +261,13 @@ const createCluster = async () => {
     await createCluster_(false);
   }
 };
+
+const canAddMachine = (machine: Resource<MachineStatusSpec>) => {
+  const clusterVersion = semver.parse(state.value.cluster.talosVersion);
+  const machineVersion = semver.parse(machine.spec.talos_version);
+
+  return machineVersion.major <= clusterVersion.major && machineVersion.minor <= clusterVersion.minor;
+}
 
 const createCluster_ = async (untaint: boolean) => {
   if (typeof state.value.controlPlanesCount === 'number' && (state.value.controlPlanesCount - 1) % 2 !== 0) {

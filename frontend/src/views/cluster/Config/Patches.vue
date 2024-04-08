@@ -109,10 +109,7 @@ type Props = {
   currentCluster?: ResourceTyped<ClusterSpec>,
 };
 
-const props = defineProps<Props>();
-
-  console.log("PATCHES currentCluster", props.currentCluster);
-
+defineProps<Props>();
 
 const updateSelectors = () => {
   patchListSelectors.value = [`!${LabelSystemPatch}`];

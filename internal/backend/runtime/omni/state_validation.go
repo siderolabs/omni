@@ -401,7 +401,7 @@ func validateBootstrapSpec(ctx context.Context, st state.State, etcdBackupStoreF
 
 // machineSetNodeValidationOptions returns the validation options for the machine set node resource.
 //
-//nolint:gocognit
+//nolint:gocognit,gocyclo,cyclop
 func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 	getMachineSet := func(ctx context.Context, res *omni.MachineSetNode) (*omni.MachineSet, error) {
 		machineSetName, ok := res.Metadata().Labels().Get(omni.LabelMachineSet)
@@ -421,6 +421,53 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 		return machineSet, nil
 	}
 
+	validateTalosVersion := func(ctx context.Context, res *omni.MachineSetNode) error {
+		clusterName, ok := res.Metadata().Labels().Get(omni.LabelCluster)
+		if !ok {
+			return nil
+		}
+
+		cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, st, clusterName)
+		if err != nil {
+			if state.IsNotFoundError(err) {
+				return nil
+			}
+
+			return err
+		}
+
+		machineStatus, err := safe.ReaderGetByID[*omni.MachineStatus](ctx, st, res.Metadata().ID())
+		if err != nil {
+			if state.IsNotFoundError(err) {
+				return nil
+			}
+
+			return err
+		}
+
+		machineTalosVersion, err := semver.Parse(strings.TrimLeft(machineStatus.TypedSpec().Value.TalosVersion, "v"))
+		if err != nil {
+			// ignore version check if it's not possible to parse machine Talos version
+			return nil //nolint:nilerr
+		}
+
+		clusterTalosVersion, err := semver.Parse(cluster.TypedSpec().Value.TalosVersion)
+		if err != nil {
+			return err
+		}
+
+		if machineTalosVersion.Major > clusterTalosVersion.Major || machineTalosVersion.Minor > clusterTalosVersion.Minor {
+			return fmt.Errorf(
+				"cannot add machine set node to the cluster %s as it will trigger Talos downgrade on the node (%s -> %s)",
+				clusterName,
+				machineTalosVersion.String(),
+				clusterTalosVersion.String(),
+			)
+		}
+
+		return nil
+	}
+
 	return []validated.StateOption{
 		validated.WithCreateValidations(validated.NewCreateValidationForType(func(ctx context.Context, res *omni.MachineSetNode, _ ...state.CreateOption) error {
 			machineSet, err := getMachineSet(ctx, res)
@@ -434,6 +481,10 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 
 			if machineSet != nil && machineSet.TypedSpec().Value.MachineClass != nil {
 				return fmt.Errorf("adding machine set node to the machine set %q is not allowed: the machine set is using machine classes", machineSet.Metadata().ID())
+			}
+
+			if err = validateTalosVersion(ctx, res); err != nil {
+				return err
 			}
 
 			return validateNotControlplane(machineSet, res)

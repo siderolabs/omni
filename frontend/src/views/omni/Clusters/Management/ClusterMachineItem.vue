@@ -7,44 +7,44 @@ included in the LICENSE file.
 <template>
   <t-list-item>
     <template #default>
-        <div class="flex items-center text-naturals-N13">
-          <div class="truncate flex-1 flex items-center gap-2">
-            <span class="font-bold pr-2">
-              <word-highlighter
-                  :query="(searchQuery ?? '')"
-                  :textToHighlight="item?.spec?.network?.hostname ?? item?.metadata?.id"
-                  split-by-space
-                  highlightClass="bg-naturals-N14"/>
-            </span>
-            <machine-item-labels :resource="item" :add-label-func="addMachineLabels" :remove-label-func="removeMachineLabels" @filter-label="e => $emit('filterLabel', e)"/>
+      <div class="flex items-center text-naturals-N13">
+        <div class="truncate flex-1 flex items-center gap-2">
+          <span class="font-bold pr-2">
+            <word-highlighter
+                :query="(searchQuery ?? '')"
+                :textToHighlight="item?.spec?.network?.hostname ?? item?.metadata?.id"
+                split-by-space
+                highlightClass="bg-naturals-N14"/>
+          </span>
+          <machine-item-labels :resource="item" :add-label-func="addMachineLabels" :remove-label-func="removeMachineLabels" @filter-label="e => $emit('filterLabel', e)"/>
+        </div>
+        <div class="flex justify-end flex-initial w-128 gap-4 items-center">
+          <template v-if="machineSetIndex !== undefined">
+            <div v-if="systemDiskPath" class="pr-8 pl-3 py-1.5 text-naturals-N11 rounded border border-naturals-N6 cursor-not-allowed">
+              Install Disk: {{ systemDiskPath }}
+            </div>
+            <div v-else>
+              <t-select-list
+                class="h-7"
+                title="Install Disk"
+                @checkedValue="setInstallDisk"
+                :values="disks"
+                :defaultValue="disks[0]"/>
+            </div>
+          </template>
+          <div>
+            <machine-set-picker :options="options" :machine-set-index="machineSetIndex" @update:machineSetIndex="value => machineSetIndex = value"/>
           </div>
-          <div class="flex justify-end flex-initial w-128 gap-4 items-center">
-            <template v-if="machineSetIndex !== undefined">
-              <div v-if="systemDiskPath" class="pr-8 pl-3 py-1.5 text-naturals-N11 rounded border border-naturals-N6 cursor-not-allowed">
-                Install Disk: {{ systemDiskPath }}
-              </div>
-              <div v-else>
-                <t-select-list
-                  class="h-7"
-                  title="Install Disk"
-                  @checkedValue="setInstallDisk"
-                  :values="disks"
-                  :defaultValue="disks[0]"/>
-              </div>
-            </template>
-            <div>
-              <machine-set-picker :options="options" :machine-set-index="machineSetIndex" @update:machineSetIndex="value => machineSetIndex = value"/>
-            </div>
-            <div class="flex items-center">
-              <icon-button
-                class="text-naturals-N14 my-auto"
-                @click="openPatchConfig"
-                :id="machineSetIndex !== undefined ? options?.[machineSetIndex]?.id : undefined"
-                :disabled="machineSetIndex === undefined || options?.[machineSetIndex]?.disabled"
-                :icon="machineSetNode.patches[machinePatchID] && machineSetIndex ? 'settings-toggle': 'settings'"/>
-            </div>
+          <div class="flex items-center">
+            <icon-button
+              class="text-naturals-N14 my-auto"
+              @click="openPatchConfig"
+              :id="machineSetIndex !== undefined ? options?.[machineSetIndex]?.id : undefined"
+              :disabled="machineSetIndex === undefined || options?.[machineSetIndex]?.disabled"
+              :icon="machineSetNode.patches[machinePatchID] && machineSetIndex ? 'settings-toggle': 'settings'"/>
           </div>
         </div>
+      </div>
     </template>
     <template #details>
       <div class="pl-6 grid grid-cols-5">
@@ -121,10 +121,11 @@ defineEmits(['filterLabel']);
 const props = defineProps<{
   item: ResourceTyped<MachineStatusSpec & SiderolinkSpec & MachineConfigGenOptionsSpec>,
   reset?: number,
-  searchQuery?: string
+  searchQuery?: string,
+  talosVersionNotAllowed: boolean
 }>();
 
-const { item, reset } = toRefs(props);
+const { item, reset, talosVersionNotAllowed } = toRefs(props);
 
 const machineSetNode = ref<MachineSetNode>({
   patches: {},
@@ -133,7 +134,7 @@ const machineSetIndex = ref<number | undefined>();
 const systemDiskPath: Ref<string | undefined> = ref();
 const disks: Ref<string[]> = ref([]);
 
-const computeDisks = () => {
+const computeState = () => {
   const bds: MachineStatusSpecHardwareStatusBlockDevice[] = item?.value?.spec?.hardware?.blockdevices || [];
   const diskPaths: string[] = [];
 
@@ -147,11 +148,36 @@ const computeDisks = () => {
   }
 
   disks.value = diskPaths;
+
+  computeMachineAssignment()
 }
 
-computeDisks();
+const computeMachineAssignment = () => {
+  for (var i = 0; i < state.value.machineSets.length; i++) {
+    const machineSet = state.value.machineSets[i];
 
-watch(item, computeDisks);
+    for(const id in machineSet.machines) {
+      if (item.value.metadata.id === id) {
+        machineSetIndex.value = i;
+
+        return;
+      }
+    }
+  }
+
+  machineSetIndex.value = undefined;
+}
+
+computeState();
+
+watch(item, computeState);
+watch(state.value, computeMachineAssignment);
+
+watch(talosVersionNotAllowed, (value: boolean) => {
+  if (value) {
+    machineSetIndex.value = undefined;
+  }
+});
 
 watch(machineSetIndex, (val?: number, old?: number) => {
   if (val !== undefined) {
@@ -212,6 +238,11 @@ const options: Ref<PickerOption[]> = computed(() => {
     if (ms.machineClass) {
       disabled = true;
       tooltip = `The machine class ${ms.id} is using machine class so no manual allocation is possible`
+    }
+
+    if (talosVersionNotAllowed.value) {
+      disabled = true;
+      tooltip = `The machine has newer Talos version installed: downgrade is not allowed. Upgrade the machine or change Talos cluster version`
     }
 
     return {
