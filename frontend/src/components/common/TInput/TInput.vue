@@ -132,7 +132,7 @@ onMounted(() => {
 
 <style scoped>
 .input-box {
-  @apply flex justify-start items-center p-2 border border-naturals-N8 rounded transition-colors gap-2 min-w-fit;
+  @apply flex justify-start items-center p-2 border border-naturals-N8 rounded transition-colors gap-2;
 }
 
 .compact {
@@ -140,11 +140,11 @@ onMounted(() => {
 }
 
 .input-box-icon {
-  @apply fill-current text-naturals-N8 transition-colors cursor-pointer w-4 h-4 min-w-max;
+  @apply fill-current text-naturals-N8 transition-colors cursor-pointer w-4 h-4;
 }
 
 .input-box-input {
-  @apply bg-transparent border-none outline-none w-full text-naturals-N13 focus:outline-none  focus:border-transparent text-xs transition-colors placeholder-naturals-N7;
+  @apply bg-transparent border-none outline-none flex-1 text-naturals-N13 focus:outline-none  focus:border-transparent text-xs transition-colors placeholder-naturals-N7;
 
   min-width: 0.5rem;
 }

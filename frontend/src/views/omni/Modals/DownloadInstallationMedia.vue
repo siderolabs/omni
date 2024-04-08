@@ -128,10 +128,10 @@ included in the LICENSE file.
       </h3>
 
       <div class="cursor-pointer px-1.5 py-1.5 rounded border border-naturals-N8 text-xs flex gap-2 items-center">
-        <icon-button class="min-w-max" icon="refresh" @click="createSchematic" :icon-classes="{'animate-spin': creatingSchematic}"/>
+        <icon-button class="min-w-min" icon="refresh" @click="createSchematic" :icon-classes="{'animate-spin': creatingSchematic}"/>
         <span v-if="copiedPXEURL" class="flex-1 text-sm">Copied!</span>
         <span v-else class="flex-1 break-all" @click="createSchematic">{{ pxeURL ? pxeURL : 'Click to generate' }}</span>
-        <icon-button class="min-w-max" icon="copy" @click="copyPXEURL"/>
+        <icon-button class="min-w-min" icon="copy" @click="copyPXEURL"/>
       </div>
 
       <div>

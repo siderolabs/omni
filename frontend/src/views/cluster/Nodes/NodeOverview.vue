@@ -403,6 +403,6 @@ const status = computed(() => getStatus(node.value));
   width: auto;
 }
 .overview-item-button {
-  @apply min-w-max;
+  @apply min-w-min;
 }
 </style>
