@@ -1,3 +1,33 @@
+## [Omni 0.32.2](https://github.com/siderolabs/omni/releases/tag/v0.32.2) (2024-04-08)
+
+Welcome to the v0.32.2 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Spencer Smith
+* Utku Ozdemir
+
+### Changes
+<details><summary>2 commits</summary>
+<p>
+
+* [`a678451`](https://github.com/siderolabs/omni/commit/a678451765383743069c6660a242963f6e3547b6) chore: bump net library to v0.23.0
+* [`be3b9ab`](https://github.com/siderolabs/omni/commit/be3b9ab4d5fe0a1087c9d8c6b60608dddaca417f) fix: ignore `modules.dep` virtual extension on schematic id calculation
+</p>
+</details>
+
+### Dependency Changes
+
+* **golang.org/x/crypto**  v0.19.0 -> v0.21.0
+* **golang.org/x/net**     v0.21.0 -> v0.23.0
+
+Previous release can be found at [v0.32.1](https://github.com/siderolabs/omni/releases/tag/v0.32.1)
+
 ## [Omni 0.32.1](https://github.com/siderolabs/omni/releases/tag/v0.32.1) (2024-04-03)
 
 Welcome to the v0.32.1 release of Omni!
