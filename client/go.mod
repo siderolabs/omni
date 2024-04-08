@@ -1,6 +1,6 @@
 module github.com/siderolabs/omni/client
 
-go 1.22.1
+go 1.22.2
 
 replace (
 	// forked go-yaml that introduces RawYAML interface, which can be used to populate YAML fields using bytes
@@ -13,7 +13,7 @@ replace (
 require (
 	github.com/adrg/xdg v0.4.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cosi-project/runtime v0.4.0-alpha.9
+	github.com/cosi-project/runtime v0.4.1
 	github.com/fatih/color v1.16.0
 	github.com/google/uuid v1.6.0
 	github.com/gosuri/uiprogress v0.0.1
@@ -27,7 +27,7 @@ require (
 	github.com/siderolabs/go-api-signature v0.3.2
 	github.com/siderolabs/go-kubeconfig v0.1.0
 	github.com/siderolabs/go-pointer v1.0.0
-	github.com/siderolabs/talos/pkg/machinery v1.7.0-alpha.1
+	github.com/siderolabs/talos/pkg/machinery v1.7.0-beta.0
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.9.0
 	github.com/xlab/treeprint v1.2.0
@@ -44,7 +44,7 @@ require (
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
 	github.com/ProtonMail/go-mime v0.0.0-20230322103455-7d82a3887f2f // indirect
 	github.com/ProtonMail/gopenpgp/v2 v2.7.5 // indirect
-	github.com/cloudflare/circl v1.3.6 // indirect
+	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/containerd/go-cni v1.1.9 // indirect
 	github.com/containernetworking/cni v1.1.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
@@ -67,7 +67,7 @@ require (
 	github.com/mdlayher/ethtool v0.1.0 // indirect
 	github.com/mdlayher/genetlink v1.3.2 // indirect
 	github.com/mdlayher/netlink v1.7.2 // indirect
-	github.com/mdlayher/socket v0.5.0 // indirect
+	github.com/mdlayher/socket v0.5.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/opencontainers/runtime-spec v1.2.0 // indirect
@@ -76,7 +76,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
-	github.com/siderolabs/crypto v0.4.2 // indirect
+	github.com/siderolabs/crypto v0.4.4 // indirect
 	github.com/siderolabs/go-blockdevice v0.4.7 // indirect
 	github.com/siderolabs/net v0.4.0 // indirect
 	github.com/siderolabs/protoenc v0.2.1 // indirect
@@ -89,8 +89,8 @@ require (
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240125205218-1f4bbc51befe // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240311173647-c811ad7063a7 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240401170217-c3f982113cda // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240401170217-c3f982113cda // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/apimachinery v0.28.4 // indirect

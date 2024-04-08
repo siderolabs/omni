@@ -1,6 +1,6 @@
 module github.com/siderolabs/omni
 
-go 1.22.1
+go 1.22.2
 
 replace (
 	// use nested module
@@ -24,9 +24,9 @@ require (
 	github.com/benbjohnson/clock v1.3.5
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
-	github.com/cenkalti/backoff/v4 v4.2.1
+	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/containers/image v3.0.2+incompatible
-	github.com/cosi-project/runtime v0.4.0-alpha.9
+	github.com/cosi-project/runtime v0.4.1
 	github.com/cosi-project/state-etcd v0.2.8
 	github.com/crewjam/saml v0.4.14
 	github.com/dustin/go-humanize v1.0.1
@@ -53,7 +53,7 @@ require (
 	github.com/jxskiss/base62 v1.1.0
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/prometheus/client_golang v1.18.0
-	github.com/siderolabs/crypto v0.4.2
+	github.com/siderolabs/crypto v0.4.4
 	github.com/siderolabs/discovery-api v0.1.3
 	github.com/siderolabs/gen v0.4.8
 	github.com/siderolabs/go-api-signature v0.3.2
@@ -70,7 +70,7 @@ require (
 	github.com/siderolabs/kms-client v0.1.0
 	github.com/siderolabs/omni/client v0.0.0-00010101000000-000000000000
 	github.com/siderolabs/siderolink v0.3.4
-	github.com/siderolabs/talos/pkg/machinery v1.7.0-alpha.1
+	github.com/siderolabs/talos/pkg/machinery v1.7.0-beta.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.9.0
@@ -86,7 +86,7 @@ require (
 	golang.org/x/net v0.23.0
 	golang.org/x/sync v0.6.0
 	golang.org/x/text v0.14.0
-	golang.org/x/tools v0.16.1
+	golang.org/x/tools v0.19.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20230429144221-925a1e7659e6
 	google.golang.org/grpc v1.62.1
 	google.golang.org/protobuf v1.33.0
@@ -121,7 +121,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/cloudflare/circl v1.3.6 // indirect
+	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/containerd/containerd v1.7.13 // indirect
 	github.com/containerd/go-cni v1.1.9 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.15.1 // indirect
@@ -181,7 +181,7 @@ require (
 	github.com/mdlayher/ethtool v0.1.0 // indirect
 	github.com/mdlayher/genetlink v1.3.2 // indirect
 	github.com/mdlayher/netlink v1.7.2 // indirect
-	github.com/mdlayher/socket v0.5.0 // indirect
+	github.com/mdlayher/socket v0.5.1 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -231,7 +231,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
 	golang.org/x/exp v0.0.0-20231219180239-dc181d75b848 // indirect
-	golang.org/x/mod v0.14.0 // indirect
+	golang.org/x/mod v0.16.0 // indirect
 	golang.org/x/oauth2 v0.16.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/term v0.18.0 // indirect
@@ -240,8 +240,8 @@ require (
 	golang.zx2c4.com/wireguard v0.0.0-20231022001213-2e0774f246fb // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto v0.0.0-20240123012728-ef4313101c80 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240125205218-1f4bbc51befe // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240311173647-c811ad7063a7 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240401170217-c3f982113cda // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240401170217-c3f982113cda // indirect
 	gopkg.in/go-jose/go-jose.v2 v2.6.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
