@@ -55,6 +55,10 @@ func GetSchematicInfo(ctx context.Context, c *client.Client) (SchematicInfo, err
 			return
 		}
 
+		if name == "modules.dep" { // ignore the virtual extension used for kernel modules dependencies
+			return
+		}
+
 		if !strings.HasPrefix(name, officialExtensionPrefix) {
 			name = officialExtensionPrefix + name
 		}
