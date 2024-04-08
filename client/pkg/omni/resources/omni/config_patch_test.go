@@ -39,11 +39,23 @@ machine:
 			name: "several fields",
 			config: strings.TrimSpace(`
 machine:
+  acceptedCAs:
+    - crt: YWFhCg==
   token: bab
   ca:
     crt: YWFhCg==
+cluster:
+  acceptedCAs:
+    - crt: YWFhCg==
+    - crt: YmJiCg==
 `),
-			expectedError: "2 errors occurred:\n\t* overriding \"machine.token\" is not allowed in the config patch\n\t* overriding \"machine.ca\" is not allowed in the config patch\n\n",
+			expectedError: `4 errors occurred:
+	* overriding "cluster.acceptedCAs" is not allowed in the config patch
+	* overriding "machine.token" is not allowed in the config patch
+	* overriding "machine.ca" is not allowed in the config patch
+	* overriding "machine.acceptedCAs" is not allowed in the config patch
+
+`,
 		},
 		{
 			name: "different configs",

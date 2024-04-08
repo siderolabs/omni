@@ -30,10 +30,12 @@ var forbiddenFields = []string{
 	"cluster.secret",
 	"cluster.aescbcEncryptionSecret",
 	"cluster.secretboxEncryptionSecret",
+	"cluster.acceptedCAs",
 	"machine.token",
 	"machine.ca",
 	"machine.type",
 	"machine.install.extensions",
+	"machine.acceptedCAs",
 }
 
 var forbiddenSliceElements = map[string]map[any]struct{}{
