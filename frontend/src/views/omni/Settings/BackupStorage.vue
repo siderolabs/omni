@@ -19,6 +19,7 @@ included in the LICENSE file.
       <template v-if="s3Spec">
         <t-input title="Endpoint" :model-value="s3Spec.endpoint || ''" @update:model-value="value => s3Spec.endpoint = value"/>
         <t-input title="Bucket" :model-value="s3Spec.bucket || ''" @update:model-value="value => s3Spec.bucket = value"/>
+        <t-input title="Region" :model-value="s3Spec.region || ''" @update:model-value="value => s3Spec.region = value"/>
         <div class="flex gap-5">
           <t-input title="Access Key ID" type="password" class="flex-1 flex-shrinl" :model-value="s3Spec.access_key_id || ''" @update:model-value="value => s3Spec.access_key_id = value"/>
           <t-input title="Secret Access Key" type="password" class="flex-1" :model-value="s3Spec.secret_access_key || ''" @update:model-value="value => s3Spec.secret_access_key = value"/>
