@@ -1848,6 +1848,25 @@ func (m *ExtensionsConfigurationStatusSpec) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
+func (m *MachineStatusMetricsSpec) CloneVT() *MachineStatusMetricsSpec {
+	if m == nil {
+		return (*MachineStatusMetricsSpec)(nil)
+	}
+	r := new(MachineStatusMetricsSpec)
+	r.RegisteredMachinesCount = m.RegisteredMachinesCount
+	r.ConnectedMachinesCount = m.ConnectedMachinesCount
+	r.AllocatedMachinesCount = m.AllocatedMachinesCount
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *MachineStatusMetricsSpec) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (this *MachineSpec) EqualVT(that *MachineSpec) bool {
 	if this == that {
 		return true
@@ -4316,6 +4335,31 @@ func (this *ExtensionsConfigurationStatusSpec) EqualVT(that *ExtensionsConfigura
 
 func (this *ExtensionsConfigurationStatusSpec) EqualMessageVT(thatMsg proto.Message) bool {
 	that, ok := thatMsg.(*ExtensionsConfigurationStatusSpec)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *MachineStatusMetricsSpec) EqualVT(that *MachineStatusMetricsSpec) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.RegisteredMachinesCount != that.RegisteredMachinesCount {
+		return false
+	}
+	if this.ConnectedMachinesCount != that.ConnectedMachinesCount {
+		return false
+	}
+	if this.AllocatedMachinesCount != that.AllocatedMachinesCount {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MachineStatusMetricsSpec) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*MachineStatusMetricsSpec)
 	if !ok {
 		return false
 	}
@@ -9221,6 +9265,54 @@ func (m *ExtensionsConfigurationStatusSpec) MarshalToSizedBufferVT(dAtA []byte) 
 	return len(dAtA) - i, nil
 }
 
+func (m *MachineStatusMetricsSpec) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MachineStatusMetricsSpec) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MachineStatusMetricsSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.AllocatedMachinesCount != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.AllocatedMachinesCount))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.ConnectedMachinesCount != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ConnectedMachinesCount))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.RegisteredMachinesCount != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.RegisteredMachinesCount))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *MachineSpec) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -11131,6 +11223,25 @@ func (m *ExtensionsConfigurationStatusSpec) SizeVT() (n int) {
 			l = len(s)
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *MachineStatusMetricsSpec) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.RegisteredMachinesCount != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.RegisteredMachinesCount))
+	}
+	if m.ConnectedMachinesCount != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.ConnectedMachinesCount))
+	}
+	if m.AllocatedMachinesCount != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.AllocatedMachinesCount))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -23243,6 +23354,114 @@ func (m *ExtensionsConfigurationStatusSpec) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Extensions = append(m.Extensions, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MachineStatusMetricsSpec) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MachineStatusMetricsSpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MachineStatusMetricsSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RegisteredMachinesCount", wireType)
+			}
+			m.RegisteredMachinesCount = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.RegisteredMachinesCount |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConnectedMachinesCount", wireType)
+			}
+			m.ConnectedMachinesCount = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ConnectedMachinesCount |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AllocatedMachinesCount", wireType)
+			}
+			m.AllocatedMachinesCount = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.AllocatedMachinesCount |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

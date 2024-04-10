@@ -50,7 +50,12 @@ func (ctrl *MachineStatusMetricsController) Inputs() []controller.Input {
 
 // Outputs implements controller.Controller interface.
 func (ctrl *MachineStatusMetricsController) Outputs() []controller.Output {
-	return nil
+	return []controller.Output{
+		{
+			Type: omni.MachineStatusMetricsType,
+			Kind: controller.OutputExclusive,
+		},
+	}
 }
 
 func (ctrl *MachineStatusMetricsController) initMetrics() {
@@ -93,7 +98,7 @@ func (ctrl *MachineStatusMetricsController) Run(ctx context.Context, r controlle
 			return err
 		}
 
-		var machines, connectedMachines int
+		var machines, connectedMachines, allocatedMachines int
 
 		ctrl.versionsMu.Lock()
 		ctrl.versionsMap = map[string]int{}
@@ -108,12 +113,28 @@ func (ctrl *MachineStatusMetricsController) Run(ctx context.Context, r controlle
 			if iter.Value().TypedSpec().Value.TalosVersion != "" {
 				ctrl.versionsMap[iter.Value().TypedSpec().Value.TalosVersion]++
 			}
+
+			if iter.Value().TypedSpec().Value.Cluster != "" {
+				allocatedMachines++
+			}
 		}
 
 		ctrl.versionsMu.Unlock()
 
 		ctrl.metricNumMachines.Set(float64(machines))
 		ctrl.metricNumConnectedMachines.Set(float64(connectedMachines))
+
+		if err = safe.WriterModify(ctx, r, omni.NewMachineStatusMetrics(resources.EphemeralNamespace, omni.MachineStatusMetricsID),
+			func(res *omni.MachineStatusMetrics) error {
+				res.TypedSpec().Value.ConnectedMachinesCount = uint32(connectedMachines)
+				res.TypedSpec().Value.RegisteredMachinesCount = uint32(machines)
+				res.TypedSpec().Value.AllocatedMachinesCount = uint32(allocatedMachines)
+
+				return nil
+			},
+		); err != nil {
+			return err
+		}
 
 		select {
 		case <-ctx.Done():

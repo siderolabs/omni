@@ -956,3 +956,10 @@ message ExtensionsConfigurationStatusSpec {
   string error = 2;
   repeated string extensions = 3;
 }
+
+// MachineStatusMetricsSpec provides aggregated state of the number of registered and connected machines for the Omni instance.
+message MachineStatusMetricsSpec {
+  uint32 registered_machines_count = 1;
+  uint32 connected_machines_count = 2;
+  uint32 allocated_machines_count = 3;
+}

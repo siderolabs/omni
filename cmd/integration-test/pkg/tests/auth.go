@@ -886,6 +886,11 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource:       omni.NewExtensionsConfigurationStatus(resources.DefaultNamespace, uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
+			{
+				resource:              omni.NewMachineStatusMetrics(resources.EphemeralNamespace, uuid.New().String()),
+				allowedVerbSet:        readOnlyVerbSet,
+				isSignatureSufficient: true,
+			},
 		}...)
 
 		// no access resources

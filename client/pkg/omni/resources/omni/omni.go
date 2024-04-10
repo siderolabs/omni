@@ -59,6 +59,7 @@ func init() {
 	registry.MustRegisterResource(MachineStatusType, &MachineStatus{})
 	registry.MustRegisterResource(MachineStatusSnapshotType, &MachineStatusSnapshot{})
 	registry.MustRegisterResource(MachineStatusLinkType, &MachineStatusLink{})
+	registry.MustRegisterResource(MachineStatusMetricsType, &MachineStatusMetrics{})
 	registry.MustRegisterResource(LoadBalancerConfigType, &LoadBalancerConfig{})
 	registry.MustRegisterResource(LoadBalancerStatusType, &LoadBalancerStatus{})
 	registry.MustRegisterResource(OngoingTaskType, &OngoingTask{})

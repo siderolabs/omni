@@ -40,6 +40,10 @@ included in the LICENSE file.
     <cluster-machine :id="machine.metadata.id" :machine-set="machineSet" :class="{ 'border-b': index != machines.length - 1 }"
       class="border-naturals-N4" v-for="(machine, index) in machines" :key="itemID(machine)" :machine="machine"
       :deleteDisabled="!canRemoveMachine" />
+    <div v-if="hiddenMachinesCount > 0" class="text-xs p-4 pl-9 border-t border-naturals-N4 flex gap-1 items-center">
+      {{ pluralize("machine", hiddenMachinesCount, true) }} are hidden
+      <t-button type="subtle" @click="showMachinesCount = undefined"><span class="text-xs">Show all...</span></t-button>
+    </div>
   </div>
 </template>
 
@@ -66,6 +70,8 @@ import TButton from "@/components/common/Button/TButton.vue";
 import TInput from "@/components/common/TInput/TInput.vue";
 import TSpinner from "@/components/common/Spinner/TSpinner.vue";
 
+const showMachinesCount = ref<number | undefined>(25);
+
 const props = defineProps<{
   machineSet: Resource<MachineSetStatusSpec>
 }>();
@@ -79,6 +85,14 @@ const editingMachinesCount = ref(false);
 const machineCount = ref(machineSet.value.spec.machine_class?.machine_count ?? 1);
 const scaling = ref(false);
 
+const hiddenMachinesCount = computed(() => {
+  if (showMachinesCount.value === undefined) {
+    return 0;
+  }
+
+  return Math.max(0, (machineSet.value.spec.machines?.total || 0) - showMachinesCount.value);
+});
+
 machinesWatch.setup(computed(() => {
   return {
     resource: {
@@ -90,6 +104,7 @@ machinesWatch.setup(computed(() => {
       `${LabelCluster}=${clusterID.value}`,
       `${LabelMachineSet}=${machineSet.value.metadata.id!}`
     ],
+    limit: showMachinesCount.value,
   }
 }));
 

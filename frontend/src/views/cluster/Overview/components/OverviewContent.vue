@@ -9,7 +9,7 @@ included in the LICENSE file.
     <div class="overview">
       <div class="overview-container">
         <div class="overview-charts-box relative">
-          <div class="flex flex-wrap justify-around w-full items-stretch gap-2">
+          <div class="flex flex-wrap justify-around w-full items-stretch gap-2 transition-opacity duration-500" :class="{'opacity-25': !showStats}">
             <radial-bar
               name="CPU"
               :total="getNumber(usage?.spec?.cpu?.capacity)"
@@ -59,6 +59,11 @@ included in the LICENSE file.
               ]"
               :formatter="formatBytes"
             />
+          </div>
+          <div v-if="!showStats" class="absolute top-0 left-0 bottom-0 right-0 flex items-center justify-center text-sm">
+            <div class="flex flex-col gap-2">
+              <div class="text-naturals-N13">Kubernetes stats are disabled due to the size of the cluster</div>
+            </div>
           </div>
         </div>
         <div
@@ -188,7 +193,7 @@ included in the LICENSE file.
 import { computed, ref, Ref, toRefs, watch } from "vue";
 import { getContext } from "@/context";
 import { formatBytes, setupBackupStatus } from "@/methods";
-import { KubernetesUsageType, VirtualNamespace, TalosUpgradeStatusType } from "@/api/resources";
+import { KubernetesUsageType, VirtualNamespace, TalosUpgradeStatusType, ClusterStatusType } from "@/api/resources";
 import { Resource } from "@/api/grpc";
 import Watch from "@/api/watch";
 import { Runtime } from "@/api/common/omni.pb";
@@ -202,6 +207,7 @@ import {
 } from "@/methods/cluster";
 import {
   ClusterSpec,
+  ClusterStatusSpec,
   KubernetesUpgradeStatusSpec,
   KubernetesUpgradeStatusSpecPhase,
   KubernetesUsageSpec,
@@ -221,6 +227,10 @@ import { setupClusterPermissions } from "@/methods/auth";
 import { setupWorkloadProxyingEnabledFeatureWatch } from "@/methods/features";
 import ClusterWorkloadProxyingCheckbox from "@/views/omni/Clusters/ClusterWorkloadProxyingCheckbox.vue";
 import ClusterEtcdBackupCheckbox from "@/views/omni/Clusters/ClusterEtcdBackupCheckbox.vue";
+
+// Do not show stats if the cluster has more than a hundred machines.
+// Because it overloads the UI and the backend for no good reason.
+const clusterSizeStatsThreshold = 50;
 
 type Props = {
   currentCluster: Resource<ClusterSpec>,
@@ -253,18 +263,45 @@ kubernetesUpgradeStatusWatch.setup({
   },
 });
 
+const clusterStatus: Ref<Resource<ClusterStatusSpec> | undefined> = ref();
+
 const usage: Ref<Resource<KubernetesUsageSpec> | undefined> = ref();
 
 const usageWatch = new Watch(usage);
 
-usageWatch.setup({
+const clusterStatusWatch = new Watch(clusterStatus);
+
+clusterStatusWatch.setup({
   runtime: Runtime.Omni,
   resource: {
-    namespace: VirtualNamespace,
-    type: KubernetesUsageType,
+    namespace: DefaultNamespace,
+    type: ClusterStatusType,
     id: context.cluster,
-  },
+  }
 });
+
+const showStats = computed(() => {
+  return (clusterStatus.value?.spec.machines?.total ?? 0) < clusterSizeStatsThreshold;
+});
+
+usageWatch.setup(computed(() => {
+  if (!clusterStatus.value) {
+    return;
+  }
+
+  if (!showStats.value) {
+    return;
+  }
+
+  return {
+    runtime: Runtime.Omni,
+    resource: {
+      namespace: VirtualNamespace,
+      type: KubernetesUsageType,
+      id: context.cluster,
+    },
+  }
+}));
 
 const getNumber = (value?: number): number => {
   return value ?? 0;

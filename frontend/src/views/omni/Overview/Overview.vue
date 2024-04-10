@@ -67,12 +67,12 @@ included in the LICENSE file.
                 </div>
               </div>
               <div class="flex px-12" v-if="canReadClusters">
-                <watch :opts="{ resource: machineStatusResource, runtime: Runtime.Omni }">
+                <watch :opts="{ resource: machineStatusMetricsResource, runtime: Runtime.Omni }">
                   <template #default="{ items }">
                     <overview-circle-chart-item class="text-naturals-N14 text-sm"
                       :chartFillPercents="computePercentOfMachinesAssignedToClusters(items)" name="Machines"
-                      :usageName="getNumberOfMachinesAssignedToClusters(items) + ' Used'"
-                      :usagePercents="computePercentOfMachinesAssignedToClusters(items)" :usageTotal="items?.length" />
+                      :usageName="(items[0]?.spec.allocated_machines_count ?? 0) + ' Used'"
+                      :usagePercents="computePercentOfMachinesAssignedToClusters(items)" :usageTotal="items[0]?.spec.registered_machines_count ?? 0" />
                   </template>
                 </watch>
               </div>
@@ -144,15 +144,17 @@ import {
   EphemeralNamespace,
   DefaultNamespace,
   ConfigID,
-  MachineStatusType, RoleNone,
+  RoleNone,
+  MachineStatusMetricsType,
+  MachineStatusMetricsID,
 } from "@/api/resources";
 import { computed, ref } from "vue";
 import { copyText } from "vue3-clipboard";
 import { Runtime } from "@/api/common/omni.pb";
 
-import { ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 import { itemID } from "@/api/watch";
-import { MachineStatusSpec } from "@/api/omni/specs/omni.pb";
+import { MachineStatusMetricsSpec } from "@/api/omni/specs/omni.pb";
 import { downloadTalosconfig, downloadOmniconfig } from "@/methods";
 
 import OverviewCircleChartItem from "@/views/cluster/Overview/components/OverviewCircleChart/OverviewCircleChartItem.vue";
@@ -169,13 +171,6 @@ const hasRoleNone = computed(() => {
   return !role || role === RoleNone;
 });
 
-const getNumberOfMachinesAssignedToClusters = (items: any) =>
-  items?.filter(
-    (item: ResourceTyped<MachineStatusSpec>) => {
-      return item.spec.cluster;
-    }
-  ).length;
-
 const router = useRouter();
 
 const showJoinToken = ref(false);
@@ -184,9 +179,10 @@ const resource = {
   type: ClusterStatusType,
 };
 
-const machineStatusResource = {
-  namespace: DefaultNamespace,
-  type: MachineStatusType,
+const machineStatusMetricsResource = {
+  namespace: EphemeralNamespace,
+  type: MachineStatusMetricsType,
+  id: MachineStatusMetricsID,
 };
 
 const sysVersionResource = {
@@ -203,10 +199,10 @@ const openClusters = () => {
   router.push({ name: "Clusters" });
 };
 
-const computePercentOfMachinesAssignedToClusters = (items: any): string => {
+const computePercentOfMachinesAssignedToClusters = (items: Resource<MachineStatusMetricsSpec>[]): string => {
   return (
-    (100 / Math.max(items?.length, 1)) *
-    getNumberOfMachinesAssignedToClusters(items)
+    (100 / Math.max(items[0]?.spec.registered_machines_count ?? 0, 1)) *
+    (items[0]?.spec.allocated_machines_count ?? 0)
   ).toFixed(0);
 };
 
