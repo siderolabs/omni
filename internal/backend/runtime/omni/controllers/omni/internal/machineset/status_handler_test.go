@@ -329,6 +329,8 @@ func TestStatusHandler(t *testing.T) {
 				machineSet = omni.NewMachineSet(resources.DefaultNamespace, "test")
 			}
 
+			machineSet.Metadata().Labels().Set(omni.LabelCluster, "test")
+
 			require := require.New(t)
 
 			clusterMachineConfigStatuses := make([]*omni.ClusterMachineConfigStatus, 0, len(tt.clusterMachines))

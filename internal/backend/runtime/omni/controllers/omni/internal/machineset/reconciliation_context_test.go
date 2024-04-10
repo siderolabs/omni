@@ -312,6 +312,7 @@ func TestReconciliationContext(t *testing.T) {
 
 			machineSet := omni.NewMachineSet(resources.DefaultNamespace, tt.name)
 			machineSet.TypedSpec().Value = tt.machineSet
+			machineSet.Metadata().Labels().Set(omni.LabelCluster, tt.name)
 
 			cluster := omni.NewCluster(resources.DefaultNamespace, tt.name)
 			cluster.TypedSpec().Value.TalosVersion = "v1.6.4"

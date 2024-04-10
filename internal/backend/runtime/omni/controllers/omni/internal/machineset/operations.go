@@ -47,11 +47,16 @@ func (c *Create) Apply(ctx context.Context, r controller.ReaderWriter, logger *z
 	helpers.UpdateInputsVersions(clusterMachine, configPatches...)
 	setPatches(clusterMachineConfigPatches, configPatches)
 
-	clusterMachine.TypedSpec().Value.KubernetesVersion = rc.GetCluster().TypedSpec().Value.KubernetesVersion
+	var err error
+
+	clusterMachine.TypedSpec().Value.KubernetesVersion, err = rc.GetKubernetesVersion()
+	if err != nil {
+		return err
+	}
 
 	logger.Info("create cluster machine", zap.String("machine", c.ID))
 
-	if err := r.Create(ctx, clusterMachine); err != nil {
+	if err = r.Create(ctx, clusterMachine); err != nil {
 		return err
 	}
 
@@ -78,7 +83,7 @@ func (d *Teardown) Apply(ctx context.Context, r controller.ReaderWriter, logger 
 		return fmt.Errorf(
 			"error tearing down machine %q in cluster %q: %w",
 			d.ID,
-			rc.GetCluster().Metadata().ID(),
+			rc.GetClusterName(),
 			err,
 		)
 	}
@@ -135,14 +140,17 @@ func (u *Update) Apply(ctx context.Context, r controller.ReaderWriter, logger *z
 	return safe.WriterModify(ctx, r, clusterMachine, func(res *omni.ClusterMachine) error {
 		// don't update the ClusterMachine if it's still owned by another cluster
 		currentClusterName, ok := res.Metadata().Labels().Get(omni.LabelCluster)
-		if ok && currentClusterName != rc.cluster.Metadata().ID() {
+		if ok && currentClusterName != rc.GetClusterName() {
 			return nil
 		}
 
 		helpers.CopyAllAnnotations(clusterMachine, res)
 
 		if res.TypedSpec().Value.KubernetesVersion == "" {
-			res.TypedSpec().Value.KubernetesVersion = rc.GetCluster().TypedSpec().Value.KubernetesVersion
+			res.TypedSpec().Value.KubernetesVersion, err = rc.GetKubernetesVersion()
+			if err != nil {
+				return err
+			}
 		}
 
 		return nil

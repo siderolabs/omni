@@ -7,14 +7,13 @@ package machineset
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/cosi-project/runtime/pkg/controller"
-	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/gen/xslices"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -76,6 +75,8 @@ type ReconciliationContext struct {
 	clusterMachineConfigPatchesMap  map[resource.ID]*omni.ClusterMachineConfigPatches
 	clusterMachineStatusesMap       map[resource.ID]*omni.ClusterMachineStatus
 
+	clusterName string
+
 	runningMachineSetNodesSet Set[string]
 	idsTearingDown            Set[string]
 	idsUnconfigured           Set[string]
@@ -104,11 +105,7 @@ func BuildReconciliationContext(
 	}
 
 	cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, r, clusterName)
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return nil, xerrors.NewTagged[qtransform.SkipReconcileTag](err)
-		}
-
+	if err != nil && !state.IsNotFoundError(err) {
 		return nil, err
 	}
 
@@ -179,9 +176,15 @@ func NewReconciliationContext(
 	clusterMachineConfigPatches []*omni.ClusterMachineConfigPatches,
 	clusterMachineStatuses []*omni.ClusterMachineStatus,
 ) (*ReconciliationContext, error) {
+	clusterName, ok := machineSet.Metadata().Labels().Get(omni.LabelCluster)
+	if !ok {
+		return nil, fmt.Errorf("failed to determine the cluster of the machine set %q", machineSet.Metadata().ID())
+	}
+
 	rc := &ReconciliationContext{
 		machineSet:       machineSet,
 		cluster:          cluster,
+		clusterName:      clusterName,
 		patchesByMachine: map[resource.ID][]*omni.ConfigPatch{},
 	}
 
@@ -345,9 +348,18 @@ func (rc *ReconciliationContext) GetOutdatedMachines() Set[string] {
 	return rc.idsOutdated
 }
 
-// GetCluster reads the related cluster resource.
-func (rc *ReconciliationContext) GetCluster() *omni.Cluster {
-	return rc.cluster
+// GetKubernetesVersion reads kubernetes version from the related cluster if the cluster exists.
+func (rc *ReconciliationContext) GetKubernetesVersion() (string, error) {
+	if rc.cluster == nil {
+		return "", errors.New("failed to get kubernetes version for the machine set as the cluster couldn't be found")
+	}
+
+	return rc.cluster.TypedSpec().Value.KubernetesVersion, nil
+}
+
+// GetClusterName reads cluster name from the context.
+func (rc *ReconciliationContext) GetClusterName() string {
+	return rc.clusterName
 }
 
 // GetMachineSet reads the related machine set resource.

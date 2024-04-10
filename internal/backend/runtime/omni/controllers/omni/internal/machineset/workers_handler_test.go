@@ -173,6 +173,7 @@ func TestWorkersHandler(t *testing.T) {
 			require := require.New(t)
 
 			machineSet.TypedSpec().Value = tt.machineSet
+			machineSet.Metadata().Labels().Set(omni.LabelCluster, tt.name)
 
 			cluster := omni.NewCluster(resources.DefaultNamespace, tt.name)
 			cluster.TypedSpec().Value.TalosVersion = "v1.6.0"

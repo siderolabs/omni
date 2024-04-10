@@ -85,6 +85,7 @@ func TestCreate(t *testing.T) {
 	cluster.TypedSpec().Value.KubernetesVersion = "v1.6.2"
 
 	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "machineset")
+	machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 
 	create := machineset.Create{ID: "aa"}
 
@@ -157,6 +158,7 @@ func TestUpdate(t *testing.T) {
 	cluster.TypedSpec().Value.KubernetesVersion = "v1.6.4"
 
 	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "machineset")
+	machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 
 	quota := &machineset.ChangeQuota{
 		Update: 2,
@@ -292,6 +294,7 @@ func TestTeardown(t *testing.T) {
 	cluster.TypedSpec().Value.KubernetesVersion = "v1.6.3"
 
 	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "machineset")
+	machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 
 	quota := machineset.ChangeQuota{
 		Teardown: 1,
@@ -358,6 +361,7 @@ func TestDestroy(t *testing.T) {
 	cluster.TypedSpec().Value.KubernetesVersion = "v1.6.3"
 
 	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "machineset")
+	machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 
 	require := require.New(t)
 
