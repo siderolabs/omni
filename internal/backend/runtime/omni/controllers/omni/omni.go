@@ -71,6 +71,10 @@ func (rt *resourceTracker) cleanup(ctx context.Context) error {
 		var ready bool
 
 		if ready, err = rt.r.Teardown(ctx, res.Metadata()); err != nil {
+			if state.IsNotFoundError(err) {
+				continue
+			}
+
 			return fmt.Errorf("error tearing down resource '%s': %w", res.Metadata().ID(), err)
 		}
 
@@ -85,6 +89,10 @@ func (rt *resourceTracker) cleanup(ctx context.Context) error {
 		}
 
 		if err = rt.r.Destroy(ctx, res.Metadata()); err != nil {
+			if state.IsNotFoundError(err) {
+				continue
+			}
+
 			return fmt.Errorf("error destroying resource '%s': %w", res.Metadata().ID(), err)
 		}
 	}

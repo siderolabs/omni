@@ -965,3 +965,19 @@ message MachineStatusMetricsSpec {
   uint32 connected_machines_count = 2;
   uint32 allocated_machines_count = 3;
 }
+
+// ClusterKubernetesNodesSpec describes the list of nodes in a Kubernetes cluster.
+message ClusterKubernetesNodesSpec {
+  // Nodes is the list of nodes in the cluster.
+  //
+  // It is always sorted.
+  repeated string nodes = 1;
+}
+
+// KubernetesNodeAuditResultSpec describes the result of the Kubernetes node audit.
+//
+// It contains the list of nodes that were last removed.
+message KubernetesNodeAuditResultSpec {
+  // DeletedNodes contains the list of nodes that were last removed.
+  repeated string deleted_nodes = 1;
+}

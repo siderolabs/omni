@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-04-17T16:16:58Z by kres 92eef68.
+# Generated on 2024-04-17T17:08:50Z by kres 92eef68.
 
 name: default
 concurrency:
@@ -268,7 +268,7 @@ jobs:
           AUTH0_TEST_PASSWORD: ${{ secrets.AUTH0_TEST_PASSWORD }}
           AUTH0_TEST_USERNAME: ${{ secrets.AUTH0_TEST_USERNAME }}
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: --test.run CleanState/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|RollingUpdateParallelism/|ForcedMachineRemoval/|ReplaceControlPlanes/|ConfigPatching/
+          INTEGRATION_TEST_ARGS: --test.run CleanState/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|RollingUpdateParallelism/|ForcedMachineRemoval/|ReplaceControlPlanes/|ConfigPatching/|KubernetesNodeAudit/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test

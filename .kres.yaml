@@ -191,7 +191,7 @@ spec:
           - integration/e2e-scaling
         environmentOverride:
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: "--test.run CleanState/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|RollingUpdateParallelism/|ForcedMachineRemoval/|ReplaceControlPlanes/|ConfigPatching/"
+          INTEGRATION_TEST_ARGS: "--test.run CleanState/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|RollingUpdateParallelism/|ForcedMachineRemoval/|ReplaceControlPlanes/|ConfigPatching/|KubernetesNodeAudit/"
       - name: e2e-upgrades
         crons:
           - '30 1 * * *'

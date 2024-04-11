@@ -641,3 +641,11 @@ export type MachineStatusMetricsSpec = {
   connected_machines_count?: number
   allocated_machines_count?: number
 }
+
+export type ClusterKubernetesNodesSpec = {
+  nodes?: string[]
+}
+
+export type KubernetesNodeAuditResultSpec = {
+  deleted_nodes?: string[]
+}

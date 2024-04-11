@@ -138,6 +138,43 @@ Generate various Talos images with Omni and try to download them.`,
 			},
 		},
 		{
+			Name:         "KubernetesNodeAudit",
+			Description:  "Test the auditing of the Kubernetes nodes, i.e. when a node is gone from the Omni perspective but still exists on the Kubernetes cluster.",
+			Parallel:     true,
+			MachineClaim: 2,
+			Subtests: subTests(
+				subTest{
+					"ClusterShouldBeCreated",
+					CreateCluster(ctx, rootClient, ClusterOptions{
+						Name:          "integration-k8s-node-audit",
+						ControlPlanes: 1,
+						Workers:       1,
+
+						MachineOptions: options.MachineOptions,
+					}),
+				},
+			).Append(
+				TestBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
+					ctx, rootClient,
+					"integration-k8s-node-audit",
+					options.MachineOptions.TalosVersion,
+					options.MachineOptions.KubernetesVersion,
+					talosAPIKeyPrepare,
+				)...,
+			).Append(
+				subTest{
+					"KubernetesNodeAuditShouldBePerformed",
+					AssertKubernetesNodeAudit(ctx, rootClient.Omni().State(), "integration-k8s-node-audit", rootClient, options),
+				},
+			).Append(
+				subTest{
+					"ClusterShouldBeDestroyed",
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-k8s-node-audit"),
+				},
+			),
+			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-k8s-node-audit"),
+		},
+		{
 			Name: "ForcedMachineRemoval",
 			Description: `
 Tests different scenarios for forced Machine removal (vs. graceful removing from a cluster):

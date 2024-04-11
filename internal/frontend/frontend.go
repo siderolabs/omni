@@ -5,7 +5,7 @@
 
 // THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 //
-// Generated on 2024-04-17T16:16:58Z by kres 92eef68.
+// Generated on 2024-04-17T17:08:50Z by kres 92eef68.
 
 package frontend
 
