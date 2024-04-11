@@ -143,7 +143,7 @@ func TestStateList(t *testing.T) {
 			}
 
 			l := safe.NewList[*omni.EtcdBackup](list)
-			for i := 0; i < len(tt.result); i++ {
+			for i := range len(tt.result) {
 				backup := l.Get(i)
 
 				assert.Equal(t, tt.result[i].F1, backup.Metadata().ID())

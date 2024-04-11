@@ -244,7 +244,7 @@ func Benchmark_Encrypt(b *testing.B) {
 
 	data := &repeatReader{data: []byte("SIDERO")}
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		rdr := io.LimitReader(data, 10_000_000)
 
 		err := crypt.Encrypt(io.Discard, etcdbackup.EncryptionData{

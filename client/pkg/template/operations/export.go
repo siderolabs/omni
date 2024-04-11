@@ -115,7 +115,7 @@ func buildModelList(clusterModel models.Cluster, controlPlaneMachineSetModel mod
 	})
 
 	for _, workerMachineSetModel := range workerMachineSetModels {
-		workerMachineSetModel := workerMachineSetModel
+		workerMachineSetModel := workerMachineSetModel //nolint:copyloopvar
 
 		modelList = append(modelList, &workerMachineSetModel)
 	}
@@ -125,7 +125,7 @@ func buildModelList(clusterModel models.Cluster, controlPlaneMachineSetModel mod
 	})
 
 	for _, machineModel := range machineModels {
-		machineModel := machineModel
+		machineModel := machineModel //nolint:copyloopvar
 
 		modelList = append(modelList, &machineModel)
 	}

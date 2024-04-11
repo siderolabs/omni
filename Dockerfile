@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-03-13T17:28:42Z by kres latest.
+# Generated on 2024-04-11T11:10:37Z by kres e4c6337.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -274,6 +274,7 @@ FROM base AS lint-golangci-lint
 WORKDIR /src
 COPY .golangci.yml .
 ENV GOGC 50
+RUN golangci-lint config verify --config .golangci.yml
 RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/root/.cache/golangci-lint --mount=type=cache,target=/go/pkg golangci-lint run --config .golangci.yml
 
 # runs golangci-lint
@@ -281,6 +282,7 @@ FROM base AS lint-golangci-lint-client
 WORKDIR /src/client
 COPY client/.golangci.yml .
 ENV GOGC 50
+RUN golangci-lint config verify --config .golangci.yml
 RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/root/.cache/golangci-lint --mount=type=cache,target=/go/pkg golangci-lint run --config .golangci.yml
 
 # runs govulncheck

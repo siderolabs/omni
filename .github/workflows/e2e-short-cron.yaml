@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-03-13T17:28:42Z by kres latest.
+# Generated on 2024-04-11T11:10:37Z by kres e4c6337.
 
 name: e2e-short-cron
 concurrency:
@@ -16,7 +16,7 @@ jobs:
       - omni
     services:
       buildkitd:
-        image: moby/buildkit:v0.12.5
+        image: moby/buildkit:v0.13.1
         options: --privileged
         ports:
           - 1234:1234

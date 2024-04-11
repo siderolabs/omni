@@ -107,9 +107,9 @@ func (s *State) List(ctx context.Context, kind resource.Kind, opts ...state.List
 		return resource.List{}, fmt.Errorf("failed to list backups for cluster %q: %w", parsed.ClusterID, err)
 	}
 
-	var result []resource.Resource
+	var result []resource.Resource //nolint:prealloc
 
-	for i := 0; i < 1000; i++ { // limit max number of iterations to 1000 for now
+	for range 1000 { // limit max number of iterations to 1000 for now
 		info, more, err := iter()
 		if err != nil {
 			return resource.List{}, fmt.Errorf("failed to get the next backup: %w", err)

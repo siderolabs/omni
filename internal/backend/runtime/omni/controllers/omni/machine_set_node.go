@@ -230,7 +230,7 @@ func (ctrl *MachineSetNodeController) createNodes(
 
 		availableMachineClassMachines := allMachineStatuses.FilterLabelQuery(resource.RawLabelQuery(selector))
 
-		for i := 0; i < availableMachineClassMachines.Len(); i++ {
+		for i := range availableMachineClassMachines.Len() {
 			id := availableMachineClassMachines.Get(i).Metadata().ID()
 
 			if err := r.Create(ctx, omni.NewMachineSetNode(resources.DefaultNamespace, id, machineSet)); err != nil {
@@ -293,7 +293,7 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 		iterations = machinesToDestroyCount
 	}
 
-	for i := 0; i < iterations; i++ {
+	for i := range iterations {
 		var (
 			ready bool
 			err   error

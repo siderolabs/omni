@@ -230,7 +230,7 @@ func parseLogEntry(t *testing.T, entry observer.LoggedEntry) logEntry {
 
 		diffLines = make([]string, 0, val.Len())
 
-		for i := 0; i < val.Len(); i++ {
+		for i := range val.Len() {
 			diffLines = append(diffLines, val.Index(i).String())
 		}
 	}

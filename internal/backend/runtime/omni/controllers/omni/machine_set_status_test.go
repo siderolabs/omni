@@ -334,7 +334,7 @@ func (suite *MachineSetStatusSuite) TestScaleDownWithMaxParallelism() {
 	numMachines := 8
 	machines := make([]string, 0, numMachines)
 
-	for i := 0; i < numMachines; i++ {
+	for i := range numMachines {
 		machines = append(machines, fmt.Sprintf("node-test-scale-down-max-parallelism-%02d", i))
 	}
 
@@ -568,7 +568,7 @@ func (suite *MachineSetStatusSuite) TestConfigUpdateWithMaxParallelism() {
 	numMachines := 8
 	machines := make([]string, 0, numMachines)
 
-	for i := 0; i < numMachines; i++ {
+	for i := range numMachines {
 		machines = append(machines, fmt.Sprintf("node-test-update-max-parallelism-%02d", i))
 	}
 
@@ -619,7 +619,7 @@ func (suite *MachineSetStatusSuite) TestConfigUpdateWithMaxParallelism() {
 	expectEvents := func(num int) []resource.ID {
 		ids := make([]resource.ID, 0, num)
 
-		for i := 0; i < num; i++ {
+		for range num {
 			var event safe.WrappedStateEvent[*omni.ClusterMachineConfigPatches]
 
 			select {

@@ -124,7 +124,7 @@ func (suite *TalosUpgradeStatusSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, schematicConfig))
 
-	for i := 0; i < len(machines); i++ {
+	for i := range len(machines) {
 		var versions safe.List[*omni.ClusterMachineTalosVersion]
 
 		versions, err = safe.StateListAll[*omni.ClusterMachineTalosVersion](suite.ctx, suite.state)
