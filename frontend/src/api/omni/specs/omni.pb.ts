@@ -640,3 +640,13 @@ export type MachineStatusMetricsSpec = {
   connected_machines_count?: number
   allocated_machines_count?: number
 }
+
+export type ClusterIdentitySpec = {
+  cluster_id?: string
+  node_ids?: string[]
+}
+
+export type DiscoveryAuditResultSpec = {
+  cluster_id?: string
+  deleted_affiliate_ids?: string[]
+}

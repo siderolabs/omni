@@ -1867,6 +1867,50 @@ func (m *MachineStatusMetricsSpec) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
+func (m *ClusterIdentitySpec) CloneVT() *ClusterIdentitySpec {
+	if m == nil {
+		return (*ClusterIdentitySpec)(nil)
+	}
+	r := new(ClusterIdentitySpec)
+	r.ClusterId = m.ClusterId
+	if rhs := m.NodeIds; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.NodeIds = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ClusterIdentitySpec) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *DiscoveryAuditResultSpec) CloneVT() *DiscoveryAuditResultSpec {
+	if m == nil {
+		return (*DiscoveryAuditResultSpec)(nil)
+	}
+	r := new(DiscoveryAuditResultSpec)
+	r.ClusterId = m.ClusterId
+	if rhs := m.DeletedAffiliateIds; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.DeletedAffiliateIds = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *DiscoveryAuditResultSpec) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (this *MachineSpec) EqualVT(that *MachineSpec) bool {
 	if this == that {
 		return true
@@ -4360,6 +4404,62 @@ func (this *MachineStatusMetricsSpec) EqualVT(that *MachineStatusMetricsSpec) bo
 
 func (this *MachineStatusMetricsSpec) EqualMessageVT(thatMsg proto.Message) bool {
 	that, ok := thatMsg.(*MachineStatusMetricsSpec)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *ClusterIdentitySpec) EqualVT(that *ClusterIdentitySpec) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ClusterId != that.ClusterId {
+		return false
+	}
+	if len(this.NodeIds) != len(that.NodeIds) {
+		return false
+	}
+	for i, vx := range this.NodeIds {
+		vy := that.NodeIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ClusterIdentitySpec) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ClusterIdentitySpec)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *DiscoveryAuditResultSpec) EqualVT(that *DiscoveryAuditResultSpec) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ClusterId != that.ClusterId {
+		return false
+	}
+	if len(this.DeletedAffiliateIds) != len(that.DeletedAffiliateIds) {
+		return false
+	}
+	for i, vx := range this.DeletedAffiliateIds {
+		vy := that.DeletedAffiliateIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DiscoveryAuditResultSpec) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*DiscoveryAuditResultSpec)
 	if !ok {
 		return false
 	}
@@ -9313,6 +9413,104 @@ func (m *MachineStatusMetricsSpec) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	return len(dAtA) - i, nil
 }
 
+func (m *ClusterIdentitySpec) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ClusterIdentitySpec) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ClusterIdentitySpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.NodeIds) > 0 {
+		for iNdEx := len(m.NodeIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.NodeIds[iNdEx])
+			copy(dAtA[i:], m.NodeIds[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.NodeIds[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.ClusterId) > 0 {
+		i -= len(m.ClusterId)
+		copy(dAtA[i:], m.ClusterId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ClusterId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DiscoveryAuditResultSpec) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DiscoveryAuditResultSpec) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DiscoveryAuditResultSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.DeletedAffiliateIds) > 0 {
+		for iNdEx := len(m.DeletedAffiliateIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.DeletedAffiliateIds[iNdEx])
+			copy(dAtA[i:], m.DeletedAffiliateIds[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.DeletedAffiliateIds[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.ClusterId) > 0 {
+		i -= len(m.ClusterId)
+		copy(dAtA[i:], m.ClusterId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ClusterId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *MachineSpec) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -11242,6 +11440,46 @@ func (m *MachineStatusMetricsSpec) SizeVT() (n int) {
 	}
 	if m.AllocatedMachinesCount != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.AllocatedMachinesCount))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ClusterIdentitySpec) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ClusterId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if len(m.NodeIds) > 0 {
+		for _, s := range m.NodeIds {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DiscoveryAuditResultSpec) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ClusterId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if len(m.DeletedAffiliateIds) > 0 {
+		for _, s := range m.DeletedAffiliateIds {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -23462,6 +23700,236 @@ func (m *MachineStatusMetricsSpec) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ClusterIdentitySpec) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ClusterIdentitySpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ClusterIdentitySpec: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClusterId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ClusterId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NodeIds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.NodeIds = append(m.NodeIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DiscoveryAuditResultSpec) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DiscoveryAuditResultSpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DiscoveryAuditResultSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClusterId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ClusterId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DeletedAffiliateIds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DeletedAffiliateIds = append(m.DeletedAffiliateIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

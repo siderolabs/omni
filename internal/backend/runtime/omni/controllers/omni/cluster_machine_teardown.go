@@ -7,10 +7,7 @@ package omni
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
-	"net"
-	"net/url"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -19,17 +16,14 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	serverpb "github.com/siderolabs/discovery-api/api/v1alpha1/server/pb"
 	"github.com/siderolabs/gen/optional"
-	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/discovery"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
@@ -293,24 +287,18 @@ func (ctrl *ClusterMachineTeardownController) deleteMember(
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
 
-	conn, err := ctrl.createDiscoveryClient(ctx)
+	discoveryClient, err := discovery.NewClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error creating discovery client: %w", err)
 	}
 
 	defer func() {
-		if err = conn.Close(); err != nil {
+		if err = discoveryClient.Close(); err != nil {
 			logger.Error("error closing discovery client connection", zap.Error(err))
 		}
 	}()
 
-	discoveryClient := serverpb.NewClusterClient(conn)
-
-	_, err = discoveryClient.AffiliateDelete(ctx, &serverpb.AffiliateDeleteRequest{
-		ClusterId:   clusterID,
-		AffiliateId: clusterMachineIdentity.TypedSpec().Value.NodeIdentity,
-	})
-	if err != nil {
+	if err = discoveryClient.DeleteAffiliate(ctx, clusterID, clusterMachineIdentity.TypedSpec().Value.NodeIdentity); err != nil {
 		return fmt.Errorf(
 			"error deleting member %q: %w",
 			clusterMachineIdentity.TypedSpec().Value.NodeIdentity,
@@ -356,23 +344,4 @@ func (ctrl *ClusterMachineTeardownController) teardownNode(
 	}
 
 	return nil
-}
-
-func (ctrl *ClusterMachineTeardownController) createDiscoveryClient(ctx context.Context) (*grpc.ClientConn, error) {
-	u, err := url.Parse(constants.DefaultDiscoveryServiceEndpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	discoveryConn, err := grpc.DialContext(ctx, net.JoinHostPort(u.Host, "443"),
-		grpc.WithTransportCredentials(
-			credentials.NewTLS(&tls.Config{}),
-		),
-		grpc.WithSharedWriteBuffer(true),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return discoveryConn, nil
 }

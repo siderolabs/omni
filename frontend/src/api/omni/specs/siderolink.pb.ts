@@ -20,6 +20,7 @@ export type SiderolinkSpec = {
   node_public_key?: string
   last_endpoint?: string
   connected?: boolean
+  virtual_addrport?: string
 }
 
 export type SiderolinkCounterSpec = {

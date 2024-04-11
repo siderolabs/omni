@@ -963,3 +963,27 @@ message MachineStatusMetricsSpec {
   uint32 connected_machines_count = 2;
   uint32 allocated_machines_count = 3;
 }
+
+// ClusterIdentitySpec describes the identity of the cluster.
+message ClusterIdentitySpec {
+  // ClusterId is the unique identity of the cluster (the ".cluster.id" in machine config).
+  //
+  // It is also used as the cluster ID for the discovery service.
+  string cluster_id = 1;
+
+  // NodeIds contains the list of node identities of the nodes in the cluster.
+  //
+  // They are also used as the affiliate IDs for the discovery service.
+  repeated string node_ids = 2;
+}
+
+// DiscoveryAuditResultSpec describes the result of the discovery service audit.
+//
+// It contains the discovery service ID of the cluster and the list of affiliate IDs that were last deleted.
+message DiscoveryAuditResultSpec {
+  // ClusterId is the ID of the cluster that was last deleted.
+  string cluster_id = 1;
+
+  // AffiliateIds contains the list of ids of the affiliates that were last removed.
+  repeated string deleted_affiliate_ids = 2;
+}
