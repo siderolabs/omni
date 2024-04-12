@@ -1,3 +1,94 @@
+## [Omni 0.33.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.33.0-beta.0) (2024-04-12)
+
+Welcome to the v0.33.0-beta.0 release of Omni!  
+*This is a pre-release of Omni*
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Extensions Support
+
+It is now possible to change the list of installed extensions for the machines which are allocated into a cluster.
+It can be done using cluster templates.
+The extensions list can be defined for all machines of a cluster, machine set or for a particular machine.
+Extensions update is done the same way as Talos upgrades.
+
+
+### Machine Allocation Changes
+
+From now on Omni doesn't allow adding machines to a cluster which has lower major or minor version of Talos.
+Which means that adding a machine to a cluster which will lead to downgrade of Talos version is no longer possible.
+It is done to avoid all kinds of weird issues which Talos downgrades might lead to.
+
+### Contributors
+
+* Artem Chernyshev
+* Dmitriy Matrenichev
+* Utku Ozdemir
+* Andrey Smirnov
+* Spencer Smith
+* Justin Garrison
+* Sherif Fanous
+
+### Changes
+<details><summary>15 commits</summary>
+<p>
+
+* [`592f916`](https://github.com/siderolabs/omni/commit/592f916346c9987c2b613a34196c3ad78dc44cae) feat: don't allow downgrades of the machines when adding to a cluster
+* [`2e015a9`](https://github.com/siderolabs/omni/commit/2e015a994abe1e7d8237353028f3b9d7f5ae85ef) chore: support Auth0 client playing nicely with other OAuth2/OIDC providers
+* [`de4c096`](https://github.com/siderolabs/omni/commit/de4c096a9b99c110565ce02d6cde16fc61f8c711) fix: ignore not existing cluster in `MachineSet` teardown flow
+* [`d3e3eef`](https://github.com/siderolabs/omni/commit/d3e3eef0fabdd3685e32cd58293f4f9485c03cd4) chore: support WG over GRPC in Omni
+* [`1cc5fb9`](https://github.com/siderolabs/omni/commit/1cc5fb91563752f3c58336eba3db6f66dbd0b92a) refactor: disable K8s stats for clusters with > 50 nodes
+* [`1b64824`](https://github.com/siderolabs/omni/commit/1b648244051fe07a1275e41cf4b2c59bf76eba41) fix: add missing `region` input on the backups storage config page
+* [`f70239c`](https://github.com/siderolabs/omni/commit/f70239c6397d41fb9968ced430a707a63ca82ff1) fix: ignore `modules.dep` virtual extension on schematic id calculation
+* [`1196863`](https://github.com/siderolabs/omni/commit/11968634c0942a8e0c170848fb2d855d446d7db5) feat: forbid `*.acceptedCAs` fields in config patches
+* [`4c179fa`](https://github.com/siderolabs/omni/commit/4c179fa0fe0a8f6b01495e0bbcc0c8cf177edb44) chore: bump Go to 1.22.2 and Talos machinery to `v1.7.0-beta.0`
+* [`b171daa`](https://github.com/siderolabs/omni/commit/b171daad3fc9e9a17392e986c0d8bcd64fe8a61a) fix: properly render download installation media page in Safari
+* [`7fb5d2b`](https://github.com/siderolabs/omni/commit/7fb5d2b20a9372e1a0906b9384696daf93a45c51) chore: add barebones compose file
+* [`9d35dfe`](https://github.com/siderolabs/omni/commit/9d35dfeb712956c4b1bdbecaaa6beebd14ba1ff6) chore: bump net library to v0.23.0
+* [`5dc2eaa`](https://github.com/siderolabs/omni/commit/5dc2eaa1024f0ea09a1a5571289ba2cbebd6f633) fix: prevent link and clustermachine deletion from getting stuck
+* [`ae85293`](https://github.com/siderolabs/omni/commit/ae85293e1411d6844c1c48255915dba4095cb425) docs: add screenshot and install link
+* [`2107c01`](https://github.com/siderolabs/omni/commit/2107c0195bead299f9f2a7f4c809802d92ce8c95) feat: support setting extensions list in the cluster template
+</p>
+</details>
+
+### Changes from siderolabs/crypto
+<details><summary>2 commits</summary>
+<p>
+
+* [`c240482`](https://github.com/siderolabs/crypto/commit/c2404820ab1c1346c76b5b0f9b7632ca9d51e547) feat: provide dynamic client CA matching
+* [`2f4f911`](https://github.com/siderolabs/crypto/commit/2f4f911da321ade3cedacc3b6abfef5f119f7508) feat: add PEMEncodedCertificate wrapper
+</p>
+</details>
+
+### Changes from siderolabs/siderolink
+<details><summary>5 commits</summary>
+<p>
+
+* [`5422b1c`](https://github.com/siderolabs/siderolink/commit/5422b1c3d2e0ccc0bf5801e25130336c1fff0813) chore: quick fixes
+* [`9300968`](https://github.com/siderolabs/siderolink/commit/930096812155cb460d7c99db47de39bea1418021) feat: move actual logic into the `agent` package
+* [`8866351`](https://github.com/siderolabs/siderolink/commit/8866351abf8dc6120da3d984684855c94e43adf9) chore: implement WireGuard over GRPC
+* [`7909156`](https://github.com/siderolabs/siderolink/commit/79091567e14526293eb19988fc2015a98c7b1898) chore: bump deps
+* [`eb221dd`](https://github.com/siderolabs/siderolink/commit/eb221ddf88db7df35465db9bf1733b23580a6159) chore: bump deps
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/cenkalti/backoff/v4**             v4.2.1 -> v4.3.0
+* **github.com/cosi-project/runtime**            v0.4.0-alpha.9 -> v0.4.1
+* **github.com/siderolabs/crypto**               v0.4.2 -> v0.4.4
+* **github.com/siderolabs/siderolink**           v0.3.4 -> v0.3.5
+* **github.com/siderolabs/talos/pkg/machinery**  v1.7.0-alpha.1 -> v1.7.0-beta.0
+* **golang.org/x/crypto**                        v0.19.0 -> v0.21.0
+* **golang.org/x/net**                           v0.21.0 -> v0.23.0
+* **golang.org/x/tools**                         v0.16.1 -> v0.19.0
+* **golang.zx2c4.com/wireguard**                 12269c276173 **_new_**
+
+Previous release can be found at [v0.32.0](https://github.com/siderolabs/omni/releases/tag/v0.32.0)
+
 ## [Omni 0.20.0](https://github.com/siderolabs/omni/releases/tag/v0.20.0) (2023-10-17)
 
 Welcome to the v0.20.0 release of Omni!

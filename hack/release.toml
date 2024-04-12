@@ -5,20 +5,23 @@ project_name = "Omni"
 github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
-pre_release = false
-previous = "v0.19.0"
+pre_release = true
+previous = "v0.32.0"
 
 [notes]
 
-  [notes.kubernetes-config]
-    title = "Kubeconfig Changes"
+  [notes.talos-upgrades]
+    title = "Machine Allocation Changes"
     description = """\
-Omni now generates Kubernetes configs without accessing Talos API.
-"""
+From now on Omni doesn't allow adding machines to a cluster which has lower major or minor version of Talos.
+Which means that adding a machine to a cluster which will lead to downgrade of Talos version is no longer possible.
+It is done to avoid all kinds of weird issues which Talos downgrades might lead to."""
 
-  [notes.saml-roles]
-    title = ""
+  [notes.extensions]
+    title = "Extensions Support"
     description = """\
-Omni can now define SAML user roles depending on the SAML labels it gets from the SAML assertion.
-Role is assigned only once on user creation.
+It is now possible to change the list of installed extensions for the machines which are allocated into a cluster.
+It can be done using cluster templates.
+The extensions list can be defined for all machines of a cluster, machine set or for a particular machine.
+Extensions update is done the same way as Talos upgrades.
 """
