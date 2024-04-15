@@ -44,7 +44,7 @@ func (suite *MaintenanceConfigPatchSuite) TestReconcile() {
 	rtestutils.AssertResources(suite.ctx, suite.T(), suite.state, []string{expectedID},
 		func(cp *omni.ConfigPatch, assert *assert.Assertions) {
 			assert.Equal(machineID, cp.Metadata().Labels().Raw()[omni.LabelMachine])
-			assert.Equal(machineStatus.TypedSpec().Value.GetMaintenanceConfig().GetConfig(), cp.TypedSpec().Value.Data)
+			assert.Equal("# some config", cp.TypedSpec().Value.Data)
 		},
 	)
 
@@ -56,7 +56,8 @@ func (suite *MaintenanceConfigPatchSuite) TestReconcile() {
 	suite.Require().NoError(err)
 
 	rtestutils.AssertResources(suite.ctx, suite.T(), suite.state, []string{expectedID}, func(cp *omni.ConfigPatch, assert *assert.Assertions) {
-		assert.Equal(machineStatus.TypedSpec().Value.GetMaintenanceConfig().GetConfig(), cp.TypedSpec().Value.Data)
+		assert.Equal(machineID, cp.Metadata().Labels().Raw()[omni.LabelMachine])
+		assert.Equal("# some other config", cp.TypedSpec().Value.Data)
 	})
 
 	rtestutils.Destroy[*omni.MachineStatus](suite.ctx, suite.T(), suite.state, []resource.ID{machineID})
