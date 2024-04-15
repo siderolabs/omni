@@ -17,6 +17,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -163,7 +164,9 @@ func parseRequest(r *http.Request, st state.State) (*ProxyParams, error) {
 
 	secureBoot := r.URL.Query().Get(constants.SecureBoot) == "true"
 
-	srcFilename := segments[2]
+	talosVersion := segments[2]
+
+	srcFilename := talosVersion
 
 	if secureBoot {
 		srcFilename += "-secureboot"
@@ -179,15 +182,7 @@ func parseRequest(r *http.Request, st state.State) (*ProxyParams, error) {
 		return nil, err
 	}
 
-	// filename is the last part of the proxy URL which is parsed by the image factory
-	// so it should have the appropriate format
-	filename := media.TypedSpec().Value.SrcFilePrefix
-
-	if secureBoot {
-		filename += "-secureboot"
-	}
-
-	filename += "." + media.TypedSpec().Value.Extension
+	filename := media.TypedSpec().Value.GenerateFilename(!quirks.New(talosVersion).SupportsOverlay(), secureBoot, true)
 
 	// strip the last element from the URL
 	// replace it with the generated filename

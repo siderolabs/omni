@@ -405,6 +405,7 @@ export type InstallationMediaSpec = {
   dest_file_prefix?: string
   extension?: string
   no_secure_boot?: boolean
+  overlay?: string
 }
 
 export type ConfigPatchSpec = {

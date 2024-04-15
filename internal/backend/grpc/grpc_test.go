@@ -24,6 +24,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -106,6 +107,7 @@ func (suite *GrpcSuite) SetupTest() {
 
 	err = suite.newServer(
 		imageFactoryClient,
+		logger,
 		grpc.ChainUnaryInterceptor(authConfigInterceptor.Unary()),
 		grpc.ChainStreamInterceptor(authConfigInterceptor.Stream()),
 	)
@@ -277,7 +279,7 @@ func (suite *GrpcSuite) TestConfigValidation() {
 	suite.Require().Equalf(codes.InvalidArgument, status.Code(err), err.Error())
 }
 
-func (suite *GrpcSuite) newServer(imageFactoryClient *imagefactory.Client, opts ...grpc.ServerOption) error {
+func (suite *GrpcSuite) newServer(imageFactoryClient *imagefactory.Client, logger *zap.Logger, opts ...grpc.ServerOption) error {
 	var err error
 
 	suite.socketPath = filepath.Join(suite.T().TempDir(), "socket")
@@ -295,6 +297,7 @@ func (suite *GrpcSuite) newServer(imageFactoryClient *imagefactory.Client, opts 
 	management.RegisterManagementServiceServer(suite.server, grpcomni.NewManagementServer(
 		suite.state,
 		imageFactoryClient,
+		logger,
 	))
 
 	go func() {

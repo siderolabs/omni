@@ -159,7 +159,7 @@ func findImage(ctx context.Context, client *client.Client, name, arch string) (*
 	return result[0], nil
 }
 
-func createSchematic(ctx context.Context, client *client.Client) (*management.CreateSchematicResponse, error) {
+func createSchematic(ctx context.Context, client *client.Client, media *omni.InstallationMedia) (*management.CreateSchematicResponse, error) {
 	metaValues := map[uint32]string{}
 
 	var extensions []string
@@ -186,6 +186,9 @@ func createSchematic(ctx context.Context, client *client.Client) (*management.Cr
 		MetaValues:      metaValues,
 		ExtraKernelArgs: downloadCmdFlags.extraKernelArgs,
 		Extensions:      extensions,
+		MediaId:         media.Metadata().ID(),
+		SecureBoot:      downloadCmdFlags.secureBoot,
+		TalosVersion:    downloadCmdFlags.talosVersion,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create schematic: %w", err)
@@ -195,7 +198,7 @@ func createSchematic(ctx context.Context, client *client.Client) (*management.Cr
 }
 
 func downloadImageTo(ctx context.Context, client *client.Client, media *omni.InstallationMedia, output string) error {
-	schematicResp, err := createSchematic(ctx, client)
+	schematicResp, err := createSchematic(ctx, client, media)
 	if err != nil {
 		return err
 	}
@@ -205,20 +208,7 @@ func downloadImageTo(ctx context.Context, client *client.Client, media *omni.Ins
 	}
 
 	if downloadCmdFlags.pxe {
-		var u *url.URL
-
-		u, err = url.Parse(schematicResp.PxeUrl)
-		if err != nil {
-			return err
-		}
-
-		url := u.JoinPath(downloadCmdFlags.talosVersion, media.TypedSpec().Value.SrcFilePrefix).String()
-
-		if downloadCmdFlags.secureBoot {
-			url += "-secureboot"
-		}
-
-		fmt.Println(url)
+		fmt.Println(schematicResp.PxeUrl)
 
 		return nil
 	}

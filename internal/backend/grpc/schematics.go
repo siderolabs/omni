@@ -12,14 +12,18 @@ import (
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/siderolabs/image-factory/pkg/client"
 	"github.com/siderolabs/image-factory/pkg/schematic"
+	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
@@ -70,11 +74,44 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 		return 0
 	})
 
-	schematic := schematic.Schematic{
+	schematicRequest := schematic.Schematic{
 		Customization: customization,
 	}
 
-	schematicInfo, err := s.imageFactoryClient.EnsureSchematic(ctx, schematic)
+	media, err := safe.ReaderGetByID[*omni.InstallationMedia](ctx, s.omniState, request.MediaId)
+	if err != nil {
+		return nil, err
+	}
+
+	supportsOverlays := quirks.New(request.TalosVersion).SupportsOverlay()
+
+	if media.TypedSpec().Value.Overlay != "" && supportsOverlays {
+		var overlays []client.OverlayInfo
+
+		overlays, err = s.imageFactoryClient.Client.OverlaysVersions(ctx, request.TalosVersion)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get overlays list for the Talos version: %w", err)
+		}
+
+		index := slices.IndexFunc(overlays, func(value client.OverlayInfo) bool {
+			return value.Name == media.TypedSpec().Value.Overlay
+		})
+
+		if index == -1 {
+			return nil, fmt.Errorf("failed to find overlay with name %q", media.TypedSpec().Value.Overlay)
+		}
+
+		overlay := overlays[index]
+
+		schematicRequest.Overlay = schematic.Overlay{
+			Name:  overlay.Name,
+			Image: overlay.Image,
+		}
+	}
+
+	s.logger.Info("ensure schematic", zap.Reflect("schematic", schematicRequest))
+
+	schematicInfo, err := s.imageFactoryClient.EnsureSchematic(ctx, schematicRequest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to ensure schematic: %w", err)
 	}
@@ -84,8 +121,10 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 		return nil, err
 	}
 
+	filename := media.TypedSpec().Value.GenerateFilename(!supportsOverlays, request.SecureBoot, false)
+
 	return &management.CreateSchematicResponse{
 		SchematicId: schematicInfo.FullID,
-		PxeUrl:      pxeURL.JoinPath("pxe", schematicInfo.FullID).String(),
+		PxeUrl:      pxeURL.JoinPath("pxe", schematicInfo.FullID, request.TalosVersion, filename).String(),
 	}, nil
 }

@@ -113,6 +113,9 @@ export type CreateSchematicRequest = {
   extensions?: string[]
   extra_kernel_args?: string[]
   meta_values?: {[key: number]: string}
+  talos_version?: string
+  media_id?: string
+  secure_boot?: boolean
 }
 
 export type CreateSchematicResponse = {

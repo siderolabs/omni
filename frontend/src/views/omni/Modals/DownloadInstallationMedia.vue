@@ -234,22 +234,8 @@ const talosVersionsResources: Ref<Resource<TalosVersionSpec>[]> = ref([])
 const optionsWatch = new WatchResource(watchOptions);
 const talosVersionsWatch = new WatchResource(talosVersionsResources)
 const schematicID = ref<string>();
-const pxeBaseURL = ref<string>();
+const pxeURL = ref<string>();
 const secureBoot = ref(false);
-
-const pxeURL = computed(() => {
-  if (!pxeBaseURL.value || !installationMedia.value) {
-    return;
-  }
-
-  let url = `${pxeBaseURL.value}/${selectedTalosVersion.value}/${installationMedia.value.spec.src_file_prefix}`;
-
-  if (secureBoot.value && !installationMedia.value.spec.no_secure_boot) {
-    url += "-secureboot";
-  }
-
-  return url;
-});
 
 optionsWatch.setup({
   runtime: Runtime.Omni,
@@ -291,7 +277,7 @@ watch(() => optionsWatch.items?.value.length, () => {
 });
 
 watch([selectedOption, selectedTalosVersion, labels, installExtensions.value], () => {
-  pxeBaseURL.value = undefined;
+  pxeURL.value = undefined;
   schematicID.value = undefined;
 });
 
@@ -309,6 +295,9 @@ const createSchematic = async () => {
       extensions: [],
       extra_kernel_args: [],
       meta_values: {},
+      media_id:  installationMedia.value?.metadata.id,
+      talos_version: selectedTalosVersion.value,
+      secure_boot: secureBoot.value,
     };
 
     if (labels.value && Object.keys(labels.value).length > 0) {
@@ -332,7 +321,7 @@ const createSchematic = async () => {
 
     const resp = await ManagementService.CreateSchematic(schematic);
 
-    pxeBaseURL.value = resp.pxe_url;
+    pxeURL.value = resp.pxe_url;
     schematicID.value = resp.schematic_id;
 
     return resp;

@@ -154,6 +154,10 @@ func (suite *GrpcSuite) TestSchematicCreate() {
 
 	client := management.NewManagementServiceClient(suite.conn)
 
+	media := omni.NewInstallationMedia(resources.EphemeralNamespace, "test")
+
+	suite.Require().NoError(suite.state.Create(ctx, media))
+
 	for _, tt := range []struct {
 		request       *management.CreateSchematicRequest
 		expectedError func(*testing.T, error)
@@ -214,6 +218,8 @@ func (suite *GrpcSuite) TestSchematicCreate() {
 		},
 	} {
 		req := tt.request
+		req.TalosVersion = "v1.6.5"
+		req.MediaId = "test"
 
 		suite.T().Run(tt.name, func(t *testing.T) {
 			resp, err := client.CreateSchematic(ctx, req)

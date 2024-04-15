@@ -60,7 +60,10 @@ func AssertSomeImagesAreDownloadable(testCtx context.Context, client *client.Cli
 				u, err := url.Parse(httpEndpoint)
 				require.NoError(t, err)
 
-				schematic, err := client.Management().CreateSchematic(ctx, &management.CreateSchematicRequest{})
+				schematic, err := client.Management().CreateSchematic(ctx, &management.CreateSchematicRequest{
+					MediaId:      image.Metadata().ID(),
+					TalosVersion: clientconsts.DefaultTalosVersion,
+				})
 				require.NoError(t, err)
 
 				u.Path, err = url.JoinPath(u.Path, "image", schematic.SchematicId, clientconsts.DefaultTalosVersion, image.Metadata().ID())

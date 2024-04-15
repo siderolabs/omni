@@ -36,6 +36,7 @@ type installationMediaSpec struct {
 	Profile      string
 	Type         string
 	ContentType  string
+	Overlay      string
 	SBC          bool
 }
 
@@ -44,14 +45,14 @@ var installationMedia = []installationMediaSpec{
 	{
 		Name:         "ISO (amd64)",
 		Architecture: amd64Arch,
-		Profile:      "iso",
+		Profile:      "metal",
 		Type:         isoType,
 		ContentType:  "application/x-iso-stream",
 	},
 	{
 		Name:         "ISO (arm64)",
 		Architecture: arm64Arch,
-		Profile:      "iso",
+		Profile:      "metal",
 		Type:         isoType,
 		ContentType:  "application/x-iso-stream",
 	},
@@ -246,6 +247,7 @@ var installationMedia = []installationMediaSpec{
 		Architecture: arm64Arch,
 		Type:         rawType,
 		SBC:          true,
+		Overlay:      "bananapi_m64",
 		Profile:      constants.BoardBananaPiM64,
 		ContentType:  "application/x-xz",
 	},
@@ -255,6 +257,7 @@ var installationMedia = []installationMediaSpec{
 		Profile:      constants.BoardJetsonNano,
 		Type:         rawType,
 		SBC:          true,
+		Overlay:      "jetson_nano",
 		ContentType:  "application/x-xz",
 	},
 	{
@@ -263,6 +266,7 @@ var installationMedia = []installationMediaSpec{
 		Profile:      constants.BoardLibretechAllH3CCH5,
 		Type:         rawType,
 		SBC:          true,
+		Overlay:      "libretech_all_h3_cc_h5",
 		ContentType:  "application/x-xz",
 	},
 	{
@@ -271,6 +275,7 @@ var installationMedia = []installationMediaSpec{
 		Profile:      constants.BoardPine64,
 		Type:         rawType,
 		SBC:          true,
+		Overlay:      "pine64",
 		ContentType:  "application/x-xz",
 	},
 	{
@@ -279,6 +284,7 @@ var installationMedia = []installationMediaSpec{
 		Profile:      constants.BoardRock64,
 		Type:         rawType,
 		SBC:          true,
+		Overlay:      "rock64",
 		ContentType:  "application/x-xz",
 	},
 	{
@@ -287,6 +293,7 @@ var installationMedia = []installationMediaSpec{
 		Profile:      constants.BoardRockpi4,
 		Type:         rawType,
 		SBC:          true,
+		Overlay:      "rockpi4",
 		ContentType:  "application/x-xz",
 	},
 	{
@@ -295,8 +302,8 @@ var installationMedia = []installationMediaSpec{
 		Profile:      constants.BoardRockpi4c,
 		Type:         rawType,
 		SBC:          true,
-
-		ContentType: "application/x-xz",
+		Overlay:      "rockpi4c",
+		ContentType:  "application/x-xz",
 	},
 	{
 		Name:         "Raspberry Pi 4 Model B",
@@ -304,6 +311,7 @@ var installationMedia = []installationMediaSpec{
 		Profile:      constants.BoardRPiGeneric,
 		Type:         rawType,
 		SBC:          true,
+		Overlay:      "rpi_generic",
 		ContentType:  "application/x-xz",
 	},
 }
@@ -349,10 +357,10 @@ func (ctrl *InstallationMediaController) Run(ctx context.Context, r controller.R
 			newMedia.TypedSpec().Value.Name = m.Name
 			newMedia.TypedSpec().Value.Profile = m.Profile
 			newMedia.TypedSpec().Value.ContentType = m.ContentType
-			newMedia.TypedSpec().Value.SrcFilePrefix = fname.srcPrefix
 			newMedia.TypedSpec().Value.DestFilePrefix = fmt.Sprintf("%s-omni-%s", fname.srcPrefix, config.Config.Name)
 			newMedia.TypedSpec().Value.Extension = fname.extension
 			newMedia.TypedSpec().Value.NoSecureBoot = m.SBC
+			newMedia.TypedSpec().Value.Overlay = m.Overlay
 
 			tracker.keep(newMedia)
 
@@ -375,9 +383,6 @@ type filename struct {
 // Generate filenames for installation media at runtime so we know the account name.
 func generateFilename(m installationMediaSpec) filename {
 	profile := m.Profile
-	if m.Type == "iso" {
-		profile = "metal"
-	}
 
 	if m.SBC {
 		profile = "metal-" + m.Profile

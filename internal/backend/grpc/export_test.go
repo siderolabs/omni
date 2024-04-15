@@ -7,6 +7,7 @@ package grpc
 
 import (
 	"github.com/cosi-project/runtime/pkg/state"
+	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 )
@@ -14,10 +15,11 @@ import (
 type ManagementServer = managementServer
 
 //nolint:revive
-func NewManagementServer(st state.State, imageFactoryClient *imagefactory.Client) *ManagementServer {
+func NewManagementServer(st state.State, imageFactoryClient *imagefactory.Client, logger *zap.Logger) *ManagementServer {
 	return &ManagementServer{
 		omniState:          st,
 		imageFactoryClient: imageFactoryClient,
+		logger:             logger,
 	}
 }
 

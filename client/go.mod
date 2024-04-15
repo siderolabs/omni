@@ -27,7 +27,7 @@ require (
 	github.com/siderolabs/go-api-signature v0.3.2
 	github.com/siderolabs/go-kubeconfig v0.1.0
 	github.com/siderolabs/go-pointer v1.0.0
-	github.com/siderolabs/talos/pkg/machinery v1.7.0-beta.0
+	github.com/siderolabs/talos/pkg/machinery v1.7.0-alpha.1.0.20240415183747-3dd1f4e88c22
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.9.0
 	github.com/xlab/treeprint v1.2.0

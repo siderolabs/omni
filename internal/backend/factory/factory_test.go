@@ -29,9 +29,8 @@ func TestParseRequest(t *testing.T) {
 		"iso-metal-arm64": {
 			Name:           "ISO",
 			Architecture:   "arm64",
-			Profile:        "iso",
+			Profile:        "metal",
 			ContentType:    "application/x-iso",
-			SrcFilePrefix:  "metal-arm64",
 			DestFilePrefix: "omni-metal-arm64",
 			Extension:      "iso",
 		},

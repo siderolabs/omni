@@ -542,6 +542,8 @@ message InstallationMediaSpec {
   string extension = 9;
   // NoSecureBoot means that the installation media doesn't support SecureBoot generation.
   bool no_secure_boot = 11;
+  // Overlay is the overlay to be always used when generating the image of this type.
+  string overlay = 12;
 }
 
 // ConfigPatchSpec represents the machine config patch.
