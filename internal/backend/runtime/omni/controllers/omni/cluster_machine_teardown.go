@@ -7,10 +7,7 @@ package omni
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
-	"net"
-	"net/url"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -19,12 +16,8 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	serverpb "github.com/siderolabs/discovery-api/api/v1alpha1/server/pb"
 	"github.com/siderolabs/gen/optional"
-	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -40,12 +33,20 @@ const ClusterMachineTeardownControllerName = "ClusterMachineTeardownController"
 
 // ClusterMachineTeardownController processes additional teardown steps for a machine leaving a machine set.
 type ClusterMachineTeardownController struct {
+	discoveryClient DiscoveryClient
 	generic.NamedController
 }
 
+// DiscoveryClient is an interface for interacting with the discovery service.
+type DiscoveryClient interface {
+	AffiliateDelete(ctx context.Context, cluster, affiliate string) error
+}
+
 // NewClusterMachineTeardownController initializes ClusterMachineTeardownController.
-func NewClusterMachineTeardownController() *ClusterMachineTeardownController {
+func NewClusterMachineTeardownController(discoveryClient DiscoveryClient) *ClusterMachineTeardownController {
 	return &ClusterMachineTeardownController{
+		discoveryClient: discoveryClient,
+
 		NamedController: generic.NamedController{
 			ControllerName: ClusterMachineTeardownControllerName,
 		},
@@ -253,35 +254,21 @@ func (ctrl *ClusterMachineTeardownController) teardownNodeMember(
 		return nil
 	}
 
+	if err = ctrl.deleteMember(ctx, r, bundle.Cluster.ID, clusterMachine, logger); err != nil {
+		return err
+	}
+
 	if nodeNameOccurences[clusterMachineIdentity.TypedSpec().Value.Nodename] == 1 {
 		if err = ctrl.teardownNode(ctx, clusterMachine, clusterMachineIdentity); err != nil {
 			return fmt.Errorf("error tearing down node %q: %w", clusterMachineIdentity.TypedSpec().Value.Nodename, err)
 		}
 	}
 
-	if err = ctrl.deleteMember(ctx, r, bundle.Cluster.ID, clusterMachine, logger); err != nil {
-		return fmt.Errorf(
-			"error deleting member %q: %w",
-			clusterMachineIdentity.TypedSpec().Value.Nodename,
-			err,
-		)
-	}
-
 	return nil
 }
 
-func (ctrl *ClusterMachineTeardownController) deleteMember(
-	ctx context.Context,
-	r controller.ReaderWriter,
-	clusterID string,
-	clusterMachine *omni.ClusterMachine,
-	logger *zap.Logger,
-) error {
-	clusterMachineIdentity, err := safe.ReaderGet[*omni.ClusterMachineIdentity](
-		ctx,
-		r,
-		omni.NewClusterMachineIdentity(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata(),
-	)
+func (ctrl *ClusterMachineTeardownController) deleteMember(ctx context.Context, r controller.ReaderWriter, clusterID string, clusterMachine *omni.ClusterMachine, logger *zap.Logger) error {
+	clusterMachineIdentity, err := safe.ReaderGet[*omni.ClusterMachineIdentity](ctx, r, omni.NewClusterMachineIdentity(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil
@@ -290,32 +277,12 @@ func (ctrl *ClusterMachineTeardownController) deleteMember(
 		return fmt.Errorf("error getting identity: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
-	defer cancel()
+	logger = logger.With(zap.String("cluster_identity", clusterID), zap.String("node_identity", clusterMachineIdentity.Metadata().ID()))
 
-	conn, err := ctrl.createDiscoveryClient(ctx)
-	if err != nil {
-		return fmt.Errorf("error creating discovery client: %w", err)
-	}
-
-	defer func() {
-		if err = conn.Close(); err != nil {
-			logger.Error("error closing discovery client connection", zap.Error(err))
-		}
-	}()
-
-	discoveryClient := serverpb.NewClusterClient(conn)
-
-	_, err = discoveryClient.AffiliateDelete(ctx, &serverpb.AffiliateDeleteRequest{
-		ClusterId:   clusterID,
-		AffiliateId: clusterMachineIdentity.TypedSpec().Value.NodeIdentity,
-	})
-	if err != nil {
-		return fmt.Errorf(
-			"error deleting member %q: %w",
-			clusterMachineIdentity.TypedSpec().Value.NodeIdentity,
-			err,
-		)
+	if err = ctrl.discoveryClient.AffiliateDelete(ctx, clusterID, clusterMachineIdentity.TypedSpec().Value.NodeIdentity); err != nil {
+		logger.Error("failed to delete the affiliate from the discovery service", zap.Error(err))
+	} else {
+		logger.Info("deleted the affiliate from the discovery service")
 	}
 
 	return nil
@@ -356,23 +323,4 @@ func (ctrl *ClusterMachineTeardownController) teardownNode(
 	}
 
 	return nil
-}
-
-func (ctrl *ClusterMachineTeardownController) createDiscoveryClient(ctx context.Context) (*grpc.ClientConn, error) {
-	u, err := url.Parse(constants.DefaultDiscoveryServiceEndpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	discoveryConn, err := grpc.DialContext(ctx, net.JoinHostPort(u.Host, "443"),
-		grpc.WithTransportCredentials(
-			credentials.NewTLS(&tls.Config{}),
-		),
-		grpc.WithSharedWriteBuffer(true),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return discoveryConn, nil
 }

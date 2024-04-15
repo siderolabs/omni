@@ -29,6 +29,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend"
+	"github.com/siderolabs/omni/internal/backend/discovery"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/logging"
@@ -171,9 +172,20 @@ func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtua
 
 		linkCounterDeltaCh := make(chan siderolink.LinkCounterDeltas)
 
+		discoveryClient, err := discovery.NewClient(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to create discovery client: %w", err)
+		}
+
+		defer func() {
+			if closeErr := discoveryClient.Close(); closeErr != nil {
+				logger.Error("failed to close discovery client", zap.Error(closeErr))
+			}
+		}()
+
 		omniRuntime, err := omni.New(talosClientFactory, dnsService, workloadProxyServiceRegistry, resourceLogger,
 			imageFactoryClient, linkCounterDeltaCh, resourceState, virtualState,
-			prometheus.DefaultRegisterer, logger.With(logging.Component("omni_runtime")))
+			prometheus.DefaultRegisterer, discoveryClient, logger.With(logging.Component("omni_runtime")))
 		if err != nil {
 			return fmt.Errorf("failed to set up the controller runtime: %w", err)
 		}

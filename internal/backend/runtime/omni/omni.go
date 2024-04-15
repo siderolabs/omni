@@ -75,7 +75,7 @@ type Runtime struct {
 //nolint:maintidx
 func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workloadProxyServiceRegistry *workloadproxy.ServiceRegistry,
 	resourceLogger *resourcelogger.Logger, imageFactoryClient *imagefactory.Client, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas, resourceState state.State,
-	virtualState *virtual.State, metricsRegistry prometheus.Registerer, logger *zap.Logger,
+	virtualState *virtual.State, metricsRegistry prometheus.Registerer, discoveryClient omnictrl.DiscoveryClient, logger *zap.Logger,
 ) (*Runtime, error) {
 	var opts []options.Option
 
@@ -195,7 +195,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewClusterConfigVersionController(),
 		omnictrl.NewClusterEndpointController(),
 		omnictrl.NewClusterMachineConfigController(config.Config.DefaultConfigGenOptions),
-		omnictrl.NewClusterMachineTeardownController(),
+		omnictrl.NewClusterMachineTeardownController(discoveryClient),
 		omnictrl.NewMachineConfigGenOptionsController(),
 		omnictrl.NewClusterMachineConfigStatusController(),
 		omnictrl.NewClusterMachineEncryptionKeyController(),

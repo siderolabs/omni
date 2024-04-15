@@ -76,18 +76,16 @@ func (suite *OmniRuntimeSuite) SetupTest() {
 	var err error
 
 	resourceState := state.WrapCore(namespaced.NewState(inmem.Build))
-
 	logger := zaptest.NewLogger(suite.T())
-
 	clientFactory := talos.NewClientFactory(resourceState, logger)
-
 	dnsService := dns.NewService(resourceState, logger)
+	discoveryServiceClient := &discoveryClientMock{}
 
 	workloadProxyServiceRegistry, err := workloadproxy.NewServiceRegistry(resourceState, logger)
 	suite.Require().NoError(err)
 
 	suite.runtime, err = omniruntime.New(clientFactory, dnsService, workloadProxyServiceRegistry, nil, nil, nil,
-		resourceState, nil, prometheus.NewRegistry(), logger)
+		resourceState, nil, prometheus.NewRegistry(), discoveryServiceClient, logger)
 
 	suite.Require().NoError(err)
 
@@ -192,4 +190,11 @@ func (suite *OmniRuntimeSuite) TearDownTest() {
 
 func TestOmniRuntimeSuite(t *testing.T) {
 	suite.Run(t, new(OmniRuntimeSuite))
+}
+
+type discoveryClientMock struct{}
+
+// AffiliateDelete implements the omni.DiscoveryClient interface.
+func (d *discoveryClientMock) AffiliateDelete(context.Context, string, string) error {
+	return nil
 }
