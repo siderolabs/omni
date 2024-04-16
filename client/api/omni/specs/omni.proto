@@ -126,6 +126,11 @@ message MachineStatusSpec {
   }
 
   message Schematic {
+    message Overlay {
+      string name = 1;
+      string image = 2;
+    }
+
     // Id is the image factory schematic id used for the image generation.
     //
     // This must be be plain id computed solely from the system extensions, not including the kernel command line arguments, META content etc.
@@ -142,6 +147,10 @@ message MachineStatusSpec {
     // InitialSchematic is the one first schematic the machine was using when it was connected to Omni for the first time.
     // Omni will always reset schematic configuration to this default value when no explicit schematic configuration is set.
     string initial_schematic = 4;
+
+    // Overlay contains the information about the overlay used during the machine image generation.
+    // It is used by SBC images.
+    Overlay overlay = 6;
   }
 
   message MaintenanceConfig {
@@ -947,6 +956,7 @@ message ExtensionsConfigurationSpec {
 }
 
 // ExtensionsConfigurationStatusSpec is the status of the generated schematic.
+// Deprecated: to be removed.
 message ExtensionsConfigurationStatusSpec {
   enum Phase {
     Unknown = 0;
@@ -957,6 +967,11 @@ message ExtensionsConfigurationStatusSpec {
   Phase phase = 1;
   string error = 2;
   repeated string extensions = 3;
+}
+
+// MachineExtensionsSpec is the extensions list to be used for a machine.
+message MachineExtensionsSpec {
+  repeated string extensions = 1;
 }
 
 // MachineStatusMetricsSpec provides aggregated state of the number of registered and connected machines for the Omni instance.

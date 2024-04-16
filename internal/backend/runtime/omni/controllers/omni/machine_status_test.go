@@ -316,6 +316,7 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 					"siderolabs/hello-world-service",
 					"siderolabs/mdadm",
 				},
+				Overlay: &specs.MachineStatusSpec_Schematic_Overlay{},
 			},
 		},
 		{
@@ -338,6 +339,7 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 			expected: &specs.MachineStatusSpec_Schematic{
 				Id:               defaultSchematic,
 				InitialSchematic: defaultSchematic,
+				Overlay:          &specs.MachineStatusSpec_Schematic_Overlay{},
 			},
 		},
 	} {

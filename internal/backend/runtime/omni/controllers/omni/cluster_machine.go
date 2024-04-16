@@ -32,14 +32,6 @@ func NewClusterMachineController() *ClusterMachineController {
 						resource.LabelEqual(omni.LabelClusterMachine, clusterMachine.Metadata().ID()),
 					)
 				}),
-				cleanup.RemoveOutputs[*omni.SchematicConfiguration](func(clusterMachine *omni.ClusterMachine) state.ListOption {
-					clusterName, _ := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
-
-					return state.WithLabelQuery(
-						resource.LabelEqual(omni.LabelCluster, clusterName),
-						resource.LabelEqual(omni.LabelClusterMachine, clusterMachine.Metadata().ID()),
-					)
-				}),
 				withFinalizerCheck(
 					cleanup.RemoveOutputs[*omni.ConfigPatch](func(clusterMachine *omni.ClusterMachine) state.ListOption {
 						clusterName, _ := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)

@@ -423,6 +423,7 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 			spec.Schematic.Extensions = event.Schematic.Extensions
 			spec.Schematic.Id = event.Schematic.Id
 			spec.Schematic.Invalid = event.Schematic.Invalid
+			spec.Schematic.Overlay = event.Schematic.Overlay
 
 			if spec.Schematic.Invalid {
 				spec.Schematic.InitialSchematic = ""

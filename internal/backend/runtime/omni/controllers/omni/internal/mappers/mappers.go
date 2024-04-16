@@ -78,3 +78,19 @@ func MapClusterResourceToLabeledResources[I generic.ResourceWithRD, O generic.Re
 		})
 	}
 }
+
+// MapMachineSetToLabeledResources returns a mapper that maps a machine set resource to all resources with the same machine set label.
+func MapMachineSetToLabeledResources[I generic.ResourceWithRD, O generic.ResourceWithRD]() qtransform.MapperFuncGeneric[I] {
+	return func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, i I) ([]resource.Pointer, error) {
+		machineSetName := i.Metadata().ID()
+
+		items, err := safe.ReaderListAll[O](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSetName)))
+		if err != nil {
+			return nil, err
+		}
+
+		return safe.Map(items, func(item O) (resource.Pointer, error) {
+			return item.Metadata(), nil
+		})
+	}
+}

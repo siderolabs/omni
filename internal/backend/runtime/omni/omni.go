@@ -210,6 +210,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewKubernetesUpgradeManifestStatusController(),
 		omnictrl.NewKubernetesUpgradeStatusController(),
 		omnictrl.NewMachineController(),
+		omnictrl.NewMachineExtensionsController(),
 		omnictrl.NewMachineSetStatusController(),
 		omnictrl.NewMachineSetEtcdAuditController(talosClientFactory, time.Minute),
 		omnictrl.NewMaintenanceConfigPatchController(),

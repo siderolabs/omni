@@ -140,6 +140,14 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: clearEmptyConfigPatches,
 				name:     "clearEmptyConfigPatches",
 			},
+			{
+				callback: cleanupDanglingSchematicConfigurations,
+				name:     "cleanupDanglingSchematicConfigurations",
+			},
+			{
+				callback: cleanupExtensionsConfigurationStatuses,
+				name:     "cleanupExtensionsConfigurationStatuses",
+			},
 		},
 	}
 }

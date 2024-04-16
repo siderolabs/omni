@@ -10,8 +10,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
+	"sync"
 	"testing"
 	"time"
 
@@ -19,6 +21,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/image-factory/pkg/client"
+	"github.com/siderolabs/image-factory/pkg/schematic"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/sync/errgroup"
@@ -36,6 +39,9 @@ type imageFactoryMock struct {
 	extensionsVersions map[string][]client.ExtensionInfo
 	eg                 errgroup.Group
 	address            string
+
+	schematicMu sync.Mutex
+	schematics  map[string]schematic.Schematic
 }
 
 func (m *imageFactoryMock) run() error {
@@ -55,6 +61,7 @@ func (m *imageFactoryMock) serve(ctx context.Context) {
 	router := httprouter.New()
 	router.GET("/version/:version/extensions/official", m.handleVersions)
 	router.GET("/versions", m.handleTalosVersions)
+	router.POST("/schematics", m.handleSchematics)
 
 	server := http.Server{
 		Handler: router,
@@ -115,6 +122,65 @@ func (m *imageFactoryMock) handleVersions(rw http.ResponseWriter, _ *http.Reques
 	}
 
 	rw.Write(resp) //nolint:errcheck
+}
+
+func (m *imageFactoryMock) handleSchematics(rw http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	m.schematicMu.Lock()
+	defer m.schematicMu.Unlock()
+
+	id, err := m.saveSchematic(r)
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		rw.Write([]byte(err.Error())) //nolint:errcheck
+
+		return
+	}
+
+	rw.Header().Add("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusCreated)
+
+	resp, err := json.Marshal(struct {
+		ID string `json:"id"`
+	}{
+		ID: id,
+	})
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		rw.Write([]byte(err.Error())) //nolint:errcheck
+
+		return
+	}
+
+	rw.Write(resp) //nolint:errcheck
+}
+
+func (m *imageFactoryMock) saveSchematic(r *http.Request) (string, error) {
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		return "", err
+	}
+
+	if err = r.Body.Close(); err != nil {
+		return "", err
+	}
+
+	cfg, err := schematic.Unmarshal(data)
+	if err != nil {
+		return "", err
+	}
+
+	id, err := cfg.ID()
+	if err != nil {
+		return "", err
+	}
+
+	if m.schematics == nil {
+		m.schematics = map[string]schematic.Schematic{}
+	}
+
+	m.schematics[id] = *cfg
+
+	return id, nil
 }
 
 type TalosExtensionsSuite struct {

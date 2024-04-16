@@ -183,11 +183,17 @@ export type MachineStatusSpecPlatformMetadata = {
   spot?: boolean
 }
 
+export type MachineStatusSpecSchematicOverlay = {
+  name?: string
+  image?: string
+}
+
 export type MachineStatusSpecSchematic = {
   id?: string
   invalid?: boolean
   extensions?: string[]
   initial_schematic?: string
+  overlay?: MachineStatusSpecSchematicOverlay
 }
 
 export type MachineStatusSpecMaintenanceConfig = {
@@ -633,6 +639,10 @@ export type ExtensionsConfigurationSpec = {
 export type ExtensionsConfigurationStatusSpec = {
   phase?: ExtensionsConfigurationStatusSpecPhase
   error?: string
+  extensions?: string[]
+}
+
+export type MachineExtensionsSpec = {
   extensions?: string[]
 }
 

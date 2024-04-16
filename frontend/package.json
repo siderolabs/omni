@@ -35,8 +35,8 @@
     "vue-virtual-scroller": "^2.0.0-beta.3",
     "vue-word-highlighter": "^1.0.4",
     "vue3-apexcharts": "^1.4.1",
-    "vue3-clipboard": "^1.0.0",
     "vue3-popper": "^1.5.0",
+    "vue3-clipboard": "^1.0.0",
     "whatwg-fetch": "^3.6.2"
   },
   "devDependencies": {

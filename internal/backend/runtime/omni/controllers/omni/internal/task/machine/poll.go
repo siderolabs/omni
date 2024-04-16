@@ -346,6 +346,10 @@ func pollExtensions(ctx context.Context, c *client.Client, info *Info) error {
 
 	machineSchematic.Id = schematicInfo.ID
 	machineSchematic.Extensions = schematicInfo.Extensions
+	machineSchematic.Overlay = &specs.MachineStatusSpec_Schematic_Overlay{
+		Name:  schematicInfo.Schematic.Overlay.Name,
+		Image: schematicInfo.Schematic.Overlay.Image,
+	}
 
 	return nil
 }
