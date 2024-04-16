@@ -475,7 +475,7 @@ func cleanupResources(ctx context.Context, r controller.ReaderWriter, clusterMac
 	})
 }
 
-func getDesiredSchematic(ctx context.Context, r controller.ReaderWriter, machine *omni.ClusterMachine) (string, error) {
+func getDesiredSchematic(ctx context.Context, r controller.Reader, machine *omni.ClusterMachine) (string, error) {
 	clusterName, ok := machine.Metadata().Labels().Get(omni.LabelCluster)
 	if !ok {
 		return "", fmt.Errorf("cluster machine %q doesn't have cluster label set", machine.Metadata().ID())
@@ -486,24 +486,16 @@ func getDesiredSchematic(ctx context.Context, r controller.ReaderWriter, machine
 		return "", fmt.Errorf("cluster machine %q doesn't have machine set label set", machine.Metadata().ID())
 	}
 
-	for _, res := range []struct {
-		id    string
-		label string
-	}{
-		{
-			id:    machine.Metadata().ID(),
-			label: omni.LabelClusterMachine,
-		},
-		{
-			id:    machineSet,
-			label: omni.LabelMachineSet,
-		},
-		{
-			id:    clusterName,
-			label: omni.LabelCluster,
-		},
+	for _, res := range []state.ListOption{
+		state.WithLabelQuery(resource.LabelEqual(omni.LabelClusterMachine, machine.Metadata().ID())),
+		state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet)),
+		state.WithLabelQuery(
+			resource.LabelEqual(omni.LabelCluster, clusterName),
+			resource.LabelExists(omni.LabelClusterMachine, resource.NotMatches),
+			resource.LabelExists(omni.LabelMachineSet, resource.NotMatches),
+		),
 	} {
-		schematics, err := safe.ReaderListAll[*omni.SchematicConfiguration](ctx, r, state.WithLabelQuery(resource.LabelEqual(res.label, res.id)))
+		schematics, err := safe.ReaderListAll[*omni.SchematicConfiguration](ctx, r, res)
 		if err != nil {
 			return "", err
 		}
