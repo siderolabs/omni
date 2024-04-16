@@ -1,3 +1,30 @@
+## [Omni 0.33.1](https://github.com/siderolabs/omni/releases/tag/v0.33.1) (2024-04-16)
+
+Welcome to the v0.33.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Utku Ozdemir
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`8b0a6a9`](https://github.com/siderolabs/omni/commit/8b0a6a9a8037270f375e2a3d57c915eba5400463) fix: skip empty config patches in `ClusterMachineConfigPatches`
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.33.0](https://github.com/siderolabs/omni/releases/tag/v0.33.0)
+
 ## [Omni 0.20.0](https://github.com/siderolabs/omni/releases/tag/v0.20.0) (2023-10-17)
 
 Welcome to the v0.20.0 release of Omni!
