@@ -6,14 +6,18 @@
 package omni_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -320,6 +324,95 @@ func (suite *TalosUpgradeStatusSuite) TestReconcileLocked() {
 			assertions.Equal(specs.TalosUpgradeStatusSpec_Done, res.TypedSpec().Value.Phase)
 		},
 	)
+}
+
+func (suite *TalosUpgradeStatusSuite) TestGetDesiredSchematic() {
+	machine := omni.NewClusterMachine(resources.DefaultNamespace, "test")
+	machine.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+	machine.Metadata().Labels().Set(omni.LabelMachineSet, "machineSet")
+
+	clusterSchematic := omni.NewSchematicConfiguration(resources.DefaultNamespace, "aaa")
+	clusterSchematic.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+
+	someOtherMachineSchematic := omni.NewSchematicConfiguration(resources.DefaultNamespace, "aaa")
+	someOtherMachineSchematic.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+	someOtherMachineSchematic.Metadata().Labels().Set(omni.LabelClusterMachine, "bbb")
+
+	thisMachineSchematic := omni.NewSchematicConfiguration(resources.DefaultNamespace, "aaa")
+	thisMachineSchematic.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+	thisMachineSchematic.Metadata().Labels().Set(omni.LabelClusterMachine, "test")
+
+	someOtherMachineSet := omni.NewSchematicConfiguration(resources.DefaultNamespace, "aaa")
+	someOtherMachineSet.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+	someOtherMachineSet.Metadata().Labels().Set(omni.LabelMachineSet, "aaa")
+
+	thisMachineSet := omni.NewSchematicConfiguration(resources.DefaultNamespace, "aaa")
+	thisMachineSet.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+	thisMachineSet.Metadata().Labels().Set(omni.LabelMachineSet, "machineSet")
+
+	schematic := "zzzz"
+
+	for _, tt := range []struct {
+		name              string
+		schematic         *omni.SchematicConfiguration
+		machine           *omni.ClusterMachine
+		expectedSchematic string
+	}{
+		{
+			name:      "empty",
+			schematic: omni.NewSchematicConfiguration(resources.DefaultNamespace, "aaa"),
+			machine:   machine,
+		},
+		{
+			name:              "defined for a cluster",
+			schematic:         clusterSchematic,
+			machine:           machine,
+			expectedSchematic: schematic,
+		},
+		{
+			name:      "defined for a differrent machine",
+			schematic: someOtherMachineSchematic,
+			machine:   machine,
+		},
+		{
+			name:              "defined for this machine",
+			schematic:         thisMachineSchematic,
+			machine:           machine,
+			expectedSchematic: schematic,
+		},
+		{
+			name:      "defined for other machine set",
+			schematic: someOtherMachineSet,
+			machine:   machine,
+		},
+		{
+			name:              "defined for other this machine set",
+			schematic:         thisMachineSet,
+			machine:           machine,
+			expectedSchematic: schematic,
+		},
+	} {
+		suite.T().Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(suite.ctx, time.Second)
+			defer cancel()
+
+			machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, machine.Metadata().ID())
+
+			state := state.WrapCore(inmem.Build(resources.DefaultNamespace))
+
+			tt.schematic.TypedSpec().Value.SchematicId = schematic
+
+			require := require.New(t)
+
+			require.NoError(state.Create(ctx, machineStatus))
+			require.NoError(state.Create(ctx, tt.schematic))
+
+			schematic, err := omnictrl.GetDesiredSchematic(ctx, state, tt.machine)
+			require.NoError(err)
+
+			require.Equal(tt.expectedSchematic, schematic)
+		})
+	}
 }
 
 func TestTalosUpgradeStatusSuite(t *testing.T) {

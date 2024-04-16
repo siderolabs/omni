@@ -6,6 +6,9 @@
 package omni
 
 import (
+	"context"
+
+	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/siderolabs/talos/pkg/machinery/compatibility"
 	"github.com/siderolabs/talos/pkg/machinery/config"
@@ -27,4 +30,8 @@ func GetMachineSetNodeSortFunction(machineStatuses map[resource.ID]*omni.Machine
 
 func StripTalosAPIAccessOSAdminRole(cfg config.Provider) (config.Provider, error) {
 	return stripTalosAPIAccessOSAdminRole(cfg)
+}
+
+func GetDesiredSchematic(ctx context.Context, r controller.Reader, machine *omni.ClusterMachine) (string, error) {
+	return getDesiredSchematic(ctx, r, machine)
 }
