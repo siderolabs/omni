@@ -8,6 +8,7 @@ package machineset
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -203,13 +204,15 @@ func (d *Destroy) Apply(ctx context.Context, r controller.ReaderWriter, logger *
 	return nil
 }
 
-func setPatches(
-	clusterMachineConfigPatches *omni.ClusterMachineConfigPatches,
-	patches []*omni.ConfigPatch,
-) {
+func setPatches(clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, patches []*omni.ConfigPatch) {
 	patchesRaw := make([]string, 0, len(patches))
-	for _, p := range patches {
-		patchesRaw = append(patchesRaw, p.TypedSpec().Value.Data)
+
+	for _, patch := range patches {
+		data := patch.TypedSpec().Value.Data
+
+		if strings.TrimSpace(data) != "" {
+			patchesRaw = append(patchesRaw, data)
+		}
 	}
 
 	clusterMachineConfigPatches.TypedSpec().Value.Patches = patchesRaw

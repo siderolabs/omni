@@ -1050,3 +1050,37 @@ func updateClusterMachineConfigPatchesLabels(ctx context.Context, s state.State,
 		return err
 	})
 }
+
+// clearEmptyConfigPatches removes empty patches from all ClusterMachineConfigPatches resources.
+func clearEmptyConfigPatches(ctx context.Context, s state.State, _ *zap.Logger) error {
+	list, err := safe.StateListAll[*omni.ClusterMachineConfigPatches](ctx, s)
+	if err != nil {
+		return err
+	}
+
+	return list.ForEachErr(func(res *omni.ClusterMachineConfigPatches) error {
+		if len(res.TypedSpec().Value.Patches) == 0 {
+			return nil
+		}
+
+		var filteredPatches []string
+
+		for _, patch := range res.TypedSpec().Value.Patches {
+			if strings.TrimSpace(patch) != "" {
+				filteredPatches = append(filteredPatches, patch)
+			}
+		}
+
+		if len(filteredPatches) == len(res.TypedSpec().Value.Patches) {
+			return nil
+		}
+
+		_, err = safe.StateUpdateWithConflicts(ctx, s, res.Metadata(), func(r *omni.ClusterMachineConfigPatches) error {
+			r.TypedSpec().Value.Patches = filteredPatches
+
+			return nil
+		}, state.WithUpdateOwner(res.Metadata().Owner()), state.WithExpectedPhaseAny())
+
+		return err
+	})
+}
