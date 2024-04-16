@@ -43,6 +43,10 @@ func NewMaintenanceConfigPatchController() *MaintenanceConfigPatchController {
 					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("maintenance config is not ready")
 				}
 
+				if strings.TrimSpace(maintenanceConfig.GetConfig()) == "" {
+					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("maintenance config is empty")
+				}
+
 				configPatch.Metadata().Labels().Set(omni.LabelSystemPatch, "")
 				configPatch.Metadata().Labels().Set(omni.LabelMachine, machineStatus.Metadata().ID())
 

@@ -1227,6 +1227,47 @@ func (suite *MigrationSuite) TestUpdateClusterMachineConfigPatchesLabels() {
 	suite.Assert().Equal("c1", val)
 }
 
+func (suite *MigrationSuite) TestClearEmptyConfigPatches() {
+	ctx := context.Background()
+
+	cp1 := omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "1")
+
+	cp1.TypedSpec().Value.Patches = []string{
+		"foo: yaml",
+		"bar: yaml",
+		"",
+		"baz: yaml",
+	}
+
+	cp2 := omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "2")
+
+	cp2.TypedSpec().Value.Patches = []string{
+		"",
+		"",
+	}
+
+	suite.Require().NoError(suite.state.Create(ctx, cp1, state.WithCreateOwner("MachineSetStatusController")))
+	suite.Require().NoError(suite.state.Create(ctx, cp2, state.WithCreateOwner("MachineSetStatusController")))
+
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(func(name string) bool {
+		return name == "clearEmptyConfigPatches"
+	})))
+
+	cp1After, err := safe.StateGetByID[*omni.ClusterMachineConfigPatches](ctx, suite.state, "1")
+	suite.Require().NoError(err)
+
+	cp2After, err := safe.StateGetByID[*omni.ClusterMachineConfigPatches](ctx, suite.state, "2")
+	suite.Require().NoError(err)
+
+	suite.Assert().Equal([]string{
+		"foo: yaml",
+		"bar: yaml",
+		"baz: yaml",
+	}, cp1After.TypedSpec().Value.Patches)
+
+	suite.Assert().Empty(cp2After.TypedSpec().Value.Patches)
+}
+
 func TestMigrationSuite(t *testing.T) {
 	suite.Run(t, new(MigrationSuite))
 }
