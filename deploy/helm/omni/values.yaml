@@ -1,0 +1,55 @@
+# nameOverride: omni  # optional, if omitted the Chart name will be used
+domainName: omni.example.com
+accountUuid:
+privateKeySource: "file:///omni.asc"
+deployment:
+  image: ghcr.io/siderolabs/omni
+  tag: "latest"
+  replicaCount: 1
+  annotations: {}
+  imagePullPolicy: IfNotPresent
+auth:
+  auth0:
+    enabled: true
+    clientId: "123456"
+    domain: "https://www.auth0.example"
+  saml:
+    enabled: false
+    url: "https://www.saml.example"
+includeGenericDevicePlugin: true # 
+initialUsers: []
+name: "My Omni instance"
+service:
+  type: ClusterIP # currently only ClusterIP is supported by this Helm Chart
+  siderolink:
+    domainName: omni.siderolink.example.com
+    wireguard:
+      address: "" #<ip address of the host running Omni>
+      port: 30180
+  k8sProxy:
+    domainName: omni.kubernetes.example.com
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+extraArgs:
+  # - --debug
+  # - --image-factory-address=factory.talos.dev
+volumeMounts:
+  tls:
+    mountPath: null # "/etc/omni/tls"
+    readOnly: true
+  omniAsc:
+    mountPath: "/omni.asc"
+    subPath: "omni.asc"
+    readOnly: true
+volumes:
+  etcd:
+    persistentVolumeClaimName: omni-pvc
+  tls:
+    secretName: null # tls
+  gpg:
+    secretName: gpg

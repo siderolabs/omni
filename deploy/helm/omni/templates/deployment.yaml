@@ -1,0 +1,120 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "omni.name" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "omni.labels" . | nindent 4 }}
+    app.kubernetes.io/component: omni
+    {{- with .Values.deployment.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- toYaml .Values.deployment.annotations | nindent 4 }}
+spec:
+  strategy:
+    type: Recreate
+  replicas: {{ .Values.deployment.replicaCount }}
+  selector:
+    matchLabels: {{- include "omni.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- if .Values.deployment.podAnnotations }}
+      annotations:
+      {{- toYaml .Values.deployment.annotations | nindent 6 }}
+    {{- end }}
+      labels: 
+      {{- include "omni.labels" . | nindent 8 }}
+      app.kubernetes.io/component: omni
+      {{- with .Values.deployment.labels }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      containers:
+      - name: omni
+        image: {{ .Values.deployment.image }}:{{ .Values.deployment.tag | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.deployment.imagePullPolicy }}
+        resources:
+          {{- with .Values.resources }}
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+        ports:
+          - name: omni
+            containerPort: 8080
+            protocol: TCP
+          - name: siderolink
+            containerPort: 8090
+            protocol: TCP
+          - name: k8s-proxy
+            containerPort: 8095
+            protocol: TCP
+          - name: wireguard
+            containerPort: 50180
+            protocol: UDP
+        resources:
+          limits:
+            # Required for /dev/net/tun
+            # https://www.talos.dev/v1.8/kubernetes-guides/configuration/device-plugins/
+            squat.ai/tun: 1
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+            add:
+              - NET_ADMIN
+        volumeMounts:
+          {{- if .Values.volumeMounts.tls.mountPath }}
+          - name: tls
+            mountPath: {{ .Values.volumeMounts.tls.mountPath }}
+            readOnly: {{ .Values.volumeMounts.tls.readOnly }}
+          {{- end }}
+          - name: omni-asc
+            mountPath: {{ .Values.volumeMounts.omniAsc.mountPath }}
+            subPath: {{ .Values.volumeMounts.omniAsc.subPath }}
+            readOnly: {{ .Values.volumeMounts.omniAsc.readOnly }}
+          - name: etcd
+            mountPath: /_out
+        args:
+          - --account-id="{{ .Values.accountUuid }}"
+          - --advertised-api-url={{ printf "https://%s/" .Values.domainName }} 
+          - --advertised-kubernetes-proxy-url={{ printf "https://%s/" .Values.service.k8sProxy.domainName }}
+        {{- if .Values.auth.auth0.enabled }}
+          - --auth-auth0-enabled=true
+          - --auth-auth0-client-id={{ .Values.auth.auth0.clientId | toString}}
+          - --auth-auth0-domain={{ .Values.auth.auth0.domain }}
+        {{- end }}
+        {{- if .Values.auth.saml.enabled }}
+          - --auth-saml-enabled=true
+        {{- if .Values.auth.saml.url }}
+          - --auth-saml-url="{{ .Values.auth.saml.url }}"
+        {{- end }}
+        {{- end }}
+        {{- if .Values.volumes.tls.secretName }}
+          - --cert=/etc/omni/tls/tls.crt
+          - --key=/etc/omni/tls/tls.key
+        {{- end }}
+          - --etcd-embedded=true
+        {{- if and .Values.initialUsers (gt (len .Values.initialUsers) 0) }}
+          - --initial-users={{ join "," .Values.initialUsers }}
+        {{- end }}
+          - --name={{ .Values.name}}
+          - --private-key-source={{ .Values.privateKeySource }}
+          - --siderolink-api-advertised-url={{ printf "https://%s" .Values.service.siderolink.domainName }}
+          - --siderolink-wireguard-advertised-addr={{ .Values.service.siderolink.wireguard.address }}:{{ .Values.service.siderolink.wireguard.port }}
+        {{- range $value := .Values.extraArgs }}
+          - {{ $value }}
+        {{- end }}
+      volumes:
+        {{- if .Values.volumes.tls.secretName }}
+        - name: tls
+          secret:
+            secretName: {{ .Values.volumes.tls.secretName }}
+        {{- end }}
+        - name: omni-asc
+          secret:
+            secretName: {{ .Values.volumes.gpg.secretName }}
+        - name: etcd
+          persistentVolumeClaim:
+            claimName: {{ .Values.volumes.etcd.persistentVolumeClaimName }}
