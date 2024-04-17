@@ -71,7 +71,7 @@ func TestCanScaleDown(t *testing.T) {
 		t.Run(fmt.Sprintf("scale down, joined %d, healthy %d, index: %d", tt.count, tt.healthy, tt.index), func(t *testing.T) {
 			members := map[string]check.EtcdMemberStatus{}
 
-			for i := 0; i < tt.count; i++ {
+			for i := range tt.count {
 				members[strconv.FormatInt(int64(i), 10)] = check.EtcdMemberStatus{
 					Healthy: i < tt.healthy,
 				}

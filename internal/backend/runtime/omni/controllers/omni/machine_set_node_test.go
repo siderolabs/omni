@@ -187,7 +187,7 @@ func TestSortFunction(t *testing.T) {
 	machineStatuses := map[resource.ID]*omni.MachineStatus{}
 	machineSetNodes := make([]*omni.MachineSetNode, 0, 10)
 
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		id := strconv.Itoa(i)
 
 		machineStatuses[id] = omni.NewMachineStatus(resources.DefaultNamespace, id)
@@ -202,7 +202,7 @@ func TestSortFunction(t *testing.T) {
 
 	require := require.New(t)
 
-	for i := 0; i < len(machineSetNodes)-1; i++ {
+	for i := range len(machineSetNodes) - 1 {
 		require.Equal(-1, machineSetNodes[i].Metadata().Created().Compare(machineSetNodes[i+1].Metadata().Created()))
 	}
 

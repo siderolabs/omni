@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-03-13T17:28:42Z by kres latest.
+# Generated on 2024-04-17T16:16:58Z by kres 92eef68.
 
 name: default
 concurrency:
@@ -33,7 +33,7 @@ jobs:
       labels: ${{ steps.retrieve-pr-labels.outputs.result }}
     services:
       buildkitd:
-        image: moby/buildkit:v0.12.5
+        image: moby/buildkit:v0.13.1
         options: --privileged
         ports:
           - 1234:1234
@@ -103,12 +103,12 @@ jobs:
         run: |
           make image-omni
       - name: push-omni-latest
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
           PLATFORM: linux/amd64,linux/arm64
           PUSH: "true"
         run: |
-          make image-omni TAG=latest
+          make image-omni IMAGE_TAG=latest
       - name: omnictl
         run: |
           make omnictl
@@ -183,7 +183,7 @@ jobs:
       - default
     services:
       buildkitd:
-        image: moby/buildkit:v0.12.5
+        image: moby/buildkit:v0.13.1
         options: --privileged
         ports:
           - 1234:1234
@@ -236,7 +236,7 @@ jobs:
       - default
     services:
       buildkitd:
-        image: moby/buildkit:v0.12.5
+        image: moby/buildkit:v0.13.1
         options: --privileged
         ports:
           - 1234:1234
@@ -289,7 +289,7 @@ jobs:
       - default
     services:
       buildkitd:
-        image: moby/buildkit:v0.12.5
+        image: moby/buildkit:v0.13.1
         options: --privileged
         ports:
           - 1234:1234
@@ -342,7 +342,7 @@ jobs:
       - default
     services:
       buildkitd:
-        image: moby/buildkit:v0.12.5
+        image: moby/buildkit:v0.13.1
         options: --privileged
         ports:
           - 1234:1234
@@ -395,7 +395,7 @@ jobs:
       - default
     services:
       buildkitd:
-        image: moby/buildkit:v0.12.5
+        image: moby/buildkit:v0.13.1
         options: --privileged
         ports:
           - 1234:1234

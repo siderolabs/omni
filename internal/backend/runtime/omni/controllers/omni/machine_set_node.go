@@ -252,7 +252,7 @@ func (ctrl *MachineSetNodeController) createNodes(
 
 		availableMachineClassMachines := allMachineStatuses.FilterLabelQuery(resource.RawLabelQuery(selector))
 
-		for i := 0; i < availableMachineClassMachines.Len(); i++ {
+		for i := range availableMachineClassMachines.Len() {
 			machine := availableMachineClassMachines.Get(i)
 
 			var machineVersion semver.Version
@@ -330,7 +330,7 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 		iterations = machinesToDestroyCount
 	}
 
-	for i := 0; i < iterations; i++ {
+	for i := range iterations {
 		var (
 			ready bool
 			err   error

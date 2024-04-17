@@ -1074,7 +1074,7 @@ Test flow of cluster creation and scaling using cluster templates.`,
 			continue
 		}
 
-		matchedGroup := group
+		matchedGroup := group //nolint:copyloopvar
 		matchedGroup.Subtests = xslices.Filter(matchedGroup.Subtests, func(test subTest) bool {
 			fullName := fmt.Sprintf("%s/%s", group.Name, test.Name)
 

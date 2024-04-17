@@ -65,7 +65,7 @@ campaignLoop:
 
 	logger.Info("won the etcd election campaign")
 
-	defer func() {
+	defer func() { //nolint:contextcheck
 		// use a new context to resign, as `ctx` might be canceled
 		resignCtx, resignCancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer resignCancel()

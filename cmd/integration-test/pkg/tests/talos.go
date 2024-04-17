@@ -50,7 +50,7 @@ func clearConnectionRefused(ctx context.Context, t *testing.T, c *talosclient.Cl
 	defer cancel()
 
 	require.NoError(t, retry.Constant(backoff.DefaultConfig.MaxDelay, retry.WithUnits(time.Second)).Retry(func() error {
-		for i := 0; i < numControlplanes; i++ {
+		for range numControlplanes {
 			_, err := c.Version(talosclient.WithNodes(ctx, nodes...))
 			if err == nil {
 				continue
