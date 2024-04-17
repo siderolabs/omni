@@ -1,3 +1,31 @@
+## [Omni 0.33.2](https://github.com/siderolabs/omni/releases/tag/v0.33.2) (2024-04-17)
+
+Welcome to the v0.33.2 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`2461cb1`](https://github.com/siderolabs/omni/commit/2461cb1a0e8caec8bf34680a1a827a788986766a) fix: properly select schematics for machine set and machine levels
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.33.1](https://github.com/siderolabs/omni/releases/tag/v0.33.1)
+
+
 ## [Omni 0.33.1](https://github.com/siderolabs/omni/releases/tag/v0.33.1) (2024-04-16)
 
 Welcome to the v0.33.1 release of Omni!
