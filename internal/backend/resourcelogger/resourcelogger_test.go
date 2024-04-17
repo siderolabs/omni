@@ -98,6 +98,12 @@ func TestResourceLogger(t *testing.T) {
 	cbs.TypedSpec().Value.Bootstrapped = true
 	cp.TypedSpec().Value.Data = "some data updated"
 
+	// Wait for a bit more than a second to ensure that the value of the `updated:` field in the diff
+	// will be changed on the .Update calls (since those fields are formatted to the second-precision).
+	// When we don't do it, if we get very unlucky and there is a second tick between the creation
+	// and the update, the assertion will fail. By doing this, we ensure a deterministic diff output.
+	time.Sleep(1200 * time.Millisecond)
+
 	require.NoError(t, st.Update(ctx, machineStatus))
 	require.NoError(t, st.Update(ctx, cbs))
 	require.NoError(t, st.Update(ctx, cp))
@@ -110,6 +116,11 @@ func TestResourceLogger(t *testing.T) {
 		entries := xslices.Map(observedLogs.All(), func(entry observer.LoggedEntry) logEntry {
 			return parseLogEntry(t, entry)
 		})
+
+		cbsCreated := cbs.Metadata().Created().Format(time.RFC3339)
+		cbsUpdated := cbs.Metadata().Updated().Format(time.RFC3339)
+		machineStatusCreated := machineStatus.Metadata().Created().Format(time.RFC3339)
+		machineStatusUpdated := machineStatus.Metadata().Updated().Format(time.RFC3339)
 
 		assert.ElementsMatch(t, entries, []logEntry{
 			{
@@ -138,18 +149,19 @@ func TestResourceLogger(t *testing.T) {
      owner:
      phase: running
      created: %s
-     updated: %s
+-    updated: %s
++    updated: %s
  spec:
 -    bootstrapped: false
 +    bootstrapped: true
-`, cbs.Metadata().Created().Format(time.RFC3339), cbs.Metadata().Updated().Format(time.RFC3339)),
+`, cbsCreated, cbsCreated, cbsUpdated),
 			},
 			{
 				message:  "resource updated",
 				resource: "MachineStatuses.omni.sidero.dev(default/test@2)",
 				diff: fmt.Sprintf(`--- MachineStatuses.omni.sidero.dev(default/test)
 +++ MachineStatuses.omni.sidero.dev(default/test)
-@@ -2,7 +2,7 @@
+@@ -2,17 +2,17 @@
      namespace: default
      type: MachineStatuses.omni.sidero.dev
      id: test
@@ -158,7 +170,10 @@ func TestResourceLogger(t *testing.T) {
      owner:
      phase: running
      created: %s
-@@ -12,7 +12,7 @@
+-    updated: %s
++    updated: %s
+ spec:
+     talosversion: v1.2.3
      hardware: null
      network:
          hostname: aaa
@@ -167,7 +182,7 @@ func TestResourceLogger(t *testing.T) {
          addresses:
              - 1.2.3.4
              - 5.6.7.8
-@@ -25,10 +25,10 @@
+@@ -25,10 +17,10 @@
                linkup: true
                description: hello
      lasterror: ""
@@ -180,7 +195,7 @@ func TestResourceLogger(t *testing.T) {
      role: 2
      platformmetadata: null
      imagelabels: {}
-`, machineStatus.Metadata().Created().Format(time.RFC3339)),
+`, machineStatusCreated, machineStatusCreated, machineStatusUpdated),
 			},
 			{
 				message:  "resource updated",
