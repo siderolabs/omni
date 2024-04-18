@@ -152,6 +152,7 @@ spec:
         @hack/test/integration.sh
   ghaction:
     enabled: true
+    sops: true
     artifacts:
       enabled: true
       extraPaths:
@@ -167,8 +168,6 @@ spec:
       WITH_DEBUG: "true"
       INTEGRATION_RUN_E2E_TEST: "true"
       INTEGRATION_TEST_ARGS: "--test.run CleanState/|Auth/|DefaultCluster/"
-      AUTH0_TEST_PASSWORD: ${{ secrets.AUTH0_TEST_PASSWORD }}
-      AUTH0_TEST_USERNAME: ${{ secrets.AUTH0_TEST_USERNAME }}
     jobs:
       - name: e2e-short
         crons:
@@ -233,6 +232,20 @@ spec:
     - "hack/generate-certs/ca-root"
     - "hack/generate-certs/certs"
     - "hack/compose/docker-compose.override.yml"
+---
+kind: common.SOPS
+spec:
+  enabled: true
+  config: |-
+    creation_rules:
+      - age: age1xrpa9ujxxcj2u2gzfrzv8mxak4rts94a6y60ypurv6rs5cpr4e4sg95f0k
+        # order: Andrey, Noel, Artem, Utku, Dmitriy
+        pgp: >-
+          15D5721F5F5BAF121495363EFE042E3D4085A811,
+          CC51116A94490FA6FB3C18EB2401FCAE863A06CA,
+          4919F560F0D35F80CF382D76E084A2DF1143C14D,
+          966BC282A680D8BB3E8363E865933E76F0549B0D,
+          AA5213AF261C1977AF38B03A94B473337258BFD5
 ---
 kind: golang.Build
 name: omni
@@ -503,8 +516,6 @@ spec:
         - .vue
       skipPaths:
         - node_modules/
-
-  enableConform: true
   enforceContexts:
     - e2e-short
     - e2e-scaling

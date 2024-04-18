@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-04-17T17:08:50Z by kres 92eef68.
+# Generated on 2024-04-19T08:33:46Z by kres add13d7.
 
 name: default
 concurrency:
@@ -47,11 +47,18 @@ jobs:
         run: |
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
+        id: setup-buildx
         uses: docker/setup-buildx-action@v3
         with:
           driver: remote
           endpoint: tcp://127.0.0.1:1234
         timeout-minutes: 10
+      - name: Mask secrets
+        run: |
+          echo -e "$(sops -d .secrets.yaml | yq '.secrets | to_entries[] | "::add-mask::" + .value')"
+      - name: Set secrets for job
+        run: |
+          sops -d .secrets.yaml | yq '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: js
         run: |
           make js
@@ -114,8 +121,6 @@ jobs:
           make omnictl
       - name: run-integration-test
         env:
-          AUTH0_TEST_PASSWORD: ${{ secrets.AUTH0_TEST_PASSWORD }}
-          AUTH0_TEST_USERNAME: ${{ secrets.AUTH0_TEST_USERNAME }}
           INTEGRATION_RUN_E2E_TEST: "true"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|Auth/|DefaultCluster/
           WITH_DEBUG: "true"
@@ -197,11 +202,18 @@ jobs:
         run: |
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
+        id: setup-buildx
         uses: docker/setup-buildx-action@v3
         with:
           driver: remote
           endpoint: tcp://127.0.0.1:1234
         timeout-minutes: 10
+      - name: Mask secrets
+        run: |
+          echo -e "$(sops -d .secrets.yaml | yq '.secrets | to_entries[] | "::add-mask::" + .value')"
+      - name: Set secrets for job
+        run: |
+          sops -d .secrets.yaml | yq '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -212,8 +224,6 @@ jobs:
           xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
-          AUTH0_TEST_PASSWORD: ${{ secrets.AUTH0_TEST_PASSWORD }}
-          AUTH0_TEST_USERNAME: ${{ secrets.AUTH0_TEST_USERNAME }}
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|EtcdBackupAndRestore
           WITH_DEBUG: "true"
@@ -250,11 +260,18 @@ jobs:
         run: |
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
+        id: setup-buildx
         uses: docker/setup-buildx-action@v3
         with:
           driver: remote
           endpoint: tcp://127.0.0.1:1234
         timeout-minutes: 10
+      - name: Mask secrets
+        run: |
+          echo -e "$(sops -d .secrets.yaml | yq '.secrets | to_entries[] | "::add-mask::" + .value')"
+      - name: Set secrets for job
+        run: |
+          sops -d .secrets.yaml | yq '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -265,8 +282,6 @@ jobs:
           xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
-          AUTH0_TEST_PASSWORD: ${{ secrets.AUTH0_TEST_PASSWORD }}
-          AUTH0_TEST_USERNAME: ${{ secrets.AUTH0_TEST_USERNAME }}
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|RollingUpdateParallelism/|ForcedMachineRemoval/|ReplaceControlPlanes/|ConfigPatching/|KubernetesNodeAudit/
           WITH_DEBUG: "true"
@@ -303,11 +318,18 @@ jobs:
         run: |
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
+        id: setup-buildx
         uses: docker/setup-buildx-action@v3
         with:
           driver: remote
           endpoint: tcp://127.0.0.1:1234
         timeout-minutes: 10
+      - name: Mask secrets
+        run: |
+          echo -e "$(sops -d .secrets.yaml | yq '.secrets | to_entries[] | "::add-mask::" + .value')"
+      - name: Set secrets for job
+        run: |
+          sops -d .secrets.yaml | yq '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -318,8 +340,6 @@ jobs:
           xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
-          AUTH0_TEST_PASSWORD: ${{ secrets.AUTH0_TEST_PASSWORD }}
-          AUTH0_TEST_USERNAME: ${{ secrets.AUTH0_TEST_USERNAME }}
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|TalosImageGeneration/|ImmediateClusterDestruction/|DefaultCluster/|EncryptedCluster/|SinglenodeCluster/|Auth/
           WITH_DEBUG: "true"
@@ -356,11 +376,18 @@ jobs:
         run: |
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
+        id: setup-buildx
         uses: docker/setup-buildx-action@v3
         with:
           driver: remote
           endpoint: tcp://127.0.0.1:1234
         timeout-minutes: 10
+      - name: Mask secrets
+        run: |
+          echo -e "$(sops -d .secrets.yaml | yq '.secrets | to_entries[] | "::add-mask::" + .value')"
+      - name: Set secrets for job
+        run: |
+          sops -d .secrets.yaml | yq '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -371,8 +398,6 @@ jobs:
           xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
-          AUTH0_TEST_PASSWORD: ${{ secrets.AUTH0_TEST_PASSWORD }}
-          AUTH0_TEST_USERNAME: ${{ secrets.AUTH0_TEST_USERNAME }}
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|ClusterTemplate/
           WITH_DEBUG: "true"
@@ -409,11 +434,18 @@ jobs:
         run: |
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
+        id: setup-buildx
         uses: docker/setup-buildx-action@v3
         with:
           driver: remote
           endpoint: tcp://127.0.0.1:1234
         timeout-minutes: 10
+      - name: Mask secrets
+        run: |
+          echo -e "$(sops -d .secrets.yaml | yq '.secrets | to_entries[] | "::add-mask::" + .value')"
+      - name: Set secrets for job
+        run: |
+          sops -d .secrets.yaml | yq '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -424,8 +456,6 @@ jobs:
           xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
-          AUTH0_TEST_PASSWORD: ${{ secrets.AUTH0_TEST_PASSWORD }}
-          AUTH0_TEST_USERNAME: ${{ secrets.AUTH0_TEST_USERNAME }}
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/
           WITH_DEBUG: "true"
