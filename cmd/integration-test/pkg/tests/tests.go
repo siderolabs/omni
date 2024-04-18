@@ -65,6 +65,7 @@ type Options struct {
 	HTTPEndpoint             string
 	AnotherTalosVersion      string
 	AnotherKubernetesVersion string
+	OmnictlPath              string
 }
 
 // Run the integration tests.
@@ -129,6 +130,10 @@ Wait for all expected machines to join and be in maintenance mode.`,
 Generate various Talos images with Omni and try to download them.`,
 			Parallel: true,
 			Subtests: []subTest{
+				{
+					"TalosImagesShouldBeDownloadableUsingCLI",
+					AssertDownloadUsingCLI(ctx, rootClient, options.OmnictlPath, options.HTTPEndpoint),
+				},
 				{
 					"TalosImagesShouldBeDownloadable",
 					AssertSomeImagesAreDownloadable(ctx, rootClient, func(ctx context.Context, req *http.Request) error {

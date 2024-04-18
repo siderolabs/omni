@@ -6,7 +6,6 @@ package omnictl
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"mime"
@@ -22,6 +21,7 @@ import (
 	pgpclient "github.com/siderolabs/go-api-signature/pkg/pgp/client"
 	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -406,7 +406,9 @@ func getMachineLabels() ([]byte, error) {
 		labels[parts[0]] = value
 	}
 
-	return json.Marshal(labels)
+	return yaml.Marshal(meta.ImageLabels{
+		Labels: labels,
+	})
 }
 
 func getExtensions(ctx context.Context, client *client.Client) ([]string, error) {

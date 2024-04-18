@@ -41,6 +41,7 @@ var rootCmd = &cobra.Command{
 				MachineOptions:           rootCmdFlags.machineOptions,
 				AnotherTalosVersion:      rootCmdFlags.anotherTalosVersion,
 				AnotherKubernetesVersion: rootCmdFlags.anotherKubernetesVersion,
+				OmnictlPath:              rootCmdFlags.omnictlPath,
 			}
 
 			if rootCmdFlags.restartAMachineScript != "" {
@@ -115,6 +116,7 @@ var rootCmdFlags struct {
 	freezeAMachineScript     string
 	anotherTalosVersion      string
 	anotherKubernetesVersion string
+	omnictlPath              string
 
 	machineOptions tests.MachineOptions
 }
@@ -126,6 +128,7 @@ func init() {
 	rootCmd.Flags().StringVar(&rootCmdFlags.restartAMachineScript, "restart-a-machine-script", "hack/test/restart-a-vm.sh", "a script to run to restart a machine by UUID (optional)")
 	rootCmd.Flags().StringVar(&rootCmdFlags.wipeAMachineScript, "wipe-a-machine-script", "hack/test/wipe-a-vm.sh", "a script to run to wipe a machine by UUID (optional)")
 	rootCmd.Flags().StringVar(&rootCmdFlags.freezeAMachineScript, "freeze-a-machine-script", "hack/test/freeze-a-vm.sh", "a script to run to freeze a machine by UUID (optional)")
+	rootCmd.Flags().StringVar(&rootCmdFlags.omnictlPath, "omnictl-path", "", "omnictl CLI script path (optional)")
 	rootCmd.Flags().StringVar(&rootCmdFlags.anotherTalosVersion, "another-talos-version",
 		constants.AnotherTalosVersion,
 		"Talos version for upgrade test",

@@ -137,6 +137,7 @@ SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
 ${ARTIFACTS}/integration-test-linux-amd64 \
     --endpoint https://localhost:8099 \
     --talos-version=${TALOS_VERSION} \
+    --omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
     --expected-machines=8 `# equal to the masters+workers above` \
     ${INTEGRATION_TEST_ARGS:-}
 

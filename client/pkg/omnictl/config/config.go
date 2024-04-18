@@ -6,6 +6,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -120,7 +121,7 @@ func (c *Config) Save() error {
 // Current returns the currently targeted config.
 func Current() (*Config, error) {
 	if current == nil {
-		return nil, fmt.Errorf("config not initialized")
+		return nil, errors.New("config not initialized")
 	}
 
 	return current, nil

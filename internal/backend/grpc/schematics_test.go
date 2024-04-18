@@ -182,7 +182,8 @@ func (suite *GrpcSuite) TestSchematicCreate() {
 					"github.com/my/another-one",
 				},
 				MetaValues: map[uint32]string{
-					meta.LabelsMeta: "",
+					meta.LabelsMeta: `machineLabels:
+  something: value`,
 				},
 			},
 		},
@@ -193,7 +194,8 @@ func (suite *GrpcSuite) TestSchematicCreate() {
 					"github.com/my/another-one",
 				},
 				MetaValues: map[uint32]string{
-					meta.LabelsMeta:                 "",
+					meta.LabelsMeta: `machineLabels:
+  something: value`,
 					meta.MetalNetworkPlatformConfig: "{}",
 				},
 				ExtraKernelArgs: []string{
@@ -210,6 +212,48 @@ func (suite *GrpcSuite) TestSchematicCreate() {
 				},
 				MetaValues: map[uint32]string{
 					meta.StateEncryptionConfig: "",
+				},
+			},
+			expectedError: func(t *testing.T, err error) {
+				require.Equal(t, codes.InvalidArgument, status.Code(err))
+			},
+		},
+		{
+			name: "fail to parse labels",
+			request: &management.CreateSchematicRequest{
+				Extensions: []string{
+					"github.com/my/another-one",
+				},
+				MetaValues: map[uint32]string{
+					meta.LabelsMeta: "this is invalid yaml",
+				},
+			},
+			expectedError: func(t *testing.T, err error) {
+				require.Equal(t, codes.InvalidArgument, status.Code(err))
+			},
+		},
+		{
+			name: "empty labels",
+			request: &management.CreateSchematicRequest{
+				Extensions: []string{
+					"github.com/my/another-one",
+				},
+				MetaValues: map[uint32]string{
+					meta.LabelsMeta: "{}",
+				},
+			},
+			expectedError: func(t *testing.T, err error) {
+				require.Equal(t, codes.InvalidArgument, status.Code(err))
+			},
+		},
+		{
+			name: "legacy labels",
+			request: &management.CreateSchematicRequest{
+				Extensions: []string{
+					"github.com/my/another-one",
+				},
+				MetaValues: map[uint32]string{
+					meta.LabelsMeta: `{"initialMachineLabels": {"aaa": bbb}}`,
 				},
 			},
 			expectedError: func(t *testing.T, err error) {
