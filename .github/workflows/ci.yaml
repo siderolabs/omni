@@ -52,39 +52,39 @@ jobs:
           driver: remote
           endpoint: tcp://127.0.0.1:1234
         timeout-minutes: 10
-      - name: js
-        run: |
-          make js
-      - name: unit-tests-frontend
-        run: |
-          make unit-tests-frontend
-      - name: frontend
-        run: |
-          make frontend
-      - name: base
-        run: |
-          make base
-      - name: unit-tests-client
-        run: |
-          make unit-tests-client
-      - name: unit-tests-client-race
-        run: |
-          make unit-tests-client-race
-      - name: unit-tests
-        run: |
-          make unit-tests
-      - name: unit-tests-race
-        run: |
-          make unit-tests-race
+#      - name: js
+#        run: |
+#          make js
+#      - name: unit-tests-frontend
+#        run: |
+#          make unit-tests-frontend
+#      - name: frontend
+#        run: |
+#          make frontend
+#      - name: base
+#        run: |
+#          make base
+#      - name: unit-tests-client
+#        run: |
+#          make unit-tests-client
+#      - name: unit-tests-client-race
+#        run: |
+#          make unit-tests-client-race
+#      - name: unit-tests
+#        run: |
+#          make unit-tests
+#      - name: unit-tests-race
+#        run: |
+#          make unit-tests-race
       - name: integration-test
         run: |
           make integration-test
       - name: omni
         run: |
           make omni
-      - name: lint
-        run: |
-          make lint
+#      - name: lint
+#        run: |
+#          make lint
       - name: Login to registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3

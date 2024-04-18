@@ -7,6 +7,8 @@
 
 set -eoux pipefail
 
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]:-$0}"; )" &> /dev/null && pwd 2> /dev/null; )"
+
 # Settings.
 
 TALOS_VERSION=1.6.7
@@ -110,12 +112,53 @@ nice -n 10 ${ARTIFACTS}/omni-linux-amd64 \
     "${REGISTRY_MIRROR_FLAGS[@]}" \
     &
 
-# Launch empty Talos VMs.
+# Prepare partial machine config
+PARTIAL_CONFIG=$(cat <<EOF
+apiVersion: v1alpha1
+kind: SideroLinkConfig
+apiUrl: grpc://$LOCAL_IP:8090?jointoken=${JOIN_TOKEN}
+---
+apiVersion: v1alpha1
+kind: EventSinkConfig
+endpoint: '[fdae:41e4:649b:9303::1]:8090'
+---
+apiVersion: v1alpha1
+kind: KmsgLogConfig
+name: omni-kmsg
+url: 'tcp://[fdae:41e4:649b:9303::1]:8092'
+EOF
+)
+PARTIAL_CONFIG_DIR="${ARTIFACTS}/partial-config"
+mkdir -p "${PARTIAL_CONFIG_DIR}"
+echo "${PARTIAL_CONFIG}" > "${PARTIAL_CONFIG_DIR}/controlplane.yaml"
+echo "${PARTIAL_CONFIG}" > "${PARTIAL_CONFIG_DIR}/worker.yaml"
+
+# Launch Talos VMs with partial config
 ${ARTIFACTS}/talosctl cluster create \
+    --name test-1 \
     --provisioner=qemu \
     --cidr=172.20.0.0/24 \
     --controlplanes=1 \
-    --workers=7 \
+    --workers=3 \
+    --input-dir="${PARTIAL_CONFIG_DIR}" \
+    --vmlinuz-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/kernel-amd64" \
+    --initrd-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/initramfs-amd64.xz" \
+    --wait=false \
+    --memory=3072 \
+    --memory-workers=3072 \
+    --cpus=3 \
+    --cpus-workers=3 \
+    --with-uuid-hostnames
+# todo: this is mutually exclusive with the --input-dir flag, but should it be?
+#    --mtu=1430
+
+# Launch empty Talos VMs.
+${ARTIFACTS}/talosctl cluster create \
+    --name test-2 \
+    --provisioner=qemu \
+    --cidr=172.20.1.0/24 \
+    --controlplanes=1 \
+    --workers=3 \
     --skip-injecting-config \
     --extra-boot-kernel-args "siderolink.api=grpc://$LOCAL_IP:8090?jointoken=${JOIN_TOKEN} talos.events.sink=[fdae:41e4:649b:9303::1]:8090 talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092" \
     --vmlinuz-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/kernel-amd64" \
