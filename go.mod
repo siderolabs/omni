@@ -63,6 +63,7 @@ require (
 	github.com/siderolabs/go-kubernetes v0.2.8
 	github.com/siderolabs/go-loadbalancer v0.3.3
 	github.com/siderolabs/go-pointer v1.0.0
+	github.com/siderolabs/go-procfs v0.1.2
 	github.com/siderolabs/go-retry v0.3.3
 	github.com/siderolabs/go-tail v0.1.0
 	github.com/siderolabs/go-talos-support v0.1.0

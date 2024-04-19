@@ -473,6 +473,8 @@ github.com/siderolabs/go-loadbalancer v0.3.3 h1:D6ONnP9Erlh4TS6kV9L7ocnfrNYCA/58
 github.com/siderolabs/go-loadbalancer v0.3.3/go.mod h1:7j4Q9peU/UFuTNSFfwhKLQ028CNkyMkAdGnSi1Dm7Jw=
 github.com/siderolabs/go-pointer v1.0.0 h1:6TshPKep2doDQJAAtHUuHWXbca8ZfyRySjSBT/4GsMU=
 github.com/siderolabs/go-pointer v1.0.0/go.mod h1:HTRFUNYa3R+k0FFKNv11zgkaCLzEkWVzoYZ433P3kHc=
+github.com/siderolabs/go-procfs v0.1.2 h1:bDs9hHyYGE2HO1frpmUsD60yg80VIEDrx31fkbi4C8M=
+github.com/siderolabs/go-procfs v0.1.2/go.mod h1:dBzQXobsM7+TWRRI3DS9X7vAuj8Nkfgu3Z/U9iY3ZTY=
 github.com/siderolabs/go-retry v0.3.3 h1:zKV+S1vumtO72E6sYsLlmIdV/G/GcYSBLiEx/c9oCEg=
 github.com/siderolabs/go-retry v0.3.3/go.mod h1:Ff/VGc7v7un4uQg3DybgrmOWHEmJ8BzZds/XNn/BqMI=
 github.com/siderolabs/go-tail v0.1.0 h1:U+ZClt7BXLGsxDNU/XQ12sz7lQElfFZBYEPdkW78Qro=

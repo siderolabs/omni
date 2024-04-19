@@ -9,14 +9,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"maps"
 
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/value"
 	"github.com/siderolabs/go-pointer"
+	"github.com/siderolabs/go-procfs/procfs"
+	"github.com/siderolabs/image-factory/pkg/schematic"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
+	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/nethelpers"
 	"github.com/siderolabs/talos/pkg/machinery/resources/config"
 	"github.com/siderolabs/talos/pkg/machinery/resources/hardware"
@@ -28,6 +32,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	omnimeta "github.com/siderolabs/omni/client/pkg/meta"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/boards"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/talos"
 )
 
@@ -327,6 +332,28 @@ func pollMeta(ctx context.Context, c *client.Client, info *Info) error {
 		})
 }
 
+func detectOverlay(ctx context.Context, c *client.Client) (*schematic.Overlay, error) {
+	reader, err := c.Read(ctx, "/proc/cmdline")
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	cmdline := procfs.NewCmdline(string(data))
+
+	value := cmdline.Get(constants.KernelParamBoard)
+
+	if value == nil || value.Get(0) == nil {
+		return nil, nil //nolint:nilnil
+	}
+
+	return boards.GetOverlay(*value.Get(0)), nil
+}
+
 func pollExtensions(ctx context.Context, c *client.Client, info *Info) error {
 	machineSchematic := &specs.MachineStatusSpec_Schematic{}
 	info.Schematic = machineSchematic
@@ -342,6 +369,17 @@ func pollExtensions(ctx context.Context, c *client.Client, info *Info) error {
 		}
 
 		return err
+	}
+
+	if schematicInfo.Schematic.Overlay.Name == "" {
+		overlay, err := detectOverlay(ctx, c)
+		if err != nil && status.Code(err) != codes.Unimplemented {
+			return err
+		}
+
+		if overlay != nil {
+			schematicInfo.Schematic.Overlay = *overlay
+		}
 	}
 
 	machineSchematic.Id = schematicInfo.ID
