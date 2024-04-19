@@ -214,6 +214,7 @@ export type MachineStatusSpec = {
   image_labels?: {[key: string]: string}
   schematic?: MachineStatusSpecSchematic
   maintenance_config?: MachineStatusSpecMaintenanceConfig
+  initial_talos_version?: string
 }
 
 export type TalosConfigSpec = {
@@ -630,6 +631,7 @@ export type TalosExtensionsSpec = {
 
 export type SchematicConfigurationSpec = {
   schematic_id?: string
+  talos_version?: string
 }
 
 export type ExtensionsConfigurationSpec = {

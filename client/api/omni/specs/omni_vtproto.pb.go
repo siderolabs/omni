@@ -305,6 +305,7 @@ func (m *MachineStatusSpec) CloneVT() *MachineStatusSpec {
 	r.PlatformMetadata = m.PlatformMetadata.CloneVT()
 	r.Schematic = m.Schematic.CloneVT()
 	r.MaintenanceConfig = m.MaintenanceConfig.CloneVT()
+	r.InitialTalosVersion = m.InitialTalosVersion
 	if rhs := m.ImageLabels; rhs != nil {
 		tmpContainer := make(map[string]string, len(rhs))
 		for k, v := range rhs {
@@ -1813,6 +1814,7 @@ func (m *SchematicConfigurationSpec) CloneVT() *SchematicConfigurationSpec {
 	}
 	r := new(SchematicConfigurationSpec)
 	r.SchematicId = m.SchematicId
+	r.TalosVersion = m.TalosVersion
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -2399,6 +2401,9 @@ func (this *MachineStatusSpec) EqualVT(that *MachineStatusSpec) bool {
 		return false
 	}
 	if !this.MaintenanceConfig.EqualVT(that.MaintenanceConfig) {
+		return false
+	}
+	if this.InitialTalosVersion != that.InitialTalosVersion {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -4385,6 +4390,9 @@ func (this *SchematicConfigurationSpec) EqualVT(that *SchematicConfigurationSpec
 	if this.SchematicId != that.SchematicId {
 		return false
 	}
+	if this.TalosVersion != that.TalosVersion {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -5318,6 +5326,15 @@ func (m *MachineStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.InitialTalosVersion) > 0 {
+		i -= len(m.InitialTalosVersion)
+		copy(dAtA[i:], m.InitialTalosVersion)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.InitialTalosVersion)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x82
 	}
 	if m.MaintenanceConfig != nil {
 		size, err := m.MaintenanceConfig.MarshalToSizedBufferVT(dAtA[:i])
@@ -9409,6 +9426,13 @@ func (m *SchematicConfigurationSpec) MarshalToSizedBufferVT(dAtA []byte) (int, e
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.TalosVersion) > 0 {
+		i -= len(m.TalosVersion)
+		copy(dAtA[i:], m.TalosVersion)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.TalosVersion)))
+		i--
+		dAtA[i] = 0x12
+	}
 	if len(m.SchematicId) > 0 {
 		i -= len(m.SchematicId)
 		copy(dAtA[i:], m.SchematicId)
@@ -10056,6 +10080,10 @@ func (m *MachineStatusSpec) SizeVT() (n int) {
 	if m.MaintenanceConfig != nil {
 		l = m.MaintenanceConfig.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.InitialTalosVersion)
+	if l > 0 {
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -11584,6 +11612,10 @@ func (m *SchematicConfigurationSpec) SizeVT() (n int) {
 	var l int
 	_ = l
 	l = len(m.SchematicId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.TalosVersion)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -14222,6 +14254,38 @@ func (m *MachineStatusSpec) UnmarshalVT(dAtA []byte) error {
 			if err := m.MaintenanceConfig.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		case 16:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InitialTalosVersion", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.InitialTalosVersion = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -23769,6 +23833,38 @@ func (m *SchematicConfigurationSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.SchematicId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TalosVersion", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TalosVersion = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

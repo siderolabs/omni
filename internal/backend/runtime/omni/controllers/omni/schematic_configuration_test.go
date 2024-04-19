@@ -54,6 +54,11 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	clusterName := "cluster"
 	machineSet := "machineset"
 
+	cluster := omni.NewCluster(resources.DefaultNamespace, clusterName)
+	cluster.TypedSpec().Value.TalosVersion = "1.7.0"
+
+	suite.Require().NoError(suite.state.Create(ctx, cluster))
+
 	machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, machineName)
 	machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
 		InitialSchematic: initialSchematic,

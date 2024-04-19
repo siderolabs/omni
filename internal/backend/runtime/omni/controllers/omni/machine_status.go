@@ -349,6 +349,10 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 
 		if event.TalosVersion != nil {
 			spec.TalosVersion = *event.TalosVersion
+
+			if spec.InitialTalosVersion == "" {
+				spec.InitialTalosVersion = spec.TalosVersion
+			}
 		}
 
 		if spec.Network == nil {
@@ -423,7 +427,9 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 			spec.Schematic.Extensions = event.Schematic.Extensions
 			spec.Schematic.Id = event.Schematic.Id
 			spec.Schematic.Invalid = event.Schematic.Invalid
-			spec.Schematic.Overlay = event.Schematic.Overlay
+			if event.Schematic.Overlay != nil && event.Schematic.Overlay.Name != "" {
+				spec.Schematic.Overlay = event.Schematic.Overlay
+			}
 
 			if spec.Schematic.Invalid {
 				spec.Schematic.InitialSchematic = ""

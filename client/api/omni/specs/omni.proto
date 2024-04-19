@@ -203,6 +203,9 @@ message MachineStatusSpec {
   Schematic schematic = 14;
 
   MaintenanceConfig maintenance_config = 15;
+
+  // InitialTalosVersion is set only once when the machine first joined Omni.
+  string initial_talos_version = 16;
 }
 
 // TalosConfigSpec describes a Talos cluster config.
@@ -948,6 +951,7 @@ message TalosExtensionsSpec {
 // SchematicConfigurationSpec is the desired Image Factory schematic for a machine, machine set or a cluster.
 message SchematicConfigurationSpec {
   string schematic_id = 1;
+  string talos_version = 2;
 }
 
 // ExtensionsConfigurationSpec is the desired list of extensions to be installed on the machine or the set of machines.

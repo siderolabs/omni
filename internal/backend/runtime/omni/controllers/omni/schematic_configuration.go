@@ -7,6 +7,7 @@ package omni
 
 import (
 	"context"
+	"errors"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
@@ -14,12 +15,14 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/image-factory/pkg/schematic"
+	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 )
 
 const schematicConfigurationControllerName = "SchematicConfigurationController"
@@ -57,6 +60,9 @@ func NewSchematicConfigurationController(imageFactoryClient *imagefactory.Client
 			qtransform.MapperSameID[*omni.MachineStatus, *omni.ClusterMachine](),
 		),
 		qtransform.WithExtraMappedInput(
+			mappers.MapClusterResourceToLabeledResources[*omni.Cluster, *omni.ClusterMachine](),
+		),
+		qtransform.WithExtraMappedInput(
 			qtransform.MapperNone[*omni.Schematic](),
 		),
 		qtransform.WithExtraMappedInput(
@@ -82,10 +88,19 @@ func (helper *schematicConfigurationHelper) reconcile(
 		return err
 	}
 
+	var extensionsList []string
+
 	if extensions != nil {
 		if err = updateFinalizers(ctx, r, extensions); err != nil {
 			return err
 		}
+
+		extensionsList = extensions.TypedSpec().Value.Extensions
+	}
+
+	clusterName, ok := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
+	if !ok {
+		return errors.New("failed to determine cluster")
 	}
 
 	var (
@@ -110,7 +125,14 @@ func (helper *schematicConfigurationHelper) reconcile(
 		currentSchematic = ms.TypedSpec().Value.Schematic.Id
 	}
 
-	if extensions == nil || extensions.Metadata().Phase() == resource.PhaseTearingDown {
+	cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, r, clusterName)
+	if err != nil {
+		return err
+	}
+
+	schematicConfiguration.TypedSpec().Value.TalosVersion = cluster.TypedSpec().Value.TalosVersion
+
+	if !shouldGenerateSchematicID(cluster, extensions, ms, overlay) {
 		// if extensions config is not set, fall back to the initial schematic id and exit
 		id := initialSchematic
 
@@ -127,7 +149,7 @@ func (helper *schematicConfigurationHelper) reconcile(
 	config := schematic.Schematic{
 		Customization: schematic.Customization{
 			SystemExtensions: schematic.SystemExtensions{
-				OfficialExtensions: extensions.TypedSpec().Value.Extensions,
+				OfficialExtensions: extensionsList,
 			},
 		},
 		Overlay: overlay,
@@ -149,9 +171,25 @@ func (helper *schematicConfigurationHelper) reconcile(
 	}
 
 	schematicConfiguration.TypedSpec().Value.SchematicId = id
+
 	helpers.CopyLabels(clusterMachine, schematicConfiguration, omni.LabelCluster)
 
 	return nil
+}
+
+func shouldGenerateSchematicID(cluster *omni.Cluster, extensions *omni.MachineExtensions, machineStatus *omni.MachineStatus, overlay schematic.Overlay) bool {
+	// migrating SBC running Talos < 1.7.0, overlay was detected, but is not applied yet, should generate a schematic
+	if overlay.Name != "" &&
+		!quirks.New(machineStatus.TypedSpec().Value.InitialTalosVersion).SupportsOverlay() &&
+		quirks.New(cluster.TypedSpec().Value.TalosVersion).SupportsOverlay() {
+		return true
+	}
+
+	if extensions == nil || extensions.Metadata().Phase() == resource.PhaseTearingDown {
+		return false
+	}
+
+	return true
 }
 
 func getOverlay(ms *omni.MachineStatus) schematic.Overlay {

@@ -267,7 +267,7 @@ func reconcileTalosUpdateStatus(ctx context.Context, r controller.ReaderWriter,
 
 		var schematicID string
 
-		schematicID, err = getDesiredSchematic(ctx, r, machine)
+		schematicID, err = getDesiredSchematic(ctx, r, machine, talosVersion)
 		if err != nil {
 			return err
 		}
@@ -477,13 +477,17 @@ func cleanupResources(ctx context.Context, r controller.ReaderWriter, clusterMac
 	})
 }
 
-func getDesiredSchematic(ctx context.Context, r controller.ReaderWriter, machine *omni.ClusterMachine) (string, error) {
+func getDesiredSchematic(ctx context.Context, r controller.ReaderWriter, machine *omni.ClusterMachine, talosVersion string) (string, error) {
 	schematic, err := safe.ReaderGetByID[*omni.SchematicConfiguration](ctx, r, machine.Metadata().ID())
 	if err != nil && !state.IsNotFoundError(err) {
 		return "", err
 	}
 
 	if schematic != nil {
+		if schematic.TypedSpec().Value.TalosVersion != talosVersion {
+			return "", xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the schematic is not in sync with Talos version yet")
+		}
+
 		return schematic.TypedSpec().Value.SchematicId, nil
 	}
 
