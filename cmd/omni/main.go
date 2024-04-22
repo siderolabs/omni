@@ -314,6 +314,8 @@ func init() {
 	rootCmd.Flags().BoolVar(&config.Config.LogStorage.Enabled, "log-storage-enabled", config.Config.LogStorage.Enabled, "enable log storage")
 	rootCmd.Flags().StringVar(&config.Config.LogStorage.Path, "log-storage-path", config.Config.LogStorage.Path, "path of the directory for storing logs")
 	rootCmd.Flags().DurationVar(&config.Config.LogStorage.FlushPeriod, "log-storage-flush-period", config.Config.LogStorage.FlushPeriod, "period for flushing logs to disk")
+	rootCmd.Flags().DurationVar(&config.Config.LogStorage.FlushJitter, "log-storage-flush-jitter", config.Config.LogStorage.FlushJitter, "jitter for flushing logs to disk")
+	rootCmd.Flags().BoolVar(&config.Config.LogStorage.Compress, "log-storage-compress", config.Config.LogStorage.Compress, "compress logs before writing to disk")
 
 	rootCmd.Flags().BoolVar(&config.Config.Auth.Auth0.Enabled, "auth-auth0-enabled", config.Config.Auth.Auth0.Enabled,
 		"enable Auth0 authentication. Once set to true, it cannot be set back to false.")

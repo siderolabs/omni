@@ -173,7 +173,9 @@ type KeyPrunerParams struct {
 type LogStorageParams struct {
 	Path        string        `yaml:"directory"`
 	FlushPeriod time.Duration `yaml:"flushPeriod"`
+	FlushJitter time.Duration `yaml:"flushJitter"`
 	Enabled     bool          `yaml:"enabled"`
+	Compress    bool          `yaml:"compress"`
 }
 
 var (
@@ -210,6 +212,8 @@ var (
 			Enabled:     true,
 			Path:        "_out/logs",
 			FlushPeriod: 10 * time.Minute,
+			FlushJitter: 2 * time.Minute,
+			Compress:    true,
 		},
 		TalosRegistry:       consts.TalosRegistry,
 		KubernetesRegistry:  consts.KubernetesRegistry,

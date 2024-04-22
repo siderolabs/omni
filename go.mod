@@ -51,6 +51,7 @@ require (
 	github.com/jonboulle/clockwork v0.4.0
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/jxskiss/base62 v1.1.0
+	github.com/klauspost/compress v1.17.8
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/prometheus/client_golang v1.19.0
 	github.com/siderolabs/crypto v0.4.4
@@ -175,7 +176,6 @@ require (
 	github.com/josharian/native v1.1.0 // indirect
 	github.com/jsimonetti/rtnetlink v1.4.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.17.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattermost/xml-roundtrip-validator v0.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect

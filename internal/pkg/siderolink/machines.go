@@ -23,6 +23,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
+	"github.com/siderolabs/omni/internal/pkg/siderolink/logstorage"
 )
 
 // MachineCache stores a map of machines to their circular log buffers. It also allows to access the buffers
@@ -30,13 +31,13 @@ import (
 type MachineCache struct {
 	machineBuffers containers.LazyMap[MachineID, *circular.Buffer]
 	logger         *zap.Logger
-	Storage        optional.Optional[*LogStorage]
+	Storage        optional.Optional[*logstorage.Storage]
 	mx             sync.Mutex
 	inited         bool
 }
 
 // NewMachineCache returns a new MachineCache.
-func NewMachineCache(storage optional.Optional[*LogStorage], logger *zap.Logger) *MachineCache {
+func NewMachineCache(storage optional.Optional[*logstorage.Storage], logger *zap.Logger) *MachineCache {
 	return &MachineCache{
 		Storage: storage,
 		logger:  logger,
@@ -53,6 +54,11 @@ func (m *MachineCache) WriteMessage(id MachineID, rawData []byte) error {
 	_, err = buffer.Write([]byte("\n"))
 	if err != nil {
 		return err
+	}
+
+	// bytes were written, mark the buffer as dirty
+	if storage, ok := m.Storage.Get(); ok {
+		storage.MarkDirty(string(id))
 	}
 
 	_, err = buffer.Write(rawData)
@@ -85,7 +91,7 @@ func (m *MachineCache) GetBuffer(id MachineID) (*circular.Buffer, error) {
 	}
 
 	// if storage is enabled and the log file exists, initialize the buffer from the file
-	exists, err := storage.Exists(id)
+	exists, err := storage.Exists(string(id))
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +123,9 @@ func (m *MachineCache) Remove(id MachineID) error {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 
-	m.logger.Info("remove logs for machine", zap.String("machine_id", string(id)))
+	idStr := string(id)
+
+	m.logger.Info("remove logs for machine", zap.String("machine_id", idStr))
 
 	if !m.inited {
 		return nil
@@ -125,9 +133,8 @@ func (m *MachineCache) Remove(id MachineID) error {
 
 	m.machineBuffers.Remove(id)
 
-	storage, storageEnabled := m.Storage.Get()
-	if storageEnabled {
-		return storage.Remove(id)
+	if storage, ok := m.Storage.Get(); ok {
+		return storage.Remove(idStr)
 	}
 
 	return nil
@@ -144,9 +151,7 @@ func (m *MachineCache) SaveAll() error {
 	var multiErr error
 
 	for id, reader := range m.getMachineBufferReaders() {
-		m.logger.Debug("save logs for machine", zap.String("machine_id", string(id)))
-
-		err := storage.Save(id, reader)
+		err := storage.Save(string(id), reader)
 		if err != nil {
 			multiErr = multierror.Append(multiErr, err)
 		}
@@ -188,10 +193,12 @@ func (m *MachineCache) init() {
 			storage, storageEnabled := m.Storage.Get()
 
 			if storageEnabled {
-				m.logger.Info("load logs for machine", zap.String("machine_id", string(id)))
+				idStr := string(id)
 
-				if err = storage.Load(id, buffer); err != nil {
-					m.logger.Error("failed to load logs for machine", zap.String("machine_id", string(id)), zap.Error(err))
+				m.logger.Info("load logs for machine", zap.String("machine_id", idStr))
+
+				if err = storage.Load(idStr, buffer); err != nil {
+					m.logger.Error("failed to load logs for machine", zap.String("machine_id", idStr), zap.Error(err))
 				}
 			}
 

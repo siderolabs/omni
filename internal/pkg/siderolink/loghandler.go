@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"net/netip"
 	"time"
 
@@ -22,19 +23,21 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/config"
+	"github.com/siderolabs/omni/internal/pkg/siderolink/logstorage"
 )
 
 // NewLogHandler returns a new LogHandler.
 func NewLogHandler(machineMap *MachineMap, omniState state.State, storageConfig *config.LogStorageParams, logger *zap.Logger) *LogHandler {
-	storage := optional.None[*LogStorage]()
+	storage := optional.None[*logstorage.Storage]()
 
 	if storageConfig.Enabled {
-		storage = optional.Some(NewLogStorage(storageConfig.Path))
+		storage = optional.Some(logstorage.New(storageConfig.Path, storageConfig.Compress, logger))
 	}
 
 	cache := NewMachineCache(storage, logger)
 	handler := LogHandler{
 		StorageFlushPeriod: storageConfig.FlushPeriod,
+		StorageFlushJitter: storageConfig.FlushJitter,
 		Map:                machineMap,
 		OmniState:          omniState,
 		Cache:              cache,
@@ -51,6 +54,7 @@ type LogHandler struct {
 	logger             *zap.Logger
 	Cache              *MachineCache
 	StorageFlushPeriod time.Duration
+	StorageFlushJitter time.Duration
 }
 
 // Start starts the LogHandler.
@@ -68,24 +72,35 @@ func (h *LogHandler) Start(ctx context.Context) error {
 		return err
 	}
 
-	var tickerCh <-chan time.Time
+	nextFlushDuration := func() time.Duration {
+		if h.StorageFlushJitter == 0 {
+			return h.StorageFlushPeriod
+		}
 
-	var storagePath string
+		jitter := time.Duration(rand.Int64N(int64(h.StorageFlushJitter)*2) - int64(h.StorageFlushJitter))
 
-	storage, storageEnabled := h.Cache.Storage.Get()
-	if storageEnabled {
-		ticker := time.NewTicker(h.StorageFlushPeriod)
-		tickerCh = ticker.C
+		return h.StorageFlushPeriod + jitter
+	}
 
-		defer ticker.Stop()
+	var (
+		timer       *time.Timer
+		timerCh     <-chan time.Time
+		storagePath string
+	)
 
+	storage, ok := h.Cache.Storage.Get()
+	if ok {
+		timer = time.NewTimer(nextFlushDuration())
+		defer timer.Stop()
+
+		timerCh = timer.C
 		storagePath = storage.Path
 	}
 
 	for {
 		select {
 		case <-ctx.Done():
-			if storageEnabled {
+			if ok {
 				h.logger.Info("save all log buffers before shutdown", zap.String("storage_path", storagePath))
 
 				err := h.Cache.SaveAll()
@@ -101,7 +116,7 @@ func (h *LogHandler) Start(ctx context.Context) error {
 			}
 
 			return ctx.Err()
-		case <-tickerCh:
+		case <-timerCh:
 			h.logger.Info(
 				"save all log buffers",
 				zap.String("storage_path", storagePath),
@@ -112,6 +127,8 @@ func (h *LogHandler) Start(ctx context.Context) error {
 			if err != nil {
 				h.logger.Error("failed to save all log buffers", zap.Error(err))
 			}
+
+			timer.Reset(nextFlushDuration())
 		case event := <-eventCh:
 			switch event.Type {
 			case state.Created, state.Updated, state.Bootstrapped:
