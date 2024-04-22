@@ -74,6 +74,7 @@ func AssertDownloadUsingCLI(testCtx context.Context, client *client.Client, omni
 					omnictlPath,
 					httpEndpoint,
 					key, "download",
+					"--insecure-skip-tls-verify",
 					image.TypedSpec().Value.Name,
 					"--initial-labels",
 					"key=value",

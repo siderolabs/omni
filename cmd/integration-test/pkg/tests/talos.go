@@ -374,14 +374,24 @@ func AssertTalosVersion(testCtx context.Context, client *client.Client, clusterN
 			require.NoError(c.Close())
 		})
 
-		clearConnectionRefused(ctx, t, c, len(machineIPs), machineIPs...)
+		require.NoError(retry.Constant(time.Minute, retry.WithUnits(time.Second)).RetryWithContext(ctx, func(ctx context.Context) error {
+			clearConnectionRefused(ctx, t, c, len(machineIPs), machineIPs...)
 
-		resp, err := c.Version(talosclient.WithNodes(ctx, machineIPs...))
-		require.NoError(err)
+			resp, err := c.Version(talosclient.WithNodes(ctx, machineIPs...))
+			if err != nil {
+				return err
+			}
 
-		for _, m := range resp.Messages {
-			require.Equal("v"+expectedVersion, m.Version.Tag)
-		}
+			for _, m := range resp.Messages {
+				expected := "v" + expectedVersion
+
+				if expected != m.Version.Tag {
+					return retry.ExpectedErrorf("actual version doesn't match expected: %q != %q", m.Version.Tag, expected)
+				}
+			}
+
+			return nil
+		}))
 
 		// assert using Talos upgrade controller status
 		rtestutils.AssertResources(ctx, t, client.Omni().State(), []resource.ID{clusterName}, func(r *omni.TalosUpgradeStatus, asrt *assert.Assertions) {

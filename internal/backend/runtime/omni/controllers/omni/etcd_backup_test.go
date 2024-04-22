@@ -164,7 +164,7 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackupFactoryFails() {
 
 	var m containers.ConcurrentMap[string, func() (omnictrl.TalosClient, error)]
 
-	clusterNames := []string{"talos-default-1", "talos-default-2", "talos-default-3"}
+	clusterNames := []string{"talos-default-3", "talos-default-4", "talos-default-5"}
 
 	for _, clusterName := range clusterNames {
 		m.Set(clusterName, func() (omnictrl.TalosClient, error) {
@@ -246,7 +246,7 @@ func (suite *EtcdBackupControllerSuite) TestDecryptEtcdBackup() {
 		TickInterval: 10 * time.Minute,
 	}))
 
-	clusterNames := []string{"talos-default-1"}
+	clusterNames := []string{"talos-default-6"}
 	clusters := createClusters(suite, clusterNames, time.Hour)
 
 	blockAndAdvance(fakeclock, 11*time.Minute)
@@ -313,7 +313,7 @@ func (suite *EtcdBackupControllerSuite) TestSingleListCall() {
 		TickInterval: 10 * time.Minute,
 	}))
 
-	clusterNames := []string{"talos-default-1", "talos-default-2"}
+	clusterNames := []string{"talos-default-7", "talos-default-8"}
 	clusters := createClusters(suite, clusterNames, time.Hour)
 
 	blockAndAdvance(fakeclock, 11*time.Minute)
@@ -330,7 +330,7 @@ func (suite *EtcdBackupControllerSuite) TestSingleListCall() {
 }
 
 func (suite *EtcdBackupControllerSuite) TestListBackupsWithExistingData() {
-	clusterNames := []string{"talos-default-1", "talos-default-2"}
+	clusterNames := []string{"talos-default-9", "talos-default-10"}
 	clusters := createClusters(suite, clusterNames, time.Hour)
 
 	fakeclock := fakeClock()
@@ -407,7 +407,7 @@ func (suite *EtcdBackupControllerSuite) TestEtcdManualBackupFindResource() {
 		TickInterval: time.Minute,
 	}))
 
-	clusterNames := []string{"talos-default-1"}
+	clusterNames := []string{"talos-default-11"}
 	clustersData := createClusters(suite, clusterNames, 0) // 0 means that automatic backups are disabled
 
 	manualBackup := omni.NewEtcdManualBackup(clustersData[0].Metadata().ID())
@@ -475,7 +475,7 @@ func (suite *EtcdBackupControllerSuite) TestEtcdManualBackup() {
 		TickInterval: time.Minute,
 	}))
 
-	clusterNames := []string{"talos-default-1", "talos-default-2"}
+	clusterNames := []string{"talos-default-12", "talos-default-13"}
 	clustersData := createClusters(suite, clusterNames, 0) // 0 means that automatic backups are disabled
 
 	blockAndAdvance(fakeclock, 15*time.Second)
@@ -589,7 +589,7 @@ func (suite *EtcdBackupControllerSuite) TestS3Backup() {
 		TickInterval: 10 * time.Minute,
 	}))
 
-	clusterNames := []string{"talos-default-1"}
+	clusterNames := []string{"talos-default-14"}
 	clusters := createClusters(suite, clusterNames, time.Hour)
 
 	now := fakeclock.Now()
