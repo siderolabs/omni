@@ -1,3 +1,138 @@
+## [Omni 0.34.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.34.0-beta.0) (2024-04-22)
+
+Welcome to the v0.34.0-beta.0 release of Omni!  
+*This is a pre-release of Omni*
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Andrey Smirnov
+* Andrey Smirnov
+* Artem Chernyshev
+* Utku Ozdemir
+* Noel Georgi
+* Andrew Rynhard
+* Andrey Smirnov
+* Artem Chernyshev
+* Mattias Cockburn
+* Dmitriy Matrenichev
+
+### Changes
+<details><summary>15 commits</summary>
+<p>
+
+* [`d79e863`](https://github.com/siderolabs/omni/commit/d79e8637a34abf7b5d509cd2f829f7388b42600b) test: get rid of upgrade test flakiness, fix cli tests
+* [`6fff261`](https://github.com/siderolabs/omni/commit/6fff261a18258d4f692496ad14607f5cbcc8e37f) fix: implement the correct upgrade flow from 1.6.x to 1.7.x for SBC
+* [`586d2d7`](https://github.com/siderolabs/omni/commit/586d2d7d7fa36e2b7786ef9986c27b590a9b3edc) feat: generate overlay info by extracting board kernel args
+* [`4134d2c`](https://github.com/siderolabs/omni/commit/4134d2cffb8636f79a27a4c16225c0b6a5af9510) chore: use sops for secrets
+* [`f2b975b`](https://github.com/siderolabs/omni/commit/f2b975bfcd15d5aff107f0ca36e1c88ef1c29e8e) feat: read overlays from the machine, preserve them during updates
+* [`340d078`](https://github.com/siderolabs/omni/commit/340d078571897c2174c93151a357b204a708327e) fix: use correct labels struct in the download installation media cmd
+* [`0d337c2`](https://github.com/siderolabs/omni/commit/0d337c2c8a032a4f4a93a1fc1590c9649c57710a) test: fix the flakiness in the resourcelogger test
+* [`23dcf32`](https://github.com/siderolabs/omni/commit/23dcf32c1e252ee58387e066125bc64d38947b55) feat: implement kubernetes node audit controller
+* [`e037975`](https://github.com/siderolabs/omni/commit/e0379754fd5c6b93d54a4ec23abbbea728b71fc3) chore: rekres & fix linting errors
+* [`8aa6a6a`](https://github.com/siderolabs/omni/commit/8aa6a6af152fb02475d2704c63511eec771dd35d) fix: properly select schematics for machine set and machine levels
+* [`09a7b12`](https://github.com/siderolabs/omni/commit/09a7b129ecbec15edde7ddd1808c3a020c013ee2) fix: skip empty config patches in `ClusterMachineConfigPatches`
+* [`aa4d764`](https://github.com/siderolabs/omni/commit/aa4d76489e296858bfd2e2df538bc99d8b77e4a1) fix: always delete removed nodes from discovery service
+* [`7486bb8`](https://github.com/siderolabs/omni/commit/7486bb8d20d42b6c2fddda9e641bca55601b1dd9) feat: support generating installation media with overlays for Talos 1.7+
+* [`e580f14`](https://github.com/siderolabs/omni/commit/e580f14e8ec1808e32d7e8052d5f2e8a85a79cd2) test: fix assertion in maintenance config patch test
+* [`bb0618f`](https://github.com/siderolabs/omni/commit/bb0618fd9eb25f7e71788a739509b564c21115cc) release(v0.33.0-beta.0): prepare release
+</p>
+</details>
+
+### Changes from siderolabs/discovery-api
+<details><summary>1 commit</summary>
+<p>
+
+* [`e1dc7bb`](https://github.com/siderolabs/discovery-api/commit/e1dc7bbd44f52e799fe65a6bd43a40973d611a3c) chore: rekres, update dependencies
+</p>
+</details>
+
+### Changes from siderolabs/discovery-client
+<details><summary>13 commits</summary>
+<p>
+
+* [`ca662d2`](https://github.com/siderolabs/discovery-client/commit/ca662d218418eb50eb22d84560c290bef4369702) feat: export default GRPC dial options for the client
+* [`7a767fa`](https://github.com/siderolabs/discovery-client/commit/7a767fa89005209f5f39b2f5891ca7b169f52d89) chore: bump Go, deps and rekres
+* [`f4095a1`](https://github.com/siderolabs/discovery-client/commit/f4095a109d3947d1a1f470446ef40e1b386aeaf1) chore: bump discovery API to v0.1.4
+* [`fbb1cea`](https://github.com/siderolabs/discovery-client/commit/fbb1cea89609242e20f6cb35b4bfec12ade4144e) fix: keepalive interval calculation
+* [`ff8f4be`](https://github.com/siderolabs/discovery-client/commit/ff8f4be618f077f91ce1f9b8240c050719623582) fix: enable gRPC keepalives
+* [`9ba5f03`](https://github.com/siderolabs/discovery-client/commit/9ba5f033a47d41448153962c5fe22db2d9a8a00c) chore: app optional ControlPlane data
+* [`269a832`](https://github.com/siderolabs/discovery-client/commit/269a832ce9e35d4edeeddba2a23cf5682a2ca425) chore: rekres, update discovery api
+* [`a5c19c6`](https://github.com/siderolabs/discovery-client/commit/a5c19c65f4833a104ac68f35a3c0f8f37be8fe87) feat: provide public IP discovered from the server
+* [`230f317`](https://github.com/siderolabs/discovery-client/commit/230f317a8e6e9542b82efcbac9f5cd7b9cff34b6) fix: reconnect the client on update failure
+* [`ac5ab32`](https://github.com/siderolabs/discovery-client/commit/ac5ab32d1350332e837eea76f02a2225ce17c626) feat: support deleting an affiliate
+* [`27a5bee`](https://github.com/siderolabs/discovery-client/commit/27a5beeccc45c82222fee5a70a2318b21cf87ac6) chore: rekres
+* [`a9a5e9b`](https://github.com/siderolabs/discovery-client/commit/a9a5e9bfddaa670e0fb4f57510167d377cf09b07) feat: initial client code
+* [`98eb999`](https://github.com/siderolabs/discovery-client/commit/98eb9999c0c76d2f93378108b7e22de6bcae6e81) chore: initial commit
+</p>
+</details>
+
+### Changes from siderolabs/go-procfs
+<details><summary>12 commits</summary>
+<p>
+
+* [`9f72b22`](https://github.com/siderolabs/go-procfs/commit/9f72b22602b5ea3af5949dbdaa4b48a7e65687bd) feat: support removing kernel args
+* [`4b4a6ff`](https://github.com/siderolabs/go-procfs/commit/4b4a6ff4fad6aab3be895ef4c48c1c1e71817063) chore: rekres
+* [`a062a4c`](https://github.com/siderolabs/go-procfs/commit/a062a4ca078a6b3b3f119edf86e5f80620e67a55) chore: rekres, rename
+* [`8cbc42d`](https://github.com/siderolabs/go-procfs/commit/8cbc42d3dc246a693d9b307c5358f6f7f3cb60bc) feat: provide an option to overwrite some args in AppendAll
+* [`24d06a9`](https://github.com/siderolabs/go-procfs/commit/24d06a955782ed7d468f5117e986ec632f316310) refactor: remove talos kernel default args
+* [`a82654e`](https://github.com/siderolabs/go-procfs/commit/a82654edcec13531a3f6baf1d9c2933b074326cf) feat: implement SetAll method
+* [`16ce2ef`](https://github.com/siderolabs/go-procfs/commit/16ce2ef52acd0f351c93365e5c9263af442bec12) fix: update cmdline.Set() to drop the value being overwritten
+* [`5a9a4a7`](https://github.com/siderolabs/go-procfs/commit/5a9a4a75d559eab694afcdad2496d268473db432) feat: update kernel args for new KSPP requirements
+* [`57c7311`](https://github.com/siderolabs/go-procfs/commit/57c7311fdd4524bc17f528486bf9b417536153c3) refactor: change directory layout
+* [`a077c96`](https://github.com/siderolabs/go-procfs/commit/a077c96480d04ad432ce909295cfd969d8c4da7d) fix: fix go module name
+* [`698666f`](https://github.com/siderolabs/go-procfs/commit/698666fd4540a0460b5141425d47df084f9a6e20) chore: move package to new repo
+* [`dabb425`](https://github.com/siderolabs/go-procfs/commit/dabb42542312758dd0edc22ece49d8daa5476bbd) Initial commit
+</p>
+</details>
+
+### Changes from siderolabs/image-factory
+<details><summary>14 commits</summary>
+<p>
+
+* [`db55c07`](https://github.com/siderolabs/image-factory/commit/db55c07209bc4f1a1d9c4afe2f04ab2956b6fc92) release(v0.3.1): prepare release
+* [`762cf2b`](https://github.com/siderolabs/image-factory/commit/762cf2b40c609b460ffe8c82be49c2aa75b781df) fix: generation of SecureBoot ISO
+* [`ae1f0a3`](https://github.com/siderolabs/image-factory/commit/ae1f0a3c1b6e68bd6ef5a8ea852cb7c67a49c02c) fix: sort extensions in the UI schematic generator
+* [`c2de13f`](https://github.com/siderolabs/image-factory/commit/c2de13f682b1a2add2983436698d12561a7f5bf9) release(v0.3.0): prepare release
+* [`7062392`](https://github.com/siderolabs/image-factory/commit/70623924c4a872b6cf7cdf08221350263f93c123) chore: update Talos dependency to 1.7.0-beta.0
+* [`78f8944`](https://github.com/siderolabs/image-factory/commit/78f8944cbb8e673e0726250308b72eaf562d6290) feat: add cert issuer regexp option
+* [`c0981e8`](https://github.com/siderolabs/image-factory/commit/c0981e849d2146313dd179b9174b7686f5c27846) feat: add support for -insecure-schematic-service-repository flag
+* [`5d779bb`](https://github.com/siderolabs/image-factory/commit/5d779bb38adcc2a9dcd526683d8ea77eb94b0388) chore: bump dependencies
+* [`93eb7de`](https://github.com/siderolabs/image-factory/commit/93eb7de1f6432ac31d34f5cccbf9ff40587e65bc) feat: support overlay
+* [`df3d211`](https://github.com/siderolabs/image-factory/commit/df3d2119e49a4c6e09c8a4261e1bd679ab408a23) release(v0.2.3): prepare release
+* [`4ccf0e5`](https://github.com/siderolabs/image-factory/commit/4ccf0e5d7ed44e39d97ab45040cca6665618f4fa) fix: ignore missing DTB and other SBC artifacts
+* [`c7dba02`](https://github.com/siderolabs/image-factory/commit/c7dba02d17b068e576de7c155d5a5e58fa156a76) chore: run tailwindcss before creating image
+* [`81f2cb4`](https://github.com/siderolabs/image-factory/commit/81f2cb437f71e4cb2d92db71a6f2a2b7becb8b56) chore: bump dependencies, rekres
+* [`07095cd`](https://github.com/siderolabs/image-factory/commit/07095cd4966ab8943d93490bd5a9bc5085bec2f8) chore: re-enable govulncheck
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/aws/aws-sdk-go-v2**               v1.24.1 -> v1.26.1
+* **github.com/aws/aws-sdk-go-v2/config**        v1.26.4 -> v1.27.10
+* **github.com/aws/aws-sdk-go-v2/credentials**   v1.16.15 -> v1.17.10
+* **github.com/google/go-containerregistry**     v0.18.0 -> v0.19.1
+* **github.com/prometheus/client_golang**        v1.18.0 -> v1.19.0
+* **github.com/siderolabs/discovery-api**        v0.1.3 -> v0.1.4
+* **github.com/siderolabs/discovery-client**     v0.1.9 **_new_**
+* **github.com/siderolabs/go-procfs**            v0.1.2 **_new_**
+* **github.com/siderolabs/image-factory**        v0.2.2 -> v0.3.1
+* **github.com/siderolabs/talos/pkg/machinery**  v1.7.0-beta.0 -> 3dd1f4e88c22
+* **golang.org/x/crypto**                        v0.21.0 -> v0.22.0
+* **golang.org/x/net**                           v0.23.0 -> v0.24.0
+* **google.golang.org/grpc**                     v1.62.1 -> v1.62.2
+* **k8s.io/api**                                 v0.29.2 -> v0.30.0-rc.1
+* **k8s.io/apimachinery**                        v0.29.2 -> v0.30.0-rc.1
+* **k8s.io/client-go**                           v0.29.2 -> v0.30.0-rc.1
+* **k8s.io/klog/v2**                             v2.120.0 -> v2.120.1
+
+Previous release can be found at [v0.33.0](https://github.com/siderolabs/omni/releases/tag/v0.33.0)
+
 ## [Omni 0.33.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.33.0-beta.0) (2024-04-12)
 
 Welcome to the v0.33.0-beta.0 release of Omni!  
