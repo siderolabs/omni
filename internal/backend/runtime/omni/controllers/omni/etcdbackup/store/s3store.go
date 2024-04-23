@@ -27,6 +27,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store/internal/s3middleware"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/etcdbackup/crypt"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/etcdbackup/s3store"
 )
@@ -169,6 +170,14 @@ func S3ClientFromResource(ctx context.Context, s3Conf *omni.EtcdBackupS3Conf) (*
 	}
 
 	if endpoint := s3Conf.TypedSpec().Value.GetEndpoint(); endpoint != "" {
+		if strings.Contains(endpoint, "storage.googleapis.com") {
+			opts = append(opts, func(o *awsConfig.LoadOptions) error {
+				s3middleware.IgnoreSigningHeaders(o, []string{"Accept-Encoding"})
+
+				return nil
+			})
+		}
+
 		if strings.HasPrefix(endpoint, "http://") {
 			opts = append(opts, awsConfig.WithHTTPClient(&http.Client{
 				Transport: &http.Transport{
