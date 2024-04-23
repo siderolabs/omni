@@ -138,7 +138,7 @@ const sortByState = computed(() => {
     if (opt.desc === selectedSortOption?.value) {
       return {
         sortByField: opt.id,
-        sortDescending: opt.descending,
+        sortDescending: opt.descending
       };
     }
   }
@@ -311,7 +311,7 @@ const openPage = (page: number | string) => {
   if (page === dots) {
     return;
   }
-  
+
   currentPage.value = page as number;
 };
 </script>

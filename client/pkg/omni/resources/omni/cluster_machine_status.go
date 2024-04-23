@@ -5,6 +5,8 @@
 package omni
 
 import (
+	"strings"
+
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
@@ -57,4 +59,22 @@ func (ClusterMachineStatusExtension) ResourceDefinition() meta.ResourceDefinitio
 			},
 		},
 	}
+}
+
+// Make implements [typed.Maker] interface.
+func (ClusterMachineStatusExtension) Make(md *resource.Metadata, _ *ClusterMachineStatusSpec) any {
+	return &clusterMachineStatusAux{md: md}
+}
+
+type clusterMachineStatusAux struct {
+	md *resource.Metadata
+}
+
+func (m *clusterMachineStatusAux) Match(searchFor string) bool {
+	val, ok := m.md.Labels().Get(ClusterMachineStatusLabelNodeName)
+	if ok && strings.Contains(val, searchFor) {
+		return true
+	}
+
+	return false
 }
