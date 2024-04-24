@@ -7,6 +7,16 @@
 
 set -eoux pipefail
 
-# restart a VM UUID $1 in talosctl cluster created cluster 'talos-default'
+dir=""
 
-echo "q" | socat - unix-connect:${HOME}/.talos/clusters/talos-default/machine-$1.monitor
+# find the cluster machine $1 belongs to
+for d in "${HOME}"/.talos/clusters/*; do
+  if [ -e "${d}/machine-$1.monitor" ]; then
+    dir="${d}"
+
+    break
+  fi
+done
+
+# restart the VM $1
+echo "q" | socat - "unix-connect:${dir}/machine-$1.monitor"
