@@ -95,7 +95,7 @@ func (suite *ExtensionsConfigurationStatusSuite) TestReconcile() {
 		},
 	} {
 		suite.T().Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(suite.ctx, time.Second)
+			ctx, cancel := context.WithTimeout(suite.ctx, time.Second*3)
 			defer cancel()
 
 			machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, machine.Metadata().ID())
@@ -107,6 +107,10 @@ func (suite *ExtensionsConfigurationStatusSuite) TestReconcile() {
 			require.NoError(suite.state.Create(ctx, machineStatus))
 			require.NoError(suite.state.Create(ctx, machine))
 			require.NoError(suite.state.Create(ctx, tt.extensions))
+
+			rtestutils.AssertResource[*omni.ExtensionsConfiguration](ctx, t, suite.state, tt.extensions.Metadata().ID(), func(r *omni.ExtensionsConfiguration, assertion *assert.Assertions) {
+				assertion.True(r.Metadata().Finalizers().Has(omnictrl.MachineExtensionsControllerName))
+			})
 
 			defer func() {
 				rtestutils.DestroyAll[*omni.MachineStatus](ctx, t, suite.state)

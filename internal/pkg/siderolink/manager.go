@@ -264,6 +264,8 @@ func (manager *Manager) Run(
 
 	eg.Go(func() error { return manager.pollWireguardPeers(groupCtx) })
 
+	eg.Go(func() error { return manager.cleanupDestroyedLinks(groupCtx) })
+
 	if listenHost == "" {
 		listenHost = manager.serverAddr.Addr().String()
 	}
@@ -574,6 +576,42 @@ func (manager *Manager) pollWireguardPeers(ctx context.Context) error {
 			if manager.deltaCh != nil {
 				channel.SendWithContext(ctx, manager.deltaCh, counterDeltas)
 			}
+		}
+	}
+}
+
+func (manager *Manager) cleanupDestroyedLinks(ctx context.Context) error {
+	events := make(chan state.Event)
+
+	md := resource.NewMetadata(resources.DefaultNamespace, siderolink.LinkType, "", resource.VersionUndefined)
+
+	if err := manager.state.WatchKind(ctx, md, events); err != nil {
+		return err
+	}
+
+	for {
+		select {
+		case event := <-events:
+			//nolint:exhaustive
+			switch event.Type {
+			case state.Updated:
+				if event.Resource.Metadata().Phase() != resource.PhaseTearingDown {
+					break
+				}
+
+				fallthrough
+			case state.Destroyed:
+				link, ok := event.Resource.(*siderolink.Link)
+				if !ok {
+					return fmt.Errorf("failed to cast resource to siderolink.Link type")
+				}
+
+				if err := manager.wgHandler.PeerEvent(ctx, link.TypedSpec().Value, true); err != nil {
+					return err
+				}
+			}
+		case <-ctx.Done():
+			return nil
 		}
 	}
 }

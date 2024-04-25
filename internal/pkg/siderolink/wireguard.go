@@ -35,7 +35,7 @@ type PhysicalWireguardHandler struct {
 }
 
 // DefaultWireguardHandler is a default wireguard handler to be used with the siderolink manager.
-var DefaultWireguardHandler = &PhysicalWireguardHandler{events: make(chan wireguard.PeerEvent)}
+var DefaultWireguardHandler = &PhysicalWireguardHandler{events: make(chan wireguard.PeerEvent, 500)}
 
 // PeerEvent implements WireguardHandler.
 func (handler *PhysicalWireguardHandler) PeerEvent(ctx context.Context, spec *specs.SiderolinkSpec, deleted bool) error {
