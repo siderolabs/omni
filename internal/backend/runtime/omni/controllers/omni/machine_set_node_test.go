@@ -6,6 +6,7 @@
 package omni_test
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"strconv"
@@ -14,6 +15,8 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/kvutils"
+	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -71,7 +74,11 @@ func (suite *MachineSetNodeSuite) createMachines(labels ...map[string]string) []
 func (suite *MachineSetNodeSuite) TestReconcile() {
 	suite.startRuntime()
 
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
+	defer cancel()
+
 	suite.Require().NoError(suite.runtime.RegisterController(&omnictrl.MachineSetNodeController{}))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetStatusController()))
 
 	machines := suite.createMachines(
 		map[string]string{
@@ -80,6 +87,7 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 		},
 		map[string]string{
 			omni.MachineStatusLabelAvailable: "",
+			omni.MachineStatusLabelArch:      "amd64",
 		},
 		map[string]string{},
 		map[string]string{
@@ -114,7 +122,7 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 	cluster := omni.NewCluster(resources.DefaultNamespace, "cluster1")
 	cluster.TypedSpec().Value.TalosVersion = "1.6.0"
 
-	suite.Require().NoError(suite.state.Create(suite.ctx, cluster))
+	suite.Require().NoError(suite.state.Create(ctx, cluster))
 
 	machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 	machineSet.Metadata().Labels().Set(omni.LabelWorkerRole, "")
@@ -123,36 +131,48 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 
 	machineSet.TypedSpec().Value.MachineClass = &specs.MachineSetSpec_MachineClass{
 		Name:         machineClass.Metadata().ID(),
-		MachineCount: 5,
+		MachineCount: 1,
 	}
 
-	suite.Require().NoError(suite.state.Create(suite.ctx, machineClass))
-	suite.Require().NoError(suite.state.Create(suite.ctx, machineSet))
+	suite.Require().NoError(suite.state.Create(ctx, machineClass))
+	suite.Require().NoError(suite.state.Create(ctx, machineSet))
 
 	assertMachineSetNode(machines[0])
 
 	machineClass = newMachineClass(fmt.Sprintf("%s==AMD", omni.MachineStatusLabelCPU))
 
-	suite.Require().NoError(suite.state.Create(suite.ctx, machineClass))
+	suite.Require().NoError(suite.state.Create(ctx, machineClass))
 
-	machineSet.TypedSpec().Value.MachineClass.Name = machineClass.Metadata().ID()
+	_, err := safe.StateUpdateWithConflicts(ctx, suite.state, machineSet.Metadata(), func(ms *omni.MachineSet) error {
+		ms.TypedSpec().Value.MachineClass.Name = machineClass.Metadata().ID()
 
-	suite.Require().NoError(suite.state.Update(suite.ctx, machineSet))
+		return nil
+	})
+
+	suite.Require().NoError(err)
 
 	// no changes after updating machine set machine class
 	assertNoMachineSetNode(machines[3])
 	assertMachineSetNode(machines[0])
 
-	machineSet.TypedSpec().Value.MachineClass.MachineCount = 0
+	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, machineSet.Metadata(), func(ms *omni.MachineSet) error {
+		ms.TypedSpec().Value.MachineClass.MachineCount = 0
 
-	suite.Require().NoError(suite.state.Update(suite.ctx, machineSet))
+		return nil
+	})
+
+	suite.Require().NoError(err)
 
 	// scale down to 0 should remove machine set node
 	assertNoMachineSetNode(machines[0])
 
-	machineSet.TypedSpec().Value.MachineClass.MachineCount = 3
+	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, machineSet.Metadata(), func(ms *omni.MachineSet) error {
+		ms.TypedSpec().Value.MachineClass.MachineCount = 3
 
-	suite.Require().NoError(suite.state.Update(suite.ctx, machineSet))
+		return nil
+	})
+
+	suite.Require().NoError(err)
 
 	// scale back up to 3 after changing the machine class
 	// should create a machine set node for the 3rd machine
@@ -178,7 +198,8 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 	assertMachineSetNode(machines[6])
 	assertNoMachineSetNode(machines[5])
 
-	suite.Require().NoError(suite.state.Destroy(suite.ctx, omni.NewMachine(resources.DefaultNamespace, machines[4].Metadata().ID()).Metadata()))
+	rtestutils.Destroy[*omni.MachineStatus](ctx, suite.T(), suite.state, []string{machines[4].Metadata().ID()})
+	rtestutils.Teardown[*omni.Machine](ctx, suite.T(), suite.state, []string{machines[4].Metadata().ID()})
 
 	assertNoMachineSetNode(machines[4])
 }

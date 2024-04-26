@@ -83,6 +83,8 @@ func (ctrl *MachineSetNodeController) Outputs() []controller.Output {
 }
 
 // Run implements controller.Controller interface.
+//
+//nolint:gocognit
 func (ctrl *MachineSetNodeController) Run(ctx context.Context, r controller.Runtime, logger *zap.Logger) error {
 	for {
 		select {
@@ -149,6 +151,17 @@ func (ctrl *MachineSetNodeController) Run(ctx context.Context, r controller.Runt
 			machine, machineExists := machineMap[machineSetNode.Metadata().ID()]
 
 			if _, ok = visited[machineSet]; ok && machineExists && machine.Metadata().Phase() != resource.PhaseTearingDown {
+				return nil
+			}
+
+			var ready bool
+
+			ready, err = r.Teardown(ctx, machineSetNode.Metadata())
+			if err != nil {
+				return err
+			}
+
+			if !ready {
 				return nil
 			}
 
