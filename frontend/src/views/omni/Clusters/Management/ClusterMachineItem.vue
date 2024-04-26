@@ -29,7 +29,7 @@ included in the LICENSE file.
                 title="Install Disk"
                 @checkedValue="setInstallDisk"
                 :values="disks"
-                :defaultValue="disks[0]"/>
+                :defaultValue="item.spec.install_disk ?? disks[0]"/>
             </div>
           </template>
           <div>
