@@ -49,6 +49,7 @@ included in the LICENSE file.
             v-for="item in items"
             :key="itemID(item)"
             :item="item"
+            :version-mismatch="detectVersionMismatch(item)"
           />
         </template>
       </watch>
@@ -98,7 +99,9 @@ import PageHeader from "@/components/common/PageHeader.vue";
 import MachineSets from "@/views/omni/Clusters/Management/MachineSets.vue";
 import TSpinner from "@/components/common/Spinner/TSpinner.vue";
 import ManagedByTemplatesWarning from "@/views/cluster/ManagedByTemplatesWarning.vue";
-import { ClusterSpec } from "@/api/omni/specs/omni.pb";
+import { ClusterSpec, MachineStatusSpec } from "@/api/omni/specs/omni.pb";
+
+import * as semver from "semver";
 
 type Props = {
   currentCluster: ResourceTyped<ClusterSpec>,
@@ -150,6 +153,27 @@ const scaleCluster = async () => {
     `Cluster name: ${clusterName}, control planes: ${state.value.controlPlanesCount}, workers: ${state.value.workersCount}`
   );
 };
+
+const detectVersionMismatch = (machine: Resource<MachineStatusSpec>) => {
+  const clusterVersion = semver.parse(state.value.cluster.talosVersion);
+  const machineVersion = semver.parse(machine.spec.talos_version);
+
+  const installed = machine.spec.hardware?.blockdevices?.find(item => item.system_disk);
+
+  if (!installed) {
+    if (machineVersion.major == clusterVersion.major && machineVersion.minor == clusterVersion.minor) {
+      return null;
+    }
+
+    return "The machine running from ISO or PXE must have the same major and minor version as the cluster it is going to be added to. Please use another ISO or change the cluster Talos version";
+  }
+
+  if (machineVersion.major <= clusterVersion.major && machineVersion.minor <= clusterVersion.minor) {
+    return null;
+  }
+
+  return "The machine has newer Talos version installed: downgrade is not allowed. Upgrade the machine or change Talos cluster version";
+}
 
 const resource = {
   namespace: DefaultNamespace,

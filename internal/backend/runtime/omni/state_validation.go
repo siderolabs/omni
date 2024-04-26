@@ -465,6 +465,14 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 			)
 		}
 
+		installed := omni.GetMachineStatusSystemDisk(machineStatus) != ""
+
+		if !installed && (machineTalosVersion.Major != clusterTalosVersion.Major || machineTalosVersion.Minor != clusterTalosVersion.Minor) {
+			return errors.New(
+				"machines which are running Talos without installation can be added only to Talos clusters with the same major and minor versions",
+			)
+		}
+
 		return nil
 	}
 

@@ -98,7 +98,7 @@ included in the LICENSE file.
         <template #default="{ items, searchQuery }">
           <cluster-machine-item
             v-for="item in items"
-            :talos-version-not-allowed="!canAddMachine(item)"
+            :version-mismatch="detectVersionMismatch(item)"
             :key="itemID(item)"
             :reset="reset"
             :item="item"
@@ -262,15 +262,29 @@ const createCluster = async () => {
   }
 };
 
-const canAddMachine = (machine: Resource<MachineStatusSpec>) => {
+const detectVersionMismatch = (machine: Resource<MachineStatusSpec>) => {
   const clusterVersion = semver.parse(state.value.cluster.talosVersion);
   const machineVersion = semver.parse(machine.spec.talos_version);
 
+  const installed = machine.spec.hardware?.blockdevices?.find(item => item.system_disk);
+
   if (!machineVersion || !clusterVersion) {
-    return false;
+    return null;
   }
 
-  return machineVersion.major <= clusterVersion.major && machineVersion.minor <= clusterVersion.minor;
+  if (!installed) {
+    if (machineVersion.major == clusterVersion.major && machineVersion.minor == clusterVersion.minor) {
+      return null;
+    }
+
+    return "The machine running from ISO or PXE must have the same major and minor version as the cluster it is going to be added to. Please use another ISO or change the cluster Talos version";
+  }
+
+  if (machineVersion.major <= clusterVersion.major && machineVersion.minor <= clusterVersion.minor) {
+    return null;
+  }
+
+  return "The machine has newer Talos version installed: downgrade is not allowed. Upgrade the machine or change Talos cluster version";
 }
 
 const createCluster_ = async (untaint: boolean) => {

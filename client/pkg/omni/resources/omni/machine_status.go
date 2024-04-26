@@ -212,6 +212,10 @@ func MachineStatusReconcileLabels(machineStatus *MachineStatus) {
 
 // GetMachineStatusSystemDisk looks up a system disk for the Talos machine.
 func GetMachineStatusSystemDisk(res *MachineStatus) string {
+	if res == nil || res.TypedSpec().Value.Hardware == nil {
+		return ""
+	}
+
 	for _, disk := range res.TypedSpec().Value.Hardware.Blockdevices {
 		if disk.SystemDisk {
 			return disk.LinuxName

@@ -281,6 +281,13 @@ func (ctrl *MachineSetNodeController) createNodes(
 				continue
 			}
 
+			// do not try to allocate the machine if it's running Talos from an ISO or PXE and it's major and minor version do not match.
+			installed := omni.GetMachineStatusSystemDisk(machine) != ""
+
+			if !installed && (machineVersion.Major != clusterVersion.Major || machineVersion.Minor != clusterVersion.Minor) {
+				continue
+			}
+
 			id := machine.Metadata().ID()
 
 			if err := r.Create(ctx, omni.NewMachineSetNode(resources.DefaultNamespace, id, machineSet)); err != nil {

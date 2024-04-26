@@ -122,10 +122,10 @@ const props = defineProps<{
   item: ResourceTyped<MachineStatusSpec & SiderolinkSpec & MachineConfigGenOptionsSpec>,
   reset?: number,
   searchQuery?: string,
-  talosVersionNotAllowed: boolean
+  versionMismatch: string | null
 }>();
 
-const { item, reset, talosVersionNotAllowed } = toRefs(props);
+const { item, reset, versionMismatch } = toRefs(props);
 
 const machineSetNode = ref<MachineSetNode>({
   patches: {},
@@ -173,7 +173,7 @@ computeState();
 watch(item, computeState);
 watch(state.value, computeMachineAssignment);
 
-watch(talosVersionNotAllowed, (value: boolean) => {
+watch(versionMismatch, (value: string | null) => {
   if (value) {
     machineSetIndex.value = undefined;
   }
@@ -240,9 +240,9 @@ const options: Ref<PickerOption[]> = computed(() => {
       tooltip = `The machine class ${ms.id} is using machine class so no manual allocation is possible`
     }
 
-    if (talosVersionNotAllowed.value) {
+    if (versionMismatch.value) {
       disabled = true;
-      tooltip = `The machine has newer Talos version installed: downgrade is not allowed. Upgrade the machine or change Talos cluster version`
+      tooltip = versionMismatch.value
     }
 
     return {
