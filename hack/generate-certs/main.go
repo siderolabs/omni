@@ -132,7 +132,7 @@ func generate() (err error) {
 		port = ""
 	}
 
-	data := struct { 
+	data := struct {
 		ClientID         string
 		Auth0Domain      string
 		Host             string

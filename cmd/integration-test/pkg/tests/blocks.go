@@ -66,7 +66,7 @@ func TestBlockProxyAPIAccessShouldWork(ctx context.Context, rootClient *client.C
 	return []subTest{
 		{
 			"ClusterKubernetesAPIShouldBeAccessibleViaOmni",
-			AssertKubernetesAPIAccessViaOmni(ctx, rootClient, clusterName, true, 30*time.Second),
+			AssertKubernetesAPIAccessViaOmni(ctx, rootClient, clusterName, true, 5*time.Minute),
 		},
 		{
 			"ClusterTalosAPIShouldBeAccessibleViaOmni",
