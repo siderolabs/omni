@@ -1268,6 +1268,60 @@ func (suite *MigrationSuite) TestClearEmptyConfigPatches() {
 	suite.Assert().Empty(cp2After.TypedSpec().Value.Patches)
 }
 
+func (suite *MigrationSuite) TestCleanupDanglingSchematicConfigurations() {
+	ctx := context.Background()
+
+	version := system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
+	version.TypedSpec().Value.Version = 23
+	suite.Require().NoError(suite.state.Create(ctx, version))
+
+	sc1 := omni.NewSchematicConfiguration(resources.DefaultNamespace, "1")
+	sc2 := omni.NewSchematicConfiguration(resources.DefaultNamespace, "2")
+	sc3 := omni.NewSchematicConfiguration(resources.DefaultNamespace, "3")
+	sc3.Metadata().Finalizers().Add("some-finalizer")
+
+	suite.Require().NoError(suite.state.Create(ctx, sc1, state.WithCreateOwner("SchematicConfigurationController")))
+	suite.Require().NoError(suite.state.Create(ctx, sc2, state.WithCreateOwner("SchematicConfigurationController")))
+	suite.Require().NoError(suite.state.Create(ctx, sc3, state.WithCreateOwner("SchematicConfigurationController")))
+
+	cm := omni.NewClusterMachine(resources.DefaultNamespace, "1")
+
+	cm.Metadata().Labels().Set(omni.LabelMachineSet, "some")
+	cm.Metadata().Labels().Set(omni.LabelCluster, "c1")
+
+	suite.Require().NoError(suite.state.Create(ctx, cm, state.WithCreateOwner("MachineSetStatusController")))
+
+	suite.Require().NoError(suite.manager.Run(ctx))
+
+	var err error
+
+	_, err = safe.StateGetByID[*omni.SchematicConfiguration](ctx, suite.state, "1")
+	suite.Require().NoError(err)
+
+	_, err = safe.StateGetByID[*omni.SchematicConfiguration](ctx, suite.state, "2")
+	suite.Require().True(state.IsNotFoundError(err))
+
+	_, err = safe.StateGetByID[*omni.SchematicConfiguration](ctx, suite.state, "3")
+	suite.Require().True(state.IsNotFoundError(err))
+}
+
+func (suite *MigrationSuite) TestCleanupExtensionConfigurationStatuses() {
+	ctx := context.Background()
+
+	version := system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
+	version.TypedSpec().Value.Version = 23
+	suite.Require().NoError(suite.state.Create(ctx, version))
+
+	status := omni.NewExtensionsConfigurationStatus(resources.DefaultNamespace, "1")
+
+	suite.Require().NoError(suite.state.Create(ctx, status, state.WithCreateOwner("SchematicConfigurationController")))
+
+	suite.Require().NoError(suite.manager.Run(ctx))
+
+	_, err := safe.StateGetByID[*omni.ExtensionsConfigurationStatus](ctx, suite.state, "1")
+	suite.Require().True(state.IsNotFoundError(err))
+}
+
 func TestMigrationSuite(t *testing.T) {
 	suite.Run(t, new(MigrationSuite))
 }

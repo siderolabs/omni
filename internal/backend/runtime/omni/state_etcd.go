@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"time"
@@ -22,10 +23,10 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/store/compression"
 	"github.com/cosi-project/runtime/pkg/state/impl/store/encryption"
 	"github.com/cosi-project/state-etcd/pkg/state/impl/etcd"
+	"github.com/siderolabs/gen/xslices"
 	"go.etcd.io/etcd/client/pkg/v3/transport"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/server/v3/embed"
-	"go.etcd.io/etcd/server/v3/etcdserver/api/v3client"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
@@ -204,7 +205,22 @@ func getEmbeddedEtcdClient(ctx context.Context, params *config.EtcdParams, logge
 		return errors.New("etcd failed to start")
 	}
 
-	cli := v3client.New(embeddedServer.Server)
+	cli, err := clientv3.New(clientv3.Config{
+		Endpoints:   xslices.Map(embeddedServer.Clients, func(l net.Listener) string { return l.Addr().String() }),
+		DialTimeout: 5 * time.Second,
+		DialOptions: []grpc.DialOption{
+			grpc.WithBlock(),
+			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(constants.GRPCMaxMessageSize)),
+			grpc.WithSharedWriteBuffer(true),
+		},
+		Logger: logger.WithOptions(
+			// never enable debug logs for etcd client, they are too chatty
+			zap.IncreaseLevel(zap.InfoLevel),
+		).With(logging.Component("etcd_client")),
+	})
+	if err != nil {
+		return err
+	}
 
 	closer := func() error {
 		if err = cli.Close(); err != nil && !errors.Is(err, context.Canceled) {
@@ -263,6 +279,10 @@ func getExternalEtcdClient(ctx context.Context, params *config.EtcdParams, logge
 			grpc.WithSharedWriteBuffer(true),
 		},
 		TLS: tlsConfig,
+		Logger: logger.WithOptions(
+			// never enable debug logs for etcd client, they are too chatty
+			zap.IncreaseLevel(zap.InfoLevel),
+		).With(logging.Component("etcd_client")),
 	})
 	if err != nil {
 		return err

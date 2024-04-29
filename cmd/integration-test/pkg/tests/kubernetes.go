@@ -39,23 +39,46 @@ import (
 )
 
 // AssertKubernetesAPIAccessViaOmni verifies that cluster kubeconfig works.
+//
+//nolint:gocognit
 func AssertKubernetesAPIAccessViaOmni(testCtx context.Context, rootClient *client.Client, clusterName string, assertAllNodesReady bool, timeout time.Duration) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, timeout)
 		defer cancel()
 
-		require := require.New(t)
-		assert := assert.New(t)
+		var (
+			k8sClient = getKubernetesClient(ctx, t, rootClient.Management(), clusterName)
+			k8sNodes  *corev1.NodeList
+			err       error
+		)
 
-		client := getKubernetesClient(ctx, t, rootClient.Management(), clusterName)
+		require.EventuallyWithT(t, func(collect *assert.CollectT) {
+			require.NoError(collect, ctx.Err())
 
-		nodes, err := client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
-		require.NoError(err)
+			k8sNodes, err = k8sClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+			if !assert.NoError(collect, err) {
+				return
+			}
 
-		if assertAllNodesReady {
-			numMachines := len(rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, rootClient.Omni().State(), state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName))))
-			assert.Equal(numMachines, len(nodes.Items))
-		}
+			nodeNamesInK8s := make([]string, 0, len(k8sNodes.Items))
+
+			for _, k8sNode := range k8sNodes.Items {
+				nodeNamesInK8s = append(nodeNamesInK8s, k8sNode.Name)
+			}
+
+			var identityList safe.List[*omni.ClusterMachineIdentity]
+
+			identityList, err = safe.StateListAll[*omni.ClusterMachineIdentity](ctx, rootClient.Omni().State(), state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
+			require.NoError(collect, err)
+
+			nodeNamesInIdentities := make([]string, 0, identityList.Len())
+
+			identityList.ForEach(func(identity *omni.ClusterMachineIdentity) {
+				nodeNamesInIdentities = append(nodeNamesInIdentities, identity.TypedSpec().Value.GetNodename())
+			})
+
+			assert.ElementsMatch(collect, nodeNamesInK8s, nodeNamesInIdentities, "Node names in Kubernetes (list A) and Omni machine identities (list B) do not match")
+		}, 3*time.Minute, 5*time.Second)
 
 		isNodeReady := func(node corev1.Node) bool {
 			for _, condition := range node.Status.Conditions {
@@ -67,11 +90,11 @@ func AssertKubernetesAPIAccessViaOmni(testCtx context.Context, rootClient *clien
 			return false
 		}
 
-		for _, node := range nodes.Items {
-			ready := isNodeReady(node)
+		for _, k8sNode := range k8sNodes.Items {
+			ready := isNodeReady(k8sNode)
 
 			if assertAllNodesReady {
-				assert.True(ready, "node %q is not ready", node.Name)
+				assert.True(t, ready, "node %q is not ready", k8sNode.Name)
 			}
 
 			if ready {
@@ -80,17 +103,17 @@ func AssertKubernetesAPIAccessViaOmni(testCtx context.Context, rootClient *clien
 					ok    bool
 				)
 
-				assert.NoError(retry.Constant(time.Second*30).RetryWithContext(ctx, func(ctx context.Context) error {
-					label, ok = node.Labels[nodeLabel]
+				assert.NoError(t, retry.Constant(time.Second*30).RetryWithContext(ctx, func(ctx context.Context) error {
+					label, ok = k8sNode.Labels[nodeLabel]
 					if !ok {
 						var n *corev1.Node
 
-						n, err = client.CoreV1().Nodes().Get(ctx, node.Name, metav1.GetOptions{})
+						n, err = k8sClient.CoreV1().Nodes().Get(ctx, k8sNode.Name, metav1.GetOptions{})
 						if err != nil {
 							return err
 						}
 
-						node = *n
+						k8sNode = *n
 
 						return retry.ExpectedErrorf("the label %s is not set", nodeLabel)
 					}
@@ -98,8 +121,8 @@ func AssertKubernetesAPIAccessViaOmni(testCtx context.Context, rootClient *clien
 					return nil
 				}))
 
-				assert.True(ok)
-				assert.NotEmpty(label)
+				assert.True(t, ok)
+				assert.NotEmpty(t, label)
 			}
 		}
 	}

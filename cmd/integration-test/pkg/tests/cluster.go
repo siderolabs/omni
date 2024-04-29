@@ -85,7 +85,7 @@ func CreateCluster(testCtx context.Context, cli *client.Client, options ClusterO
 
 			require.NoError(st.Create(ctx, cluster))
 
-			for i := 0; i < options.ControlPlanes; i++ {
+			for i := range options.ControlPlanes {
 				t.Logf("Adding machine '%s' to control plane (cluster %q)", machineIDs[i], options.Name)
 				bindMachine(ctx, t, st, bindMachineOptions{
 					clusterName:                    options.Name,
@@ -205,7 +205,7 @@ func ScaleClusterUp(testCtx context.Context, st state.State, options ClusterOpti
 		defer cancel()
 
 		pickUnallocatedMachines(ctx, t, st, options.ControlPlanes+options.Workers, func(machineIDs []resource.ID) {
-			for i := 0; i < options.ControlPlanes; i++ {
+			for i := range options.ControlPlanes {
 				t.Logf("Adding machine '%s' to control plane (cluster %q)", machineIDs[i], options.Name)
 
 				bindMachine(ctx, t, st, bindMachineOptions{

@@ -12,6 +12,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -40,6 +41,8 @@ func WithSkipAuth(skipAuth bool) ClientOption {
 }
 
 // WithClient initializes the Omni API client.
+//
+//nolint:gocognit
 func WithClient(f func(ctx context.Context, client *client.Client) error, clientOpts ...ClientOption) error {
 	_, err := config.Init(CmdFlags.Omniconfig, true)
 	if err != nil {
@@ -57,32 +60,51 @@ func WithClient(f func(ctx context.Context, client *client.Client) error, client
 			client.WithInsecureSkipTLSVerify(CmdFlags.InsecureSkipTLSVerify),
 		}
 
-		conf, err := config.Current()
-		if err != nil {
-			return err
+		var (
+			serviceAccount string
+			url            string
+		)
+
+		envKey, valueBase64 := serviceaccount.GetFromEnv()
+		if envKey != "" {
+			sa, saErr := serviceaccount.Decode(valueBase64)
+			if saErr != nil {
+				return saErr
+			}
+
+			serviceAccount = sa.Name
+
+			opts = append(opts, client.WithServiceAccount(valueBase64))
 		}
 
-		contextName := conf.Context
-		if CmdFlags.Context != "" {
-			contextName = CmdFlags.Context
+		if serviceAccount == "" {
+			conf, err := config.Current()
+			if err != nil {
+				return err
+			}
+
+			contextName := conf.Context
+			if CmdFlags.Context != "" {
+				contextName = CmdFlags.Context
+			}
+
+			configCtx, err := conf.GetContext(CmdFlags.Context)
+			if err != nil {
+				return err
+			}
+
+			if configCtx.Auth.Basic != "" { //nolint:staticcheck
+				fmt.Fprintf(os.Stderr, "[WARN] basic auth is deprecated and has no effect\n")
+			}
+
+			opts = append(opts, client.WithUserAccount(contextName, configCtx.Auth.SideroV1.Identity))
+
+			if configCtx.URL == config.PlaceholderURL {
+				return fmt.Errorf("context %q has not been configured, you will need to set it manually", contextName)
+			}
+
+			url = configCtx.URL
 		}
-
-		configCtx, err := conf.GetContext(CmdFlags.Context)
-		if err != nil {
-			return err
-		}
-
-		if configCtx.Auth.Basic != "" { //nolint:staticcheck
-			fmt.Fprintf(os.Stderr, "[WARN] basic auth is deprecated and has no effect\n")
-		}
-
-		opts = append(opts, client.WithUserAccount(contextName, configCtx.Auth.SideroV1.Identity))
-
-		if configCtx.URL == config.PlaceholderURL {
-			return fmt.Errorf("context %q has not been configured, you will need to set it manually", contextName)
-		}
-
-		url := configCtx.URL
 
 		endpointEnv := os.Getenv(EndpointEnvVar)
 		if endpointEnv != "" {

@@ -119,12 +119,11 @@ func (suite *TalosUpgradeStatusSuite) TestReconcile() {
 
 	schematicConfig := omni.NewSchematicConfiguration(resources.DefaultNamespace, machines[1].Metadata().ID())
 	schematicConfig.TypedSpec().Value.SchematicId = "abcd"
-
-	schematicConfig.Metadata().Labels().Set(omni.LabelClusterMachine, machines[1].Metadata().ID())
+	schematicConfig.TypedSpec().Value.TalosVersion = "1.3.6"
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, schematicConfig))
 
-	for i := 0; i < len(machines); i++ {
+	for i := range len(machines) {
 		var versions safe.List[*omni.ClusterMachineTalosVersion]
 
 		versions, err = safe.StateListAll[*omni.ClusterMachineTalosVersion](suite.ctx, suite.state)

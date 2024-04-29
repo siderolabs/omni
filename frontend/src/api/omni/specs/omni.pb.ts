@@ -183,11 +183,17 @@ export type MachineStatusSpecPlatformMetadata = {
   spot?: boolean
 }
 
+export type MachineStatusSpecSchematicOverlay = {
+  name?: string
+  image?: string
+}
+
 export type MachineStatusSpecSchematic = {
   id?: string
   invalid?: boolean
   extensions?: string[]
   initial_schematic?: string
+  overlay?: MachineStatusSpecSchematicOverlay
 }
 
 export type MachineStatusSpecMaintenanceConfig = {
@@ -208,6 +214,7 @@ export type MachineStatusSpec = {
   image_labels?: {[key: string]: string}
   schematic?: MachineStatusSpecSchematic
   maintenance_config?: MachineStatusSpecMaintenanceConfig
+  initial_talos_version?: string
 }
 
 export type TalosConfigSpec = {
@@ -624,6 +631,7 @@ export type TalosExtensionsSpec = {
 
 export type SchematicConfigurationSpec = {
   schematic_id?: string
+  talos_version?: string
 }
 
 export type ExtensionsConfigurationSpec = {
@@ -636,8 +644,20 @@ export type ExtensionsConfigurationStatusSpec = {
   extensions?: string[]
 }
 
+export type MachineExtensionsSpec = {
+  extensions?: string[]
+}
+
 export type MachineStatusMetricsSpec = {
   registered_machines_count?: number
   connected_machines_count?: number
   allocated_machines_count?: number
+}
+
+export type ClusterKubernetesNodesSpec = {
+  nodes?: string[]
+}
+
+export type KubernetesNodeAuditResultSpec = {
+  deleted_nodes?: string[]
 }

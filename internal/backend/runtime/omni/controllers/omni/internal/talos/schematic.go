@@ -15,6 +15,7 @@ import (
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
+	"gopkg.in/yaml.v3"
 )
 
 // ErrInvalidSchematic means that the machine has extensions installed bypassing the image factory.
@@ -25,6 +26,7 @@ type SchematicInfo struct {
 	ID         string
 	FullID     string
 	Extensions []string
+	Schematic  schematic.Schematic
 }
 
 // Equal compares schematic id with both extensions ID and Full ID.
@@ -43,20 +45,25 @@ func GetSchematicInfo(ctx context.Context, c *client.Client) (SchematicInfo, err
 	}
 
 	var (
-		extensions  []string
-		schematicID string
+		extensions             []string
+		schematicID            string
+		schematicConfiguration schematic.Schematic
 	)
 
-	items.ForEach(func(status *runtime.ExtensionStatus) {
+	err = items.ForEachErr(func(status *runtime.ExtensionStatus) error {
 		name := status.TypedSpec().Metadata.Name
 		if name == constants.SchematicIDExtensionName { // skip the meta extension
 			schematicID = status.TypedSpec().Metadata.Version
 
-			return
+			if status.TypedSpec().Metadata.ExtraInfo != "" {
+				return yaml.Unmarshal([]byte(status.TypedSpec().Metadata.ExtraInfo), &schematicConfiguration)
+			}
+
+			return nil
 		}
 
 		if name == "modules.dep" { // ignore the virtual extension used for kernel modules dependencies
-			return
+			return nil
 		}
 
 		if !strings.HasPrefix(name, officialExtensionPrefix) {
@@ -64,7 +71,12 @@ func GetSchematicInfo(ctx context.Context, c *client.Client) (SchematicInfo, err
 		}
 
 		extensions = append(extensions, name)
+
+		return nil
 	})
+	if err != nil {
+		return SchematicInfo{}, err
+	}
 
 	if schematicID == "" && len(extensions) > 0 {
 		return SchematicInfo{}, ErrInvalidSchematic
@@ -87,5 +99,6 @@ func GetSchematicInfo(ctx context.Context, c *client.Client) (SchematicInfo, err
 		ID:         id,
 		FullID:     schematicID,
 		Extensions: extensions,
+		Schematic:  schematicConfiguration,
 	}, nil
 }

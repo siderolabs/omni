@@ -1054,9 +1054,6 @@ func updateClusterMachineConfigPatchesLabels(ctx context.Context, s state.State,
 // clearEmptyConfigPatches removes empty patches from all ClusterMachineConfigPatches resources.
 func clearEmptyConfigPatches(ctx context.Context, s state.State, _ *zap.Logger) error {
 	list, err := safe.StateListAll[*omni.ClusterMachineConfigPatches](ctx, s)
-	if err != nil {
-		return err
-	}
 
 	return list.ForEachErr(func(res *omni.ClusterMachineConfigPatches) error {
 		if len(res.TypedSpec().Value.Patches) == 0 {
@@ -1082,5 +1079,61 @@ func clearEmptyConfigPatches(ctx context.Context, s state.State, _ *zap.Logger) 
 		}, state.WithUpdateOwner(res.Metadata().Owner()), state.WithExpectedPhaseAny())
 
 		return err
+	})
+}
+
+// removes schematic configurations which are not associated with the machines.
+func cleanupDanglingSchematicConfigurations(ctx context.Context, s state.State, _ *zap.Logger) error {
+	list, err := safe.StateListAll[*omni.SchematicConfiguration](ctx, s)
+	if err != nil {
+		return err
+	}
+
+	return list.ForEachErr(func(res *omni.SchematicConfiguration) error {
+		_, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, s, res.Metadata().ID())
+		if err != nil {
+			if state.IsNotFoundError(err) {
+				// remove finalizers and destroy the resource
+				_, err = safe.StateUpdateWithConflicts(ctx, s, res.Metadata(), func(r *omni.SchematicConfiguration) error {
+					for _, f := range *r.Metadata().Finalizers() {
+						r.Metadata().Finalizers().Remove(f)
+					}
+
+					return nil
+				}, state.WithUpdateOwner(res.Metadata().Owner()), state.WithExpectedPhaseAny())
+				if err != nil {
+					return err
+				}
+
+				return s.Destroy(ctx, res.Metadata(), state.WithDestroyOwner(res.Metadata().Owner()))
+			}
+
+			return err
+		}
+
+		return nil
+	})
+}
+
+func cleanupExtensionsConfigurationStatuses(ctx context.Context, s state.State, _ *zap.Logger) error {
+	list, err := safe.ReaderListAll[*omni.ExtensionsConfigurationStatus](ctx, s)
+	if err != nil {
+		return err
+	}
+
+	return list.ForEachErr(func(res *omni.ExtensionsConfigurationStatus) error {
+		// remove finalizers and destroy the resource
+		_, err = safe.StateUpdateWithConflicts(ctx, s, res.Metadata(), func(r *omni.ExtensionsConfigurationStatus) error {
+			for _, f := range *r.Metadata().Finalizers() {
+				r.Metadata().Finalizers().Remove(f)
+			}
+
+			return nil
+		}, state.WithUpdateOwner(res.Metadata().Owner()), state.WithExpectedPhaseAny())
+		if err != nil {
+			return err
+		}
+
+		return s.Destroy(ctx, res.Metadata(), state.WithDestroyOwner(res.Metadata().Owner()))
 	})
 }

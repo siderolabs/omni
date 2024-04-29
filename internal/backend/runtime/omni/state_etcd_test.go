@@ -130,6 +130,7 @@ func TestEtcdInitialization(t *testing.T) {
 						EmbeddedDBPath:   etcdDir,
 						PrivateKeySource: step.args.privateKeySource,
 						PublicKeyFiles:   step.args.publicKeyFiles,
+						Endpoints:        []string{"http://localhost:0"},
 					},
 				},
 			}, zaptest.NewLogger(t), func(context.Context, namespaced.StateBuilder) error {
@@ -196,6 +197,7 @@ func TestEncryptDecrypt(t *testing.T) {
 						EmbeddedDBPath:   etcdDir,
 						PrivateKeySource: step.args.privateKeySource,
 						PublicKeyFiles:   step.args.publicKeyFiles,
+						Endpoints:        []string{"http://localhost:0"},
 					},
 				},
 			}, zaptest.NewLogger(t),

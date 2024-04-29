@@ -287,7 +287,7 @@ func (ctrl *KubernetesStatusController) parseIcon(iconBase64 string) (string, er
 func (ctrl *KubernetesStatusController) generateExposedServiceAlias(ctx context.Context, r controller.Runtime, exclude map[string]struct{}) (string, error) {
 	attempts := 100
 
-	for i := 0; i < attempts; i++ {
+	for range attempts {
 		alias := rand.String(6)
 
 		if _, ok := exclude[alias]; ok {

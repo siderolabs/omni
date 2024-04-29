@@ -16,15 +16,12 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/hashicorp/go-multierror"
 	"github.com/siderolabs/gen/optional"
 	"go.uber.org/zap"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/runtime"
-	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 )
 
@@ -75,12 +72,6 @@ func (ctrl *ClusterMachineTeardownController) Settings() controller.QSettings {
 			{
 				Namespace: resources.DefaultNamespace,
 				Type:      omni.ClusterMachineIdentityType,
-				Kind:      controller.InputQMapped,
-			},
-			// TODO: drop after adding nodes + members audit
-			{
-				Namespace: resources.DefaultNamespace,
-				Type:      omni.MachineSetType,
 				Kind:      controller.InputQMapped,
 			},
 		},
@@ -171,34 +162,10 @@ func (ctrl *ClusterMachineTeardownController) Reconcile(ctx context.Context, log
 	ctx, cancel := context.WithTimeout(ctx, time.Second*20)
 	defer cancel()
 
-	// teardown member and node
+	// teardown the discovery service affiliate and the Kubernetes node for the cluster machine
 	if err = ctrl.teardownNodeMember(ctx, r, logger, clusterMachine); err != nil {
-		logger.Warn("failed to teardown member or node for the cluster machine", zap.Error(err))
-
-		// TODO: remove the rest of this "IF" when we get nodes and members audit
-		machineSetName, ok := clusterMachine.Metadata().Labels().Get(omni.LabelMachineSet)
-		if !ok {
-			return r.RemoveFinalizer(ctx, ptr, ctrl.Name())
-		}
-
-		machineSet, e := r.Get(ctx, omni.NewMachineSet(resources.DefaultNamespace, machineSetName).Metadata())
-		if e != nil {
-			if state.IsNotFoundError(err) {
-				return r.RemoveFinalizer(ctx, ptr, ctrl.Name())
-			}
-
-			return err
-		}
-
-		// Ignore teardown errors for CP nodes which machine set is being torn down
-		if _, ok := machineSet.Metadata().Labels().Get(omni.LabelControlPlaneRole); ok && machineSet.Metadata().Phase() == resource.PhaseTearingDown {
-			return r.RemoveFinalizer(ctx, ptr, ctrl.Name())
-		}
-
-		return err
+		logger.Warn("failed to delete the discovery service affiliate or the Kubernetes node for the cluster machine", zap.Error(err))
 	}
-
-	logger.Info("cleaned up member and node for cluster machine")
 
 	return r.RemoveFinalizer(ctx, ptr, ctrl.Name())
 }
@@ -223,12 +190,12 @@ func (ctrl *ClusterMachineTeardownController) teardownNodeMember(
 		return fmt.Errorf("error listing cluster %q machine identities: %w", clusterName, err)
 	}
 
-	nodeNameOccurences := map[string]int{}
+	nodeNameOccurrences := map[string]int{}
 	clusterMachineIdentities := map[string]*omni.ClusterMachineIdentity{}
 
 	list.ForEach(func(res *omni.ClusterMachineIdentity) {
 		clusterMachineIdentities[res.Metadata().ID()] = res
-		nodeNameOccurences[res.TypedSpec().Value.Nodename]++
+		nodeNameOccurrences[res.TypedSpec().Value.Nodename]++
 	})
 
 	clusterMachineIdentity := clusterMachineIdentities[clusterMachine.Metadata().ID()]
@@ -254,20 +221,24 @@ func (ctrl *ClusterMachineTeardownController) teardownNodeMember(
 		return nil
 	}
 
-	if err = ctrl.deleteMember(ctx, r, bundle.Cluster.ID, clusterMachine, logger); err != nil {
-		return err
+	var errs error
+
+	if err = ctrl.deleteAffiliateFromDiscoveryService(ctx, r, bundle.Cluster.ID, clusterMachine, logger); err != nil {
+		errs = multierror.Append(errs, fmt.Errorf("error deleting affiliate from discovery service: %w", err))
 	}
 
-	if nodeNameOccurences[clusterMachineIdentity.TypedSpec().Value.Nodename] == 1 {
-		if err = ctrl.teardownNode(ctx, clusterMachine, clusterMachineIdentity); err != nil {
-			return fmt.Errorf("error tearing down node %q: %w", clusterMachineIdentity.TypedSpec().Value.Nodename, err)
+	if nodeNameOccurrences[clusterMachineIdentity.TypedSpec().Value.Nodename] == 1 {
+		if err = ctrl.deleteNodeFromKubernetes(ctx, clusterMachine, clusterMachineIdentity, logger); err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("error deleting node from kubernetes: %w", err))
 		}
 	}
 
-	return nil
+	return errs
 }
 
-func (ctrl *ClusterMachineTeardownController) deleteMember(ctx context.Context, r controller.ReaderWriter, clusterID string, clusterMachine *omni.ClusterMachine, logger *zap.Logger) error {
+func (ctrl *ClusterMachineTeardownController) deleteAffiliateFromDiscoveryService(ctx context.Context,
+	r controller.ReaderWriter, clusterID string, clusterMachine *omni.ClusterMachine, logger *zap.Logger,
+) error {
 	clusterMachineIdentity, err := safe.ReaderGet[*omni.ClusterMachineIdentity](ctx, r, omni.NewClusterMachineIdentity(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
@@ -277,50 +248,37 @@ func (ctrl *ClusterMachineTeardownController) deleteMember(ctx context.Context, 
 		return fmt.Errorf("error getting identity: %w", err)
 	}
 
-	logger = logger.With(zap.String("cluster_identity", clusterID), zap.String("node_identity", clusterMachineIdentity.Metadata().ID()))
+	nodeID := clusterMachineIdentity.Metadata().ID()
 
 	if err = ctrl.discoveryClient.AffiliateDelete(ctx, clusterID, clusterMachineIdentity.TypedSpec().Value.NodeIdentity); err != nil {
-		logger.Error("failed to delete the affiliate from the discovery service", zap.Error(err))
-	} else {
-		logger.Info("deleted the affiliate from the discovery service")
+		return fmt.Errorf("error deleting affiliate %s/%s: %w", clusterID, nodeID, err)
 	}
+
+	logger.Info("deleted the affiliate from the discovery service", zap.String("cluster_identity", clusterID), zap.String("node_identity", nodeID))
 
 	return nil
 }
 
-func (ctrl *ClusterMachineTeardownController) teardownNode(
-	ctx context.Context,
-	clusterMachine *omni.ClusterMachine,
-	clusterMachineIdentity *omni.ClusterMachineIdentity,
+func (ctrl *ClusterMachineTeardownController) deleteNodeFromKubernetes(ctx context.Context, clusterMachine *omni.ClusterMachine,
+	clusterMachineIdentity *omni.ClusterMachineIdentity, logger *zap.Logger,
 ) error {
 	clusterName, ok := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
 	if !ok {
-		return fmt.Errorf("cluster machine %s doesn't have cluster label set", clusterMachine.Metadata().ID())
+		return fmt.Errorf("cluster machine %q doesn't have cluster label set", clusterMachine.Metadata().ID())
 	}
 
-	type kubeRuntime interface {
-		GetClient(ctx context.Context, cluster string) (*kubernetes.Client, error)
-	}
-
-	k8s, err := runtime.LookupInterface[kubeRuntime](kubernetes.Name)
+	kubeClient, err := getKubernetesClient(ctx, clusterName)
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting kubernetes client: %w", err)
 	}
-
-	k8sClient, err := k8s.GetClient(ctx, clusterName)
-	if err != nil {
-		return fmt.Errorf("error getting kubernetes client for cluster %q: %w", clusterName, err)
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
-	defer cancel()
 
 	nodename := clusterMachineIdentity.TypedSpec().Value.Nodename
 
-	err = k8sClient.Clientset().CoreV1().Nodes().Delete(ctx, nodename, metav1.DeleteOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
+	if err = kubeClient.DeleteNode(ctx, nodename); err != nil {
 		return fmt.Errorf("error deleting node %q in cluster %q: %w", nodename, clusterName, err)
 	}
+
+	logger.Info("deleted the node from the Kubernetes cluster", zap.String("node", nodename))
 
 	return nil
 }

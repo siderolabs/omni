@@ -247,7 +247,7 @@ func printStatus(out io.Writer, prevLines, newLines []byte) error {
 
 	if isTerminal {
 		for _, outputLine := range strings.Split(string(prevLines), "\n") {
-			for i := 0; i < (utf8.RuneCountInString(outputLine)+w-1)/w; i++ {
+			for range (utf8.RuneCountInString(outputLine) + w - 1) / w {
 				fmt.Fprint(out, "\033[A\033[K") // cursor up, clear line
 			}
 		}

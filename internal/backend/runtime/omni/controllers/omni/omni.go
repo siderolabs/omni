@@ -18,6 +18,18 @@ import (
 	"go.uber.org/zap"
 )
 
+type cleanupOptions struct {
+	destroyReadyCallback func() error
+}
+
+type cleanupOpt func(*cleanupOptions)
+
+func withDestroyReadyCallback(cb func() error) cleanupOpt {
+	return func(opts *cleanupOptions) {
+		opts.destroyReadyCallback = cb
+	}
+}
+
 func trackResource(r controller.ReaderWriter, ns resource.Namespace, resourceType resource.Type, listOptions ...state.ListOption) *resourceTracker {
 	return &resourceTracker{
 		touched:     map[string]struct{}{},
@@ -57,11 +69,18 @@ func (rt *resourceTracker) getItemsToDestroy(ctx context.Context) ([]resource.Re
 	return resources, nil
 }
 
-func (rt *resourceTracker) cleanup(ctx context.Context) error {
+func (rt *resourceTracker) cleanup(ctx context.Context, cleanupOpts ...cleanupOpt) error {
+	opts := &cleanupOptions{}
+	for _, o := range cleanupOpts {
+		o(opts)
+	}
+
 	items, err := rt.getItemsToDestroy(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting items to destroy: %w", err)
 	}
+
+	destroyReady := true
 
 	for _, res := range items {
 		if rt.owner != "" && res.Metadata().Owner() != rt.owner {
@@ -71,10 +90,16 @@ func (rt *resourceTracker) cleanup(ctx context.Context) error {
 		var ready bool
 
 		if ready, err = rt.r.Teardown(ctx, res.Metadata()); err != nil {
+			if state.IsNotFoundError(err) {
+				continue
+			}
+
 			return fmt.Errorf("error tearing down resource '%s': %w", res.Metadata().ID(), err)
 		}
 
 		if !ready {
+			destroyReady = false
+
 			continue
 		}
 
@@ -85,8 +110,16 @@ func (rt *resourceTracker) cleanup(ctx context.Context) error {
 		}
 
 		if err = rt.r.Destroy(ctx, res.Metadata()); err != nil {
+			if state.IsNotFoundError(err) {
+				continue
+			}
+
 			return fmt.Errorf("error destroying resource '%s': %w", res.Metadata().ID(), err)
 		}
+	}
+
+	if destroyReady && opts.destroyReadyCallback != nil {
+		return opts.destroyReadyCallback()
 	}
 
 	return nil

@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-03-13T17:28:42Z by kres latest.
+# Generated on 2024-04-19T08:33:46Z by kres add13d7.
 
 # common variables
 
@@ -9,6 +9,7 @@ TAG := $(shell git describe --tag --always --dirty --match v[0-9]\*)
 ABBREV_TAG := $(shell git describe --tags >/dev/null 2>/dev/null && git describe --tag --always --match v[0-9]\* --abbrev=0 || echo 'undefined')
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 ARTIFACTS := _out
+IMAGE_TAG ?= $(TAG)
 WITH_DEBUG ?= false
 WITH_RACE ?= false
 REGISTRY ?= ghcr.io
@@ -22,10 +23,10 @@ GRPC_GO_VERSION ?= 1.3.0
 GRPC_GATEWAY_VERSION ?= 2.19.1
 VTPROTOBUF_VERSION ?= 0.6.0
 DEEPCOPY_VERSION ?= v0.5.6
-GOLANGCILINT_VERSION ?= v1.56.2
+GOLANGCILINT_VERSION ?= v1.57.2
 GOFUMPT_VERSION ?= v0.6.0
-GO_VERSION ?= 1.22.1
-GOIMPORTS_VERSION ?= v0.19.0
+GO_VERSION ?= 1.22.2
+GOIMPORTS_VERSION ?= v0.20.0
 GO_BUILDFLAGS ?=
 GO_LDFLAGS ?=
 CGO_ENABLED ?= 0
@@ -69,7 +70,7 @@ COMMON_ARGS += --build-arg=GOLANGCILINT_VERSION="$(GOLANGCILINT_VERSION)"
 COMMON_ARGS += --build-arg=GOIMPORTS_VERSION="$(GOIMPORTS_VERSION)"
 COMMON_ARGS += --build-arg=GOFUMPT_VERSION="$(GOFUMPT_VERSION)"
 COMMON_ARGS += --build-arg=TESTPKGS="$(TESTPKGS)"
-JS_TOOLCHAIN ?= docker.io/node:21.7.1-alpine3.19
+JS_TOOLCHAIN ?= docker.io/node:21.7.3-alpine3.19
 TOOLCHAIN ?= docker.io/golang:1.22-alpine
 
 # extra variables
@@ -120,7 +121,7 @@ If you already have a compatible builder instance, you may use that instead.
 ## Artifacts
 
 All artifacts will be output to ./$(ARTIFACTS). Images will be tagged with the
-registry "$(REGISTRY)", username "$(USERNAME)", and a dynamic tag (e.g. $(IMAGE):$(TAG)).
+registry "$(REGISTRY)", username "$(USERNAME)", and a dynamic tag (e.g. $(IMAGE):$(IMAGE_TAG)).
 The registry and username can be overridden by exporting REGISTRY, and USERNAME
 respectively.
 
@@ -276,7 +277,7 @@ lint: lint-golangci-lint-client lint-gofumpt-client lint-govulncheck-client lint
 
 .PHONY: image-omni
 image-omni:  ## Builds image for omni.
-	@$(MAKE) target-$@ TARGET_ARGS="--tag=$(REGISTRY)/$(USERNAME)/omni:$(TAG)"
+	@$(MAKE) target-$@ TARGET_ARGS="--tag=$(REGISTRY)/$(USERNAME)/omni:$(IMAGE_TAG)"
 
 .PHONY: $(ARTIFACTS)/omnictl-darwin-amd64
 $(ARTIFACTS)/omnictl-darwin-amd64:

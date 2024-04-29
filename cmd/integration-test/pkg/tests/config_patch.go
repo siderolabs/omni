@@ -69,7 +69,7 @@ func AssertLargeImmediateConfigApplied(testCtx context.Context, cli *client.Clie
 
 		var sb strings.Builder
 
-		for i := 0; i < 40_000; i++ {
+		for range 40_000 {
 			sb.WriteString("################################################################################\n")
 		}
 

@@ -65,6 +65,7 @@ type Options struct {
 	HTTPEndpoint             string
 	AnotherTalosVersion      string
 	AnotherKubernetesVersion string
+	OmnictlPath              string
 }
 
 // Run the integration tests.
@@ -130,12 +131,53 @@ Generate various Talos images with Omni and try to download them.`,
 			Parallel: true,
 			Subtests: []subTest{
 				{
+					"TalosImagesShouldBeDownloadableUsingCLI",
+					AssertDownloadUsingCLI(ctx, rootClient, options.OmnictlPath, options.HTTPEndpoint),
+				},
+				{
 					"TalosImagesShouldBeDownloadable",
 					AssertSomeImagesAreDownloadable(ctx, rootClient, func(ctx context.Context, req *http.Request) error {
 						return clientconfig.SignHTTPRequest(ctx, rootClient, req)
 					}, options.HTTPEndpoint),
 				},
 			},
+		},
+		{
+			Name:         "KubernetesNodeAudit",
+			Description:  "Test the auditing of the Kubernetes nodes, i.e. when a node is gone from the Omni perspective but still exists on the Kubernetes cluster.",
+			Parallel:     true,
+			MachineClaim: 2,
+			Subtests: subTests(
+				subTest{
+					"ClusterShouldBeCreated",
+					CreateCluster(ctx, rootClient, ClusterOptions{
+						Name:          "integration-k8s-node-audit",
+						ControlPlanes: 1,
+						Workers:       1,
+
+						MachineOptions: options.MachineOptions,
+					}),
+				},
+			).Append(
+				TestBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
+					ctx, rootClient,
+					"integration-k8s-node-audit",
+					options.MachineOptions.TalosVersion,
+					options.MachineOptions.KubernetesVersion,
+					talosAPIKeyPrepare,
+				)...,
+			).Append(
+				subTest{
+					"KubernetesNodeAuditShouldBePerformed",
+					AssertKubernetesNodeAudit(ctx, rootClient.Omni().State(), "integration-k8s-node-audit", rootClient, options),
+				},
+			).Append(
+				subTest{
+					"ClusterShouldBeDestroyed",
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-k8s-node-audit"),
+				},
+			),
+			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-k8s-node-audit"),
 		},
 		{
 			Name: "ForcedMachineRemoval",
@@ -1074,7 +1116,7 @@ Test flow of cluster creation and scaling using cluster templates.`,
 			continue
 		}
 
-		matchedGroup := group
+		matchedGroup := group //nolint:copyloopvar
 		matchedGroup.Subtests = xslices.Filter(matchedGroup.Subtests, func(test subTest) bool {
 			fullName := fmt.Sprintf("%s/%s", group.Name, test.Name)
 

@@ -131,7 +131,6 @@ func (ctrl *MachineStatusController) reconcileCollectors(ctx context.Context, r 
 	// figure out which collectors should run
 	shouldRun := map[string]machine.CollectTaskSpec{}
 	machines := map[resource.ID]*omni.Machine{}
-	connectedMachines := 0
 	machineLabels := map[resource.ID]*omni.MachineLabels{}
 	reportingEvents := map[string]struct{}{}
 
@@ -220,8 +219,6 @@ func (ctrl *MachineStatusController) reconcileCollectors(ctx context.Context, r 
 				MachineID:       item.Metadata().ID(),
 				MachineLabels:   labels,
 			}
-
-			connectedMachines++
 		}
 
 		machines[item.Metadata().ID()] = item
@@ -352,6 +349,10 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 
 		if event.TalosVersion != nil {
 			spec.TalosVersion = *event.TalosVersion
+
+			if spec.InitialTalosVersion == "" {
+				spec.InitialTalosVersion = spec.TalosVersion
+			}
 		}
 
 		if spec.Network == nil {
@@ -426,6 +427,9 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 			spec.Schematic.Extensions = event.Schematic.Extensions
 			spec.Schematic.Id = event.Schematic.Id
 			spec.Schematic.Invalid = event.Schematic.Invalid
+			if event.Schematic.Overlay != nil && event.Schematic.Overlay.Name != "" {
+				spec.Schematic.Overlay = event.Schematic.Overlay
+			}
 
 			if spec.Schematic.Invalid {
 				spec.Schematic.InitialSchematic = ""

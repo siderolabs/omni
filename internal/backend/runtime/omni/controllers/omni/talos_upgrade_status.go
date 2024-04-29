@@ -267,7 +267,7 @@ func reconcileTalosUpdateStatus(ctx context.Context, r controller.ReaderWriter,
 
 		var schematicID string
 
-		schematicID, err = getDesiredSchematic(ctx, r, machine)
+		schematicID, err = getDesiredSchematic(ctx, r, machine, talosVersion)
 		if err != nil {
 			return err
 		}
@@ -297,7 +297,9 @@ func reconcileTalosUpdateStatus(ctx context.Context, r controller.ReaderWriter,
 
 		resourceNeedsUpdate := clusterMachineTalosVersion.TypedSpec().Value.TalosVersion != talosVersion || schematicOutdated
 
-		schematicUpdates = clusterMachineTalosVersion.TypedSpec().Value.SchematicId != schematicID || (configStatus != nil && configStatus.TypedSpec().Value.SchematicId != schematicID)
+		schematicUpdates = clusterMachineTalosVersion.TypedSpec().Value.SchematicId != schematicID ||
+			(configStatus != nil && configStatus.TypedSpec().Value.SchematicId != schematicID) ||
+			schematicUpdates
 
 		if schematicOutdated {
 			upgradeStatus.TypedSpec().Value.Phase = specs.TalosUpgradeStatusSpec_Upgrading
@@ -475,45 +477,21 @@ func cleanupResources(ctx context.Context, r controller.ReaderWriter, clusterMac
 	})
 }
 
-func getDesiredSchematic(ctx context.Context, r controller.ReaderWriter, machine *omni.ClusterMachine) (string, error) {
-	clusterName, ok := machine.Metadata().Labels().Get(omni.LabelCluster)
-	if !ok {
-		return "", fmt.Errorf("cluster machine %q doesn't have cluster label set", machine.Metadata().ID())
+func getDesiredSchematic(ctx context.Context, r controller.ReaderWriter, machine *omni.ClusterMachine, talosVersion string) (string, error) {
+	schematic, err := safe.ReaderGetByID[*omni.SchematicConfiguration](ctx, r, machine.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
+		return "", err
 	}
 
-	machineSet, ok := machine.Metadata().Labels().Get(omni.LabelMachineSet)
-	if !ok {
-		return "", fmt.Errorf("cluster machine %q doesn't have machine set label set", machine.Metadata().ID())
-	}
-
-	for _, res := range []struct {
-		id    string
-		label string
-	}{
-		{
-			id:    machine.Metadata().ID(),
-			label: omni.LabelClusterMachine,
-		},
-		{
-			id:    machineSet,
-			label: omni.LabelMachineSet,
-		},
-		{
-			id:    clusterName,
-			label: omni.LabelCluster,
-		},
-	} {
-		schematics, err := safe.ReaderListAll[*omni.SchematicConfiguration](ctx, r, state.WithLabelQuery(resource.LabelEqual(res.label, res.id)))
-		if err != nil {
-			return "", err
+	if schematic != nil {
+		if schematic.TypedSpec().Value.TalosVersion != talosVersion {
+			return "", xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the schematic is not in sync with Talos version yet")
 		}
 
-		if schematics.Len() > 0 {
-			return schematics.Get(0).TypedSpec().Value.SchematicId, nil
-		}
+		return schematic.TypedSpec().Value.SchematicId, nil
 	}
 
-	ms, err := safe.ReaderGet[*omni.MachineStatus](ctx, r, omni.NewMachineStatus(resources.DefaultNamespace, machine.Metadata().ID()).Metadata())
+	ms, err := safe.ReaderGetByID[*omni.MachineStatus](ctx, r, machine.Metadata().ID())
 	if err != nil {
 		return "", err
 	}

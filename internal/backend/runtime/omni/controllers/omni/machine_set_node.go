@@ -83,6 +83,8 @@ func (ctrl *MachineSetNodeController) Outputs() []controller.Output {
 }
 
 // Run implements controller.Controller interface.
+//
+//nolint:gocognit
 func (ctrl *MachineSetNodeController) Run(ctx context.Context, r controller.Runtime, logger *zap.Logger) error {
 	for {
 		select {
@@ -149,6 +151,17 @@ func (ctrl *MachineSetNodeController) Run(ctx context.Context, r controller.Runt
 			machine, machineExists := machineMap[machineSetNode.Metadata().ID()]
 
 			if _, ok = visited[machineSet]; ok && machineExists && machine.Metadata().Phase() != resource.PhaseTearingDown {
+				return nil
+			}
+
+			var ready bool
+
+			ready, err = r.Teardown(ctx, machineSetNode.Metadata())
+			if err != nil {
+				return err
+			}
+
+			if !ready {
 				return nil
 			}
 
@@ -252,7 +265,7 @@ func (ctrl *MachineSetNodeController) createNodes(
 
 		availableMachineClassMachines := allMachineStatuses.FilterLabelQuery(resource.RawLabelQuery(selector))
 
-		for i := 0; i < availableMachineClassMachines.Len(); i++ {
+		for i := range availableMachineClassMachines.Len() {
 			machine := availableMachineClassMachines.Get(i)
 
 			var machineVersion semver.Version
@@ -330,7 +343,7 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 		iterations = machinesToDestroyCount
 	}
 
-	for i := 0; i < iterations; i++ {
+	for i := range iterations {
 		var (
 			ready bool
 			err   error

@@ -115,9 +115,7 @@ func buildModelList(clusterModel models.Cluster, controlPlaneMachineSetModel mod
 	})
 
 	for _, workerMachineSetModel := range workerMachineSetModels {
-		workerMachineSetModel := workerMachineSetModel
-
-		modelList = append(modelList, &workerMachineSetModel)
+		modelList = append(modelList, &workerMachineSetModel) //nolint:exportloopref
 	}
 
 	slices.SortFunc(machineModels, func(a, b models.Machine) int {
@@ -125,9 +123,7 @@ func buildModelList(clusterModel models.Cluster, controlPlaneMachineSetModel mod
 	})
 
 	for _, machineModel := range machineModels {
-		machineModel := machineModel
-
-		modelList = append(modelList, &machineModel)
+		modelList = append(modelList, &machineModel) //nolint:exportloopref
 	}
 
 	return modelList

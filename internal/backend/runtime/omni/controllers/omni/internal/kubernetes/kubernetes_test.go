@@ -56,7 +56,7 @@ func TestComponentPatch(t *testing.T) {
 		},
 	}
 
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			t.Parallel()
 

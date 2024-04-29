@@ -140,7 +140,7 @@ func duplicate[T any](v []T) []T { return append(v, v...) }
 func produce[T any](start, count int, fn func(i int) T) []T {
 	msgs := make([]T, 0, count)
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		msgs = append(msgs, fn(i+start))
 	}
 
@@ -222,7 +222,7 @@ func appendBootstrapped(msgs []runtime.WatchResponse) []runtime.WatchResponse {
 func takeCount[T any](ctx context.Context, ch <-chan T, count int) ([]T, error) {
 	msgs := make([]T, 0, count)
 
-	for i := 0; i < count; i++ {
+	for range count {
 		select {
 		case got, ok := <-ch:
 			if !ok {

@@ -31,7 +31,7 @@ var deleteCmd = &cobra.Command{
 	Short:   "Delete a specific resource by ID or all resources of the type.",
 	Long:    `Similar to 'kubectl delete', 'omnictl delete' initiates resource deletion and waits for the operation to complete.`,
 	Example: "",
-	Args:    cobra.RangeArgs(1, 2),
+	Args:    cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return access.WithClient(deleteResources(cmd, args))
 	},
@@ -53,39 +53,55 @@ func deleteResources(cmd *cobra.Command, args []string) func(ctx context.Context
 			deleteCmdFlags.namespace = rd.TypedSpec().DefaultNamespace
 		}
 
-		var resourceIDs []resource.ID
+		listMD := resource.NewMetadata(deleteCmdFlags.namespace, rd.TypedSpec().Type, "", resource.VersionUndefined)
+
+		var (
+			resourceIDs   []resource.ID
+			useWatchKind  bool
+			watchKindOpts []state.WatchKindOption
+		)
 
 		if len(args) > 1 {
-			resourceIDs = []resource.ID{args[1]}
+			resourceIDs = args[1:]
+			useWatchKind = len(resourceIDs) > 10
 		} else {
-			var listOpts []state.ListOption
+			useWatchKind = true
 
 			if !deleteCmdFlags.all && deleteCmdFlags.selector == "" {
 				return fmt.Errorf("either resource ID or one of --all or --selector flags must be specified")
 			}
 
-			if deleteCmdFlags.selector != "" {
-				var query *resource.LabelQuery
+			var listOpts []state.ListOption
 
-				query, err = labels.ParseQuery(deleteCmdFlags.selector)
+			if deleteCmdFlags.selector != "" {
+				var labelQuery resource.LabelQueryOption
+
+				labelQuery, err = labelQueryForSelector(deleteCmdFlags.selector)
 				if err != nil {
 					return err
 				}
 
-				listOpts = append(listOpts, state.WithLabelQuery(resource.RawLabelQuery(*query)))
+				listOpts = append(listOpts, state.WithLabelQuery(labelQuery))
+				watchKindOpts = append(watchKindOpts, state.WatchWithLabelQuery(labelQuery))
 			}
 
-			var list resource.List
-
-			list, err = st.List(ctx, resource.NewMetadata(deleteCmdFlags.namespace, rd.TypedSpec().Type, "", resource.VersionUndefined), listOpts...)
-			if err != nil {
+			if resourceIDs, err = getResourceIDs(ctx, st, listMD, listOpts...); err != nil {
 				return err
 			}
+		}
 
-			resourceIDs = make([]resource.ID, 0, len(list.Items))
+		watchCh := make(chan state.Event)
 
-			for _, item := range list.Items {
-				resourceIDs = append(resourceIDs, item.Metadata().ID())
+		if useWatchKind {
+			if err = st.WatchKind(ctx, listMD, watchCh, watchKindOpts...); err != nil {
+				return err
+			}
+		} else {
+			for _, resourceID := range resourceIDs {
+				err = st.Watch(ctx, resource.NewMetadata(deleteCmdFlags.namespace, rd.TypedSpec().Type, resourceID, resource.VersionUndefined), watchCh)
+				if err != nil {
+					return err
+				}
 			}
 		}
 
@@ -97,16 +113,6 @@ func deleteResources(cmd *cobra.Command, args []string) func(ctx context.Context
 			}
 
 			fmt.Printf("torn down %s %s\n", rd.TypedSpec().Type, resourceID)
-		}
-
-		// set up a watch for all resources of kind
-		watchCh := make(chan state.Event)
-
-		for _, resourceID := range resourceIDs {
-			err = st.Watch(ctx, resource.NewMetadata(deleteCmdFlags.namespace, rd.TypedSpec().Type, resourceID, resource.VersionUndefined), watchCh)
-			if err != nil {
-				return err
-			}
 		}
 
 		resourceIDsLeft := map[resource.ID]struct{}{}
@@ -149,6 +155,30 @@ func deleteResources(cmd *cobra.Command, args []string) func(ctx context.Context
 
 		return nil
 	}
+}
+
+func labelQueryForSelector(selector string) (resource.LabelQueryOption, error) {
+	query, err := labels.ParseQuery(selector)
+	if err != nil {
+		return nil, err
+	}
+
+	return resource.RawLabelQuery(*query), nil
+}
+
+func getResourceIDs(ctx context.Context, st state.State, listMD resource.Metadata, listOpts ...state.ListOption) ([]resource.ID, error) {
+	list, err := st.List(ctx, listMD, listOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	resourceIDs := make([]resource.ID, 0, len(list.Items))
+
+	for _, item := range list.Items {
+		resourceIDs = append(resourceIDs, item.Metadata().ID())
+	}
+
+	return resourceIDs, nil
 }
 
 func init() {

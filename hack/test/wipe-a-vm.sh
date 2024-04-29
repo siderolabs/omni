@@ -7,11 +7,21 @@
 
 set -eoux pipefail
 
-# wipe a VM UUID $1 in talosctl cluster created cluster 'talos-default'
+dir=""
 
-echo "s" | socat - unix-connect:${HOME}/.talos/clusters/talos-default/machine-$1.monitor
+# find the cluster machine $1 belongs to
+for d in "${HOME}"/.talos/clusters/*; do
+  if [ -e "${d}/machine-$1.monitor" ]; then
+    dir="${d}"
 
-disk="${HOME}/.talos/clusters/talos-default/machine-$1-0.disk"
+    break
+  fi
+done
+
+# wipe the VM $1
+echo "s" | socat - "unix-connect:${dir}/machine-$1.monitor"
+
+disk="${dir}/machine-$1-0.disk"
 
 size=$(du -bs "${disk}" | cut -f1)
 
@@ -19,4 +29,4 @@ rm "${disk}"
 
 truncate -s "${size}" "${disk}"
 
-echo "q" | socat - unix-connect:${HOME}/.talos/clusters/talos-default/machine-$1.monitor
+echo "q" | socat - "unix-connect:${dir}/machine-$1.monitor"

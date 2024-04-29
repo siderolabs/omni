@@ -61,6 +61,24 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 			Key:   uint8(key),
 			Value: value,
 		})
+
+		// validate that labels meta has the correct format
+		if key == meta.LabelsMeta {
+			var labels *meta.ImageLabels
+
+			labels, err = meta.ParseLabels([]byte(value))
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "failed to parse machine labels: %s", err)
+			}
+
+			if labels.Labels == nil {
+				return nil, status.Errorf(codes.InvalidArgument, "machine labels are empty")
+			}
+
+			if labels.LegacyLabels != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "'machineInitialLabels' is deprecated")
+			}
+		}
 	}
 
 	slices.SortFunc(customization.Meta, func(a, b schematic.MetaValue) int {

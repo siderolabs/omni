@@ -2,14 +2,14 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-03-13T17:28:42Z by kres latest.
+# Generated on 2024-04-19T08:33:46Z by kres add13d7.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
 
-FROM ghcr.io/siderolabs/ca-certificates:v1.6.0 AS image-ca-certificates
+FROM ghcr.io/siderolabs/ca-certificates:v1.7.0 AS image-ca-certificates
 
-FROM ghcr.io/siderolabs/fhs:v1.6.0 AS image-fhs
+FROM ghcr.io/siderolabs/fhs:v1.7.0 AS image-fhs
 
 # base toolchain image
 FROM ${JS_TOOLCHAIN} AS js-toolchain
@@ -21,7 +21,7 @@ ENV GOPATH /go
 ENV PATH ${PATH}:/usr/local/go/bin
 
 # runs markdownlint
-FROM docker.io/node:21.7.1-alpine3.19 AS lint-markdown
+FROM docker.io/node:21.7.3-alpine3.19 AS lint-markdown
 WORKDIR /src
 RUN npm i -g markdownlint-cli@0.39.0
 RUN npm i sentences-per-line@0.2.1
@@ -274,6 +274,7 @@ FROM base AS lint-golangci-lint
 WORKDIR /src
 COPY .golangci.yml .
 ENV GOGC 50
+RUN golangci-lint config verify --config .golangci.yml
 RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/root/.cache/golangci-lint --mount=type=cache,target=/go/pkg golangci-lint run --config .golangci.yml
 
 # runs golangci-lint
@@ -281,6 +282,7 @@ FROM base AS lint-golangci-lint-client
 WORKDIR /src/client
 COPY client/.golangci.yml .
 ENV GOGC 50
+RUN golangci-lint config verify --config .golangci.yml
 RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/root/.cache/golangci-lint --mount=type=cache,target=/go/pkg golangci-lint run --config .golangci.yml
 
 # runs govulncheck

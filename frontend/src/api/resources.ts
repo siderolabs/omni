@@ -120,6 +120,7 @@ export const ClusterMachineStatusLabelNodeName = "omni.sidero.dev/node-name";
 export const MachineType = "Machines.omni.sidero.dev";
 export const MachineClassType = "MachineClasses.omni.sidero.dev";
 export const MachineConfigGenOptionsType = "MachineConfigGenOptions.omni.sidero.dev";
+export const MachineExtensionsType = "MachineExtensions.omni.sidero.dev";
 export const MachineLabelsType = "MachineLabels.omni.sidero.dev";
 export const ControlPlanesIDSuffix = "control-planes";
 export const DefaultWorkersIDSuffix = "workers";

@@ -6,6 +6,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -120,7 +121,7 @@ func (c *Config) Save() error {
 // Current returns the currently targeted config.
 func Current() (*Config, error) {
 	if current == nil {
-		return nil, fmt.Errorf("config not initialized")
+		return nil, errors.New("config not initialized")
 	}
 
 	return current, nil
@@ -158,7 +159,7 @@ func (c *Config) Merge(additionalConfigPath string) ([]Rename, error) {
 	var renames []Rename
 
 	for name, ctx := range cfg.Contexts {
-		mergedName := name
+		mergedName := name //nolint:copyloopvar
 
 		if _, exists := c.Contexts[mergedName]; exists {
 			for i := 1; ; i++ {

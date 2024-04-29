@@ -601,6 +601,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		extensionsConfiguration := omni.NewExtensionsConfiguration(resources.DefaultNamespace, uuid.New().String())
 		extensionsConfiguration.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 
+		machineExtensions := omni.NewMachineExtensions(resources.DefaultNamespace, uuid.New().String())
+		machineExtensions.Metadata().Labels().Set(omni.LabelCluster, uuid.New().String())
+
 		testCases := []resourceAuthzTestCase{
 			{
 				resource:       identity,
@@ -659,6 +662,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource:       extensionsConfiguration,
 				allowedVerbSet: allVerbsSet,
 			},
+			{
+				resource:       machineExtensions,
+				allowedVerbSet: readOnlyVerbSet,
+			},
 		}
 
 		// read-only resources
@@ -692,6 +699,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
+				resource:       omni.NewClusterKubernetesNodes(resources.DefaultNamespace, uuid.New().String()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
 				resource:       omni.NewClusterMachineIdentity(resources.DefaultNamespace, uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
@@ -721,6 +732,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource:       omni.NewClusterUUID(uuid.New().String()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
+				resource:       omni.NewKubernetesNodeAuditResult(resources.DefaultNamespace, uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{

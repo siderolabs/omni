@@ -46,6 +46,7 @@ func TestEtcdElections(t *testing.T) {
 	require.NoError(t, omni.GetEmbeddedEtcdClient(ctx, &config.EtcdParams{
 		Embedded:       true,
 		EmbeddedDBPath: t.TempDir(),
+		Endpoints:      []string{"http://localhost:0"},
 	}, logger, func(ctx context.Context, client *clientv3.Client) error {
 		started := make(chan int)
 		closed := make(chan error)
