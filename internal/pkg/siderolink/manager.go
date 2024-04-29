@@ -51,6 +51,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/errgroup"
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
 	"github.com/siderolabs/omni/internal/pkg/logreceiver"
+	"github.com/siderolabs/omni/internal/pkg/machinestatus"
 	"github.com/siderolabs/omni/internal/pkg/siderolink/trustd"
 )
 
@@ -75,13 +76,15 @@ func NewManager(
 	params Params,
 	logger *zap.Logger,
 	handler *LogHandler,
+	machineStatusHandler *machinestatus.Handler,
 	deltaCh chan<- LinkCounterDeltas,
 ) (*Manager, error) {
 	manager := &Manager{
-		logger:     logger,
-		state:      state,
-		wgHandler:  wgHandler,
-		logHandler: handler,
+		logger:               logger,
+		state:                state,
+		wgHandler:            wgHandler,
+		logHandler:           handler,
+		machineStatusHandler: machineStatusHandler,
 		metricBytesReceived: prometheus.NewCounter(prometheus.CounterOpts{
 			Name: "omni_siderolink_received_bytes_total",
 			Help: "Number of bytes received from the SideroLink interface.",
@@ -128,11 +131,12 @@ func NewManager(
 // Manager sets up Siderolink server, manages it's state.
 type Manager struct {
 	pb.UnimplementedProvisionServiceServer
-	config     *siderolink.Config
-	logger     *zap.Logger
-	state      state.State
-	wgHandler  WireguardHandler
-	logHandler *LogHandler
+	config               *siderolink.Config
+	logger               *zap.Logger
+	state                state.State
+	wgHandler            WireguardHandler
+	logHandler           *LogHandler
+	machineStatusHandler *machinestatus.Handler
 
 	metricBytesReceived prometheus.Counter
 	metricBytesSent     prometheus.Counter
@@ -402,25 +406,10 @@ func (manager *Manager) startEventsGRPC(ctx context.Context, eg *errgroup.Group,
 	server := grpc.NewServer(
 		grpc.SharedWriteBuffer(true),
 	)
-	adapter := NewEventsAdapter(manager.state, manager.logger)
-	sink := events.NewSink(adapter, []proto.Message{
+	sink := events.NewSink(manager.machineStatusHandler, []proto.Message{
 		&machineapi.MachineStatusEvent{},
 	})
 	eventsapi.RegisterEventSinkServiceServer(server, sink)
-
-	eg.Go(func() error {
-		err := adapter.CleanupMachineStatuses(
-			ctx,
-			manager.logger.With(
-				zap.String("component", "events_machine_status_cleanup"),
-			),
-		)
-		if err != nil {
-			err = fmt.Errorf("machine status cleanup failed: %w", err)
-		}
-
-		return err
-	})
 
 	grpcutil.RunServer(ctx, server, listener, eg)
 }

@@ -403,6 +403,10 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 			spec.PlatformMetadata = event.PlatformMetadata
 		}
 
+		if event.TalosMachineStatus != nil {
+			spec.TalosMachineStatus = event.TalosMachineStatus
+		}
+
 		if event.ImageLabels != nil {
 			spec.ImageLabels = event.ImageLabels
 

@@ -15,9 +15,11 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/value"
+	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/go-procfs/procfs"
 	"github.com/siderolabs/image-factory/pkg/schematic"
+	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
@@ -29,6 +31,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	omnimeta "github.com/siderolabs/omni/client/pkg/meta"
@@ -48,6 +51,7 @@ var resourcePollers = map[string]machinePollFunction{
 	runtime.PlatformMetadataType: pollPlatformMetadata,
 	runtime.MetaKeyType:          pollMeta,
 	runtime.ExtensionStatusType:  pollExtensions,
+	runtime.MachineStatusType:    pollTalosMachineStatus,
 	config.MachineConfigType:     pollMaintenanceConfig,
 }
 
@@ -263,6 +267,74 @@ func pollPlatformMetadata(ctx context.Context, c *client.Client, info *Info) err
 				ProviderId:   r.TypedSpec().ProviderID,
 				Spot:         r.TypedSpec().Spot,
 			}
+
+			return nil
+		})
+}
+
+func pollTalosMachineStatus(ctx context.Context, c *client.Client, info *Info) error {
+	convertStage := func(stage runtime.MachineStage) (machine.MachineStatusEvent_MachineStage, error) {
+		switch stage {
+		case runtime.MachineStageUnknown:
+			return machine.MachineStatusEvent_UNKNOWN, nil
+		case runtime.MachineStageBooting:
+			return machine.MachineStatusEvent_BOOTING, nil
+		case runtime.MachineStageInstalling:
+			return machine.MachineStatusEvent_INSTALLING, nil
+		case runtime.MachineStageMaintenance:
+			return machine.MachineStatusEvent_MAINTENANCE, nil
+		case runtime.MachineStageRunning:
+			return machine.MachineStatusEvent_RUNNING, nil
+		case runtime.MachineStageRebooting:
+			return machine.MachineStatusEvent_REBOOTING, nil
+		case runtime.MachineStageShuttingDown:
+			return machine.MachineStatusEvent_SHUTTING_DOWN, nil
+		case runtime.MachineStageResetting:
+			return machine.MachineStatusEvent_RESETTING, nil
+		case runtime.MachineStageUpgrading:
+			return machine.MachineStatusEvent_UPGRADING, nil
+		default:
+			return machine.MachineStatusEvent_UNKNOWN, fmt.Errorf("unknown stage: %d", stage)
+		}
+	}
+
+	convertStatus := func(r *runtime.MachineStatus) (*specs.MachineStatusSpec_TalosMachineStatus, error) {
+		spec := r.TypedSpec()
+
+		statusEventMachineStage, err := convertStage(spec.Stage)
+		if err != nil {
+			return nil, err
+		}
+
+		return &specs.MachineStatusSpec_TalosMachineStatus{
+			UpdatedAt: timestamppb.New(r.Metadata().Updated()),
+			Status: &machine.MachineStatusEvent{
+				Stage: statusEventMachineStage,
+				Status: &machine.MachineStatusEvent_MachineStatus{
+					Ready: spec.Status.Ready,
+					UnmetConditions: xslices.Map(spec.Status.UnmetConditions, func(t runtime.UnmetCondition) *machine.MachineStatusEvent_MachineStatus_UnmetCondition {
+						return &machine.MachineStatusEvent_MachineStatus_UnmetCondition{
+							Name:   t.Name,
+							Reason: t.Reason,
+						}
+					}),
+				},
+			},
+		}, nil
+	}
+
+	return forEachResource(
+		ctx,
+		c,
+		runtime.NamespaceName,
+		runtime.MachineStatusType,
+		func(r *runtime.MachineStatus) error {
+			machineStatusEvent, err := convertStatus(r)
+			if err != nil {
+				return err
+			}
+
+			info.TalosMachineStatus = machineStatusEvent
 
 			return nil
 		})

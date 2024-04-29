@@ -51,9 +51,10 @@ type Info struct { //nolint:govet
 	MemoryModules []*specs.MachineStatusSpec_HardwareStatus_MemoryModule
 	Blockdevices  []*specs.MachineStatusSpec_HardwareStatus_BlockDevice
 
-	PlatformMetadata  *specs.MachineStatusSpec_PlatformMetadata
-	Schematic         *specs.MachineStatusSpec_Schematic
-	MaintenanceConfig *specs.MachineStatusSpec_MaintenanceConfig
+	TalosMachineStatus *specs.MachineStatusSpec_TalosMachineStatus
+	PlatformMetadata   *specs.MachineStatusSpec_PlatformMetadata
+	Schematic          *specs.MachineStatusSpec_Schematic
+	MaintenanceConfig  *specs.MachineStatusSpec_MaintenanceConfig
 
 	LastError       error
 	MachineID       string

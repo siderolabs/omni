@@ -288,6 +288,32 @@ func (m *MachineStatusSpec_MaintenanceConfig) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
+func (m *MachineStatusSpec_TalosMachineStatus) CloneVT() *MachineStatusSpec_TalosMachineStatus {
+	if m == nil {
+		return (*MachineStatusSpec_TalosMachineStatus)(nil)
+	}
+	r := new(MachineStatusSpec_TalosMachineStatus)
+	r.UpdatedAt = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.UpdatedAt).CloneVT())
+	if rhs := m.Status; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface {
+			CloneVT() *machine.MachineStatusEvent
+		}); ok {
+			r.Status = vtpb.CloneVT()
+		} else {
+			r.Status = proto.Clone(rhs).(*machine.MachineStatusEvent)
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *MachineStatusSpec_TalosMachineStatus) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (m *MachineStatusSpec) CloneVT() *MachineStatusSpec {
 	if m == nil {
 		return (*MachineStatusSpec)(nil)
@@ -306,6 +332,7 @@ func (m *MachineStatusSpec) CloneVT() *MachineStatusSpec {
 	r.Schematic = m.Schematic.CloneVT()
 	r.MaintenanceConfig = m.MaintenanceConfig.CloneVT()
 	r.InitialTalosVersion = m.InitialTalosVersion
+	r.TalosMachineStatus = m.TalosMachineStatus.CloneVT()
 	if rhs := m.ImageLabels; rhs != nil {
 		tmpContainer := make(map[string]string, len(rhs))
 		for k, v := range rhs {
@@ -2349,6 +2376,34 @@ func (this *MachineStatusSpec_MaintenanceConfig) EqualMessageVT(thatMsg proto.Me
 	}
 	return this.EqualVT(that)
 }
+func (this *MachineStatusSpec_TalosMachineStatus) EqualVT(that *MachineStatusSpec_TalosMachineStatus) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if equal, ok := interface{}(this.Status).(interface {
+		EqualVT(*machine.MachineStatusEvent) bool
+	}); ok {
+		if !equal.EqualVT(that.Status) {
+			return false
+		}
+	} else if !proto.Equal(this.Status, that.Status) {
+		return false
+	}
+	if !(*timestamppb1.Timestamp)(this.UpdatedAt).EqualVT((*timestamppb1.Timestamp)(that.UpdatedAt)) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MachineStatusSpec_TalosMachineStatus) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*MachineStatusSpec_TalosMachineStatus)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
 func (this *MachineStatusSpec) EqualVT(that *MachineStatusSpec) bool {
 	if this == that {
 		return true
@@ -2404,6 +2459,9 @@ func (this *MachineStatusSpec) EqualVT(that *MachineStatusSpec) bool {
 		return false
 	}
 	if this.InitialTalosVersion != that.InitialTalosVersion {
+		return false
+	}
+	if !this.TalosMachineStatus.EqualVT(that.TalosMachineStatus) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -5297,6 +5355,71 @@ func (m *MachineStatusSpec_MaintenanceConfig) MarshalToSizedBufferVT(dAtA []byte
 	return len(dAtA) - i, nil
 }
 
+func (m *MachineStatusSpec_TalosMachineStatus) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MachineStatusSpec_TalosMachineStatus) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MachineStatusSpec_TalosMachineStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.UpdatedAt != nil {
+		size, err := (*timestamppb1.Timestamp)(m.UpdatedAt).MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Status != nil {
+		if vtmsg, ok := interface{}(m.Status).(interface {
+			MarshalToSizedBufferVT([]byte) (int, error)
+		}); ok {
+			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		} else {
+			encoded, err := proto.Marshal(m.Status)
+			if err != nil {
+				return 0, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *MachineStatusSpec) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -5326,6 +5449,18 @@ func (m *MachineStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.TalosMachineStatus != nil {
+		size, err := m.TalosMachineStatus.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x8a
 	}
 	if len(m.InitialTalosVersion) > 0 {
 		i -= len(m.InitialTalosVersion)
@@ -10022,6 +10157,30 @@ func (m *MachineStatusSpec_MaintenanceConfig) SizeVT() (n int) {
 	return n
 }
 
+func (m *MachineStatusSpec_TalosMachineStatus) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Status != nil {
+		if size, ok := interface{}(m.Status).(interface {
+			SizeVT() int
+		}); ok {
+			l = size.SizeVT()
+		} else {
+			l = proto.Size(m.Status)
+		}
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.UpdatedAt != nil {
+		l = (*timestamppb1.Timestamp)(m.UpdatedAt).SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *MachineStatusSpec) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -10083,6 +10242,10 @@ func (m *MachineStatusSpec) SizeVT() (n int) {
 	}
 	l = len(m.InitialTalosVersion)
 	if l > 0 {
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.TalosMachineStatus != nil {
+		l = m.TalosMachineStatus.SizeVT()
 		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -13732,6 +13895,137 @@ func (m *MachineStatusSpec_MaintenanceConfig) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *MachineStatusSpec_TalosMachineStatus) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MachineStatusSpec_TalosMachineStatus: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MachineStatusSpec_TalosMachineStatus: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Status == nil {
+				m.Status = &machine.MachineStatusEvent{}
+			}
+			if unmarshal, ok := interface{}(m.Status).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.Status); err != nil {
+					return err
+				}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UpdatedAt", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.UpdatedAt == nil {
+				m.UpdatedAt = &timestamppb.Timestamp{}
+			}
+			if err := (*timestamppb1.Timestamp)(m.UpdatedAt).UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *MachineStatusSpec) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -14286,6 +14580,42 @@ func (m *MachineStatusSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.InitialTalosVersion = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 17:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TalosMachineStatus", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.TalosMachineStatus == nil {
+				m.TalosMachineStatus = &MachineStatusSpec_TalosMachineStatus{}
+			}
+			if err := m.TalosMachineStatus.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

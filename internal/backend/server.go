@@ -84,6 +84,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/errgroup"
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
 	"github.com/siderolabs/omni/internal/pkg/kms"
+	"github.com/siderolabs/omni/internal/pkg/machinestatus"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
@@ -461,15 +462,19 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 		EventSinkPort:      strconv.Itoa(config.Config.EventSinkPort),
 	}
 
+	omniState := s.omniRuntime.State()
+	machineStatusHandler := machinestatus.NewHandler(omniState, s.logger)
+
 	slink, err := siderolink.NewManager(
 		ctx,
-		s.omniRuntime.State(),
+		omniState,
 		siderolink.DefaultWireguardHandler,
 		params,
 		s.logger.With(logging.Component("siderolink")).WithOptions(
 			zap.AddStacktrace(zapcore.ErrorLevel), // prevent warn level from printing stack traces
 		),
 		s.logHandler,
+		machineStatusHandler,
 		s.linkCounterDeltaCh,
 	)
 	if err != nil {
@@ -477,7 +482,7 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 	}
 
 	kms := kms.NewManager(
-		s.omniRuntime.State(),
+		omniState,
 		s.logger.With(logging.Component("kms")).WithOptions(
 			zap.AddStacktrace(zapcore.ErrorLevel), // prevent warn level from printing stack traces
 		),
@@ -499,6 +504,10 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 
 	slink.Register(server)
 	kms.Register(server)
+
+	eg.Go(func() error {
+		return machineStatusHandler.Start(groupCtx)
+	})
 
 	eg.Go(func() error {
 		return slink.Run(groupCtx,

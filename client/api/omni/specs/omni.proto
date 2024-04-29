@@ -158,6 +158,11 @@ message MachineStatusSpec {
     string config = 1;
   }
 
+  message TalosMachineStatus {
+    machine.MachineStatusEvent status = 1;
+    google.protobuf.Timestamp updated_at = 2;
+  }
+
   // Talos version.
   string talos_version = 1;
 
@@ -206,6 +211,8 @@ message MachineStatusSpec {
 
   // InitialTalosVersion is set only once when the machine first joined Omni.
   string initial_talos_version = 16;
+
+  TalosMachineStatus talos_machine_status = 17;
 }
 
 // TalosConfigSpec describes a Talos cluster config.
