@@ -1322,6 +1322,28 @@ func (suite *MigrationSuite) TestCleanupExtensionConfigurationStatuses() {
 	suite.Require().True(state.IsNotFoundError(err))
 }
 
+func (suite *MigrationSuite) TestDropExtensionsConfigurationFinalizers() {
+	ctx := context.Background()
+
+	version := system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
+	suite.Require().NoError(suite.state.Create(ctx, version))
+
+	configuration := omni.NewExtensionsConfiguration(resources.DefaultNamespace, "1")
+
+	configuration.Metadata().Finalizers().Add(omnictrl.SchematicConfigurationControllerName)
+	configuration.Metadata().Finalizers().Add(omnictrl.MachineExtensionsControllerName)
+
+	suite.Require().NoError(suite.state.Create(ctx, configuration))
+
+	suite.Require().NoError(suite.manager.Run(ctx))
+
+	res, err := safe.StateGetByID[*omni.ExtensionsConfiguration](ctx, suite.state, "1")
+
+	suite.Require().NoError(err)
+
+	suite.Require().EqualValues([]string{omnictrl.MachineExtensionsControllerName}, *res.Metadata().Finalizers())
+}
+
 func TestMigrationSuite(t *testing.T) {
 	suite.Run(t, new(MigrationSuite))
 }

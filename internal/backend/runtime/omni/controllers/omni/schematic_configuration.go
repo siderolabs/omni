@@ -25,7 +25,8 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 )
 
-const schematicConfigurationControllerName = "SchematicConfigurationController"
+// SchematicConfigurationControllerName is the name of the SchematicConfiguration controller.
+const SchematicConfigurationControllerName = "SchematicConfigurationController"
 
 // SchematicConfigurationController combines MachineExtensions resource, MachineStatus overlay into SchematicConfiguration for each existing ClusterMachine.
 // Ensures schematic exists in the image factory.
@@ -39,7 +40,7 @@ func NewSchematicConfigurationController(imageFactoryClient *imagefactory.Client
 
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.ClusterMachine, *omni.SchematicConfiguration]{
-			Name: schematicConfigurationControllerName,
+			Name: SchematicConfigurationControllerName,
 			MapMetadataFunc: func(clusterMachine *omni.ClusterMachine) *omni.SchematicConfiguration {
 				return omni.NewSchematicConfiguration(resources.DefaultNamespace, clusterMachine.Metadata().ID())
 			},
@@ -48,7 +49,7 @@ func NewSchematicConfigurationController(imageFactoryClient *imagefactory.Client
 			},
 			TransformExtraOutputFunc: helper.reconcile,
 			FinalizerRemovalExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, clusterMachine *omni.ClusterMachine) error {
-				err := r.RemoveFinalizer(ctx, omni.NewMachineExtensions(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata(), schematicConfigurationControllerName)
+				err := r.RemoveFinalizer(ctx, omni.NewMachineExtensions(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata(), SchematicConfigurationControllerName)
 				if err != nil && !state.IsNotFoundError(err) {
 					return err
 				}
@@ -207,12 +208,12 @@ func getOverlay(ms *omni.MachineStatus) schematic.Overlay {
 
 func updateFinalizers(ctx context.Context, r controller.ReaderWriter, extensions *omni.MachineExtensions) error {
 	if extensions.Metadata().Phase() == resource.PhaseTearingDown {
-		return r.RemoveFinalizer(ctx, extensions.Metadata(), schematicConfigurationControllerName)
+		return r.RemoveFinalizer(ctx, extensions.Metadata(), SchematicConfigurationControllerName)
 	}
 
-	if extensions.Metadata().Finalizers().Has(schematicConfigurationControllerName) {
+	if extensions.Metadata().Finalizers().Has(SchematicConfigurationControllerName) {
 		return nil
 	}
 
-	return r.AddFinalizer(ctx, extensions.Metadata(), schematicConfigurationControllerName)
+	return r.AddFinalizer(ctx, extensions.Metadata(), SchematicConfigurationControllerName)
 }
