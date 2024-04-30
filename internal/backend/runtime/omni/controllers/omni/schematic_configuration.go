@@ -8,7 +8,9 @@ package omni
 import (
 	"context"
 	"errors"
+	"slices"
 
+	"github.com/blang/semver"
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -89,14 +91,10 @@ func (helper *schematicConfigurationHelper) reconcile(
 		return err
 	}
 
-	var extensionsList []string
-
 	if extensions != nil {
 		if err = updateFinalizers(ctx, r, extensions); err != nil {
 			return err
 		}
-
-		extensionsList = extensions.TypedSpec().Value.Extensions
 	}
 
 	clusterName, ok := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
@@ -131,9 +129,14 @@ func (helper *schematicConfigurationHelper) reconcile(
 		return err
 	}
 
+	machineExtensions, err := newMachineExtensions(cluster, ms, extensions)
+	if err != nil {
+		return err
+	}
+
 	schematicConfiguration.TypedSpec().Value.TalosVersion = cluster.TypedSpec().Value.TalosVersion
 
-	if !shouldGenerateSchematicID(cluster, extensions, ms, overlay) {
+	if !shouldGenerateSchematicID(cluster, machineExtensions, ms, overlay) {
 		// if extensions config is not set, fall back to the initial schematic id and exit
 		id := initialSchematic
 
@@ -150,7 +153,7 @@ func (helper *schematicConfigurationHelper) reconcile(
 	config := schematic.Schematic{
 		Customization: schematic.Customization{
 			SystemExtensions: schematic.SystemExtensions{
-				OfficialExtensions: extensionsList,
+				OfficialExtensions: machineExtensions.extensionsList,
 			},
 		},
 		Overlay: overlay,
@@ -178,7 +181,7 @@ func (helper *schematicConfigurationHelper) reconcile(
 	return nil
 }
 
-func shouldGenerateSchematicID(cluster *omni.Cluster, extensions *omni.MachineExtensions, machineStatus *omni.MachineStatus, overlay schematic.Overlay) bool {
+func shouldGenerateSchematicID(cluster *omni.Cluster, extensionsList machineExtensions, machineStatus *omni.MachineStatus, overlay schematic.Overlay) bool {
 	// migrating SBC running Talos < 1.7.0, overlay was detected, but is not applied yet, should generate a schematic
 	if overlay.Name != "" &&
 		!quirks.New(machineStatus.TypedSpec().Value.InitialTalosVersion).SupportsOverlay() &&
@@ -186,11 +189,7 @@ func shouldGenerateSchematicID(cluster *omni.Cluster, extensions *omni.MachineEx
 		return true
 	}
 
-	if extensions == nil || extensions.Metadata().Phase() == resource.PhaseTearingDown {
-		return false
-	}
-
-	return true
+	return extensionsList.shouldGenerateSchematic()
 }
 
 func getOverlay(ms *omni.MachineStatus) schematic.Overlay {
@@ -216,4 +215,83 @@ func updateFinalizers(ctx context.Context, r controller.ReaderWriter, extensions
 	}
 
 	return r.AddFinalizer(ctx, extensions.Metadata(), SchematicConfigurationControllerName)
+}
+
+type machineExtensions struct {
+	machineStatus     *omni.MachineStatus
+	machineExtensions *omni.MachineExtensions
+	cluster           *omni.Cluster
+	extensionsList    []string
+}
+
+func newMachineExtensions(cluster *omni.Cluster, machineStatus *omni.MachineStatus, extensions *omni.MachineExtensions) (machineExtensions, error) {
+	me := machineExtensions{
+		machineStatus: machineStatus,
+		cluster:       cluster,
+	}
+
+	if extensions != nil && extensions.Metadata().Phase() == resource.PhaseRunning {
+		me.machineExtensions = extensions
+	}
+
+	detected, err := getDetectedExtensions(cluster, machineStatus)
+	if err != nil {
+		return me, err
+	}
+
+	me.extensionsList = append(me.extensionsList, detected...)
+
+	if me.machineExtensions != nil {
+		for _, e := range me.machineExtensions.TypedSpec().Value.Extensions {
+			if slices.Contains(me.extensionsList, e) {
+				continue
+			}
+
+			me.extensionsList = append(me.extensionsList, e)
+		}
+	}
+
+	slices.Sort(me.extensionsList)
+
+	return me, nil
+}
+
+func (m machineExtensions) shouldGenerateSchematic() bool {
+	// generate schematic for the machine extensions when either machine extensions exists
+	// and contains the explicit empty list for the schematics, or when schematic list is not empty
+	return m.machineExtensions != nil || len(m.extensionsList) != 0
+}
+
+func getDetectedExtensions(cluster *omni.Cluster, machineStatus *omni.MachineStatus) ([]string, error) {
+	if machineStatus.TypedSpec().Value.InitialTalosVersion == "" {
+		return nil, errors.New("machine initial version is not set")
+	}
+
+	initialVersion, err := semver.ParseTolerant(machineStatus.TypedSpec().Value.InitialTalosVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	currentVersion, err := semver.ParseTolerant(cluster.TypedSpec().Value.TalosVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	currentVersion.Pre = nil
+
+	return detectExtensions(initialVersion, currentVersion)
+}
+
+func detectExtensions(initialVersion, currentVersion semver.Version) ([]string, error) {
+	// on 1.5.x these extensions were part of the kernel
+	// automatically install them when upgrading to 1.6.x+
+	if initialVersion.Major == 1 && initialVersion.Minor == 5 && currentVersion.GTE(semver.MustParse("1.6.0")) {
+		// install firmware
+		return []string{
+			"siderolabs/bnx2-bnx2x",
+			"siderolabs/intel-ice-firmware",
+		}, nil
+	}
+
+	return nil, nil
 }

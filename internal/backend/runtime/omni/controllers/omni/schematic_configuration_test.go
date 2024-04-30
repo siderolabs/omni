@@ -63,6 +63,7 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
 		InitialSchematic: initialSchematic,
 	}
+	machineStatus.TypedSpec().Value.InitialTalosVersion = "1.7.0"
 
 	clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, machineName)
 	clusterMachine.Metadata().Labels().Set(omni.LabelCluster, clusterName)
@@ -164,6 +165,65 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
 			assertion.Equal(initialSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+		},
+	)
+
+	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, machineStatus.Metadata(), func(res *omni.MachineStatus) error {
+		res.TypedSpec().Value.InitialTalosVersion = "1.5.0"
+
+		return nil
+	})
+
+	suite.Require().NoError(err)
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
+		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+			assertion.Equal("35a502528a50b5c9d264a152545c4b02c2b82a2a5c8fd7398baa9fe78abfb1a2", schematicConfiguration.TypedSpec().Value.SchematicId)
+		},
+	)
+
+	// set empty extensions list for the cluster, should keep the old schematic ID
+	extensionsConfiguration.TypedSpec().Value.Extensions = []string{}
+	extensionsConfiguration.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+
+	suite.Require().NoError(suite.state.Create(ctx, extensionsConfiguration))
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
+		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+			assertion.Equal("35a502528a50b5c9d264a152545c4b02c2b82a2a5c8fd7398baa9fe78abfb1a2", schematicConfiguration.TypedSpec().Value.SchematicId)
+		},
+	)
+
+	// update extensions, should be still no-op as it's duplicate to what's selected by Omni
+	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, extensionsConfiguration.Metadata(), func(res *omni.ExtensionsConfiguration) error {
+		res.TypedSpec().Value.Extensions = []string{"siderolabs/bnx2-bnx2x"}
+
+		return nil
+	})
+
+	suite.Require().NoError(err)
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
+		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+			assertion.Equal("35a502528a50b5c9d264a152545c4b02c2b82a2a5c8fd7398baa9fe78abfb1a2", schematicConfiguration.TypedSpec().Value.SchematicId)
+		},
+	)
+
+	// add an extra extension, schematic ID should change
+	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, extensionsConfiguration.Metadata(), func(res *omni.ExtensionsConfiguration) error {
+		res.TypedSpec().Value.Extensions = []string{
+			"siderolabs/bnx2-bnx2x",
+			"siderolabs/x11",
+		}
+
+		return nil
+	})
+
+	suite.Require().NoError(err)
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
+		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+			assertion.Equal("5fd4ef8a66795a9aba2520a2be1bb4fb64ef7405a775e40965cf6d7aa417665f", schematicConfiguration.TypedSpec().Value.SchematicId)
 		},
 	)
 }
