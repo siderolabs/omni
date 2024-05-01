@@ -266,6 +266,10 @@ const canAddMachine = (machine: Resource<MachineStatusSpec>) => {
   const clusterVersion = semver.parse(state.value.cluster.talosVersion);
   const machineVersion = semver.parse(machine.spec.talos_version);
 
+  if (!machineVersion || !clusterVersion) {
+    return false;
+  }
+
   return machineVersion.major <= clusterVersion.major && machineVersion.minor <= clusterVersion.minor;
 }
 

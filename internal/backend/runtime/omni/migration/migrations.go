@@ -1137,3 +1137,25 @@ func cleanupExtensionsConfigurationStatuses(ctx context.Context, s state.State, 
 		return s.Destroy(ctx, res.Metadata(), state.WithDestroyOwner(res.Metadata().Owner()))
 	})
 }
+
+func dropSchematicConfigurationsControllerFinalizer(ctx context.Context, s state.State, _ *zap.Logger) error {
+	list, err := safe.ReaderListAll[*omni.ExtensionsConfiguration](ctx, s)
+	if err != nil {
+		return err
+	}
+
+	return list.ForEachErr(func(res *omni.ExtensionsConfiguration) error {
+		if !res.Metadata().Finalizers().Has(omnictrl.SchematicConfigurationControllerName) {
+			return nil
+		}
+
+		// remove finalizers and destroy the resource
+		_, err = safe.StateUpdateWithConflicts(ctx, s, res.Metadata(), func(r *omni.ExtensionsConfiguration) error {
+			r.Metadata().Finalizers().Remove(omnictrl.SchematicConfigurationControllerName)
+
+			return nil
+		}, state.WithUpdateOwner(res.Metadata().Owner()), state.WithExpectedPhaseAny())
+
+		return err
+	})
+}
