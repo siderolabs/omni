@@ -26,7 +26,7 @@ import {
   SideBarItem,
 } from "@/components/SideBar/TSideBarList.vue";
 import OmniSideBar from "@/views/omni/SideBar.vue";
-import { ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 import Watch from "@/api/watch";
 import { ClusterSpec, KubernetesUpgradeManifestStatusSpec } from "@/api/omni/specs/omni.pb";
 import { KubernetesUpgradeManifestStatusType, DefaultNamespace, ClusterType } from "@/api/resources";
@@ -42,7 +42,7 @@ const getRoute = (name: string, path: string) => {
 };
 
 const kubernetesUpgradeManifestStatus: Ref<
-  ResourceTyped<KubernetesUpgradeManifestStatusSpec> | undefined
+  Resource<KubernetesUpgradeManifestStatusSpec> | undefined
 > = ref();
 const kubernetesUpgradeManifestStatusWatch = new Watch(
   kubernetesUpgradeManifestStatus
@@ -65,7 +65,7 @@ const pendingManifests = computed(() => {
 
 const { canSyncKubernetesManifests, canManageClusterFeatures } = setupClusterPermissions(computed(() => route.params.cluster as string));
 
-const cluster: Ref<ResourceTyped<ClusterSpec> | undefined> = ref();
+const cluster: Ref<Resource<ClusterSpec> | undefined> = ref();
 const clusterWatch = new Watch(cluster);
 clusterWatch.setup({
   runtime: Runtime.Omni,

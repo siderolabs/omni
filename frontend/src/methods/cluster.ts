@@ -25,7 +25,7 @@ import {
   TalosUpgradeStatusSpec
 } from "@/api/omni/specs/omni.pb";
 import { Metadata } from "@/api/v1alpha1/resource.pb";
-import { Resource, ResourceService, ResourceTyped } from "@/api/grpc";
+import { Resource, ResourceService } from "@/api/grpc";
 import { Runtime } from "@/api/common/omni.pb";
 import { withRuntime, withSelectors, withTimeout } from "@/api/options";
 import { isEqual } from "lodash";
@@ -330,7 +330,7 @@ export const clusterDestroy = async (clusterName: string) => {
 }
 
 export const nextAvailableClusterName = async (prefix: string) => {
-  const clusters: ResourceTyped<ClusterSpec>[] = await ResourceService.List({
+  const clusters: Resource<ClusterSpec>[] = await ResourceService.List({
     namespace: DefaultNamespace,
     type: ClusterType,
   }, withRuntime(Runtime.Omni));
@@ -371,7 +371,7 @@ export const updateTalos = async(clusterName: string, version: string) => {
 }
 
 export const revertKubernetesUpgrade = async(clusterName: string) => {
-  const upgradeStatus: ResourceTyped<TalosUpgradeStatusSpec | KubernetesUpgradeStatusSpec> = await ResourceService.Get({
+  const upgradeStatus: Resource<TalosUpgradeStatusSpec | KubernetesUpgradeStatusSpec> = await ResourceService.Get({
       namespace: DefaultNamespace,
       type: KubernetesUpgradeStatusType,
       id: clusterName,
@@ -381,7 +381,7 @@ export const revertKubernetesUpgrade = async(clusterName: string) => {
 }
 
 export const revertTalosUpgrade = async(clusterName: string) => {
-  const upgradeStatus: ResourceTyped<TalosUpgradeStatusSpec | KubernetesUpgradeStatusSpec> = await ResourceService.Get({
+  const upgradeStatus: Resource<TalosUpgradeStatusSpec | KubernetesUpgradeStatusSpec> = await ResourceService.Get({
       namespace: DefaultNamespace,
       type: TalosUpgradeStatusType,
       id: clusterName,
@@ -391,7 +391,7 @@ export const revertTalosUpgrade = async(clusterName: string) => {
 }
 
 export const addClusterLabels = async (clusterID: string, ...labels: string[]) => {
-  const resource: ResourceTyped<ClusterSpec> = await ResourceService.Get({
+  const resource: Resource<ClusterSpec> = await ResourceService.Get({
     type: ClusterType,
     namespace: DefaultNamespace,
     id: clusterID
@@ -406,7 +406,7 @@ export const addClusterLabels = async (clusterID: string, ...labels: string[]) =
 };
 
 export const removeClusterLabels = async (clusterID: string, ...keys: string[]) => {
-  const resource: ResourceTyped<ClusterSpec> = await ResourceService.Get({
+  const resource: Resource<ClusterSpec> = await ResourceService.Get({
     type: ClusterType,
     namespace: DefaultNamespace,
     id: clusterID
@@ -424,7 +424,7 @@ export const removeClusterLabels = async (clusterID: string, ...keys: string[]) 
 }
 
 export const setClusterWorkloadProxy = async (clusterID: string, enabled: boolean) => {
-  const resource: ResourceTyped<ClusterSpec> = await ResourceService.Get({
+  const resource: Resource<ClusterSpec> = await ResourceService.Get({
     type: ClusterType,
     namespace: DefaultNamespace,
     id: clusterID
@@ -440,7 +440,7 @@ export const setClusterWorkloadProxy = async (clusterID: string, enabled: boolea
 };
 
 export const setClusterEtcdBackupsConfig = async (clusterID: string, spec: ClusterSpec) => {
-  const resource: ResourceTyped<ClusterSpec> = await ResourceService.Get({
+  const resource: Resource<ClusterSpec> = await ResourceService.Get({
     type: ClusterType,
     namespace: DefaultNamespace,
     id: clusterID
@@ -465,7 +465,7 @@ export const triggerEtcdBackup = async (clusterID: string) => {
 
   let exists = false;
 
-  let manualBackup: ResourceTyped<EtcdManualBackupSpec>;
+  let manualBackup: Resource<EtcdManualBackupSpec>;
   try {
     manualBackup = await ResourceService.Get(metadata, withRuntime(Runtime.Omni));
 

@@ -28,7 +28,7 @@ import {
 } from "@/api/resources";
 import { Runtime } from "@/api/common/omni.pb";
 import WatchResource, { itemID } from "@/api/watch";
-import { Resource, ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 import { MachineSetSpec } from "@/api/omni/specs/omni.pb";
 import { sortMachineSetIds } from "@/methods/machineset";
 
@@ -41,7 +41,7 @@ const props = defineProps<{
 
 const { clusterID } = toRefs(props);
 
-const machineSets: Ref<ResourceTyped<MachineSetSpec>[]> = ref([]);
+const machineSets: Ref<Resource<MachineSetSpec>[]> = ref([]);
 const machineSetsWatch = new WatchResource(machineSets);
 machineSetsWatch.setup(computed(() => {
   return {

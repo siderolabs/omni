@@ -21,6 +21,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/configpatch"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/set"
 )
 
 const (
@@ -77,11 +78,11 @@ type ReconciliationContext struct {
 
 	clusterName string
 
-	runningMachineSetNodesSet Set[string]
-	idsTearingDown            Set[string]
-	idsUnconfigured           Set[string]
-	idsOutdated               Set[string]
-	idsDestroyReady           Set[string]
+	runningMachineSetNodesSet set.Set[string]
+	idsTearingDown            set.Set[string]
+	idsUnconfigured           set.Set[string]
+	idsOutdated               set.Set[string]
+	idsDestroyReady           set.Set[string]
 
 	idsToTeardown []string
 	idsToCreate   []string
@@ -217,12 +218,12 @@ func NewReconciliationContext(
 	}))
 
 	// cluster machines
-	rc.idsToDestroy = Values(rc.idsDestroyReady)
+	rc.idsToDestroy = set.Values(rc.idsDestroyReady)
 
 	// if tearing down then all machines need to be torn down
 	if machineSet.Metadata().Phase() == resource.PhaseTearingDown {
-		rc.idsToTeardown = Values(
-			Difference(
+		rc.idsToTeardown = set.Values(
+			set.Difference(
 				clusterMachinesSet,
 				tearingDownMachinesSet,
 			),
@@ -231,8 +232,8 @@ func NewReconciliationContext(
 		return rc, nil
 	}
 
-	rc.idsToTeardown = Values(
-		Difference(
+	rc.idsToTeardown = set.Values(
+		set.Difference(
 			clusterMachinesSet,
 			tearingDownMachinesSet,
 			rc.runningMachineSetNodesSet,
@@ -240,13 +241,13 @@ func NewReconciliationContext(
 		),
 	)
 
-	rc.idsToCreate = Values(Difference(rc.runningMachineSetNodesSet, clusterMachinesSet))
+	rc.idsToCreate = set.Values(set.Difference(rc.runningMachineSetNodesSet, clusterMachinesSet))
 
-	rc.idsTearingDown = Difference(tearingDownMachinesSet, rc.idsDestroyReady)
+	rc.idsTearingDown = set.Difference(tearingDownMachinesSet, rc.idsDestroyReady)
 
-	updateCandidates := Values(
-		Difference(
-			Intersection(
+	updateCandidates := set.Values(
+		set.Difference(
+			set.Intersection(
 				rc.runningMachineSetNodesSet,
 				clusterMachinesSet,
 			),
@@ -255,7 +256,7 @@ func NewReconciliationContext(
 		),
 	)
 
-	for id := range Union(rc.runningMachineSetNodesSet, clusterMachinesSet) {
+	for id := range set.Union(rc.runningMachineSetNodesSet, clusterMachinesSet) {
 		clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, id)
 
 		helpers.CopyAllLabels(machineSet, clusterMachine)
@@ -287,10 +288,10 @@ func NewReconciliationContext(
 		}
 	}
 
-	rc.idsOutdated = make(Set[string])
-	rc.idsUnconfigured = make(Set[string])
+	rc.idsOutdated = make(set.Set[string])
+	rc.idsUnconfigured = make(set.Set[string])
 
-	for id := range Difference(clusterMachinesSet, tearingDownMachinesSet) {
+	for id := range set.Difference(clusterMachinesSet, tearingDownMachinesSet) {
 		clusterMachineConfigStatus, ok := rc.clusterMachineConfigStatusesMap[id]
 		if !ok {
 			rc.idsUnconfigured.Add(id)
@@ -331,20 +332,20 @@ func (rc *ReconciliationContext) GetMachinesToUpdate() []string {
 }
 
 // GetTearingDownMachines returns all ClusterMachines in TearingDown phase.
-func (rc *ReconciliationContext) GetTearingDownMachines() Set[string] {
+func (rc *ReconciliationContext) GetTearingDownMachines() set.Set[string] {
 	return rc.idsTearingDown
 }
 
 // GetUpdatingMachines returns all ClusterMachines which have outdated config patches, or not configured at all.
-func (rc *ReconciliationContext) GetUpdatingMachines() Set[string] {
-	return Union(
+func (rc *ReconciliationContext) GetUpdatingMachines() set.Set[string] {
+	return set.Union(
 		rc.idsOutdated,
 		rc.idsUnconfigured,
 	)
 }
 
 // GetOutdatedMachines returns the list of machines which are currently being configured.
-func (rc *ReconciliationContext) GetOutdatedMachines() Set[string] {
+func (rc *ReconciliationContext) GetOutdatedMachines() set.Set[string] {
 	return rc.idsOutdated
 }
 
@@ -488,8 +489,8 @@ func isUpdating(clusterMachine *omni.ClusterMachine, clusterMachineConfigStatus 
 	return clusterMachineConfigStatus.TypedSpec().Value.ClusterMachineVersion != clusterMachine.Metadata().Version().String() || clusterMachineConfigStatus.TypedSpec().Value.LastConfigError != ""
 }
 
-func toSet[T resource.Resource](resources []T) Set[resource.ID] {
-	return Set[resource.ID](xslices.ToSetFunc(resources, func(r T) resource.ID {
+func toSet[T resource.Resource](resources []T) set.Set[resource.ID] {
+	return set.Set[resource.ID](xslices.ToSetFunc(resources, func(r T) resource.ID {
 		return r.Metadata().ID()
 	}))
 }

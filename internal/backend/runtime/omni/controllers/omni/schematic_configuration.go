@@ -16,15 +16,18 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/set"
 )
 
 // SchematicConfigurationControllerName is the name of the SchematicConfiguration controller.
@@ -49,9 +52,37 @@ func NewSchematicConfigurationController(imageFactoryClient *imagefactory.Client
 			UnmapMetadataFunc: func(schematicConfiguration *omni.SchematicConfiguration) *omni.ClusterMachine {
 				return omni.NewClusterMachine(resources.DefaultNamespace, schematicConfiguration.Metadata().ID())
 			},
-			TransformExtraOutputFunc: helper.reconcile,
+			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger,
+				clusterMachine *omni.ClusterMachine, schematicConfiguration *omni.SchematicConfiguration,
+			) error {
+				status, err := helper.reconcile(ctx, r, clusterMachine, schematicConfiguration)
+				if err != nil {
+					return err
+				}
+
+				return safe.WriterModify(ctx, r, status, func(r *omni.MachineExtensionsStatus) error {
+					helpers.CopyAllLabels(status, r)
+
+					r.TypedSpec().Value = status.TypedSpec().Value
+
+					return nil
+				})
+			},
 			FinalizerRemovalExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, clusterMachine *omni.ClusterMachine) error {
-				err := r.RemoveFinalizer(ctx, omni.NewMachineExtensions(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata(), SchematicConfigurationControllerName)
+				statusMD := omni.NewMachineExtensionsStatus(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata()
+
+				ready, err := r.Teardown(ctx, statusMD)
+				if err != nil && !state.IsNotFoundError(err) {
+					return err
+				}
+
+				if ready {
+					if err = r.Destroy(ctx, statusMD); err != nil && !state.IsNotFoundError(err) {
+						return err
+					}
+				}
+
+				err = r.RemoveFinalizer(ctx, omni.NewMachineExtensions(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata(), SchematicConfigurationControllerName)
 				if err != nil && !state.IsNotFoundError(err) {
 					return err
 				}
@@ -71,6 +102,12 @@ func NewSchematicConfigurationController(imageFactoryClient *imagefactory.Client
 		qtransform.WithExtraMappedInput(
 			qtransform.MapperSameID[*omni.MachineExtensions, *omni.ClusterMachine](),
 		),
+		qtransform.WithExtraOutputs(
+			controller.Output{
+				Type: omni.MachineExtensionsStatusType,
+				Kind: controller.OutputExclusive,
+			},
+		),
 	)
 }
 
@@ -82,40 +119,44 @@ type schematicConfigurationHelper struct {
 func (helper *schematicConfigurationHelper) reconcile(
 	ctx context.Context,
 	r controller.ReaderWriter,
-	_ *zap.Logger,
 	clusterMachine *omni.ClusterMachine,
 	schematicConfiguration *omni.SchematicConfiguration,
-) error {
+) (*omni.MachineExtensionsStatus, error) {
 	extensions, err := safe.ReaderGetByID[*omni.MachineExtensions](ctx, r, clusterMachine.Metadata().ID())
 	if err != nil && !state.IsNotFoundError(err) {
-		return err
+		return nil, err
 	}
 
 	if extensions != nil {
 		if err = updateFinalizers(ctx, r, extensions); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	clusterName, ok := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
 	if !ok {
-		return errors.New("failed to determine cluster")
+		return nil, errors.New("failed to determine cluster")
 	}
 
 	var (
-		overlay          schematic.Overlay
-		initialSchematic string
-		currentSchematic string
+		overlay                 schematic.Overlay
+		initialSchematic        string
+		currentSchematic        string
+		machineExtensionsStatus = omni.NewMachineExtensionsStatus(resources.DefaultNamespace, clusterMachine.Metadata().ID())
 	)
+
+	helpers.CopyLabels(clusterMachine, machineExtensionsStatus, omni.LabelCluster, omni.LabelWorkerRole, omni.LabelControlPlaneRole, omni.LabelMachineSet)
 
 	ms, err := safe.ReaderGet[*omni.MachineStatus](ctx, r, omni.NewMachineStatus(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
-			return nil
+			return machineExtensionsStatus, nil
 		}
 
-		return err
+		return nil, err
 	}
+
+	machineExtensionsStatus.TypedSpec().Value.TalosVersion = ms.TypedSpec().Value.TalosVersion
 
 	if ms.TypedSpec().Value.Schematic != nil {
 		overlay = getOverlay(ms)
@@ -126,12 +167,12 @@ func (helper *schematicConfigurationHelper) reconcile(
 
 	cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, r, clusterName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	machineExtensions, err := newMachineExtensions(cluster, ms, extensions)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	schematicConfiguration.TypedSpec().Value.TalosVersion = cluster.TypedSpec().Value.TalosVersion
@@ -147,7 +188,11 @@ func (helper *schematicConfigurationHelper) reconcile(
 		schematicConfiguration.TypedSpec().Value.SchematicId = id
 		helpers.CopyLabels(clusterMachine, schematicConfiguration, omni.LabelCluster)
 
-		return nil
+		if ms.TypedSpec().Value.Schematic != nil {
+			machineExtensionsStatus.TypedSpec().Value.Extensions = computeMachineExtensionsStatus(ms, nil)
+		}
+
+		return machineExtensionsStatus, nil
 	}
 
 	config := schematic.Schematic{
@@ -161,16 +206,16 @@ func (helper *schematicConfigurationHelper) reconcile(
 
 	id, err := config.ID()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if _, err := safe.ReaderGetByID[*omni.Schematic](ctx, r, id); err != nil {
 		if !state.IsNotFoundError(err) {
-			return err
+			return nil, err
 		}
 
 		if _, err = helper.imageFactoryClient.EnsureSchematic(ctx, config); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -178,7 +223,9 @@ func (helper *schematicConfigurationHelper) reconcile(
 
 	helpers.CopyLabels(clusterMachine, schematicConfiguration, omni.LabelCluster)
 
-	return nil
+	machineExtensionsStatus.TypedSpec().Value.Extensions = computeMachineExtensionsStatus(ms, &machineExtensions)
+
+	return machineExtensionsStatus, nil
 }
 
 func shouldGenerateSchematicID(cluster *omni.Cluster, extensionsList machineExtensions, machineStatus *omni.MachineStatus, overlay schematic.Overlay) bool {
@@ -218,10 +265,11 @@ func updateFinalizers(ctx context.Context, r controller.ReaderWriter, extensions
 }
 
 type machineExtensions struct {
-	machineStatus     *omni.MachineStatus
-	machineExtensions *omni.MachineExtensions
-	cluster           *omni.Cluster
-	extensionsList    []string
+	machineStatus      *omni.MachineStatus
+	machineExtensions  *omni.MachineExtensions
+	cluster            *omni.Cluster
+	extensionsList     []string
+	detectedExtensions []string
 }
 
 func newMachineExtensions(cluster *omni.Cluster, machineStatus *omni.MachineStatus, extensions *omni.MachineExtensions) (machineExtensions, error) {
@@ -238,6 +286,8 @@ func newMachineExtensions(cluster *omni.Cluster, machineStatus *omni.MachineStat
 	if err != nil {
 		return me, err
 	}
+
+	me.detectedExtensions = detected
 
 	me.extensionsList = append(me.extensionsList, detected...)
 
@@ -260,6 +310,10 @@ func (m machineExtensions) shouldGenerateSchematic() bool {
 	// generate schematic for the machine extensions when either machine extensions exists
 	// and contains the explicit empty list for the schematics, or when schematic list is not empty
 	return m.machineExtensions != nil || len(m.extensionsList) != 0
+}
+
+func (m *machineExtensions) isDetected(value string) bool {
+	return slices.Contains(m.detectedExtensions, value)
 }
 
 func getDetectedExtensions(cluster *omni.Cluster, machineStatus *omni.MachineStatus) ([]string, error) {
@@ -294,4 +348,57 @@ func detectExtensions(initialVersion, currentVersion semver.Version) ([]string, 
 	}
 
 	return nil, nil
+}
+
+func computeMachineExtensionsStatus(ms *omni.MachineStatus, me *machineExtensions) []*specs.MachineExtensionsStatusSpec_Item {
+	var (
+		installedExtensions set.Set[string]
+		requestedExtensions set.Set[string]
+	)
+
+	if ms.TypedSpec().Value.Schematic != nil {
+		installedExtensions = xslices.ToSet(ms.TypedSpec().Value.Schematic.Extensions)
+	}
+
+	if me != nil {
+		requestedExtensions = xslices.ToSet(me.extensionsList)
+	}
+
+	allExtensions := set.Values(set.Union(
+		installedExtensions,
+		requestedExtensions,
+	))
+
+	statusExtensions := make([]*specs.MachineExtensionsStatusSpec_Item, 0, len(allExtensions))
+
+	for _, extension := range allExtensions {
+		var (
+			immutable bool
+			phase     specs.MachineExtensionsStatusSpec_Item_Phase
+		)
+
+		if me != nil {
+			switch {
+			// detected extensions should always be pre installed
+			case me.isDetected(extension):
+				phase = specs.MachineExtensionsStatusSpec_Item_Installed
+
+				immutable = true
+			case installedExtensions.Contains(extension) && !requestedExtensions.Contains(extension):
+				phase = specs.MachineExtensionsStatusSpec_Item_Removing
+			case !installedExtensions.Contains(extension) && requestedExtensions.Contains(extension):
+				phase = specs.MachineExtensionsStatusSpec_Item_Installing
+			}
+		}
+
+		statusExtensions = append(statusExtensions,
+			&specs.MachineExtensionsStatusSpec_Item{
+				Name:      extension,
+				Immutable: immutable,
+				Phase:     phase,
+			},
+		)
+	}
+
+	return statusExtensions
 }

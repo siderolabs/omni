@@ -44,7 +44,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { canManageBackupStore } from "@/methods/auth";
-import { Resource, ResourceService, ResourceTyped } from "@/api/grpc";
+import { Resource, ResourceService } from "@/api/grpc";
 import { EtcdBackupOverallStatusSpec, EtcdBackupS3ConfSpec } from "@/api/omni/specs/omni.pb";
 import { Runtime } from "@/api/common/omni.pb";
 import { DefaultNamespace, EtcdBackupOverallStatusID, EtcdBackupOverallStatusType, EtcdBackupS3ConfID, EtcdBackupS3ConfType } from "@/api/resources";
@@ -130,7 +130,7 @@ const updateConfig = async () => {
   }
 
   saving.value = true
-  let config: ResourceTyped<EtcdBackupS3ConfSpec> = {
+  let config: Resource<EtcdBackupS3ConfSpec> = {
     metadata: s3ConfigMetadata,
     spec: {},
   };

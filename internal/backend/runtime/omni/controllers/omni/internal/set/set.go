@@ -3,7 +3,8 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package machineset
+// Package set is a generic set.
+package set
 
 import (
 	"cmp"
@@ -12,9 +13,7 @@ import (
 	"github.com/siderolabs/gen/maps"
 )
 
-// Set implements a generic set used in the machine set reconciliation context
-// which relies on getting diff and intersections of machine set nodes, cluster machines,
-// machines running in different state to produce lists of machines for update, create and destroy.
+// Set implements a generic set.
 type Set[K cmp.Ordered] map[K]struct{}
 
 // Contains checks if the set has value.

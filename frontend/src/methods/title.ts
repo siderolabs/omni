@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import {ResourceService, ResourceTyped} from "@/api/grpc";
+import {ResourceService, Resource} from "@/api/grpc";
 import {EphemeralNamespace, SysVersionID, SysVersionType} from "@/api/resources";
 import {Runtime} from "@/api/common/omni.pb";
 import {SysVersionSpec} from "@/api/omni/specs/system.pb";
@@ -19,7 +19,7 @@ export const refreshTitle = async () => {
     }
 
     try {
-        const sysVersion: ResourceTyped<SysVersionSpec> = await ResourceService.Get({
+        const sysVersion: Resource<SysVersionSpec> = await ResourceService.Get({
             namespace: EphemeralNamespace,
             type: SysVersionType,
             id: SysVersionID,

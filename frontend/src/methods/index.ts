@@ -170,7 +170,7 @@ const capitalize = (w: string) => {
 export const setupBackupStatus = (): { status: ComputedRef<BackupsStatus>, watch: Watch<Resource<EtcdBackupOverallStatusSpec>> } => {
   const res = ref<Resource<EtcdBackupOverallStatusSpec>>();
 
-  const watch = new Watch(res);
+  const watch = new Watch<Resource<EtcdBackupOverallStatusSpec>>(res);
 
   watch.setup({
     resource: {

@@ -160,10 +160,6 @@ export type Resource<T = any, S = any> = {
   status?: S
 }
 
-export type ResourceTyped<T, S = any> = Resource<S> & {
-  spec: T,
-}
-
 // define a wrapper for grpc resource service.
 export class ResourceService {
   static async Get<T extends Resource>(request: GetRequest, ...options: fetchOption[]): Promise<T> {
@@ -188,7 +184,7 @@ export class ResourceService {
     return results;
   }
 
-  static async Create<T extends Resource>(resource: ResourceTyped<T>, ...options: fetchOption[]): Promise<CreateResponse> {
+  static async Create<T extends Resource>(resource: T, ...options: fetchOption[]): Promise<CreateResponse> {
     const request: CreateRequest = {
       resource: {
         metadata: resource.metadata,
@@ -203,7 +199,7 @@ export class ResourceService {
     return res;
   }
 
-  static async Update<T extends Resource>(resource: ResourceTyped<T>, currentVersion?: string | number, ...options: fetchOption[]): Promise<UpdateResponse> {
+  static async Update<T extends Resource>(resource: T, currentVersion?: string | number, ...options: fetchOption[]): Promise<UpdateResponse> {
     resource.metadata.version = (resource.metadata.version || 0)?.toString();
 
     const request: UpdateRequest = {

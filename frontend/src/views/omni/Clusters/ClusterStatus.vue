@@ -17,15 +17,15 @@ included in the LICENSE file.
 <script setup lang="ts">
 import TIcon from "@/components/common/Icon/TIcon.vue";
 import { ClusterStatusSpec, ClusterStatusSpecPhase } from "@/api/omni/specs/omni.pb";
-import { ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 
 type Props = {
-  cluster?: ResourceTyped<ClusterStatusSpec>;
+  cluster?: Resource<ClusterStatusSpec>;
 };
 
 defineProps<Props>();
 
-const phaseName = (cluster?: ResourceTyped<ClusterStatusSpec>): string => {
+const phaseName = (cluster?: Resource<ClusterStatusSpec>): string => {
   switch (cluster?.spec.phase) {
     case ClusterStatusSpecPhase.SCALING_UP:
       return "Scaling Up";
@@ -44,7 +44,7 @@ const phaseName = (cluster?: ResourceTyped<ClusterStatusSpec>): string => {
   }
 };
 
-const phaseIcon = (cluster?: ResourceTyped<ClusterStatusSpec>): string => {
+const phaseIcon = (cluster?: Resource<ClusterStatusSpec>): string => {
   switch (cluster?.spec.phase) {
     case ClusterStatusSpecPhase.SCALING_UP:
     case ClusterStatusSpecPhase.SCALING_DOWN:
@@ -62,7 +62,7 @@ const phaseIcon = (cluster?: ResourceTyped<ClusterStatusSpec>): string => {
   }
 };
 
-const phaseColor = (cluster?: ResourceTyped<ClusterStatusSpec>): string => {
+const phaseColor = (cluster?: Resource<ClusterStatusSpec>): string => {
   const Y1 = "#FFB200";
 
   switch (cluster?.spec.phase) {

@@ -17,9 +17,9 @@ included in the LICENSE file.
 <script setup lang="ts">
 import TIcon, { IconType } from "@/components/common/Icon/TIcon.vue";
 import { MachineSetPhase, MachineSetStatusSpec } from "@/api/omni/specs/omni.pb";
-import { ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 
-const phaseName = (machineset: ResourceTyped<MachineSetStatusSpec>): string => {
+const phaseName = (machineset: Resource<MachineSetStatusSpec>): string => {
   switch (machineset?.spec.phase) {
     case MachineSetPhase.ScalingUp:
       return "Scaling Up";
@@ -42,7 +42,7 @@ const phaseName = (machineset: ResourceTyped<MachineSetStatusSpec>): string => {
   }
 };
 
-const phaseIcon = (machineset: ResourceTyped<MachineSetStatusSpec>): IconType => {
+const phaseIcon = (machineset: Resource<MachineSetStatusSpec>): IconType => {
   switch (machineset?.spec.phase) {
     case MachineSetPhase.ScalingUp:
     case MachineSetPhase.ScalingDown:
@@ -86,7 +86,7 @@ const phaseColor = (machineset): string => {
 };
 
 type Props = {
-  item: ResourceTyped<MachineSetStatusSpec>;
+  item: Resource<MachineSetStatusSpec>;
 };
 
 defineProps<Props>();

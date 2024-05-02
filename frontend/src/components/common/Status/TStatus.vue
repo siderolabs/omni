@@ -43,7 +43,7 @@ const props = defineProps<Props>();
 const { iconType, title, color } = toRefs(props);
 
 const iconData = computed((): { iconColor?: string, iconTypeValue?: IconType } => {
-  if (title) {
+  if (title.value) {
     switch (title.value) {
       case TPodsViewFilterOptions.RUNNING:
         return {
@@ -167,7 +167,7 @@ const iconData = computed((): { iconColor?: string, iconTypeValue?: IconType } =
 });
 
 const iconColor = computed(() => {
-  if (iconType) {
+  if (iconType.value) {
     switch (iconType.value) {
       case "check-in-circle-classic":
         return { color: "#69C297" };

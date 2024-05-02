@@ -6,7 +6,7 @@
 import { onBeforeUnmount, onMounted, ref, Ref, watch } from 'vue';
 import { Runtime } from '@/api/common/omni.pb';
 import { EventType, WatchRequest, WatchResponse } from '@/api/omni/resources/resources.pb';
-import { Resource, ResourceService, ResourceTyped, Stream } from '@/api/grpc';
+import { Resource, ResourceService, Stream } from '@/api/grpc';
 import { Metadata } from '@/api/v1alpha1/resource.pb';
 import { withContext, withMetadata, withRuntime, GRPCMetadata } from '@/api/options';
 import { fetchOption } from '@/api/fetch.pb';
@@ -183,15 +183,15 @@ export type WatchOptions = {
   searchFor?: string[],
 }
 
-export default class Watch<T> extends WatchFunc {
-  public readonly items?: Ref<ResourceTyped<T>[]>;
-  public readonly item?: Ref<ResourceTyped<T> | undefined>;
+export default class Watch<T extends Resource> extends WatchFunc {
+  public readonly items?: Ref<Resource<T>[]>;
+  public readonly item?: Ref<Resource<T> | undefined>;
   public readonly total: Ref<number> = ref(0);
 
   private watchItems?: WatchItems<T>;
   private lastTotal: number = 0;
 
-  constructor(target: Ref<ResourceTyped<T>[]> | Ref<ResourceTyped<T> | undefined>, callback?: Callback) {
+  constructor(target: Ref<T[]> | Ref<T | undefined>, callback?: Callback) {
     let handler: Callback | undefined;
 
     super((event: WatchResponse, spec: WatchEventSpec) => {
@@ -212,14 +212,14 @@ export default class Watch<T> extends WatchFunc {
       }
     });
 
-    if (target.value && (<ResourceTyped<T>[]>target.value).push !== undefined) {
+    if (target.value && (<Resource<T>[]>target.value).push !== undefined) {
       handler = this.listHandler.bind(this);
 
-      this.items = (<Ref<ResourceTyped<T>[]>>target)
+      this.items = (<Ref<Resource<T>[]>>target)
     } else {
       handler = this.singleItemHandler.bind(this);
 
-      this.item = (<Ref<ResourceTyped<T> | undefined>>target);
+      this.item = (<Ref<Resource<T> | undefined>>target);
     }
   }
 
@@ -342,7 +342,7 @@ const compareFn = <T>(left: ResourceSort<T>, right: ResourceSort<T>, sortDescend
   return 0;
 }
 
-function getInsertionIndex<T>(arr: ResourceTyped<T>[], item: ResourceSort<T>, sortDescending?: boolean): number {
+function getInsertionIndex<T>(arr: Resource<T>[], item: ResourceSort<T>, sortDescending?: boolean): number {
   const itemsCount = arr.length;
 
   if (itemsCount === 0) {
@@ -386,7 +386,7 @@ export const itemID = (item: {metadata: {id?: string, name?: string, namespace?:
   return `${item.metadata.namespace || "default"}.${item.metadata.name ?? item.metadata.id}`;
 }
 
-export type ResourceSort<T> = ResourceTyped<T> & {sortFieldData?: string};
+export type ResourceSort<T> = Resource<T> & {sortFieldData?: string};
 
 // WatchItems wraps items list and handles sort order, insertions and removals.
 class WatchItems<T> {
@@ -396,7 +396,7 @@ class WatchItems<T> {
   public bootstrapped: boolean = false;
   private sortDescending: boolean = false;
 
-  constructor(items: ResourceTyped<T>[]) {
+  constructor(items: Resource<T>[]) {
     this.items = items;
   }
 
@@ -411,7 +411,7 @@ class WatchItems<T> {
     })
   }
 
-  public createOrUpdate(item: ResourceSort<T>, old?: ResourceTyped<T>) {
+  public createOrUpdate(item: ResourceSort<T>, old?: Resource<T>) {
     const items = this.bootstrapped ? this.items : this.bootstrapList;
 
     let foundIndex = this.findIndex(itemID(old ?? item), items);
@@ -460,14 +460,14 @@ class WatchItems<T> {
     this.bootstrapList = [];
   }
 
-  private findIndex(id: string, items: ResourceTyped<T>[]): number {
-    return items.findIndex((element: ResourceTyped<T>) => {
+  private findIndex(id: string, items: Resource<T>[]): number {
+    return items.findIndex((element: Resource<T>) => {
       return itemID(element) === id;
     })
   }
 }
 
-export type WatchJoinOptions = WatchOptions & {idFunc?: <T>(res: ResourceTyped<T>) => string};
+export type WatchJoinOptions = WatchOptions & {idFunc?: <T>(res: Resource<T>) => string};
 
 interface WatchSource<T> {
   value: T
@@ -475,7 +475,7 @@ interface WatchSource<T> {
 
 export class WatchJoin<T extends Resource> {
   private watches: WatchFunc[] = [];
-  private items: Ref<ResourceTyped<T>[]>;
+  private items: Ref<Resource<T>[]>;
   private watchItems?: WatchItems<T>;
   private itemMap: Record<string, Record<string, Record<string, ResourceSort<T>>>> = {};
   private primaryResourceType?: string;
@@ -485,11 +485,11 @@ export class WatchJoin<T extends Resource> {
   public readonly err: Ref<string | null> = ref(null);
   public readonly total: Ref<number> = ref(0);
 
-  constructor(items: Ref<ResourceTyped<T>[]>) {
+  constructor(items: Ref<Resource<T>[]>) {
     this.items = items;
   }
 
-  public setup(primary: WatchSource<WatchJoinOptions> | WatchJoinOptions, resources: WatchSource<WatchJoinOptions[]> | WatchJoinOptions[]) {
+  public setup(primary: WatchSource<WatchJoinOptions | undefined> | WatchJoinOptions, resources: WatchSource<WatchJoinOptions[] | undefined> | WatchJoinOptions[]) {
     let unmounted = false;
 
     const reactivePrimary = isRef(primary) ? primary as WatchSource<WatchJoinOptions> : null;
@@ -588,7 +588,7 @@ export class WatchJoin<T extends Resource> {
         const resourceID = itemID(spec.res);
         const id = opts.idFunc ? `${opts.idFunc(spec.res)}` : resourceID;
 
-        const storeItem = (item: ResourceTyped<T>) => {
+        const storeItem = (item: Resource<T>) => {
           if (!this.itemMap[resourceType][id]) {
             this.itemMap[resourceType][id] = {};
           }
@@ -660,7 +660,7 @@ export class WatchJoin<T extends Resource> {
     this.watchItems?.reset();
   }
 
-  public getRelatedResources(item: ResourceTyped<T>, resourceType: string): Record<string, ResourceTyped<T>> {
+  public getRelatedResources(item: Resource<T>, resourceType: string): Record<string, Resource<T>> {
     const id = itemID(item);
     if (!this.itemMap[resourceType]) {
       return {};
@@ -695,7 +695,7 @@ export class WatchJoin<T extends Resource> {
         continue;
       }
 
-      let part: ResourceTyped<T> | undefined;
+      let part: Resource<T> | undefined;
       for (const resourceID in parts) {
         if (!part || (parts[resourceID]?.metadata?.updated || "") > (part?.metadata?.updated || "")) {
           part = parts[resourceID];
@@ -721,6 +721,6 @@ export class WatchJoin<T extends Resource> {
   }
 }
 
-const isRef = <T>(value: T | WatchSource<T>) => {
+const isRef = <T extends Object>(value: T | WatchSource<T>) => {
   return "value" in value;
 }

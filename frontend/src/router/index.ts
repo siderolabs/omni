@@ -29,6 +29,7 @@ import NodeMonitor from "@/views/cluster/Nodes/NodeMonitor.vue";
 import NodeLogs from "@/views/cluster/Nodes/NodeLogs.vue";
 import NodeConfig from "@/views/cluster/Nodes/NodeConfig.vue";
 import NodeMounts from "@/views/cluster/Nodes/NodeMounts.vue";
+import NodeExtensions from "@/views/cluster/Nodes/NodeExtensions.vue";
 import ConfigPatches from "@/views/cluster/Config/Patches.vue";
 import PatchEdit from "@/views/cluster/Config/PatchEdit.vue";
 import KubernetesManifestSync from "@/views/cluster/Manifest/Sync.vue";
@@ -49,6 +50,7 @@ import NodeShutdown from "@/views/omni/Modals/NodeShutdown.vue";
 import ClusterDestroy from "@/views/omni/Modals/ClusterDestroy.vue";
 import MachineSetDestroy from "@/views/omni/Modals/MachineSetDestroy.vue";
 import ConfigPatchDestroy from "@/views/omni/Modals/ConfigPatchDestroy.vue";
+import UpdateExtensions from "@/views/omni/Modals/UpdateExtensions.vue"
 import NodeDestroy from "@/views/omni/Modals/NodeDestroy.vue";
 import MachineRemove from "@/views/omni/Modals/MachineRemove.vue";
 import MachineClassDestroy from "@/views/omni/Modals/MachineClassDestroy.vue";
@@ -346,6 +348,13 @@ const routes: RouteRecordRaw[] = [
               nodeDetails: NodeMounts,
             },
           },
+          {
+            path: "extensions",
+            name: "NodeExtensions",
+            components: {
+              nodeDetails: NodeExtensions,
+            },
+          },
         ]
       },
     ], { sidebar: ClusterSidebarNode }),
@@ -386,6 +395,7 @@ const modals = {
   userDestroy: UserDestroy,
   userCreate: UserCreate,
   userEdit: UserEdit,
+  updateExtensions: UpdateExtensions,
 };
 
 export { modals };

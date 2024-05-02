@@ -144,3 +144,12 @@ const (
 	// MachineAddressLabel is used for faster lookup of the machine by address.
 	MachineAddressLabel = SystemLabelPrefix + "address"
 )
+
+const (
+	// MachineExtensions labels.
+
+	// ExtensionsConfigurationLabel defines the source ExtensionConfiguration resource
+	// from which MachineExtensions resource was generated.
+	// tsgen:ExtensionsConfigurationLabel
+	ExtensionsConfigurationLabel = SystemLabelPrefix + "root-configuration"
+)

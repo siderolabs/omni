@@ -97,7 +97,7 @@ import {
   MachineConfigGenOptionsSpec,
 } from "@/api/omni/specs/omni.pb";
 import { SiderolinkSpec } from "@/api/omni/specs/siderolink.pb";
-import { ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 
 import TListItem from "@/components/common/List/TListItem.vue";
 import TSelectList from "@/components/common/SelectList/TSelectList.vue";
@@ -119,7 +119,7 @@ type MemModule = {
 defineEmits(['filterLabel']);
 
 const props = defineProps<{
-  item: ResourceTyped<MachineStatusSpec & SiderolinkSpec & MachineConfigGenOptionsSpec>,
+  item: Resource<MachineStatusSpec & SiderolinkSpec & MachineConfigGenOptionsSpec>,
   reset?: number,
   searchQuery?: string,
   versionMismatch: string | null
@@ -189,7 +189,7 @@ watch(machineSetIndex, (val?: number, old?: number) => {
   }
 });
 
-if (reset) {
+if (reset.value) {
   watch(reset, () => {
     machineSetIndex.value = undefined;
   });

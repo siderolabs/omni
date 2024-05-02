@@ -85,7 +85,7 @@ import {
 import { showError, showSuccess } from "@/notification";
 import { useRoute, useRouter } from "vue-router";
 import { Runtime } from "@/api/common/omni.pb";
-import { Resource, ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 import { itemID } from "@/api/watch";
 import { clusterSync } from "@/methods/cluster";
 import pluralize from "pluralize";
@@ -104,7 +104,7 @@ import { ClusterSpec, MachineStatusSpec } from "@/api/omni/specs/omni.pb";
 import * as semver from "semver";
 
 type Props = {
-  currentCluster: ResourceTyped<ClusterSpec>,
+  currentCluster: Resource<ClusterSpec>,
 };
 
 defineProps<Props>();

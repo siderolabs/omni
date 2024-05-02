@@ -19,7 +19,7 @@ included in the LICENSE file.
 import { ref, onMounted, Ref } from "vue";
 import { useRoute } from "vue-router";
 import { getContext } from "@/context";
-import { ResourceService, ResourceTyped, Resource } from "@/api/grpc";
+import { ResourceService, Resource } from "@/api/grpc";
 import { Runtime } from "@/api/common/omni.pb";
 import { TalosK8sNamespace, TalosNodenameID, TalosNodenameType, TalosRuntimeNamespace, TalosServiceType } from "@/api/resources"
 import { withContext, withRuntime } from "@/api/options";
@@ -42,7 +42,7 @@ onMounted(async () => {
     withContext(context),
   );
 
-  const nodename: ResourceTyped<{ nodename: string }> = await ResourceService.Get(
+  const nodename: Resource<{ nodename: string }> = await ResourceService.Get(
     {
       type: TalosNodenameType,
       id: TalosNodenameID,

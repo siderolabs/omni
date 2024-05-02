@@ -29,7 +29,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { computed, toRefs } from "vue";
 
-import { ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 import { MachineStatusSpec } from "@/api/omni/specs/omni.pb";
 
 import TListItem from "@/components/common/List/TListItem.vue";
@@ -37,7 +37,7 @@ import ItemLabels from "@/views/omni/ItemLabels/ItemLabels.vue";
 import WordHighlighter from "vue-word-highlighter";
 
 const props = defineProps<{
-  machine: ResourceTyped<MachineStatusSpec>
+  machine: Resource<MachineStatusSpec>
   searchQuery?: string
 }>();
 

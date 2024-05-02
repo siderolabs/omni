@@ -5,7 +5,7 @@
 
 // Import the `mount()` method from Vue Test Utils
 import { Ref } from "vue";
-import { ResourceTyped } from "../../src/api/grpc";
+import { Resource } from "../../src/api/grpc";
 import { MachineSpec } from "../../src/api/omni/specs/omni.pb";
 import { Event, EventType, ResourceService, WatchRequest, WatchResponse } from "../../src/api/omni/resources/resources.pb";
 import Watch from "../../src/api/watch";
@@ -61,7 +61,7 @@ class fakeStream extends EventTarget {
 }
 
 describe('watch', () => {
-  const items: Ref<ResourceTyped<MachineSpec>[]> = ref([]);
+  const items: Ref<Resource<MachineSpec>[]> = ref([]);
   const watch = new Watch(items);
   const stream = new fakeStream();
 
@@ -121,7 +121,7 @@ describe('watch', () => {
     pushEvents({
       type: EventType.CREATED,
       metadata: {
-        id: "1",  
+        id: "1",
         namespace: "default",
         type: MachineType,
       },
@@ -132,7 +132,7 @@ describe('watch', () => {
     }, {
       type: EventType.CREATED,
       metadata: {
-        id: "2",  
+        id: "2",
         namespace: "default",
         type: MachineType,
       },
@@ -143,7 +143,7 @@ describe('watch', () => {
     }, {
       type: EventType.DESTROYED,
       metadata: {
-        id: "2",  
+        id: "2",
         namespace: "default",
         type: MachineType,
       },
@@ -154,7 +154,7 @@ describe('watch', () => {
     }, {
       type: EventType.UPDATED,
       metadata: {
-        id: "1",  
+        id: "1",
         namespace: "default",
         type: MachineType,
       },
@@ -184,7 +184,7 @@ describe('watch', () => {
     pushEvents({
       type: EventType.CREATED,
       metadata: {
-        id: "2",  
+        id: "2",
         namespace: "default",
         type: MachineType,
       },

@@ -11,7 +11,7 @@ import VueClipboard from 'vue3-clipboard';
 import AppUnavailable from '@/AppUnavailable.vue'
 import router from '@/router';
 
-import { initState, ResourceService, ResourceTyped } from "@/api/grpc";
+import { initState, ResourceService, Resource } from "@/api/grpc";
 import { AuthConfigID, AuthConfigType, DefaultNamespace } from "@/api/resources";
 import { Runtime } from "@/api/common/omni.pb";
 import { AuthConfigSpec } from "@/api/omni/specs/auth.pb";
@@ -25,7 +25,7 @@ const setupApp = async () => {
   let authConfigSpec: AuthConfigSpec | undefined = undefined
 
   try {
-    const authConfig: ResourceTyped<AuthConfigSpec> = await ResourceService.Get({
+    const authConfig: Resource<AuthConfigSpec> = await ResourceService.Get({
       namespace: DefaultNamespace,
       type: AuthConfigType,
       id: AuthConfigID,

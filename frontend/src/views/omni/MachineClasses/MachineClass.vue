@@ -77,7 +77,7 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { ResourceTyped, ResourceService } from "@/api/grpc";
+import { Resource, ResourceService } from "@/api/grpc";
 import { withRuntime } from "@/api/options";
 import { Runtime } from "@/api/common/omni.pb";
 import { MachineClassSpec } from "@/api/omni/specs/omni.pb";
@@ -200,15 +200,15 @@ const updateContent = (i: number, event: KeyboardEvent) => {
 }
 
 if (props.edit) {
-  const machineClass: Ref<ResourceTyped<MachineClassSpec> | undefined> = ref();
+  const machineClass: Ref<Resource<MachineClassSpec> | undefined> = ref();
   const machineClassWatch = new ItemWatch(machineClass);
   const route = useRoute();
 
-  loading = computed(() => {
+  loading.value = computed(() => {
     return machineClassWatch.loading.value;
   });
 
-  notFound = computed(() => {
+  notFound.value = computed(() => {
     return machineClass.value === undefined;
   });
 
@@ -328,7 +328,7 @@ const nonEmptyConditions = computed(() => {
 });
 
 const submit = async () => {
-  const machineClass: ResourceTyped<MachineClassSpec> = {
+  const machineClass: Resource<MachineClassSpec> = {
     metadata: {
       id: machineClassName.value,
       namespace: DefaultNamespace,

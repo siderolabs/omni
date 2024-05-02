@@ -57,7 +57,7 @@ import { Ref, ref, computed, watch } from "vue";
 import { DefaultNamespace, KubernetesUpgradeStatusType } from "@/api/resources";
 import { useRoute, useRouter } from "vue-router";
 import { Runtime } from "@/api/common/omni.pb";
-import { ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 import { upgradeKubernetes } from "@/methods/cluster";
 import * as semver from "semver";
 import { RadioGroup, RadioGroupLabel, RadioGroupOption } from '@headlessui/vue'
@@ -87,7 +87,7 @@ const resource = {
   id: clusterName,
 };
 
-const status: Ref<ResourceTyped<KubernetesUpgradeStatusSpec> | undefined> = ref();
+const status: Ref<Resource<KubernetesUpgradeStatusSpec> | undefined> = ref();
 
 const upgradeStatusWatch = new Watch(status);
 

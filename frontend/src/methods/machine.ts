@@ -6,7 +6,7 @@
 import { Runtime } from "@/api/common/omni.pb";
 import { Code } from "@/api/google/rpc/code.pb";
 
-import { Resource, ResourceService, ResourceTyped } from "@/api/grpc";
+import { Resource, ResourceService } from "@/api/grpc";
 import { MachineLabelsSpec } from "@/api/omni/specs/omni.pb";
 import { withRuntime } from "@/api/options";
 import { DefaultNamespace, MachineLabelsType, MachineLocked, MachineSetNodeType, MachineStatusType, SiderolinkResourceType, SystemLabelPrefix } from "@/api/resources";
@@ -59,7 +59,7 @@ export const addMachineLabels = async (machineID: string, ...labels: string[]) =
 };
 
 export const removeMachineLabels = async (machineID: string, ...keys: string[]) => {
-  let resource: ResourceTyped<MachineLabelsSpec>;
+  let resource: Resource<MachineLabelsSpec>;
   const metadata = {
     id: machineID,
     type: MachineLabelsType,

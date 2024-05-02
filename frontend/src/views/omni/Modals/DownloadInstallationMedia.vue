@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <div class="modal-window flex flex-col gap-4">
+  <div class="modal-window flex flex-col gap-4 overflow-y-scroll" style="height: 90%">
     <div class="heading">
       <h3 class="text-base text-naturals-N14">
         Download Installation Media
@@ -44,59 +44,9 @@ included in the LICENSE file.
           :checked="showDescriptions"/>
       </div>
 
-      <div class="flex flex-col gap-2">
-        <t-input icon="search" v-model="filterExtensions"/>
+      <extensions-picker v-model="installExtensions" :talos-version="selectedTalosVersion" class="flex-1"/>
 
-        <div class="grid grid-cols-4 bg-naturals-N4 uppercase text-xs text-naturals-N13 pl-2 py-2">
-          <div class="col-span-2">Name</div>
-          <div>Version</div>
-          <div>Author</div>
-        </div>
-
-        <Watch
-          class="max-h-48 overflow-y-auto overflow-x-hidden"
-          v-if="selectedTalosVersion"
-          :opts="{
-            resource: {
-              id: selectedTalosVersion,
-              type: TalosExtensionsType,
-              namespace: DefaultNamespace,
-            },
-            runtime: Runtime.Omni,
-          }"
-          displayAlways
-          >
-          <template #default="{ items }">
-            <div v-if="items[0]?.spec.items" class="flex flex-col">
-              <div v-for="extension in filteredExtensions(items[0].spec.items!)" :key="extension.name" class="cursor-pointer flex gap-2 hover:bg-naturals-N5 transition-colors p-2 border-b border-naturals-N6 items-center"
-                  @click="installExtensions[extension.name!] = !installExtensions[extension.name!]">
-                <t-checkbox
-                    class="col-span-2"
-                    :checked="installExtensions[extension.name!]"/>
-                <div class="grid grid-cols-4 gap-1 flex-1 items-center">
-                  <div class="text-xs text-naturals-N13 col-span-2">
-                    <WordHighlighter
-                        :query="filterExtensions"
-                        :textToHighlight="extension.name!.slice('siderolabs/'.length)"
-                        highlightClass="bg-naturals-N14"
-                    />
-                  </div>
-                  <div class="text-xs text-naturals-N13">{{ extension.version }}</div>
-                  <div class="text-xs text-naturals-N13">{{ extension.author }}</div>
-                  <div class="col-span-4 text-xs" v-if="extension.description && showDescriptions">
-                    {{ extension.description }}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div v-else class="flex gap-1 items-center text-xs p-4 text-primary-P2">
-              <t-icon class="w-3 h-3" icon="warning"/>No extensions available for this Talos version
-            </div>
-          </template>
-        </Watch>
-      </div>
-
-      <h3 class="text-sm text-naturals-N14 flex-1">
+      <h3 class="text-sm text-naturals-N14">
         Machine User Labels
       </h3>
 
@@ -104,7 +54,7 @@ included in the LICENSE file.
         <Labels v-model="labels"/>
       </div>
 
-      <h3 class="text-sm text-naturals-N14 flex-1">
+      <h3 class="text-sm text-naturals-N14">
         Additional Kernel Arguments
       </h3>
 
@@ -112,7 +62,7 @@ included in the LICENSE file.
 
       <!-- TODO(image-factory): enable this after further testing and making sure that it works -->
       <template v-if="false">
-        <h3 class="text-sm text-naturals-N14 flex-1">
+        <h3 class="text-sm text-naturals-N14">
           Secure Boot
         </h3>
 
@@ -123,7 +73,7 @@ included in the LICENSE file.
             :checked="secureBoot && !installationMedia?.spec?.no_secure_boot"/>
       </template>
 
-      <h3 class="text-sm text-naturals-N14 flex-1">
+      <h3 class="text-sm text-naturals-N14">
         PXE Boot URL
       </h3>
 
@@ -151,11 +101,11 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { DefaultNamespace, DefaultTalosVersion, EphemeralNamespace, LabelsMeta, TalosExtensionsType, TalosVersionType, SecureBoot } from "@/api/resources";
+import { DefaultNamespace, DefaultTalosVersion, EphemeralNamespace, LabelsMeta, TalosVersionType, SecureBoot } from "@/api/resources";
 import { useRouter } from "vue-router";
 import { onUnmounted, ref, watch, computed, Ref } from "vue";
 import { InstallationMediaType } from "@/api/resources";
-import { InstallationMediaSpec, TalosExtensionsSpecInfo, TalosVersionSpec } from "@/api/omni/specs/omni.pb";
+import { InstallationMediaSpec, TalosVersionSpec } from "@/api/omni/specs/omni.pb";
 import { Runtime } from "@/api/common/omni.pb";
 import { showError } from "@/notification";
 import { formatBytes } from "@/methods";
@@ -167,13 +117,11 @@ import TButton from "@/components/common/Button/TButton.vue";
 import TSelectList from "@/components/common/SelectList/TSelectList.vue";
 import Labels from "@/components/common/Labels/Labels.vue";
 import WatchResource from "@/api/watch";
-import Watch from "@/components/common/Watch/Watch.vue";
 import TCheckbox from "@/components/common/Checkbox/TCheckbox.vue";
-import TIcon from "@/components/common/Icon/TIcon.vue";
 import TInput from "@/components/common/TInput/TInput.vue";
-import WordHighlighter from "vue-word-highlighter";
 import IconButton from "@/components/common/Button/IconButton.vue";
 import yaml from "js-yaml";
+import ExtensionsPicker from "@/views/omni/Extensions/ExtensionsPicker.vue";
 
 import { copyText } from "vue3-clipboard";
 import { DocumentArrowDownIcon } from "@heroicons/vue/24/outline";
@@ -190,7 +138,6 @@ const router = useRouter();
 const phase = ref(Phase.Idle);
 const showDescriptions = ref(false);
 const fileSizeLoaded = ref(0);
-const filterExtensions = ref("");
 const kernelArguments = ref("");
 const creatingSchematic = ref(false);
 
@@ -257,13 +204,6 @@ const talosVersions = computed(() => talosVersionsResources.value?.map(res => re
 
 const selectedOption = ref("");
 const selectedTalosVersion = ref(DefaultTalosVersion);
-const filteredExtensions = (items: TalosExtensionsSpecInfo[]) => {
-  if (!filterExtensions.value) {
-    return items;
-  }
-
-  return items.filter(item => item.name?.includes(filterExtensions.value));
-}
 
 watch(() => optionsWatch.items?.value.length, () => {
   options.value = watchOptions.value.reduce((map, obj) => {

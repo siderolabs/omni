@@ -115,7 +115,7 @@ const blurHandler = () => {
   emit("blur", "");
 };
 
-if (focus) {
+if (focus.value) {
   watch(focus, () => {
     if (focus.value && input.value) {
       input.value?.focus();

@@ -39,7 +39,7 @@ import { ref, onMounted, Ref } from "vue";
 
 import TMenuItem from "@/components/common/MenuItem/TMenuItem.vue";
 import { getContext } from "@/context";
-import { ResourceService, ResourceTyped } from "@/api/grpc";
+import { ResourceService, Resource } from "@/api/grpc";
 import { Runtime } from "@/api/common/omni.pb";
 import TAnimation from "@/components/common/Animation/TAnimation.vue";
 import { TalosK8sNamespace, TalosNodenameID, TalosNodenameType, TalosRuntimeNamespace, TalosServiceType } from "@/api/resources"
@@ -71,7 +71,7 @@ onMounted(async () => {
     nodename?: string
   }
 
-  const nodename: ResourceTyped<Nodename> = await ResourceService.Get(
+  const nodename: Resource<Nodename> = await ResourceService.Get(
     {
       type: TalosNodenameType,
       id: TalosNodenameID,

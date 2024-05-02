@@ -59,7 +59,7 @@ import TSpinner from "@/components/common/Spinner/TSpinner.vue";
 import TCheckbox from "@/components/common/Checkbox/TCheckbox.vue";
 import Watch from "@/api/watch";
 import { TalosUpgradeStatusSpec } from "@/api/omni/specs/omni.pb";
-import { ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 import ManagedByTemplatesWarning from "@/views/cluster/ManagedByTemplatesWarning.vue";
 
 const route = useRoute();
@@ -75,7 +75,7 @@ const resource = {
   id: clusterName,
 };
 
-const status: Ref<ResourceTyped<TalosUpgradeStatusSpec> | undefined> = ref();
+const status: Ref<Resource<TalosUpgradeStatusSpec> | undefined> = ref();
 
 const upgradeStatusWatch = new Watch(status);
 

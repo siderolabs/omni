@@ -52,6 +52,10 @@ const routes = computed((): {name: string, to: RouteLocationRaw }[] => {
       name: "Mounts",
       to: { name: "NodeMounts", params: { machine: machine.value } },
     },
+    {
+      name: "Extensions",
+      to: { name: "NodeExtensions", params: { machine: machine.value } },
+    }
   ];
 })
 

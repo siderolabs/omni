@@ -66,6 +66,17 @@ func GetSchematicInfo(ctx context.Context, c *client.Client) (SchematicInfo, err
 			return nil
 		}
 
+		switch name {
+		case "v4l-uvc":
+			fallthrough
+		case "usb-modem":
+			name += "-drivers"
+		case "gasket":
+			name += "-driver"
+		case "talos-vmtoolsd":
+			name = "vmtoolsd-guest-agent"
+		}
+
 		if !strings.HasPrefix(name, officialExtensionPrefix) {
 			name = officialExtensionPrefix + name
 		}

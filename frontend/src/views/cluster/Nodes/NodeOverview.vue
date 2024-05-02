@@ -170,7 +170,7 @@ import {
 import { Runtime } from "@/api/common/omni.pb";
 import WatchResource, { WatchOptions } from "@/api/watch";
 import { NodeSpec } from "kubernetes-types/core/v1";
-import { ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 import { ClusterMachineStatusSpec, ConfigApplyStatus } from "@/api/omni/specs/omni.pb";
 import { useRoute } from "vue-router";
 
@@ -202,10 +202,10 @@ const configApplyStatusToConfigApplyStatusName = (status?: ConfigApplyStatus): s
 }
 
 const alertDismissed = ref(false);
-const node: Ref<ResourceTyped<NodeSpec> | undefined> = ref();
-const nodename: Ref<ResourceTyped<Nodename> | undefined> = ref();
-const nodeaddress: Ref<ResourceTyped<NodeAddress> | undefined> = ref();
-const clusterMachineStatus: Ref<ResourceTyped<ClusterMachineStatusSpec> | undefined> = ref();
+const node: Ref<Resource<NodeSpec> | undefined> = ref();
+const nodename: Ref<Resource<Nodename> | undefined> = ref();
+const nodeaddress: Ref<Resource<NodeAddress> | undefined> = ref();
+const clusterMachineStatus: Ref<Resource<ClusterMachineStatusSpec> | undefined> = ref();
 
 const nodeWatch = new WatchResource(node);
 const nodenameWatch = new WatchResource(nodename);

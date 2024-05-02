@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
@@ -83,14 +84,25 @@ func (ctrl *MachineExtensionsController) MapInput(ctx context.Context, _ *zap.Lo
 
 	switch ptr.Type() {
 	case omni.MachineExtensionsType:
-		root, ok := res.Metadata().Labels().Get(labelRootConfiguration)
+		clusterName, ok := res.Metadata().Labels().Get(omni.LabelCluster)
 		if !ok {
 			return nil, nil
 		}
 
-		return []resource.Pointer{
-			omni.NewExtensionsConfiguration(resources.DefaultNamespace, root).Metadata(),
-		}, nil
+		var list safe.List[*omni.ExtensionsConfiguration]
+
+		list, err = safe.ReaderListAll[*omni.ExtensionsConfiguration](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
+		if err != nil {
+			return nil, err
+		}
+
+		resources := make([]resource.Pointer, 0, list.Len())
+
+		list.ForEach(func(r *omni.ExtensionsConfiguration) {
+			resources = append(resources, r.Metadata())
+		})
+
+		return resources, nil
 	case omni.ClusterMachineType:
 		clusterName, ok := res.Metadata().Labels().Get(omni.LabelCluster)
 		if !ok {
@@ -141,8 +153,6 @@ func (ctrl *MachineExtensionsController) MapInput(ctx context.Context, _ *zap.Lo
 	return nil, fmt.Errorf("unexpected resource type %q", ptr.Type())
 }
 
-const labelRootConfiguration = omni.SystemLabelPrefix + "root-configuration"
-
 // Reconcile implements controller.QController interface.
 func (ctrl *MachineExtensionsController) Reconcile(ctx context.Context,
 	_ *zap.Logger, r controller.QRuntime, ptr resource.Pointer,
@@ -157,7 +167,7 @@ func (ctrl *MachineExtensionsController) Reconcile(ctx context.Context,
 	}
 
 	tracker := trackResource(r, resources.DefaultNamespace, omni.MachineExtensionsType, state.WithLabelQuery(
-		resource.LabelEqual(labelRootConfiguration, configuration.Metadata().ID()),
+		resource.LabelEqual(omni.ExtensionsConfigurationLabel, configuration.Metadata().ID()),
 	))
 
 	clusterMachines, err := ctrl.getRelatedClusterMachines(ctx, r, configuration)
@@ -184,12 +194,16 @@ func (ctrl *MachineExtensionsController) Reconcile(ctx context.Context,
 
 		if err = safe.WriterModify[*omni.MachineExtensions](ctx, r, status, func(r *omni.MachineExtensions) error {
 			r.TypedSpec().Value.Extensions = configuration.TypedSpec().Value.Extensions
-			r.Metadata().Labels().Set(labelRootConfiguration, configuration.Metadata().ID())
+			r.Metadata().Labels().Set(omni.ExtensionsConfigurationLabel, configuration.Metadata().ID())
 
 			helpers.CopyLabels(clusterMachine, r, omni.LabelCluster)
 
 			return nil
 		}); err != nil {
+			if state.IsPhaseConflictError(err) {
+				return controller.NewRequeueError(err, time.Millisecond*100)
+			}
+
 			return err
 		}
 	}

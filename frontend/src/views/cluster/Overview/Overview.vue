@@ -14,11 +14,11 @@ included in the LICENSE file.
 <script setup lang="ts">
 import OverviewContent from "@/views/cluster/Overview/components/OverviewContent.vue";
 import PageHeader from "@/components/common/PageHeader.vue";
-import { ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 import { ClusterSpec } from "@/api/omni/specs/omni.pb";
 
 type Props = {
-    currentCluster: ResourceTyped<ClusterSpec>,
+  currentCluster: Resource<ClusterSpec>,
 };
 
 defineProps<Props>()

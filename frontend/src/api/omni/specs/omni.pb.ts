@@ -118,6 +118,12 @@ export enum ExtensionsConfigurationStatusSpecPhase {
   Failed = 2,
 }
 
+export enum MachineExtensionsStatusSpecItemPhase {
+  Installed = 0,
+  Installing = 1,
+  Removing = 2,
+}
+
 export type MachineSpec = {
   management_address?: string
   connected?: boolean
@@ -652,6 +658,17 @@ export type ExtensionsConfigurationStatusSpec = {
 
 export type MachineExtensionsSpec = {
   extensions?: string[]
+}
+
+export type MachineExtensionsStatusSpecItem = {
+  name?: string
+  immutable?: boolean
+  phase?: MachineExtensionsStatusSpecItemPhase
+}
+
+export type MachineExtensionsStatusSpec = {
+  extensions?: MachineExtensionsStatusSpecItem[]
+  talos_version?: string
 }
 
 export type MachineStatusMetricsSpec = {

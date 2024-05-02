@@ -40,7 +40,7 @@ included in the LICENSE file.
         </t-alert>
         <slot name="error" v-else err="err"/>
       </template>
-      <template v-else-if="items.length == 0">
+      <template v-else-if="items?.length === 0">
         <t-alert
           v-if="!$slots.norecords"
           type="info"
@@ -50,7 +50,7 @@ included in the LICENSE file.
         >
         <slot name="norecords"/>
       </template>
-      <div class="w-full h-full" v-show="!loading && !err && (items.length > 0)">
+      <div class="w-full h-full" v-show="!loading && !err && (items?.length > 0)">
         <slot :items="items" :watch="watch" :searchQuery="searchQuery"/>
       </div>
     </div>
@@ -70,7 +70,7 @@ included in the LICENSE file.
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends Resource">
 import { Resource } from "@/api/grpc";
 import Watch, { WatchJoin, WatchJoinOptions, WatchOptions } from "@/api/watch";
 import TInput from "@/components/common/TInput/TInput.vue";
@@ -98,11 +98,11 @@ const dots = "...";
 const props = defineProps<{
   pagination?: boolean,
   search?: boolean,
-  opts: WatchOptions | WatchJoinOptions[] | Object,
+  opts?: WatchOptions | WatchJoinOptions[] | Object,
   sortOptions?: {id: string, desc: string, descending?: boolean}[],
 }>();
 
-const itemsPerPage = [5, 10, 25, 50, 100];
+const itemsPerPage = [5, 10, 25, 50, 100]
 
 const sortOptionsVariants = computed(() => {
   if (!props.sortOptions) {
@@ -147,10 +147,10 @@ const sortByState = computed(() => {
 });
 
 const watchOptions = computed<WatchOptions>(() => {
-  const watchSingle = opts.value;
-  const watchJoin = opts.value as WatchJoinOptions[];
+  const watchSingle = opts?.value;
+  const watchJoin = opts?.value as WatchJoinOptions[];
 
-  return (watchJoin.length ? watchJoin[0] : watchSingle) as WatchOptions;
+  return (watchJoin?.length ? watchJoin[0] : watchSingle) as WatchOptions;
 });
 
 const paginationState = computed(() => {
@@ -222,12 +222,15 @@ const searchQuery = computed(() => {
 
 const setupWatch = () => {
   const w = new Watch(items);
-  const opts = props.opts as WatchOptions;
 
   w.setup(computed(() => {
+    if (!opts?.value) {
+      return;
+    }
+
     return {
       ...paginationState.value,
-      ...opts,
+      ...opts.value as WatchOptions,
       ...searchState.value,
       ...sortByState.value,
     }
@@ -238,16 +241,28 @@ const setupWatch = () => {
 
 const setupJoinWatch = () => {
   const w = new WatchJoin(items);
-  const opts = props.opts as WatchJoinOptions[];
 
   w.setup(computed(() => {
+    if (!opts?.value) {
+      return;
+    }
+
     return {
       ...paginationState.value,
-      ...opts[0],
+      ...(opts.value as WatchJoinOptions[])[0],
       ...searchState.value,
       ...sortByState.value,
     }
-  }), opts.slice(1, opts.length));
+  }),
+  computed(() => {
+    if (!opts?.value) {
+      return;
+    }
+
+    const o = opts.value as WatchJoinOptions[];
+
+    return o.slice(1, o.length);
+  }));
 
   return w;
 }
@@ -287,7 +302,7 @@ const paginationRange = computed(() => {
   return res;
 });
 
-const watch = optsList.length ? setupJoinWatch() : setupWatch();
+const watch = optsList?.length ? setupJoinWatch() : setupWatch();
 const err = watch.err;
 const loading = watch.loading;
 

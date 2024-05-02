@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <component v-if="cluster" :is="inner" :currentCluster="cluster" />
+  <component v-if="cluster" :is="inner" :currentCluster="cluster"/>
   <div v-else-if="bootstrapped" class="flex-1 font-sm">
     <t-alert title="Cluster Not Found" type="error">
       Cluster {{ route.params.cluster as string }} does not exist.
@@ -15,7 +15,7 @@ included in the LICENSE file.
 
 <script setup lang="ts">
 import { Component, computed, ref, Ref } from "vue";
-import { ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 import { ClusterSpec } from "@/api/omni/specs/omni.pb";
 import Watch from "@/api/watch";
 import { getContext } from "@/context";
@@ -26,7 +26,7 @@ import TAlert from "@/components/TAlert.vue";
 import { EventType } from "@/api/omni/resources/resources.pb";
 
 const bootstrapped = ref(false);
-const cluster: Ref<ResourceTyped<ClusterSpec> | undefined> = ref();
+const cluster: Ref<Resource<ClusterSpec> | undefined> = ref();
 
 const watch = new Watch(cluster, message => {
   if (message.event?.event_type === EventType.BOOTSTRAPPED) {

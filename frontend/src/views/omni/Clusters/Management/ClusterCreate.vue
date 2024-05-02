@@ -7,7 +7,7 @@ included in the LICENSE file.
 <template>
   <div class="flex flex-col">
     <div class="flex gap-1 items-start">
-      <page-header title="Clusters" class="flex-1"/>
+      <page-header title="Create Cluster" class="flex-1"/>
     </div>
     <div class="flex flex-col items-stretch gap-4 flex-1">
       <div class="flex w-full gap-2 h-9">
@@ -144,7 +144,7 @@ PatchBaseWeightCluster,
 import { MachineStatusSpec, TalosVersionSpec } from "@/api/omni/specs/omni.pb";
 import WatchResource, { itemID } from "@/api/watch";
 import { showError, showSuccess } from "@/notification";
-import { Resource, ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 import { clusterSync, nextAvailableClusterName } from "@/methods/cluster";
 import { useRouter } from "vue-router";
 import { showModal } from "@/modal";
@@ -201,7 +201,7 @@ const router = useRouter();
 
 const kubernetesVersionSelector: Ref<{ selectItem: (s: string) => void } | undefined> = ref();
 
-const talosVersionsList: Ref<ResourceTyped<TalosVersionSpec>[]> = ref([]);
+const talosVersionsList: Ref<Resource<TalosVersionSpec>[]> = ref([]);
 const talosVersionsWatch = new WatchResource(talosVersionsList);
 const reset = ref(0);
 

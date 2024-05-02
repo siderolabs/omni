@@ -89,7 +89,7 @@ import { downloadKubeconfig, downloadTalosconfig } from "@/methods";
 import { useRouter } from "vue-router";
 import { addClusterLabels, removeClusterLabels } from "@/methods/cluster";
 import { controlPlaneMachineSetId } from "@/methods/machineset";
-import { Resource, ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 import { ClusterStatusSpec, MachineSetSpec } from "@/api/omni/specs/omni.pb";
 import { Runtime } from "@/api/common/omni.pb";
 import storageRef from "@/methods/storage";
@@ -125,7 +125,7 @@ const openClusterDestroy = () => {
   });
 };
 
-const machineSets: Ref<ResourceTyped<MachineSetSpec>[]> = ref([]);
+const machineSets: Ref<Resource<MachineSetSpec>[]> = ref([]);
 const machineSetsWatch = new WatchResource(machineSets);
 machineSetsWatch.setup(computed(() => {
   return {

@@ -4,14 +4,14 @@
 // included in the LICENSE file.
 
 import { Runtime } from "@/api/common/omni.pb";
-import { ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 import { ClusterMachineStatusLabelNodeName, ClusterMachineStatusType, DefaultNamespace, } from "@/api/resources";
 import { ClusterMachineStatusSpec } from "@/api/omni/specs/omni.pb";
 import { computed, ref, Ref } from "vue";
 import Watch from "@/api/watch";
 
 export const setupNodenameWatch = (id: string | string[]): Ref<string> => {
-  const res: Ref<ResourceTyped<ClusterMachineStatusSpec> | undefined> = ref();
+  const res: Ref<Resource<ClusterMachineStatusSpec> | undefined> = ref();
 
   const w = new Watch(res)
 

@@ -37,15 +37,16 @@ included in the LICENSE file.
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends Resource">
 import Watch, { WatchJoin, WatchOptions, WatchJoinOptions } from "@/api/watch";
-import { ref, toRefs } from "vue";
+import { computed, ref, toRefs } from "vue";
 
 import TAlert from "@/components/TAlert.vue";
 import TSpinner from "@/components/common/Spinner/TSpinner.vue";
+import { Resource } from "@/api/grpc";
 
 type Props = {
-  opts: WatchJoinOptions[] | WatchOptions & Object, // & Object is used to make Vue validator happy
+  opts: WatchJoinOptions[] | WatchOptions & Object | undefined, // & Object is used to make Vue validator happy
   spinner?: boolean,
   noRecordsAlert?: boolean
   errorsAlert?: boolean,
@@ -53,18 +54,46 @@ type Props = {
 };
 
 const props = defineProps<Props>();
-const resourceWatch: Watch<any> | WatchJoin<any> = props.opts.length ? new WatchJoin(ref([])) : new Watch(ref([]));
+const items = ref<T[]>([]);
+
+const watchSingle: Watch<T> | undefined = (props.opts as { length: number })?.length == undefined ? new Watch<T>(items) : undefined;
+const watchJoin: WatchJoin<T> | undefined = (props.opts as { length: number })?.length != undefined ? new WatchJoin<T>(items) : undefined;
+
+const resourceWatch = watchSingle ?? watchJoin;
+
 const { opts } = toRefs(props);
 
-if (opts.value.length) {
-  resourceWatch.setup(opts.value[0], opts.value.slice(1, opts.value.length));
-} else {
-  resourceWatch.setup(opts);
+if (watchJoin) {
+  watchJoin.setup(
+    computed(() => {
+      if (!opts?.value) {
+        return;
+      }
+
+      return (opts.value as WatchJoinOptions[])[0];
+    }),
+    computed(() => {
+      if (!opts?.value) {
+        return;
+      }
+
+      const o = opts.value as WatchJoinOptions[];
+
+      return o.slice(1, o.length);
+    })
+  );
+} else if (watchSingle) {
+  watchSingle.setup(computed(() => {
+    if (!opts?.value) {
+      return;
+    }
+
+    return opts.value as WatchOptions
+  }));
 }
 
-const items = resourceWatch.items;
-const err = resourceWatch.err;
-const loading = resourceWatch.loading;
+const err = resourceWatch!.err;
+const loading = resourceWatch!.loading;
 </script>
 
 <style scoped>

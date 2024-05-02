@@ -604,6 +604,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		machineExtensions := omni.NewMachineExtensions(resources.DefaultNamespace, uuid.New().String())
 		machineExtensions.Metadata().Labels().Set(omni.LabelCluster, uuid.New().String())
 
+		machineExtensionsStatus := omni.NewMachineExtensionsStatus(resources.DefaultNamespace, uuid.New().String())
+		machineExtensionsStatus.Metadata().Labels().Set(omni.LabelCluster, uuid.New().String())
+
 		testCases := []resourceAuthzTestCase{
 			{
 				resource:       identity,
@@ -664,6 +667,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource:       machineExtensions,
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
+				resource:       machineExtensionsStatus,
 				allowedVerbSet: readOnlyVerbSet,
 			},
 		}

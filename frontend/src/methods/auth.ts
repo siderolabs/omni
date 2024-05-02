@@ -12,14 +12,14 @@ import {
   ClusterPermissionsType
 } from "@/api/resources";
 
-import { ResourceService, ResourceTyped } from "@/api/grpc";
+import { ResourceService, Resource } from "@/api/grpc";
 import { Runtime } from "@/api/common/omni.pb";
 import { CurrentUserSpec, PermissionsSpec } from "@/api/omni/specs/virtual.pb";
 import { computed, ComputedRef, onBeforeMount, ref, Ref, watch } from "vue";
 import { withRuntime } from "@/api/options";
 
-export const currentUser: Ref<ResourceTyped<CurrentUserSpec> | undefined> = ref();
-export const permissions: Ref<ResourceTyped<PermissionsSpec> | undefined> = ref();
+export const currentUser: Ref<Resource<CurrentUserSpec> | undefined> = ref();
+export const permissions: Ref<Resource<PermissionsSpec> | undefined> = ref();
 
 export const setupClusterPermissions = (cluster: {value: string}) => {
   const result = {

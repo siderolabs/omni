@@ -37,7 +37,7 @@ included in the LICENSE file.
 import { ref, Ref } from "vue";
 import { useRoute } from "vue-router";
 
-import { ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 import Watch from "@/api/watch";
 import { ExposedServiceSpec } from "@/api/omni/specs/omni.pb";
 import { DefaultNamespace, LabelCluster, ExposedServiceType, LabelExposedServiceAlias, workloadProxyHostPrefix } from "@/api/resources";
@@ -48,7 +48,7 @@ import TMenuItem from "@/components/common/MenuItem/TMenuItem.vue";
 
 const route = useRoute();
 
-const exposedServices: Ref<ResourceTyped<ExposedServiceSpec>[]> = ref([]);
+const exposedServices: Ref<Resource<ExposedServiceSpec>[]> = ref([]);
 const exposedServicesWatch = new Watch(exposedServices);
 exposedServicesWatch.setup({
   runtime: Runtime.Omni,
@@ -59,7 +59,7 @@ exposedServicesWatch.setup({
   selectors: [`${LabelCluster}=${route.params.cluster}`]
 });
 
-const exposedServiceUrl = (service: ResourceTyped<ExposedServiceSpec>) => {
+const exposedServiceUrl = (service: Resource<ExposedServiceSpec>) => {
   const alias = service.metadata.labels?.[LabelExposedServiceAlias];
 
   return `${window.location.protocol}//${workloadProxyHostPrefix}-${alias}-${window.location.hostname}`

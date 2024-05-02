@@ -24,7 +24,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { useRoute } from "vue-router";
 import { computed, ref, Ref } from "vue";
-import { Resource, ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 import { ClusterSpec } from "@/api/omni/specs/omni.pb";
 import Watch from "@/api/watch";
 import { ClusterType, DefaultNamespace, ResourceManagedByClusterTemplates } from "@/api/resources";
@@ -42,7 +42,7 @@ const props = withDefaults(defineProps<Props>(), {
   warningStyle: "alert",
 });
 
-const cluster: Ref<ResourceTyped<ClusterSpec> | undefined> = ref(props.cluster);
+const cluster: Ref<Resource<ClusterSpec> | undefined> = ref(props.cluster);
 
 // If the cluster is not passed explicitly, watch it from the route, if cluster exists in the route params.
 if (!props.cluster) {

@@ -27,16 +27,16 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { ClusterMachineStatusSpecStage, ClusterMachineStatusSpec } from "@/api/omni/specs/omni.pb";
 import { MachineStatusLabelConnected } from "@/api/resources";
-import { ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 
 import TIcon, { IconType } from "@/components/common/Icon/TIcon.vue";
 import Popper from "vue3-popper";
 
-const connected = (machine: ResourceTyped<ClusterMachineStatusSpec>): boolean => {
+const connected = (machine: Resource<ClusterMachineStatusSpec>): boolean => {
   return machine?.metadata.labels?.[MachineStatusLabelConnected] === "";
 };
 
-const stageName = (machine: ResourceTyped<ClusterMachineStatusSpec>): string => {
+const stageName = (machine: Resource<ClusterMachineStatusSpec>): string => {
   switch (machine?.spec.stage) {
     case ClusterMachineStatusSpecStage.BOOTING:
       return "Booting";
@@ -65,7 +65,7 @@ const stageName = (machine: ResourceTyped<ClusterMachineStatusSpec>): string => 
   }
 };
 
-const stageIcon = (machine: ResourceTyped<ClusterMachineStatusSpec>): IconType => {
+const stageIcon = (machine: Resource<ClusterMachineStatusSpec>): IconType => {
   switch (machine?.spec.stage) {
     case ClusterMachineStatusSpecStage.BOOTING:
     case ClusterMachineStatusSpecStage.INSTALLING:
@@ -89,7 +89,7 @@ const stageIcon = (machine: ResourceTyped<ClusterMachineStatusSpec>): IconType =
   }
 };
 
-const stageColor = (machine: ResourceTyped<ClusterMachineStatusSpec>): string => {
+const stageColor = (machine: Resource<ClusterMachineStatusSpec>): string => {
   const Y1 = "#FFB200";
 
   switch (machine?.spec.stage) {
@@ -115,7 +115,7 @@ const stageColor = (machine: ResourceTyped<ClusterMachineStatusSpec>): string =>
 };
 
 type Props = {
-  machine: ResourceTyped<ClusterMachineStatusSpec>;
+  machine: Resource<ClusterMachineStatusSpec>;
 };
 
 defineProps<Props>();

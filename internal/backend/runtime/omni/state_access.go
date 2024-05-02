@@ -66,6 +66,7 @@ var (
 		omni.EtcdBackupType,
 		omni.SchematicConfigurationType,
 		omni.ExtensionsConfigurationType,
+		omni.MachineExtensionsStatusType,
 		omni.MachineExtensionsType,
 		omni.ExtensionsConfigurationStatusType,
 	})
@@ -385,6 +386,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		siderolink.ConnectionParamsType,
 		omni.MachineType,
 		omni.MachineClassType,
+		omni.MachineExtensionsStatusType,
 		omni.MachineExtensionsType,
 		omni.MachineStatusType,
 		omni.MachineStatusSnapshotType,
@@ -520,6 +522,7 @@ func filterAccessByType(access state.Access) error {
 		omni.SchematicType,
 		omni.SchematicConfigurationType,
 		omni.ExtensionsConfigurationStatusType,
+		omni.MachineExtensionsStatusType,
 		omni.MachineExtensionsType,
 		omni.MachineStatusMetricsType,
 		authres.AuthConfigType,

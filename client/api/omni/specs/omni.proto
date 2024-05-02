@@ -985,6 +985,24 @@ message MachineExtensionsSpec {
   repeated string extensions = 1;
 }
 
+// MachineExtensionsStatusSpec defines status of each extension on the machine.
+message MachineExtensionsStatusSpec {
+  message Item {
+    enum Phase {
+      Installed = 0;
+      Installing = 1;
+      Removing = 2;
+    }
+
+    string name = 1;
+    bool immutable = 2;
+    Phase phase = 3;
+  }
+
+  repeated Item extensions = 1;
+  string talos_version = 2;
+}
+
 // MachineStatusMetricsSpec provides aggregated state of the number of registered and connected machines for the Omni instance.
 message MachineStatusMetricsSpec {
   uint32 registered_machines_count = 1;

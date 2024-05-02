@@ -75,7 +75,7 @@ import { useRoute, useRouter } from "vue-router";
 
 import PageHeader from "@/components/common/PageHeader.vue";
 import { Runtime } from "@/api/common/omni.pb";
-import { ResourceService, Resource, ResourceTyped } from "@/api/grpc";
+import { ResourceService, Resource } from "@/api/grpc";
 import { ClusterSpec, ConfigPatchSpec, MachineSetSpec } from "@/api/omni/specs/omni.pb";
 import {
   ConfigPatchType,
@@ -113,7 +113,7 @@ import { machineSetTitle, sortMachineSetIds } from "@/methods/machineset";
 import ManagedByTemplatesWarning from "@/views/cluster/ManagedByTemplatesWarning.vue";
 
 type Props = {
-  currentCluster?: ResourceTyped<ClusterSpec>,
+  currentCluster?: Resource<ClusterSpec>,
 };
 
 defineProps<Props>();
@@ -121,7 +121,7 @@ defineProps<Props>();
 const route = useRoute();
 
 const bootstrapped = ref(false);
-const patch:Ref<ResourceTyped<ConfigPatchSpec> | undefined> = ref();
+const patch:Ref<Resource<ConfigPatchSpec> | undefined> = ref();
 const patchWatch = new Watch(patch, (e: WatchResponse) => {
   if (e.event?.event_type === EventType.BOOTSTRAPPED) {
     bootstrapped.value = true;
@@ -145,7 +145,7 @@ const editorDidMount = (editor: monaco.editor.IStandaloneCodeEditor) => {
 
 const nodeIDMap: Record<string, string> = {};
 const machineSetIDMap: Record<string, string> = {};
-const patchToCreate: ResourceTyped<ConfigPatchSpec> = {
+const patchToCreate: Resource<ConfigPatchSpec> = {
   metadata: {
     namespace: DefaultNamespace,
     type: ConfigPatchType,
@@ -221,7 +221,7 @@ const setPatchType = (value: string) => {
   patchToCreate.metadata.labels[LabelClusterMachine] = machineID;
 };
 
-const machineSets: Ref<ResourceTyped<MachineSetSpec>[]> = ref([]);
+const machineSets: Ref<Resource<MachineSetSpec>[]> = ref([]);
 const machineSetsWatch = new Watch(machineSets);
 const machineSetTitles = computed(() => {
   const sorted = sortMachineSetIds(route.params.cluster as string, machineSets.value.map(value => value.metadata.id!));
@@ -426,7 +426,7 @@ const saveConfig = async () => {
     config.value = codeEditor.getValue();
   }
 
-  let currentPatch: ResourceTyped<ConfigPatchSpec> | undefined = patch.value;
+  let currentPatch: Resource<ConfigPatchSpec> | undefined = patch.value;
 
   if (create) {
     patchToCreate.metadata.id = route.params.patch as string;

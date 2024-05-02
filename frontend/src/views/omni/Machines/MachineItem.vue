@@ -117,7 +117,7 @@ import pluralize from 'pluralize';
 import { copyText } from "vue3-clipboard";
 
 import { useRouter } from "vue-router";
-import { ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 import { MachineStatusLinkSpec } from "@/api/omni/specs/ephemeral.pb";
 import { DateTime } from "luxon";
 
@@ -129,7 +129,7 @@ import WordHighlighter from "vue-word-highlighter";
 import { addMachineLabels, removeMachineLabels } from "@/methods/machine";
 import { canReadClusters, canReadMachineLogs, canRemoveMachines } from "@/methods/auth";
 
-type MachineWithLinkCounter = ResourceTyped<MachineStatusLinkSpec>;
+type MachineWithLinkCounter = Resource<MachineStatusLinkSpec>;
 const props = defineProps<{
   machine: MachineWithLinkCounter
   searchQuery?: string

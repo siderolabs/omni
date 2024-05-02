@@ -19,6 +19,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/set"
 )
 
 // Operation is a single operation which alters the machine set.
@@ -73,7 +74,7 @@ type Teardown struct {
 // Apply implements Operation interface.
 func (d *Teardown) Apply(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, rc *ReconciliationContext) error {
 	if !d.Quota.Use(opDelete) {
-		logger.Info("teardown is waiting for quota", zap.String("machine", d.ID), zap.Strings("pending", Values(rc.GetTearingDownMachines())))
+		logger.Info("teardown is waiting for quota", zap.String("machine", d.ID), zap.Strings("pending", set.Values(rc.GetTearingDownMachines())))
 
 		return nil
 	}
@@ -117,7 +118,7 @@ func (u *Update) Apply(ctx context.Context, r controller.ReaderWriter, logger *z
 	// if updating we don't care about the quota
 	if !ignoreQuota {
 		if !u.Quota.Use(opUpdate) {
-			logger.Info("update is waiting for quota", zap.String("machine", u.ID), zap.Strings("pending", Values(rc.GetUpdatingMachines())))
+			logger.Info("update is waiting for quota", zap.String("machine", u.ID), zap.Strings("pending", set.Values(rc.GetUpdatingMachines())))
 
 			return nil
 		}

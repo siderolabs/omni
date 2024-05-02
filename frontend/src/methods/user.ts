@@ -9,7 +9,7 @@ import {
   IdentityType,
   LabelIdentityUserID,
 } from "@/api/resources";
-import { ResourceTyped, ResourceService } from "@/api/grpc";
+import { Resource, ResourceService } from "@/api/grpc";
 import { UserSpec } from "@/api/omni/specs/auth.pb";
 import { v4 as uuidv4 } from 'uuid';
 import { IdentitySpec } from "@/api/omni/specs/auth.pb";
@@ -18,7 +18,7 @@ import { Code } from "@/api/google/rpc/code.pb";
 import { withRuntime } from "@/api/options";
 
 export const createUser = async (email: string, role: string) => {
-  const user: ResourceTyped<UserSpec> = {
+  const user: Resource<UserSpec> = {
     metadata: {
       id: uuidv4(),
       namespace: DefaultNamespace,
@@ -29,7 +29,7 @@ export const createUser = async (email: string, role: string) => {
     }
   };
 
-  const identity: ResourceTyped<IdentitySpec> = {
+  const identity: Resource<IdentitySpec> = {
     metadata: {
       id: email.toLowerCase(),
       namespace: DefaultNamespace,

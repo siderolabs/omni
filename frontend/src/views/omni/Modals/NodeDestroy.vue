@@ -38,7 +38,7 @@ import pluralize from "pluralize";
 import CloseButton from "@/views/omni/Modals/CloseButton.vue";
 import TButton from "@/components/common/Button/TButton.vue";
 import TSpinner from "@/components/common/Spinner/TSpinner.vue";
-import { ResourceService, ResourceTyped } from "@/api/grpc";
+import { ResourceService, Resource } from "@/api/grpc";
 import {
   ClusterMachineStatusType,
   DefaultNamespace, LabelCluster, LabelControlPlaneRole,
@@ -78,7 +78,7 @@ onMounted(async () => {
   let isControlPlane = true;
 
   try {
-    const clusterMachineStatus: ResourceTyped<ClusterMachineStatusSpec> = await ResourceService.Get({
+    const clusterMachineStatus: Resource<ClusterMachineStatusSpec> = await ResourceService.Get({
       type: ClusterMachineStatusType,
       namespace: DefaultNamespace,
       id: route.query.machine as string,
@@ -87,7 +87,7 @@ onMounted(async () => {
     isControlPlane = clusterMachineStatus?.metadata?.labels?.[LabelControlPlaneRole] === "";
 
     // since this code called for both worker and control plane nodes, we need to check if the node is control plane node
-    const controlPlaneMachineStatus: ResourceTyped<ClusterMachineStatusSpec> = await ResourceService.Get({
+    const controlPlaneMachineStatus: Resource<ClusterMachineStatusSpec> = await ResourceService.Get({
       type: ClusterMachineStatusType,
       namespace: DefaultNamespace,
       id: route.query.machine as string,

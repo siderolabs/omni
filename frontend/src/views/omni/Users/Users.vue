@@ -36,7 +36,7 @@ import TList from "@/components/common/List/TList.vue";
 import UserItem from "@/views/omni/Users/UserItem.vue";
 import PageHeader from "@/components/common/PageHeader.vue";
 import TButton from "@/components/common/Button/TButton.vue";
-import { ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 import { canManageUsers } from "@/methods/auth";
 import { AuthType, authType } from "@/methods";
 
@@ -49,7 +49,7 @@ const watchOpts = [
       type: IdentityType,
       namespace: DefaultNamespace,
     },
-    idFunc: (res: ResourceTyped<IdentitySpec>) => `default.${(res?.metadata?.labels || {})[LabelIdentityUserID] ?? ""}`,
+    idFunc: (res: Resource<IdentitySpec>) => `default.${(res?.metadata?.labels || {})[LabelIdentityUserID] ?? ""}`,
     selectors: [`!${LabelIdentityTypeServiceAccount}`],
   },
   {

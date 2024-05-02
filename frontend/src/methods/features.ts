@@ -4,14 +4,14 @@
 // included in the LICENSE file.
 
 import { computed, Ref, ref } from "vue";
-import { ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 import { FeaturesConfigSpec } from "@/api/omni/specs/omni.pb";
 import Watch from "@/api/watch";
 import { Runtime } from "@/api/common/omni.pb";
 import { FeaturesConfigType, DefaultNamespace, FeaturesConfigID } from "@/api/resources";
 
 export const setupWorkloadProxyingEnabledFeatureWatch = (): Ref<boolean> => {
-  const featuresConfig: Ref<ResourceTyped<FeaturesConfigSpec> | undefined> = ref();
+  const featuresConfig: Ref<Resource<FeaturesConfigSpec> | undefined> = ref();
   const featuresConfigWatch = new Watch(featuresConfig);
   featuresConfigWatch.setup({
     resource: {

@@ -74,7 +74,7 @@ import {
   ConfigPatchDescription,
   ConfigPatchName,
 } from "@/api/resources";
-import { Resource, ResourceService, ResourceTyped } from "@/api/grpc";
+import { Resource, ResourceService } from "@/api/grpc";
 import { RouteLocationRaw, useRoute, useRouter } from "vue-router";
 import { ref, computed, Ref, watch, onMounted } from "vue";
 import { v4 as uuidv4 } from "uuid";
@@ -106,7 +106,7 @@ const machineStatuses: Ref<Resource[]> = ref([]);
 const machineStatusesWatch = new Watch(machineStatuses);
 
 type Props = {
-  currentCluster?: ResourceTyped<ClusterSpec>,
+  currentCluster?: Resource<ClusterSpec>,
 };
 
 defineProps<Props>();
@@ -123,7 +123,7 @@ const updateSelectors = () => {
 
 watch(() => route.params, updateSelectors);
 
-const patches: Ref<ResourceTyped<ConfigPatchSpec>[]> = ref([]);
+const patches: Ref<Resource<ConfigPatchSpec>[]> = ref([]);
 const patchesWatch = new Watch(patches);
 const loading = computed(() => {
   return patchesWatch.loading.value || machineStatusesWatch.loading.value;

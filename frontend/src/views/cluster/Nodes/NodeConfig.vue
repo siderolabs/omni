@@ -10,7 +10,7 @@ included in the LICENSE file.
 
 <script setup lang="ts">
 import { computed, Ref, ref } from "vue";
-import { ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 import { RedactedClusterMachineConfigSpec } from "@/api/omni/specs/omni.pb";
 import Watch from "@/api/watch";
 import { Runtime } from "@/api/common/omni.pb";
@@ -22,7 +22,7 @@ import CodeEditor from "@/components/common/CodeEditor/CodeEditor.vue";
 
 const route = useRoute();
 
-const configs: Ref<ResourceTyped<RedactedClusterMachineConfigSpec>[]> = ref([]);
+const configs: Ref<Resource<RedactedClusterMachineConfigSpec>[]> = ref([]);
 const watch = new Watch(configs);
 
 const config = computed(() => {

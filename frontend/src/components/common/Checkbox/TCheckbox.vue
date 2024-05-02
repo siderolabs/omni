@@ -8,7 +8,7 @@ included in the LICENSE file.
   <div class="checkbox-wrapper" :class="{ 'cursor-not-allowed': disabled, 'cursor-pointer': !disabled }" @click="(e) => disabled ? e.stopImmediatePropagation() : null">
     <div class="checkbox" :class="{ checked: checked, disabled: disabled }">
       <t-animation>
-        <t-icon class="checkbox-icon" icon="check" v-show="checked && !disabled" />
+        <t-icon class="checkbox-icon" :icon="icon" v-show="checked && !disabled" />
       </t-animation>
       <input type="checkbox" hidden :value="checked" />
     </div>
@@ -17,16 +17,22 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import TIcon from "@/components/common/Icon/TIcon.vue";
+import TIcon, { IconType } from "@/components/common/Icon/TIcon.vue";
 import TAnimation from "@/components/common/Animation/TAnimation.vue";
 
 type Props = {
   checked?: boolean | number;
   label?: string;
   disabled?: boolean;
+  icon?: IconType
 };
 
-defineProps<Props>();
+withDefaults(
+  defineProps<Props>(),
+  {
+    icon: "check"
+  },
+);
 </script>
 
 <style scoped>

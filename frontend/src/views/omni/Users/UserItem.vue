@@ -28,7 +28,7 @@ included in the LICENSE file.
 
 <script setup lang="ts">
 import { UserSpec, IdentitySpec } from "@/api/omni/specs/auth.pb";
-import { ResourceTyped } from "@/api/grpc";
+import { Resource } from "@/api/grpc";
 
 import { useRouter } from "vue-router";
 
@@ -40,7 +40,7 @@ import { computed, toRefs } from "vue";
 import { SAMLLabelPrefix } from "@/api/resources";
 
 const props = defineProps<{
-  item: ResourceTyped<UserSpec & IdentitySpec>
+  item: Resource<UserSpec & IdentitySpec>
 }>();
 
 const { item } = toRefs(props);
