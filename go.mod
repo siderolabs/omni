@@ -62,7 +62,7 @@ require (
 	github.com/siderolabs/go-api-signature v0.3.2
 	github.com/siderolabs/go-circular v0.1.0
 	github.com/siderolabs/go-debug v0.3.0
-	github.com/siderolabs/go-kubernetes v0.2.8
+	github.com/siderolabs/go-kubernetes v0.2.9
 	github.com/siderolabs/go-loadbalancer v0.3.3
 	github.com/siderolabs/go-pointer v1.0.0
 	github.com/siderolabs/go-procfs v0.1.2
