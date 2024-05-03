@@ -85,7 +85,7 @@ included in the LICENSE file.
                 </t-button>
                 <t-button @click="openClusters" iconPosition="left" icon="clusters" type="subtle">View All</t-button>
               </div>
-              <watch :opts="{ resource: resource, runtime: Runtime.Omni, sortByField: 'created' }">
+              <watch :opts="{ resource: resource, runtime: Runtime.Omni, sortByField: 'created', sortDescending: true }">
                 <template #norecords>
                   <div class="px-6 pb-6">No clusters</div>
                 </template>
