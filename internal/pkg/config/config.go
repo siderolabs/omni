@@ -48,6 +48,7 @@ type Params struct {
 	SiderolinkWireguardBindAddress       string `yaml:"siderolinkWireguardBindAddress"`
 	SiderolinkWireguardAdvertisedAddress string `yaml:"siderolinkWireguardAdvertisedAddress"`
 	SiderolinkDisableLastEndpoint        bool   `yaml:"siderolinkDisableLastEndpoint"`
+	SiderolinkUseGRPCTunnel              bool   `yaml:"siderolinkUseGRPCTunnel"`
 
 	EventSinkPort    int                `yaml:"eventSinkPort"`
 	SideroLinkAPIURL string             `yaml:"siderolinkAPIURL"`

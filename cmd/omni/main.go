@@ -292,6 +292,7 @@ func init() {
 		config.Config.SiderolinkWireguardAdvertisedAddress,
 		"advertised wireguard address which is passed down to the nodes.")
 	rootCmd.Flags().StringVar(&config.Config.SiderolinkWireguardBindAddress, "siderolink-wireguard-bind-addr", config.Config.SiderolinkWireguardBindAddress, "Siderolink wireguard bind address.")
+	rootCmd.Flags().BoolVar(&config.Config.SiderolinkUseGRPCTunnel, "siderolink-use-grpc-tunnel", false, "use gRPC tunnel to wrap wireguard traffic instead of UDP")
 
 	rootCmd.Flags().StringVar(&config.Config.MachineAPIBindAddress, "siderolink-api-bind-addr", config.Config.MachineAPIBindAddress, "SideroLink provision bind address.")
 	rootCmd.Flags().StringVar(&config.Config.MachineAPICertFile, "siderolink-api-cert", config.Config.MachineAPICertFile, "SideroLink TLS cert file path.")
