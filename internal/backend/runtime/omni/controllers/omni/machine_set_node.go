@@ -227,6 +227,7 @@ func (ctrl *MachineSetNodeController) reconcileMachineSet(
 	return nil
 }
 
+//nolint:gocognit
 func (ctrl *MachineSetNodeController) createNodes(
 	ctx context.Context,
 	r controller.Runtime,
@@ -249,6 +250,10 @@ func (ctrl *MachineSetNodeController) createNodes(
 
 	cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, r, clusterName)
 	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil
+		}
+
 		return err
 	}
 
