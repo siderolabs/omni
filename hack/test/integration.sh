@@ -86,6 +86,8 @@ export AUTH_USERNAME="${AUTH0_TEST_USERNAME}"
 export AUTH_PASSWORD="${AUTH0_TEST_PASSWORD}"
 export BASE_URL=https://localhost:8099/
 export VIDEO_DIR=""
+export AUTH0_CLIENT_ID="${AUTH0_CLIENT_ID}"
+export AUTH0_DOMAIN="${AUTH0_DOMAIN}"
 
 # Create omnictl downloads directory (required by the server) and copy the omnictl binaries in it.
 mkdir -p omnictl
@@ -97,8 +99,8 @@ nice -n 10 ${ARTIFACTS}/omni-linux-amd64 \
     --siderolink-api-advertised-url "grpc://$LOCAL_IP:8090" \
     --auth-auth0-enabled true \
     --advertised-api-url "${BASE_URL}" \
-    --auth-auth0-client-id jS47T064CfFE1IqqIYZ8HfYLkZhFoa1Y \
-    --auth-auth0-domain sidero-omni-dev.us.auth0.com \
+    --auth-auth0-client-id "${AUTH0_CLIENT_ID}" \
+    --auth-auth0-domain "${AUTH0_DOMAIN}" \
     --initial-users "${AUTH_USERNAME}" \
     --private-key-source "vault://secret/omni-private-key" \
     --public-key-files "internal/backend/runtime/omni/testdata/pgp/new_key.public" \

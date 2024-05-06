@@ -7,9 +7,13 @@ email: test-user@siderolabs.com
 host: localhost
 additional-hosts: []
 bind_addr: 0.0.0.0:443
-client-id: jS47T064CfFE1IqqIYZ8HfYLkZhFoa1Y
-auth0-domain: sidero-omni-dev.us.auth0.com
 pprof-bind-addr: 0.0.0.0:2135
+
+# auth0 client id and domain is used to enable authentication flow
+# you can create a free dev account in Auth0 and create an app there
+# client-id: <client-id>
+# auth0-domain: <auth0-domain>
+
 # registry-mirrors: # optional, but speeds up deployments a lot
 #   docker.io: http://172.20.0.1:5000
 #   k8s.gcr.io: http://172.20.0.1:5001
