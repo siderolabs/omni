@@ -35,13 +35,19 @@ included in the LICENSE file.
           <div>
             <machine-set-picker :options="options" :machine-set-index="machineSetIndex" @update:machineSetIndex="value => machineSetIndex = value"/>
           </div>
-          <div class="flex items-center">
+          <div class="flex items-center gap-1">
+            <icon-button
+              class="text-naturals-N14 my-auto"
+              @click="openExtensionConfig"
+              :id="machineSetIndex !== undefined ? `extensions-${options?.[machineSetIndex]?.id}` : undefined"
+              :disabled="machineSetIndex === undefined || options?.[machineSetIndex]?.disabled"
+              :icon="systemExtensions ? 'extensions-toggle' : 'extensions'"/>
             <icon-button
               class="text-naturals-N14 my-auto"
               @click="openPatchConfig"
               :id="machineSetIndex !== undefined ? options?.[machineSetIndex]?.id : undefined"
               :disabled="machineSetIndex === undefined || options?.[machineSetIndex]?.disabled"
-              :icon="machineSetNode.patches[machinePatchID] && machineSetIndex ? 'settings-toggle': 'settings'"/>
+              :icon="machineSetNode.patches[machinePatchID] && machineSetIndex !== undefined ? 'settings-toggle': 'settings'"/>
           </div>
         </div>
       </div>
@@ -55,7 +61,7 @@ included in the LICENSE file.
         <div class="mb-2 mt-4">Network Interfaces</div>
         <div>
           <div v-for="(processor, index) in item?.spec?.hardware?.processors" :key="index">
-            {{ processor.frequency / 1000 }} GHz, {{ processor.core_count }} {{ pluralize("core", processor.core_count) }}, {{ processor.description }}
+            {{ (processor.frequency ?? 0) / 1000 }} GHz, {{ processor.core_count }} {{ pluralize("core", processor.core_count) }}, {{ processor.description }}
           </div>
         </div>
         <div>
@@ -110,6 +116,7 @@ import { MachineSet, MachineSetNode, state, PatchID } from "@/states/cluster-man
 import MachineSetPicker, { PickerOption } from "./MachineSetPicker.vue";
 
 import yaml from "js-yaml";
+import CreateExtensions from "../../Modals/CreateExtensions.vue";
 
 type MemModule = {
   size_mb?: number,
@@ -270,6 +277,23 @@ const setInstallDisk = (value: string) => {
     weight: PatchWeightInstallDisk,
     nameAnnotation: PatchID.InstallDisk,
   };
+};
+
+const systemExtensions = ref<string[]>();
+
+const openExtensionConfig = () => {
+  showModal(
+    CreateExtensions,
+    {
+      machine: item.value.metadata.id!,
+      modelValue: systemExtensions.value,
+      onSave(extensions?: string[]) {
+        machineSetNode.value.systemExtensions = extensions;
+
+        systemExtensions.value = extensions;
+      }
+    },
+  )
 };
 
 const openPatchConfig = () => {

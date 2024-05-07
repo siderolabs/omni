@@ -13,7 +13,7 @@ included in the LICENSE file.
       <close-button @click="close" />
     </div>
 
-    <div v-if="machineExtensionsStatus" class="flex flex-col gap-2 flex-1 overflow-hidden">
+    <div v-if="machineExtensionsStatus" class="flex flex-col gap-4 flex-1 overflow-hidden">
       <extensions-picker
         v-model="enabledExtensions"
         :talos-version="machineExtensionsStatus?.spec.talos_version!.slice(1)" class="flex-1"
@@ -21,11 +21,11 @@ included in the LICENSE file.
         :immutable-extensions="immutableExtensions"
         />
 
-      <div class="flex justify-end gap-4">
-        <t-button @click="close" class="w-32 h-9">
+      <div class="flex justify-between gap-4">
+        <t-button @click="close" type="secondary">
           Cancel
         </t-button>
-        <t-button @click="updateExtensions" class="w-32 h-9" type="highlighted">
+        <t-button @click="updateExtensions" type="highlighted">
           Update
         </t-button>
       </div>
@@ -146,7 +146,7 @@ const updateExtensionsConfig = async () => {
 
   const extensionsConfiguration: Resource<ExtensionsConfigurationSpec> = {
     metadata: {
-      id: machineExtensionsStatus.value.metadata.id!,
+      id: `schematic-${machineExtensionsStatus.value.metadata.id!}`,
       namespace: DefaultNamespace,
       type: ExtensionsConfigurationType,
       labels: {
@@ -161,7 +161,7 @@ const updateExtensionsConfig = async () => {
 
   try {
     const existing: Resource<ExtensionsConfigurationSpec> = await ResourceService.Get({
-      id: extensionsConfiguration.metadata.id,
+      id: `schematic-${extensionsConfiguration.metadata.id}`,
       namespace: extensionsConfiguration.metadata.namespace,
       type: extensionsConfiguration.metadata.type,
     }, withRuntime(Runtime.Omni));

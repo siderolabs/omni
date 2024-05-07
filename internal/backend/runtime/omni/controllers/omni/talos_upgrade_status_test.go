@@ -42,6 +42,7 @@ func (suite *TalosUpgradeStatusSuite) TestReconcile() {
 	suite.Require().NoError(suite.state.Create(suite.ctx, clusterStatus))
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
 
 	for _, res := range machines {
 		assertResource(
@@ -117,47 +118,34 @@ func (suite *TalosUpgradeStatusSuite) TestReconcile() {
 		},
 	)
 
-	schematicConfig := omni.NewSchematicConfiguration(resources.DefaultNamespace, machines[1].Metadata().ID())
-	schematicConfig.TypedSpec().Value.SchematicId = "abcd"
-	schematicConfig.TypedSpec().Value.TalosVersion = "1.3.6"
+	extensions := omni.NewMachineExtensions(resources.DefaultNamespace, machines[1].Metadata().ID())
+	extensions.TypedSpec().Value.Extensions = []string{"some-extension"}
 
-	suite.Require().NoError(suite.state.Create(suite.ctx, schematicConfig))
+	suite.Require().NoError(suite.state.Create(suite.ctx, extensions))
 
 	for i := range len(machines) {
-		var versions safe.List[*omni.ClusterMachineTalosVersion]
-
-		versions, err = safe.StateListAll[*omni.ClusterMachineTalosVersion](suite.ctx, suite.state)
-		suite.Require().NoError(err)
-
-		for iter := versions.Iterator(); iter.Next(); {
-			configStatus := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, iter.Value().Metadata().ID())
-			configStatus.TypedSpec().Value.ClusterMachineConfigSha256 = "aaaa"
-
-			_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, configStatus.Metadata(), func(res *omni.ClusterMachineConfigStatus) error {
-				res.TypedSpec().Value.TalosVersion = iter.Value().TypedSpec().Value.TalosVersion
-				res.TypedSpec().Value.SchematicId = iter.Value().TypedSpec().Value.SchematicId
-
-				return nil
-			})
-
-			suite.Require().NoError(err)
+		expectedSchematic := defaultSchematic
+		if i == 1 {
+			expectedSchematic = "c6ee5f479027e5ca84e5518c3a56d62e2283b6d30a5846e6295aa7113735df40"
 		}
 
-		assertResource(
-			&suite.OmniSuite,
-			omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, machines[i].Metadata().ID()).Metadata(),
-			func(res *omni.ClusterMachineTalosVersion, assertions *assert.Assertions) {
-				assertions.NotEmpty(res.TypedSpec().Value.SchematicId)
-
-				schematicID := defaultSchematic
-
-				if i == 1 {
-					schematicID = "abcd"
-				}
-
-				assertions.Equal(schematicID, res.TypedSpec().Value.SchematicId)
+		rtestutils.AssertResource[*omni.ClusterMachineTalosVersion](suite.ctx, suite.T(), suite.state, machines[i].Metadata().ID(),
+			func(r *omni.ClusterMachineTalosVersion, assertion *assert.Assertions) {
+				assertion.Equal(expectedSchematic, r.TypedSpec().Value.SchematicId)
 			},
 		)
+
+		configStatus := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, machines[i].Metadata().ID())
+		configStatus.TypedSpec().Value.ClusterMachineConfigSha256 = "aaaa"
+
+		_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, configStatus.Metadata(), func(res *omni.ClusterMachineConfigStatus) error {
+			res.TypedSpec().Value.TalosVersion = "1.3.6"
+			res.TypedSpec().Value.SchematicId = expectedSchematic
+
+			return nil
+		})
+
+		suite.Require().NoError(err)
 
 		assertResource(
 			&suite.OmniSuite,
@@ -204,6 +192,7 @@ func (suite *TalosUpgradeStatusSuite) TestUpdateVersionsMaintenance() {
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
 
 	clusterName := "talos-upgrade-cluster"
 
@@ -299,6 +288,7 @@ func (suite *TalosUpgradeStatusSuite) TestReconcileLocked() {
 	}
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
 
 	for _, res := range machines {
 		assertResource(

@@ -35,6 +35,7 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController()))
@@ -137,6 +138,7 @@ func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 	suite.startRuntime()
 
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))

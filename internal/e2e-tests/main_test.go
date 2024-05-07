@@ -118,17 +118,18 @@ func (s *E2ESuite) withPage(url string, f func(page playwright.Page)) {
 	element := page.Locator("input#username").First()
 
 	s.Require().NoError(element.Click())
-	s.Require().NoError(element.Type(s.username))
+	s.Require().NoError(element.Fill(s.username))
 
 	element = page.Locator("input#password").First()
 
 	s.Require().NoError(element.Click())
-	s.Require().NoError(element.Type(s.password))
+	s.Require().NoError(element.Fill(s.password))
 
 	s.click(page, `button[type="submit"]:has-text("Continue"):visible`)
 
-	logIn, err := page.WaitForSelector("button.t-button.highlighted")
-	s.Require().NoError(err)
+	logIn := page.Locator("button.t-button.highlighted")
+
+	s.Require().NoError(logIn.WaitFor())
 
 	s.Require().NoError(logIn.Click())
 
@@ -271,7 +272,10 @@ func (s *E2ESuite) TestTitle() {
 
 func (s *E2ESuite) TestClickViewAll() {
 	s.withPage(s.baseURL, func(page playwright.Page) {
-		viewAllButton, err := page.WaitForSelector("text=View All")
+		viewAllButton := page.Locator("text=View All")
+
+		err := viewAllButton.WaitFor()
+
 		s.Require().NoError(err, "could not get entries")
 
 		s.Require().NoError(viewAllButton.Click(), "error clicking button")
@@ -292,7 +296,7 @@ func (s *E2ESuite) TestCreateCluster() {
 func (s *E2ESuite) assertClusterCreation() {
 	s.withPage(s.baseURL, func(page playwright.Page) {
 		navigateToClusters := func() {
-			_, err := page.WaitForSelector(`p:has-text("Clusters")`)
+			err := page.Locator(`p:has-text("Clusters")`).WaitFor()
 
 			s.Require().NoError(err)
 
@@ -327,20 +331,30 @@ func (s *E2ESuite) assertClusterCreation() {
 
 		s.Require().NoError(editor.Press(selectAllKeyCombination))
 		s.Require().NoError(editor.Press("Delete"))
-		s.Require().NoError(editor.Type(`machine:
+		s.Require().NoError(editor.PressSequentially(`machine:
  network:
    hostname: deadbeef`))
 
 		s.click(page, `button:has-text("Save")`)
 
+		s.click(page, `button#extensions-CP`)
+
+		err = page.Locator(`span:has-text("qemu-guest-agent")`).WaitFor()
+
+		s.Require().NoError(err)
+
+		s.click(page, `span:has-text("qemu-guest-agent")`)
+
+		s.click(page, `button:has-text("Save")`)
+
 		s.click(page, `button:has-text("Create Cluster")`)
 
-		_, err = page.WaitForSelector(`h3[class="title"]:has-text("talos-default")`)
+		err = page.Locator(`h3[class="title"]:has-text("talos-default")`).WaitFor()
 		s.Require().NoError(err)
 
 		navigateToClusters()
 
-		_, err = page.WaitForSelector("div.clusters-box")
+		err = page.Locator("div.clusters-box").WaitFor()
 		s.Require().NoError(err)
 
 		clusterURL, err := url.JoinPath(s.baseURL, "/cluster/talos-default")
@@ -362,13 +376,13 @@ func (s *E2ESuite) assertClusterCreation() {
 
 		// Wait for the scaling to navigate successfully to the cluster overview page to avoid a race condition where
 		// the test navigates to the Clusters page too early, then the scaling succeeds and goes to the Cluster Overview page
-		_, err = page.WaitForSelector(`text=Updated Cluster Configuration`)
+		err = page.Locator(`text=Updated Cluster Configuration`).WaitFor()
 		s.Require().NoError(err)
 
 		openPage := func() {
 			navigateToClusters()
 
-			_, err := page.WaitForSelector("svg.collapse-button", playwright.PageWaitForSelectorOptions{
+			err := page.Locator("svg.collapse-button").WaitFor(playwright.LocatorWaitForOptions{
 				Timeout: nil,
 			})
 			s.Require().NoError(err)
@@ -442,6 +456,19 @@ func (s *E2ESuite) assertClusterCreation() {
 
 			return retry.ExpectedError(fmt.Errorf("cluster is not healthy"))
 		}))
+
+		s.click(page, "text=deadbeef")
+
+		s.click(page, "text=Extensions")
+
+		err = page.Locator(`text=siderolabs/qemu-guest-agent`).WaitFor()
+		s.Require().NoError(err)
+
+		element := page.Locator("text=siderolabs/qemu-guest-agent")
+		count, err := element.Count()
+		s.Require().NoError(err)
+
+		s.Require().Equal(1, count)
 	})
 }
 

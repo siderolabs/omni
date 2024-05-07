@@ -45,6 +45,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestApplyReset() {
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
 
 	clusterName := "talos-default-4"
 
@@ -147,6 +148,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestResetMachineRemoved() {
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
 
 	clusterName := "machine-ungraceful-reset"
 
@@ -242,6 +244,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestResetUngraceful() {
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
 
 	clusterName := "talos-default-5"
 
@@ -386,6 +389,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestUpgrades() {
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
 
 	clusterName := "test-upgrades"
 
@@ -461,6 +465,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestSchematicChanges() {
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
 
 	clusterName := "test-upgrades"
 
@@ -573,6 +578,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestGenerationErrorPropagation() {
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
 
 	clusterName := "test-generation-error-propagation"
 

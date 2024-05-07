@@ -491,20 +491,7 @@ func getDesiredSchematic(ctx context.Context, r controller.ReaderWriter, machine
 		return schematic.TypedSpec().Value.SchematicId, nil
 	}
 
-	ms, err := safe.ReaderGetByID[*omni.MachineStatus](ctx, r, machine.Metadata().ID())
-	if err != nil {
-		return "", err
-	}
-
-	if ms.TypedSpec().Value.Schematic == nil {
-		return "", nil
-	}
-
-	if ms.TypedSpec().Value.Schematic.InitialSchematic != "" {
-		return ms.TypedSpec().Value.Schematic.InitialSchematic, nil
-	}
-
-	return ms.TypedSpec().Value.Schematic.Id, nil
+	return "", xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the schematic configuration resource is not ready yet")
 }
 
 // populateEmptySchematics iterates all cluster machine talos versions for the cluster and if they have an empty schematic, populates

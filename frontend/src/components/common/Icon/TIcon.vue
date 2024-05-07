@@ -104,6 +104,8 @@ const icons = {
   "link-down": defineAsyncComponent(() => import("../../icons/IconLinkDown.vue")),
   "settings-toggle": defineAsyncComponent(() => import("../../icons/IconSettingsToggle.vue")),
   "rollback": defineAsyncComponent(() => import("../../icons/IconRollback.vue")),
+  "extensions": defineAsyncComponent(() => import("../../icons/IconExtensions.vue")),
+  "extensions-toggle": defineAsyncComponent(() => import("../../icons/IconExtensionsToggle.vue")),
   "document": DocumentIcon,
   "power": PowerIcon,
   "users": UsersIcon,

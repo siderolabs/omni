@@ -484,6 +484,7 @@ func (suite *OmniSuite) createCluster(clusterName string, controlPlanes, workers
 		machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
 			Id: defaultSchematic,
 		}
+		machineStatus.TypedSpec().Value.InitialTalosVersion = cluster.TypedSpec().Value.TalosVersion
 
 		if i < controlPlanes {
 			clusterMachine.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")

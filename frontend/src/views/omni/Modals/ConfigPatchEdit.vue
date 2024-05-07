@@ -138,4 +138,4 @@ const openDocs = () => {
 .heading {
   @apply text-xl text-naturals-N14;
 }
-</style> 
+</style>

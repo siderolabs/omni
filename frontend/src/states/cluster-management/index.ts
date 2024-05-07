@@ -6,7 +6,7 @@
 // MachineSet is the state used in cluster creation flow.
 
 import { Resource, ResourceService } from "@/api/grpc"
-import { ClusterSpec, ConfigPatchSpec, MachineSetSpecBootstrapSpec, MachineSetSpecUpdateStrategy, EtcdBackupConf } from "@/api/omni/specs/omni.pb"
+import { ClusterSpec, ConfigPatchSpec, MachineSetSpecBootstrapSpec, MachineSetSpecUpdateStrategy, EtcdBackupConf, ExtensionsConfigurationSpec } from "@/api/omni/specs/omni.pb"
 
 import { MachineSetNodeSpec, MachineSetSpec, MachineSetSpecMachineClassAllocationType } from "@/api/omni/specs/omni.pb";
 import {
@@ -15,6 +15,7 @@ import {
   DefaultKubernetesVersion,
   DefaultNamespace,
   DefaultTalosVersion,
+  ExtensionsConfigurationType,
   LabelCluster,
   LabelClusterMachine,
   LabelControlPlaneRole,
@@ -89,6 +90,7 @@ export interface MachineSet {
 
 export interface MachineSetNode {
   patches: Record<string, ConfigPatch>
+  systemExtensions?: string[]
 }
 
 export type Cluster = {
@@ -380,6 +382,25 @@ export class State {
           spec: {}
         }
 
+        const systemExtensions = machineSet.machines[id].systemExtensions;
+
+        if (systemExtensions) {
+          resources.push({
+            metadata: {
+              id: `schematic-${id}`,
+              namespace: DefaultNamespace,
+              type: ExtensionsConfigurationType,
+              labels: {
+                [LabelCluster]: this.cluster.name,
+                [LabelClusterMachine]: id,
+              }
+            },
+            spec: {
+              extensions: systemExtensions
+            }
+          })
+        }
+
         if (!machineSet.machineClass)
           resources.push(msn);
 
@@ -531,6 +552,19 @@ export const populateExisting = async (clusterName: string) => {
     patchesByID[patch.metadata.id!] = patch;
   }
 
+  const systemExtensions: Resource<ExtensionsConfigurationSpec>[] = await ResourceService.List({
+    type: ExtensionsConfigurationType,
+    namespace: DefaultNamespace,
+  }, withRuntime(Runtime.Omni), withSelectors([`${LabelCluster}=${clusterName}`]));
+
+  const systemExtensionsByID: Record<string, Resource<ExtensionsConfigurationSpec>> = {};
+
+  for (const configuration of systemExtensions) {
+    systemExtensionsByID[configuration.metadata.id!] = configuration;
+
+    resources.push(configuration);
+  }
+
   // get cluster
   const cluster: Resource<ClusterSpec> = await ResourceService.Get({
     type: ClusterType,
@@ -653,7 +687,10 @@ export const populateExisting = async (clusterName: string) => {
       continue;
     }
 
-    const machineSetNode = {
+    const machineSetNode: {
+      patches: Record<string, ConfigPatch>,
+      systemExtensions?: string[]
+    } = {
       patches: {},
     };
 
@@ -675,6 +712,11 @@ export const populateExisting = async (clusterName: string) => {
       }
 
       resources.push(configPatch);
+    }
+
+    const systemExtensions = systemExtensionsByID[`schematic-${msn.metadata.id!}`];
+    if (systemExtensions) {
+      machineSetNode.systemExtensions = systemExtensions.spec.extensions ?? [];
     }
 
     if (!msn.metadata.owner) {

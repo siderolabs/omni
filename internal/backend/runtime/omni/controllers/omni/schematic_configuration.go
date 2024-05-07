@@ -24,7 +24,6 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/set"
@@ -38,7 +37,7 @@ const SchematicConfigurationControllerName = "SchematicConfigurationController"
 type SchematicConfigurationController = qtransform.QController[*omni.ClusterMachine, *omni.SchematicConfiguration]
 
 // NewSchematicConfigurationController initializes SchematicConfigurationController.
-func NewSchematicConfigurationController(imageFactoryClient *imagefactory.Client) *SchematicConfigurationController {
+func NewSchematicConfigurationController(imageFactoryClient SchematicEnsurer) *SchematicConfigurationController {
 	helper := &schematicConfigurationHelper{
 		imageFactoryClient: imageFactoryClient,
 	}
@@ -112,7 +111,7 @@ func NewSchematicConfigurationController(imageFactoryClient *imagefactory.Client
 }
 
 type schematicConfigurationHelper struct {
-	imageFactoryClient *imagefactory.Client
+	imageFactoryClient SchematicEnsurer
 }
 
 // Reconcile implements controller.QController interface.
