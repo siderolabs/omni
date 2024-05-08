@@ -337,13 +337,17 @@ func (s *E2ESuite) assertClusterCreation() {
 
 		s.click(page, `button:has-text("Save")`)
 
-		s.click(page, `button#extensions-CP`)
-
-		err = page.Locator(`span:has-text("qemu-guest-agent")`).WaitFor()
+		err = page.Locator("button#extensions-CP").WaitFor()
 
 		s.Require().NoError(err)
 
-		s.click(page, `span:has-text("qemu-guest-agent")`)
+		s.click(page, `button#extensions-CP`)
+
+		err = page.Locator(`span:has-text("usb-modem-drivers")`).WaitFor()
+
+		s.Require().NoError(err)
+
+		s.click(page, `span:has-text("usb-modem-drivers")`)
 
 		s.click(page, `button:has-text("Save")`)
 
@@ -461,10 +465,10 @@ func (s *E2ESuite) assertClusterCreation() {
 
 		s.click(page, "text=Extensions")
 
-		err = page.Locator(`text=siderolabs/qemu-guest-agent`).WaitFor()
+		err = page.Locator(`text=siderolabs/usb-modem-drivers`).WaitFor()
 		s.Require().NoError(err)
 
-		element := page.Locator("text=siderolabs/qemu-guest-agent")
+		element := page.Locator("text=siderolabs/usb-modem-drivers")
 		count, err := element.Count()
 		s.Require().NoError(err)
 

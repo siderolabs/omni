@@ -6,9 +6,6 @@ included in the LICENSE file.
 -->
 <template>
   <div class="flex flex-col">
-    <div class="flex gap-1 items-start">
-      <page-header title="Configure Backups Storage" class="flex-1"/>
-    </div>
     <t-alert v-if="error" title="Failed to Fetch Current Storage State" type="error">
       {{ error }}
     </t-alert>
@@ -52,7 +49,6 @@ import { withRuntime } from "@/api/options";
 import { Code } from '@/api/google/rpc/code.pb';
 
 import TButton from "@/components/common/Button/TButton.vue";
-import PageHeader from "@/components/common/PageHeader.vue";
 import TInput from "@/components/common/TInput/TInput.vue";
 import TSpinner from "@/components/common/Spinner/TSpinner.vue";
 import TAlert from "@/components/TAlert.vue";

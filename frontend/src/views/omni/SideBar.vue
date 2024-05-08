@@ -63,19 +63,11 @@ const items = computed(() => {
     });
   }
 
-  if (backupStatus.value.configurable && canManageBackupStore.value) {
+  if (canManageUsers.value || (backupStatus.value.configurable && canManageBackupStore.value)) {
     result.push({
-      name: "Backups Storage",
-      route: getRoute("BackupStorage", "/omni/backups"),
-      icon: "circle-stack"
-    });
-  }
-
-  if (canManageUsers.value) {
-    result.push({
-      name: "Users",
-      route: getRoute("Users", "/omni/users"),
-      icon: "users",
+      name: "Settings",
+      route: getRoute("Settings", "/omni/settings"),
+      icon: "settings",
     });
   }
 

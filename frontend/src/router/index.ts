@@ -13,6 +13,7 @@ import OmniClusterScale from "@/views/omni/Clusters/Management/ClusterScale.vue"
 import OmniMachines from "@/views/omni/Machines/Machines.vue";
 import OmniMachineLogs from "@/views/omni/Machines/MachineLogs.vue";
 import OmniUsers from "@/views/omni/Users/Users.vue";
+import OmniSettings from "@/views/omni/Settings/Settings.vue";
 import Authenticate from "@/views/omni/Auth/Authenticate.vue";
 import OmniMachineClasses from "@/views/omni/MachineClasses/MachineClasses.vue";
 import OmniMachineClass from "@/views/omni/MachineClasses/MachineClass.vue";
@@ -199,11 +200,6 @@ const routes: RouteRecordRaw[] = [
       component:  OmniMachines,
     },
     {
-      path: "/users",
-      name: "Users",
-      component: OmniUsers,
-    },
-    {
       path: "/machine-classes",
       name: "MachineClasses",
       component: OmniMachineClasses,
@@ -222,11 +218,6 @@ const routes: RouteRecordRaw[] = [
       }
     },
     {
-      path: "/backups",
-      name: "BackupStorage",
-      component: OmniBackupStorageSettings,
-    },
-    {
       path: "/machine/:machine/logs",
       name: "MachineLogs",
       component:  OmniMachineLogs,
@@ -240,6 +231,30 @@ const routes: RouteRecordRaw[] = [
       path: "/machine/:machine/patches/:patch",
       name: "MachinePatchEdit",
       component:  PatchEdit,
+    },
+    {
+      path: "/settings",
+      name: "Settings",
+      component: OmniSettings,
+      redirect: {
+        name: "Users"
+      },
+      children: [
+        {
+          path: "users",
+          name: "Users",
+          components: {
+            inner: OmniUsers,
+          }
+        },
+        {
+          path: "backups",
+          name: "BackupStorage",
+          components: {
+            inner: OmniBackupStorageSettings,
+          }
+        },
+      ]
     },
   ], { sidebar: OmniSidebar }),
   ...withPrefix("/cluster/:cluster", [

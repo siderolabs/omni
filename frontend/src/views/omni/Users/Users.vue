@@ -5,12 +5,11 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <div class="flex flex-col">
-    <div class="flex gap-1 items-start">
-      <page-header title="Users" class="flex-1"/>
+  <div class="flex flex-col gap-2">
+    <div class="flex justify-end">
       <t-button @click="openUserCreate" icon="user-add" icon-position="left" type="highlighted" :disabled="!canManageUsers || authType === AuthType.SAML">Add User</t-button>
     </div>
-    <t-list :opts="watchOpts" pagination class="flex-1">
+    <t-list :opts="watchOpts" pagination class="flex-1" search>
       <template #default="{ items }">
         <div class="users-header">
           <div class="users-grid">
@@ -34,7 +33,6 @@ import { itemID } from "@/api/watch";
 
 import TList from "@/components/common/List/TList.vue";
 import UserItem from "@/views/omni/Users/UserItem.vue";
-import PageHeader from "@/components/common/PageHeader.vue";
 import TButton from "@/components/common/Button/TButton.vue";
 import { Resource } from "@/api/grpc";
 import { canManageUsers } from "@/methods/auth";
