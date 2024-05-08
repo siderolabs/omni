@@ -8,6 +8,7 @@ package interceptor
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/siderolabs/go-api-signature/pkg/jwt"
@@ -18,6 +19,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/internal/pkg/auth"
+	"github.com/siderolabs/omni/internal/pkg/auth/auth0"
 )
 
 var errGRPCInvalidJWT = status.Error(codes.Unauthenticated, "invalid jwt")
@@ -76,6 +78,12 @@ func (i *JWT) intercept(ctx context.Context) (context.Context, error) {
 
 	if err != nil {
 		i.logger.Info("invalid jwt", zap.Error(err))
+
+		var errEmailNotVerified *auth0.EmailNotVerifiedError
+
+		if errors.As(err, &errEmailNotVerified) {
+			return nil, status.Error(codes.Unauthenticated, fmt.Sprintf("Email address %q is not verified, please verify it and try again.", errEmailNotVerified.Email))
+		}
 
 		return nil, errGRPCInvalidJWT
 	}

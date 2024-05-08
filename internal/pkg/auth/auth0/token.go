@@ -101,8 +101,18 @@ func (a *CustomIDClaims) Validate(_ context.Context) error {
 	}
 
 	if !a.EmailVerified {
-		return errors.New("email is not verified")
+		return &EmailNotVerifiedError{Email: a.Email}
 	}
 
 	return nil
+}
+
+// EmailNotVerifiedError is an error that occurs when the email address is not verified.
+type EmailNotVerifiedError struct {
+	Email string
+}
+
+// Error implements the error interface.
+func (e EmailNotVerifiedError) Error() string {
+	return "email not verified: " + e.Email
 }

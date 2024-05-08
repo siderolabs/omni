@@ -69,6 +69,8 @@ import TIcon from "@/components/common/Icon/TIcon.vue";
 import UserInfo from "@/components/common/UserInfo/UserInfo.vue";
 import { withMetadata } from "@/api/options";
 import { fetchOption } from "@/api/fetch.pb";
+import { Code } from "@/api/google/rpc/code.pb";
+import { Auth0VueClient } from "@auth0/auth0-vue/src/global";
 
 const user = ref<User | undefined>(undefined);
 let idToken = "";
@@ -88,9 +90,11 @@ const redirectToURL = (url: string) => {
   }
 }
 
+let auth0: Auth0VueClient | undefined;
+
 onMounted(() => {
   if (authType.value === AuthType.Auth0) {
-    const auth0 = useAuth0();
+    auth0 = useAuth0();
 
     user.value = auth0.user.value;
     idToken = auth0.idTokenClaims.value.__raw;
@@ -194,8 +198,21 @@ const generatePublicKey = async () => {
   await router.replace({ path: redirect });
 }
 
+let renewIdToken = false;
+
 const confirmPublicKey = async () => {
   try {
+    if (renewIdToken && auth0) {
+      renewIdToken = false;
+
+      await auth0.checkSession({
+        ignoreCache: true,
+      })
+
+      user.value = auth0.user.value;
+      idToken = auth0.idTokenClaims.value.__raw;
+    }
+
     const options: fetchOption[] = [];
 
     if (authType.value === AuthType.Auth0) {
@@ -215,6 +232,10 @@ const confirmPublicKey = async () => {
     confirmed.value = true
   } catch (e) {
     showError("Failed to confirm public key", e.message);
+
+    if (e?.code == Code.UNAUTHENTICATED && auth0) {
+      renewIdToken = true;
+    }
 
     throw e;
   }
