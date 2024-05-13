@@ -41,9 +41,8 @@ included in the LICENSE file.
         </TabPanel>
       </TabPanels>
     </TabGroup>
-    <div class="flex p-4 gap-4 bg-naturals-N3 rounded-b">
-      <t-button type="secondary" @click="close" class="place-self-start">Cancel</t-button>
-      <div class="flex-1"/>
+    <div class="flex p-4 gap-4 bg-naturals-N3 rounded-b justify-between">
+      <t-button type="secondary" @click="close">Cancel</t-button>
       <t-button @click="saveAndClose">Save</t-button>
     </div>
   </div>

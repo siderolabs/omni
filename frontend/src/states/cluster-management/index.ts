@@ -6,7 +6,7 @@
 // MachineSet is the state used in cluster creation flow.
 
 import { Resource, ResourceService } from "@/api/grpc"
-import { ClusterSpec, ConfigPatchSpec, MachineSetSpecBootstrapSpec, MachineSetSpecUpdateStrategy, EtcdBackupConf, ExtensionsConfigurationSpec } from "@/api/omni/specs/omni.pb"
+import { ClusterSpec, ConfigPatchSpec, MachineSetSpecBootstrapSpec, MachineSetSpecUpdateStrategy, EtcdBackupConf, ExtensionsConfigurationSpec, MachineSetSpecUpdateStrategyConfig } from "@/api/omni/specs/omni.pb"
 
 import { MachineSetNodeSpec, MachineSetSpec, MachineSetSpecMachineClassAllocationType } from "@/api/omni/specs/omni.pb";
 import {
@@ -85,6 +85,14 @@ export interface MachineSet {
   machines: Record<string, MachineSetNode>
   patches: Record<string, ConfigPatch>
   bootstrapSpec?: MachineSetSpecBootstrapSpec
+  updateStrategy?: {
+    type?: MachineSetSpecUpdateStrategy
+    config?: MachineSetSpecUpdateStrategyConfig
+  },
+  deleteStrategy?: {
+    type?: MachineSetSpecUpdateStrategy
+    config?: MachineSetSpecUpdateStrategyConfig
+  }
   idFunc: (cluster: string) => string
 }
 
@@ -347,6 +355,22 @@ export class State {
 
       // preserve the bootstrap spec as-is if it was originally set, as it is immutable after creation
       ms.spec.bootstrap_spec = machineSet.bootstrapSpec;
+
+      if (machineSet.role === LabelWorkerRole) {
+        ms.spec.update_strategy = machineSet.updateStrategy?.type ?? MachineSetSpecUpdateStrategy.Rolling;
+
+        if (machineSet.updateStrategy?.config) {
+          ms.spec.update_strategy_config = machineSet.updateStrategy?.config;
+        }
+
+        if (machineSet.deleteStrategy?.type !== undefined) {
+          ms.spec.delete_strategy = machineSet.deleteStrategy?.type;
+        }
+
+        if (machineSet.deleteStrategy?.config) {
+          ms.spec.delete_strategy_config = machineSet.deleteStrategy?.config;
+        }
+      }
 
       if (machineSet.machineClass) {
         ms.spec.machine_class = {
@@ -649,6 +673,20 @@ export const populateExisting = async (clusterName: string) => {
       machineSet.machineClass = {
         name: ms.spec.machine_class.name!,
         size: ms.spec.machine_class.allocation_type === MachineSetSpecMachineClassAllocationType.Unlimited ? "unlimited" : ms.spec.machine_class.machine_count ?? 0,
+      }
+    }
+
+    if (ms.spec.delete_strategy || ms.spec.delete_strategy_config) {
+      machineSet.deleteStrategy = {
+        type: ms.spec.delete_strategy ?? MachineSetSpecUpdateStrategy.Unset,
+        config: ms.spec.delete_strategy_config
+      }
+    }
+
+    if (ms.spec.update_strategy || ms.spec.update_strategy_config) {
+      machineSet.updateStrategy = {
+        type: ms.spec.update_strategy ?? MachineSetSpecUpdateStrategy.Unset,
+        config: ms.spec.update_strategy_config
       }
     }
 

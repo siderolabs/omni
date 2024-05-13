@@ -9,35 +9,37 @@ included in the LICENSE file.
     @click.prevent="
       () => {
         isFocused = true;
-        ($refs.input as any).focus();
+        if ($refs.input) ($refs.input as any).focus();
       }
     "
     v-click-outside="() => (isFocused = false)"
     class="input-box"
-    :class="[{ focused: isFocused, secondary, primary: !secondary, compact }]"
+    :class="[{ focused: isFocused, secondary, primary: !secondary, compact, disabled }]"
   >
     <t-icon class="input-box-icon" v-if="icon" :icon="icon"/>
-    <span v-if="title" class="text-xs min-w-fit mr-1">{{title}}:</span>
-    <input
-      @input="updateValue($event.target?.['value'].trim())"
-      ref="input"
-      :value="modelValue"
-      :type="type"
-      class="input-box-input"
-      @focus="isFocused = true"
-      @blur="blurHandler"
-      :placeholder="placeholder"
-    />
-    <div v-if="type === 'number'" class="flex flex-col select-none">
-      <t-icon class="hover:text-naturals-N14 w-2" icon="arrow-up" @click="updateValue(intValue + 1)"/>
-      <t-icon class="hover:text-naturals-N14 w-2" icon="arrow-down"  @click="updateValue(intValue - 1)"/>
-    </div>
-    <div v-else-if="modelValue !== ''" @click.prevent="clearInput">
-      <t-icon
-        class="input-box-icon"
-        icon="close"
+    <template v-if="!disabled">
+      <span v-if="title" class="text-xs min-w-fit mr-1">{{title}}:</span>
+      <input
+        @input="updateValue($event.target?.['value'].trim())"
+        ref="input"
+        :value="modelValue"
+        :type="type"
+        class="input-box-input"
+        @focus="isFocused = true"
+        @blur="blurHandler"
+        :placeholder="placeholder"
       />
-    </div>
+      <div v-if="type === 'number'" class="flex flex-col select-none">
+        <t-icon class="hover:text-naturals-N14 w-2" icon="arrow-up" @click="updateValue(intValue + 1)"/>
+        <t-icon class="hover:text-naturals-N14 w-2" icon="arrow-down"  @click="updateValue(intValue - 1)"/>
+      </div>
+      <div v-else-if="modelValue !== ''" @click.prevent="clearInput">
+        <t-icon
+          class="input-box-icon"
+          icon="close"
+        />
+      </div>
+    </template>
   </label>
 </template>
 
@@ -59,6 +61,7 @@ type propsType = {
   type?: "text" | "number" | "password",
   max?: number,
   min?: number,
+  disabled?: boolean
 }
 
 const props = withDefaults(
@@ -174,5 +177,9 @@ input::-webkit-inner-spin-button {
 /* Firefox */
 input[type=number] {
   -moz-appearance: textfield;
+}
+
+.disabled {
+  @apply cursor-not-allowed bg-naturals-N3 border-naturals-N6;
 }
 </style>

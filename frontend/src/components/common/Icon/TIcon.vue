@@ -27,6 +27,7 @@ import {
   CodeBracketIcon,
   PlayCircleIcon,
   CircleStackIcon,
+  ChartBarIcon,
 } from "@heroicons/vue/24/outline";
 
 const icons = {
@@ -121,6 +122,7 @@ const icons = {
   "code-bracket": CodeBracketIcon,
   "play-circle": PlayCircleIcon,
   "circle-stack": CircleStackIcon,
+  "chart-bar": ChartBarIcon,
 };
 
 const getComponent = (icon: string): Component | undefined => {

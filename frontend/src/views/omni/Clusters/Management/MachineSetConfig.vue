@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <div class="text-xs px-2 py-2 border rounded my-1 border-naturals-N5 bg-naturals-N3 text-naturals-N13 flex gap-2 items-center">
+  <div class="text-xs px-2 py-2 pr-3 border rounded my-1 border-naturals-N5 bg-naturals-N3 text-naturals-N13 flex gap-2 items-center">
     <machine-set-label :color="modelValue.color" class="w-10" :machine-set-id="modelValue.id"/>
     <div class="flex-1 flex flex-wrap items-center gap-x-4 gap-y-1">
       <div class="w-32 truncate" :title="modelValue.name">
@@ -32,7 +32,11 @@ included in the LICENSE file.
     </div>
     <div class="w-24 flex justify-end items-center gap-2">
       <t-button v-if="!noRemove" class="h-6" type="compact" @click="onRemove">Remove</t-button>
-      <div class="flex flex-col justify-center">
+      <div class="flex gap-1 justify-center">
+        <icon-button
+          v-if="modelValue.role === LabelWorkerRole"
+          @click="openMachineSetConfig"
+          icon="chart-bar"/>
         <icon-button
           @click="openPatchConfig"
           :icon="patches[PatchID.Default] ? 'settings-toggle' : 'settings'"/>
@@ -57,8 +61,9 @@ import ConfigPatchEdit from "@/views/omni/Modals/ConfigPatchEdit.vue";
 import IconButton from "@/components/common/Button/IconButton.vue";
 
 import pluralize from "pluralize";
-import { PatchBaseWeightMachineSet } from "@/api/resources";
+import { LabelWorkerRole, PatchBaseWeightMachineSet } from "@/api/resources";
 import Tooltip from "@/components/common/Tooltip/Tooltip.vue";
+import MachineSetConfigEdit from "../../Modals/MachineSetConfigEdit.vue";
 
 const emit = defineEmits(["update:modelValue"]);
 
@@ -106,6 +111,15 @@ watch([machineClass, machineCount, useMachineClasses, patches, unlimited], () =>
 
   emit("update:modelValue", machineSet);
 });
+
+const openMachineSetConfig = () => {
+  showModal(
+    MachineSetConfigEdit,
+    {
+      machineSet: modelValue.value,
+    },
+  );
+}
 
 const openPatchConfig = () => {
   showModal(

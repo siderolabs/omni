@@ -9,7 +9,7 @@ included in the LICENSE file.
     class="flex p-1 bg-naturals-N3 rounded gap-0.5 t-button-group">
     <radio-group-option v-for="(option, index) in options" :key="index" v-slot="{ checked }" :value="option.value"
       as="template" :disabled="option.disabled">
-      <div @click="() => checked ? emit('update:modelValue', null) : null">
+      <div @click="() => (checked && deselectEnabled) ? emit('update:modelValue', null) : null">
         <popper :disabled="!option.tooltip" hover placement="left" :interactive="false" offsetDistance="10">
           <template #content>
             <div class="rounded px-4 py-2 text-naturals-N10 bg-naturals-N4 drop-shadow w-48">
@@ -32,8 +32,14 @@ import { RadioGroup, RadioGroupOption, } from '@headlessui/vue'
 import Popper from 'vue3-popper';
 
 type Props = {
-  modelValue: any;
-  options: any[];
+  modelValue: any
+  deselectEnabled?: boolean
+  options: {
+    label: string
+    value: any
+    disabled?: boolean
+    tooltip?: string
+  }[];
 }
 
 defineProps<Props>();
