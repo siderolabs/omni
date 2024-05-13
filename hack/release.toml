@@ -5,7 +5,7 @@ project_name = "Omni"
 github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
-pre_release = true
+pre_release = false
 previous = "v0.34.0"
 
 [notes]

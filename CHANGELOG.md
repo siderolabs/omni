@@ -1,3 +1,108 @@
+## [Omni 0.35.0](https://github.com/siderolabs/omni/releases/tag/v0.35.0) (2024-05-13)
+
+Welcome to the v0.35.0 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Auth With Username/Password
+
+Omni now shows the error about unverified Auth0 emails.
+
+
+### Machine Extensions
+
+It is now possible to see currently installed system extensions for each machine in the UI and change them there.
+It is also possible to configure machines' system extensions during cluster creation and scaling.
+
+Also Talos upgrades from 1.5.x -> 1.6.x+ will make Omni automatically pick up kernel modules which are no longer
+included in Talos >= 1.6.x.
+
+
+### Machine Join Configs
+
+Partial config for joining Talos nodes running in maintenance mode can now be downloaded from the Omni UI.
+
+
+### Machine Status
+
+Talos machine status is now composed both from Talos events (push model).
+And from Talos node `MachineStatus` resource (pull model).
+This way even if the node gets disconnected from Omni for a long time, Omni won't lose any important events.
+
+
+### Settings UI
+
+Admin settings UI (backups and users) is now unified under the single page with tabs.
+
+
+### Contributors
+
+* Artem Chernyshev
+* Utku Ozdemir
+* Andrey Smirnov
+* Simon-Boyer
+
+### Changes
+<details><summary>23 commits</summary>
+<p>
+
+* [`3aea4dd`](https://github.com/siderolabs/omni/commit/3aea4dd6e56bc6461494840b508054a552f97381) release(v0.35.0-beta.0): prepare release
+* [`16108a9`](https://github.com/siderolabs/omni/commit/16108a9f22519577da838d60ccd238586335383f) feat: allow setting some url params for api endpoint
+* [`041a436`](https://github.com/siderolabs/omni/commit/041a4364c132a59b479c342f03a0d89109eb9f51) feat: unify admin settings under `Settings` page
+* [`987f8cd`](https://github.com/siderolabs/omni/commit/987f8cdbd450ec5a24ff1e686e67c5e94eeaf0f9) feat: improve auth flow when user email is not verified
+* [`5b8c130`](https://github.com/siderolabs/omni/commit/5b8c13082ca43b7e8134008c5ffbc5fe0504450e) feat: imlpement the UI for configuring extensions during cluster create
+* [`f6cd840`](https://github.com/siderolabs/omni/commit/f6cd840e0adf55b74edcba0b95a0e6f467e45229) feat: implement the page that shows list of extensions per node
+* [`89fa1ad`](https://github.com/siderolabs/omni/commit/89fa1adccef10e8f4375130c61f6756bd4edfdbc) fix: make `MachineSetNodeController` handle machinesets without clusters
+* [`fa3c9ff`](https://github.com/siderolabs/omni/commit/fa3c9ffeabd3d6ac502fdbe230adbf541555d84f) feat: automatically pick up extensions when upgrading Talos
+* [`f40c552`](https://github.com/siderolabs/omni/commit/f40c55293d82de6665184161c30bd0e626d16974) chore: use new Auth0 app for CI
+* [`23d5532`](https://github.com/siderolabs/omni/commit/23d55329eaa19f5b48506c26ffe48c55f83a0c7f) fix: invert the order of recent clusters
+* [`baec123`](https://github.com/siderolabs/omni/commit/baec123131b6495f856ba24c3620750192f4adf8) fix: do not allow adding ISO, PXE nodes running different Talos version
+* [`264fb35`](https://github.com/siderolabs/omni/commit/264fb352ae9c08112a81858592a642fa3d96a4d3) chore: bump `go-kubernetes` module
+* [`2c42f5c`](https://github.com/siderolabs/omni/commit/2c42f5c059e4220da54ad4c3eb9e1d03dd687731) feat: add button to overview page to download partial machine config
+* [`95197e2`](https://github.com/siderolabs/omni/commit/95197e2b077e79324256696b4449154d4533c392) feat: improve reliability of machine status snapshots
+* [`ac4fcd8`](https://github.com/siderolabs/omni/commit/ac4fcd84008a0ab93595a364e9fdaddaf84e8a77) fix: drop outdated `SchematicConfigurationController` finalizer
+* [`7953a49`](https://github.com/siderolabs/omni/commit/7953a49678f22bb118004a860daec887a6512410) fix: ignore unknown machine version on the cluster create page
+* [`fbe196e`](https://github.com/siderolabs/omni/commit/fbe196e6e96bb9932c69c37f59de7f6ce9aa946f) test: use Talos nodes with partial config in integration tests
+* [`4b50d7c`](https://github.com/siderolabs/omni/commit/4b50d7cdc9624c4fef0ab3d22f37b9ad1d75002c) test: fix flaky test by longer k8s node checks and retries
+* [`a32cb8a`](https://github.com/siderolabs/omni/commit/a32cb8a1f837201d48800978e804d57420dfbccf) fix: start watch before delete in `omnictl delete`
+* [`40033da`](https://github.com/siderolabs/omni/commit/40033da9982ab52f895590befd802b8e2c71f557) fix: remove MachineSetNodes after links removal
+* [`29667ef`](https://github.com/siderolabs/omni/commit/29667ef428c620c1aa43d45137e8f0e91c211aad) fix: make cluster machine install disk selector pick correct disk
+* [`18e41f8`](https://github.com/siderolabs/omni/commit/18e41f87ef2fc8fa3ee1e94b041b57c6e65fcfa2) fix: issue with etcd watch cancel
+* [`7f58ea4`](https://github.com/siderolabs/omni/commit/7f58ea471370e231753c05595285edd8bee6df96) fix: allow adding machines to Omni at higher speed
+</p>
+</details>
+
+### Changes since v0.35.0-beta.0
+<details><summary>0 commit</summary>
+<p>
+
+</p>
+</details>
+
+### Changes from siderolabs/go-kubernetes
+<details><summary>1 commit</summary>
+<p>
+
+* [`ddd4c69`](https://github.com/siderolabs/go-kubernetes/commit/ddd4c69a16f173e080f24aeabb6b472f42d140b6) feat: add support for Kubernetes 1.30
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/aws/smithy-go**             v1.20.2 **_new_**
+* **github.com/cosi-project/runtime**      v0.4.1 -> v0.4.2
+* **github.com/cosi-project/state-etcd**   v0.2.8 -> v0.2.9
+* **github.com/rs/xid**                    v1.5.0 **_new_**
+* **github.com/siderolabs/go-kubernetes**  v0.2.8 -> v0.2.9
+* **go.etcd.io/etcd/client/pkg/v3**        v3.5.12 -> v3.5.13
+* **go.etcd.io/etcd/client/v3**            v3.5.12 -> v3.5.13
+* **go.etcd.io/etcd/server/v3**            v3.5.12 -> v3.5.13
+
+Previous release can be found at [v0.34.0](https://github.com/siderolabs/omni/releases/tag/v0.34.0)
+
 ## [Omni 0.35.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.35.0-beta.0) (2024-05-08)
 
 Welcome to the v0.35.0-beta.0 release of Omni!  
