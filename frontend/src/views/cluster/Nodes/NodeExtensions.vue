@@ -6,48 +6,55 @@ included in the LICENSE file.
 -->
 <template>
   <div class="flex flex-col flex-1">
-    <div class="flex flex-col gap-4 flex-1 pb-10" v-if="ready && extensionsState.length > 0">
+    <div class="flex flex-col gap-4 flex-1 pb-10">
       <t-input v-model="searchString" icon="search"/>
-      <div class="flex-1 flex-col">
-        <div class="header list-grid">
-          <div>Name</div>
-          <div>State</div>
-          <div>Level</div>
-        </div>
-        <t-list-item v-for="item in extensionsState" :key="item.name">
-          <div class="flex gap-2 px-3">
-            <div class="list-grid text-naturals-N12 flex-1">
-              <div class="text-naturals-N14">{{ item.name }}</div>
-              <div class="flex">
-                <div class="flex gap-2 bg-naturals-N3 text-naturals-N13 rounded px-2 py-1 items-center text-xs">
-                  <template v-if="item.phase === MachineExtensionsStatusSpecItemPhase.Installing">
-                    <t-icon icon="loading" class="text-yellow-Y1 w-4 h-4 animate-spin"/>
-                    <span>Installing</span>
-                  </template>
-                  <template v-else-if="item.phase === MachineExtensionsStatusSpecItemPhase.Removing">
-                    <t-icon icon="delete" class="text-red-R1 w-4 h-4 animate-pulse"/>
-                    <span>Removing</span>
-                  </template>
+      <div class="flex-1 flex flex-col">
+        <template v-if="ready && extensionsState.length > 0">
+          <div class="header list-grid">
+            <div>Name</div>
+            <div>State</div>
+            <div>Level</div>
+          </div>
+          <t-list-item v-for="item in extensionsState" :key="item.name">
+            <div class="flex gap-2 px-3">
+              <div class="list-grid text-naturals-N12 flex-1">
 
-                  <template v-else-if="item.phase === MachineExtensionsStatusSpecItemPhase.Installed">
-                    <t-icon icon="check-in-circle" class="text-green-G1 w-4 h-4"/>
-                    <span >Installed</span>
-                  </template>
+              <WordHighlighter
+                  :query="searchString"
+                  :textToHighlight="item.name"
+                  highlightClass="bg-naturals-N14"
+                  class="text-naturals-N14"/>
+                <div class="flex">
+                  <div class="flex gap-2 bg-naturals-N3 text-naturals-N13 rounded px-2 py-1 items-center text-xs">
+                    <template v-if="item.phase === MachineExtensionsStatusSpecItemPhase.Installing">
+                      <t-icon icon="loading" class="text-yellow-Y1 w-4 h-4 animate-spin"/>
+                      <span>Installing</span>
+                    </template>
+                    <template v-else-if="item.phase === MachineExtensionsStatusSpecItemPhase.Removing">
+                      <t-icon icon="delete" class="text-red-R1 w-4 h-4 animate-pulse"/>
+                      <span>Removing</span>
+                    </template>
+
+                    <template v-else-if="item.phase === MachineExtensionsStatusSpecItemPhase.Installed">
+                      <t-icon icon="check-in-circle" class="text-green-G1 w-4 h-4"/>
+                      <span >Installed</span>
+                    </template>
+                  </div>
+                </div>
+                <div v-if="item.source">
+                  {{ item.source }}
                 </div>
               </div>
-              <div v-if="item.source">
-                {{ item.source }}
-              </div>
             </div>
-          </div>
-        </t-list-item>
+          </t-list-item>
+        </template>
+        <div v-else-if="!ready" class="flex-1 flex items-center justify-center">
+          <t-spinner class="w-6 h-6"/>
+        </div>
+        <div v-else class="flex-1">
+          <t-alert title="No Extensions Found" type="info"/>
+        </div>
       </div>
-    </div>
-    <div v-else-if="extensionsState.length == 0" class="flex-1">
-      <t-alert title="No Extensions installed" type="info"/>
-    </div>
-    <div v-else class="flex-1 flex items-center justify-center">
-      <t-spinner class="w-6 h-6"/>
     </div>
     <div class="sticky -bottom-6 -my-6 -mx-6 bg-naturals-N1 border-t border-naturals-N5 h-16 flex items-center justify-end gap-2 px-12 py-6 text-xs">
       <t-button type="highlighted"
@@ -74,6 +81,7 @@ import TButton from "@/components/common/Button/TButton.vue";
 import TIcon from "@/components/common/Icon/TIcon.vue";
 import TSpinner from "@/components/common/Spinner/TSpinner.vue";
 import TAlert from "@/components/TAlert.vue";
+import WordHighlighter from "vue-word-highlighter";
 
 const machineExtensionsStatus = ref<Resource<MachineExtensionsStatusSpec>>();
 const machineExtensionsStatusWatch = new Watch(machineExtensionsStatus);
