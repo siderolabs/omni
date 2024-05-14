@@ -6,16 +6,21 @@
 package saml_test
 
 import (
+	"context"
 	"net/url"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
+	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	csaml "github.com/crewjam/saml"
 	"github.com/crewjam/saml/samlsp"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/saml"
@@ -96,6 +101,112 @@ func TestUserInfo(t *testing.T) {
 			require.NoError(t, err)
 			require.NotEmpty(t, user.Identity)
 			require.NotEmpty(t, user.Fullname)
+		})
+	}
+}
+
+func TestReadLabelsFromAssertion(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	s := state.WrapCore(namespaced.NewState(inmem.Build))
+
+	sp := saml.NewSessionProvider(s, nil, zaptest.NewLogger(t))
+
+	authConfig := auth.NewAuthConfig()
+	authConfig.TypedSpec().Value.Saml = &specs.AuthConfigSpec_SAML{
+		LabelRules: map[string]string{
+			"custom": "groups",
+		},
+	}
+
+	require.NoError(t, s.Create(ctx, authConfig))
+
+	for _, tt := range []struct {
+		expectedLabels map[string]string
+		assertion      *csaml.Assertion
+		name           string
+	}{
+		{
+			name: "simple",
+			expectedLabels: map[string]string{
+				auth.SAMLLabelPrefix + "role/admin": "",
+			},
+			assertion: &csaml.Assertion{
+				AttributeStatements: []csaml.AttributeStatement{
+					{
+						Attributes: []csaml.Attribute{
+							{
+								FriendlyName: "Role",
+								Values: []csaml.AttributeValue{
+									{
+										Value: "admin",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "multivalue",
+			expectedLabels: map[string]string{
+				auth.SAMLLabelPrefix + "role/admin":      "",
+				auth.SAMLLabelPrefix + "role/superadmin": "",
+			},
+			assertion: &csaml.Assertion{
+				AttributeStatements: []csaml.AttributeStatement{
+					{
+						Attributes: []csaml.Attribute{
+							{
+								FriendlyName: "Role",
+								Values: []csaml.AttributeValue{
+									{
+										Value: "admin",
+									},
+									{
+										Value: "superadmin",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "with custom rules",
+			expectedLabels: map[string]string{
+				auth.SAMLLabelPrefix + "groups/admins":      "",
+				auth.SAMLLabelPrefix + "groups/superadmins": "",
+			},
+			assertion: &csaml.Assertion{
+				AttributeStatements: []csaml.AttributeStatement{
+					{
+						Attributes: []csaml.Attribute{
+							{
+								Name: "custom",
+								Values: []csaml.AttributeValue{
+									{
+										Value: "admins",
+									},
+									{
+										Value: "superadmins",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			labels, err := sp.ReadLabelsFromAssertion(ctx, tt.assertion)
+
+			require.NoError(t, err)
+			require.EqualValues(t, tt.expectedLabels, labels)
 		})
 	}
 }

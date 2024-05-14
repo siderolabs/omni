@@ -24,6 +24,7 @@ import (
 	"github.com/crewjam/saml"
 	"github.com/crewjam/saml/samlsp"
 	"github.com/google/uuid"
+	"github.com/siderolabs/gen/xslices"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
@@ -40,6 +41,15 @@ type UserInfo struct {
 	Identity string
 	// Fullname ...
 	Fullname string
+}
+
+// NewSessionProvider creates a new SessionProvider.
+func NewSessionProvider(state state.State, tracker samlsp.RequestTracker, logger *zap.Logger) *SessionProvider {
+	return &SessionProvider{
+		state:   state,
+		tracker: tracker,
+		logger:  logger,
+	}
 }
 
 // SessionProvider is an implementation of SessionProvider that stores
@@ -147,7 +157,7 @@ func (sp *SessionProvider) CreateSession(w http.ResponseWriter, r *http.Request,
 		return err
 	}
 
-	samlLabels, err := sp.readLabelsFromAssertion(ctx, assertion)
+	samlLabels, err := sp.ReadLabelsFromAssertion(ctx, assertion)
 	if err != nil {
 		return err
 	}
@@ -172,7 +182,8 @@ func (sp *SessionProvider) GetSession(*http.Request) (samlsp.Session, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (sp *SessionProvider) readLabelsFromAssertion(ctx context.Context, assertion *saml.Assertion) (map[string]string, error) {
+// ReadLabelsFromAssertion extract user labels from the SAML assertion attributes.
+func (sp *SessionProvider) ReadLabelsFromAssertion(ctx context.Context, assertion *saml.Assertion) (map[string]string, error) {
 	knownFields := map[string]string{
 		// Microsoft
 		"http://schemas.microsoft.com/ws/2008/06/identity/claims/role": "role",
@@ -189,17 +200,19 @@ func (sp *SessionProvider) readLabelsFromAssertion(ctx context.Context, assertio
 
 	customFields := config.TypedSpec().Value.Saml.LabelRules
 
-	get := func(attr saml.Attribute, from map[string]string) (string, string) {
+	get := func(attr saml.Attribute, from map[string]string) (string, []string) {
 		dest, ok := from[attr.FriendlyName]
 		if !ok {
 			dest, ok = from[attr.Name]
 
 			if !ok {
-				return "", ""
+				return "", nil
 			}
 		}
 
-		return dest, attr.Values[0].Value
+		return dest, xslices.Map(attr.Values, func(val saml.AttributeValue) string {
+			return val.Value
+		})
 	}
 
 	samlLabels := make(map[string]string)
@@ -210,16 +223,18 @@ func (sp *SessionProvider) readLabelsFromAssertion(ctx context.Context, assertio
 				continue
 			}
 
-			key, value := get(attr, customFields)
+			key, values := get(attr, customFields)
 			if key == "" {
-				key, value = get(attr, knownFields)
+				key, values = get(attr, knownFields)
 			}
 
 			if key == "" {
 				continue
 			}
 
-			samlLabels[fmt.Sprintf("%s%s/%s", auth.SAMLLabelPrefix, key, value)] = ""
+			for _, value := range values {
+				samlLabels[fmt.Sprintf("%s%s/%s", auth.SAMLLabelPrefix, key, value)] = ""
+			}
 		}
 	}
 

@@ -51,11 +51,11 @@ func NewHandler(state state.State, cfg *specs.AuthConfigSpec_SAML, logger *zap.L
 		ServiceProvider: serviceProvider,
 		ResponseBinding: saml.HTTPPostBinding,
 		OnError:         createErrorHandler(logger),
-		Session: &SessionProvider{
-			state:   state,
-			tracker: requestTracker,
-			logger:  logger.With(logging.Component("saml_session")),
-		},
+		Session: NewSessionProvider(
+			state,
+			requestTracker,
+			logger.With(logging.Component("saml_session")),
+		),
 		RequestTracker: requestTracker,
 	}
 
