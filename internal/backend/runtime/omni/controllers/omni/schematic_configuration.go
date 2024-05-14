@@ -16,6 +16,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
@@ -317,7 +318,7 @@ func (m *machineExtensions) isDetected(value string) bool {
 
 func getDetectedExtensions(cluster *omni.Cluster, machineStatus *omni.MachineStatus) ([]string, error) {
 	if machineStatus.TypedSpec().Value.InitialTalosVersion == "" {
-		return nil, errors.New("machine initial version is not set")
+		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine initial version is not set")
 	}
 
 	initialVersion, err := semver.ParseTolerant(machineStatus.TypedSpec().Value.InitialTalosVersion)
