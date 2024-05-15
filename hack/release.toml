@@ -6,42 +6,4 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = false
-previous = "v0.34.0"
-
-[notes]
-
-  [notes.join-configs]
-    title = "Machine Join Configs"
-    description = """\
-Partial config for joining Talos nodes running in maintenance mode can now be downloaded from the Omni UI.
-"""
-
-  [notes.machine-status]
-    title = "Machine Status"
-    description = """\
-Talos machine status is now composed both from Talos events (push model).
-And from Talos node `MachineStatus` resource (pull model).
-This way even if the node gets disconnected from Omni for a long time, Omni won't lose any important events.
-"""
-
-  [notes.extensions]
-    title = "Machine Extensions"
-    description = """\
-It is now possible to see currently installed system extensions for each machine in the UI and change them there.
-It is also possible to configure machines' system extensions during cluster creation and scaling.
-
-Also Talos upgrades from 1.5.x -> 1.6.x+ will make Omni automatically pick up kernel modules which are no longer
-included in Talos >= 1.6.x.
-"""
-
-  [notes.auth]
-    title = "Auth With Username/Password"
-    description = """\
-Omni now shows the error about unverified Auth0 emails.
-"""
-
-  [notes.settings]
-    title = "Settings UI"
-    description = """\
-Admin settings UI (backups and users) is now unified under the single page with tabs.
-"""
+previous = "v0.35.0"
