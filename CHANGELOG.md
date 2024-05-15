@@ -1,3 +1,33 @@
+## [Omni 0.35.1](https://github.com/siderolabs/omni/releases/tag/v0.35.1) (2024-05-15)
+
+Welcome to the v0.35.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>4 commits</summary>
+<p>
+
+* [`46e94e6`](https://github.com/siderolabs/omni/commit/46e94e6fa1ac4bd66e64606b9a2e8fd2773c868c) fix: do not block machine config updates if loadbalancer is down
+* [`9a2ea7f`](https://github.com/siderolabs/omni/commit/9a2ea7fcef1203eb78437a1959323b1ad4cd849d) chore: update release and allow multiple commits
+* [`13030cf`](https://github.com/siderolabs/omni/commit/13030cf87f0a860adef152a0fa21b493ea469255) fix: do not try to audit machine which no longer has `MachineStatus`
+* [`60e6c9e`](https://github.com/siderolabs/omni/commit/60e6c9eb31b5397d762a518c8558223d0dbab3f3) fix: make search work on `NodeExtensions` page
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.35.0](https://github.com/siderolabs/omni/releases/tag/v0.35.0)
+
 ## [Omni 0.35.0](https://github.com/siderolabs/omni/releases/tag/v0.35.0) (2024-05-13)
 
 Welcome to the v0.35.0 release of Omni!
