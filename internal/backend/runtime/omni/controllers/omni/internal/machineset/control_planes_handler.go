@@ -31,32 +31,30 @@ func ReconcileControlPlanes(ctx context.Context, rc *ReconciliationContext, etcd
 		}), nil
 	}
 
-	if !rc.LBHealthy() {
-		return nil, nil
-	}
-
 	// pending tearing down machines with finalizers should cancel any other operations
 	if len(rc.GetTearingDownMachines()) > 0 {
 		return nil, nil
 	}
 
-	// do a single destroy
-	for _, id := range rc.GetMachinesToTeardown() {
-		clusterMachine, ok := rc.GetClusterMachine(id)
-		if !ok {
-			continue
-		}
+	if rc.LBHealthy() {
+		// do a single destroy
+		for _, id := range rc.GetMachinesToTeardown() {
+			clusterMachine, ok := rc.GetClusterMachine(id)
+			if !ok {
+				continue
+			}
 
-		etcdStatus, err := etcdStatusGetter(ctx)
-		if err != nil {
-			return nil, err
-		}
+			etcdStatus, err := etcdStatusGetter(ctx)
+			if err != nil {
+				return nil, err
+			}
 
-		if err := check.CanScaleDown(etcdStatus, clusterMachine); err != nil {
-			return nil, err
-		}
+			if err := check.CanScaleDown(etcdStatus, clusterMachine); err != nil {
+				return nil, err
+			}
 
-		return []Operation{&Teardown{ID: id}}, nil
+			return []Operation{&Teardown{ID: id}}, nil
+		}
 	}
 
 	// do a single update
