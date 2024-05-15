@@ -757,6 +757,7 @@ func (m *ClusterMachineStatusSpec) CloneVT() *ClusterMachineStatusSpec {
 	r.LastConfigError = m.LastConfigError
 	r.ManagementAddress = m.ManagementAddress
 	r.ConfigApplyStatus = m.ConfigApplyStatus
+	r.IsRemoved = m.IsRemoved
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -3036,6 +3037,9 @@ func (this *ClusterMachineStatusSpec) EqualVT(that *ClusterMachineStatusSpec) bo
 		return false
 	}
 	if this.ConfigApplyStatus != that.ConfigApplyStatus {
+		return false
+	}
+	if this.IsRemoved != that.IsRemoved {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -6799,6 +6803,16 @@ func (m *ClusterMachineStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.IsRemoved {
+		i--
+		if m.IsRemoved {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x40
 	}
 	if m.ConfigApplyStatus != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ConfigApplyStatus))
@@ -10904,6 +10918,9 @@ func (m *ClusterMachineStatusSpec) SizeVT() (n int) {
 	}
 	if m.ConfigApplyStatus != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.ConfigApplyStatus))
+	}
+	if m.IsRemoved {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -17783,6 +17800,26 @@ func (m *ClusterMachineStatusSpec) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsRemoved", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsRemoved = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

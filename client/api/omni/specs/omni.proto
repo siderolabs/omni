@@ -446,6 +446,9 @@ message ClusterMachineStatusSpec {
   string management_address = 6;
 
   ConfigApplyStatus config_apply_status = 7;
+
+  // IsRemoved means that the machine removed from Omni.
+  bool is_removed = 8;
 }
 
 // Machines counts the number of machines in a set including health status.

@@ -43,6 +43,8 @@ import (
 // It tracks and removes the orphaned etcd members.
 type MachineSetEtcdAuditController = qtransform.QController[*omni.MachineSet, *omni.EtcdAuditResult]
 
+var errSkipNode = errors.New("skip node audit")
+
 // NewMachineSetEtcdAuditController initializes MachineSetEtcdAuditController.
 //
 // memberRemoveTimeout defines the interval between two checks: member is removed if two consequent checks mark it as orphaned.
@@ -335,6 +337,10 @@ func (auditor *etcdAuditor) auditEtcd(ctx context.Context, r controller.Reader, 
 func (auditor *etcdAuditor) auditMember(ctx context.Context, r controller.Reader, machine, clusterName string) (uint64, error) {
 	cli, err := auditor.getNodeClient(ctx, r, clusterName, machine)
 	if err != nil {
+		if errors.Is(err, errSkipNode) {
+			return 0, nil
+		}
+
 		return 0, err
 	}
 
@@ -413,6 +419,10 @@ func (auditor *etcdAuditor) getNodeClient(ctx context.Context, r controller.Read
 	clusterMachineStatus, err := safe.ReaderGet[*omni.ClusterMachineStatus](ctx, r, omni.NewClusterMachineStatus(resources.DefaultNamespace, id).Metadata())
 	if err != nil {
 		return nil, err
+	}
+
+	if clusterMachineStatus.TypedSpec().Value.IsRemoved {
+		return nil, errSkipNode
 	}
 
 	talosConfig, err := safe.ReaderGet[*omni.TalosConfig](ctx, r, omni.NewTalosConfig(resources.DefaultNamespace, cluster).Metadata())
