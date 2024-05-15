@@ -364,7 +364,7 @@ const submit = async () => {
 
 <style scoped>
 .condition {
-  @apply border border-opacity-0 rounded-md border-transparent;
+  @apply border border-opacity-0 rounded-md border-transparent transition-colors;
 }
 
 .condition:focus-within {

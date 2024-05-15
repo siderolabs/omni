@@ -396,6 +396,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.SchematicConfigurationType,
 		omni.ExtensionsConfigurationType,
 		omni.ExtensionsConfigurationStatusType,
+		virtual.LabelsCompletionType,
 		virtual.KubernetesUsageType:
 		_, err = auth.CheckGRPC(ctx, auth.WithRole(verbToRole(access.Verb)))
 	case
@@ -410,8 +411,8 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.MachineStatusMetricsType,
 		system.SysVersionType,
 		virtual.CurrentUserType,
-		virtual.PermissionsType,
-		virtual.ClusterPermissionsType:
+		virtual.ClusterPermissionsType,
+		virtual.PermissionsType:
 		// allow access with just valid signature
 		_, err = auth.CheckGRPC(ctx, auth.WithValidSignature(true))
 	case authres.IdentityType, authres.UserType, authres.SAMLLabelRuleType, authres.AccessPolicyType, omni.EtcdBackupS3ConfType:
@@ -533,6 +534,7 @@ func filterAccessByType(access state.Access) error {
 		virtual.CurrentUserType,
 		virtual.PermissionsType,
 		virtual.KubernetesUsageType,
+		virtual.LabelsCompletionType,
 		virtual.ClusterPermissionsType:
 		// allow read access only, these resources are managed by controllers only
 		if access.Verb.Readonly() {

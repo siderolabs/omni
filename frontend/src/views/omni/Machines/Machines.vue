@@ -12,10 +12,20 @@ included in the LICENSE file.
       search
       pagination
       :sortOptions="sortOptions"
-      ref="list"
+      :filterValue="filterValue"
       >
+      <template #input>
+        <labels-input :completions-resource="{
+          id: MachineStatusType,
+          type: LabelsCompletionType,
+          namespace: VirtualNamespace,
+        }"
+        class="w-full"
+        v-model:filter-labels="filterLabels"
+        v-model:filter-value="filterValue"/>
+      </template>
       <template #default="{ items, searchQuery }">
-        <machine-item v-for="item in items" :key="itemID(item)" :machine="item" @filterLabels="filterByLabel" :search-query="searchQuery"/>
+        <machine-item v-for="item in items" :key="itemID(item)" :machine="item" @filterLabels="(label) => addLabel(filterLabels, label)" :search-query="searchQuery"/>
       </template>
     </t-list>
   </div>
@@ -23,21 +33,26 @@ included in the LICENSE file.
 
 <script setup lang="ts">
 import { Runtime } from "@/api/common/omni.pb";
-import { MetricsNamespace, MachineStatusLinkType } from "@/api/resources";
+import { MetricsNamespace, MachineStatusLinkType, LabelsCompletionType, VirtualNamespace, MachineStatusType } from "@/api/resources";
 import { itemID, WatchOptions } from "@/api/watch";
 
 import TList from "@/components/common/List/TList.vue";
 import MachineItem from "@/views/omni/Machines/MachineItem.vue";
 import PageHeader from "@/components/common/PageHeader.vue";
-import { Ref, ref } from "vue";
+import { computed, ref } from "vue";
+import LabelsInput from "@/views/omni/ItemLabels/LabelsInput.vue";
+import { Label, addLabel, selectors } from "@/methods/labels";
 
-const watchOpts: WatchOptions = {
+const watchOpts = computed<WatchOptions>(() => {
+  return {
     runtime: Runtime.Omni,
     resource: {
       type: MachineStatusLinkType,
       namespace: MetricsNamespace,
     },
-  };
+    selectors: selectors(filterLabels.value),
+  }
+});
 
 const sortOptions = [
   {id: 'machine_created_at', desc: 'Creation Time ⬆', descending: true},
@@ -50,11 +65,6 @@ const sortOptions = [
   {id: 'last_alive', desc: 'Last Active Time ⬇'},
 ];
 
-const list: Ref<{addFilterLabel: (label: {key: string, value?: string}) => void} | null> = ref(null);
-
-const filterByLabel = (e: {key: string, value?: string}) => {
-  if (list.value) {
-    list.value.addFilterLabel(e);
-  }
-}
+const filterLabels = ref<Label[]>([]);
+const filterValue = ref("");
 </script>

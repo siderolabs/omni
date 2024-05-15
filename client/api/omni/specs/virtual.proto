@@ -34,3 +34,11 @@ message ClusterPermissionsSpec {
   bool can_manage_config_patches = 10;
   bool can_manage_cluster_features = 11;
 }
+
+message LabelsCompletionSpec {
+  message Values {
+    repeated string items = 1;
+  }
+
+  map<string, Values> items = 1;
+}

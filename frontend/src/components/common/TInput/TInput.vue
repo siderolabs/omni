@@ -17,6 +17,7 @@ included in the LICENSE file.
     :class="[{ focused: isFocused, secondary, primary: !secondary, compact, disabled }]"
   >
     <t-icon class="input-box-icon" v-if="icon" :icon="icon"/>
+    <slot name="labels"/>
     <template v-if="!disabled">
       <span v-if="title" class="text-xs min-w-fit mr-1">{{title}}:</span>
       <input
@@ -33,7 +34,7 @@ included in the LICENSE file.
         <t-icon class="hover:text-naturals-N14 w-2" icon="arrow-up" @click="updateValue(intValue + 1)"/>
         <t-icon class="hover:text-naturals-N14 w-2" icon="arrow-down"  @click="updateValue(intValue - 1)"/>
       </div>
-      <div v-else-if="modelValue !== ''" @click.prevent="clearInput">
+      <div v-else-if="modelValue !== '' || onClear" @click.prevent="clearInput">
         <t-icon
           class="input-box-icon"
           icon="close"
@@ -62,6 +63,7 @@ type propsType = {
   max?: number,
   min?: number,
   disabled?: boolean
+  onClear?: () => void
 }
 
 const props = withDefaults(
@@ -105,12 +107,25 @@ const updateValue = (value: string | number) => {
   emit("update:model-value", value);
 }
 
+defineExpose({
+  getCaretPosition(): number | void {
+    if (!input.value) {
+      return;
+    }
+
+    return input.value.selectionStart;
+  }
+})
 
 const isFocused = ref(false);
-const input: Ref<{focus: () => void} | null> = ref(null);
+const input: Ref<{focus: () => void, selectionStart: number} | null> = ref(null);
 
 const clearInput = () => {
   updateValue("");
+
+  if (props.onClear) {
+    props.onClear();
+  }
 };
 
 const blurHandler = () => {
@@ -135,7 +150,7 @@ onMounted(() => {
 
 <style scoped>
 .input-box {
-  @apply flex justify-start items-center p-2 border border-naturals-N8 rounded transition-colors gap-2;
+  @apply flex justify-start items-center p-2 border border-naturals-N8 rounded transition-colors gap-2 gap-y-3;
 }
 
 .compact {

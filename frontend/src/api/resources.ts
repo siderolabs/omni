@@ -154,6 +154,7 @@ export const ClusterPermissionsType = "ClusterPermissions.omni.sidero.dev";
 export const CurrentUserID = "current";
 export const CurrentUserType = "CurrentUsers.omni.sidero.dev";
 export const KubernetesUsageType = "KubernetesUsages.omni.sidero.dev";
+export const LabelsCompletionType = "LabelsCompletions.omni.sidero.dev";
 export const PermissionsID = "permissions";
 export const PermissionsType = "Permissions.omni.sidero.dev";
 export const SecureBoot = "secureboot";

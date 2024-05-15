@@ -33,3 +33,11 @@ export type ClusterPermissionsSpec = {
   can_manage_config_patches?: boolean
   can_manage_cluster_features?: boolean
 }
+
+export type LabelsCompletionSpecValues = {
+  items?: string[]
+}
+
+export type LabelsCompletionSpec = {
+  items?: {[key: string]: LabelsCompletionSpecValues}
+}

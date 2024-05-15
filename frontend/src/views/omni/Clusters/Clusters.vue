@@ -11,17 +11,23 @@ included in the LICENSE file.
       <t-button :disabled="!canCreateClusters" @click="openClusterCreate" type="highlighted">Create Cluster</t-button>
     </div>
     <t-list
-      :opts="{
-        resource: resource,
-        runtime: Runtime.Omni,
-        sortByField: 'created'
-      }"
+      :opts="watchOpts"
       search
       noRecordsAlert
       pagination
       errorsAlert
-      ref="list"
+      :filterValue="filterValue"
     >
+      <template #input>
+        <labels-input :completions-resource="{
+          id: ClusterStatusType,
+          type: LabelsCompletionType,
+          namespace: VirtualNamespace,
+        }"
+        class="w-full"
+        v-model:filter-labels="filterLabels"
+        v-model:filter-value="filterValue"/>
+      </template>
       <template #default="{ items, searchQuery }">
         <div class="flex flex-col gap-2">
           <div class="clusters-header">
@@ -37,7 +43,7 @@ included in the LICENSE file.
             :key="itemID(item)"
             :defaultOpen="index === 0"
             :search-query="searchQuery"
-            @filterLabels="filterByLabel"
+            @filterLabels="label => addLabel(filterLabels, label)"
             :item="item"/>
         </div>
       </template>
@@ -47,35 +53,39 @@ included in the LICENSE file.
 
 <script setup lang="ts">
 import { useRouter } from "vue-router";
-import { DefaultNamespace, ClusterStatusType } from "@/api/resources";
+import { DefaultNamespace, ClusterStatusType, LabelsCompletionType, VirtualNamespace } from "@/api/resources";
 import { Runtime } from "@/api/common/omni.pb";
-import { itemID } from "@/api/watch";
+import { WatchOptions, itemID } from "@/api/watch";
 
 import TList from "@/components/common/List/TList.vue";
 import TButton from "@/components/common/Button/TButton.vue";
 import ClusterItem from "@/views/omni/Clusters/ClusterItem.vue";
 import PageHeader from "@/components/common/PageHeader.vue";
-import {ref, Ref} from "vue";
+import { computed, ref } from "vue";
 import { canCreateClusters } from "@/methods/auth";
+import LabelsInput from "../ItemLabels/LabelsInput.vue";
+import { addLabel, selectors, Label } from "@/methods/labels";
 
 const router = useRouter();
 
-const resource = {
-  namespace: DefaultNamespace,
-  type: ClusterStatusType,
-};
+const watchOpts = computed<WatchOptions>(() => {
+  return {
+    runtime: Runtime.Omni,
+    resource: {
+      namespace: DefaultNamespace,
+      type: ClusterStatusType,
+    },
+    selectors: selectors(filterLabels.value),
+    sortByField: "created",
+  }
+});
+
+const filterValue = ref("");
+const filterLabels = ref<Label[]>([]);
 
 const openClusterCreate = () => {
   router.push({ name: "ClusterCreate" })
 };
-
-const list: Ref<{addFilterLabel: (label: {key: string, value?: string}) => void} | null> = ref(null);
-
-const filterByLabel = (e: {key: string, value?: string}) => {
-    if (list.value) {
-        list.value.addFilterLabel(e);
-    }
-}
 </script>
 
 <style scoped>

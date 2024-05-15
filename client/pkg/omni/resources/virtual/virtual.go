@@ -12,4 +12,5 @@ func init() {
 	registry.MustRegisterResource(ClusterPermissionsType, &ClusterPermissions{})
 	registry.MustRegisterResource(KubernetesUsageType, &KubernetesUsage{})
 	registry.MustRegisterResource(PermissionsType, &Permissions{})
+	registry.MustRegisterResource(LabelsCompletionType, &LabelsCompletion{})
 }

@@ -23,6 +23,7 @@ import TButton from "@/components/common/Button/TButton.vue";
 import TInput from "@/components/common/TInput/TInput.vue";
 import { showError } from "@/notification";
 import { SystemLabelPrefix } from "@/api/resources";
+import { Label, getLabelColor } from "@/methods/labels";
 
 const props = defineProps<{
   resource: Resource
@@ -31,15 +32,6 @@ const props = defineProps<{
 }>();
 
 const { resource } = toRefs(props);
-
-type Label = {
-  key: string;
-  id: string,
-  value: string;
-  color: string;
-  user?: boolean;
-  description?: string,
-}
 
 defineEmits(['filterLabel']);
 
@@ -63,7 +55,7 @@ const labelOrder = {
 }
 
 const getLabelOrder = (l: Label) => {
-  if (l.user) {
+  if (l.removable) {
     return 1000;
   }
 
@@ -73,24 +65,6 @@ const getLabelOrder = (l: Label) => {
 const labelDescriptions = {
   "invalid-state": "The machine is expected to be unallocated, but still has the configuration of a cluster.\nIt might be required to wipe the machine bypassing Omni."
 };
-
-const labelColors = {
-  "cluster": "light1",
-  "available": "yellow",
-  "invalid-state": "red",
-  "connected": "green",
-  "disconnected": "red",
-  "platform": "blue1",
-  "cores": "cyan",
-  "mem": "blue2",
-  "storage": "violet",
-  "net": "blue3",
-  "cpu": "orange",
-  "arch": "light2",
-  "region": "light3",
-  "zone": "light4",
-  "instance": "light5",
-}
 
 const labels = computed((): Array<Label> => {
   const labels = resource.value.metadata?.labels || {};
@@ -109,8 +83,8 @@ const labels = computed((): Array<Label> => {
       key: key,
       id: strippedKey,
       value: labels[key],
-      color: labelColors[strippedKey] ?? "light6",
-      user: isUser,
+      color: getLabelColor(strippedKey),
+      removable: isUser,
       description: labelDescriptions[strippedKey],
     })
   }

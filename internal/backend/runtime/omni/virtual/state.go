@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -17,6 +18,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
@@ -78,6 +80,8 @@ func (v *State) Get(ctx context.Context, ptr resource.Pointer, opts ...state.Get
 		return v.permissions(ctx)
 	case virtual.ClusterPermissionsType:
 		return v.clusterPermissions(ctx, ptr)
+	case virtual.LabelsCompletionType:
+		return v.labelsCompletion(ctx, ptr)
 	default:
 		return nil, errUnsupported(fmt.Errorf("unsupported resource type for get %q", ptr.Type()))
 	}
@@ -258,4 +262,32 @@ func (v *State) clusterPermissions(ctx context.Context, ptr resource.Pointer) (*
 	clusterPermissions.Metadata().SetVersion(version)
 
 	return clusterPermissions, nil
+}
+
+func (v *State) labelsCompletion(ctx context.Context, ptr resource.Pointer) (*virtual.LabelsCompletion, error) {
+	md := resource.NewMetadata(resources.DefaultNamespace, ptr.ID(), "", resource.VersionUndefined)
+
+	list, err := v.PrimaryState.List(ctx, md)
+	if err != nil {
+		return nil, err
+	}
+
+	labels := map[string]*specs.LabelsCompletionSpec_Values{}
+
+	for _, res := range list.Items {
+		for label, value := range res.Metadata().Labels().Raw() {
+			if _, ok := labels[label]; !ok {
+				labels[label] = &specs.LabelsCompletionSpec_Values{}
+			}
+
+			if !slices.Contains(labels[label].Items, value) {
+				labels[label].Items = append(labels[label].Items, value)
+			}
+		}
+	}
+
+	completion := virtual.NewLabelsCompletion(resources.VirtualNamespace, ptr.ID())
+	completion.TypedSpec().Value.Items = labels
+
+	return completion, nil
 }

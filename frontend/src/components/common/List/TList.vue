@@ -7,7 +7,8 @@ included in the LICENSE file.
 <template>
   <div class="flex flex-col gap-4">
     <div class="flex gap-2" v-if="pagination || search || itemsPerPage?.length > 1">
-      <t-input class="flex-1" v-if="search" icon="search" v-model="filterValue"/>
+      <slot v-if="$slots.input" name="input"/>
+      <t-input v-else-if="search" class="flex-1" icon="search" v-model="filterValueInternal"/>
       <div class="flex-1" v-else/>
       <t-select-list
           @checkedValue="(value: string) => { selectedSortOption = value }"
@@ -85,11 +86,11 @@ import storageRef from "@/methods/storage";
 defineExpose({
   addFilterLabel: (label: {key: string, value?: string}) => {
     const selector = `${label.key}:${label.value}`;
-    if (filterValue.value.includes(selector)) {
+    if (filterValueInternal.value.includes(selector)) {
       return;
     }
 
-    filterValue.value += (filterValue.value ? " " : "") + selector;
+    filterValueInternal.value += (filterValueInternal.value ? " " : "") + selector;
   }
 });
 
@@ -100,6 +101,7 @@ const props = defineProps<{
   search?: boolean,
   opts?: WatchOptions | WatchJoinOptions[] | Object,
   sortOptions?: {id: string, desc: string, descending?: boolean}[],
+  filterValue?: string
 }>();
 
 const itemsPerPage = [5, 10, 25, 50, 100]
@@ -114,16 +116,20 @@ const sortOptionsVariants = computed(() => {
   });
 });
 
-const { opts } = toRefs(props);
+const { opts, filterValue } = toRefs(props);
 
 const items: Ref<Resource[]> = ref([]);
 
 const optsList = props.opts as WatchJoinOptions[];
 
-const filterValue = ref("");
+const filterValueInternal = ref("");
 const currentPage = ref(1);
 const selectedItemsPerPage: Ref<number> = storageRef(localStorage, 'itemsPerPage', 10);
 const selectedSortOption: Ref<string | null> = ref(sortOptionsVariants?.value?.length ? sortOptionsVariants.value[0] : null);
+
+const filterValueComputed = computed(() => {
+  return filterValue.value !== undefined ? filterValue.value : filterValueInternal.value;
+});
 
 const offset = computed(() => {
   return (currentPage.value - 1) * selectedItemsPerPage.value;
@@ -185,7 +191,7 @@ const searchState = computed(() => {
     return {}
   }
 
-  const parts = filterValue.value.split(" ");
+  const parts = filterValueComputed.value.split(" ");
   const selectors: string[] = [];
   const searchFor: string[] = [];
 

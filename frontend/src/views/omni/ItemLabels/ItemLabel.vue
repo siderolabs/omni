@@ -14,8 +14,8 @@ included in the LICENSE file.
       <span v-else class="font-semibold">
         {{ label.id }}
       </span>
-      <t-icon v-if="label.user && destroyUserLabel" icon="close" class="destroy-label-button"
-        @click.stop="() => destroyUserLabel?.(label.key)" />
+      <t-icon v-if="label.removable && removeLabel" icon="close" class="destroy-label-button"
+        @click.stop="() => removeLabel?.(label.key)" />
     </span>
   </component>
 </template>
@@ -31,9 +31,9 @@ defineProps<{
     value: string,
     color: string,
     description?: string,
-    user?: boolean,
+    removable?: boolean,
   },
-  destroyUserLabel?: (key :string) => Promise<void>
+  removeLabel?: (key :string) => Promise<void>
 }>();
 </script>
 
