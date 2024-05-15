@@ -351,6 +351,7 @@ export type ClusterMachineStatusSpec = {
   last_config_error?: string
   management_address?: string
   config_apply_status?: ConfigApplyStatus
+  is_removed?: boolean
 }
 
 export type Machines = {

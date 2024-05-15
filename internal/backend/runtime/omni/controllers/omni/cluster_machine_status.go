@@ -68,12 +68,15 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 						cmsVal.Stage = specs.ClusterMachineStatusSpec_UNKNOWN
 						cmsVal.ApidAvailable = false
 						cmsVal.Ready = false
+						cmsVal.IsRemoved = true
 
 						return nil
 					}
 
 					return err
 				}
+
+				cmsVal.IsRemoved = machineStatus.Metadata().Phase() == resource.PhaseTearingDown
 
 				machineSetNode, err := r.Get(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.MachineSetNodeType, clusterMachine.Metadata().ID(), resource.VersionUndefined))
 				if err != nil && !state.IsNotFoundError(err) {
