@@ -54,7 +54,7 @@ func init() {
 	downloadCmd.Flags().BoolVar(&downloadCmdFlags.secureBoot, "secureboot", false, "Download SecureBoot enabled installation media")
 	downloadCmd.Flags().StringVar(&downloadCmdFlags.architecture, "arch", "amd64", "Image architecture to download (amd64, arm64)")
 	downloadCmd.Flags().StringVar(&downloadCmdFlags.output, "output", ".", "Output file or directory, defaults to current working directory")
-	downloadCmd.Flags().StringVar(&downloadCmdFlags.talosVersion, "talos-version", constants.DefaultTalosVersion, "Output file or directory, defaults to current working directory")
+	downloadCmd.Flags().StringVar(&downloadCmdFlags.talosVersion, "talos-version", constants.DefaultTalosVersion, "Talos version to be used in the generated installation media")
 	downloadCmd.Flags().StringArrayVar(&downloadCmdFlags.labels, "initial-labels", nil, "Bake initial labels into the generated installation media")
 	downloadCmd.Flags().StringArrayVar(&downloadCmdFlags.extraKernelArgs, "extra-kernel-args", nil, "Add extra kernel args to the generated installation media")
 	downloadCmd.Flags().StringArrayVar(&downloadCmdFlags.extensions, "extensions", nil, "Generate installation media with extensions pre-installed")
