@@ -59,7 +59,14 @@ func ReconcileControlPlanes(ctx context.Context, rc *ReconciliationContext, etcd
 
 	// do a single update
 	toUpdate := rc.GetMachinesToUpdate()
+
 	if len(toUpdate) > 0 {
+		// if the count of outdated machines > 0 do update if the machine is already outdated
+		// e.g.: allow applying the config change for the same machine multiple times
+		if len(rc.GetOutdatedMachines()) > 0 && !rc.GetOutdatedMachines().Contains(toUpdate[0]) {
+			return nil, nil
+		}
+
 		return []Operation{&Update{ID: toUpdate[0]}}, nil
 	}
 

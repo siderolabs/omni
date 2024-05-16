@@ -19,6 +19,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/pkg/check"
 )
 
+//nolint:maintidx
 func TestControlPlanesHandler(t *testing.T) {
 	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "test")
 
@@ -32,6 +33,7 @@ func TestControlPlanesHandler(t *testing.T) {
 		clusterMachines              []*omni.ClusterMachine
 		clusterMachineConfigStatuses []*omni.ClusterMachineConfigStatus
 		clusterMachineConfigPatches  []*omni.ClusterMachineConfigPatches
+		patches                      map[string][]*omni.ConfigPatch
 		etcdStatus                   *check.EtcdStatusResult
 
 		expectError      bool
@@ -158,6 +160,43 @@ func TestControlPlanesHandler(t *testing.T) {
 			},
 		},
 		{
+			name:       "update with outdated",
+			machineSet: &specs.MachineSetSpec{},
+			machineSetNodes: []*omni.MachineSetNode{
+				omni.NewMachineSetNode(resources.DefaultNamespace, "a", machineSet),
+				omni.NewMachineSetNode(resources.DefaultNamespace, "b", machineSet),
+			},
+			clusterMachines: []*omni.ClusterMachine{
+				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "a"), version.Next())),
+				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "b"), version)),
+			},
+			clusterMachineConfigPatches: []*omni.ClusterMachineConfigPatches{
+				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "a"),
+				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "b"),
+			},
+			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
+				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "a"), version),
+				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "b"), version),
+			},
+			expectOperations: []machineset.Operation{},
+			etcdStatus: &check.EtcdStatusResult{
+				Members: map[string]check.EtcdMemberStatus{
+					"a": {
+						Healthy: true,
+					},
+					"b": {
+						Healthy: true,
+					},
+				},
+				HealthyMembers: 1,
+			},
+			patches: map[string][]*omni.ConfigPatch{
+				"b": {
+					omni.NewConfigPatch(resources.DefaultNamespace, "1"),
+				},
+			},
+		},
+		{
 			name:       "no actions",
 			machineSet: &specs.MachineSetSpec{},
 			machineSetNodes: []*omni.MachineSetNode{
@@ -193,11 +232,15 @@ func TestControlPlanesHandler(t *testing.T) {
 			cluster.TypedSpec().Value.TalosVersion = "v1.5.4"
 			cluster.TypedSpec().Value.KubernetesVersion = "v1.29.1"
 
+			patchHelper := &fakePatchHelper{
+				patches: tt.patches,
+			}
+
 			rc, err := machineset.NewReconciliationContext(
 				cluster,
 				machineSet,
 				newHealthyLB(cluster.Metadata().ID()),
-				&fakePatchHelper{},
+				patchHelper,
 				tt.machineSetNodes,
 				tt.clusterMachines,
 				tt.clusterMachineConfigStatuses,
