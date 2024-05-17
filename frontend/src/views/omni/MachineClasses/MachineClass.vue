@@ -83,7 +83,7 @@ import { Runtime } from "@/api/common/omni.pb";
 import { MachineClassSpec } from "@/api/omni/specs/omni.pb";
 import { DefaultNamespace, MachineStatusType, MachineClassType } from "@/api/resources";
 import ItemWatch, { itemID } from "@/api/watch";
-import { computed, ref, nextTick, Ref, watch } from "vue";
+import { computed, ref, nextTick, Ref, watch, ComputedRef } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { showError } from "@/notification";
 
@@ -104,8 +104,14 @@ const props = defineProps<{edit: boolean}>();
 const router = useRouter();
 const lastFocused = ref(0);
 
-let loading = ref(false);
-let notFound = ref(false);
+let loading: Ref<boolean> | ComputedRef<boolean>;
+let notFound: Ref<boolean> | ComputedRef<boolean>;
+
+if (!props.edit) {
+  notFound = ref(false);
+  loading = ref(false);
+}
+
 let resourceVersion: string | undefined;
 
 type Caret = {
@@ -204,11 +210,9 @@ if (props.edit) {
   const machineClassWatch = new ItemWatch(machineClass);
   const route = useRoute();
 
-  loading.value = computed(() => {
-    return machineClassWatch.loading.value;
-  });
+  loading = machineClassWatch.loading;
 
-  notFound.value = computed(() => {
+  notFound = computed(() => {
     return machineClass.value === undefined;
   });
 
