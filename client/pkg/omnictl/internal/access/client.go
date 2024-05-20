@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/blang/semver"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -135,7 +136,7 @@ func WithClient(f func(ctx context.Context, client *client.Client) error, client
 
 func checkVersion(ctx context.Context, state state.State) error {
 	if version.API == 0 && !version.SuppressVersionWarning {
-		fmt.Println(`[WARN] github.com/siderolabs/omni/client/pkg/version.API is not set, client-server version validation is disabled.
+		fmt.Fprintln(os.Stderr, `[WARN] github.com/siderolabs/omni/client/pkg/version.API is not set, client-server version validation is disabled.
 If you want to enable the version validation and disable this warning, set github.com/siderolabs/omni/client/pkg/version.SuppressVersionWarning to true.`)
 
 		return nil
@@ -145,6 +146,8 @@ If you want to enable the version validation and disable this warning, set githu
 	if err != nil {
 		return err
 	}
+
+	checkVersionWarning(sysVersion)
 
 	if sysVersion.TypedSpec().Value.BackendApiVersion == 0 { // API versions are not supported (yet) on backend, i.e., the client is newer than the backend
 		return fmt.Errorf("server API does not support API versions, i.e., the server is older than the client, "+
@@ -158,4 +161,20 @@ If you want to enable the version validation and disable this warning, set githu
 	}
 
 	return nil
+}
+
+func checkVersionWarning(sysVersion *system.SysVersion) {
+	backendVersion, err := semver.ParseTolerant(sysVersion.TypedSpec().Value.BackendVersion)
+	if err != nil {
+		return
+	}
+
+	clientVersion, err := semver.ParseTolerant(version.Tag)
+	if err != nil {
+		return
+	}
+
+	if clientVersion.Major != backendVersion.Major || clientVersion.Minor != backendVersion.Minor {
+		fmt.Fprintf(os.Stderr, "[WARN] omnictl version differs from the backend version: %q vs %q.\n", clientVersion.String(), backendVersion.String())
+	}
 }
