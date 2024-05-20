@@ -9,7 +9,7 @@ included in the LICENSE file.
     <item-label
       @filterLabel="(label) => $emit('filterLabel', label)"
       v-for="label in labels" :label="label" :key="label.key" :destroy-user-label="removeLabelFunc ? destroyUserLabel : undefined"/>
-    <t-input @keydown.enter="addUserLabel" v-model="currentLabel" compact @click.stop @blur="addingLabel = false" :focus="addingLabel" v-if="addingLabel" class="w-24 h-6"/>
+    <t-input @keydown.enter="addUserLabel" v-model="currentLabel" compact @click.stop @blur="addUserLabel" :focus="addingLabel" v-if="addingLabel" class="w-24 h-6"/>
     <t-button icon="tag" type="compact" @click.stop="editLabels" v-else-if="addLabelFunc">new label</t-button>
   </div>
 </template>
@@ -131,7 +131,7 @@ const editLabels = () => {
 };
 
 const addUserLabel = async () => {
-  if (!addingLabel.value || !currentLabel.value || !resource.value.metadata.id || addPending || !props.addLabelFunc) {
+  if (!addingLabel.value || !currentLabel.value.trim() || !resource.value.metadata.id || addPending || !props.addLabelFunc) {
     return;
   }
 

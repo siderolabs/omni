@@ -15,7 +15,7 @@ included in the LICENSE file.
         </span>
         <t-icon v-if="label.canRemove" icon="close" class="destroy-label-button" @click.stop="() => removeLabel(key)"/>
     </span>
-    <t-input @keydown.enter="addLabel" v-model="currentLabel" compact @click.stop @blur="addingLabel = false" :focus="addingLabel" v-if="addingLabel" class="w-24 h-6"/>
+    <t-input @keydown.enter="addLabel" v-model="currentLabel" compact @click.stop @blur="addLabel" :focus="addingLabel" v-if="addingLabel" class="w-24 h-6"/>
     <t-button icon="tag" type="compact" @click.stop="editLabels" v-else>new label</t-button>
   </div>
 </template>
@@ -50,6 +50,10 @@ const editLabels = () => {
 };
 
 const addLabel = async () => {
+  if (!currentLabel.value.trim()) {
+    return;
+  }
+
   addingLabel.value = false;
 
   const parts = currentLabel.value.split(":");
