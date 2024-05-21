@@ -8,7 +8,7 @@ included in the LICENSE file.
   <div class="flex flex-wrap gap-1.5 items-center text-xs">
     <item-label
       @filterLabel="(label) => $emit('filterLabel', label)"
-      v-for="label in labels" :label="label" :key="label.key" :destroy-user-label="removeLabelFunc ? destroyUserLabel : undefined"/>
+      v-for="label in labels" :label="label" :key="label.key" :remove-label="removeLabelFunc ? destroyUserLabel : undefined"/>
     <t-input @keydown.enter="addUserLabel" v-model="currentLabel" compact @click.stop @blur="addUserLabel" :focus="addingLabel" v-if="addingLabel" class="w-24 h-6"/>
     <t-button icon="tag" type="compact" @click.stop="editLabels" v-else-if="addLabelFunc">new label</t-button>
   </div>

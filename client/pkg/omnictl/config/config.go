@@ -159,7 +159,7 @@ func (c *Config) Merge(additionalConfigPath string) ([]Rename, error) {
 	var renames []Rename
 
 	for name, ctx := range cfg.Contexts {
-		mergedName := name //nolint:copyloopvar
+		mergedName := name
 
 		if _, exists := c.Contexts[mergedName]; exists {
 			for i := 1; ; i++ {

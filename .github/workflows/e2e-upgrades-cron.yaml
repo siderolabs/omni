@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-04-19T08:33:46Z by kres add13d7.
+# Generated on 2024-05-21T11:39:21Z by kres 0290180.
 
 name: e2e-upgrades-cron
 concurrency:
@@ -14,15 +14,6 @@ jobs:
     runs-on:
       - self-hosted
       - omni
-    services:
-      buildkitd:
-        image: moby/buildkit:v0.13.1
-        options: --privileged
-        ports:
-          - 1234:1234
-        volumes:
-          - /var/lib/buildkit/${{ github.repository }}:/var/lib/buildkit
-          - /usr/etc/buildkit/buildkitd.toml:/etc/buildkit/buildkitd.toml
     steps:
       - name: checkout
         uses: actions/checkout@v4
@@ -34,14 +25,14 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           driver: remote
-          endpoint: tcp://127.0.0.1:1234
+          endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
         timeout-minutes: 10
       - name: Mask secrets
         run: |
-          echo -e "$(sops -d .secrets.yaml | yq '.secrets | to_entries[] | "::add-mask::" + .value')"
+          echo -e "$(sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | "::add-mask::" + .value')"
       - name: Set secrets for job
         run: |
-          sops -d .secrets.yaml | yq '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
+          sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"

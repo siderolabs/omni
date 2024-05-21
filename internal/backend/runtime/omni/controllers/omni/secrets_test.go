@@ -77,7 +77,7 @@ func (suite *ClusterSecretsSuite) TestNewSecrets() {
 type mockBackupStore struct{}
 
 func (m *mockBackupStore) ListBackups(context.Context, string) (etcdbackup.InfoIterator, error) {
-	return nil, nil
+	return nil, nil //nolint:nilnil
 }
 
 func (m *mockBackupStore) Upload(context.Context, etcdbackup.Description, io.Reader) error {

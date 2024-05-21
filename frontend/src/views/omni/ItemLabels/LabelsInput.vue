@@ -42,11 +42,13 @@ included in the LICENSE file.
       :model-value="filterValue"
       @update:model-value="value => $emit('update:filter-value', value)"
       ref="input"
+      v-click-outside="() => showCompletions = false"
+      @click="showCompletions = true"
       :onClear="() => { $emit('update:filter-labels', []) }">
       <template #labels>
         <div class="label"
           :class="{selected: selectedLabel === index}"
-          v-for="label, index in filterLabels" :key="label.id">
+          v-for="label, index in filterLabels" :key="label.key">
           <item-label :label="{
             ...label,
             removable: true
@@ -56,7 +58,7 @@ included in the LICENSE file.
         </div>
       </template>
     </t-input>
-    <div v-if="matchedLabelsCompletion.length > 0" class="flex flex-col rounded bg-naturals-N2 border border-naturals-N4 absolute top-full left-0 min-w-full z-10 divide-y divide-naturals-N6 mt-1">
+    <div v-if="matchedLabelsCompletion.length > 0 && showCompletions" class="flex flex-col rounded bg-naturals-N2 border border-naturals-N4 absolute top-full left-0 min-w-full z-10 divide-y divide-naturals-N6 mt-1">
       <div v-for="suggestion, index in matchedLabelsCompletion" :key="suggestion.id" class="label-suggestion" :class="{selected: index === selectedSuggestion}" @click="autoComplete(index)">
         <item-label :label="suggestion" class="pointer-events-none"/>
       </div>
@@ -91,6 +93,8 @@ const props = defineProps<{
   filterValue: string,
   filterLabels: Label[],
 }>();
+
+const showCompletions = ref(false);
 
 const emit = defineEmits(["update:filter-value", "update:filter-labels"]);
 
@@ -157,16 +161,22 @@ watch(filterValue, async (val: string, old: string) => {
 
       labelsCompletions = [];
 
+      const addLabel = (l: {key: string, value: string}) => {
+        if (labelsCompletions.find(item => item.key === l.key && item.value === l.value)) {
+          return;
+        }
+
+        labelsCompletions.push(l);
+      };
+
       for (const key in completion.spec.items) {
         let hasEmptyValue = false;
 
         for (const value of completion.spec.items[key].items!) {
-          labelsCompletions.push(
-            {
-              key: key,
-              value: value,
-            }
-          );
+          addLabel({
+            key: key,
+            value: value,
+          });
 
           if (!value) {
             hasEmptyValue = true;
@@ -174,12 +184,10 @@ watch(filterValue, async (val: string, old: string) => {
         }
 
         if (!hasEmptyValue) {
-          labelsCompletions.push(
-            {
-              key: key,
-              value: "",
-            }
-          );
+          addLabel({
+            key: key,
+            value: "",
+          });
         }
       }
     } catch (e) {

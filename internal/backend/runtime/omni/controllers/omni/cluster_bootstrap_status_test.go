@@ -46,7 +46,7 @@ type mockEtcdBackupStore struct {
 }
 
 func (m *mockEtcdBackupStore) ListBackups(context.Context, string) (etcdbackup.InfoIterator, error) {
-	return nil, nil
+	return nil, nil //nolint:nilnil
 }
 
 func (m *mockEtcdBackupStore) Upload(context.Context, etcdbackup.Description, io.Reader) error {

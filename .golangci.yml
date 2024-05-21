@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-04-17T16:16:58Z by kres 92eef68.
+# Generated on 2024-05-21T11:39:21Z by kres 0290180.
 
 # options for analysis running
 run:
@@ -35,7 +35,7 @@ linters-settings:
     sections:
       - standard # Standard section: captures all standard packages.
       - default # Default section: contains all imports that could not be matched to another section type.
-      - prefix(github.com/siderolabs/omni/) # Custom section: groups all imports with the specified Prefix.
+      - localmodule # Imports from the same module.
   gocognit:
     min-complexity: 30
   nestif:
@@ -51,10 +51,7 @@ linters-settings:
     scope: declarations
   gofmt:
     simplify: true
-  goimports:
-    local-prefixes: github.com/siderolabs/omni/
   gomodguard: { }
-  gomnd: { }
   govet:
     enable-all: true
   lll:
@@ -109,17 +106,18 @@ linters:
   disable:
     - exhaustivestruct
     - exhaustruct
+    - err113
     - forbidigo
     - funlen
     - gochecknoglobals
     - gochecknoinits
     - godox
-    - goerr113
     - gomnd
     - gomoddirectives
     - gosec
     - inamedparam
     - ireturn
+    - mnd
     - nestif
     - nonamedreturns
     - nosnakecase
@@ -145,6 +143,7 @@ linters:
     - varcheck
     # disabled as it seems to be broken - goes into imported libraries and reports issues there
     - musttag
+    - goimports # same as gci
 
 issues:
   exclude: [ ]
