@@ -9,6 +9,12 @@ name: integration-test
 spec:
   disableImage: true
 ---
+kind: common.GHWorkflow
+spec:
+  customRunners:
+    - self-hosted
+    - omni
+---
 kind: auto.CustomSteps
 spec:
   steps:
