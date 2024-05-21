@@ -129,7 +129,6 @@ func dial(ctx context.Context, serverEndpoint string) (*grpc.ClientConn, error) 
 		}),
 		grpc.WithTransportCredentials(creds),
 		grpc.WithCodec(proxy.Codec()), //nolint:staticcheck
-		grpc.WithBlock(),
 	}
 
 	return grpc.DialContext(ctx, serverEndpoint, opts...)

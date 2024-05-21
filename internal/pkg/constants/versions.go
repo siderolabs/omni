@@ -6,7 +6,7 @@
 package constants
 
 // AnotherTalosVersion is used in the integration tests for Talos upgrade.
-const AnotherTalosVersion = "1.6.3"
+const AnotherTalosVersion = "1.7.0"
 
 // MinTalosVersion allowed to be used when creating the cluster.
 const MinTalosVersion = "1.3.0"
@@ -14,10 +14,10 @@ const MinTalosVersion = "1.3.0"
 // DefaultKubernetesVersion is pre-selected in the UI and used in the integration tests.
 //
 // tsgen:DefaultKubernetesVersion
-const DefaultKubernetesVersion = "1.29.1"
+const DefaultKubernetesVersion = "1.30.1"
 
 // AnotherKubernetesVersion is used in the integration tests for Kubernetes upgrade.
-const AnotherKubernetesVersion = "1.28.5"
+const AnotherKubernetesVersion = "1.29.5"
 
 // MinKubernetesVersion allowed to be used when creating the cluster.
 const MinKubernetesVersion = "1.24.0"

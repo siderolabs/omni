@@ -1,6 +1,6 @@
 module github.com/siderolabs/omni/client
 
-go 1.22.2
+go 1.22.3
 
 replace (
 	// forked go-yaml that introduces RawYAML interface, which can be used to populate YAML fields using bytes
@@ -27,14 +27,14 @@ require (
 	github.com/siderolabs/go-api-signature v0.3.2
 	github.com/siderolabs/go-kubeconfig v0.1.0
 	github.com/siderolabs/go-pointer v1.0.0
-	github.com/siderolabs/talos/pkg/machinery v1.7.0-alpha.1.0.20240415183747-3dd1f4e88c22
+	github.com/siderolabs/talos/pkg/machinery v1.7.2
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.9.0
 	github.com/xlab/treeprint v1.2.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/sync v0.6.0
 	golang.org/x/term v0.18.0
-	google.golang.org/grpc v1.62.1
+	google.golang.org/grpc v1.63.2
 	google.golang.org/protobuf v1.33.0
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/client-go v0.28.4
@@ -84,7 +84,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/net v0.23.0 // indirect
-	golang.org/x/oauth2 v0.16.0 // indirect
+	golang.org/x/oauth2 v0.17.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect

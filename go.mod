@@ -1,6 +1,6 @@
 module github.com/siderolabs/omni
 
-go 1.22.2
+go 1.22.3
 
 replace (
 	// use nested module
@@ -74,7 +74,7 @@ require (
 	github.com/siderolabs/kms-client v0.1.0
 	github.com/siderolabs/omni/client v0.0.0-00010101000000-000000000000
 	github.com/siderolabs/siderolink v0.3.7
-	github.com/siderolabs/talos/pkg/machinery v1.7.0-alpha.1.0.20240415183747-3dd1f4e88c22
+	github.com/siderolabs/talos/pkg/machinery v1.7.2
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.9.0
