@@ -10,8 +10,8 @@
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
-    "@auth0/auth0-vue": "^1.0.2",
     "@headlessui/vue": "^1.6.5",
+    "@auth0/auth0-vue": "^1.0.2",
     "@heroicons/vue": "^2.0.0",
     "@stardazed/streams-polyfill": "^2.4.0",
     "apexcharts": "^3.35.3",

@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-05-21T13:03:14Z by kres 0290180.
+# Generated on 2024-05-22T17:52:27Z by kres 5fac898-dirty.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -12,9 +12,8 @@ FROM ghcr.io/siderolabs/ca-certificates:v1.7.0 AS image-ca-certificates
 FROM ghcr.io/siderolabs/fhs:v1.7.0 AS image-fhs
 
 # base toolchain image
-FROM ${JS_TOOLCHAIN} AS js-toolchain
-COPY --from=golang:1.22-alpine /usr/local/go /usr/local/go
-RUN apk --update --no-cache add bash curl protoc protobuf-dev
+FROM --platform=${BUILDPLATFORM} ${JS_TOOLCHAIN} AS js-toolchain
+RUN apk --update --no-cache add bash curl protoc protobuf-dev go
 COPY ./go.mod .
 COPY ./go.sum .
 ENV GOPATH /go
@@ -78,6 +77,29 @@ ADD https://raw.githubusercontent.com/cosi-project/specification/5c734257bfa6a3a
 FROM ${TOOLCHAIN} AS toolchain
 RUN apk --update --no-cache add bash curl build-base protoc protobuf-dev
 
+# tools and sources
+FROM --platform=${BUILDPLATFORM} js-toolchain AS js
+WORKDIR /src
+ARG PROTOBUF_GRPC_GATEWAY_TS_VERSION
+RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/go/pkg go install github.com/siderolabs/protoc-gen-grpc-gateway-ts@v${PROTOBUF_GRPC_GATEWAY_TS_VERSION}
+RUN mv /go/bin/protoc-gen-grpc-gateway-ts /bin
+COPY frontend/package.json ./
+COPY frontend/package-lock.json ./
+RUN --mount=type=cache,target=/src/node_modules npm version ${VERSION}
+RUN --mount=type=cache,target=/src/node_modules npm ci
+COPY frontend/.eslintrc.yaml ./
+COPY frontend/babel.config.js ./
+COPY frontend/jest.config.js ./
+COPY frontend/tsconfig.json ./
+COPY ./frontend/src ./src
+COPY ./frontend/tests ./tests
+COPY ./frontend/public ./public
+COPY ./frontend/babel.config.js ./babel.config.js
+COPY ./frontend/jest.config.js ./jest.config.js
+COPY ./frontend/postcss.config.js ./postcss.config.js
+COPY ./frontend/tailwind.config.js ./tailwind.config.js
+COPY ./frontend/vue.config.js ./vue.config.js
+
 # build tools
 FROM --platform=${BUILDPLATFORM} toolchain AS tools
 ENV GO111MODULE on
@@ -115,59 +137,8 @@ ARG GOFUMPT_VERSION
 RUN go install mvdan.cc/gofumpt@${GOFUMPT_VERSION} \
 	&& mv /go/bin/gofumpt /bin/gofumpt
 
-# tools and sources
-FROM js-toolchain AS js
-WORKDIR /src
-ARG PROTOBUF_GRPC_GATEWAY_TS_VERSION
-RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/go/pkg go install github.com/siderolabs/protoc-gen-grpc-gateway-ts@v${PROTOBUF_GRPC_GATEWAY_TS_VERSION}
-RUN mv /go/bin/protoc-gen-grpc-gateway-ts /bin
-COPY frontend/package.json ./
-COPY frontend/package-lock.json ./
-RUN --mount=type=cache,target=/src/node_modules npm version ${VERSION}
-RUN --mount=type=cache,target=/src/node_modules npm ci
-COPY frontend/.eslintrc.yaml ./
-COPY frontend/babel.config.js ./
-COPY frontend/jest.config.js ./
-COPY frontend/tsconfig.json ./
-COPY ./frontend/src ./src
-COPY ./frontend/tests ./tests
-COPY ./frontend/public ./public
-COPY ./frontend/babel.config.js ./babel.config.js
-COPY ./frontend/jest.config.js ./jest.config.js
-COPY ./frontend/postcss.config.js ./postcss.config.js
-COPY ./frontend/tailwind.config.js ./tailwind.config.js
-COPY ./frontend/vue.config.js ./vue.config.js
-
-FROM tools AS embed-generate
-ARG SHA
-ARG TAG
-WORKDIR /src
-RUN mkdir -p internal/version/data && \
-    echo -n ${SHA} > internal/version/data/sha && \
-    echo -n ${TAG} > internal/version/data/tag
-
-# runs protobuf compiler
-FROM tools AS proto-compile
-COPY --from=proto-specs / /
-RUN protoc -I/client/api --go_out=paths=source_relative:/client/api --go-grpc_out=paths=source_relative:/client/api --go-vtproto_out=paths=source_relative:/client/api --go-vtproto_opt=features=marshal+unmarshal+size+equal+clone /client/api/common/omni.proto
-RUN protoc -I/client/api --grpc-gateway_out=paths=source_relative:/client/api --grpc-gateway_opt=generate_unbound_methods=true --go_out=paths=source_relative:/client/api --go-grpc_out=paths=source_relative:/client/api --go-vtproto_out=paths=source_relative:/client/api --go-vtproto_opt=features=marshal+unmarshal+size+equal+clone /client/api/omni/resources/resources.proto /client/api/omni/management/management.proto /client/api/omni/oidc/oidc.proto /client/api/omni/specs/auth.proto /client/api/omni/specs/virtual.proto /client/api/omni/specs/ephemeral.proto /client/api/omni/specs/oidc.proto /client/api/omni/specs/omni.proto /client/api/omni/specs/siderolink.proto /client/api/omni/specs/system.proto
-RUN protoc -I/client/api --grpc-gateway_out=paths=source_relative:/client/api --grpc-gateway_opt=generate_unbound_methods=true --grpc-gateway_opt=standalone=true /client/api/google/rpc/status.proto /client/api/common/common.proto /client/api/talos/machine/machine.proto /client/api/v1alpha1/resource.proto
-RUN rm /client/api/common/omni.proto
-RUN rm /client/api/omni/resources/resources.proto
-RUN rm /client/api/omni/management/management.proto
-RUN rm /client/api/omni/oidc/oidc.proto
-RUN rm /client/api/omni/specs/auth.proto
-RUN rm /client/api/omni/specs/virtual.proto
-RUN rm /client/api/omni/specs/ephemeral.proto
-RUN rm /client/api/omni/specs/oidc.proto
-RUN rm /client/api/omni/specs/omni.proto
-RUN rm /client/api/omni/specs/siderolink.proto
-RUN rm /client/api/omni/specs/system.proto
-RUN goimports -w -local github.com/siderolabs/omni/client,github.com/siderolabs/omni /client/api
-RUN gofumpt -w /client/api
-
 # builds frontend
-FROM js AS frontend
+FROM --platform=${BUILDPLATFORM} js AS frontend
 ARG NODE_BUILD_ARGS
 RUN --mount=type=cache,target=/src/node_modules npm run build ${NODE_BUILD_ARGS}
 RUN mkdir -p /internal/frontend/dist
@@ -215,11 +186,33 @@ RUN rm /frontend/src/api/omni/specs/ephemeral.proto
 FROM js AS unit-tests-frontend
 RUN --mount=type=cache,target=/src/node_modules CI=true npm run test
 
-FROM embed-generate AS embed-abbrev-generate
+FROM tools AS embed-generate
+ARG SHA
+ARG TAG
 WORKDIR /src
-ARG ABBREV_TAG
-RUN echo -n 'undefined' > internal/version/data/sha && \
-    echo -n ${ABBREV_TAG} > internal/version/data/tag
+RUN mkdir -p internal/version/data && \
+    echo -n ${SHA} > internal/version/data/sha && \
+    echo -n ${TAG} > internal/version/data/tag
+
+# runs protobuf compiler
+FROM tools AS proto-compile
+COPY --from=proto-specs / /
+RUN protoc -I/client/api --go_out=paths=source_relative:/client/api --go-grpc_out=paths=source_relative:/client/api --go-vtproto_out=paths=source_relative:/client/api --go-vtproto_opt=features=marshal+unmarshal+size+equal+clone /client/api/common/omni.proto
+RUN protoc -I/client/api --grpc-gateway_out=paths=source_relative:/client/api --grpc-gateway_opt=generate_unbound_methods=true --go_out=paths=source_relative:/client/api --go-grpc_out=paths=source_relative:/client/api --go-vtproto_out=paths=source_relative:/client/api --go-vtproto_opt=features=marshal+unmarshal+size+equal+clone /client/api/omni/resources/resources.proto /client/api/omni/management/management.proto /client/api/omni/oidc/oidc.proto /client/api/omni/specs/auth.proto /client/api/omni/specs/virtual.proto /client/api/omni/specs/ephemeral.proto /client/api/omni/specs/oidc.proto /client/api/omni/specs/omni.proto /client/api/omni/specs/siderolink.proto /client/api/omni/specs/system.proto
+RUN protoc -I/client/api --grpc-gateway_out=paths=source_relative:/client/api --grpc-gateway_opt=generate_unbound_methods=true --grpc-gateway_opt=standalone=true /client/api/google/rpc/status.proto /client/api/common/common.proto /client/api/talos/machine/machine.proto /client/api/v1alpha1/resource.proto
+RUN rm /client/api/common/omni.proto
+RUN rm /client/api/omni/resources/resources.proto
+RUN rm /client/api/omni/management/management.proto
+RUN rm /client/api/omni/oidc/oidc.proto
+RUN rm /client/api/omni/specs/auth.proto
+RUN rm /client/api/omni/specs/virtual.proto
+RUN rm /client/api/omni/specs/ephemeral.proto
+RUN rm /client/api/omni/specs/oidc.proto
+RUN rm /client/api/omni/specs/omni.proto
+RUN rm /client/api/omni/specs/siderolink.proto
+RUN rm /client/api/omni/specs/system.proto
+RUN goimports -w -local github.com/siderolabs/omni/client,github.com/siderolabs/omni /client/api
+RUN gofumpt -w /client/api
 
 # tools and sources
 FROM tools AS base
@@ -245,6 +238,12 @@ RUN --mount=type=cache,target=/go/pkg go list -mod=readonly all >/dev/null
 FROM scratch AS generate-frontend
 ADD https://www.talos.dev/v1.6/schemas/config.schema.json frontend/src/schemas/config.schema.json
 COPY --from=proto-compile-frontend frontend/ frontend/
+
+FROM embed-generate AS embed-abbrev-generate
+WORKDIR /src
+ARG ABBREV_TAG
+RUN echo -n 'undefined' > internal/version/data/sha && \
+    echo -n ${ABBREV_TAG} > internal/version/data/tag
 
 # run go generate
 FROM base AS go-generate-0
