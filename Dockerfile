@@ -125,6 +125,7 @@ COPY frontend/package.json ./
 COPY frontend/package-lock.json ./
 RUN --mount=type=cache,target=/src/node_modules npm version ${VERSION}
 RUN --mount=type=cache,target=/src/node_modules npm ci
+RUN sleep 180
 COPY frontend/.eslintrc.yaml ./
 COPY frontend/babel.config.js ./
 COPY frontend/jest.config.js ./
@@ -169,6 +170,7 @@ RUN gofumpt -w /client/api
 # builds frontend
 FROM js AS frontend
 ARG NODE_BUILD_ARGS
+RUN --mount=type=cache,target=/src/node_modules npm cache clean --force
 RUN --mount=type=cache,target=/src/node_modules npm run build ${NODE_BUILD_ARGS}
 RUN mkdir -p /internal/frontend/dist
 RUN cp -rf ./dist/* /internal/frontend/dist
@@ -213,6 +215,7 @@ RUN rm /frontend/src/api/omni/specs/ephemeral.proto
 
 # runs js unit-tests
 FROM js AS unit-tests-frontend
+RUN --mount=type=cache,target=/src/node_modules npm cache clean --force
 RUN --mount=type=cache,target=/src/node_modules CI=true npm run test
 
 FROM embed-generate AS embed-abbrev-generate
