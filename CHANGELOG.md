@@ -1,3 +1,91 @@
+## [Omni 0.36.0](https://github.com/siderolabs/omni/releases/tag/v0.36.0) (2024-05-22)
+
+Welcome to the v0.36.0 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Machine And Cluster Labels Completion
+
+The UI of search inputs was reworked. Now Omni suggests autocompletion for all existing machine and cluster labels.
+It also displays the labels as colored boxes in the input to better match with what's shown in the list.
+
+
+### Machine Set Scaling Parallelism
+
+It is now possible to adjust worker machine sets scaling and update strategies in the UI.
+
+
+### `omnictl` Version Warnings
+
+`omnictl` now warns that it has the different version from the backend.
+
+
+### Contributors
+
+* Artem Chernyshev
+* Dmitriy Matrenichev
+* Noel Georgi
+
+### Changes
+<details><summary>17 commits</summary>
+<p>
+
+* [`0aa16db`](https://github.com/siderolabs/omni/commit/0aa16dbd83800d48999b81ece842be4ca3c60698) chore: update Talos to 1.7.2 in the tests
+* [`9081a37`](https://github.com/siderolabs/omni/commit/9081a3752f8fbabfe003b4aa76f22426002cb4be) chore: use large runners for ci
+* [`dfad9dd`](https://github.com/siderolabs/omni/commit/dfad9dd420604ed8e6a5d4437aa5d986124f37ff) fix: hide labels completions dropdown when clicking outside of the input
+* [`12761a3`](https://github.com/siderolabs/omni/commit/12761a33f45e9b81f7fad02be12fb1101da498a9) release(v0.36.0-beta.0): prepare release
+* [`6501134`](https://github.com/siderolabs/omni/commit/65011345032d35a92cafe4037d54687e0ac1e285) feat: implement labels completion for clusters and machines
+* [`f0b9240`](https://github.com/siderolabs/omni/commit/f0b9240c7173ab333b8806f5136435aec4058e69) fix: add the label when clicking outside of the input
+* [`859f04a`](https://github.com/siderolabs/omni/commit/859f04aecdfb042572d57f5961991c225310ba3c) feat: warn about using `omnictl` version different from the backend
+* [`5397c70`](https://github.com/siderolabs/omni/commit/5397c7010768ac390f1882957b41910b10c0ebe9) chore: bump siderolink to 0.3.7
+* [`15186b6`](https://github.com/siderolabs/omni/commit/15186b6ffe9c6760d83002e11cbd6b41d99b36ac) fix: machine class edit page
+* [`a330167`](https://github.com/siderolabs/omni/commit/a330167c0513afa7715c7f28864414bd4f21bb38) fix: use proper help string for `omnictl download --talos-version` flag
+* [`c1d38e6`](https://github.com/siderolabs/omni/commit/c1d38e613d15e942fe277d7e62aab75b5dd84a6e) fix: properly do rolling update on control plane nodes
+* [`a0d02ea`](https://github.com/siderolabs/omni/commit/a0d02ea20b2ebcc6556e80afe04cb22392afe561) fix: do not block machine config updates if loadbalancer is down
+* [`105fd8b`](https://github.com/siderolabs/omni/commit/105fd8b496d8b7bb7f8105eff65c1ce2c004e574) fix: do not try to audit machine which no longer has `MachineStatus`
+* [`81f749f`](https://github.com/siderolabs/omni/commit/81f749f91a5380f9213548443aae69111a43e7c2) fix: do not fail schematic reconcile if initial talos version is empty
+* [`7bd922a`](https://github.com/siderolabs/omni/commit/7bd922a6a87423c4a087408b338a002dd3f6b554) feat: implement the UI for adjusting machine sets update strategies
+* [`0058c04`](https://github.com/siderolabs/omni/commit/0058c043d6e0e3a10884f87cddc31b46f1392dbd) fix: get all attribute values from SAML ACS when adding user labels
+* [`7aabbb0`](https://github.com/siderolabs/omni/commit/7aabbb089152debe12acbf0b5ca52c6f4f349d29) fix: make search work on `NodeExtensions` page
+</p>
+</details>
+
+### Changes since v0.36.0-beta.0
+<details><summary>3 commits</summary>
+<p>
+
+* [`0aa16db`](https://github.com/siderolabs/omni/commit/0aa16dbd83800d48999b81ece842be4ca3c60698) chore: update Talos to 1.7.2 in the tests
+* [`9081a37`](https://github.com/siderolabs/omni/commit/9081a3752f8fbabfe003b4aa76f22426002cb4be) chore: use large runners for ci
+* [`dfad9dd`](https://github.com/siderolabs/omni/commit/dfad9dd420604ed8e6a5d4437aa5d986124f37ff) fix: hide labels completions dropdown when clicking outside of the input
+</p>
+</details>
+
+### Changes from siderolabs/siderolink
+<details><summary>2 commits</summary>
+<p>
+
+* [`be00ff5`](https://github.com/siderolabs/siderolink/commit/be00ff59bac50e0da4cd0747f8e5f30c7b029ded) chore: redo event filtering as a sequence of iterators
+* [`a936b60`](https://github.com/siderolabs/siderolink/commit/a936b60645267d2e7320083b402df5ad19de76f5) chore: handle peer events in batches
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/siderolabs/siderolink**           v0.3.5 -> v0.3.7
+* **github.com/siderolabs/talos/pkg/machinery**  3dd1f4e88c22 -> v1.7.2
+* **golang.org/x/crypto**                        v0.22.0 -> v0.23.0
+* **golang.org/x/net**                           v0.24.0 -> v0.25.0
+* **golang.org/x/sync**                          v0.6.0 -> v0.7.0
+* **golang.org/x/text**                          v0.14.0 -> v0.15.0
+* **golang.org/x/tools**                         v0.19.0 -> v0.20.0
+* **google.golang.org/grpc**                     v1.62.2 -> v1.63.2
+* **google.golang.org/protobuf**                 v1.33.0 -> v1.34.1
+
+Previous release can be found at [v0.35.0](https://github.com/siderolabs/omni/releases/tag/v0.35.0)
+
 ## [Omni 0.36.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.36.0-beta.0) (2024-05-20)
 
 Welcome to the v0.36.0-beta.0 release of Omni!  
