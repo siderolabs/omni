@@ -215,3 +215,20 @@ const copyMachineID = () => {
   copyText(machine.value.metadata.id!, undefined, () => {});
 };
 </script>
+
+<style scoped>
+.content {
+  @apply w-full border-b border-naturals-N4 flex;
+}
+
+.router-link-active {
+  @apply text-naturals-N13 relative;
+}
+
+.router-link-active::before {
+  @apply block absolute bg-primary-P3 w-full animate-fadein;
+  content: "";
+  height: 2px;
+  bottom: -15px;
+}
+</style>

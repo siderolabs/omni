@@ -21,10 +21,10 @@ included in the LICENSE file.
         />
         <t-select-list
           @checkedValue="setPatchType"
-          v-if="$route.params.cluster"
+          v-if="patchTypes"
           title="Patch Target"
-          :defaultValue="patchTypeCluster"
-          :values="[patchTypeCluster].concat(machineSetTitles).concat(machines)"
+          :defaultValue="patchTypes[0]"
+          :values="patchTypes"
         />
         <popper :show="weight < 100 || weight > 900" placement="bottom-start">
           <t-input type="number"
@@ -91,8 +91,8 @@ import {
   ConfigPatchName,
   ConfigPatchDescription,
   MachineSetType,
+  MachineStatusType,
 } from "@/api/resources";
-import { controlPlaneMachineSetId } from "@/methods/cluster";
 import { showError } from "@/notification";
 import TSpinner from "@/components/common/Spinner/TSpinner.vue";
 import Watch from "../../../api/watch";
@@ -135,13 +135,35 @@ const weight = ref(0);
 const patchName = ref("User defined patch");
 const patchDescription = ref("");
 
-const patchTypeCluster = "Cluster";
+enum PatchType {
+  Cluster = "Cluster",
+  ClusterMachine = "Cluster Machine",
+  Machine = "Machine"
+}
 
 let codeEditor: monaco.editor.IStandaloneCodeEditor | undefined;
 
 const editorDidMount = (editor: monaco.editor.IStandaloneCodeEditor) => {
   codeEditor = editor;
 };
+
+const machine = ref<Resource>();
+const machineWatch = new Watch(machine);
+
+machineWatch.setup(computed(() => {
+  if (!route.params.machine) {
+    return;
+  }
+
+  return {
+    resource: {
+      type: MachineStatusType,
+      id: route.params.machine as string,
+      namespace: DefaultNamespace,
+    },
+    runtime: Runtime.Omni,
+  }
+}));
 
 const nodeIDMap: Record<string, string> = {};
 const machineSetIDMap: Record<string, string> = {};
@@ -200,25 +222,10 @@ const checkEncryption = (model: monaco.editor.ITextModel, tokens: monaco.Token[]
   return markers;
 }
 
+let selectedPatchType: string;
+
 const setPatchType = (value: string) => {
-  const machineID = nodeIDMap[value];
-  const machineSetID = machineSetIDMap[value];
-
-  patchToCreate.metadata.labels = {};
-
-  if (value == patchTypeCluster) {
-    patchToCreate.metadata.labels[LabelMachineSet] = controlPlaneMachineSetId(route.params.cluster as string);
-
-    return;
-  }
-
-  if (machineSetID) {
-    patchToCreate.metadata.labels[LabelMachineSet] = machineSetID;
-
-    return;
-  }
-
-  patchToCreate.metadata.labels[LabelClusterMachine] = machineID;
+  selectedPatchType = value;
 };
 
 const machineSets: Ref<Resource<MachineSetSpec>[]> = ref([]);
@@ -329,6 +336,18 @@ watch(() => route.params.patch, updatePatchWatchOptions);
 loadPatch();
 watch(patch, loadPatch);
 
+const patchTypes = computed(() => {
+  if (route.params.cluster) {
+    return [PatchType.Cluster as string].concat(machineSetTitles.value).concat(machines.value)
+  }
+
+  if (machine.value?.metadata.labels?.[LabelCluster]) {
+    return [PatchType.Machine, PatchType.ClusterMachine];
+  }
+
+  return undefined;
+});
+
 enum State {
   Unknown = 0,
   Exists = 1,
@@ -419,6 +438,39 @@ const ready = computed(() => {
 
 const saving = ref(false);
 
+const getPatchLabels = () => {
+  const patchType = selectedPatchType ?? patchTypes.value?.[0];
+
+  if (!patchType || patchType === PatchType.Machine) {
+    return {
+      [LabelMachine]: route.params.machine as string,
+    }
+  }
+
+  const cluster = route.params.cluster ?? machine.value?.metadata.labels?.[LabelCluster];
+  if (!cluster) {
+    throw new Error("failed to determine machine cluster");
+  }
+
+  const labels = {
+    [LabelCluster]: cluster as string,
+  }
+
+  const machineID = nodeIDMap[patchType];
+
+  if (patchType === PatchType.ClusterMachine || machineID) {
+    labels[LabelClusterMachine] = machineID ?? machine.value?.metadata.id!;
+  }
+
+  const machineSetID = machineSetIDMap[patchType];
+
+  if (machineSetID) {
+    labels[LabelMachineSet] = machineSetID;
+  }
+
+  return labels
+}
+
 const saveConfig = async () => {
   const create = (state.value === State.NotExists);
 
@@ -433,18 +485,7 @@ const saveConfig = async () => {
     patchToCreate.spec.data = config.value;
 
     currentPatch = patchToCreate;
-
-    if (!currentPatch.metadata.labels) {
-        currentPatch.metadata.labels = {};
-    }
-
-    if (route.params.cluster) {
-        currentPatch.metadata.labels[LabelCluster] = route.params.cluster as string;
-    } else if (route.params.machine) {
-        currentPatch.metadata.labels[LabelMachine] = route.params.machine as string;
-    } else {
-      throw new Error("failed to determine the owner of the patch from the URI");
-    }
+    currentPatch.metadata.labels = getPatchLabels();
   }
 
   if (!currentPatch) {

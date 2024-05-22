@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <template>
   <div class="flex flex-col">
-    <div class="w-1/4 mb-4">
+    <div class="mb-4">
       <t-input
         placeholder="Search..."
         v-model="searchInput"

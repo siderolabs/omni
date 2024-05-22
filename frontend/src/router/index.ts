@@ -12,6 +12,8 @@ import OmniClusterCreate from "@/views/omni/Clusters/Management/ClusterCreate.vu
 import OmniClusterScale from "@/views/omni/Clusters/Management/ClusterScale.vue";
 import OmniMachines from "@/views/omni/Machines/Machines.vue";
 import OmniMachineLogs from "@/views/omni/Machines/MachineLogs.vue";
+import OmniMachinePatches from "@/views/omni/Machines/MachinePatches.vue";
+import OmniMachine from "@/views/omni/Machines/Machine.vue";
 import OmniUsers from "@/views/omni/Users/Users.vue";
 import OmniSettings from "@/views/omni/Settings/Settings.vue";
 import Authenticate from "@/views/omni/Auth/Authenticate.vue";
@@ -31,7 +33,8 @@ import NodeLogs from "@/views/cluster/Nodes/NodeLogs.vue";
 import NodeConfig from "@/views/cluster/Nodes/NodeConfig.vue";
 import NodeMounts from "@/views/cluster/Nodes/NodeMounts.vue";
 import NodeExtensions from "@/views/cluster/Nodes/NodeExtensions.vue";
-import ConfigPatches from "@/views/cluster/Config/Patches.vue";
+import NodePatches from "@/views/cluster/Nodes/NodePatches.vue";
+import ClusterPatches from "@/views/cluster/Config/ClusterPatches.vue";
 import PatchEdit from "@/views/cluster/Config/PatchEdit.vue";
 import KubernetesManifestSync from "@/views/cluster/Manifest/Sync.vue";
 import NodeDetails from "@/views/cluster/Nodes/NodeDetails.vue";
@@ -218,16 +221,6 @@ const routes: RouteRecordRaw[] = [
       }
     },
     {
-      path: "/machine/:machine/logs",
-      name: "MachineLogs",
-      component:  OmniMachineLogs,
-    },
-    {
-      path: "/machine/:machine/patches",
-      name: "MachineConfigPatches",
-      component: ConfigPatches,
-    },
-    {
       path: "/machine/:machine/patches/:patch",
       name: "MachinePatchEdit",
       component:  PatchEdit,
@@ -256,6 +249,30 @@ const routes: RouteRecordRaw[] = [
         },
       ]
     },
+    {
+      path: "/machine/:machine",
+      name: "Machine",
+      component: OmniMachine,
+      redirect: {
+        name: "MachineLogs",
+      },
+      children: [
+        {
+          path: "logs",
+          name: "MachineLogs",
+          components: {
+            inner: OmniMachineLogs,
+          }
+        },
+        {
+          path: "patches",
+          name: "MachineConfigPatches",
+          components: {
+            inner: OmniMachinePatches,
+          }
+        },
+      ]
+    }
   ], { sidebar: OmniSidebar }),
   ...withPrefix("/cluster/:cluster", [
     {
@@ -295,7 +312,7 @@ const routes: RouteRecordRaw[] = [
       name: "ClusterConfigPatches",
       component: ClusterScoped,
       props: {
-        inner: ConfigPatches,
+        inner: ClusterPatches,
       },
     },
     {
@@ -354,6 +371,13 @@ const routes: RouteRecordRaw[] = [
             name: "NodeConfig",
             components: {
               nodeDetails: NodeConfig,
+            },
+          },
+          {
+            path: "patches",
+            name: "NodePatches",
+            components: {
+              nodeDetails: NodePatches,
             },
           },
           {

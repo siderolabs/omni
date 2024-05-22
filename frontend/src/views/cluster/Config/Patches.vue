@@ -5,17 +5,17 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <div class="flex flex-col gap-2 overflow-y-auto">
-    <div class="flex items-start">
-      <page-header class="flex-1" :title="title"/>
+  <div class="flex flex-col gap-4 overflow-y-auto">
+    <managed-by-templates-warning :cluster="cluster"/>
+    <div class="flex gap-4">
+      <t-input
+        class="flex-1"
+        placeholder="Search..."
+        icon="search"
+        v-model="filter"
+      />
       <t-button type="highlighted" @click="openPatchCreate" :disabled="!canManageConfigPatches">Create Patch</t-button>
     </div>
-    <managed-by-templates-warning :cluster="currentCluster"/>
-    <t-input
-      secondary
-      placeholder="Search..."
-      v-model="filter"
-    />
     <div class="flex-1 font-sm">
       <div v-if="loading" class="w-full h-full flex items-center justify-center">
         <t-spinner class="w-6 h-6"/>
@@ -25,8 +25,8 @@ included in the LICENSE file.
         type="info"
       >
         There are no config patches {{
-          $route.params.machine ? `associated with machine ${$route.params.machine}` :
-            $route.params.cluster ? `associated with cluster ${$route.params.cluster}` : `on the account`}}
+          machine?.metadata.id ? `associated with machine ${machine.metadata.id}` :
+          cluster?.metadata.id ? `associated with cluster ${cluster.metadata.id}` : `on the account`}}
       </t-alert>
       <disclosure v-else as="div" :defaultOpen="true" v-for="group in routes" :key="group.name">
         <template v-slot="{ open }">
@@ -76,17 +76,15 @@ import {
 } from "@/api/resources";
 import { Resource, ResourceService } from "@/api/grpc";
 import { RouteLocationRaw, useRoute, useRouter } from "vue-router";
-import { ref, computed, Ref, watch, onMounted } from "vue";
-import { v4 as uuidv4 } from "uuid";
+import { ref, computed, Ref, watch, onMounted, toRefs } from "vue";
 import { ClusterSpec, ConfigPatchSpec } from "@/api/omni/specs/omni.pb";
-import Watch from "@/api/watch";
+import Watch, { WatchOptions } from "@/api/watch";
+import { v4 as uuidv4 } from "uuid";
 
 import TAlert from "@/components/TAlert.vue";
 import TSpinner from "@/components/common/Spinner/TSpinner.vue";
-import TButton from "@/components/common/Button/TButton.vue";
 import TIcon from "@/components/common/Icon/TIcon.vue";
 import { Disclosure, DisclosureButton, DisclosurePanel } from "@headlessui/vue";
-import PageHeader from "@/components/common/PageHeader.vue";
 import TInput from "@/components/common/TInput/TInput.vue";
 import { DocumentIcon } from "@heroicons/vue/24/solid";
 import WordHighlighter from "vue-word-highlighter";
@@ -97,31 +95,39 @@ import { withRuntime } from "@/api/options";
 import { canManageMachineConfigPatches, canReadMachineConfigPatches } from "@/methods/auth";
 import { controlPlaneTitle, machineSetTitle, defaultWorkersTitle, workersTitlePrefix } from "@/methods/machineset";
 import ManagedByTemplatesWarning from "@/views/cluster/ManagedByTemplatesWarning.vue";
+import TButton from "@/components/common/Button/TButton.vue";
 
 const route = useRoute();
 const router = useRouter();
 const filter = ref("");
-const patchListSelectors:Ref<string[]> = ref([]);
 const machineStatuses: Ref<Resource[]> = ref([]);
 const machineStatusesWatch = new Watch(machineStatuses);
 
 type Props = {
-  currentCluster?: Resource<ClusterSpec>,
+  cluster?: Resource<ClusterSpec>
+  machine?: Resource,
 };
 
-defineProps<Props>();
+const props = defineProps<Props>();
 
-const updateSelectors = () => {
-  patchListSelectors.value = [`!${LabelSystemPatch}`];
+const { machine, cluster } = toRefs(props);
 
-  if (route.params.cluster) {
-    patchListSelectors.value.push(`${LabelCluster}=${route.params.cluster}`);
-  } else if (route.params.machine) {
-    patchListSelectors.value.push(`${LabelMachine}=${route.params.machine}`);
+const selectors = computed<string[] | void>(() => {
+  const res: string[] = [];
+
+  if (cluster.value) {
+    res.push(`${LabelCluster}=${cluster.value.metadata.id}`);
+  } else if (machine.value) {
+    res.push(
+      `${LabelMachine}=${machine.value.metadata.id}`,
+      `${LabelClusterMachine}=${machine.value.metadata.id}`
+    );
+  } else {
+    return;
   }
-}
 
-watch(() => route.params, updateSelectors);
+  return res.map(item => item + `,!${LabelSystemPatch}`);
+});
 
 const patches: Ref<Resource<ConfigPatchSpec>[]> = ref([]);
 const patchesWatch = new Watch(patches);
@@ -129,13 +135,16 @@ const loading = computed(() => {
   return patchesWatch.loading.value || machineStatusesWatch.loading.value;
 });
 
-updateSelectors();
+patchesWatch.setup(computed<WatchOptions | undefined>(() => {
+  if (!selectors.value) {
+    return;
+  }
 
-patchesWatch.setup(computed(() => {
   return {
     runtime: Runtime.Omni,
     resource: { type: ConfigPatchType, namespace: DefaultNamespace },
-    selectors: patchListSelectors.value
+    selectors: selectors.value,
+    selectUsingOR: true,
   }
 }));
 
@@ -159,25 +168,6 @@ const includes = (filter: string, values: string[]) => {
 }
 
 type item = {name: string, route: RouteLocationRaw, id: string, description?: string};
-
-const openPatchCreate = () => {
-  router.push({
-    name: route.params.cluster ? "ClusterPatchEdit" : "MachinePatchEdit",
-    params: {
-      patch: `500-${uuidv4()}`,
-    }
-  })
-};
-
-const title = computed(() => {
-  if (route.params.cluster) {
-    return `Cluster ${route.params.cluster} Config Patches`;
-  } else if (route.params.machine) {
-    return `Machine ${route.params.machine} Config Patches`;
-  }
-
-  return '';
-});
 
 const patchTypeCluster = "Cluster";
 
@@ -208,7 +198,7 @@ const routes = computed(() => {
     const r = {
       name: (item.metadata.annotations || {})[ConfigPatchName] || item.metadata.id!,
       icon: "document",
-      route: { name: route.params.machine ? "MachinePatchEdit" : "ClusterPatchEdit", params: { patch: item.metadata.id! } },
+      route: { name: machine?.value ? "MachinePatchEdit" : "ClusterPatchEdit", params: { patch: item.metadata.id! } },
       id: item.metadata.id!,
       description: item.metadata.annotations?.[ConfigPatchDescription],
     };
@@ -276,24 +266,35 @@ const canReadConfigPatches = ref(false);
 const canManageConfigPatches = ref(false);
 
 const updatePermissions = async () => {
-  if (route.params.cluster) {
+  if (cluster?.value) {
     const clusterPermissions = await ResourceService.Get({
       namespace: VirtualNamespace,
       type: ClusterPermissionsType,
-      id: route.params.cluster as string,
+      id: cluster?.value.metadata.id,
     }, withRuntime(Runtime.Omni))
 
     canReadConfigPatches.value = clusterPermissions?.spec?.can_read_config_patches || false;
     canManageConfigPatches.value = clusterPermissions?.spec?.can_manage_config_patches || false;
-  } else if (route.params.machine) {
+  } else if (machine?.value) {
     canReadConfigPatches.value = canReadMachineConfigPatches.value;
     canManageConfigPatches.value = canManageMachineConfigPatches.value;
-  }else {
-    throw new Error("failed to determine the owner of the patch from the URI");
   }
 };
 
-watch(() => route.params,  async () => {
+const openPatchCreate = () => {
+  if (!cluster.value && !machine.value) {
+    return;
+  }
+
+  router.push({
+    name: cluster.value ? "ClusterPatchEdit" : "MachinePatchEdit",
+    params: {
+      patch: `500-${uuidv4()}`,
+    }
+  })
+};
+
+watch([() => machine.value, () => cluster.value],  async () => {
   await updatePermissions();
 });
 

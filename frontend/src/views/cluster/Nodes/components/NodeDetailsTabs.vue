@@ -49,6 +49,10 @@ const routes = computed((): {name: string, to: RouteLocationRaw }[] => {
       to: { name: "NodeConfig", params: { machine: machine.value } },
     },
     {
+      name: "Patches",
+      to: { name: "NodePatches", params: { machine: machine.value } },
+    },
+    {
       name: "Mounts",
       to: { name: "NodeMounts", params: { machine: machine.value } },
     },

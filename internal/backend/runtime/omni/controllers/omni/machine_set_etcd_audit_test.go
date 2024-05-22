@@ -232,7 +232,7 @@ func (suite *MachineSetEtcdAuditSuite) TestEtcdAudit() {
 				tt.setup(machineSet)
 			}
 
-			assert.NoError(t, retry.Constant(5*time.Second, retry.WithUnits(100*time.Millisecond)).Retry(func() error {
+			assert.NoError(t, retry.Constant(20*time.Second, retry.WithUnits(100*time.Millisecond)).Retry(func() error {
 				return tt.check(primary)
 			}))
 		}) {

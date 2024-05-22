@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-05-21T10:07:53Z by kres 0290180.
+# Generated on 2024-05-22T16:55:28Z by kres 5fac898-dirty.
 
 name: e2e-upgrades-cron
 concurrency:

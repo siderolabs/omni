@@ -6,7 +6,6 @@ included in the LICENSE file.
 -->
 <template>
   <div class="flex flex-col gap-2">
-    <t-breadcrumbs :last="`${machine} Logs`"/>
     <machine-logs-container class="flex-1"/>
   </div>
 </template>
@@ -17,7 +16,6 @@ import { Resource, ResourceService } from "@/api/grpc";
 import { MachineStatusSpec } from "@/api/omni/specs/omni.pb";
 import { withRuntime } from "@/api/options";
 import { DefaultNamespace, MachineStatusType } from "@/api/resources";
-import TBreadcrumbs from "@/components/TBreadcrumbs.vue";
 import MachineLogsContainer from "@/views/omni/Machines/MachineLogsContainer.vue";
 import { onBeforeMount, ref, watch } from "vue";
 import { useRoute } from "vue-router";
