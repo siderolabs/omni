@@ -59,7 +59,7 @@ included in the LICENSE file.
       </template>
     </t-input>
     <div v-if="matchedLabelsCompletion.length > 0 && showCompletions" class="flex flex-col rounded bg-naturals-N2 border border-naturals-N4 absolute top-full left-0 min-w-full z-10 divide-y divide-naturals-N6 mt-1">
-      <div v-for="suggestion, index in matchedLabelsCompletion" :key="suggestion.id" class="label-suggestion" :class="{selected: index === selectedSuggestion}" @click="autoComplete(index)">
+      <div v-for="suggestion, index in matchedLabelsCompletion" :key="index" class="label-suggestion" :class="{selected: index === selectedSuggestion}" @click="autoComplete(index)">
         <item-label :label="suggestion" class="pointer-events-none"/>
       </div>
     </div>
