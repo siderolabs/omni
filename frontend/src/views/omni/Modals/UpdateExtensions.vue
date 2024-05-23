@@ -161,7 +161,7 @@ const updateExtensionsConfig = async () => {
 
   try {
     const existing: Resource<ExtensionsConfigurationSpec> = await ResourceService.Get({
-      id: `schematic-${extensionsConfiguration.metadata.id}`,
+      id: extensionsConfiguration.metadata.id,
       namespace: extensionsConfiguration.metadata.namespace,
       type: extensionsConfiguration.metadata.type,
     }, withRuntime(Runtime.Omni));
