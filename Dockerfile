@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-05-22T16:55:28Z by kres 5fac898-dirty.
+# Generated on 2024-05-23T14:02:19Z by kres 2688b70.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -74,7 +74,7 @@ ADD https://raw.githubusercontent.com/siderolabs/talos/03a20da9da5916c63015d355f
 ADD https://raw.githubusercontent.com/cosi-project/specification/5c734257bfa6a3acb01417809797dbfbe0e73c71/proto/v1alpha1/resource.proto /frontend/src/api/v1alpha1/
 
 # base toolchain image
-FROM ${TOOLCHAIN} AS toolchain
+FROM --platform=${BUILDPLATFORM} ${TOOLCHAIN} AS toolchain
 RUN apk --update --no-cache add bash curl build-base protoc protobuf-dev
 
 # tools and sources

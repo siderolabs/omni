@@ -456,7 +456,8 @@ spec:
 ---
 kind: service.CodeCov
 spec:
-  enabled: false
+  enabled: true
+  target: 15%
 ---
 kind: common.Repository
 spec:
