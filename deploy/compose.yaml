@@ -4,11 +4,13 @@ services:
   omni:
     container_name: omni
     image: "ghcr.io/siderolabs/omni:${OMNI_IMG_TAG}"
+    devices:
+      - /dev/net/tun
     volumes:
-            - ${ETCD_VOLUME_PATH}:/_out/etcd
-            - ${ETCD_ENCRYPTION_KEY}:/omni.asc
-            - ${TLS_CERT}:/tls.crt
-            - ${TLS_KEY}:/tls.key
+      - ${ETCD_VOLUME_PATH}:/_out/etcd
+      - ${ETCD_ENCRYPTION_KEY}:/omni.asc
+      - ${TLS_CERT}:/tls.crt
+      - ${TLS_KEY}:/tls.key
     network_mode: "host"
     cap_add:
       - NET_ADMIN
