@@ -457,7 +457,7 @@ spec:
 kind: service.CodeCov
 spec:
   enabled: true
-  target: 15%
+  targetThreshold: 15
 ---
 kind: common.Repository
 spec:

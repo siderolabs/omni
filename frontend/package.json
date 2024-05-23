@@ -7,7 +7,8 @@
     "build": "vue-cli-service build",
     "test:unit": "vue-cli-service test:unit",
     "test": "vue-cli-service test:unit",
-    "lint": "vue-cli-service lint"
+    "lint": "vue-cli-service lint",
+    "verify": "vue-cli-service -h"
   },
   "dependencies": {
     "@auth0/auth0-vue": "^1.0.2",

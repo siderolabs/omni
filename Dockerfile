@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-05-23T14:02:19Z by kres 2688b70.
+# Generated on 2024-05-23T17:32:47Z by kres b5844f8.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -86,7 +86,7 @@ RUN mv /go/bin/protoc-gen-grpc-gateway-ts /bin
 COPY frontend/package.json ./
 COPY frontend/package-lock.json ./
 RUN --mount=type=cache,target=/src/node_modules npm version ${VERSION}
-RUN --mount=type=cache,target=/src/node_modules npm ci
+RUN --mount=type=cache,target=/src/node_modules npm ci && npm run verify
 COPY frontend/.eslintrc.yaml ./
 COPY frontend/babel.config.js ./
 COPY frontend/jest.config.js ./
