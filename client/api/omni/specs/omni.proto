@@ -131,6 +131,11 @@ message MachineStatusSpec {
       string image = 2;
     }
 
+    message MetaValue {
+      uint32 key = 1;
+      string value = 2;
+    }
+
     // Id is the image factory schematic id used for the image generation.
     //
     // This must be be plain id computed solely from the system extensions, not including the kernel command line arguments, META content etc.
@@ -148,9 +153,28 @@ message MachineStatusSpec {
     // Omni will always reset schematic configuration to this default value when no explicit schematic configuration is set.
     string initial_schematic = 4;
 
+    reserved 5;
+
     // Overlay contains the information about the overlay used during the machine image generation.
     // It is used by SBC images.
     Overlay overlay = 6;
+
+    // KernelArgs is the kernel command line arguments used during the machine image generation.
+    repeated string kernel_args = 7;
+
+    // MetaValues is the list of meta values used during the machine image generation.
+    repeated MetaValue meta_values = 8;
+
+    // FullId is the full id of the schematic - including the kernel command line arguments, META content etc.
+    //
+    // It is used instead of Id primarily when the machine has secure boot enabled.
+    string full_id = 9;
+  }
+
+  // SecureBootStatus describes the status of the SecureBoot feature.
+  message SecureBootStatus {
+    // Enabled is true if SecureBoot is detected to be available and enabled.
+    bool enabled = 1;
   }
 
   message MaintenanceConfig {
@@ -213,6 +237,8 @@ message MachineStatusSpec {
   string initial_talos_version = 16;
 
   TalosMachineStatus talos_machine_status = 17;
+
+  SecureBootStatus secure_boot_status = 18;
 }
 
 // TalosConfigSpec describes a Talos cluster config.

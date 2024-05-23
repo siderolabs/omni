@@ -7,12 +7,14 @@ package omni_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/image-factory/pkg/constants"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
@@ -25,9 +27,12 @@ import (
 	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
+
+const testSchematicKernelArgs = "key1=val1 key2=val2"
 
 type imageFactoryClientMock struct{}
 
@@ -66,6 +71,15 @@ func (suite *MachineStatusSuite) setup() {
 	suite.Require().NoError(suite.runtime.RegisterController(&omnictrl.MachineStatusController{
 		ImageFactoryClient: &imageFactoryClientMock{},
 	}))
+
+	suite.Require().NoError(
+		suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)),
+	)
+
+	params := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
+	params.TypedSpec().Value.Args = testSchematicKernelArgs
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, params))
 }
 
 const testID = "testID"
@@ -263,6 +277,15 @@ func (suite *MachineStatusSuite) TestMachineUserLabels() {
 func (suite *MachineStatusSuite) TestMachineSchematic() {
 	suite.setup()
 
+	kernelArgs := strings.Split(testSchematicKernelArgs, " ")
+
+	vanillaID, err := pointer.To(schematic.Schematic{
+		Customization: schematic.Customization{
+			ExtraKernelArgs: kernelArgs,
+		},
+	}).ID()
+	suite.Require().NoError(err)
+
 	machine := omni.NewMachine(resources.DefaultNamespace, testID)
 	spec := machine.TypedSpec().Value
 
@@ -304,18 +327,19 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 					Metadata: extensions.Metadata{
 						Name:        constants.SchematicIDExtensionName,
 						Description: "3",
-						Version:     "1",
+						Version:     "full-id",
 					},
 				},
 			},
 			expected: &specs.MachineStatusSpec_Schematic{
 				Id:               "7d79f1ce28d7e6c099bc89ccf02238fb574165eb4834c2abf2a61eab998d4dc6",
-				InitialSchematic: "7d79f1ce28d7e6c099bc89ccf02238fb574165eb4834c2abf2a61eab998d4dc6",
+				InitialSchematic: "full-id",
 				Extensions: []string{
 					"siderolabs/gvisor",
 					"siderolabs/hello-world-service",
 					"siderolabs/mdadm",
 				},
+				FullId: "full-id",
 			},
 		},
 		{
@@ -337,7 +361,9 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 			name: "vanilla autodetect",
 			expected: &specs.MachineStatusSpec_Schematic{
 				Id:               defaultSchematic,
-				InitialSchematic: defaultSchematic,
+				InitialSchematic: vanillaID,
+				FullId:           vanillaID,
+				KernelArgs:       kernelArgs,
 			},
 		},
 	} {

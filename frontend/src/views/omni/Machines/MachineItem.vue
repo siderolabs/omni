@@ -98,12 +98,16 @@ included in the LICENSE file.
           </router-link>
         </div>
         <div class="mb-2 mt-4">Last Active</div>
-        <div class="mb-2 mt-4 col-span-4">Created At</div>
+        <div class="mb-2 mt-4">Created At</div>
+        <div class="mb-2 mt-4 col-span-3">Secure Boot</div>
         <div>
           <div>{{ machineLastAlive }}</div>
         </div>
         <div>
           <div>{{ machineCreatedAt }}</div>
+        </div>
+        <div>
+          <div>{{ secureBoot }}</div>
         </div>
       </div>
     </template>
@@ -210,6 +214,13 @@ const timeGetter = (fn :() => string|undefined) => {
 
 const machineLastAlive = timeGetter(() => machine.value?.spec?.siderolink_counter?.last_alive);
 const machineCreatedAt = timeGetter(() => machine.value?.spec?.machine_created_at);
+const secureBoot = computed(() => {
+  if (machine.value.spec.message_status?.secure_boot_status?.enabled === undefined) {
+    return "Unknown";
+  }
+
+  return machine.value.spec.message_status.secure_boot_status.enabled ? "Enabled" : "Disabled";
+});
 
 const copyMachineID = () => {
   copyText(machine.value.metadata.id!, undefined, () => {});

@@ -169,7 +169,8 @@ spec:
           always: true
           continueOnError: true
           paths:
-            - ~/.talos/clusters/**/*.log
+            - "~/.talos/clusters/**/*.log"
+            - "!~/.talos/clusters/**/swtpm.log"
     environment:
       WITH_DEBUG: "true"
       INTEGRATION_RUN_E2E_TEST: "true"

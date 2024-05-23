@@ -12,11 +12,13 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
+	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	siderolinkmanager "github.com/siderolabs/omni/internal/pkg/siderolink"
 )
@@ -42,6 +44,9 @@ func (suite *MachineStatusLinkSuite) SetupTest() {
 }
 
 func (suite *MachineStatusLinkSuite) TestBasicMachineOnAndOff() {
+	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
+	suite.Require().NoError(suite.state.Create(suite.ctx, siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)))
+
 	machine := omni.NewMachine(resources.DefaultNamespace, testID)
 	machine.TypedSpec().Value.Connected = true
 
@@ -88,6 +93,9 @@ func (suite *MachineStatusLinkSuite) TestBasicMachineOnAndOff() {
 func (suite *MachineStatusLinkSuite) TestTwoMachines() {
 	machine1 := omni.NewMachine(resources.DefaultNamespace, testID)
 	machine1.TypedSpec().Value.Connected = true
+
+	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
+	suite.Require().NoError(suite.state.Create(suite.ctx, siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)))
 
 	suite.create(machine1)
 

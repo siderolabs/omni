@@ -18,6 +18,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
+	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
@@ -25,6 +26,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
 
@@ -34,6 +36,9 @@ type ClusterMachineConfigStatusSuite struct {
 
 func (suite *ClusterMachineConfigStatusSuite) TestApplyReset() {
 	suite.startRuntime()
+
+	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
+	suite.Require().NoError(suite.state.Create(suite.ctx, siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)))
 
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
@@ -51,31 +56,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestApplyReset() {
 
 	cluster, machines := suite.createCluster(clusterName, 3, 0)
 
-	for _, m := range machines {
-		statusSnapshot := omni.NewMachineStatusSnapshot(resources.DefaultNamespace, m.Metadata().ID())
-
-		statusSnapshot.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{
-			Stage: machine.MachineStatusEvent_BOOTING,
-		}
-
-		suite.Require().NoError(suite.state.Create(suite.ctx, statusSnapshot))
-
-		_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, resource.NewMetadata(
-			m.Metadata().Namespace(),
-			omni.MachineStatusType,
-			m.Metadata().ID(),
-			resource.VersionUndefined,
-		),
-			func(res *omni.MachineStatus) error {
-				res.TypedSpec().Value.Connected = true
-				res.TypedSpec().Value.Maintenance = false
-
-				return nil
-			},
-		)
-
-		suite.Require().NoError(err)
-	}
+	suite.prepareMachines(machines)
 
 	for _, m := range machines {
 		assertResource(
@@ -138,6 +119,9 @@ func (suite *ClusterMachineConfigStatusSuite) TestApplyReset() {
 func (suite *ClusterMachineConfigStatusSuite) TestResetMachineRemoved() {
 	suite.startRuntime()
 
+	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
+	suite.Require().NoError(suite.state.Create(suite.ctx, siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)))
+
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil)))
@@ -154,31 +138,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestResetMachineRemoved() {
 
 	cluster, machines := suite.createCluster(clusterName, 2, 0)
 
-	for _, m := range machines {
-		statusSnapshot := omni.NewMachineStatusSnapshot(resources.DefaultNamespace, m.Metadata().ID())
-
-		statusSnapshot.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{
-			Stage: machine.MachineStatusEvent_RUNNING,
-		}
-
-		suite.Require().NoError(suite.state.Create(suite.ctx, statusSnapshot))
-
-		_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, resource.NewMetadata(
-			m.Metadata().Namespace(),
-			omni.MachineStatusType,
-			m.Metadata().ID(),
-			resource.VersionUndefined,
-		),
-			func(res *omni.MachineStatus) error {
-				res.TypedSpec().Value.Connected = true
-				res.TypedSpec().Value.Maintenance = false
-
-				return nil
-			},
-		)
-
-		suite.Require().NoError(err)
-	}
+	suite.prepareMachines(machines)
 
 	for _, m := range machines {
 		assertResource(
@@ -231,8 +191,42 @@ func (suite *ClusterMachineConfigStatusSuite) TestResetMachineRemoved() {
 	}
 }
 
+func (suite *ClusterMachineConfigStatusSuite) prepareMachines(machines []*omni.ClusterMachine) {
+	for _, m := range machines {
+		statusSnapshot := omni.NewMachineStatusSnapshot(resources.DefaultNamespace, m.Metadata().ID())
+
+		statusSnapshot.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{
+			Stage: machine.MachineStatusEvent_RUNNING,
+		}
+
+		suite.Require().NoError(suite.state.Create(suite.ctx, statusSnapshot))
+
+		_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, resource.NewMetadata(
+			m.Metadata().Namespace(),
+			omni.MachineStatusType,
+			m.Metadata().ID(),
+			resource.VersionUndefined,
+		),
+			func(res *omni.MachineStatus) error {
+				res.TypedSpec().Value.Connected = true
+				res.TypedSpec().Value.Maintenance = false
+				res.TypedSpec().Value.SecureBootStatus = &specs.MachineStatusSpec_SecureBootStatus{
+					Enabled: false,
+				}
+
+				return nil
+			},
+		)
+
+		suite.Require().NoError(err)
+	}
+}
+
 func (suite *ClusterMachineConfigStatusSuite) TestResetUngraceful() {
 	suite.startRuntime()
+
+	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
+	suite.Require().NoError(suite.state.Create(suite.ctx, siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)))
 
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
@@ -284,6 +278,9 @@ func (suite *ClusterMachineConfigStatusSuite) TestResetUngraceful() {
 				res.TypedSpec().Value.Connected = true
 				res.TypedSpec().Value.Maintenance = false
 				res.TypedSpec().Value.ManagementAddress = unixSocket + machineService.address
+				res.TypedSpec().Value.SecureBootStatus = &specs.MachineStatusSpec_SecureBootStatus{
+					Enabled: false,
+				}
 
 				return nil
 			},
@@ -380,6 +377,9 @@ func (suite *ClusterMachineConfigStatusSuite) TestResetUngraceful() {
 func (suite *ClusterMachineConfigStatusSuite) TestUpgrades() {
 	suite.startRuntime()
 
+	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
+	suite.Require().NoError(suite.state.Create(suite.ctx, siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)))
+
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil)))
@@ -417,6 +417,9 @@ func (suite *ClusterMachineConfigStatusSuite) TestUpgrades() {
 			func(res *omni.MachineStatus) error {
 				res.TypedSpec().Value.Connected = true
 				res.TypedSpec().Value.Maintenance = false
+				res.TypedSpec().Value.SecureBootStatus = &specs.MachineStatusSpec_SecureBootStatus{
+					Enabled: false,
+				}
 
 				return nil
 			},
@@ -455,6 +458,9 @@ func (suite *ClusterMachineConfigStatusSuite) TestUpgrades() {
 
 func (suite *ClusterMachineConfigStatusSuite) TestSchematicChanges() {
 	suite.startRuntime()
+
+	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
+	suite.Require().NoError(suite.state.Create(suite.ctx, siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)))
 
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
@@ -501,6 +507,9 @@ func (suite *ClusterMachineConfigStatusSuite) TestSchematicChanges() {
 			func(res *omni.MachineStatus) error {
 				res.TypedSpec().Value.Connected = true
 				res.TypedSpec().Value.Maintenance = false
+				res.TypedSpec().Value.SecureBootStatus = &specs.MachineStatusSpec_SecureBootStatus{
+					Enabled: false,
+				}
 
 				return nil
 			},
@@ -567,6 +576,90 @@ func (suite *ClusterMachineConfigStatusSuite) TestSchematicChanges() {
 
 		return nil
 	}))
+}
+
+func (suite *ClusterMachineConfigStatusSuite) TestSecureBootInstallImage() {
+	suite.startRuntime()
+
+	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
+	suite.Require().NoError(suite.state.Create(suite.ctx, siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)))
+
+	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
+	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
+
+	clusterName := "test-secure-boot-install-image"
+
+	cluster, machines := suite.createCluster(clusterName, 1, 0)
+
+	for _, m := range machines {
+		talosVersion := omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, m.Metadata().ID())
+		talosVersion.TypedSpec().Value.TalosVersion = cluster.TypedSpec().Value.TalosVersion
+		suite.Require().NoError(suite.state.Create(suite.ctx, talosVersion))
+
+		statusSnapshot := omni.NewMachineStatusSnapshot(resources.DefaultNamespace, m.Metadata().ID())
+
+		statusSnapshot.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{
+			Stage: machine.MachineStatusEvent_RUNNING,
+		}
+
+		suite.Require().NoError(suite.state.Create(suite.ctx, statusSnapshot))
+
+		_, err := safe.StateUpdateWithConflicts[*omni.ClusterMachineTalosVersion](suite.ctx, suite.state, talosVersion.Metadata(), func(res *omni.ClusterMachineTalosVersion) error {
+			res.TypedSpec().Value.SchematicId = "abcd"
+
+			return nil
+		})
+
+		suite.Require().NoError(err)
+
+		_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, resource.NewMetadata(
+			m.Metadata().Namespace(),
+			omni.MachineStatusType,
+			m.Metadata().ID(),
+			resource.VersionUndefined,
+		),
+			func(res *omni.MachineStatus) error {
+				res.TypedSpec().Value.Connected = true
+				res.TypedSpec().Value.Maintenance = false
+				res.TypedSpec().Value.SecureBootStatus = &specs.MachineStatusSpec_SecureBootStatus{
+					Enabled: true,
+				}
+				res.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
+					FullId: "abcd",
+				}
+
+				return nil
+			},
+		)
+
+		suite.Require().NoError(err)
+	}
+
+	suite.Require().NoError(retry.Constant(time.Second * 5).Retry(func() error {
+		requests := suite.machineService.getUpgradeRequests()
+		if len(requests) == 0 {
+			return retry.ExpectedErrorf("no upgrade requests received")
+		}
+
+		expectedImage := "factory.talos.dev/installer-secureboot/abcd:v1.3.0"
+		for i, r := range requests {
+			if r.Image != expectedImage {
+				return fmt.Errorf("%d request image is invalid: expected %q got %q", i, expectedImage, r.Image)
+			}
+		}
+
+		return nil
+	}))
+
+	suite.machineService.clearUpgradeRequests()
 }
 
 func (suite *ClusterMachineConfigStatusSuite) TestGenerationErrorPropagation() {

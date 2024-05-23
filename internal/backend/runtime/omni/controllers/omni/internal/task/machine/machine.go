@@ -60,6 +60,9 @@ type Info struct { //nolint:govet
 	MachineID       string
 	MaintenanceMode bool
 	NoAccess        bool
+
+	DefaultKernelArgs []string
+	SecureBootStatus  *specs.MachineStatusSpec_SecureBootStatus
 }
 
 // InfoChan is a channel for sending machine info from tasks back to the controller.
@@ -69,12 +72,12 @@ type InfoChan chan<- Info
 type CollectTaskSpec struct {
 	_ [0]func() // make uncomparable
 
-	TalosConfig   *omni.TalosConfig
-	MachineLabels *omni.MachineLabels
-	Endpoint      string
-	MachineID     string
-
-	MaintenanceMode bool
+	TalosConfig                *omni.TalosConfig
+	MachineLabels              *omni.MachineLabels
+	Endpoint                   string
+	MachineID                  string
+	DefaultSchematicKernelArgs []string
+	MaintenanceMode            bool
 }
 
 func resourceEqual[T any, S interface {
@@ -115,6 +118,7 @@ func (spec CollectTaskSpec) ID() string {
 func (spec CollectTaskSpec) sendInfo(ctx context.Context, info Info, notifyCh InfoChan, err error) bool {
 	info.MaintenanceMode = spec.MaintenanceMode
 	info.MachineID = spec.MachineID
+	info.DefaultKernelArgs = spec.DefaultSchematicKernelArgs
 
 	if err != nil {
 		switch {
@@ -340,6 +344,8 @@ func (spec CollectTaskSpec) poll(ctx context.Context, c *client.Client, pollers 
 		MaintenanceMode: spec.MaintenanceMode,
 		// set this early to make pollers act on the machine labels
 		MachineLabels: spec.MachineLabels,
+		// set this early to allow machine schematic collector to be able to fall back to the default kernel args if they cannot be read from the Talos API
+		DefaultKernelArgs: spec.DefaultSchematicKernelArgs,
 	}
 
 	for _, poller := range pollers {

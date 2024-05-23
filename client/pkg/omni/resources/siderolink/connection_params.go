@@ -5,6 +5,8 @@
 package siderolink
 
 import (
+	"strings"
+
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
@@ -58,4 +60,17 @@ func (ConnectionParamsExtension) ResourceDefinition() meta.ResourceDefinitionSpe
 			},
 		},
 	}
+}
+
+// KernelArgs returns the kernel args for the given ConnectionParams resource.
+func KernelArgs(res *ConnectionParams) []string {
+	if res == nil {
+		return nil
+	}
+
+	if res.TypedSpec().Value.Args == "" {
+		return nil
+	}
+
+	return strings.Split(res.TypedSpec().Value.Args, " ")
 }

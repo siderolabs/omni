@@ -64,6 +64,9 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 		InitialSchematic: initialSchematic,
 	}
 	machineStatus.TypedSpec().Value.InitialTalosVersion = "1.7.0"
+	machineStatus.TypedSpec().Value.SecureBootStatus = &specs.MachineStatusSpec_SecureBootStatus{
+		Enabled: false,
+	}
 
 	clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, machineName)
 	clusterMachine.Metadata().Labels().Set(omni.LabelCluster, clusterName)

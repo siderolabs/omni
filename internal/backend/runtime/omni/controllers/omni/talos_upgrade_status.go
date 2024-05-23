@@ -523,6 +523,11 @@ func populateEmptySchematics(ctx context.Context, r controller.ReaderWriter, clu
 			return nil
 		}
 
+		secureBootStatus := machineStatus.TypedSpec().Value.SecureBootStatus
+		if secureBootStatus == nil {
+			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("secure boot status for machine %q is not yet set", clusterMachineTalosVersion.Metadata().ID())
+		}
+
 		return safe.WriterModify(ctx, r, clusterMachineTalosVersion, func(res *omni.ClusterMachineTalosVersion) error {
 			res.TypedSpec().Value.SchematicId = schematic.InitialSchematic
 

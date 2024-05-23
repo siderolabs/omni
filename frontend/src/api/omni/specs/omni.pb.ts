@@ -194,12 +194,24 @@ export type MachineStatusSpecSchematicOverlay = {
   image?: string
 }
 
+export type MachineStatusSpecSchematicMetaValue = {
+  key?: number
+  value?: string
+}
+
 export type MachineStatusSpecSchematic = {
   id?: string
   invalid?: boolean
   extensions?: string[]
   initial_schematic?: string
   overlay?: MachineStatusSpecSchematicOverlay
+  kernel_args?: string[]
+  meta_values?: MachineStatusSpecSchematicMetaValue[]
+  full_id?: string
+}
+
+export type MachineStatusSpecSecureBootStatus = {
+  enabled?: boolean
 }
 
 export type MachineStatusSpecMaintenanceConfig = {
@@ -227,6 +239,7 @@ export type MachineStatusSpec = {
   maintenance_config?: MachineStatusSpecMaintenanceConfig
   initial_talos_version?: string
   talos_machine_status?: MachineStatusSpecTalosMachineStatus
+  secure_boot_status?: MachineStatusSpecSecureBootStatus
 }
 
 export type TalosConfigSpec = {

@@ -440,11 +440,24 @@ func init() {
 }
 
 func buildInstallImage(clusterMachineTalosVersion *omni.ClusterMachineTalosVersion, machineStatus *omni.MachineStatus, talosVersion string) (string, error) {
-	if machineStatus.TypedSpec().Value.Schematic == nil {
+	installerName := "installer"
+	schematicConfig := machineStatus.TypedSpec().Value.Schematic
+
+	if schematicConfig == nil {
 		return "", fmt.Errorf("machine %q has no schematic information set", machineStatus.Metadata().ID())
 	}
 
-	schematicID := machineStatus.TypedSpec().Value.Schematic.Id
+	schematicID := schematicConfig.Id
+
+	secureBootStatus := machineStatus.TypedSpec().Value.SecureBootStatus
+	if secureBootStatus == nil {
+		return "", xerrors.NewTaggedf[qtransform.SkipReconcileTag]("secure boot status for machine %q is not yet set", machineStatus.Metadata().ID())
+	}
+
+	if secureBootStatus.Enabled {
+		installerName = "installer-secureboot"
+		schematicID = schematicConfig.FullId
+	}
 
 	if talosVersion == "latest" && schematicID != "" {
 		return "", fmt.Errorf("machine %q has a schematic but using Talos version %q", machineStatus.Metadata().ID(), talosVersion)
@@ -454,7 +467,7 @@ func buildInstallImage(clusterMachineTalosVersion *omni.ClusterMachineTalosVersi
 		schematicID = clusterMachineTalosVersion.TypedSpec().Value.SchematicId
 	}
 
-	if machineStatus.TypedSpec().Value.Schematic.Invalid {
+	if schematicConfig.Invalid {
 		schematicID = ""
 	}
 
@@ -466,9 +479,8 @@ func buildInstallImage(clusterMachineTalosVersion *omni.ClusterMachineTalosVersi
 		talosVersion = "v" + talosVersion
 	}
 
-	// TODO(image-factory): detect if secure boot is enabled, if it is, use `installer-secureboot`
 	if schematicID != "" {
-		return imageFactoryHost + "/installer/" + schematicID + ":" + talosVersion, nil
+		return imageFactoryHost + "/" + installerName + "/" + schematicID + ":" + talosVersion, nil
 	}
 
 	return appconfig.Config.TalosRegistry + ":" + talosVersion, nil

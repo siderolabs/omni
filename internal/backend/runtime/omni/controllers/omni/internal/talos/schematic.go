@@ -25,8 +25,10 @@ var ErrInvalidSchematic = fmt.Errorf("invalid schematic")
 type SchematicInfo struct {
 	ID         string
 	FullID     string
+	Overlay    schematic.Overlay
 	Extensions []string
-	Schematic  schematic.Schematic
+	KernelArgs []string
+	MetaValues []schematic.MetaValue
 }
 
 // Equal compares schematic id with both extensions ID and Full ID.
@@ -36,7 +38,7 @@ func (si SchematicInfo) Equal(id string) bool {
 
 // GetSchematicInfo uses Talos API to list all the schematics, and computes the plain schematic ID,
 // taking only the extensions into account - ignoring everything else, e.g., the kernel command line args or meta values.
-func GetSchematicInfo(ctx context.Context, c *client.Client) (SchematicInfo, error) {
+func GetSchematicInfo(ctx context.Context, c *client.Client, defaultKernelArgs []string) (SchematicInfo, error) {
 	const officialExtensionPrefix = "siderolabs/"
 
 	items, err := safe.StateListAll[*runtime.ExtensionStatus](ctx, c.COSI)
@@ -45,18 +47,21 @@ func GetSchematicInfo(ctx context.Context, c *client.Client) (SchematicInfo, err
 	}
 
 	var (
-		extensions             []string
-		schematicID            string
-		schematicConfiguration schematic.Schematic
+		extensions   []string
+		fullID       string
+		rawSchematic = &schematic.Schematic{}
+		manifest     string
 	)
 
 	err = items.ForEachErr(func(status *runtime.ExtensionStatus) error {
 		name := status.TypedSpec().Metadata.Name
 		if name == constants.SchematicIDExtensionName { // skip the meta extension
-			schematicID = status.TypedSpec().Metadata.Version
+			fullID = status.TypedSpec().Metadata.Version
 
 			if status.TypedSpec().Metadata.ExtraInfo != "" {
-				return yaml.Unmarshal([]byte(status.TypedSpec().Metadata.ExtraInfo), &schematicConfiguration)
+				manifest = status.TypedSpec().Metadata.ExtraInfo
+
+				return yaml.Unmarshal([]byte(manifest), rawSchematic)
 			}
 
 			return nil
@@ -89,7 +94,7 @@ func GetSchematicInfo(ctx context.Context, c *client.Client) (SchematicInfo, err
 		return SchematicInfo{}, err
 	}
 
-	if schematicID == "" && len(extensions) > 0 {
+	if fullID == "" && len(extensions) > 0 {
 		return SchematicInfo{}, ErrInvalidSchematic
 	}
 
@@ -106,10 +111,34 @@ func GetSchematicInfo(ctx context.Context, c *client.Client) (SchematicInfo, err
 		return SchematicInfo{}, fmt.Errorf("failed to calculate extensions schematic ID: %w", err)
 	}
 
+	var (
+		kernelArgs []string
+		metaValues []schematic.MetaValue
+		overlay    schematic.Overlay
+	)
+
+	if rawSchematic != nil {
+		kernelArgs = rawSchematic.Customization.ExtraKernelArgs
+		metaValues = rawSchematic.Customization.Meta
+		overlay = rawSchematic.Overlay
+	}
+
+	if fullID == "" { // we could not find the full ID, so we fall back to synthesizing it using the default args
+		kernelArgs = defaultKernelArgs
+		extensionsSchematic.Customization.ExtraKernelArgs = defaultKernelArgs
+
+		fullID, err = extensionsSchematic.ID()
+		if err != nil {
+			return SchematicInfo{}, fmt.Errorf("failed to calculate full schematic ID: %w", err)
+		}
+	}
+
 	return SchematicInfo{
 		ID:         id,
-		FullID:     schematicID,
+		FullID:     fullID,
 		Extensions: extensions,
-		Schematic:  schematicConfiguration,
+		KernelArgs: kernelArgs,
+		MetaValues: metaValues,
+		Overlay:    overlay,
 	}, nil
 }

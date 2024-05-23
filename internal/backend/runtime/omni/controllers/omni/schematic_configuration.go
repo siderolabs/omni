@@ -25,6 +25,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/set"
@@ -102,6 +103,9 @@ func NewSchematicConfigurationController(imageFactoryClient SchematicEnsurer) *S
 		qtransform.WithExtraMappedInput(
 			qtransform.MapperSameID[*omni.MachineExtensions, *omni.ClusterMachine](),
 		),
+		qtransform.WithExtraMappedInput(
+			qtransform.MapperNone[*siderolink.ConnectionParams](),
+		),
 		qtransform.WithExtraOutputs(
 			controller.Output{
 				Type: omni.MachineExtensionsStatusType,
@@ -158,11 +162,20 @@ func (helper *schematicConfigurationHelper) reconcile(
 
 	machineExtensionsStatus.TypedSpec().Value.TalosVersion = ms.TypedSpec().Value.TalosVersion
 
+	secureBootStatus := ms.TypedSpec().Value.SecureBootStatus
+	if secureBootStatus == nil {
+		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("secure boot status for machine %q is not yet set", ms.Metadata().ID())
+	}
+
 	if ms.TypedSpec().Value.Schematic != nil {
 		overlay = getOverlay(ms)
-
 		initialSchematic = ms.TypedSpec().Value.Schematic.InitialSchematic
-		currentSchematic = ms.TypedSpec().Value.Schematic.Id
+
+		if secureBootStatus.Enabled {
+			currentSchematic = ms.TypedSpec().Value.Schematic.FullId
+		} else {
+			currentSchematic = ms.TypedSpec().Value.Schematic.Id
+		}
 	}
 
 	cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, r, clusterName)
@@ -170,7 +183,7 @@ func (helper *schematicConfigurationHelper) reconcile(
 		return nil, err
 	}
 
-	machineExtensions, err := newMachineExtensions(cluster, ms, extensions)
+	machineExtensions, err := newMachineExtensions(cluster, ms, extensions, secureBootStatus.Enabled)
 	if err != nil {
 		return nil, err
 	}
@@ -200,6 +213,8 @@ func (helper *schematicConfigurationHelper) reconcile(
 			SystemExtensions: schematic.SystemExtensions{
 				OfficialExtensions: machineExtensions.extensionsList,
 			},
+			ExtraKernelArgs: machineExtensions.kernelArgs,
+			Meta:            machineExtensions.meta,
 		},
 		Overlay: overlay,
 	}
@@ -270,12 +285,30 @@ type machineExtensions struct {
 	cluster            *omni.Cluster
 	extensionsList     []string
 	detectedExtensions []string
+	kernelArgs         []string
+	meta               []schematic.MetaValue
 }
 
-func newMachineExtensions(cluster *omni.Cluster, machineStatus *omni.MachineStatus, extensions *omni.MachineExtensions) (machineExtensions, error) {
+func newMachineExtensions(cluster *omni.Cluster, machineStatus *omni.MachineStatus, extensions *omni.MachineExtensions, secureBootEnabled bool) (machineExtensions, error) {
 	me := machineExtensions{
 		machineStatus: machineStatus,
 		cluster:       cluster,
+	}
+
+	if secureBootEnabled {
+		schematicConfig := machineStatus.TypedSpec().Value.Schematic
+		if schematicConfig == nil {
+			return me, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("secure boot is enabled but the schematic information is not yet available")
+		}
+
+		me.kernelArgs = schematicConfig.KernelArgs
+		me.meta = xslices.Map(schematicConfig.MetaValues,
+			func(v *specs.MachineStatusSpec_Schematic_MetaValue) schematic.MetaValue {
+				return schematic.MetaValue{
+					Key:   uint8(v.GetKey()),
+					Value: v.GetValue(),
+				}
+			})
 	}
 
 	if extensions != nil && extensions.Metadata().Phase() == resource.PhaseRunning {

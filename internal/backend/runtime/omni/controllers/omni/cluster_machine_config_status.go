@@ -33,6 +33,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	talosutils "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/talos"
@@ -221,6 +222,9 @@ func NewClusterMachineConfigStatusController() *ClusterMachineConfigStatusContro
 		qtransform.WithExtraMappedInput(
 			qtransform.MapperNone[*omni.MachineSet](),
 		),
+		qtransform.WithExtraMappedInput(
+			qtransform.MapperNone[*siderolink.ConnectionParams](),
+		),
 	)
 }
 
@@ -336,7 +340,12 @@ func (h *clusterMachineConfigStatusControllerHandler) syncTalosVersionAndSchemat
 		return false, err
 	}
 
-	schematicInfo, err := talosutils.GetSchematicInfo(ctx, c)
+	params, err := safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, h.r, siderolink.ConfigID)
+	if err != nil {
+		return false, err
+	}
+
+	schematicInfo, err := talosutils.GetSchematicInfo(ctx, c, siderolink.KernelArgs(params))
 	if err != nil {
 		if !errors.Is(err, talosutils.ErrInvalidSchematic) {
 			return false, err

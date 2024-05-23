@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/siderolabs/image-factory/pkg/client"
@@ -46,7 +45,7 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 	}
 
 	customization := schematic.Customization{
-		ExtraKernelArgs: append(strings.Split(params.TypedSpec().Value.Args, " "), request.ExtraKernelArgs...),
+		ExtraKernelArgs: append(siderolink.KernelArgs(params), request.ExtraKernelArgs...),
 		SystemExtensions: schematic.SystemExtensions{
 			OfficialExtensions: request.Extensions,
 		},

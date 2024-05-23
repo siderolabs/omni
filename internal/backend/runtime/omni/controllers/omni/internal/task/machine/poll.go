@@ -11,7 +11,9 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"strings"
 
+	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/value"
@@ -58,6 +60,14 @@ var resourcePollers = map[string]machinePollFunction{
 var machinePollers = map[string]machinePollFunction{
 	"version": pollVersion,
 	"disks":   pollDisks,
+
+	// we do not use a resource poller for the secure boot status, as we want to mark
+	// secure boot explicitly to disabled (contrary to leaving it nil) if the feature is not available (i.e., older Talos versions).
+	//
+	// resourcePollers skip polling the resource if it is not defined on the Talos API.
+	//
+	// furthermore, by doing this, we skip watching this resource, which is what we want, since it does not change over time.
+	"secureBootStatus": pollSecureBootStatus,
 }
 
 var allPollers = merged(resourcePollers, machinePollers)
@@ -340,6 +350,37 @@ func pollTalosMachineStatus(ctx context.Context, c *client.Client, info *Info) e
 		})
 }
 
+func pollSecureBootStatus(ctx context.Context, c *client.Client, info *Info) error {
+	isSecureBootEnabled := func() (bool, error) {
+		_, err := safe.StateGetByID[*meta.ResourceDefinition](ctx, c.COSI, strings.ToLower(runtime.SecurityStateType))
+		if err != nil {
+			if !state.IsNotFoundError(err) {
+				return false, fmt.Errorf("failed to get security state rd: %w", err)
+			}
+
+			return false, nil
+		}
+
+		securityState, err := safe.StateGetByID[*runtime.SecurityState](ctx, c.COSI, runtime.SecurityStateID)
+		if err != nil {
+			return false, fmt.Errorf("failed to get security state: %w", err)
+		}
+
+		return securityState.TypedSpec().SecureBoot, nil
+	}
+
+	enabled, err := isSecureBootEnabled()
+	if err != nil {
+		return err
+	}
+
+	info.SecureBootStatus = &specs.MachineStatusSpec_SecureBootStatus{
+		Enabled: enabled,
+	}
+
+	return nil
+}
+
 func pollDisks(ctx context.Context, c *client.Client, info *Info) error {
 	info.Blockdevices = nil
 
@@ -432,7 +473,7 @@ func pollExtensions(ctx context.Context, c *client.Client, info *Info) error {
 
 	var err error
 
-	schematicInfo, err := talos.GetSchematicInfo(ctx, c)
+	schematicInfo, err := talos.GetSchematicInfo(ctx, c, info.DefaultKernelArgs)
 	if err != nil {
 		if errors.Is(err, talos.ErrInvalidSchematic) {
 			machineSchematic.Invalid = true
@@ -443,23 +484,32 @@ func pollExtensions(ctx context.Context, c *client.Client, info *Info) error {
 		return err
 	}
 
-	if schematicInfo.Schematic.Overlay.Name == "" {
+	if schematicInfo.Overlay.Name == "" {
 		overlay, err := detectOverlay(ctx, c)
 		if err != nil && status.Code(err) != codes.Unimplemented {
 			return err
 		}
 
 		if overlay != nil {
-			schematicInfo.Schematic.Overlay = *overlay
+			schematicInfo.Overlay = *overlay
 		}
 	}
 
 	machineSchematic.Id = schematicInfo.ID
 	machineSchematic.Extensions = schematicInfo.Extensions
 	machineSchematic.Overlay = &specs.MachineStatusSpec_Schematic_Overlay{
-		Name:  schematicInfo.Schematic.Overlay.Name,
-		Image: schematicInfo.Schematic.Overlay.Image,
+		Name:  schematicInfo.Overlay.Name,
+		Image: schematicInfo.Overlay.Image,
 	}
+
+	machineSchematic.FullId = schematicInfo.FullID
+	machineSchematic.KernelArgs = schematicInfo.KernelArgs
+	machineSchematic.MetaValues = xslices.Map(schematicInfo.MetaValues, func(metaValue schematic.MetaValue) *specs.MachineStatusSpec_Schematic_MetaValue {
+		return &specs.MachineStatusSpec_Schematic_MetaValue{
+			Key:   uint32(metaValue.Key),
+			Value: metaValue.Value,
+		}
+	})
 
 	return nil
 }

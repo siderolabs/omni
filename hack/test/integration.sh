@@ -23,9 +23,9 @@ mkdir -p ${ARTIFACTS}
 # Your image schematic ID is: cf9b7aab9ed7c365d5384509b4d31c02fdaa06d2b3ac6cc0bc806f28130eff1f
 #
 # customization:
-#     systemExtensions:
-#         officialExtensions:
-#             - siderolabs/hello-world-service
+#   systemExtensions:
+#     officialExtensions:
+#       - siderolabs/hello-world-service
 SCHEMATIC_ID="cf9b7aab9ed7c365d5384509b4d31c02fdaa06d2b3ac6cc0bc806f28130eff1f"
 
 # Build registry mirror args.
@@ -133,45 +133,84 @@ mkdir -p "${PARTIAL_CONFIG_DIR}"
 echo "${PARTIAL_CONFIG}" > "${PARTIAL_CONFIG_DIR}/controlplane.yaml"
 echo "${PARTIAL_CONFIG}" > "${PARTIAL_CONFIG_DIR}/worker.yaml"
 
-# Launch half of the Talos VMs with partial config to join Omni
+# Partial config, no secure boot
 ${ARTIFACTS}/talosctl cluster create \
-    --name test-1 \
     --provisioner=qemu \
-    --cidr=172.20.0.0/24 \
-    --no-masquerade-cidrs=172.21.0.0/24 \
     --controlplanes=1 \
-    --workers=3 \
+    --workers=2 \
+    --wait=false \
+    --mtu=1430 \
+    --memory=3072 \
+    --memory-workers=3072 \
+    --cpus=3 \
+    --cpus-workers=3 \
+    --with-uuid-hostnames \
+    \
+    --name test-1 \
+    --cidr=172.20.0.0/24 \
+    --no-masquerade-cidrs=172.21.0.0/24,172.22.0.0/24 \
     --input-dir="${PARTIAL_CONFIG_DIR}" \
     --vmlinuz-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/kernel-amd64" \
-    --initrd-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/initramfs-amd64.xz" \
+    --initrd-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/initramfs-amd64.xz"
+
+# Kernel Args, no secure boot
+${ARTIFACTS}/talosctl cluster create \
+    --provisioner=qemu \
+    --controlplanes=1 \
+    --workers=2 \
     --wait=false \
     --mtu=1430 \
     --memory=3072 \
     --memory-workers=3072 \
     --cpus=3 \
     --cpus-workers=3 \
-    --with-uuid-hostnames
-
-# Launch the other half of the Talos VMs with the kernel args to join Omni
-${ARTIFACTS}/talosctl cluster create \
+    --with-uuid-hostnames \
+    \
     --name test-2 \
-    --provisioner=qemu \
-    --cidr=172.21.0.0/24 \
-    --no-masquerade-cidrs=172.20.0.0/24 \
-    --controlplanes=1 \
-    --workers=3 \
     --skip-injecting-config \
+    --with-init-node \
+    --cidr=172.21.0.0/24 \
+    --no-masquerade-cidrs=172.20.0.0/24,172.22.0.0/24 \
     --extra-boot-kernel-args "siderolink.api=grpc://$LOCAL_IP:8090?jointoken=${JOIN_TOKEN} talos.events.sink=[fdae:41e4:649b:9303::1]:8090 talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092" \
     --vmlinuz-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/kernel-amd64" \
-    --initrd-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/initramfs-amd64.xz" \
+    --initrd-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/initramfs-amd64.xz"
+
+# Prepare schematic with kernel args for secure boot
+SECURE_BOOT_SCHEMATIC=$(cat <<EOF
+customization:
+  extraKernelArgs:
+    - siderolink.api=grpc://$LOCAL_IP:8090?jointoken=${JOIN_TOKEN}
+    - talos.events.sink=[fdae:41e4:649b:9303::1]:8090
+    - talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/hello-world-service
+EOF
+)
+
+SECURE_BOOT_SCHEMATIC_ID=$(curl -X POST --data-binary "${SECURE_BOOT_SCHEMATIC}" https://factory.talos.dev/schematics | jq -r '.id')
+
+# Kernel args, secure boot
+${ARTIFACTS}/talosctl cluster create \
+    --provisioner=qemu \
+    --controlplanes=1 \
+    --workers=1 \
     --wait=false \
     --mtu=1430 \
     --memory=3072 \
     --memory-workers=3072 \
     --cpus=3 \
     --cpus-workers=3 \
+    --with-uuid-hostnames \
+    \
+    --name test-3 \
+    --skip-injecting-config \
     --with-init-node \
-    --with-uuid-hostnames
+    --cidr=172.22.0.0/24 \
+    --no-masquerade-cidrs=172.20.0.0/24,172.21.0.0/24 \
+    --with-tpm2 \
+    --iso-path="https://factory.talos.dev/image/${SECURE_BOOT_SCHEMATIC_ID}/v${TALOS_VERSION}/metal-amd64-secureboot.iso" \
+    --disk-encryption-key-types=tpm
 
 sleep 5
 

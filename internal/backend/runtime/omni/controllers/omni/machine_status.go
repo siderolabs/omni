@@ -21,6 +21,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task"
@@ -74,6 +75,11 @@ func (ctrl *MachineStatusController) Inputs() []controller.Input {
 		{
 			Namespace: resources.DefaultNamespace,
 			Type:      omni.MachineLabelsType,
+			Kind:      controller.InputWeak,
+		},
+		{
+			Namespace: resources.DefaultNamespace,
+			Type:      siderolink.ConnectionParamsType,
 			Kind:      controller.InputWeak,
 		},
 	}
@@ -212,12 +218,20 @@ func (ctrl *MachineStatusController) reconcileCollectors(ctx context.Context, r 
 		}
 
 		if machineSpec.Connected {
+			var params *siderolink.ConnectionParams
+
+			params, err = safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, r, siderolink.ConfigID)
+			if err != nil {
+				return fmt.Errorf("error reading connection params: %w", err)
+			}
+
 			shouldRun[item.Metadata().ID()] = machine.CollectTaskSpec{
-				Endpoint:        machineSpec.ManagementAddress,
-				TalosConfig:     talosConfig,
-				MaintenanceMode: talosConfig == nil || maintenanceStage,
-				MachineID:       item.Metadata().ID(),
-				MachineLabels:   labels,
+				Endpoint:                   machineSpec.ManagementAddress,
+				TalosConfig:                talosConfig,
+				MaintenanceMode:            talosConfig == nil || maintenanceStage,
+				MachineID:                  item.Metadata().ID(),
+				MachineLabels:              labels,
+				DefaultSchematicKernelArgs: siderolink.KernelArgs(params),
 			}
 		}
 
@@ -423,14 +437,22 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 			m.Metadata().Labels().Delete(omni.MachineStatusLabelInvalidState)
 		}
 
+		if event.SecureBootStatus != nil {
+			spec.SecureBootStatus = event.SecureBootStatus
+		}
+
 		if event.Schematic != nil {
 			if spec.Schematic == nil {
 				spec.Schematic = &specs.MachineStatusSpec_Schematic{}
 			}
 
-			spec.Schematic.Extensions = event.Schematic.Extensions
 			spec.Schematic.Id = event.Schematic.Id
+			spec.Schematic.FullId = event.Schematic.FullId
+			spec.Schematic.Extensions = event.Schematic.Extensions
 			spec.Schematic.Invalid = event.Schematic.Invalid
+			spec.Schematic.KernelArgs = event.Schematic.KernelArgs
+			spec.Schematic.MetaValues = event.Schematic.MetaValues
+
 			if event.Schematic.Overlay != nil && event.Schematic.Overlay.Name != "" {
 				spec.Schematic.Overlay = event.Schematic.Overlay
 			}
@@ -438,7 +460,7 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 			if spec.Schematic.Invalid {
 				spec.Schematic.InitialSchematic = ""
 			} else if spec.Schematic.InitialSchematic == "" {
-				spec.Schematic.InitialSchematic = spec.Schematic.Id
+				spec.Schematic.InitialSchematic = spec.Schematic.FullId
 			}
 		}
 
