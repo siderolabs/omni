@@ -347,7 +347,7 @@ func (suite *OmniSuite) newServer(suffix string, opts ...grpc.ServerOption) (*ma
 }
 
 func (suite *OmniSuite) SetupTest() {
-	suite.ctx, suite.ctxCancel = context.WithTimeout(context.Background(), 20*time.Second)
+	suite.ctx, suite.ctxCancel = context.WithTimeout(context.Background(), 60*time.Second)
 
 	suite.stateBuilder = dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
 

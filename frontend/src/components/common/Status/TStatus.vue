@@ -95,6 +95,7 @@ const iconData = computed((): { iconColor?: string, iconTypeValue?: IconType } =
           iconTypeValue: "time",
           iconColor: "#FF5C56",
         };
+      case TCommonStatuses.WAITING:
       case TCommonStatuses.LOADING:
         return {
           iconTypeValue: "time",
@@ -160,6 +161,11 @@ const iconData = computed((): { iconColor?: string, iconTypeValue?: IconType } =
           iconTypeValue: "time",
           iconColor: "#FFB200",
         };
+      default:
+        return {
+          iconTypeValue: "unknown",
+          iconColor: "#FF8B59",
+        }
     }
   }
 

@@ -81,41 +81,30 @@ included in the LICENSE file.
 
       </li>
     </ul>
-    <watch
-      :opts="{
-        resource: { type: TalosServiceType, namespace: TalosRuntimeNamespace },
-        runtime: Runtime.Talos,
-        context: getContext(),
-      }"
-      errorsAlert
-      noRecordsAlert
-      spinner
-    >
-      <template #default="services">
-        <div class="overview-services">
-          <div class="overview-services-heading">
-            <span class="overview-services-title">Services</span>
-            <span class="overview-services-amount">{{
-              services.items.length
-            }}</span>
-          </div>
-          <ul class="overview-table-header">
-            <li class="overview-table-name overview-table-name-id">ID</li>
-            <li class="overview-table-name overview-table-name-running">
-              Running
-            </li>
-            <li class="overview-table-name overview-table-name-health">
-              Health
-            </li>
-          </ul>
-          <t-group-animation>
-            <ul
-              v-for="service in services.items"
-              :key="service?.metadata?.id"
-              class="overview-table-item"
-            >
-              <li class="overview-item-value overview-item-value-id">
-                <router-link :to="{
+      <div class="overview-services">
+        <div class="overview-services-heading">
+          <span class="overview-services-title">Services</span>
+          <span class="overview-services-amount">{{
+            services.length
+          }}</span>
+        </div>
+        <ul class="overview-table-header grid grid-cols-4">
+          <li class="overview-table-name col-span-2">ID</li>
+          <li class="overview-table-name">
+            Running
+          </li>
+          <li class="overview-table-name">
+            Health
+          </li>
+        </ul>
+        <t-group-animation>
+          <t-list-item
+            v-for="service in services"
+            :key="service.name"
+          >
+            <template #default>
+              <div class="grid grid-cols-4 p-1">
+                <router-link class="col-span-2 list-item-link" :to="{
                         name: 'NodeLogs',
                         query: {
                           cluster: $route.query.cluster,
@@ -124,36 +113,28 @@ included in the LICENSE file.
                         },
                         params: {
                           machine: $route.params.machine,
-                          service: service.metadata.id,
+                          service: service.name,
                         },
-                      }" class="list-item-link" :id="service.metadata.id!">
-                  {{ service?.metadata?.id }}
+                      }" :id="service.name">
+                  {{ service.name }}
                 </router-link>
-              </li>
-              <li class="overview-item-value overview-item-value-running">
-                <t-status
-                  class="overview-status"
-                  :title="service?.spec?.running ? 'Running' : 'Not Running'"
-                />
-              </li>
-              <li class="overview-item-value overview-item-value-health">
-                <t-status
-                  class="overview-status"
-                  :title="getServiceHealthStatus(service)"
-                />
-              </li>
-            </ul>
-          </t-group-animation>
-        </div>
-      </template>
-    </watch>
+                <t-status class="overview-status" :title="service.state"/>
+                <t-status class="overview-status" :title="service.status"/>
+              </div>
+            </template>
+            <template #details>
+              <node-service-events :events="service.events"/>
+            </template>
+          </t-list-item>
+        </t-group-animation>
+      </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, Ref, ref } from "vue";
+import { computed, onBeforeUnmount, Ref, ref } from "vue";
 import { getContext } from "@/context";
-import { getServiceHealthStatus, getStatus } from "@/methods";
+import { getStatus } from "@/methods";
 import {
   kubernetes,
   ClusterMachineStatusType,
@@ -161,24 +142,79 @@ import {
   TalosAddressRoutedNoK8s,
   TalosNodeAddressType,
   TalosNetworkNamespace,
-  TalosServiceType,
-  TalosRuntimeNamespace,
   TalosK8sNamespace,
   TalosNodenameID,
   TalosNodenameType,
 } from "@/api/resources";
 import { Runtime } from "@/api/common/omni.pb";
-import WatchResource, { WatchOptions } from "@/api/watch";
+import Watch, { WatchOptions } from "@/api/watch";
 import { NodeSpec } from "kubernetes-types/core/v1";
-import { Resource } from "@/api/grpc";
+import { Resource, subscribe } from "@/api/grpc";
 import { ClusterMachineStatusSpec, ConfigApplyStatus } from "@/api/omni/specs/omni.pb";
 import { useRoute } from "vue-router";
+import { TCommonStatuses } from "@/constants";
+import { MachineService, ServiceEvent } from "@/api/talos/machine/machine.pb";
+import { withAbortController, withContext, withRuntime } from "@/api/options";
 
 import TAlert from "@/components/TAlert.vue";
 import TGroupAnimation from "@/components/common/Animation/TGroupAnimation.vue";
 import TTag from "@/components/common/Tag/TTag.vue";
 import TStatus from "@/components/common/Status/TStatus.vue";
-import Watch from "@/components/common/Watch/Watch.vue";
+import TListItem from "@/components/common/List/TListItem.vue";
+import NodeServiceEvents from "@/views/cluster/Nodes/NodeServiceEvents.vue";
+
+const services = ref<{
+  name: string
+  state: string
+  status: TCommonStatuses
+  events?: ServiceEvent[]
+}[]>([]);
+
+let abortController: AbortController | undefined;
+
+const ctx = getContext();
+
+const fetchServices = async () => {
+  if (abortController) {
+    abortController.abort();
+  }
+
+  abortController = new AbortController();
+
+  const res = await MachineService.ServiceList(
+    {},
+    withContext(ctx),
+    withRuntime(Runtime.Talos),
+    withAbortController(abortController),
+  );
+
+  abortController = undefined;
+
+  services.value = [];
+
+  for (const message of res.messages!) {
+    for (const service of message.services!) {
+      services.value.push({
+        name: service.id!,
+        state: service.state!,
+        status: service.health?.unknown ? TCommonStatuses.HEALTH_UNKNOWN : service.health?.healthy ? TCommonStatuses.HEALTHY : TCommonStatuses.UNHEALTHY,
+        events: service.events?.events,
+      })
+    }
+  }
+}
+
+fetchServices();
+
+const stream = subscribe(MachineService.Events, {}, (event) => {
+  if (event.data?.["@type"]?.includes("machine.ServiceStateEvent")) {
+    fetchServices();
+  }
+}, [withRuntime(Runtime.Talos), withContext(getContext())])
+
+onBeforeUnmount(() => {
+  stream.shutdown();
+})
 
 type Nodename = {
   nodename: string,
@@ -207,10 +243,10 @@ const nodename: Ref<Resource<Nodename> | undefined> = ref();
 const nodeaddress: Ref<Resource<NodeAddress> | undefined> = ref();
 const clusterMachineStatus: Ref<Resource<ClusterMachineStatusSpec> | undefined> = ref();
 
-const nodeWatch = new WatchResource(node);
-const nodenameWatch = new WatchResource(nodename);
-const nodeaddressWatch = new WatchResource(nodeaddress);
-const clusterMachineStatusesWatch = new WatchResource(clusterMachineStatus);
+const nodeWatch = new Watch(node);
+const nodenameWatch = new Watch(nodename);
+const nodeaddressWatch = new Watch(nodeaddress);
+const clusterMachineStatusesWatch = new Watch(clusterMachineStatus);
 
 const route = useRoute();
 const context = getContext();
@@ -274,7 +310,7 @@ const roles = computed(() => {
   return roles;
 });
 
-const status = computed(() => getStatus(node.value));
+const status = computed(() => getStatus(node.value!));
 </script>
 
 <style scoped>
@@ -351,8 +387,7 @@ const status = computed(() => getStatus(node.value));
   padding: 3px 7px;
 }
 .overview-table-header {
-  @apply flex bg-naturals-N2 rounded-sm;
-  padding: 10px 16px;
+  @apply bg-naturals-N2 rounded-sm py-2 px-4 pl-11;
 }
 .overview-table-name {
   @apply text-xs text-naturals-N13 w-full;

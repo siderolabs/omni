@@ -11,7 +11,7 @@ included in the LICENSE file.
         class="logs-container"
     />
     <div v-else class="logs-container">
-      <div class="w-1/4 mb-4">
+      <div class="mb-4">
         <t-input
           placeholder="Search..."
           v-model="inputValue"

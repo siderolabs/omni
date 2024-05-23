@@ -54,4 +54,5 @@ export enum TCommonStatuses {
   OUTDATED = 'Outdated',
   APPLIED = 'Applied',
   LOADING = "Loading...",
+  WAITING = "Waiting",
 }
