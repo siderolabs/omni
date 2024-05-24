@@ -8,6 +8,7 @@ package machine
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/meta"
@@ -41,6 +42,9 @@ func forEachResource[T resource.Resource](
 
 // QueryRegisteredTypes gets all registered types from the meta namespace.
 func QueryRegisteredTypes(ctx context.Context, st state.State) (map[resource.Type]struct{}, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+
 	// query all resources to start watching only resources that are defined for running version of talos
 	resources, err := safe.StateList[*meta.ResourceDefinition](ctx, st, resource.NewMetadata(meta.NamespaceName, meta.ResourceDefinitionType, "", resource.VersionUndefined))
 	if err != nil {

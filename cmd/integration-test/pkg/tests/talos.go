@@ -60,6 +60,10 @@ func clearConnectionRefused(ctx context.Context, t *testing.T, c *talosclient.Cl
 				return retry.ExpectedError(err)
 			}
 
+			if strings.Contains(err.Error(), "connection reset by peer") {
+				return retry.ExpectedError(err)
+			}
+
 			return err
 		}
 

@@ -192,12 +192,6 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 
 	registeredTypes, err := QueryRegisteredTypes(ctx, c.COSI)
 	if err != nil {
-		// this is the first request to the Talos API
-		// if it fails we handle it and update the machine status with the request error
-		if !spec.sendInfo(ctx, Info{}, notifyCh, err) {
-			return nil
-		}
-
 		return err
 	}
 

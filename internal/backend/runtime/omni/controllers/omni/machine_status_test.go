@@ -68,10 +68,6 @@ type MachineStatusSuite struct {
 func (suite *MachineStatusSuite) setup() {
 	suite.startRuntime()
 
-	suite.Require().NoError(suite.runtime.RegisterController(&omnictrl.MachineStatusController{
-		ImageFactoryClient: &imageFactoryClientMock{},
-	}))
-
 	suite.Require().NoError(
 		suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)),
 	)
@@ -80,6 +76,8 @@ func (suite *MachineStatusSuite) setup() {
 	params.TypedSpec().Value.Args = testSchematicKernelArgs
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, params))
+
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineStatusController(&imageFactoryClientMock{})))
 }
 
 const testID = "testID"
@@ -147,7 +145,7 @@ func (suite *MachineStatusSuite) TestMachineReportingEvents() {
 		assert.Truef(ok, "reporting-events label not set")
 	})
 
-	suite.Assert().NoError(suite.state.Destroy(context.Background(), resource.NewMetadata(resources.DefaultNamespace, omni.MachineStatusSnapshotType, testID, resource.VersionUndefined)))
+	rtestutils.Destroy[*omni.MachineStatusSnapshot](suite.ctx, suite.T(), suite.state, []string{testID})
 
 	rtestutils.AssertResource(suite.ctx, suite.T(), suite.state, testID, func(status *omni.MachineStatus, assert *assert.Assertions) {
 		_, ok := status.Metadata().Labels().Get(omni.MachineStatusLabelReportingEvents)
@@ -235,7 +233,7 @@ func (suite *MachineStatusSuite) TestMachineUserLabels() {
 
 	// reverts back to initial when the machine labels resource gets removed
 
-	suite.Require().NoError(suite.state.Destroy(ctx, machineLabels.Metadata()))
+	rtestutils.Destroy[*omni.MachineLabels](suite.ctx, suite.T(), suite.state, []string{testID})
 
 	rtestutils.AssertResource(ctx, suite.T(), suite.state, testID, func(status *omni.MachineStatus, assert *assert.Assertions) {
 		val, ok := status.Metadata().Labels().Get("label1")

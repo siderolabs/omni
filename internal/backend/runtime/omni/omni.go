@@ -170,9 +170,6 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		&omnictrl.LoadBalancerController{},
 		&omnictrl.MachineSetNodeController{},
 		&omnictrl.MachineSetDestroyStatusController{},
-		&omnictrl.MachineStatusController{
-			ImageFactoryClient: imageFactoryClient,
-		},
 		omnictrl.NewMachineCleanupController(),
 		omnictrl.NewMachineStatusLinkController(linkCounterDeltaCh),
 		&omnictrl.MachineStatusMetricsController{},
@@ -199,6 +196,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewClusterMachineConfigController(config.Config.DefaultConfigGenOptions),
 		omnictrl.NewClusterMachineTeardownController(discoveryClient),
 		omnictrl.NewMachineConfigGenOptionsController(),
+		omnictrl.NewMachineStatusController(imageFactoryClient),
 		omnictrl.NewClusterMachineConfigStatusController(),
 		omnictrl.NewClusterMachineEncryptionKeyController(),
 		omnictrl.NewClusterMachineStatusController(),

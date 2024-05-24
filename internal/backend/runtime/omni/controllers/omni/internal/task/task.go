@@ -73,6 +73,8 @@ func (task *Task[T, S]) runWithRestarts(ctx context.Context) {
 
 		// finished without an error
 		if err == nil {
+			task.logger.Info("task finished")
+
 			return
 		}
 
