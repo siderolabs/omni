@@ -214,7 +214,7 @@ func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.Confi
 	identity, err := safe.StateGet[*authres.Identity](ctx, s.state, authres.NewIdentity(resources.DefaultNamespace, email).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
-			return nil, status.Errorf(codes.PermissionDenied, "The identity %q is not authorized to this instance", email)
+			return nil, status.Errorf(codes.PermissionDenied, "The identity %q is not authorized for this instance", email)
 		}
 
 		return nil, err

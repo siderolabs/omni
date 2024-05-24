@@ -82,7 +82,9 @@ func (i *JWT) intercept(ctx context.Context) (context.Context, error) {
 		var errEmailNotVerified *auth0.EmailNotVerifiedError
 
 		if errors.As(err, &errEmailNotVerified) {
-			return nil, status.Error(codes.Unauthenticated, fmt.Sprintf("Email address %q is not verified, please verify it and try again.", errEmailNotVerified.Email))
+			return nil, status.Error(codes.Unauthenticated,
+				fmt.Sprintf(`Email address %q is not verified. Please check your email for a message to verify it, then click "Log In" again.`,
+					errEmailNotVerified.Email))
 		}
 
 		return nil, errGRPCInvalidJWT
