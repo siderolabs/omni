@@ -80,6 +80,7 @@ RUN apk --update --no-cache add bash curl build-base protoc protobuf-dev
 # tools and sources
 FROM --platform=${BUILDPLATFORM} js-toolchain AS js
 WORKDIR /src
+ENV NODE_ENV development
 ARG PROTOBUF_GRPC_GATEWAY_TS_VERSION
 RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/go/pkg go install github.com/siderolabs/protoc-gen-grpc-gateway-ts@v${PROTOBUF_GRPC_GATEWAY_TS_VERSION}
 RUN mv /go/bin/protoc-gen-grpc-gateway-ts /bin
