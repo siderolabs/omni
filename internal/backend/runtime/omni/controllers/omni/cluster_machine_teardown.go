@@ -16,7 +16,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/hashicorp/go-multierror"
 	"github.com/siderolabs/gen/optional"
 	"go.uber.org/zap"
 
@@ -164,7 +163,7 @@ func (ctrl *ClusterMachineTeardownController) Reconcile(ctx context.Context, log
 
 	// teardown the discovery service affiliate and the Kubernetes node for the cluster machine
 	if err = ctrl.teardownNodeMember(ctx, r, logger, clusterMachine); err != nil {
-		logger.Warn("failed to delete the discovery service affiliate or the Kubernetes node for the cluster machine", zap.Error(err))
+		return err
 	}
 
 	return r.RemoveFinalizer(ctx, ptr, ctrl.Name())
@@ -221,19 +220,17 @@ func (ctrl *ClusterMachineTeardownController) teardownNodeMember(
 		return nil
 	}
 
-	var errs error
-
 	if err = ctrl.deleteAffiliateFromDiscoveryService(ctx, r, bundle.Cluster.ID, clusterMachine, logger); err != nil {
-		errs = multierror.Append(errs, fmt.Errorf("error deleting affiliate from discovery service: %w", err))
+		return fmt.Errorf("error deleting affiliate from discovery service: %w", err)
 	}
 
 	if nodeNameOccurrences[clusterMachineIdentity.TypedSpec().Value.Nodename] == 1 {
 		if err = ctrl.deleteNodeFromKubernetes(ctx, clusterMachine, clusterMachineIdentity, logger); err != nil {
-			errs = multierror.Append(errs, fmt.Errorf("error deleting node from kubernetes: %w", err))
+			logger.Warn("failed to delete the discovery service affiliate or the Kubernetes node for the cluster machine", zap.Error(err))
 		}
 	}
 
-	return errs
+	return nil
 }
 
 func (ctrl *ClusterMachineTeardownController) deleteAffiliateFromDiscoveryService(ctx context.Context,
