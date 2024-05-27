@@ -219,6 +219,7 @@ func (p *Params) NewListener() (net.Listener, error) {
 
 	return tls.Listen("tcp", p.APIEndpoint, &tls.Config{
 		Certificates: []tls.Certificate{cert},
+		NextProtos:   []string{"h2"},
 	})
 }
 
