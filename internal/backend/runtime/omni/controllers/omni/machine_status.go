@@ -417,7 +417,8 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 			spec.PlatformMetadata = event.PlatformMetadata
 		}
 
-		if event.TalosMachineStatus != nil {
+		if event.TalosMachineStatus != nil && (spec.TalosMachineStatus == nil ||
+			spec.TalosMachineStatus.Version < event.TalosMachineStatus.Version) {
 			spec.TalosMachineStatus = event.TalosMachineStatus
 		}
 

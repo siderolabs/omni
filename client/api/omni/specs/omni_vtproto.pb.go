@@ -325,6 +325,7 @@ func (m *MachineStatusSpec_TalosMachineStatus) CloneVT() *MachineStatusSpec_Talo
 	}
 	r := new(MachineStatusSpec_TalosMachineStatus)
 	r.UpdatedAt = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.UpdatedAt).CloneVT())
+	r.Version = m.Version
 	if rhs := m.Status; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface {
 			CloneVT() *machine.MachineStatusEvent
@@ -2518,6 +2519,9 @@ func (this *MachineStatusSpec_TalosMachineStatus) EqualVT(that *MachineStatusSpe
 		return false
 	}
 	if !(*timestamppb1.Timestamp)(this.UpdatedAt).EqualVT((*timestamppb1.Timestamp)(that.UpdatedAt)) {
+		return false
+	}
+	if this.Version != that.Version {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -5650,6 +5654,11 @@ func (m *MachineStatusSpec_TalosMachineStatus) MarshalToSizedBufferVT(dAtA []byt
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Version != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Version))
+		i--
+		dAtA[i] = 0x18
 	}
 	if m.UpdatedAt != nil {
 		size, err := (*timestamppb1.Timestamp)(m.UpdatedAt).MarshalToSizedBufferVT(dAtA[:i])
@@ -10594,6 +10603,9 @@ func (m *MachineStatusSpec_TalosMachineStatus) SizeVT() (n int) {
 		l = (*timestamppb1.Timestamp)(m.UpdatedAt).SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if m.Version != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Version))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -14652,6 +14664,25 @@ func (m *MachineStatusSpec_TalosMachineStatus) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
+			}
+			m.Version = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Version |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

@@ -12,6 +12,7 @@ import (
 	"io"
 	"maps"
 	"strings"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/safe"
@@ -314,7 +315,8 @@ func pollTalosMachineStatus(ctx context.Context, c *client.Client, info *Info) e
 		}
 
 		return &specs.MachineStatusSpec_TalosMachineStatus{
-			UpdatedAt: timestamppb.New(r.Metadata().Updated()),
+			Version:   r.Metadata().Version().Value(),
+			UpdatedAt: timestamppb.New(time.Now()),
 			Status: &machine.MachineStatusEvent{
 				Stage: statusEventMachineStage,
 				Status: &machine.MachineStatusEvent_MachineStatus{

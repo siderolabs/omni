@@ -109,7 +109,7 @@ func (handler *Handler) handleMachineStatusResourceUpdate(ctx context.Context, m
 	}
 
 	if err := handler.handleMachineStatusEvent(ctx, talosMachineStatus.Status, machineStatus.Metadata().ID(),
-		handler.Clock.Now(), false); err != nil {
+		talosMachineStatus.UpdatedAt.AsTime(), false); err != nil {
 		handler.logger.Error("error handling machine status machineStatus", zap.Error(err))
 	}
 }

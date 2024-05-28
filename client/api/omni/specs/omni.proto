@@ -180,6 +180,7 @@ message MachineStatusSpec {
   message TalosMachineStatus {
     machine.MachineStatusEvent status = 1;
     google.protobuf.Timestamp updated_at = 2;
+    uint64 version = 3;
   }
 
   // Talos version.

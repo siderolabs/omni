@@ -217,6 +217,7 @@ export type MachineStatusSpecSecureBootStatus = {
 export type MachineStatusSpecTalosMachineStatus = {
   status?: MachineMachine.MachineStatusEvent
   updated_at?: GoogleProtobufTimestamp.Timestamp
+  version?: string
 }
 
 export type MachineStatusSpec = {
