@@ -73,7 +73,7 @@ require (
 	github.com/siderolabs/image-factory v0.3.1
 	github.com/siderolabs/kms-client v0.1.0
 	github.com/siderolabs/omni/client v0.0.0-00010101000000-000000000000
-	github.com/siderolabs/siderolink v0.3.7
+	github.com/siderolabs/siderolink v0.3.8
 	github.com/siderolabs/talos/pkg/machinery v1.7.2
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
