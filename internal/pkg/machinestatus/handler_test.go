@@ -16,6 +16,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/runtime/pkg/state/registry"
+	"github.com/jonboulle/clockwork"
 	"github.com/rs/xid"
 	"github.com/siderolabs/siderolink/pkg/events"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
@@ -76,7 +77,7 @@ func TestHandler(t *testing.T) {
 	})
 
 	// send an event over siderolink & assert that it is stored
-	timestamp := time.Now()
+	timestamp := handler.Clock.Now()
 
 	sendEvent(ctx, t, handler, machineapi.MachineStatusEvent_BOOTING, timestamp)
 	assertStage(ctx, t, st, machineapi.MachineStatusEvent_BOOTING)
@@ -86,12 +87,12 @@ func TestHandler(t *testing.T) {
 	assertStage(ctx, t, st, machineapi.MachineStatusEvent_INSTALLING)
 
 	// send a machine status in the past - it should be ignored
-	sendMachineStatus(ctx, t, st, machineapi.MachineStatusEvent_BOOTING, timestamp.Add(-time.Second))
+	sendMachineStatus(ctx, t, handler, st, machineapi.MachineStatusEvent_BOOTING, timestamp.Add(-time.Second))
 	time.Sleep(100 * time.Millisecond)
 	assertStage(ctx, t, st, machineapi.MachineStatusEvent_INSTALLING)
 
 	// send a machine status in the future - it should be stored
-	sendMachineStatus(ctx, t, st, machineapi.MachineStatusEvent_REBOOTING, timestamp.Add(time.Second))
+	sendMachineStatus(ctx, t, handler, st, machineapi.MachineStatusEvent_REBOOTING, timestamp.Add(time.Second))
 	assertStage(ctx, t, st, machineapi.MachineStatusEvent_REBOOTING)
 
 	// send an event in the past - it should be ignored
@@ -99,8 +100,8 @@ func TestHandler(t *testing.T) {
 	assertStage(ctx, t, st, machineapi.MachineStatusEvent_REBOOTING)
 
 	// send an event in the future - it should be stored
-	sendEvent(ctx, t, handler, machineapi.MachineStatusEvent_REBOOTING, timestamp.Add(time.Second))
-	assertStage(ctx, t, st, machineapi.MachineStatusEvent_REBOOTING)
+	sendEvent(ctx, t, handler, machineapi.MachineStatusEvent_MAINTENANCE, timestamp.Add(time.Second*2))
+	assertStage(ctx, t, st, machineapi.MachineStatusEvent_MAINTENANCE)
 
 	// destroy and recreate the machine
 	require.NoError(t, st.Destroy(ctx, machine.Metadata()))
@@ -109,7 +110,7 @@ func TestHandler(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// send a machine status in the past - it should be stored despite being in the past, as the state should be cleared on machine destroy
-	sendMachineStatus(ctx, t, st, machineapi.MachineStatusEvent_RESETTING, timestamp.Add(-time.Second))
+	sendMachineStatus(ctx, t, handler, st, machineapi.MachineStatusEvent_RESETTING, timestamp.Add(-time.Second))
 	assertStage(ctx, t, st, machineapi.MachineStatusEvent_RESETTING)
 
 	cancel()
@@ -117,7 +118,9 @@ func TestHandler(t *testing.T) {
 	require.NoError(t, eg.Wait())
 }
 
-func sendMachineStatus(ctx context.Context, t *testing.T, st state.State, stage machineapi.MachineStatusEvent_MachineStage, timestamp time.Time) {
+func sendMachineStatus(ctx context.Context, t *testing.T, handler *machinestatus.Handler, st state.State, stage machineapi.MachineStatusEvent_MachineStage, timestamp time.Time) {
+	handler.Clock = clockwork.NewFakeClockAt(timestamp)
+
 	machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, machineID)
 
 	status := &specs.MachineStatusSpec_TalosMachineStatus{
@@ -146,6 +149,8 @@ func sendMachineStatus(ctx context.Context, t *testing.T, st state.State, stage 
 }
 
 func sendEvent(ctx context.Context, t *testing.T, handler *machinestatus.Handler, stage machineapi.MachineStatusEvent_MachineStage, timestamp time.Time) {
+	handler.Clock = clockwork.NewFakeClockAt(timestamp)
+
 	err := handler.HandleEvent(ctx, events.Event{
 		Payload: &machineapi.MachineStatusEvent{
 			Stage: stage,

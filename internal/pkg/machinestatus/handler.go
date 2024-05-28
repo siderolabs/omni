@@ -15,7 +15,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/rs/xid"
 	"github.com/siderolabs/siderolink/pkg/events"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"go.uber.org/zap"
@@ -24,6 +23,17 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 )
+
+// Clock is here to be able to mock time.Now() in the tests.
+type Clock interface {
+	Now() time.Time
+}
+
+type clock struct{}
+
+func (c *clock) Now() time.Time {
+	return time.Now()
+}
 
 type eventInfo struct {
 	timestamp      time.Time
@@ -34,6 +44,7 @@ type eventInfo struct {
 type Handler struct {
 	logger *zap.Logger
 	state  state.State
+	Clock  Clock
 
 	machineToLastEventInfo map[resource.ID]eventInfo
 
@@ -46,6 +57,7 @@ func NewHandler(state state.State, logger *zap.Logger) *Handler {
 		state:                  state,
 		logger:                 logger,
 		machineToLastEventInfo: make(map[resource.ID]eventInfo),
+		Clock:                  &clock{},
 	}
 }
 
@@ -97,7 +109,7 @@ func (handler *Handler) handleMachineStatusResourceUpdate(ctx context.Context, m
 	}
 
 	if err := handler.handleMachineStatusEvent(ctx, talosMachineStatus.Status, machineStatus.Metadata().ID(),
-		talosMachineStatus.UpdatedAt.AsTime(), false); err != nil {
+		handler.Clock.Now(), false); err != nil {
 		handler.logger.Error("error handling machine status machineStatus", zap.Error(err))
 	}
 }
@@ -140,14 +152,9 @@ func (handler *Handler) HandleEvent(ctx context.Context, event events.Event) err
 		return fmt.Errorf("no machines found for address %s", ip)
 	}
 
-	eventXID, err := xid.FromString(event.ID)
-	if err != nil {
-		return fmt.Errorf("error parsing event ID: %w", err)
-	}
-
 	switch event := event.Payload.(type) {
 	case *machineapi.MachineStatusEvent:
-		return handler.handleMachineStatusEvent(ctx, event, machines.Get(0).Metadata().ID(), eventXID.Time(), true)
+		return handler.handleMachineStatusEvent(ctx, event, machines.Get(0).Metadata().ID(), handler.Clock.Now(), true)
 	default: // nothing, we ignore other events
 	}
 
@@ -213,10 +220,8 @@ func (handler *Handler) acceptEvent(machineID resource.ID, timestamp time.Time, 
 	// Both the source of the current event and the last one are from SideroLink
 	case lastEventInfo.fromSideroLink && currentEventInfo.fromSideroLink:
 		accept = true
-	// If the source of the current event differs from the last one and
 	// if the current event is newer than the last one, we accept the current one
-	case lastEventInfo.fromSideroLink != currentEventInfo.fromSideroLink &&
-		currentEventInfo.timestamp.After(lastEventInfo.timestamp):
+	case currentEventInfo.timestamp.After(lastEventInfo.timestamp):
 		accept = true
 	}
 
