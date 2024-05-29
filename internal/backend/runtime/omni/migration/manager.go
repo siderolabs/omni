@@ -152,6 +152,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: dropSchematicConfigurationsControllerFinalizer,
 				name:     "dropSchematicConfigurationsControllerFinalizer",
 			},
+			{
+				callback: generateAllMaintenanceConfigs,
+				name:     "generateAllMaintenanceConfigs",
+			},
 		},
 	}
 }

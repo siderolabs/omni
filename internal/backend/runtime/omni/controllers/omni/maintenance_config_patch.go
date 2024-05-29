@@ -6,17 +6,28 @@
 package omni
 
 import (
+	"bytes"
 	"context"
+	_ "embed"
 	"strings"
+	"text/template"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
+	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xerrors"
+	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/internal/pkg/config"
 )
+
+//go:embed data/maintenance-config-patch.yaml
+var maintenanceConfigPatchData string
 
 // MaintenanceConfigPatchPrefix is the prefix for the system config patch that contains the maintenance config.
 const MaintenanceConfigPatchPrefix = "950-maintenance-config-"
@@ -37,25 +48,67 @@ func NewMaintenanceConfigPatchController() *MaintenanceConfigPatchController {
 
 				return omni.NewMachineStatus(resources.DefaultNamespace, id)
 			},
-			TransformFunc: func(_ context.Context, _ controller.Reader, _ *zap.Logger, machineStatus *omni.MachineStatus, configPatch *omni.ConfigPatch) error {
-				maintenanceConfig := machineStatus.TypedSpec().Value.GetMaintenanceConfig()
-				if maintenanceConfig == nil {
-					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("maintenance config is not ready")
+			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, machineStatus *omni.MachineStatus, configPatch *omni.ConfigPatch) error {
+				version := strings.TrimLeft(machineStatus.TypedSpec().Value.TalosVersion, "v")
+				if version == "" {
+					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the machine Talos version wasn't read")
 				}
 
-				if strings.TrimSpace(maintenanceConfig.GetConfig()) == "" {
-					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("maintenance config is empty")
+				if !quirks.New(version).SupportsMultidoc() {
+					ready, err := r.Teardown(ctx, configPatch.Metadata())
+					if err != nil && !state.IsNotFoundError(err) {
+						return err
+					}
+
+					if ready {
+						return r.Destroy(ctx, configPatch.Metadata())
+					}
+
+					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the machine doesn't support partial configs")
 				}
 
-				configPatch.Metadata().Labels().Set(omni.LabelSystemPatch, "")
-				configPatch.Metadata().Labels().Set(omni.LabelMachine, machineStatus.Metadata().ID())
+				connectionParams, err := safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, r, siderolink.ConfigID)
+				if err != nil {
+					return err
+				}
 
-				configPatch.TypedSpec().Value.Data = maintenanceConfig.GetConfig()
-
-				return nil
+				return UpdateMaintenanceConfigPatch(configPatch, machineStatus, connectionParams)
 			},
 		},
+		qtransform.WithExtraMappedInput(
+			qtransform.MapperNone[*siderolink.ConnectionParams](),
+		),
 		qtransform.WithConcurrency(2),
 		qtransform.WithOutputKind(controller.OutputShared),
 	)
+}
+
+// UpdateMaintenanceConfigPatch generates the siderolink connection config patch from the machine status and connection params.
+func UpdateMaintenanceConfigPatch(configPatch *omni.ConfigPatch, machineStatus *omni.MachineStatus, connectionParams *siderolink.ConnectionParams) error {
+	configPatch.Metadata().Labels().Set(omni.LabelSystemPatch, "")
+	configPatch.Metadata().Labels().Set(omni.LabelMachine, machineStatus.Metadata().ID())
+
+	url, err := siderolink.APIURL(connectionParams, config.Config.SiderolinkUseGRPCTunnel)
+	if err != nil {
+		return err
+	}
+
+	template, err := template.New("patch").Parse(maintenanceConfigPatchData)
+	if err != nil {
+		return err
+	}
+
+	var buffer bytes.Buffer
+
+	if err = template.Execute(&buffer, struct {
+		APIURL string
+	}{
+		APIURL: url,
+	}); err != nil {
+		return err
+	}
+
+	configPatch.TypedSpec().Value.Data = buffer.String()
+
+	return nil
 }

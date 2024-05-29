@@ -13,19 +13,16 @@ import (
 	"log"
 	"net/http"
 	"regexp"
-	"slices"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/cmd/integration-test/pkg/clientconfig"
 )
@@ -742,12 +739,6 @@ Tests upgrading Talos version, including reverting a failed upgrade.`,
 						MachineOptions: MachineOptions{
 							TalosVersion:      options.AnotherTalosVersion,
 							KubernetesVersion: options.AnotherKubernetesVersion, // use older Kubernetes compatible with AnotherTalosVersion
-						},
-
-						BeforeClusterCreateFunc: func(ctx context.Context, t *testing.T, cli *client.Client, machineIDs []resource.ID) {
-							slices.Sort(machineIDs)
-
-							ApplyMaintenanceTestConfig(ctx, t, cli.Omni().State(), machineIDs[0]) // apply maintenance config to the first machine
 						},
 					}),
 				},

@@ -17,6 +17,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/google/uuid"
 	"github.com/siderolabs/gen/pair"
+	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 
@@ -1157,5 +1158,56 @@ func dropSchematicConfigurationsControllerFinalizer(ctx context.Context, s state
 		}, state.WithUpdateOwner(res.Metadata().Owner()), state.WithExpectedPhaseAny())
 
 		return err
+	})
+}
+
+// generateAllMaintenanceConfigs reconciles maintenance configs for all machines and update the inputs to avoid triggering config updates for each machine.
+func generateAllMaintenanceConfigs(ctx context.Context, st state.State, _ *zap.Logger) error {
+	connectionParams, err := safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, st, siderolink.ConfigID)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil
+		}
+
+		return err
+	}
+
+	items, err := safe.ReaderListAll[*omni.ClusterMachine](
+		ctx,
+		st,
+	)
+	if err != nil {
+		return err
+	}
+
+	return items.ForEachErr(func(item *omni.ClusterMachine) error {
+		machineStatus, err := safe.StateGet[*omni.MachineStatus](ctx, st, omni.NewMachineStatus(resources.DefaultNamespace, item.Metadata().ID()).Metadata())
+		if err != nil {
+			if state.IsNotFoundError(err) {
+				return nil
+			}
+
+			return err
+		}
+
+		version := machineStatus.TypedSpec().Value.TalosVersion
+
+		if version == "" {
+			return nil
+		}
+
+		if !quirks.New(version).SupportsMultidoc() {
+			return nil
+		}
+
+		configPatch := omni.NewConfigPatch(resources.DefaultNamespace, omnictrl.MaintenanceConfigPatchPrefix+machineStatus.Metadata().ID())
+
+		if err = createOrUpdate(ctx, st, configPatch, func(res *omni.ConfigPatch) error {
+			return omnictrl.UpdateMaintenanceConfigPatch(res, machineStatus, connectionParams)
+		}, omnictrl.NewMaintenanceConfigPatchController().Name()); err != nil {
+			return err
+		}
+
+		return reconcileConfigInputs(ctx, st, item, true)
 	})
 }

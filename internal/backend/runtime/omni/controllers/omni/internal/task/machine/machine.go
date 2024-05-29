@@ -21,7 +21,6 @@ import (
 	"github.com/siderolabs/gen/channel"
 	"github.com/siderolabs/gen/maps"
 	"github.com/siderolabs/talos/pkg/machinery/client"
-	"github.com/siderolabs/talos/pkg/machinery/resources/config"
 	"github.com/siderolabs/talos/pkg/machinery/resources/hardware"
 	"github.com/siderolabs/talos/pkg/machinery/resources/network"
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
@@ -54,7 +53,6 @@ type Info struct { //nolint:govet
 	TalosMachineStatus *specs.MachineStatusSpec_TalosMachineStatus
 	PlatformMetadata   *specs.MachineStatusSpec_PlatformMetadata
 	Schematic          *specs.MachineStatusSpec_Schematic
-	MaintenanceConfig  *specs.MachineStatusSpec_MaintenanceConfig
 
 	LastError       error
 	MachineID       string
@@ -250,13 +248,6 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 		},
 		runtime.ExtensionStatusType: {
 			namespace: runtime.NamespaceName,
-		},
-		config.MachineConfigType: {
-			namespace: config.NamespaceName,
-			filterFunc: func(r resource.Resource) bool {
-				return spec.MaintenanceMode && r.Metadata().ID() == config.V1Alpha1ID
-			},
-			handlePermissionDenied: true, // do not fail if the resource cannot be read due to permission denied error
 		},
 	}
 

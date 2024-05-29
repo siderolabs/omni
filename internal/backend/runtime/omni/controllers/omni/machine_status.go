@@ -464,10 +464,6 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 			}
 		}
 
-		if event.MaintenanceConfig != nil { // never set the maintenance config back to nil if it was ever initialized
-			spec.MaintenanceConfig = event.MaintenanceConfig
-		}
-
 		spec.Maintenance = event.MaintenanceMode
 
 		omni.MachineStatusReconcileLabels(m)

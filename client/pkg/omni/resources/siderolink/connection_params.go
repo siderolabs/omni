@@ -5,6 +5,8 @@
 package siderolink
 
 import (
+	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -73,4 +75,21 @@ func KernelArgs(res *ConnectionParams) []string {
 	}
 
 	return strings.Split(res.TypedSpec().Value.Args, " ")
+}
+
+// APIURL generates siderolink API URL from the connection params.
+func APIURL(cfg *ConnectionParams, useTunnel bool) (string, error) {
+	var url *url.URL
+
+	url, err := url.Parse(cfg.TypedSpec().Value.ApiEndpoint)
+	if err != nil {
+		return "", err
+	}
+
+	query := url.Query()
+	query.Set("jointoken", cfg.TypedSpec().Value.JoinToken)
+	query.Set("grpc_tunnel", fmt.Sprintf("%t", useTunnel))
+	url.RawQuery = query.Encode()
+
+	return url.String(), nil
 }

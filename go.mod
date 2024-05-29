@@ -31,7 +31,7 @@ require (
 	github.com/cosi-project/state-etcd v0.2.9
 	github.com/crewjam/saml v0.4.14
 	github.com/dustin/go-humanize v1.0.1
-	github.com/emicklei/dot v1.6.1
+	github.com/emicklei/dot v1.6.2
 	github.com/felixge/httpsnoop v1.0.4
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/go-logr/zapr v1.3.0
@@ -74,7 +74,7 @@ require (
 	github.com/siderolabs/kms-client v0.1.0
 	github.com/siderolabs/omni/client v0.0.0-00010101000000-000000000000
 	github.com/siderolabs/siderolink v0.3.8
-	github.com/siderolabs/talos/pkg/machinery v1.7.2
+	github.com/siderolabs/talos/pkg/machinery v1.8.0-alpha.0.0.20240529144414-4feb94ca0997
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.9.0
@@ -90,7 +90,7 @@ require (
 	golang.org/x/net v0.25.0
 	golang.org/x/sync v0.7.0
 	golang.org/x/text v0.15.0
-	golang.org/x/tools v0.20.0
+	golang.org/x/tools v0.21.0
 	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20230429144221-925a1e7659e6
 	google.golang.org/grpc v1.63.2
@@ -105,6 +105,7 @@ require (
 )
 
 require (
+	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
 	github.com/ProtonMail/go-mime v0.0.0-20230322103455-7d82a3887f2f // indirect
 	github.com/aws/aws-sdk-go v1.44.256 // indirect
@@ -129,7 +130,7 @@ require (
 	github.com/containerd/containerd v1.7.14 // indirect
 	github.com/containerd/go-cni v1.1.9 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.15.1 // indirect
-	github.com/containernetworking/cni v1.1.2 // indirect
+	github.com/containernetworking/cni v1.2.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect

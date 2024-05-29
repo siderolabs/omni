@@ -177,11 +177,6 @@ message MachineStatusSpec {
     bool enabled = 1;
   }
 
-  message MaintenanceConfig {
-    // Config is the machine config.
-    string config = 1;
-  }
-
   message TalosMachineStatus {
     machine.MachineStatusEvent status = 1;
     google.protobuf.Timestamp updated_at = 2;
@@ -231,7 +226,7 @@ message MachineStatusSpec {
 
   Schematic schematic = 14;
 
-  MaintenanceConfig maintenance_config = 15;
+  reserved 15;
 
   // InitialTalosVersion is set only once when the machine first joined Omni.
   string initial_talos_version = 16;

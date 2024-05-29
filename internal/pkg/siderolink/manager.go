@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
-	"net/url"
 	"os"
 	"strconv"
 	"syscall"
@@ -626,21 +625,16 @@ func (manager *Manager) updateConnectionParams(ctx context.Context, siderolinkCo
 		spec.JoinToken = siderolinkConfig.TypedSpec().Value.JoinToken
 		spec.WireguardEndpoint = siderolinkConfig.TypedSpec().Value.AdvertisedEndpoint
 
-		var url *url.URL
+		var url string
 
-		url, err = url.Parse(spec.ApiEndpoint)
+		url, err = siderolink.APIURL(res, config.Config.SiderolinkUseGRPCTunnel)
 		if err != nil {
 			return err
 		}
 
-		query := url.Query()
-		query.Set("jointoken", siderolinkConfig.TypedSpec().Value.JoinToken)
-		query.Set("grpc_tunnel", fmt.Sprintf("%t", config.Config.SiderolinkUseGRPCTunnel))
-		url.RawQuery = query.Encode()
-
 		spec.Args = fmt.Sprintf("%s=%s %s=%s %s=tcp://%s",
 			talosconstants.KernelParamSideroLink,
-			url.String(),
+			url,
 			talosconstants.KernelParamEventsSink,
 			net.JoinHostPort(
 				siderolinkConfig.TypedSpec().Value.ServerAddress,

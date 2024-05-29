@@ -14,6 +14,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/controller/runtime"
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
@@ -364,7 +365,7 @@ func (suite *MigrationSuite) createCluster(ctx context.Context, name string, fin
 	return cluster, machine
 }
 
-func (suite *MigrationSuite) createClusterWithMachines(ctx context.Context, name string, machines []machine, withTemplates bool, finalizers ...string) *omni.Cluster {
+func (suite *MigrationSuite) createClusterWithMachines(ctx context.Context, name string, machines []machine, withTemplates bool) *omni.Cluster {
 	cluster := omni.NewCluster(resources.DefaultNamespace, name)
 
 	for _, m := range machines {
@@ -397,10 +398,6 @@ func (suite *MigrationSuite) createClusterWithMachines(ctx context.Context, name
 		}
 
 		suite.Require().NoError(suite.state.Create(ctx, machine))
-	}
-
-	for _, finalizer := range finalizers {
-		cluster.Metadata().Finalizers().Add(finalizer)
 	}
 
 	suite.Require().NoError(suite.state.Create(ctx, cluster))
@@ -1342,6 +1339,117 @@ func (suite *MigrationSuite) TestDropExtensionsConfigurationFinalizers() {
 	suite.Require().NoError(err)
 
 	suite.Require().EqualValues([]string{omnictrl.MachineExtensionsControllerName}, *res.Metadata().Finalizers())
+}
+
+func (suite *MigrationSuite) TestGenerateAllMaintenanceConfigs() {
+	ctx := context.Background()
+
+	connectionParams := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
+	connectionParams.TypedSpec().Value.ApiEndpoint = "grpc://127.0.0.1:8080"
+
+	suite.Require().NoError(suite.state.Create(ctx, connectionParams))
+
+	version := system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
+	suite.Require().NoError(suite.state.Create(ctx, version))
+
+	clusterName := "maintenance"
+	machines := []machine{
+		{
+			name: "m1",
+			labels: map[string]string{
+				"role-worker": "",
+			},
+		},
+		{
+			name: "m2",
+			labels: map[string]string{
+				"role-worker": "",
+			},
+		},
+	}
+
+	suite.createClusterWithMachines(ctx, clusterName, machines, false)
+
+	m1 := "maintenance.m1"
+	m2 := "maintenance.m2"
+
+	m1Status := omni.NewMachineStatus(resources.DefaultNamespace, m1)
+	m1Status.TypedSpec().Value.TalosVersion = "v1.4.0"
+
+	m2Status := omni.NewMachineStatus(resources.DefaultNamespace, m2)
+	m2Status.TypedSpec().Value.TalosVersion = "v1.5.0"
+
+	lbStatus := omni.NewLoadBalancerStatus(resources.DefaultNamespace, clusterName)
+	lbStatus.TypedSpec().Value.Healthy = true
+
+	machineSet := omni.NewMachineSet(
+		resources.DefaultNamespace,
+		omni.WorkersResourceID(clusterName),
+	)
+	machineSet.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+	machineSet.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
+
+	clusterConfigVersion := omni.NewClusterConfigVersion(resources.DefaultNamespace, clusterName)
+	clusterConfigVersion.TypedSpec().Value.Version = "v1.5"
+
+	createResources := []pair.Pair[string, resource.Resource]{
+		pair.MakePair[string, resource.Resource]((&omnictrl.LoadBalancerController{}).Name(), omni.NewLoadBalancerConfig(resources.DefaultNamespace, clusterName)),
+		pair.MakePair[string, resource.Resource]((&omnictrl.LoadBalancerController{}).Name(), lbStatus),
+		pair.MakePair[string, resource.Resource]("", omni.NewClusterSecrets(resources.DefaultNamespace, clusterName)),
+		pair.MakePair[string, resource.Resource]("", m1Status),
+		pair.MakePair[string, resource.Resource]("", m2Status),
+		pair.MakePair[string, resource.Resource]("", omni.NewMachine(resources.DefaultNamespace, m1)),
+		pair.MakePair[string, resource.Resource]("", omni.NewMachine(resources.DefaultNamespace, m2)),
+		pair.MakePair[string, resource.Resource]("", omni.NewMachineSetNode(resources.DefaultNamespace, m1, machineSet)),
+		pair.MakePair[string, resource.Resource]("", omni.NewMachineSetNode(resources.DefaultNamespace, m2, machineSet)),
+		pair.MakePair[string, resource.Resource]("", clusterConfigVersion),
+	}
+
+	createResources = append(createResources, xslices.Map(machines, func(m machine) pair.Pair[string, resource.Resource] {
+		return pair.MakePair[string, resource.Resource](omnictrl.NewClusterMachineConfigController(nil).Name(), omni.NewClusterMachineConfig(resources.DefaultNamespace, clusterName+"."+m.name))
+	})...)
+
+	for _, res := range createResources {
+		suite.Require().NoError(res.F2.Metadata().SetOwner(res.F1))
+		suite.Require().NoError(suite.state.Create(ctx, res.F2, state.WithCreateOwner(res.F1)))
+	}
+
+	suite.Require().NoError(suite.manager.Run(ctx))
+
+	patch, err := safe.StateGetByID[*omni.ConfigPatch](ctx, suite.state, omnictrl.MaintenanceConfigPatchPrefix+m2)
+	suite.Require().NoError(err)
+
+	suite.Require().NotEmpty(patch.TypedSpec().Value.Data)
+
+	rtestutils.AssertNoResource[*omni.ConfigPatch](ctx, suite.T(), suite.state, omnictrl.MaintenanceConfigPatchPrefix+m1)
+
+	config, err := safe.StateGet[*omni.ClusterMachineConfig](ctx, suite.state, omni.NewClusterMachineConfig(resources.DefaultNamespace, m2).Metadata())
+	suite.Require().NoError(err)
+
+	_, ok := config.Metadata().Annotations().Get("inputResourceVersion")
+	suite.Require().True(ok)
+
+	oldVer := config.Metadata().Version()
+
+	// run controllers and verify that the config resource hasn't changed
+	runtime, err := runtime.NewRuntime(suite.state, suite.logger)
+	suite.Require().NoError(err)
+
+	suite.Require().NoError(runtime.RegisterQController(omnictrl.NewMaintenanceConfigPatchController()))
+	suite.Require().NoError(runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil)))
+
+	runCtx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+
+	err = runtime.Run(runCtx)
+	if !errors.Is(err, context.Canceled) {
+		suite.Require().NoError(err)
+	}
+
+	config, err = safe.StateGet[*omni.ClusterMachineConfig](ctx, suite.state, omni.NewClusterMachineConfig(resources.DefaultNamespace, m2).Metadata())
+	suite.Require().NoError(err)
+
+	suite.Require().Equal(oldVer, config.Metadata().Version())
 }
 
 func TestMigrationSuite(t *testing.T) {
