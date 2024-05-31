@@ -164,7 +164,7 @@ func AssertRegisterPublicKeyWithUnknownEmail(testCtx context.Context, cli *clien
 // AssertServiceAccountAPIFlow tests the service account lifecycle and API calls using it.
 func AssertServiceAccountAPIFlow(testCtx context.Context, cli *client.Client) TestFunc {
 	return func(t *testing.T) {
-		name := fmt.Sprintf("test-%d", time.Now().UnixMilli())
+		name := "test-" + uuid.NewString()
 
 		saCli, armoredPublicKey, err := newServiceAccountClient(testCtx, cli, name)
 		require.NoError(t, err)

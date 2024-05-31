@@ -14,9 +14,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
-	"time"
 
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/google/uuid"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
 	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
@@ -60,7 +60,7 @@ func AssertDownloadUsingCLI(testCtx context.Context, client *client.Client, omni
 
 		require.Greater(t, len(images), 2)
 
-		name := fmt.Sprintf("test-%d", time.Now().UnixMilli())
+		name := "test-" + uuid.NewString()
 
 		key := createServiceAccount(testCtx, t, client, name)
 
