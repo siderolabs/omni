@@ -214,11 +214,6 @@ export type MachineStatusSpecSecureBootStatus = {
   enabled?: boolean
 }
 
-export type MachineStatusSpecTalosMachineStatus = {
-  status?: MachineMachine.MachineStatusEvent
-  updated_at?: GoogleProtobufTimestamp.Timestamp
-}
-
 export type MachineStatusSpec = {
   talos_version?: string
   hardware?: MachineStatusSpecHardwareStatus
@@ -233,7 +228,6 @@ export type MachineStatusSpec = {
   image_labels?: {[key: string]: string}
   schematic?: MachineStatusSpecSchematic
   initial_talos_version?: string
-  talos_machine_status?: MachineStatusSpecTalosMachineStatus
   secure_boot_status?: MachineStatusSpecSecureBootStatus
 }
 

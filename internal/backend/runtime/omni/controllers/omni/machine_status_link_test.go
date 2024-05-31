@@ -208,5 +208,7 @@ func makeMD[T generic.ResourceWithRD](id resource.ID) resource.Metadata {
 }
 
 func TestMachineStatusLinkSuiteSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(MachineStatusLinkSuite))
 }

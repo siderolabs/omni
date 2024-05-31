@@ -7,13 +7,18 @@
 package helpers
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"strings"
 
+	"github.com/cosi-project/runtime/pkg/controller"
+	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/kvutils"
+	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -126,4 +131,58 @@ func ClearUserLabels(res resource.Resource) {
 			tmp.Delete(key)
 		}
 	})
+}
+
+// HandleInputOptions optional args for HandleInput.
+type HandleInputOptions struct {
+	id string
+}
+
+// HandleInputOption optional arg for HandleInput.
+type HandleInputOption func(*HandleInputOptions)
+
+// WithID maps the resource using another id.
+func WithID(id string) HandleInputOption {
+	return func(hio *HandleInputOptions) {
+		hio.id = id
+	}
+}
+
+// HandleInput reads the additional input resource and automatically manages finalizers.
+// By default maps the resource using same id.
+func HandleInput[T generic.ResourceWithRD, S generic.ResourceWithRD](ctx context.Context, r controller.QRuntime, finalizer string, main S, opts ...HandleInputOption) (T, error) {
+	var zero T
+
+	options := HandleInputOptions{
+		id: main.Metadata().ID(),
+	}
+
+	for _, o := range opts {
+		o(&options)
+	}
+
+	res, err := safe.ReaderGetByID[T](ctx, r, options.id)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return zero, nil
+		}
+
+		return zero, err
+	}
+
+	if res.Metadata().Phase() == resource.PhaseTearingDown || main.Metadata().Phase() == resource.PhaseTearingDown {
+		if err := r.RemoveFinalizer(ctx, res.Metadata(), finalizer); err != nil && !state.IsNotFoundError(err) {
+			return zero, err
+		}
+
+		return zero, nil
+	}
+
+	if !res.Metadata().Finalizers().Has(finalizer) {
+		if err := r.AddFinalizer(ctx, res.Metadata(), finalizer); err != nil {
+			return zero, err
+		}
+	}
+
+	return res, nil
 }

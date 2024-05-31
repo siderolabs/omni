@@ -85,5 +85,7 @@ url: tcp://[fdae:41e4:649b:9303::1]:8092
 }
 
 func TestMaintenanceConfigPatchSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(MaintenanceConfigPatchSuite))
 }

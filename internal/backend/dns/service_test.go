@@ -158,5 +158,7 @@ func (suite *ServiceSuite) assertResolve(node string, expected dns.Info) {
 }
 
 func TestServiceSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(ServiceSuite))
 }

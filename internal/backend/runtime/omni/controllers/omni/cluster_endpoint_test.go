@@ -49,5 +49,7 @@ func (suite *ClusterEndpointSuite) TestReconcile() {
 }
 
 func TestClusterEndpointSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(ClusterEndpointSuite))
 }

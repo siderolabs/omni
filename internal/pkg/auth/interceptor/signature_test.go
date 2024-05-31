@@ -171,5 +171,7 @@ func (suite *SignatureTestSuite) TestValidSignature() {
 }
 
 func TestSignatureTestSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(SignatureTestSuite))
 }

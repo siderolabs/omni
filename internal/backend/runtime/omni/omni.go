@@ -74,8 +74,9 @@ type Runtime struct {
 //
 //nolint:maintidx
 func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workloadProxyServiceRegistry *workloadproxy.ServiceRegistry,
-	resourceLogger *resourcelogger.Logger, imageFactoryClient *imagefactory.Client, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas, resourceState state.State,
-	virtualState *virtual.State, metricsRegistry prometheus.Registerer, discoveryClient omnictrl.DiscoveryClient, logger *zap.Logger,
+	resourceLogger *resourcelogger.Logger, imageFactoryClient *imagefactory.Client, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas,
+	siderolinkEventsCh <-chan *omni.MachineStatusSnapshot, resourceState state.State, virtualState *virtual.State, metricsRegistry prometheus.Registerer,
+	discoveryClient omnictrl.DiscoveryClient, logger *zap.Logger,
 ) (*Runtime, error) {
 	var opts []options.Option
 
@@ -220,6 +221,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewTalosConfigController(constants.CertificateValidityTime),
 		omnictrl.NewTalosExtensionsController(imageFactoryClient),
 		omnictrl.NewTalosUpgradeStatusController(),
+		omnictrl.NewMachineStatusSnapshotController(siderolinkEventsCh),
 	}
 
 	if config.Config.Auth.SAML.Enabled {

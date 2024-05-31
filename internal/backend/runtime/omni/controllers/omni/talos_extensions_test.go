@@ -266,5 +266,7 @@ func (suite *TalosExtensionsSuite) TestReconcile() {
 }
 
 func TestTalosExtensionsSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(TalosExtensionsSuite))
 }

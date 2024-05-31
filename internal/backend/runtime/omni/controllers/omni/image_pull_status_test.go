@@ -68,6 +68,8 @@ func (m *mockImageClient) PullImageToNode(_ context.Context, cluster, node, imag
 }
 
 func TestImagePullStatusControllerSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(ImagePullStatusControllerSuite))
 }
 

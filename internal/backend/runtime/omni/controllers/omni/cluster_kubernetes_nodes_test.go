@@ -66,5 +66,7 @@ func (suite *ClusterKubernetesNodesSuite) TestReconcile() {
 }
 
 func TestClusterKubernetesNodesSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(ClusterKubernetesNodesSuite))
 }

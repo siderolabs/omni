@@ -312,5 +312,7 @@ func (suite *TalosUpgradeStatusSuite) TestReconcileLocked() {
 }
 
 func TestTalosUpgradeStatusSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(TalosUpgradeStatusSuite))
 }

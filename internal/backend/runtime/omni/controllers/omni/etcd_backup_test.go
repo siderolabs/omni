@@ -50,6 +50,8 @@ import (
 )
 
 func TestEtcdBackupControllerSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(EtcdBackupControllerSuite))
 }
 

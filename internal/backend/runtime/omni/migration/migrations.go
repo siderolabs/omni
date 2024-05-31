@@ -1211,3 +1211,30 @@ func generateAllMaintenanceConfigs(ctx context.Context, st state.State, _ *zap.L
 		return reconcileConfigInputs(ctx, st, item, true)
 	})
 }
+
+// setMachineStatusSnapshotOwner reconciles maintenance configs for all machines and update the inputs to avoid triggering config updates for each machine.
+func setMachineStatusSnapshotOwner(ctx context.Context, st state.State, logger *zap.Logger) error {
+	list, err := safe.StateListAll[*omni.MachineStatusSnapshot](ctx, st)
+	if err != nil {
+		return err
+	}
+
+	for iter := list.Iterator(); iter.Next(); {
+		item := iter.Value()
+
+		if item.Metadata().Owner() != "" {
+			continue
+		}
+
+		logger.Info("updating machine status snapshot with empty owner", zap.String("id", item.Metadata().String()))
+
+		_, err = safe.StateUpdateWithConflicts(ctx, st, item.Metadata(), func(res *omni.MachineStatusSnapshot) error {
+			return res.Metadata().SetOwner(omnictrl.NewMachineStatusSnapshotController(nil).Name())
+		}, state.WithExpectedPhaseAny(), state.WithUpdateOwner(item.Metadata().Owner()))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

@@ -69,5 +69,7 @@ func (suite *RedactedClusterMachineConfigSuite) generateConfig() []byte {
 }
 
 func TestRedactedClusterMachineConfigSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(RedactedClusterMachineConfigSuite))
 }

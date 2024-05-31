@@ -89,5 +89,7 @@ func (suite *MachineCleanupSuite) TestSkipMachineSetNodeWithOwner() {
 }
 
 func TestMachineCleanupSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(MachineCleanupSuite))
 }

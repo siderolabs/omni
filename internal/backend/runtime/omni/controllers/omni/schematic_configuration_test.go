@@ -232,5 +232,7 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 }
 
 func TestSchematicConfigurationSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(SchematicConfigurationSuite))
 }

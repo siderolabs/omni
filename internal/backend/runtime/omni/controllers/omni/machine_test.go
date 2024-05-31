@@ -62,5 +62,7 @@ func (suite *MachineSuite) TestReconcile() {
 }
 
 func TestMachineSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(MachineSuite))
 }

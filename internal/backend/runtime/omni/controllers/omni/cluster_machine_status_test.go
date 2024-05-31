@@ -219,5 +219,7 @@ func (suite *ClusterMachineStatusSuite) TestApidAvailable() {
 }
 
 func TestClusterMachineStatusSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(ClusterMachineStatusSuite))
 }

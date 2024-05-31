@@ -99,6 +99,7 @@ type Server struct {
 	imageFactoryClient           *imagefactory.Client
 
 	linkCounterDeltaCh chan<- siderolink.LinkCounterDeltas
+	siderolinkEventsCh chan<- *omnires.MachineStatusSnapshot
 
 	proxyServer         Proxy
 	bindAddress         string
@@ -116,6 +117,7 @@ func NewServer(
 	workloadProxyServiceRegistry *workloadproxy.ServiceRegistry,
 	imageFactoryClient *imagefactory.Client,
 	linkCounterDeltaCh chan<- siderolink.LinkCounterDeltas,
+	siderolinkEventsCh chan<- *omnires.MachineStatusSnapshot,
 	omniRuntime *omni.Runtime,
 	talosRuntime *talos.Runtime,
 	logHandler *siderolink.LogHandler,
@@ -133,6 +135,7 @@ func NewServer(
 		workloadProxyServiceRegistry: workloadProxyServiceRegistry,
 		imageFactoryClient:           imageFactoryClient,
 		linkCounterDeltaCh:           linkCounterDeltaCh,
+		siderolinkEventsCh:           siderolinkEventsCh,
 		proxyServer:                  proxyServer,
 		bindAddress:                  bindAddress,
 		metricsBindAddress:           metricsBindAddress,
@@ -463,7 +466,7 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 	}
 
 	omniState := s.omniRuntime.State()
-	machineStatusHandler := machinestatus.NewHandler(omniState, s.logger)
+	machineStatusHandler := machinestatus.NewHandler(omniState, s.logger, s.siderolinkEventsCh)
 
 	slink, err := siderolink.NewManager(
 		ctx,
@@ -504,10 +507,6 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 
 	slink.Register(server)
 	kms.Register(server)
-
-	eg.Go(func() error {
-		return machineStatusHandler.Start(groupCtx)
-	})
 
 	eg.Go(func() error {
 		return slink.Run(groupCtx,

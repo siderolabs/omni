@@ -1452,6 +1452,51 @@ func (suite *MigrationSuite) TestGenerateAllMaintenanceConfigs() {
 	suite.Require().Equal(oldVer, config.Metadata().Version())
 }
 
+func (suite *MigrationSuite) TestSetMachineStatusSnapshotOwner() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	items := []*omni.MachineStatusSnapshot{
+		omni.NewMachineStatusSnapshot(resources.DefaultNamespace, "test1"),
+		omni.NewMachineStatusSnapshot(resources.DefaultNamespace, "test2"),
+		omni.NewMachineStatusSnapshot(resources.DefaultNamespace, "test3"),
+	}
+
+	for _, item := range items[:2] {
+		suite.Require().NoError(suite.state.Create(ctx, item))
+	}
+
+	for _, item := range items[2:] {
+		suite.Require().NoError(suite.state.Create(
+			ctx,
+			item,
+			state.WithCreateOwner(omnictrl.NewMachineStatusSnapshotController(nil).Name())),
+		)
+	}
+
+	// test migration in isolation
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(func(name string) bool {
+		return name == "setMachineStatusSnapshotOwner"
+	})))
+
+	check := func(item *omni.MachineStatusSnapshot, expectedVersion int) {
+		result, err := safe.StateGet[*omni.MachineStatusSnapshot](ctx, suite.state, item.Metadata())
+		suite.Require().NoError(err)
+		suite.Require().Equal(omnictrl.NewMachineStatusSnapshotController(nil).Name(), result.Metadata().Owner())
+		suite.Require().EqualValues(result.Metadata().Version().Value(), expectedVersion)
+	}
+
+	for _, item := range items[:2] {
+		check(item, 2)
+	}
+
+	for _, item := range items[2:] {
+		check(item, 1)
+	}
+}
+
 func TestMigrationSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(MigrationSuite))
 }

@@ -530,5 +530,7 @@ func (suite *MachineSetEtcdAuditSuite) cleanupResources() {
 }
 
 func TestMachineSetEtcdAuditSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(MachineSetEtcdAuditSuite))
 }

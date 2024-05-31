@@ -390,5 +390,7 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 }
 
 func TestMachineStatusSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(MachineStatusSuite))
 }

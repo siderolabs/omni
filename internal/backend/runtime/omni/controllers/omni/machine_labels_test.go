@@ -69,5 +69,7 @@ func (suite *MachineLabelsSuite) TestLabelsReconcile() {
 }
 
 func TestMachineLabelsSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(MachineLabelsSuite))
 }

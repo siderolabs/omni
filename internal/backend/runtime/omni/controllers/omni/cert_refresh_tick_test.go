@@ -50,5 +50,7 @@ func (suite *CertRefreshTickSuite) TestReconcile() {
 }
 
 func TestCertRefreshTickSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(CertRefreshTickSuite))
 }

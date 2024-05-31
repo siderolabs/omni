@@ -15,8 +15,6 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
-	"github.com/cosi-project/runtime/pkg/resource/meta"
-	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/channel"
 	"github.com/siderolabs/gen/maps"
@@ -50,9 +48,8 @@ type Info struct { //nolint:govet
 	MemoryModules []*specs.MachineStatusSpec_HardwareStatus_MemoryModule
 	Blockdevices  []*specs.MachineStatusSpec_HardwareStatus_BlockDevice
 
-	TalosMachineStatus *specs.MachineStatusSpec_TalosMachineStatus
-	PlatformMetadata   *specs.MachineStatusSpec_PlatformMetadata
-	Schematic          *specs.MachineStatusSpec_Schematic
+	PlatformMetadata *specs.MachineStatusSpec_PlatformMetadata
+	Schematic        *specs.MachineStatusSpec_Schematic
 
 	LastError       error
 	MachineID       string
@@ -193,8 +190,7 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 
 	watchCh := make(chan state.Event)
 
-	// query all resources to start watching only resources that are defined for running version of talos
-	resources, err := safe.StateList[*meta.ResourceDefinition](ctx, c.COSI, resource.NewMetadata(meta.NamespaceName, meta.ResourceDefinitionType, "", resource.VersionUndefined))
+	registeredTypes, err := QueryRegisteredTypes(ctx, c.COSI)
 	if err != nil {
 		// this is the first request to the Talos API
 		// if it fails we handle it and update the machine status with the request error
@@ -202,14 +198,8 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 			return nil
 		}
 
-		return fmt.Errorf("failed to list resource definitions: %w", err)
+		return err
 	}
-
-	registeredTypes := map[resource.Type]struct{}{}
-
-	resources.ForEach(func(rd *meta.ResourceDefinition) {
-		registeredTypes[rd.TypedSpec().Type] = struct{}{}
-	})
 
 	// as Talos < 1.3.0 doesn't support Bootstrapped event, we use a mixed approach:
 	// watch is used to trigger polling on changes to the resources

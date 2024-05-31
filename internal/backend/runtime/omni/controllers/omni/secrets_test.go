@@ -154,5 +154,7 @@ func (suite *ClusterSecretsSuite) TestSecretsFromBackup() {
 }
 
 func TestClusterSecretsSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(ClusterSecretsSuite))
 }

@@ -94,7 +94,7 @@ func (suite *GrpcSuite) SetupTest() {
 	suite.Require().NoError(err)
 
 	suite.runtime, err = omniruntime.New(clientFactory, dnsService, workloadProxyServiceRegistry, nil,
-		imageFactoryClient, nil, suite.state, nil, prometheus.NewRegistry(), discoveryServiceClientMock, logger)
+		imageFactoryClient, nil, nil, suite.state, nil, prometheus.NewRegistry(), discoveryServiceClientMock, logger)
 	suite.Require().NoError(err)
 	runtime.Install(omniruntime.Name, suite.runtime)
 
@@ -324,5 +324,7 @@ func (d *discoveryClientMock) AffiliateDelete(context.Context, string, string) e
 }
 
 func TestGrpcSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(GrpcSuite))
 }

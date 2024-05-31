@@ -177,5 +177,7 @@ func (suite *ClusterBootstrapStatusSuite) testRecoverControlPlaneFromEtcdBackup(
 }
 
 func TestClusterBootstrapStatusSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(ClusterBootstrapStatusSuite))
 }

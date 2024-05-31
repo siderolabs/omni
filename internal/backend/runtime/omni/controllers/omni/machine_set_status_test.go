@@ -923,6 +923,8 @@ func (suite *MachineSetStatusSuite) assertMachineSetPhase(machineSet *omni.Machi
 }
 
 func TestMachineSetStatusSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(MachineSetStatusSuite))
 }
 

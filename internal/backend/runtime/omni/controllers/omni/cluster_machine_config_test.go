@@ -179,5 +179,7 @@ func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 }
 
 func TestClusterMachineConfigSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(ClusterMachineConfigSuite))
 }

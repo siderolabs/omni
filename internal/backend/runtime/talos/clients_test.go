@@ -118,5 +118,7 @@ func (suite *ClientsSuite) TearDownTest() {
 }
 
 func TestClients(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, &ClientsSuite{})
 }

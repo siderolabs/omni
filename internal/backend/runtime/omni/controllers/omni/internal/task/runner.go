@@ -7,6 +7,7 @@ package task
 
 import (
 	"context"
+	"sync"
 
 	"go.uber.org/zap"
 )
@@ -18,6 +19,7 @@ type EqualityFunc[T any] func(x, y T) bool
 type Runner[T any, S Spec[T]] struct {
 	running      map[ID]*Task[T, S]
 	equalityFunc EqualityFunc[S]
+	mu           sync.Mutex
 }
 
 // NewRunner creates a new task runner.
@@ -44,8 +46,37 @@ func (runner *Runner[T, S]) Stop() {
 	}
 }
 
+// StartTask starts a new task.
+func (runner *Runner[T, S]) StartTask(ctx context.Context, logger *zap.Logger, id string, spec S, task T) {
+	runner.mu.Lock()
+	defer runner.mu.Unlock()
+
+	runner.running[id] = New(logger, spec, task)
+
+	logger.Debug("starting task", zap.String("task", id))
+	runner.running[id].Start(ctx)
+}
+
+// StopTask stop the running task.
+func (runner *Runner[T, S]) StopTask(logger *zap.Logger, id string) {
+	runner.mu.Lock()
+	defer runner.mu.Unlock()
+
+	if _, ok := runner.running[id]; !ok {
+		return
+	}
+
+	logger.Debug("stopping task", zap.String("task", id))
+
+	runner.running[id].Stop()
+	delete(runner.running, id)
+}
+
 // Reconcile running tasks.
 func (runner *Runner[T, S]) Reconcile(ctx context.Context, logger *zap.Logger, shouldRun map[ID]S, in T) {
+	runner.mu.Lock()
+	defer runner.mu.Unlock()
+
 	// stop running tasks which shouldn't run
 	for id := range runner.running {
 		if _, exists := shouldRun[id]; !exists {

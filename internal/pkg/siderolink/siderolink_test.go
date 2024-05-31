@@ -33,6 +33,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/errgroup"
@@ -110,15 +111,7 @@ func (suite *SiderolinkSuite) SetupTest() {
 
 	var err error
 
-	machineStatusHandler := machinestatus.NewHandler(suite.state, zaptest.NewLogger(suite.T()))
-
-	suite.wg.Add(1)
-
-	go func() {
-		defer suite.wg.Done()
-
-		suite.Require().NoError(machineStatusHandler.Start(suite.ctx))
-	}()
+	machineStatusHandler := machinestatus.NewHandler(suite.state, zaptest.NewLogger(suite.T()), make(chan *omni.MachineStatusSnapshot))
 
 	suite.manager, err = sideromanager.NewManager(suite.ctx, suite.state, &fakeWireguardHandler{}, params, zaptest.NewLogger(suite.T()), nil, machineStatusHandler, nil)
 	suite.Require().NoError(err)
@@ -388,6 +381,8 @@ func (suite *SiderolinkSuite) TearDownTest() {
 }
 
 func TestSiderolinkSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(SiderolinkSuite))
 }
 

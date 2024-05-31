@@ -222,5 +222,7 @@ func (suite *ClusterStatusSuite) TestReconcile() {
 }
 
 func TestClusterStatusSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(ClusterStatusSuite))
 }

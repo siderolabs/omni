@@ -131,5 +131,7 @@ func (k *kubernetesClientMock) DeleteNode(_ context.Context, node string) error 
 }
 
 func TestKubernetesNodeAuditSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(KubernetesNodeAuditSuite))
 }

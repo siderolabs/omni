@@ -28,6 +28,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/constants"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
+	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend"
 	"github.com/siderolabs/omni/internal/backend/discovery"
 	"github.com/siderolabs/omni/internal/backend/dns"
@@ -171,6 +172,7 @@ func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtua
 		}
 
 		linkCounterDeltaCh := make(chan siderolink.LinkCounterDeltas)
+		siderolinkEventsCh := make(chan *omnires.MachineStatusSnapshot)
 
 		discoveryClient, err := discovery.NewClient(ctx)
 		if err != nil {
@@ -184,7 +186,7 @@ func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtua
 		}()
 
 		omniRuntime, err := omni.New(talosClientFactory, dnsService, workloadProxyServiceRegistry, resourceLogger,
-			imageFactoryClient, linkCounterDeltaCh, resourceState, virtualState,
+			imageFactoryClient, linkCounterDeltaCh, siderolinkEventsCh, resourceState, virtualState,
 			prometheus.DefaultRegisterer, discoveryClient, logger.With(logging.Component("omni_runtime")))
 		if err != nil {
 			return fmt.Errorf("failed to set up the controller runtime: %w", err)
@@ -230,6 +232,7 @@ func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtua
 			workloadProxyServiceRegistry,
 			imageFactoryClient,
 			linkCounterDeltaCh,
+			siderolinkEventsCh,
 			omniRuntime,
 			talosRuntime,
 			logHandler,

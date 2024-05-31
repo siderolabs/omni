@@ -94,5 +94,7 @@ func sha256Hex(data []byte) string {
 }
 
 func TestLogStorageSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(LogStorageSuite))
 }

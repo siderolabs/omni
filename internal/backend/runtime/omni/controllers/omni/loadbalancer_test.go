@@ -95,6 +95,8 @@ type LoadBalancerSuite struct {
 }
 
 func TestLoadBalancerSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(LoadBalancerSuite))
 }
 

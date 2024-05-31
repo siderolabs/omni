@@ -110,5 +110,7 @@ func (suite *ClusterLoadBalancerSuite) TestReconcile() {
 }
 
 func TestClusterLoadbalancerSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(ClusterLoadBalancerSuite))
 }

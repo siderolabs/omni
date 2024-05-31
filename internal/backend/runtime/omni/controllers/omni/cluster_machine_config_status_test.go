@@ -696,5 +696,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestGenerationErrorPropagation() {
 }
 
 func TestClusterMachineConfigStatusSuite(t *testing.T) {
+	t.Parallel()
+
 	suite.Run(t, new(ClusterMachineConfigStatusSuite))
 }
