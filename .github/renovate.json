@@ -1,0 +1,58 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    ":dependencyDashboard",
+    ":gitSignOff",
+    ":semanticCommitScopeDisabled",
+    "schedule:earlyMondays"
+  ],
+  "prHeader": "Update Request | Renovate Bot",
+  "packageRules": [
+    {
+      "matchPackageNames": [
+        "golang/go"
+      ],
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)"
+    },
+    {
+      "matchPackagePatterns": [
+        "*"
+      ],
+      "matchDatasources": [
+        "docker"
+      ],
+      "groupName": "container images"
+    },
+    {
+      "matchPackagePatterns": [
+        "*"
+      ],
+      "matchDatasources": [
+        "go",
+        "golang-version"
+      ],
+      "groupName": "go packages"
+    },
+    {
+      "matchPackagePatterns": [
+        "*"
+      ],
+      "matchDatasources": [
+        "npm"
+      ],
+      "groupName": "node packages"
+    },
+    {
+      "matchPackagePatterns": [
+        "*"
+      ],
+      "matchDatasources": [
+        "git-refs",
+        "git-tags",
+        "github-tags",
+        "github-releases"
+      ],
+      "groupName": "releases"
+    }
+  ]
+}
