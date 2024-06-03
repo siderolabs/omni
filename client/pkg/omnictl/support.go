@@ -72,7 +72,7 @@ func (sbe *supportBundleErrors) print() error {
 			wroteHeader = true
 
 			fmt.Fprintln(os.Stderr, "Processed with errors:")
-			fmt.Fprintln(w, "\tSOURCE\tERROR")
+			fmt.Fprintln(w, "\tSOURCE\tERROR") //nolint:errcheck
 		}
 
 		details := strings.Split(err.value, "\n")
@@ -80,11 +80,11 @@ func (sbe *supportBundleErrors) print() error {
 			details[i] = strings.TrimSpace(d)
 		}
 
-		fmt.Fprintf(w, "\t%s\t%s\n", err.source, color.RedString(details[0]))
+		fmt.Fprintf(w, "\t%s\t%s\n", err.source, color.RedString(details[0])) //nolint:errcheck
 
 		if len(details) > 1 {
 			for _, line := range details[1:] {
-				fmt.Fprintf(w, "\t\t%s\n", color.RedString(line))
+				fmt.Fprintf(w, "\t\t%s\n", color.RedString(line)) //nolint:errcheck
 			}
 		}
 	}

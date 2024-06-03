@@ -75,7 +75,7 @@ func NewRouter(
 	authEnabled bool,
 	verifier grpc.UnaryServerInterceptor,
 ) (*Router, error) {
-	omniConn, err := grpc.Dial(transport.Address,
+	omniConn, err := grpc.Dial(transport.Address, //nolint:staticcheck
 		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
 			return transport.Dial()
 		}),
@@ -246,7 +246,7 @@ func (r *Router) getConn(ctx context.Context, contextName string) (*grpc.ClientC
 		grpc.WithSharedWriteBuffer(true),
 	}
 
-	return grpc.DialContext(
+	return grpc.DialContext( //nolint:staticcheck
 		ctx,
 		endpoint,
 		opts...,

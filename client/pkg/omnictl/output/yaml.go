@@ -41,13 +41,13 @@ func (y *YAML) WriteResource(r resource.Resource, event state.EventType) error {
 	}
 
 	if y.needDashes {
-		fmt.Fprintln(os.Stdout, "---")
+		fmt.Fprintln(os.Stdout, "---") //nolint:errcheck
 	}
 
 	y.needDashes = true
 
 	if y.withEvents {
-		fmt.Fprintf(os.Stdout, "event: %s\n", strings.ToLower(event.String()))
+		fmt.Fprintf(os.Stdout, "event: %s\n", strings.ToLower(event.String())) //nolint:errcheck
 	}
 
 	return yaml.NewEncoder(os.Stdout).Encode(out)

@@ -209,7 +209,7 @@ func getEmbeddedEtcdClient(ctx context.Context, params *config.EtcdParams, logge
 		Endpoints:   xslices.Map(embeddedServer.Clients, func(l net.Listener) string { return l.Addr().String() }),
 		DialTimeout: 5 * time.Second,
 		DialOptions: []grpc.DialOption{
-			grpc.WithBlock(),
+			grpc.WithBlock(), //nolint:staticcheck
 			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(constants.GRPCMaxMessageSize)),
 			grpc.WithSharedWriteBuffer(true),
 		},
@@ -274,7 +274,7 @@ func getExternalEtcdClient(ctx context.Context, params *config.EtcdParams, logge
 		Endpoints:   params.Endpoints,
 		DialTimeout: 5 * time.Second,
 		DialOptions: []grpc.DialOption{
-			grpc.WithBlock(),
+			grpc.WithBlock(), //nolint:staticcheck
 			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(constants.GRPCMaxMessageSize)),
 			grpc.WithSharedWriteBuffer(true),
 		},

@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-05-23T17:32:47Z by kres b5844f8.
+# Generated on 2024-06-03T11:20:02Z by kres f292767.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -22,7 +22,7 @@ ENV PATH ${PATH}:/usr/local/go/bin
 # runs markdownlint
 FROM docker.io/node:22.2.0-alpine3.19 AS lint-markdown
 WORKDIR /src
-RUN npm i -g markdownlint-cli@0.40.0
+RUN npm i -g markdownlint-cli@0.41.0
 RUN npm i sentences-per-line@0.2.1
 COPY .markdownlint.json .
 COPY ./docs ./docs
@@ -110,6 +110,9 @@ ENV GOTOOLCHAIN ${GOTOOLCHAIN}
 ARG GOEXPERIMENT
 ENV GOEXPERIMENT ${GOEXPERIMENT}
 ENV GOPATH /go
+ARG GOIMPORTS_VERSION
+RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/go/pkg go install golang.org/x/tools/cmd/goimports@v${GOIMPORTS_VERSION}
+RUN mv /go/bin/goimports /bin
 ARG PROTOBUF_GO_VERSION
 RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/go/pkg go install google.golang.org/protobuf/cmd/protoc-gen-go@v${PROTOBUF_GO_VERSION}
 RUN mv /go/bin/protoc-gen-go /bin
@@ -119,9 +122,6 @@ RUN mv /go/bin/protoc-gen-go-grpc /bin
 ARG GRPC_GATEWAY_VERSION
 RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/go/pkg go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v${GRPC_GATEWAY_VERSION}
 RUN mv /go/bin/protoc-gen-grpc-gateway /bin
-ARG GOIMPORTS_VERSION
-RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/go/pkg go install golang.org/x/tools/cmd/goimports@v${GOIMPORTS_VERSION}
-RUN mv /go/bin/goimports /bin
 ARG VTPROTOBUF_VERSION
 RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/go/pkg go install github.com/planetscale/vtprotobuf/cmd/protoc-gen-go-vtproto@v${VTPROTOBUF_VERSION}
 RUN mv /go/bin/protoc-gen-go-vtproto /bin

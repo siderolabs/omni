@@ -138,14 +138,14 @@ var (
 
 				writer := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
 
-				fmt.Fprintf(writer, "NAME\tROLE\tPUBLIC KEY ID\tEXPIRATION\n")
+				fmt.Fprintf(writer, "NAME\tROLE\tPUBLIC KEY ID\tEXPIRATION\n") //nolint:errcheck
 
 				for _, sa := range serviceAccounts {
 					for i, publicKey := range sa.PgpPublicKeys {
 						if i == 0 {
-							fmt.Fprintf(writer, "%s\t%q\t%s\t%s\n", sa.Name, sa.GetRole(), publicKey.Id, publicKey.Expiration.AsTime().String())
+							fmt.Fprintf(writer, "%s\t%q\t%s\t%s\n", sa.Name, sa.GetRole(), publicKey.Id, publicKey.Expiration.AsTime().String()) //nolint:errcheck
 						} else {
-							fmt.Fprintf(writer, "\t\t%s\t%s\n", publicKey.Id, publicKey.Expiration.AsTime().String())
+							fmt.Fprintf(writer, "\t\t%s\t%s\n", publicKey.Id, publicKey.Expiration.AsTime().String()) //nolint:errcheck
 						}
 					}
 				}

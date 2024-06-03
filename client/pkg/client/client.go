@@ -88,7 +88,7 @@ func New(ctx context.Context, endpoint string, opts ...Option) (*Client, error) 
 		endpoint: u.String(),
 	}
 
-	c.conn, err = grpc.DialContext(ctx, u.Host, grpcDialOptions...)
+	c.conn, err = grpc.DialContext(ctx, u.Host, grpcDialOptions...) //nolint:staticcheck
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-05-22T16:55:28Z by kres 5fac898-dirty.
+# Generated on 2024-06-03T11:20:02Z by kres f292767.
 
 # options for analysis running
 run:
@@ -13,8 +13,8 @@ run:
 # output configuration options
 output:
   formats:
-  - format: colored-line-number
-    path: stdout
+    - format: colored-line-number
+      path: stdout
   print-issued-lines: true
   print-linter-name: true
   uniq-by-line: true
@@ -94,17 +94,21 @@ linters-settings:
   cyclop:
     # the maximal code complexity to report
     max-complexity: 20
-  #  depguard:
-  #    Main:
-  #      deny:
-  #        - github.com/OpenPeeDeeP/depguard # this is just an example
+  depguard:
+    rules:
+      prevent_unmaintained_packages:
+        list-mode: lax # allow unless explicitly denied
+        files:
+          - $all
+        deny:
+          - pkg: io/ioutil
+            desc: "replaced by io and os packages since Go 1.16: https://tip.golang.org/doc/go1.16#ioutil"
 
 linters:
   enable-all: true
   disable-all: false
   fast: false
   disable:
-    - exhaustivestruct
     - exhaustruct
     - err113
     - forbidigo
@@ -120,30 +124,17 @@ linters:
     - mnd
     - nestif
     - nonamedreturns
-    - nosnakecase
     - paralleltest
     - tagalign
     - tagliatelle
     - thelper
-    - typecheck
     - varnamelen
     - wrapcheck
-    - depguard # Disabled because starting with golangci-lint 1.53.0 it doesn't allow denylist alone anymore
     - testifylint # complains about our assert recorder and has a number of false positives for assert.Greater(t, thing, 1)
     - protogetter # complains about us using Value field on typed spec, instead of GetValue which has a different signature
     - perfsprint # complains about us using fmt.Sprintf in non-performance critical code, updating just kres took too long
-    # abandoned linters for which golangci shows the warning that the repo is archived by the owner
-    - deadcode
-    - golint
-    - ifshort
-    - interfacer
-    - maligned
-    - scopelint
-    - structcheck
-    - varcheck
-    # disabled as it seems to be broken - goes into imported libraries and reports issues there
-    - musttag
     - goimports # same as gci
+    - musttag # seems to be broken - goes into imported libraries and reports issues there
 
 issues:
   exclude: [ ]

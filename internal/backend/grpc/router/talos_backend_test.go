@@ -57,7 +57,7 @@ func TestTalosBackendRoles(t *testing.T) {
 
 	t.Cleanup(func() { require.NoError(t, g.Wait()) })
 
-	conn := must.Value(grpc.DialContext(ctx, proxyEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials())))(t)
+	conn := must.Value(grpc.DialContext(ctx, proxyEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials())))(t) //nolint:staticcheck
 	rebootResult := must.Value(machine.NewMachineServiceClient(conn).Reboot(ctx, &machine.RebootRequest{Mode: 0}))(t)
 	require.NotNil(t, rebootResult)
 
@@ -131,7 +131,7 @@ func dial(ctx context.Context, serverEndpoint string) (*grpc.ClientConn, error) 
 		grpc.WithCodec(proxy.Codec()), //nolint:staticcheck
 	}
 
-	return grpc.DialContext(ctx, serverEndpoint, opts...)
+	return grpc.DialContext(ctx, serverEndpoint, opts...) //nolint:staticcheck
 }
 
 func startTestServer(lis net.Listener) (closer func() error) {

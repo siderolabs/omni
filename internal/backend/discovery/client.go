@@ -75,7 +75,7 @@ func createConn(ctx context.Context) (*grpc.ClientConn, error) {
 
 	opts = append(opts, grpc.WithSharedWriteBuffer(true))
 
-	discoveryConn, err := grpc.DialContext(ctx, net.JoinHostPort(u.Host, "443"), opts...)
+	discoveryConn, err := grpc.DialContext(ctx, net.JoinHostPort(u.Host, "443"), opts...) //nolint:staticcheck
 	if err != nil {
 		return nil, err
 	}

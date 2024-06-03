@@ -129,7 +129,7 @@ func outputDiff(w io.Writer, u gotextdiff.Unified) {
 			case gotextdiff.Insert:
 				green.Fprintf(w, "+%s", l.Content) //nolint:errcheck
 			default:
-				fmt.Fprintf(w, " %s", l.Content)
+				fmt.Fprintf(w, " %s", l.Content) //nolint:errcheck
 			}
 
 			if !strings.HasSuffix(l.Content, "\n") {
