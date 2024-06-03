@@ -40,14 +40,14 @@ included in the LICENSE file.
           </div>
         </div>
         <div class="overview-data-row">
-          <p class="overview-data-name">Status</p>
+          <p class="overview-data-name">Kubernetes Node Status</p>
           <div class="overview-data">
-            <t-status :title="status" />
+            <t-status :title="status"/>
           </div>
         </div>
       </li>
       <li class="overview-data-item">
-        <h4 class="overview-data-heading">Node</h4>
+        <h4 class="overview-data-heading">Talos</h4>
         <div class="overview-data-row">
           <p class="overview-data-name">Addresses</p>
           <p class="overview-data">{{ nodeaddress?.spec.addresses.join(", ") }}</p>
@@ -78,9 +78,55 @@ included in the LICENSE file.
           <p class="overview-data-name">Config Status</p>
           <t-status :title="configApplyStatusToConfigApplyStatusName(clusterMachineStatus?.spec?.config_apply_status)" />
         </div>
-
+      </li>
+      <li class="overview-data-item">
+        <h4 class="overview-data-heading">Machine Status</h4>
+        <div class="overview-data-row">
+          <p class="overview-data-name">Stage</p>
+          <cluster-machine-phase v-if="clusterMachineStatus" :machine="clusterMachineStatus" class="text-xs"/>
+        </div>
+        <div class="overview-data-row" v-if="talosMachineStatus">
+          <p class="overview-data-name">Unmet Conditions</p>
+          <node-conditions v-if="talosMachineStatus.spec.status?.unmetConditions.length > 0" :conditions="talosMachineStatus.spec.status?.unmetConditions"/>
+          <div v-else class="text-xs flex gap-1 items-center text-green-G1"><t-icon icon="check-in-circle-classic" class="h-4"/>None</div>
+        </div>
+        <template v-if="machineStatus">
+          <div class="overview-data-row">
+            <p class="overview-data-name">Last Active</p>
+            <p class="overview-data">
+              {{ timeGetter(machineStatus.spec.siderolink_counter?.last_alive) }}
+            </p>
+          </div>
+          <div class="overview-data-row">
+            <p class="overview-data-name">Secure Boot</p>
+            <p class="overview-data">
+              <t-status class="overview-status" :title="getSecureBootStatus()"/>
+            </p>
+          </div>
+          <div class="overview-data-row">
+            <p class="overview-data-name">CPU</p>
+            <p class="overview-data">
+              {{ getCPUInfo() }}
+            </p>
+          </div>
+          <div class="overview-data-row">
+            <p class="overview-data-name">Memory</p>
+            <p class="overview-data">
+              {{ getMemInfo() }}
+            </p>
+          </div>
+        </template>
       </li>
     </ul>
+    <ul class="overview-data-list" v-if="machineStatus">
+      <li class="bg-naturals-N2 w-full rounded flex flex-col">
+        <h4 class="overview-data-heading">Labels</h4>
+        <div class="overview-data-row">
+          <item-labels :resource="machineStatus"  :add-label-func="addMachineLabels" :remove-label-func="removeMachineLabels"/>
+        </div>
+      </li>
+    </ul>
+
       <div class="overview-services">
         <div class="overview-services-heading">
           <span class="overview-services-title">Services</span>
@@ -134,7 +180,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { computed, onBeforeUnmount, Ref, ref } from "vue";
 import { getContext } from "@/context";
-import { getStatus } from "@/methods";
+import { formatBytes, getStatus } from "@/methods";
 import {
   kubernetes,
   ClusterMachineStatusType,
@@ -145,6 +191,11 @@ import {
   TalosK8sNamespace,
   TalosNodenameID,
   TalosNodenameType,
+  TalosMachineStatusID,
+  TalosMachineStatusType,
+  TalosRuntimeNamespace,
+  MachineStatusLinkType,
+  MetricsNamespace,
 } from "@/api/resources";
 import { Runtime } from "@/api/common/omni.pb";
 import Watch, { WatchOptions } from "@/api/watch";
@@ -155,6 +206,9 @@ import { useRoute } from "vue-router";
 import { TCommonStatuses } from "@/constants";
 import { MachineService, ServiceEvent } from "@/api/talos/machine/machine.pb";
 import { withAbortController, withContext, withRuntime } from "@/api/options";
+import { MachineStatusLinkSpec } from "@/api/omni/specs/ephemeral.pb";
+import { DateTime } from "luxon";
+import { addMachineLabels, removeMachineLabels } from "@/methods/machine";
 
 import TAlert from "@/components/TAlert.vue";
 import TGroupAnimation from "@/components/common/Animation/TGroupAnimation.vue";
@@ -162,6 +216,10 @@ import TTag from "@/components/common/Tag/TTag.vue";
 import TStatus from "@/components/common/Status/TStatus.vue";
 import TListItem from "@/components/common/List/TListItem.vue";
 import NodeServiceEvents from "@/views/cluster/Nodes/NodeServiceEvents.vue";
+import ItemLabels from "@/views/omni/ItemLabels/ItemLabels.vue";
+import ClusterMachinePhase from "@/views/cluster/ClusterMachines/ClusterMachinePhase.vue";
+import NodeConditions from "@/views/cluster/Nodes/components/NodeConditions.vue";
+import TIcon from "@/components/common/Icon/TIcon.vue";
 
 const services = ref<{
   name: string
@@ -242,11 +300,25 @@ const node: Ref<Resource<NodeSpec> | undefined> = ref();
 const nodename: Ref<Resource<Nodename> | undefined> = ref();
 const nodeaddress: Ref<Resource<NodeAddress> | undefined> = ref();
 const clusterMachineStatus: Ref<Resource<ClusterMachineStatusSpec> | undefined> = ref();
+const talosMachineStatus = ref<Resource<
+{
+  stage: string
+  status: {
+    ready: boolean
+    unmetConditions: {
+      name: string
+      reason: string
+    }[]
+  }
+}>>();
+const machineStatus = ref<Resource<MachineStatusLinkSpec>>();
 
 const nodeWatch = new Watch(node);
 const nodenameWatch = new Watch(nodename);
 const nodeaddressWatch = new Watch(nodeaddress);
 const clusterMachineStatusesWatch = new Watch(clusterMachineStatus);
+const talosMachineStatusWatch = new Watch(talosMachineStatus);
+const machineStatusWatch = new Watch(machineStatus);
 
 const route = useRoute();
 const context = getContext();
@@ -287,6 +359,26 @@ nodeaddressWatch.setup({
   context,
 });
 
+talosMachineStatusWatch.setup({
+  runtime: Runtime.Talos,
+  resource: {
+    id: TalosMachineStatusID,
+    type: TalosMachineStatusType,
+    namespace: TalosRuntimeNamespace,
+  },
+  context,
+});
+
+machineStatusWatch.setup({
+  runtime: Runtime.Omni,
+  resource: {
+    id: route.params.machine as string,
+    type: MachineStatusLinkType,
+    namespace: MetricsNamespace,
+  },
+  context,
+});
+
 const clusterMachineStatusWatchOpts: Ref<WatchOptions | undefined> = computed(() => {
   return {
     runtime: Runtime.Omni,
@@ -311,53 +403,91 @@ const roles = computed(() => {
 });
 
 const status = computed(() => getStatus(node.value!));
+
+const timeGetter = (time: string | undefined) => {
+  if (time) {
+    const dt: DateTime = /^\d+$/.exec(time) ? DateTime.fromSeconds(parseInt(time)) : DateTime.fromISO(time)
+
+    return dt.setLocale('en').toLocaleString(DateTime.DATETIME_FULL_WITH_SECONDS);
+  }
+
+  return "Never";
+}
+
+const getCPUInfo = () => {
+  const processors = machineStatus.value?.spec.message_status?.hardware?.processors;
+  if (!processors) {
+    return "Not Detected";
+  }
+
+  const cpus = {};
+
+  for (const processor of processors) {
+    const id = `${processor.frequency! / 1000} GHz ${processor.manufacturer}, ${processor.core_count} Cores`
+
+    cpus[id] = (cpus[id] ?? 0) + 1
+  }
+
+  const parts: string[] = [];
+
+  for (const id in cpus) {
+    if (cpus[id] > 1) {
+      parts.push(`${cpus[id]} x ${id}`)
+    }
+
+    parts.push(`${id}`)
+  }
+
+  return parts.join(", ");
+}
+
+const getMemInfo = () => {
+  const total = machineStatus.value?.spec.message_status?.hardware?.memory_modules?.reduce((prev, current) => {
+    return prev + current.size_mb!
+  }, 0)
+
+  return formatBytes(total! * 1024 * 1024)
+}
+
+const getSecureBootStatus = () => {
+  const secureBootStatus = machineStatus?.value?.spec.message_status?.secure_boot_status;
+  if (secureBootStatus === undefined) {
+    return TCommonStatuses.UNKNOWN;
+  }
+
+  if (secureBootStatus.enabled) {
+    return TCommonStatuses.ENABLED;
+  }
+
+  return TCommonStatuses.DISABLED;
+}
 </script>
 
 <style scoped>
 .overview {
-  @apply w-full;
+  @apply w-full flex flex-col gap-6;
 }
+
 .overview-heading {
   @apply flex justify-between items-start mb-7 flex-wrap;
 }
-.overview-breadcrumbs {
-  @apply xl:mb-0 mb-3;
-}
-.overview-heading-buttons {
-  @apply flex justify-end;
-}
-.overview-heading-button {
-  @apply text-naturals-N13;
-}
-.overview-heading-button:nth-child(1) {
-  border-radius: 4px 0 0 4px;
-}
-.overview-heading-button:nth-child(2) {
-  border-radius: 0 4px 4px 0;
-}
-.overview-content-types {
-  @apply mb-6;
-}
+
 .overview-data-list {
-  @apply flex flex-col justify-start items-stretch xl:flex-row xl:justify-between xl:items-start mb-10;
+  @apply flex flex-col justify-start items-stretch xl:flex-row xl:justify-between xl:items-start xl:gap-x-6 gap-y-6;
 }
+
 .overview-data-item {
-  @apply bg-naturals-N2 w-full rounded mb-6;
+  @apply bg-naturals-N2 w-full rounded;
   align-self: stretch;
   max-width: 100%;
 }
-@media screen and (min-width: 1280px) {
-  .overview-data-item {
-    max-width: 49%;
-    @apply mb-0;
-  }
-}
+
 .overview-data-heading {
   @apply px-4 py-3 border-b border-naturals-N4 w-full text-xs text-naturals-N13;
   font-size: 13px;
 }
 .overview-data-row {
-  @apply w-full flex justify-between items-center;
+  @apply w-full flex justify-between items-center gap-2;
   padding: 14px 16px 10px 16px;
 }
 .overview-data-row:last-of-type {
@@ -391,53 +521,5 @@ const status = computed(() => getStatus(node.value!));
 }
 .overview-table-name {
   @apply text-xs text-naturals-N13 w-full;
-}
-.overview-table-name-id {
-  width: 100%;
-  max-width: 55%;
-}
-.overview-table-name-running {
-  width: 18%;
-}
-.overview-table-name-health {
-  width: 18%;
-}
-.overview-table-item {
-  @apply flex items-center border-b border-naturals-N4;
-  padding: 19px 16px;
-}
-.overview-item-value {
-  @apply text-xs text-naturals-N14 w-full;
-}
-.overview-item-value-id {
-  width: 100%;
-  max-width: 55%;
-}
-.overview-item-value-running {
-  width: 18%;
-}
-.overview-item-value-health {
-  width: 18%;
-}
-@media screen and (max-width: 1280px) {
-  .overview-table-name-running {
-    width: 50%;
-  }
-  .overview-table-name-health {
-    width: 73%;
-  }
-  .overview-item-value-running {
-    width: 50%;
-  }
-  .overview-item-value-health {
-    width: 50%;
-  }
-}
-.overview-item-value-logs {
-  @apply flex justify-end;
-  width: auto;
-}
-.overview-item-button {
-  @apply min-w-min;
 }
 </style>

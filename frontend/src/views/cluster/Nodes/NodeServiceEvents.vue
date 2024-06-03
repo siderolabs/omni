@@ -41,6 +41,7 @@ const eventStyle = (state: string) => {
 
     break;
   case "Starting":
+  case "Stopping":
   case "Waiting":
     color = "bg-yellow-Y2";
     icon = "loading"
@@ -48,6 +49,14 @@ const eventStyle = (state: string) => {
     break;
   case "Preparing":
     icon = "time"
+
+    break;
+  case "Finished":
+  case "Failed":
+    icon = "error";
+    color = "bg-red-R1";
+
+    break;
   }
 
   return {

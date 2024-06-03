@@ -80,6 +80,7 @@ const iconData = computed((): { iconColor?: string, iconTypeValue?: IconType } =
           iconTypeValue: "check-in-circle-classic",
           iconColor: "#69C297",
         };
+      case TCommonStatuses.FINISHED:
       case TCommonStatuses.FAILED:
         return {
           iconTypeValue: "error",
@@ -95,6 +96,7 @@ const iconData = computed((): { iconColor?: string, iconTypeValue?: IconType } =
           iconTypeValue: "time",
           iconColor: "#FF5C56",
         };
+      case TCommonStatuses.STOPPING:
       case TCommonStatuses.WAITING:
       case TCommonStatuses.LOADING:
         return {
@@ -121,11 +123,13 @@ const iconData = computed((): { iconColor?: string, iconTypeValue?: IconType } =
           iconTypeValue: "error",
           iconColor: "#FF5C56",
         };
+      case TCommonStatuses.ENABLED:
       case TCommonStatuses.ON:
         return {
           iconTypeValue: "dot",
           iconColor: "#69C297",
         };
+      case TCommonStatuses.DISABLED:
       case TCommonStatuses.OFF:
         return {
           iconTypeValue: "dot",

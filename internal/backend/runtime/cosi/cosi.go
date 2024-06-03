@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -169,7 +170,9 @@ func WatchLegacy(ctx context.Context, st state.State, md resource.Metadata, out 
 					return fmt.Errorf("failed to encode resource to send back to the client %w", err)
 				}
 
-				items = append(items[:index], items[index+1:]...)
+				if items != nil {
+					slices.Delete(items, index, index+1) //nolint:govet
+				}
 
 				channel.SendWithContext(ctx, out, responseFromResource(ev, r))
 			case state.Bootstrapped:

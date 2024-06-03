@@ -30,6 +30,8 @@ const (
 	_ = network.NodeAddressType
 	// tsgen:TalosMountStatusType
 	_ = runtime.MountStatusType
+	// tsgen:TalosMachineStatusType
+	_ = runtime.MachineStatusType
 
 	// Resource ids.
 	// tsgen:TalosNodenameID
@@ -40,6 +42,8 @@ const (
 	_ = perf.CPUID
 	// tsgen:TalosMemoryID
 	_ = perf.MemoryID
+	// tsgen:TalosMachineStatusID
+	_ = runtime.MachineStatusID
 
 	// Namespaces.
 	// tsgen:TalosPerfNamespace

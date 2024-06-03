@@ -55,4 +55,8 @@ export enum TCommonStatuses {
   APPLIED = 'Applied',
   LOADING = "Loading...",
   WAITING = "Waiting",
+  STOPPING = "Stopping",
+  FINISHED = "Finished",
+  ENABLED = "Enabled",
+  DISABLED = "Disabled"
 }
