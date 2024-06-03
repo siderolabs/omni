@@ -69,7 +69,7 @@ type Options struct {
 //
 //nolint:maintidx
 func Run(ctx context.Context, clientConfig *clientconfig.ClientConfig, options Options) error {
-	rootClient, err := clientConfig.GetClient(ctx)
+	rootClient, err := clientConfig.GetClient()
 	if err != nil {
 		return err
 	}

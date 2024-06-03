@@ -174,7 +174,7 @@ func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtua
 		linkCounterDeltaCh := make(chan siderolink.LinkCounterDeltas)
 		siderolinkEventsCh := make(chan *omnires.MachineStatusSnapshot)
 
-		discoveryClient, err := discovery.NewClient(ctx)
+		discoveryClient, err := discovery.NewClient()
 		if err != nil {
 			return fmt.Errorf("failed to create discovery client: %w", err)
 		}

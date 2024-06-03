@@ -74,7 +74,8 @@ func TestPayloadUnaryServerInterceptor(t *testing.T) {
 		errCh <- server.Serve(listener)
 	}()
 
-	dial, err := grpc.Dial(listener.Addr().String(), //nolint:staticcheck
+	dial, err := grpc.NewClient(
+		listener.Addr().String(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {

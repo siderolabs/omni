@@ -42,7 +42,7 @@ func Example() {
 	ctx := context.Background()
 
 	// Creating a new client.
-	client, err := client.New(ctx, "https://<account>.omni.siderolabs.io:443", client.WithServiceAccount(
+	client, err := client.New("https://<account>.omni.siderolabs.io:443", client.WithServiceAccount(
 		"base64encodedkey", // From the generated service account.
 	))
 	if err != nil {

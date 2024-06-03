@@ -6,10 +6,10 @@
 package client
 
 import (
-	"context"
 	"crypto/tls"
 	"net"
 	"net/url"
+	"slices"
 
 	"github.com/siderolabs/go-api-signature/pkg/client/auth"
 	"google.golang.org/grpc"
@@ -32,7 +32,7 @@ type Client struct {
 }
 
 // New creates a new Omni API client.
-func New(ctx context.Context, endpoint string, opts ...Option) (*Client, error) {
+func New(endpoint string, opts ...Option) (*Client, error) {
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func New(ctx context.Context, endpoint string, opts ...Option) (*Client, error) 
 			grpc.WithStreamInterceptor(options.AuthInterceptor.Stream()))
 	}
 
-	grpcDialOptions = append(grpcDialOptions, options.AdditionalGRPCDialOptions...)
+	grpcDialOptions = slices.Concat(grpcDialOptions, options.AdditionalGRPCDialOptions)
 
 	switch u.Scheme {
 	case "https":
@@ -88,7 +88,7 @@ func New(ctx context.Context, endpoint string, opts ...Option) (*Client, error) 
 		endpoint: u.String(),
 	}
 
-	c.conn, err = grpc.DialContext(ctx, u.Host, grpcDialOptions...) //nolint:staticcheck
+	c.conn, err = grpc.NewClient(u.Host, grpcDialOptions...)
 	if err != nil {
 		return nil, err
 	}

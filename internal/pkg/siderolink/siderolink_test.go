@@ -179,7 +179,7 @@ func (suite *SiderolinkSuite) TestNodes() {
 		spec = r.TypedSpec().Value
 	})
 
-	conn, err := grpc.DialContext(suite.ctx, suite.address, grpc.WithTransportCredentials(insecure.NewCredentials())) //nolint:staticcheck
+	conn, err := grpc.NewClient(suite.address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	suite.Require().NoError(err)
 
 	client := pb.NewProvisionServiceClient(conn)
@@ -267,7 +267,7 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 		spec = r.TypedSpec().Value
 	})
 
-	conn, err := grpc.DialContext(suite.ctx, suite.address, grpc.WithTransportCredentials(insecure.NewCredentials())) //nolint:staticcheck
+	conn, err := grpc.NewClient(suite.address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	suite.Require().NoError(err)
 
 	client := pb.NewProvisionServiceClient(conn)

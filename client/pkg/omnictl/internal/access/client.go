@@ -112,7 +112,7 @@ func WithClient(f func(ctx context.Context, client *client.Client) error, client
 			url = endpointEnv
 		}
 
-		client, err := client.New(ctx, url, opts...)
+		client, err := client.New(url, opts...)
 		if err != nil {
 			return err
 		}

@@ -30,8 +30,8 @@ type Client struct {
 }
 
 // NewClient creates a new discovery service client.
-func NewClient(ctx context.Context) (*Client, error) {
-	conn, err := createConn(ctx)
+func NewClient() (*Client, error) {
+	conn, err := createConn()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create connection to discovery service: %w", err)
 	}
@@ -63,7 +63,7 @@ func (client *Client) Close() error {
 }
 
 // createConn creates a gRPC connection to the discovery service.
-func createConn(ctx context.Context) (*grpc.ClientConn, error) {
+func createConn() (*grpc.ClientConn, error) {
 	u, err := url.Parse(constants.DefaultDiscoveryServiceEndpoint)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func createConn(ctx context.Context) (*grpc.ClientConn, error) {
 
 	opts = append(opts, grpc.WithSharedWriteBuffer(true))
 
-	discoveryConn, err := grpc.DialContext(ctx, net.JoinHostPort(u.Host, "443"), opts...) //nolint:staticcheck
+	discoveryConn, err := grpc.NewClient(net.JoinHostPort(u.Host, "443"), opts...)
 	if err != nil {
 		return nil, err
 	}

@@ -308,7 +308,7 @@ func (suite *GrpcSuite) newServer(imageFactoryClient *imagefactory.Client, logge
 		}
 	}()
 
-	suite.conn, err = grpc.DialContext(suite.ctx, grpcAddress, grpc.WithTransportCredentials(insecure.NewCredentials())) //nolint:staticcheck
+	suite.conn, err = grpc.NewClient(grpcAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return err
 	}

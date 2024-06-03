@@ -60,21 +60,21 @@ func New(endpoint string) *ClientConfig {
 //
 // Clients are cached by their configuration, so if a client with the
 // given configuration was created before, the cached one will be returned.
-func (t *ClientConfig) GetClient(ctx context.Context, publicKeyOpts ...authcli.RegisterPGPPublicKeyOption) (*client.Client, error) {
-	return t.GetClientForEmail(ctx, defaultEmail, publicKeyOpts...)
+func (t *ClientConfig) GetClient(publicKeyOpts ...authcli.RegisterPGPPublicKeyOption) (*client.Client, error) {
+	return t.GetClientForEmail(defaultEmail, publicKeyOpts...)
 }
 
 // GetClientForEmail returns a test client for the given email.
 //
 // Clients are cached by their configuration, so if a client with the
 // given configuration was created before, the cached one will be returned.
-func (t *ClientConfig) GetClientForEmail(ctx context.Context, email string, publicKeyOpts ...authcli.RegisterPGPPublicKeyOption) (*client.Client, error) {
+func (t *ClientConfig) GetClientForEmail(email string, publicKeyOpts ...authcli.RegisterPGPPublicKeyOption) (*client.Client, error) {
 	cacheKey := t.buildCacheKey(email, publicKeyOpts)
 
 	cliOrErr, _ := clientCache.GetOrCall(cacheKey, func() clientOrError {
 		signatureInterceptor := buildSignatureInterceptor(email, publicKeyOpts...)
 
-		cli, err := client.New(ctx, t.endpoint,
+		cli, err := client.New(t.endpoint,
 			client.WithGrpcOpts(
 				grpc.WithUnaryInterceptor(signatureInterceptor.Unary()),
 				grpc.WithStreamInterceptor(signatureInterceptor.Stream()),

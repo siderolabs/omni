@@ -73,7 +73,7 @@ func AssertAnonymousAuthenication(testCtx context.Context, client *client.Client
 		_, err := client.Omni().State().List(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.ClusterType, "", resource.VersionUndefined))
 		assert.Error(t, err)
 
-		assert.Equal(t, codes.Unauthenticated, status.Code(err))
+		assert.Equalf(t, codes.Unauthenticated, status.Code(err), "%s != %s", codes.Unauthenticated, status.Code(err))
 	}
 }
 
@@ -166,7 +166,7 @@ func AssertServiceAccountAPIFlow(testCtx context.Context, cli *client.Client) Te
 	return func(t *testing.T) {
 		name := "test-" + uuid.NewString()
 
-		saCli, armoredPublicKey, err := newServiceAccountClient(testCtx, cli, name)
+		saCli, armoredPublicKey, err := newServiceAccountClient(cli, name)
 		require.NoError(t, err)
 
 		defer saCli.Close() //nolint:errcheck
@@ -180,7 +180,7 @@ func AssertServiceAccountAPIFlow(testCtx context.Context, cli *client.Client) Te
 		assert.NoError(t, err)
 
 		// renew service account
-		renewedSACli, renewedArmoredPublicKey, err := newServiceAccountClient(testCtx, cli, name)
+		renewedSACli, renewedArmoredPublicKey, err := newServiceAccountClient(cli, name)
 		require.NoError(t, err)
 
 		defer renewedSACli.Close() //nolint:errcheck
@@ -232,7 +232,7 @@ func AssertServiceAccountAPIFlow(testCtx context.Context, cli *client.Client) Te
 	}
 }
 
-func newServiceAccountClient(testCtx context.Context, cli *client.Client, name string) (*client.Client, string, error) {
+func newServiceAccountClient(cli *client.Client, name string) (*client.Client, string, error) {
 	// generate a new PGP key with long lifetime
 	comment := fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
 
@@ -260,7 +260,6 @@ func newServiceAccountClient(testCtx context.Context, cli *client.Client, name s
 
 	// create a new API client with the service account PGP signing interceptors
 	saCli, err := client.New(
-		testCtx,
 		cli.Endpoint(),
 		client.WithGrpcOpts(
 			grpc.WithUnaryInterceptor(interceptors.Unary()),
@@ -489,7 +488,7 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientConfi
 		for _, tc := range testCases {
 			// test each test case without signature
 			t.Run(fmt.Sprintf("%s-no-signature", tc.namePrefix), func(t *testing.T) {
-				scopedClient, testErr := clientConfig.GetClient(rootCtx)
+				scopedClient, testErr := clientConfig.GetClient()
 				require.NoError(t, testErr)
 
 				// skip signing the request
@@ -521,7 +520,6 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientConfi
 			// test with the role which should succeed
 			t.Run(fmt.Sprintf("%s-success", tc.namePrefix), func(t *testing.T) {
 				scopedClient, testErr := clientConfig.GetClient(
-					rootCtx,
 					authcli.WithRole(string(tc.requiredRole)),
 					authcli.WithSkipUserRole(true),
 				)
@@ -548,7 +546,6 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientConfi
 
 			t.Run(fmt.Sprintf("%s-failure", tc.namePrefix), func(t *testing.T) {
 				scopedClient, testErr := clientConfig.GetClient(
-					rootCtx,
 					authcli.WithRole(string(failureRole)),
 					authcli.WithSkipUserRole(true))
 				require.NoError(t, testErr)
@@ -998,7 +995,6 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 
 					t.Run(name, func(t *testing.T) {
 						scopedCli, testErr := clientConfig.GetClient(
-							rootCtx,
 							authcli.WithRole(string(testRole)),
 							authcli.WithSkipUserRole(true),
 						)
@@ -1143,7 +1139,7 @@ func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client, cli
 
 		t.Cleanup(func() { destroy(ctx, t, rootCli, accessPolicy.Metadata()) })
 
-		userCli, err := clientConfig.GetClientForEmail(ctx, identity.Metadata().ID())
+		userCli, err := clientConfig.GetClientForEmail(identity.Metadata().ID())
 		require.NoError(t, err)
 
 		t.Cleanup(func() { userCli.Close() }) //nolint:errcheck

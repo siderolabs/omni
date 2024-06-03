@@ -57,7 +57,7 @@ func TestTalosBackendRoles(t *testing.T) {
 
 	t.Cleanup(func() { require.NoError(t, g.Wait()) })
 
-	conn := must.Value(grpc.DialContext(ctx, proxyEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials())))(t) //nolint:staticcheck
+	conn := must.Value(grpc.NewClient(proxyEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials())))(t)
 	rebootResult := must.Value(machine.NewMachineServiceClient(conn).Reboot(ctx, &machine.RebootRequest{Mode: 0}))(t)
 	require.NotNil(t, rebootResult)
 
@@ -96,8 +96,8 @@ type testDirector struct {
 	serverEndpoint string
 }
 
-func (t *testDirector) Director(ctx context.Context, _ string) (proxy.Mode, []proxy.Backend, error) {
-	conn, err := dial(ctx, t.serverEndpoint)
+func (t *testDirector) Director(context.Context, string) (proxy.Mode, []proxy.Backend, error) {
+	conn, err := dial(t.serverEndpoint)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -115,7 +115,7 @@ func (t *testDirector) Director(ctx context.Context, _ string) (proxy.Mode, []pr
 	return proxy.One2One, []proxy.Backend{backend}, nil
 }
 
-func dial(ctx context.Context, serverEndpoint string) (*grpc.ClientConn, error) {
+func dial(serverEndpoint string) (*grpc.ClientConn, error) {
 	backoffConfig := backoff.DefaultConfig
 	backoffConfig.MaxDelay = 15 * time.Second
 
@@ -131,7 +131,7 @@ func dial(ctx context.Context, serverEndpoint string) (*grpc.ClientConn, error) 
 		grpc.WithCodec(proxy.Codec()), //nolint:staticcheck
 	}
 
-	return grpc.DialContext(ctx, serverEndpoint, opts...) //nolint:staticcheck
+	return grpc.NewClient(serverEndpoint, opts...)
 }
 
 func startTestServer(lis net.Listener) (closer func() error) {

@@ -93,7 +93,7 @@ func (suite *SignatureTestSuite) SetupSuite() {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
-	suite.clientConn, err = grpc.Dial(suite.Target, dialOptions...) //nolint:staticcheck
+	suite.clientConn, err = grpc.NewClient(suite.Target, dialOptions...)
 	suite.Require().NoError(err)
 
 	suite.testServiceClient = grpc_testing.NewTestServiceClient(suite.clientConn)
