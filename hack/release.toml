@@ -6,25 +6,38 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v0.35.0"
+previous = "v0.36.0"
 
 [notes]
 
-  [notes.machine-set-scaling]
-    title = "Machine Set Scaling Parallelism"
+  [notes.node-overview]
+    title = "Node Overview Page"
     description = """\
-It is now possible to adjust worker machine sets scaling and update strategies in the UI.
+Node overview page now displays more information about the node.
+That includes:
+
+- Machine stage.
+- Unmet health check conditions of the Talos `MachineStatus`.
+- CPU, memory and secure boot information.
+- The list of labels added to the machine.
 """
 
-  [notes.omnictl]
-    title = "`omnictl` Version Warnings"
+  [notes.secureboot]
+    title = "Secureboot Support Added"
     description = """\
-`omnictl` now warns that it has the different version from the backend.
+Omni now fully supports secureboot enabled machines.
 """
 
-  [notes.labels]
-    title = "Machine And Cluster Labels Completion"
+  [notes.service-events]
+    title = "Service Events"
     description = """\
-The UI of search inputs was reworked. Now Omni suggests autocompletion for all existing machine and cluster labels.
-It also displays the labels as colored boxes in the input to better match with what's shown in the list.
+Node overview page service list now displays information about each service events.
+If a service fails to start it will be possible to see why in the UI.
+"""
+
+  [notes.patches]
+    title = "Patches UI"
+    description = """\
+The UI now has the page that shows config patches define for a machine.
+It includes both cluster level and account level machine patches.
 """

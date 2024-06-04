@@ -1,3 +1,156 @@
+## [Omni 0.37.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.37.0-beta.0) (2024-06-04)
+
+Welcome to the v0.37.0-beta.0 release of Omni!  
+*This is a pre-release of Omni*
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Node Overview Page
+
+Node overview page now displays more information about the node.
+That includes:
+
+- Machine stage.
+- Unmet health check conditions of the Talos `MachineStatus`.
+- CPU, memory and secure boot information.
+- The list of labels added to the machine.
+
+
+### Patches UI
+
+The UI now has the page that shows config patches define for a machine.
+It includes both cluster level and account level machine patches.
+
+
+### Secureboot Support Added
+
+Omni now fully supports secureboot enabled machines.
+
+
+### Service Events
+
+Node overview page service list now displays information about each service events.
+If a service fails to start it will be possible to see why in the UI.
+
+
+### Contributors
+
+* Artem Chernyshev
+* Andrey Smirnov
+* Utku Ozdemir
+* Dmitriy Matrenichev
+* Christian Hüning
+* Mattias Cockburn
+* Petr Krutov
+
+### Changes
+<details><summary>22 commits</summary>
+<p>
+
+* [`800762d`](https://github.com/siderolabs/omni/commit/800762dc150f11be3eb94d8382d1c47dc24b4cf8) chore: rewrite `MachineStatus` to use `QController`
+* [`ed26122`](https://github.com/siderolabs/omni/commit/ed26122ce0cccd7812e35c351666ca845154dfb9) fix: implement the controller for handling machine status snapshot
+* [`6aa2140`](https://github.com/siderolabs/omni/commit/6aa21409e5ed3f68758a7f03fa13cde76f0ff22f) feat: display more data on the node overview page
+* [`5654a49`](https://github.com/siderolabs/omni/commit/5654a494063ec59c8f6e776d662022a0cefc53e8) chore: add renovate.json
+* [`82abb2b`](https://github.com/siderolabs/omni/commit/82abb2ba536512473d2392bff602adc4cc5dbed8) chore: bump deps
+* [`c635827`](https://github.com/siderolabs/omni/commit/c6358272732628b01e38efdccbcfd766205ed7da) test: do not use epoch millis in service account names
+* [`22e3acf`](https://github.com/siderolabs/omni/commit/22e3acf2eaef19b28d0bed951790a08b545084ed) chore: bump default Talos version to 1.7.4
+* [`a67d1fb`](https://github.com/siderolabs/omni/commit/a67d1fb30b3de8e0f25d740a28e1535295377420) fix: always generate siderolink connection config for all machines
+* [`9bce82a`](https://github.com/siderolabs/omni/commit/9bce82ad769d0042993302bf08cebf6abcbe7d2c) fix: ignore MachineStatus events timestamps as they're not reliable
+* [`ccca5b5`](https://github.com/siderolabs/omni/commit/ccca5b5f66461ce07b621a3366b676673f92f102) fix: bump siderolink module version
+* [`f38b7e5`](https://github.com/siderolabs/omni/commit/f38b7e54a69f4a27d6897900f13e8169bbe1a484) feat: enable ALPN for machine API
+* [`48cc03a`](https://github.com/siderolabs/omni/commit/48cc03a7c3650dd180225dfb2ec88c6770c91885) fix: retry affiliate deletes
+* [`55afa59`](https://github.com/siderolabs/omni/commit/55afa59033898499d24180c2b1d9a1b568905e43) feat: add secure boot support
+* [`0bd2a42`](https://github.com/siderolabs/omni/commit/0bd2a420e85901ba2e4d4137823bafc391896020) docs: fix a typo in the on-prem installation link
+* [`247c165`](https://github.com/siderolabs/omni/commit/247c16550f6aa2ad7d5682c115862e67c979cfb3) fix: improve wording in authentication error messages
+* [`e2f8407`](https://github.com/siderolabs/omni/commit/e2f8407cebe43ad14bc5d5b415a327e3c63286a5) chore: run rekres
+* [`4a8ebbf`](https://github.com/siderolabs/omni/commit/4a8ebbf19f9ea0decb047aeaf656c2d9d6e58759) chore: enable codecov and rekres
+* [`2f1ab0d`](https://github.com/siderolabs/omni/commit/2f1ab0df457c5119a2c1aa3b5d0e9a7aa90e675f) feat: show service events on the node overview page
+* [`c68a836`](https://github.com/siderolabs/omni/commit/c68a8369045e99169208996f5dc7ed66a07a2791) fix: use proper name for fetching existing extension configuration
+* [`4b747f0`](https://github.com/siderolabs/omni/commit/4b747f0380563a40ce9abfe435e573fde8c98184) feat: add dedicated patch pages for machines and cluster machines
+* [`4bd0331`](https://github.com/siderolabs/omni/commit/4bd0331958088c16a1b5c2e7cc5c92368cf00e95) fix: get rid of duplicating label completion options
+* [`631f5c5`](https://github.com/siderolabs/omni/commit/631f5c570cea9535933657e133c940d65bb29626) chore: always build frontend on BUILDPLATFORM
+</p>
+</details>
+
+### Changes from siderolabs/go-circular
+<details><summary>3 commits</summary>
+<p>
+
+* [`cbce5c3`](https://github.com/siderolabs/go-circular/commit/cbce5c3e47d1c6a26a588cbb6f77af2f9bc3e5b7) feat: add persistence support
+* [`3c48c53`](https://github.com/siderolabs/go-circular/commit/3c48c53c1449b2b5e5ddde14e0351d93a351b021) feat: implement extra compressed chunks
+* [`835f04c`](https://github.com/siderolabs/go-circular/commit/835f04c9ba6083ef451b5bbba748200202d1a0a9) chore: rekres, update dependencies
+</p>
+</details>
+
+### Changes from siderolabs/go-tail
+<details><summary>1 commit</summary>
+<p>
+
+* [`7cb7294`](https://github.com/siderolabs/go-tail/commit/7cb7294b8af33175bc463c84493776e6e4da9c4f) fix: remove unexpected short read error
+</p>
+</details>
+
+### Changes from siderolabs/image-factory
+<details><summary>10 commits</summary>
+<p>
+
+* [`819432c`](https://github.com/siderolabs/image-factory/commit/819432ca6d6247c2948929d666281136842b2594) release(v0.4.1): prepare release
+* [`4f3206b`](https://github.com/siderolabs/image-factory/commit/4f3206bb2d402029b15930e3cb105485a2f5303e) release(v0.4.0): prepare release
+* [`b0b6bff`](https://github.com/siderolabs/image-factory/commit/b0b6bffc36355b235cdee065a4bb3827cf27264e) feat: implement wizard-like UI for the Image Factory
+* [`8ccd284`](https://github.com/siderolabs/image-factory/commit/8ccd284b885bd3246bc41b898c82eddd4aecd5ad) feat: allow key-based image verification as option
+* [`4643056`](https://github.com/siderolabs/image-factory/commit/46430564a05d1430837acfd9e5d080c400e7456d) chore: rekres/update dependencies
+* [`116721a`](https://github.com/siderolabs/image-factory/commit/116721a73640c80a78e88b59ce0b71e2c16bc2f3) fix: workaround extension name inconsistencies
+* [`f5bc497`](https://github.com/siderolabs/image-factory/commit/f5bc4976c8cb068dfdf21f4cd15c9abd9e145628) release(v0.3.3): prepare release
+* [`221b442`](https://github.com/siderolabs/image-factory/commit/221b44249f6c635a9e8cb8b7b941401aa50d4b75) feat: support zstd compression
+* [`40a13c5`](https://github.com/siderolabs/image-factory/commit/40a13c5ce810feb65a3fbe8622ae0b32568ebe10) release(v0.3.2): prepare release
+* [`2fe6825`](https://github.com/siderolabs/image-factory/commit/2fe682511c2be12486f5da8fc6612f5c3ed1ebf7) fix: generation of overlay installer images
+</p>
+</details>
+
+### Changes from siderolabs/siderolink
+<details><summary>1 commit</summary>
+<p>
+
+* [`3a587fc`](https://github.com/siderolabs/siderolink/commit/3a587fcf9dbb259e216495496a523faaea427d04) fix: do not ever skip updates which have remove flag
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/auth0/go-jwt-middleware/v2**            v2.2.0 -> v2.2.1
+* **github.com/aws/aws-sdk-go-v2**                     v1.26.1 -> v1.27.0
+* **github.com/aws/aws-sdk-go-v2/config**              v1.27.10 -> v1.27.16
+* **github.com/aws/aws-sdk-go-v2/credentials**         v1.17.10 -> v1.17.16
+* **github.com/aws/aws-sdk-go-v2/feature/s3/manager**  v1.15.8 -> v1.16.21
+* **github.com/aws/aws-sdk-go-v2/service/s3**          v1.47.6 -> v1.54.3
+* **github.com/cosi-project/runtime**                  v0.4.2 -> v0.4.3
+* **github.com/emicklei/dot**                          v1.6.1 -> v1.6.2
+* **github.com/hashicorp/vault/api**                   v1.10.0 -> v1.14.0
+* **github.com/hashicorp/vault/api/auth/kubernetes**   v0.5.0 -> v0.7.0
+* **github.com/johannesboyne/gofakes3**                f005f5cc03aa -> 99de01ee122d
+* **github.com/prometheus/client_golang**              v1.19.0 -> v1.19.1
+* **github.com/siderolabs/go-circular**                v0.1.0 -> v0.2.0
+* **github.com/siderolabs/go-tail**                    v0.1.0 -> v0.1.1
+* **github.com/siderolabs/image-factory**              v0.3.1 -> v0.4.1
+* **github.com/siderolabs/siderolink**                 v0.3.7 -> v0.3.8
+* **github.com/siderolabs/talos/pkg/machinery**        v1.7.2 -> 4feb94ca0997
+* **github.com/zitadel/logging**                       v0.5.0 -> v0.6.0
+* **go.etcd.io/bbolt**                                 v1.3.9 -> v1.3.10
+* **go.etcd.io/etcd/client/pkg/v3**                    v3.5.13 -> v3.5.14
+* **go.etcd.io/etcd/client/v3**                        v3.5.13 -> v3.5.14
+* **go.etcd.io/etcd/server/v3**                        v3.5.13 -> v3.5.14
+* **golang.org/x/tools**                               v0.20.0 -> v0.21.0
+* **google.golang.org/grpc**                           v1.63.2 -> v1.64.0
+* **k8s.io/api**                                       v0.30.0-rc.1 -> v0.30.1
+* **k8s.io/apimachinery**                              v0.30.0-rc.1 -> v0.30.1
+* **k8s.io/client-go**                                 v0.30.0-rc.1 -> v0.30.1
+* **sigs.k8s.io/controller-runtime**                   v0.16.3 -> v0.18.3
+
+Previous release can be found at [v0.36.0](https://github.com/siderolabs/omni/releases/tag/v0.36.0)
+
 ## [Omni 0.36.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.36.0-beta.0) (2024-05-20)
 
 Welcome to the v0.36.0-beta.0 release of Omni!  
