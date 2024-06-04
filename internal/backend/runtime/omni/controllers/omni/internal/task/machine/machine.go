@@ -57,7 +57,7 @@ type Info struct { //nolint:govet
 	NoAccess        bool
 
 	DefaultKernelArgs []string
-	SecureBootStatus  *specs.MachineStatusSpec_SecureBootStatus
+	SecureBootStatus  *specs.SecureBootStatus
 }
 
 // InfoChan is a channel for sending machine info from tasks back to the controller.

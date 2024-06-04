@@ -129,6 +129,10 @@ export type MachineSpec = {
   connected?: boolean
 }
 
+export type SecureBootStatus = {
+  enabled?: boolean
+}
+
 export type MachineStatusSpecHardwareStatusProcessor = {
   core_count?: number
   thread_count?: number
@@ -210,10 +214,6 @@ export type MachineStatusSpecSchematic = {
   full_id?: string
 }
 
-export type MachineStatusSpecSecureBootStatus = {
-  enabled?: boolean
-}
-
 export type MachineStatusSpec = {
   talos_version?: string
   hardware?: MachineStatusSpecHardwareStatus
@@ -228,7 +228,7 @@ export type MachineStatusSpec = {
   image_labels?: {[key: string]: string}
   schematic?: MachineStatusSpecSchematic
   initial_talos_version?: string
-  secure_boot_status?: MachineStatusSpecSecureBootStatus
+  secure_boot_status?: SecureBootStatus
 }
 
 export type TalosConfigSpec = {
@@ -583,8 +583,17 @@ export type MachineClassSpec = {
   match_labels?: string[]
 }
 
+export type MachineConfigGenOptionsSpecInstallImage = {
+  talos_version?: string
+  schematic_id?: string
+  schematic_initialized?: boolean
+  schematic_invalid?: boolean
+  secure_boot_status?: SecureBootStatus
+}
+
 export type MachineConfigGenOptionsSpec = {
   install_disk?: string
+  install_image?: MachineConfigGenOptionsSpecInstallImage
 }
 
 export type EtcdAuditResultSpec = {

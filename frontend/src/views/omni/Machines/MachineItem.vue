@@ -215,11 +215,12 @@ const timeGetter = (fn :() => string|undefined) => {
 const machineLastAlive = timeGetter(() => machine.value?.spec?.siderolink_counter?.last_alive);
 const machineCreatedAt = timeGetter(() => machine.value?.spec?.machine_created_at);
 const secureBoot = computed(() => {
-  if (machine.value.spec.message_status?.secure_boot_status?.enabled === undefined) {
+  let secureBootStatus = machine.value.spec.message_status?.secure_boot_status;
+  if (!secureBootStatus) {
     return "Unknown";
   }
 
-  return machine.value.spec.message_status.secure_boot_status.enabled ? "Enabled" : "Disabled";
+  return secureBootStatus.enabled ? "Enabled" : "Disabled";
 });
 
 const copyMachineID = () => {

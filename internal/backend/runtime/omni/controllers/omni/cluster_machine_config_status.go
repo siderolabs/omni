@@ -30,6 +30,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -89,15 +90,6 @@ func NewClusterMachineConfigStatusController() *ClusterMachineConfigStatusContro
 					return fmt.Errorf("failed to get machine status snapshot '%s': %w", machineConfig.Metadata().ID(), err)
 				}
 
-				talosVersion, err := safe.ReaderGet[*omni.ClusterMachineTalosVersion](ctx, r, omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, machineConfig.Metadata().ID()).Metadata())
-				if err != nil {
-					if state.IsNotFoundError(err) {
-						return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("'%s' machine talos version not found: %w", machineConfig.Metadata().ID(), err)
-					}
-
-					return fmt.Errorf("failed to get machine talos version '%s': %w", machineConfig.Metadata().ID(), err)
-				}
-
 				machineStatus, err := safe.ReaderGet[*omni.MachineStatus](ctx, r, omni.NewMachineStatus(resources.DefaultNamespace, machineConfig.Metadata().ID()).Metadata())
 				if err != nil {
 					if state.IsNotFoundError(err) {
@@ -117,21 +109,35 @@ func NewClusterMachineConfigStatusController() *ClusterMachineConfigStatusContro
 					return xerrors.NewTagged[qtransform.SkipReconcileTag](fmt.Errorf("machine status '%s' does not have schematic information", machineConfig.Metadata().ID()))
 				}
 
+				genOptions, err := safe.ReaderGet[*omni.MachineConfigGenOptions](ctx, r, omni.NewMachineConfigGenOptions(resources.DefaultNamespace, machineConfig.Metadata().ID()).Metadata())
+				if err != nil {
+					if state.IsNotFoundError(err) {
+						return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("'%s' machine config gen options not found: %w", machineConfig.Metadata().ID(), err)
+					}
+
+					return fmt.Errorf("failed to get install image '%s': %w", machineConfig.Metadata().ID(), err)
+				}
+
+				installImage := genOptions.TypedSpec().Value.InstallImage
+				if installImage == nil {
+					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("'%s' install image not found", machineConfig.Metadata().ID())
+				}
+
 				// compatibility code for the machines having extensions that bypass the image factory
-				// drop when there's no such machines, or when we are able to detect schematic id for the machines of that kind
-				expectedSchematic := talosVersion.TypedSpec().Value.SchematicId
+				// drop when there's no such machine, or when we are able to detect schematic id for the machines of that kind
+				expectedSchematic := installImage.SchematicId
 				if machineStatus.TypedSpec().Value.Schematic.Invalid {
 					expectedSchematic = ""
 				}
 
 				versionMismatch := strings.TrimLeft(machineStatus.TypedSpec().Value.TalosVersion, "v") != configStatus.TypedSpec().Value.TalosVersion ||
-					configStatus.TypedSpec().Value.TalosVersion != talosVersion.TypedSpec().Value.TalosVersion ||
+					configStatus.TypedSpec().Value.TalosVersion != installImage.TalosVersion ||
 					configStatus.TypedSpec().Value.SchematicId != expectedSchematic ||
 					machineStatus.TypedSpec().Value.Schematic.Id != expectedSchematic
 
 				// don't run the upgrade check if the running version and expected versions match
-				if versionMismatch && talosVersion.TypedSpec().Value.TalosVersion != "" {
-					inSync, err := handler.syncTalosVersionAndSchematic(ctx, configStatus, machineStatus, machineConfig, statusSnapshot, talosVersion)
+				if versionMismatch && installImage.TalosVersion != "" {
+					inSync, err := handler.syncInstallImageAndSchematic(ctx, configStatus, machineStatus, machineConfig, statusSnapshot, installImage)
 					if err != nil {
 						return err
 					}
@@ -211,7 +217,7 @@ func NewClusterMachineConfigStatusController() *ClusterMachineConfigStatusContro
 			qtransform.MapperSameID[*omni.MachineStatusSnapshot, *omni.ClusterMachineConfig](),
 		),
 		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.ClusterMachineTalosVersion, *omni.ClusterMachineConfig](),
+			qtransform.MapperSameID[*omni.MachineConfigGenOptions, *omni.ClusterMachineConfig](),
 		),
 		qtransform.WithExtraMappedInput(
 			qtransform.MapperSameID[*omni.Machine, *omni.ClusterMachineConfig](),
@@ -302,8 +308,8 @@ type clusterMachineConfigStatusControllerHandler struct {
 	ongoingResets *ongoingResets
 }
 
-func (h *clusterMachineConfigStatusControllerHandler) syncTalosVersionAndSchematic(inputCtx context.Context, configStatus *omni.ClusterMachineConfigStatus,
-	machineStatus *omni.MachineStatus, machineConfig *omni.ClusterMachineConfig, statusSnapshot *omni.MachineStatusSnapshot, talosVersion *omni.ClusterMachineTalosVersion,
+func (h *clusterMachineConfigStatusControllerHandler) syncInstallImageAndSchematic(inputCtx context.Context, configStatus *omni.ClusterMachineConfigStatus,
+	machineStatus *omni.MachineStatus, machineConfig *omni.ClusterMachineConfig, statusSnapshot *omni.MachineStatusSnapshot, installImage *specs.MachineConfigGenOptionsSpec_InstallImage,
 ) (bool, error) {
 	// use short timeout for the all API calls but upgrade to quickly skip "dead" nodes
 	ctx, cancel := context.WithTimeout(inputCtx, 5*time.Second)
@@ -321,7 +327,7 @@ func (h *clusterMachineConfigStatusControllerHandler) syncTalosVersionAndSchemat
 		return configStatus.TypedSpec().Value.TalosVersion != "", nil
 	}
 
-	if talosVersion.TypedSpec().Value.TalosVersion == "" {
+	if installImage.TalosVersion == "" {
 		return false, xerrors.NewTagged[qtransform.SkipReconcileTag](fmt.Errorf("machine '%s' does not have talos version", machineConfig.Metadata().ID()))
 	}
 
@@ -332,8 +338,8 @@ func (h *clusterMachineConfigStatusControllerHandler) syncTalosVersionAndSchemat
 
 	defer logClose(c, h.logger, fmt.Sprintf("machine '%s'", machineConfig.Metadata().ID()))
 
-	expectedVersion := talosVersion.TypedSpec().Value.TalosVersion
-	expectedSchematic := talosVersion.TypedSpec().Value.SchematicId
+	expectedVersion := installImage.TalosVersion
+	expectedSchematic := installImage.SchematicId
 
 	actualVersion, err := getVersion(ctx, c)
 	if err != nil {
@@ -363,7 +369,7 @@ func (h *clusterMachineConfigStatusControllerHandler) syncTalosVersionAndSchemat
 		return true, nil
 	}
 
-	image, err := buildInstallImage(talosVersion, machineStatus, expectedVersion)
+	image, err := buildInstallImage(machineStatus.Metadata().ID(), installImage, expectedVersion)
 	if err != nil {
 		return false, err
 	}

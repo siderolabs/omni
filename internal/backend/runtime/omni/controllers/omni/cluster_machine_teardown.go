@@ -157,7 +157,7 @@ func (ctrl *ClusterMachineTeardownController) Reconcile(ctx context.Context, log
 	}
 
 	// do not run teardown until the cluster machine config status controller does reset
-	if clusterMachine.Metadata().Finalizers().Has(clusterMachineConfigControllerName) {
+	if clusterMachine.Metadata().Finalizers().Has(ClusterMachineConfigControllerName) {
 		logger.Info("skipping teardown, waiting for reset")
 
 		return nil

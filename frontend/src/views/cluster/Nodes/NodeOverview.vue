@@ -451,7 +451,7 @@ const getMemInfo = () => {
 
 const getSecureBootStatus = () => {
   const secureBootStatus = machineStatus?.value?.spec.message_status?.secure_boot_status;
-  if (secureBootStatus === undefined) {
+  if (!secureBootStatus) {
     return TCommonStatuses.UNKNOWN;
   }
 

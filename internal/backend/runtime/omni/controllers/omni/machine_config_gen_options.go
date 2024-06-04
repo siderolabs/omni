@@ -10,11 +10,17 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
+	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
+
+// MachineConfigGenOptionsControllerName is the name of the MachineConfigGenOptionsController.
+const MachineConfigGenOptionsControllerName = "MachineConfigGenOptionsController"
 
 //tsgen:installDiskMinSize
 const installDiskMinSize = 5e9 // 5GB
@@ -26,25 +32,46 @@ type MachineConfigGenOptionsController = qtransform.QController[*omni.MachineSta
 func NewMachineConfigGenOptionsController() *MachineConfigGenOptionsController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.MachineStatus, *omni.MachineConfigGenOptions]{
-			Name: "MachineConfigGenOptionsController",
+			Name: MachineConfigGenOptionsControllerName,
 			MapMetadataFunc: func(machineStatus *omni.MachineStatus) *omni.MachineConfigGenOptions {
 				return omni.NewMachineConfigGenOptions(resources.DefaultNamespace, machineStatus.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(machineConfigGenOptions *omni.MachineConfigGenOptions) *omni.MachineStatus {
 				return omni.NewMachineStatus(resources.DefaultNamespace, machineConfigGenOptions.Metadata().ID())
 			},
-			TransformFunc: func(_ context.Context, _ controller.Reader, _ *zap.Logger, machineStatus *omni.MachineStatus, options *omni.MachineConfigGenOptions) error {
-				GenInstallConfig(machineStatus, options)
+			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, machineStatus *omni.MachineStatus, options *omni.MachineConfigGenOptions) error {
+				clusterMachineTalosVersion, err := safe.ReaderGetByID[*omni.ClusterMachineTalosVersion](ctx, r, machineStatus.Metadata().ID())
+				if err != nil && !state.IsNotFoundError(err) {
+					return err
+				}
+
+				GenInstallConfig(machineStatus, clusterMachineTalosVersion, options)
 
 				return nil
 			},
 		},
+		qtransform.WithExtraMappedInput(
+			qtransform.MapperSameID[*omni.ClusterMachineTalosVersion, *omni.MachineStatus](),
+		),
 		qtransform.WithIgnoreTeardownUntil(), // keep the resource until everyone else is done with Machine
 	)
 }
 
 // GenInstallConfig creates a config patch with an automatically picked install disk.
-func GenInstallConfig(machineStatus *omni.MachineStatus, configPatch *omni.MachineConfigGenOptions) {
+func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVersion *omni.ClusterMachineTalosVersion, genOptions *omni.MachineConfigGenOptions) {
+	if clusterMachineTalosVersion != nil {
+		if genOptions.TypedSpec().Value.InstallImage == nil {
+			genOptions.TypedSpec().Value.InstallImage = &specs.MachineConfigGenOptionsSpec_InstallImage{}
+		}
+
+		genOptions.TypedSpec().Value.InstallImage.SchematicId = clusterMachineTalosVersion.TypedSpec().Value.SchematicId
+		genOptions.TypedSpec().Value.InstallImage.TalosVersion = clusterMachineTalosVersion.TypedSpec().Value.TalosVersion
+		genOptions.TypedSpec().Value.InstallImage.SchematicId = clusterMachineTalosVersion.TypedSpec().Value.SchematicId
+		genOptions.TypedSpec().Value.InstallImage.SchematicInitialized = machineStatus.TypedSpec().Value.Schematic != nil
+		genOptions.TypedSpec().Value.InstallImage.SchematicInvalid = machineStatus.TypedSpec().Value.GetSchematic().GetInvalid()
+		genOptions.TypedSpec().Value.InstallImage.SecureBootStatus = machineStatus.TypedSpec().Value.SecureBootStatus
+	}
+
 	if machineStatus.TypedSpec().Value.Hardware == nil {
 		return
 	}
@@ -63,5 +90,5 @@ func GenInstallConfig(machineStatus *omni.MachineStatus, configPatch *omni.Machi
 		}
 	}
 
-	configPatch.TypedSpec().Value.InstallDisk = installDisk
+	genOptions.TypedSpec().Value.InstallDisk = installDisk
 }

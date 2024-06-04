@@ -64,7 +64,7 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 		InitialSchematic: initialSchematic,
 	}
 	machineStatus.TypedSpec().Value.InitialTalosVersion = "1.7.0"
-	machineStatus.TypedSpec().Value.SecureBootStatus = &specs.MachineStatusSpec_SecureBootStatus{
+	machineStatus.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
 		Enabled: false,
 	}
 

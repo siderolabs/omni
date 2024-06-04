@@ -210,7 +210,7 @@ func (suite *ClusterMachineConfigStatusSuite) prepareMachines(machines []*omni.C
 			func(res *omni.MachineStatus) error {
 				res.TypedSpec().Value.Connected = true
 				res.TypedSpec().Value.Maintenance = false
-				res.TypedSpec().Value.SecureBootStatus = &specs.MachineStatusSpec_SecureBootStatus{
+				res.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
 					Enabled: false,
 				}
 
@@ -278,7 +278,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestResetUngraceful() {
 				res.TypedSpec().Value.Connected = true
 				res.TypedSpec().Value.Maintenance = false
 				res.TypedSpec().Value.ManagementAddress = unixSocket + machineService.address
-				res.TypedSpec().Value.SecureBootStatus = &specs.MachineStatusSpec_SecureBootStatus{
+				res.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
 					Enabled: false,
 				}
 
@@ -417,7 +417,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestUpgrades() {
 			func(res *omni.MachineStatus) error {
 				res.TypedSpec().Value.Connected = true
 				res.TypedSpec().Value.Maintenance = false
-				res.TypedSpec().Value.SecureBootStatus = &specs.MachineStatusSpec_SecureBootStatus{
+				res.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
 					Enabled: false,
 				}
 
@@ -507,7 +507,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestSchematicChanges() {
 			func(res *omni.MachineStatus) error {
 				res.TypedSpec().Value.Connected = true
 				res.TypedSpec().Value.Maintenance = false
-				res.TypedSpec().Value.SecureBootStatus = &specs.MachineStatusSpec_SecureBootStatus{
+				res.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
 					Enabled: false,
 				}
 
@@ -629,7 +629,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestSecureBootInstallImage() {
 			func(res *omni.MachineStatus) error {
 				res.TypedSpec().Value.Connected = true
 				res.TypedSpec().Value.Maintenance = false
-				res.TypedSpec().Value.SecureBootStatus = &specs.MachineStatusSpec_SecureBootStatus{
+				res.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
 					Enabled: true,
 				}
 				res.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{

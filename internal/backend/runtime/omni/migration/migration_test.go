@@ -38,6 +38,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/migration"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
@@ -1506,6 +1507,81 @@ func (suite *MigrationSuite) TestSetMachineStatusSnapshotOwner() {
 	for _, item := range items[2:] {
 		check(item, 1)
 	}
+}
+
+func (suite *MigrationSuite) TestMigrateInstallImageConfigIntoGenOptions() {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	suite.T().Cleanup(cancel)
+
+	machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, "test")
+
+	machineStatus.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
+		Enabled: true,
+	}
+
+	machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
+		Invalid: true,
+	}
+
+	suite.Require().NoError(suite.state.Create(ctx, machineStatus))
+
+	clusterMachineTalosVersion := omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, "test")
+
+	clusterMachineTalosVersion.TypedSpec().Value.TalosVersion = "v1.4.0"
+	clusterMachineTalosVersion.TypedSpec().Value.SchematicId = "test-schematic-id"
+
+	suite.Require().NoError(suite.state.Create(ctx, clusterMachineTalosVersion))
+
+	schematicConfig := omni.NewSchematicConfiguration(resources.DefaultNamespace, "test")
+
+	suite.Require().NoError(suite.state.Create(ctx, schematicConfig))
+
+	// prepare the needed resources for reconcileConfigInputs to update inputs versions in the migration
+
+	clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, "test")
+	clusterMachineConfig := omni.NewClusterMachineConfig(resources.DefaultNamespace, "test")
+	configPatches := omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "test")
+	genOptions := omni.NewMachineConfigGenOptions(resources.DefaultNamespace, "test")
+	clusterSecrets := omni.NewClusterSecrets(resources.DefaultNamespace, "test-cluster")
+	lbConfig := omni.NewLoadBalancerConfig(resources.DefaultNamespace, "test-cluster")
+	cluster := omni.NewCluster(resources.DefaultNamespace, "test-cluster")
+
+	clusterMachine.Metadata().Labels().Set(omni.LabelCluster, "test-cluster")
+	clusterMachineConfig.Metadata().Annotations().Set(helpers.InputResourceVersionAnnotation, "before")
+
+	suite.Require().NoError(clusterMachineConfig.Metadata().SetOwner(omnictrl.ClusterMachineConfigControllerName))
+
+	for _, res := range []resource.Resource{
+		clusterMachine, clusterMachineConfig, configPatches, genOptions, clusterSecrets, lbConfig, cluster,
+	} {
+		suite.Require().NoError(suite.state.Create(ctx, res, state.WithCreateOwner(res.Metadata().Owner())))
+	}
+
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(func(name string) bool {
+		return name == "migrateInstallImageConfigIntoGenOptions"
+	})))
+
+	genOptions, err := safe.StateGet[*omni.MachineConfigGenOptions](ctx, suite.state, omni.NewMachineConfigGenOptions(resources.DefaultNamespace, "test").Metadata())
+	suite.Require().NoError(err)
+
+	installImage := genOptions.TypedSpec().Value.InstallImage
+	suite.Require().NotNil(installImage)
+
+	suite.Equal("v1.4.0", installImage.TalosVersion)
+	suite.Equal("test-schematic-id", installImage.SchematicId)
+	suite.True(installImage.SchematicInitialized)
+	suite.True(installImage.SchematicInvalid)
+	suite.True(installImage.GetSecureBootStatus().GetEnabled())
+
+	// assert that the input version is updated on the ClusterMachineConfig
+
+	clusterMachineConfig, err = safe.StateGet[*omni.ClusterMachineConfig](ctx, suite.state, clusterMachineConfig.Metadata())
+	suite.Require().NoError(err)
+
+	annotation, ok := clusterMachineConfig.Metadata().Annotations().Get(helpers.InputResourceVersionAnnotation)
+	suite.True(ok)
+	suite.NotEmpty(annotation)
+	suite.NotEqual("before", annotation)
 }
 
 func TestMigrationSuite(t *testing.T) {

@@ -300,7 +300,7 @@ func pollSecureBootStatus(ctx context.Context, c *client.Client, info *Info) err
 		return err
 	}
 
-	info.SecureBootStatus = &specs.MachineStatusSpec_SecureBootStatus{
+	info.SecureBootStatus = &specs.SecureBootStatus{
 		Enabled: enabled,
 	}
 

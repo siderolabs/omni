@@ -17,6 +17,12 @@ message MachineSpec {
   reserved 4;
 }
 
+// SecureBootStatus describes the status of the SecureBoot feature.
+message SecureBootStatus {
+  // Enabled is true if SecureBoot is detected to be available and enabled.
+  bool enabled = 1;
+}
+
 // MachineStatusSpec describes state of a Machine.
 message MachineStatusSpec {
   // HardwareStatus describes machine hardware status.
@@ -169,12 +175,6 @@ message MachineStatusSpec {
     //
     // It is used instead of Id primarily when the machine has secure boot enabled.
     string full_id = 9;
-  }
-
-  // SecureBootStatus describes the status of the SecureBoot feature.
-  message SecureBootStatus {
-    // Enabled is true if SecureBoot is detected to be available and enabled.
-    bool enabled = 1;
   }
 
   // Talos version.
@@ -903,7 +903,23 @@ message MachineClassSpec {
 
 // MachineConfigGenOptionsSpec describes machine related config generation inputs.
 message MachineConfigGenOptionsSpec {
+  message InstallImage {
+    // TalosVersion is the Talos version to use for the install image.
+    string talos_version = 1;
+    // SchematicId is the schematic id to use for the install image.
+    string schematic_id = 2;
+    // SchematicInitialized is true if the schematic is initialized.
+    bool schematic_initialized = 3;
+    // SchematicInvalid is true if the schematic is invalid.
+    bool schematic_invalid = 4;
+    // SecureBootStatus is the status of the SecureBoot feature.
+    SecureBootStatus secure_boot_status = 5;
+  }
+
   string install_disk = 1;
+
+  // InstallImage contains the information needed to build the install image URL of a machine to be used by the Talos installer.
+  InstallImage install_image = 2;
 }
 
 // EtcdAuditResult is updated when the etcd audit removes a member.

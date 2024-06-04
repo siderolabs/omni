@@ -309,7 +309,7 @@ func reconcileTalosUpdateStatus(ctx context.Context, r controller.ReaderWriter,
 		clusterMachineTalosVersion.TypedSpec().Value.SchematicId = schematicID
 
 		switch {
-		// if the machine doesn't have the config status or config sha, it means we can update it's version immediately
+		// if the machine doesn't have the config status or config sha, it means we can update its version immediately
 		// as the machine is not configured yet
 		case configStatus == nil || configStatus.TypedSpec().Value.ClusterMachineConfigSha256 == "":
 			if err = updateMachine(ctx, r, logger, clusterMachineTalosVersion); err != nil {

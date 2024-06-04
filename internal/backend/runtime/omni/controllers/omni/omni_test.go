@@ -485,7 +485,7 @@ func (suite *OmniSuite) createCluster(clusterName string, controlPlanes, workers
 			Id: defaultSchematic,
 		}
 		machineStatus.TypedSpec().Value.InitialTalosVersion = cluster.TypedSpec().Value.TalosVersion
-		machineStatus.TypedSpec().Value.SecureBootStatus = &specs.MachineStatusSpec_SecureBootStatus{
+		machineStatus.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
 			Enabled: false,
 		}
 

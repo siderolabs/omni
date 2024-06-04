@@ -950,10 +950,10 @@ func machineInstallDiskPatches(ctx context.Context, st state.State, _ *zap.Logge
 		}
 
 		if err = createOrUpdate(ctx, st, omni.NewMachineConfigGenOptions(resources.DefaultNamespace, item.Metadata().ID()), func(res *omni.MachineConfigGenOptions) error {
-			omnictrl.GenInstallConfig(machineStatus, res)
+			omnictrl.GenInstallConfig(machineStatus, nil, res)
 
 			return nil
-		}, omnictrl.NewMachineConfigGenOptionsController().Name()); err != nil {
+		}, omnictrl.MachineConfigGenOptionsControllerName); err != nil {
 			return err
 		}
 
@@ -1232,6 +1232,67 @@ func setMachineStatusSnapshotOwner(ctx context.Context, st state.State, logger *
 			return res.Metadata().SetOwner(omnictrl.NewMachineStatusSnapshotController(nil).Name())
 		}, state.WithExpectedPhaseAny(), state.WithUpdateOwner(item.Metadata().Owner()))
 		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// migrateInstallImageConfigIntoGenOptions creates the initial InstallImage resources using the existing MachineStatus and ClusterMachineTalosVersion resources.
+//
+// It then reconciles the config inputs for all machines to avoid triggering config updates for each machine.
+func migrateInstallImageConfigIntoGenOptions(ctx context.Context, st state.State, _ *zap.Logger) error {
+	list, err := safe.StateListAll[*omni.MachineConfigGenOptions](ctx, st)
+	if err != nil {
+		return err
+	}
+
+	for iter := list.Iterator(); iter.Next(); {
+		genOptions := iter.Value()
+
+		if genOptions.Metadata().Phase() == resource.PhaseTearingDown {
+			continue
+		}
+
+		var (
+			machineStatus *omni.MachineStatus
+			talosVersion  *omni.ClusterMachineTalosVersion
+		)
+
+		if machineStatus, err = safe.StateGet[*omni.MachineStatus](ctx, st, omni.NewMachineStatus(resources.DefaultNamespace, genOptions.Metadata().ID()).Metadata()); err != nil {
+			if state.IsNotFoundError(err) {
+				continue
+			}
+
+			return err
+		}
+
+		if talosVersion, err = safe.StateGet[*omni.ClusterMachineTalosVersion](ctx, st,
+			omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, genOptions.Metadata().ID()).Metadata()); err != nil {
+			if state.IsNotFoundError(err) {
+				continue
+			}
+
+			return err
+		}
+
+		if _, err = safe.StateUpdateWithConflicts(ctx, st, genOptions.Metadata(), func(res *omni.MachineConfigGenOptions) error {
+			omnictrl.GenInstallConfig(machineStatus, talosVersion, res)
+
+			return nil
+		}, state.WithUpdateOwner(genOptions.Metadata().Owner())); err != nil {
+			return err
+		}
+
+		var clusterMachine *omni.ClusterMachine
+
+		if clusterMachine, err = safe.StateGetByID[*omni.ClusterMachine](ctx, st, genOptions.Metadata().ID()); err != nil {
+			return err
+		}
+
+		// ClusterMachineTalosVersion is no more used as an input in the hash, exclude it
+		if err = reconcileConfigInputs(ctx, st, clusterMachine, true, false); err != nil {
 			return err
 		}
 	}

@@ -29,6 +29,7 @@ import (
 	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
@@ -37,7 +38,8 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/constants"
 )
 
-const clusterMachineConfigControllerName = "ClusterMachineConfigController"
+// ClusterMachineConfigControllerName is the name of the ClusterMachineConfigController.
+const ClusterMachineConfigControllerName = "ClusterMachineConfigController"
 
 // ClusterMachineConfigController manages machine configurations for each ClusterMachine.
 //
@@ -48,7 +50,7 @@ type ClusterMachineConfigController = qtransform.QController[*omni.ClusterMachin
 func NewClusterMachineConfigController(defaultGenOptions []generate.Option) *ClusterMachineConfigController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.ClusterMachine, *omni.ClusterMachineConfig]{
-			Name: clusterMachineConfigControllerName,
+			Name: ClusterMachineConfigControllerName,
 			MapMetadataFunc: func(clusterMachine *omni.ClusterMachine) *omni.ClusterMachineConfig {
 				return omni.NewClusterMachineConfig(resources.DefaultNamespace, clusterMachine.Metadata().ID())
 			},
@@ -67,12 +69,6 @@ func NewClusterMachineConfigController(defaultGenOptions []generate.Option) *Clu
 		),
 		qtransform.WithExtraMappedInput(
 			qtransform.MapperSameID[*omni.MachineConfigGenOptions, *omni.ClusterMachine](),
-		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.MachineStatus, *omni.ClusterMachine](),
-		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.ClusterMachineTalosVersion, *omni.ClusterMachine](),
 		),
 		qtransform.WithExtraMappedInput(
 			mappers.MapClusterResourceToLabeledResources[*omni.Cluster, *omni.ClusterMachine](),
@@ -184,19 +180,6 @@ func reconcileClusterMachineConfig(
 		return err
 	}
 
-	clusterMachineTalosVersion, err := safe.ReaderGet[*omni.ClusterMachineTalosVersion](
-		ctx,
-		r,
-		omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata(),
-	)
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
-		}
-
-		return err
-	}
-
 	inputs := []resource.Resource{
 		secrets,
 		clusterMachine,
@@ -204,7 +187,6 @@ func reconcileClusterMachineConfig(
 		cluster,
 		clusterMachineConfigPatches,
 		machineConfigGenOptions,
-		clusterMachineTalosVersion,
 	}
 
 	if !helpers.UpdateInputsVersions(machineConfig, inputs...) {
@@ -218,37 +200,30 @@ func reconcileClusterMachineConfig(
 		return xerrors.NewTagged[qtransform.SkipReconcileTag](errors.New("kubernetes version is not set yet"))
 	}
 
-	// TODO(image-factory): temporary method to preserve the existing schematics of Talos nodes on install/updates. Might change later.
-	machineStatus, err := safe.ReaderGet[*omni.MachineStatus](ctx, r, omni.NewMachineStatus(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata())
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
-		}
+	installImage := machineConfigGenOptions.TypedSpec().Value.InstallImage
+	if installImage == nil {
+		logger.Error("install image is not set, skip reconcile")
 
-		return err
+		return xerrors.NewTagged[qtransform.SkipReconcileTag](errors.New("install image is not set yet"))
 	}
 
 	// skip if the machine schematic information is not yet detected
-	if machineStatus.TypedSpec().Value.Schematic == nil {
+	if !installImage.SchematicInitialized {
 		logger.Error("machine schematic is not set, skip reconcile")
 
 		return xerrors.NewTagged[qtransform.SkipReconcileTag](errors.New("machine schematic is not set detected"))
 	}
 
+	if installImage.SecureBootStatus == nil {
+		logger.Error("secure boot status is not detected, skip reconcile")
+
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("secure boot status for machine %q is not yet set", machineConfigGenOptions.Metadata().ID())
+	}
+
 	var helper clusterMachineConfigControllerHelper
 
-	machineConfig.TypedSpec().Value.Data, err = helper.generateConfig(
-		clusterMachine,
-		clusterMachineConfigPatches,
-		secrets,
-		loadBalancerConfig,
-		cluster,
-		clusterConfigVersion,
-		machineConfigGenOptions,
-		clusterMachineTalosVersion,
-		defaultGenOptions,
-		machineStatus,
-	)
+	machineConfig.TypedSpec().Value.Data, err = helper.generateConfig(clusterMachine, clusterMachineConfigPatches, secrets, loadBalancerConfig,
+		cluster, clusterConfigVersion, machineConfigGenOptions, defaultGenOptions)
 	if err != nil {
 		machineConfig.TypedSpec().Value.GenerationError = err.Error()
 
@@ -263,17 +238,8 @@ func reconcileClusterMachineConfig(
 
 type clusterMachineConfigControllerHelper struct{}
 
-func (clusterMachineConfigControllerHelper) generateConfig(
-	clusterMachine *omni.ClusterMachine,
-	clusterMachineConfigPatches *omni.ClusterMachineConfigPatches,
-	secrets *omni.ClusterSecrets,
-	loadbalancer *omni.LoadBalancerConfig,
-	cluster *omni.Cluster,
-	clusterConfigVersion *omni.ClusterConfigVersion,
-	machineConfigGenOptions *omni.MachineConfigGenOptions,
-	clusterMachineTalosVersion *omni.ClusterMachineTalosVersion,
-	extraGenOptions []generate.Option,
-	machineStatus *omni.MachineStatus,
+func (clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.ClusterMachine, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, secrets *omni.ClusterSecrets,
+	loadbalancer *omni.LoadBalancerConfig, cluster *omni.Cluster, clusterConfigVersion *omni.ClusterConfigVersion, configGenOptions *omni.MachineConfigGenOptions, extraGenOptions []generate.Option,
 ) ([]byte, error) {
 	clusterName := cluster.Metadata().ID()
 
@@ -284,7 +250,7 @@ func (clusterMachineConfigControllerHelper) generateConfig(
 		return nil, fmt.Errorf("talos version is not set on the resource %s", clusterConfigVersion.Metadata())
 	}
 
-	installImage, err := buildInstallImage(clusterMachineTalosVersion, machineStatus, talosVersion)
+	installImage, err := buildInstallImage(configGenOptions.Metadata().ID(), configGenOptions.TypedSpec().Value.InstallImage, talosVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -295,8 +261,8 @@ func (clusterMachineConfigControllerHelper) generateConfig(
 
 	genOptions = append(genOptions, extraGenOptions...)
 
-	if machineConfigGenOptions.TypedSpec().Value.InstallDisk != "" {
-		genOptions = append(genOptions, generate.WithInstallDisk(machineConfigGenOptions.TypedSpec().Value.InstallDisk))
+	if configGenOptions.TypedSpec().Value.InstallDisk != "" {
+		genOptions = append(genOptions, generate.WithInstallDisk(configGenOptions.TypedSpec().Value.InstallDisk))
 	}
 
 	if talosVersion != "latest" {
@@ -439,40 +405,37 @@ func init() {
 	imageFactoryHost = parsed.Host
 }
 
-func buildInstallImage(clusterMachineTalosVersion *omni.ClusterMachineTalosVersion, machineStatus *omni.MachineStatus, talosVersion string) (string, error) {
+func buildInstallImage(resID resource.ID, installImage *specs.MachineConfigGenOptionsSpec_InstallImage, talosVersion string) (string, error) {
+	if !installImage.SchematicInitialized {
+		return "", fmt.Errorf("machine %q has no schematic information set", resID)
+	}
+
+	schematicID := installImage.SchematicId
+
+	secureBootStatus := installImage.SecureBootStatus
+	if secureBootStatus == nil { // should never happen - must have been handled before entering this function
+		return "", fmt.Errorf("machine %q has no secure boot status set", resID)
+	}
+
 	installerName := "installer"
-	schematicConfig := machineStatus.TypedSpec().Value.Schematic
-
-	if schematicConfig == nil {
-		return "", fmt.Errorf("machine %q has no schematic information set", machineStatus.Metadata().ID())
-	}
-
-	schematicID := schematicConfig.Id
-
-	secureBootStatus := machineStatus.TypedSpec().Value.SecureBootStatus
-	if secureBootStatus == nil {
-		return "", xerrors.NewTaggedf[qtransform.SkipReconcileTag]("secure boot status for machine %q is not yet set", machineStatus.Metadata().ID())
-	}
-
 	if secureBootStatus.Enabled {
 		installerName = "installer-secureboot"
-		schematicID = schematicConfig.FullId
 	}
 
 	if talosVersion == "latest" && schematicID != "" {
-		return "", fmt.Errorf("machine %q has a schematic but using Talos version %q", machineStatus.Metadata().ID(), talosVersion)
+		return "", fmt.Errorf("machine %q has a schematic but using Talos version %q", resID, talosVersion)
 	}
 
-	if clusterMachineTalosVersion.TypedSpec().Value.SchematicId != "" {
-		schematicID = clusterMachineTalosVersion.TypedSpec().Value.SchematicId
+	if installImage.SchematicId != "" {
+		schematicID = installImage.SchematicId
 	}
 
-	if schematicConfig.Invalid {
+	if installImage.SchematicInvalid {
 		schematicID = ""
 	}
 
-	if clusterMachineTalosVersion.TypedSpec().Value.TalosVersion != "" {
-		talosVersion = clusterMachineTalosVersion.TypedSpec().Value.TalosVersion
+	if installImage.TalosVersion != "" {
+		talosVersion = installImage.TalosVersion
 	}
 
 	if !strings.HasPrefix(talosVersion, "v") {

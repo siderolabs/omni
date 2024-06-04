@@ -30,7 +30,7 @@ func reconcileConfigInputs(ctx context.Context, st state.State, item *omni.Clust
 		return err
 	}
 
-	// update input versions on the cluster machine config to avoid it's reconciliation
+	// update input versions on the cluster machine config to avoid its reconciliation
 	clusterName, ok := item.Metadata().Labels().Get(omni.LabelCluster)
 	if !ok {
 		return nil
@@ -73,7 +73,7 @@ func reconcileConfigInputs(ctx context.Context, st state.State, item *omni.Clust
 		machineConfig.TypedSpec().Value.ClusterMachineVersion = item.Metadata().Version().String()
 
 		return nil
-	}, state.WithUpdateOwner(omnictrl.NewClusterMachineConfigController(nil).Name()), state.WithExpectedPhaseAny())
+	}, state.WithUpdateOwner(omnictrl.ClusterMachineConfigControllerName), state.WithExpectedPhaseAny())
 
 	return err
 }

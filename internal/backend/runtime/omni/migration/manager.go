@@ -160,6 +160,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: setMachineStatusSnapshotOwner,
 				name:     "setMachineStatusSnapshotOwner",
 			},
+			{
+				callback: migrateInstallImageConfigIntoGenOptions,
+				name:     "migrateInstallImageConfigIntoGenOptions",
+			},
 		},
 	}
 }

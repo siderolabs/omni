@@ -167,7 +167,9 @@ func (helper *schematicConfigurationHelper) reconcile(
 		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("secure boot status for machine %q is not yet set", ms.Metadata().ID())
 	}
 
-	if ms.TypedSpec().Value.Schematic != nil {
+	schematicInitialized := ms.TypedSpec().Value.Schematic != nil
+
+	if schematicInitialized {
 		overlay = getOverlay(ms)
 		initialSchematic = ms.TypedSpec().Value.Schematic.InitialSchematic
 
@@ -201,7 +203,7 @@ func (helper *schematicConfigurationHelper) reconcile(
 		schematicConfiguration.TypedSpec().Value.SchematicId = id
 		helpers.CopyLabels(clusterMachine, schematicConfiguration, omni.LabelCluster)
 
-		if ms.TypedSpec().Value.Schematic != nil {
+		if schematicInitialized {
 			machineExtensionsStatus.TypedSpec().Value.Extensions = computeMachineExtensionsStatus(ms, nil)
 		}
 
