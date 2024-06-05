@@ -3,17 +3,17 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-// Import the `mount()` method from Vue Test Utils
 import { Ref } from "vue";
 import { Resource } from "../../src/api/grpc";
 import { MachineSpec } from "../../src/api/omni/specs/omni.pb";
-import { Event, EventType, ResourceService, WatchRequest, WatchResponse } from "../../src/api/omni/resources/resources.pb";
+import { type Event, EventType, ResourceService, WatchRequest, WatchResponse } from "../../src/api/omni/resources/resources.pb";
 import Watch from "../../src/api/watch";
 import { fetchOption, NotifyStreamEntityArrival, RequestOptions } from "../../src/api/fetch.pb";
 import { Runtime } from "../../src/api/common/omni.pb";
 import { DefaultNamespace, MachineType } from "../../src/api/resources";
 import { ref } from "vue";
 import { Metadata } from "../../src/api/v1alpha1/resource.pb";
+import { test, describe, expect } from "bun:test";
 
 class fakeStream extends EventTarget {
   private resolve?: (value: void | PromiseLike<void>) => void;

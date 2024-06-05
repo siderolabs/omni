@@ -10,7 +10,7 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { Component, computed, defineAsyncComponent, toRefs } from "vue";
+import { type Component, computed, defineAsyncComponent, toRefs } from "vue";
 import {
   UsersIcon,
   DocumentIcon,

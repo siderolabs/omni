@@ -112,7 +112,9 @@ export const setupLogStream = <R extends Data, T>(logs: Ref<LogLine[]>, method: 
 
         clearLogs = false;
 
-        buffer.push(...logParser.parse(window.atob(resp.bytes?.toString()!)));
+        if (resp.bytes) {
+          buffer.push(...logParser.parse(window.atob(resp.bytes.toString())));
+        }
 
         // accumulate frequent updates and then flush them in a single call
         flush = setTimeout(() => {

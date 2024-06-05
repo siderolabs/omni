@@ -12,7 +12,7 @@ included in the LICENSE file.
       <overview-right-panel-item
         v-if="currentCluster?.metadata?.created"
         name="Created"
-        :value="time.formatISO(currentCluster?.metadata?.created as string, 'yyyy-LL-dd HH:mm:ss')"
+        :value="formatISO(currentCluster?.metadata?.created as string, 'yyyy-LL-dd HH:mm:ss')"
       />
       <overview-right-panel-item name="Status" v-if="currentCluster">
         <t-cluster-status :cluster="currentCluster" />
@@ -184,7 +184,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { useRoute, useRouter } from "vue-router";
 import { computed, Ref, ref, toRefs } from "vue";
-import { time } from "@/methods/time";
+import { formatISO } from "@/methods/time";
 import { Resource } from "@/api/grpc";
 import Watch from "@/api/watch";
 import {
@@ -290,13 +290,13 @@ const lastBackupError = computed(() => {
 })
 
 const backupTime = computed(() => {
-  const t = backupStatus?.value?.spec?.last_backup_time!;
+  const t = backupStatus?.value?.spec.last_backup_time;
 
   if (!t) {
     return "Never";
   }
 
-  return time.formatISO(t, 'yyyy-LL-dd HH:mm:ss');
+  return formatISO(t, 'yyyy-LL-dd HH:mm:ss');
 });
 
 const startingEtcdBackup = ref(false);

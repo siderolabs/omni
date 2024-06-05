@@ -38,7 +38,7 @@ import { Runtime } from "@/api/common/omni.pb";
 import { ClusterMachineStatusSpec } from "@/api/omni/specs/omni.pb";
 import { useRoute } from "vue-router";
 import { DefaultNamespace } from "@/api/resources";
-import { Node } from "kubernetes-types/core/v1";
+import { V1Node } from "@kubernetes/client-node";
 
 import TList from "@/components/common/List/TList.vue";
 import PageHeader from "@/components/common/PageHeader.vue";
@@ -69,7 +69,7 @@ const opts = [
     type: kubernetes.node,
   },
   context,
-  idFunc: (item: Node): string => {
+  idFunc: (item: V1Node): string => {
     return item.metadata!.name!;
   }
 },

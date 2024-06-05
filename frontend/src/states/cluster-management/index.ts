@@ -539,7 +539,11 @@ export class State {
   }
 
   private checkSchedulingEnabled(data: string) {
-    const loaded = yaml.load(data);
+    const loaded: {
+      cluster: {
+        allowSchedulingOnControlPlanes: boolean
+      }
+    } = yaml.load(data) as any;
 
     return loaded?.cluster?.allowSchedulingOnControlPlanes;
   }

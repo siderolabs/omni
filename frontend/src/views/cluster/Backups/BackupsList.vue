@@ -32,7 +32,7 @@ included in the LICENSE file.
                         :textToHighlight="item.metadata.id"
                         highlightClass="bg-naturals-N14"
                     />
-                    <div class="text-naturals-N14">{{ time.formatISO(item.spec.created_at as string, dateFormat) }}</div>
+                    <div class="text-naturals-N14">{{ formatISO(item.spec.created_at as string, dateFormat) }}</div>
                     <div class="text-naturals-N14">{{ formatBytes(parseInt(item.spec.size ?? '0')) }}</div>
                     <div class="text-naturals-N14 flex gap-2 items-center">
                       {{ item.spec.snapshot }}
@@ -54,7 +54,7 @@ import { Runtime } from "@/api/common/omni.pb";
 import { ExternalNamespace, EtcdBackupType, LabelCluster, EtcdBackupStatusType, DefaultNamespace, EtcdBackupOverallStatusID, EtcdBackupOverallStatusType } from "@/api/resources";
 import { WatchOptions } from "@/api/watch";
 import { computed } from "vue";
-import { time } from "@/methods/time";
+import { formatISO } from "@/methods/time";
 import { useRoute } from "vue-router";
 import { copyText } from "vue3-clipboard";
 import { formatBytes } from "@/methods";

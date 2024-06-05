@@ -68,7 +68,7 @@ import UpdateTalos from "@/views/omni/Modals/UpdateTalos.vue";
 import UserCreate from "@/views/omni/Modals/UserCreate.vue";
 import UserEdit from "@/views/omni/Modals/UserEdit.vue";
 
-import { context } from "@/context";
+import { current } from "@/context";
 import { authGuard } from "@auth0/auth0-vue";
 import { AuthType, authType } from "@/methods";
 import { getAuthCookies, isAuthorized } from "@/methods/key";
@@ -419,7 +419,7 @@ router.beforeEach(to => {
     return true;
   }
 
-  context.current.value = to.params.cluster;
+  current.value = to.params.cluster;
 
   return true;
 })

@@ -46,7 +46,7 @@ import TSpinner from "@/components/common/Spinner/TSpinner.vue";
 import { Resource } from "@/api/grpc";
 
 type Props = {
-  opts: WatchJoinOptions[] | WatchOptions & Object | undefined, // & Object is used to make Vue validator happy
+  opts: WatchJoinOptions[] | WatchOptions & object | undefined, // & Object is used to make Vue validator happy
   spinner?: boolean,
   noRecordsAlert?: boolean
   errorsAlert?: boolean,

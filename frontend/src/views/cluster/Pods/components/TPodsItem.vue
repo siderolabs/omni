@@ -81,7 +81,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { computed, ref, toRefs } from "vue";
 import { DateTime } from "luxon";
-import { Pod } from "kubernetes-types/core/v1";
+import { V1Pod } from "@kubernetes/client-node";
 
 import TIcon from "@/components/common/Icon/TIcon.vue";
 import TStatus from "@/components/common/Status/TStatus.vue";
@@ -90,7 +90,7 @@ import WordHighlighter from "vue-word-highlighter";
 
 type Props = {
   searchOption: string;
-  item: Pod,
+  item: V1Pod,
 };
 
 const props = defineProps<Props>()

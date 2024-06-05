@@ -49,7 +49,7 @@ import { Duration as GoogleProtobufDuration } from "@/api/google/protobuf/durati
 
 import TCheckbox from "@/components/common/Checkbox/TCheckbox.vue";
 import IconButton from "@/components/common/Button/IconButton.vue";
-import { time } from "@/methods/time";
+import { formatDuration } from "@/methods/time";
 import pluralize from "pluralize";
 import { Duration } from "luxon";
 import TInput from "@/components/common/TInput/TInput.vue";
@@ -117,7 +117,7 @@ const updateBackupInterval = () => {
     c.backup_configuration = {};
   }
 
-  c.backup_configuration.interval = time.formatDuration(Duration.fromDurationLike({ hours: backupIntervalHours.value }));
+  c.backup_configuration.interval = formatDuration(Duration.fromDurationLike({ hours: backupIntervalHours.value }));
 
   emit("update:cluster", c);
 };

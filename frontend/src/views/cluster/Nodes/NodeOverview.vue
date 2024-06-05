@@ -199,7 +199,7 @@ import {
 } from "@/api/resources";
 import { Runtime } from "@/api/common/omni.pb";
 import Watch, { WatchOptions } from "@/api/watch";
-import { NodeSpec } from "kubernetes-types/core/v1";
+import { V1NodeSpec } from "@kubernetes/client-node";
 import { Resource, subscribe } from "@/api/grpc";
 import { ClusterMachineStatusSpec, ConfigApplyStatus } from "@/api/omni/specs/omni.pb";
 import { useRoute } from "vue-router";
@@ -296,7 +296,7 @@ const configApplyStatusToConfigApplyStatusName = (status?: ConfigApplyStatus): s
 }
 
 const alertDismissed = ref(false);
-const node: Ref<Resource<NodeSpec> | undefined> = ref();
+const node: Ref<Resource<V1NodeSpec> | undefined> = ref();
 const nodename: Ref<Resource<Nodename> | undefined> = ref();
 const nodeaddress: Ref<Resource<NodeAddress> | undefined> = ref();
 const clusterMachineStatus: Ref<Resource<ClusterMachineStatusSpec> | undefined> = ref();

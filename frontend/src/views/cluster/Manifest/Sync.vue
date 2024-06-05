@@ -61,9 +61,7 @@ included in the LICENSE file.
           </div>
           <div class="diff" v-if="item.object">
             {{
-              Buffer.from(item.object as unknown as string, "base64").toString(
-                "utf8"
-              )
+              b64Encode(item.object as Uint8Array, 0, item.object.length)
             }}
           </div>
         </template>
@@ -83,7 +81,6 @@ import {
   watch,
 } from "vue";
 import { useRoute } from "vue-router";
-import { Buffer } from "buffer";
 
 import PageHeader from "@/components/common/PageHeader.vue";
 import TSpinner from "@/components/common/Spinner/TSpinner.vue";
@@ -101,6 +98,7 @@ import { subscribe, Stream } from "@/api/grpc";
 import { withContext, withRuntime } from "@/api/options";
 import { Runtime } from "@/api/common/omni.pb";
 import { getContext } from "@/context";
+import { b64Encode } from "@/api/fetch.pb";
 
 const route = useRoute();
 const context = getContext();

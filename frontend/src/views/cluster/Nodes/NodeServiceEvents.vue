@@ -14,7 +14,7 @@ included in the LICENSE file.
           </div>
           <div class="font-bold">{{ event.state }}</div>
         </div>
-        <div class="col-span-5">{{ time.relativeISO(event.ts!) }} {{ event.msg }}</div>
+        <div class="col-span-5">{{ relativeISO(event.ts!) }} {{ event.msg }}</div>
       </div>
     </div>
   </div>
@@ -24,7 +24,7 @@ included in the LICENSE file.
 import { ServiceEvent } from "@/api/talos/machine/machine.pb";
 
 import TIcon, { IconType } from "@/components/common/Icon/TIcon.vue";
-import { time } from "@/methods/time";
+import { relativeISO } from "@/methods/time";
 
 defineProps<{
   events?: ServiceEvent[],

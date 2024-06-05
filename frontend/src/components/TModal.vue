@@ -11,7 +11,7 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { watch, ref, Component, shallowRef, Ref } from "vue";
+import { watch, ref, type Component, shallowRef, type Ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { modals } from "@/router";
 import { modal } from "@/modal";

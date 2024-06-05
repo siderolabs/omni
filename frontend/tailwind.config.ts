@@ -3,16 +3,17 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-const defaultTheme = require("tailwindcss/defaultTheme");
-const colors = require("tailwindcss/colors");
-const colorsTheme = require("./src/vars/colors");
+import defaultTheme from "tailwindcss/defaultTheme";
+import colors from "tailwindcss/colors";
+import * as colorsTheme from "./src/vars/colors";
+import type { Config } from "tailwindcss";
 
-module.exports = {
+export default {
   content: ["./public/**/*.html", "./src/**/*.vue"],
   darkMode: "class",
   theme: {
     fontFamily: {
-      sans: ["Inter var", ...defaultTheme.fontFamily.sans],
+      sans: ["Inter var", ...defaultTheme?.fontFamily?.['sans']],
       roboto: ["Roboto Mono", "monospace"],
       firasans: ["Fira Sans", "Roboto", "sans-serif"],
     },
@@ -28,8 +29,8 @@ module.exports = {
       },
       keyframes: {
         fadein: {
-          '0%': { opacity: 0 },
-          '100%': { opacity: 100 },
+          '0%': { opacity: '0' },
+          '100%': { opacity: '100' },
         }
       }
     },
@@ -60,4 +61,4 @@ module.exports = {
     },
   },
   plugins: [],
-};
+} satisfies Config;

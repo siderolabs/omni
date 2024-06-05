@@ -10,13 +10,13 @@ import { ComputedRef, Ref, computed, ref } from "vue";
 import { DefaultNamespace, DefaultTalosVersion, EtcdBackupOverallStatusID, EtcdBackupOverallStatusType } from "@/api/resources";
 import { withContext } from "@/api/options";
 import { fetchOption } from "@/api/fetch.pb";
-import { Node } from "kubernetes-types/core/v1";
+import { V1Node } from "@kubernetes/client-node";
 import { Resource } from "@/api/grpc";
 import { EtcdBackupOverallStatusSpec } from "@/api/omni/specs/omni.pb";
 import Watch from "@/api/watch";
 import { Runtime } from "@/api/common/omni.pb";
 
-export const getStatus = (item: Node) => {
+export const getStatus = (item: V1Node) => {
   const conditions = item?.status?.conditions;
   if (!conditions) return TCommonStatuses.LOADING;
 

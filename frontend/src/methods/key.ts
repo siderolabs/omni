@@ -24,8 +24,9 @@ import {
   workloadProxyPublicKeyIdCookie,
   workloadProxyPublicKeyIdSignatureBase64Cookie,
 } from '@/api/resources';
-import { Buffer } from "buffer";
+// import { Buffer } from "buffer";
 import { ref } from 'vue';
+import { b64Encode } from '@/api/fetch.pb';
 
 let interceptorsRegistered = false;
 let keysReloadTimeout: NodeJS.Timeout;
@@ -134,7 +135,9 @@ export const signDetached = async (data: string): Promise<string> => {
     format: 'binary',
   });
 
-  return Buffer.from(stream as Uint8Array).toString('base64');
+  const array = stream as Uint8Array;
+
+  return b64Encode(array, 0, array.length);
 }
 
 export const saveKeys = async (user: {email: string, picture: string, fullname: string}, privateKey: string, publicKey: string, publicKeyId: string) => {
@@ -175,7 +178,7 @@ const genKey = async (email: string): Promise<{publicKey: string, privateKey: st
   const { privateKey, publicKey } = await generateKey({
     type: 'ecc',
     curve: 'ed25519',
-    userIDs: [{ name: process.env.npm_package_version, email: email.toLowerCase() }, ],
+    userIDs: [{ email: email.toLowerCase() }, ],
     keyExpirationTime: 7 * 60 * 60 + 50 * 60, // 7 hours 50 minutes
     config: {
       preferredCompressionAlgorithm: enums.compression.zlib,

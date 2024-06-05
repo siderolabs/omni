@@ -8,6 +8,8 @@ import { ClusterSpec, ConfigPatchSpec, MachineSetNodeSpec, MachineSetSpec, Machi
 import { ClusterType, ConfigPatchType, DefaultNamespace, LabelCluster, LabelClusterMachine, LabelControlPlaneRole, LabelMachineSet, LabelWorkerRole, MachineSetNodeType, MachineSetType } from "../../src/api/resources";
 import { Cluster, initState, MachineSet, PatchID, state } from "../../src/states/cluster-management";
 
+import { describe, expect, test } from "bun:test";
+
 const crypto = require('crypto');
 
 Object.defineProperty(globalThis, 'crypto', {
@@ -389,7 +391,7 @@ describe("cluster-management-state", () => {
 
           delete tt.expectedResources?.[res.metadata.type!]?.[res.metadata.id!];
 
-          expect(res).toStrictEqual({
+          expect(res).toEqual({
             metadata: {
               id: res.metadata.id,
               namespace: DefaultNamespace,

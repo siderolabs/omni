@@ -7,20 +7,12 @@ import { ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { WatchContext } from '@/api/watch';
 
-export namespace context {
-  export const current:any = ref(localStorage.context ? JSON.parse(localStorage.context) : null);
+export const current: any = ref(localStorage.context ? JSON.parse(localStorage.context) : null);
 
-  export const capabilities = {
-    capi: ref(false),
-    sidero: ref(false),
-    packet: ref(false),
-  };
-}
-
-export function changeContext(c: Object) {
+export function changeContext(c: any) {
   localStorage.context = JSON.stringify(c);
 
-  context.current.value = c;
+  current.value = c;
 }
 
 export function getContext(route: any = null): WatchContext {
@@ -51,5 +43,5 @@ export function clusterName(): string | null {
     return route.query.cluster as string;
   }
 
-  return context.current.value ? context.current.value.name : null;
+  return current.value ? current.value.name : null;
 }

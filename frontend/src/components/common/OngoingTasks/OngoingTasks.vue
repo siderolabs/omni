@@ -20,7 +20,7 @@ included in the LICENSE file.
                 <div class="item-heading">
                   <h3 class="item-title">{{ item.spec.title }}</h3>
                   <span class="item-time">{{
-                    time.formatISO(item.metadata.created as string, "HH:mm:ss")
+                    formatISO(item.metadata.created as string, "HH:mm:ss")
                   }}</span>
                 </div>
                 <p class="item-description truncate">
@@ -76,7 +76,7 @@ import {
   EphemeralNamespace,
   OngoingTaskType,
 } from "@/api/resources";
-import { time } from "@/methods/time";
+import { formatISO } from "@/methods/time";
 import { authorized } from "@/methods/key";
 import { KubernetesUpgradeStatusSpecPhase } from "@/api/omni/specs/omni.pb";
 

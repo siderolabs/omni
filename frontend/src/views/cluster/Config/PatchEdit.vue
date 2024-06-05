@@ -475,7 +475,7 @@ const getPatchLabels = () => {
   const machineID = nodeIDMap[patchType];
 
   if (patchType === PatchType.ClusterMachine || machineID) {
-    labels[LabelClusterMachine] = machineID ?? machine.value?.metadata.id!;
+    labels[LabelClusterMachine] = machineID ?? machine.value?.metadata.id;
   }
 
   const machineSetID = machineSetIDMap[patchType];

@@ -14,7 +14,7 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { Component, computed, ref, Ref } from "vue";
+import { type Component, computed, ref, type Ref } from "vue";
 import { Resource } from "@/api/grpc";
 import { ClusterSpec } from "@/api/omni/specs/omni.pb";
 import Watch from "@/api/watch";

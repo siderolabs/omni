@@ -35,9 +35,9 @@ import { Code } from "@/api/google/rpc/code.pb";
 import { DeleteRequest } from "@/api/omni/resources/resources.pb";
 import { parseLabels } from "@/methods/labels";
 import { controlPlaneMachineSetId } from "@/methods/machineset";
-import { time } from "./time";
 import * as semver from "semver";
 import { embeddedDiscoveryServiceFeatureAvailable } from "@/methods/features";
+import { isoNow } from "./time";
 
 export type MachineConfig = {
   role?: string,
@@ -499,7 +499,7 @@ export const triggerEtcdBackup = async (clusterID: string) => {
     }
   }
 
-  manualBackup.spec.backup_at = time.isoNow();
+  manualBackup.spec.backup_at = isoNow();
 
   if (!exists) {
     return await ResourceService.Create(manualBackup, withRuntime(Runtime.Omni));

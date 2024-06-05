@@ -53,7 +53,7 @@ const props = defineProps<{
   title?: string,
   defaultValue?: (string | number),
   values: (string | number)[],
-  searcheable?: Boolean,
+  searcheable?: boolean,
 }>();
 
 const emit = defineEmits(["checkedValue"]);

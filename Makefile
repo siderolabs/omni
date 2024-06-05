@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-06-03T11:20:02Z by kres f292767.
+# Generated on 2024-06-06T10:06:36Z by kres dc18ad9-dirty.
 
 # common variables
 
@@ -19,10 +19,10 @@ USERNAME ?= siderolabs
 REGISTRY_AND_USERNAME ?= $(REGISTRY)/$(USERNAME)
 PROTOBUF_GRPC_GATEWAY_TS_VERSION ?= 1.2.1
 TESTPKGS ?= ./...
-NODE_BUILD_ARGS ?=
+JS_BUILD_ARGS ?=
 PROTOBUF_GO_VERSION ?= 1.34.1
 GRPC_GO_VERSION ?= 1.4.0
-GRPC_GATEWAY_VERSION ?= 2.19.1
+GRPC_GATEWAY_VERSION ?= 2.20.0
 VTPROTOBUF_VERSION ?= 0.6.0
 GOIMPORTS_VERSION ?= 0.21.0
 DEEPCOPY_VERSION ?= v0.5.6
@@ -56,7 +56,7 @@ COMMON_ARGS += --build-arg=USERNAME="$(USERNAME)"
 COMMON_ARGS += --build-arg=REGISTRY="$(REGISTRY)"
 COMMON_ARGS += --build-arg=JS_TOOLCHAIN="$(JS_TOOLCHAIN)"
 COMMON_ARGS += --build-arg=PROTOBUF_GRPC_GATEWAY_TS_VERSION="$(PROTOBUF_GRPC_GATEWAY_TS_VERSION)"
-COMMON_ARGS += --build-arg=NODE_BUILD_ARGS="$(NODE_BUILD_ARGS)"
+COMMON_ARGS += --build-arg=JS_BUILD_ARGS="$(JS_BUILD_ARGS)"
 COMMON_ARGS += --build-arg=TOOLCHAIN="$(TOOLCHAIN)"
 COMMON_ARGS += --build-arg=CGO_ENABLED="$(CGO_ENABLED)"
 COMMON_ARGS += --build-arg=GO_BUILDFLAGS="$(GO_BUILDFLAGS)"
@@ -72,7 +72,7 @@ COMMON_ARGS += --build-arg=DEEPCOPY_VERSION="$(DEEPCOPY_VERSION)"
 COMMON_ARGS += --build-arg=GOLANGCILINT_VERSION="$(GOLANGCILINT_VERSION)"
 COMMON_ARGS += --build-arg=GOFUMPT_VERSION="$(GOFUMPT_VERSION)"
 COMMON_ARGS += --build-arg=TESTPKGS="$(TESTPKGS)"
-JS_TOOLCHAIN ?= docker.io/node:22.2.0-alpine3.19
+JS_TOOLCHAIN ?= docker.io/oven/bun:1.1.12-alpine
 TOOLCHAIN ?= docker.io/golang:1.22-alpine
 
 # extra variables
@@ -272,7 +272,7 @@ lint-markdown:  ## Runs markdownlint.
 	@$(MAKE) target-$@
 
 .PHONY: lint
-lint: lint-golangci-lint-client lint-gofumpt-client lint-govulncheck-client lint-golangci-lint lint-gofumpt lint-govulncheck lint-markdown  ## Run all linters for the project.
+lint: lint-eslint lint-golangci-lint-client lint-gofumpt-client lint-govulncheck-client lint-golangci-lint lint-gofumpt lint-govulncheck lint-markdown  ## Run all linters for the project.
 
 .PHONY: image-omni
 image-omni:  ## Builds image for omni.

@@ -28,7 +28,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { computed, toRefs } from "vue";
 import { TPodsViewFilterOptions } from "@/constants";
-import { Pod } from "kubernetes-types/core/v1";
+import { V1Pod } from "@kubernetes/client-node";
 
 import TPodsItem from "@/views/cluster/Pods/components/TPodsItem.vue";
 import TPagination from "@/components/common/Pagination/TPagination.vue";
@@ -49,7 +49,7 @@ const filteredItems = computed(() => {
     return items?.value;
   }
 
-  return items?.value?.filter((elem: Pod) => {
+  return items?.value?.filter((elem: V1Pod) => {
     if (filterOption.value !== TPodsViewFilterOptions.ALL && elem?.status?.phase !== filterOption.value) {
       return false;
     }

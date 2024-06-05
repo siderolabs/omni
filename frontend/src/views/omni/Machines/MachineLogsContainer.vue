@@ -20,7 +20,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { Ref, ref } from "vue";
 import { useRoute } from "vue-router";
-import { time } from "@/methods/time";
+import { formatISO } from "@/methods/time";
 
 import { setupLogStream, DefaultLogParser } from "@/methods/logs";
 import { LogLine } from "@/methods/logs";
@@ -48,7 +48,7 @@ setupLogStream(logs, ManagementService.MachineLogs, {
   const data = JSON.parse(line);
 
   return {
-    date: time.formatISO(data["talos-time"], "dd/MM/yyyy HH:mm:ss"),
+    date: formatISO(data["talos-time"], "dd/MM/yyyy HH:mm:ss"),
     msg: data.msg,
   };
 }))

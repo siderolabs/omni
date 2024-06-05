@@ -5,8 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 */
 
-/* ./src/index.css */
-@import url("fonts.css");
+@import url("@/fonts.css");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

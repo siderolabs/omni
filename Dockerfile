@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-06-03T11:20:02Z by kres f292767.
+# Generated on 2024-06-06T12:40:29Z by kres 14c10c9-dirty.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -20,17 +20,16 @@ ENV GOPATH /go
 ENV PATH ${PATH}:/usr/local/go/bin
 
 # runs markdownlint
-FROM docker.io/node:22.2.0-alpine3.19 AS lint-markdown
+FROM docker.io/oven/bun:1.1.12-alpine AS lint-markdown
 WORKDIR /src
-RUN npm i -g markdownlint-cli@0.41.0
-RUN npm i sentences-per-line@0.2.1
+RUN bun i markdownlint-cli@0.41.0 sentences-per-line@0.2.1
 COPY .markdownlint.json .
 COPY ./docs ./docs
 COPY ./CHANGELOG.md ./CHANGELOG.md
 COPY ./CONTRIBUTING.md ./CONTRIBUTING.md
 COPY ./DEVELOPMENT.md ./DEVELOPMENT.md
 COPY ./README.md ./README.md
-RUN markdownlint --ignore "CHANGELOG.md" --ignore "**/node_modules/**" --ignore '**/hack/chglog/**' --rules node_modules/sentences-per-line/index.js .
+RUN bunx markdownlint --ignore "CHANGELOG.md" --ignore "**/node_modules/**" --ignore '**/hack/chglog/**' --rules node_modules/sentences-per-line/index.js .
 
 # collects proto specs
 FROM scratch AS proto-specs
@@ -84,21 +83,16 @@ ARG PROTOBUF_GRPC_GATEWAY_TS_VERSION
 RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/go/pkg go install github.com/siderolabs/protoc-gen-grpc-gateway-ts@v${PROTOBUF_GRPC_GATEWAY_TS_VERSION}
 RUN mv /go/bin/protoc-gen-grpc-gateway-ts /bin
 COPY frontend/package.json ./
-COPY frontend/package-lock.json ./
-RUN --mount=type=cache,target=/src/node_modules npm version ${VERSION}
-RUN --mount=type=cache,target=/src/node_modules npm ci && npm run verify
-COPY frontend/.eslintrc.yaml ./
-COPY frontend/babel.config.js ./
-COPY frontend/jest.config.js ./
-COPY frontend/tsconfig.json ./
+RUN --mount=type=cache,target=/src/node_modules bun install
+COPY frontend/tsconfig*.json ./
+COPY frontend/bunfig.toml ./
+COPY frontend/*.html ./
+COPY frontend/*.ts ./
+COPY frontend/*.js ./
 COPY ./frontend/src ./src
-COPY ./frontend/tests ./tests
-COPY ./frontend/public ./public
-COPY ./frontend/babel.config.js ./babel.config.js
-COPY ./frontend/jest.config.js ./jest.config.js
+COPY ./frontend/test ./test
+COPY ./frontend/eslint.config.js ./eslint.config.js
 COPY ./frontend/postcss.config.js ./postcss.config.js
-COPY ./frontend/tailwind.config.js ./tailwind.config.js
-COPY ./frontend/vue.config.js ./vue.config.js
 
 # build tools
 FROM --platform=${BUILDPLATFORM} toolchain AS tools
@@ -139,14 +133,14 @@ RUN go install mvdan.cc/gofumpt@${GOFUMPT_VERSION} \
 
 # builds frontend
 FROM --platform=${BUILDPLATFORM} js AS frontend
-ARG NODE_BUILD_ARGS
-RUN --mount=type=cache,target=/src/node_modules npm run build ${NODE_BUILD_ARGS}
+ARG JS_BUILD_ARGS
+RUN --mount=type=cache,target=/src/node_modules bun run build ${JS_BUILD_ARGS}
 RUN mkdir -p /internal/frontend/dist
 RUN cp -rf ./dist/* /internal/frontend/dist
 
 # runs eslint
 FROM js AS lint-eslint
-RUN --mount=type=cache,target=/src/node_modules npm run lint
+RUN --mount=type=cache,target=/src/node_modules bun run lint
 
 # runs protobuf compiler
 FROM js AS proto-compile-frontend
@@ -184,7 +178,8 @@ RUN rm /frontend/src/api/omni/specs/ephemeral.proto
 
 # runs js unit-tests
 FROM js AS unit-tests-frontend
-RUN --mount=type=cache,target=/src/node_modules CI=true npm run test
+RUN --mount=type=cache,target=/src/node_modules bun add -d @happy-dom/global-registrator
+RUN --mount=type=cache,target=/src/node_modules CI=true bun run test
 
 FROM tools AS embed-generate
 ARG SHA

@@ -3,6 +3,6 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-module.exports = {
-  preset: '@vue/cli-plugin-unit-jest/presets/typescript-and-babel/'
-}
+import { GlobalRegistrator } from "@happy-dom/global-registrator";
+
+GlobalRegistrator.register();

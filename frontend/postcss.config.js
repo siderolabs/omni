@@ -3,9 +3,9 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-module.exports = {
+export default {
   plugins: {
     tailwindcss: {},
-    autoprefixer: {}
-  }
+    autoprefixer: {},
+  },
 }

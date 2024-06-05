@@ -721,6 +721,6 @@ export class WatchJoin<T extends Resource> {
   }
 }
 
-const isRef = <T extends Object>(value: T | WatchSource<T>) => {
+const isRef = <T extends object>(value: T | WatchSource<T>) => {
   return "value" in value;
 }

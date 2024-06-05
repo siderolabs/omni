@@ -99,7 +99,7 @@ const dots = "...";
 const props = defineProps<{
   pagination?: boolean,
   search?: boolean,
-  opts?: WatchOptions | WatchJoinOptions[] | Object,
+  opts?: WatchOptions | WatchJoinOptions[] | object,
   sortOptions?: {id: string, desc: string, descending?: boolean}[],
   filterValue?: string
 }>();

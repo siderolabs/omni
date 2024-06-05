@@ -56,7 +56,7 @@ import { getStatus } from "@/methods";
 import { ClusterMachineStatusLabelNodeName } from "@/api/resources";
 import { Resource } from "@/api/grpc";
 import { ClusterMachineStatusSpec } from "@/api/omni/specs/omni.pb";
-import { NodeSpec, NodeStatus } from "kubernetes-types/core/v1";
+import { V1NodeSpec, V1NodeStatus } from "@kubernetes/client-node";
 
 import TStatus from "@/components/common/Status/TStatus.vue";
 import TTag from "@/components/common/Tag/TTag.vue";
@@ -70,7 +70,7 @@ type MemberSpec = {
 }
 
 const props = defineProps<{
-  item: Resource<ClusterMachineStatusSpec & NodeSpec & MemberSpec, NodeStatus>
+  item: Resource<ClusterMachineStatusSpec & V1NodeSpec & MemberSpec, V1NodeStatus>
   searchOption?: string,
 }>();
 

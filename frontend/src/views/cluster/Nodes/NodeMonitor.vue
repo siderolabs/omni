@@ -141,7 +141,7 @@ import { withContext, withRuntime } from '@/api/options';
 import NodesMonitorChart from '@/views/cluster/Nodes/components/NodesMonitorChart.vue';
 
 function diff(a, b) {
-  const result = {};
+  const result: Record<string, number | object> = {};
 
   for (const key in a) {
     const left = a[key];
@@ -158,7 +158,7 @@ function diff(a, b) {
       result[key] = diff(left, right);
     else
       result[key] = left - right;
-  }1024
+  }
 
   return result;
 }
@@ -198,7 +198,7 @@ const getCPUTotal = (stat) => {
   return idle + nonIdle;
 };
 
-const prevProcs = {};
+const prevProcs: Record<string, any> = {};
 let prevCPU = 0;
 
 const loadProcs = async () => {
@@ -212,7 +212,7 @@ const loadProcs = async () => {
 
   const resp = await MachineService.Processes({}, ...options);
 
-  const procs: Record<string, {}>[] = [];
+  const procs: Record<string, any>[] = [];
 
   const r = await MachineService.SystemStat({}, ...options)
 

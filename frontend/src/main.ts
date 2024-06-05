@@ -3,9 +3,8 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import "@stardazed/streams-polyfill";
 import { createApp } from 'vue';
-import '@/index.css';
+import "@/index.css";
 import App from '@/App.vue'
 import VueClipboard from 'vue3-clipboard';
 import AppUnavailable from '@/AppUnavailable.vue'
@@ -17,7 +16,6 @@ import { Runtime } from "@/api/common/omni.pb";
 import { AuthConfigSpec } from "@/api/omni/specs/auth.pb";
 import { AuthType, authType, suspended } from "@/methods";
 import { createAuth0 } from "@auth0/auth0-vue";
-import yaml from "js-yaml";
 import { withRuntime } from "./api/options";
 import vClickOutside from "click-outside-vue3"
 
@@ -55,8 +53,8 @@ const setupApp = async () => {
 
     if (authType.value === AuthType.Auth0) {
       app = app.use(createAuth0({
-        domain: authConfigSpec!.auth0?.domain!,
-        client_id: authConfigSpec!.auth0?.client_id!,
+        domain: authConfigSpec!.auth0!.domain!,
+        client_id: authConfigSpec!.auth0!.client_id!,
         redirect_uri: window.location.origin,
         useFormData: !!authConfigSpec!.auth0?.useFormData,
       }))
@@ -69,19 +67,3 @@ const setupApp = async () => {
 initState();
 
 setupApp()
-
-window["jsyaml"] = yaml;
-
-// noinspection JSUnusedGlobalSymbols
-window["MonacoEnvironment"] = {
-  getWorker(moduleId, label: string) {
-    switch (label) {
-      case "editorWorkerService":
-        return new Worker(new URL("monaco-editor/esm/vs/editor/editor.worker", import.meta.url))
-      case "yaml":
-        return new Worker(new URL("monaco-yaml/yaml.worker", import.meta.url));
-      default:
-        throw new Error(`Unknown label ${label}`);
-    }
-  },
-};
