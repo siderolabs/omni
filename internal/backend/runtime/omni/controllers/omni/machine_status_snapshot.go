@@ -115,14 +115,14 @@ func (ctrl *MachineStatusSnapshotController) MapInput(ctx context.Context, _ *za
 			omni.NewMachineStatusSnapshot(resources.DefaultNamespace, ptr.ID()).Metadata(),
 		}, nil
 	case omni.TalosConfigType:
-		machines, err := safe.ReaderListAll[*omni.ClusterMachineStatus](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, ptr.ID())))
+		machines, err := safe.ReaderListAll[*omni.ClusterMachine](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, ptr.ID())))
 		if err != nil {
 			return nil, err
 		}
 
 		res := make([]resource.Pointer, 0, machines.Len())
 
-		machines.ForEach(func(r *omni.ClusterMachineStatus) {
+		machines.ForEach(func(r *omni.ClusterMachine) {
 			res = append(res, omni.NewMachineStatusSnapshot(resources.DefaultNamespace, r.Metadata().ID()).Metadata())
 		})
 

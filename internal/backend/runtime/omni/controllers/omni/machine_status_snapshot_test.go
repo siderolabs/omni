@@ -94,6 +94,30 @@ func (suite *MachineStatusSnapshotControllerSuite) TestReconcile() {
 		assertion.EqualValues("failed", r.TypedSpec().Value.MachineStatus.Status.UnmetConditions[0].Reason)
 	})
 
+	clusterName := "cluster"
+
+	clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, "2")
+	clusterMachine.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+
+	suite.Require().NoError(suite.state.Create(ctx, clusterMachine))
+
+	talosConfig := omni.NewTalosConfig(resources.DefaultNamespace, clusterName)
+
+	suite.Require().NoError(suite.state.Create(ctx, talosConfig))
+
+	m = omni.NewMachine(resources.DefaultNamespace, clusterMachine.Metadata().ID())
+	m.TypedSpec().Value.Connected = true
+	m.TypedSpec().Value.ManagementAddress = suite.socketConnectionString
+
+	suite.Require().NoError(suite.state.Create(ctx, m))
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{m.Metadata().ID()}, func(r *omni.MachineStatusSnapshot, assertion *assert.Assertions) {
+		assertion.EqualValues(machine.MachineStatusEvent_INSTALLING, r.TypedSpec().Value.MachineStatus.Stage)
+		assertion.EqualValues(false, r.TypedSpec().Value.MachineStatus.Status.Ready)
+		assertion.EqualValues("you", r.TypedSpec().Value.MachineStatus.Status.UnmetConditions[0].Name)
+		assertion.EqualValues("failed", r.TypedSpec().Value.MachineStatus.Status.UnmetConditions[0].Reason)
+	})
+
 	rtestutils.DestroyAll[*omni.Machine](ctx, suite.T(), suite.state)
 
 	rtestutils.AssertNoResource[*omni.MachineStatusSnapshot](ctx, suite.T(), suite.state, m.Metadata().ID())
