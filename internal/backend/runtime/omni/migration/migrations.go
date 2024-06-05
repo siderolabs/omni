@@ -923,7 +923,7 @@ func removeConfigPatchesFromClusterMachines(ctx context.Context, st state.State,
 			return err
 		}
 
-		return reconcileConfigInputs(ctx, st, item, false)
+		return reconcileConfigInputs(ctx, st, item, false, false)
 	})
 }
 
@@ -957,7 +957,7 @@ func machineInstallDiskPatches(ctx context.Context, st state.State, _ *zap.Logge
 			return err
 		}
 
-		return reconcileConfigInputs(ctx, st, item, true)
+		return reconcileConfigInputs(ctx, st, item, true, false)
 	})
 }
 
@@ -1208,7 +1208,7 @@ func generateAllMaintenanceConfigs(ctx context.Context, st state.State, _ *zap.L
 			return err
 		}
 
-		return reconcileConfigInputs(ctx, st, item, true)
+		return reconcileConfigInputs(ctx, st, item, true, true)
 	})
 }
 

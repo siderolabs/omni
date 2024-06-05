@@ -1056,6 +1056,9 @@ func (suite *MigrationSuite) TestInstallDiskPatchMigration() {
 			},
 		},
 	}
+	m1Status.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
+		Id: "id",
+	}
 
 	lbStatus := omni.NewLoadBalancerStatus(resources.DefaultNamespace, clusterName)
 	lbStatus.TypedSpec().Value.Healthy = true
@@ -1375,9 +1378,15 @@ func (suite *MigrationSuite) TestGenerateAllMaintenanceConfigs() {
 
 	m1Status := omni.NewMachineStatus(resources.DefaultNamespace, m1)
 	m1Status.TypedSpec().Value.TalosVersion = "v1.4.0"
+	m1Status.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
+		Id: "id",
+	}
 
 	m2Status := omni.NewMachineStatus(resources.DefaultNamespace, m2)
 	m2Status.TypedSpec().Value.TalosVersion = "v1.5.0"
+	m2Status.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
+		Id: "id",
+	}
 
 	lbStatus := omni.NewLoadBalancerStatus(resources.DefaultNamespace, clusterName)
 	lbStatus.TypedSpec().Value.Healthy = true
@@ -1403,6 +1412,10 @@ func (suite *MigrationSuite) TestGenerateAllMaintenanceConfigs() {
 		pair.MakePair[string, resource.Resource]("", omni.NewMachineSetNode(resources.DefaultNamespace, m1, machineSet)),
 		pair.MakePair[string, resource.Resource]("", omni.NewMachineSetNode(resources.DefaultNamespace, m2, machineSet)),
 		pair.MakePair[string, resource.Resource]("", clusterConfigVersion),
+		pair.MakePair[string, resource.Resource]("", omni.NewMachineConfigGenOptions(resources.DefaultNamespace, m1)),
+		pair.MakePair[string, resource.Resource]("", omni.NewMachineConfigGenOptions(resources.DefaultNamespace, m2)),
+		pair.MakePair[string, resource.Resource]("", omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, m1)),
+		pair.MakePair[string, resource.Resource]("", omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, m2)),
 	}
 
 	createResources = append(createResources, xslices.Map(machines, func(m machine) pair.Pair[string, resource.Resource] {

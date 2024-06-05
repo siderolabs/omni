@@ -18,7 +18,7 @@ import (
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
 
-func reconcileConfigInputs(ctx context.Context, st state.State, item *omni.ClusterMachine, withGenOptions bool) error {
+func reconcileConfigInputs(ctx context.Context, st state.State, item *omni.ClusterMachine, withGenOptions, withTalosVersion bool) error {
 	config := omni.NewClusterMachineConfig(resources.DefaultNamespace, item.Metadata().ID())
 
 	_, err := st.Get(ctx, config.Metadata())
@@ -46,6 +46,10 @@ func reconcileConfigInputs(ctx context.Context, st state.State, item *omni.Clust
 
 	if withGenOptions {
 		res = append(res, omni.NewMachineConfigGenOptions(resources.DefaultNamespace, item.Metadata().ID()))
+	}
+
+	if withTalosVersion {
+		res = append(res, omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, item.Metadata().ID()))
 	}
 
 	inputs := make([]resource.Resource, 0, len(res))
