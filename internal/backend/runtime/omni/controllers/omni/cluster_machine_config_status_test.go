@@ -16,6 +16,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/google/uuid"
+	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
@@ -530,23 +531,22 @@ func (suite *ClusterMachineConfigStatusSuite) TestSchematicChanges() {
 		suite.Require().NoError(err)
 	}
 
+	expectedFactoryImage := "factory.talos.dev/installer/bbbb:v1.3.0"
+
 	suite.Require().NoError(retry.Constant(time.Second * 5).Retry(func() error {
 		requests := suite.machineService.getUpgradeRequests()
 		if len(requests) == 0 {
 			return retry.ExpectedErrorf("no upgrade requests received")
 		}
 
-		expectedImage := "factory.talos.dev/installer/bbbb:v1.3.0"
 		for i, r := range requests {
-			if r.Image != expectedImage {
-				return fmt.Errorf("%d request image is invalid: expected %q got %q", i, expectedImage, r.Image)
+			if r.Image != expectedFactoryImage {
+				return fmt.Errorf("%d request image is invalid: expected %q got %q", i, expectedFactoryImage, r.Image)
 			}
 		}
 
 		return nil
 	}))
-
-	suite.machineService.clearUpgradeRequests()
 
 	// check fallback to ghcr image if the schematic is invalid
 	for _, m := range machines {
@@ -561,16 +561,29 @@ func (suite *ClusterMachineConfigStatusSuite) TestSchematicChanges() {
 		suite.Require().NoError(err)
 	}
 
+	trimLeadingImages := func(images []string, trim string) []string {
+		for i, image := range images {
+			if image != trim {
+				return images[i:]
+			}
+		}
+
+		return nil
+	}
+
 	suite.Require().NoError(retry.Constant(time.Second * 5).Retry(func() error {
 		requests := suite.machineService.getUpgradeRequests()
-		if len(requests) == 0 {
-			return retry.ExpectedErrorf("no upgrade requests received")
+		images := xslices.Map(requests, func(r *machine.UpgradeRequest) string { return r.Image })
+		trimmedImages := trimLeadingImages(images, expectedFactoryImage)
+
+		if len(trimmedImages) == 0 {
+			return retry.ExpectedErrorf("no new upgrade requests received")
 		}
 
 		expectedImage := "ghcr.io/siderolabs/installer:v1.3.0"
-		for i, r := range requests {
-			if r.Image != expectedImage {
-				return fmt.Errorf("%d request image is invalid: expected %q got %q", i, expectedImage, r.Image)
+		for i, image := range trimmedImages {
+			if image != expectedImage {
+				return fmt.Errorf("%d request image is invalid: expected %q got %q", i, expectedImage, image)
 			}
 		}
 
@@ -579,6 +592,8 @@ func (suite *ClusterMachineConfigStatusSuite) TestSchematicChanges() {
 }
 
 func (suite *ClusterMachineConfigStatusSuite) TestSecureBootInstallImage() {
+	suite.T().Cleanup(suite.machineService.clearUpgradeRequests)
+
 	suite.startRuntime()
 
 	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
@@ -658,8 +673,6 @@ func (suite *ClusterMachineConfigStatusSuite) TestSecureBootInstallImage() {
 
 		return nil
 	}))
-
-	suite.machineService.clearUpgradeRequests()
 }
 
 func (suite *ClusterMachineConfigStatusSuite) TestGenerationErrorPropagation() {
