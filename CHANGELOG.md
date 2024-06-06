@@ -1,3 +1,269 @@
+## [Omni 0.37.0](https://github.com/siderolabs/omni/releases/tag/v0.37.0) (2024-06-06)
+
+Welcome to the v0.37.0 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Omni Hosted Discovery Service
+
+Omni is now bundled with the discovery service.
+If enabled, it will be started on the ipv6 address of the wireguard network.
+
+Then it will be possible to configure clusters to use Omni discovery service
+instead of a public one.
+
+
+### Node Overview Page
+
+Node overview page now displays more information about the node.
+That includes:
+
+- Machine stage.
+- Unmet health check conditions of the Talos `MachineStatus`.
+- CPU, memory and secure boot information.
+- The list of labels added to the machine.
+
+
+### Patches UI
+
+The UI now has the page that shows config patches define for a machine.
+It includes both cluster level and account level machine patches.
+
+
+### Secureboot Support Added
+
+Omni now fully supports secureboot enabled machines.
+
+
+### Service Events
+
+Node overview page service list now displays information about each service events.
+If a service fails to start it will be possible to see why in the UI.
+
+
+### Contributors
+
+* Artem Chernyshev
+* Andrey Smirnov
+* Andrey Smirnov
+* Seán C McCord
+* Utku Ozdemir
+* Dmitriy Matrenichev
+* Alexey Palazhchenko
+* Rohit Dandamudi
+* Alex Lubbock
+* Christian Hüning
+* Dennis Marttinen
+* Mattias Cockburn
+* Noel Georgi
+* Petr Krutov
+* Philipp Sauter
+* Rohit Dandamudi
+* Sergey Yakovlev
+
+### Changes
+<details><summary>30 commits</summary>
+<p>
+
+* [`471bbe4`](https://github.com/siderolabs/omni/commit/471bbe41466d683dcbff2399b6e1f4a7b2183ee7) fix: properly set `Cache-Control` header
+* [`8eac9c9`](https://github.com/siderolabs/omni/commit/8eac9c9aaa3dcfc86d828270c194c709a92cf126) fix: fix config generation failure due to secure boot status
+* [`331fc31`](https://github.com/siderolabs/omni/commit/331fc31984491d96a704c17447a75e000457033f) feat: run embedded discovery service in Omni
+* [`05a6cf8`](https://github.com/siderolabs/omni/commit/05a6cf819aa1066bab016702c6cc277e28669427) feat: add Cache-Control header for head requests
+* [`d0cb1bc`](https://github.com/siderolabs/omni/commit/d0cb1bc744282987abae53f84a2d8a6637d76adb) chore: replace grpc.Dial* with grpc.NewClient
+* [`02444f6`](https://github.com/siderolabs/omni/commit/02444f6e2bda9519e9826080188d7d8e0d4d0096) fix: properly generate machine config input versions in the migration
+* [`a80a9cf`](https://github.com/siderolabs/omni/commit/a80a9cf249a1bcc2b93b6fa9ac63b0a298a16c7f) fix: read proper resource type in the `MachineStatusSnapshot`
+* [`2a525ab`](https://github.com/siderolabs/omni/commit/2a525ab68a284c6f74dd738dcdf73c97c8bab653) release(v0.37.0-beta.0): prepare release
+* [`800762d`](https://github.com/siderolabs/omni/commit/800762dc150f11be3eb94d8382d1c47dc24b4cf8) chore: rewrite `MachineStatus` to use `QController`
+* [`ed26122`](https://github.com/siderolabs/omni/commit/ed26122ce0cccd7812e35c351666ca845154dfb9) fix: implement the controller for handling machine status snapshot
+* [`6aa2140`](https://github.com/siderolabs/omni/commit/6aa21409e5ed3f68758a7f03fa13cde76f0ff22f) feat: display more data on the node overview page
+* [`5654a49`](https://github.com/siderolabs/omni/commit/5654a494063ec59c8f6e776d662022a0cefc53e8) chore: add renovate.json
+* [`82abb2b`](https://github.com/siderolabs/omni/commit/82abb2ba536512473d2392bff602adc4cc5dbed8) chore: bump deps
+* [`c635827`](https://github.com/siderolabs/omni/commit/c6358272732628b01e38efdccbcfd766205ed7da) test: do not use epoch millis in service account names
+* [`22e3acf`](https://github.com/siderolabs/omni/commit/22e3acf2eaef19b28d0bed951790a08b545084ed) chore: bump default Talos version to 1.7.4
+* [`a67d1fb`](https://github.com/siderolabs/omni/commit/a67d1fb30b3de8e0f25d740a28e1535295377420) fix: always generate siderolink connection config for all machines
+* [`9bce82a`](https://github.com/siderolabs/omni/commit/9bce82ad769d0042993302bf08cebf6abcbe7d2c) fix: ignore MachineStatus events timestamps as they're not reliable
+* [`ccca5b5`](https://github.com/siderolabs/omni/commit/ccca5b5f66461ce07b621a3366b676673f92f102) fix: bump siderolink module version
+* [`f38b7e5`](https://github.com/siderolabs/omni/commit/f38b7e54a69f4a27d6897900f13e8169bbe1a484) feat: enable ALPN for machine API
+* [`48cc03a`](https://github.com/siderolabs/omni/commit/48cc03a7c3650dd180225dfb2ec88c6770c91885) fix: retry affiliate deletes
+* [`55afa59`](https://github.com/siderolabs/omni/commit/55afa59033898499d24180c2b1d9a1b568905e43) feat: add secure boot support
+* [`0bd2a42`](https://github.com/siderolabs/omni/commit/0bd2a420e85901ba2e4d4137823bafc391896020) docs: fix a typo in the on-prem installation link
+* [`247c165`](https://github.com/siderolabs/omni/commit/247c16550f6aa2ad7d5682c115862e67c979cfb3) fix: improve wording in authentication error messages
+* [`e2f8407`](https://github.com/siderolabs/omni/commit/e2f8407cebe43ad14bc5d5b415a327e3c63286a5) chore: run rekres
+* [`4a8ebbf`](https://github.com/siderolabs/omni/commit/4a8ebbf19f9ea0decb047aeaf656c2d9d6e58759) chore: enable codecov and rekres
+* [`2f1ab0d`](https://github.com/siderolabs/omni/commit/2f1ab0df457c5119a2c1aa3b5d0e9a7aa90e675f) feat: show service events on the node overview page
+* [`c68a836`](https://github.com/siderolabs/omni/commit/c68a8369045e99169208996f5dc7ed66a07a2791) fix: use proper name for fetching existing extension configuration
+* [`4b747f0`](https://github.com/siderolabs/omni/commit/4b747f0380563a40ce9abfe435e573fde8c98184) feat: add dedicated patch pages for machines and cluster machines
+* [`4bd0331`](https://github.com/siderolabs/omni/commit/4bd0331958088c16a1b5c2e7cc5c92368cf00e95) fix: get rid of duplicating label completion options
+* [`631f5c5`](https://github.com/siderolabs/omni/commit/631f5c570cea9535933657e133c940d65bb29626) chore: always build frontend on BUILDPLATFORM
+</p>
+</details>
+
+### Changes since v0.37.0-beta.0
+<details><summary>7 commits</summary>
+<p>
+
+* [`471bbe4`](https://github.com/siderolabs/omni/commit/471bbe41466d683dcbff2399b6e1f4a7b2183ee7) fix: properly set `Cache-Control` header
+* [`8eac9c9`](https://github.com/siderolabs/omni/commit/8eac9c9aaa3dcfc86d828270c194c709a92cf126) fix: fix config generation failure due to secure boot status
+* [`331fc31`](https://github.com/siderolabs/omni/commit/331fc31984491d96a704c17447a75e000457033f) feat: run embedded discovery service in Omni
+* [`05a6cf8`](https://github.com/siderolabs/omni/commit/05a6cf819aa1066bab016702c6cc277e28669427) feat: add Cache-Control header for head requests
+* [`d0cb1bc`](https://github.com/siderolabs/omni/commit/d0cb1bc744282987abae53f84a2d8a6637d76adb) chore: replace grpc.Dial* with grpc.NewClient
+* [`02444f6`](https://github.com/siderolabs/omni/commit/02444f6e2bda9519e9826080188d7d8e0d4d0096) fix: properly generate machine config input versions in the migration
+* [`a80a9cf`](https://github.com/siderolabs/omni/commit/a80a9cf249a1bcc2b93b6fa9ac63b0a298a16c7f) fix: read proper resource type in the `MachineStatusSnapshot`
+</p>
+</details>
+
+### Changes from siderolabs/discovery-service
+<details><summary>52 commits</summary>
+<p>
+
+* [`74bca2d`](https://github.com/siderolabs/discovery-service/commit/74bca2da5cc86fd6efc57838b69a89beb2149069) feat: export service entrypoint
+* [`86e1317`](https://github.com/siderolabs/discovery-service/commit/86e131779aba903276f3762ee9330eed868aabbe) feat: log the state file size on load and save
+* [`417251c`](https://github.com/siderolabs/discovery-service/commit/417251c0ba82917a5d31e9bae56eb054340a0c64) fix: fix the panic in loading state from storage
+* [`10c83d2`](https://github.com/siderolabs/discovery-service/commit/10c83d2eab0338fc979f84bc9e9fade7a1b45fed) release(v1.0.1): prepare release
+* [`196c609`](https://github.com/siderolabs/discovery-service/commit/196c609d1ed72e4ca16fddb0884f1a5b2ecb7338) fix: use shared gRPC buffers, lower buffer size
+* [`a2217bd`](https://github.com/siderolabs/discovery-service/commit/a2217bd298cb85ccfff74bc5313ccacfdace9d75) chore: migrate from wrapped sync.Pool to HashTrieMap
+* [`8a7a0d4`](https://github.com/siderolabs/discovery-service/commit/8a7a0d4a43950894ed35b3d3498e4e84014ed4b0) chore: bump deps
+* [`ea8b8f1`](https://github.com/siderolabs/discovery-service/commit/ea8b8f1493777f9e303cdad3ad96e84efd0be36c) feat: implement state storage
+* [`c551426`](https://github.com/siderolabs/discovery-service/commit/c55142668f37307cdf46300074823fc86354e5e6) feat: migrate grpc-middleware to v2, update deps
+* [`6af92b5`](https://github.com/siderolabs/discovery-service/commit/6af92b54d6b8fe300136b325753597e92158c151) feat: add support for arm64 builds
+* [`952dc54`](https://github.com/siderolabs/discovery-service/commit/952dc5438f3df6d5c31c0809c346f8ed4d903d19) refactor: update dependencies, small cleanups
+* [`4cf4b6e`](https://github.com/siderolabs/discovery-service/commit/4cf4b6edc888497fff3a831c9847c05206238934) fix: update Go to 1.21.3
+* [`c939fef`](https://github.com/siderolabs/discovery-service/commit/c939fef8e565029cf904f4f464f8ff6e325b8f78) chore: fix typo on landing page
+* [`12d9689`](https://github.com/siderolabs/discovery-service/commit/12d9689089e86d749a4be0cd8354cb9fa1936237) chore: update dependencies, rekres
+* [`912943a`](https://github.com/siderolabs/discovery-service/commit/912943a3431df286560fd662c40c2341b1a4a2e1) test: add test on client redirect
+* [`8db8ef3`](https://github.com/siderolabs/discovery-service/commit/8db8ef361e267d882bcb260d1d278060a84e5d2e) feat: add an option to redirect all clients to a fixed endpoint
+* [`b34803b`](https://github.com/siderolabs/discovery-service/commit/b34803b6e0a05f6974282aea400e0ba425cd3e91) test: add a client test with affiliate deletion
+* [`69ac844`](https://github.com/siderolabs/discovery-service/commit/69ac844cf5759840e85634ddd345d2e124045ac2) refactor: replace netaddr with netip/netipx
+* [`d5d0ff5`](https://github.com/siderolabs/discovery-service/commit/d5d0ff5a2f761ad7ac25a47073443cc65edaf8c1) chore: rekres
+* [`9baca2e`](https://github.com/siderolabs/discovery-service/commit/9baca2eb53d3660e302f0a14cfdba74fb5dcbbfe) chore: bump prometheus/client_golang
+* [`a20b27d`](https://github.com/siderolabs/discovery-service/commit/a20b27d1b9689659feef8d3c0b661fdc985a0c33) feat: rate limiting
+* [`aab9f1f`](https://github.com/siderolabs/discovery-service/commit/aab9f1f442736cbcb20f91ac04c499f9411bec46) docs: update kubespan link
+* [`52b44de`](https://github.com/siderolabs/discovery-service/commit/52b44de1f793294ef93e2efcb8c3b25fb09a3e01) feat: implement inspect page
+* [`4906c98`](https://github.com/siderolabs/discovery-service/commit/4906c98af32578d1353829dfedce3cc9b13c1ccd) docs: update initial README docs
+* [`d85ea91`](https://github.com/siderolabs/discovery-service/commit/d85ea91d432b46644c4e40be77743279b0f44921) feat: extract peer address from nginx headers
+* [`a0e6313`](https://github.com/siderolabs/discovery-service/commit/a0e6313af792c2f63539104ce78830c5e4d8bdd4) chore: relicense under BSL-1.1
+* [`5960cd2`](https://github.com/siderolabs/discovery-service/commit/5960cd240d866f70c21c630ab710c2f806b2cf81) feat: improve version parsing
+* [`d4a4ec2`](https://github.com/siderolabs/discovery-service/commit/d4a4ec2fac8516ca6690ece2e94ff17b2b28c1f7) chore: move api and client out of the repository
+* [`95593b8`](https://github.com/siderolabs/discovery-service/commit/95593b8685b3548d3ba6aa920b129ffc08665467) feat: implement landing page for the discovery service
+* [`b579076`](https://github.com/siderolabs/discovery-service/commit/b579076e4ef5d10156975855e6a362e3414db862) fix: update affiliate state correctly when they get deleted
+* [`49e53b1`](https://github.com/siderolabs/discovery-service/commit/49e53b1473d98cbfbb83e45554957c73bcd2e12c) fix: cluster with some subscriptions isn't empty
+* [`9b5eeae`](https://github.com/siderolabs/discovery-service/commit/9b5eeaed72970ab86ba1124fc0dbad7123debe66) chore: add go-debug
+* [`1655040`](https://github.com/siderolabs/discovery-service/commit/1655040813a0b5be55a6bee6fbf1ba167fb4274a) chore: improve state logging
+* [`ee4b2a4`](https://github.com/siderolabs/discovery-service/commit/ee4b2a4098d1c34991e2ef8cf242f85d01e1648b) fix: retry on Hello failures
+* [`ab9c7c9`](https://github.com/siderolabs/discovery-service/commit/ab9c7c98dca3f4d83640dfe0d720d8a557f260be) chore: add Prometheus metrics
+* [`b2e2079`](https://github.com/siderolabs/discovery-service/commit/b2e2079088a5b08d0466b36e0f56927fe4524d78) fix: properly encrypt IPv6 endpoints
+* [`e9d5dfa`](https://github.com/siderolabs/discovery-service/commit/e9d5dfa15e92fc1bdee620b2687eecd2ff929ac3) fix: enable connections to endpoints with public certs
+* [`509e9b2`](https://github.com/siderolabs/discovery-service/commit/509e9b2ced989631224afd3bfd5e8bdcbcf13137) feat: implement client wrapper around discovery service API
+* [`6195466`](https://github.com/siderolabs/discovery-service/commit/619546696afe99c1b58b46ca819bb32e74560f5b) feat: enable vtprotobuf, watch batching, more limits
+* [`7174ec1`](https://github.com/siderolabs/discovery-service/commit/7174ec10426ff17172aaa195423e2588b23aa868) feat: implement new discovery service
+* [`1a43970`](https://github.com/siderolabs/discovery-service/commit/1a4397082659a2b6bca6fd53a5080e109d978627) feat: add node and cluster validation
+* [`6454cfc`](https://github.com/siderolabs/discovery-service/commit/6454cfcb726bba64823f25d962bc04007d057a8b) refactor: kresify, fix linter and rename to Kubespan manager
+* [`d782452`](https://github.com/siderolabs/discovery-service/commit/d782452e86bf94c1194f806384fc339835a96d2d) add redis database backend
+* [`924fed4`](https://github.com/siderolabs/discovery-service/commit/924fed4ecc939887c55a4a8a5f5dfe737ca29c78) refactor to flexible addresses
+* [`cd02b5a`](https://github.com/siderolabs/discovery-service/commit/cd02b5a36783454f7650df5709984f01ccc8bd6e) revert to string IDs
+* [`576288f`](https://github.com/siderolabs/discovery-service/commit/576288fc7559f9eac1966627b6c1e2c731e0c322) add self-reported IPs
+* [`6ad15ca`](https://github.com/siderolabs/discovery-service/commit/6ad15ca825bdf4636855f2b77535945d07462a17) strong typing and known endpoint API
+* [`3437ff2`](https://github.com/siderolabs/discovery-service/commit/3437ff28fb9ab6efb96cc79da1c75bd81bfb50cc) fixes from testing
+* [`d3fd1f3`](https://github.com/siderolabs/discovery-service/commit/d3fd1f324d7af60f2ddf425c9c2cf9b9743e6d62) add Name to Node
+* [`eb0e8ba`](https://github.com/siderolabs/discovery-service/commit/eb0e8baadacd702044ca419f933dd409ae58977e) add simple client pkg
+* [`5e0c1df`](https://github.com/siderolabs/discovery-service/commit/5e0c1df0f1823cce1b92ccffb1e18fb1e540117d) add cluster hash grouping
+* [`f982696`](https://github.com/siderolabs/discovery-service/commit/f982696ec1b45f8d7e6d2dfa1d780b3b0d515dbb) initial commit
+</p>
+</details>
+
+### Changes from siderolabs/gen
+<details><summary>2 commits</summary>
+<p>
+
+* [`7654108`](https://github.com/siderolabs/gen/commit/7654108fe6ae15d4765584342709bc0bced6b3d6) chore: add hashtriemap implementation
+* [`8485864`](https://github.com/siderolabs/gen/commit/84858640dc9c3032219380885283b995d4f2b0d1) chore: optimize maps.Values and maps.Keys
+</p>
+</details>
+
+### Changes from siderolabs/go-circular
+<details><summary>3 commits</summary>
+<p>
+
+* [`cbce5c3`](https://github.com/siderolabs/go-circular/commit/cbce5c3e47d1c6a26a588cbb6f77af2f9bc3e5b7) feat: add persistence support
+* [`3c48c53`](https://github.com/siderolabs/go-circular/commit/3c48c53c1449b2b5e5ddde14e0351d93a351b021) feat: implement extra compressed chunks
+* [`835f04c`](https://github.com/siderolabs/go-circular/commit/835f04c9ba6083ef451b5bbba748200202d1a0a9) chore: rekres, update dependencies
+</p>
+</details>
+
+### Changes from siderolabs/go-tail
+<details><summary>1 commit</summary>
+<p>
+
+* [`7cb7294`](https://github.com/siderolabs/go-tail/commit/7cb7294b8af33175bc463c84493776e6e4da9c4f) fix: remove unexpected short read error
+</p>
+</details>
+
+### Changes from siderolabs/image-factory
+<details><summary>10 commits</summary>
+<p>
+
+* [`819432c`](https://github.com/siderolabs/image-factory/commit/819432ca6d6247c2948929d666281136842b2594) release(v0.4.1): prepare release
+* [`4f3206b`](https://github.com/siderolabs/image-factory/commit/4f3206bb2d402029b15930e3cb105485a2f5303e) release(v0.4.0): prepare release
+* [`b0b6bff`](https://github.com/siderolabs/image-factory/commit/b0b6bffc36355b235cdee065a4bb3827cf27264e) feat: implement wizard-like UI for the Image Factory
+* [`8ccd284`](https://github.com/siderolabs/image-factory/commit/8ccd284b885bd3246bc41b898c82eddd4aecd5ad) feat: allow key-based image verification as option
+* [`4643056`](https://github.com/siderolabs/image-factory/commit/46430564a05d1430837acfd9e5d080c400e7456d) chore: rekres/update dependencies
+* [`116721a`](https://github.com/siderolabs/image-factory/commit/116721a73640c80a78e88b59ce0b71e2c16bc2f3) fix: workaround extension name inconsistencies
+* [`f5bc497`](https://github.com/siderolabs/image-factory/commit/f5bc4976c8cb068dfdf21f4cd15c9abd9e145628) release(v0.3.3): prepare release
+* [`221b442`](https://github.com/siderolabs/image-factory/commit/221b44249f6c635a9e8cb8b7b941401aa50d4b75) feat: support zstd compression
+* [`40a13c5`](https://github.com/siderolabs/image-factory/commit/40a13c5ce810feb65a3fbe8622ae0b32568ebe10) release(v0.3.2): prepare release
+* [`2fe6825`](https://github.com/siderolabs/image-factory/commit/2fe682511c2be12486f5da8fc6612f5c3ed1ebf7) fix: generation of overlay installer images
+</p>
+</details>
+
+### Changes from siderolabs/siderolink
+<details><summary>1 commit</summary>
+<p>
+
+* [`3a587fc`](https://github.com/siderolabs/siderolink/commit/3a587fcf9dbb259e216495496a523faaea427d04) fix: do not ever skip updates which have remove flag
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/auth0/go-jwt-middleware/v2**            v2.2.0 -> v2.2.1
+* **github.com/aws/aws-sdk-go-v2**                     v1.26.1 -> v1.27.0
+* **github.com/aws/aws-sdk-go-v2/config**              v1.27.10 -> v1.27.16
+* **github.com/aws/aws-sdk-go-v2/credentials**         v1.17.10 -> v1.17.16
+* **github.com/aws/aws-sdk-go-v2/feature/s3/manager**  v1.15.8 -> v1.16.21
+* **github.com/aws/aws-sdk-go-v2/service/s3**          v1.47.6 -> v1.54.3
+* **github.com/cosi-project/runtime**                  v0.4.2 -> 15e9d678159d
+* **github.com/emicklei/dot**                          v1.6.1 -> v1.6.2
+* **github.com/grpc-ecosystem/grpc-gateway/v2**        v2.19.1 -> v2.20.0
+* **github.com/hashicorp/vault/api**                   v1.10.0 -> v1.14.0
+* **github.com/hashicorp/vault/api/auth/kubernetes**   v0.5.0 -> v0.7.0
+* **github.com/johannesboyne/gofakes3**                f005f5cc03aa -> 99de01ee122d
+* **github.com/jonboulle/clockwork**                   v0.4.0 -> fc59783b0293
+* **github.com/prometheus/client_golang**              v1.19.0 -> v1.19.1
+* **github.com/siderolabs/discovery-service**          74bca2da5cc8 **_new_**
+* **github.com/siderolabs/gen**                        v0.4.8 -> v0.5.0
+* **github.com/siderolabs/go-circular**                v0.1.0 -> v0.2.0
+* **github.com/siderolabs/go-tail**                    v0.1.0 -> v0.1.1
+* **github.com/siderolabs/image-factory**              v0.3.1 -> v0.4.1
+* **github.com/siderolabs/siderolink**                 v0.3.7 -> v0.3.8
+* **github.com/siderolabs/talos/pkg/machinery**        v1.7.2 -> 4feb94ca0997
+* **github.com/zitadel/logging**                       v0.5.0 -> v0.6.0
+* **go.etcd.io/bbolt**                                 v1.3.9 -> v1.3.10
+* **go.etcd.io/etcd/client/pkg/v3**                    v3.5.13 -> v3.5.14
+* **go.etcd.io/etcd/client/v3**                        v3.5.13 -> v3.5.14
+* **go.etcd.io/etcd/server/v3**                        v3.5.13 -> v3.5.14
+* **golang.org/x/tools**                               v0.20.0 -> v0.21.0
+* **google.golang.org/grpc**                           v1.63.2 -> v1.64.0
+* **k8s.io/api**                                       v0.30.0-rc.1 -> v0.30.1
+* **k8s.io/apimachinery**                              v0.30.0-rc.1 -> v0.30.1
+* **k8s.io/client-go**                                 v0.30.0-rc.1 -> v0.30.1
+* **sigs.k8s.io/controller-runtime**                   v0.16.3 -> v0.18.3
+
+Previous release can be found at [v0.36.0](https://github.com/siderolabs/omni/releases/tag/v0.36.0)
+
+
 ## [Omni 0.37.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.37.0-beta.0) (2024-06-04)
 
 Welcome to the v0.37.0-beta.0 release of Omni!  

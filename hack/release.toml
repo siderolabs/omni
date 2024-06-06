@@ -5,7 +5,7 @@ project_name = "Omni"
 github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
-pre_release = true
+pre_release = false
 previous = "v0.36.0"
 
 [notes]
@@ -40,4 +40,14 @@ If a service fails to start it will be possible to see why in the UI.
     description = """\
 The UI now has the page that shows config patches define for a machine.
 It includes both cluster level and account level machine patches.
+"""
+
+  [notes.discovery-service]
+    title = "Omni Hosted Discovery Service"
+    description = """\
+Omni is now bundled with the discovery service.
+If enabled, it will be started on the ipv6 address of the wireguard network.
+
+Then it will be possible to configure clusters to use Omni discovery service
+instead of a public one.
 """
