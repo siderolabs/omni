@@ -113,7 +113,7 @@ func (s *managementServer) Kubeconfig(ctx context.Context, req *management.Kubec
 	}
 
 	type oidcRuntime interface {
-		GetOIDCKubeconfig(context *commonOmni.Context, identity string) ([]byte, error)
+		GetOIDCKubeconfig(context *commonOmni.Context, identity string, extraOptions ...string) ([]byte, error)
 	}
 
 	r, err := runtime.LookupInterface[oidcRuntime](kubernetes.Name)
@@ -121,7 +121,23 @@ func (s *managementServer) Kubeconfig(ctx context.Context, req *management.Kubec
 		return nil, err
 	}
 
-	kubeconfig, err := r.GetOIDCKubeconfig(commonContext, authResult.Identity)
+	var extraOptions []string
+
+	if req.GrantType != "" {
+		switch req.GrantType {
+		case "auto":
+		case "authcode":
+		case "authcode-keyboard":
+		default:
+			return nil, status.Errorf(codes.InvalidArgument, "invalid grant type %q", req.GrantType)
+		}
+
+		extraOptions = []string{
+			fmt.Sprintf("grant-type=%s", req.GrantType),
+		}
+	}
+
+	kubeconfig, err := r.GetOIDCKubeconfig(commonContext, authResult.Identity, extraOptions...)
 	if err != nil {
 		return nil, err
 	}

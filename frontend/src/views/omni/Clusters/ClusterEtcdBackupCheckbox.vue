@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <div class="flex gap-1 items-center h-6">
+  <div class="flex gap-1 items-center">
     <t-checkbox :checked="enabled"
         @click="toggleBackupsEnabled"
         label="Control Plane Backups"

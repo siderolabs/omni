@@ -7,6 +7,8 @@ package grpc
 
 import (
 	"context"
+	"crypto/rand"
+	"io"
 
 	gateway "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/zitadel/oidc/pkg/op"
@@ -49,11 +51,50 @@ func (s *oidcServer) Authenticate(ctx context.Context, req *oidc.AuthenticateReq
 		identity = "anonymous@omni"
 	}
 
-	if err := s.provider.AuthenticateRequest(req.AuthRequestId, identity); err != nil {
+	if err = s.provider.AuthenticateRequest(req.AuthRequestId, identity); err != nil {
 		return nil, status.Errorf(codes.PermissionDenied, "failed to authenticate request: %s", err)
+	}
+
+	request, err := s.provider.Storage().AuthRequestByID(ctx, req.AuthRequestId)
+	if err != nil {
+		return nil, status.Errorf(codes.PermissionDenied, "failed to authenticate request: %s", err)
+	}
+
+	if challenge := request.GetCodeChallenge(); challenge != nil {
+		var code string
+
+		code, err = encodeToString(6)
+		if err != nil {
+			return nil, err
+		}
+
+		if err = s.provider.Storage().SaveAuthCode(ctx, req.AuthRequestId, code); err != nil {
+			return nil, status.Errorf(codes.PermissionDenied, "failed to authenticate request: %s", err)
+		}
+
+		return &oidc.AuthenticateResponse{
+			AuthCode: code,
+		}, nil
 	}
 
 	return &oidc.AuthenticateResponse{
 		RedirectUrl: op.AuthCallbackURL(s.provider)(req.AuthRequestId),
 	}, nil
 }
+
+func encodeToString(max int) (string, error) {
+	b := make([]byte, max)
+
+	n, err := io.ReadAtLeast(rand.Reader, b, max)
+	if n != max {
+		return "", err
+	}
+
+	for i := 0; i < len(b); i++ {
+		b[i] = table[int(b[i])%len(table)]
+	}
+
+	return string(b), nil
+}
+
+var table = [...]byte{'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'b', 'c', 'd', 'e', 'f'}

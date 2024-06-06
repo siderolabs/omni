@@ -256,13 +256,16 @@ users:
         - --oidc-issuer-url={{ .EndpointOIDC }}
         - --oidc-client-id={{ .ClientID }}
         - --oidc-extra-scope=cluster:{{ .ClusterName }}
+        {{- range $option := .ExtraOptions }}
+        - --{{ $option }}
+        {{- end }}
       command: kubectl
       env: null
       provideClusterInfo: false
 `) + "\n"
 
 // GetOIDCKubeconfig generates kubeconfig for the user using Omni as OIDC Proxy.
-func (r *Runtime) GetOIDCKubeconfig(context *common.Context, identity string) ([]byte, error) {
+func (r *Runtime) GetOIDCKubeconfig(context *common.Context, identity string, extraOptions ...string) ([]byte, error) {
 	tmpl, err := template.New("kubeconfig").Parse(oidcKubeConfigTemplate)
 	if err != nil {
 		return nil, err
@@ -282,8 +285,9 @@ func (r *Runtime) GetOIDCKubeconfig(context *common.Context, identity string) ([
 		KubernetesProxyEndpoint string
 		EndpointOIDC            string
 
-		ClientID string
-		Identity string
+		ClientID     string
+		Identity     string
+		ExtraOptions []string
 	}{
 		InstanceName: config.Config.Name,
 		ClusterName:  context.Name,
@@ -291,8 +295,9 @@ func (r *Runtime) GetOIDCKubeconfig(context *common.Context, identity string) ([
 		EndpointOIDC:            issuerEndpoint,
 		KubernetesProxyEndpoint: config.Config.KubernetesProxyURL,
 
-		ClientID: external.DefaultClientID,
-		Identity: identity,
+		ClientID:     external.DefaultClientID,
+		Identity:     identity,
+		ExtraOptions: extraOptions,
 	}); err != nil {
 		return nil, err
 	}

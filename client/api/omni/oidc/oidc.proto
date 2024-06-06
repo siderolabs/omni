@@ -13,6 +13,9 @@ message AuthenticateRequest {
 message AuthenticateResponse {
   // URL to redirect the user to.
   string redirect_url = 1;
+
+  // AuthCode to use with the keyboard login.
+  string auth_code = 2;
 }
 
 service OIDCService {

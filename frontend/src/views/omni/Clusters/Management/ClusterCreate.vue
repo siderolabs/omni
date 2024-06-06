@@ -56,10 +56,9 @@ included in the LICENSE file.
           <t-checkbox :checked="state.cluster.features?.encryptDisks" label="Encrypt Disks" @click="state.cluster.features.encryptDisks = !state.cluster.features.encryptDisks && supportsEncryption" :disabled="!supportsEncryption"/>
         </tooltip>
         <cluster-workload-proxying-checkbox
-            class="h-8"
             :checked="state.cluster.features.enableWorkloadProxy"
             @click="() => (state.cluster.features.enableWorkloadProxy = !state.cluster.features.enableWorkloadProxy)"/>
-        <embedded-discovery-service-checkbox class="h-8"
+        <embedded-discovery-service-checkbox
             :checked="state.cluster.features.useEmbeddedDiscoveryService"
             :disabled="!isEmbeddedDiscoveryServiceAvailable"
             :talos-version="state.cluster.talosVersion"

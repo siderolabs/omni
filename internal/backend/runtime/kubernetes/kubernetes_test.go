@@ -49,6 +49,9 @@ var oidcKubeconfig1 []byte
 //go:embed testdata/oidc-kubeconfig2.yaml
 var oidcKubeconfig2 []byte
 
+//go:embed testdata/oidc-kubeconfig3.yaml
+var oidcKubeconfig3 []byte
+
 func TestOIDCKubeconfig(t *testing.T) {
 	r, err := kubernetes.New(nil)
 	require.NoError(t, err)
@@ -66,4 +69,23 @@ func TestOIDCKubeconfig(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, string(oidcKubeconfig2), string(kubeconfig))
+}
+
+func TestOIDCKubeconfigWithExtraOptions(t *testing.T) {
+	r, err := kubernetes.New(nil)
+	require.NoError(t, err)
+
+	kubeconfig, err := r.GetOIDCKubeconfig(&common.Context{
+		Name: "cluster1",
+	}, "test@example.com")
+	require.NoError(t, err)
+
+	assert.Equal(t, string(oidcKubeconfig1), string(kubeconfig))
+
+	kubeconfig, err = r.GetOIDCKubeconfig(&common.Context{
+		Name: "cluster1",
+	}, "", "key=test")
+	require.NoError(t, err)
+
+	assert.Equal(t, string(oidcKubeconfig3), string(kubeconfig))
 }

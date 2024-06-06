@@ -43,6 +43,7 @@ func (m *AuthenticateResponse) CloneVT() *AuthenticateResponse {
 	}
 	r := new(AuthenticateResponse)
 	r.RedirectUrl = m.RedirectUrl
+	r.AuthCode = m.AuthCode
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -80,6 +81,9 @@ func (this *AuthenticateResponse) EqualVT(that *AuthenticateResponse) bool {
 		return false
 	}
 	if this.RedirectUrl != that.RedirectUrl {
+		return false
+	}
+	if this.AuthCode != that.AuthCode {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -162,6 +166,13 @@ func (m *AuthenticateResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.AuthCode) > 0 {
+		i -= len(m.AuthCode)
+		copy(dAtA[i:], m.AuthCode)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.AuthCode)))
+		i--
+		dAtA[i] = 0x12
+	}
 	if len(m.RedirectUrl) > 0 {
 		i -= len(m.RedirectUrl)
 		copy(dAtA[i:], m.RedirectUrl)
@@ -193,6 +204,10 @@ func (m *AuthenticateResponse) SizeVT() (n int) {
 	var l int
 	_ = l
 	l = len(m.RedirectUrl)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.AuthCode)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -343,6 +358,38 @@ func (m *AuthenticateResponse) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.RedirectUrl = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AuthCode", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AuthCode = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

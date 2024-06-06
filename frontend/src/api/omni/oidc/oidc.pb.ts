@@ -11,6 +11,7 @@ export type AuthenticateRequest = {
 
 export type AuthenticateResponse = {
   redirect_url?: string
+  auth_code?: string
 }
 
 export class OIDCService {

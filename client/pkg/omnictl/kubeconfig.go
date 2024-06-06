@@ -35,12 +35,19 @@ var kubeconfigCmdFlags struct {
 	cluster              string
 	forceContextName     string
 	serviceAccountUser   string
+	grantType            string
 	serviceAccountGroups []string
 	serviceAccountTTL    time.Duration
 	force                bool
 	merge                bool
 	serviceAccount       bool
 }
+
+var allGrantTypes = strings.Join([]string{
+	"auto",
+	"authcode",
+	"authcode-keyboard",
+}, "|")
 
 // kubeconfigCmd represents the get (resources) command.
 var kubeconfigCmd = &cobra.Command{
@@ -121,6 +128,8 @@ func getKubeconfig(args []string) func(ctx context.Context, client *client.Clien
 				kubeconfigCmdFlags.serviceAccountGroups...,
 			))
 		}
+
+		opts = append(opts, management.WithGrantType(kubeconfigCmdFlags.grantType))
 
 		data, err := client.Management().WithCluster(kubeconfigCmdFlags.cluster).Kubeconfig(ctx, opts...)
 		if err != nil {
@@ -209,6 +218,7 @@ func init() {
 		fmt.Sprintf("user to be used in the service account token (sub). required when --%s is set to true", serviceAccountFlag))
 	kubeconfigCmd.Flags().StringSliceVar(&kubeconfigCmdFlags.serviceAccountGroups, "groups", []string{constants.DefaultAccessGroup},
 		fmt.Sprintf("group to be used in the service account token (groups). only used when --%s is set to true", serviceAccountFlag))
+	kubeconfigCmd.Flags().StringVar(&kubeconfigCmdFlags.grantType, "grant-type", "", fmt.Sprintf("Authorization grant type to use. One of (%s)", allGrantTypes))
 
 	kubeconfigCmd.MarkFlagRequired("cluster") //nolint:errcheck
 

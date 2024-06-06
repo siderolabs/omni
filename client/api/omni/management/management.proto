@@ -90,6 +90,7 @@ message KubeconfigRequest {
   google.protobuf.Duration service_account_ttl = 2;
   string service_account_user = 3;
   repeated string service_account_groups = 4;
+  string grant_type = 5;
 }
 
 message KubernetesUpgradePreChecksRequest {

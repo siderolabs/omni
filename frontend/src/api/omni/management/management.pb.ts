@@ -86,6 +86,7 @@ export type KubeconfigRequest = {
   service_account_ttl?: GoogleProtobufDuration.Duration
   service_account_user?: string
   service_account_groups?: string[]
+  grant_type?: string
 }
 
 export type KubernetesUpgradePreChecksRequest = {

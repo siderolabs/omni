@@ -303,6 +303,7 @@ func (m *KubeconfigRequest) CloneVT() *KubeconfigRequest {
 	r.ServiceAccount = m.ServiceAccount
 	r.ServiceAccountTtl = (*durationpb.Duration)((*durationpb1.Duration)(m.ServiceAccountTtl).CloneVT())
 	r.ServiceAccountUser = m.ServiceAccountUser
+	r.GrantType = m.GrantType
 	if rhs := m.ServiceAccountGroups; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -854,6 +855,9 @@ func (this *KubeconfigRequest) EqualVT(that *KubeconfigRequest) bool {
 		if vx != vy {
 			return false
 		}
+	}
+	if this.GrantType != that.GrantType {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -1778,6 +1782,13 @@ func (m *KubeconfigRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.GrantType) > 0 {
+		i -= len(m.GrantType)
+		copy(dAtA[i:], m.GrantType)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.GrantType)))
+		i--
+		dAtA[i] = 0x2a
+	}
 	if len(m.ServiceAccountGroups) > 0 {
 		for iNdEx := len(m.ServiceAccountGroups) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.ServiceAccountGroups[iNdEx])
@@ -2566,6 +2577,10 @@ func (m *KubeconfigRequest) SizeVT() (n int) {
 			l = len(s)
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
+	}
+	l = len(m.GrantType)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -4325,6 +4340,38 @@ func (m *KubeconfigRequest) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ServiceAccountGroups = append(m.ServiceAccountGroups, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GrantType", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.GrantType = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

@@ -46,6 +46,13 @@ func WithServiceAccount(ttl time.Duration, user string, groups ...string) Kubeco
 	}
 }
 
+// WithGrantType sets --grant-type in the generated kubeconfig.
+func WithGrantType(grantType string) KubeconfigOption {
+	return func(request *management.KubeconfigRequest) {
+		request.GrantType = grantType
+	}
+}
+
 // Client for Management API .
 type Client struct {
 	conn management.ManagementServiceClient
