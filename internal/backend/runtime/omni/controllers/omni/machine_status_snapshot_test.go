@@ -27,12 +27,16 @@ type MachineStatusSnapshotControllerSuite struct {
 }
 
 func (suite *MachineStatusSnapshotControllerSuite) TestReconcile() {
-	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
-	defer cancel()
-
 	require := suite.Require()
 
 	suite.startRuntime()
+
+	// wait for the runtime to stop, including all controllers and the tasks they started.
+	// this is necessary to prevent a data race on the test logger when a task finishes after the test ends.
+	suite.T().Cleanup(suite.wg.Wait)
+
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
+	suite.T().Cleanup(cancel)
 
 	siderolinkEventsCh := make(chan *omni.MachineStatusSnapshot)
 
