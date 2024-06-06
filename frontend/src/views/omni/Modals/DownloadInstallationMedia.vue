@@ -320,7 +320,7 @@ const download = async () => {
 
     phase.value = Phase.Generating;
 
-    await doRequest(url, { signal: controller.signal, method: "HEAD", headers: { "Cache-Control": "no-store" } });
+    await doRequest(url, { signal: controller.signal, method: "HEAD", headers: new Headers({ "Cache-Control": "no-store" }) });
 
     phase.value = Phase.Loading;
 
