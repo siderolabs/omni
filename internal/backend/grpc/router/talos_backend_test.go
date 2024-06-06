@@ -65,6 +65,82 @@ func TestTalosBackendRoles(t *testing.T) {
 	require.Equal(t, "talos-machine", hostnameResult.Messages[0].Hostname)
 }
 
+func TestNodeResolution(t *testing.T) {
+	resolver := &mockResolver{
+		db: map[string]map[string]dns.Info{
+			"cluster-1": {
+				"node-1": {Address: "1.1.1.1"},
+				"node-2": {Address: "2.2.2.2"},
+			},
+		},
+	}
+
+	noOpVerifier := func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+		return handler(ctx, req)
+	}
+	talosBackend := router.NewTalosBackend("test-backend", resolver, nil, false, noOpVerifier)
+
+	testCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	t.Run(`resolvable "node"`, func(t *testing.T) {
+		ctx := metadata.NewIncomingContext(testCtx, metadata.Pairs("cluster", "cluster-1", "node", "node-1"))
+
+		newCtx, _, err := talosBackend.GetConnection(ctx, "some-method")
+		require.NoError(t, err)
+
+		incomingContext, ok := metadata.FromOutgoingContext(newCtx)
+		require.True(t, ok, "metadata not found")
+
+		require.Len(t, incomingContext["node"], 1)
+		require.Equal(t, "1.1.1.1", incomingContext["node"][0])
+	})
+
+	t.Run(`resolvable "nodes"`, func(t *testing.T) {
+		ctx := metadata.NewIncomingContext(testCtx, metadata.Pairs("cluster", "cluster-1", "nodes", "node-1,node-2"))
+
+		newCtx, _, err := talosBackend.GetConnection(ctx, "some-method")
+		require.NoError(t, err)
+
+		incomingContext, ok := metadata.FromOutgoingContext(newCtx)
+		require.True(t, ok, "metadata not found")
+
+		require.Equal(t, []string{"1.1.1.1", "2.2.2.2"}, incomingContext["nodes"])
+	})
+
+	t.Run(`both "node" and "nodes" set`, func(t *testing.T) {
+		ctx := metadata.NewIncomingContext(testCtx, metadata.Pairs("cluster", "cluster-1", "node", "node-1", "nodes", "node-1,node-2"))
+
+		newCtx, _, err := talosBackend.GetConnection(ctx, "some-method")
+		require.NoError(t, err)
+
+		incomingContext, ok := metadata.FromOutgoingContext(newCtx)
+		require.True(t, ok, "metadata not found")
+
+		require.Len(t, incomingContext["node"], 1)
+		require.Equal(t, "1.1.1.1", incomingContext["node"][0])
+		require.Equal(t, []string{"1.1.1.1", "2.2.2.2"}, incomingContext["nodes"])
+	})
+
+	t.Run(`fallback when unresolved`, func(t *testing.T) {
+		ctx := metadata.NewIncomingContext(testCtx, metadata.Pairs("cluster", "cluster-1", "node", "node-3", "nodes", "node-0,node-1,node-2,node-3"))
+
+		newCtx, _, err := talosBackend.GetConnection(ctx, "some-method")
+		require.NoError(t, err)
+
+		incomingContext, ok := metadata.FromOutgoingContext(newCtx)
+		require.True(t, ok, "metadata not found")
+
+		require.Len(t, incomingContext["node"], 1)
+
+		// "node" is unresolved, so it should be kept as-is
+		require.Equal(t, "node-3", incomingContext["node"][0])
+
+		// some of the "nodes" are unresolved, so only they should be kept as-is
+		require.Equal(t, []string{"node-0", "1.1.1.1", "2.2.2.2", "node-3"}, incomingContext["nodes"])
+	})
+}
+
 func makeGRPCProxy(ctx context.Context, endpoint, serverEndpoint string) (func() error, error) {
 	grpcProxyServer := router.NewServer(&testDirector{serverEndpoint: serverEndpoint})
 
@@ -207,4 +283,12 @@ func recvContext[T any](ctx context.Context, ch <-chan T) (T, bool) {
 	case v := <-ch:
 		return v, true
 	}
+}
+
+type mockResolver struct {
+	db map[string]map[string]dns.Info
+}
+
+func (m *mockResolver) Resolve(cluster, node string) dns.Info {
+	return m.db[cluster][node]
 }

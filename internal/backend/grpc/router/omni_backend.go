@@ -48,10 +48,16 @@ func (l *OmniBackend) GetConnection(ctx context.Context, _ string) (context.Cont
 	// Use a new header to avoid signature mismatch.
 	resolved := resolveNodes(l.nodeResolver, md)
 
-	if resolved.node.Address != "" {
-		md.Set(ResolvedNodesHeaderKey, resolved.node.Address)
-	} else if len(resolved.nodes) > 0 {
-		md.Set(ResolvedNodesHeaderKey, xslices.Map(resolved.nodes, func(info dns.Info) string {
+	var allNodes []dns.Info
+
+	if resolved.nodeOk {
+		allNodes = append(allNodes, resolved.node)
+	}
+
+	allNodes = append(allNodes, resolved.nodes...)
+
+	if len(allNodes) > 0 {
+		md.Set(ResolvedNodesHeaderKey, xslices.Map(allNodes, func(info dns.Info) string {
 			return info.Address
 		})...)
 	}
