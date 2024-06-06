@@ -9,10 +9,14 @@ import (
 	"strings"
 
 	"github.com/siderolabs/gen/xslices"
-	"github.com/siderolabs/go-api-signature/pkg/message"
 	"google.golang.org/grpc/metadata"
 
 	"github.com/siderolabs/omni/internal/backend/dns"
+)
+
+const (
+	nodeHeaderKey  = "node"
+	nodesHeaderKey = "nodes"
 )
 
 // NodeResolver resolves a given cluster and a node name to an IP address.
@@ -23,49 +27,54 @@ type NodeResolver interface {
 type resolvedNodeInfo struct {
 	node  dns.Info
 	nodes []dns.Info
+
+	nodeOk bool
 }
 
 func resolveNodes(dnsService NodeResolver, md metadata.MD) resolvedNodeInfo {
-	nodesVal := md.Get(message.NodesHeaderKey)
+	var (
+		node  string
+		nodes []string
 
-	cluster := getClusterName(md)
+		nodeOK bool
+	)
 
-	nodes := make([]string, 0, len(nodesVal)*2)
-	for _, node := range nodesVal {
-		nodes = append(nodes, strings.Split(node, ",")...)
-	}
+	if nodeVal := md.Get(nodeHeaderKey); len(nodeVal) > 0 {
+		nodeOK = true
 
-	node := ""
-	if nodeVal := md.Get("node"); len(nodeVal) > 0 {
 		node = nodeVal[0]
 	}
 
-	if cluster == "" {
-		return resolvedNodeInfo{
-			nodes: xslices.Map(nodes, func(n string) dns.Info {
-				return dns.Info{Address: n}
-			}),
-			node: dns.Info{Address: node},
+	if nodesVal := md.Get(nodesHeaderKey); len(nodesVal) > 0 {
+		nodes = make([]string, 0, len(nodesVal)*2)
+		for _, n := range nodesVal {
+			nodes = append(nodes, strings.Split(n, ",")...)
 		}
 	}
+
+	cluster := getClusterName(md)
 
 	resolveNode := func(val string) dns.Info {
-		if val == "" {
-			return dns.Info{}
+		var resolved dns.Info
+
+		if cluster != "" && val != "" {
+			resolved = dnsService.Resolve(cluster, val)
 		}
 
-		return dnsService.Resolve(cluster, val)
-	}
+		if resolved.Address == "" {
+			return dns.Info{
+				Cluster: cluster,
+				Name:    val,
+				Address: val,
+			}
+		}
 
-	resolvedNode := resolveNode(node)
-
-	resolvedNodes := make([]dns.Info, 0, len(nodes))
-	for _, n := range nodesVal {
-		resolvedNodes = append(resolvedNodes, resolveNode(n))
+		return resolved
 	}
 
 	return resolvedNodeInfo{
-		nodes: resolvedNodes,
-		node:  resolvedNode,
+		node:   resolveNode(node),
+		nodes:  xslices.Map(nodes, resolveNode),
+		nodeOk: nodeOK,
 	}
 }

@@ -66,7 +66,10 @@ func (l *TalosBackend) String() string {
 
 // GetConnection returns a grpc connection to the backend.
 func (l *TalosBackend) GetConnection(ctx context.Context, fullMethodName string) (context.Context, *grpc.ClientConn, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		md = metadata.New(nil)
+	}
 
 	// we can't use regular gRPC server interceptors here, as proxy interface is a bit different
 
@@ -108,16 +111,21 @@ func (l *TalosBackend) GetConnection(ctx context.Context, fullMethodName string)
 
 	// overwrite the node headers with the resolved ones
 	resolved := resolveNodes(l.nodeResolver, md)
-	if resolved.node.Address != "" {
+
+	if resolved.nodeOk {
 		md = md.Copy()
 
-		setHeaderData(ctx, md, "node", resolved.node.Address)
-	} else if len(resolved.nodes) > 0 {
+		setHeaderData(ctx, md, nodeHeaderKey, resolved.node.Address)
+	}
+
+	if len(resolved.nodes) > 0 {
 		md = md.Copy()
 
-		setHeaderData(ctx, md, "nodes", xslices.Map(resolved.nodes, func(info dns.Info) string {
+		addresses := xslices.Map(resolved.nodes, func(info dns.Info) string {
 			return info.Address
-		})...)
+		})
+
+		setHeaderData(ctx, md, nodesHeaderKey, addresses...)
 	}
 
 	l.setRoleHeaders(ctx, md, fullMethodName, resolved, hasModifyAccess)
@@ -127,14 +135,14 @@ func (l *TalosBackend) GetConnection(ctx context.Context, fullMethodName string)
 	return outCtx, l.conn, nil
 }
 
-func (l *TalosBackend) setRoleHeaders(ctx context.Context, md metadata.MD, fullMethodName string, resolvedInfo resolvedNodeInfo, hasModifyAccess bool) {
+func (l *TalosBackend) setRoleHeaders(ctx context.Context, md metadata.MD, fullMethodName string, info resolvedNodeInfo, hasModifyAccess bool) {
 	if !hasModifyAccess {
 		setHeaderData(ctx, md, constants.APIAuthzRoleMetadataKey, talosrole.MakeSet(talosrole.Reader).Strings()...)
 
 		return
 	}
 
-	minTalosVersion := l.minTalosVersion(resolvedInfo)
+	minTalosVersion := l.minTalosVersion(info)
 
 	// min Talos version is >= 1.4.0, we can use Operator role
 	if minTalosVersion != nil && minTalosVersion.GTE(semver.MustParse("1.4.0")) {
@@ -152,7 +160,11 @@ func (l *TalosBackend) setRoleHeaders(ctx context.Context, md metadata.MD, fullM
 }
 
 func (l *TalosBackend) minTalosVersion(info resolvedNodeInfo) *semver.Version {
-	ver := takePtr(semver.ParseTolerant(info.node.TalosVersion))
+	var ver *semver.Version
+
+	if info.nodeOk {
+		ver = takePtr(semver.ParseTolerant(info.node.TalosVersion))
+	}
 
 	for _, node := range info.nodes {
 		nodeVer := takePtr(semver.ParseTolerant(node.TalosVersion))
