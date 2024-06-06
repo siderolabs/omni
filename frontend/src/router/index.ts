@@ -338,6 +338,14 @@ const routes: RouteRecordRaw[] = [
     },
     ...withPrefix("/machine/:machine", [
       {
+        path: "/patches/:patch",
+        name: "ClusterMachinePatchEdit",
+        component: ClusterScoped,
+        props: {
+          inner: PatchEdit,
+        }
+      },
+      {
         path: "/",
         name: "NodeDetails",
         component: ClusterScoped,

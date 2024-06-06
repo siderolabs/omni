@@ -40,9 +40,9 @@ included in the LICENSE file.
           </disclosure-button>
           <disclosure-panel>
             <div v-for="item in group.items" :key="item.name"
-            @click.self="() => $router.push(item.route)"
+            @click="() => $router.push(item.route)"
             class="grid grid-cols-4 relative items-center gap-2 w-full text-xs px-4 py-2 my-2 cursor-pointer hover:text-naturals-N12 hover:bg-naturals-N3 transition-colors duration-200">
-              <icon-button @click="() => { $router.push({ query: { modal: 'configPatchDestroy', id: item.id } }); }" :disabled="!canManageConfigPatches" icon="delete" class="w-4 h-4 absolute top-0 bottom-0 m-auto right-3"/>
+              <icon-button @click.stop="() => { $router.push({ query: { modal: 'configPatchDestroy', id: item.id } }); }" :disabled="!canManageConfigPatches" icon="delete" class="w-4 h-4 absolute top-0 bottom-0 m-auto right-3"/>
               <div class="pointer-events-none flex items-center gap-4">
                 <document-icon class="w-4 h-4"/>
                 <word-highlighter :text-to-highlight="item.name" :query="filter" highlight-class="bg-naturals-N14"/>
@@ -195,10 +195,15 @@ const routes = computed(() => {
       return;
     }
 
+    const patchEditPage = route.params.cluster ? "ClusterMachinePatchEdit" : "MachinePatchEdit";
+
     const r = {
       name: (item.metadata.annotations || {})[ConfigPatchName] || item.metadata.id!,
       icon: "document",
-      route: { name: machine?.value ? "MachinePatchEdit" : "ClusterPatchEdit", params: { patch: item.metadata.id! } },
+      route: {
+        name: machine?.value ? patchEditPage : "ClusterPatchEdit",
+        params: { patch: item.metadata.id! }
+      },
       id: item.metadata.id!,
       description: item.metadata.annotations?.[ConfigPatchDescription],
     };
@@ -290,7 +295,7 @@ const openPatchCreate = () => {
     name: cluster.value ? "ClusterPatchEdit" : "MachinePatchEdit",
     params: {
       patch: `500-${uuidv4()}`,
-    }
+    },
   })
 };
 

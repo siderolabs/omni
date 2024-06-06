@@ -128,7 +128,23 @@ const patchWatch = new Watch(patch, (e: WatchResponse) => {
   }
 });
 
-const patchListPage = route.params.cluster ? "ClusterConfigPatches" : "MachineConfigPatches";
+let patchListPage: string;
+
+switch (route.name) {
+case "ClusterMachinePatchEdit":
+  patchListPage = "NodePatches"
+  break;
+
+case "ClusterPatchEdit":
+  patchListPage = "ClusterConfigPatches"
+
+  break;
+default:
+  patchListPage = "MachineConfigPatches"
+
+  break;
+}
+
 const config = ref("");
 
 const weight = ref(0);
@@ -337,11 +353,11 @@ loadPatch();
 watch(patch, loadPatch);
 
 const patchTypes = computed(() => {
-  if (route.params.cluster) {
+  if (route.params.cluster && route.name != "ClusterMachinePatchEdit") {
     return [PatchType.Cluster as string].concat(machineSetTitles.value).concat(machines.value)
   }
 
-  if (machine.value?.metadata.labels?.[LabelCluster]) {
+  if (machine.value?.metadata.labels?.[LabelCluster] ?? route.params.machine) {
     return [PatchType.Machine, PatchType.ClusterMachine];
   }
 
