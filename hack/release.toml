@@ -6,48 +6,5 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = false
-previous = "v0.36.0"
+previous = "v0.37.0"
 
-[notes]
-
-  [notes.node-overview]
-    title = "Node Overview Page"
-    description = """\
-Node overview page now displays more information about the node.
-That includes:
-
-- Machine stage.
-- Unmet health check conditions of the Talos `MachineStatus`.
-- CPU, memory and secure boot information.
-- The list of labels added to the machine.
-"""
-
-  [notes.secureboot]
-    title = "Secureboot Support Added"
-    description = """\
-Omni now fully supports secureboot enabled machines.
-"""
-
-  [notes.service-events]
-    title = "Service Events"
-    description = """\
-Node overview page service list now displays information about each service events.
-If a service fails to start it will be possible to see why in the UI.
-"""
-
-  [notes.patches]
-    title = "Patches UI"
-    description = """\
-The UI now has the page that shows config patches define for a machine.
-It includes both cluster level and account level machine patches.
-"""
-
-  [notes.discovery-service]
-    title = "Omni Hosted Discovery Service"
-    description = """\
-Omni is now bundled with the discovery service.
-If enabled, it will be started on the ipv6 address of the wireguard network.
-
-Then it will be possible to configure clusters to use Omni discovery service
-instead of a public one.
-"""

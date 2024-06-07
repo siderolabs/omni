@@ -1,3 +1,32 @@
+## [Omni 0.37.1](https://github.com/siderolabs/omni/releases/tag/v0.37.1) (2024-06-07)
+
+Welcome to the v0.37.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+* Utku Ozdemir
+
+### Changes
+<details><summary>2 commits</summary>
+<p>
+
+* [`29724e0`](https://github.com/siderolabs/omni/commit/29724e04c6e411a486a97d143131c78b14fada27) fix: properly update the pulled images count if some images are skipped
+* [`05de9d8`](https://github.com/siderolabs/omni/commit/05de9d8eb893e973c5c02048db9fd55dad7254f6) fix: pass through the `talosctl -n` args if they cannot be resolved
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.37.0](https://github.com/siderolabs/omni/releases/tag/v0.37.0)
+
 ## [Omni 0.37.0](https://github.com/siderolabs/omni/releases/tag/v0.37.0) (2024-06-06)
 
 Welcome to the v0.37.0 release of Omni!
