@@ -51,7 +51,7 @@ func (m *mockImageClient) ListImagesOnNode(_ context.Context, cluster, node stri
 		node:    node,
 	})
 
-	return []string{node + "-image-1"}, nil // mimic <node>-image-1 being already on the node
+	return []string{node + "-image-1", node + "-image-4"}, nil // mimic <node>-image-1 and image-4 being already on the node
 }
 
 func (m *mockImageClient) PullImageToNode(_ context.Context, cluster, node, image string) error {
@@ -105,7 +105,7 @@ func (suite *ImagePullStatusControllerSuite) TestImagePullStatus() {
 		},
 		{
 			Node:   "node-2",
-			Images: []string{"node-2-image-1", "node-2-image-2", "node-2-image-3"},
+			Images: []string{"node-2-image-1", "node-2-image-2", "node-2-image-3", "node-2-image-4"},
 		},
 	}
 
@@ -162,14 +162,14 @@ func (suite *ImagePullStatusControllerSuite) TestImagePullStatus() {
 		sts1Cluster, _ := sts1.Metadata().Labels().Get(omni.LabelCluster)
 		assert.Equal(collect, "pr-1-cluster", sts1Cluster)
 
-		// pr-1 will pull three images, so the version should be 3
-		assert.Equal(collect, "3", sts1.Metadata().Version().String())
+		// pr-1 will pull four images, so the version should be 4
+		assert.Equal(collect, "4", sts1.Metadata().Version().String())
 
 		assert.Equal(collect, sts1.TypedSpec().Value.GetRequestVersion(), pr1.Metadata().Version().String())
 		assert.Equal(collect, sts1.TypedSpec().Value.GetLastProcessedNode(), "node-2")
-		assert.Equal(collect, sts1.TypedSpec().Value.GetLastProcessedImage(), "node-2-image-3")
-		assert.Equal(collect, sts1.TypedSpec().Value.GetProcessedCount(), uint32(5)) // the processed count also includes images already on the node
-		assert.Equal(collect, sts1.TypedSpec().Value.GetTotalCount(), uint32(5))     // the total count also includes images already on the node
+		assert.Equal(collect, sts1.TypedSpec().Value.GetLastProcessedImage(), "node-2-image-4")
+		assert.Equal(collect, sts1.TypedSpec().Value.GetProcessedCount(), uint32(6)) // the processed count also includes images already on the node
+		assert.Equal(collect, sts1.TypedSpec().Value.GetTotalCount(), uint32(6))     // the total count also includes images already on the node
 		assert.Equal(collect, sts1.TypedSpec().Value.GetLastProcessedError(), "")
 
 		sts2, err := safe.StateGet[*omni.ImagePullStatus](suite.ctx, suite.state, omni.NewImagePullStatus(resources.DefaultNamespace, pr2.Metadata().ID()).Metadata())

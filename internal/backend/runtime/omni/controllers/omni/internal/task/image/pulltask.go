@@ -55,23 +55,7 @@ func (p PullTaskSpec) RunTask(ctx context.Context, _ *zap.Logger, pullStatusCh P
 		currentNum, totalNum      int
 		currentNode, currentImage string
 		currentError              error
-		skipFinalEvent            bool
 	)
-
-	// make sure to call the callback at least once - even if there is
-	// no image to be pulled or if there was an error early on
-	defer func() {
-		if !skipFinalEvent {
-			channel.SendWithContext(ctx, pullStatusCh, PullStatus{
-				Request:    p.request,
-				Node:       currentNode,
-				Image:      currentImage,
-				CurrentNum: currentNum,
-				TotalNum:   totalNum,
-				Error:      currentError,
-			})
-		}
-	}()
 
 	clusterID, ok := p.request.Metadata().Labels().Get(omni.LabelCluster)
 	if !ok {
@@ -102,8 +86,6 @@ func (p PullTaskSpec) RunTask(ctx context.Context, _ *zap.Logger, pullStatusCh P
 					errs = multierror.Append(errs, currentError)
 				}
 
-				skipFinalEvent = true // we are already sending an event, so no need to send one at the end
-
 				if !channel.SendWithContext(ctx, pullStatusCh, PullStatus{
 					Request:    p.request,
 					Node:       currentNode,
@@ -117,6 +99,15 @@ func (p PullTaskSpec) RunTask(ctx context.Context, _ *zap.Logger, pullStatusCh P
 			}
 		}
 	}
+
+	channel.SendWithContext(ctx, pullStatusCh, PullStatus{
+		Request:    p.request,
+		Node:       currentNode,
+		Image:      currentImage,
+		CurrentNum: currentNum,
+		TotalNum:   totalNum,
+		Error:      currentError,
+	})
 
 	return errs
 }
