@@ -218,14 +218,14 @@ func (s *Server) Run(ctx context.Context) error {
 		return err
 	}
 
-	gatewayTransport := &memconn.Transport{Address: "gateway-conn"}
+	gatewayTransport := memconn.NewTransport("gateway-conn")
 
 	grpcServer, err := grpcomni.New(ctx, mux, serviceServers, gatewayTransport, s.logger, serverOptions...)
 	if err != nil {
 		return err
 	}
 
-	grpcTransport := &memconn.Transport{Address: "grpc-conn"}
+	grpcTransport := memconn.NewTransport("grpc-conn")
 
 	rtr, err := router.NewRouter(
 		grpcTransport,

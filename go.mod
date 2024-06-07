@@ -54,9 +54,9 @@ require (
 	github.com/jxskiss/base62 v1.1.0
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/prometheus/client_golang v1.19.1
-	github.com/rs/xid v1.5.0
 	github.com/siderolabs/crypto v0.4.4
 	github.com/siderolabs/discovery-api v0.1.4
+	github.com/siderolabs/discovery-client v0.1.9
 	github.com/siderolabs/discovery-service v1.0.3-0.20240530092511-74bca2da5cc8
 	github.com/siderolabs/gen v0.5.0
 	github.com/siderolabs/go-api-signature v0.3.2
@@ -209,7 +209,6 @@ require (
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/shabbyrobe/gocovmerge v0.0.0-20190829150210-3e036491d500 // indirect
-	github.com/siderolabs/discovery-client v0.1.9 // indirect
 	github.com/siderolabs/go-blockdevice v0.4.7 // indirect
 	github.com/siderolabs/go-kubeconfig v0.1.0 // indirect
 	github.com/siderolabs/net v0.4.0 // indirect

@@ -75,12 +75,7 @@ func NewRouter(
 	authEnabled bool,
 	verifier grpc.UnaryServerInterceptor,
 ) (*Router, error) {
-	address := transport.Address
-	if address == "grpc-conn" {
-		address = "passthrough:whatever"
-	}
-
-	omniConn, err := grpc.NewClient(address,
+	omniConn, err := grpc.NewClient(transport.Address(),
 		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
 			return transport.Dial()
 		}),

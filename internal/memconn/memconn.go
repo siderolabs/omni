@@ -13,25 +13,36 @@ import (
 	"github.com/akutz/memconn"
 )
 
+// NewTransport creates a new transport.
+func NewTransport(address string) *Transport {
+	return &Transport{address: address}
+}
+
 // Transport is transport for in-memory connection.
 type Transport struct {
-	Address string
+	address string
 }
 
 // Listener creates new listener.
 func (l *Transport) Listener() (net.Listener, error) {
-	if l.Address == "" {
+	if l.address == "" {
 		return nil, errors.New("address is not set")
 	}
 
-	return memconn.Listen("memu", l.Address)
+	return memconn.Listen("memu", l.address)
 }
 
 // Dial creates a new connection.
 func (l *Transport) Dial() (net.Conn, error) {
-	if l.Address == "" {
+	if l.address == "" {
 		return nil, errors.New("address is not set")
 	}
 
-	return memconn.Dial("memu", l.Address)
+	return memconn.Dial("memu", l.address)
+}
+
+// Address returns the address. Since this is a memory-based connection, the address is always "passthrough:" + address,
+// because the address is not a real network address and gRPC tries to resolve it otherwise.
+func (l *Transport) Address() string {
+	return "passthrough:" + l.address
 }

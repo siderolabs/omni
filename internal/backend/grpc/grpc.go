@@ -106,13 +106,13 @@ func New(ctx context.Context, mux *http.ServeMux, servers []ServiceServer, trans
 	}
 
 	for _, srv := range servers {
-		err := srv.gateway(ctx, runtimeMux, transport.Address, opts)
+		err := srv.gateway(ctx, runtimeMux, transport.Address(), opts)
 		if err != nil {
 			return nil, fmt.Errorf("error registering gateway: %w", err)
 		}
 	}
 
-	if err := machine.RegisterMachineServiceHandlerFromEndpoint(ctx, runtimeMux, transport.Address, opts); err != nil {
+	if err := machine.RegisterMachineServiceHandlerFromEndpoint(ctx, runtimeMux, transport.Address(), opts); err != nil {
 		return nil, fmt.Errorf("error registering gateway: %w", err)
 	}
 
