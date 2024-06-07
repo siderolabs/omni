@@ -19,12 +19,14 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/pair"
 	"github.com/siderolabs/gen/xslices"
+	"github.com/siderolabs/gen/xtesting/must"
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/siderolabs/talos/pkg/machinery/config"
 	talossecrets "github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/sync/errgroup"
+	"gopkg.in/yaml.v3"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -649,7 +651,7 @@ func (suite *MachineSetStatusSuite) TestConfigUpdateWithMaxParallelism() {
 		case <-suite.ctx.Done():
 			suite.Require().NoError(suite.ctx.Err())
 		case event := <-watchCh:
-			suite.Failf("unexpected event", "got event %+v", event)
+			suite.Failf("unexpected event", "got event %s", formatEvent[*omni.ClusterMachineConfigPatches](suite.T(), &event))
 		case <-timer.C:
 		}
 	}
@@ -676,6 +678,28 @@ func (suite *MachineSetStatusSuite) TestConfigUpdateWithMaxParallelism() {
 
 	// expect only 2 more events, as there are only 2 machines left to update
 	expectEvents(2)
+}
+
+type event[T resource.Resource] interface {
+	Resource() (T, error)
+	Old() (T, error)
+	Type() state.EventType
+	Error() error
+}
+
+func formatEvent[T resource.Resource](t *testing.T, event event[T]) string {
+	newRes := must.Value(event.Resource())(t)
+	oldRes := must.Value(event.Old())(t)
+	newResYaml := must.Value(resource.MarshalYAML(newRes))(t)
+	oldResYaml := must.Value(resource.MarshalYAML(oldRes))(t)
+
+	return fmt.Sprintf(
+		"\ntype:\n%s\n------\nerror:\n%s\n------\nnew:\n%s\n------\nold:\n%s",
+		event.Type(),
+		event.Error(),
+		string(must.Value(yaml.Marshal(newResYaml))(t)),
+		string(must.Value(yaml.Marshal(oldResYaml))(t)),
+	)
 }
 
 func (suite *MachineSetStatusSuite) TestTeardown() {
