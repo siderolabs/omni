@@ -9,7 +9,7 @@ package image
 import (
 	"fmt"
 
-	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/v5/docker/reference"
 )
 
 // GetTag returns image tag if it's available.
