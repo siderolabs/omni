@@ -36,14 +36,21 @@ import (
 )
 
 func TestClusterValidation(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 
 	talos15 := "1.5.0"
-	conf := *config.Config
+
+	etcdBackupConfig := config.EtcdBackupParams{
+		TickInterval: time.Minute,
+		MinInterval:  time.Hour,
+		MaxInterval:  24 * time.Hour,
+	}
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.ClusterValidationOptions(state.WrapCore(innerSt), &conf)...)
+	st := validated.NewState(innerSt, omni.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, config.EmbeddedDiscoveryServiceParams{})...)
 
 	talosVersion1 := omnires.NewTalosVersion(resources.DefaultNamespace, "1.4.0")
 	talosVersion1.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.27.0", "1.27.1"}
@@ -121,47 +128,101 @@ func TestClusterValidation(t *testing.T) {
 	cluster.TypedSpec().Value.KubernetesVersion = "1.28.1"
 
 	require.NoError(t, st.Create(ctx, cluster))
+}
 
-	t.Run("useEmbeddedDiscoveryService", func(t *testing.T) {
-		// disable the feature instance-wide, enable for cluster, expect validation error
-		conf.EmbeddedDiscoveryService.Enabled = false
+func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
+	t.Parallel()
 
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	buildState := func(conf config.EmbeddedDiscoveryServiceParams) (inner, outer state.State) {
+		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := validated.NewState(innerSt, omni.ClusterValidationOptions(state.WrapCore(innerSt), config.EtcdBackupParams{}, conf)...)
+
+		return innerSt, state.WrapCore(st)
+	}
+
+	t.Run("disabled instance-wide - create", func(t *testing.T) {
+		t.Parallel()
+
+		_, st := buildState(config.EmbeddedDiscoveryServiceParams{
+			Enabled: false,
+		})
+
+		cluster := omnires.NewCluster(resources.DefaultNamespace, "test")
+
+		cluster.TypedSpec().Value.Features = &specs.ClusterSpec_Features{
+			UseEmbeddedDiscoveryService: true,
+		}
+
+		err := st.Create(ctx, cluster)
+
+		require.True(t, validated.IsValidationError(err), "expected validation error")
+		assert.ErrorContains(t, err, "embedded discovery service is not enabled")
+	})
+
+	t.Run("disabled instance-wide - update", func(t *testing.T) {
+		t.Parallel()
+
+		// prepare a cluster which has the feature enabled, while it is disabled instance-wide
+		innerSt, st := buildState(config.EmbeddedDiscoveryServiceParams{
+			Enabled: false,
+		})
+
+		talosVersion := omnires.NewTalosVersion(resources.DefaultNamespace, "1.7.4")
+		talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.30.1"}
+
+		require.NoError(t, st.Create(ctx, talosVersion))
+
+		cluster := omnires.NewCluster(resources.DefaultNamespace, "test")
+		cluster.TypedSpec().Value.TalosVersion = "1.7.4"
+		cluster.TypedSpec().Value.KubernetesVersion = "1.30.1"
+
+		cluster.TypedSpec().Value.Features = &specs.ClusterSpec_Features{
+			UseEmbeddedDiscoveryService: true,
+		}
+
+		require.NoError(t, innerSt.Create(ctx, cluster)) // use innerSt to skip the validation
+
+		// update the cluster - it must pass through despite the feature being disabled instance wide, as the feature flag value is not changed
 		cluster.TypedSpec().Value.Features.UseEmbeddedDiscoveryService = true
+		cluster.TypedSpec().Value.Features.EnableWorkloadProxy = true
 
-		updateErr := st.Update(ctx, cluster)
+		assert.NoError(t, st.Update(ctx, cluster))
+	})
 
-		require.True(t, validated.IsValidationError(updateErr), "expected validation error")
-		assert.ErrorContains(t, updateErr, "embedded discovery service is not enabled")
+	t.Run("enabled instance-wide", func(t *testing.T) {
+		t.Parallel()
 
-		// enable the feature instance-wide, expect no validation error
+		_, st := buildState(config.EmbeddedDiscoveryServiceParams{
+			Enabled: true,
+		})
 
-		conf.EmbeddedDiscoveryService.Enabled = true
+		talosVersion := omnires.NewTalosVersion(resources.DefaultNamespace, "1.7.4")
+		talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.30.1"}
 
-		require.NoError(t, st.Update(ctx, cluster))
+		require.NoError(t, st.Create(ctx, talosVersion))
 
-		// disable the feature for the cluster, expect no validation error
+		cluster := omnires.NewCluster(resources.DefaultNamespace, "test")
+		cluster.TypedSpec().Value.TalosVersion = "1.7.4"
+		cluster.TypedSpec().Value.KubernetesVersion = "1.30.1"
+		cluster.TypedSpec().Value.Features = &specs.ClusterSpec_Features{
+			UseEmbeddedDiscoveryService: true,
+		}
+
+		require.NoError(t, st.Create(ctx, cluster))
 
 		cluster.TypedSpec().Value.Features.UseEmbeddedDiscoveryService = false
-
-		require.NoError(t, st.Update(ctx, cluster))
-
-		// re-enable the feature for the cluster, expect no validation error
-
-		cluster.TypedSpec().Value.Features.UseEmbeddedDiscoveryService = true
-
-		require.NoError(t, st.Update(ctx, cluster))
-
-		// disable the feature instance-wide, call update, expect no validation error because the setting is not updated
-
-		conf.EmbeddedDiscoveryService.Enabled = false
-
 		require.NoError(t, st.Update(ctx, cluster))
 	})
 }
 
 func TestRelationLabelsValidation(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	st := validated.NewState(innerSt, omni.RelationLabelsValidationOptions()...)
@@ -209,8 +270,10 @@ func TestRelationLabelsValidation(t *testing.T) {
 }
 
 func TestMachineSetValidation(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 
 	etcdBackupStoreFactory, err := store.NewStoreFactory()
 	require.NoError(t, err)
@@ -306,8 +369,10 @@ func TestMachineSetValidation(t *testing.T) {
 }
 
 func TestMachineSetBootstrapSpecValidation(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 
 	clusterID := "test-cluster"
 	aesCBCSecret := "aes-cbc-secret"
@@ -423,8 +488,10 @@ func TestMachineSetBootstrapSpecValidation(t *testing.T) {
 }
 
 func TestMachineSetLockedAnnotation(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	st := validated.NewState(innerSt, omni.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...)
@@ -470,26 +537,22 @@ func TestMachineSetLockedAnnotation(t *testing.T) {
 	assert.ErrorContains(st.Create(ctx, machineSetNode), "locking controlplanes is not allowed")
 }
 
-func TestIdentitySAML(t *testing.T) {
+func TestIdentitySAMLValidation(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.IdentityValidationOptions()...)
+	st := validated.NewState(innerSt, omni.IdentityValidationOptions(config.SAMLParams{
+		Enabled: true,
+	})...)
 
-	user := auth.NewIdentity(resources.DefaultNamespace, "aaa")
+	user := auth.NewIdentity(resources.DefaultNamespace, "aaa@example.org")
 
 	assert := assert.New(t)
 
-	assert.NoError(st.Create(ctx, user))
-
-	config.Config = &config.Params{
-		Auth: config.AuthParams{
-			SAML: config.SAMLParams{
-				Enabled: true,
-			},
-		},
-	}
+	assert.NoError(innerSt.Create(ctx, user))
 
 	s := state.WrapCore(st)
 
@@ -527,31 +590,36 @@ func TestIdentitySAML(t *testing.T) {
 	assert.NoError(err)
 }
 
-func TestIdentityLowerCase(t *testing.T) {
+func TestCreateIdentityValidation(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.IdentityValidationOptions()...)
-
-	identity := auth.NewIdentity(resources.DefaultNamespace, "aaa")
+	st := validated.NewState(innerSt, omni.IdentityValidationOptions(config.SAMLParams{})...)
 
 	assert := assert.New(t)
 
-	assert.NoError(st.Create(ctx, identity))
+	err := st.Create(ctx, auth.NewIdentity(resources.DefaultNamespace, "aaA"))
 
-	identity = auth.NewIdentity(resources.DefaultNamespace, "aaA")
-
-	err := st.Create(ctx, identity)
-
-	assert.Error(err)
 	assert.True(validated.IsValidationError(err), "expected validation error")
-	assert.ErrorContains(err, "identity id must be lowercase")
+	assert.ErrorContains(err, "must be lowercase")
+	assert.ErrorContains(err, "not a valid email address")
+
+	err = st.Create(ctx, auth.NewIdentity(resources.DefaultNamespace, "aaa"))
+
+	assert.True(validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(err, "not a valid email address")
+
+	assert.NoError(st.Create(ctx, auth.NewIdentity(resources.DefaultNamespace, "aaa@example.org")))
 }
 
 func TestExposedServiceAliasValidation(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	st := validated.NewState(innerSt, omni.ExposedServiceValidationOptions()...)
@@ -582,8 +650,10 @@ func TestExposedServiceAliasValidation(t *testing.T) {
 }
 
 func TestConfigPatchValidation(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	st := validated.NewState(innerSt, omni.ConfigPatchValidationOptions(innerSt)...)
@@ -646,8 +716,10 @@ machine:
 }
 
 func TestEtcdBackupValidation(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 
@@ -666,8 +738,10 @@ func TestEtcdBackupValidation(t *testing.T) {
 }
 
 func TestSAMLLabelRuleValidation(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	st := validated.NewState(innerSt, omni.SAMLLabelRuleValidationOptions()...)
@@ -692,8 +766,10 @@ func TestSAMLLabelRuleValidation(t *testing.T) {
 }
 
 func TestMachineSetClassesValidation(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 
@@ -758,8 +834,10 @@ func TestMachineSetClassesValidation(t *testing.T) {
 }
 
 func TestS3ConfigValidation(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 
@@ -798,8 +876,10 @@ func TestS3ConfigValidation(t *testing.T) {
 }
 
 func TestSchematicConfigurationValidation(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 

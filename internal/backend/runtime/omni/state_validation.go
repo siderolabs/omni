@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/mail"
 	"strings"
 	"time"
 	"unicode"
@@ -36,11 +37,7 @@ import (
 // Validation is only syntactic - they are checked whether they are valid semver strings.
 //
 //nolint:gocognit,gocyclo,cyclop
-func clusterValidationOptions(st state.State, config *config.Params) []validated.StateOption {
-	if config == nil {
-		panic("config is nil")
-	}
-
+func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackupParams, embeddedDiscoveryServiceConfig config.EmbeddedDiscoveryServiceParams) []validated.StateOption {
 	validateVersions := func(ctx context.Context, res *omni.Cluster, skipTalosVersion, skipKubernetesVersion bool) error {
 		if skipTalosVersion && skipKubernetesVersion {
 			return nil
@@ -94,16 +91,16 @@ func clusterValidationOptions(st state.State, config *config.Params) []validated
 	validateBackupInterval := func(res *omni.Cluster) error {
 		if conf := res.TypedSpec().Value.GetBackupConfiguration(); conf != nil {
 			switch conf := conf.GetInterval().AsDuration(); {
-			case conf < config.EtcdBackup.MinInterval:
+			case conf < etcdBackupConfig.MinInterval:
 				return fmt.Errorf(
 					"backup interval must be greater than %s, actual %s",
-					config.EtcdBackup.MinInterval.String(),
+					etcdBackupConfig.MinInterval.String(),
 					conf.String(),
 				)
-			case conf > config.EtcdBackup.MaxInterval:
+			case conf > etcdBackupConfig.MaxInterval:
 				return fmt.Errorf(
 					"backup interval must be less than %s, actual %s",
-					config.EtcdBackup.MaxInterval.String(),
+					etcdBackupConfig.MaxInterval.String(),
 					conf.String(),
 				)
 			}
@@ -120,7 +117,7 @@ func clusterValidationOptions(st state.State, config *config.Params) []validated
 
 		// if this is a create operation or if the setting is changed, validate that the feature is available
 		if oldRes == nil || oldRes.TypedSpec().Value.GetFeatures().GetUseEmbeddedDiscoveryService() != newValue {
-			if !config.EmbeddedDiscoveryService.Enabled {
+			if !embeddedDiscoveryServiceConfig.Enabled {
 				return errors.New("embedded discovery service is not enabled")
 			}
 		}
@@ -600,17 +597,28 @@ func hasUppercaseLetters(s string) bool {
 	return false
 }
 
-func identityValidationOptions() []validated.StateOption {
+func identityValidationOptions(samlConfig config.SAMLParams) []validated.StateOption {
 	return []validated.StateOption{
-		validated.WithCreateValidations(validated.NewCreateValidationForType(func(_ context.Context, res *authres.Identity, _ ...state.CreateOption) error {
+		validated.WithCreateValidations(validated.NewCreateValidationForType(func(ctx context.Context, res *authres.Identity, _ ...state.CreateOption) error {
+			var errs error
+
 			if hasUppercaseLetters(res.Metadata().ID()) {
-				return errors.New("identity id must be lowercase")
+				errs = multierror.Append(errs, errors.New("must be lowercase"))
 			}
 
-			return nil
+			// allow non-email identities for internal actors and for users coming from the SAML provider
+			if samlConfig.Enabled || actor.ContextIsInternalActor(ctx) {
+				return nil
+			}
+
+			if _, err := mail.ParseAddress(res.Metadata().ID()); err != nil {
+				errs = multierror.Append(errs, fmt.Errorf("not a valid email address: "+res.Metadata().ID()))
+			}
+
+			return errs
 		})),
 		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(ctx context.Context, res *authres.Identity, newRes *authres.Identity, _ ...state.UpdateOption) error {
-			if !config.Config.Auth.SAML.Enabled || actor.ContextIsInternalActor(ctx) {
+			if !samlConfig.Enabled || actor.ContextIsInternalActor(ctx) {
 				return nil
 			}
 

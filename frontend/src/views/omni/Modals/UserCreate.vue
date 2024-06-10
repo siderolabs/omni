@@ -13,24 +13,29 @@ included in the LICENSE file.
       <close-button @click="close"/>
     </div>
 
-    <div class="flex gap-2 items-center">
-      <t-input title="User Email" class="flex-1 h-full" placeholder="..." v-model="identity"/>
-      <t-select-list
-          class="h-full"
-          title="Role"
-          :values="roles"
-          :defaultValue="RoleReader"
-          @checkedValue="value => role = value"
-      />
-      <t-button type="highlighted" @click="handleUserCreate" :disabled="!canManageUsers && authType !== AuthType.SAML" class="w-32 h-9">Create User</t-button>
+    <div class="flex flex-col w-full h-full gap-4">
+      <t-notification v-if="notification" v-bind="notification.props"/>
+
+      <div class="flex gap-2 items-center">
+        <t-input title="User Email" class="flex-1 h-full" placeholder="..." v-model="identity"/>
+        <t-select-list
+            class="h-full"
+            title="Role"
+            :values="roles"
+            :defaultValue="RoleReader"
+            @checkedValue="value => role = value"
+        />
+        <t-button type="highlighted" @click="handleUserCreate" :disabled="!canManageUsers && authType !== AuthType.SAML" class="w-32 h-9">Create User</t-button>
+      </div>
     </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { Ref, ref } from "vue";
+import { Ref, ref, shallowRef } from "vue";
 import { createUser } from "@/methods/user";
-import { showError, showSuccess } from "@/notification";
+import { Notification, showError, showSuccess } from "@/notification";
 import { useRouter } from "vue-router";
 import { RoleNone, RoleReader, RoleOperator, RoleAdmin } from "@/api/resources";
 
@@ -40,17 +45,20 @@ import { canManageUsers } from "@/methods/auth";
 import TSelectList from "@/components/common/SelectList/TSelectList.vue";
 import TInput from "@/components/common/TInput/TInput.vue";
 import { AuthType, authType } from "@/methods";
+import TNotification from "@/components/common/Notification/TNotification.vue";
+
+const notification: Ref<Notification | null> = shallowRef(null);
 
 const identity = ref("");
 const router = useRouter();
 
 const roles = [RoleNone, RoleReader, RoleOperator, RoleAdmin]
 
-const role: Ref<string> = ref(RoleReader);
+const role: Ref<string> = ref(RoleReader)
 
 const handleUserCreate = async () => {
   if (identity.value === "") {
-    showError("Failed to Create User", "User email is not defined");
+    showError("Failed to Create User", "User email is not defined", notification);
 
     return;
   }
@@ -58,7 +66,7 @@ const handleUserCreate = async () => {
   try {
     await createUser(identity.value, role.value);
   } catch (e) {
-    showError("Failed to Create User", e.message);
+    showError("Failed to Create User", e.message, notification);
 
     return;
   }

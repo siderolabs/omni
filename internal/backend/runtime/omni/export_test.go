@@ -30,8 +30,8 @@ func EtcdElections(ctx context.Context, client *clientv3.Client, electionKey str
 	return etcdElections(ctx, client, electionKey, logger, f)
 }
 
-func ClusterValidationOptions(st state.State, config *config.Params) []validated.StateOption {
-	return clusterValidationOptions(st, config)
+func ClusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackupParams, embeddedDiscoveryServiceConfig config.EmbeddedDiscoveryServiceParams) []validated.StateOption {
+	return clusterValidationOptions(st, etcdBackupConfig, embeddedDiscoveryServiceConfig)
 }
 
 func RelationLabelsValidationOptions() []validated.StateOption {
@@ -46,8 +46,8 @@ func MachineSetNodeValidationOptions(st state.State) []validated.StateOption {
 	return machineSetNodeValidationOptions(st)
 }
 
-func IdentityValidationOptions() []validated.StateOption {
-	return identityValidationOptions()
+func IdentityValidationOptions(samlConfig config.SAMLParams) []validated.StateOption {
+	return identityValidationOptions(samlConfig)
 }
 
 func ExposedServiceValidationOptions() []validated.StateOption {

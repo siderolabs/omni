@@ -11,29 +11,37 @@ export type Notification = {
 
 export const notification: Ref<Notification | null> = shallowRef(null);
 
-export const showError = (title: string, body?: string) => {
+export const showError = (title: string, body?: string, ref?: Ref<Notification | null>) => {
   console.error(`error occurred: title: ${title}, body: ${body}`)
 
-  notification.value = {
+  if (!ref) {
+    ref = notification;
+  }
+
+  ref.value = {
     props: {
       title: title,
       body: body,
       type: "error",
       close: () => {
-        notification.value = null;
+        ref.value = null;
       }
     }
   }
 };
 
-export const showSuccess = (title: string, body?: string) => {
-  notification.value = {
+export const showSuccess = (title: string, body?: string, ref?: Ref<Notification | null>) => {
+  if (!ref) {
+    ref = notification;
+  }
+
+  ref.value = {
     props: {
       title: title,
       body: body,
       type: "success",
       close: () => {
-        notification.value = null;
+        ref.value = null;
       }
     }
   }

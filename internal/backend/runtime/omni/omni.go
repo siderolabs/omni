@@ -270,14 +270,14 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 
 	metricsRegistry.MustRegister(expvarCollector)
 
-	validationOptions := clusterValidationOptions(resourceState, config.Config)
+	validationOptions := clusterValidationOptions(resourceState, config.Config.EtcdBackup, config.Config.EmbeddedDiscoveryService)
 	validationOptions = append(validationOptions, relationLabelsValidationOptions()...)
 	validationOptions = append(validationOptions, accessPolicyValidationOptions()...)
 	validationOptions = append(validationOptions, aclValidationOptions(resourceState)...)
 	validationOptions = append(validationOptions, roleValidationOptions()...)
 	validationOptions = append(validationOptions, machineSetNodeValidationOptions(resourceState)...)
 	validationOptions = append(validationOptions, machineSetValidationOptions(resourceState, storeFactory)...)
-	validationOptions = append(validationOptions, identityValidationOptions()...)
+	validationOptions = append(validationOptions, identityValidationOptions(config.Config.Auth.SAML)...)
 	validationOptions = append(validationOptions, exposedServiceValidationOptions()...)
 	validationOptions = append(validationOptions, configPatchValidationOptions(resourceState)...)
 	validationOptions = append(validationOptions, etcdManualBackupValidationOptions()...)
