@@ -55,7 +55,7 @@ type Params struct {
 	LoadBalancer     LoadBalancerParams `yaml:"loadbalancer"`
 	LogServerPort    int                `yaml:"logServerPort"`
 
-	LogStorage LogStorageParams `yaml:"logStorage"`
+	MachineLogConfig MachineLogConfigParams `yaml:"machineLogConfig"`
 
 	Auth AuthParams `yaml:"auth"`
 
@@ -182,11 +182,18 @@ type KeyPrunerParams struct {
 	Interval time.Duration `yaml:"interval"`
 }
 
-// LogStorageParams defines log storage configuration.
-type LogStorageParams struct {
-	Path        string        `yaml:"directory"`
-	FlushPeriod time.Duration `yaml:"flushPeriod"`
-	Enabled     bool          `yaml:"enabled"`
+// MachineLogConfigParams defines log storage configuration.
+type MachineLogConfigParams struct {
+	StoragePath string `yaml:"directory"`
+
+	BufferInitialCapacity int `yaml:"bufferInitialCapacity"`
+	BufferMaxCapacity     int `yaml:"bufferMaxCapacity"`
+	BufferSafetyGap       int `yaml:"bufferSafetyGap"`
+	NumCompressedChunks   int `yaml:"numCompressedChunks"`
+
+	StorageFlushPeriod time.Duration `yaml:"flushPeriod"`
+	StorageFlushJitter float64       `yaml:"flushJitter"`
+	StorageEnabled     bool          `yaml:"enabled"`
 }
 
 var (
@@ -219,10 +226,15 @@ var (
 			Interval: 10 * time.Minute,
 		},
 		LogServerPort: 8092,
-		LogStorage: LogStorageParams{
-			Enabled:     true,
-			Path:        "_out/logs",
-			FlushPeriod: 10 * time.Minute,
+		MachineLogConfig: MachineLogConfigParams{
+			BufferInitialCapacity: 16384,
+			BufferMaxCapacity:     131072,
+			BufferSafetyGap:       256,
+			NumCompressedChunks:   5,
+			StorageEnabled:        true,
+			StoragePath:           "_out/logs",
+			StorageFlushPeriod:    10 * time.Minute,
+			StorageFlushJitter:    0.1,
 		},
 		TalosRegistry:       consts.TalosRegistry,
 		KubernetesRegistry:  consts.KubernetesRegistry,

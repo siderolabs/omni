@@ -8,11 +8,9 @@ package siderolink
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/netip"
-	"time"
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/optional"
@@ -25,32 +23,28 @@ import (
 )
 
 // NewLogHandler returns a new LogHandler.
-func NewLogHandler(machineMap *MachineMap, omniState state.State, storageConfig *config.LogStorageParams, logger *zap.Logger) *LogHandler {
-	storage := optional.None[*LogStorage]()
-
-	if storageConfig.Enabled {
-		storage = optional.Some(NewLogStorage(storageConfig.Path))
+func NewLogHandler(machineMap *MachineMap, omniState state.State, storageConfig *config.MachineLogConfigParams, logger *zap.Logger) (*LogHandler, error) {
+	cache, err := NewMachineCache(storageConfig, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create machine cache: %w", err)
 	}
 
-	cache := NewMachineCache(storage, logger)
 	handler := LogHandler{
-		StorageFlushPeriod: storageConfig.FlushPeriod,
-		Map:                machineMap,
-		OmniState:          omniState,
-		Cache:              cache,
-		logger:             logger,
+		Map:       machineMap,
+		OmniState: omniState,
+		Cache:     cache,
+		logger:    logger,
 	}
 
-	return &handler
+	return &handler, nil
 }
 
 // LogHandler stores a map of machines to their circular log buffers.
 type LogHandler struct {
-	OmniState          state.State
-	Map                *MachineMap
-	logger             *zap.Logger
-	Cache              *MachineCache
-	StorageFlushPeriod time.Duration
+	OmniState state.State
+	Map       *MachineMap
+	logger    *zap.Logger
+	Cache     *MachineCache
 }
 
 // Start starts the LogHandler.
@@ -68,50 +62,14 @@ func (h *LogHandler) Start(ctx context.Context) error {
 		return err
 	}
 
-	var tickerCh <-chan time.Time
-
-	var storagePath string
-
-	storage, storageEnabled := h.Cache.Storage.Get()
-	if storageEnabled {
-		ticker := time.NewTicker(h.StorageFlushPeriod)
-		tickerCh = ticker.C
-
-		defer ticker.Stop()
-
-		storagePath = storage.Path
-	}
-
 	for {
 		select {
 		case <-ctx.Done():
-			if storageEnabled {
-				h.logger.Info("save all log buffers before shutdown", zap.String("storage_path", storagePath))
-
-				err := h.Cache.SaveAll()
-				if err != nil {
-					h.logger.Error("failed to save all log buffers", zap.Error(err))
-
-					return ctx.Err()
-				}
+			if err := h.Cache.Close(); err != nil {
+				h.logger.Error("failed to close machine logs cache", zap.Error(err))
 			}
 
-			if errors.Is(ctx.Err(), context.Canceled) {
-				return nil
-			}
-
-			return ctx.Err()
-		case <-tickerCh:
-			h.logger.Info(
-				"save all log buffers",
-				zap.String("storage_path", storagePath),
-				zap.Duration("period", h.StorageFlushPeriod),
-			)
-
-			err := h.Cache.SaveAll()
-			if err != nil {
-				h.logger.Error("failed to save all log buffers", zap.Error(err))
-			}
+			return nil
 		case event := <-eventCh:
 			switch event.Type {
 			case state.Created, state.Updated, state.Bootstrapped:

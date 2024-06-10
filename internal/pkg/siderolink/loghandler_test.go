@@ -7,7 +7,10 @@ package siderolink_test
 
 import (
 	"context"
-	"errors"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
+	"io"
 	"net/netip"
 	"os"
 	"path/filepath"
@@ -19,9 +22,9 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/siderolabs/gen/optional"
 	"github.com/siderolabs/gen/xtesting/must"
-	"github.com/siderolabs/go-retry/retry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
 
@@ -32,15 +35,23 @@ import (
 )
 
 func TestLogHandler_HandleMessage(t *testing.T) {
+	storageConfig := config.MachineLogConfigParams{
+		BufferInitialCapacity: 16,
+		BufferMaxCapacity:     128,
+		BufferSafetyGap:       16,
+		NumCompressedChunks:   5,
+		StorageFlushPeriod:    time.Second,
+		StorageEnabled:        false,
+	}
+
 	t.Run("empty log message", func(t *testing.T) {
 		machineMap := siderolink.NewMachineMap(&siderolink.MapStorage{})
 
 		st := state.WrapCore(namespaced.NewState(inmem.Build))
-		storageConfig := config.LogStorageParams{
-			Enabled: false,
-		}
 
-		handler := siderolink.NewLogHandler(machineMap, st, &storageConfig, zaptest.NewLogger(t))
+		handler, err := siderolink.NewLogHandler(machineMap, st, &storageConfig, zaptest.NewLogger(t))
+		require.NoError(t, err)
+
 		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(""))
 	})
 
@@ -52,11 +63,10 @@ func TestLogHandler_HandleMessage(t *testing.T) {
 		})
 
 		st := state.WrapCore(namespaced.NewState(inmem.Build))
-		storageConfig := config.LogStorageParams{
-			Enabled: false,
-		}
 
-		handler := siderolink.NewLogHandler(cache, st, &storageConfig, zaptest.NewLogger(t))
+		handler, err := siderolink.NewLogHandler(cache, st, &storageConfig, zaptest.NewLogger(t))
+		require.NoError(t, err)
+
 		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world"}`))
 		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world2"}`))
 		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world3"}`))
@@ -81,11 +91,10 @@ func TestLogHandler_HandleMessage(t *testing.T) {
 		})
 
 		st := state.WrapCore(namespaced.NewState(inmem.Build))
-		storageConfig := config.LogStorageParams{
-			Enabled: false,
-		}
 
-		handler := siderolink.NewLogHandler(cache, st, &storageConfig, zaptest.NewLogger(t))
+		handler, err := siderolink.NewLogHandler(cache, st, &storageConfig, zaptest.NewLogger(t))
+		require.NoError(t, err)
+
 		writeBytes(t, handler, "1.2.3.4", []byte(`{"hello": "first"}`))
 
 		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world"}`))
@@ -109,11 +118,10 @@ func TestLogHandler_HandleMessage(t *testing.T) {
 		})
 
 		st := state.WrapCore(namespaced.NewState(inmem.Build))
-		storageConfig := config.LogStorageParams{
-			Enabled: false,
-		}
 
-		handler := siderolink.NewLogHandler(cache, st, &storageConfig, zaptest.NewLogger(t))
+		handler, err := siderolink.NewLogHandler(cache, st, &storageConfig, zaptest.NewLogger(t))
+		require.NoError(t, err)
+
 		writeBytes(t, handler, "1.2.3.4", []byte(`{"hello": "first"}`+"\n"))
 
 		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world"}`))
@@ -140,11 +148,10 @@ func TestLogHandler_HandleMessage(t *testing.T) {
 		})
 
 		st := state.WrapCore(namespaced.NewState(inmem.Build))
-		storageConfig := config.LogStorageParams{
-			Enabled: false,
-		}
 
-		handler := siderolink.NewLogHandler(cache, st, &storageConfig, zaptest.NewLogger(t))
+		handler, err := siderolink.NewLogHandler(cache, st, &storageConfig, zaptest.NewLogger(t))
+		require.NoError(t, err)
+
 		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world"}`))
 		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world2"}`))
 		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world3"}`))
@@ -164,8 +171,8 @@ func TestLogHandler_HandleMessage(t *testing.T) {
 
 // TestLogHandlerStorage tests that log handler can store logs on the filesystem when log storage is enabled.
 func TestLogHandlerStorage(t *testing.T) {
-	ctx, ctxCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer ctxCancel()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
 
 	machineMap := siderolink.NewMachineMap(&siderolink.MapStorage{
 		IPToMachine: map[string]siderolink.MachineID{
@@ -180,57 +187,126 @@ func TestLogHandlerStorage(t *testing.T) {
 	require.NoError(t, st.Create(ctx, omni.NewMachine(resources.DefaultNamespace, "machine-2")))
 
 	tempDir := t.TempDir()
+	logger := zaptest.NewLogger(t)
 
-	logHandler := siderolink.NewLogHandler(machineMap, st, &config.LogStorageParams{
-		Enabled:     true,
-		Path:        tempDir,
-		FlushPeriod: 2 * time.Second,
-	}, zaptest.NewLogger(t))
+	logHandler, err := siderolink.NewLogHandler(machineMap, st, &config.MachineLogConfigParams{
+		StorageEnabled:        true,
+		StoragePath:           tempDir,
+		StorageFlushPeriod:    2 * time.Second,
+		NumCompressedChunks:   5,
+		BufferInitialCapacity: 16,
+		BufferMaxCapacity:     128,
+		BufferSafetyGap:       16,
+	}, logger)
+	require.NoError(t, err)
 
 	var eg errgroup.Group
 
+	logger.Info("start log handler", zap.String("tempDir", tempDir))
+
 	eg.Go(func() error { return logHandler.Start(ctx) })
 
-	logHandler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte("aaaa"))
-	logHandler.HandleMessage(netip.MustParseAddr("2.3.4.5"), []byte("AAAA"))
+	data, err := io.ReadAll(io.LimitReader(rand.Reader, 120))
+	require.NoError(t, err)
+
+	logHandler.HandleMessage(netip.MustParseAddr("1.2.3.4"), data)
+	logHandler.HandleMessage(netip.MustParseAddr("2.3.4.5"), data)
 
 	// wait for a log flush to happen
-	time.Sleep(2100 * time.Millisecond)
+	time.Sleep(2300 * time.Millisecond)
 
-	assertLogExists(t, tempDir, "machine-1", "aaaa")
-	assertLogExists(t, tempDir, "machine-2", "AAAA")
+	assert.FileExists(t, filepath.Join(tempDir, "machine-1.log.0"))
+	assert.FileExists(t, filepath.Join(tempDir, "machine-2.log.0"))
+	assert.NoFileExists(t, filepath.Join(tempDir, "machine-1.log.1"))
+	assert.NoFileExists(t, filepath.Join(tempDir, "machine-2.log.1"))
+
+	// send more logs
+	data = data[:16]
+
+	logHandler.HandleMessage(netip.MustParseAddr("1.2.3.4"), data)
+	logHandler.HandleMessage(netip.MustParseAddr("2.3.4.5"), data)
+
+	time.Sleep(2300 * time.Millisecond)
+
+	assert.FileExists(t, filepath.Join(tempDir, "machine-1.log.1"))
+	assert.FileExists(t, filepath.Join(tempDir, "machine-2.log.1"))
+
+	logHandler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte("bbbb"))
+	logHandler.HandleMessage(netip.MustParseAddr("2.3.4.5"), []byte("BBBB"))
 
 	// destroy machine-2
 	require.NoError(t, st.Destroy(ctx, omni.NewMachine(resources.DefaultNamespace, "machine-2").Metadata()))
 
 	// ensure that log and hash files for machine-2 are removed
-	require.NoError(t, retry.Constant(10*time.Second).Retry(func() error {
-		logFileExists, err := fileExists(filepath.Join(tempDir, "machine-2.log"))
-		require.NoError(t, err)
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		matches, matchErr := filepath.Glob(filepath.Join(tempDir, "machine-2.log*"))
+		require.NoError(t, matchErr)
 
-		if logFileExists {
-			return retry.ExpectedError(errors.New("log file for machine-2 is still present"))
-		}
+		assert.Empty(collect, matches)
+	}, 10*time.Second, 100*time.Millisecond)
 
-		logHashExists, err := fileExists(filepath.Join(tempDir, "machine-2.log.sha256sum"))
-		require.NoError(t, err)
-
-		if logHashExists {
-			return retry.ExpectedError(errors.New("log hash for machine-2 is still present"))
-		}
-
-		return nil
-	}), "log and hash files for machine-2 should be removed")
-
-	// send another log and immediately cancel the context
-	logHandler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte("bbbb"))
-
-	ctxCancel()
+	cancel()
 
 	require.NoError(t, eg.Wait())
+}
 
-	// ensure that the last log entry is flushed to disk on shutdown
-	assertLogExists(t, tempDir, "machine-1", "bbbb")
+func TestLogHandlerStorageLegacyMigration(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+
+	machineMap := siderolink.NewMachineMap(&siderolink.MapStorage{
+		IPToMachine: map[string]siderolink.MachineID{"1.2.3.4": "machine-1"},
+	})
+
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+
+	require.NoError(t, st.Create(ctx, omni.NewMachine(resources.DefaultNamespace, "machine-1")))
+
+	tempDir := t.TempDir()
+
+	// prepare legacy log file
+	legacyLogPath := filepath.Join(tempDir, "machine-1.log")
+	legacyLogHashPath := legacyLogPath + ".sha256sum"
+
+	legacyLog := []byte("\nlegacy log") // start with an empty line, so it can be parsed as a valid log message
+	legacyHash := sha256.Sum256(legacyLog)
+
+	require.NoError(t, os.WriteFile(legacyLogPath, legacyLog, 0o644))
+	require.NoError(t, os.WriteFile(legacyLogHashPath, []byte(hex.EncodeToString(legacyHash[:])), 0o644))
+
+	logHandler, err := siderolink.NewLogHandler(machineMap, st, &config.MachineLogConfigParams{
+		StorageEnabled:        true,
+		StoragePath:           tempDir,
+		StorageFlushPeriod:    1 * time.Second,
+		NumCompressedChunks:   5,
+		BufferInitialCapacity: 16,
+		BufferMaxCapacity:     128,
+		BufferSafetyGap:       16,
+	}, zaptest.NewLogger(t))
+	require.NoError(t, err)
+
+	var eg errgroup.Group
+
+	eg.Go(func() error { return logHandler.Start(ctx) })
+
+	// write a log to trigger migration
+	logHandler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte("foo\n"))
+
+	// assert that the legacy log files are removed
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		assert.NoFileExists(collect, legacyLogPath)
+		assert.NoFileExists(collect, legacyLogHashPath)
+	}, 2*time.Second, 50*time.Millisecond)
+
+	reader, err := logHandler.GetReader("machine-1", false, optional.None[int32]())
+	require.NoError(t, err)
+
+	t.Cleanup(func() { require.NoError(t, reader.Close()) })
+
+	line, err := reader.ReadLine()
+	require.NoError(t, err)
+
+	assert.Equal(t, "legacy log", string(line))
 }
 
 // TestLogHandlerStorageDisabled ensures that log handler works as expected without log storage.
@@ -251,13 +327,14 @@ func TestLogHandlerStorageDisabled(t *testing.T) {
 	require.NoError(t, st.Create(ctx, omni.NewMachine(resources.DefaultNamespace, "machine-2")))
 
 	tempDir := t.TempDir()
-	storageConfig := config.LogStorageParams{
-		Enabled:     false,
-		Path:        tempDir,
-		FlushPeriod: 100 * time.Millisecond,
+	storageConfig := config.MachineLogConfigParams{
+		StorageEnabled:     false,
+		StoragePath:        tempDir,
+		StorageFlushPeriod: 100 * time.Millisecond,
 	}
 
-	handler := siderolink.NewLogHandler(machineMap, st, &storageConfig, zaptest.NewLogger(t))
+	handler, err := siderolink.NewLogHandler(machineMap, st, &storageConfig, zaptest.NewLogger(t))
+	require.NoError(t, err)
 
 	var eg errgroup.Group
 
@@ -279,37 +356,8 @@ func TestLogHandlerStorageDisabled(t *testing.T) {
 	assert.NoFileExists(t, filepath.Join(tempDir, "machine-2.log.sha256sum"))
 }
 
-func assertLogExists(t *testing.T, dir, machineID, log string) {
-	fileBytes, err := os.ReadFile(filepath.Join(dir, machineID+".log"))
-	if err != nil {
-		// Print additional directory contents to help with debugging.
-		stat := must.Value(os.Stat(dir))(t)
-		require.True(t, stat.IsDir(), "expected %q to be a directory", dir)
-
-		readDir := must.Value(os.ReadDir(dir))(t)
-		t.Log("directory contents:")
-
-		for _, entry := range readDir {
-			t.Logf("%s", entry.Name())
-		}
-
-		t.Fatal(err)
-	}
-
-	assert.Contains(t, string(fileBytes), log)
-}
-
 func writeBytes(t *testing.T, handler *siderolink.LogHandler, ip string, bytes []byte) {
 	id := must.Value(handler.Map.GetMachineID(ip))(t)
 	writeTo := must.Value(handler.Cache.GetWriter(id))(t)
 	must.Value(writeTo.Write(bytes))(t)
-}
-
-func fileExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if errors.Is(err, os.ErrNotExist) {
-		return false, nil
-	}
-
-	return err == nil, err
 }

@@ -207,12 +207,16 @@ func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtua
 		}
 
 		machineMap := siderolink.NewMachineMap(siderolink.NewStateStorage(omniRuntime.State()))
-		logHandler := siderolink.NewLogHandler(
+
+		logHandler, err := siderolink.NewLogHandler(
 			machineMap,
 			resourceState,
-			&config.Config.LogStorage,
+			&config.Config.MachineLogConfig,
 			logger.With(logging.Component("siderolink_log_handler")),
 		)
+		if err != nil {
+			return fmt.Errorf("failed to set up log handler: %w", err)
+		}
 
 		talosRuntime := talos.New(talosClientFactory, logger)
 
@@ -288,6 +292,7 @@ func main() {
 	}
 }
 
+//nolint:maintidx
 func init() {
 	rootCmd.Flags().BoolVar(&rootCmdArgs.debug, "debug", false, "enable debug logs.")
 	rootCmd.Flags().StringVar(&rootCmdArgs.bindAddress, "bind-addr", "0.0.0.0:8080", "start HTTP server on the defined address.")
@@ -329,9 +334,35 @@ func init() {
 	rootCmd.Flags().IntVar(&config.Config.LoadBalancer.MaxPort, "lb-max-port", config.Config.LoadBalancer.MaxPort, "cluster load balancer port range max value.")
 	rootCmd.Flags().IntVar(&config.Config.LogServerPort, "log-server-port", config.Config.LogServerPort, "port for TCP log server")
 
-	rootCmd.Flags().BoolVar(&config.Config.LogStorage.Enabled, "log-storage-enabled", config.Config.LogStorage.Enabled, "enable log storage")
-	rootCmd.Flags().StringVar(&config.Config.LogStorage.Path, "log-storage-path", config.Config.LogStorage.Path, "path of the directory for storing logs")
-	rootCmd.Flags().DurationVar(&config.Config.LogStorage.FlushPeriod, "log-storage-flush-period", config.Config.LogStorage.FlushPeriod, "period for flushing logs to disk")
+	rootCmd.Flags().IntVar(&config.Config.MachineLogConfig.BufferInitialCapacity, "machine-log-buffer-capacity",
+		config.Config.MachineLogConfig.BufferInitialCapacity, "initial buffer capacity for machine logs in bytes")
+	rootCmd.Flags().IntVar(&config.Config.MachineLogConfig.BufferMaxCapacity, "machine-log-buffer-max-capacity",
+		config.Config.MachineLogConfig.BufferMaxCapacity, "max buffer capacity for machine logs in bytes")
+	rootCmd.Flags().IntVar(&config.Config.MachineLogConfig.BufferSafetyGap, "machine-log-buffer-safe-gap",
+		config.Config.MachineLogConfig.BufferSafetyGap, "safety gap for machine log buffer in bytes")
+	rootCmd.Flags().IntVar(&config.Config.MachineLogConfig.NumCompressedChunks, "machine-log-num-compressed-chunks",
+		config.Config.MachineLogConfig.NumCompressedChunks, "number of compressed log chunks to keep")
+	rootCmd.Flags().BoolVar(&config.Config.MachineLogConfig.StorageEnabled, "machine-log-storage-enabled",
+		config.Config.MachineLogConfig.StorageEnabled, "enable machine log storage")
+	rootCmd.Flags().StringVar(&config.Config.MachineLogConfig.StoragePath, "machine-log-storage-path",
+		config.Config.MachineLogConfig.StoragePath, "path of the directory for storing machine logs")
+	rootCmd.Flags().DurationVar(&config.Config.MachineLogConfig.StorageFlushPeriod, "machine-log-storage-flush-period",
+		config.Config.MachineLogConfig.StorageFlushPeriod, "period for flushing machine logs to disk")
+	rootCmd.Flags().Float64Var(&config.Config.MachineLogConfig.StorageFlushJitter, "machine-log-storage-flush-jitter",
+		config.Config.MachineLogConfig.StorageFlushJitter, "jitter for the machine log storage flush period")
+
+	// keep the old flags for backwards-compatibility
+	{
+		rootCmd.Flags().BoolVar(&config.Config.MachineLogConfig.StorageEnabled, "log-storage-enabled", config.Config.MachineLogConfig.StorageEnabled, "enable machine log storage")
+		rootCmd.Flags().StringVar(&config.Config.MachineLogConfig.StoragePath, "log-storage-path", config.Config.MachineLogConfig.StoragePath,
+			"path of the directory for storing machine logs")
+		rootCmd.Flags().DurationVar(&config.Config.MachineLogConfig.StorageFlushPeriod, "log-storage-flush-period", config.Config.MachineLogConfig.StorageFlushPeriod,
+			"period for flushing machine logs to disk")
+
+		rootCmd.Flags().MarkDeprecated("log-storage-enabled", "use --machine-log-storage-enabled")           //nolint:errcheck
+		rootCmd.Flags().MarkDeprecated("log-storage-path", "use --machine-log-storage-path")                 //nolint:errcheck
+		rootCmd.Flags().MarkDeprecated("log-storage-flush-period", "use --machine-log-storage-flush-period") //nolint:errcheck
+	}
 
 	rootCmd.Flags().BoolVar(&config.Config.Auth.Auth0.Enabled, "auth-auth0-enabled", config.Config.Auth.Auth0.Enabled,
 		"enable Auth0 authentication. Once set to true, it cannot be set back to false.")
