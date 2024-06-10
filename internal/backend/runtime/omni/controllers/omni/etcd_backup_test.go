@@ -487,7 +487,7 @@ func (suite *EtcdBackupControllerSuite) TestEtcdManualBackup() {
 	assertNoResource(&suite.OmniSuite, omni.NewEtcdBackupStatus(clustersData[1].Metadata().ID()))
 
 	manualBackup := omni.NewEtcdManualBackup(clustersData[0].Metadata().ID())
-	manualBackup.TypedSpec().Value.BackupAt = timestamppb.New(fakeclock.Now().Add(15 * time.Second))
+	manualBackup.TypedSpec().Value.BackupAt = timestamppb.New(fakeclock.Now().Add(12 * time.Minute))
 
 	err := suite.state.Create(suite.ctx, manualBackup)
 	suite.Require().NoError(err)
@@ -497,7 +497,7 @@ func (suite *EtcdBackupControllerSuite) TestEtcdManualBackup() {
 	assertNoResource(&suite.OmniSuite, omni.NewEtcdBackupStatus(clustersData[0].Metadata().ID()))
 	suite.eventuallyFindBackups(sf, clustersData[0].Metadata().ID(), 0)
 
-	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 15*time.Second)
+	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 12*time.Minute)
 
 	assertResource(
 		&suite.OmniSuite,
