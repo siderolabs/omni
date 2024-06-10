@@ -1,3 +1,56 @@
+## [Omni 0.37.2](https://github.com/siderolabs/omni/releases/tag/v0.37.2) (2024-06-10)
+
+Welcome to the v0.37.2 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Andrey Smirnov
+* Andrey Smirnov
+* Artem Chernyshev
+* Utku Ozdemir
+* Dmitriy Matrenichev
+
+### Changes
+<details><summary>2 commits</summary>
+<p>
+
+* [`7d15a88`](https://github.com/siderolabs/omni/commit/7d15a884529ec40183b27411cd888d669697ea55) chore: bump COSI runtime to 0.4.5
+* [`c2f4ba0`](https://github.com/siderolabs/omni/commit/c2f4ba03940b8967f30deb2162d7f51e1afe5ae0) fix: ignore not found in the `MachineStatus` and `MachineStatusSnapshot`
+</p>
+</details>
+
+### Changes from siderolabs/discovery-client
+<details><summary>13 commits</summary>
+<p>
+
+* [`ca662d2`](https://github.com/siderolabs/discovery-client/commit/ca662d218418eb50eb22d84560c290bef4369702) feat: export default GRPC dial options for the client
+* [`7a767fa`](https://github.com/siderolabs/discovery-client/commit/7a767fa89005209f5f39b2f5891ca7b169f52d89) chore: bump Go, deps and rekres
+* [`f4095a1`](https://github.com/siderolabs/discovery-client/commit/f4095a109d3947d1a1f470446ef40e1b386aeaf1) chore: bump discovery API to v0.1.4
+* [`fbb1cea`](https://github.com/siderolabs/discovery-client/commit/fbb1cea89609242e20f6cb35b4bfec12ade4144e) fix: keepalive interval calculation
+* [`ff8f4be`](https://github.com/siderolabs/discovery-client/commit/ff8f4be618f077f91ce1f9b8240c050719623582) fix: enable gRPC keepalives
+* [`9ba5f03`](https://github.com/siderolabs/discovery-client/commit/9ba5f033a47d41448153962c5fe22db2d9a8a00c) chore: app optional ControlPlane data
+* [`269a832`](https://github.com/siderolabs/discovery-client/commit/269a832ce9e35d4edeeddba2a23cf5682a2ca425) chore: rekres, update discovery api
+* [`a5c19c6`](https://github.com/siderolabs/discovery-client/commit/a5c19c65f4833a104ac68f35a3c0f8f37be8fe87) feat: provide public IP discovered from the server
+* [`230f317`](https://github.com/siderolabs/discovery-client/commit/230f317a8e6e9542b82efcbac9f5cd7b9cff34b6) fix: reconnect the client on update failure
+* [`ac5ab32`](https://github.com/siderolabs/discovery-client/commit/ac5ab32d1350332e837eea76f02a2225ce17c626) feat: support deleting an affiliate
+* [`27a5bee`](https://github.com/siderolabs/discovery-client/commit/27a5beeccc45c82222fee5a70a2318b21cf87ac6) chore: rekres
+* [`a9a5e9b`](https://github.com/siderolabs/discovery-client/commit/a9a5e9bfddaa670e0fb4f57510167d377cf09b07) feat: initial client code
+* [`98eb999`](https://github.com/siderolabs/discovery-client/commit/98eb9999c0c76d2f93378108b7e22de6bcae6e81) chore: initial commit
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/cosi-project/runtime**         15e9d678159d -> v0.4.5
+* **github.com/siderolabs/discovery-client**  v0.1.9 **_new_**
+
+Previous release can be found at [v0.37.1](https://github.com/siderolabs/omni/releases/tag/v0.37.1)
+
 ## [Omni 0.37.1](https://github.com/siderolabs/omni/releases/tag/v0.37.1) (2024-06-07)
 
 Welcome to the v0.37.1 release of Omni!
