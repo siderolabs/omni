@@ -201,6 +201,10 @@ func (ctrl *MachineStatusSnapshotController) reconcileTearingDown(ctx context.Co
 
 	ready, err := r.Teardown(ctx, md)
 	if err != nil {
+		if state.IsNotFoundError(err) {
+			return r.RemoveFinalizer(ctx, machine.Metadata(), ctrl.Name())
+		}
+
 		return err
 	}
 
