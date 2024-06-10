@@ -5,19 +5,27 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <div
-    v-bind:style="'color: ' + phaseColor(item)"
-    class="cluster-phase-box"
-  >
-    <t-icon :icon="phaseIcon(item)" class="h-4" />
-    <div class="cluster-phase-name">{{ phaseName(item) || "" }}</div>
-  </div>
+  <div class="flex gap-2">
+    <div
+      v-bind:style="'color: ' + phaseColor(item)"
+      class="cluster-phase-box"
+      >
+        <t-icon :icon="phaseIcon(item)" class="h-4"/>
+        <div class="cluster-phase-name">{{ phaseName(item) || "" }}</div>
+      </div>
+      <div v-if="item.spec.locked_updates"
+        class="flex gap-1 items-center text-light-blue-400">
+        <t-icon icon="time" class="h-4"/>
+        {{ pluralize('Pending Config Update', item.spec.locked_updates, true) }}
+      </div>
+    </div>
 </template>
 
 <script setup lang="ts">
 import TIcon, { IconType } from "@/components/common/Icon/TIcon.vue";
 import { MachineSetPhase, MachineSetStatusSpec } from "@/api/omni/specs/omni.pb";
 import { Resource } from "@/api/grpc";
+import pluralize from 'pluralize';
 
 const phaseName = (machineset: Resource<MachineSetStatusSpec>): string => {
   switch (machineset?.spec.phase) {
@@ -95,11 +103,6 @@ defineProps<Props>();
 
 <style>
 .cluster-phase-box {
-  display: flex;
-  align-items: center;
-}
-
-.cluster-phase-name {
-  margin-left: 5px;
+  @apply flex items-center gap-1;
 }
 </style>

@@ -46,6 +46,7 @@ export const SAMLLabelRuleType = "SAMLLabelRules.omni.sidero.dev";
 export const UserType = "Users.omni.sidero.dev";
 export const KubernetesResourceType = "KubernetesResources.omni.sidero.dev";
 export const MachineLocked = "omni.sidero.dev/locked";
+export const UpdateLocked = "omni.sidero.dev/locked-update";
 export const ResourceManagedByClusterTemplates = "omni.sidero.dev/managed-by-cluster-templates";
 export const ConfigPatchName = "name";
 export const ConfigPatchDescription = "description";

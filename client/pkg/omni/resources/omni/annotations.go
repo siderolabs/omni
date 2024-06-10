@@ -9,6 +9,10 @@ const (
 	// tsgen:MachineLocked
 	MachineLocked = SystemLabelPrefix + "locked"
 
+	// UpdateLocked machine is locked and has pending update.
+	// tsgen:UpdateLocked
+	UpdateLocked = SystemLabelPrefix + "locked-update"
+
 	// ResourceManagedByClusterTemplates is an annotation which indicates that a resource is managed by cluster templates.
 	// tsgen:ResourceManagedByClusterTemplates
 	ResourceManagedByClusterTemplates = SystemLabelPrefix + "managed-by-cluster-templates"

@@ -6,8 +6,8 @@ included in the LICENSE file.
 -->
 <template>
   <div
-    v-bind:style="'color: ' + stageColor(machine)"
-    v-bind:class="'cluster-stage-box' + (connected(machine) ? '' : ' brightness-50')"
+    :style="'color: ' + stageColor(machine)"
+    :class="'cluster-stage-box' + (connected(machine) ? '' : ' brightness-50')"
   >
     <popper v-if="!connected(machine)" hover placement="right" offsetDistance="4">
       <template #content>
@@ -124,11 +124,6 @@ defineProps<Props>();
 
 <style>
 .cluster-stage-box {
-  display: flex;
-  align-items: center;
-}
-
-.cluster-stage-name {
-  margin-left: 5px;
+  @apply flex items-center gap-1;
 }
 </style>

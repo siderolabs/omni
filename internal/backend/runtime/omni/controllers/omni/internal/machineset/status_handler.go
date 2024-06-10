@@ -96,6 +96,7 @@ func ReconcileStatus(rc *ReconciliationContext, machineSetStatus *omni.MachineSe
 	}
 
 	spec.Ready = spec.Phase == specs.MachineSetPhase_Running
+	spec.LockedUpdates = uint32(len(rc.GetLockedUpdates()))
 
 	if !spec.Ready {
 		return

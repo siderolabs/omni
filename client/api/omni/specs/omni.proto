@@ -719,6 +719,8 @@ message MachineSetStatusSpec {
   string config_hash = 5;
   // MachineClass is copied from the input MachineSet resource.
   MachineSetSpec.MachineClass machine_class = 6;
+  // LockedUpdates is the number of machines which have pending config update but are locked.
+  uint32 locked_updates = 7;
 }
 
 // MachineSetNodeSpec is a binding between ClusterMachine and MachineSet.

@@ -304,14 +304,13 @@ const detectVersionMismatch = (machine: Resource<MachineStatusSpec>) => {
   }
 
   if (!installed) {
-    if (machineVersion.major == clusterVersion.major && machineVersion.minor == clusterVersion.minor) {
+    if (machineVersion?.major == clusterVersion?.major && machineVersion?.minor == clusterVersion?.minor) {
       return null;
     }
 
     return "The machine running from ISO or PXE must have the same major and minor version as the cluster it is going to be added to. Please use another ISO or change the cluster Talos version";
   }
-
-  if (machineVersion.major <= clusterVersion.major && machineVersion.minor <= clusterVersion.minor) {
+  if (machineVersion?.major <= clusterVersion?.major && machineVersion?.minor <= clusterVersion?.minor) {
     return null;
   }
 

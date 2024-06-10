@@ -30,14 +30,16 @@ included in the LICENSE file.
       </template>
       <template #default="{ items, searchQuery }">
         <div class="flex flex-col gap-2">
-          <div class="clusters-header">
-            <div class="clusters-grid">
-              <div class="pl-6">Name</div>
-              <div>Machines Healthy</div>
-              <div>Phase</div>
-              <div>Labels</div>
+          <div class="max-lg:hidden">
+            <div class="clusters-header">
+              <div class="clusters-grid">
+                <div class="pl-6">Name</div>
+                <div class="pl-6">Machines Healthy</div>
+                <div class="pl-6">Phase</div>
+                <div class="pl-5">Labels</div>
+              </div>
+              <div>Actions</div>
             </div>
-            <div>Actions</div>
           </div>
           <cluster-item v-for="(item, index) in items"
             :key="itemID(item)"

@@ -6,28 +6,34 @@ included in the LICENSE file.
 -->
 <template>
   <div class="border-t-8 border-naturals-N4" v-if="machines.length > 0">
-    <div class="flex items-center border-naturals-N4 border-b pr-4 pl-9 text-naturals-N14">
+    <div class="flex items-center border-naturals-N4 border-b pr-4 pl-11 text-naturals-N14">
       <div class="py-3 clusters-grid flex-1 items-center">
-        <div
-          class="flex-none text-xs text-center items-center justify-center px-3 py-1 bg-naturals-N4 w-40 rounded truncate">
-          {{ machineSetTitle(clusterID, machineSet?.metadata?.id) }}
-        </div>
-        <t-spinner class="w-4 h-4" v-if="scaling"/>
-        <div class="flex items-center gap-1" v-else-if="!editingMachinesCount">
-          {{ machineSet?.spec?.machines?.healthy || 0 }}/{{ machineSet?.spec?.machines?.requested || 0 }}
-          <icon-button icon="edit" v-if="machineSet.spec.machine_class?.name" @click="editingMachinesCount = !editingMachinesCount"/>
-        </div>
-        <div v-else class="flex items-center gap-1">
-          <div class="w-12">
-            <t-input :min="0" class="h-6" compact type="number" v-model="machineCount" @keydown.enter="() => updateMachineCount()"/>
+        <div class="flex flex-wrap gap-2 col-span-2 justify-between">
+          <div class="flex-1">
+            <div
+              class="flex-none text-xs text-center items-center justify-center px-3 py-1 bg-naturals-N4 w-40 rounded truncate">
+              {{ machineSetTitle(clusterID, machineSet?.metadata?.id) }}
+            </div>
           </div>
-          <icon-button icon="check" @click="() => updateMachineCount()"/>
-          <t-button type="subtle" @click="() => updateMachineCount(MachineSetSpecMachineClassAllocationType.Unlimited)">
-            Use All
-          </t-button>
+          <div class="flex-1 flex">
+            <t-spinner class="w-4 h-4" v-if="scaling"/>
+            <div class="flex items-center gap-1" v-else-if="!editingMachinesCount">
+              {{ machineSet?.spec?.machines?.healthy || 0 }}/{{ machineSet?.spec?.machines?.requested || 0 }}
+              <icon-button icon="edit" v-if="machineSet.spec.machine_class?.name" @click="editingMachinesCount = !editingMachinesCount"/>
+            </div>
+            <div v-else class="flex items-center gap-1">
+              <div class="w-12">
+                <t-input :min="0" class="h-6" compact type="number" v-model="machineCount" @keydown.enter="() => updateMachineCount()"/>
+              </div>
+              <icon-button icon="check" @click="() => updateMachineCount()"/>
+              <t-button type="subtle" @click="() => updateMachineCount(MachineSetSpecMachineClassAllocationType.Unlimited)">
+                Use All
+              </t-button>
+            </div>
+          </div>
         </div>
-        <machine-set-phase :item="machineSet"/>
-        <div v-if="machineSet.spec?.machine_class?.name" class="rounded bg-naturals-N4 px-3 py-1 max-w-min">
+        <machine-set-phase :item="machineSet" :class="{'col-span-2': !machineSet.spec?.machine_class?.name}"/>
+        <div v-if="machineSet.spec?.machine_class?.name" class="rounded bg-naturals-N4 px-3 py-1 max-w-min max-md:col-span-4">
           Machine Class: {{ machineSet.spec?.machine_class?.name }} ({{ machineClassMachineCount }})
         </div>
       </div>

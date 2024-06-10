@@ -152,8 +152,12 @@ func clusterMachineConfigOutdated(outdated bool) string {
 	return " " + color.YellowString("Config Outdated")
 }
 
-func clusterMachineConfigStatus(status specs.ConfigApplyStatus) string {
-	switch status {
+func clusterMachineConfigStatus(node *omni.ClusterMachineStatus) string {
+	if _, locked := node.Metadata().Labels().Get(omni.UpdateLocked); locked {
+		return " " + color.BlueString("Pending Config Update (Machine Locked)")
+	}
+
+	switch node.TypedSpec().Value.ConfigApplyStatus {
 	case specs.ConfigApplyStatus_UNKNOWN,
 		specs.ConfigApplyStatus_PENDING,
 		specs.ConfigApplyStatus_APPLIED:

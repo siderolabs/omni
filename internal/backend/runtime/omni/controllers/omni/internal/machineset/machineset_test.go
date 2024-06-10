@@ -7,6 +7,8 @@ package machineset_test
 
 import (
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/resource/kvutils"
+	"github.com/siderolabs/gen/pair"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -50,6 +52,16 @@ func withClusterMachineVersionSetter(cmcs *omni.ClusterMachineConfigStatus, vers
 	return withSpecSetter(cmcs, func(cmcs *omni.ClusterMachineConfigStatus) {
 		cmcs.TypedSpec().Value.ClusterMachineVersion = version.String()
 	})
+}
+
+func withLabels[T resource.Resource](r T, labels ...pair.Pair[string, string]) T {
+	r.Metadata().Labels().Do(func(temp kvutils.TempKV) {
+		for _, label := range labels {
+			temp.Set(label.F1, label.F2)
+		}
+	})
+
+	return r
 }
 
 func newHealthyLB(id string) *omni.LoadBalancerStatus {

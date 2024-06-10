@@ -118,6 +118,7 @@ const icons = {
   "bootstrap-manifests": DocumentTextIcon,
   "exposed-service": WindowIcon,
   "locked": LockClosedIcon,
+  "locked-toggle": defineAsyncComponent(() => import("../../icons/IconLockClosedToggle.vue")),
   "unlocked": LockOpenIcon,
   "code-bracket": CodeBracketIcon,
   "play-circle": PlayCircleIcon,

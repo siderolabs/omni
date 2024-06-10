@@ -9,7 +9,7 @@ included in the LICENSE file.
     class="actions-box"
     v-click-outside="() => open = false"
   >
-    <Popper offsetDistance="10" :placement="placement" :show="open" offsetSkid="30">
+    <Popper offsetDistance="10" :placement="placement" :show="open" offsetSkid="30" class="popper">
       <template #content>
         <div class="actions-list" @click.stop="open = false">
           <slot/>
@@ -56,5 +56,13 @@ const open = ref(false);
 <style scoped>
 .actions-list {
   @apply bg-naturals-N3 rounded border border-naturals-N4;
+}
+
+.popper {
+  margin: 0 !important;
+  border: 0 !important;
+  display: block !important;
+  z-index: auto !important;
+  display: block !important;
 }
 </style>

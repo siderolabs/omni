@@ -12,6 +12,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/siderolabs/gen/pair"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/stretchr/testify/require"
 
@@ -316,6 +317,32 @@ func TestStatusHandler(t *testing.T) {
 				Machines: &specs.Machines{
 					Total:     2,
 					Healthy:   1,
+					Connected: 2,
+					Requested: 2,
+				},
+				ConfigHash: "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
+			},
+		},
+		{
+			name: "locked update 2 machines",
+			machineSetNodes: []*omni.MachineSetNode{
+				withLabels(omni.NewMachineSetNode(resources.DefaultNamespace, "a", ms), pair.MakePair(omni.MachineLocked, "")),
+				withLabels(omni.NewMachineSetNode(resources.DefaultNamespace, "b", ms), pair.MakePair(omni.MachineLocked, "")),
+			},
+			clusterMachines: []*omni.ClusterMachine{
+				omni.NewClusterMachine(resources.DefaultNamespace, "a"),
+				omni.NewClusterMachine(resources.DefaultNamespace, "b"),
+			},
+			clusterMachineStatuses: []*omni.ClusterMachineStatus{
+				newClusterMachineStatus("a", specs.ClusterMachineStatusSpec_RUNNING, true, true),
+				newClusterMachineStatus("b", specs.ClusterMachineStatusSpec_RUNNING, true, true),
+			},
+			expectedStatus: &specs.MachineSetStatusSpec{
+				Phase: specs.MachineSetPhase_Reconfiguring,
+				Ready: false,
+				Machines: &specs.Machines{
+					Total:     2,
+					Healthy:   2,
 					Connected: 2,
 					Requested: 2,
 				},

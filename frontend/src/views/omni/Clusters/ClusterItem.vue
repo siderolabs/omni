@@ -30,13 +30,13 @@ included in the LICENSE file.
                 />
               </router-link>
             </div>
-            <div class="ml-1.5" id="machine-count">{{ item?.spec?.machines?.healthy ?? 0 }}/{{ item?.spec?.machines?.total ?? 0 }}</div>
+            <div class="ml-3" id="machine-count">{{ item?.spec?.machines?.healthy ?? 0 }}/{{ item?.spec?.machines?.total ?? 0 }}</div>
             <div/>
-            <item-labels v-if="item" :resource="item" :add-label-func="addClusterLabels"
+            <item-labels class="ml-5" v-if="item" :resource="item" :add-label-func="addClusterLabels"
               :remove-label-func="removeClusterLabels"
               @filter-label="(e) => $emit('filterLabels', e)"/>
           </div>
-          <tooltip description="Open Cluster Dashboard" class="h-11">
+          <tooltip description="Open Cluster Dashboard" class="h-6">
             <icon-button icon="dashboard" @click.stop="() => $router.push({ path: '/cluster/' + item?.metadata.id + '/overview' })"/>
           </tooltip>
           <t-actions-box style="height: 24px" @click.stop>
@@ -159,7 +159,7 @@ machineNodesWatch.setup(computed(() => {
 
 <style>
 .clusters-grid {
-  @apply items-center grid grid-cols-4 pr-2;
+  @apply items-center grid grid-cols-4 pr-2 gap-2;
 }
 
 .clusters-grid > * {

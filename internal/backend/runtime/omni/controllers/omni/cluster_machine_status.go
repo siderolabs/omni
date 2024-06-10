@@ -51,6 +51,14 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 					omni.LabelMachineSet,
 				)
 
+				_, updateLocked := clusterMachine.Metadata().Labels().Get(omni.UpdateLocked)
+
+				if updateLocked {
+					clusterMachineStatus.Metadata().Labels().Set(omni.UpdateLocked, "")
+				} else {
+					clusterMachineStatus.Metadata().Labels().Delete(omni.UpdateLocked)
+				}
+
 				if machine != nil && machine.TypedSpec().Value.Connected {
 					clusterMachineStatus.Metadata().Labels().Set(omni.MachineStatusLabelConnected, "")
 				} else {

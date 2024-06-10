@@ -481,6 +481,7 @@ export type MachineSetStatusSpec = {
   machines?: Machines
   config_hash?: string
   machine_class?: MachineSetSpecMachineClass
+  locked_updates?: number
 }
 
 export type MachineSetNodeSpec = {

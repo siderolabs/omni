@@ -83,6 +83,7 @@ type ReconciliationContext struct {
 	idsUnconfigured           set.Set[string]
 	idsOutdated               set.Set[string]
 	idsDestroyReady           set.Set[string]
+	idsUpdateLocked           set.Set[string]
 
 	idsToTeardown []string
 	idsToCreate   []string
@@ -209,6 +210,7 @@ func NewReconciliationContext(
 	rc.clusterMachineStatusesMap = toMap(clusterMachineStatuses)
 	rc.machineSetNodesMap = toMap(machineSetNodes)
 	rc.runningMachineSetNodesSet = toSet(xslices.Filter(machineSetNodes, checkRunning))
+	rc.idsUpdateLocked = make(set.Set[string])
 
 	clusterMachinesSet := toSet(clusterMachines)
 	lockedMachinesSet := toSet(xslices.Filter(machineSetNodes, checkLocked))
@@ -252,7 +254,6 @@ func NewReconciliationContext(
 				clusterMachinesSet,
 			),
 			tearingDownMachinesSet,
-			lockedMachinesSet,
 		),
 	)
 
@@ -271,12 +272,22 @@ func NewReconciliationContext(
 		rc.patchesByMachine[clusterMachine.Metadata().ID()] = patches
 	}
 
+	updateMachine := func(id string) {
+		if lockedMachinesSet.Contains(id) {
+			rc.idsUpdateLocked.Add(id)
+
+			return
+		}
+
+		rc.idsToUpdate = append(rc.idsToUpdate, id)
+	}
+
 	for _, id := range updateCandidates {
 		clusterMachine := rc.clusterMachinesMap[id].DeepCopy().(*omni.ClusterMachine) //nolint:forcetypeassert,errcheck
 
 		_, ok := rc.clusterMachineConfigPatchesMap[id]
 		if !ok {
-			rc.idsToUpdate = append(rc.idsToUpdate, id)
+			updateMachine(id)
 
 			continue
 		}
@@ -284,7 +295,7 @@ func NewReconciliationContext(
 		patches := rc.patchesByMachine[id]
 
 		if helpers.UpdateInputsVersions(clusterMachine, patches...) {
-			rc.idsToUpdate = append(rc.idsToUpdate, id)
+			updateMachine(id)
 		}
 	}
 
@@ -329,6 +340,11 @@ func (rc *ReconciliationContext) GetMachinesToCreate() []string {
 // GetMachinesToUpdate returns all machine IDs which have outdated config patches.
 func (rc *ReconciliationContext) GetMachinesToUpdate() []string {
 	return rc.idsToUpdate
+}
+
+// GetLockedUpdates returns all machine IDs which have pending updates but are locked.
+func (rc *ReconciliationContext) GetLockedUpdates() set.Set[string] {
+	return rc.idsUpdateLocked
 }
 
 // GetTearingDownMachines returns all ClusterMachines in TearingDown phase.

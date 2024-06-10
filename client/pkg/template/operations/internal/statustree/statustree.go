@@ -65,7 +65,7 @@ func (t NodeWrapper) String() string {
 			clusterMachineReadyString(node),
 			clusterMachineConnected(node),
 			clusterMachineConfigOutdated(!node.TypedSpec().Value.ConfigUpToDate),
-			clusterMachineConfigStatus(node.TypedSpec().Value.ConfigApplyStatus),
+			clusterMachineConfigStatus(node),
 		)
 	case *omni.ControlPlaneStatus:
 		return fmt.Sprintf(

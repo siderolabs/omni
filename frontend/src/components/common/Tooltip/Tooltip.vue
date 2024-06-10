@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <popper offsetDistance="10" offsetSkid="30" :placement="placement" :show="show && (!!description || !!$slots.description)">
+  <popper offsetDistance="10" offsetSkid="30" :placement="placement" :show="show && (!!description || !!$slots.description)" class="popper">
     <template #content>
       <div class="text-xs bg-naturals-N4 rounded p-4 text-naturals-N12">
         <p v-if="description" class="whitespace-pre">{{ description }}</p>
@@ -51,3 +51,12 @@ withDefaults(
 
 const show = ref(false);
 </script>
+
+<style scoped>
+.popper {
+  margin: 0 !important;
+  border: 0 !important;
+  display: block !important;
+  z-index: 0 !important;
+}
+</style>
