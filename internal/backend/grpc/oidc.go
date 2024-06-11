@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/api/omni/oidc"
+	"github.com/siderolabs/omni/internal/backend/oidc/external"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 )
 
@@ -60,7 +61,7 @@ func (s *oidcServer) Authenticate(ctx context.Context, req *oidc.AuthenticateReq
 		return nil, status.Errorf(codes.PermissionDenied, "failed to authenticate request: %s", err)
 	}
 
-	if challenge := request.GetCodeChallenge(); challenge != nil {
+	if request.GetRedirectURI() == external.KeyCodeRedirectURL {
 		var code string
 
 		code, err = encodeToString(6)

@@ -22,3 +22,6 @@ const ServiceAccountTokenLifetime = 10 * 365 * 24 * time.Hour
 
 // KeyRotationInterval specifies the interval in which the keys are rotated.
 const KeyRotationInterval = 30 * 24 * time.Hour
+
+// KeyCodeRedirectURL is the redirect URL for the keycode authentication method.
+const KeyCodeRedirectURL = "urn:ietf:wg:oauth:2.0:oob"

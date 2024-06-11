@@ -35,7 +35,7 @@ func (Client) RedirectURIs() []string {
 	return []string{
 		"http://localhost:8000",
 		"http://localhost:18000",
-		"urn:ietf:wg:oauth:2.0:oob",
+		external.KeyCodeRedirectURL,
 	}
 }
 
