@@ -31,6 +31,7 @@ import (
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/auth/scope"
+	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/image"
 )
 
@@ -1203,8 +1204,8 @@ func generateAllMaintenanceConfigs(ctx context.Context, st state.State, _ *zap.L
 		configPatch := omni.NewConfigPatch(resources.DefaultNamespace, omnictrl.MaintenanceConfigPatchPrefix+machineStatus.Metadata().ID())
 
 		if err = createOrUpdate(ctx, st, configPatch, func(res *omni.ConfigPatch) error {
-			return omnictrl.UpdateMaintenanceConfigPatch(res, machineStatus, connectionParams)
-		}, omnictrl.NewMaintenanceConfigPatchController().Name()); err != nil {
+			return omnictrl.UpdateMaintenanceConfigPatch(res, machineStatus, connectionParams, config.Config.EventSinkPort)
+		}, omnictrl.NewMaintenanceConfigPatchController(0).Name()); err != nil {
 			return err
 		}
 

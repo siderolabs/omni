@@ -1449,7 +1449,7 @@ func (suite *MigrationSuite) TestGenerateAllMaintenanceConfigs() {
 	runtime, err := runtime.NewRuntime(suite.state, suite.logger)
 	suite.Require().NoError(err)
 
-	suite.Require().NoError(runtime.RegisterQController(omnictrl.NewMaintenanceConfigPatchController()))
+	suite.Require().NoError(runtime.RegisterQController(omnictrl.NewMaintenanceConfigPatchController(8090)))
 	suite.Require().NoError(runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil)))
 
 	runCtx, cancel := context.WithTimeout(ctx, time.Second)

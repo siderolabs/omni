@@ -32,7 +32,7 @@ func (suite *MaintenanceConfigPatchSuite) TestReconcile() {
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
 	defer cancel()
 
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMaintenanceConfigPatchController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMaintenanceConfigPatchController(9999)))
 
 	machineID := "test-machine"
 
@@ -55,7 +55,7 @@ apiUrl: grpc://127.0.0.1:8080?grpc_tunnel=false&jointoken=tttt
 ---
 apiVersion: v1alpha1
 kind: EventSinkConfig
-endpoint: '[fdae:41e4:649b:9303::1]:8090'
+endpoint: '[fdae:41e4:649b:9303::1]:9999'
 ---
 apiVersion: v1alpha1
 kind: KmsgLogConfig
