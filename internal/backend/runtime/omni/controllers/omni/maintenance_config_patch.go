@@ -35,7 +35,7 @@ const MaintenanceConfigPatchPrefix = "950-maintenance-config-"
 type MaintenanceConfigPatchController = qtransform.QController[*omni.MachineStatus, *omni.ConfigPatch]
 
 // NewMaintenanceConfigPatchController initializes MaintenanceConfigPatchController.
-func NewMaintenanceConfigPatchController() *MaintenanceConfigPatchController {
+func NewMaintenanceConfigPatchController(eventSinkPort int) *MaintenanceConfigPatchController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.MachineStatus, *omni.ConfigPatch]{
 			Name: "MaintenanceConfigPatchController",
@@ -62,7 +62,7 @@ func NewMaintenanceConfigPatchController() *MaintenanceConfigPatchController {
 					return err
 				}
 
-				return UpdateMaintenanceConfigPatch(configPatch, machineStatus, connectionParams)
+				return UpdateMaintenanceConfigPatch(configPatch, machineStatus, connectionParams, eventSinkPort)
 			},
 		},
 		qtransform.WithExtraMappedInput(
@@ -74,7 +74,7 @@ func NewMaintenanceConfigPatchController() *MaintenanceConfigPatchController {
 }
 
 // UpdateMaintenanceConfigPatch generates the siderolink connection config patch from the machine status and connection params.
-func UpdateMaintenanceConfigPatch(configPatch *omni.ConfigPatch, machineStatus *omni.MachineStatus, connectionParams *siderolink.ConnectionParams) error {
+func UpdateMaintenanceConfigPatch(configPatch *omni.ConfigPatch, machineStatus *omni.MachineStatus, connectionParams *siderolink.ConnectionParams, eventSinkPort int) error {
 	configPatch.Metadata().Labels().Set(omni.LabelSystemPatch, "")
 	configPatch.Metadata().Labels().Set(omni.LabelMachine, machineStatus.Metadata().ID())
 
@@ -91,9 +91,11 @@ func UpdateMaintenanceConfigPatch(configPatch *omni.ConfigPatch, machineStatus *
 	var buffer bytes.Buffer
 
 	if err = template.Execute(&buffer, struct {
-		APIURL string
+		APIURL        string
+		EventSinkPort int
 	}{
-		APIURL: url,
+		APIURL:        url,
+		EventSinkPort: eventSinkPort,
 	}); err != nil {
 		return err
 	}
