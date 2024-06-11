@@ -1,3 +1,30 @@
+## [Omni 0.37.3](https://github.com/siderolabs/omni/releases/tag/v0.37.3) (2024-06-11)
+
+Welcome to the v0.37.3 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`63b2815`](https://github.com/siderolabs/omni/commit/63b28150f16ae4a08b47df454d597b79245e1653) fix: ignore not found `ClusterMachine` in the migrations
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.37.2](https://github.com/siderolabs/omni/releases/tag/v0.37.2)
+
 ## [Omni 0.37.2](https://github.com/siderolabs/omni/releases/tag/v0.37.2) (2024-06-10)
 
 Welcome to the v0.37.2 release of Omni!
