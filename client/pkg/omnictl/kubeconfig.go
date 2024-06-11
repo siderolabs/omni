@@ -41,6 +41,7 @@ var kubeconfigCmdFlags struct {
 	force                bool
 	merge                bool
 	serviceAccount       bool
+	breakGlass           bool
 }
 
 var allGrantTypes = strings.Join([]string{
@@ -129,7 +130,10 @@ func getKubeconfig(args []string) func(ctx context.Context, client *client.Clien
 			))
 		}
 
-		opts = append(opts, management.WithGrantType(kubeconfigCmdFlags.grantType))
+		opts = append(opts,
+			management.WithGrantType(kubeconfigCmdFlags.grantType),
+			management.WithBreakGlassKubeconfig(kubeconfigCmdFlags.breakGlass),
+		)
 
 		data, err := client.Management().WithCluster(kubeconfigCmdFlags.cluster).Kubeconfig(ctx, opts...)
 		if err != nil {
@@ -219,6 +223,7 @@ func init() {
 	kubeconfigCmd.Flags().StringSliceVar(&kubeconfigCmdFlags.serviceAccountGroups, "groups", []string{constants.DefaultAccessGroup},
 		fmt.Sprintf("group to be used in the service account token (groups). only used when --%s is set to true", serviceAccountFlag))
 	kubeconfigCmd.Flags().StringVar(&kubeconfigCmdFlags.grantType, "grant-type", "", fmt.Sprintf("Authorization grant type to use. One of (%s)", allGrantTypes))
+	kubeconfigCmd.Flags().BoolVar(&kubeconfigCmdFlags.breakGlass, "break-glass", false, "get kubeconfig that allows accessing nodes bypasing Omni (if enabled for the account)")
 
 	kubeconfigCmd.MarkFlagRequired("cluster") //nolint:errcheck
 

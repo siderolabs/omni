@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	stderrors "errors"
 	"fmt"
+	"net"
 	goruntime "runtime"
 	"strings"
 	"text/template"
@@ -42,6 +43,7 @@ import (
 	pkgruntime "github.com/siderolabs/omni/client/pkg/runtime"
 	"github.com/siderolabs/omni/internal/backend/oidc/external"
 	"github.com/siderolabs/omni/internal/backend/runtime"
+	"github.com/siderolabs/omni/internal/backend/runtime/helpers"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
@@ -303,6 +305,34 @@ func (r *Runtime) GetOIDCKubeconfig(context *common.Context, identity string, ex
 	}
 
 	return buf.Bytes(), nil
+}
+
+// BreakGlassKubeconfig returns raw kubeconfig.
+func (r *Runtime) BreakGlassKubeconfig(ctx context.Context, id string) ([]byte, error) {
+	ctx = actor.MarkContextAsInternalActor(ctx)
+
+	kubeconfig, err := safe.ReaderGetByID[*omni.Kubeconfig](ctx, r.state, id)
+	if err != nil {
+		return nil, err
+	}
+
+	config, err := clientcmd.Load(kubeconfig.TypedSpec().Value.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	endpoints, err := helpers.GetMachineEndpoints(ctx, r.state, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(endpoints) > 0 {
+		for _, c := range config.Clusters {
+			c.Server = fmt.Sprintf("https://%s", net.JoinHostPort(endpoints[0], "6443"))
+		}
+	}
+
+	return clientcmd.Write(*config)
 }
 
 // GetKubeconfig returns kubeconfig.

@@ -98,8 +98,6 @@ func (suite *GrpcSuite) SetupTest() {
 	suite.Require().NoError(err)
 	runtime.Install(omniruntime.Name, suite.runtime)
 
-	suite.Require().NoError(err)
-
 	suite.startRuntime()
 
 	authConfigInterceptor := interceptor.NewAuthConfig(false, logger.With(logging.Component("interceptor")))

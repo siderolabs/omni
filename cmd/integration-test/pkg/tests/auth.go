@@ -914,6 +914,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet:        readOnlyVerbSet,
 				isSignatureSufficient: true,
 			},
+			{
+				resource:       omni.NewClusterTaint(resources.DefaultNamespace, uuid.New().String()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
 		}...)
 
 		// no access resources

@@ -24,7 +24,8 @@ var talosconfigCmdFlags struct {
 	forceContextName string
 	force            bool
 	merge            bool
-	getAdminConfig   bool
+	breakGlass       bool
+	getRawConfig     bool
 }
 
 // talosconfigCmd represents the get (resources) command.
@@ -97,7 +98,8 @@ func getTalosconfig(args []string) func(ctx context.Context, client *client.Clie
 		}
 
 		opts := []management.TalosconfigOption{
-			management.WithAdminTalosconfig(talosconfigCmdFlags.getAdminConfig),
+			management.WithBreakGlassTalosconfig(talosconfigCmdFlags.breakGlass),
+			management.WithRawTalosconfig(talosconfigCmdFlags.getRawConfig),
 		}
 
 		var data []byte
@@ -140,9 +142,10 @@ func init() {
 	talosconfigCmd.Flags().StringVarP(&talosconfigCmdFlags.cluster, "cluster", "c", "", "cluster to use")
 	talosconfigCmd.Flags().BoolVarP(&talosconfigCmdFlags.force, "force", "f", false, "force overwrite of talosconfig if already present")
 	talosconfigCmd.Flags().BoolVarP(&talosconfigCmdFlags.merge, "merge", "m", true, "merge with existing talosconfig")
+	talosconfigCmd.Flags().BoolVar(&talosconfigCmdFlags.breakGlass, "break-glass", false, "get operator talosconfig that allows bypassing Omni (if enabled for the account)")
 
 	if constants.IsDebugBuild {
-		talosconfigCmd.Flags().BoolVar(&talosconfigCmdFlags.getAdminConfig, "admin", false, "get admin talosconfig (DEBUG-ONLY)")
+		talosconfigCmd.Flags().BoolVar(&talosconfigCmdFlags.getRawConfig, "raw", false, "get raw talosconfig as it's stored in Omni (DEBUG-ONLY)")
 	}
 
 	RootCmd.AddCommand(talosconfigCmd)

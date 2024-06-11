@@ -128,7 +128,8 @@ func (m *TalosconfigRequest) CloneVT() *TalosconfigRequest {
 		return (*TalosconfigRequest)(nil)
 	}
 	r := new(TalosconfigRequest)
-	r.Admin = m.Admin
+	r.Raw = m.Raw
+	r.BreakGlass = m.BreakGlass
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -304,6 +305,7 @@ func (m *KubeconfigRequest) CloneVT() *KubeconfigRequest {
 	r.ServiceAccountTtl = (*durationpb.Duration)((*durationpb1.Duration)(m.ServiceAccountTtl).CloneVT())
 	r.ServiceAccountUser = m.ServiceAccountUser
 	r.GrantType = m.GrantType
+	r.BreakGlass = m.BreakGlass
 	if rhs := m.ServiceAccountGroups; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -618,7 +620,10 @@ func (this *TalosconfigRequest) EqualVT(that *TalosconfigRequest) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.Admin != that.Admin {
+	if this.Raw != that.Raw {
+		return false
+	}
+	if this.BreakGlass != that.BreakGlass {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -857,6 +862,9 @@ func (this *KubeconfigRequest) EqualVT(that *KubeconfigRequest) bool {
 		}
 	}
 	if this.GrantType != that.GrantType {
+		return false
+	}
+	if this.BreakGlass != that.BreakGlass {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1354,9 +1362,19 @@ func (m *TalosconfigRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.Admin {
+	if m.BreakGlass {
 		i--
-		if m.Admin {
+		if m.BreakGlass {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Raw {
+		i--
+		if m.Raw {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
@@ -1781,6 +1799,16 @@ func (m *KubeconfigRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.BreakGlass {
+		i--
+		if m.BreakGlass {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x30
 	}
 	if len(m.GrantType) > 0 {
 		i -= len(m.GrantType)
@@ -2405,7 +2433,10 @@ func (m *TalosconfigRequest) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if m.Admin {
+	if m.Raw {
+		n += 2
+	}
+	if m.BreakGlass {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -2581,6 +2612,9 @@ func (m *KubeconfigRequest) SizeVT() (n int) {
 	l = len(m.GrantType)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.BreakGlass {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -3268,7 +3302,7 @@ func (m *TalosconfigRequest) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Admin", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Raw", wireType)
 			}
 			var v int
 			for shift := uint(0); ; shift += 7 {
@@ -3285,7 +3319,27 @@ func (m *TalosconfigRequest) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
-			m.Admin = bool(v != 0)
+			m.Raw = bool(v != 0)
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BreakGlass", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.BreakGlass = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -4373,6 +4427,26 @@ func (m *KubeconfigRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			m.GrantType = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BreakGlass", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.BreakGlass = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

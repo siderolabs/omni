@@ -270,6 +270,9 @@ message ClusterSpec {
   EtcdBackupConf backup_configuration = 5;
 }
 
+// ClusterTaintSpec describe a Talos cluster taint.
+message ClusterTaintSpec {}
+
 // EtcdBackupConf describes the backup configuration.
 message EtcdBackupConf {
   // Interval is the interval between backups. If not set, backups are disabled.

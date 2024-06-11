@@ -90,6 +90,8 @@ type Params struct {
 	LogResourceUpdatesLogLevel string   `yaml:"logResourceUpdatesLogLevel"`
 
 	EmbeddedDiscoveryService EmbeddedDiscoveryServiceParams `yaml:"embeddedDiscoveryService"`
+
+	EnableBreakGlassConfigs bool `yaml:"enableBreakGlassConfigs"`
 }
 
 // EmbeddedDiscoveryServiceParams defines embedded discovery service configs.

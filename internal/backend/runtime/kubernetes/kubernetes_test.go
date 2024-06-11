@@ -6,19 +6,27 @@
 package kubernetes_test
 
 import (
+	"context"
 	_ "embed"
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/typed"
+	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
+	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/siderolabs/omni/client/api/common"
+	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/k8s"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 )
 
@@ -51,6 +59,9 @@ var oidcKubeconfig2 []byte
 
 //go:embed testdata/oidc-kubeconfig3.yaml
 var oidcKubeconfig3 []byte
+
+//go:embed testdata/admin-kubeconfig.yaml
+var adminKubeconfig []byte
 
 func TestOIDCKubeconfig(t *testing.T) {
 	r, err := kubernetes.New(nil)
@@ -88,4 +99,59 @@ func TestOIDCKubeconfigWithExtraOptions(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, string(oidcKubeconfig3), string(kubeconfig))
+}
+
+func TestBreakGlassKubeconfig(t *testing.T) {
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+
+	r, err := kubernetes.New(st)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	_, err = r.BreakGlassKubeconfig(ctx, "cluster1")
+	require.Error(t, err)
+	require.True(t, state.IsNotFoundError(err))
+
+	kubeconfigResource := omni.NewKubeconfig(resources.DefaultNamespace, "cluster1")
+
+	kubeconfigResource.TypedSpec().Value.Data = adminKubeconfig
+
+	require.NoError(t, st.Create(ctx, kubeconfigResource))
+
+	kubeconfig, err := r.BreakGlassKubeconfig(ctx, "cluster1")
+	require.NoError(t, err)
+
+	config, err := clientcmd.Load(kubeconfig)
+	require.NoError(t, err)
+
+	require.NotEmpty(t, config.Clusters)
+
+	m1 := omni.NewClusterMachineIdentity(resources.DefaultNamespace, "3")
+	m2 := omni.NewClusterMachineIdentity(resources.DefaultNamespace, "2")
+	m3 := omni.NewClusterMachineIdentity(resources.DefaultNamespace, "1")
+
+	m1.Metadata().Labels().Set(omni.LabelCluster, "cluster1")
+	m3.Metadata().Labels().Set(omni.LabelCluster, "cluster1")
+
+	m1.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
+	m2.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
+
+	m1.TypedSpec().Value.NodeIps = []string{"10.1.0.2"}
+	m2.TypedSpec().Value.NodeIps = []string{"10.1.0.3"}
+	m3.TypedSpec().Value.NodeIps = []string{"10.1.0.4"}
+
+	require.NoError(t, st.Create(ctx, m1))
+	require.NoError(t, st.Create(ctx, m2))
+	require.NoError(t, st.Create(ctx, m3))
+
+	kubeconfig, err = r.BreakGlassKubeconfig(ctx, "cluster1")
+	require.NoError(t, err)
+
+	config, err = clientcmd.Load(kubeconfig)
+	require.NoError(t, err)
+
+	require.NotEmpty(t, config.Clusters)
+	require.Equal(t, "https://10.1.0.2:6443", config.Clusters["cluster1"].Server)
 }

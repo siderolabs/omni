@@ -38,8 +38,10 @@ message ValidateConfigRequest {
 }
 
 message TalosconfigRequest {
-  // Admin indicates whether to generate an admin talosconfig or a regular one.
-  bool admin = 1;
+  // Raw indicates whether to generate an raw talosconfig or a regular one.
+  bool raw = 1;
+  // BreakGlass indicates whether to generate an operator break glass talosconfig or a regular one.
+  bool break_glass = 2;
 }
 
 message CreateServiceAccountRequest {
@@ -91,6 +93,7 @@ message KubeconfigRequest {
   string service_account_user = 3;
   repeated string service_account_groups = 4;
   string grant_type = 5;
+  bool break_glass = 6;
 }
 
 message KubernetesUpgradePreChecksRequest {

@@ -39,7 +39,8 @@ export type ValidateConfigRequest = {
 }
 
 export type TalosconfigRequest = {
-  admin?: boolean
+  raw?: boolean
+  break_glass?: boolean
 }
 
 export type CreateServiceAccountRequest = {
@@ -87,6 +88,7 @@ export type KubeconfigRequest = {
   service_account_user?: string
   service_account_groups?: string[]
   grant_type?: string
+  break_glass?: boolean
 }
 
 export type KubernetesUpgradePreChecksRequest = {

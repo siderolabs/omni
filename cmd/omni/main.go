@@ -529,4 +529,11 @@ func init() {
 		config.Config.EmbeddedDiscoveryService.LogLevel,
 		"log level for the embedded discovery service - it has no effect if it is lower (more verbose) than the main log level",
 	)
+
+	rootCmd.Flags().BoolVar(
+		&config.Config.EnableBreakGlassConfigs,
+		"enable-break-glass-configs",
+		config.Config.EnableBreakGlassConfigs,
+		"Allows downloading admin Talos and Kubernetes configs.",
+	)
 }

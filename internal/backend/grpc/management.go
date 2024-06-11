@@ -58,6 +58,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
+	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
@@ -89,6 +90,10 @@ func (s *managementServer) gateway(ctx context.Context, mux *gateway.ServeMux, a
 }
 
 func (s *managementServer) Kubeconfig(ctx context.Context, req *management.KubeconfigRequest) (*management.KubeconfigResponse, error) {
+	if req.BreakGlass {
+		return s.breakGlassKubeconfig(ctx)
+	}
+
 	commonContext := router.ExtractContext(ctx)
 
 	clusterName := ""
@@ -105,7 +110,7 @@ func (s *managementServer) Kubeconfig(ctx context.Context, req *management.Kubec
 		return s.serviceAccountKubeconfig(ctx, req)
 	}
 
-	// not a service account, generate OIDC (user) kubeconfig
+	// not a service account, generate OIDC (user) or admin kubeconfig
 
 	authResult, err := auth.CheckGRPC(ctx, auth.WithRole(role.Reader))
 	if err != nil {
@@ -116,7 +121,7 @@ func (s *managementServer) Kubeconfig(ctx context.Context, req *management.Kubec
 		GetOIDCKubeconfig(context *commonOmni.Context, identity string, extraOptions ...string) ([]byte, error)
 	}
 
-	r, err := runtime.LookupInterface[oidcRuntime](kubernetes.Name)
+	rt, err := runtime.LookupInterface[oidcRuntime](kubernetes.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +142,7 @@ func (s *managementServer) Kubeconfig(ctx context.Context, req *management.Kubec
 		}
 	}
 
-	kubeconfig, err := r.GetOIDCKubeconfig(commonContext, authResult.Identity, extraOptions...)
+	kubeconfig, err := rt.GetOIDCKubeconfig(commonContext, authResult.Identity, extraOptions...)
 	if err != nil {
 		return nil, err
 	}
@@ -148,16 +153,24 @@ func (s *managementServer) Kubeconfig(ctx context.Context, req *management.Kubec
 }
 
 func (s *managementServer) Talosconfig(ctx context.Context, request *management.TalosconfigRequest) (*management.TalosconfigResponse, error) {
+	r := role.Reader
+	if request.BreakGlass {
+		r = role.Admin
+	}
+
 	// getting talosconfig is low risk, as it doesn't contain any sensitive data
 	// real check for authentication happens in the Talos API gRPC proxy
-	authResult, err := auth.CheckGRPC(ctx, auth.WithRole(role.Reader))
+	authResult, err := auth.CheckGRPC(ctx, auth.WithRole(r))
 	if err != nil {
 		return nil, err
 	}
 
 	// this one is not low-risk, but it works only in debug mode
-	if request.Admin {
-		return s.adminTalosconfig(ctx)
+	switch {
+	case request.Raw:
+		return s.breakGlassTalosconfig(ctx, true)
+	case request.BreakGlass:
+		return s.breakGlassTalosconfig(ctx, false)
 	}
 
 	type talosRuntime interface {
@@ -259,8 +272,46 @@ func (s *managementServer) ValidateConfig(ctx context.Context, request *manageme
 	return &emptypb.Empty{}, nil
 }
 
-func (s *managementServer) adminTalosconfig(ctx context.Context) (*management.TalosconfigResponse, error) {
+func (s *managementServer) markClusterAsTainted(ctx context.Context, name string) error {
+	if err := s.omniState.Create(ctx, omnires.NewClusterTaint(resources.DefaultNamespace, name)); err != nil && !state.IsConflictError(err) {
+		return err
+	}
+
+	return nil
+}
+
+func getRaw(ctx context.Context, clusterName string) ([]byte, error) {
 	if !constants.IsDebugBuild {
+		return nil, status.Error(codes.PermissionDenied, "not allowed")
+	}
+
+	type raw interface {
+		RawTalosconfig(ctx context.Context, clusterName string) ([]byte, error)
+	}
+
+	omniRuntime, err := runtime.LookupInterface[raw](omni.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	return omniRuntime.RawTalosconfig(ctx, clusterName)
+}
+
+func getBreakGlass(ctx context.Context, clusterName string) ([]byte, error) {
+	type operator interface {
+		OperatorTalosconfig(ctx context.Context, clusterName string) ([]byte, error)
+	}
+
+	omniRuntime, err := runtime.LookupInterface[operator](omni.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	return omniRuntime.OperatorTalosconfig(ctx, clusterName)
+}
+
+func (s *managementServer) breakGlassTalosconfig(ctx context.Context, raw bool) (*management.TalosconfigResponse, error) {
+	if !constants.IsDebugBuild && !config.Config.EnableBreakGlassConfigs {
 		return nil, status.Error(codes.PermissionDenied, "not allowed")
 	}
 
@@ -272,22 +323,68 @@ func (s *managementServer) adminTalosconfig(ctx context.Context) (*management.Ta
 
 	clusterName := routerContext.Name
 
-	type omniAdmin interface {
-		AdminTalosconfig(ctx context.Context, clusterName string) ([]byte, error)
+	var (
+		data []byte
+		err  error
+	)
+
+	if raw {
+		data, err = getRaw(ctx, clusterName)
+	} else {
+		data, err = getBreakGlass(ctx, clusterName)
 	}
 
-	omniRuntime, err := runtime.LookupInterface[omniAdmin](omni.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	data, err := omniRuntime.AdminTalosconfig(ctx, clusterName)
-	if err != nil {
+	if err = s.markClusterAsTainted(ctx, clusterName); err != nil {
 		return nil, err
 	}
 
 	return &management.TalosconfigResponse{
 		Talosconfig: data,
+	}, nil
+}
+
+func (s *managementServer) breakGlassKubeconfig(ctx context.Context) (*management.KubeconfigResponse, error) {
+	_, err := auth.CheckGRPC(ctx, auth.WithRole(role.Admin))
+	if err != nil {
+		return nil, err
+	}
+
+	if !constants.IsDebugBuild && !config.Config.EnableBreakGlassConfigs {
+		return nil, status.Error(codes.PermissionDenied, "not allowed")
+	}
+
+	routerContext := router.ExtractContext(ctx)
+
+	if routerContext == nil || routerContext.Name == "" {
+		return nil, status.Error(codes.InvalidArgument, "cluster name is required")
+	}
+
+	clusterName := routerContext.Name
+
+	type kubernetesAdmin interface {
+		BreakGlassKubeconfig(ctx context.Context, id string) ([]byte, error)
+	}
+
+	kubernetesRuntime, err := runtime.LookupInterface[kubernetesAdmin](kubernetes.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := kubernetesRuntime.BreakGlassKubeconfig(ctx, clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = s.markClusterAsTainted(ctx, clusterName); err != nil {
+		return nil, err
+	}
+
+	return &management.KubeconfigResponse{
+		Kubeconfig: data,
 	}, nil
 }
 

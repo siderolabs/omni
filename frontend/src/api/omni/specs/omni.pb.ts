@@ -251,6 +251,9 @@ export type ClusterSpec = {
   backup_configuration?: EtcdBackupConf
 }
 
+export type ClusterTaintSpec = {
+}
+
 export type EtcdBackupConf = {
   interval?: GoogleProtobufDuration.Duration
   enabled?: boolean

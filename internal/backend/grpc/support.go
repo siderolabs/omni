@@ -241,6 +241,10 @@ func (s *managementServer) collectClusterResources(ctx context.Context, cluster 
 			id: cluster,
 		},
 		{
+			rt: omni.ClusterTaintType,
+			id: cluster,
+		},
+		{
 			rt: omni.ClusterStatusType,
 			id: cluster,
 		},

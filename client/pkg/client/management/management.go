@@ -26,10 +26,17 @@ import (
 // TalosconfigOption is a functional option for Talosconfig.
 type TalosconfigOption func(*management.TalosconfigRequest)
 
-// WithAdminTalosconfig sets whether the Talosconfig request should return an admin Talosconfig.
-func WithAdminTalosconfig(adminConfig bool) TalosconfigOption {
+// WithBreakGlassTalosconfig sets whether the Talosconfig request should return an operator Talosconfig which bypasses Omni.
+func WithBreakGlassTalosconfig(value bool) TalosconfigOption {
 	return func(req *management.TalosconfigRequest) {
-		req.Admin = adminConfig
+		req.BreakGlass = value
+	}
+}
+
+// WithRawTalosconfig sets whether the Talosconfig request should return a raw Talosconfig.
+func WithRawTalosconfig(value bool) TalosconfigOption {
+	return func(req *management.TalosconfigRequest) {
+		req.Raw = value
 	}
 }
 
@@ -50,6 +57,13 @@ func WithServiceAccount(ttl time.Duration, user string, groups ...string) Kubeco
 func WithGrantType(grantType string) KubeconfigOption {
 	return func(request *management.KubeconfigRequest) {
 		request.GrantType = grantType
+	}
+}
+
+// WithBreakGlassKubeconfig sets whether the Kubeconfig request should return an admin Kubeconfig.
+func WithBreakGlassKubeconfig(value bool) KubeconfigOption {
+	return func(request *management.KubeconfigRequest) {
+		request.BreakGlass = value
 	}
 }
 

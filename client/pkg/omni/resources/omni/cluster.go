@@ -33,7 +33,7 @@ const (
 	ClusterType = resource.Type("Clusters.omni.sidero.dev")
 )
 
-// Cluster describes client config for Talos API.
+// Cluster describes cluster resource.
 type Cluster = typed.Resource[ClusterSpec, ClusterExtension]
 
 // ClusterSpec wraps specs.ClusterSpec.

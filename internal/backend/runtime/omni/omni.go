@@ -21,6 +21,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/siderolabs/gen/optional"
+	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
+	"github.com/siderolabs/talos/pkg/machinery/role"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/common"
@@ -36,6 +38,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/resourcelogger"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/cosi"
+	"github.com/siderolabs/omni/internal/backend/runtime/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/image"
@@ -477,8 +480,8 @@ func (r *Runtime) GetCOSIRuntime() *cosiruntime.Runtime {
 	return r.controllerRuntime
 }
 
-// AdminTalosconfig returns the raw admin talosconfig for the cluster with the given name.
-func (r *Runtime) AdminTalosconfig(ctx context.Context, clusterName string) ([]byte, error) {
+// RawTalosconfig returns the raw admin talosconfig for the cluster with the given name.
+func (r *Runtime) RawTalosconfig(ctx context.Context, clusterName string) ([]byte, error) {
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
 	clusterEndpoint, err := safe.StateGet[*omni.ClusterEndpoint](ctx, r.state, omni.NewClusterEndpoint(omniresources.DefaultNamespace, clusterName).Metadata())
@@ -494,6 +497,40 @@ func (r *Runtime) AdminTalosconfig(ctx context.Context, clusterName string) ([]b
 	}
 
 	return omni.NewTalosClientConfig(talosConfig, endpoints...).Bytes()
+}
+
+// OperatorTalosconfig returns the os:operator talosconfig for the cluster with the given name.
+func (r *Runtime) OperatorTalosconfig(ctx context.Context, clusterName string) ([]byte, error) {
+	ctx = actor.MarkContextAsInternalActor(ctx)
+
+	endpoints, err := helpers.GetMachineEndpoints(ctx, r.state, clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	s, err := safe.StateGetByID[*omni.ClusterSecrets](ctx, r.state, clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	bundle, err := omni.ToSecretsBundle(s)
+	if err != nil {
+		return nil, err
+	}
+
+	clientSecret, err := bundle.GenerateTalosAPIClientCertificate(role.MakeSet(role.Operator))
+	if err != nil {
+		return nil, err
+	}
+
+	config := clientconfig.NewConfig(
+		clusterName,
+		endpoints,
+		bundle.Certs.OS.Crt,
+		clientSecret,
+	)
+
+	return config.Bytes()
 }
 
 type item struct {

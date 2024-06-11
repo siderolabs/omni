@@ -68,6 +68,7 @@ export const ClusterMachineStatusType = "ClusterMachineStatuses.omni.sidero.dev"
 export const ClusterMachineTalosVersionType = "ClusterMachineTalosVersions.omni.sidero.dev";
 export const ClusterMachineTemplateType = "ClusterMachineTemplates.omni.sidero.dev";
 export const ClusterStatusType = "ClusterStatuses.omni.sidero.dev";
+export const ClusterTaintType = "ClusterTaints.omni.sidero.dev";
 export const ClusterUUIDType = "ClusterUUIDs.omni.sidero.dev";
 export const ConfigPatchType = "ConfigPatches.omni.sidero.dev";
 export const ControlPlaneStatusType = "ControlPlaneStatuses.omni.sidero.dev";
