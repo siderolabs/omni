@@ -1288,6 +1288,10 @@ func migrateInstallImageConfigIntoGenOptions(ctx context.Context, st state.State
 		var clusterMachine *omni.ClusterMachine
 
 		if clusterMachine, err = safe.StateGetByID[*omni.ClusterMachine](ctx, st, genOptions.Metadata().ID()); err != nil {
+			if state.IsNotFoundError(err) {
+				continue
+			}
+
 			return err
 		}
 

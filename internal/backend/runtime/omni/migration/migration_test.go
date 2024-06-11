@@ -1553,6 +1553,9 @@ func (suite *MigrationSuite) TestMigrateInstallImageConfigIntoGenOptions() {
 
 	for _, res := range []resource.Resource{
 		clusterMachine, clusterMachineConfig, configPatches, genOptions, clusterSecrets, lbConfig, cluster,
+		omni.NewMachineStatus(resources.DefaultNamespace, "test2"),
+		omni.NewMachineConfigGenOptions(resources.DefaultNamespace, "test2"),
+		omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, "test2"),
 	} {
 		suite.Require().NoError(suite.state.Create(ctx, res, state.WithCreateOwner(res.Metadata().Owner())))
 	}
