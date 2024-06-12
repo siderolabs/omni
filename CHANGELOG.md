@@ -1,3 +1,30 @@
+## [Omni 0.37.4](https://github.com/siderolabs/omni/releases/tag/v0.37.4) (2024-06-12)
+
+Welcome to the v0.37.4 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`a54cc0f`](https://github.com/siderolabs/omni/commit/a54cc0f12424dd1e48b853d58ce2db8e92a1fada) fix: properly generate maintenance config patches
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.37.3](https://github.com/siderolabs/omni/releases/tag/v0.37.3)
+
 ## [Omni 0.37.3](https://github.com/siderolabs/omni/releases/tag/v0.37.3) (2024-06-11)
 
 Welcome to the v0.37.3 release of Omni!
