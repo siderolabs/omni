@@ -171,7 +171,7 @@ func WatchLegacy(ctx context.Context, st state.State, md resource.Metadata, out 
 				}
 
 				if items != nil {
-					slices.Delete(items, index, index+1) //nolint:govet
+					items = slices.Delete(items, index, index+1)
 				}
 
 				channel.SendWithContext(ctx, out, responseFromResource(ev, r))
