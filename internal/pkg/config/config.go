@@ -133,7 +133,8 @@ func (ebp EtcdBackupParams) GetStorageType() (EtcdBackupStorage, error) {
 
 // WorkloadProxyingParams defines workload proxying configs.
 type WorkloadProxyingParams struct {
-	Enabled bool `yaml:"enabled"`
+	Subdomain string `yaml:"subdomain"`
+	Enabled   bool   `yaml:"enabled"`
 }
 
 // LoadBalancerParams defines load balancer configs.
@@ -262,7 +263,8 @@ var (
 		},
 
 		WorkloadProxying: WorkloadProxyingParams{
-			Enabled: true,
+			Enabled:   true,
+			Subdomain: "proxy-us",
 		},
 
 		LocalResourceServerPort: 8081,

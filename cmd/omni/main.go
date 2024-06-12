@@ -430,6 +430,7 @@ func init() {
 		"make Omni version discovery controler include Talos pre-release versions.")
 
 	rootCmd.Flags().BoolVar(&config.Config.WorkloadProxying.Enabled, "workload-proxying-enabled", config.Config.WorkloadProxying.Enabled, "enable workload proxying feature.")
+	rootCmd.Flags().StringVar(&config.Config.WorkloadProxying.Subdomain, "workload-proxying-subdomain", config.Config.WorkloadProxying.Subdomain, "workload proxying subdomain.")
 
 	rootCmd.Flags().IntVar(&config.Config.LocalResourceServerPort, "local-resource-server-port", config.Config.LocalResourceServerPort, "port for local read-only public resource server.")
 

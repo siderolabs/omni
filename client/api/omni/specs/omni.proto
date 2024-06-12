@@ -874,6 +874,9 @@ message ExposedServiceSpec {
 
   // IconBase64 is the icon of the service to be displayed on Omni Web.
   string icon_base64 = 3;
+
+  // Url is the full URL to access the service.
+  string url = 4;
 }
 
 message FeaturesConfigSpec {

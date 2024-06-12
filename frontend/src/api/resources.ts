@@ -25,7 +25,6 @@ export const ServiceLabelAnnotationKey = "omni-kube-service-exposer.sidero.dev/l
 export const ServicePortAnnotationKey = "omni-kube-service-exposer.sidero.dev/port";
 export const ServiceIconAnnotationKey = "omni-kube-service-exposer.sidero.dev/icon";
 export const installDiskMinSize = 5e+09;
-export const workloadProxyHostPrefix = "p";
 export const workloadProxyPublicKeyIdCookie = "publicKeyId";
 export const workloadProxyPublicKeyIdSignatureBase64Cookie = "publicKeyIdSignatureBase64";
 export const authPublicKeyIDQueryParam = "public-key-id";

@@ -569,6 +569,7 @@ export type ExposedServiceSpec = {
   port?: number
   label?: string
   icon_base64?: string
+  url?: string
 }
 
 export type FeaturesConfigSpec = {

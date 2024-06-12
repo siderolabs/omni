@@ -67,6 +67,17 @@ const (
 // KubernetesStatusController plays the role of machine discovery.
 type KubernetesStatusController struct {
 	watchers map[string]*kubernetesWatcher
+
+	advertisedAPIURL       string
+	workloadProxySubdomain string
+}
+
+// NewKubernetesStatusController creates a new KubernetesStatusController.
+func NewKubernetesStatusController(advertisedAPIURL, workloadProxySubdomain string) *KubernetesStatusController {
+	return &KubernetesStatusController{
+		advertisedAPIURL:       advertisedAPIURL,
+		workloadProxySubdomain: workloadProxySubdomain,
+	}
 }
 
 // Name implements controller.Controller interface.
@@ -227,6 +238,11 @@ func (ctrl *KubernetesStatusController) updateExposedServices(ctx context.Contex
 			res.TypedSpec().Value.Label = label
 			res.TypedSpec().Value.IconBase64 = icon
 
+			res.TypedSpec().Value.Url, err = ctrl.buildExposedServiceURL(alias)
+			if err != nil {
+				return fmt.Errorf("error building exposed service URL: %w", err)
+			}
+
 			return nil
 		}); err != nil {
 			return fmt.Errorf("error updating exposed service: %w", err)
@@ -238,6 +254,29 @@ func (ctrl *KubernetesStatusController) updateExposedServices(ctx context.Contex
 	}
 
 	return tracker.cleanup(ctx)
+}
+
+func (ctrl *KubernetesStatusController) buildExposedServiceURL(alias string) (string, error) {
+	apiURLParts := strings.SplitN(ctrl.advertisedAPIURL, "//", 2)
+	if len(apiURLParts) != 2 {
+		return "", fmt.Errorf("invalid advertised API URL protocol: %s", ctrl.advertisedAPIURL)
+	}
+
+	protocol := apiURLParts[0]
+	rest := apiURLParts[1]
+
+	restParts := strings.SplitN(rest, ".", 2)
+	if len(restParts) != 2 {
+		return "", fmt.Errorf("invalid advertised API URL: %s", ctrl.advertisedAPIURL)
+	}
+
+	instanceName := restParts[0]
+	rest = restParts[1]
+
+	// example: g3a4ana-demo.proxy-us.omni.siderolabs.io
+	url := protocol + "//" + alias + "-" + instanceName + "." + ctrl.workloadProxySubdomain + "." + rest
+
+	return url, nil
 }
 
 func (ctrl *KubernetesStatusController) parseIcon(iconBase64 string) (string, error) {

@@ -52,6 +52,10 @@ func (ExposedServiceExtension) ResourceDefinition() meta.ResourceDefinitionSpec 
 				Name:     "Label",
 				JSONPath: "{.label}",
 			},
+			{
+				Name:     "URL",
+				JSONPath: "{.url}",
+			},
 		},
 	}
 }

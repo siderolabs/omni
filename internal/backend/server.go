@@ -557,6 +557,7 @@ func (s *Server) workloadProxyHandler(next http.Handler) (http.Handler, error) {
 		s.workloadProxyServiceRegistry,
 		pgpSignatureValidator,
 		mainURL,
+		config.Config.WorkloadProxying.Subdomain,
 		s.logger.With(logging.Component("workload_proxy_handler")),
 	)
 }

@@ -76,7 +76,7 @@ func TestHandler(t *testing.T) {
 		accessValidator := &mockAccessValidator{}
 		logger := zaptest.NewLogger(t)
 
-		handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, logger)
+		handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, "proxy-us", logger)
 		require.NoError(t, err)
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://instanceid.example.com/example", nil)
@@ -98,14 +98,14 @@ func TestHandler(t *testing.T) {
 		accessValidator := &mockAccessValidator{}
 		logger := zaptest.NewLogger(t)
 
-		handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, logger)
+		handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, "proxy-us", logger)
 		require.NoError(t, err)
 
 		rr := httptest.NewRecorder()
 
 		testServiceAlias := "testsvc"
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://%s-%s-instanceid.example.com/example", workloadproxy.HostPrefix, testServiceAlias), nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://%s-instanceid.proxy-us.example.com/example", testServiceAlias), nil)
 		require.NoError(t, err)
 
 		handler.ServeHTTP(rr, req)
@@ -121,7 +121,7 @@ func TestHandler(t *testing.T) {
 
 		redirectBackURL := redirectedURL.Query().Get("redirect")
 
-		require.Equal(t, fmt.Sprintf("https://%s-%s-instanceid.example.com:%s/example", workloadproxy.HostPrefix, testServiceAlias, redirectedURL.Port()), redirectBackURL)
+		require.Equal(t, fmt.Sprintf("https://%s-instanceid.proxy-us.example.com:%s/example", testServiceAlias, redirectedURL.Port()), redirectBackURL)
 	})
 
 	t.Run("subdomain request with cookies", func(t *testing.T) {
@@ -132,14 +132,49 @@ func TestHandler(t *testing.T) {
 		accessValidator := &mockAccessValidator{}
 		logger := zaptest.NewLogger(t)
 
-		handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, logger)
+		handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, "proxy-us", logger)
 		require.NoError(t, err)
 
 		rr := httptest.NewRecorder()
 
 		testServiceAlias := "testsvc2"
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://%s-%s-instanceid.example.com/example", workloadproxy.HostPrefix, testServiceAlias), nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://%s-instanceid.proxy-us.example.com/example", testServiceAlias), nil)
+		require.NoError(t, err)
+
+		testPublicKeyID := "test-public-key-id"
+		testPublicKeyIDSignatureBase64 := base64.StdEncoding.EncodeToString([]byte("test-signed-public-key-id"))
+
+		req.AddCookie(&http.Cookie{Name: workloadproxy.PublicKeyIDCookie, Value: testPublicKeyID})
+		req.AddCookie(&http.Cookie{Name: workloadproxy.PublicKeyIDSignatureBase64Cookie, Value: testPublicKeyIDSignatureBase64})
+
+		handler.ServeHTTP(rr, req)
+
+		require.Equal(t, []string{testServiceAlias}, proxyProvider.aliases)
+
+		require.Equal(t, http.StatusOK, rr.Code)
+
+		require.Equal(t, []string{testPublicKeyID}, accessValidator.publicKeyIDs)
+		require.Equal(t, []string{testPublicKeyIDSignatureBase64}, accessValidator.publicKeyIDSignatureBase64s)
+		require.Equal(t, []resource.ID{"test-cluster"}, accessValidator.clusterIDs)
+	})
+
+	t.Run("subdomain request with cookies - legacy format", func(t *testing.T) {
+		t.Parallel()
+
+		next := &mockHandler{}
+		proxyProvider := &mockProxyProvider{}
+		accessValidator := &mockAccessValidator{}
+		logger := zaptest.NewLogger(t)
+
+		handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, "proxy-us", logger)
+		require.NoError(t, err)
+
+		rr := httptest.NewRecorder()
+
+		testServiceAlias := "testsvc2"
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://%s-%s-instanceid.example.com/example", workloadproxy.LegacyHostPrefix, testServiceAlias), nil)
 		require.NoError(t, err)
 
 		testPublicKeyID := "test-public-key-id"

@@ -7,10 +7,8 @@
 package workloadproxy
 
 const (
-	// HostPrefix is the prefix used to distinguish subdomain requests which should be proxied to the workload clusters.
-	//
-	// tsgen:workloadProxyHostPrefix
-	HostPrefix = "p"
+	// LegacyHostPrefix is the prefix used to distinguish subdomain requests in the legacy domain format which should be proxied to the workload clusters.
+	LegacyHostPrefix = "p"
 
 	// PublicKeyIDCookie is the name of the cookie used for workload proxy request authentication that contains the public key ID.
 	//

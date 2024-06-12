@@ -169,7 +169,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 			TalosClientFactory: talosClientFactory,
 			NodeResolver:       dnsService,
 		}),
-		&omnictrl.KubernetesStatusController{},
+		omnictrl.NewKubernetesStatusController(config.Config.APIURL, config.Config.WorkloadProxying.Subdomain),
 		&omnictrl.LoadBalancerController{},
 		&omnictrl.MachineSetNodeController{},
 		&omnictrl.MachineSetDestroyStatusController{},
