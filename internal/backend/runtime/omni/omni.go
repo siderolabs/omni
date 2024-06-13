@@ -199,6 +199,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewClusterMachineConfigController(config.Config.DefaultConfigGenOptions),
 		omnictrl.NewClusterMachineTeardownController(defaultDiscoveryClient, embeddedDiscoveryClient),
 		omnictrl.NewMachineConfigGenOptionsController(),
+		omnictrl.NewMachineClassPatchController(),
 		omnictrl.NewMachineStatusController(imageFactoryClient),
 		omnictrl.NewClusterMachineConfigStatusController(),
 		omnictrl.NewClusterMachineEncryptionKeyController(),

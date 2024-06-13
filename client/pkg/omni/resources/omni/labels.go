@@ -53,6 +53,17 @@ const (
 	// LabelExposedServiceAlias is the alias of the exposed service.
 	// tsgen:LabelExposedServiceAlias
 	LabelExposedServiceAlias = SystemLabelPrefix + "exposed-service-alias"
+
+	// LabelMachineClass indicates the relation of the resource to a particular machine class.
+	// tsgen:LabelMachineClass
+	LabelMachineClass = SystemLabelPrefix + "machine-class"
+
+	// LabelConfigPatchClass is used to define relation of machine specific config patches
+	// generated from the machine class specific patch.
+	LabelConfigPatchClass = SystemLabelPrefix + "patch-class"
+
+	// LabelClusterMachineClassPatch is set on the config patches generated from the machine-class level patches.
+	LabelClusterMachineClassPatch = SystemLabelPrefix + "cluster-machine-class"
 )
 
 const (

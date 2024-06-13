@@ -42,9 +42,15 @@ func (h *Helper) Get(machine *omni.ClusterMachine, machineSet *omni.MachineSet) 
 		return nil, fmt.Errorf("cluster machine %q doesn't have cluster label set", machine.Metadata().ID())
 	}
 
-	clusterPatchList := h.allConfigPatches.FilterLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName))
+	clusterPatchList := h.allConfigPatches.FilterLabelQuery(
+		resource.LabelEqual(omni.LabelCluster, clusterName),
+		resource.LabelExists(omni.LabelMachineClass, resource.NotMatches),
+		resource.LabelExists(omni.LabelClusterMachineClassPatch, resource.NotMatches),
+	)
 
 	machinePatchList := h.allConfigPatches.FilterLabelQuery(resource.LabelEqual(omni.LabelMachine, machine.Metadata().ID()))
+
+	machineClassPatchList := h.allConfigPatches.FilterLabelQuery(resource.LabelEqual(omni.LabelClusterMachineClassPatch, machine.Metadata().ID()))
 
 	clusterPatches := make([]*omni.ConfigPatch, 0, clusterPatchList.Len())
 	machineSetPatches := make([]*omni.ConfigPatch, 0, clusterPatchList.Len())
@@ -69,10 +75,15 @@ func (h *Helper) Get(machine *omni.ClusterMachine, machineSet *omni.MachineSet) 
 		}
 	}
 
-	patches := make([]*omni.ConfigPatch, 0, clusterPatchList.Len()+machinePatchList.Len())
+	patches := make([]*omni.ConfigPatch, 0, clusterPatchList.Len()+machinePatchList.Len()+machineClassPatchList.Len())
 
 	patches = append(patches, clusterPatches...)
 	patches = append(patches, machineSetPatches...)
+
+	machineClassPatchList.ForEach(func(configPatch *omni.ConfigPatch) {
+		patches = append(patches, configPatch)
+	})
+
 	patches = append(patches, clusterMachinePatches...)
 
 	for iter := machinePatchList.Iterator(); iter.Next(); {

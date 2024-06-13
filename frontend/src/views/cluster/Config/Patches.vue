@@ -25,6 +25,7 @@ included in the LICENSE file.
         type="info"
       >
         There are no config patches {{
+          machineClass ? `associated with the machine class ${machineClass}` :
           machine?.metadata.id ? `associated with machine ${machine.metadata.id}` :
           cluster?.metadata.id ? `associated with cluster ${cluster.metadata.id}` : `on the account`}}
       </t-alert>
@@ -73,6 +74,7 @@ import {
   ClusterPermissionsType,
   ConfigPatchDescription,
   ConfigPatchName,
+  LabelMachineClass,
 } from "@/api/resources";
 import { Resource, ResourceService } from "@/api/grpc";
 import { RouteLocationRaw, useRoute, useRouter } from "vue-router";
@@ -106,16 +108,19 @@ const machineStatusesWatch = new Watch(machineStatuses);
 type Props = {
   cluster?: Resource<ClusterSpec>
   machine?: Resource,
+  machineClass?: string
 };
 
 const props = defineProps<Props>();
 
-const { machine, cluster } = toRefs(props);
+const { machine, cluster, machineClass } = toRefs(props);
 
 const selectors = computed<string[] | void>(() => {
   const res: string[] = [];
 
-  if (cluster.value) {
+  if (machineClass.value) {
+    res.push(`${LabelMachineClass}=${machineClass.value}`)
+  } else if (cluster.value) {
     res.push(`${LabelCluster}=${cluster.value.metadata.id}`);
   } else if (machine.value) {
     res.push(
@@ -148,10 +153,12 @@ patchesWatch.setup(computed<WatchOptions | undefined>(() => {
   }
 }));
 
-machineStatusesWatch.setup({
-    runtime: Runtime.Omni,
-    resource: { type: ClusterMachineStatusType, namespace: DefaultNamespace }
-});
+if (machine.value) {
+  machineStatusesWatch.setup({
+      runtime: Runtime.Omni,
+      resource: { type: ClusterMachineStatusType, namespace: DefaultNamespace }
+  });
+}
 
 const includes = (filter: string, values: string[]) => {
   for (const value of values) {
@@ -201,7 +208,7 @@ const routes = computed(() => {
       name: (item.metadata.annotations || {})[ConfigPatchName] || item.metadata.id!,
       icon: "document",
       route: {
-        name: machine?.value ? patchEditPage : "ClusterPatchEdit",
+        name: machineClass.value ? "MachineClassPatchEdit" : machine?.value ? patchEditPage : "ClusterPatchEdit",
         params: { patch: item.metadata.id! }
       },
       id: item.metadata.id!,
@@ -210,8 +217,12 @@ const routes = computed(() => {
 
     const labels = item.metadata.labels || {};
     const machineID = labels[LabelMachine];
+    const machineCLS = labels[LabelMachineClass];
+
     if (machineID) {
       addToGroup(`Machine: ${machineID}`, r);
+    } else if (machineCLS) {
+      addToGroup(`Machine Class: ${machineCLS}`, r);
     } else if (labels[LabelClusterMachine]) {
       const id = labels[LabelClusterMachine];
       addToGroup(`Cluster Machine: ${hostnames[id] || id}`, r);
@@ -283,23 +294,26 @@ const updatePermissions = async () => {
   } else if (machine?.value) {
     canReadConfigPatches.value = canReadMachineConfigPatches.value;
     canManageConfigPatches.value = canManageMachineConfigPatches.value;
+  } else if (machineClass.value) {
+    canReadConfigPatches.value = canReadMachineConfigPatches.value;
+    canManageConfigPatches.value = canManageMachineConfigPatches.value;
   }
 };
 
 const openPatchCreate = () => {
-  if (!cluster.value && !machine.value) {
+  if (!cluster.value && !machine.value && !machineClass.value) {
     return;
   }
 
   router.push({
-    name: cluster.value ? "ClusterPatchEdit" : "MachinePatchEdit",
+    name: machineClass.value ? "MachineClassPatchEdit" : cluster.value ? "ClusterPatchEdit" : "MachinePatchEdit",
     params: {
       patch: `500-${uuidv4()}`,
     },
   })
 };
 
-watch([() => machine.value, () => cluster.value],  async () => {
+watch([() => machine.value, () => cluster.value, () => machineClass.value],  async () => {
   await updatePermissions();
 });
 

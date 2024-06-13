@@ -92,6 +92,7 @@ import {
   ConfigPatchDescription,
   MachineSetType,
   MachineStatusType,
+  LabelMachineClass,
 } from "@/api/resources";
 import { showError } from "@/notification";
 import TSpinner from "@/components/common/Spinner/TSpinner.vue";
@@ -131,6 +132,10 @@ const patchWatch = new Watch(patch, (e: WatchResponse) => {
 let patchListPage: string;
 
 switch (route.name) {
+case "MachineClassPatchEdit":
+  patchListPage = "MachineClassPatches"
+  break;
+
 case "ClusterMachinePatchEdit":
   patchListPage = "NodePatches"
   break;
@@ -353,6 +358,10 @@ loadPatch();
 watch(patch, loadPatch);
 
 const patchTypes = computed(() => {
+  if (route.params.classname) {
+    return;
+  }
+
   if (route.params.cluster && route.name != "ClusterMachinePatchEdit") {
     return [PatchType.Cluster as string].concat(machineSetTitles.value).concat(machines.value)
   }
@@ -454,7 +463,13 @@ const ready = computed(() => {
 
 const saving = ref(false);
 
-const getPatchLabels = () => {
+const getPatchLabels = (): Record<string, string> => {
+  if (route.params.classname) {
+    return {
+      [LabelMachineClass]: route.params.classname as string
+    }
+  }
+
   const patchType = selectedPatchType ?? patchTypes.value?.[0];
 
   if (!patchType || patchType === PatchType.Machine) {
@@ -559,6 +574,9 @@ const updatePermissions = async () => {
     canReadConfigPatches.value = clusterPermissions?.spec?.can_read_config_patches || false;
     canManageConfigPatches.value = clusterPermissions?.spec?.can_manage_config_patches || false;
   } else if (route.params.machine) {
+    canReadConfigPatches.value = canReadMachineConfigPatches.value;
+    canManageConfigPatches.value = canManageMachineConfigPatches.value;
+  } else if (route.params.classname) {
     canReadConfigPatches.value = canReadMachineConfigPatches.value;
     canManageConfigPatches.value = canManageMachineConfigPatches.value;
   } else {

@@ -18,7 +18,9 @@ import OmniUsers from "@/views/omni/Users/Users.vue";
 import OmniSettings from "@/views/omni/Settings/Settings.vue";
 import Authenticate from "@/views/omni/Auth/Authenticate.vue";
 import OmniMachineClasses from "@/views/omni/MachineClasses/MachineClasses.vue";
-import OmniMachineClass from "@/views/omni/MachineClasses/MachineClass.vue";
+import OmniMachineClassPage from "@/views/omni/MachineClasses/MachineClassPage.vue";
+import OmniMachineClassEdit from "@/views/omni/MachineClasses/MachineClassEdit.vue";
+import OmniMachineClassPatches from "@/views/omni/MachineClasses/MachineClassPatch.vue";
 import OmniBackupStorageSettings from "@/views/omni/Settings/BackupStorage.vue";
 import OIDC from "@/views/omni/Auth/OIDC.vue";
 
@@ -210,15 +212,7 @@ const routes: RouteRecordRaw[] = [
     {
       path: "/machine-classes/create",
       name: "MachineClassCreate",
-      component: OmniMachineClass,
-    },
-    {
-      path: "/machine-classes/:classname",
-      name: "MachineClassEdit",
-      component: OmniMachineClass,
-      props: {
-        edit: true,
-      }
+      component: OmniMachineClassEdit,
     },
     {
       path: "/machine/:machine/patches/:patch",
@@ -269,6 +263,38 @@ const routes: RouteRecordRaw[] = [
           name: "MachineConfigPatches",
           components: {
             inner: OmniMachinePatches,
+          }
+        },
+      ]
+    },
+    {
+      path: "/machine-classes/:classname/patches/:patch",
+      name: "MachineClassPatchEdit",
+      component: ClusterScoped,
+      props: {
+        inner: PatchEdit,
+      },
+    },
+    {
+      path: "/machine-classes/:classname",
+      name: "MachineClassPage",
+      component: OmniMachineClassPage,
+      redirect: {
+        name: "MachineClassEdit",
+      },
+      children: [
+        {
+          path: "edit",
+          name: "MachineClassEdit",
+          components: {
+            inner: OmniMachineClassEdit,
+          }
+        },
+        {
+          path: "patches",
+          name: "MachineClassPatches",
+          components: {
+            inner: OmniMachineClassPatches,
           }
         },
       ]

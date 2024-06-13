@@ -6,8 +6,8 @@ included in the LICENSE file.
 -->
 <template>
   <div class="flex flex-col gap-4">
-    <div class="flex gap-1 items-start">
-      <page-header :title="`${edit ? 'Edit Machine Class' : 'Create Machine Class'}`" class="flex-1" :subtitle="edit ? 'name: '+ $route.params.classname as string : ''"/>
+    <div v-if="!edit" class="flex gap-1 items-start">
+      <page-header title="Create Machine Class" class="flex-1"/>
     </div>
     <div class="flex-1 flex items-center justify-center" v-if="loading">
       <t-spinner class="w-6 h-6"/>
