@@ -338,7 +338,19 @@ func (r *Runtime) Run(ctx context.Context, eg newgroup.EGroup) {
 }
 
 // Watch implements runtime.Runtime.
-func (r *Runtime) Watch(ctx context.Context, events chan<- runtime.WatchResponse, setters ...runtime.QueryOption) error {
+func (r *Runtime) Watch(ctx context.Context, events chan<- runtime.WatchResponse, setters ...runtime.QueryOption) (err error) {
+	defer func() {
+		if p := recover(); p != nil {
+			err = fmt.Errorf("watch panic")
+
+			r.logger.Error("watch panicked", zap.Stack("stack"), zap.Error(err))
+		}
+	}()
+
+	return r.watch(ctx, events, setters...)
+}
+
+func (r *Runtime) watch(ctx context.Context, events chan<- runtime.WatchResponse, setters ...runtime.QueryOption) error {
 	opts := runtime.NewQueryOptions(setters...)
 
 	var (
