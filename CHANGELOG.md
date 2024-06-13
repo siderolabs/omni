@@ -1,3 +1,30 @@
+## [Omni 0.37.5](https://github.com/siderolabs/omni/releases/tag/v0.37.5) (2024-06-13)
+
+Welcome to the v0.37.5 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`755289d`](https://github.com/siderolabs/omni/commit/755289d4f5cbe497f6e4e29cf64cababdba91bd7) fix: properly delete the item from the cached items slice
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.37.4](https://github.com/siderolabs/omni/releases/tag/v0.37.4)
+
 ## [Omni 0.37.4](https://github.com/siderolabs/omni/releases/tag/v0.37.4) (2024-06-12)
 
 Welcome to the v0.37.4 release of Omni!
