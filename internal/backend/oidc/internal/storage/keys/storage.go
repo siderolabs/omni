@@ -12,69 +12,56 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 	"time"
 
 	"github.com/benbjohnson/clock"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/go-jose/go-jose/v4"
 	"github.com/google/uuid"
 	"github.com/siderolabs/gen/xslices"
-	oidczitadel "github.com/zitadel/oidc/pkg/oidc"
+	oidczitadel "github.com/zitadel/oidc/v3/pkg/oidc"
+	"github.com/zitadel/oidc/v3/pkg/op"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"gopkg.in/square/go-jose.v2"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/oidc"
 	"github.com/siderolabs/omni/internal/backend/oidc/external"
+	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 )
 
 // Storage implements JWT key signing storage around resource state.
+//
+//nolint:govet
 type Storage struct {
-	currentKey   *jose.JSONWebKey
-	activeKeySet *jose.JSONWebKeySet
-	logger       *zap.Logger
-	st           state.State
-	clock        clock.Clock
-	lock         sync.Mutex
+	st     state.State
+	clock  clock.Clock
+	logger *zap.Logger
+
+	mu           sync.Mutex
+	currentKey   op.SigningKey
+	activeKeySet []op.Key
 }
 
 // NewStorage creates a new Storage.
-func NewStorage(logger *zap.Logger, st state.State, clock clock.Clock) *Storage {
-	return &Storage{
-		logger: logger,
+func NewStorage(st state.State, clock clock.Clock, logger *zap.Logger) *Storage {
+	result := &Storage{
 		st:     st,
 		clock:  clock,
+		logger: logger,
 	}
+
+	return result
 }
 
-// GetSigningKey implements the op.Storage interface.
-//
-// It will be called when creating the OpenID Provider.
-func (s *Storage) GetSigningKey(ctx context.Context, keyCh chan<- jose.SigningKey) {
-	for ctx.Err() == nil {
-		err := s.keyRefresher(ctx, keyCh)
-		if err == nil {
-			return
-		}
-
-		s.logger.Error("key refresher failed", zap.Error(err))
-
-		// wait some time before restarting
-		select {
-		case <-ctx.Done():
-			return
-		case <-s.clock.After(10 * time.Second):
-		}
-	}
-}
-
-// GetKeySet implements the op.Storage interface.
+// KeySet implements the op.Storage interface.
 //
 // It will be called to get the current (public) keys, among others for the keys_endpoint or for validating access_tokens on the userinfo_endpoint, ...
-func (s *Storage) GetKeySet(context.Context) (*jose.JSONWebKeySet, error) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+func (s *Storage) KeySet() ([]op.Key, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	if s.activeKeySet != nil {
 		return s.activeKeySet, nil
@@ -85,39 +72,82 @@ func (s *Storage) GetKeySet(context.Context) (*jose.JSONWebKeySet, error) {
 
 // GetPublicKeyByID looks up the public key with the given ID.
 func (s *Storage) GetPublicKeyByID(keyID string) (any, error) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	if s.activeKeySet == nil {
 		return nil, errors.New("no active key set")
 	}
 
-	for _, key := range s.activeKeySet.Keys {
-		if key.KeyID == keyID {
-			return key.Key, nil
-		}
+	idx := slices.IndexFunc(s.activeKeySet, func(key op.Key) bool { return key.ID() == keyID })
+	if idx == -1 {
+		return nil, fmt.Errorf("key not found, ID %q", keyID)
 	}
 
-	return nil, fmt.Errorf("key not found, ID %q", keyID)
+	return s.activeKeySet[idx].Key(), nil
 }
 
 // GetCurrentSigningKey returns the active and currently used signing key.
-func (s *Storage) GetCurrentSigningKey() (*jose.JSONWebKey, error) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+func (s *Storage) GetCurrentSigningKey() (op.SigningKey, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	if s.currentKey != nil {
-		return s.currentKey, nil
+	if s.currentKey == nil {
+		return nil, errors.New("no current key")
 	}
 
-	return nil, errors.New("no current key")
+	return s.currentKey, nil
 }
 
-func (s *Storage) keyRefresher(ctx context.Context, keyCh chan<- jose.SigningKey) error {
+// Options is a set of options for the key refresher.
+type Options struct {
+	keyCh chan<- op.SigningKey
+}
+
+// Opts is a functional option for the key refresher.
+type Opts func(*Options)
+
+// WithKeyCh sets the channel to send the generated key to.
+func WithKeyCh(keyCh chan<- op.SigningKey) Opts {
+	return func(o *Options) {
+		o.keyCh = keyCh
+	}
+}
+
+// RunRefreshKey runs the key refresher in a loop.
+func (s *Storage) RunRefreshKey(ctx context.Context, opts ...Opts) error {
+	ctx = actor.MarkContextAsInternalActor(ctx)
+
+	var options Options
+
+	for _, opt := range opts {
+		opt(&options)
+	}
+
+	for ctx.Err() == nil {
+		err := s.runRefreshKey(ctx, options.keyCh)
+		if err == nil {
+			return nil
+		}
+
+		s.logger.Error("key refresher failed", zap.Error(err))
+
+		// wait some time before restarting
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-s.clock.After(10 * time.Second):
+		}
+	}
+
+	return nil
+}
+
+func (s *Storage) runRefreshKey(ctx context.Context, ch chan<- op.SigningKey) error {
 	ticker := s.clock.Ticker(external.KeyRotationInterval)
 	defer ticker.Stop()
 
-	for {
+	for ctx.Err() == nil {
 		// renew the key
 		privateKey, err := s.generateKey()
 		if err != nil {
@@ -134,35 +164,34 @@ func (s *Storage) keyRefresher(ctx context.Context, keyCh chan<- jose.SigningKey
 			return fmt.Errorf("failure to cleanup old keys: %w", err)
 		}
 
-		jsonWebKey := jose.JSONWebKey{
-			KeyID:     keyID,
-			Key:       privateKey,
-			Algorithm: string(jose.RS256),
+		key := &signingKey{
+			id:        keyID,
+			key:       privateKey,
+			algorithm: jose.RS256,
 		}
 
-		s.lock.Lock()
-		s.currentKey = &jsonWebKey
-		s.lock.Unlock()
-
-		// send the new signing key to be used by OIDC
-		select {
-		case <-ctx.Done():
-			return nil
-		case keyCh <- jose.SigningKey{
-			Algorithm: jose.RS256,
-			Key:       jsonWebKey,
-		}:
-		}
+		s.mu.Lock()
+		s.currentKey = key
+		s.mu.Unlock()
 
 		s.logger.Info("new OIDC signing key generated", zap.String("key_id", keyID))
 
-		// wait for key rotation interval
+		if ch != nil {
+			select {
+			case ch <- key:
+			case <-ctx.Done():
+				return nil
+			}
+		}
+
 		select {
 		case <-ctx.Done():
 			return nil
 		case <-ticker.C:
 		}
 	}
+
+	return nil
 }
 
 func (s *Storage) generateKey() (*rsa.PrivateKey, error) {
@@ -191,7 +220,7 @@ func (s *Storage) cleanupOldKeys(ctx context.Context) error {
 		return err
 	}
 
-	newKeySet := &jose.JSONWebKeySet{}
+	newKeySet := make([]op.Key, 0, keys.Len())
 
 	for iter := keys.Iterator(); iter.Next(); {
 		key := iter.Value()
@@ -206,32 +235,26 @@ func (s *Storage) cleanupOldKeys(ctx context.Context) error {
 				return err
 			}
 		} else {
-			publicKey, err := x509.ParsePKCS1PublicKey(key.TypedSpec().Value.PublicKey)
+			pKey, err := x509.ParsePKCS1PublicKey(key.TypedSpec().Value.PublicKey)
 			if err != nil {
 				return err
 			}
 
-			newKeySet.Keys = append(newKeySet.Keys, jose.JSONWebKey{
-				KeyID:     key.Metadata().ID(),
-				Algorithm: string(jose.RS256),
-				Use:       oidczitadel.KeyUseSignature,
-				Key:       publicKey,
+			newKeySet = append(newKeySet, &publicKey{
+				id:        key.Metadata().ID(),
+				algorithm: jose.RS256,
+				publicKey: pKey,
 			})
 		}
 	}
 
 	s.logger.Info("active OIDC public signing keys",
-		zap.Strings("key_ids",
-			xslices.Map(newKeySet.Keys, func(key jose.JSONWebKey) string {
-				return key.KeyID
-			}),
-		),
+		zap.Strings("key_ids", xslices.Map(newKeySet, func(key op.Key) string { return key.ID() })),
 	)
 
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
+	s.mu.Lock()
 	s.activeKeySet = newKeySet
+	s.mu.Unlock()
 
 	return nil
 }
@@ -245,3 +268,26 @@ func (s *Storage) MaxTokenLifetime() time.Duration {
 
 	return external.OIDCTokenLifetime
 }
+
+//nolint:govet
+type signingKey struct {
+	id        string
+	algorithm jose.SignatureAlgorithm
+	key       *rsa.PrivateKey
+}
+
+func (s *signingKey) ID() string                                  { return s.id }
+func (s *signingKey) SignatureAlgorithm() jose.SignatureAlgorithm { return s.algorithm }
+func (s *signingKey) Key() any                                    { return s.key }
+
+//nolint:govet
+type publicKey struct {
+	id        string
+	algorithm jose.SignatureAlgorithm
+	publicKey *rsa.PublicKey
+}
+
+func (s *publicKey) ID() string                         { return s.id }
+func (s *publicKey) Algorithm() jose.SignatureAlgorithm { return s.algorithm }
+func (s *publicKey) Use() string                        { return oidczitadel.KeyUseSignature }
+func (s *publicKey) Key() any                           { return s.publicKey }

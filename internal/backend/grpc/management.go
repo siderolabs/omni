@@ -27,13 +27,13 @@ import (
 	"github.com/siderolabs/go-kubernetes/kubernetes/manifests"
 	"github.com/siderolabs/go-kubernetes/kubernetes/upgrade"
 	"github.com/siderolabs/talos/pkg/machinery/api/common"
+	"github.com/zitadel/oidc/v3/pkg/op"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/yaml.v3"
 	"k8s.io/client-go/rest"
 
@@ -65,7 +65,7 @@ import (
 
 // JWTSigningKeyProvider is an interface for a JWT signing key provider.
 type JWTSigningKeyProvider interface {
-	GetCurrentSigningKey() (*jose.JSONWebKey, error)
+	SigningKey(ctx context.Context) (op.SigningKey, error)
 }
 
 // managementServer implements omni management service.

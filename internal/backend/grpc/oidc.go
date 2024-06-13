@@ -11,7 +11,7 @@ import (
 	"io"
 
 	gateway "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"github.com/zitadel/oidc/pkg/op"
+	"github.com/zitadel/oidc/v3/pkg/op"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -78,8 +78,10 @@ func (s *oidcServer) Authenticate(ctx context.Context, req *oidc.AuthenticateReq
 		}, nil
 	}
 
+	issuer := s.provider.IssuerFromRequest(nil) // this is safe because we use op.StaticIssuer
+
 	return &oidc.AuthenticateResponse{
-		RedirectUrl: op.AuthCallbackURL(s.provider)(req.AuthRequestId),
+		RedirectUrl: op.AuthCallbackURL(s.provider)(op.ContextWithIssuer(ctx, issuer), req.AuthRequestId),
 	}, nil
 }
 

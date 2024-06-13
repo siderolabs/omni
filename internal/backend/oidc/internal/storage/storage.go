@@ -13,10 +13,10 @@ import (
 
 	"github.com/benbjohnson/clock"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/zitadel/oidc/pkg/oidc"
-	"github.com/zitadel/oidc/pkg/op"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
+	"github.com/zitadel/oidc/v3/pkg/op"
 	"go.uber.org/zap"
-	"gopkg.in/square/go-jose.v2"
 
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/oidc/external"
@@ -42,10 +42,12 @@ var _ op.Storage = &Storage{}
 func NewStorage(st state.State, logger *zap.Logger) *Storage {
 	logger = logger.With(logging.Component("oidc_storage"))
 
+	clk := clock.New()
+
 	return &Storage{
 		authRequestStorage: authrequest.NewStorage(),
-		tokenStorage:       token.NewStorage(clock.New(), st),
-		keyStorage:         keys.NewStorage(logger, st, clock.New()),
+		tokenStorage:       token.NewStorage(st, clk),
+		keyStorage:         keys.NewStorage(st, clk, logger),
 	}
 }
 
@@ -54,18 +56,11 @@ func (s *Storage) Health(context.Context) error {
 	return nil
 }
 
-// GetSigningKey implements the op.Storage interface.
-//
-// It will be called when creating the OpenID Provider.
-func (s *Storage) GetSigningKey(ctx context.Context, keyCh chan<- jose.SigningKey) {
-	s.keyStorage.GetSigningKey(ctx, keyCh)
-}
-
-// GetKeySet implements the op.Storage interface.
+// KeySet implements the op.Storage interface.
 //
 // It will be called to get the current (public) keys, among others for the keys_endpoint or for validating access_tokens on the userinfo_endpoint, ...
-func (s *Storage) GetKeySet(ctx context.Context) (*jose.JSONWebKeySet, error) {
-	return s.keyStorage.GetKeySet(ctx)
+func (s *Storage) KeySet(context.Context) ([]op.Key, error) {
+	return s.keyStorage.KeySet()
 }
 
 // GetPublicKeyByID looks up the public key with the given ID.
@@ -125,11 +120,6 @@ func (s *Storage) DeleteAuthRequest(ctx context.Context, id string) error {
 	return s.authRequestStorage.DeleteAuthRequest(ctx, id)
 }
 
-// AuthenticateRequest implements the `authenticate` interface of the login.
-func (s *Storage) AuthenticateRequest(requestID, identity string) error {
-	return s.authRequestStorage.AuthenticateRequest(requestID, identity)
-}
-
 // GetPrivateClaimsFromScopes implements the op.Storage interface.
 //
 // It will be called for the creation of a JWT access token to assert claims for custom scopes.
@@ -147,28 +137,28 @@ func (s *Storage) ValidateJWTProfileScopes(ctx context.Context, userID string, s
 // SetUserinfoFromScopes implements the op.Storage interface.
 //
 // It will be called for the creation of an id_token, so we'll just pass it to the private function without any further check.
-func (s *Storage) SetUserinfoFromScopes(ctx context.Context, userinfo oidc.UserInfoSetter, userID, clientID string, scopes []string) error {
+func (s *Storage) SetUserinfoFromScopes(ctx context.Context, userinfo *oidc.UserInfo, userID, clientID string, scopes []string) error {
 	return s.tokenStorage.SetUserinfoFromScopes(ctx, userinfo, userID, clientID, scopes)
 }
 
 // SetUserinfoFromToken implements the op.Storage interface.
 //
 // It will be called for the userinfo endpoint, so we read the token and pass the information from that to the private function.
-func (s *Storage) SetUserinfoFromToken(ctx context.Context, userinfo oidc.UserInfoSetter, tokenID, subject, origin string) error {
+func (s *Storage) SetUserinfoFromToken(ctx context.Context, userinfo *oidc.UserInfo, tokenID, subject, origin string) error {
 	return s.tokenStorage.SetUserinfoFromToken(ctx, userinfo, tokenID, subject, origin)
 }
 
 // SetIntrospectionFromToken implements the op.Storage interface.
 //
 // It will be called for the introspection endpoint, so we read the token and pass the information from that to the private function.
-func (s *Storage) SetIntrospectionFromToken(ctx context.Context, introspection oidc.IntrospectionResponse, tokenID, subject, clientID string) error {
+func (s *Storage) SetIntrospectionFromToken(ctx context.Context, introspection *oidc.IntrospectionResponse, tokenID, subject, clientID string) error {
 	return s.tokenStorage.SetIntrospectionFromToken(ctx, introspection, tokenID, subject, clientID)
 }
 
-// GetKeyByIDAndUserID implements the op.Storage interface.
+// GetKeyByIDAndClientID implements the op.Storage interface.
 //
 // It will be called to validate the signatures of a JWT (JWT Profile Grant and Authentication).
-func (s *Storage) GetKeyByIDAndUserID(ctx context.Context, keyID, clientID string) (*jose.JSONWebKey, error) {
+func (s *Storage) GetKeyByIDAndClientID(ctx context.Context, keyID, clientID string) (*jose.JSONWebKey, error) {
 	return s.tokenStorage.GetKeyByIDAndUserID(ctx, keyID, clientID)
 }
 
@@ -207,7 +197,27 @@ func (s *Storage) RevokeToken(ctx context.Context, token string, userID string, 
 	return s.tokenStorage.RevokeToken(ctx, token, userID, clientID)
 }
 
-// GetCurrentSigningKey returns the active and currently used signing key.
-func (s *Storage) GetCurrentSigningKey() (*jose.JSONWebKey, error) {
+// SigningKey returns the active and currently used signing key.
+func (s *Storage) SigningKey(context.Context) (op.SigningKey, error) {
 	return s.keyStorage.GetCurrentSigningKey()
+}
+
+// GetRefreshTokenInfo implements the op.Storage interface.
+func (s *Storage) GetRefreshTokenInfo(ctx context.Context, clientID string, token string) (userID string, tokenID string, err error) {
+	return s.tokenStorage.GetRefreshTokenInfo(ctx, clientID, token)
+}
+
+// SignatureAlgorithms implements the op.Storage interface.
+func (s *Storage) SignatureAlgorithms(context.Context) ([]jose.SignatureAlgorithm, error) {
+	return []jose.SignatureAlgorithm{jose.RS256}, nil
+}
+
+// AuthenticateRequest implements the `authenticate` interface of the login.
+func (s *Storage) AuthenticateRequest(requestID, identity string) error {
+	return s.authRequestStorage.AuthenticateRequest(requestID, identity)
+}
+
+// Run runs the key refresher in a loop.
+func (s *Storage) Run(ctx context.Context) error {
+	return s.keyStorage.RunRefreshKey(ctx)
 }

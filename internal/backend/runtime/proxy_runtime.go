@@ -128,11 +128,12 @@ func fill(r WatchResponse, field string, desc bool) error {
 }
 
 func changeTotal(ev WatchResponse, total *int32) int32 {
-	switch EventType(ev) { //nolint:exhaustive
+	switch EventType(ev) {
 	case resources.EventType_CREATED:
 		*total++
 	case resources.EventType_DESTROYED:
 		*total--
+	case resources.EventType_UNKNOWN, resources.EventType_UPDATED, resources.EventType_BOOTSTRAPPED:
 	}
 
 	return *total

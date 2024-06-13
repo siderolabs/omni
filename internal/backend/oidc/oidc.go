@@ -10,12 +10,11 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"os"
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/sirupsen/logrus"
 	oidc_logging "github.com/zitadel/logging"
-	"github.com/zitadel/oidc/pkg/op"
+	"github.com/zitadel/oidc/v3/pkg/op"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
@@ -28,7 +27,7 @@ func init() {
 }
 
 // NewStorage creates OIDC internal storage.
-func NewStorage(st state.State, logger *zap.Logger) *storage.Storage {
+func NewStorage(st state.State, logger *zap.Logger) Storage {
 	return storage.NewStorage(st, logger)
 }
 
@@ -36,11 +35,11 @@ func NewStorage(st state.State, logger *zap.Logger) *storage.Storage {
 type Provider struct {
 	op.OpenIDProvider
 
-	storage *storage.Storage
+	storage Storage
 }
 
 // NewProvider creates new OIDC provider.
-func NewProvider(ctx context.Context, store *storage.Storage) (*Provider, error) {
+func NewProvider(store Storage) (*Provider, error) {
 	issuerEndpoint, err := config.Config.GetOIDCIssuerEndpoint()
 	if err != nil {
 		return nil, err
@@ -54,8 +53,7 @@ func NewProvider(ctx context.Context, store *storage.Storage) (*Provider, error)
 		return nil, fmt.Errorf("failed to generate crypto key: %w", err)
 	}
 
-	config := &op.Config{
-		Issuer:                   issuerEndpoint,
+	cfg := &op.Config{
 		CryptoKey:                cryptoKey,
 		DefaultLogoutRedirectURI: "/logout",
 		CodeMethodS256:           true,
@@ -65,12 +63,14 @@ func NewProvider(ctx context.Context, store *storage.Storage) (*Provider, error)
 		RequestObjectSupported:   true,
 	}
 
+	var opts []op.Option
+
 	if constants.IsDebugBuild {
 		// allow HTTP in OIDC issuer endpoint
-		os.Setenv(op.OidcDevMode, "true") //nolint:errcheck
+		opts = append(opts, op.WithAllowInsecure())
 	}
 
-	h, err := op.NewOpenIDProvider(ctx, config, store)
+	h, err := op.NewProvider(cfg, store, op.StaticIssuer(issuerEndpoint), opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -84,4 +84,12 @@ func NewProvider(ctx context.Context, store *storage.Storage) (*Provider, error)
 // AuthenticateRequest authenticates OIDC request.
 func (p *Provider) AuthenticateRequest(requestID, identity string) error {
 	return p.storage.AuthenticateRequest(requestID, identity)
+}
+
+// Storage is the OIDC storage interface. It's here because storage.Storage is in internal package.
+type Storage interface {
+	op.Storage
+	AuthenticateRequest(requestID, identity string) error
+	GetPublicKeyByID(keyID string) (any, error)
+	Run(context.Context) error
 }

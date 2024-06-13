@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -16,11 +17,11 @@ import (
 	"github.com/benbjohnson/clock"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/go-jose/go-jose/v4"
 	"github.com/google/uuid"
 	"github.com/siderolabs/gen/maps"
-	"github.com/zitadel/oidc/pkg/oidc"
-	"github.com/zitadel/oidc/pkg/op"
-	"gopkg.in/square/go-jose.v2"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
+	"github.com/zitadel/oidc/v3/pkg/op"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -37,17 +38,20 @@ import (
 const Lifetime = 5 * time.Minute
 
 // Storage implements storing and handling OIDC access tokens, handling roles and claims.
+//
+//nolint:govet
 type Storage struct {
-	clock  clock.Clock
-	state  state.State
+	state state.State
+	clock clock.Clock
+
+	mu     sync.Mutex
 	tokens map[string]*models.Token
-	lock   sync.Mutex
 }
 
 // NewStorage creates a new token storage.
-func NewStorage(clock clock.Clock, st state.State) *Storage {
+func NewStorage(st state.State, clk clock.Clock) *Storage {
 	return &Storage{
-		clock:  clock,
+		clock:  clk,
 		tokens: map[string]*models.Token{},
 		state:  st,
 	}
@@ -88,8 +92,8 @@ func (s *Storage) TokenRequestByRefreshToken(context.Context, string) (op.Refres
 //
 // It will be called after the user signed out, therefore the access and refresh token of the user of this client must be removed.
 func (s *Storage) TerminateSession(_ context.Context, userID string, clientID string) error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	for _, token := range s.tokens {
 		if token.ApplicationID == clientID && token.Subject == userID {
@@ -106,8 +110,8 @@ func (s *Storage) TerminateSession(_ context.Context, userID string, clientID st
 //
 // It will be called after parsing and validation of the token revocation request.
 func (s *Storage) RevokeToken(_ context.Context, token string, _ string, clientID string) *oidc.Error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	accessToken, ok := s.tokens[token]
 	if ok {
@@ -127,8 +131,8 @@ func (s *Storage) RevokeToken(_ context.Context, token string, _ string, clientI
 
 // accessToken will store an access_token in-memory based on the provided information.
 func (s *Storage) accessToken(applicationID, refreshTokenID, subject string, audience, scopes []string) *models.Token {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	token := &models.Token{
 		ID:             uuid.NewString(),
@@ -148,17 +152,17 @@ func (s *Storage) accessToken(applicationID, refreshTokenID, subject string, aud
 // SetUserinfoFromScopes implements the op.Storage interface.
 //
 // It will be called for the creation of an id_token, so we'll just pass it to the private function without any further check.
-func (s *Storage) SetUserinfoFromScopes(ctx context.Context, userinfo oidc.UserInfoSetter, userID, _ string, scopes []string) error {
-	return s.setUserinfo(ctx, userinfo, userID, scopes)
+func (s *Storage) SetUserinfoFromScopes(ctx context.Context, userinfo *oidc.UserInfo, userID, _ string, scopes []string) error {
+	return s.setUserInfo(ctx, userinfo, userID, scopes)
 }
 
 // SetUserinfoFromToken implements the op.Storage interface.
 //
 // It will be called for the userinfo endpoint, so we read the token and pass the information from that to the private function.
-func (s *Storage) SetUserinfoFromToken(ctx context.Context, userinfo oidc.UserInfoSetter, tokenID, _, _ string) error {
+func (s *Storage) SetUserinfoFromToken(ctx context.Context, userinfo *oidc.UserInfo, tokenID, _, _ string) error {
 	token, ok := func() (*models.Token, bool) {
-		s.lock.Lock()
-		defer s.lock.Unlock()
+		s.mu.Lock()
+		defer s.mu.Unlock()
 
 		token, ok := s.tokens[tokenID]
 
@@ -172,16 +176,16 @@ func (s *Storage) SetUserinfoFromToken(ctx context.Context, userinfo oidc.UserIn
 		return errors.New("token is invalid or has expired")
 	}
 
-	return s.setUserinfo(ctx, userinfo, token.Subject, token.Scopes)
+	return s.setUserInfo(ctx, userinfo, token.Subject, token.Scopes)
 }
 
 // SetIntrospectionFromToken implements the op.Storage interface.
 //
 // It will be called for the introspection endpoint, so we read the token and pass the information from that to the private function.
-func (s *Storage) SetIntrospectionFromToken(ctx context.Context, introspection oidc.IntrospectionResponse, tokenID, subject, clientID string) error {
+func (s *Storage) SetIntrospectionFromToken(ctx context.Context, introspection *oidc.IntrospectionResponse, tokenID, subject, clientID string) error {
 	token, ok := func() (*models.Token, bool) {
-		s.lock.Lock()
-		defer s.lock.Unlock()
+		s.mu.Lock()
+		defer s.mu.Unlock()
 
 		token, ok := s.tokens[tokenID]
 
@@ -198,16 +202,16 @@ func (s *Storage) SetIntrospectionFromToken(ctx context.Context, introspection o
 			// this will automatically be done by the library if you don't return an error
 			// you can also return further information about the user / associated token
 			// e.g. the userinfo (equivalent to userinfo endpoint)
-			err := s.setUserinfo(ctx, introspection, subject, token.Scopes)
+			err := s.setResponse(ctx, introspection, subject, token.Scopes)
 			if err != nil {
 				return err
 			}
 
 			// ...and also the requested scopes...
-			introspection.SetScopes(token.Scopes)
+			introspection.Scope = slices.Clone(token.Scopes)
 
 			// ...and the client the token was issued to
-			introspection.SetClientID(token.ApplicationID)
+			introspection.ClientID = token.ApplicationID
 
 			return nil
 		}
@@ -223,12 +227,38 @@ func (s *Storage) GetKeyByIDAndUserID(context.Context, string, string) (*jose.JS
 	return nil, errors.New("not implemented")
 }
 
-// setUserinfo sets the info based on the user, scopes and if necessary the clientID.
-func (s *Storage) setUserinfo(ctx context.Context, userInfo oidc.UserInfoSetter, userID string, scopes []string) error {
+// setResponse sets the info based on the user, scopes and if necessary the clientID.
+func (s *Storage) setResponse(ctx context.Context, ir *oidc.IntrospectionResponse, userID string, scopes []string) error {
 	for _, currentScope := range scopes {
 		switch {
 		case currentScope == oidc.ScopeOpenID:
-			userInfo.SetSubject(userID)
+			ir.Subject = userID
+		case strings.HasPrefix(currentScope, external.ScopeClusterPrefix):
+			cluster := currentScope[len(external.ScopeClusterPrefix):]
+
+			impersonateGroups, err := s.getImpersonateGroups(ctx, cluster, userID)
+			if err != nil {
+				return err
+			}
+
+			if ir.Claims == nil {
+				ir.Claims = map[string]any{}
+			}
+
+			ir.Claims["cluster"] = cluster
+			ir.Claims["groups"] = impersonateGroups
+		}
+	}
+
+	return nil
+}
+
+// setUserInfo sets the info based on the user, scopes and if necessary the clientID.
+func (s *Storage) setUserInfo(ctx context.Context, userInfo *oidc.UserInfo, userID string, scopes []string) error {
+	for _, currentScope := range scopes {
+		switch {
+		case currentScope == oidc.ScopeOpenID:
+			userInfo.Subject = userID
 		case strings.HasPrefix(currentScope, external.ScopeClusterPrefix):
 			cluster := currentScope[len(external.ScopeClusterPrefix):]
 
@@ -371,4 +401,9 @@ func (s *Storage) ValidateJWTProfileScopes(_ context.Context, _ string, scopes [
 	}
 
 	return allowedScopes, nil
+}
+
+// GetRefreshTokenInfo implements the op.Storage interface.
+func (s *Storage) GetRefreshTokenInfo(context.Context, string, string) (userID string, tokenID string, err error) {
+	return "", "", errors.New("not implemented")
 }

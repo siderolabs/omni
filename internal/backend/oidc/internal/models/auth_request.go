@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/siderolabs/go-pointer"
-	"github.com/zitadel/oidc/pkg/oidc"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 // AuthRequest is a request for authentication.

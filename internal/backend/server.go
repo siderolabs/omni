@@ -177,7 +177,9 @@ func (s *Server) Run(ctx context.Context) error {
 	runtimeState := s.omniRuntime.State()
 	oidcStorage := oidc.NewStorage(runtimeState, s.logger)
 
-	oidcProvider, err := oidc.NewProvider(ctx, oidcStorage)
+	eg.Go(func() error { return oidcStorage.Run(ctx) })
+
+	oidcProvider, err := oidc.NewProvider(oidcStorage)
 	if err != nil {
 		return err
 	}
@@ -204,7 +206,7 @@ func (s *Server) Run(ctx context.Context) error {
 		}
 	}
 
-	mux, err := makeMux(imageFactoryHandler, oidcProvider.HttpHandler(), samlHandler, s.omniRuntime, s.logger)
+	mux, err := makeMux(imageFactoryHandler, oidcProvider, samlHandler, s.omniRuntime, s.logger)
 	if err != nil {
 		return fmt.Errorf("failed to create mux: %w", err)
 	}

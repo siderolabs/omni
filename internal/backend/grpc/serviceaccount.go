@@ -42,7 +42,7 @@ func (s *managementServer) serviceAccountKubeconfig(ctx context.Context, req *ma
 		return nil, fmt.Errorf("failed to get cluster UUID: %w", err)
 	}
 
-	signedToken, err := s.generateServiceAccountJWT(req, cluster, clusterUUID.TypedSpec().Value.GetUuid())
+	signedToken, err := s.generateServiceAccountJWT(ctx, req, cluster, clusterUUID.TypedSpec().Value.GetUuid())
 	if err != nil {
 		return nil, err
 	}
@@ -83,13 +83,13 @@ func (s *managementServer) validateServiceAccountRequest(cluster string, req *ma
 	return nil
 }
 
-func (s *managementServer) generateServiceAccountJWT(req *management.KubeconfigRequest, clusterName, clusterUUID string) (string, error) {
-	signingKey, err := s.jwtSigningKeyProvider.GetCurrentSigningKey()
+func (s *managementServer) generateServiceAccountJWT(ctx context.Context, req *management.KubeconfigRequest, clusterName, clusterUUID string) (string, error) {
+	signingKey, err := s.jwtSigningKeyProvider.SigningKey(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	signingMethod := jwt.GetSigningMethod(signingKey.Algorithm)
+	signingMethod := jwt.GetSigningMethod(string(signingKey.SignatureAlgorithm()))
 
 	now := time.Now()
 	token := jwt.NewWithClaims(signingMethod, jwt.MapClaims{
@@ -102,9 +102,9 @@ func (s *managementServer) generateServiceAccountJWT(req *management.KubeconfigR
 		"cluster_uuid": clusterUUID,
 	})
 
-	token.Header["kid"] = signingKey.KeyID
+	token.Header["kid"] = signingKey.ID()
 
-	return token.SignedString(signingKey.Key)
+	return token.SignedString(signingKey.Key())
 }
 
 func (s *managementServer) buildServiceAccountKubeconfig(cluster, user, token string) ([]byte, error) {

@@ -17,17 +17,22 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
+	"github.com/go-jose/go-jose/v4"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zitadel/oidc/v3/pkg/op"
 	"go.uber.org/zap/zaptest"
-	"gopkg.in/square/go-jose.v2"
 
 	"github.com/siderolabs/omni/internal/backend/oidc/external"
 	"github.com/siderolabs/omni/internal/backend/oidc/internal/storage/keys"
 )
 
 func TestStorage(t *testing.T) {
+	errCh := make(chan error, 1)
+
+	t.Cleanup(func() { require.NoError(t, <-errCh) })
+
 	var wg sync.WaitGroup
 
 	t.Cleanup(wg.Wait)
@@ -36,72 +41,74 @@ func TestStorage(t *testing.T) {
 	t.Cleanup(cancel)
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
-	clock := clock.NewMock()
+	clck := clock.NewMock()
 
-	storage := keys.NewStorage(zaptest.NewLogger(t), st, clock)
+	storage := keys.NewStorage(st, clck, zaptest.NewLogger(t))
 
-	keyCh := make(chan jose.SigningKey, 1)
-
-	// run the key rotation loop
 	wg.Add(1)
+
+	keyCh := make(chan op.SigningKey, 1)
 
 	go func() {
 		defer wg.Done()
 
-		storage.GetSigningKey(ctx, keyCh)
+		errCh <- storage.RunRefreshKey(ctx, keys.WithKeyCh(keyCh))
 	}()
 
-	// the first key should be generated immediately
-	var key jose.SigningKey
+	var signingKey op.SigningKey
 
 	select {
-	case key = <-keyCh:
+	case signingKey = <-keyCh:
 	case <-time.After(10 * time.Second):
 		t.Fatal("timeout waiting for key")
 	}
 
-	assert.Equal(t, jose.RS256, key.Algorithm)
+	gotKey, err := storage.GetCurrentSigningKey()
+	require.NoError(t, err)
+	assert.Equal(t, signingKey.ID(), gotKey.ID())
+	assert.EqualValues(t, jose.RS256, signingKey.SignatureAlgorithm())
 
-	privateKey, ok := key.Key.(jose.JSONWebKey)
+	privateKey, ok := signingKey.Key().(*rsa.PrivateKey)
 	require.True(t, ok)
 
 	// get the active set of public keys, it should have exactly one key
 	// public key should match a private key
-	keySet, err := storage.GetKeySet(ctx)
+	keySet, err := storage.KeySet()
 	require.NoError(t, err)
 
-	assert.Len(t, keySet.Keys, 1)
-	assert.Equal(t, keySet.Keys[0].KeyID, privateKey.KeyID)
-	assert.Equal(t, *keySet.Keys[0].Key.(*rsa.PublicKey), privateKey.Key.(*rsa.PrivateKey).PublicKey) //nolint:forcetypeassert
+	assert.Len(t, keySet, 1)
+	assert.Equal(t, keySet[0].ID(), signingKey.ID())
+	assert.Equal(t, *keySet[0].Key().(*rsa.PublicKey), privateKey.PublicKey) //nolint:forcetypeassert
 
-	expectedPublicKeyIDs := []string{privateKey.KeyID}
+	expectedPublicKeyIDs := []string{signingKey.ID()}
 
 	// advance time and generate one more key - will trigger one timer tick
-	clock.Add(external.KeyRotationInterval)
+	clck.Add(external.KeyRotationInterval)
 
 	select {
-	case key = <-keyCh:
+	case signingKey = <-keyCh:
 	case <-time.After(10 * time.Second):
 		t.Fatal("timeout waiting for key")
 	}
 
-	assert.Equal(t, jose.RS256, key.Algorithm)
+	assert.NotEqual(t, signingKey.ID(), gotKey.ID())
+	assert.EqualValues(t, jose.RS256, signingKey.SignatureAlgorithm())
 
-	privateKey, ok = key.Key.(jose.JSONWebKey)
+	_, ok = signingKey.Key().(*rsa.PrivateKey)
 	require.True(t, ok)
 
-	expectedPublicKeyIDs = append(expectedPublicKeyIDs, privateKey.KeyID)
+	expectedPublicKeyIDs = append(expectedPublicKeyIDs, signingKey.ID())
 
 	// get the active set of public keys, it should have two keys now
-	keySet, err = storage.GetKeySet(ctx)
+	keySet, err = storage.KeySet()
 	require.NoError(t, err)
 
-	assert.Len(t, keySet.Keys, 2)
+	assert.Len(t, keySet, 2)
 	assert.Equal(t, sorted(expectedPublicKeyIDs), getKeyIDs(keySet))
 
 	// advance the time even more so that the first key expires
 	// this triggers at least one timer tick, but the exact number varies due to the mocked clock
-	clock.Add(external.KeyRotationInterval + storage.MaxTokenLifetime() + time.Second)
+	clck.Add(external.KeyRotationInterval + storage.MaxTokenLifetime() + time.Second)
 
 	expectedKeyToExpire := expectedPublicKeyIDs[0]
 	expectedPublicKeyIDs = expectedPublicKeyIDs[1:]
@@ -110,20 +117,20 @@ func TestStorage(t *testing.T) {
 	// which will cause the first (oldest) key to be removed due to expiration
 	for {
 		select {
-		case key = <-keyCh:
+		case signingKey = <-keyCh:
 		case <-time.After(10 * time.Second):
 			t.Fatal("timeout waiting for key")
 		}
 
-		assert.Equal(t, jose.RS256, key.Algorithm)
+		assert.EqualValues(t, jose.RS256, signingKey.SignatureAlgorithm())
 
-		privateKey, ok = key.Key.(jose.JSONWebKey)
+		_, ok = signingKey.Key().(*rsa.PrivateKey)
 		require.True(t, ok)
 
-		expectedPublicKeyIDs = append(expectedPublicKeyIDs, privateKey.KeyID)
+		expectedPublicKeyIDs = append(expectedPublicKeyIDs, signingKey.ID())
 
 		// get the active set of public keys
-		keySet, err = storage.GetKeySet(ctx)
+		keySet, err = storage.KeySet()
 		require.NoError(t, err)
 
 		keyIDs := getKeyIDs(keySet)
@@ -138,7 +145,7 @@ func TestStorage(t *testing.T) {
 	// get the active set of public keys - it should have at least two keys:
 	// - the second key from the previous set, because it shouldn't be expired yet.
 	// - the newly generated keys due to the tick(s) happened above.
-	keySet, err = storage.GetKeySet(ctx)
+	keySet, err = storage.KeySet()
 	require.NoError(t, err)
 
 	keyIDs := getKeyIDs(keySet)
@@ -147,8 +154,8 @@ func TestStorage(t *testing.T) {
 	assert.Equal(t, sorted(expectedPublicKeyIDs), keyIDs)
 }
 
-func getKeyIDs(keySet *jose.JSONWebKeySet) []string {
-	ids := xslices.Map(keySet.Keys, func(k jose.JSONWebKey) string { return k.KeyID })
+func getKeyIDs(keySet []op.Key) []string {
+	ids := xslices.Map(keySet, func(k op.Key) string { return k.ID() })
 
 	return sorted(ids)
 }

@@ -17,7 +17,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/zitadel/oidc/pkg/oidc"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/constants"
@@ -35,7 +35,7 @@ func TestValidateJWTProfileScopes(t *testing.T) {
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 
-	s := token.NewStorage(clock.NewMock(), st)
+	s := token.NewStorage(st, clock.NewMock())
 
 	scopes, err := s.ValidateJWTProfileScopes(ctx, "", []string{
 		oidc.ScopeOpenID,
@@ -89,7 +89,7 @@ func TestGetPrivateClaimsFromScopes(t *testing.T) {
 	require.NoError(t, st.Create(ctx, user))
 	require.NoError(t, st.Create(ctx, cluster))
 
-	s := token.NewStorage(clock.NewMock(), st)
+	s := token.NewStorage(st, clock.NewMock())
 
 	claims, err := s.GetPrivateClaimsFromScopes(ctx, userIdentity, "", []string{
 		oidc.ScopeOpenID,
@@ -193,24 +193,24 @@ func TestSetUserinfoFromScopes(t *testing.T) {
 	require.NoError(t, st.Create(ctx, user))
 	require.NoError(t, st.Create(ctx, cluster))
 
-	s := token.NewStorage(clock.NewMock(), st)
+	s := token.NewStorage(st, clock.NewMock())
 
-	var mockUserInfo mockUserInfoSetter
+	ui := &oidc.UserInfo{}
 
-	err := s.SetUserinfoFromScopes(ctx, &mockUserInfo, "test@example.com", "", []string{
+	err := s.SetUserinfoFromScopes(ctx, ui, "test@example.com", "", []string{
 		oidc.ScopeOpenID,
 		external.ScopeClusterPrefix + "talos-default",
 		"other-scope",
 	})
 	require.NoError(t, err)
 
-	assert.Equal(t, userIdentity, mockUserInfo.subject)
+	assert.Equal(t, userIdentity, ui.Subject)
 
-	actualCluster, ok := mockUserInfo.claims["cluster"]
+	actualCluster, ok := ui.Claims["cluster"]
 	require.True(t, ok)
 	assert.Equal(t, clusterID, actualCluster)
 
-	actualGroups, ok := mockUserInfo.claims["groups"]
+	actualGroups, ok := ui.Claims["groups"]
 	require.True(t, ok)
 
 	actualGroupsSlc, ok := actualGroups.([]string)
@@ -242,35 +242,35 @@ func TestTokenIntrospection(t *testing.T) {
 	require.NoError(t, st.Create(ctx, identity))
 	require.NoError(t, st.Create(ctx, user))
 
-	clock := clock.NewMock()
-	s := token.NewStorage(clock, st)
+	clck := clock.NewMock()
+	s := token.NewStorage(st, clck)
 
 	// create token and try fetching information from it
 	tokenID, expiration, err := s.CreateAccessToken(ctx, req)
 	require.NoError(t, err)
 
-	assert.Equal(t, clock.Now().Add(token.Lifetime), expiration)
+	assert.Equal(t, clck.Now().Add(token.Lifetime), expiration)
 	assert.NotEmpty(t, tokenID)
 
-	var mockUserInfo mockUserInfoSetter
+	ui := &oidc.UserInfo{}
 
-	err = s.SetUserinfoFromToken(ctx, &mockUserInfo, tokenID, userIdentity, "")
+	err = s.SetUserinfoFromToken(ctx, ui, tokenID, userIdentity, "")
 	require.NoError(t, err)
 
-	assert.Equal(t, "some@example.com", mockUserInfo.subject)
+	assert.Equal(t, "some@example.com", ui.Subject)
 	assert.Equal(t, map[string]any{
 		"cluster": "cluster1",
 		"groups":  []string{constants.DefaultAccessGroup},
-	}, mockUserInfo.claims)
+	}, ui.Claims)
 
 	// advance time so that token expires
-	clock.Add(token.Lifetime + time.Second)
+	clck.Add(token.Lifetime + time.Second)
 
-	err = s.SetUserinfoFromToken(ctx, &mockUserInfo, tokenID, "", "")
+	err = s.SetUserinfoFromToken(ctx, ui, tokenID, "", "")
 	assert.Error(t, err)
 
 	// invalid ID
-	err = s.SetUserinfoFromToken(ctx, &mockUserInfo, "invalid", "", "")
+	err = s.SetUserinfoFromToken(ctx, ui, "invalid", "", "")
 	assert.Error(t, err)
 }
 
@@ -281,7 +281,7 @@ func TestRevokeToken(t *testing.T) {
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 
 	clock := clock.NewMock()
-	s := token.NewStorage(clock, st)
+	s := token.NewStorage(st, clock)
 
 	tokenID, _, err := s.CreateAccessToken(ctx, mockTokenRequest{})
 	require.NoError(t, err)
@@ -300,7 +300,7 @@ func TestTerminateSession(t *testing.T) {
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 
 	clock := clock.NewMock()
-	s := token.NewStorage(clock, st)
+	s := token.NewStorage(st, clock)
 
 	tokenID, _, err := s.CreateAccessToken(ctx, mockTokenRequest{})
 	require.NoError(t, err)

@@ -5,7 +5,7 @@
 
 package models
 
-import "github.com/zitadel/oidc/pkg/oidc"
+import "github.com/zitadel/oidc/v3/pkg/oidc"
 
 // OIDCCodeChallenge is a code challenge as defined in https://tools.ietf.org/html/rfc7636.
 type OIDCCodeChallenge struct {
