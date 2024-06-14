@@ -30,6 +30,8 @@ import (
 
 var errMachineLocked = errors.New("machine locked")
 
+type skipMachine = struct{}
+
 // TalosUpgradeStatusController manages TalosUpgradeStatus performing a Talos upgrade.
 //
 // TalosUpgradeStatusController upgrades Kubernetes component versions in the cluster.
@@ -269,6 +271,12 @@ func reconcileTalosUpdateStatus(ctx context.Context, r controller.ReaderWriter,
 
 		schematicID, err = getDesiredSchematic(ctx, r, machine, talosVersion)
 		if err != nil {
+			if xerrors.TagIs[skipMachine](err) {
+				logger.Warn("machine is skipped due to no schematic information", zap.Error(err), zap.String("machine", machine.Metadata().ID()))
+
+				continue
+			}
+
 			return err
 		}
 
@@ -485,13 +493,13 @@ func getDesiredSchematic(ctx context.Context, r controller.ReaderWriter, machine
 
 	if schematic != nil {
 		if schematic.TypedSpec().Value.TalosVersion != talosVersion {
-			return "", xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the schematic is not in sync with Talos version yet")
+			return "", xerrors.NewTaggedf[skipMachine]("the schematic is not in sync with Talos version yet")
 		}
 
 		return schematic.TypedSpec().Value.SchematicId, nil
 	}
 
-	return "", xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the schematic configuration resource is not ready yet")
+	return "", xerrors.NewTaggedf[skipMachine]("the schematic configuration resource is not ready yet")
 }
 
 // populateEmptySchematics iterates all cluster machine talos versions for the cluster and if they have an empty schematic, populates
