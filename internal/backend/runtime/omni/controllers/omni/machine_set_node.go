@@ -205,7 +205,7 @@ func (ctrl *MachineSetNodeController) reconcileMachineSet(
 
 	switch machineClassCfg.AllocationType {
 	case specs.MachineSetSpec_MachineClass_Unlimited:
-		return ctrl.createNodes(ctx, r, machineSet, machineClass, allMachineStatuses, math.MaxInt32)
+		return ctrl.createNodes(ctx, r, machineSet, machineClass, allMachineStatuses, math.MaxInt32, logger)
 	case specs.MachineSetSpec_MachineClass_Static:
 		diff := int(machineClassCfg.MachineCount) - existingMachineSetNodes.Len()
 
@@ -216,12 +216,12 @@ func (ctrl *MachineSetNodeController) reconcileMachineSet(
 		if diff < 0 {
 			logger.Info("scaling machine set down", zap.Int("pending", -diff), zap.String("machine_set", machineSet.Metadata().ID()))
 
-			return ctrl.deleteNodes(ctx, r, existingMachineSetNodes, machineStatusMap, -diff)
+			return ctrl.deleteNodes(ctx, r, existingMachineSetNodes, machineStatusMap, -diff, logger)
 		}
 
 		logger.Info("scaling machine set up", zap.Int("pending", diff), zap.String("machine_set", machineSet.Metadata().ID()))
 
-		return ctrl.createNodes(ctx, r, machineSet, machineClass, allMachineStatuses, diff)
+		return ctrl.createNodes(ctx, r, machineSet, machineClass, allMachineStatuses, diff, logger)
 	}
 
 	return nil
@@ -235,6 +235,7 @@ func (ctrl *MachineSetNodeController) createNodes(
 	machineClass *omni.MachineClass,
 	allMachineStatuses safe.List[*omni.MachineStatus],
 	count int,
+	logger *zap.Logger,
 ) error {
 	selectors, err := labels.ParseSelectors(machineClass.TypedSpec().Value.MatchLabels)
 	if err != nil {
@@ -303,6 +304,8 @@ func (ctrl *MachineSetNodeController) createNodes(
 				return err
 			}
 
+			logger.Info("created machine set node", zap.String("machine", id))
+
 			created++
 			if created == count {
 				return nil
@@ -319,6 +322,7 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 	machineSetNodes safe.List[*omni.MachineSetNode],
 	machineStatuses map[string]*omni.MachineStatus,
 	machinesToDestroyCount int,
+	logger *zap.Logger,
 ) error {
 	usedMachineSetNodes, err := safe.Map(machineSetNodes, func(m *omni.MachineSetNode) (*omni.MachineSetNode, error) {
 		return m, nil
@@ -364,6 +368,8 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 		if ready, err = r.Teardown(ctx, usedMachineSetNodes[i].Metadata()); err != nil {
 			return err
 		}
+
+		logger.Info("removed machine set node", zap.String("machine", usedMachineSetNodes[i].Metadata().ID()))
 
 		if !ready {
 			return nil

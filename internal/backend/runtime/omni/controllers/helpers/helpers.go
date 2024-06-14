@@ -175,7 +175,11 @@ func HandleInput[T generic.ResourceWithRD, S generic.ResourceWithRD](ctx context
 			return zero, err
 		}
 
-		return zero, nil
+		if res.Metadata().Phase() == resource.PhaseTearingDown {
+			return zero, nil
+		}
+
+		return res, nil
 	}
 
 	if !res.Metadata().Finalizers().Has(finalizer) {

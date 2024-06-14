@@ -152,7 +152,7 @@ func (ctrl *MachineStatusController) MapInput(ctx context.Context, _ *zap.Logger
 		fallthrough
 	case omni.MachineStatusSnapshotType:
 		return []resource.Pointer{
-			omni.NewMachineStatus(resources.DefaultNamespace, ptr.ID()).Metadata(),
+			omni.NewMachine(resources.DefaultNamespace, ptr.ID()).Metadata(),
 		}, nil
 	case omni.TalosConfigType:
 		machines, err := safe.ReaderListAll[*omni.ClusterMachineStatus](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, ptr.ID())))
@@ -163,7 +163,7 @@ func (ctrl *MachineStatusController) MapInput(ctx context.Context, _ *zap.Logger
 		res := make([]resource.Pointer, 0, machines.Len())
 
 		machines.ForEach(func(r *omni.ClusterMachineStatus) {
-			res = append(res, omni.NewMachineStatus(resources.DefaultNamespace, r.Metadata().ID()).Metadata())
+			res = append(res, omni.NewMachine(resources.DefaultNamespace, r.Metadata().ID()).Metadata())
 		})
 
 		return res, nil
@@ -178,7 +178,7 @@ func (ctrl *MachineStatusController) MapInput(ctx context.Context, _ *zap.Logger
 func (ctrl *MachineStatusController) Reconcile(ctx context.Context,
 	logger *zap.Logger, r controller.QRuntime, ptr resource.Pointer,
 ) error {
-	machine, err := safe.ReaderGetByID[*omni.Machine](ctx, r, ptr.ID())
+	machine, err := safe.ReaderGet[*omni.Machine](ctx, r, omni.NewMachine(ptr.Namespace(), ptr.ID()).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil
@@ -217,24 +217,28 @@ func (ctrl *MachineStatusController) reconcileRunning(ctx context.Context, r con
 		maintenanceMode = inputs.machineStatusSnapshot.TypedSpec().Value.MachineStatus.Stage == machineapi.MachineStatusEvent_MAINTENANCE
 	}
 
-	ctrl.runner.StopTask(logger, machine.Metadata().ID())
+	var params *siderolink.ConnectionParams
+
+	params, err = safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, r, siderolink.ConfigID)
+	if err != nil {
+		return fmt.Errorf("error reading connection params: %w", err)
+	}
+
+	spec := machinetask.CollectTaskSpec{
+		Endpoint:                   machine.TypedSpec().Value.ManagementAddress,
+		TalosConfig:                inputs.talosConfig,
+		MaintenanceMode:            inputs.talosConfig == nil || maintenanceMode,
+		MachineID:                  machine.Metadata().ID(),
+		MachineLabels:              inputs.machineLabels,
+		DefaultSchematicKernelArgs: siderolink.KernelArgs(params),
+	}
+
+	if !machine.TypedSpec().Value.Connected {
+		ctrl.runner.StopTask(logger, machine.Metadata().ID())
+	}
 
 	if machine.TypedSpec().Value.Connected {
-		var params *siderolink.ConnectionParams
-
-		params, err = safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, r, siderolink.ConfigID)
-		if err != nil {
-			return fmt.Errorf("error reading connection params: %w", err)
-		}
-
-		ctrl.runner.StartTask(ctx, logger, machine.Metadata().ID(), machinetask.CollectTaskSpec{
-			Endpoint:                   machine.TypedSpec().Value.ManagementAddress,
-			TalosConfig:                inputs.talosConfig,
-			MaintenanceMode:            inputs.talosConfig == nil || maintenanceMode,
-			MachineID:                  machine.Metadata().ID(),
-			MachineLabels:              inputs.machineLabels,
-			DefaultSchematicKernelArgs: siderolink.KernelArgs(params),
-		}, ctrl.notifyCh)
+		ctrl.runner.StartTask(ctx, logger, machine.Metadata().ID(), spec, ctrl.notifyCh)
 	}
 
 	return safe.WriterModify(ctx, r, omni.NewMachineStatus(resources.DefaultNamespace, machine.Metadata().ID()), func(m *omni.MachineStatus) error {
@@ -465,13 +469,13 @@ func (ctrl *MachineStatusController) handleInputs(ctx context.Context, r control
 		return in, err
 	}
 
-	in.machineSetNode, err = safe.ReaderGetByID[*omni.MachineSetNode](ctx, r, machine.Metadata().ID())
-	if err != nil && !state.IsNotFoundError(err) {
+	in.machineSetNode, err = helpers.HandleInput[*omni.MachineSetNode](ctx, r, ctrl.Name(), machine)
+	if err != nil {
 		return in, err
 	}
 
-	if in.clusterMachineStatus != nil {
-		clusterName, ok := in.clusterMachineStatus.Metadata().Labels().Get(omni.LabelCluster)
+	if in.machineSetNode != nil {
+		clusterName, ok := in.machineSetNode.Metadata().Labels().Get(omni.LabelCluster)
 		if ok {
 			in.talosConfig, err = safe.ReaderGetByID[*omni.TalosConfig](ctx, r, clusterName)
 			if err != nil && !state.IsNotFoundError(err) {

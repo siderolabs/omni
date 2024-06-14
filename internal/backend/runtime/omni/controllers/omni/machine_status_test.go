@@ -96,7 +96,7 @@ func (suite *MachineStatusSuite) TestMachineConnected() {
 	suite.Assert().NoError(suite.state.Create(ctx, machine))
 
 	// then
-	rtestutils.AssertResource(ctx, suite.T(), suite.state, testID, func(status *omni.MachineStatus, assert *assert.Assertions) {
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{testID}, func(status *omni.MachineStatus, assert *assert.Assertions) {
 		statusVal := status.TypedSpec().Value
 
 		suite.Truef(statusVal.Connected, "not connected")
@@ -114,7 +114,7 @@ func (suite *MachineStatusSuite) TestMachineConnected() {
 		})
 	suite.Assert().NoError(err)
 
-	rtestutils.AssertResource(ctx, suite.T(), suite.state, testID, func(status *omni.MachineStatus, assert *assert.Assertions) {
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{testID}, func(status *omni.MachineStatus, assert *assert.Assertions) {
 		statusVal := status.TypedSpec().Value
 
 		assert.Falsef(statusVal.Connected, "should not be connected anymore")
@@ -140,16 +140,60 @@ func (suite *MachineStatusSuite) TestMachineReportingEvents() {
 	suite.Assert().NoError(suite.state.Create(suite.ctx, machineStatusSnapshot))
 
 	// then
-	rtestutils.AssertResource(suite.ctx, suite.T(), suite.state, testID, func(status *omni.MachineStatus, assert *assert.Assertions) {
+	rtestutils.AssertResources(suite.ctx, suite.T(), suite.state, []string{testID}, func(status *omni.MachineStatus, assert *assert.Assertions) {
 		_, ok := status.Metadata().Labels().Get(omni.MachineStatusLabelReportingEvents)
 		assert.Truef(ok, "reporting-events label not set")
 	})
 
 	rtestutils.Destroy[*omni.MachineStatusSnapshot](suite.ctx, suite.T(), suite.state, []string{testID})
 
-	rtestutils.AssertResource(suite.ctx, suite.T(), suite.state, testID, func(status *omni.MachineStatus, assert *assert.Assertions) {
+	rtestutils.AssertResources(suite.ctx, suite.T(), suite.state, []string{testID}, func(status *omni.MachineStatus, assert *assert.Assertions) {
 		_, ok := status.Metadata().Labels().Get(omni.MachineStatusLabelReportingEvents)
 		assert.Falsef(ok, "reporting-events label should not be set anymore")
+	})
+}
+
+func (suite *MachineStatusSuite) TestClusterRelation() {
+	suite.setup()
+
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
+	defer cancel()
+
+	machine := omni.NewMachine(resources.DefaultNamespace, testID)
+	machine.TypedSpec().Value.Connected = true
+
+	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "ms1")
+	machineSet.Metadata().Labels().Set(omni.LabelCluster, "cluster1")
+	machineSet.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
+
+	machineSetNode := omni.NewMachineSetNode(resources.DefaultNamespace, testID, machineSet)
+
+	suite.Assert().NoError(suite.state.Create(ctx, machine))
+	suite.Assert().NoError(suite.state.Create(ctx, machineSet))
+	suite.Assert().NoError(suite.state.Create(ctx, machineSetNode))
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{testID}, func(status *omni.MachineStatus, assert *assert.Assertions) {
+		cluster, ok := status.Metadata().Labels().Get(omni.LabelCluster)
+		assert.True(ok)
+		assert.Equal("cluster1", cluster)
+	})
+
+	rtestutils.DestroyAll[*omni.MachineSetNode](ctx, suite.T(), suite.state)
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{testID}, func(status *omni.MachineStatus, assert *assert.Assertions) {
+		_, available := status.Metadata().Labels().Get(omni.MachineStatusLabelAvailable)
+		assert.True(available)
+
+		_, clusterSet := status.Metadata().Labels().Get(omni.LabelCluster)
+		assert.False(clusterSet)
+	})
+
+	suite.Assert().NoError(suite.state.Create(ctx, machineSetNode))
+
+	rtestutils.DestroyAll[*omni.Machine](ctx, suite.T(), suite.state)
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{testID}, func(node *omni.MachineSetNode, assert *assert.Assertions) {
+		assert.True(node.Metadata().Finalizers().Empty())
 	})
 }
 
@@ -190,7 +234,7 @@ func (suite *MachineStatusSuite) TestMachineUserLabels() {
 
 	// first let's see if initial labels get populated in the resource spec
 
-	rtestutils.AssertResource(ctx, suite.T(), suite.state, testID, func(status *omni.MachineStatus, assert *assert.Assertions) {
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{testID}, func(status *omni.MachineStatus, assert *assert.Assertions) {
 		assert.NotNilf(status.TypedSpec().Value.ImageLabels, "initial labels not loaded")
 
 		val, ok := status.Metadata().Labels().Get("label1")
@@ -205,7 +249,7 @@ func (suite *MachineStatusSuite) TestMachineUserLabels() {
 
 	suite.Assert().NoError(suite.state.Create(suite.ctx, machineLabels))
 
-	rtestutils.AssertResource(ctx, suite.T(), suite.state, testID, func(status *omni.MachineStatus, assert *assert.Assertions) {
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{testID}, func(status *omni.MachineStatus, assert *assert.Assertions) {
 		val, ok := status.Metadata().Labels().Get("label1")
 		assert.Truef(ok, "label1 is not set in the initial labels")
 		assert.EqualValues("value1", val)
@@ -225,7 +269,7 @@ func (suite *MachineStatusSuite) TestMachineUserLabels() {
 
 	suite.Require().NoError(err)
 
-	rtestutils.AssertResource(ctx, suite.T(), suite.state, testID, func(status *omni.MachineStatus, assert *assert.Assertions) {
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{testID}, func(status *omni.MachineStatus, assert *assert.Assertions) {
 		val, ok := status.Metadata().Labels().Get("label1")
 		assert.Truef(ok, "label1 doesn't exist")
 		assert.EqualValues("gasp", val)
@@ -235,7 +279,7 @@ func (suite *MachineStatusSuite) TestMachineUserLabels() {
 
 	rtestutils.Destroy[*omni.MachineLabels](suite.ctx, suite.T(), suite.state, []string{testID})
 
-	rtestutils.AssertResource(ctx, suite.T(), suite.state, testID, func(status *omni.MachineStatus, assert *assert.Assertions) {
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{testID}, func(status *omni.MachineStatus, assert *assert.Assertions) {
 		val, ok := status.Metadata().Labels().Get("label1")
 		assert.Truef(ok, "label1 doesn't exist")
 		assert.EqualValues("value1", val)
@@ -261,7 +305,7 @@ func (suite *MachineStatusSuite) TestMachineUserLabels() {
 
 	suite.Require().NoError(err)
 
-	rtestutils.AssertResource(ctx, suite.T(), suite.state, testID, func(status *omni.MachineStatus, assert *assert.Assertions) {
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{testID}, func(status *omni.MachineStatus, assert *assert.Assertions) {
 		val, ok := status.Metadata().Labels().Get("label1")
 		assert.Truef(ok, "label1 doesn't exist")
 		assert.EqualValues("updated", val)
@@ -380,7 +424,7 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 				suite.Require().NoError(suite.machineService.state.Create(ctx, res))
 			}
 
-			rtestutils.AssertResource(ctx, t, suite.state, testID, func(status *omni.MachineStatus, assert *assert.Assertions) {
+			rtestutils.AssertResources(ctx, t, suite.state, []string{testID}, func(status *omni.MachineStatus, assert *assert.Assertions) {
 				assert.EqualValues(tt.expected, status.TypedSpec().Value.Schematic)
 			})
 		})

@@ -194,7 +194,7 @@ func (suite *TalosUpgradeStatusSuite) TestUpdateVersionsMaintenance() {
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
 
-	clusterName := "talos-upgrade-cluster"
+	clusterName := "talos-upgrade-cluster-2"
 
 	cluster, machines := suite.createCluster(clusterName, 3, 1)
 

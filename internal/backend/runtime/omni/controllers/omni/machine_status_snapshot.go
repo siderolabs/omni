@@ -112,7 +112,7 @@ func (ctrl *MachineStatusSnapshotController) MapInput(ctx context.Context, _ *za
 		fallthrough
 	case omni.MachineType:
 		return []resource.Pointer{
-			omni.NewMachineStatusSnapshot(resources.DefaultNamespace, ptr.ID()).Metadata(),
+			omni.NewMachine(resources.DefaultNamespace, ptr.ID()).Metadata(),
 		}, nil
 	case omni.TalosConfigType:
 		machines, err := safe.ReaderListAll[*omni.ClusterMachine](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, ptr.ID())))
@@ -123,7 +123,7 @@ func (ctrl *MachineStatusSnapshotController) MapInput(ctx context.Context, _ *za
 		res := make([]resource.Pointer, 0, machines.Len())
 
 		machines.ForEach(func(r *omni.ClusterMachine) {
-			res = append(res, omni.NewMachineStatusSnapshot(resources.DefaultNamespace, r.Metadata().ID()).Metadata())
+			res = append(res, omni.NewMachine(resources.DefaultNamespace, r.Metadata().ID()).Metadata())
 		})
 
 		return res, nil
@@ -136,7 +136,7 @@ func (ctrl *MachineStatusSnapshotController) MapInput(ctx context.Context, _ *za
 func (ctrl *MachineStatusSnapshotController) Reconcile(ctx context.Context,
 	logger *zap.Logger, r controller.QRuntime, ptr resource.Pointer,
 ) error {
-	machine, err := safe.ReaderGetByID[*omni.Machine](ctx, r, ptr.ID())
+	machine, err := safe.ReaderGet[*omni.Machine](ctx, r, omni.NewMachine(ptr.Namespace(), ptr.ID()).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil
@@ -159,8 +159,6 @@ func (ctrl *MachineStatusSnapshotController) reconcileRunning(ctx context.Contex
 		}
 	}
 
-	ctrl.runner.StopTask(logger, machine.Metadata().ID())
-
 	clusterMachine, err := helpers.HandleInput[*omni.ClusterMachine](ctx, r, ctrl.Name(), machine)
 	if err != nil {
 		return err
@@ -176,6 +174,10 @@ func (ctrl *MachineStatusSnapshotController) reconcileRunning(ctx context.Contex
 				return err
 			}
 		}
+	}
+
+	if !machine.TypedSpec().Value.Connected {
+		ctrl.runner.StopTask(logger, machine.Metadata().ID())
 	}
 
 	if machine.TypedSpec().Value.Connected {

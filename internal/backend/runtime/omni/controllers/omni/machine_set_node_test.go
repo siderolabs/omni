@@ -93,6 +93,7 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 		map[string]string{
 			omni.MachineStatusLabelCPU:       "AMD",
 			omni.MachineStatusLabelAvailable: "",
+			"userlabel":                      "value",
 		},
 	)
 
@@ -127,7 +128,7 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 	machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 	machineSet.Metadata().Labels().Set(omni.LabelWorkerRole, "")
 
-	machineClass := newMachineClass(fmt.Sprintf("%s==amd64", omni.MachineStatusLabelArch))
+	machineClass := newMachineClass(fmt.Sprintf("%s==amd64", omni.MachineStatusLabelArch), "userlabel=value")
 
 	machineSet.TypedSpec().Value.MachineClass = &specs.MachineSetSpec_MachineClass{
 		Name:         machineClass.Metadata().ID(),
@@ -138,6 +139,9 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 	suite.Require().NoError(suite.state.Create(ctx, machineSet))
 
 	assertMachineSetNode(machines[0])
+	assertNoMachineSetNode(machines[1])
+	assertNoMachineSetNode(machines[2])
+	assertNoMachineSetNode(machines[3])
 
 	machineClass = newMachineClass(fmt.Sprintf("%s==AMD", omni.MachineStatusLabelCPU))
 

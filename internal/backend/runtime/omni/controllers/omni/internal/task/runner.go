@@ -51,6 +51,18 @@ func (runner *Runner[T, S]) StartTask(ctx context.Context, logger *zap.Logger, i
 	runner.mu.Lock()
 	defer runner.mu.Unlock()
 
+	running, ok := runner.running[id]
+
+	if ok {
+		if runner.equalityFunc(spec, running.spec) {
+			return
+		}
+
+		logger.Debug("replacing task", zap.String("task", id))
+
+		runner.stopTask(id)
+	}
+
 	runner.running[id] = New(logger, spec, task)
 
 	logger.Debug("starting task", zap.String("task", id))
@@ -62,11 +74,15 @@ func (runner *Runner[T, S]) StopTask(logger *zap.Logger, id string) {
 	runner.mu.Lock()
 	defer runner.mu.Unlock()
 
+	logger.Debug("stopping task", zap.String("task", id))
+
+	runner.stopTask(id)
+}
+
+func (runner *Runner[T, S]) stopTask(id string) {
 	if _, ok := runner.running[id]; !ok {
 		return
 	}
-
-	logger.Debug("stopping task", zap.String("task", id))
 
 	runner.running[id].Stop()
 	delete(runner.running, id)
@@ -82,13 +98,11 @@ func (runner *Runner[T, S]) Reconcile(ctx context.Context, logger *zap.Logger, s
 		if _, exists := shouldRun[id]; !exists {
 			logger.Debug("stopping task", zap.String("task", id))
 
-			runner.running[id].Stop()
-			delete(runner.running, id)
+			runner.stopTask(id)
 		} else if !runner.equalityFunc(shouldRun[id], runner.running[id].Spec()) {
 			logger.Debug("replacing task", zap.String("task", id))
 
-			runner.running[id].Stop()
-			delete(runner.running, id)
+			runner.stopTask(id)
 		}
 	}
 
