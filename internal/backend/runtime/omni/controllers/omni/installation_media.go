@@ -60,6 +60,20 @@ var installationMedia = []installationMediaSpec{
 
 	// CloudImages
 	{
+		Name:         "Akamai (amd64)",
+		Architecture: amd64Arch,
+		Profile:      "akamai",
+		Type:         rawType,
+		ContentType:  "application/gzip",
+	},
+	{
+		Name:         "Akamai (arm64)",
+		Architecture: arm64Arch,
+		Profile:      "akamai",
+		Type:         rawType,
+		ContentType:  "application/gzip",
+	},
+	{
 		Name:         "AWS AMI (amd64)",
 		Architecture: amd64Arch,
 		Profile:      "aws",
