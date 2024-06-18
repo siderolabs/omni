@@ -79,11 +79,11 @@ const props = defineProps<{
   modelValue: Record<string, boolean>
   immutableExtensions?: Record<string, boolean>
   indeterminate?: boolean
+  showDescriptions?: boolean
 }>();
 
 const { modelValue } = toRefs(props);
 const filterExtensions = ref<string>("");
-const showDescriptions = ref(false);
 
 const filteredExtensions = (items: TalosExtensionsSpecInfo[]) => {
   if (!filterExtensions.value) {

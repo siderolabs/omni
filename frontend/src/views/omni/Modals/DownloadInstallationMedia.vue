@@ -44,7 +44,7 @@ included in the LICENSE file.
           :checked="showDescriptions"/>
       </div>
 
-      <extensions-picker v-model="installExtensions" :talos-version="selectedTalosVersion" class="flex-1"/>
+      <extensions-picker v-model="installExtensions" :talos-version="selectedTalosVersion" class="flex-1" :show-descriptions="showDescriptions"/>
 
       <h3 class="text-sm text-naturals-N14">
         Machine User Labels
