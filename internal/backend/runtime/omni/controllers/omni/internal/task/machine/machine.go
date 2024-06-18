@@ -28,8 +28,15 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	talosschematic "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/talos"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
+
+// SchematicInfo contains all collected schematic information.
+type SchematicInfo struct {
+	talosschematic.SchematicInfo
+	Invalid bool
+}
 
 // Info contains information gathered about a machine.
 type Info struct { //nolint:govet
@@ -49,7 +56,7 @@ type Info struct { //nolint:govet
 	Blockdevices  []*specs.MachineStatusSpec_HardwareStatus_BlockDevice
 
 	PlatformMetadata *specs.MachineStatusSpec_PlatformMetadata
-	Schematic        *specs.MachineStatusSpec_Schematic
+	Schematic        *SchematicInfo
 
 	LastError       error
 	MachineID       string

@@ -17,7 +17,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/value"
-	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/go-procfs/procfs"
 	"github.com/siderolabs/image-factory/pkg/schematic"
@@ -394,15 +393,14 @@ func detectOverlay(ctx context.Context, c *client.Client) (*schematic.Overlay, e
 }
 
 func pollExtensions(ctx context.Context, c *client.Client, info *Info) error {
-	machineSchematic := &specs.MachineStatusSpec_Schematic{}
-	info.Schematic = machineSchematic
-
 	var err error
 
 	schematicInfo, err := talos.GetSchematicInfo(ctx, c, info.DefaultKernelArgs)
 	if err != nil {
 		if errors.Is(err, talos.ErrInvalidSchematic) {
-			machineSchematic.Invalid = true
+			info.Schematic = &SchematicInfo{
+				Invalid: true,
+			}
 
 			return nil
 		}
@@ -421,21 +419,9 @@ func pollExtensions(ctx context.Context, c *client.Client, info *Info) error {
 		}
 	}
 
-	machineSchematic.Id = schematicInfo.ID
-	machineSchematic.Extensions = schematicInfo.Extensions
-	machineSchematic.Overlay = &specs.MachineStatusSpec_Schematic_Overlay{
-		Name:  schematicInfo.Overlay.Name,
-		Image: schematicInfo.Overlay.Image,
+	info.Schematic = &SchematicInfo{
+		SchematicInfo: schematicInfo,
 	}
-
-	machineSchematic.FullId = schematicInfo.FullID
-	machineSchematic.KernelArgs = schematicInfo.KernelArgs
-	machineSchematic.MetaValues = xslices.Map(schematicInfo.MetaValues, func(metaValue schematic.MetaValue) *specs.MachineStatusSpec_Schematic_MetaValue {
-		return &specs.MachineStatusSpec_Schematic_MetaValue{
-			Key:   uint32(metaValue.Key),
-			Value: metaValue.Value,
-		}
-	})
 
 	return nil
 }

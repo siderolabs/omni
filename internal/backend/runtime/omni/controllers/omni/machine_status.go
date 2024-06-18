@@ -16,6 +16,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/optional"
+	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"go.uber.org/zap"
@@ -396,15 +397,23 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 				spec.Schematic = &specs.MachineStatusSpec_Schematic{}
 			}
 
-			spec.Schematic.Id = event.Schematic.Id
-			spec.Schematic.FullId = event.Schematic.FullId
+			spec.Schematic.Id = event.Schematic.ID
+			spec.Schematic.FullId = event.Schematic.FullID
 			spec.Schematic.Extensions = event.Schematic.Extensions
 			spec.Schematic.Invalid = event.Schematic.Invalid
 			spec.Schematic.KernelArgs = event.Schematic.KernelArgs
-			spec.Schematic.MetaValues = event.Schematic.MetaValues
+			spec.Schematic.MetaValues = xslices.Map(event.Schematic.MetaValues, func(value schematic.MetaValue) *specs.MachineStatusSpec_Schematic_MetaValue {
+				return &specs.MachineStatusSpec_Schematic_MetaValue{
+					Key:   uint32(value.Key),
+					Value: value.Value,
+				}
+			})
 
-			if event.Schematic.Overlay != nil && event.Schematic.Overlay.Name != "" {
-				spec.Schematic.Overlay = event.Schematic.Overlay
+			if event.Schematic.Overlay.Name != "" {
+				spec.Schematic.Overlay = &specs.MachineStatusSpec_Schematic_Overlay{
+					Name:  event.Schematic.Overlay.Name,
+					Image: event.Schematic.Overlay.Image,
+				}
 			}
 
 			if spec.Schematic.Invalid {
@@ -423,13 +432,16 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 		return fmt.Errorf("error modifying resource: %w", err)
 	}
 
-	if event.Schematic != nil && event.Schematic.Id != "" {
+	if event.Schematic != nil && event.Schematic.ID != "" {
 		machineSchematic := schematic.Schematic{
 			Customization: schematic.Customization{
 				SystemExtensions: schematic.SystemExtensions{
 					OfficialExtensions: event.Schematic.Extensions,
 				},
+				ExtraKernelArgs: event.Schematic.KernelArgs,
+				Meta:            event.Schematic.MetaValues,
 			},
+			Overlay: event.Schematic.Overlay,
 		}
 
 		if _, err := ctrl.ImageFactoryClient.EnsureSchematic(ctx, machineSchematic); err != nil {
