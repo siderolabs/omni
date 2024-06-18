@@ -98,10 +98,12 @@ func (ctrl *MachineSetNodeController) Run(ctx context.Context, r controller.Runt
 			return fmt.Errorf("error listing machine sets: %w", err)
 		}
 
-		allMachineSetNodes, err := safe.ReaderListAll[*omni.MachineSetNode](ctx, r)
+		machineSetNodes, err := r.ListUncached(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.MachineSetNodeType, "", resource.VersionUndefined))
 		if err != nil {
 			return err
 		}
+
+		allMachineSetNodes := safe.NewList[*omni.MachineSetNode](machineSetNodes)
 
 		allMachines, err := safe.ReaderListAll[*omni.Machine](ctx, r)
 		if err != nil {
