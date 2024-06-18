@@ -269,6 +269,12 @@ func (ctrl *MachineSetNodeController) createNodes(
 		selector.Terms = append(selector.Terms, resource.LabelTerm{
 			Key: omni.MachineStatusLabelAvailable,
 			Op:  resource.LabelOpExists,
+		}, resource.LabelTerm{
+			Key: omni.MachineStatusLabelConnected,
+			Op:  resource.LabelOpExists,
+		}, resource.LabelTerm{
+			Key: omni.MachineStatusLabelReportingEvents,
+			Op:  resource.LabelOpExists,
 		})
 
 		availableMachineClassMachines := allMachineStatuses.FilterLabelQuery(resource.RawLabelQuery(selector))

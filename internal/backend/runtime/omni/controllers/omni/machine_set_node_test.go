@@ -82,18 +82,24 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 
 	machines := suite.createMachines(
 		map[string]string{
-			omni.MachineStatusLabelArch:      "amd64",
-			omni.MachineStatusLabelAvailable: "",
+			omni.MachineStatusLabelArch:            "amd64",
+			omni.MachineStatusLabelAvailable:       "",
+			omni.MachineStatusLabelConnected:       "",
+			omni.MachineStatusLabelReportingEvents: "",
 		},
 		map[string]string{
-			omni.MachineStatusLabelAvailable: "",
-			omni.MachineStatusLabelArch:      "amd64",
+			omni.MachineStatusLabelAvailable:       "",
+			omni.MachineStatusLabelArch:            "amd64",
+			omni.MachineStatusLabelConnected:       "",
+			omni.MachineStatusLabelReportingEvents: "",
 		},
 		map[string]string{},
 		map[string]string{
-			omni.MachineStatusLabelCPU:       "AMD",
-			omni.MachineStatusLabelAvailable: "",
-			"userlabel":                      "value",
+			omni.MachineStatusLabelCPU:             "AMD",
+			omni.MachineStatusLabelAvailable:       "",
+			"userlabel":                            "value",
+			omni.MachineStatusLabelConnected:       "",
+			omni.MachineStatusLabelReportingEvents: "",
 		},
 	)
 
@@ -186,15 +192,21 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 	// add more machines and wait for the controller to scale up
 	machines = append(machines, suite.createMachines(
 		map[string]string{
-			omni.MachineStatusLabelCPU:       "AMD",
-			omni.MachineStatusLabelAvailable: "",
+			omni.MachineStatusLabelCPU:             "AMD",
+			omni.MachineStatusLabelAvailable:       "",
+			omni.MachineStatusLabelConnected:       "",
+			omni.MachineStatusLabelReportingEvents: "",
 		},
 		map[string]string{
-			omni.MachineStatusLabelCPU: "AMD",
+			omni.MachineStatusLabelCPU:             "AMD",
+			omni.MachineStatusLabelConnected:       "",
+			omni.MachineStatusLabelReportingEvents: "",
 		},
 		map[string]string{
-			omni.MachineStatusLabelCPU:       "AMD",
-			omni.MachineStatusLabelAvailable: "",
+			omni.MachineStatusLabelCPU:             "AMD",
+			omni.MachineStatusLabelAvailable:       "",
+			omni.MachineStatusLabelConnected:       "",
+			omni.MachineStatusLabelReportingEvents: "",
 		},
 	)...)
 
