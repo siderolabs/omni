@@ -1,3 +1,127 @@
+## [Omni 0.38.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.38.0-beta.0) (2024-06-18)
+
+Welcome to the v0.38.0-beta.0 release of Omni!  
+*This is a pre-release of Omni*
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Break-Glass Configs
+
+Omni now allows getting raw Talos and Kubernetes configs that can allow bypassing Omni when
+accessing the cluster.
+
+It has a couple of limitations:
+
+- It is available only if is enabled for the account.
+- Only `os:operator` role Talosconfig level is available.
+- The cluster will be marked as tainted for the time being, which doesn't affect anything, but is
+the signal that Omni no longer fully controls secrets rotation.
+
+
+### Exposed Services DNS Name
+
+Exposed services now use new naming schema, so it shouldn't be affected by slow DNS updates.
+
+The domain name patter is now: `<hash>-<account>.proxy-us.siderolabs.io`.
+
+
+### Kubeconfig Authcode-Keyboard
+
+It is now possible to generate `kubeconfig` with `--grant-type=authcode-keyboard` and Omni
+supports that mode.
+This mode will print a URL and ask for a one time code instead of starting a local HTTP server on port `8000`.
+Clicking the URL will open the same Omni page as usual, but will present you the one time code instead of doing redirect.
+
+This mode is useful for remote machine `kubectl` execution and removes the need to set up ssh port-forwarding.
+
+
+### Machine Logs
+
+Machine logs are now stored using new persitent circular buffer library, which has better write efficiency.
+
+
+### Pending Updates
+
+Omni UI now shows pending config changes which are not applied due to locked machines in the cluster.
+
+
+### Contributors
+
+* Artem Chernyshev
+* Utku Ozdemir
+* Andrey Smirnov
+* Dmitriy Matrenichev
+* Andrey Smirnov
+* Grzegorz Rozniecki
+
+### Changes
+<details><summary>30 commits</summary>
+<p>
+
+* [`4109996`](https://github.com/siderolabs/omni/commit/4109996e5639b9823d3d18b4e9f5b4bb8a323c8e) fix: make `MachineSetNode` controller select only connected machines
+* [`2457897`](https://github.com/siderolabs/omni/commit/2457897e937beff1e84627722a7b865348953239) fix: use un-cached list in the `MachineSetNodeController`
+* [`73529c2`](https://github.com/siderolabs/omni/commit/73529c2da88aa331de7298f40f08f5fbdbd4fa24) fix: display descriptions when show description checkbox is clicked
+* [`6a59d63`](https://github.com/siderolabs/omni/commit/6a59d6388fd91caa53a370cbb4f8f3f2175a3156) fix: generate schematics with the extensions, meta and kernel args
+* [`87a7750`](https://github.com/siderolabs/omni/commit/87a7750dfff13a6db6eaa29b9f5d6fc56dfeba5e) chore: add Akamai installation media
+* [`fa64b46`](https://github.com/siderolabs/omni/commit/fa64b4633cf917353e120218d43cfbd1b78a0609) fix: skip invalid machines in `TalosUpgradeStatusController`
+* [`22bb2cc`](https://github.com/siderolabs/omni/commit/22bb2cc7de67251702d429069fa97928e96ef8bf) fix: use proper types in the machine status and snapshot controllers
+* [`a2b7b53`](https://github.com/siderolabs/omni/commit/a2b7b530c9ad0f18bbfced5508142925e9c5588e) feat: use the new domain scheme for exposed services
+* [`4ecb175`](https://github.com/siderolabs/omni/commit/4ecb175b095bc6615a366c1d390ad58b7cec2384) fix: handle panics in Omni and Talos UI watches
+* [`6286340`](https://github.com/siderolabs/omni/commit/6286340e38363aefadada987e9ac865fedab38d1) fix: properly delete the item from the cached items slice
+* [`63ad5bd`](https://github.com/siderolabs/omni/commit/63ad5bd1ef28935caaf5187b417123f90ac3179d) feat: provide a way to getadmin `talosconfig` and `kubeconfig`
+* [`fa21349`](https://github.com/siderolabs/omni/commit/fa21349f472b23dcd9c1f68be60057b5d5c9b5ea) fix: properly generate maintenance config patches
+* [`2e64c31`](https://github.com/siderolabs/omni/commit/2e64c3152fd0d0275418ed32ecf5a9662755eab4) fix: ignore not found `ClusterMachine` in the migrations
+* [`a2c3802`](https://github.com/siderolabs/omni/commit/a2c38022060cd379b0bb6344cf1bc5635a1d081c) fix: validate user email on creation
+* [`73d0d3b`](https://github.com/siderolabs/omni/commit/73d0d3b09bfaf08f13382a9baf032cddd27c2f14) fix: properly detect `authcode-keyboard` oidc mode
+* [`b7a0620`](https://github.com/siderolabs/omni/commit/b7a06208e9ae7476f49108b40a4e6f117304b731) feat: use circular buffer's new persistence option for machine logs
+* [`7eec6b9`](https://github.com/siderolabs/omni/commit/7eec6b9e7a2b8a239242f47e31c2bc31f0e3acdf) chore: bump COSI runtime to 0.4.5
+* [`4d23186`](https://github.com/siderolabs/omni/commit/4d231866542df1e5e6cf932312b33f58d615f07c) feat: show pending config updates due to locked machine
+* [`f98cf51`](https://github.com/siderolabs/omni/commit/f98cf51a76797baff600cbcfbd25a28e7c2a6b7c) fix: ignore not found in the `MachineStatus` and `MachineStatusSnapshot`
+* [`ce6e15a`](https://github.com/siderolabs/omni/commit/ce6e15a368696edf071598908f329e845d78292f) fix: proper time adjustment to fix flaky TestEtcdManualBackup
+* [`27491ea`](https://github.com/siderolabs/omni/commit/27491ea85e726dc448f39fb27c6d17073d000bd7) chore: upgrade github.com/containers/image to v5
+* [`3f75f91`](https://github.com/siderolabs/omni/commit/3f75f916087382ec8b102cc960f8e56c0876f200) fix: change Transport.Address field to Transport.Address method
+* [`e12cfa8`](https://github.com/siderolabs/omni/commit/e12cfa8444e101f192d658e52e7e170b8fad8f31) feat: support authcode login in `kubectl oidc-login`
+* [`2fcd0fd`](https://github.com/siderolabs/omni/commit/2fcd0fdac43914c4e1234b4c2615b29805c8bc35) fix: properly update the pulled images count if some images are skipped
+* [`5a4251c`](https://github.com/siderolabs/omni/commit/5a4251c99285bb807b63034705143842d1923c83) test: fix a data race in `MachineStatusSnapshotController` unit tests
+* [`0965091`](https://github.com/siderolabs/omni/commit/09650914b9b7729ff7810ec5a86179f791278694) test: fix flaky test in `ClusterMachineConfigStatus` unit tests
+* [`b7d48aa`](https://github.com/siderolabs/omni/commit/b7d48aa61efe532f57e85455adfd70b6bb544a42) chore: small fixes
+* [`a6c8b47`](https://github.com/siderolabs/omni/commit/a6c8b47442e225f0b4b85b33944bac37002e5897) fix: pass through the `talosctl -n` args if they cannot be resolved
+* [`3bab8bf`](https://github.com/siderolabs/omni/commit/3bab8bf0891a3910582e3f431683ce3351e54bb5) chore: migrate to Vite and Bun to build the frontend
+* [`37c1a97`](https://github.com/siderolabs/omni/commit/37c1a971e74cb3a6e4342487604876fd8a8f627f) fix: use proper routing on the config patch view and edit pages
+</p>
+</details>
+
+### Changes from siderolabs/discovery-client
+<details><summary>13 commits</summary>
+<p>
+
+* [`ca662d2`](https://github.com/siderolabs/discovery-client/commit/ca662d218418eb50eb22d84560c290bef4369702) feat: export default GRPC dial options for the client
+* [`7a767fa`](https://github.com/siderolabs/discovery-client/commit/7a767fa89005209f5f39b2f5891ca7b169f52d89) chore: bump Go, deps and rekres
+* [`f4095a1`](https://github.com/siderolabs/discovery-client/commit/f4095a109d3947d1a1f470446ef40e1b386aeaf1) chore: bump discovery API to v0.1.4
+* [`fbb1cea`](https://github.com/siderolabs/discovery-client/commit/fbb1cea89609242e20f6cb35b4bfec12ade4144e) fix: keepalive interval calculation
+* [`ff8f4be`](https://github.com/siderolabs/discovery-client/commit/ff8f4be618f077f91ce1f9b8240c050719623582) fix: enable gRPC keepalives
+* [`9ba5f03`](https://github.com/siderolabs/discovery-client/commit/9ba5f033a47d41448153962c5fe22db2d9a8a00c) chore: app optional ControlPlane data
+* [`269a832`](https://github.com/siderolabs/discovery-client/commit/269a832ce9e35d4edeeddba2a23cf5682a2ca425) chore: rekres, update discovery api
+* [`a5c19c6`](https://github.com/siderolabs/discovery-client/commit/a5c19c65f4833a104ac68f35a3c0f8f37be8fe87) feat: provide public IP discovered from the server
+* [`230f317`](https://github.com/siderolabs/discovery-client/commit/230f317a8e6e9542b82efcbac9f5cd7b9cff34b6) fix: reconnect the client on update failure
+* [`ac5ab32`](https://github.com/siderolabs/discovery-client/commit/ac5ab32d1350332e837eea76f02a2225ce17c626) feat: support deleting an affiliate
+* [`27a5bee`](https://github.com/siderolabs/discovery-client/commit/27a5beeccc45c82222fee5a70a2318b21cf87ac6) chore: rekres
+* [`a9a5e9b`](https://github.com/siderolabs/discovery-client/commit/a9a5e9bfddaa670e0fb4f57510167d377cf09b07) feat: initial client code
+* [`98eb999`](https://github.com/siderolabs/discovery-client/commit/98eb9999c0c76d2f93378108b7e22de6bcae6e81) chore: initial commit
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/containers/image/v5**          v5.31.0 **_new_**
+* **github.com/cosi-project/runtime**         15e9d678159d -> v0.4.6
+* **github.com/siderolabs/discovery-client**  v0.1.9 **_new_**
+
+Previous release can be found at [v0.37.0](https://github.com/siderolabs/omni/releases/tag/v0.37.0)
+
 ## [Omni 0.37.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.37.0-beta.0) (2024-06-04)
 
 Welcome to the v0.37.0-beta.0 release of Omni!  

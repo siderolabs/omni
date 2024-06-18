@@ -6,38 +6,51 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v0.36.0"
+previous = "v0.37.0"
 
 [notes]
 
-  [notes.node-overview]
-    title = "Node Overview Page"
+  [notes.exposed-services]
+    title = "Exposed Services DNS Name"
     description = """\
-Node overview page now displays more information about the node.
-That includes:
+Exposed services now use new naming schema, so it shouldn't be affected by slow DNS updates.
 
-- Machine stage.
-- Unmet health check conditions of the Talos `MachineStatus`.
-- CPU, memory and secure boot information.
-- The list of labels added to the machine.
+The domain name patter is now: `<hash>-<account>.proxy-us.siderolabs.io`.
 """
 
-  [notes.secureboot]
-    title = "Secureboot Support Added"
+  [notes.break-glass]
+    title = "Break-Glass Configs"
     description = """\
-Omni now fully supports secureboot enabled machines.
+Omni now allows getting raw Talos and Kubernetes configs that can allow bypassing Omni when
+accessing the cluster.
+
+It has a couple of limitations:
+
+- It is available only if is enabled for the account.
+- Only `os:operator` role Talosconfig level is available.
+- The cluster will be marked as tainted for the time being, which doesn't affect anything, but is
+the signal that Omni no longer fully controls secrets rotation.
 """
 
-  [notes.service-events]
-    title = "Service Events"
+  [notes.machine-logs]
+    title = "Machine Logs"
     description = """\
-Node overview page service list now displays information about each service events.
-If a service fails to start it will be possible to see why in the UI.
+Machine logs are now stored using new persitent circular buffer library, which has better write efficiency.
 """
 
-  [notes.patches]
-    title = "Patches UI"
+  [notes.kubeconfig]
+    title = "Kubeconfig Authcode-Keyboard"
     description = """\
-The UI now has the page that shows config patches define for a machine.
-It includes both cluster level and account level machine patches.
+It is now possible to generate `kubeconfig` with `--grant-type=authcode-keyboard` and Omni
+supports that mode.
+This mode will print a URL and ask for a one time code instead of starting a local HTTP server on port `8000`.
+Clicking the URL will open the same Omni page as usual, but will present you the one time code instead of doing redirect.
+
+This mode is useful for remote machine `kubectl` execution and removes the need to set up ssh port-forwarding.
+"""
+
+  [notes.pending-updates]
+    title = "Pending Updates"
+    description = """\
+Omni UI now shows pending config changes which are not applied due to locked machines in the cluster.
 """
