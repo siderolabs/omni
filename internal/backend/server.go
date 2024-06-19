@@ -56,6 +56,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/debug"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/factory"
@@ -530,7 +531,7 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 		)
 	})
 
-	grpcutil.RunServer(groupCtx, server, lis, eg)
+	grpcutil.RunServer(groupCtx, server, lis, eg, s.logger)
 
 	return eg.Wait()
 }
@@ -859,7 +860,9 @@ func runServer(ctx context.Context, srv *server, logger *zap.Logger) error {
 
 	errCh := make(chan error, 1)
 
-	go func() { errCh <- srv.ListenAndServe() }()
+	panichandler.Go(func() {
+		errCh <- srv.ListenAndServe()
+	}, logger)
 
 	select {
 	case err := <-errCh:
@@ -921,7 +924,7 @@ func runLocalResourceServer(ctx context.Context, st state.CoreState, serverOptio
 
 	logger.Info("starting local resource server")
 
-	grpcutil.RunServer(ctx, grpcServer, listener, eg)
+	grpcutil.RunServer(ctx, grpcServer, listener, eg, logger)
 
 	return nil
 }
@@ -971,7 +974,9 @@ func runGRPCServer(ctx context.Context, server *grpc.Server, transport *memconn.
 
 	errCh := make(chan error, 1)
 
-	go func() { errCh <- server.Serve(grpcListener) }()
+	panichandler.Go(func() {
+		errCh <- server.Serve(grpcListener)
+	}, logger)
 
 	select {
 	case err := <-errCh:

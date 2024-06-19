@@ -18,10 +18,12 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/channel"
 	"github.com/siderolabs/gen/pair/ordered"
+	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 )
 
@@ -31,6 +33,7 @@ import (
 type State struct {
 	CoreState    state.CoreState
 	StoreFactory store.Factory
+	Logger       *zap.Logger
 }
 
 // Get implements [state.CoreState] interface.
@@ -181,7 +184,7 @@ func (s *State) WatchKind(ctx context.Context, kind resource.Kind, ch chan<- sta
 		return makeUnsupportedError(err)
 	}
 
-	go func() {
+	panichandler.Go(func() {
 		list, err := s.List(ctx, kind, convertedOpts...)
 		if err != nil {
 			channel.SendWithContext(ctx, ch, state.Event{
@@ -204,7 +207,7 @@ func (s *State) WatchKind(ctx context.Context, kind resource.Kind, ch chan<- sta
 		if !channel.SendWithContext(ctx, ch, state.Event{Type: state.Bootstrapped}) {
 			return
 		}
-	}()
+	}, s.Logger)
 
 	return nil
 }

@@ -25,7 +25,6 @@ import (
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/siderolabs/gen/channel"
-	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/singleflight"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -40,6 +39,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/k8s"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 	pkgruntime "github.com/siderolabs/omni/client/pkg/runtime"
 	"github.com/siderolabs/omni/internal/backend/oidc/external"
 	"github.com/siderolabs/omni/internal/backend/runtime"
@@ -473,7 +473,7 @@ func (w *Watch) run(ctx context.Context, client *Client) error {
 
 	errCh := make(chan error, 1)
 
-	eg, ctx := errgroup.WithContext(ctx)
+	eg, ctx := panichandler.ErrGroupWithContext(ctx)
 
 	if err := informer.Informer().SetWatchErrorHandler(func(_ *toolscache.Reflector, e error) {
 		channel.SendWithContext(ctx, errCh, e)

@@ -23,13 +23,13 @@ import (
 	"github.com/siderolabs/go-talos-support/support/bundle"
 	"github.com/siderolabs/go-talos-support/support/collectors"
 	"github.com/siderolabs/talos/pkg/machinery/client"
-	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v3"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	kubernetesruntime "github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/pkg/auth"
@@ -127,7 +127,7 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 
 	cols = append(cols, talosCollectors...)
 
-	var eg errgroup.Group
+	eg := panichandler.NewErrGroup()
 
 	eg.Go(func() error {
 		for p := range progress {

@@ -65,6 +65,7 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 				return &external.State{
 					CoreState:    primaryStorageCoreState,
 					StoreFactory: storeFactory,
+					Logger:       logger,
 				}
 			default:
 				return primaryStorageCoreState

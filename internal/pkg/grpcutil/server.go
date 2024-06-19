@@ -12,13 +12,15 @@ import (
 	"net"
 	"time"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/pkg/errgroup"
 )
 
 // RunServer starts gRPC server on top of the provided listener, stops it when the context is done.
-func RunServer(ctx context.Context, server *grpc.Server, lis net.Listener, eg *errgroup.Group) {
+func RunServer(ctx context.Context, server *grpc.Server, lis net.Listener, eg *errgroup.Group, logger *zap.Logger) {
 	eg.Go(func() error {
 		err := server.Serve(lis)
 		if !errors.Is(err, grpc.ErrServerStopped) {
@@ -29,13 +31,13 @@ func RunServer(ctx context.Context, server *grpc.Server, lis net.Listener, eg *e
 	})
 
 	eg.Go(func() error {
-		serverGracefulStop(server, ctx)
+		serverGracefulStop(server, ctx, logger)
 
 		return nil
 	})
 }
 
-func serverGracefulStop(server *grpc.Server, ctx context.Context) { //nolint:revive
+func serverGracefulStop(server *grpc.Server, ctx context.Context, logger *zap.Logger) { //nolint:revive
 	<-ctx.Done()
 
 	stopped := make(chan struct{})
@@ -43,10 +45,10 @@ func serverGracefulStop(server *grpc.Server, ctx context.Context) { //nolint:rev
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	go func() {
+	panichandler.Go(func() {
 		server.GracefulStop()
 		close(stopped)
-	}()
+	}, logger)
 
 	select {
 	case <-shutdownCtx.Done():

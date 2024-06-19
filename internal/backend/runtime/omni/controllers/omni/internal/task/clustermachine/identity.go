@@ -36,6 +36,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
@@ -101,7 +102,7 @@ func (spec IdentityCollectorTaskSpec) Equal(other IdentityCollectorTaskSpec) boo
 // RunTask runs the identity collector task.
 //
 //nolint:gocyclo,cyclop
-func (spec IdentityCollectorTaskSpec) RunTask(ctx context.Context, _ *zap.Logger, notify IdentityCollectorChan) error {
+func (spec IdentityCollectorTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, notify IdentityCollectorChan) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -162,11 +163,11 @@ func (spec IdentityCollectorTaskSpec) RunTask(ctx context.Context, _ *zap.Logger
 	if runLegacyEtcdMemberIDCollector {
 		wg.Add(1)
 
-		go func() {
+		panichandler.Go(func() {
 			defer wg.Done()
 
 			spec.runLegacyEtcdMemberIDCollector(ctx, client, watchCh) //nolint:errcheck
-		}()
+		}, logger)
 	}
 
 	for {

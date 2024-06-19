@@ -11,8 +11,7 @@ import (
 	"fmt"
 	"io"
 
-	"golang.org/x/sync/errgroup"
-
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
 )
 
@@ -32,7 +31,7 @@ func (c *Store) Upload(ctx context.Context, descr etcdbackup.Description, r io.R
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	eg, ctx := errgroup.WithContext(ctx)
+	eg, ctx := panichandler.ErrGroupWithContext(ctx)
 
 	reader, writer := io.Pipe()
 

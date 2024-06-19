@@ -27,6 +27,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
@@ -208,9 +209,9 @@ func NewKubernetesUpgradeManifestStatusController() *KubernetesUpgradeManifestSt
 				errCh := make(chan error, 1)
 				resultCh := make(chan manifests.SyncResult)
 
-				go func() {
+				panichandler.Go(func() {
 					errCh <- manifests.Sync(ctx, bootstrapManifests, cfg, true, resultCh)
-				}()
+				}, logger)
 
 				for {
 					select {

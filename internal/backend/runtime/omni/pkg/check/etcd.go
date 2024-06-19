@@ -337,7 +337,7 @@ func getMemberState(ctx context.Context, talosConfig *omni.TalosConfig, clusterM
 	if err != nil {
 		status.Error = err.Error()
 
-		return status, nil //nolint:nilerr
+		return status, nil
 	}
 
 	for _, info := range list {

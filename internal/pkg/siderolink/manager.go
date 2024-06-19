@@ -412,13 +412,13 @@ func (manager *Manager) startEventsGRPC(ctx context.Context, eg *errgroup.Group,
 	})
 	eventsapi.RegisterEventSinkServiceServer(server, sink)
 
-	grpcutil.RunServer(ctx, server, listener, eg)
+	grpcutil.RunServer(ctx, server, listener, eg, manager.logger)
 }
 
 func (manager *Manager) startTrustdGRPC(ctx context.Context, eg *errgroup.Group, listener net.Listener, serverAddr netip.Prefix) {
 	server := trustd.NewServer(manager.logger, manager.state, serverAddr.Addr().AsSlice()) //nolint:contextcheck
 
-	grpcutil.RunServer(ctx, server, listener, eg)
+	grpcutil.RunServer(ctx, server, listener, eg, manager.logger)
 }
 
 func (manager *Manager) startLogServer(ctx context.Context, eg *errgroup.Group, serverAddr netip.Prefix, logServerPort string) error {

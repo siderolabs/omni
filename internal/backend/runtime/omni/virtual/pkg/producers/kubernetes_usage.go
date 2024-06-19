@@ -23,6 +23,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
@@ -168,7 +169,7 @@ func (ku *KubernetesUsage) Start() error {
 
 	ku.wg.Add(2)
 
-	go func() {
+	panichandler.Go(func() {
 		defer ku.wg.Done()
 
 		ku.factory.WaitForCacheSync(ku.stopCh)
@@ -183,9 +184,9 @@ func (ku *KubernetesUsage) Start() error {
 		synced.Store(true)
 
 		sync()
-	}()
+	}, ku.logger)
 
-	go func() {
+	panichandler.Go(func() {
 		defer ku.wg.Done()
 
 		<-ku.stopCh
@@ -193,7 +194,7 @@ func (ku *KubernetesUsage) Start() error {
 		synced.Store(false)
 
 		ku.factory.Shutdown()
-	}()
+	}, ku.logger)
 
 	return nil
 }

@@ -16,7 +16,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	gateway "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/siderolabs/go-api-signature/pkg/message"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -25,6 +24,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/client/api/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 )
@@ -172,7 +172,7 @@ func (s *ResourceServer) Watch(in *resources.WatchRequest, serv resources.Resour
 	}
 
 	events := make(chan runtime.WatchResponse)
-	eg, ctx := errgroup.WithContext(ctx)
+	eg, ctx := panichandler.ErrGroupWithContext(ctx)
 
 	if in.TailEvents != 0 {
 		opts = append(opts, runtime.WithTailEvents(int(in.TailEvents)))

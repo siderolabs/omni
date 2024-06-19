@@ -21,12 +21,12 @@ import (
 	"github.com/siderolabs/gen/containers"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"go.uber.org/zap"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 )
@@ -160,7 +160,7 @@ func (ctrl *EtcdBackupController) run(ctx context.Context, r controller.Runtime,
 		return nil
 	}
 
-	var eg errgroup.Group
+	eg := panichandler.NewErrGroup()
 
 	eg.SetLimit(ctrl.parallel)
 

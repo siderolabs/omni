@@ -14,6 +14,8 @@ import (
 
 	"github.com/cenkalti/backoff/v4"
 	"go.uber.org/zap"
+
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 )
 
 // ID is a task ID.
@@ -55,11 +57,11 @@ func (task *Task[T, S]) Start(ctx context.Context) {
 
 	ctx, task.cancel = context.WithCancel(ctx)
 
-	go func() {
+	panichandler.Go(func() {
 		defer task.wg.Done()
 
 		task.runWithRestarts(ctx)
-	}()
+	}, task.logger)
 }
 
 func (task *Task[T, S]) runWithRestarts(ctx context.Context) {

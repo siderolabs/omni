@@ -39,6 +39,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -533,19 +534,19 @@ func (ctrl *KubernetesStatusController) startWatcher(ctx context.Context, logger
 	w.nodeFactory.Start(ctx.Done())
 	w.podFactory.Start(ctx.Done())
 
-	go func() {
+	panichandler.Go(func() {
 		w.nodeFactory.WaitForCacheSync(ctx.Done())
 		w.nodesSynced.Store(true)
 
 		w.nodesSync(ctx, notifyCh)
-	}()
+	}, logger)
 
-	go func() {
+	panichandler.Go(func() {
 		w.podFactory.WaitForCacheSync(ctx.Done())
 		w.podsSynced.Store(true)
 
 		w.podsSync(ctx, notifyCh)
-	}()
+	}, logger)
 
 	if config.Config.WorkloadProxying.Enabled {
 		w.serviceFactory = informers.NewSharedInformerFactory(w.client.Clientset(), 0)
@@ -562,12 +563,12 @@ func (ctrl *KubernetesStatusController) startWatcher(ctx context.Context, logger
 
 		w.serviceFactory.Start(ctx.Done())
 
-		go func() {
+		panichandler.Go(func() {
 			w.serviceFactory.WaitForCacheSync(ctx.Done())
 			w.servicesSynced.Store(true)
 
 			w.servicesSync(ctx, notifyCh)
-		}()
+		}, logger)
 	}
 
 	ctrl.watchers[cluster] = w

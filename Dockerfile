@@ -1,8 +1,8 @@
-# syntax = docker/dockerfile-upstream:1.7.1-labs
+# syntax = docker/dockerfile-upstream:1.8.0-labs
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-06-06T12:40:29Z by kres 14c10c9-dirty.
+# Generated on 2024-06-19T20:43:57Z by kres 4c9f215.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -16,11 +16,11 @@ FROM --platform=${BUILDPLATFORM} ${JS_TOOLCHAIN} AS js-toolchain
 RUN apk --update --no-cache add bash curl protoc protobuf-dev go
 COPY ./go.mod .
 COPY ./go.sum .
-ENV GOPATH /go
-ENV PATH ${PATH}:/usr/local/go/bin
+ENV GOPATH=/go
+ENV PATH=${PATH}:/usr/local/go/bin
 
 # runs markdownlint
-FROM docker.io/oven/bun:1.1.12-alpine AS lint-markdown
+FROM docker.io/oven/bun:1.1.13-alpine AS lint-markdown
 WORKDIR /src
 RUN bun i markdownlint-cli@0.41.0 sentences-per-line@0.2.1
 COPY .markdownlint.json .
@@ -96,14 +96,14 @@ COPY ./frontend/postcss.config.js ./postcss.config.js
 
 # build tools
 FROM --platform=${BUILDPLATFORM} toolchain AS tools
-ENV GO111MODULE on
+ENV GO111MODULE=on
 ARG CGO_ENABLED
-ENV CGO_ENABLED ${CGO_ENABLED}
+ENV CGO_ENABLED=${CGO_ENABLED}
 ARG GOTOOLCHAIN
-ENV GOTOOLCHAIN ${GOTOOLCHAIN}
+ENV GOTOOLCHAIN=${GOTOOLCHAIN}
 ARG GOEXPERIMENT
-ENV GOEXPERIMENT ${GOEXPERIMENT}
-ENV GOPATH /go
+ENV GOEXPERIMENT=${GOEXPERIMENT}
+ENV GOPATH=/go
 ARG GOIMPORTS_VERSION
 RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/go/pkg go install golang.org/x/tools/cmd/goimports@v${GOIMPORTS_VERSION}
 RUN mv /go/bin/goimports /bin
@@ -259,7 +259,7 @@ RUN FILES="$(gofumpt -l client)" && test -z "${FILES}" || (echo -e "Source code 
 FROM base AS lint-golangci-lint
 WORKDIR /src
 COPY .golangci.yml .
-ENV GOGC 50
+ENV GOGC=50
 RUN golangci-lint config verify --config .golangci.yml
 RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/root/.cache/golangci-lint --mount=type=cache,target=/go/pkg golangci-lint run --config .golangci.yml
 
@@ -267,7 +267,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/r
 FROM base AS lint-golangci-lint-client
 WORKDIR /src/client
 COPY client/.golangci.yml .
-ENV GOGC 50
+ENV GOGC=50
 RUN golangci-lint config verify --config .golangci.yml
 RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/root/.cache/golangci-lint --mount=type=cache,target=/go/pkg golangci-lint run --config .golangci.yml
 
@@ -496,6 +496,6 @@ COPY --from=omni omni-linux-${TARGETARCH} /omni
 COPY --from=image-fhs / /
 COPY --from=image-ca-certificates / /
 COPY --from=omnictl-all / /omnictl/
-LABEL org.opencontainers.image.source https://github.com/siderolabs/omni
+LABEL org.opencontainers.image.source=https://github.com/siderolabs/omni
 ENTRYPOINT ["/omni"]
 

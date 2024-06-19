@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	"golang.org/x/sync/errgroup"
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 )
 
 // EGroup defines common interface for Group and x/sync/errgroup.Group.
@@ -23,7 +23,7 @@ type EGroup interface {
 // Group is wrapper around Go's x/sync/errgroup.Group. It's not a drop-in replacement for it, because
 // it requires initialization with WithContext.
 type Group struct {
-	group *errgroup.Group
+	group EGroup
 	ctx   context.Context //nolint:containedctx
 }
 
@@ -33,7 +33,7 @@ type Group struct {
 // returns or the first time Wait returns, whichever occurs
 // first.
 func WithContext(ctx context.Context) (*Group, context.Context) {
-	withContext, newCtx := errgroup.WithContext(ctx)
+	withContext, newCtx := panichandler.ErrGroupWithContext(ctx)
 
 	return &Group{group: withContext, ctx: newCtx}, newCtx
 }

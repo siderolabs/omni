@@ -20,6 +20,7 @@ import (
 	"github.com/siderolabs/gen/pair"
 	"github.com/siderolabs/gen/xtesting/check"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -133,6 +134,7 @@ func TestStateList(t *testing.T) {
 			s := &external.State{
 				CoreState:    tt.coreState,
 				StoreFactory: tt.storeFactory,
+				Logger:       zaptest.NewLogger(t),
 			}
 
 			list, err := s.List(context.Background(), tt.kind, tt.opts...)
@@ -229,6 +231,7 @@ func TestStateGet(t *testing.T) {
 			s := &external.State{
 				CoreState:    tt.coreState,
 				StoreFactory: tt.storeFactory,
+				Logger:       zaptest.NewLogger(t),
 			}
 
 			backup, err := s.Get(context.Background(), tt.pointer, tt.opts...)

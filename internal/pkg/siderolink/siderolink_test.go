@@ -148,7 +148,7 @@ func (suite *SiderolinkSuite) startManager(params sideromanager.Params) {
 			)
 		})
 
-		grpcutil.RunServer(groupCtx, server, lis, eg)
+		grpcutil.RunServer(groupCtx, server, lis, eg, zaptest.NewLogger(suite.T()))
 
 		suite.Require().NoError(eg.Wait())
 	}()

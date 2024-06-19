@@ -29,6 +29,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend"
 	"github.com/siderolabs/omni/internal/backend/discovery"
 	"github.com/siderolabs/omni/internal/backend/dns"
@@ -122,15 +123,17 @@ var rootCmd = &cobra.Command{
 		defer stop()
 
 		// do not use signal.NotifyContext as it doesn't support any ways to log the received signal
-		go func() {
+		panichandler.Go(func() {
 			s := <-signals
 
 			logger.Warn("signal received, stopping Omni", zap.String("signal", s.String()))
 
 			stop()
-		}()
+		}, logger)
 
-		go runDebugServer(ctx, logger)
+		panichandler.Go(func() {
+			runDebugServer(ctx, logger)
+		}, logger)
 
 		// this global context propagates into all controllers and any other background activities
 		ctx = actor.MarkContextAsInternalActor(ctx)

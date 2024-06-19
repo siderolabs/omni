@@ -17,6 +17,8 @@ import (
 
 	"github.com/siderolabs/gen/containers"
 	"go.uber.org/zap"
+
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 )
 
 // Server implements TCP server to receive JSON logs. It is similar to the one in Talos, except it doesn't try to parse
@@ -75,11 +77,11 @@ func (srv *Server) Serve() error {
 		srv.wg.Add(1)
 		srv.m.Set(remoteAddress, conn)
 
-		go func() {
+		panichandler.Go(func() {
 			defer srv.wg.Done()
 			srv.handler.HandleConn(remoteAddr, conn)
 			srv.m.Remove(remoteAddress)
-		}()
+		}, srv.logger)
 	}
 }
 

@@ -15,9 +15,9 @@ import (
 	"github.com/siderolabs/gen/channel"
 	"github.com/siderolabs/gen/pair"
 	"github.com/siderolabs/gen/pair/ordered"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/siderolabs/omni/client/api/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/client/pkg/runtime"
 )
 
@@ -27,14 +27,14 @@ func (p *proxyRuntime) Watch(ctx context.Context, responses chan<- WatchResponse
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	var group errgroup.Group
+	eg := panichandler.NewErrGroup()
 
 	opts := NewQueryOptions(option...)
 	cmp := MakeWatchResponseComparator(opts.SortField, opts.SortDescending)
 	ch := make(chan WatchResponse)
 	produce := watchResponseProducer(responses, opts, cmp)
 
-	group.Go(func() error {
+	eg.Go(func() error {
 		defer cancel()
 
 		slc, err := takeSorted(ctx, ch, cmp)
@@ -60,13 +60,13 @@ func (p *proxyRuntime) Watch(ctx context.Context, responses chan<- WatchResponse
 		}
 	})
 
-	group.Go(func() error {
+	eg.Go(func() error {
 		defer cancel()
 
 		return p.Runtime.Watch(ctx, ch, option...)
 	})
 
-	return group.Wait()
+	return eg.Wait()
 }
 
 func watchResponseProducer(

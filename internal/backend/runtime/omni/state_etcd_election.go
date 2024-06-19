@@ -16,6 +16,7 @@ import (
 	"go.etcd.io/etcd/client/v3/concurrency"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/logging"
 )
 
@@ -37,9 +38,9 @@ func etcdElections(ctx context.Context, client *clientv3.Client, electionKey str
 
 	campaignErrCh := make(chan error)
 
-	go func() {
+	panichandler.Go(func() {
 		campaignErrCh <- election.Campaign(ctx, campaignKey)
-	}()
+	}, logger)
 
 	logger.Info("running the etcd election campaign")
 
@@ -78,7 +79,7 @@ campaignLoop:
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	go func() {
+	panichandler.Go(func() {
 		observe := election.Observe(ctx)
 
 	observeLoop:
@@ -102,7 +103,7 @@ campaignLoop:
 				}
 			}
 		}
-	}()
+	}, logger)
 
 	return f(ctx, client)
 }

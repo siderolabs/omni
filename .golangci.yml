@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-06-03T11:20:02Z by kres f292767.
+# Generated on 2024-06-19T21:17:41Z by kres 4c9f215.
 
 # options for analysis running
 run:
@@ -103,6 +103,17 @@ linters-settings:
         deny:
           - pkg: io/ioutil
             desc: "replaced by io and os packages since Go 1.16: https://tip.golang.org/doc/go1.16#ioutil"
+      prevent_sync_errgroup:
+        deny:
+          - desc: Use github.com/siderolabs/omni/client/pkg/panichandler.ErrGroup instead
+            pkg: golang.org/x/sync/errgroup
+        files:
+          - $all
+          - '!$test'
+          - '!**/integration-test/**'
+          - '!**/omnictl/**'
+          - '!**/panichandler/**'
+        list-mode: lax
 
 linters:
   enable-all: true

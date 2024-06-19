@@ -46,6 +46,7 @@ import (
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	ctlcfg "github.com/siderolabs/omni/client/pkg/omnictl/config"
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
@@ -239,11 +240,11 @@ func (s *managementServer) MachineLogs(request *management.MachineLogsRequest, r
 
 	defer cancel()
 
-	go func() {
+	panichandler.Go(func() {
 		// connection closed, stop reading
 		<-response.Context().Done()
 		cancel()
-	}()
+	}, s.logger)
 
 	for {
 		line, err := logReader.ReadLine()
@@ -813,9 +814,9 @@ func (s *managementServer) KubernetesSyncManifests(req *management.KubernetesSyn
 	errCh := make(chan error, 1)
 	synCh := make(chan manifests.SyncResult)
 
-	go func() {
+	panichandler.Go(func() {
 		errCh <- manifests.Sync(ctx, bootstrapManifests, cfg, req.DryRun, synCh)
-	}()
+	}, s.logger)
 
 	var updatedManifests []manifests.Manifest
 
@@ -857,9 +858,9 @@ syncLoop:
 
 	rolloutCh := make(chan manifests.RolloutProgress)
 
-	go func() {
+	panichandler.Go(func() {
 		errCh <- manifests.WaitForRollout(ctx, cfg, updatedManifests, rolloutCh)
-	}()
+	}, s.logger)
 
 rolloutLoop:
 	for {

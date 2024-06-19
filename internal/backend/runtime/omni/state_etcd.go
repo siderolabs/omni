@@ -31,6 +31,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/runtime/keyprovider"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -183,7 +184,7 @@ func getEmbeddedEtcdClient(ctx context.Context, params *config.EtcdParams, logge
 		return fmt.Errorf("failed to start embedded etcd: %w", err)
 	}
 
-	go func() {
+	panichandler.Go(func() {
 		for etcdErr := range embeddedServer.Err() {
 			if etcdErr != nil {
 				logger.Error("embedded etcd error", zap.Error(etcdErr))
@@ -191,7 +192,7 @@ func getEmbeddedEtcdClient(ctx context.Context, params *config.EtcdParams, logge
 				cancel()
 			}
 		}
-	}()
+	}, logger)
 
 	// give etcd some time to start
 	timer := time.NewTimer(15 * time.Second)

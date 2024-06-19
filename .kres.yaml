@@ -362,6 +362,21 @@ spec:
       subdirectory: v1alpha1
       genGateway: true
 ---
+kind: golang.GolangciLint
+spec:
+  depguardExtraRules:
+    prevent_sync_errgroup:
+      list-mode: lax
+      files:
+        - $all
+        - "!$test"
+        - "!**/integration-test/**"
+        - "!**/omnictl/**"
+        - "!**/panichandler/**"
+      deny:
+        - pkg: golang.org/x/sync/errgroup
+          desc: Use github.com/siderolabs/omni/client/pkg/panichandler.ErrGroup instead
+---
 kind: js.Build
 spec:
   licenseText: |

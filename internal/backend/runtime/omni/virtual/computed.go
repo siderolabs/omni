@@ -16,6 +16,8 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
+
+	"github.com/siderolabs/omni/client/pkg/panichandler"
 )
 
 // Computed is a virtual state implementation which provides virtual resources which are computed on the fly
@@ -25,6 +27,7 @@ type Computed struct {
 	watchScheduler *DedupScheduler
 	activeWatches  *prometheus.GaugeVec
 	resolveID      ProducerIDTransformer
+	logger         *zap.Logger
 }
 
 // ProducerIDTransformer maps the incoming resource id into some other id.
@@ -53,6 +56,7 @@ func NewComputed(resourceType string, factory ProducerFactory, resolveID Produce
 			"type",
 			"id",
 		}),
+		logger: logger,
 	}
 }
 
@@ -114,13 +118,13 @@ func (st *Computed) Watch(ctx context.Context, ptr resource.Pointer, c chan<- st
 
 	activeWatches.Inc()
 
-	go func() {
+	panichandler.Go(func() {
 		<-ctx.Done()
 
 		activeWatches.Dec()
 
 		st.watchScheduler.Stop(ptr)
-	}()
+	}, st.logger)
 
 	return nil
 }
