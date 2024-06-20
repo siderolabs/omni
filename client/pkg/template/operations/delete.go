@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"slices"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -83,8 +84,7 @@ func deleteTemplate(ctx context.Context, tmpl *template.Template, out io.Writer,
 			return err
 		}
 
-		syncResult.Destroy = append([][]resource.Resource{extensionsConfigurations.Items}, append([][]resource.Resource{links},
-			append([][]resource.Resource{allPatches}, syncResult.Destroy...)...)...)
+		syncResult.Destroy = slices.Insert(syncResult.Destroy, 0, extensionsConfigurations.Items, links, allPatches)
 	}
 
 	return syncDelete(ctx, syncResult, out, st, syncOptions)

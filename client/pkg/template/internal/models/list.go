@@ -98,7 +98,7 @@ func (l List) Validate() error {
 		multiErr = multierror.Append(multiErr, fmt.Errorf("machines %v are used in both controlplane and workers", intersection))
 	}
 
-	allMachines := append(slices.Clone(controlPlaneMachines), workerMachines...)
+	allMachines := slices.Concat(controlPlaneMachines, workerMachines)
 	allMachinesSet := xslices.ToSet(allMachines)
 
 	for _, model := range l {
