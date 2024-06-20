@@ -8,7 +8,8 @@ included in the LICENSE file.
   <div class="flex items-center h-3 gap-1 hover:bg-naturals-N3 cursor-pointer text-xs py-6 pl-3 pr-4 text-naturals-N14">
     <div class="w-5 pointer-events-none"/>
     <div class="flex-1 grid grid-cols-4 -mr-3 items-center" @click="openNodeInfo">
-      <div class="col-span-2">
+      <div class="col-span-2 flex items-center gap-2">
+        <t-icon icon="server" class="w-4 h-4 ml-2"/>
         <router-link :to="{ name: 'NodeOverview', params: { cluster: clusterName, machine: machine.metadata.id }}" class="list-item-link">
           {{ nodeName }}
         </router-link>

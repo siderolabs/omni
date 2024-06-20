@@ -6,16 +6,16 @@ included in the LICENSE file.
 -->
 <template>
   <div class="border-t-8 border-naturals-N4" v-if="machines.length > 0">
-    <div class="flex items-center border-naturals-N4 border-b pr-4 pl-11 text-naturals-N14">
-      <div class="py-3 clusters-grid flex-1 items-center">
-        <div class="flex flex-wrap gap-2 col-span-2 justify-between">
-          <div class="flex-1">
-            <div
-              class="flex-none text-xs text-center items-center justify-center px-3 py-1 bg-naturals-N4 w-40 rounded truncate">
+    <div class="flex items-center border-naturals-N4 border-b pl-3 text-naturals-N14">
+      <div class="py-2 clusters-grid flex-1 items-center">
+        <div class="flex flex-wrap gap-2 col-span-2 justify-between items-center">
+          <div class="flex-1 flex items-center">
+            <div class="flex items-center gap-2 bg-naturals-N4 w-40 rounded truncate py-2 px-3">
+              <t-icon icon="server-stack" class="w-4 h-4"/>
               {{ machineSetTitle(clusterID, machineSet?.metadata?.id) }}
             </div>
           </div>
-          <div class="flex-1 flex">
+          <div class="flex-1 flex ml-10">
             <t-spinner class="w-4 h-4" v-if="scaling"/>
             <div class="flex items-center gap-1" v-else-if="!editingMachinesCount">
               {{ machineSet?.spec?.machines?.healthy || 0 }}/{{ machineSet?.spec?.machines?.requested || 0 }}
@@ -32,8 +32,8 @@ included in the LICENSE file.
             </div>
           </div>
         </div>
-        <machine-set-phase :item="machineSet" :class="{'col-span-2': !machineSet.spec?.machine_class?.name}"/>
-        <div v-if="machineSet.spec?.machine_class?.name" class="rounded bg-naturals-N4 px-3 py-1 max-w-min max-md:col-span-4">
+        <machine-set-phase :item="machineSet" :class="{'col-span-2': !machineSet.spec?.machine_class?.name}" class="ml-2"/>
+        <div v-if="machineSet.spec?.machine_class?.name" class="rounded bg-naturals-N4 px-3 py-2 max-w-min max-md:col-span-4">
           Machine Class: {{ machineSet.spec?.machine_class?.name }} ({{ machineClassMachineCount }})
         </div>
       </div>
@@ -74,6 +74,7 @@ import MachineSetPhase from "./MachineSetPhase.vue";
 import IconButton from "@/components/common/Button/IconButton.vue";
 import TButton from "@/components/common/Button/TButton.vue";
 import TInput from "@/components/common/TInput/TInput.vue";
+import TIcon from "@/components/common/Icon/TIcon.vue";
 import TSpinner from "@/components/common/Spinner/TSpinner.vue";
 
 const showMachinesCount = ref<number | undefined>(25);

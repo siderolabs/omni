@@ -9,7 +9,7 @@ import { MachineSetSpecMachineClassAllocationType } from "@/api/omni/specs/omni.
 import { withRuntime } from "@/api/options";
 import { ControlPlanesIDSuffix, DefaultNamespace, DefaultWorkersIDSuffix, MachineSetType } from "@/api/resources";
 
-export const controlPlaneTitle = "Control Plane";
+export const controlPlaneTitle = "Control Planes";
 export const workersTitlePrefix = "Workers: ";
 export const defaultWorkersTitle = `${workersTitlePrefix}default`;
 
