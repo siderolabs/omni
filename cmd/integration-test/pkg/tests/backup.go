@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
-	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -33,24 +32,27 @@ func AssertEtcdManualBackupIsCreated(testCtx context.Context, st state.State, cl
 		// drop the previous EtcdManualBackup resource if it exists
 		rtestutils.Destroy[*omni.EtcdManualBackup](ctx, t, st, []string{clusterName})
 
-		// Take existing backups into account when asserting the length after creating a new backup.
-		existingBackups, err := safe.StateListAll[*omni.EtcdBackup](ctx, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
-		require.NoError(t, err)
+		start := time.Now()
+
+		// If we have another backup lets use it's time to determine that we have a new one.
+		// The reason for that is that backup names are unix timestamps with second resolution,
+		// but backup status has a nanosecond resolution. So if we create a new backup, status will
+		// always contain ts which is newer that the one from the state.
+		//
+		// We can't use number of backups here because two backups can happen at the same second, where
+		// the newer will overwrite the older.
+		bs, err := safe.ReaderGetByID[*omni.EtcdBackupStatus](testCtx, st, clusterName)
+
+		if err == nil {
+			start = bs.TypedSpec().Value.LastBackupTime.AsTime()
+		} else if !state.IsNotFoundError(err) {
+			require.NoError(t, err)
+		}
 
 		backup := omni.NewEtcdManualBackup(clusterName)
 		backup.TypedSpec().Value.BackupAt = timestamppb.New(time.Now())
 
-		start := time.Now()
-
 		require.NoError(t, st.Create(ctx, backup))
-
-		assertLength[*omni.EtcdBackup](
-			ctx,
-			t,
-			st,
-			existingBackups.Len()+1,
-			state.WatchWithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
-		)
 
 		var backupTime time.Time
 
@@ -103,14 +105,6 @@ func AssertEtcdAutomaticBackupIsCreated(testCtx context.Context, st state.State,
 		require.NoError(t, st.Create(ctx, conf))
 
 		t.Logf("waiting for backup for cluster %q to be created", clusterName)
-
-		assertLength[*omni.EtcdBackup](
-			ctx,
-			t,
-			st,
-			1,
-			state.WatchWithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
-		)
 
 		var backupTime time.Time
 
@@ -178,79 +172,6 @@ func AssertControlPlaneCanBeRestoredFromBackup(testCtx context.Context, st state
 		}
 
 		require.NoError(t, st.Create(ctx, cpMachineSet))
-	}
-}
-
-// assertLength asserts on the length of a resource list. It's a specialized version of [rtestutils.AssertLength] which
-// restarts WatchKind on each ticker tick. It here because [rtestutils.AssertLength] does not support [state.WatchKindOption]
-// and because WatchKind on external resource does not send new events.
-func assertLength[R meta.ResourceWithRD](ctx context.Context, t *testing.T, st state.State, expectedLength int, watchOpts ...state.WatchKindOption) {
-	var r R
-
-	rds := r.ResourceDefinition()
-
-	watchOpts = append(
-		watchOpts[:len(watchOpts):len(watchOpts)],
-		state.WithBootstrapContents(true),
-	)
-
-	reportTicker := time.NewTicker(5 * time.Second)
-	defer reportTicker.Stop()
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	for {
-		req := require.New(t)
-
-		innerCtx, cancel := context.WithCancel(ctx)
-
-		watchCh := make(chan state.Event)
-
-		req.NoError(st.WatchKind(
-			innerCtx,
-			resource.NewMetadata(rds.DefaultNamespace, rds.Type, "", resource.VersionUndefined),
-			watchCh,
-			watchOpts...))
-
-		length := 0
-		bootstrapped := false
-
-		for {
-			shouldBreak := false
-
-			select {
-			case event := <-watchCh:
-				switch event.Type { //nolint:exhaustive
-				case state.Created:
-					length++
-				case state.Destroyed:
-					length--
-				case state.Bootstrapped:
-					bootstrapped = true
-				case state.Errored:
-					req.NoError(event.Error)
-				}
-
-				if bootstrapped && length == expectedLength {
-					cancel()
-
-					return
-				}
-			case <-reportTicker.C:
-				t.Logf("length: expected %d, actual %d", expectedLength, length)
-
-				shouldBreak = true
-			case <-innerCtx.Done():
-				t.Fatalf("timeout: expected %d, actual %d", expectedLength, length)
-			}
-
-			if shouldBreak {
-				cancel()
-
-				break
-			}
-		}
 	}
 }
 
