@@ -1,6 +1,6 @@
 module github.com/siderolabs/omni/client
 
-go 1.22.3
+go 1.22.4
 
 replace (
 	// forked go-yaml that introduces RawYAML interface, which can be used to populate YAML fields using bytes
