@@ -129,7 +129,7 @@ func (suite *TalosUpgradeStatusSuite) TestReconcile() {
 			expectedSchematic = "c6ee5f479027e5ca84e5518c3a56d62e2283b6d30a5846e6295aa7113735df40"
 		}
 
-		rtestutils.AssertResource[*omni.ClusterMachineTalosVersion](suite.ctx, suite.T(), suite.state, machines[i].Metadata().ID(),
+		rtestutils.AssertResource(suite.ctx, suite.T(), suite.state, machines[i].Metadata().ID(),
 			func(r *omni.ClusterMachineTalosVersion, assertion *assert.Assertions) {
 				assertion.Equal(expectedSchematic, r.TypedSpec().Value.SchematicId)
 			},

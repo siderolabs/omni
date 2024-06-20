@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
@@ -167,16 +168,22 @@ func updateMachines(
 ) (string, error) {
 	var machineToUpdate *omni.ClusterMachineTalosVersion
 
-	slices.SortStableFunc(machinesToUpdate, func(a, b *omni.ClusterMachineTalosVersion) int {
-		return a.Metadata().Created().Compare(b.Metadata().Created())
-	})
-
 	lockedMachines := map[resource.ID]struct{}{}
+	creationTimes := map[resource.ID]time.Time{}
 
 	machineSetNodes.ForEach(func(machine *omni.MachineSetNode) {
 		if _, locked := machine.Metadata().Annotations().Get(omni.MachineLocked); locked {
 			lockedMachines[machine.Metadata().ID()] = struct{}{}
 		}
+
+		creationTimes[machine.Metadata().ID()] = machine.Metadata().Created()
+	})
+
+	slices.SortStableFunc(machinesToUpdate, func(a, b *omni.ClusterMachineTalosVersion) int {
+		aCreated := creationTimes[a.Metadata().ID()]
+		bCreated := creationTimes[b.Metadata().ID()]
+
+		return aCreated.Compare(bCreated)
 	})
 
 	for _, machine := range machinesToUpdate {
@@ -248,6 +255,7 @@ func reconcileTalosUpdateStatus(ctx context.Context, r controller.ReaderWriter,
 	var (
 		machinesToUpdate []*omni.ClusterMachineTalosVersion
 		configsReady     = true
+		schematicsReady  = true
 		err              error
 	)
 
@@ -273,6 +281,8 @@ func reconcileTalosUpdateStatus(ctx context.Context, r controller.ReaderWriter,
 		if err != nil {
 			if xerrors.TagIs[skipMachine](err) {
 				logger.Warn("machine is skipped due to no schematic information", zap.Error(err), zap.String("machine", machine.Metadata().ID()))
+
+				schematicsReady = false
 
 				continue
 			}
@@ -337,6 +347,10 @@ func reconcileTalosUpdateStatus(ctx context.Context, r controller.ReaderWriter,
 			configStatus.TypedSpec().Value.SchematicId != schematicID {
 			machinesToUpdate = append(machinesToUpdate, clusterMachineTalosVersion)
 		}
+	}
+
+	if !schematicsReady {
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("schematics not ready on some machines")
 	}
 
 	upgradeStatus.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
