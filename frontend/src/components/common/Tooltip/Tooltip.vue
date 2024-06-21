@@ -7,7 +7,7 @@ included in the LICENSE file.
 <template>
   <popper offsetDistance="10" offsetSkid="30" :placement="placement" :show="show && (!!description || !!$slots.description)" class="popper">
     <template #content>
-      <div class="text-xs bg-naturals-N4 rounded p-4 text-naturals-N12">
+      <div class="text-xs bg-naturals-N3 border border-naturals-N4 rounded p-4 text-naturals-N12 z-50">
         <p v-if="description" class="whitespace-pre">{{ description }}</p>
         <slot v-else name="description"/>
       </div>
@@ -57,6 +57,6 @@ const show = ref(false);
   margin: 0 !important;
   border: 0 !important;
   display: block !important;
-  z-index: 9999 !important;
+  z-index: auto !important;
 }
 </style>
