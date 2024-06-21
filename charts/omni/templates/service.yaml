@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Service
+metadata:
+  {{- if or .Values.service.annotations }}
+  annotations:
+    {{- toYaml .Values.service.annotations | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "sidero-omni.labels" . | nindent 4 }}
+  name: {{ include "sidero-omni.fullname" . }}
+  namespace: {{ include "sidero-omni.namespace" . }}
+spec:
+  ports:
+    - name: https
+      nodePort: {{ .Values.service.https.nodePort }}
+      port: {{ .Values.service.https.port }}
+      protocol: TCP
+      targetPort: 443
+    - name: machine-api
+      nodePort: {{ .Values.service.machineApi.nodePort }}
+      port: {{ .Values.service.machineApi.port }}
+      protocol: TCP
+      targetPort: 8090
+    - name: events
+      nodePort: {{ .Values.service.events.nodePort }}
+      port: {{ .Values.service.events.port }}
+      protocol: TCP
+      targetPort: 8091
+    - name: k8s-proxy
+      nodePort: {{ .Values.service.k8sProxy.nodePort }}
+      port: {{ .Values.service.k8sProxy.port }}
+      protocol: TCP
+      targetPort: 8100
+    - name: wireguard
+      nodePort: {{ .Values.service.wireguard.nodePort }}
+      port: {{ .Values.service.wireguard.port }}
+      protocol: UDP
+      targetPort: 50180
+  selector:
+    {{- include "sidero-omni.selectorLabels" . | nindent 4 }}
+  type: {{ .Values.service.type }}
+  {{- with .Values.service.loadBalancerIP }}
+  loadBalancerIP: {{ . | quote }}
+  {{- end }}

@@ -1,0 +1,14 @@
+{{- if not .Values.omniAccount.existingConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  {{- if or .Values.omniAccount.annotations }}
+  annotations:
+    {{- toYaml .Values.omniAccount.annotations | nindent 4 }}
+  {{- end }}
+  labels: {{- include "sidero-omni.labels" . | nindent 4 }}
+  name: {{ default (printf "%s-account-uuid" (include "sidero-omni.fullname" .)) }}
+  namespace: {{ include "sidero-omni.namespace" . }}
+data:
+  uuid: {{ required "A valid .Values.omniAccount.uuid entry required!" .Values.omniAccount.uuid }}
+{{- end }}
