@@ -138,11 +138,12 @@ func (client *Client) CreateSchematic(ctx context.Context, req *management.Creat
 }
 
 // CreateServiceAccount creates a service account and returns the public key ID.
-func (client *Client) CreateServiceAccount(ctx context.Context, armoredPGPPublicKey string, role string, useUserRole bool) (string, error) {
+func (client *Client) CreateServiceAccount(ctx context.Context, name, armoredPGPPublicKey, role string, useUserRole bool) (string, error) {
 	resp, err := client.conn.CreateServiceAccount(ctx, &management.CreateServiceAccountRequest{
 		ArmoredPgpPublicKey: armoredPGPPublicKey,
 		Role:                role,
 		UseUserRole:         useUserRole,
+		Name:                name,
 	})
 	if err != nil {
 		return "", err

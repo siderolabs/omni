@@ -1,0 +1,22 @@
+syntax = "proto3";
+package specs;
+
+option go_package = "github.com/siderolabs/omni/client/api/omni/specs/cloudspecs";
+
+message MachineRequestSpec {
+  string talos_version = 1;
+  string schematic_id = 2;
+  string provider_data = 3;
+}
+
+message MachineRequestStatusSpec {
+  enum Stage {
+    UNKNOWN = 0;
+    PROVISIONING = 1;
+    PROVISIONED = 2;
+    FAILED = 3;
+  }
+
+  string id = 1;
+  Stage stage = 2;
+}

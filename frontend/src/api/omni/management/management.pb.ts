@@ -47,6 +47,7 @@ export type CreateServiceAccountRequest = {
   armored_pgp_public_key?: string
   use_user_role?: boolean
   role?: string
+  name?: string
 }
 
 export type CreateServiceAccountResponse = {

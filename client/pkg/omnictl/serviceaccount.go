@@ -59,7 +59,7 @@ var (
 					return err
 				}
 
-				publicKeyID, err := client.Management().CreateServiceAccount(ctx, armoredPublicKey, serviceAccountCreateFlags.role, serviceAccountCreateFlags.useUserRole)
+				publicKeyID, err := client.Management().CreateServiceAccount(ctx, name, armoredPublicKey, serviceAccountCreateFlags.role, serviceAccountCreateFlags.useUserRole)
 				if err != nil {
 					return err
 				}
@@ -143,7 +143,7 @@ var (
 				for _, sa := range serviceAccounts {
 					for i, publicKey := range sa.PgpPublicKeys {
 						if i == 0 {
-							fmt.Fprintf(writer, "%s\t%q\t%s\t%s\n", sa.Name, sa.GetRole(), publicKey.Id, publicKey.Expiration.AsTime().String()) //nolint:errcheck
+							fmt.Fprintf(writer, "%s\t%s\t%s\t%s\n", sa.Name, sa.GetRole(), publicKey.Id, publicKey.Expiration.AsTime().String()) //nolint:errcheck
 						} else {
 							fmt.Fprintf(writer, "\t\t%s\t%s\n", publicKey.Id, publicKey.Expiration.AsTime().String()) //nolint:errcheck
 						}
@@ -179,9 +179,10 @@ var (
 
 func generateServiceAccountPGPKey(name string) (*pgp.Key, error) {
 	comment := fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
-	serviceAccountEmail := name + pkgaccess.ServiceAccountNameSuffix
+	sa := pkgaccess.ParseServiceAccountFromName(name)
+	email := sa.FullID()
 
-	return pgp.GenerateKey(name, comment, serviceAccountEmail, serviceAccountCreateFlags.ttl)
+	return pgp.GenerateKey(sa.BaseName, comment, email, serviceAccountCreateFlags.ttl)
 }
 
 func init() {

@@ -131,7 +131,7 @@ func createServiceAccount(ctx context.Context, t *testing.T, client *client.Clie
 	require.NoError(t, err)
 
 	// create service account with the generated key
-	_, err = client.Management().CreateServiceAccount(ctx, armoredPublicKey, string(role.Admin), true)
+	_, err = client.Management().CreateServiceAccount(ctx, name, armoredPublicKey, string(role.Admin), true)
 	require.NoError(t, err)
 
 	encodedKey, err := serviceaccount.Encode(name, key)

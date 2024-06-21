@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	pkgaccess "github.com/siderolabs/omni/client/pkg/access"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
@@ -28,6 +29,7 @@ var (
 // CheckOptions are the options for the checks.
 type CheckOptions struct {
 	Role           role.Role
+	ExactRoles     []role.Role
 	VerifiedEmail  bool
 	ValidSignature bool
 }
@@ -41,9 +43,13 @@ func DefaultCheckOptions() CheckOptions {
 
 // CheckResult is the result of a successful check.
 type CheckResult struct {
-	VerifiedEmail     string
-	Identity          string
-	UserID            string
+	VerifiedEmail string
+	Identity      string
+	UserID        string
+
+	// CloudProviderID is the ID of the cloud provider if the identity is a cloud provider service account.
+	CloudProviderID string
+
 	Labels            map[string]string
 	Role              role.Role
 	HasValidSignature bool
@@ -59,6 +65,15 @@ type CheckOption func(*CheckOptions)
 func WithRole(role role.Role) CheckOption {
 	return func(opts *CheckOptions) {
 		opts.Role = role
+	}
+}
+
+// WithExactRoles checks the context to have exactly one of the given roles.
+//
+// If specified, WithRole is ignored and the role is checked against the given set of roles.
+func WithExactRoles(roles ...role.Role) CheckOption {
+	return func(opts *CheckOptions) {
+		opts.ExactRoles = roles
 	}
 }
 
@@ -81,6 +96,8 @@ func WithVerifiedEmail() CheckOption {
 // Check checks the given context for the given authentication and authorization conditions.
 //
 // The returned error can be checked against ErrUnauthenticated and ErrUnauthorized.
+//
+//nolint:gocyclo,cyclop
 func Check(ctx context.Context, opt ...CheckOption) (CheckResult, error) {
 	authVal, ok := ctxstore.Value[EnabledAuthContextKey](ctx)
 	if !ok {
@@ -104,7 +121,7 @@ func Check(ctx context.Context, opt ...CheckOption) (CheckResult, error) {
 	}
 
 	// If the required role is other than role.None, we always check the signature.
-	if opts.Role != role.None {
+	if opts.Role != role.None || len(opts.ExactRoles) > 0 {
 		opts.ValidSignature = true
 	}
 
@@ -134,7 +151,21 @@ func Check(ctx context.Context, opt ...CheckOption) (CheckResult, error) {
 		return CheckResult{}, fmt.Errorf("%w: missing valid signature", ErrUnauthenticated)
 	}
 
-	if opts.Role != role.None {
+	if len(opts.ExactRoles) > 0 {
+		found := false
+
+		for _, r := range opts.ExactRoles {
+			if ctxRole == r {
+				found = true
+
+				break
+			}
+		}
+
+		if !found {
+			return CheckResult{}, fmt.Errorf("%w: required exact roles not found", ErrUnauthorized)
+		}
+	} else if opts.Role != role.None {
 		err := ctxRole.Check(opts.Role)
 		if err != nil {
 			return CheckResult{}, fmt.Errorf("%w: %v", ErrUnauthorized, err) //nolint:errorlint
@@ -143,6 +174,10 @@ func Check(ctx context.Context, opt ...CheckOption) (CheckResult, error) {
 
 	if val, ok := ctxstore.Value[IdentityContextKey](ctx); ok {
 		result.Identity = val.Identity
+	}
+
+	if sa, isSa := pkgaccess.ParseServiceAccountFromFullID(result.Identity); isSa && sa.IsCloudProvider {
+		result.CloudProviderID = sa.BaseName
 	}
 
 	if val, ok := ctxstore.Value[UserIDContextKey](ctx); ok {

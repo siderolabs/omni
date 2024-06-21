@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/meta"
@@ -16,7 +17,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/cloud"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -80,8 +83,10 @@ var (
 	userManagedResourceTypeSet = xslices.ToSet(common.UserManagedResourceTypes)
 )
 
-// aclValidationOptions returns the validation options for the ACLs on the resources.
-func aclValidationOptions(st state.State) []validated.StateOption {
+// authorizationValidationOptions returns the validation options responsible for all authorization checks.
+//
+// These include the regular checks on the user's Omni-wide role, as well as the ACLs that can authorize the user to perform additional actions on specific clusters.
+func authorizationValidationOptions(st state.State) []validated.StateOption {
 	return []validated.StateOption{
 		validated.WithListValidations(
 			func(ctx context.Context, kind resource.Kind, opt ...state.ListOption) error {
@@ -258,7 +263,7 @@ func checkForRole(ctx context.Context, st state.State, access state.Access, clus
 			return err
 		}
 
-		if clusterRole != role.None && (!requireAll || (requireAll && matchesAll)) {
+		if clusterRole != role.None && (!requireAll || matchesAll) {
 			// override the role in the context with the computed role for this cluster
 			ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: clusterRole})
 		}
@@ -346,10 +351,18 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		return nil
 	}
 
+	// check if the resource is a cloud provider resource - if it is, the access is managed in cloudprovider.State
+	if strings.HasPrefix(access.ResourceNamespace, resources.CloudProviderSpecificNamespacePrefix) || access.ResourceNamespace == resources.CloudProviderNamespace {
+		return nil
+	}
+
 	var err error
 
 	// authentication and authorization checks
 	switch access.ResourceType {
+	case omni.MachineType, // cloud provider needs to be able to read machines to find out force-deleted ones and deprovision them
+		siderolink.ConnectionParamsType: // cloud provider needs to be able to read connection params to join nodes to Omni
+		_, err = auth.CheckGRPC(ctx, auth.WithRole(role.CloudProvider))
 	case
 		omni.ClusterType,
 		omni.ClusterBootstrapStatusType,
@@ -391,8 +404,6 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.TalosUpgradeStatusType,
 		omni.RedactedClusterMachineConfigType,
 		siderolink.LinkType,
-		siderolink.ConnectionParamsType,
-		omni.MachineType,
 		omni.MachineClassType,
 		omni.MachineClassStatusType,
 		omni.MachineExtensionsStatusType,
@@ -489,6 +500,8 @@ func filterAccessByType(access state.Access) error {
 
 		return status.Error(codes.PermissionDenied, "only read, update and delete access is permitted")
 	case
+		cloud.MachineRequestType,       // read-only for all except for CloudProvider role (checked in filterAccess)
+		cloud.MachineRequestStatusType, // read-only for all except for CloudProvider role (checked in filterAccess)
 		omni.ClusterBootstrapStatusType,
 		omni.ClusterDestroyStatusType,
 		omni.ClusterEndpointType,
@@ -552,7 +565,7 @@ func filterAccessByType(access state.Access) error {
 		virtual.KubernetesUsageType,
 		virtual.LabelsCompletionType,
 		virtual.ClusterPermissionsType:
-		// allow read access only, these resources are managed by controllers only
+		// allow read access only, these resources are either managed by controllers or plugins (e.g., cloud provider plugins)
 		if access.Verb.Readonly() {
 			return nil
 		}

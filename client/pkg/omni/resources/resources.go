@@ -42,3 +42,13 @@ const VirtualNamespace resource.Namespace = "virtual"
 //
 // tsgen:ExternalNamespace
 const ExternalNamespace resource.Namespace = "external"
+
+// CloudProviderNamespace is the namespace for cloud provider specific resources, e.g., `MachineRequest` and `MachineRequestStatus`.
+const CloudProviderNamespace resource.Namespace = "cloud-provider"
+
+// CloudProviderSpecificNamespacePrefix is the prefix for cloud provider specific namespaces.
+//
+// A cloud-provider specific namespace is a namespace in which cloud provider has full access.
+//
+// For example, a cloud provider named `qemu-1` would have full access on namespace `cloud-provider:qemu-1`.
+const CloudProviderSpecificNamespacePrefix resource.Namespace = CloudProviderNamespace + ":"

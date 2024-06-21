@@ -48,6 +48,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/cloud"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/k8s"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/oidc"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -172,7 +173,7 @@ func AssertServiceAccountAPIFlow(testCtx context.Context, cli *client.Client) Te
 		defer saCli.Close() //nolint:errcheck
 
 		// create service account with the generated key
-		_, err = cli.Management().CreateServiceAccount(testCtx, armoredPublicKey, string(role.None), true)
+		_, err = cli.Management().CreateServiceAccount(testCtx, name, armoredPublicKey, string(role.None), true)
 		assert.NoError(t, err)
 
 		// make an API call using the registered service account
@@ -324,7 +325,7 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientConfi
 				assertSuccess: assertSuccess,
 				assertFailure: assertMissingRoleFailure,
 				fn: func(ctx context.Context, cli *client.Client) error {
-					_, err := cli.Management().CreateServiceAccount(ctx, "doesntmatter", string(role.None), true)
+					_, err := cli.Management().CreateServiceAccount(ctx, "doesntmatter", "doesntmatter", string(role.None), true)
 
 					// ignore the armored pgp key parse error
 					if err != nil && strings.Contains(err.Error(), "no armored data found") {
@@ -1005,6 +1006,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		// delete excluded resources from the untested set
 		delete(untestedResourceTypes, k8s.KubernetesResourceType)
 		delete(untestedResourceTypes, siderolink.DeprecatedLinkCounterType)
+
+		// cloud provider resources have their custom authz logic, they are unit-tested in their package
+		delete(untestedResourceTypes, cloud.MachineRequestType)
+		delete(untestedResourceTypes, cloud.MachineRequestStatusType)
 
 		for _, tc := range testCases {
 			for _, testVerb := range allVerbs {

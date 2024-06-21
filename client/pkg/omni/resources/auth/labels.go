@@ -4,6 +4,8 @@
 
 package auth
 
+import "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+
 const (
 	// SAMLLabelPrefix is the prefix added to all SAML attributes on the User resource.
 	// tsgen:SAMLLabelPrefix
@@ -21,6 +23,9 @@ const (
 	// LabelIdentityTypeServiceAccount is set when the type of the identity is service account.
 	// tsgen:LabelIdentityTypeServiceAccount
 	LabelIdentityTypeServiceAccount = "type-service-account"
+
+	// LabelCloudProvider is set when the service account is a cloud provider service account.
+	LabelCloudProvider = omni.SystemLabelPrefix + "cloud-provider"
 )
 
 const (

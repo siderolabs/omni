@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/meta"
@@ -23,6 +24,7 @@ import (
 	resourceregistry "github.com/siderolabs/omni/client/pkg/omni/resources/registry"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/logging"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/cloudprovider"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/external"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/migration"
@@ -32,6 +34,8 @@ import (
 )
 
 // NewState creates a production Omni state.
+//
+//nolint:cyclop
 func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, metricsRegistry prometheus.Registerer, f func(context.Context, state.State, *virtual.State) error) error {
 	stateFunc := func(ctx context.Context, persistentStateBuilder namespaced.StateBuilder) error {
 		primaryStorageCoreState := persistentStateBuilder(resources.DefaultNamespace)
@@ -53,6 +57,8 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 			return fmt.Errorf("failed to create etcd backup store: %w", err)
 		}
 
+		cloudProviderState := cloudprovider.NewState(primaryStorageCoreState, logger.With(logging.Component("cloudprovider_state")))
+
 		namespacedState := namespaced.NewState(func(ns resource.Namespace) state.CoreState {
 			switch ns {
 			case resources.VirtualNamespace:
@@ -67,7 +73,13 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 					StoreFactory: storeFactory,
 					Logger:       logger,
 				}
+			case resources.CloudProviderNamespace:
+				return cloudProviderState
 			default:
+				if strings.HasPrefix(ns, resources.CloudProviderSpecificNamespacePrefix) {
+					return cloudProviderState
+				}
+
 				return primaryStorageCoreState
 			}
 		})

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/go-multierror"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -55,7 +56,31 @@ func (e eValidation) GRPCStatus() *status.Status {
 
 // ValidationError generates error compatible with validated.ErrValidation.
 func ValidationError(err error) error {
+	var multiErr *multierror.Error
+
+	if errors.As(err, &multiErr) {
+		multiErr.Errors = distinct(multiErr.Errors)
+	}
+
 	return eValidation{
 		fmt.Errorf("%s%w", errPrefix, err),
 	}
+}
+
+func distinct(slice []error) []error {
+	keys := make(map[string]bool)
+
+	distinctSlice := make([]error, 0, len(slice))
+
+	for _, err := range slice {
+		key := err.Error()
+
+		if _, value := keys[key]; !value {
+			keys[key] = true
+
+			distinctSlice = append(distinctSlice, err)
+		}
+	}
+
+	return distinctSlice
 }

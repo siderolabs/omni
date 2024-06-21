@@ -51,6 +51,7 @@ message CreateServiceAccountRequest {
   // When true, role will be ignored and the service account will be created with the role of the creating user.
   bool use_user_role = 3;
   string role = 4;
+  string name = 5;
 }
 
 message CreateServiceAccountResponse {

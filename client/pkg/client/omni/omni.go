@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc"
 
 	_ "github.com/siderolabs/omni/client/pkg/omni/resources/auth" // import resources to register protobufs
+	_ "github.com/siderolabs/omni/client/pkg/omni/resources/cloud"
 	_ "github.com/siderolabs/omni/client/pkg/omni/resources/k8s"
 	_ "github.com/siderolabs/omni/client/pkg/omni/resources/oidc"
 	_ "github.com/siderolabs/omni/client/pkg/omni/resources/omni"

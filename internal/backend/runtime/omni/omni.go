@@ -298,7 +298,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		clusterValidationOptions(resourceState, config.Config.EtcdBackup, config.Config.EmbeddedDiscoveryService),
 		relationLabelsValidationOptions(),
 		accessPolicyValidationOptions(),
-		aclValidationOptions(resourceState),
+		authorizationValidationOptions(resourceState),
 		roleValidationOptions(),
 		machineSetNodeValidationOptions(resourceState),
 		machineSetValidationOptions(resourceState, storeFactory),

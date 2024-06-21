@@ -339,6 +339,9 @@ spec:
     - source: client/api/omni/specs/auth.proto
       subdirectory: omni/specs
       genGateway: true
+    - source: client/api/omni/specs/cloud/cloud.proto
+      subdirectory: omni/specs/cloud
+      genGateway: true
     - source: client/api/omni/specs/virtual.proto
       subdirectory: omni/specs
       genGateway: true
@@ -427,6 +430,9 @@ spec:
       genGateway: true
     - source: client/api/omni/specs/auth.proto
       subdirectory: omni/specs
+      genGateway: true
+    - source: client/api/omni/specs/cloud/cloud.proto
+      subdirectory: omni/specs/cloud
       genGateway: true
     - source: client/api/omni/specs/virtual.proto
       subdirectory: omni/specs

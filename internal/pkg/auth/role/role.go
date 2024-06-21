@@ -19,6 +19,11 @@ const (
 	// tsgen:RoleNone
 	None Role = "None"
 
+	// CloudProvider is a role to be used solely by cloud providers.
+	//
+	// tsgen:RoleCloudProvider
+	CloudProvider Role = "CloudProvider"
+
 	// Reader is a role that has read-only capability.
 	//
 	// tsgen:RoleReader
@@ -35,7 +40,7 @@ const (
 	Admin Role = "Admin"
 )
 
-var roles = []Role{None, Reader, Operator, Admin}
+var roles = []Role{None, CloudProvider, Reader, Operator, Admin}
 
 var indexes = func() map[Role]int {
 	result := make(map[Role]int, len(roles))
