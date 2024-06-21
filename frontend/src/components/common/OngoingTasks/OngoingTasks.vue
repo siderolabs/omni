@@ -111,7 +111,7 @@ const onClickOutside = () => {
 
 <style scoped>
 .dropdown {
-  @apply flex items-center cursor-pointer gap-1 text-naturals-N11 hover:text-naturals-N13;
+  @apply flex items-center cursor-pointer gap-1 text-naturals-N11 hover:text-naturals-N14 transition-colors;
 }
 .dropdown-wrapper {
   @apply relative flex items-center;

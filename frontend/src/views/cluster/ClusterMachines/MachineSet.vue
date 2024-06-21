@@ -15,7 +15,7 @@ included in the LICENSE file.
               {{ machineSetTitle(clusterID, machineSet?.metadata?.id) }}
             </div>
           </div>
-          <div class="flex-1 flex ml-10">
+          <div class="flex-1 flex max-md:ml-1 md:ml-10">
             <t-spinner class="w-4 h-4" v-if="scaling"/>
             <div class="flex items-center gap-1" v-else-if="!editingMachinesCount">
               {{ machineSet?.spec?.machines?.healthy || 0 }}/{{ machineSet?.spec?.machines?.requested || 0 }}

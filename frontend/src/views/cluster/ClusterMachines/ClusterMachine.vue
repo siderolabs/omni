@@ -10,7 +10,7 @@ included in the LICENSE file.
     <div class="flex-1 grid grid-cols-4 -mr-3 items-center" @click="openNodeInfo">
       <div class="col-span-2 flex items-center gap-2">
         <t-icon icon="server" class="w-4 h-4 ml-2"/>
-        <router-link :to="{ name: 'NodeOverview', params: { cluster: clusterName, machine: machine.metadata.id }}" class="list-item-link">
+        <router-link :to="{ name: 'NodeOverview', params: { cluster: clusterName, machine: machine.metadata.id }}" class="list-item-link truncate">
           {{ nodeName }}
         </router-link>
       </div>

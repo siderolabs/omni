@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <template>
   <img v-if="svgBase64" alt="" :src="`data:image/svg+xml;base64,${svgBase64}`"/>
-  <component v-else :is="component"/>
+  <component v-else :is="component" class="min-w-max"/>
 </template>
 
 <script setup lang="ts">
