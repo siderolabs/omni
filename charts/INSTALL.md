@@ -45,7 +45,6 @@ It is important to generate a unique ID for this Omni deployment. It will also b
 ```shell
 # Create Kubernetes ConfigMap
 kubectl create configmap omni-account-uuid \
-  -n sidero \
   --from-literal uuid=4B424EC2-023B-4710-BC1F-4AEB9C214C56
 ```
 
