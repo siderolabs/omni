@@ -1,3 +1,30 @@
+## [Omni 0.38.1](https://github.com/siderolabs/omni/releases/tag/v0.38.1) (2024-06-21)
+
+Welcome to the v0.38.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`e0a760a`](https://github.com/siderolabs/omni/commit/e0a760ae6093fcc3d1605d7b52b8c77e7dccaa3e) fix: use proper `z-index` for the tooltip component
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.38.0](https://github.com/siderolabs/omni/releases/tag/v0.38.0)
+
 ## [Omni 0.38.0](https://github.com/siderolabs/omni/releases/tag/v0.38.0) (2024-06-20)
 
 Welcome to the v0.38.0 release of Omni!

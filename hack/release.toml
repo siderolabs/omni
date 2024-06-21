@@ -6,51 +6,5 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = false
-previous = "v0.37.0"
+previous = "v0.38.0"
 
-[notes]
-
-  [notes.exposed-services]
-    title = "Exposed Services DNS Name"
-    description = """\
-Exposed services now use new naming schema, so it shouldn't be affected by slow DNS updates.
-
-The domain name patter is now: `<hash>-<account>.proxy-us.siderolabs.io`.
-"""
-
-  [notes.break-glass]
-    title = "Break-Glass Configs"
-    description = """\
-Omni now allows getting raw Talos and Kubernetes configs that can allow bypassing Omni when
-accessing the cluster.
-
-It has a couple of limitations:
-
-- It is available only if is enabled for the account.
-- Only `os:operator` role Talosconfig level is available.
-- The cluster will be marked as tainted for the time being, which doesn't affect anything, but is
-the signal that Omni no longer fully controls secrets rotation.
-"""
-
-  [notes.machine-logs]
-    title = "Machine Logs"
-    description = """\
-Machine logs are now stored using new persitent circular buffer library, which has better write efficiency.
-"""
-
-  [notes.kubeconfig]
-    title = "Kubeconfig Authcode-Keyboard"
-    description = """\
-It is now possible to generate `kubeconfig` with `--grant-type=authcode-keyboard` and Omni
-supports that mode.
-This mode will print a URL and ask for a one time code instead of starting a local HTTP server on port `8000`.
-Clicking the URL will open the same Omni page as usual, but will present you the one time code instead of doing redirect.
-
-This mode is useful for remote machine `kubectl` execution and removes the need to set up ssh port-forwarding.
-"""
-
-  [notes.pending-updates]
-    title = "Pending Updates"
-    description = """\
-Omni UI now shows pending config changes which are not applied due to locked machines in the cluster.
-"""
