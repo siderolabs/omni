@@ -63,9 +63,9 @@ type Runtime struct {
 	talosClientFactory *talos.ClientFactory
 	storeFactory       store.Factory
 
-	dnsService                   *dns.Service
-	workloadProxyServiceRegistry *workloadproxy.ServiceRegistry
-	resourceLogger               *resourcelogger.Logger
+	dnsService              *dns.Service
+	workloadProxyReconciler *workloadproxy.Reconciler
+	resourceLogger          *resourcelogger.Logger
 
 	// resource state for internal consumers
 	state   state.State
@@ -77,7 +77,7 @@ type Runtime struct {
 // New creates a new Omni runtime.
 //
 //nolint:maintidx
-func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workloadProxyServiceRegistry *workloadproxy.ServiceRegistry,
+func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workloadProxyReconciler *workloadproxy.Reconciler,
 	resourceLogger *resourcelogger.Logger, imageFactoryClient *imagefactory.Client, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas,
 	siderolinkEventsCh <-chan *omni.MachineStatusSnapshot, resourceState state.State, virtualState *virtual.State, metricsRegistry prometheus.Registerer,
 	defaultDiscoveryClient, embeddedDiscoveryClient omnictrl.DiscoveryClient, logger *zap.Logger,
@@ -210,6 +210,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewDiscoveryServiceConfigPatchController(config.Config.EmbeddedDiscoveryService.Port),
 		omnictrl.NewKubernetesNodeAuditController(nil, time.Minute),
 		omnictrl.NewEtcdBackupEncryptionController(),
+		omnictrl.NewClusterWorkloadProxyStatusController(workloadProxyReconciler),
 		omnictrl.NewKubeconfigController(constants.CertificateValidityTime),
 		omnictrl.NewKubernetesUpgradeManifestStatusController(),
 		omnictrl.NewKubernetesUpgradeStatusController(),
@@ -291,15 +292,15 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 	)
 
 	return &Runtime{
-		controllerRuntime:            controllerRuntime,
-		talosClientFactory:           talosClientFactory,
-		storeFactory:                 storeFactory,
-		dnsService:                   dnsService,
-		workloadProxyServiceRegistry: workloadProxyServiceRegistry,
-		resourceLogger:               resourceLogger,
-		state:                        state.WrapCore(validated.NewState(resourceState, validationOptions...)),
-		virtual:                      virtualState,
-		logger:                       logger,
+		controllerRuntime:       controllerRuntime,
+		talosClientFactory:      talosClientFactory,
+		storeFactory:            storeFactory,
+		dnsService:              dnsService,
+		workloadProxyReconciler: workloadProxyReconciler,
+		resourceLogger:          resourceLogger,
+		state:                   state.WrapCore(validated.NewState(resourceState, validationOptions...)),
+		virtual:                 virtualState,
+		logger:                  logger,
 	}, nil
 }
 
@@ -313,10 +314,6 @@ func (r *Runtime) Run(ctx context.Context, eg newgroup.EGroup) {
 
 			return nil
 		}
-	}
-
-	if config.Config.WorkloadProxying.Enabled {
-		newgroup.GoWithContext(ctx, eg, makeWrap(r.workloadProxyServiceRegistry.Start, "workload proxy service registry failed"))
 	}
 
 	if r.resourceLogger != nil {

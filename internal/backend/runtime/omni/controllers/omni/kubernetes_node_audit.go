@@ -129,7 +129,7 @@ func NewKubernetesNodeAuditController(getKubernetesClientFunc GetKubernetesClien
 	)
 }
 
-// nodeAuditor is responsible for keeping track and auditing of the nodes in the Kubernetes clusters.
+// nodeAuditor is responsible for keeping track and auditing of the nodes in the Kubernetes cluster.
 type nodeAuditor struct {
 	// clusterToInvalidNodes maps a cluster ID to a map of invalid node IDs to the time they were marked as invalid.
 	//

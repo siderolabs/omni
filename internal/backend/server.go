@@ -94,13 +94,13 @@ import (
 
 // Server is main backend entrypoint that starts REST API, WebSocket and Serves static contents.
 type Server struct {
-	omniRuntime                  *omni.Runtime
-	logger                       *zap.Logger
-	logHandler                   *siderolink.LogHandler
-	authConfig                   *authres.Config
-	dnsService                   *dns.Service
-	workloadProxyServiceRegistry *workloadproxy.ServiceRegistry
-	imageFactoryClient           *imagefactory.Client
+	omniRuntime             *omni.Runtime
+	logger                  *zap.Logger
+	logHandler              *siderolink.LogHandler
+	authConfig              *authres.Config
+	dnsService              *dns.Service
+	workloadProxyReconciler *workloadproxy.Reconciler
+	imageFactoryClient      *imagefactory.Client
 
 	linkCounterDeltaCh chan<- siderolink.LinkCounterDeltas
 	siderolinkEventsCh chan<- *omnires.MachineStatusSnapshot
@@ -118,7 +118,7 @@ type Server struct {
 func NewServer(
 	bindAddress, metricsBindAddress, k8sProxyBindAddress, pprofBindAddress string,
 	dnsService *dns.Service,
-	workloadProxyServiceRegistry *workloadproxy.ServiceRegistry,
+	workloadProxyReconciler *workloadproxy.Reconciler,
 	imageFactoryClient *imagefactory.Client,
 	linkCounterDeltaCh chan<- siderolink.LinkCounterDeltas,
 	siderolinkEventsCh chan<- *omnires.MachineStatusSnapshot,
@@ -131,22 +131,22 @@ func NewServer(
 	logger *zap.Logger,
 ) (*Server, error) {
 	s := &Server{
-		omniRuntime:                  omniRuntime,
-		logger:                       logger.With(logging.Component("server")),
-		logHandler:                   logHandler,
-		authConfig:                   authConfig,
-		dnsService:                   dnsService,
-		workloadProxyServiceRegistry: workloadProxyServiceRegistry,
-		imageFactoryClient:           imageFactoryClient,
-		linkCounterDeltaCh:           linkCounterDeltaCh,
-		siderolinkEventsCh:           siderolinkEventsCh,
-		proxyServer:                  proxyServer,
-		bindAddress:                  bindAddress,
-		metricsBindAddress:           metricsBindAddress,
-		k8sProxyBindAddress:          k8sProxyBindAddress,
-		pprofBindAddress:             pprofBindAddress,
-		keyFile:                      keyFile,
-		certFile:                     certFile,
+		omniRuntime:             omniRuntime,
+		logger:                  logger.With(logging.Component("server")),
+		logHandler:              logHandler,
+		authConfig:              authConfig,
+		dnsService:              dnsService,
+		workloadProxyReconciler: workloadProxyReconciler,
+		imageFactoryClient:      imageFactoryClient,
+		linkCounterDeltaCh:      linkCounterDeltaCh,
+		siderolinkEventsCh:      siderolinkEventsCh,
+		proxyServer:             proxyServer,
+		bindAddress:             bindAddress,
+		metricsBindAddress:      metricsBindAddress,
+		k8sProxyBindAddress:     k8sProxyBindAddress,
+		pprofBindAddress:        pprofBindAddress,
+		keyFile:                 keyFile,
+		certFile:                certFile,
 	}
 
 	k8sruntime, err := kubernetes.New(omniRuntime.State())
@@ -557,7 +557,7 @@ func (s *Server) workloadProxyHandler(next http.Handler) (http.Handler, error) {
 
 	return workloadproxy.NewHTTPHandler(
 		next,
-		s.workloadProxyServiceRegistry,
+		s.workloadProxyReconciler,
 		pgpSignatureValidator,
 		mainURL,
 		config.Config.WorkloadProxying.Subdomain,

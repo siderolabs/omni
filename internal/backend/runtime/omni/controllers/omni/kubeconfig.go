@@ -89,7 +89,7 @@ func NewKubeconfigController(certificateValidity time.Duration) *KubeconfigContr
 		},
 		qtransform.WithExtraMappedInput(
 			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, _ *system.CertRefreshTick) ([]resource.Pointer, error) {
-				// on cert refresh, queue updates for all clusters
+				// on cert refresh, queue updates for all cluster
 				secrets, err := safe.ReaderListAll[*omni.ClusterSecrets](ctx, r)
 				if err != nil {
 					return nil, err

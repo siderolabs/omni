@@ -76,7 +76,7 @@ func (ctrl *ClusterMachineStatusMetricsController) Run(ctx context.Context, r co
 		}
 
 		// it is important to enumerate here all status values, as otherwise metric might not be cleared properly
-		// when there are no clusters in a given status
+		// when there are no cluster in a given status
 		clusterMachinesByStatus := map[specs.ClusterMachineStatusSpec_Stage]int{
 			specs.ClusterMachineStatusSpec_UNKNOWN:       0,
 			specs.ClusterMachineStatusSpec_BOOTING:       0,

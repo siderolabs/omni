@@ -154,15 +154,13 @@ func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtua
 		prometheus.MustRegister(talosClientFactory)
 
 		dnsService := dns.NewService(resourceState, logger)
-
-		workloadProxyServiceRegistry, err := workloadproxy.NewServiceRegistry(resourceState, logger)
-		if err != nil {
-			return fmt.Errorf("failed to set up workload proxy service registry: %w", err)
-		}
+		workloadProxyReconciler := workloadproxy.NewReconciler(logger.With(logging.Component("workload_proxy_reconciler")), zapcore.DebugLevel)
 
 		var resourceLogger *resourcelogger.Logger
 
 		if len(config.Config.LogResourceUpdatesTypes) > 0 {
+			var err error
+
 			resourceLogger, err = resourcelogger.New(ctx, resourceState, logger.With(logging.Component("resourcelogger")),
 				config.Config.LogResourceUpdatesLogLevel, config.Config.LogResourceUpdatesTypes...)
 			if err != nil {
@@ -202,7 +200,7 @@ func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtua
 			}
 		}()
 
-		omniRuntime, err := omni.New(talosClientFactory, dnsService, workloadProxyServiceRegistry, resourceLogger,
+		omniRuntime, err := omni.New(talosClientFactory, dnsService, workloadProxyReconciler, resourceLogger,
 			imageFactoryClient, linkCounterDeltaCh, siderolinkEventsCh, resourceState, virtualState,
 			prometheus.DefaultRegisterer, defaultDiscoveryClient, embeddedDiscoveryClient, logger.With(logging.Component("omni_runtime")))
 		if err != nil {
@@ -250,7 +248,7 @@ func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtua
 			rootCmdArgs.k8sProxyBindAddress,
 			rootCmdArgs.pprofBindAddress,
 			dnsService,
-			workloadProxyServiceRegistry,
+			workloadProxyReconciler,
 			imageFactoryClient,
 			linkCounterDeltaCh,
 			siderolinkEventsCh,

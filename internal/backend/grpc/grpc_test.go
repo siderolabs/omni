@@ -90,10 +90,9 @@ func (suite *GrpcSuite) SetupTest() {
 	imageFactoryClient, err := imagefactory.NewClient(suite.state, suite.imageFactory.address)
 	suite.Require().NoError(err)
 
-	workloadProxyServiceRegistry, err := workloadproxy.NewServiceRegistry(suite.state, logger)
-	suite.Require().NoError(err)
+	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zap.InfoLevel)
 
-	suite.runtime, err = omniruntime.New(clientFactory, dnsService, workloadProxyServiceRegistry, nil,
+	suite.runtime, err = omniruntime.New(clientFactory, dnsService, workloadProxyReconciler, nil,
 		imageFactoryClient, nil, nil, suite.state, nil, prometheus.NewRegistry(), discoveryServiceClientMock, nil, logger)
 	suite.Require().NoError(err)
 	runtime.Install(omniruntime.Name, suite.runtime)

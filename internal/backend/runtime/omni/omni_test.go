@@ -19,6 +19,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
 
@@ -80,11 +81,9 @@ func (suite *OmniRuntimeSuite) SetupTest() {
 	clientFactory := talos.NewClientFactory(resourceState, logger)
 	dnsService := dns.NewService(resourceState, logger)
 	discoveryServiceClient := &discoveryClientMock{}
+	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zapcore.InfoLevel)
 
-	workloadProxyServiceRegistry, err := workloadproxy.NewServiceRegistry(resourceState, logger)
-	suite.Require().NoError(err)
-
-	suite.runtime, err = omniruntime.New(clientFactory, dnsService, workloadProxyServiceRegistry, nil, nil, nil, nil,
+	suite.runtime, err = omniruntime.New(clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil,
 		resourceState, nil, prometheus.NewRegistry(), discoveryServiceClient, nil, logger)
 
 	suite.Require().NoError(err)

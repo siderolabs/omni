@@ -397,7 +397,7 @@ func (ctrl *KubernetesStatusController) reconcileRunners(ctx context.Context, r 
 		}
 	}
 
-	// start watchers (if not already running) for clusters which have secrets, lb healthy and not stopped
+	// start watchers (if not already running) for cluster which have secrets, lb healthy and not stopped
 	for cluster := range secretsPresent {
 		_, lbHealthy := lbHealthy[cluster]
 		if !lbHealthy {
@@ -420,7 +420,7 @@ func (ctrl *KubernetesStatusController) reconcileRunners(ctx context.Context, r 
 		logger.Info("started watcher for cluster", zap.String("cluster", cluster))
 	}
 
-	// cleanup kubernetes statuses for clusters which do not have secrets
+	// cleanup kubernetes statuses for cluster which do not have secrets
 	statuses, err := safe.ReaderListAll[*omni.KubernetesStatus](ctx, r)
 	if err != nil {
 		return err
@@ -438,7 +438,7 @@ func (ctrl *KubernetesStatusController) reconcileRunners(ctx context.Context, r 
 		}
 	}
 
-	// cleanup exposed services for clusters which do not have secrets
+	// cleanup exposed services for cluster which do not have secrets
 	if err := ctrl.cleanupExposedServices(ctx, r, secretsPresent); err != nil {
 		return fmt.Errorf("error destroying exposed services: %w", err)
 	}

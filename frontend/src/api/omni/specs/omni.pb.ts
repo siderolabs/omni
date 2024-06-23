@@ -572,6 +572,10 @@ export type ExposedServiceSpec = {
   url?: string
 }
 
+export type ClusterWorkloadProxyStatusSpec = {
+  num_exposed_services?: number
+}
+
 export type FeaturesConfigSpec = {
   enable_workload_proxying?: boolean
   etcd_backup_settings?: EtcdBackupSettings

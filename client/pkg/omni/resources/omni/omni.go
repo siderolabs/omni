@@ -12,6 +12,7 @@ func init() {
 	registry.MustRegisterResource(ClusterConfigVersionType, &ClusterConfigVersion{})
 	registry.MustRegisterResource(ClusterEndpointType, &ClusterEndpoint{})
 	registry.MustRegisterResource(ClusterDestroyStatusType, &ClusterDestroyStatus{})
+	registry.MustRegisterResource(ClusterWorkloadProxyStatusType, &ClusterWorkloadProxyStatus{})
 	registry.MustRegisterResource(ClusterKubernetesNodesType, &ClusterKubernetesNodes{})
 	registry.MustRegisterResource(ClusterType, &Cluster{})
 	registry.MustRegisterResource(ClusterUUIDType, &ClusterUUID{})

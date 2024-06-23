@@ -879,6 +879,11 @@ message ExposedServiceSpec {
   string url = 4;
 }
 
+// ClusterWorkloadProxyStatusSpec describes the status of the exposed services in a cluster.
+message ClusterWorkloadProxyStatusSpec {
+  uint32 num_exposed_services = 1;
+}
+
 message FeaturesConfigSpec {
   // EnableWorkloadProxying enables workload proxying feature.
   bool enable_workload_proxying = 1;

@@ -252,7 +252,7 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 		),
 		qtransform.WithExtraMappedInput(
 			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, _ *omni.KubernetesVersion) ([]resource.Pointer, error) {
-				// reconcile all clusters on KubernetesVersion changes
+				// reconcile all cluster on KubernetesVersion changes
 				clusters, err := safe.ReaderListAll[*omni.Cluster](ctx, r)
 				if err != nil {
 					return nil, err

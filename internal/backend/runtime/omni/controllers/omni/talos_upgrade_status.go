@@ -101,7 +101,7 @@ func NewTalosUpgradeStatusController() *TalosUpgradeStatusController {
 		},
 		qtransform.WithExtraMappedInput(
 			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, _ *omni.TalosVersion) ([]resource.Pointer, error) {
-				// reconcile all clusters TalosUpgradeStatus on TalosVersion changes
+				// reconcile all cluster TalosUpgradeStatus on TalosVersion changes
 				clusters, err := safe.ReaderListAll[*omni.Cluster](ctx, r)
 				if err != nil {
 					return nil, err

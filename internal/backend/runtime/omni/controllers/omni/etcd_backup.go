@@ -151,11 +151,11 @@ func (ctrl *EtcdBackupController) run(ctx context.Context, r controller.Runtime,
 
 	backupDataList, err := ctrl.findClustersToBackup(ctx, r, bdl, logger)
 	if err != nil {
-		return fmt.Errorf("error while finding clusters to backup: %w", err)
+		return fmt.Errorf("error while finding cluster to backup: %w", err)
 	}
 
 	if len(backupDataList) == 0 {
-		logger.Debug("no clusters to backup")
+		logger.Debug("no cluster to backup")
 
 		return nil
 	}
@@ -193,7 +193,7 @@ func (ctrl *EtcdBackupController) run(ctx context.Context, r controller.Runtime,
 
 	err = eg.Wait()
 	if err != nil {
-		return fmt.Errorf("failed to backup clusters: %w", err)
+		return fmt.Errorf("failed to backup cluster: %w", err)
 	}
 
 	close(backupResultCh)

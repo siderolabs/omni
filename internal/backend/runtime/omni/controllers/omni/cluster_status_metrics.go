@@ -53,7 +53,7 @@ func (ctrl *ClusterStatusMetricsController) initMetrics() {
 	ctrl.metricsOnce.Do(func() {
 		ctrl.metricNumClusters = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "omni_clusters",
-			Help: "Number of clusters by status in the instance.",
+			Help: "Number of cluster by status in the instance.",
 		},
 			[]string{"phase"})
 	})
@@ -76,7 +76,7 @@ func (ctrl *ClusterStatusMetricsController) Run(ctx context.Context, r controlle
 		}
 
 		// it is important to enumerate here all status values, as otherwise metric might not be cleared properly
-		// when there are no clusters in a given status
+		// when there are no cluster in a given status
 		clustersByStatus := map[specs.ClusterStatusSpec_Phase]int{
 			specs.ClusterStatusSpec_UNKNOWN:      0,
 			specs.ClusterStatusSpec_SCALING_UP:   0,
