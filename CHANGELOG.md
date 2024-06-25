@@ -1,3 +1,30 @@
+## [Omni 0.38.2](https://github.com/siderolabs/omni/releases/tag/v0.38.2) (2024-06-25)
+
+Welcome to the v0.38.2 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Utku Ozdemir
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`a357e04`](https://github.com/siderolabs/omni/commit/a357e042faa8a1558033476d1f673f8991c7e991) fix: detect the old vs. new URL format correctly on workload proxying
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.38.1](https://github.com/siderolabs/omni/releases/tag/v0.38.1)
+
 ## [Omni 0.38.1](https://github.com/siderolabs/omni/releases/tag/v0.38.1) (2024-06-21)
 
 Welcome to the v0.38.1 release of Omni!
