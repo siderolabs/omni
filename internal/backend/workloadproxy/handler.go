@@ -174,7 +174,7 @@ func (h *HTTPHandler) parseServiceAliasFromHost(request *http.Request) string {
 		return ""
 	}
 
-	if isNewFormat := len(proxyServiceHostPrefixParts) == 2; isNewFormat {
+	if isNewFormat := proxyServiceHostPrefixParts[0] != LegacyHostPrefix; isNewFormat {
 		return proxyServiceHostPrefixParts[0]
 	}
 

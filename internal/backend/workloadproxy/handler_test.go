@@ -127,36 +127,13 @@ func TestHandler(t *testing.T) {
 	t.Run("subdomain request with cookies", func(t *testing.T) {
 		t.Parallel()
 
-		next := &mockHandler{}
-		proxyProvider := &mockProxyProvider{}
-		accessValidator := &mockAccessValidator{}
-		logger := zaptest.NewLogger(t)
+		testSubdomainRequestWithCookies(ctx, t, mainURL, "instanceid")
+	})
 
-		handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, "proxy-us", logger)
-		require.NoError(t, err)
+	t.Run("subdomain request with cookies - dash in instance name", func(t *testing.T) {
+		t.Parallel()
 
-		rr := httptest.NewRecorder()
-
-		testServiceAlias := "testsvc2"
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://%s-instanceid.proxy-us.example.com/example", testServiceAlias), nil)
-		require.NoError(t, err)
-
-		testPublicKeyID := "test-public-key-id"
-		testPublicKeyIDSignatureBase64 := base64.StdEncoding.EncodeToString([]byte("test-signed-public-key-id"))
-
-		req.AddCookie(&http.Cookie{Name: workloadproxy.PublicKeyIDCookie, Value: testPublicKeyID})
-		req.AddCookie(&http.Cookie{Name: workloadproxy.PublicKeyIDSignatureBase64Cookie, Value: testPublicKeyIDSignatureBase64})
-
-		handler.ServeHTTP(rr, req)
-
-		require.Equal(t, []string{testServiceAlias}, proxyProvider.aliases)
-
-		require.Equal(t, http.StatusOK, rr.Code)
-
-		require.Equal(t, []string{testPublicKeyID}, accessValidator.publicKeyIDs)
-		require.Equal(t, []string{testPublicKeyIDSignatureBase64}, accessValidator.publicKeyIDSignatureBase64s)
-		require.Equal(t, []resource.ID{"test-cluster"}, accessValidator.clusterIDs)
+		testSubdomainRequestWithCookies(ctx, t, mainURL, "instance-id")
 	})
 
 	t.Run("subdomain request with cookies - legacy format", func(t *testing.T) {
@@ -193,4 +170,37 @@ func TestHandler(t *testing.T) {
 		require.Equal(t, []string{testPublicKeyIDSignatureBase64}, accessValidator.publicKeyIDSignatureBase64s)
 		require.Equal(t, []resource.ID{"test-cluster"}, accessValidator.clusterIDs)
 	})
+}
+
+func testSubdomainRequestWithCookies(ctx context.Context, t *testing.T, mainURL *url.URL, instanceID string) {
+	next := &mockHandler{}
+	proxyProvider := &mockProxyProvider{}
+	accessValidator := &mockAccessValidator{}
+	logger := zaptest.NewLogger(t)
+
+	handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, "proxy-us", logger)
+	require.NoError(t, err)
+
+	rr := httptest.NewRecorder()
+
+	testServiceAlias := "testsvc2"
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://%s-%s.proxy-us.example.com/example", testServiceAlias, instanceID), nil)
+	require.NoError(t, err)
+
+	testPublicKeyID := "test-public-key-id"
+	testPublicKeyIDSignatureBase64 := base64.StdEncoding.EncodeToString([]byte("test-signed-public-key-id"))
+
+	req.AddCookie(&http.Cookie{Name: workloadproxy.PublicKeyIDCookie, Value: testPublicKeyID})
+	req.AddCookie(&http.Cookie{Name: workloadproxy.PublicKeyIDSignatureBase64Cookie, Value: testPublicKeyIDSignatureBase64})
+
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, []string{testServiceAlias}, proxyProvider.aliases)
+
+	require.Equal(t, http.StatusOK, rr.Code)
+
+	require.Equal(t, []string{testPublicKeyID}, accessValidator.publicKeyIDs)
+	require.Equal(t, []string{testPublicKeyIDSignatureBase64}, accessValidator.publicKeyIDSignatureBase64s)
+	require.Equal(t, []resource.ID{"test-cluster"}, accessValidator.clusterIDs)
 }
