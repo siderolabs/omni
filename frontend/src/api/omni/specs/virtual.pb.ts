@@ -18,6 +18,7 @@ export type PermissionsSpec = {
   can_read_machine_config_patches?: boolean
   can_manage_machine_config_patches?: boolean
   can_manage_backup_store?: boolean
+  can_access_maintenance_nodes?: boolean
 }
 
 export type ClusterPermissionsSpec = {

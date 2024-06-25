@@ -12,12 +12,11 @@ included in the LICENSE file.
 
 <script setup lang="ts">
 import { watch, ref, type Component, shallowRef, type Ref } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRoute } from "vue-router";
 import { modals } from "@/router";
 import { modal } from "@/modal";
 
 const route = useRoute();
-const router = useRouter();
 const view: Ref<Component | null> = shallowRef(null);
 const props = ref({});
 
@@ -50,11 +49,6 @@ watch(modal, () => {
 });
 
 updateState();
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const close = () => {
-  router.go(-1);
-};
 </script>
 
 <style scoped>

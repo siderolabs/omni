@@ -7,9 +7,9 @@ included in the LICENSE file.
 <template>
   <div>
     <radio-group v-if="options.length < 8" :modelValue="machineSetIndex" @update:modelValue="value => emit('update:machineSetIndex', value)" class="flex p-1 bg-naturals-N3 rounded gap-0.5 t-button-group">
-      <radio-group-option v-for="(option, index) in options" :key="index" v-slot="{ checked }" :value="index" as="template"
+      <radio-group-option v-for="(option, index) in options" :key="index" :value="index" as="template"
         :disabled="option.disabled">
-        <div @click="() => onSelect(checked)">
+        <div @click="() => onSelect(index)">
           <popper :disabled="!option.tooltip" hover placement="left" :interactive="false" offsetDistance="10">
             <template #content>
               <div class="rounded px-4 py-2 text-naturals-N10 bg-naturals-N4 drop-shadow w-48">
@@ -18,10 +18,10 @@ included in the LICENSE file.
             </template>
             <div class="relative">
               <machine-set-label class="opacity-75 hover:opacity-100 transition-opacity machine-set-label"
-                :color="option.color" :class="{ 'opacity-100': checked && !option.disabled, disabled: option?.disabled }"
+                :color="option.color" :class="{ 'opacity-100': machineSetIndex === index && !option.disabled, disabled: option?.disabled }"
                 :id="option.id"
                 :machine-set-id="option.id" :disabled="option?.disabled"/>
-              <div v-if="checked"
+              <div v-if="machineSetIndex === index"
                 class="absolute top-0 left-0 right-0 bottom-0 bg-naturals-N12 pointer-events-none mix-blend-overlay rounded border-white border"/>
             </div>
           </popper>
@@ -114,9 +114,12 @@ const pickedOption = computed(() => {
   return machineSetIndex?.value !== undefined ? options.value[machineSetIndex.value] : undefined;
 });
 
-const onSelect = (checked: boolean) => {
-  if (checked)
+const onSelect = (index: number) => {
+  if (machineSetIndex.value === index) {
     emit('update:machineSetIndex', undefined);
+  } else {
+    emit('update:machineSetIndex', index);
+  }
 
   showPicker.value = false;
 }

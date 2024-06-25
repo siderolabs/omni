@@ -128,6 +128,10 @@ const (
 	// MachineStatusLabelInstance describes the machine instance type (for machines running in the clouds).
 	// tsgen:MachineStatusLabelInstance
 	MachineStatusLabelInstance = SystemLabelPrefix + "instance"
+
+	// MachineStatusLabelTalosVersion describes the machine talos version.
+	// tsgen:MachineStatusLabelTalosVersion
+	MachineStatusLabelTalosVersion = SystemLabelPrefix + "talos-version"
 )
 
 const (

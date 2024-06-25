@@ -63,8 +63,8 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 			cols = append(cols, s.collectLogs(res.Metadata().ID()))
 
 			info := s.dnsService.Resolve(req.Cluster, res.Metadata().ID())
-			if info.Address != "" {
-				nodes = append(nodes, info.Address)
+			if info.GetAddress() != "" {
+				nodes = append(nodes, info.GetAddress())
 			}
 		}
 

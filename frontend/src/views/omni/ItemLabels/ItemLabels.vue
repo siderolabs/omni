@@ -52,14 +52,11 @@ const labelOrder = {
   "region": 100,
   "zone": 110,
   "instance": 120,
+  "talos-version": 130,
 }
 
 const getLabelOrder = (l: Label) => {
-  if (l.removable) {
-    return 1000;
-  }
-
-  return labelOrder[l.key];
+  return labelOrder[l.id] ?? 1000;
 }
 
 const labelDescriptions = {
@@ -90,7 +87,15 @@ const labels = computed((): Array<Label> => {
   }
 
   labelsArray.sort((a, b) => {
-    return getLabelOrder(a) - getLabelOrder(b);
+    if (getLabelOrder(a) === getLabelOrder(b)) {
+      return 0;
+    }
+
+    if (getLabelOrder(a) > getLabelOrder(b)) {
+      return 1;
+    }
+
+    return -1;
   });
 
   return labelsArray

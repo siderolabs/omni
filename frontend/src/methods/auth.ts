@@ -100,6 +100,10 @@ export const canManageBackupStore: ComputedRef<boolean> = computed(() => {
   return permissions?.value?.spec?.can_manage_backup_store ?? false;
 });
 
+export const canAccessMaintenanceNodes: ComputedRef<boolean> = computed(() => {
+  return permissions?.value?.spec?.can_access_maintenance_nodes ?? false;
+});
+
 export const loadCurrentUser = async () => {
   if (!currentUser.value) {
     await refreshCurrentUser();

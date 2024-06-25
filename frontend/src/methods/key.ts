@@ -24,7 +24,6 @@ import {
   workloadProxyPublicKeyIdCookie,
   workloadProxyPublicKeyIdSignatureBase64Cookie,
 } from '@/api/resources';
-// import { Buffer } from "buffer";
 import { ref } from 'vue';
 import { b64Encode } from '@/api/fetch.pb';
 

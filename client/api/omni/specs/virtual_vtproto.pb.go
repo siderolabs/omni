@@ -52,6 +52,7 @@ func (m *PermissionsSpec) CloneVT() *PermissionsSpec {
 	r.CanReadMachineConfigPatches = m.CanReadMachineConfigPatches
 	r.CanManageMachineConfigPatches = m.CanManageMachineConfigPatches
 	r.CanManageBackupStore = m.CanManageBackupStore
+	r.CanAccessMaintenanceNodes = m.CanAccessMaintenanceNodes
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -187,6 +188,9 @@ func (this *PermissionsSpec) EqualVT(that *PermissionsSpec) bool {
 		return false
 	}
 	if this.CanManageBackupStore != that.CanManageBackupStore {
+		return false
+	}
+	if this.CanAccessMaintenanceNodes != that.CanAccessMaintenanceNodes {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -385,6 +389,16 @@ func (m *PermissionsSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.CanAccessMaintenanceNodes {
+		i--
+		if m.CanAccessMaintenanceNodes {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x60
 	}
 	if m.CanManageBackupStore {
 		i--
@@ -768,6 +782,9 @@ func (m *PermissionsSpec) SizeVT() (n int) {
 		n += 2
 	}
 	if m.CanManageBackupStore {
+		n += 2
+	}
+	if m.CanAccessMaintenanceNodes {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -1180,6 +1197,26 @@ func (m *PermissionsSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.CanManageBackupStore = bool(v != 0)
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanAccessMaintenanceNodes", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanAccessMaintenanceNodes = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

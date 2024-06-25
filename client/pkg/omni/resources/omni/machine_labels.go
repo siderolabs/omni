@@ -14,7 +14,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 )
 
-// NewMachineLabels creates new cluster machine status resource.
+// NewMachineLabels creates new machine labels resource.
 func NewMachineLabels(ns string, id resource.ID) *MachineLabels {
 	return typed.NewResource[MachineLabelsSpec, MachineLabelsExtension](
 		resource.NewMetadata(ns, MachineLabelsType, id, resource.VersionUndefined),
@@ -28,7 +28,7 @@ const (
 	MachineLabelsType = resource.Type("MachineLabels.omni.sidero.dev")
 )
 
-// MachineLabels contains the summary for the cluster health, availability, number of nodes.
+// MachineLabels is the user defined machine labels.
 type MachineLabels = typed.Resource[MachineLabelsSpec, MachineLabelsExtension]
 
 // MachineLabelsSpec wraps specs.MachineLabelsSpec.

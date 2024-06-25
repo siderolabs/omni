@@ -58,6 +58,7 @@ import UpdateExtensions from "@/views/omni/Modals/UpdateExtensions.vue"
 import NodeDestroy from "@/views/omni/Modals/NodeDestroy.vue";
 import MachineRemove from "@/views/omni/Modals/MachineRemove.vue";
 import MachineClassDestroy from "@/views/omni/Modals/MachineClassDestroy.vue";
+import MaintenanceUpdate from "@/views/omni/Modals/MaintenanceUpdate.vue";
 import NodeDestroyCancel from "@/views/omni/Modals/NodeDestroyCancel.vue";
 import DownloadInstallationMedia from "@/views/omni/Modals/DownloadInstallationMedia.vue";
 import DownloadOmnictl from "@/views/omni/Modals/DownloadOmnictl.vue";
@@ -431,6 +432,7 @@ const modals = {
   machineRemove: MachineRemove,
   machineClassDestroy: MachineClassDestroy,
   machineSetDestroy: MachineSetDestroy,
+  maintenanceUpdate: MaintenanceUpdate,
   downloadInstallationMedia: DownloadInstallationMedia,
   downloadOmnictlBinaries: DownloadOmnictl,
   downloadTalosctlBinaries: DownloadTalosctl,

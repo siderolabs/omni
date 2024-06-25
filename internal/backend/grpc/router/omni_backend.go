@@ -58,7 +58,7 @@ func (l *OmniBackend) GetConnection(ctx context.Context, _ string) (context.Cont
 
 	if len(allNodes) > 0 {
 		md.Set(ResolvedNodesHeaderKey, xslices.Map(allNodes, func(info dns.Info) string {
-			return info.Address
+			return info.GetAddress()
 		})...)
 	}
 

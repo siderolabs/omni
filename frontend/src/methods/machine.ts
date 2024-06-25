@@ -8,8 +8,9 @@ import { Code } from "@/api/google/rpc/code.pb";
 
 import { Resource, ResourceService } from "@/api/grpc";
 import { MachineLabelsSpec } from "@/api/omni/specs/omni.pb";
-import { withRuntime } from "@/api/options";
+import { withContext, withRuntime } from "@/api/options";
 import { DefaultNamespace, MachineLabelsType, MachineLocked, MachineSetNodeType, MachineStatusType, SiderolinkResourceType, SystemLabelPrefix } from "@/api/resources";
+import { MachineService } from "@/api/talos/machine/machine.pb";
 import { destroyResources, getMachineConfigPatchesToDelete } from "@/methods/cluster";
 import { parseLabels } from "@/methods/labels";
 
@@ -143,4 +144,14 @@ const copyUserLabels = (src: Resource, dst: Resource) => {
       dst.metadata.labels[key] = src.metadata.labels[key];
     }
   }
+}
+
+export const updateTalosMaintenance = async (machine: string, talosVersion: string, schematic?: string) => {
+  const image = schematic ?
+    `factory.talos.dev/installer/${schematic}:v${talosVersion}` :
+    `ghcr.io/siderolabs/installer:v${talosVersion}`;
+
+  await MachineService.Upgrade({image}, withRuntime(Runtime.Talos), withContext({
+    nodes: [machine]
+  }));
 }

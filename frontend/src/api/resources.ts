@@ -118,6 +118,7 @@ export const MachineStatusLabelPlatform = "omni.sidero.dev/platform";
 export const MachineStatusLabelRegion = "omni.sidero.dev/region";
 export const MachineStatusLabelZone = "omni.sidero.dev/zone";
 export const MachineStatusLabelInstance = "omni.sidero.dev/instance";
+export const MachineStatusLabelTalosVersion = "omni.sidero.dev/talos-version";
 export const ClusterMachineStatusLabelNodeName = "omni.sidero.dev/node-name";
 export const ExtensionsConfigurationLabel = "omni.sidero.dev/root-configuration";
 export const MachineType = "Machines.omni.sidero.dev";

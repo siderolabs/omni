@@ -30,8 +30,29 @@ type Info struct {
 	Cluster      string
 	ID           string
 	Name         string
-	Address      string
 	TalosVersion string
+
+	address            string
+	managementEndpoint string
+}
+
+// NewInfo exports unexported.
+func NewInfo(cluster, id, name, address string) Info {
+	return Info{
+		Cluster: cluster,
+		ID:      id,
+		Name:    name,
+		address: address,
+	}
+}
+
+// GetAddress reads node address from the DNS info.
+func (i Info) GetAddress() string {
+	if i.address != "" {
+		return i.address
+	}
+
+	return i.managementEndpoint
 }
 
 // Service is the DNS service.
@@ -39,8 +60,8 @@ type Service struct {
 	omniState state.State
 	logger    *zap.Logger
 
-	recordToNodeID map[record]resource.ID
-	nodeIDToInfo   map[resource.ID]Info
+	recordToMachineID map[record]resource.ID
+	machineIDToInfo   map[resource.ID]Info
 
 	lock sync.Mutex
 }
@@ -48,10 +69,10 @@ type Service struct {
 // NewService creates a new DNS service. It needs to be started before use.
 func NewService(omniState state.State, logger *zap.Logger) *Service {
 	return &Service{
-		omniState:      omniState,
-		logger:         logger,
-		recordToNodeID: make(map[record]string),
-		nodeIDToInfo:   make(map[string]Info),
+		omniState:         omniState,
+		logger:            logger,
+		recordToMachineID: make(map[record]string),
+		machineIDToInfo:   make(map[string]Info),
 	}
 }
 
@@ -67,7 +88,7 @@ func (d *Service) Start(ctx context.Context) error {
 	}
 
 	if err := d.omniState.WatchKind(ctx,
-		omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "").Metadata(), ch,
+		omni.NewMachineStatus(resources.DefaultNamespace, "").Metadata(), ch,
 		state.WithBootstrapContents(true),
 	); err != nil {
 		return err
@@ -96,15 +117,18 @@ func (d *Service) Start(ctx context.Context) error {
 					continue
 				}
 
-				if _, ok := ev.Resource.(*omni.ClusterMachineIdentity); ok {
-					d.deleteByID(ev.Resource.Metadata().ID())
+				switch r := ev.Resource.(type) {
+				case *omni.ClusterMachineIdentity:
+					d.deleteIdentityMappings(r.Metadata().ID())
+				case *omni.MachineStatus:
+					d.deleteMachineMappings(r.Metadata().ID())
 				}
 			case state.Created, state.Updated:
 				switch r := ev.Resource.(type) {
 				case *omni.ClusterMachineIdentity:
 					d.updateEntryByIdentity(r)
-				case *omni.ClusterMachineConfigStatus:
-					d.updateEntryByConfigStatus(r)
+				case *omni.MachineStatus:
+					d.updateEntryByMachineStatus(r)
 				default:
 					d.logger.Warn(
 						"dns service received an event with an unexpected resource type",
@@ -137,46 +161,46 @@ func (d *Service) updateEntryByIdentity(res *omni.ClusterMachineIdentity) {
 	defer d.lock.Unlock()
 
 	// create or update info
-	info := d.nodeIDToInfo[res.Metadata().ID()]
+	info := d.machineIDToInfo[res.Metadata().ID()]
 
 	info.Cluster = clusterName
 	info.ID = res.Metadata().ID()
 	info.Name = nodeName
 
-	previousAddress := info.Address
+	previousAddress := info.address
 
 	nodeIPs := res.TypedSpec().Value.NodeIps
 	if len(nodeIPs) == 0 {
-		info.Address = ""
+		info.address = ""
 	} else {
-		info.Address = nodeIPs[0]
+		info.address = nodeIPs[0]
 	}
 
-	d.nodeIDToInfo[res.Metadata().ID()] = info
+	d.machineIDToInfo[res.Metadata().ID()] = info
 
 	// create entry by node name
-	d.recordToNodeID[record{
+	d.recordToMachineID[record{
 		cluster: clusterName,
 		name:    nodeName,
 	}] = res.Metadata().ID()
 
 	// create entry by machine ID
-	d.recordToNodeID[record{
+	d.recordToMachineID[record{
 		cluster: clusterName,
 		name:    res.Metadata().ID(),
 	}] = res.Metadata().ID()
 
 	// create entry by address
-	if info.Address != "" {
-		d.recordToNodeID[record{
+	if info.address != "" {
+		d.recordToMachineID[record{
 			cluster: clusterName,
-			name:    info.Address,
+			name:    info.address,
 		}] = res.Metadata().ID()
 	}
 
 	// cleanup old entry by address
-	if previousAddress != "" && previousAddress != info.Address {
-		delete(d.recordToNodeID, record{
+	if previousAddress != "" && previousAddress != info.address {
+		delete(d.recordToMachineID, record{
 			cluster: clusterName,
 			name:    previousAddress,
 		})
@@ -187,14 +211,14 @@ func (d *Service) updateEntryByIdentity(res *omni.ClusterMachineIdentity) {
 		zap.String("id", res.Metadata().ID()),
 		zap.String("cluster", clusterName),
 		zap.String("node_name", nodeName),
-		zap.String("address", info.Address),
+		zap.String("address", info.address),
 	)
 }
 
-func (d *Service) updateEntryByConfigStatus(res *omni.ClusterMachineConfigStatus) {
-	version := res.TypedSpec().Value.GetTalosVersion()
+func (d *Service) updateEntryByMachineStatus(res *omni.MachineStatus) {
+	version := res.TypedSpec().Value.TalosVersion
 	if version == "" {
-		d.logger.Warn("received config status without a Talos version", zap.String("id", res.Metadata().ID()))
+		d.logger.Warn("no Talos version in the machine status", zap.String("id", res.Metadata().ID()))
 
 		return
 	}
@@ -202,47 +226,70 @@ func (d *Service) updateEntryByConfigStatus(res *omni.ClusterMachineConfigStatus
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	info := d.nodeIDToInfo[res.Metadata().ID()]
+	info := d.machineIDToInfo[res.Metadata().ID()]
 
 	info.TalosVersion = version
+	info.managementEndpoint = res.TypedSpec().Value.ManagementAddress
 
-	d.nodeIDToInfo[res.Metadata().ID()] = info
+	d.machineIDToInfo[res.Metadata().ID()] = info
 
 	d.logger.Debug(
-		"set node talos version in DNS entry",
+		"update machine id -> address mapping",
 		zap.String("id", res.Metadata().ID()),
 		zap.String("talos_version", version),
 	)
 }
 
-func (d *Service) deleteByID(id resource.ID) {
+func (d *Service) deleteIdentityMappings(id resource.ID) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	info, infoOk := d.nodeIDToInfo[id]
+	info, infoOk := d.machineIDToInfo[id]
 	if infoOk {
-		delete(d.recordToNodeID, record{
+		delete(d.recordToMachineID, record{
 			cluster: info.Cluster,
 			name:    info.ID,
 		})
-		delete(d.recordToNodeID, record{
+		delete(d.recordToMachineID, record{
 			cluster: info.Cluster,
 			name:    info.Name,
 		})
-		delete(d.recordToNodeID, record{
+		delete(d.recordToMachineID, record{
 			cluster: info.Cluster,
-			name:    info.Address,
+			name:    info.address,
 		})
 	}
 
-	delete(d.nodeIDToInfo, id)
+	info.address = ""
+
+	d.machineIDToInfo[id] = info
 
 	d.logger.Debug(
-		"deleted node DNS entry",
+		"deleted node identity DNS entry",
 		zap.String("id", id),
 		zap.String("cluster", info.Cluster),
 		zap.String("node_name", info.Name),
-		zap.String("address", info.Address),
+		zap.String("address", info.address),
+	)
+}
+
+func (d *Service) deleteMachineMappings(id resource.ID) {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+
+	info, infoOk := d.machineIDToInfo[id]
+	if !infoOk {
+		return
+	}
+
+	delete(d.machineIDToInfo, id)
+
+	d.logger.Debug(
+		"deleted node machine status DNS entry",
+		zap.String("id", id),
+		zap.String("cluster", info.Cluster),
+		zap.String("node_name", info.Name),
+		zap.String("address", info.address),
 	)
 }
 
@@ -251,10 +298,14 @@ func (d *Service) Resolve(clusterName, name string) Info {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	nodeID := d.recordToNodeID[record{
+	nodeID, ok := d.recordToMachineID[record{
 		cluster: clusterName,
 		name:    name,
 	}]
 
-	return d.nodeIDToInfo[nodeID]
+	if !ok {
+		return d.machineIDToInfo[name]
+	}
+
+	return d.machineIDToInfo[nodeID]
 }

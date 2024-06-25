@@ -202,6 +202,7 @@ func (v *State) permissions(ctx context.Context) (*virtual.Permissions, error) {
 		permissions.TypedSpec().Value.CanRemoveMachines = true
 		permissions.TypedSpec().Value.CanCreateClusters = true
 		permissions.TypedSpec().Value.CanManageMachineConfigPatches = true
+		permissions.TypedSpec().Value.CanAccessMaintenanceNodes = true
 	}
 
 	if userRole.Check(role.Admin) == nil {

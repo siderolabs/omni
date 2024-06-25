@@ -278,7 +278,7 @@ url: "${talosLoggingKernel}"
 }
 
 .overview-copy-icon {
-  @apply cursor-pointer w-5 text-primary-P2 p-0.5 rounded;
+  @apply cursor-pointer w-5 text-primary-P2 p-0.5 rounded w-5 h-5;
 }
 
 .overview-copy-icon:hover {

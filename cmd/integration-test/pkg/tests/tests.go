@@ -108,6 +108,10 @@ Wait for all expected machines to join and be in maintenance mode.`,
 					AssertMachinesHaveLogs(ctx, rootClient.Omni().State(), rootClient.Management()),
 				},
 				{
+					"MachinesShouldBeReachableInMaintenanceMode",
+					AssertTalosMaintenanceAPIAccessViaOmni(ctx, rootClient, talosAPIKeyPrepare),
+				},
+				{
 					"MachinesShouldBeInMaintenanceMode",
 					AssertMachineStatus(ctx, rootClient.Omni().State(), true, "", map[string]string{
 						omni.MachineStatusLabelConnected:       "",

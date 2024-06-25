@@ -71,6 +71,39 @@ func clearConnectionRefused(ctx context.Context, t *testing.T, c *talosclient.Cl
 	}))
 }
 
+// AssertTalosMaintenanceAPIAccessViaOmni verifies that cluster-wide `talosconfig` gives access to Talos nodes running in maintenance mode.
+func AssertTalosMaintenanceAPIAccessViaOmni(testCtx context.Context, omniClient *client.Client, talosAPIKeyPrepare TalosAPIKeyPrepareFunc) TestFunc {
+	return func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(testCtx, backoff.DefaultConfig.MaxDelay+10*time.Second)
+		t.Cleanup(cancel)
+
+		require.NoError(t, talosAPIKeyPrepare(ctx, "default"))
+
+		data, err := omniClient.Management().Talosconfig(ctx)
+		require.NoError(t, err)
+		assert.NotEmpty(t, data)
+
+		config, err := clientconfig.FromBytes(data)
+		require.NoError(t, err)
+
+		maintenanceClient, err := talosclient.New(ctx, talosclient.WithConfig(config))
+		require.NoError(t, err)
+
+		t.Cleanup(func() {
+			require.NoError(t, maintenanceClient.Close())
+		})
+
+		machines, err := safe.ReaderListAll[*omni.MachineStatus](ctx, omniClient.Omni().State(),
+			state.WithLabelQuery(resource.LabelExists(omni.MachineStatusLabelAvailable)),
+		)
+		require.NoError(t, err)
+		require.Greater(t, machines.Len(), 0)
+
+		_, err = maintenanceClient.MachineClient.Version(talosclient.WithNode(ctx, machines.Get(0).Metadata().ID()), &emptypb.Empty{})
+		require.NoError(t, err)
+	}
+}
+
 // AssertTalosAPIAccessViaOmni verifies that both instance-wide and cluster-wide `talosconfig`s work with Omni Talos API proxy.
 func AssertTalosAPIAccessViaOmni(testCtx context.Context, omniClient *client.Client, cluster string, talosAPIKeyPrepare TalosAPIKeyPrepareFunc) TestFunc {
 	return func(t *testing.T) {

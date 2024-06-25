@@ -18,7 +18,10 @@ included in the LICENSE file.
           </router-link>
           <item-labels :resource="machine" :add-label-func="addMachineLabels" :remove-label-func="removeMachineLabels" @filter-label="(e) => $emit('filterLabels', e)"/>
         </div>
-        <div class="flex-initial w-8">
+        <div class="flex gap-1 items-center">
+          <tooltip :description="maintenanceUpdateDescription" v-if="canAccessMaintenanceNodes">
+            <icon-button icon="arrow-up-tray" @click="openMaintenanceUpdate" :disabled="!canDoMaintenanceUpdate"/>
+          </tooltip>
           <div class="flex justify-end">
             <t-actions-box style="height: 24px">
               <t-actions-box-item icon="settings" @click="openConfigPatches">Config Patches</t-actions-box-item>
@@ -129,9 +132,11 @@ import TListItem from "@/components/common/List/TListItem.vue";
 import TActionsBox from "@/components/common/ActionsBox/TActionsBox.vue";
 import TActionsBoxItem from "@/components/common/ActionsBox/TActionsBoxItem.vue";
 import ItemLabels from "@/views/omni/ItemLabels/ItemLabels.vue";
+import IconButton from "@/components/common/Button/IconButton.vue";
+import Tooltip from "@/components/common/Tooltip/Tooltip.vue";
 import WordHighlighter from "vue-word-highlighter";
 import { addMachineLabels, removeMachineLabels } from "@/methods/machine";
-import { canReadClusters, canReadMachineLogs, canRemoveMachines } from "@/methods/auth";
+import { canReadClusters, canReadMachineLogs, canRemoveMachines, canAccessMaintenanceNodes } from "@/methods/auth";
 
 type MachineWithLinkCounter = Resource<MachineStatusLinkSpec>;
 const props = defineProps<{
@@ -150,6 +155,12 @@ const machineName = computed(() => {
 
 const openConfigPatches = () => {
   router.push({ name: "MachineConfigPatches", params: { machine: machine.value.metadata.id } });
+};
+
+const openMaintenanceUpdate = () => {
+  router.push({
+    query: { modal: "maintenanceUpdate", machine: machine.value.metadata.id, cluster: clusterName.value },
+  });
 };
 
 const processors = computed(() => {
@@ -226,6 +237,26 @@ const secureBoot = computed(() => {
 const copyMachineID = () => {
   copyText(machine.value.metadata.id!, undefined, () => {});
 };
+
+const canDoMaintenanceUpdate = computed(() => {
+  if (machine.value.spec.message_status?.cluster) {
+    return false;
+  }
+
+  return machine.value.spec.message_status?.hardware?.blockdevices?.findIndex(disk => disk.system_disk) !== -1;
+});
+
+const maintenanceUpdateDescription = computed(() => {
+  if (machine.value.spec.message_status?.cluster) {
+    return "Maintenance upgrade is not possible: machine is a part of a cluster";
+  }
+
+  if (!canDoMaintenanceUpdate.value) {
+    return "Maintenance ugprade is not possible: Talos is not installed";
+  }
+
+  return "Change Talos version";
+});
 </script>
 
 <style scoped>

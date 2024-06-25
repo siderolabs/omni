@@ -208,6 +208,10 @@ func MachineStatusReconcileLabels(machineStatus *MachineStatus) {
 	setLabel(labels, MachineStatusLabelInstance, func() string {
 		return machineStatus.TypedSpec().Value.PlatformMetadata.GetInstanceType()
 	})
+
+	setLabel(labels, MachineStatusLabelTalosVersion, func() string {
+		return machineStatus.TypedSpec().Value.TalosVersion
+	})
 }
 
 // GetMachineStatusSystemDisk looks up a system disk for the Talos machine.

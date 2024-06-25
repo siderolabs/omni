@@ -32,7 +32,7 @@ import (
 type testNodeResolver struct{}
 
 func (t *testNodeResolver) Resolve(_, node string) dns.Info {
-	return dns.Info{Address: node}
+	return dns.NewInfo("", "", "", node)
 }
 
 func TestTalosBackendRoles(t *testing.T) {
@@ -69,8 +69,8 @@ func TestNodeResolution(t *testing.T) {
 	resolver := &mockResolver{
 		db: map[string]map[string]dns.Info{
 			"cluster-1": {
-				"node-1": {Address: "1.1.1.1"},
-				"node-2": {Address: "2.2.2.2"},
+				"node-1": dns.NewInfo("", "", "", "1.1.1.1"),
+				"node-2": dns.NewInfo("", "", "", "2.2.2.2"),
 			},
 		},
 	}
@@ -78,7 +78,7 @@ func TestNodeResolution(t *testing.T) {
 	noOpVerifier := func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		return handler(ctx, req)
 	}
-	talosBackend := router.NewTalosBackend("test-backend", resolver, nil, false, noOpVerifier)
+	talosBackend := router.NewTalosBackend("test-backend", "test-backend", resolver, nil, false, noOpVerifier)
 
 	testCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	t.Cleanup(cancel)
@@ -179,6 +179,7 @@ func (t *testDirector) Director(context.Context, string) (proxy.Mode, []proxy.Ba
 	}
 
 	backend := router.NewTalosBackend(
+		"test-backend",
 		"test-backend",
 		&testNodeResolver{},
 		conn,

@@ -83,12 +83,7 @@ func (suite *ServiceSuite) TestResolve() {
 	// create and assert that it resolves by machine ID, address and node name
 	suite.Require().NoError(suite.state.Create(suite.ctx, identity))
 
-	expected := dns.Info{
-		Cluster: cluster,
-		ID:      "test-1",
-		Name:    "test-1-node",
-		Address: "10.0.0.42",
-	}
+	expected := dns.NewInfo(cluster, "test-1", "test-1-node", "10.0.0.42")
 	suite.assertResolve("test-1", expected)
 	suite.assertResolve("test-1-node", expected)
 	suite.assertResolve("10.0.0.42", expected)
@@ -98,13 +93,7 @@ func (suite *ServiceSuite) TestResolve() {
 
 	suite.Require().NoError(suite.state.Update(suite.ctx, identity))
 
-	expected = dns.Info{
-		Cluster: cluster,
-		ID:      "test-1",
-		Name:    "test-1-node",
-		Address: "10.0.0.43",
-	}
-
+	expected = dns.NewInfo(cluster, "test-1", "test-1-node", "10.0.0.43")
 	suite.assertResolve("test-1", expected)
 	suite.assertResolve("test-1-node", expected)
 	suite.assertResolve("10.0.0.43", expected)
@@ -114,10 +103,10 @@ func (suite *ServiceSuite) TestResolve() {
 	suite.assertResolve("10.0.0.42", zeroInfo)
 
 	// update Talos version, assert that it resolves
-	configStatus := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "test-1")
-	configStatus.TypedSpec().Value.TalosVersion = "1.4.1"
+	machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, "test-1")
+	machineStatus.TypedSpec().Value.TalosVersion = "1.4.1"
 
-	suite.Require().NoError(suite.state.Create(suite.ctx, configStatus))
+	suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
 
 	expected.TalosVersion = "1.4.1"
 
@@ -126,16 +115,25 @@ func (suite *ServiceSuite) TestResolve() {
 	// destroy the identity, assert that it doesn't resolve anymore
 	suite.Require().NoError(suite.state.Destroy(suite.ctx, identity.Metadata()))
 
-	suite.assertResolve("test-1", zeroInfo)
+	expected = dns.NewInfo(cluster, "test-1", "test-1-node", "")
+	expected.TalosVersion = machineStatus.TypedSpec().Value.TalosVersion
+
+	// still resolves by the node id, but has an empty address
+	suite.assertResolve("test-1", expected)
 	suite.assertResolve("test-1-node", zeroInfo)
-	suite.assertResolve("10.0.0.42", zeroInfo)
+	suite.assertResolve("10.0.0.43", zeroInfo)
+
+	// destroy the machine status, assert that it doesn't resolve by the node id anymore
+	suite.Require().NoError(suite.state.Destroy(suite.ctx, machineStatus.Metadata()))
+
+	suite.assertResolve("test-1", zeroInfo)
 }
 
 func (suite *ServiceSuite) assertResolveAddress(cluster, node, expected string) {
 	err := retry.Constant(3*time.Second, retry.WithUnits(100*time.Millisecond)).RetryWithContext(suite.ctx, func(context.Context) error {
 		resolved := suite.dnsService.Resolve(cluster, node)
 
-		if resolved.Address != expected {
+		if resolved.GetAddress() != expected {
 			return retry.ExpectedErrorf("expected %s, got %s", expected, resolved)
 		}
 

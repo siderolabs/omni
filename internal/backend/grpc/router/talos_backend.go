@@ -15,7 +15,9 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/constants"
 	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/pkg/auth"
@@ -44,13 +46,15 @@ type TalosBackend struct {
 	nodeResolver NodeResolver
 	verifier     grpc.UnaryServerInterceptor
 	name         string
+	clusterName  string
 	authEnabled  bool
 }
 
 // NewTalosBackend builds new Talos API backend.
-func NewTalosBackend(name string, nodeResolver NodeResolver, conn *grpc.ClientConn, authEnabled bool, verifier grpc.UnaryServerInterceptor) *TalosBackend {
+func NewTalosBackend(name, clusterName string, nodeResolver NodeResolver, conn *grpc.ClientConn, authEnabled bool, verifier grpc.UnaryServerInterceptor) *TalosBackend {
 	backend := &TalosBackend{
 		name:         name,
+		clusterName:  clusterName,
 		nodeResolver: nodeResolver,
 		conn:         conn,
 		authEnabled:  authEnabled,
@@ -60,12 +64,12 @@ func NewTalosBackend(name string, nodeResolver NodeResolver, conn *grpc.ClientCo
 	return backend
 }
 
-func (l *TalosBackend) String() string {
-	return l.name
+func (backend *TalosBackend) String() string {
+	return backend.name
 }
 
 // GetConnection returns a grpc connection to the backend.
-func (l *TalosBackend) GetConnection(ctx context.Context, fullMethodName string) (context.Context, *grpc.ClientConn, error) {
+func (backend *TalosBackend) GetConnection(ctx context.Context, fullMethodName string) (context.Context, *grpc.ClientConn, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		md = metadata.New(nil)
@@ -74,15 +78,18 @@ func (l *TalosBackend) GetConnection(ctx context.Context, fullMethodName string)
 	// we can't use regular gRPC server interceptors here, as proxy interface is a bit different
 
 	// prepare context values for the verifier
-	ctx = context.WithValue(ctx, auth.EnabledAuthContextKey{}, l.authEnabled)
+	ctx = context.WithValue(ctx, auth.EnabledAuthContextKey{}, backend.authEnabled)
 	msg := message.NewGRPC(md, fullMethodName)
 	ctx = context.WithValue(ctx, auth.GRPCMessageContextKey{}, msg)
 
 	grpcutil.SetShouldLog(ctx, "talos-backend")
-	grpcutil.AddLogPair(ctx, "cluster", l.name)
+
+	if backend.clusterName != "" {
+		grpcutil.AddLogPair(ctx, "cluster", backend.clusterName)
+	}
 
 	// perform authentication, result of the authentication should be written to ctx
-	_, err := l.verifier(ctx, nil, nil,
+	_, err := backend.verifier(ctx, nil, nil,
 		func(innerCtx context.Context, _ any) (any, error) {
 			// save enhanced context
 			ctx = innerCtx
@@ -97,8 +104,13 @@ func (l *TalosBackend) GetConnection(ctx context.Context, fullMethodName string)
 
 	hasModifyAccess := false
 
-	_, modifyErr := auth.Check(ctx, auth.WithRole(role.Operator))
-	if modifyErr == nil {
+	_, authErr := auth.Check(ctx, auth.WithRole(role.Operator))
+	// insecure access mode should only be possible for the operator role users
+	if authErr != nil && backend.clusterName == "" {
+		return ctx, nil, status.Error(codes.PermissionDenied, "permission denied")
+	}
+
+	if authErr == nil {
 		hasModifyAccess = true
 	}
 
@@ -110,39 +122,39 @@ func (l *TalosBackend) GetConnection(ctx context.Context, fullMethodName string)
 	}
 
 	// overwrite the node headers with the resolved ones
-	resolved := resolveNodes(l.nodeResolver, md)
+	resolved := resolveNodes(backend.nodeResolver, md)
 
 	if resolved.nodeOk {
 		md = md.Copy()
 
-		setHeaderData(ctx, md, nodeHeaderKey, resolved.node.Address)
+		setHeaderData(ctx, md, nodeHeaderKey, resolved.node.GetAddress())
 	}
 
 	if len(resolved.nodes) > 0 {
 		md = md.Copy()
 
 		addresses := xslices.Map(resolved.nodes, func(info dns.Info) string {
-			return info.Address
+			return info.GetAddress()
 		})
 
 		setHeaderData(ctx, md, nodesHeaderKey, addresses...)
 	}
 
-	l.setRoleHeaders(ctx, md, fullMethodName, resolved, hasModifyAccess)
+	backend.setRoleHeaders(ctx, md, fullMethodName, resolved, hasModifyAccess)
 
 	outCtx := metadata.NewOutgoingContext(ctx, md)
 
-	return outCtx, l.conn, nil
+	return outCtx, backend.conn, nil
 }
 
-func (l *TalosBackend) setRoleHeaders(ctx context.Context, md metadata.MD, fullMethodName string, info resolvedNodeInfo, hasModifyAccess bool) {
+func (backend *TalosBackend) setRoleHeaders(ctx context.Context, md metadata.MD, fullMethodName string, info resolvedNodeInfo, hasModifyAccess bool) {
 	if !hasModifyAccess {
 		setHeaderData(ctx, md, constants.APIAuthzRoleMetadataKey, talosrole.MakeSet(talosrole.Reader).Strings()...)
 
 		return
 	}
 
-	minTalosVersion := l.minTalosVersion(info)
+	minTalosVersion := backend.minTalosVersion(info)
 
 	// min Talos version is >= 1.4.0, we can use Operator role
 	if minTalosVersion != nil && minTalosVersion.GTE(semver.MustParse("1.4.0")) {
@@ -159,7 +171,7 @@ func (l *TalosBackend) setRoleHeaders(ctx context.Context, md metadata.MD, fullM
 	}
 }
 
-func (l *TalosBackend) minTalosVersion(info resolvedNodeInfo) *semver.Version {
+func (backend *TalosBackend) minTalosVersion(info resolvedNodeInfo) *semver.Version {
 	var ver *semver.Version
 
 	if info.nodeOk {
@@ -185,12 +197,12 @@ func takePtr[T any](v T, err error) *T {
 }
 
 // AppendInfo is called to enhance response from the backend with additional data.
-func (l *TalosBackend) AppendInfo(_ bool, resp []byte) ([]byte, error) {
+func (backend *TalosBackend) AppendInfo(_ bool, resp []byte) ([]byte, error) {
 	return resp, nil
 }
 
 // BuildError is called to convert error from upstream into response field.
-func (l *TalosBackend) BuildError(bool, error) ([]byte, error) {
+func (backend *TalosBackend) BuildError(bool, error) ([]byte, error) {
 	return nil, nil
 }
 

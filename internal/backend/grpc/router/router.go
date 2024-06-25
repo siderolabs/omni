@@ -15,6 +15,7 @@ import (
 	"math"
 	"net"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -43,6 +44,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/memconn"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/certs"
@@ -143,7 +145,7 @@ func (r *Router) Director(ctx context.Context, fullMethodName string) (proxy.Mod
 	}
 
 	if runtime := md.Get(message.RuntimeHeaderHey); runtime != nil && runtime[0] == common.Runtime_Talos.String() {
-		backends, _, err := r.getTalosBackend(ctx, md)
+		backends, err := r.getTalosBackend(ctx, md)
 		if err != nil {
 			return proxy.One2One, nil, err
 		}
@@ -154,16 +156,22 @@ func (r *Router) Director(ctx context.Context, fullMethodName string) (proxy.Mod
 	return proxy.One2One, []proxy.Backend{r.omniBackend}, nil
 }
 
-func (r *Router) getTalosBackend(ctx context.Context, md metadata.MD) ([]proxy.Backend, string, error) {
+func (r *Router) getTalosBackend(ctx context.Context, md metadata.MD) ([]proxy.Backend, error) {
 	clusterName := getClusterName(md)
 
-	if backend, ok := r.talosBackends.Get(clusterName); ok {
-		r.metricCacheHits.Inc()
+	id := fmt.Sprintf("cluster-%s", clusterName)
 
-		return []proxy.Backend{backend}, clusterName, nil
+	if clusterName == "" {
+		id = fmt.Sprintf("machine-%s", getNodeID(md))
 	}
 
-	ch := r.sf.DoChan(clusterName, func() (any, error) {
+	if backend, ok := r.talosBackends.Get(id); ok {
+		r.metricCacheHits.Inc()
+
+		return []proxy.Backend{backend}, nil
+	}
+
+	ch := r.sf.DoChan(id, func() (any, error) {
 		ctx = actor.MarkContextAsInternalActor(ctx)
 
 		r.metricCacheMisses.Inc()
@@ -175,8 +183,8 @@ func (r *Router) getTalosBackend(ctx context.Context, md metadata.MD) ([]proxy.B
 
 		r.metricActiveClients.Inc()
 
-		backend := NewTalosBackend(clusterName, r.nodeResolver, conn, r.authEnabled, r.verifier)
-		r.talosBackends.Add(clusterName, backend)
+		backend := NewTalosBackend(id, clusterName, r.nodeResolver, conn, r.authEnabled, r.verifier)
+		r.talosBackends.Add(id, backend)
 
 		runtime.SetFinalizer(backend, func(backend *TalosBackend) {
 			r.metricActiveClients.Dec()
@@ -189,22 +197,45 @@ func (r *Router) getTalosBackend(ctx context.Context, md metadata.MD) ([]proxy.B
 
 	select {
 	case <-ctx.Done():
-		return nil, "", ctx.Err()
+		return nil, ctx.Err()
 	case res := <-ch:
 		if res.Err != nil {
-			return nil, "", res.Err
+			return nil, res.Err
 		}
 
 		backend := res.Val.(proxy.Backend) //nolint:errcheck,forcetypeassert
 
-		return []proxy.Backend{backend}, clusterName, nil
+		return []proxy.Backend{backend}, nil
 	}
 }
 
-func (r *Router) getConn(ctx context.Context, contextName string) (*grpc.ClientConn, error) {
+func (r *Router) getTransportCredentials(ctx context.Context, contextName string) (credentials.TransportCredentials, []string, error) {
+	if contextName == "" {
+		md, ok := metadata.FromIncomingContext(ctx)
+		if !ok {
+			return nil, nil, fmt.Errorf("failed to get node ip from the request")
+		}
+
+		var endpoints []dns.Info
+
+		info := resolveNodes(r.nodeResolver, md)
+
+		endpoints = info.nodes
+
+		if info.nodeOk {
+			endpoints = []dns.Info{info.node}
+		}
+
+		return credentials.NewTLS(&tls.Config{
+				InsecureSkipVerify: true,
+			}), xslices.Map(endpoints, func(info dns.Info) string {
+				return net.JoinHostPort(info.GetAddress(), strconv.FormatInt(talosconstants.ApidPort, 10))
+			}), nil
+	}
+
 	clusterCredentials, err := r.getClusterCredentials(ctx, contextName)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	tlsConfig := &tls.Config{}
@@ -212,25 +243,30 @@ func (r *Router) getConn(ctx context.Context, contextName string) (*grpc.ClientC
 	tlsConfig.RootCAs = x509.NewCertPool()
 
 	if ok := tlsConfig.RootCAs.AppendCertsFromPEM(clusterCredentials.CAPEM); !ok {
-		return nil, errors.New("failed to append CA certificate to RootCAs pool")
+		return nil, nil, errors.New("failed to append CA certificate to RootCAs pool")
 	}
 
 	clientCert, err := tls.X509KeyPair(clusterCredentials.CertPEM, clusterCredentials.KeyPEM)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create TLS client certificate: %w", err)
+		return nil, nil, fmt.Errorf("failed to create TLS client certificate: %w", err)
 	}
 
 	tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 	tlsConfig.Certificates = append(tlsConfig.Certificates, clientCert)
 
-	creds := credentials.NewTLS(tlsConfig)
+	return credentials.NewTLS(tlsConfig), xslices.Map(clusterCredentials.Endpoints, func(endpoint string) string {
+		return net.JoinHostPort(endpoint, strconv.FormatInt(talosconstants.ApidPort, 10))
+	}), nil
+}
+
+func (r *Router) getConn(ctx context.Context, contextName string) (*grpc.ClientConn, error) {
+	creds, endpoints, err := r.getTransportCredentials(ctx, contextName)
+	if err != nil {
+		return nil, err
+	}
 
 	backoffConfig := backoff.DefaultConfig
 	backoffConfig.MaxDelay = 15 * time.Second
-
-	endpoints := xslices.Map(clusterCredentials.Endpoints, func(endpoint string) string {
-		return net.JoinHostPort(endpoint, strconv.FormatInt(talosconstants.ApidPort, 10))
-	})
 
 	endpoint := fmt.Sprintf("%s:///%s", resolver.RoundRobinResolverScheme, strings.Join(endpoints, ","))
 
@@ -353,6 +389,16 @@ func getClusterName(md metadata.MD) string {
 	}
 
 	return get(message.ContextHeaderKey)
+}
+
+func getNodeID(md metadata.MD) string {
+	if nodes := md.Get(nodesHeaderKey); len(nodes) != 0 {
+		slices.Sort(nodes)
+
+		return strings.Join(nodes, ",")
+	}
+
+	return strings.Join(md.Get(nodeHeaderKey), ",")
 }
 
 // Describe implements prom.Collector interface.

@@ -40,6 +40,7 @@ const labelColors = {
   "region": "light3",
   "zone": "light4",
   "instance": "light5",
+  "talos-version": "light7",
 }
 
 export const getLabelColor = (labelKey: string) => {

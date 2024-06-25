@@ -240,6 +240,9 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 		runtime.ExtensionStatusType: {
 			namespace: runtime.NamespaceName,
 		},
+		runtime.MachineStatusType: {
+			namespace: runtime.NamespaceName,
+		},
 	}
 
 	for resourceType, watcher := range watchers {
@@ -305,6 +308,13 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 				case state.Bootstrapped:
 					// ignore
 				case state.Created, state.Updated, state.Destroyed:
+					// poll machine version on each machine status update
+					if event.Resource.Metadata().Type() == runtime.MachineStatusType {
+						dirtyPollers["version"] = struct{}{}
+
+						break waitLoop
+					}
+
 					markAsDirty := true
 
 					if watchers[event.Resource.Metadata().Type()].filterFunc != nil && !resource.IsTombstone(event.Resource) { // can't run filter for tombstones

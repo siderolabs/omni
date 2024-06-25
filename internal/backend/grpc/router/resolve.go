@@ -57,16 +57,17 @@ func resolveNodes(dnsService NodeResolver, md metadata.MD) resolvedNodeInfo {
 	resolveNode := func(val string) dns.Info {
 		var resolved dns.Info
 
-		if cluster != "" && val != "" {
+		if val != "" {
 			resolved = dnsService.Resolve(cluster, val)
 		}
 
-		if resolved.Address == "" {
-			return dns.Info{
-				Cluster: cluster,
-				Name:    val,
-				Address: val,
-			}
+		if resolved.GetAddress() == "" {
+			return dns.NewInfo(
+				cluster,
+				val,
+				val,
+				val,
+			)
 		}
 
 		return resolved
