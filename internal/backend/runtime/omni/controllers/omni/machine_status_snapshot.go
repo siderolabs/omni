@@ -14,13 +14,13 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/runtime/pkg/task"
 	"github.com/siderolabs/gen/optional"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task/snapshot"
 )
 

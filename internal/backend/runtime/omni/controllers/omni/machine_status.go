@@ -15,6 +15,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/kvutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/runtime/pkg/task"
 	"github.com/siderolabs/gen/optional"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/image-factory/pkg/schematic"
@@ -27,7 +28,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task"
 	machinetask "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task/machine"
 )
 

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/task"
 	"github.com/hashicorp/go-multierror"
 	"github.com/siderolabs/gen/channel"
 	"github.com/siderolabs/gen/xslices"
@@ -21,7 +22,6 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/image"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task"
 )
 
 const (
