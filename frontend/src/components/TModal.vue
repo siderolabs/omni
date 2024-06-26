@@ -59,7 +59,7 @@ const close = () => {
 
 <style scoped>
 .container-modal {
-  @apply fixed left-0 right-0 bottom-0 top-0 z-30 flex justify-center items-center;
+  @apply fixed left-0 right-0 bottom-0 top-0 z-30 flex justify-center items-center py-4;
   background-color: rgba(16, 17, 24, 0.9);
 }
 </style>

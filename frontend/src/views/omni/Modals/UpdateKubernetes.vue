@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <div class="modal-window flex flex-col h-1/2 gap-2">
+  <div class="modal-window flex flex-col max-h-screen my-4 gap-2">
     <div class="heading">
       <h3 class="text-base text-naturals-N14">Update Kubernetes</h3>
       <close-button @click="close" />

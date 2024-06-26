@@ -18,7 +18,7 @@ included in the LICENSE file.
           <div class="flex-1 flex max-md:ml-1 md:ml-10">
             <t-spinner class="w-4 h-4" v-if="scaling"/>
             <div class="flex items-center gap-1" v-else-if="!editingMachinesCount">
-              {{ machineSet?.spec?.machines?.healthy || 0 }}/{{ machineSet?.spec?.machines?.requested || 0 }}
+              <div class="flex items-center">{{ machineSet?.spec?.machines?.healthy || 0 }}/<div :class="{'text-lg mt-0.5': requestedMachines === '∞'}">{{ requestedMachines }}</div></div>
               <icon-button icon="edit" v-if="machineSet.spec.machine_class?.name" @click="editingMachinesCount = !editingMachinesCount"/>
             </div>
             <div v-else class="flex items-center gap-1">
@@ -165,6 +165,14 @@ const updateMachineCount = async (allocationType: MachineSetSpecMachineClassAllo
 
   editingMachinesCount.value = false;
 };
+
+const requestedMachines = computed(() => {
+  if (machineSet.value.spec.machine_class?.allocation_type === MachineSetSpecMachineClassAllocationType.Unlimited) {
+    return "∞";
+  }
+
+  return machineSet?.value?.spec?.machines?.requested || 0;
+})
 
 const machineClassMachineCount = computed(() => {
   if (machineSet.value.spec?.machine_class?.allocation_type === MachineSetSpecMachineClassAllocationType.Unlimited) {
