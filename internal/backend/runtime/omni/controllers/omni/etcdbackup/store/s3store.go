@@ -165,9 +165,12 @@ func S3ClientFromResource(ctx context.Context, s3Conf *omni.EtcdBackupS3Conf) (*
 		opts = append(opts, awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, sessionToken)))
 	}
 
-	if region := s3Conf.TypedSpec().Value.GetRegion(); region != "" {
+	region := s3Conf.TypedSpec().Value.GetRegion()
+	if region != "" {
 		opts = append(opts, awsConfig.WithRegion(region))
 	}
+
+	var baseEndpoint string
 
 	if endpoint := s3Conf.TypedSpec().Value.GetEndpoint(); endpoint != "" {
 		if strings.Contains(endpoint, "storage.googleapis.com") {
@@ -186,11 +189,7 @@ func S3ClientFromResource(ctx context.Context, s3Conf *omni.EtcdBackupS3Conf) (*
 			}))
 		}
 
-		opts = append(opts, awsConfig.WithEndpointResolverWithOptions(
-			aws.EndpointResolverWithOptionsFunc(func(_, region string, _ ...any) (aws.Endpoint, error) {
-				return aws.Endpoint{URL: endpoint, HostnameImmutable: true, PartitionID: "aws", SigningRegion: region}, nil
-			}),
-		))
+		baseEndpoint = endpoint
 	}
 
 	loadedCfg, err := awsConfig.LoadDefaultConfig(ctx, opts...)
@@ -198,7 +197,10 @@ func S3ClientFromResource(ctx context.Context, s3Conf *omni.EtcdBackupS3Conf) (*
 		return nil, "", fmt.Errorf("failed to load aws config: %w", err)
 	}
 
-	client := s3.NewFromConfig(loadedCfg, func(o *s3.Options) { o.UsePathStyle = true })
+	client := s3.NewFromConfig(loadedCfg, func(o *s3.Options) {
+		o.UsePathStyle = true
+		o.BaseEndpoint = aws.String(baseEndpoint)
+	})
 
 	_, err = client.ListObjects(ctx, &s3.ListObjectsInput{Bucket: pointer.To(bucket)})
 	if err != nil {
