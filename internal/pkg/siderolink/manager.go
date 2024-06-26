@@ -40,6 +40,8 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -692,6 +694,25 @@ func (manager *Manager) getLink(ctx context.Context, req *pb.ProvisionRequest, i
 	return res, false, err
 }
 
+func getRemoteIP(ctx context.Context) string {
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		if vals := md.Get("X-Real-IP"); vals != nil {
+			return vals[0]
+		}
+
+		if vals := md.Get("X-Forwarded-For"); vals != nil {
+			return vals[0]
+		}
+	}
+
+	p, ok := peer.FromContext(ctx)
+	if !ok {
+		return ""
+	}
+
+	return p.Addr.String()
+}
+
 // Provision the SideroLink.
 func (manager *Manager) Provision(ctx context.Context, req *pb.ProvisionRequest) (*pb.ProvisionResponse, error) {
 	ctx = actor.MarkContextAsInternalActor(ctx)
@@ -701,14 +722,18 @@ func (manager *Manager) Provision(ctx context.Context, req *pb.ProvisionRequest)
 		return nil, err
 	}
 
+	remoteAddr := getRemoteIP(ctx)
+
 	spec := link.TypedSpec().Value
-	if spec.NodePublicKey != req.NodePublicKey || tunnelStatusChanged(req, link) {
+	if spec.NodePublicKey != req.NodePublicKey || tunnelStatusChanged(req, link) || spec.RemoteAddr != remoteAddr {
 		if _, err = safe.StateUpdateWithConflicts(ctx, manager.state, link.Metadata(), func(r *siderolink.Link) error {
 			s := r.TypedSpec().Value
 
 			if err = manager.wgHandler.PeerEvent(ctx, s, true); err != nil {
 				return err
 			}
+
+			s.RemoteAddr = remoteAddr
 
 			s.NodePublicKey = req.NodePublicKey
 			s.VirtualAddrport, err = manager.generateVirtualAddrPort(pointer.SafeDeref(req.WireguardOverGrpc))

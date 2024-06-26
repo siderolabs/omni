@@ -21,6 +21,7 @@ export type SiderolinkSpec = {
   last_endpoint?: string
   connected?: boolean
   virtual_addrport?: string
+  remote_addr?: string
 }
 
 export type SiderolinkCounterSpec = {
