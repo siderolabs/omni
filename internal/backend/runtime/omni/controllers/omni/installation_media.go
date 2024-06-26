@@ -144,6 +144,20 @@ var installationMedia = []installationMediaSpec{
 		ContentType:  "application/x-xz",
 	},
 	{
+		Name:         "Equinix Metal (amd64)",
+		Architecture: amd64Arch,
+		Profile:      "equinixMetal",
+		Type:         rawType,
+		ContentType:  "application/x-xz",
+	},
+	{
+		Name:         "Equinix Metal (arm64)",
+		Architecture: arm64Arch,
+		Profile:      "equinixMetal",
+		Type:         rawType,
+		ContentType:  "application/x-xz",
+	},
+	{
 		Name:         "NoCloud (amd64)",
 		Architecture: amd64Arch,
 		Profile:      "nocloud",
