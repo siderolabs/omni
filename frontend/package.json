@@ -18,7 +18,7 @@
     "js-yaml": "^4.1.0",
     "long": "^5.2.0",
     "luxon": "^3.4.4",
-    "monaco-editor": "^0.41.0",
+    "monaco-editor": "^0.50.0",
     "monaco-yaml": "^5.1.1",
     "pluralize": "^8.0.0",
     "rxjs": "^7.5.5",
