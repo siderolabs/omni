@@ -826,11 +826,22 @@ func TestMachineSetClassesValidation(t *testing.T) {
 
 	require.True(t, validated.IsValidationError(err), "expected validation error")
 
+	// expect no error, as the machine mgmt mode change is allowed if there are no nodes in the machine set
 	machineSet.TypedSpec().Value.MachineClass = nil
 
-	err = st.Update(ctx, machineSet)
+	require.NoError(t, st.Update(ctx, machineSet))
 
+	// add a node
+	require.NoError(t, st.Create(ctx, machineSetNode))
+
+	// machine set mgmt mode change is not allowed anymore
+	machineSet.TypedSpec().Value.MachineClass = &specs.MachineSetSpec_MachineClass{
+		Name: machineClass.Metadata().ID(),
+	}
+
+	err = st.Update(ctx, machineSet)
 	require.True(t, validated.IsValidationError(err), "expected validation error")
+	require.ErrorContains(t, err, "machine set is not empty")
 }
 
 func TestS3ConfigValidation(t *testing.T) {

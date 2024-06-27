@@ -328,11 +328,25 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 			// ensure that the machine class type doesn't change from manually selected machines to the machine class
 			oldSpec := oldRes.TypedSpec().Value
 
-			switch {
-			case oldSpec.MachineClass == nil && spec.MachineClass != nil:
-				return errors.New("machine set is using manual nodes management, updating to machine class mode is not allowed")
-			case oldSpec.MachineClass != nil && spec.MachineClass == nil:
-				return errors.New("machine set is using machine class based node management, updating to manual mode is not allowed")
+			mgmtModeSwitchedToMachineClass := oldSpec.MachineClass == nil && spec.MachineClass != nil
+			mgmtModeSwitchedToManual := oldSpec.MachineClass != nil && spec.MachineClass == nil
+			mgmtModeChanged := mgmtModeSwitchedToMachineClass || mgmtModeSwitchedToManual
+
+			if mgmtModeChanged {
+				machineSetNodeList, err := safe.StateListAll[*omni.MachineSetNode](ctx, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, res.Metadata().ID())))
+				if err != nil {
+					return fmt.Errorf("error getting machine set nodes: %w", err)
+				}
+
+				// block management mode change only if there are nodes in the machine set
+				if machineSetNodeList.Len() > 0 {
+					switch {
+					case mgmtModeSwitchedToMachineClass:
+						return errors.New("machine set is not empty and is using manual nodes management, updating to machine class mode is not allowed")
+					case mgmtModeSwitchedToManual:
+						return errors.New("machine set is not empty and is using machine class based node management, updating to manual mode is not allowed")
+					}
+				}
 			}
 
 			return nil
