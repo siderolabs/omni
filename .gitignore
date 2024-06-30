@@ -1,10 +1,11 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2022-11-30T18:14:53Z by kres c41f376.
+# Generated on 2024-06-30T11:04:55Z by kres 4c9f215.
 
 _out
 hack/generate-certs.yml
 hack/generate-certs/ca-root
 hack/generate-certs/certs
 hack/compose/docker-compose.override.yml
+go.work.sum
 frontend/node_modules

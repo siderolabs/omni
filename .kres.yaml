@@ -239,6 +239,7 @@ spec:
     - "hack/generate-certs/ca-root"
     - "hack/generate-certs/certs"
     - "hack/compose/docker-compose.override.yml"
+    - go.work.sum
 ---
 kind: common.SOPS
 spec:
