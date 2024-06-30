@@ -1,3 +1,31 @@
+## [Omni 0.38.3](https://github.com/siderolabs/omni/releases/tag/v0.38.3) (2024-06-30)
+
+Welcome to the v0.38.3 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Andrey Smirnov
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`7fea095`](https://github.com/siderolabs/omni/commit/7fea095b67a70248ce0f36d9caf912ddb6bf4d00) fix: add resource caches for missing resource types
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.38.2](https://github.com/siderolabs/omni/releases/tag/v0.38.2)
+
+
 ## [Omni 0.38.2](https://github.com/siderolabs/omni/releases/tag/v0.38.2) (2024-06-25)
 
 Welcome to the v0.38.2 release of Omni!
