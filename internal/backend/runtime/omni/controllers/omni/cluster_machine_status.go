@@ -188,8 +188,7 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 				case machineapi.MachineStatusEvent_RUNNING:
 					cmsVal.Stage = specs.ClusterMachineStatusSpec_RUNNING
 				case machineapi.MachineStatusEvent_MAINTENANCE:
-					// shouldn't happen as machine config should be submitted
-					cmsVal.Stage = specs.ClusterMachineStatusSpec_UNKNOWN
+					cmsVal.Stage = specs.ClusterMachineStatusSpec_CONFIGURING
 				}
 
 				clusterMachineIdentity, err := safe.ReaderGet[*omni.ClusterMachineIdentity](ctx, r, omni.NewClusterMachineIdentity(
