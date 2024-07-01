@@ -34,6 +34,7 @@ message ClusterPermissionsSpec {
   bool can_read_config_patches = 9;
   bool can_manage_config_patches = 10;
   bool can_manage_cluster_features = 11;
+  bool can_download_support_bundle = 12;
 }
 
 message LabelsCompletionSpec {

@@ -52,6 +52,7 @@ import ClusterSidebarNode from "@/views/cluster/SideBarNode.vue";
 import NodeReboot from "@/views/omni/Modals/NodeReboot.vue";
 import NodeShutdown from "@/views/omni/Modals/NodeShutdown.vue";
 import ClusterDestroy from "@/views/omni/Modals/ClusterDestroy.vue";
+import DownloadSupportBundle from "@/views/omni/Modals/DownloadSupportBundle.vue";
 import MachineSetDestroy from "@/views/omni/Modals/MachineSetDestroy.vue";
 import ConfigPatchDestroy from "@/views/omni/Modals/ConfigPatchDestroy.vue";
 import UpdateExtensions from "@/views/omni/Modals/UpdateExtensions.vue"
@@ -435,6 +436,7 @@ const modals = {
   maintenanceUpdate: MaintenanceUpdate,
   downloadInstallationMedia: DownloadInstallationMedia,
   downloadOmnictlBinaries: DownloadOmnictl,
+  downloadSupportBundle: DownloadSupportBundle,
   downloadTalosctlBinaries: DownloadTalosctl,
   nodeDestroy: NodeDestroy,
   nodeDestroyCancel: NodeDestroyCancel,
