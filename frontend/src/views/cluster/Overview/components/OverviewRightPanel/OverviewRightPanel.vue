@@ -116,6 +116,17 @@ included in the LICENSE file.
             >Download <code>talosconfig</code></t-button
           >
         </div>
+        <div class="overview-details-item">
+          <t-button
+            @click="openDownloadSupportBundle"
+            :disabled="!canDownloadSupportBundle"
+            class="overview-item-button w-full"
+            type="primary"
+            icon="lifebuoy"
+            iconPosition="left"
+          >Download Support Bundle</t-button
+          >
+        </div>
       </div>
       <div class="divider"/>
       <div class="overview-right-box-wrapper overview-right-box-wrapper-moved">
@@ -327,7 +338,7 @@ const getUpgradeAvailable = (spec: {last_upgrade_version?: string, current_upgra
   }
 
   return spec.upgrade_versions.filter((version: string) => {
-    return semver.compare(spec.last_upgrade_version, version) == -1;
+    return semver.compare(spec.last_upgrade_version!, version) == -1;
   });
 }
 
@@ -369,11 +380,20 @@ const openClusterUpdate = (type: Update) => {
   router.push({ query: { modal: modal, cluster: currentCluster?.value?.metadata?.id } });
 }
 
+const openDownloadSupportBundle = () => {
+  if (!canDownloadSupportBundle.value) {
+    return;
+  }
+
+  router.push({ query: { modal: "downloadSupportBundle", cluster: currentCluster?.value?.metadata?.id } });
+}
+
 const {
   canUpdateKubernetes,
   canUpdateTalos,
   canDownloadKubeconfig,
   canDownloadTalosconfig,
+  canDownloadSupportBundle,
   canAddClusterMachines,
   canRemoveClusterMachines,
 } = setupClusterPermissions(computed(() => route.params.cluster as string))

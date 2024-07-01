@@ -33,6 +33,7 @@ export type ClusterPermissionsSpec = {
   can_read_config_patches?: boolean
   can_manage_config_patches?: boolean
   can_manage_cluster_features?: boolean
+  can_download_support_bundle?: boolean
 }
 
 export type LabelsCompletionSpecValues = {

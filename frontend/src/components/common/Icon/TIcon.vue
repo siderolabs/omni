@@ -32,6 +32,10 @@ import {
   ServerStackIcon,
 } from "@heroicons/vue/24/outline";
 
+import {
+  LifebuoyIcon,
+} from "@heroicons/vue/24/solid";
+
 const icons = {
   "action-horizontal": defineAsyncComponent(() => import("../../icons/IconActionHorizontal.vue")),
   "dropdown": defineAsyncComponent(() => import("../../icons/IconDropdown.vue")),
@@ -128,6 +132,7 @@ const icons = {
   "chart-bar": ChartBarIcon,
   "server": ServerIcon,
   "server-stack": ServerStackIcon,
+  "lifebuoy": LifebuoyIcon,
 };
 
 const getComponent = (icon: string): Component | undefined => {
