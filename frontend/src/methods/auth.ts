@@ -27,6 +27,7 @@ export const setupClusterPermissions = (cluster: {value: string}) => {
     canUpdateTalos: ref(false),
     canDownloadTalosconfig: ref(false),
     canDownloadKubeconfig: ref(false),
+    canDownloadSupportBundle: ref(false),
     canAddClusterMachines: ref(false),
     canRemoveClusterMachines: ref(false),
     canSyncKubernetesManifests: ref(false),
@@ -48,6 +49,7 @@ export const setupClusterPermissions = (cluster: {value: string}) => {
     result.canUpdateTalos.value = clusterPermissions?.spec?.can_update_talos || false;
     result.canDownloadKubeconfig.value = clusterPermissions?.spec?.can_download_kubeconfig || false;
     result.canDownloadTalosconfig.value = clusterPermissions?.spec?.can_download_talosconfig || false;
+    result.canDownloadSupportBundle.value = clusterPermissions?.spec?.can_download_support_bundle || false;
     result.canAddClusterMachines.value = clusterPermissions?.spec?.can_add_machines || false;
     result.canRemoveClusterMachines.value = clusterPermissions?.spec?.can_remove_machines || false;
     result.canSyncKubernetesManifests.value = clusterPermissions?.spec?.can_sync_kubernetes_manifests || false;
