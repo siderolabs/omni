@@ -1,0 +1,64 @@
+# nameOverride: omni  # optional, if ommitted the Chart name will be used
+debug: false
+domainName: omni.example.com
+accountUuid:
+privateKeySource: "/omni.asc"
+deployment:
+  image: ghcr.io/siderolabs/omni
+  tag: "latest"
+  replicaCount: 1
+  annotations: {}
+  imagePullPolicy: IfNotPresent
+auth:
+  auth0:
+    enabled: true
+    clientId: 123456
+    domain: "https://www.auth0.example"
+  saml:
+    enabled: false
+    url: "https://www.saml.example"
+initialUsers: []
+service:
+  type: ClusterIP # currently only ClusterIP is supported by this Helm Chart
+  api:
+    port: 443
+    targetPort: 443
+  siderolink:
+    api:
+      bindAddress: 0.0.0.0
+      port: 8090
+      targetPort: 8090
+    wireguard:
+      address: #<ip address of the host running Omni>
+  eventSink:
+    port: 8091
+    targetPort: 8091
+  k8sProxy:
+    port: 8100
+    targetPort: 8100
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+etcd:
+  # embedded: false not yet supported by this helm chart
+  embedded: true
+imageFactory:
+  address: ""
+  pxeAddress: ""
+volumeMounts:
+  tls:
+    mountPath: "/etc/omni/tls"
+    readOnly: true
+  omniAsc:
+    mountPath: "/omni.asc"
+    subPath: "omni.asc"
+    readOnly: true
+volumes:
+  tls:
+    secretName: tls
+  gpg:
+    secretName: gpg

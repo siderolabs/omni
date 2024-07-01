@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "omni.name" . }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+  {{- range $key, $value := .Values.service.annotations }}
+    {{ $key }}: {{ tpl ($value | toString) $ | quote }}
+  {{- end }}
+  labels:
+    {{- include "omni.labels" . | nindent 4 }}
+    {{- if .Values.service.labels }}
+    {{- toYaml .Values.service.labels | nindent 4 }}
+    {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  clusterIP: {{ .Values.service.clusterIP }}
+  ports:
+    - name: api
+      port: {{ .Values.service.api.port }}
+      targetPort: {{ .Values.service.api.targetPort }}
+      protocol: TCP
+    - name: event-sink
+      port: {{ .Values.service.eventSink.port }}
+      targetPort: {{ .Values.service.eventSink.targetPort }}
+      protocol: TCP
+    - name: k8s-proxy
+      port: {{ .Values.service.k8sProxy.port }}
+      targetPort: {{ .Values.service.k8sProxy.targetPort }}
+      protocol: TCP
+    - name: siderolink
+      port: {{ .Values.service.siderolink.api.port }}
+      targetPort: {{ .Values.service.siderolink.api.targetPort }}
+      protocol: TCP
+    - name: wireguard
+      port: 8091
+      targetPort: 8091
+      protocol: UDP
+  selector:
+    {{- include "omni.selectorLabels" . | nindent 4 }}
