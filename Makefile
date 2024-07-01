@@ -272,7 +272,7 @@ lint-markdown:  ## Runs markdownlint.
 	@$(MAKE) target-$@
 
 .PHONY: lint
-lint: lint-eslint lint-golangci-lint-client lint-gofumpt-client lint-govulncheck-client lint-golangci-lint lint-gofumpt lint-govulncheck lint-markdown  ## Run all linters for the project.
+lint: lint-eslint lint-golangci-lint-client lint-gofumpt-client lint-govulncheck-client lint-golangci-lint lint-gofumpt lint-markdown  ## Run all linters for the project.
 
 .PHONY: image-omni
 image-omni:  ## Builds image for omni.

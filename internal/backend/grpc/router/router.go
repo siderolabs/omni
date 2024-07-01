@@ -31,6 +31,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/client/resolver"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/role"
+	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
@@ -330,8 +331,8 @@ func (r *Router) getClusterCredentials(ctx context.Context, clusterName string) 
 	}, nil
 }
 
-// ClusterWatcher watches the cluster state and removes cached Talos API connections.
-func (r *Router) ClusterWatcher(ctx context.Context, s state.State) error {
+// ResourceWatcher watches the resource state and removes cached Talos API connections.
+func (r *Router) ResourceWatcher(ctx context.Context, s state.State, logger *zap.Logger) error {
 	events := make(chan state.Event)
 
 	if err := s.WatchKind(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.ClusterType, "", resource.VersionUndefined), events); err != nil {
@@ -346,6 +347,10 @@ func (r *Router) ClusterWatcher(ctx context.Context, s state.State) error {
 		return err
 	}
 
+	if err := s.WatchKind(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.MachineType, "", resource.VersionUndefined), events); err != nil {
+		return err
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -357,8 +362,21 @@ func (r *Router) ClusterWatcher(ctx context.Context, s state.State) error {
 			case state.Bootstrapped:
 				// ignore
 			case state.Created, state.Updated, state.Destroyed:
+				if e.Type == state.Destroyed && e.Resource.Metadata().Type() == omni.MachineType {
+					id := fmt.Sprintf("machine-%s", e.Resource.Metadata().ID())
+					r.removeBackend(id)
+
+					logger.Info("remove machine talos backend", zap.String("id", id))
+
+					continue
+				}
+
+				id := fmt.Sprintf("cluster-%s", e.Resource.Metadata().ID())
+
 				// all resources have cluster name as the ID, drop the backend to make sure we have new connection established
-				r.removeBackend(e.Resource.Metadata().ID())
+				r.removeBackend(id)
+
+				logger.Info("remove cluster talos backend", zap.String("id", id))
 			}
 		}
 	}

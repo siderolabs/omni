@@ -243,7 +243,7 @@ func (s *Server) Run(ctx context.Context) error {
 
 	prometheus.MustRegister(rtr)
 
-	eg.Go(func() error { return rtr.ClusterWatcher(ctx, runtimeState) })
+	eg.Go(func() error { return rtr.ResourceWatcher(ctx, runtimeState, s.logger) })
 
 	grpcProxyServer := router.NewServer(rtr,
 		router.Interceptors(s.logger),
