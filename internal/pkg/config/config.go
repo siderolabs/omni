@@ -166,10 +166,12 @@ type BoltDBParams struct {
 // EtcdParams defines etcd storage configs.
 type EtcdParams struct { ///nolint:govet
 	// External etcd: list of endpoints, as host:port pairs.
-	Endpoints []string `yaml:"endpoints"`
-	CAPath    string   `yaml:"caPath"`
-	CertPath  string   `yaml:"certPath"`
-	KeyPath   string   `yaml:"keyPath"`
+	Endpoints            []string      `yaml:"endpoints"`
+	DialKeepAliveTime    time.Duration `yaml:"dialKeepAliveTime"`
+	DialKeepAliveTimeout time.Duration `yaml:"dialKeepAliveTimeout"`
+	CAPath               string        `yaml:"caPath"`
+	CertPath             string        `yaml:"certPath"`
+	KeyPath              string        `yaml:"keyPath"`
 
 	// Use embedded etcd server (no clustering).
 	Embedded            bool   `yaml:"embedded"`
@@ -248,10 +250,12 @@ var (
 				Path: "_out/omni.db",
 			},
 			Etcd: EtcdParams{
-				Endpoints: []string{"http://localhost:2379"},
-				CAPath:    "etcd/ca.crt",
-				CertPath:  "etcd/client.crt",
-				KeyPath:   "etcd/client.key",
+				Endpoints:            []string{"http://localhost:2379"},
+				DialKeepAliveTime:    30 * time.Second,
+				DialKeepAliveTimeout: 5 * time.Second,
+				CAPath:               "etcd/ca.crt",
+				CertPath:             "etcd/client.crt",
+				KeyPath:              "etcd/client.key",
 
 				Embedded:       true,
 				EmbeddedDBPath: "_out/etcd/",

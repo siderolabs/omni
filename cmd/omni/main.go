@@ -393,6 +393,10 @@ func init() {
 	rootCmd.Flags().BoolVar(&config.Config.Storage.Etcd.EmbeddedUnsafeFsync, "etcd-embedded-unsafe-fsync", config.Config.Storage.Etcd.EmbeddedUnsafeFsync,
 		"disable fsync in the embedded etcd server (dangerous).")
 	rootCmd.Flags().StringSliceVar(&config.Config.Storage.Etcd.Endpoints, "etcd-endpoints", config.Config.Storage.Etcd.Endpoints, "external etcd endpoints.")
+	rootCmd.Flags().DurationVar(&config.Config.Storage.Etcd.DialKeepAliveTime,
+		"etcd-dial-keepalive-time", config.Config.Storage.Etcd.DialKeepAliveTime, "external etcd client keep-alive time (interval).")
+	rootCmd.Flags().DurationVar(&config.Config.Storage.Etcd.DialKeepAliveTimeout,
+		"etcd-dial-keepalive-timeout", config.Config.Storage.Etcd.DialKeepAliveTimeout, "external etcd client keep-alive timeout.")
 	rootCmd.Flags().StringVar(&config.Config.Storage.Etcd.CAPath, "etcd-ca-path", config.Config.Storage.Etcd.CAPath, "external etcd CA path.")
 	rootCmd.Flags().StringVar(&config.Config.Storage.Etcd.CertPath, "etcd-client-cert-path", config.Config.Storage.Etcd.CertPath, "external etcd client cert path.")
 	rootCmd.Flags().StringVar(&config.Config.Storage.Etcd.KeyPath, "etcd-client-key-path", config.Config.Storage.Etcd.KeyPath, "external etcd client key path.")

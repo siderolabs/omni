@@ -272,10 +272,11 @@ func getExternalEtcdClient(ctx context.Context, params *config.EtcdParams, logge
 	}
 
 	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:   params.Endpoints,
-		DialTimeout: 5 * time.Second,
+		Endpoints:            params.Endpoints,
+		DialKeepAliveTime:    params.DialKeepAliveTime,
+		DialKeepAliveTimeout: params.DialKeepAliveTimeout,
+		DialTimeout:          5 * time.Second,
 		DialOptions: []grpc.DialOption{
-			grpc.WithBlock(), //nolint:staticcheck
 			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(constants.GRPCMaxMessageSize)),
 			grpc.WithSharedWriteBuffer(true),
 		},
