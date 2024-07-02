@@ -362,11 +362,13 @@ func (r *Router) ResourceWatcher(ctx context.Context, s state.State, logger *zap
 			case state.Bootstrapped:
 				// ignore
 			case state.Created, state.Updated, state.Destroyed:
-				if e.Type == state.Destroyed && e.Resource.Metadata().Type() == omni.MachineType {
-					id := fmt.Sprintf("machine-%s", e.Resource.Metadata().ID())
-					r.removeBackend(id)
+				if e.Resource.Metadata().Type() == omni.MachineType {
+					if e.Type == state.Destroyed {
+						id := fmt.Sprintf("machine-%s", e.Resource.Metadata().ID())
+						r.removeBackend(id)
 
-					logger.Info("remove machine talos backend", zap.String("id", id))
+						logger.Info("remove machine talos backend", zap.String("id", id))
+					}
 
 					continue
 				}

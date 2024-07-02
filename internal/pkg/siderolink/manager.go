@@ -694,7 +694,7 @@ func (manager *Manager) getLink(ctx context.Context, req *pb.ProvisionRequest, i
 	return res, false, err
 }
 
-func getRemoteIP(ctx context.Context) string {
+func getRemoteAddr(ctx context.Context) string {
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		if vals := md.Get("X-Real-IP"); vals != nil {
 			return vals[0]
@@ -722,18 +722,22 @@ func (manager *Manager) Provision(ctx context.Context, req *pb.ProvisionRequest)
 		return nil, err
 	}
 
-	remoteAddr := getRemoteIP(ctx)
+	remoteAddr := getRemoteAddr(ctx)
+
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		host = remoteAddr
+	}
 
 	spec := link.TypedSpec().Value
-	if spec.NodePublicKey != req.NodePublicKey || tunnelStatusChanged(req, link) || spec.RemoteAddr != remoteAddr {
+
+	if spec.NodePublicKey != req.NodePublicKey || tunnelStatusChanged(req, link) {
 		if _, err = safe.StateUpdateWithConflicts(ctx, manager.state, link.Metadata(), func(r *siderolink.Link) error {
 			s := r.TypedSpec().Value
 
 			if err = manager.wgHandler.PeerEvent(ctx, s, true); err != nil {
 				return err
 			}
-
-			s.RemoteAddr = remoteAddr
 
 			s.NodePublicKey = req.NodePublicKey
 			s.VirtualAddrport, err = manager.generateVirtualAddrPort(pointer.SafeDeref(req.WireguardOverGrpc))
@@ -749,6 +753,16 @@ func (manager *Manager) Provision(ctx context.Context, req *pb.ProvisionRequest)
 		}
 
 		dirty = true
+	}
+
+	if spec.RemoteAddr != host {
+		if _, err = safe.StateUpdateWithConflicts(ctx, manager.state, link.Metadata(), func(r *siderolink.Link) error {
+			r.TypedSpec().Value.RemoteAddr = host
+
+			return nil
+		}); err != nil {
+			return nil, err
+		}
 	}
 
 	if dirty {
