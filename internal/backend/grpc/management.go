@@ -274,6 +274,8 @@ func (s *managementServer) ValidateConfig(ctx context.Context, request *manageme
 }
 
 func (s *managementServer) markClusterAsTainted(ctx context.Context, name string) error {
+	ctx = actor.MarkContextAsInternalActor(ctx)
+
 	if err := s.omniState.Create(ctx, omnires.NewClusterTaint(resources.DefaultNamespace, name)); err != nil && !state.IsConflictError(err) {
 		return err
 	}
