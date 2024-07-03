@@ -29,7 +29,7 @@ type RedactedClusterMachineConfigSuite struct {
 func (suite *RedactedClusterMachineConfigSuite) TestReconcile() {
 	suite.startRuntime()
 
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, 8090)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewRedactedClusterMachineConfigController()))
 
 	id := "test"

@@ -6,11 +6,14 @@
 package omni
 
 import (
+	"bytes"
 	"context"
+	_ "embed"
 	"errors"
 	"fmt"
 	"net/url"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -26,17 +29,22 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/generate"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/config/machine"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
+	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	appconfig "github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/constants"
 )
+
+//go:embed data/siderolink-config-patch.yaml
+var siderolinkConfigPatchData string
 
 // ClusterMachineConfigControllerName is the name of the ClusterMachineConfigController.
 const ClusterMachineConfigControllerName = "ClusterMachineConfigController"
@@ -47,7 +55,7 @@ const ClusterMachineConfigControllerName = "ClusterMachineConfigController"
 type ClusterMachineConfigController = qtransform.QController[*omni.ClusterMachine, *omni.ClusterMachineConfig]
 
 // NewClusterMachineConfigController initializes ClusterMachineConfigController.
-func NewClusterMachineConfigController(defaultGenOptions []generate.Option) *ClusterMachineConfigController {
+func NewClusterMachineConfigController(defaultGenOptions []generate.Option, eventSinkPort int) *ClusterMachineConfigController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.ClusterMachine, *omni.ClusterMachineConfig]{
 			Name: ClusterMachineConfigControllerName,
@@ -58,7 +66,7 @@ func NewClusterMachineConfigController(defaultGenOptions []generate.Option) *Clu
 				return omni.NewClusterMachine(resources.DefaultNamespace, machineConfig.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, clusterMachine *omni.ClusterMachine, machineConfig *omni.ClusterMachineConfig) error {
-				return reconcileClusterMachineConfig(ctx, r, logger, clusterMachine, machineConfig, defaultGenOptions)
+				return reconcileClusterMachineConfig(ctx, r, logger, clusterMachine, machineConfig, defaultGenOptions, eventSinkPort)
 			},
 		},
 		qtransform.WithExtraMappedInput(
@@ -82,6 +90,9 @@ func NewClusterMachineConfigController(defaultGenOptions []generate.Option) *Clu
 		qtransform.WithExtraMappedInput(
 			mappers.MapClusterResourceToLabeledResources[*omni.LoadBalancerConfig, *omni.ClusterMachine](),
 		),
+		qtransform.WithExtraMappedInput(
+			qtransform.MapperNone[*siderolink.ConnectionParams](),
+		),
 		qtransform.WithConcurrency(2),
 	)
 }
@@ -94,6 +105,7 @@ func reconcileClusterMachineConfig(
 	clusterMachine *omni.ClusterMachine,
 	machineConfig *omni.ClusterMachineConfig,
 	defaultGenOptions []generate.Option,
+	eventSinkPort int,
 ) error {
 	clusterName, ok := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
 	if !ok {
@@ -220,10 +232,15 @@ func reconcileClusterMachineConfig(
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("secure boot status for machine %q is not yet set", machineConfigGenOptions.Metadata().ID())
 	}
 
+	connectionParams, err := safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, r, siderolink.ConfigID)
+	if err != nil {
+		return err
+	}
+
 	var helper clusterMachineConfigControllerHelper
 
 	machineConfig.TypedSpec().Value.Data, err = helper.generateConfig(clusterMachine, clusterMachineConfigPatches, secrets, loadBalancerConfig,
-		cluster, clusterConfigVersion, machineConfigGenOptions, defaultGenOptions)
+		cluster, clusterConfigVersion, machineConfigGenOptions, defaultGenOptions, connectionParams, eventSinkPort)
 	if err != nil {
 		machineConfig.TypedSpec().Value.GenerationError = err.Error()
 
@@ -240,6 +257,7 @@ type clusterMachineConfigControllerHelper struct{}
 
 func (clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.ClusterMachine, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, secrets *omni.ClusterSecrets,
 	loadbalancer *omni.LoadBalancerConfig, cluster *omni.Cluster, clusterConfigVersion *omni.ClusterConfigVersion, configGenOptions *omni.MachineConfigGenOptions, extraGenOptions []generate.Option,
+	connectionParams *siderolink.ConnectionParams, eventSinkPort int,
 ) ([]byte, error) {
 	clusterName := cluster.Metadata().ID()
 
@@ -315,7 +333,20 @@ func (clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.
 		return nil, err
 	}
 
-	patches, err := configpatcher.LoadPatches(clusterMachineConfigPatches.TypedSpec().Value.Patches)
+	patchList := clusterMachineConfigPatches.TypedSpec().Value.Patches
+
+	if quirks.New(talosVersion).SupportsMultidoc() {
+		var siderolinkConfig []byte
+
+		siderolinkConfig, err = renderSiderolinkJoinConfig(connectionParams, eventSinkPort)
+		if err != nil {
+			return nil, err
+		}
+
+		patchList = append(patchList, string(siderolinkConfig))
+	}
+
+	patches, err := configpatcher.LoadPatches(patchList)
 	if err != nil {
 		return nil, err
 	}
@@ -447,4 +478,30 @@ func buildInstallImage(resID resource.ID, installImage *specs.MachineConfigGenOp
 	}
 
 	return appconfig.Config.TalosRegistry + ":" + talosVersion, nil
+}
+
+func renderSiderolinkJoinConfig(connectionParams *siderolink.ConnectionParams, eventSinkPort int) ([]byte, error) {
+	url, err := siderolink.APIURL(connectionParams, appconfig.Config.SiderolinkUseGRPCTunnel)
+	if err != nil {
+		return nil, err
+	}
+
+	template, err := template.New("patch").Parse(siderolinkConfigPatchData)
+	if err != nil {
+		return nil, err
+	}
+
+	var buffer bytes.Buffer
+
+	if err = template.Execute(&buffer, struct {
+		APIURL        string
+		EventSinkPort int
+	}{
+		APIURL:        url,
+		EventSinkPort: eventSinkPort,
+	}); err != nil {
+		return nil, err
+	}
+
+	return buffer.Bytes(), nil
 }

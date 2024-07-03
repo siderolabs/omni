@@ -31,7 +31,7 @@ var rootCmd = &cobra.Command{
 	RunE: func(*cobra.Command, []string) error {
 		return withContext(func(ctx context.Context) error {
 			// hacky hack
-			os.Args = append(os.Args[0:1], "-test.v")
+			os.Args = append(os.Args[0:1], "-test.v", "-test.parallel", "4")
 
 			testOptions := tests.Options{
 				RunTestPattern: rootCmdFlags.runTestPattern,

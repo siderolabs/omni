@@ -375,7 +375,7 @@ func (suite *MigrationSuite) createClusterWithMachines(ctx context.Context, name
 		machine.TypedSpec().Value.KubernetesVersion = "v1.24.0"
 
 		machine.Metadata().Labels().Set("cluster", cluster.Metadata().ID())
-		machine.Metadata().Finalizers().Add(omnictrl.NewClusterMachineConfigController(nil).Name())
+		machine.Metadata().Finalizers().Add(omnictrl.NewClusterMachineConfigController(nil, 8090).Name())
 
 		if withTemplates {
 			template := omni.NewClusterMachineTemplate(resources.DefaultNamespace, fmt.Sprintf("%s.%s", name, m.name))
@@ -1002,7 +1002,7 @@ func (suite *MigrationSuite) TestPatchesExtraction() {
 	}
 
 	createResources = append(createResources, xslices.Map(machines, func(m machine) pair.Pair[string, resource.Resource] {
-		return pair.MakePair[string, resource.Resource](omnictrl.NewClusterMachineConfigController(nil).Name(), omni.NewClusterMachineConfig(resources.DefaultNamespace, clusterName+"."+m.name))
+		return pair.MakePair[string, resource.Resource](omnictrl.NewClusterMachineConfigController(nil, 8090).Name(), omni.NewClusterMachineConfig(resources.DefaultNamespace, clusterName+"."+m.name))
 	})...)
 
 	for _, res := range createResources {
@@ -1085,7 +1085,7 @@ func (suite *MigrationSuite) TestInstallDiskPatchMigration() {
 	}
 
 	createResources = append(createResources, xslices.Map(machines, func(m machine) pair.Pair[string, resource.Resource] {
-		return pair.MakePair[string, resource.Resource](omnictrl.NewClusterMachineConfigController(nil).Name(), omni.NewClusterMachineConfig(resources.DefaultNamespace, clusterName+"."+m.name))
+		return pair.MakePair[string, resource.Resource](omnictrl.NewClusterMachineConfigController(nil, 8090).Name(), omni.NewClusterMachineConfig(resources.DefaultNamespace, clusterName+"."+m.name))
 	})...)
 
 	for _, res := range createResources {
@@ -1112,7 +1112,7 @@ func (suite *MigrationSuite) TestInstallDiskPatchMigration() {
 	suite.Require().NoError(err)
 
 	suite.Require().NoError(runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
-	suite.Require().NoError(runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil)))
+	suite.Require().NoError(runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, 8090)))
 
 	runCtx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
@@ -1345,127 +1345,6 @@ func (suite *MigrationSuite) TestDropExtensionsConfigurationFinalizers() {
 	suite.Require().EqualValues([]string{omnictrl.MachineExtensionsControllerName}, *res.Metadata().Finalizers())
 }
 
-func (suite *MigrationSuite) TestGenerateAllMaintenanceConfigs() {
-	ctx := context.Background()
-
-	connectionParams := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
-	connectionParams.TypedSpec().Value.ApiEndpoint = "grpc://127.0.0.1:8080"
-
-	suite.Require().NoError(suite.state.Create(ctx, connectionParams))
-
-	version := system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
-	suite.Require().NoError(suite.state.Create(ctx, version))
-
-	clusterName := "maintenance"
-	machines := []machine{
-		{
-			name: "m1",
-			labels: map[string]string{
-				"role-worker": "",
-			},
-		},
-		{
-			name: "m2",
-			labels: map[string]string{
-				"role-worker": "",
-			},
-		},
-	}
-
-	suite.createClusterWithMachines(ctx, clusterName, machines, false)
-
-	m1 := "maintenance.m1"
-	m2 := "maintenance.m2"
-
-	m1Status := omni.NewMachineStatus(resources.DefaultNamespace, m1)
-	m1Status.TypedSpec().Value.TalosVersion = "v1.4.0"
-	m1Status.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
-		Id: "id",
-	}
-
-	m2Status := omni.NewMachineStatus(resources.DefaultNamespace, m2)
-	m2Status.TypedSpec().Value.TalosVersion = "v1.5.0"
-	m2Status.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
-		Id: "id",
-	}
-
-	lbStatus := omni.NewLoadBalancerStatus(resources.DefaultNamespace, clusterName)
-	lbStatus.TypedSpec().Value.Healthy = true
-
-	machineSet := omni.NewMachineSet(
-		resources.DefaultNamespace,
-		omni.WorkersResourceID(clusterName),
-	)
-	machineSet.Metadata().Labels().Set(omni.LabelCluster, clusterName)
-	machineSet.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
-
-	clusterConfigVersion := omni.NewClusterConfigVersion(resources.DefaultNamespace, clusterName)
-	clusterConfigVersion.TypedSpec().Value.Version = "v1.5"
-
-	createResources := []pair.Pair[string, resource.Resource]{
-		pair.MakePair[string, resource.Resource]((&omnictrl.LoadBalancerController{}).Name(), omni.NewLoadBalancerConfig(resources.DefaultNamespace, clusterName)),
-		pair.MakePair[string, resource.Resource]((&omnictrl.LoadBalancerController{}).Name(), lbStatus),
-		pair.MakePair[string, resource.Resource]("", omni.NewClusterSecrets(resources.DefaultNamespace, clusterName)),
-		pair.MakePair[string, resource.Resource]("", m1Status),
-		pair.MakePair[string, resource.Resource]("", m2Status),
-		pair.MakePair[string, resource.Resource]("", omni.NewMachine(resources.DefaultNamespace, m1)),
-		pair.MakePair[string, resource.Resource]("", omni.NewMachine(resources.DefaultNamespace, m2)),
-		pair.MakePair[string, resource.Resource]("", omni.NewMachineSetNode(resources.DefaultNamespace, m1, machineSet)),
-		pair.MakePair[string, resource.Resource]("", omni.NewMachineSetNode(resources.DefaultNamespace, m2, machineSet)),
-		pair.MakePair[string, resource.Resource]("", clusterConfigVersion),
-		pair.MakePair[string, resource.Resource]("", omni.NewMachineConfigGenOptions(resources.DefaultNamespace, m1)),
-		pair.MakePair[string, resource.Resource]("", omni.NewMachineConfigGenOptions(resources.DefaultNamespace, m2)),
-		pair.MakePair[string, resource.Resource]("", omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, m1)),
-		pair.MakePair[string, resource.Resource]("", omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, m2)),
-	}
-
-	createResources = append(createResources, xslices.Map(machines, func(m machine) pair.Pair[string, resource.Resource] {
-		return pair.MakePair[string, resource.Resource](omnictrl.NewClusterMachineConfigController(nil).Name(), omni.NewClusterMachineConfig(resources.DefaultNamespace, clusterName+"."+m.name))
-	})...)
-
-	for _, res := range createResources {
-		suite.Require().NoError(res.F2.Metadata().SetOwner(res.F1))
-		suite.Require().NoError(suite.state.Create(ctx, res.F2, state.WithCreateOwner(res.F1)))
-	}
-
-	suite.Require().NoError(suite.manager.Run(ctx))
-
-	patch, err := safe.StateGetByID[*omni.ConfigPatch](ctx, suite.state, omnictrl.MaintenanceConfigPatchPrefix+m2)
-	suite.Require().NoError(err)
-
-	suite.Require().NotEmpty(patch.TypedSpec().Value.Data)
-
-	rtestutils.AssertNoResource[*omni.ConfigPatch](ctx, suite.T(), suite.state, omnictrl.MaintenanceConfigPatchPrefix+m1)
-
-	config, err := safe.StateGet[*omni.ClusterMachineConfig](ctx, suite.state, omni.NewClusterMachineConfig(resources.DefaultNamespace, m2).Metadata())
-	suite.Require().NoError(err)
-
-	_, ok := config.Metadata().Annotations().Get("inputResourceVersion")
-	suite.Require().True(ok)
-
-	oldVer := config.Metadata().Version()
-
-	// run controllers and verify that the config resource hasn't changed
-	runtime, err := runtime.NewRuntime(suite.state, suite.logger)
-	suite.Require().NoError(err)
-
-	suite.Require().NoError(runtime.RegisterQController(omnictrl.NewMaintenanceConfigPatchController(8090)))
-	suite.Require().NoError(runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil)))
-
-	runCtx, cancel := context.WithTimeout(ctx, time.Second)
-	defer cancel()
-
-	err = runtime.Run(runCtx)
-	if !errors.Is(err, context.Canceled) {
-		suite.Require().NoError(err)
-	}
-
-	config, err = safe.StateGet[*omni.ClusterMachineConfig](ctx, suite.state, omni.NewClusterMachineConfig(resources.DefaultNamespace, m2).Metadata())
-	suite.Require().NoError(err)
-
-	suite.Require().Equal(oldVer, config.Metadata().Version())
-}
-
 func (suite *MigrationSuite) TestSetMachineStatusSnapshotOwner() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -1585,6 +1464,71 @@ func (suite *MigrationSuite) TestMigrateInstallImageConfigIntoGenOptions() {
 	suite.True(ok)
 	suite.NotEmpty(annotation)
 	suite.NotEqual("before", annotation)
+}
+
+func (suite *MigrationSuite) TestDropAllMaintenanceConfigs() {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+
+	defer cancel()
+
+	connectionParams := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
+	connectionParams.TypedSpec().Value.ApiEndpoint = "grpc://127.0.0.1:8080"
+
+	suite.Require().NoError(suite.state.Create(ctx, connectionParams))
+
+	version := system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
+	version.TypedSpec().Value.Version = 30
+
+	suite.Require().NoError(suite.state.Create(ctx, version))
+
+	clusterName := "maintenance"
+	machines := []machine{
+		{
+			name: "m1",
+			labels: map[string]string{
+				"role-worker": "",
+			},
+		},
+		{
+			name: "m2",
+			labels: map[string]string{
+				"role-worker": "",
+			},
+		},
+	}
+
+	suite.createClusterWithMachines(ctx, clusterName, machines, false)
+
+	m1 := "maintenance.m1"
+	m2 := "maintenance.m2"
+
+	m1Status := omni.NewMachineStatus(resources.DefaultNamespace, m1)
+	m1Status.TypedSpec().Value.TalosVersion = "v1.4.0"
+	m1Status.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
+		Id: "id",
+	}
+
+	m2Status := omni.NewMachineStatus(resources.DefaultNamespace, m2)
+	m2Status.TypedSpec().Value.TalosVersion = "v1.5.0"
+	m2Status.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
+		Id: "id",
+	}
+
+	suite.Require().NoError(suite.state.Create(ctx, m1Status))
+	suite.Require().NoError(suite.state.Create(ctx, m2Status))
+	suite.Require().NoError(suite.state.Create(ctx, omni.NewConfigPatch(resources.DefaultNamespace, migration.MaintenanceConfigPatchPrefix+m2Status.Metadata().ID())))
+
+	deprecatedControllerName := "MaintenanceConfigPatchController"
+
+	suite.Require().NoError(suite.state.AddFinalizer(ctx, m2Status.Metadata(), deprecatedControllerName))
+
+	suite.Require().NoError(suite.manager.Run(ctx))
+
+	rtestutils.AssertNoResource[*omni.ConfigPatch](ctx, suite.T(), suite.state, migration.MaintenanceConfigPatchPrefix+m2)
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{m1, m2}, func(r *omni.MachineStatus, assertion *assert.Assertions) {
+		assertion.False(r.Metadata().Finalizers().Has(deprecatedControllerName))
+	})
 }
 
 func TestMigrationSuite(t *testing.T) {

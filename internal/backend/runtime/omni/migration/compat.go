@@ -17,6 +17,9 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
+// MaintenanceConfigPatchPrefix deprecated maintenance config patch prefix.
+const MaintenanceConfigPatchPrefix = "950-maintenance-config-"
+
 // getConfigPatches collects all machine config patches.
 func getConfigPatches(ctx context.Context, r controller.Reader, machine resource.Resource, machineSet *omni.MachineSet, prefix string) ([]*omni.ConfigPatch, error) {
 	clusterName, ok := machine.Metadata().Labels().Get(prefix + deprecatedCluster)

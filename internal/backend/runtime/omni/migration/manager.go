@@ -164,6 +164,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: migrateInstallImageConfigIntoGenOptions,
 				name:     "migrateInstallImageConfigIntoGenOptions",
 			},
+			{
+				callback: dropGeneratedMaintenanceConfigs,
+				name:     "dropGeneratedMaintenanceConfigs",
+			},
 		},
 	}
 }
