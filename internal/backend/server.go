@@ -216,7 +216,7 @@ func (s *Server) Run(ctx context.Context) error {
 		return err
 	}
 
-	serviceServers, err := grpcomni.MakeServiceServers(runtimeState, s.logHandler, oidcProvider, oidcStorage, s.dnsService, s.imageFactoryClient, s.logger)
+	serviceServers, err := grpcomni.MakeServiceServers(runtimeState, s.omniRuntime.CachedState(), s.logHandler, oidcProvider, oidcStorage, s.dnsService, s.imageFactoryClient, s.logger)
 	if err != nil {
 		return err
 	}

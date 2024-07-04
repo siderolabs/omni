@@ -42,6 +42,7 @@ type ServiceServer interface {
 // MakeServiceServers creates a list of service servers.
 func MakeServiceServers(
 	state state.State,
+	cachedState state.State,
 	logHandler *siderolink.LogHandler,
 	oidcProvider OIDCProvider,
 	jwtSigningKeyProvider JWTSigningKeyProvider,
@@ -73,7 +74,7 @@ func MakeServiceServers(
 			logger: logger.With(logging.Component("auth_server")),
 		},
 		&COSIResourceServer{
-			State: state,
+			State: cachedState,
 		},
 	}, nil
 }

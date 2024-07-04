@@ -68,8 +68,9 @@ type Runtime struct {
 	resourceLogger          *resourcelogger.Logger
 
 	// resource state for internal consumers
-	state   state.State
-	virtual *virtual.State
+	state       state.State
+	cachedState state.State
+	virtual     *virtual.State
 
 	logger *zap.Logger
 }
@@ -316,6 +317,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		workloadProxyReconciler: workloadProxyReconciler,
 		resourceLogger:          resourceLogger,
 		state:                   state.WrapCore(validated.NewState(resourceState, validationOptions...)),
+		cachedState:             state.WrapCore(validated.NewState(controllerRuntime.CachedState(), validationOptions...)),
 		virtual:                 virtualState,
 		logger:                  logger,
 	}, nil
@@ -403,7 +405,7 @@ func (r *Runtime) Get(ctx context.Context, setters ...runtime.QueryOption) (any,
 
 	metadata := cosiresource.NewMetadata(opts.Namespace, opts.Resource, opts.Name, cosiresource.VersionUndefined)
 
-	res, err := r.state.Get(ctx, metadata)
+	res, err := r.cachedState.Get(ctx, metadata)
 	if err != nil {
 		return nil, err
 	}
@@ -428,7 +430,7 @@ func (r *Runtime) List(ctx context.Context, setters ...runtime.QueryOption) (run
 		}
 	}
 
-	list, err := r.state.List(
+	list, err := r.cachedState.List(
 		ctx,
 		cosiresource.NewMetadata(opts.Namespace, opts.Resource, "", cosiresource.VersionUndefined),
 		listOptions...,
@@ -502,6 +504,11 @@ func (r *Runtime) Delete(ctx context.Context, setters ...runtime.QueryOption) er
 // State returns runtime state.
 func (r *Runtime) State() state.State { //nolint:ireturn
 	return r.state
+}
+
+// CachedState returns runtime cached state.
+func (r *Runtime) CachedState() state.State { //nolint:ireturn
+	return r.cachedState
 }
 
 // GetCOSIRuntime returns COSI  controller runtime.

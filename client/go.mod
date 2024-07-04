@@ -13,7 +13,7 @@ replace (
 require (
 	github.com/adrg/xdg v0.4.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cosi-project/runtime v0.5.0
+	github.com/cosi-project/runtime v0.5.2
 	github.com/fatih/color v1.17.0
 	github.com/google/uuid v1.6.0
 	github.com/gosuri/uiprogress v0.0.1
@@ -34,7 +34,7 @@ require (
 	go.uber.org/zap v1.27.0
 	golang.org/x/sync v0.7.0
 	golang.org/x/term v0.21.0
-	google.golang.org/grpc v1.64.0
+	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/client-go v0.30.2
