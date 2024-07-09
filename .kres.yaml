@@ -390,7 +390,7 @@ kind: js.Protobuf
 spec:
   baseSpecPath: /client/api
   files:
-     - source: https://www.talos.dev/v1.6/schemas/config.schema.json
+     - source: https://www.talos.dev/v1.7/schemas/config.schema.json
        destination: frontend/src/schemas/config.schema.json
   destinationRoot: src/api
   specs:

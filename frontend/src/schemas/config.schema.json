@@ -1,7 +1,83 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://talos.dev/v1.6/schemas/config.schema.json",
+  "$id": "https://talos.dev/v1.7/schemas/config.schema.json",
   "$defs": {
+    "extensions.ConfigFile": {
+      "properties": {
+        "content": {
+          "type": "string",
+          "title": "content",
+          "description": "The content of the extension service config file.\n",
+          "markdownDescription": "The content of the extension service config file.",
+          "x-intellij-html-description": "\u003cp\u003eThe content of the extension service config file.\u003c/p\u003e\n"
+        },
+        "mountPath": {
+          "type": "string",
+          "title": "mountPath",
+          "description": "The mount path of the extension service config file.\n",
+          "markdownDescription": "The mount path of the extension service config file.",
+          "x-intellij-html-description": "\u003cp\u003eThe mount path of the extension service config file.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "extensions.ServiceConfigV1Alpha1": {
+      "properties": {
+        "apiVersion": {
+          "enum": [
+            "v1alpha1"
+          ],
+          "title": "apiVersion",
+          "description": "apiVersion is the API version of the resource.\n",
+          "markdownDescription": "apiVersion is the API version of the resource.",
+          "x-intellij-html-description": "\u003cp\u003eapiVersion is the API version of the resource.\u003c/p\u003e\n"
+        },
+        "kind": {
+          "enum": [
+            "ExtensionServiceConfig"
+          ],
+          "title": "kind",
+          "description": "kind is the kind of the resource.\n",
+          "markdownDescription": "kind is the kind of the resource.",
+          "x-intellij-html-description": "\u003cp\u003ekind is the kind of the resource.\u003c/p\u003e\n"
+        },
+        "name": {
+          "type": "string",
+          "title": "name",
+          "description": "Name of the extension service.\n",
+          "markdownDescription": "Name of the extension service.",
+          "x-intellij-html-description": "\u003cp\u003eName of the extension service.\u003c/p\u003e\n"
+        },
+        "configFiles": {
+          "items": {
+            "$ref": "#/$defs/extensions.ConfigFile"
+          },
+          "type": "array",
+          "title": "configFiles",
+          "description": "The config files for the extension service.\n",
+          "markdownDescription": "The config files for the extension service.",
+          "x-intellij-html-description": "\u003cp\u003eThe config files for the extension service.\u003c/p\u003e\n"
+        },
+        "environment": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "title": "environment",
+          "description": "The environment for the extension service.\n",
+          "markdownDescription": "The environment for the extension service.",
+          "x-intellij-html-description": "\u003cp\u003eThe environment for the extension service.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind",
+        "name"
+      ]
+    },
     "network.DefaultActionConfigV1Alpha1": {
       "properties": {
         "apiVersion": {
@@ -219,6 +295,49 @@
           "description": "The URL encodes the log destination.\nThe scheme must be tcp:// or udp://.\nThe path must be empty.\nThe port is required.\n",
           "markdownDescription": "The URL encodes the log destination.\nThe scheme must be tcp:// or udp://.\nThe path must be empty.\nThe port is required.",
           "x-intellij-html-description": "\u003cp\u003eThe URL encodes the log destination.\nThe scheme must be tcp:// or udp://.\nThe path must be empty.\nThe port is required.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind"
+      ]
+    },
+    "runtime.WatchdogTimerV1Alpha1": {
+      "properties": {
+        "apiVersion": {
+          "enum": [
+            "v1alpha1"
+          ],
+          "title": "apiVersion",
+          "description": "apiVersion is the API version of the resource.\n",
+          "markdownDescription": "apiVersion is the API version of the resource.",
+          "x-intellij-html-description": "\u003cp\u003eapiVersion is the API version of the resource.\u003c/p\u003e\n"
+        },
+        "kind": {
+          "enum": [
+            "WatchdogTimerConfig"
+          ],
+          "title": "kind",
+          "description": "kind is the kind of the resource.\n",
+          "markdownDescription": "kind is the kind of the resource.",
+          "x-intellij-html-description": "\u003cp\u003ekind is the kind of the resource.\u003c/p\u003e\n"
+        },
+        "device": {
+          "type": "string",
+          "title": "device",
+          "description": "Path to the watchdog device.\n",
+          "markdownDescription": "Path to the watchdog device.",
+          "x-intellij-html-description": "\u003cp\u003ePath to the watchdog device.\u003c/p\u003e\n"
+        },
+        "timeout": {
+          "type": "string",
+          "pattern": "^[-+]?(((\\d+(\\.\\d*)?|\\d*(\\.\\d+)+)([nuµm]?s|m|h))|0)+$",
+          "title": "timeout",
+          "description": "Timeout for the watchdog.\n\nIf Talos is unresponsive for this duration, the watchdog will reset the system.\n\nDefault value is 1 minute, minimum value is 10 seconds.\n",
+          "markdownDescription": "Timeout for the watchdog.\n\nIf Talos is unresponsive for this duration, the watchdog will reset the system.\n\nDefault value is 1 minute, minimum value is 10 seconds.",
+          "x-intellij-html-description": "\u003cp\u003eTimeout for the watchdog.\u003c/p\u003e\n\n\u003cp\u003eIf Talos is unresponsive for this duration, the watchdog will reset the system.\u003c/p\u003e\n\n\u003cp\u003eDefault value is 1 minute, minimum value is 10 seconds.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -727,6 +846,19 @@
           "description": "The base64 encoded root certificate authority used by Kubernetes.\n",
           "markdownDescription": "The base64 encoded root certificate authority used by Kubernetes.",
           "x-intellij-html-description": "\u003cp\u003eThe base64 encoded root certificate authority used by Kubernetes.\u003c/p\u003e\n"
+        },
+        "acceptedCAs": {
+          "properties": {
+            "crt": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "title": "acceptedCAs",
+          "description": "The list of base64 encoded accepted certificate authorities used by Kubernetes.\n",
+          "markdownDescription": "The list of base64 encoded accepted certificate authorities used by Kubernetes.",
+          "x-intellij-html-description": "\u003cp\u003eThe list of base64 encoded accepted certificate authorities used by Kubernetes.\u003c/p\u003e\n"
         },
         "aggregatorCA": {
           "properties": {
@@ -1713,6 +1845,13 @@
           "description": "KubePrism - local proxy/load balancer on defined port that will distribute\nrequests to all API servers in the cluster.\n",
           "markdownDescription": "KubePrism - local proxy/load balancer on defined port that will distribute\nrequests to all API servers in the cluster.",
           "x-intellij-html-description": "\u003cp\u003eKubePrism - local proxy/load balancer on defined port that will distribute\nrequests to all API servers in the cluster.\u003c/p\u003e\n"
+        },
+        "hostDNS": {
+          "$ref": "#/$defs/v1alpha1.HostDNSConfig",
+          "title": "hostDNS",
+          "description": "Configures host DNS caching resolver.\n",
+          "markdownDescription": "Configures host DNS caching resolver.",
+          "x-intellij-html-description": "\u003cp\u003eConfigures host DNS caching resolver.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -1729,6 +1868,33 @@
           "description": "Extra arguments for ‘flanneld’.\n",
           "markdownDescription": "Extra arguments for 'flanneld'.",
           "x-intellij-html-description": "\u003cp\u003eExtra arguments for \u0026lsquo;flanneld\u0026rsquo;.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "v1alpha1.HostDNSConfig": {
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "enabled",
+          "description": "Enable host DNS caching resolver.\n",
+          "markdownDescription": "Enable host DNS caching resolver.",
+          "x-intellij-html-description": "\u003cp\u003eEnable host DNS caching resolver.\u003c/p\u003e\n"
+        },
+        "forwardKubeDNSToHost": {
+          "type": "boolean",
+          "title": "forwardKubeDNSToHost",
+          "description": "Use the host DNS resolver as upstream for Kubernetes CoreDNS pods.\n\nWhen enabled, CoreDNS pods use host DNS server as the upstream DNS (instead of\nusing configured upstream DNS resolvers directly).\n",
+          "markdownDescription": "Use the host DNS resolver as upstream for Kubernetes CoreDNS pods.\n\nWhen enabled, CoreDNS pods use host DNS server as the upstream DNS (instead of\nusing configured upstream DNS resolvers directly).",
+          "x-intellij-html-description": "\u003cp\u003eUse the host DNS resolver as upstream for Kubernetes CoreDNS pods.\u003c/p\u003e\n\n\u003cp\u003eWhen enabled, CoreDNS pods use host DNS server as the upstream DNS (instead of\nusing configured upstream DNS resolvers directly).\u003c/p\u003e\n"
+        },
+        "resolveMemberNames": {
+          "type": "boolean",
+          "title": "resolveMemberNames",
+          "description": "Resolve member hostnames using the host DNS resolver.\n\nWhen enabled, cluster member hostnames and node names are resolved using the host DNS resolver.\nThis requires service discovery to be enabled.\n",
+          "markdownDescription": "Resolve member hostnames using the host DNS resolver.\n\nWhen enabled, cluster member hostnames and node names are resolved using the host DNS resolver.\nThis requires service discovery to be enabled.",
+          "x-intellij-html-description": "\u003cp\u003eResolve member hostnames using the host DNS resolver.\u003c/p\u003e\n\n\u003cp\u003eWhen enabled, cluster member hostnames and node names are resolved using the host DNS resolver.\nThis requires service discovery to be enabled.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -1926,9 +2092,9 @@
         "enabled": {
           "type": "boolean",
           "title": "enabled",
-          "description": "Enable KubePrism support - will start local load balacing proxy.\n",
-          "markdownDescription": "Enable KubePrism support - will start local load balacing proxy.",
-          "x-intellij-html-description": "\u003cp\u003eEnable KubePrism support - will start local load balacing proxy.\u003c/p\u003e\n"
+          "description": "Enable KubePrism support - will start local load balancing proxy.\n",
+          "markdownDescription": "Enable KubePrism support - will start local load balancing proxy.",
+          "x-intellij-html-description": "\u003cp\u003eEnable KubePrism support - will start local load balancing proxy.\u003c/p\u003e\n"
         },
         "port": {
           "type": "integer",
@@ -2160,6 +2326,18 @@
           "description": "Logs format.\n",
           "markdownDescription": "Logs format.",
           "x-intellij-html-description": "\u003cp\u003eLogs format.\u003c/p\u003e\n"
+        },
+        "extraTags": {
+          "patternProperties": {
+            ".*": {
+              "type": "string"
+            }
+          },
+          "type": "object",
+          "title": "extraTags",
+          "description": "Extra tags (key-value) pairs to attach to every log message sent.\n",
+          "markdownDescription": "Extra tags (key-value) pairs to attach to every log message sent.",
+          "x-intellij-html-description": "\u003cp\u003eExtra tags (key-value) pairs to attach to every log message sent.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -2199,6 +2377,19 @@
           "description": "The root certificate authority of the PKI.\nIt is composed of a base64 encoded crt and key.\n",
           "markdownDescription": "The root certificate authority of the PKI.\nIt is composed of a base64 encoded `crt` and `key`.",
           "x-intellij-html-description": "\u003cp\u003eThe root certificate authority of the PKI.\nIt is composed of a base64 encoded \u003ccode\u003ecrt\u003c/code\u003e and \u003ccode\u003ekey\u003c/code\u003e.\u003c/p\u003e\n"
+        },
+        "acceptedCAs": {
+          "properties": {
+            "crt": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "title": "acceptedCAs",
+          "description": "The certificates issued by certificate authorities are accepted in addition to issuing ‘ca’.\nIt is composed of a base64 encoded crt`.\n",
+          "markdownDescription": "The certificates issued by certificate authorities are accepted in addition to issuing 'ca'.\nIt is composed of a base64 encoded `crt``.",
+          "x-intellij-html-description": "\u003cp\u003eThe certificates issued by certificate authorities are accepted in addition to issuing \u0026lsquo;ca\u0026rsquo;.\nIt is composed of a base64 encoded \u003ccode\u003ecrt\u003c/code\u003e`.\u003c/p\u003e\n"
         },
         "certSANs": {
           "items": {
@@ -2371,9 +2562,9 @@
           },
           "type": "object",
           "title": "nodeLabels",
-          "description": "Configures the node labels for the machine.\n",
-          "markdownDescription": "Configures the node labels for the machine.",
-          "x-intellij-html-description": "\u003cp\u003eConfigures the node labels for the machine.\u003c/p\u003e\n"
+          "description": "Configures the node labels for the machine.\n\nNote: In the default Kubernetes configuration, worker nodes are restricted to set\nlabels with some prefixes (see NodeRestriction admission plugin).\n",
+          "markdownDescription": "Configures the node labels for the machine.\n\nNote: In the default Kubernetes configuration, worker nodes are restricted to set\nlabels with some prefixes (see [NodeRestriction](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#noderestriction) admission plugin).",
+          "x-intellij-html-description": "\u003cp\u003eConfigures the node labels for the machine.\u003c/p\u003e\n\n\u003cp\u003eNote: In the default Kubernetes configuration, worker nodes are restricted to set\nlabels with some prefixes (see \u003ca href=\"https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#noderestriction\" target=\"_blank\"\u003eNodeRestriction\u003c/a\u003e admission plugin).\u003c/p\u003e\n"
         },
         "nodeTaints": {
           "patternProperties": {
@@ -2383,9 +2574,9 @@
           },
           "type": "object",
           "title": "nodeTaints",
-          "description": "Configures the node taints for the machine. Effect is optional.\n",
-          "markdownDescription": "Configures the node taints for the machine. Effect is optional.",
-          "x-intellij-html-description": "\u003cp\u003eConfigures the node taints for the machine. Effect is optional.\u003c/p\u003e\n"
+          "description": "Configures the node taints for the machine. Effect is optional.\n\nNote: In the default Kubernetes configuration, worker nodes are not allowed to\nmodify the taints (see NodeRestriction admission plugin).\n",
+          "markdownDescription": "Configures the node taints for the machine. Effect is optional.\n\nNote: In the default Kubernetes configuration, worker nodes are not allowed to\nmodify the taints (see [NodeRestriction](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#noderestriction) admission plugin).",
+          "x-intellij-html-description": "\u003cp\u003eConfigures the node taints for the machine. Effect is optional.\u003c/p\u003e\n\n\u003cp\u003eNote: In the default Kubernetes configuration, worker nodes are not allowed to\nmodify the taints (see \u003ca href=\"https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#noderestriction\" target=\"_blank\"\u003eNodeRestriction\u003c/a\u003e admission plugin).\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -2604,6 +2795,13 @@
           "description": "Kernel driver, supports matching by wildcard.\n",
           "markdownDescription": "Kernel driver, supports matching by wildcard.",
           "x-intellij-html-description": "\u003cp\u003eKernel driver, supports matching by wildcard.\u003c/p\u003e\n"
+        },
+        "physical": {
+          "type": "boolean",
+          "title": "physical",
+          "description": "Select only physical devices.\n",
+          "markdownDescription": "Select only physical devices.",
+          "x-intellij-html-description": "\u003cp\u003eSelect only physical devices.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -2635,9 +2833,9 @@
         "harvestExtraEndpoints": {
           "type": "boolean",
           "title": "harvestExtraEndpoints",
-          "description": "KubeSpan can collect and publish extra endpoints for each member of the cluster\nbased on Wireguard endpoint information for each peer.\nThis feature is enabled by default to help discover additional endpoints,\nbut with high number of peers (\u0026gt;50) in the KubeSpan network it can cause performance issues.\n",
-          "markdownDescription": "KubeSpan can collect and publish extra endpoints for each member of the cluster\nbased on Wireguard endpoint information for each peer.\nThis feature is enabled by default to help discover additional endpoints,\nbut with high number of peers (\u003e50) in the KubeSpan network it can cause performance issues.",
-          "x-intellij-html-description": "\u003cp\u003eKubeSpan can collect and publish extra endpoints for each member of the cluster\nbased on Wireguard endpoint information for each peer.\nThis feature is enabled by default to help discover additional endpoints,\nbut with high number of peers (\u0026gt;50) in the KubeSpan network it can cause performance issues.\u003c/p\u003e\n"
+          "description": "KubeSpan can collect and publish extra endpoints for each member of the cluster\nbased on Wireguard endpoint information for each peer.\nThis feature is disabled by default, don’t enable it\nwith high number of peers (\u0026gt;50) in the KubeSpan network (performance issues).\n",
+          "markdownDescription": "KubeSpan can collect and publish extra endpoints for each member of the cluster\nbased on Wireguard endpoint information for each peer.\nThis feature is disabled by default, don't enable it\nwith high number of peers (\u003e50) in the KubeSpan network (performance issues).",
+          "x-intellij-html-description": "\u003cp\u003eKubeSpan can collect and publish extra endpoints for each member of the cluster\nbased on Wireguard endpoint information for each peer.\nThis feature is disabled by default, don\u0026rsquo;t enable it\nwith high number of peers (\u0026gt;50) in the KubeSpan network (performance issues).\u003c/p\u003e\n"
         },
         "mtu": {
           "type": "integer",
@@ -3042,9 +3240,9 @@
           },
           "type": "array",
           "title": "servers",
-          "description": "Specifies time (NTP) servers to use for setting the system time.\nDefaults to pool.ntp.org\n",
-          "markdownDescription": "Specifies time (NTP) servers to use for setting the system time.\nDefaults to `pool.ntp.org`",
-          "x-intellij-html-description": "\u003cp\u003eSpecifies time (NTP) servers to use for setting the system time.\nDefaults to \u003ccode\u003epool.ntp.org\u003c/code\u003e\u003c/p\u003e\n"
+          "description": "description: |\n    Specifies time (NTP) servers to use for setting the system time.\n    Defaults to time.cloudflare.com.\n\nTalos can also sync to the PTP time source (e.g provided by the hypervisor),\n    provide the path to the PTP device as “/dev/ptp0” or “/dev/ptp_kvm”.\n",
+          "markdownDescription": "description: |\n    Specifies time (NTP) servers to use for setting the system time.\n    Defaults to `time.cloudflare.com`.\n\n   Talos can also sync to the PTP time source (e.g provided by the hypervisor),\n    provide the path to the PTP device as \"/dev/ptp0\" or \"/dev/ptp_kvm\".",
+          "x-intellij-html-description": "\u003cp\u003edescription: |\n    Specifies time (NTP) servers to use for setting the system time.\n    Defaults to \u003ccode\u003etime.cloudflare.com\u003c/code\u003e.\u003c/p\u003e\n\n\u003cp\u003eTalos can also sync to the PTP time source (e.g provided by the hypervisor),\n    provide the path to the PTP device as \u0026ldquo;/dev/ptp0\u0026rdquo; or \u0026ldquo;/dev/ptp_kvm\u0026rdquo;.\u003c/p\u003e\n"
         },
         "bootTimeout": {
           "type": "string",
@@ -3191,6 +3389,9 @@
   },
   "oneOf": [
     {
+      "$ref": "#/$defs/extensions.ServiceConfigV1Alpha1"
+    },
+    {
       "$ref": "#/$defs/network.DefaultActionConfigV1Alpha1"
     },
     {
@@ -3201,6 +3402,9 @@
     },
     {
       "$ref": "#/$defs/runtime.KmsgLogV1Alpha1"
+    },
+    {
+      "$ref": "#/$defs/runtime.WatchdogTimerV1Alpha1"
     },
     {
       "$ref": "#/$defs/siderolink.ConfigV1Alpha1"
