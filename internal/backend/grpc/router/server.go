@@ -28,7 +28,7 @@ type Director interface {
 func NewServer(router Director, options ...grpc.ServerOption) *grpc.Server {
 	opts := append(
 		[]grpc.ServerOption{
-			grpc.CustomCodec(proxy.Codec()), //nolint:staticcheck
+			grpc.ForceServerCodec(proxy.Codec()),
 			grpc.UnknownServiceHandler(
 				proxy.TransparentHandler(
 					router.Director,

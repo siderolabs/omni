@@ -434,8 +434,8 @@ github.com/siderolabs/go-tail v0.1.1 h1:3XeJgd97OHyFAIE7nQEMcRhOfnv7DvXbu0BRKbtT
 github.com/siderolabs/go-tail v0.1.1/go.mod h1:IihAL39acadXHfb5fEAOKK2DaDFIrG2+VD3b2H/ziZ0=
 github.com/siderolabs/go-talos-support v0.1.0 h1:ulf+RI0Wo6UGzKQJZog1uvdQE/zstogs1R46jZpAmvU=
 github.com/siderolabs/go-talos-support v0.1.0/go.mod h1:hiYQrdQSBH6ap7LZHyHUZLbYnL2KhC6hPrJ7utqm+P8=
-github.com/siderolabs/grpc-proxy v0.4.0 h1:zYrhqLYs8JlYoLHYeel7/XwXDZ4OJ5XyP9wX7JlbPew=
-github.com/siderolabs/grpc-proxy v0.4.0/go.mod h1:QDurYOwQD4H8BKyvCuUxMiuG/etYnb/++xaQB644NdU=
+github.com/siderolabs/grpc-proxy v0.4.1 h1:UTYviMqb65oKjnH7dy5D+U4zMJ6iCTjAN6x6K/Ss120=
+github.com/siderolabs/grpc-proxy v0.4.1/go.mod h1:QwQuLUpJrlN08kpP0m63oO/SEeoz0dEhU9ndlBafc0Y=
 github.com/siderolabs/image-factory v0.4.1 h1:qyTbK7ZTCZ4hg/rRVfmwkEMWSoltRpCL/YUAPje4UaA=
 github.com/siderolabs/image-factory v0.4.1/go.mod h1:XrH8VJfOBYEJrH0eB7Tru30MPKouT9BDFQfo6hQgA3U=
 github.com/siderolabs/kms-client v0.1.0 h1:rCDWzcDDsNlp6zdyLngOuuhchVILn+vwUQy3tk6rQps=

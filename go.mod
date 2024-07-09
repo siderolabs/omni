@@ -69,7 +69,7 @@ require (
 	github.com/siderolabs/go-retry v0.3.3
 	github.com/siderolabs/go-tail v0.1.1
 	github.com/siderolabs/go-talos-support v0.1.0
-	github.com/siderolabs/grpc-proxy v0.4.0
+	github.com/siderolabs/grpc-proxy v0.4.1
 	github.com/siderolabs/image-factory v0.4.1
 	github.com/siderolabs/kms-client v0.1.0
 	github.com/siderolabs/omni/client v0.0.0-00010101000000-000000000000

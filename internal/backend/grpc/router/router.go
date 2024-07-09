@@ -83,9 +83,11 @@ func NewRouter(
 			return transport.Dial()
 		}),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithCodec(proxy.Codec()), //nolint:staticcheck
-		// we are proxying requests to ourselves, so we don't need to impose a limit
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)),
+		grpc.WithDefaultCallOptions(
+			// we are proxying requests to ourselves, so we don't need to impose a limit
+			grpc.MaxCallRecvMsgSize(math.MaxInt32),
+			grpc.ForceCodec(proxy.Codec()),
+		),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial omni backend: %w", err)
@@ -279,7 +281,7 @@ func (r *Router) getConn(ctx context.Context, contextName string) (*grpc.ClientC
 			MinConnectTimeout: 20 * time.Second,
 		}),
 		grpc.WithTransportCredentials(creds),
-		grpc.WithCodec(proxy.Codec()), //nolint:staticcheck
+		grpc.WithDefaultCallOptions(grpc.ForceCodec(proxy.Codec())),
 		grpc.WithSharedWriteBuffer(true),
 	}
 

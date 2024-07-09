@@ -205,7 +205,7 @@ func dial(serverEndpoint string) (*grpc.ClientConn, error) {
 			MinConnectTimeout: 20 * time.Second,
 		}),
 		grpc.WithTransportCredentials(creds),
-		grpc.WithCodec(proxy.Codec()), //nolint:staticcheck
+		grpc.WithDefaultCallOptions(grpc.ForceCodec(proxy.Codec())),
 	}
 
 	return grpc.NewClient(serverEndpoint, opts...)
