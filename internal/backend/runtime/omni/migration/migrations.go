@@ -1274,6 +1274,8 @@ func dropGeneratedMaintenanceConfigs(ctx context.Context, st state.State, _ *zap
 			if state.IsNotFoundError(err) {
 				return nil
 			}
+
+			return err
 		}
 
 		// remove finalizers and destroy the resource
