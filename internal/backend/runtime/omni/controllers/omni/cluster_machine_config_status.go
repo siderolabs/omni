@@ -44,6 +44,7 @@ import (
 const (
 	gracefulResetAttemptCount = 4
 	etcdLeaveAttemptsLimit    = 2
+	maintenanceCheckAttempts  = 5
 )
 
 // ClusterMachineConfigStatusController manages ClusterMachineStatus resource lifecycle.
@@ -235,8 +236,9 @@ func NewClusterMachineConfigStatusController() *ClusterMachineConfigStatusContro
 }
 
 type resetStatus struct {
-	resetAttempts     uint
-	etcdLeaveAttempts uint
+	resetAttempts            uint
+	etcdLeaveAttempts        uint
+	maintenanceCheckAttempts uint
 }
 
 type ongoingResets struct {
@@ -282,6 +284,19 @@ func (r *ongoingResets) handleReset(id resource.ID) uint {
 	r.statuses[id].resetAttempts++
 
 	return r.statuses[id].resetAttempts
+}
+
+func (r *ongoingResets) handleMaintenanceCheck(id resource.ID) uint {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, ok := r.statuses[id]; !ok {
+		r.statuses[id] = &resetStatus{}
+	}
+
+	r.statuses[id].maintenanceCheckAttempts++
+
+	return r.statuses[id].maintenanceCheckAttempts
 }
 
 func (r *ongoingResets) handleEtcdLeave(id resource.ID) {
@@ -558,7 +573,7 @@ func (h *clusterMachineConfigStatusControllerHandler) reset(
 
 		defer logClose(c, logger, "reset maintenance")
 
-		_, err = c.Disks(ctx)
+		_, err = c.Version(ctx)
 
 		logger.Debug("maintenance mode check", zap.Error(err))
 
@@ -567,8 +582,16 @@ func (h *clusterMachineConfigStatusControllerHandler) reset(
 			return nil
 		}
 
-		// retry next time when MachineStatus updates
-		return xerrors.NewTagged[qtransform.SkipReconcileTag](fmt.Errorf("failed to get disks in maintenance mode for machine '%s': %w", machineConfig.Metadata().ID(), err))
+		wrappedErr := fmt.Errorf("failed to get version in maintenance mode for machine '%s': %w", machineConfig.Metadata().ID(), err)
+
+		attempt := h.ongoingResets.handleMaintenanceCheck(machineStatus.Metadata().ID())
+
+		if attempt <= maintenanceCheckAttempts {
+			// retry in N seconds
+			return controller.NewRequeueError(wrappedErr, time.Second*time.Duration(attempt))
+		}
+
+		return xerrors.NewTagged[qtransform.SkipReconcileTag](wrappedErr)
 	}
 
 	machineSetName, ok := clusterMachine.Metadata().Labels().Get(omni.LabelMachineSet)
