@@ -24,10 +24,6 @@ func ReconcileWorkers(rc *ReconciliationContext) []Operation {
 		operations = append(operations, &Create{ID: id})
 	}
 
-	if !rc.LBHealthy() {
-		return operations
-	}
-
 	for _, id := range toTeardown {
 		operations = append(operations, &Teardown{ID: id, Quota: &quota})
 	}

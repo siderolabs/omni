@@ -284,7 +284,7 @@ func (suite *MachineSetStatusSuite) TestScaleUp() {
 
 // TestScaleDown create a machine set with 3 machines
 // which are not running. Immediately try to scale down.
-// Scale down should be blocked until the machines become ready.
+// Scale down should remove the first machine.
 // Make all machines ready, check that machines count went to 2 and the machine set is ready.
 func (suite *MachineSetStatusSuite) TestScaleDown() {
 	clusterName := "scale-down"
@@ -304,7 +304,7 @@ func (suite *MachineSetStatusSuite) TestScaleDown() {
 
 	suite.assertMachineSetPhase(machineSet, specs.MachineSetPhase_ScalingUp)
 
-	expectedMachines := []string{"scaledown-1", "scaledown-2", "scaledown-3"}
+	expectedMachines := []string{"scaledown-2", "scaledown-3"}
 
 	suite.assertMachinesState(expectedMachines, clusterName, machineSet.Metadata().ID())
 
@@ -324,7 +324,7 @@ func (suite *MachineSetStatusSuite) TestScaleDown() {
 	suite.Require().NoError(err)
 
 	suite.Assert().NoError(retry.Constant(5*time.Second, retry.WithUnits(100*time.Millisecond)).Retry(
-		suite.assertNoResource(*omni.NewClusterMachine(resources.DefaultNamespace, expectedMachines[0]).Metadata()),
+		suite.assertNoResource(*omni.NewClusterMachine(resources.DefaultNamespace, machines[0]).Metadata()),
 	))
 
 	suite.assertMachineSetPhase(machineSet, specs.MachineSetPhase_Running)
