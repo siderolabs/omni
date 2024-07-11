@@ -25,20 +25,22 @@ import (
 // ClusterMachineStatusController reflects the status of a machine that is a member of a cluster.
 type ClusterMachineStatusController = qtransform.QController[*omni.ClusterMachine, *omni.ClusterMachineStatus]
 
+const clusterMachineStatusControllerName = "ClusterMachineStatusController"
+
 // NewClusterMachineStatusController initializes ClusterMachineStatusController.
 //
 //nolint:gocognit,gocyclo,cyclop,maintidx
 func NewClusterMachineStatusController() *ClusterMachineStatusController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.ClusterMachine, *omni.ClusterMachineStatus]{
-			Name: "ClusterMachineStatusController",
+			Name: clusterMachineStatusControllerName,
 			MapMetadataFunc: func(clusterMachine *omni.ClusterMachine) *omni.ClusterMachineStatus {
 				return omni.NewClusterMachineStatus(resources.DefaultNamespace, clusterMachine.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(clusterMachineStatus *omni.ClusterMachineStatus) *omni.ClusterMachine {
 				return omni.NewClusterMachine(resources.DefaultNamespace, clusterMachineStatus.Metadata().ID())
 			},
-			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, clusterMachine *omni.ClusterMachine, clusterMachineStatus *omni.ClusterMachineStatus) error {
+			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, clusterMachine *omni.ClusterMachine, clusterMachineStatus *omni.ClusterMachineStatus) error {
 				machine, err := safe.ReaderGet[*omni.Machine](ctx, r, resource.NewMetadata(resources.DefaultNamespace, omni.MachineType, clusterMachine.Metadata().ID(), resource.VersionUndefined))
 				if err != nil && !state.IsNotFoundError(err) {
 					return err
@@ -86,8 +88,8 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 
 				cmsVal.IsRemoved = machineStatus.Metadata().Phase() == resource.PhaseTearingDown
 
-				machineSetNode, err := r.Get(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.MachineSetNodeType, clusterMachine.Metadata().ID(), resource.VersionUndefined))
-				if err != nil && !state.IsNotFoundError(err) {
+				machineSetNode, err := helpers.HandleInput[*omni.MachineSetNode](ctx, r, clusterMachineStatusControllerName, clusterMachine)
+				if err != nil {
 					return err
 				}
 

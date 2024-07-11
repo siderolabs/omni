@@ -150,7 +150,7 @@ func WithID(id string) HandleInputOption {
 
 // HandleInput reads the additional input resource and automatically manages finalizers.
 // By default maps the resource using same id.
-func HandleInput[T generic.ResourceWithRD, S generic.ResourceWithRD](ctx context.Context, r controller.QRuntime, finalizer string, main S, opts ...HandleInputOption) (T, error) {
+func HandleInput[T generic.ResourceWithRD, S generic.ResourceWithRD](ctx context.Context, r controller.ReaderWriter, finalizer string, main S, opts ...HandleInputOption) (T, error) {
 	var zero T
 
 	options := HandleInputOptions{

@@ -219,7 +219,7 @@ func (handler *machineSetStatusHandler) reconcileTearingDown(ctx context.Context
 		return nil
 	}
 
-	err = safe.WriterModify[*omni.MachineSetStatus](ctx, r, omni.NewMachineSetStatus(resources.DefaultNamespace, machineSet.Metadata().ID()), func(status *omni.MachineSetStatus) error {
+	err = safe.WriterModify(ctx, r, omni.NewMachineSetStatus(resources.DefaultNamespace, machineSet.Metadata().ID()), func(status *omni.MachineSetStatus) error {
 		status.TypedSpec().Value.Phase = specs.MachineSetPhase_Destroying
 		status.TypedSpec().Value.Ready = false
 		status.TypedSpec().Value.Machines = &specs.Machines{
