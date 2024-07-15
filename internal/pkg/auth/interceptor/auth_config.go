@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	"github.com/siderolabs/omni/internal/pkg/auth"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 // AuthConfig represents the configuration for the auth config interceptor.
@@ -53,7 +54,7 @@ func (c *AuthConfig) Stream() grpc.StreamServerInterceptor {
 }
 
 func (c *AuthConfig) intercept(ctx context.Context, method string) context.Context {
-	ctx = context.WithValue(ctx, auth.EnabledAuthContextKey{}, c.enabled)
+	ctx = ctxstore.WithValue(ctx, auth.EnabledAuthContextKey{Enabled: c.enabled})
 
 	if !c.enabled {
 		return ctx
@@ -64,7 +65,5 @@ func (c *AuthConfig) intercept(ctx context.Context, method string) context.Conte
 		md = metadata.New(nil)
 	}
 
-	msg := message.NewGRPC(md, method)
-
-	return context.WithValue(ctx, auth.GRPCMessageContextKey{}, msg)
+	return ctxstore.WithValue(ctx, auth.GRPCMessageContextKey{Message: message.NewGRPC(md, method)})
 }

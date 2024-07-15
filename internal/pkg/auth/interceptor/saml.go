@@ -15,7 +15,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/crewjam/saml"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	"github.com/siderolabs/go-api-signature/pkg/message"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -25,6 +24,7 @@ import (
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 var errGRPCInvalidSAML = status.Error(codes.Unauthenticated, "invalid session")
@@ -71,12 +71,12 @@ func (i *SAML) Stream() grpc.StreamServerInterceptor {
 }
 
 func (i *SAML) intercept(ctx context.Context) (context.Context, error) {
-	msg, ok := ctx.Value(auth.GRPCMessageContextKey{}).(*message.GRPC)
+	msgVal, ok := ctxstore.Value[auth.GRPCMessageContextKey](ctx)
 	if !ok {
 		return nil, status.Error(codes.Internal, "missing or invalid message in context")
 	}
 
-	values := msg.Metadata.Get(auth.SamlSessionHeaderKey)
+	values := msgVal.Message.Metadata.Get(auth.SamlSessionHeaderKey)
 	if len(values) == 0 {
 		return ctx, nil
 	}
@@ -86,7 +86,7 @@ func (i *SAML) intercept(ctx context.Context) (context.Context, error) {
 		return nil, errGRPCInvalidSAML
 	}
 
-	ctx = context.WithValue(ctx, auth.VerifiedEmailContextKey{}, session.TypedSpec().Value.Email)
+	ctx = ctxstore.WithValue(ctx, auth.VerifiedEmailContextKey{Email: session.TypedSpec().Value.Email})
 
 	return ctx, nil
 }

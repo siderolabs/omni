@@ -44,6 +44,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/user"
 	"github.com/siderolabs/omni/internal/pkg/config"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 	"github.com/siderolabs/omni/internal/pkg/features"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
 	"github.com/siderolabs/omni/internal/version"
@@ -235,7 +236,7 @@ func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtua
 			return fmt.Errorf("failed to update features config resources: %w", err)
 		}
 
-		ctx = context.WithValue(ctx, auth.EnabledAuthContextKey{}, authres.Enabled(authConfig))
+		ctx = ctxstore.WithValue(ctx, auth.EnabledAuthContextKey{Enabled: authres.Enabled(authConfig)})
 
 		handler, err := backend.NewFrontendHandler(rootCmdArgs.frontendDst, logger)
 		if err != nil {

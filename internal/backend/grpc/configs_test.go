@@ -45,6 +45,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/config"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 //go:embed testdata/admin-kubeconfig.yaml
@@ -193,11 +194,11 @@ func runServer(t *testing.T, st state.State, opts ...grpc.ServerOption) string {
 				md = metadata.New(nil)
 			}
 
-			ctx = context.WithValue(ctx, auth.EnabledAuthContextKey{}, true)
+			ctx = ctxstore.WithValue(ctx, auth.EnabledAuthContextKey{Enabled: true})
 
 			msg := message.NewGRPC(md, info.FullMethod)
 
-			ctx = context.WithValue(ctx, auth.GRPCMessageContextKey{}, msg)
+			ctx = ctxstore.WithValue(ctx, auth.GRPCMessageContextKey{Message: msg})
 
 			if r := md.Get("role"); len(r) > 0 {
 				var parsed role.Role
@@ -207,7 +208,7 @@ func runServer(t *testing.T, st state.State, opts ...grpc.ServerOption) string {
 					return nil, err
 				}
 
-				ctx = context.WithValue(ctx, auth.RoleContextKey{}, parsed)
+				ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: parsed})
 			}
 
 			return handler(ctx, req)

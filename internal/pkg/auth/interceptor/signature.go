@@ -18,6 +18,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/internal/pkg/auth"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 var errGRPCInvalidSignature = status.Error(codes.Unauthenticated, "invalid signature")
@@ -64,12 +65,12 @@ func (i *Signature) Stream() grpc.StreamServerInterceptor {
 }
 
 func (i *Signature) intercept(ctx context.Context) (context.Context, error) {
-	msg, ok := ctx.Value(auth.GRPCMessageContextKey{}).(*message.GRPC)
+	msgVal, ok := ctxstore.Value[auth.GRPCMessageContextKey](ctx)
 	if !ok {
 		return nil, status.Error(codes.Internal, "missing or invalid message in context")
 	}
 
-	signature, err := msg.Signature()
+	signature, err := msgVal.Message.Signature()
 	if errors.Is(err, message.ErrNotFound) { // missing signature, pass it through
 		grpc_ctxtags.Extract(ctx).
 			Set("authenticator.user_id", "").
@@ -100,7 +101,7 @@ func (i *Signature) intercept(ctx context.Context) (context.Context, error) {
 		return nil, errGRPCInvalidSignature
 	}
 
-	err = msg.VerifySignature(authenticator.Verifier)
+	err = msgVal.Message.VerifySignature(authenticator.Verifier)
 	if err != nil {
 		i.logger.Info("failed to verify message", zap.Error(err))
 
@@ -112,9 +113,9 @@ func (i *Signature) intercept(ctx context.Context) (context.Context, error) {
 		Set("authenticator.identity", authenticator.Identity).
 		Set("authenticator.role", string(authenticator.Role))
 
-	ctx = context.WithValue(ctx, auth.UserIDContextKey{}, authenticator.UserID)
-	ctx = context.WithValue(ctx, auth.IdentityContextKey{}, authenticator.Identity)
-	ctx = context.WithValue(ctx, auth.RoleContextKey{}, authenticator.Role)
+	ctx = ctxstore.WithValue(ctx, auth.UserIDContextKey{UserID: authenticator.UserID})
+	ctx = ctxstore.WithValue(ctx, auth.IdentityContextKey{Identity: authenticator.Identity})
+	ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: authenticator.Role})
 
 	return ctx, nil
 }

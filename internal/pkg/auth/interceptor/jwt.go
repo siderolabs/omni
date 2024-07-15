@@ -20,6 +20,7 @@ import (
 
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/auth0"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 var errGRPCInvalidJWT = status.Error(codes.Unauthenticated, "invalid jwt")
@@ -66,12 +67,12 @@ func (i *JWT) Stream() grpc.StreamServerInterceptor {
 }
 
 func (i *JWT) intercept(ctx context.Context) (context.Context, error) {
-	msg, ok := ctx.Value(auth.GRPCMessageContextKey{}).(*message.GRPC)
+	msgVal, ok := ctxstore.Value[auth.GRPCMessageContextKey](ctx)
 	if !ok {
 		return nil, status.Error(codes.Internal, "missing or invalid message in context")
 	}
 
-	claims, err := msg.VerifyJWT(ctx, i.jwtVerifier)
+	claims, err := msgVal.Message.VerifyJWT(ctx, i.jwtVerifier)
 	if errors.Is(err, message.ErrNotFound) { // missing jwt, pass it through
 		return ctx, nil
 	}
@@ -90,7 +91,7 @@ func (i *JWT) intercept(ctx context.Context) (context.Context, error) {
 		return nil, errGRPCInvalidJWT
 	}
 
-	ctx = context.WithValue(ctx, auth.VerifiedEmailContextKey{}, claims.VerifiedEmail)
+	ctx = ctxstore.WithValue(ctx, auth.VerifiedEmailContextKey{Email: claims.VerifiedEmail})
 
 	return ctx, nil
 }

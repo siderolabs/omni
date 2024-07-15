@@ -6,12 +6,12 @@
 package handler
 
 import (
-	"context"
 	"net/http"
 
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/internal/pkg/auth"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 // AuthConfig represents the configuration for the auth config interceptor.
@@ -31,7 +31,7 @@ func NewAuthConfig(handler http.Handler, enabled bool, logger *zap.Logger) *Auth
 }
 
 func (c *AuthConfig) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	ctx := context.WithValue(request.Context(), auth.EnabledAuthContextKey{}, c.enabled)
+	ctx := ctxstore.WithValue(request.Context(), auth.EnabledAuthContextKey{Enabled: c.enabled})
 	request = request.WithContext(ctx)
 
 	c.next.ServeHTTP(writer, request)

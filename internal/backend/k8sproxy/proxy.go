@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/internal/backend/logging"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 // proxyHandler implements the HTTP reverse proxy.
@@ -44,14 +45,14 @@ func newProxyHandler(m *multiplexer, logger *zap.Logger) *proxyHandler {
 
 // director sets the target URL for the reverse proxy.
 func (p *proxyHandler) director(req *http.Request) {
-	clusterName, ok := req.Context().Value(clusterContextKey{}).(string)
+	clusterNameVal, ok := ctxstore.Value[clusterContextKey](req.Context())
 	if !ok {
 		ctxzap.Error(req.Context(), "cluster name not found in request context")
 
 		return
 	}
 
-	connector, err := p.multiplexer.getClusterConnector(req.Context(), clusterName)
+	connector, err := p.multiplexer.getClusterConnector(req.Context(), clusterNameVal.ClusterName)
 	if err != nil {
 		ctxzap.Error(req.Context(), "failed to get cluster connector", zap.Error(err))
 

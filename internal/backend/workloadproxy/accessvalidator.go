@@ -23,6 +23,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 // RoleProvider provides the current actor's role for a cluster.
@@ -119,10 +120,10 @@ func (p *PGPAccessValidator) ValidateAccess(ctx context.Context, publicKeyID, pu
 			return parseErr
 		}
 
-		ctx = context.WithValue(ctx, auth.RoleContextKey{}, publicKeyRole)
+		ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: publicKeyRole})
 	}
 
-	ctx = context.WithValue(ctx, auth.IdentityContextKey{}, publicKey.TypedSpec().Value.GetIdentity().GetEmail())
+	ctx = ctxstore.WithValue(ctx, auth.IdentityContextKey{Identity: publicKey.TypedSpec().Value.GetIdentity().GetEmail()})
 
 	accessRole, err := p.roleProvider.RoleForCluster(ctx, clusterID)
 	if err != nil {

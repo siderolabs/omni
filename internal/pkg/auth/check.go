@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 var (
@@ -81,19 +82,19 @@ func WithVerifiedEmail() CheckOption {
 //
 // The returned error can be checked against ErrUnauthenticated and ErrUnauthorized.
 func Check(ctx context.Context, opt ...CheckOption) (CheckResult, error) {
-	authEnabled, ok := ctx.Value(EnabledAuthContextKey{}).(bool)
+	authVal, ok := ctxstore.Value[EnabledAuthContextKey](ctx)
 	if !ok {
 		return CheckResult{}, fmt.Errorf("%w: auth configuration not found in context", ErrUnauthenticated)
 	}
 
-	if !authEnabled {
+	if !authVal.Enabled {
 		return CheckResult{
 			AuthEnabled: false,
 		}, nil
 	}
 
 	result := CheckResult{
-		AuthEnabled: authEnabled,
+		AuthEnabled: authVal.Enabled,
 	}
 
 	opts := DefaultCheckOptions()
@@ -108,22 +109,25 @@ func Check(ctx context.Context, opt ...CheckOption) (CheckResult, error) {
 	}
 
 	if opts.VerifiedEmail {
-		email, ok := ctx.Value(VerifiedEmailContextKey{}).(string)
+		emailVal, ok := ctxstore.Value[VerifiedEmailContextKey](ctx)
 		if !ok {
 			return CheckResult{}, fmt.Errorf("%w: missing verified email", ErrUnauthenticated)
 		}
 
-		result.VerifiedEmail = email
+		result.VerifiedEmail = emailVal.Email
 	}
 
-	ctxRole, ctxRoleExists := ctx.Value(RoleContextKey{}).(role.Role)
-	if !ctxRoleExists {
-		ctxRole = role.None
+	ctxRole := role.None
+	ctxRoleExists := false
+
+	if val, ok := ctxstore.Value[RoleContextKey](ctx); ok {
+		ctxRole = val.Role
+		ctxRoleExists = true
 	}
 
 	result.Role = ctxRole
 
-	// RoleContextKey{} is set on the context only when there is a valid signature, so we can rely on this.
+	// RoleContextKey is set on the context only when there is a valid signature, so we can rely on this.
 	result.HasValidSignature = ctxRoleExists
 
 	if opts.ValidSignature && !result.HasValidSignature {
@@ -137,12 +141,12 @@ func Check(ctx context.Context, opt ...CheckOption) (CheckResult, error) {
 		}
 	}
 
-	if identity, ok := ctx.Value(IdentityContextKey{}).(string); ok {
-		result.Identity = identity
+	if val, ok := ctxstore.Value[IdentityContextKey](ctx); ok {
+		result.Identity = val.Identity
 	}
 
-	if userID, ok := ctx.Value(UserIDContextKey{}).(string); ok {
-		result.UserID = userID
+	if val, ok := ctxstore.Value[UserIDContextKey](ctx); ok {
+		result.UserID = val.UserID
 	}
 
 	return result, nil

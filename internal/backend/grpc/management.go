@@ -60,6 +60,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/config"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
@@ -939,9 +940,10 @@ func (s *managementServer) applyClusterAccessPolicy(ctx context.Context, cluster
 		return nil, err
 	}
 
-	userRole, userRoleExists := ctx.Value(auth.RoleContextKey{}).(role.Role)
-	if !userRoleExists {
-		userRole = role.None
+	userRole := role.None
+
+	if val, ok := ctxstore.Value[auth.RoleContextKey](ctx); ok {
+		userRole = val.Role
 	}
 
 	newRole, err := role.Max(userRole, clusterRole)
@@ -953,7 +955,7 @@ func (s *managementServer) applyClusterAccessPolicy(ctx context.Context, cluster
 		return ctx, nil
 	}
 
-	return context.WithValue(ctx, auth.RoleContextKey{}, newRole), nil
+	return ctxstore.WithValue(ctx, auth.RoleContextKey{Role: newRole}), nil
 }
 
 func handleError(err error) error {

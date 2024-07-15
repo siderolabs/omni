@@ -26,6 +26,7 @@ import (
 	"k8s.io/client-go/transport"
 
 	"github.com/siderolabs/omni/internal/backend/k8sproxy"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 var mockClusterUUIDResolver = func(_ context.Context, clusterID resource.ID) (string, error) {
@@ -276,9 +277,9 @@ func TestAuthorize(t *testing.T) {
 			assert.Equal(t, tc.expectedImpersonateGroups, receivedReq.Header.Values(transport.ImpersonateGroupHeader))
 			assert.Nil(t, receivedReq.Header.Values("Authorization"))
 
-			v, ok := receivedReq.Context().Value(k8sproxy.ClusterContextKey{}).(string)
+			v, ok := ctxstore.Value[k8sproxy.ClusterContextKey](receivedReq.Context()) //nolint:contextcheck
 			assert.True(t, ok)
-			assert.Equal(t, tc.expectedCluster, v)
+			assert.Equal(t, tc.expectedCluster, v.ClusterName)
 		})
 	}
 }

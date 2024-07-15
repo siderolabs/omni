@@ -28,6 +28,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/config"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 var (
@@ -257,7 +258,7 @@ func checkForRole(ctx context.Context, st state.State, access state.Access, clus
 
 		if clusterRole != role.None && (!requireAll || (requireAll && matchesAll)) {
 			// override the role in the context with the computed role for this cluster
-			ctx = context.WithValue(ctx, auth.RoleContextKey{}, clusterRole)
+			ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: clusterRole})
 		}
 	}
 

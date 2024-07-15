@@ -17,7 +17,7 @@ import (
 )
 
 // clusterContextKey is a type for cluster name.
-type clusterContextKey struct{}
+type clusterContextKey struct{ ClusterName string }
 
 // Handler implements the HTTP reverse proxy for Kubernetes clusters.
 //

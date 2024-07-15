@@ -20,6 +20,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/handler"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 func testHandler(t *testing.T, authEnabled bool) {
@@ -130,25 +131,25 @@ func testHandler(t *testing.T, authEnabled bool) {
 				t.Fatal("timeout")
 			}
 
-			ctxAuthEnabled, ok := reqCtx.Value(auth.EnabledAuthContextKey{}).(bool)
+			ctxAuthEnabledVal, ok := ctxstore.Value[auth.EnabledAuthContextKey](reqCtx) //nolint:contextcheck
 			require.True(t, ok)
-			assert.Equal(t, authEnabled, ctxAuthEnabled)
+			assert.Equal(t, authEnabled, ctxAuthEnabledVal.Enabled)
 
 			if !tc.verifyContext {
 				return
 			}
 
-			ctxUserID, ok := reqCtx.Value(auth.UserIDContextKey{}).(string)
+			ctxUserIDVal, ok := ctxstore.Value[auth.UserIDContextKey](reqCtx) //nolint:contextcheck
 			require.True(t, ok)
-			assert.Equal(t, "user-id", ctxUserID)
+			assert.Equal(t, "user-id", ctxUserIDVal.UserID)
 
-			ctxRole, ok := reqCtx.Value(auth.RoleContextKey{}).(role.Role)
+			ctxRoleVal, ok := ctxstore.Value[auth.RoleContextKey](reqCtx) //nolint:contextcheck
 			require.True(t, ok)
-			assert.Equal(t, role.Operator, ctxRole)
+			assert.Equal(t, role.Operator, ctxRoleVal.Role)
 
-			ctxIdentity, ok := reqCtx.Value(auth.IdentityContextKey{}).(string)
+			ctxIdentityVal, ok := ctxstore.Value[auth.IdentityContextKey](reqCtx) //nolint:contextcheck
 			require.True(t, ok)
-			assert.Equal(t, "user@example.com", ctxIdentity)
+			assert.Equal(t, "user@example.com", ctxIdentityVal.Identity)
 		})
 	}
 }

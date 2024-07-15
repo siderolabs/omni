@@ -25,6 +25,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 // State is a virtual state implementation which provides virtual resources.
@@ -161,16 +162,17 @@ func (v *State) validateKind(kind resource.Kind) error {
 }
 
 func (v *State) currentUser(ctx context.Context) (*virtual.CurrentUser, error) {
-	identity, _ := ctx.Value(auth.IdentityContextKey{}).(string) //nolint:errcheck
+	identityVal, _ := ctxstore.Value[auth.IdentityContextKey](ctx)
 
-	userRole, userRoleExists := ctx.Value(auth.RoleContextKey{}).(role.Role)
-	if !userRoleExists {
-		userRole = role.None
+	userRole := role.None
+
+	if val, ok := ctxstore.Value[auth.RoleContextKey](ctx); ok {
+		userRole = val.Role
 	}
 
 	user := virtual.NewCurrentUser()
 
-	user.TypedSpec().Value.Identity = identity
+	user.TypedSpec().Value.Identity = identityVal.Identity
 	user.TypedSpec().Value.Role = string(userRole)
 
 	version, err := resource.ParseVersion("1")
@@ -184,9 +186,10 @@ func (v *State) currentUser(ctx context.Context) (*virtual.CurrentUser, error) {
 }
 
 func (v *State) permissions(ctx context.Context) (*virtual.Permissions, error) {
-	userRole, userRoleExists := ctx.Value(auth.RoleContextKey{}).(role.Role)
-	if !userRoleExists {
-		userRole = role.None
+	userRole := role.None
+
+	if val, ok := ctxstore.Value[auth.RoleContextKey](ctx); ok {
+		userRole = val.Role
 	}
 
 	permissions := virtual.NewPermissions()

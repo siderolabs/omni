@@ -18,13 +18,15 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 // RoleForCluster returns the role of the current user for the given cluster, and whether the role matches all clusters.
 func RoleForCluster(ctx context.Context, id resource.ID, st state.State) (role.Role, bool, error) {
-	userRole, userRoleExists := ctx.Value(auth.RoleContextKey{}).(role.Role)
-	if !userRoleExists {
-		userRole = role.None
+	userRole := role.None
+
+	if val, ok := ctxstore.Value[auth.RoleContextKey](ctx); ok {
+		userRole = val.Role
 	}
 
 	ctx = actor.MarkContextAsInternalActor(ctx)
@@ -38,12 +40,12 @@ func RoleForCluster(ctx context.Context, id resource.ID, st state.State) (role.R
 		return role.None, false, err
 	}
 
-	identityStr, identityExists := ctx.Value(auth.IdentityContextKey{}).(string)
+	identityVal, identityExists := ctxstore.Value[auth.IdentityContextKey](ctx)
 	if !identityExists {
 		return userRole, false, nil
 	}
 
-	identity, err := safe.StateGet[*authres.Identity](ctx, st, authres.NewIdentity(resources.DefaultNamespace, identityStr).Metadata())
+	identity, err := safe.StateGet[*authres.Identity](ctx, st, authres.NewIdentity(resources.DefaultNamespace, identityVal.Identity).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return userRole, false, nil

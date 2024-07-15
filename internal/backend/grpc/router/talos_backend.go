@@ -22,6 +22,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
 )
 
@@ -78,9 +79,8 @@ func (backend *TalosBackend) GetConnection(ctx context.Context, fullMethodName s
 	// we can't use regular gRPC server interceptors here, as proxy interface is a bit different
 
 	// prepare context values for the verifier
-	ctx = context.WithValue(ctx, auth.EnabledAuthContextKey{}, backend.authEnabled)
-	msg := message.NewGRPC(md, fullMethodName)
-	ctx = context.WithValue(ctx, auth.GRPCMessageContextKey{}, msg)
+	ctx = ctxstore.WithValue(ctx, auth.EnabledAuthContextKey{Enabled: backend.authEnabled})
+	ctx = ctxstore.WithValue(ctx, auth.GRPCMessageContextKey{Message: message.NewGRPC(md, fullMethodName)})
 
 	grpcutil.SetShouldLog(ctx, "talos-backend")
 

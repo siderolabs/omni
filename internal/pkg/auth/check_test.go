@@ -13,6 +13,7 @@ import (
 
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 func TestCheck(t *testing.T) {
@@ -30,18 +31,20 @@ func TestCheck(t *testing.T) {
 		},
 		{
 			name: "auth disabled",
-			ctx: context.WithValue(
+			ctx: ctxstore.WithValue(
 				context.Background(),
-				auth.EnabledAuthContextKey{},
-				false,
+				auth.EnabledAuthContextKey{
+					Enabled: false,
+				},
 			),
 		},
 		{
 			name: "not authenticated, no requirements",
-			ctx: context.WithValue(
+			ctx: ctxstore.WithValue(
 				context.Background(),
-				auth.EnabledAuthContextKey{},
-				true,
+				auth.EnabledAuthContextKey{
+					Enabled: true,
+				},
 			),
 			want: auth.CheckResult{
 				AuthEnabled: true,
@@ -50,44 +53,49 @@ func TestCheck(t *testing.T) {
 		},
 		{
 			name: "not authenticated, verified email",
-			ctx: context.WithValue(
+			ctx: ctxstore.WithValue(
 				context.Background(),
-				auth.EnabledAuthContextKey{},
-				true,
+				auth.EnabledAuthContextKey{
+					Enabled: true,
+				},
 			),
 			opts:    []auth.CheckOption{auth.WithVerifiedEmail()},
 			errorIs: auth.ErrUnauthenticated,
 		},
 		{
 			name: "not authenticated, none role",
-			ctx: context.WithValue(
+			ctx: ctxstore.WithValue(
 				context.Background(),
-				auth.EnabledAuthContextKey{},
-				true,
+				auth.EnabledAuthContextKey{
+					Enabled: true,
+				},
 			),
 			opts:    []auth.CheckOption{auth.WithValidSignature(true)},
 			errorIs: auth.ErrUnauthenticated,
 		},
 		{
 			name: "not authenticated, operator role",
-			ctx: context.WithValue(
+			ctx: ctxstore.WithValue(
 				context.Background(),
-				auth.EnabledAuthContextKey{},
-				true,
+				auth.EnabledAuthContextKey{
+					Enabled: true,
+				},
 			),
 			opts:    []auth.CheckOption{auth.WithRole(role.Operator)},
 			errorIs: auth.ErrUnauthenticated,
 		},
 		{
 			name: "verified email",
-			ctx: context.WithValue(
-				context.WithValue(
+			ctx: ctxstore.WithValue(
+				ctxstore.WithValue(
 					context.Background(),
-					auth.EnabledAuthContextKey{},
-					true,
+					auth.EnabledAuthContextKey{
+						Enabled: true,
+					},
 				),
-				auth.VerifiedEmailContextKey{},
-				"user@example.com",
+				auth.VerifiedEmailContextKey{
+					Email: "user@example.com",
+				},
 			),
 			opts: []auth.CheckOption{auth.WithVerifiedEmail()},
 			want: auth.CheckResult{
@@ -98,14 +106,16 @@ func TestCheck(t *testing.T) {
 		},
 		{
 			name: "role okay",
-			ctx: context.WithValue(
-				context.WithValue(
+			ctx: ctxstore.WithValue(
+				ctxstore.WithValue(
 					context.Background(),
-					auth.EnabledAuthContextKey{},
-					true,
+					auth.EnabledAuthContextKey{
+						Enabled: true,
+					},
 				),
-				auth.RoleContextKey{},
-				role.Operator,
+				auth.RoleContextKey{
+					Role: role.Operator,
+				},
 			),
 			opts: []auth.CheckOption{auth.WithRole(role.Operator)},
 			want: auth.CheckResult{
@@ -116,36 +126,42 @@ func TestCheck(t *testing.T) {
 		},
 		{
 			name: "role mismatch",
-			ctx: context.WithValue(
-				context.WithValue(
+			ctx: ctxstore.WithValue(
+				ctxstore.WithValue(
 					context.Background(),
-					auth.EnabledAuthContextKey{},
-					true,
+					auth.EnabledAuthContextKey{
+						Enabled: true,
+					},
 				),
-				auth.RoleContextKey{},
-				role.Operator,
+				auth.RoleContextKey{
+					Role: role.Operator,
+				},
 			),
 			opts:    []auth.CheckOption{auth.WithRole(role.Admin)},
 			errorIs: auth.ErrUnauthorized,
 		},
 		{
 			name: "role and verified email",
-			ctx: context.WithValue(
-				context.WithValue(
-					context.WithValue(
-						context.WithValue(
+			ctx: ctxstore.WithValue(
+				ctxstore.WithValue(
+					ctxstore.WithValue(
+						ctxstore.WithValue(
 							context.Background(),
-							auth.EnabledAuthContextKey{},
-							true,
+							auth.EnabledAuthContextKey{
+								Enabled: true,
+							},
 						),
-						auth.RoleContextKey{},
-						role.Operator,
+						auth.RoleContextKey{
+							Role: role.Operator,
+						},
 					),
-					auth.VerifiedEmailContextKey{},
-					"user@example.com",
+					auth.VerifiedEmailContextKey{
+						Email: "user@example.com",
+					},
 				),
-				auth.IdentityContextKey{},
-				"user2@example.com",
+				auth.IdentityContextKey{
+					Identity: "user2@example.com",
+				},
 			),
 			opts: []auth.CheckOption{auth.WithRole(role.Operator), auth.WithVerifiedEmail()},
 			want: auth.CheckResult{
@@ -158,14 +174,16 @@ func TestCheck(t *testing.T) {
 		},
 		{
 			name: "valid signature",
-			ctx: context.WithValue(
-				context.WithValue(
+			ctx: ctxstore.WithValue(
+				ctxstore.WithValue(
 					context.Background(),
-					auth.EnabledAuthContextKey{},
-					true,
+					auth.EnabledAuthContextKey{
+						Enabled: true,
+					},
 				),
-				auth.RoleContextKey{},
-				role.None,
+				auth.RoleContextKey{
+					Role: role.None,
+				},
 			),
 			opts: []auth.CheckOption{},
 			want: auth.CheckResult{
@@ -176,14 +194,16 @@ func TestCheck(t *testing.T) {
 		},
 		{
 			name: "missing signature",
-			ctx: context.WithValue(
-				context.WithValue(
+			ctx: ctxstore.WithValue(
+				ctxstore.WithValue(
 					context.Background(),
-					auth.EnabledAuthContextKey{},
-					true,
+					auth.EnabledAuthContextKey{
+						Enabled: true,
+					},
 				),
-				auth.VerifiedEmailContextKey{},
-				"me@example.com",
+				auth.VerifiedEmailContextKey{
+					Email: "me@example.com",
+				},
 			),
 			opts:    []auth.CheckOption{auth.WithValidSignature(true)},
 			errorIs: auth.ErrUnauthenticated,

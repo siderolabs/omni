@@ -24,6 +24,7 @@ import (
 	"github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 // multiplexer provides an http.RoundTripper which selects the cluster based on the request context.
@@ -74,12 +75,12 @@ func newMultiplexer() *multiplexer {
 
 // RoundTrip implements http.RoundTripper interface.
 func (m *multiplexer) RoundTrip(req *http.Request) (*http.Response, error) {
-	clusterName, ok := req.Context().Value(clusterContextKey{}).(string)
+	clusterNameVal, ok := ctxstore.Value[clusterContextKey](req.Context())
 	if !ok {
 		return nil, errors.New("cluster name not found in request context")
 	}
 
-	rt, err := m.getRT(req.Context(), clusterName)
+	rt, err := m.getRT(req.Context(), clusterNameVal.ClusterName)
 	if err != nil {
 		return nil, err
 	}

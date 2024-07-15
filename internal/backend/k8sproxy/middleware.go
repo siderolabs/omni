@@ -18,6 +18,8 @@ import (
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"go.uber.org/zap"
 	"k8s.io/client-go/transport"
+
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 const authorizationHeader = "Authorization"
@@ -107,7 +109,7 @@ func AuthorizeRequest(next http.Handler, keyFunc KeyProvider, clusterUUIDResolve
 		}
 
 		// clone the request before modifying it
-		req = req.WithContext(context.WithValue(ctx, clusterContextKey{}, clusterName))
+		req = req.WithContext(ctxstore.WithValue(ctx, clusterContextKey{ClusterName: clusterName}))
 
 		// clean all headers which are going to be overridden
 		req.Header.Del(authorizationHeader)

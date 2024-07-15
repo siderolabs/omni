@@ -32,6 +32,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/workloadproxy"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 // using whitelisted for external API access type.
@@ -72,7 +73,7 @@ func (suite *OmniRuntimeSuite) SetupTest() {
 	suite.ctx, suite.ctxCancel = context.WithTimeout(context.Background(), 3*time.Minute)
 
 	// disable auth in the context
-	suite.ctx = context.WithValue(suite.ctx, auth.EnabledAuthContextKey{}, false)
+	suite.ctx = ctxstore.WithValue(suite.ctx, auth.EnabledAuthContextKey{Enabled: false})
 
 	var err error
 

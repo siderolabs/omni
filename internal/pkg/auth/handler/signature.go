@@ -15,6 +15,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/internal/pkg/auth"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 var errInvalidSignature = errors.New("invalid signature")
@@ -102,9 +103,9 @@ func (s *Signature) intercept(request *http.Request) (*http.Request, error) {
 		Set("authenticator.identity", authenticator.Identity).
 		Set("authenticator.role", string(authenticator.Role))
 
-	ctx = context.WithValue(ctx, auth.IdentityContextKey{}, authenticator.Identity)
-	ctx = context.WithValue(ctx, auth.UserIDContextKey{}, authenticator.UserID)
-	ctx = context.WithValue(ctx, auth.RoleContextKey{}, authenticator.Role)
+	ctx = ctxstore.WithValue(ctx, auth.IdentityContextKey{Identity: authenticator.Identity})
+	ctx = ctxstore.WithValue(ctx, auth.UserIDContextKey{UserID: authenticator.UserID})
+	ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: authenticator.Role})
 
 	return request.WithContext(ctx), nil
 }
