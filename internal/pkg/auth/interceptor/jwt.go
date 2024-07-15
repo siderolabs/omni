@@ -18,6 +18,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/auth0"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
@@ -90,6 +91,14 @@ func (i *JWT) intercept(ctx context.Context) (context.Context, error) {
 
 		return nil, errGRPCInvalidJWT
 	}
+
+	auditData, ok := ctxstore.Value[*audit.Data](ctx)
+	if !ok {
+		return nil, status.Error(codes.Internal, "missing or invalid audit data")
+	}
+
+	auditData.Email = claims.VerifiedEmail
+	auditData.ConfirmationType = audit.Auth0
 
 	ctx = ctxstore.WithValue(ctx, auth.VerifiedEmailContextKey{Email: claims.VerifiedEmail})
 

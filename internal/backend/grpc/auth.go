@@ -29,11 +29,13 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/config"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 const (
@@ -143,6 +145,17 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 
 	newPubKey := authres.NewPublicKey(resources.DefaultNamespace, pubKey.id)
 
+	auditData, ok := ctxstore.Value[*audit.Data](ctx)
+	if !ok {
+		return nil, errors.New("audit data not found")
+	}
+
+	auditData.UserID = userID
+	auditData.Fingerprint = pubKey.id
+	auditData.PublicKeyExpiration = pubKey.expiration.Unix()
+	auditData.Role = pubKeyRole
+	auditData.Email = email
+
 	_, err = safe.StateGet[*authres.PublicKey](ctx, s.state, newPubKey.Metadata())
 	if state.IsNotFoundError(err) {
 		setPubKeyAttributes(newPubKey)
@@ -235,6 +248,16 @@ func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.Confi
 	if !ok || existingUserID != userID {
 		return nil, errors.New("public key <> id mismatch")
 	}
+
+	auditData, ok := ctxstore.Value[*audit.Data](ctx)
+	if !ok {
+		return nil, errors.New("audit data not found")
+	}
+
+	auditData.UserID = userID
+	auditData.Fingerprint = pubKey.Metadata().ID()
+	auditData.PublicKeyExpiration = pubKey.TypedSpec().Value.Expiration.Seconds
+	auditData.Role = role.Role(pubKey.TypedSpec().Value.GetRole())
 
 	_, err = safe.StateUpdateWithConflicts(ctx, s.state, pubKey.Metadata(), func(pk *authres.PublicKey) error {
 		pk.TypedSpec().Value.Confirmed = true

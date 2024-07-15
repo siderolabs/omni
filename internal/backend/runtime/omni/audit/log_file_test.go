@@ -26,9 +26,7 @@ import (
 var currentDay embed.FS
 
 func TestLogFile_CurrentDay(t *testing.T) {
-	dir := must.Value(os.MkdirTemp("", "log_file_test"))(t)
-
-	t.Cleanup(func() { os.RemoveAll(dir) }) //nolint:errcheck
+	dir := t.TempDir()
 
 	entries := []entry{
 		{shift: time.Second, data: audit.Data{UserAgent: "Mozilla/5.0", IPAddress: "10.10.0.1", Email: "random_email1@example.com"}},
@@ -46,16 +44,19 @@ func TestLogFile_CurrentDay(t *testing.T) {
 		require.NoError(t, file.DumpAt(e.data, now))
 	}
 
-	checkFiles(t, basicLoader(dir), fsSub(t, currentDay, "currentday"))
+	equalDirs(
+		t,
+		fsSub(t, currentDay, "currentday"),
+		os.DirFS(dir).(subFS), //nolint:forcetypeassert
+		defaultCmp,
+	)
 }
 
 //go:embed testdata/nextday
 var nextDay embed.FS
 
 func TestLogFile_CurrentAndNewDay(t *testing.T) {
-	dir := must.Value(os.MkdirTemp("", "log_file_test"))(t)
-
-	t.Cleanup(func() { os.RemoveAll(dir) }) //nolint:errcheck
+	dir := t.TempDir()
 
 	entries := []entry{
 		{shift: 0, data: audit.Data{UserAgent: "Mozilla/5.0", IPAddress: "10.10.0.1", Email: "random_email1@example.com"}},
@@ -73,16 +74,19 @@ func TestLogFile_CurrentAndNewDay(t *testing.T) {
 		require.NoError(t, file.DumpAt(e.data, now))
 	}
 
-	checkFiles(t, basicLoader(dir), fsSub(t, nextDay, "nextday"))
+	equalDirs(
+		t,
+		fsSub(t, nextDay, "nextday"),
+		os.DirFS(dir).(subFS), //nolint:forcetypeassert
+		defaultCmp,
+	)
 }
 
 //go:embed testdata/concurrent
 var concurrent embed.FS
 
 func TestLogFile_CurrentDayConcurrent(t *testing.T) {
-	dir := must.Value(os.MkdirTemp("", "log_file_test"))(t)
-
-	t.Cleanup(func() { os.RemoveAll(dir) }) //nolint:errcheck
+	dir := t.TempDir()
 
 	entries := make([]entry, 0, 250)
 
@@ -110,7 +114,14 @@ func TestLogFile_CurrentDayConcurrent(t *testing.T) {
 		}
 	})
 
-	checkFiles(t, sortedLoader(basicLoader(dir)), fsSub(t, concurrent, "concurrent"))
+	equalDirs(
+		t,
+		fsSub(t, concurrent, "concurrent"),
+		&sortedFileFS{
+			subFS: os.DirFS(dir).(subFS), //nolint:forcetypeassert
+		},
+		defaultCmp,
+	)
 }
 
 //nolint:govet
@@ -124,40 +135,47 @@ type subFS interface {
 	fs.ReadDirFS
 }
 
-func checkFiles(t *testing.T, loader fileLoader, expectedFS subFS) {
-	expectedFiles := must.Value(expectedFS.ReadDir("."))(t)
-
-	for _, expectedFile := range expectedFiles {
-		if expectedFile.IsDir() {
-			t.Fatal("unexpected directory", expectedFile.Name())
-		}
-
-		expectedData := string(must.Value(expectedFS.ReadFile(expectedFile.Name()))(t))
-		actualData := loader(t, expectedFile.Name())
-
-		require.Equal(t, expectedData, actualData, "file %s", expectedFile.Name())
-	}
-}
-
 func fsSub(t *testing.T, subFs subFS, folder string) subFS {
 	return must.Value(fs.Sub(subFs, filepath.Join("testdata", folder)))(t).(subFS) //nolint:forcetypeassert
 }
 
-type fileLoader func(t *testing.T, filename string) string
+func equalDirs(t *testing.T, expected, actual subFS, cmpFn func(t *testing.T, expected, actual string)) {
+	expectedFiles := must.Value(expected.ReadDir("."))(t)
+	actualFiles := must.Value(actual.ReadDir("."))(t)
 
-func basicLoader(dir string) func(t *testing.T, filename string) string {
-	return func(t *testing.T, filename string) string {
-		return string(must.Value(os.ReadFile(filepath.Join(dir, filename)))(t))
+	if len(expectedFiles) != len(actualFiles) {
+		t.Fatalf("expected %v files, got %v", expectedFiles, actualFiles)
+	}
+
+	for _, actualFile := range actualFiles {
+		if actualFile.IsDir() {
+			t.Fatal("unexpected directory", actualFile.Name())
+		}
+
+		name := actualFile.Name()
+
+		expectedContent := must.Value(expected.ReadFile(name))(t)
+		actualContent := must.Value(actual.ReadFile(name))(t)
+
+		cmpFn(t, string(expectedContent), string(actualContent))
 	}
 }
 
-func sortedLoader(loader fileLoader) fileLoader {
-	return func(t *testing.T, filename string) string {
-		data := strings.TrimRight(loader(t, filename), "\n")
-		slc := strings.Split(data, "\n")
+type sortedFileFS struct{ subFS }
 
-		slices.Sort(slc)
-
-		return strings.Join(slc, "\n") + "\n"
+func (s *sortedFileFS) ReadFile(name string) ([]byte, error) {
+	b, err := s.subFS.ReadFile(name)
+	if err != nil {
+		return nil, err
 	}
+
+	slc := strings.Split(strings.TrimRight(string(b), "\n"), "\n")
+
+	slices.Sort(slc)
+
+	return []byte(strings.Join(slc, "\n") + "\n"), nil
+}
+
+func defaultCmp(t *testing.T, expected string, actual string) {
+	require.Equal(t, expected, actual)
 }

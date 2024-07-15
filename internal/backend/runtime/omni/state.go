@@ -17,13 +17,16 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/runtime/pkg/state/registry"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/siderolabs/gen/pair"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	resourceregistry "github.com/siderolabs/omni/client/pkg/omni/resources/registry"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/logging"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/cloudprovider"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/external"
@@ -35,7 +38,7 @@ import (
 
 // NewState creates a production Omni state.
 //
-//nolint:cyclop
+//nolint:cyclop,gocognit
 func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, metricsRegistry prometheus.Registerer, f func(context.Context, state.State, *virtual.State) error) error {
 	stateFunc := func(ctx context.Context, persistentStateBuilder namespaced.StateBuilder) error {
 		primaryStorageCoreState := persistentStateBuilder(resources.DefaultNamespace)
@@ -138,7 +141,16 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 			return err
 		}
 
-		return f(ctx, resourceState, virtualState)
+		resourceState, fileErr := wrapWithAudit(resourceState, params, logger)
+		if fileErr != nil {
+			return fileErr
+		}
+
+		return f(
+			ctx,
+			resourceState,
+			virtualState,
+		)
 	}
 
 	switch params.Storage.Kind {
@@ -149,4 +161,25 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 	default:
 		return fmt.Errorf("unknown storage kind %q", params.Storage.Kind)
 	}
+}
+
+func wrapWithAudit(resState state.State, params *config.Params, logger *zap.Logger) (state.State, error) {
+	if params.AuditLogDir == "" {
+		logger.Info("audit log disabled")
+
+		return resState, nil
+	}
+
+	logger.Info("audit log enabled", zap.String("dir", params.AuditLogDir))
+
+	l, err := audit.NewLogger(params.AuditLogDir, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	l.ShoudLog(audit.EventCreate|audit.EventUpdate|audit.EventUpdateWithConflicts,
+		pair.MakePair(auth.PublicKeyType, audit.AllowAll),
+	)
+
+	return audit.WrapState(resState, l), nil
 }

@@ -18,6 +18,7 @@ services:
       - logs:/_out/logs
       - secondary-storage:/_out/secondary-storage
       - etcd-backup:/tmp/omni-data/etcd-backup
+      - audit-logs:/tmp/omni-data/audit-logs
       - ../generate-certs/certs:/etc/ssl/omni-certs:ro
     container_name: local-omni
     restart: on-failure
@@ -127,3 +128,4 @@ volumes:
   minio:
   secondary-storage:
   etcd-backup:
+  audit-logs:

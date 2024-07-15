@@ -17,8 +17,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
+	"github.com/siderolabs/omni/internal/pkg/grpcutil"
 )
 
 var errGRPCInvalidSignature = status.Error(codes.Unauthenticated, "invalid signature")
@@ -65,6 +67,13 @@ func (i *Signature) Stream() grpc.StreamServerInterceptor {
 }
 
 func (i *Signature) intercept(ctx context.Context) (context.Context, error) {
+	auditData, ok := ctxstore.Value[*audit.Data](ctx)
+	if !ok {
+		// This is allowed because signature interceptor can be called independently of others.
+		ctx = grpcutil.SetAuditInCtx(ctx)
+		auditData, _ = ctxstore.Value[*audit.Data](ctx)
+	}
+
 	msgVal, ok := ctxstore.Value[auth.GRPCMessageContextKey](ctx)
 	if !ok {
 		return nil, status.Error(codes.Internal, "missing or invalid message in context")
@@ -107,6 +116,9 @@ func (i *Signature) intercept(ctx context.Context) (context.Context, error) {
 
 		return nil, errGRPCInvalidSignature
 	}
+
+	auditData.UserID = authenticator.UserID
+	auditData.Role = authenticator.Role
 
 	grpc_ctxtags.Extract(ctx).
 		Set("authenticator.user_id", authenticator.UserID).

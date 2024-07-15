@@ -54,6 +54,7 @@ require (
 	github.com/jxskiss/base62 v1.1.0
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/prometheus/client_golang v1.19.1
+	github.com/prometheus/common v0.55.0
 	github.com/siderolabs/crypto v0.4.4
 	github.com/siderolabs/discovery-api v0.1.4
 	github.com/siderolabs/discovery-client v0.1.9
@@ -199,7 +200,6 @@ require (
 	github.com/planetscale/vtprotobuf v0.6.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rs/cors v1.11.0 // indirect
 	github.com/russellhaering/goxmldsig v1.4.0 // indirect

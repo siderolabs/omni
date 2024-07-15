@@ -92,6 +92,8 @@ type Params struct {
 	EmbeddedDiscoveryService EmbeddedDiscoveryServiceParams `yaml:"embeddedDiscoveryService"`
 
 	EnableBreakGlassConfigs bool `yaml:"enableBreakGlassConfigs"`
+
+	AuditLogDir string `yaml:"auditLogDir"`
 }
 
 // EmbeddedDiscoveryServiceParams defines embedded discovery service configs.

@@ -8,6 +8,7 @@ package grpcutil
 import (
 	"context"
 
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
@@ -85,5 +86,15 @@ func StreamInterceptRequestBodyToTags(hook Hook, bodyLimit int) RecvMsgHook {
 		}
 
 		return result
+	}
+}
+
+// StreamSetAuditData returns a new stream server interceptor that adds audit data to the context.
+func StreamSetAuditData() grpc.StreamServerInterceptor {
+	return func(srv any, ss grpc.ServerStream, _ *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		return handler(srv, &grpc_middleware.WrappedServerStream{
+			ServerStream:   ss,
+			WrappedContext: SetAuditInCtx(ss.Context()),
+		})
 	}
 }

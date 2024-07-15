@@ -316,6 +316,7 @@ func (s *Server) buildServerOptions() ([]grpc.ServerOption, error) {
 		grpc_zap.UnaryServerInterceptor(s.logger, grpc_zap.WithMessageProducer(messageProducer)),
 		grpcutil.SetUserAgent(),
 		grpcutil.SetRealPeerAddress(),
+		grpcutil.SetAuditData(),
 		grpcutil.InterceptBodyToTags(
 			grpcutil.NewHook(
 				grpcutil.NewRewriter(resourceServerCreate),
@@ -335,6 +336,7 @@ func (s *Server) buildServerOptions() ([]grpc.ServerOption, error) {
 		grpc_zap.StreamServerInterceptor(s.logger, grpc_zap.WithMessageProducer(messageProducer)),
 		grpcutil.StreamSetUserAgent(),
 		grpcutil.StreamSetRealPeerAddress(),
+		grpcutil.StreamSetAuditData(),
 		grpcutil.StreamIntercept(
 			grpcutil.StreamHooks{
 				RecvMsg: grpcutil.StreamInterceptRequestBodyToTags(

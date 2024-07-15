@@ -245,3 +245,10 @@ func LogLevelInterceptors() (grpc.UnaryServerInterceptor, grpc.StreamServerInter
 
 	return unary, stream
 }
+
+// SetAuditData returns a new unary server interceptor that adds audit data to the context.
+func SetAuditData() grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		return handler(SetAuditInCtx(ctx), req)
+	}
+}

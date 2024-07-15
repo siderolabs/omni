@@ -543,4 +543,11 @@ func init() {
 		config.Config.EnableBreakGlassConfigs,
 		"Allows downloading admin Talos and Kubernetes configs.",
 	)
+
+	rootCmd.Flags().StringVar(
+		&config.Config.AuditLogDir,
+		"audit-log-dir",
+		config.Config.AuditLogDir,
+		"Directory for audit log storage",
+	)
 }
