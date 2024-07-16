@@ -213,7 +213,7 @@ func (handler *machineSetStatusHandler) reconcileTearingDown(ctx context.Context
 
 	clusterMachinesCount := uint32(len(rc.GetClusterMachines()))
 	// no cluster machines release the finalizer
-	if clusterMachinesCount == 0 {
+	if clusterMachinesCount == 0 && len(rc.GetMachineSetNodes()) == 0 {
 		logger.Info("machineset torn down", zap.String("machineset", machineSet.Metadata().ID()))
 
 		return nil

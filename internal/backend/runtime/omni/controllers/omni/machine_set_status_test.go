@@ -34,6 +34,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/machineset"
 )
 
 type MachineSetStatusSuite struct {
@@ -280,6 +281,24 @@ func (suite *MachineSetStatusSuite) TestScaleUp() {
 	suite.updateStage(machines, specs.ClusterMachineStatusSpec_RUNNING, true)
 
 	suite.assertMachineSetPhase(machineSet, *specs.MachineSetPhase_Running.Enum())
+}
+
+// TestEmptyTeardown should destroy the machine sets without cluster machines.
+func (suite *MachineSetStatusSuite) TestEmptyTeardown() {
+	cluster := omni.NewCluster(resources.DefaultNamespace, "test")
+
+	ms := omni.NewMachineSet(resources.DefaultNamespace, "tearingdown")
+	ms.Metadata().SetPhase(resource.PhaseTearingDown)
+	ms.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
+
+	msn := omni.NewMachineSetNode(resources.DefaultNamespace, "1", ms)
+	msn.Metadata().Finalizers().Add(machineset.ControllerName)
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, msn))
+	suite.Require().NoError(suite.state.Create(suite.ctx, ms))
+
+	rtestutils.DestroyAll[*omni.MachineSetNode](suite.ctx, suite.T(), suite.state)
+	rtestutils.DestroyAll[*omni.MachineSet](suite.ctx, suite.T(), suite.state)
 }
 
 // TestScaleDown create a machine set with 3 machines
