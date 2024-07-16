@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
@@ -80,6 +81,7 @@ func (ctrl *MachineStatusSnapshotController) Settings() controller.QSettings {
 				case <-ctx.Done():
 					return nil
 				case resource := <-ctrl.siderolinkCh:
+					log.Printf(">>>>>> IT GOT HERE! %s", resource.TypedSpec().Value.MachineStatus.Stage)
 					if err := ctrl.reconcileSnapshot(ctx, r, resource); err != nil {
 						return err
 					}

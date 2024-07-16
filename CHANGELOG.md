@@ -1,3 +1,30 @@
+## [Omni 0.39.1](https://github.com/siderolabs/omni/releases/tag/v0.39.1) (2024-07-16)
+
+Welcome to the v0.39.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`01efb6e`](https://github.com/siderolabs/omni/commit/01efb6e5e6cbbd678a382eba2891aad798e69540) fix: use proper check for the machine set teardown flow
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.39.0](https://github.com/siderolabs/omni/releases/tag/v0.39.0)
+
 ## [Omni 0.39.0](https://github.com/siderolabs/omni/releases/tag/v0.39.0) (2024-07-05)
 
 Welcome to the v0.39.0 release of Omni!
