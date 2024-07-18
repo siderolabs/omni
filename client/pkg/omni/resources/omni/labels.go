@@ -53,6 +53,10 @@ const (
 	// LabelExposedServiceAlias is the alias of the exposed service.
 	// tsgen:LabelExposedServiceAlias
 	LabelExposedServiceAlias = SystemLabelPrefix + "exposed-service-alias"
+
+	// LabelMachineClassName is the name of the machine class.
+	// tsgen:LabelMachineClassName
+	LabelMachineClassName = SystemLabelPrefix + "machine-class-name"
 )
 
 const (

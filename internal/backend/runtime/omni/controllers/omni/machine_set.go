@@ -8,11 +8,13 @@ package omni
 import (
 	"fmt"
 
+	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/cleanup"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
 // MachineSetController manages MachineSet resource lifecycle.
@@ -30,7 +32,10 @@ func NewMachineSetController() *MachineSetController {
 				cleanup.RemoveOutputs[*omni.ExtensionsConfiguration](func(machineSet *omni.MachineSet) state.ListOption {
 					return state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID()))
 				}),
-
+				&helpers.SameIDHandler[*omni.MachineSet, *omni.MachineSetRequiredMachines]{
+					InputKind: controller.InputDestroyReady,
+					Owner:     MachineSetNodeControllerName,
+				},
 				withFinalizerCheck(cleanup.RemoveOutputs[*omni.ConfigPatch](func(machineSet *omni.MachineSet) state.ListOption {
 					clusterName, _ := machineSet.Metadata().Labels().Get(omni.LabelCluster)
 

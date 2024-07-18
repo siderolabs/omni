@@ -63,6 +63,11 @@ func MapByMachineSetLabelOnlyControlplane[I generic.ResourceWithRD, O generic.Re
 	return MapExtractLabelValue[I, O](omni.LabelMachineSet, resource.LabelTerm{Key: omni.LabelControlPlaneRole, Op: resource.LabelOpExists})
 }
 
+// MapByMachineClassNameLabel returns a mapper that extracts a LabelMachineClassName value.
+func MapByMachineClassNameLabel[I generic.ResourceWithRD, O generic.ResourceWithRD]() qtransform.MapperFuncGeneric[I] {
+	return MapExtractLabelValue[I, O](omni.LabelMachineClassName)
+}
+
 // MapClusterResourceToLabeledResources returns a mapper that maps a cluster resource to all resources with the same cluster label.
 func MapClusterResourceToLabeledResources[I generic.ResourceWithRD, O generic.ResourceWithRD]() qtransform.MapperFuncGeneric[I] {
 	return func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, i I) ([]resource.Pointer, error) {

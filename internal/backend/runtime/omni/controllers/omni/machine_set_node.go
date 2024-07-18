@@ -24,7 +24,11 @@ import (
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
+
+// MachineSetNodeControllerName is the name of the MachineSetNodeController.
+const MachineSetNodeControllerName = "MachineSetNodeController"
 
 // MachineSetNodeController manages MachineSetNode resource lifecycle.
 //
@@ -33,7 +37,7 @@ type MachineSetNodeController struct{}
 
 // Name implements controller.Controller interface.
 func (ctrl *MachineSetNodeController) Name() string {
-	return "MachineSetNodeController"
+	return MachineSetNodeControllerName
 }
 
 // Inputs implements controller.Controller interface.
@@ -77,6 +81,10 @@ func (ctrl *MachineSetNodeController) Outputs() []controller.Output {
 	return []controller.Output{
 		{
 			Type: omni.MachineSetNodeType,
+			Kind: controller.OutputShared,
+		},
+		{
+			Type: omni.MachineSetRequiredMachinesType,
 			Kind: controller.OutputShared,
 		},
 	}
@@ -185,11 +193,36 @@ func (ctrl *MachineSetNodeController) reconcileMachineSet(
 	visited map[resource.ID]struct{},
 	logger *zap.Logger,
 ) error {
-	var err error
+	requiredAdditionalMachines, err := ctrl.reconcileMachineSetNodes(ctx, r, machineSet, allMachineStatuses, allMachineSetNodes, machineStatusMap, visited, logger)
+	if err != nil {
+		return err
+	}
 
+	// avoid resurrecting MachineSetRequiredMachines if the MachineSet is being deleted
+	if machineSet.Metadata().Phase() == resource.PhaseTearingDown {
+		return nil
+	}
+
+	return ctrl.saveRequiredAdditionalMachines(ctx, r, machineSet, requiredAdditionalMachines)
+}
+
+func (ctrl *MachineSetNodeController) reconcileMachineSetNodes(
+	ctx context.Context,
+	r controller.Runtime,
+	machineSet *omni.MachineSet,
+	allMachineStatuses safe.List[*omni.MachineStatus],
+	allMachineSetNodes safe.List[*omni.MachineSetNode],
+	machineStatusMap map[resource.ID]*omni.MachineStatus,
+	visited map[resource.ID]struct{},
+	logger *zap.Logger,
+) (requiredAdditionalMachines int, err error) {
 	spec := machineSet.TypedSpec()
 	if spec.Value.MachineClass == nil || machineSet.Metadata().Phase() == resource.PhaseTearingDown {
-		return nil
+		if err = r.Destroy(ctx, omni.NewMachineSetRequiredMachines(resources.DefaultNamespace, machineSet.Metadata().ID()).Metadata()); err != nil && !state.IsNotFoundError(err) {
+			return 0, err
+		}
+
+		return 0, nil
 	}
 
 	visited[machineSet.Metadata().ID()] = struct{}{}
@@ -200,25 +233,27 @@ func (ctrl *MachineSetNodeController) reconcileMachineSet(
 
 	machineClass, err = safe.ReaderGet[*omni.MachineClass](ctx, r, omni.NewMachineClass(resources.DefaultNamespace, machineClassCfg.Name).Metadata())
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	existingMachineSetNodes := allMachineSetNodes.FilterLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID()))
 
 	switch machineClassCfg.AllocationType {
 	case specs.MachineSetSpec_MachineClass_Unlimited:
-		return ctrl.createNodes(ctx, r, machineSet, machineClass, allMachineStatuses, math.MaxInt32, logger)
+		_, err = ctrl.createNodes(ctx, r, machineSet, machineClass, allMachineStatuses, math.MaxInt32, logger)
+
+		return 0, err // unlimited allocation mode does not cause any machine pressure
 	case specs.MachineSetSpec_MachineClass_Static:
 		diff := int(machineClassCfg.MachineCount) - existingMachineSetNodes.Len()
 
 		if diff == 0 {
-			return nil
+			return 0, nil
 		}
 
 		if diff < 0 {
 			logger.Info("scaling machine set down", zap.Int("pending", -diff), zap.String("machine_set", machineSet.Metadata().ID()))
 
-			return ctrl.deleteNodes(ctx, r, existingMachineSetNodes, machineStatusMap, -diff, logger)
+			return 0, ctrl.deleteNodes(ctx, r, existingMachineSetNodes, machineStatusMap, -diff, logger)
 		}
 
 		logger.Info("scaling machine set up", zap.Int("pending", diff), zap.String("machine_set", machineSet.Metadata().ID()))
@@ -226,7 +261,26 @@ func (ctrl *MachineSetNodeController) reconcileMachineSet(
 		return ctrl.createNodes(ctx, r, machineSet, machineClass, allMachineStatuses, diff, logger)
 	}
 
-	return nil
+	return 0, nil
+}
+
+func (ctrl *MachineSetNodeController) saveRequiredAdditionalMachines(ctx context.Context, r controller.Runtime, machineSet *omni.MachineSet, numRequired int) error {
+	return safe.WriterModify[*omni.MachineSetRequiredMachines](ctx, r, omni.NewMachineSetRequiredMachines(resources.DefaultNamespace, machineSet.Metadata().ID()),
+		func(res *omni.MachineSetRequiredMachines) error {
+			helpers.CopyAllLabels(machineSet, res)
+
+			machineClass := machineSet.TypedSpec().Value.MachineClass
+
+			if machineClass != nil {
+				res.Metadata().Labels().Set(omni.LabelMachineClassName, machineClass.Name)
+			} else {
+				res.Metadata().Labels().Delete(omni.LabelMachineClassName)
+			}
+
+			res.TypedSpec().Value.RequiredAdditionalMachines = uint32(numRequired)
+
+			return nil
+		})
 }
 
 //nolint:gocognit
@@ -238,31 +292,31 @@ func (ctrl *MachineSetNodeController) createNodes(
 	allMachineStatuses safe.List[*omni.MachineStatus],
 	count int,
 	logger *zap.Logger,
-) error {
+) (requiredAdditionalMachines int, err error) {
 	selectors, err := labels.ParseSelectors(machineClass.TypedSpec().Value.MatchLabels)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	created := 0
 
 	clusterName, ok := machineSet.Metadata().Labels().Get(omni.LabelCluster)
 	if !ok {
-		return fmt.Errorf("failed to get cluster name of the machine set %q", machineSet.Metadata().ID())
+		return 0, fmt.Errorf("failed to get cluster name of the machine set %q", machineSet.Metadata().ID())
 	}
 
 	cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, r, clusterName)
 	if err != nil {
 		if state.IsNotFoundError(err) {
-			return nil
+			return 0, nil
 		}
 
-		return err
+		return 0, err
 	}
 
 	clusterVersion, err := semver.Parse(cluster.TypedSpec().Value.TalosVersion)
 	if err != nil {
-		return fmt.Errorf("failed to parse talos version of the cluster %w", err)
+		return 0, fmt.Errorf("failed to parse talos version of the cluster %w", err)
 	}
 
 	for _, selector := range selectors {
@@ -309,19 +363,19 @@ func (ctrl *MachineSetNodeController) createNodes(
 					continue
 				}
 
-				return err
+				return 0, err
 			}
 
 			logger.Info("created machine set node", zap.String("machine", id))
 
 			created++
 			if created == count {
-				return nil
+				return 0, nil
 			}
 		}
 	}
 
-	return nil
+	return count - created, nil
 }
 
 func (ctrl *MachineSetNodeController) deleteNodes(

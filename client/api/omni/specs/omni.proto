@@ -726,6 +726,12 @@ message MachineSetStatusSpec {
   uint32 locked_updates = 7;
 }
 
+// MachineSetRequiredMachinesSpec describes the required machines for the machine set.
+message MachineSetRequiredMachinesSpec {
+  // RequiredMachines is the number of machines required to satisfy the machine set.
+  uint32 required_additional_machines = 1;
+}
+
 // MachineSetNodeSpec is a binding between ClusterMachine and MachineSet.
 message MachineSetNodeSpec {}
 
@@ -912,6 +918,12 @@ message EtcdBackupSettings {
 message MachineClassSpec {
   // MatchLabels is the list of labels to match the machine to make it part of the machine class.
   repeated string match_labels = 1;
+}
+
+// MachineClassStatusSpec describes an Omni MachineClassStatus resource spec.
+message MachineClassStatusSpec {
+  // RequiredAdditionalMachines is the number of additional machines required to satisfy the machine class.
+  uint32 required_additional_machines = 1;
 }
 
 // MachineConfigGenOptionsSpec describes machine related config generation inputs.

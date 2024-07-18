@@ -487,6 +487,10 @@ export type MachineSetStatusSpec = {
   locked_updates?: number
 }
 
+export type MachineSetRequiredMachinesSpec = {
+  required_additional_machines?: number
+}
+
 export type MachineSetNodeSpec = {
 }
 
@@ -590,6 +594,10 @@ export type EtcdBackupSettings = {
 
 export type MachineClassSpec = {
   match_labels?: string[]
+}
+
+export type MachineClassStatusSpec = {
+  required_additional_machines?: number
 }
 
 export type MachineConfigGenOptionsSpecInstallImage = {
