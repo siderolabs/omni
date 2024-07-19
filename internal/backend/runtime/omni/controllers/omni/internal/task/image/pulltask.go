@@ -77,25 +77,31 @@ func (p PullTaskSpec) RunTask(ctx context.Context, _ *zap.Logger, pullStatusCh P
 		currentNode = imageList.Node
 
 		for _, img := range imageList.Images {
+			currentError = nil
 			currentImage = img
-			currentNum++
 
-			if nodeImageInfoMap.shouldPull(imageList.Node, img) {
-				currentError = p.pullImage(ctx, clusterID, imageList.Node, img)
-				if currentError != nil {
-					errs = multierror.Append(errs, currentError)
-				}
+			if !nodeImageInfoMap.shouldPull(imageList.Node, img) {
+				currentNum++
 
-				if !channel.SendWithContext(ctx, pullStatusCh, PullStatus{
-					Request:    p.request,
-					Node:       currentNode,
-					Image:      currentImage,
-					CurrentNum: currentNum,
-					TotalNum:   totalNum,
-					Error:      currentError,
-				}) {
-					return errs
-				}
+				continue
+			}
+
+			currentError = p.pullImage(ctx, clusterID, imageList.Node, img)
+			if currentError == nil {
+				currentNum++
+			} else {
+				errs = multierror.Append(errs, currentError)
+			}
+
+			if !channel.SendWithContext(ctx, pullStatusCh, PullStatus{
+				Request:    p.request,
+				Node:       currentNode,
+				Image:      currentImage,
+				CurrentNum: currentNum,
+				TotalNum:   totalNum,
+				Error:      currentError,
+			}) {
+				return errs
 			}
 		}
 	}

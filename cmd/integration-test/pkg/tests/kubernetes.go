@@ -276,19 +276,8 @@ func AssertKubernetesUpgradeIsRevertible(testCtx context.Context, st state.State
 			assert.Equal(currentKubernetesVersion, r.TypedSpec().Value.LastUpgradeVersion, resourceDetails(r))
 		})
 
-		// verify that the upgrade took one API server down
-		rtestutils.AssertResources(ctx, t, st, []resource.ID{clusterName}, func(r *omni.KubernetesStatus, assert *assert.Assertions) {
-			var notReadyAPIServers int
-
-			for _, nodePods := range r.TypedSpec().Value.StaticPods {
-				for _, pod := range nodePods.StaticPods {
-					if pod.App == "kube-apiserver" && !pod.Ready {
-						notReadyAPIServers++
-					}
-				}
-			}
-
-			assert.Equal(1, notReadyAPIServers)
+		rtestutils.AssertResources(ctx, t, st, []resource.ID{clusterName}, func(r *omni.ImagePullStatus, assert *assert.Assertions) {
+			assert.Contains(r.TypedSpec().Value.LastProcessedError, "-bad")
 		})
 
 		t.Log("revert an upgrade")
