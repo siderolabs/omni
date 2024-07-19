@@ -44,7 +44,7 @@ import TList from "@/components/common/List/TList.vue";
 import PageHeader from "@/components/common/PageHeader.vue";
 import NodesItem from "@/views/cluster/Nodes/components/NodesItem.vue";
 import TGroupAnimation from "@/components/common/Animation/TGroupAnimation.vue";
-import { Resource } from "@/api/v1alpha1/resource.pb";
+import { Resource } from "@/api/grpc";
 
 const route = useRoute();
 const context = getContext();

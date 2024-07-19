@@ -12,7 +12,7 @@ included in the LICENSE file.
           <div class="flex-1 flex items-center">
             <div class="flex items-center gap-2 bg-naturals-N4 w-40 rounded truncate py-2 px-3">
               <t-icon icon="server-stack" class="w-4 h-4"/>
-              {{ machineSetTitle(clusterID, machineSet?.metadata?.id) }}
+              <div class="truncate flex-1">{{ machineSetTitle(clusterID, machineSet?.metadata?.id) }}</div>
             </div>
           </div>
           <div class="flex-1 flex max-md:ml-1 md:ml-10">

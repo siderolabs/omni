@@ -381,6 +381,10 @@ func AssertTalosVersion(testCtx context.Context, client *client.Client, clusterN
 		require.NoError(err)
 
 		machineIPs, err := safe.Map(cms, func(m *omni.ClusterMachineIdentity) (string, error) {
+			if len(m.TypedSpec().Value.GetNodeIps()) == 0 {
+				return "", fmt.Errorf("no ips discovered")
+			}
+
 			return m.TypedSpec().Value.GetNodeIps()[0], nil
 		})
 		require.NoError(err)
@@ -775,7 +779,7 @@ func AssertTalosServiceIsRestarted(testCtx context.Context, cli *client.Client, 
 // AssertSupportBundleContents tries to upgrade get Talos/Omni support bundle, and verifies that it has some contents.
 func AssertSupportBundleContents(testCtx context.Context, cli *client.Client, clusterName string) TestFunc {
 	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, 1*time.Minute)
+		ctx, cancel := context.WithTimeout(testCtx, 10*time.Second)
 		defer cancel()
 
 		require := require.New(t)
@@ -785,13 +789,20 @@ func AssertSupportBundleContents(testCtx context.Context, cli *client.Client, cl
 		var eg errgroup.Group
 
 		eg.Go(func() error {
-			for p := range progress {
-				if p.Error != "" {
-					return fmt.Errorf(p.Error)
+			for {
+				select {
+				case p := <-progress:
+					if p == nil {
+						return nil
+					}
+
+					if p.Error != "" {
+						continue
+					}
+				case <-ctx.Done():
+					return ctx.Err()
 				}
 			}
-
-			return nil
 		})
 
 		data, err := cli.Management().GetSupportBundle(ctx, clusterName, progress)
