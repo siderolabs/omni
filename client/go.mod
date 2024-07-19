@@ -11,7 +11,7 @@ replace (
 )
 
 require (
-	github.com/adrg/xdg v0.4.0
+	github.com/adrg/xdg v0.5.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cosi-project/runtime v0.5.4
 	github.com/fatih/color v1.17.0
@@ -33,11 +33,11 @@ require (
 	github.com/xlab/treeprint v1.2.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/sync v0.7.0
-	golang.org/x/term v0.21.0
+	golang.org/x/term v0.22.0
 	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/client-go v0.30.2
+	k8s.io/client-go v0.30.3
 )
 
 require (
@@ -84,14 +84,14 @@ require (
 	golang.org/x/crypto v0.24.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/oauth2 v0.20.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240617180043-68d350f18fd4 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240617180043-68d350f18fd4 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/apimachinery v0.30.2 // indirect
+	k8s.io/apimachinery v0.30.3 // indirect
 	k8s.io/klog/v2 v2.120.1 // indirect
 	k8s.io/utils v0.0.0-20231127182322-b307cd553661 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
