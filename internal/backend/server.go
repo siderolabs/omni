@@ -352,13 +352,15 @@ func (s *Server) buildServerOptions() ([]grpc.ServerOption, error) {
 		grpc_recovery.StreamServerInterceptor(recoveryOpt),
 	}
 
-	unaryAuthInterceptors, streamAuthInterceptors, err := s.getAuthInterceptors()
+	authInterceptors, err := s.getAuthInterceptors()
 	if err != nil {
 		return nil, err
 	}
 
-	unaryInterceptors = append(unaryInterceptors, unaryAuthInterceptors...)
-	streamInterceptors = append(streamInterceptors, streamAuthInterceptors...)
+	for _, authInterceptor := range authInterceptors {
+		unaryInterceptors = append(unaryInterceptors, authInterceptor.Unary())
+		streamInterceptors = append(streamInterceptors, authInterceptor.Stream())
+	}
 
 	return []grpc.ServerOption{
 		grpc.MaxRecvMsgSize(constants.GRPCMaxMessageSize),
@@ -368,48 +370,37 @@ func (s *Server) buildServerOptions() ([]grpc.ServerOption, error) {
 	}, nil
 }
 
-func (s *Server) getAuthInterceptors() ([]grpc.UnaryServerInterceptor, []grpc.StreamServerInterceptor, error) {
+type interceptorCreator interface {
+	Unary() grpc.UnaryServerInterceptor
+	Stream() grpc.StreamServerInterceptor
+}
+
+func (s *Server) getAuthInterceptors() ([]interceptorCreator, error) {
 	authEnabled := authres.Enabled(s.authConfig)
 
-	authConfigInterceptor := interceptor.NewAuthConfig(authEnabled, s.logger)
-
-	unaryInterceptors := []grpc.UnaryServerInterceptor{
-		authConfigInterceptor.Unary(),
-	}
-
-	streamInterceptors := []grpc.StreamServerInterceptor{
-		authConfigInterceptor.Stream(),
-	}
+	result := []interceptorCreator{interceptor.NewAuthConfig(authEnabled, s.logger)}
 
 	if !authEnabled {
-		return unaryInterceptors, streamInterceptors, nil
+		return result, nil
 	}
 
 	// auth is enabled, add signature and jwt interceptors
-	signatureInterceptor := interceptor.NewSignature(s.authenticatorFunc(), s.logger)
-
-	unaryInterceptors = append(unaryInterceptors, signatureInterceptor.Unary())
-	streamInterceptors = append(streamInterceptors, signatureInterceptor.Stream())
+	result = append(result, interceptor.NewSignature(s.authenticatorFunc(), s.logger))
 
 	switch {
 	case s.authConfig.TypedSpec().Value.Auth0.Enabled:
 		verifier, err := auth0.NewIDTokenVerifier(s.authConfig.TypedSpec().Value.GetAuth0().Domain)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
-		jwtInterceptor := interceptor.NewJWT(verifier, s.logger)
+		result = append(result, interceptor.NewJWT(verifier, s.logger))
 
-		unaryInterceptors = append(unaryInterceptors, jwtInterceptor.Unary())
-		streamInterceptors = append(streamInterceptors, jwtInterceptor.Stream())
 	case s.authConfig.TypedSpec().Value.Saml.Enabled:
-		samlInterceptor := interceptor.NewSAML(s.omniRuntime.State(), s.logger)
-
-		unaryInterceptors = append(unaryInterceptors, samlInterceptor.Unary())
-		streamInterceptors = append(streamInterceptors, samlInterceptor.Stream())
+		result = append(result, interceptor.NewSAML(s.omniRuntime.State(), s.logger))
 	}
 
-	return unaryInterceptors, streamInterceptors, nil
+	return result, nil
 }
 
 func (s *Server) authenticatorFunc() auth.AuthenticatorFunc {

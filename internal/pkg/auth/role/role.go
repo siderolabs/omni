@@ -37,15 +37,15 @@ const (
 
 var roles = []Role{None, Reader, Operator, Admin}
 
-var indexes map[Role]int
-
-func init() {
-	indexes = make(map[Role]int, len(roles))
+var indexes = func() map[Role]int {
+	result := make(map[Role]int, len(roles))
 
 	for i, role := range roles {
-		indexes[role] = i
+		result[role] = i
 	}
-}
+
+	return result
+}()
 
 // Parse parses the role string.
 func Parse(role string) (Role, error) {
