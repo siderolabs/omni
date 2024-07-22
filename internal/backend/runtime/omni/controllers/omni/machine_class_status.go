@@ -19,6 +19,8 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 )
 
+const machineClassStatusControllerName = "MachineClassStatusController"
+
 // MachineClassStatusController manages MachineClassStatus resource lifecycle.
 //
 // MachineClassStatusController generates cluster UUID for every cluster.
@@ -28,14 +30,14 @@ type MachineClassStatusController = qtransform.QController[*omni.MachineClass, *
 func NewMachineClassStatusController() *MachineClassStatusController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.MachineClass, *omni.MachineClassStatus]{
-			Name: "MachineClassStatusController",
+			Name: machineClassStatusControllerName,
 			MapMetadataFunc: func(mc *omni.MachineClass) *omni.MachineClassStatus {
 				return omni.NewMachineClassStatus(mc.Metadata().Namespace(), mc.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(mcs *omni.MachineClassStatus) *omni.MachineClass {
 				return omni.NewMachineClass(mcs.Metadata().Namespace(), mcs.Metadata().ID())
 			},
-			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, mc *omni.MachineClass, mcs *omni.MachineClassStatus) error {
+			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, mc *omni.MachineClass, mcs *omni.MachineClassStatus) error {
 				msrmList, err := safe.ReaderListAll[*omni.MachineSetRequiredMachines](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineClassName, mc.Metadata().ID())))
 				if err != nil {
 					return err
@@ -43,11 +45,22 @@ func NewMachineClassStatusController() *MachineClassStatusController {
 
 				total := uint32(0)
 
-				msrmList.ForEach(func(msrm *omni.MachineSetRequiredMachines) {
-					if msrm.Metadata().Phase() != resource.PhaseTearingDown {
-						total += msrm.TypedSpec().Value.RequiredAdditionalMachines
+				err = msrmList.ForEachErr(func(msrm *omni.MachineSetRequiredMachines) error {
+					if msrm.Metadata().Phase() == resource.PhaseTearingDown || mc.Metadata().Phase() == resource.PhaseTearingDown {
+						return r.RemoveFinalizer(ctx, msrm.Metadata(), machineClassStatusControllerName)
 					}
+
+					total += msrm.TypedSpec().Value.RequiredAdditionalMachines
+
+					if !msrm.Metadata().Finalizers().Has(machineClassStatusControllerName) {
+						return r.AddFinalizer(ctx, msrm.Metadata(), machineClassStatusControllerName)
+					}
+
+					return nil
 				})
+				if err != nil {
+					return err
+				}
 
 				mcs.TypedSpec().Value.RequiredAdditionalMachines = total
 

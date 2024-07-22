@@ -73,6 +73,11 @@ func (ctrl *MachineSetNodeController) Inputs() []controller.Input {
 			Type:      omni.MachineSetNodeType,
 			Kind:      controller.InputDestroyReady,
 		},
+		{
+			Namespace: resources.DefaultNamespace,
+			Type:      omni.MachineSetRequiredMachinesType,
+			Kind:      controller.InputDestroyReady,
+		},
 	}
 }
 
@@ -218,8 +223,16 @@ func (ctrl *MachineSetNodeController) reconcileMachineSetNodes(
 ) (requiredAdditionalMachines int, err error) {
 	spec := machineSet.TypedSpec()
 	if spec.Value.MachineClass == nil || machineSet.Metadata().Phase() == resource.PhaseTearingDown {
-		if err = r.Destroy(ctx, omni.NewMachineSetRequiredMachines(resources.DefaultNamespace, machineSet.Metadata().ID()).Metadata()); err != nil && !state.IsNotFoundError(err) {
+		var ready bool
+
+		if ready, err = r.Teardown(ctx, omni.NewMachineSetRequiredMachines(resources.DefaultNamespace, machineSet.Metadata().ID()).Metadata()); err != nil && !state.IsNotFoundError(err) {
 			return 0, err
+		}
+
+		if ready {
+			if err = r.Destroy(ctx, omni.NewMachineSetRequiredMachines(resources.DefaultNamespace, machineSet.Metadata().ID()).Metadata()); err != nil && !state.IsNotFoundError(err) {
+				return 0, err
+			}
 		}
 
 		return 0, nil
