@@ -11,6 +11,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/resource/kvutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/task"
@@ -18,7 +19,6 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task/clustermachine"
 )
 
@@ -64,6 +64,8 @@ func (ctrl *ClusterMachineIdentityController) Outputs() []controller.Output {
 }
 
 // Run implements controller.Controller interface.
+//
+//nolint:gocognit
 func (ctrl *ClusterMachineIdentityController) Run(ctx context.Context, r controller.Runtime, logger *zap.Logger) error {
 	notifyCh := make(chan *omni.ClusterMachineIdentity)
 
@@ -76,10 +78,25 @@ func (ctrl *ClusterMachineIdentityController) Run(ctx context.Context, r control
 			return nil
 		case clusterMachineIdentity := <-notifyCh:
 			err := safe.WriterModify(ctx, r, clusterMachineIdentity, func(res *omni.ClusterMachineIdentity) error {
-				helpers.CopyAllLabels(clusterMachineIdentity, res)
+				// we should replace the labels
+				res.Metadata().Labels().Do(func(temp kvutils.TempKV) {
+					for _, key := range res.Metadata().Labels().Keys() {
+						temp.Delete(key)
+					}
+
+					for key, value := range clusterMachineIdentity.Metadata().Labels().Raw() {
+						temp.Set(key, value)
+					}
+				})
+
+				_, isCp := clusterMachineIdentity.Metadata().Labels().Get(omni.LabelControlPlaneRole)
 
 				spec := clusterMachineIdentity.TypedSpec().Value
-				if spec.EtcdMemberId != 0 {
+
+				switch {
+				case !isCp:
+					res.TypedSpec().Value.EtcdMemberId = 0
+				case spec.EtcdMemberId != 0:
 					res.TypedSpec().Value.EtcdMemberId = spec.EtcdMemberId
 				}
 
