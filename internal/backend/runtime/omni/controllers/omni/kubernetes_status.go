@@ -152,6 +152,8 @@ func (ctrl *KubernetesStatusController) Run(ctx context.Context, r controller.Ru
 			if err := ctrl.reconcileRunners(ctx, r, logger, notifyCh); err != nil {
 				return fmt.Errorf("error reconciling runners: %w", err)
 			}
+
+			r.ResetRestartBackoff()
 		case ev := <-notifyCh:
 			if _, running := ctrl.watchers[ev.cluster]; !running {
 				// skip notifications for not running watchers (notification came late)

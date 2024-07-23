@@ -177,11 +177,16 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State) TestFunc
 
 		rtestutils.AssertNoResource[*omni.Cluster](ctx, t, st, clusterName)
 
-		// make sure machines are returned to the pool
+		// make sure machines are returned to the pool or allocated into another cluster
 		rtestutils.AssertResources(ctx, t, st, machineIDs, func(machineStatus *omni.MachineStatus, assert *assert.Assertions) {
 			assert.True(machineStatus.Metadata().Labels().Matches(resource.LabelTerm{
 				Key: omni.MachineStatusLabelAvailable,
 				Op:  resource.LabelOpExists,
+			}) || machineStatus.Metadata().Labels().Matches(resource.LabelTerm{
+				Key:    omni.LabelCluster,
+				Op:     resource.LabelOpEqual,
+				Value:  []string{clusterName},
+				Invert: true,
 			}), resourceDetails(machineStatus))
 		})
 	}

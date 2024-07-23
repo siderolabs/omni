@@ -13,7 +13,7 @@ replace (
 require (
 	github.com/adrg/xdg v0.5.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cosi-project/runtime v0.5.4
+	github.com/cosi-project/runtime v0.5.5
 	github.com/fatih/color v1.17.0
 	github.com/google/uuid v1.6.0
 	github.com/gosuri/uiprogress v0.0.1
@@ -24,7 +24,7 @@ require (
 	github.com/planetscale/vtprotobuf v0.6.0
 	github.com/sergi/go-diff v1.3.1
 	github.com/siderolabs/gen v0.5.0
-	github.com/siderolabs/go-api-signature v0.3.3
+	github.com/siderolabs/go-api-signature v0.3.4
 	github.com/siderolabs/go-kubeconfig v0.1.0
 	github.com/siderolabs/go-pointer v1.0.0
 	github.com/siderolabs/talos/pkg/machinery v1.7.5

@@ -185,6 +185,8 @@ func (ctrl *MachineSetNodeController) Run(ctx context.Context, r controller.Runt
 		if err != nil {
 			return err
 		}
+
+		r.ResetRestartBackoff()
 	}
 }
 
@@ -208,7 +210,11 @@ func (ctrl *MachineSetNodeController) reconcileMachineSet(
 		return nil
 	}
 
-	return ctrl.saveRequiredAdditionalMachines(ctx, r, machineSet, requiredAdditionalMachines)
+	if err = ctrl.saveRequiredAdditionalMachines(ctx, r, machineSet, requiredAdditionalMachines); err != nil && !state.IsPhaseConflictError(err) {
+		return err
+	}
+
+	return nil
 }
 
 func (ctrl *MachineSetNodeController) reconcileMachineSetNodes(
@@ -278,7 +284,7 @@ func (ctrl *MachineSetNodeController) reconcileMachineSetNodes(
 }
 
 func (ctrl *MachineSetNodeController) saveRequiredAdditionalMachines(ctx context.Context, r controller.Runtime, machineSet *omni.MachineSet, numRequired int) error {
-	return safe.WriterModify[*omni.MachineSetRequiredMachines](ctx, r, omni.NewMachineSetRequiredMachines(resources.DefaultNamespace, machineSet.Metadata().ID()),
+	return safe.WriterModify(ctx, r, omni.NewMachineSetRequiredMachines(resources.DefaultNamespace, machineSet.Metadata().ID()),
 		func(res *omni.MachineSetRequiredMachines) error {
 			helpers.CopyAllLabels(machineSet, res)
 

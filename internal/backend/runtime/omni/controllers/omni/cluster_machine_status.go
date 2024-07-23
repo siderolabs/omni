@@ -131,10 +131,8 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 					r,
 					omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, clusterMachineStatus.Metadata().ID()).Metadata(),
 				)
-				if err != nil {
-					if !state.IsNotFoundError(err) {
-						return err
-					}
+				if err != nil && !state.IsNotFoundError(err) {
+					return err
 				}
 
 				if clusterMachineConfigStatus != nil {

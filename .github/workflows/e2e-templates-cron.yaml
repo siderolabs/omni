@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-05-24T15:23:06Z by kres b5844f8.
+# Generated on 2024-07-23T13:55:08Z by kres faf91e3.
 
 name: e2e-templates-cron
 concurrency:
@@ -62,6 +62,8 @@ jobs:
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|ClusterTemplate/
+          RUN_TALEMU_TESTS: "false"
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test

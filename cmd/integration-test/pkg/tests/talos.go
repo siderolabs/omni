@@ -64,6 +64,8 @@ func clearConnectionRefused(ctx context.Context, t *testing.T, c *talosclient.Cl
 				return retry.ExpectedError(err)
 			}
 
+			t.Logf("clear connection refused err %s", err)
+
 			return err
 		}
 

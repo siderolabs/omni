@@ -338,25 +338,49 @@ func AssertClusterMachinesStage(testCtx context.Context, st state.State, cluster
 		rtestutils.AssertResources(ctx, t, st, machineIDs, func(*omni.ClusterMachine, *assert.Assertions) {})
 
 		// assert that there are not clustermachines which are not machinesetnodes
-		cmIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
+		clusterMachines, err := safe.ReaderListAll[*omni.ClusterMachine](ctx, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
+		require.NoError(err)
 
 		machineIDMap := xslices.ToSet(machineIDs)
 
-		for _, cmID := range cmIDs {
-			if _, ok := machineIDMap[cmID]; ok {
+		clusterMachines.ForEach(func(r *omni.ClusterMachine) {
+			cmID := r.Metadata().ID()
+
+			if _, ok := machineIDMap[cmID]; ok && r.Metadata().Phase() == resource.PhaseRunning {
 				// cluster machine matches expected machine set node
-				continue
+				return
 			}
 
 			// wait for the cluster machine to be cleaned up
 			rtestutils.AssertNoResource[*omni.ClusterMachine](ctx, t, st, cmID)
-		}
-
-		rtestutils.AssertResources(ctx, t, st, machineIDs, func(status *omni.ClusterMachineStatus, assert *assert.Assertions) {
-			spec := status.TypedSpec().Value
-
-			assert.Equal(stage, spec.Stage, "%s != %s, %s", stage.String(), spec.Stage.String(), resourceDetails(status))
 		})
+
+		// retry with the poller as the set of the machine set nodes can be changed during the lifecycle
+		err = retry.Constant(time.Minute*6, retry.WithUnits(time.Second)).RetryWithContext(ctx, func(ctx context.Context) error {
+			machineIDs := getMachineSetNodes(ctx, t, st, clusterName)
+
+			for _, machine := range machineIDs {
+				var status *omni.ClusterMachineStatus
+
+				status, err = safe.ReaderGetByID[*omni.ClusterMachineStatus](ctx, st, machine)
+				if err != nil && !state.IsNotFoundError(err) {
+					return err
+				}
+
+				if status == nil {
+					return retry.ExpectedErrorf("machine %q status doesn't exist yet", machine)
+				}
+
+				spec := status.TypedSpec().Value
+
+				if spec.Stage != stage {
+					return retry.ExpectedErrorf("%s != %s, %s", stage.String(), spec.Stage.String(), resourceDetails(status))
+				}
+			}
+
+			return nil
+		})
+		require.NoError(err)
 	}
 }
 
@@ -395,11 +419,11 @@ func AssertClusterStatusReady(testCtx context.Context, st state.State, clusterNa
 
 		require := require.New(t)
 
-		machineIDs := getMachineSetNodes(ctx, t, st, clusterName)
-		require.NotEmpty(machineIDs)
-
 		rtestutils.AssertResources(ctx, t, st, []string{clusterName}, func(status *omni.ClusterStatus, assert *assert.Assertions) {
 			spec := status.TypedSpec().Value
+
+			machineIDs := getMachineSetNodes(ctx, t, st, clusterName)
+			require.NotEmpty(machineIDs)
 
 			assert.Truef(spec.Available, "not available: %s", resourceDetails(status))
 			assert.Equalf(specs.ClusterStatusSpec_RUNNING, spec.Phase, "cluster is not in phase running: %s", resourceDetails(status))

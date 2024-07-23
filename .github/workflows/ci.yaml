@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-05-24T15:23:06Z by kres b5844f8.
+# Generated on 2024-07-23T13:55:08Z by kres faf91e3.
 
 name: default
 concurrency:
@@ -145,6 +145,8 @@ jobs:
         env:
           INTEGRATION_RUN_E2E_TEST: "true"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|Auth/|DefaultCluster/
+          RUN_TALEMU_TESTS: "true"
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
@@ -187,8 +189,9 @@ jobs:
       - name: Generate Checksums
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          sha256sum _out/omnictl-* _out/omni-* > _out/sha256sum.txt
-          sha512sum _out/omnictl-* _out/omni-* > _out/sha512sum.txt
+          cd _out
+          sha256sum omnictl-* omni-* > sha256sum.txt
+          sha512sum omnictl-* omni-* > sha512sum.txt
       - name: release-notes
         if: startsWith(github.ref, 'refs/tags/')
         run: |
@@ -266,6 +269,8 @@ jobs:
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|EtcdBackupAndRestore
+          RUN_TALEMU_TESTS: "false"
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
@@ -342,6 +347,8 @@ jobs:
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|RollingUpdateParallelism/|ForcedMachineRemoval/|ReplaceControlPlanes/|ConfigPatching/|KubernetesNodeAudit/
+          RUN_TALEMU_TESTS: "false"
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
@@ -418,6 +425,8 @@ jobs:
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|TalosImageGeneration/|ImmediateClusterDestruction/|DefaultCluster/|EncryptedCluster/|SinglenodeCluster/|Auth/
+          RUN_TALEMU_TESTS: "false"
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
@@ -494,6 +503,8 @@ jobs:
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|ClusterTemplate/
+          RUN_TALEMU_TESTS: "false"
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
@@ -570,6 +581,8 @@ jobs:
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/
+          RUN_TALEMU_TESTS: "false"
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test

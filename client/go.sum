@@ -23,8 +23,8 @@ github.com/containerd/go-cni v1.1.10 h1:c2U73nld7spSWfiJwSh/8W9DK+/qQwYM2rngIhCy
 github.com/containerd/go-cni v1.1.10/go.mod h1:/Y/sL8yqYQn1ZG1om1OncJB1W4zN3YmjfP/ShCzG/OY=
 github.com/containernetworking/cni v1.2.2 h1:9IbP6KJQQxVKo4hhnm8r50YcVKrJbJu3Dqw+Rbt1vYk=
 github.com/containernetworking/cni v1.2.2/go.mod h1:DuLgF+aPd3DzcTQTtp/Nvl1Kim23oFKdm2okJzBQA5M=
-github.com/cosi-project/runtime v0.5.4 h1:Aw0o6gq8WITAAzvJQVeQX7HRSvqNmOxbt6Xf07B2WnU=
-github.com/cosi-project/runtime v0.5.4/go.mod h1:m+bkfUzKYeUyoqYAQBxdce3bfgncG8BsqcbfKRbvJKs=
+github.com/cosi-project/runtime v0.5.5 h1:GFoHnngpg4QVZluAUDwUbCe/sYOYBXKULxL/6DD99pU=
+github.com/cosi-project/runtime v0.5.5/go.mod h1:m+bkfUzKYeUyoqYAQBxdce3bfgncG8BsqcbfKRbvJKs=
 github.com/cpuguy83/go-md2man/v2 v2.0.4 h1:wfIWP927BUkWJb2NmU/kNDYIBTh/ziUX91+lVfRxZq4=
 github.com/cpuguy83/go-md2man/v2 v2.0.4/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -153,8 +153,8 @@ github.com/siderolabs/crypto v0.4.4 h1:Q6EDBMR2Ub2oAZW5Xl8lrKB27bM3Sn8Gkfw3rngco
 github.com/siderolabs/crypto v0.4.4/go.mod h1:hsR3tJ3aaeuhCChsLF4dBd9vlJVPvmhg4vvx2ez4aD4=
 github.com/siderolabs/gen v0.5.0 h1:Afdjx+zuZDf53eH5DB+E+T2JeCwBXGinV66A6osLgQI=
 github.com/siderolabs/gen v0.5.0/go.mod h1:1GUMBNliW98Xeq8GPQeVMYqQE09LFItE8enR3wgMh3Q=
-github.com/siderolabs/go-api-signature v0.3.3 h1:CVtWdD/izGW5P+wfR8ac7eyRJKbKbduxOWMvTfpYU3A=
-github.com/siderolabs/go-api-signature v0.3.3/go.mod h1:qp7De5ZrF021aPrhm5MyLPuaRhkiX4BADmZweqChw4I=
+github.com/siderolabs/go-api-signature v0.3.4 h1:bl8qiwhKLVpdzmjzWtKHTvWZyb7Oe4d4qp69imeU6+8=
+github.com/siderolabs/go-api-signature v0.3.4/go.mod h1:qp7De5ZrF021aPrhm5MyLPuaRhkiX4BADmZweqChw4I=
 github.com/siderolabs/go-blockdevice v0.4.7 h1:2bk4WpEEflGxjrNwp57ye24Pr+cYgAiAeNMWiQOuWbQ=
 github.com/siderolabs/go-blockdevice v0.4.7/go.mod h1:4PeOuk71pReJj1JQEXDE7kIIQJPVe8a+HZQa+qjxSEA=
 github.com/siderolabs/go-kubeconfig v0.1.0 h1:t/2oMWkLSdWHXglKPMz8ySXnx6ZjHckeGY79NaDcBTo=

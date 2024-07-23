@@ -13,6 +13,8 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strconv"
+	"time"
 
 	"github.com/mattn/go-shellwords"
 	"github.com/spf13/cobra"
@@ -31,12 +33,13 @@ var rootCmd = &cobra.Command{
 	RunE: func(*cobra.Command, []string) error {
 		return withContext(func(ctx context.Context) error {
 			// hacky hack
-			os.Args = append(os.Args[0:1], "-test.v", "-test.parallel", "4")
+			os.Args = append(os.Args[0:1], "-test.v", "-test.parallel", strconv.FormatInt(rootCmdFlags.parallel, 10), "-test.timeout", rootCmdFlags.testsTimeout.String())
 
 			testOptions := tests.Options{
 				RunTestPattern: rootCmdFlags.runTestPattern,
 
 				ExpectedMachines: rootCmdFlags.expectedMachines,
+				CleanupLinks:     rootCmdFlags.cleanupLinks,
 
 				MachineOptions:           rootCmdFlags.machineOptions,
 				AnotherTalosVersion:      rootCmdFlags.anotherTalosVersion,
@@ -110,6 +113,10 @@ var rootCmdFlags struct {
 	runTestPattern string
 
 	expectedMachines int
+	parallel         int64
+	cleanupLinks     bool
+
+	testsTimeout time.Duration
 
 	restartAMachineScript    string
 	wipeAMachineScript       string
@@ -141,6 +148,9 @@ func init() {
 	)
 	rootCmd.Flags().StringVar(&rootCmdFlags.machineOptions.KubernetesVersion, "kubernetes-version", constants.DefaultKubernetesVersion, "Kubernetes version for workload clusters")
 	rootCmd.Flags().StringVar(&rootCmdFlags.anotherKubernetesVersion, "another-kubernetes-version", constants.AnotherKubernetesVersion, "Kubernetes version for upgrade tests")
+	rootCmd.Flags().Int64VarP(&rootCmdFlags.parallel, "parallel", "p", 4, "tests parallelism")
+	rootCmd.Flags().DurationVarP(&rootCmdFlags.testsTimeout, "timeout", "t", time.Hour, "tests global timeout")
+	rootCmd.Flags().BoolVar(&rootCmdFlags.cleanupLinks, "cleanup-links", false, "remove all links after the tests are complete")
 }
 
 // withContext wraps with CLI context.

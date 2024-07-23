@@ -26,7 +26,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
 	github.com/containers/image/v5 v5.31.1
-	github.com/cosi-project/runtime v0.5.4
+	github.com/cosi-project/runtime v0.5.5
 	github.com/cosi-project/state-etcd v0.2.9
 	github.com/crewjam/saml v0.4.14
 	github.com/dustin/go-humanize v1.0.1
@@ -59,7 +59,7 @@ require (
 	github.com/siderolabs/discovery-client v0.1.9
 	github.com/siderolabs/discovery-service v1.0.3-0.20240530092511-74bca2da5cc8
 	github.com/siderolabs/gen v0.5.0
-	github.com/siderolabs/go-api-signature v0.3.3
+	github.com/siderolabs/go-api-signature v0.3.4
 	github.com/siderolabs/go-circular v0.2.0
 	github.com/siderolabs/go-debug v0.3.0
 	github.com/siderolabs/go-kubernetes v0.2.11
@@ -104,7 +104,6 @@ require (
 )
 
 require (
-	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
 	github.com/ProtonMail/go-mime v0.0.0-20230322103455-7d82a3887f2f // indirect
 	github.com/aws/aws-sdk-go v1.44.256 // indirect
@@ -140,7 +139,6 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/docker/cli v27.0.3+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
-	github.com/docker/docker v27.0.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.8.2 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
 	github.com/evanphx/json-patch v5.9.0+incompatible // indirect
@@ -173,10 +171,8 @@ require (
 	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/josharian/native v1.1.0 // indirect
-	github.com/jsimonetti/rtnetlink v1.4.2 // indirect
 	github.com/jsimonetti/rtnetlink/v2 v2.0.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect

@@ -17,6 +17,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sync/semaphore"
@@ -24,6 +26,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/cmd/integration-test/pkg/clientconfig"
 )
 
@@ -51,6 +54,7 @@ type TalosAPIKeyPrepareFunc func(ctx context.Context, contextName string) error
 type Options struct {
 	RunTestPattern string
 
+	CleanupLinks     bool
 	ExpectedMachines int
 
 	RestartAMachineFunc RestartAMachineFunc
@@ -533,7 +537,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-machine-class-based-machine-sets"),
 				},
 			),
-			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling"),
+			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-machine-class-based-machine-sets"),
 		},
 		{
 			Name: "RollingUpdateParallelism",
@@ -1143,11 +1147,48 @@ Test flow of cluster creation and scaling using cluster templates.`,
 		nil,
 	).Run()
 
+	if options.CleanupLinks {
+		if err := cleanupLinks(ctx, rootClient.Omni().State()); err != nil {
+			return err
+		}
+	}
+
 	if exitCode != 0 {
 		return errors.New("test failed")
 	}
 
 	return nil
+}
+
+func cleanupLinks(ctx context.Context, st state.State) error {
+	links, err := safe.ReaderListAll[*siderolink.Link](ctx, st)
+	if err != nil {
+		return err
+	}
+
+	var cancel context.CancelFunc
+
+	ctx, cancel = context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+
+	return links.ForEachErr(func(r *siderolink.Link) error {
+		_, err := st.Teardown(ctx, r.Metadata())
+		if err != nil {
+			return err
+		}
+
+		_, err = st.WatchFor(ctx, r.Metadata(), state.WithFinalizerEmpty())
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		err = st.Destroy(ctx, r.Metadata())
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func makeTests(ctx context.Context, testsToRun []testGroup, machineSemaphore *semaphore.Weighted) []testing.InternalTest {

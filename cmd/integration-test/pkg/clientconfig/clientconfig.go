@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/adrg/xdg"
@@ -144,6 +145,8 @@ func SignHTTPRequestWithEmail(ctx context.Context, client *client.Client, req *h
 	return msg.Sign(email, newKey)
 }
 
+var talosAPIKeyMutex sync.Mutex
+
 // TalosAPIKeyPrepare prepares a public key to be used with tests interacting via Talos API client using the default test email.
 func TalosAPIKeyPrepare(ctx context.Context, client *client.Client, contextName string) error {
 	return TalosAPIKeyPrepareWithEmail(ctx, client, contextName, defaultEmail)
@@ -151,17 +154,29 @@ func TalosAPIKeyPrepare(ctx context.Context, client *client.Client, contextName 
 
 // TalosAPIKeyPrepareWithEmail prepares a public key to be used with tests interacting via Talos API client using the given email.
 func TalosAPIKeyPrepareWithEmail(ctx context.Context, client *client.Client, contextName, email string) error {
+	talosAPIKeyMutex.Lock()
+	defer talosAPIKeyMutex.Unlock()
+
+	path, err := xdg.DataFile(filepath.Join("talos", "keys", fmt.Sprintf("%s-%s.pgp", contextName, email)))
+	if err != nil {
+		return err
+	}
+
+	stat, err := os.Stat(path)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	if stat != nil && time.Since(stat.ModTime()) < 2*time.Hour {
+		return nil
+	}
+
 	newKey, err := pgp.GenerateKey("", "", email, 4*time.Hour)
 	if err != nil {
 		return err
 	}
 
 	err = registerKey(ctx, client.Auth(), newKey, email)
-	if err != nil {
-		return err
-	}
-
-	path, err := xdg.DataFile(filepath.Join("talos", "keys", fmt.Sprintf("%s-%s.pgp", contextName, email)))
 	if err != nil {
 		return err
 	}

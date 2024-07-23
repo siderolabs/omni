@@ -95,7 +95,7 @@ cp -p ${ARTIFACTS}/omnictl-* omnictl/
 
 SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
 nice -n 10 ${ARTIFACTS}/omni-linux-amd64 \
-    --siderolink-wireguard-advertised-addr 172.20.0.1:50180 \
+    --siderolink-wireguard-advertised-addr $LOCAL_IP:50180 \
     --siderolink-api-advertised-url "grpc://$LOCAL_IP:8090" \
     --auth-auth0-enabled true \
     --advertised-api-url "${BASE_URL}" \
@@ -111,6 +111,28 @@ nice -n 10 ${ARTIFACTS}/omni-linux-amd64 \
     --etcd-backup-s3 \
     "${REGISTRY_MIRROR_FLAGS[@]}" \
     &
+
+KERNEL_ARGS="siderolink.api=grpc://$LOCAL_IP:8090?jointoken=${JOIN_TOKEN} talos.events.sink=[fdae:41e4:649b:9303::1]:8090 talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092"
+
+if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
+  TALEMU_CONTAINER=$(docker run --network host --cap-add=NET_ADMIN -it --rm -d ghcr.io/siderolabs/talemu:latest --kernel-args="${KERNEL_ARGS}" --machines=30)
+
+  sleep 10
+
+  SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
+  ${ARTIFACTS}/integration-test-linux-amd64 \
+      --endpoint https://localhost:8099 \
+      --talos-version=${TALOS_VERSION} \
+      --omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
+      --expected-machines=30 \
+      --cleanup-links \
+      -t 4m \
+      -p 10 \
+      ${TALEMU_TEST_ARGS:-}
+
+  docker stop $TALEMU_CONTAINER
+  docker rm -f $TALEMU_CONTAINER
+fi
 
 # Prepare partial machine config
 PARTIAL_CONFIG=$(cat <<EOF
