@@ -97,9 +97,17 @@ onMounted(() => {
     auth0 = useAuth0();
 
     user.value = auth0.user.value;
-    idToken = auth0.idTokenClaims.value.__raw;
+    idToken = auth0.idTokenClaims.value!.__raw;
 
-    logout = auth0.logout;
+    logout = async () => {
+      if (auth0) {
+        await auth0.logout({
+          logoutParams: {
+            returnTo: window.location.origin
+          }
+        });
+      }
+    }
   } else {
     const navigateToLogin = () => {
       const query: string[] = [];
@@ -206,11 +214,11 @@ const confirmPublicKey = async () => {
       renewIdToken = false;
 
       await auth0.checkSession({
-        ignoreCache: true,
+        cacheMode: "off"
       })
 
       user.value = auth0.user.value;
-      idToken = auth0.idTokenClaims.value.__raw;
+      idToken = auth0.idTokenClaims.value!.__raw;
     }
 
     const options: fetchOption[] = [];
@@ -228,7 +236,7 @@ const confirmPublicKey = async () => {
     await AuthService.ConfirmPublicKey({
       public_key_id: publicKeyId,
     }, ...options);
-      
+
     confirmed.value = true
   } catch (e) {
     showError("Failed to confirm public key", e.message);

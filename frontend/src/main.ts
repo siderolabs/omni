@@ -54,8 +54,10 @@ const setupApp = async () => {
     if (authType.value === AuthType.Auth0) {
       app = app.use(createAuth0({
         domain: authConfigSpec!.auth0!.domain!,
-        client_id: authConfigSpec!.auth0!.client_id!,
-        redirect_uri: window.location.origin,
+        clientId: authConfigSpec!.auth0!.client_id!,
+        authorizationParams: {
+          redirect_uri: window.location.origin,
+        },
         useFormData: !!authConfigSpec!.auth0?.useFormData,
       }))
     }

@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <template>
   <div class="flex gap-2 items-center" :class="fontSize">
-    <img v-if="avatar" class="rounded-full" :class="imageSize" :src="avatar" referrerpolicy="no-referrer"/>
+    <img v-if="avatar" class="rounded-full" :class="imageSize" :src="avatar as string" referrerpolicy="no-referrer"/>
     <div class="flex flex-col flex-1 truncate">
       <div class="text-naturals-N13 truncate">{{ fullname }}</div>
       {{ identity }}
@@ -64,7 +64,7 @@ const imageSize = computed(() => {
 });
 
 const doLogout = async () => {
-  await auth0?.logout({ returnTo: window.location.origin });
+  await auth0?.logout({ logoutParams: { returnTo: window.location.origin } });
 
   resetKeys();
 
