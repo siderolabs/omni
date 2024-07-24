@@ -10,7 +10,7 @@
     "lint": "eslint ./src"
   },
   "dependencies": {
-    "@auth0/auth0-vue": "^1.0.2",
+    "@auth0/auth0-vue": "^2.0.0",
     "@headlessui/vue": "^1.6.5",
     "@kubernetes/client-node": "^0.21.0",
     "click-outside-vue3": "^4.0.1",
@@ -23,7 +23,7 @@
     "pluralize": "^8.0.0",
     "rxjs": "^7.5.5",
     "semver-parser": "^4.0.1",
-    "uuid": "^8.3.2",
+    "uuid": "^10.0.0",
     "vue": "^3.4.21",
     "vue-router": "^4.3.2",
     "vue-virtual-scroller": "^2.0.0-beta.8",
