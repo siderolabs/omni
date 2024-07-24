@@ -55,7 +55,7 @@ services:
 
   vault-dev:
     container_name: local-vault
-    image: hashicorp/vault:1.15
+    image: hashicorp/vault:1.17
     environment:
       - VAULT_DEV_ROOT_TOKEN_ID=dev-o-token
     cap_add:
@@ -68,7 +68,7 @@ services:
       - vault-dev
     restart: on-failure
     container_name: local-vault-init
-    image: hashicorp/vault:1.15
+    image: hashicorp/vault:1.17
     volumes:
       - ../../internal/backend/runtime/omni/testdata/pgp/new_key.private:/tmp/key.private:ro
     environment:
