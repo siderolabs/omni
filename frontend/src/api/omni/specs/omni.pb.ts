@@ -709,6 +709,11 @@ export type MachineStatusMetricsSpec = {
   allocated_machines_count?: number
 }
 
+export type ClusterStatusMetricsSpec = {
+  not_ready_count?: number
+  phases?: {[key: number]: number}
+}
+
 export type ClusterKubernetesNodesSpec = {
   nodes?: string[]
 }

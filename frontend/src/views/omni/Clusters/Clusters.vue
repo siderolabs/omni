@@ -6,10 +6,6 @@ included in the LICENSE file.
 -->
 <template>
   <div>
-    <div class="flex gap-1 items-start">
-      <page-header title="Clusters" class="flex-1"/>
-      <t-button :disabled="!canCreateClusters" @click="openClusterCreate" type="highlighted">Create Cluster</t-button>
-    </div>
     <t-list
       :opts="watchOpts"
       search
@@ -18,6 +14,19 @@ included in the LICENSE file.
       errorsAlert
       :filterValue="filterValue"
     >
+      <template #header="{ itemsCount, filtered }">
+        <div class="flex gap-1 items-start">
+          <page-header title="Clusters" class="flex-1">
+            <stats-item icon="clusters" pluralized-text="Cluster" :count="itemsCount" :text=" filtered ? ' Found' : ' Total'"/>
+            <watch :opts="{resource: { type: ClusterStatusMetricsType, id: ClusterStatusMetricsID, namespace: EphemeralNamespace }, runtime: Runtime.Omni}">
+              <template #default="{ items }">
+                <stats-item hide-zero icon="warning" :count="items[0]?.spec.not_ready_count ?? 0" text=" Not Ready"/>
+              </template>
+            </watch>
+          </page-header>
+          <t-button :disabled="!canCreateClusters" @click="openClusterCreate" type="highlighted">Create Cluster</t-button>
+        </div>
+      </template>
       <template #input>
         <labels-input :completions-resource="{
           id: ClusterStatusType,
@@ -55,7 +64,7 @@ included in the LICENSE file.
 
 <script setup lang="ts">
 import { useRouter } from "vue-router";
-import { DefaultNamespace, ClusterStatusType, LabelsCompletionType, VirtualNamespace } from "@/api/resources";
+import { DefaultNamespace, ClusterStatusType, LabelsCompletionType, VirtualNamespace, ClusterStatusMetricsType, ClusterStatusMetricsID, EphemeralNamespace } from "@/api/resources";
 import { Runtime } from "@/api/common/omni.pb";
 import { WatchOptions, itemID } from "@/api/watch";
 
@@ -67,6 +76,8 @@ import { computed, ref } from "vue";
 import { canCreateClusters } from "@/methods/auth";
 import LabelsInput from "../ItemLabels/LabelsInput.vue";
 import { addLabel, selectors, Label } from "@/methods/labels";
+import StatsItem from "@/components/common/Stats/StatsItem.vue";
+import Watch from "@/components/common/Watch/Watch.vue";
 
 const router = useRouter();
 

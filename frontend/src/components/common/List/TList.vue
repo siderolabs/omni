@@ -5,68 +5,71 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <div class="flex flex-col gap-4">
-    <div class="flex gap-2" v-if="pagination || search || itemsPerPage?.length > 1">
-      <slot v-if="$slots.input" name="input"/>
-      <t-input v-else-if="search" class="flex-1" icon="search" v-model="filterValueInternal"/>
-      <div class="flex-1" v-else/>
-      <t-select-list
-          @checkedValue="(value: string) => { selectedSortOption = value }"
-          v-if="sortOptions"
-          title="Sort by"
-          :defaultValue="selectedSortOption || ''"
-          :values="sortOptionsVariants"
-        />
-      <t-select-list
-          @checkedValue="(value: number) => { selectedItemsPerPage = value; currentPage = 1 }"
-          v-if="itemsPerPage?.length > 1 && pagination"
-          title="Items per Page"
-          :defaultValue="selectedItemsPerPage"
-          :values="itemsPerPage"
-        />
-    </div>
-    <div class="flex-1">
-      <div
-        v-if="loading"
-        class="flex flex-row justify-center items-center w-full h-full"
-      >
-        <t-spinner class="loading-spinner"/>
+  <div>
+    <slot name="header" :itemsCount="itemsCount" :filtered="searchState.searchFor?.length || searchState.selectors?.length"/>
+    <div class="flex flex-col gap-4">
+      <div class="flex gap-2" v-if="pagination || search || itemsPerPage?.length > 1">
+        <slot v-if="$slots.input" name="input"/>
+        <t-input v-else-if="search" class="flex-1" icon="search" v-model="filterValueInternal"/>
+        <div class="flex-1" v-else/>
+        <t-select-list
+            @checkedValue="(value: string) => { selectedSortOption = value }"
+            v-if="sortOptions"
+            title="Sort by"
+            :defaultValue="selectedSortOption || ''"
+            :values="sortOptionsVariants"
+          />
+        <t-select-list
+            @checkedValue="(value: number) => { selectedItemsPerPage = value; currentPage = 1 }"
+            v-if="itemsPerPage?.length > 1 && pagination"
+            title="Items per Page"
+            :defaultValue="selectedItemsPerPage"
+            :values="itemsPerPage"
+          />
       </div>
-      <template v-else-if="err">
-        <t-alert v-if="!$slots.error"
-          title="Failed to Fetch Data"
-          type="error"
+      <div class="flex-1">
+        <div
+          v-if="loading"
+          class="flex flex-row justify-center items-center w-full h-full"
         >
-          {{ err }}.
-        </t-alert>
-        <slot name="error" v-else err="err"/>
-      </template>
-      <template v-else-if="items?.length === 0">
-        <t-alert
-          v-if="!$slots.norecords"
-          type="info"
-          title="No Records"
-          >No entries of the requested resource type are found on the
-          server.</t-alert
-        >
-        <slot name="norecords"/>
-      </template>
-      <div class="w-full h-full" v-show="!loading && !err && (items?.length > 0)">
-        <slot :items="items" :watch="watch" :searchQuery="searchQuery"/>
+          <t-spinner class="loading-spinner"/>
+        </div>
+        <template v-else-if="err">
+          <t-alert v-if="!$slots.error"
+            title="Failed to Fetch Data"
+            type="error"
+          >
+            {{ err }}.
+          </t-alert>
+          <slot name="error" v-else err="err"/>
+        </template>
+        <template v-else-if="items?.length === 0">
+          <t-alert
+            v-if="!$slots.norecords"
+            type="info"
+            title="No Records"
+            >No entries of the requested resource type are found on the
+            server.</t-alert
+          >
+          <slot name="norecords"/>
+        </template>
+        <div class="w-full h-full" v-show="!loading && !err && (items?.length > 0)">
+          <slot :items="items" :watch="watch" :searchQuery="searchQuery"/>
+        </div>
       </div>
-    </div>
-    <div class="flex items-center justify-end gap-2" v-if="showPageSelector">
-      <t-icon icon="arrow-left" class="pagination-icon" :class="{ 'pagination-icon-disabled': currentPage === 1 }"
-        @click="prevPage" />
-      <div class="pagination-pages">
-        <span @click="() => openPage(item)" class="pagination-page-number" :class="{
-              'pagination-page-number-active': item === currentPage,
-              unhovered: item === dots,
-            }" v-for="item, index in paginationRange ?? []" :key="index">
-          {{ item }}</span>
+      <div class="flex items-center justify-end gap-2" v-if="showPageSelector">
+        <t-icon icon="arrow-left" class="pagination-icon" :class="{ 'pagination-icon-disabled': currentPage === 1 }"
+          @click="prevPage" />
+        <div class="pagination-pages">
+          <span @click="() => openPage(item)" class="pagination-page-number" :class="{
+                'pagination-page-number-active': item === currentPage,
+                unhovered: item === dots,
+              }" v-for="item, index in paginationRange ?? []" :key="index">
+            {{ item }}</span>
+        </div>
+        <t-icon icon="arrow-right" class="pagination-icon"
+          :class="{ 'pagination-icon-disabled': currentPage === totalPageCount }" @click="nextPage"/>
       </div>
-      <t-icon icon="arrow-right" class="pagination-icon"
-        :class="{ 'pagination-icon-disabled': currentPage === totalPageCount }" @click="nextPage"/>
     </div>
   </div>
 </template>
@@ -199,7 +202,8 @@ const searchState = computed(() => {
     const match = part.match(/^(.+):(.*)$/);
 
     if (!match || match.length < 3) {
-      searchFor.push(part);
+      if (part)
+        searchFor.push(part);
 
       continue
     }
@@ -311,6 +315,7 @@ const paginationRange = computed(() => {
 const watch = optsList?.length ? setupJoinWatch() : setupWatch();
 const err = watch.err;
 const loading = watch.loading;
+const itemsCount = watch.total;
 
 const totalPageCount = computed(() => {
   return Math.ceil(watch.total.value / selectedItemsPerPage.value);

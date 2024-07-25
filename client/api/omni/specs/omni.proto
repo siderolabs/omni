@@ -1080,6 +1080,13 @@ message MachineStatusMetricsSpec {
   uint32 allocated_machines_count = 3;
 }
 
+// ClusterStatusMetricsSpec provides aggregated state of the number of clusters in not ready phase.
+// and the number of clusters in each phase.
+message ClusterStatusMetricsSpec {
+  uint32 not_ready_count = 1;
+  map<int32, uint32> phases = 2;
+}
+
 // ClusterKubernetesNodesSpec describes the list of nodes in a Kubernetes cluster.
 message ClusterKubernetesNodesSpec {
   // Nodes is the list of nodes in the cluster.

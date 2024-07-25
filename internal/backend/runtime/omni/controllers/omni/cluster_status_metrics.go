@@ -46,7 +46,12 @@ func (ctrl *ClusterStatusMetricsController) Inputs() []controller.Input {
 
 // Outputs implements controller.Controller interface.
 func (ctrl *ClusterStatusMetricsController) Outputs() []controller.Output {
-	return nil
+	return []controller.Output{
+		{
+			Type: omni.ClusterStatusMetricsType,
+			Kind: controller.OutputExclusive,
+		},
+	}
 }
 
 func (ctrl *ClusterStatusMetricsController) initMetrics() {
@@ -75,6 +80,10 @@ func (ctrl *ClusterStatusMetricsController) Run(ctx context.Context, r controlle
 			return err
 		}
 
+		res := omni.NewClusterStatusMetrics(resources.EphemeralNamespace, omni.ClusterStatusMetricsID)
+
+		res.TypedSpec().Value.Phases = make(map[int32]uint32, len(specs.ClusterStatusSpec_Phase_name))
+
 		// it is important to enumerate here all status values, as otherwise metric might not be cleared properly
 		// when there are no cluster in a given status
 		clustersByStatus := map[specs.ClusterStatusSpec_Phase]int{
@@ -86,11 +95,26 @@ func (ctrl *ClusterStatusMetricsController) Run(ctx context.Context, r controlle
 		}
 
 		for iter := list.Iterator(); iter.Next(); {
-			clustersByStatus[iter.Value().TypedSpec().Value.Phase]++
+			phase := iter.Value().TypedSpec().Value.Phase
+			clustersByStatus[phase]++
+
+			res.TypedSpec().Value.Phases[int32(phase)]++
+
+			if !iter.Value().TypedSpec().Value.Ready {
+				res.TypedSpec().Value.NotReadyCount++
+			}
 		}
 
 		for status, num := range clustersByStatus {
 			ctrl.metricNumClusters.WithLabelValues(status.String()).Set(float64(num))
+		}
+
+		if err := safe.WriterModify(ctx, r, res, func(r *omni.ClusterStatusMetrics) error {
+			r.TypedSpec().Value = res.TypedSpec().Value
+
+			return nil
+		}); err != nil {
+			return err
 		}
 
 		select {

@@ -203,7 +203,7 @@ export default class Watch<T extends Resource> extends WatchFunc {
         handler(event, spec);
       }
 
-      if (event.total !== undefined) {
+      if (event.total !== undefined || ![EventType.BOOTSTRAPPED, EventType.UNKNOWN].includes(event.event?.event_type ?? EventType.UNKNOWN)) {
         this.lastTotal = event.total ?? 0;
 
         if (this.watchItems?.bootstrapped) {
