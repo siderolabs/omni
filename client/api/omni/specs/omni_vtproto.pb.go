@@ -992,6 +992,7 @@ func (m *TalosVersionSpec) CloneVT() *TalosVersionSpec {
 	}
 	r := new(TalosVersionSpec)
 	r.Version = m.Version
+	r.Deprecated = m.Deprecated
 	if rhs := m.CompatibleKubernetesVersions; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -3480,6 +3481,9 @@ func (this *TalosVersionSpec) EqualVT(that *TalosVersionSpec) bool {
 		if vx != vy {
 			return false
 		}
+	}
+	if this.Deprecated != that.Deprecated {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -7788,6 +7792,16 @@ func (m *TalosVersionSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Deprecated {
+		i--
+		if m.Deprecated {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
 	if len(m.CompatibleKubernetesVersions) > 0 {
 		for iNdEx := len(m.CompatibleKubernetesVersions) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.CompatibleKubernetesVersions[iNdEx])
@@ -11783,6 +11797,9 @@ func (m *TalosVersionSpec) SizeVT() (n int) {
 			l = len(s)
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
+	}
+	if m.Deprecated {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -20013,6 +20030,26 @@ func (m *TalosVersionSpec) UnmarshalVT(dAtA []byte) error {
 			}
 			m.CompatibleKubernetesVersions = append(m.CompatibleKubernetesVersions, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Deprecated", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Deprecated = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

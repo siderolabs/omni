@@ -30,7 +30,9 @@ import (
 var (
 	// minK8sVersion sets minimum Kubernetes version for building the list of versions.
 	minK8sVersion = semver.MustParse(consts.MinKubernetesVersion)
-	// minTalosVersion sets minimum Talos version for building the list of versions.
+	// minDiscoveredTalosVersion sets minimum Talos version for building the list of versions.
+	minDiscoveredTalosVersion = semver.MustParse(consts.MinDiscoveredTalosVersion)
+	// minTalosVersion sets minimum Talos version which are not deprecated.
 	minTalosVersion = semver.MustParse(consts.MinTalosVersion)
 )
 
@@ -223,7 +225,7 @@ func forAllCompatibleVersions(
 func (ctrl *VersionsController) reconcileTalosVersions(ctx context.Context, r controller.Runtime, k8sVersions []*compatibility.KubernetesVersion, logger *zap.Logger) error {
 	tracker := trackResource(r, resources.DefaultNamespace, omni.TalosVersionType)
 
-	talosVersions, err := ctrl.getVersionsAfter(ctx, config.Config.TalosRegistry, minTalosVersion, config.Config.EnableTalosPreReleaseVersions)
+	talosVersions, err := ctrl.getVersionsAfter(ctx, config.Config.TalosRegistry, minDiscoveredTalosVersion, config.Config.EnableTalosPreReleaseVersions)
 	if err != nil {
 		return err
 	}
@@ -239,6 +241,11 @@ func (ctrl *VersionsController) reconcileTalosVersions(ctx context.Context, r co
 		if writeErr := safe.WriterModify(ctx, r, talosVersion, func(res *omni.TalosVersion) error {
 			res.TypedSpec().Value.Version = talosVer
 			res.TypedSpec().Value.CompatibleKubernetesVersions = compatibleK8sVersions
+
+			v := semver.MustParse(strings.TrimLeft(talosVer, "v"))
+			v.Pre = nil
+
+			res.TypedSpec().Value.Deprecated = v.LT(minTalosVersion)
 
 			return nil
 		}); writeErr != nil {

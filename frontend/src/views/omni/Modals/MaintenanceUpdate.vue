@@ -104,6 +104,10 @@ const upgradeVersions = computed(() => {
   const result: Record<string, string[]> = {};
 
   for (const version of sorted) {
+    if (version.spec.deprecated) {
+      continue;
+    }
+
     const major = semver.major(version.metadata.id);
     const minor = semver.minor(version.metadata.id);
 

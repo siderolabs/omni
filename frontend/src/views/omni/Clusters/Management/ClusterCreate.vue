@@ -378,6 +378,10 @@ const talosVersions = computed(() => {
   const res: string[] = [];
 
   for (const version of talosVersionsList.value) {
+    if (version.spec.deprecated) {
+      continue;
+    }
+
     res.push(version.spec.version!);
   }
 
