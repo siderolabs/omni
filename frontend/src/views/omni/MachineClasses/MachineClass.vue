@@ -205,6 +205,8 @@ const updateContent = (i: number, event: KeyboardEvent) => {
   })
 }
 
+let labels: Record<string, string> | undefined;
+
 if (props.edit) {
   const machineClass: Ref<Resource<MachineClassSpec> | undefined> = ref();
   const machineClassWatch = new ItemWatch(machineClass);
@@ -240,6 +242,7 @@ if (props.edit) {
 
     conditions.value = matchLabels;
     resourceVersion = machineClass.value?.metadata.version;
+    labels = machineClass.value?.metadata.labels;
   });
 }
 
@@ -338,6 +341,7 @@ const submit = async () => {
       namespace: DefaultNamespace,
       type: MachineClassType,
       version: resourceVersion,
+      labels,
     },
     spec: {
       match_labels: nonEmptyConditions.value,
