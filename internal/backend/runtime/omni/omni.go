@@ -302,6 +302,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		roleValidationOptions(),
 		machineSetNodeValidationOptions(resourceState),
 		machineSetValidationOptions(resourceState, storeFactory),
+		machineClassValidationOptions(resourceState),
 		identityValidationOptions(config.Config.Auth.SAML),
 		exposedServiceValidationOptions(),
 		configPatchValidationOptions(resourceState),

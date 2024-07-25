@@ -46,6 +46,10 @@ func MachineSetNodeValidationOptions(st state.State) []validated.StateOption {
 	return machineSetNodeValidationOptions(st)
 }
 
+func MachineClassValidationOptions(st state.State) []validated.StateOption {
+	return machineClassValidationOptions(st)
+}
+
 func IdentityValidationOptions(samlConfig config.SAMLParams) []validated.StateOption {
 	return identityValidationOptions(samlConfig)
 }

@@ -844,6 +844,42 @@ func TestMachineSetClassesValidation(t *testing.T) {
 	require.ErrorContains(t, err, "machine set is not empty")
 }
 
+func TestMachineClassValidation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+
+	st := validated.NewState(innerSt,
+		omni.MachineClassValidationOptions(state.WrapCore(innerSt))...,
+	)
+
+	require.NoError(t, st.Create(ctx, omnires.NewCluster(resources.DefaultNamespace, "test-cluster")))
+
+	machineSet := omnires.NewMachineSet(resources.DefaultNamespace, "test-cluster-control-planes")
+
+	machineSet.Metadata().Labels().Set(omnires.LabelCluster, "test-cluster")
+	machineSet.Metadata().Labels().Set(omnires.LabelControlPlaneRole, "")
+
+	machineSet.TypedSpec().Value.MachineClass = &specs.MachineSetSpec_MachineClass{
+		Name: "test-class",
+	}
+
+	machineClass := omnires.NewMachineClass(resources.DefaultNamespace, "test-class")
+
+	require.NoError(t, st.Create(ctx, machineClass))
+	require.NoError(t, st.Create(ctx, machineSet))
+
+	err := st.Destroy(ctx, machineClass.Metadata())
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+
+	require.NoError(t, st.Destroy(ctx, machineSet.Metadata()))
+	require.NoError(t, st.Destroy(ctx, machineClass.Metadata()))
+}
+
 func TestS3ConfigValidation(t *testing.T) {
 	t.Parallel()
 

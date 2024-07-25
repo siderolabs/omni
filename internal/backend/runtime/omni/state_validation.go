@@ -386,6 +386,32 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 	}
 }
 
+// machineClassValidationOptions returns the validation options for the machine class resource.
+func machineClassValidationOptions(st state.State) []validated.StateOption {
+	return []validated.StateOption{
+		validated.WithDestroyValidations(validated.NewDestroyValidationForType(func(ctx context.Context, _ resource.Pointer, res *omni.MachineClass, _ ...state.DestroyOption) error {
+			machineSets, err := safe.ReaderListAll[*omni.MachineSet](ctx, st)
+			if err != nil {
+				return err
+			}
+
+			var inUseBy []string
+
+			machineSets.ForEach(func(r *omni.MachineSet) {
+				if r.TypedSpec().Value.MachineClass != nil && r.TypedSpec().Value.MachineClass.Name == res.Metadata().ID() {
+					inUseBy = append(inUseBy, r.Metadata().ID())
+				}
+			})
+
+			if len(inUseBy) > 0 {
+				return fmt.Errorf("can not delete the machine class as it is still in use by machine sets: %s", strings.Join(inUseBy, ", "))
+			}
+
+			return nil
+		})),
+	}
+}
+
 func validateBootstrapSpec(ctx context.Context, st state.State, etcdBackupStoreFactory store.Factory, oldres, res *omni.MachineSet) error {
 	bootstrapSpec := res.TypedSpec().Value.GetBootstrapSpec()
 	_, isControlPlane := res.Metadata().Labels().Get(omni.LabelControlPlaneRole)
