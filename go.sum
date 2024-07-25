@@ -111,8 +111,8 @@ github.com/coreos/go-systemd/v22 v22.5.0 h1:RrqgGjYQKalulkV8NGVIfkXQf6YYmOyiJKk8
 github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
 github.com/cosi-project/runtime v0.5.5 h1:GFoHnngpg4QVZluAUDwUbCe/sYOYBXKULxL/6DD99pU=
 github.com/cosi-project/runtime v0.5.5/go.mod h1:m+bkfUzKYeUyoqYAQBxdce3bfgncG8BsqcbfKRbvJKs=
-github.com/cosi-project/state-etcd v0.2.9 h1:jPYLHvQEjAksqPxku7gcfX7o+a0cw289dAQfr58lWfE=
-github.com/cosi-project/state-etcd v0.2.9/go.mod h1:9PAv45buB5kWEGB+TuAk8FZxyRYxcB3198W/JndzcbA=
+github.com/cosi-project/state-etcd v0.3.0 h1:mRqsowUb6Px6ZC9Qt61WOrATyMLJEahQ9T9rLriTDN4=
+github.com/cosi-project/state-etcd v0.3.0/go.mod h1:9PAv45buB5kWEGB+TuAk8FZxyRYxcB3198W/JndzcbA=
 github.com/cpuguy83/go-md2man/v2 v2.0.4 h1:wfIWP927BUkWJb2NmU/kNDYIBTh/ziUX91+lVfRxZq4=
 github.com/cpuguy83/go-md2man/v2 v2.0.4/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
