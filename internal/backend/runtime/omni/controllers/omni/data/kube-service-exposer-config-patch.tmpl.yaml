@@ -52,7 +52,7 @@ cluster:
                 - operator: Exists
               containers:
                 - name: omni-kube-service-exposer
-                  image: ghcr.io/siderolabs/kube-service-exposer:v0.1.3
+                  image: ghcr.io/siderolabs/kube-service-exposer:v0.1.4
                   args:
                     - --debug=false
                     - --annotation-key={{ .AnnotationKey }}
