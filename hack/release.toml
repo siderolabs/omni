@@ -6,34 +6,20 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v0.38.0"
+previous = "v0.39.0"
 
 [notes]
 
-  [notes.exposed-services]
-    title = "Exposed Services Reliability"
+  [notes.support-bundle]
+    title = "Support Bundle"
     description = """\
-Exposed services proxy now provides more reliable connection to the underlying services for slower networks in the cluster.
-Also if some nodes are down the proxy will evict them from the routing.
-"""
-  
-  [notes.equinix-metal]
-    title = "Equinix Metal"
-    description = """\
-Equinix metal is now available as a download/PXE option in the UI/CLI.
+Support downloading cluster support bundle from the UI.
 """
 
-  [notes.insecure-access]
-    title = "Insecure Node Access"
+  [notes.watch-stats]
+    title = "Show Total Items"
     description = """\
-It is now possible to access nodes running in maintenance mode using `talosctl`.
-Omni account wide `talosconfig` and at least `Operator` user role is required for that.
-No `--insecure` flag should be set.
+Display total number of clusters and machines on the corresponding pages.
+Also show some basic stats there: the number of clusters not ready and allocated/available machines.
 """
 
-  [notes.maintenance-talos-updates]
-    title = "Maintenance Talos Updates"
-    description = """\
-Machine's Talos version can now be updated without adding the machine to a cluster.
-Either `talosctl upgrade -n <uuid>` or the UI (Machines page) can be used for that.
-"""

@@ -1,3 +1,271 @@
+## [Omni 0.40.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.40.0-beta.0) (2024-07-26)
+
+Welcome to the v0.40.0-beta.0 release of Omni!  
+*This is a pre-release of Omni*
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Support Bundle
+
+Support downloading cluster support bundle from the UI.
+
+
+### Show Total Items
+
+Display total number of clusters and machines on the corresponding pages.
+Also show some basic stats there: the number of clusters not ready and allocated/available machines.
+
+
+### Contributors
+
+* Artem Chernyshev
+* Andrey Smirnov
+* Dmitriy Matrenichev
+* Utku Ozdemir
+* Jubblin
+* Maxime Brunet
+* Sam
+* Spencer Smith
+
+### Changes
+<details><summary>27 commits</summary>
+<p>
+
+* [`8ef319c`](https://github.com/siderolabs/omni/commit/8ef319cf608d05f89c57a4d1cb5cde442c452711) chore: bump kube-service-exposer version
+* [`743e67f`](https://github.com/siderolabs/omni/commit/743e67f55ae4a7cfc4f4e32d12157b86da2761e9) chore: bump state-etcd module version
+* [`6759925`](https://github.com/siderolabs/omni/commit/67599253375a9cc431ad3e1e1bc82e08cb28f853) chore: deprecate Talos 1.3
+* [`5dd5259`](https://github.com/siderolabs/omni/commit/5dd52593ee80291407ab0ba158b8af0b04c433ef) chore: add rotating log for audit data
+* [`6f6e1a6`](https://github.com/siderolabs/omni/commit/6f6e1a675191d0b7e5f94be3089b6a66200bb651) fix: do not allow deleting machine classes which are used anywhere
+* [`aeb9322`](https://github.com/siderolabs/omni/commit/aeb9322cca0678ebbe5c5f16e22ac17ea107c3dc) fix: preserve labels on the `MachineClass` when editing it in the UI
+* [`641328c`](https://github.com/siderolabs/omni/commit/641328c6d4230e8c6ed24ebbac0296b67897f433) feat: show machine/cluster stats and total counts
+* [`ad74f85`](https://github.com/siderolabs/omni/commit/ad74f8527901d4825d14c72ce34ffc6ebe055f29) chore: bump deps
+* [`19a72be`](https://github.com/siderolabs/omni/commit/19a72be550dcc3838619903290006fba516ffbd8) feat: add support bundle download button to cluster overview
+* [`d76f8bd`](https://github.com/siderolabs/omni/commit/d76f8bdf593c281dfb01518cdbd2a15b04c8a80d) test: enable Talemu tests
+* [`f67579f`](https://github.com/siderolabs/omni/commit/f67579f14039c462aea3902fb0a1406a88610ca5) fix: properly update `ClusterMachineIdentity` resource
+* [`d8e804f`](https://github.com/siderolabs/omni/commit/d8e804fac5e7c2ffb5b4bc0ebcfa60928a90b267) fix: use proper finalizer chain in the `MachineClassStatusController`
+* [`67bcc75`](https://github.com/siderolabs/omni/commit/67bcc75b83c79fecbf4648b6b87cd42e75c19440) feat: compute machineclass machine requirement (pressure)
+* [`23fb0c1`](https://github.com/siderolabs/omni/commit/23fb0c1827ec4de38fa14c44e245a5c368fdf042) fix: make image pre pull failure block the kubernetes update
+* [`b8db949`](https://github.com/siderolabs/omni/commit/b8db949ba3e0498348b7f3fd3fed7c4b893611a6) chore: bump dependencies
+* [`e484bca`](https://github.com/siderolabs/omni/commit/e484bca4d81d238cddb131cfa637f16333b143b0) fix: improve resource deletion reliability, fix support bundle tests
+* [`6f73f58`](https://github.com/siderolabs/omni/commit/6f73f58502dd786c882ac8a6e2d82f95ec59e239) fix: properly display icons on Safari browser
+* [`276c3f4`](https://github.com/siderolabs/omni/commit/276c3f46b8e1491ee564ec1313611d93839dee81) fix: use proper check for the machine set teardown flow
+* [`4cfc0e6`](https://github.com/siderolabs/omni/commit/4cfc0e6dd0bf45767bcbd17eb813544153d0beed) chore: rework auth.* keys, add `ctxstore` package
+* [`76263e1`](https://github.com/siderolabs/omni/commit/76263e12a478b7d2214c6d074edfd4e13f805e05) fix: do not rely on `MachineStatus` updates when checking maintenance
+* [`d271a8a`](https://github.com/siderolabs/omni/commit/d271a8afe93d521a8ae7a29d03a23a09a64bb576) fix: do not expect LB to be healthy when scaling down workers
+* [`085bc2e`](https://github.com/siderolabs/omni/commit/085bc2e2780a444ce6c0354789776d5c4ba04d13) fix: add finalizer on `MachineSetNode` resource in the controller
+* [`cbfb898`](https://github.com/siderolabs/omni/commit/cbfb898d7953b099d0eac619e0a146ee59f10bed) fix: add missing `return err` in the maintenance config drop migration
+* [`a1a1d08`](https://github.com/siderolabs/omni/commit/a1a1d08f82f3246fd1b437c44abc5c3dc8293e8c) chore: bump deps
+* [`4369338`](https://github.com/siderolabs/omni/commit/4369338e4912254b27618988951f57790e5bc156) fix: update Talos machine config schema to v1.7
+* [`b93ac81`](https://github.com/siderolabs/omni/commit/b93ac8179f4d799156e53c55ff8f78d6e8fedf18) fix: provide cached access to the state via Omni API
+* [`7602fde`](https://github.com/siderolabs/omni/commit/7602fde0df6bde02f2fc04655acc2ca0d35ba298) fix: update compose to fix missing information
+</p>
+</details>
+
+### Changes from siderolabs/go-api-signature
+<details><summary>1 commit</summary>
+<p>
+
+* [`4bf0f02`](https://github.com/siderolabs/go-api-signature/commit/4bf0f025dd94a8117997028d35c8b4497de497b4) fix: get rid of data race in the key sign interceptor
+</p>
+</details>
+
+### Changes from siderolabs/go-kubernetes
+<details><summary>2 commits</summary>
+<p>
+
+* [`ee8c6b8`](https://github.com/siderolabs/go-kubernetes/commit/ee8c6b8a5bb2c2c45e961d0f08faa5673905545c) fix: add one more removed feature gate for 1.31
+* [`37dd61f`](https://github.com/siderolabs/go-kubernetes/commit/37dd61fad48b9f4bb6bce5a0a361a247228e86d2) feat: add support for Kubernetes 1.31
+</p>
+</details>
+
+### Changes from siderolabs/grpc-proxy
+<details><summary>5 commits</summary>
+<p>
+
+* [`ec3b59c`](https://github.com/siderolabs/grpc-proxy/commit/ec3b59c869000243e9794d162354c83738475a32) fix: address all gRPC deprecations
+* [`02f82db`](https://github.com/siderolabs/grpc-proxy/commit/02f82db9c921eea3a48184bc4a4cf83a98b5b227) chore: rekres, bump deps
+* [`62b29be`](https://github.com/siderolabs/grpc-proxy/commit/62b29beccb302d80e7a1b25acf86d755a769970b) chore: rekres, update dependencies
+* [`2decdd1`](https://github.com/siderolabs/grpc-proxy/commit/2decdd1f77e64b61761e27c077ec3a420bfb2781) chore: add no-op github workflow
+* [`77d7adc`](https://github.com/siderolabs/grpc-proxy/commit/77d7adc7105b6132b1352bf9e737bacc47fba5e5) chore: bump deps
+</p>
+</details>
+
+### Changes from siderolabs/image-factory
+<details><summary>4 commits</summary>
+<p>
+
+* [`e5686e2`](https://github.com/siderolabs/image-factory/commit/e5686e2596bd25f12cfbd3d386415108c2d91481) release(v0.4.2): prepare release
+* [`1a2b64a`](https://github.com/siderolabs/image-factory/commit/1a2b64a87a1667eb92e6e11dfb8ec29b5ebd712d) feat: add Rock4 SE board to the mix of supported boards
+* [`d07a780`](https://github.com/siderolabs/image-factory/commit/d07a78086d0ccf3a9e3c7ce4f2bd402953f1cf6b) fix: update wizard-versions.html
+* [`f73a61e`](https://github.com/siderolabs/image-factory/commit/f73a61e28584219de5bee6d86ce53ba8ffa66643) fix: update misreported error
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/adrg/xdg**                              v0.4.0 -> v0.5.0
+* **github.com/aws/aws-sdk-go-v2**                     v1.30.0 -> v1.30.3
+* **github.com/aws/aws-sdk-go-v2/config**              v1.27.21 -> v1.27.27
+* **github.com/aws/aws-sdk-go-v2/credentials**         v1.17.21 -> v1.17.27
+* **github.com/aws/aws-sdk-go-v2/feature/s3/manager**  v1.17.1 -> v1.17.8
+* **github.com/aws/aws-sdk-go-v2/service/s3**          v1.56.1 -> v1.58.2
+* **github.com/aws/smithy-go**                         v1.20.2 -> v1.20.3
+* **github.com/cosi-project/runtime**                  v0.5.0 -> v0.5.5
+* **github.com/cosi-project/state-etcd**               v0.2.9 -> v0.3.0
+* **github.com/go-jose/go-jose/v4**                    v4.0.2 -> v4.0.3
+* **github.com/google/go-containerregistry**           v0.19.2 -> v0.20.1
+* **github.com/siderolabs/go-api-signature**           v0.3.3 -> v0.3.4
+* **github.com/siderolabs/go-kubernetes**              v0.2.9 -> v0.2.11
+* **github.com/siderolabs/grpc-proxy**                 v0.4.0 -> v0.4.1
+* **github.com/siderolabs/image-factory**              v0.4.1 -> v0.4.2
+* **github.com/siderolabs/omni/client**                000000000000 -> v0.39.1
+* **github.com/siderolabs/talos/pkg/machinery**        4feb94ca0997 -> v1.8.0-alpha.1
+* **github.com/zitadel/oidc/v3**                       v3.25.1 -> v3.26.0
+* **golang.org/x/crypto**                              v0.24.0 -> v0.25.0
+* **golang.org/x/net**                                 v0.26.0 -> v0.27.0
+* **google.golang.org/grpc**                           v1.64.0 -> v1.65.0
+* **k8s.io/api**                                       v0.30.2 -> v0.30.3
+* **k8s.io/client-go**                                 v0.30.2 -> v0.30.3
+
+Previous release can be found at [v0.39.0](https://github.com/siderolabs/omni/releases/tag/v0.39.0)
+
+## [Omni 0.40.0](https://github.com/siderolabs/omni/releases/tag/v0.40.0) (2024-07-26)
+
+Welcome to the v0.40.0 release of Omni!  
+*This is a pre-release of Omni*
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Support Bundle
+
+Support downloading cluster support bundle from the UI.
+
+
+### Show Total Items
+
+Display total number of clusters and machines on the corresponding pages.
+Also show some basic stats there: the number of clusters not ready and allocated/available machines.
+
+
+### Contributors
+
+* Artem Chernyshev
+* Andrey Smirnov
+* Dmitriy Matrenichev
+* Utku Ozdemir
+* Jubblin
+* Maxime Brunet
+* Sam
+* Spencer Smith
+
+### Changes
+<details><summary>27 commits</summary>
+<p>
+
+* [`8ef319c`](https://github.com/siderolabs/omni/commit/8ef319cf608d05f89c57a4d1cb5cde442c452711) chore: bump kube-service-exposer version
+* [`743e67f`](https://github.com/siderolabs/omni/commit/743e67f55ae4a7cfc4f4e32d12157b86da2761e9) chore: bump state-etcd module version
+* [`6759925`](https://github.com/siderolabs/omni/commit/67599253375a9cc431ad3e1e1bc82e08cb28f853) chore: deprecate Talos 1.3
+* [`5dd5259`](https://github.com/siderolabs/omni/commit/5dd52593ee80291407ab0ba158b8af0b04c433ef) chore: add rotating log for audit data
+* [`6f6e1a6`](https://github.com/siderolabs/omni/commit/6f6e1a675191d0b7e5f94be3089b6a66200bb651) fix: do not allow deleting machine classes which are used anywhere
+* [`aeb9322`](https://github.com/siderolabs/omni/commit/aeb9322cca0678ebbe5c5f16e22ac17ea107c3dc) fix: preserve labels on the `MachineClass` when editing it in the UI
+* [`641328c`](https://github.com/siderolabs/omni/commit/641328c6d4230e8c6ed24ebbac0296b67897f433) feat: show machine/cluster stats and total counts
+* [`ad74f85`](https://github.com/siderolabs/omni/commit/ad74f8527901d4825d14c72ce34ffc6ebe055f29) chore: bump deps
+* [`19a72be`](https://github.com/siderolabs/omni/commit/19a72be550dcc3838619903290006fba516ffbd8) feat: add support bundle download button to cluster overview
+* [`d76f8bd`](https://github.com/siderolabs/omni/commit/d76f8bdf593c281dfb01518cdbd2a15b04c8a80d) test: enable Talemu tests
+* [`f67579f`](https://github.com/siderolabs/omni/commit/f67579f14039c462aea3902fb0a1406a88610ca5) fix: properly update `ClusterMachineIdentity` resource
+* [`d8e804f`](https://github.com/siderolabs/omni/commit/d8e804fac5e7c2ffb5b4bc0ebcfa60928a90b267) fix: use proper finalizer chain in the `MachineClassStatusController`
+* [`67bcc75`](https://github.com/siderolabs/omni/commit/67bcc75b83c79fecbf4648b6b87cd42e75c19440) feat: compute machineclass machine requirement (pressure)
+* [`23fb0c1`](https://github.com/siderolabs/omni/commit/23fb0c1827ec4de38fa14c44e245a5c368fdf042) fix: make image pre pull failure block the kubernetes update
+* [`b8db949`](https://github.com/siderolabs/omni/commit/b8db949ba3e0498348b7f3fd3fed7c4b893611a6) chore: bump dependencies
+* [`e484bca`](https://github.com/siderolabs/omni/commit/e484bca4d81d238cddb131cfa637f16333b143b0) fix: improve resource deletion reliability, fix support bundle tests
+* [`6f73f58`](https://github.com/siderolabs/omni/commit/6f73f58502dd786c882ac8a6e2d82f95ec59e239) fix: properly display icons on Safari browser
+* [`276c3f4`](https://github.com/siderolabs/omni/commit/276c3f46b8e1491ee564ec1313611d93839dee81) fix: use proper check for the machine set teardown flow
+* [`4cfc0e6`](https://github.com/siderolabs/omni/commit/4cfc0e6dd0bf45767bcbd17eb813544153d0beed) chore: rework auth.* keys, add `ctxstore` package
+* [`76263e1`](https://github.com/siderolabs/omni/commit/76263e12a478b7d2214c6d074edfd4e13f805e05) fix: do not rely on `MachineStatus` updates when checking maintenance
+* [`d271a8a`](https://github.com/siderolabs/omni/commit/d271a8afe93d521a8ae7a29d03a23a09a64bb576) fix: do not expect LB to be healthy when scaling down workers
+* [`085bc2e`](https://github.com/siderolabs/omni/commit/085bc2e2780a444ce6c0354789776d5c4ba04d13) fix: add finalizer on `MachineSetNode` resource in the controller
+* [`cbfb898`](https://github.com/siderolabs/omni/commit/cbfb898d7953b099d0eac619e0a146ee59f10bed) fix: add missing `return err` in the maintenance config drop migration
+* [`a1a1d08`](https://github.com/siderolabs/omni/commit/a1a1d08f82f3246fd1b437c44abc5c3dc8293e8c) chore: bump deps
+* [`4369338`](https://github.com/siderolabs/omni/commit/4369338e4912254b27618988951f57790e5bc156) fix: update Talos machine config schema to v1.7
+* [`b93ac81`](https://github.com/siderolabs/omni/commit/b93ac8179f4d799156e53c55ff8f78d6e8fedf18) fix: provide cached access to the state via Omni API
+* [`7602fde`](https://github.com/siderolabs/omni/commit/7602fde0df6bde02f2fc04655acc2ca0d35ba298) fix: update compose to fix missing information
+</p>
+</details>
+
+### Changes from siderolabs/go-api-signature
+<details><summary>1 commit</summary>
+<p>
+
+* [`4bf0f02`](https://github.com/siderolabs/go-api-signature/commit/4bf0f025dd94a8117997028d35c8b4497de497b4) fix: get rid of data race in the key sign interceptor
+</p>
+</details>
+
+### Changes from siderolabs/go-kubernetes
+<details><summary>2 commits</summary>
+<p>
+
+* [`ee8c6b8`](https://github.com/siderolabs/go-kubernetes/commit/ee8c6b8a5bb2c2c45e961d0f08faa5673905545c) fix: add one more removed feature gate for 1.31
+* [`37dd61f`](https://github.com/siderolabs/go-kubernetes/commit/37dd61fad48b9f4bb6bce5a0a361a247228e86d2) feat: add support for Kubernetes 1.31
+</p>
+</details>
+
+### Changes from siderolabs/grpc-proxy
+<details><summary>5 commits</summary>
+<p>
+
+* [`ec3b59c`](https://github.com/siderolabs/grpc-proxy/commit/ec3b59c869000243e9794d162354c83738475a32) fix: address all gRPC deprecations
+* [`02f82db`](https://github.com/siderolabs/grpc-proxy/commit/02f82db9c921eea3a48184bc4a4cf83a98b5b227) chore: rekres, bump deps
+* [`62b29be`](https://github.com/siderolabs/grpc-proxy/commit/62b29beccb302d80e7a1b25acf86d755a769970b) chore: rekres, update dependencies
+* [`2decdd1`](https://github.com/siderolabs/grpc-proxy/commit/2decdd1f77e64b61761e27c077ec3a420bfb2781) chore: add no-op github workflow
+* [`77d7adc`](https://github.com/siderolabs/grpc-proxy/commit/77d7adc7105b6132b1352bf9e737bacc47fba5e5) chore: bump deps
+</p>
+</details>
+
+### Changes from siderolabs/image-factory
+<details><summary>4 commits</summary>
+<p>
+
+* [`e5686e2`](https://github.com/siderolabs/image-factory/commit/e5686e2596bd25f12cfbd3d386415108c2d91481) release(v0.4.2): prepare release
+* [`1a2b64a`](https://github.com/siderolabs/image-factory/commit/1a2b64a87a1667eb92e6e11dfb8ec29b5ebd712d) feat: add Rock4 SE board to the mix of supported boards
+* [`d07a780`](https://github.com/siderolabs/image-factory/commit/d07a78086d0ccf3a9e3c7ce4f2bd402953f1cf6b) fix: update wizard-versions.html
+* [`f73a61e`](https://github.com/siderolabs/image-factory/commit/f73a61e28584219de5bee6d86ce53ba8ffa66643) fix: update misreported error
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/adrg/xdg**                              v0.4.0 -> v0.5.0
+* **github.com/aws/aws-sdk-go-v2**                     v1.30.0 -> v1.30.3
+* **github.com/aws/aws-sdk-go-v2/config**              v1.27.21 -> v1.27.27
+* **github.com/aws/aws-sdk-go-v2/credentials**         v1.17.21 -> v1.17.27
+* **github.com/aws/aws-sdk-go-v2/feature/s3/manager**  v1.17.1 -> v1.17.8
+* **github.com/aws/aws-sdk-go-v2/service/s3**          v1.56.1 -> v1.58.2
+* **github.com/aws/smithy-go**                         v1.20.2 -> v1.20.3
+* **github.com/cosi-project/runtime**                  v0.5.0 -> v0.5.5
+* **github.com/cosi-project/state-etcd**               v0.2.9 -> v0.3.0
+* **github.com/go-jose/go-jose/v4**                    v4.0.2 -> v4.0.3
+* **github.com/google/go-containerregistry**           v0.19.2 -> v0.20.1
+* **github.com/siderolabs/go-api-signature**           v0.3.3 -> v0.3.4
+* **github.com/siderolabs/go-kubernetes**              v0.2.9 -> v0.2.11
+* **github.com/siderolabs/grpc-proxy**                 v0.4.0 -> v0.4.1
+* **github.com/siderolabs/image-factory**              v0.4.1 -> v0.4.2
+* **github.com/siderolabs/omni/client**                000000000000 -> v0.39.1
+* **github.com/siderolabs/talos/pkg/machinery**        4feb94ca0997 -> v1.8.0-alpha.1
+* **github.com/zitadel/oidc/v3**                       v3.25.1 -> v3.26.0
+* **golang.org/x/crypto**                              v0.24.0 -> v0.25.0
+* **golang.org/x/net**                                 v0.26.0 -> v0.27.0
+* **google.golang.org/grpc**                           v1.64.0 -> v1.65.0
+* **k8s.io/api**                                       v0.30.2 -> v0.30.3
+* **k8s.io/client-go**                                 v0.30.2 -> v0.30.3
+
+Previous release can be found at [v0.39.0](https://github.com/siderolabs/omni/releases/tag/v0.39.0)
+
 ## [Omni 0.39.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.39.0-beta.0) (2024-07-04)
 
 Welcome to the v0.39.0-beta.0 release of Omni!  
