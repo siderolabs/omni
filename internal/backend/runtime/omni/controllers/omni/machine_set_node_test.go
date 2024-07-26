@@ -330,18 +330,10 @@ func (suite *MachineSetNodeSuite) TestRequiredExtraMachines() {
 	})
 	suite.Require().NoError(err)
 
-	assertRequiredMachineCount(0)
-	assertResource(&suite.OmniSuite, requiredMachines.Metadata(),
-		func(r *omni.MachineSetRequiredMachines, assertion *assert.Assertions) {
-			_, ok := r.Metadata().Labels().Get(omni.LabelMachineClassName)
-
-			assertion.False(ok, "MachineSetRequiredMachines resource should not have a label %q", omni.LabelMachineClassName)
-		})
+	assertNoResource(&suite.OmniSuite, requiredMachines)
 
 	// remove the MachineSet, assert that the MachineSetRequiredMachines resource is removed
 	rtestutils.Destroy[*omni.MachineSet](ctx, suite.T(), suite.state, []string{machineSet.Metadata().ID()})
-
-	assertNoResource[*omni.MachineSetRequiredMachines](&suite.OmniSuite, requiredMachines)
 }
 
 func TestSortFunction(t *testing.T) {

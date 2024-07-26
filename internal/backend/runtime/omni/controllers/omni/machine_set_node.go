@@ -205,8 +205,19 @@ func (ctrl *MachineSetNodeController) reconcileMachineSet(
 		return err
 	}
 
-	// avoid resurrecting MachineSetRequiredMachines if the MachineSet is being deleted
-	if machineSet.Metadata().Phase() == resource.PhaseTearingDown {
+	if machineSet.TypedSpec().Value.MachineClass == nil || machineSet.Metadata().Phase() == resource.PhaseTearingDown {
+		var ready bool
+
+		if ready, err = r.Teardown(ctx, omni.NewMachineSetRequiredMachines(resources.DefaultNamespace, machineSet.Metadata().ID()).Metadata()); err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		if ready {
+			if err = r.Destroy(ctx, omni.NewMachineSetRequiredMachines(resources.DefaultNamespace, machineSet.Metadata().ID()).Metadata()); err != nil && !state.IsNotFoundError(err) {
+				return err
+			}
+		}
+
 		return nil
 	}
 
@@ -228,19 +239,8 @@ func (ctrl *MachineSetNodeController) reconcileMachineSetNodes(
 	logger *zap.Logger,
 ) (requiredAdditionalMachines int, err error) {
 	spec := machineSet.TypedSpec()
+
 	if spec.Value.MachineClass == nil || machineSet.Metadata().Phase() == resource.PhaseTearingDown {
-		var ready bool
-
-		if ready, err = r.Teardown(ctx, omni.NewMachineSetRequiredMachines(resources.DefaultNamespace, machineSet.Metadata().ID()).Metadata()); err != nil && !state.IsNotFoundError(err) {
-			return 0, err
-		}
-
-		if ready {
-			if err = r.Destroy(ctx, omni.NewMachineSetRequiredMachines(resources.DefaultNamespace, machineSet.Metadata().ID()).Metadata()); err != nil && !state.IsNotFoundError(err) {
-				return 0, err
-			}
-		}
-
 		return 0, nil
 	}
 
@@ -299,7 +299,8 @@ func (ctrl *MachineSetNodeController) saveRequiredAdditionalMachines(ctx context
 			res.TypedSpec().Value.RequiredAdditionalMachines = uint32(numRequired)
 
 			return nil
-		})
+		},
+	)
 }
 
 //nolint:gocognit
