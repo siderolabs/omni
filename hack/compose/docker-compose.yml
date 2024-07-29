@@ -102,6 +102,16 @@ services:
       MINIO_SECRET_KEY: secret123
     command: server /minio-server/export
 
+  prometheus:
+    network_mode: host
+    image: prom/prometheus
+    depends_on:
+      - omni
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
   minio-mc:
     image: minio/mc:latest
     container_name: minio-mc

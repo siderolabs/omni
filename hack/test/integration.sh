@@ -115,6 +115,8 @@ nice -n 10 ${ARTIFACTS}/omni-linux-amd64 \
 KERNEL_ARGS="siderolink.api=grpc://$LOCAL_IP:8090?jointoken=${JOIN_TOKEN} talos.events.sink=[fdae:41e4:649b:9303::1]:8090 talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092"
 
 if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
+  PROMETHEUS_CONTAINER=$(docker run --network host -p "9090:9090" -v "$(pwd)/hack/compose/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml" -it --rm -d prom/prometheus)
+
   TALEMU_CONTAINER=$(docker run --network host --cap-add=NET_ADMIN -it --rm -d ghcr.io/siderolabs/talemu:latest --kernel-args="${KERNEL_ARGS}" --machines=30)
 
   sleep 10
@@ -126,12 +128,14 @@ if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
       --omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
       --expected-machines=30 \
       --cleanup-links \
+      --run-stats-check \
       -t 4m \
       -p 10 \
       ${TALEMU_TEST_ARGS:-}
 
   docker stop $TALEMU_CONTAINER
   docker rm -f $TALEMU_CONTAINER
+  docker rm -f $PROMETHEUS_CONTAINER
 fi
 
 # Prepare partial machine config

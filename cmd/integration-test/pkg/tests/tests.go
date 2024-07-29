@@ -55,6 +55,7 @@ type Options struct {
 	RunTestPattern string
 
 	CleanupLinks     bool
+	RunStatsCheck    bool
 	ExpectedMachines int
 
 	RestartAMachineFunc RestartAMachineFunc
@@ -1147,6 +1148,25 @@ Test flow of cluster creation and scaling using cluster templates.`,
 		nil,
 	).Run()
 
+	extraTests := []testing.InternalTest{}
+
+	if options.RunStatsCheck {
+		extraTests = append(extraTests, testing.InternalTest{
+			Name: "AssertStatsLimits",
+			F:    AssertStatsLimits(ctx),
+		})
+	}
+
+	if len(extraTests) > 0 && exitCode == 0 {
+		exitCode = testing.MainStart(
+			matchStringOnly(func(string, string) (bool, error) { return true, nil }),
+			extraTests,
+			nil,
+			nil,
+			nil,
+		).Run()
+	}
+
 	if options.CleanupLinks {
 		if err := cleanupLinks(ctx, rootClient.Omni().State()); err != nil {
 			return err
@@ -1191,8 +1211,8 @@ func cleanupLinks(ctx context.Context, st state.State) error {
 	})
 }
 
-func makeTests(ctx context.Context, testsToRun []testGroup, machineSemaphore *semaphore.Weighted) []testing.InternalTest {
-	return xslices.Map(testsToRun, func(group testGroup) testing.InternalTest {
+func makeTests(ctx context.Context, testsToRun []testGroup, machineSemaphore *semaphore.Weighted, tests ...testing.InternalTest) []testing.InternalTest {
+	groups := xslices.Map(testsToRun, func(group testGroup) testing.InternalTest {
 		return testing.InternalTest{
 			Name: group.Name,
 			F: func(t *testing.T) {
@@ -1237,6 +1257,8 @@ func makeTests(ctx context.Context, testsToRun []testGroup, machineSemaphore *se
 			},
 		}
 	})
+
+	return append(groups, tests...)
 }
 
 //nolint:govet

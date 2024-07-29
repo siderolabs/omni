@@ -40,6 +40,7 @@ var rootCmd = &cobra.Command{
 
 				ExpectedMachines: rootCmdFlags.expectedMachines,
 				CleanupLinks:     rootCmdFlags.cleanupLinks,
+				RunStatsCheck:    rootCmdFlags.runStatsCheck,
 
 				MachineOptions:           rootCmdFlags.machineOptions,
 				AnotherTalosVersion:      rootCmdFlags.anotherTalosVersion,
@@ -115,6 +116,7 @@ var rootCmdFlags struct {
 	expectedMachines int
 	parallel         int64
 	cleanupLinks     bool
+	runStatsCheck    bool
 
 	testsTimeout time.Duration
 
@@ -151,6 +153,7 @@ func init() {
 	rootCmd.Flags().Int64VarP(&rootCmdFlags.parallel, "parallel", "p", 4, "tests parallelism")
 	rootCmd.Flags().DurationVarP(&rootCmdFlags.testsTimeout, "timeout", "t", time.Hour, "tests global timeout")
 	rootCmd.Flags().BoolVar(&rootCmdFlags.cleanupLinks, "cleanup-links", false, "remove all links after the tests are complete")
+	rootCmd.Flags().BoolVar(&rootCmdFlags.runStatsCheck, "run-stats-check", false, "runs stats check after the test is complete")
 }
 
 // withContext wraps with CLI context.
