@@ -76,6 +76,10 @@ const watchOpts = computed<WatchOptions>(() => {
 
 const getCapacity = (item: Resource<MachineStatusMetricsSpec>) => {
   const registered = item?.spec.registered_machines_count ?? 0;
+  if (registered == 0) {
+    return 0;
+  }
+
   const allocated = item?.spec.allocated_machines_count ?? 0;
   const free = registered - allocated;
 
