@@ -24,8 +24,11 @@ import (
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
+
+type machineStatus = system.ResourceLabels[*omni.MachineStatus]
 
 // MachineSetNodeControllerName is the name of the MachineSetNodeController.
 const MachineSetNodeControllerName = "MachineSetNodeController"
@@ -60,7 +63,7 @@ func (ctrl *MachineSetNodeController) Inputs() []controller.Input {
 		},
 		{
 			Namespace: resources.DefaultNamespace,
-			Type:      omni.MachineStatusType,
+			Type:      system.ResourceLabelsType[*omni.MachineStatus](),
 			Kind:      controller.InputWeak,
 		},
 		{
@@ -129,14 +132,14 @@ func (ctrl *MachineSetNodeController) Run(ctx context.Context, r controller.Runt
 			machineMap[machine.Metadata().ID()] = machine
 		})
 
-		allMachineStatuses, err := safe.ReaderListAll[*omni.MachineStatus](ctx, r)
+		allMachineStatuses, err := safe.ReaderListAll[*machineStatus](ctx, r)
 		if err != nil {
 			return err
 		}
 
-		machineStatusMap := map[resource.ID]*omni.MachineStatus{}
+		machineStatusMap := map[resource.ID]*machineStatus{}
 
-		allMachineStatuses.ForEach(func(ms *omni.MachineStatus) {
+		allMachineStatuses.ForEach(func(ms *machineStatus) {
 			if m, ok := machineMap[ms.Metadata().ID()]; !ok || m.Metadata().Phase() == resource.PhaseTearingDown {
 				return
 			}
@@ -194,9 +197,9 @@ func (ctrl *MachineSetNodeController) reconcileMachineSet(
 	ctx context.Context,
 	r controller.Runtime,
 	machineSet *omni.MachineSet,
-	allMachineStatuses safe.List[*omni.MachineStatus],
+	allMachineStatuses safe.List[*machineStatus],
 	allMachineSetNodes safe.List[*omni.MachineSetNode],
-	machineStatusMap map[resource.ID]*omni.MachineStatus,
+	machineStatusMap map[resource.ID]*machineStatus,
 	visited map[resource.ID]struct{},
 	logger *zap.Logger,
 ) error {
@@ -232,9 +235,9 @@ func (ctrl *MachineSetNodeController) reconcileMachineSetNodes(
 	ctx context.Context,
 	r controller.Runtime,
 	machineSet *omni.MachineSet,
-	allMachineStatuses safe.List[*omni.MachineStatus],
+	allMachineStatuses safe.List[*machineStatus],
 	allMachineSetNodes safe.List[*omni.MachineSetNode],
-	machineStatusMap map[resource.ID]*omni.MachineStatus,
+	machineStatusMap map[resource.ID]*machineStatus,
 	visited map[resource.ID]struct{},
 	logger *zap.Logger,
 ) (requiredAdditionalMachines int, err error) {
@@ -309,7 +312,7 @@ func (ctrl *MachineSetNodeController) createNodes(
 	r controller.Runtime,
 	machineSet *omni.MachineSet,
 	machineClass *omni.MachineClass,
-	allMachineStatuses safe.List[*omni.MachineStatus],
+	allMachineStatuses safe.List[*machineStatus],
 	count int,
 	logger *zap.Logger,
 ) (requiredAdditionalMachines int, err error) {
@@ -358,7 +361,12 @@ func (ctrl *MachineSetNodeController) createNodes(
 
 			var machineVersion semver.Version
 
-			machineVersion, err = semver.Parse(strings.TrimPrefix(machine.TypedSpec().Value.TalosVersion, "v"))
+			version, ok := machine.Metadata().Labels().Get(omni.MachineStatusLabelTalosVersion)
+			if !ok {
+				continue
+			}
+
+			machineVersion, err = semver.Parse(strings.TrimPrefix(version, "v"))
 			if err != nil {
 				continue
 			}
@@ -370,7 +378,7 @@ func (ctrl *MachineSetNodeController) createNodes(
 			}
 
 			// do not try to allocate the machine if it's running Talos from an ISO or PXE and it's major and minor version do not match.
-			installed := omni.GetMachineStatusSystemDisk(machine) != ""
+			_, installed := machine.Metadata().Labels().Get(omni.MachineStatusLabelInstalled)
 
 			if !installed && (machineVersion.Major != clusterVersion.Major || machineVersion.Minor != clusterVersion.Minor) {
 				continue
@@ -402,7 +410,7 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 	ctx context.Context,
 	r controller.Runtime,
 	machineSetNodes safe.List[*omni.MachineSetNode],
-	machineStatuses map[string]*omni.MachineStatus,
+	machineStatuses map[string]*machineStatus,
 	machinesToDestroyCount int,
 	logger *zap.Logger,
 ) error {
@@ -465,7 +473,7 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 	return nil
 }
 
-func getSortFunction(machineStatuses map[resource.ID]*omni.MachineStatus) func(a, b *omni.MachineSetNode) int {
+func getSortFunction(machineStatuses map[resource.ID]*machineStatus) func(a, b *omni.MachineSetNode) int {
 	return func(a, b *omni.MachineSetNode) int {
 		ms1, ok1 := machineStatuses[a.Metadata().ID()]
 		ms2, ok2 := machineStatuses[b.Metadata().ID()]

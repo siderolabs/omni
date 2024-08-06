@@ -416,6 +416,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.SchematicConfigurationType,
 		omni.ExtensionsConfigurationType,
 		omni.ExtensionsConfigurationStatusType,
+		system.ResourceLabelsType[*omni.MachineStatus](),
 		virtual.LabelsCompletionType,
 		virtual.KubernetesUsageType:
 		_, err = auth.CheckGRPC(ctx, auth.WithRole(verbToRole(access.Verb)))
@@ -558,6 +559,7 @@ func filterAccessByType(access state.Access) error {
 		authres.AuthConfigType,
 		siderolink.ConnectionParamsType,
 		system.SysVersionType,
+		system.ResourceLabelsType[*omni.MachineStatus](),
 		meta.NamespaceType,
 		meta.ResourceDefinitionType,
 		virtual.CurrentUserType,

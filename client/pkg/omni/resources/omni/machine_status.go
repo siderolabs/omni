@@ -6,6 +6,7 @@ package omni
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
 	"github.com/cosi-project/runtime/pkg/resource/typed"
+	"github.com/siderolabs/gen/optional"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -103,7 +105,17 @@ func setLabel(labels *resource.Labels, key string, valueFunc func() string) {
 	}
 }
 
+func setLabelOptional(labels *resource.Labels, key string, valueFunc func() optional.Optional[string]) {
+	if value := valueFunc(); value.IsPresent() {
+		labels.Set(key, value.ValueOr(""))
+	} else {
+		labels.Delete(key)
+	}
+}
+
 // MachineStatusReconcileLabels builds a set of labels based on hardware/meta information.
+//
+//nolint:gocognit
 func MachineStatusReconcileLabels(machineStatus *MachineStatus) {
 	labels := machineStatus.Metadata().Labels()
 
@@ -211,6 +223,24 @@ func MachineStatusReconcileLabels(machineStatus *MachineStatus) {
 
 	setLabel(labels, MachineStatusLabelTalosVersion, func() string {
 		return machineStatus.TypedSpec().Value.TalosVersion
+	})
+
+	setLabelOptional(labels, MachineStatusLabelInstalled, func() optional.Optional[string] {
+		if machineStatus.TypedSpec().Value.Hardware == nil {
+			return optional.None[string]()
+		}
+
+		installed := slices.IndexFunc(machineStatus.TypedSpec().Value.Hardware.Blockdevices,
+			func(dev *specs.MachineStatusSpec_HardwareStatus_BlockDevice) bool {
+				return dev.SystemDisk
+			},
+		) != -1
+
+		if installed {
+			return optional.Some("")
+		}
+
+		return optional.None[string]()
 	})
 }
 

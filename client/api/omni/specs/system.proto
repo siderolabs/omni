@@ -16,5 +16,4 @@ message SysVersionSpec {
 }
 
 // CertRefreshTickSpec is a certificate refresh tick.
-message CertRefreshTickSpec {
-}
+message CertRefreshTickSpec {}

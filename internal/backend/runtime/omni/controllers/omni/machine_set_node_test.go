@@ -25,6 +25,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
 
@@ -45,6 +46,8 @@ func newMachineClass(selectors ...string) *omni.MachineClass {
 func (suite *MachineSetNodeSuite) createMachines(labels ...map[string]string) []*omni.MachineStatus {
 	res := make([]*omni.MachineStatus, 0, len(labels))
 
+	ids := make([]string, 0, len(labels))
+
 	for i, l := range labels {
 		id := fmt.Sprintf("machine%d", suite.machinesOffset+i)
 
@@ -59,14 +62,19 @@ func (suite *MachineSetNodeSuite) createMachines(labels ...map[string]string) []
 		})
 
 		machineStatus.TypedSpec().Value.TalosVersion = "v1.6.0"
+		machineStatus.Metadata().Labels().Set(omni.MachineStatusLabelTalosVersion, "v1.6.0")
 
 		res = append(res, machineStatus)
 
 		suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
 		suite.Require().NoError(suite.state.Create(suite.ctx, machine))
+
+		ids = append(ids, machineStatus.Metadata().ID())
 	}
 
 	suite.machinesOffset += len(res)
+
+	rtestutils.AssertResources(suite.ctx, suite.T(), suite.state, ids, func(*system.ResourceLabels[*omni.MachineStatus], *assert.Assertions) {})
 
 	return res
 }
@@ -79,6 +87,7 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.runtime.RegisterController(&omnictrl.MachineSetNodeController{}))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewLabelsExtractorController[*omni.MachineStatus]()))
 
 	machines := suite.createMachines(
 		map[string]string{
@@ -227,6 +236,7 @@ func (suite *MachineSetNodeSuite) TestRequiredExtraMachines() {
 	// prepare state and start runtime
 	suite.Require().NoError(suite.runtime.RegisterController(&omnictrl.MachineSetNodeController{}))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewLabelsExtractorController[*omni.MachineStatus]()))
 
 	cluster := omni.NewCluster(resources.DefaultNamespace, "test-cluster")
 	cluster.TypedSpec().Value.TalosVersion = "1.7.5"
@@ -287,6 +297,7 @@ func (suite *MachineSetNodeSuite) TestRequiredExtraMachines() {
 	machineStatus.Metadata().Labels().Set(omni.MachineStatusLabelAvailable, "")
 	machineStatus.Metadata().Labels().Set(omni.MachineStatusLabelConnected, "")
 	machineStatus.Metadata().Labels().Set(omni.MachineStatusLabelReportingEvents, "")
+	machineStatus.Metadata().Labels().Set(omni.MachineStatusLabelTalosVersion, "1.7.5")
 	machineStatus.Metadata().Labels().Set("foo", "bar")
 
 	suite.Require().NoError(suite.state.Create(ctx, machineStatus))
@@ -337,13 +348,13 @@ func (suite *MachineSetNodeSuite) TestRequiredExtraMachines() {
 }
 
 func TestSortFunction(t *testing.T) {
-	machineStatuses := map[resource.ID]*omni.MachineStatus{}
+	machineStatuses := map[resource.ID]*system.ResourceLabels[*omni.MachineStatus]{}
 	machineSetNodes := make([]*omni.MachineSetNode, 0, 10)
 
 	for i := range 10 {
 		id := strconv.Itoa(i)
 
-		machineStatuses[id] = omni.NewMachineStatus(resources.DefaultNamespace, id)
+		machineStatuses[id] = system.NewResourceLabels[*omni.MachineStatus](id)
 
 		machineSetNode := omni.NewMachineSetNode(resources.DefaultNamespace, id, omni.NewMachineSet(resources.DefaultNamespace, "ms"))
 		machineSetNode.Metadata().SetCreated(time.Now())

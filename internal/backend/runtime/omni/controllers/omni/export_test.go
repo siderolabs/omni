@@ -11,6 +11,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 )
 
 func ForAllCompatibleVersions(
@@ -21,7 +22,7 @@ func ForAllCompatibleVersions(
 	return forAllCompatibleVersions(talosVersions, k8sVersions, fn)
 }
 
-func GetMachineSetNodeSortFunction(machineStatuses map[resource.ID]*omni.MachineStatus) func(a, b *omni.MachineSetNode) int {
+func GetMachineSetNodeSortFunction(machineStatuses map[resource.ID]*system.ResourceLabels[*omni.MachineStatus]) func(a, b *omni.MachineSetNode) int {
 	return getSortFunction(machineStatuses)
 }
 

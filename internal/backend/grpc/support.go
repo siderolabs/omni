@@ -29,6 +29,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	kubernetesruntime "github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
@@ -376,6 +377,17 @@ func (s *managementServer) collectClusterResources(ctx context.Context, cluster 
 		}
 
 		resources = append(resources, machineStatus)
+
+		labels, err := safe.ReaderGetByID[*system.ResourceLabels[*omni.MachineStatus]](ctx, st, id)
+		if err != nil {
+			if state.IsNotFoundError(err) {
+				continue
+			}
+
+			return nil, err
+		}
+
+		resources = append(resources, labels)
 	}
 
 	return resources, nil

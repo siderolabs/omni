@@ -142,6 +142,10 @@ const (
 	// MachineStatusLabelTalosVersion describes the machine talos version.
 	// tsgen:MachineStatusLabelTalosVersion
 	MachineStatusLabelTalosVersion = SystemLabelPrefix + "talos-version"
+
+	// MachineStatusLabelInstalled means that Talos is installed on the machine.
+	// tsgen:MachineStatusLabelInstalled
+	MachineStatusLabelInstalled = SystemLabelPrefix + "installed"
 )
 
 const (
