@@ -166,8 +166,8 @@ const openMaintenanceUpdate = () => {
 const processors = computed(() => {
   const processors = machine?.value?.spec?.message_status?.hardware?.processors || [];
 
-  const format = (proc: { frequency: number; core_count: number; description: string }) => {
-    return `${proc.frequency / 1000} GHz, ${pluralize("core", proc.core_count, true)}, ${proc.description}`;
+  const format = (proc: { frequency?: number; core_count?: number; description?: string }) => {
+    return `${proc.frequency! / 1000} GHz, ${pluralize("core", proc.core_count, true)}, ${proc.description}`;
   };
 
   return processors.map(format);
@@ -176,16 +176,16 @@ const processors = computed(() => {
 const memorymodules = computed(() => {
   const memorymodules = machine?.value?.spec?.message_status?.hardware?.memory_modules || [];
 
-  const format = (mem: { description: string; size_mb: number; }) => {
+  const format = (mem: { description?: string; size_mb?: number; }) => {
     let description = mem.description;
 
     if (mem.description === undefined) {
       description = "";
     }
-    return `${formatBytes(mem.size_mb * 1024 * 1024)} ${description}`;
+    return `${formatBytes(mem.size_mb! * 1024 * 1024)} ${description}`;
   };
 
-  return memorymodules.filter((mem: { size_mb: number; }) => mem.size_mb !== 0).map(format);
+  return memorymodules.filter((mem: { size_mb?: number; }) => mem.size_mb !== 0).map(format);
 });
 
 const clusterName = computed(() => machine.value?.spec?.message_status?.cluster);

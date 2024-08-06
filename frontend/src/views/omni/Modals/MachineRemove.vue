@@ -25,7 +25,7 @@ included in the LICENSE file.
       </p>
 
       <p class="py-2">
-        If you want to remove the machine from the cluster, please use the <router-link :to="{ name: 'ClusterOverview', params: { cluster: $route.query.cluster }}">cluster overview page</router-link>.
+        If you want to remove the machine from the cluster, please use the <router-link :to="{ name: 'ClusterOverview', params: { cluster: $route.query.cluster as string }}">cluster overview page</router-link>.
       </p>
     </div>
 
@@ -67,9 +67,13 @@ const remove = async () => {
   disabled.value = true;
 
   try {
-    await removeMachine(route.query.machine as string)
+    await removeMachine(route.query.machine as string);
   } catch (e) {
-    showError("Failed to remove the machine", e.message)
+    close();
+
+    showError("Failed to remove the machine", e.message);
+
+    return;
   }
 
   close();

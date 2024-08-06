@@ -16,6 +16,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
 // MachineController creates omni.Machines based on siderolink.Link resources.
@@ -40,6 +41,8 @@ func NewMachineController() *MachineController {
 				if err != nil {
 					return err
 				}
+
+				helpers.CopyLabels(link, machine, omni.LabelMachineRequest)
 
 				spec := machine.TypedSpec().Value
 

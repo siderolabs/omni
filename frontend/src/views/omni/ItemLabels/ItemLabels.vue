@@ -36,6 +36,7 @@ const { resource } = toRefs(props);
 defineEmits(['filterLabel']);
 
 const labelOrder = {
+  "machine-request": -1,
   "reporting-events": -1,
   "invalid-state": 0,
   "cluster": 0,

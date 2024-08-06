@@ -59,6 +59,10 @@ const (
 
 	// LabelMachineClassName is the name of the machine class.
 	LabelMachineClassName = SystemLabelPrefix + "machine-class-name"
+
+	// LabelMachineRequest is the machine request label.
+	// tsgen:LabelMachineRequest
+	LabelMachineRequest = SystemLabelPrefix + "machine-request"
 )
 
 const (

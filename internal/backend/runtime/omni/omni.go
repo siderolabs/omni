@@ -245,6 +245,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewTalosExtensionsController(imageFactoryClient),
 		omnictrl.NewTalosUpgradeStatusController(),
 		omnictrl.NewMachineStatusSnapshotController(siderolinkEventsCh),
+		omnictrl.NewMachineRequestLinkController(resourceState),
 	}
 
 	if config.Config.Auth.SAML.Enabled {
