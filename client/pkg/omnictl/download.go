@@ -89,6 +89,10 @@ For example, to download the latest ISO image for arm64, run:
 
     omnictl download iso --arch amd64
 
+To download the same ISO with two extensions added, the --extensions argument gets repeated to produce a stringArray:
+
+    omnictl download iso --arch amd64 --extensions intel-ucode --extensions qemu-guest-agent
+
 To download the latest Vultr image, run:
 
     omnictl download "vultr"
