@@ -14,7 +14,6 @@ export enum MachineRequestStatusSpecStage {
 export type MachineRequestSpec = {
   talos_version?: string
   schematic_id?: string
-  provider_data?: string
 }
 
 export type MachineRequestStatusSpec = {

@@ -74,7 +74,7 @@ spec:
         COMPOSE_DOCKER_CLI_BUILD=1
         DOCKER_BUILDKIT=1
         GO_LDFLAGS="$(GO_LDFLAGS)"
-        docker compose --file ./hack/compose/docker-compose.yml --file ./hack/compose/docker-compose.override.yml up --build
+        docker compose --file ./hack/compose/docker-compose.yml --file ./hack/compose/docker-compose.override.yml up --it -d --build
 ---
 kind: custom.Step
 name: mkcert-generate

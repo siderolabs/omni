@@ -283,6 +283,9 @@ func (suite *MachineSetNodeSuite) TestRequiredExtraMachines() {
 			assertion.Equal(machineClass.Metadata().ID(), machineClassNameLabel)
 		})
 
+	machine := omni.NewMachine(resources.DefaultNamespace, "test-machine-status")
+	suite.Require().NoError(suite.state.Create(ctx, machine))
+
 	machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, "test-machine-status")
 	machineStatus.TypedSpec().Value.TalosVersion = "1.7.5"
 	machineStatus.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{

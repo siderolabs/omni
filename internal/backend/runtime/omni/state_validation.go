@@ -52,25 +52,14 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 			return fmt.Errorf("invalid talos version %q: %w", res.TypedSpec().Value.TalosVersion, err)
 		}
 
-		currentVersionIsDeprecated := false
+		var currentTalosVersion string
 
 		if existingRes != nil {
-			var ver *omni.TalosVersion
-
-			ver, err = safe.StateGet[*omni.TalosVersion](ctx, st, omni.NewTalosVersion(resources.DefaultNamespace, existingRes.TypedSpec().Value.TalosVersion).Metadata())
-			if err != nil && !state.IsNotFoundError(err) {
-				return err
-			}
-
-			if ver != nil {
-				currentVersionIsDeprecated = ver.TypedSpec().Value.Deprecated
-			}
+			currentTalosVersion = existingRes.TypedSpec().Value.TalosVersion
 		}
 
-		// disallow updating to the deprecated Talos version from the non-deprecated one
-		// 1.3.0 -> 1.3.7 should still work for example
-		if talosVersion.TypedSpec().Value.Deprecated && !currentVersionIsDeprecated {
-			return fmt.Errorf("talos version %q is no longer supported", res.TypedSpec().Value.TalosVersion)
+		if err = validateTalosVersion(ctx, st, currentTalosVersion, res.TypedSpec().Value.TalosVersion); err != nil {
+			return err
 		}
 
 		if skipKubernetesVersion {
@@ -876,6 +865,55 @@ func validateSchematicConfiguration(schematicConfiguration *omni.SchematicConfig
 
 	if schematicConfiguration.TypedSpec().Value.SchematicId == "" {
 		return fmt.Errorf("schematic ID can not be empty")
+	}
+
+	return nil
+}
+
+func machineRequestSetValidationOptions(st state.State) []validated.StateOption {
+	return []validated.StateOption{
+		validated.WithCreateValidations(validated.NewCreateValidationForType(func(ctx context.Context, res *omni.MachineRequestSet, _ ...state.CreateOption) error {
+			return validateMachineRequestSet(ctx, st, res)
+		})),
+		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(ctx context.Context, _ *omni.MachineRequestSet, newRes *omni.MachineRequestSet, _ ...state.UpdateOption) error {
+			return validateMachineRequestSet(ctx, st, newRes)
+		})),
+	}
+}
+
+func validateMachineRequestSet(ctx context.Context, st state.State, res *omni.MachineRequestSet) error {
+	if res.TypedSpec().Value.ProviderId == "" {
+		return fmt.Errorf("provider id can not be empty")
+	}
+
+	return validateTalosVersion(ctx, st, "", res.TypedSpec().Value.TalosVersion)
+}
+
+func validateTalosVersion(ctx context.Context, st state.State, current, newVersion string) error {
+	var currentVersionIsDeprecated bool
+
+	talosVersion, err := safe.StateGet[*omni.TalosVersion](ctx, st, omni.NewTalosVersion(resources.DefaultNamespace, newVersion).Metadata())
+	if err != nil {
+		return fmt.Errorf("invalid talos version %q: %w", newVersion, err)
+	}
+
+	if current != "" {
+		var ver *omni.TalosVersion
+
+		ver, err := safe.StateGet[*omni.TalosVersion](ctx, st, omni.NewTalosVersion(resources.DefaultNamespace, current).Metadata())
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		if ver != nil {
+			currentVersionIsDeprecated = ver.TypedSpec().Value.Deprecated
+		}
+	}
+
+	// disallow updating to the deprecated Talos version from the non-deprecated one
+	// 1.3.0 -> 1.3.7 should still work for example
+	if talosVersion.TypedSpec().Value.Deprecated && !currentVersionIsDeprecated {
+		return fmt.Errorf("talos version %q is no longer supported", newVersion)
 	}
 
 	return nil

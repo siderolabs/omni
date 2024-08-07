@@ -134,6 +134,16 @@ export type SecureBootStatus = {
   enabled?: boolean
 }
 
+export type Overlay = {
+  name?: string
+  image?: string
+}
+
+export type MetaValue = {
+  key?: number
+  value?: string
+}
+
 export type MachineStatusSpecHardwareStatusProcessor = {
   core_count?: number
   thread_count?: number
@@ -194,24 +204,14 @@ export type MachineStatusSpecPlatformMetadata = {
   spot?: boolean
 }
 
-export type MachineStatusSpecSchematicOverlay = {
-  name?: string
-  image?: string
-}
-
-export type MachineStatusSpecSchematicMetaValue = {
-  key?: number
-  value?: string
-}
-
 export type MachineStatusSpecSchematic = {
   id?: string
   invalid?: boolean
   extensions?: string[]
   initial_schematic?: string
-  overlay?: MachineStatusSpecSchematicOverlay
+  overlay?: Overlay
   kernel_args?: string[]
-  meta_values?: MachineStatusSpecSchematicMetaValue[]
+  meta_values?: MetaValue[]
   full_id?: string
 }
 
@@ -722,4 +722,17 @@ export type ClusterKubernetesNodesSpec = {
 
 export type KubernetesNodeAuditResultSpec = {
   deleted_nodes?: string[]
+}
+
+export type MachineRequestSetSpec = {
+  provider_id?: string
+  machine_count?: number
+  talos_version?: string
+  overlay?: Overlay
+  extensions?: string[]
+  kernel_args?: string[]
+  meta_values?: MetaValue[]
+}
+
+export type MachineRequestSetStatusSpec = {
 }

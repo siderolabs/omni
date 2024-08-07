@@ -41,6 +41,8 @@ const labelColors = {
   "zone": "light4",
   "instance": "light5",
   "talos-version": "light7",
+  "role-controlplane": "yellow",
+  "role-worker": "yellow",
 }
 
 export const getLabelColor = (labelKey: string) => {

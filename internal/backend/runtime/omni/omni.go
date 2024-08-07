@@ -208,6 +208,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 			config.Config.KeyPruner.Interval,
 		),
 		&omnictrl.OngoingTaskController{},
+		omnictrl.NewMachineRequestStatusCleanupController(),
 	}
 
 	qcontrollers := []controller.QController{
@@ -249,6 +250,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewMachineStatusSnapshotController(siderolinkEventsCh),
 		omnictrl.NewMachineRequestLinkController(resourceState),
 		omnictrl.NewLabelsExtractorController[*omni.MachineStatus](),
+		omnictrl.NewMachineRequestSetStatusController(imageFactoryClient),
 	}
 
 	if config.Config.Auth.SAML.Enabled {
@@ -313,6 +315,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		etcdManualBackupValidationOptions(),
 		samlLabelRuleValidationOptions(),
 		s3ConfigValidationOptions(),
+		machineRequestSetValidationOptions(resourceState),
 	)
 
 	return &Runtime{

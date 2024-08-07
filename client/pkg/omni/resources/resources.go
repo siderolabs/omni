@@ -44,6 +44,8 @@ const VirtualNamespace resource.Namespace = "virtual"
 const ExternalNamespace resource.Namespace = "external"
 
 // CloudProviderNamespace is the namespace for cloud provider specific resources, e.g., `MachineRequest` and `MachineRequestStatus`.
+//
+// tsgen:CloudProviderNamespace
 const CloudProviderNamespace resource.Namespace = "cloud-provider"
 
 // CloudProviderSpecificNamespacePrefix is the prefix for cloud provider specific namespaces.

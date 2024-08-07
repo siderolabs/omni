@@ -614,6 +614,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 		machineSetNode := omni.NewMachineSetNode(resources.DefaultNamespace, uuid.New().String(), machineSet)
 		machineClass := omni.NewMachineClass(resources.DefaultNamespace, uuid.New().String())
+		machineRequestSet := omni.NewMachineRequestSet(resources.DefaultNamespace, uuid.New().String())
 
 		extensionsConfiguration := omni.NewExtensionsConfiguration(resources.DefaultNamespace, uuid.New().String())
 		extensionsConfiguration.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
@@ -667,6 +668,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource:       machineClass,
+				allowedVerbSet: allVerbsSet,
+			},
+			{
+				resource:       machineRequestSet,
 				allowedVerbSet: allVerbsSet,
 			},
 			{
@@ -958,6 +963,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			{
 				resource:       system.NewResourceLabels[*omni.MachineStatus](uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
+				resource:       omni.NewMachineRequestSetStatus(resources.DefaultNamespace, uuid.New().String()),
+				allowedVerbSet: allVerbsSet,
 			},
 		}...)
 

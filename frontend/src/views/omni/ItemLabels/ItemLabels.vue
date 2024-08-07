@@ -41,6 +41,8 @@ const labelOrder = {
   "reporting-events": -1,
   "invalid-state": 0,
   "cluster": 0,
+  "role-controlplane": 2,
+  "role-worker": 2,
   "available": 5,
   "connected": 10,
   "disconnected": 10,

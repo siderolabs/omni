@@ -112,7 +112,7 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 
 	// set overlay on the machine status
 	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, machineStatus.Metadata(), func(res *omni.MachineStatus) error {
-		res.TypedSpec().Value.Schematic.Overlay = &specs.MachineStatusSpec_Schematic_Overlay{
+		res.TypedSpec().Value.Schematic.Overlay = &specs.Overlay{
 			Name:  "rpi_generic",
 			Image: "something",
 		}

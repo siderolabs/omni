@@ -58,8 +58,18 @@ func TestClusterValidation(t *testing.T) {
 	talosVersion2 := omnires.NewTalosVersion(resources.DefaultNamespace, talos15)
 	talosVersion2.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.28.0", "1.28.1"}
 
+	talosVersion3 := omnires.NewTalosVersion(resources.DefaultNamespace, "1.3.0")
+	talosVersion3.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.26.0", "1.27.1"}
+	talosVersion3.TypedSpec().Value.Deprecated = true
+
+	talosVersion4 := omnires.NewTalosVersion(resources.DefaultNamespace, "1.3.4")
+	talosVersion4.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.26.0", "1.27.1"}
+	talosVersion4.TypedSpec().Value.Deprecated = true
+
 	require.NoError(t, st.Create(ctx, talosVersion1))
 	require.NoError(t, st.Create(ctx, talosVersion2))
+	require.NoError(t, st.Create(ctx, talosVersion3))
+	require.NoError(t, st.Create(ctx, talosVersion4))
 
 	cluster := omnires.NewCluster(resources.DefaultNamespace, "test")
 
@@ -68,6 +78,12 @@ func TestClusterValidation(t *testing.T) {
 
 	require.True(t, validated.IsValidationError(err), "expected validation error")
 	assert.ErrorContains(t, err, "invalid talos version")
+
+	cluster.TypedSpec().Value.TalosVersion = "1.3.0"
+	err = st.Create(ctx, cluster)
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "is no longer supported")
 
 	cluster.TypedSpec().Value.TalosVersion = "1.4.0"
 	cluster.TypedSpec().Value.KubernetesVersion = "1.26.0"
@@ -128,6 +144,18 @@ func TestClusterValidation(t *testing.T) {
 	cluster.TypedSpec().Value.KubernetesVersion = "1.28.1"
 
 	require.NoError(t, st.Create(ctx, cluster))
+
+	cluster = omnires.NewCluster(resources.DefaultNamespace, "old")
+
+	cluster.TypedSpec().Value.TalosVersion = "1.3.0"
+	err = innerSt.Create(ctx, cluster)
+
+	require.NoError(t, err)
+
+	cluster.TypedSpec().Value.TalosVersion = "1.3.4"
+
+	err = st.Update(ctx, cluster)
+	require.NoError(t, err)
 }
 
 func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
@@ -951,6 +979,54 @@ func TestSchematicConfigurationValidation(t *testing.T) {
 	res.Metadata().Labels().Set(omnires.LabelMachineSet, "test")
 
 	require.NoError(t, st.Update(ctx, res))
+}
+
+func TestMachineRequestSetValidation(t *testing.T) {
+	t.Parallel()
+
+	talosVersion1 := omnires.NewTalosVersion(resources.DefaultNamespace, "1.2.0")
+	talosVersion1.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.27.0", "1.27.1"}
+	talosVersion1.TypedSpec().Value.Deprecated = true
+
+	talosVersion2 := omnires.NewTalosVersion(resources.DefaultNamespace, "1.7.5")
+	talosVersion2.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.30.0"}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	t.Cleanup(cancel)
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+
+	require.NoError(t, innerSt.Create(ctx, talosVersion1))
+	require.NoError(t, innerSt.Create(ctx, talosVersion2))
+
+	st := validated.NewState(innerSt, omni.MachineRequestSetValidationOptions(innerSt)...)
+
+	res := omnires.NewMachineRequestSet(resources.DefaultNamespace, "test")
+
+	err := st.Create(ctx, res)
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+
+	res.TypedSpec().Value.ProviderId = "talemu"
+	res.TypedSpec().Value.TalosVersion = "1234"
+
+	err = st.Create(ctx, res)
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "invalid talos version")
+
+	res.TypedSpec().Value.TalosVersion = "1.2.0"
+
+	err = st.Create(ctx, res)
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "is no longer supported")
+
+	res.TypedSpec().Value.TalosVersion = "1.7.5"
+
+	err = st.Create(ctx, res)
+
+	require.NoError(t, err)
 }
 
 type mockEtcdBackupStoreFactory struct {

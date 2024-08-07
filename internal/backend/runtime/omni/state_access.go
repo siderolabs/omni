@@ -400,6 +400,8 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.MachineSetDestroyStatusType,
 		omni.MachineSetRequiredMachinesType,
 		omni.MachineSetNodeType,
+		omni.MachineRequestSetStatusType,
+		omni.MachineRequestSetType,
 		omni.MachineSetStatusType,
 		omni.TalosUpgradeStatusType,
 		omni.RedactedClusterMachineConfigType,

@@ -70,7 +70,7 @@ func NewMachineSetStatusController() *MachineSetStatusController {
 			TransformExtraOutputFunc:        handler.reconcileRunning,
 			FinalizerRemovalExtraOutputFunc: handler.reconcileTearingDown,
 		},
-		qtransform.WithConcurrency(8),
+		qtransform.WithConcurrency(16),
 		qtransform.WithExtraMappedInput(
 			qtransform.MapperSameID[*omni.ControlPlaneStatus, *omni.MachineSet](),
 		),

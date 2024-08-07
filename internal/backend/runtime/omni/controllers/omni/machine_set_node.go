@@ -23,12 +23,15 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/cloud"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
-type machineStatus = system.ResourceLabels[*omni.MachineStatus]
+type machineStatusLabels = system.ResourceLabels[*omni.MachineStatus]
+
+const labelEvicted = "evicted"
 
 // MachineSetNodeControllerName is the name of the MachineSetNodeController.
 const MachineSetNodeControllerName = "MachineSetNodeController"
@@ -81,6 +84,11 @@ func (ctrl *MachineSetNodeController) Inputs() []controller.Input {
 			Type:      omni.MachineSetRequiredMachinesType,
 			Kind:      controller.InputDestroyReady,
 		},
+		{
+			Namespace: resources.CloudProviderNamespace,
+			Type:      cloud.MachineRequestStatusType,
+			Kind:      controller.InputStrong,
+		},
 	}
 }
 
@@ -100,7 +108,7 @@ func (ctrl *MachineSetNodeController) Outputs() []controller.Output {
 
 // Run implements controller.Controller interface.
 //
-//nolint:gocognit
+//nolint:gocognit,gocyclo,cyclop
 func (ctrl *MachineSetNodeController) Run(ctx context.Context, r controller.Runtime, logger *zap.Logger) error {
 	for {
 		select {
@@ -126,21 +134,40 @@ func (ctrl *MachineSetNodeController) Run(ctx context.Context, r controller.Runt
 			return err
 		}
 
-		machineMap := map[resource.ID]*omni.Machine{}
+		machineMap := make(map[resource.ID]*omni.Machine, allMachines.Len())
 
-		allMachines.ForEach(func(machine *omni.Machine) {
+		err = allMachines.ForEachErr(func(machine *omni.Machine) error {
+			requestName, ok := machine.Metadata().Labels().Get(omni.LabelMachineRequest)
+			if ok {
+				request, e := safe.ReaderGetByID[*cloud.MachineRequestStatus](ctx, r, requestName)
+				if e != nil && !state.IsNotFoundError(e) {
+					return e
+				}
+
+				if request == nil || request.Metadata().Phase() == resource.PhaseTearingDown {
+					return nil
+				}
+			}
+
 			machineMap[machine.Metadata().ID()] = machine
-		})
 
-		allMachineStatuses, err := safe.ReaderListAll[*machineStatus](ctx, r)
+			return nil
+		})
 		if err != nil {
 			return err
 		}
 
-		machineStatusMap := map[resource.ID]*machineStatus{}
+		allMachineStatuses, err := safe.ReaderListAll[*machineStatusLabels](ctx, r)
+		if err != nil {
+			return err
+		}
 
-		allMachineStatuses.ForEach(func(ms *machineStatus) {
+		machineStatusMap := map[resource.ID]*machineStatusLabels{}
+
+		allMachineStatuses.ForEach(func(ms *machineStatusLabels) {
 			if m, ok := machineMap[ms.Metadata().ID()]; !ok || m.Metadata().Phase() == resource.PhaseTearingDown {
+				ms.Metadata().Labels().Set(labelEvicted, "")
+
 				return
 			}
 
@@ -197,9 +224,9 @@ func (ctrl *MachineSetNodeController) reconcileMachineSet(
 	ctx context.Context,
 	r controller.Runtime,
 	machineSet *omni.MachineSet,
-	allMachineStatuses safe.List[*machineStatus],
+	allMachineStatuses safe.List[*machineStatusLabels],
 	allMachineSetNodes safe.List[*omni.MachineSetNode],
-	machineStatusMap map[resource.ID]*machineStatus,
+	machineStatusMap map[resource.ID]*machineStatusLabels,
 	visited map[resource.ID]struct{},
 	logger *zap.Logger,
 ) error {
@@ -235,9 +262,9 @@ func (ctrl *MachineSetNodeController) reconcileMachineSetNodes(
 	ctx context.Context,
 	r controller.Runtime,
 	machineSet *omni.MachineSet,
-	allMachineStatuses safe.List[*machineStatus],
+	allMachineStatuses safe.List[*machineStatusLabels],
 	allMachineSetNodes safe.List[*omni.MachineSetNode],
-	machineStatusMap map[resource.ID]*machineStatus,
+	machineStatusMap map[resource.ID]*machineStatusLabels,
 	visited map[resource.ID]struct{},
 	logger *zap.Logger,
 ) (requiredAdditionalMachines int, err error) {
@@ -312,7 +339,7 @@ func (ctrl *MachineSetNodeController) createNodes(
 	r controller.Runtime,
 	machineSet *omni.MachineSet,
 	machineClass *omni.MachineClass,
-	allMachineStatuses safe.List[*machineStatus],
+	allMachineStatuses safe.List[*machineStatusLabels],
 	count int,
 	logger *zap.Logger,
 ) (requiredAdditionalMachines int, err error) {
@@ -352,6 +379,10 @@ func (ctrl *MachineSetNodeController) createNodes(
 		}, resource.LabelTerm{
 			Key: omni.MachineStatusLabelReportingEvents,
 			Op:  resource.LabelOpExists,
+		}, resource.LabelTerm{
+			Key:    labelEvicted,
+			Op:     resource.LabelOpExists,
+			Invert: true,
 		})
 
 		availableMachineClassMachines := allMachineStatuses.FilterLabelQuery(resource.RawLabelQuery(selector))
@@ -410,7 +441,7 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 	ctx context.Context,
 	r controller.Runtime,
 	machineSetNodes safe.List[*omni.MachineSetNode],
-	machineStatuses map[string]*machineStatus,
+	machineStatuses map[string]*machineStatusLabels,
 	machinesToDestroyCount int,
 	logger *zap.Logger,
 ) error {
@@ -473,7 +504,7 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 	return nil
 }
 
-func getSortFunction(machineStatuses map[resource.ID]*machineStatus) func(a, b *omni.MachineSetNode) int {
+func getSortFunction(machineStatuses map[resource.ID]*machineStatusLabels) func(a, b *omni.MachineSetNode) int {
 	return func(a, b *omni.MachineSetNode) int {
 		ms1, ok1 := machineStatuses[a.Metadata().ID()]
 		ms2, ok2 := machineStatuses[b.Metadata().ID()]

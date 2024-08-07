@@ -42,7 +42,7 @@ func NewMachineController() *MachineController {
 					return err
 				}
 
-				helpers.CopyLabels(link, machine, omni.LabelMachineRequest)
+				helpers.CopyLabels(link, machine, omni.LabelMachineRequest, omni.LabelMachineRequestSet)
 
 				spec := machine.TypedSpec().Value
 

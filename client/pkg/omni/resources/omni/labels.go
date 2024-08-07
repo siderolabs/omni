@@ -64,6 +64,10 @@ const (
 	// tsgen:LabelMachineRequest
 	LabelMachineRequest = SystemLabelPrefix + "machine-request"
 
+	// LabelMachineRequestSet is the machine request set label.
+	// tsgen:LabelMachineRequestSet
+	LabelMachineRequestSet = SystemLabelPrefix + "machine-request-set"
+
 	// LabelMachineInfraID is the ID of the machine specific to an infra provider.
 	LabelMachineInfraID = SystemLabelPrefix + "infra-id"
 )

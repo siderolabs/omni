@@ -7,6 +7,7 @@ package omni
 
 import (
 	"context"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
@@ -20,6 +21,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/cloud"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
 // MachineRequestLinkControllerName is the name of the MachineRequestLinkController.
@@ -80,11 +82,17 @@ func (ctrl *MachineRequestLinkController) Reconcile(ctx context.Context,
 	_, err = safe.StateUpdateWithConflicts(ctx, ctrl.state, link.Metadata(), func(r *siderolink.Link) error {
 		r.Metadata().Labels().Set(omni.LabelMachineRequest, machineRequestStatus.Metadata().ID())
 
+		helpers.CopyLabels(machineRequestStatus, r, omni.LabelMachineRequestSet)
+
 		return nil
 	})
 
 	if state.IsPhaseConflictError(err) {
 		return nil
+	}
+
+	if state.IsNotFoundError(err) {
+		return controller.NewRequeueError(err, time.Second*5)
 	}
 
 	return err

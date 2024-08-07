@@ -23,6 +23,16 @@ message SecureBootStatus {
   bool enabled = 1;
 }
 
+message Overlay {
+  string name = 1;
+  string image = 2;
+}
+
+message MetaValue {
+  uint32 key = 1;
+  string value = 2;
+}
+
 // MachineStatusSpec describes state of a Machine.
 message MachineStatusSpec {
   // HardwareStatus describes machine hardware status.
@@ -132,16 +142,6 @@ message MachineStatusSpec {
   }
 
   message Schematic {
-    message Overlay {
-      string name = 1;
-      string image = 2;
-    }
-
-    message MetaValue {
-      uint32 key = 1;
-      string value = 2;
-    }
-
     // Id is the image factory schematic id used for the image generation.
     //
     // This must be be plain id computed solely from the system extensions, not including the kernel command line arguments, META content etc.
@@ -1104,3 +1104,20 @@ message KubernetesNodeAuditResultSpec {
   // DeletedNodes contains the list of nodes that were last removed.
   repeated string deleted_nodes = 1;
 }
+
+// MachineRequestSetSpec creates the number of machine requests.
+// Can be either connected to a machine class or be manual.
+message MachineRequestSetSpec {
+  string provider_id = 1;
+  int32 machine_count = 2;
+
+  string talos_version = 3;
+
+  Overlay overlay = 4;
+  repeated string extensions = 5;
+  repeated string kernel_args = 6;
+  repeated MetaValue meta_values = 7;
+}
+
+// MachineRequestSetStatusSpec describes the status of the machine request set.
+message MachineRequestSetStatusSpec {}

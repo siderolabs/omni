@@ -305,7 +305,7 @@ func newMachineExtensions(cluster *omni.Cluster, machineStatus *omni.MachineStat
 
 		me.kernelArgs = schematicConfig.KernelArgs
 		me.meta = xslices.Map(schematicConfig.MetaValues,
-			func(v *specs.MachineStatusSpec_Schematic_MetaValue) schematic.MetaValue {
+			func(v *specs.MetaValue) schematic.MetaValue {
 				return schematic.MetaValue{
 					Key:   uint8(v.GetKey()),
 					Value: v.GetValue(),
