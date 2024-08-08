@@ -1,3 +1,30 @@
+## [Omni 0.40.2](https://github.com/siderolabs/omni/releases/tag/v0.40.2) (2024-08-08)
+
+Welcome to the v0.40.2 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`adfcf92`](https://github.com/siderolabs/omni/commit/adfcf9226a71f12e0b32588d1dbca403598b2e80) fix: properly handle ExposedService resource finalizers
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.40.1](https://github.com/siderolabs/omni/releases/tag/v0.40.1)
+
 ## [Omni 0.40.1](https://github.com/siderolabs/omni/releases/tag/v0.40.1) (2024-08-08)
 
 Welcome to the v0.40.1 release of Omni!
