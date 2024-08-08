@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
@@ -65,5 +66,16 @@ func (c *AuthConfig) intercept(ctx context.Context, method string) context.Conte
 		md = metadata.New(nil)
 	}
 
-	return ctxstore.WithValue(ctx, auth.GRPCMessageContextKey{Message: message.NewGRPC(md, method)})
+	msg := message.NewGRPC(md, method)
+
+	auditData, ok := ctxstore.Value[*audit.Data](ctx)
+	if ok {
+		sig, err := msg.Signature()
+		if err == nil {
+			auditData.Session.Fingerprint = sig.KeyFingerprint
+			auditData.Session.Email = sig.Identity
+		}
+	}
+
+	return ctxstore.WithValue(ctx, auth.GRPCMessageContextKey{Message: msg})
 }
