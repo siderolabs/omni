@@ -118,7 +118,12 @@ func GetSocketOptions(address string) []client.OptionFunc {
 }
 
 const (
-	talosClientLRUSize = 32
+	// Talos client cache is used for customer access to the clusters and
+	// for the some controllers which go through Talos controlplane (vs. connecting to the node directly),
+	// e.g. etcd machine audit.
+	//
+	// No controllers at the moment of writing this comment hold reference to all cluster clients.
+	talosClientLRUSize = 256
 	talosClientTTL     = time.Hour
 )
 

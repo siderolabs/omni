@@ -54,7 +54,13 @@ import (
 var Name = common.Runtime_Kubernetes.String()
 
 const (
-	kubernetesClientLRUSize = 32
+	// KubernetesStatus controller anyways holds a reference to kubernetes clients
+	// for all healthy (connected) clusters, so the cache size should be bigger to accommodate all of them
+	// anyways to make hit rate higher.
+	//
+	// So we keep the number high enough here, as lowering it won't save memory if KubernetesStatus controller
+	// anyways holds a reference to all of them.
+	kubernetesClientLRUSize = 10240
 	kubernetesClientTTL     = time.Hour
 )
 
