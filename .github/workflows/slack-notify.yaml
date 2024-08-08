@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2023-11-23T16:03:37Z by kres latest.
+# Generated on 2024-08-15T23:44:03Z by kres 7be2a05.
 
 name: slack-notify
 "on":
@@ -12,6 +12,7 @@ name: slack-notify
       - e2e-upgrades-cron
       - e2e-templates-cron
       - e2e-backups-cron
+      - e2e-workload-proxy-cron
     types:
       - completed
 jobs:

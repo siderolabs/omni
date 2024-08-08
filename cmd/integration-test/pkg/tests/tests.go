@@ -1097,6 +1097,48 @@ Test flow of cluster creation and scaling using cluster templates.`,
 			},
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "tmpl-cluster"),
 		},
+		{
+			Name:         "WorkloadProxy",
+			Description:  "Test workload service proxying feature",
+			Parallel:     true,
+			MachineClaim: 1,
+			Subtests: subTests(
+				subTest{
+					"ClusterShouldBeCreated",
+					CreateCluster(ctx, rootClient, ClusterOptions{
+						Name:          "integration-workload-proxy",
+						ControlPlanes: 1,
+						Workers:       0,
+
+						Features: &specs.ClusterSpec_Features{
+							EnableWorkloadProxy: true,
+						},
+
+						MachineOptions: options.MachineOptions,
+					},
+					),
+				},
+			).Append(
+				TestBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
+					ctx, rootClient,
+					"integration-workload-proxy",
+					options.MachineOptions.TalosVersion,
+					options.MachineOptions.KubernetesVersion,
+					talosAPIKeyPrepare,
+				)...,
+			).Append(
+				subTest{
+					"WorkloadProxyShouldBeTested",
+					AssertWorkloadProxy(ctx, rootClient, "integration-workload-proxy"),
+				},
+			).Append(
+				subTest{
+					"ClusterShouldBeDestroyed",
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-workload-proxy"),
+				},
+			),
+			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-workload-proxy"),
+		},
 	}
 
 	var re *regexp.Regexp

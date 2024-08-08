@@ -7,6 +7,17 @@
 
 set -eoux pipefail
 
+# Omni is served from "https://my-instance.localhost:8099"
+# Exposed services through workload proxying follow the pattern: "https://sngmph-my-instance.proxy-us.localhost:8099/"
+# The TLS key and cert, hack/certs/localhost-key.pem and hack/certs/localhost.pem contain the SANs:
+# - localhost
+# - *.localhost
+# - my-instance.localhost
+# - *.my-instance.localhost
+#
+# Write "my-instance.localhost" to /etc/hosts to avoid problems with the name resolution.
+echo "127.0.0.1 my-instance.localhost" | tee -a /etc/hosts
+
 # Settings.
 
 TALOS_VERSION=1.7.4
@@ -84,7 +95,7 @@ export VAULT_ADDR='http://127.0.0.1:8200'
 export VAULT_TOKEN=dev-o-token
 export AUTH_USERNAME="${AUTH0_TEST_USERNAME}"
 export AUTH_PASSWORD="${AUTH0_TEST_PASSWORD}"
-export BASE_URL=https://localhost:8099/
+export BASE_URL=https://my-instance.localhost:8099/
 export VIDEO_DIR=""
 export AUTH0_CLIENT_ID="${AUTH0_CLIENT_ID}"
 export AUTH0_DOMAIN="${AUTH0_DOMAIN}"
@@ -123,7 +134,7 @@ if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
 
   SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
   ${ARTIFACTS}/integration-test-linux-amd64 \
-      --endpoint https://localhost:8099 \
+      --endpoint https://my-instance.localhost:8099 \
       --talos-version=${TALOS_VERSION} \
       --omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
       --expected-machines=30 \
@@ -244,7 +255,7 @@ sleep 5
 
 SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
 ${ARTIFACTS}/integration-test-linux-amd64 \
-    --endpoint https://localhost:8099 \
+    --endpoint https://my-instance.localhost:8099 \
     --talos-version=${TALOS_VERSION} \
     --omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
     --expected-machines=8 `# equal to the masters+workers above` \

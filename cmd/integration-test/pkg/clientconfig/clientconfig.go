@@ -8,6 +8,7 @@ package clientconfig
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"os"
@@ -143,6 +144,30 @@ func SignHTTPRequestWithEmail(ctx context.Context, client *client.Client, req *h
 	}
 
 	return msg.Sign(email, newKey)
+}
+
+// RegisterKeyGetIDSignatureBase64 registers a new public key with the default test email and returns its ID and the base-64 encoded signature of the same ID.
+func RegisterKeyGetIDSignatureBase64(ctx context.Context, client *client.Client) (id, idSignatureBase66 string, err error) {
+	newKey, err := pgp.GenerateKey("", "", defaultEmail, 4*time.Hour)
+	if err != nil {
+		return "", "", err
+	}
+
+	err = registerKey(ctx, client.Auth(), newKey, defaultEmail)
+	if err != nil {
+		return "", "", err
+	}
+
+	id = newKey.Fingerprint()
+
+	signedIDBytes, err := newKey.Sign([]byte(id))
+	if err != nil {
+		return "", "", err
+	}
+
+	idSignatureBase66 = base64.StdEncoding.EncodeToString(signedIDBytes)
+
+	return id, idSignatureBase66, nil
 }
 
 var talosAPIKeyMutex sync.Mutex

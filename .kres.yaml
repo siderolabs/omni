@@ -238,6 +238,18 @@ spec:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: "--test.run CleanState/|EtcdBackupAndRestore"
           RUN_TALEMU_TESTS: false
+      - name: e2e-workload-proxy
+        crons:
+          - '30 1 * * *'
+        runnerLabels:
+          - omni
+        triggerLabels:
+          - integration/e2e
+          - integration/e2e-workload-proxy
+        environmentOverride:
+          INTEGRATION_RUN_E2E_TEST: "false"
+          INTEGRATION_TEST_ARGS: "--test.run CleanState/|WorkloadProxy"
+          RUN_TALEMU_TESTS: false
 ---
 kind: common.Build
 spec:
