@@ -1,3 +1,30 @@
+## [Omni 0.40.1](https://github.com/siderolabs/omni/releases/tag/v0.40.1) (2024-08-08)
+
+Welcome to the v0.40.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Utku Ozdemir
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`8fb9202`](https://github.com/siderolabs/omni/commit/8fb9202abcfe8734e524e1bc66e1e4aea513081a) fix: fix nil pointer dereference in workload proxy reconciler
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.40.0](https://github.com/siderolabs/omni/releases/tag/v0.40.0)
+
 ## [Omni 0.40.0](https://github.com/siderolabs/omni/releases/tag/v0.40.0) (2024-07-29)
 
 Welcome to the v0.40.0 release of Omni!  

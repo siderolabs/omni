@@ -6,20 +6,4 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = false
-previous = "v0.39.0"
-
-[notes]
-
-  [notes.support-bundle]
-    title = "Support Bundle"
-    description = """\
-Support downloading cluster support bundle from the UI.
-"""
-
-  [notes.watch-stats]
-    title = "Show Total Items"
-    description = """\
-Display total number of clusters and machines on the corresponding pages.
-Also show some basic stats there: the number of clusters not ready and allocated/available machines.
-"""
-
+previous = "v0.40.0"
