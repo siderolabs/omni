@@ -104,6 +104,11 @@ func (ctrl *KubernetesStatusController) Inputs() []controller.Input {
 			Type:      omni.KubeconfigType,
 			Kind:      controller.InputWeak,
 		},
+		{
+			Namespace: resources.DefaultNamespace,
+			Type:      omni.ExposedServiceType,
+			Kind:      controller.InputDestroyReady,
+		},
 	}
 }
 
@@ -200,6 +205,15 @@ func (ctrl *KubernetesStatusController) updateExposedServices(ctx context.Contex
 		svcLogger := logger.With(zap.String("service", svcID))
 
 		exposedService := omni.NewExposedService(resources.DefaultNamespace, cluster+"/"+svcID)
+
+		res, err := safe.ReaderGet[*omni.ExposedService](ctx, r, exposedService.Metadata())
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		if res != nil && res.Metadata().Phase() == resource.PhaseTearingDown {
+			continue
+		}
 
 		port, err := strconv.Atoi(service.Annotations[ServicePortAnnotationKey])
 		if err != nil || port < 1 || port > 65535 {
