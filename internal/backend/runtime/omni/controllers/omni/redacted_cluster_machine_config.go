@@ -7,10 +7,12 @@ package omni
 
 import (
 	"context"
+	"errors"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/siderolabs/crypto/x509"
+	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"go.uber.org/zap"
@@ -37,6 +39,10 @@ func NewRedactedClusterMachineConfigController() *RedactedClusterMachineConfigCo
 				return omni.NewClusterMachineConfig(resources.DefaultNamespace, cmcr.Metadata().ID())
 			},
 			TransformFunc: func(_ context.Context, _ controller.Reader, _ *zap.Logger, cmc *omni.ClusterMachineConfig, cmcr *omni.RedactedClusterMachineConfig) error {
+				if !helpers.UpdateInputsVersions(cmcr, cmc) {
+					return xerrors.NewTagged[qtransform.SkipReconcileTag](errors.New("config input hasn't changed"))
+				}
+
 				data := cmc.TypedSpec().Value.GetData()
 
 				if data == nil {
