@@ -1,0 +1,27 @@
+{{- if and .Values.persistence.enabled (not .Values.persistence.existingClaim) }}
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  {{- if or .Values.persistence.annotations }}
+  annotations:
+    {{- toYaml .Values.persistence.annotations | nindent 4 }}
+  {{- end }}
+  labels: {{- include "sidero-omni.labels" . | nindent 4 }}
+  name: {{ default (printf "%s-0" (include "sidero-omni.fullname" .)) }}
+  namespace: {{ include "sidero-omni.namespace" . }}
+spec:
+  accessModes:
+  {{- if not (empty .Values.persistence.accessModes) }}
+  {{- range .Values.persistence.accessModes }}
+    - {{ . }}
+  {{- end }}
+  {{- else }}
+    - {{ .Values.persistence.accessMode }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size | quote }}
+  {{- with .Values.persistence.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+{{- end }}

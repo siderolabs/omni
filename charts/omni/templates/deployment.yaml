@@ -1,0 +1,153 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  {{- if or .Values.annotations }}
+  annotations:
+    {{- toYaml .Values.annotations | nindent 2 }}
+  {{- end }}
+  labels:
+    {{- include "sidero-omni.labels" . | nindent 4 }}
+  name: {{ include "sidero-omni.fullname" . }}
+  namespace: {{ include "sidero-omni.namespace" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "sidero-omni.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "sidero-omni.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      containers:
+        - name: omni
+          {{- with .Values.image }}
+          image: {{ .registry }}/{{ .repository }}:{{ .tag }}
+          {{- end }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          - name: OMNI_ACCOUNT_UUID
+            valueFrom:
+              configMapKeyRef:
+                # The ConfigMap containing the value you want to assign to OMNI_ACCOUNT_UUID
+                name: {{ .Values.omniAccount.existingConfigMap | default (printf "%s-account-uuid" (include "sidero-omni.fullname" .)) }}
+                # Specify the key associated with the value
+                key: uuid
+          args:
+          - --account-id=${OMNI_ACCOUNT_UUID}
+          - --name=onprem-omni
+          - --cert=/tls/tls.crt
+          - --key=/tls/tls.key
+          - --machine-api-cert=/tls/tls.crt
+          - --machine-api-key=/tls/tls.key
+          - --private-key-source=file:///omni.asc
+          - --event-sink-port=8091
+          - --bind-addr=0.0.0.0:443
+          - --machine-api-bind-addr=0.0.0.0:8090
+          - --k8s-proxy-bind-addr=0.0.0.0:8100
+          - --advertised-api-url=https://{{ required "A valid .Values.tls.domain entry required!" .Values.tls.domain }}:443/
+          - --siderolink-api-advertised-url=https://{{ required "A valid .Values.tls.domain entry required!" .Values.tls.domain }}:8090/
+          - --siderolink-wireguard-advertised-addr={{ required "A valid .Values.wireguard.ipAddr entry required!" .Values.wireguard.ipAddr }}:50180
+          - --advertised-kubernetes-proxy-url=https://{{ required "A valid .Values.tls.domain entry required!" .Values.tls.domain }}:8100/
+          {{- with .Values.authentication }}
+          {{- if eq "saml" .type  }}
+          - --auth-auth0-enabled=false
+          - --auth-saml-enabled=true
+          - --auth-saml-url={{ required "A valid .saml.url entry required!" .saml.url }}
+          {{- else if eq "auth0" .type }}
+          - --auth-saml-enabled=false
+          - --auth-auth0-enabled=true
+          - --auth-auth0-domain={{ required "A valid .auth0.domain entry required!" .auth0.domain }}
+          - --auth-auth0-client-id={{ required "A valid .auth0.clientId entry required!" .auth0.clientId }}
+          - --initial-users={{ required "A valid .auth0.initialUsersEmailAddress entry required!" .auth0.initialUsersEmailAddress }}
+          {{- end }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: etcd-data-dir
+              mountPath: /_out/etcd
+            - name: etcd-encryption-key
+              mountPath: /omni.asc
+              subPath: omni.asc
+              readOnly: true
+            - name: tls-certificate
+              mountPath: /tls
+              readOnly: true
+            - name: dev-tun
+              mountPath: /dev/net/tun
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+            {{- if .Values.extraVolumeMounts }}
+            {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+            {{- end }}
+        - name: dind
+          {{- with .Values.dind.image }}
+          image: {{ .registry }}/{{ .repository }}:{{ .tag }}
+          {{- end }}
+          imagePullPolicy: {{ .Values.dind.image.pullPolicy }}
+          command:
+          - dockerd
+          - --host
+          - tcp://127.0.0.1:2375
+          securityContext:
+            {{- toYaml .Values.dind.securityContext | nindent 12 }}
+          volumeMounts:
+            - mountPath: /var/run/docker.sock
+              name: docker-sock
+            {{- if .Values.dind.extraVolumeMounts }}
+            {{- toYaml .Values.dind.extraVolumeMounts | nindent 12 }}
+            {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Always
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      volumes:
+        - name: etcd-data-dir
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (printf "%s-0" (include "sidero-omni.fullname" .)) }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: tls-certificate
+          secret:
+            secretName: {{ required "A valid .Values.tls.existingTlsSecret entry required!" .Values.tls.existingTlsSecret }}
+        - name: etcd-encryption-key
+          secret:
+            secretName: {{ required "A valid .Values.etcd.encryptionKeySecret entry required!" .Values.etcd.encryptionKeySecret }}
+        - name: dev-tun
+          hostPath:
+            path: /dev/net/tun
+            type: CharDevice
+        - name: docker-sock
+          emptyDir: {}
+        {{- if .Values.extraVolumes }}
+        {{- toYaml .Values.extraVolumes | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
