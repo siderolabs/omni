@@ -101,6 +101,7 @@ type Server struct {
 	dnsService              *dns.Service
 	workloadProxyReconciler *workloadproxy.Reconciler
 	imageFactoryClient      *imagefactory.Client
+	auditor                 Auditor
 
 	linkCounterDeltaCh chan<- siderolink.LinkCounterDeltas
 	siderolinkEventsCh chan<- *omnires.MachineStatusSnapshot
@@ -128,6 +129,7 @@ func NewServer(
 	authConfig *authres.Config,
 	keyFile, certFile string,
 	proxyServer Proxy,
+	auditor Auditor,
 	logger *zap.Logger,
 ) (*Server, error) {
 	s := &Server{
@@ -138,13 +140,14 @@ func NewServer(
 		dnsService:              dnsService,
 		workloadProxyReconciler: workloadProxyReconciler,
 		imageFactoryClient:      imageFactoryClient,
+		auditor:                 auditor,
 		linkCounterDeltaCh:      linkCounterDeltaCh,
 		siderolinkEventsCh:      siderolinkEventsCh,
 		proxyServer:             proxyServer,
 		bindAddress:             bindAddress,
 		metricsBindAddress:      metricsBindAddress,
-		k8sProxyBindAddress:     k8sProxyBindAddress,
 		pprofBindAddress:        pprofBindAddress,
+		k8sProxyBindAddress:     k8sProxyBindAddress,
 		keyFile:                 keyFile,
 		certFile:                certFile,
 	}
@@ -235,6 +238,7 @@ func (s *Server) Run(ctx context.Context) error {
 		runtimeState,
 		s.dnsService,
 		authres.Enabled(s.authConfig),
+		s.auditor,
 		interceptor.NewSignature(s.authenticatorFunc(), s.logger).Unary(),
 	)
 	if err != nil {
@@ -247,6 +251,11 @@ func (s *Server) Run(ctx context.Context) error {
 
 	grpcProxyServer := router.NewServer(rtr,
 		router.Interceptors(s.logger),
+		grpc.ChainStreamInterceptor(
+			grpcutil.StreamSetAuditData(),
+			// enabled is always true here because we are interested in audit data rather than auth process
+			interceptor.NewAuthConfig(true, s.logger).Stream(),
+		),
 		grpc.MaxRecvMsgSize(constants.GRPCMaxMessageSize),
 	)
 	crtData := certData{certFile: s.certFile, keyFile: s.keyFile}
@@ -264,7 +273,7 @@ func (s *Server) Run(ctx context.Context) error {
 		func() error { return runGRPCServer(ctx, grpcServer, grpcTransport, s.logger) },
 		func() error { return runMetricsServer(ctx, s.metricsBindAddress, s.logger) },
 		func() error {
-			return runK8sProxyServer(ctx, s.k8sProxyBindAddress, oidcStorage, crtData, runtimeState, s.logger)
+			return runK8sProxyServer(ctx, s.k8sProxyBindAddress, oidcStorage, crtData, runtimeState, s.auditor, s.logger)
 		},
 		func() error { return s.proxyServer.Run(ctx, unifiedHandler, s.logger) },
 		func() error { return s.logHandler.Start(ctx) },
@@ -740,8 +749,14 @@ type oidcStore interface {
 	GetPublicKeyByID(keyID string) (any, error)
 }
 
-func runK8sProxyServer(ctx context.Context, bindAddress string, oidcStorage oidcStore, data certData,
-	runtimeState state.State, logger *zap.Logger,
+func runK8sProxyServer(
+	ctx context.Context,
+	bindAddress string,
+	oidcStorage oidcStore,
+	data certData,
+	runtimeState state.State,
+	wrapper k8sproxy.MiddlewareWrapper,
+	logger *zap.Logger,
 ) error {
 	keyFunc := func(_ context.Context, keyID string) (any, error) {
 		return oidcStorage.GetPublicKeyByID(keyID)
@@ -758,7 +773,7 @@ func runK8sProxyServer(ctx context.Context, bindAddress string, oidcStorage oidc
 		return uuid.TypedSpec().Value.Uuid, nil
 	}
 
-	k8sProxyHandler, err := k8sproxy.NewHandler(keyFunc, clusterUUIDResolver, logger)
+	k8sProxyHandler, err := k8sproxy.NewHandler(keyFunc, clusterUUIDResolver, wrapper, logger)
 	if err != nil {
 		return err
 	}
@@ -1161,4 +1176,10 @@ var assetsData = []struct {
 		"Windows",
 		"talosctl-windows-amd64.exe",
 	},
+}
+
+// Auditor is a common interface for audit log.
+type Auditor interface {
+	router.TalosAuditor
+	k8sproxy.MiddlewareWrapper
 }

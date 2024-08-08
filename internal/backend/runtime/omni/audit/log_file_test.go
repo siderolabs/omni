@@ -29,9 +29,9 @@ func TestLogFile_CurrentDay(t *testing.T) {
 	dir := t.TempDir()
 
 	entries := []entry{
-		{shift: time.Second, data: audit.Data{UserAgent: "Mozilla/5.0", IPAddress: "10.10.0.1", Email: "random_email1@example.com"}},
-		{shift: time.Minute, data: audit.Data{UserAgent: "Mozilla/5.0", IPAddress: "10.10.0.2", Email: "random_email2@example.com"}},
-		{shift: 30 * time.Minute, data: audit.Data{UserAgent: "Mozilla/5.0", IPAddress: "10.10.0.3", Email: "random_email3@example.com"}},
+		{shift: time.Second, data: makeAuditData("Mozilla/5.0", "10.10.0.1", "random_email1@example.com")},
+		{shift: time.Minute, data: makeAuditData("Mozilla/5.0", "10.10.0.2", "random_email2@example.com")},
+		{shift: 30 * time.Minute, data: makeAuditData("Mozilla/5.0", "10.10.0.3", "random_email3@example.com")},
 	}
 
 	start := time.Date(2012, 1, 1, 23, 0, 0, 0, time.Local)
@@ -59,9 +59,9 @@ func TestLogFile_CurrentAndNewDay(t *testing.T) {
 	dir := t.TempDir()
 
 	entries := []entry{
-		{shift: 0, data: audit.Data{UserAgent: "Mozilla/5.0", IPAddress: "10.10.0.1", Email: "random_email1@example.com"}},
-		{shift: 55 * time.Minute, data: audit.Data{UserAgent: "Mozilla/5.0", IPAddress: "10.10.0.2", Email: "random_email2@example.com"}},
-		{shift: 5 * time.Minute, data: audit.Data{UserAgent: "Mozilla/5.0", IPAddress: "10.10.0.3", Email: "random_email3@example.com"}},
+		{shift: 0, data: makeAuditData("Mozilla/5.0", "10.10.0.1", "random_email1@example.com")},
+		{shift: 55 * time.Minute, data: makeAuditData("Mozilla/5.0", "10.10.0.2", "random_email2@example.com")},
+		{shift: 5 * time.Minute, data: makeAuditData("Mozilla/5.0", "10.10.0.3", "random_email3@example.com")},
 	}
 
 	start := time.Date(2012, 1, 1, 23, 0, 0, 0, time.Local)
@@ -94,7 +94,7 @@ func TestLogFile_CurrentDayConcurrent(t *testing.T) {
 		address := fmt.Sprintf("10.10.0.%d", i+1)
 		email := fmt.Sprintf("random_email_%d@example.com", i+1)
 
-		entries = append(entries, entry{shift: time.Second, data: audit.Data{UserAgent: "Mozilla/5.0", IPAddress: address, Email: email}})
+		entries = append(entries, entry{shift: time.Second, data: makeAuditData("Mozilla/5.0", address, email)})
 	}
 
 	start := time.Date(2012, 1, 1, 23, 0, 0, 0, time.Local)
@@ -178,4 +178,15 @@ func (s *sortedFileFS) ReadFile(name string) ([]byte, error) {
 
 func defaultCmp(t *testing.T, expected string, actual string) {
 	require.Equal(t, expected, actual)
+}
+
+//nolint:unparam
+func makeAuditData(agent, ip, email string) audit.Data {
+	return audit.Data{
+		Session: audit.Session{
+			UserAgent: agent,
+			IPAddress: ip,
+			Email:     email,
+		},
+	}
 }

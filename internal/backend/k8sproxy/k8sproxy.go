@@ -30,10 +30,15 @@ type Handler struct {
 	chain       http.Handler
 }
 
+// MiddlewareWrapper is an interface for middleware wrappers.
+type MiddlewareWrapper interface {
+	Wrap(http.Handler) http.Handler
+}
+
 // NewHandler creates a new Handler.
-func NewHandler(keyFunc KeyProvider, clusterUUIDResolver ClusterUUIDResolver, logger *zap.Logger) (*Handler, error) {
+func NewHandler(keyFunc KeyProvider, clusterUUIDResolver ClusterUUIDResolver, wrapper MiddlewareWrapper, logger *zap.Logger) (*Handler, error) {
 	multiplexer := newMultiplexer()
-	proxy := newProxyHandler(multiplexer, logger)
+	proxy := wrapper.Wrap(newProxyHandler(multiplexer, logger))
 
 	handler := &Handler{
 		multiplexer: multiplexer,

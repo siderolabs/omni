@@ -56,6 +56,11 @@ const (
 	talosBackendTTL     = time.Hour
 )
 
+// TalosAuditor is an interface for auditing Talos access.
+type TalosAuditor interface {
+	AuditTalosAccess(context.Context, string, string, string) error
+}
+
 // Router wraps grpc-proxy StreamDirector.
 type Router struct {
 	talosBackends                        *expirable.LRU[string, proxy.Backend]
@@ -67,6 +72,7 @@ type Router struct {
 	nodeResolver NodeResolver
 	verifier     grpc.UnaryServerInterceptor
 	cosiState    state.State
+	talosAuditor TalosAuditor
 	authEnabled  bool
 }
 
@@ -76,6 +82,7 @@ func NewRouter(
 	cosiState state.State,
 	nodeResolver NodeResolver,
 	authEnabled bool,
+	talosAuditor TalosAuditor,
 	verifier grpc.UnaryServerInterceptor,
 ) (*Router, error) {
 	omniConn, err := grpc.NewClient(transport.Address(),
@@ -95,12 +102,6 @@ func NewRouter(
 
 	r := &Router{
 		talosBackends: expirable.NewLRU[string, proxy.Backend](talosBackendLRUSize, nil, talosBackendTTL),
-		omniBackend:   NewOmniBackend("omni", nodeResolver, omniConn),
-		cosiState:     cosiState,
-		nodeResolver:  nodeResolver,
-		authEnabled:   authEnabled,
-		verifier:      verifier,
-
 		metricCacheSize: prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "omni_grpc_proxy_talos_backend_cache_size",
 			Help: "Number of Talos clients in the cache of gRPC Proxy.",
@@ -117,6 +118,12 @@ func NewRouter(
 			Name: "omni_grpc_proxy_talos_backend_cache_misses_total",
 			Help: "Number of gRPC Proxy Talos client cache misses.",
 		}),
+		omniBackend:  NewOmniBackend("omni", nodeResolver, omniConn),
+		nodeResolver: nodeResolver,
+		verifier:     verifier,
+		cosiState:    cosiState,
+		talosAuditor: talosAuditor,
+		authEnabled:  authEnabled,
 	}
 
 	return r, nil
@@ -150,6 +157,10 @@ func (r *Router) Director(ctx context.Context, fullMethodName string) (proxy.Mod
 	if runtime := md.Get(message.RuntimeHeaderHey); runtime != nil && runtime[0] == common.Runtime_Talos.String() {
 		backends, err := r.getTalosBackend(ctx, md)
 		if err != nil {
+			return proxy.One2One, nil, err
+		}
+
+		if err = r.talosAuditor.AuditTalosAccess(ctx, fullMethodName, getClusterName(md), getNodeID(md)); err != nil {
 			return proxy.One2One, nil, err
 		}
 

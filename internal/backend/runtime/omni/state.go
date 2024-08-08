@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -17,16 +18,15 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/runtime/pkg/state/registry"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/siderolabs/gen/pair"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	resourceregistry "github.com/siderolabs/omni/client/pkg/omni/resources/registry"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/hooks"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/cloudprovider"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/external"
@@ -37,113 +37,23 @@ import (
 )
 
 // NewState creates a production Omni state.
-//
-//nolint:cyclop,gocognit
 func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, metricsRegistry prometheus.Registerer, f func(context.Context, state.State, *virtual.State) error) error {
 	stateFunc := func(ctx context.Context, persistentStateBuilder namespaced.StateBuilder) error {
 		primaryStorageCoreState := persistentStateBuilder(resources.DefaultNamespace)
-
-		secondaryStorageCoreState, secondaryStorageBackingStore, err := newBoltPersistentState(
-			params.SecondaryStorage.Path, &bbolt.Options{
-				NoSync: true, // we do not need fsync for the secondary storage
-			}, true, logger)
-		if err != nil {
-			return fmt.Errorf("failed to create BoltDB state for secondary storage: %w", err)
-		}
-
-		defer secondaryStorageBackingStore.Close() //nolint:errcheck
-
 		virtualState := virtual.NewState(state.WrapCore(primaryStorageCoreState))
 
-		storeFactory, err := store.NewStoreFactory()
+		namespacedState, closer, err := newNamespacedState(params, primaryStorageCoreState, virtualState, logger)
 		if err != nil {
-			return fmt.Errorf("failed to create etcd backup store: %w", err)
+			return err
 		}
 
-		cloudProviderState := cloudprovider.NewState(primaryStorageCoreState, logger.With(logging.Component("cloudprovider_state")))
+		defer closer()
 
-		namespacedState := namespaced.NewState(func(ns resource.Namespace) state.CoreState {
-			switch ns {
-			case resources.VirtualNamespace:
-				return virtualState
-			case resources.MetricsNamespace:
-				return secondaryStorageCoreState
-			case meta.NamespaceName, resources.EphemeralNamespace:
-				return inmem.NewStateWithOptions(inmem.WithHistoryGap(20))(ns)
-			case resources.ExternalNamespace:
-				return &external.State{
-					CoreState:    primaryStorageCoreState,
-					StoreFactory: storeFactory,
-					Logger:       logger,
-				}
-			case resources.CloudProviderNamespace:
-				return cloudProviderState
-			default:
-				if strings.HasPrefix(ns, resources.CloudProviderSpecificNamespacePrefix) {
-					return cloudProviderState
-				}
-
-				return primaryStorageCoreState
-			}
-		})
-
-		measuredState := wrapStateWithMetrics(namespacedState)
-
-		metricsRegistry.MustRegister(measuredState)
-
+		measuredState := stateWithMetrics(namespacedState, metricsRegistry)
 		resourceState := state.WrapCore(measuredState)
 
-		namespaceRegistry := registry.NewNamespaceRegistry(resourceState)
-		resourceRegistry := registry.NewResourceRegistry(resourceState)
-
-		if err := namespaceRegistry.RegisterDefault(ctx); err != nil {
+		if err = initResources(ctx, resourceState, logger); err != nil {
 			return err
-		}
-
-		if err := resourceRegistry.RegisterDefault(ctx); err != nil {
-			return err
-		}
-
-		// register Omni namespaces
-		for _, ns := range []struct {
-			name        string
-			description string
-		}{
-			{resources.DefaultNamespace, "Default namespace for resources"},
-			{resources.EphemeralNamespace, "Ephemeral namespace for resources"},
-			{resources.VirtualNamespace, "Namespace for virtual resources"},
-			{resources.ExternalNamespace, "Namespace for external resources"},
-			{resources.MetricsNamespace, "Secondary storage namespace for resources"},
-		} {
-			if err := namespaceRegistry.Register(ctx, ns.name, ns.description); err != nil {
-				return err
-			}
-		}
-
-		// register Omni resources
-		for _, r := range resourceregistry.Resources {
-			if err := resourceRegistry.Register(ctx, r); err != nil {
-				return err
-			}
-		}
-
-		sysVersion := system.NewSysVersion(resources.EphemeralNamespace, system.SysVersionID)
-		sysVersion.TypedSpec().Value.BackendVersion = version.Tag
-		sysVersion.TypedSpec().Value.InstanceName = config.Config.Name
-		sysVersion.TypedSpec().Value.BackendApiVersion = version.API
-
-		if err := resourceState.Create(ctx, sysVersion); err != nil {
-			return err
-		}
-
-		migrationsManager := migration.NewManager(resourceState, logger.With(logging.Component("migration")))
-		if err := migrationsManager.Run(ctx); err != nil {
-			return err
-		}
-
-		resourceState, fileErr := wrapWithAudit(resourceState, params, logger)
-		if fileErr != nil {
-			return fileErr
 		}
 
 		return f(
@@ -163,23 +73,161 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 	}
 }
 
-func wrapWithAudit(resState state.State, params *config.Params, logger *zap.Logger) (state.State, error) {
+func newNamespacedState(params *config.Params, primaryStorageCoreState state.CoreState, virtualState *virtual.State, logger *zap.Logger) (*namespaced.State, func(), error) {
+	secondaryStorageCoreState, secondaryStorageBackingStore, err := newBoltPersistentState(
+		params.SecondaryStorage.Path, &bbolt.Options{
+			NoSync: true, // we do not need fsync for the secondary storage
+		}, true, logger)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create BoltDB state for secondary storage: %w", err)
+	}
+
+	storeFactory, err := store.NewStoreFactory()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create etcd backup store: %w", err)
+	}
+
+	cloudProviderState := cloudprovider.NewState(primaryStorageCoreState, logger.With(logging.Component("cloudprovider_state")))
+
+	namespacedState := namespaced.NewState(func(ns resource.Namespace) state.CoreState {
+		switch ns {
+		case resources.VirtualNamespace:
+			return virtualState
+		case resources.MetricsNamespace:
+			return secondaryStorageCoreState
+		case meta.NamespaceName, resources.EphemeralNamespace:
+			return inmem.NewStateWithOptions(inmem.WithHistoryGap(20))(ns)
+		case resources.ExternalNamespace:
+			return &external.State{
+				CoreState:    primaryStorageCoreState,
+				StoreFactory: storeFactory,
+				Logger:       logger,
+			}
+		case resources.CloudProviderNamespace:
+			return cloudProviderState
+		default:
+			if strings.HasPrefix(ns, resources.CloudProviderSpecificNamespacePrefix) {
+				return cloudProviderState
+			}
+
+			return primaryStorageCoreState
+		}
+	})
+
+	return namespacedState, func() {
+		secondaryStorageBackingStore.Close() //nolint:errcheck
+	}, nil
+}
+
+func initResources(ctx context.Context, resourceState state.State, logger *zap.Logger) error {
+	namespaceRegistry := registry.NewNamespaceRegistry(resourceState)
+	resourceRegistry := registry.NewResourceRegistry(resourceState)
+
+	if err := namespaceRegistry.RegisterDefault(ctx); err != nil {
+		return err
+	}
+
+	if err := resourceRegistry.RegisterDefault(ctx); err != nil {
+		return err
+	}
+
+	// register Omni namespaces
+	for _, ns := range []struct {
+		name        string
+		description string
+	}{
+		{resources.DefaultNamespace, "Default namespace for resources"},
+		{resources.EphemeralNamespace, "Ephemeral namespace for resources"},
+		{resources.VirtualNamespace, "Namespace for virtual resources"},
+		{resources.ExternalNamespace, "Namespace for external resources"},
+		{resources.MetricsNamespace, "Secondary storage namespace for resources"},
+	} {
+		if err := namespaceRegistry.Register(ctx, ns.name, ns.description); err != nil {
+			return err
+		}
+	}
+
+	// register Omni resources
+	for _, r := range resourceregistry.Resources {
+		if err := resourceRegistry.Register(ctx, r); err != nil {
+			return err
+		}
+	}
+
+	sysVersion := system.NewSysVersion(resources.EphemeralNamespace, system.SysVersionID)
+	sysVersion.TypedSpec().Value.BackendVersion = version.Tag
+	sysVersion.TypedSpec().Value.InstanceName = config.Config.Name
+	sysVersion.TypedSpec().Value.BackendApiVersion = version.API
+
+	if err := resourceState.Create(ctx, sysVersion); err != nil {
+		return err
+	}
+
+	if err := migration.NewManager(resourceState, logger.With(logging.Component("migration"))).Run(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func stateWithMetrics(namespacedState *namespaced.State, metricsRegistry prometheus.Registerer) *stateMetrics {
+	measuredState := wrapStateWithMetrics(namespacedState)
+
+	metricsRegistry.MustRegister(measuredState)
+
+	return measuredState
+}
+
+// NewAuditWrap creates a new audit wrap.
+func NewAuditWrap(resState state.State, params *config.Params, logger *zap.Logger) (*AuditWrap, error) {
 	if params.AuditLogDir == "" {
 		logger.Info("audit log disabled")
 
-		return resState, nil
+		return &AuditWrap{state: resState}, nil
 	}
 
 	logger.Info("audit log enabled", zap.String("dir", params.AuditLogDir))
 
-	l, err := audit.NewLogger(params.AuditLogDir, logger)
+	a, err := audit.NewLog(params.AuditLogDir, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	l.ShoudLog(audit.EventCreate|audit.EventUpdate|audit.EventUpdateWithConflicts,
-		pair.MakePair(auth.PublicKeyType, audit.AllowAll),
-	)
+	hooks.Init(a)
 
-	return audit.WrapState(resState, l), nil
+	return &AuditWrap{state: resState, log: a, dir: params.AuditLogDir}, nil
+}
+
+// AuditWrap is builder/wrapper for creating logged access to Omni and Talos nodes.
+type AuditWrap struct {
+	state state.State
+	log   *audit.Log
+	dir   string
+}
+
+// Wrap implements [k8sproxy.MiddlewareWrapper].
+func (w *AuditWrap) Wrap(handler http.Handler) http.Handler {
+	if w.log == nil {
+		return handler
+	}
+
+	return w.log.Wrap(handler)
+}
+
+// AuditTalosAccess logs a Talos access event. It does nothing if the audit log is disabled.
+func (w *AuditWrap) AuditTalosAccess(ctx context.Context, fullMethodName, clusterID, nodeID string) error {
+	if w.log == nil {
+		return nil
+	}
+
+	return w.log.AuditTalosAccess(ctx, fullMethodName, clusterID, nodeID)
+}
+
+// WrapState wraps the state with audit logging. It does nothing if the audit log is disabled.
+func (w *AuditWrap) WrapState(resourceState state.State) state.State {
+	if w.log == nil {
+		return resourceState
+	}
+
+	return audit.WrapState(resourceState, w.log)
 }

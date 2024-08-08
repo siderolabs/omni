@@ -151,6 +151,13 @@ var rootCmd = &cobra.Command{
 //nolint:gocognit
 func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtual.State) error {
 	return func(ctx context.Context, resourceState state.State, virtualState *virtual.State) error {
+		auditWrap, auditErr := omni.NewAuditWrap(resourceState, config.Config, logger)
+		if auditErr != nil {
+			return auditErr
+		}
+
+		resourceState = auditWrap.WrapState(resourceState)
+
 		talosClientFactory := talos.NewClientFactory(resourceState, logger)
 		prometheus.MustRegister(talosClientFactory)
 
@@ -260,6 +267,7 @@ func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtua
 			rootCmdArgs.keyFile,
 			rootCmdArgs.certFile,
 			backend.NewProxyServer(rootCmdArgs.frontendBind, handler, rootCmdArgs.keyFile, rootCmdArgs.certFile),
+			auditWrap,
 			logger,
 		)
 		if err != nil {

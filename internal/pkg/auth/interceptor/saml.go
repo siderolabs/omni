@@ -92,8 +92,8 @@ func (i *SAML) intercept(ctx context.Context) (context.Context, error) {
 		return nil, status.Error(codes.Internal, "missing or invalid audit data")
 	}
 
-	auditData.Email = session.TypedSpec().Value.Email
-	auditData.ConfirmationType = audit.SAML
+	auditData.Session.Email = session.TypedSpec().Value.Email
+	auditData.Session.ConfirmationType = audit.SAML
 
 	ctx = ctxstore.WithValue(ctx, auth.VerifiedEmailContextKey{Email: session.TypedSpec().Value.Email})
 
