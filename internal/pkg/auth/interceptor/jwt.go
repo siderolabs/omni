@@ -97,8 +97,8 @@ func (i *JWT) intercept(ctx context.Context) (context.Context, error) {
 		return nil, status.Error(codes.Internal, "missing or invalid audit data")
 	}
 
-	auditData.Email = claims.VerifiedEmail
-	auditData.ConfirmationType = audit.Auth0
+	auditData.Session.Email = claims.VerifiedEmail
+	auditData.Session.ConfirmationType = audit.Auth0
 
 	ctx = ctxstore.WithValue(ctx, auth.VerifiedEmailContextKey{Email: claims.VerifiedEmail})
 

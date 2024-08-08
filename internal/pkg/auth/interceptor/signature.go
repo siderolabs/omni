@@ -117,8 +117,9 @@ func (i *Signature) intercept(ctx context.Context) (context.Context, error) {
 		return nil, errGRPCInvalidSignature
 	}
 
-	auditData.UserID = authenticator.UserID
-	auditData.Role = authenticator.Role
+	auditData.Session.Email = authenticator.Identity
+	auditData.Session.UserID = authenticator.UserID
+	auditData.Session.Role = authenticator.Role
 
 	grpc_ctxtags.Extract(ctx).
 		Set("authenticator.user_id", authenticator.UserID).

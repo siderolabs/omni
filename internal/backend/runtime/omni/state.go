@@ -17,16 +17,15 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/runtime/pkg/state/registry"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/siderolabs/gen/pair"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	resourceregistry "github.com/siderolabs/omni/client/pkg/omni/resources/registry"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/hooks"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/cloudprovider"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/external"
@@ -172,14 +171,12 @@ func wrapWithAudit(resState state.State, params *config.Params, logger *zap.Logg
 
 	logger.Info("audit log enabled", zap.String("dir", params.AuditLogDir))
 
-	l, err := audit.NewLogger(params.AuditLogDir, logger)
+	a, err := audit.NewLog(params.AuditLogDir, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	l.ShoudLog(audit.EventCreate|audit.EventUpdate|audit.EventUpdateWithConflicts,
-		pair.MakePair(auth.PublicKeyType, audit.AllowAll),
-	)
+	hooks.Init(a)
 
-	return audit.WrapState(resState, l), nil
+	return audit.WrapState(resState, a), nil
 }

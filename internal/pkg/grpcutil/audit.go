@@ -19,8 +19,10 @@ func SetAuditInCtx(ctx context.Context) context.Context {
 	m := grpc_ctxtags.Extract(ctx).Values()
 
 	return ctxstore.WithValue(ctx, &audit.Data{
-		UserAgent: typeAssertOrZero[string](m["user_agent"]),
-		IPAddress: typeAssertOrZero[string](m["peer.address"]),
+		Session: audit.Session{
+			UserAgent: typeAssertOrZero[string](m["user_agent"]),
+			IPAddress: typeAssertOrZero[string](m["peer.address"]),
+		},
 	})
 }
 
