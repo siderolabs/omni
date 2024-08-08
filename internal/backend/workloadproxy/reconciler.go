@@ -134,7 +134,10 @@ func (registry *Reconciler) ensureLB(lbSts *lbStatus, cluster resource.ID, alias
 		}
 	}
 
-	lbSts.upstreamAddresses = upstreamAddresses
+	if lbSts != nil {
+		lbSts.upstreamAddresses = upstreamAddresses
+	}
+
 	registry.aliasToCluster[alias] = cluster
 
 	aliasToLB := registry.clusterToAliasToLBStatus[cluster]
