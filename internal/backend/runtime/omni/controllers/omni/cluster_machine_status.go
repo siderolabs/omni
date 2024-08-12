@@ -46,6 +46,11 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 					return err
 				}
 
+				machineSetNode, err := helpers.HandleInput[*omni.MachineSetNode](ctx, r, clusterMachineStatusControllerName, clusterMachine)
+				if err != nil {
+					return err
+				}
+
 				helpers.CopyLabels(clusterMachine, clusterMachineStatus,
 					omni.LabelCluster,
 					omni.LabelControlPlaneRole,
@@ -87,11 +92,6 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 				}
 
 				cmsVal.IsRemoved = machineStatus.Metadata().Phase() == resource.PhaseTearingDown
-
-				machineSetNode, err := helpers.HandleInput[*omni.MachineSetNode](ctx, r, clusterMachineStatusControllerName, clusterMachine)
-				if err != nil {
-					return err
-				}
 
 				var locked bool
 				if machineSetNode != nil {
@@ -201,6 +201,14 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 
 				if clusterMachineIdentity != nil {
 					clusterMachineStatus.Metadata().Labels().Set(omni.ClusterMachineStatusLabelNodeName, clusterMachineIdentity.TypedSpec().Value.Nodename)
+				}
+
+				return nil
+			},
+			FinalizerRemovalExtraOutputFunc: func(ctx context.Context, rw controller.ReaderWriter, _ *zap.Logger, clusterMachine *omni.ClusterMachine) error {
+				_, err := helpers.HandleInput[*omni.MachineSetNode](ctx, rw, clusterMachineStatusControllerName, clusterMachine)
+				if err != nil {
+					return err
 				}
 
 				return nil
