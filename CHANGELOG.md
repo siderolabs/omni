@@ -1,3 +1,31 @@
+## [Omni 0.40.3](https://github.com/siderolabs/omni/releases/tag/v0.40.3) (2024-08-12)
+
+Welcome to the v0.40.3 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`3845a13`](https://github.com/siderolabs/omni/commit/3845a130a4bc23c1c1713b63406f2f5bf808dd6c) fix: properly remove `MachineSetNode` finalizer in the controller
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.40.2](https://github.com/siderolabs/omni/releases/tag/v0.40.2)
+
+
 ## [Omni 0.40.2](https://github.com/siderolabs/omni/releases/tag/v0.40.2) (2024-08-08)
 
 Welcome to the v0.40.2 release of Omni!
