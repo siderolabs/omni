@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/siderolabs/go-retry/retry"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
@@ -30,6 +31,15 @@ func (suite *ClusterMachineStatusSuite) setup() {
 	suite.startRuntime()
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineStatusController()))
+}
+
+func (suite *ClusterMachineStatusSuite) TearDownTest() {
+	rtestutils.DestroyAll[*omni.ClusterMachine](suite.ctx, suite.T(), suite.state)
+	rtestutils.DestroyAll[*omni.Machine](suite.ctx, suite.T(), suite.state)
+	rtestutils.DestroyAll[*omni.MachineStatus](suite.ctx, suite.T(), suite.state)
+	rtestutils.DestroyAll[*omni.MachineSetNode](suite.ctx, suite.T(), suite.state)
+	rtestutils.DestroyAll[*omni.ClusterMachineConfigStatus](suite.ctx, suite.T(), suite.state)
+	rtestutils.DestroyAll[*omni.MachineStatusSnapshot](suite.ctx, suite.T(), suite.state)
 }
 
 func (suite *ClusterMachineStatusSuite) TestNoMachineStatusSnapShotClusterStatusZeroValue() {
