@@ -16,7 +16,6 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
 	"github.com/siderolabs/talos/pkg/machinery/config/machine"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
@@ -173,12 +172,10 @@ func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 	assertResource(
 		&suite.OmniSuite,
 		*omni.NewClusterMachineConfig(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
-		func(cfg *omni.ClusterMachineConfig, _ *assert.Assertions) {
-			req := require.New(suite.T())
-
+		func(cfg *omni.ClusterMachineConfig, assert *assert.Assertions) {
 			expectedError := "yaml: unmarshal errors"
-			req.Contains(cfg.TypedSpec().Value.GenerationError, expectedError, string(cfg.TypedSpec().Value.GetData()))
-			req.Empty(cfg.TypedSpec().Value.ClusterMachineVersion)
+			assert.Contains(cfg.TypedSpec().Value.GenerationError, expectedError, string(cfg.TypedSpec().Value.GetData()))
+			assert.Empty(cfg.TypedSpec().Value.ClusterMachineVersion)
 		},
 	)
 }

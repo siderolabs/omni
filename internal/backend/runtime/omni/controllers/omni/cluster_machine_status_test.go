@@ -40,6 +40,8 @@ func (suite *ClusterMachineStatusSuite) TearDownTest() {
 	rtestutils.DestroyAll[*omni.MachineSetNode](suite.ctx, suite.T(), suite.state)
 	rtestutils.DestroyAll[*omni.ClusterMachineConfigStatus](suite.ctx, suite.T(), suite.state)
 	rtestutils.DestroyAll[*omni.MachineStatusSnapshot](suite.ctx, suite.T(), suite.state)
+
+	suite.OmniSuite.TearDownTest()
 }
 
 func (suite *ClusterMachineStatusSuite) TestNoMachineStatusSnapShotClusterStatusZeroValue() {

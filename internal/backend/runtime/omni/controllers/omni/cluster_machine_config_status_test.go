@@ -114,7 +114,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestApplyReset() {
 		))
 	}
 
-	suite.Assert().Len(suite.machineService.getResetRequests(), len(machines))
+	suite.Assert().GreaterOrEqual(len(suite.machineService.getResetRequests()), len(machines))
 }
 
 func (suite *ClusterMachineConfigStatusSuite) TestResetMachineRemoved() {

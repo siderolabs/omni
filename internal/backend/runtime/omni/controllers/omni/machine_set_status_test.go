@@ -614,16 +614,16 @@ func (suite *MachineSetStatusSuite) TestConfigUpdateWithMaxParallelism() {
 		)
 	}
 
+	// mark all machines as running
+	suite.updateStage(machines, specs.ClusterMachineStatusSpec_RUNNING, true)
+	suite.syncConfig(machines)
+
 	watchCh := make(chan safe.WrappedStateEvent[*omni.ClusterMachineConfigPatches])
 
 	err := safe.StateWatchKind(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "").Metadata(), watchCh)
 	suite.Require().NoError(err)
 
 	suite.assertMachinesState(machines, clusterName, machineSet.Metadata().ID())
-
-	// mark all machines as running
-	suite.updateStage(machines, specs.ClusterMachineStatusSpec_RUNNING, true)
-	suite.syncConfig(machines)
 
 	machineSetPatch := omni.NewConfigPatch(resources.DefaultNamespace, machineSet.Metadata().ID()+"-patch",
 		pair.MakePair(omni.LabelCluster, clusterName), pair.MakePair(omni.LabelMachineSet, machineSet.Metadata().ID()))

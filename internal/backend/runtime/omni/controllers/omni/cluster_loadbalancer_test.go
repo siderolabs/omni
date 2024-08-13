@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
+	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -87,7 +89,14 @@ func (suite *ClusterLoadBalancerSuite) TestReconcile() {
 	))
 
 	// recreate load balancer and see if it will reuse previously used port 5000
-	cluster, _ = suite.createCluster(clusterName, 1, 1)
+	cluster, machines := suite.createCluster(clusterName, 1, 1)
+
+	ids := xslices.Map(machines, func(r *omni.ClusterMachine) string {
+		return r.Metadata().ID()
+	})
+
+	// wait for cluster machine statuses to be created
+	rtestutils.AssertResources(suite.ctx, suite.T(), suite.state, ids, func(*omni.ClusterMachineStatus, *assert.Assertions) {})
 
 	md = *omni.NewLoadBalancerConfig(resources.DefaultNamespace, cluster.Metadata().ID()).Metadata()
 

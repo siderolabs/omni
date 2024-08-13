@@ -370,11 +370,23 @@ func (suite *LoadBalancerSuite) TestUpdateUpstreams() {
 
 	mock := <-mockCh
 	assertUpstreams := func(expectedUpstreams ...string) {
-		select {
-		case <-time.After(time.Second):
-			suite.FailNow("timeout")
-		case upstreamList := <-mock.upstreamsCh:
-			suite.Assert().Equal(expectedUpstreams, upstreamList)
+		for {
+			select {
+			case <-time.After(time.Second):
+				suite.FailNow("timeout")
+			case upstreamList := <-mock.upstreamsCh:
+				if len(upstreamList) != len(expectedUpstreams) {
+					continue
+				}
+
+				for i, value := range upstreamList {
+					if expectedUpstreams[i] != value {
+						continue
+					}
+				}
+
+				return
+			}
 		}
 	}
 

@@ -80,7 +80,11 @@ func (m *imageFactoryMock) serve(ctx context.Context) {
 
 		defer cancel()
 
-		return server.Shutdown(innerContext)
+		if err := server.Shutdown(innerContext); err != nil && !errors.Is(err, ctx.Err()) {
+			return err
+		}
+
+		return nil
 	})
 }
 

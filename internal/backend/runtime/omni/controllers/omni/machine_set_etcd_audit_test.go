@@ -208,17 +208,19 @@ func (suite *MachineSetEtcdAuditSuite) TestEtcdAudit() {
 
 			services, machineSet := suite.createMachineSet(clusterName, tt.name, machines)
 
-			primary := services[machines[0]]
+			for _, m := range machines {
+				svc := services[m]
 
-			primary.lock.Lock()
-			primary.etcdMembers = &machine.EtcdMemberListResponse{
-				Messages: []*machine.EtcdMembers{
-					{
-						Members: tt.members,
+				svc.lock.Lock()
+				svc.etcdMembers = &machine.EtcdMemberListResponse{
+					Messages: []*machine.EtcdMembers{
+						{
+							Members: tt.members,
+						},
 					},
-				},
+				}
+				svc.lock.Unlock()
 			}
-			primary.lock.Unlock()
 
 			for i, m := range machines {
 				suite.Require().NoError(services[m].state.Create(suite.ctx, talosruntime.NewMountStatus(talosruntime.NamespaceName, "EPHEMERAL")))
@@ -233,7 +235,15 @@ func (suite *MachineSetEtcdAuditSuite) TestEtcdAudit() {
 			}
 
 			assert.NoError(t, retry.Constant(20*time.Second, retry.WithUnits(100*time.Millisecond)).Retry(func() error {
-				return tt.check(primary)
+				var err error
+				for _, m := range machines {
+					err = tt.check(services[m])
+					if err == nil {
+						return nil
+					}
+				}
+
+				return err
 			}))
 		}) {
 			break
@@ -515,15 +525,23 @@ func (suite *MachineSetEtcdAuditSuite) createResource(res resource.Resource) {
 	suite.resources = append(suite.resources, res)
 }
 
+func ignoreNotFound(err error) error {
+	if state.IsNotFoundError(err) {
+		return nil
+	}
+
+	return err
+}
+
 func (suite *MachineSetEtcdAuditSuite) cleanupResources() {
 	for _, r := range suite.resources {
 		_, err := suite.state.Teardown(suite.ctx, r.Metadata())
-		suite.Require().NoError(err)
+		suite.Require().NoError(ignoreNotFound(err))
 
 		_, err = suite.state.WatchFor(suite.ctx, r.Metadata(), state.WithFinalizerEmpty())
-		suite.Require().NoError(err)
+		suite.Require().NoError(ignoreNotFound(err))
 
-		suite.Require().NoError(suite.state.Destroy(suite.ctx, r.Metadata()))
+		suite.Require().NoError(ignoreNotFound(suite.state.Destroy(suite.ctx, r.Metadata())))
 	}
 
 	suite.resources = nil

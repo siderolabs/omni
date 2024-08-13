@@ -129,6 +129,9 @@ func (suite *ClusterSecretsSuite) TestSecretsFromBackup() {
 		Snapshot:    "test-snapshot",
 	}
 
+	machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
+	machineSet.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
+
 	require.NoError(suite.state.Create(suite.ctx, machineSet))
 
 	var foundClusterSecrets *omni.ClusterSecrets

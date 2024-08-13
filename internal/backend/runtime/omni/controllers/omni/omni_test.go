@@ -547,8 +547,8 @@ func (suite *OmniSuite) destroyClusterByID(clusterID string) {
 	suite.Require().NoError(err)
 
 	for iter := list.Iterator(); iter.Next(); {
-		rtestutils.Destroy[*omni.MachineSetNode](ctx, suite.T(), suite.state, []string{iter.Value().Metadata().ID()})
 		rtestutils.Destroy[*omni.ClusterMachine](ctx, suite.T(), suite.state, []string{iter.Value().Metadata().ID()})
+		rtestutils.Destroy[*omni.MachineSetNode](ctx, suite.T(), suite.state, []string{iter.Value().Metadata().ID()})
 		rtestutils.Destroy[*omni.ClusterMachineStatus](ctx, suite.T(), suite.state, []string{iter.Value().Metadata().ID()})
 		rtestutils.Destroy[*omni.ClusterMachineConfigPatches](ctx, suite.T(), suite.state, []string{iter.Value().Metadata().ID()})
 		rtestutils.Destroy[*omni.MachineStatus](ctx, suite.T(), suite.state, []string{iter.Value().Metadata().ID()})

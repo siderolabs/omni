@@ -23,6 +23,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/siderolabs/go-retry/retry"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
@@ -218,23 +219,36 @@ func (suite *GrpcSuite) TestCrud() {
 
 	suite.Require().True(proto.Equal(res.TypedSpec().Value, resourceSpec))
 
-	items, err := client.List(ctx, &resapi.ListRequest{
-		Namespace: resources.DefaultNamespace,
-		Type:      omni.ConfigPatchType,
-	})
+	err = retry.Constant(time.Second, retry.WithUnits(time.Millisecond*50)).RetryWithContext(ctx, func(ctx context.Context) error {
+		items, e := client.List(ctx, &resapi.ListRequest{
+			Namespace: resources.DefaultNamespace,
+			Type:      omni.ConfigPatchType,
+		})
 
-	suite.Assert().NoError(err)
-
-	for _, item := range items.Items {
-		var data struct {
-			Spec struct {
-				Data string `json:"data"`
-			} `json:"spec"`
+		if e != nil {
+			return e
 		}
 
-		suite.Assert().NoError(json.Unmarshal([]byte(item), &data))
-		suite.Require().Equal(resourceSpec.Data, data.Spec.Data)
-	}
+		for _, item := range items.Items {
+			var data struct {
+				Spec struct {
+					Data string `json:"data"`
+				} `json:"spec"`
+			}
+
+			e = json.Unmarshal([]byte(item), &data)
+			if e != nil {
+				return e
+			}
+
+			if resourceSpec.Data != data.Spec.Data {
+				return retry.ExpectedErrorf("%s != %s", resourceSpec.Data, data.Spec.Data)
+			}
+		}
+
+		return nil
+	})
+	suite.Require().NoError(err)
 
 	_, err = client.Delete(ctx, &resapi.DeleteRequest{
 		Namespace: resources.DefaultNamespace,
