@@ -298,8 +298,8 @@ func (auditor *etcdAuditor) auditEtcd(ctx context.Context, r controller.Reader, 
 	filteredMembers := maps.Clone(members)
 	machineIDToMemberID := make(map[string]string, list.Len())
 
-	for iter := list.Iterator(); iter.Next(); {
-		machineID := iter.Value().Metadata().ID()
+	for cm := range list.All() {
+		machineID := cm.Metadata().ID()
 
 		memberID, err := auditor.auditMember(ctx, r, machineID, cluster)
 		if err != nil {

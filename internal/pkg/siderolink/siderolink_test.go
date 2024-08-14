@@ -295,14 +295,12 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 				return retry.ExpectedErrorf("no links established yet")
 			}
 
-			for it := list.Iterator(); it.Next(); {
-				item := it.Value()
-
-				if item.Metadata().ID() == "" {
+			for link := range list.All() {
+				if link.Metadata().ID() == "" {
 					return errors.New("empty id in the resource list")
 				}
 
-				if item.TypedSpec().Value.VirtualAddrport == "" {
+				if link.TypedSpec().Value.VirtualAddrport == "" {
 					return errors.New("empty virtual address in the resource list")
 				}
 			}

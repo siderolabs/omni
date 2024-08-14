@@ -37,9 +37,9 @@ func CalculateUpgradeVersions(ctx context.Context, r controller.Reader, currentV
 
 	availableVersions := map[string]semver.Version{}
 
-	for iter := k8sVersions.Iterator(); iter.Next(); {
-		if iter.Value().TypedSpec().Value.Version != currentVersion {
-			availableVersions[iter.Value().TypedSpec().Value.Version], err = semver.ParseTolerant(iter.Value().TypedSpec().Value.Version)
+	for val := range k8sVersions.All() {
+		if val.TypedSpec().Value.Version != currentVersion {
+			availableVersions[val.TypedSpec().Value.Version], err = semver.ParseTolerant(val.TypedSpec().Value.Version)
 			if err != nil {
 				return nil, err
 			}

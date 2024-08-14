@@ -130,9 +130,7 @@ func (ctrl *ImagePullStatusController) handleEvent(ctx context.Context, r contro
 
 	expectedPullTasks := map[string]imagetask.PullTaskSpec{}
 
-	for iter := requests.Iterator(); iter.Next(); {
-		request := iter.Value()
-
+	for request := range requests.All() {
 		tracker.keep(request)
 
 		if request.Metadata().Phase() == resource.PhaseTearingDown {
@@ -163,9 +161,7 @@ func (ctrl *ImagePullStatusController) getStatusIDToStatus(ctx context.Context, 
 
 	statusMap := make(map[resource.ID]*omni.ImagePullStatus, statuses.Len())
 
-	for iter := statuses.Iterator(); iter.Next(); {
-		status := iter.Value()
-
+	for status := range statuses.All() {
 		statusMap[status.Metadata().ID()] = status
 	}
 

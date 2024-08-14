@@ -1096,8 +1096,8 @@ func getReleaseData(ctx context.Context, state state.State) (releaseData, error)
 
 	versionNames := make([]string, 0, all.Len())
 
-	for it := all.Iterator(); it.Next(); {
-		version := it.Value().TypedSpec().Value.Version
+	for val := range all.All() {
+		version := val.TypedSpec().Value.Version
 		if !strings.HasPrefix(version, "v") {
 			version = "v" + version
 		}

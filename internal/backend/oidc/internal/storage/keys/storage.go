@@ -222,9 +222,7 @@ func (s *Storage) cleanupOldKeys(ctx context.Context) error {
 
 	newKeySet := make([]op.Key, 0, keys.Len())
 
-	for iter := keys.Iterator(); iter.Next(); {
-		key := iter.Value()
-
+	for key := range keys.All() {
 		if s.clock.Now().After(key.TypedSpec().Value.Expiration.AsTime()) {
 			s.logger.Info("destroying expired OIDC key",
 				zap.String("key_id", key.Metadata().ID()),

@@ -23,8 +23,8 @@ github.com/containerd/go-cni v1.1.10 h1:c2U73nld7spSWfiJwSh/8W9DK+/qQwYM2rngIhCy
 github.com/containerd/go-cni v1.1.10/go.mod h1:/Y/sL8yqYQn1ZG1om1OncJB1W4zN3YmjfP/ShCzG/OY=
 github.com/containernetworking/cni v1.2.2 h1:9IbP6KJQQxVKo4hhnm8r50YcVKrJbJu3Dqw+Rbt1vYk=
 github.com/containernetworking/cni v1.2.2/go.mod h1:DuLgF+aPd3DzcTQTtp/Nvl1Kim23oFKdm2okJzBQA5M=
-github.com/cosi-project/runtime v0.5.5 h1:GFoHnngpg4QVZluAUDwUbCe/sYOYBXKULxL/6DD99pU=
-github.com/cosi-project/runtime v0.5.5/go.mod h1:m+bkfUzKYeUyoqYAQBxdce3bfgncG8BsqcbfKRbvJKs=
+github.com/cosi-project/runtime v0.6.0 h1:ufybTVO1TUVx3YbuazVGKjYd0XoBBlaTvT3W30t09oc=
+github.com/cosi-project/runtime v0.6.0/go.mod h1:14kfPrnGOG9pwc/AeRV1KquA5JYP7DUic/aGE8js9VE=
 github.com/cpuguy83/go-md2man/v2 v2.0.4 h1:wfIWP927BUkWJb2NmU/kNDYIBTh/ziUX91+lVfRxZq4=
 github.com/cpuguy83/go-md2man/v2 v2.0.4/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

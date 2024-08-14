@@ -108,15 +108,13 @@ func (ctrl *ClusterLoadBalancerController) Run(ctx context.Context, r controller
 		}
 
 		allocatedPorts := map[string]struct{}{}
-		for iter := configs.Iterator(); iter.Next(); {
-			allocatedPorts[iter.Value().TypedSpec().Value.BindPort] = struct{}{}
+		for val := range configs.All() {
+			allocatedPorts[val.TypedSpec().Value.BindPort] = struct{}{}
 		}
 
 		tracker := trackResource(r, resources.DefaultNamespace, omni.LoadBalancerConfigType)
 
-		for iter := list.Iterator(); iter.Next(); {
-			cluster := iter.Value()
-
+		for cluster := range list.All() {
 			tracker.keep(cluster)
 
 			var endpoints []string

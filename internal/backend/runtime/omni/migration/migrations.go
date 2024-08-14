@@ -46,11 +46,11 @@ func clusterInfo(ctx context.Context, s state.State, _ *zap.Logger) error {
 		return err
 	}
 
-	for iter := list.Iterator(); iter.Next(); {
-		item := iter.Value().TypedSpec()
+	for val := range list.All() {
+		item := val.TypedSpec()
 
 		if item.Value.InstallImage == "" || item.Value.KubernetesVersion == "" { //nolint:staticcheck
-			_, err = safe.StateUpdateWithConflicts(ctx, s, iter.Value().Metadata(), func(c *omni.Cluster) error {
+			_, err = safe.StateUpdateWithConflicts(ctx, s, val.Metadata(), func(c *omni.Cluster) error {
 				var items safe.List[*omni.ClusterMachineTemplate]
 
 				items, err = safe.ReaderListAll[*omni.ClusterMachineTemplate](
@@ -91,16 +91,16 @@ func deprecateClusterMachineTemplates(ctx context.Context, s state.State, _ *zap
 		return err
 	}
 
-	for iter := list.Iterator(); iter.Next(); {
-		item := iter.Value().TypedSpec()
+	for val := range list.All() {
+		item := val.TypedSpec()
 
 		// generate user patch if it is defined
 		if item.Value.Patch != "" {
 			patch := omni.NewConfigPatch(resources.DefaultNamespace, fmt.Sprintf("500-%s", uuid.New()),
-				pair.MakePair("machine-uuid", iter.Value().Metadata().ID()),
+				pair.MakePair("machine-uuid", val.Metadata().ID()),
 			)
 
-			helpers.CopyLabels(iter.Value(), patch, deprecatedCluster)
+			helpers.CopyLabels(val, patch, deprecatedCluster)
 
 			if err = createOrUpdate(ctx, s, patch, func(p *omni.ConfigPatch) error {
 				p.TypedSpec().Value.Data = item.Value.Patch
@@ -115,10 +115,10 @@ func deprecateClusterMachineTemplates(ctx context.Context, s state.State, _ *zap
 		patch := omni.NewConfigPatch(
 			resources.DefaultNamespace,
 			fmt.Sprintf("000-%s", uuid.New()),
-			pair.MakePair("machine-uuid", iter.Value().Metadata().ID()),
+			pair.MakePair("machine-uuid", val.Metadata().ID()),
 		)
 
-		helpers.CopyLabels(iter.Value(), patch, deprecatedCluster)
+		helpers.CopyLabels(val, patch, deprecatedCluster)
 
 		if err = createOrUpdate(ctx, s, patch, func(p *omni.ConfigPatch) error {
 			var config struct {
@@ -138,7 +138,7 @@ func deprecateClusterMachineTemplates(ctx context.Context, s state.State, _ *zap
 			}
 
 			p.TypedSpec().Value.Data = string(data)
-			p.Metadata().Labels().Set("machine-uuid", iter.Value().Metadata().ID())
+			p.Metadata().Labels().Set("machine-uuid", val.Metadata().ID())
 
 			return nil
 		}, ""); err != nil {
@@ -158,9 +158,7 @@ func clusterMachinesToMachineSets(ctx context.Context, s state.State, logger *za
 	machineSets := map[string]*omni.MachineSet{}
 
 	// first gather all machines from the database and create backup data
-	for iter := list.Iterator(); iter.Next(); {
-		item := iter.Value()
-
+	for item := range list.All() {
 		labels := item.Metadata().Labels()
 
 		clusterName, ok := labels.Get(deprecatedCluster)
@@ -237,9 +235,7 @@ func changePublicKeyOwner(ctx context.Context, s state.State, logger *zap.Logger
 		return err
 	}
 
-	for iter := list.Iterator(); iter.Next(); {
-		item := iter.Value()
-
+	for item := range list.All() {
 		if item.Metadata().Owner() != "" {
 			continue
 		}
@@ -267,9 +263,7 @@ func addDefaultScopesToUsers(ctx context.Context, s state.State, logger *zap.Log
 
 	scopes := scope.NewScopes(scope.UserDefaultScopes...).Strings()
 
-	for iter := list.Iterator(); iter.Next(); {
-		user := iter.Value()
-
+	for user := range list.All() {
 		if len(user.TypedSpec().Value.GetScopes()) == 0 {
 			logger.Info("adding scopes to user",
 				zap.String("id", user.Metadata().String()), zap.Strings("scopes", scopes),
@@ -301,9 +295,7 @@ func setRollingStrategyOnControlPlaneMachineSets(ctx context.Context, s state.St
 		return err
 	}
 
-	for iter := list.Iterator(); iter.Next(); {
-		machineSet := iter.Value()
-
+	for machineSet := range list.All() {
 		if machineSet.Metadata().Phase() == resource.PhaseTearingDown {
 			continue
 		}
@@ -338,9 +330,7 @@ func updateConfigPatchLabels(ctx context.Context, s state.State, _ *zap.Logger) 
 
 	clusterMachineToCluster := map[resource.ID]resource.ID{}
 
-	for iter := clusterMachineList.Iterator(); iter.Next(); {
-		clusterMachine := iter.Value()
-
+	for clusterMachine := range clusterMachineList.All() {
 		cluster, _ := clusterMachine.Metadata().Labels().Get(deprecatedCluster)
 		clusterMachineToCluster[clusterMachine.Metadata().ID()] = cluster
 	}
@@ -352,9 +342,7 @@ func updateConfigPatchLabels(ctx context.Context, s state.State, _ *zap.Logger) 
 
 	machineSetToCluster := map[resource.ID]resource.ID{}
 
-	for iter := machineSetList.Iterator(); iter.Next(); {
-		machineSet := iter.Value()
-
+	for machineSet := range machineSetList.All() {
 		cluster, _ := machineSet.Metadata().Labels().Get(deprecatedCluster)
 		machineSetToCluster[machineSet.Metadata().ID()] = cluster
 	}
@@ -364,8 +352,8 @@ func updateConfigPatchLabels(ctx context.Context, s state.State, _ *zap.Logger) 
 		return err
 	}
 
-	for iter := configPatchList.Iterator(); iter.Next(); {
-		_, err = safe.StateUpdateWithConflicts(ctx, s, iter.Value().Metadata(), func(patch *omni.ConfigPatch) error {
+	for val := range configPatchList.All() {
+		_, err = safe.StateUpdateWithConflicts(ctx, s, val.Metadata(), func(patch *omni.ConfigPatch) error {
 			labels := patch.Metadata().Labels()
 
 			clusterName, clusterNameOk := labels.Get("cluster-name")
@@ -415,9 +403,7 @@ func updateMachineFinalizers(ctx context.Context, s state.State, logger *zap.Log
 		return err
 	}
 
-	for iter := machineList.Iterator(); iter.Next(); {
-		machine := iter.Value()
-
+	for machine := range machineList.All() {
 		if machine.Metadata().Finalizers().Add("ClusterMachineStatusController") {
 			// no finalizer, skip it
 			continue
@@ -450,9 +436,7 @@ func labelConfigPatches(ctx context.Context, s state.State, _ *zap.Logger) error
 		return err
 	}
 
-	for iter := patchList.Iterator(); iter.Next(); {
-		patch := iter.Value()
-
+	for patch := range patchList.All() {
 		// if the patch is prefixed with 000- then it's install disk patch and it should be updated with appropriate labels
 		if strings.HasPrefix(patch.Metadata().ID(), "000-") {
 			if _, err = safe.StateUpdateWithConflicts(ctx, s, patch.Metadata(), func(res *omni.ConfigPatch) error {
@@ -474,9 +458,7 @@ func updateMachineStatusClusterRelations(ctx context.Context, s state.State, _ *
 		return err
 	}
 
-	for iter := msList.Iterator(); iter.Next(); {
-		ms := iter.Value()
-
+	for ms := range msList.All() {
 		if ms.Metadata().Phase() == resource.PhaseTearingDown {
 			continue
 		}
@@ -532,9 +514,7 @@ func addServiceAccountScopesToUsers(ctx context.Context, s state.State, _ *zap.L
 		return err
 	}
 
-	for iter := userList.Iterator(); iter.Next(); {
-		user := iter.Value()
-
+	for user := range userList.All() {
 		_, err = safe.StateUpdateWithConflicts(ctx, s, user.Metadata(), func(u *auth.User) error {
 			if !slices.ContainsFunc(u.TypedSpec().Value.Scopes, func(s string) bool {
 				return s == scope.ServiceAccountAny.String()
@@ -554,9 +534,7 @@ func addServiceAccountScopesToUsers(ctx context.Context, s state.State, _ *zap.L
 		return err
 	}
 
-	for iter := publicKeyList.Iterator(); iter.Next(); {
-		key := iter.Value()
-
+	for key := range publicKeyList.All() {
 		_, err = safe.StateUpdateWithConflicts(ctx, s, key.Metadata(), func(pk *auth.PublicKey) error {
 			pk.TypedSpec().Value.Scopes = append(pk.TypedSpec().Value.Scopes, scope.ServiceAccountAny.String())
 
@@ -576,9 +554,7 @@ func clusterInstallImageToTalosVersion(ctx context.Context, s state.State, _ *za
 		return err
 	}
 
-	for iter := clusterList.Iterator(); iter.Next(); {
-		cluster := iter.Value()
-
+	for cluster := range clusterList.All() {
 		if cluster.Metadata().Phase() != resource.PhaseRunning {
 			continue
 		}
@@ -742,9 +718,7 @@ func convertScopesToRoles(ctx context.Context, st state.State, _ *zap.Logger) er
 		return fmt.Errorf("failed to list users: %w", err)
 	}
 
-	for iter := userList.Iterator(); iter.Next(); {
-		item := iter.Value()
-
+	for item := range userList.All() {
 		if _, err = safe.StateUpdateWithConflicts(ctx, st, item.Metadata(), func(user *auth.User) error {
 			scopes, scopesErr := scope.ParseScopes(user.TypedSpec().Value.GetScopes())
 			if scopesErr != nil {
@@ -765,9 +739,7 @@ func convertScopesToRoles(ctx context.Context, st state.State, _ *zap.Logger) er
 		return fmt.Errorf("failed to list public keys: %w", err)
 	}
 
-	for iter := pubKeyList.Iterator(); iter.Next(); {
-		item := iter.Value()
-
+	for item := range pubKeyList.All() {
 		if _, err = safe.StateUpdateWithConflicts(ctx, st, item.Metadata(), func(pubKey *auth.PublicKey) error {
 			scopes, scopesErr := scope.ParseScopes(pubKey.TypedSpec().Value.GetScopes())
 			if scopesErr != nil {
@@ -974,9 +946,7 @@ func siderolinkCounters(ctx context.Context, s state.State, logger *zap.Logger) 
 
 	migrated := 0
 
-	for iter := list.Iterator(); iter.Next(); {
-		linkCounter := iter.Value()
-
+	for linkCounter := range list.All() {
 		if err = createOrUpdate(ctx, s, omni.NewMachineStatusLink(resources.MetricsNamespace, linkCounter.Metadata().ID()),
 			func(res *omni.MachineStatusLink) error {
 				res.TypedSpec().Value.SiderolinkCounter = linkCounter.TypedSpec().Value
@@ -1173,9 +1143,7 @@ func setMachineStatusSnapshotOwner(ctx context.Context, st state.State, logger *
 		return err
 	}
 
-	for iter := list.Iterator(); iter.Next(); {
-		item := iter.Value()
-
+	for item := range list.All() {
 		if item.Metadata().Owner() != "" {
 			continue
 		}
@@ -1202,9 +1170,7 @@ func migrateInstallImageConfigIntoGenOptions(ctx context.Context, st state.State
 		return err
 	}
 
-	for iter := list.Iterator(); iter.Next(); {
-		genOptions := iter.Value()
-
+	for genOptions := range list.All() {
 		if genOptions.Metadata().Phase() == resource.PhaseTearingDown {
 			continue
 		}

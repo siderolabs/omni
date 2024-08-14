@@ -389,9 +389,7 @@ func collectClusterResources(ctx context.Context, st state.State, clusterID stri
 
 	machineSetNodes := make(map[string][]*omni.MachineSetNode, machineSetNodeList.Len())
 
-	for iter := machineSetNodeList.Iterator(); iter.Next(); {
-		machineSetNode := iter.Value()
-
+	for machineSetNode := range machineSetNodeList.All() {
 		machineSetLabel, ok := machineSetNode.Metadata().Labels().Get(omni.LabelMachineSet)
 		if !ok {
 			return clusterResources{}, fmt.Errorf("machine set node %q has no machine set label", machineSetNode.Metadata().ID())
@@ -437,7 +435,7 @@ func collectClusterResources(ctx context.Context, st state.State, clusterID stri
 
 	return clusterResources{
 		cluster:                    cluster,
-		machineSets:                listToSlice(machineSetList),
+		machineSets:                slices.AppendSeq(make([]*omni.MachineSet, 0, machineSetList.Len()), machineSetList.All()),
 		machineSetNodes:            machineSetNodes,
 		patches:                    patches,
 		extensions:                 extensions,
@@ -538,22 +536,10 @@ func getInstallDiskFromConfigPatch(configPatch *omni.ConfigPatch) string {
 	return disk
 }
 
-func listToSlice[T resource.Resource](list safe.List[T]) []T {
-	result := make([]T, 0, list.Len())
-
-	for iter := list.Iterator(); iter.Next(); {
-		result = append(result, iter.Value())
-	}
-
-	return result
-}
-
 func listToMap[K comparable, T resource.Resource](list safe.List[T], keyFunc func(T) K) map[K]T {
 	result := make(map[K]T, list.Len())
 
-	for iter := list.Iterator(); iter.Next(); {
-		value := iter.Value()
-
+	for value := range list.All() {
 		result[keyFunc(value)] = value
 	}
 

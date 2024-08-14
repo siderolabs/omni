@@ -23,18 +23,18 @@ func resolveResourceType(ctx context.Context, st state.State, resourceType strin
 
 	var matched []*meta.ResourceDefinition
 
-	for it := rds.Iterator(); it.Next(); {
-		if strings.EqualFold(it.Value().Metadata().ID(), resourceType) {
-			matched = append(matched, it.Value())
+	for val := range rds.All() {
+		if strings.EqualFold(val.Metadata().ID(), resourceType) {
+			matched = append(matched, val)
 
 			continue
 		}
 
-		spec := it.Value().TypedSpec()
+		spec := val.TypedSpec()
 
 		for _, alias := range spec.AllAliases {
 			if strings.EqualFold(alias, resourceType) {
-				matched = append(matched, it.Value())
+				matched = append(matched, val)
 
 				break
 			}

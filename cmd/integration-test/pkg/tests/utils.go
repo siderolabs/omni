@@ -57,5 +57,5 @@ func (f matchStringOnly) ResetCoverage()    {}
 func (f matchStringOnly) SnapshotCoverage() {}
 
 func (f matchStringOnly) InitRuntimeCoverage() (mode string, tearDown func(coverprofile string, gocoverdir string) (string, error), snapcov func() float64) {
-	return "", nil, nil
+	return "", func(string, string) (string, error) { return "", nil }, func() float64 { return 0 }
 }

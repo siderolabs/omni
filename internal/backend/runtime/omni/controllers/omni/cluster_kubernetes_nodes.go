@@ -53,9 +53,7 @@ func NewClusterKubernetesNodesController() *ClusterKubernetesNodesController {
 
 				nodes := make([]string, 0, identityList.Len())
 
-				for iter := identityList.Iterator(); iter.Next(); {
-					identity := iter.Value()
-
+				for identity := range identityList.All() {
 					if identity.Metadata().Phase() == resource.PhaseTearingDown {
 						continue
 					}

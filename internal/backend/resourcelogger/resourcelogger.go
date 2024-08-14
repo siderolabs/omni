@@ -199,9 +199,7 @@ func resourceNamesToDefinitions(ctx context.Context, st state.State) (map[string
 		nameToRDs[name][rd.TypedSpec().Type] = rd
 	}
 
-	for it := rds.Iterator(); it.Next(); {
-		rd := it.Value()
-
+	for rd := range rds.All() {
 		add(rd.Metadata().ID(), rd)
 
 		for _, alias := range rd.TypedSpec().AllAliases {

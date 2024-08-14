@@ -377,20 +377,20 @@ func (ctrl *KubernetesStatusController) reconcileRunners(ctx context.Context, r 
 
 	secretsPresent := map[string]struct{}{}
 
-	for iter := secrets.Iterator(); iter.Next(); {
-		secretsPresent[iter.Value().Metadata().ID()] = struct{}{}
+	for secret := range secrets.All() {
+		secretsPresent[secret.Metadata().ID()] = struct{}{}
 	}
 
 	lbHealthy := map[string]struct{}{}
 	lbStopped := map[string]struct{}{}
 
-	for iter := lbStatus.Iterator(); iter.Next(); {
-		if iter.Value().TypedSpec().Value.Healthy {
-			lbHealthy[iter.Value().Metadata().ID()] = struct{}{}
+	for lbs := range lbStatus.All() {
+		if lbs.TypedSpec().Value.Healthy {
+			lbHealthy[lbs.Metadata().ID()] = struct{}{}
 		}
 
-		if iter.Value().TypedSpec().Value.Stopped {
-			lbStopped[iter.Value().Metadata().ID()] = struct{}{}
+		if lbs.TypedSpec().Value.Stopped {
+			lbStopped[lbs.Metadata().ID()] = struct{}{}
 		}
 	}
 
@@ -442,8 +442,8 @@ func (ctrl *KubernetesStatusController) reconcileRunners(ctx context.Context, r 
 		return err
 	}
 
-	for iter := statuses.Iterator(); iter.Next(); {
-		cluster := iter.Value().Metadata().ID()
+	for status := range statuses.All() {
+		cluster := status.Metadata().ID()
 
 		if _, ok := secretsPresent[cluster]; ok {
 			continue
@@ -489,9 +489,7 @@ func (ctrl *KubernetesStatusController) cleanupExposedServices(ctx context.Conte
 
 	var multiErr error
 
-	for iter := exposedServices.Iterator(); iter.Next(); {
-		exposedService := iter.Value()
-
+	for exposedService := range exposedServices.All() {
 		if !shouldDestroy(exposedService) {
 			continue
 		}

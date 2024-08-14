@@ -310,10 +310,10 @@ func filterMedia[T any](ctx context.Context, client *client.Client, check func(v
 		return nil, err
 	}
 
-	var result []T
+	result := make([]T, 0, media.Len())
 
-	for it := media.Iterator(); it.Next(); {
-		if val, ok := check(it.Value()); ok {
+	for item := range media.All() {
+		if val, ok := check(item); ok {
 			result = append(result, val)
 		}
 	}

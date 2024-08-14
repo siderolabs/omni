@@ -76,9 +76,7 @@ func (ctrl *MachineSetDestroyStatusController) Run(ctx context.Context, r contro
 			return fmt.Errorf("error listing Machine Set resources: %w", err)
 		}
 
-		for iter := machineSets.Iterator(); iter.Next(); {
-			machineSet := iter.Value()
-
+		for machineSet := range machineSets.All() {
 			if machineSet.Metadata().Phase() != resource.PhaseTearingDown {
 				continue
 			}

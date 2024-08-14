@@ -41,11 +41,11 @@ func NewMachineMap(ctx context.Context, r controller.Reader, cluster *omni.Clust
 		return nil, err
 	}
 
-	for iter := clusterMachineIdentities.Iterator(); iter.Next(); {
-		if _, controlplane := iter.Value().Metadata().Labels().Get(omni.LabelControlPlaneRole); controlplane {
-			nodenameToMachineMap.ControlPlanes[iter.Value().TypedSpec().Value.Nodename] = iter.Value().Metadata().ID()
+	for cmi := range clusterMachineIdentities.All() {
+		if _, controlplane := cmi.Metadata().Labels().Get(omni.LabelControlPlaneRole); controlplane {
+			nodenameToMachineMap.ControlPlanes[cmi.TypedSpec().Value.Nodename] = cmi.Metadata().ID()
 		} else {
-			nodenameToMachineMap.Workers[iter.Value().TypedSpec().Value.Nodename] = iter.Value().Metadata().ID()
+			nodenameToMachineMap.Workers[cmi.TypedSpec().Value.Nodename] = cmi.Metadata().ID()
 		}
 	}
 

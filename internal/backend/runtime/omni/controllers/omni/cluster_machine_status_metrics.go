@@ -89,8 +89,8 @@ func (ctrl *ClusterMachineStatusMetricsController) Run(ctx context.Context, r co
 			specs.ClusterMachineStatusSpec_DESTROYING:    0,
 		}
 
-		for iter := clusterMachineStatusList.Iterator(); iter.Next(); {
-			clusterMachinesByStatus[iter.Value().TypedSpec().Value.Stage]++
+		for val := range clusterMachineStatusList.All() {
+			clusterMachinesByStatus[val.TypedSpec().Value.Stage]++
 		}
 
 		for status, num := range clusterMachinesByStatus {

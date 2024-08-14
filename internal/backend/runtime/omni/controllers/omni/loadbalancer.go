@@ -111,9 +111,7 @@ func (ctrl *LoadBalancerController) reconcileLoadBalancers(ctx context.Context, 
 	endpoints := make(map[loadbalancer.ID][]string, list.Len())
 	stopped := map[loadbalancer.ID]struct{}{}
 
-	for iter := list.Iterator(); iter.Next(); {
-		item := iter.Value()
-
+	for item := range list.All() {
 		var clusterStatus *omni.ClusterStatus
 
 		clusterStatus, err = safe.ReaderGet[*omni.ClusterStatus](ctx, r, omni.NewClusterStatus(
@@ -166,8 +164,7 @@ func (ctrl *LoadBalancerController) reconcileLoadBalancers(ctx context.Context, 
 		return fmt.Errorf("error listing resources: %w", err)
 	}
 
-	for iter := statuses.Iterator(); iter.Next(); {
-		cfg := iter.Value()
+	for cfg := range statuses.All() {
 		id := cfg.Metadata().ID()
 
 		if _, ok := stopped[id]; ok {

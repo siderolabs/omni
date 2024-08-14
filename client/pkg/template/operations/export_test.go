@@ -203,9 +203,7 @@ func buildState(ctx context.Context, t *testing.T) state.State {
 func listToMap[T resource.Resource](list safe.List[T]) map[resource.ID]T {
 	result := make(map[resource.ID]T, list.Len())
 
-	for iter := list.Iterator(); iter.Next(); {
-		value := iter.Value()
-
+	for value := range list.All() {
 		result[value.Metadata().ID()] = value
 	}
 

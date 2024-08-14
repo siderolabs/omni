@@ -35,8 +35,8 @@ func AssertSomeImagesAreDownloadable(testCtx context.Context, client *client.Cli
 
 		var images []*omni.InstallationMedia
 
-		for it := media.Iterator(); it.Next(); {
-			spec := it.Value().TypedSpec().Value
+		for val := range media.All() {
+			spec := val.TypedSpec().Value
 
 			switch {
 			case spec.Profile == constants.BoardRPiGeneric:
@@ -44,7 +44,7 @@ func AssertSomeImagesAreDownloadable(testCtx context.Context, client *client.Cli
 			case spec.Profile == "aws":
 				fallthrough
 			case spec.Profile == "iso":
-				images = append(images, it.Value())
+				images = append(images, val)
 			}
 		}
 

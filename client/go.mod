@@ -13,7 +13,7 @@ replace (
 require (
 	github.com/adrg/xdg v0.5.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cosi-project/runtime v0.5.5
+	github.com/cosi-project/runtime v0.6.0
 	github.com/fatih/color v1.17.0
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/google/uuid v1.6.0

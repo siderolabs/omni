@@ -451,8 +451,8 @@ func (manager *Manager) pollWireguardPeers(ctx context.Context) error {
 		return err
 	}
 
-	for iter := links.Iterator(); iter.Next(); {
-		spec := iter.Value().TypedSpec().Value
+	for link := range links.All() {
+		spec := link.TypedSpec().Value
 
 		if err = manager.wgHandler.PeerEvent(ctx, spec, false); err != nil {
 			return err
@@ -506,8 +506,7 @@ func (manager *Manager) pollWireguardPeers(ctx context.Context) error {
 
 			counterDeltas := make(LinkCounterDeltas, links.Len())
 
-			for iter := links.Iterator(); iter.Next(); {
-				link := iter.Value()
+			for link := range links.All() {
 				spec := link.TypedSpec().Value
 
 				peer, ok := peersByKey[spec.NodePublicKey]

@@ -458,9 +458,9 @@ func (s *managementServer) KubernetesUpgradePreChecks(ctx context.Context, req *
 		return nil, err
 	}
 
-	for iter := cmis.Iterator(); iter.Next(); {
-		if len(iter.Value().TypedSpec().Value.NodeIps) > 0 {
-			controlplaneNodes = append(controlplaneNodes, iter.Value().TypedSpec().Value.NodeIps[0])
+	for cmi := range cmis.All() {
+		if len(cmi.TypedSpec().Value.NodeIps) > 0 {
+			controlplaneNodes = append(controlplaneNodes, cmi.TypedSpec().Value.NodeIps[0])
 		}
 	}
 

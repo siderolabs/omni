@@ -81,9 +81,7 @@ func (ctrl *ClusterWorkloadProxyController) Run(ctx context.Context, r controlle
 
 		var errs error
 
-		for iter := clusterList.Iterator(); iter.Next(); {
-			cluster := iter.Value()
-
+		for cluster := range clusterList.All() {
 			id := fmt.Sprintf("950-cluster-%s-workload-proxying", cluster.Metadata().ID())
 
 			configPatch := omni.NewConfigPatch(resources.DefaultNamespace, id)

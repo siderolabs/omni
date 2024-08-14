@@ -8,6 +8,7 @@ package migration
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -58,9 +59,7 @@ func getConfigPatches(ctx context.Context, r controller.Reader, machine resource
 	machineSetPatches := make([]*omni.ConfigPatch, 0, clusterPatchList.Len())
 	clusterMachinePatches := make([]*omni.ConfigPatch, 0, clusterPatchList.Len())
 
-	for iter := clusterPatchList.Iterator(); iter.Next(); {
-		patch := iter.Value()
-
+	for patch := range clusterPatchList.All() {
 		machineSetName, machineSetOk := patch.Metadata().Labels().Get(prefix + "machine-set")
 		clusterMachineName, clusterMachineOk := patch.Metadata().Labels().Get(prefix + "cluster-machine")
 
@@ -83,11 +82,5 @@ func getConfigPatches(ctx context.Context, r controller.Reader, machine resource
 	patches = append(patches, machineSetPatches...)
 	patches = append(patches, clusterMachinePatches...)
 
-	for iter := machinePatchList.Iterator(); iter.Next(); {
-		patch := iter.Value()
-
-		patches = append(patches, patch)
-	}
-
-	return patches, nil
+	return slices.AppendSeq(patches, machinePatchList.All()), nil
 }

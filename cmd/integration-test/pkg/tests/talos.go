@@ -764,8 +764,7 @@ func AssertTalosServiceIsRestarted(testCtx context.Context, cli *client.Client, 
 		clusterMachineList, err := safe.StateListAll[*omni.ClusterMachine](ctx, cli.Omni().State(), state.WithLabelQuery(labelQueryOpts...))
 		require.NoError(t, err)
 
-		for it := clusterMachineList.Iterator(); it.Next(); {
-			clusterMachine := it.Value()
+		for clusterMachine := range clusterMachineList.All() {
 			nodeID := clusterMachine.Metadata().ID()
 
 			t.Logf("Restarting service %q on node %q", service, nodeID)

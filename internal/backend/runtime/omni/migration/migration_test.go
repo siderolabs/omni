@@ -274,8 +274,8 @@ func (suite *MigrationSuite) TestMachineSets() {
 
 		suite.Require().NoError(err)
 
-		for iter := list.Iterator(); iter.Next(); {
-			machines = append(machines, iter.Value().Metadata().ID())
+		for val := range list.All() {
+			machines = append(machines, val.Metadata().ID())
 		}
 	}
 
@@ -306,8 +306,8 @@ func (suite *MigrationSuite) TestMachineSets() {
 
 		machines = make([]string, 0, list.Len())
 
-		for iter := list.Iterator(); iter.Next(); {
-			machines = append(machines, iter.Value().Metadata().ID())
+		for val := range list.All() {
+			machines = append(machines, val.Metadata().ID())
 		}
 	}
 

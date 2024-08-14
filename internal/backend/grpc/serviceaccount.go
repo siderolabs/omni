@@ -213,9 +213,7 @@ func (s *managementServer) ListServiceAccounts(ctx context.Context, _ *emptypb.E
 
 	serviceAccounts := make([]*management.ListServiceAccountsResponse_ServiceAccount, 0, identityList.Len())
 
-	for iter := identityList.Iterator(); iter.Next(); {
-		identity := iter.Value()
-
+	for identity := range identityList.All() {
 		user, err := safe.StateGet[*authres.User](ctx, s.omniState, authres.NewUser(resources.DefaultNamespace, identity.TypedSpec().Value.UserId).Metadata())
 		if err != nil {
 			return nil, err
@@ -232,9 +230,7 @@ func (s *managementServer) ListServiceAccounts(ctx context.Context, _ *emptypb.E
 
 		publicKeys := make([]*management.ListServiceAccountsResponse_ServiceAccount_PgpPublicKey, 0, publicKeyList.Len())
 
-		for keyIter := publicKeyList.Iterator(); keyIter.Next(); {
-			key := keyIter.Value()
-
+		for key := range publicKeyList.All() {
 			publicKeys = append(publicKeys, &management.ListServiceAccountsResponse_ServiceAccount_PgpPublicKey{
 				Id:         key.Metadata().ID(),
 				Armored:    string(key.TypedSpec().Value.GetPublicKey()),

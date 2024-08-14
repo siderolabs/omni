@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -307,13 +308,7 @@ func (sp *SessionProvider) getRoleInSAMLLabelRules(ctx context.Context, samlLabe
 		return "", err
 	}
 
-	labelRules := make([]*auth.SAMLLabelRule, 0)
-
-	for iter := labelRuleList.Iterator(); iter.Next(); {
-		labelRule := iter.Value()
-
-		labelRules = append(labelRules, labelRule)
-	}
+	labelRules := slices.AppendSeq(make([]*auth.SAMLLabelRule, 0, labelRuleList.Len()), labelRuleList.All())
 
 	return RoleInSAMLLabelRules(labelRules, samlLabels, sp.logger), nil
 }

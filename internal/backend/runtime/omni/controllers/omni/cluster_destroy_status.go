@@ -83,9 +83,7 @@ func (ctrl *ClusterDestroyStatusController) Run(ctx context.Context, r controlle
 			return fmt.Errorf("error listing Cluster resources: %w", err)
 		}
 
-		for iter := clusters.Iterator(); iter.Next(); {
-			cluster := iter.Value()
-
+		for cluster := range clusters.All() {
 			if cluster.Metadata().Phase() != resource.PhaseTearingDown {
 				continue
 			}

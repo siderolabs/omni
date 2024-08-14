@@ -214,9 +214,9 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 					return err
 				}
 
-				for cpIter := configPatches.Iterator(); cpIter.Next(); {
-					if cpIter.Value().Metadata().Owner() == KubernetesUpgradeStatusControllerName {
-						if err = r.Destroy(ctx, cpIter.Value().Metadata()); err != nil {
+				for cp := range configPatches.All() {
+					if cp.Metadata().Owner() == KubernetesUpgradeStatusControllerName {
+						if err = r.Destroy(ctx, cp.Metadata()); err != nil {
 							return err
 						}
 					}
@@ -230,9 +230,9 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 					return err
 				}
 
-				for iprIter := imagePullRequests.Iterator(); iprIter.Next(); {
-					if iprIter.Value().Metadata().Owner() == KubernetesUpgradeStatusControllerName {
-						if err = r.Destroy(ctx, iprIter.Value().Metadata()); err != nil {
+				for ipr := range imagePullRequests.All() {
+					if ipr.Metadata().Owner() == KubernetesUpgradeStatusControllerName {
+						if err = r.Destroy(ctx, ipr.Metadata()); err != nil {
 							return err
 						}
 					}

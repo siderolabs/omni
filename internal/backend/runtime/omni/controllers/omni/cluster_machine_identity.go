@@ -137,9 +137,7 @@ func (ctrl *ClusterMachineIdentityController) reconcileCollectors(ctx context.Co
 
 	expectedCollectors := map[string]clustermachine.IdentityCollectorTaskSpec{}
 
-	for iter := list.Iterator(); iter.Next(); {
-		clusterMachine := iter.Value()
-
+	for clusterMachine := range list.All() {
 		tracker.keep(clusterMachine)
 
 		if clusterMachine.Metadata().Phase() == resource.PhaseTearingDown {

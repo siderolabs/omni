@@ -97,9 +97,7 @@ func checkExtension(ctx context.Context, cli *client.Client, machineID resource.
 		return err
 	}
 
-	for iter := extensionStatusList.Iterator(); iter.Next(); {
-		extensionStatus := iter.Value()
-
+	for extensionStatus := range extensionStatusList.All() {
 		if extensionStatus.TypedSpec().Metadata.Name == extension {
 			return nil
 		}

@@ -103,18 +103,18 @@ func (ctrl *MachineStatusMetricsController) Run(ctx context.Context, r controlle
 		ctrl.versionsMu.Lock()
 		ctrl.versionsMap = map[string]int{}
 
-		for iter := list.Iterator(); iter.Next(); {
+		for ms := range list.All() {
 			machines++
 
-			if iter.Value().TypedSpec().Value.Connected {
+			if ms.TypedSpec().Value.Connected {
 				connectedMachines++
 			}
 
-			if iter.Value().TypedSpec().Value.TalosVersion != "" {
-				ctrl.versionsMap[iter.Value().TypedSpec().Value.TalosVersion]++
+			if ms.TypedSpec().Value.TalosVersion != "" {
+				ctrl.versionsMap[ms.TypedSpec().Value.TalosVersion]++
 			}
 
-			if iter.Value().TypedSpec().Value.Cluster != "" {
+			if ms.TypedSpec().Value.Cluster != "" {
 				allocatedMachines++
 			}
 		}

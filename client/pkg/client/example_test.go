@@ -64,9 +64,7 @@ func Example() {
 		machine *omni.MachineStatus
 	)
 
-	for iter := machines.Iterator(); iter.Next(); {
-		item := iter.Value()
-
+	for item := range machines.All() {
 		log.Printf("machine %s, connected: %t", item.Metadata(), item.TypedSpec().Value.GetConnected())
 
 		// Check cluster assignment for a machine.

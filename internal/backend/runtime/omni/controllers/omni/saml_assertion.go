@@ -65,9 +65,7 @@ func (ctrl *SAMLAssertionController) Run(ctx context.Context, r controller.Runti
 			return fmt.Errorf("error listing Cluster resources: %w", err)
 		}
 
-		for iter := sessions.Iterator(); iter.Next(); {
-			assertion := iter.Value()
-
+		for assertion := range sessions.All() {
 			if time.Since(assertion.Metadata().Created()) > time.Hour*24 {
 				err = r.Destroy(ctx, assertion.Metadata(), controller.WithOwner(""))
 				if err != nil {

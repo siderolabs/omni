@@ -90,9 +90,7 @@ func (helper *clusterWorkloadProxyStatusControllerHelper) transform(ctx context.
 
 	healthyTargetHosts := make([]string, 0, cmsList.Len())
 
-	for iter := cmsList.Iterator(); iter.Next(); {
-		cms := iter.Value()
-
+	for cms := range cmsList.All() {
 		if cms.Metadata().Phase() == resource.PhaseTearingDown {
 			if err = r.RemoveFinalizer(ctx, cms.Metadata(), ClusterWorkloadProxyStatusControllerName); err != nil {
 				return fmt.Errorf("failed to remove finalizer: %w", err)
@@ -125,9 +123,7 @@ func (helper *clusterWorkloadProxyStatusControllerHelper) transform(ctx context.
 
 	aliasToUpstreamAddresses := make(map[string][]string, svcList.Len())
 
-	for iter := svcList.Iterator(); iter.Next(); {
-		svc := iter.Value()
-
+	for svc := range svcList.All() {
 		if svc.Metadata().Phase() == resource.PhaseTearingDown {
 			if err = r.RemoveFinalizer(ctx, svc.Metadata(), ClusterWorkloadProxyStatusControllerName); err != nil {
 				return fmt.Errorf("failed to remove finalizer: %w", err)
@@ -167,9 +163,7 @@ func (helper *clusterWorkloadProxyStatusControllerHelper) teardown(ctx context.C
 		return fmt.Errorf("failed to list cluster machine statuses: %w", err)
 	}
 
-	for iter := cmsList.Iterator(); iter.Next(); {
-		cms := iter.Value()
-
+	for cms := range cmsList.All() {
 		if err = r.RemoveFinalizer(ctx, cms.Metadata(), ClusterWorkloadProxyStatusControllerName); err != nil {
 			return fmt.Errorf("failed to remove finalizer: %w", err)
 		}
@@ -180,9 +174,7 @@ func (helper *clusterWorkloadProxyStatusControllerHelper) teardown(ctx context.C
 		return fmt.Errorf("failed to list exposed services: %w", err)
 	}
 
-	for iter := svcList.Iterator(); iter.Next(); {
-		svc := iter.Value()
-
+	for svc := range svcList.All() {
 		if err = r.RemoveFinalizer(ctx, svc.Metadata(), ClusterWorkloadProxyStatusControllerName); err != nil {
 			return fmt.Errorf("failed to remove finalizer: %w", err)
 		}

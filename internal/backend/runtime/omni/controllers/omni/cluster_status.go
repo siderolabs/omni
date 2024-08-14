@@ -84,19 +84,19 @@ func NewClusterStatusController(embeddedDiscoveryServiceEnabled bool) *ClusterSt
 
 				phases := map[specs.MachineSetPhase]int{}
 
-				for iter := list.Iterator(); iter.Next(); {
-					machineSetStatus := iter.Value().TypedSpec().Value
+				for mss := range list.All() {
+					machineSetStatus := mss.TypedSpec().Value
 
 					machines.Total += machineSetStatus.GetMachines().GetTotal()
 					machines.Healthy += machineSetStatus.GetMachines().GetHealthy()
 
-					_, isControlPlane := iter.Value().Metadata().Labels().Get(omni.LabelControlPlaneRole)
+					_, isControlPlane := mss.Metadata().Labels().Get(omni.LabelControlPlaneRole)
 					if isControlPlane {
 						var cpStatus *omni.ControlPlaneStatus
 
 						cpStatus, err = safe.ReaderGet[*omni.ControlPlaneStatus](
 							ctx, r,
-							resource.NewMetadata(resources.DefaultNamespace, omni.ControlPlaneStatusType, iter.Value().Metadata().ID(), resource.VersionUndefined),
+							resource.NewMetadata(resources.DefaultNamespace, omni.ControlPlaneStatusType, mss.Metadata().ID(), resource.VersionUndefined),
 						)
 						if err != nil && !state.IsNotFoundError(err) {
 							return err

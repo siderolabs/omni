@@ -82,9 +82,7 @@ func nodes(ctx context.Context, cli *client.Client, clusterName string, labels .
 
 	nodeList := make([]node, 0, clusterMachineList.Len())
 
-	for iter := clusterMachineList.Iterator(); iter.Next(); {
-		clusterMachine := iter.Value()
-
+	for clusterMachine := range clusterMachineList.All() {
 		machine, err := safe.StateGet[*omni.Machine](ctx, st, omni.NewMachine(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata())
 		if err != nil && !state.IsNotFoundError(err) {
 			return nil, err
@@ -169,9 +167,7 @@ func talosNodeIPs(ctx context.Context, talosState state.State) ([]string, error)
 
 	nodeIPs := make([]string, 0, list.Len())
 
-	for iter := list.Iterator(); iter.Next(); {
-		member := iter.Value()
-
+	for member := range list.All() {
 		if len(member.TypedSpec().Addresses) == 0 {
 			return nil, fmt.Errorf("no addresses for member %q", member.Metadata().ID())
 		}

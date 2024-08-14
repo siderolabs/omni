@@ -78,8 +78,10 @@ func (ctrl *MachineStatusLinkController) Run(ctx context.Context, rt controller.
 			return fmt.Errorf("error listing MachineStatus resources: %w", err)
 		}
 
-		for iter := msList.Iterator(); iter.Next(); {
-			ms := iter.Value()
+		for ms := range msList.All() {
+			if ms.Metadata().Phase() == resource.PhaseTearingDown {
+				continue
+			}
 
 			emptyResource := omni.NewMachineStatusLink(resources.MetricsNamespace, ms.Metadata().ID())
 
@@ -129,9 +131,7 @@ func cleanupOutputs[T generic.ResourceWithRD](
 
 	var multiErr error
 
-	for it := outputList.Iterator(); it.Next(); {
-		out := it.Value()
-
+	for out := range outputList.All() {
 		// always attempt clean up of tearing down outputs, even if there is a matching input
 		// in the case that output phase is tearing down, while touched is true, actually
 		// output belongs to a previous generation of the input resource with the same ID, so the output

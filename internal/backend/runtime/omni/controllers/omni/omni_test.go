@@ -546,13 +546,13 @@ func (suite *OmniSuite) destroyClusterByID(clusterID string) {
 
 	suite.Require().NoError(err)
 
-	for iter := list.Iterator(); iter.Next(); {
-		rtestutils.Destroy[*omni.ClusterMachine](ctx, suite.T(), suite.state, []string{iter.Value().Metadata().ID()})
-		rtestutils.Destroy[*omni.MachineSetNode](ctx, suite.T(), suite.state, []string{iter.Value().Metadata().ID()})
-		rtestutils.Destroy[*omni.ClusterMachineStatus](ctx, suite.T(), suite.state, []string{iter.Value().Metadata().ID()})
-		rtestutils.Destroy[*omni.ClusterMachineConfigPatches](ctx, suite.T(), suite.state, []string{iter.Value().Metadata().ID()})
-		rtestutils.Destroy[*omni.MachineStatus](ctx, suite.T(), suite.state, []string{iter.Value().Metadata().ID()})
-		rtestutils.Destroy[*omni.Machine](ctx, suite.T(), suite.state, []string{iter.Value().Metadata().ID()})
+	for cs := range list.All() {
+		rtestutils.Destroy[*omni.ClusterMachine](ctx, suite.T(), suite.state, []string{cs.Metadata().ID()})
+		rtestutils.Destroy[*omni.MachineSetNode](ctx, suite.T(), suite.state, []string{cs.Metadata().ID()})
+		rtestutils.Destroy[*omni.ClusterMachineStatus](ctx, suite.T(), suite.state, []string{cs.Metadata().ID()})
+		rtestutils.Destroy[*omni.ClusterMachineConfigPatches](ctx, suite.T(), suite.state, []string{cs.Metadata().ID()})
+		rtestutils.Destroy[*omni.MachineStatus](ctx, suite.T(), suite.state, []string{cs.Metadata().ID()})
+		rtestutils.Destroy[*omni.Machine](ctx, suite.T(), suite.state, []string{cs.Metadata().ID()})
 	}
 
 	machineSets, err := safe.StateListAll[*omni.MachineSet](ctx, suite.state,
@@ -561,8 +561,8 @@ func (suite *OmniSuite) destroyClusterByID(clusterID string) {
 
 	suite.Require().NoError(err)
 
-	for iter := machineSets.Iterator(); iter.Next(); {
-		rtestutils.Destroy[*omni.MachineSet](ctx, suite.T(), suite.state, []string{iter.Value().Metadata().ID()})
+	for ms := range machineSets.All() {
+		rtestutils.Destroy[*omni.MachineSet](ctx, suite.T(), suite.state, []string{ms.Metadata().ID()})
 	}
 
 	rtestutils.Destroy[*omni.Cluster](ctx, suite.T(), suite.state, []string{clusterID})

@@ -94,13 +94,13 @@ func (ctrl *ClusterStatusMetricsController) Run(ctx context.Context, r controlle
 			specs.ClusterStatusSpec_DESTROYING:   0,
 		}
 
-		for iter := list.Iterator(); iter.Next(); {
-			phase := iter.Value().TypedSpec().Value.Phase
+		for val := range list.All() {
+			phase := val.TypedSpec().Value.Phase
 			clustersByStatus[phase]++
 
 			res.TypedSpec().Value.Phases[int32(phase)]++
 
-			if !iter.Value().TypedSpec().Value.Ready {
+			if !val.TypedSpec().Value.Ready {
 				res.TypedSpec().Value.NotReadyCount++
 			}
 		}

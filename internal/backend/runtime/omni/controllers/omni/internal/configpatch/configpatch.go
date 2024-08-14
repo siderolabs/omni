@@ -9,6 +9,7 @@ package configpatch
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -50,9 +51,7 @@ func (h *Helper) Get(machine *omni.ClusterMachine, machineSet *omni.MachineSet) 
 	machineSetPatches := make([]*omni.ConfigPatch, 0, clusterPatchList.Len())
 	clusterMachinePatches := make([]*omni.ConfigPatch, 0, clusterPatchList.Len())
 
-	for iter := clusterPatchList.Iterator(); iter.Next(); {
-		patch := iter.Value()
-
+	for patch := range clusterPatchList.All() {
 		machineSetName, machineSetOk := patch.Metadata().Labels().Get(omni.LabelMachineSet)
 		clusterMachineName, clusterMachineOk := patch.Metadata().Labels().Get(omni.LabelClusterMachine)
 
@@ -74,12 +73,7 @@ func (h *Helper) Get(machine *omni.ClusterMachine, machineSet *omni.MachineSet) 
 	patches = append(patches, clusterPatches...)
 	patches = append(patches, machineSetPatches...)
 	patches = append(patches, clusterMachinePatches...)
-
-	for iter := machinePatchList.Iterator(); iter.Next(); {
-		patch := iter.Value()
-
-		patches = append(patches, patch)
-	}
+	patches = slices.AppendSeq(patches, machinePatchList.All())
 
 	return xslices.Filter(patches, func(configPatch *omni.ConfigPatch) bool {
 		return configPatch.Metadata().Phase() == resource.PhaseRunning

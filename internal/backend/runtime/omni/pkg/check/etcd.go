@@ -66,11 +66,11 @@ func Etcd(ctx context.Context, r controller.Reader, clusterName string) error {
 
 	var members map[uint64]string
 
-	for iter := clusterMachineStatuses.Iterator(); iter.Next(); {
-		nodeMembers, err := GetEtcdMembers(ctx, r, clusterName, iter.Value())
+	for item := range clusterMachineStatuses.All() {
+		nodeMembers, err := GetEtcdMembers(ctx, r, clusterName, item)
 		if err != nil {
 			if talos.IsClientNotReadyError(err) {
-				return newError(specs.ControlPlaneStatusSpec_Condition_Error, false, "Talos client is not ready on node %s", iter.Value().Metadata().ID())
+				return newError(specs.ControlPlaneStatusSpec_Condition_Error, false, "Talos client is not ready on node %s", item.Metadata().ID())
 			}
 
 			return err
@@ -88,7 +88,7 @@ func Etcd(ctx context.Context, r controller.Reader, clusterName string) error {
 				false,
 				"Etcd members don't match on nodes %s and %s",
 				clusterMachineStatuses.Get(0).Metadata().ID(),
-				iter.Value().Metadata().ID(),
+				item.Metadata().ID(),
 			)
 		}
 	}

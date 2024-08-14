@@ -48,14 +48,14 @@ func NewClusterEndpointController() *ClusterEndpointController {
 
 				clusterEndpoint.TypedSpec().Value.ManagementAddresses = nil
 
-				for iter := items.Iterator(); iter.Next(); {
-					if iter.Value().TypedSpec().Value.ManagementAddress == "" {
+				for val := range items.All() {
+					if val.TypedSpec().Value.ManagementAddress == "" {
 						continue
 					}
 
 					clusterEndpoint.TypedSpec().Value.ManagementAddresses = append(
 						clusterEndpoint.TypedSpec().Value.ManagementAddresses,
-						iter.Value().TypedSpec().Value.ManagementAddress,
+						val.TypedSpec().Value.ManagementAddress,
 					)
 				}
 

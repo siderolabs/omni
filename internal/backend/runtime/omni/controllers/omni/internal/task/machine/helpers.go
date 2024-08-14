@@ -29,10 +29,8 @@ func forEachResource[T resource.Resource](
 		return err
 	}
 
-	iter := items.Iterator()
-
-	for iter.Next() {
-		if err = callback(iter.Value()); err != nil {
+	for val := range items.All() {
+		if err = callback(val); err != nil {
 			return err
 		}
 	}

@@ -103,8 +103,7 @@ func (k *KeyPrunerController) run(ctx context.Context, runtime controller.Runtim
 		return err
 	}
 
-	for it := list.Iterator(); it.Next(); {
-		v := it.Value()
+	for v := range list.All() {
 		md := v.Metadata()
 		publicKeySpec := v.TypedSpec().Value
 

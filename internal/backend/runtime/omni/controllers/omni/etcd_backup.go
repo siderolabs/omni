@@ -241,8 +241,7 @@ func (ctrl *EtcdBackupController) findClustersToBackup(ctx context.Context, r co
 
 	result := make([]*omni.BackupData, 0, bdl.Len())
 
-	for it := bdl.Iterator(); it.Next(); {
-		backupData := it.Value()
+	for backupData := range bdl.All() {
 		clusterID := backupData.Metadata().ID()
 		value := backupData.TypedSpec().Value
 

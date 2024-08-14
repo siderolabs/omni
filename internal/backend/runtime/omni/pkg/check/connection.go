@@ -31,8 +31,8 @@ func Connection(ctx context.Context, r controller.Reader, clusterName string) er
 		return newError(specs.ControlPlaneStatusSpec_Condition_Error, true, "Failed to get the list of machines %s", err.Error())
 	}
 
-	for iter := clusterMachineStatuses.Iterator(); iter.Next(); {
-		_, connected := iter.Value().Metadata().Labels().Get(omni.MachineStatusLabelConnected)
+	for val := range clusterMachineStatuses.All() {
+		_, connected := val.Metadata().Labels().Get(omni.MachineStatusLabelConnected)
 		if connected {
 			return nil
 		}

@@ -268,9 +268,7 @@ func reconcileTalosUpdateStatus(ctx context.Context, r controller.ReaderWriter,
 		return err
 	}
 
-	for iter := clusterMachines.Iterator(); iter.Next(); {
-		machine := iter.Value()
-
+	for machine := range clusterMachines.All() {
 		if machine.Metadata().Phase() == resource.PhaseTearingDown {
 			continue
 		}
