@@ -52,9 +52,10 @@ cluster:
                 - operator: Exists
               containers:
                 - name: omni-kube-service-exposer
-                  image: ghcr.io/siderolabs/kube-service-exposer:v0.1.4
+                  image: ghcr.io/siderolabs/kube-service-exposer:v0.2.0
                   args:
                     - --debug=false
                     - --annotation-key={{ .AnnotationKey }}
                     # siderolink CIDR
                     - --bind-cidrs="fdae:41e4:649b:9303::/64"
+                    - --disallowed-host-port-ranges=6443,10250,50000-50001
