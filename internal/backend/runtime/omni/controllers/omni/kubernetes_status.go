@@ -454,7 +454,9 @@ func (ctrl *KubernetesStatusController) reconcileRunners(ctx context.Context, r 
 		}
 	}
 
-	// cleanup exposed services for cluster which do not have secrets
+	// cleanup exposed services which are
+	// - either destroy ready
+	// - or clusters which do not have secrets
 	if err := ctrl.cleanupExposedServices(ctx, r, secretsPresent); err != nil {
 		return fmt.Errorf("error destroying exposed services: %w", err)
 	}
@@ -468,17 +470,40 @@ func (ctrl *KubernetesStatusController) cleanupExposedServices(ctx context.Conte
 		return fmt.Errorf("error listing exposed services: %w", err)
 	}
 
+	shouldDestroy := func(res *omni.ExposedService) bool {
+		if res.Metadata().Phase() == resource.PhaseTearingDown {
+			return res.Metadata().Finalizers().Empty()
+		}
+
+		exposedServiceCluster, ok := res.Metadata().Labels().Get(omni.LabelCluster)
+		if !ok {
+			return false
+		}
+
+		if _, ok = keepClustersSet[exposedServiceCluster]; ok {
+			return false
+		}
+
+		return true
+	}
+
 	var multiErr error
 
 	for iter := exposedServices.Iterator(); iter.Next(); {
 		exposedService := iter.Value()
 
-		exposedServiceCluster, ok := exposedService.Metadata().Labels().Get(omni.LabelCluster)
-		if !ok {
+		if !shouldDestroy(exposedService) {
 			continue
 		}
 
-		if _, ok = keepClustersSet[exposedServiceCluster]; ok {
+		destroyReady, teardownErr := r.Teardown(ctx, exposedService.Metadata())
+		if teardownErr != nil {
+			multiErr = multierror.Append(multiErr, fmt.Errorf("error tearing down exposed service: %w", teardownErr))
+
+			continue
+		}
+
+		if !destroyReady {
 			continue
 		}
 
