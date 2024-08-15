@@ -673,7 +673,7 @@ func identityValidationOptions(samlConfig config.SAMLParams) []validated.StateOp
 			}
 
 			if _, err := mail.ParseAddress(res.Metadata().ID()); err != nil {
-				errs = multierror.Append(errs, fmt.Errorf("not a valid email address: "+res.Metadata().ID()))
+				errs = multierror.Append(errs, fmt.Errorf("not a valid email address: %s", res.Metadata().ID()))
 			}
 
 			return errs

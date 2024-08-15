@@ -119,7 +119,7 @@ func (l *StreamOffsetLimiter[T]) Check(val T) bool {
 		return true
 	}
 
-	// We have a range, so we can check if value is in the range.
+	// We have a range, so we can check if the value is in the range.
 	if l.min != nil {
 		if l.max != nil {
 			return l.cmp(val, *l.min) >= 0 && l.cmp(val, *l.max) <= 0
@@ -144,15 +144,15 @@ func (l *StreamOffsetLimiter[T]) Check(val T) bool {
 	// We have empty limit, so we return everything above offset.
 	if l.limit == 0 {
 		if l.min == nil {
-			min, _ := l.offsetSet.Max()
-			l.min = &min
+			minVal, _ := l.offsetSet.Max()
+			l.min = &minVal
 			l.offsetSet.Reset()
 		}
 
 		return l.cmp(val, *l.min) > 0
 	}
 
-	// We haven't reached limit yet, so we need to add it to the limit set.
+	// We haven't reached the limit yet, so we need to add it to the limit set.
 	if l.limitSet.Len() < l.limit {
 		l.limitSet.Add(val)
 
@@ -160,11 +160,11 @@ func (l *StreamOffsetLimiter[T]) Check(val T) bool {
 	}
 
 	// Creating range using min and max from limit set.
-	min, _ := l.limitSet.Min()
-	max, _ := l.limitSet.Max()
+	minVal, _ := l.limitSet.Min()
+	maxVal, _ := l.limitSet.Max()
 
-	l.min = &min
-	l.max = &max
+	l.min = &minVal
+	l.max = &maxVal
 
 	// We no longer need limit set and offset set, since we have the range now.
 	l.limitSet.Reset()

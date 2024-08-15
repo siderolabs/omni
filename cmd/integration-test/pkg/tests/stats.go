@@ -7,6 +7,7 @@ package tests
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -91,7 +92,7 @@ func AssertStatsLimits(testCtx context.Context) TestFunc {
 					}
 
 					if agg.hadErrors {
-						return retry.ExpectedErrorf(agg.String())
+						return retry.ExpectedError(errors.New(agg.String()))
 					}
 
 					return nil

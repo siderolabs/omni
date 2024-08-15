@@ -85,11 +85,11 @@ func (s *oidcServer) Authenticate(ctx context.Context, req *oidc.AuthenticateReq
 	}, nil
 }
 
-func encodeToString(max int) (string, error) {
-	b := make([]byte, max)
+func encodeToString(minBytes int) (string, error) {
+	b := make([]byte, minBytes)
 
-	n, err := io.ReadAtLeast(rand.Reader, b, max)
-	if n != max {
+	n, err := io.ReadAtLeast(rand.Reader, b, minBytes)
+	if n != minBytes {
 		return "", err
 	}
 

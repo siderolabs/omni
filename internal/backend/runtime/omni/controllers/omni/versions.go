@@ -113,7 +113,7 @@ var allowedPreVersionStrings = map[string]struct{}{
 	"beta":  {},
 }
 
-func (ctrl *VersionsController) getVersionsAfter(ctx context.Context, source string, min semver.Version, includePreReleaseVersions bool) ([]string, error) {
+func (ctrl *VersionsController) getVersionsAfter(ctx context.Context, source string, minVersion semver.Version, includePreReleaseVersions bool) ([]string, error) {
 	versions, err := registry.UpgradeCandidates(ctx, source)
 	if err != nil {
 		return nil, err
@@ -150,7 +150,7 @@ func (ctrl *VersionsController) getVersionsAfter(ctx context.Context, source str
 			}
 		}
 
-		if ver.LT(min) {
+		if ver.LT(minVersion) {
 			continue
 		}
 
