@@ -260,7 +260,7 @@ const maintenanceUpdateDescription = computed(() => {
   }
 
   if (!canDoMaintenanceUpdate.value) {
-    return "Maintenance ugprade is not possible: Talos is not installed";
+    return "Maintenance upgrade is not possible: Talos is not installed";
   }
 
   return "Change Talos version";
