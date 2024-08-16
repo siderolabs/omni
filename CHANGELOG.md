@@ -1,3 +1,68 @@
+## [Omni 0.41.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.41.0-beta.0) (2024-08-16)
+
+Welcome to the v0.41.0-beta.0 release of Omni!  
+*This is a pre-release of Omni*
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+* Andrey Smirnov
+* Dmitriy Matrenichev
+* Utku Ozdemir
+* Brant Gurganus
+
+### Changes
+<details><summary>15 commits</summary>
+<p>
+
+* [`1cb1080`](https://github.com/siderolabs/omni/commit/1cb1080f0a12c3ad32f06016855c4247b3573943) feat: bump kube-service-exposer to v0.2.0
+* [`dd510e9`](https://github.com/siderolabs/omni/commit/dd510e9b1256019e2d7abca1fc1e62425c99a924) fix: properly cleanup tearing down exposed services
+* [`0bec3e4`](https://github.com/siderolabs/omni/commit/0bec3e4461989c0b1a1c6490c958064a8cd7cb2f) chore: bump deps
+* [`6080c25`](https://github.com/siderolabs/omni/commit/6080c251c66c3bc9bd64def5aab5acc475a542c2) test: fix several flaky tests
+* [`99f9317`](https://github.com/siderolabs/omni/commit/99f93179bd64cb6e97ea9e2ec287590fc98aa814) chore: implement audit log for several types
+* [`ee73083`](https://github.com/siderolabs/omni/commit/ee7308376aa05411f11e739148989ac2b1403463) fix: properly remove `MachineSetNode` finalizer in the controller
+* [`16b008b`](https://github.com/siderolabs/omni/commit/16b008beb03fc5afa5951418eb908a7c97c0c611) fix: increase LRU cache size for Talos and Kubernetes clients
+* [`36c7b10`](https://github.com/siderolabs/omni/commit/36c7b107649b77a7a093f40af9e1aa506b89ba52) fix: skip reconciling redacted machine config on no input changes
+* [`f0b44b1`](https://github.com/siderolabs/omni/commit/f0b44b1aa08421c2d33878d231ddf4df4c18a0b9) fix: add gRPC read buffer pool for etcd client
+* [`b1fceea`](https://github.com/siderolabs/omni/commit/b1fceeac08fd78bf9758eca3d2d477459ae2c21d) fix: properly handle ExposedService resource finalizers
+* [`5e35cbe`](https://github.com/siderolabs/omni/commit/5e35cbe57242bc2b16043f6c451d5157d5c9628b) fix: fix nil pointer dereference in workload proxy reconciler
+* [`4746652`](https://github.com/siderolabs/omni/commit/4746652fcb57eb66ce282637a92907507f7b6419) docs: add a stringArray example for extensions
+* [`7536191`](https://github.com/siderolabs/omni/commit/75361911114f7257a26fa4f87440b202a121cce6) chore: implement labels extractor controller for more efficient code
+* [`7df58fe`](https://github.com/siderolabs/omni/commit/7df58fe686387dec0dcd31725fc71e2fe26b40a8) chore: add request label to the links created by the cloud provider
+* [`d194d59`](https://github.com/siderolabs/omni/commit/d194d59be8c6a4a4f729eee356fb049dfc87c55c) feat: implement audit log
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/aws/aws-sdk-go-v2/feature/s3/manager**  v1.17.8 -> v1.17.10
+* **github.com/aws/aws-sdk-go-v2/service/s3**          v1.58.2 -> v1.58.3
+* **github.com/containers/image/v5**                   v5.31.1 -> v5.32.1
+* **github.com/go-jose/go-jose/v4**                    v4.0.3 -> v4.0.4
+* **github.com/google/go-containerregistry**           v0.20.1 -> v0.20.2
+* **github.com/grpc-ecosystem/grpc-gateway/v2**        v2.20.0 -> v2.21.0
+* **github.com/johannesboyne/gofakes3**                99de01ee122d -> edd0227ffc37
+* **github.com/prometheus/common**                     v0.55.0 **_new_**
+* **github.com/zitadel/oidc/v3**                       v3.26.0 -> v3.27.0
+* **go.etcd.io/etcd/client/pkg/v3**                    v3.5.14 -> v3.5.15
+* **go.etcd.io/etcd/client/v3**                        v3.5.14 -> v3.5.15
+* **go.etcd.io/etcd/server/v3**                        v3.5.14 -> v3.5.15
+* **golang.org/x/crypto**                              v0.25.0 -> v0.26.0
+* **golang.org/x/net**                                 v0.27.0 -> v0.28.0
+* **golang.org/x/sync**                                v0.7.0 -> v0.8.0
+* **golang.org/x/tools**                               v0.22.0 -> v0.24.0
+* **k8s.io/api**                                       v0.30.3 -> v0.31.0
+* **k8s.io/apimachinery**                              v0.30.3 -> v0.31.0
+* **k8s.io/client-go**                                 v0.30.3 -> v0.31.0
+* **sigs.k8s.io/controller-runtime**                   v0.18.4 -> v0.18.5
+
+Previous release can be found at [v0.40.0](https://github.com/siderolabs/omni/releases/tag/v0.40.0)
+
 ## [Omni 0.40.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.40.0-beta.0) (2024-07-26)
 
 Welcome to the v0.40.0-beta.0 release of Omni!  
