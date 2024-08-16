@@ -8,22 +8,33 @@ included in the LICENSE file.
   <header class="t-header">
     <div class="t-header-nav-wrapper">
       <div class="t-header-logo-wrapper">
-        <router-link to="/" class="flex items-center gap-1 text-lg text-naturals-N13 uppercase">
-          <t-icon class="t-header-icon w-7 h-7" icon="logo"/>
+        <router-link
+          to="/"
+          class="flex items-center gap-1 text-lg text-naturals-N13 uppercase"
+        >
+          <t-icon class="t-header-icon w-7 h-7" icon="logo" />
           <span class="font-bold">Sidero</span>
           <span>Omni</span>
         </router-link>
       </div>
       <div class="t-header-nav">
-        <a href="https://omni.siderolabs.com/docs/" target="_blank" class="flex hover:text-naturals-N14 transition-colors">
+        <a
+          href="https://omni.siderolabs.com/"
+          target="_blank"
+          class="flex hover:text-naturals-N14 transition-colors"
+        >
           <t-icon class="t-header-nav-icon" icon="info" />
           <span class="t-header-nav-name max-sm:hidden">Documentation</span>
         </a>
-        <a href="https://github.com/siderolabs/omni/issues" target="_blank" class="flex hover:text-naturals-N14 transition-colors">
+        <a
+          href="https://github.com/siderolabs/omni/issues"
+          target="_blank"
+          class="flex hover:text-naturals-N14 transition-colors"
+        >
           <t-icon class="t-header-nav-icon" icon="check-in-circle" />
           <span class="t-header-nav-name max-sm:hidden">Report an issue</span>
         </a>
-        <ongoing-tasks/>
+        <ongoing-tasks />
       </div>
     </div>
   </header>

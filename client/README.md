@@ -13,7 +13,7 @@ This respository contains client code and gRPC API definitions used to access Om
 
 ## Documentation
 
-For instructions on using Omni, see the [Documentation](https://omni.siderolabs.com/docs/).
+For instructions on using Omni, see the [Documentation](https://omni.siderolabs.com/).
 
 ## Community
 

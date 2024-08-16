@@ -33,7 +33,7 @@ Boot from an Omni image. Click to allocate to a cluster. That’s it!
 
 Omni is available via a [Business Source License](LICENSE) which allows free installations in non-production environments. If you would like to deploy Omni for production use please contact [Sidero sales](mailto:sales@siderolabs.com). If you would like to subscribe to the hosted version of Omni please see the [SaaS pricing](https://www.siderolabs.com/pricing/).
 
-If you would like to self-host Omni for non-production workloads please follow the [instructions in the documentation](https://omni.siderolabs.com/docs/how-to-guides/self-hosted/how-to-deploy-omni-on-prem/).
+If you would like to self-host Omni for non-production workloads please follow the [instructions in the documentation](https://omni.siderolabs.com/how-to-guides/self_hosted/index).
 
 ## Development
 
