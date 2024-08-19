@@ -81,10 +81,6 @@ func (ctrl *MachineStatusLinkController) Run(ctx context.Context, rt controller.
 		for iter := msList.Iterator(); iter.Next(); {
 			ms := iter.Value()
 
-			if ms.Metadata().Phase() == resource.PhaseTearingDown {
-				continue
-			}
-
 			emptyResource := omni.NewMachineStatusLink(resources.MetricsNamespace, ms.Metadata().ID())
 
 			err = safe.WriterModify(ctx, rt, emptyResource, func(msl *omni.MachineStatusLink) error {
@@ -94,6 +90,8 @@ func (ctrl *MachineStatusLinkController) Run(ctx context.Context, rt controller.
 
 				msl.TypedSpec().Value.MessageStatus = ms.TypedSpec().Value
 				msl.TypedSpec().Value.MachineCreatedAt = ms.Metadata().Created().Unix()
+
+				msl.TypedSpec().Value.TearingDown = ms.Metadata().Phase() == resource.PhaseTearingDown
 
 				if delta, ok := deltas[ms.Metadata().ID()]; ok {
 					if msl.TypedSpec().Value.SiderolinkCounter == nil {

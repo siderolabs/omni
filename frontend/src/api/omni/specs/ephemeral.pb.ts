@@ -10,4 +10,5 @@ export type MachineStatusLinkSpec = {
   message_status?: SpecsOmni.MachineStatusSpec
   siderolink_counter?: SpecsSiderolink.SiderolinkCounterSpec
   machine_created_at?: string
+  tearing_down?: boolean
 }

@@ -7,7 +7,7 @@ included in the LICENSE file.
 <template>
   <t-list-item>
     <template #default>
-      <div class="flex text-naturals-N13 text-xs items-center">
+      <div class="flex text-naturals-N13 text-xs items-center" :class="{ 'opacity-50': machine.spec.tearing_down }">
         <div class="flex-1 flex gap-2 items-center">
           <router-link :to="{ name: 'MachineLogs', params: { machine: machine?.metadata?.id } }" class="list-item-link pr-2">
             <word-highlighter
@@ -16,9 +16,16 @@ included in the LICENSE file.
               :textToHighlight="machineName"
               highlightClass="bg-naturals-N14"/>
           </router-link>
-          <item-labels :resource="machine" :add-label-func="addMachineLabels" :remove-label-func="removeMachineLabels" @filter-label="(e) => $emit('filterLabels', e)"/>
+          <item-labels :resource="machine"
+            :add-label-func="machine.spec.tearing_down ? undefined : addMachineLabels"
+            :remove-label-func="removeMachineLabels" @filter-label="(e) => $emit('filterLabels', e)"/>
         </div>
-        <div class="flex gap-1 items-center">
+        <div v-if="machine.spec.tearing_down">
+          <tooltip description="The machine is being destroyed">
+            <t-icon icon="delete" class="w-4 h-4 text-red-R1"/>
+          </tooltip>
+        </div>
+        <div class="flex gap-1 items-center" v-else>
           <tooltip :description="maintenanceUpdateDescription" v-if="canAccessMaintenanceNodes">
             <icon-button icon="arrow-up-tray" @click="openMaintenanceUpdate" :disabled="!canDoMaintenanceUpdate"/>
           </tooltip>
@@ -134,6 +141,7 @@ import TActionsBoxItem from "@/components/common/ActionsBox/TActionsBoxItem.vue"
 import ItemLabels from "@/views/omni/ItemLabels/ItemLabels.vue";
 import IconButton from "@/components/common/Button/IconButton.vue";
 import Tooltip from "@/components/common/Tooltip/Tooltip.vue";
+import TIcon from "@/components/common/Icon/TIcon.vue";
 import WordHighlighter from "vue-word-highlighter";
 import { addMachineLabels, removeMachineLabels } from "@/methods/machine";
 import { canReadClusters, canReadMachineLogs, canRemoveMachines, canAccessMaintenanceNodes } from "@/methods/auth";

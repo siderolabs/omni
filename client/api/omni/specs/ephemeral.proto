@@ -12,5 +12,6 @@ message MachineStatusLinkSpec {
   specs.MachineStatusSpec message_status = 1;
   specs.SiderolinkCounterSpec siderolink_counter = 2;
   int64 machine_created_at = 3;
+  bool tearing_down = 4;
 }
 
