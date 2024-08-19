@@ -156,6 +156,23 @@ func (l *Log) Wrap(next http.Handler) http.Handler {
 	})
 }
 
+// RunCleanup runs [LogFile.CleanupOldFiles] once a minute, deleting all log files older than 30 days including
+// current day.
+func (l *Log) RunCleanup(ctx context.Context) error {
+	for {
+		err := l.logFile.CleanupOldFiles(time.Now().AddDate(0, 0, -29))
+		if err != nil {
+			l.logger.Warn("failed to cleanup old audit log files", zap.Error(err))
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(time.Minute):
+		}
+	}
+}
+
 func duplicateReadCloser(body io.ReadCloser) (string, io.ReadCloser, error) {
 	if body == nil {
 		return "", nil, nil

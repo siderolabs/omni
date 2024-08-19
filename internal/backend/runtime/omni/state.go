@@ -205,6 +205,18 @@ type AuditWrap struct {
 	dir   string
 }
 
+// RunCleanup runs wrapped [audit.Log.RunCleanup] if the audit log is enabled. Otherwise, blocks until context is
+// canceled.
+func (w *AuditWrap) RunCleanup(ctx context.Context) error {
+	if w.log == nil {
+		<-ctx.Done()
+
+		return nil
+	}
+
+	return w.log.RunCleanup(ctx)
+}
+
 // Wrap implements [k8sproxy.MiddlewareWrapper].
 func (w *AuditWrap) Wrap(handler http.Handler) http.Handler {
 	if w.log == nil {

@@ -55,3 +55,7 @@ func (f matchStringOnly) CheckCorpus([]any, []reflect.Type) error { return nil }
 
 func (f matchStringOnly) ResetCoverage()    {}
 func (f matchStringOnly) SnapshotCoverage() {}
+
+func (f matchStringOnly) InitRuntimeCoverage() (mode string, tearDown func(coverprofile string, gocoverdir string) (string, error), snapcov func() float64) {
+	return "", nil, nil
+}

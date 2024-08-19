@@ -278,6 +278,7 @@ func (s *Server) Run(ctx context.Context) error {
 		func() error { return s.proxyServer.Run(ctx, unifiedHandler, s.logger) },
 		func() error { return s.logHandler.Start(ctx) },
 		func() error { return s.runMachineAPI(ctx) },
+		func() error { return s.auditor.RunCleanup(ctx) },
 	}
 
 	if s.pprofBindAddress != "" {
@@ -1180,6 +1181,7 @@ var assetsData = []struct {
 
 // Auditor is a common interface for audit log.
 type Auditor interface {
+	RunCleanup(context.Context) error
 	router.TalosAuditor
 	k8sproxy.MiddlewareWrapper
 }

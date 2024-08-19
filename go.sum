@@ -408,8 +408,8 @@ github.com/siderolabs/go-blockdevice v0.4.7 h1:2bk4WpEEflGxjrNwp57ye24Pr+cYgAiAe
 github.com/siderolabs/go-blockdevice v0.4.7/go.mod h1:4PeOuk71pReJj1JQEXDE7kIIQJPVe8a+HZQa+qjxSEA=
 github.com/siderolabs/go-circular v0.2.0 h1:Xca8zrjF/YsujLbwDSojkKzJe7ngetnpuIJn8N78DJI=
 github.com/siderolabs/go-circular v0.2.0/go.mod h1:rrYCwHLYWmxqrmZP+LjYtwB2a55lxzQi0Ztu1VpWZSc=
-github.com/siderolabs/go-debug v0.3.0 h1:C8t7jbac5Va2eYu9QRXXEGsy3Vz5xOEVo0TDwVJH268=
-github.com/siderolabs/go-debug v0.3.0/go.mod h1:DonqzIQOm3+qof020meFwJ2gXI5Jv/x4Dj27FyUW4aE=
+github.com/siderolabs/go-debug v0.4.0 h1:pbFt6Rzumm90s3GvbRer7yIxFNc0gQ94I53omkqswHA=
+github.com/siderolabs/go-debug v0.4.0/go.mod h1:9/dyHLRRIpqlJ0uTYyHo1XuZgoCgXzjjF+aIVTnr9Dc=
 github.com/siderolabs/go-kubeconfig v0.1.0 h1:t/2oMWkLSdWHXglKPMz8ySXnx6ZjHckeGY79NaDcBTo=
 github.com/siderolabs/go-kubeconfig v0.1.0/go.mod h1:eM3mO02Td6wYDvdi9zTbMrj1Q4WqEFN8XQ6pNjCUWkI=
 github.com/siderolabs/go-kubernetes v0.2.11 h1:GqZJkMiy+VPfOHlnaQcBLa9hlB0vCtNWvBqLLO9eNZE=

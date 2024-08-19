@@ -8,6 +8,7 @@ package audit
 import (
 	"bytes"
 	"encoding/json"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sync"
@@ -103,4 +104,25 @@ func (l *LogFile) openFile(at time.Time) (*os.File, error) {
 	l.f = f
 
 	return f, nil
+}
+
+// CleanupOldFiles removes log files older than the given date. Time is truncated to the beginning of the day.
+func (l *LogFile) CleanupOldFiles(before time.Time) error {
+	dirFiles, err := getDirFiles(os.DirFS(l.dir).(fs.ReadDirFS))
+	if err != nil {
+		return err
+	}
+
+	for file, err := range filterOlderThan(filterLogFiles(dirFiles), truncateToDate(before)) {
+		if err != nil {
+			return err
+		}
+
+		err = os.Remove(filepath.Join(l.dir, file.File.Name()))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
