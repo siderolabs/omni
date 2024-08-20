@@ -90,6 +90,7 @@ export enum TalosUpgradeStatusSpecPhase {
   Done = 2,
   Failed = 3,
   Reverting = 4,
+  InstallingExtensions = 5,
 }
 
 export enum ControlPlaneStatusSpecConditionStatus {

@@ -131,7 +131,7 @@ included in the LICENSE file.
                 {{ talosUpgradeStatus.spec.last_upgrade_version }}
               </span>
             </template>
-            <template v-else>
+            <template v-else-if="talosUpgradeStatus.spec.phase === TalosUpgradeStatusSpecPhase.InstallingExtensions">
               <span class="overview-box-title">
                 Installing Extensions
               </span>

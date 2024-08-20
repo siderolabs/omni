@@ -689,6 +689,7 @@ message TalosUpgradeStatusSpec {
     Done = 2;
     Failed = 3;
     Reverting = 4;
+    InstallingExtensions = 5;
   }
 
   // Current upgrade phase.

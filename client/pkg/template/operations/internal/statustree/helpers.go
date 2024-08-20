@@ -72,7 +72,7 @@ func talosUpgradePhaseString(phase specs.TalosUpgradeStatusSpec_Phase) string {
 	switch phase {
 	case specs.TalosUpgradeStatusSpec_Done:
 		c = color.GreenString
-	case specs.TalosUpgradeStatusSpec_Upgrading, specs.TalosUpgradeStatusSpec_Reverting:
+	case specs.TalosUpgradeStatusSpec_Upgrading, specs.TalosUpgradeStatusSpec_Reverting, specs.TalosUpgradeStatusSpec_InstallingExtensions:
 		c = color.HiYellowString
 	case specs.TalosUpgradeStatusSpec_Failed:
 		c = color.HiRedString

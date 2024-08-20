@@ -505,9 +505,9 @@ func AssertTalosSchematicUpdateFlow(testCtx context.Context, client *client.Clie
 
 		// upgrade should start
 		rtestutils.AssertResources(ctx, t, client.Omni().State(), []resource.ID{clusterName}, func(r *omni.TalosUpgradeStatus, assert *assert.Assertions) {
-			assert.Equal(specs.TalosUpgradeStatusSpec_Upgrading, r.TypedSpec().Value.Phase, resourceDetails(r))
-			assert.NotEmpty(specs.TalosUpgradeStatusSpec_Upgrading, r.TypedSpec().Value.Step, resourceDetails(r))
-			assert.NotEmpty(specs.TalosUpgradeStatusSpec_Upgrading, r.TypedSpec().Value.Status, resourceDetails(r))
+			assert.Equal(specs.TalosUpgradeStatusSpec_InstallingExtensions, r.TypedSpec().Value.Phase, resourceDetails(r))
+			assert.NotEmpty(r.TypedSpec().Value.Step, resourceDetails(r))
+			assert.NotEmpty(r.TypedSpec().Value.Status, resourceDetails(r))
 		})
 
 		t.Log("upgrade is going")
