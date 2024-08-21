@@ -115,7 +115,9 @@ func newNamespacedState(params *config.Params, primaryStorageCoreState state.Cor
 	})
 
 	return namespacedState, func() {
-		secondaryStorageBackingStore.Close() //nolint:errcheck
+		if err := secondaryStorageBackingStore.Close(); err != nil {
+			logger.Warn("failed to close secondary storage backing store", zap.Error(err))
+		}
 	}, nil
 }
 
