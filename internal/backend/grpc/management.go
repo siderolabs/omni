@@ -6,6 +6,7 @@
 package grpc
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -73,6 +74,7 @@ type managementServer struct {
 	logger             *zap.Logger
 	dnsService         *dns.Service
 	imageFactoryClient *imagefactory.Client
+	auditor            AuditLogger
 	omniconfigDest     string
 }
 
@@ -621,6 +623,40 @@ rolloutLoop:
 	return s.triggerManifestResync(ctx, requestContext)
 }
 
+// ReadAuditLog reads the audit log from the backend.
+func (s *managementServer) ReadAuditLog(_ *emptypb.Empty, srv grpc.ServerStreamingServer[management.ReadAuditLogResponse]) error {
+	if _, err := s.authCheckGRPC(srv.Context(), auth.WithRole(role.Admin)); err != nil {
+		return err
+	}
+
+	rdr, err := s.auditor.ReadAuditLog()
+	if err != nil {
+		return err
+	}
+
+	closeFn := sync.OnceValue(rdr.Close)
+	defer closeFn() //nolint:errcheck
+
+	buffer := make([]byte, 32*1024)
+
+	for {
+		n, err := rdr.Read(buffer)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			return err
+		}
+
+		if err = srv.Send(&management.ReadAuditLogResponse{AuditLog: bytes.Clone(buffer[:n])}); err != nil {
+			return err
+		}
+	}
+
+	return closeFn()
+}
+
 func (s *managementServer) triggerManifestResync(ctx context.Context, requestContext *commonOmni.Context) error {
 	// trigger fake update in KubernetesUpgradeStatusType to force re-calculating the status
 	// this is needed because the status is not updated when the rollout is finished
@@ -735,4 +771,9 @@ func generateDest(apiurl string) (string, error) {
 	}
 
 	return result, nil
+}
+
+// AuditLogger is an interface for reading the audit log.
+type AuditLogger interface {
+	ReadAuditLog() (io.ReadCloser, error)
 }

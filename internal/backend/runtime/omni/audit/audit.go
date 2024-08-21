@@ -58,6 +58,11 @@ type Log struct {
 	updateWithConflictsHooks map[resource.Type]UpdateWithConflictsHook
 }
 
+// ReadAuditLog reads the audit log file by file, oldest to newest.
+func (l *Log) ReadAuditLog() (io.ReadCloser, error) {
+	return l.logFile.ReadAuditLog()
+}
+
 // LogCreate logs the resource creation if there is a hook for this type.
 func (l *Log) LogCreate(r resource.Resource) CreateHook {
 	l.mu.RLock()

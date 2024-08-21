@@ -484,6 +484,25 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientConfi
 					return err
 				},
 			},
+			// Audit log
+			{
+				namePrefix:   "audit-logs",
+				requiredRole: role.Admin,
+				assertSuccess: func(t *testing.T, err error) {
+					// TODO: replace this with `assertSuccess` once the audit log is enabled by default
+					assert.ErrorContains(t, err, "audit log is disabled")
+				},
+				assertFailure: assertMissingRoleFailure,
+				fn: func(ctx context.Context, cli *client.Client) error {
+					for _, err := range cli.Management().ReadAuditLog(ctx) {
+						if err != nil {
+							return err
+						}
+					}
+
+					return nil
+				},
+			},
 		}
 
 		for _, tc := range testCases {

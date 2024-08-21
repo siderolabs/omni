@@ -155,6 +155,10 @@ message GetSupportBundleResponse {
   bytes bundle_data = 2;
 }
 
+message ReadAuditLogResponse {
+  bytes audit_log = 1;
+}
+
 service ManagementService {
   rpc Kubeconfig(KubeconfigRequest) returns (KubeconfigResponse);
   rpc Talosconfig(TalosconfigRequest) returns (TalosconfigResponse);
@@ -169,4 +173,5 @@ service ManagementService {
   rpc KubernetesSyncManifests(KubernetesSyncManifestRequest) returns (stream KubernetesSyncManifestResponse);
   rpc CreateSchematic(CreateSchematicRequest) returns (CreateSchematicResponse);
   rpc GetSupportBundle(GetSupportBundleRequest) returns (stream GetSupportBundleResponse);
+  rpc ReadAuditLog(google.protobuf.Empty) returns (stream ReadAuditLogResponse);
 }

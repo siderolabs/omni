@@ -64,7 +64,7 @@ type LogEntry struct {
 	Time time.Time
 }
 
-func filterOlderThan(it iter.Seq2[LogEntry, error], threshold time.Time) iter.Seq2[LogEntry, error] {
+func filterByTime(it iter.Seq2[LogEntry, error], threshold time.Time, newer bool) iter.Seq2[LogEntry, error] {
 	return func(yield func(LogEntry, error) bool) {
 		for entry, err := range it {
 			if err != nil {
@@ -75,7 +75,7 @@ func filterOlderThan(it iter.Seq2[LogEntry, error], threshold time.Time) iter.Se
 				continue
 			}
 
-			if entry.Time.Before(threshold) {
+			if (newer && !entry.Time.Before(threshold)) || (!newer && entry.Time.Before(threshold)) {
 				if !yield(entry, nil) {
 					return
 				}

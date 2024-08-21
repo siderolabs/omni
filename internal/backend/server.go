@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -219,7 +220,17 @@ func (s *Server) Run(ctx context.Context) error {
 		return err
 	}
 
-	serviceServers, err := grpcomni.MakeServiceServers(runtimeState, s.omniRuntime.CachedState(), s.logHandler, oidcProvider, oidcStorage, s.dnsService, s.imageFactoryClient, s.logger)
+	serviceServers, err := grpcomni.MakeServiceServers(
+		runtimeState,
+		s.omniRuntime.CachedState(),
+		s.logHandler,
+		oidcProvider,
+		oidcStorage,
+		s.dnsService,
+		s.imageFactoryClient,
+		s.logger,
+		s.auditor,
+	)
 	if err != nil {
 		return err
 	}
@@ -1182,6 +1193,7 @@ var assetsData = []struct {
 // Auditor is a common interface for audit log.
 type Auditor interface {
 	RunCleanup(context.Context) error
+	ReadAuditLog() (io.ReadCloser, error)
 	router.TalosAuditor
 	k8sproxy.MiddlewareWrapper
 }

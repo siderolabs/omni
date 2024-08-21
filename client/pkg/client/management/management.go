@@ -5,12 +5,14 @@
 // Package management provides client for Omni management API.
 package management
 
+//nolint:gci
 import (
 	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
+	"iter"
 	"time"
 
 	"google.golang.org/grpc"
@@ -212,6 +214,35 @@ func (client *Client) GetSupportBundle(ctx context.Context, cluster string, prog
 		}
 
 		progress <- msg.Progress
+	}
+}
+
+// ReadAuditLog reads the audit log from the backend.
+func (client *Client) ReadAuditLog(ctx context.Context) iter.Seq2[*management.ReadAuditLogResponse, error] {
+	return func(yield func(*management.ReadAuditLogResponse, error) bool) {
+		streamingResponse, err := client.conn.ReadAuditLog(ctx, &emptypb.Empty{})
+		if err != nil {
+			yield(nil, err)
+
+			return
+		}
+
+		for {
+			response, err := streamingResponse.Recv()
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					return
+				}
+
+				yield(nil, err)
+
+				return
+			}
+
+			if !yield(response, nil) {
+				return
+			}
+		}
 	}
 }
 

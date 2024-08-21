@@ -7,7 +7,9 @@ package omni
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -205,6 +207,15 @@ type AuditWrap struct {
 	state state.State
 	log   *audit.Log
 	dir   string
+}
+
+// ReadAuditLog reads the audit log file by file, oldest to newest.
+func (w *AuditWrap) ReadAuditLog() (io.ReadCloser, error) {
+	if w.log == nil {
+		return nil, errors.New("audit log is disabled")
+	}
+
+	return w.log.ReadAuditLog()
 }
 
 // RunCleanup runs wrapped [audit.Log.RunCleanup] if the audit log is enabled. Otherwise, blocks until context is

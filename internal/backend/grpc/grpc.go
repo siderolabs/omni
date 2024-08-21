@@ -49,6 +49,7 @@ func MakeServiceServers(
 	dnsService *dns.Service,
 	imageFactoryClient *imagefactory.Client,
 	logger *zap.Logger,
+	auditor AuditLogger,
 ) ([]ServiceServer, error) {
 	dest, err := generateDest(config.Config.APIURL)
 	if err != nil {
@@ -61,13 +62,14 @@ func MakeServiceServers(
 			provider: oidcProvider,
 		},
 		&managementServer{
-			logHandler:            logHandler,
-			omniconfigDest:        dest,
 			omniState:             state,
-			dnsService:            dnsService,
 			jwtSigningKeyProvider: jwtSigningKeyProvider,
-			imageFactoryClient:    imageFactoryClient,
+			logHandler:            logHandler,
 			logger:                logger.With(logging.Component("management_server")),
+			dnsService:            dnsService,
+			imageFactoryClient:    imageFactoryClient,
+			auditor:               auditor,
+			omniconfigDest:        dest,
 		},
 		&authServer{
 			state:  state,

@@ -144,6 +144,10 @@ export type GetSupportBundleResponse = {
   bundle_data?: Uint8Array
 }
 
+export type ReadAuditLogResponse = {
+  audit_log?: Uint8Array
+}
+
 export class ManagementService {
   static Kubeconfig(req: KubeconfigRequest, ...options: fm.fetchOption[]): Promise<KubeconfigResponse> {
     return fm.fetchReq<KubeconfigRequest, KubeconfigResponse>("POST", `/management.ManagementService/Kubeconfig`, req, ...options)
@@ -183,5 +187,8 @@ export class ManagementService {
   }
   static GetSupportBundle(req: GetSupportBundleRequest, entityNotifier?: fm.NotifyStreamEntityArrival<GetSupportBundleResponse>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<GetSupportBundleRequest, GetSupportBundleResponse>("POST", `/management.ManagementService/GetSupportBundle`, req, entityNotifier, ...options)
+  }
+  static ReadAuditLog(req: GoogleProtobufEmpty.Empty, entityNotifier?: fm.NotifyStreamEntityArrival<ReadAuditLogResponse>, ...options: fm.fetchOption[]): Promise<void> {
+    return fm.fetchStreamingRequest<GoogleProtobufEmpty.Empty, ReadAuditLogResponse>("POST", `/management.ManagementService/ReadAuditLog`, req, entityNotifier, ...options)
   }
 }

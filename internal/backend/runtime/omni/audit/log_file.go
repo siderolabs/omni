@@ -8,12 +8,15 @@ package audit
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/siderolabs/gen/pair/ordered"
 
 	"github.com/siderolabs/omni/internal/pkg/pool"
@@ -113,7 +116,7 @@ func (l *LogFile) CleanupOldFiles(before time.Time) error {
 		return err
 	}
 
-	for file, err := range filterOlderThan(filterLogFiles(dirFiles), truncateToDate(before)) {
+	for file, err := range filterByTime(filterLogFiles(dirFiles), truncateToDate(before), false) {
 		if err != nil {
 			return err
 		}
@@ -125,4 +128,69 @@ func (l *LogFile) CleanupOldFiles(before time.Time) error {
 	}
 
 	return nil
+}
+
+// ReadAuditLog reads the audit log file by file, oldest to newest.
+func (l *LogFile) ReadAuditLog() (io.ReadCloser, error) {
+	return l.readAuditLog(truncateToDate(time.Now().AddDate(0, 0, -29)))
+}
+
+func (l *LogFile) readAuditLog(after time.Time) (io.ReadCloser, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	dirFiles, err := getDirFiles(os.DirFS(l.dir).(fs.ReadDirFS))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read audit log directory: %w", err)
+	}
+
+	logFiles := filterByTime(filterLogFiles(dirFiles), after, true)
+
+	//nolint:prealloc
+	var (
+		multiCloser multiCloser
+		readers     []io.Reader
+	)
+
+	for file, err := range logFiles {
+		if err != nil {
+			multiCloser.Close() //nolint:errcheck
+
+			return nil, err
+		}
+
+		rdr, err := os.Open(filepath.Join(l.dir, file.File.Name()))
+		if err != nil {
+			multiCloser.Close() //nolint:errcheck
+
+			return nil, err
+		}
+
+		multiCloser.closers = append(multiCloser.closers, rdr)
+		readers = append(readers, rdr)
+	}
+
+	return struct {
+		io.Reader
+		io.Closer
+	}{
+		Reader: io.MultiReader(readers...),
+		Closer: &multiCloser,
+	}, nil
+}
+
+type multiCloser struct {
+	closers []io.Closer
+}
+
+func (m *multiCloser) Close() error {
+	var result error
+
+	for _, c := range m.closers {
+		if err := c.Close(); err != nil {
+			result = multierror.Append(result, err)
+		}
+	}
+
+	return result
 }

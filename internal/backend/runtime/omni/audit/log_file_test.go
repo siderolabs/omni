@@ -8,6 +8,7 @@ package audit_test
 import (
 	"embed"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -189,4 +190,23 @@ func makeAuditData(agent, ip, email string) audit.Data {
 			Email:     email,
 		},
 	}
+}
+
+//go:embed testdata/multifile
+var multifile embed.FS
+
+func TestStreamLogFiles(t *testing.T) {
+	tempDir := t.TempDir()
+	fullpath := filepath.Join(tempDir, "testdata", "multifile")
+
+	require.NoError(t, os.CopyFS(tempDir, multifile))
+
+	var builder strings.Builder
+
+	at := time.Date(2012, 1, 30, 0, 0, 0, 0, time.UTC)
+
+	_, err := io.Copy(&builder, must.Value(audit.NewLogFile(fullpath).ReadAuditLog30Days(at))(t))
+	require.NoError(t, err)
+
+	require.Equal(t, "Hello\nWorld\n!!!\n", builder.String())
 }
