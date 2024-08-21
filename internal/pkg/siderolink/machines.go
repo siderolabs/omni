@@ -195,6 +195,7 @@ func (m *MachineCache) init() {
 				circular.WithMaxCapacity(m.logStorageConfig.BufferMaxCapacity),
 				circular.WithSafetyGap(m.logStorageConfig.BufferSafetyGap),
 				circular.WithNumCompressedChunks(m.logStorageConfig.NumCompressedChunks, m.compressor),
+				circular.WithLogger(m.logger),
 			}
 
 			if m.logStorageConfig.StorageEnabled {
