@@ -204,7 +204,7 @@ func (s *managementServer) Omniconfig(ctx context.Context, _ *emptypb.Empty) (*m
 	}, nil
 }
 
-func (s *managementServer) MachineLogs(request *management.MachineLogsRequest, response management.ManagementService_MachineLogsServer) error {
+func (s *managementServer) MachineLogs(request *management.MachineLogsRequest, response grpc.ServerStreamingServer[common.Data]) error {
 	// getting machine logs is equivalent to reading machine resource
 	if _, err := auth.CheckGRPC(response.Context(), auth.WithRole(role.Reader)); err != nil {
 		return err
@@ -495,7 +495,7 @@ func (s *managementServer) KubernetesUpgradePreChecks(ctx context.Context, req *
 }
 
 //nolint:gocognit,gocyclo,cyclop
-func (s *managementServer) KubernetesSyncManifests(req *management.KubernetesSyncManifestRequest, srv management.ManagementService_KubernetesSyncManifestsServer) error {
+func (s *managementServer) KubernetesSyncManifests(req *management.KubernetesSyncManifestRequest, srv grpc.ServerStreamingServer[management.KubernetesSyncManifestResponse]) error {
 	ctx := srv.Context()
 
 	if _, err := s.authCheckGRPC(ctx, auth.WithRole(role.Operator)); err != nil {

@@ -23,6 +23,7 @@ import (
 	"github.com/siderolabs/go-talos-support/support/bundle"
 	"github.com/siderolabs/go-talos-support/support/collectors"
 	"github.com/siderolabs/talos/pkg/machinery/client"
+	"google.golang.org/grpc"
 	"gopkg.in/yaml.v3"
 	"k8s.io/client-go/kubernetes"
 
@@ -39,7 +40,7 @@ import (
 	slink "github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
-func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequest, serv management.ManagementService_GetSupportBundleServer) error {
+func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequest, serv grpc.ServerStreamingServer[management.GetSupportBundleResponse]) error {
 	if _, err := auth.CheckGRPC(serv.Context(), auth.WithRole(role.Operator)); err != nil {
 		return err
 	}
@@ -57,7 +58,7 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 
 	cols := make([]*collectors.Collector, 0, len(resources))
 
-	nodes := []string{}
+	var nodes []string
 
 	for _, res := range resources {
 		if res.Metadata().Type() == siderolink.LinkType {

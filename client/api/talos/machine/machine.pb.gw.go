@@ -1301,6 +1301,7 @@ func local_request_MachineService_ImagePull_0(ctx context.Context, marshaler run
 // UnaryRPC     :call MachineServiceServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
 // Note that using this registration option will cause many gRPC library features to stop working. Consider using RegisterMachineServiceHandlerFromEndpoint instead.
+// GRPC interceptors will not work for this type of registration. To use interceptors, you must use the "runtime.WithMiddlewares" option in the "runtime.NewServeMux" call.
 func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux, server extMachine.MachineServiceServer) error {
 
 	mux.Handle("POST", pattern_MachineService_ApplyConfiguration_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
@@ -2375,7 +2376,7 @@ func RegisterMachineServiceHandler(ctx context.Context, mux *runtime.ServeMux, c
 // to "mux". The handlers forward requests to the grpc endpoint over the given implementation of "extMachine.MachineServiceClient".
 // Note: the gRPC framework executes interceptors within the gRPC handler. If the passed in "extMachine.MachineServiceClient"
 // doesn't go through the normal gRPC flow (creating a gRPC client etc.) then it will be up to the passed in
-// "extMachine.MachineServiceClient" to call the correct interceptors.
+// "extMachine.MachineServiceClient" to call the correct interceptors. This client ignores the HTTP middlewares.
 func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux, client extMachine.MachineServiceClient) error {
 
 	mux.Handle("POST", pattern_MachineService_ApplyConfiguration_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {

@@ -140,7 +140,7 @@ func (s *ResourceServer) List(ctx context.Context, in *resources.ListRequest) (*
 }
 
 // Watch the resource.
-func (s *ResourceServer) Watch(in *resources.WatchRequest, serv resources.ResourceService_WatchServer) error {
+func (s *ResourceServer) Watch(in *resources.WatchRequest, serv grpc.ServerStreamingServer[resources.WatchResponse]) error {
 	ctx, cancel := context.WithCancel(serv.Context())
 	defer cancel()
 
