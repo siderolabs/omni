@@ -1,0 +1,105 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+// Package infra contains boilerplate code for the infra provider implementations.
+package infra
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/cosi-project/runtime/pkg/controller/generic"
+	"github.com/cosi-project/runtime/pkg/controller/runtime"
+	"github.com/cosi-project/runtime/pkg/resource/protobuf"
+	"github.com/cosi-project/runtime/pkg/state"
+	"go.uber.org/zap"
+
+	"github.com/siderolabs/omni/client/pkg/infra/controllers"
+	"github.com/siderolabs/omni/client/pkg/infra/internal/resources"
+	"github.com/siderolabs/omni/client/pkg/infra/provision"
+)
+
+// RD defines contract for the resource definition.
+type RD[V any] interface {
+	generic.ResourceWithRD
+	protobuf.ResourceUnmarshaler
+	*V
+}
+
+// Provider runner.
+type Provider[T generic.ResourceWithRD] struct {
+	provisioner provision.Provisioner[T]
+	id          string
+}
+
+// NewProvider creates a new infra provider and registers provider state resource in the COSI state.
+func NewProvider[V any, T RD[V]](
+	id string,
+	provisioner provision.Provisioner[T],
+) (*Provider[T], error) {
+	var zero V
+
+	t := T(&zero)
+
+	if err := protobuf.RegisterResource(t.ResourceDefinition().Type, t); err != nil {
+		return nil, err
+	}
+
+	return &Provider[T]{
+		provisioner: provisioner,
+		id:          id,
+	}, nil
+}
+
+// Run the infra provider.
+func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts ...Option) error {
+	var options Options
+
+	for _, o := range opts {
+		o(&options)
+	}
+
+	var st state.State
+
+	if options.concurrency == 0 {
+		options.concurrency = 1
+	}
+
+	switch {
+	case options.state != nil:
+		st = options.state
+	case options.omniEndpoint != "":
+		state, err := NewState(options.omniEndpoint, options.clientOptions...)
+		if err != nil {
+			return err
+		}
+
+		defer state.Close() //nolint:errcheck
+
+		st = state.State()
+	default:
+		return fmt.Errorf("invalid infra provider configuration: either WithOmniEndpoint or WithState option should be used")
+	}
+
+	runtime, err := runtime.NewRuntime(st, logger)
+	if err != nil {
+		return err
+	}
+
+	if err = runtime.RegisterQController(controllers.NewProvisionController[T](provider.id, provider.provisioner, options.concurrency)); err != nil {
+		return err
+	}
+
+	return runtime.Run(ctx)
+}
+
+// ResourceType generates the correct resource name for the resources managed by the infra providers.
+func ResourceType(name, providerID string) string {
+	return resources.ResourceType(name, providerID)
+}
+
+// ResourceNamespace generates the correct namespace name for the infra provider state.
+func ResourceNamespace(providerID string) string {
+	return resources.ResourceNamespace(providerID)
+}

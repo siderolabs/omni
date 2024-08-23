@@ -46,6 +46,7 @@ func (m *MachineRequestStatusSpec) CloneVT() *MachineRequestStatusSpec {
 	r := new(MachineRequestStatusSpec)
 	r.Id = m.Id
 	r.Stage = m.Stage
+	r.Error = m.Error
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -92,6 +93,9 @@ func (this *MachineRequestStatusSpec) EqualVT(that *MachineRequestStatusSpec) bo
 		return false
 	}
 	if this.Stage != that.Stage {
+		return false
+	}
+	if this.Error != that.Error {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -188,6 +192,13 @@ func (m *MachineRequestStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, err
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.Error) > 0 {
+		i -= len(m.Error)
+		copy(dAtA[i:], m.Error)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Error)))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if m.Stage != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Stage))
 		i--
@@ -237,6 +248,10 @@ func (m *MachineRequestStatusSpec) SizeVT() (n int) {
 	}
 	if m.Stage != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.Stage))
+	}
+	l = len(m.Error)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -469,6 +484,38 @@ func (m *MachineRequestStatusSpec) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Error = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

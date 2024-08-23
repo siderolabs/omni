@@ -20,4 +20,5 @@ export type MachineRequestSpec = {
 export type MachineRequestStatusSpec = {
   id?: string
   stage?: MachineRequestStatusSpecStage
+  error?: string
 }
