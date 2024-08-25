@@ -5,6 +5,9 @@
 // Package meta keeps Talos meta partition utils.
 package meta
 
+// Upgrade is github.com/siderolabs/talos/internal/pkg/meta.Upgrade.
+const Upgrade = 6
+
 // StateEncryptionConfig is github.com/siderolabs/talos/internal/pkg/meta.StateEncryptionConfig.
 const StateEncryptionConfig = 9
 

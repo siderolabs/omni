@@ -21,10 +21,12 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/constants"
+	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -429,11 +431,16 @@ func (suite *ClusterMachineConfigStatusSuite) TestUpgrades() {
 		suite.Require().NoError(err)
 	}
 
+	const (
+		expectedTalosVersion = "1.6.1"
+		expectedSchematicID  = "cccc"
+	)
+
 	for _, m := range machines {
 		talosVersion := omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, m.Metadata().ID())
 		_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, talosVersion.Metadata(), func(res *omni.ClusterMachineTalosVersion) error {
-			res.TypedSpec().Value.TalosVersion = "1.6.1"
-			res.TypedSpec().Value.SchematicId = "cccc"
+			res.TypedSpec().Value.TalosVersion = expectedTalosVersion
+			res.TypedSpec().Value.SchematicId = expectedSchematicID
 
 			return nil
 		})
@@ -446,7 +453,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestUpgrades() {
 			return retry.ExpectedErrorf("no upgrade requests received")
 		}
 
-		expectedImage := "factory.talos.dev/installer/cccc:v1.6.1"
+		expectedImage := fmt.Sprintf("factory.talos.dev/installer/%s:v%s", expectedSchematicID, expectedTalosVersion)
 		for i, r := range requests {
 			if r.Image != expectedImage {
 				return fmt.Errorf("%d request image is invalid: expected %q got %q", i, expectedImage, r.Image)
@@ -455,6 +462,45 @@ func (suite *ClusterMachineConfigStatusSuite) TestUpgrades() {
 
 		return nil
 	}))
+
+	// simulate a finished upgrade by setting related resources to have expected values.
+	// this satisfies (versionMismatch==false), and makes the controller proceed with the post-upgrade steps.
+	for _, m := range machines {
+		cmcs := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, m.Metadata().ID())
+
+		cmcs.TypedSpec().Value.TalosVersion = expectedTalosVersion
+		cmcs.TypedSpec().Value.SchematicId = expectedSchematicID
+
+		suite.Require().NoError(suite.state.Create(suite.ctx, cmcs))
+
+		_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state,
+			omni.NewMachineStatus(resources.DefaultNamespace, m.Metadata().ID()).Metadata(),
+			func(res *omni.MachineStatus) error {
+				res.TypedSpec().Value.TalosVersion = expectedTalosVersion
+				res.TypedSpec().Value.Schematic.Id = expectedSchematicID
+
+				return nil
+			})
+		suite.Require().NoError(err)
+	}
+
+	require.EventuallyWithT(suite.T(), func(collect *assert.CollectT) {
+		metaDeletes := suite.machineService.getMetaDeleteKeyToCount()
+
+		if !assert.Len(collect, metaDeletes, 1) {
+			return
+		}
+
+		count, ok := metaDeletes[meta.Upgrade]
+
+		if !assert.True(collect, ok) {
+			return
+		}
+
+		if assert.Greater(collect, count, 0) {
+			suite.T().Logf("upgrade meta key deletes: %v", count)
+		}
+	}, time.Second*5, 50*time.Millisecond)
 }
 
 func (suite *ClusterMachineConfigStatusSuite) TestSchematicChanges() {
