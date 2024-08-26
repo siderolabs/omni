@@ -9,6 +9,7 @@ package backend
 import (
 	"compress/gzip"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,6 +21,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -32,6 +34,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	protobufserver "github.com/cosi-project/runtime/pkg/state/protobuf/server"
 	"github.com/crewjam/saml/samlsp"
+	"github.com/fsnotify/fsnotify"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
@@ -40,7 +43,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	service "github.com/siderolabs/discovery-service/pkg/service"
-	"github.com/siderolabs/gen/value"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
 	"github.com/siderolabs/go-retry/retry"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
@@ -269,7 +271,12 @@ func (s *Server) Run(ctx context.Context) error {
 		),
 		grpc.MaxRecvMsgSize(constants.GRPCMaxMessageSize),
 	)
-	crtData := certData{certFile: s.certFile, keyFile: s.keyFile}
+
+	var crtData *certData
+
+	if s.certFile != "" && s.keyFile != "" {
+		crtData = &certData{certFile: s.certFile, keyFile: s.keyFile}
+	}
 
 	workloadProxyHandler, err := s.workloadProxyHandler(mux)
 	if err != nil {
@@ -765,7 +772,7 @@ func runK8sProxyServer(
 	ctx context.Context,
 	bindAddress string,
 	oidcStorage oidcStore,
-	data certData,
+	data *certData,
 	runtimeState state.State,
 	wrapper k8sproxy.MiddlewareWrapper,
 	logger *zap.Logger,
@@ -813,7 +820,7 @@ func runK8sProxyServer(
 	}, logger)
 }
 
-func runAPIServer(ctx context.Context, handler http.Handler, bindAddress string, data certData, logger *zap.Logger) error {
+func runAPIServer(ctx context.Context, handler http.Handler, bindAddress string, data *certData, logger *zap.Logger) error {
 	srv := &http.Server{
 		Addr:    bindAddress,
 		Handler: handler,
@@ -847,21 +854,138 @@ func setRealIPRequest(req *http.Request) *http.Request {
 }
 
 type server struct {
-	server *http.Server
-	certData
+	server   *http.Server
+	certData *certData
 }
 
 type certData struct {
+	cert     tls.Certificate
 	certFile string
 	keyFile  string
+	mu       sync.Mutex
+	loaded   bool
 }
 
-func (s *server) ListenAndServe() error {
-	if s.certFile != "" || s.keyFile != "" {
-		return s.server.ListenAndServeTLS(s.certFile, s.keyFile)
+func (c *certData) load() error {
+	cert, err := tls.LoadX509KeyPair(c.certFile, c.keyFile)
+	if err != nil {
+		return err
 	}
 
-	return s.server.ListenAndServe()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.loaded = true
+	c.cert = cert
+
+	return nil
+}
+
+func (c *certData) getCert() (*tls.Certificate, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if !c.loaded {
+		return nil, fmt.Errorf("the cert wasn't loaded yet")
+	}
+
+	return &c.cert, nil
+}
+
+func (c *certData) runWatcher(ctx context.Context, logger *zap.Logger) error {
+	w, err := fsnotify.NewWatcher()
+	if err != nil {
+		return fmt.Errorf("error creating fsnotify watcher: %w", err)
+	}
+	defer w.Close() //nolint:errcheck
+
+	if err = w.Add(c.certFile); err != nil {
+		return fmt.Errorf("error adding watch for file %s: %w", c.certFile, err)
+	}
+
+	if err = w.Add(c.keyFile); err != nil {
+		return fmt.Errorf("error adding watch for file %s: %w", c.keyFile, err)
+	}
+
+	handleEvent := func(e fsnotify.Event) error {
+		defer func() {
+			if err = c.load(); err != nil {
+				logger.Error("failed to load certs", zap.Error(err))
+
+				return
+			}
+
+			logger.Info("reloaded certs")
+		}()
+
+		if !e.Has(fsnotify.Remove) && !e.Has(fsnotify.Rename) {
+			return nil
+		}
+
+		if err = w.Remove(e.Name); err != nil {
+			logger.Error("failed to remove file watch, it may have been deleted", zap.String("file", e.Name), zap.Error(err))
+		}
+
+		if err = w.Add(e.Name); err != nil {
+			return fmt.Errorf("error adding watch for file %s: %w", e.Name, err)
+		}
+
+		return nil
+	}
+
+	for {
+		select {
+		case e := <-w.Events:
+			if err = handleEvent(e); err != nil {
+				return err
+			}
+		case err = <-w.Errors:
+			return fmt.Errorf("received fsnotify error: %w", err)
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func (s *server) ListenAndServe(ctx context.Context, logger *zap.Logger) error {
+	if s.certData == nil {
+		return s.server.ListenAndServe()
+	}
+
+	if err := s.certData.load(); err != nil {
+		return err
+	}
+
+	s.server.TLSConfig = &tls.Config{
+		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+			return s.certData.getCert()
+		},
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	eg := panichandler.NewErrGroup()
+
+	eg.Go(func() error {
+		for {
+			err := s.certData.runWatcher(ctx, logger)
+
+			if err == nil {
+				return nil
+			}
+
+			logger.Error("cert watcher crashed, restarting in 5 seconds", zap.Error(err))
+
+			time.Sleep(time.Second * 5)
+		}
+	})
+
+	eg.Go(func() error {
+		return s.server.ListenAndServeTLS("", "")
+	})
+
+	return eg.Wait()
 }
 
 func (s *server) Shutdown(ctx context.Context) error {
@@ -883,7 +1007,7 @@ func runServer(ctx context.Context, srv *server, logger *zap.Logger) error {
 	errCh := make(chan error, 1)
 
 	panichandler.Go(func() {
-		errCh <- srv.ListenAndServe()
+		errCh <- srv.ListenAndServe(ctx, logger)
 	}, logger)
 
 	select {
@@ -1017,7 +1141,7 @@ func runGRPCServer(ctx context.Context, server *grpc.Server, transport *memconn.
 	return nil
 }
 
-func unifyHandler(handler http.Handler, grpcServer *grpc.Server, data certData) http.Handler {
+func unifyHandler(handler http.Handler, grpcServer *grpc.Server, data *certData) http.Handler {
 	h := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.ProtoMajor == 2 && strings.HasPrefix(
 			req.Header.Get("Content-Type"), "application/grpc") {
@@ -1031,7 +1155,7 @@ func unifyHandler(handler http.Handler, grpcServer *grpc.Server, data certData) 
 		handler.ServeHTTP(w, req)
 	}))
 
-	if value.IsZero(data) {
+	if data == nil {
 		// If we don't have TLS data, wrap the handler in http2.Server
 		h = h2c.NewHandler(h, &http2.Server{})
 	}

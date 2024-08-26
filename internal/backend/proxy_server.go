@@ -71,7 +71,7 @@ func (prx *httpProxy) Run(ctx context.Context, next http.Handler, logger *zap.Lo
 			}),
 			Addr: prx.bindAddr,
 		},
-		certData: certData{
+		certData: &certData{
 			certFile: prx.certFile,
 			keyFile:  prx.keyFile,
 		},
