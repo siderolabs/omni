@@ -12,6 +12,7 @@ included in the LICENSE file.
       noRecordsAlert
       pagination
       errorsAlert
+      :sortOptions="sortOptions"
       :filterValue="filterValue"
     >
       <template #header="{ itemsCount, filtered }">
@@ -99,6 +100,13 @@ const filterLabels = ref<Label[]>([]);
 const openClusterCreate = () => {
   router.push({ name: "ClusterCreate" })
 };
+
+const sortOptions = [
+  {id: 'id', desc: 'ID ⬆'},
+  {id: 'id', desc: 'ID ⬇', descending: true},
+  {id: 'created', desc: 'Creation Time ⬆', descending: true},
+  {id: 'created', desc: 'Creation Time ⬇'},
+];
 </script>
 
 <style scoped>
