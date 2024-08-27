@@ -16,6 +16,8 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"gopkg.in/yaml.v3"
+
+	"github.com/siderolabs/omni/internal/backend/extensions"
 )
 
 // ErrInvalidSchematic means that the machine has extensions installed bypassing the image factory.
@@ -39,15 +41,13 @@ func (si SchematicInfo) Equal(id string) bool {
 // GetSchematicInfo uses Talos API to list all the schematics, and computes the plain schematic ID,
 // taking only the extensions into account - ignoring everything else, e.g., the kernel command line args or meta values.
 func GetSchematicInfo(ctx context.Context, c *client.Client, defaultKernelArgs []string) (SchematicInfo, error) {
-	const officialExtensionPrefix = "siderolabs/"
-
 	items, err := safe.StateListAll[*runtime.ExtensionStatus](ctx, c.COSI)
 	if err != nil {
 		return SchematicInfo{}, fmt.Errorf("failed to list extensions: %w", err)
 	}
 
 	var (
-		extensions   []string
+		exts         []string
 		fullID       string
 		rawSchematic = &schematic.Schematic{}
 		manifest     string
@@ -71,22 +71,11 @@ func GetSchematicInfo(ctx context.Context, c *client.Client, defaultKernelArgs [
 			return nil
 		}
 
-		switch name {
-		case "v4l-uvc":
-			fallthrough
-		case "usb-modem":
-			name += "-drivers"
-		case "gasket":
-			name += "-driver"
-		case "talos-vmtoolsd":
-			name = "vmtoolsd-guest-agent"
+		if !strings.HasPrefix(name, extensions.OfficialPrefix) {
+			name = extensions.OfficialPrefix + name
 		}
 
-		if !strings.HasPrefix(name, officialExtensionPrefix) {
-			name = officialExtensionPrefix + name
-		}
-
-		extensions = append(extensions, name)
+		exts = append(exts, name)
 
 		return nil
 	})
@@ -94,14 +83,16 @@ func GetSchematicInfo(ctx context.Context, c *client.Client, defaultKernelArgs [
 		return SchematicInfo{}, err
 	}
 
-	if fullID == "" && len(extensions) > 0 {
+	exts = extensions.MapNames(exts)
+
+	if fullID == "" && len(exts) > 0 {
 		return SchematicInfo{}, ErrInvalidSchematic
 	}
 
 	extensionsSchematic := schematic.Schematic{
 		Customization: schematic.Customization{
 			SystemExtensions: schematic.SystemExtensions{
-				OfficialExtensions: extensions,
+				OfficialExtensions: exts,
 			},
 		},
 	}
@@ -136,7 +127,7 @@ func GetSchematicInfo(ctx context.Context, c *client.Client, defaultKernelArgs [
 	return SchematicInfo{
 		ID:         id,
 		FullID:     fullID,
-		Extensions: extensions,
+		Extensions: exts,
 		KernelArgs: kernelArgs,
 		MetaValues: metaValues,
 		Overlay:    overlay,

@@ -26,6 +26,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/internal/backend/extensions"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/set"
@@ -291,7 +292,7 @@ type machineExtensions struct {
 	meta               []schematic.MetaValue
 }
 
-func newMachineExtensions(cluster *omni.Cluster, machineStatus *omni.MachineStatus, extensions *omni.MachineExtensions, secureBootEnabled bool) (machineExtensions, error) {
+func newMachineExtensions(cluster *omni.Cluster, machineStatus *omni.MachineStatus, exts *omni.MachineExtensions, secureBootEnabled bool) (machineExtensions, error) {
 	me := machineExtensions{
 		machineStatus: machineStatus,
 		cluster:       cluster,
@@ -313,8 +314,8 @@ func newMachineExtensions(cluster *omni.Cluster, machineStatus *omni.MachineStat
 			})
 	}
 
-	if extensions != nil && extensions.Metadata().Phase() == resource.PhaseRunning {
-		me.machineExtensions = extensions
+	if exts != nil && exts.Metadata().Phase() == resource.PhaseRunning {
+		me.machineExtensions = exts
 	}
 
 	detected, err := getDetectedExtensions(cluster, machineStatus)
@@ -326,6 +327,11 @@ func newMachineExtensions(cluster *omni.Cluster, machineStatus *omni.MachineStat
 
 	me.extensionsList = append(me.extensionsList, detected...)
 
+	clusterVersion, err := semver.ParseTolerant(cluster.TypedSpec().Value.TalosVersion)
+	if err != nil {
+		return me, err
+	}
+
 	if me.machineExtensions != nil {
 		for _, e := range me.machineExtensions.TypedSpec().Value.Extensions {
 			if slices.Contains(me.extensionsList, e) {
@@ -335,6 +341,8 @@ func newMachineExtensions(cluster *omni.Cluster, machineStatus *omni.MachineStat
 			me.extensionsList = append(me.extensionsList, e)
 		}
 	}
+
+	me.extensionsList = extensions.MapNamesByVersion(me.extensionsList, clusterVersion)
 
 	slices.Sort(me.extensionsList)
 
@@ -377,8 +385,8 @@ func detectExtensions(initialVersion, currentVersion semver.Version) ([]string, 
 	if initialVersion.Major == 1 && initialVersion.Minor == 5 && currentVersion.GTE(semver.MustParse("1.6.0")) {
 		// install firmware
 		return []string{
-			"siderolabs/bnx2-bnx2x",
-			"siderolabs/intel-ice-firmware",
+			extensions.OfficialPrefix + "bnx2-bnx2x",
+			extensions.OfficialPrefix + "intel-ice-firmware",
 		}, nil
 	}
 
