@@ -1317,7 +1317,7 @@ var assetsData = []struct {
 // Auditor is a common interface for audit log.
 type Auditor interface {
 	RunCleanup(context.Context) error
-	ReadAuditLog() (io.ReadCloser, error)
+	ReadAuditLog(start, end time.Time) (io.ReadCloser, error)
 	router.TalosAuditor
 	k8sproxy.MiddlewareWrapper
 }

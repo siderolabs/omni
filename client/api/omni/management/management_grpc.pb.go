@@ -55,7 +55,7 @@ type ManagementServiceClient interface {
 	KubernetesSyncManifests(ctx context.Context, in *KubernetesSyncManifestRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[KubernetesSyncManifestResponse], error)
 	CreateSchematic(ctx context.Context, in *CreateSchematicRequest, opts ...grpc.CallOption) (*CreateSchematicResponse, error)
 	GetSupportBundle(ctx context.Context, in *GetSupportBundleRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetSupportBundleResponse], error)
-	ReadAuditLog(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ReadAuditLogResponse], error)
+	ReadAuditLog(ctx context.Context, in *ReadAuditLogRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ReadAuditLogResponse], error)
 }
 
 type managementServiceClient struct {
@@ -223,13 +223,13 @@ func (c *managementServiceClient) GetSupportBundle(ctx context.Context, in *GetS
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ManagementService_GetSupportBundleClient = grpc.ServerStreamingClient[GetSupportBundleResponse]
 
-func (c *managementServiceClient) ReadAuditLog(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ReadAuditLogResponse], error) {
+func (c *managementServiceClient) ReadAuditLog(ctx context.Context, in *ReadAuditLogRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ReadAuditLogResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &ManagementService_ServiceDesc.Streams[3], ManagementService_ReadAuditLog_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[emptypb.Empty, ReadAuditLogResponse]{ClientStream: stream}
+	x := &grpc.GenericClientStream[ReadAuditLogRequest, ReadAuditLogResponse]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -259,7 +259,7 @@ type ManagementServiceServer interface {
 	KubernetesSyncManifests(*KubernetesSyncManifestRequest, grpc.ServerStreamingServer[KubernetesSyncManifestResponse]) error
 	CreateSchematic(context.Context, *CreateSchematicRequest) (*CreateSchematicResponse, error)
 	GetSupportBundle(*GetSupportBundleRequest, grpc.ServerStreamingServer[GetSupportBundleResponse]) error
-	ReadAuditLog(*emptypb.Empty, grpc.ServerStreamingServer[ReadAuditLogResponse]) error
+	ReadAuditLog(*ReadAuditLogRequest, grpc.ServerStreamingServer[ReadAuditLogResponse]) error
 	mustEmbedUnimplementedManagementServiceServer()
 }
 
@@ -309,7 +309,7 @@ func (UnimplementedManagementServiceServer) CreateSchematic(context.Context, *Cr
 func (UnimplementedManagementServiceServer) GetSupportBundle(*GetSupportBundleRequest, grpc.ServerStreamingServer[GetSupportBundleResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method GetSupportBundle not implemented")
 }
-func (UnimplementedManagementServiceServer) ReadAuditLog(*emptypb.Empty, grpc.ServerStreamingServer[ReadAuditLogResponse]) error {
+func (UnimplementedManagementServiceServer) ReadAuditLog(*ReadAuditLogRequest, grpc.ServerStreamingServer[ReadAuditLogResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method ReadAuditLog not implemented")
 }
 func (UnimplementedManagementServiceServer) mustEmbedUnimplementedManagementServiceServer() {}
@@ -547,11 +547,11 @@ func _ManagementService_GetSupportBundle_Handler(srv interface{}, stream grpc.Se
 type ManagementService_GetSupportBundleServer = grpc.ServerStreamingServer[GetSupportBundleResponse]
 
 func _ManagementService_ReadAuditLog_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(emptypb.Empty)
+	m := new(ReadAuditLogRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(ManagementServiceServer).ReadAuditLog(m, &grpc.GenericServerStream[emptypb.Empty, ReadAuditLogResponse]{ServerStream: stream})
+	return srv.(ManagementServiceServer).ReadAuditLog(m, &grpc.GenericServerStream[ReadAuditLogRequest, ReadAuditLogResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.

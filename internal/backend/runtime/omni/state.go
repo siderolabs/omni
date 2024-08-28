@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/meta"
@@ -210,12 +211,12 @@ type AuditWrap struct {
 }
 
 // ReadAuditLog reads the audit log file by file, oldest to newest.
-func (w *AuditWrap) ReadAuditLog() (io.ReadCloser, error) {
+func (w *AuditWrap) ReadAuditLog(start, end time.Time) (io.ReadCloser, error) {
 	if w.log == nil {
 		return nil, errors.New("audit log is disabled")
 	}
 
-	return w.log.ReadAuditLog()
+	return w.log.ReadAuditLog(start, end)
 }
 
 // RunCleanup runs wrapped [audit.Log.RunCleanup] if the audit log is enabled. Otherwise, blocks until context is

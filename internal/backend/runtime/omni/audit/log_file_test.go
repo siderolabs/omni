@@ -203,7 +203,7 @@ func TestStreamLogFiles(t *testing.T) {
 
 	var builder strings.Builder
 
-	at := time.Date(2012, 1, 30, 0, 0, 0, 0, time.UTC)
+	at := time.Date(2012, 1, 30, 0, 0, 0, 0, time.Local)
 
 	_, err := io.Copy(&builder, must.Value(audit.NewLogFile(fullpath).ReadAuditLog30Days(at))(t))
 	require.NoError(t, err)

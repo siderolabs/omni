@@ -356,7 +356,7 @@ func request_ManagementService_GetSupportBundle_0(ctx context.Context, marshaler
 }
 
 func request_ManagementService_ReadAuditLog_0(ctx context.Context, marshaler runtime.Marshaler, client ManagementServiceClient, req *http.Request, pathParams map[string]string) (ManagementService_ReadAuditLogClient, runtime.ServerMetadata, error) {
-	var protoReq emptypb.Empty
+	var protoReq ReadAuditLogRequest
 	var metadata runtime.ServerMetadata
 
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {

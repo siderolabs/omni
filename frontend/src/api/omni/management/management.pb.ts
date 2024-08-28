@@ -144,6 +144,11 @@ export type GetSupportBundleResponse = {
   bundle_data?: Uint8Array
 }
 
+export type ReadAuditLogRequest = {
+  start_time?: string
+  end_time?: string
+}
+
 export type ReadAuditLogResponse = {
   audit_log?: Uint8Array
 }
@@ -188,7 +193,7 @@ export class ManagementService {
   static GetSupportBundle(req: GetSupportBundleRequest, entityNotifier?: fm.NotifyStreamEntityArrival<GetSupportBundleResponse>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<GetSupportBundleRequest, GetSupportBundleResponse>("POST", `/management.ManagementService/GetSupportBundle`, req, entityNotifier, ...options)
   }
-  static ReadAuditLog(req: GoogleProtobufEmpty.Empty, entityNotifier?: fm.NotifyStreamEntityArrival<ReadAuditLogResponse>, ...options: fm.fetchOption[]): Promise<void> {
-    return fm.fetchStreamingRequest<GoogleProtobufEmpty.Empty, ReadAuditLogResponse>("POST", `/management.ManagementService/ReadAuditLog`, req, entityNotifier, ...options)
+  static ReadAuditLog(req: ReadAuditLogRequest, entityNotifier?: fm.NotifyStreamEntityArrival<ReadAuditLogResponse>, ...options: fm.fetchOption[]): Promise<void> {
+    return fm.fetchStreamingRequest<ReadAuditLogRequest, ReadAuditLogResponse>("POST", `/management.ManagementService/ReadAuditLog`, req, entityNotifier, ...options)
   }
 }

@@ -18,10 +18,13 @@ import (
 var auditLog = &cobra.Command{
 	Use:   "audit-log",
 	Short: "Read audit log from Omni",
-	Args:  cobra.NoArgs,
-	RunE: func(*cobra.Command, []string) error {
+	Args:  cobra.MaximumNArgs(2),
+	RunE: func(_ *cobra.Command, arg []string) error {
+		start := safeGet(arg, 0)
+		end := safeGet(arg, 1)
+
 		return access.WithClient(func(ctx context.Context, client *client.Client) error {
-			for resp, err := range client.Management().ReadAuditLog(ctx) {
+			for resp, err := range client.Management().ReadAuditLog(ctx, start, end) {
 				if err != nil {
 					return err
 				}
@@ -35,6 +38,14 @@ var auditLog = &cobra.Command{
 			return nil
 		})
 	},
+}
+
+func safeGet[T any](slc []T, pos int) T {
+	if pos < len(slc) {
+		return slc[pos]
+	}
+
+	return *new(T)
 }
 
 func init() {

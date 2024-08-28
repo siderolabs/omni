@@ -109,14 +109,20 @@ func (l *LogFile) openFile(at time.Time) (*os.File, error) {
 	return f, nil
 }
 
-// CleanupOldFiles removes log files older than the given date. Time is truncated to the beginning of the day.
-func (l *LogFile) CleanupOldFiles(before time.Time) error {
+// RemoveFiles removes log files in the given time range (included). Time range is truncated to date.
+func (l *LogFile) RemoveFiles(start, end time.Time) error {
+	start, end = truncateToDate(start), truncateToDate(end)
+
+	if end.Before(start) {
+		return fmt.Errorf("end time is before start time")
+	}
+
 	dirFiles, err := getDirFiles(os.DirFS(l.dir).(fs.ReadDirFS))
 	if err != nil {
 		return err
 	}
 
-	for file, err := range filterByTime(filterLogFiles(dirFiles), truncateToDate(before), false) {
+	for file, err := range filterByTime(filterLogFiles(dirFiles), start, end) {
 		if err != nil {
 			return err
 		}
@@ -130,12 +136,15 @@ func (l *LogFile) CleanupOldFiles(before time.Time) error {
 	return nil
 }
 
-// ReadAuditLog reads the audit log file by file, oldest to newest.
-func (l *LogFile) ReadAuditLog() (io.ReadCloser, error) {
-	return l.readAuditLog(truncateToDate(time.Now().AddDate(0, 0, -29)))
-}
+// ReadAuditLog reads the audit log file by file, oldest to newest within the given time range. The time range
+// is inclusive, and truncated to the day.
+func (l *LogFile) ReadAuditLog(start, end time.Time) (io.ReadCloser, error) {
+	start, end = truncateToDate(start), truncateToDate(end)
 
-func (l *LogFile) readAuditLog(after time.Time) (io.ReadCloser, error) {
+	if end.Before(start) {
+		return nil, fmt.Errorf("end time is before start time")
+	}
+
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -144,7 +153,7 @@ func (l *LogFile) readAuditLog(after time.Time) (io.ReadCloser, error) {
 		return nil, fmt.Errorf("failed to read audit log directory: %w", err)
 	}
 
-	logFiles := filterByTime(filterLogFiles(dirFiles), after, true)
+	logFiles := filterByTime(filterLogFiles(dirFiles), start, end)
 
 	//nolint:prealloc
 	var (

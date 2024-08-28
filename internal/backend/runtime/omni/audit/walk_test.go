@@ -10,10 +10,13 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"testing/fstest"
 	"time"
 
+	"github.com/siderolabs/gen/maps"
+	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/gen/xtesting/must"
 	"github.com/stretchr/testify/require"
 
@@ -34,31 +37,31 @@ func TestFindOldFiles(t *testing.T) {
 		"logdir/2011-12-31.jsonlog": &fstest.MapFile{
 			Data:    logFile,
 			Mode:    fs.ModePerm,
-			ModTime: time.Date(2011, 12, 31, 23, 59, 59, 999, time.UTC),
+			ModTime: time.Date(2011, 12, 31, 23, 59, 59, 999, time.Local),
 		},
 		"logdir/2012-01-01.jsonlog": &fstest.MapFile{
 			Data:    logFile,
 			Mode:    fs.ModePerm,
-			ModTime: time.Date(2012, 1, 2, 11, 0, 0, 0, time.UTC),
+			ModTime: time.Date(2012, 1, 1, 11, 0, 0, 0, time.Local),
 		},
 		"logdir/2012-01-02.jsonlog": &fstest.MapFile{
 			Data:    logFile,
 			Mode:    fs.ModePerm,
-			ModTime: time.Date(2012, 1, 2, 23, 0, 0, 0, time.UTC),
+			ModTime: time.Date(2012, 1, 2, 23, 0, 0, 0, time.Local),
 		},
 		"somedir-we-should-ignore/2012-01-02.jsonlog": &fstest.MapFile{
 			Data:    []byte("Hello world!"),
 			Mode:    fs.ModePerm,
-			ModTime: time.Date(2012, 1, 2, 23, 0, 0, 0, time.UTC),
+			ModTime: time.Date(2012, 1, 2, 23, 0, 0, 0, time.Local),
 		},
 	}
 
-	now := time.Date(2012, 1, 30, 0, 0, 0, 1, time.UTC)
-	thirtyDays := audit.TruncateToDate(now.AddDate(0, 0, -29))
+	now := time.Date(2012, 1, 30, 0, 0, 0, 1, time.Local)
+	thirtyDays := audit.TruncateToDate(now.AddDate(0, 0, -30))
 
 	dirFiles := must.Value(audit.GetDirFiles(must.Value(mapFS.Sub("logdir"))(t).(fs.ReadDirFS)))(t) //nolint:forcetypeassert
 	logFiles := audit.FilterLogFiles(dirFiles)
-	olderFiles := audit.FilterOlderThan(logFiles, thirtyDays)
+	olderFiles := audit.FilterByTime(logFiles, time.Unix(0, 0), thirtyDays)
 
 	var entries []audit.LogEntry //nolint:prealloc
 
@@ -71,7 +74,7 @@ func TestFindOldFiles(t *testing.T) {
 	// Here we should see only one file we need to remove
 	require.Len(t, entries, 1)
 	require.Equal(t, "2011-12-31.jsonlog", entries[0].File.Name())
-	require.Equal(t, time.Date(2011, 12, 31, 0, 0, 0, 0, time.UTC), entries[0].Time)
+	require.Equal(t, time.Date(2011, 12, 31, 0, 0, 0, 0, time.Local), entries[0].Time)
 }
 
 func TestActualFS(t *testing.T) {
@@ -107,14 +110,22 @@ func TestActualFS(t *testing.T) {
 
 	require.NoError(
 		t,
-		audit.NewLogFile(filepath.Join(tempDir, "logdir")).CleanupOldFiles(now.AddDate(0, 0, -29)),
+		audit.NewLogFile(filepath.Join(tempDir, "logdir")).RemoveFiles(
+			time.Unix(0, 0),
+			now.AddDate(0, 0, -30),
+		),
 	)
 
 	delete(mapFS, thirtyDaysOld)
 
-	for file := range mapFS {
-		_, err := os.Stat(filepath.Join(tempDir, file))
+	actualFiles := xslices.Map(
+		must.Value(os.ReadDir(filepath.Join(tempDir, "logdir")))(t),
+		func(entry fs.DirEntry) string { return entry.Name() },
+	)
 
-		require.NoError(t, err)
-	}
+	expectedFiles := maps.ToSlice(mapFS, func(key string, _ *fstest.MapFile) string { return filepath.Base(key) })
+
+	slices.Sort(expectedFiles)
+
+	require.Equal(t, expectedFiles, actualFiles)
 }

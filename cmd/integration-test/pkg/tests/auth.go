@@ -491,7 +491,7 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientConfi
 				assertSuccess: assertSuccess,
 				assertFailure: assertMissingRoleFailure,
 				fn: func(ctx context.Context, cli *client.Client) error {
-					for _, err := range cli.Management().ReadAuditLog(ctx) {
+					for _, err := range cli.Management().ReadAuditLog(ctx, "", "") {
 						if err != nil {
 							return err
 						}

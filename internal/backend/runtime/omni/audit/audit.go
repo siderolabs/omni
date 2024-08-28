@@ -58,9 +58,10 @@ type Log struct {
 	updateWithConflictsHooks map[resource.Type]UpdateWithConflictsHook
 }
 
-// ReadAuditLog reads the audit log file by file, oldest to newest.
-func (l *Log) ReadAuditLog() (io.ReadCloser, error) {
-	return l.logFile.ReadAuditLog()
+// ReadAuditLog reads the audit log file by file, oldest to newest within the given time range. The time range
+// is inclusive, and truncated to the day.
+func (l *Log) ReadAuditLog(start, end time.Time) (io.ReadCloser, error) {
+	return l.logFile.ReadAuditLog(start, end)
 }
 
 // LogCreate logs the resource creation if there is a hook for this type.
@@ -161,12 +162,14 @@ func (l *Log) Wrap(next http.Handler) http.Handler {
 	})
 }
 
-// RunCleanup runs [LogFile.CleanupOldFiles] once a minute, deleting all log files older than 30 days including
+// RunCleanup runs [LogFile.RemoveFiles] once a minute, deleting all log files older than 30 days including
 // current day.
 func (l *Log) RunCleanup(ctx context.Context) error {
 	for {
-		err := l.logFile.CleanupOldFiles(time.Now().AddDate(0, 0, -29))
-		if err != nil {
+		if err := l.logFile.RemoveFiles(
+			time.Unix(0, 0),
+			time.Now().AddDate(0, 0, -30),
+		); err != nil {
 			l.logger.Warn("failed to cleanup old audit log files", zap.Error(err))
 		}
 

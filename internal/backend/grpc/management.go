@@ -624,12 +624,24 @@ rolloutLoop:
 }
 
 // ReadAuditLog reads the audit log from the backend.
-func (s *managementServer) ReadAuditLog(_ *emptypb.Empty, srv grpc.ServerStreamingServer[management.ReadAuditLogResponse]) error {
+func (s *managementServer) ReadAuditLog(req *management.ReadAuditLogRequest, srv grpc.ServerStreamingServer[management.ReadAuditLogResponse]) error {
 	if _, err := s.authCheckGRPC(srv.Context(), auth.WithRole(role.Admin)); err != nil {
 		return err
 	}
 
-	rdr, err := s.auditor.ReadAuditLog()
+	now := time.Now()
+
+	start, err := parseTime(req.GetStartTime(), now.AddDate(0, 0, -29))
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "invalid start time: %v", err)
+	}
+
+	end, err := parseTime(req.GetEndTime(), now)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "invalid end time: %v", err)
+	}
+
+	rdr, err := s.auditor.ReadAuditLog(start, end)
 	if err != nil {
 		return err
 	}
@@ -655,6 +667,19 @@ func (s *managementServer) ReadAuditLog(_ *emptypb.Empty, srv grpc.ServerStreami
 	}
 
 	return closeFn()
+}
+
+func parseTime(date string, fallback time.Time) (time.Time, error) {
+	if date == "" {
+		return fallback, nil
+	}
+
+	result, err := time.ParseInLocation(time.DateOnly, date, time.Local) //nolint:gosmopolitan
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return result, nil
 }
 
 func (s *managementServer) triggerManifestResync(ctx context.Context, requestContext *commonOmni.Context) error {
@@ -775,5 +800,5 @@ func generateDest(apiurl string) (string, error) {
 
 // AuditLogger is an interface for reading the audit log.
 type AuditLogger interface {
-	ReadAuditLog() (io.ReadCloser, error)
+	ReadAuditLog(start, end time.Time) (io.ReadCloser, error)
 }
