@@ -106,6 +106,10 @@ export const canAccessMaintenanceNodes: ComputedRef<boolean> = computed(() => {
   return permissions?.value?.spec?.can_access_maintenance_nodes ?? false;
 });
 
+export const canReadAuditLog: ComputedRef<boolean> = computed(() => {
+  return permissions?.value?.spec?.can_read_audit_log ?? false;
+});
+
 export const loadCurrentUser = async () => {
   if (!currentUser.value) {
     await refreshCurrentUser();

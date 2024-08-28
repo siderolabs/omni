@@ -120,6 +120,7 @@ nice -n 10 ${ARTIFACTS}/omni-linux-amd64 \
     --cert hack/certs/localhost.pem \
     --etcd-embedded-unsafe-fsync=true \
     --etcd-backup-s3 \
+    --audit-log-dir /tmp/omni-data/audit-log \
     "${REGISTRY_MIRROR_FLAGS[@]}" \
     &
 

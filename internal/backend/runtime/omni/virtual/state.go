@@ -194,24 +194,22 @@ func (v *State) permissions(ctx context.Context) (*virtual.Permissions, error) {
 
 	permissions := virtual.NewPermissions()
 
-	if userRole.Check(role.Reader) == nil {
-		permissions.TypedSpec().Value.CanReadMachineConfigPatches = true
-		permissions.TypedSpec().Value.CanReadMachineLogs = true
-		permissions.TypedSpec().Value.CanReadClusters = true
-		permissions.TypedSpec().Value.CanReadMachines = true
-	}
+	isReader := userRole.Check(role.Reader) == nil
+	permissions.TypedSpec().Value.CanReadMachineConfigPatches = isReader
+	permissions.TypedSpec().Value.CanReadMachineLogs = isReader
+	permissions.TypedSpec().Value.CanReadClusters = isReader
+	permissions.TypedSpec().Value.CanReadMachines = isReader
 
-	if userRole.Check(role.Operator) == nil {
-		permissions.TypedSpec().Value.CanRemoveMachines = true
-		permissions.TypedSpec().Value.CanCreateClusters = true
-		permissions.TypedSpec().Value.CanManageMachineConfigPatches = true
-		permissions.TypedSpec().Value.CanAccessMaintenanceNodes = true
-	}
+	isOperator := userRole.Check(role.Operator) == nil
+	permissions.TypedSpec().Value.CanRemoveMachines = isOperator
+	permissions.TypedSpec().Value.CanCreateClusters = isOperator
+	permissions.TypedSpec().Value.CanManageMachineConfigPatches = isOperator
+	permissions.TypedSpec().Value.CanAccessMaintenanceNodes = isOperator
 
-	if userRole.Check(role.Admin) == nil {
-		permissions.TypedSpec().Value.CanManageUsers = userRole.Check(role.Admin) == nil
-		permissions.TypedSpec().Value.CanManageBackupStore = userRole.Check(role.Admin) == nil
-	}
+	isAdmin := userRole.Check(role.Admin) == nil
+	permissions.TypedSpec().Value.CanManageUsers = isAdmin
+	permissions.TypedSpec().Value.CanManageBackupStore = isAdmin
+	permissions.TypedSpec().Value.CanReadAuditLog = isAdmin
 
 	if !permissions.TypedSpec().Value.CanCreateClusters {
 		_, err := safe.StateGet[*authres.AccessPolicy](ctx, v.PrimaryState, authres.NewAccessPolicy().Metadata())

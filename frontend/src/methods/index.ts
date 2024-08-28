@@ -6,10 +6,10 @@
 import { ManagementService } from "@/api/omni/management/management.pb";
 import { NodesViewFilterOptions, TCommonStatuses } from "@/constants";
 import { showError } from "@/notification";
-import { ComputedRef, Ref, computed, ref } from "vue";
-import { DefaultNamespace, DefaultTalosVersion, EtcdBackupOverallStatusID, EtcdBackupOverallStatusType } from "@/api/resources";
+import { computed, ComputedRef, Ref, ref } from "vue";
+import { DefaultNamespace, EtcdBackupOverallStatusID, EtcdBackupOverallStatusType } from "@/api/resources";
 import { withContext } from "@/api/options";
-import { fetchOption } from "@/api/fetch.pb";
+import { b64Decode, fetchOption } from "@/api/fetch.pb";
 import { V1Node } from "@kubernetes/client-node";
 import { Resource } from "@/api/grpc";
 import { EtcdBackupOverallStatusSpec } from "@/api/omni/specs/omni.pb";
@@ -106,10 +106,7 @@ export const downloadTalosconfig = async (cluster?: string) => {
   }
 
   try {
-    const response = await ManagementService.Talosconfig(
-      {},
-      ...opts,
-    );
+    const response = await ManagementService.Talosconfig({}, ...opts);
 
     link.href = `data:application/octet-stream;charset=utf-16le;base64,${response.talosconfig}`;
     link.download = cluster ? `${cluster}-talosconfig.yaml` : "talosconfig.yaml";
@@ -122,9 +119,7 @@ export const downloadTalosconfig = async (cluster?: string) => {
 export const downloadOmniconfig = async () => {
   const link = document.createElement("a");
   try {
-    const response = await ManagementService.Omniconfig(
-      {},
-    );
+    const response = await ManagementService.Omniconfig({});
 
     link.href = `data:application/octet-stream;charset=utf-16le;base64,${response.omniconfig}`;
     link.download = "omniconfig.yaml";
@@ -134,15 +129,22 @@ export const downloadOmniconfig = async () => {
   }
 };
 
-export const downloadTalosctl = async () => {
-  const link = document.createElement("a");
-
+export const downloadAuditLog = async () => {
   try {
-    link.href = `https://github.com/siderolabs/talos/releases/v${DefaultTalosVersion}`;
-    link.target = "_blank";
+    const result: Uint8Array[] = [];
+
+    await ManagementService.ReadAuditLog({}, resp => {
+      const data = resp.audit_log as unknown as string; // audit_log is actually not a Uint8Array, but a base64 string
+
+      result.push(b64Decode(data));
+    });
+
+    const link = document.createElement("a");
+    link.href = window.URL.createObjectURL(new Blob(result, {type: "application/json"}));
+    link.download = "auditlog.jsonlog";
     link.click();
   } catch (e) {
-    showError("Failed to download talosctl", e.message || e.toString());
+    showError("Failed to download audit log", e.message || e.toString());
   }
 };
 

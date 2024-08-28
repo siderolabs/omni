@@ -53,6 +53,7 @@ func (m *PermissionsSpec) CloneVT() *PermissionsSpec {
 	r.CanManageMachineConfigPatches = m.CanManageMachineConfigPatches
 	r.CanManageBackupStore = m.CanManageBackupStore
 	r.CanAccessMaintenanceNodes = m.CanAccessMaintenanceNodes
+	r.CanReadAuditLog = m.CanReadAuditLog
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -192,6 +193,9 @@ func (this *PermissionsSpec) EqualVT(that *PermissionsSpec) bool {
 		return false
 	}
 	if this.CanAccessMaintenanceNodes != that.CanAccessMaintenanceNodes {
+		return false
+	}
+	if this.CanReadAuditLog != that.CanReadAuditLog {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -393,6 +397,16 @@ func (m *PermissionsSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.CanReadAuditLog {
+		i--
+		if m.CanReadAuditLog {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x68
 	}
 	if m.CanAccessMaintenanceNodes {
 		i--
@@ -799,6 +813,9 @@ func (m *PermissionsSpec) SizeVT() (n int) {
 		n += 2
 	}
 	if m.CanAccessMaintenanceNodes {
+		n += 2
+	}
+	if m.CanReadAuditLog {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -1234,6 +1251,26 @@ func (m *PermissionsSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.CanAccessMaintenanceNodes = bool(v != 0)
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanReadAuditLog", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanReadAuditLog = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

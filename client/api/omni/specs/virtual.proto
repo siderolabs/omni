@@ -20,6 +20,7 @@ message PermissionsSpec {
   bool can_manage_machine_config_patches = 10;
   bool can_manage_backup_store = 11;
   bool can_access_maintenance_nodes = 12;
+  bool can_read_audit_log = 13;
 }
 
 message ClusterPermissionsSpec {

@@ -35,6 +35,7 @@ import (
 const (
 	omnictlPath    = "/usr/local/bin/omnictl"
 	omniconfigPath = "/tmp/omniconfig"
+	auditLogPath   = "/tmp/audit-log.jsonlog"
 )
 
 var True = true
@@ -269,6 +270,25 @@ func (s *E2ESuite) TestTitle() {
 
 		s.NoError(err)
 	})
+}
+
+func (s *E2ESuite) TestAuditLog() {
+	s.T().Logf("getting audit log")
+
+	s.withPage(s.baseURL, func(page playwright.Page) {
+		downloadAuditLog := page.Locator(`span:has-text("Download audit log"):visible`)
+
+		s.Require().NoError(downloadAuditLog.Click())
+
+		download, err := page.ExpectDownload(func() error { return downloadAuditLog.Click() })
+		s.Require().NoError(err, "failed to download audit log")
+
+		s.Require().NoError(download.SaveAs(auditLogPath), "failed to save audit log")
+	})
+
+	contents, err := os.ReadFile(auditLogPath)
+	s.Require().NoError(err, "failed to read audit log")
+	s.Require().Contains(string(contents), `"resource_type":"Identities.omni.sidero.dev"`)
 }
 
 func (s *E2ESuite) TestClickViewAll() {
