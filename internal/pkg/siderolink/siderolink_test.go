@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -19,11 +18,13 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
+	"github.com/siderolabs/gen/xtesting/must"
 	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/go-retry/retry"
 	pb "github.com/siderolabs/siderolink/api/siderolink"
 	"github.com/siderolabs/siderolink/pkg/wireguard"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
@@ -52,7 +53,10 @@ func (h *fakeWireguardHandler) SetupDevice(wireguard.DeviceConfig) error {
 }
 
 func (h *fakeWireguardHandler) Run(ctx context.Context, logger *zap.Logger) error {
-	unlock := safeLock(&h.loggerMu)
+	h.loggerMu.Lock()
+
+	unlock := sync.OnceFunc(h.loggerMu.Unlock)
+
 	defer unlock()
 
 	h.logger = logger
@@ -105,7 +109,7 @@ func (suite *SiderolinkSuite) SetupTest() {
 
 	params := sideromanager.Params{
 		WireguardEndpoint:  "127.0.0.1:0",
-		AdvertisedEndpoint: config.Config.SiderolinkWireguardAdvertisedAddress,
+		AdvertisedEndpoint: config.Config.SiderolinkWireguardAdvertisedAddress + "," + TestIP,
 		APIEndpoint:        "127.0.0.1:0",
 	}
 
@@ -237,9 +241,41 @@ func (suite *SiderolinkSuite) TestNodes() {
 	suite.Assert().NoError(err)
 	suite.Require().True(proto.Equal(resp, reprovision))
 
-	resource, err := safe.StateGet[*siderolink.Link](suite.ctx, suite.state, resource.NewMetadata(siderolink.Namespace, siderolink.LinkType, "testnode", resource.VersionUndefined))
+	res, err := safe.StateGet[*siderolink.Link](suite.ctx, suite.state, resource.NewMetadata(siderolink.Namespace, siderolink.LinkType, "testnode", resource.VersionUndefined))
 	suite.Assert().NoError(err)
-	suite.Require().Equal(privateKey.PublicKey().String(), resource.TypedSpec().Value.NodePublicKey)
+	suite.Require().Equal(privateKey.PublicKey().String(), res.TypedSpec().Value.NodePublicKey)
+}
+
+func (suite *SiderolinkSuite) TestNodeWithSeveralAdvertisedIPs() {
+	var spec *specs.ConnectionParamsSpec
+
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*2)
+	defer cancel()
+
+	rtestutils.AssertResources[*siderolink.ConnectionParams](ctx, suite.T(), suite.state, []string{
+		siderolink.ConfigID,
+	}, func(r *siderolink.ConnectionParams, assertion *assert.Assertions) {
+		assertion.NotEmpty(r.TypedSpec().Value.Args)
+		assertion.NotEmpty(r.TypedSpec().Value.ApiEndpoint)
+		assertion.NotEmpty(r.TypedSpec().Value.JoinToken)
+		assertion.NotEmpty(r.TypedSpec().Value.WireguardEndpoint)
+
+		spec = r.TypedSpec().Value
+	})
+
+	conn := must.Value(grpc.NewClient(suite.address, grpc.WithTransportCredentials(insecure.NewCredentials())))(suite.T())
+	client := pb.NewProvisionServiceClient(conn)
+	privateKey := must.Value(wgtypes.GeneratePrivateKey())(suite.T())
+	resp := must.Value(client.Provision(
+		suite.ctx,
+		&pb.ProvisionRequest{
+			NodeUuid:      "testnode",
+			NodePublicKey: privateKey.PublicKey().String(),
+			JoinToken:     &spec.JoinToken,
+		},
+	))(suite.T())
+
+	require.Equal(suite.T(), []string{config.Config.SiderolinkWireguardAdvertisedAddress, TestIP}, resp.GetEndpoints())
 }
 
 func (suite *SiderolinkSuite) TestVirtualNodes() {
@@ -317,7 +353,7 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 
 	expectedResp := resp.CloneVT()
 	expectedResp.GrpcPeerAddrPort = ""
-	expectedResp.ServerEndpoint = pb.MakeEndpoints(config.Config.SiderolinkWireguardAdvertisedAddress)
+	expectedResp.ServerEndpoint = pb.MakeEndpoints(config.Config.SiderolinkWireguardAdvertisedAddress, TestIP)
 
 	suite.Assert().NoError(err)
 
@@ -384,16 +420,5 @@ func TestSiderolinkSuite(t *testing.T) {
 	suite.Run(t, new(SiderolinkSuite))
 }
 
-func safeLock(mx sync.Locker) func() {
-	mx.Lock()
-
-	var locked atomic.Bool
-
-	locked.Store(true)
-
-	return func() {
-		if locked.Swap(false) {
-			mx.Unlock()
-		}
-	}
-}
+// TestIP from TEST-NET-1 network which can never be used.
+const TestIP = "192.2.0.2"

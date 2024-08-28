@@ -15,6 +15,7 @@ import (
 	"net/netip"
 	"os"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -780,8 +781,10 @@ func (manager *Manager) Provision(ctx context.Context, req *pb.ProvisionRequest)
 		endpoint = spec.VirtualAddrport
 	}
 
+	endpoints := strings.Split(endpoint, ",")
+
 	return &pb.ProvisionResponse{
-		ServerEndpoint:    pb.MakeEndpoints(endpoint),
+		ServerEndpoint:    pb.MakeEndpoints(endpoints...),
 		ServerPublicKey:   manager.wgConfig().PublicKey,
 		NodeAddressPrefix: spec.NodeSubnet,
 		ServerAddress:     manager.wgConfig().ServerAddress,

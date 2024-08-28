@@ -23,3 +23,11 @@ There are two ways to get audit log, and for both you need Admin role:
 1. By using the UI: Simply click "Download audit log" in the main menu.
 2. Using `omnictl audit-log` command. This command will stream the audit log from the Omni to the local machine stdout.
 """
+
+  [notes.allow-multiple-ip]
+    title = "Allow multiple IP's in `siderolink-wireguard-advertised-addr` flag"
+    description = """\
+The `siderolink-wireguard-advertised-addr` flag now accepts multiple IP addresses separated by commas. This is useful
+when you have multiple IPs (IPv4 and IPv6) on the host machine and want to allow Talos nodes to connect to the Omni
+using any of them.
+"""
