@@ -28,8 +28,10 @@ import (
 	cloudspecs "github.com/siderolabs/omni/client/api/omni/specs/cloud"
 	"github.com/siderolabs/omni/client/pkg/infra"
 	"github.com/siderolabs/omni/client/pkg/infra/provision"
+	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/cloud"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
 
 type ms struct {
@@ -44,7 +46,7 @@ type provisioner struct {
 }
 
 // Provision implements provision.Provisioner interface.
-func (p *provisioner) Provision(ctx context.Context, _ *zap.Logger, state *TestResource, request *cloud.MachineRequest) (provision.Result, error) {
+func (p *provisioner) Provision(ctx context.Context, _ *zap.Logger, state *TestResource, request *cloud.MachineRequest, _ *siderolink.ConnectionParams) (provision.Result, error) {
 	p.machinesMu.Lock()
 	defer p.machinesMu.Unlock()
 
@@ -129,6 +131,10 @@ func TestInfra(t *testing.T) {
 	machineRequest.Metadata().Labels().Set(customLabel, customValue)
 
 	require.NoError(t, state.Create(ctx, machineRequest))
+
+	connectionParams := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
+
+	require.NoError(t, state.Create(ctx, connectionParams))
 
 	rtestutils.AssertResources(ctx, t, state, []string{machineRequest.Metadata().ID()}, func(machineRequestStatus *cloud.MachineRequestStatus, assert *assert.Assertions) {
 		val, ok := machineRequestStatus.Metadata().Labels().Get(omni.LabelCloudProviderID)

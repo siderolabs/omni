@@ -23,6 +23,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/cloud"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
 
 // ProvisionController is the generic controller that operates the Provisioner.
@@ -62,6 +63,12 @@ func (ctrl *ProvisionController[T]) Settings() controller.QSettings {
 				Kind:      controller.InputQMappedDestroyReady,
 			},
 			{
+				Namespace: resources.DefaultNamespace,
+				Type:      siderolink.ConnectionParamsType,
+				Kind:      controller.InputQMapped,
+				ID:        optional.Some(siderolink.ConfigID),
+			},
+			{
 				Namespace: t.ResourceDefinition().DefaultNamespace,
 				Type:      t.ResourceDefinition().Type,
 				Kind:      controller.InputQMappedDestroyReady,
@@ -85,6 +92,10 @@ func (ctrl *ProvisionController[T]) Settings() controller.QSettings {
 func (ctrl *ProvisionController[T]) MapInput(_ context.Context, _ *zap.Logger,
 	_ controller.QRuntime, ptr resource.Pointer,
 ) ([]resource.Pointer, error) {
+	if ptr.Type() == siderolink.ConnectionParamsType {
+		return nil, nil
+	}
+
 	return []resource.Pointer{
 		cloud.NewMachineRequest(ptr.ID()).Metadata(),
 	}, nil
@@ -126,6 +137,11 @@ func (ctrl *ProvisionController[T]) Reconcile(ctx context.Context,
 func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r controller.QRuntime, logger *zap.Logger,
 	machineRequest *cloud.MachineRequest, machineRequestStatus *cloud.MachineRequestStatus,
 ) error {
+	connectionParams, err := safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, r, siderolink.ConfigID)
+	if err != nil {
+		return err
+	}
+
 	var t T
 
 	res, err := protobuf.CreateResource(t.ResourceDefinition().Type)
@@ -138,7 +154,7 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 	if err = safe.WriterModify(ctx, r, res.(T), func(st T) error { //nolint:forcetypeassert
 		var provisionResult provision.Result
 
-		provisionResult, err = ctrl.provisioner.Provision(ctx, logger, st, machineRequest)
+		provisionResult, err = ctrl.provisioner.Provision(ctx, logger, st, machineRequest, connectionParams)
 		if err != nil {
 			if xerrors.TypeIs[*controller.RequeueError](err) {
 				return err

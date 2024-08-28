@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/cloud"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
 
 // Result is returned from the provision function.
@@ -24,6 +25,6 @@ type Result struct {
 
 // Provisioner is the interface that should be implemented by an infra provider.
 type Provisioner[T resource.Resource] interface {
-	Provision(context.Context, *zap.Logger, T, *cloud.MachineRequest) (Result, error)
+	Provision(context.Context, *zap.Logger, T, *cloud.MachineRequest, *siderolink.ConnectionParams) (Result, error)
 	Deprovision(context.Context, *zap.Logger, T, *cloud.MachineRequest) error
 }
