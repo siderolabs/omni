@@ -70,12 +70,27 @@ type clusterWorkloadProxyStatusControllerHelper struct {
 	workloadProxyReconciler WorkloadProxyReconciler
 }
 
+//nolint:gocognit
 func (helper *clusterWorkloadProxyStatusControllerHelper) transform(ctx context.Context, r controller.ReaderWriter,
 	logger *zap.Logger, cluster *omni.Cluster, status *omni.ClusterWorkloadProxyStatus,
 ) error {
 	cmsList, err := safe.ReaderListAll[*omni.ClusterMachineStatus](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID())))
 	if err != nil {
 		return fmt.Errorf("failed to list cluster machine statuses: %w", err)
+	}
+
+	for cms := range cmsList.All() {
+		if cms.Metadata().Phase() == resource.PhaseTearingDown {
+			if err = r.RemoveFinalizer(ctx, cms.Metadata(), ClusterWorkloadProxyStatusControllerName); err != nil {
+				return fmt.Errorf("failed to remove finalizer: %w", err)
+			}
+
+			continue
+		}
+
+		if err = r.AddFinalizer(ctx, cms.Metadata(), ClusterWorkloadProxyStatusControllerName); err != nil {
+			return fmt.Errorf("failed to add finalizer: %w", err)
+		}
 	}
 
 	if !cluster.TypedSpec().Value.GetFeatures().GetEnableWorkloadProxy() {
@@ -92,15 +107,7 @@ func (helper *clusterWorkloadProxyStatusControllerHelper) transform(ctx context.
 
 	for cms := range cmsList.All() {
 		if cms.Metadata().Phase() == resource.PhaseTearingDown {
-			if err = r.RemoveFinalizer(ctx, cms.Metadata(), ClusterWorkloadProxyStatusControllerName); err != nil {
-				return fmt.Errorf("failed to remove finalizer: %w", err)
-			}
-
 			continue
-		}
-
-		if err = r.AddFinalizer(ctx, cms.Metadata(), ClusterWorkloadProxyStatusControllerName); err != nil {
-			return fmt.Errorf("failed to add finalizer: %w", err)
 		}
 
 		if !cms.TypedSpec().Value.GetReady() {

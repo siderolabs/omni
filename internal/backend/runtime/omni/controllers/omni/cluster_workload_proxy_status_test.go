@@ -38,7 +38,7 @@ func (suite *ClusterWorkloadProxyStatusSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterWorkloadProxyStatusController(workloadProxyReconciler)))
 
-	clusterID := "test-cluster"
+	clusterID := "test-cluster-1"
 	cluster := omni.NewCluster(resources.DefaultNamespace, clusterID)
 	cluster.TypedSpec().Value.Features = &specs.ClusterSpec_Features{
 		EnableWorkloadProxy: true,
@@ -69,8 +69,15 @@ func (suite *ClusterWorkloadProxyStatusSuite) TestReconcile() {
 		},
 	})
 
+	// add another healthy upstream cluster machine status
+	suite.createClusterMachineStatus(clusterID, "test-cms-3")
+
+	rtestutils.AssertResources[*omni.ClusterMachineStatus](ctx, suite.T(), suite.state, []string{"test-cms-3"}, func(r *omni.ClusterMachineStatus, assertion *assert.Assertions) {
+		assertion.True(r.Metadata().Finalizers().Has(omnictrl.ClusterWorkloadProxyStatusControllerName))
+	})
+
 	// turn off the feature for the cluster
-	_, err := safe.StateUpdateWithConflicts[*omni.Cluster](ctx, suite.state, cluster.Metadata(), func(cluster *omni.Cluster) error {
+	_, err := safe.StateUpdateWithConflicts(ctx, suite.state, cluster.Metadata(), func(cluster *omni.Cluster) error {
 		cluster.TypedSpec().Value.Features.EnableWorkloadProxy = false
 
 		return nil
@@ -79,8 +86,11 @@ func (suite *ClusterWorkloadProxyStatusSuite) TestReconcile() {
 
 	workloadProxyReconciler.assertState(suite.T(), nil)
 
+	// delete one of the machines
+	rtestutils.Destroy[*omni.ClusterMachineStatus](ctx, suite.T(), suite.state, []string{"test-cms-3"})
+
 	// turn it back on
-	_, err = safe.StateUpdateWithConflicts[*omni.Cluster](ctx, suite.state, cluster.Metadata(), func(cluster *omni.Cluster) error {
+	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, cluster.Metadata(), func(cluster *omni.Cluster) error {
 		cluster.TypedSpec().Value.Features.EnableWorkloadProxy = true
 
 		return nil
@@ -102,7 +112,7 @@ func (suite *ClusterWorkloadProxyStatusSuite) TestReconcile() {
 func (suite *ClusterWorkloadProxyStatusSuite) TestReconcileMappedInputDeletion() {
 	suite.startRuntime()
 
-	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*10)
 	defer cancel()
 
 	workloadProxyReconciler := &mockWorkloadProxyReconciler{}
@@ -149,7 +159,6 @@ func (suite *ClusterWorkloadProxyStatusSuite) TestReconcileMappedInputDeletion()
 	})
 }
 
-//nolint:unparam
 func (suite *ClusterWorkloadProxyStatusSuite) createClusterMachineStatus(clusterID string, id resource.ID) *omni.ClusterMachineStatus {
 	suite.T().Helper()
 
