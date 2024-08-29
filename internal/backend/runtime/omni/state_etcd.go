@@ -29,7 +29,6 @@ import (
 	"go.etcd.io/etcd/server/v3/embed"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/experimental"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
@@ -213,7 +212,6 @@ func getEmbeddedEtcdClient(ctx context.Context, params *config.EtcdParams, logge
 		DialOptions: []grpc.DialOption{
 			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(constants.GRPCMaxMessageSize)),
 			grpc.WithSharedWriteBuffer(true),
-			experimental.WithRecvBufferPool(grpc.NewSharedBufferPool()),
 		},
 		Logger: logger.WithOptions(
 			// never enable debug logs for etcd client, they are too chatty
@@ -280,7 +278,6 @@ func getExternalEtcdClient(ctx context.Context, params *config.EtcdParams, logge
 		DialOptions: []grpc.DialOption{
 			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(constants.GRPCMaxMessageSize)),
 			grpc.WithSharedWriteBuffer(true),
-			experimental.WithRecvBufferPool(grpc.NewSharedBufferPool()),
 		},
 		TLS: tlsConfig,
 		Logger: logger.WithOptions(
