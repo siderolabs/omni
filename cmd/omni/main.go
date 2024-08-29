@@ -26,6 +26,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"k8s.io/klog/v2"
 
+	"github.com/siderolabs/omni/client/pkg/compression"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -95,6 +96,12 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to set up logging: %w", err)
 		}
+
+		if err = compression.InitConfig(config.Config.ConfigDataCompression.Enabled); err != nil {
+			return err
+		}
+
+		logger.Info("initialized resource compression config", zap.Bool("enabled", config.Config.ConfigDataCompression.Enabled))
 
 		// set kubernetes logger to use warn log level and use zap
 		klog.SetLogger(zapr.NewLogger(logger.WithOptions(zap.IncreaseLevel(zapcore.WarnLevel)).With(logging.Component("kubernetes"))))
@@ -445,6 +452,8 @@ func init() {
 
 	rootCmd.Flags().BoolVar(&config.Config.WorkloadProxying.Enabled, "workload-proxying-enabled", config.Config.WorkloadProxying.Enabled, "enable workload proxying feature.")
 	rootCmd.Flags().StringVar(&config.Config.WorkloadProxying.Subdomain, "workload-proxying-subdomain", config.Config.WorkloadProxying.Subdomain, "workload proxying subdomain.")
+
+	rootCmd.Flags().BoolVar(&config.Config.ConfigDataCompression.Enabled, "config-data-compression-enabled", config.Config.ConfigDataCompression.Enabled, "enable config data compression.")
 
 	rootCmd.Flags().IntVar(&config.Config.LocalResourceServerPort, "local-resource-server-port", config.Config.LocalResourceServerPort, "port for local read-only public resource server.")
 

@@ -483,11 +483,13 @@ func (suite *OmniSuite) createCluster(clusterName string, controlPlanes, workers
 		)
 
 		clusterMachineConfigPatches := omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, clusterMachine.Metadata().ID())
-		clusterMachineConfigPatches.TypedSpec().Value.Patches = []string{
+
+		err := clusterMachineConfigPatches.TypedSpec().Value.SetUncompressedPatches([]string{
 			`machine:
       install:
         disk: ` + testInstallDisk,
-		}
+		})
+		suite.Require().NoError(err)
 
 		clusterMachine.TypedSpec().Value.KubernetesVersion = cluster.TypedSpec().Value.KubernetesVersion
 

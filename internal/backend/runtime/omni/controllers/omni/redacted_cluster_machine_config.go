@@ -43,15 +43,24 @@ func NewRedactedClusterMachineConfigController() *RedactedClusterMachineConfigCo
 					return xerrors.NewTagged[qtransform.SkipReconcileTag](errors.New("config input hasn't changed"))
 				}
 
-				data := cmc.TypedSpec().Value.GetData()
+				buffer, err := cmc.TypedSpec().Value.GetUncompressedData()
+				if err != nil {
+					return err
+				}
+
+				defer buffer.Free()
+
+				data := buffer.Data()
 
 				if data == nil {
-					cmcr.TypedSpec().Value.Data = ""
+					if err = cmcr.TypedSpec().Value.SetUncompressedData(nil); err != nil {
+						return err
+					}
 
 					return nil
 				}
 
-				config, err := configloader.NewFromBytes(cmc.TypedSpec().Value.GetData())
+				config, err := configloader.NewFromBytes(data)
 				if err != nil {
 					return err
 				}
@@ -61,7 +70,9 @@ func NewRedactedClusterMachineConfigController() *RedactedClusterMachineConfigCo
 					return err
 				}
 
-				cmcr.TypedSpec().Value.Data = string(redactedData)
+				if err = cmcr.TypedSpec().Value.SetUncompressedData(redactedData); err != nil {
+					return err
+				}
 
 				helpers.CopyAllLabels(cmc, cmcr)
 

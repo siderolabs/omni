@@ -6,13 +6,13 @@
 package grpc_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -157,8 +157,9 @@ func (suite *GrpcSuite) TestCreateDenied() {
 func (suite *GrpcSuite) TestCrud() {
 	client := resapi.NewResourceServiceClient(suite.conn)
 
-	resourceSpec := &specs.ConfigPatchSpec{
-		Data: strings.TrimSpace(`
+	resourceSpec := &specs.ConfigPatchSpec{}
+
+	err := resourceSpec.SetUncompressedData(bytes.TrimSpace([]byte(`
 {
   "machine": {
     "env": {
@@ -166,8 +167,8 @@ func (suite *GrpcSuite) TestCrud() {
     }
   }
 }
-`),
-	}
+`)))
+	suite.Require().NoError(err)
 
 	rawSpec, err := runtime.MarshalJSON(resourceSpec)
 	suite.Assert().NoError(err)
@@ -198,9 +199,10 @@ func (suite *GrpcSuite) TestCrud() {
 
 	suite.Require().True(proto.Equal(res.TypedSpec().Value, resourceSpec))
 
-	resourceSpec = &specs.ConfigPatchSpec{
-		Data: "machine: {}",
-	}
+	resourceSpec = &specs.ConfigPatchSpec{}
+
+	err = resourceSpec.SetUncompressedData([]byte("machine: {}"))
+	suite.Require().NoError(err)
 
 	rawSpec, err = runtime.MarshalJSON(resourceSpec)
 	suite.Assert().NoError(err)
@@ -218,6 +220,13 @@ func (suite *GrpcSuite) TestCrud() {
 	suite.Assert().NoError(err)
 
 	suite.Require().True(proto.Equal(res.TypedSpec().Value, resourceSpec))
+
+	buffer, bufferErr := resourceSpec.GetUncompressedData()
+	suite.Require().NoError(bufferErr)
+
+	defer buffer.Free()
+
+	patchData := string(buffer.Data())
 
 	err = retry.Constant(time.Second, retry.WithUnits(time.Millisecond*50)).RetryWithContext(ctx, func(ctx context.Context) error {
 		items, e := client.List(ctx, &resapi.ListRequest{
@@ -241,8 +250,8 @@ func (suite *GrpcSuite) TestCrud() {
 				return e
 			}
 
-			if resourceSpec.Data != data.Spec.Data {
-				return retry.ExpectedErrorf("%s != %s", resourceSpec.Data, data.Spec.Data)
+			if patchData != data.Spec.Data {
+				return retry.ExpectedErrorf("%s != %s", patchData, data.Spec.Data)
 			}
 		}
 

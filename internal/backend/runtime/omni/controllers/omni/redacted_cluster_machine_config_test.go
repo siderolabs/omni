@@ -36,13 +36,20 @@ func (suite *RedactedClusterMachineConfigSuite) TestReconcile() {
 
 	cmc := omni.NewClusterMachineConfig(resources.DefaultNamespace, id)
 
-	cmc.TypedSpec().Value.Data = suite.generateConfig()
+	suite.Require().NoError(cmc.TypedSpec().Value.SetUncompressedData(suite.generateConfig()))
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, cmc))
 
 	rtestutils.AssertResources(suite.ctx, suite.T(), suite.state, []string{id},
 		func(rcmc *omni.RedactedClusterMachineConfig, assert *assert.Assertions) {
-			assert.Contains(rcmc.TypedSpec().Value.Data, x509.Redacted)
+			buffer, err := rcmc.TypedSpec().Value.GetUncompressedData()
+			assert.NoError(err)
+
+			defer buffer.Free()
+
+			data := string(buffer.Data())
+
+			assert.Contains(data, x509.Redacted)
 		},
 	)
 

@@ -159,7 +159,15 @@ func (suite *MigrationSuite) TestConfigPatches() {
 	suite.assertLabel(diskPatch, "cluster-machine", machine.Metadata().ID())
 
 	config := v1alpha1.Config{}
-	suite.Require().NoError(yaml.Unmarshal([]byte(diskPatch.TypedSpec().Value.Data), &config))
+
+	buffer, err := diskPatch.TypedSpec().Value.GetUncompressedData()
+	suite.Require().NoError(err)
+
+	defer buffer.Free()
+
+	patchData := buffer.Data()
+
+	suite.Require().NoError(yaml.Unmarshal(patchData, &config))
 
 	suite.Require().Equal(testInstallDisk, config.MachineConfig.MachineInstall.InstallDisk)
 
@@ -167,9 +175,16 @@ func (suite *MigrationSuite) TestConfigPatches() {
 	suite.assertLabel(userPatch, "cluster", "c1")
 	suite.assertLabel(userPatch, "cluster-machine", machine.Metadata().ID())
 
+	buffer, err = userPatch.TypedSpec().Value.GetUncompressedData()
+	suite.Require().NoError(err)
+
+	defer buffer.Free()
+
+	patchData = buffer.Data()
+
 	suite.Require().Equal(
 		testConfigPatch,
-		userPatch.TypedSpec().Value.Data,
+		string(patchData),
 	)
 }
 
@@ -1002,7 +1017,8 @@ func (suite *MigrationSuite) TestPatchesExtraction() {
 	}
 
 	createResources = append(createResources, xslices.Map(machines, func(m machine) pair.Pair[string, resource.Resource] {
-		return pair.MakePair[string, resource.Resource](omnictrl.NewClusterMachineConfigController(nil, 8090).Name(), omni.NewClusterMachineConfig(resources.DefaultNamespace, clusterName+"."+m.name))
+		return pair.MakePair[string, resource.Resource](omnictrl.NewClusterMachineConfigController(nil, 8090).Name(),
+			omni.NewClusterMachineConfig(resources.DefaultNamespace, clusterName+"."+m.name))
 	})...)
 
 	for _, res := range createResources {
@@ -1016,7 +1032,11 @@ func (suite *MigrationSuite) TestPatchesExtraction() {
 		patches, err := safe.StateGet[*omni.ClusterMachineConfigPatches](ctx, suite.state, omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, m).Metadata())
 		suite.Require().NoError(err)
 		suite.assertLabel(patches, omni.SystemLabelPrefix+"cluster", "patches")
-		suite.Require().Len(patches.TypedSpec().Value.Patches, 1)
+
+		patchList, err := patches.TypedSpec().Value.GetUncompressedPatches()
+		suite.Require().NoError(err)
+
+		suite.Require().Len(patchList, 1)
 
 		config, err := safe.StateGet[*omni.ClusterMachineConfig](ctx, suite.state, omni.NewClusterMachineConfig(resources.DefaultNamespace, m).Metadata())
 		suite.Require().NoError(err)
@@ -1085,7 +1105,8 @@ func (suite *MigrationSuite) TestInstallDiskPatchMigration() {
 	}
 
 	createResources = append(createResources, xslices.Map(machines, func(m machine) pair.Pair[string, resource.Resource] {
-		return pair.MakePair[string, resource.Resource](omnictrl.NewClusterMachineConfigController(nil, 8090).Name(), omni.NewClusterMachineConfig(resources.DefaultNamespace, clusterName+"."+m.name))
+		return pair.MakePair[string, resource.Resource](omnictrl.NewClusterMachineConfigController(nil, 8090).Name(),
+			omni.NewClusterMachineConfig(resources.DefaultNamespace, clusterName+"."+m.name))
 	})...)
 
 	for _, res := range createResources {
@@ -1233,19 +1254,21 @@ func (suite *MigrationSuite) TestClearEmptyConfigPatches() {
 
 	cp1 := omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "1")
 
-	cp1.TypedSpec().Value.Patches = []string{
+	err := cp1.TypedSpec().Value.SetUncompressedPatches([]string{
 		"foo: yaml",
 		"bar: yaml",
 		"",
 		"baz: yaml",
-	}
+	})
+	suite.Require().NoError(err)
 
 	cp2 := omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "2")
 
-	cp2.TypedSpec().Value.Patches = []string{
+	err = cp2.TypedSpec().Value.SetUncompressedPatches([]string{
 		"",
 		"",
-	}
+	})
+	suite.Require().NoError(err)
 
 	suite.Require().NoError(suite.state.Create(ctx, cp1, state.WithCreateOwner("MachineSetStatusController")))
 	suite.Require().NoError(suite.state.Create(ctx, cp2, state.WithCreateOwner("MachineSetStatusController")))
@@ -1260,13 +1283,19 @@ func (suite *MigrationSuite) TestClearEmptyConfigPatches() {
 	cp2After, err := safe.StateGetByID[*omni.ClusterMachineConfigPatches](ctx, suite.state, "2")
 	suite.Require().NoError(err)
 
+	patches, err := cp1After.TypedSpec().Value.GetUncompressedPatches()
+	suite.Require().NoError(err)
+
 	suite.Assert().Equal([]string{
 		"foo: yaml",
 		"bar: yaml",
 		"baz: yaml",
-	}, cp1After.TypedSpec().Value.Patches)
+	}, patches)
 
-	suite.Assert().Empty(cp2After.TypedSpec().Value.Patches)
+	patches, err = cp2After.TypedSpec().Value.GetUncompressedPatches()
+	suite.Require().NoError(err)
+
+	suite.Assert().Empty(patches)
 }
 
 func (suite *MigrationSuite) TestCleanupDanglingSchematicConfigurations() {

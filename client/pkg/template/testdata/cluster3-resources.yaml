@@ -214,6 +214,7 @@ spec:
                       interface: eth0
                       routes:
                         - gateway: 192.168.0.1
+    compresseddata: []
 ---
 metadata:
     namespace: default

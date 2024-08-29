@@ -384,7 +384,14 @@ message ClusterMachineSpec {
 // ClusterMachineConfigPatchesSpec keeps the list of config patches to be applied on the machine.
 message ClusterMachineConfigPatchesSpec {
   // List of patches combined from all sources, as a final list of patches to apply.
+  //
+  // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
   repeated string patches = 1;
+
+  // List of patches combined from all sources, as a final list of patches to apply.
+  //
+  // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
+  repeated bytes compressed_patches = 2;
 }
 
 // ClusterMachineTalosVersionSpec describes a machine Talos version and schematic.
@@ -395,14 +402,30 @@ message ClusterMachineTalosVersionSpec {
 
 // ClusterMachineConfigSpec stores generated Talos node machine config.
 message ClusterMachineConfigSpec {
+  // Data contains the config bytes. It is only set if the config is not compressed. Otherwise, CompressedData is set instead.
+  //
+  // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
   bytes data = 1;
   string cluster_machine_version = 2;
   string generation_error = 3;
+
+  // CompressedData contains the config bytes. It is only set if the config is not compressed. Otherwise, CompressedData is set instead.
+  //
+  // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
+  bytes compressed_data = 4;
 }
 
 // ClusterMachineConfigSpec stores generated Talos node machine config.
 message RedactedClusterMachineConfigSpec {
+  // Data contains the config bytes. It is only set if the config is not compressed. Otherwise, CompressedData is set instead.
+  //
+  // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
   string data = 1;
+
+  // CompressedData contains the config bytes. It is only set if the config is not compressed. Otherwise, CompressedData is set instead.
+  //
+  // Deprecated: use accessor methods GetUncompressedData/SetUncompressedDataa to manage this field.
+  bytes compressed_data = 2;
 }
 
 // ClusterMachineIdentity keeps ClusterMachine related node information.
@@ -599,7 +622,15 @@ message InstallationMediaSpec {
 
 // ConfigPatchSpec represents the machine config patch.
 message ConfigPatchSpec {
+  // Data contains the config patch bytes. It is only set if the config patch is not compressed. Otherwise, CompressedData is set instead.
+  //
+  // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
   string data = 1;
+
+  // CompressedData contains the config patch bytes. It is only set if the config patch is not compressed. Otherwise, CompressedData is set instead.
+  //
+  // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
+  bytes compressed_data = 2;
 }
 
 // MachineSetPhaseSpec is machine set phase.

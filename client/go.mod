@@ -13,7 +13,7 @@ replace (
 require (
 	github.com/adrg/xdg v0.5.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cosi-project/runtime v0.6.1
+	github.com/cosi-project/runtime v0.6.2
 	github.com/fatih/color v1.17.0
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/google/uuid v1.6.0
@@ -21,6 +21,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.22.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hexops/gotextdiff v1.0.3
+	github.com/klauspost/compress v1.17.9
 	github.com/mattn/go-isatty v0.0.20
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10
 	github.com/sergi/go-diff v1.3.1

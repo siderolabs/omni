@@ -95,6 +95,15 @@ func assertVersionsUnchanged[T resource.Resource](t *testing.T, before map[resou
 }
 
 func assertConfigPatches(t *testing.T, before map[string]*omni.ConfigPatch, after map[string]*omni.ConfigPatch) {
+	getPatchData := func(patch *omni.ConfigPatch) string {
+		buffer, err := patch.TypedSpec().Value.GetUncompressedData()
+		require.NoError(t, err)
+
+		defer buffer.Free()
+
+		return string(buffer.Data())
+	}
+
 	for _, beforeConfigPatch := range before {
 		afterConfigPatch := after[beforeConfigPatch.Metadata().ID()]
 
@@ -105,7 +114,10 @@ func assertConfigPatches(t *testing.T, before map[string]*omni.ConfigPatch, afte
 		assert.Equal(t, beforeConfigPatch.Metadata().Labels(), afterConfigPatch.Metadata().Labels(), "labels changed for resource: %q", beforeConfigPatch.Metadata())
 		assert.Equal(t, beforeConfigPatch.Metadata().Annotations(), afterConfigPatch.Metadata().Annotations(), "annotations changed for resource: %q", beforeConfigPatch.Metadata())
 
-		assert.YAMLEq(t, beforeConfigPatch.TypedSpec().Value.GetData(), afterConfigPatch.TypedSpec().Value.GetData(),
+		beforeData := getPatchData(beforeConfigPatch)
+		afterData := getPatchData(afterConfigPatch)
+
+		assert.YAMLEq(t, beforeData, afterData,
 			"config patch data changed for resource: %q", beforeConfigPatch.Metadata())
 	}
 }

@@ -6,6 +6,7 @@
 package omni
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -733,15 +734,39 @@ func configPatchValidationOptions(st state.State) []validated.StateOption {
 				}
 			}
 
-			return omni.ValidateConfigPatch(res.TypedSpec().Value.GetData())
+			buffer, err := res.TypedSpec().Value.GetUncompressedData()
+			if err != nil {
+				return err
+			}
+
+			defer buffer.Free()
+
+			return omni.ValidateConfigPatch(buffer.Data())
 		})),
 		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, oldRes *omni.ConfigPatch, newRes *omni.ConfigPatch, _ ...state.UpdateOption) error {
 			// keep the old config patch if the data is the same for backwards-compatibility and for teardown cases
-			if oldRes.TypedSpec().Value.Data == newRes.TypedSpec().Value.Data {
+			oldBuffer, err := oldRes.TypedSpec().Value.GetUncompressedData()
+			if err != nil {
+				return err
+			}
+
+			defer oldBuffer.Free()
+
+			newBuffer, err := newRes.TypedSpec().Value.GetUncompressedData()
+			if err != nil {
+				return err
+			}
+
+			defer newBuffer.Free()
+
+			oldData := oldBuffer.Data()
+			newData := newBuffer.Data()
+
+			if bytes.Equal(oldData, newData) {
 				return nil
 			}
 
-			return omni.ValidateConfigPatch(newRes.TypedSpec().Value.GetData())
+			return omni.ValidateConfigPatch(newData)
 		})),
 	}
 }

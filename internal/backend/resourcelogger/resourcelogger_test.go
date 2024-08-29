@@ -86,7 +86,9 @@ func TestResourceLogger(t *testing.T) {
 		},
 	}
 	cbs.TypedSpec().Value.Bootstrapped = false
-	cp.TypedSpec().Value.Data = "some data"
+
+	err = cp.TypedSpec().Value.SetUncompressedData([]byte("some data"))
+	require.NoError(t, err)
 
 	require.NoError(t, st.Create(ctx, machineStatus))
 	require.NoError(t, st.Create(ctx, cbs))
@@ -96,7 +98,9 @@ func TestResourceLogger(t *testing.T) {
 	machineStatus.TypedSpec().Value.ManagementAddress = "some-address-updated"
 	machineStatus.TypedSpec().Value.Network.Domainname = "ccc"
 	cbs.TypedSpec().Value.Bootstrapped = true
-	cp.TypedSpec().Value.Data = "some data updated"
+
+	err = cp.TypedSpec().Value.SetUncompressedData([]byte("some data updated"))
+	require.NoError(t, err)
 
 	// Wait for a bit more than a second to ensure that the value of the `updated:` field in the diff
 	// will be changed on the .Update calls (since those fields are formatted to the second-precision).

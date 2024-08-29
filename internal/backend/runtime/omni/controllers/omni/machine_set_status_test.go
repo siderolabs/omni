@@ -106,7 +106,7 @@ func (suite *MachineSetStatusSuite) createMachineSetWithOpts(clusterName string,
 			pair.MakePair(omni.LabelMachineSet, machineSetName),
 		)
 
-		extraPatch.TypedSpec().Value.Data = patch
+		suite.Require().NoError(extraPatch.TypedSpec().Value.SetUncompressedData([]byte(patch)))
 
 		suite.Require().NoError(suite.state.Create(suite.ctx, extraPatch))
 	}
@@ -133,10 +133,11 @@ func (suite *MachineSetStatusSuite) createMachineSetWithOpts(clusterName string,
 
 	patch1 := omni.NewConfigPatch(resources.DefaultNamespace, patchName, pair.MakePair(omni.LabelCluster, clusterName))
 
-	patch1.TypedSpec().Value.Data = `machine:
+	err = patch1.TypedSpec().Value.SetUncompressedData([]byte(`machine:
   network:
     kubespan:
-      enabled: true`
+      enabled: true`))
+	suite.Require().NoError(err)
 
 	err = suite.state.Create(suite.ctx, patch1)
 	if !state.IsConflictError(err) {
@@ -485,7 +486,10 @@ func (suite *MachineSetStatusSuite) TestConfigUpdate() {
 			&suite.OmniSuite,
 			*omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, m).Metadata(),
 			func(res *omni.ClusterMachineConfigPatches, assertions *assert.Assertions) {
-				assertions.Len(res.TypedSpec().Value.Patches, 2, "expected to have 2 machine patches in the ClusterMachine")
+				patches, err := res.TypedSpec().Value.GetUncompressedPatches()
+				assertions.NoError(err)
+
+				assertions.Len(patches, 2, "expected to have 2 machine patches in the ClusterMachine")
 			},
 		)
 	}
@@ -504,9 +508,10 @@ func (suite *MachineSetStatusSuite) TestConfigUpdate() {
 		pair.MakePair(omni.LabelClusterMachine, machines[0]),
 	)
 
-	machinePatch.TypedSpec().Value.Data = `machine:
+	err := machinePatch.TypedSpec().Value.SetUncompressedData([]byte(`machine:
   network:
-   hostname: the-running-node-cluster-machine-patch`
+   hostname: the-running-node-cluster-machine-patch`))
+	suite.Require().NoError(err)
 
 	rtestutils.AssertResource[*omni.MachineSetStatus](suite.ctx, suite.T(), suite.state, machineSet.Metadata().ID(), func(r *omni.MachineSetStatus, assertion *assert.Assertions) {
 		assertion.True(
@@ -531,9 +536,10 @@ func (suite *MachineSetStatusSuite) TestConfigUpdate() {
 		pair.MakePair(omni.LabelMachine, machines[0]),
 	)
 
-	machinePatch.TypedSpec().Value.Data = `machine:
+	err = machinePatch.TypedSpec().Value.SetUncompressedData([]byte(`machine:
   network:
-   hostname: the-running-node-machine-patch`
+   hostname: the-running-node-machine-patch`))
+	suite.Require().NoError(err)
 
 	suite.Assert().NoError(suite.state.Create(suite.ctx, machinePatch))
 
@@ -544,7 +550,10 @@ func (suite *MachineSetStatusSuite) TestConfigUpdate() {
 		&suite.OmniSuite,
 		*omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, machines[0]).Metadata(),
 		func(res *omni.ClusterMachineConfigPatches, assertions *assert.Assertions) {
-			assertions.Len(res.TypedSpec().Value.Patches, 2, "the machine was updated while it shouldn't be")
+			patches, patchesErr := res.TypedSpec().Value.GetUncompressedPatches()
+			assertions.NoError(patchesErr)
+
+			assertions.Len(patches, 2, "the machine was updated while it shouldn't be")
 		},
 	)
 
@@ -554,9 +563,10 @@ func (suite *MachineSetStatusSuite) TestConfigUpdate() {
 		pair.MakePair(omni.LabelClusterMachine, machines[2]),
 	)
 
-	machinePatch.TypedSpec().Value.Data = `machine:
+	err = machinePatch.TypedSpec().Value.SetUncompressedData([]byte(`machine:
   network:
-    hostname: the-pending-node`
+    hostname: the-pending-node`))
+	suite.Require().NoError(err)
 
 	suite.Assert().NoError(suite.state.Create(suite.ctx, machinePatch))
 
@@ -565,7 +575,10 @@ func (suite *MachineSetStatusSuite) TestConfigUpdate() {
 		&suite.OmniSuite,
 		*omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, machines[2]).Metadata(),
 		func(res *omni.ClusterMachineConfigPatches, assertions *assert.Assertions) {
-			assertions.Len(res.TypedSpec().Value.Patches, 3, "expected to have 3 machine patches in the ClusterMachine but found %d", len(res.TypedSpec().Value.Patches))
+			patches, err := res.TypedSpec().Value.GetUncompressedPatches()
+			assertions.NoError(err)
+
+			assertions.Len(patches, 3, "expected to have 3 machine patches in the ClusterMachine but found %d", len(patches))
 		},
 	)
 
@@ -577,7 +590,9 @@ func (suite *MachineSetStatusSuite) TestConfigUpdate() {
 		&suite.OmniSuite,
 		*omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, machines[0]).Metadata(),
 		func(res *omni.ClusterMachineConfigPatches, assertions *assert.Assertions) {
-			patches := res.TypedSpec().Value.Patches
+			patches, err := res.TypedSpec().Value.GetUncompressedPatches()
+			assertions.NoError(err)
+
 			assertions.Len(patches, 4, "expected to have 4 machine patches in the ClusterMachine but found %d", len(patches))
 		},
 	)
@@ -609,7 +624,10 @@ func (suite *MachineSetStatusSuite) TestConfigUpdateWithMaxParallelism() {
 			&suite.OmniSuite,
 			*omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, m).Metadata(),
 			func(res *omni.ClusterMachineConfigPatches, assertions *assert.Assertions) {
-				assertions.Len(res.TypedSpec().Value.Patches, 1, "unexpected number of patches in the ClusterMachine")
+				patches, err := res.TypedSpec().Value.GetUncompressedPatches()
+				assertions.NoError(err)
+
+				assertions.Len(patches, 1, "unexpected number of patches in the ClusterMachine")
 			},
 		)
 	}
@@ -627,7 +645,9 @@ func (suite *MachineSetStatusSuite) TestConfigUpdateWithMaxParallelism() {
 
 	machineSetPatch := omni.NewConfigPatch(resources.DefaultNamespace, machineSet.Metadata().ID()+"-patch",
 		pair.MakePair(omni.LabelCluster, clusterName), pair.MakePair(omni.LabelMachineSet, machineSet.Metadata().ID()))
-	machineSetPatch.TypedSpec().Value.Data = `{"machine":{"env":{"AAA":"BBB"}}}`
+
+	err = machineSetPatch.TypedSpec().Value.SetUncompressedData([]byte(`{"machine":{"env":{"AAA":"BBB"}}}`))
+	suite.Require().NoError(err)
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, machineSetPatch))
 
@@ -654,7 +674,12 @@ func (suite *MachineSetStatusSuite) TestConfigUpdateWithMaxParallelism() {
 			res, err = event.Resource()
 			suite.Require().NoError(err)
 
-			suite.Len(res.TypedSpec().Value.Patches, 2, "unexpected number of patches in the ClusterMachine")
+			var patches []string
+
+			patches, err = res.TypedSpec().Value.GetUncompressedPatches()
+			suite.Require().NoError(err)
+
+			suite.Len(patches, 2, "unexpected number of patches in the ClusterMachine")
 
 			ids = append(ids, res.Metadata().ID())
 		}
@@ -852,10 +877,11 @@ func (suite *MachineSetStatusSuite) TestMachineLocks() {
 		),
 	)
 
-	patch.TypedSpec().Value.Data = `cluster:
-  allowSchedulingOnControlPlanes: true`
+	err = patch.TypedSpec().Value.SetUncompressedData([]byte(`cluster:
+  allowSchedulingOnControlPlanes: true`))
+	suite.Require().NoError(err)
 
-	suite.Assert().NoError(suite.state.Create(suite.ctx, patch))
+	suite.Require().NoError(suite.state.Create(suite.ctx, patch))
 
 	var eg errgroup.Group
 
@@ -885,13 +911,16 @@ func (suite *MachineSetStatusSuite) TestMachineLocks() {
 	})
 
 	suite.assertMachinePatches(machines, func(machine *omni.ClusterMachineConfigPatches, assertions *assert.Assertions) {
+		patches, patchesErr := machine.TypedSpec().Value.GetUncompressedPatches()
+		assertions.NoError(patchesErr)
+
 		if machine.Metadata().ID() == machines[1] {
-			assertions.Lenf(machine.TypedSpec().Value.Patches, 1, "machine %s is locked but was updated", machine.Metadata().ID())
+			assertions.Lenf(patches, 1, "machine %s is locked but was updated", machine.Metadata().ID())
 
 			return
 		}
 
-		assertions.Lenf(machine.TypedSpec().Value.Patches, 2, "machine %s is not locked but was not updated", machine.Metadata().ID())
+		assertions.Lenf(patches, 2, "machine %s is not locked but was not updated", machine.Metadata().ID())
 	})
 
 	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, machineSetNode.Metadata(), func(res *omni.MachineSetNode) error {
@@ -903,7 +932,10 @@ func (suite *MachineSetStatusSuite) TestMachineLocks() {
 	suite.Require().NoError(err)
 
 	suite.assertMachinePatches(machines, func(machine *omni.ClusterMachineConfigPatches, assertions *assert.Assertions) {
-		assertions.Lenf(machine.TypedSpec().Value.Patches, 2, "machine %s is not locked but was not updated", machine.Metadata().ID())
+		patches, patchesErr := machine.TypedSpec().Value.GetUncompressedPatches()
+		assertions.NoError(patchesErr)
+
+		assertions.Lenf(patches, 2, "machine %s is not locked but was not updated", machine.Metadata().ID())
 	})
 }
 
@@ -932,7 +964,10 @@ func (suite *MachineSetStatusSuite) assertMachinesState(machines []string, clust
 	})
 
 	suite.assertMachinePatches(machines, func(res *omni.ClusterMachineConfigPatches, assertions *assert.Assertions) {
-		assertions.NotEmpty(res.TypedSpec().Value.Patches, "expected to have machine patches in the ClusterMachine")
+		patches, err := res.TypedSpec().Value.GetUncompressedPatches()
+		assertions.NoError(err)
+
+		assertions.NotEmpty(patches, "expected to have machine patches in the ClusterMachine")
 	})
 }
 

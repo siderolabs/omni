@@ -1220,13 +1220,13 @@ func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client, cli
 		clusterAuthorized.TypedSpec().Value.KubernetesVersion = "1.27.3"
 
 		err = userState.Create(ctx, clusterAuthorized)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		t.Cleanup(func() { destroy(ctx, t, rootCli, clusterAuthorized.Metadata()) })
 
 		// try to get the unauthorized cluster using the user client - should work, as the user has the Reader role
 		_, err = userState.Get(ctx, clusterUnauthorized.Metadata())
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		//  try to modify the unauthorized cluster using the user client
 		clusterUnauthorized.TypedSpec().Value.TalosVersion = "1.4.5"
@@ -1236,7 +1236,7 @@ func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client, cli
 
 		// try to get the authorized cluster using the user client
 		_, err = userState.Get(ctx, clusterAuthorized.Metadata())
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// test the logic for a config patch without any cluster association
 		configPatchUnauthorized := omni.NewConfigPatch(resources.DefaultNamespace, "unauthorized-"+testID)
@@ -1248,10 +1248,11 @@ func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client, cli
 		configPatchAuthorized := omni.NewConfigPatch(resources.DefaultNamespace, "authorized"+testID)
 		configPatchAuthorized.Metadata().Labels().Set(omni.LabelCluster, clusterAuthorized.Metadata().ID())
 
-		configPatchAuthorized.TypedSpec().Value.Data = "debug: true"
+		err = configPatchAuthorized.TypedSpec().Value.SetUncompressedData([]byte("debug: true"))
+		require.NoError(t, err)
 
 		err = userState.Create(ctx, configPatchAuthorized)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		t.Cleanup(func() { destroy(ctx, t, rootCli, configPatchAuthorized.Metadata()) })
 	}

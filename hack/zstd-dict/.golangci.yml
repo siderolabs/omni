@@ -1,0 +1,161 @@
+# THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
+#
+# Generated on 2024-09-05T11:23:56Z by kres b5ca957.
+
+# options for analysis running
+run:
+  timeout: 10m
+  issues-exit-code: 1
+  tests: true
+  build-tags: [ ]
+  modules-download-mode: readonly
+
+# output configuration options
+output:
+  formats:
+    - format: colored-line-number
+      path: stdout
+  print-issued-lines: true
+  print-linter-name: true
+  uniq-by-line: true
+  path-prefix: ""
+
+# all available settings of specific linters
+linters-settings:
+  dogsled:
+    max-blank-identifiers: 2
+  dupl:
+    threshold: 150
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  exhaustive:
+    default-signifies-exhaustive: false
+  gci:
+    sections:
+      - standard # Standard section: captures all standard packages.
+      - default # Default section: contains all imports that could not be matched to another section type.
+      - localmodule # Imports from the same module.
+  gocognit:
+    min-complexity: 30
+  nestif:
+    min-complexity: 5
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  gocritic:
+    disabled-checks: [ ]
+  gocyclo:
+    min-complexity: 20
+  godot:
+    scope: declarations
+  gofmt:
+    simplify: true
+  gomodguard: { }
+  govet:
+    enable-all: true
+  lll:
+    line-length: 200
+    tab-width: 4
+  misspell:
+    locale: US
+    ignore-words: [ ]
+  nakedret:
+    max-func-lines: 30
+  prealloc:
+    simple: true
+    range-loops: true # Report preallocation suggestions on range loops, true by default
+    for-loops: false # Report preallocation suggestions on for loops, false by default
+  nolintlint:
+    allow-unused: false
+    allow-no-explanation: [ ]
+    require-explanation: false
+    require-specific: true
+  rowserrcheck: { }
+  testpackage: { }
+  unparam:
+    check-exported: false
+  unused:
+    local-variables-are-used: false
+  whitespace:
+    multi-if: false   # Enforces newlines (or comments) after every multi-line if statement
+    multi-func: false # Enforces newlines (or comments) after every multi-line function signature
+  wsl:
+    strict-append: true
+    allow-assign-and-call: true
+    allow-multiline-assign: true
+    allow-cuddle-declarations: false
+    allow-trailing-comment: false
+    force-case-trailing-whitespace: 0
+    force-err-cuddling: false
+    allow-separated-leading-comment: false
+  gofumpt:
+    extra-rules: false
+  cyclop:
+    # the maximal code complexity to report
+    max-complexity: 20
+  depguard:
+    rules:
+      prevent_unmaintained_packages:
+        list-mode: lax # allow unless explicitly denied
+        files:
+          - $all
+        deny:
+          - pkg: io/ioutil
+            desc: "replaced by io and os packages since Go 1.16: https://tip.golang.org/doc/go1.16#ioutil"
+      prevent_sync_errgroup:
+        deny:
+          - desc: Use github.com/siderolabs/omni/client/pkg/panichandler.ErrGroup instead
+            pkg: golang.org/x/sync/errgroup
+        files:
+          - $all
+          - '!$test'
+          - '!**/integration-test/**'
+          - '!**/omnictl/**'
+          - '!**/panichandler/**'
+        list-mode: lax
+
+linters:
+  enable-all: true
+  disable-all: false
+  fast: false
+  disable:
+    - exhaustruct
+    - err113
+    - forbidigo
+    - funlen
+    - gochecknoglobals
+    - gochecknoinits
+    - godox
+    - gomnd
+    - gomoddirectives
+    - gosec
+    - inamedparam
+    - ireturn
+    - mnd
+    - nestif
+    - nonamedreturns
+    - paralleltest
+    - tagalign
+    - tagliatelle
+    - thelper
+    - varnamelen
+    - wrapcheck
+    - testifylint # complains about our assert recorder and has a number of false positives for assert.Greater(t, thing, 1)
+    - protogetter # complains about us using Value field on typed spec, instead of GetValue which has a different signature
+    - perfsprint # complains about us using fmt.Sprintf in non-performance critical code, updating just kres took too long
+    - goimports # same as gci
+    - musttag # seems to be broken - goes into imported libraries and reports issues there
+
+issues:
+  exclude: [ ]
+  exclude-rules: [ ]
+  exclude-use-default: false
+  exclude-case-sensitive: false
+  max-issues-per-linter: 10
+  max-same-issues: 3
+  new: false
+
+severity:
+  default-severity: error
+  case-sensitive: false

@@ -83,7 +83,7 @@ machine:
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			err := omni.ValidateConfigPatch(tt.config)
+			err := omni.ValidateConfigPatch([]byte(tt.config))
 			if tt.expectedError != "" {
 				require.Error(t, err, tt.expectedError)
 				require.EqualError(t, err, tt.expectedError)

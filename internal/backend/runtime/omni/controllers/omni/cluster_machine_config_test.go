@@ -12,7 +12,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/siderolabs/go-retry/retry"
-	"github.com/siderolabs/talos/pkg/machinery/config"
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
 	"github.com/siderolabs/talos/pkg/machinery/config/machine"
 	"github.com/stretchr/testify/assert"
@@ -51,11 +50,14 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 
 	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
 		func(config *omni.ClusterMachineConfigPatches) error {
-			config.TypedSpec().Value.Patches = append(config.TypedSpec().Value.Patches, `machine:
+			patches, err := config.TypedSpec().Value.GetUncompressedPatches()
+			suite.Require().NoError(err)
+
+			patches = append(patches, `machine:
   network:
     hostname: patched-node`)
 
-			return nil
+			return config.TypedSpec().Value.SetUncompressedPatches(patches)
 		},
 	)
 
@@ -66,10 +68,15 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 			&suite.OmniSuite,
 			*omni.NewClusterMachineConfig(resources.DefaultNamespace, m.Metadata().ID()).Metadata(),
 			func(cfg *omni.ClusterMachineConfig, assertions *assert.Assertions) {
-				var machineconfig config.Provider
+				buffer, bufferErr := cfg.TypedSpec().Value.GetUncompressedData()
+				suite.Require().NoError(bufferErr)
 
-				machineconfig, err = configloader.NewFromBytes(cfg.TypedSpec().Value.Data)
-				suite.Require().NoError(err)
+				defer buffer.Free()
+
+				configData := buffer.Data()
+
+				machineconfig, mcErr := configloader.NewFromBytes(configData)
+				suite.Require().NoError(mcErr)
 
 				expectedType := machine.TypeWorker
 				if _, ok := m.Metadata().Labels().Get(omni.LabelControlPlaneRole); ok {
@@ -102,11 +109,14 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 
 	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
 		func(config *omni.ClusterMachineConfigPatches) error {
-			config.TypedSpec().Value.Patches = append(config.TypedSpec().Value.Patches, `machine:
+			patches, patchesErr := config.TypedSpec().Value.GetUncompressedPatches()
+			suite.Require().NoError(patchesErr)
+
+			patches = append(patches, `machine:
   install:
     image: `+newImage)
 
-			return nil
+			return config.TypedSpec().Value.SetUncompressedPatches(patches)
 		},
 	)
 
@@ -118,10 +128,15 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 		func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
 			spec := res.TypedSpec().Value
 
-			var machineconfig config.Provider
+			buffer, bufferErr := spec.GetUncompressedData()
+			suite.Require().NoError(bufferErr)
 
-			machineconfig, err = configloader.NewFromBytes(spec.Data)
-			suite.Require().NoError(err)
+			defer buffer.Free()
+
+			configData := buffer.Data()
+
+			machineconfig, configErr := configloader.NewFromBytes(configData)
+			suite.Require().NoError(configErr)
 
 			assertions.Equal(newImage, machineconfig.Machine().Install().Image())
 		},
@@ -157,13 +172,16 @@ func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 
 	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
 		func(config *omni.ClusterMachineConfigPatches) error {
-			config.TypedSpec().Value.Patches = append(config.TypedSpec().Value.Patches, `machine:
+			patches, err := config.TypedSpec().Value.GetUncompressedPatches()
+			suite.Require().NoError(err)
+
+			patches = append(patches, `machine:
   network:
     interfaces:
       - interface: eth42
         bridge: invalidValueType`)
 
-			return nil
+			return config.TypedSpec().Value.SetUncompressedPatches(patches)
 		},
 	)
 
@@ -174,7 +192,15 @@ func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 		*omni.NewClusterMachineConfig(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
 		func(cfg *omni.ClusterMachineConfig, assert *assert.Assertions) {
 			expectedError := "yaml: unmarshal errors"
-			assert.Contains(cfg.TypedSpec().Value.GenerationError, expectedError, string(cfg.TypedSpec().Value.GetData()))
+
+			buffer, bufferErr := cfg.TypedSpec().Value.GetUncompressedData()
+			suite.Require().NoError(bufferErr)
+
+			defer buffer.Free()
+
+			data := buffer.Data()
+
+			assert.Contains(cfg.TypedSpec().Value.GenerationError, expectedError, string(data))
 			assert.Empty(cfg.TypedSpec().Value.ClusterMachineVersion)
 		},
 	)

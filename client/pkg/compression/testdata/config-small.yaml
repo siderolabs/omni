@@ -1,0 +1,114 @@
+cluster:
+  ca:
+    crt: t9hj9r..Yfr6xH5uBlrFLKDRvNSpql-+B2VdD-bMv/.fTNFvU6FvQu+phvXKH36YiFf8.BOAAXNlWaZz-83ddEqpc2cBlKDI+PsaPxsnqd3NQz/.UbLCL1APbLvwVfq4dlvSfqn/pIbdppsFqIME54S.v+fZmfPYJNhSDXvsEj+1SiTgi=O6NT4W2x.0LF8u8f3qQUQw_PFRvVfUsxGP=5uefZp/RMjcxIjUYPFUmDNQvcPesW8=jC=TllrlD=2VaTT6E.2qbR8M8r.4A98-cEWSKedd+cqxI0iDQ-eq08unoJdtL6+/5qIDXudUpB4=faEHXEZG8=iZTZoIh6t4xqF9z=-DtuZF4BxLvGoLngfFvxpK_XiGfmTb/S6wWGdThzD2wh76zOl0nPUqs61ZolRiMYcvdaL90UhPl0nosb0mNmXwPrYIbNtA7CYZ69/8G_o3Q2xAMYhmAdg2+h4CtI=HdQ2hLTDAJaSuH9hHB4CsSF73HXaUd4XS7ZczZovMG+vLe_QTfCT_m-hVZ1t+13CbHwN8S8t+gM+hlbRhq3AcoApaiKD0P_.KXJo-L5L0q+ybYlBwYFZ6=7I7hrCXqsxzLQPAP+MkPwEDOLiP67paOSm=F.iI6AuUioo=dzE.h.-yp=NdCC8BXZzkzB6cI80nkOh/S5XZPYpzlIZVDOny7pVxV9msCuUEIWA+aFeB8sz+DVv0.h4ZECoCyQM7iPWehp=/cPSrNJTg0zQRj0kpvqGwA1RMX_wys3vv2WuLKdhFJ/pvCF97cNdQmngvL+=v+J1sC8PaGBxC=0KLr1eJHM1.=Fr9ZJ_P9Ohr3hQJNgLZ6iEb-NUo2td5bT2EJWnl0ee6Hg/gJpqzyfS69AEyhVDy0veN8jxv93QFl-tY13WLCVS8oR.oIIbPj+.xQ5Os8eKz-4D_FPZdot+mmxV_gL3Y6cujD6Fa7OQVYb-o+RxDM3j9AFULTVw8WtYqfvo6BnBwtnJ-tlNFMsR3M58rSXk0--Pan9DF69Zlz-6_
+    key: ""
+  controlPlane:
+    endpoint: https://[fdae:41e4:649b:9303::1]:10000
+  discovery:
+    enabled: true
+    registries:
+      kubernetes:
+        disabled: true
+      service:
+        endpoint: http://[fdae:41e4:649b:9303::1]:8093
+  id: lH.4i4UV1J9+Quf8gqriGdXPsrXY=Q25_XOw7U70o=KxMu304ivAwqMxyOuz_rDo
+  inlineManifests:
+    - contents: |-
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata:
+          name: omni-kube-service-exposer
+        rules:
+          - apiGroups: [""]
+            resources: ["services"]
+            verbs: ["get", "list", "watch"]
+        ---
+        apiVersion: v1
+        kind: ServiceAccount
+        metadata:
+          name: omni-kube-service-exposer
+          namespace: kube-system
+        ---
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRoleBinding
+        metadata:
+          name: omni-kube-service-exposer
+        roleRef:
+          apiGroup: rbac.authorization.k8s.io
+          kind: ClusterRole
+          name: omni-kube-service-exposer
+        subjects:
+          - kind: ServiceAccount
+            name: omni-kube-service-exposer
+            namespace: kube-system
+        ---
+        apiVersion: apps/v1
+        kind: DaemonSet
+        metadata:
+          name: omni-kube-service-exposer
+          namespace: kube-system
+        spec:
+          selector:
+            matchLabels:
+              app.kubernetes.io/name: omni-kube-service-exposer
+          template:
+            metadata:
+              labels:
+                app.kubernetes.io/name: omni-kube-service-exposer
+            spec:
+              serviceAccountName: omni-kube-service-exposer
+              hostNetwork: true
+              dnsPolicy: ClusterFirstWithHostNet
+              tolerations:
+                - operator: Exists
+              containers:
+                - name: omni-kube-service-exposer
+                  image: ghcr.io/siderolabs/kube-service-exposer:v0.2.0
+                  args:
+                    - --debug=false
+                    - --annotation-key=omni-kube-service-exposer.sidero.dev/port
+                    # siderolink CIDR
+                    - --bind-cidrs="fdae:41e4:649b:9303::/64"
+                    - --disallowed-host-port-ranges=6443,10250,50000-50001
+      name: omni-kube-service-exposer
+  network:
+    dnsDomain: cluster.local
+    podSubnets:
+      - 10.244.0.0/16
+    serviceSubnets:
+      - 10.96.0.0/12
+  secret: fj0hiDVf5z3jZDTkQFrh4wj-tHisbrvrooLWBiwb4uuXW0bTe+xO6GAPoR+TLCUe
+  token: sHkLEpnzQ6.05k5cf5=SxK_O.kS1U9Jv
+debug: false
+machine:
+  ca:
+    crt: aG5ofXB9+ivOiD2AkxiDsxkCshhkvTb35NsbQQbDkuLYdmQ0CCh9/pj8vESTroSJyYJJOCsL+rYAQFUsqenOcVp.ZP4aec61u1ODfY7jxg+treEvReTluZCOOVvlGqgvE7A.z2QT9NQYqN4tKfKbKz=f03dTGStzQR8x8kqZ7yp9pxeSl3.F9E6dbf1KFrwDP2aO6I1E+V5pJqleZzDUCU7Y4j7dpuUQ_3uy2_/zCVpQxyZP_lTVS-xw5oFXdp_VdhJp=Mtemk1+iIK/DDo3i-xuWYmtHNLrPAkmL5N8v2Kd11c+ICHVnr=JF1QCLEPpKtfb3eSi08qG1j.FrMLwUnz7Ui-uBGH4VPPP/PqxzMw95d.JV4T4qRJgHa_wfztHDBj13DUU1oX4SF01FImPAid3Ocg-yF_0opqx/n6AAAfgMHJ=p+1brP-+59Kcxp/LA-d9sVPgJuOhLedfreAIak6o7_VX9XxRbs4sl1BoyDu/-v.t_GOrdBRV3ADySy.jee7VHY/=75Gn5Yi8+-efai0B1H=_G/uqTB1BrP/4FWPU2KU=-bN3ArHraFY5VXtXisrAak=JDVvETA/2kCmRKbLK0mCWpMcZwabw7/G1wi4JhLR.NI-M5+3LC2tsbMXtTImntQfYBQvRf-d=I9QBA+pYqU=1Y0435mS8Zs5IplpOp/tt61YVGSAXbsOvSNfzJQsuauE4=eM58h5vZ++9j9aokp638sDx7wRBV9HSmz.QKQQlx+g2Hxkjnhjvg0n7gLzNqEbzLGX15xZ2=p2a=u/xiQuAH/vT/kzTJktlDTaqT29ZVrmQ6gf=N5bPGp2phcNVgTp_Wp_R/ePWZlH3AqNGNqSxh59XQuBmGmC3Vex-s4WmwCDTdOWIcvSW-NUD7xayYIlnX/eiy/2Tr=_QYajy7Ots-_IlrNcWn8o67OO0NDoG9Pp_/3FNOX9TRl_8jk-2oH=rMH.D_VDTFmyeV-Tq2U0.C5MIi3ghvbuwKWBJDrdFfc5C_kPe6E3splFJ
+    key: ""
+  certSANs:
+    - K3wY9n1gFvXrnz2xzYAKVP+tv/rVWwgY.net
+  features:
+    apidCheckExtKeyUsage: true
+    diskQuotaSupport: true
+    hostDNS:
+      enabled: true
+    kubePrism:
+      enabled: true
+      port: 7445
+    rbac: true
+    stableHostname: true
+  install:
+    disk: /dev/vda
+    image: factory.talos.dev/installer/8gNNqLWHQ4hd3LDLAtOVbzZJKwLAC-qo/0Y==kqfblGT3IOn-EJj_HeWms_yEFRG:v1.7.4
+    wipe: false
+  kubelet:
+    defaultRuntimeSeccompProfileEnabled: true
+    disableManifestsDirectory: true
+    image: ghcr.io/siderolabs/kubelet:v1.30.1
+  network:
+    kubespan:
+      enabled: true
+  registries: {}
+  token: -ZEdlNW0a-KFbZFB-AZWvfJycrdzJ7o5
+  type: worker
+persist: true
+version: v1alpha1

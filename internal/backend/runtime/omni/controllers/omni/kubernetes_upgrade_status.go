@@ -334,8 +334,17 @@ func applyUpgradePatches(ctx context.Context, r controller.Writer, cluster *omni
 			func(configPatch *omni.ConfigPatch) error {
 				var cfg v1alpha1.Config
 
-				if configPatch.TypedSpec().Value.Data != "" {
-					if err := yaml.Unmarshal([]byte(configPatch.TypedSpec().Value.Data), &cfg); err != nil {
+				buffer, err := configPatch.TypedSpec().Value.GetUncompressedData()
+				if err != nil {
+					return err
+				}
+
+				defer buffer.Free()
+
+				patchData := buffer.Data()
+
+				if len(patchData) > 0 {
+					if err = yaml.Unmarshal(patchData, &cfg); err != nil {
 						return err
 					}
 				}
@@ -358,7 +367,9 @@ func applyUpgradePatches(ctx context.Context, r controller.Writer, cluster *omni
 					return err
 				}
 
-				configPatch.TypedSpec().Value.Data = string(data)
+				if err = configPatch.TypedSpec().Value.SetUncompressedData(data); err != nil {
+					return err
+				}
 
 				anyPatchApplied = true
 

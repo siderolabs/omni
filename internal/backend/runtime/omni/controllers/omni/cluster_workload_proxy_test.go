@@ -41,7 +41,14 @@ func (suite *ClusterWorkloadProxySuite) TestReconcile() {
 	configPatch := omni.NewConfigPatch(resources.DefaultNamespace, configPatchID)
 
 	assertResource(&suite.OmniSuite, configPatch.Metadata(), func(res *omni.ConfigPatch, assertion *assert.Assertions) {
-		assertion.Contains(res.TypedSpec().Value.Data, "omni-kube-service-exposer")
+		buffer, err := res.TypedSpec().Value.GetUncompressedData()
+		assertion.NoError(err)
+
+		defer buffer.Free()
+
+		data := string(buffer.Data())
+
+		assertion.Contains(data, "omni-kube-service-exposer")
 	})
 
 	cluster.TypedSpec().Value.GetFeatures().EnableWorkloadProxy = false

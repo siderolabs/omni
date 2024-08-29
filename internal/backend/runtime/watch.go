@@ -69,6 +69,15 @@ func NewWatchResponse(eventType resources.EventType, res, old any) (*resources.W
 
 // MarshalJSON encodes resource as JSON using jsonpb marshaler for proto.Messages or a standard marshaler.
 func MarshalJSON(res any) (string, error) {
+	if marshaler, ok := res.(json.Marshaler); ok {
+		marshaled, err := marshaler.MarshalJSON()
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal resource: %w", err)
+		}
+
+		return string(marshaled), nil
+	}
+
 	if m, ok := res.(proto.Message); ok {
 		opts := protojson.MarshalOptions{
 			UseProtoNames:  true,

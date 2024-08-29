@@ -135,11 +135,12 @@ func CreateClusterWithMachineClass(testCtx context.Context, st state.State, opti
 		kubespanEnabler := omni.NewConfigPatch(resources.DefaultNamespace, fmt.Sprintf("%s-kubespan-enabler", options.Name))
 		kubespanEnabler.Metadata().Labels().Set(omni.LabelCluster, options.Name)
 
-		kubespanEnabler.TypedSpec().Value.Data = `machine:
+		err := kubespanEnabler.TypedSpec().Value.SetUncompressedData([]byte(`machine:
   network:
     kubespan:
       enabled: true
-`
+`))
+		require.NoError(err)
 
 		require.NoError(st.Create(ctx, cluster))
 		require.NoError(st.Create(ctx, kubespanEnabler))
@@ -175,12 +176,10 @@ func CreateClusterWithMachineClass(testCtx context.Context, st state.State, opti
 				cps.Metadata().Labels().Set(omni.LabelCluster, options.Name)
 				cps.Metadata().Labels().Set(omni.LabelClusterMachine, machineID)
 
-				cps.TypedSpec().Value.Data = fmt.Sprintf(`machine:
+				return cps.TypedSpec().Value.SetUncompressedData([]byte(fmt.Sprintf(`machine:
   kubelet:
     extraArgs:
-      node-labels: %s=%s`, nodeLabel, machineID)
-
-				return nil
+      node-labels: %s=%s`, nodeLabel, machineID)))
 			})
 		}
 
@@ -681,9 +680,7 @@ func bindMachine(ctx context.Context, t *testing.T, st state.State, bindOpts bin
 			return err
 		}
 
-		cps.TypedSpec().Value.Data = string(patchBytes)
-
-		return nil
+		return cps.TypedSpec().Value.SetUncompressedData(patchBytes)
 	})
 
 	id := omni.WorkersResourceID(bindOpts.clusterName)

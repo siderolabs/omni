@@ -38,6 +38,7 @@ spec:
           network:
             kubespan:
               enabled: true
+    compresseddata: []
 ---
 metadata:
     namespace: default
@@ -61,6 +62,7 @@ spec:
                 endpoints:
                   - https://ghcr.io
                   - https://ghcr.mirror.com
+    compresseddata: []
 ---
 metadata:
     namespace: default
@@ -117,6 +119,7 @@ spec:
             network:
                 kubespan:
                     enabled: false
+    compresseddata: []
 ---
 metadata:
     namespace: default
@@ -173,6 +176,7 @@ spec:
         machine:
             install:
                 disk: /dev/vdb
+    compresseddata: []
 ---
 metadata:
     namespace: default
@@ -198,3 +202,4 @@ spec:
                       interface: eth0
                       routes:
                         - gateway: 192.168.0.1
+    compresseddata: []

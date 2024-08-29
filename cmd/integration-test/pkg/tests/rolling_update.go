@@ -66,7 +66,8 @@ func AssertWorkerNodesRollingConfigUpdate(testCtx context.Context, cli *client.C
 			pair.MakePair(omni.LabelCluster, clusterName),
 			pair.MakePair(omni.LabelMachineSet, workersResourceID))
 
-		machineSetPatch.TypedSpec().Value.Data = fmt.Sprintf(`{"machine":{"env":{"%d":"test-val"}}}`, epochSeconds)
+		err = machineSetPatch.TypedSpec().Value.SetUncompressedData([]byte(fmt.Sprintf(`{"machine":{"env":{"%d":"test-val"}}}`, epochSeconds)))
+		require.NoError(t, err)
 
 		require.NoError(t, st.Create(ctx, machineSetPatch))
 

@@ -262,7 +262,7 @@ func (s *managementServer) ValidateConfig(ctx context.Context, request *manageme
 		return nil, err
 	}
 
-	if err := omnires.ValidateConfigPatch(request.Config); err != nil {
+	if err := omnires.ValidateConfigPatch([]byte(request.Config)); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 

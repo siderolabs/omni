@@ -150,7 +150,16 @@ func writeYAML(writer io.Writer, modelList models.List) (err error) {
 func transformConfigPatchToModel(configPatch *omni.ConfigPatch) (models.Patch, error) {
 	var data map[string]any
 
-	if err := yaml.Unmarshal([]byte(configPatch.TypedSpec().Value.GetData()), &data); err != nil {
+	buffer, err := configPatch.TypedSpec().Value.GetUncompressedData()
+	if err != nil {
+		return models.Patch{}, fmt.Errorf("failed to get patch data for patch %q: %w", configPatch.Metadata().ID(), err)
+	}
+
+	defer buffer.Free()
+
+	patchData := buffer.Data()
+
+	if err = yaml.Unmarshal(patchData, &data); err != nil {
 		return models.Patch{}, fmt.Errorf("failed to unmarshal patch %q: %w", configPatch.Metadata().ID(), err)
 	}
 
@@ -510,7 +519,16 @@ func getInstallDiskFromConfigPatch(configPatch *omni.ConfigPatch) string {
 
 	var data map[string]any
 
-	if err := yaml.Unmarshal([]byte(configPatch.TypedSpec().Value.GetData()), &data); err != nil {
+	buffer, err := configPatch.TypedSpec().Value.GetUncompressedData()
+	if err != nil {
+		return "" // ignore the error, as it will be caught by the validation later
+	}
+
+	defer buffer.Free()
+
+	patchData := buffer.Data()
+
+	if err = yaml.Unmarshal(patchData, &data); err != nil {
 		return "" // ignore the error, as it will be caught by the validation later
 	}
 

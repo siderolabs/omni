@@ -368,7 +368,15 @@ func handleConfigPatch(data *audit.Data, res *omni.ConfigPatch) error {
 
 	data.ConfigPatch.ID = res.Metadata().ID()
 	data.ConfigPatch.Labels = maps.Clone(res.Metadata().Labels().Raw())
-	data.ConfigPatch.Data = res.TypedSpec().Value.GetData()
+
+	buffer, err := res.TypedSpec().Value.GetUncompressedData()
+	if err != nil {
+		return err
+	}
+
+	defer buffer.Free()
+
+	data.ConfigPatch.Data = string(buffer.Data())
 
 	return nil
 }

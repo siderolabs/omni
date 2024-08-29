@@ -84,11 +84,9 @@ func AssertLargeImmediateConfigApplied(testCtx context.Context, cli *client.Clie
 
 		configPatch := omni.NewConfigPatch(resources.DefaultNamespace, id, pair.MakePair(omni.LabelCluster, clusterName))
 
-		// apply large config patch that creates a dummy interface
+		// apply the large config patch that creates a dummy interface
 		createOrUpdate(ctx, t, st, configPatch, func(p *omni.ConfigPatch) error {
-			p.TypedSpec().Value.Data = sb.String()
-
-			return nil
+			return p.TypedSpec().Value.SetUncompressedData([]byte(configPatchYAML))
 		})
 
 		t.Logf("created large config patch with dummy interface: %q", iface)
@@ -97,7 +95,7 @@ func AssertLargeImmediateConfigApplied(testCtx context.Context, cli *client.Clie
 		cmIDs := rtestutils.ResourceIDs[*omni.ClusterMachineConfigPatches](ctx, t, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
 
 		rtestutils.AssertResources(ctx, t, st, cmIDs, func(cm *omni.ClusterMachineConfigPatches, assertion *assert.Assertions) {
-			assertion.True(clusterMachinePatchesContainsString(cm, iface), "cluster machine %q patches don't contain string %q", cm.Metadata().ID(), iface)
+			assertion.True(clusterMachinePatchesContainsString(t, cm, iface), "cluster machine %q patches don't contain string %q", cm.Metadata().ID(), iface)
 		})
 
 		linkStatus := network.NewLinkStatus(network.NamespaceName, "")
@@ -140,7 +138,7 @@ func AssertLargeImmediateConfigApplied(testCtx context.Context, cli *client.Clie
 
 		// assert that the patch deletion is propagated to all clustermachines
 		rtestutils.AssertResources(ctx, t, st, cmIDs, func(cm *omni.ClusterMachineConfigPatches, assertion *assert.Assertions) {
-			assertion.False(clusterMachinePatchesContainsString(cm, iface), "cluster machine %q patches contain string %q", cm.Metadata().ID(), iface)
+			assertion.False(clusterMachinePatchesContainsString(t, cm, iface), "cluster machine %q patches contain string %q", cm.Metadata().ID(), iface)
 		})
 	}
 }
@@ -182,11 +180,9 @@ func AssertConfigPatchWithReboot(testCtx context.Context, cli *client.Client, cl
 			pair.MakePair(omni.LabelCluster, clusterName),
 			pair.MakePair(omni.LabelClusterMachine, nodeID))
 
-		// apply config patch that creates a file
+		// apply the config patch that creates a file
 		createOrUpdate(ctx, t, st, configPatch, func(p *omni.ConfigPatch) error {
-			p.TypedSpec().Value.Data = configPatchYAML
-
-			return nil
+			return p.TypedSpec().Value.SetUncompressedData([]byte(configPatchYAML))
 		})
 
 		t.Logf("created config patch with file: %q", file)
@@ -195,7 +191,7 @@ func AssertConfigPatchWithReboot(testCtx context.Context, cli *client.Client, cl
 
 		// assert that the patch is propagated to all clustermachines
 		rtestutils.AssertResources(ctx, t, st, []resource.ID{nodeID}, func(cm *omni.ClusterMachineConfigPatches, assertion *assert.Assertions) {
-			assertion.True(clusterMachinePatchesContainsString(cm, file), "cluster machine %q patches don't contain string %q", file, cm.Metadata().ID())
+			assertion.True(clusterMachinePatchesContainsString(t, cm, file), "cluster machine %q patches don't contain string %q", file, cm.Metadata().ID())
 		})
 
 		// assert that machine set enters into reconfiguring phase
@@ -265,11 +261,9 @@ func AssertConfigPatchWithInvalidConfig(testCtx context.Context, cli *client.Cli
 			pair.MakePair(omni.LabelCluster, clusterName),
 			pair.MakePair(omni.LabelClusterMachine, cmID))
 
-		// apply broken config patch
+		// apply the broken config patch
 		createOrUpdate(ctx, t, st, configPatch, func(p *omni.ConfigPatch) error {
-			p.TypedSpec().Value.Data = configPatchYAML
-
-			return nil
+			return p.TypedSpec().Value.SetUncompressedData([]byte(configPatchYAML))
 		})
 
 		t.Logf("created config patch with file: %q", file)
@@ -319,25 +313,23 @@ func AssertConfigPatchMachineSet(testCtx context.Context, cli *client.Client, cl
 			pair.MakePair(omni.LabelMachineSet, workerMachineSetName),
 		)
 
-		// apply config patch that creates a dummy interface
+		// apply the config patch that creates a dummy interface
 		createOrUpdate(ctx, t, st, configPatch, func(p *omni.ConfigPatch) error {
-			p.TypedSpec().Value.Data = configPatchYAML
-
-			return nil
+			return p.TypedSpec().Value.SetUncompressedData([]byte(configPatchYAML))
 		})
 
 		// assert that the patch is propagated to all worker machine set ClusterMachines
 		workerIDs := rtestutils.ResourceIDs[*omni.ClusterMachineConfigPatches](ctx, t, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, workerMachineSetName)))
 
 		rtestutils.AssertResources(ctx, t, st, workerIDs, func(cm *omni.ClusterMachineConfigPatches, assertion *assert.Assertions) {
-			assertion.True(clusterMachinePatchesContainsString(cm, iface), "cluster machine %q patches don't contain string %q", cm.Metadata().ID(), iface)
+			assertion.True(clusterMachinePatchesContainsString(t, cm, iface), "cluster machine %q patches don't contain string %q", cm.Metadata().ID(), iface)
 		})
 
 		// assert that the patch is *NOT* propagated to all controlplane machine set ClusterMachines
 		controlPlaneIDs := rtestutils.ResourceIDs[*omni.ClusterMachineConfigPatches](ctx, t, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, controlPlaneMachineSetName)))
 
 		rtestutils.AssertResources(ctx, t, st, controlPlaneIDs, func(cm *omni.ClusterMachineConfigPatches, assertion *assert.Assertions) {
-			assertion.False(clusterMachinePatchesContainsString(cm, iface), "cluster machine %q patches contain string %q", cm.Metadata().ID(), iface)
+			assertion.False(clusterMachinePatchesContainsString(t, cm, iface), "cluster machine %q patches contain string %q", cm.Metadata().ID(), iface)
 		})
 
 		// cleanup
@@ -370,23 +362,21 @@ func AssertConfigPatchSingleClusterMachine(testCtx context.Context, cli *client.
 			pair.MakePair(omni.LabelCluster, clusterName),
 			pair.MakePair(omni.LabelClusterMachine, cmID))
 
-		// apply config patch
+		// apply the config patch
 		createOrUpdate(ctx, t, st, configPatch, func(p *omni.ConfigPatch) error {
-			p.TypedSpec().Value.Data = configPatchYAML
-
-			return nil
+			return p.TypedSpec().Value.SetUncompressedData([]byte(configPatchYAML))
 		})
 
 		// assert that the patch is propagated to the clustermachine
 		rtestutils.AssertResources(ctx, t, st, []resource.ID{cmID}, func(r *omni.ClusterMachineConfigPatches, assertion *assert.Assertions) {
-			assertion.True(clusterMachinePatchesContainsString(r, iface), "cluster machine %q patches don't contain string %q", r.Metadata().ID(), iface)
+			assertion.True(clusterMachinePatchesContainsString(t, r, iface), "cluster machine %q patches don't contain string %q", r.Metadata().ID(), iface)
 		})
 
 		// assert that the patch is *NOT* propagated to other clustermachines of the cluster
 		otherCMIDs := cmIDs[1:]
 
 		rtestutils.AssertResources(ctx, t, st, otherCMIDs, func(r *omni.ClusterMachineConfigPatches, assertion *assert.Assertions) {
-			assertion.False(clusterMachinePatchesContainsString(r, iface), "cluster machine %q patches contain string %q", r.Metadata().ID(), iface)
+			assertion.False(clusterMachinePatchesContainsString(t, r, iface), "cluster machine %q patches contain string %q", r.Metadata().ID(), iface)
 		})
 
 		// cleanup
@@ -394,8 +384,11 @@ func AssertConfigPatchSingleClusterMachine(testCtx context.Context, cli *client.
 	}
 }
 
-func clusterMachinePatchesContainsString(clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, str string) bool {
-	for _, patch := range clusterMachineConfigPatches.TypedSpec().Value.GetPatches() {
+func clusterMachinePatchesContainsString(t *testing.T, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, str string) bool {
+	patches, err := clusterMachineConfigPatches.TypedSpec().Value.GetUncompressedPatches()
+	require.NoError(t, err)
+
+	for _, patch := range patches {
 		if strings.Contains(patch, str) {
 			return true
 		}

@@ -320,6 +320,7 @@ export type ClusterMachineSpec = {
 
 export type ClusterMachineConfigPatchesSpec = {
   patches?: string[]
+  compressed_patches?: Uint8Array[]
 }
 
 export type ClusterMachineTalosVersionSpec = {
@@ -331,10 +332,12 @@ export type ClusterMachineConfigSpec = {
   data?: Uint8Array
   cluster_machine_version?: string
   generation_error?: string
+  compressed_data?: Uint8Array
 }
 
 export type RedactedClusterMachineConfigSpec = {
   data?: string
+  compressed_data?: Uint8Array
 }
 
 export type ClusterMachineIdentitySpec = {
@@ -440,6 +443,7 @@ export type InstallationMediaSpec = {
 
 export type ConfigPatchSpec = {
   data?: string
+  compressed_data?: Uint8Array
 }
 
 export type MachineSetSpecMachineClass = {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/siderolabs/omni/client/pkg/compression"
 	"github.com/siderolabs/omni/client/pkg/omnictl/config"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
@@ -20,6 +21,9 @@ var RootCmd = &cobra.Command{
 	Long:              ``,
 	SilenceUsage:      true,
 	DisableAutoGenTag: true,
+	PersistentPreRunE: func(*cobra.Command, []string) error {
+		return compression.InitConfig(true)
+	},
 }
 
 func init() {

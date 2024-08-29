@@ -38,6 +38,7 @@ spec:
           network:
             kubespan:
               enabled: true
+    compresseddata: []
 ---
 metadata:
     namespace: default
@@ -61,6 +62,7 @@ spec:
                 endpoints:
                   - https://ghcr.io
                   - https://ghcr.mirror.com
+    compresseddata: []
 ---
 metadata:
     namespace: default
@@ -133,6 +135,7 @@ spec:
             extraArgs:
               cloud-provider: external
               cloud-config: /etc/kubernetes/cloud-config.yaml
+    compresseddata: []
 ---
 metadata:
     namespace: default
@@ -154,6 +157,7 @@ spec:
             network:
                 kubespan:
                     enabled: true
+    compresseddata: []
 ---
 metadata:
     namespace: default
@@ -212,6 +216,7 @@ spec:
         machine:
             install:
                 disk: /dev/vda
+    compresseddata: []
 ---
 metadata:
     namespace: default
@@ -237,3 +242,4 @@ spec:
                       interface: eth0
                       routes:
                         - gateway: 192.168.0.1
+    compresseddata: []

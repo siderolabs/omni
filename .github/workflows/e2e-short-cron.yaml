@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-07-23T13:55:08Z by kres faf91e3.
+# Generated on 2024-09-06T00:35:46Z by kres 8be5fa7.
 
 name: e2e-short-cron
 concurrency:
@@ -54,7 +54,7 @@ jobs:
         timeout-minutes: 10
       - name: Mask secrets
         run: |
-          echo -e "$(sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | "::add-mask::" + .value')"
+          echo "$(sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | "::add-mask::" + .value')"
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"

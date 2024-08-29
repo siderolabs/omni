@@ -7,6 +7,7 @@ package client
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net"
 	"net/url"
 	"slices"
@@ -21,6 +22,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/client/oidc"
 	"github.com/siderolabs/omni/client/pkg/client/omni"
 	"github.com/siderolabs/omni/client/pkg/client/talos"
+	"github.com/siderolabs/omni/client/pkg/compression"
 	"github.com/siderolabs/omni/client/pkg/constants"
 )
 
@@ -33,6 +35,10 @@ type Client struct {
 
 // New creates a new Omni API client.
 func New(endpoint string, opts ...Option) (*Client, error) {
+	if err := compression.InitConfig(true); err != nil {
+		return nil, fmt.Errorf("failed to initialize compression config: %w", err)
+	}
+
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		return nil, err

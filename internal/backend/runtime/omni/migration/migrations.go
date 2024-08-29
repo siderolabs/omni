@@ -103,7 +103,9 @@ func deprecateClusterMachineTemplates(ctx context.Context, s state.State, _ *zap
 			helpers.CopyLabels(val, patch, deprecatedCluster)
 
 			if err = createOrUpdate(ctx, s, patch, func(p *omni.ConfigPatch) error {
-				p.TypedSpec().Value.Data = item.Value.Patch
+				if err = p.TypedSpec().Value.SetUncompressedData([]byte(item.Value.Patch)); err != nil {
+					return err
+				}
 
 				return nil
 			}, ""); err != nil {
@@ -137,7 +139,10 @@ func deprecateClusterMachineTemplates(ctx context.Context, s state.State, _ *zap
 				return err
 			}
 
-			p.TypedSpec().Value.Data = string(data)
+			if err = p.TypedSpec().Value.SetUncompressedData(data); err != nil {
+				return err
+			}
+
 			p.Metadata().Labels().Set("machine-uuid", val.Metadata().ID())
 
 			return nil
@@ -853,6 +858,19 @@ func removeConfigPatchesFromClusterMachines(ctx context.Context, st state.State,
 		return err
 	}
 
+	getPatchData := func(p *omni.ConfigPatch) (string, error) {
+		buffer, bufferErr := p.TypedSpec().Value.GetUncompressedData()
+		if bufferErr != nil {
+			return "", err
+		}
+
+		defer buffer.Free()
+
+		data := buffer.Data()
+
+		return string(data), err
+	}
+
 	return items.ForEachErr(func(item *omni.ClusterMachine) error {
 		owner := omnictrl.NewMachineSetController().ControllerName
 
@@ -875,12 +893,15 @@ func removeConfigPatchesFromClusterMachines(ctx context.Context, st state.State,
 				patchesRaw := make([]string, 0, len(patches))
 
 				for _, p := range patches {
-					patchesRaw = append(patchesRaw, p.TypedSpec().Value.Data)
+					data, dataErr := getPatchData(p)
+					if dataErr != nil {
+						return dataErr
+					}
+
+					patchesRaw = append(patchesRaw, data)
 				}
 
-				res.TypedSpec().Value.Patches = patchesRaw
-
-				return nil
+				return res.TypedSpec().Value.SetUncompressedPatches(patchesRaw)
 			}, owner, state.WithExpectedPhaseAny(),
 		)
 		if err != nil {
@@ -1026,26 +1047,29 @@ func clearEmptyConfigPatches(ctx context.Context, s state.State, _ *zap.Logger) 
 	list, err := safe.StateListAll[*omni.ClusterMachineConfigPatches](ctx, s)
 
 	return list.ForEachErr(func(res *omni.ClusterMachineConfigPatches) error {
-		if len(res.TypedSpec().Value.Patches) == 0 {
+		patches, getErr := res.TypedSpec().Value.GetUncompressedPatches()
+		if getErr != nil {
+			return getErr
+		}
+
+		if len(patches) == 0 {
 			return nil
 		}
 
 		var filteredPatches []string
 
-		for _, patch := range res.TypedSpec().Value.Patches {
+		for _, patch := range patches {
 			if strings.TrimSpace(patch) != "" {
 				filteredPatches = append(filteredPatches, patch)
 			}
 		}
 
-		if len(filteredPatches) == len(res.TypedSpec().Value.Patches) {
+		if len(filteredPatches) == len(patches) {
 			return nil
 		}
 
 		_, err = safe.StateUpdateWithConflicts(ctx, s, res.Metadata(), func(r *omni.ClusterMachineConfigPatches) error {
-			r.TypedSpec().Value.Patches = filteredPatches
-
-			return nil
+			return r.TypedSpec().Value.SetUncompressedPatches(filteredPatches)
 		}, state.WithUpdateOwner(res.Metadata().Owner()), state.WithExpectedPhaseAny())
 
 		return err

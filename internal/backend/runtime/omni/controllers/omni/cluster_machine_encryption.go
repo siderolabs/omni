@@ -100,7 +100,7 @@ func (ctrl *ClusterMachineEncryptionController) Run(ctx context.Context, r contr
 			return err
 		}
 
-		data := buffer.String()
+		data := buffer.Bytes()
 
 		err = clusters.ForEachErr(func(cluster *omni.Cluster) error {
 			if !omni.GetEncryptionEnabled(cluster) {
@@ -114,7 +114,10 @@ func (ctrl *ClusterMachineEncryptionController) Run(ctx context.Context, r contr
 			)
 
 			return safe.WriterModify[*omni.ConfigPatch](ctx, r, patch, func(r *omni.ConfigPatch) error {
-				r.TypedSpec().Value.Data = data
+				if err = r.TypedSpec().Value.SetUncompressedData(data); err != nil {
+					return err
+				}
+
 				r.Metadata().Annotations().Set(omni.ConfigPatchName, constants.EncryptionConfigName)
 				r.Metadata().Annotations().Set(omni.ConfigPatchDescription, constants.EncryptionConfigDescription)
 				r.Metadata().Labels().Set(omni.LabelCluster, clusterName)

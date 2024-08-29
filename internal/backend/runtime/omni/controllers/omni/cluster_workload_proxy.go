@@ -6,10 +6,10 @@
 package omni
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"fmt"
-	"strings"
 	"text/template"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -27,7 +27,7 @@ var kubeServiceExposerConfigPatchTemplate string
 
 // ClusterWorkloadProxyController is a controller that manages cluster workload proxy setting.
 type ClusterWorkloadProxyController struct {
-	configPatchData string
+	configPatchData []byte
 }
 
 // Name returns the name of the controller.
@@ -98,9 +98,7 @@ func (ctrl *ClusterWorkloadProxyController) Run(ctx context.Context, r controlle
 				patch.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 				patch.Metadata().Labels().Set(omni.LabelSystemPatch, "")
 
-				patch.TypedSpec().Value.Data = configPatchData
-
-				return nil
+				return patch.TypedSpec().Value.SetUncompressedData(configPatchData)
 			}); modifyErr != nil {
 				errs = multierror.Append(errs, fmt.Errorf("failed to modify config patch: %w", modifyErr))
 			}
@@ -120,14 +118,14 @@ func (ctrl *ClusterWorkloadProxyController) Run(ctx context.Context, r controlle
 	}
 }
 
-func (ctrl *ClusterWorkloadProxyController) getConfigPatchData() (string, error) {
-	if ctrl.configPatchData != "" {
+func (ctrl *ClusterWorkloadProxyController) getConfigPatchData() ([]byte, error) {
+	if len(ctrl.configPatchData) > 0 {
 		return ctrl.configPatchData, nil
 	}
 
 	tmpl, err := template.New("kube-service-exposer-config-patch").Parse(kubeServiceExposerConfigPatchTemplate)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse template: %w", err)
+		return nil, fmt.Errorf("failed to parse template: %w", err)
 	}
 
 	type tmplOptions struct {
@@ -138,13 +136,13 @@ func (ctrl *ClusterWorkloadProxyController) getConfigPatchData() (string, error)
 		AnnotationKey: ServicePortAnnotationKey,
 	}
 
-	var sb strings.Builder
+	var buf bytes.Buffer
 
-	if err = tmpl.Execute(&sb, opts); err != nil {
-		return "", fmt.Errorf("failed to execute template: %w", err)
+	if err = tmpl.Execute(&buf, opts); err != nil {
+		return nil, fmt.Errorf("failed to execute template: %w", err)
 	}
 
-	ctrl.configPatchData = sb.String()
+	ctrl.configPatchData = buf.Bytes()
 
 	return ctrl.configPatchData, nil
 }

@@ -693,9 +693,10 @@ cluster:
   clusterName: test-cluster-name
 `)
 
-	configPatch.TypedSpec().Value.Data = patchDataNotAllowed
+	err := configPatch.TypedSpec().Value.SetUncompressedData([]byte(patchDataNotAllowed))
+	require.NoError(t, err)
 
-	err := st.Create(ctx, configPatch)
+	err = st.Create(ctx, configPatch)
 	require.ErrorContains(t, err, "is not allowed in the config patch")
 
 	patchDataAllowed := strings.TrimSpace(`
@@ -704,12 +705,14 @@ machine:
     bla: bla
 `)
 
-	configPatch.TypedSpec().Value.Data = patchDataAllowed
+	err = configPatch.TypedSpec().Value.SetUncompressedData([]byte(patchDataAllowed))
+	require.NoError(t, err)
 
 	err = st.Create(ctx, configPatch)
 	require.NoError(t, err)
 
-	configPatch.TypedSpec().Value.Data = patchDataNotAllowed
+	err = configPatch.TypedSpec().Value.SetUncompressedData([]byte(patchDataNotAllowed))
+	require.NoError(t, err)
 
 	err = st.Update(ctx, configPatch)
 	require.ErrorContains(t, err, "is not allowed in the config patch")

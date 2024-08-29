@@ -42,7 +42,14 @@ func (suite *DiscoveryServiceConfigPatchSuite) TestReconcile() {
 
 	// assert that the new clusterStatus is marked to use the embedded discovery service
 	rtestutils.AssertResource[*omni.ConfigPatch](suite.ctx, suite.T(), suite.state, patchID, func(r *omni.ConfigPatch, assertion *assert.Assertions) {
-		assertion.Contains(r.TypedSpec().Value.Data, "http://"+net.JoinHostPort(siderolink.ListenHost, strconv.Itoa(port)))
+		buffer, err := r.TypedSpec().Value.GetUncompressedData()
+		assertion.NoError(err)
+
+		defer buffer.Free()
+
+		data := string(buffer.Data())
+
+		assertion.Contains(data, "http://"+net.JoinHostPort(siderolink.ListenHost, strconv.Itoa(port)))
 	})
 
 	_, err := safe.StateUpdateWithConflicts[*omni.ClusterStatus](suite.ctx, suite.state, clusterStatus.Metadata(), func(res *omni.ClusterStatus) error {

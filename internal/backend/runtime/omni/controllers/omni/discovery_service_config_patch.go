@@ -6,6 +6,7 @@
 package omni
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net"
@@ -34,10 +35,10 @@ type DiscoveryServiceConfigPatchController = qtransform.QController[*omni.Cluste
 
 // NewDiscoveryServiceConfigPatchController initializes DiscoveryServiceConfigPatchController.
 func NewDiscoveryServiceConfigPatchController(embeddedDiscoveryServicePort int) *DiscoveryServiceConfigPatchController {
-	getPatch := sync.OnceValues(func() (string, error) {
-		var sb strings.Builder
+	getPatch := sync.OnceValues(func() ([]byte, error) {
+		var buf bytes.Buffer
 
-		encoder := yaml.NewEncoder(&sb)
+		encoder := yaml.NewEncoder(&buf)
 
 		encoder.SetIndent(2)
 
@@ -52,10 +53,10 @@ func NewDiscoveryServiceConfigPatchController(embeddedDiscoveryServicePort int) 
 				},
 			},
 		}); err != nil {
-			return "", fmt.Errorf("failed to encode patch: %w", err)
+			return nil, fmt.Errorf("failed to encode patch: %w", err)
 		}
 
-		return sb.String(), nil
+		return buf.Bytes(), nil
 	})
 
 	return qtransform.NewQController(
@@ -83,9 +84,7 @@ func NewDiscoveryServiceConfigPatchController(embeddedDiscoveryServicePort int) 
 					return err
 				}
 
-				configPatch.TypedSpec().Value.Data = patchYAML
-
-				return nil
+				return configPatch.TypedSpec().Value.SetUncompressedData(patchYAML)
 			},
 		},
 		qtransform.WithConcurrency(2),

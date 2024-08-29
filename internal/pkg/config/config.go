@@ -80,6 +80,8 @@ type Params struct {
 
 	WorkloadProxying WorkloadProxyingParams `yaml:"workloadProxying"`
 
+	ConfigDataCompression ConfigDataCompressionParams `yaml:"configDataCompression"`
+
 	LocalResourceServerPort int `yaml:"localResourceServerPort"`
 
 	EtcdBackup EtcdBackupParams `yaml:"etcdBackup"`
@@ -137,6 +139,13 @@ func (ebp EtcdBackupParams) GetStorageType() (EtcdBackupStorage, error) {
 type WorkloadProxyingParams struct {
 	Subdomain string `yaml:"subdomain"`
 	Enabled   bool   `yaml:"enabled"`
+}
+
+// ConfigDataCompressionParams defines config data compression configs.
+//
+//nolint:revive
+type ConfigDataCompressionParams struct {
+	Enabled bool `yaml:"enabled"`
 }
 
 // LoadBalancerParams defines load balancer configs.
@@ -271,6 +280,10 @@ var (
 		WorkloadProxying: WorkloadProxyingParams{
 			Enabled:   true,
 			Subdomain: "proxy-us",
+		},
+
+		ConfigDataCompression: ConfigDataCompressionParams{
+			Enabled: false,
 		},
 
 		LocalResourceServerPort: 8081,

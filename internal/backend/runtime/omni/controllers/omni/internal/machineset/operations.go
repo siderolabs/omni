@@ -6,9 +6,9 @@
 package machineset
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -16,6 +16,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
@@ -47,7 +48,10 @@ func (c *Create) Apply(ctx context.Context, r controller.ReaderWriter, logger *z
 	clusterMachineConfigPatches.Metadata().Labels().Set(omni.LabelMachineSet, machineSet.Metadata().ID())
 
 	helpers.UpdateInputsVersions(clusterMachine, configPatches...)
-	setPatches(clusterMachineConfigPatches, configPatches)
+
+	if err := setPatches(clusterMachineConfigPatches, configPatches); err != nil {
+		return err
+	}
 
 	var err error
 
@@ -129,9 +133,7 @@ func (u *Update) Apply(ctx context.Context, r controller.ReaderWriter, logger *z
 	// update ClusterMachineConfigPatches resource with the list of matching patches for the machine
 	err := safe.WriterModify(ctx, r, omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, u.ID),
 		func(clusterMachineConfigPatches *omni.ClusterMachineConfigPatches) error {
-			setPatches(clusterMachineConfigPatches, configPatches)
-
-			return nil
+			return setPatches(clusterMachineConfigPatches, configPatches)
 		},
 	)
 	if err != nil {
@@ -205,16 +207,97 @@ func (d *Destroy) Apply(ctx context.Context, r controller.ReaderWriter, logger *
 	return nil
 }
 
-func setPatches(clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, patches []*omni.ConfigPatch) {
-	patchesRaw := make([]string, 0, len(patches))
+//nolint:staticcheck // we are ok with using the deprecated method here
+func setPatches(clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, patches []*omni.ConfigPatch) error {
+	// clear the patch fields
+	clusterMachineConfigPatches.TypedSpec().Value.Patches = nil
+	clusterMachineConfigPatches.TypedSpec().Value.CompressedPatches = nil
 
-	for _, patch := range patches {
-		data := patch.TypedSpec().Value.Data
-
-		if strings.TrimSpace(data) != "" {
-			patchesRaw = append(patchesRaw, data)
-		}
+	if specs.GetCompressionConfig().Enabled {
+		return setPatchesCompress(clusterMachineConfigPatches, patches)
 	}
 
-	clusterMachineConfigPatches.TypedSpec().Value.Patches = patchesRaw
+	return setPatchesNoCompress(clusterMachineConfigPatches, patches)
+}
+
+//nolint:staticcheck // we are ok with using the deprecated method here
+func setPatchesCompress(res *omni.ClusterMachineConfigPatches, patches []*omni.ConfigPatch) error {
+	for _, patch := range patches {
+		compressedSize := len(patch.TypedSpec().Value.CompressedData)
+
+		if compressedSize == 0 { // patch is not compressed, compress and then append it
+			if isEmptyPatch(patch) {
+				continue
+			}
+
+			buffer, err := patch.TypedSpec().Value.GetUncompressedData()
+			if err != nil {
+				return err
+			}
+
+			if err = patch.TypedSpec().Value.SetUncompressedData(buffer.Data()); err != nil {
+				return err
+			}
+
+			res.TypedSpec().Value.CompressedPatches = append(res.TypedSpec().Value.CompressedPatches, patch.TypedSpec().Value.CompressedData)
+
+			buffer.Free() // we can already free the buffer, as we already read and compressed it
+
+			continue
+		}
+
+		// patch is compressed, append it directly
+
+		if compressedSize < 1024 { // this is a small patch, decompress to check if it's all whitespace
+			if isEmptyPatch(patch) {
+				continue
+			}
+		}
+
+		// append the patch
+		res.TypedSpec().Value.CompressedPatches = append(res.TypedSpec().Value.CompressedPatches, patch.TypedSpec().Value.CompressedData)
+	}
+
+	return nil
+}
+
+//nolint:staticcheck // we are ok with using the deprecated method here
+func setPatchesNoCompress(res *omni.ClusterMachineConfigPatches, patches []*omni.ConfigPatch) error {
+	for _, patch := range patches {
+		compressedSize := len(patch.TypedSpec().Value.CompressedData)
+
+		if compressedSize == 0 { // not compressed, append the patch
+			if isEmptyPatch(patch) {
+				continue
+			}
+
+			res.TypedSpec().Value.Patches = append(res.TypedSpec().Value.Patches, patch.TypedSpec().Value.Data)
+
+			continue
+		}
+
+		// compressed, decompress and append the patch
+
+		buffer, err := patch.TypedSpec().Value.GetUncompressedData()
+		if err != nil {
+			return err
+		}
+
+		res.TypedSpec().Value.Patches = append(res.TypedSpec().Value.Patches, string(buffer.Data()))
+
+		buffer.Free() // we can already free the buffer, as we converted its bytes to a string
+	}
+
+	return nil
+}
+
+func isEmptyPatch(patch *omni.ConfigPatch) bool {
+	buffer, err := patch.TypedSpec().Value.GetUncompressedData()
+	if err != nil {
+		return false
+	}
+
+	defer buffer.Free()
+
+	return len(bytes.TrimSpace(buffer.Data())) == 0
 }

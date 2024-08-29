@@ -23,6 +23,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/compression"
 	"github.com/siderolabs/omni/client/pkg/template"
 )
 
@@ -280,6 +282,18 @@ machine:
 }
 
 func TestTranslate(t *testing.T) {
+	previousCompressionConfig := specs.GetCompressionConfig()
+
+	// disable resource compression for the test
+	compressionConfig, err := compression.BuildConfig(false, false, false)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		specs.SetCompressionConfig(previousCompressionConfig)
+	})
+
+	specs.SetCompressionConfig(compressionConfig)
+
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 

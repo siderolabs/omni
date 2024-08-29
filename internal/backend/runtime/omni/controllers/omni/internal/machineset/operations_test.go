@@ -94,10 +94,12 @@ func TestCreate(t *testing.T) {
 	ctx := context.Background()
 
 	patch := omni.NewConfigPatch(resources.DefaultNamespace, "some")
-	patch.TypedSpec().Value.Data = `machine:
+
+	err := patch.TypedSpec().Value.SetUncompressedData([]byte(`machine:
   network:
     kubespan:
-      enabled: true`
+      enabled: true`))
+	require.NoError(err)
 
 	rc, err := machineset.NewReconciliationContext(
 		cluster,
@@ -143,7 +145,10 @@ func TestCreate(t *testing.T) {
 
 	require.NoError(err)
 
-	require.NotEmpty(clusterMachineConfigPatches.TypedSpec().Value.Patches)
+	patches, err := clusterMachineConfigPatches.TypedSpec().Value.GetUncompressedPatches()
+	require.NoError(err)
+
+	require.NotEmpty(patches)
 }
 
 // TestUpdate run update 4 times:
@@ -171,15 +176,19 @@ func TestUpdate(t *testing.T) {
 	ctx := context.Background()
 
 	patch1 := omni.NewConfigPatch(resources.DefaultNamespace, "some")
-	patch1.TypedSpec().Value.Data = `machine:
+
+	err := patch1.TypedSpec().Value.SetUncompressedData([]byte(`machine:
   network:
     kubespan:
-      enabled: true`
+      enabled: true`))
+	require.NoError(err)
 
 	patch2 := omni.NewConfigPatch(resources.DefaultNamespace, "some")
-	patch2.TypedSpec().Value.Data = `machine:
+
+	err = patch2.TypedSpec().Value.SetUncompressedData([]byte(`machine:
   network:
-    hostname: some`
+    hostname: some`))
+	require.NoError(err)
 
 	patchHelper := &fakePatchHelper{
 		patches: map[string][]*omni.ConfigPatch{
@@ -195,10 +204,7 @@ func TestUpdate(t *testing.T) {
 	configStatus := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "aa")
 	configStatus.TypedSpec().Value.ClusterMachineVersion = clusterMachine.Metadata().Version().String()
 
-	var (
-		rc  *machineset.ReconciliationContext
-		err error
-	)
+	var rc *machineset.ReconciliationContext
 
 	updateReconciliationContext := func() {
 		rc, err = machineset.NewReconciliationContext(
@@ -257,7 +263,10 @@ func TestUpdate(t *testing.T) {
 
 	require.NoError(err)
 
-	require.NotEmpty(clusterMachineConfigPatches.TypedSpec().Value.Patches)
+	patches, err := clusterMachineConfigPatches.TypedSpec().Value.GetUncompressedPatches()
+	require.NoError(err)
+
+	require.NotEmpty(patches)
 
 	patchHelper.patches["aa"] = append(patchHelper.patches["aa"], patch1)
 

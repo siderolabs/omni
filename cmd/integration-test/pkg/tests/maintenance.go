@@ -41,7 +41,14 @@ func AssertMaintenanceTestConfigIsPresent(ctx context.Context, omniState state.S
 		machineID := ids[machineIndex]
 
 		rtestutils.AssertResource[*omni.RedactedClusterMachineConfig](ctx, t, omniState, machineID, func(r *omni.RedactedClusterMachineConfig, assertion *assert.Assertions) {
-			assertion.Contains(r.TypedSpec().Value.Data, testPatch)
+			buffer, bufferErr := r.TypedSpec().Value.GetUncompressedData()
+			assertion.NoError(bufferErr)
+
+			defer buffer.Free()
+
+			data := string(buffer.Data())
+
+			assertion.Contains(data, testPatch)
 		})
 	}
 }

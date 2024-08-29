@@ -239,12 +239,16 @@ func reconcileClusterMachineConfig(
 
 	var helper clusterMachineConfigControllerHelper
 
-	machineConfig.TypedSpec().Value.Data, err = helper.generateConfig(clusterMachine, clusterMachineConfigPatches, secrets, loadBalancerConfig,
+	data, err := helper.generateConfig(clusterMachine, clusterMachineConfigPatches, secrets, loadBalancerConfig,
 		cluster, clusterConfigVersion, machineConfigGenOptions, defaultGenOptions, connectionParams, eventSinkPort)
 	if err != nil {
 		machineConfig.TypedSpec().Value.GenerationError = err.Error()
 
 		return nil //nolint:nilerr
+	}
+
+	if err = machineConfig.TypedSpec().Value.SetUncompressedData(data); err != nil {
+		return err
 	}
 
 	machineConfig.TypedSpec().Value.ClusterMachineVersion = clusterMachine.Metadata().Version().String()
@@ -333,7 +337,10 @@ func (clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.
 		return nil, err
 	}
 
-	patchList := clusterMachineConfigPatches.TypedSpec().Value.Patches
+	patchList, err := clusterMachineConfigPatches.TypedSpec().Value.GetUncompressedPatches()
+	if err != nil {
+		return nil, err
+	}
 
 	if quirks.New(talosVersion).SupportsMultidoc() {
 		var siderolinkConfig []byte

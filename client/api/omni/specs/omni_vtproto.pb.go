@@ -654,6 +654,15 @@ func (m *ClusterMachineConfigPatchesSpec) CloneVT() *ClusterMachineConfigPatches
 		copy(tmpContainer, rhs)
 		r.Patches = tmpContainer
 	}
+	if rhs := m.CompressedPatches; rhs != nil {
+		tmpContainer := make([][]byte, len(rhs))
+		for k, v := range rhs {
+			tmpBytes := make([]byte, len(v))
+			copy(tmpBytes, v)
+			tmpContainer[k] = tmpBytes
+		}
+		r.CompressedPatches = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -695,6 +704,11 @@ func (m *ClusterMachineConfigSpec) CloneVT() *ClusterMachineConfigSpec {
 		copy(tmpBytes, rhs)
 		r.Data = tmpBytes
 	}
+	if rhs := m.CompressedData; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.CompressedData = tmpBytes
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -712,6 +726,11 @@ func (m *RedactedClusterMachineConfigSpec) CloneVT() *RedactedClusterMachineConf
 	}
 	r := new(RedactedClusterMachineConfigSpec)
 	r.Data = m.Data
+	if rhs := m.CompressedData; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.CompressedData = tmpBytes
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -1041,6 +1060,11 @@ func (m *ConfigPatchSpec) CloneVT() *ConfigPatchSpec {
 	}
 	r := new(ConfigPatchSpec)
 	r.Data = m.Data
+	if rhs := m.CompressedData; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.CompressedData = tmpBytes
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -3094,6 +3118,15 @@ func (this *ClusterMachineConfigPatchesSpec) EqualVT(that *ClusterMachineConfigP
 			return false
 		}
 	}
+	if len(this.CompressedPatches) != len(that.CompressedPatches) {
+		return false
+	}
+	for i, vx := range this.CompressedPatches {
+		vy := that.CompressedPatches[i]
+		if string(vx) != string(vy) {
+			return false
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -3141,6 +3174,9 @@ func (this *ClusterMachineConfigSpec) EqualVT(that *ClusterMachineConfigSpec) bo
 	if this.GenerationError != that.GenerationError {
 		return false
 	}
+	if string(this.CompressedData) != string(that.CompressedData) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -3158,6 +3194,9 @@ func (this *RedactedClusterMachineConfigSpec) EqualVT(that *RedactedClusterMachi
 		return false
 	}
 	if this.Data != that.Data {
+		return false
+	}
+	if string(this.CompressedData) != string(that.CompressedData) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3603,6 +3642,9 @@ func (this *ConfigPatchSpec) EqualVT(that *ConfigPatchSpec) bool {
 		return false
 	}
 	if this.Data != that.Data {
+		return false
+	}
+	if string(this.CompressedData) != string(that.CompressedData) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -6992,6 +7034,15 @@ func (m *ClusterMachineConfigPatchesSpec) MarshalToSizedBufferVT(dAtA []byte) (i
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.CompressedPatches) > 0 {
+		for iNdEx := len(m.CompressedPatches) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.CompressedPatches[iNdEx])
+			copy(dAtA[i:], m.CompressedPatches[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.CompressedPatches[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
 	if len(m.Patches) > 0 {
 		for iNdEx := len(m.Patches) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.Patches[iNdEx])
@@ -7081,6 +7132,13 @@ func (m *ClusterMachineConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, err
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.CompressedData) > 0 {
+		i -= len(m.CompressedData)
+		copy(dAtA[i:], m.CompressedData)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.CompressedData)))
+		i--
+		dAtA[i] = 0x22
+	}
 	if len(m.GenerationError) > 0 {
 		i -= len(m.GenerationError)
 		copy(dAtA[i:], m.GenerationError)
@@ -7134,6 +7192,13 @@ func (m *RedactedClusterMachineConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.CompressedData) > 0 {
+		i -= len(m.CompressedData)
+		copy(dAtA[i:], m.CompressedData)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.CompressedData)))
+		i--
+		dAtA[i] = 0x12
 	}
 	if len(m.Data) > 0 {
 		i -= len(m.Data)
@@ -8099,6 +8164,13 @@ func (m *ConfigPatchSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.CompressedData) > 0 {
+		i -= len(m.CompressedData)
+		copy(dAtA[i:], m.CompressedData)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.CompressedData)))
+		i--
+		dAtA[i] = 0x12
 	}
 	if len(m.Data) > 0 {
 		i -= len(m.Data)
@@ -11723,6 +11795,12 @@ func (m *ClusterMachineConfigPatchesSpec) SizeVT() (n int) {
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
 	}
+	if len(m.CompressedPatches) > 0 {
+		for _, b := range m.CompressedPatches {
+			l = len(b)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -11763,6 +11841,10 @@ func (m *ClusterMachineConfigSpec) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	l = len(m.CompressedData)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -11774,6 +11856,10 @@ func (m *RedactedClusterMachineConfigSpec) SizeVT() (n int) {
 	var l int
 	_ = l
 	l = len(m.Data)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.CompressedData)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -12145,6 +12231,10 @@ func (m *ConfigPatchSpec) SizeVT() (n int) {
 	var l int
 	_ = l
 	l = len(m.Data)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.CompressedData)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -18115,6 +18205,38 @@ func (m *ClusterMachineConfigPatchesSpec) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Patches = append(m.Patches, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CompressedPatches", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CompressedPatches = append(m.CompressedPatches, make([]byte, postIndex-iNdEx))
+			copy(m.CompressedPatches[len(m.CompressedPatches)-1], dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -18379,6 +18501,40 @@ func (m *ClusterMachineConfigSpec) UnmarshalVT(dAtA []byte) error {
 			}
 			m.GenerationError = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CompressedData", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CompressedData = append(m.CompressedData[:0], dAtA[iNdEx:postIndex]...)
+			if m.CompressedData == nil {
+				m.CompressedData = []byte{}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -18461,6 +18617,40 @@ func (m *RedactedClusterMachineConfigSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Data = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CompressedData", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CompressedData = append(m.CompressedData[:0], dAtA[iNdEx:postIndex]...)
+			if m.CompressedData == nil {
+				m.CompressedData = []byte{}
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -20823,6 +21013,40 @@ func (m *ConfigPatchSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Data = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CompressedData", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CompressedData = append(m.CompressedData[:0], dAtA[iNdEx:postIndex]...)
+			if m.CompressedData == nil {
+				m.CompressedData = []byte{}
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

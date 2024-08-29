@@ -54,7 +54,7 @@ type ClusterMachineConfigStatusController = qtransform.QController[*omni.Cluster
 
 // NewClusterMachineConfigStatusController initializes ClusterMachineConfigStatusController.
 //
-//nolint:gocognit,gocyclo,cyclop
+//nolint:gocognit,gocyclo,cyclop,maintidx
 func NewClusterMachineConfigStatusController() *ClusterMachineConfigStatusController {
 	ongoingResets := &ongoingResets{
 		statuses: map[string]*resetStatus{},
@@ -159,7 +159,14 @@ func NewClusterMachineConfigStatusController() *ClusterMachineConfigStatusContro
 					}
 				}
 
-				shaSum := sha256.Sum256(machineConfig.TypedSpec().Value.Data)
+				buffer, err := machineConfig.TypedSpec().Value.GetUncompressedData()
+				if err != nil {
+					return err
+				}
+
+				defer buffer.Free()
+
+				shaSum := sha256.Sum256(buffer.Data())
 				shaSumString := hex.EncodeToString(shaSum[:])
 
 				if configStatus.TypedSpec().Value.ClusterMachineConfigSha256 == shaSumString {
@@ -463,8 +470,15 @@ func (h *clusterMachineConfigStatusControllerHandler) applyConfig(inputCtx conte
 	ctx, applyCancel := context.WithTimeout(inputCtx, time.Minute)
 	defer applyCancel()
 
+	data, err := machineConfig.TypedSpec().Value.GetUncompressedData()
+	if err != nil {
+		return err
+	}
+
+	defer data.Free()
+
 	resp, err := c.ApplyConfiguration(ctx, &machineapi.ApplyConfigurationRequest{
-		Data: machineConfig.TypedSpec().Value.Data,
+		Data: data.Data(),
 		Mode: machineapi.ApplyConfigurationRequest_AUTO,
 	})
 	if err != nil {

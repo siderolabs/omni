@@ -19,6 +19,7 @@ import (
 	"github.com/mattn/go-shellwords"
 	"github.com/spf13/cobra"
 
+	"github.com/siderolabs/omni/client/pkg/compression"
 	clientconsts "github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/cmd/integration-test/pkg/clientconfig"
 	"github.com/siderolabs/omni/cmd/integration-test/pkg/tests"
@@ -30,6 +31,9 @@ var rootCmd = &cobra.Command{
 	Use:   "omni-integration-test",
 	Short: "Omni integration test runner.",
 	Long:  ``,
+	PersistentPreRunE: func(*cobra.Command, []string) error {
+		return compression.InitConfig(true)
+	},
 	RunE: func(*cobra.Command, []string) error {
 		return withContext(func(ctx context.Context) error {
 			// hacky hack

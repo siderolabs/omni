@@ -29,13 +29,15 @@ text: "test"`
 
 func TestClusterMachineConfigPatchesSpecW_marshal(t *testing.T) {
 	original := omni.NewClusterMachineConfigPatches("default", "1")
-	original.TypedSpec().Value.Patches = []string{newLineAndText, justText}
+
+	err := original.TypedSpec().Value.SetUncompressedPatches([]string{newLineAndText, justText})
+	require.NoError(t, err)
 
 	out := must.Value(yaml.Marshal(must.Value(resource.MarshalYAML(original))(t)))(t)
 
 	var dest protobuf.YAMLResource
 
-	err := yaml.Unmarshal(out, &dest)
+	err = yaml.Unmarshal(out, &dest)
 	require.NoError(t, err)
 
 	fmt.Println(string(out))
@@ -49,7 +51,10 @@ func TestClusterMachineConfigPatchesSpecW_marshal(t *testing.T) {
 
 func ExampleClusterMachineSpec_marshal() {
 	original := omni.NewClusterMachineConfigPatches("default", "1")
-	original.TypedSpec().Value.Patches = []string{newLineAndText, justText}
+
+	if err := original.TypedSpec().Value.SetUncompressedPatches([]string{newLineAndText, justText}); err != nil {
+		panic(err)
+	}
 
 	current := time.Date(2022, 12, 9, 0, 0, 0, 0, time.UTC)
 	original.Metadata().SetCreated(current)

@@ -96,7 +96,7 @@ func (patch *Patch) Validate() error {
 		if err != nil {
 			multiErr = multierror.Append(multiErr, fmt.Errorf("failed to access %q: %w", patch.File, err))
 		} else {
-			if err = omni.ValidateConfigPatch(string(raw)); err != nil {
+			if err = omni.ValidateConfigPatch(raw); err != nil {
 				multiErr = multierror.Append(multiErr, fmt.Errorf("failed to validate patch %q: %w", patch.File, err))
 			}
 		}
@@ -109,7 +109,7 @@ func (patch *Patch) Validate() error {
 		if err != nil {
 			multiErr = multierror.Append(multiErr, fmt.Errorf("failed to marshal inline patch %q: %w", name, err))
 		} else {
-			if err = omni.ValidateConfigPatch(string(raw)); err != nil {
+			if err = omni.ValidateConfigPatch(raw); err != nil {
 				multiErr = multierror.Append(multiErr, fmt.Errorf("failed to validate inline patch %q: %w", name, err))
 			}
 		}
@@ -157,7 +157,9 @@ func (patch *Patch) Translate(prefix string, weight int, labels ...pair.Pair[str
 
 	patch.Descriptors.Apply(patchResource)
 
-	patchResource.TypedSpec().Value.Data = string(raw)
+	if err = patchResource.TypedSpec().Value.SetUncompressedData(raw); err != nil {
+		return nil, err
+	}
 
 	return patchResource, nil
 }

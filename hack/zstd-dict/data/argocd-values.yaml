@@ -1,0 +1,38 @@
+redis-ha:
+  enabled: true
+
+controller:
+  replicas: 1
+
+server:
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    tls: true
+  ingressGrpc:
+    enabled: true
+    ingressClassName: contour-internal
+    extraTls:
+      - hosts:
+          - grpc.argocd.example.com
+        secretName: wildcard-tls
+
+repoServer:
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+
+applicationSet:
+  replicas: 2
+
+global:
+  domain: argocd.example.com
+
+certificate:
+  enabled: true

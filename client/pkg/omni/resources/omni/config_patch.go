@@ -86,15 +86,15 @@ func (ConfigPatchExtension) ResourceDefinition() meta.ResourceDefinitionSpec {
 
 // ValidateConfigPatch parses the config patch data using Talos config loader,
 // then validates that the config patch doesn't have fields that are controlled by omni.
-func ValidateConfigPatch(data string) error {
-	_, err := configloader.NewFromBytes([]byte(data))
+func ValidateConfigPatch(data []byte) error {
+	_, err := configloader.NewFromBytes(data)
 	if err != nil {
 		return err
 	}
 
 	var config map[string]any
 
-	err = yaml.Unmarshal([]byte(data), &config)
+	err = yaml.Unmarshal(data, &config)
 	if err != nil {
 		return err
 	}
