@@ -17,11 +17,11 @@ import (
 	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
-	cloudspecs "github.com/siderolabs/omni/client/api/omni/specs/cloud"
+	infraspecs "github.com/siderolabs/omni/client/api/omni/specs/infra"
 	infrares "github.com/siderolabs/omni/client/pkg/infra/internal/resources"
 	"github.com/siderolabs/omni/client/pkg/infra/provision"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/cloud"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
@@ -53,13 +53,13 @@ func (ctrl *ProvisionController[T]) Settings() controller.QSettings {
 	return controller.QSettings{
 		Inputs: []controller.Input{
 			{
-				Namespace: resources.CloudProviderNamespace,
-				Type:      cloud.MachineRequestType,
+				Namespace: resources.InfraProviderNamespace,
+				Type:      infra.MachineRequestType,
 				Kind:      controller.InputQPrimary,
 			},
 			{
-				Namespace: resources.CloudProviderNamespace,
-				Type:      cloud.MachineRequestStatusType,
+				Namespace: resources.InfraProviderNamespace,
+				Type:      infra.MachineRequestStatusType,
 				Kind:      controller.InputQMappedDestroyReady,
 			},
 			{
@@ -77,7 +77,7 @@ func (ctrl *ProvisionController[T]) Settings() controller.QSettings {
 		Outputs: []controller.Output{
 			{
 				Kind: controller.OutputExclusive,
-				Type: cloud.MachineRequestStatusType,
+				Type: infra.MachineRequestStatusType,
 			},
 			{
 				Kind: controller.OutputShared,
@@ -97,7 +97,7 @@ func (ctrl *ProvisionController[T]) MapInput(_ context.Context, _ *zap.Logger,
 	}
 
 	return []resource.Pointer{
-		cloud.NewMachineRequest(ptr.ID()).Metadata(),
+		infra.NewMachineRequest(ptr.ID()).Metadata(),
 	}, nil
 }
 
@@ -105,7 +105,7 @@ func (ctrl *ProvisionController[T]) MapInput(_ context.Context, _ *zap.Logger,
 func (ctrl *ProvisionController[T]) Reconcile(ctx context.Context,
 	logger *zap.Logger, r controller.QRuntime, ptr resource.Pointer,
 ) error {
-	machineRequest, err := safe.ReaderGet[*cloud.MachineRequest](ctx, r, cloud.NewMachineRequest(ptr.ID()).Metadata())
+	machineRequest, err := safe.ReaderGet[*infra.MachineRequest](ctx, r, infra.NewMachineRequest(ptr.ID()).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil
@@ -129,13 +129,13 @@ func (ctrl *ProvisionController[T]) Reconcile(ctx context.Context,
 		return err
 	}
 
-	return safe.WriterModify(ctx, r, machineRequestStatus, func(res *cloud.MachineRequestStatus) error {
+	return safe.WriterModify(ctx, r, machineRequestStatus, func(res *infra.MachineRequestStatus) error {
 		return ctrl.reconcileRunning(ctx, r, logger, machineRequest, res)
 	})
 }
 
 func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r controller.QRuntime, logger *zap.Logger,
-	machineRequest *cloud.MachineRequest, machineRequestStatus *cloud.MachineRequestStatus,
+	machineRequest *infra.MachineRequest, machineRequestStatus *infra.MachineRequestStatus,
 ) error {
 	connectionParams, err := safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, r, siderolink.ConfigID)
 	if err != nil {
@@ -161,13 +161,13 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 			}
 
 			machineRequestStatus.TypedSpec().Value.Error = err.Error()
-			machineRequestStatus.TypedSpec().Value.Stage = cloudspecs.MachineRequestStatusSpec_FAILED
+			machineRequestStatus.TypedSpec().Value.Stage = infraspecs.MachineRequestStatusSpec_FAILED
 
 			return nil
 		}
 
 		machineRequestStatus.TypedSpec().Value.Id = provisionResult.UUID
-		machineRequestStatus.TypedSpec().Value.Stage = cloudspecs.MachineRequestStatusSpec_PROVISIONED
+		machineRequestStatus.TypedSpec().Value.Stage = infraspecs.MachineRequestStatusSpec_PROVISIONED
 
 		*machineRequestStatus.Metadata().Labels() = *machineRequest.Metadata().Labels()
 
@@ -181,8 +181,8 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 	return nil
 }
 
-func (ctrl *ProvisionController[T]) initializeStatus(ctx context.Context, r controller.QRuntime, logger *zap.Logger, machineRequest *cloud.MachineRequest) (*cloud.MachineRequestStatus, error) {
-	mrs, err := safe.ReaderGetByID[*cloud.MachineRequestStatus](ctx, r, machineRequest.Metadata().ID())
+func (ctrl *ProvisionController[T]) initializeStatus(ctx context.Context, r controller.QRuntime, logger *zap.Logger, machineRequest *infra.MachineRequest) (*infra.MachineRequestStatus, error) {
+	mrs, err := safe.ReaderGetByID[*infra.MachineRequestStatus](ctx, r, machineRequest.Metadata().ID())
 	if err != nil && !state.IsNotFoundError(err) {
 		return nil, err
 	}
@@ -191,9 +191,9 @@ func (ctrl *ProvisionController[T]) initializeStatus(ctx context.Context, r cont
 		return mrs, nil
 	}
 
-	return safe.WriterModifyWithResult(ctx, r, cloud.NewMachineRequestStatus(machineRequest.Metadata().ID()), func(res *cloud.MachineRequestStatus) error {
-		if res.TypedSpec().Value.Stage == cloudspecs.MachineRequestStatusSpec_UNKNOWN {
-			res.TypedSpec().Value.Stage = cloudspecs.MachineRequestStatusSpec_PROVISIONING
+	return safe.WriterModifyWithResult(ctx, r, infra.NewMachineRequestStatus(machineRequest.Metadata().ID()), func(res *infra.MachineRequestStatus) error {
+		if res.TypedSpec().Value.Stage == infraspecs.MachineRequestStatusSpec_UNKNOWN {
+			res.TypedSpec().Value.Stage = infraspecs.MachineRequestStatusSpec_PROVISIONING
 			*res.Metadata().Labels() = *machineRequest.Metadata().Labels()
 
 			logger.Info("machine provision started", zap.String("request_id", machineRequest.Metadata().ID()))
@@ -203,7 +203,7 @@ func (ctrl *ProvisionController[T]) initializeStatus(ctx context.Context, r cont
 	})
 }
 
-func (ctrl *ProvisionController[T]) reconcileTearingDown(ctx context.Context, r controller.QRuntime, logger *zap.Logger, machineRequest *cloud.MachineRequest) error {
+func (ctrl *ProvisionController[T]) reconcileTearingDown(ctx context.Context, r controller.QRuntime, logger *zap.Logger, machineRequest *infra.MachineRequest) error {
 	t, err := safe.ReaderGetByID[T](ctx, r, machineRequest.Metadata().ID())
 	if err != nil && !state.IsNotFoundError(err) {
 		return err
@@ -215,7 +215,7 @@ func (ctrl *ProvisionController[T]) reconcileTearingDown(ctx context.Context, r 
 
 	resources := []resource.Metadata{
 		resource.NewMetadata(t.ResourceDefinition().DefaultNamespace, t.ResourceDefinition().Type, machineRequest.Metadata().ID(), resource.VersionUndefined),
-		*cloud.NewMachineRequestStatus(machineRequest.Metadata().ID()).Metadata(),
+		*infra.NewMachineRequestStatus(machineRequest.Metadata().ID()).Metadata(),
 	}
 
 	for _, md := range resources {

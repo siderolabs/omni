@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package cloudprovider
+package infraprovider
 
 import (
 	"context"
@@ -14,13 +14,13 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/hashicorp/go-multierror"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources/cloud"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 )
 
 func validationOptions() []validated.StateOption {
 	return []validated.StateOption{
-		validated.WithCreateValidations(validated.NewCreateValidationForType(func(_ context.Context, res *cloud.MachineRequest, _ ...state.CreateOption) error {
+		validated.WithCreateValidations(validated.NewCreateValidationForType(func(_ context.Context, res *infra.MachineRequest, _ ...state.CreateOption) error {
 			var errs error
 
 			if _, err := semver.ParseTolerant(res.TypedSpec().Value.TalosVersion); err != nil {
@@ -33,7 +33,7 @@ func validationOptions() []validated.StateOption {
 
 			return errs
 		})),
-		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, oldRes *cloud.MachineRequest, newRes *cloud.MachineRequest, _ ...state.UpdateOption) error {
+		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, oldRes *infra.MachineRequest, newRes *infra.MachineRequest, _ ...state.UpdateOption) error {
 			if !oldRes.TypedSpec().Value.EqualVT(newRes.TypedSpec().Value) {
 				return errors.New("machine request spec is immutable")
 			}

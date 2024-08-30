@@ -74,7 +74,7 @@ spec:
         COMPOSE_DOCKER_CLI_BUILD=1
         DOCKER_BUILDKIT=1
         GO_LDFLAGS="$(GO_LDFLAGS)"
-        docker compose --file ./hack/compose/docker-compose.yml --file ./hack/compose/docker-compose.override.yml up --it -d --build
+        docker compose --file ./hack/compose/docker-compose.yml --file ./hack/compose/docker-compose.override.yml up --build
 ---
 kind: custom.Step
 name: mkcert-generate
@@ -351,8 +351,8 @@ spec:
     - source: client/api/omni/specs/auth.proto
       subdirectory: omni/specs
       genGateway: true
-    - source: client/api/omni/specs/cloud/cloud.proto
-      subdirectory: omni/specs/cloud
+    - source: client/api/omni/specs/infra/infra.proto
+      subdirectory: omni/specs/infra
       genGateway: true
     - source: client/api/omni/specs/virtual.proto
       subdirectory: omni/specs
@@ -443,8 +443,8 @@ spec:
     - source: client/api/omni/specs/auth.proto
       subdirectory: omni/specs
       genGateway: true
-    - source: client/api/omni/specs/cloud/cloud.proto
-      subdirectory: omni/specs/cloud
+    - source: client/api/omni/specs/infra/infra.proto
+      subdirectory: omni/specs/infra
       genGateway: true
     - source: client/api/omni/specs/virtual.proto
       subdirectory: omni/specs

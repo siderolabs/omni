@@ -24,8 +24,8 @@ const (
 	// tsgen:LabelIdentityTypeServiceAccount
 	LabelIdentityTypeServiceAccount = "type-service-account"
 
-	// LabelCloudProvider is set when the service account is a cloud provider service account.
-	LabelCloudProvider = omni.SystemLabelPrefix + "cloud-provider"
+	// LabelInfraProvider is set when the service account is a infra provider service account.
+	LabelInfraProvider = omni.SystemLabelPrefix + "infra-provider"
 )
 
 const (

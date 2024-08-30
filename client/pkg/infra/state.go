@@ -10,12 +10,12 @@ import (
 	"github.com/siderolabs/omni/client/pkg/client"
 )
 
-// State creates new cloud provider state.
+// State creates new infra provider state.
 type State struct {
 	Client *client.Client
 }
 
-// NewState creates new cloud provider state.
+// NewState creates new infra provider state.
 func NewState(endpoint string, opts ...client.Option) (*State, error) {
 	client, err := client.New(endpoint, opts...)
 	if err != nil {

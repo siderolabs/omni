@@ -22,7 +22,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/cloud"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
@@ -53,13 +53,13 @@ func NewMachineRequestSetStatusController(imageFactory SchematicEnsurer) *Machin
 			FinalizerRemovalExtraOutputFunc: h.reconcileTearingDown,
 		},
 		qtransform.WithExtraMappedDestroyReadyInput(
-			mappers.MapExtractLabelValue[*cloud.MachineRequest, *omni.MachineRequestSet](omni.LabelMachineRequestSet),
+			mappers.MapExtractLabelValue[*infra.MachineRequest, *omni.MachineRequestSet](omni.LabelMachineRequestSet),
 		),
 		qtransform.WithExtraMappedInput(
 			mapMachineToMachineRequest,
 		),
 		qtransform.WithExtraOutputs(controller.Output{
-			Type: cloud.MachineRequestType,
+			Type: infra.MachineRequestType,
 			Kind: controller.OutputShared,
 		}),
 		qtransform.WithConcurrency(16),
@@ -78,16 +78,16 @@ func (h *machineRequestSetStatusHandler) reconcileRunning(ctx context.Context, r
 		return err
 	}
 
-	machineRequests, err := safe.ReaderListAll[*cloud.MachineRequest](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
+	machineRequests, err := safe.ReaderListAll[*infra.MachineRequest](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
 	if err != nil {
 		return err
 	}
 
-	requests := make([]*cloud.MachineRequest, 0, machineRequests.Len())
+	requests := make([]*infra.MachineRequest, 0, machineRequests.Len())
 
 	// delete tearing down requests
 	// delete requests when machines are tearing down
-	err = machineRequests.ForEachErr(func(request *cloud.MachineRequest) error {
+	err = machineRequests.ForEachErr(func(request *infra.MachineRequest) error {
 		var machine *machineStatusLabels
 
 		list := machineStatuses.FilterLabelQuery(resource.LabelEqual(omni.LabelMachineRequest, request.Metadata().ID()))
@@ -129,7 +129,7 @@ func (h *machineRequestSetStatusHandler) reconcileRunning(ctx context.Context, r
 }
 
 func (h *machineRequestSetStatusHandler) reconcileRequests(ctx context.Context, r controller.ReaderWriter, machineRequestSet *omni.MachineRequestSet,
-	machineRequests []*cloud.MachineRequest, machineStatusList safe.List[*machineStatusLabels],
+	machineRequests []*infra.MachineRequest, machineStatusList safe.List[*machineStatusLabels],
 ) error {
 	machineStatuses := toMap(machineStatusList)
 
@@ -151,14 +151,14 @@ func (h *machineRequestSetStatusHandler) scaleUp(ctx context.Context, r controll
 		for range 100 {
 			alias := rand.String(6)
 
-			if err := safe.WriterModify(ctx, r, cloud.NewMachineRequest(machineRequestSet.Metadata().ID()+"-"+alias), func(request *cloud.MachineRequest) error {
+			if err := safe.WriterModify(ctx, r, infra.NewMachineRequest(machineRequestSet.Metadata().ID()+"-"+alias), func(request *infra.MachineRequest) error {
 				var err error
 
 				request.TypedSpec().Value.TalosVersion = machineRequestSet.TypedSpec().Value.TalosVersion
 
 				request.TypedSpec().Value.SchematicId = schematicID
 
-				request.Metadata().Labels().Set(omni.LabelCloudProviderID, machineRequestSet.TypedSpec().Value.ProviderId)
+				request.Metadata().Labels().Set(omni.LabelInfraProviderID, machineRequestSet.TypedSpec().Value.ProviderId)
 				request.Metadata().Labels().Set(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())
 
 				return err
@@ -213,7 +213,7 @@ func (h *machineRequestSetStatusHandler) ensureSchematic(ctx context.Context, ma
 	return ensuredSchematic.FullID, nil
 }
 
-func scaleDown(ctx context.Context, r controller.ReaderWriter, machineRequests []*cloud.MachineRequest, machineStatuses map[resource.ID]*machineStatusLabels, count int) error {
+func scaleDown(ctx context.Context, r controller.ReaderWriter, machineRequests []*infra.MachineRequest, machineStatuses map[resource.ID]*machineStatusLabels, count int) error {
 	inUse := make(map[resource.ID]struct{}, len(machineStatuses))
 	isCp := make(map[resource.ID]struct{}, len(machineStatuses))
 
@@ -240,7 +240,7 @@ func scaleDown(ctx context.Context, r controller.ReaderWriter, machineRequests [
 		}
 	}
 
-	compareFlags := func(flags map[resource.ID]struct{}, a, b *cloud.MachineRequest) int {
+	compareFlags := func(flags map[resource.ID]struct{}, a, b *infra.MachineRequest) int {
 		_, aflag := flags[a.Metadata().ID()]
 		_, bflag := flags[b.Metadata().ID()]
 
@@ -257,7 +257,7 @@ func scaleDown(ctx context.Context, r controller.ReaderWriter, machineRequests [
 
 	// sort by in use first, then if both are in use compare by the role, control planes should go last
 	// the last check is by the creation time
-	slices.SortFunc(machineRequests, func(a, b *cloud.MachineRequest) int {
+	slices.SortFunc(machineRequests, func(a, b *infra.MachineRequest) int {
 		if val := compareFlags(inUse, a, b); val != 0 {
 			return val
 		}
@@ -289,7 +289,7 @@ func scaleDown(ctx context.Context, r controller.ReaderWriter, machineRequests [
 	return nil
 }
 
-func deleteMachineRequest(ctx context.Context, r controller.ReaderWriter, request *cloud.MachineRequest, machine *machineStatusLabels) error {
+func deleteMachineRequest(ctx context.Context, r controller.ReaderWriter, request *infra.MachineRequest, machine *machineStatusLabels) error {
 	// delete the machine request if the link is removed
 	var deleted bool
 
@@ -310,14 +310,14 @@ func deleteMachineRequest(ctx context.Context, r controller.ReaderWriter, reques
 }
 
 func (h *machineRequestSetStatusHandler) reconcileTearingDown(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, machineRequestSet *omni.MachineRequestSet) error {
-	machineRequests, err := safe.ReaderListAll[*cloud.MachineRequest](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
+	machineRequests, err := safe.ReaderListAll[*infra.MachineRequest](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
 	if err != nil {
 		return err
 	}
 
 	destroyReady := true
 
-	err = machineRequests.ForEachErr(func(res *cloud.MachineRequest) error {
+	err = machineRequests.ForEachErr(func(res *infra.MachineRequest) error {
 		var ready bool
 
 		ready, err = teardownResource(ctx, r, res.Metadata())
@@ -371,7 +371,7 @@ func mapMachineToMachineRequest(ctx context.Context, _ *zap.Logger, r controller
 		return nil, nil
 	}
 
-	request, err := safe.ReaderGetByID[*cloud.MachineRequest](ctx, r, machineRequest)
+	request, err := safe.ReaderGetByID[*infra.MachineRequest](ctx, r, machineRequest)
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil, nil

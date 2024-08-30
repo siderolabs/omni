@@ -11,7 +11,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources/cloud"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
 
@@ -25,6 +25,6 @@ type Result struct {
 
 // Provisioner is the interface that should be implemented by an infra provider.
 type Provisioner[T resource.Resource] interface {
-	Provision(context.Context, *zap.Logger, T, *cloud.MachineRequest, *siderolink.ConnectionParams) (Result, error)
-	Deprovision(context.Context, *zap.Logger, T, *cloud.MachineRequest) error
+	Provision(context.Context, *zap.Logger, T, *infra.MachineRequest, *siderolink.ConnectionParams) (Result, error)
+	Deprovision(context.Context, *zap.Logger, T, *infra.MachineRequest) error
 }

@@ -3,5 +3,5 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-// Package cloudprovider provides the state validation options for the cloud provider resources.
-package cloudprovider
+// Package infraprovider provides the state validation options for the infra provider resources.
+package infraprovider

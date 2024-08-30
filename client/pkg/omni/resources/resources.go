@@ -43,14 +43,14 @@ const VirtualNamespace resource.Namespace = "virtual"
 // tsgen:ExternalNamespace
 const ExternalNamespace resource.Namespace = "external"
 
-// CloudProviderNamespace is the namespace for cloud provider specific resources, e.g., `MachineRequest` and `MachineRequestStatus`.
+// InfraProviderNamespace is the namespace for infra provider specific resources, e.g., `MachineRequest` and `MachineRequestStatus`.
 //
-// tsgen:CloudProviderNamespace
-const CloudProviderNamespace resource.Namespace = "cloud-provider"
+// tsgen:InfraProviderNamespace
+const InfraProviderNamespace resource.Namespace = "infra-provider"
 
-// CloudProviderSpecificNamespacePrefix is the prefix for cloud provider specific namespaces.
+// InfraProviderSpecificNamespacePrefix is the prefix for infra provider specific namespaces.
 //
-// A cloud-provider specific namespace is a namespace in which cloud provider has full access.
+// A infra-provider specific namespace is a namespace in which infra provider has full access.
 //
-// For example, a cloud provider named `qemu-1` would have full access on namespace `cloud-provider:qemu-1`.
-const CloudProviderSpecificNamespacePrefix resource.Namespace = CloudProviderNamespace + ":"
+// For example, a infra provider named `qemu-1` would have full access on namespace `infra-provider:qemu-1`.
+const InfraProviderSpecificNamespacePrefix resource.Namespace = InfraProviderNamespace + ":"

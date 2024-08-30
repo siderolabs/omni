@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/cloud"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -38,7 +38,7 @@ func (suite *MachineRequestLinkSuite) TestReconcile() {
 	uuid := "aabb"
 	requestID := "request-1"
 
-	status := cloud.NewMachineRequestStatus(requestID)
+	status := infra.NewMachineRequestStatus(requestID)
 	status.TypedSpec().Value.Id = uuid
 
 	suite.Require().NoError(suite.state.Create(ctx, status))

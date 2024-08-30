@@ -23,7 +23,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/cloud"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
@@ -85,8 +85,8 @@ func (ctrl *MachineSetNodeController) Inputs() []controller.Input {
 			Kind:      controller.InputDestroyReady,
 		},
 		{
-			Namespace: resources.CloudProviderNamespace,
-			Type:      cloud.MachineRequestStatusType,
+			Namespace: resources.InfraProviderNamespace,
+			Type:      infra.MachineRequestStatusType,
 			Kind:      controller.InputStrong,
 		},
 	}
@@ -139,7 +139,7 @@ func (ctrl *MachineSetNodeController) Run(ctx context.Context, r controller.Runt
 		err = allMachines.ForEachErr(func(machine *omni.Machine) error {
 			requestName, ok := machine.Metadata().Labels().Get(omni.LabelMachineRequest)
 			if ok {
-				request, e := safe.ReaderGetByID[*cloud.MachineRequestStatus](ctx, r, requestName)
+				request, e := safe.ReaderGetByID[*infra.MachineRequestStatus](ctx, r, requestName)
 				if e != nil && !state.IsNotFoundError(e) {
 					return e
 				}

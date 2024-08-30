@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-package cloud
+package infra
 
 import (
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -10,15 +10,15 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
 	"github.com/cosi-project/runtime/pkg/resource/typed"
 
-	cloudspecs "github.com/siderolabs/omni/client/api/omni/specs/cloud"
+	"github.com/siderolabs/omni/client/api/omni/specs/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 )
 
 // NewMachineRequest creates a new MachineRequest resource.
 func NewMachineRequest(id string) *MachineRequest {
 	return typed.NewResource[MachineRequestSpec, MachineRequestExtension](
-		resource.NewMetadata(resources.CloudProviderNamespace, MachineRequestType, id, resource.VersionUndefined),
-		protobuf.NewResourceSpec(&cloudspecs.MachineRequestSpec{}),
+		resource.NewMetadata(resources.InfraProviderNamespace, MachineRequestType, id, resource.VersionUndefined),
+		protobuf.NewResourceSpec(&infra.MachineRequestSpec{}),
 	)
 }
 
@@ -33,7 +33,7 @@ const (
 type MachineRequest = typed.Resource[MachineRequestSpec, MachineRequestExtension]
 
 // MachineRequestSpec wraps specs.MachineRequestSpec.
-type MachineRequestSpec = protobuf.ResourceSpec[cloudspecs.MachineRequestSpec, *cloudspecs.MachineRequestSpec]
+type MachineRequestSpec = protobuf.ResourceSpec[infra.MachineRequestSpec, *infra.MachineRequestSpec]
 
 // MachineRequestExtension providers auxiliary methods for MachineRequest resource.
 type MachineRequestExtension struct{}
@@ -43,7 +43,7 @@ func (MachineRequestExtension) ResourceDefinition() meta.ResourceDefinitionSpec 
 	return meta.ResourceDefinitionSpec{
 		Type:             MachineRequestType,
 		Aliases:          []resource.Type{},
-		DefaultNamespace: resources.CloudProviderNamespace,
+		DefaultNamespace: resources.InfraProviderNamespace,
 		PrintColumns: []meta.PrintColumn{
 			{
 				Name:     "Talos Version",

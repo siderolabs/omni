@@ -46,8 +46,8 @@ func (s *managementServer) CreateServiceAccount(ctx context.Context, req *manage
 	sa := pkgaccess.ParseServiceAccountFromName(req.Name)
 	saRole := role.Admin
 
-	if req.UseUserRole && sa.IsCloudProvider {
-		return nil, fmt.Errorf("cloud provider service accounts must have the role %q, but use-user-role was requested", role.CloudProvider)
+	if req.UseUserRole && sa.IsInfraProvider {
+		return nil, fmt.Errorf("infra provider service accounts must have the role %q, but use-user-role was requested", role.InfraProvider)
 	}
 
 	if !req.UseUserRole {
@@ -57,12 +57,12 @@ func (s *managementServer) CreateServiceAccount(ctx context.Context, req *manage
 			return nil, err
 		}
 
-		if sa.IsCloudProvider && saRole != role.CloudProvider {
-			return nil, fmt.Errorf("cloud-provider service accounts must have the role %q", role.CloudProvider)
+		if sa.IsInfraProvider && saRole != role.InfraProvider {
+			return nil, fmt.Errorf("infra-provider service accounts must have the role %q", role.InfraProvider)
 		}
 
-		if saRole == role.CloudProvider && !sa.IsCloudProvider {
-			return nil, fmt.Errorf("service accounts with role %q must be prefixed with %q", role.CloudProvider, pkgaccess.CloudProviderServiceAccountPrefix)
+		if saRole == role.InfraProvider && !sa.IsInfraProvider {
+			return nil, fmt.Errorf("service accounts with role %q must be prefixed with %q", role.InfraProvider, pkgaccess.InfraProviderServiceAccountPrefix)
 		}
 	}
 
@@ -92,8 +92,8 @@ func (s *managementServer) CreateServiceAccount(ctx context.Context, req *manage
 	publicKeyResource := authres.NewPublicKey(resources.DefaultNamespace, key.id)
 	publicKeyResource.Metadata().Labels().Set(authres.LabelPublicKeyUserID, newUserID)
 
-	if sa.IsCloudProvider {
-		publicKeyResource.Metadata().Labels().Set(authres.LabelCloudProvider, "")
+	if sa.IsInfraProvider {
+		publicKeyResource.Metadata().Labels().Set(authres.LabelInfraProvider, "")
 	}
 
 	publicKeyResource.TypedSpec().Value.PublicKey = key.data
@@ -116,8 +116,8 @@ func (s *managementServer) CreateServiceAccount(ctx context.Context, req *manage
 	user := authres.NewUser(resources.DefaultNamespace, newUserID)
 	user.TypedSpec().Value.Role = publicKeyResource.TypedSpec().Value.GetRole()
 
-	if sa.IsCloudProvider {
-		user.Metadata().Labels().Set(authres.LabelCloudProvider, "")
+	if sa.IsInfraProvider {
+		user.Metadata().Labels().Set(authres.LabelInfraProvider, "")
 	}
 
 	err = s.omniState.Create(ctx, user)
@@ -131,8 +131,8 @@ func (s *managementServer) CreateServiceAccount(ctx context.Context, req *manage
 	identity.Metadata().Labels().Set(authres.LabelIdentityUserID, newUserID)
 	identity.Metadata().Labels().Set(authres.LabelIdentityTypeServiceAccount, "")
 
-	if sa.IsCloudProvider {
-		identity.Metadata().Labels().Set(authres.LabelCloudProvider, "")
+	if sa.IsInfraProvider {
+		identity.Metadata().Labels().Set(authres.LabelInfraProvider, "")
 	}
 
 	err = s.omniState.Create(ctx, identity)

@@ -6,7 +6,7 @@
 // THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 
 export const RoleNone = "None";
-export const RoleCloudProvider = "CloudProvider";
+export const RoleInfraProvider = "InfraProvider";
 export const RoleReader = "Reader";
 export const RoleOperator = "Operator";
 export const RoleAdmin = "Admin";
@@ -34,7 +34,7 @@ export const EphemeralNamespace = "ephemeral";
 export const MetricsNamespace = "metrics";
 export const VirtualNamespace = "virtual";
 export const ExternalNamespace = "external";
-export const CloudProviderNamespace = "cloud-provider";
+export const InfraProviderNamespace = "infra-provider";
 export const MachineLocked = "omni.sidero.dev/locked";
 export const UpdateLocked = "omni.sidero.dev/locked-update";
 export const ResourceManagedByClusterTemplates = "omni.sidero.dev/managed-by-cluster-templates";

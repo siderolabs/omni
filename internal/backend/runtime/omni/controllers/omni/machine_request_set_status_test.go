@@ -24,9 +24,9 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 
-	cloudspecs "github.com/siderolabs/omni/client/api/omni/specs/cloud"
+	infraspecs "github.com/siderolabs/omni/client/api/omni/specs/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/cloud"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
@@ -37,26 +37,26 @@ type MachineRequestSetStatusSuite struct {
 	OmniSuite
 }
 
-type testCloudProvider = qtransform.QController[*cloud.MachineRequest, *cloud.MachineRequestStatus]
+type testInfraProvider = qtransform.QController[*infra.MachineRequest, *infra.MachineRequestStatus]
 
-func newTestCloudProvider() *testCloudProvider {
+func newTestInfraProvider() *testInfraProvider {
 	return qtransform.NewQController(
-		qtransform.Settings[*cloud.MachineRequest, *cloud.MachineRequestStatus]{
-			Name: "testCloudProvider",
-			MapMetadataFunc: func(request *cloud.MachineRequest) *cloud.MachineRequestStatus {
-				return cloud.NewMachineRequestStatus(request.Metadata().ID())
+		qtransform.Settings[*infra.MachineRequest, *infra.MachineRequestStatus]{
+			Name: "testInfraProvider",
+			MapMetadataFunc: func(request *infra.MachineRequest) *infra.MachineRequestStatus {
+				return infra.NewMachineRequestStatus(request.Metadata().ID())
 			},
-			UnmapMetadataFunc: func(status *cloud.MachineRequestStatus) *cloud.MachineRequest {
-				return cloud.NewMachineRequest(status.Metadata().ID())
+			UnmapMetadataFunc: func(status *infra.MachineRequestStatus) *infra.MachineRequest {
+				return infra.NewMachineRequest(status.Metadata().ID())
 			},
-			TransformExtraOutputFunc: func(_ context.Context, _ controller.ReaderWriter, _ *zap.Logger, machineRequest *cloud.MachineRequest,
-				machineRequestStatus *cloud.MachineRequestStatus,
+			TransformExtraOutputFunc: func(_ context.Context, _ controller.ReaderWriter, _ *zap.Logger, machineRequest *infra.MachineRequest,
+				machineRequestStatus *infra.MachineRequestStatus,
 			) error {
 				if machineRequestStatus.TypedSpec().Value.Id == "" {
 					machineRequestStatus.TypedSpec().Value.Id = uuid.New().String()
 				}
 
-				machineRequestStatus.TypedSpec().Value.Stage = cloudspecs.MachineRequestStatusSpec_PROVISIONED
+				machineRequestStatus.TypedSpec().Value.Stage = infraspecs.MachineRequestStatusSpec_PROVISIONED
 
 				helpers.CopyAllLabels(machineRequest, machineRequestStatus)
 
@@ -88,7 +88,7 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 	imageFactory := imageFactoryClientMock{}
 
 	require.NoError(suite.runtime.RegisterQController(omnictrl.NewMachineRequestSetStatusController(&imageFactory)))
-	require.NoError(suite.runtime.RegisterQController(newTestCloudProvider()))
+	require.NoError(suite.runtime.RegisterQController(newTestInfraProvider()))
 
 	machineRequestSet := omni.NewMachineRequestSet(resources.DefaultNamespace, "test")
 
@@ -111,7 +111,7 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 	var ids []resource.ID
 
 	err = retry.Constant(time.Second*5).RetryWithContext(ctx, func(ctx context.Context) error {
-		ids = rtestutils.ResourceIDs[*cloud.MachineRequest](ctx, suite.T(), suite.state, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
+		ids = rtestutils.ResourceIDs[*infra.MachineRequest](ctx, suite.T(), suite.state, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
 
 		if len(ids) != int(machineRequestSet.TypedSpec().Value.MachineCount) {
 			return retry.ExpectedErrorf("expected %d requests got %d", machineRequestSet.TypedSpec().Value.MachineCount, len(ids))
@@ -122,13 +122,13 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 
 	suite.Require().NoError(err)
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, ids, func(r *cloud.MachineRequest, assert *assert.Assertions) {
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, ids, func(r *infra.MachineRequest, assert *assert.Assertions) {
 		l, ok := r.Metadata().Labels().Get(omni.LabelMachineRequestSet)
 
 		assert.True(ok)
 		assert.Equal(l, machineRequestSet.Metadata().ID())
 
-		l, ok = r.Metadata().Labels().Get(omni.LabelCloudProviderID)
+		l, ok = r.Metadata().Labels().Get(omni.LabelInfraProviderID)
 
 		assert.True(ok)
 		assert.Equal(l, machineRequestSet.TypedSpec().Value.ProviderId)
@@ -137,9 +137,9 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 		assert.Equal(defaultSchematic, r.TypedSpec().Value.SchematicId)
 	})
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, ids, func(*cloud.MachineRequestStatus, *assert.Assertions) {})
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, ids, func(*infra.MachineRequestStatus, *assert.Assertions) {})
 
-	requestStatuses, err := safe.ReaderListAll[*cloud.MachineRequestStatus](ctx, suite.state,
+	requestStatuses, err := safe.ReaderListAll[*infra.MachineRequestStatus](ctx, suite.state,
 		state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())),
 	)
 
@@ -154,10 +154,10 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 
 	rtestutils.Destroy[*system.ResourceLabels[*omni.MachineStatus]](ctx, suite.T(), suite.state, machineIDs)
 
-	rtestutils.AssertNoResource[*cloud.MachineRequest](ctx, suite.T(), suite.state, ids[0])
+	rtestutils.AssertNoResource[*infra.MachineRequest](ctx, suite.T(), suite.state, ids[0])
 
 	err = retry.Constant(time.Second*5).RetryWithContext(ctx, func(ctx context.Context) error {
-		ids = rtestutils.ResourceIDs[*cloud.MachineRequest](ctx, suite.T(), suite.state, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
+		ids = rtestutils.ResourceIDs[*infra.MachineRequest](ctx, suite.T(), suite.state, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
 
 		if len(ids) != int(machineRequestSet.TypedSpec().Value.MachineCount) {
 			return retry.ExpectedErrorf("expected %d requests got %d", machineRequestSet.TypedSpec().Value.MachineCount, len(ids))
@@ -168,13 +168,13 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 
 	suite.Require().NoError(err)
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, ids, func(r *cloud.MachineRequest, assert *assert.Assertions) {
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, ids, func(r *infra.MachineRequest, assert *assert.Assertions) {
 		l, ok := r.Metadata().Labels().Get(omni.LabelMachineRequestSet)
 
 		assert.True(ok)
 		assert.Equal(l, machineRequestSet.Metadata().ID())
 
-		l, ok = r.Metadata().Labels().Get(omni.LabelCloudProviderID)
+		l, ok = r.Metadata().Labels().Get(omni.LabelInfraProviderID)
 
 		assert.True(ok)
 		assert.Equal(l, machineRequestSet.TypedSpec().Value.ProviderId)
@@ -193,7 +193,7 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 	suite.Require().NoError(err)
 
 	err = retry.Constant(time.Second*5).RetryWithContext(ctx, func(ctx context.Context) error {
-		ids = rtestutils.ResourceIDs[*cloud.MachineRequest](ctx, suite.T(), suite.state, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
+		ids = rtestutils.ResourceIDs[*infra.MachineRequest](ctx, suite.T(), suite.state, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
 
 		if len(ids) != int(machineRequestSet.TypedSpec().Value.MachineCount) {
 			return retry.ExpectedErrorf("expected %d requests got %d", machineRequestSet.TypedSpec().Value.MachineCount, len(ids))
@@ -207,7 +207,7 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 	// remove the machine request set
 	rtestutils.DestroyAll[*omni.MachineRequestSet](ctx, suite.T(), suite.state)
 
-	requests, err := safe.ReaderListAll[*cloud.MachineRequest](ctx, suite.state)
+	requests, err := safe.ReaderListAll[*infra.MachineRequest](ctx, suite.state)
 	suite.Require().NoError(err)
 
 	suite.Require().True(requests.Len() == 0)
@@ -218,7 +218,7 @@ func (suite *MachineRequestSetStatusSuite) reconcileLabels(ctx context.Context) 
 	return func() error {
 		ch := make(chan state.Event)
 
-		err := suite.state.WatchKind(ctx, cloud.NewMachineRequestStatus("").Metadata(), ch)
+		err := suite.state.WatchKind(ctx, infra.NewMachineRequestStatus("").Metadata(), ch)
 		if err != nil {
 			return err
 		}
@@ -233,7 +233,7 @@ func (suite *MachineRequestSetStatusSuite) reconcileLabels(ctx context.Context) 
 				case state.Errored:
 					return event.Error
 				case state.Destroyed:
-					status := event.Resource.(*cloud.MachineRequestStatus) //nolint:errcheck,forcetypeassert
+					status := event.Resource.(*infra.MachineRequestStatus) //nolint:errcheck,forcetypeassert
 					res := system.NewResourceLabels[*omni.MachineStatus](status.TypedSpec().Value.Id)
 
 					_, err = suite.state.Teardown(ctx, res.Metadata())
@@ -263,7 +263,7 @@ func (suite *MachineRequestSetStatusSuite) reconcileLabels(ctx context.Context) 
 						return err
 					}
 				case state.Created, state.Updated:
-					status := event.Resource.(*cloud.MachineRequestStatus) //nolint:errcheck,forcetypeassert
+					status := event.Resource.(*infra.MachineRequestStatus) //nolint:errcheck,forcetypeassert
 
 					res := system.NewResourceLabels[*omni.MachineStatus](status.TypedSpec().Value.Id)
 

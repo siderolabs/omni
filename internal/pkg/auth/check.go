@@ -47,8 +47,8 @@ type CheckResult struct {
 	Identity      string
 	UserID        string
 
-	// CloudProviderID is the ID of the cloud provider if the identity is a cloud provider service account.
-	CloudProviderID string
+	// InfraProviderID is the ID of the infra provider if the identity is a infra provider service account.
+	InfraProviderID string
 
 	Labels            map[string]string
 	Role              role.Role
@@ -176,8 +176,8 @@ func Check(ctx context.Context, opt ...CheckOption) (CheckResult, error) {
 		result.Identity = val.Identity
 	}
 
-	if sa, isSa := pkgaccess.ParseServiceAccountFromFullID(result.Identity); isSa && sa.IsCloudProvider {
-		result.CloudProviderID = sa.BaseName
+	if sa, isSa := pkgaccess.ParseServiceAccountFromFullID(result.Identity); isSa && sa.IsInfraProvider {
+		result.InfraProviderID = sa.BaseName
 	}
 
 	if val, ok := ctxstore.Value[UserIDContextKey](ctx); ok {

@@ -9,10 +9,10 @@ import "github.com/siderolabs/omni/client/pkg/omni/resources"
 
 // ResourceType generates the correct resource name for the resources managed by the infra providers.
 func ResourceType(name, providerID string) string {
-	return name + "." + providerID + ".cloudprovider.sidero.dev"
+	return name + "." + providerID + ".infraprovider.sidero.dev"
 }
 
 // ResourceNamespace generates the correct namespace name for the infra provider state.
 func ResourceNamespace(providerID string) string {
-	return resources.CloudProviderSpecificNamespacePrefix + providerID
+	return resources.InfraProviderSpecificNamespacePrefix + providerID
 }

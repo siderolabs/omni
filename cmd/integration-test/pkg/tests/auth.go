@@ -48,7 +48,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/cloud"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/k8s"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/oidc"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -1036,9 +1036,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		delete(untestedResourceTypes, k8s.KubernetesResourceType)
 		delete(untestedResourceTypes, siderolink.DeprecatedLinkCounterType)
 
-		// cloud provider resources have their custom authz logic, they are unit-tested in their package
-		delete(untestedResourceTypes, cloud.MachineRequestType)
-		delete(untestedResourceTypes, cloud.MachineRequestStatusType)
+		// infra provider resources have their custom authz logic, they are unit-tested in their package
+		delete(untestedResourceTypes, infra.MachineRequestType)
+		delete(untestedResourceTypes, infra.MachineRequestStatusType)
 
 		for _, tc := range testCases {
 			for _, testVerb := range allVerbs {

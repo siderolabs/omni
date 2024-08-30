@@ -25,11 +25,11 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	cloudspecs "github.com/siderolabs/omni/client/api/omni/specs/cloud"
+	infraspec "github.com/siderolabs/omni/client/api/omni/specs/infra"
 	"github.com/siderolabs/omni/client/pkg/infra"
 	"github.com/siderolabs/omni/client/pkg/infra/provision"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/cloud"
+	infrares "github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
@@ -46,7 +46,7 @@ type provisioner struct {
 }
 
 // Provision implements provision.Provisioner interface.
-func (p *provisioner) Provision(ctx context.Context, _ *zap.Logger, state *TestResource, request *cloud.MachineRequest, _ *siderolink.ConnectionParams) (provision.Result, error) {
+func (p *provisioner) Provision(ctx context.Context, _ *zap.Logger, state *TestResource, request *infrares.MachineRequest, _ *siderolink.ConnectionParams) (provision.Result, error) {
 	p.machinesMu.Lock()
 	defer p.machinesMu.Unlock()
 
@@ -84,7 +84,7 @@ func (p *provisioner) Provision(ctx context.Context, _ *zap.Logger, state *TestR
 }
 
 // Deprovision implements provision.Provisioner interface.
-func (p *provisioner) Deprovision(_ context.Context, _ *zap.Logger, _ *TestResource, request *cloud.MachineRequest) error {
+func (p *provisioner) Deprovision(_ context.Context, _ *zap.Logger, _ *TestResource, request *infrares.MachineRequest) error {
 	p.machinesMu.Lock()
 	defer p.machinesMu.Unlock()
 
@@ -126,8 +126,8 @@ func TestInfra(t *testing.T) {
 	customLabel := "custom"
 	customValue := "hello"
 
-	machineRequest := cloud.NewMachineRequest("test1")
-	machineRequest.Metadata().Labels().Set(omni.LabelCloudProviderID, providerID)
+	machineRequest := infrares.NewMachineRequest("test1")
+	machineRequest.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
 	machineRequest.Metadata().Labels().Set(customLabel, customValue)
 
 	require.NoError(t, state.Create(ctx, machineRequest))
@@ -136,8 +136,8 @@ func TestInfra(t *testing.T) {
 
 	require.NoError(t, state.Create(ctx, connectionParams))
 
-	rtestutils.AssertResources(ctx, t, state, []string{machineRequest.Metadata().ID()}, func(machineRequestStatus *cloud.MachineRequestStatus, assert *assert.Assertions) {
-		val, ok := machineRequestStatus.Metadata().Labels().Get(omni.LabelCloudProviderID)
+	rtestutils.AssertResources(ctx, t, state, []string{machineRequest.Metadata().ID()}, func(machineRequestStatus *infrares.MachineRequestStatus, assert *assert.Assertions) {
+		val, ok := machineRequestStatus.Metadata().Labels().Get(omni.LabelInfraProviderID)
 
 		assert.True(ok)
 		assert.Equal(providerID, val)
@@ -146,13 +146,13 @@ func TestInfra(t *testing.T) {
 		assert.True(ok)
 		assert.Equal(customValue, val)
 
-		assert.Equal(cloudspecs.MachineRequestStatusSpec_PROVISIONING, machineRequestStatus.TypedSpec().Value.Stage)
+		assert.Equal(infraspec.MachineRequestStatusSpec_PROVISIONING, machineRequestStatus.TypedSpec().Value.Stage)
 	})
 
 	require.True(t, channel.SendWithContext(ctx, provisionChannel, struct{}{}))
 
-	rtestutils.AssertResources(ctx, t, state, []string{machineRequest.Metadata().ID()}, func(machineRequestStatus *cloud.MachineRequestStatus, assert *assert.Assertions) {
-		assert.Equal(cloudspecs.MachineRequestStatusSpec_PROVISIONED, machineRequestStatus.TypedSpec().Value.Stage)
+	rtestutils.AssertResources(ctx, t, state, []string{machineRequest.Metadata().ID()}, func(machineRequestStatus *infrares.MachineRequestStatus, assert *assert.Assertions) {
+		assert.Equal(infraspec.MachineRequestStatusSpec_PROVISIONED, machineRequestStatus.TypedSpec().Value.Stage)
 	})
 
 	rtestutils.AssertResources(ctx, t, state, []string{machineRequest.Metadata().ID()}, func(testResource *TestResource, assert *assert.Assertions) {
@@ -161,9 +161,9 @@ func TestInfra(t *testing.T) {
 
 	require.NotNil(t, p.getMachine(machineRequest.Metadata().ID()))
 
-	rtestutils.Destroy[*cloud.MachineRequest](ctx, t, state, []string{machineRequest.Metadata().ID()})
+	rtestutils.Destroy[*infrares.MachineRequest](ctx, t, state, []string{machineRequest.Metadata().ID()})
 
-	rtestutils.AssertNoResource[*cloud.MachineRequestStatus](ctx, t, state, machineRequest.Metadata().ID())
+	rtestutils.AssertNoResource[*infrares.MachineRequestStatus](ctx, t, state, machineRequest.Metadata().ID())
 	rtestutils.AssertNoResource[*TestResource](ctx, t, state, machineRequest.Metadata().ID())
 
 	require.Nil(t, p.getMachine(machineRequest.Metadata().ID()))

@@ -19,8 +19,8 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/cloud"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
@@ -351,8 +351,8 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		return nil
 	}
 
-	// check if the resource is a cloud provider resource - if it is, the access is managed in cloudprovider.State
-	if strings.HasPrefix(access.ResourceNamespace, resources.CloudProviderSpecificNamespacePrefix) || access.ResourceNamespace == resources.CloudProviderNamespace {
+	// check if the resource is a infra provider resource - if it is, the access is managed in infraprovider.State
+	if strings.HasPrefix(access.ResourceNamespace, resources.InfraProviderSpecificNamespacePrefix) || access.ResourceNamespace == resources.InfraProviderNamespace {
 		return nil
 	}
 
@@ -360,9 +360,9 @@ func filterAccess(ctx context.Context, access state.Access) error {
 
 	// authentication and authorization checks
 	switch access.ResourceType {
-	case omni.MachineType, // cloud provider needs to be able to read machines to find out force-deleted ones and deprovision them
-		siderolink.ConnectionParamsType: // cloud provider needs to be able to read connection params to join nodes to Omni
-		_, err = auth.CheckGRPC(ctx, auth.WithRole(role.CloudProvider))
+	case omni.MachineType, // infra provider needs to be able to read machines to find out force-deleted ones and deprovision them
+		siderolink.ConnectionParamsType: // infra provider needs to be able to read connection params to join nodes to Omni
+		_, err = auth.CheckGRPC(ctx, auth.WithRole(role.InfraProvider))
 	case
 		omni.ClusterType,
 		omni.ClusterBootstrapStatusType,
@@ -503,8 +503,8 @@ func filterAccessByType(access state.Access) error {
 
 		return status.Error(codes.PermissionDenied, "only read, update and delete access is permitted")
 	case
-		cloud.MachineRequestType,       // read-only for all except for CloudProvider role (checked in filterAccess)
-		cloud.MachineRequestStatusType, // read-only for all except for CloudProvider role (checked in filterAccess)
+		infra.MachineRequestType,       // read-only for all except for InfraProvider role (checked in filterAccess)
+		infra.MachineRequestStatusType, // read-only for all except for InfraProvider role (checked in filterAccess)
 		omni.ClusterBootstrapStatusType,
 		omni.ClusterDestroyStatusType,
 		omni.ClusterEndpointType,
@@ -569,7 +569,7 @@ func filterAccessByType(access state.Access) error {
 		virtual.KubernetesUsageType,
 		virtual.LabelsCompletionType,
 		virtual.ClusterPermissionsType:
-		// allow read access only, these resources are either managed by controllers or plugins (e.g., cloud provider plugins)
+		// allow read access only, these resources are either managed by controllers or plugins (e.g., infra provider plugins)
 		if access.Verb.Readonly() {
 			return nil
 		}

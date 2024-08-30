@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package cloudprovider
+package infraprovider
 
 import (
 	"context"
@@ -17,7 +17,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/cloud"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
@@ -26,12 +26,12 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 )
 
-// cloudProviderResourceSuffix is the suffix of the cloud provider specific resources.
+// infraProviderResourceSuffix is the suffix of the infra provider specific resources.
 //
-// They must follow the pattern: <resource-type>.<cloud-provider-id>.cloudprovider.sidero.dev.
-const cloudProviderResourceSuffix = ".cloudprovider.sidero.dev"
+// They must follow the pattern: <resource-type>.<infra-provider-id>.infraprovider.sidero.dev.
+const infraProviderResourceSuffix = ".infraprovider.sidero.dev"
 
-// State is a state implementation doing special handling of the cloud-provider specific resources.
+// State is a state implementation doing special handling of the infra-provider specific resources.
 type State struct {
 	innerState state.CoreState
 	logger     *zap.Logger
@@ -51,7 +51,7 @@ func NewState(innerState state.CoreState, logger *zap.Logger) *State {
 
 // Get implements state.CoreState interface.
 func (st *State) Get(ctx context.Context, pointer resource.Pointer, option ...state.GetOption) (resource.Resource, error) {
-	cloudProviderID, err := st.checkAuthorization(ctx, pointer.Namespace(), pointer.Type())
+	infraProviderID, err := st.checkAuthorization(ctx, pointer.Namespace(), pointer.Type())
 	if err != nil {
 		return nil, err
 	}
@@ -61,12 +61,12 @@ func (st *State) Get(ctx context.Context, pointer resource.Pointer, option ...st
 		return nil, err
 	}
 
-	if cloudProviderID == "" {
+	if infraProviderID == "" {
 		return res, nil
 	}
 
-	resCloudProviderID, ok := res.Metadata().Labels().Get(omni.LabelCloudProviderID)
-	if ok && cloudProviderID == resCloudProviderID {
+	resInfraProviderID, ok := res.Metadata().Labels().Get(omni.LabelInfraProviderID)
+	if ok && infraProviderID == resInfraProviderID {
 		return res, nil
 	}
 
@@ -75,7 +75,7 @@ func (st *State) Get(ctx context.Context, pointer resource.Pointer, option ...st
 
 // List implements state.CoreState interface.
 func (st *State) List(ctx context.Context, kind resource.Kind, option ...state.ListOption) (resource.List, error) {
-	cloudProviderID, err := st.checkAuthorization(ctx, kind.Namespace(), kind.Type())
+	infraProviderID, err := st.checkAuthorization(ctx, kind.Namespace(), kind.Type())
 	if err != nil {
 		return resource.List{}, err
 	}
@@ -85,15 +85,15 @@ func (st *State) List(ctx context.Context, kind resource.Kind, option ...state.L
 		return resource.List{}, err
 	}
 
-	if cloudProviderID == "" {
+	if infraProviderID == "" {
 		return list, nil
 	}
 
 	filteredList := make([]resource.Resource, 0, len(list.Items))
 
 	for _, item := range list.Items {
-		resCloudProviderID, ok := item.Metadata().Labels().Get(omni.LabelCloudProviderID)
-		if ok && cloudProviderID == resCloudProviderID {
+		resInfraProviderID, ok := item.Metadata().Labels().Get(omni.LabelInfraProviderID)
+		if ok && infraProviderID == resInfraProviderID {
 			filteredList = append(filteredList, item)
 		}
 	}
@@ -103,27 +103,27 @@ func (st *State) List(ctx context.Context, kind resource.Kind, option ...state.L
 
 // Create implements state.CoreState interface.
 func (st *State) Create(ctx context.Context, resource resource.Resource, option ...state.CreateOption) error {
-	cloudProviderID, err := st.checkAuthorization(ctx, resource.Metadata().Namespace(), resource.Metadata().Type())
+	infraProviderID, err := st.checkAuthorization(ctx, resource.Metadata().Namespace(), resource.Metadata().Type())
 	if err != nil {
 		return err
 	}
 
-	if cloudProviderID != "" && resource.Metadata().Type() == cloud.MachineRequestType {
-		return status.Errorf(codes.PermissionDenied, "cloud providers are not allowed to create machine requests")
+	if infraProviderID != "" && resource.Metadata().Type() == infra.MachineRequestType {
+		return status.Errorf(codes.PermissionDenied, "infra providers are not allowed to create machine requests")
 	}
 
-	if cloudProviderID == "" {
+	if infraProviderID == "" {
 		return st.innerState.Create(ctx, resource, option...)
 	}
 
-	resource.Metadata().Labels().Set(omni.LabelCloudProviderID, cloudProviderID)
+	resource.Metadata().Labels().Set(omni.LabelInfraProviderID, infraProviderID)
 
 	return st.innerState.Create(ctx, resource, option...)
 }
 
 // Update implements state.CoreState interface.
 func (st *State) Update(ctx context.Context, newResource resource.Resource, opts ...state.UpdateOption) error {
-	cloudProviderID, err := st.checkAuthorization(ctx, newResource.Metadata().Namespace(), newResource.Metadata().Type())
+	infraProviderID, err := st.checkAuthorization(ctx, newResource.Metadata().Namespace(), newResource.Metadata().Type())
 	if err != nil {
 		return err
 	}
@@ -133,11 +133,11 @@ func (st *State) Update(ctx context.Context, newResource resource.Resource, opts
 		return err
 	}
 
-	if cloudProviderID == "" {
+	if infraProviderID == "" {
 		return st.innerState.Update(ctx, newResource, opts...)
 	}
 
-	if newResource.Metadata().Type() == cloud.MachineRequestType {
+	if newResource.Metadata().Type() == infra.MachineRequestType {
 		oldMd := oldResource.Metadata().Copy()
 		oldMd.Finalizers().Set(resource.Finalizers{})
 
@@ -145,13 +145,13 @@ func (st *State) Update(ctx context.Context, newResource resource.Resource, opts
 		newMd.Finalizers().Set(resource.Finalizers{})
 
 		if !oldMd.Equal(newMd) {
-			return status.Errorf(codes.PermissionDenied, "cloud providers are not allowed to update machine requests other than setting finalizers")
+			return status.Errorf(codes.PermissionDenied, "infra providers are not allowed to update machine requests other than setting finalizers")
 		}
 	}
 
-	oldResCloudProviderID, ok := oldResource.Metadata().Labels().Get(omni.LabelCloudProviderID)
-	if ok && oldResCloudProviderID == cloudProviderID {
-		newResource.Metadata().Labels().Set(omni.LabelCloudProviderID, cloudProviderID)
+	oldResInfraProviderID, ok := oldResource.Metadata().Labels().Get(omni.LabelInfraProviderID)
+	if ok && oldResInfraProviderID == infraProviderID {
+		newResource.Metadata().Labels().Set(omni.LabelInfraProviderID, infraProviderID)
 
 		return st.innerState.Update(ctx, newResource, opts...)
 	}
@@ -161,7 +161,7 @@ func (st *State) Update(ctx context.Context, newResource resource.Resource, opts
 
 // Destroy implements state.CoreState interface.
 func (st *State) Destroy(ctx context.Context, pointer resource.Pointer, option ...state.DestroyOption) error {
-	cloudProviderID, err := st.checkAuthorization(ctx, pointer.Namespace(), pointer.Type())
+	infraProviderID, err := st.checkAuthorization(ctx, pointer.Namespace(), pointer.Type())
 	if err != nil {
 		return err
 	}
@@ -171,12 +171,12 @@ func (st *State) Destroy(ctx context.Context, pointer resource.Pointer, option .
 		return err
 	}
 
-	if cloudProviderID == "" {
+	if infraProviderID == "" {
 		return st.innerState.Destroy(ctx, pointer, option...)
 	}
 
-	resCloudProviderID, ok := res.Metadata().Labels().Get(omni.LabelCloudProviderID)
-	if ok && cloudProviderID == resCloudProviderID {
+	resInfraProviderID, ok := res.Metadata().Labels().Get(omni.LabelInfraProviderID)
+	if ok && infraProviderID == resInfraProviderID {
 		return st.innerState.Destroy(ctx, pointer, option...)
 	}
 
@@ -185,82 +185,82 @@ func (st *State) Destroy(ctx context.Context, pointer resource.Pointer, option .
 
 // Watch implements state.CoreState interface.
 func (st *State) Watch(ctx context.Context, pointer resource.Pointer, eventCh chan<- state.Event, option ...state.WatchOption) error {
-	cloudProviderID, err := st.checkAuthorization(ctx, pointer.Namespace(), pointer.Type())
+	infraProviderID, err := st.checkAuthorization(ctx, pointer.Namespace(), pointer.Type())
 	if err != nil {
 		return err
 	}
 
-	if cloudProviderID == "" {
+	if infraProviderID == "" {
 		return st.innerState.Watch(ctx, pointer, eventCh, option...)
 	}
 
-	innerEventCh := st.filterEvents(ctx, cloudProviderID, eventCh)
+	innerEventCh := st.filterEvents(ctx, infraProviderID, eventCh)
 
 	return st.innerState.Watch(ctx, pointer, innerEventCh, option...)
 }
 
 // WatchKind implements state.CoreState interface.
 func (st *State) WatchKind(ctx context.Context, kind resource.Kind, eventCh chan<- state.Event, option ...state.WatchKindOption) error {
-	cloudProviderID, err := st.checkAuthorization(ctx, kind.Namespace(), kind.Type())
+	infraProviderID, err := st.checkAuthorization(ctx, kind.Namespace(), kind.Type())
 	if err != nil {
 		return err
 	}
 
-	if cloudProviderID == "" {
+	if infraProviderID == "" {
 		return st.innerState.WatchKind(ctx, kind, eventCh, option...)
 	}
 
-	innerEventCh := st.filterEvents(ctx, cloudProviderID, eventCh)
+	innerEventCh := st.filterEvents(ctx, infraProviderID, eventCh)
 
 	return st.innerState.WatchKind(ctx, kind, innerEventCh, option...)
 }
 
 // WatchKindAggregated implements state.CoreState interface.
 func (st *State) WatchKindAggregated(ctx context.Context, kind resource.Kind, eventsCh chan<- []state.Event, option ...state.WatchKindOption) error {
-	cloudProviderID, err := st.checkAuthorization(ctx, kind.Namespace(), kind.Type())
+	infraProviderID, err := st.checkAuthorization(ctx, kind.Namespace(), kind.Type())
 	if err != nil {
 		return err
 	}
 
-	if cloudProviderID == "" {
+	if infraProviderID == "" {
 		return st.innerState.WatchKindAggregated(ctx, kind, eventsCh, option...)
 	}
 
-	innerEventsCh := st.filterEventsAggregated(ctx, cloudProviderID, eventsCh)
+	innerEventsCh := st.filterEventsAggregated(ctx, infraProviderID, eventsCh)
 
 	return st.innerState.WatchKindAggregated(ctx, kind, innerEventsCh, option...)
 }
 
-func (st *State) checkAuthorization(ctx context.Context, ns resource.Namespace, resType resource.Type) (cloudProviderID string, err error) {
+func (st *State) checkAuthorization(ctx context.Context, ns resource.Namespace, resType resource.Type) (infraProviderID string, err error) {
 	if actor.ContextIsInternalActor(ctx) {
 		return "", nil
 	}
 
-	checkResult, err := auth.CheckGRPC(ctx, auth.WithRole(role.CloudProvider))
+	checkResult, err := auth.CheckGRPC(ctx, auth.WithRole(role.InfraProvider))
 	if err != nil {
 		return "", err
 	}
 
-	// if the role is exactly CloudProvider, additionally, check for the label match
-	if checkResult.Role == role.CloudProvider {
+	// if the role is exactly InfraProvider, additionally, check for the label match
+	if checkResult.Role == role.InfraProvider {
 		var checkLabel bool
 
-		checkLabel, err = st.checkNamespaceAndType(ns, checkResult.CloudProviderID, resType)
+		checkLabel, err = st.checkNamespaceAndType(ns, checkResult.InfraProviderID, resType)
 		if err != nil {
 			return "", err
 		}
 
-		// return the cloud provider ID only for the resource live in a shared namespace, i.e., "cloud-provider"
-		// as their cloud provider ID label needs to be checked.
+		// return the infra provider ID only for the resource live in a shared namespace, i.e., "infra-provider"
+		// as their infra provider ID label needs to be checked.
 		if checkLabel {
-			return checkResult.CloudProviderID, nil
+			return checkResult.InfraProviderID, nil
 		}
 	}
 
 	return "", nil
 }
 
-func (st *State) filterEvents(ctx context.Context, cloudProviderID string, eventCh chan<- state.Event) chan state.Event {
+func (st *State) filterEvents(ctx context.Context, infraProviderID string, eventCh chan<- state.Event) chan state.Event {
 	innerEventCh := make(chan state.Event)
 
 	panichandler.Go(func() {
@@ -283,8 +283,8 @@ func (st *State) filterEvents(ctx context.Context, cloudProviderID string, event
 				}
 
 				if event.Resource != nil {
-					resCloudProviderID, cpOk := event.Resource.Metadata().Labels().Get(omni.LabelCloudProviderID)
-					if !cpOk || cloudProviderID != resCloudProviderID {
+					resInfraProviderID, cpOk := event.Resource.Metadata().Labels().Get(omni.LabelInfraProviderID)
+					if !cpOk || infraProviderID != resInfraProviderID {
 						continue // discard
 					}
 				}
@@ -297,7 +297,7 @@ func (st *State) filterEvents(ctx context.Context, cloudProviderID string, event
 	return innerEventCh
 }
 
-func (st *State) filterEventsAggregated(ctx context.Context, cloudProviderID string, eventsCh chan<- []state.Event) chan []state.Event {
+func (st *State) filterEventsAggregated(ctx context.Context, infraProviderID string, eventsCh chan<- []state.Event) chan []state.Event {
 	innerEventsCh := make(chan []state.Event)
 
 	panichandler.Go(func() {
@@ -317,8 +317,8 @@ func (st *State) filterEventsAggregated(ctx context.Context, cloudProviderID str
 
 				for _, event := range events {
 					if event.Resource != nil {
-						resCloudProviderID, cpOk := event.Resource.Metadata().Labels().Get(omni.LabelCloudProviderID)
-						if !cpOk || cloudProviderID != resCloudProviderID {
+						resInfraProviderID, cpOk := event.Resource.Metadata().Labels().Get(omni.LabelInfraProviderID)
+						if !cpOk || infraProviderID != resInfraProviderID {
 							continue // discard
 						}
 					}
@@ -334,14 +334,14 @@ func (st *State) filterEventsAggregated(ctx context.Context, cloudProviderID str
 	return innerEventsCh
 }
 
-func (st *State) checkNamespaceAndType(ns resource.Namespace, cloudProviderID string, resType resource.Type) (checkLabel bool, err error) {
-	if ns == resources.CloudProviderNamespace {
+func (st *State) checkNamespaceAndType(ns resource.Namespace, infraProviderID string, resType resource.Type) (checkLabel bool, err error) {
+	if ns == resources.InfraProviderNamespace {
 		return true, nil
 	}
 
-	cloudProviderSpecificNamespace := resources.CloudProviderSpecificNamespacePrefix + cloudProviderID
-	if ns == cloudProviderSpecificNamespace {
-		resTypeSuffix := "." + cloudProviderID + cloudProviderResourceSuffix
+	infraProviderSpecificNamespace := resources.InfraProviderSpecificNamespacePrefix + infraProviderID
+	if ns == infraProviderSpecificNamespace {
+		resTypeSuffix := "." + infraProviderID + infraProviderResourceSuffix
 
 		if !strings.HasSuffix(resType, resTypeSuffix) {
 			return false, status.Errorf(codes.InvalidArgument, "resources in namespace %q must have a type suffix %q", ns, resTypeSuffix)
@@ -351,5 +351,5 @@ func (st *State) checkNamespaceAndType(ns resource.Namespace, cloudProviderID st
 	}
 
 	return false, status.Errorf(codes.PermissionDenied, "namespace not allowed, must be one of %s or %s",
-		resources.CloudProviderNamespace, cloudProviderSpecificNamespace)
+		resources.InfraProviderNamespace, infraProviderSpecificNamespace)
 }
