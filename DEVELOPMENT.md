@@ -6,6 +6,13 @@ In this document, we are going to use the `172.20.0.0/24` CIDR, but you can use 
 With the CIDR `172.20.0.0/24`, the bridge IP is going to be `172.20.0.1`, so we are going to use the bridge IP
 as the Omni endpoint QEMU VMs can reach.
 
+## Mac considerations
+
+1. Make sure you have the latest version of `make` installed
+2. Configure your container engine to work with `network_mode: host`
+
+In case of Docker Desktop check `Enable host networking` under Settings > Resources > Network.
+
 ## Build Omni and omnictl
 
 ```shell
