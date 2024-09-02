@@ -5,16 +5,21 @@
 package siderolink
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
 	"github.com/cosi-project/runtime/pkg/resource/typed"
+	"github.com/siderolabs/talos/pkg/machinery/constants"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/jointoken"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
 // NewConnectionParams creates new ConnectionParams state.
@@ -92,4 +97,51 @@ func APIURL(cfg *ConnectionParams, useTunnel bool) (string, error) {
 	url.RawQuery = query.Encode()
 
 	return url.String(), nil
+}
+
+// GetConnectionArgsForProvider composes connection args for the specific provider.
+func GetConnectionArgsForProvider(connectionParams *ConnectionParams, providerID string) (string, error) {
+	params := KernelArgs(connectionParams)
+	if len(params) == 0 {
+		return "", errors.New("failed to get the connection params")
+	}
+
+	index := slices.IndexFunc(params, func(p string) bool {
+		return strings.HasPrefix(p, constants.KernelParamSideroLink)
+	})
+
+	if index == -1 {
+		return "", errors.New("malformed connection params string: doesn't contain siderolink api arg")
+	}
+
+	key, value, found := strings.Cut(params[index], "=")
+	if !found {
+		return "", errors.New("failed to parse siderolink connection param")
+	}
+
+	url, err := url.Parse(value)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse siderolink connection param: %w", err)
+	}
+
+	token, err := jointoken.NewWithExtraData(connectionParams.TypedSpec().Value.JoinToken, map[string]string{
+		omni.LabelInfraProviderID: providerID,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	data, err := token.Encode()
+	if err != nil {
+		return "", fmt.Errorf("failed to encode the siderolink token")
+	}
+
+	query := url.Query()
+	query.Set("jointoken", data)
+
+	url.RawQuery = query.Encode()
+
+	params[index] = key + "=" + url.String()
+
+	return strings.Join(params, " "), nil
 }

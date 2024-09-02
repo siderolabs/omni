@@ -12,19 +12,31 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
 
-// Result is returned from the provision function.
-type Result struct {
-	// UUID is the machine UUID.
-	UUID string
-	// MachineID is the infra provider specific machine id.
-	MachineID string
+// NewStep creates a new provision step.
+func NewStep[T resource.Resource](name string, run func(context.Context, *zap.Logger, Context[T]) error) Step[T] {
+	return Step[T]{name: name, run: run}
+}
+
+// Step implements a single provision step.
+type Step[T resource.Resource] struct {
+	run  func(context.Context, *zap.Logger, Context[T]) error
+	name string
+}
+
+// Name of the step.
+func (s Step[T]) Name() string {
+	return s.name
+}
+
+// Run the step.
+func (s Step[T]) Run(ctx context.Context, logger *zap.Logger, provisionContext Context[T]) error {
+	return s.run(ctx, logger, provisionContext)
 }
 
 // Provisioner is the interface that should be implemented by an infra provider.
 type Provisioner[T resource.Resource] interface {
-	Provision(context.Context, *zap.Logger, T, *infra.MachineRequest, *siderolink.ConnectionParams) (Result, error)
+	ProvisionSteps() []Step[T]
 	Deprovision(context.Context, *zap.Logger, T, *infra.MachineRequest) error
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
 	"github.com/cosi-project/runtime/pkg/resource/typed"
 
-	"github.com/siderolabs/omni/client/api/omni/specs/infra"
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 )
 
@@ -18,7 +18,7 @@ import (
 func NewMachineRequestStatus(id string) *MachineRequestStatus {
 	return typed.NewResource[MachineRequestStatusSpec, MachineRequestStatusExtension](
 		resource.NewMetadata(resources.InfraProviderNamespace, MachineRequestStatusType, id, resource.VersionUndefined),
-		protobuf.NewResourceSpec(&infra.MachineRequestStatusSpec{}),
+		protobuf.NewResourceSpec(&specs.MachineRequestStatusSpec{}),
 	)
 }
 
@@ -33,7 +33,7 @@ const (
 type MachineRequestStatus = typed.Resource[MachineRequestStatusSpec, MachineRequestStatusExtension]
 
 // MachineRequestStatusSpec wraps specs.MachineRequestStatusSpec.
-type MachineRequestStatusSpec = protobuf.ResourceSpec[infra.MachineRequestStatusSpec, *infra.MachineRequestStatusSpec]
+type MachineRequestStatusSpec = protobuf.ResourceSpec[specs.MachineRequestStatusSpec, *specs.MachineRequestStatusSpec]
 
 // MachineRequestStatusExtension providers auxiliary methods for MachineRequestStatus resource.
 type MachineRequestStatusExtension struct{}

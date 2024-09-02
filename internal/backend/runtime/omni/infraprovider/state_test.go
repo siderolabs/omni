@@ -23,7 +23,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	infraspecs "github.com/siderolabs/omni/client/api/omni/specs/infra"
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -66,7 +66,6 @@ func TestInfraProviderAccess(t *testing.T) {
 	mr.Metadata().Labels().Set(omni.LabelInfraProviderID, infraProviderID)
 
 	mr.TypedSpec().Value.TalosVersion = talosVersion
-	mr.TypedSpec().Value.SchematicId = schematicID
 
 	require.NoError(t, innerSt.Create(ctx, mr))
 
@@ -114,7 +113,7 @@ func TestInfraProviderAccess(t *testing.T) {
 		res.Metadata().Labels().Set("foo", "bar")
 
 		res.TypedSpec().Value.Id = "12345"
-		res.TypedSpec().Value.Stage = infraspecs.MachineRequestStatusSpec_PROVISIONING
+		res.TypedSpec().Value.Stage = specs.MachineRequestStatusSpec_PROVISIONING
 
 		return nil
 	})
@@ -138,10 +137,8 @@ func TestInternalAccess(t *testing.T) {
 	err := st.Create(ctx, mr)
 	assert.True(t, validated.IsValidationError(err))
 	assert.ErrorContains(t, err, "invalid talos version format")
-	assert.ErrorContains(t, err, "invalid schematic ID format")
 
 	mr.TypedSpec().Value.TalosVersion = talosVersion
-	mr.TypedSpec().Value.SchematicId = schematicID
 
 	err = st.Create(ctx, mr)
 	assert.NoError(t, err)
@@ -322,13 +319,11 @@ func assertEvents(ctx context.Context, t *testing.T, eventCh chan state.Event, e
 func prepareResources(ctx context.Context, t *testing.T, innerSt state.CoreState) {
 	mr1 := infra.NewMachineRequest("mr-1")
 	mr1.TypedSpec().Value.TalosVersion = talosVersion
-	mr1.TypedSpec().Value.SchematicId = schematicID
 
 	mr1.Metadata().Labels().Set(omni.LabelInfraProviderID, infraProviderID)
 
 	mr2 := infra.NewMachineRequest("mr-2")
 	mr2.TypedSpec().Value.TalosVersion = "v1.2.4"
-	mr2.TypedSpec().Value.SchematicId = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
 
 	mr2.Metadata().Labels().Set(omni.LabelInfraProviderID, "aws-2")
 

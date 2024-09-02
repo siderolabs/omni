@@ -6,7 +6,10 @@ package infra_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/url"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -18,6 +21,8 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/google/uuid"
 	"github.com/siderolabs/gen/channel"
+	"github.com/siderolabs/image-factory/pkg/schematic"
+	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -25,14 +30,20 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	infraspec "github.com/siderolabs/omni/client/api/omni/specs/infra"
 	"github.com/siderolabs/omni/client/pkg/infra"
 	"github.com/siderolabs/omni/client/pkg/infra/provision"
+	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	infrares "github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
+
+type imageFactoryClientMock struct{}
+
+func (i *imageFactoryClientMock) EnsureSchematic(_ context.Context, schematic schematic.Schematic) (string, error) {
+	return schematic.ID()
+}
 
 type ms struct {
 	uuid string
@@ -45,42 +56,123 @@ type provisioner struct {
 	machinesMu sync.Mutex
 }
 
+func validateConnectionParams(_ context.Context, _ *zap.Logger, pctx provision.Context[*TestResource]) error {
+	parts := strings.Split(pctx.ConnectionParams, " ")
+	if len(parts) == 0 {
+		return errors.New("invalid connection params")
+	}
+
+	_, u, ok := strings.Cut(parts[0], "=")
+	if !ok {
+		return errors.New("invalid connection params")
+	}
+
+	url, err := url.Parse(u)
+	if err != nil {
+		return fmt.Errorf("invalid connection params: %w", err)
+	}
+
+	token := url.Query().Get("jointoken")
+	if token == "" {
+		return errors.New("invalid connection params")
+	}
+
+	t, err := jointoken.Parse(token)
+	if err != nil {
+		return fmt.Errorf("invalid connection params: %w", err)
+	}
+
+	if t.ExtraData == nil {
+		return errors.New("invalid connection params: no extra data")
+	}
+
+	value, ok := t.ExtraData[omni.LabelInfraProviderID]
+	if !ok {
+		return errors.New("invalid connection params: missing infra provider extra data")
+	}
+
+	if value != providerID {
+		return fmt.Errorf("expected provider id %s got %s", providerID, value)
+	}
+
+	return nil
+}
+
+func genSchematic(ctx context.Context, logger *zap.Logger, pctx provision.Context[*TestResource]) error {
+	schematic, err := pctx.GenerateSchematicID(ctx, logger)
+	if err != nil {
+		return err
+	}
+
+	expectedSchematic := "a35d01089c2122ee67ef6f9a0834f01a405d8d6eb70a99a5979c41eeda504720"
+
+	if schematic != expectedSchematic {
+		return fmt.Errorf("expected schematic id to be %s got %s", expectedSchematic, schematic)
+	}
+
+	schematic, err = pctx.GenerateSchematicID(ctx, logger, provision.WithoutConnectionParams())
+	if err != nil {
+		return err
+	}
+
+	expectedSchematic = "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"
+
+	if schematic != expectedSchematic {
+		return fmt.Errorf("expected schematic id to be %s got %s", expectedSchematic, schematic)
+	}
+
+	return nil
+}
+
 // Provision implements provision.Provisioner interface.
-func (p *provisioner) Provision(ctx context.Context, _ *zap.Logger, state *TestResource, request *infrares.MachineRequest, _ *siderolink.ConnectionParams) (provision.Result, error) {
-	p.machinesMu.Lock()
-	defer p.machinesMu.Unlock()
+func (p *provisioner) ProvisionSteps() []provision.Step[*TestResource] {
+	return []provision.Step[*TestResource]{
+		provision.NewStep("init", func(context.Context, *zap.Logger, provision.Context[*TestResource]) error {
+			p.machinesMu.Lock()
+			defer p.machinesMu.Unlock()
 
-	if p.machines == nil {
-		p.machines = map[string]ms{}
+			if p.machines == nil {
+				p.machines = map[string]ms{}
+
+				return provision.NewRetryErrorf(time.Second, "retry me after 1 second")
+			}
+
+			return nil
+		}),
+		provision.NewStep("schematic", genSchematic),
+		provision.NewStep("validate", validateConnectionParams),
+		provision.NewStep("provision", func(ctx context.Context, _ *zap.Logger, pctx provision.Context[*TestResource]) error {
+			p.machinesMu.Lock()
+			defer p.machinesMu.Unlock()
+
+			if pctx.State.TypedSpec().Value.Connected {
+				return nil
+			}
+
+			m, ok := p.machines[pctx.GetRequestID()]
+			if !ok {
+				m = ms{
+					uuid: uuid.New().String(),
+					id:   fmt.Sprintf("machine%d", len(p.machines)),
+				}
+
+				p.machines[pctx.GetRequestID()] = m
+			}
+
+			pctx.SetMachineUUID(m.uuid)
+			pctx.SetMachineInfraID(m.id)
+
+			pctx.State.TypedSpec().Value.Connected = true
+
+			select {
+			case <-p.ch:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+
+			return nil
+		}),
 	}
-
-	if state.TypedSpec().Value == nil {
-		state.TypedSpec().Value = &specs.MachineSpec{}
-	}
-
-	if state.TypedSpec().Value.Connected {
-		m := p.machines[request.Metadata().ID()]
-
-		return provision.Result{
-			UUID:      m.uuid,
-			MachineID: m.id,
-		}, nil
-	}
-
-	p.machines[request.Metadata().ID()] = ms{
-		uuid: uuid.New().String(),
-		id:   fmt.Sprintf("machine%d", len(p.machines)),
-	}
-
-	state.TypedSpec().Value.Connected = true
-
-	select {
-	case <-p.ch:
-	case <-ctx.Done():
-		return provision.Result{}, ctx.Err()
-	}
-
-	return provision.Result{}, nil
 }
 
 // Deprovision implements provision.Provisioner interface.
@@ -133,6 +225,8 @@ func TestInfra(t *testing.T) {
 	require.NoError(t, state.Create(ctx, machineRequest))
 
 	connectionParams := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
+	connectionParams.TypedSpec().Value.JoinToken = "abcd"
+	connectionParams.TypedSpec().Value.Args = constants.KernelParamSideroLink + "=http://127.0.0.1:8099?jointoken=abcd"
 
 	require.NoError(t, state.Create(ctx, connectionParams))
 
@@ -146,13 +240,13 @@ func TestInfra(t *testing.T) {
 		assert.True(ok)
 		assert.Equal(customValue, val)
 
-		assert.Equal(infraspec.MachineRequestStatusSpec_PROVISIONING, machineRequestStatus.TypedSpec().Value.Stage)
+		assert.Equal(specs.MachineRequestStatusSpec_PROVISIONING, machineRequestStatus.TypedSpec().Value.Stage)
 	})
 
 	require.True(t, channel.SendWithContext(ctx, provisionChannel, struct{}{}))
 
 	rtestutils.AssertResources(ctx, t, state, []string{machineRequest.Metadata().ID()}, func(machineRequestStatus *infrares.MachineRequestStatus, assert *assert.Assertions) {
-		assert.Equal(infraspec.MachineRequestStatusSpec_PROVISIONED, machineRequestStatus.TypedSpec().Value.Stage)
+		assert.Equal(specs.MachineRequestStatusSpec_PROVISIONED, machineRequestStatus.TypedSpec().Value.Stage)
 	})
 
 	rtestutils.AssertResources(ctx, t, state, []string{machineRequest.Metadata().ID()}, func(testResource *TestResource, assert *assert.Assertions) {
@@ -180,7 +274,7 @@ func setupInfra(ctx context.Context, t *testing.T, p *provisioner) state.State {
 	eg, ctx := errgroup.WithContext(ctx)
 
 	eg.Go(func() error {
-		return provider.Run(ctx, logger, infra.WithState(state))
+		return provider.Run(ctx, logger, infra.WithState(state), infra.WithImageFactoryClient(&imageFactoryClientMock{}))
 	})
 
 	t.Cleanup(func() {

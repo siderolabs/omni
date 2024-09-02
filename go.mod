@@ -72,11 +72,11 @@ require (
 	github.com/siderolabs/go-tail v0.1.1
 	github.com/siderolabs/go-talos-support v0.1.1
 	github.com/siderolabs/grpc-proxy v0.4.1
-	github.com/siderolabs/image-factory v0.4.2
+	github.com/siderolabs/image-factory v0.5.0
 	github.com/siderolabs/kms-client v0.1.0
 	github.com/siderolabs/omni/client v0.39.1
 	github.com/siderolabs/siderolink v0.3.9
-	github.com/siderolabs/talos/pkg/machinery v1.8.0-alpha.1
+	github.com/siderolabs/talos/pkg/machinery v1.8.0-alpha.2.0.20240830181738-6f7c3a8e5c63
 	github.com/siderolabs/tcpproxy v0.1.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
@@ -131,7 +131,7 @@ require (
 	github.com/cloudflare/circl v1.3.9 // indirect
 	github.com/containerd/go-cni v1.1.10 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.15.1 // indirect
-	github.com/containernetworking/cni v1.2.2 // indirect
+	github.com/containernetworking/cni v1.2.3 // indirect
 	github.com/containers/storage v1.55.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
@@ -210,6 +210,7 @@ require (
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/shabbyrobe/gocovmerge v0.0.0-20190829150210-3e036491d500 // indirect
 	github.com/siderolabs/go-blockdevice v0.4.7 // indirect
+	github.com/siderolabs/go-blockdevice/v2 v2.0.1 // indirect
 	github.com/siderolabs/go-kubeconfig v0.1.0 // indirect
 	github.com/siderolabs/net v0.4.0 // indirect
 	github.com/siderolabs/protoenc v0.2.1 // indirect

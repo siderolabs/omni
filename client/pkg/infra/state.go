@@ -16,18 +16,8 @@ type State struct {
 }
 
 // NewState creates new infra provider state.
-func NewState(endpoint string, opts ...client.Option) (*State, error) {
-	client, err := client.New(endpoint, opts...)
-	if err != nil {
-		return nil, err
-	}
-
+func NewState(client *client.Client) (*State, error) {
 	return &State{Client: client}, nil
-}
-
-// Close closes the connection to Omni.
-func (s *State) Close() error {
-	return s.Client.Close()
 }
 
 // State returns COSI state.

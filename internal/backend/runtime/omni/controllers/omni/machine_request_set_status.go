@@ -15,12 +15,9 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xerrors"
-	"github.com/siderolabs/gen/xslices"
-	"github.com/siderolabs/image-factory/pkg/schematic"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/rand"
 
-	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -35,10 +32,8 @@ const MachineRequestSetStatusControllerName = "MachineRequestSetStatusController
 type MachineRequestSetStatusController = qtransform.QController[*omni.MachineRequestSet, *omni.MachineRequestSetStatus]
 
 // NewMachineRequestSetStatusController instantiates the MachineRequestSetStatusController.
-func NewMachineRequestSetStatusController(imageFactory SchematicEnsurer) *MachineRequestSetStatusController {
-	h := &machineRequestSetStatusHandler{
-		imageFactory: imageFactory,
-	}
+func NewMachineRequestSetStatusController() *MachineRequestSetStatusController {
+	h := &machineRequestSetStatusHandler{}
 
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.MachineRequestSet, *omni.MachineRequestSetStatus]{
@@ -66,9 +61,7 @@ func NewMachineRequestSetStatusController(imageFactory SchematicEnsurer) *Machin
 	)
 }
 
-type machineRequestSetStatusHandler struct {
-	imageFactory SchematicEnsurer
-}
+type machineRequestSetStatusHandler struct{}
 
 func (h *machineRequestSetStatusHandler) reconcileRunning(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, machineRequestSet *omni.MachineRequestSet,
 	_ *omni.MachineRequestSetStatus,
@@ -142,11 +135,6 @@ func (h *machineRequestSetStatusHandler) reconcileRequests(ctx context.Context, 
 }
 
 func (h *machineRequestSetStatusHandler) scaleUp(ctx context.Context, r controller.ReaderWriter, machineRequestSet *omni.MachineRequestSet, count int) error {
-	schematicID, err := h.ensureSchematic(ctx, machineRequestSet)
-	if err != nil {
-		return err
-	}
-
 	for range count {
 		for range 100 {
 			alias := rand.String(6)
@@ -156,7 +144,10 @@ func (h *machineRequestSetStatusHandler) scaleUp(ctx context.Context, r controll
 
 				request.TypedSpec().Value.TalosVersion = machineRequestSet.TypedSpec().Value.TalosVersion
 
-				request.TypedSpec().Value.SchematicId = schematicID
+				request.TypedSpec().Value.Extensions = machineRequestSet.TypedSpec().Value.Extensions
+				request.TypedSpec().Value.Overlay = machineRequestSet.TypedSpec().Value.Overlay
+				request.TypedSpec().Value.KernelArgs = machineRequestSet.TypedSpec().Value.KernelArgs
+				request.TypedSpec().Value.MetaValues = machineRequestSet.TypedSpec().Value.MetaValues
 
 				request.Metadata().Labels().Set(omni.LabelInfraProviderID, machineRequestSet.TypedSpec().Value.ProviderId)
 				request.Metadata().Labels().Set(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())
@@ -175,42 +166,6 @@ func (h *machineRequestSetStatusHandler) scaleUp(ctx context.Context, r controll
 	}
 
 	return nil
-}
-
-func (h *machineRequestSetStatusHandler) ensureSchematic(ctx context.Context, machineRequestSet *omni.MachineRequestSet) (string, error) {
-	slices.Sort(machineRequestSet.TypedSpec().Value.Extensions)
-	slices.Sort(machineRequestSet.TypedSpec().Value.KernelArgs)
-
-	s := schematic.Schematic{
-		Customization: schematic.Customization{
-			ExtraKernelArgs: machineRequestSet.TypedSpec().Value.KernelArgs,
-			Meta: xslices.Map(machineRequestSet.TypedSpec().Value.MetaValues, func(value *specs.MetaValue) schematic.MetaValue {
-				return schematic.MetaValue{
-					Key:   uint8(value.Key),
-					Value: value.Value,
-				}
-			}),
-			SystemExtensions: schematic.SystemExtensions{
-				OfficialExtensions: machineRequestSet.TypedSpec().Value.Extensions,
-			},
-		},
-	}
-
-	overlay := machineRequestSet.TypedSpec().Value.Overlay
-
-	if overlay != nil {
-		s.Overlay = schematic.Overlay{
-			Image: overlay.Image,
-			Name:  overlay.Name,
-		}
-	}
-
-	ensuredSchematic, err := h.imageFactory.EnsureSchematic(ctx, s)
-	if err != nil {
-		return "", err
-	}
-
-	return ensuredSchematic.FullID, nil
 }
 
 func scaleDown(ctx context.Context, r controller.ReaderWriter, machineRequests []*infra.MachineRequest, machineStatuses map[resource.ID]*machineStatusLabels, count int) error {

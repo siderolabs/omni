@@ -1,11 +1,16 @@
 syntax = "proto3";
 package specs;
 
-option go_package = "github.com/siderolabs/omni/client/api/omni/specs/infra";
+option go_package = "github.com/siderolabs/omni/client/api/omni/specs";
+
+import "omni/specs/omni.proto";
 
 message MachineRequestSpec {
   string talos_version = 1;
-  string schematic_id = 2;
+  specs.Overlay overlay = 2;
+  repeated string extensions = 3;
+  repeated string kernel_args = 4;
+  repeated specs.MetaValue meta_values = 5;
 }
 
 message MachineRequestStatusSpec {

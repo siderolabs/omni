@@ -8,12 +8,14 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 
 	"github.com/siderolabs/omni/client/pkg/client"
+	"github.com/siderolabs/omni/client/pkg/infra/provision"
 )
 
 // Options defines additional infra provider options.
 type Options struct {
 	omniEndpoint  string
 	state         state.State
+	imageFactory  provision.FactoryClient
 	clientOptions []client.Option
 	concurrency   uint
 }
@@ -25,6 +27,13 @@ type Option func(*Options)
 func WithClientOptions(options ...client.Option) Option {
 	return func(o *Options) {
 		o.clientOptions = options
+	}
+}
+
+// WithImageFactoryClient sets up the image factory client explicitly.
+func WithImageFactoryClient(imageFactory provision.FactoryClient) Option {
+	return func(o *Options) {
+		o.imageFactory = imageFactory
 	}
 }
 

@@ -27,10 +27,6 @@ func validationOptions() []validated.StateOption {
 				errs = multierror.Append(errs, fmt.Errorf("invalid talos version format: %q", res.TypedSpec().Value.TalosVersion))
 			}
 
-			if !isSHA256Hex(res.TypedSpec().Value.SchematicId) {
-				errs = multierror.Append(errs, fmt.Errorf("invalid schematic ID format: %q", res.TypedSpec().Value.SchematicId))
-			}
-
 			return errs
 		})),
 		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, oldRes *infra.MachineRequest, newRes *infra.MachineRequest, _ ...state.UpdateOption) error {
@@ -41,18 +37,4 @@ func validationOptions() []validated.StateOption {
 			return nil
 		})),
 	}
-}
-
-func isSHA256Hex(s string) bool {
-	if len(s) != 64 {
-		return false
-	}
-
-	for _, c := range s {
-		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
-			return false
-		}
-	}
-
-	return true
 }

@@ -6,6 +6,7 @@ package controllers
 
 import (
 	"context"
+	"slices"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
@@ -14,10 +15,9 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/optional"
-	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
-	infraspecs "github.com/siderolabs/omni/client/api/omni/specs/infra"
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	infrares "github.com/siderolabs/omni/client/pkg/infra/internal/resources"
 	"github.com/siderolabs/omni/client/pkg/infra/provision"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -26,23 +26,29 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
 
+const currentStepAnnotation = "infra." + omni.SystemLabelPrefix + "step"
+
 // ProvisionController is the generic controller that operates the Provisioner.
 type ProvisionController[T generic.ResourceWithRD] struct {
 	generic.NamedController
-	provisioner provision.Provisioner[T]
-	providerID  string
-	concurrency uint
+	provisioner  provision.Provisioner[T]
+	imageFactory provision.FactoryClient
+	providerID   string
+	concurrency  uint
 }
 
 // NewProvisionController creates new ProvisionController.
-func NewProvisionController[T generic.ResourceWithRD](providerID string, provisioner provision.Provisioner[T], concurrency uint) *ProvisionController[T] {
+func NewProvisionController[T generic.ResourceWithRD](providerID string, provisioner provision.Provisioner[T], concurrency uint,
+	imageFactory provision.FactoryClient,
+) *ProvisionController[T] {
 	return &ProvisionController[T]{
 		NamedController: generic.NamedController{
 			ControllerName: providerID + ".ProvisionController",
 		},
-		providerID:  providerID,
-		provisioner: provisioner,
-		concurrency: concurrency,
+		providerID:   providerID,
+		provisioner:  provisioner,
+		concurrency:  concurrency,
+		imageFactory: imageFactory,
 	}
 }
 
@@ -84,7 +90,7 @@ func (ctrl *ProvisionController[T]) Settings() controller.QSettings {
 				Type: t.ResourceDefinition().Type,
 			},
 		},
-		Concurrency: optional.Some[uint](ctrl.concurrency),
+		Concurrency: optional.Some(ctrl.concurrency),
 	}
 }
 
@@ -137,46 +143,99 @@ func (ctrl *ProvisionController[T]) Reconcile(ctx context.Context,
 func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r controller.QRuntime, logger *zap.Logger,
 	machineRequest *infra.MachineRequest, machineRequestStatus *infra.MachineRequestStatus,
 ) error {
-	connectionParams, err := safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, r, siderolink.ConfigID)
+	connectionParams, err := ctrl.getConnectionArgs(ctx, r)
 	if err != nil {
 		return err
 	}
 
 	var t T
 
-	res, err := protobuf.CreateResource(t.ResourceDefinition().Type)
-	if err != nil {
+	md := resource.NewMetadata(infrares.ResourceNamespace(ctrl.providerID), t.ResourceDefinition().Type, machineRequest.Metadata().ID(), resource.VersionUndefined)
+
+	var res resource.Resource
+
+	res, err = r.Get(ctx, md)
+	if err != nil && !state.IsNotFoundError(err) {
 		return err
 	}
 
-	*res.Metadata() = resource.NewMetadata(infrares.ResourceNamespace(ctrl.providerID), t.ResourceDefinition().Type, machineRequest.Metadata().ID(), resource.VersionUndefined)
-
-	if err = safe.WriterModify(ctx, r, res.(T), func(st T) error { //nolint:forcetypeassert
-		var provisionResult provision.Result
-
-		provisionResult, err = ctrl.provisioner.Provision(ctx, logger, st, machineRequest, connectionParams)
+	if res == nil {
+		res, err = protobuf.CreateResource(t.ResourceDefinition().Type)
 		if err != nil {
-			if xerrors.TypeIs[*controller.RequeueError](err) {
+			return err
+		}
+
+		*res.Metadata() = md
+
+		// initialize empty spec
+		if r, ok := res.Spec().(interface {
+			UnmarshalJSON(bytes []byte) error
+		}); ok {
+			if err = r.UnmarshalJSON([]byte("{}")); err != nil {
 				return err
 			}
+		}
+	}
+
+	// nothing to do as the machine was already provisioned
+	if machineRequestStatus.TypedSpec().Value.Stage == specs.MachineRequestStatusSpec_PROVISIONED {
+		return nil
+	}
+
+	steps := ctrl.provisioner.ProvisionSteps()
+
+	initialStep, ok := res.Metadata().Annotations().Get(currentStepAnnotation)
+
+	var initialStepIndex int
+
+	if ok {
+		if index := slices.IndexFunc(steps, func(step provision.Step[T]) bool {
+			return step.Name() == initialStep
+		}); index != -1 {
+			initialStepIndex = index
+		}
+	}
+
+	for _, step := range steps[initialStepIndex:] {
+		if initialStep != "" && step.Name() != initialStep {
+			continue
+		}
+
+		initialStep = ""
+
+		logger.Info("running provision step", zap.String("step", step.Name()))
+
+		res.Metadata().Annotations().Set(currentStepAnnotation, step.Name())
+
+		if err = safe.WriterModify(ctx, r, res.(T), func(st T) error { //nolint:forcetypeassert
+			return step.Run(ctx, logger, provision.NewContext(
+				machineRequest,
+				machineRequestStatus,
+				st,
+				connectionParams,
+				ctrl.imageFactory,
+			))
+		}); err != nil {
+			logger.Error("machine provision failed", zap.Error(err), zap.String("step", step.Name()))
 
 			machineRequestStatus.TypedSpec().Value.Error = err.Error()
-			machineRequestStatus.TypedSpec().Value.Stage = infraspecs.MachineRequestStatusSpec_FAILED
+			machineRequestStatus.TypedSpec().Value.Stage = specs.MachineRequestStatusSpec_FAILED
 
 			return nil
 		}
 
-		machineRequestStatus.TypedSpec().Value.Id = provisionResult.UUID
-		machineRequestStatus.TypedSpec().Value.Stage = infraspecs.MachineRequestStatusSpec_PROVISIONED
+		if err = safe.WriterModify(ctx, r, machineRequestStatus, func(res *infra.MachineRequestStatus) error {
+			res.TypedSpec().Value = machineRequestStatus.TypedSpec().Value
 
-		*machineRequestStatus.Metadata().Labels() = *machineRequest.Metadata().Labels()
-
-		machineRequestStatus.Metadata().Labels().Set(omni.LabelMachineInfraID, provisionResult.MachineID)
-
-		return nil
-	}); err != nil {
-		return err
+			return nil
+		}); err != nil {
+			return err
+		}
 	}
+
+	machineRequestStatus.TypedSpec().Value.Stage = specs.MachineRequestStatusSpec_PROVISIONED
+
+	*machineRequestStatus.Metadata().Labels() = *machineRequest.Metadata().Labels()
 
 	return nil
 }
@@ -192,8 +251,8 @@ func (ctrl *ProvisionController[T]) initializeStatus(ctx context.Context, r cont
 	}
 
 	return safe.WriterModifyWithResult(ctx, r, infra.NewMachineRequestStatus(machineRequest.Metadata().ID()), func(res *infra.MachineRequestStatus) error {
-		if res.TypedSpec().Value.Stage == infraspecs.MachineRequestStatusSpec_UNKNOWN {
-			res.TypedSpec().Value.Stage = infraspecs.MachineRequestStatusSpec_PROVISIONING
+		if res.TypedSpec().Value.Stage == specs.MachineRequestStatusSpec_UNKNOWN {
+			res.TypedSpec().Value.Stage = specs.MachineRequestStatusSpec_PROVISIONING
 			*res.Metadata().Labels() = *machineRequest.Metadata().Labels()
 
 			logger.Info("machine provision started", zap.String("request_id", machineRequest.Metadata().ID()))
@@ -201,6 +260,15 @@ func (ctrl *ProvisionController[T]) initializeStatus(ctx context.Context, r cont
 
 		return nil
 	})
+}
+
+func (ctrl *ProvisionController[T]) getConnectionArgs(ctx context.Context, r controller.QRuntime) (string, error) {
+	connectionParams, err := safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, r, siderolink.ConfigID)
+	if err != nil {
+		return "", err
+	}
+
+	return siderolink.GetConnectionArgsForProvider(connectionParams, ctrl.providerID)
 }
 
 func (ctrl *ProvisionController[T]) reconcileTearingDown(ctx context.Context, r controller.QRuntime, logger *zap.Logger, machineRequest *infra.MachineRequest) error {

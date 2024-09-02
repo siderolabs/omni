@@ -47,7 +47,9 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/constants"
+	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -669,7 +671,18 @@ func (manager *Manager) getLink(ctx context.Context, req *pb.ProvisionRequest, i
 			return nil, false, status.Error(codes.PermissionDenied, "cannot accept new nodes if no join token is set")
 		}
 
-		if req.JoinToken == nil || *req.JoinToken != manager.wgConfig().JoinToken {
+		if req.JoinToken == nil {
+			return nil, false, status.Error(codes.PermissionDenied, "empty join token")
+		}
+
+		var token jointoken.JoinToken
+
+		token, err = jointoken.Parse(*req.JoinToken)
+		if err != nil {
+			return nil, false, status.Errorf(codes.PermissionDenied, "invalid join token %s", err)
+		}
+
+		if !token.IsValid(manager.wgConfig().JoinToken) {
 			return nil, false, status.Error(codes.PermissionDenied, "invalid join token")
 		}
 
@@ -683,6 +696,10 @@ func (manager *Manager) getLink(ctx context.Context, req *pb.ProvisionRequest, i
 		spec.Connected = true
 
 		link := siderolink.NewLink(siderolink.Namespace, id, spec)
+
+		if value, ok := token.ExtraData[omni.LabelInfraProviderID]; ok {
+			link.Metadata().Annotations().Set(omni.LabelInfraProviderID, value)
+		}
 
 		if err = manager.state.Create(ctx, link); err != nil {
 			return nil, false, err

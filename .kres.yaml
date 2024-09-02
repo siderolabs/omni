@@ -351,8 +351,8 @@ spec:
     - source: client/api/omni/specs/auth.proto
       subdirectory: omni/specs
       genGateway: true
-    - source: client/api/omni/specs/infra/infra.proto
-      subdirectory: omni/specs/infra
+    - source: client/api/omni/specs/infra.proto
+      subdirectory: omni/specs
       genGateway: true
     - source: client/api/omni/specs/virtual.proto
       subdirectory: omni/specs
@@ -443,8 +443,8 @@ spec:
     - source: client/api/omni/specs/auth.proto
       subdirectory: omni/specs
       genGateway: true
-    - source: client/api/omni/specs/infra/infra.proto
-      subdirectory: omni/specs/infra
+    - source: client/api/omni/specs/infra.proto
+      subdirectory: omni/specs
       genGateway: true
     - source: client/api/omni/specs/virtual.proto
       subdirectory: omni/specs

@@ -15,7 +15,9 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/infra/controllers"
+	"github.com/siderolabs/omni/client/pkg/infra/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/infra/internal/resources"
 	"github.com/siderolabs/omni/client/pkg/infra/provision"
 )
@@ -66,16 +68,30 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 		options.concurrency = 1
 	}
 
+	if options.imageFactory == nil {
+		var err error
+
+		options.imageFactory, err = imagefactory.NewClient(imagefactory.ClientOptions{})
+		if err != nil {
+			return err
+		}
+	}
+
 	switch {
 	case options.state != nil:
 		st = options.state
 	case options.omniEndpoint != "":
-		state, err := NewState(options.omniEndpoint, options.clientOptions...)
+		client, err := client.New(options.omniEndpoint, options.clientOptions...)
 		if err != nil {
 			return err
 		}
 
-		defer state.Close() //nolint:errcheck
+		state, err := NewState(client)
+		if err != nil {
+			return err
+		}
+
+		defer client.Close() //nolint:errcheck
 
 		st = state.State()
 	default:
@@ -87,7 +103,12 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 		return err
 	}
 
-	if err = runtime.RegisterQController(controllers.NewProvisionController[T](provider.id, provider.provisioner, options.concurrency)); err != nil {
+	if err = runtime.RegisterQController(controllers.NewProvisionController(
+		provider.id,
+		provider.provisioner,
+		options.concurrency,
+		options.imageFactory,
+	)); err != nil {
 		return err
 	}
 

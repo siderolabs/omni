@@ -24,7 +24,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 
-	infraspecs "github.com/siderolabs/omni/client/api/omni/specs/infra"
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -56,7 +56,7 @@ func newTestInfraProvider() *testInfraProvider {
 					machineRequestStatus.TypedSpec().Value.Id = uuid.New().String()
 				}
 
-				machineRequestStatus.TypedSpec().Value.Stage = infraspecs.MachineRequestStatusSpec_PROVISIONED
+				machineRequestStatus.TypedSpec().Value.Stage = specs.MachineRequestStatusSpec_PROVISIONED
 
 				helpers.CopyAllLabels(machineRequest, machineRequestStatus)
 
@@ -85,9 +85,7 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 
 	eg.Go(suite.reconcileLabels(reconcilerCtx))
 
-	imageFactory := imageFactoryClientMock{}
-
-	require.NoError(suite.runtime.RegisterQController(omnictrl.NewMachineRequestSetStatusController(&imageFactory)))
+	require.NoError(suite.runtime.RegisterQController(omnictrl.NewMachineRequestSetStatusController()))
 	require.NoError(suite.runtime.RegisterQController(newTestInfraProvider()))
 
 	machineRequestSet := omni.NewMachineRequestSet(resources.DefaultNamespace, "test")
@@ -134,7 +132,6 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 		assert.Equal(l, machineRequestSet.TypedSpec().Value.ProviderId)
 
 		assert.Equal(machineRequestSet.TypedSpec().Value.TalosVersion, r.TypedSpec().Value.TalosVersion)
-		assert.Equal(defaultSchematic, r.TypedSpec().Value.SchematicId)
 	})
 
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, ids, func(*infra.MachineRequestStatus, *assert.Assertions) {})
@@ -180,7 +177,6 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 		assert.Equal(l, machineRequestSet.TypedSpec().Value.ProviderId)
 
 		assert.Equal(machineRequestSet.TypedSpec().Value.TalosVersion, r.TypedSpec().Value.TalosVersion)
-		assert.Equal(defaultSchematic, r.TypedSpec().Value.SchematicId)
 	})
 
 	// scale down

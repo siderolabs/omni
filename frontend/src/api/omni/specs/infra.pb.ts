@@ -4,6 +4,8 @@
 * This file is a generated Typescript file for GRPC Gateway, DO NOT MODIFY
 */
 
+import * as SpecsOmni from "./omni.pb"
+
 export enum MachineRequestStatusSpecStage {
   UNKNOWN = 0,
   PROVISIONING = 1,
@@ -13,7 +15,10 @@ export enum MachineRequestStatusSpecStage {
 
 export type MachineRequestSpec = {
   talos_version?: string
-  schematic_id?: string
+  overlay?: SpecsOmni.Overlay
+  extensions?: string[]
+  kernel_args?: string[]
+  meta_values?: SpecsOmni.MetaValue[]
 }
 
 export type MachineRequestStatusSpec = {

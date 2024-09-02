@@ -11,6 +11,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
+	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -36,6 +37,15 @@ func NewMachineController() *MachineController {
 				return siderolink.NewLink(resources.DefaultNamespace, machine.Metadata().ID(), nil)
 			},
 			TransformFunc: func(_ context.Context, _ controller.Reader, _ *zap.Logger, link *siderolink.Link, machine *omni.Machine) error {
+				if _, ok := link.Metadata().Annotations().Get(omni.LabelInfraProviderID); ok {
+					_, ok = link.Metadata().Labels().Get(omni.LabelMachineRequest)
+					if !ok {
+						return xerrors.NewTaggedf[qtransform.SkipReconcileTag](
+							"the link is created by the infra provider, but doesn't have the machine request label yet",
+						)
+					}
+				}
+
 				// convert SideroLink subnet to an IP address
 				ipPrefix, err := netip.ParsePrefix(link.TypedSpec().Value.NodeSubnet)
 				if err != nil {
