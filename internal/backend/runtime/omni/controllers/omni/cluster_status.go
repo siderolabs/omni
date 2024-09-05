@@ -89,6 +89,8 @@ func NewClusterStatusController(embeddedDiscoveryServiceEnabled bool) *ClusterSt
 
 					machines.Total += machineSetStatus.GetMachines().GetTotal()
 					machines.Healthy += machineSetStatus.GetMachines().GetHealthy()
+					machines.Requested += machineSetStatus.GetMachines().GetRequested()
+					machines.Connected += machineSetStatus.GetMachines().GetConnected()
 
 					_, isControlPlane := mss.Metadata().Labels().Get(omni.LabelControlPlaneRole)
 					if isControlPlane {
