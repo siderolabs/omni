@@ -168,6 +168,7 @@ export type MachineStatusSpecHardwareStatusBlockDevice = {
   type?: string
   bus_path?: string
   system_disk?: boolean
+  readonly?: boolean
 }
 
 export type MachineStatusSpecHardwareStatus = {

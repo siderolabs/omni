@@ -12,6 +12,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/talos/pkg/machinery/api/storage"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -82,6 +83,10 @@ func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVers
 
 	if installDisk == "" {
 		for _, disk := range machineStatus.TypedSpec().Value.Hardware.Blockdevices {
+			if disk.Readonly || disk.Type == storage.Disk_CD.String() {
+				continue
+			}
+
 			if disk.Size >= installDiskMinSize && disk.Size < diskSize {
 				installDisk = disk.LinuxName
 

@@ -316,6 +316,10 @@ func pollDisks(ctx context.Context, c *client.Client, info *Info) error {
 
 	for _, msg := range disksResp.GetMessages() {
 		for _, disk := range msg.GetDisks() {
+			if strings.HasPrefix(disk.GetDeviceName(), "/dev/loop") {
+				continue
+			}
+
 			info.Blockdevices = append(info.Blockdevices, &specs.MachineStatusSpec_HardwareStatus_BlockDevice{
 				Size:       disk.GetSize(),
 				Model:      disk.GetModel(),
@@ -327,6 +331,7 @@ func pollDisks(ctx context.Context, c *client.Client, info *Info) error {
 				Type:       disk.GetType().String(),
 				BusPath:    disk.GetBusPath(),
 				SystemDisk: disk.GetSystemDisk(),
+				Readonly:   disk.GetReadonly(),
 			})
 		}
 	}

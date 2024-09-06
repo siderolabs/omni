@@ -151,6 +151,10 @@ const computeState = () => {
   }
 
   for (const device of bds) {
+    if (device.readonly || device.type === "CD") {
+      continue;
+    }
+
     diskPaths.push(device.linux_name!);
   }
 
