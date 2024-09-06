@@ -1,3 +1,167 @@
+## [Omni 0.42.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.42.0-beta.0) (2024-09-06)
+
+Welcome to the v0.42.0-beta.0 release of Omni!  
+*This is a pre-release of Omni*
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Allow multiple IP's in `siderolink-wireguard-advertised-addr` flag
+
+The `siderolink-wireguard-advertised-addr` flag now accepts multiple IP addresses separated by commas. This is useful
+when you have multiple IPs (IPv4 and IPv6) on the host machine and want to allow Talos nodes to connect to the Omni
+using any of them.
+
+
+### Audit log
+
+It is now possible to get the audit log from the Omni. By default it's disabled. To enable, pass
+`--audit-log-dir <dir>` to the Omni. The audit log will be written to the specified directory, separated by day.
+
+Retention is set to 30 days (including the current day). The audit log is written in JSON format, where each entry is
+a JSON object.
+
+There are two ways to get audit log, and for both you need Admin role:
+1. By using the UI: Simply click "Download audit log" in the main menu.
+2. Using `omnictl audit-log` command. This command will stream the audit log from the Omni to the local machine stdout.
+
+
+### Cluster Sort
+
+Cluster list on Clusters page can now be sorted by name or creation date.
+Before it was always sorted by creation date (newest first).
+
+
+### TLS Cert Reload
+
+Omni service can now reload the TLS certs without restart.
+
+
+### Contributors
+
+* Dmitriy Matrenichev
+* Artem Chernyshev
+* Andrey Smirnov
+* Utku Ozdemir
+* Noel Georgi
+* Justin Garrison
+
+### Changes
+<details><summary>27 commits</summary>
+<p>
+
+* [`c076c3c`](https://github.com/siderolabs/omni/commit/c076c3cbf1e3e9e376447bc093155793bdbc9353) fix: filter readonly, CD and loop devices for 1.8
+* [`0360422`](https://github.com/siderolabs/omni/commit/03604222ea9574f789f93b9b6a300f4777aecbe3) feat: support passing extra data through the siderolink join token
+* [`381021e`](https://github.com/siderolabs/omni/commit/381021ee2f448c6b1757249295860bf252bba30e) fix: calculate requested and connected machines in the `ClusterStatus`
+* [`7abb0f5`](https://github.com/siderolabs/omni/commit/7abb0f535354c1d82641f2cf2246b3f7d809019d) chore: bump deps
+* [`464f699`](https://github.com/siderolabs/omni/commit/464f69913793922d0c9fd79f6566e0a7a437ea3b) chore: rename `CloudProvider` to `InfraProvider`
+* [`bfe036e`](https://github.com/siderolabs/omni/commit/bfe036e136f6a80b0e9681e18e95f97de39d22c8) chore: allow to specify `start` and `end` time for `audit-log`
+* [`e2f5795`](https://github.com/siderolabs/omni/commit/e2f579578941ef26f395edf20e7c0ab7a01e4dff) chore: allow multiple IP's for `siderolink-wireguard-advertised-addr` flag
+* [`3c1defe`](https://github.com/siderolabs/omni/commit/3c1defe807979c61fb7736c3a0c7482f03f0f982) fix: fix spelling for hover text
+* [`76ba670`](https://github.com/siderolabs/omni/commit/76ba670121f615ad98cd9b0459599978827ecca3) chore: allow users with admin role to download audit log from UI
+* [`e8d578a`](https://github.com/siderolabs/omni/commit/e8d578a7ace02ff99cbe28291c8407391587284f) fix: add siderolink connection params to the infra provider interface
+* [`4a82cd0`](https://github.com/siderolabs/omni/commit/4a82cd0e8f8369f23c2134966b388ed6c49afcd7) chore: rewrite renamed extension names on Talos version updates
+* [`56c0394`](https://github.com/siderolabs/omni/commit/56c0394b32a8493c770cc7c0851815e3b38070a7) fix: always remove finalizers from the `ClusterMachineStatus`
+* [`ce45042`](https://github.com/siderolabs/omni/commit/ce45042e08666da7c9bcd84f632d752091b5950a) feat: implement `MachineRequestSets` and support links cleanup flow
+* [`85aaf1c`](https://github.com/siderolabs/omni/commit/85aaf1c87cee5c8c1c1bc54d83d2b3e952538b68) feat: support sorting cluster by name, creation time
+* [`95c8210`](https://github.com/siderolabs/omni/commit/95c8210475ecbbc5ae50fc50687478e340257061) feat: implement base infra provider library
+* [`a32a6fa`](https://github.com/siderolabs/omni/commit/a32a6fa44b6b9bf530b4a87a63dd0b8a2b34c13b) feat: reload TLS certs without restart
+* [`00ae084`](https://github.com/siderolabs/omni/commit/00ae08486a691df08075705b4aa7602a97efe002) fix: delete upgrade meta key from nodes after upgrades
+* [`3f5c0f8`](https://github.com/siderolabs/omni/commit/3f5c0f83b9ff11b68bb3de0de921c3a36e875d74) chore: enable 'github.com/planetscale/vtprotobuf' encoding
+* [`34a8c36`](https://github.com/siderolabs/omni/commit/34a8c36a8b657e47b9b8f5db164ef2c30df8f6a3) chore: rekres to get BUSL license change date updated on releases
+* [`bf188e4`](https://github.com/siderolabs/omni/commit/bf188e4ac118bfe9f46fa9938204d66c2a7bf538) chore: implement audit log reader
+* [`5d48547`](https://github.com/siderolabs/omni/commit/5d48547c7fe55800fcb9fdd21108c0756ab35aa5) chore: use range-over-func iterators for resource iteration
+* [`dc349c1`](https://github.com/siderolabs/omni/commit/dc349c177869f414a9c159b5a6cc58133444790c) chore: do a full generate with latest deps
+* [`67f2e8d`](https://github.com/siderolabs/omni/commit/67f2e8dfc56d512c9b0a0d5838256396bfb37505) chore: print error on closing secondary storage backing store
+* [`89e8a62`](https://github.com/siderolabs/omni/commit/89e8a623409cda3827e7fd72563d881c5d31c341) fix: pass the logger to machine logs circular buffer
+* [`d2387d9`](https://github.com/siderolabs/omni/commit/d2387d98dd08f056b3ddb5102ff581ebb0be6b9b) fix: use a separate phase for the extensions installation
+* [`cbfe7c9`](https://github.com/siderolabs/omni/commit/cbfe7c9d9f0b697ad902e4c16788ff890778e87d) chore: add periodic cleanup of old log files
+* [`aea900f`](https://github.com/siderolabs/omni/commit/aea900f13abc461f24cb756d7f96578b1a118901) fix: display machines in tearing down state
+</p>
+</details>
+
+### Changes from siderolabs/discovery-service
+<details><summary>1 commit</summary>
+<p>
+
+* [`270f257`](https://github.com/siderolabs/discovery-service/commit/270f2575e71bc0ade00d1c58c2787c01d285dd74) chore: bump deps
+</p>
+</details>
+
+### Changes from siderolabs/go-api-signature
+<details><summary>2 commits</summary>
+<p>
+
+* [`8807c5e`](https://github.com/siderolabs/go-api-signature/commit/8807c5e8c84e78f382ee62d8425f4bfd85a1e547) fix: account for time truncation to a second resolution
+* [`1b35ea8`](https://github.com/siderolabs/go-api-signature/commit/1b35ea8d3a334418aa273159ea5732ae0625a317) chore: bump deps and fix data race
+</p>
+</details>
+
+### Changes from siderolabs/go-debug
+<details><summary>1 commit</summary>
+<p>
+
+* [`c8f9b12`](https://github.com/siderolabs/go-debug/commit/c8f9b12c041a3242472ad56b970487432552d2be) chore: add support for Go 1.23
+</p>
+</details>
+
+### Changes from siderolabs/go-talos-support
+<details><summary>3 commits</summary>
+<p>
+
+* [`58f4f0f`](https://github.com/siderolabs/go-talos-support/commit/58f4f0fde6be11e5d5da37ceaab52286b4b0be05) chore: bump Go dependencies
+* [`f9d46fd`](https://github.com/siderolabs/go-talos-support/commit/f9d46fd8a607a928dc0382f308ad577f36b0a8b8) fix: add `dns-resolve-cache` to the list of logs gathered
+* [`69891cf`](https://github.com/siderolabs/go-talos-support/commit/69891cf046628969e651fc751e433aad86ec22c4) chore: remove containerd dependency
+</p>
+</details>
+
+### Changes from siderolabs/image-factory
+<details><summary>9 commits</summary>
+<p>
+
+* [`fe9134a`](https://github.com/siderolabs/image-factory/commit/fe9134a1bdf33543fe555466e6734f07356f6fc2) release(v0.5.0): prepare release
+* [`7f09750`](https://github.com/siderolabs/image-factory/commit/7f0975004a30977841affba1c0c9ea3e79241eb7) feat: update to Talos 1.8
+* [`b985abc`](https://github.com/siderolabs/image-factory/commit/b985abcc18ea555e6621735b0f5c85f44d7f5348) fix: cache generated system extension image correctly
+* [`9687413`](https://github.com/siderolabs/image-factory/commit/9687413a9a85744c8d8254d6f8604c6a7854c244) fix: set SOURCE_DATA_EPOCH
+* [`fef0833`](https://github.com/siderolabs/image-factory/commit/fef08331b7163a90e9063a21190597dc9c7ecb74) chore: add in new helios64 overlay
+* [`03bd46f`](https://github.com/siderolabs/image-factory/commit/03bd46f7916a61184466c77f6586b587f39fb10a) feat: support inclusion on well-known UEFI SecureBoot certs
+* [`608a6f0`](https://github.com/siderolabs/image-factory/commit/608a6f02ef685edc32c92fad5d111d18447eb91f) chore: alias nvidia extensions to lts versions
+* [`8b4e0d9`](https://github.com/siderolabs/image-factory/commit/8b4e0d9e9819c7d4c8a533198bed167d56950035) chore: make metatadata pkg public
+* [`7a4de58`](https://github.com/siderolabs/image-factory/commit/7a4de58b40f865aa0e1cac580836655a9c078df7) chore: build multi-arch image
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/auth0/go-jwt-middleware/v2**            v2.2.1 -> v2.2.2
+* **github.com/aws/aws-sdk-go-v2**                     v1.30.3 -> v1.30.4
+* **github.com/aws/aws-sdk-go-v2/config**              v1.27.27 -> v1.27.31
+* **github.com/aws/aws-sdk-go-v2/credentials**         v1.17.27 -> v1.17.30
+* **github.com/aws/aws-sdk-go-v2/feature/s3/manager**  v1.17.10 -> v1.17.16
+* **github.com/aws/aws-sdk-go-v2/service/s3**          v1.58.3 -> v1.61.0
+* **github.com/aws/smithy-go**                         v1.20.3 -> v1.20.4
+* **github.com/containers/image/v5**                   v5.32.1 -> v5.32.2
+* **github.com/cosi-project/runtime**                  v0.5.5 -> v0.6.1
+* **github.com/cosi-project/state-etcd**               v0.3.0 -> v0.3.1
+* **github.com/fsnotify/fsnotify**                     v1.7.0 **_new_**
+* **github.com/grpc-ecosystem/grpc-gateway/v2**        v2.21.0 -> v2.22.0
+* **github.com/prometheus/client_golang**              v1.19.1 -> v1.20.2
+* **github.com/prometheus/common**                     v0.55.0 -> v0.57.0
+* **github.com/siderolabs/discovery-service**          74bca2da5cc8 -> v1.0.3
+* **github.com/siderolabs/go-api-signature**           v0.3.4 -> v0.3.6
+* **github.com/siderolabs/go-debug**                   v0.3.0 -> v0.4.0
+* **github.com/siderolabs/go-talos-support**           v0.1.0 -> v0.1.1
+* **github.com/siderolabs/image-factory**              v0.4.2 -> v0.5.0
+* **github.com/siderolabs/talos/pkg/machinery**        v1.8.0-alpha.1 -> 6f7c3a8e5c63
+* **github.com/zitadel/oidc/v3**                       v3.27.0 -> v3.28.2
+* **go.etcd.io/bbolt**                                 v1.3.10 -> v1.3.11
+* **google.golang.org/grpc**                           v1.65.0 -> v1.66.0
+* **sigs.k8s.io/controller-runtime**                   v0.18.5 -> v0.19.0
+
+Previous release can be found at [v0.41.0](https://github.com/siderolabs/omni/releases/tag/v0.41.0)
+
 ## [Omni 0.41.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.41.0-beta.0) (2024-08-16)
 
 Welcome to the v0.41.0-beta.0 release of Omni!  

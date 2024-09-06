@@ -6,7 +6,7 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v0.40.0"
+previous = "v0.41.0"
 
 [notes]
 
@@ -30,4 +30,17 @@ There are two ways to get audit log, and for both you need Admin role:
 The `siderolink-wireguard-advertised-addr` flag now accepts multiple IP addresses separated by commas. This is useful
 when you have multiple IPs (IPv4 and IPv6) on the host machine and want to allow Talos nodes to connect to the Omni
 using any of them.
+"""
+
+  [notes.tls-certs-reload]
+    title = "TLS Cert Reload"
+    description = """\
+Omni service can now reload the TLS certs without restart.
+"""
+
+  [notes.cluster-sort]
+    title = "Cluster Sort"
+    description = """\
+Cluster list on Clusters page can now be sorted by name or creation date.
+Before it was always sorted by creation date (newest first).
 """
