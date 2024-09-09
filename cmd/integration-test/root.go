@@ -42,14 +42,16 @@ var rootCmd = &cobra.Command{
 			testOptions := tests.Options{
 				RunTestPattern: rootCmdFlags.runTestPattern,
 
-				ExpectedMachines: rootCmdFlags.expectedMachines,
-				CleanupLinks:     rootCmdFlags.cleanupLinks,
-				RunStatsCheck:    rootCmdFlags.runStatsCheck,
+				ExpectedMachines:  rootCmdFlags.expectedMachines,
+				CleanupLinks:      rootCmdFlags.cleanupLinks,
+				RunStatsCheck:     rootCmdFlags.runStatsCheck,
+				ProvisionMachines: rootCmdFlags.provisionMachinesCount,
 
 				MachineOptions:           rootCmdFlags.machineOptions,
 				AnotherTalosVersion:      rootCmdFlags.anotherTalosVersion,
 				AnotherKubernetesVersion: rootCmdFlags.anotherKubernetesVersion,
 				OmnictlPath:              rootCmdFlags.omnictlPath,
+				InfraProvider:            rootCmdFlags.infraProvider,
 			}
 
 			if rootCmdFlags.restartAMachineScript != "" {
@@ -116,11 +118,13 @@ func execCmd(ctx context.Context, parsedScript []string, args ...string) error {
 var rootCmdFlags struct {
 	endpoint       string
 	runTestPattern string
+	infraProvider  string
 
-	expectedMachines int
-	parallel         int64
-	cleanupLinks     bool
-	runStatsCheck    bool
+	provisionMachinesCount int
+	expectedMachines       int
+	parallel               int64
+	cleanupLinks           bool
+	runStatsCheck          bool
 
 	testsTimeout time.Duration
 
@@ -158,6 +162,8 @@ func init() {
 	rootCmd.Flags().DurationVarP(&rootCmdFlags.testsTimeout, "timeout", "t", time.Hour, "tests global timeout")
 	rootCmd.Flags().BoolVar(&rootCmdFlags.cleanupLinks, "cleanup-links", false, "remove all links after the tests are complete")
 	rootCmd.Flags().BoolVar(&rootCmdFlags.runStatsCheck, "run-stats-check", false, "runs stats check after the test is complete")
+	rootCmd.Flags().IntVar(&rootCmdFlags.provisionMachinesCount, "provision-machines", 0, "provisions machines through the infrastructure provider")
+	rootCmd.Flags().StringVar(&rootCmdFlags.infraProvider, "infra-provider", "talemu", "use infra provider with the specified ID when provisioning the machines")
 }
 
 // withContext wraps with CLI context.

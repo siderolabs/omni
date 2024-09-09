@@ -8,7 +8,6 @@ package tests
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -54,9 +53,10 @@ type TalosAPIKeyPrepareFunc func(ctx context.Context, contextName string) error
 type Options struct {
 	RunTestPattern string
 
-	CleanupLinks     bool
-	RunStatsCheck    bool
-	ExpectedMachines int
+	CleanupLinks      bool
+	RunStatsCheck     bool
+	ExpectedMachines  int
+	ProvisionMachines int
 
 	RestartAMachineFunc RestartAMachineFunc
 	WipeAMachineFunc    WipeAMachineFunc
@@ -68,6 +68,7 @@ type Options struct {
 	AnotherTalosVersion      string
 	AnotherKubernetesVersion string
 	OmnictlPath              string
+	InfraProvider            string
 }
 
 // Run the integration tests.
@@ -1144,8 +1145,6 @@ Test flow of cluster creation and scaling using cluster templates.`,
 	var re *regexp.Regexp
 
 	if options.RunTestPattern != "" {
-		var err error
-
 		if re, err = regexp.Compile(options.RunTestPattern); err != nil {
 			log.Printf("run test pattern parse error: %s", err)
 
@@ -1180,33 +1179,47 @@ Test flow of cluster creation and scaling using cluster templates.`,
 		}
 	}
 
+	preRunTests := []testing.InternalTest{}
+
+	if options.ProvisionMachines != 0 {
+		preRunTests = append(preRunTests, testing.InternalTest{
+			Name: "AssertMachinesShouldBeProvisioned",
+			F:    AssertMachinesShouldBeProvisioned(ctx, rootClient, options.ProvisionMachines, "main", options.MachineOptions.TalosVersion, options.InfraProvider),
+		})
+	}
+
+	if len(preRunTests) > 0 {
+		if err = runTests(preRunTests); err != nil {
+			return err
+		}
+	}
+
 	machineSemaphore := semaphore.NewWeighted(int64(options.ExpectedMachines))
 
-	exitCode := testing.MainStart(
-		matchStringOnly(func(string, string) (bool, error) { return true, nil }),
-		makeTests(ctx, testsToRun, machineSemaphore),
-		nil,
-		nil,
-		nil,
-	).Run()
+	if err = runTests(makeTests(ctx, testsToRun, machineSemaphore)); err != nil {
+		return err
+	}
 
-	extraTests := []testing.InternalTest{}
+	postRunTests := []testing.InternalTest{}
+
+	if options.ProvisionMachines != 0 {
+		postRunTests = append(postRunTests, testing.InternalTest{
+			Name: "AssertMachinesShouldBeDeprovisioned",
+			F:    AssertMachinesShouldBeDeprovisioned(ctx, rootClient, "main"),
+		})
+	}
 
 	if options.RunStatsCheck {
-		extraTests = append(extraTests, testing.InternalTest{
+		postRunTests = append(postRunTests, testing.InternalTest{
 			Name: "AssertStatsLimits",
 			F:    AssertStatsLimits(ctx),
 		})
 	}
 
-	if len(extraTests) > 0 && exitCode == 0 {
-		exitCode = testing.MainStart(
-			matchStringOnly(func(string, string) (bool, error) { return true, nil }),
-			extraTests,
-			nil,
-			nil,
-			nil,
-		).Run()
+	if len(postRunTests) > 0 {
+		if err = runTests(postRunTests); err != nil {
+			return err
+		}
 	}
 
 	if options.CleanupLinks {
@@ -1215,8 +1228,20 @@ Test flow of cluster creation and scaling using cluster templates.`,
 		}
 	}
 
+	return nil
+}
+
+func runTests(testsToRun []testing.InternalTest) error {
+	exitCode := testing.MainStart(
+		matchStringOnly(func(string, string) (bool, error) { return true, nil }),
+		testsToRun,
+		nil,
+		nil,
+		nil,
+	).Run()
+
 	if exitCode != 0 {
-		return errors.New("test failed")
+		return fmt.Errorf("test failed")
 	}
 
 	return nil
