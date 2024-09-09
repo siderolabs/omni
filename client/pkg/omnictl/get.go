@@ -117,6 +117,7 @@ func getResources(cmd *cobra.Command, args []string) func(ctx context.Context, c
 			items, err := st.List(ctx, md,
 				state.WithLabelQuery(labelQuery...),
 				state.WithIDQuery(idQuery...),
+				state.WithListUnmarshalOptions(state.WithSkipProtobufUnmarshal()),
 			)
 			if err != nil {
 				return err
@@ -134,6 +135,7 @@ func getResources(cmd *cobra.Command, args []string) func(ctx context.Context, c
 				state.WithBootstrapContents(true),
 				state.WatchWithLabelQuery(labelQuery...),
 				state.WatchWithIDQuery(idQuery...),
+				state.WithWatchKindUnmarshalOptions(state.WithSkipProtobufUnmarshal()),
 			)
 			if err != nil {
 				return err
@@ -177,7 +179,9 @@ func getResources(cmd *cobra.Command, args []string) func(ctx context.Context, c
 				}
 			}
 		case resourceID != "" && !getCmdFlags.watch:
-			res, err := st.Get(ctx, md)
+			res, err := st.Get(ctx, md,
+				state.WithGetUnmarshalOptions(state.WithSkipProtobufUnmarshal()),
+			)
 			if err != nil {
 				return err
 			}
@@ -188,7 +192,9 @@ func getResources(cmd *cobra.Command, args []string) func(ctx context.Context, c
 		case resourceID != "" && getCmdFlags.watch:
 			watchCh := make(chan state.Event)
 
-			err := st.Watch(ctx, md, watchCh)
+			err := st.Watch(ctx, md, watchCh,
+				state.WithWatchUnmarshalOptions(state.WithSkipProtobufUnmarshal()),
+			)
 			if err != nil {
 				return err
 			}
