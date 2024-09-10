@@ -311,37 +311,58 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 			return err
 		}
 
-		spec := res.TypedSpec().Value
-		if spec.MachineClass != nil {
-			if spec.MachineClass.Name == "" {
-				return errors.New("machine set class name is not set")
+		allocationConfig := omni.GetMachineAllocation(res)
+
+		if allocationConfig != nil {
+			if allocationConfig.Name == "" {
+				return errors.New("machine allocation source name is not set")
 			}
 
-			if spec.MachineClass.MachineCount != 0 && spec.MachineClass.AllocationType != specs.MachineSetSpec_MachineClass_Static {
+			if allocationConfig.MachineCount != 0 && allocationConfig.AllocationType != specs.MachineSetSpec_MachineAllocation_Static {
 				return errors.New("machine count can be set only if static allocation type is used")
 			}
 
-			// if change machine class, verify the specified class name exists.
-			changed := oldRes == nil || oldRes.TypedSpec().Value.MachineClass != nil && oldRes.TypedSpec().Value.MachineClass.Name != spec.MachineClass.Name
-			if changed {
-				_, err := st.Get(ctx, omni.NewMachineClass(resources.DefaultNamespace, spec.MachineClass.Name).Metadata())
-				if err != nil {
-					if state.IsNotFoundError(err) {
-						return fmt.Errorf("machine class with name %q doesn't exist", spec.MachineClass.Name)
-					}
+			var oldAllocationConfig *specs.MachineSetSpec_MachineAllocation
 
-					return err
+			if oldRes != nil {
+				oldAllocationConfig = omni.GetMachineAllocation(oldRes)
+			}
+
+			// if change machine class, verify the specified class name exists.
+			changed := oldRes == nil || oldAllocationConfig != nil && oldAllocationConfig.Name != allocationConfig.Name
+			if changed {
+				switch allocationConfig.Source {
+				case specs.MachineSetSpec_MachineAllocation_MachineRequestSet:
+					_, err := st.Get(ctx, omni.NewMachineRequestSet(resources.DefaultNamespace, allocationConfig.Name).Metadata())
+					if err != nil {
+						if state.IsNotFoundError(err) {
+							return fmt.Errorf("machine request set with name %q doesn't exist", allocationConfig.Name)
+						}
+
+						return err
+					}
+				case specs.MachineSetSpec_MachineAllocation_MachineClass:
+					_, err := st.Get(ctx, omni.NewMachineClass(resources.DefaultNamespace, allocationConfig.Name).Metadata())
+					if err != nil {
+						if state.IsNotFoundError(err) {
+							return fmt.Errorf("machine class with name %q doesn't exist", allocationConfig.Name)
+						}
+
+						return err
+					}
 				}
 			}
 		}
 
 		if oldRes != nil {
 			// ensure that the machine class type doesn't change from manually selected machines to the machine class
-			oldSpec := oldRes.TypedSpec().Value
+			oldAllocationConfig := omni.GetMachineAllocation(oldRes)
+			newAllocationConfig := omni.GetMachineAllocation(res)
 
-			mgmtModeSwitchedToMachineClass := oldSpec.MachineClass == nil && spec.MachineClass != nil
-			mgmtModeSwitchedToManual := oldSpec.MachineClass != nil && spec.MachineClass == nil
-			mgmtModeChanged := mgmtModeSwitchedToMachineClass || mgmtModeSwitchedToManual
+			mgmtModeSwitchedToMachineClass := oldAllocationConfig == nil && newAllocationConfig != nil
+			mgmtModeSwitchedToManual := oldAllocationConfig != nil && newAllocationConfig == nil
+			mgmtModeSwitchedSource := oldAllocationConfig != nil && newAllocationConfig != nil && oldAllocationConfig.Source != newAllocationConfig.Source
+			mgmtModeChanged := mgmtModeSwitchedToMachineClass || mgmtModeSwitchedToManual || mgmtModeSwitchedSource
 
 			if mgmtModeChanged {
 				machineSetNodeList, err := safe.StateListAll[*omni.MachineSetNode](ctx, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, res.Metadata().ID())))
@@ -352,6 +373,8 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 				// block management mode change only if there are nodes in the machine set
 				if machineSetNodeList.Len() > 0 {
 					switch {
+					case mgmtModeSwitchedSource:
+						return errors.New("machine set is not empty, updating source is not allowed")
 					case mgmtModeSwitchedToMachineClass:
 						return errors.New("machine set is not empty and is using manual nodes management, updating to machine class mode is not allowed")
 					case mgmtModeSwitchedToManual:
@@ -409,7 +432,7 @@ func machineClassValidationOptions(st state.State) []validated.StateOption {
 			var inUseBy []string
 
 			machineSets.ForEach(func(r *omni.MachineSet) {
-				if r.TypedSpec().Value.MachineClass != nil && r.TypedSpec().Value.MachineClass.Name == res.Metadata().ID() {
+				if alloc := omni.GetMachineAllocation(r); alloc != nil && alloc.Source == specs.MachineSetSpec_MachineAllocation_MachineClass && res.Metadata().ID() == alloc.Name {
 					inUseBy = append(inUseBy, r.Metadata().ID())
 				}
 			})
@@ -575,8 +598,8 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 				return fmt.Errorf("the machine set %q is tearing down", machineSet.Metadata().ID())
 			}
 
-			if machineSet != nil && machineSet.TypedSpec().Value.MachineClass != nil {
-				return fmt.Errorf("adding machine set node to the machine set %q is not allowed: the machine set is using machine classes", machineSet.Metadata().ID())
+			if machineSet != nil && omni.GetMachineAllocation(machineSet) != nil {
+				return fmt.Errorf("adding machine set node to the machine set %q is not allowed: the machine set is using automated machine allocation", machineSet.Metadata().ID())
 			}
 
 			if err = validateTalosVersion(ctx, res); err != nil {

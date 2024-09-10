@@ -79,9 +79,19 @@ export enum MachineSetSpecUpdateStrategy {
   Rolling = 1,
 }
 
-export enum MachineSetSpecMachineClassAllocationType {
+export enum MachineSetSpecMachineClassType {
   Static = 0,
   Unlimited = 1,
+}
+
+export enum MachineSetSpecMachineAllocationType {
+  Static = 0,
+  Unlimited = 1,
+}
+
+export enum MachineSetSpecMachineAllocationSource {
+  MachineClass = 0,
+  MachineRequestSet = 1,
 }
 
 export enum TalosUpgradeStatusSpecPhase {
@@ -449,7 +459,14 @@ export type ConfigPatchSpec = {
 export type MachineSetSpecMachineClass = {
   name?: string
   machine_count?: number
-  allocation_type?: MachineSetSpecMachineClassAllocationType
+  allocation_type?: MachineSetSpecMachineClassType
+}
+
+export type MachineSetSpecMachineAllocation = {
+  name?: string
+  machine_count?: number
+  allocation_type?: MachineSetSpecMachineAllocationType
+  source?: MachineSetSpecMachineAllocationSource
 }
 
 export type MachineSetSpecBootstrapSpec = {
@@ -467,11 +484,12 @@ export type MachineSetSpecUpdateStrategyConfig = {
 
 export type MachineSetSpec = {
   update_strategy?: MachineSetSpecUpdateStrategy
-  machine_class?: MachineSetSpecMachineClass
+  machine_class?: MachineSetSpecMachineAllocation
   bootstrap_spec?: MachineSetSpecBootstrapSpec
   delete_strategy?: MachineSetSpecUpdateStrategy
   update_strategy_config?: MachineSetSpecUpdateStrategyConfig
   delete_strategy_config?: MachineSetSpecUpdateStrategyConfig
+  machine_allocation?: MachineSetSpecMachineAllocation
 }
 
 export type TalosUpgradeStatusSpec = {
@@ -490,7 +508,7 @@ export type MachineSetStatusSpec = {
   error?: string
   machines?: Machines
   config_hash?: string
-  machine_class?: MachineSetSpecMachineClass
+  machine_allocation?: MachineSetSpecMachineAllocation
   locked_updates?: number
 }
 

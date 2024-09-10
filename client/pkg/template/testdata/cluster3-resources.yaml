@@ -53,6 +53,7 @@ spec:
     deletestrategy: 0
     updatestrategyconfig: null
     deletestrategyconfig: null
+    machineallocation: null
 ---
 metadata:
     namespace: default
@@ -88,6 +89,7 @@ spec:
     deletestrategy: 0
     updatestrategyconfig: null
     deletestrategyconfig: null
+    machineallocation: null
 ---
 metadata:
     namespace: default
@@ -159,6 +161,7 @@ spec:
     deletestrategyconfig:
         rolling:
             maxparallelism: 5
+    machineallocation: null
 ---
 metadata:
     namespace: default
@@ -235,6 +238,7 @@ spec:
     deletestrategy: 0
     updatestrategyconfig: null
     deletestrategyconfig: null
+    machineallocation: null
 ---
 metadata:
     namespace: default
@@ -265,14 +269,16 @@ metadata:
         omni.sidero.dev/role-worker:
 spec:
     updatestrategy: 1
-    machineclass:
-        name: test
-        machinecount: 1
-        allocationtype: 0
+    machineclass: null
     bootstrapspec: null
     deletestrategy: 0
     updatestrategyconfig: null
     deletestrategyconfig: null
+    machineallocation:
+        name: test
+        machinecount: 1
+        allocationtype: 0
+        source: 0
 ---
 metadata:
     namespace: default
@@ -288,11 +294,13 @@ metadata:
         omni.sidero.dev/role-worker:
 spec:
     updatestrategy: 1
-    machineclass:
-        name: test
-        machinecount: 0
-        allocationtype: 1
+    machineclass: null
     bootstrapspec: null
     deletestrategy: 0
     updatestrategyconfig: null
     deletestrategyconfig: null
+    machineallocation:
+        name: test
+        machinecount: 0
+        allocationtype: 1
+        source: 0

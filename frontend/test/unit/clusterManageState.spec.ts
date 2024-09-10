@@ -4,7 +4,7 @@
 // included in the LICENSE file.
 
 import { Resource } from "../../src/api/grpc";
-import { ClusterSpec, ConfigPatchSpec, MachineSetNodeSpec, MachineSetSpec, MachineSetSpecMachineClassAllocationType, MachineSetSpecUpdateStrategy } from "../../src/api/omni/specs/omni.pb";
+import { ClusterSpec, ConfigPatchSpec, MachineSetNodeSpec, MachineSetSpec, MachineSetSpecMachineAllocationSource, MachineSetSpecMachineAllocationType, MachineSetSpecUpdateStrategy } from "../../src/api/omni/specs/omni.pb";
 import { ClusterType, ConfigPatchType, DefaultNamespace, LabelCluster, LabelClusterMachine, LabelControlPlaneRole, LabelMachineSet, LabelWorkerRole, MachineSetNodeType, MachineSetType } from "../../src/api/resources";
 import { Cluster, initState, MachineSet, PatchID, state } from "../../src/states/cluster-management";
 
@@ -76,9 +76,10 @@ describe("cluster-management-state", () => {
       },
       machineSets: [
         {
-          machineClass: {
+          machineAllocation: {
             name: "mc1",
             size: "unlimited",
+            source: MachineSetSpecMachineAllocationSource.MachineClass,
           },
           machines: {
             node4: {
@@ -91,9 +92,10 @@ describe("cluster-management-state", () => {
           }
         },
         {
-          machineClass: {
+          machineAllocation: {
             name: "mc2",
             size: 3,
+            source: MachineSetSpecMachineAllocationSource.MachineClass,
           },
           patches: {
             [PatchID.Default]: {
@@ -171,10 +173,12 @@ describe("cluster-management-state", () => {
                 snapshot: "dcba",
               },
               update_strategy: MachineSetSpecUpdateStrategy.Rolling,
-              machine_class: {
+              machine_allocation: {
                 name: "mc1",
-                allocation_type: MachineSetSpecMachineClassAllocationType.Unlimited,
-              }
+                allocation_type: MachineSetSpecMachineAllocationType.Unlimited,
+                source: MachineSetSpecMachineAllocationSource.MachineClass,
+              },
+              machine_class: undefined,
             }
           },
           "talos-default-workers": {
@@ -187,10 +191,12 @@ describe("cluster-management-state", () => {
             spec: {
               bootstrap_spec: undefined,
               update_strategy: MachineSetSpecUpdateStrategy.Rolling,
-              machine_class: {
+              machine_allocation: {
                 name: "mc2",
                 machine_count: 3,
-              }
+                source: MachineSetSpecMachineAllocationSource.MachineClass,
+              },
+              machine_class: undefined
             }
           },
           "talos-default-w000000": {
@@ -326,6 +332,7 @@ describe("cluster-management-state", () => {
               bootstrap_spec: undefined,
               update_strategy: MachineSetSpecUpdateStrategy.Rolling,
               machine_class: undefined,
+              machine_allocation: undefined,
             }
           },
           "talos-default-workers": {
@@ -339,6 +346,7 @@ describe("cluster-management-state", () => {
               bootstrap_spec: undefined,
               update_strategy: MachineSetSpecUpdateStrategy.Rolling,
               machine_class: undefined,
+              machine_allocation: undefined,
             }
           },
         },
@@ -361,7 +369,7 @@ describe("cluster-management-state", () => {
               state.value.addMachineSet(LabelWorkerRole);
             }
 
-            state.value.machineSets[i].machineClass = machineSet.machineClass;
+            state.value.machineSets[i].machineAllocation = machineSet.machineAllocation;
             state.value.machineSets[i].machines = machineSet.machines ?? {};
             state.value.machineSets[i].patches = machineSet.patches ?? {};
 

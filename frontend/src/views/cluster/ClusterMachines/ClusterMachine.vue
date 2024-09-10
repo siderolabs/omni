@@ -23,7 +23,7 @@ included in the LICENSE file.
           </div>
         </div>
         <div class="flex gap-2 items-center"
-          v-if="machineSet.spec.machine_class == undefined && machine?.metadata?.labels?.[LabelWorkerRole] !== undefined">
+          v-if="machineSpec?.spec?.machine_allocation == undefined && machine?.metadata?.labels?.[LabelWorkerRole] !== undefined">
           <tooltip
             description="Lock machine config. Pause Kubernetes and Talos updates on the machine.">
             <icon-button :icon="locked ? lockedUpdate ? 'locked-toggle' : 'locked' : 'unlocked'" class="w-4 h-4 ml-1 mt-1" @click.stop="updateLock"/>

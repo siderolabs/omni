@@ -246,7 +246,7 @@ const options: Ref<PickerOption[]> = computed(() => {
       }
     }
 
-    if (ms.machineClass) {
+    if (ms.machineAllocation) {
       disabled = true;
       tooltip = `The machine class ${ms.id} is using machine class so no manual allocation is possible`
     }

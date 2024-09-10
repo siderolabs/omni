@@ -73,3 +73,16 @@ func (MachineSetExtension) ResourceDefinition() meta.ResourceDefinitionSpec {
 		PrintColumns:     []meta.PrintColumn{},
 	}
 }
+
+// GetMachineAllocation from the machine set resource.
+func GetMachineAllocation(res *MachineSet) *specs.MachineSetSpec_MachineAllocation {
+	if res.TypedSpec().Value.MachineClass != nil { //nolint:staticcheck
+		return res.TypedSpec().Value.MachineClass //nolint:staticcheck
+	}
+
+	if res.TypedSpec().Value.MachineAllocation != nil {
+		return res.TypedSpec().Value.MachineAllocation
+	}
+
+	return nil
+}

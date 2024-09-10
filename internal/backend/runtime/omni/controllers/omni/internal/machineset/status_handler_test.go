@@ -36,7 +36,7 @@ func newClusterMachineStatus(id string, stage specs.ClusterMachineStatusSpec_Sta
 
 func newMachineSet(machineCount int) *omni.MachineSet {
 	res := omni.NewMachineSet(resources.DefaultNamespace, "test")
-	res.TypedSpec().Value.MachineClass = &specs.MachineSetSpec_MachineClass{
+	res.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
 		MachineCount: uint32(machineCount),
 	}
 
@@ -264,7 +264,7 @@ func TestStatusHandler(t *testing.T) {
 					Connected: 1,
 					Requested: 4,
 				},
-				MachineClass: &specs.MachineSetSpec_MachineClass{
+				MachineAllocation: &specs.MachineSetSpec_MachineAllocation{
 					MachineCount: 4,
 				},
 				ConfigHash: "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
@@ -291,7 +291,7 @@ func TestStatusHandler(t *testing.T) {
 					Connected: 1,
 					Requested: 0,
 				},
-				MachineClass: &specs.MachineSetSpec_MachineClass{
+				MachineAllocation: &specs.MachineSetSpec_MachineAllocation{
 					MachineCount: 0,
 				},
 				ConfigHash: "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
@@ -399,7 +399,7 @@ func TestStatusHandler(t *testing.T) {
 			require.True(tt.expectedStatus.EqualVT(machineSetStatus.TypedSpec().Value), "machine set status doesn't match %s", cmp.Diff(
 				tt.expectedStatus,
 				machineSetStatus.TypedSpec().Value,
-				IgnoreUnexported(tt.expectedStatus, &specs.Machines{}, &specs.MachineSetSpec_MachineClass{}),
+				IgnoreUnexported(tt.expectedStatus, &specs.Machines{}, &specs.MachineSetSpec_MachineAllocation{}),
 			))
 		})
 	}

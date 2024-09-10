@@ -849,15 +849,15 @@ func updateMachineClassMachineSets(ctx context.Context, t *testing.T, st state.S
 
 			switch {
 			case machineClass != nil:
-				r.TypedSpec().Value.MachineClass = &specs.MachineSetSpec_MachineClass{
+				r.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
 					MachineCount: uint32(machineCount),
 					Name:         machineClass.Metadata().ID(),
 				}
-			case r.TypedSpec().Value.MachineClass != nil:
-				r.TypedSpec().Value.MachineClass.MachineCount += uint32(machineCount)
+			case r.TypedSpec().Value.MachineAllocation != nil:
+				r.TypedSpec().Value.MachineAllocation.MachineCount += uint32(machineCount)
 			}
 
-			require.NotNilf(t, r.TypedSpec().Value.MachineClass, "the machine set doesn't have machine class set")
+			require.NotNilf(t, r.TypedSpec().Value.MachineAllocation, "the machine set doesn't have machine class set")
 
 			r.TypedSpec().Value.UpdateStrategy = specs.MachineSetSpec_Rolling
 

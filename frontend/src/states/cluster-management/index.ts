@@ -14,7 +14,8 @@ import {
   MachineSetNodeSpec,
   MachineSetSpec,
   MachineSetSpecBootstrapSpec,
-  MachineSetSpecMachineClassAllocationType,
+  MachineSetSpecMachineAllocationSource,
+  MachineSetSpecMachineAllocationType,
   MachineSetSpecUpdateStrategy,
   MachineSetSpecUpdateStrategyConfig
 } from "@/api/omni/specs/omni.pb"
@@ -88,9 +89,10 @@ export interface MachineSet {
   name: string
   role: string
   color: string
-  machineClass?: {
+  machineAllocation?: {
     name: string
     size: number | "unlimited"
+    source: MachineSetSpecMachineAllocationSource
   }
   machines: Record<string, MachineSetNode>
   patches: Record<string, ConfigPatch>
@@ -239,11 +241,11 @@ export class State {
     let nodes = 0;
 
     for (const ms of this.machineSets) {
-      if (ms.machineClass?.size === "unlimited") {
+      if (ms.machineAllocation?.size === "unlimited") {
         return false;
       }
 
-      const machineSetSize = (ms.machineClass?.size ?? NaN) as number;
+      const machineSetSize = (ms.machineAllocation?.size ?? NaN) as number;
 
       nodes += !isNaN(machineSetSize) ? machineSetSize : Object.keys(ms.machines).length;
     }
@@ -342,11 +344,11 @@ export class State {
     }, this.cluster.name));
 
     const machineSets = [...this.machineSets].sort((a: MachineSet, b: MachineSet) => {
-      if (a.machineClass && !b.machineClass) {
+      if (a.machineAllocation && !b.machineAllocation) {
         return 1;
       }
 
-      if (b.machineClass && !a.machineClass) {
+      if (b.machineAllocation && !a.machineAllocation) {
         return -1;
       }
 
@@ -390,23 +392,25 @@ export class State {
         }
       }
 
-      if (machineSet.machineClass) {
-        ms.spec.machine_class = {
-          name: machineSet.machineClass.name,
+      ms.spec.machine_class = undefined
+      ms.spec.machine_allocation = undefined
+
+      if (machineSet.machineAllocation) {
+        ms.spec.machine_allocation = {
+          name: machineSet.machineAllocation.name,
+          source: machineSet.machineAllocation.source,
         }
 
-        switch (machineSet.machineClass.size) {
+        switch (machineSet.machineAllocation.size) {
         case unlimited:
-          ms.spec.machine_class.allocation_type = MachineSetSpecMachineClassAllocationType.Unlimited;
+          ms.spec.machine_allocation.allocation_type = MachineSetSpecMachineAllocationType.Unlimited;
 
           break;
         default:
-          ms.spec.machine_class.machine_count = machineSet.machineClass.size as number;
+          ms.spec.machine_allocation.machine_count = machineSet.machineAllocation.size as number;
 
           break;
         }
-      } else {
-        ms.spec.machine_class = undefined;
       }
 
       for (const id in machineSet.machines) {
@@ -443,7 +447,7 @@ export class State {
           })
         }
 
-        if (!machineSet.machineClass)
+        if (!machineSet.machineAllocation)
           resources.push(msn);
 
         resources.push(...this.getPatches(machineSet.machines[id].patches, {
@@ -556,12 +560,12 @@ export class State {
         continue;
       }
 
-      if (ms.machineClass) {
-        if (ms.machineClass.size === "unlimited") {
-          return `All From Class "${ms.machineClass.name}"`;
+      if (ms.machineAllocation) {
+        if (ms.machineAllocation.size === "unlimited") {
+          return `All From ${ms.machineAllocation.source === MachineSetSpecMachineAllocationSource.MachineClass ? 'Class' : 'Request Set'} "${ms.machineAllocation.name}"`;
         }
 
-        count += ms.machineClass.size as number;
+        count += ms.machineAllocation.size as number;
       } else {
         count += Object.keys(ms.machines).length;
       }
@@ -691,10 +695,13 @@ export const populateExisting = async (clusterName: string) => {
       patches: {},
     };
 
-    if (ms.spec.machine_class) {
-      machineSet.machineClass = {
-        name: ms.spec.machine_class.name!,
-        size: ms.spec.machine_class.allocation_type === MachineSetSpecMachineClassAllocationType.Unlimited ? "unlimited" : ms.spec.machine_class.machine_count ?? 0,
+    const allocationCfg = ms.spec.machine_class ?? ms.spec.machine_allocation;
+
+    if (allocationCfg) {
+      machineSet.machineAllocation = {
+        name: allocationCfg.name!,
+        size: allocationCfg.allocation_type === MachineSetSpecMachineAllocationType.Unlimited ? "unlimited" : allocationCfg.machine_count ?? 0,
+        source: allocationCfg.source ?? MachineSetSpecMachineAllocationSource.MachineClass,
       }
     }
 

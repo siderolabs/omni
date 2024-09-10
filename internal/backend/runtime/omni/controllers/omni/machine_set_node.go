@@ -210,6 +210,54 @@ func (ctrl *MachineSetNodeController) Run(ctx context.Context, r controller.Runt
 	}
 }
 
+type allocationConfig struct {
+	selectors      resource.LabelQueries
+	machineCount   uint32
+	allocationType specs.MachineSetSpec_MachineAllocation_Type
+}
+
+func (ctrl *MachineSetNodeController) getMachineAllocation(ctx context.Context, r controller.Reader, machineSet *omni.MachineSet) (*allocationConfig, error) {
+	var (
+		selectors         resource.LabelQueries
+		machineAllocation = omni.GetMachineAllocation(machineSet)
+	)
+
+	if machineAllocation == nil {
+		return nil, nil //nolint:nilnil
+	}
+
+	switch machineAllocation.Source {
+	case specs.MachineSetSpec_MachineAllocation_MachineClass:
+		machineClass, err := safe.ReaderGet[*omni.MachineClass](ctx, r, omni.NewMachineClass(resources.DefaultNamespace, machineAllocation.Name).Metadata())
+		if err != nil {
+			return nil, err
+		}
+
+		selectors, err = labels.ParseSelectors(machineClass.TypedSpec().Value.MatchLabels)
+		if err != nil {
+			return nil, err
+		}
+	case specs.MachineSetSpec_MachineAllocation_MachineRequestSet:
+		selectors = append(selectors, resource.LabelQuery{
+			Terms: []resource.LabelTerm{
+				{
+					Key:   omni.LabelMachineRequestSet,
+					Op:    resource.LabelOpEqual,
+					Value: []string{machineAllocation.Name},
+				},
+			},
+		})
+	default:
+		return nil, nil //nolint:nilnil
+	}
+
+	return &allocationConfig{
+		selectors:      selectors,
+		allocationType: machineAllocation.AllocationType,
+		machineCount:   machineAllocation.MachineCount,
+	}, nil
+}
+
 func (ctrl *MachineSetNodeController) reconcileMachineSet(
 	ctx context.Context,
 	r controller.Runtime,
@@ -219,53 +267,31 @@ func (ctrl *MachineSetNodeController) reconcileMachineSet(
 	machineStatusMap map[resource.ID]*machineStatusLabels,
 	visited map[resource.ID]struct{},
 	logger *zap.Logger,
-) error {
-	err := ctrl.reconcileMachineSetNodes(ctx, r, machineSet, allMachineStatuses, allMachineSetNodes, machineStatusMap, visited, logger)
+) (err error) {
+	if machineSet.Metadata().Phase() == resource.PhaseTearingDown {
+		return nil
+	}
+
+	allocation, err := ctrl.getMachineAllocation(ctx, r, machineSet)
 	if err != nil {
 		return err
 	}
 
-	if machineSet.TypedSpec().Value.MachineClass == nil || machineSet.Metadata().Phase() == resource.PhaseTearingDown {
-		return nil
-	}
-
-	return nil
-}
-
-func (ctrl *MachineSetNodeController) reconcileMachineSetNodes(
-	ctx context.Context,
-	r controller.Runtime,
-	machineSet *omni.MachineSet,
-	allMachineStatuses safe.List[*machineStatusLabels],
-	allMachineSetNodes safe.List[*omni.MachineSetNode],
-	machineStatusMap map[resource.ID]*machineStatusLabels,
-	visited map[resource.ID]struct{},
-	logger *zap.Logger,
-) (err error) {
-	spec := machineSet.TypedSpec()
-
-	if spec.Value.MachineClass == nil || machineSet.Metadata().Phase() == resource.PhaseTearingDown {
+	if allocation == nil {
 		return nil
 	}
 
 	visited[machineSet.Metadata().ID()] = struct{}{}
 
-	machineClassCfg := spec.Value.MachineClass
-
-	var machineClass *omni.MachineClass
-
-	machineClass, err = safe.ReaderGet[*omni.MachineClass](ctx, r, omni.NewMachineClass(resources.DefaultNamespace, machineClassCfg.Name).Metadata())
-	if err != nil {
-		return err
-	}
-
 	existingMachineSetNodes := allMachineSetNodes.FilterLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID()))
 
-	switch machineClassCfg.AllocationType {
-	case specs.MachineSetSpec_MachineClass_Unlimited:
-		return ctrl.createNodes(ctx, r, machineSet, machineClass, allMachineStatuses, math.MaxInt32, logger)
-	case specs.MachineSetSpec_MachineClass_Static:
-		diff := int(machineClassCfg.MachineCount) - existingMachineSetNodes.Len()
+	switch allocation.allocationType {
+	case specs.MachineSetSpec_MachineAllocation_Unlimited:
+		err = ctrl.createNodes(ctx, r, machineSet, allocation.selectors, allMachineStatuses, math.MaxInt32, logger)
+
+		return err // unlimited allocation mode does not cause any machine pressure
+	case specs.MachineSetSpec_MachineAllocation_Static:
+		diff := int(allocation.machineCount) - existingMachineSetNodes.Len()
 
 		if diff == 0 {
 			return nil
@@ -279,7 +305,7 @@ func (ctrl *MachineSetNodeController) reconcileMachineSetNodes(
 
 		logger.Info("scaling machine set up", zap.Int("pending", diff), zap.String("machine_set", machineSet.Metadata().ID()))
 
-		return ctrl.createNodes(ctx, r, machineSet, machineClass, allMachineStatuses, diff, logger)
+		return ctrl.createNodes(ctx, r, machineSet, allocation.selectors, allMachineStatuses, diff, logger)
 	}
 
 	return nil
@@ -290,16 +316,11 @@ func (ctrl *MachineSetNodeController) createNodes(
 	ctx context.Context,
 	r controller.Runtime,
 	machineSet *omni.MachineSet,
-	machineClass *omni.MachineClass,
+	selectors resource.LabelQueries,
 	allMachineStatuses safe.List[*machineStatusLabels],
 	count int,
 	logger *zap.Logger,
 ) (err error) {
-	selectors, err := labels.ParseSelectors(machineClass.TypedSpec().Value.MatchLabels)
-	if err != nil {
-		return err
-	}
-
 	created := 0
 
 	clusterName, ok := machineSet.Metadata().Labels().Get(omni.LabelCluster)

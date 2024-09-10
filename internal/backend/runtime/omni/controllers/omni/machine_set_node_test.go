@@ -145,7 +145,7 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 
 	machineClass := newMachineClass(fmt.Sprintf("%s==amd64", omni.MachineStatusLabelArch), "userlabel=value")
 
-	machineSet.TypedSpec().Value.MachineClass = &specs.MachineSetSpec_MachineClass{
+	machineSet.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
 		Name:         machineClass.Metadata().ID(),
 		MachineCount: 1,
 	}
@@ -163,7 +163,7 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 	suite.Require().NoError(suite.state.Create(ctx, machineClass))
 
 	_, err := safe.StateUpdateWithConflicts(ctx, suite.state, machineSet.Metadata(), func(ms *omni.MachineSet) error {
-		ms.TypedSpec().Value.MachineClass.Name = machineClass.Metadata().ID()
+		ms.TypedSpec().Value.MachineAllocation.Name = machineClass.Metadata().ID()
 
 		return nil
 	})
@@ -175,7 +175,7 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 	assertMachineSetNode(machines[0])
 
 	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, machineSet.Metadata(), func(ms *omni.MachineSet) error {
-		ms.TypedSpec().Value.MachineClass.MachineCount = 0
+		ms.TypedSpec().Value.MachineAllocation.MachineCount = 0
 
 		return nil
 	})
@@ -186,7 +186,7 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 	assertNoMachineSetNode(machines[0])
 
 	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, machineSet.Metadata(), func(ms *omni.MachineSet) error {
-		ms.TypedSpec().Value.MachineClass.MachineCount = 3
+		ms.TypedSpec().Value.MachineAllocation.MachineCount = 3
 
 		return nil
 	})

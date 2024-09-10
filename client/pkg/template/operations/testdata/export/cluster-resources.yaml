@@ -53,7 +53,7 @@ metadata:
     - MachineSetStatusController
 spec:
   updatestrategy: 1
-  machineclass: null
+  machineallocation: null
   bootstrapspec:
     clusteruuid: 98d00c6b-fae1-4bf2-afa3-0282ef443f84
     snapshot: FFFFFFFF9AA169F0.snapshot
@@ -79,7 +79,7 @@ metadata:
     - MachineSetStatusController
 spec:
   updatestrategy: 1
-  machineclass: null
+  machineallocation: null
   bootstrapspec: null
   deletestrategy: 1
   updatestrategyconfig:
@@ -111,10 +111,11 @@ metadata:
     - MachineSetStatusController
 spec:
   updatestrategy: 1
-  machineclass:
+  machineallocation:
     name: mc1
     machinecount: 0
     allocationtype: 1
+    source: 0
   bootstrapspec: null
 ---
 
@@ -138,10 +139,11 @@ metadata:
     - MachineSetStatusController
 spec:
   updatestrategy: 1
-  machineclass:
+  machineallocation:
     name: mc2
     machinecount: 1
     allocationtype: 0
+    source: 0
   bootstrapspec: null
 ---
 

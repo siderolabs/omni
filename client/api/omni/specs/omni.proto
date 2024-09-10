@@ -646,21 +646,48 @@ enum MachineSetPhase {
 
 // MachineSetSpec describes the cluster machine group.
 message MachineSetSpec {
-  // MachineClass defines the machine class configuration.
+  // MachineClass defines the machine class allocation mode config.
   message MachineClass {
-    enum AllocationType {
+    enum Type {
       // Static uses the count defined in the count field.
       Static = 0;
-      // Unlimited allocates all available machines from the machine class.
+      // Unlimited allocates all available machines from the machine class/request set.
       Unlimited = 1;
     }
 
-    // Name defines the machine class id to select the machines from.
+    // Name defines the machine class/machine request set id to select the machines from.
     string name = 1;
-    // MachineCount defines fixed amount of the machines to allocated from the machine class.
+    // MachineCount defines fixed amount of the machines to allocated from the machine class/request set.
     uint32 machine_count = 2;
     // AllocationType defines special constants for the amount of machines to be allocated.
-    AllocationType allocation_type = 3;
+    Type allocation_type = 3;
+  }
+
+  // MachineAllocation defines the machine automatic allocation configuration.
+  message MachineAllocation {
+    enum Type {
+      // Static uses the count defined in the count field.
+      Static = 0;
+      // Unlimited allocates all available machines from the machine class/request set.
+      Unlimited = 1;
+    }
+
+    enum Source {
+      // MachineClass allocates the machines from a machine class.
+      MachineClass = 0;
+      // MachineRequestSet allocates the machines from a machine request set.
+      MachineRequestSet = 1;
+    }
+
+    // Name defines the machine class/machine request set id to select the machines from.
+    string name = 1;
+    // MachineCount defines fixed amount of the machines to allocated from the machine class/request set.
+    uint32 machine_count = 2;
+    // AllocationType defines special constants for the amount of machines to be allocated.
+    Type allocation_type = 3;
+    // Source defines the source where to get the machines from.
+    // It can be either a machine class or a machine request set.
+    Source source = 4;
   }
 
   // BootstrapSpec defines the bootstrap spec for the control plane machine set.
@@ -697,7 +724,8 @@ message MachineSetSpec {
   UpdateStrategy update_strategy = 1;
 
   // MachineClass is the machine class to pick machines from for the machine set.
-  MachineClass machine_class = 2;
+  // Use MachineAllocation instead.
+  MachineAllocation machine_class = 2 [deprecated = true];
 
   // BootstrapSpec defines the bootstrapping spec of the machine set.
   // This field is immutable, only valid for the control plane machine set and used only once at the creation time.
@@ -712,6 +740,9 @@ message MachineSetSpec {
 
   // DeleteStrategyConfig defines the delete strategy configuration.
   UpdateStrategyConfig delete_strategy_config = 6;
+
+  // MachineAllocation rule to pick machines for the machine set.
+  MachineAllocation machine_allocation = 7;
 }
 
 // TalosUpgradeStatusSpec contains the status of the Talos upgrade process.
@@ -755,8 +786,8 @@ message MachineSetStatusSpec {
   Machines machines = 4;
   // config_hash is the combined hash of all cluster machines which are part of the machine set.
   string config_hash = 5;
-  // MachineClass is copied from the input MachineSet resource.
-  MachineSetSpec.MachineClass machine_class = 6;
+  // MachineAllocation is copied from the input MachineSet resource.
+  MachineSetSpec.MachineAllocation machine_allocation = 6;
   // LockedUpdates is the number of machines which have pending config update but are locked.
   uint32 locked_updates = 7;
 }

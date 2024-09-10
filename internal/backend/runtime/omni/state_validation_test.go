@@ -821,13 +821,13 @@ func TestMachineSetClassesValidation(t *testing.T) {
 	machineSet.Metadata().Labels().Set(omnires.LabelCluster, "test-cluster")
 	machineSet.Metadata().Labels().Set(omnires.LabelControlPlaneRole, "")
 
-	machineSet.TypedSpec().Value.MachineClass = &specs.MachineSetSpec_MachineClass{}
+	machineSet.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{}
 
 	err = st.Create(ctx, machineSet)
 
 	require.True(t, validated.IsValidationError(err), "expected validation error")
 
-	machineSet.TypedSpec().Value.MachineClass = &specs.MachineSetSpec_MachineClass{
+	machineSet.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
 		Name: "none",
 	}
 
@@ -839,7 +839,7 @@ func TestMachineSetClassesValidation(t *testing.T) {
 
 	require.NoError(t, st.Create(ctx, machineClass))
 
-	machineSet.TypedSpec().Value.MachineClass = &specs.MachineSetSpec_MachineClass{
+	machineSet.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
 		Name: machineClass.Metadata().ID(),
 	}
 
@@ -851,14 +851,14 @@ func TestMachineSetClassesValidation(t *testing.T) {
 
 	require.True(t, validated.IsValidationError(err), "expected validation error")
 
-	machineSet.TypedSpec().Value.MachineClass.Name = "none"
+	machineSet.TypedSpec().Value.MachineAllocation.Name = "none"
 
 	err = st.Update(ctx, machineSet)
 
 	require.True(t, validated.IsValidationError(err), "expected validation error")
 
 	// expect no error, as the machine mgmt mode change is allowed if there are no nodes in the machine set
-	machineSet.TypedSpec().Value.MachineClass = nil
+	machineSet.TypedSpec().Value.MachineAllocation = nil
 
 	require.NoError(t, st.Update(ctx, machineSet))
 
@@ -866,9 +866,31 @@ func TestMachineSetClassesValidation(t *testing.T) {
 	require.NoError(t, st.Create(ctx, machineSetNode))
 
 	// machine set mgmt mode change is not allowed anymore
-	machineSet.TypedSpec().Value.MachineClass = &specs.MachineSetSpec_MachineClass{
+	machineSet.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
 		Name: machineClass.Metadata().ID(),
 	}
+
+	err = st.Update(ctx, machineSet)
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	require.ErrorContains(t, err, "machine set is not empty")
+
+	require.NoError(t, st.Destroy(ctx, machineSetNode.Metadata()))
+
+	machineSet.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
+		Name:   machineClass.Metadata().ID(),
+		Source: specs.MachineSetSpec_MachineAllocation_MachineClass,
+	}
+
+	require.NoError(t, st.Update(ctx, machineSet))
+
+	// changing source is not allowed too
+	machineSet.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
+		Name:   machineClass.Metadata().ID(),
+		Source: specs.MachineSetSpec_MachineAllocation_MachineRequestSet,
+	}
+
+	// add a node
+	require.NoError(t, innerSt.Create(ctx, machineSetNode))
 
 	err = st.Update(ctx, machineSet)
 	require.True(t, validated.IsValidationError(err), "expected validation error")
@@ -894,7 +916,7 @@ func TestMachineClassValidation(t *testing.T) {
 	machineSet.Metadata().Labels().Set(omnires.LabelCluster, "test-cluster")
 	machineSet.Metadata().Labels().Set(omnires.LabelControlPlaneRole, "")
 
-	machineSet.TypedSpec().Value.MachineClass = &specs.MachineSetSpec_MachineClass{
+	machineSet.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
 		Name: "test-class",
 	}
 

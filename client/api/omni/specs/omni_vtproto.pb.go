@@ -1095,6 +1095,26 @@ func (m *MachineSetSpec_MachineClass) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
+func (m *MachineSetSpec_MachineAllocation) CloneVT() *MachineSetSpec_MachineAllocation {
+	if m == nil {
+		return (*MachineSetSpec_MachineAllocation)(nil)
+	}
+	r := new(MachineSetSpec_MachineAllocation)
+	r.Name = m.Name
+	r.MachineCount = m.MachineCount
+	r.AllocationType = m.AllocationType
+	r.Source = m.Source
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *MachineSetSpec_MachineAllocation) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (m *MachineSetSpec_BootstrapSpec) CloneVT() *MachineSetSpec_BootstrapSpec {
 	if m == nil {
 		return (*MachineSetSpec_BootstrapSpec)(nil)
@@ -1158,6 +1178,7 @@ func (m *MachineSetSpec) CloneVT() *MachineSetSpec {
 	r.DeleteStrategy = m.DeleteStrategy
 	r.UpdateStrategyConfig = m.UpdateStrategyConfig.CloneVT()
 	r.DeleteStrategyConfig = m.DeleteStrategyConfig.CloneVT()
+	r.MachineAllocation = m.MachineAllocation.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -1206,7 +1227,7 @@ func (m *MachineSetStatusSpec) CloneVT() *MachineSetStatusSpec {
 	r.Error = m.Error
 	r.Machines = m.Machines.CloneVT()
 	r.ConfigHash = m.ConfigHash
-	r.MachineClass = m.MachineClass.CloneVT()
+	r.MachineAllocation = m.MachineAllocation.CloneVT()
 	r.LockedUpdates = m.LockedUpdates
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -3648,6 +3669,34 @@ func (this *MachineSetSpec_MachineClass) EqualMessageVT(thatMsg proto.Message) b
 	}
 	return this.EqualVT(that)
 }
+func (this *MachineSetSpec_MachineAllocation) EqualVT(that *MachineSetSpec_MachineAllocation) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	if this.MachineCount != that.MachineCount {
+		return false
+	}
+	if this.AllocationType != that.AllocationType {
+		return false
+	}
+	if this.Source != that.Source {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MachineSetSpec_MachineAllocation) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*MachineSetSpec_MachineAllocation)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
 func (this *MachineSetSpec_BootstrapSpec) EqualVT(that *MachineSetSpec_BootstrapSpec) bool {
 	if this == that {
 		return true
@@ -3732,6 +3781,9 @@ func (this *MachineSetSpec) EqualVT(that *MachineSetSpec) bool {
 	if !this.DeleteStrategyConfig.EqualVT(that.DeleteStrategyConfig) {
 		return false
 	}
+	if !this.MachineAllocation.EqualVT(that.MachineAllocation) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -3806,7 +3858,7 @@ func (this *MachineSetStatusSpec) EqualVT(that *MachineSetStatusSpec) bool {
 	if this.ConfigHash != that.ConfigHash {
 		return false
 	}
-	if !this.MachineClass.EqualVT(that.MachineClass) {
+	if !this.MachineAllocation.EqualVT(that.MachineAllocation) {
 		return false
 	}
 	if this.LockedUpdates != that.LockedUpdates {
@@ -8160,6 +8212,61 @@ func (m *MachineSetSpec_MachineClass) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	return len(dAtA) - i, nil
 }
 
+func (m *MachineSetSpec_MachineAllocation) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MachineSetSpec_MachineAllocation) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MachineSetSpec_MachineAllocation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Source != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Source))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.AllocationType != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.AllocationType))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.MachineCount != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.MachineCount))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Name) > 0 {
+		i -= len(m.Name)
+		copy(dAtA[i:], m.Name)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Name)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *MachineSetSpec_BootstrapSpec) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -8317,6 +8424,16 @@ func (m *MachineSetSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.MachineAllocation != nil {
+		size, err := m.MachineAllocation.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
 	}
 	if m.DeleteStrategyConfig != nil {
 		size, err := m.DeleteStrategyConfig.MarshalToSizedBufferVT(dAtA[:i])
@@ -8488,8 +8605,8 @@ func (m *MachineSetStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i--
 		dAtA[i] = 0x38
 	}
-	if m.MachineClass != nil {
-		size, err := m.MachineClass.MarshalToSizedBufferVT(dAtA[:i])
+	if m.MachineAllocation != nil {
+		size, err := m.MachineAllocation.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
@@ -12114,6 +12231,29 @@ func (m *MachineSetSpec_MachineClass) SizeVT() (n int) {
 	return n
 }
 
+func (m *MachineSetSpec_MachineAllocation) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Name)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.MachineCount != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.MachineCount))
+	}
+	if m.AllocationType != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.AllocationType))
+	}
+	if m.Source != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Source))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *MachineSetSpec_BootstrapSpec) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -12187,6 +12327,10 @@ func (m *MachineSetSpec) SizeVT() (n int) {
 		l = m.DeleteStrategyConfig.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if m.MachineAllocation != nil {
+		l = m.MachineAllocation.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -12254,8 +12398,8 @@ func (m *MachineSetStatusSpec) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
-	if m.MachineClass != nil {
-		l = m.MachineClass.SizeVT()
+	if m.MachineAllocation != nil {
+		l = m.MachineAllocation.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	if m.LockedUpdates != 0 {
@@ -20990,7 +21134,147 @@ func (m *MachineSetSpec_MachineClass) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.AllocationType |= MachineSetSpec_MachineClass_AllocationType(b&0x7F) << shift
+				m.AllocationType |= MachineSetSpec_MachineClass_Type(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MachineSetSpec_MachineAllocation) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MachineSetSpec_MachineAllocation: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MachineSetSpec_MachineAllocation: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Name = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MachineCount", wireType)
+			}
+			m.MachineCount = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.MachineCount |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AllocationType", wireType)
+			}
+			m.AllocationType = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.AllocationType |= MachineSetSpec_MachineAllocation_Type(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Source", wireType)
+			}
+			m.Source = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Source |= MachineSetSpec_MachineAllocation_Source(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -21367,7 +21651,7 @@ func (m *MachineSetSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.MachineClass == nil {
-				m.MachineClass = &MachineSetSpec_MachineClass{}
+				m.MachineClass = &MachineSetSpec_MachineAllocation{}
 			}
 			if err := m.MachineClass.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -21497,6 +21781,42 @@ func (m *MachineSetSpec) UnmarshalVT(dAtA []byte) error {
 				m.DeleteStrategyConfig = &MachineSetSpec_UpdateStrategyConfig{}
 			}
 			if err := m.DeleteStrategyConfig.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MachineAllocation", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.MachineAllocation == nil {
+				m.MachineAllocation = &MachineSetSpec_MachineAllocation{}
+			}
+			if err := m.MachineAllocation.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -21954,7 +22274,7 @@ func (m *MachineSetStatusSpec) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field MachineClass", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field MachineAllocation", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -21981,10 +22301,10 @@ func (m *MachineSetStatusSpec) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.MachineClass == nil {
-				m.MachineClass = &MachineSetSpec_MachineClass{}
+			if m.MachineAllocation == nil {
+				m.MachineAllocation = &MachineSetSpec_MachineAllocation{}
 			}
-			if err := m.MachineClass.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.MachineAllocation.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

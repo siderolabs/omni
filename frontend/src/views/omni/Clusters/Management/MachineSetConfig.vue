@@ -11,14 +11,14 @@ included in the LICENSE file.
       <div class="w-32 truncate" :title="modelValue.name">
         {{ modelValue.name }}
       </div>
-      <tooltip :description="machineClasses?.length === 0 ? 'No machine classes available' : undefined">
-        <t-checkbox :checked="useMachineClasses" label="Use Machine Classes" @click="useMachineClasses = !useMachineClasses" class="h-6" :disabled="machineClasses?.length === 0"/>
-      </tooltip>
+      <div class="flex gap-2 items-center">
+        Allocation Mode: <t-button-group :options="allocationModes" v-model="allocationMode"/>
+      </div>
       <template v-if="useMachineClasses">
         <t-select-list v-if="machineClasses"
             class="h-6 w-48"
             @checkedValue="(value: string) => { machineClass = value }"
-            title="Machine Class"
+            title="Name"
             :defaultValue="machineClass ?? machineClassOptions[0]"
             :values="machineClassOptions"
           />
@@ -51,6 +51,7 @@ import { Resource } from "@/api/grpc";
 import { MachineSet, PatchID, ConfigPatch } from "@/states/cluster-management";
 import { showModal } from "@/modal";
 
+import TButtonGroup from "@/components/common/Button/TButtonGroup.vue";
 import MachineSetLabel from "@/views/omni/Clusters/Management/MachineSetLabel.vue";
 import TCheckbox from "@/components/common/Checkbox/TCheckbox.vue";
 import TSelectList from "@/components/common/SelectList/TSelectList.vue";
@@ -62,10 +63,34 @@ import IconButton from "@/components/common/Button/IconButton.vue";
 
 import pluralize from "pluralize";
 import { LabelWorkerRole, PatchBaseWeightMachineSet } from "@/api/resources";
-import Tooltip from "@/components/common/Tooltip/Tooltip.vue";
 import MachineSetConfigEdit from "../../Modals/MachineSetConfigEdit.vue";
 
 const emit = defineEmits(["update:modelValue"]);
+
+enum AllocationMode {
+  Manual = "Manual",
+  MachineClass = "Machine Class",
+  RequestSet = "Machine Request Set"
+}
+
+const allocationMode = ref(AllocationMode.Manual);
+
+const allocationModes = computed(() => {
+  const res = [
+    {
+      label: AllocationMode.Manual,
+      value: AllocationMode.Manual,
+    },
+    {
+      label: AllocationMode.MachineClass,
+      value: AllocationMode.MachineClass,
+      disabled: !machineClasses?.value?.length,
+      tooltip: !machineClasses?.value?.length ? "No Machine Classes Available" : undefined
+    },
+  ];
+
+  return res;
+});
 
 const props = defineProps<{
   noRemove?: boolean,
@@ -80,17 +105,20 @@ const machineClassOptions = computed(() => {
   return machineClasses?.value?.map((r: Resource) => r.metadata.id!) || [];
 });
 
-const useMachineClasses = ref(modelValue.value.machineClass !== undefined);
-const machineClass = ref(modelValue.value.machineClass?.name);
-const machineCount = ref(modelValue.value.machineClass?.size ?? 1);
+const useMachineClasses = computed(() => allocationMode.value === AllocationMode.MachineClass);
+const machineClass = ref(modelValue.value.machineAllocation?.name);
+const machineCount = ref(modelValue.value.machineAllocation?.size ?? 1);
 const patches: Ref<Record<string, ConfigPatch>> = ref(modelValue.value.patches);
-const unlimited = ref(modelValue.value.machineClass?.size === "unlimited");
+const unlimited = ref(modelValue.value.machineAllocation?.size === "unlimited");
 
 watch(modelValue, () => {
-  machineClass.value = modelValue.value.machineClass?.name;
-  machineCount.value = typeof modelValue.value.machineClass?.size === 'number' ? modelValue.value.machineClass?.size : 1;
+  machineClass.value = modelValue.value.machineAllocation?.name;
+  machineCount.value = typeof modelValue.value.machineAllocation?.size === 'number' ? modelValue.value.machineAllocation?.size : 1;
   patches.value = modelValue.value.patches;
-  useMachineClasses.value = modelValue.value.machineClass !== undefined;
+
+  if (modelValue.value.machineAllocation) {
+    allocationMode.value = AllocationMode.MachineClass;
+  }
 });
 
 watch([machineClass, machineCount, useMachineClasses, patches, unlimited], () => {

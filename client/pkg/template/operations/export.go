@@ -232,17 +232,24 @@ func transformMachineSetToModel(machineSet *omni.MachineSet, nodes []*omni.Machi
 	}
 
 	var (
-		machineIDs         models.MachineIDList
-		machineClassConfig *models.MachineClassConfig
+		machineIDs        models.MachineIDList
+		machineAllocation *models.MachineClassConfig
 	)
 
-	if spec.GetMachineClass() != nil {
-		machineClassConfig = &models.MachineClassConfig{
-			Name: spec.GetMachineClass().GetName(),
+	allocationConfig := omni.GetMachineAllocation(machineSet)
+
+	if allocationConfig != nil {
+		machineAllocation = &models.MachineClassConfig{
+			Name: allocationConfig.Name,
 			Size: models.Size{
-				Value:          spec.GetMachineClass().GetMachineCount(),
-				AllocationType: spec.GetMachineClass().GetAllocationType(),
+				Value:          allocationConfig.GetMachineCount(),
+				AllocationType: allocationConfig.GetAllocationType(),
 			},
+		}
+
+		// TODO: for MCP we'll have a special flag defined, should support machine request set allocation mode export after we implement it
+		if allocationConfig.Source != specs.MachineSetSpec_MachineAllocation_MachineClass {
+			return models.MachineSet{}, fmt.Errorf("unsupported machine allocation source in the machine set %s", machineSet.Metadata().ID())
 		}
 	} else {
 		machineIDs = xslices.Map(nodes, func(node *omni.MachineSetNode) models.MachineID {
@@ -307,7 +314,7 @@ func transformMachineSetToModel(machineSet *omni.MachineSet, nodes []*omni.Machi
 		Descriptors:    getUserDescriptors(machineSet),
 		BootstrapSpec:  bootstrapSpec,
 		Machines:       machineIDs,
-		MachineClass:   machineClassConfig,
+		MachineClass:   machineAllocation,
 		Patches:        patchModels,
 		UpdateStrategy: updateStrategyConfig,
 		DeleteStrategy: deleteStrategyConfig,
@@ -409,8 +416,10 @@ func collectClusterResources(ctx context.Context, st state.State, clusterID stri
 			return clusterResources{}, fmt.Errorf("unexpected machine set label %q", machineSetLabel)
 		}
 
-		// skip the node if its machine set picks machines from a machine class
-		if machineSet.TypedSpec().Value.GetMachineClass() != nil {
+		allocationConfig := omni.GetMachineAllocation(machineSet)
+
+		// skip the node if its machine set picks machines automatically
+		if allocationConfig != nil {
 			continue
 		}
 

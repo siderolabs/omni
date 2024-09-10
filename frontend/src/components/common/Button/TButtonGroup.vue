@@ -54,7 +54,7 @@ const emit = defineEmits(['update:modelValue']);
     items-center
     justify-center
     gap-1
-    text-sm
+    text-xs
     transition-colors
     duration-200
     px-2

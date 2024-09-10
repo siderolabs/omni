@@ -5,7 +5,7 @@
 
 import { Runtime } from "@/api/common/omni.pb";
 import { ResourceService } from "@/api/grpc";
-import { MachineSetSpecMachineClassAllocationType } from "@/api/omni/specs/omni.pb";
+import { MachineSetSpecMachineAllocationType } from "@/api/omni/specs/omni.pb";
 import { withRuntime } from "@/api/options";
 import { ControlPlanesIDSuffix, DefaultNamespace, DefaultWorkersIDSuffix, MachineSetType } from "@/api/resources";
 
@@ -82,7 +82,7 @@ const machineSetName = (clusterId?: string, id?: string) => {
   return id.substring(clusterId.length + 1);
 }
 
-export const scaleMachineSet = async (id: string, machineCount: number, allocationType: MachineSetSpecMachineClassAllocationType) => {
+export const scaleMachineSet = async (id: string, machineCount: number, allocationType: MachineSetSpecMachineAllocationType) => {
   if (machineCount < 0) {
     throw new Error("machine set count can not be negative");
   }
@@ -93,16 +93,19 @@ export const scaleMachineSet = async (id: string, machineCount: number, allocati
     namespace: DefaultNamespace,
   }, withRuntime(Runtime.Omni));
 
-  if (!ms.spec.machine_class.name) {
-    throw new Error("machine set does not use machine classes");
-  }
-
-  if (allocationType !== MachineSetSpecMachineClassAllocationType.Static) {
+  if (allocationType !== MachineSetSpecMachineAllocationType.Static) {
     machineCount = 0;
   }
 
-  ms.spec.machine_class.machine_count = machineCount;
-  ms.spec.machine_class.allocation_type = allocationType;
+  if (ms.spec.machine_class) {
+    ms.spec.machine_class.machine_count = machineCount;
+    ms.spec.machine_class.allocation_type = allocationType;
+  } else if (ms.spec.machine_allocation) {
+    ms.spec.machine_allocation.machine_count = machineCount;
+    ms.spec.machine_allocation.allocation_type = allocationType;
+  } else {
+    throw new Error("machine set does not use automatic machine allocation");
+  }
 
   await ResourceService.Update(ms, ms.metadata.version, withRuntime(Runtime.Omni));
 }

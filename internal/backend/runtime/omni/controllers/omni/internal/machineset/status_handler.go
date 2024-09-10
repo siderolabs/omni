@@ -56,12 +56,12 @@ func ReconcileStatus(rc *ReconciliationContext, machineSetStatus *omni.MachineSe
 	// if machine class allocation type is not static it falls back to the actual machineSetNodes count
 	// then we first compare number of machine set nodes against the number of requested machines
 	// if they match we compare the number of cluster machines against the number of machine set nodes
-	machineClass := machineSet.TypedSpec().Value.MachineClass
-	if machineClass != nil && machineClass.AllocationType == specs.MachineSetSpec_MachineClass_Static {
-		spec.Machines.Requested = machineClass.MachineCount
+	machineAllocation := omni.GetMachineAllocation(machineSet)
+	if machineAllocation != nil && machineAllocation.AllocationType == specs.MachineSetSpec_MachineAllocation_Static {
+		spec.Machines.Requested = machineAllocation.MachineCount
 	}
 
-	spec.MachineClass = machineClass
+	spec.MachineAllocation = omni.GetMachineAllocation(machineSet)
 
 	switch {
 	case len(machineSetNodes) < int(spec.Machines.Requested):
