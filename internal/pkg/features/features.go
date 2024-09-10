@@ -32,6 +32,8 @@ func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger) er
 			MaxInterval:  durationpb.New(config.Config.EtcdBackup.MaxInterval),
 		}
 
+		res.TypedSpec().Value.AuditLogEnabled = config.Config.AuditLogDir != ""
+
 		return nil
 	}
 

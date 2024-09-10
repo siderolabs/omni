@@ -587,6 +587,7 @@ export type FeaturesConfigSpec = {
   enable_workload_proxying?: boolean
   etcd_backup_settings?: EtcdBackupSettings
   embedded_discovery_service?: boolean
+  audit_log_enabled?: boolean
 }
 
 export type EtcdBackupSettings = {

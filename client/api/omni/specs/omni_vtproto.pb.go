@@ -1602,6 +1602,7 @@ func (m *FeaturesConfigSpec) CloneVT() *FeaturesConfigSpec {
 	r.EnableWorkloadProxying = m.EnableWorkloadProxying
 	r.EtcdBackupSettings = m.EtcdBackupSettings.CloneVT()
 	r.EmbeddedDiscoveryService = m.EmbeddedDiscoveryService
+	r.AuditLogEnabled = m.AuditLogEnabled
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -4380,6 +4381,9 @@ func (this *FeaturesConfigSpec) EqualVT(that *FeaturesConfigSpec) bool {
 		return false
 	}
 	if this.EmbeddedDiscoveryService != that.EmbeddedDiscoveryService {
+		return false
+	}
+	if this.AuditLogEnabled != that.AuditLogEnabled {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -9500,6 +9504,16 @@ func (m *FeaturesConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.AuditLogEnabled {
+		i--
+		if m.AuditLogEnabled {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.EmbeddedDiscoveryService {
 		i--
 		if m.EmbeddedDiscoveryService {
@@ -12690,6 +12704,9 @@ func (m *FeaturesConfigSpec) SizeVT() (n int) {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	if m.EmbeddedDiscoveryService {
+		n += 2
+	}
+	if m.AuditLogEnabled {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -24122,6 +24139,26 @@ func (m *FeaturesConfigSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.EmbeddedDiscoveryService = bool(v != 0)
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AuditLogEnabled", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.AuditLogEnabled = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

@@ -276,7 +276,7 @@ func (s *E2ESuite) TestAuditLog() {
 	s.T().Logf("getting audit log")
 
 	s.withPage(s.baseURL, func(page playwright.Page) {
-		downloadAuditLog := page.Locator(`span:has-text("Download audit log"):visible`)
+		downloadAuditLog := page.Locator(`span:has-text("Get audit log"):visible`)
 
 		s.Require().NoError(downloadAuditLog.Click())
 

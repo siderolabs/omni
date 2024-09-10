@@ -36,6 +36,12 @@ export const embeddedDiscoveryServiceFeatureAvailable = async (): Promise<boolea
   return featuresConfig.spec?.embedded_discovery_service ?? false;
 }
 
+export const auditLogEnabled = async (): Promise<boolean> => {
+  const featuresConfig = await getFeaturesConfig();
+
+  return featuresConfig.spec?.audit_log_enabled ?? false;
+}
+
 const getFeaturesConfig = async (): Promise<Resource<FeaturesConfigSpec>> => {
   if (!cachedFeaturesConfig) {
     cachedFeaturesConfig = await ResourceService.Get({

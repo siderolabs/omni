@@ -903,6 +903,9 @@ message FeaturesConfigSpec {
 
   // EmbeddedDiscoveryService enables the embedded discovery service.
   bool embedded_discovery_service = 3;
+
+  // AuditLogEnabled is true when Omni is configured to collect the audit logs.
+  bool audit_log_enabled = 4;
 }
 
 message EtcdBackupSettings {

@@ -144,7 +144,8 @@ export const downloadAuditLog = async () => {
     link.download = "auditlog.jsonlog";
     link.click();
   } catch (e) {
-    showError("Failed to download audit log", e.message || e.toString());
+    console.log(e)
+    showError("Failed to download audit log", e.error?.message ?? e.message ?? e.toString());
   }
 };
 
