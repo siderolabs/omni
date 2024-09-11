@@ -70,7 +70,7 @@ import UserInfo from "@/components/common/UserInfo/UserInfo.vue";
 import { withMetadata } from "@/api/options";
 import { fetchOption } from "@/api/fetch.pb";
 import { Code } from "@/api/google/rpc/code.pb";
-import { Auth0VueClient } from "@auth0/auth0-vue/src/global";
+import { Auth0VueClient } from "@auth0/auth0-vue";
 
 const user = ref<User | undefined>(undefined);
 let idToken = "";
