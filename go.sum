@@ -107,10 +107,10 @@ github.com/coreos/go-semver v0.3.1 h1:yi21YpKnrx1gt5R+la8n5WgS0kCrsPp33dmEyHReZr
 github.com/coreos/go-semver v0.3.1/go.mod h1:irMmmIw/7yzSRPWryHsK7EYSg09caPQL03VsM8rvUec=
 github.com/coreos/go-systemd/v22 v22.5.0 h1:RrqgGjYQKalulkV8NGVIfkXQf6YYmOyiJKk8iXXhfZs=
 github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
-github.com/cosi-project/runtime v0.6.2 h1:GHp/GoJlqAfmVXq69r7CeSIXj31glMNz8z2RM3ugpRU=
-github.com/cosi-project/runtime v0.6.2/go.mod h1:2iQ2Wu57UNm89ZksFLoMLGEZnPzUkk5g64+AlWHopo4=
-github.com/cosi-project/state-etcd v0.3.1 h1:Xeg2YW8k4/tHhJao/SenC+eZiJaIkeavXVB8tHEgaIc=
-github.com/cosi-project/state-etcd v0.3.1/go.mod h1:DTYhrWuBJHkkl1ke7Q/L1tQEd2N8p6XfZ+8haev3Tco=
+github.com/cosi-project/runtime v0.6.3 h1:nCmEIY1jypCoraRaNsFvaLHkBI/ALYk/X1CGea7Ie1E=
+github.com/cosi-project/runtime v0.6.3/go.mod h1:2iQ2Wu57UNm89ZksFLoMLGEZnPzUkk5g64+AlWHopo4=
+github.com/cosi-project/state-etcd v0.3.2 h1:8Lnj5dPIUzkv5DYFpKvkP+vX5O9M9sWthXQfoKJrF78=
+github.com/cosi-project/state-etcd v0.3.2/go.mod h1:wHp8V3OvGRILYvbJEmhMt0AFuByaGNkxXLDc61/+yFM=
 github.com/cpuguy83/go-md2man/v2 v2.0.4 h1:wfIWP927BUkWJb2NmU/kNDYIBTh/ziUX91+lVfRxZq4=
 github.com/cpuguy83/go-md2man/v2 v2.0.4/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=

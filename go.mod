@@ -26,8 +26,8 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
 	github.com/containers/image/v5 v5.32.2
-	github.com/cosi-project/runtime v0.6.2
-	github.com/cosi-project/state-etcd v0.3.1
+	github.com/cosi-project/runtime v0.6.3
+	github.com/cosi-project/state-etcd v0.3.2
 	github.com/crewjam/saml v0.4.14
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emicklei/dot v1.6.2

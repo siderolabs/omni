@@ -13,7 +13,8 @@ replace (
 require (
 	github.com/adrg/xdg v0.5.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cosi-project/runtime v0.6.2
+	github.com/cosi-project/runtime v0.6.3
+	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.17.0
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/google/uuid v1.6.0
@@ -54,7 +55,6 @@ require (
 	github.com/containernetworking/cni v1.2.3 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 //indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
