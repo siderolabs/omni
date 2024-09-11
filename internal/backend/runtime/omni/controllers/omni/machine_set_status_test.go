@@ -907,6 +907,52 @@ func (suite *MachineSetStatusSuite) TestMachineLocks() {
 	})
 }
 
+func (suite *MachineSetStatusSuite) TestMachineIsAddedToAnotherMachineSet() {
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*20)
+	defer cancel()
+
+	clusterName := "cluster-locks"
+
+	machines := []string{
+		"node01",
+	}
+
+	suite.createMachineSet(clusterName, "machine-set-1", machines)
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, machines, func(*omni.ClusterMachine, *assert.Assertions) {})
+
+	_, err := safe.StateUpdateWithConflicts(ctx, suite.state, omni.NewClusterMachine(resources.DefaultNamespace, "node01").Metadata(), func(
+		res *omni.ClusterMachine,
+	) error {
+		res.Metadata().Finalizers().Add("locked")
+
+		return nil
+	}, state.WithUpdateOwner(machineset.ControllerName))
+
+	suite.Require().NoError(err)
+
+	rtestutils.DestroyAll[*omni.MachineSetNode](ctx, suite.T(), suite.state)
+
+	suite.createMachineSet(clusterName, "machine-set-2", machines)
+
+	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, omni.NewClusterMachine(resources.DefaultNamespace, "node01").Metadata(), func(
+		res *omni.ClusterMachine,
+	) error {
+		res.Metadata().Finalizers().Remove("locked")
+
+		return nil
+	}, state.WithUpdateOwner(machineset.ControllerName), state.WithExpectedPhaseAny())
+
+	suite.Require().NoError(err)
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, machines, func(cm *omni.ClusterMachine, assert *assert.Assertions) {
+		machineSetName, ok := cm.Metadata().Labels().Get(omni.LabelMachineSet)
+
+		assert.True(ok)
+		assert.Equal("machine-set-2", machineSetName)
+	})
+}
+
 func (suite *MachineSetStatusSuite) assertLabels(res resource.Resource, labels ...string) error {
 	if len(labels)%2 != 0 {
 		return errors.New("the number of label params must be even")
