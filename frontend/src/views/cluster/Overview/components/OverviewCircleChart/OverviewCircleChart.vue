@@ -20,11 +20,12 @@ included in the LICENSE file.
 import { computed, toRefs } from "vue";
 import ApexChart from "vue3-apexcharts";
 import { primary, naturals } from "@/vars/colors";
+import { ApexOptions } from "apexcharts";
 
 const props = defineProps<{ chartFillPercents:  number | string }>();
 
 const { chartFillPercents } = toRefs(props);
-const options = {
+const options: ApexOptions = {
   chart: {
     dropShadow: {
       enabled: true,
@@ -39,7 +40,7 @@ const options = {
     radialBar: {
       hollow: {
         margin: 0,
-        size: 60,
+        size: "60",
       },
       track: {
         background: naturals.N0
@@ -50,7 +51,7 @@ const options = {
     },
   },
   fill: {
-    colors: primary.P3,
+    colors: [primary.P3],
   },
   stroke: {
     lineCap: "round"

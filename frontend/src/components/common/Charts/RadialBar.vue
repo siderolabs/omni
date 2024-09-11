@@ -70,6 +70,7 @@ const colors = [
 
 const options: Ref<ApexOptions> = computed(() => {
   return {
+    chart: {},
     yaxis: {
       max: total?.value ?? 0,
     },
