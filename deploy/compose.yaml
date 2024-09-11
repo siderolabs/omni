@@ -1,5 +1,4 @@
 name: omni-on-prem
-version: '3'
 services:
   omni:
     container_name: omni
