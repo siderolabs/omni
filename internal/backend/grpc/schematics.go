@@ -36,16 +36,13 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 		return nil, err
 	}
 
-	params, err := safe.StateGet[*siderolink.ConnectionParams](ctx, s.omniState, siderolink.NewConnectionParams(
-		resources.DefaultNamespace,
-		siderolink.ConfigID,
-	).Metadata())
+	baseKernelArgs, err := s.getBaseKernelArgs(ctx, request.SiderolinkGrpcTunnelMode)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get Omni connection params for the extra kernel arguments: %w", err)
+		return nil, err
 	}
 
 	customization := schematic.Customization{
-		ExtraKernelArgs: append(siderolink.KernelArgs(params), request.ExtraKernelArgs...),
+		ExtraKernelArgs: append(baseKernelArgs, request.ExtraKernelArgs...),
 		SystemExtensions: schematic.SystemExtensions{
 			OfficialExtensions: request.Extensions,
 		},
@@ -144,4 +141,25 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 		SchematicId: schematicInfo.FullID,
 		PxeUrl:      pxeURL.JoinPath("pxe", schematicInfo.FullID, request.TalosVersion, filename).String(),
 	}, nil
+}
+
+func (s *managementServer) getBaseKernelArgs(ctx context.Context, grpcTunnelMode management.CreateSchematicRequest_SiderolinkGRPCTunnelMode) ([]string, error) {
+	params, err := safe.StateGet[*siderolink.ConnectionParams](ctx, s.omniState, siderolink.NewConnectionParams(
+		resources.DefaultNamespace,
+		siderolink.ConfigID,
+	).Metadata())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Omni connection params for the extra kernel arguments: %w", err)
+	}
+
+	switch grpcTunnelMode {
+	case management.CreateSchematicRequest_AUTO:
+		return siderolink.KernelArgs(params), nil
+	case management.CreateSchematicRequest_ENABLED:
+		return siderolink.KernelArgsWithGRPCRTunnelMode(params, true)
+	case management.CreateSchematicRequest_DISABLED:
+		return siderolink.KernelArgsWithGRPCRTunnelMode(params, false)
+	default:
+		return nil, status.Errorf(codes.InvalidArgument, "invalid GRPC tunnel mode: %s", grpcTunnelMode)
+	}
 }

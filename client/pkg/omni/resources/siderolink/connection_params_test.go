@@ -7,6 +7,7 @@ package siderolink_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -82,6 +83,56 @@ func TestConnectionParamsKernelArgs(t *testing.T) {
 
 			require.NoError(t, err)
 			require.Equal(t, tt.expectedArgs, args)
+		})
+	}
+}
+
+func TestKernelArgsWithGRPCTunnelMode(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		args     string
+		expected []string
+		value    bool
+	}{
+		{
+			name:  "no arg",
+			args:  "aaaa siderolink.api=grpc://127.0.0.1:8099?jointoken=abcd cccc",
+			value: true,
+			expected: []string{
+				"aaaa",
+				"siderolink.api=grpc://127.0.0.1:8099?grpc_tunnel=true&jointoken=abcd", // this also tests the reordering of the query parameters alphabetically by key
+				"cccc",
+			},
+		},
+		{
+			name:  "true->false",
+			args:  "aaaa siderolink.api=grpc://127.0.0.1:8099?jointoken=abcd&grpc_tunnel=false cccc",
+			value: true,
+			expected: []string{
+				"aaaa",
+				"siderolink.api=grpc://127.0.0.1:8099?grpc_tunnel=true&jointoken=abcd", // this also tests the reordering of the query parameters alphabetically by key
+				"cccc",
+			},
+		},
+		{
+			name:  "false->true",
+			args:  "siderolink.api=grpc://127.0.0.1:8099?jointoken=abcd&xyz=123",
+			value: true,
+			expected: []string{
+				"siderolink.api=grpc://127.0.0.1:8099?grpc_tunnel=true&jointoken=abcd&xyz=123",
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			connectionParams := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
+			connectionParams.TypedSpec().Value = &specs.ConnectionParamsSpec{
+				Args: tt.args,
+			}
+
+			args, err := siderolink.KernelArgsWithGRPCRTunnelMode(connectionParams, tt.value)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.expected, args)
 		})
 	}
 }

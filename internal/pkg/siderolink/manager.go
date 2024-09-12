@@ -628,10 +628,11 @@ func (manager *Manager) updateConnectionParams(ctx context.Context, siderolinkCo
 		spec.ApiEndpoint = config.Config.SideroLinkAPIURL
 		spec.JoinToken = siderolinkConfig.TypedSpec().Value.JoinToken
 		spec.WireguardEndpoint = siderolinkConfig.TypedSpec().Value.AdvertisedEndpoint
+		spec.UseGrpcTunnel = config.Config.SiderolinkUseGRPCTunnel
 
 		var url string
 
-		url, err = siderolink.APIURL(res, config.Config.SiderolinkUseGRPCTunnel)
+		url, err = siderolink.APIURL(res)
 		if err != nil {
 			return err
 		}

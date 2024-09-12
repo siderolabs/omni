@@ -35,4 +35,5 @@ export type ConnectionParamsSpec = {
   api_endpoint?: string
   wireguard_endpoint?: string
   join_token?: string
+  use_grpc_tunnel?: boolean
 }

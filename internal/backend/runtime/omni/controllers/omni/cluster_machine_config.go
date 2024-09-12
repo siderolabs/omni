@@ -488,7 +488,7 @@ func buildInstallImage(resID resource.ID, installImage *specs.MachineConfigGenOp
 }
 
 func renderSiderolinkJoinConfig(connectionParams *siderolink.ConnectionParams, eventSinkPort int) ([]byte, error) {
-	url, err := siderolink.APIURL(connectionParams, appconfig.Config.SiderolinkUseGRPCTunnel)
+	url, err := siderolink.APIURL(connectionParams)
 	if err != nil {
 		return nil, err
 	}

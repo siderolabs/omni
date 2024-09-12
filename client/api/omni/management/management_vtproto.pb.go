@@ -408,6 +408,7 @@ func (m *CreateSchematicRequest) CloneVT() *CreateSchematicRequest {
 	r.TalosVersion = m.TalosVersion
 	r.MediaId = m.MediaId
 	r.SecureBoot = m.SecureBoot
+	r.SiderolinkGrpcTunnelMode = m.SiderolinkGrpcTunnelMode
 	if rhs := m.Extensions; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -1054,6 +1055,9 @@ func (this *CreateSchematicRequest) EqualVT(that *CreateSchematicRequest) bool {
 		return false
 	}
 	if this.SecureBoot != that.SecureBoot {
+		return false
+	}
+	if this.SiderolinkGrpcTunnelMode != that.SiderolinkGrpcTunnelMode {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2179,6 +2183,11 @@ func (m *CreateSchematicRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.SiderolinkGrpcTunnelMode != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.SiderolinkGrpcTunnelMode))
+		i--
+		dAtA[i] = 0x38
+	}
 	if m.SecureBoot {
 		i--
 		if m.SecureBoot {
@@ -2910,6 +2919,9 @@ func (m *CreateSchematicRequest) SizeVT() (n int) {
 	}
 	if m.SecureBoot {
 		n += 2
+	}
+	if m.SiderolinkGrpcTunnelMode != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.SiderolinkGrpcTunnelMode))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -5450,6 +5462,25 @@ func (m *CreateSchematicRequest) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.SecureBoot = bool(v != 0)
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SiderolinkGrpcTunnelMode", wireType)
+			}
+			m.SiderolinkGrpcTunnelMode = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.SiderolinkGrpcTunnelMode |= CreateSchematicRequest_SiderolinkGRPCTunnelMode(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

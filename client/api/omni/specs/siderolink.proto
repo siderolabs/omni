@@ -48,4 +48,6 @@ message ConnectionParamsSpec {
   string wireguard_endpoint = 3;
   // JoinToken is a join token required to connect to SideroLink.
   string join_token = 4;
+  // UseGRPCTunnel is a flag to enable gRPC tunneling.
+  bool use_grpc_tunnel = 5;
 }

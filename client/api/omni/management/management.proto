@@ -125,12 +125,19 @@ message KubernetesSyncManifestResponse {
 }
 
 message CreateSchematicRequest {
+  enum SiderolinkGRPCTunnelMode {
+    AUTO = 0;
+    DISABLED = 1;
+    ENABLED = 2;
+  }
+
   repeated string extensions = 1;
   repeated string extra_kernel_args = 2;
   map<uint32, string> meta_values = 3;
   string talos_version = 4;
   string media_id = 5;
   bool secure_boot = 6;
+  SiderolinkGRPCTunnelMode siderolink_grpc_tunnel_mode = 7;
 }
 
 message CreateSchematicResponse {

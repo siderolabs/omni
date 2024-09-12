@@ -73,12 +73,22 @@ included in the LICENSE file.
             :checked="secureBoot && !installationMedia?.spec?.no_secure_boot"/>
       </template>
 
+      <tooltip>
+        <template #description>
+          <div class="flex flex-col gap-1 p-2">
+            <p>Configure Talos to use a GRPC tunnel for Siderolink (wireguard) connection to Omni.</p>
+            <p>The default value configured for this Omni instance is <code>{{ useGrpcTunnelDefault.toString() }}</code>.</p>
+          </div>
+        </template>
+        <t-checkbox :checked="useGrpcTunnel" label="Use Siderolink GRPC Tunnel"  @click="useGrpcTunnel = !useGrpcTunnel"/>
+      </tooltip>
+
       <h3 class="text-sm text-naturals-N14">
         PXE Boot URL
       </h3>
 
       <div class="cursor-pointer px-1.5 py-1.5 rounded border border-naturals-N8 text-xs flex gap-2 items-center">
-        <icon-button class="min-w-min" icon="refresh" @click="createSchematic" :icon-classes="{'animate-spin': creatingSchematic}"/>
+        <icon-button class="min-w-min" icon="refresh" @click="createSchematic" :icon-classes="{'animate-spin': creatingSchematic}" :disabled="!ready"/>
         <span v-if="copiedPXEURL" class="flex-1 text-sm">Copied!</span>
         <span v-else class="flex-1 break-all" @click="createSchematic">{{ pxeURL ? pxeURL : 'Click to generate' }}</span>
         <icon-button class="min-w-min" icon="copy" @click="copyPXEURL"/>
@@ -92,7 +102,7 @@ included in the LICENSE file.
         <t-button @click="close" class="w-32 h-9">
           Cancel
         </t-button>
-        <t-button @click="download" class="w-32 h-9" type="highlighted">
+        <t-button @click="download" class="w-32 h-9" type="highlighted" :disabled="!ready">
           Download
         </t-button>
       </div>
@@ -101,15 +111,15 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { DefaultNamespace, DefaultTalosVersion, EphemeralNamespace, LabelsMeta, TalosVersionType, SecureBoot } from "@/api/resources";
+import { DefaultNamespace, DefaultTalosVersion, EphemeralNamespace, LabelsMeta, TalosVersionType, SecureBoot, ConnectionParamsType, ConfigID } from "@/api/resources";
 import { useRouter } from "vue-router";
-import { onUnmounted, ref, watch, computed, Ref } from "vue";
+import { onUnmounted, ref, watch, computed, Ref, onMounted } from "vue";
 import { InstallationMediaType } from "@/api/resources";
 import { InstallationMediaSpec, TalosVersionSpec } from "@/api/omni/specs/omni.pb";
 import { Runtime } from "@/api/common/omni.pb";
 import { showError } from "@/notification";
 import { formatBytes } from "@/methods";
-import { Resource } from "@/api/grpc";
+import { Resource, ResourceService } from "@/api/grpc";
 
 import CloseButton from "@/views/omni/Modals/CloseButton.vue";
 import TSpinner from "@/components/common/Spinner/TSpinner.vue";
@@ -125,7 +135,10 @@ import ExtensionsPicker from "@/views/omni/Extensions/ExtensionsPicker.vue";
 
 import { copyText } from "vue3-clipboard";
 import { DocumentArrowDownIcon } from "@heroicons/vue/24/outline";
-import { CreateSchematicRequest, ManagementService } from "@/api/omni/management/management.pb";
+import { CreateSchematicRequest, CreateSchematicRequestSiderolinkGRPCTunnelMode, ManagementService } from "@/api/omni/management/management.pb";
+import Tooltip from "@/components/common/Tooltip/Tooltip.vue";
+import { withRuntime } from "@/api/options";
+import { ConnectionParamsSpec } from "@/api/omni/specs/siderolink.pb";
 
 enum Phase {
   Idle = 0,
@@ -204,6 +217,9 @@ const talosVersions = computed(() => talosVersionsResources.value?.map(res => re
 
 const selectedOption = ref("");
 const selectedTalosVersion = ref(DefaultTalosVersion);
+const useGrpcTunnel = ref(false);
+const useGrpcTunnelDefault = ref(false);
+const ready = ref(false);
 
 watch(() => optionsWatch.items?.value.length, () => {
   options.value = watchOptions.value.reduce((map, obj) => {
@@ -221,6 +237,18 @@ watch([selectedOption, selectedTalosVersion, labels, installExtensions.value], (
   schematicID.value = undefined;
 });
 
+onMounted(async () => {
+  const connectionParams: Resource<ConnectionParamsSpec> = await ResourceService.Get({
+    namespace: DefaultNamespace,
+    type: ConnectionParamsType,
+    id: ConfigID,
+  }, withRuntime(Runtime.Omni));
+
+  useGrpcTunnel.value = connectionParams.spec.use_grpc_tunnel || false;
+  useGrpcTunnelDefault.value = connectionParams.spec.use_grpc_tunnel || false;
+  ready.value = true;
+})
+
 onUnmounted(abortDownload);
 
 const createSchematic = async () => {
@@ -230,6 +258,8 @@ const createSchematic = async () => {
 
   creatingSchematic.value = true;
 
+  const grpcTunnelMode = useGrpcTunnel.value ? CreateSchematicRequestSiderolinkGRPCTunnelMode.ENABLED : CreateSchematicRequestSiderolinkGRPCTunnelMode.DISABLED;
+
   try {
     const schematic: CreateSchematicRequest = {
       extensions: [],
@@ -238,6 +268,7 @@ const createSchematic = async () => {
       media_id:  installationMedia.value?.metadata.id,
       talos_version: selectedTalosVersion.value,
       secure_boot: secureBoot.value,
+      siderolink_grpc_tunnel_mode: grpcTunnelMode,
     };
 
     if (labels.value && Object.keys(labels.value).length > 0) {

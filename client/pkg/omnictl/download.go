@@ -34,20 +34,21 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
 
-// downloadFlags represents the `download` command flags.
-type downloadFlags struct {
+const useSiderolinkGRPCTunnelFlag = "use-siderolink-grpc-tunnel"
+
+// downloadCmdFlags represents the `download` command flags.
+var downloadCmdFlags struct {
 	architecture string
 
-	output          string
-	talosVersion    string
-	labels          []string
-	extraKernelArgs []string
-	extensions      []string
-	pxe             bool
-	secureBoot      bool
+	output                  string
+	talosVersion            string
+	labels                  []string
+	extraKernelArgs         []string
+	extensions              []string
+	pxe                     bool
+	secureBoot              bool
+	useSiderolinkGRPCTunnel bool
 }
-
-var downloadCmdFlags downloadFlags
 
 func init() {
 	downloadCmd.Flags().BoolVar(&downloadCmdFlags.pxe, "pxe", false, "Print PXE URL and exit")
@@ -58,6 +59,7 @@ func init() {
 	downloadCmd.Flags().StringSliceVar(&downloadCmdFlags.labels, "initial-labels", nil, "Bake initial labels into the generated installation media")
 	downloadCmd.Flags().StringArrayVar(&downloadCmdFlags.extraKernelArgs, "extra-kernel-args", nil, "Add extra kernel args to the generated installation media")
 	downloadCmd.Flags().StringSliceVar(&downloadCmdFlags.extensions, "extensions", nil, "Generate installation media with extensions pre-installed")
+	downloadCmd.Flags().BoolVar(&downloadCmdFlags.useSiderolinkGRPCTunnel, useSiderolinkGRPCTunnelFlag, false, "Use SideroLink gRPC tunnel. When not set, the server default will be used.")
 
 	RootCmd.AddCommand(downloadCmd)
 }
@@ -102,7 +104,7 @@ To download the latest Radxa ROCK PI 4 image, run:
     omnictl download "rpi_generic"
 `,
 	Args: cobra.ExactArgs(1),
-	RunE: func(_ *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		return access.WithClient(func(ctx context.Context, client *client.Client) error {
 			if args[0] == "" {
 				return fmt.Errorf("image name is required")
@@ -123,7 +125,17 @@ To download the latest Radxa ROCK PI 4 image, run:
 				return err
 			}
 
-			return downloadImageTo(ctx, client, image, output)
+			grpcTunnelMode := management.CreateSchematicRequest_AUTO
+
+			if cmd.Flags().Changed(useSiderolinkGRPCTunnelFlag) {
+				if downloadCmdFlags.useSiderolinkGRPCTunnel {
+					grpcTunnelMode = management.CreateSchematicRequest_ENABLED
+				} else {
+					grpcTunnelMode = management.CreateSchematicRequest_DISABLED
+				}
+			}
+
+			return downloadImageTo(ctx, client, image, output, grpcTunnelMode)
 		})
 	},
 	ValidArgsFunction: downloadCompletion,
@@ -163,7 +175,9 @@ func findImage(ctx context.Context, client *client.Client, name, arch string) (*
 	return result[0], nil
 }
 
-func createSchematic(ctx context.Context, client *client.Client, media *omni.InstallationMedia) (*management.CreateSchematicResponse, error) {
+func createSchematic(ctx context.Context, client *client.Client, media *omni.InstallationMedia,
+	grpcTunnelMode management.CreateSchematicRequest_SiderolinkGRPCTunnelMode,
+) (*management.CreateSchematicResponse, error) {
 	metaValues := map[uint32]string{}
 
 	var extensions []string
@@ -187,12 +201,13 @@ func createSchematic(ctx context.Context, client *client.Client, media *omni.Ins
 	}
 
 	resp, err := client.Management().CreateSchematic(ctx, &management.CreateSchematicRequest{
-		MetaValues:      metaValues,
-		ExtraKernelArgs: downloadCmdFlags.extraKernelArgs,
-		Extensions:      extensions,
-		MediaId:         media.Metadata().ID(),
-		SecureBoot:      downloadCmdFlags.secureBoot,
-		TalosVersion:    downloadCmdFlags.talosVersion,
+		MetaValues:               metaValues,
+		ExtraKernelArgs:          downloadCmdFlags.extraKernelArgs,
+		Extensions:               extensions,
+		MediaId:                  media.Metadata().ID(),
+		SecureBoot:               downloadCmdFlags.secureBoot,
+		TalosVersion:             downloadCmdFlags.talosVersion,
+		SiderolinkGrpcTunnelMode: grpcTunnelMode,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create schematic: %w", err)
@@ -201,8 +216,8 @@ func createSchematic(ctx context.Context, client *client.Client, media *omni.Ins
 	return resp, nil
 }
 
-func downloadImageTo(ctx context.Context, client *client.Client, media *omni.InstallationMedia, output string) error {
-	schematicResp, err := createSchematic(ctx, client, media)
+func downloadImageTo(ctx context.Context, client *client.Client, media *omni.InstallationMedia, output string, grpcTunnelMode management.CreateSchematicRequest_SiderolinkGRPCTunnelMode) error {
+	schematicResp, err := createSchematic(ctx, client, media, grpcTunnelMode)
 	if err != nil {
 		return err
 	}

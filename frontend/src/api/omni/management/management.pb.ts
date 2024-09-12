@@ -16,6 +16,12 @@ export enum KubernetesSyncManifestResponseResponseType {
   ROLLOUT = 2,
 }
 
+export enum CreateSchematicRequestSiderolinkGRPCTunnelMode {
+  AUTO = 0,
+  DISABLED = 1,
+  ENABLED = 2,
+}
+
 export type KubeconfigResponse = {
   kubeconfig?: Uint8Array
 }
@@ -120,6 +126,7 @@ export type CreateSchematicRequest = {
   talos_version?: string
   media_id?: string
   secure_boot?: boolean
+  siderolink_grpc_tunnel_mode?: CreateSchematicRequestSiderolinkGRPCTunnelMode
 }
 
 export type CreateSchematicResponse = {
