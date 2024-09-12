@@ -1,3 +1,31 @@
+## [Omni 0.42.1](https://github.com/siderolabs/omni/releases/tag/v0.42.1) (2024-09-12)
+
+Welcome to the v0.42.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`fefbb18`](https://github.com/siderolabs/omni/commit/fefbb18c9fd35cc4c51af8a3bc87a451a31c251d) fix: pin apexcharts version to 3.45.2
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.42.0](https://github.com/siderolabs/omni/releases/tag/v0.42.0)
+
+
 ## [Omni 0.42.0](https://github.com/siderolabs/omni/releases/tag/v0.42.0) (2024-09-10)
 
 Welcome to the v0.42.0 release of Omni!
