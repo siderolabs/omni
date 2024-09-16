@@ -987,8 +987,27 @@ message EtcdBackupSettings {
 
 // MachineClassSpec describes an Omni MachineClass resource spec.
 message MachineClassSpec {
+  // MachineProvisionSpec describes the rules for creating and scaling the machine request set.
+  message Provision {
+    string provider_id = 1;
+
+    string talos_version = 2;
+
+    repeated string extensions = 3;
+    repeated string kernel_args = 4;
+    repeated MetaValue meta_values = 5;
+
+    // IdleMachineCount keeps the provisioned machines in the maintenance mode.
+    uint32 idle_machine_count = 6;
+
+    string provider_data = 7;
+  }
+
   // MatchLabels is the list of labels to match the machine to make it part of the machine class.
   repeated string match_labels = 1;
+
+  // AutoProvision configures the machine class to automatically provision the machines.
+  Provision auto_provision = 2;
 }
 
 // MachineConfigGenOptionsSpec describes machine related config generation inputs.
@@ -1176,10 +1195,12 @@ message MachineRequestSetSpec {
 
   string talos_version = 3;
 
-  Overlay overlay = 4;
+  reserved 4;
   repeated string extensions = 5;
   repeated string kernel_args = 6;
   repeated MetaValue meta_values = 7;
+
+  string provider_data = 8;
 }
 
 // MachineRequestSetStatusSpec describes the status of the machine request set.
@@ -1193,4 +1214,10 @@ message ClusterDiagnosticsSpec {
   }
 
   repeated Node nodes = 1;
+}
+
+// MachineClassStatusSpec describes an Omni MachineRequestSetPressure resource spec.
+message MachineRequestSetPressureSpec {
+  // RequiredMachines is the number of machines required by all machine sets which are using the request set.
+  uint32 required_machines = 1;
 }

@@ -30,6 +30,7 @@ import {
   ChartBarIcon,
   ServerIcon,
   ServerStackIcon,
+  CalendarIcon,
 } from "@heroicons/vue/24/outline";
 
 import {
@@ -133,6 +134,7 @@ const icons = {
   "server": ServerIcon,
   "server-stack": ServerStackIcon,
   "lifebuoy": LifebuoyIcon,
+  "calendar": CalendarIcon,
 };
 
 const getComponent = (icon: string): Component | undefined => {

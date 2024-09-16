@@ -26,7 +26,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/client"
-	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -53,6 +52,8 @@ type ClusterOptions struct {
 	MachineOptions MachineOptions
 
 	BeforeClusterCreateFunc BeforeClusterCreateFunc
+
+	InfraProvider string
 }
 
 // MachineOptions are the options for machine creation.
@@ -147,39 +148,23 @@ func CreateClusterWithMachineClass(testCtx context.Context, st state.State, opti
 
 		machineClass := omni.NewMachineClass(resources.DefaultNamespace, options.Name)
 
-		createOrUpdate(ctx, t, st, machineClass, func(r *omni.MachineClass) error {
-			r.TypedSpec().Value.MatchLabels = []string{omni.MachineStatusLabelConnected}
+		if options.InfraProvider != "" {
+			createOrUpdate(ctx, t, st, machineClass, func(r *omni.MachineClass) error {
+				r.TypedSpec().Value.MatchLabels = nil
+				r.TypedSpec().Value.AutoProvision = &specs.MachineClassSpec_Provision{
+					ProviderId:   options.InfraProvider,
+					TalosVersion: options.MachineOptions.TalosVersion,
+					ProviderData: "{}",
+				}
 
-			return nil
-		})
+				return nil
+			})
+		} else {
+			createOrUpdate(ctx, t, st, machineClass, func(r *omni.MachineClass) error {
+				r.TypedSpec().Value.MatchLabels = []string{omni.MachineStatusLabelConnected}
+				r.TypedSpec().Value.AutoProvision = nil
 
-		query, err := labels.ParseSelectors(machineClass.TypedSpec().Value.MatchLabels)
-
-		require.NoError(err)
-
-		opts := xslices.Map(query, func(q resource.LabelQuery) state.ListOption {
-			return state.WithLabelQuery(resource.RawLabelQuery(q))
-		})
-
-		ids := rtestutils.ResourceIDs[*omni.MachineStatus](ctx, t, st, opts...)
-
-		// populate uuid patches for each machine matching the machine class
-		for _, machineID := range ids {
-			configPatch := omni.NewConfigPatch(
-				resources.DefaultNamespace,
-				fmt.Sprintf("000-%s-uuid-patch", machineID),
-				pair.MakePair(omni.LabelCluster, options.Name),
-				pair.MakePair(omni.LabelClusterMachine, machineID),
-			)
-
-			createOrUpdate(ctx, t, st, configPatch, func(cps *omni.ConfigPatch) error {
-				cps.Metadata().Labels().Set(omni.LabelCluster, options.Name)
-				cps.Metadata().Labels().Set(omni.LabelClusterMachine, machineID)
-
-				return cps.TypedSpec().Value.SetUncompressedData([]byte(fmt.Sprintf(`machine:
-  kubelet:
-    extraArgs:
-      node-labels: %s=%s`, nodeLabel, machineID)))
+				return nil
 			})
 		}
 
@@ -866,4 +851,26 @@ func updateMachineClassMachineSets(ctx context.Context, t *testing.T, st state.S
 	}
 
 	waitMachineSetNodesSync(ctx, t, st, options)
+
+	ids := rtestutils.ResourceIDs[*omni.MachineSetNode](ctx, t, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, options.Name)))
+
+	// populate uuid patches for each machine matching the machine class
+	for _, machineID := range ids {
+		configPatch := omni.NewConfigPatch(
+			resources.DefaultNamespace,
+			fmt.Sprintf("000-%s-uuid-patch", machineID),
+			pair.MakePair(omni.LabelCluster, options.Name),
+			pair.MakePair(omni.LabelClusterMachine, machineID),
+		)
+
+		createOrUpdate(ctx, t, st, configPatch, func(cps *omni.ConfigPatch) error {
+			cps.Metadata().Labels().Set(omni.LabelCluster, options.Name)
+			cps.Metadata().Labels().Set(omni.LabelClusterMachine, machineID)
+
+			return cps.TypedSpec().Value.SetUncompressedData([]byte(fmt.Sprintf(`machine:
+  kubelet:
+    extraArgs:
+      node-labels: %s=%s`, nodeLabel, machineID)))
+		})
+	}
 }

@@ -12,6 +12,8 @@
   "dependencies": {
     "@auth0/auth0-vue": "^2.0.0",
     "@headlessui/vue": "^1.6.5",
+    "@jsonforms/vue": "^3.4.0",
+    "@jsonforms/vue-vanilla": "^3.4.0",
     "@kubernetes/client-node": "^0.21.0",
     "apexcharts": "3.45.2",
     "click-outside-vue3": "^4.0.1",

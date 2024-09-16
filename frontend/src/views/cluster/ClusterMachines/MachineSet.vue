@@ -26,7 +26,7 @@ included in the LICENSE file.
                 <t-input :min="0" class="h-6" compact type="number" v-model="machineCount" @keydown.enter="() => updateMachineCount()"/>
               </div>
               <icon-button icon="check" @click="() => updateMachineCount()"/>
-              <t-button type="subtle" @click="() => updateMachineCount(MachineSetSpecMachineAllocationType.Unlimited)">
+              <t-button v-if="canUseAll" type="subtle" @click="() => updateMachineCount(MachineSetSpecMachineAllocationType.Unlimited)">
                 Use All
               </t-button>
             </div>
@@ -54,10 +54,10 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { Resource } from "@/api/grpc";
-import { MachineSetStatusSpec, ClusterMachineStatusSpec, MachineSetSpecMachineAllocationType } from "@/api/omni/specs/omni.pb";
-import { ClusterMachineStatusType, DefaultNamespace, LabelCluster, LabelControlPlaneRole, LabelMachineSet } from "@/api/resources";
-import { computed, ref, toRefs } from "vue";
+import { Resource, ResourceService } from "@/api/grpc";
+import { MachineSetStatusSpec, ClusterMachineStatusSpec, MachineSetSpecMachineAllocationType, MachineClassSpec } from "@/api/omni/specs/omni.pb";
+import { ClusterMachineStatusType, DefaultNamespace, LabelCluster, LabelControlPlaneRole, LabelMachineSet, MachineClassType } from "@/api/resources";
+import { computed, ref, toRefs, watch } from "vue";
 import { useRouter } from "vue-router";
 import { setupClusterPermissions } from "@/methods/auth";
 import Watch, { itemID } from "@/api/watch";
@@ -76,6 +76,7 @@ import TButton from "@/components/common/Button/TButton.vue";
 import TInput from "@/components/common/TInput/TInput.vue";
 import TIcon from "@/components/common/Icon/TIcon.vue";
 import TSpinner from "@/components/common/Spinner/TSpinner.vue";
+import { withRuntime } from "@/api/options";
 
 const showMachinesCount = ref<number | undefined>(25);
 
@@ -92,6 +93,23 @@ const clusterID = computed(() => machineSet.value.metadata.labels?.[LabelCluster
 const editingMachinesCount = ref(false);
 const machineCount = ref(machineSet.value.spec.machine_allocation?.machine_count ?? 1);
 const scaling = ref(false);
+const canUseAll = ref<boolean | undefined>();
+
+watch(editingMachinesCount, async (enabled: boolean, wasEnabled: boolean) => {
+  if (!machineSet.value.spec.machine_allocation?.name) {
+    return;
+  }
+
+  if (!wasEnabled && enabled && canUseAll.value === undefined) {
+    const machineClass: Resource<MachineClassSpec> = await ResourceService.Get({
+      type: MachineClassType,
+      id: machineSet.value.spec.machine_allocation?.name,
+      namespace: DefaultNamespace,
+    }, withRuntime(Runtime.Omni));
+
+    canUseAll.value = machineClass.spec.auto_provision === undefined;
+  }
+});
 
 const hiddenMachinesCount = computed(() => {
   if (showMachinesCount.value === undefined) {

@@ -130,6 +130,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 			safe.WithResourceCache[*omni.MachineExtensions](),
 			safe.WithResourceCache[*omni.MachineExtensionsStatus](),
 			safe.WithResourceCache[*omni.MachineLabels](),
+			safe.WithResourceCache[*omni.MachineRequestSetPressure](),
 			safe.WithResourceCache[*omni.MachineSet](),
 			safe.WithResourceCache[*omni.MachineSetDestroyStatus](),
 			safe.WithResourceCache[*omni.MachineSetStatus](),
@@ -248,9 +249,11 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewTalosExtensionsController(imageFactoryClient),
 		omnictrl.NewTalosUpgradeStatusController(),
 		omnictrl.NewMachineStatusSnapshotController(siderolinkEventsCh),
+		omnictrl.NewMachineProvisionController(),
 		omnictrl.NewMachineRequestLinkController(resourceState),
 		omnictrl.NewLabelsExtractorController[*omni.MachineStatus](),
 		omnictrl.NewMachineRequestSetStatusController(),
+		omnictrl.NewMachineRequestSetPressureController(),
 	}
 
 	if config.Config.Auth.SAML.Enabled {

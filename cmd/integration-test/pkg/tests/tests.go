@@ -542,6 +542,122 @@ In between the scaling operations, assert that the cluster is ready and accessib
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-machine-class-based-machine-sets"),
 		},
 		{
+			Name: "ScaleUpAndDownAutoProvisionMachineSets",
+			Description: `
+Tests scaling up and down a cluster using infrastructure provisioner:
+
+- create a 1+0 cluster
+- scale up to 1+1
+- scale up to 3+1
+- scale down to 3+0
+- scale down to 1+0
+
+In between the scaling operations, assert that the cluster is ready and accessible.`,
+			Parallel: true,
+			Subtests: subTests(
+				subTest{
+					"ClusterShouldBeCreated",
+					CreateClusterWithMachineClass(ctx, rootClient.Omni().State(), ClusterOptions{
+						Name:          "integration-scaling-auto-provision-machine-sets",
+						ControlPlanes: 1,
+						Workers:       0,
+						InfraProvider: options.InfraProvider,
+
+						MachineOptions: options.MachineOptions,
+					}),
+				},
+			).Append(
+				TestBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
+					ctx, rootClient,
+					"integration-scaling-auto-provision-machine-sets",
+					options.MachineOptions.TalosVersion,
+					options.MachineOptions.KubernetesVersion,
+					talosAPIKeyPrepare,
+				)...,
+			).Append(
+				subTest{
+					"OneWorkerShouldBeAdded",
+					ScaleClusterMachineSets(ctx, rootClient.Omni().State(), ClusterOptions{
+						Name:           "integration-scaling-auto-provision-machine-sets",
+						ControlPlanes:  0,
+						Workers:        1,
+						InfraProvider:  options.InfraProvider,
+						MachineOptions: options.MachineOptions,
+					}),
+				},
+			).Append(
+				TestBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
+					ctx, rootClient,
+					"integration-scaling-auto-provision-machine-sets",
+					options.MachineOptions.TalosVersion,
+					options.MachineOptions.KubernetesVersion,
+					talosAPIKeyPrepare,
+				)...,
+			).Append(
+				subTest{
+					"TwoControlPlanesShouldBeAdded",
+					ScaleClusterMachineSets(ctx, rootClient.Omni().State(), ClusterOptions{
+						Name:           "integration-scaling-auto-provision-machine-sets",
+						ControlPlanes:  2,
+						Workers:        0,
+						MachineOptions: options.MachineOptions,
+					}),
+				},
+			).Append(
+				TestBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
+					ctx, rootClient,
+					"integration-scaling-auto-provision-machine-sets",
+					options.MachineOptions.TalosVersion,
+					options.MachineOptions.KubernetesVersion,
+					talosAPIKeyPrepare,
+				)...,
+			).Append(
+				subTest{
+					"OneWorkerShouldBeRemoved",
+					ScaleClusterMachineSets(ctx, rootClient.Omni().State(), ClusterOptions{
+						Name:           "integration-scaling-auto-provision-machine-sets",
+						ControlPlanes:  0,
+						Workers:        -1,
+						InfraProvider:  options.InfraProvider,
+						MachineOptions: options.MachineOptions,
+					}),
+				},
+			).Append(
+				TestBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
+					ctx, rootClient,
+					"integration-scaling-auto-provision-machine-sets",
+					options.MachineOptions.TalosVersion,
+					options.MachineOptions.KubernetesVersion,
+					talosAPIKeyPrepare,
+				)...,
+			).Append(
+				subTest{
+					"TwoControlPlanesShouldBeRemoved",
+					ScaleClusterMachineSets(ctx, rootClient.Omni().State(), ClusterOptions{
+						Name:           "integration-scaling-auto-provision-machine-sets",
+						ControlPlanes:  -2,
+						Workers:        0,
+						InfraProvider:  options.InfraProvider,
+						MachineOptions: options.MachineOptions,
+					}),
+				},
+			).Append(
+				TestBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
+					ctx, rootClient,
+					"integration-scaling-auto-provision-machine-sets",
+					options.MachineOptions.TalosVersion,
+					options.MachineOptions.KubernetesVersion,
+					talosAPIKeyPrepare,
+				)...,
+			).Append(
+				subTest{
+					"ClusterShouldBeDestroyed",
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-auto-provision-machine-sets"),
+				},
+			),
+			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-auto-provision-machine-sets"),
+		},
+		{
 			Name: "RollingUpdateParallelism",
 			Description: `
 Tests rolling update & scale down strategies for concurrency control for worker machine sets.

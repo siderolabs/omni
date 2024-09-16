@@ -61,6 +61,7 @@ func init() {
 	registry.MustRegisterResource(MachineExtensionsType, &MachineExtensions{})
 	registry.MustRegisterResource(MachineRequestSetType, &MachineRequestSet{})
 	registry.MustRegisterResource(MachineRequestSetStatusType, &MachineRequestSetStatus{})
+	registry.MustRegisterResource(MachineRequestSetPressureType, &MachineRequestSetPressure{})
 	registry.MustRegisterResource(MachineSetType, &MachineSet{})
 	registry.MustRegisterResource(MachineSetDestroyStatusType, &MachineSetDestroyStatus{})
 	registry.MustRegisterResource(MachineSetNodeType, &MachineSetNode{})

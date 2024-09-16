@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <template>
   <div class="flex flex-wrap gap-1.5 items-center text-xs">
-    <span v-for="label, key in modelValue" :key="key" class="flex items-center cursor-pointer" v-bind:class="`resource-label label-${label.color ?? 'light6'}`">
+    <span v-for="label, key in modelValue" :key="key" class="flex items-center cursor-pointer" v-bind:class="`resource-label label-${label.color ?? defaultColor}`">
         <template v-if="label.value">
         {{ key }}:<span class="font-semibold">{{ label.value }}</span>
         </template>
@@ -16,7 +16,7 @@ included in the LICENSE file.
         <t-icon v-if="label.canRemove" icon="close" class="destroy-label-button" @click.stop="() => removeLabel(key)"/>
     </span>
     <t-input @keydown.enter="addLabel" v-model="currentLabel" compact @click.stop @blur="addLabel" :focus="addingLabel" v-if="addingLabel" class="w-24 h-6"/>
-    <t-button icon="tag" type="compact" @click.stop="editLabels" v-else>new label</t-button>
+    <t-button icon="tag" type="compact" @click.stop="editLabels" v-else-if="!readonly">new label</t-button>
   </div>
 </template>
 
@@ -33,11 +33,17 @@ type Label = {
   color?: string
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   modelValue: Record<string, Label>
   onAdd?: (value: string) => Promise<void>
   onRemove?: (value: string) => Promise<void>
-}>();
+  readonly?: boolean
+  defaultColor?: string
+}>(),
+  {
+    defaultColor: 'light6'
+  }
+);
 
 const { modelValue } = toRefs(props)
 const emit = defineEmits(['update:modelValue']);
@@ -50,11 +56,11 @@ const editLabels = () => {
 };
 
 const addLabel = async () => {
+  addingLabel.value = false;
+
   if (!currentLabel.value.trim()) {
     return;
   }
-
-  addingLabel.value = false;
 
   const parts = currentLabel.value.split(":");
 
@@ -69,6 +75,10 @@ const addLabel = async () => {
 }
 
 const removeLabel = async (key: string) => {
+  if (props.onRemove) {
+    props.onRemove(key);
+  }
+
   addingLabel.value = false;
 
   currentLabel.value = "";

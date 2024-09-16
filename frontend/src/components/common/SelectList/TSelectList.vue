@@ -9,12 +9,12 @@ included in the LICENSE file.
     <Listbox v-model="selectedItem">
       <ListboxButton class="menu-button flex items-center gap-1">
         <div class="flex overflow-hidden">
-          <div class="menu-title">{{ title }}:</div><div class="flex-1 truncate">{{ selectedItem }}</div>
+          <div class="menu-title" v-if="title">{{ title }}:</div><div class="flex-1 truncate">{{ selectedItem }}</div>
         </div>
         <t-icon class="menu-arrow" icon="arrow-down" />
       </ListboxButton>
       <t-animation @after-enter="focusSearch = true" @after-leave="focusSearch = false">
-        <ListboxOptions class="menu-items">
+        <ListboxOptions class="menu-items" :class="`${menuAlign}-0`">
           <t-input @keydown.stop="() => {}" :focus="focusSearch" icon="search" v-if="searcheable" title="" class="search-box" placeholder="Search"
             v-model="searchTerm"/>
           <div class="menu-items-wrapper" v-if="filteredValues.length > 0">
@@ -49,12 +49,17 @@ import TInput from "@/components/common/TInput/TInput.vue";
 import TAnimation from "@/components/common/Animation/TAnimation.vue";
 import WordHighligher from "vue-word-highlighter";
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   title?: string,
   defaultValue?: (string | number),
   values: (string | number)[],
   searcheable?: boolean,
-}>();
+  menuAlign?: "left" | "right"
+}>(),
+  {
+    menuAlign: "left",
+  }
+);
 
 const emit = defineEmits(["checkedValue"]);
 
@@ -102,7 +107,7 @@ const filteredValues = computed(() => {
 }
 
 .menu-items {
-  @apply flex flex-col rounded bg-naturals-N3 border border-naturals-N4 absolute top-10 left-0 min-w-full z-10 gap-1 p-1.5;
+  @apply flex flex-col rounded bg-naturals-N3 border border-naturals-N4 absolute top-10 min-w-full z-10 gap-1 p-1.5;
   max-height: 280px;
 }
 

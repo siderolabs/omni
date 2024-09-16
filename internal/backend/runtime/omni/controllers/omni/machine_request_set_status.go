@@ -145,7 +145,6 @@ func (h *machineRequestSetStatusHandler) scaleUp(ctx context.Context, r controll
 				request.TypedSpec().Value.TalosVersion = machineRequestSet.TypedSpec().Value.TalosVersion
 
 				request.TypedSpec().Value.Extensions = machineRequestSet.TypedSpec().Value.Extensions
-				request.TypedSpec().Value.Overlay = machineRequestSet.TypedSpec().Value.Overlay
 				request.TypedSpec().Value.KernelArgs = machineRequestSet.TypedSpec().Value.KernelArgs
 				request.TypedSpec().Value.MetaValues = machineRequestSet.TypedSpec().Value.MetaValues
 
@@ -245,7 +244,6 @@ func scaleDown(ctx context.Context, r controller.ReaderWriter, machineRequests [
 }
 
 func deleteMachineRequest(ctx context.Context, r controller.ReaderWriter, request *infra.MachineRequest, machine *machineStatusLabels) error {
-	// delete the machine request if the link is removed
 	var deleted bool
 
 	deleted, err := teardownResource(ctx, r, request.Metadata())

@@ -80,7 +80,7 @@ func (ctrl *MachineSetNodeController) Inputs() []controller.Input {
 		},
 		{
 			Namespace: resources.InfraProviderNamespace,
-			Type:      infra.MachineRequestStatusType,
+			Type:      infra.MachineRequestType,
 			Kind:      controller.InputStrong,
 		},
 	}
@@ -129,7 +129,7 @@ func (ctrl *MachineSetNodeController) Run(ctx context.Context, r controller.Runt
 		err = allMachines.ForEachErr(func(machine *omni.Machine) error {
 			requestName, ok := machine.Metadata().Labels().Get(omni.LabelMachineRequest)
 			if ok {
-				request, e := safe.ReaderGetByID[*infra.MachineRequestStatus](ctx, r, requestName)
+				request, e := safe.ReaderGetByID[*infra.MachineRequest](ctx, r, requestName)
 				if e != nil && !state.IsNotFoundError(e) {
 					return e
 				}
@@ -193,6 +193,10 @@ func (ctrl *MachineSetNodeController) Run(ctx context.Context, r controller.Runt
 
 			ready, err = r.Teardown(ctx, machineSetNode.Metadata())
 			if err != nil {
+				if state.IsNotFoundError(err) {
+					return nil
+				}
+
 				return err
 			}
 
@@ -200,7 +204,12 @@ func (ctrl *MachineSetNodeController) Run(ctx context.Context, r controller.Runt
 				return nil
 			}
 
-			return r.Destroy(ctx, machineSetNode.Metadata())
+			err = r.Destroy(ctx, machineSetNode.Metadata())
+			if err != nil && state.IsNotFoundError(err) {
+				return err
+			}
+
+			return nil
 		})
 		if err != nil {
 			return err
@@ -214,6 +223,7 @@ type allocationConfig struct {
 	selectors      resource.LabelQueries
 	machineCount   uint32
 	allocationType specs.MachineSetSpec_MachineAllocation_Type
+	manual         bool
 }
 
 func (ctrl *MachineSetNodeController) getMachineAllocation(ctx context.Context, r controller.Reader, machineSet *omni.MachineSet) (*allocationConfig, error) {
@@ -226,27 +236,39 @@ func (ctrl *MachineSetNodeController) getMachineAllocation(ctx context.Context, 
 		return nil, nil //nolint:nilnil
 	}
 
-	switch machineAllocation.Source {
-	case specs.MachineSetSpec_MachineAllocation_MachineClass:
+	requestSetSelector := resource.LabelQuery{
+		Terms: []resource.LabelTerm{
+			{
+				Key:   omni.LabelMachineRequestSet,
+				Op:    resource.LabelOpEqual,
+				Value: []string{machineAllocation.Name},
+			},
+		},
+	}
+
+	var manualAllocation bool
+
+	switch {
+	case machineAllocation.Source == specs.MachineSetSpec_MachineAllocation_MachineClass:
 		machineClass, err := safe.ReaderGet[*omni.MachineClass](ctx, r, omni.NewMachineClass(resources.DefaultNamespace, machineAllocation.Name).Metadata())
 		if err != nil {
 			return nil, err
+		}
+
+		if machineClass.TypedSpec().Value.AutoProvision != nil {
+			selectors = append(selectors, requestSetSelector)
+
+			break
 		}
 
 		selectors, err = labels.ParseSelectors(machineClass.TypedSpec().Value.MatchLabels)
 		if err != nil {
 			return nil, err
 		}
-	case specs.MachineSetSpec_MachineAllocation_MachineRequestSet:
-		selectors = append(selectors, resource.LabelQuery{
-			Terms: []resource.LabelTerm{
-				{
-					Key:   omni.LabelMachineRequestSet,
-					Op:    resource.LabelOpEqual,
-					Value: []string{machineAllocation.Name},
-				},
-			},
-		})
+
+		manualAllocation = true
+	case machineAllocation.Source == specs.MachineSetSpec_MachineAllocation_MachineRequestSet:
+		selectors = append(selectors, requestSetSelector)
 	default:
 		return nil, nil //nolint:nilnil
 	}
@@ -255,6 +277,7 @@ func (ctrl *MachineSetNodeController) getMachineAllocation(ctx context.Context, 
 		selectors:      selectors,
 		allocationType: machineAllocation.AllocationType,
 		machineCount:   machineAllocation.MachineCount,
+		manual:         manualAllocation,
 	}, nil
 }
 
@@ -287,7 +310,7 @@ func (ctrl *MachineSetNodeController) reconcileMachineSet(
 
 	switch allocation.allocationType {
 	case specs.MachineSetSpec_MachineAllocation_Unlimited:
-		err = ctrl.createNodes(ctx, r, machineSet, allocation.selectors, allMachineStatuses, math.MaxInt32, logger)
+		err = ctrl.createNodes(ctx, r, machineSet, allocation, allMachineStatuses, math.MaxInt32, logger)
 
 		return err // unlimited allocation mode does not cause any machine pressure
 	case specs.MachineSetSpec_MachineAllocation_Static:
@@ -305,7 +328,7 @@ func (ctrl *MachineSetNodeController) reconcileMachineSet(
 
 		logger.Info("scaling machine set up", zap.Int("pending", diff), zap.String("machine_set", machineSet.Metadata().ID()))
 
-		return ctrl.createNodes(ctx, r, machineSet, allocation.selectors, allMachineStatuses, diff, logger)
+		return ctrl.createNodes(ctx, r, machineSet, allocation, allMachineStatuses, diff, logger)
 	}
 
 	return nil
@@ -316,7 +339,7 @@ func (ctrl *MachineSetNodeController) createNodes(
 	ctx context.Context,
 	r controller.Runtime,
 	machineSet *omni.MachineSet,
-	selectors resource.LabelQueries,
+	allocation *allocationConfig,
 	allMachineStatuses safe.List[*machineStatusLabels],
 	count int,
 	logger *zap.Logger,
@@ -342,7 +365,7 @@ func (ctrl *MachineSetNodeController) createNodes(
 		return fmt.Errorf("failed to parse talos version of the cluster %w", err)
 	}
 
-	for _, selector := range selectors {
+	for _, selector := range allocation.selectors {
 		selector.Terms = append(selector.Terms, resource.LabelTerm{
 			Key: omni.MachineStatusLabelAvailable,
 			Op:  resource.LabelOpExists,
@@ -357,6 +380,14 @@ func (ctrl *MachineSetNodeController) createNodes(
 			Op:     resource.LabelOpExists,
 			Invert: true,
 		})
+
+		if allocation.manual {
+			selector.Terms = append(selector.Terms, resource.LabelTerm{
+				Key:    omni.LabelNoManualAllocation,
+				Op:     resource.LabelOpExists,
+				Invert: true,
+			})
+		}
 
 		availableMachineClassMachines := allMachineStatuses.FilterLabelQuery(resource.RawLabelQuery(selector))
 
@@ -460,6 +491,10 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 		)
 
 		if ready, err = r.Teardown(ctx, usedMachineSetNodes[i].Metadata()); err != nil {
+			if state.IsNotFoundError(err) {
+				return nil
+			}
+
 			return err
 		}
 
@@ -470,6 +505,10 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 		}
 
 		if err = r.Destroy(ctx, usedMachineSetNodes[i].Metadata()); err != nil {
+			if state.IsNotFoundError(err) {
+				return nil
+			}
+
 			return err
 		}
 	}
@@ -488,6 +527,10 @@ func getSortFunction(machineStatuses map[resource.ID]*machineStatusLabels) func(
 
 		if ok1 && !ok2 {
 			return 1
+		}
+
+		if !ok1 && !ok2 {
+			return 0
 		}
 
 		_, disconnected1 := ms1.Metadata().Labels().Get(omni.MachineStatusLabelDisconnected)

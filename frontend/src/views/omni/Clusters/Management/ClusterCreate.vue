@@ -81,6 +81,7 @@ included in the LICENSE file.
             `${MachineStatusLabelConnected}`,
             `!${MachineStatusLabelInvalidState}`,
             `${MachineStatusLabelReportingEvents}`,
+            `!${LabelNoManualAllocation}`
           ],
           sortByField: 'created'
         },
@@ -147,6 +148,7 @@ import {
   DefaultKubernetesVersion,
 PatchBaseWeightMachineSet,
 PatchBaseWeightCluster,
+LabelNoManualAllocation,
 } from "@/api/resources";
 import { MachineStatusSpec, TalosVersionSpec } from "@/api/omni/specs/omni.pb";
 import WatchResource, { itemID } from "@/api/watch";

@@ -10,6 +10,8 @@ included in the LICENSE file.
       <div class="header">
         <div class="list-grid">
           <div>Name</div>
+          <div>Mode</div>
+          <div>Provider</div>
         </div>
       </div>
       <t-list-item v-for="item in items" :key="item.metadata.id!">
@@ -26,6 +28,14 @@ included in the LICENSE file.
                     {{ item.metadata.id }}
                 </WordHighlighter>
               </router-link>
+            </div>
+            <div class="flex">
+              <tag>
+                {{ item.spec.auto_provision ? 'Auto Provision' : 'Manual' }}
+              </tag>
+            </div>
+            <div v-if="item.spec.auto_provision">
+              {{ item.spec.auto_provision.provider_id }}
             </div>
           </div>
         </div>
@@ -45,6 +55,7 @@ import WordHighlighter from "vue-word-highlighter";
 import TList from "@/components/common/List/TList.vue";
 import TListItem from "@/components/common/List/TListItem.vue";
 import IconButton from "@/components/common/Button/IconButton.vue";
+import Tag from "@/components/common/Tag/Tag.vue";
 
 const watchOpts = computed((): WatchOptions => {
   return {
@@ -61,7 +72,6 @@ const router = useRouter();
 const openMachineClassDestroy = (id: string) => {
   router.push({ query: { modal: 'machineClassDestroy', classname: id } })
 }
-
 </script>
 
 <style scoped>
@@ -70,6 +80,6 @@ const openMachineClassDestroy = (id: string) => {
 }
 
 .list-grid {
-  @apply grid grid-cols-1 items-center justify-center pr-12 gap-1;
+  @apply grid grid-cols-3 items-center justify-center pr-12 gap-1;
 }
 </style>

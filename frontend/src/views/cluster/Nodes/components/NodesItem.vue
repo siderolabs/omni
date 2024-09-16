@@ -33,12 +33,12 @@ included in the LICENSE file.
       />
     </p>
     <p class="flex flex-wrap">
-      <t-tag
+      <tag
         class="nodes-list-item-role"
         v-for="role in roles"
-        :key="role"
-        :name="role"
-      />
+        :key="role">
+       {{ role }}
+      </tag>
     </p>
     <p>
       <t-status :title="status"/>
@@ -59,7 +59,7 @@ import { ClusterMachineStatusSpec } from "@/api/omni/specs/omni.pb";
 import { V1NodeSpec, V1NodeStatus } from "@kubernetes/client-node";
 
 import TStatus from "@/components/common/Status/TStatus.vue";
-import TTag from "@/components/common/Tag/TTag.vue";
+import Tag from "@/components/common/Tag/Tag.vue";
 import WordHighlighter from "vue-word-highlighter";
 import NodeContextMenu from "@/views/common/NodeContextMenu.vue";
 

@@ -18,7 +18,7 @@ included in the LICENSE file.
     <span class="t-button-text whitespace-nowrap" v-if="$slots.default" :style="textOrder" :class="{ 'text-red-R1': danger }">
       <slot/>
     </span>
-    <t-icon :icon="icon" v-if="icon" class="button-icon" :class="{ 'text-red-R1': danger }"/>
+    <t-icon :icon="icon" v-if="icon" class="button-icon" :class="{ 'text-red-R1': danger, type }"/>
   </button>
 </template>
 
@@ -231,5 +231,9 @@ const textOrder = computed(() : StyleValue => {
 
 .button-icon {
   @apply w-4 h-4;
+}
+
+.t-button.subtle-xs .button-icon {
+  @apply w-3 h-3;
 }
 </style>

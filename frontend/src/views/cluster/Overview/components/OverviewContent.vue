@@ -184,7 +184,7 @@ included in the LICENSE file.
           <div class="overview-box-header">
             <span class="overview-box-title">Machines</span>
           </div>
-          <cluster-machines :clusterID="context.cluster"/>
+          <cluster-machines :clusterID="context.cluster!"/>
         </div>
       </div>
       <overview-right-panel

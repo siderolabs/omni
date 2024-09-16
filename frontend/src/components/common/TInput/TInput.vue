@@ -31,8 +31,8 @@ included in the LICENSE file.
         :placeholder="placeholder"
       />
       <div v-if="type === 'number'" class="flex flex-col select-none">
-        <t-icon class="hover:text-naturals-N14 w-2" icon="arrow-up" @click="updateValue(intValue + 1)"/>
-        <t-icon class="hover:text-naturals-N14 w-2" icon="arrow-down"  @click="updateValue(intValue - 1)"/>
+        <t-icon class="hover:text-naturals-N14 w-2" icon="arrow-up" @click="updateValue(numberValue + step)"/>
+        <t-icon class="hover:text-naturals-N14 w-2" icon="arrow-down"  @click="updateValue(numberValue - step)"/>
       </div>
       <div v-else-if="modelValue !== '' || onClear" @click.prevent="clearInput">
         <t-icon
@@ -63,6 +63,7 @@ type propsType = {
   max?: number,
   min?: number,
   disabled?: boolean
+  step?: number
   onClear?: () => void
 }
 
@@ -70,22 +71,25 @@ const props = withDefaults(
   defineProps<propsType>(),
   {
     type: "text",
+    step: 1
   }
 );
 
 const { modelValue, focus } = toRefs(props);
 
-const intValue = computed(() => {
-  return parseInt(modelValue.value as string);
+const numberValue = computed(() => {
+  return parseFloat(modelValue.value as string) ?? 0;
 });
 
 const updateValue = (value: string | number) => {
   if (props.type === "number") {
-    let numberValue = typeof value === "number" ? value as number : parseInt(value);
-
-    if (value === undefined || value == '') {
+    if (value === undefined || value === '') {
       return;
     }
+
+    let numberValue = typeof value === "number" ? value as number : parseFloat(value);
+
+    numberValue = Number(numberValue.toFixed(1));
 
     if (isNaN(numberValue)) {
       numberValue = 0;

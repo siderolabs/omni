@@ -70,6 +70,12 @@ const (
 
 	// LabelMachineInfraID is the ID of the machine specific to an infra provider.
 	LabelMachineInfraID = SystemLabelPrefix + "infra-id"
+
+	// LabelNoManualAllocation is set on the machines which were automatically created by the infra provisioner for a
+	// specific machine request set.
+	// Setting this label will make MachineSetNode controller ignore such machines for the manual label selectors.
+	// tsgen:LabelNoManualAllocation
+	LabelNoManualAllocation = SystemLabelPrefix + "no-manual-allocation"
 )
 
 const (

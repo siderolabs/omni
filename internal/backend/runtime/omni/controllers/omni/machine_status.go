@@ -249,7 +249,7 @@ func (ctrl *MachineStatusController) reconcileRunning(ctx context.Context, r con
 
 		spec.Connected = connected
 
-		helpers.CopyLabels(machine, m, omni.LabelMachineRequest, omni.LabelMachineRequestSet)
+		helpers.CopyLabels(machine, m, omni.LabelMachineRequest, omni.LabelMachineRequestSet, omni.LabelNoManualAllocation)
 
 		if connected {
 			m.Metadata().Labels().Set(omni.MachineStatusLabelConnected, "")

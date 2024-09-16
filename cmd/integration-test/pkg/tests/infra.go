@@ -17,6 +17,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/go-retry/retry"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/pkg/client"
@@ -35,6 +36,8 @@ func AssertMachinesShouldBeProvisioned(testCtx context.Context, client *client.C
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, time.Second*60)
 		defer cancel()
+
+		rtestutils.AssertResources(ctx, t, client.Omni().State(), []string{infraProvider}, func(*infra.ProviderStatus, *assert.Assertions) {})
 
 		machineRequestSet, err := safe.ReaderGetByID[*omni.MachineRequestSet](ctx, client.Omni().State(), machineRequestSetName)
 

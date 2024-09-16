@@ -10,9 +10,9 @@ included in the LICENSE file.
     <radio-group-option v-for="(option, index) in options" :key="index" v-slot="{ checked }" :value="option.value"
       as="template" :disabled="option.disabled">
       <div @click="() => (checked && deselectEnabled) ? emit('update:modelValue', null) : null">
-        <popper :disabled="!option.tooltip" hover placement="left" :interactive="false" offsetDistance="10">
+        <popper :disabled="!option.tooltip" hover placement="top" :interactive="false" offsetDistance="10" class="popper">
           <template #content>
-            <div class="rounded px-4 py-2 text-naturals-N10 bg-naturals-N4 drop-shadow w-48">
+            <div class="rounded px-4 py-2 text-naturals-N10 bg-naturals-N4 border border-naturals-N6 drop-shadow max-w-72 text-xs">
               {{ option.tooltip }}
             </div>
           </template>
@@ -79,5 +79,12 @@ const emit = defineEmits(['update:modelValue']);
 
 .checked span {
   @apply text-naturals-N12;
+}
+
+.popper {
+  margin: 0 !important;
+  border: 0 !important;
+  display: block !important;
+  z-index: auto !important;
 }
 </style>

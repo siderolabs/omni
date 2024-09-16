@@ -205,3 +205,7 @@ export const setupBackupStatus = (): { status: ComputedRef<BackupsStatus>, watch
     watch
   };
 }
+
+export const isChrome = () => {
+  return navigator.userAgent.toLowerCase().includes('chrome');
+}

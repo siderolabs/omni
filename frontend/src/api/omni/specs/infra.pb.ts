@@ -19,6 +19,7 @@ export type MachineRequestSpec = {
   extensions?: string[]
   kernel_args?: string[]
   meta_values?: SpecsOmni.MetaValue[]
+  provider_data?: string
 }
 
 export type MachineRequestStatusSpec = {

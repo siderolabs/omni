@@ -1,0 +1,190 @@
+<!--
+Copyright (c) 2024 Sidero Labs, Inc.
+
+Use of this software is governed by the Business Source License
+included in the LICENSE file.
+-->
+<template>
+  <div class="text-naturals-N13">Machine Template</div>
+  <div class="rounded bg-naturals-N2">
+    <div class="text-naturals-N13 px-4 pt-4 pb-2 text-sm">Talos Config</div>
+    <div class="machine-template text-xs flex flex-col divide-y divide-naturals-N4 border-t-8 border-naturals-N4">
+      <div>
+        <span>Version</span>
+        <t-select-list menu-align="right" @checkedValue="setTalosVersion" class="h-6"
+          :defaultValue="DefaultTalosVersion" :values="talosVersions" :searcheable="true" />
+      </div>
+      <div>
+        <span>
+          Kernel Arguments
+        </span>
+        <t-input class="h-7 w-56" :model-value="kernelArguments" @update:model-value="value => $emit('update:kernel-arguments', value)"/>
+      </div>
+      <div class="flex gap-2 items-center">
+        <div>
+          Extensions
+        </div>
+        <div class="flex flex-1 justify-end">
+        <labels readonly default-color="blue1"
+          :on-remove="removeExtension"
+          :model-value="systemExtensionLabels"/>
+        </div>
+        <icon-button icon="edit" @click="openExtensionConfig"/>
+      </div>
+      <div>
+        <span>
+          Initial Labels
+        </span>
+        <labels :model-value="initialLabels" @update:model-value="value => $emit('update:initial-labels', value)"/>
+      </div>
+    </div>
+  </div>
+  <div class="rounded bg-naturals-N2" v-if="infraProviderStatus?.spec.schema">
+    <div class="text-naturals-N13 px-4 pt-4 pb-2 text-sm">{{ infraProviderStatus.spec.name }} Provider Config</div>
+    <div class="text-xs flex flex-col divide-y divide-naturals-N4 border-t-8 border-naturals-N4">
+    <json-form
+      :model-value="providerConfig"
+      @update:model-value="value => $emit('update:provider-config', value)"
+      :json-schema="infraProviderStatus.spec.schema"
+      />
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { Resource } from "@/api/grpc";
+import { Runtime } from "@/api/common/omni.pb";
+import { InfraProviderStatusSpec } from "@/api/omni/specs/infra.pb";
+import { TalosVersionSpec } from "@/api/omni/specs/omni.pb";
+import { DefaultNamespace, TalosVersionType, DefaultTalosVersion, InfraProviderStatusType, InfraProviderNamespace } from "@/api/resources";
+import { computed, ref, Ref, toRefs } from "vue";
+import TInput from "@/components/common/TInput/TInput.vue";
+
+import WatchResource from "@/api/watch";
+import IconButton from "@/components/common/Button/IconButton.vue";
+import TSelectList from "@/components/common/SelectList/TSelectList.vue";
+import Labels from "@/components/common/Labels/Labels.vue";
+import JsonForm from "@/components/common/Form/JsonForm.vue";
+import MachineTemplateExtensions from "../Modals/MachineTemplateExtensions.vue";
+import { showModal } from "@/modal";
+
+const props = defineProps<{
+  infraProvider: string,
+  talosVersion: string
+  systemExtensions: string[]
+  initialLabels: Record<string, any>
+  kernelArguments: string
+  providerConfig: Record<string, any>
+}>();
+
+const emit = defineEmits([
+  "update:talos-version",
+  "update:system-extensions",
+  "update:kernel-arguments",
+  "update:initial-labels",
+  "update:provider-config",
+]);
+
+const {
+  infraProvider,
+  talosVersion,
+  initialLabels,
+  systemExtensions,
+  kernelArguments,
+  providerConfig,
+} = toRefs(props);
+
+const talosVersionsResources: Ref<Resource<TalosVersionSpec>[]> = ref([]);
+const talosVersionsWatch = new WatchResource(talosVersionsResources);
+
+const infraProviderStatus = ref<Resource<InfraProviderStatusSpec>>();
+const infraProviderStatusWatch = new WatchResource(infraProviderStatus);
+
+infraProviderStatusWatch.setup(computed(() => {
+  if (!infraProvider.value) {
+    return;
+  }
+
+  return {
+    resource: {
+      type: InfraProviderStatusType,
+      namespace: InfraProviderNamespace,
+      id: infraProvider.value,
+    },
+    runtime: Runtime.Omni,
+  };
+}));
+
+const systemExtensionLabels = computed(() => {
+  const labels = {};
+
+  systemExtensions.value.forEach((item: string) => {
+    labels[item] = { value: '', canRemove: true };
+  })
+
+  return labels;
+});
+
+talosVersionsWatch.setup({
+  runtime: Runtime.Omni,
+  resource: {
+    type: TalosVersionType,
+    namespace: DefaultNamespace,
+  },
+})
+
+const talosVersions = computed(() => talosVersionsResources.value?.map(res => res.metadata.id!));
+
+const setTalosVersion = (value: string) => {
+  emit('update:talos-version', value)
+};
+
+const openExtensionConfig = () => {
+  showModal(
+    MachineTemplateExtensions,
+    {
+      talosVersion: talosVersion.value,
+      modelValue: systemExtensions.value,
+      onSave(extensions?: string[]) {
+        if (!extensions) {
+          return;
+        }
+
+        emit('update:system-extensions', extensions);
+      }
+    },
+  )
+};
+
+const removeExtension = async (id: string) => {
+  const index = systemExtensions.value.findIndex((value: string) => value === id);
+
+  if (index < 0) {
+    return;
+  }
+
+  emit('update:system-extensions', [...systemExtensions.value].splice(index, 1));
+};
+</script>
+
+<style scoped>
+.condition {
+  @apply border border-opacity-0 rounded-md border-transparent transition-colors;
+}
+
+.condition:focus-within {
+  @apply border-naturals-N8;
+}
+
+code {
+  @apply font-roboto rounded bg-naturals-N6 px-1 py-0.5 text-naturals-N13;
+}
+
+.machine-template > * {
+  @apply px-4 py-2 flex justify-between items-center gap-2;
+}
+
+.machine-template > * > *:first-child {
+  @apply whitespace-nowrap;
+}
+</style>

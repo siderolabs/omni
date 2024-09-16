@@ -11,6 +11,7 @@ message MachineRequestSpec {
   repeated string extensions = 3;
   repeated string kernel_args = 4;
   repeated specs.MetaValue meta_values = 5;
+  string provider_data = 6;
 }
 
 message MachineRequestStatusSpec {

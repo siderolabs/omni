@@ -20,7 +20,8 @@ included in the LICENSE file.
             `${MachineStatusLabelAvailable}`,
             `${MachineStatusLabelConnected}`,
             `!${MachineStatusLabelInvalidState}`,
-            `${MachineStatusLabelReportingEvents}`
+            `${MachineStatusLabelReportingEvents}`,
+            `!${LabelNoManualAllocation}`
           ],
           runtime: Runtime.Omni,
           sortByField: 'created',
@@ -81,6 +82,7 @@ import {
   MachineStatusLabelConnected,
   MachineStatusLabelInvalidState,
   MachineStatusLabelReportingEvents,
+  LabelNoManualAllocation,
 } from "@/api/resources";
 import { showError, showSuccess } from "@/notification";
 import { useRoute, useRouter } from "vue-router";

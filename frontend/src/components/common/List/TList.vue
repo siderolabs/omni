@@ -8,7 +8,7 @@ included in the LICENSE file.
   <div>
     <slot name="header" :itemsCount="itemsCount" :filtered="searchState.searchFor?.length || searchState.selectors?.length"/>
     <div class="flex flex-col gap-4">
-      <div class="flex gap-2" v-if="pagination || search || itemsPerPage?.length > 1">
+      <div class="flex gap-2" v-if="pagination || search || (pagination && itemsPerPage?.length > 1)">
         <slot v-if="$slots.input" name="input"/>
         <t-input v-else-if="search" class="flex-1" icon="search" v-model="filterValueInternal"/>
         <div class="flex-1" v-else/>
@@ -107,7 +107,7 @@ const props = defineProps<{
   filterValue?: string
 }>();
 
-const itemsPerPage = [5, 10, 25, 50, 100]
+const itemsPerPage = [5, 10, 25, 50, 100];
 
 const sortOptionsVariants = computed(() => {
   if (!props.sortOptions) {

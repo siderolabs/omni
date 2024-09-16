@@ -11,6 +11,7 @@ replace (
 )
 
 require (
+	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	filippo.io/age v1.2.0
 	github.com/ProtonMail/gopenpgp/v2 v2.7.5
 	github.com/adrg/xdg v0.5.0

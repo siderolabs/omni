@@ -11,6 +11,8 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
+	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
@@ -36,9 +38,18 @@ func NewMachineController() *MachineController {
 			UnmapMetadataFunc: func(machine *omni.Machine) *siderolink.Link {
 				return siderolink.NewLink(resources.DefaultNamespace, machine.Metadata().ID(), nil)
 			},
-			TransformFunc: func(_ context.Context, _ controller.Reader, _ *zap.Logger, link *siderolink.Link, machine *omni.Machine) error {
+			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, link *siderolink.Link, machine *omni.Machine) error {
+				var machineRequestSetID string
+
 				if _, ok := link.Metadata().Annotations().Get(omni.LabelInfraProviderID); ok {
 					_, ok = link.Metadata().Labels().Get(omni.LabelMachineRequest)
+					if !ok {
+						return xerrors.NewTaggedf[qtransform.SkipReconcileTag](
+							"the link is created by the infra provider, but doesn't have the machine request label yet",
+						)
+					}
+
+					machineRequestSetID, ok = link.Metadata().Labels().Get(omni.LabelMachineRequestSet)
 					if !ok {
 						return xerrors.NewTaggedf[qtransform.SkipReconcileTag](
 							"the link is created by the infra provider, but doesn't have the machine request label yet",
@@ -54,6 +65,17 @@ func NewMachineController() *MachineController {
 
 				helpers.CopyLabels(link, machine, omni.LabelMachineRequest, omni.LabelMachineRequestSet)
 
+				if machineRequestSetID != "" {
+					machineRequestSet, err := safe.ReaderGetByID[*omni.MachineRequestSet](ctx, r, machineRequestSetID)
+					if err != nil && !state.IsNotFoundError(err) {
+						return err
+					}
+
+					if machineRequestSet != nil && machineRequestSet.Metadata().Owner() == machineProvisionControllerName {
+						machine.Metadata().Labels().Set(omni.LabelNoManualAllocation, "")
+					}
+				}
+
 				spec := machine.TypedSpec().Value
 
 				spec.ManagementAddress = ipPrefix.Addr().String()
@@ -64,6 +86,9 @@ func NewMachineController() *MachineController {
 				return nil
 			},
 		},
+		qtransform.WithExtraMappedInput(
+			qtransform.MapperNone[*omni.MachineRequestSet](),
+		),
 		qtransform.WithConcurrency(4),
 	)
 }

@@ -7,6 +7,7 @@ package omni_test
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"fmt"
 	"io"
@@ -26,6 +27,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
@@ -34,6 +36,9 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
+
+//go:embed testdata/infra.json
+var schema []byte
 
 func TestClusterValidation(t *testing.T) {
 	t.Parallel()
@@ -922,15 +927,122 @@ func TestMachineClassValidation(t *testing.T) {
 
 	machineClass := omnires.NewMachineClass(resources.DefaultNamespace, "test-class")
 
+	err := st.Create(ctx, machineClass)
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+
+	machineClass.TypedSpec().Value.MatchLabels = []string{"a"}
+
 	require.NoError(t, st.Create(ctx, machineClass))
 	require.NoError(t, st.Create(ctx, machineSet))
 
-	err := st.Destroy(ctx, machineClass.Metadata())
+	err = st.Destroy(ctx, machineClass.Metadata())
 
 	require.True(t, validated.IsValidationError(err), "expected validation error")
 
 	require.NoError(t, st.Destroy(ctx, machineSet.Metadata()))
 	require.NoError(t, st.Destroy(ctx, machineClass.Metadata()))
+
+	// invalid selectors
+
+	machineClass.TypedSpec().Value.MatchLabels = []string{"abcd + a"}
+
+	err = st.Create(ctx, machineClass)
+
+	require.Error(t, err)
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+
+	// both modes set
+
+	machineClass.TypedSpec().Value.MatchLabels = []string{"abcd"}
+	machineClass.TypedSpec().Value.AutoProvision = &specs.MachineClassSpec_Provision{}
+
+	err = st.Create(ctx, machineClass)
+
+	require.Error(t, err)
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+
+	// auto provision
+
+	talosVersion := omnires.NewTalosVersion(resources.DefaultNamespace, "1.8.0")
+	talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.30.0", "1.30.1"}
+
+	providerStatus := infra.NewProviderStatus("exists")
+	providerStatus.TypedSpec().Value.Schema = string(schema)
+
+	require.NoError(t, st.Create(ctx, talosVersion))
+	require.NoError(t, st.Create(ctx, providerStatus))
+
+	// no provider id
+
+	machineClass.TypedSpec().Value.MatchLabels = nil
+	machineClass.TypedSpec().Value.AutoProvision = &specs.MachineClassSpec_Provision{
+		ProviderId:   "",
+		TalosVersion: "v1.8.0",
+	}
+
+	err = st.Create(ctx, machineClass)
+
+	require.Error(t, err)
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+
+	// no provider registered
+
+	machineClass.TypedSpec().Value.AutoProvision.ProviderId = "none"
+
+	err = st.Create(ctx, machineClass)
+
+	require.Error(t, err)
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+
+	// no talos version
+
+	machineClass.TypedSpec().Value.AutoProvision.ProviderId = providerStatus.Metadata().ID()
+	machineClass.TypedSpec().Value.AutoProvision.TalosVersion = ""
+
+	err = st.Create(ctx, machineClass)
+
+	require.Error(t, err)
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+
+	// invalid talos version
+
+	machineClass.TypedSpec().Value.AutoProvision.TalosVersion = "1.99.0"
+
+	err = st.Create(ctx, machineClass)
+
+	require.Error(t, err)
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+
+	// invalid provider data
+
+	machineClass.TypedSpec().Value.AutoProvision.TalosVersion = "1.8.0"
+	machineClass.TypedSpec().Value.AutoProvision.ProviderData = `
+disk: 1TB
+`
+
+	err = st.Create(ctx, machineClass)
+
+	require.Error(t, err)
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+
+	// valid
+
+	machineClass.TypedSpec().Value.AutoProvision.TalosVersion = "1.8.0"
+	machineClass.TypedSpec().Value.AutoProvision.ProviderData = `
+size: t2.small
+`
+
+	err = st.Create(ctx, machineClass)
+
+	require.NoError(t, err)
 }
 
 func TestS3ConfigValidation(t *testing.T) {
@@ -1024,6 +1136,11 @@ func TestMachineRequestSetValidation(t *testing.T) {
 	require.NoError(t, innerSt.Create(ctx, talosVersion1))
 	require.NoError(t, innerSt.Create(ctx, talosVersion2))
 
+	providerStatus := infra.NewProviderStatus("talemu")
+	providerStatus.TypedSpec().Value.Schema = string(schema)
+
+	require.NoError(t, innerSt.Create(ctx, providerStatus))
+
 	st := validated.NewState(innerSt, omni.MachineRequestSetValidationOptions(innerSt)...)
 
 	res := omnires.NewMachineRequestSet(resources.DefaultNamespace, "test")
@@ -1034,6 +1151,9 @@ func TestMachineRequestSetValidation(t *testing.T) {
 
 	res.TypedSpec().Value.ProviderId = "talemu"
 	res.TypedSpec().Value.TalosVersion = "1234"
+	res.TypedSpec().Value.ProviderData = `
+size: t2.small
+`
 
 	err = st.Create(ctx, res)
 

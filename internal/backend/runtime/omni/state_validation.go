@@ -20,11 +20,14 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/hashicorp/go-multierror"
+	"github.com/santhosh-tekuri/jsonschema/v5"
+	"gopkg.in/yaml.v3"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
@@ -342,13 +345,17 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 						return err
 					}
 				case specs.MachineSetSpec_MachineAllocation_MachineClass:
-					_, err := st.Get(ctx, omni.NewMachineClass(resources.DefaultNamespace, allocationConfig.Name).Metadata())
+					mc, err := safe.ReaderGetByID[*omni.MachineClass](ctx, st, allocationConfig.Name)
 					if err != nil {
 						if state.IsNotFoundError(err) {
 							return fmt.Errorf("machine class with name %q doesn't exist", allocationConfig.Name)
 						}
 
 						return err
+					}
+
+					if mc.TypedSpec().Value.AutoProvision != nil && allocationConfig.AllocationType == specs.MachineSetSpec_MachineAllocation_Unlimited {
+						return fmt.Errorf("machine class %q is using autoprovision, so unlimited machine set allocation is not supported", allocationConfig.Name)
 					}
 				}
 			}
@@ -421,8 +428,57 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 }
 
 // machineClassValidationOptions returns the validation options for the machine class resource.
+//
+//nolint:gocognit
 func machineClassValidationOptions(st state.State) []validated.StateOption {
+	validate := func(ctx context.Context, oldRes, res *omni.MachineClass) error {
+		if res.TypedSpec().Value.AutoProvision != nil && res.TypedSpec().Value.MatchLabels != nil {
+			return errors.New("can't set both auto provision and match labels at the same time")
+		}
+
+		if res.TypedSpec().Value.AutoProvision != nil {
+			autoProvision := res.TypedSpec().Value.AutoProvision
+
+			if autoProvision.ProviderId == "" {
+				return errors.New("providerID can not be empty")
+			}
+
+			if autoProvision.TalosVersion == "" {
+				return errors.New("talos version can not be empty")
+			}
+
+			if err := validateTalosVersion(ctx, st, "", autoProvision.TalosVersion); err != nil {
+				return err
+			}
+
+			if oldRes == nil || oldRes.TypedSpec().Value.AutoProvision.ProviderData != autoProvision.ProviderData {
+				if err := validateProviderData(ctx, st, autoProvision.ProviderId, autoProvision.ProviderData); err != nil {
+					return err
+				}
+			}
+
+			return nil
+		}
+
+		queries, err := labels.ParseSelectors(res.TypedSpec().Value.MatchLabels)
+		if err != nil {
+			return fmt.Errorf("failed to parse matchLabels: %w", err)
+		}
+
+		if len(queries) == 0 {
+			return fmt.Errorf("machine class should either have auto provision or match labels set")
+		}
+
+		return nil
+	}
+
 	return []validated.StateOption{
+		validated.WithCreateValidations(validated.NewCreateValidationForType(func(ctx context.Context, res *omni.MachineClass, _ ...state.CreateOption) error {
+			return validate(ctx, nil, res)
+		})),
+		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(ctx context.Context, oldRes *omni.MachineClass, res *omni.MachineClass, _ ...state.UpdateOption) error {
+			return validate(ctx, oldRes, res)
+		})),
 		validated.WithDestroyValidations(validated.NewDestroyValidationForType(func(ctx context.Context, _ resource.Pointer, res *omni.MachineClass, _ ...state.DestroyOption) error {
 			machineSets, err := safe.ReaderListAll[*omni.MachineSet](ctx, st)
 			if err != nil {
@@ -921,17 +977,23 @@ func validateSchematicConfiguration(schematicConfiguration *omni.SchematicConfig
 func machineRequestSetValidationOptions(st state.State) []validated.StateOption {
 	return []validated.StateOption{
 		validated.WithCreateValidations(validated.NewCreateValidationForType(func(ctx context.Context, res *omni.MachineRequestSet, _ ...state.CreateOption) error {
-			return validateMachineRequestSet(ctx, st, res)
+			return validateMachineRequestSet(ctx, st, nil, res)
 		})),
-		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(ctx context.Context, _ *omni.MachineRequestSet, newRes *omni.MachineRequestSet, _ ...state.UpdateOption) error {
-			return validateMachineRequestSet(ctx, st, newRes)
+		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(ctx context.Context, oldRes *omni.MachineRequestSet, newRes *omni.MachineRequestSet, _ ...state.UpdateOption) error {
+			return validateMachineRequestSet(ctx, st, oldRes, newRes)
 		})),
 	}
 }
 
-func validateMachineRequestSet(ctx context.Context, st state.State, res *omni.MachineRequestSet) error {
+func validateMachineRequestSet(ctx context.Context, st state.State, oldRes, res *omni.MachineRequestSet) error {
 	if res.TypedSpec().Value.ProviderId == "" {
 		return fmt.Errorf("provider id can not be empty")
+	}
+
+	if oldRes == nil || oldRes.TypedSpec().Value.ProviderData != res.TypedSpec().Value.ProviderData {
+		if err := validateProviderData(ctx, st, res.TypedSpec().Value.ProviderId, res.TypedSpec().Value.ProviderData); err != nil {
+			return err
+		}
 	}
 
 	return validateTalosVersion(ctx, st, "", res.TypedSpec().Value.TalosVersion)
@@ -965,4 +1027,46 @@ func validateTalosVersion(ctx context.Context, st state.State, current, newVersi
 	}
 
 	return nil
+}
+
+func validateProviderData(ctx context.Context, st state.State, providerID, providerData string) error {
+	validateSchema := func(providerStatus *infra.ProviderStatus) error {
+		if providerStatus.TypedSpec().Value.Schema == "" {
+			return nil
+		}
+
+		filename := fmt.Sprintf("%s-schema.json", providerStatus.Metadata().ID())
+
+		compiler := jsonschema.NewCompiler()
+		if err := compiler.AddResource(filename, strings.NewReader(providerStatus.TypedSpec().Value.Schema)); err != nil {
+			return fmt.Errorf("failed to load json schema for provider %q: %w", providerID, err)
+		}
+
+		schema, err := compiler.Compile(filename)
+		if err != nil {
+			return fmt.Errorf("failed to load json schema for provider %q: %w", providerID, err)
+		}
+
+		var v interface{}
+		if err = yaml.Unmarshal([]byte(providerData), &v); err != nil {
+			return fmt.Errorf("failed to unmarshal provider data %w", err)
+		}
+
+		if v == nil {
+			v = map[string]interface{}{}
+		}
+
+		if err = schema.Validate(v); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	providerStatus, err := safe.ReaderGetByID[*infra.ProviderStatus](ctx, st, providerID)
+	if err != nil {
+		return fmt.Errorf("failed to get provider: %w", err)
+	}
+
+	return validateSchema(providerStatus)
 }

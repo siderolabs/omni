@@ -31,12 +31,12 @@ included in the LICENSE file.
         <div class="overview-data-row">
           <p class="overview-data-name">Roles</p>
           <div class="overview-data-roles">
-            <t-tag
-              class="overview-data-role"
-              v-for="role in roles"
-              :key="role"
-              :name="role"
-            />
+          <tag
+            class="overview-data-role"
+            v-for="role in roles"
+            :key="role">
+            {{ role }}
+          </tag>
           </div>
         </div>
         <div class="overview-data-row">
@@ -222,7 +222,7 @@ import { addMachineLabels, removeMachineLabels } from "@/methods/machine";
 
 import TAlert from "@/components/TAlert.vue";
 import TGroupAnimation from "@/components/common/Animation/TGroupAnimation.vue";
-import TTag from "@/components/common/Tag/TTag.vue";
+import Tag from "@/components/common/Tag/Tag.vue";
 import TStatus from "@/components/common/Status/TStatus.vue";
 import TListItem from "@/components/common/List/TListItem.vue";
 import NodeServiceEvents from "@/views/cluster/Nodes/NodeServiceEvents.vue";

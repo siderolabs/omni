@@ -621,8 +621,19 @@ export type EtcdBackupSettings = {
   max_interval?: GoogleProtobufDuration.Duration
 }
 
+export type MachineClassSpecProvision = {
+  provider_id?: string
+  talos_version?: string
+  extensions?: string[]
+  kernel_args?: string[]
+  meta_values?: MetaValue[]
+  idle_machine_count?: number
+  provider_data?: string
+}
+
 export type MachineClassSpec = {
   match_labels?: string[]
+  auto_provision?: MachineClassSpecProvision
 }
 
 export type MachineConfigGenOptionsSpecInstallImage = {
@@ -751,10 +762,10 @@ export type MachineRequestSetSpec = {
   provider_id?: string
   machine_count?: number
   talos_version?: string
-  overlay?: Overlay
   extensions?: string[]
   kernel_args?: string[]
   meta_values?: MetaValue[]
+  provider_data?: string
 }
 
 export type MachineRequestSetStatusSpec = {
@@ -767,4 +778,8 @@ export type ClusterDiagnosticsSpecNode = {
 
 export type ClusterDiagnosticsSpec = {
   nodes?: ClusterDiagnosticsSpecNode[]
+}
+
+export type MachineRequestSetPressureSpec = {
+  required_machines?: number
 }

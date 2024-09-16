@@ -24,8 +24,8 @@ included in the LICENSE file.
           />
         <t-spinner v-else class="h-4 w-4"/>
       </template>
-      <t-checkbox v-if="useMachineClasses" :checked="unlimited" label="Use All Available Machines" @click="unlimited = !unlimited" class="h-6"/>
-      <div class="w-32" v-if="!unlimited">
+      <t-checkbox v-if="useMachineClasses && !selectedMachineClass?.spec.auto_provision" :checked="unlimited" label="Use All Available Machines" @click="unlimited = !unlimited" class="h-6"/>
+      <div class="w-32" v-if="!allMachines">
         <t-input class="h-6" title="Size" v-if="useMachineClasses" type="number" :min="0" v-model="machineCount" compact/>
         <div v-else>{{ pluralize('Machines', Object.keys(modelValue.machines).length, true) }}</div>
       </div>
@@ -64,7 +64,7 @@ import IconButton from "@/components/common/Button/IconButton.vue";
 import pluralize from "pluralize";
 import { LabelWorkerRole, PatchBaseWeightMachineSet } from "@/api/resources";
 import MachineSetConfigEdit from "../../Modals/MachineSetConfigEdit.vue";
-import { MachineSetSpecMachineAllocationSource } from "@/api/omni/specs/omni.pb";
+import { MachineSetSpecMachineAllocationSource, MachineClassSpec } from "@/api/omni/specs/omni.pb";
 
 const emit = defineEmits(["update:modelValue"]);
 
@@ -73,7 +73,6 @@ enum AllocationMode {
   MachineClass = "Machine Class",
   RequestSet = "Machine Request Set"
 }
-
 
 const allocationModes = computed(() => {
   const res = [
@@ -95,7 +94,7 @@ const allocationModes = computed(() => {
 const props = defineProps<{
   noRemove?: boolean,
   onRemove?: () => void,
-  machineClasses?: Resource[],
+  machineClasses?: Resource<MachineClassSpec>[],
   modelValue: MachineSet
 }>();
 
@@ -105,12 +104,23 @@ const machineClassOptions = computed(() => {
   return machineClasses?.value?.map((r: Resource) => r.metadata.id!) || [];
 });
 
+const selectedMachineClass = computed(() => {
+  return machineClasses?.value?.find(item => item.metadata.id === sourceName.value)
+});
+
 const allocationMode = ref(modelValue.value.machineAllocation ? AllocationMode.MachineClass : AllocationMode.Manual);
 const useMachineClasses = computed(() => allocationMode.value === AllocationMode.MachineClass);
 const sourceName = ref(modelValue.value.machineAllocation?.name);
 const machineCount = ref(modelValue.value.machineAllocation?.size ?? 1);
 const patches: Ref<Record<string, ConfigPatch>> = ref(modelValue.value.patches);
 const unlimited = ref(modelValue.value.machineAllocation?.size === "unlimited");
+const allMachines = computed(() => {
+  if (selectedMachineClass?.value?.spec.auto_provision) {
+    return false;
+  }
+
+  return unlimited.value;
+});
 
 watch(modelValue, () => {
   sourceName.value = modelValue.value.machineAllocation?.name;
@@ -122,14 +132,14 @@ watch(modelValue, () => {
   }
 });
 
-watch([sourceName, machineCount, useMachineClasses, patches, unlimited], () => {
+watch([sourceName, machineCount, useMachineClasses, patches, allMachines], () => {
   if (useMachineClasses.value && !sourceName.value && machineClassOptions.value.length > 0) {
     sourceName.value = machineClassOptions.value[0];
   }
 
   const mc = useMachineClasses.value && sourceName.value !== undefined ? {
     name: sourceName.value,
-    size: unlimited.value ? 'unlimited' : machineCount.value,
+    size: allMachines.value ? 'unlimited' : machineCount.value,
     source: MachineSetSpecMachineAllocationSource.MachineClass,
   } : undefined;
 
