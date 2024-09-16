@@ -536,6 +536,8 @@ func (ctrl *MachineStatusController) setClusterRelation(in inputs, machineStatus
 		machineStatus.Metadata().Labels().Set(omni.MachineStatusLabelAvailable, "")
 
 		machineStatus.Metadata().Labels().Delete(omni.LabelCluster)
+		machineStatus.Metadata().Labels().Delete(omni.LabelControlPlaneRole)
+		machineStatus.Metadata().Labels().Delete(omni.LabelWorkerRole)
 
 		return nil
 	}

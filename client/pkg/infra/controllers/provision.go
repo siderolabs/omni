@@ -277,17 +277,15 @@ func (ctrl *ProvisionController[T]) reconcileTearingDown(ctx context.Context, r 
 		return err
 	}
 
-	if err = ctrl.provisioner.Deprovision(ctx, logger, t, machineRequest); err != nil {
-		return err
-	}
-
 	resources := []resource.Metadata{
 		resource.NewMetadata(t.ResourceDefinition().DefaultNamespace, t.ResourceDefinition().Type, machineRequest.Metadata().ID(), resource.VersionUndefined),
 		*infra.NewMachineRequestStatus(machineRequest.Metadata().ID()).Metadata(),
 	}
 
 	for _, md := range resources {
-		ready, err := r.Teardown(ctx, md)
+		var ready bool
+
+		ready, err = r.Teardown(ctx, md)
 		if err != nil {
 			if state.IsNotFoundError(err) {
 				continue
@@ -308,6 +306,10 @@ func (ctrl *ProvisionController[T]) reconcileTearingDown(ctx context.Context, r 
 
 			return err
 		}
+	}
+
+	if err = ctrl.provisioner.Deprovision(ctx, logger, t, machineRequest); err != nil {
+		return err
 	}
 
 	logger.Info("machine deprovisioned", zap.String("request_id", machineRequest.Metadata().ID()))
