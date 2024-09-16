@@ -17,7 +17,7 @@ const MinTalosVersion = "1.4.0"
 // DefaultKubernetesVersion is pre-selected in the UI and used in the integration tests.
 //
 // tsgen:DefaultKubernetesVersion
-const DefaultKubernetesVersion = "1.30.1"
+const DefaultKubernetesVersion = "1.30.5"
 
 // AnotherKubernetesVersion is used in the integration tests for Kubernetes upgrade.
 const AnotherKubernetesVersion = "1.29.5"
