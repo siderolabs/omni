@@ -1291,3 +1291,31 @@ func dropGeneratedMaintenanceConfigs(ctx context.Context, st state.State, _ *zap
 		return nil
 	})
 }
+
+func deleteAllResources(md resource.Metadata) func(context.Context, state.State, *zap.Logger) error {
+	return func(ctx context.Context, st state.State, _ *zap.Logger) error {
+		list, err := st.List(ctx, md)
+		if err != nil {
+			return err
+		}
+
+		for _, r := range list.Items {
+			_, err = st.UpdateWithConflicts(ctx, r.Metadata(), func(res resource.Resource) error {
+				for _, f := range *res.Metadata().Finalizers() {
+					res.Metadata().Finalizers().Remove(f)
+				}
+
+				return nil
+			}, state.WithUpdateOwner(r.Metadata().Owner()), state.WithExpectedPhaseAny())
+			if err != nil {
+				return err
+			}
+
+			if err = st.Destroy(ctx, r.Metadata(), state.WithDestroyOwner(r.Metadata().Owner())); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+}

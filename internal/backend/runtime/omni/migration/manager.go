@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
@@ -167,6 +168,14 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 			{
 				callback: dropGeneratedMaintenanceConfigs,
 				name:     "dropGeneratedMaintenanceConfigs",
+			},
+			{
+				callback: deleteAllResources(resource.NewMetadata(resources.DefaultNamespace, MachineSetRequiredMachinesType, "", resource.VersionUndefined)),
+				name:     "deleteMachineSetRequiredMachines",
+			},
+			{
+				callback: deleteAllResources(resource.NewMetadata(resources.DefaultNamespace, MachineClassStatusType, "", resource.VersionUndefined)),
+				name:     "deleteMachineClassStatuses",
 			},
 		},
 	}

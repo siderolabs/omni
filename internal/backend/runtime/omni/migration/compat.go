@@ -21,6 +21,12 @@ import (
 // MaintenanceConfigPatchPrefix deprecated maintenance config patch prefix.
 const MaintenanceConfigPatchPrefix = "950-maintenance-config-"
 
+// MachineClassStatusType deprecated machine class status resource type.
+const MachineClassStatusType = resource.Type("MachineClassStatuses.omni.sidero.dev")
+
+// MachineSetRequiredMachinesType deprecated machine set required machine type.
+const MachineSetRequiredMachinesType = resource.Type("MachineSetRequiredMachines.omni.sidero.dev")
+
 // getConfigPatches collects all machine config patches.
 func getConfigPatches(ctx context.Context, r controller.Reader, machine resource.Resource, machineSet *omni.MachineSet, prefix string) ([]*omni.ConfigPatch, error) {
 	clusterName, ok := machine.Metadata().Labels().Get(prefix + deprecatedCluster)

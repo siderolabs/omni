@@ -15,6 +15,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller/runtime"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
+	"github.com/cosi-project/runtime/pkg/resource/typed"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
@@ -1558,6 +1559,64 @@ func (suite *MigrationSuite) TestDropAllMaintenanceConfigs() {
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{m1, m2}, func(r *omni.MachineStatus, assertion *assert.Assertions) {
 		assertion.False(r.Metadata().Finalizers().Has(deprecatedControllerName))
 	})
+}
+
+func (suite *MigrationSuite) testDeleteDeprecatedResources(createRes func(id string) resource.Resource, migrationFilter string) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+
+	defer cancel()
+
+	err := suite.state.Create(ctx, createRes("1"))
+
+	suite.Require().NoError(err)
+
+	res := createRes("2")
+
+	res.Metadata().Finalizers().Add("dummy")
+	suite.Require().NoError(res.Metadata().SetOwner("some"))
+
+	err = suite.state.Create(ctx, res, state.WithCreateOwner("some"))
+
+	suite.Require().NoError(err)
+
+	res = createRes("3")
+
+	suite.Require().NoError(res.Metadata().SetOwner("some"))
+	res.Metadata().SetPhase(resource.PhaseTearingDown)
+
+	err = suite.state.Create(ctx, res, state.WithCreateOwner("some"))
+
+	suite.Require().NoError(err)
+
+	suite.Require().NoError(suite.manager.Run(ctx), migration.WithFilter(
+		func(name string) bool {
+			return name == migrationFilter
+		},
+	))
+
+	list, err := suite.state.List(ctx, resource.NewMetadata(res.Metadata().Namespace(), res.Metadata().Type(), "", resource.VersionUndefined))
+
+	suite.Require().NoError(err)
+
+	suite.Require().Empty(list.Items)
+}
+
+func (suite *MigrationSuite) TestDeleteMachineSetRequiredMachines() {
+	suite.testDeleteDeprecatedResources(func(id string) resource.Resource {
+		return typed.NewResource[dummy, machineSetRequiredMachinesExtension](
+			resource.NewMetadata(resources.DefaultNamespace, migration.MachineSetRequiredMachinesType, id, resource.VersionUndefined),
+			dummy{},
+		)
+	}, "deleteMachineSetRequiredMachines")
+}
+
+func (suite *MigrationSuite) TestDeleteMachineClassStatuses() {
+	suite.testDeleteDeprecatedResources(func(id string) resource.Resource {
+		return typed.NewResource[dummy, machineClassStatusExtension](
+			resource.NewMetadata(resources.DefaultNamespace, migration.MachineClassStatusType, id, resource.VersionUndefined),
+			dummy{},
+		)
+	}, "deleteMachineClassStatuses")
 }
 
 func TestMigrationSuite(t *testing.T) {

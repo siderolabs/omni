@@ -221,7 +221,6 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewClusterKubernetesNodesController(),
 		omnictrl.NewClusterMachineConfigController(config.Config.DefaultConfigGenOptions, config.Config.EventSinkPort),
 		omnictrl.NewClusterMachineTeardownController(defaultDiscoveryClient, embeddedDiscoveryClient),
-		omnictrl.NewMachineClassStatusController(),
 		omnictrl.NewMachineConfigGenOptionsController(),
 		omnictrl.NewMachineStatusController(imageFactoryClient),
 		omnictrl.NewClusterMachineConfigStatusController(),
