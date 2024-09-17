@@ -1,3 +1,31 @@
+## [Omni 0.42.3](https://github.com/siderolabs/omni/releases/tag/v0.42.3) (2024-09-17)
+
+Welcome to the v0.42.3 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>2 commits</summary>
+<p>
+
+* [`89860d5`](https://github.com/siderolabs/omni/commit/89860d57ec2990da2ebb5e853e77cb0ff5aad630) fix: call deprovision only after the machine request status is deleted
+* [`42218d0`](https://github.com/siderolabs/omni/commit/42218d05dc0709bee3ca3bffb316ce0f497fbfb8) release(v0.42.2): prepare release
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.42.2](https://github.com/siderolabs/omni/releases/tag/v0.42.2)
+
 ## [Omni 0.42.2](https://github.com/siderolabs/omni/releases/tag/v0.42.2) (2024-09-17)
 
 Welcome to the v0.42.2 release of Omni!
