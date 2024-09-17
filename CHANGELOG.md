@@ -1,3 +1,31 @@
+## [Omni 0.42.2](https://github.com/siderolabs/omni/releases/tag/v0.42.2) (2024-09-17)
+
+Welcome to the v0.42.2 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`465f5a1`](https://github.com/siderolabs/omni/commit/465f5a1c50cb82a7596e3ad188b4360d8b51f008) fix: update COSI runtime
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/cosi-project/runtime**     v0.6.1 -> v0.6.3
+* **github.com/cosi-project/state-etcd**  v0.3.1 -> v0.3.2
+
+Previous release can be found at [v0.42.1](https://github.com/siderolabs/omni/releases/tag/v0.42.1)
+
 ## [Omni 0.42.1](https://github.com/siderolabs/omni/releases/tag/v0.42.1) (2024-09-12)
 
 Welcome to the v0.42.1 release of Omni!
