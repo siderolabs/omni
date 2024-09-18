@@ -22,11 +22,12 @@ included in the LICENSE file.
             <div class="flex-1 truncate">Pending Config Update</div>
           </div>
         </div>
-        <div class="flex gap-2 items-center"
-          v-if="machineSet?.machine_allocation == undefined && machine?.metadata?.labels?.[LabelWorkerRole] !== undefined">
-          <tooltip
-            description="Lock machine config. Pause Kubernetes and Talos updates on the machine.">
-            <icon-button :icon="locked ? lockedUpdate ? 'locked-toggle' : 'locked' : 'unlocked'" class="w-4 h-4 ml-1 mt-1" @click.stop="updateLock"/>
+        <div class="flex items-center">
+          <tooltip v-if="hasDiagnosticInfo" description="This node has diagnostic warnings. Click to see the details.">
+            <t-icon icon="warning" class="w-4 h-4 text-yellow-400 mx-1.5"/>
+          </tooltip>
+          <tooltip v-if="lockable" description="Lock machine config. Pause Kubernetes and Talos updates on the machine.">
+            <icon-button :icon="locked ? lockedUpdate ? 'locked-toggle' : 'locked' : 'unlocked'" class="w-4 h-4 mt-0.5" @click.stop="updateLock"/>
           </tooltip>
         </div>
       </div>
@@ -55,12 +56,17 @@ const props = defineProps<{
   machineSet: Resource<MachineSetStatusSpec>,
   machine: Resource<ClusterMachineStatusSpec>,
   deleteDisabled?: boolean,
+  hasDiagnosticInfo?: boolean,
 }>();
 
-const { machine } = toRefs(props);
+const { machine, machineSet } = toRefs(props);
 
 const locked = computed(() => {
   return machine.value?.metadata?.annotations?.[MachineLocked] !== undefined;
+});
+
+const lockable = computed(() => {
+  return machineSet?.value.spec?.machine_allocation == undefined && machine?.value.metadata?.labels?.[LabelWorkerRole] !== undefined
 });
 
 const router = useRouter();

@@ -350,6 +350,10 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 			spec.Network.NetworkLinks = event.NetworkLinks
 		}
 
+		if event.Diagnostics != nil {
+			spec.Diagnostics = event.Diagnostics
+		}
+
 		if spec.Hardware == nil {
 			spec.Hardware = &specs.MachineStatusSpec_HardwareStatus{}
 		}

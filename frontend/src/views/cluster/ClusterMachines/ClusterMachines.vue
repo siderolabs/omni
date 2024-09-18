@@ -11,7 +11,7 @@ included in the LICENSE file.
       runtime: Runtime.Omni,
     }" spinner :key="id">
       <template #default="{ items }">
-        <machine-set v-for="item in items" :key="itemID(item)" :machineSet="item" :id="item.metadata.id"/>
+        <machine-set v-for="item in items" :key="itemID(item)" :machineSet="item" :id="item.metadata.id" :nodes-with-diagnostics="nodesWithDiagnostics"/>
       </template>
     </watch>
   </div>
@@ -24,12 +24,14 @@ import {
   MachineSetStatusType,
   LabelCluster,
   LabelControlPlaneRole,
-  MachineSetNodeType, MachineSetType,
+  MachineSetNodeType,
+  MachineSetType,
+  ClusterDiagnosticsType,
 } from "@/api/resources";
 import { Runtime } from "@/api/common/omni.pb";
 import WatchResource, { itemID } from "@/api/watch";
 import { Resource } from "@/api/grpc";
-import { MachineSetSpec } from "@/api/omni/specs/omni.pb";
+import { ClusterDiagnosticsSpec, MachineSetSpec } from "@/api/omni/specs/omni.pb";
 import { sortMachineSetIds } from "@/methods/machineset";
 
 import Watch from "@/components/common/Watch/Watch.vue";
@@ -42,7 +44,11 @@ const props = defineProps<{
 const { clusterID } = toRefs(props);
 
 const machineSets: Ref<Resource<MachineSetSpec>[]> = ref([]);
+const clusterDiagnostics: Ref<Resource<ClusterDiagnosticsSpec> | undefined> = ref();
+
 const machineSetsWatch = new WatchResource(machineSets);
+const clusterDiagnosticsWatch = new WatchResource(clusterDiagnostics);
+
 machineSetsWatch.setup(computed(() => {
   return {
     resource: {
@@ -53,6 +59,20 @@ machineSetsWatch.setup(computed(() => {
     selectors: [`${LabelCluster}=${clusterID.value}`]
   };
 }))
+
+clusterDiagnosticsWatch.setup({
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: DefaultNamespace,
+    type: ClusterDiagnosticsType,
+    id: clusterID.value,
+  }
+});
+
+const nodesWithDiagnostics = computed(() => {
+  const nodes = clusterDiagnostics.value?.spec?.nodes?.map(node => node.id) ?? [];
+  return new Set(nodes);
+});
 
 const watches = computed(() => sortMachineSetIds(clusterID.value, machineSets.value.map(machineSet => machineSet?.metadata?.id ?? "")));
 

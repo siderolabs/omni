@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <div class="row" :class="{ opened: isDropdownOpened }">
+  <div class="row" :class="{ opened: isDropdownOpened && !disableBorderOnExpand }">
     <t-slide-down-wrapper :isSliderOpened="isDropdownOpened">
       <template #head>
         <div class="flex items-center">
@@ -39,6 +39,7 @@ import TSlideDownWrapper from "@/components/common/SlideDownWrapper/TSlideDownWr
 
 const props = defineProps<{
   isDefaultOpened?: boolean,
+  disableBorderOnExpand?: boolean,
 }>();
 
 const { isDefaultOpened } = toRefs(props);

@@ -118,14 +118,24 @@ included in the LICENSE file.
         </template>
       </li>
     </ul>
-    <ul class="overview-data-list" v-if="machineStatus">
-      <li class="bg-naturals-N2 w-full rounded flex flex-col">
-        <h4 class="overview-data-heading">Labels</h4>
-        <div class="overview-data-row">
-          <item-labels :resource="machineStatus"  :add-label-func="addMachineLabels" :remove-label-func="removeMachineLabels"/>
-        </div>
-      </li>
-    </ul>
+
+    <template v-if="machineStatus">
+      <ul class="overview-data-list" v-if="machineStatus.spec.message_status?.diagnostics">
+        <li class="bg-naturals-N2 w-full rounded flex flex-col">
+          <h4 class="overview-data-heading">Diagnostic Warnings</h4>
+            <node-diagnostic-warnings :diagnostics="machineStatus?.spec?.message_status?.diagnostics"/>
+        </li>
+      </ul>
+
+      <ul class="overview-data-list">
+        <li class="bg-naturals-N2 w-full rounded flex flex-col">
+          <h4 class="overview-data-heading">Labels</h4>
+          <div class="overview-data-row">
+            <item-labels :resource="machineStatus"  :add-label-func="addMachineLabels" :remove-label-func="removeMachineLabels"/>
+          </div>
+        </li>
+      </ul>
+    </template>
 
       <div class="overview-services">
         <div class="overview-services-heading">
@@ -220,6 +230,7 @@ import ItemLabels from "@/views/omni/ItemLabels/ItemLabels.vue";
 import ClusterMachinePhase from "@/views/cluster/ClusterMachines/ClusterMachinePhase.vue";
 import NodeConditions from "@/views/cluster/Nodes/components/NodeConditions.vue";
 import TIcon from "@/components/common/Icon/TIcon.vue";
+import NodeDiagnosticWarnings from "@/views/cluster/Nodes/NodeDiagnosticWarnings.vue";
 
 const services = ref<{
   name: string
@@ -466,10 +477,6 @@ const getSecureBootStatus = () => {
 <style scoped>
 .overview {
   @apply w-full flex flex-col gap-6;
-}
-
-.overview-heading {
-  @apply flex justify-between items-start mb-7 flex-wrap;
 }
 
 .overview-data-list {

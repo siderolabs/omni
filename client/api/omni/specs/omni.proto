@@ -179,6 +179,12 @@ message MachineStatusSpec {
     string full_id = 9;
   }
 
+  message Diagnostic {
+    string id = 1;
+    string message = 2;
+    repeated string details = 3;
+  }
+
   // Talos version.
   string talos_version = 1;
 
@@ -231,6 +237,8 @@ message MachineStatusSpec {
   reserved 17;
 
   SecureBootStatus secure_boot_status = 18;
+
+  repeated Diagnostic diagnostics = 19;
 }
 
 // TalosConfigSpec describes a Talos cluster config.
@@ -1176,3 +1184,13 @@ message MachineRequestSetSpec {
 
 // MachineRequestSetStatusSpec describes the status of the machine request set.
 message MachineRequestSetStatusSpec {}
+
+// ClusterDiagnosticSpec describes the nodes in a cluster with diagnostics information available (indicating potential problems).
+message ClusterDiagnosticsSpec {
+  message Node {
+    string id = 1;
+    uint32 num_diagnostics = 2;
+  }
+
+  repeated Node nodes = 1;
+}

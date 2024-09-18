@@ -227,6 +227,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewClusterMachineEncryptionKeyController(),
 		omnictrl.NewClusterMachineStatusController(),
 		omnictrl.NewClusterStatusController(config.Config.EmbeddedDiscoveryService.Enabled),
+		omnictrl.NewClusterDiagnosticsController(),
 		omnictrl.NewClusterUUIDController(),
 		omnictrl.NewControlPlaneStatusController(),
 		omnictrl.NewDiscoveryServiceConfigPatchController(config.Config.EmbeddedDiscoveryService.Port),

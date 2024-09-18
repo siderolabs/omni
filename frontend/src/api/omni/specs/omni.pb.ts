@@ -226,6 +226,12 @@ export type MachineStatusSpecSchematic = {
   full_id?: string
 }
 
+export type MachineStatusSpecDiagnostic = {
+  id?: string
+  message?: string
+  details?: string[]
+}
+
 export type MachineStatusSpec = {
   talos_version?: string
   hardware?: MachineStatusSpecHardwareStatus
@@ -241,6 +247,7 @@ export type MachineStatusSpec = {
   schematic?: MachineStatusSpecSchematic
   initial_talos_version?: string
   secure_boot_status?: SecureBootStatus
+  diagnostics?: MachineStatusSpecDiagnostic[]
 }
 
 export type TalosConfigSpec = {
@@ -751,4 +758,13 @@ export type MachineRequestSetSpec = {
 }
 
 export type MachineRequestSetStatusSpec = {
+}
+
+export type ClusterDiagnosticsSpecNode = {
+  id?: string
+  num_diagnostics?: number
+}
+
+export type ClusterDiagnosticsSpec = {
+  nodes?: ClusterDiagnosticsSpecNode[]
 }

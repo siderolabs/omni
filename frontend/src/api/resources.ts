@@ -47,6 +47,7 @@ export const ClusterType = "Clusters.omni.sidero.dev";
 export const ClusterBootstrapStatusType = "ClusterBootstrapStatuses.omni.sidero.dev";
 export const ClusterConfigVersionType = "ClusterConfigVersions.omni.sidero.dev";
 export const ClusterDestroyStatusType = "ClusterDestroyStatuses.omni.sidero.dev";
+export const ClusterDiagnosticsType = "ClusterDiagnostics.omni.sidero.dev";
 export const ClusterEndpointType = "ClusterEndpoints.omni.sidero.dev";
 export const ClusterMachineType = "ClusterMachines.omni.sidero.dev";
 export const ClusterMachineConfigType = "ClusterMachineConfigs.omni.sidero.dev";

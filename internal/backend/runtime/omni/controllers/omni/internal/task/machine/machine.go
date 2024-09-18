@@ -65,6 +65,8 @@ type Info struct { //nolint:govet
 
 	DefaultKernelArgs []string
 	SecureBootStatus  *specs.SecureBootStatus
+
+	Diagnostics []*specs.MachineStatusSpec_Diagnostic
 }
 
 // InfoChan is a channel for sending machine info from tasks back to the controller.
@@ -241,6 +243,9 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 			namespace: runtime.NamespaceName,
 		},
 		runtime.MachineStatusType: {
+			namespace: runtime.NamespaceName,
+		},
+		runtime.DiagnosticType: {
 			namespace: runtime.NamespaceName,
 		},
 	}

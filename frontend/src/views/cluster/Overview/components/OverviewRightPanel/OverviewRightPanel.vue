@@ -22,6 +22,14 @@ included in the LICENSE file.
         v-if="currentCluster?.spec?.machines?.total"
         :value="`${currentCluster?.spec?.machines?.healthy ?? 0}/${currentCluster?.spec?.machines?.total}`"
       />
+      <overview-right-panel-item name="Node Warnings" v-if="numNodesWithDiagnostics > 0">
+        <div class="flex items-center gap-1">
+          {{ numTotalDiagnostics }} (in {{ numNodesWithDiagnostics }} nodes)
+          <tooltip description="Some machines have diagnostic warnings. See the machines section for details.">
+            <t-icon class="text-yellow-Y1 w-4 h-4" icon="warning"/>
+          </tooltip>
+        </div>
+      </overview-right-panel-item>
       <overview-right-panel-item
         v-if="talosUpgradeStatus"
         name="Talos Version"
@@ -205,6 +213,8 @@ import {
   KubernetesUpgradeStatusSpec,
   TalosUpgradeStatusSpec,
   EtcdBackupStatusSpec,
+  ClusterDiagnosticsSpec,
+  ClusterDiagnosticsSpecNode,
 } from "@/api/omni/specs/omni.pb";
 import { Runtime } from "@/api/common/omni.pb";
 import {
@@ -213,6 +223,7 @@ import {
   KubernetesStatusType,
   DefaultNamespace,
   EtcdBackupStatusType,
+  ClusterDiagnosticsType,
 } from "@/api/resources";
 import { BackupsStatus, downloadKubeconfig, downloadTalosconfig } from "@/methods";
 import { controlPlaneMachineSetId } from "@/methods/machineset";
@@ -246,6 +257,18 @@ const controlPlaneStatusWatch = new Watch(controlPlaneStatus);
 
 const kubernetesStatus: Ref<Resource<KubernetesStatusSpec> | undefined> = ref();
 const kubernetesStatusWatch = new Watch(kubernetesStatus);
+
+const clusterDiagnostics: Ref<Resource<ClusterDiagnosticsSpec> | undefined> = ref();
+const clusterDiagnosticsWatch = new Watch(clusterDiagnostics);
+
+const numNodesWithDiagnostics = computed(() => {
+  return clusterDiagnostics.value?.spec.nodes?.length || 0;
+});
+
+const numTotalDiagnostics = computed(() => {
+  const nodes: ClusterDiagnosticsSpecNode[] = clusterDiagnostics.value?.spec?.nodes || [];
+  return nodes.reduce((sum, node) => sum + (node.num_diagnostics || 0), 0) || 0;
+});
 
 const props = defineProps<{
   kubernetesUpgradeStatus: Resource<KubernetesUpgradeStatusSpec> | undefined,
@@ -292,6 +315,15 @@ backupStatusWatch.setup({
   resource: {
     namespace: DefaultNamespace,
     type: EtcdBackupStatusType,
+    id: route.params.cluster as string,
+  }
+});
+
+clusterDiagnosticsWatch.setup({
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: DefaultNamespace,
+    type: ClusterDiagnosticsType,
     id: route.params.cluster as string,
   }
 });

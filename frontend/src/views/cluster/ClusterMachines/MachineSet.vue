@@ -43,7 +43,7 @@ included in the LICENSE file.
       </t-actions-box>
       <div v-else class="w-6"/>
     </div>
-    <cluster-machine :id="machine.metadata.id" :machine-set="machineSet" :class="{ 'border-b': index != machines.length - 1 }"
+    <cluster-machine :id="machine.metadata.id" :machine-set="machineSet" :class="{ 'border-b': index != machines.length - 1 }" :has-diagnostic-info="nodesWithDiagnostics?.has(machine.metadata.id)"
       class="border-naturals-N4" v-for="(machine, index) in machines" :key="itemID(machine)" :machine="machine"
       :deleteDisabled="!canRemoveMachine" />
     <div v-if="hiddenMachinesCount > 0" class="text-xs p-4 pl-9 border-t border-naturals-N4 flex gap-1 items-center">
@@ -65,7 +65,7 @@ import { Runtime } from "@/api/common/omni.pb";
 import { machineSetTitle, scaleMachineSet } from "@/methods/machineset";
 import { controlPlaneMachineSetId, defaultWorkersMachineSetId } from "@/methods/machineset";
 import { showError } from "@/notification";
-import pluralize from 'pluralize';
+import pluralize from "pluralize";
 
 import TActionsBox from "@/components/common/ActionsBox/TActionsBox.vue";
 import TActionsBoxItem from "@/components/common/ActionsBox/TActionsBoxItem.vue";
@@ -81,6 +81,7 @@ const showMachinesCount = ref<number | undefined>(25);
 
 const props = defineProps<{
   machineSet: Resource<MachineSetStatusSpec>
+  nodesWithDiagnostics: Set<string>,
 }>();
 
 const { machineSet } = toRefs(props);
