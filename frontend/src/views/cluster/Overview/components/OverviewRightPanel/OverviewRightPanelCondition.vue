@@ -35,6 +35,10 @@ const getConditionName = (t?: ConditionType) => {
     return "Unknown condition";
   }
 
+  if (t === ConditionType.WireguardConnection) {
+    return "WireGuard Connection";
+  }
+
   return mapping[t];
 }
 

@@ -130,9 +130,9 @@ machine:
         #       # dhcpOptions:
         #       #     routeMetric: 1024 # The priority of all routes received via DHCP.
 
-        #       # # Wireguard specific configuration.
+        #       # # WireGuard specific configuration.
 
-        #       # # wireguard server example
+        #       # # wireguard: server example
         #       # wireguard:
         #       #     privateKey: ABCDEF... # Specifies a private key configuration (base64 encoded).
         #       #     listenPort: 51111 # Specifies a device's listening port.
@@ -143,7 +143,7 @@ machine:
         #       #           # AllowedIPs specifies a list of allowed IP addresses in CIDR notation for this peer.
         #       #           allowedIPs:
         #       #             - 192.168.1.0/24
-        #       # # wireguard peer example
+        #       # # wireguard: peer example
         #       # wireguard:
         #       #     privateKey: ABCDEF... # Specifies a private key configuration (base64 encoded).
         #       #     # Specifies a list of peer configurations to apply to a device.

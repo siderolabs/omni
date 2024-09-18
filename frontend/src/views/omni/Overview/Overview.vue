@@ -52,7 +52,7 @@ included in the LICENSE file.
                     <t-icon icon="copy" class="overview-copy-icon"
                       @click="() => copyValue(items[0]?.spec?.api_endpoint)" />
                   </div>
-                  <div>Wireguard Endpoint</div>
+                  <div>WireGuard Endpoint</div>
                   <div>
                     {{ items[0]?.spec?.wireguard_endpoint }}
                     <t-icon icon="copy" class="overview-copy-icon"

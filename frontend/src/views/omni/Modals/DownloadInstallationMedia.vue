@@ -76,7 +76,7 @@ included in the LICENSE file.
       <tooltip>
         <template #description>
           <div class="flex flex-col gap-1 p-2">
-            <p>Configure Talos to use a GRPC tunnel for Siderolink (wireguard) connection to Omni.</p>
+            <p>Configure Talos to use a GRPC tunnel for Siderolink (WireGuard) connection to Omni.</p>
             <p>The default value configured for this Omni instance is <code>{{ useGrpcTunnelDefault.toString() }}</code>.</p>
           </div>
         </template>
