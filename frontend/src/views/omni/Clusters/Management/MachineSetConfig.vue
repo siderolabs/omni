@@ -17,9 +17,9 @@ included in the LICENSE file.
       <template v-if="useMachineClasses">
         <t-select-list v-if="machineClasses"
             class="h-6 w-48"
-            @checkedValue="(value: string) => { machineClass = value }"
+            @checkedValue="(value: string) => { sourceName = value }"
             title="Name"
-            :defaultValue="machineClass ?? machineClassOptions[0]"
+            :defaultValue="sourceName ?? machineClassOptions[0]"
             :values="machineClassOptions"
           />
         <t-spinner v-else class="h-4 w-4"/>
@@ -64,6 +64,7 @@ import IconButton from "@/components/common/Button/IconButton.vue";
 import pluralize from "pluralize";
 import { LabelWorkerRole, PatchBaseWeightMachineSet } from "@/api/resources";
 import MachineSetConfigEdit from "../../Modals/MachineSetConfigEdit.vue";
+import { MachineSetSpecMachineAllocationSource } from "@/api/omni/specs/omni.pb";
 
 const emit = defineEmits(["update:modelValue"]);
 
@@ -73,7 +74,6 @@ enum AllocationMode {
   RequestSet = "Machine Request Set"
 }
 
-const allocationMode = ref(AllocationMode.Manual);
 
 const allocationModes = computed(() => {
   const res = [
@@ -105,14 +105,15 @@ const machineClassOptions = computed(() => {
   return machineClasses?.value?.map((r: Resource) => r.metadata.id!) || [];
 });
 
+const allocationMode = ref(modelValue.value.machineAllocation ? AllocationMode.MachineClass : AllocationMode.Manual);
 const useMachineClasses = computed(() => allocationMode.value === AllocationMode.MachineClass);
-const machineClass = ref(modelValue.value.machineAllocation?.name);
+const sourceName = ref(modelValue.value.machineAllocation?.name);
 const machineCount = ref(modelValue.value.machineAllocation?.size ?? 1);
 const patches: Ref<Record<string, ConfigPatch>> = ref(modelValue.value.patches);
 const unlimited = ref(modelValue.value.machineAllocation?.size === "unlimited");
 
 watch(modelValue, () => {
-  machineClass.value = modelValue.value.machineAllocation?.name;
+  sourceName.value = modelValue.value.machineAllocation?.name;
   machineCount.value = typeof modelValue.value.machineAllocation?.size === 'number' ? modelValue.value.machineAllocation?.size : 1;
   patches.value = modelValue.value.patches;
 
@@ -121,19 +122,20 @@ watch(modelValue, () => {
   }
 });
 
-watch([machineClass, machineCount, useMachineClasses, patches, unlimited], () => {
-  if (useMachineClasses.value && !machineClass.value && machineClassOptions.value.length > 0) {
-    machineClass.value = machineClassOptions.value[0];
+watch([sourceName, machineCount, useMachineClasses, patches, unlimited], () => {
+  if (useMachineClasses.value && !sourceName.value && machineClassOptions.value.length > 0) {
+    sourceName.value = machineClassOptions.value[0];
   }
 
-  const mc = useMachineClasses.value && machineClass.value !== undefined ? {
-    name: machineClass.value,
+  const mc = useMachineClasses.value && sourceName.value !== undefined ? {
+    name: sourceName.value,
     size: unlimited.value ? 'unlimited' : machineCount.value,
+    source: MachineSetSpecMachineAllocationSource.MachineClass,
   } : undefined;
 
   const machineSet: MachineSet = {
     ...modelValue.value,
-    machineClass: mc,
+    machineAllocation: mc,
     patches: patches.value,
   }
 
