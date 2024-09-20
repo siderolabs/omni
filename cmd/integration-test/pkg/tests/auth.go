@@ -1031,6 +1031,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		// infra provider resources have their custom authz logic, they are unit-tested in their package
 		delete(untestedResourceTypes, infra.MachineRequestType)
 		delete(untestedResourceTypes, infra.MachineRequestStatusType)
+		delete(untestedResourceTypes, infra.InfraProviderStatusType)
 
 		for _, tc := range testCases {
 			for _, testVerb := range allVerbs {

@@ -502,6 +502,7 @@ func filterAccessByType(access state.Access) error {
 	case
 		infra.MachineRequestType,       // read-only for all except for InfraProvider role (checked in filterAccess)
 		infra.MachineRequestStatusType, // read-only for all except for InfraProvider role (checked in filterAccess)
+		infra.InfraProviderStatusType,  // read-only for all except for InfraProvider role (checked in filterAccess)
 		omni.ClusterBootstrapStatusType,
 		omni.ClusterDestroyStatusType,
 		omni.ClusterEndpointType,

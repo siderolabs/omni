@@ -10,4 +10,5 @@ import "github.com/siderolabs/omni/client/pkg/omni/resources/registry"
 func init() {
 	registry.MustRegisterResource(MachineRequestType, &MachineRequest{})
 	registry.MustRegisterResource(MachineRequestStatusType, &MachineRequestStatus{})
+	registry.MustRegisterResource(InfraProviderStatusType, &ProviderStatus{})
 }

@@ -118,6 +118,18 @@ func TestInfraProviderAccess(t *testing.T) {
 		return nil
 	})
 	assert.NoError(t, err)
+
+	// InfraProviderStatus
+
+	status := infra.NewProviderStatus("test")
+
+	// create
+	assert.NoError(t, st.Create(ctx, status))
+
+	status.TypedSpec().Value.Name = "aa"
+
+	// update
+	assert.NoError(t, st.Update(ctx, status))
 }
 
 func TestInternalAccess(t *testing.T) {

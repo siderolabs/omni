@@ -268,7 +268,14 @@ func setupInfra(ctx context.Context, t *testing.T, p *provisioner) state.State {
 
 	logger := zaptest.NewLogger(t)
 
-	provider, err := infra.NewProvider(providerID, p)
+	pc := infra.ProviderConfig{
+		Name:        "Test Provider",
+		Description: "This is the test provider",
+		Icon:        "some svg here",
+		Schema:      "hello",
+	}
+
+	provider, err := infra.NewProvider(providerID, p, pc)
 	require.NoError(t, err)
 
 	eg, ctx := errgroup.WithContext(ctx)
@@ -279,6 +286,13 @@ func setupInfra(ctx context.Context, t *testing.T, p *provisioner) state.State {
 
 	t.Cleanup(func() {
 		require.NoError(t, eg.Wait())
+	})
+
+	rtestutils.AssertResources(ctx, t, state, []string{providerID}, func(res *infrares.ProviderStatus, assert *assert.Assertions) {
+		assert.Equal(res.TypedSpec().Value.Schema, "hello")
+		assert.Equal(res.TypedSpec().Value.Name, pc.Name)
+		assert.Equal(res.TypedSpec().Value.Description, pc.Description)
+		assert.Equal(res.TypedSpec().Value.Icon, pc.Icon)
 	})
 
 	return state

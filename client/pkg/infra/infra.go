@@ -12,15 +12,37 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/controller/runtime"
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
 
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/infra/controllers"
 	"github.com/siderolabs/omni/client/pkg/infra/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/infra/internal/resources"
 	"github.com/siderolabs/omni/client/pkg/infra/provision"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 )
+
+// ProviderConfig defines the schema, human readable provider name and description.
+type ProviderConfig struct {
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
+	Icon        string `yaml:"icon,omitempty"`
+	Schema      string `yaml:"schema"`
+}
+
+// ParseProviderConfig loads provider config from the yaml data.
+func ParseProviderConfig(data []byte) (ProviderConfig, error) {
+	var cfg ProviderConfig
+
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return cfg, err
+	}
+
+	return cfg, nil
+}
 
 // RD defines contract for the resource definition.
 type RD[V any] interface {
@@ -32,6 +54,7 @@ type RD[V any] interface {
 // Provider runner.
 type Provider[T generic.ResourceWithRD] struct {
 	provisioner provision.Provisioner[T]
+	config      ProviderConfig
 	id          string
 }
 
@@ -39,6 +62,7 @@ type Provider[T generic.ResourceWithRD] struct {
 func NewProvider[V any, T RD[V]](
 	id string,
 	provisioner provision.Provisioner[T],
+	config ProviderConfig,
 ) (*Provider[T], error) {
 	var zero V
 
@@ -51,6 +75,7 @@ func NewProvider[V any, T RD[V]](
 	return &Provider[T]{
 		provisioner: provisioner,
 		id:          id,
+		config:      config,
 	}, nil
 }
 
@@ -110,6 +135,29 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 		options.imageFactory,
 	)); err != nil {
 		return err
+	}
+
+	providerStatus := infra.NewProviderStatus(provider.id)
+
+	providerStatus.TypedSpec().Value.Schema = provider.config.Schema
+	providerStatus.TypedSpec().Value.Name = provider.config.Name
+	providerStatus.TypedSpec().Value.Description = provider.config.Description
+	providerStatus.TypedSpec().Value.Icon = provider.config.Icon
+
+	err = st.Create(ctx, providerStatus)
+	if err != nil {
+		if !state.IsConflictError(err) {
+			return err
+		}
+
+		_, err = safe.StateUpdateWithConflicts(ctx, st, providerStatus.Metadata(), func(res *infra.ProviderStatus) error {
+			res.TypedSpec().Value = providerStatus.TypedSpec().Value
+
+			return nil
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	return runtime.Run(ctx)
