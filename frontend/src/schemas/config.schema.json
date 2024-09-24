@@ -1,7 +1,96 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://talos.dev/v1.7/schemas/config.schema.json",
+  "$id": "https://talos.dev/v1.8/schemas/config.schema.json",
   "$defs": {
+    "block.DiskSelector": {
+      "properties": {
+        "match": {
+          "type": "string",
+          "title": "match",
+          "description": "The Common Expression Language (CEL) expression to match the disk.\n",
+          "markdownDescription": "The Common Expression Language (CEL) expression to match the disk.",
+          "x-intellij-html-description": "\u003cp\u003eThe Common Expression Language (CEL) expression to match the disk.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "block.ProvisioningSpec": {
+      "properties": {
+        "diskSelector": {
+          "$ref": "#/$defs/block.DiskSelector",
+          "title": "diskSelector",
+          "description": "The disk selector expression.\n",
+          "markdownDescription": "The disk selector expression.",
+          "x-intellij-html-description": "\u003cp\u003eThe disk selector expression.\u003c/p\u003e\n"
+        },
+        "grow": {
+          "type": "boolean",
+          "title": "grow",
+          "description": "Should the volume grow to the size of the disk (if possible).\n",
+          "markdownDescription": "Should the volume grow to the size of the disk (if possible).",
+          "x-intellij-html-description": "\u003cp\u003eShould the volume grow to the size of the disk (if possible).\u003c/p\u003e\n"
+        },
+        "minSize": {
+          "type": "string",
+          "title": "minSize",
+          "description": "The minimum size of the volume.\n\nSize is specified in bytes, but can be expressed in human readable format, e.g. 100MB.\n",
+          "markdownDescription": "The minimum size of the volume.\n\nSize is specified in bytes, but can be expressed in human readable format, e.g. 100MB.",
+          "x-intellij-html-description": "\u003cp\u003eThe minimum size of the volume.\u003c/p\u003e\n\n\u003cp\u003eSize is specified in bytes, but can be expressed in human readable format, e.g. 100MB.\u003c/p\u003e\n"
+        },
+        "maxSize": {
+          "type": "string",
+          "title": "maxSize",
+          "description": "The maximum size of the volume, if not specified the volume can grow to the size of the\ndisk.\n\nSize is specified in bytes, but can be expressed in human readable format, e.g. 100MB.\n",
+          "markdownDescription": "The maximum size of the volume, if not specified the volume can grow to the size of the\ndisk.\n\nSize is specified in bytes, but can be expressed in human readable format, e.g. 100MB.",
+          "x-intellij-html-description": "\u003cp\u003eThe maximum size of the volume, if not specified the volume can grow to the size of the\ndisk.\u003c/p\u003e\n\n\u003cp\u003eSize is specified in bytes, but can be expressed in human readable format, e.g. 100MB.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "block.VolumeConfigV1Alpha1": {
+      "properties": {
+        "apiVersion": {
+          "enum": [
+            "v1alpha1"
+          ],
+          "title": "apiVersion",
+          "description": "apiVersion is the API version of the resource.\n",
+          "markdownDescription": "apiVersion is the API version of the resource.",
+          "x-intellij-html-description": "\u003cp\u003eapiVersion is the API version of the resource.\u003c/p\u003e\n"
+        },
+        "kind": {
+          "enum": [
+            "VolumeConfig"
+          ],
+          "title": "kind",
+          "description": "kind is the kind of the resource.\n",
+          "markdownDescription": "kind is the kind of the resource.",
+          "x-intellij-html-description": "\u003cp\u003ekind is the kind of the resource.\u003c/p\u003e\n"
+        },
+        "name": {
+          "type": "string",
+          "title": "name",
+          "description": "Name of the volume.\n",
+          "markdownDescription": "Name of the volume.",
+          "x-intellij-html-description": "\u003cp\u003eName of the volume.\u003c/p\u003e\n"
+        },
+        "provisioning": {
+          "$ref": "#/$defs/block.ProvisioningSpec",
+          "title": "provisioning",
+          "description": "The provisioning describes how the volume is provisioned.\n",
+          "markdownDescription": "The provisioning describes how the volume is provisioned.",
+          "x-intellij-html-description": "\u003cp\u003eThe provisioning describes how the volume is provisioned.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind"
+      ]
+    },
     "extensions.ConfigFile": {
       "properties": {
         "content": {
@@ -137,6 +226,44 @@
       },
       "additionalProperties": false,
       "type": "object"
+    },
+    "network.KubespanEndpointsConfigV1Alpha1": {
+      "properties": {
+        "apiVersion": {
+          "enum": [
+            "v1alpha1"
+          ],
+          "title": "apiVersion",
+          "description": "apiVersion is the API version of the resource.\n",
+          "markdownDescription": "apiVersion is the API version of the resource.",
+          "x-intellij-html-description": "\u003cp\u003eapiVersion is the API version of the resource.\u003c/p\u003e\n"
+        },
+        "kind": {
+          "enum": [
+            "KubeSpanEndpoints"
+          ],
+          "title": "kind",
+          "description": "kind is the kind of the resource.\n",
+          "markdownDescription": "kind is the kind of the resource.",
+          "x-intellij-html-description": "\u003cp\u003ekind is the kind of the resource.\u003c/p\u003e\n"
+        },
+        "extraAnnouncedEndpoints": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "title": "extraAnnouncedEndpoints",
+          "description": "A list of extra Wireguard endpoints to announce from this machine.\n\nTalos automatically adds endpoints based on machine addresses, public IP, etc.\nThis field allows to add extra endpoints which are managed outside of Talos, e.g. NAT mapping.\n",
+          "markdownDescription": "A list of extra Wireguard endpoints to announce from this machine.\n\nTalos automatically adds endpoints based on machine addresses, public IP, etc.\nThis field allows to add extra endpoints which are managed outside of Talos, e.g. NAT mapping.",
+          "x-intellij-html-description": "\u003cp\u003eA list of extra Wireguard endpoints to announce from this machine.\u003c/p\u003e\n\n\u003cp\u003eTalos automatically adds endpoints based on machine addresses, public IP, etc.\nThis field allows to add extra endpoints which are managed outside of Talos, e.g. NAT mapping.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind"
+      ]
     },
     "network.RuleConfigV1Alpha1": {
       "properties": {
@@ -345,6 +472,49 @@
       "required": [
         "apiVersion",
         "kind"
+      ]
+    },
+    "security.TrustedRootsConfigV1Alpha1": {
+      "properties": {
+        "apiVersion": {
+          "enum": [
+            "v1alpha1"
+          ],
+          "title": "apiVersion",
+          "description": "apiVersion is the API version of the resource.\n",
+          "markdownDescription": "apiVersion is the API version of the resource.",
+          "x-intellij-html-description": "\u003cp\u003eapiVersion is the API version of the resource.\u003c/p\u003e\n"
+        },
+        "kind": {
+          "enum": [
+            "TrustedRootsConfig"
+          ],
+          "title": "kind",
+          "description": "kind is the kind of the resource.\n",
+          "markdownDescription": "kind is the kind of the resource.",
+          "x-intellij-html-description": "\u003cp\u003ekind is the kind of the resource.\u003c/p\u003e\n"
+        },
+        "name": {
+          "type": "string",
+          "title": "name",
+          "description": "Name of the config document.\n",
+          "markdownDescription": "Name of the config document.",
+          "x-intellij-html-description": "\u003cp\u003eName of the config document.\u003c/p\u003e\n"
+        },
+        "certificates": {
+          "type": "string",
+          "title": "certificates",
+          "description": "List of additional trusted certificate authorities (as PEM-encoded certificates).\n\nMultiple certificates can be provided in a single config document, separated by newline characters.\n",
+          "markdownDescription": "List of additional trusted certificate authorities (as PEM-encoded certificates).\n\nMultiple certificates can be provided in a single config document, separated by newline characters.",
+          "x-intellij-html-description": "\u003cp\u003eList of additional trusted certificate authorities (as PEM-encoded certificates).\u003c/p\u003e\n\n\u003cp\u003eMultiple certificates can be provided in a single config document, separated by newline characters.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind",
+        "name"
       ]
     },
     "siderolink.ConfigV1Alpha1": {
@@ -734,6 +904,26 @@
           "description": "A bridge option.\nPlease see the official kernel documentation.\n",
           "markdownDescription": "A bridge option.\nPlease see the official kernel documentation.",
           "x-intellij-html-description": "\u003cp\u003eA bridge option.\nPlease see the official kernel documentation.\u003c/p\u003e\n"
+        },
+        "vlan": {
+          "$ref": "#/$defs/v1alpha1.BridgeVLAN",
+          "title": "vlan",
+          "description": "A bridge option.\nPlease see the official kernel documentation.\n",
+          "markdownDescription": "A bridge option.\nPlease see the official kernel documentation.",
+          "x-intellij-html-description": "\u003cp\u003eA bridge option.\nPlease see the official kernel documentation.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "v1alpha1.BridgeVLAN": {
+      "properties": {
+        "vlanFiltering": {
+          "type": "boolean",
+          "title": "vlanFiltering",
+          "description": "Whether VLAN filtering is enabled.\n",
+          "markdownDescription": "Whether VLAN filtering is enabled.",
+          "x-intellij-html-description": "\u003cp\u003eWhether VLAN filtering is enabled.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -1629,7 +1819,15 @@
       "type": "object"
     },
     "v1alpha1.EncryptionKeyTPM": {
-      "properties": {},
+      "properties": {
+        "checkSecurebootStatusOnEnroll": {
+          "type": "boolean",
+          "title": "checkSecurebootStatusOnEnroll",
+          "description": "Check that Secureboot is enabled in the EFI firmware.\nIf Secureboot is not enabled, the enrollment of the key will fail. As the TPM key is anyways bound to the value of PCR 7, changing Secureboot status or configuration after the initial enrollment will make the key unusable.\n",
+          "markdownDescription": "Check that Secureboot is enabled in the EFI firmware.\nIf Secureboot is not enabled, the enrollment of the key will fail. As the TPM key is anyways bound to the value of PCR 7, changing Secureboot status or configuration after the initial enrollment will make the key unusable.",
+          "x-intellij-html-description": "\u003cp\u003eCheck that Secureboot is enabled in the EFI firmware.\nIf Secureboot is not enabled, the enrollment of the key will fail. As the TPM key is anyways bound to the value of PCR 7, changing Secureboot status or configuration after the initial enrollment will make the key unusable.\u003c/p\u003e\n"
+        }
+      },
       "additionalProperties": false,
       "type": "object"
     },
@@ -2566,6 +2764,18 @@
           "markdownDescription": "Configures the node labels for the machine.\n\nNote: In the default Kubernetes configuration, worker nodes are restricted to set\nlabels with some prefixes (see [NodeRestriction](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#noderestriction) admission plugin).",
           "x-intellij-html-description": "\u003cp\u003eConfigures the node labels for the machine.\u003c/p\u003e\n\n\u003cp\u003eNote: In the default Kubernetes configuration, worker nodes are restricted to set\nlabels with some prefixes (see \u003ca href=\"https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#noderestriction\" target=\"_blank\"\u003eNodeRestriction\u003c/a\u003e admission plugin).\u003c/p\u003e\n"
         },
+        "nodeAnnotations": {
+          "patternProperties": {
+            ".*": {
+              "type": "string"
+            }
+          },
+          "type": "object",
+          "title": "nodeAnnotations",
+          "description": "Configures the node annotations for the machine.\n",
+          "markdownDescription": "Configures the node annotations for the machine.",
+          "x-intellij-html-description": "\u003cp\u003eConfigures the node annotations for the machine.\u003c/p\u003e\n"
+        },
         "nodeTaints": {
           "patternProperties": {
             ".*": {
@@ -3389,10 +3599,16 @@
   },
   "oneOf": [
     {
+      "$ref": "#/$defs/block.VolumeConfigV1Alpha1"
+    },
+    {
       "$ref": "#/$defs/extensions.ServiceConfigV1Alpha1"
     },
     {
       "$ref": "#/$defs/network.DefaultActionConfigV1Alpha1"
+    },
+    {
+      "$ref": "#/$defs/network.KubespanEndpointsConfigV1Alpha1"
     },
     {
       "$ref": "#/$defs/network.RuleConfigV1Alpha1"
@@ -3405,6 +3621,9 @@
     },
     {
       "$ref": "#/$defs/runtime.WatchdogTimerV1Alpha1"
+    },
+    {
+      "$ref": "#/$defs/security.TrustedRootsConfigV1Alpha1"
     },
     {
       "$ref": "#/$defs/siderolink.ConfigV1Alpha1"

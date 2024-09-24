@@ -35,6 +35,27 @@ let instance: monaco.editor.IStandaloneCodeEditor | undefined;
 if (!window['monacoConfigured']) {
   window['monacoConfigured'] = true;
 
+  // adjust configSchema by copying it first, and adding the $patch property with the value
+  // "delete" to all definitions which are structs with properties
+  const schemaCopy = JSON.parse(JSON.stringify(configSchema));
+
+  const adjustSchemaPatchDelete = (schema: any) => {
+    for (const name in schema.$defs) {
+       const def  = schema.$defs[name];
+
+       if (def.properties) {
+        def.properties.$patch = {
+          type: "string",
+          title: "$patch",
+          enum: ["delete"],
+          description: "Delete the configuration block with a strategic merge delete patch.\nSee https://www.talos.dev/latest/talos-guides/configuration/patching/"
+        };
+      }
+    }
+  }
+
+  adjustSchemaPatchDelete(schemaCopy);
+
   configureMonacoYaml(monaco, {
     hover: true,
     completion: true,
@@ -42,9 +63,9 @@ if (!window['monacoConfigured']) {
     format: true,
     schemas: [
       {
-        uri: configSchema.$id,
+        uri: schemaCopy.$id,
         fileMatch: ["*"],
-        schema: configSchema,
+        schema: schemaCopy,
       },
     ],
   });

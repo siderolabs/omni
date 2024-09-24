@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-09-02T13:39:41Z by kres b5ca957.
+# Generated on 2024-09-24T12:08:22Z by kres 8be5fa7.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -236,7 +236,7 @@ RUN --mount=type=cache,target=/go/pkg go list -mod=readonly all >/dev/null
 
 # cleaned up specs and compiled versions
 FROM scratch AS generate-frontend
-ADD https://www.talos.dev/v1.7/schemas/config.schema.json frontend/src/schemas/config.schema.json
+ADD https://www.talos.dev/v1.8/schemas/config.schema.json frontend/src/schemas/config.schema.json
 COPY --from=proto-compile-frontend frontend/ frontend/
 
 FROM embed-generate AS embed-abbrev-generate
