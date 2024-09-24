@@ -86,7 +86,7 @@ func AssertMachinesShouldBeProvisioned(testCtx context.Context, client *client.C
 			}
 
 			if machines.Len() < machineCount {
-				return retry.ExpectedErrorf("links count is %d, expected at least %d", resources.Len(), machineCount)
+				return retry.ExpectedErrorf("links count is %d, expected at least %d", machines.Len(), machineCount)
 			}
 
 			for r := range resources.All() {
