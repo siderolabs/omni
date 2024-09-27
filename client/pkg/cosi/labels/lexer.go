@@ -90,6 +90,13 @@ const (
 	closedParToken
 	// commaToken represents the comma.
 	commaToken
+	// IdentifierToken represents identifier, e.g. keys and values.
+	IdentifierToken
+	// openParToken represents open parenthesis.
+	openParToken
+
+	// operators.
+
 	// doesNotExistToken represents logic not.
 	doesNotExistToken
 	// doubleEQToken represents double equals.
@@ -100,8 +107,6 @@ const (
 	gtToken
 	// gteToken represents greater than or equal.
 	gteToken
-	// IdentifierToken represents identifier, e.g. keys and values.
-	IdentifierToken
 	// inToken represents in.
 	inToken
 	// ltToken represents less than.
@@ -112,8 +117,6 @@ const (
 	neqToken
 	// notInToken represents not in.
 	notInToken
-	// openParToken represents open parenthesis.
-	openParToken
 )
 
 // isWhitespace returns true if the rune is a space, tab, or newline.
@@ -131,6 +134,10 @@ func isSpecialSymbol(ch rune) bool {
 	return false
 }
 
+func isOperator(tok lexerToken) bool {
+	return tok >= doesNotExistToken
+}
+
 // lexer represents the lexer struct for label selector.
 // It contains necessary information to tokenize the input string.
 type lexer struct {
@@ -138,6 +145,9 @@ type lexer struct {
 	s string
 	// pos is the position currently tokenized
 	pos int
+
+	hasOperator bool
+	parsingList bool
 }
 
 // read returns the character currently lexed
@@ -161,7 +171,7 @@ IdentifierLoop:
 		switch ch, width := l.read(); {
 		case ch == 0:
 			break IdentifierLoop
-		case isSpecialSymbol(ch) || isWhitespace(ch):
+		case isSpecialSymbol(ch) || (isWhitespace(ch) && !l.hasOperator):
 			l.pos -= width
 
 			break IdentifierLoop
@@ -171,6 +181,7 @@ IdentifierLoop:
 	}
 
 	s := string(buffer)
+
 	if val, ok := newToken(s); ok { // is a literal token?
 		return val, s
 	}
@@ -238,10 +249,23 @@ func (l *lexer) lex() (tok lexerToken, lit string) {
 	case isSpecialSymbol(ch):
 		l.pos -= width
 
-		return l.scanSpecialSymbol()
+		tok, lit = l.scanSpecialSymbol()
 	default:
 		l.pos -= width
 
-		return l.scanIDOrKeyword()
+		tok, lit = l.scanIDOrKeyword()
 	}
+
+	switch {
+	case isOperator(tok):
+		l.hasOperator = true
+	case tok == openParToken:
+		l.parsingList = true
+	case tok == closedParToken:
+		l.parsingList = false
+	case tok == commaToken && !l.parsingList:
+		l.hasOperator = false
+	}
+
+	return
 }

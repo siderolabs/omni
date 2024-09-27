@@ -192,6 +192,49 @@ func TestParseQuery(t *testing.T) {
 				},
 			},
 		},
+		{
+			query: "b = a b, a in (a, b, c, d e)",
+			expected: &resource.LabelQuery{
+				Terms: []resource.LabelTerm{
+					{
+						Key:   "b",
+						Op:    resource.LabelOpEqual,
+						Value: []string{"a b"},
+					},
+					{
+						Key:   "a",
+						Op:    resource.LabelOpIn,
+						Value: []string{"a", "b", "c", "d e"},
+					},
+				},
+			},
+		},
+		{
+			query: "b = c d, a = a b, z, c = f e",
+			expected: &resource.LabelQuery{
+				Terms: []resource.LabelTerm{
+					{
+						Key:   "b",
+						Op:    resource.LabelOpEqual,
+						Value: []string{"c d"},
+					},
+					{
+						Key:   "a",
+						Op:    resource.LabelOpEqual,
+						Value: []string{"a b"},
+					},
+					{
+						Key: "z",
+						Op:  resource.LabelOpExists,
+					},
+					{
+						Key:   "c",
+						Op:    resource.LabelOpEqual,
+						Value: []string{"f e"},
+					},
+				},
+			},
+		},
 	} {
 		t.Run(tt.query, func(t *testing.T) {
 			require := require.New(t)
