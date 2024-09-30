@@ -7,7 +7,7 @@ included in the LICENSE file.
 <template>
   <div class="flex justify-between py-3 px-3 items-center gap-2" v-if="control.label">
     <div class="text-naturals-N11 text-xs flex items-center gap-2">
-      {{ control.label }}
+      {{ control.label }}{{ description }}
       <tooltip :description="control.errors" v-if="control.errors">
         <t-icon icon="warning" class="text-yellow-Y1 w-4 h-4"/>
       </tooltip>
@@ -27,11 +27,17 @@ included in the LICENSE file.
 <script setup lang="ts">
 import Tooltip from '../Tooltip/Tooltip.vue';
 import TIcon from '../Icon/TIcon.vue';
+import { computed } from 'vue';
 
-defineProps<{
+const props = defineProps<{
   control: {
     label: string
     errors: string
+    description?: string
   },
 }>()
+
+const description = computed(() => {
+  return props.control.description ? ` (${props.control.description})` : "";
+})
 </script>

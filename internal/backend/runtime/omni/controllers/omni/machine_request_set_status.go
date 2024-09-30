@@ -147,6 +147,7 @@ func (h *machineRequestSetStatusHandler) scaleUp(ctx context.Context, r controll
 				request.TypedSpec().Value.Extensions = machineRequestSet.TypedSpec().Value.Extensions
 				request.TypedSpec().Value.KernelArgs = machineRequestSet.TypedSpec().Value.KernelArgs
 				request.TypedSpec().Value.MetaValues = machineRequestSet.TypedSpec().Value.MetaValues
+				request.TypedSpec().Value.ProviderData = machineRequestSet.TypedSpec().Value.ProviderData
 
 				request.Metadata().Labels().Set(omni.LabelInfraProviderID, machineRequestSet.TypedSpec().Value.ProviderId)
 				request.Metadata().Labels().Set(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())

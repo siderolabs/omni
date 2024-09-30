@@ -6,7 +6,6 @@ package controllers
 
 import (
 	"context"
-	"slices"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
@@ -15,6 +14,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/optional"
+	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -184,19 +184,9 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 
 	steps := ctrl.provisioner.ProvisionSteps()
 
-	initialStep, ok := res.Metadata().Annotations().Get(currentStepAnnotation)
+	initialStep, _ := res.Metadata().Annotations().Get(currentStepAnnotation)
 
-	var initialStepIndex int
-
-	if ok {
-		if index := slices.IndexFunc(steps, func(step provision.Step[T]) bool {
-			return step.Name() == initialStep
-		}); index != -1 {
-			initialStepIndex = index
-		}
-	}
-
-	for _, step := range steps[initialStepIndex:] {
+	for _, step := range steps {
 		if initialStep != "" && step.Name() != initialStep {
 			continue
 		}
@@ -205,23 +195,35 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 
 		logger.Info("running provision step", zap.String("step", step.Name()))
 
-		res.Metadata().Annotations().Set(currentStepAnnotation, step.Name())
+		var requeueError error
 
 		if err = safe.WriterModify(ctx, r, res.(T), func(st T) error { //nolint:forcetypeassert
-			return step.Run(ctx, logger, provision.NewContext(
+			err = step.Run(ctx, logger, provision.NewContext(
 				machineRequest,
 				machineRequestStatus,
 				st,
 				connectionParams,
 				ctrl.imageFactory,
 			))
+
+			st.Metadata().Annotations().Set(currentStepAnnotation, step.Name())
+
+			if err != nil {
+				if !xerrors.TypeIs[*controller.RequeueError](err) {
+					return err
+				}
+
+				requeueError = err
+			}
+
+			return nil
 		}); err != nil {
 			logger.Error("machine provision failed", zap.Error(err), zap.String("step", step.Name()))
 
 			machineRequestStatus.TypedSpec().Value.Error = err.Error()
 			machineRequestStatus.TypedSpec().Value.Stage = specs.MachineRequestStatusSpec_FAILED
 
-			return nil
+			return nil //nolint:nilerr
 		}
 
 		if err = safe.WriterModify(ctx, r, machineRequestStatus, func(res *infra.MachineRequestStatus) error {
@@ -230,6 +232,10 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 			return nil
 		}); err != nil {
 			return err
+		}
+
+		if requeueError != nil {
+			return requeueError
 		}
 	}
 

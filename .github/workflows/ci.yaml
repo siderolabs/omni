@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-09-07T21:30:27Z by kres 8be5fa7.
+# Generated on 2024-09-30T14:56:12Z by kres 8be5fa7.
 
 name: default
 concurrency:
@@ -146,7 +146,7 @@ jobs:
           INTEGRATION_RUN_E2E_TEST: "true"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|Auth/|DefaultCluster/
           RUN_TALEMU_TESTS: "true"
-          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
@@ -270,7 +270,7 @@ jobs:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|EtcdBackupAndRestore
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
@@ -348,7 +348,7 @@ jobs:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|RollingUpdateParallelism/|ForcedMachineRemoval/|ReplaceControlPlanes/|ConfigPatching/|KubernetesNodeAudit/
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
@@ -426,7 +426,7 @@ jobs:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|TalosImageGeneration/|ImmediateClusterDestruction/|DefaultCluster/|EncryptedCluster/|SinglenodeCluster/|Auth/
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
@@ -504,7 +504,7 @@ jobs:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|ClusterTemplate/
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
@@ -582,7 +582,7 @@ jobs:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
@@ -660,7 +660,7 @@ jobs:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|WorkloadProxy
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test

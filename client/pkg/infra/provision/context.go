@@ -13,6 +13,7 @@ import (
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
@@ -120,6 +121,11 @@ func (context *Context[T]) SetMachineUUID(value string) {
 // SetMachineInfraID in the machine request status.
 func (context *Context[T]) SetMachineInfraID(value string) {
 	context.MachineRequestStatus.Metadata().Labels().Set(omni.LabelMachineInfraID, value)
+}
+
+// UnmarshalProviderData reads provider data string from the machine request into the dest.
+func (context *Context[T]) UnmarshalProviderData(dest any) error {
+	return yaml.Unmarshal([]byte(context.machineRequest.TypedSpec().Value.ProviderData), dest)
 }
 
 // GenerateSchematicID generate the final schematic out of the machine request.

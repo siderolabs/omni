@@ -19,3 +19,8 @@ func NewRetryError(err error, interval time.Duration) error {
 func NewRetryErrorf(interval time.Duration, format string, args ...any) error {
 	return controller.NewRequeueErrorf(interval, format, args...)
 }
+
+// NewRetryInterval should be returned from the provisioner when it should be called after some interval again.
+func NewRetryInterval(interval time.Duration) error {
+	return controller.NewRequeueInterval(interval)
+}
