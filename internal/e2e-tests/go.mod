@@ -5,7 +5,7 @@ go 1.23.0
 require (
 	github.com/buger/jsonparser v1.1.1
 	github.com/google/uuid v1.6.0
-	github.com/playwright-community/playwright-go v0.4501.1
+	github.com/playwright-community/playwright-go v0.4702.0
 	github.com/stretchr/testify v1.9.0
 	github.com/wI2L/jsondiff v0.6.0
 	golang.org/x/sync v0.8.0
