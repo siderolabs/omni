@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/siderolabs/gen/xerrors"
@@ -22,6 +23,8 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 )
+
+var retryExtensionsFetchMinVersion = semver.MustParse("1.8.0")
 
 // TalosExtensionsController creates omni.TalosExtensions for each omni.TalosVersion.
 //
@@ -52,7 +55,18 @@ func NewTalosExtensionsController(imageFactoryClient *imagefactory.Client) *Talo
 
 				// skip fetching Talos extensions for a version which isn't registered in the image factory
 				if !hasVersion {
-					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("version %q is not registered in the image factory", version.Metadata().ID())
+					var v semver.Version
+
+					v, err = semver.ParseTolerant(version.Metadata().ID())
+					if err != nil {
+						return err
+					}
+
+					if v.Pre != nil || v.GTE(retryExtensionsFetchMinVersion) {
+						return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("version %q is not registered in the image factory", version.Metadata().ID())
+					}
+
+					return controller.NewRequeueErrorf(time.Minute*5, "failed to find extensions for Talos %s", v.String())
 				}
 
 				extensionsVersions, err := imageFactoryClient.ExtensionsVersions(ctx, version.TypedSpec().Value.Version)
