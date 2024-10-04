@@ -629,6 +629,8 @@ func (manager *Manager) updateConnectionParams(ctx context.Context, siderolinkCo
 		spec.JoinToken = siderolinkConfig.TypedSpec().Value.JoinToken
 		spec.WireguardEndpoint = siderolinkConfig.TypedSpec().Value.AdvertisedEndpoint
 		spec.UseGrpcTunnel = config.Config.SiderolinkUseGRPCTunnel
+		spec.LogsPort = int32(config.Config.LogServerPort)
+		spec.EventsPort = int32(config.Config.EventSinkPort)
 
 		var url string
 

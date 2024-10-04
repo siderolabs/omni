@@ -5,7 +5,6 @@
 // Package management provides client for Omni management API.
 package management
 
-//nolint:gci
 import (
 	"bytes"
 	"context"

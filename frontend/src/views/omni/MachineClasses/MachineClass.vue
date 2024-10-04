@@ -81,6 +81,7 @@ included in the LICENSE file.
             v-model:system-extensions="systemExtensions"
             v-model:kernel-arguments="kernelArguments"
             v-model:talos-version="talosVersion"
+            v-model:grpc-tunnel="grpcTunnelMode"
             :provider-config="providerConfigs[infraProvider] || {}"
             @update:provider-config="value => { providerConfigs[infraProvider!] = value }"
             v-model:initial-labels="initialLabels"
@@ -101,7 +102,7 @@ included in the LICENSE file.
 import { Resource, ResourceService } from "@/api/grpc";
 import { withRuntime } from "@/api/options";
 import { Runtime } from "@/api/common/omni.pb";
-import { MachineClassSpec } from "@/api/omni/specs/omni.pb";
+import { GrpcTunnelMode, MachineClassSpec } from "@/api/omni/specs/omni.pb";
 import { DefaultNamespace, MachineStatusType, MachineClassType, InfraProviderStatusType, InfraProviderNamespace, DefaultTalosVersion, LabelsMeta } from "@/api/resources";
 import ItemWatch, { itemID } from "@/api/watch";
 import { computed, ref, nextTick, Ref, watch, ComputedRef } from "vue";
@@ -170,6 +171,7 @@ const systemExtensions = ref<string[]>([]);
 const talosVersion = ref<string>(DefaultTalosVersion);
 const kernelArguments = ref<string>("");
 const initialLabels = ref<Record<string, any>>({});
+const grpcTunnelMode = ref<GrpcTunnelMode>(GrpcTunnelMode.UNSET);
 
 const providerConfigs: Record<string, Record<string, any>> = {};
 
@@ -463,6 +465,7 @@ const submit = async () => {
       talos_version: talosVersion.value,
       extensions: systemExtensions.value,
       idle_machine_count: idleMachineCount.value,
+      grpc_tunnel: grpcTunnelMode.value,
     }
 
     if (kernelArguments.value) {

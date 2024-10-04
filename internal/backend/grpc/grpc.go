@@ -6,7 +6,6 @@
 // Package grpc implements gRPC server.
 package grpc
 
-//nolint:gci
 import (
 	"compress/gzip"
 	"context"

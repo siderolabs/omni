@@ -12,6 +12,7 @@ message MachineRequestSpec {
   repeated string kernel_args = 4;
   repeated specs.MetaValue meta_values = 5;
   string provider_data = 6;
+  GrpcTunnelMode grpc_tunnel = 7;
 }
 
 message MachineRequestStatusSpec {

@@ -54,6 +54,7 @@ type ClusterOptions struct {
 	BeforeClusterCreateFunc BeforeClusterCreateFunc
 
 	InfraProvider string
+	ProviderData  string
 }
 
 // MachineOptions are the options for machine creation.
@@ -154,7 +155,7 @@ func CreateClusterWithMachineClass(testCtx context.Context, st state.State, opti
 				r.TypedSpec().Value.AutoProvision = &specs.MachineClassSpec_Provision{
 					ProviderId:   options.InfraProvider,
 					TalosVersion: options.MachineOptions.TalosVersion,
-					ProviderData: "{}",
+					ProviderData: options.ProviderData,
 				}
 
 				return nil

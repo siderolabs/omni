@@ -50,4 +50,8 @@ message ConnectionParamsSpec {
   string join_token = 4;
   // UseGRPCTunnel is a flag to enable gRPC tunneling.
   bool use_grpc_tunnel = 5;
+  // EventsPort is the siderolink events port.
+  int32 events_port = 9;
+  // LogsPort is the logs port.
+  int32 logs_port = 10;
 }

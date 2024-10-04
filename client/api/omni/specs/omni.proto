@@ -7,6 +7,7 @@ import "talos/machine/machine.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/duration.proto";
 
+
 // MachineSpec describes a Machine.
 message MachineSpec {
   // IP which can be used to access Talos API.
@@ -1001,6 +1002,8 @@ message MachineClassSpec {
     uint32 idle_machine_count = 6;
 
     string provider_data = 7;
+
+    GrpcTunnelMode grpc_tunnel = 8;
   }
 
   // MatchLabels is the list of labels to match the machine to make it part of the machine class.
@@ -1201,6 +1204,7 @@ message MachineRequestSetSpec {
   repeated MetaValue meta_values = 7;
 
   string provider_data = 8;
+  GrpcTunnelMode grpc_tunnel = 9;
 }
 
 // MachineRequestSetStatusSpec describes the status of the machine request set.
@@ -1220,4 +1224,10 @@ message ClusterDiagnosticsSpec {
 message MachineRequestSetPressureSpec {
   // RequiredMachines is the number of machines required by all machine sets which are using the request set.
   uint32 required_machines = 1;
+}
+
+enum GrpcTunnelMode {
+  UNSET = 0;
+  ENABLED = 1;
+  DISABLED = 2;
 }

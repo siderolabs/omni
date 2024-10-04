@@ -69,6 +69,7 @@ type Options struct {
 	AnotherKubernetesVersion string
 	OmnictlPath              string
 	InfraProvider            string
+	ProviderData             string
 }
 
 // Run the integration tests.
@@ -564,6 +565,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						InfraProvider: options.InfraProvider,
 
 						MachineOptions: options.MachineOptions,
+						ProviderData:   options.ProviderData,
 					}),
 				},
 			).Append(
@@ -583,6 +585,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						Workers:        1,
 						InfraProvider:  options.InfraProvider,
 						MachineOptions: options.MachineOptions,
+						ProviderData:   options.ProviderData,
 					}),
 				},
 			).Append(
@@ -601,6 +604,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						ControlPlanes:  2,
 						Workers:        0,
 						MachineOptions: options.MachineOptions,
+						ProviderData:   options.ProviderData,
 					}),
 				},
 			).Append(
@@ -620,6 +624,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						Workers:        -1,
 						InfraProvider:  options.InfraProvider,
 						MachineOptions: options.MachineOptions,
+						ProviderData:   options.ProviderData,
 					}),
 				},
 			).Append(
@@ -639,6 +644,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						Workers:        0,
 						InfraProvider:  options.InfraProvider,
 						MachineOptions: options.MachineOptions,
+						ProviderData:   options.ProviderData,
 					}),
 				},
 			).Append(

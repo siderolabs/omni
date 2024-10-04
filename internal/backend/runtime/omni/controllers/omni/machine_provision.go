@@ -47,6 +47,7 @@ func NewMachineProvisionController() *MachineProvisionController {
 				machineRequestSet.TypedSpec().Value.MetaValues = provision.MetaValues
 				machineRequestSet.TypedSpec().Value.TalosVersion = provision.TalosVersion
 				machineRequestSet.TypedSpec().Value.ProviderData = provision.ProviderData
+				machineRequestSet.TypedSpec().Value.GrpcTunnel = provision.GrpcTunnel
 
 				pressure, err := safe.ReaderGetByID[*omni.MachineRequestSetPressure](ctx, r, machineClass.Metadata().ID())
 				if err != nil && !state.IsNotFoundError(err) {

@@ -148,6 +148,7 @@ func (h *machineRequestSetStatusHandler) scaleUp(ctx context.Context, r controll
 				request.TypedSpec().Value.KernelArgs = machineRequestSet.TypedSpec().Value.KernelArgs
 				request.TypedSpec().Value.MetaValues = machineRequestSet.TypedSpec().Value.MetaValues
 				request.TypedSpec().Value.ProviderData = machineRequestSet.TypedSpec().Value.ProviderData
+				request.TypedSpec().Value.GrpcTunnel = machineRequestSet.TypedSpec().Value.GrpcTunnel
 
 				request.Metadata().Labels().Set(omni.LabelInfraProviderID, machineRequestSet.TypedSpec().Value.ProviderId)
 				request.Metadata().Labels().Set(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())

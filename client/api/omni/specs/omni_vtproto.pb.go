@@ -1700,6 +1700,7 @@ func (m *MachineClassSpec_Provision) CloneVT() *MachineClassSpec_Provision {
 	r.TalosVersion = m.TalosVersion
 	r.IdleMachineCount = m.IdleMachineCount
 	r.ProviderData = m.ProviderData
+	r.GrpcTunnel = m.GrpcTunnel
 	if rhs := m.Extensions; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -2236,6 +2237,7 @@ func (m *MachineRequestSetSpec) CloneVT() *MachineRequestSetSpec {
 	r.MachineCount = m.MachineCount
 	r.TalosVersion = m.TalosVersion
 	r.ProviderData = m.ProviderData
+	r.GrpcTunnel = m.GrpcTunnel
 	if rhs := m.Extensions; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -4689,6 +4691,9 @@ func (this *MachineClassSpec_Provision) EqualVT(that *MachineClassSpec_Provision
 	if this.ProviderData != that.ProviderData {
 		return false
 	}
+	if this.GrpcTunnel != that.GrpcTunnel {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -5398,6 +5403,9 @@ func (this *MachineRequestSetSpec) EqualVT(that *MachineRequestSetSpec) bool {
 		}
 	}
 	if this.ProviderData != that.ProviderData {
+		return false
+	}
+	if this.GrpcTunnel != that.GrpcTunnel {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -10103,6 +10111,11 @@ func (m *MachineClassSpec_Provision) MarshalToSizedBufferVT(dAtA []byte) (int, e
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.GrpcTunnel != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.GrpcTunnel))
+		i--
+		dAtA[i] = 0x40
+	}
 	if len(m.ProviderData) > 0 {
 		i -= len(m.ProviderData)
 		copy(dAtA[i:], m.ProviderData)
@@ -11425,6 +11438,11 @@ func (m *MachineRequestSetSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.GrpcTunnel != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.GrpcTunnel))
+		i--
+		dAtA[i] = 0x48
 	}
 	if len(m.ProviderData) > 0 {
 		i -= len(m.ProviderData)
@@ -13485,6 +13503,9 @@ func (m *MachineClassSpec_Provision) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if m.GrpcTunnel != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.GrpcTunnel))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -13998,6 +14019,9 @@ func (m *MachineRequestSetSpec) SizeVT() (n int) {
 	l = len(m.ProviderData)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.GrpcTunnel != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.GrpcTunnel))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -25794,6 +25818,25 @@ func (m *MachineClassSpec_Provision) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ProviderData = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GrpcTunnel", wireType)
+			}
+			m.GrpcTunnel = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.GrpcTunnel |= GrpcTunnelMode(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -28960,6 +29003,25 @@ func (m *MachineRequestSetSpec) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ProviderData = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GrpcTunnel", wireType)
+			}
+			m.GrpcTunnel = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.GrpcTunnel |= GrpcTunnelMode(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

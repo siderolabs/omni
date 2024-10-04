@@ -92,6 +92,7 @@ func (backend *TalosBackend) GetConnection(ctx context.Context, fullMethodName s
 	_, err := backend.verifier(ctx, nil, nil,
 		func(innerCtx context.Context, _ any) (any, error) {
 			// save enhanced context
+			//nolint:fatcontext
 			ctx = innerCtx
 
 			return nil, nil //nolint:nilnil

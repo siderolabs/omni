@@ -40,6 +40,12 @@ export enum ConditionType {
   WireguardConnection = 2,
 }
 
+export enum GrpcTunnelMode {
+  UNSET = 0,
+  ENABLED = 1,
+  DISABLED = 2,
+}
+
 export enum MachineStatusSpecRole {
   NONE = 0,
   CONTROL_PLANE = 1,
@@ -629,6 +635,7 @@ export type MachineClassSpecProvision = {
   meta_values?: MetaValue[]
   idle_machine_count?: number
   provider_data?: string
+  grpc_tunnel?: GrpcTunnelMode
 }
 
 export type MachineClassSpec = {
@@ -766,6 +773,7 @@ export type MachineRequestSetSpec = {
   kernel_args?: string[]
   meta_values?: MetaValue[]
   provider_data?: string
+  grpc_tunnel?: GrpcTunnelMode
 }
 
 export type MachineRequestSetStatusSpec = {

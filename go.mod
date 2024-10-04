@@ -11,7 +11,6 @@ replace (
 )
 
 require (
-	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	filippo.io/age v1.2.0
 	github.com/ProtonMail/gopenpgp/v2 v2.7.5
 	github.com/adrg/xdg v0.5.0
@@ -57,6 +56,7 @@ require (
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/prometheus/client_golang v1.20.2
 	github.com/prometheus/common v0.57.0
+	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/siderolabs/crypto v0.4.4
 	github.com/siderolabs/discovery-api v0.1.4
 	github.com/siderolabs/discovery-client v0.1.9

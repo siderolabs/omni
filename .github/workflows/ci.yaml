@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-09-30T14:56:12Z by kres 8be5fa7.
+# Generated on 2024-10-07T18:59:07Z by kres 34e72ac.
 
 name: default
 concurrency:
@@ -190,8 +190,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           cd _out
-          sha256sum omnictl-* omni-* > sha256sum.txt
-          sha512sum omnictl-* omni-* > sha512sum.txt
+          sha256sum omnictl-* omni-* integration-* > sha256sum.txt
+          sha512sum omnictl-* omni-* integration-* > sha512sum.txt
       - name: release-notes
         if: startsWith(github.ref, 'refs/tags/')
         run: |
@@ -205,6 +205,7 @@ jobs:
           files: |-
             _out/omnictl-*
             _out/omni-*
+            _out/integration-*
             _out/sha*.txt
   e2e-backups:
     runs-on:

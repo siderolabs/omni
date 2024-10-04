@@ -589,9 +589,9 @@ type resourceAuthzTestCase struct {
 //
 //nolint:gocognit,gocyclo,cyclop,maintidx
 func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, clientConfig *clientconfig.ClientConfig) TestFunc {
-	return func(t *testing.T) {
-		rootCtx = metadata.NewOutgoingContext(rootCtx, metadata.Pairs(grpcutil.LogLevelOverrideMetadataKey, zapcore.PanicLevel.String()))
+	rootCtx = metadata.NewOutgoingContext(rootCtx, metadata.Pairs(grpcutil.LogLevelOverrideMetadataKey, zapcore.PanicLevel.String()))
 
+	return func(t *testing.T) {
 		allRoles := []role.Role{role.None, role.Reader, role.Operator, role.Admin}
 		allVerbs := []state.Verb{state.Get, state.List, state.Create, state.Update, state.Destroy}
 
@@ -1151,9 +1151,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 
 // AssertResourceAuthzWithACL tests the authorization checks of with ACLs.
 func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client, clientConfig *clientconfig.ClientConfig) TestFunc {
-	return func(t *testing.T) {
-		ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs(grpcutil.LogLevelOverrideMetadataKey, zapcore.PanicLevel.String()))
+	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs(grpcutil.LogLevelOverrideMetadataKey, zapcore.PanicLevel.String()))
 
+	return func(t *testing.T) {
 		rootState := rootCli.Omni().State()
 
 		testID := "acl-test-" + uuid.NewString()

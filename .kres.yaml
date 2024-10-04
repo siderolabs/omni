@@ -486,6 +486,7 @@ spec:
   artifacts:
     - omnictl-*
     - omni-*
+    - integration-*
 ---
 kind: common.Image
 name: image-omni

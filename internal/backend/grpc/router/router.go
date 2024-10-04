@@ -186,11 +186,11 @@ func (r *Router) getTalosBackend(ctx context.Context, md metadata.MD) ([]proxy.B
 	}
 
 	ch := r.sf.DoChan(id, func() (any, error) {
-		ctx = actor.MarkContextAsInternalActor(ctx)
+		innerCtx := actor.MarkContextAsInternalActor(ctx)
 
 		r.metricCacheMisses.Inc()
 
-		conn, err := r.getConn(ctx, clusterName)
+		conn, err := r.getConn(innerCtx, clusterName)
 		if err != nil {
 			return nil, err
 		}

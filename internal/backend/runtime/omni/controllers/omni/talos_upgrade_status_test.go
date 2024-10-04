@@ -123,7 +123,7 @@ func (suite *TalosUpgradeStatusSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, extensions))
 
-	for i := range len(machines) {
+	for i := range machines {
 		expectedSchematic := defaultSchematic
 		if i == 1 {
 			expectedSchematic = "c6ee5f479027e5ca84e5518c3a56d62e2283b6d30a5846e6295aa7113735df40"

@@ -5,7 +5,6 @@
 
 package audit
 
-//nolint:gci
 import (
 	"io/fs"
 	"iter"

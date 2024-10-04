@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
+	"regexp"
 	"strings"
 	"time"
 	"unicode"
@@ -1047,13 +1048,16 @@ func validateProviderData(ctx context.Context, st state.State, providerID, provi
 			return fmt.Errorf("failed to load json schema for provider %q: %w", providerID, err)
 		}
 
+		// NaN type causes jsonschema validator to crash with nil reference error
+		providerData = regexp.MustCompile(`(?i)\.nan`).ReplaceAllString(providerData, "null")
+
 		var v interface{}
 		if err = yaml.Unmarshal([]byte(providerData), &v); err != nil {
 			return fmt.Errorf("failed to unmarshal provider data %w", err)
 		}
 
 		if v == nil {
-			v = map[string]interface{}{}
+			v = map[string]any{}
 		}
 
 		if err = schema.Validate(v); err != nil {

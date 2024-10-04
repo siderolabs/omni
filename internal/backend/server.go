@@ -6,7 +6,6 @@
 // Package backend contains all internal backend code.
 package backend
 
-//nolint:gci
 import (
 	"compress/gzip"
 	"context"

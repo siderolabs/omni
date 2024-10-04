@@ -77,12 +77,18 @@ func WithOverlay(overlay schematic.Overlay) SchematicOption {
 	}
 }
 
+// ConnectionParams represents kernel params and join config for making the machine join Omni.
+type ConnectionParams struct {
+	KernelArgs string
+	JoinConfig string
+}
+
 // NewContext creates a new provision context.
 func NewContext[T resource.Resource](
 	machineRequest *infra.MachineRequest,
 	machineRequestStatus *infra.MachineRequestStatus,
 	state T,
-	connectionParams string,
+	connectionParams ConnectionParams,
 	imageFactory FactoryClient,
 ) Context[T] {
 	return Context[T]{
@@ -100,7 +106,7 @@ type Context[T resource.Resource] struct {
 	imageFactory         FactoryClient
 	MachineRequestStatus *infra.MachineRequestStatus
 	State                T
-	ConnectionParams     string
+	ConnectionParams     ConnectionParams
 }
 
 // GetRequestID returns machine request id.
@@ -189,7 +195,7 @@ func (context *Context[T]) GenerateSchematicID(ctx context.Context, logger *zap.
 	if !schematicOptions.skipConnectionParams {
 		res.Customization.ExtraKernelArgs = append(
 			res.Customization.ExtraKernelArgs,
-			strings.Split(context.ConnectionParams, " ")...,
+			strings.Split(context.ConnectionParams.KernelArgs, " ")...,
 		)
 	}
 

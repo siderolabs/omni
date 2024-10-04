@@ -5,10 +5,14 @@
 package siderolink_test
 
 import (
+	"bytes"
+	"errors"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -21,6 +25,7 @@ func TestConnectionParamsKernelArgs(t *testing.T) {
 		name         string
 		expectedArgs string
 		expectError  bool
+		grpcTunnel   specs.GrpcTunnelMode
 	}{
 		{
 			spec: &specs.ConnectionParamsSpec{
@@ -41,6 +46,17 @@ func TestConnectionParamsKernelArgs(t *testing.T) {
 			expectedArgs: "siderolink.api=https://127.0.0.1:8099?jointoken=v1%3AeyJleHRyYV9kYXRhIjp7Im" +
 				"9tbmkuc2lkZXJvLmRldi9pbmZyYS1wcm92aWRlci1pZCI6InRlc3QifSwic2lnbmF0dXJlIjoiWTNpZ285V2xJSVZ" +
 				"OWWpXZmgyWlg5NnpnWW5UQjlwWTI3ZEJaVnJwNDJMZz0ifQ%3D%3D a=b",
+		},
+		{
+			spec: &specs.ConnectionParamsSpec{
+				Args:      "siderolink.api=https://127.0.0.1:8099?jointoken=abcd a=b",
+				JoinToken: "abcd",
+			},
+			name: "secure",
+			expectedArgs: "siderolink.api=https://127.0.0.1:8099?grpc_tunnel=true&jointoken=v1%3AeyJleHRyYV9kYXRhIjp7Im" +
+				"9tbmkuc2lkZXJvLmRldi9pbmZyYS1wcm92aWRlci1pZCI6InRlc3QifSwic2lnbmF0dXJlIjoiWTNpZ285V2xJSVZ" +
+				"OWWpXZmgyWlg5NnpnWW5UQjlwWTI3ZEJaVnJwNDJMZz0ifQ%3D%3D a=b",
+			grpcTunnel: specs.GrpcTunnelMode_ENABLED,
 		},
 		{
 			spec:        &specs.ConnectionParamsSpec{},
@@ -73,7 +89,7 @@ func TestConnectionParamsKernelArgs(t *testing.T) {
 			connectionParams := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
 			connectionParams.TypedSpec().Value = tt.spec
 
-			args, err := siderolink.GetConnectionArgsForProvider(connectionParams, "test")
+			args, err := siderolink.GetConnectionArgsForProvider(connectionParams, "test", tt.grpcTunnel)
 
 			if tt.expectError {
 				require.Error(t, err, args)
@@ -83,6 +99,78 @@ func TestConnectionParamsKernelArgs(t *testing.T) {
 
 			require.NoError(t, err)
 			require.Equal(t, tt.expectedArgs, args)
+		})
+	}
+}
+
+func TestConnectionParamsJoinConfig(t *testing.T) {
+	for _, tt := range []struct {
+		spec           *specs.ConnectionParamsSpec
+		name           string
+		expectedConfig string
+		expectError    bool
+		grpcTunnel     specs.GrpcTunnelMode
+	}{
+		{
+			spec: &specs.ConnectionParamsSpec{
+				Args:        "siderolink.api=https://127.0.0.1:8099?jointoken=abcd a=b",
+				JoinToken:   "abcd",
+				ApiEndpoint: "https://127.0.0.1:8099",
+				LogsPort:    8093,
+				EventsPort:  8094,
+			},
+			name: "secure",
+			//nolint:lll
+			expectedConfig: `apiVersion: v1alpha1
+kind: SideroLinkConfig
+apiUrl: https://127.0.0.1:8099?grpc_tunnel=true&jointoken=v1%3AeyJleHRyYV9kYXRhIjp7Im9tbmkuc2lkZXJvLmRldi9pbmZyYS1wcm92aWRlci1pZCI6InRlc3QifSwic2lnbmF0dXJlIjoiWTNpZ285V2xJSVZOWWpXZmgyWlg5NnpnWW5UQjlwWTI3ZEJaVnJwNDJMZz0ifQ%3D%3D
+---
+apiVersion: v1alpha1
+kind: EventSinkConfig
+endpoint: '[fdae:41e4:649b:9303::1]:8094'
+---
+apiVersion: v1alpha1
+kind: KmsgLogConfig
+name: omni-kmsg
+url: tcp://[fdae:41e4:649b:9303::1]:8093
+`,
+			grpcTunnel: specs.GrpcTunnelMode_ENABLED,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			connectionParams := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
+			connectionParams.TypedSpec().Value = tt.spec
+
+			config, err := siderolink.GetJoinConfigForProvider(connectionParams, "test", tt.grpcTunnel)
+
+			if tt.expectError {
+				require.Error(t, err, config)
+
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, tt.expectedConfig, config)
+
+			dec := yaml.NewDecoder(bytes.NewBufferString(config))
+
+			for i := range 5 {
+				var dest any
+
+				err = dec.Decode(&dest)
+
+				if errors.Is(err, io.EOF) {
+					break
+				}
+
+				require.NoError(t, err)
+
+				if i > 3 {
+					t.Errorf("found extra documents")
+
+					t.FailNow()
+				}
+			}
 		})
 	}
 }

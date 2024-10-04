@@ -52,6 +52,7 @@ var rootCmd = &cobra.Command{
 				AnotherKubernetesVersion: rootCmdFlags.anotherKubernetesVersion,
 				OmnictlPath:              rootCmdFlags.omnictlPath,
 				InfraProvider:            rootCmdFlags.infraProvider,
+				ProviderData:             rootCmdFlags.providerData,
 			}
 
 			if rootCmdFlags.restartAMachineScript != "" {
@@ -119,6 +120,7 @@ var rootCmdFlags struct {
 	endpoint       string
 	runTestPattern string
 	infraProvider  string
+	providerData   string
 
 	provisionMachinesCount int
 	expectedMachines       int
@@ -164,6 +166,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&rootCmdFlags.runStatsCheck, "run-stats-check", false, "runs stats check after the test is complete")
 	rootCmd.Flags().IntVar(&rootCmdFlags.provisionMachinesCount, "provision-machines", 0, "provisions machines through the infrastructure provider")
 	rootCmd.Flags().StringVar(&rootCmdFlags.infraProvider, "infra-provider", "talemu", "use infra provider with the specified ID when provisioning the machines")
+	rootCmd.Flags().StringVar(&rootCmdFlags.providerData, "provider-data", "{}", "the infra provider machine template data to use")
 }
 
 // withContext wraps with CLI context.

@@ -20,6 +20,7 @@ export type MachineRequestSpec = {
   kernel_args?: string[]
   meta_values?: SpecsOmni.MetaValue[]
   provider_data?: string
+  grpc_tunnel?: SpecsOmni.GrpcTunnelMode
 }
 
 export type MachineRequestStatusSpec = {

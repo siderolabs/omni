@@ -120,6 +120,10 @@ func (ctrl *ProvisionController[T]) Reconcile(ctx context.Context,
 		return err
 	}
 
+	if providerID, ok := machineRequest.Metadata().Labels().Get(omni.LabelInfraProviderID); !ok || providerID != ctrl.providerID {
+		return nil
+	}
+
 	if machineRequest.Metadata().Phase() == resource.PhaseTearingDown {
 		return ctrl.reconcileTearingDown(ctx, r, logger, machineRequest)
 	}
@@ -143,7 +147,7 @@ func (ctrl *ProvisionController[T]) Reconcile(ctx context.Context,
 func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r controller.QRuntime, logger *zap.Logger,
 	machineRequest *infra.MachineRequest, machineRequestStatus *infra.MachineRequestStatus,
 ) error {
-	connectionParams, err := ctrl.getConnectionArgs(ctx, r)
+	connectionParams, err := ctrl.getConnectionArgs(ctx, r, machineRequest)
 	if err != nil {
 		return err
 	}
@@ -268,13 +272,26 @@ func (ctrl *ProvisionController[T]) initializeStatus(ctx context.Context, r cont
 	})
 }
 
-func (ctrl *ProvisionController[T]) getConnectionArgs(ctx context.Context, r controller.QRuntime) (string, error) {
+func (ctrl *ProvisionController[T]) getConnectionArgs(ctx context.Context, r controller.QRuntime, request *infra.MachineRequest) (provision.ConnectionParams, error) {
 	connectionParams, err := safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, r, siderolink.ConfigID)
 	if err != nil {
-		return "", err
+		return provision.ConnectionParams{}, err
 	}
 
-	return siderolink.GetConnectionArgsForProvider(connectionParams, ctrl.providerID)
+	kernelArgs, err := siderolink.GetConnectionArgsForProvider(connectionParams, ctrl.providerID, request.TypedSpec().Value.GrpcTunnel)
+	if err != nil {
+		return provision.ConnectionParams{}, err
+	}
+
+	joinConfig, err := siderolink.GetJoinConfigForProvider(connectionParams, ctrl.providerID, request.TypedSpec().Value.GrpcTunnel)
+	if err != nil {
+		return provision.ConnectionParams{}, err
+	}
+
+	return provision.ConnectionParams{
+		KernelArgs: kernelArgs,
+		JoinConfig: joinConfig,
+	}, nil
 }
 
 func (ctrl *ProvisionController[T]) reconcileTearingDown(ctx context.Context, r controller.QRuntime, logger *zap.Logger, machineRequest *infra.MachineRequest) error {

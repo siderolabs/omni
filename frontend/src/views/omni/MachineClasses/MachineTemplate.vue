@@ -37,6 +37,14 @@ included in the LICENSE file.
         </span>
         <labels :model-value="initialLabels" @update:model-value="value => $emit('update:initial-labels', value)"/>
       </div>
+      <div>
+        <span>
+          Use gRPC Tunnel
+        </span>
+        <t-select-list
+        menu-align="right" class="h-6"
+         :values="[GRPCTunnelMode.Default, GRPCTunnelMode.Enabled, GRPCTunnelMode.Disabled]" :default-value="defaultTunnelMode" @checked-value="updateGRPCTunnelMode"/>
+      </div>
     </div>
   </div>
   <div class="rounded bg-naturals-N2" v-if="infraProviderStatus?.spec.schema">
@@ -55,7 +63,7 @@ included in the LICENSE file.
 import { Resource } from "@/api/grpc";
 import { Runtime } from "@/api/common/omni.pb";
 import { InfraProviderStatusSpec } from "@/api/omni/specs/infra.pb";
-import { TalosVersionSpec } from "@/api/omni/specs/omni.pb";
+import { TalosVersionSpec, GrpcTunnelMode } from "@/api/omni/specs/omni.pb";
 import { DefaultNamespace, TalosVersionType, DefaultTalosVersion, InfraProviderStatusType, InfraProviderNamespace } from "@/api/resources";
 import { computed, ref, Ref, toRefs } from "vue";
 import TInput from "@/components/common/TInput/TInput.vue";
@@ -68,6 +76,12 @@ import JsonForm from "@/components/common/Form/JsonForm.vue";
 import MachineTemplateExtensions from "../Modals/MachineTemplateExtensions.vue";
 import { showModal } from "@/modal";
 
+enum GRPCTunnelMode {
+  Default = "Account Default",
+  Enabled = "Enabled",
+  Disabled = "Disabled"
+}
+
 const props = defineProps<{
   infraProvider: string,
   talosVersion: string
@@ -75,7 +89,21 @@ const props = defineProps<{
   initialLabels: Record<string, any>
   kernelArguments: string
   providerConfig: Record<string, any>
+  grpcTunnel: GrpcTunnelMode
 }>();
+
+const defaultTunnelMode = (() => {
+  switch (props.grpcTunnel) {
+  case GrpcTunnelMode.UNSET:
+    return GRPCTunnelMode.Default;
+  case GrpcTunnelMode.DISABLED:
+    return GRPCTunnelMode.Disabled;
+  case GrpcTunnelMode.ENABLED:
+    return GRPCTunnelMode.Enabled;
+  }
+
+  return GrpcTunnelMode.UNSET;
+})();
 
 const emit = defineEmits([
   "update:talos-version",
@@ -83,6 +111,7 @@ const emit = defineEmits([
   "update:kernel-arguments",
   "update:initial-labels",
   "update:provider-config",
+  "update:grpc-tunnel",
 ]);
 
 const {
@@ -165,6 +194,20 @@ const removeExtension = async (id: string) => {
 
   emit('update:system-extensions', [...systemExtensions.value].splice(index, 1));
 };
+
+const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
+  switch (value) {
+  case GRPCTunnelMode.Default:
+    emit("update:grpc-tunnel", GrpcTunnelMode.UNSET);
+    break;
+  case GRPCTunnelMode.Enabled:
+    emit("update:grpc-tunnel", GrpcTunnelMode.ENABLED);
+    break;
+  case GRPCTunnelMode.Disabled:
+    emit("update:grpc-tunnel", GrpcTunnelMode.DISABLED);
+    break;
+  }
+}
 </script>
 
 <style scoped>

@@ -1023,6 +1023,14 @@ func TestMachineClassValidation(t *testing.T) {
 	// invalid provider data
 
 	machineClass.TypedSpec().Value.AutoProvision.TalosVersion = "1.8.0"
+	machineClass.TypedSpec().Value.AutoProvision.ProviderData = `mem: .nan`
+
+	err = st.Create(ctx, machineClass)
+
+	require.Error(t, err)
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+
 	machineClass.TypedSpec().Value.AutoProvision.ProviderData = `
 disk: 1TB
 `

@@ -1,15 +1,15 @@
-# syntax = docker/dockerfile-upstream:1.9.0-labs
+# syntax = docker/dockerfile-upstream:1.10.0-labs
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-09-24T12:08:22Z by kres 8be5fa7.
+# Generated on 2024-10-07T18:59:07Z by kres 34e72ac.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
 
-FROM ghcr.io/siderolabs/ca-certificates:v1.7.0 AS image-ca-certificates
+FROM ghcr.io/siderolabs/ca-certificates:v1.8.0 AS image-ca-certificates
 
-FROM ghcr.io/siderolabs/fhs:v1.7.0 AS image-fhs
+FROM ghcr.io/siderolabs/fhs:v1.8.0 AS image-fhs
 
 # base toolchain image
 FROM --platform=${BUILDPLATFORM} ${JS_TOOLCHAIN} AS js-toolchain
@@ -20,7 +20,7 @@ ENV GOPATH=/go
 ENV PATH=${PATH}:/usr/local/go/bin
 
 # runs markdownlint
-FROM docker.io/oven/bun:1.1.26-alpine AS lint-markdown
+FROM docker.io/oven/bun:1.1.29-alpine AS lint-markdown
 WORKDIR /src
 RUN bun i markdownlint-cli@0.41.0 sentences-per-line@0.2.1
 COPY .markdownlint.json .

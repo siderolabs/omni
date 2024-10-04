@@ -5,9 +5,11 @@
 package infra_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"strings"
 	"sync"
@@ -28,6 +30,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
+	"gopkg.in/yaml.v3"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/infra"
@@ -57,7 +60,7 @@ type provisioner struct {
 }
 
 func validateConnectionParams(_ context.Context, _ *zap.Logger, pctx provision.Context[*TestResource]) error {
-	parts := strings.Split(pctx.ConnectionParams, " ")
+	parts := strings.Split(pctx.ConnectionParams.KernelArgs, " ")
 	if len(parts) == 0 {
 		return errors.New("invalid connection params")
 	}
@@ -93,6 +96,50 @@ func validateConnectionParams(_ context.Context, _ *zap.Logger, pctx provision.C
 
 	if value != providerID {
 		return fmt.Errorf("expected provider id %s got %s", providerID, value)
+	}
+
+	if pctx.ConnectionParams.JoinConfig == "" {
+		return fmt.Errorf("join config is empty")
+	}
+
+	dec := yaml.NewDecoder(bytes.NewBufferString(pctx.ConnectionParams.JoinConfig))
+
+	for {
+		var d struct {
+			APIVersion     string `yaml:"apiVersion"`
+			Kind           string `yaml:"kind"`
+			APIURL         string `yaml:"apiUrl"`
+			EventsEndpoint string `yaml:"endpoint"`
+			LogsURL        string `yaml:"url"`
+		}
+
+		if err = dec.Decode(&d); err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			return err
+		}
+
+		switch d.Kind {
+		case "SideroLinkConfig":
+			au, err := url.Parse(d.APIURL)
+			if err != nil {
+				return err
+			}
+
+			if au.String() != url.String() {
+				return fmt.Errorf("join config token, expected %s, got %s", url.String(), au.String())
+			}
+		case "EventSinkConfig":
+			if d.EventsEndpoint != "[fdae:41e4:649b:9303::1]:8091" {
+				return fmt.Errorf("event sink config is invalid: %q", d.EventsEndpoint)
+			}
+		case "KmsgLogConfig":
+			if d.LogsURL != "tcp://[fdae:41e4:649b:9303::1]:8092" {
+				return fmt.Errorf("logs config is invalid: %q", d.LogsURL)
+			}
+		}
 	}
 
 	return nil
@@ -227,6 +274,9 @@ func TestInfra(t *testing.T) {
 	connectionParams := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
 	connectionParams.TypedSpec().Value.JoinToken = "abcd"
 	connectionParams.TypedSpec().Value.Args = constants.KernelParamSideroLink + "=http://127.0.0.1:8099?jointoken=abcd"
+	connectionParams.TypedSpec().Value.ApiEndpoint = "http://127.0.0.1:8099"
+	connectionParams.TypedSpec().Value.LogsPort = 8092
+	connectionParams.TypedSpec().Value.EventsPort = 8091
 
 	require.NoError(t, state.Create(ctx, connectionParams))
 

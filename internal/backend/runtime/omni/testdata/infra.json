@@ -3,6 +3,9 @@
   "properties": {
     "size": {
       "enum": ["t2.small", "t3.large", "t4.xl"]
+    },
+    "mem": {
+      "type": "integer"
     }
   },
   "required": [
