@@ -113,7 +113,13 @@ export const setupLogStream = <R extends Data, T>(logs: Ref<LogLine[]>, method: 
         clearLogs = false;
 
         if (resp.bytes) {
-          buffer.push(...logParser.parse(window.atob(resp.bytes.toString())));
+          const line = window.atob(resp.bytes.toString());
+
+          try {
+            buffer.push(...logParser.parse(line));
+          } catch (e) {
+            console.error(`failed to parse line ${line}`);
+          }
         }
 
         // accumulate frequent updates and then flush them in a single call
