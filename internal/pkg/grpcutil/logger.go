@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
@@ -125,20 +126,39 @@ func InterceptBodyToTags(hook Hook, bodyLimit int) grpc.UnaryServerInterceptor {
 func setRealIPAddress(ctx context.Context) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if ok {
+		errCount := 0
+		tags := grpc_ctxtags.Extract(ctx)
+
 		for _, hdr := range []string{"x-forwarded-for", "x-real-ip"} {
-			peer := md.Get(hdr)
-			if len(peer) == 0 {
+			p := md.Get(hdr)
+			if len(p) == 0 {
 				continue
 			}
 
-			addr, err := netip.ParseAddr(peer[0])
+			addr, err := netip.ParseAddr(p[0])
 			if err != nil {
+				errCount++
+
 				continue
 			}
 
-			grpc_ctxtags.Extract(ctx).Set("peer.address", addr.String())
+			tags.Set("peer.address", addr.String())
 
-			break
+			return
+		}
+
+		p, ok := peer.FromContext(ctx)
+		if ok {
+			if _, err := netip.ParseAddr(p.Addr.String()); err == nil {
+				// IPv4 or IPv6 address, preserve it
+				return
+			}
+		}
+
+		if errCount == 0 {
+			tags.Set("peer.address", "<unknown_ip>")
+		} else {
+			tags.Set("peer.address", "<invalid_ip>")
 		}
 	}
 }
