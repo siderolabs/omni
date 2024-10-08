@@ -8,7 +8,10 @@ package grpcutil
 import (
 	"context"
 	"fmt"
+	"iter"
 	"net/netip"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/cosi-project/runtime/api/v1alpha1"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
@@ -125,41 +128,38 @@ func InterceptBodyToTags(hook Hook, bodyLimit int) grpc.UnaryServerInterceptor {
 
 func setRealIPAddress(ctx context.Context) {
 	md, ok := metadata.FromIncomingContext(ctx)
-	if ok {
-		errCount := 0
-		tags := grpc_ctxtags.Extract(ctx)
+	if !ok {
+		return
+	}
 
-		for _, hdr := range []string{"x-forwarded-for", "x-real-ip"} {
-			p := md.Get(hdr)
-			if len(p) == 0 {
-				continue
-			}
+	errCount := 0
+	tags := grpc_ctxtags.Extract(ctx)
 
-			addr, err := netip.ParseAddr(p[0])
-			if err != nil {
-				errCount++
+	if values := md.Get("x-forwarded-for"); len(values) > 0 {
+		for str := range splitSeq(values[0], ",") {
+			addr, err := netip.ParseAddr(strings.TrimSpace(str))
+			if err == nil {
+				grpc_ctxtags.Extract(ctx).Set("peer.address", addr.String())
 
-				continue
-			}
-
-			tags.Set("peer.address", addr.String())
-
-			return
-		}
-
-		p, ok := peer.FromContext(ctx)
-		if ok {
-			if _, err := netip.ParseAddr(p.Addr.String()); err == nil {
-				// IPv4 or IPv6 address, preserve it
 				return
 			}
-		}
 
-		if errCount == 0 {
-			tags.Set("peer.address", "<unknown_ip>")
-		} else {
-			tags.Set("peer.address", "<invalid_ip>")
+			errCount++
 		}
+	}
+
+	p, ok := peer.FromContext(ctx)
+	if ok {
+		if _, err := netip.ParseAddr(p.Addr.String()); err == nil {
+			// IPv4 or IPv6 address, preserve it
+			return
+		}
+	}
+
+	if errCount == 0 {
+		tags.Set("peer.address", "<unknown_ip>")
+	} else {
+		tags.Set("peer.address", "<invalid_ip>")
 	}
 }
 
@@ -270,5 +270,53 @@ func LogLevelInterceptors() (grpc.UnaryServerInterceptor, grpc.StreamServerInter
 func SetAuditData() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		return handler(SetAuditInCtx(ctx), req)
+	}
+}
+
+// splitSeq returns an iterator over the substrings of s separated by sep. It's a strings.SpletSeq from Go 1.24
+//
+// TODO: remove this function once we upgrade to Go 1.24.
+func splitSeq(s, sep string) iter.Seq[string] {
+	return splitSeqSave(s, sep, 0)
+}
+
+// TODO: remove this function once we upgrade to Go 1.24.
+func splitSeqSave(s, sep string, sepSave int) iter.Seq[string] {
+	if len(sep) == 0 {
+		return explodeSeq(s)
+	}
+
+	return func(yield func(string) bool) {
+		for {
+			i := strings.Index(s, sep)
+
+			if i < 0 {
+				break
+			}
+
+			frag := s[:i+sepSave]
+
+			if !yield(frag) {
+				return
+			}
+
+			s = s[i+len(sep):]
+		}
+
+		yield(s)
+	}
+}
+
+// TODO: remove this function once we upgrade to Go 1.24.
+func explodeSeq(s string) iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for len(s) > 0 {
+			_, size := utf8.DecodeRuneInString(s)
+			if !yield(s[:size]) {
+				return
+			}
+
+			s = s[size:]
+		}
 	}
 }

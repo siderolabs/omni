@@ -716,10 +716,6 @@ func (manager *Manager) getLink(ctx context.Context, req *pb.ProvisionRequest, i
 
 func getRemoteAddr(ctx context.Context) string {
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		if vals := md.Get("X-Real-IP"); vals != nil {
-			return vals[0]
-		}
-
 		if vals := md.Get("X-Forwarded-For"); vals != nil {
 			return vals[0]
 		}

@@ -28,7 +28,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	remoteAddr := r.RemoteAddr
 	remoteAddr, _, _ = net.SplitHostPort(remoteAddr) //nolint:errcheck
 
-	if realIP := r.Header.Get("X-Real-IP"); realIP != "" {
+	if realIP := r.Header.Get("X-Forwarded-For"); realIP != "" {
 		remoteAddr = realIP
 	}
 

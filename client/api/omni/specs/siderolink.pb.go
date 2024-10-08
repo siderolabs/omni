@@ -130,7 +130,7 @@ type SiderolinkSpec struct {
 	Connected       bool   `protobuf:"varint,4,opt,name=connected,proto3" json:"connected,omitempty"`
 	VirtualAddrport string `protobuf:"bytes,7,opt,name=virtual_addrport,json=virtualAddrport,proto3" json:"virtual_addrport,omitempty"`
 	// RemoteAddr is the machine address how it's visible from Omni
-	// it is determined by reading X-Real-IP header coming from the gRPC API.
+	// it is determined by reading X-Forwarded-For header coming from the gRPC API.
 	RemoteAddr string `protobuf:"bytes,8,opt,name=remote_addr,json=remoteAddr,proto3" json:"remote_addr,omitempty"`
 }
 

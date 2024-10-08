@@ -26,7 +26,7 @@ message SiderolinkSpec {
   reserved 6;
   string virtual_addrport = 7;
   // RemoteAddr is the machine address how it's visible from Omni
-  // it is determined by reading X-Real-IP header coming from the gRPC API.
+  // it is determined by reading X-Forwarded-For header coming from the gRPC API.
   string remote_addr = 8;
 }
 

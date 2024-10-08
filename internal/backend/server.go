@@ -902,10 +902,10 @@ func runK8sProxyServer(
 	return (&server{server: k8sProxyServer, certData: data}).Run(ctx, logger)
 }
 
-// setRealIPRequest extracts ip from the request and sets it to the X-Real-IP header if there is neither X-Real-IP nore
-// X-Forwarded-For.
+// setRealIPRequest extracts ip from the request and sets it to the X-Forwarded-For header if there is no
+// existing X-Forwarded-For.
 func setRealIPRequest(req *http.Request) *http.Request {
-	if req.Header.Get("X-Real-IP") != "" || req.Header.Get("X-Forwarded-For") != "" {
+	if req.Header.Get("X-Forwarded-For") != "" {
 		return req
 	}
 
@@ -916,7 +916,7 @@ func setRealIPRequest(req *http.Request) *http.Request {
 
 	newReq := req.Clone(req.Context())
 
-	newReq.Header.Set("X-Real-IP", actualIP)
+	newReq.Header.Set("X-Forwarded-For", actualIP)
 
 	return newReq
 }
