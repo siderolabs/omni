@@ -13,6 +13,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
+	"github.com/siderolabs/omni/internal/pkg/xcontext"
 )
 
 // Store wraps [Store] and encrypts the data from [io.Reader] before passing it to
@@ -36,7 +37,8 @@ func (c *Store) Upload(ctx context.Context, descr etcdbackup.Description, r io.R
 	reader, writer := io.Pipe()
 
 	// Close writer if ctx is canceled, so that EncryptEtcdBackup can unblock and return.
-	context.AfterFunc(ctx, func() { writer.CloseWithError(ctx.Err()) })
+	stop := xcontext.AfterFuncSync(ctx, func() { writer.CloseWithError(ctx.Err()) })
+	defer stop()
 
 	eg.Go(func() error {
 		err := Encrypt(writer, descr.EncryptionData, r)

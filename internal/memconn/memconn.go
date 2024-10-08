@@ -7,6 +7,7 @@
 package memconn
 
 import (
+	"context"
 	"errors"
 	"net"
 
@@ -32,13 +33,13 @@ func (l *Transport) Listener() (net.Listener, error) {
 	return memconn.Listen("memu", l.address)
 }
 
-// Dial creates a new connection.
-func (l *Transport) Dial() (net.Conn, error) {
+// DialContext creates a new connection.
+func (l *Transport) DialContext(ctx context.Context) (net.Conn, error) {
 	if l.address == "" {
 		return nil, errors.New("address is not set")
 	}
 
-	return memconn.Dial("memu", l.address)
+	return memconn.DialContext(ctx, "memu", l.address)
 }
 
 // Address returns the address. Since this is a memory-based connection, the address is always "passthrough:" + address,

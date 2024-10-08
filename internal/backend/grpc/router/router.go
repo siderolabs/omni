@@ -86,8 +86,8 @@ func NewRouter(
 	verifier grpc.UnaryServerInterceptor,
 ) (*Router, error) {
 	omniConn, err := grpc.NewClient(transport.Address(),
-		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
-			return transport.Dial()
+		grpc.WithContextDialer(func(dctx context.Context, _ string) (net.Conn, error) {
+			return transport.DialContext(dctx)
 		}),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(

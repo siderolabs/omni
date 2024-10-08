@@ -127,8 +127,8 @@ var rootCmd = &cobra.Command{
 
 		signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
-		ctx, stop := context.WithCancel(context.Background())
-		defer stop()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 
 		// do not use signal.NotifyContext as it doesn't support any ways to log the received signal
 		panichandler.Go(func() {
@@ -136,7 +136,7 @@ var rootCmd = &cobra.Command{
 
 			logger.Warn("signal received, stopping Omni", zap.String("signal", s.String()))
 
-			stop()
+			cancel()
 		}, logger)
 
 		panichandler.Go(func() {

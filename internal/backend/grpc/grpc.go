@@ -6,10 +6,12 @@
 // Package grpc implements gRPC server.
 package grpc
 
+//nolint:gci
 import (
 	"compress/gzip"
 	"context"
 	"fmt"
+	"iter"
 	"math"
 	"net"
 	"net/http"
@@ -50,13 +52,15 @@ func MakeServiceServers(
 	imageFactoryClient *imagefactory.Client,
 	logger *zap.Logger,
 	auditor AuditLogger,
-) ([]ServiceServer, error) {
+) iter.Seq2[ServiceServer, error] {
 	dest, err := generateDest(config.Config.APIURL)
 	if err != nil {
-		return nil, err
+		return func(yield func(ServiceServer, error) bool) {
+			yield(nil, fmt.Errorf("error generating destination: %w", err))
+		}
 	}
 
-	return []ServiceServer{
+	servers := []ServiceServer{
 		&ResourceServer{},
 		&oidcServer{
 			provider: oidcProvider,
@@ -78,17 +82,25 @@ func MakeServiceServers(
 		&COSIResourceServer{
 			State: cachedState,
 		},
-	}, nil
-}
-
-// New creates new grpc server and registers all routes.
-func New(ctx context.Context, mux *http.ServeMux, servers []ServiceServer, transport *memconn.Transport, logger *zap.Logger, options ...grpc.ServerOption) (*grpc.Server, error) {
-	server := grpc.NewServer(options...)
-
-	for _, srv := range servers {
-		srv.register(server)
+		&machineService{},
 	}
 
+	return func(yield func(ServiceServer, error) bool) {
+		for _, server := range servers {
+			if !yield(server, err) {
+				break
+			}
+		}
+	}
+}
+
+// RegisterGateway registers all routes and returns connection fwhich gRPC server should listen on.
+func RegisterGateway(
+	ctx context.Context,
+	servers iter.Seq2[ServiceServer, error],
+	registerTo *http.ServeMux,
+	logger *zap.Logger,
+) (*memconn.Transport, error) {
 	marshaller := &gateway.JSONPb{
 		MarshalOptions: protojson.MarshalOptions{
 			UseProtoNames:  true,
@@ -98,28 +110,29 @@ func New(ctx context.Context, mux *http.ServeMux, servers []ServiceServer, trans
 	runtimeMux := gateway.NewServeMux(
 		gateway.WithMarshalerOption(gateway.MIMEWildcard, marshaller),
 	)
+	memtrans := memconn.NewTransport("gateway-conn")
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		// we are proxying requests to ourselves, so we don't need to impose a limit
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)),
-		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
-			return transport.Dial()
+		grpc.WithContextDialer(func(dctx context.Context, _ string) (net.Conn, error) {
+			return memtrans.DialContext(dctx)
 		}),
 		grpc.WithSharedWriteBuffer(true),
 	}
 
-	for _, srv := range servers {
-		err := srv.gateway(ctx, runtimeMux, transport.Address(), opts)
+	for srv, err := range servers {
+		if err != nil {
+			return nil, fmt.Errorf("error creating service server: %w", err)
+		}
+
+		err = srv.gateway(ctx, runtimeMux, memtrans.Address(), opts)
 		if err != nil {
 			return nil, fmt.Errorf("error registering gateway: %w", err)
 		}
 	}
 
-	if err := machine.RegisterMachineServiceHandlerFromEndpoint(ctx, runtimeMux, transport.Address(), opts); err != nil {
-		return nil, fmt.Errorf("error registering gateway: %w", err)
-	}
-
-	mux.Handle("/api/",
+	registerTo.Handle("/api/",
 		compress.Handler(
 			monitoring.NewHandler(
 				logging.NewHandler(
@@ -132,5 +145,32 @@ func New(ctx context.Context, mux *http.ServeMux, servers []ServiceServer, trans
 		),
 	)
 
+	return memtrans, nil
+}
+
+// NewServer creates new grpc server.
+func NewServer(servers iter.Seq2[ServiceServer, error], options ...grpc.ServerOption) (*grpc.Server, error) {
+	server := grpc.NewServer(options...)
+
+	for srv, err := range servers {
+		if err != nil {
+			return nil, fmt.Errorf("error creating service server: %w", err)
+		}
+
+		srv.register(server)
+	}
+
 	return server, nil
+}
+
+type machineService struct{}
+
+func (*machineService) register(grpc.ServiceRegistrar) {}
+
+func (*machineService) gateway(ctx context.Context, runtimeMux *gateway.ServeMux, addr string, opts []grpc.DialOption) error {
+	if err := machine.RegisterMachineServiceHandlerFromEndpoint(ctx, runtimeMux, addr, opts); err != nil {
+		return fmt.Errorf("error registering gateway: %w", err)
+	}
+
+	return nil
 }

@@ -56,6 +56,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
+	"github.com/siderolabs/omni/internal/pkg/xcontext"
 )
 
 // JWTSigningKeyProvider is an interface for a JWT signing key provider.
@@ -227,20 +228,12 @@ func (s *managementServer) MachineLogs(request *management.MachineLogsRequest, r
 		return handleError(err)
 	}
 
-	once := sync.Once{}
-	cancel := func() {
-		once.Do(func() {
-			logReader.Close() //nolint:errcheck
-		})
-	}
+	closeRdr := sync.OnceValue(logReader.Close)
+	defer closeRdr() //nolint:errcheck
 
-	defer cancel()
-
-	panichandler.Go(func() {
-		// connection closed, stop reading
-		<-response.Context().Done()
-		cancel()
-	}, s.logger)
+	// if connection closed, stop reading
+	stop := xcontext.AfterFuncSync(response.Context(), func() { closeRdr() }) //nolint:errcheck
+	defer stop()
 
 	for {
 		line, err := logReader.ReadLine()

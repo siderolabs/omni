@@ -6,7 +6,7 @@
 package kubernetes_test
 
 import (
-	"math/rand"
+	"math/rand/v2"
 	"slices"
 	"strconv"
 	"strings"

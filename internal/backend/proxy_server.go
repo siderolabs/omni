@@ -58,7 +58,7 @@ func hasPrefix(s string, prefixes ...string) bool {
 }
 
 func (prx *httpProxy) Run(ctx context.Context, next http.Handler, logger *zap.Logger) error {
-	server := &server{
+	srv := &server{
 		server: &http.Server{
 			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if hasPrefix(r.URL.Path, "/api/", "/omnictl/", "/talosctl/", "/image/") {
@@ -79,7 +79,7 @@ func (prx *httpProxy) Run(ctx context.Context, next http.Handler, logger *zap.Lo
 
 	logger = logger.With(zap.String("server", prx.bindAddr), zap.String("server_type", "proxy_server"))
 
-	return runServer(ctx, server, logger)
+	return srv.Run(ctx, logger)
 }
 
 type nopProxy struct {
