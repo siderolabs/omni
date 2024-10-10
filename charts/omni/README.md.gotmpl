@@ -1,0 +1,25 @@
+# Sidero Omni
+
+{{ template "chart.versionBadge" .  }}{{ template "chart.typeBadge" .  }}{{ template "chart.appVersionBadge" .  }}
+
+## Description
+
+{{ template "chart.description" . }}
+
+{{ template "chart.sourcesSection" . }}
+
+{{ template "chart.maintainersSection" . }}
+
+{{ template "chart.requirementsSection" . }}
+
+## Installing the Chart
+
+To install the chart with the release name {{ .Name }} run:
+
+```bash
+git clone git@github.com:siderolabs/omni.git
+helm install {{ .Name }} charts/{{ .Name }} --version {{ .Version }}
+```
+
+{{ template "chart.valuesSection" . }}
+
