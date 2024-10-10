@@ -3,7 +3,8 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package main
+// Package pkg provides the root command for the omni-integration-test binary.
+package pkg
 
 import (
 	"context"
@@ -14,6 +15,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/mattn/go-shellwords"
@@ -140,7 +142,10 @@ var rootCmdFlags struct {
 	machineOptions tests.MachineOptions
 }
 
-func init() {
+// RootCmd returns the root command.
+func RootCmd() *cobra.Command { return onceInit() }
+
+var onceInit = sync.OnceValue(func() *cobra.Command {
 	rootCmd.PersistentFlags().StringVar(&rootCmdFlags.endpoint, "endpoint", "grpc://127.0.0.1:8080", "The endpoint of the Omni API.")
 	rootCmd.Flags().StringVar(&rootCmdFlags.runTestPattern, "test.run", "", "tests to run (regular expression)")
 	rootCmd.Flags().IntVar(&rootCmdFlags.expectedMachines, "expected-machines", 4, "minimum number of machines expected")
@@ -167,7 +172,9 @@ func init() {
 	rootCmd.Flags().IntVar(&rootCmdFlags.provisionMachinesCount, "provision-machines", 0, "provisions machines through the infrastructure provider")
 	rootCmd.Flags().StringVar(&rootCmdFlags.infraProvider, "infra-provider", "talemu", "use infra provider with the specified ID when provisioning the machines")
 	rootCmd.Flags().StringVar(&rootCmdFlags.providerData, "provider-data", "{}", "the infra provider machine template data to use")
-}
+
+	return rootCmd
+})
 
 // withContext wraps with CLI context.
 func withContext(f func(ctx context.Context) error) error {

@@ -13,6 +13,7 @@ import (
 	"slices"
 
 	"github.com/siderolabs/go-api-signature/pkg/client/auth"
+	_ "github.com/siderolabs/proto-codec/codec" // for encoding.CodecV2
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
