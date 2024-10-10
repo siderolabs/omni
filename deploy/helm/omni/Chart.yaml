@@ -1,0 +1,6 @@
+apiVersion: v2
+name: omni
+description: A helm chart to deploy Omni on a Kubernetes cluster
+type: application
+version: 0.0.1
+appVersion: "0.32.2"
