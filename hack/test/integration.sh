@@ -104,6 +104,7 @@ export AUTH0_DOMAIN="${AUTH0_DOMAIN}"
 mkdir -p omnictl
 cp -p ${ARTIFACTS}/omnictl-* omnictl/
 
+GRPC_ENFORCE_ALPN_ENABLED=false \
 SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
 nice -n 10 ${ARTIFACTS}/omni-linux-amd64 \
     --siderolink-wireguard-advertised-addr $LOCAL_IP:50180 \

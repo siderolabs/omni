@@ -6,6 +6,7 @@ require (
 	github.com/klauspost/compress v1.17.9
 	github.com/mittwald/go-helm-client v0.12.13
 	go.uber.org/zap v1.26.0
+	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.15.4
 )
 
@@ -128,7 +129,6 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/api v0.30.3 // indirect
 	k8s.io/apiextensions-apiserver v0.30.3 // indirect
 	k8s.io/apimachinery v0.30.3 // indirect
