@@ -473,6 +473,11 @@ enum ConfigApplyStatus {
 
 // ClusterMachineStatusSpec
 message ClusterMachineStatusSpec {
+  message ProvisionStatus {
+    string provider_id = 1;
+    string request_id = 2;
+  }
+
   // Ready is true if all services are healthy.
   bool ready = 1;
 
@@ -504,6 +509,9 @@ message ClusterMachineStatusSpec {
 
   // IsRemoved means that the machine removed from Omni.
   bool is_removed = 8;
+
+  // ProvisionStatus is set when the cluster machine is provisioned using a machine request.
+  ProvisionStatus provision_status = 9;
 }
 
 // Machines counts the number of machines in a set including health status.
@@ -992,18 +1000,12 @@ message MachineClassSpec {
   message Provision {
     string provider_id = 1;
 
-    string talos_version = 2;
+    repeated string kernel_args = 2;
+    repeated MetaValue meta_values = 3;
 
-    repeated string extensions = 3;
-    repeated string kernel_args = 4;
-    repeated MetaValue meta_values = 5;
+    string provider_data = 4;
 
-    // IdleMachineCount keeps the provisioned machines in the maintenance mode.
-    uint32 idle_machine_count = 6;
-
-    string provider_data = 7;
-
-    GrpcTunnelMode grpc_tunnel = 8;
+    GrpcTunnelMode grpc_tunnel = 5;
   }
 
   // MatchLabels is the list of labels to match the machine to make it part of the machine class.
@@ -1230,4 +1232,22 @@ enum GrpcTunnelMode {
   UNSET = 0;
   ENABLED = 1;
   DISABLED = 2;
+}
+
+// ClusterMachineRequestStatusSpec is generated from the MachineRequestStatus when the machine is being automatically provisioned
+// for a specific machine set and is used in the UI.
+message ClusterMachineRequestStatusSpec {
+  enum Stage {
+    UNKNOWN = 0;
+    PENDING = 1;
+    PROVISIONING = 2;
+    PROVISIONED = 3;
+    DEPROVISIONING = 4;
+    FAILED = 5;
+  }
+
+  string status = 1;
+  string machine_uuid = 2;
+  string provider_id = 3;
+  Stage stage = 4;
 }

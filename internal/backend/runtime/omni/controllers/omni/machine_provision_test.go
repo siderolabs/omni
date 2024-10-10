@@ -37,7 +37,21 @@ func (suite *MachineProvisionControllerSuite) TestReconcile() {
 
 	machineClass := omni.NewMachineClass(resources.DefaultNamespace, "test")
 
+	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "ms1")
+	machineSet.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
+		Name:         machineClass.Metadata().ID(),
+		MachineCount: 4,
+	}
+
+	cluster := omni.NewCluster(resources.DefaultNamespace, "cluster")
+
+	cluster.TypedSpec().Value.TalosVersion = "1.7.7"
+
+	machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
+
 	suite.Require().NoError(suite.state.Create(ctx, machineClass))
+	suite.Require().NoError(suite.state.Create(ctx, cluster))
+	suite.Require().NoError(suite.state.Create(ctx, machineSet))
 
 	rtestutils.AssertNoResource[*omni.MachineRequestSet](ctx, suite.T(), suite.state, "test")
 
@@ -45,19 +59,14 @@ func (suite *MachineProvisionControllerSuite) TestReconcile() {
 
 	machineClass, err = safe.StateUpdateWithConflicts(ctx, suite.state, machineClass.Metadata(), func(r *omni.MachineClass) error {
 		r.TypedSpec().Value.AutoProvision = &specs.MachineClassSpec_Provision{
-			ProviderId:   "test",
-			TalosVersion: "v1.7.6",
-			Extensions: []string{
-				"hello-world-extension",
-			},
+			ProviderId: "test",
 			MetaValues: []*specs.MetaValue{
 				{
 					Key:   0,
 					Value: "hi",
 				},
 			},
-			KernelArgs:       []string{"a=b"},
-			IdleMachineCount: 4,
+			KernelArgs: []string{"a=b"},
 		}
 
 		return nil
@@ -67,43 +76,34 @@ func (suite *MachineProvisionControllerSuite) TestReconcile() {
 
 	autoProvision := machineClass.TypedSpec().Value.AutoProvision
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineClass.Metadata().ID()}, func(
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineSet.Metadata().ID()}, func(
 		mrs *omni.MachineRequestSet, assert *assert.Assertions,
 	) {
-		assert.EqualValues(autoProvision.Extensions, mrs.TypedSpec().Value.Extensions)
 		assert.EqualValues(autoProvision.ProviderId, mrs.TypedSpec().Value.ProviderId)
 		assert.EqualValues(autoProvision.KernelArgs, mrs.TypedSpec().Value.KernelArgs)
-		assert.EqualValues(autoProvision.TalosVersion, mrs.TypedSpec().Value.TalosVersion)
+		assert.EqualValues(cluster.TypedSpec().Value.TalosVersion, mrs.TypedSpec().Value.TalosVersion)
 		assert.EqualValues(autoProvision.MetaValues, mrs.TypedSpec().Value.MetaValues)
 
 		assert.EqualValues(4, mrs.TypedSpec().Value.MachineCount)
 	})
 
-	pressure := omni.NewMachineRequestSetPressure(resources.DefaultNamespace, machineClass.Metadata().ID())
-
-	pressure.TypedSpec().Value.RequiredMachines = 6
-
-	suite.Require().NoError(suite.state.Create(ctx, pressure))
-
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineClass.Metadata().ID()}, func(
-		mrs *omni.MachineRequestSet, assert *assert.Assertions,
-	) {
-		assert.EqualValues(10, mrs.TypedSpec().Value.MachineCount)
-	})
-
-	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, pressure.Metadata(), func(r *omni.MachineRequestSetPressure) error {
-		r.TypedSpec().Value.RequiredMachines = 2
+	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, machineSet.Metadata(), func(r *omni.MachineSet) error {
+		r.TypedSpec().Value.MachineAllocation.MachineCount = 2
 
 		return nil
 	})
 
 	suite.Require().NoError(err)
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineClass.Metadata().ID()}, func(
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineSet.Metadata().ID()}, func(
 		mrs *omni.MachineRequestSet, assert *assert.Assertions,
 	) {
-		assert.EqualValues(6, mrs.TypedSpec().Value.MachineCount)
+		assert.EqualValues(2, mrs.TypedSpec().Value.MachineCount)
 	})
+
+	rtestutils.Destroy[*omni.MachineSet](ctx, suite.T(), suite.state, []string{machineSet.Metadata().ID()})
+
+	rtestutils.AssertNoResource[*omni.MachineRequestSet](ctx, suite.T(), suite.state, machineSet.Metadata().ID())
 }
 
 func TestMachineProvisionControllerSuite(t *testing.T) {

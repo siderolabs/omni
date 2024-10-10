@@ -154,7 +154,6 @@ func CreateClusterWithMachineClass(testCtx context.Context, st state.State, opti
 				r.TypedSpec().Value.MatchLabels = nil
 				r.TypedSpec().Value.AutoProvision = &specs.MachineClassSpec_Provision{
 					ProviderId:   options.InfraProvider,
-					TalosVersion: options.MachineOptions.TalosVersion,
 					ProviderData: options.ProviderData,
 				}
 
@@ -534,7 +533,7 @@ func DestroyCluster(testCtx context.Context, st state.State, clusterName string)
 }
 
 // AssertDestroyCluster destroys a cluster and verifies that all dependent resources are gone.
-func AssertDestroyCluster(testCtx context.Context, st state.State, clusterName string) TestFunc {
+func AssertDestroyCluster(testCtx context.Context, st state.State, clusterName string, expectMachinesRemoved bool) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, 300*time.Second)
 		defer cancel()
@@ -565,6 +564,14 @@ func AssertDestroyCluster(testCtx context.Context, st state.State, clusterName s
 
 		for _, id := range machineSets {
 			rtestutils.AssertNoResource[*omni.MachineSet](ctx, t, st, id)
+		}
+
+		if expectMachinesRemoved {
+			for _, id := range clusterMachineIDs {
+				rtestutils.AssertNoResource[*omni.MachineStatus](ctx, t, st, id)
+			}
+
+			return
 		}
 
 		// wait for all machines to returned to the pool as 'available' or be part of a different cluster

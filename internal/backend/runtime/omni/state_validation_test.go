@@ -979,8 +979,7 @@ func TestMachineClassValidation(t *testing.T) {
 
 	machineClass.TypedSpec().Value.MatchLabels = nil
 	machineClass.TypedSpec().Value.AutoProvision = &specs.MachineClassSpec_Provision{
-		ProviderId:   "",
-		TalosVersion: "v1.8.0",
+		ProviderId: "",
 	}
 
 	err = st.Create(ctx, machineClass)
@@ -1002,17 +1001,6 @@ func TestMachineClassValidation(t *testing.T) {
 	// no talos version
 
 	machineClass.TypedSpec().Value.AutoProvision.ProviderId = providerStatus.Metadata().ID()
-	machineClass.TypedSpec().Value.AutoProvision.TalosVersion = ""
-
-	err = st.Create(ctx, machineClass)
-
-	require.Error(t, err)
-
-	require.True(t, validated.IsValidationError(err), "expected validation error")
-
-	// invalid talos version
-
-	machineClass.TypedSpec().Value.AutoProvision.TalosVersion = "1.99.0"
 
 	err = st.Create(ctx, machineClass)
 
@@ -1022,7 +1010,6 @@ func TestMachineClassValidation(t *testing.T) {
 
 	// invalid provider data
 
-	machineClass.TypedSpec().Value.AutoProvision.TalosVersion = "1.8.0"
 	machineClass.TypedSpec().Value.AutoProvision.ProviderData = `mem: .nan`
 
 	err = st.Create(ctx, machineClass)
@@ -1043,7 +1030,6 @@ disk: 1TB
 
 	// valid
 
-	machineClass.TypedSpec().Value.AutoProvision.TalosVersion = "1.8.0"
 	machineClass.TypedSpec().Value.AutoProvision.ProviderData = `
 size: t2.small
 `
