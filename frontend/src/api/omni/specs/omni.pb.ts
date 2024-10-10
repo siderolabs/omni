@@ -141,6 +141,15 @@ export enum MachineExtensionsStatusSpecItemPhase {
   Removing = 2,
 }
 
+export enum ClusterMachineRequestStatusSpecStage {
+  UNKNOWN = 0,
+  PENDING = 1,
+  PROVISIONING = 2,
+  PROVISIONED = 3,
+  DEPROVISIONING = 4,
+  FAILED = 5,
+}
+
 export type MachineSpec = {
   management_address?: string
   connected?: boolean
@@ -377,6 +386,11 @@ export type ClusterMachineTemplateSpec = {
   patch?: string
 }
 
+export type ClusterMachineStatusSpecProvisionStatus = {
+  provider_id?: string
+  request_id?: string
+}
+
 export type ClusterMachineStatusSpec = {
   ready?: boolean
   stage?: ClusterMachineStatusSpecStage
@@ -386,6 +400,7 @@ export type ClusterMachineStatusSpec = {
   management_address?: string
   config_apply_status?: ConfigApplyStatus
   is_removed?: boolean
+  provision_status?: ClusterMachineStatusSpecProvisionStatus
 }
 
 export type Machines = {
@@ -629,11 +644,8 @@ export type EtcdBackupSettings = {
 
 export type MachineClassSpecProvision = {
   provider_id?: string
-  talos_version?: string
-  extensions?: string[]
   kernel_args?: string[]
   meta_values?: MetaValue[]
-  idle_machine_count?: number
   provider_data?: string
   grpc_tunnel?: GrpcTunnelMode
 }
@@ -790,4 +802,11 @@ export type ClusterDiagnosticsSpec = {
 
 export type MachineRequestSetPressureSpec = {
   required_machines?: number
+}
+
+export type ClusterMachineRequestStatusSpec = {
+  status?: string
+  machine_uuid?: string
+  provider_id?: string
+  stage?: ClusterMachineRequestStatusSpecStage
 }

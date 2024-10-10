@@ -58,5 +58,9 @@ export enum TCommonStatuses {
   STOPPING = "Stopping",
   FINISHED = "Finished",
   ENABLED = "Enabled",
-  DISABLED = "Disabled"
+  DISABLED = "Disabled",
+  PROVISIONING = "Provisioning",
+  PROVISION_FAILED = "Provision Failed",
+  PROVISIONED = "Provisioned",
+  DEPROVISIONING = "Deprovisioning"
 }

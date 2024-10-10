@@ -26,6 +26,7 @@ message MachineRequestStatusSpec {
   string id = 1;
   Stage stage = 2;
   string error = 3;
+  string status = 4;
 }
 
 message InfraProviderStatusSpec {

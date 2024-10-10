@@ -429,8 +429,6 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 }
 
 // machineClassValidationOptions returns the validation options for the machine class resource.
-//
-//nolint:gocognit
 func machineClassValidationOptions(st state.State) []validated.StateOption {
 	validate := func(ctx context.Context, oldRes, res *omni.MachineClass) error {
 		if res.TypedSpec().Value.AutoProvision != nil && res.TypedSpec().Value.MatchLabels != nil {
@@ -442,14 +440,6 @@ func machineClassValidationOptions(st state.State) []validated.StateOption {
 
 			if autoProvision.ProviderId == "" {
 				return errors.New("providerID can not be empty")
-			}
-
-			if autoProvision.TalosVersion == "" {
-				return errors.New("talos version can not be empty")
-			}
-
-			if err := validateTalosVersion(ctx, st, "", autoProvision.TalosVersion); err != nil {
-				return err
 			}
 
 			if oldRes == nil || oldRes.TypedSpec().Value.AutoProvision.ProviderData != autoProvision.ProviderData {

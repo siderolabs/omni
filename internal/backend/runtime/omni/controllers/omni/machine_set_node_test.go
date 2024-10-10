@@ -115,7 +115,7 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "auto")
 
 	assertMachineSetNode := func(machine *omni.MachineStatus) {
-		assertResource[*omni.MachineSetNode](
+		assertResource(
 			&suite.OmniSuite,
 			omni.NewMachineSetNode(
 				resources.DefaultNamespace,
@@ -126,7 +126,7 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 	}
 
 	assertNoMachineSetNode := func(machine *omni.MachineStatus) {
-		assertNoResource[*omni.MachineSetNode](
+		assertNoResource(
 			&suite.OmniSuite,
 			omni.NewMachineSetNode(
 				resources.DefaultNamespace,
