@@ -103,6 +103,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 			safe.WithResourceCache[*omni.ClusterMachineEncryptionKey](),
 			safe.WithResourceCache[*omni.ClusterMachineIdentity](),
 			safe.WithResourceCache[*omni.ClusterMachineStatus](),
+			safe.WithResourceCache[*omni.ClusterMachineRequestStatus](),
 			safe.WithResourceCache[*omni.ClusterMachineTalosVersion](),
 			safe.WithResourceCache[*omni.ClusterStatus](),
 			safe.WithResourceCache[*omni.ClusterSecrets](),
@@ -130,7 +131,6 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 			safe.WithResourceCache[*omni.MachineExtensions](),
 			safe.WithResourceCache[*omni.MachineExtensionsStatus](),
 			safe.WithResourceCache[*omni.MachineLabels](),
-			safe.WithResourceCache[*omni.MachineRequestSetPressure](),
 			safe.WithResourceCache[*omni.MachineSet](),
 			safe.WithResourceCache[*omni.MachineSetDestroyStatus](),
 			safe.WithResourceCache[*omni.MachineSetStatus](),
@@ -253,7 +253,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewMachineRequestLinkController(resourceState),
 		omnictrl.NewLabelsExtractorController[*omni.MachineStatus](),
 		omnictrl.NewMachineRequestSetStatusController(),
-		omnictrl.NewMachineRequestSetPressureController(),
+		omnictrl.NewClusterMachineRequestStatusController(),
 	}
 
 	if config.Config.Auth.SAML.Enabled {

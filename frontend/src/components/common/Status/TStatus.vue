@@ -32,6 +32,7 @@ import {
   TPodsViewFilterOptions,
   TCommonStatuses,
 } from "@/constants";
+import { red, yellow } from "@/vars/colors";
 
 type Props = {
   iconType?: IconType;
@@ -75,6 +76,11 @@ const iconData = computed((): { iconColor?: string, iconTypeValue?: IconType } =
           iconTypeValue: "check-in-circle-classic",
           iconColor: "#69C297",
         };
+      case TCommonStatuses.PROVISIONED:
+        return {
+          iconTypeValue: "time",
+          iconColor: yellow.Y1,
+        };
       case TCommonStatuses.COMPLETED:
         return {
           iconTypeValue: "check-in-circle-classic",
@@ -113,6 +119,21 @@ const iconData = computed((): { iconColor?: string, iconTypeValue?: IconType } =
           iconTypeValue: "question",
           iconColor: "#7D7D85",
         };
+      case TCommonStatuses.PROVISION_FAILED:
+        return {
+          iconTypeValue: "error",
+          iconColor: red.R1,
+        };
+      case TCommonStatuses.PROVISIONING:
+        return {
+          iconTypeValue: "loading",
+          iconColor: yellow.Y1,
+        };
+      case TCommonStatuses.DEPROVISIONING:
+        return {
+          iconTypeValue: "delete",
+          iconColor: red.R1,
+        }
       case TCommonStatuses.HEALTHY:
         return {
           iconTypeValue: "check-in-circle-classic",

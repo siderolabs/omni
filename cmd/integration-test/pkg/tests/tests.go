@@ -182,7 +182,7 @@ Generate various Talos images with Omni and try to download them.`,
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-k8s-node-audit"),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-k8s-node-audit", false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-k8s-node-audit"),
@@ -239,7 +239,7 @@ In the tests, we wipe and reboot the VMs to bring them back as available for the
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-forced-removal"),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-forced-removal", false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-forced-removal"),
@@ -263,7 +263,7 @@ Regression test: create a cluster and destroy it without waiting for the cluster
 				},
 				subTest{
 					"ClusterShouldBeDestroyedImmediately",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-immediate"),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-immediate", false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-immediate"),
@@ -424,7 +424,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling"),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling", false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling"),
@@ -537,7 +537,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-machine-class-based-machine-sets"),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-machine-class-based-machine-sets", false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-machine-class-based-machine-sets"),
@@ -559,7 +559,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 				subTest{
 					"ClusterShouldBeCreated",
 					CreateClusterWithMachineClass(ctx, rootClient.Omni().State(), ClusterOptions{
-						Name:          "integration-scaling-auto-provision-machine-sets",
+						Name:          "integration-scaling-auto-provision",
 						ControlPlanes: 1,
 						Workers:       0,
 						InfraProvider: options.InfraProvider,
@@ -571,7 +571,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 			).Append(
 				TestBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
 					ctx, rootClient,
-					"integration-scaling-auto-provision-machine-sets",
+					"integration-scaling-auto-provision",
 					options.MachineOptions.TalosVersion,
 					options.MachineOptions.KubernetesVersion,
 					talosAPIKeyPrepare,
@@ -580,7 +580,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 				subTest{
 					"OneWorkerShouldBeAdded",
 					ScaleClusterMachineSets(ctx, rootClient.Omni().State(), ClusterOptions{
-						Name:           "integration-scaling-auto-provision-machine-sets",
+						Name:           "integration-scaling-auto-provision",
 						ControlPlanes:  0,
 						Workers:        1,
 						InfraProvider:  options.InfraProvider,
@@ -591,7 +591,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 			).Append(
 				TestBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
 					ctx, rootClient,
-					"integration-scaling-auto-provision-machine-sets",
+					"integration-scaling-auto-provision",
 					options.MachineOptions.TalosVersion,
 					options.MachineOptions.KubernetesVersion,
 					talosAPIKeyPrepare,
@@ -600,7 +600,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 				subTest{
 					"TwoControlPlanesShouldBeAdded",
 					ScaleClusterMachineSets(ctx, rootClient.Omni().State(), ClusterOptions{
-						Name:           "integration-scaling-auto-provision-machine-sets",
+						Name:           "integration-scaling-auto-provision",
 						ControlPlanes:  2,
 						Workers:        0,
 						MachineOptions: options.MachineOptions,
@@ -610,7 +610,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 			).Append(
 				TestBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
 					ctx, rootClient,
-					"integration-scaling-auto-provision-machine-sets",
+					"integration-scaling-auto-provision",
 					options.MachineOptions.TalosVersion,
 					options.MachineOptions.KubernetesVersion,
 					talosAPIKeyPrepare,
@@ -619,7 +619,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 				subTest{
 					"OneWorkerShouldBeRemoved",
 					ScaleClusterMachineSets(ctx, rootClient.Omni().State(), ClusterOptions{
-						Name:           "integration-scaling-auto-provision-machine-sets",
+						Name:           "integration-scaling-auto-provision",
 						ControlPlanes:  0,
 						Workers:        -1,
 						InfraProvider:  options.InfraProvider,
@@ -630,7 +630,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 			).Append(
 				TestBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
 					ctx, rootClient,
-					"integration-scaling-auto-provision-machine-sets",
+					"integration-scaling-auto-provision",
 					options.MachineOptions.TalosVersion,
 					options.MachineOptions.KubernetesVersion,
 					talosAPIKeyPrepare,
@@ -639,7 +639,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 				subTest{
 					"TwoControlPlanesShouldBeRemoved",
 					ScaleClusterMachineSets(ctx, rootClient.Omni().State(), ClusterOptions{
-						Name:           "integration-scaling-auto-provision-machine-sets",
+						Name:           "integration-scaling-auto-provision",
 						ControlPlanes:  -2,
 						Workers:        0,
 						InfraProvider:  options.InfraProvider,
@@ -650,7 +650,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 			).Append(
 				TestBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
 					ctx, rootClient,
-					"integration-scaling-auto-provision-machine-sets",
+					"integration-scaling-auto-provision",
 					options.MachineOptions.TalosVersion,
 					options.MachineOptions.KubernetesVersion,
 					talosAPIKeyPrepare,
@@ -658,10 +658,10 @@ In between the scaling operations, assert that the cluster is ready and accessib
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-auto-provision-machine-sets"),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-auto-provision", true),
 				},
 			),
-			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-auto-provision-machine-sets"),
+			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-auto-provision"),
 		},
 		{
 			Name: "RollingUpdateParallelism",
@@ -705,7 +705,7 @@ Tests rolling update & scale down strategies for concurrency control for worker 
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-rolling-update-parallelism"),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-rolling-update-parallelism", false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-rolling-update-parallelism"),
@@ -760,7 +760,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-replace-cp"),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-replace-cp", false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-replace-cp"),
@@ -849,7 +849,7 @@ Tests applying various config patching, including "broken" config patches which 
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-config-patching"),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-config-patching", false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-config-patching"),
@@ -946,7 +946,7 @@ Tests upgrading Talos version, including reverting a failed upgrade.`,
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-talos-upgrade"),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-talos-upgrade", false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-talos-upgrade"),
@@ -1012,7 +1012,7 @@ Tests upgrading Kubernetes version, including reverting a failed upgrade.`,
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-k8s-upgrade"),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-k8s-upgrade", false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-k8s-upgrade"),
@@ -1083,7 +1083,7 @@ Finally, a completely new cluster is created using the same backup to test the "
 				},
 				subTest{
 					"NewClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-etcd-backup-new-cluster"),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-etcd-backup-new-cluster", false),
 				},
 			).Append(
 				TestBlockRestoreEtcdFromLatestBackup(ctx, rootClient, talosAPIKeyPrepare, options, 3,
@@ -1094,7 +1094,7 @@ Finally, a completely new cluster is created using the same backup to test the "
 			).Append(
 				subTest{
 					"RestoredClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-etcd-backup"),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-etcd-backup", false),
 				},
 			),
 			Finalizer: func(t *testing.T) {
@@ -1201,7 +1201,7 @@ Test authorization on accessing Omni API, some tests run without a cluster, some
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-auth"),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-auth", false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-auth"),
@@ -1257,7 +1257,7 @@ Test flow of cluster creation and scaling using cluster templates.`,
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-workload-proxy"),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-workload-proxy", false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-workload-proxy"),
@@ -1306,7 +1306,7 @@ Test flow of cluster creation and scaling using cluster templates.`,
 	if options.ProvisionMachines != 0 {
 		preRunTests = append(preRunTests, testing.InternalTest{
 			Name: "AssertMachinesShouldBeProvisioned",
-			F:    AssertMachinesShouldBeProvisioned(ctx, rootClient, options.ProvisionMachines, "main", options.MachineOptions.TalosVersion, options.InfraProvider),
+			F:    AssertMachinesShouldBeProvisioned(ctx, rootClient, options.ProvisionMachines, "main", options.MachineOptions.TalosVersion, options.InfraProvider, options.ProviderData),
 		})
 	}
 

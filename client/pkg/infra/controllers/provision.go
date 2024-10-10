@@ -6,6 +6,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
@@ -190,7 +191,7 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 
 	initialStep, _ := res.Metadata().Annotations().Get(currentStepAnnotation)
 
-	for _, step := range steps {
+	for i, step := range steps {
 		if initialStep != "" && step.Name() != initialStep {
 			continue
 		}
@@ -200,6 +201,8 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 		logger.Info("running provision step", zap.String("step", step.Name()))
 
 		var requeueError error
+
+		machineRequestStatus.TypedSpec().Value.Status = fmt.Sprintf("Running Step: %q (%d/%d)", step.Name(), i+1, len(steps))
 
 		if err = safe.WriterModify(ctx, r, res.(T), func(st T) error { //nolint:forcetypeassert
 			err = step.Run(ctx, logger, provision.NewContext(
@@ -244,6 +247,7 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 	}
 
 	machineRequestStatus.TypedSpec().Value.Stage = specs.MachineRequestStatusSpec_PROVISIONED
+	machineRequestStatus.TypedSpec().Value.Status = "Provision Complete"
 
 	*machineRequestStatus.Metadata().Labels() = *machineRequest.Metadata().Labels()
 

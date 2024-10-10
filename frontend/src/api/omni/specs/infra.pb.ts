@@ -27,6 +27,7 @@ export type MachineRequestStatusSpec = {
   id?: string
   stage?: MachineRequestStatusSpecStage
   error?: string
+  status?: string
 }
 
 export type InfraProviderStatusSpec = {

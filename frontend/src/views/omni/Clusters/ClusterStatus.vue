@@ -15,9 +15,10 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import TIcon from "@/components/common/Icon/TIcon.vue";
+import TIcon, { IconType } from "@/components/common/Icon/TIcon.vue";
 import { ClusterStatusSpec, ClusterStatusSpecPhase } from "@/api/omni/specs/omni.pb";
 import { Resource } from "@/api/grpc";
+import { green, red, yellow } from "@/vars/colors";
 
 type Props = {
   cluster?: Resource<ClusterStatusSpec>;
@@ -44,7 +45,7 @@ const phaseName = (cluster?: Resource<ClusterStatusSpec>): string => {
   }
 };
 
-const phaseIcon = (cluster?: Resource<ClusterStatusSpec>): string => {
+const phaseIcon = (cluster?: Resource<ClusterStatusSpec>): IconType => {
   switch (cluster?.spec.phase) {
     case ClusterStatusSpecPhase.SCALING_UP:
     case ClusterStatusSpecPhase.SCALING_DOWN:
@@ -63,22 +64,20 @@ const phaseIcon = (cluster?: Resource<ClusterStatusSpec>): string => {
 };
 
 const phaseColor = (cluster?: Resource<ClusterStatusSpec>): string => {
-  const Y1 = "#FFB200";
-
   switch (cluster?.spec.phase) {
     case ClusterStatusSpecPhase.SCALING_UP:
     case ClusterStatusSpecPhase.SCALING_DOWN:
-      return Y1;
+      return yellow.Y1;
     case ClusterStatusSpecPhase.RUNNING:
       if (cluster?.spec.ready) {
-        return "#69C297";
+        return green.G1;
       } else {
-        return "#FF5F2A";
+        return red.R1;
       }
     case ClusterStatusSpecPhase.DESTROYING:
-      return "#FF5F2A";
+      return red.R1;
     default:
-      return Y1;
+      return yellow.Y1;
   }
 };
 

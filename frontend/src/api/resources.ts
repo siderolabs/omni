@@ -55,6 +55,7 @@ export const ClusterMachineConfigPatchesType = "ClusterMachineConfigPatches.omni
 export const ClusterMachineConfigStatusType = "ClusterMachineConfigStatuses.omni.sidero.dev";
 export const ClusterMachineEncryptionKeyType = "ClusterMachineEncryptionKeys.omni.sidero.dev";
 export const ClusterMachineIdentityType = "ClusterMachineIdentities.omni.sidero.dev";
+export const ClusterMachineRequestStatusType = "ClusterMachineRequestStatuses.omni.sidero.dev";
 export const ClusterMachineStatusType = "ClusterMachineStatuses.omni.sidero.dev";
 export const ClusterMachineTalosVersionType = "ClusterMachineTalosVersions.omni.sidero.dev";
 export const ClusterMachineTemplateType = "ClusterMachineTemplates.omni.sidero.dev";

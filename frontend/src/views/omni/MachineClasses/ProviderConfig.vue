@@ -37,9 +37,6 @@ included in the LICENSE file.
       </div>
     </template>
   </t-list>
-  <template v-if="!showAllProviders">
-    <t-input title="Idle Machine Count" :model-value="idleMachineCount" v-on:update:model-value="value => $emit('update:idle-machine-count', value)" type="number" :min="0"/>
-  </template>
 </template>
 
 <script setup lang="ts">
@@ -50,13 +47,11 @@ import { InfraProviderNamespace, InfraProviderStatusType } from '@/api/resources
 import { computed, ref, toRefs } from 'vue';
 
 import TIcon from '@/components/common/Icon/TIcon.vue';
-import TInput from '@/components/common/TInput/TInput.vue';
 import WordHighlighter from "vue-word-highlighter";
 import IconButton from '@/components/common/Button/IconButton.vue';
 import TList from '@/components/common/List/TList.vue';
 
 const props = defineProps<{
-  idleMachineCount: number
   infraProvider?: string
 }>();
 

@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <div class="border-t-8 border-naturals-N4" v-if="machines.length > 0">
+  <div class="border-t-8 border-naturals-N4" v-if="machines.length > 0 || requests.length > 0">
     <div class="flex items-center border-naturals-N4 border-b pl-3 text-naturals-N14">
       <div class="py-2 clusters-grid flex-1 items-center">
         <div class="flex flex-wrap gap-2 col-span-2 justify-between items-center">
@@ -43,9 +43,13 @@ included in the LICENSE file.
       </t-actions-box>
       <div v-else class="w-6"/>
     </div>
-    <cluster-machine :id="machine.metadata.id" :machine-set="machineSet" :class="{ 'border-b': index != machines.length - 1 }" :has-diagnostic-info="nodesWithDiagnostics?.has(machine.metadata.id)"
-      class="border-naturals-N4" v-for="(machine, index) in machines" :key="itemID(machine)" :machine="machine"
-      :deleteDisabled="!canRemoveMachine" />
+    <cluster-machine class="machine-item" :id="machine.metadata.id" :machine-set="machineSet" :has-diagnostic-info="nodesWithDiagnostics?.has(machine.metadata.id!)"
+      v-for="machine in machines" :key="itemID(machine)" :machine="machine"
+      :deleteDisabled="!canRemoveMachine"/>
+    <machine-request class="machine-item"
+      v-for="request in pendingRequests"
+      :key="itemID(request)"
+      :request-status="request"/>
     <div v-if="hiddenMachinesCount > 0" class="text-xs p-4 pl-9 border-t border-naturals-N4 flex gap-1 items-center">
       {{ pluralize("machine", hiddenMachinesCount, true) }} are hidden
       <t-button type="subtle" @click="showMachinesCount = undefined"><span class="text-xs">Show all...</span></t-button>
@@ -55,8 +59,8 @@ included in the LICENSE file.
 
 <script setup lang="ts">
 import { Resource, ResourceService } from "@/api/grpc";
-import { MachineSetStatusSpec, ClusterMachineStatusSpec, MachineSetSpecMachineAllocationType, MachineClassSpec } from "@/api/omni/specs/omni.pb";
-import { ClusterMachineStatusType, DefaultNamespace, LabelCluster, LabelControlPlaneRole, LabelMachineSet, MachineClassType } from "@/api/resources";
+import { MachineSetStatusSpec, ClusterMachineStatusSpec, MachineSetSpecMachineAllocationType, MachineClassSpec, ClusterMachineRequestStatusSpec } from "@/api/omni/specs/omni.pb";
+import { ClusterMachineRequestStatusType, ClusterMachineStatusType, DefaultNamespace, LabelCluster, LabelControlPlaneRole, LabelMachineSet, MachineClassType } from "@/api/resources";
 import { computed, ref, toRefs, watch } from "vue";
 import { useRouter } from "vue-router";
 import { setupClusterPermissions } from "@/methods/auth";
@@ -77,6 +81,7 @@ import TInput from "@/components/common/TInput/TInput.vue";
 import TIcon from "@/components/common/Icon/TIcon.vue";
 import TSpinner from "@/components/common/Spinner/TSpinner.vue";
 import { withRuntime } from "@/api/options";
+import MachineRequest from "./MachineRequest.vue";
 
 const showMachinesCount = ref<number | undefined>(25);
 
@@ -89,6 +94,10 @@ const { machineSet } = toRefs(props);
 
 const machines = ref<Resource<ClusterMachineStatusSpec>[]>([]);
 const machinesWatch = new Watch(machines);
+
+const requests = ref<Resource<ClusterMachineRequestStatusSpec>[]>([]);
+const requestsWatch = new Watch(requests);
+
 const clusterID = computed(() => machineSet.value.metadata.labels?.[LabelCluster] ?? "");
 const editingMachinesCount = ref(false);
 const machineCount = ref(machineSet.value.spec.machine_allocation?.machine_count ?? 1);
@@ -133,6 +142,29 @@ machinesWatch.setup(computed(() => {
     limit: showMachinesCount.value,
   }
 }));
+
+requestsWatch.setup(computed(() => {
+  if (!machineSet.value.spec.machine_allocation) {
+    return;
+  }
+
+  return {
+    resource: {
+      namespace: DefaultNamespace,
+      type: ClusterMachineRequestStatusType,
+    },
+    selectors: [
+      `${LabelCluster}=${clusterID.value}`,
+      `${LabelMachineSet}=${machineSet.value.metadata.id!}`
+    ],
+    runtime: Runtime.Omni,
+    limit: showMachinesCount.value,
+  };
+}));
+
+const pendingRequests = computed(() => {
+  return requests.value.filter(item => !machines.value.find(machine => machine.metadata.id === item.spec.machine_uuid))
+});
 
 const router = useRouter();
 
@@ -201,3 +233,13 @@ const machineClassMachineCount = computed(() => {
   return pluralize('Machine', machineSet.value.spec?.machine_allocation?.machine_count ?? 0, true)
 });
 </script>
+
+<style scoped>
+.machine-item:not(:last-of-type) {
+  @apply border-b border-naturals-N4;
+}
+
+.machine-item:last-of-type {
+  @apply rounded-b-md;
+}
+</style>

@@ -18,6 +18,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
@@ -88,6 +89,10 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 						return nil
 					}
 
+					return err
+				}
+
+				if err = updateMachineProvisionStatus(ctx, r, machineStatus, cmsVal); err != nil {
 					return err
 				}
 
@@ -232,9 +237,48 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 		qtransform.WithExtraMappedInput(
 			qtransform.MapperSameID[*omni.MachineSetNode, *omni.ClusterMachine](),
 		),
+		qtransform.WithExtraMappedInput(
+			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, request *infra.MachineRequestStatus) ([]resource.Pointer, error) {
+				if request.TypedSpec().Value.Id == "" {
+					return nil, nil
+				}
+
+				return []resource.Pointer{
+					omni.NewClusterMachine(resources.DefaultNamespace, request.TypedSpec().Value.Id).Metadata(),
+				}, nil
+			},
+		),
 		qtransform.WithIgnoreTeardownUntil(ClusterMachineEncryptionKeyControllerName), // destroy the ClusterMachineStatus after the ClusterMachineEncryptionKey is destroyed
 		qtransform.WithConcurrency(2),
 	)
+}
+
+func updateMachineProvisionStatus(ctx context.Context, r controller.Reader, machineStatus *omni.MachineStatus, cmsVal *specs.ClusterMachineStatusSpec) error {
+	machineRequestID, ok := machineStatus.Metadata().Labels().Get(omni.LabelMachineRequest)
+	if !ok {
+		cmsVal.ProvisionStatus = nil
+	}
+
+	cmsVal.ProvisionStatus = &specs.ClusterMachineStatusSpec_ProvisionStatus{}
+
+	cmsVal.ProvisionStatus.RequestId = machineRequestID
+
+	machineRequestStatus, err := safe.ReaderGetByID[*infra.MachineRequestStatus](ctx, r, machineRequestID)
+	if err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
+
+	if machineRequestStatus == nil {
+		return nil
+	}
+
+	cmsVal.ProvisionStatus.ProviderId, ok = machineRequestStatus.Metadata().Labels().Get(omni.LabelInfraProviderID)
+
+	if !ok {
+		return nil
+	}
+
+	return nil
 }
 
 // configApplyStatus returns the config apply status for the given cluster machine status spec.

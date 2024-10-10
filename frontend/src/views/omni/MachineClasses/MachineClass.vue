@@ -62,7 +62,7 @@ included in the LICENSE file.
           </div>
         </template>
         <template v-else>
-          <provider-config v-model:idle-machine-count="idleMachineCount" v-model:infraProvider="infraProvider"/>
+          <provider-config v-model:infraProvider="infraProvider"/>
         </template>
       </div>
       <div class="flex flex-col flex-1 gap-2 mb-6">
@@ -78,9 +78,7 @@ included in the LICENSE file.
           <machine-template
             v-if="infraProvider"
             :infra-provider="infraProvider"
-            v-model:system-extensions="systemExtensions"
             v-model:kernel-arguments="kernelArguments"
-            v-model:talos-version="talosVersion"
             v-model:grpc-tunnel="grpcTunnelMode"
             :provider-config="providerConfigs[infraProvider] || {}"
             @update:provider-config="value => { providerConfigs[infraProvider!] = value }"
@@ -103,7 +101,7 @@ import { Resource, ResourceService } from "@/api/grpc";
 import { withRuntime } from "@/api/options";
 import { Runtime } from "@/api/common/omni.pb";
 import { GrpcTunnelMode, MachineClassSpec } from "@/api/omni/specs/omni.pb";
-import { DefaultNamespace, MachineStatusType, MachineClassType, InfraProviderStatusType, InfraProviderNamespace, DefaultTalosVersion, LabelsMeta } from "@/api/resources";
+import { DefaultNamespace, MachineStatusType, MachineClassType, InfraProviderStatusType, InfraProviderNamespace, LabelsMeta, LabelNoManualAllocation } from "@/api/resources";
 import ItemWatch, { itemID } from "@/api/watch";
 import { computed, ref, nextTick, Ref, watch, ComputedRef } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -166,9 +164,6 @@ let loading: Ref<boolean> | ComputedRef<boolean>;
 let notFound: Ref<boolean> | ComputedRef<boolean>;
 
 const infraProvider = ref<string>();
-const idleMachineCount = ref(0);
-const systemExtensions = ref<string[]>([]);
-const talosVersion = ref<string>(DefaultTalosVersion);
 const kernelArguments = ref<string>("");
 const initialLabels = ref<Record<string, any>>({});
 const grpcTunnelMode = ref<GrpcTunnelMode>(GrpcTunnelMode.UNSET);
@@ -308,10 +303,7 @@ if (props.edit) {
     resourceVersion = machineClass.value?.metadata.version;
     labels = machineClass.value?.metadata.labels;
 
-    systemExtensions.value = machineClass.value?.spec.auto_provision?.extensions ?? [];
-
     kernelArguments.value = machineClass.value?.spec.auto_provision?.kernel_args?.join(" ") ?? "";
-    idleMachineCount.value = machineClass.value?.spec.auto_provision?.idle_machine_count ?? 0;
 
     const labelsMeta = machineClass.value?.spec.auto_provision?.meta_values?.find(item => item.key === LabelsMeta)
     if (labelsMeta) {
@@ -326,8 +318,6 @@ if (props.edit) {
         }
       }
     }
-
-    talosVersion.value = machineClass.value?.spec.auto_provision?.talos_version ?? DefaultTalosVersion;
 
     if (machineClass.value?.spec.auto_provision?.provider_id && machineClass.value?.spec.auto_provision?.provider_data) {
       providerConfigs[machineClass.value.spec.auto_provision.provider_id] = yaml.load(machineClass.value?.spec.auto_provision?.provider_data) as Record<string, any>;
@@ -365,7 +355,7 @@ const watchOpts = computed(() => {
       namespace: DefaultNamespace,
       type: MachineStatusType,
     },
-    selectors: nonEmptyConditions.value,
+    selectors: nonEmptyConditions.value.concat([`!${LabelNoManualAllocation}`]),
     selectUsingOR: true,
     runtime: Runtime.Omni,
   };
@@ -462,9 +452,6 @@ const submit = async () => {
   if (machineClassMode.value === MachineClassMode.AutoProvision && infraProvider.value) {
     machineClass.spec.auto_provision = {
       provider_id: infraProvider.value,
-      talos_version: talosVersion.value,
-      extensions: systemExtensions.value,
-      idle_machine_count: idleMachineCount.value,
       grpc_tunnel: grpcTunnelMode.value,
     }
 

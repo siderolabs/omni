@@ -31,10 +31,10 @@ import (
 //
 //nolint:gocognit
 func AssertMachinesShouldBeProvisioned(testCtx context.Context, client *client.Client, machineCount int, machineRequestSetName,
-	talosVersion, infraProvider string,
+	talosVersion, infraProvider, providerData string,
 ) TestFunc {
 	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, time.Second*60)
+		ctx, cancel := context.WithTimeout(testCtx, time.Minute*5)
 		defer cancel()
 
 		rtestutils.AssertResources(ctx, t, client.Omni().State(), []string{infraProvider}, func(*infra.ProviderStatus, *assert.Assertions) {})
@@ -57,6 +57,7 @@ func AssertMachinesShouldBeProvisioned(testCtx context.Context, client *client.C
 
 		machineRequestSet.TypedSpec().Value.ProviderId = infraProvider
 		machineRequestSet.TypedSpec().Value.TalosVersion = talosVersion
+		machineRequestSet.TypedSpec().Value.ProviderData = providerData
 		machineRequestSet.TypedSpec().Value.MachineCount = int32(machineCount)
 
 		require.NoError(t, client.Omni().State().Create(ctx, machineRequestSet))
@@ -80,7 +81,7 @@ func AssertMachinesShouldBeProvisioned(testCtx context.Context, client *client.C
 
 		require.NoError(t, err)
 
-		err = retry.Constant(time.Second*60).RetryWithContext(ctx, func(ctx context.Context) error {
+		err = retry.Constant(time.Minute*5).RetryWithContext(ctx, func(ctx context.Context) error {
 			var machines safe.List[*omni.MachineStatus]
 
 			machines, err = safe.ReaderListAll[*omni.MachineStatus](ctx, client.Omni().State())
@@ -119,7 +120,7 @@ func AssertMachinesShouldBeProvisioned(testCtx context.Context, client *client.C
 // AssertMachinesShouldBeDeprovisioned removes the machine request set and checks that all related links were deleted.
 func AssertMachinesShouldBeDeprovisioned(testCtx context.Context, client *client.Client, machineRequestSetName string) TestFunc {
 	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, time.Second*60)
+		ctx, cancel := context.WithTimeout(testCtx, time.Minute*5)
 		defer cancel()
 
 		requestIDs := rtestutils.ResourceIDs[*infra.MachineRequest](ctx, t, client.Omni().State(),

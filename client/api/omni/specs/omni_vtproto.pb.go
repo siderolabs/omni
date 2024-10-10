@@ -816,6 +816,24 @@ func (m *ClusterMachineTemplateSpec) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
+func (m *ClusterMachineStatusSpec_ProvisionStatus) CloneVT() *ClusterMachineStatusSpec_ProvisionStatus {
+	if m == nil {
+		return (*ClusterMachineStatusSpec_ProvisionStatus)(nil)
+	}
+	r := new(ClusterMachineStatusSpec_ProvisionStatus)
+	r.ProviderId = m.ProviderId
+	r.RequestId = m.RequestId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ClusterMachineStatusSpec_ProvisionStatus) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (m *ClusterMachineStatusSpec) CloneVT() *ClusterMachineStatusSpec {
 	if m == nil {
 		return (*ClusterMachineStatusSpec)(nil)
@@ -829,6 +847,7 @@ func (m *ClusterMachineStatusSpec) CloneVT() *ClusterMachineStatusSpec {
 	r.ManagementAddress = m.ManagementAddress
 	r.ConfigApplyStatus = m.ConfigApplyStatus
 	r.IsRemoved = m.IsRemoved
+	r.ProvisionStatus = m.ProvisionStatus.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -1697,15 +1716,8 @@ func (m *MachineClassSpec_Provision) CloneVT() *MachineClassSpec_Provision {
 	}
 	r := new(MachineClassSpec_Provision)
 	r.ProviderId = m.ProviderId
-	r.TalosVersion = m.TalosVersion
-	r.IdleMachineCount = m.IdleMachineCount
 	r.ProviderData = m.ProviderData
 	r.GrpcTunnel = m.GrpcTunnel
-	if rhs := m.Extensions; rhs != nil {
-		tmpContainer := make([]string, len(rhs))
-		copy(tmpContainer, rhs)
-		r.Extensions = tmpContainer
-	}
 	if rhs := m.KernelArgs; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -2337,6 +2349,26 @@ func (m *MachineRequestSetPressureSpec) CloneVT() *MachineRequestSetPressureSpec
 }
 
 func (m *MachineRequestSetPressureSpec) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *ClusterMachineRequestStatusSpec) CloneVT() *ClusterMachineRequestStatusSpec {
+	if m == nil {
+		return (*ClusterMachineRequestStatusSpec)(nil)
+	}
+	r := new(ClusterMachineRequestStatusSpec)
+	r.Status = m.Status
+	r.MachineUuid = m.MachineUuid
+	r.ProviderId = m.ProviderId
+	r.Stage = m.Stage
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ClusterMachineRequestStatusSpec) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -3434,6 +3466,28 @@ func (this *ClusterMachineTemplateSpec) EqualMessageVT(thatMsg proto.Message) bo
 	}
 	return this.EqualVT(that)
 }
+func (this *ClusterMachineStatusSpec_ProvisionStatus) EqualVT(that *ClusterMachineStatusSpec_ProvisionStatus) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ProviderId != that.ProviderId {
+		return false
+	}
+	if this.RequestId != that.RequestId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ClusterMachineStatusSpec_ProvisionStatus) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ClusterMachineStatusSpec_ProvisionStatus)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
 func (this *ClusterMachineStatusSpec) EqualVT(that *ClusterMachineStatusSpec) bool {
 	if this == that {
 		return true
@@ -3462,6 +3516,9 @@ func (this *ClusterMachineStatusSpec) EqualVT(that *ClusterMachineStatusSpec) bo
 		return false
 	}
 	if this.IsRemoved != that.IsRemoved {
+		return false
+	}
+	if !this.ProvisionStatus.EqualVT(that.ProvisionStatus) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -4647,18 +4704,6 @@ func (this *MachineClassSpec_Provision) EqualVT(that *MachineClassSpec_Provision
 	if this.ProviderId != that.ProviderId {
 		return false
 	}
-	if this.TalosVersion != that.TalosVersion {
-		return false
-	}
-	if len(this.Extensions) != len(that.Extensions) {
-		return false
-	}
-	for i, vx := range this.Extensions {
-		vy := that.Extensions[i]
-		if vx != vy {
-			return false
-		}
-	}
 	if len(this.KernelArgs) != len(that.KernelArgs) {
 		return false
 	}
@@ -4684,9 +4729,6 @@ func (this *MachineClassSpec_Provision) EqualVT(that *MachineClassSpec_Provision
 				return false
 			}
 		}
-	}
-	if this.IdleMachineCount != that.IdleMachineCount {
-		return false
 	}
 	if this.ProviderData != that.ProviderData {
 		return false
@@ -5503,6 +5545,34 @@ func (this *MachineRequestSetPressureSpec) EqualVT(that *MachineRequestSetPressu
 
 func (this *MachineRequestSetPressureSpec) EqualMessageVT(thatMsg proto.Message) bool {
 	that, ok := thatMsg.(*MachineRequestSetPressureSpec)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *ClusterMachineRequestStatusSpec) EqualVT(that *ClusterMachineRequestStatusSpec) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Status != that.Status {
+		return false
+	}
+	if this.MachineUuid != that.MachineUuid {
+		return false
+	}
+	if this.ProviderId != that.ProviderId {
+		return false
+	}
+	if this.Stage != that.Stage {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ClusterMachineRequestStatusSpec) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ClusterMachineRequestStatusSpec)
 	if !ok {
 		return false
 	}
@@ -7704,6 +7774,53 @@ func (m *ClusterMachineTemplateSpec) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	return len(dAtA) - i, nil
 }
 
+func (m *ClusterMachineStatusSpec_ProvisionStatus) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ClusterMachineStatusSpec_ProvisionStatus) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ClusterMachineStatusSpec_ProvisionStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.RequestId) > 0 {
+		i -= len(m.RequestId)
+		copy(dAtA[i:], m.RequestId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RequestId)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ProviderId) > 0 {
+		i -= len(m.ProviderId)
+		copy(dAtA[i:], m.ProviderId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ProviderId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ClusterMachineStatusSpec) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -7733,6 +7850,16 @@ func (m *ClusterMachineStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ProvisionStatus != nil {
+		size, err := m.ProvisionStatus.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
 	}
 	if m.IsRemoved {
 		i--
@@ -10114,19 +10241,14 @@ func (m *MachineClassSpec_Provision) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	if m.GrpcTunnel != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.GrpcTunnel))
 		i--
-		dAtA[i] = 0x40
+		dAtA[i] = 0x28
 	}
 	if len(m.ProviderData) > 0 {
 		i -= len(m.ProviderData)
 		copy(dAtA[i:], m.ProviderData)
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ProviderData)))
 		i--
-		dAtA[i] = 0x3a
-	}
-	if m.IdleMachineCount != 0 {
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.IdleMachineCount))
-		i--
-		dAtA[i] = 0x30
+		dAtA[i] = 0x22
 	}
 	if len(m.MetaValues) > 0 {
 		for iNdEx := len(m.MetaValues) - 1; iNdEx >= 0; iNdEx-- {
@@ -10137,7 +10259,7 @@ func (m *MachineClassSpec_Provision) MarshalToSizedBufferVT(dAtA []byte) (int, e
 			i -= size
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0x2a
+			dAtA[i] = 0x1a
 		}
 	}
 	if len(m.KernelArgs) > 0 {
@@ -10146,24 +10268,8 @@ func (m *MachineClassSpec_Provision) MarshalToSizedBufferVT(dAtA []byte) (int, e
 			copy(dAtA[i:], m.KernelArgs[iNdEx])
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.KernelArgs[iNdEx])))
 			i--
-			dAtA[i] = 0x22
+			dAtA[i] = 0x12
 		}
-	}
-	if len(m.Extensions) > 0 {
-		for iNdEx := len(m.Extensions) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Extensions[iNdEx])
-			copy(dAtA[i:], m.Extensions[iNdEx])
-			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Extensions[iNdEx])))
-			i--
-			dAtA[i] = 0x1a
-		}
-	}
-	if len(m.TalosVersion) > 0 {
-		i -= len(m.TalosVersion)
-		copy(dAtA[i:], m.TalosVersion)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.TalosVersion)))
-		i--
-		dAtA[i] = 0x12
 	}
 	if len(m.ProviderId) > 0 {
 		i -= len(m.ProviderId)
@@ -11664,6 +11770,65 @@ func (m *MachineRequestSetPressureSpec) MarshalToSizedBufferVT(dAtA []byte) (int
 	return len(dAtA) - i, nil
 }
 
+func (m *ClusterMachineRequestStatusSpec) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ClusterMachineRequestStatusSpec) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ClusterMachineRequestStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Stage != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Stage))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.ProviderId) > 0 {
+		i -= len(m.ProviderId)
+		copy(dAtA[i:], m.ProviderId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ProviderId)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.MachineUuid) > 0 {
+		i -= len(m.MachineUuid)
+		copy(dAtA[i:], m.MachineUuid)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.MachineUuid)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Status) > 0 {
+		i -= len(m.Status)
+		copy(dAtA[i:], m.Status)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Status)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *MachineSpec) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -12545,6 +12710,24 @@ func (m *ClusterMachineTemplateSpec) SizeVT() (n int) {
 	return n
 }
 
+func (m *ClusterMachineStatusSpec_ProvisionStatus) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ProviderId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.RequestId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *ClusterMachineStatusSpec) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -12576,6 +12759,10 @@ func (m *ClusterMachineStatusSpec) SizeVT() (n int) {
 	}
 	if m.IsRemoved {
 		n += 2
+	}
+	if m.ProvisionStatus != nil {
+		l = m.ProvisionStatus.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -13474,16 +13661,6 @@ func (m *MachineClassSpec_Provision) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
-	l = len(m.TalosVersion)
-	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	if len(m.Extensions) > 0 {
-		for _, s := range m.Extensions {
-			l = len(s)
-			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-		}
-	}
 	if len(m.KernelArgs) > 0 {
 		for _, s := range m.KernelArgs {
 			l = len(s)
@@ -13495,9 +13672,6 @@ func (m *MachineClassSpec_Provision) SizeVT() (n int) {
 			l = e.SizeVT()
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
-	}
-	if m.IdleMachineCount != 0 {
-		n += 1 + protohelpers.SizeOfVarint(uint64(m.IdleMachineCount))
 	}
 	l = len(m.ProviderData)
 	if l > 0 {
@@ -14078,6 +14252,31 @@ func (m *MachineRequestSetPressureSpec) SizeVT() (n int) {
 	_ = l
 	if m.RequiredMachines != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.RequiredMachines))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ClusterMachineRequestStatusSpec) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Status)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.MachineUuid)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ProviderId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.Stage != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Stage))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -19925,6 +20124,121 @@ func (m *ClusterMachineTemplateSpec) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *ClusterMachineStatusSpec_ProvisionStatus) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ClusterMachineStatusSpec_ProvisionStatus: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ClusterMachineStatusSpec_ProvisionStatus: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProviderId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ProviderId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RequestId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RequestId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *ClusterMachineStatusSpec) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -20136,6 +20450,42 @@ func (m *ClusterMachineStatusSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.IsRemoved = bool(v != 0)
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProvisionStatus", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ProvisionStatus == nil {
+				m.ProvisionStatus = &ClusterMachineStatusSpec_ProvisionStatus{}
+			}
+			if err := m.ProvisionStatus.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -25639,70 +25989,6 @@ func (m *MachineClassSpec_Provision) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TalosVersion", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.TalosVersion = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Extensions", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Extensions = append(m.Extensions, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field KernelArgs", wireType)
 			}
 			var stringLen uint64
@@ -25733,7 +26019,7 @@ func (m *MachineClassSpec_Provision) UnmarshalVT(dAtA []byte) error {
 			}
 			m.KernelArgs = append(m.KernelArgs, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
-		case 5:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MetaValues", wireType)
 			}
@@ -25767,26 +26053,7 @@ func (m *MachineClassSpec_Provision) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 6:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field IdleMachineCount", wireType)
-			}
-			m.IdleMachineCount = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.IdleMachineCount |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 7:
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ProviderData", wireType)
 			}
@@ -25818,7 +26085,7 @@ func (m *MachineClassSpec_Provision) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ProviderData = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 8:
+		case 5:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field GrpcTunnel", wireType)
 			}
@@ -29326,6 +29593,172 @@ func (m *MachineRequestSetPressureSpec) UnmarshalVT(dAtA []byte) error {
 				b := dAtA[iNdEx]
 				iNdEx++
 				m.RequiredMachines |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ClusterMachineRequestStatusSpec) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ClusterMachineRequestStatusSpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ClusterMachineRequestStatusSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Status = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MachineUuid", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.MachineUuid = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProviderId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ProviderId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Stage", wireType)
+			}
+			m.Stage = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Stage |= ClusterMachineRequestStatusSpec_Stage(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}

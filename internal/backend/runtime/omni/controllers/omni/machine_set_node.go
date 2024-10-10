@@ -236,16 +236,6 @@ func (ctrl *MachineSetNodeController) getMachineAllocation(ctx context.Context, 
 		return nil, nil //nolint:nilnil
 	}
 
-	requestSetSelector := resource.LabelQuery{
-		Terms: []resource.LabelTerm{
-			{
-				Key:   omni.LabelMachineRequestSet,
-				Op:    resource.LabelOpEqual,
-				Value: []string{machineAllocation.Name},
-			},
-		},
-	}
-
 	var manualAllocation bool
 
 	switch {
@@ -256,7 +246,15 @@ func (ctrl *MachineSetNodeController) getMachineAllocation(ctx context.Context, 
 		}
 
 		if machineClass.TypedSpec().Value.AutoProvision != nil {
-			selectors = append(selectors, requestSetSelector)
+			selectors = append(selectors, resource.LabelQuery{
+				Terms: []resource.LabelTerm{
+					{
+						Key:   omni.LabelMachineRequestSet,
+						Op:    resource.LabelOpEqual,
+						Value: []string{machineSet.Metadata().ID()},
+					},
+				},
+			})
 
 			break
 		}
@@ -268,7 +266,15 @@ func (ctrl *MachineSetNodeController) getMachineAllocation(ctx context.Context, 
 
 		manualAllocation = true
 	case machineAllocation.Source == specs.MachineSetSpec_MachineAllocation_MachineRequestSet:
-		selectors = append(selectors, requestSetSelector)
+		selectors = append(selectors, resource.LabelQuery{
+			Terms: []resource.LabelTerm{
+				{
+					Key:   omni.LabelMachineRequestSet,
+					Op:    resource.LabelOpEqual,
+					Value: []string{machineAllocation.Name},
+				},
+			},
+		})
 	default:
 		return nil, nil //nolint:nilnil
 	}

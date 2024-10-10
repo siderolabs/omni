@@ -257,7 +257,7 @@ func TestGroupClusterCreateAndReady(
 		).Append(
 			subTest{
 				"ClusterShouldBeDestroyed",
-				AssertDestroyCluster(ctx, rootClient.Omni().State(), clusterName),
+				AssertDestroyCluster(ctx, rootClient.Omni().State(), clusterName, options.InfraProvider != ""),
 			},
 		),
 		Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), clusterName),

@@ -10,26 +10,10 @@ included in the LICENSE file.
     <div class="text-naturals-N13 px-4 pt-4 pb-2 text-sm">Talos Config</div>
     <div class="machine-template text-xs flex flex-col divide-y divide-naturals-N4 border-t-8 border-naturals-N4">
       <div>
-        <span>Version</span>
-        <t-select-list menu-align="right" @checkedValue="setTalosVersion" class="h-6"
-          :defaultValue="DefaultTalosVersion" :values="talosVersions" :searcheable="true" />
-      </div>
-      <div>
         <span>
           Kernel Arguments
         </span>
         <t-input class="h-7 w-56" :model-value="kernelArguments" @update:model-value="value => $emit('update:kernel-arguments', value)"/>
-      </div>
-      <div class="flex gap-2 items-center">
-        <div>
-          Extensions
-        </div>
-        <div class="flex flex-1 justify-end">
-        <labels readonly default-color="blue1"
-          :on-remove="removeExtension"
-          :model-value="systemExtensionLabels"/>
-        </div>
-        <icon-button icon="edit" @click="openExtensionConfig"/>
       </div>
       <div>
         <span>
@@ -63,18 +47,15 @@ included in the LICENSE file.
 import { Resource } from "@/api/grpc";
 import { Runtime } from "@/api/common/omni.pb";
 import { InfraProviderStatusSpec } from "@/api/omni/specs/infra.pb";
-import { TalosVersionSpec, GrpcTunnelMode } from "@/api/omni/specs/omni.pb";
-import { DefaultNamespace, TalosVersionType, DefaultTalosVersion, InfraProviderStatusType, InfraProviderNamespace } from "@/api/resources";
-import { computed, ref, Ref, toRefs } from "vue";
+import { GrpcTunnelMode } from "@/api/omni/specs/omni.pb";
+import { InfraProviderStatusType, InfraProviderNamespace } from "@/api/resources";
+import { computed, ref, toRefs } from "vue";
 import TInput from "@/components/common/TInput/TInput.vue";
 
 import WatchResource from "@/api/watch";
-import IconButton from "@/components/common/Button/IconButton.vue";
 import TSelectList from "@/components/common/SelectList/TSelectList.vue";
 import Labels from "@/components/common/Labels/Labels.vue";
 import JsonForm from "@/components/common/Form/JsonForm.vue";
-import MachineTemplateExtensions from "../Modals/MachineTemplateExtensions.vue";
-import { showModal } from "@/modal";
 
 enum GRPCTunnelMode {
   Default = "Account Default",
@@ -84,8 +65,6 @@ enum GRPCTunnelMode {
 
 const props = defineProps<{
   infraProvider: string,
-  talosVersion: string
-  systemExtensions: string[]
   initialLabels: Record<string, any>
   kernelArguments: string
   providerConfig: Record<string, any>
@@ -106,8 +85,6 @@ const defaultTunnelMode = (() => {
 })();
 
 const emit = defineEmits([
-  "update:talos-version",
-  "update:system-extensions",
   "update:kernel-arguments",
   "update:initial-labels",
   "update:provider-config",
@@ -116,15 +93,10 @@ const emit = defineEmits([
 
 const {
   infraProvider,
-  talosVersion,
   initialLabels,
-  systemExtensions,
   kernelArguments,
   providerConfig,
 } = toRefs(props);
-
-const talosVersionsResources: Ref<Resource<TalosVersionSpec>[]> = ref([]);
-const talosVersionsWatch = new WatchResource(talosVersionsResources);
 
 const infraProviderStatus = ref<Resource<InfraProviderStatusSpec>>();
 const infraProviderStatusWatch = new WatchResource(infraProviderStatus);
@@ -143,57 +115,6 @@ infraProviderStatusWatch.setup(computed(() => {
     runtime: Runtime.Omni,
   };
 }));
-
-const systemExtensionLabels = computed(() => {
-  const labels = {};
-
-  systemExtensions.value.forEach((item: string) => {
-    labels[item] = { value: '', canRemove: true };
-  })
-
-  return labels;
-});
-
-talosVersionsWatch.setup({
-  runtime: Runtime.Omni,
-  resource: {
-    type: TalosVersionType,
-    namespace: DefaultNamespace,
-  },
-})
-
-const talosVersions = computed(() => talosVersionsResources.value?.map(res => res.metadata.id!));
-
-const setTalosVersion = (value: string) => {
-  emit('update:talos-version', value)
-};
-
-const openExtensionConfig = () => {
-  showModal(
-    MachineTemplateExtensions,
-    {
-      talosVersion: talosVersion.value,
-      modelValue: systemExtensions.value,
-      onSave(extensions?: string[]) {
-        if (!extensions) {
-          return;
-        }
-
-        emit('update:system-extensions', extensions);
-      }
-    },
-  )
-};
-
-const removeExtension = async (id: string) => {
-  const index = systemExtensions.value.findIndex((value: string) => value === id);
-
-  if (index < 0) {
-    return;
-  }
-
-  emit('update:system-extensions', [...systemExtensions.value].splice(index, 1));
-};
 
 const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
   switch (value) {
