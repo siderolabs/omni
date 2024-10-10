@@ -6,6 +6,7 @@
 # included in the LICENSE file.
 
 PLATFORM=$(uname -s | tr "[:upper:]" "[:lower:]")
+GRPC_ENFORCE_ALPN_ENABLED=false
 ARCHITECTURE=""
 case $(uname -m) in
   i386)   echo "32 bit architecture is not supported" exit 1 ;;

@@ -93,7 +93,7 @@ func NewRouter(
 		grpc.WithDefaultCallOptions(
 			// we are proxying requests to ourselves, so we don't need to impose a limit
 			grpc.MaxCallRecvMsgSize(math.MaxInt32),
-			grpc.ForceCodec(proxy.Codec()),
+			grpc.ForceCodecV2(proxy.Codec()),
 		),
 	)
 	if err != nil {
@@ -292,7 +292,7 @@ func (r *Router) getConn(ctx context.Context, contextName string) (*grpc.ClientC
 			MinConnectTimeout: 20 * time.Second,
 		}),
 		grpc.WithTransportCredentials(creds),
-		grpc.WithDefaultCallOptions(grpc.ForceCodec(proxy.Codec())),
+		grpc.WithDefaultCallOptions(grpc.ForceCodecV2(proxy.Codec())),
 		grpc.WithSharedWriteBuffer(true),
 	}
 

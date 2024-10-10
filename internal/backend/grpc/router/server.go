@@ -11,6 +11,7 @@ import (
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/siderolabs/grpc-proxy/proxy"
+	_ "github.com/siderolabs/proto-codec/codec" // for encoding.CodecV2
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
@@ -28,7 +29,7 @@ type Director interface {
 func NewServer(router Director, options ...grpc.ServerOption) *grpc.Server {
 	opts := append(
 		[]grpc.ServerOption{
-			grpc.ForceServerCodec(proxy.Codec()),
+			grpc.ForceServerCodecV2(proxy.Codec()),
 			grpc.UnknownServiceHandler(
 				proxy.TransparentHandler(
 					router.Director,

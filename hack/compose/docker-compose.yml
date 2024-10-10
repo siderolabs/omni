@@ -53,6 +53,7 @@ services:
       - VAULT_ADDR=http://127.0.0.1:8200
       - VAULT_TOKEN=dev-o-token
       - SIDEROLINK_DEV_JOIN_TOKEN=w7uVuW3zbVKIYQuzEcyetAHeYMeo5q2L9RvkAVfCfSCD
+      - GRPC_ENFORCE_ALPN_ENABLED=false
 
   vault-dev:
     container_name: local-vault
