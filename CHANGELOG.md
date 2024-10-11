@@ -1,3 +1,82 @@
+## [Omni 0.43.0](https://github.com/siderolabs/omni/releases/tag/v0.43.0) (2024-10-11)
+
+Welcome to the v0.43.0 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### `gRPC` Tunnel
+
+`gRPC` tunnel for wireguard can now be enabled when downloading the installation media from Omni.
+
+
+### Talos Diagnostics
+
+Omni now shows [Talos diagnostics information](https://www.talos.dev/v1.8/introduction/what-is-new/#diagnostics) for Talos >= 1.8.0.
+
+
+### Contributors
+
+* Artem Chernyshev
+* Utku Ozdemir
+* Dmitriy Matrenichev
+* Andrey Smirnov
+* Birger J. Nordølum
+* Justin Garrison
+
+### Changes
+<details><summary>27 commits</summary>
+<p>
+
+* [`397f204`](https://github.com/siderolabs/omni/commit/397f204865f0912ffe65505f3bfd28683b3292ac) feat: display pending machine requests in the machine sets
+* [`0d66194`](https://github.com/siderolabs/omni/commit/0d66194bd1e7b40bc7e19e9d663fc313f06ad0b7) release(v0.43.0-beta.0): prepare release
+* [`4084b6e`](https://github.com/siderolabs/omni/commit/4084b6e9d7aeb09c7bce58d3b1d8db90b5e30f43) fix: get proper IP from peer metadata
+* [`d547889`](https://github.com/siderolabs/omni/commit/d547889b7b9bbdd4af724fd85d22517ee403797a) fix: filter requests in the infra provision controller
+* [`d1c9d9d`](https://github.com/siderolabs/omni/commit/d1c9d9df4a94ac37f2e498644d378315d0b7bb47) chore: set `peer.address` to inform about IP status
+* [`23a4092`](https://github.com/siderolabs/omni/commit/23a4092af534062131c23fcc012d82f36e62822e) chore: refactor code
+* [`5630d83`](https://github.com/siderolabs/omni/commit/5630d83e5d340630204f45c8b72ac84966293ecf) fix: ignore parse errors in the log parser
+* [`8334c59`](https://github.com/siderolabs/omni/commit/8334c59482d36702bd6b61511227b448e3e0557c) chore: add a way to get provider data in the infra provider
+* [`cc71fb6`](https://github.com/siderolabs/omni/commit/cc71fb624a511308e7044c53b9c84fe7db78252b) feat: support auto provisioned machine classes
+* [`41c3bd5`](https://github.com/siderolabs/omni/commit/41c3bd523210182ab9916061ddf4737fe79e2f40) fix: support whitespaces in the label selectors
+* [`99191c6`](https://github.com/siderolabs/omni/commit/99191c645a9c493174783a5381294caaa4c40dd6) feat: integrate with Talos diagnostics
+* [`dcf89d9`](https://github.com/siderolabs/omni/commit/dcf89d9d1166a65b17e5d696c63ed9e6ee6ea4f0) feat: update Omni for Talos 1.8 machinery
+* [`a04b07f`](https://github.com/siderolabs/omni/commit/a04b07f3096e6b5ca045077cb4ae09b9027fb469) test: fix the error message in infra test
+* [`3e3e53b`](https://github.com/siderolabs/omni/commit/3e3e53b3368577b4ecb26201db4dacfdf2150e2f) chore: fix capitalization of wireguard
+* [`f69ff37`](https://github.com/siderolabs/omni/commit/f69ff3761cd879dd7403c9ff2aa1bbf3273eb78f) feat: make infra provider report back it's information: schema, name
+* [`7555312`](https://github.com/siderolabs/omni/commit/7555312bdcebff4970a0c9dc93675d1deb957e70) fix: get rid of the exceptions in the ui
+* [`8e48723`](https://github.com/siderolabs/omni/commit/8e4872393e6603698114a674df44fc4b287e787b) feat: support attaching machine sets to a machine request sets
+* [`bb2f52d`](https://github.com/siderolabs/omni/commit/bb2f52d13bd2752c2d63bcfe9025c4e070d2481c) chore: drop machine class status and machine set pressure resources
+* [`3ef1f85`](https://github.com/siderolabs/omni/commit/3ef1f85f58edf346204e076e25b057ce14eeffed) fix: call deprovision only after the machine request status is deleted
+* [`423f729`](https://github.com/siderolabs/omni/commit/423f7294009105c3f58b4df5409f0803e30040ea) chore: bump default versions: Talos `1.7.6`, Kubernetes `1.30.5`
+* [`c4a4151`](https://github.com/siderolabs/omni/commit/c4a4151d7a5d9030ec82fab434932f3d002e59cf) feat: allow specifying grpc tunnel option explicitly for install media
+* [`bb14ed6`](https://github.com/siderolabs/omni/commit/bb14ed6dacf7b6356f65f3fc2f47d96cc5cdedb3) fix: parse machine labels and extensions as slices in `omnictl download`
+* [`9e033d7`](https://github.com/siderolabs/omni/commit/9e033d7c10beced3031e41c9613b1065edf5ceab) docs: update omni template so docs are easier
+* [`4c329db`](https://github.com/siderolabs/omni/commit/4c329dba6799184e83fc164a49296e74e92ea80a) fix: update COSI runtime
+* [`81e08eb`](https://github.com/siderolabs/omni/commit/81e08eb38bb3677d62e9d0e9bbfe9eca11f7a51c) test: run infra integration tests against Talemu provider
+* [`f83cf3b`](https://github.com/siderolabs/omni/commit/f83cf3b210cbf40f1c75b1eb5012e235fad2e923) fix: pin apexcharts version to 3.45.2
+* [`e3d46f9`](https://github.com/siderolabs/omni/commit/e3d46f949c10c4d3b6cdc79919d0cfcfef3ec4a3) feat: implement compression of config fields on resources
+</p>
+</details>
+
+### Changes since v0.43.0-beta.0
+<details><summary>1 commit</summary>
+<p>
+
+* [`397f204`](https://github.com/siderolabs/omni/commit/397f204865f0912ffe65505f3bfd28683b3292ac) feat: display pending machine requests in the machine sets
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/cosi-project/runtime**            v0.6.1 -> v0.6.3
+* **github.com/cosi-project/state-etcd**         v0.3.1 -> v0.3.2
+* **github.com/santhosh-tekuri/jsonschema/v5**   v5.3.1 **_new_**
+* **github.com/siderolabs/talos/pkg/machinery**  6f7c3a8e5c63 -> v1.8.0
+
+Previous release can be found at [v0.42.0](https://github.com/siderolabs/omni/releases/tag/v0.42.0)
+
 ## [Omni 0.43.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.43.0-beta.0) (2024-10-09)
 
 Welcome to the v0.43.0-beta.0 release of Omni!  
