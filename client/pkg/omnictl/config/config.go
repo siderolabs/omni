@@ -42,19 +42,22 @@ var (
 func Init(path string, create bool) (*Config, error) {
 	conf, err := load(path)
 
-	if os.IsNotExist(err) {
+	switch {
+	case os.IsNotExist(err):
 		if !create {
 			return nil, err
 		}
 
 		defaultConfig.Path = path
 
-		err := defaultConfig.Save()
+		err = defaultConfig.Save()
 		if err != nil {
 			return nil, err
 		}
 
 		conf = &defaultConfig
+	case err != nil:
+		return nil, err
 	}
 
 	current = conf
