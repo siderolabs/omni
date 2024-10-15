@@ -73,3 +73,7 @@ const CertificateValidityTime = time.Hour * 24 * 365 // 1 year
 
 // KubernetesAdminCertCommonName is the common name of the Kubernetes admin certificate.
 const KubernetesAdminCertCommonName = "omni:admin"
+
+// InfraProviderMetadataKey is the id of the key which is set by the infrastructure provider when it establishes client connection
+// to the Omni instance.
+const InfraProviderMetadataKey = "providerID"

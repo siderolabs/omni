@@ -24,6 +24,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/cmd/integration-test/pkg/clientconfig"
@@ -70,19 +71,27 @@ type Options struct {
 	OmnictlPath              string
 	InfraProvider            string
 	ProviderData             string
+	ScalingTimeout           time.Duration
 }
 
 // Run the integration tests.
 //
-//nolint:maintidx
+//nolint:maintidx,gocyclo,cyclop
 func Run(ctx context.Context, clientConfig *clientconfig.ClientConfig, options Options) error {
-	rootClient, err := clientConfig.GetClient()
+	rootClient, err := clientConfig.GetClient(ctx)
 	if err != nil {
 		return err
 	}
 
 	talosAPIKeyPrepare := func(ctx context.Context, contextName string) error {
 		return clientconfig.TalosAPIKeyPrepare(ctx, rootClient, contextName)
+	}
+
+	if !constants.IsDebugBuild {
+		// noop for non-debug builds
+		talosAPIKeyPrepare = func(context.Context, string) error {
+			return nil
+		}
 	}
 
 	testList := []testGroup{
@@ -164,6 +173,7 @@ Generate various Talos images with Omni and try to download them.`,
 						Workers:       1,
 
 						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -216,6 +226,7 @@ In the tests, we wipe and reboot the VMs to bring them back as available for the
 						Workers:       1,
 
 						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -259,6 +270,7 @@ Regression test: create a cluster and destroy it without waiting for the cluster
 						Workers:       2,
 
 						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 				subTest{
@@ -339,6 +351,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						Workers:       0,
 
 						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -357,6 +370,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						ControlPlanes:  0,
 						Workers:        1,
 						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -375,6 +389,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						ControlPlanes:  2,
 						Workers:        0,
 						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -393,6 +408,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						ControlPlanes:  0,
 						Workers:        -1,
 						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -411,6 +427,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						ControlPlanes:  -2,
 						Workers:        0,
 						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -452,6 +469,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						Workers:       0,
 
 						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -470,6 +488,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						ControlPlanes:  0,
 						Workers:        1,
 						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -488,6 +507,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						ControlPlanes:  2,
 						Workers:        0,
 						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -506,6 +526,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						ControlPlanes:  0,
 						Workers:        -1,
 						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -524,6 +545,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						ControlPlanes:  -2,
 						Workers:        0,
 						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -566,6 +588,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 
 						MachineOptions: options.MachineOptions,
 						ProviderData:   options.ProviderData,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -586,6 +609,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						InfraProvider:  options.InfraProvider,
 						MachineOptions: options.MachineOptions,
 						ProviderData:   options.ProviderData,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -605,6 +629,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						Workers:        0,
 						MachineOptions: options.MachineOptions,
 						ProviderData:   options.ProviderData,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -625,6 +650,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						InfraProvider:  options.InfraProvider,
 						MachineOptions: options.MachineOptions,
 						ProviderData:   options.ProviderData,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -730,6 +756,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						Workers:       0,
 
 						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -780,6 +807,7 @@ Tests applying various config patching, including "broken" config patches which 
 						Workers:       1,
 
 						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -872,6 +900,7 @@ Tests upgrading Talos version, including reverting a failed upgrade.`,
 							TalosVersion:      options.AnotherTalosVersion,
 							KubernetesVersion: options.AnotherKubernetesVersion, // use older Kubernetes compatible with AnotherTalosVersion
 						},
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -969,6 +998,7 @@ Tests upgrading Kubernetes version, including reverting a failed upgrade.`,
 							TalosVersion:      options.MachineOptions.TalosVersion,
 							KubernetesVersion: options.AnotherKubernetesVersion,
 						},
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -1041,6 +1071,7 @@ Finally, a completely new cluster is created using the same backup to test the "
 							Enabled:  true,
 						},
 						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -1183,6 +1214,7 @@ Test authorization on accessing Omni API, some tests run without a cluster, some
 						},
 
 						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -1238,6 +1270,7 @@ Test flow of cluster creation and scaling using cluster templates.`,
 						},
 
 						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
 					},
 					),
 				},

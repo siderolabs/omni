@@ -10,6 +10,7 @@ import (
 	"github.com/siderolabs/go-api-signature/pkg/pgp/client"
 	"google.golang.org/grpc"
 
+	"github.com/siderolabs/omni/client/pkg/client/omni"
 	"github.com/siderolabs/omni/client/pkg/version"
 )
 
@@ -18,6 +19,7 @@ type Options struct {
 	AuthInterceptor *interceptor.Interceptor
 
 	AdditionalGRPCDialOptions []grpc.DialOption
+	OmniClientOptions         []omni.Option
 
 	InsecureSkipTLSVerify bool
 }
@@ -60,5 +62,12 @@ func signatureAuthInterceptor(contextName, identity, serviceAccountBase64 string
 func WithGrpcOpts(opts ...grpc.DialOption) Option {
 	return func(options *Options) {
 		options.AdditionalGRPCDialOptions = append(options.AdditionalGRPCDialOptions, opts...)
+	}
+}
+
+// WithOmniClientOptions adds Omni client options.
+func WithOmniClientOptions(opts ...omni.Option) Option {
+	return func(options *Options) {
+		options.OmniClientOptions = opts
 	}
 }

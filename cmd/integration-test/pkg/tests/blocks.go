@@ -125,6 +125,7 @@ func TestBlockRestoreEtcdFromLatestBackup(ctx context.Context, rootClient *clien
 				Name:           clusterName,
 				ControlPlanes:  controlPlaneNodeCount,
 				MachineOptions: options.MachineOptions,
+				ScalingTimeout: options.ScalingTimeout,
 			}),
 		},
 	}.Append(
@@ -178,6 +179,7 @@ func TestBlockCreateClusterFromEtcdBackup(ctx context.Context, rootClient *clien
 				RestoreFromEtcdBackupClusterID: sourceClusterName,
 
 				MachineOptions: options.MachineOptions,
+				ScalingTimeout: options.ScalingTimeout,
 			}),
 		},
 	}.Append(

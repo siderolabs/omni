@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-10-07T18:59:07Z by kres 34e72ac.
+# Generated on 2024-10-16T15:16:19Z by kres 34e72ac.
 
 # common variables
 
@@ -141,7 +141,7 @@ else
 GO_LDFLAGS += -s
 endif
 
-all: unit-tests-frontend lint-eslint frontend unit-tests-client unit-tests integration-test omni image-omni omnictl dev-server docker-compose-up docker-compose-down mkcert-install mkcert-generate mkcert-uninstall run-integration-test lint
+all: unit-tests-frontend lint-eslint frontend unit-tests-client unit-tests integration-test image-integration-test omni image-omni omnictl dev-server docker-compose-up docker-compose-down mkcert-install mkcert-generate mkcert-uninstall run-integration-test lint
 
 $(ARTIFACTS):  ## Creates artifacts directory.
 	@mkdir -p $(ARTIFACTS)
@@ -236,6 +236,17 @@ integration-test-linux-amd64: $(ARTIFACTS)/integration-test-linux-amd64  ## Buil
 .PHONY: integration-test
 integration-test: integration-test-linux-amd64  ## Builds executables for integration-test.
 
+.PHONY: lint-markdown
+lint-markdown:  ## Runs markdownlint.
+	@$(MAKE) target-$@
+
+.PHONY: lint
+lint: lint-eslint lint-golangci-lint-client lint-gofumpt-client lint-govulncheck-client lint-golangci-lint lint-gofumpt lint-govulncheck lint-markdown  ## Run all linters for the project.
+
+.PHONY: image-integration-test
+image-integration-test:  ## Builds image for omni-integration-test.
+	@$(MAKE) target-$@ TARGET_ARGS="--tag=$(REGISTRY)/$(USERNAME)/omni-integration-test:$(IMAGE_TAG)"
+
 .PHONY: $(ARTIFACTS)/omni-darwin-amd64
 $(ARTIFACTS)/omni-darwin-amd64:
 	@$(MAKE) local-omni-darwin-amd64 DEST=$(ARTIFACTS)
@@ -266,13 +277,6 @@ omni-linux-arm64: $(ARTIFACTS)/omni-linux-arm64  ## Builds executable for omni-l
 
 .PHONY: omni
 omni: omni-darwin-amd64 omni-darwin-arm64 omni-linux-amd64 omni-linux-arm64  ## Builds executables for omni.
-
-.PHONY: lint-markdown
-lint-markdown:  ## Runs markdownlint.
-	@$(MAKE) target-$@
-
-.PHONY: lint
-lint: lint-eslint lint-golangci-lint-client lint-gofumpt-client lint-govulncheck-client lint-golangci-lint lint-gofumpt lint-govulncheck lint-markdown  ## Run all linters for the project.
 
 .PHONY: image-omni
 image-omni:  ## Builds image for omni.

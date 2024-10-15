@@ -505,7 +505,7 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientConfi
 		for _, tc := range testCases {
 			// test each test case without signature
 			t.Run(fmt.Sprintf("%s-no-signature", tc.namePrefix), func(t *testing.T) {
-				scopedClient, testErr := clientConfig.GetClient()
+				scopedClient, testErr := clientConfig.GetClient(rootCtx)
 				require.NoError(t, testErr)
 
 				// skip signing the request
@@ -537,6 +537,7 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientConfi
 			// test with the role which should succeed
 			t.Run(fmt.Sprintf("%s-success", tc.namePrefix), func(t *testing.T) {
 				scopedClient, testErr := clientConfig.GetClient(
+					rootCtx,
 					authcli.WithRole(string(tc.requiredRole)),
 					authcli.WithSkipUserRole(true),
 				)
@@ -563,6 +564,7 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientConfi
 
 			t.Run(fmt.Sprintf("%s-failure", tc.namePrefix), func(t *testing.T) {
 				scopedClient, testErr := clientConfig.GetClient(
+					rootCtx,
 					authcli.WithRole(string(failureRole)),
 					authcli.WithSkipUserRole(true))
 				require.NoError(t, testErr)
@@ -1051,6 +1053,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 
 					t.Run(name, func(t *testing.T) {
 						scopedCli, testErr := clientConfig.GetClient(
+							rootCtx,
 							authcli.WithRole(string(testRole)),
 							authcli.WithSkipUserRole(true),
 						)
@@ -1195,7 +1198,7 @@ func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client, cli
 
 		t.Cleanup(func() { destroy(ctx, t, rootCli, accessPolicy.Metadata()) })
 
-		userCli, err := clientConfig.GetClientForEmail(identity.Metadata().ID())
+		userCli, err := clientConfig.GetClientForEmail(ctx, identity.Metadata().ID())
 		require.NoError(t, err)
 
 		t.Cleanup(func() { userCli.Close() }) //nolint:errcheck

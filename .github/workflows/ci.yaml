@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-10-11T13:55:52Z by kres 34e72ac.
+# Generated on 2024-10-16T15:16:19Z by kres 34e72ac.
 
 name: default
 concurrency:
@@ -108,12 +108,36 @@ jobs:
       - name: integration-test
         run: |
           make integration-test
-      - name: omni
-        run: |
-          make omni
       - name: lint
         run: |
           make lint
+      - name: Login to registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+      - name: image-integration-test
+        run: |
+          make image-integration-test
+      - name: push-omni-integration-test
+        if: github.event_name != 'pull_request'
+        env:
+          PLATFORM: linux/amd64,linux/arm64
+          PUSH: "true"
+        run: |
+          make image-integration-test
+      - name: push-omni-integration-test-latest
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          PLATFORM: linux/amd64,linux/arm64
+          PUSH: "true"
+        run: |
+          make image-integration-test IMAGE_TAG=latest
+      - name: omni
+        run: |
+          make omni
       - name: Login to registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3

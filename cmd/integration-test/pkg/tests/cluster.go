@@ -55,6 +55,8 @@ type ClusterOptions struct {
 
 	InfraProvider string
 	ProviderData  string
+
+	ScalingTimeout time.Duration
 }
 
 // MachineOptions are the options for machine creation.
@@ -66,7 +68,11 @@ type MachineOptions struct {
 // CreateCluster verifies cluster creation.
 func CreateCluster(testCtx context.Context, cli *client.Client, options ClusterOptions) TestFunc {
 	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, 150*time.Second)
+		if options.ScalingTimeout == 0 {
+			options.ScalingTimeout = time.Second * 150
+		}
+
+		ctx, cancel := context.WithTimeout(testCtx, options.ScalingTimeout)
 		defer cancel()
 
 		st := cli.Omni().State()
@@ -123,7 +129,11 @@ func CreateCluster(testCtx context.Context, cli *client.Client, options ClusterO
 // CreateClusterWithMachineClass verifies cluster creation.
 func CreateClusterWithMachineClass(testCtx context.Context, st state.State, options ClusterOptions) TestFunc {
 	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, 150*time.Second)
+		if options.ScalingTimeout == 0 {
+			options.ScalingTimeout = time.Second * 150
+		}
+
+		ctx, cancel := context.WithTimeout(testCtx, options.ScalingTimeout)
 		defer cancel()
 
 		require := require.New(t)
@@ -175,7 +185,11 @@ func CreateClusterWithMachineClass(testCtx context.Context, st state.State, opti
 // ScaleClusterMachineSets scales the cluster with machine sets which are using machine classes.
 func ScaleClusterMachineSets(testCtx context.Context, st state.State, options ClusterOptions) TestFunc {
 	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, time.Minute*2)
+		if options.ScalingTimeout == 0 {
+			options.ScalingTimeout = time.Second * 30
+		}
+
+		ctx, cancel := context.WithTimeout(testCtx, options.ScalingTimeout)
 		defer cancel()
 
 		updateMachineClassMachineSets(ctx, t, st, options, nil)
@@ -185,7 +199,11 @@ func ScaleClusterMachineSets(testCtx context.Context, st state.State, options Cl
 // ScaleClusterUp scales up the cluster.
 func ScaleClusterUp(testCtx context.Context, st state.State, options ClusterOptions) TestFunc {
 	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, 30*time.Second)
+		if options.ScalingTimeout == 0 {
+			options.ScalingTimeout = time.Second * 30
+		}
+
+		ctx, cancel := context.WithTimeout(testCtx, options.ScalingTimeout)
 		defer cancel()
 
 		pickUnallocatedMachines(ctx, t, st, options.ControlPlanes+options.Workers, func(machineIDs []resource.ID) {
