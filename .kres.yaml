@@ -4,11 +4,6 @@ name: omnictl
 spec:
   disableImage: true
 ---
-kind: auto.CommandConfig
-name: integration-test
-spec:
-  disableImage: true
----
 kind: common.GHWorkflow
 spec:
   customRunners:
@@ -486,6 +481,13 @@ spec:
   artifacts:
     - omnictl-*
     - omni-*
+---
+kind: common.Image
+name: image-integration-test
+spec:
+  extraEnvironment:
+    PLATFORM: linux/amd64,linux/arm64
+  imageName: "omni-integration-test"
 ---
 kind: common.Image
 name: image-omni

@@ -45,6 +45,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	service "github.com/siderolabs/discovery-service/pkg/service"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
+	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	"github.com/siderolabs/go-retry/retry"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"go.uber.org/zap"
@@ -53,9 +54,11 @@ import (
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	resapi "github.com/siderolabs/omni/client/api/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/access"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
@@ -86,6 +89,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/handler"
 	"github.com/siderolabs/omni/internal/pkg/auth/interceptor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
+	serviceaccountmgmt "github.com/siderolabs/omni/internal/pkg/auth/serviceaccount"
 	"github.com/siderolabs/omni/internal/pkg/cache"
 	"github.com/siderolabs/omni/internal/pkg/compress"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -271,6 +275,12 @@ func (s *Server) Run(ctx context.Context) error {
 
 			return nil
 		})
+	}
+
+	if config.Config.InitialServiceAccount.Enabled {
+		if err = s.createInitialServiceAccount(ctx); err != nil {
+			return err
+		}
 	}
 
 	return eg.Wait()
@@ -1103,10 +1113,26 @@ func runLocalResourceServer(ctx context.Context, st state.CoreState, serverOptio
 	}
 
 	unaryInterceptor := grpc.UnaryServerInterceptor(func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+		md, ok := metadata.FromIncomingContext(ctx)
+		if ok && md.Get(constants.InfraProviderMetadataKey) != nil {
+			return handler(actor.MarkContextAsInfraProvider(
+				ctx,
+				md.Get(constants.InfraProviderMetadataKey)[0],
+			), req)
+		}
+
 		return handler(actor.MarkContextAsInternalActor(ctx), req)
 	})
 
 	streamInterceptor := grpc.StreamServerInterceptor(func(srv interface{}, ss grpc.ServerStream, _ *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		md, ok := metadata.FromIncomingContext(ctx)
+		if ok && md.Get(constants.InfraProviderMetadataKey) != nil {
+			return handler(srv, &grpc_middleware.WrappedServerStream{
+				ServerStream:   ss,
+				WrappedContext: actor.MarkContextAsInfraProvider(ss.Context(), md.Get(constants.InfraProviderMetadataKey)[0]),
+			})
+		}
+
 		return handler(srv, &grpc_middleware.WrappedServerStream{
 			ServerStream:   ss,
 			WrappedContext: actor.MarkContextAsInternalActor(ss.Context()),
@@ -1121,7 +1147,12 @@ func runLocalResourceServer(ctx context.Context, st state.CoreState, serverOptio
 
 	grpcServer := grpc.NewServer(serverOptions...)
 
-	readOnlyState := state.WrapCore(state.Filter(st, func(_ context.Context, access state.Access) error {
+	readOnlyState := state.WrapCore(state.Filter(st, func(ctx context.Context, access state.Access) error {
+		md, ok := metadata.FromIncomingContext(ctx)
+		if ok && md.Get(constants.InfraProviderMetadataKey) != nil {
+			return nil
+		}
+
 		if !access.Verb.Readonly() {
 			return status.Error(codes.PermissionDenied, "only read-only access is permitted")
 		}
@@ -1134,6 +1165,57 @@ func runLocalResourceServer(ctx context.Context, st state.CoreState, serverOptio
 	logger.Info("starting local resource server")
 
 	grpcutil.RunServer(ctx, grpcServer, listener, eg, logger)
+
+	return nil
+}
+
+func (s *Server) createInitialServiceAccount(ctx context.Context) error {
+	serviceAccountEmail := config.Config.InitialServiceAccount.Name + access.ServiceAccountNameSuffix
+
+	identity, err := safe.ReaderGetByID[*authres.Identity](ctx, s.omniRuntime.State(), serviceAccountEmail)
+	if err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
+
+	// already created, skip
+	if identity != nil {
+		return nil
+	}
+
+	key, err := pgp.GenerateKey(config.Config.InitialServiceAccount.Name, "automation initial", serviceAccountEmail, config.Config.InitialServiceAccount.Lifetime)
+	if err != nil {
+		return fmt.Errorf("failed to create initial service account key, generate failed: %w", err)
+	}
+
+	k, err := key.ArmorPublic()
+	if err != nil {
+		return fmt.Errorf("failed to create initial service account key, armor failed: %w", err)
+	}
+
+	_, err = serviceaccountmgmt.Create(
+		ctx,
+		s.omniRuntime.State(),
+		config.Config.InitialServiceAccount.Name,
+		config.Config.InitialServiceAccount.Role,
+		false,
+		[]byte(k),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create initial service account key: %w", err)
+	}
+
+	data, err := serviceaccount.Encode(config.Config.InitialServiceAccount.Name, key)
+	if err != nil {
+		return fmt.Errorf("failed to create initial service account key, failed to encode: %w", err)
+	}
+
+	if err = os.WriteFile(config.Config.InitialServiceAccount.KeyPath, []byte(data), 0o640); err != nil {
+		return fmt.Errorf(
+			"failed to create initial service account key, failed to write key to path %q: %w",
+			config.Config.InitialServiceAccount.KeyPath,
+			err,
+		)
+	}
 
 	return nil
 }

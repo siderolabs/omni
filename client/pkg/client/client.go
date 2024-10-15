@@ -29,7 +29,8 @@ import (
 
 // Client is Omni API client.
 type Client struct {
-	conn *grpc.ClientConn
+	conn    *grpc.ClientConn
+	options *Options
 
 	endpoint string
 }
@@ -93,6 +94,7 @@ func New(endpoint string, opts ...Option) (*Client, error) {
 
 	c := &Client{
 		endpoint: u.String(),
+		options:  &options,
 	}
 
 	c.conn, err = grpc.NewClient(u.Host, grpcDialOptions...)
@@ -110,7 +112,7 @@ func (c *Client) Close() error {
 
 // Omni provides access to Omni resource API.
 func (c *Client) Omni() *omni.Client {
-	return omni.NewClient(c.conn)
+	return omni.NewClient(c.conn, c.options.OmniClientOptions...)
 }
 
 // Management provides access to the management API.

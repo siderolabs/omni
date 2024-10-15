@@ -8,11 +8,14 @@ package clientconfig
 
 import (
 	"context"
+	"crypto/md5"
 	"encoding/base64"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
+	"slices"
 	"sync"
 	"time"
 
@@ -24,9 +27,14 @@ import (
 	"github.com/siderolabs/go-api-signature/pkg/client/interceptor"
 	"github.com/siderolabs/go-api-signature/pkg/message"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
+	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	"google.golang.org/grpc"
 
+	"github.com/siderolabs/omni/client/api/omni/management"
+	"github.com/siderolabs/omni/client/pkg/access"
 	"github.com/siderolabs/omni/client/pkg/client"
+	"github.com/siderolabs/omni/client/pkg/constants"
+	"github.com/siderolabs/omni/internal/pkg/auth"
 )
 
 const (
@@ -62,18 +70,27 @@ func New(endpoint string) *ClientConfig {
 //
 // Clients are cached by their configuration, so if a client with the
 // given configuration was created before, the cached one will be returned.
-func (t *ClientConfig) GetClient(publicKeyOpts ...authcli.RegisterPGPPublicKeyOption) (*client.Client, error) {
-	return t.GetClientForEmail(defaultEmail, publicKeyOpts...)
+func (t *ClientConfig) GetClient(ctx context.Context, publicKeyOpts ...authcli.RegisterPGPPublicKeyOption) (*client.Client, error) {
+	return t.GetClientForEmail(ctx, defaultEmail, publicKeyOpts...)
 }
 
 // GetClientForEmail returns a test client for the given email.
 //
 // Clients are cached by their configuration, so if a client with the
 // given configuration was created before, the cached one will be returned.
-func (t *ClientConfig) GetClientForEmail(email string, publicKeyOpts ...authcli.RegisterPGPPublicKeyOption) (*client.Client, error) {
+func (t *ClientConfig) GetClientForEmail(ctx context.Context, email string, publicKeyOpts ...authcli.RegisterPGPPublicKeyOption) (*client.Client, error) {
 	cacheKey := t.buildCacheKey(email, publicKeyOpts)
 
 	cliOrErr, _ := clientCache.GetOrCall(cacheKey, func() clientOrError {
+		if !constants.IsDebugBuild {
+			cli, err := createServiceAccountClient(ctx, t.endpoint, cacheKey)
+
+			return clientOrError{
+				client: cli,
+				err:    err,
+			}
+		}
+
 		signatureInterceptor := buildSignatureInterceptor(email, publicKeyOpts...)
 
 		cli, err := client.New(t.endpoint,
@@ -236,4 +253,59 @@ func buildSignatureInterceptor(email string, publicKeyOpts ...authcli.RegisterPG
 		RenewUserKeyFunc: userKeyFunc,
 		Identity:         email,
 	})
+}
+
+func createServiceAccountClient(ctx context.Context, endpoint string, cacheKey clientCacheKey) (*client.Client, error) {
+	serviceAccount := os.Getenv("OMNI_SERVICE_ACCOUNT_KEY")
+	if serviceAccount == "" {
+		return nil, fmt.Errorf("OMNI_SERVICE_ACCOUNT_KEY environment variable is not set")
+	}
+
+	rootClient, err := client.New(endpoint, client.WithServiceAccount(serviceAccount))
+	if err != nil {
+		return nil, err
+	}
+
+	name := fmt.Sprintf("%x", md5.Sum([]byte(cacheKey.email+cacheKey.role)))
+
+	// generate a new PGP key with long lifetime
+	comment := fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
+
+	serviceAccountEmail := name + access.ServiceAccountNameSuffix
+
+	key, err := pgp.GenerateKey(name, comment, serviceAccountEmail, auth.ServiceAccountMaxAllowedLifetime)
+	if err != nil {
+		return nil, err
+	}
+
+	armoredPublicKey, err := key.ArmorPublic()
+	if err != nil {
+		return nil, err
+	}
+
+	serviceAccounts, err := rootClient.Management().ListServiceAccounts(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if slices.IndexFunc(serviceAccounts, func(account *management.ListServiceAccountsResponse_ServiceAccount) bool {
+		return account.Name == name
+	}) != -1 {
+		if err = rootClient.Management().DestroyServiceAccount(ctx, name); err != nil {
+			return nil, err
+		}
+	}
+
+	// create service account with the generated key
+	_, err = rootClient.Management().CreateServiceAccount(ctx, name, armoredPublicKey, cacheKey.role, cacheKey.role == "")
+	if err != nil {
+		return nil, err
+	}
+
+	encodedKey, err := serviceaccount.Encode(name, key)
+	if err != nil {
+		return nil, err
+	}
+
+	return client.New(endpoint, client.WithServiceAccount(encodedKey))
 }

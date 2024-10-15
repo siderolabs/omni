@@ -4,7 +4,9 @@
 
 package access
 
-import "strings"
+import (
+	"strings"
+)
 
 const (
 	serviceAccountDomain              = "serviceaccount.omni.sidero.dev"

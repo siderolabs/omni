@@ -14,7 +14,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
 	"google.golang.org/grpc/codes"
@@ -35,6 +34,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
+	"github.com/siderolabs/omni/internal/pkg/auth/serviceaccount"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
@@ -43,104 +43,12 @@ func (s *managementServer) CreateServiceAccount(ctx context.Context, req *manage
 		return nil, err
 	}
 
-	sa := pkgaccess.ParseServiceAccountFromName(req.Name)
-	saRole := role.Admin
-
-	if req.UseUserRole && sa.IsInfraProvider {
-		return nil, fmt.Errorf("infra provider service accounts must have the role %q, but use-user-role was requested", role.InfraProvider)
-	}
-
-	if !req.UseUserRole {
-		var err error
-
-		if saRole, err = role.Parse(req.GetRole()); err != nil {
-			return nil, err
-		}
-
-		if sa.IsInfraProvider && saRole != role.InfraProvider {
-			return nil, fmt.Errorf("infra-provider service accounts must have the role %q", role.InfraProvider)
-		}
-
-		if saRole == role.InfraProvider && !sa.IsInfraProvider {
-			return nil, fmt.Errorf("service accounts with role %q must be prefixed with %q", role.InfraProvider, pkgaccess.InfraProviderServiceAccountPrefix)
-		}
-	}
-
-	id := sa.FullID()
-
-	ctx = actor.MarkContextAsInternalActor(ctx)
-
-	_, err := s.omniState.Get(ctx, authres.NewIdentity(resources.DefaultNamespace, id).Metadata())
-	if err == nil {
-		return nil, fmt.Errorf("service account %q already exists", id)
-	}
-
-	if !state.IsNotFoundError(err) { // the identity must not exist
-		return nil, err
-	}
-
-	key, err := validatePGPPublicKey(
-		[]byte(req.GetArmoredPgpPublicKey()),
-		pgp.WithMaxAllowedLifetime(auth.ServiceAccountMaxAllowedLifetime),
-	)
+	id, err := serviceaccount.Create(ctx, s.omniState, req.Name, req.Role, req.UseUserRole, []byte(req.ArmoredPgpPublicKey))
 	if err != nil {
 		return nil, err
 	}
 
-	newUserID := uuid.NewString()
-
-	publicKeyResource := authres.NewPublicKey(resources.DefaultNamespace, key.id)
-	publicKeyResource.Metadata().Labels().Set(authres.LabelPublicKeyUserID, newUserID)
-
-	if sa.IsInfraProvider {
-		publicKeyResource.Metadata().Labels().Set(authres.LabelInfraProvider, "")
-	}
-
-	publicKeyResource.TypedSpec().Value.PublicKey = key.data
-	publicKeyResource.TypedSpec().Value.Expiration = timestamppb.New(key.expiration)
-	publicKeyResource.TypedSpec().Value.Role = string(saRole)
-
-	// register the public key of the service account as "confirmed" because we are already authenticated
-	publicKeyResource.TypedSpec().Value.Confirmed = true
-
-	publicKeyResource.TypedSpec().Value.Identity = &specs.Identity{
-		Email: id,
-	}
-
-	err = s.omniState.Create(ctx, publicKeyResource)
-	if err != nil {
-		return nil, err
-	}
-
-	// create the user resource representing the service account with the same scopes as the public key
-	user := authres.NewUser(resources.DefaultNamespace, newUserID)
-	user.TypedSpec().Value.Role = publicKeyResource.TypedSpec().Value.GetRole()
-
-	if sa.IsInfraProvider {
-		user.Metadata().Labels().Set(authres.LabelInfraProvider, "")
-	}
-
-	err = s.omniState.Create(ctx, user)
-	if err != nil {
-		return nil, err
-	}
-
-	// create the identity resource representing the service account
-	identity := authres.NewIdentity(resources.DefaultNamespace, id)
-	identity.TypedSpec().Value.UserId = user.Metadata().ID()
-	identity.Metadata().Labels().Set(authres.LabelIdentityUserID, newUserID)
-	identity.Metadata().Labels().Set(authres.LabelIdentityTypeServiceAccount, "")
-
-	if sa.IsInfraProvider {
-		identity.Metadata().Labels().Set(authres.LabelInfraProvider, "")
-	}
-
-	err = s.omniState.Create(ctx, identity)
-	if err != nil {
-		return nil, err
-	}
-
-	return &management.CreateServiceAccountResponse{PublicKeyId: key.id}, nil
+	return &management.CreateServiceAccountResponse{PublicKeyId: id}, nil
 }
 
 // RenewServiceAccount registers a new public key to the service account, effectively renewing it.
@@ -165,7 +73,7 @@ func (s *managementServer) RenewServiceAccount(ctx context.Context, req *managem
 		return nil, err
 	}
 
-	key, err := validatePGPPublicKey(
+	key, err := pkgaccess.ValidatePGPPublicKey(
 		[]byte(req.GetArmoredPgpPublicKey()),
 		pgp.WithMaxAllowedLifetime(auth.ServiceAccountMaxAllowedLifetime),
 	)
@@ -173,11 +81,11 @@ func (s *managementServer) RenewServiceAccount(ctx context.Context, req *managem
 		return nil, err
 	}
 
-	publicKeyResource := authres.NewPublicKey(resources.DefaultNamespace, key.id)
+	publicKeyResource := authres.NewPublicKey(resources.DefaultNamespace, key.ID)
 	publicKeyResource.Metadata().Labels().Set(authres.LabelPublicKeyUserID, identity.TypedSpec().Value.UserId)
 
-	publicKeyResource.TypedSpec().Value.PublicKey = key.data
-	publicKeyResource.TypedSpec().Value.Expiration = timestamppb.New(key.expiration)
+	publicKeyResource.TypedSpec().Value.PublicKey = key.Data
+	publicKeyResource.TypedSpec().Value.Expiration = timestamppb.New(key.Expiration)
 	publicKeyResource.TypedSpec().Value.Role = user.TypedSpec().Value.GetRole()
 
 	publicKeyResource.TypedSpec().Value.Confirmed = true
@@ -191,7 +99,7 @@ func (s *managementServer) RenewServiceAccount(ctx context.Context, req *managem
 		return nil, err
 	}
 
-	return &management.RenewServiceAccountResponse{PublicKeyId: key.id}, nil
+	return &management.RenewServiceAccountResponse{PublicKeyId: key.ID}, nil
 }
 
 func (s *managementServer) ListServiceAccounts(ctx context.Context, _ *emptypb.Empty) (*management.ListServiceAccountsResponse, error) {

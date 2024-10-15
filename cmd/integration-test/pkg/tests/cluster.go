@@ -123,7 +123,12 @@ func CreateCluster(testCtx context.Context, cli *client.Client, options ClusterO
 // CreateClusterWithMachineClass verifies cluster creation.
 func CreateClusterWithMachineClass(testCtx context.Context, st state.State, options ClusterOptions) TestFunc {
 	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, 150*time.Second)
+		timeout := 150 * time.Second
+		if options.InfraProvider != "" {
+			timeout = time.Minute * 15
+		}
+
+		ctx, cancel := context.WithTimeout(testCtx, timeout)
 		defer cancel()
 
 		require := require.New(t)
@@ -175,7 +180,12 @@ func CreateClusterWithMachineClass(testCtx context.Context, st state.State, opti
 // ScaleClusterMachineSets scales the cluster with machine sets which are using machine classes.
 func ScaleClusterMachineSets(testCtx context.Context, st state.State, options ClusterOptions) TestFunc {
 	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, time.Minute*2)
+		timeout := time.Minute * 2
+		if options.InfraProvider != "" {
+			timeout = time.Minute * 15
+		}
+
+		ctx, cancel := context.WithTimeout(testCtx, timeout)
 		defer cancel()
 
 		updateMachineClassMachineSets(ctx, t, st, options, nil)

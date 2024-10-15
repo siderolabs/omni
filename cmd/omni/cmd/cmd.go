@@ -565,5 +565,33 @@ var initOnce = sync.OnceValue(func() *cobra.Command {
 		"Directory for audit log storage",
 	)
 
+	rootCmd.Flags().BoolVar(
+		&config.Config.InitialServiceAccount.Enabled,
+		"create-initial-service-account",
+		config.Config.InitialServiceAccount.Enabled,
+		"create and dump a service account credentials on the first start of Omni",
+	)
+
+	rootCmd.Flags().StringVar(
+		&config.Config.InitialServiceAccount.KeyPath,
+		"initial-service-account-key-path",
+		config.Config.InitialServiceAccount.KeyPath,
+		"dump the initial service account key into the path",
+	)
+
+	rootCmd.Flags().StringVar(
+		&config.Config.InitialServiceAccount.Role,
+		"initial-service-account-role",
+		config.Config.InitialServiceAccount.Role,
+		"the initial service account access role",
+	)
+
+	rootCmd.Flags().DurationVar(
+		&config.Config.InitialServiceAccount.Lifetime,
+		"initial-service-account-lifetime",
+		config.Config.InitialServiceAccount.Lifetime,
+		"the lifetime duration of the initial service account key",
+	)
+
 	return rootCmd
 })

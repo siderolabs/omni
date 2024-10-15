@@ -24,6 +24,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/cmd/integration-test/pkg/clientconfig"
@@ -74,15 +75,22 @@ type Options struct {
 
 // Run the integration tests.
 //
-//nolint:maintidx
+//nolint:maintidx,gocyclo,cyclop
 func Run(ctx context.Context, clientConfig *clientconfig.ClientConfig, options Options) error {
-	rootClient, err := clientConfig.GetClient()
+	rootClient, err := clientConfig.GetClient(ctx)
 	if err != nil {
 		return err
 	}
 
 	talosAPIKeyPrepare := func(ctx context.Context, contextName string) error {
 		return clientconfig.TalosAPIKeyPrepare(ctx, rootClient, contextName)
+	}
+
+	if !constants.IsDebugBuild {
+		// noop for non-debug builds
+		talosAPIKeyPrepare = func(context.Context, string) error {
+			return nil
+		}
 	}
 
 	testList := []testGroup{
