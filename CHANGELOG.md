@@ -1,3 +1,32 @@
+## [Omni 0.43.1](https://github.com/siderolabs/omni/releases/tag/v0.43.1) (2024-10-17)
+
+Welcome to the v0.43.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+* Dmitriy Matrenichev
+
+### Changes
+<details><summary>2 commits</summary>
+<p>
+
+* [`dbdbcb6`](https://github.com/siderolabs/omni/commit/dbdbcb62ea43c8d451f9b18fcdf8cc614e82224e) fix: introduce timeout in the etcd healthchecks in the machine set ctrl
+* [`cd1f88f`](https://github.com/siderolabs/omni/commit/cd1f88f15950e74076a118054295ca9e1c7cb1fb) chore: remove `ip_address` field from audit log `session`
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.43.0](https://github.com/siderolabs/omni/releases/tag/v0.43.0)
+
 ## [Omni 0.43.0](https://github.com/siderolabs/omni/releases/tag/v0.43.0) (2024-10-11)
 
 Welcome to the v0.43.0 release of Omni!

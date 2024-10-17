@@ -6,18 +6,5 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = false
-previous = "v0.42.0"
+previous = "v0.43.0"
 
-[notes]
-
-  [notes.grpc-tunnel]
-    title = "`gRPC` Tunnel"
-    description = """\
-`gRPC` tunnel for wireguard can now be enabled when downloading the installation media from Omni.
-"""
-
-  [notes.talos-diagnostics]
-    title = "Talos Diagnostics"
-    description = """\
-Omni now shows [Talos diagnostics information](https://www.talos.dev/v1.8/introduction/what-is-new/#diagnostics) for Talos >= 1.8.0.
-"""
