@@ -8,6 +8,7 @@ package machineset
 
 import (
 	"context"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -68,6 +69,10 @@ func ReconcileMachines(ctx context.Context, r controller.ReaderWriter, logger *z
 		var err error
 
 		operations, err = ReconcileControlPlanes(ctx, rc, func(ctx context.Context) (*check.EtcdStatusResult, error) {
+			ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+
+			defer cancel()
+
 			return check.EtcdStatus(ctx, r, machineSet)
 		})
 		if err != nil {
