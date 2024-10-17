@@ -18,6 +18,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/siderolabs/omni/client/pkg/client"
+	"github.com/siderolabs/omni/client/pkg/client/omni"
 	"github.com/siderolabs/omni/client/pkg/infra/controllers"
 	"github.com/siderolabs/omni/client/pkg/infra/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/infra/internal/resources"
@@ -101,6 +102,10 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 			return err
 		}
 	}
+
+	options.clientOptions = append(options.clientOptions, client.WithOmniClientOptions(
+		omni.WithProviderID(provider.id),
+	))
 
 	switch {
 	case options.state != nil:

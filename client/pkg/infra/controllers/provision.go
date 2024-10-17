@@ -7,6 +7,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
@@ -203,6 +204,8 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 		var requeueError error
 
 		machineRequestStatus.TypedSpec().Value.Status = fmt.Sprintf("Running Step: %q (%d/%d)", step.Name(), i+1, len(steps))
+		machineRequestStatus.TypedSpec().Value.Error = ""
+		machineRequestStatus.TypedSpec().Value.Stage = specs.MachineRequestStatusSpec_PROVISIONING
 
 		if err = safe.WriterModify(ctx, r, res.(T), func(st T) error { //nolint:forcetypeassert
 			err = step.Run(ctx, logger, provision.NewContext(
@@ -230,7 +233,7 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 			machineRequestStatus.TypedSpec().Value.Error = err.Error()
 			machineRequestStatus.TypedSpec().Value.Stage = specs.MachineRequestStatusSpec_FAILED
 
-			return nil //nolint:nilerr
+			return controller.NewRequeueError(err, time.Minute)
 		}
 
 		if err = safe.WriterModify(ctx, r, machineRequestStatus, func(res *infra.MachineRequestStatus) error {

@@ -18,6 +18,7 @@ import (
 
 	consts "github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
+	"github.com/siderolabs/omni/internal/pkg/auth/role"
 )
 
 const (
@@ -96,6 +97,17 @@ type Params struct {
 	EnableBreakGlassConfigs bool `yaml:"enableBreakGlassConfigs"`
 
 	AuditLogDir string `yaml:"auditLogDir"`
+
+	InitialServiceAccount InitialServiceAccount `yaml:"initialServiceAccount"`
+}
+
+// InitialServiceAccount allows creating a service account for automated omnictl runs on the Omni service deployment.
+type InitialServiceAccount struct {
+	Role     string
+	KeyPath  string
+	Name     string
+	Lifetime time.Duration
+	Enabled  bool
 }
 
 // EmbeddedDiscoveryServiceParams defines embedded discovery service configs.
@@ -284,6 +296,14 @@ var (
 
 		ConfigDataCompression: ConfigDataCompressionParams{
 			Enabled: false,
+		},
+
+		InitialServiceAccount: InitialServiceAccount{
+			Enabled:  false,
+			Role:     string(role.Admin),
+			KeyPath:  "_out/initial-service-account-key",
+			Name:     "automation",
+			Lifetime: time.Hour,
 		},
 
 		LocalResourceServerPort: 8081,
