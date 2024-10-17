@@ -21,7 +21,6 @@ func SetAuditInCtx(ctx context.Context) context.Context {
 	return ctxstore.WithValue(ctx, &audit.Data{
 		Session: audit.Session{
 			UserAgent: typeAssertOrZero[string](m["user_agent"]),
-			IPAddress: typeAssertOrZero[string](m["peer.address"]),
 		},
 	})
 }
