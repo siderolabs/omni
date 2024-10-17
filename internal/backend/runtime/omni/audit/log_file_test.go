@@ -182,11 +182,10 @@ func defaultCmp(t *testing.T, expected string, actual string) {
 }
 
 //nolint:unparam
-func makeAuditData(agent, ip, email string) audit.Data {
+func makeAuditData(agent, _, email string) audit.Data {
 	return audit.Data{
 		Session: audit.Session{
 			UserAgent: agent,
-			IPAddress: ip,
 			Email:     email,
 		},
 	}
