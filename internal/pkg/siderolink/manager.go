@@ -56,7 +56,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/errgroup"
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
 	"github.com/siderolabs/omni/internal/pkg/logreceiver"
-	"github.com/siderolabs/omni/internal/pkg/machinestatus"
+	"github.com/siderolabs/omni/internal/pkg/machineevent"
 	"github.com/siderolabs/omni/internal/pkg/siderolink/trustd"
 )
 
@@ -81,15 +81,15 @@ func NewManager(
 	params Params,
 	logger *zap.Logger,
 	handler *LogHandler,
-	machineStatusHandler *machinestatus.Handler,
+	machineEventHandler *machineevent.Handler,
 	deltaCh chan<- LinkCounterDeltas,
 ) (*Manager, error) {
 	manager := &Manager{
-		logger:               logger,
-		state:                state,
-		wgHandler:            wgHandler,
-		logHandler:           handler,
-		machineStatusHandler: machineStatusHandler,
+		logger:              logger,
+		state:               state,
+		wgHandler:           wgHandler,
+		logHandler:          handler,
+		machineEventHandler: machineEventHandler,
 		metricBytesReceived: prometheus.NewCounter(prometheus.CounterOpts{
 			Name: "omni_siderolink_received_bytes_total",
 			Help: "Number of bytes received from the SideroLink interface.",
@@ -136,12 +136,12 @@ func NewManager(
 // Manager sets up Siderolink server, manages it's state.
 type Manager struct {
 	pb.UnimplementedProvisionServiceServer
-	config               *siderolink.Config
-	logger               *zap.Logger
-	state                state.State
-	wgHandler            WireguardHandler
-	logHandler           *LogHandler
-	machineStatusHandler *machinestatus.Handler
+	config              *siderolink.Config
+	logger              *zap.Logger
+	state               state.State
+	wgHandler           WireguardHandler
+	logHandler          *LogHandler
+	machineEventHandler *machineevent.Handler
 
 	metricBytesReceived prometheus.Counter
 	metricBytesSent     prometheus.Counter
@@ -412,8 +412,9 @@ func (manager *Manager) startEventsGRPC(ctx context.Context, eg *errgroup.Group,
 	server := grpc.NewServer(
 		grpc.SharedWriteBuffer(true),
 	)
-	sink := events.NewSink(manager.machineStatusHandler, []proto.Message{
+	sink := events.NewSink(manager.machineEventHandler, []proto.Message{
 		&machineapi.MachineStatusEvent{},
+		&machineapi.SequenceEvent{}, // used to detect if Talos was installed on the disk, which is used by static infra providers (e.g., bare-metal infra provider)
 	})
 	eventsapi.RegisterEventSinkServiceServer(server, sink)
 

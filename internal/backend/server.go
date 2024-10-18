@@ -96,7 +96,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/errgroup"
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
 	"github.com/siderolabs/omni/internal/pkg/kms"
-	"github.com/siderolabs/omni/internal/pkg/machinestatus"
+	"github.com/siderolabs/omni/internal/pkg/machineevent"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
 	"github.com/siderolabs/omni/internal/pkg/xcontext"
 )
@@ -555,7 +555,7 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 	}
 
 	omniState := s.omniRuntime.State()
-	machineStatusHandler := machinestatus.NewHandler(omniState, s.logger, s.siderolinkEventsCh)
+	machineEventHandler := machineevent.NewHandler(omniState, s.logger, s.siderolinkEventsCh)
 
 	slink, err := siderolink.NewManager(
 		ctx,
@@ -566,7 +566,7 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 			zap.AddStacktrace(zapcore.ErrorLevel), // prevent warn level from printing stack traces
 		),
 		s.logHandler,
-		machineStatusHandler,
+		machineEventHandler,
 		s.linkCounterDeltaCh,
 	)
 	if err != nil {

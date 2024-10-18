@@ -614,6 +614,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		machineSetNode := omni.NewMachineSetNode(resources.DefaultNamespace, uuid.New().String(), machineSet)
 		machineClass := omni.NewMachineClass(resources.DefaultNamespace, uuid.New().String())
 		machineRequestSet := omni.NewMachineRequestSet(resources.DefaultNamespace, uuid.New().String())
+		infraMachineConfig := omni.NewInfraMachineConfig(resources.DefaultNamespace, uuid.New().String())
 
 		extensionsConfiguration := omni.NewExtensionsConfiguration(resources.DefaultNamespace, uuid.New().String())
 		extensionsConfiguration.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
@@ -671,6 +672,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource:       machineRequestSet,
+				allowedVerbSet: allVerbsSet,
+			},
+			{
+				resource:       infraMachineConfig,
 				allowedVerbSet: allVerbsSet,
 			},
 			{
@@ -1041,6 +1046,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		// infra provider resources have their custom authz logic, they are unit-tested in their package
 		delete(untestedResourceTypes, infra.MachineRequestType)
 		delete(untestedResourceTypes, infra.MachineRequestStatusType)
+		delete(untestedResourceTypes, infra.InfraMachineStateType)
+		delete(untestedResourceTypes, infra.InfraMachineType)
+		delete(untestedResourceTypes, infra.InfraMachineStatusType)
 		delete(untestedResourceTypes, infra.InfraProviderStatusType)
 		delete(untestedResourceTypes, infra.ConfigPatchRequestType)
 

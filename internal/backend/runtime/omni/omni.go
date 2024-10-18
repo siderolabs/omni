@@ -265,6 +265,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewMachineRequestSetStatusController(),
 		omnictrl.NewClusterMachineRequestStatusController(),
 		omnictrl.NewMachineTeardownController(),
+		omnictrl.NewInfraMachineController(),
 		omnictrl.NewInfraProviderConfigPatchController(),
 	}
 
@@ -331,6 +332,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		samlLabelRuleValidationOptions(),
 		s3ConfigValidationOptions(),
 		machineRequestSetValidationOptions(resourceState),
+		infraMachineConfigValidationOptions(resourceState),
 	)
 
 	return &Runtime{

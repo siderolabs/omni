@@ -57,6 +57,10 @@ const (
 	// LabelInfraProviderID is the infra provider ID for the resources managed by infra providers, e.g., infra.MachineRequest, infra.MachineRequestStatus.
 	LabelInfraProviderID = SystemLabelPrefix + "infra-provider-id"
 
+	// LabelIsStaticInfraProvider is set on the infra.ProviderStatus resources to mark them as static providers - they do not work with MachineRequests to
+	// allocate and de-allocate machines, but rather work with a static set of machines (e.g., bare-metal machines).
+	LabelIsStaticInfraProvider = SystemLabelPrefix + "is-static-infra-provider"
+
 	// LabelMachineClassName is the name of the machine class.
 	LabelMachineClassName = SystemLabelPrefix + "machine-class-name"
 
@@ -76,6 +80,9 @@ const (
 	// Setting this label will make MachineSetNode controller ignore such machines for the manual label selectors.
 	// tsgen:LabelNoManualAllocation
 	LabelNoManualAllocation = SystemLabelPrefix + "no-manual-allocation"
+
+	// LabelIsManagedByStaticInfraProvider is set on the machines managed by static infra providers.
+	LabelIsManagedByStaticInfraProvider = SystemLabelPrefix + "is-managed-by-static-infra-provider"
 )
 
 const (

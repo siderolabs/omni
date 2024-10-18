@@ -29,6 +29,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
@@ -1166,6 +1167,54 @@ size: t2.small
 	err = st.Create(ctx, res)
 
 	require.NoError(t, err)
+}
+
+func TestInfraMachineConfigValidation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	t.Cleanup(cancel)
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := validated.NewState(innerSt, omni.InfraMachineConfigValidationOptions(innerSt)...)
+	wrappedState := state.WrapCore(st)
+
+	conf := omnires.NewInfraMachineConfig(resources.DefaultNamespace, "test")
+	link := siderolink.NewLink(resources.DefaultNamespace, "test", nil)
+
+	require.NoError(t, st.Create(ctx, conf))
+	require.NoError(t, st.Create(ctx, link))
+
+	// can delete the conf, as it is not accepted
+	require.NoError(t, st.Destroy(ctx, conf.Metadata()))
+
+	// recreate the conf, as accepted this time
+	conf = omnires.NewInfraMachineConfig(resources.DefaultNamespace, "test")
+	conf.TypedSpec().Value.Accepted = true
+
+	require.NoError(t, st.Create(ctx, conf))
+
+	// try to "unaccept" it
+
+	_, err := safe.StateUpdateWithConflicts(ctx, wrappedState, conf.Metadata(), func(res *omnires.InfraMachineConfig) error {
+		res.TypedSpec().Value.Accepted = false
+
+		return nil
+	})
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "an accepted machine cannot be unaccepted")
+
+	// try to destroy it
+
+	err = st.Destroy(ctx, conf.Metadata())
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "cannot delete the config for an already accepted machine config while it is linked to a machine")
+
+	// destroy the link
+	require.NoError(t, st.Destroy(ctx, link.Metadata()))
+
+	// now it can be destroyed
+	require.NoError(t, st.Destroy(ctx, conf.Metadata()))
 }
 
 type mockEtcdBackupStoreFactory struct {

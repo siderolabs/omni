@@ -81,3 +81,7 @@ func SchematicConfigurationValidationOptions() []validated.StateOption {
 func MachineRequestSetValidationOptions(st state.State) []validated.StateOption {
 	return machineRequestSetValidationOptions(st)
 }
+
+func InfraMachineConfigValidationOptions(st state.State) []validated.StateOption {
+	return infraMachineConfigValidationOptions(st)
+}

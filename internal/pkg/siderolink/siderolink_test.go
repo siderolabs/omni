@@ -39,7 +39,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/errgroup"
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
-	"github.com/siderolabs/omni/internal/pkg/machinestatus"
+	"github.com/siderolabs/omni/internal/pkg/machineevent"
 	sideromanager "github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
@@ -115,9 +115,9 @@ func (suite *SiderolinkSuite) SetupTest() {
 
 	var err error
 
-	machineStatusHandler := machinestatus.NewHandler(suite.state, zaptest.NewLogger(suite.T()), make(chan *omni.MachineStatusSnapshot))
+	eventHandler := machineevent.NewHandler(suite.state, zaptest.NewLogger(suite.T()), make(chan *omni.MachineStatusSnapshot))
 
-	suite.manager, err = sideromanager.NewManager(suite.ctx, suite.state, &fakeWireguardHandler{}, params, zaptest.NewLogger(suite.T()), nil, machineStatusHandler, nil)
+	suite.manager, err = sideromanager.NewManager(suite.ctx, suite.state, &fakeWireguardHandler{}, params, zaptest.NewLogger(suite.T()), nil, eventHandler, nil)
 	suite.Require().NoError(err)
 
 	suite.startManager(params)

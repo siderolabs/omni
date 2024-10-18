@@ -150,6 +150,12 @@ export enum ClusterMachineRequestStatusSpecStage {
   FAILED = 5,
 }
 
+export enum InfraMachineConfigSpecMachinePowerState {
+  POWER_STATE_DEFAULT = 0,
+  POWER_STATE_OFF = 1,
+  POWER_STATE_ON = 2,
+}
+
 export type MachineSpec = {
   management_address?: string
   connected?: boolean
@@ -810,4 +816,9 @@ export type ClusterMachineRequestStatusSpec = {
   machine_uuid?: string
   provider_id?: string
   stage?: ClusterMachineRequestStatusSpecStage
+}
+
+export type InfraMachineConfigSpec = {
+  power_state?: InfraMachineConfigSpecMachinePowerState
+  accepted?: boolean
 }

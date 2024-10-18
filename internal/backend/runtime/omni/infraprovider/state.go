@@ -108,8 +108,11 @@ func (st *State) Create(ctx context.Context, resource resource.Resource, option 
 		return err
 	}
 
-	if infraProviderID != "" && resource.Metadata().Type() == infra.MachineRequestType {
-		return status.Errorf(codes.PermissionDenied, "infra providers are not allowed to create machine requests")
+	if infraProviderID != "" {
+		switch resource.Metadata().Type() {
+		case infra.MachineRequestType, infra.InfraMachineType:
+			return status.Errorf(codes.PermissionDenied, "infra providers are not allowed to create %q resources", resource.Metadata().Type())
+		}
 	}
 
 	if infraProviderID == "" {
@@ -137,7 +140,8 @@ func (st *State) Update(ctx context.Context, newResource resource.Resource, opts
 		return st.innerState.Update(ctx, newResource, opts...)
 	}
 
-	if newResource.Metadata().Type() == infra.MachineRequestType {
+	switch newResource.Metadata().Type() {
+	case infra.MachineRequestType, infra.InfraMachineType:
 		oldMd := oldResource.Metadata().Copy()
 		oldMd.Finalizers().Set(resource.Finalizers{})
 
@@ -145,7 +149,7 @@ func (st *State) Update(ctx context.Context, newResource resource.Resource, opts
 		newMd.Finalizers().Set(resource.Finalizers{})
 
 		if !oldMd.Equal(newMd) {
-			return status.Errorf(codes.PermissionDenied, "infra providers are not allowed to update machine requests other than setting finalizers")
+			return status.Errorf(codes.PermissionDenied, "infra providers are not allowed to update %q resources other than setting finalizers", newResource.Metadata().Type())
 		}
 	}
 

@@ -1254,3 +1254,15 @@ message ClusterMachineRequestStatusSpec {
   string provider_id = 3;
   Stage stage = 4;
 }
+
+// InfraMachineConfigSpec is the spec of the user-owned InfraMachineConfig resource.
+message InfraMachineConfigSpec {
+  enum MachinePowerState {
+    POWER_STATE_DEFAULT = 0;
+    POWER_STATE_OFF = 1;
+    POWER_STATE_ON = 2;
+  }
+
+  MachinePowerState power_state = 1;
+  bool accepted = 2;
+}

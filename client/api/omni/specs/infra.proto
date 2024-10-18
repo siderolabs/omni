@@ -29,6 +29,38 @@ message MachineRequestStatusSpec {
   string status = 4;
 }
 
+message InfraMachineSpec {
+  enum MachinePowerState {
+    POWER_STATE_OFF = 0;
+    POWER_STATE_ON = 1;
+  }
+
+  MachinePowerState preferred_power_state = 1;
+  bool accepted = 2;
+  string cluster_talos_version = 3;
+  repeated string extensions = 4;
+
+  // WipeId is set to a new id each time the machine gets unallocated.
+  //
+  // It is used by the provider to ensure that the machine is wiped between allocations.
+  string wipe_id = 5;
+}
+
+message InfraMachineStateSpec {
+  bool installed = 1;
+}
+
+message InfraMachineStatusSpec {
+  enum MachinePowerState {
+    POWER_STATE_UNKNOWN = 0;
+    POWER_STATE_OFF = 1;
+    POWER_STATE_ON = 2;
+  }
+
+  MachinePowerState power_state = 1;
+  bool ready_to_use = 2;
+}
+
 message InfraProviderStatusSpec {
   string schema = 1;
   string name = 2;

@@ -10,6 +10,7 @@ package machine
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 
@@ -27,99 +28,96 @@ import (
 )
 
 // Suppress "imported and not used" errors
-var _ codes.Code
-var _ io.Reader
-var _ status.Status
-var _ = runtime.String
-var _ = utilities.NewDoubleArray
-var _ = metadata.Join
+var (
+	_ codes.Code
+	_ io.Reader
+	_ status.Status
+	_ = errors.New
+	_ = runtime.String
+	_ = utilities.NewDoubleArray
+	_ = metadata.Join
+)
 
 func request_MachineService_ApplyConfiguration_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.ApplyConfigurationRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.ApplyConfigurationRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.ApplyConfiguration(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_ApplyConfiguration_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.ApplyConfigurationRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.ApplyConfigurationRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.ApplyConfiguration(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_Bootstrap_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.BootstrapRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.BootstrapRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.Bootstrap(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_Bootstrap_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.BootstrapRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.BootstrapRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.Bootstrap(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_Containers_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.ContainersRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.ContainersRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.Containers(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_Containers_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.ContainersRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.ContainersRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.Containers(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_Copy_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (extMachine.MachineService_CopyClient, runtime.ServerMetadata, error) {
-	var protoReq extMachine.CopyRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.CopyRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	stream, err := client.Copy(ctx, &protoReq)
 	if err != nil {
 		return nil, metadata, err
@@ -130,69 +128,64 @@ func request_MachineService_Copy_0(ctx context.Context, marshaler runtime.Marsha
 	}
 	metadata.HeaderMD = header
 	return stream, metadata, nil
-
 }
 
 func request_MachineService_CPUInfo_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.CPUInfo(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_CPUInfo_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.CPUInfo(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_DiskStats_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.DiskStats(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_DiskStats_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.DiskStats(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_Dmesg_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (extMachine.MachineService_DmesgClient, runtime.ServerMetadata, error) {
-	var protoReq extMachine.DmesgRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.DmesgRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	stream, err := client.Dmesg(ctx, &protoReq)
 	if err != nil {
 		return nil, metadata, err
@@ -203,17 +196,16 @@ func request_MachineService_Dmesg_0(ctx context.Context, marshaler runtime.Marsh
 	}
 	metadata.HeaderMD = header
 	return stream, metadata, nil
-
 }
 
 func request_MachineService_Events_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (extMachine.MachineService_EventsClient, runtime.ServerMetadata, error) {
-	var protoReq extMachine.EventsRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.EventsRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	stream, err := client.Events(ctx, &protoReq)
 	if err != nil {
 		return nil, metadata, err
@@ -224,111 +216,102 @@ func request_MachineService_Events_0(ctx context.Context, marshaler runtime.Mars
 	}
 	metadata.HeaderMD = header
 	return stream, metadata, nil
-
 }
 
 func request_MachineService_EtcdMemberList_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.EtcdMemberListRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.EtcdMemberListRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.EtcdMemberList(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_EtcdMemberList_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.EtcdMemberListRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.EtcdMemberListRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.EtcdMemberList(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_EtcdRemoveMemberByID_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.EtcdRemoveMemberByIDRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.EtcdRemoveMemberByIDRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.EtcdRemoveMemberByID(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_EtcdRemoveMemberByID_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.EtcdRemoveMemberByIDRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.EtcdRemoveMemberByIDRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.EtcdRemoveMemberByID(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_EtcdLeaveCluster_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.EtcdLeaveClusterRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.EtcdLeaveClusterRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.EtcdLeaveCluster(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_EtcdLeaveCluster_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.EtcdLeaveClusterRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.EtcdLeaveClusterRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.EtcdLeaveCluster(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_EtcdForfeitLeadership_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.EtcdForfeitLeadershipRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.EtcdForfeitLeadershipRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.EtcdForfeitLeadership(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_EtcdForfeitLeadership_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.EtcdForfeitLeadershipRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.EtcdForfeitLeadershipRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.EtcdForfeitLeadership(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_EtcdRecover_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
@@ -342,7 +325,7 @@ func request_MachineService_EtcdRecover_0(ctx context.Context, marshaler runtime
 	for {
 		var protoReq extCommon.Data
 		err = dec.Decode(&protoReq)
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -350,14 +333,13 @@ func request_MachineService_EtcdRecover_0(ctx context.Context, marshaler runtime
 			return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 		}
 		if err = stream.Send(&protoReq); err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			grpclog.Errorf("Failed to send request: %v", err)
 			return nil, metadata, err
 		}
 	}
-
 	if err := stream.CloseSend(); err != nil {
 		grpclog.Errorf("Failed to terminate client stream: %v", err)
 		return nil, metadata, err
@@ -368,21 +350,19 @@ func request_MachineService_EtcdRecover_0(ctx context.Context, marshaler runtime
 		return nil, metadata, err
 	}
 	metadata.HeaderMD = header
-
 	msg, err := stream.CloseAndRecv()
 	metadata.TrailerMD = stream.Trailer()
 	return msg, metadata, err
-
 }
 
 func request_MachineService_EtcdSnapshot_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (extMachine.MachineService_EtcdSnapshotClient, runtime.ServerMetadata, error) {
-	var protoReq extMachine.EtcdSnapshotRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.EtcdSnapshotRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	stream, err := client.EtcdSnapshot(ctx, &protoReq)
 	if err != nil {
 		return nil, metadata, err
@@ -393,173 +373,160 @@ func request_MachineService_EtcdSnapshot_0(ctx context.Context, marshaler runtim
 	}
 	metadata.HeaderMD = header
 	return stream, metadata, nil
-
 }
 
 func request_MachineService_EtcdAlarmList_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.EtcdAlarmList(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_EtcdAlarmList_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.EtcdAlarmList(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_EtcdAlarmDisarm_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.EtcdAlarmDisarm(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_EtcdAlarmDisarm_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.EtcdAlarmDisarm(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_EtcdDefragment_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.EtcdDefragment(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_EtcdDefragment_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.EtcdDefragment(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_EtcdStatus_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.EtcdStatus(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_EtcdStatus_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.EtcdStatus(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_GenerateConfiguration_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.GenerateConfigurationRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.GenerateConfigurationRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.GenerateConfiguration(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_GenerateConfiguration_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.GenerateConfigurationRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.GenerateConfigurationRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.GenerateConfiguration(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_Hostname_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.Hostname(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_Hostname_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.Hostname(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_Kubeconfig_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (extMachine.MachineService_KubeconfigClient, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	stream, err := client.Kubeconfig(ctx, &protoReq)
 	if err != nil {
 		return nil, metadata, err
@@ -570,17 +537,16 @@ func request_MachineService_Kubeconfig_0(ctx context.Context, marshaler runtime.
 	}
 	metadata.HeaderMD = header
 	return stream, metadata, nil
-
 }
 
 func request_MachineService_List_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (extMachine.MachineService_ListClient, runtime.ServerMetadata, error) {
-	var protoReq extMachine.ListRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.ListRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	stream, err := client.List(ctx, &protoReq)
 	if err != nil {
 		return nil, metadata, err
@@ -591,17 +557,16 @@ func request_MachineService_List_0(ctx context.Context, marshaler runtime.Marsha
 	}
 	metadata.HeaderMD = header
 	return stream, metadata, nil
-
 }
 
 func request_MachineService_DiskUsage_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (extMachine.MachineService_DiskUsageClient, runtime.ServerMetadata, error) {
-	var protoReq extMachine.DiskUsageRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.DiskUsageRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	stream, err := client.DiskUsage(ctx, &protoReq)
 	if err != nil {
 		return nil, metadata, err
@@ -612,43 +577,40 @@ func request_MachineService_DiskUsage_0(ctx context.Context, marshaler runtime.M
 	}
 	metadata.HeaderMD = header
 	return stream, metadata, nil
-
 }
 
 func request_MachineService_LoadAvg_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.LoadAvg(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_LoadAvg_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.LoadAvg(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_Logs_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (extMachine.MachineService_LogsClient, runtime.ServerMetadata, error) {
-	var protoReq extMachine.LogsRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.LogsRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	stream, err := client.Logs(ctx, &protoReq)
 	if err != nil {
 		return nil, metadata, err
@@ -659,121 +621,112 @@ func request_MachineService_Logs_0(ctx context.Context, marshaler runtime.Marsha
 	}
 	metadata.HeaderMD = header
 	return stream, metadata, nil
-
 }
 
 func request_MachineService_Memory_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.Memory(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_Memory_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.Memory(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_Mounts_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.Mounts(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_Mounts_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.Mounts(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_NetworkDeviceStats_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.NetworkDeviceStats(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_NetworkDeviceStats_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.NetworkDeviceStats(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_Processes_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.Processes(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_Processes_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.Processes(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_Read_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (extMachine.MachineService_ReadClient, runtime.ServerMetadata, error) {
-	var protoReq extMachine.ReadRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.ReadRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	stream, err := client.Read(ctx, &protoReq)
 	if err != nil {
 		return nil, metadata, err
@@ -784,381 +737,352 @@ func request_MachineService_Read_0(ctx context.Context, marshaler runtime.Marsha
 	}
 	metadata.HeaderMD = header
 	return stream, metadata, nil
-
 }
 
 func request_MachineService_Reboot_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.RebootRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.RebootRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.Reboot(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_Reboot_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.RebootRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.RebootRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.Reboot(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_Restart_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.RestartRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.RestartRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.Restart(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_Restart_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.RestartRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.RestartRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.Restart(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_Rollback_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.RollbackRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.RollbackRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.Rollback(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_Rollback_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.RollbackRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.RollbackRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.Rollback(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_Reset_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.ResetRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.ResetRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.Reset(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_Reset_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.ResetRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.ResetRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.Reset(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_ServiceList_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.ServiceList(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_ServiceList_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.ServiceList(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_ServiceRestart_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.ServiceRestartRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.ServiceRestartRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.ServiceRestart(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_ServiceRestart_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.ServiceRestartRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.ServiceRestartRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.ServiceRestart(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_ServiceStart_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.ServiceStartRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.ServiceStartRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.ServiceStart(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_ServiceStart_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.ServiceStartRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.ServiceStartRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.ServiceStart(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_ServiceStop_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.ServiceStopRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.ServiceStopRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.ServiceStop(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_ServiceStop_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.ServiceStopRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.ServiceStopRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.ServiceStop(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_Shutdown_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.ShutdownRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.ShutdownRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.Shutdown(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_Shutdown_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.ShutdownRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.ShutdownRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.Shutdown(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_Stats_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.StatsRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.StatsRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.Stats(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_Stats_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.StatsRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.StatsRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.Stats(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_SystemStat_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.SystemStat(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_SystemStat_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.SystemStat(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_Upgrade_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.UpgradeRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.UpgradeRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.Upgrade(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_Upgrade_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.UpgradeRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.UpgradeRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.Upgrade(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_Version_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.Version(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_Version_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extEmptypb.Empty
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.Version(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_GenerateClientConfiguration_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.GenerateClientConfigurationRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.GenerateClientConfigurationRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.GenerateClientConfiguration(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_GenerateClientConfiguration_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.GenerateClientConfigurationRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.GenerateClientConfigurationRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.GenerateClientConfiguration(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_PacketCapture_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (extMachine.MachineService_PacketCaptureClient, runtime.ServerMetadata, error) {
-	var protoReq extMachine.PacketCaptureRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.PacketCaptureRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	stream, err := client.PacketCapture(ctx, &protoReq)
 	if err != nil {
 		return nil, metadata, err
@@ -1169,95 +1093,88 @@ func request_MachineService_PacketCapture_0(ctx context.Context, marshaler runti
 	}
 	metadata.HeaderMD = header
 	return stream, metadata, nil
-
 }
 
 func request_MachineService_Netstat_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.NetstatRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.NetstatRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.Netstat(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_Netstat_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.NetstatRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.NetstatRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.Netstat(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_MetaWrite_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.MetaWriteRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.MetaWriteRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.MetaWrite(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_MetaWrite_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.MetaWriteRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.MetaWriteRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.MetaWrite(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_MetaDelete_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.MetaDeleteRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.MetaDeleteRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.MetaDelete(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_MetaDelete_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.MetaDeleteRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.MetaDeleteRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.MetaDelete(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_MachineService_ImageList_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (extMachine.MachineService_ImageListClient, runtime.ServerMetadata, error) {
-	var protoReq extMachine.ImageListRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.ImageListRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	stream, err := client.ImageList(ctx, &protoReq)
 	if err != nil {
 		return nil, metadata, err
@@ -1268,33 +1185,30 @@ func request_MachineService_ImageList_0(ctx context.Context, marshaler runtime.M
 	}
 	metadata.HeaderMD = header
 	return stream, metadata, nil
-
 }
 
 func request_MachineService_ImagePull_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.ImagePullRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.ImagePullRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := client.ImagePull(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_MachineService_ImagePull_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq extMachine.ImagePullRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq extMachine.ImagePullRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.ImagePull(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 // RegisterMachineServiceHandlerServer registers the http handlers for service MachineService to "mux".
@@ -1303,16 +1217,13 @@ func local_request_MachineService_ImagePull_0(ctx context.Context, marshaler run
 // Note that using this registration option will cause many gRPC library features to stop working. Consider using RegisterMachineServiceHandlerFromEndpoint instead.
 // GRPC interceptors will not work for this type of registration. To use interceptors, you must use the "runtime.WithMiddlewares" option in the "runtime.NewServeMux" call.
 func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.ServeMux, server extMachine.MachineServiceServer) error {
-
-	mux.Handle("POST", pattern_MachineService_ApplyConfiguration_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_ApplyConfiguration_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/ApplyConfiguration", runtime.WithHTTPPathPattern("/machine.MachineService/ApplyConfiguration"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/ApplyConfiguration", runtime.WithHTTPPathPattern("/machine.MachineService/ApplyConfiguration"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1324,20 +1235,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_ApplyConfiguration_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Bootstrap_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Bootstrap_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Bootstrap", runtime.WithHTTPPathPattern("/machine.MachineService/Bootstrap"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Bootstrap", runtime.WithHTTPPathPattern("/machine.MachineService/Bootstrap"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1349,20 +1255,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Bootstrap_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Containers_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Containers_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Containers", runtime.WithHTTPPathPattern("/machine.MachineService/Containers"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Containers", runtime.WithHTTPPathPattern("/machine.MachineService/Containers"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1374,27 +1275,22 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Containers_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
 
-	mux.Handle("POST", pattern_MachineService_Copy_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Copy_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
 		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 		return
 	})
-
-	mux.Handle("POST", pattern_MachineService_CPUInfo_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_CPUInfo_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/CPUInfo", runtime.WithHTTPPathPattern("/machine.MachineService/CPUInfo"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/CPUInfo", runtime.WithHTTPPathPattern("/machine.MachineService/CPUInfo"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1406,20 +1302,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_CPUInfo_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_DiskStats_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_DiskStats_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/DiskStats", runtime.WithHTTPPathPattern("/machine.MachineService/DiskStats"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/DiskStats", runtime.WithHTTPPathPattern("/machine.MachineService/DiskStats"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1431,34 +1322,29 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_DiskStats_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
 
-	mux.Handle("POST", pattern_MachineService_Dmesg_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Dmesg_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
 		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 		return
 	})
 
-	mux.Handle("POST", pattern_MachineService_Events_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Events_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
 		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 		return
 	})
-
-	mux.Handle("POST", pattern_MachineService_EtcdMemberList_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_EtcdMemberList_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/EtcdMemberList", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdMemberList"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/EtcdMemberList", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdMemberList"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1470,20 +1356,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_EtcdMemberList_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_EtcdRemoveMemberByID_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_EtcdRemoveMemberByID_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/EtcdRemoveMemberByID", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdRemoveMemberByID"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/EtcdRemoveMemberByID", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdRemoveMemberByID"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1495,20 +1376,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_EtcdRemoveMemberByID_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_EtcdLeaveCluster_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_EtcdLeaveCluster_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/EtcdLeaveCluster", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdLeaveCluster"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/EtcdLeaveCluster", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdLeaveCluster"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1520,20 +1396,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_EtcdLeaveCluster_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_EtcdForfeitLeadership_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_EtcdForfeitLeadership_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/EtcdForfeitLeadership", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdForfeitLeadership"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/EtcdForfeitLeadership", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdForfeitLeadership"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1545,34 +1416,29 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_EtcdForfeitLeadership_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
 
-	mux.Handle("POST", pattern_MachineService_EtcdRecover_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_EtcdRecover_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
 		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 		return
 	})
 
-	mux.Handle("POST", pattern_MachineService_EtcdSnapshot_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_EtcdSnapshot_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
 		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 		return
 	})
-
-	mux.Handle("POST", pattern_MachineService_EtcdAlarmList_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_EtcdAlarmList_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/EtcdAlarmList", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdAlarmList"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/EtcdAlarmList", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdAlarmList"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1584,20 +1450,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_EtcdAlarmList_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_EtcdAlarmDisarm_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_EtcdAlarmDisarm_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/EtcdAlarmDisarm", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdAlarmDisarm"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/EtcdAlarmDisarm", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdAlarmDisarm"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1609,20 +1470,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_EtcdAlarmDisarm_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_EtcdDefragment_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_EtcdDefragment_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/EtcdDefragment", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdDefragment"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/EtcdDefragment", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdDefragment"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1634,20 +1490,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_EtcdDefragment_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_EtcdStatus_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_EtcdStatus_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/EtcdStatus", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdStatus"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/EtcdStatus", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdStatus"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1659,20 +1510,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_EtcdStatus_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_GenerateConfiguration_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_GenerateConfiguration_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/GenerateConfiguration", runtime.WithHTTPPathPattern("/machine.MachineService/GenerateConfiguration"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/GenerateConfiguration", runtime.WithHTTPPathPattern("/machine.MachineService/GenerateConfiguration"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1684,20 +1530,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_GenerateConfiguration_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Hostname_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Hostname_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Hostname", runtime.WithHTTPPathPattern("/machine.MachineService/Hostname"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Hostname", runtime.WithHTTPPathPattern("/machine.MachineService/Hostname"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1709,41 +1550,36 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Hostname_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
 
-	mux.Handle("POST", pattern_MachineService_Kubeconfig_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Kubeconfig_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
 		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 		return
 	})
 
-	mux.Handle("POST", pattern_MachineService_List_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_List_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
 		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 		return
 	})
 
-	mux.Handle("POST", pattern_MachineService_DiskUsage_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_DiskUsage_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
 		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 		return
 	})
-
-	mux.Handle("POST", pattern_MachineService_LoadAvg_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_LoadAvg_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/LoadAvg", runtime.WithHTTPPathPattern("/machine.MachineService/LoadAvg"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/LoadAvg", runtime.WithHTTPPathPattern("/machine.MachineService/LoadAvg"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1755,27 +1591,22 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_LoadAvg_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
 
-	mux.Handle("POST", pattern_MachineService_Logs_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Logs_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
 		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 		return
 	})
-
-	mux.Handle("POST", pattern_MachineService_Memory_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Memory_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Memory", runtime.WithHTTPPathPattern("/machine.MachineService/Memory"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Memory", runtime.WithHTTPPathPattern("/machine.MachineService/Memory"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1787,20 +1618,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Memory_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Mounts_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Mounts_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Mounts", runtime.WithHTTPPathPattern("/machine.MachineService/Mounts"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Mounts", runtime.WithHTTPPathPattern("/machine.MachineService/Mounts"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1812,20 +1638,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Mounts_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_NetworkDeviceStats_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_NetworkDeviceStats_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/NetworkDeviceStats", runtime.WithHTTPPathPattern("/machine.MachineService/NetworkDeviceStats"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/NetworkDeviceStats", runtime.WithHTTPPathPattern("/machine.MachineService/NetworkDeviceStats"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1837,20 +1658,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_NetworkDeviceStats_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Processes_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Processes_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Processes", runtime.WithHTTPPathPattern("/machine.MachineService/Processes"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Processes", runtime.WithHTTPPathPattern("/machine.MachineService/Processes"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1862,27 +1678,22 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Processes_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
 
-	mux.Handle("POST", pattern_MachineService_Read_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Read_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
 		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 		return
 	})
-
-	mux.Handle("POST", pattern_MachineService_Reboot_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Reboot_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Reboot", runtime.WithHTTPPathPattern("/machine.MachineService/Reboot"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Reboot", runtime.WithHTTPPathPattern("/machine.MachineService/Reboot"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1894,20 +1705,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Reboot_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Restart_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Restart_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Restart", runtime.WithHTTPPathPattern("/machine.MachineService/Restart"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Restart", runtime.WithHTTPPathPattern("/machine.MachineService/Restart"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1919,20 +1725,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Restart_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Rollback_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Rollback_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Rollback", runtime.WithHTTPPathPattern("/machine.MachineService/Rollback"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Rollback", runtime.WithHTTPPathPattern("/machine.MachineService/Rollback"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1944,20 +1745,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Rollback_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Reset_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Reset_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Reset", runtime.WithHTTPPathPattern("/machine.MachineService/Reset"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Reset", runtime.WithHTTPPathPattern("/machine.MachineService/Reset"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1969,20 +1765,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Reset_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_ServiceList_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_ServiceList_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/ServiceList", runtime.WithHTTPPathPattern("/machine.MachineService/ServiceList"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/ServiceList", runtime.WithHTTPPathPattern("/machine.MachineService/ServiceList"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1994,20 +1785,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_ServiceList_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_ServiceRestart_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_ServiceRestart_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/ServiceRestart", runtime.WithHTTPPathPattern("/machine.MachineService/ServiceRestart"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/ServiceRestart", runtime.WithHTTPPathPattern("/machine.MachineService/ServiceRestart"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2019,20 +1805,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_ServiceRestart_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_ServiceStart_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_ServiceStart_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/ServiceStart", runtime.WithHTTPPathPattern("/machine.MachineService/ServiceStart"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/ServiceStart", runtime.WithHTTPPathPattern("/machine.MachineService/ServiceStart"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2044,20 +1825,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_ServiceStart_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_ServiceStop_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_ServiceStop_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/ServiceStop", runtime.WithHTTPPathPattern("/machine.MachineService/ServiceStop"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/ServiceStop", runtime.WithHTTPPathPattern("/machine.MachineService/ServiceStop"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2069,20 +1845,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_ServiceStop_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Shutdown_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Shutdown_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Shutdown", runtime.WithHTTPPathPattern("/machine.MachineService/Shutdown"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Shutdown", runtime.WithHTTPPathPattern("/machine.MachineService/Shutdown"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2094,20 +1865,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Shutdown_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Stats_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Stats_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Stats", runtime.WithHTTPPathPattern("/machine.MachineService/Stats"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Stats", runtime.WithHTTPPathPattern("/machine.MachineService/Stats"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2119,20 +1885,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Stats_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_SystemStat_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_SystemStat_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/SystemStat", runtime.WithHTTPPathPattern("/machine.MachineService/SystemStat"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/SystemStat", runtime.WithHTTPPathPattern("/machine.MachineService/SystemStat"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2144,20 +1905,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_SystemStat_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Upgrade_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Upgrade_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Upgrade", runtime.WithHTTPPathPattern("/machine.MachineService/Upgrade"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Upgrade", runtime.WithHTTPPathPattern("/machine.MachineService/Upgrade"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2169,20 +1925,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Upgrade_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Version_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Version_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Version", runtime.WithHTTPPathPattern("/machine.MachineService/Version"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Version", runtime.WithHTTPPathPattern("/machine.MachineService/Version"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2194,20 +1945,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Version_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_GenerateClientConfiguration_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_GenerateClientConfiguration_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/GenerateClientConfiguration", runtime.WithHTTPPathPattern("/machine.MachineService/GenerateClientConfiguration"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/GenerateClientConfiguration", runtime.WithHTTPPathPattern("/machine.MachineService/GenerateClientConfiguration"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2219,27 +1965,22 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_GenerateClientConfiguration_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
 
-	mux.Handle("POST", pattern_MachineService_PacketCapture_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_PacketCapture_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
 		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 		return
 	})
-
-	mux.Handle("POST", pattern_MachineService_Netstat_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Netstat_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Netstat", runtime.WithHTTPPathPattern("/machine.MachineService/Netstat"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/Netstat", runtime.WithHTTPPathPattern("/machine.MachineService/Netstat"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2251,20 +1992,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Netstat_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_MetaWrite_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_MetaWrite_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/MetaWrite", runtime.WithHTTPPathPattern("/machine.MachineService/MetaWrite"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/MetaWrite", runtime.WithHTTPPathPattern("/machine.MachineService/MetaWrite"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2276,20 +2012,15 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_MetaWrite_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_MetaDelete_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_MetaDelete_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/MetaDelete", runtime.WithHTTPPathPattern("/machine.MachineService/MetaDelete"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/MetaDelete", runtime.WithHTTPPathPattern("/machine.MachineService/MetaDelete"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2301,27 +2032,22 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_MetaDelete_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
 
-	mux.Handle("POST", pattern_MachineService_ImageList_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_ImageList_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
 		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 		return
 	})
-
-	mux.Handle("POST", pattern_MachineService_ImagePull_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_ImagePull_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/ImagePull", runtime.WithHTTPPathPattern("/machine.MachineService/ImagePull"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/ImagePull", runtime.WithHTTPPathPattern("/machine.MachineService/ImagePull"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2333,9 +2059,7 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_ImagePull_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
 
 	return nil
@@ -2362,7 +2086,6 @@ func RegisterMachineServiceHandlerFromEndpoint(ctx context.Context, mux *runtime
 			}
 		}()
 	}()
-
 	return RegisterMachineServiceHandler(ctx, mux, conn)
 }
 
@@ -2378,14 +2101,11 @@ func RegisterMachineServiceHandler(ctx context.Context, mux *runtime.ServeMux, c
 // doesn't go through the normal gRPC flow (creating a gRPC client etc.) then it will be up to the passed in
 // "extMachine.MachineServiceClient" to call the correct interceptors. This client ignores the HTTP middlewares.
 func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux, client extMachine.MachineServiceClient) error {
-
-	mux.Handle("POST", pattern_MachineService_ApplyConfiguration_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_ApplyConfiguration_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/ApplyConfiguration", runtime.WithHTTPPathPattern("/machine.MachineService/ApplyConfiguration"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/ApplyConfiguration", runtime.WithHTTPPathPattern("/machine.MachineService/ApplyConfiguration"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2396,18 +2116,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_ApplyConfiguration_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Bootstrap_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Bootstrap_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Bootstrap", runtime.WithHTTPPathPattern("/machine.MachineService/Bootstrap"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Bootstrap", runtime.WithHTTPPathPattern("/machine.MachineService/Bootstrap"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2418,18 +2133,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Bootstrap_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Containers_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Containers_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Containers", runtime.WithHTTPPathPattern("/machine.MachineService/Containers"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Containers", runtime.WithHTTPPathPattern("/machine.MachineService/Containers"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2440,18 +2150,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Containers_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Copy_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Copy_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Copy", runtime.WithHTTPPathPattern("/machine.MachineService/Copy"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Copy", runtime.WithHTTPPathPattern("/machine.MachineService/Copy"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2462,18 +2167,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Copy_0(annotatedContext, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_CPUInfo_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_CPUInfo_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/CPUInfo", runtime.WithHTTPPathPattern("/machine.MachineService/CPUInfo"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/CPUInfo", runtime.WithHTTPPathPattern("/machine.MachineService/CPUInfo"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2484,18 +2184,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_CPUInfo_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_DiskStats_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_DiskStats_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/DiskStats", runtime.WithHTTPPathPattern("/machine.MachineService/DiskStats"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/DiskStats", runtime.WithHTTPPathPattern("/machine.MachineService/DiskStats"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2506,18 +2201,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_DiskStats_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Dmesg_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Dmesg_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Dmesg", runtime.WithHTTPPathPattern("/machine.MachineService/Dmesg"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Dmesg", runtime.WithHTTPPathPattern("/machine.MachineService/Dmesg"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2528,18 +2218,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Dmesg_0(annotatedContext, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Events_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Events_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Events", runtime.WithHTTPPathPattern("/machine.MachineService/Events"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Events", runtime.WithHTTPPathPattern("/machine.MachineService/Events"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2550,18 +2235,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Events_0(annotatedContext, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_EtcdMemberList_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_EtcdMemberList_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/EtcdMemberList", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdMemberList"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/EtcdMemberList", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdMemberList"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2572,18 +2252,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_EtcdMemberList_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_EtcdRemoveMemberByID_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_EtcdRemoveMemberByID_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/EtcdRemoveMemberByID", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdRemoveMemberByID"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/EtcdRemoveMemberByID", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdRemoveMemberByID"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2594,18 +2269,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_EtcdRemoveMemberByID_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_EtcdLeaveCluster_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_EtcdLeaveCluster_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/EtcdLeaveCluster", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdLeaveCluster"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/EtcdLeaveCluster", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdLeaveCluster"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2616,18 +2286,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_EtcdLeaveCluster_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_EtcdForfeitLeadership_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_EtcdForfeitLeadership_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/EtcdForfeitLeadership", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdForfeitLeadership"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/EtcdForfeitLeadership", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdForfeitLeadership"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2638,18 +2303,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_EtcdForfeitLeadership_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_EtcdRecover_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_EtcdRecover_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/EtcdRecover", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdRecover"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/EtcdRecover", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdRecover"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2660,18 +2320,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_EtcdRecover_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_EtcdSnapshot_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_EtcdSnapshot_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/EtcdSnapshot", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdSnapshot"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/EtcdSnapshot", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdSnapshot"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2682,18 +2337,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_EtcdSnapshot_0(annotatedContext, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_EtcdAlarmList_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_EtcdAlarmList_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/EtcdAlarmList", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdAlarmList"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/EtcdAlarmList", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdAlarmList"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2704,18 +2354,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_EtcdAlarmList_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_EtcdAlarmDisarm_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_EtcdAlarmDisarm_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/EtcdAlarmDisarm", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdAlarmDisarm"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/EtcdAlarmDisarm", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdAlarmDisarm"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2726,18 +2371,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_EtcdAlarmDisarm_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_EtcdDefragment_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_EtcdDefragment_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/EtcdDefragment", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdDefragment"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/EtcdDefragment", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdDefragment"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2748,18 +2388,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_EtcdDefragment_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_EtcdStatus_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_EtcdStatus_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/EtcdStatus", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdStatus"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/EtcdStatus", runtime.WithHTTPPathPattern("/machine.MachineService/EtcdStatus"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2770,18 +2405,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_EtcdStatus_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_GenerateConfiguration_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_GenerateConfiguration_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/GenerateConfiguration", runtime.WithHTTPPathPattern("/machine.MachineService/GenerateConfiguration"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/GenerateConfiguration", runtime.WithHTTPPathPattern("/machine.MachineService/GenerateConfiguration"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2792,18 +2422,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_GenerateConfiguration_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Hostname_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Hostname_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Hostname", runtime.WithHTTPPathPattern("/machine.MachineService/Hostname"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Hostname", runtime.WithHTTPPathPattern("/machine.MachineService/Hostname"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2814,18 +2439,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Hostname_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Kubeconfig_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Kubeconfig_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Kubeconfig", runtime.WithHTTPPathPattern("/machine.MachineService/Kubeconfig"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Kubeconfig", runtime.WithHTTPPathPattern("/machine.MachineService/Kubeconfig"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2836,18 +2456,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Kubeconfig_0(annotatedContext, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_List_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_List_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/List", runtime.WithHTTPPathPattern("/machine.MachineService/List"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/List", runtime.WithHTTPPathPattern("/machine.MachineService/List"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2858,18 +2473,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_List_0(annotatedContext, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_DiskUsage_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_DiskUsage_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/DiskUsage", runtime.WithHTTPPathPattern("/machine.MachineService/DiskUsage"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/DiskUsage", runtime.WithHTTPPathPattern("/machine.MachineService/DiskUsage"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2880,18 +2490,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_DiskUsage_0(annotatedContext, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_LoadAvg_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_LoadAvg_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/LoadAvg", runtime.WithHTTPPathPattern("/machine.MachineService/LoadAvg"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/LoadAvg", runtime.WithHTTPPathPattern("/machine.MachineService/LoadAvg"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2902,18 +2507,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_LoadAvg_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Logs_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Logs_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Logs", runtime.WithHTTPPathPattern("/machine.MachineService/Logs"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Logs", runtime.WithHTTPPathPattern("/machine.MachineService/Logs"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2924,18 +2524,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Logs_0(annotatedContext, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Memory_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Memory_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Memory", runtime.WithHTTPPathPattern("/machine.MachineService/Memory"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Memory", runtime.WithHTTPPathPattern("/machine.MachineService/Memory"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2946,18 +2541,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Memory_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Mounts_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Mounts_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Mounts", runtime.WithHTTPPathPattern("/machine.MachineService/Mounts"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Mounts", runtime.WithHTTPPathPattern("/machine.MachineService/Mounts"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2968,18 +2558,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Mounts_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_NetworkDeviceStats_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_NetworkDeviceStats_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/NetworkDeviceStats", runtime.WithHTTPPathPattern("/machine.MachineService/NetworkDeviceStats"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/NetworkDeviceStats", runtime.WithHTTPPathPattern("/machine.MachineService/NetworkDeviceStats"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2990,18 +2575,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_NetworkDeviceStats_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Processes_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Processes_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Processes", runtime.WithHTTPPathPattern("/machine.MachineService/Processes"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Processes", runtime.WithHTTPPathPattern("/machine.MachineService/Processes"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3012,18 +2592,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Processes_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Read_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Read_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Read", runtime.WithHTTPPathPattern("/machine.MachineService/Read"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Read", runtime.WithHTTPPathPattern("/machine.MachineService/Read"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3034,18 +2609,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Read_0(annotatedContext, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Reboot_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Reboot_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Reboot", runtime.WithHTTPPathPattern("/machine.MachineService/Reboot"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Reboot", runtime.WithHTTPPathPattern("/machine.MachineService/Reboot"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3056,18 +2626,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Reboot_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Restart_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Restart_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Restart", runtime.WithHTTPPathPattern("/machine.MachineService/Restart"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Restart", runtime.WithHTTPPathPattern("/machine.MachineService/Restart"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3078,18 +2643,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Restart_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Rollback_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Rollback_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Rollback", runtime.WithHTTPPathPattern("/machine.MachineService/Rollback"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Rollback", runtime.WithHTTPPathPattern("/machine.MachineService/Rollback"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3100,18 +2660,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Rollback_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Reset_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Reset_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Reset", runtime.WithHTTPPathPattern("/machine.MachineService/Reset"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Reset", runtime.WithHTTPPathPattern("/machine.MachineService/Reset"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3122,18 +2677,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Reset_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_ServiceList_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_ServiceList_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/ServiceList", runtime.WithHTTPPathPattern("/machine.MachineService/ServiceList"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/ServiceList", runtime.WithHTTPPathPattern("/machine.MachineService/ServiceList"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3144,18 +2694,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_ServiceList_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_ServiceRestart_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_ServiceRestart_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/ServiceRestart", runtime.WithHTTPPathPattern("/machine.MachineService/ServiceRestart"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/ServiceRestart", runtime.WithHTTPPathPattern("/machine.MachineService/ServiceRestart"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3166,18 +2711,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_ServiceRestart_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_ServiceStart_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_ServiceStart_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/ServiceStart", runtime.WithHTTPPathPattern("/machine.MachineService/ServiceStart"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/ServiceStart", runtime.WithHTTPPathPattern("/machine.MachineService/ServiceStart"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3188,18 +2728,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_ServiceStart_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_ServiceStop_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_ServiceStop_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/ServiceStop", runtime.WithHTTPPathPattern("/machine.MachineService/ServiceStop"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/ServiceStop", runtime.WithHTTPPathPattern("/machine.MachineService/ServiceStop"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3210,18 +2745,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_ServiceStop_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Shutdown_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Shutdown_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Shutdown", runtime.WithHTTPPathPattern("/machine.MachineService/Shutdown"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Shutdown", runtime.WithHTTPPathPattern("/machine.MachineService/Shutdown"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3232,18 +2762,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Shutdown_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Stats_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Stats_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Stats", runtime.WithHTTPPathPattern("/machine.MachineService/Stats"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Stats", runtime.WithHTTPPathPattern("/machine.MachineService/Stats"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3254,18 +2779,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Stats_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_SystemStat_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_SystemStat_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/SystemStat", runtime.WithHTTPPathPattern("/machine.MachineService/SystemStat"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/SystemStat", runtime.WithHTTPPathPattern("/machine.MachineService/SystemStat"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3276,18 +2796,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_SystemStat_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Upgrade_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Upgrade_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Upgrade", runtime.WithHTTPPathPattern("/machine.MachineService/Upgrade"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Upgrade", runtime.WithHTTPPathPattern("/machine.MachineService/Upgrade"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3298,18 +2813,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Upgrade_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Version_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Version_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Version", runtime.WithHTTPPathPattern("/machine.MachineService/Version"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Version", runtime.WithHTTPPathPattern("/machine.MachineService/Version"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3320,18 +2830,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Version_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_GenerateClientConfiguration_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_GenerateClientConfiguration_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/GenerateClientConfiguration", runtime.WithHTTPPathPattern("/machine.MachineService/GenerateClientConfiguration"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/GenerateClientConfiguration", runtime.WithHTTPPathPattern("/machine.MachineService/GenerateClientConfiguration"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3342,18 +2847,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_GenerateClientConfiguration_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_PacketCapture_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_PacketCapture_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/PacketCapture", runtime.WithHTTPPathPattern("/machine.MachineService/PacketCapture"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/PacketCapture", runtime.WithHTTPPathPattern("/machine.MachineService/PacketCapture"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3364,18 +2864,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_PacketCapture_0(annotatedContext, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_Netstat_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_Netstat_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Netstat", runtime.WithHTTPPathPattern("/machine.MachineService/Netstat"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/Netstat", runtime.WithHTTPPathPattern("/machine.MachineService/Netstat"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3386,18 +2881,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_Netstat_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_MetaWrite_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_MetaWrite_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/MetaWrite", runtime.WithHTTPPathPattern("/machine.MachineService/MetaWrite"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/MetaWrite", runtime.WithHTTPPathPattern("/machine.MachineService/MetaWrite"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3408,18 +2898,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_MetaWrite_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_MetaDelete_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_MetaDelete_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/MetaDelete", runtime.WithHTTPPathPattern("/machine.MachineService/MetaDelete"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/MetaDelete", runtime.WithHTTPPathPattern("/machine.MachineService/MetaDelete"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3430,18 +2915,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_MetaDelete_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_ImageList_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_ImageList_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/ImageList", runtime.WithHTTPPathPattern("/machine.MachineService/ImageList"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/ImageList", runtime.WithHTTPPathPattern("/machine.MachineService/ImageList"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3452,18 +2932,13 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_ImageList_0(annotatedContext, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_MachineService_ImagePull_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_MachineService_ImagePull_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/ImagePull", runtime.WithHTTPPathPattern("/machine.MachineService/ImagePull"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/ImagePull", runtime.WithHTTPPathPattern("/machine.MachineService/ImagePull"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3474,214 +2949,113 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_MachineService_ImagePull_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
 	return nil
 }
 
 var (
-	pattern_MachineService_ApplyConfiguration_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "ApplyConfiguration"}, ""))
-
-	pattern_MachineService_Bootstrap_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Bootstrap"}, ""))
-
-	pattern_MachineService_Containers_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Containers"}, ""))
-
-	pattern_MachineService_Copy_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Copy"}, ""))
-
-	pattern_MachineService_CPUInfo_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "CPUInfo"}, ""))
-
-	pattern_MachineService_DiskStats_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "DiskStats"}, ""))
-
-	pattern_MachineService_Dmesg_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Dmesg"}, ""))
-
-	pattern_MachineService_Events_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Events"}, ""))
-
-	pattern_MachineService_EtcdMemberList_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "EtcdMemberList"}, ""))
-
-	pattern_MachineService_EtcdRemoveMemberByID_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "EtcdRemoveMemberByID"}, ""))
-
-	pattern_MachineService_EtcdLeaveCluster_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "EtcdLeaveCluster"}, ""))
-
-	pattern_MachineService_EtcdForfeitLeadership_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "EtcdForfeitLeadership"}, ""))
-
-	pattern_MachineService_EtcdRecover_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "EtcdRecover"}, ""))
-
-	pattern_MachineService_EtcdSnapshot_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "EtcdSnapshot"}, ""))
-
-	pattern_MachineService_EtcdAlarmList_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "EtcdAlarmList"}, ""))
-
-	pattern_MachineService_EtcdAlarmDisarm_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "EtcdAlarmDisarm"}, ""))
-
-	pattern_MachineService_EtcdDefragment_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "EtcdDefragment"}, ""))
-
-	pattern_MachineService_EtcdStatus_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "EtcdStatus"}, ""))
-
-	pattern_MachineService_GenerateConfiguration_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "GenerateConfiguration"}, ""))
-
-	pattern_MachineService_Hostname_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Hostname"}, ""))
-
-	pattern_MachineService_Kubeconfig_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Kubeconfig"}, ""))
-
-	pattern_MachineService_List_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "List"}, ""))
-
-	pattern_MachineService_DiskUsage_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "DiskUsage"}, ""))
-
-	pattern_MachineService_LoadAvg_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "LoadAvg"}, ""))
-
-	pattern_MachineService_Logs_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Logs"}, ""))
-
-	pattern_MachineService_Memory_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Memory"}, ""))
-
-	pattern_MachineService_Mounts_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Mounts"}, ""))
-
-	pattern_MachineService_NetworkDeviceStats_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "NetworkDeviceStats"}, ""))
-
-	pattern_MachineService_Processes_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Processes"}, ""))
-
-	pattern_MachineService_Read_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Read"}, ""))
-
-	pattern_MachineService_Reboot_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Reboot"}, ""))
-
-	pattern_MachineService_Restart_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Restart"}, ""))
-
-	pattern_MachineService_Rollback_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Rollback"}, ""))
-
-	pattern_MachineService_Reset_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Reset"}, ""))
-
-	pattern_MachineService_ServiceList_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "ServiceList"}, ""))
-
-	pattern_MachineService_ServiceRestart_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "ServiceRestart"}, ""))
-
-	pattern_MachineService_ServiceStart_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "ServiceStart"}, ""))
-
-	pattern_MachineService_ServiceStop_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "ServiceStop"}, ""))
-
-	pattern_MachineService_Shutdown_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Shutdown"}, ""))
-
-	pattern_MachineService_Stats_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Stats"}, ""))
-
-	pattern_MachineService_SystemStat_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "SystemStat"}, ""))
-
-	pattern_MachineService_Upgrade_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Upgrade"}, ""))
-
-	pattern_MachineService_Version_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Version"}, ""))
-
+	pattern_MachineService_ApplyConfiguration_0          = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "ApplyConfiguration"}, ""))
+	pattern_MachineService_Bootstrap_0                   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Bootstrap"}, ""))
+	pattern_MachineService_Containers_0                  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Containers"}, ""))
+	pattern_MachineService_Copy_0                        = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Copy"}, ""))
+	pattern_MachineService_CPUInfo_0                     = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "CPUInfo"}, ""))
+	pattern_MachineService_DiskStats_0                   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "DiskStats"}, ""))
+	pattern_MachineService_Dmesg_0                       = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Dmesg"}, ""))
+	pattern_MachineService_Events_0                      = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Events"}, ""))
+	pattern_MachineService_EtcdMemberList_0              = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "EtcdMemberList"}, ""))
+	pattern_MachineService_EtcdRemoveMemberByID_0        = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "EtcdRemoveMemberByID"}, ""))
+	pattern_MachineService_EtcdLeaveCluster_0            = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "EtcdLeaveCluster"}, ""))
+	pattern_MachineService_EtcdForfeitLeadership_0       = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "EtcdForfeitLeadership"}, ""))
+	pattern_MachineService_EtcdRecover_0                 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "EtcdRecover"}, ""))
+	pattern_MachineService_EtcdSnapshot_0                = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "EtcdSnapshot"}, ""))
+	pattern_MachineService_EtcdAlarmList_0               = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "EtcdAlarmList"}, ""))
+	pattern_MachineService_EtcdAlarmDisarm_0             = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "EtcdAlarmDisarm"}, ""))
+	pattern_MachineService_EtcdDefragment_0              = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "EtcdDefragment"}, ""))
+	pattern_MachineService_EtcdStatus_0                  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "EtcdStatus"}, ""))
+	pattern_MachineService_GenerateConfiguration_0       = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "GenerateConfiguration"}, ""))
+	pattern_MachineService_Hostname_0                    = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Hostname"}, ""))
+	pattern_MachineService_Kubeconfig_0                  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Kubeconfig"}, ""))
+	pattern_MachineService_List_0                        = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "List"}, ""))
+	pattern_MachineService_DiskUsage_0                   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "DiskUsage"}, ""))
+	pattern_MachineService_LoadAvg_0                     = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "LoadAvg"}, ""))
+	pattern_MachineService_Logs_0                        = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Logs"}, ""))
+	pattern_MachineService_Memory_0                      = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Memory"}, ""))
+	pattern_MachineService_Mounts_0                      = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Mounts"}, ""))
+	pattern_MachineService_NetworkDeviceStats_0          = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "NetworkDeviceStats"}, ""))
+	pattern_MachineService_Processes_0                   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Processes"}, ""))
+	pattern_MachineService_Read_0                        = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Read"}, ""))
+	pattern_MachineService_Reboot_0                      = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Reboot"}, ""))
+	pattern_MachineService_Restart_0                     = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Restart"}, ""))
+	pattern_MachineService_Rollback_0                    = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Rollback"}, ""))
+	pattern_MachineService_Reset_0                       = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Reset"}, ""))
+	pattern_MachineService_ServiceList_0                 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "ServiceList"}, ""))
+	pattern_MachineService_ServiceRestart_0              = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "ServiceRestart"}, ""))
+	pattern_MachineService_ServiceStart_0                = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "ServiceStart"}, ""))
+	pattern_MachineService_ServiceStop_0                 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "ServiceStop"}, ""))
+	pattern_MachineService_Shutdown_0                    = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Shutdown"}, ""))
+	pattern_MachineService_Stats_0                       = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Stats"}, ""))
+	pattern_MachineService_SystemStat_0                  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "SystemStat"}, ""))
+	pattern_MachineService_Upgrade_0                     = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Upgrade"}, ""))
+	pattern_MachineService_Version_0                     = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Version"}, ""))
 	pattern_MachineService_GenerateClientConfiguration_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "GenerateClientConfiguration"}, ""))
-
-	pattern_MachineService_PacketCapture_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "PacketCapture"}, ""))
-
-	pattern_MachineService_Netstat_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Netstat"}, ""))
-
-	pattern_MachineService_MetaWrite_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "MetaWrite"}, ""))
-
-	pattern_MachineService_MetaDelete_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "MetaDelete"}, ""))
-
-	pattern_MachineService_ImageList_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "ImageList"}, ""))
-
-	pattern_MachineService_ImagePull_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "ImagePull"}, ""))
+	pattern_MachineService_PacketCapture_0               = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "PacketCapture"}, ""))
+	pattern_MachineService_Netstat_0                     = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Netstat"}, ""))
+	pattern_MachineService_MetaWrite_0                   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "MetaWrite"}, ""))
+	pattern_MachineService_MetaDelete_0                  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "MetaDelete"}, ""))
+	pattern_MachineService_ImageList_0                   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "ImageList"}, ""))
+	pattern_MachineService_ImagePull_0                   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "ImagePull"}, ""))
 )
 
 var (
-	forward_MachineService_ApplyConfiguration_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_Bootstrap_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_Containers_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_Copy_0 = runtime.ForwardResponseStream
-
-	forward_MachineService_CPUInfo_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_DiskStats_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_Dmesg_0 = runtime.ForwardResponseStream
-
-	forward_MachineService_Events_0 = runtime.ForwardResponseStream
-
-	forward_MachineService_EtcdMemberList_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_EtcdRemoveMemberByID_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_EtcdLeaveCluster_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_EtcdForfeitLeadership_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_EtcdRecover_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_EtcdSnapshot_0 = runtime.ForwardResponseStream
-
-	forward_MachineService_EtcdAlarmList_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_EtcdAlarmDisarm_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_EtcdDefragment_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_EtcdStatus_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_GenerateConfiguration_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_Hostname_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_Kubeconfig_0 = runtime.ForwardResponseStream
-
-	forward_MachineService_List_0 = runtime.ForwardResponseStream
-
-	forward_MachineService_DiskUsage_0 = runtime.ForwardResponseStream
-
-	forward_MachineService_LoadAvg_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_Logs_0 = runtime.ForwardResponseStream
-
-	forward_MachineService_Memory_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_Mounts_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_NetworkDeviceStats_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_Processes_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_Read_0 = runtime.ForwardResponseStream
-
-	forward_MachineService_Reboot_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_Restart_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_Rollback_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_Reset_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_ServiceList_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_ServiceRestart_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_ServiceStart_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_ServiceStop_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_Shutdown_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_Stats_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_SystemStat_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_Upgrade_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_Version_0 = runtime.ForwardResponseMessage
-
+	forward_MachineService_ApplyConfiguration_0          = runtime.ForwardResponseMessage
+	forward_MachineService_Bootstrap_0                   = runtime.ForwardResponseMessage
+	forward_MachineService_Containers_0                  = runtime.ForwardResponseMessage
+	forward_MachineService_Copy_0                        = runtime.ForwardResponseStream
+	forward_MachineService_CPUInfo_0                     = runtime.ForwardResponseMessage
+	forward_MachineService_DiskStats_0                   = runtime.ForwardResponseMessage
+	forward_MachineService_Dmesg_0                       = runtime.ForwardResponseStream
+	forward_MachineService_Events_0                      = runtime.ForwardResponseStream
+	forward_MachineService_EtcdMemberList_0              = runtime.ForwardResponseMessage
+	forward_MachineService_EtcdRemoveMemberByID_0        = runtime.ForwardResponseMessage
+	forward_MachineService_EtcdLeaveCluster_0            = runtime.ForwardResponseMessage
+	forward_MachineService_EtcdForfeitLeadership_0       = runtime.ForwardResponseMessage
+	forward_MachineService_EtcdRecover_0                 = runtime.ForwardResponseMessage
+	forward_MachineService_EtcdSnapshot_0                = runtime.ForwardResponseStream
+	forward_MachineService_EtcdAlarmList_0               = runtime.ForwardResponseMessage
+	forward_MachineService_EtcdAlarmDisarm_0             = runtime.ForwardResponseMessage
+	forward_MachineService_EtcdDefragment_0              = runtime.ForwardResponseMessage
+	forward_MachineService_EtcdStatus_0                  = runtime.ForwardResponseMessage
+	forward_MachineService_GenerateConfiguration_0       = runtime.ForwardResponseMessage
+	forward_MachineService_Hostname_0                    = runtime.ForwardResponseMessage
+	forward_MachineService_Kubeconfig_0                  = runtime.ForwardResponseStream
+	forward_MachineService_List_0                        = runtime.ForwardResponseStream
+	forward_MachineService_DiskUsage_0                   = runtime.ForwardResponseStream
+	forward_MachineService_LoadAvg_0                     = runtime.ForwardResponseMessage
+	forward_MachineService_Logs_0                        = runtime.ForwardResponseStream
+	forward_MachineService_Memory_0                      = runtime.ForwardResponseMessage
+	forward_MachineService_Mounts_0                      = runtime.ForwardResponseMessage
+	forward_MachineService_NetworkDeviceStats_0          = runtime.ForwardResponseMessage
+	forward_MachineService_Processes_0                   = runtime.ForwardResponseMessage
+	forward_MachineService_Read_0                        = runtime.ForwardResponseStream
+	forward_MachineService_Reboot_0                      = runtime.ForwardResponseMessage
+	forward_MachineService_Restart_0                     = runtime.ForwardResponseMessage
+	forward_MachineService_Rollback_0                    = runtime.ForwardResponseMessage
+	forward_MachineService_Reset_0                       = runtime.ForwardResponseMessage
+	forward_MachineService_ServiceList_0                 = runtime.ForwardResponseMessage
+	forward_MachineService_ServiceRestart_0              = runtime.ForwardResponseMessage
+	forward_MachineService_ServiceStart_0                = runtime.ForwardResponseMessage
+	forward_MachineService_ServiceStop_0                 = runtime.ForwardResponseMessage
+	forward_MachineService_Shutdown_0                    = runtime.ForwardResponseMessage
+	forward_MachineService_Stats_0                       = runtime.ForwardResponseMessage
+	forward_MachineService_SystemStat_0                  = runtime.ForwardResponseMessage
+	forward_MachineService_Upgrade_0                     = runtime.ForwardResponseMessage
+	forward_MachineService_Version_0                     = runtime.ForwardResponseMessage
 	forward_MachineService_GenerateClientConfiguration_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_PacketCapture_0 = runtime.ForwardResponseStream
-
-	forward_MachineService_Netstat_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_MetaWrite_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_MetaDelete_0 = runtime.ForwardResponseMessage
-
-	forward_MachineService_ImageList_0 = runtime.ForwardResponseStream
-
-	forward_MachineService_ImagePull_0 = runtime.ForwardResponseMessage
+	forward_MachineService_PacketCapture_0               = runtime.ForwardResponseStream
+	forward_MachineService_Netstat_0                     = runtime.ForwardResponseMessage
+	forward_MachineService_MetaWrite_0                   = runtime.ForwardResponseMessage
+	forward_MachineService_MetaDelete_0                  = runtime.ForwardResponseMessage
+	forward_MachineService_ImageList_0                   = runtime.ForwardResponseStream
+	forward_MachineService_ImagePull_0                   = runtime.ForwardResponseMessage
 )

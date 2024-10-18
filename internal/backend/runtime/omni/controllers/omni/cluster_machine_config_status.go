@@ -33,6 +33,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
@@ -110,6 +111,28 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 					logger.Error("machine schematic is not set, skip reconcile")
 
 					return xerrors.NewTagged[qtransform.SkipReconcileTag](fmt.Errorf("machine status '%s' does not have schematic information", machineConfig.Metadata().ID()))
+				}
+
+				// if the machine is managed by a static infra provider, we need to ensure that the infra machine is ready to use
+				if _, isManagedByStaticInfraProvider := machineStatus.Metadata().Labels().Get(omni.LabelIsManagedByStaticInfraProvider); isManagedByStaticInfraProvider {
+					var infraMachineStatus *infra.MachineStatus
+
+					infraMachineStatus, err = safe.ReaderGetByID[*infra.MachineStatus](ctx, r, machineStatus.Metadata().ID())
+					if err != nil {
+						if state.IsNotFoundError(err) {
+							logger.Debug("machine is managed by a static infra provider but the infra machine status is not found, skip reconcile")
+
+							return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine is managed by a static infra provider but the infra machine status is not found: %w", err)
+						}
+
+						return fmt.Errorf("failed to get infra machine status '%s': %w", machineStatus.Metadata().ID(), err)
+					}
+
+					if !infraMachineStatus.TypedSpec().Value.ReadyToUse {
+						logger.Debug("machine is managed by a static infra provider but is not ready to use, skip reconcile")
+
+						return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine is managed by static infra provider but is not ready to use")
+					}
 				}
 
 				genOptions, err := safe.ReaderGet[*omni.MachineConfigGenOptions](ctx, r, omni.NewMachineConfigGenOptions(resources.DefaultNamespace, machineConfig.Metadata().ID()).Metadata())
@@ -240,6 +263,11 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 		),
 		qtransform.WithExtraMappedInput(
 			qtransform.MapperSameID[*omni.Machine, *omni.ClusterMachineConfig](),
+		),
+		qtransform.WithExtraMappedInput(
+			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, infraMachineStatus *infra.MachineStatus) ([]resource.Pointer, error) {
+				return []resource.Pointer{omni.NewClusterMachineConfig(resources.DefaultNamespace, infraMachineStatus.Metadata().ID()).Metadata()}, nil
+			},
 		),
 		qtransform.WithExtraMappedInput(
 			mappers.MapClusterResourceToLabeledResources[*omni.TalosConfig, *omni.ClusterMachineConfig](),

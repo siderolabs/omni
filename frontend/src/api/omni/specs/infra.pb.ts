@@ -13,6 +13,17 @@ export enum MachineRequestStatusSpecStage {
   FAILED = 3,
 }
 
+export enum InfraMachineSpecMachinePowerState {
+  POWER_STATE_OFF = 0,
+  POWER_STATE_ON = 1,
+}
+
+export enum InfraMachineStatusSpecMachinePowerState {
+  POWER_STATE_UNKNOWN = 0,
+  POWER_STATE_OFF = 1,
+  POWER_STATE_ON = 2,
+}
+
 export type MachineRequestSpec = {
   talos_version?: string
   overlay?: SpecsOmni.Overlay
@@ -28,6 +39,23 @@ export type MachineRequestStatusSpec = {
   stage?: MachineRequestStatusSpecStage
   error?: string
   status?: string
+}
+
+export type InfraMachineSpec = {
+  preferred_power_state?: InfraMachineSpecMachinePowerState
+  accepted?: boolean
+  cluster_talos_version?: string
+  extensions?: string[]
+  wipe_id?: string
+}
+
+export type InfraMachineStateSpec = {
+  installed?: boolean
+}
+
+export type InfraMachineStatusSpec = {
+  power_state?: InfraMachineStatusSpecMachinePowerState
+  ready_to_use?: boolean
 }
 
 export type InfraProviderStatusSpec = {

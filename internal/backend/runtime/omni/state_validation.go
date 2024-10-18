@@ -31,6 +31,7 @@ import (
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
@@ -1072,4 +1073,31 @@ func validateProviderData(ctx context.Context, st state.State, providerID, provi
 	}
 
 	return validateSchema(providerStatus)
+}
+
+func infraMachineConfigValidationOptions(st state.State) []validated.StateOption {
+	return []validated.StateOption{
+		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, oldRes, newRes *omni.InfraMachineConfig, _ ...state.UpdateOption) error {
+			if oldRes.TypedSpec().Value.Accepted && !newRes.TypedSpec().Value.Accepted {
+				return errors.New("an accepted machine cannot be unaccepted")
+			}
+
+			return nil
+		})),
+		validated.WithDestroyValidations(validated.NewDestroyValidationForType(func(ctx context.Context, _ resource.Pointer, res *omni.InfraMachineConfig, _ ...state.DestroyOption) error {
+			if !res.TypedSpec().Value.Accepted {
+				return nil
+			}
+
+			if _, err := safe.StateGetByID[*siderolink.Link](ctx, st, res.Metadata().ID()); err != nil {
+				if state.IsNotFoundError(err) {
+					return nil
+				}
+
+				return err
+			}
+
+			return errors.New("cannot delete the config for an already accepted machine config while it is linked to a machine")
+		})),
+	}
 }

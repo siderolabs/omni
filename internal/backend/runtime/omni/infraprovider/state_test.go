@@ -7,6 +7,7 @@ package infraprovider_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -38,7 +39,6 @@ import (
 const (
 	infraProviderID           = "qemu-1"
 	talosVersion              = "v1.2.3"
-	schematicID               = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
 	infraProviderResNamespace = resources.InfraProviderSpecificNamespacePrefix + infraProviderID
 )
 
@@ -58,66 +58,47 @@ func TestInfraProviderAccess(t *testing.T) {
 
 	mr := infra.NewMachineRequest("test-mr")
 
-	// create
-	err := st.Create(ctx, mr)
-	assert.ErrorContains(t, err, "infra providers are not allowed to create machine requests")
-
-	// prepare for update
-	mr.Metadata().Labels().Set(omni.LabelInfraProviderID, infraProviderID)
-
-	mr.TypedSpec().Value.TalosVersion = talosVersion
-
-	require.NoError(t, innerSt.Create(ctx, mr))
-
-	// update spec
-	_, err = safe.StateUpdateWithConflicts(ctx, st, mr.Metadata(), func(res *infra.MachineRequest) error {
+	testInfraProviderAccessInputResource(ctx, t, st, innerSt, mr, func(res *infra.MachineRequest) {
+		res.TypedSpec().Value.TalosVersion = talosVersion
+	}, func(res *infra.MachineRequest) error {
 		res.TypedSpec().Value.TalosVersion = "v1.2.4"
 
 		return nil
+	}, func(t *testing.T, err error) {
+		assert.True(t, validated.IsValidationError(err))
+		assert.ErrorContains(t, err, "machine request spec is immutable")
 	})
-	assert.True(t, validated.IsValidationError(err))
-	assert.ErrorContains(t, err, "machine request spec is immutable")
 
-	// update metadata labels
-	_, err = safe.StateUpdateWithConflicts(ctx, st, mr.Metadata(), func(res *infra.MachineRequest) error {
-		res.Metadata().Labels().Set("foo", "bar")
+	// InfraMachine
+
+	infraMachine := infra.NewMachine("test-im")
+
+	testInfraProviderAccessInputResource(ctx, t, st, innerSt, infraMachine, func(res *infra.Machine) {
+		res.TypedSpec().Value.PreferredPowerState = specs.InfraMachineSpec_POWER_STATE_ON
+	}, func(res *infra.Machine) error {
+		res.TypedSpec().Value.PreferredPowerState = specs.InfraMachineSpec_POWER_STATE_OFF
 
 		return nil
+	}, func(t *testing.T, err error) {
+		require.NoError(t, err)
 	})
-	assert.ErrorContains(t, err, "infra providers are not allowed to update machine requests other than setting finalizers")
-
-	// update metadata - add finalizer
-	_, err = safe.StateUpdateWithConflicts(ctx, st, mr.Metadata(), func(res *infra.MachineRequest) error {
-		res.Metadata().Finalizers().Add("foobar")
-
-		return nil
-	})
-	assert.NoError(t, err)
 
 	// MachineRequestStatus
 
-	mrs := infra.NewMachineRequestStatus("test-mrs")
-
-	// create
-	assert.NoError(t, st.Create(ctx, mrs))
-
-	// assert that the label is set
-	res, err := innerSt.Get(ctx, mrs.Metadata())
-	require.NoError(t, err)
-
-	cpID, _ := res.Metadata().Labels().Get(omni.LabelInfraProviderID)
-	assert.Equal(t, infraProviderID, cpID)
-
-	// update
-	_, err = safe.StateUpdateWithConflicts(ctx, st, mrs.Metadata(), func(res *infra.MachineRequestStatus) error {
-		res.Metadata().Labels().Set("foo", "bar")
-
+	testInfraProviderAccessOutputResource(ctx, t, st, innerSt, infra.NewMachineRequestStatus("test-mrs"), func(res *infra.MachineRequestStatus) error {
 		res.TypedSpec().Value.Id = "12345"
 		res.TypedSpec().Value.Stage = specs.MachineRequestStatusSpec_PROVISIONING
 
 		return nil
 	})
-	assert.NoError(t, err)
+
+	// InfraMachineStatus
+
+	testInfraProviderAccessOutputResource(ctx, t, st, innerSt, infra.NewMachineStatus("test-ims"), func(res *infra.MachineStatus) error {
+		res.TypedSpec().Value.PowerState = specs.InfraMachineStatusSpec_POWER_STATE_ON
+
+		return nil
+	})
 
 	// InfraProviderStatus
 
@@ -139,10 +120,10 @@ func TestInfraProviderAccess(t *testing.T) {
 	assert.NoError(t, st.Create(ctx, cpr))
 
 	// assert that the label is set
-	res, err = innerSt.Get(ctx, cpr.Metadata())
+	res, err := innerSt.Get(ctx, cpr.Metadata())
 	require.NoError(t, err)
 
-	cpID, _ = res.Metadata().Labels().Get(omni.LabelInfraProviderID)
+	cpID, _ := res.Metadata().Labels().Get(omni.LabelInfraProviderID)
 	assert.Equal(t, infraProviderID, cpID)
 
 	// update
@@ -151,6 +132,58 @@ func TestInfraProviderAccess(t *testing.T) {
 
 		return res.TypedSpec().Value.SetUncompressedData([]byte("{}"))
 	})
+	assert.NoError(t, err)
+}
+
+func testInfraProviderAccessInputResource[T resource.Resource](ctx context.Context, t *testing.T, st state.State, innerSt state.CoreState,
+	res T, prepareRes func(res T), updateRes func(res T) error, assertUpdateResult func(*testing.T, error),
+) {
+	// create
+	err := st.Create(ctx, res)
+	assert.ErrorContains(t, err, fmt.Sprintf("infra providers are not allowed to create %q resources", res.Metadata().Type()))
+
+	// prepare for update
+	res.Metadata().Labels().Set(omni.LabelInfraProviderID, infraProviderID)
+
+	prepareRes(res)
+
+	require.NoError(t, innerSt.Create(ctx, res))
+
+	// update spec
+	_, err = safe.StateUpdateWithConflicts(ctx, st, res.Metadata(), updateRes)
+
+	assertUpdateResult(t, err)
+
+	// update metadata labels
+	_, err = st.UpdateWithConflicts(ctx, res.Metadata(), func(res resource.Resource) error {
+		res.Metadata().Labels().Set("foo", "bar")
+
+		return nil
+	})
+	assert.ErrorContains(t, err, fmt.Sprintf("infra providers are not allowed to update %q resources other than setting finalizers", res.Metadata().Type()))
+
+	// update metadata - add finalizer
+	_, err = st.UpdateWithConflicts(ctx, res.Metadata(), func(res resource.Resource) error {
+		res.Metadata().Finalizers().Add("foobar")
+
+		return nil
+	})
+	assert.NoError(t, err)
+}
+
+func testInfraProviderAccessOutputResource[T resource.Resource](ctx context.Context, t *testing.T, st state.State, innerSt state.CoreState, res T, updateRes func(res T) error) {
+	// create
+	assert.NoError(t, st.Create(ctx, res))
+
+	// assert that the label is set
+	resAfterCreate, err := innerSt.Get(ctx, res.Metadata())
+	require.NoError(t, err)
+
+	cpID, _ := resAfterCreate.Metadata().Labels().Get(omni.LabelInfraProviderID)
+	assert.Equal(t, infraProviderID, cpID)
+
+	// update
+	_, err = safe.StateUpdateWithConflicts(ctx, st, res.Metadata(), updateRes)
 	assert.NoError(t, err)
 }
 
