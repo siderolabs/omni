@@ -4,6 +4,11 @@ name: omnictl
 spec:
   disableImage: true
 ---
+kind: auto.CommandConfig
+name: acompat
+spec:
+  disableImage: true
+---
 kind: common.GHWorkflow
 spec:
   customRunners:

@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-10-21T13:17:39Z by kres 34e72ac.
+# Generated on 2024-10-21T13:53:43Z by kres 34e72ac.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -529,15 +529,6 @@ COPY --from=omnictl-darwin-arm64 / /
 COPY --from=omnictl-linux-amd64 / /
 COPY --from=omnictl-linux-arm64 / /
 COPY --from=omnictl-windows-amd64.exe / /
-
-FROM scratch AS image-acompat
-ARG TARGETARCH
-COPY --from=acompat acompat-linux-${TARGETARCH} /acompat
-COPY --from=acompat acompat-linux-${TARGETARCH} /acompat
-COPY --from=image-fhs / /
-COPY --from=image-ca-certificates / /
-LABEL org.opencontainers.image.source=https://github.com/siderolabs/omni
-ENTRYPOINT ["/acompat"]
 
 FROM scratch AS image-integration-test
 ARG TARGETARCH
