@@ -313,6 +313,9 @@ spec:
     linux-amd64:
       GOOS: linux
       GOARCH: amd64
+    linux-arm64:
+      GOOS: linux
+      GOARCH: arm64
 ---
 kind: golang.Generate
 spec:

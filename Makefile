@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-10-16T15:16:19Z by kres 34e72ac.
+# Generated on 2024-10-21T13:17:39Z by kres 34e72ac.
 
 # common variables
 
@@ -141,7 +141,7 @@ else
 GO_LDFLAGS += -s
 endif
 
-all: unit-tests-frontend lint-eslint frontend unit-tests-client unit-tests integration-test image-integration-test omni image-omni omnictl dev-server docker-compose-up docker-compose-down mkcert-install mkcert-generate mkcert-uninstall run-integration-test lint
+all: unit-tests-frontend lint-eslint frontend unit-tests-client unit-tests acompat image-acompat integration-test image-integration-test omni image-omni omnictl dev-server docker-compose-up docker-compose-down mkcert-install mkcert-generate mkcert-uninstall run-integration-test lint
 
 $(ARTIFACTS):  ## Creates artifacts directory.
 	@mkdir -p $(ARTIFACTS)
@@ -226,15 +226,15 @@ unit-tests:  ## Performs unit tests
 unit-tests-race:  ## Performs unit tests with race detection enabled.
 	@$(MAKE) target-$@
 
-.PHONY: $(ARTIFACTS)/integration-test-linux-amd64
-$(ARTIFACTS)/integration-test-linux-amd64:
-	@$(MAKE) local-integration-test-linux-amd64 DEST=$(ARTIFACTS)
+.PHONY: $(ARTIFACTS)/acompat-linux-amd64
+$(ARTIFACTS)/acompat-linux-amd64:
+	@$(MAKE) local-acompat-linux-amd64 DEST=$(ARTIFACTS)
 
-.PHONY: integration-test-linux-amd64
-integration-test-linux-amd64: $(ARTIFACTS)/integration-test-linux-amd64  ## Builds executable for integration-test-linux-amd64.
+.PHONY: acompat-linux-amd64
+acompat-linux-amd64: $(ARTIFACTS)/acompat-linux-amd64  ## Builds executable for acompat-linux-amd64.
 
-.PHONY: integration-test
-integration-test: integration-test-linux-amd64  ## Builds executables for integration-test.
+.PHONY: acompat
+acompat: acompat-linux-amd64  ## Builds executables for acompat.
 
 .PHONY: lint-markdown
 lint-markdown:  ## Runs markdownlint.
@@ -242,6 +242,27 @@ lint-markdown:  ## Runs markdownlint.
 
 .PHONY: lint
 lint: lint-eslint lint-golangci-lint-client lint-gofumpt-client lint-govulncheck-client lint-golangci-lint lint-gofumpt lint-govulncheck lint-markdown  ## Run all linters for the project.
+
+.PHONY: image-acompat
+image-acompat:  ## Builds image for acompat.
+	@$(MAKE) target-$@ TARGET_ARGS="--tag=$(REGISTRY)/$(USERNAME)/acompat:$(IMAGE_TAG)"
+
+.PHONY: $(ARTIFACTS)/integration-test-linux-amd64
+$(ARTIFACTS)/integration-test-linux-amd64:
+	@$(MAKE) local-integration-test-linux-amd64 DEST=$(ARTIFACTS)
+
+.PHONY: integration-test-linux-amd64
+integration-test-linux-amd64: $(ARTIFACTS)/integration-test-linux-amd64  ## Builds executable for integration-test-linux-amd64.
+
+.PHONY: $(ARTIFACTS)/integration-test-linux-arm64
+$(ARTIFACTS)/integration-test-linux-arm64:
+	@$(MAKE) local-integration-test-linux-arm64 DEST=$(ARTIFACTS)
+
+.PHONY: integration-test-linux-arm64
+integration-test-linux-arm64: $(ARTIFACTS)/integration-test-linux-arm64  ## Builds executable for integration-test-linux-arm64.
+
+.PHONY: integration-test
+integration-test: integration-test-linux-amd64 integration-test-linux-arm64  ## Builds executables for integration-test.
 
 .PHONY: image-integration-test
 image-integration-test:  ## Builds image for omni-integration-test.
