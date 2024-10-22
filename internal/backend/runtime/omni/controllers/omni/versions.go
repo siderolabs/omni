@@ -15,7 +15,9 @@ import (
 	"github.com/blang/semver"
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
+	"github.com/siderolabs/image-factory/pkg/client"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/compatibility"
 	"go.uber.org/zap"
@@ -49,7 +51,13 @@ func (ctrl *VersionsController) Name() string {
 
 // Inputs implements controller.Controller interface.
 func (ctrl *VersionsController) Inputs() []controller.Input {
-	return []controller.Input{}
+	return []controller.Input{
+		{
+			Type:      omni.TalosVersionType,
+			Namespace: resources.DefaultNamespace,
+			Kind:      controller.InputDestroyReady,
+		},
+	}
 }
 
 // Outputs implements controller.Controller interface.
@@ -113,20 +121,30 @@ var allowedPreVersionStrings = map[string]struct{}{
 	"beta":  {},
 }
 
-func (ctrl *VersionsController) getVersionsAfter(ctx context.Context, source string, minVersion semver.Version, includePreReleaseVersions bool) ([]string, error) {
-	versions, err := registry.UpgradeCandidates(ctx, source)
+func (ctrl *VersionsController) fetchVersionsFromRegistry(ctx context.Context, source string) ([]string, error) {
+	return registry.UpgradeCandidates(ctx, source)
+}
+
+func (ctrl *VersionsController) fetchTalosVersions(ctx context.Context, factoryURL string) ([]string, error) {
+	if config.Config.EnableTalosPreReleaseVersions {
+		return ctrl.fetchVersionsFromRegistry(ctx, config.Config.TalosRegistry)
+	}
+
+	client, err := client.New(factoryURL)
 	if err != nil {
 		return nil, err
 	}
 
+	return client.Versions(ctx)
+}
+
+func (ctrl *VersionsController) getVersionsAfter(versions []string, minVersion semver.Version, includePreReleaseVersions bool) []string {
 	res := make([]string, 0, len(versions))
 
 	for _, currentVersion := range versions {
 		currentVersion = strings.TrimLeft(currentVersion, "v")
 
-		var ver semver.Version
-
-		ver, err = semver.ParseTolerant(currentVersion)
+		ver, err := semver.ParseTolerant(currentVersion)
 		if err != nil {
 			continue
 		}
@@ -157,7 +175,7 @@ func (ctrl *VersionsController) getVersionsAfter(ctx context.Context, source str
 		res = append(res, currentVersion)
 	}
 
-	return res, nil
+	return res
 }
 
 func forAllCompatibleVersions(
@@ -225,10 +243,12 @@ func forAllCompatibleVersions(
 func (ctrl *VersionsController) reconcileTalosVersions(ctx context.Context, r controller.Runtime, k8sVersions []*compatibility.KubernetesVersion, logger *zap.Logger) error {
 	tracker := trackResource(r, resources.DefaultNamespace, omni.TalosVersionType)
 
-	talosVersions, err := ctrl.getVersionsAfter(ctx, config.Config.TalosRegistry, minDiscoveredTalosVersion, config.Config.EnableTalosPreReleaseVersions)
+	allVersions, err := ctrl.fetchTalosVersions(ctx, config.Config.ImageFactoryBaseURL)
 	if err != nil {
 		return err
 	}
+
+	talosVersions := ctrl.getVersionsAfter(allVersions, minDiscoveredTalosVersion, config.Config.EnableTalosPreReleaseVersions)
 
 	talosVersions = xslices.FilterInPlace(talosVersions, func(v string) bool {
 		_, denylisted := consts.DenylistedTalosVersions[v]
@@ -249,6 +269,10 @@ func (ctrl *VersionsController) reconcileTalosVersions(ctx context.Context, r co
 
 			return nil
 		}); writeErr != nil {
+			if state.IsPhaseConflictError(writeErr) {
+				return nil
+			}
+
 			return writeErr
 		}
 
@@ -268,10 +292,12 @@ func (ctrl *VersionsController) reconcileTalosVersions(ctx context.Context, r co
 func (ctrl *VersionsController) reconcileKubernetesVersions(ctx context.Context, r controller.Runtime, logger *zap.Logger) ([]string, error) {
 	tracker := trackResource(r, resources.DefaultNamespace, omni.KubernetesVersionType)
 
-	versions, err := ctrl.getVersionsAfter(ctx, config.Config.KubernetesRegistry, minK8sVersion, false)
+	allVersions, err := ctrl.fetchVersionsFromRegistry(ctx, config.Config.KubernetesRegistry)
 	if err != nil {
 		return nil, err
 	}
+
+	versions := ctrl.getVersionsAfter(allVersions, minK8sVersion, false)
 
 	for _, v := range versions {
 		k8sVersion := omni.NewKubernetesVersion(resources.DefaultNamespace, v)
