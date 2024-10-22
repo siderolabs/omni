@@ -126,10 +126,6 @@ func (ctrl *VersionsController) fetchVersionsFromRegistry(ctx context.Context, s
 }
 
 func (ctrl *VersionsController) fetchTalosVersions(ctx context.Context, factoryURL string) ([]string, error) {
-	if config.Config.EnableTalosPreReleaseVersions {
-		return ctrl.fetchVersionsFromRegistry(ctx, config.Config.TalosRegistry)
-	}
-
 	client, err := client.New(factoryURL)
 	if err != nil {
 		return nil, err
