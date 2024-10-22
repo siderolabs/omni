@@ -455,11 +455,11 @@ const submit = async () => {
       grpc_tunnel: grpcTunnelMode.value,
     }
 
-    if (kernelArguments.value) {
+    if (kernelArguments.value.length > 0) {
       machineClass.spec.auto_provision.kernel_args = kernelArguments.value.split(" ");
     }
 
-    if (initialLabels.value) {
+    if (initialLabels.value.length > 0) {
       const l: Record<string, string> = {};
       for (const k in initialLabels.value) {
         l[k] = initialLabels.value[k].value;

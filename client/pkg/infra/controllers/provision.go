@@ -254,6 +254,8 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 
 	*machineRequestStatus.Metadata().Labels() = *machineRequest.Metadata().Labels()
 
+	logger.Info("machine provision finished")
+
 	return nil
 }
 
