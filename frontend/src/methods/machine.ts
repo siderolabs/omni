@@ -125,7 +125,11 @@ export const updateMachineLock = async (id: string, locked: boolean) => {
   if (!machine.metadata.annotations)
     machine.metadata.annotations = {}
 
-  locked ? machine.metadata.annotations[MachineLocked] = "" : delete machine.metadata.annotations[MachineLocked];
+  if (locked) {
+    machine.metadata.annotations[MachineLocked] = "";
+  } else {
+    delete machine.metadata.annotations[MachineLocked];
+  }
 
   await ResourceService.Update(machine, undefined, withRuntime(Runtime.Omni));
 }

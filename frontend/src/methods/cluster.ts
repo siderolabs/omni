@@ -214,7 +214,7 @@ export const getMachineConfigPatchesToDelete = async (machineID: string) => {
         type: patch.metadata.type!,
       });
     }
-  } catch (e) {
+  } catch {
     throw new ClusterCommandError(
       `Failed to Destroy Machine ${machineID}`,
       "Failed to fetch machine patches for the node"

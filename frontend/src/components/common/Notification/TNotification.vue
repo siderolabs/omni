@@ -88,7 +88,7 @@ const route = useRoute();
 watch(
   () => route.path,
   () => {
-    props?.close ? props.close() : null;
+    if (props.close) props.close();
   }
 );
 </script>

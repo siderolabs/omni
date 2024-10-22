@@ -118,7 +118,7 @@ export const setupLogStream = <R extends Data, T>(logs: Ref<LogLine[]>, method: 
           try {
             buffer.push(...logParser.parse(line));
           } catch (e) {
-            console.error(`failed to parse line ${line}`);
+            console.error(`failed to parse line ${line}`, e);
           }
         }
 

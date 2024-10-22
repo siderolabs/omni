@@ -51,7 +51,7 @@ export const isAuthorized = async (): Promise<boolean> => {
   if (!keys) {
     try {
       await loadKeys();
-    } catch (e) {
+    } catch {
       return false;
     }
   }
@@ -271,7 +271,7 @@ const registerInterceptors = () => {
 
           config.headers.set(SignatureHeaderKey, `${SignatureVersionV1} ${keys?.identity} ${fingerprint} ${signature}`);
         }
-      } catch (e) {
+      } catch {
         // reload the page to make the key Authenticator regenerate the key
         location.reload();
       }

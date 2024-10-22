@@ -177,7 +177,7 @@ const generatePublicKey = async () => {
 
   try {
     await confirmPublicKey();
-  } catch (e) {
+  } catch {
     return;
   }
 

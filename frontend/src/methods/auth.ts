@@ -132,7 +132,7 @@ const refreshCurrentUser = async () => {
       type: CurrentUserType,
       id: CurrentUserID,
     }, withRuntime(Runtime.Omni));
-  } catch (e) {
+  } catch {
     currentUser.value = undefined;
   }
 }
@@ -149,7 +149,7 @@ const refreshPermissions = async () => {
       type: PermissionsType,
       id: PermissionsID,
     }, withRuntime(Runtime.Omni));
-  } catch (e) {
+  } catch {
     permissions.value = undefined;
   }
 }
