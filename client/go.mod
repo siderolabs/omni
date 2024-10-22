@@ -11,20 +11,21 @@ replace (
 )
 
 require (
+	github.com/ProtonMail/gopenpgp/v2 v2.7.5
 	github.com/adrg/xdg v0.5.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cosi-project/runtime v0.6.3
+	github.com/cosi-project/runtime v0.6.4
 	github.com/dustin/go-humanize v1.0.1
-	github.com/fatih/color v1.17.0
+	github.com/fatih/color v1.18.0
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/google/uuid v1.6.0
 	github.com/gosuri/uiprogress v0.0.1
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.22.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hexops/gotextdiff v1.0.3
-	github.com/klauspost/compress v1.17.9
+	github.com/klauspost/compress v1.17.11
 	github.com/mattn/go-isatty v0.0.20
-	github.com/planetscale/vtprotobuf v0.6.1-0.20240917153116-6f2963f01587
+	github.com/planetscale/vtprotobuf v0.6.1-0.20241011083415-71c992bc3c87
 	github.com/sergi/go-diff v1.3.1
 	github.com/siderolabs/gen v0.5.0
 	github.com/siderolabs/go-api-signature v0.3.6
@@ -32,23 +33,22 @@ require (
 	github.com/siderolabs/go-pointer v1.0.0
 	github.com/siderolabs/image-factory v0.5.0
 	github.com/siderolabs/proto-codec v0.1.1
-	github.com/siderolabs/talos/pkg/machinery v1.8.0
+	github.com/siderolabs/talos/pkg/machinery v1.8.1
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
 	github.com/xlab/treeprint v1.2.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/sync v0.8.0
-	golang.org/x/term v0.23.0
-	google.golang.org/grpc v1.67.0
-	google.golang.org/protobuf v1.34.2
+	golang.org/x/term v0.25.0
+	google.golang.org/grpc v1.67.1
+	google.golang.org/protobuf v1.35.1
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/client-go v0.31.0
+	k8s.io/client-go v0.31.1
 )
 
 require (
 	github.com/ProtonMail/go-crypto v1.1.0-alpha.5.0.20240827111422-b5837fa4476e // indirect
 	github.com/ProtonMail/go-mime v0.0.0-20230322103455-7d82a3887f2f // indirect
-	github.com/ProtonMail/gopenpgp/v2 v2.7.5 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -96,14 +96,14 @@ require (
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/net v0.28.0 // indirect
 	golang.org/x/oauth2 v0.22.0 // indirect
-	golang.org/x/sys v0.25.0 // indirect
+	golang.org/x/sys v0.26.0 // indirect
 	golang.org/x/text v0.17.0 // indirect
 	golang.org/x/time v0.6.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240903143218-8af14fe29dc1 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/apimachinery v0.31.0 // indirect
+	k8s.io/apimachinery v0.31.1 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
