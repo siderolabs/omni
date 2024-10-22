@@ -20,6 +20,7 @@ import (
 	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/go-procfs/procfs"
 	"github.com/siderolabs/image-factory/pkg/schematic"
+	"github.com/siderolabs/talos/pkg/machinery/api/storage"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/nethelpers"
@@ -318,6 +319,10 @@ func pollDisks(ctx context.Context, c *client.Client, info *Info) error {
 	for _, msg := range disksResp.GetMessages() {
 		for _, disk := range msg.GetDisks() {
 			if strings.HasPrefix(disk.GetDeviceName(), "/dev/loop") {
+				continue
+			}
+
+			if disk.Type == storage.Disk_UNKNOWN {
 				continue
 			}
 
