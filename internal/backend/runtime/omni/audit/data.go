@@ -122,7 +122,6 @@ type TalosAccess struct {
 type K8SAccess struct {
 	FullMethodName string `json:"full_method_name,omitempty"`
 	Command        string `json:"command,omitempty"`
-	Body           string `json:"body,omitempty"`
 	Session        string `json:"kube_session,omitempty"`
 	ClusterName    string `json:"cluster_name,omitempty"`
 	ClusterUUID    string `json:"cluster_uuid,omitempty"`
