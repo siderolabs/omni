@@ -355,7 +355,7 @@ const watchOpts = computed(() => {
       namespace: DefaultNamespace,
       type: MachineStatusType,
     },
-    selectors: nonEmptyConditions.value.concat([`!${LabelNoManualAllocation}`]),
+    selectors: nonEmptyConditions.value.map(c => c + `,!${LabelNoManualAllocation}`),
     selectUsingOR: true,
     runtime: Runtime.Omni,
   };
