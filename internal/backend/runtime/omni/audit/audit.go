@@ -7,7 +7,6 @@
 package audit
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -124,21 +123,15 @@ func (l *Log) AuditTalosAccess(ctx context.Context, fullMethodName string, clust
 // Wrap wraps the http.Handler with audit logging.
 func (l *Log) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		clonedReq := req.Clone(req.Context())
-
-		strData, body, err := duplicateReadCloser(req.Body)
-		if err != nil {
-			l.logger.Error("failed to clone request body", zap.Error(err))
+		if req.Method == http.MethodGet || req.Method == http.MethodHead || req.Method == http.MethodOptions {
 			next.ServeHTTP(w, req)
 
 			return
 		}
 
-		clonedReq.Body = body
-
 		data, ok := ctxstore.Value[*Data](req.Context())
 		if !ok {
-			next.ServeHTTP(w, clonedReq)
+			next.ServeHTTP(w, req)
 
 			return
 		}
@@ -147,9 +140,7 @@ func (l *Log) Wrap(next http.Handler) http.Handler {
 			data.K8SAccess = &K8SAccess{}
 		}
 
-		data.K8SAccess.Body = strData
-
-		err = l.logFile.Dump(event{
+		err := l.logFile.Dump(event{
 			Type: "k8s_access",
 			Time: time.Now().UnixMilli(),
 			Data: data,
@@ -158,7 +149,7 @@ func (l *Log) Wrap(next http.Handler) http.Handler {
 			l.logger.Error("failed to write audit log", zap.Error(err))
 		}
 
-		next.ServeHTTP(w, clonedReq)
+		next.ServeHTTP(w, req)
 	})
 }
 
@@ -179,21 +170,6 @@ func (l *Log) RunCleanup(ctx context.Context) error {
 		case <-time.After(time.Minute):
 		}
 	}
-}
-
-func duplicateReadCloser(body io.ReadCloser) (string, io.ReadCloser, error) {
-	if body == nil {
-		return "", nil, nil
-	}
-
-	var buf bytes.Buffer
-
-	_, err := buf.ReadFrom(body)
-	if err != nil {
-		return "", nil, err
-	}
-
-	return buf.String(), io.NopCloser(&buf), nil
 }
 
 type (

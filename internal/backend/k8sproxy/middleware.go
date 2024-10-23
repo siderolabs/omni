@@ -129,7 +129,6 @@ func AuthorizeRequest(next http.Handler, keyFunc KeyProvider, clusterUUIDResolve
 					Session:        req.Header.Get("Kubectl-Session"),
 					ClusterName:    clusterName,
 					ClusterUUID:    clusterUUID,
-					Body:           "",
 				},
 				Session: audit.Session{
 					UserAgent: req.Header.Get("User-Agent"),
