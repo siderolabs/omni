@@ -15,6 +15,12 @@ included in the LICENSE file.
         >Apply Changes ({{ numChanges }})</t-button
       >
     </div>
+    <t-alert v-if="error"
+      title="Manifest Sync Error"
+      type="error"
+    >
+      {{ error }}.
+    </t-alert>
     <div class="flex-1 font-sm overflow-y-auto" ref="resultsComponent">
       <div
         v-if="loading"
@@ -61,7 +67,7 @@ included in the LICENSE file.
           </div>
           <div class="diff" v-if="item.object">
             {{
-              b64Encode(item.object as Uint8Array, 0, item.object.length)
+              textDecoder.decode(b64Decode(item.object))
             }}
           </div>
         </template>
@@ -87,6 +93,7 @@ import TSpinner from "@/components/common/Spinner/TSpinner.vue";
 import TListItem from "@/components/common/List/TListItem.vue";
 import TButton from "@/components/common/Button/TButton.vue";
 import { showSuccess } from "@/notification";
+import TAlert from "@/components/TAlert.vue";
 
 import {
   KubernetesSyncManifestRequest,
@@ -98,7 +105,9 @@ import { subscribe, Stream } from "@/api/grpc";
 import { withContext, withRuntime } from "@/api/options";
 import { Runtime } from "@/api/common/omni.pb";
 import { getContext } from "@/context";
-import { b64Encode } from "@/api/fetch.pb";
+import { b64Decode } from "@/api/fetch.pb";
+
+const textDecoder = new TextDecoder();
 
 const route = useRoute();
 const context = getContext();
@@ -181,6 +190,8 @@ const highlightDiff = (line: string) => {
   return "";
 };
 
+const error = ref<string>();
+
 const setupSyncStream = () => {
   const stream: Ref<
     | Stream<KubernetesSyncManifestRequest, KubernetesSyncManifestResponse>
@@ -220,14 +231,12 @@ const setupSyncStream = () => {
       [withRuntime(Runtime.Talos), withContext(context)],
       undefined,
       (e: Error) => {
-        processItem({
-          response_type: KubernetesSyncManifestResponseResponseType.UNKNOWN,
-          path: "Manifest Sync Error",
-          diff: e.message,
-        });
+        error.value = e.message;
+        loading.value = false;
       },
       () => {
         loaded.value = true;
+        error.value = undefined;
 
         if (!syncParams.value.dry_run) {
           showSuccess("Bootstrap manifests updated successfully");
@@ -252,7 +261,7 @@ setupSyncStream();
 
 <style scoped>
 .diff {
-  @apply font-roboto whitespace-pre p-4;
+  @apply font-roboto whitespace-pre pt-2;
 }
 
 .bottom-line {
