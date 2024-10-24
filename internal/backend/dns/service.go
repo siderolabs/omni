@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -34,6 +35,8 @@ type Info struct {
 
 	address            string
 	managementEndpoint string
+
+	Ambiguous bool
 }
 
 // NewInfo exports unexported.
@@ -55,6 +58,49 @@ func (i Info) GetAddress() string {
 	return i.managementEndpoint
 }
 
+type resolutionResult int
+
+const (
+	found = iota
+	notFound
+	ambiguous
+)
+
+type resolverMap map[string][]resource.ID
+
+func (m resolverMap) get(key string) (resource.ID, resolutionResult) {
+	ids, ok := m[key]
+	if !ok {
+		return "", notFound
+	}
+
+	if len(ids) > 1 {
+		return "", ambiguous
+	}
+
+	return ids[0], found
+}
+
+func (m resolverMap) add(key string, id resource.ID) {
+	if slices.Index(m[key], id) != -1 {
+		return
+	}
+
+	m[key] = append(m[key], id)
+}
+
+func (m resolverMap) remove(key string, id resource.ID) {
+	ids, ok := m[key]
+	if !ok {
+		return
+	}
+
+	ids = slices.DeleteFunc(ids, func(item string) bool { return item == id })
+	if len(ids) == 0 {
+		delete(m, key)
+	}
+}
+
 // Service is the DNS service.
 type Service struct {
 	omniState state.State
@@ -62,6 +108,8 @@ type Service struct {
 
 	recordToMachineID map[record]resource.ID
 	machineIDToInfo   map[resource.ID]Info
+	addressToID       resolverMap
+	nodenameToID      resolverMap
 
 	lock sync.Mutex
 }
@@ -73,6 +121,8 @@ func NewService(omniState state.State, logger *zap.Logger) *Service {
 		logger:            logger,
 		recordToMachineID: make(map[record]string),
 		machineIDToInfo:   make(map[string]Info),
+		addressToID:       make(resolverMap),
+		nodenameToID:      make(resolverMap),
 	}
 }
 
@@ -165,9 +215,11 @@ func (d *Service) updateEntryByIdentity(res *omni.ClusterMachineIdentity) {
 
 	info.Cluster = clusterName
 	info.ID = res.Metadata().ID()
-	info.Name = nodeName
 
 	previousAddress := info.address
+	previousNodename := info.Name
+
+	info.Name = nodeName
 
 	nodeIPs := res.TypedSpec().Value.NodeIps
 	if len(nodeIPs) == 0 {
@@ -190,12 +242,16 @@ func (d *Service) updateEntryByIdentity(res *omni.ClusterMachineIdentity) {
 		name:    res.Metadata().ID(),
 	}] = res.Metadata().ID()
 
+	d.nodenameToID.add(nodeName, res.Metadata().ID())
+
 	// create entry by address
 	if info.address != "" {
 		d.recordToMachineID[record{
 			cluster: clusterName,
 			name:    info.address,
 		}] = res.Metadata().ID()
+
+		d.addressToID.add(info.address, res.Metadata().ID())
 	}
 
 	// cleanup old entry by address
@@ -204,6 +260,18 @@ func (d *Service) updateEntryByIdentity(res *omni.ClusterMachineIdentity) {
 			cluster: clusterName,
 			name:    previousAddress,
 		})
+
+		d.addressToID.remove(previousAddress, res.Metadata().ID())
+	}
+
+	// cleanup old entry by nodename
+	if previousNodename != "" && previousNodename != info.Name {
+		delete(d.recordToMachineID, record{
+			cluster: clusterName,
+			name:    previousNodename,
+		})
+
+		d.nodenameToID.remove(previousNodename, res.Metadata().ID())
 	}
 
 	d.logger.Debug(
@@ -258,6 +326,9 @@ func (d *Service) deleteIdentityMappings(id resource.ID) {
 			cluster: info.Cluster,
 			name:    info.address,
 		})
+
+		d.addressToID.remove(info.address, id)
+		d.nodenameToID.remove(info.Name, id)
 	}
 
 	info.address = ""
@@ -293,6 +364,27 @@ func (d *Service) deleteMachineMappings(id resource.ID) {
 	)
 }
 
+func (d *Service) resolveByAddressOrNodename(name string) (Info, bool) {
+	for _, resolver := range []resolverMap{
+		d.addressToID,
+		d.nodenameToID,
+	} {
+		nodeID, result := resolver.get(name)
+		if result == ambiguous {
+			return Info{
+				Name:      name,
+				Ambiguous: true,
+			}, true
+		}
+
+		if result == found {
+			return d.machineIDToInfo[nodeID], true
+		}
+	}
+
+	return Info{}, false
+}
+
 // Resolve returns the dns.Info for the given node name, address or machine UUID.
 func (d *Service) Resolve(clusterName, name string) Info {
 	d.lock.Lock()
@@ -302,6 +394,16 @@ func (d *Service) Resolve(clusterName, name string) Info {
 		cluster: clusterName,
 		name:    name,
 	}]
+
+	if !ok {
+		var info Info
+
+		info, ok = d.resolveByAddressOrNodename(name)
+
+		if ok {
+			return info
+		}
+	}
 
 	if !ok {
 		return d.machineIDToInfo[name]

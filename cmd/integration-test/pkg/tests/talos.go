@@ -210,6 +210,29 @@ func AssertTalosAPIAccessViaOmni(testCtx context.Context, omniClient *client.Cli
 			assertTalosAPI(ctx, t, c)
 		})
 
+		t.Run("InstanceWideTalosconfigWithoutCluster", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(testCtx, backoff.DefaultConfig.MaxDelay+10*time.Second)
+			t.Cleanup(cancel)
+
+			data, err := omniClient.Management().Talosconfig(ctx)
+			require.NoError(t, err)
+			assert.NotEmpty(t, data)
+
+			config, err := clientconfig.FromBytes(data)
+			require.NoError(t, err)
+
+			require.NoError(t, talosAPIKeyPrepare(ctx, "default"))
+
+			c, err := talosclient.New(ctx, talosclient.WithConfig(config))
+			require.NoError(t, err)
+
+			t.Cleanup(func() {
+				require.NoError(t, c.Close())
+			})
+
+			assertTalosAPI(ctx, t, c)
+		})
+
 		t.Run("ClusterWideTalosconfig", func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(testCtx, backoff.DefaultConfig.MaxDelay+10*time.Second)
 			t.Cleanup(cancel)

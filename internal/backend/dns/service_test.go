@@ -134,7 +134,7 @@ func (suite *ServiceSuite) assertResolveAddress(cluster, node, expected string) 
 		resolved := suite.dnsService.Resolve(cluster, node)
 
 		if resolved.GetAddress() != expected {
-			return retry.ExpectedErrorf("expected %s, got %s", expected, resolved)
+			return retry.ExpectedErrorf("expected %s, got %s", expected, resolved.GetAddress())
 		}
 
 		return nil
