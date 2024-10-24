@@ -254,6 +254,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewLabelsExtractorController[*omni.MachineStatus](),
 		omnictrl.NewMachineRequestSetStatusController(),
 		omnictrl.NewClusterMachineRequestStatusController(),
+		omnictrl.NewMachineTeardownController(),
 	}
 
 	if config.Config.Auth.SAML.Enabled {
