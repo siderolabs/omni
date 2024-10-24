@@ -586,15 +586,7 @@ func (manager *Manager) cleanupDestroyedLinks(ctx context.Context) error {
 	for {
 		select {
 		case event := <-events:
-			//nolint:exhaustive
-			switch event.Type {
-			case state.Updated:
-				if event.Resource.Metadata().Phase() != resource.PhaseTearingDown {
-					break
-				}
-
-				fallthrough
-			case state.Destroyed:
+			if event.Type == state.Destroyed {
 				link, ok := event.Resource.(*siderolink.Link)
 				if !ok {
 					return fmt.Errorf("failed to cast resource to siderolink.Link type")
