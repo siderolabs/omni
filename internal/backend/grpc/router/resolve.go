@@ -6,6 +6,8 @@
 package router
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/siderolabs/gen/xslices"
@@ -29,6 +31,32 @@ type resolvedNodeInfo struct {
 	nodes []dns.Info
 
 	nodeOk bool
+}
+
+func (r resolvedNodeInfo) getNode() (dns.Info, error) {
+	if r.nodeOk {
+		return r.node, nil
+	}
+
+	if len(r.nodes) > 0 {
+		var clusterName string
+
+		for _, n := range r.nodes {
+			if n.Ambiguous {
+				return n, nil
+			}
+
+			if clusterName != "" && clusterName != n.Cluster {
+				return dns.Info{}, fmt.Errorf("all nodes should be in the same cluster, found clusters %q and %q", clusterName, n.Cluster)
+			}
+
+			clusterName = n.Cluster
+		}
+
+		return r.nodes[0], nil
+	}
+
+	return dns.Info{}, errors.New("node not found")
 }
 
 func resolveNodes(dnsService NodeResolver, md metadata.MD) resolvedNodeInfo {
@@ -61,7 +89,7 @@ func resolveNodes(dnsService NodeResolver, md metadata.MD) resolvedNodeInfo {
 			resolved = dnsService.Resolve(cluster, val)
 		}
 
-		if resolved.GetAddress() == "" {
+		if resolved.GetAddress() == "" && !resolved.Ambiguous {
 			return dns.NewInfo(
 				cluster,
 				val,

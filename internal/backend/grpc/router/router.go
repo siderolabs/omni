@@ -173,10 +173,27 @@ func (r *Router) Director(ctx context.Context, fullMethodName string) (proxy.Mod
 func (r *Router) getTalosBackend(ctx context.Context, md metadata.MD) ([]proxy.Backend, error) {
 	clusterName := getClusterName(md)
 
-	id := fmt.Sprintf("cluster-%s", clusterName)
+	id := "cluster-" + clusterName
 
 	if clusterName == "" {
-		id = fmt.Sprintf("machine-%s", getNodeID(md))
+		resolved := resolveNodes(r.nodeResolver, md)
+
+		node, err := resolved.getNode()
+		if err != nil {
+			return nil, err
+		}
+
+		if node.Ambiguous {
+			return nil, fmt.Errorf("name or address %q is ambiguous, please specify the cluster name explicitly", node.Name)
+		}
+
+		clusterName = node.Cluster
+
+		if node.Cluster != "" {
+			id = "cluster-" + clusterName
+		} else {
+			id = "machine-" + node.ID
+		}
 	}
 
 	if backend, ok := r.talosBackends.Get(id); ok {
