@@ -1319,3 +1319,17 @@ func deleteAllResources(md resource.Metadata) func(context.Context, state.State,
 		return nil
 	}
 }
+
+func removeMaintenanceConfigPatchFinalizers(ctx context.Context, st state.State, _ *zap.Logger) error {
+	items, err := safe.ReaderListAll[*omni.MachineStatus](
+		ctx,
+		st,
+	)
+	if err != nil {
+		return err
+	}
+
+	return items.ForEachErr(func(item *omni.MachineStatus) error {
+		return st.RemoveFinalizer(ctx, item.Metadata(), "MaintenanceConfigPatchController")
+	})
+}

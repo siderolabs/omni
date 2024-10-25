@@ -1619,6 +1619,39 @@ func (suite *MigrationSuite) TestDeleteMachineClassStatuses() {
 	}, "deleteMachineClassStatuses")
 }
 
+func (suite *MigrationSuite) TestRemoveMaintenanceConfigPatchFinalizers() {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	deprecatedControllerName := "MaintenanceConfigPatchController"
+
+	m1Status := omni.NewMachineStatus(resources.DefaultNamespace, "machine1")
+	m1Status.Metadata().Finalizers().Add(deprecatedControllerName)
+
+	m2Status := omni.NewMachineStatus(resources.DefaultNamespace, "machine2")
+	m2Status.Metadata().Finalizers().Add(deprecatedControllerName)
+	m2Status.Metadata().SetPhase(resource.PhaseTearingDown)
+
+	m3Status := omni.NewMachineStatus(resources.DefaultNamespace, "machine3")
+	m3Status.Metadata().Finalizers().Add(deprecatedControllerName)
+
+	suite.Require().NoError(suite.state.Create(ctx, m1Status, state.WithCreateOwner("MachineStatusController")))
+	suite.Require().NoError(suite.state.Create(ctx, m2Status, state.WithCreateOwner("MachineStatusController")))
+	suite.Require().NoError(suite.state.Create(ctx, m3Status, state.WithCreateOwner("MachineStatusController")))
+
+	suite.Require().NoError(suite.manager.Run(ctx), migration.WithFilter(
+		func(name string) bool {
+			return name == "removeMaintenanceConfigPatchFinalizers"
+		},
+	))
+
+	rtestutils.AssertAll(ctx, suite.T(), suite.state, func(
+		res *omni.MachineStatus, assert *assert.Assertions,
+	) {
+		assert.True(res.Metadata().Finalizers().Empty())
+	})
+}
+
 func TestMigrationSuite(t *testing.T) {
 	t.Parallel()
 
