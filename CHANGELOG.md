@@ -1,3 +1,33 @@
+## [Omni 0.43.2](https://github.com/siderolabs/omni/releases/tag/v0.43.2) (2024-10-25)
+
+Welcome to the v0.43.2 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+* Dmitriy Matrenichev
+
+### Changes
+<details><summary>3 commits</summary>
+<p>
+
+* [`c403da7`](https://github.com/siderolabs/omni/commit/c403da7dfa1157c66bcdd3d1430ba64e3707617d) fix: properly show the current manifests in the bootstrap manifest sync
+* [`23c33e7`](https://github.com/siderolabs/omni/commit/23c33e7ce6b61c03d0ef6d6173a55bd7e2cf0924) chore: do not audit log `GET` requests to k8s
+* [`5d0c81a`](https://github.com/siderolabs/omni/commit/5d0c81a5cd4ad2710827cdab53cfd9f452f87797) fix: use proper selectors in the MachineClass create UI
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.43.1](https://github.com/siderolabs/omni/releases/tag/v0.43.1)
+
 ## [Omni 0.43.1](https://github.com/siderolabs/omni/releases/tag/v0.43.1) (2024-10-17)
 
 Welcome to the v0.43.1 release of Omni!
