@@ -177,6 +177,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: deleteAllResources(resource.NewMetadata(resources.DefaultNamespace, MachineClassStatusType, "", resource.VersionUndefined)),
 				name:     "deleteMachineClassStatuses",
 			},
+			{
+				callback: removeMaintenanceConfigPatchFinalizers,
+				name:     "removeMaintenanceConfigPatchFinalizers",
+			},
 		},
 	}
 }
