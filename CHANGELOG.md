@@ -1,3 +1,31 @@
+## [Omni 0.43.3](https://github.com/siderolabs/omni/releases/tag/v0.43.3) (2024-10-25)
+
+Welcome to the v0.43.3 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>2 commits</summary>
+<p>
+
+* [`bf5776e`](https://github.com/siderolabs/omni/commit/bf5776ec83b88c4c14e4a57e05b11142ccd5bc12) release(v0.43.3): prepare release
+* [`63d5723`](https://github.com/siderolabs/omni/commit/63d57238ac682aa674930747228e1498349a4943) fix: remove `MaintenanceConfigPatchController` finalizers
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.43.2](https://github.com/siderolabs/omni/releases/tag/v0.43.2)
+
 ## [Omni 0.43.2](https://github.com/siderolabs/omni/releases/tag/v0.43.2) (2024-10-25)
 
 Welcome to the v0.43.2 release of Omni!
