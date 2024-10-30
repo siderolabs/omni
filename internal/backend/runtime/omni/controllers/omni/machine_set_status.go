@@ -170,6 +170,7 @@ func NewMachineSetStatusController() *MachineSetStatusController {
 				Kind: controller.OutputExclusive,
 			},
 		),
+		qtransform.WithConcurrency(8),
 	)
 }
 

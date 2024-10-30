@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"os/exec"
@@ -20,6 +21,7 @@ import (
 
 	"github.com/mattn/go-shellwords"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 
 	"github.com/siderolabs/omni/client/pkg/compression"
 	clientconsts "github.com/siderolabs/omni/client/pkg/constants"
@@ -44,18 +46,49 @@ var rootCmd = &cobra.Command{
 			testOptions := tests.Options{
 				RunTestPattern: rootCmdFlags.runTestPattern,
 
-				ExpectedMachines:  rootCmdFlags.expectedMachines,
-				CleanupLinks:      rootCmdFlags.cleanupLinks,
-				RunStatsCheck:     rootCmdFlags.runStatsCheck,
-				ProvisionMachines: rootCmdFlags.provisionMachinesCount,
+				ExpectedMachines: rootCmdFlags.expectedMachines,
+				CleanupLinks:     rootCmdFlags.cleanupLinks,
+				RunStatsCheck:    rootCmdFlags.runStatsCheck,
 
 				MachineOptions:           rootCmdFlags.machineOptions,
 				AnotherTalosVersion:      rootCmdFlags.anotherTalosVersion,
 				AnotherKubernetesVersion: rootCmdFlags.anotherKubernetesVersion,
 				OmnictlPath:              rootCmdFlags.omnictlPath,
-				InfraProvider:            rootCmdFlags.infraProvider,
-				ProviderData:             rootCmdFlags.providerData,
 				ScalingTimeout:           rootCmdFlags.scalingTimeout,
+			}
+
+			switch {
+			case rootCmdFlags.provisionConfigFile != "":
+				f, err := os.Open(rootCmdFlags.provisionConfigFile)
+				if err != nil {
+					return fmt.Errorf("failed to open provision config file %q: %w", rootCmdFlags.provisionConfigFile, err)
+				}
+
+				decoder := yaml.NewDecoder(f)
+
+				for {
+					var cfg tests.MachineProvisionConfig
+
+					if err = decoder.Decode(&cfg); err != nil {
+						if errors.Is(err, io.EOF) {
+							break
+						}
+
+						return err
+					}
+
+					testOptions.ProvisionConfigs = append(testOptions.ProvisionConfigs, cfg)
+				}
+			case rootCmdFlags.provisionMachinesCount != 0:
+				testOptions.ProvisionConfigs = append(testOptions.ProvisionConfigs,
+					tests.MachineProvisionConfig{
+						MachineCount: rootCmdFlags.provisionMachinesCount,
+						Provider: tests.MachineProviderConfig{
+							ID:   rootCmdFlags.infraProvider,
+							Data: rootCmdFlags.providerData,
+						},
+					},
+				)
 			}
 
 			if rootCmdFlags.restartAMachineScript != "" {
@@ -140,6 +173,7 @@ var rootCmdFlags struct {
 	anotherTalosVersion      string
 	anotherKubernetesVersion string
 	omnictlPath              string
+	provisionConfigFile      string
 
 	machineOptions tests.MachineOptions
 }
@@ -175,6 +209,9 @@ var onceInit = sync.OnceValue(func() *cobra.Command {
 	rootCmd.Flags().StringVar(&rootCmdFlags.infraProvider, "infra-provider", "talemu", "use infra provider with the specified ID when provisioning the machines")
 	rootCmd.Flags().StringVar(&rootCmdFlags.providerData, "provider-data", "{}", "the infra provider machine template data to use")
 	rootCmd.Flags().DurationVar(&rootCmdFlags.scalingTimeout, "scale-timeout", time.Second*150, "scale up test timeout")
+	rootCmd.Flags().StringVar(&rootCmdFlags.provisionConfigFile, "provision-config-file", "", "provision machines with the more complicated configuration")
+
+	rootCmd.MarkFlagsMutuallyExclusive("provision-machines", "provision-config-file")
 
 	return rootCmd
 })

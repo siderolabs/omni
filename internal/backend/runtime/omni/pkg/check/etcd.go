@@ -120,18 +120,18 @@ func GetEtcdMembers(ctx context.Context, r controller.Reader, clusterName string
 
 	var unixSocketOpts []client.OptionFunc
 
-	for _, r := range clusterMachineStatuses {
-		if r.TypedSpec().Value.ManagementAddress == "" {
+	for _, status := range clusterMachineStatuses {
+		if status.TypedSpec().Value.ManagementAddress == "" || status.TypedSpec().Value.IsRemoved {
 			continue
 		}
 
-		if o := talos.GetSocketOptions(r.TypedSpec().Value.ManagementAddress); o != nil {
+		if o := talos.GetSocketOptions(status.TypedSpec().Value.ManagementAddress); o != nil {
 			unixSocketOpts = o
 
 			break
 		}
 
-		endpoints = append(endpoints, r.TypedSpec().Value.ManagementAddress)
+		endpoints = append(endpoints, status.TypedSpec().Value.ManagementAddress)
 	}
 
 	if len(unixSocketOpts) == 0 && len(endpoints) == 0 {
@@ -322,7 +322,7 @@ func getMemberState(ctx context.Context, talosConfig *omni.TalosConfig, clusterM
 
 	opts = append(opts, client.WithConfig(config))
 
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 
 	defer cancel()
 

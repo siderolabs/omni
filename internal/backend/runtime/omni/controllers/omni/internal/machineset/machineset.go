@@ -69,7 +69,7 @@ func ReconcileMachines(ctx context.Context, r controller.ReaderWriter, logger *z
 		var err error
 
 		operations, err = ReconcileControlPlanes(ctx, rc, func(ctx context.Context) (*check.EtcdStatusResult, error) {
-			ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+			ctx, cancel := context.WithTimeout(ctx, time.Second*30)
 
 			defer cancel()
 

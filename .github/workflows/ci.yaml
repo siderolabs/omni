@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-10-21T13:53:43Z by kres 34e72ac.
+# Generated on 2024-10-30T17:18:04Z by kres 6d3cad4.
 
 name: default
 concurrency:
@@ -311,6 +311,84 @@ jobs:
             !~/.talos/clusters/**/swtpm.log
           retention-days: "5"
         continue-on-error: true
+  e2e-forced-removal:
+    runs-on:
+      - self-hosted
+      - omni
+    if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-forced-removal')
+    needs:
+      - default
+    steps:
+      - name: gather-system-info
+        id: system-info
+        uses: kenchan0130/actions-system-info@v1.3.0
+        continue-on-error: true
+      - name: print-system-info
+        run: |
+          MEMORY_GB=$((${{ steps.system-info.outputs.totalmem }}/1024/1024/1024))
+
+          OUTPUTS=(
+            "CPU Core: ${{ steps.system-info.outputs.cpu-core }}"
+            "CPU Model: ${{ steps.system-info.outputs.cpu-model }}"
+            "Hostname: ${{ steps.system-info.outputs.hostname }}"
+            "NodeName: ${NODE_NAME}"
+            "Kernel release: ${{ steps.system-info.outputs.kernel-release }}"
+            "Kernel version: ${{ steps.system-info.outputs.kernel-version }}"
+            "Name: ${{ steps.system-info.outputs.name }}"
+            "Platform: ${{ steps.system-info.outputs.platform }}"
+            "Release: ${{ steps.system-info.outputs.release }}"
+            "Total memory: ${MEMORY_GB} GB"
+          )
+
+          for OUTPUT in "${OUTPUTS[@]}";do
+            echo "${OUTPUT}"
+          done
+        continue-on-error: true
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Unshallow
+        run: |
+          git fetch --prune --unshallow
+      - name: Set up Docker Buildx
+        id: setup-buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: remote
+          endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
+        timeout-minutes: 10
+      - name: Mask secrets
+        run: |
+          echo "$(sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | "::add-mask::" + .value')"
+      - name: Set secrets for job
+        run: |
+          sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: artifacts
+          path: _out
+      - name: Fix artifact permissions
+        run: |
+          xargs -a _out/executable-artifacts -I {} chmod +x {}
+      - name: run-integration-test
+        env:
+          INTEGRATION_RUN_E2E_TEST: "false"
+          INTEGRATION_TEST_ARGS: --test.run CleanState/|ForcedMachineRemoval/|ReplaceControlPlanes/|ConfigPatching/|KubernetesNodeAudit/
+          RUN_TALEMU_TESTS: "false"
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
+          WITH_DEBUG: "true"
+        run: |
+          sudo -E make run-integration-test
+      - name: save-talos-logs-artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: talos-logs-e2e-forced-removal
+          path: |-
+            ~/.talos/clusters/**/*.log
+            !~/.talos/clusters/**/swtpm.log
+          retention-days: "5"
+        continue-on-error: true
   e2e-scaling:
     runs-on:
       - self-hosted
@@ -373,7 +451,7 @@ jobs:
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: --test.run CleanState/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|RollingUpdateParallelism/|ForcedMachineRemoval/|ReplaceControlPlanes/|ConfigPatching/|KubernetesNodeAudit/
+          INTEGRATION_TEST_ARGS: --test.run CleanState/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|RollingUpdateParallelism
           RUN_TALEMU_TESTS: "false"
           TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
           WITH_DEBUG: "true"
@@ -462,6 +540,85 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: talos-logs-e2e-short
+          path: |-
+            ~/.talos/clusters/**/*.log
+            !~/.talos/clusters/**/swtpm.log
+          retention-days: "5"
+        continue-on-error: true
+  e2e-short-secureboot:
+    runs-on:
+      - self-hosted
+      - omni
+    if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-short-secureboot')
+    needs:
+      - default
+    steps:
+      - name: gather-system-info
+        id: system-info
+        uses: kenchan0130/actions-system-info@v1.3.0
+        continue-on-error: true
+      - name: print-system-info
+        run: |
+          MEMORY_GB=$((${{ steps.system-info.outputs.totalmem }}/1024/1024/1024))
+
+          OUTPUTS=(
+            "CPU Core: ${{ steps.system-info.outputs.cpu-core }}"
+            "CPU Model: ${{ steps.system-info.outputs.cpu-model }}"
+            "Hostname: ${{ steps.system-info.outputs.hostname }}"
+            "NodeName: ${NODE_NAME}"
+            "Kernel release: ${{ steps.system-info.outputs.kernel-release }}"
+            "Kernel version: ${{ steps.system-info.outputs.kernel-version }}"
+            "Name: ${{ steps.system-info.outputs.name }}"
+            "Platform: ${{ steps.system-info.outputs.platform }}"
+            "Release: ${{ steps.system-info.outputs.release }}"
+            "Total memory: ${MEMORY_GB} GB"
+          )
+
+          for OUTPUT in "${OUTPUTS[@]}";do
+            echo "${OUTPUT}"
+          done
+        continue-on-error: true
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Unshallow
+        run: |
+          git fetch --prune --unshallow
+      - name: Set up Docker Buildx
+        id: setup-buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: remote
+          endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
+        timeout-minutes: 10
+      - name: Mask secrets
+        run: |
+          echo "$(sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | "::add-mask::" + .value')"
+      - name: Set secrets for job
+        run: |
+          sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: artifacts
+          path: _out
+      - name: Fix artifact permissions
+        run: |
+          xargs -a _out/executable-artifacts -I {} chmod +x {}
+      - name: run-integration-test
+        env:
+          ENABLE_SECUREBOOT: "true"
+          INTEGRATION_RUN_E2E_TEST: "false"
+          INTEGRATION_TEST_ARGS: --test.run CleanState/|TalosImageGeneration/|ImmediateClusterDestruction/|DefaultCluster/|EncryptedCluster/|SinglenodeCluster/|Auth/
+          RUN_TALEMU_TESTS: "false"
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
+          WITH_DEBUG: "true"
+        run: |
+          sudo -E make run-integration-test
+      - name: save-talos-logs-artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: talos-logs-e2e-short-secureboot
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log

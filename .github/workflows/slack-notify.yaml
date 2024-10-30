@@ -1,14 +1,16 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-08-15T23:44:03Z by kres 7be2a05.
+# Generated on 2024-10-30T17:18:04Z by kres 6d3cad4.
 
 name: slack-notify
 "on":
   workflow_run:
     workflows:
       - default
+      - e2e-short-secureboot-cron
       - e2e-short-cron
       - e2e-scaling-cron
+      - e2e-forced-removal-cron
       - e2e-upgrades-cron
       - e2e-templates-cron
       - e2e-backups-cron

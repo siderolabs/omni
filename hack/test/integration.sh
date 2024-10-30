@@ -24,6 +24,8 @@ TALOS_VERSION=1.7.6
 ARTIFACTS=_out
 JOIN_TOKEN=testonly
 RUN_DIR=$(pwd)
+ENABLE_SECUREBOOT=${ENABLE_SECUREBOOT:-false}
+KERNEL_ARGS_WORKERS_COUNT=2
 
 # Download required artifacts.
 
@@ -40,6 +42,10 @@ mkdir -p ${ARTIFACTS}
 SCHEMATIC_ID="cf9b7aab9ed7c365d5384509b4d31c02fdaa06d2b3ac6cc0bc806f28130eff1f"
 
 # Build registry mirror args.
+
+if [[ "${ENABLE_SECUREBOOT}" == "false" ]]; then
+  KERNEL_ARGS_WORKERS_COUNT=4
+fi
 
 if [[ "${CI:-false}" == "true" ]]; then
   REGISTRY_MIRROR_FLAGS=()
@@ -137,7 +143,7 @@ if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
       --talos-version=${TALOS_VERSION} \
       --omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
       --expected-machines=30 \
-      --provision-machines=30 \
+      --provision-config-file=hack/test/provisionconfig.yaml \
       --run-stats-check \
       -t 4m \
       -p 10 \
@@ -193,7 +199,7 @@ ${ARTIFACTS}/talosctl cluster create \
 ${ARTIFACTS}/talosctl cluster create \
     --provisioner=qemu \
     --controlplanes=1 \
-    --workers=2 \
+    --workers=${KERNEL_ARGS_WORKERS_COUNT} \
     --wait=false \
     --mtu=1430 \
     --memory=3072 \
@@ -226,27 +232,29 @@ EOF
 
 SECURE_BOOT_SCHEMATIC_ID=$(curl -X POST --data-binary "${SECURE_BOOT_SCHEMATIC}" https://factory.talos.dev/schematics | jq -r '.id')
 
-# Kernel args, secure boot
-${ARTIFACTS}/talosctl cluster create \
-    --provisioner=qemu \
-    --controlplanes=1 \
-    --workers=1 \
-    --wait=false \
-    --mtu=1430 \
-    --memory=3072 \
-    --memory-workers=3072 \
-    --cpus=3 \
-    --cpus-workers=3 \
-    --with-uuid-hostnames \
-    \
-    --name test-3 \
-    --skip-injecting-config \
-    --with-init-node \
-    --cidr=172.22.0.0/24 \
-    --no-masquerade-cidrs=172.20.0.0/24,172.21.0.0/24 \
-    --with-tpm2 \
-    --iso-path="https://factory.talos.dev/image/${SECURE_BOOT_SCHEMATIC_ID}/v${TALOS_VERSION}/metal-amd64-secureboot.iso" \
-    --disk-encryption-key-types=tpm
+if [[ "${ENABLE_SECUREBOOT}" == "true" ]]; then
+  # Kernel args, secure boot
+  ${ARTIFACTS}/talosctl cluster create \
+      --provisioner=qemu \
+      --controlplanes=1 \
+      --workers=1 \
+      --wait=false \
+      --mtu=1430 \
+      --memory=3072 \
+      --memory-workers=3072 \
+      --cpus=3 \
+      --cpus-workers=3 \
+      --with-uuid-hostnames \
+      \
+      --name test-3 \
+      --skip-injecting-config \
+      --with-init-node \
+      --cidr=172.22.0.0/24 \
+      --no-masquerade-cidrs=172.20.0.0/24,172.21.0.0/24 \
+      --with-tpm2 \
+      --iso-path="https://factory.talos.dev/image/${SECURE_BOOT_SCHEMATIC_ID}/v${TALOS_VERSION}/metal-amd64-secureboot.iso" \
+      --disk-encryption-key-types=tpm
+  fi
 
 sleep 5
 

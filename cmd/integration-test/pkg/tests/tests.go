@@ -54,14 +54,14 @@ type TalosAPIKeyPrepareFunc func(ctx context.Context, contextName string) error
 type Options struct {
 	RunTestPattern string
 
-	CleanupLinks      bool
-	RunStatsCheck     bool
-	ExpectedMachines  int
-	ProvisionMachines int
+	CleanupLinks     bool
+	RunStatsCheck    bool
+	ExpectedMachines int
 
 	RestartAMachineFunc RestartAMachineFunc
 	WipeAMachineFunc    WipeAMachineFunc
 	FreezeAMachineFunc  FreezeAMachineFunc
+	ProvisionConfigs    []MachineProvisionConfig
 
 	MachineOptions MachineOptions
 
@@ -69,14 +69,40 @@ type Options struct {
 	AnotherTalosVersion      string
 	AnotherKubernetesVersion string
 	OmnictlPath              string
-	InfraProvider            string
-	ProviderData             string
 	ScalingTimeout           time.Duration
+}
+
+func (o Options) defaultInfraProvider() string {
+	if len(o.ProvisionConfigs) == 0 {
+		return ""
+	}
+
+	return o.ProvisionConfigs[0].Provider.ID
+}
+
+func (o Options) defaultProviderData() string {
+	if len(o.ProvisionConfigs) == 0 {
+		return "{}"
+	}
+
+	return o.ProvisionConfigs[0].Provider.Data
+}
+
+// MachineProvisionConfig tells the test to provision machines from the infra provider.
+type MachineProvisionConfig struct {
+	Provider     MachineProviderConfig `yaml:"provider"`
+	MachineCount int                   `yaml:"count"`
+}
+
+// MachineProviderConfig keeps the configuration of the infra provider for the machine provision config.
+type MachineProviderConfig struct {
+	ID   string `yaml:"id"`
+	Data string `yaml:"data"`
 }
 
 // Run the integration tests.
 //
-//nolint:maintidx,gocyclo,cyclop
+//nolint:maintidx,gocyclo,cyclop,gocognit
 func Run(ctx context.Context, clientConfig *clientconfig.ClientConfig, options Options) error {
 	rootClient, err := clientConfig.GetClient(ctx)
 	if err != nil {
@@ -584,10 +610,10 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						Name:          "integration-scaling-auto-provision",
 						ControlPlanes: 1,
 						Workers:       0,
-						InfraProvider: options.InfraProvider,
+						InfraProvider: options.defaultInfraProvider(),
 
 						MachineOptions: options.MachineOptions,
-						ProviderData:   options.ProviderData,
+						ProviderData:   options.defaultProviderData(),
 						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
@@ -606,9 +632,9 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						Name:           "integration-scaling-auto-provision",
 						ControlPlanes:  0,
 						Workers:        1,
-						InfraProvider:  options.InfraProvider,
+						InfraProvider:  options.defaultInfraProvider(),
 						MachineOptions: options.MachineOptions,
-						ProviderData:   options.ProviderData,
+						ProviderData:   options.defaultProviderData(),
 						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
@@ -628,7 +654,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						ControlPlanes:  2,
 						Workers:        0,
 						MachineOptions: options.MachineOptions,
-						ProviderData:   options.ProviderData,
+						ProviderData:   options.defaultInfraProvider(),
 						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
@@ -647,9 +673,9 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						Name:           "integration-scaling-auto-provision",
 						ControlPlanes:  0,
 						Workers:        -1,
-						InfraProvider:  options.InfraProvider,
+						InfraProvider:  options.defaultInfraProvider(),
 						MachineOptions: options.MachineOptions,
-						ProviderData:   options.ProviderData,
+						ProviderData:   options.defaultProviderData(),
 						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
@@ -668,9 +694,9 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						Name:           "integration-scaling-auto-provision",
 						ControlPlanes:  -2,
 						Workers:        0,
-						InfraProvider:  options.InfraProvider,
+						InfraProvider:  options.defaultInfraProvider(),
 						MachineOptions: options.MachineOptions,
-						ProviderData:   options.ProviderData,
+						ProviderData:   options.defaultProviderData(),
 					}),
 				},
 			).Append(
@@ -1336,11 +1362,13 @@ Test flow of cluster creation and scaling using cluster templates.`,
 
 	preRunTests := []testing.InternalTest{}
 
-	if options.ProvisionMachines != 0 {
-		preRunTests = append(preRunTests, testing.InternalTest{
-			Name: "AssertMachinesShouldBeProvisioned",
-			F:    AssertMachinesShouldBeProvisioned(ctx, rootClient, options.ProvisionMachines, "main", options.MachineOptions.TalosVersion, options.InfraProvider, options.ProviderData),
-		})
+	if len(options.ProvisionConfigs) != 0 {
+		for i, cfg := range options.ProvisionConfigs {
+			preRunTests = append(preRunTests, testing.InternalTest{
+				Name: "AssertMachinesShouldBeProvisioned",
+				F:    AssertMachinesShouldBeProvisioned(ctx, rootClient, cfg, fmt.Sprintf("provisioned%d", i), options.MachineOptions.TalosVersion),
+			})
+		}
 	}
 
 	if len(preRunTests) > 0 {
@@ -1357,11 +1385,13 @@ Test flow of cluster creation and scaling using cluster templates.`,
 
 	postRunTests := []testing.InternalTest{}
 
-	if options.ProvisionMachines != 0 {
-		postRunTests = append(postRunTests, testing.InternalTest{
-			Name: "AssertMachinesShouldBeDeprovisioned",
-			F:    AssertMachinesShouldBeDeprovisioned(ctx, rootClient, "main"),
-		})
+	if len(options.ProvisionConfigs) != 0 {
+		for i := range options.ProvisionConfigs {
+			postRunTests = append(postRunTests, testing.InternalTest{
+				Name: "AssertMachinesShouldBeDeprovisioned",
+				F:    AssertMachinesShouldBeDeprovisioned(ctx, rootClient, fmt.Sprintf("provisioned%d", i)),
+			})
+		}
 	}
 
 	if options.RunStatsCheck {

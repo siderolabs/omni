@@ -178,6 +178,18 @@ spec:
       TALEMU_TEST_ARGS: "--test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/"
       RUN_TALEMU_TESTS: true
     jobs:
+      - name: e2e-short-secureboot
+        crons:
+          - '30 1 * * *'
+        runnerLabels:
+          - omni
+        triggerLabels:
+          - integration/e2e-short-secureboot
+        environmentOverride:
+          INTEGRATION_RUN_E2E_TEST: "false"
+          INTEGRATION_TEST_ARGS: "--test.run CleanState/|TalosImageGeneration/|ImmediateClusterDestruction/|DefaultCluster/|EncryptedCluster/|SinglenodeCluster/|Auth/"
+          RUN_TALEMU_TESTS: false
+          ENABLE_SECUREBOOT: true
       - name: e2e-short
         crons:
           - '30 1 * * *'
@@ -200,7 +212,19 @@ spec:
           - integration/e2e-scaling
         environmentOverride:
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: "--test.run CleanState/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|RollingUpdateParallelism/|ForcedMachineRemoval/|ReplaceControlPlanes/|ConfigPatching/|KubernetesNodeAudit/"
+          INTEGRATION_TEST_ARGS: "--test.run CleanState/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|RollingUpdateParallelism"
+          RUN_TALEMU_TESTS: false
+      - name: e2e-forced-removal
+        crons:
+          - '30 1 * * *'
+        runnerLabels:
+          - omni
+        triggerLabels:
+          - integration/e2e
+          - integration/e2e-forced-removal
+        environmentOverride:
+          INTEGRATION_RUN_E2E_TEST: "false"
+          INTEGRATION_TEST_ARGS: "--test.run CleanState/|ForcedMachineRemoval/|ReplaceControlPlanes/|ConfigPatching/|KubernetesNodeAudit/"
           RUN_TALEMU_TESTS: false
       - name: e2e-upgrades
         crons:
@@ -581,3 +605,4 @@ spec:
     - e2e-templates
     - e2e-upgrades
     - e2e-backups
+    - e2e-forced-removal

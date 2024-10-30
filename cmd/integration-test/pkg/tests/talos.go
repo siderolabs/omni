@@ -445,7 +445,7 @@ func AssertTalosVersion(testCtx context.Context, client *client.Client, clusterN
 
 			resp, err := c.Version(talosclient.WithNodes(ctx, machineIPs...))
 			if err != nil {
-				return err
+				return retry.ExpectedError(err)
 			}
 
 			for _, m := range resp.Messages {

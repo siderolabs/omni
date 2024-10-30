@@ -30,14 +30,14 @@ import (
 // AssertMachinesShouldBeProvisioned creates a machine request set and waits until all requests are fulfilled.
 //
 //nolint:gocognit
-func AssertMachinesShouldBeProvisioned(testCtx context.Context, client *client.Client, machineCount int, machineRequestSetName,
-	talosVersion, infraProvider, providerData string,
+func AssertMachinesShouldBeProvisioned(testCtx context.Context, client *client.Client, cfg MachineProvisionConfig, machineRequestSetName,
+	talosVersion string,
 ) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, time.Minute*5)
 		defer cancel()
 
-		rtestutils.AssertResources(ctx, t, client.Omni().State(), []string{infraProvider}, func(*infra.ProviderStatus, *assert.Assertions) {})
+		rtestutils.AssertResources(ctx, t, client.Omni().State(), []string{cfg.Provider.ID}, func(*infra.ProviderStatus, *assert.Assertions) {})
 
 		machineRequestSet, err := safe.ReaderGetByID[*omni.MachineRequestSet](ctx, client.Omni().State(), machineRequestSetName)
 
@@ -55,10 +55,10 @@ func AssertMachinesShouldBeProvisioned(testCtx context.Context, client *client.C
 			"siderolabs/" + HelloWorldServiceExtensionName,
 		}
 
-		machineRequestSet.TypedSpec().Value.ProviderId = infraProvider
+		machineRequestSet.TypedSpec().Value.ProviderId = cfg.Provider.ID
 		machineRequestSet.TypedSpec().Value.TalosVersion = talosVersion
-		machineRequestSet.TypedSpec().Value.ProviderData = providerData
-		machineRequestSet.TypedSpec().Value.MachineCount = int32(machineCount)
+		machineRequestSet.TypedSpec().Value.ProviderData = cfg.Provider.Data
+		machineRequestSet.TypedSpec().Value.MachineCount = int32(cfg.MachineCount)
 
 		require.NoError(t, client.Omni().State().Create(ctx, machineRequestSet))
 
@@ -72,8 +72,8 @@ func AssertMachinesShouldBeProvisioned(testCtx context.Context, client *client.C
 				return err
 			}
 
-			if resources.Len() != machineCount {
-				return retry.ExpectedErrorf("provision machine count is %d, expected %d", resources.Len(), machineCount)
+			if resources.Len() != cfg.MachineCount {
+				return retry.ExpectedErrorf("provision machine count is %d, expected %d", resources.Len(), cfg.MachineCount)
 			}
 
 			return nil
@@ -89,8 +89,8 @@ func AssertMachinesShouldBeProvisioned(testCtx context.Context, client *client.C
 				return err
 			}
 
-			if machines.Len() < machineCount {
-				return retry.ExpectedErrorf("links count is %d, expected at least %d", machines.Len(), machineCount)
+			if machines.Len() < cfg.MachineCount {
+				return retry.ExpectedErrorf("links count is %d, expected at least %d", machines.Len(), cfg.MachineCount)
 			}
 
 			for r := range resources.All() {

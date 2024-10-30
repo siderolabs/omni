@@ -2,7 +2,7 @@
 #
 # Generated on 2024-10-30T17:18:04Z by kres 6d3cad4.
 
-name: e2e-templates-cron
+name: e2e-forced-removal-cron
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
@@ -61,7 +61,7 @@ jobs:
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: --test.run CleanState/|ClusterTemplate/
+          INTEGRATION_TEST_ARGS: --test.run CleanState/|ForcedMachineRemoval/|ReplaceControlPlanes/|ConfigPatching/|KubernetesNodeAudit/
           RUN_TALEMU_TESTS: "false"
           TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
           WITH_DEBUG: "true"

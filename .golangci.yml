@@ -1,14 +1,14 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-06-19T21:17:41Z by kres 4c9f215.
+# Generated on 2024-10-30T12:55:25Z by kres 6d3cad4.
 
 # options for analysis running
 run:
   timeout: 10m
   issues-exit-code: 1
   tests: true
-  modules-download-mode: readonly
   build-tags: [ ]
+  modules-download-mode: readonly
 
 # output configuration options
 output:
