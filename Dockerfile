@@ -91,6 +91,7 @@ COPY frontend/bunfig.toml ./
 COPY frontend/*.html ./
 COPY frontend/*.ts ./
 COPY frontend/*.js ./
+COPY frontend/*.ico ./
 COPY ./frontend/src ./src
 COPY ./frontend/test ./test
 COPY ./frontend/eslint.config.js ./eslint.config.js

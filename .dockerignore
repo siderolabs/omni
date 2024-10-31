@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-09-07T21:30:27Z by kres 8be5fa7.
+# Generated on 2024-10-31T13:15:39Z by kres 6d3cad4-dirty.
 
 *
 !frontend/src
@@ -15,6 +15,7 @@
 !frontend/*.js
 !frontend/*.ts
 !frontend/*.html
+!frontend/*.ico
 !frontend/eslint.config.js
 !internal/frontend/frontend.go
 !client/go.mod
