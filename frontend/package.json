@@ -37,10 +37,11 @@
   "devDependencies": {
     "@heroicons/vue": "^2.1.5",
     "@types/luxon": "^3.4.2",
+    "@types/node": "^22.8.6",
     "@types/pluralize": "^0.0.33",
     "@vitejs/plugin-vue": "^5.1.4",
-    "eslint-plugin-typescript": "^0.14.0",
     "autoprefixer": "^10.4.20",
+    "eslint-plugin-typescript": "^0.14.0",
     "eslint-plugin-vue": "^9.29.1",
     "fetch-intercept": "^2.4.0",
     "jsdom": "^25.0.0",

@@ -6,7 +6,7 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "baseUrl": ".",
-    "types": ["vite/client"],
+    "types": ["vite/client", "node"],
 
     /* Bundler mode */
     "allowSyntheticDefaultImports": true,
