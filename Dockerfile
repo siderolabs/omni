@@ -1,4 +1,4 @@
-# syntax = docker/dockerfile-upstream:1.10.0-labs
+# syntax = docker/dockerfile-upstream:1.11.0-labs
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
@@ -20,7 +20,7 @@ ENV GOPATH=/go
 ENV PATH=${PATH}:/usr/local/go/bin
 
 # runs markdownlint
-FROM docker.io/oven/bun:1.1.32-alpine AS lint-markdown
+FROM docker.io/oven/bun:1.1.34-alpine AS lint-markdown
 WORKDIR /src
 RUN bun i markdownlint-cli@0.42.0 sentences-per-line@0.2.1
 COPY .markdownlint.json .
