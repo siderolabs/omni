@@ -76,6 +76,10 @@ const (
 	// Setting this label will make MachineSetNode controller ignore such machines for the manual label selectors.
 	// tsgen:LabelNoManualAllocation
 	LabelNoManualAllocation = SystemLabelPrefix + "no-manual-allocation"
+
+	// LabelManaged is set on the resources which are created in the managed control planes flow.
+	// tsgen:LabelManaged
+	LabelManaged = SystemLabelPrefix + "managed"
 )
 
 const (

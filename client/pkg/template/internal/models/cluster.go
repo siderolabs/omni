@@ -51,6 +51,8 @@ type Cluster struct { //nolint:govet
 
 // Features defines cluster-wide features.
 type Features struct {
+	// ManagedControlPlanes enables managed control planes.
+	ManagedControlPlanes ManagedControlPlanes `yaml:"managedControlPlanes,omitempty"`
 	// DiskEncryption enables KMS encryption.
 	DiskEncryption bool `yaml:"diskEncryption,omitempty"`
 	// EnableWorkloadProxy enables workload proxy.
@@ -59,6 +61,11 @@ type Features struct {
 	UseEmbeddedDiscoveryService bool `yaml:"useEmbeddedDiscoveryService,omitempty"`
 	// BackupConfiguration contains backup configuration settings.
 	BackupConfiguration BackupConfiguration `yaml:"backupConfiguration,omitempty"`
+}
+
+// ManagedControlPlanes describes managed control planes mode.
+type ManagedControlPlanes struct {
+	Enabled bool `yaml:"enabled"`
 }
 
 // BackupConfiguration contains backup configuration settings.
@@ -159,6 +166,7 @@ func (cluster *Cluster) Translate(ctx TranslateContext) ([]resource.Resource, er
 	clusterResource.TypedSpec().Value.Features = &specs.ClusterSpec_Features{
 		EnableWorkloadProxy:         cluster.Features.EnableWorkloadProxy,
 		UseEmbeddedDiscoveryService: cluster.Features.UseEmbeddedDiscoveryService,
+		UseManagedControlPlanes:     cluster.Features.ManagedControlPlanes.Enabled,
 	}
 
 	clusterResource.TypedSpec().Value.KubernetesVersion = strings.TrimLeft(cluster.Kubernetes.Version, "v")

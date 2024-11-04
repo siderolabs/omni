@@ -113,6 +113,16 @@ func TestClusterValidation(t *testing.T) {
 	cluster.TypedSpec().Value.TalosVersion = talos15
 	cluster.TypedSpec().Value.KubernetesVersion = "1.27.0"
 
+	// incompatible update, can't change managed
+	cluster.TypedSpec().Value.TalosVersion = talos15
+	cluster.TypedSpec().Value.Features = &specs.ClusterSpec_Features{UseManagedControlPlanes: true}
+
+	err = st.Update(ctx, cluster)
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "managed control planes feature field is immutable")
+
+	cluster.TypedSpec().Value.Features = nil
+
 	// incompatible update, but because the kubernetes version did not change, it's allowed
 	require.NoError(t, st.Update(ctx, cluster))
 
@@ -874,28 +884,6 @@ func TestMachineSetClassesValidation(t *testing.T) {
 	machineSet.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
 		Name: machineClass.Metadata().ID(),
 	}
-
-	err = st.Update(ctx, machineSet)
-	require.True(t, validated.IsValidationError(err), "expected validation error")
-	require.ErrorContains(t, err, "machine set is not empty")
-
-	require.NoError(t, st.Destroy(ctx, machineSetNode.Metadata()))
-
-	machineSet.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
-		Name:   machineClass.Metadata().ID(),
-		Source: specs.MachineSetSpec_MachineAllocation_MachineClass,
-	}
-
-	require.NoError(t, st.Update(ctx, machineSet))
-
-	// changing source is not allowed too
-	machineSet.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
-		Name:   machineClass.Metadata().ID(),
-		Source: specs.MachineSetSpec_MachineAllocation_MachineRequestSet,
-	}
-
-	// add a node
-	require.NoError(t, innerSt.Create(ctx, machineSetNode))
 
 	err = st.Update(ctx, machineSet)
 	require.True(t, validated.IsValidationError(err), "expected validation error")

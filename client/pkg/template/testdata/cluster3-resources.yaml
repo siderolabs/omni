@@ -17,6 +17,7 @@ spec:
         enableworkloadproxy: false
         diskencryption: false
         useembeddeddiscoveryservice: false
+        usemanagedcontrolplanes: false
     backupconfiguration: null
 ---
 metadata:
@@ -278,7 +279,6 @@ spec:
         name: test
         machinecount: 1
         allocationtype: 0
-        source: 0
 ---
 metadata:
     namespace: default
@@ -303,4 +303,3 @@ spec:
         name: test
         machinecount: 0
         allocationtype: 1
-        source: 0

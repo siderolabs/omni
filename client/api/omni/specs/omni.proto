@@ -263,6 +263,8 @@ message ClusterSpec {
     bool disk_encryption = 2;
     // UseEmbeddedDiscoveryService enables the embedded discovery service.
     bool use_embedded_discovery_service = 3;
+    // UseManagedControlPlanes enables managed control planes for the cluster.
+    bool use_managed_control_planes = 4;
   }
 
   // InstallImage the installer image to use.
@@ -689,22 +691,13 @@ message MachineSetSpec {
       Unlimited = 1;
     }
 
-    enum Source {
-      // MachineClass allocates the machines from a machine class.
-      MachineClass = 0;
-      // MachineRequestSet allocates the machines from a machine request set.
-      MachineRequestSet = 1;
-    }
-
     // Name defines the machine class/machine request set id to select the machines from.
     string name = 1;
     // MachineCount defines fixed amount of the machines to allocated from the machine class/request set.
     uint32 machine_count = 2;
     // AllocationType defines special constants for the amount of machines to be allocated.
     Type allocation_type = 3;
-    // Source defines the source where to get the machines from.
-    // It can be either a machine class or a machine request set.
-    Source source = 4;
+    reserved 4;
   }
 
   // BootstrapSpec defines the bootstrap spec for the control plane machine set.

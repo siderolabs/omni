@@ -232,58 +232,61 @@ func (ctrl *MachineSetNodeController) getMachineAllocation(ctx context.Context, 
 		machineAllocation = omni.GetMachineAllocation(machineSet)
 	)
 
-	if machineAllocation == nil {
-		return nil, nil //nolint:nilnil
-	}
-
-	var manualAllocation bool
-
-	switch {
-	case machineAllocation.Source == specs.MachineSetSpec_MachineAllocation_MachineClass:
-		machineClass, err := safe.ReaderGet[*omni.MachineClass](ctx, r, omni.NewMachineClass(resources.DefaultNamespace, machineAllocation.Name).Metadata())
-		if err != nil {
-			return nil, err
-		}
-
-		if machineClass.TypedSpec().Value.AutoProvision != nil {
-			selectors = append(selectors, resource.LabelQuery{
-				Terms: []resource.LabelTerm{
-					{
-						Key:   omni.LabelMachineRequestSet,
-						Op:    resource.LabelOpEqual,
-						Value: []string{machineSet.Metadata().ID()},
-					},
-				},
-			})
-
-			break
-		}
-
-		selectors, err = labels.ParseSelectors(machineClass.TypedSpec().Value.MatchLabels)
-		if err != nil {
-			return nil, err
-		}
-
-		manualAllocation = true
-	case machineAllocation.Source == specs.MachineSetSpec_MachineAllocation_MachineRequestSet:
+	if _, managed := machineSet.Metadata().Labels().Get(omni.LabelManaged); managed {
 		selectors = append(selectors, resource.LabelQuery{
 			Terms: []resource.LabelTerm{
 				{
 					Key:   omni.LabelMachineRequestSet,
 					Op:    resource.LabelOpEqual,
-					Value: []string{machineAllocation.Name},
+					Value: []string{machineSet.Metadata().ID()},
 				},
 			},
 		})
-	default:
+
+		return &allocationConfig{
+			selectors:      selectors,
+			allocationType: specs.MachineSetSpec_MachineAllocation_Static,
+			machineCount:   3,
+		}, nil
+	}
+
+	if machineAllocation == nil {
 		return nil, nil //nolint:nilnil
+	}
+
+	machineClass, err := safe.ReaderGet[*omni.MachineClass](ctx, r, omni.NewMachineClass(resources.DefaultNamespace, machineAllocation.Name).Metadata())
+	if err != nil {
+		return nil, err
+	}
+
+	if machineClass.TypedSpec().Value.AutoProvision != nil {
+		selectors = append(selectors, resource.LabelQuery{
+			Terms: []resource.LabelTerm{
+				{
+					Key:   omni.LabelMachineRequestSet,
+					Op:    resource.LabelOpEqual,
+					Value: []string{machineSet.Metadata().ID()},
+				},
+			},
+		})
+
+		return &allocationConfig{
+			selectors:      selectors,
+			allocationType: machineAllocation.AllocationType,
+			machineCount:   machineAllocation.MachineCount,
+		}, nil
+	}
+
+	selectors, err = labels.ParseSelectors(machineClass.TypedSpec().Value.MatchLabels)
+	if err != nil {
+		return nil, err
 	}
 
 	return &allocationConfig{
 		selectors:      selectors,
 		allocationType: machineAllocation.AllocationType,
 		machineCount:   machineAllocation.MachineCount,
-		manual:         manualAllocation,
+		manual:         true,
 	}, nil
 }
 

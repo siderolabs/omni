@@ -60,7 +60,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { Resource, ResourceService } from "@/api/grpc";
 import { MachineSetStatusSpec, ClusterMachineStatusSpec, MachineSetSpecMachineAllocationType, MachineClassSpec, ClusterMachineRequestStatusSpec } from "@/api/omni/specs/omni.pb";
-import { ClusterMachineRequestStatusType, ClusterMachineStatusType, DefaultNamespace, LabelCluster, LabelControlPlaneRole, LabelMachineSet, MachineClassType } from "@/api/resources";
+import { ClusterMachineRequestStatusType, ClusterMachineStatusType, DefaultNamespace, LabelCluster, LabelControlPlaneRole, LabelMachineSet, MachineClassType, LabelManaged } from "@/api/resources";
 import { computed, ref, toRefs, watch } from "vue";
 import { useRouter } from "vue-router";
 import { setupClusterPermissions } from "@/methods/auth";
@@ -144,7 +144,7 @@ machinesWatch.setup(computed(() => {
 }));
 
 requestsWatch.setup(computed(() => {
-  if (!machineSet.value.spec.machine_allocation) {
+  if (!machineSet.value.spec.machine_allocation && machineSet.value.metadata.labels?.[LabelManaged] === undefined) {
     return;
   }
 

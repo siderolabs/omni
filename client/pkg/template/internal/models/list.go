@@ -5,6 +5,7 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 
@@ -44,10 +45,14 @@ func (l List) Validate() error {
 
 	lockedMachines := make(map[MachineID]struct{})
 
+	var managed bool
+
 	for _, model := range l {
 		switch m := model.(type) {
 		case *Cluster:
 			clusterCount++
+
+			managed = m.Features.ManagedControlPlanes.Enabled
 		case *ControlPlane:
 			controlplaneCount++
 
@@ -69,7 +74,10 @@ func (l List) Validate() error {
 		multiErr = multierror.Append(multiErr, fmt.Errorf("template should contain 1 cluster, got %d", clusterCount))
 	}
 
-	if controlplaneCount != 1 {
+	switch {
+	case managed && controlplaneCount > 0:
+		multiErr = multierror.Append(multiErr, errors.New("template should have no controlplanes in managed mode"))
+	case !managed && controlplaneCount != 1:
 		multiErr = multierror.Append(multiErr, fmt.Errorf("template should contain 1 controlplane, got %d", controlplaneCount))
 	}
 

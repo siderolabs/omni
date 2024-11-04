@@ -75,8 +75,9 @@ func ReconcileStatus(rc *ReconciliationContext, machineSetStatus *omni.MachineSe
 	}
 
 	_, isControlPlane := machineSet.Metadata().Labels().Get(omni.LabelControlPlaneRole)
+	_, managed := machineSet.Metadata().Labels().Get(omni.LabelManaged)
 
-	if isControlPlane && len(machineSetNodes) == 0 && spec.Machines.Requested == 0 {
+	if isControlPlane && len(machineSetNodes) == 0 && spec.Machines.Requested == 0 && !managed {
 		spec.Phase = specs.MachineSetPhase_Failed
 		spec.Error = "control plane machine set must have at least one node"
 	}

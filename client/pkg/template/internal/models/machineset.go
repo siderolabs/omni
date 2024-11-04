@@ -176,6 +176,8 @@ func (machineset *MachineSet) translate(ctx TranslateContext, nameSuffix, roleLa
 
 	machineSet.TypedSpec().Value.UpdateStrategy = specs.MachineSetSpec_Rolling // Update strategy is Rolling when not specified.
 
+	resourceList := []resource.Resource{machineSet}
+
 	if machineset.UpdateStrategy != nil {
 		if machineset.UpdateStrategy.Type != nil {
 			machineSet.TypedSpec().Value.UpdateStrategy = specs.MachineSetSpec_UpdateStrategy(*machineset.UpdateStrategy.Type)
@@ -204,8 +206,6 @@ func (machineset *MachineSet) translate(ctx TranslateContext, nameSuffix, roleLa
 		}
 	}
 
-	resourceList := []resource.Resource{machineSet}
-
 	if machineset.BootstrapSpec != nil {
 		machineSet.TypedSpec().Value.BootstrapSpec = &specs.MachineSetSpec_BootstrapSpec{
 			ClusterUuid: machineset.BootstrapSpec.ClusterUUID,
@@ -218,7 +218,6 @@ func (machineset *MachineSet) translate(ctx TranslateContext, nameSuffix, roleLa
 			Name:           machineset.MachineClass.Name,
 			MachineCount:   machineset.MachineClass.Size.Value,
 			AllocationType: machineset.MachineClass.Size.AllocationType,
-			Source:         specs.MachineSetSpec_MachineAllocation_MachineClass,
 		}
 	} else {
 		for _, machineID := range machineset.Machines {

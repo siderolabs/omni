@@ -260,6 +260,18 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewInfraProviderConfigPatchController(),
 	}
 
+	if config.Config.ManagedControlPlanes.Enable {
+		qcontrollers = append(qcontrollers,
+			omnictrl.NewManagedControlPlaneController(),
+			omnictrl.NewManagedRequestSetController(
+				omnictrl.ProviderConfig{
+					ID:   config.Config.ManagedControlPlanes.ProviderID,
+					Data: config.Config.ManagedControlPlanes.ProviderData,
+				},
+			),
+		)
+	}
+
 	if config.Config.Auth.SAML.Enabled {
 		controllers = append(controllers,
 			&omnictrl.SAMLAssertionController{},

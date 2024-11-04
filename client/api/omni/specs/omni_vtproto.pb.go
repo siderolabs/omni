@@ -413,6 +413,7 @@ func (m *ClusterSpec_Features) CloneVT() *ClusterSpec_Features {
 	r.EnableWorkloadProxy = m.EnableWorkloadProxy
 	r.DiskEncryption = m.DiskEncryption
 	r.UseEmbeddedDiscoveryService = m.UseEmbeddedDiscoveryService
+	r.UseManagedControlPlanes = m.UseManagedControlPlanes
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -1152,7 +1153,6 @@ func (m *MachineSetSpec_MachineAllocation) CloneVT() *MachineSetSpec_MachineAllo
 	r.Name = m.Name
 	r.MachineCount = m.MachineCount
 	r.AllocationType = m.AllocationType
-	r.Source = m.Source
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -2978,6 +2978,9 @@ func (this *ClusterSpec_Features) EqualVT(that *ClusterSpec_Features) bool {
 	if this.UseEmbeddedDiscoveryService != that.UseEmbeddedDiscoveryService {
 		return false
 	}
+	if this.UseManagedControlPlanes != that.UseManagedControlPlanes {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -3915,9 +3918,6 @@ func (this *MachineSetSpec_MachineAllocation) EqualVT(that *MachineSetSpec_Machi
 		return false
 	}
 	if this.AllocationType != that.AllocationType {
-		return false
-	}
-	if this.Source != that.Source {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -6722,6 +6722,16 @@ func (m *ClusterSpec_Features) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.UseManagedControlPlanes {
+		i--
+		if m.UseManagedControlPlanes {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.UseEmbeddedDiscoveryService {
 		i--
 		if m.UseEmbeddedDiscoveryService {
@@ -8760,11 +8770,6 @@ func (m *MachineSetSpec_MachineAllocation) MarshalToSizedBufferVT(dAtA []byte) (
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
-	}
-	if m.Source != 0 {
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Source))
-		i--
-		dAtA[i] = 0x20
 	}
 	if m.AllocationType != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.AllocationType))
@@ -12307,6 +12312,9 @@ func (m *ClusterSpec_Features) SizeVT() (n int) {
 	if m.UseEmbeddedDiscoveryService {
 		n += 2
 	}
+	if m.UseManagedControlPlanes {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -13089,9 +13097,6 @@ func (m *MachineSetSpec_MachineAllocation) SizeVT() (n int) {
 	}
 	if m.AllocationType != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.AllocationType))
-	}
-	if m.Source != 0 {
-		n += 1 + protohelpers.SizeOfVarint(uint64(m.Source))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -17487,6 +17492,26 @@ func (m *ClusterSpec_Features) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.UseEmbeddedDiscoveryService = bool(v != 0)
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UseManagedControlPlanes", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.UseManagedControlPlanes = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -22542,25 +22567,6 @@ func (m *MachineSetSpec_MachineAllocation) UnmarshalVT(dAtA []byte) error {
 				b := dAtA[iNdEx]
 				iNdEx++
 				m.AllocationType |= MachineSetSpec_MachineAllocation_Type(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Source", wireType)
-			}
-			m.Source = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Source |= MachineSetSpec_MachineAllocation_Source(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}

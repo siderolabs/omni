@@ -1,0 +1,17 @@
+kind: Cluster
+name: export-test-managed
+labels:
+  cluster-label-1: val
+  cluster-label-2: val2
+kubernetes:
+  version: v1.28.2
+talos:
+  version: v1.5.5
+features:
+  managedControlPlanes:
+    enabled: true
+  diskEncryption: true
+  enableWorkloadProxy: true
+  useEmbeddedDiscoveryService: true
+  backupConfiguration:
+    interval: 2h0m0s

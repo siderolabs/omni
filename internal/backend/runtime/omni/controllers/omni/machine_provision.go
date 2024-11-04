@@ -14,10 +14,10 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/gen/optional"
 	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
@@ -35,8 +35,13 @@ func NewMachineProvisionController() *MachineProvisionController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.MachineSet, *omni.MachineRequestSet]{
 			Name: machineProvisionControllerName,
-			MapMetadataFunc: func(res *omni.MachineSet) *omni.MachineRequestSet {
-				return omni.NewMachineRequestSet(resources.DefaultNamespace, res.Metadata().ID())
+			MapMetadataOptionalFunc: func(res *omni.MachineSet) optional.Optional[*omni.MachineRequestSet] {
+				// ignore managed machine sets
+				if _, managed := res.Metadata().Labels().Get(omni.LabelManaged); managed {
+					return optional.None[*omni.MachineRequestSet]()
+				}
+
+				return optional.Some(omni.NewMachineRequestSet(resources.DefaultNamespace, res.Metadata().ID()))
 			},
 			UnmapMetadataFunc: func(res *omni.MachineRequestSet) *omni.MachineSet {
 				return omni.NewMachineSet(resources.DefaultNamespace, res.Metadata().ID())
@@ -45,10 +50,6 @@ func NewMachineProvisionController() *MachineProvisionController {
 				machineAllocation := omni.GetMachineAllocation(machineSet)
 				if machineAllocation == nil {
 					return xerrors.NewTaggedf[qtransform.DestroyOutputTag]("machine set doesn't use automatic machine allocation")
-				}
-
-				if machineAllocation.Source != specs.MachineSetSpec_MachineAllocation_MachineClass {
-					return xerrors.NewTaggedf[qtransform.DestroyOutputTag]("machine allocation doesn't use machine classes")
 				}
 
 				clusterName, ok := machineSet.Metadata().Labels().Get(omni.LabelCluster)
@@ -128,8 +129,7 @@ func NewMachineProvisionController() *MachineProvisionController {
 				for machineSet := range machineSets.All() {
 					allocation := omni.GetMachineAllocation(machineSet)
 
-					if allocation == nil || allocation.Name != res.Metadata().ID() ||
-						allocation.Source != specs.MachineSetSpec_MachineAllocation_MachineClass {
+					if allocation == nil || allocation.Name != res.Metadata().ID() {
 						continue
 					}
 
@@ -140,5 +140,6 @@ func NewMachineProvisionController() *MachineProvisionController {
 			},
 		),
 		qtransform.WithConcurrency(4),
+		qtransform.WithOutputKind(controller.OutputShared),
 	)
 }

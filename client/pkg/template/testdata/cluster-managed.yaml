@@ -1,0 +1,31 @@
+kind: Cluster
+name: managed
+kubernetes:
+  version: v1.31.1
+talos:
+  version: v1.8.2
+features:
+  managedControlPlanes:
+    enabled: true
+patches:
+  - file: patches/my-cluster-patch.yaml
+  - file: ../testdata/patches/my-registry-mirrors.yaml
+---
+kind: Workers
+machines:
+  - 430d882a-51a8-48b3-ae00-90c5b0b5b0b0
+---
+kind: Machine
+name: 430d882a-51a8-48b3-ae00-90c5b0b5b0b0
+install:
+  disk: /dev/vda
+patches: # ClusterMachine ConfigPatch
+  - name: my-address
+    inline:
+      machine:
+        network:
+          interfaces:
+           - interface: eth0
+             addresses: [192.168.0.2/24]
+             routes:
+               - gateway: "192.168.0.1"

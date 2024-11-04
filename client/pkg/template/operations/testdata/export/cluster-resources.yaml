@@ -620,3 +620,39 @@ metadata:
 spec:
   extensions:
     - something-custom
+
+---
+################################ Cluster with managed control planes
+metadata:
+  namespace: default
+  type: Clusters.omni.sidero.dev
+  id: export-test-managed
+  version: 11
+  owner:
+  phase: running
+  created: 2023-12-07T13:36:21Z
+  updated: 2023-12-08T15:43:10Z
+  labels:
+    cluster-label-1: val
+    cluster-label-2: val2
+  annotations:
+    omni.sidero.dev/managed-by-cluster-templates:
+  finalizers:
+    - KubernetesUpgradeStatusController
+    - TalosUpgradeStatusController
+    - ClusterController
+    - SecretsController
+spec:
+  installimage: ""
+  kubernetesversion: 1.28.2
+  talosversion: 1.5.5
+  features:
+    enableworkloadproxy: true
+    diskencryption: true
+    useembeddeddiscoveryservice: true
+    usemanagedcontrolplanes: true
+  backupconfiguration:
+    interval:
+      seconds: 7200
+      nanos: 0
+    enabled: true
