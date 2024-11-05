@@ -49,7 +49,7 @@ require (
 	github.com/hashicorp/vault/api v1.15.0
 	github.com/hashicorp/vault/api/auth/kubernetes v0.8.0
 	github.com/hexops/gotextdiff v1.0.3
-	github.com/johannesboyne/gofakes3 v0.0.0-20240930195952-2db7ccb81e19
+	github.com/johannesboyne/gofakes3 v0.0.0-20241026070602-0da3aa9c32ca
 	github.com/jonboulle/clockwork v0.4.1-0.20241017232027-7e524bd2b238
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/jxskiss/base62 v1.1.0

@@ -25,7 +25,7 @@ require (
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/klauspost/compress v1.17.11
 	github.com/mattn/go-isatty v0.0.20
-	github.com/planetscale/vtprotobuf v0.6.1-0.20240917153116-6f2963f01587
+	github.com/planetscale/vtprotobuf v0.6.1-0.20241011083415-71c992bc3c87
 	github.com/sergi/go-diff v1.3.1
 	github.com/siderolabs/gen v0.7.0
 	github.com/siderolabs/go-api-signature v0.3.6

@@ -275,6 +275,8 @@ github.com/jmespath/go-jmespath v0.4.0/go.mod h1:T8mJZnbsbmF+m6zOOFylbeCJqk5+pHW
 github.com/jmespath/go-jmespath/internal/testify v1.5.1/go.mod h1:L3OGu8Wl2/fWfCI6z80xFu9LTZmf1ZRjMHUOPmWr69U=
 github.com/johannesboyne/gofakes3 v0.0.0-20240930195952-2db7ccb81e19 h1:fINHxxzovvdEzeDqDH0hrtOL5naHopeNhlAn3p7o+1w=
 github.com/johannesboyne/gofakes3 v0.0.0-20240930195952-2db7ccb81e19/go.mod h1:t6osVdP++3g4v2awHz4+HFccij23BbdT1rX3W7IijqQ=
+github.com/johannesboyne/gofakes3 v0.0.0-20241026070602-0da3aa9c32ca h1:aLV7i5W7KKNHUwcmPZKDKXut6ZnJ8sdQWYDTKwhIzBU=
+github.com/johannesboyne/gofakes3 v0.0.0-20241026070602-0da3aa9c32ca/go.mod h1:t6osVdP++3g4v2awHz4+HFccij23BbdT1rX3W7IijqQ=
 github.com/jonboulle/clockwork v0.2.2/go.mod h1:Pkfl5aHPm1nk2H9h0bjmnJD/BcgbGXUBGnn1kMkgxc8=
 github.com/jonboulle/clockwork v0.4.1-0.20241017232027-7e524bd2b238 h1:K+R9pfjc35zNdUAQCwTbyEQt07hBCyEfrGkvje1jdlo=
 github.com/jonboulle/clockwork v0.4.1-0.20241017232027-7e524bd2b238/go.mod h1:3mZlmanh0g2NDKO5TWZVJAfofYk64M7XN3SzBPjZF60=
