@@ -14,8 +14,10 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
+	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/client"
+	"github.com/siderolabs/omni/client/pkg/client/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/client/pkg/omnictl/config"
@@ -111,6 +113,16 @@ func WithClient(f func(ctx context.Context, client *client.Client) error, client
 		if endpointEnv != "" {
 			url = endpointEnv
 		}
+
+		loggerCfg := zap.NewDevelopmentConfig()
+		loggerCfg.Development = false
+
+		logger, err := loggerCfg.Build()
+		if err != nil {
+			return err
+		}
+
+		opts = append(opts, client.WithOmniClientOptions(omni.WithRetryLogger(logger)))
 
 		client, err := client.New(url, opts...)
 		if err != nil {

@@ -11,6 +11,7 @@ import (
 	"github.com/cosi-project/runtime/api/v1alpha1"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/protobuf/client"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
@@ -27,6 +28,7 @@ import (
 
 // Options defines additional Omni client options.
 type Options struct {
+	retryLogger     *zap.Logger
 	infraProviderID string
 }
 
@@ -37,6 +39,13 @@ type Option func(*Options)
 func WithProviderID(id string) Option {
 	return func(o *Options) {
 		o.infraProviderID = id
+	}
+}
+
+// WithRetryLogger sets logger for retry operations.
+func WithRetryLogger(lg *zap.Logger) Option {
+	return func(o *Options) {
+		o.retryLogger = lg
 	}
 }
 
@@ -51,13 +60,16 @@ type Client struct {
 func NewClient(conn *grpc.ClientConn, options ...Option) *Client {
 	c := &Client{
 		conn: conn,
+		options: Options{
+			retryLogger: zap.NewNop(),
+		},
 	}
 
 	for _, o := range options {
 		o(&c.options)
 	}
 
-	c.state = state.WrapCore(client.NewAdapter(v1alpha1.NewStateClient(c)))
+	c.state = state.WrapCore(client.NewAdapter(v1alpha1.NewStateClient(c), client.WithRetryLogger(c.options.retryLogger)))
 
 	return c
 }

@@ -14,7 +14,7 @@ require (
 	github.com/ProtonMail/gopenpgp/v2 v2.7.5
 	github.com/adrg/xdg v0.5.3
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cosi-project/runtime v0.6.4
+	github.com/cosi-project/runtime v0.7.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.18.0
 	github.com/gertd/go-pluralize v0.2.1
