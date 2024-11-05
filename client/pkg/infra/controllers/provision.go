@@ -77,6 +77,11 @@ func (ctrl *ProvisionController[T]) Settings() controller.QSettings {
 				ID:        optional.Some(siderolink.ConfigID),
 			},
 			{
+				Namespace: resources.InfraProviderNamespace,
+				Type:      infra.ConfigPatchRequestType,
+				Kind:      controller.InputQMappedDestroyReady,
+			},
+			{
 				Namespace: t.ResourceDefinition().DefaultNamespace,
 				Type:      t.ResourceDefinition().Type,
 				Kind:      controller.InputQMappedDestroyReady,
@@ -90,6 +95,10 @@ func (ctrl *ProvisionController[T]) Settings() controller.QSettings {
 			{
 				Kind: controller.OutputShared,
 				Type: t.ResourceDefinition().Type,
+			},
+			{
+				Kind: controller.OutputShared,
+				Type: infra.ConfigPatchRequestType,
 			},
 		},
 		Concurrency: optional.Some(ctrl.concurrency),
@@ -214,6 +223,7 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 				st,
 				connectionParams,
 				ctrl.imageFactory,
+				r,
 			))
 
 			st.Metadata().Annotations().Set(currentStepAnnotation, step.Name())
@@ -257,6 +267,41 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 	logger.Info("machine provision finished")
 
 	return nil
+}
+
+func (ctrl *ProvisionController[T]) removePatches(ctx context.Context, r controller.QRuntime, requestID string) (bool, error) {
+	destroyReady := true
+
+	patches, err := safe.ReaderListAll[*infra.ConfigPatchRequest](ctx, r, state.WithLabelQuery(
+		resource.LabelEqual(omni.LabelInfraProviderID, ctrl.providerID),
+		resource.LabelEqual(omni.LabelMachineRequest, requestID),
+	))
+	if err != nil {
+		return false, err
+	}
+
+	for request := range patches.All() {
+		ready, err := r.Teardown(ctx, request.Metadata())
+		if err != nil {
+			if state.IsNotFoundError(err) {
+				continue
+			}
+
+			return false, err
+		}
+
+		if !ready {
+			destroyReady = false
+
+			continue
+		}
+
+		if err = r.Destroy(ctx, request.Metadata()); err != nil && !state.IsNotFoundError(err) {
+			return false, err
+		}
+	}
+
+	return destroyReady, nil
 }
 
 func (ctrl *ProvisionController[T]) initializeStatus(ctx context.Context, r controller.QRuntime, logger *zap.Logger, machineRequest *infra.MachineRequest) (*infra.MachineRequestStatus, error) {
@@ -307,6 +352,18 @@ func (ctrl *ProvisionController[T]) reconcileTearingDown(ctx context.Context, r 
 	t, err := safe.ReaderGetByID[T](ctx, r, machineRequest.Metadata().ID())
 	if err != nil && !state.IsNotFoundError(err) {
 		return err
+	}
+
+	{
+		var ready bool
+
+		if ready, err = ctrl.removePatches(ctx, r, machineRequest.Metadata().ID()); err != nil {
+			return err
+		}
+
+		if !ready {
+			return nil
+		}
 	}
 
 	resources := []resource.Metadata{

@@ -11,4 +11,5 @@ func init() {
 	registry.MustRegisterResource(MachineRequestType, &MachineRequest{})
 	registry.MustRegisterResource(MachineRequestStatusType, &MachineRequestStatus{})
 	registry.MustRegisterResource(InfraProviderStatusType, &ProviderStatus{})
+	registry.MustRegisterResource(ConfigPatchRequestType, &ConfigPatchRequest{})
 }

@@ -30,6 +30,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	omniresources "github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkresources "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
@@ -148,6 +149,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 			safe.WithResourceCache[*siderolinkresources.ConnectionParams](),
 			safe.WithResourceCache[*siderolinkresources.Link](),
 			safe.WithResourceCache[*system.ResourceLabels[*omni.MachineStatus]](),
+			safe.WithResourceCache[*infra.ConfigPatchRequest](),
 			options.WithWarnOnUncachedReads(false), // turn this to true to debug resource cache misses
 		)
 	}
@@ -255,6 +257,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewMachineRequestSetStatusController(),
 		omnictrl.NewClusterMachineRequestStatusController(),
 		omnictrl.NewMachineTeardownController(),
+		omnictrl.NewInfraProviderConfigPatchController(),
 	}
 
 	if config.Config.Auth.SAML.Enabled {

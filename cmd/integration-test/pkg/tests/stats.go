@@ -35,7 +35,7 @@ func AssertStatsLimits(testCtx context.Context) TestFunc {
 			{
 				name:  "resource CRUD",
 				query: `sum(omni_resource_operations_total{operation=~"create|update", type!="MachineStatusLinks.omni.sidero.dev"})`,
-				check: func(assert *assert.Assertions, value float64) { assert.Less(value, float64(10000)) },
+				check: func(assert *assert.Assertions, value float64) { assert.Less(value, float64(11000)) },
 			},
 			{
 				name:  "queue length",
@@ -45,7 +45,7 @@ func AssertStatsLimits(testCtx context.Context) TestFunc {
 			{
 				name:  "controller wakeups",
 				query: `sum(omni_runtime_controller_wakeups{controller!="MachineStatusLinkController"})`,
-				check: func(assert *assert.Assertions, value float64) { assert.Less(value, float64(10000)) },
+				check: func(assert *assert.Assertions, value float64) { assert.Less(value, float64(11000)) },
 			},
 		} {
 			t.Run(tt.name, func(t *testing.T) {

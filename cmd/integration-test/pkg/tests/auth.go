@@ -1042,6 +1042,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		delete(untestedResourceTypes, infra.MachineRequestType)
 		delete(untestedResourceTypes, infra.MachineRequestStatusType)
 		delete(untestedResourceTypes, infra.InfraProviderStatusType)
+		delete(untestedResourceTypes, infra.ConfigPatchRequestType)
 
 		for _, tc := range testCases {
 			for _, testVerb := range allVerbs {

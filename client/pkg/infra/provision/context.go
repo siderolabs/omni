@@ -6,16 +6,20 @@ package provision
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"strings"
 
+	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
@@ -90,6 +94,7 @@ func NewContext[T resource.Resource](
 	state T,
 	connectionParams ConnectionParams,
 	imageFactory FactoryClient,
+	runtime controller.QRuntime,
 ) Context[T] {
 	return Context[T]{
 		machineRequest:       machineRequest,
@@ -97,6 +102,7 @@ func NewContext[T resource.Resource](
 		State:                state,
 		ConnectionParams:     connectionParams,
 		imageFactory:         imageFactory,
+		runtime:              runtime,
 	}
 }
 
@@ -105,6 +111,7 @@ type Context[T resource.Resource] struct {
 	machineRequest       *infra.MachineRequest
 	imageFactory         FactoryClient
 	MachineRequestStatus *infra.MachineRequestStatus
+	runtime              controller.QRuntime
 	State                T
 	ConnectionParams     ConnectionParams
 }
@@ -132,6 +139,23 @@ func (context *Context[T]) SetMachineInfraID(value string) {
 // UnmarshalProviderData reads provider data string from the machine request into the dest.
 func (context *Context[T]) UnmarshalProviderData(dest any) error {
 	return yaml.Unmarshal([]byte(context.machineRequest.TypedSpec().Value.ProviderData), dest)
+}
+
+// CreateConfigPatch for the provisioned machine.
+func (context *Context[T]) CreateConfigPatch(ctx context.Context, name string, data []byte) error {
+	r := infra.NewConfigPatchRequest(resources.InfraProviderNamespace, name)
+
+	providerID, ok := context.machineRequest.Metadata().Labels().Get(omni.LabelInfraProviderID)
+	if !ok {
+		return errors.New("infra provider id is not set on the machine request")
+	}
+
+	return safe.WriterModify(ctx, context.runtime, r, func(r *infra.ConfigPatchRequest) error {
+		r.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
+		r.Metadata().Labels().Set(omni.LabelMachineRequest, context.GetRequestID())
+
+		return r.TypedSpec().Value.SetUncompressedData(data)
+	})
 }
 
 // GenerateSchematicID generate the final schematic out of the machine request.

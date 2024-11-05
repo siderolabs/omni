@@ -130,6 +130,28 @@ func TestInfraProviderAccess(t *testing.T) {
 
 	// update
 	assert.NoError(t, st.Update(ctx, status))
+
+	// ConfigPatchRequest
+
+	cpr := infra.NewConfigPatchRequest(resources.InfraProviderNamespace, "test-cpr")
+
+	// create
+	assert.NoError(t, st.Create(ctx, cpr))
+
+	// assert that the label is set
+	res, err = innerSt.Get(ctx, cpr.Metadata())
+	require.NoError(t, err)
+
+	cpID, _ = res.Metadata().Labels().Get(omni.LabelInfraProviderID)
+	assert.Equal(t, infraProviderID, cpID)
+
+	// update
+	_, err = safe.StateUpdateWithConflicts(ctx, st, cpr.Metadata(), func(res *infra.ConfigPatchRequest) error {
+		res.Metadata().Labels().Set("foo", "bar")
+
+		return res.TypedSpec().Value.SetUncompressedData([]byte("{}"))
+	})
+	assert.NoError(t, err)
 }
 
 func TestInternalAccess(t *testing.T) {

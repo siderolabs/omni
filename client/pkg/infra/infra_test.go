@@ -186,6 +186,9 @@ func (p *provisioner) ProvisionSteps() []provision.Step[*TestResource] {
 
 			return nil
 		}),
+		provision.NewStep("patches", func(ctx context.Context, _ *zap.Logger, pctx provision.Context[*TestResource]) error {
+			return pctx.CreateConfigPatch(ctx, pctx.GetRequestID(), []byte("machine: {}"))
+		}),
 		provision.NewStep("schematic", genSchematic),
 		provision.NewStep("validate", validateConnectionParams),
 		provision.NewStep("provision", func(ctx context.Context, _ *zap.Logger, pctx provision.Context[*TestResource]) error {
@@ -269,6 +272,8 @@ func TestInfra(t *testing.T) {
 	machineRequest.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
 	machineRequest.Metadata().Labels().Set(customLabel, customValue)
 
+	patchID := machineRequest.Metadata().ID()
+
 	require.NoError(t, state.Create(ctx, machineRequest))
 
 	connectionParams := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
@@ -299,6 +304,13 @@ func TestInfra(t *testing.T) {
 		assert.Equal(specs.MachineRequestStatusSpec_PROVISIONED, machineRequestStatus.TypedSpec().Value.Stage)
 	})
 
+	rtestutils.AssertResources(ctx, t, state, []string{patchID}, func(r *infrares.ConfigPatchRequest, assert *assert.Assertions) {
+		data, err := r.TypedSpec().Value.GetUncompressedData()
+
+		assert.NoError(err)
+		assert.EqualValues([]byte("machine: {}"), data.Data())
+	})
+
 	rtestutils.AssertResources(ctx, t, state, []string{machineRequest.Metadata().ID()}, func(testResource *TestResource, assert *assert.Assertions) {
 		assert.True(testResource.TypedSpec().Value.Connected)
 	})
@@ -311,6 +323,8 @@ func TestInfra(t *testing.T) {
 	rtestutils.AssertNoResource[*TestResource](ctx, t, state, machineRequest.Metadata().ID())
 
 	require.Nil(t, p.getMachine(machineRequest.Metadata().ID()))
+
+	rtestutils.AssertNoResource[*infrares.ConfigPatchRequest](ctx, t, state, patchID)
 }
 
 func setupInfra(ctx context.Context, t *testing.T, p *provisioner) state.State {
