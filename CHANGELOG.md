@@ -1,3 +1,203 @@
+## [Omni 0.44.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.44.0-beta.0) (2024-11-06)
+
+Welcome to the v0.44.0-beta.0 release of Omni!
+*This is a pre-release of Omni*
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Automatically Resolve Cluster in `talosctl`
+
+`talosctl` command now works without `--cluster` flag when using instance wide Talos config.
+Omni will automatically resolve the correct cluster.
+
+
+### Reset Removed Machines
+
+Omni will now try to wipe Talos installation from the machines which are removed from the instance.
+
+
+### Contributors
+
+* Artem Chernyshev
+* Dmitriy Matrenichev
+* Andrey Smirnov
+* Noel Georgi
+* Tijmen Blaauw - van den Brink
+
+### Changes
+<details><summary>25 commits</summary>
+<p>
+
+* [`fe0fc17`](https://github.com/siderolabs/omni/commit/fe0fc1763b6a45d43f9b75cb5d665448cf5ce6c9) feat: support creating config patches in the infrastructure providers
+* [`3e8bc8d`](https://github.com/siderolabs/omni/commit/3e8bc8d8cab4c8419b7bde2291dfa2436c0c3b8a) feat: enable watch retries on Omni side
+* [`23ccdb5`](https://github.com/siderolabs/omni/commit/23ccdb50b82eae7192bf45385052bbff696fd2c0) chore: bump dependencies
+* [`be3e67c`](https://github.com/siderolabs/omni/commit/be3e67ce57dc630a236ddb58a97a85123544f308) fix: include NodeJS types in the frontend build
+* [`abaee03`](https://github.com/siderolabs/omni/commit/abaee033da9dbad86822487a477bf3110d73942d) fix: make web UI show favicon
+* [`cc59192`](https://github.com/siderolabs/omni/commit/cc5919273b62320034a13c3d75902d29e94fd499) feat: reset machine when it's removed from Omni
+* [`900987b`](https://github.com/siderolabs/omni/commit/900987bf510a58e7f2823c31dbce211d5110cfc1) test: disable secure boot in e2e tests
+* [`58159e4`](https://github.com/siderolabs/omni/commit/58159e419c6ed5546bf8235a31719a9f0c50e87f) feat: automatically resolve cluster in `talosctl` calls
+* [`8da2328`](https://github.com/siderolabs/omni/commit/8da23286240bd505233d056c7c134ae3dd999d77) fix: remove `MaintenanceConfigPatchController` finalizers
+* [`21455d9`](https://github.com/siderolabs/omni/commit/21455d928594e8f3c9e4bea93e1444e8074e9590) fix: properly show the current manifests in the bootstrap manifest sync
+* [`c904e3a`](https://github.com/siderolabs/omni/commit/c904e3a6d0f29f8c807ad8d01534643c8dd70882) chore: do not audit log `GET` requests to k8s
+* [`62917e7`](https://github.com/siderolabs/omni/commit/62917e7890a67cd195c1d93166a7401c81178b6f) fix: use proper selectors in the MachineClass create UI
+* [`4b4088d`](https://github.com/siderolabs/omni/commit/4b4088d38de9b74bba1c8072525ec32171958ea3) fix: do not read Talos versions from the image registry ever
+* [`b3dc48a`](https://github.com/siderolabs/omni/commit/b3dc48ad335e1fc7202a72693b73251e6a0cf886) chore: bump dependencies
+* [`9d0a512`](https://github.com/siderolabs/omni/commit/9d0a5121f381f3823d75666046117e1c5cec63b0) fix: filter block devices with UNKNOWN type
+* [`8c737ba`](https://github.com/siderolabs/omni/commit/8c737ba699ffb7c1d8d7ad71a7047c0376980a02) fix: fetch Talos version from the image factory
+* [`83554e5`](https://github.com/siderolabs/omni/commit/83554e55967843badd146269e8946f75ed01c602) fix: do not set empty initial labels in the UI
+* [`98315a9`](https://github.com/siderolabs/omni/commit/98315a938c9f976ef1d509f65b855c58d16c4576) fix: do not build acompat docker image
+* [`cd1f2bd`](https://github.com/siderolabs/omni/commit/cd1f2bd34ccec0f26e3620fa6577d5bb84bb4d53) fix: build arm64 integration tests executable
+* [`c754cdc`](https://github.com/siderolabs/omni/commit/c754cdc0d76b9385ab81d515fbce0644228d8fe4) feat: support insecure localhost infra provider access mode
+* [`284e8b5`](https://github.com/siderolabs/omni/commit/284e8b5077cc08d78fff6d346422eaee8c0dac11) fix: introduce timeout in the etcd healthchecks in the machine set ctrl
+* [`d7b92e7`](https://github.com/siderolabs/omni/commit/d7b92e773430ec568c8330d21c90806d49b4ea06) chore: remove `ip_address` field from audit log `session`
+* [`18b13ea`](https://github.com/siderolabs/omni/commit/18b13ea67b1129792853cc8d158eac021ab4babb) chore: add basic helm chart
+* [`1544b9c`](https://github.com/siderolabs/omni/commit/1544b9ca07fcc81a47d01159e6c12a6a4cd22c5f) chore: move from Codec to CodecV2
+* [`1c12dfc`](https://github.com/siderolabs/omni/commit/1c12dfca93bb63977db65ac89fecfe36dc6d88a7) fix: properly return error from `config.Init`
+</p>
+</details>
+
+### Changes from siderolabs/crypto
+<details><summary>1 commit</summary>
+<p>
+
+* [`58b2f92`](https://github.com/siderolabs/crypto/commit/58b2f9291c7e763a7210cfa681f88a7fa2230bf3) chore: use HTTP/2 ALPN by default
+</p>
+</details>
+
+### Changes from siderolabs/discovery-api
+<details><summary>1 commit</summary>
+<p>
+
+* [`005e92c`](https://github.com/siderolabs/discovery-api/commit/005e92cf4ad0059334bfd35285a97c85f12aa263) chore: rekres and regen
+</p>
+</details>
+
+### Changes from siderolabs/discovery-client
+<details><summary>1 commit</summary>
+<p>
+
+* [`b74fb90`](https://github.com/siderolabs/discovery-client/commit/b74fb9039fcfd8db9d6becf3044f9f41f387ea27) fix: allow custom TLS config for the client
+</p>
+</details>
+
+### Changes from siderolabs/discovery-service
+<details><summary>4 commits</summary>
+<p>
+
+* [`b8da986`](https://github.com/siderolabs/discovery-service/commit/b8da986b5ab4acf029df40f0116d1f020c370a3e) fix: reduce memory allocations (logger)
+* [`3367c7b`](https://github.com/siderolabs/discovery-service/commit/3367c7b34912ac742dd6fe8e3fe758f61225cddf) chore: add proto-codec/codec
+* [`efbb10b`](https://github.com/siderolabs/discovery-service/commit/efbb10bdfd3c027c5c1942b34e1b803d8f8fa10a) fix: properly parse peer address
+* [`cf39974`](https://github.com/siderolabs/discovery-service/commit/cf39974104bbfc291289736847cf05e3a205301e) feat: support direct TLS serving
+</p>
+</details>
+
+### Changes from siderolabs/gen
+<details><summary>3 commits</summary>
+<p>
+
+* [`e847d2a`](https://github.com/siderolabs/gen/commit/e847d2ace9ede4a17283426dfbc8229121f2909b) chore: add more utilities to xiter
+* [`f3c5a2b`](https://github.com/siderolabs/gen/commit/f3c5a2b5aba74e4935d073a0135c4904ef3bbfef) chore: add `Empty` and `Empty2` iterators
+* [`c53b90b`](https://github.com/siderolabs/gen/commit/c53b90b4a418b8629d938af06900249ce5acd9e6) chore: add packages xiter/xstrings/xbytes
+</p>
+</details>
+
+### Changes from siderolabs/go-circular
+<details><summary>1 commit</summary>
+<p>
+
+* [`9a0f7b0`](https://github.com/siderolabs/go-circular/commit/9a0f7b02c80ad6c2d953b2d3dd388c56e89363ea) fix: multiple data race issues
+</p>
+</details>
+
+### Changes from siderolabs/go-kubernetes
+<details><summary>3 commits</summary>
+<p>
+
+* [`e56a7f6`](https://github.com/siderolabs/go-kubernetes/commit/e56a7f65808b90058df16a4133f19484beeedc31) fix: update deprecations based on Kubernetes 1.32.0-alpha.3
+* [`381f251`](https://github.com/siderolabs/go-kubernetes/commit/381f251662eaae9b48470ce00f504c2c64187612) feat: update for Kubernetes 1.32
+* [`0e767c5`](https://github.com/siderolabs/go-kubernetes/commit/0e767c5350afc2e11ac5dca718cdc3f8853c52f7) chore: k8s 1.31 kube-scheduler health endpoints
+</p>
+</details>
+
+### Changes from siderolabs/grpc-proxy
+<details><summary>2 commits</summary>
+<p>
+
+* [`de1c628`](https://github.com/siderolabs/grpc-proxy/commit/de1c6286b7d16d8485bf8bb55c8783c8773851a0) fix: copy data from big frame msg
+* [`ef47ec7`](https://github.com/siderolabs/grpc-proxy/commit/ef47ec77d2a9f0f42e713d456943dfe9ee86a629) chore: upgrade Codec implementations and usages to Codec2
+</p>
+</details>
+
+### Changes from siderolabs/proto-codec
+<details><summary>3 commits</summary>
+<p>
+
+* [`0d84c65`](https://github.com/siderolabs/proto-codec/commit/0d84c652784543012f43f8c8d4358c160b27577e) chore: add support for gogo protobuf generator
+* [`19f8d2e`](https://github.com/siderolabs/proto-codec/commit/19f8d2e5840c19937c60cee0c681343ab658f678) chore: add kres
+* [`e038bb4`](https://github.com/siderolabs/proto-codec/commit/e038bb42f2be8b80ca09e46bb8704be06a413919) Initial commit
+</p>
+</details>
+
+### Changes from siderolabs/siderolink
+<details><summary>2 commits</summary>
+<p>
+
+* [`1893385`](https://github.com/siderolabs/siderolink/commit/1893385fe45bf110357a770d31b06f5d79403065) fix: initialize tls listener properly
+* [`6c8fa1f`](https://github.com/siderolabs/siderolink/commit/6c8fa1fcaa069a82aea9c24fdd0627ab4b220f5e) feat: allow listening over TLS for SideroLink API
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/adrg/xdg**                              v0.5.0 -> v0.5.3
+* **github.com/aws/aws-sdk-go-v2**                     v1.30.4 -> v1.32.3
+* **github.com/aws/aws-sdk-go-v2/config**              v1.27.31 -> v1.28.1
+* **github.com/aws/aws-sdk-go-v2/credentials**         v1.17.30 -> v1.17.42
+* **github.com/aws/aws-sdk-go-v2/feature/s3/manager**  v1.17.16 -> v1.17.35
+* **github.com/aws/aws-sdk-go-v2/service/s3**          v1.61.0 -> v1.66.2
+* **github.com/aws/smithy-go**                         v1.20.4 -> v1.22.0
+* **github.com/cosi-project/runtime**                  v0.6.3 -> v0.7.1
+* **github.com/cosi-project/state-etcd**               v0.3.2 -> v0.4.0
+* **github.com/fsnotify/fsnotify**                     v1.7.0 -> v1.8.0
+* **github.com/golang-jwt/jwt/v4**                     v4.5.0 -> v4.5.1
+* **github.com/grpc-ecosystem/grpc-gateway/v2**        v2.22.0 -> v2.23.0
+* **github.com/hashicorp/vault/api**                   v1.14.0 -> v1.15.0
+* **github.com/hashicorp/vault/api/auth/kubernetes**   v0.7.0 -> v0.8.0
+* **github.com/johannesboyne/gofakes3**                edd0227ffc37 -> 2db7ccb81e19
+* **github.com/jonboulle/clockwork**                   fc59783b0293 -> 7e524bd2b238
+* **github.com/prometheus/client_golang**              v1.20.2 -> v1.20.5
+* **github.com/prometheus/common**                     v0.57.0 -> v0.60.1
+* **github.com/siderolabs/crypto**                     v0.4.4 -> v0.5.0
+* **github.com/siderolabs/discovery-api**              v0.1.4 -> v0.1.5
+* **github.com/siderolabs/discovery-client**           v0.1.9 -> v0.1.10
+* **github.com/siderolabs/discovery-service**          v1.0.3 -> v1.0.7
+* **github.com/siderolabs/gen**                        v0.5.0 -> v0.7.0
+* **github.com/siderolabs/go-circular**                v0.2.0 -> v0.2.1
+* **github.com/siderolabs/go-kubernetes**              v0.2.11 -> v0.2.14
+* **github.com/siderolabs/grpc-proxy**                 v0.4.1 -> v0.5.1
+* **github.com/siderolabs/omni/client**                v0.39.1 -> v0.42.1
+* **github.com/siderolabs/proto-codec**                v0.1.1 **_new_**
+* **github.com/siderolabs/siderolink**                 v0.3.9 -> v0.3.11
+* **github.com/siderolabs/talos/pkg/machinery**        v1.8.0 -> v1.8.2
+* **github.com/zitadel/logging**                       v0.6.0 -> v0.6.1
+* **github.com/zitadel/oidc/v3**                       v3.28.2 -> v3.32.1
+* **go.etcd.io/etcd/client/pkg/v3**                    v3.5.15 -> v3.5.16
+* **go.etcd.io/etcd/client/v3**                        v3.5.15 -> v3.5.16
+* **go.etcd.io/etcd/server/v3**                        v3.5.15 -> v3.5.16
+* **golang.org/x/crypto**                              v0.26.0 -> v0.28.0
+* **golang.org/x/net**                                 v0.28.0 -> v0.30.0
+* **golang.org/x/tools**                               v0.24.0 -> v0.26.0
+* **google.golang.org/grpc**                           v1.66.0 -> v1.67.1
+* **google.golang.org/protobuf**                       v1.34.2 -> v1.35.1
+* **k8s.io/api**                                       v0.31.0 -> v0.31.2
+* **k8s.io/client-go**                                 v0.31.0 -> v0.31.2
+* **sigs.k8s.io/controller-runtime**                   v0.19.0 -> v0.19.1
+
+Previous release can be found at [v0.43.0](https://github.com/siderolabs/omni/releases/tag/v0.43.0)
+
 ## [Omni 0.43.0](https://github.com/siderolabs/omni/releases/tag/v0.43.0) (2024-10-11)
 
 Welcome to the v0.43.0 release of Omni!
@@ -79,7 +279,7 @@ Previous release can be found at [v0.42.0](https://github.com/siderolabs/omni/re
 
 ## [Omni 0.43.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.43.0-beta.0) (2024-10-09)
 
-Welcome to the v0.43.0-beta.0 release of Omni!  
+Welcome to the v0.43.0-beta.0 release of Omni!
 *This is a pre-release of Omni*
 
 
@@ -149,7 +349,7 @@ Previous release can be found at [v0.42.0](https://github.com/siderolabs/omni/re
 
 ## [Omni 0.42.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.42.0-beta.0) (2024-09-06)
 
-Welcome to the v0.42.0-beta.0 release of Omni!  
+Welcome to the v0.42.0-beta.0 release of Omni!
 *This is a pre-release of Omni*
 
 
@@ -313,7 +513,7 @@ Previous release can be found at [v0.41.0](https://github.com/siderolabs/omni/re
 
 ## [Omni 0.41.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.41.0-beta.0) (2024-08-16)
 
-Welcome to the v0.41.0-beta.0 release of Omni!  
+Welcome to the v0.41.0-beta.0 release of Omni!
 *This is a pre-release of Omni*
 
 
@@ -378,7 +578,7 @@ Previous release can be found at [v0.40.0](https://github.com/siderolabs/omni/re
 
 ## [Omni 0.40.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.40.0-beta.0) (2024-07-26)
 
-Welcome to the v0.40.0-beta.0 release of Omni!  
+Welcome to the v0.40.0-beta.0 release of Omni!
 *This is a pre-release of Omni*
 
 
@@ -512,7 +712,7 @@ Previous release can be found at [v0.39.0](https://github.com/siderolabs/omni/re
 
 ## [Omni 0.40.0](https://github.com/siderolabs/omni/releases/tag/v0.40.0) (2024-07-26)
 
-Welcome to the v0.40.0 release of Omni!  
+Welcome to the v0.40.0 release of Omni!
 *This is a pre-release of Omni*
 
 
@@ -646,7 +846,7 @@ Previous release can be found at [v0.39.0](https://github.com/siderolabs/omni/re
 
 ## [Omni 0.39.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.39.0-beta.0) (2024-07-04)
 
-Welcome to the v0.39.0-beta.0 release of Omni!  
+Welcome to the v0.39.0-beta.0 release of Omni!
 *This is a pre-release of Omni*
 
 
@@ -863,7 +1063,7 @@ Previous release can be found at [v0.38.0](https://github.com/siderolabs/omni/re
 
 ## [Omni 0.38.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.38.0-beta.0) (2024-06-18)
 
-Welcome to the v0.38.0-beta.0 release of Omni!  
+Welcome to the v0.38.0-beta.0 release of Omni!
 *This is a pre-release of Omni*
 
 
@@ -987,7 +1187,7 @@ Previous release can be found at [v0.37.0](https://github.com/siderolabs/omni/re
 
 ## [Omni 0.37.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.37.0-beta.0) (2024-06-04)
 
-Welcome to the v0.37.0-beta.0 release of Omni!  
+Welcome to the v0.37.0-beta.0 release of Omni!
 *This is a pre-release of Omni*
 
 
@@ -1140,7 +1340,7 @@ Previous release can be found at [v0.36.0](https://github.com/siderolabs/omni/re
 
 ## [Omni 0.36.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.36.0-beta.0) (2024-05-20)
 
-Welcome to the v0.36.0-beta.0 release of Omni!  
+Welcome to the v0.36.0-beta.0 release of Omni!
 *This is a pre-release of Omni*
 
 
@@ -1213,7 +1413,7 @@ Previous release can be found at [v0.35.0](https://github.com/siderolabs/omni/re
 
 ## [Omni 0.35.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.35.0-beta.0) (2024-05-08)
 
-Welcome to the v0.35.0-beta.0 release of Omni!  
+Welcome to the v0.35.0-beta.0 release of Omni!
 *This is a pre-release of Omni*
 
 
@@ -1311,7 +1511,7 @@ Previous release can be found at [v0.34.0](https://github.com/siderolabs/omni/re
 
 ## [Omni 0.34.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.34.0-beta.0) (2024-04-22)
 
-Welcome to the v0.34.0-beta.0 release of Omni!  
+Welcome to the v0.34.0-beta.0 release of Omni!
 *This is a pre-release of Omni*
 
 
@@ -1446,7 +1646,7 @@ Previous release can be found at [v0.33.0](https://github.com/siderolabs/omni/re
 
 ## [Omni 0.33.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.33.0-beta.0) (2024-04-12)
 
-Welcome to the v0.33.0-beta.0 release of Omni!  
+Welcome to the v0.33.0-beta.0 release of Omni!
 *This is a pre-release of Omni*
 
 
@@ -1549,7 +1749,7 @@ https://github.com/siderolabs/omni/issues.
 Omni now generates Kubernetes configs without accessing Talos API.
 
 
-### 
+###
 
 Omni can now define SAML user roles depending on the SAML labels it gets from the SAML assertion.
 Role is assigned only once on user creation.
@@ -1678,7 +1878,7 @@ Previous release can be found at [v0.15.0](https://github.com/siderolabs/omni/re
 
 ## [Omni 0.11.0-alpha.0](https://github.com/siderolabs/omni/releases/tag/v0.11.0-alpha.0) (2023-06-08)
 
-Welcome to the v0.11.0-alpha.0 release of Omni!  
+Welcome to the v0.11.0-alpha.0 release of Omni!
 *This is a pre-release of Omni*
 
 
@@ -1768,7 +1968,7 @@ Previous release can be found at [v0.10.0](https://github.com/siderolabs/omni/re
 
 ## [Omni 0.1.0-beta.2](https://github.com/siderolabs/omni/releases/tag/v0.1.0-beta.2) (2022-12-20)
 
-Welcome to the v0.1.0-beta.2 release of Omni!  
+Welcome to the v0.1.0-beta.2 release of Omni!
 *This is a pre-release of Omni*
 
 
@@ -1801,7 +2001,7 @@ Previous release can be found at [v0.1.0-beta.1](https://github.com/siderolabs/o
 
 ## [Omni 0.1.0-beta.1](https://github.com/siderolabs/omni/releases/tag/v0.1.0-beta.1) (2022-12-16)
 
-Welcome to the v0.1.0-beta.1 release of Omni!  
+Welcome to the v0.1.0-beta.1 release of Omni!
 *This is a pre-release of Omni*
 
 
@@ -1907,7 +2107,7 @@ Previous release can be found at [v0.1.0-beta.0](https://github.com/siderolabs/o
 
 ## [Omni 0.1.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.1.0-beta.0) (2022-12-02)
 
-Welcome to the v0.1.0-beta.0 release of Omni!  
+Welcome to the v0.1.0-beta.0 release of Omni!
 *This is a pre-release of Omni*
 
 
@@ -2412,7 +2612,7 @@ This release has no dependency changes
 
 ## [Omni 0.1.0-alpha.1](https://github.com/siderolabs/omni/releases/tag/v0.1.0-alpha.1) (2022-11-10)
 
-Welcome to the v0.1.0-alpha.1 release of Omni!  
+Welcome to the v0.1.0-alpha.1 release of Omni!
 *This is a pre-release of Omni*
 
 
@@ -2887,7 +3087,7 @@ This release has no dependency changes
 
 ## [Omni 0.1.0-alpha.0](https://github.com/siderolabs/arges-theila/releases/tag/v0.1.0-alpha.0) (2022-09-19)
 
-Welcome to the v0.1.0-alpha.0 release of Omni!  
+Welcome to the v0.1.0-alpha.0 release of Omni!
 *This is a pre-release of Omni*
 
 
