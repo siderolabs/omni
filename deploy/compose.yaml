@@ -28,6 +28,6 @@ services:
       --advertised-api-url=${ADVERTISED_API_URL}
       --advertised-kubernetes-proxy-url=${ADVERTISED_K8S_PROXY_URL}
       --siderolink-api-advertised-url=${SIDEROLINK_ADVERTISED_API_URL}
-      --siderolink-wireguard-advertised-addr=${SIDEROLINK_WIREGUARD_ADVERTRISED_ADDR}
+      --siderolink-wireguard-advertised-addr=${SIDEROLINK_WIREGUARD_ADVERTISED_ADDR}
       --initial-users=${INITIAL_USER_EMAILS}
       ${AUTH}
