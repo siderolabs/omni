@@ -106,16 +106,41 @@ func (ctrl *ProvisionController[T]) Settings() controller.QSettings {
 }
 
 // MapInput implements controller.QController interface.
-func (ctrl *ProvisionController[T]) MapInput(_ context.Context, _ *zap.Logger,
-	_ controller.QRuntime, ptr resource.Pointer,
+func (ctrl *ProvisionController[T]) MapInput(ctx context.Context, _ *zap.Logger,
+	r controller.QRuntime, ptr resource.Pointer,
 ) ([]resource.Pointer, error) {
-	if ptr.Type() == siderolink.ConnectionParamsType {
+	var t T
+
+	switch ptr.Type() {
+	case siderolink.ConnectionParamsType:
 		return nil, nil
+	case infra.ConfigPatchRequestType:
+		configPatchRequest, err := safe.ReaderGetByID[*infra.ConfigPatchRequest](ctx, r, ptr.ID())
+		if err != nil {
+			if state.IsNotFoundError(err) {
+				return nil, nil
+			}
+
+			return nil, err
+		}
+
+		id, ok := configPatchRequest.Metadata().Labels().Get(omni.LabelMachineRequest)
+		if !ok {
+			return nil, err
+		}
+
+		return []resource.Pointer{
+			infra.NewMachineRequest(id).Metadata(),
+		}, nil
+	case infra.MachineRequestType,
+		infra.MachineRequestStatusType,
+		t.ResourceDefinition().Type:
+		return []resource.Pointer{
+			infra.NewMachineRequest(ptr.ID()).Metadata(),
+		}, nil
 	}
 
-	return []resource.Pointer{
-		infra.NewMachineRequest(ptr.ID()).Metadata(),
-	}, nil
+	return nil, fmt.Errorf("got unexpected type %s", ptr.Type())
 }
 
 // Reconcile implements controller.QController interface.
