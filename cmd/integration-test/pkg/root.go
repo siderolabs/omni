@@ -57,8 +57,7 @@ var rootCmd = &cobra.Command{
 				ScalingTimeout:           rootCmdFlags.scalingTimeout,
 			}
 
-			switch {
-			case rootCmdFlags.provisionConfigFile != "":
+			if rootCmdFlags.provisionConfigFile != "" {
 				f, err := os.Open(rootCmdFlags.provisionConfigFile)
 				if err != nil {
 					return fmt.Errorf("failed to open provision config file %q: %w", rootCmdFlags.provisionConfigFile, err)
@@ -79,7 +78,7 @@ var rootCmd = &cobra.Command{
 
 					testOptions.ProvisionConfigs = append(testOptions.ProvisionConfigs, cfg)
 				}
-			case rootCmdFlags.provisionMachinesCount != 0:
+			} else {
 				testOptions.ProvisionConfigs = append(testOptions.ProvisionConfigs,
 					tests.MachineProvisionConfig{
 						MachineCount: rootCmdFlags.provisionMachinesCount,

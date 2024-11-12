@@ -88,6 +88,16 @@ func (o Options) defaultProviderData() string {
 	return o.ProvisionConfigs[0].Provider.Data
 }
 
+func (o Options) provisionMachines() bool {
+	var totalMachineCount int
+
+	for _, cfg := range o.ProvisionConfigs {
+		totalMachineCount += cfg.MachineCount
+	}
+
+	return totalMachineCount > 0
+}
+
 // MachineProvisionConfig tells the test to provision machines from the infra provider.
 type MachineProvisionConfig struct {
 	Provider     MachineProviderConfig `yaml:"provider"`
@@ -1362,7 +1372,7 @@ Test flow of cluster creation and scaling using cluster templates.`,
 
 	preRunTests := []testing.InternalTest{}
 
-	if len(options.ProvisionConfigs) != 0 {
+	if options.provisionMachines() {
 		for i, cfg := range options.ProvisionConfigs {
 			preRunTests = append(preRunTests, testing.InternalTest{
 				Name: "AssertMachinesShouldBeProvisioned",
@@ -1385,7 +1395,7 @@ Test flow of cluster creation and scaling using cluster templates.`,
 
 	postRunTests := []testing.InternalTest{}
 
-	if len(options.ProvisionConfigs) != 0 {
+	if options.provisionMachines() {
 		for i := range options.ProvisionConfigs {
 			postRunTests = append(postRunTests, testing.InternalTest{
 				Name: "AssertMachinesShouldBeDeprovisioned",
