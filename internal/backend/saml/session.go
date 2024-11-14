@@ -372,6 +372,9 @@ func LocateUserInfo(assertion *saml.Assertion) (UserInfo, error) {
 		"email":     &user.Identity,
 		"givenName": &givenName,
 		"surname":   &surname,
+		// Zitadel SAML
+		"UserName": &user.Identity,
+		"FullName": &user.Fullname,
 	}
 
 	// Google SAML keeps that info in Subject.
