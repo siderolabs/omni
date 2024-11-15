@@ -107,7 +107,10 @@ func buildModelList(clusterModel models.Cluster, controlPlaneMachineSetModel mod
 ) models.List {
 	modelList := models.List{
 		&clusterModel,
-		&controlPlaneMachineSetModel,
+	}
+
+	if !clusterModel.Features.ManagedControlPlanes.Enabled {
+		modelList = append(modelList, &controlPlaneMachineSetModel)
 	}
 
 	slices.SortFunc(workerMachineSetModels, func(a, b models.Workers) int {
@@ -246,11 +249,6 @@ func transformMachineSetToModel(machineSet *omni.MachineSet, nodes []*omni.Machi
 				AllocationType: allocationConfig.GetAllocationType(),
 			},
 		}
-
-		// TODO: for MCP we'll have a special flag defined, should support machine request set allocation mode export after we implement it
-		if allocationConfig.Source != specs.MachineSetSpec_MachineAllocation_MachineClass {
-			return models.MachineSet{}, fmt.Errorf("unsupported machine allocation source in the machine set %s", machineSet.Metadata().ID())
-		}
 	} else {
 		machineIDs = xslices.Map(nodes, func(node *omni.MachineSetNode) models.MachineID {
 			return models.MachineID(node.Metadata().ID())
@@ -334,6 +332,19 @@ func transformClusterToModel(cluster *omni.Cluster, patches []*omni.ConfigPatch)
 		return models.Cluster{}, err
 	}
 
+	features := models.Features{
+		DiskEncryption:              spec.GetFeatures().GetDiskEncryption(),
+		EnableWorkloadProxy:         spec.GetFeatures().GetEnableWorkloadProxy(),
+		UseEmbeddedDiscoveryService: spec.GetFeatures().GetUseEmbeddedDiscoveryService(),
+		BackupConfiguration: models.BackupConfiguration{
+			Interval: backupIntervalDuration,
+		},
+	}
+
+	if omni.GetManagedEnabled(cluster) {
+		features.ManagedControlPlanes.Enabled = true
+	}
+
 	return models.Cluster{
 		Meta: models.Meta{
 			Kind: models.KindCluster,
@@ -346,15 +357,8 @@ func transformClusterToModel(cluster *omni.Cluster, patches []*omni.ConfigPatch)
 		Talos: models.TalosCluster{
 			Version: "v" + spec.GetTalosVersion(),
 		},
-		Features: models.Features{
-			DiskEncryption:              spec.GetFeatures().GetDiskEncryption(),
-			EnableWorkloadProxy:         spec.GetFeatures().GetEnableWorkloadProxy(),
-			UseEmbeddedDiscoveryService: spec.GetFeatures().GetUseEmbeddedDiscoveryService(),
-			BackupConfiguration: models.BackupConfiguration{
-				Interval: backupIntervalDuration,
-			},
-		},
-		Patches: patchModels,
+		Features: features,
+		Patches:  patchModels,
 	}, nil
 }
 

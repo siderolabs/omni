@@ -99,6 +99,8 @@ type Params struct {
 	AuditLogDir string `yaml:"auditLogDir"`
 
 	InitialServiceAccount InitialServiceAccount `yaml:"initialServiceAccount"`
+
+	ManagedControlPlanes ManagedControlPlanes `yaml:"managedControlPlanes"`
 }
 
 // InitialServiceAccount allows creating a service account for automated omnictl runs on the Omni service deployment.
@@ -108,6 +110,13 @@ type InitialServiceAccount struct {
 	Name     string
 	Lifetime time.Duration
 	Enabled  bool
+}
+
+// ManagedControlPlanes specifies the configuration for the provider used in managed control planes.
+type ManagedControlPlanes struct {
+	ProviderID   string `yaml:"providerID"`
+	ProviderData string `yaml:"providerData"`
+	Enable       bool   `yaml:"enable"`
 }
 
 // EmbeddedDiscoveryServiceParams defines embedded discovery service configs.
@@ -324,6 +333,14 @@ var (
 			SnapshotPath:     "_out/secondary-storage/discovery-service-state.binpb",
 			SnapshotInterval: 10 * time.Minute,
 			LogLevel:         zapcore.WarnLevel.String(),
+		},
+
+		ManagedControlPlanes: ManagedControlPlanes{
+			ProviderID: "kubevirt",
+			ProviderData: `cpus: 2
+memory: 4096
+disk_size: 10
+architecture: amd64`,
 		},
 	}
 )

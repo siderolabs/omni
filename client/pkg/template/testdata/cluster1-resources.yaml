@@ -17,6 +17,7 @@ spec:
         enableworkloadproxy: false
         diskencryption: true
         useembeddeddiscoveryservice: false
+        usemanagedcontrolplanes: false
     backupconfiguration: null
 ---
 metadata:

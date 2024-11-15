@@ -40,6 +40,9 @@ var cluster3 []byte
 //go:embed testdata/cluster-valid-bootstrapspec.yaml
 var clusterValidBootstrapSpec []byte
 
+//go:embed testdata/cluster-managed.yaml
+var clusterManaged []byte
+
 //go:embed testdata/cluster-bad-yaml1.yaml
 var clusterBadYAML1 []byte
 
@@ -75,6 +78,9 @@ var cluster3Resources []byte
 
 //go:embed testdata/cluster-valid-bootstrapspec-resources.yaml
 var clusterValidBootstrapSpecResources []byte
+
+//go:embed testdata/cluster-managed-resources.yaml
+var clusterManagedResources []byte
 
 func TestLoad(t *testing.T) {
 	for _, tt := range []struct { //nolint:govet
@@ -131,6 +137,10 @@ func TestValidate(t *testing.T) {
 		data          []byte
 		expectedError string
 	}{
+		{
+			name: "clusterManaged",
+			data: clusterManaged,
+		},
 		{
 			name: "cluster1",
 			data: cluster1,
@@ -307,6 +317,11 @@ func TestTranslate(t *testing.T) {
 		template []byte
 		expected []byte
 	}{
+		{
+			name:     "clusterManaged",
+			template: clusterManaged,
+			expected: clusterManagedResources,
+		},
 		{
 			name:     "cluster1",
 			template: cluster1,

@@ -31,11 +31,16 @@ import (
 	"github.com/siderolabs/omni/client/pkg/template/operations"
 )
 
-//go:embed testdata/export/cluster-template.yaml
-var clusterTemplate string
+var (
+	//go:embed testdata/export/cluster-template.yaml
+	clusterTemplate string
 
-//go:embed testdata/export/cluster-resources.yaml
-var clusterResources []byte
+	//go:embed testdata/export/cluster-template-managed.yaml
+	clusterTemplateManaged string
+
+	//go:embed testdata/export/cluster-resources.yaml
+	clusterResources []byte
+)
 
 type resources struct {
 	clusters        map[string]*omni.Cluster
@@ -51,39 +56,41 @@ func TestExport(t *testing.T) {
 	st := buildState(ctx, t)
 
 	// export a template from resources created via the UI
-	exportedTemplate := assertTemplate(ctx, t, st)
+	exportedTemplates := assertTemplates(ctx, t, st)
 
 	// sync the exported template back into the state and assert that the state is unchanged
-	assertSync(ctx, t, st, exportedTemplate)
+	assertSync(ctx, t, st, exportedTemplates)
 
 	// export a template one more time and assert that it's still the same as the first exported template
-	assertTemplate(ctx, t, st)
+	assertTemplates(ctx, t, st)
 }
 
 // assertSync asserts that the state is unchanged after syncing back the exported template.
-func assertSync(ctx context.Context, t *testing.T, st state.State, exportedTemplate string) {
-	var sb strings.Builder
+func assertSync(ctx context.Context, t *testing.T, st state.State, exportedTemplates []string) {
+	for _, exportedTemplate := range exportedTemplates {
+		var sb strings.Builder
 
-	resourcesBeforeSync := readResources(ctx, t, st)
+		resourcesBeforeSync := readResources(ctx, t, st)
 
-	err := operations.SyncTemplate(ctx, strings.NewReader(exportedTemplate), &sb, st, operations.SyncOptions{})
-	require.NoError(t, err)
+		err := operations.SyncTemplate(ctx, strings.NewReader(exportedTemplate), &sb, st, operations.SyncOptions{})
+		require.NoError(t, err)
 
-	resourcesAfterSync := readResources(ctx, t, st)
+		resourcesAfterSync := readResources(ctx, t, st)
 
-	assert.ElementsMatch(t, maps.Keys(resourcesBeforeSync.clusters), maps.Keys(resourcesAfterSync.clusters))
-	assert.ElementsMatch(t, maps.Keys(resourcesBeforeSync.machineSets), maps.Keys(resourcesAfterSync.machineSets))
-	assert.ElementsMatch(t, maps.Keys(resourcesBeforeSync.machineSetNodes), maps.Keys(resourcesAfterSync.machineSetNodes))
-	assert.ElementsMatch(t, maps.Keys(resourcesBeforeSync.configPatches), maps.Keys(resourcesAfterSync.configPatches))
+		assert.ElementsMatch(t, maps.Keys(resourcesBeforeSync.clusters), maps.Keys(resourcesAfterSync.clusters))
+		assert.ElementsMatch(t, maps.Keys(resourcesBeforeSync.machineSets), maps.Keys(resourcesAfterSync.machineSets))
+		assert.ElementsMatch(t, maps.Keys(resourcesBeforeSync.machineSetNodes), maps.Keys(resourcesAfterSync.machineSetNodes))
+		assert.ElementsMatch(t, maps.Keys(resourcesBeforeSync.configPatches), maps.Keys(resourcesAfterSync.configPatches))
 
-	// we expect everything other than config patches to be completely unchanged
-	assertVersionsUnchanged(t, resourcesBeforeSync.clusters, resourcesAfterSync.clusters)
-	assertVersionsUnchanged(t, resourcesBeforeSync.machineSets, resourcesAfterSync.machineSets)
-	assertVersionsUnchanged(t, resourcesBeforeSync.machineSetNodes, resourcesAfterSync.machineSetNodes)
+		// we expect everything other than config patches to be completely unchanged
+		assertVersionsUnchanged(t, resourcesBeforeSync.clusters, resourcesAfterSync.clusters)
+		assertVersionsUnchanged(t, resourcesBeforeSync.machineSets, resourcesAfterSync.machineSets)
+		assertVersionsUnchanged(t, resourcesBeforeSync.machineSetNodes, resourcesAfterSync.machineSetNodes)
 
-	// config patches might be updated due to discrepancies between how the cluster templates and the frontend generate them, e.g.:
-	// they might differ in the indentation/comments of the patch data, so we do a yaml-equality check on data instead of byte-equality.
-	assertConfigPatches(t, resourcesBeforeSync.configPatches, resourcesAfterSync.configPatches)
+		// config patches might be updated due to discrepancies between how the cluster templates and the frontend generate them, e.g.:
+		// they might differ in the indentation/comments of the patch data, so we do a yaml-equality check on data instead of byte-equality.
+		assertConfigPatches(t, resourcesBeforeSync.configPatches, resourcesAfterSync.configPatches)
+	}
 }
 
 func assertVersionsUnchanged[T resource.Resource](t *testing.T, before map[resource.ID]T, after map[resource.ID]T) {
@@ -143,17 +150,44 @@ func readResources(ctx context.Context, t *testing.T, st state.State) resources 
 	}
 }
 
-func assertTemplate(ctx context.Context, t *testing.T, st state.State) string {
-	var sb strings.Builder
+func assertTemplates(ctx context.Context, t *testing.T, st state.State) []string {
+	modelList := make(models.List, 0, 20)
 
-	modelList, err := operations.ExportTemplate(ctx, st, "export-test", &sb)
-	require.NoError(t, err)
+	clusterTemplates := make([]string, 0, 2)
+
+	for _, tt := range []struct {
+		name           string
+		cluster        string
+		expectTemplate string
+	}{
+		{
+			name:           "normal cluster",
+			cluster:        "export-test",
+			expectTemplate: clusterTemplate,
+		},
+		{
+			name:           "managed cluster",
+			cluster:        "export-test-managed",
+			expectTemplate: clusterTemplateManaged,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			var sb strings.Builder
+
+			list, err := operations.ExportTemplate(ctx, st, tt.cluster, &sb)
+			require.NoError(t, err)
+
+			modelList = append(modelList, list...)
+
+			assert.Equal(t, tt.expectTemplate, sb.String())
+
+			clusterTemplates = append(clusterTemplates, sb.String())
+		})
+	}
 
 	assertAllFieldsSet(t, modelList)
 
-	assert.Equal(t, clusterTemplate, sb.String())
-
-	return clusterTemplate
+	return clusterTemplates
 }
 
 // assertAllFieldsSet asserts that all fields of the models are set at least once.

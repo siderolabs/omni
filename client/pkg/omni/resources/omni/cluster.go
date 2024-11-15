@@ -72,3 +72,8 @@ func GetInstallImage(vanillaInstallerBaseURL, factoryBaseURL, schematic, version
 func GetEncryptionEnabled(cluster *Cluster) bool {
 	return cluster.TypedSpec().Value.Features != nil && cluster.TypedSpec().Value.Features.DiskEncryption
 }
+
+// GetManagedEnabled returns managed mode flag state.
+func GetManagedEnabled(cluster *Cluster) bool {
+	return cluster.TypedSpec().Value.Features != nil && cluster.TypedSpec().Value.Features.UseManagedControlPlanes
+}

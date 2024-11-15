@@ -14,7 +14,6 @@ import {
   MachineSetNodeSpec,
   MachineSetSpec,
   MachineSetSpecBootstrapSpec,
-  MachineSetSpecMachineAllocationSource,
   MachineSetSpecMachineAllocationType,
   MachineSetSpecUpdateStrategy,
   MachineSetSpecUpdateStrategyConfig
@@ -92,7 +91,6 @@ export interface MachineSet {
   machineAllocation?: {
     name: string
     size: number | "unlimited"
-    source: MachineSetSpecMachineAllocationSource
   }
   machines: Record<string, MachineSetNode>
   patches: Record<string, ConfigPatch>
@@ -398,7 +396,6 @@ export class State {
       if (machineSet.machineAllocation) {
         ms.spec.machine_allocation = {
           name: machineSet.machineAllocation.name,
-          source: machineSet.machineAllocation.source,
         }
 
         switch (machineSet.machineAllocation.size) {
@@ -562,7 +559,7 @@ export class State {
 
       if (ms.machineAllocation) {
         if (ms.machineAllocation.size === "unlimited") {
-          return `All From ${ms.machineAllocation.source === MachineSetSpecMachineAllocationSource.MachineClass ? 'Class' : 'Request Set'} "${ms.machineAllocation.name}"`;
+          return `All From Class "${ms.machineAllocation.name}"`;
         }
 
         count += ms.machineAllocation.size as number;
@@ -701,7 +698,6 @@ export const populateExisting = async (clusterName: string) => {
       machineSet.machineAllocation = {
         name: allocationCfg.name!,
         size: allocationCfg.allocation_type === MachineSetSpecMachineAllocationType.Unlimited ? "unlimited" : allocationCfg.machine_count ?? 0,
-        source: allocationCfg.source ?? MachineSetSpecMachineAllocationSource.MachineClass,
       }
     }
 

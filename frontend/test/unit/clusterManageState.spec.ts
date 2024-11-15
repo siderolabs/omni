@@ -4,7 +4,7 @@
 // included in the LICENSE file.
 
 import { Resource } from "../../src/api/grpc";
-import { ClusterSpec, ConfigPatchSpec, MachineSetNodeSpec, MachineSetSpec, MachineSetSpecMachineAllocationSource, MachineSetSpecMachineAllocationType, MachineSetSpecUpdateStrategy } from "../../src/api/omni/specs/omni.pb";
+import { ClusterSpec, ConfigPatchSpec, MachineSetNodeSpec, MachineSetSpec, MachineSetSpecMachineAllocationType, MachineSetSpecUpdateStrategy } from "../../src/api/omni/specs/omni.pb";
 import { ClusterType, ConfigPatchType, DefaultNamespace, LabelCluster, LabelClusterMachine, LabelControlPlaneRole, LabelMachineSet, LabelWorkerRole, MachineSetNodeType, MachineSetType } from "../../src/api/resources";
 import { Cluster, initState, MachineSet, PatchID, state } from "../../src/states/cluster-management";
 
@@ -79,7 +79,6 @@ describe("cluster-management-state", () => {
           machineAllocation: {
             name: "mc1",
             size: "unlimited",
-            source: MachineSetSpecMachineAllocationSource.MachineClass,
           },
           machines: {
             node4: {
@@ -95,7 +94,6 @@ describe("cluster-management-state", () => {
           machineAllocation: {
             name: "mc2",
             size: 3,
-            source: MachineSetSpecMachineAllocationSource.MachineClass,
           },
           patches: {
             [PatchID.Default]: {
@@ -176,7 +174,6 @@ describe("cluster-management-state", () => {
               machine_allocation: {
                 name: "mc1",
                 allocation_type: MachineSetSpecMachineAllocationType.Unlimited,
-                source: MachineSetSpecMachineAllocationSource.MachineClass,
               },
               machine_class: undefined,
             }
@@ -194,7 +191,6 @@ describe("cluster-management-state", () => {
               machine_allocation: {
                 name: "mc2",
                 machine_count: 3,
-                source: MachineSetSpecMachineAllocationSource.MachineClass,
               },
               machine_class: undefined
             }

@@ -1,7 +1,7 @@
 metadata:
     namespace: default
     type: Clusters.omni.sidero.dev
-    id: my-first-cluster
+    id: managed
     version: undefined
     owner:
     phase: running
@@ -11,26 +11,26 @@ metadata:
         omni.sidero.dev/managed-by-cluster-templates:
 spec:
     installimage: ""
-    kubernetesversion: 1.18.2
-    talosversion: 1.3.1
+    kubernetesversion: 1.31.1
+    talosversion: 1.8.2
     features:
-        enableworkloadproxy: true
+        enableworkloadproxy: false
         diskencryption: false
-        useembeddeddiscoveryservice: true
-        usemanagedcontrolplanes: false
+        useembeddeddiscoveryservice: false
+        usemanagedcontrolplanes: true
     backupconfiguration: null
 ---
 metadata:
     namespace: default
     type: ConfigPatches.omni.sidero.dev
-    id: 200-cluster-my-first-cluster-patches/my-cluster-patch.yaml
+    id: 200-cluster-managed-patches/my-cluster-patch.yaml
     version: undefined
     owner:
     phase: running
     created: 0001-01-01T00:00:00Z
     updated: 0001-01-01T00:00:00Z
     labels:
-        omni.sidero.dev/cluster: my-first-cluster
+        omni.sidero.dev/cluster: managed
     annotations:
         name: patches/my-cluster-patch.yaml
 spec:
@@ -44,14 +44,14 @@ spec:
 metadata:
     namespace: default
     type: ConfigPatches.omni.sidero.dev
-    id: 201-cluster-my-first-cluster-../testdata/patches/my-registry-mirrors.yaml
+    id: 201-cluster-managed-../testdata/patches/my-registry-mirrors.yaml
     version: undefined
     owner:
     phase: running
     created: 0001-01-01T00:00:00Z
     updated: 0001-01-01T00:00:00Z
     labels:
-        omni.sidero.dev/cluster: my-first-cluster
+        omni.sidero.dev/cluster: managed
     annotations:
         name: ../testdata/patches/my-registry-mirrors.yaml
 spec:
@@ -68,15 +68,15 @@ spec:
 metadata:
     namespace: default
     type: MachineSets.omni.sidero.dev
-    id: my-first-cluster-control-planes
+    id: managed-workers
     version: undefined
     owner:
     phase: running
     created: 0001-01-01T00:00:00Z
     updated: 0001-01-01T00:00:00Z
     labels:
-        omni.sidero.dev/cluster: my-first-cluster
-        omni.sidero.dev/role-controlplane:
+        omni.sidero.dev/cluster: managed
+        omni.sidero.dev/role-worker:
 spec:
     updatestrategy: 1
     machineclass: null
@@ -96,66 +96,8 @@ metadata:
     created: 0001-01-01T00:00:00Z
     updated: 0001-01-01T00:00:00Z
     labels:
-        omni.sidero.dev/cluster: my-first-cluster
-        omni.sidero.dev/machine-set: my-first-cluster-control-planes
-        omni.sidero.dev/role-controlplane:
-spec: {}
----
-metadata:
-    namespace: default
-    type: ConfigPatches.omni.sidero.dev
-    id: 400-my-first-cluster-control-planes-kubespan-enabled
-    version: undefined
-    owner:
-    phase: running
-    created: 0001-01-01T00:00:00Z
-    updated: 0001-01-01T00:00:00Z
-    labels:
-        omni.sidero.dev/cluster: my-first-cluster
-        omni.sidero.dev/machine-set: my-first-cluster-control-planes
-    annotations:
-        name: kubespan-enabled
-spec:
-    data: |
-        machine:
-            network:
-                kubespan:
-                    enabled: false
-    compresseddata: []
----
-metadata:
-    namespace: default
-    type: MachineSets.omni.sidero.dev
-    id: my-first-cluster-workers
-    version: undefined
-    owner:
-    phase: running
-    created: 0001-01-01T00:00:00Z
-    updated: 0001-01-01T00:00:00Z
-    labels:
-        omni.sidero.dev/cluster: my-first-cluster
-        omni.sidero.dev/role-worker:
-spec:
-    updatestrategy: 1
-    machineclass: null
-    bootstrapspec: null
-    deletestrategy: 0
-    updatestrategyconfig: null
-    deletestrategyconfig: null
-    machineallocation: null
----
-metadata:
-    namespace: default
-    type: MachineSetNodes.omni.sidero.dev
-    id: 430d882a-51a8-48b3-ab00-d4b5b0b5b0b0
-    version: undefined
-    owner:
-    phase: running
-    created: 0001-01-01T00:00:00Z
-    updated: 0001-01-01T00:00:00Z
-    labels:
-        omni.sidero.dev/cluster: my-first-cluster
-        omni.sidero.dev/machine-set: my-first-cluster-workers
+        omni.sidero.dev/cluster: managed
+        omni.sidero.dev/machine-set: managed-workers
         omni.sidero.dev/role-worker:
 spec: {}
 ---
@@ -169,7 +111,7 @@ metadata:
     created: 0001-01-01T00:00:00Z
     updated: 0001-01-01T00:00:00Z
     labels:
-        omni.sidero.dev/cluster: my-first-cluster
+        omni.sidero.dev/cluster: managed
         omni.sidero.dev/cluster-machine: 430d882a-51a8-48b3-ae00-90c5b0b5b0b0
         omni.sidero.dev/system-patch:
     annotations:
@@ -178,7 +120,7 @@ spec:
     data: |
         machine:
             install:
-                disk: /dev/vdb
+                disk: /dev/vda
     compresseddata: []
 ---
 metadata:
@@ -191,7 +133,7 @@ metadata:
     created: 0001-01-01T00:00:00Z
     updated: 0001-01-01T00:00:00Z
     labels:
-        omni.sidero.dev/cluster: my-first-cluster
+        omni.sidero.dev/cluster: managed
         omni.sidero.dev/cluster-machine: 430d882a-51a8-48b3-ae00-90c5b0b5b0b0
     annotations:
         name: my-address

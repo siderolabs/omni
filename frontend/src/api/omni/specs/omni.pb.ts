@@ -95,11 +95,6 @@ export enum MachineSetSpecMachineAllocationType {
   Unlimited = 1,
 }
 
-export enum MachineSetSpecMachineAllocationSource {
-  MachineClass = 0,
-  MachineRequestSet = 1,
-}
-
 export enum TalosUpgradeStatusSpecPhase {
   Unknown = 0,
   Upgrading = 1,
@@ -275,6 +270,7 @@ export type ClusterSpecFeatures = {
   enable_workload_proxy?: boolean
   disk_encryption?: boolean
   use_embedded_discovery_service?: boolean
+  use_managed_control_planes?: boolean
 }
 
 export type ClusterSpec = {
@@ -494,7 +490,6 @@ export type MachineSetSpecMachineAllocation = {
   name?: string
   machine_count?: number
   allocation_type?: MachineSetSpecMachineAllocationType
-  source?: MachineSetSpecMachineAllocationSource
 }
 
 export type MachineSetSpecBootstrapSpec = {

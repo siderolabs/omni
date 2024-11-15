@@ -190,6 +190,10 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 				multiErr = multierror.Append(multiErr, err)
 			}
 
+			if omni.GetManagedEnabled(existingRes) != omni.GetManagedEnabled(newRes) {
+				multiErr = multierror.Append(multiErr, errors.New("managed control planes feature field is immutable"))
+			}
+
 			return multiErr
 		})),
 	}
@@ -283,12 +287,16 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 			return errors.New("cluster label is missing")
 		}
 
-		if oldRes == nil {
-			cluster, err := safe.StateGetByID[*omni.Cluster](ctx, st, clusterName)
-			if err != nil && !state.IsNotFoundError(err) {
-				return err
-			}
+		if _, managed := res.Metadata().Labels().Get(omni.LabelManaged); managed {
+			return errors.New("creating managed control planes manually is not allowed")
+		}
 
+		cluster, err := safe.StateGetByID[*omni.Cluster](ctx, st, clusterName)
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		if oldRes == nil {
 			if cluster != nil && cluster.Metadata().Phase() == resource.PhaseTearingDown {
 				return fmt.Errorf("the cluster %q is tearing down", clusterName)
 			}
@@ -296,6 +304,10 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 
 		_, isControlPlane := res.Metadata().Labels().Get(omni.LabelControlPlaneRole)
 		_, isWorker := res.Metadata().Labels().Get(omni.LabelWorkerRole)
+
+		if cluster != nil && omni.GetManagedEnabled(cluster) && isControlPlane {
+			return errors.New("the cluster is using managed control planes, creating the control planes manually is not allowed")
+		}
 
 		if !isControlPlane && !isWorker {
 			return fmt.Errorf("machine set must have either %q or %q label", omni.LabelControlPlaneRole, omni.LabelWorkerRole)
@@ -336,29 +348,17 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 			// if change machine class, verify the specified class name exists.
 			changed := oldRes == nil || oldAllocationConfig != nil && oldAllocationConfig.Name != allocationConfig.Name
 			if changed {
-				switch allocationConfig.Source {
-				case specs.MachineSetSpec_MachineAllocation_MachineRequestSet:
-					_, err := st.Get(ctx, omni.NewMachineRequestSet(resources.DefaultNamespace, allocationConfig.Name).Metadata())
-					if err != nil {
-						if state.IsNotFoundError(err) {
-							return fmt.Errorf("machine request set with name %q doesn't exist", allocationConfig.Name)
-						}
-
-						return err
-					}
-				case specs.MachineSetSpec_MachineAllocation_MachineClass:
-					mc, err := safe.ReaderGetByID[*omni.MachineClass](ctx, st, allocationConfig.Name)
-					if err != nil {
-						if state.IsNotFoundError(err) {
-							return fmt.Errorf("machine class with name %q doesn't exist", allocationConfig.Name)
-						}
-
-						return err
+				mc, err := safe.ReaderGetByID[*omni.MachineClass](ctx, st, allocationConfig.Name)
+				if err != nil {
+					if state.IsNotFoundError(err) {
+						return fmt.Errorf("machine class with name %q doesn't exist", allocationConfig.Name)
 					}
 
-					if mc.TypedSpec().Value.AutoProvision != nil && allocationConfig.AllocationType == specs.MachineSetSpec_MachineAllocation_Unlimited {
-						return fmt.Errorf("machine class %q is using autoprovision, so unlimited machine set allocation is not supported", allocationConfig.Name)
-					}
+					return err
+				}
+
+				if mc.TypedSpec().Value.AutoProvision != nil && allocationConfig.AllocationType == specs.MachineSetSpec_MachineAllocation_Unlimited {
+					return fmt.Errorf("machine class %q is using autoprovision, so unlimited machine set allocation is not supported", allocationConfig.Name)
 				}
 			}
 		}
@@ -370,8 +370,7 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 
 			mgmtModeSwitchedToMachineClass := oldAllocationConfig == nil && newAllocationConfig != nil
 			mgmtModeSwitchedToManual := oldAllocationConfig != nil && newAllocationConfig == nil
-			mgmtModeSwitchedSource := oldAllocationConfig != nil && newAllocationConfig != nil && oldAllocationConfig.Source != newAllocationConfig.Source
-			mgmtModeChanged := mgmtModeSwitchedToMachineClass || mgmtModeSwitchedToManual || mgmtModeSwitchedSource
+			mgmtModeChanged := mgmtModeSwitchedToMachineClass || mgmtModeSwitchedToManual
 
 			if mgmtModeChanged {
 				machineSetNodeList, err := safe.StateListAll[*omni.MachineSetNode](ctx, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, res.Metadata().ID())))
@@ -382,8 +381,6 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 				// block management mode change only if there are nodes in the machine set
 				if machineSetNodeList.Len() > 0 {
 					switch {
-					case mgmtModeSwitchedSource:
-						return errors.New("machine set is not empty, updating source is not allowed")
 					case mgmtModeSwitchedToMachineClass:
 						return errors.New("machine set is not empty and is using manual nodes management, updating to machine class mode is not allowed")
 					case mgmtModeSwitchedToManual:
@@ -488,7 +485,7 @@ func machineClassValidationOptions(st state.State) []validated.StateOption {
 			var inUseBy []string
 
 			machineSets.ForEach(func(r *omni.MachineSet) {
-				if alloc := omni.GetMachineAllocation(r); alloc != nil && alloc.Source == specs.MachineSetSpec_MachineAllocation_MachineClass && res.Metadata().ID() == alloc.Name {
+				if alloc := omni.GetMachineAllocation(r); alloc != nil && res.Metadata().ID() == alloc.Name {
 					inUseBy = append(inUseBy, r.Metadata().ID())
 				}
 			})
@@ -588,7 +585,7 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 		return machineSet, nil
 	}
 
-	validateTalosVersion := func(ctx context.Context, res *omni.MachineSetNode) error {
+	validateClusterRelation := func(ctx context.Context, res *omni.MachineSetNode) error {
 		clusterName, ok := res.Metadata().Labels().Get(omni.LabelCluster)
 		if !ok {
 			return nil
@@ -640,6 +637,12 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 			)
 		}
 
+		_, controlplane := res.Metadata().Labels().Get(omni.LabelControlPlaneRole)
+
+		if omni.GetManagedEnabled(cluster) && controlplane {
+			return errors.New("can't manually add control planes to the managed cluster")
+		}
+
 		return nil
 	}
 
@@ -658,7 +661,7 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 				return fmt.Errorf("adding machine set node to the machine set %q is not allowed: the machine set is using automated machine allocation", machineSet.Metadata().ID())
 			}
 
-			if err = validateTalosVersion(ctx, res); err != nil {
+			if err = validateClusterRelation(ctx, res); err != nil {
 				return err
 			}
 

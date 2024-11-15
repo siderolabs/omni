@@ -23,6 +23,7 @@ import (
 	"github.com/siderolabs/go-debug"
 	"github.com/siderolabs/talos/pkg/machinery/config/generate"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/klog/v2"
@@ -592,6 +593,33 @@ var initOnce = sync.OnceValue(func() *cobra.Command {
 		config.Config.InitialServiceAccount.Lifetime,
 		"the lifetime duration of the initial service account key",
 	)
+
+	rootCmd.Flags().BoolVar(
+		&config.Config.ManagedControlPlanes.Enable,
+		"experimental-managed-control-planes-enable",
+		config.Config.ManagedControlPlanes.Enable,
+		"enable managed control planes feature",
+	)
+
+	rootCmd.Flags().StringVar(
+		&config.Config.ManagedControlPlanes.ProviderID,
+		"experimental-managed-control-planes-provider",
+		config.Config.ManagedControlPlanes.ProviderID,
+		"change the default provider for the managed control planes",
+	)
+
+	rootCmd.Flags().StringVar(
+		&config.Config.ManagedControlPlanes.ProviderData,
+		"experimental-managed-control-planes-provider-data",
+		config.Config.ManagedControlPlanes.ProviderData,
+		"set up default machine configuration for the managed control planes",
+	)
+
+	rootCmd.Flags().VisitAll(func(f *pflag.Flag) {
+		if strings.HasPrefix(f.Name, "experimental-") {
+			rootCmd.Flags().MarkHidden(f.Name) //nolint:errcheck
+		}
+	})
 
 	return rootCmd
 })
