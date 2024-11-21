@@ -63,7 +63,7 @@ func NewRewriter[T proto.Message](f func(T) (T, bool)) Rewriter {
 			return req, false
 		}
 
-		return f(proto.Clone(typedReq).(T)) //nolint:forcetypeassert
+		return f(proto.Clone(typedReq).(T)) //nolint:forcetypeassert,errcheck
 	}
 }
 

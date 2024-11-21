@@ -31,5 +31,5 @@ func Value[T any](ctx context.Context) (T, bool) {
 		return *new(T), false
 	}
 
-	return value.(T), true //nolint:forcetypeassert
+	return value.(T), true //nolint:forcetypeassert,errcheck
 }

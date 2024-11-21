@@ -241,7 +241,7 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 		machineRequestStatus.TypedSpec().Value.Error = ""
 		machineRequestStatus.TypedSpec().Value.Stage = specs.MachineRequestStatusSpec_PROVISIONING
 
-		if err = safe.WriterModify(ctx, r, res.(T), func(st T) error { //nolint:forcetypeassert
+		if err = safe.WriterModify(ctx, r, res.(T), func(st T) error { //nolint:forcetypeassert,errcheck
 			err = step.Run(ctx, logger, provision.NewContext(
 				machineRequest,
 				machineRequestStatus,

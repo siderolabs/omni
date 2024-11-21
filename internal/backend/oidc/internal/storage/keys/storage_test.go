@@ -78,7 +78,7 @@ func TestStorage(t *testing.T) {
 
 	assert.Len(t, keySet, 1)
 	assert.Equal(t, keySet[0].ID(), signingKey.ID())
-	assert.Equal(t, *keySet[0].Key().(*rsa.PublicKey), privateKey.PublicKey) //nolint:forcetypeassert
+	assert.Equal(t, *keySet[0].Key().(*rsa.PublicKey), privateKey.PublicKey) //nolint:forcetypeassert,errcheck
 
 	expectedPublicKeyIDs := []string{signingKey.ID()}
 

@@ -16,6 +16,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 )
 
+//nolint:iface
 func TestInstall_LookupInterface(t *testing.T) {
 	k8s, err := kubernetes.New(nil)
 	require.NoError(t, err)

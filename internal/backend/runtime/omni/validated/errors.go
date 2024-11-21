@@ -38,6 +38,7 @@ func IsValidationError(err error) bool {
 	return sts.Code() == codes.InvalidArgument && strings.HasPrefix(sts.Message(), errPrefix)
 }
 
+//nolint:errname
 type eValidation struct {
 	error
 }

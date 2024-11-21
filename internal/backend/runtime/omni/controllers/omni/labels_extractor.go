@@ -39,7 +39,7 @@ func NewLabelsExtractorController[T generic.ResourceWithRD]() *qtransform.QContr
 
 				*res.Metadata() = resource.NewMetadata(rd.DefaultNamespace, rd.Type, labels.Metadata().ID(), resource.VersionUndefined)
 
-				return res.(T) //nolint:forcetypeassert
+				return res.(T) //nolint:forcetypeassert,errcheck
 			},
 			TransformFunc: func(_ context.Context, _ controller.Reader, _ *zap.Logger, res T, labels *system.ResourceLabels[T]) error {
 				*labels.Metadata().Labels() = *res.Metadata().Labels()

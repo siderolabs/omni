@@ -59,6 +59,14 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/xcontext"
 )
 
+type talosRuntime interface {
+	GetClient(ctx context.Context, clusterName string) (*talos.Client, error)
+}
+
+type kubernetesRuntime interface {
+	GetKubeconfig(ctx context.Context, cluster *commonOmni.Context) (*rest.Config, error)
+}
+
 // JWTSigningKeyProvider is an interface for a JWT signing key provider.
 type JWTSigningKeyProvider interface {
 	SigningKey(ctx context.Context) (op.SigningKey, error)
@@ -411,11 +419,7 @@ func (s *managementServer) KubernetesUpgradePreChecks(ctx context.Context, req *
 		return nil, status.Errorf(codes.InvalidArgument, "unsupported upgrade path: %s", path)
 	}
 
-	type kubeConfigGetter interface {
-		GetKubeconfig(ctx context.Context, cluster *commonOmni.Context) (*rest.Config, error)
-	}
-
-	k8sRuntime, err := runtime.LookupInterface[kubeConfigGetter](kubernetes.Name)
+	k8sRuntime, err := runtime.LookupInterface[kubernetesRuntime](kubernetes.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -425,16 +429,12 @@ func (s *managementServer) KubernetesUpgradePreChecks(ctx context.Context, req *
 		return nil, fmt.Errorf("error getting kubeconfig: %w", err)
 	}
 
-	type talosClientGetter interface {
-		GetClient(ctx context.Context, clusterName string) (*talos.Client, error)
-	}
-
-	talosRuntime, err := runtime.LookupInterface[talosClientGetter](talos.Name)
+	talosRt, err := runtime.LookupInterface[talosRuntime](talos.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	talosClient, err := talosRuntime.GetClient(ctx, requestContext.Name)
+	talosClient, err := talosRt.GetClient(ctx, requestContext.Name)
 	if err != nil {
 		return nil, fmt.Errorf("error getting talos client: %w", err)
 	}
@@ -504,30 +504,22 @@ func (s *managementServer) KubernetesSyncManifests(req *management.KubernetesSyn
 		return status.Error(codes.InvalidArgument, "unable to extract request context")
 	}
 
-	type kubernetesConfigurator interface {
-		GetKubeconfig(ctx context.Context, context *commonOmni.Context) (*rest.Config, error)
-	}
-
-	kubernetesRuntime, err := runtime.LookupInterface[kubernetesConfigurator](kubernetes.Name)
+	k8sRuntime, err := runtime.LookupInterface[kubernetesRuntime](kubernetes.Name)
 	if err != nil {
 		return err
 	}
 
-	cfg, err := kubernetesRuntime.GetKubeconfig(ctx, requestContext)
+	cfg, err := k8sRuntime.GetKubeconfig(ctx, requestContext)
 	if err != nil {
 		return fmt.Errorf("failed to get kubeconfig: %w", err)
 	}
 
-	type talosClientProvider interface {
-		GetClient(ctx context.Context, clusterName string) (*talos.Client, error)
-	}
-
-	talosRuntime, err := runtime.LookupInterface[talosClientProvider](talos.Name)
+	talosRt, err := runtime.LookupInterface[talosRuntime](talos.Name)
 	if err != nil {
 		return err
 	}
 
-	talosClient, err := talosRuntime.GetClient(ctx, requestContext.Name)
+	talosClient, err := talosRt.GetClient(ctx, requestContext.Name)
 	if err != nil {
 		return fmt.Errorf("failed to get talos client: %w", err)
 	}

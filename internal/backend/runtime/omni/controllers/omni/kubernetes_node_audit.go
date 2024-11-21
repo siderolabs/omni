@@ -285,11 +285,7 @@ func (auditor *nodeAuditor) unmarkNodesAsInvalid(cluster string, nodes []string)
 }
 
 func getKubernetesClient(ctx context.Context, cluster string) (KubernetesClient, error) {
-	type kubeRuntime interface {
-		GetClient(ctx context.Context, cluster string) (*kubernetes.Client, error)
-	}
-
-	k8s, err := runtime.LookupInterface[kubeRuntime](kubernetes.Name)
+	k8s, err := runtime.LookupInterface[kubernetesRuntime](kubernetes.Name)
 	if err != nil {
 		return nil, err
 	}

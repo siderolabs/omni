@@ -16,6 +16,8 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
+
+	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 )
 
 type cleanupOptions struct {
@@ -167,4 +169,8 @@ func (c cleanupChecker[Input]) Inputs() []controller.Input {
 // Outputs implements [cleanup.Handler].
 func (c cleanupChecker[Input]) Outputs() []controller.Output {
 	return c.next.Outputs()
+}
+
+type kubernetesRuntime interface {
+	GetClient(ctx context.Context, cluster string) (*kubernetes.Client, error)
 }

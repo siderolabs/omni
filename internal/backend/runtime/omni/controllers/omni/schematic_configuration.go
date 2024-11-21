@@ -282,6 +282,7 @@ func updateFinalizers(ctx context.Context, r controller.ReaderWriter, extensions
 	return r.AddFinalizer(ctx, extensions.Metadata(), SchematicConfigurationControllerName)
 }
 
+//nolint:recvcheck
 type machineExtensions struct {
 	machineStatus      *omni.MachineStatus
 	machineExtensions  *omni.MachineExtensions

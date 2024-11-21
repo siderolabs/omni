@@ -59,7 +59,7 @@ func TestFindOldFiles(t *testing.T) {
 	now := time.Date(2012, 1, 30, 0, 0, 0, 1, time.Local)
 	thirtyDays := audit.TruncateToDate(now.AddDate(0, 0, -30))
 
-	dirFiles := must.Value(audit.GetDirFiles(must.Value(mapFS.Sub("logdir"))(t).(fs.ReadDirFS)))(t) //nolint:forcetypeassert
+	dirFiles := must.Value(audit.GetDirFiles(must.Value(mapFS.Sub("logdir"))(t).(fs.ReadDirFS)))(t) //nolint:forcetypeassert,errcheck
 	logFiles := audit.FilterLogFiles(dirFiles)
 	olderFiles := audit.FilterByTime(logFiles, time.Unix(0, 0), thirtyDays)
 

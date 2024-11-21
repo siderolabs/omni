@@ -181,7 +181,7 @@ func (m *multiplexer) getClusterConnector(ctx context.Context, clusterName strin
 			return nil, res.Err
 		}
 
-		return res.Val.(*clusterConnector), nil //nolint:forcetypeassert
+		return res.Val.(*clusterConnector), nil //nolint:forcetypeassert,errcheck
 	}
 }
 

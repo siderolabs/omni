@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-11-05T11:24:27Z by kres 5fa0b38-dirty.
+# Generated on 2024-11-21T22:34:08Z by kres b3b0da76.
 
 # common variables
 
@@ -24,11 +24,11 @@ PROTOBUF_GO_VERSION ?= 1.35.1
 GRPC_GO_VERSION ?= 1.5.1
 GRPC_GATEWAY_VERSION ?= 2.23.0
 VTPROTOBUF_VERSION ?= 0.6.0
-GOIMPORTS_VERSION ?= 0.26.0
+GOIMPORTS_VERSION ?= 0.27.0
 DEEPCOPY_VERSION ?= v0.5.6
-GOLANGCILINT_VERSION ?= v1.61.0
+GOLANGCILINT_VERSION ?= v1.62.0
 GOFUMPT_VERSION ?= v0.7.0
-GO_VERSION ?= 1.23.2
+GO_VERSION ?= 1.23.3
 GO_BUILDFLAGS ?=
 GO_LDFLAGS ?=
 CGO_ENABLED ?= 0
@@ -43,11 +43,13 @@ PLATFORM ?= linux/amd64
 PROGRESS ?= auto
 PUSH ?= false
 CI_ARGS ?=
+BUILDKIT_MULTI_PLATFORM ?= 1
 COMMON_ARGS = --file=Dockerfile
 COMMON_ARGS += --provenance=false
 COMMON_ARGS += --progress=$(PROGRESS)
 COMMON_ARGS += --platform=$(PLATFORM)
 COMMON_ARGS += --push=$(PUSH)
+COMMON_ARGS += --build-arg=BUILDKIT_MULTI_PLATFORM=$(BUILDKIT_MULTI_PLATFORM)
 COMMON_ARGS += --build-arg=ARTIFACTS="$(ARTIFACTS)"
 COMMON_ARGS += --build-arg=SHA="$(SHA)"
 COMMON_ARGS += --build-arg=TAG="$(TAG)"
@@ -155,9 +157,18 @@ target-%:  ## Builds the specified target defined in the Dockerfile. The build r
 
 local-%:  ## Builds the specified target defined in the Dockerfile using the local output type. The build result will be output to the specified local destination.
 	@$(MAKE) target-$* TARGET_ARGS="--output=type=local,dest=$(DEST) $(TARGET_ARGS)"
+	@PLATFORM=$(PLATFORM) DEST=$(DEST) bash -c '\
+	  for platform in $$(tr "," "\n" <<< "$$PLATFORM"); do \
+	    echo $$platform; \
+	    directory="$${platform//\//_}"; \
+	    if [[ -d "$$DEST/$$directory" ]]; then \
+	      mv "$$DEST/$$directory/"* $$DEST; \
+	      rmdir "$$DEST/$$directory/"; \
+	    fi; \
+	  done'
 
 generate-frontend:  ## Generate .proto definitions.
-	@$(MAKE) local-$@ DEST=./
+	@$(MAKE) local-$@ DEST=./ BUILDKIT_MULTI_PLATFORM=0
 
 .PHONY: js
 js:  ## Prepare js base toolchain.
@@ -178,7 +189,7 @@ $(ARTIFACTS)/frontend-js:
 frontend: $(ARTIFACTS)/frontend-js  ## Builds js release for frontend.
 
 generate:  ## Generate .proto definitions.
-	@$(MAKE) local-$@ DEST=./
+	@$(MAKE) local-$@ DEST=./ BUILDKIT_MULTI_PLATFORM=0
 
 lint-golangci-lint-client:  ## Runs golangci-lint linter.
 	@$(MAKE) target-$@

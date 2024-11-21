@@ -418,7 +418,7 @@ func (r *Runtime) getOrCreateClient(ctx context.Context, opts *runtime.QueryOpti
 			return nil, res.Err
 		}
 
-		return res.Val.(*Client), nil //nolint:forcetypeassert // we know the type
+		return res.Val.(*Client), nil //nolint:forcetypeassert,errcheck // we know the type
 	}
 }
 

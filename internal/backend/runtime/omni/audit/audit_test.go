@@ -101,7 +101,7 @@ func TestAudit(t *testing.T) {
 			subFS: fsSub(t, logDir, "log"),
 			File:  "2012-01-01.jsonlog",
 		},
-		os.DirFS(tempDir).(subFS), //nolint:forcetypeassert
+		os.DirFS(tempDir).(subFS), //nolint:forcetypeassert,errcheck
 		cmpIgnoreTime,
 	)
 }

@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-06-19T21:17:41Z by kres 4c9f215.
+# Generated on 2024-11-21T22:07:50Z by kres a8af16d.
 
 # options for analysis running
 run:
@@ -127,7 +127,6 @@ linters:
     - gochecknoglobals
     - gochecknoinits
     - godox
-    - gomnd
     - gomoddirectives
     - gosec
     - inamedparam

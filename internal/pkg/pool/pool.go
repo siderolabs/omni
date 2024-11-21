@@ -24,7 +24,7 @@ type Pool[T any] struct {
 func (p *Pool[T]) Get() *T {
 	p.once.Do(func() { p.pool.New = func() any { return p.New() } })
 
-	return p.pool.Get().(*T) //nolint:forcetypeassert
+	return p.pool.Get().(*T) //nolint:forcetypeassert,errcheck
 }
 
 // Put returns an instance of the type to the pool.

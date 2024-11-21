@@ -41,6 +41,8 @@ type SAMLParams struct {
 }
 
 // SAMLLabelRules defines mapping of SAML assertion attributes to Omni identity labels.
+//
+//nolint:recvcheck
 type SAMLLabelRules map[string]string
 
 // String implements pflag.Value.

@@ -33,7 +33,7 @@ func Name(method any) string {
 func GetAs[T any](m mock.Arguments, i int) T {
 	res := m.Get(i)
 	if res != nil {
-		return res.(T) //nolint:forcetypeassert
+		return res.(T) //nolint:forcetypeassert,errcheck
 	}
 
 	switch typ := reflect.TypeOf((*T)(nil)).Elem(); typ.Kind() { //nolint:exhaustive

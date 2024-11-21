@@ -37,7 +37,7 @@ func resourceDetails(res resource.Resource) string {
 	}
 
 	if res.Metadata().Type() == omni.MachineStatusType {
-		network := res.Spec().(*omni.MachineStatusSpec).Value.Network //nolint:forcetypeassert
+		network := res.Spec().(*omni.MachineStatusSpec).Value.Network //nolint:forcetypeassert,errcheck
 		if network != nil {
 			parts = append(parts, fmt.Sprintf("hostname: %s", network.Hostname))
 		}

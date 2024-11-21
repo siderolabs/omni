@@ -523,11 +523,7 @@ var controlplanePodSelector = func() labels.Selector {
 }()
 
 func (ctrl *KubernetesStatusController) startWatcher(ctx context.Context, logger *zap.Logger, cluster string, notifyCh chan<- kubernetesWatcherNotify) error {
-	type kubernetesClient interface {
-		GetClient(ctx context.Context, cluster string) (*kubernetes.Client, error)
-	}
-
-	r, err := runtime.LookupInterface[kubernetesClient](kubernetes.Name)
+	r, err := runtime.LookupInterface[kubernetesRuntime](kubernetes.Name)
 	if err != nil {
 		return err
 	}
@@ -816,8 +812,8 @@ func IsExposedServiceEvent(k8sObject, oldK8sObject any, logger *zap.Logger) bool
 		return false
 	}
 
-	oldAnnotations := oldK8sObject.(*corev1.Service).GetObjectMeta().GetAnnotations() //nolint:forcetypeassert
-	newAnnotations := k8sObject.(*corev1.Service).GetObjectMeta().GetAnnotations()    //nolint:forcetypeassert
+	oldAnnotations := oldK8sObject.(*corev1.Service).GetObjectMeta().GetAnnotations() //nolint:forcetypeassert,errcheck
+	newAnnotations := k8sObject.(*corev1.Service).GetObjectMeta().GetAnnotations()    //nolint:forcetypeassert,errcheck
 
 	for _, key := range []string{ServiceLabelAnnotationKey, ServicePortAnnotationKey, ServiceIconAnnotationKey} {
 		if oldAnnotations[key] != newAnnotations[key] {

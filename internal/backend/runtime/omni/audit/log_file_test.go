@@ -48,7 +48,7 @@ func TestLogFile_CurrentDay(t *testing.T) {
 	equalDirs(
 		t,
 		fsSub(t, currentDay, "currentday"),
-		os.DirFS(dir).(subFS), //nolint:forcetypeassert
+		os.DirFS(dir).(subFS), //nolint:forcetypeassert,errcheck
 		defaultCmp,
 	)
 }
@@ -78,7 +78,7 @@ func TestLogFile_CurrentAndNewDay(t *testing.T) {
 	equalDirs(
 		t,
 		fsSub(t, nextDay, "nextday"),
-		os.DirFS(dir).(subFS), //nolint:forcetypeassert
+		os.DirFS(dir).(subFS), //nolint:forcetypeassert,errcheck
 		defaultCmp,
 	)
 }
@@ -119,7 +119,7 @@ func TestLogFile_CurrentDayConcurrent(t *testing.T) {
 		t,
 		fsSub(t, concurrent, "concurrent"),
 		&sortedFileFS{
-			subFS: os.DirFS(dir).(subFS), //nolint:forcetypeassert
+			subFS: os.DirFS(dir).(subFS), //nolint:forcetypeassert,errcheck
 		},
 		defaultCmp,
 	)
@@ -137,7 +137,7 @@ type subFS interface {
 }
 
 func fsSub(t *testing.T, subFs subFS, folder string) subFS {
-	return must.Value(fs.Sub(subFs, filepath.Join("testdata", folder)))(t).(subFS) //nolint:forcetypeassert
+	return must.Value(fs.Sub(subFs, filepath.Join("testdata", folder)))(t).(subFS) //nolint:forcetypeassert,errcheck
 }
 
 func equalDirs(t *testing.T, expected, actual subFS, cmpFn func(t *testing.T, expected, actual string)) {

@@ -1,6 +1,6 @@
 module github.com/siderolabs/omni
 
-go 1.23.2
+go 1.23.3
 
 replace (
 	// use nested module

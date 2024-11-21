@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+//nolint:errname
 type eNotFound struct {
 	error
 }
@@ -25,6 +26,7 @@ func errNotFound(r resource.Pointer) error {
 	}
 }
 
+//nolint:errname
 type eUnsupported struct {
 	error
 }

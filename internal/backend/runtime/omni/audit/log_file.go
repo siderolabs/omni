@@ -117,7 +117,7 @@ func (l *LogFile) RemoveFiles(start, end time.Time) error {
 		return fmt.Errorf("end time is before start time")
 	}
 
-	dirFiles, err := getDirFiles(os.DirFS(l.dir).(fs.ReadDirFS))
+	dirFiles, err := getDirFiles(os.DirFS(l.dir).(fs.ReadDirFS)) //nolint:errcheck
 	if err != nil {
 		return err
 	}
@@ -148,7 +148,7 @@ func (l *LogFile) ReadAuditLog(start, end time.Time) (io.ReadCloser, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	dirFiles, err := getDirFiles(os.DirFS(l.dir).(fs.ReadDirFS))
+	dirFiles, err := getDirFiles(os.DirFS(l.dir).(fs.ReadDirFS)) //nolint:errcheck
 	if err != nil {
 		return nil, fmt.Errorf("failed to read audit log directory: %w", err)
 	}
