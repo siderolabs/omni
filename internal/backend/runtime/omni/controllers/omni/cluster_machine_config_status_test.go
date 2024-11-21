@@ -45,10 +45,10 @@ func (suite *ClusterMachineConfigStatusSuite) TestApplyReset() {
 
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, 8090)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil, 8090)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
@@ -127,10 +127,10 @@ func (suite *ClusterMachineConfigStatusSuite) TestResetMachineRemoved() {
 
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, 8090)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil, 8090)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
@@ -233,10 +233,10 @@ func (suite *ClusterMachineConfigStatusSuite) TestResetUngraceful() {
 
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, 8090)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil, 8090)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
@@ -385,10 +385,10 @@ func (suite *ClusterMachineConfigStatusSuite) TestUpgrades() {
 
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, 8090)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil, 8090)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
@@ -453,7 +453,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestUpgrades() {
 			return retry.ExpectedErrorf("no upgrade requests received")
 		}
 
-		expectedImage := fmt.Sprintf("factory.talos.dev/installer/%s:v%s", expectedSchematicID, expectedTalosVersion)
+		expectedImage := fmt.Sprintf("factory-test.talos.dev/installer/%s:v%s", expectedSchematicID, expectedTalosVersion)
 		for i, r := range requests {
 			if r.Image != expectedImage {
 				return fmt.Errorf("%d request image is invalid: expected %q got %q", i, expectedImage, r.Image)
@@ -511,10 +511,10 @@ func (suite *ClusterMachineConfigStatusSuite) TestSchematicChanges() {
 
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, 8090)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil, 8090)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
@@ -577,7 +577,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestSchematicChanges() {
 		suite.Require().NoError(err)
 	}
 
-	expectedFactoryImage := "factory.talos.dev/installer/bbbb:v1.3.0"
+	expectedFactoryImage := imageFactoryHost + "/installer/bbbb:v1.3.0"
 
 	suite.Require().NoError(retry.Constant(time.Second * 5).Retry(func() error {
 		requests := suite.machineService.getUpgradeRequests()
@@ -647,10 +647,10 @@ func (suite *ClusterMachineConfigStatusSuite) TestSecureBootInstallImage() {
 
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, 8090)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil, 8090)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
@@ -710,7 +710,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestSecureBootInstallImage() {
 			return retry.ExpectedErrorf("no upgrade requests received")
 		}
 
-		expectedImage := "factory.talos.dev/installer-secureboot/abcd:v1.3.0"
+		expectedImage := imageFactoryHost + "/installer-secureboot/abcd:v1.3.0"
 		for i, r := range requests {
 			if r.Image != expectedImage {
 				return fmt.Errorf("%d request image is invalid: expected %q got %q", i, expectedImage, r.Image)
@@ -725,10 +725,10 @@ func (suite *ClusterMachineConfigStatusSuite) TestGenerationErrorPropagation() {
 	suite.startRuntime()
 
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, 8090)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil, 8090)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
 

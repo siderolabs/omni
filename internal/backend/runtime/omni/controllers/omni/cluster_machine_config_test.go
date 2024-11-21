@@ -37,7 +37,7 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, 8090)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil, 8090)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
@@ -92,7 +92,7 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 
 				var version string
 
-				version, err = omni.GetInstallImage(constants.TalosRegistry, constants.ImageFactoryBaseURL, defaultSchematic, cluster.TypedSpec().Value.TalosVersion)
+				version, err = omni.GetInstallImage(constants.TalosRegistry, "https://"+imageFactoryHost, defaultSchematic, cluster.TypedSpec().Value.TalosVersion)
 				assertions.NoError(err)
 
 				assertions.Equal(testInstallDisk, disk)
@@ -158,7 +158,7 @@ func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, 8090)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil, 8090)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))

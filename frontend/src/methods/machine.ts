@@ -13,6 +13,7 @@ import { DefaultNamespace, MachineLabelsType, MachineLocked, MachineSetNodeType,
 import { MachineService } from "@/api/talos/machine/machine.pb";
 import { destroyResources, getMachineConfigPatchesToDelete } from "@/methods/cluster";
 import { parseLabels } from "@/methods/labels";
+import { getImageFactoryBaseURL } from "@/methods/features";
 
 export const addMachineLabels = async (machineID: string, ...labels: string[]) => {
   let resource: Resource = {
@@ -151,8 +152,12 @@ const copyUserLabels = (src: Resource, dst: Resource) => {
 }
 
 export const updateTalosMaintenance = async (machine: string, talosVersion: string, schematic?: string) => {
+  const imageFactoryBaseURL = await getImageFactoryBaseURL();
+
+  const host = new URL(imageFactoryBaseURL).host;
+
   const image = schematic ?
-    `factory.talos.dev/installer/${schematic}:v${talosVersion}` :
+    `${host}/installer/${schematic}:v${talosVersion}` :
     `ghcr.io/siderolabs/installer:v${talosVersion}`;
 
   await MachineService.Upgrade({image}, withRuntime(Runtime.Talos), withContext({

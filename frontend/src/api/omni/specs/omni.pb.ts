@@ -634,6 +634,7 @@ export type FeaturesConfigSpec = {
   etcd_backup_settings?: EtcdBackupSettings
   embedded_discovery_service?: boolean
   audit_log_enabled?: boolean
+  image_factory_base_url?: string
 }
 
 export type EtcdBackupSettings = {

@@ -391,7 +391,7 @@ func (suite *MigrationSuite) createClusterWithMachines(ctx context.Context, name
 		machine.TypedSpec().Value.KubernetesVersion = "v1.24.0"
 
 		machine.Metadata().Labels().Set("cluster", cluster.Metadata().ID())
-		machine.Metadata().Finalizers().Add(omnictrl.NewClusterMachineConfigController(nil, 8090).Name())
+		machine.Metadata().Finalizers().Add(omnictrl.NewClusterMachineConfigController("factory-test.talos.dev", nil, 8090).Name())
 
 		if withTemplates {
 			template := omni.NewClusterMachineTemplate(resources.DefaultNamespace, fmt.Sprintf("%s.%s", name, m.name))
@@ -1018,7 +1018,7 @@ func (suite *MigrationSuite) TestPatchesExtraction() {
 	}
 
 	createResources = append(createResources, xslices.Map(machines, func(m machine) pair.Pair[string, resource.Resource] {
-		return pair.MakePair[string, resource.Resource](omnictrl.NewClusterMachineConfigController(nil, 8090).Name(),
+		return pair.MakePair[string, resource.Resource](omnictrl.NewClusterMachineConfigController("factory-test.talos.dev", nil, 8090).Name(),
 			omni.NewClusterMachineConfig(resources.DefaultNamespace, clusterName+"."+m.name))
 	})...)
 
@@ -1106,7 +1106,7 @@ func (suite *MigrationSuite) TestInstallDiskPatchMigration() {
 	}
 
 	createResources = append(createResources, xslices.Map(machines, func(m machine) pair.Pair[string, resource.Resource] {
-		return pair.MakePair[string, resource.Resource](omnictrl.NewClusterMachineConfigController(nil, 8090).Name(),
+		return pair.MakePair[string, resource.Resource](omnictrl.NewClusterMachineConfigController("factory-test.talos.dev", nil, 8090).Name(),
 			omni.NewClusterMachineConfig(resources.DefaultNamespace, clusterName+"."+m.name))
 	})...)
 
@@ -1134,7 +1134,7 @@ func (suite *MigrationSuite) TestInstallDiskPatchMigration() {
 	suite.Require().NoError(err)
 
 	suite.Require().NoError(runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
-	suite.Require().NoError(runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, 8090)))
+	suite.Require().NoError(runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("factory-test.talos.dev", nil, 8090)))
 
 	runCtx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()

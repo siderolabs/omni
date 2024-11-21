@@ -9,6 +9,7 @@ package omni
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"slices"
 	"time"
 
@@ -214,6 +215,13 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewMachineRequestStatusCleanupController(),
 	}
 
+	imageFactoryBaseURL, err := url.Parse(config.Config.ImageFactoryBaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse image factory base URL %q: %w", config.Config.ImageFactoryBaseURL, err)
+	}
+
+	imageFactoryHost := imageFactoryBaseURL.Host
+
 	qcontrollers := []controller.QController{
 		destroy.NewController[*siderolinkresources.Link](optional.Some[uint](4)),
 
@@ -222,11 +230,11 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewClusterConfigVersionController(),
 		omnictrl.NewClusterEndpointController(),
 		omnictrl.NewClusterKubernetesNodesController(),
-		omnictrl.NewClusterMachineConfigController(config.Config.DefaultConfigGenOptions, config.Config.EventSinkPort),
+		omnictrl.NewClusterMachineConfigController(imageFactoryHost, config.Config.DefaultConfigGenOptions, config.Config.EventSinkPort),
 		omnictrl.NewClusterMachineTeardownController(defaultDiscoveryClient, embeddedDiscoveryClient),
 		omnictrl.NewMachineConfigGenOptionsController(),
 		omnictrl.NewMachineStatusController(imageFactoryClient),
-		omnictrl.NewClusterMachineConfigStatusController(),
+		omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost),
 		omnictrl.NewClusterMachineEncryptionKeyController(),
 		omnictrl.NewClusterMachineStatusController(),
 		omnictrl.NewClusterStatusController(config.Config.EmbeddedDiscoveryService.Enabled),

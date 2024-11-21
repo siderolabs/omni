@@ -11,7 +11,6 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"net/url"
 	"strings"
 	"text/template"
 	"time"
@@ -55,7 +54,7 @@ const ClusterMachineConfigControllerName = "ClusterMachineConfigController"
 type ClusterMachineConfigController = qtransform.QController[*omni.ClusterMachine, *omni.ClusterMachineConfig]
 
 // NewClusterMachineConfigController initializes ClusterMachineConfigController.
-func NewClusterMachineConfigController(defaultGenOptions []generate.Option, eventSinkPort int) *ClusterMachineConfigController {
+func NewClusterMachineConfigController(imageFactoryHost string, defaultGenOptions []generate.Option, eventSinkPort int) *ClusterMachineConfigController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.ClusterMachine, *omni.ClusterMachineConfig]{
 			Name: ClusterMachineConfigControllerName,
@@ -66,7 +65,7 @@ func NewClusterMachineConfigController(defaultGenOptions []generate.Option, even
 				return omni.NewClusterMachine(resources.DefaultNamespace, machineConfig.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, clusterMachine *omni.ClusterMachine, machineConfig *omni.ClusterMachineConfig) error {
-				return reconcileClusterMachineConfig(ctx, r, logger, clusterMachine, machineConfig, defaultGenOptions, eventSinkPort)
+				return reconcileClusterMachineConfig(ctx, r, logger, clusterMachine, machineConfig, defaultGenOptions, eventSinkPort, imageFactoryHost)
 			},
 		},
 		qtransform.WithExtraMappedInput(
@@ -106,6 +105,7 @@ func reconcileClusterMachineConfig(
 	machineConfig *omni.ClusterMachineConfig,
 	defaultGenOptions []generate.Option,
 	eventSinkPort int,
+	imageFactoryHost string,
 ) error {
 	clusterName, ok := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
 	if !ok {
@@ -237,7 +237,9 @@ func reconcileClusterMachineConfig(
 		return err
 	}
 
-	var helper clusterMachineConfigControllerHelper
+	helper := clusterMachineConfigControllerHelper{
+		imageFactoryHost: imageFactoryHost,
+	}
 
 	data, err := helper.generateConfig(clusterMachine, clusterMachineConfigPatches, secrets, loadBalancerConfig,
 		cluster, clusterConfigVersion, machineConfigGenOptions, defaultGenOptions, connectionParams, eventSinkPort)
@@ -257,9 +259,11 @@ func reconcileClusterMachineConfig(
 	return nil
 }
 
-type clusterMachineConfigControllerHelper struct{}
+type clusterMachineConfigControllerHelper struct {
+	imageFactoryHost string
+}
 
-func (clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.ClusterMachine, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, secrets *omni.ClusterSecrets,
+func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.ClusterMachine, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, secrets *omni.ClusterSecrets,
 	loadbalancer *omni.LoadBalancerConfig, cluster *omni.Cluster, clusterConfigVersion *omni.ClusterConfigVersion, configGenOptions *omni.MachineConfigGenOptions, extraGenOptions []generate.Option,
 	connectionParams *siderolink.ConnectionParams, eventSinkPort int,
 ) ([]byte, error) {
@@ -272,7 +276,7 @@ func (clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.
 		return nil, fmt.Errorf("talos version is not set on the resource %s", clusterConfigVersion.Metadata())
 	}
 
-	installImage, err := buildInstallImage(configGenOptions.Metadata().ID(), configGenOptions.TypedSpec().Value.InstallImage, talosVersion)
+	installImage, err := buildInstallImage(helper.imageFactoryHost, configGenOptions.Metadata().ID(), configGenOptions.TypedSpec().Value.InstallImage, talosVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -432,18 +436,11 @@ func stripTalosAPIAccessOSAdminRole(cfg config.Provider) (config.Provider, error
 	return container.New(updatedDocs...)
 }
 
-var imageFactoryHost string
-
-func init() {
-	parsed, err := url.Parse(appconfig.Config.ImageFactoryBaseURL)
-	if err != nil {
-		panic(err)
+func buildInstallImage(imageFactoryHost string, resID resource.ID, installImage *specs.MachineConfigGenOptionsSpec_InstallImage, talosVersion string) (string, error) {
+	if imageFactoryHost == "" {
+		return "", fmt.Errorf("image factory host is not set")
 	}
 
-	imageFactoryHost = parsed.Host
-}
-
-func buildInstallImage(resID resource.ID, installImage *specs.MachineConfigGenOptionsSpec_InstallImage, talosVersion string) (string, error) {
 	if !installImage.SchematicInitialized {
 		return "", fmt.Errorf("machine %q has no schematic information set", resID)
 	}

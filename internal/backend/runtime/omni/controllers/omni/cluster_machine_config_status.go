@@ -55,7 +55,7 @@ type ClusterMachineConfigStatusController = qtransform.QController[*omni.Cluster
 // NewClusterMachineConfigStatusController initializes ClusterMachineConfigStatusController.
 //
 //nolint:gocognit,gocyclo,cyclop,maintidx
-func NewClusterMachineConfigStatusController() *ClusterMachineConfigStatusController {
+func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMachineConfigStatusController {
 	ongoingResets := &ongoingResets{
 		statuses: map[string]*resetStatus{},
 	}
@@ -74,6 +74,8 @@ func NewClusterMachineConfigStatusController() *ClusterMachineConfigStatusContro
 					r:             r,
 					logger:        logger,
 					ongoingResets: ongoingResets,
+
+					imageFactoryHost: imageFactoryHost,
 				}
 
 				if machineConfig.TypedSpec().Value.GenerationError != "" {
@@ -202,6 +204,8 @@ func NewClusterMachineConfigStatusController() *ClusterMachineConfigStatusContro
 					r:             r,
 					logger:        logger,
 					ongoingResets: ongoingResets,
+
+					imageFactoryHost: imageFactoryHost,
 				}
 
 				clusterMachine, err := safe.ReaderGet[*omni.ClusterMachine](ctx, r, omni.NewClusterMachine(resources.DefaultNamespace, machineConfig.Metadata().ID()).Metadata())
@@ -335,6 +339,8 @@ type clusterMachineConfigStatusControllerHandler struct {
 	r             controller.Reader
 	logger        *zap.Logger
 	ongoingResets *ongoingResets
+
+	imageFactoryHost string
 }
 
 func (h *clusterMachineConfigStatusControllerHandler) syncInstallImageAndSchematic(inputCtx context.Context, configStatus *omni.ClusterMachineConfigStatus,
@@ -398,7 +404,7 @@ func (h *clusterMachineConfigStatusControllerHandler) syncInstallImageAndSchemat
 		return true, nil
 	}
 
-	image, err := buildInstallImage(machineStatus.Metadata().ID(), installImage, expectedVersion)
+	image, err := buildInstallImage(h.imageFactoryHost, machineStatus.Metadata().ID(), installImage, expectedVersion)
 	if err != nil {
 		return false, err
 	}

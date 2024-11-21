@@ -979,6 +979,9 @@ message FeaturesConfigSpec {
 
   // AuditLogEnabled is true when Omni is configured to collect the audit logs.
   bool audit_log_enabled = 4;
+
+  // ImageFactoryBaseUrl is the base URL of the image factory.
+  string image_factory_base_url = 5;
 }
 
 message EtcdBackupSettings {

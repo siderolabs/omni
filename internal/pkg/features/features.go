@@ -33,6 +33,7 @@ func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger) er
 		}
 
 		res.TypedSpec().Value.AuditLogEnabled = config.Config.AuditLogDir != ""
+		res.TypedSpec().Value.ImageFactoryBaseUrl = config.Config.ImageFactoryBaseURL
 
 		return nil
 	}
