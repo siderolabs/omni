@@ -41,6 +41,7 @@ import (
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	"github.com/jhump/grpctunnel"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	service "github.com/siderolabs/discovery-service/pkg/service"
@@ -64,6 +65,7 @@ import (
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
+	"github.com/siderolabs/omni/internal/backend/baremetal"
 	"github.com/siderolabs/omni/internal/backend/debug"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/factory"
@@ -206,6 +208,8 @@ func (s *Server) Run(ctx context.Context) error {
 		return err
 	}
 
+	tunnelHandler := s.buildGRPCTunnelHandler()
+
 	services := grpcomni.MakeServiceServers(
 		s.omniRuntime.State(),
 		s.omniRuntime.CachedState(),
@@ -216,6 +220,7 @@ func (s *Server) Run(ctx context.Context) error {
 		s.imageFactoryClient,
 		s.logger,
 		s.auditor,
+		tunnelHandler,
 	)
 
 	actualSrv, gtwyDialsTo, err := s.serverAndGateway(ctx, services, mux, serverOptions...)
@@ -284,6 +289,26 @@ func (s *Server) Run(ctx context.Context) error {
 	}
 
 	return eg.Wait()
+}
+
+func (s *Server) buildGRPCTunnelHandler() *grpctunnel.TunnelServiceHandler {
+	return grpctunnel.NewTunnelServiceHandler(
+		grpctunnel.TunnelServiceHandlerOptions{
+			OnReverseTunnelOpen: func(channel grpctunnel.TunnelChannel) {
+				affinityKey := baremetal.GetAffinityKey(channel, s.logger)
+
+				s.logger.Debug("reverse tunnel opened", zap.String("affinity_key", affinityKey))
+			},
+			OnReverseTunnelClose: func(channel grpctunnel.TunnelChannel) {
+				affinityKey := baremetal.GetAffinityKey(channel, s.logger)
+
+				s.logger.Debug("reverse tunnel closed", zap.String("affinity_key", affinityKey))
+			},
+			AffinityKey: func(channel grpctunnel.TunnelChannel) any {
+				return baremetal.GetAffinityKey(channel, s.logger)
+			},
+		},
+	)
 }
 
 func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
