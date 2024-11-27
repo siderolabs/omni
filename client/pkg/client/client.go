@@ -12,6 +12,8 @@ import (
 	"net/url"
 	"slices"
 
+	"github.com/jhump/grpctunnel"
+	"github.com/jhump/grpctunnel/tunnelpb"
 	"github.com/siderolabs/go-api-signature/pkg/client/auth"
 	_ "github.com/siderolabs/proto-codec/codec" // for encoding.CodecV2
 	"google.golang.org/grpc"
@@ -133,6 +135,13 @@ func (c *Client) Auth() *auth.Client {
 // Talos provides access to Talos machine API.
 func (c *Client) Talos() *talos.Client {
 	return talos.NewClient(c.conn)
+}
+
+// Tunnel returns a GRPC reverse tunnel server.
+func (c *Client) Tunnel() *grpctunnel.ReverseTunnelServer {
+	tunnelStub := tunnelpb.NewTunnelServiceClient(c.conn)
+
+	return grpctunnel.NewReverseTunnelServer(tunnelStub)
 }
 
 // Endpoint returns the endpoint this client is configured to talk to.

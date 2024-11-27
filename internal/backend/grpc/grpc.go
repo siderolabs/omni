@@ -17,6 +17,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	gateway "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/jhump/grpctunnel"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -51,6 +52,7 @@ func MakeServiceServers(
 	imageFactoryClient *imagefactory.Client,
 	logger *zap.Logger,
 	auditor AuditLogger,
+	tunnelHandler *grpctunnel.TunnelServiceHandler,
 ) iter.Seq2[ServiceServer, error] {
 	dest, err := generateDest(config.Config.APIURL)
 	if err != nil {
@@ -82,6 +84,9 @@ func MakeServiceServers(
 			State: cachedState,
 		},
 		&machineService{},
+		&tunnelServer{
+			handler: tunnelHandler,
+		},
 	}
 
 	return func(yield func(ServiceServer, error) bool) {

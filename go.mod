@@ -3,6 +3,9 @@ module github.com/siderolabs/omni
 go 1.23.3
 
 replace (
+	// todo: remove when merged
+	github.com/siderolabs/omni-infra-provider-bare-metal v0.0.0-20241014092637-c3e892b87244 => github.com/utkuozdemir/sidero-omni-infra-provider-bare-metal v0.0.0-20241021213554-cc93e594a0d2
+
 	// use nested module
 	github.com/siderolabs/omni/client => ./client
 	// forked go-yaml that introduces RawYAML interface, which can be used to populate YAML fields using bytes
@@ -49,6 +52,7 @@ require (
 	github.com/hashicorp/vault/api v1.15.0
 	github.com/hashicorp/vault/api/auth/kubernetes v0.8.0
 	github.com/hexops/gotextdiff v1.0.3
+	github.com/jhump/grpctunnel v0.3.0
 	github.com/johannesboyne/gofakes3 v0.0.0-20240930195952-2db7ccb81e19
 	github.com/jonboulle/clockwork v0.4.1-0.20241017232027-7e524bd2b238
 	github.com/julienschmidt/httprouter v1.3.0
@@ -146,6 +150,7 @@ require (
 	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
 	github.com/evanphx/json-patch v5.9.0+incompatible // indirect
 	github.com/fatih/color v1.18.0 // indirect
+	github.com/fullstorydev/grpchan v1.1.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-chi/chi/v5 v5.1.0 // indirect
