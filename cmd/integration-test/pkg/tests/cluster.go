@@ -57,6 +57,8 @@ type ClusterOptions struct {
 	ProviderData  string
 
 	ScalingTimeout time.Duration
+
+	SkipExtensionCheckOnCreate bool
 }
 
 // MachineOptions are the options for machine creation.
@@ -79,7 +81,9 @@ func CreateCluster(testCtx context.Context, cli *client.Client, options ClusterO
 		require := require.New(t)
 
 		pickUnallocatedMachines(ctx, t, st, options.ControlPlanes+options.Workers, func(machineIDs []resource.ID) {
-			checkExtensionWithRetries(ctx, t, cli, HelloWorldServiceExtensionName, machineIDs...)
+			if !options.SkipExtensionCheckOnCreate {
+				checkExtensionWithRetries(ctx, t, cli, HelloWorldServiceExtensionName, machineIDs...)
+			}
 
 			if options.BeforeClusterCreateFunc != nil {
 				options.BeforeClusterCreateFunc(ctx, t, cli, machineIDs)

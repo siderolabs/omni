@@ -70,6 +70,7 @@ type Options struct {
 	AnotherKubernetesVersion string
 	OmnictlPath              string
 	ScalingTimeout           time.Duration
+	StaticInfraProvider      string
 }
 
 func (o Options) defaultInfraProvider() string {
@@ -1330,6 +1331,102 @@ Test flow of cluster creation and scaling using cluster templates.`,
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-workload-proxy"),
+		},
+		{
+			Name: "StaticInfraProvider",
+			Description: `
+Tests common Omni operations on machines created by a static infrastructure provider:,
+
+- expect all machines to be unaccepted and accept them
+- assert that machines are ready to use
+- create a 3+1 cluster - assert that cluster is healthy and ready
+- assert that machines are not ready to use (occupied)
+- destroy the cluster - assert that machines are wiped, then marked as ready to use
+- create a new 3+1 cluster
+- assert that cluster is healthy and ready
+- remove links of the machines
+- assert that infra resources for those machines are removed
+`,
+			Parallel: true,
+			Subtests: subTests(
+				subTest{
+					"AcceptMachines",
+					AcceptInfraMachines(ctx, rootClient.Omni().State(), options.ExpectedMachines),
+				},
+				subTest{
+					"ClusterShouldBeCreated",
+					CreateCluster(ctx, rootClient, ClusterOptions{
+						Name:          "integration-static-infra-provider",
+						ControlPlanes: 3,
+						Workers:       1,
+
+						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
+
+						SkipExtensionCheckOnCreate: true,
+					}),
+				},
+			).Append(
+				TestBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
+					ctx, rootClient,
+					"integration-static-infra-provider",
+					options.MachineOptions.TalosVersion,
+					options.MachineOptions.KubernetesVersion,
+					talosAPIKeyPrepare,
+				)...,
+			).Append(
+				subTest{
+					"ExtensionsShouldBeUpdated",
+					UpdateExtensions(ctx, rootClient, "integration-static-infra-provider", []string{"siderolabs/binfmt-misc", "siderolabs/glibc"}),
+				},
+				subTest{
+					"MachinesShouldBeAllocated",
+					AssertInfraMachinesAreAllocated(ctx, rootClient.Omni().State(), "integration-static-infra-provider",
+						options.MachineOptions.TalosVersion, []string{"siderolabs/binfmt-misc", "siderolabs/glibc"}),
+				},
+			).Append(
+				subTest{
+					"ClusterShouldBeDestroyed",
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-static-infra-provider", false),
+				},
+			).Append(
+				subTest{
+					"MachinesShouldBeUnallocated",
+					AssertAllInfraMachinesAreUnallocated(ctx, rootClient.Omni().State()),
+				},
+			).Append(
+				subTest{
+					"ClusterShouldBeRecreated",
+					CreateCluster(ctx, rootClient, ClusterOptions{
+						Name:          "integration-static-infra-provider",
+						ControlPlanes: 3,
+						Workers:       1,
+
+						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
+
+						SkipExtensionCheckOnCreate: true,
+					}),
+				},
+			).Append(
+				TestBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
+					ctx, rootClient,
+					"integration-static-infra-provider",
+					options.MachineOptions.TalosVersion,
+					options.MachineOptions.KubernetesVersion,
+					talosAPIKeyPrepare,
+				)...,
+			).Append(
+				subTest{
+					"ClusterShouldBeDestroyed",
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-static-infra-provider", false),
+				},
+				subTest{
+					"InfraMachinesShouldBeDestroyed",
+					DestroyInfraMachines(ctx, rootClient.Omni().State()),
+				},
+			),
+			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-static-infra-provider"),
 		},
 	}
 

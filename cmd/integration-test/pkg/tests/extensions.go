@@ -105,3 +105,44 @@ func checkExtension(ctx context.Context, cli *client.Client, machineID resource.
 
 	return fmt.Errorf("extension %q is not found on machine %q", extension, machineStatus.Metadata().ID())
 }
+
+// UpdateExtensions updates the extensions on all the machines of the given cluster.
+func UpdateExtensions(ctx context.Context, cli *client.Client, cluster string, extensions []string) TestFunc {
+	return func(t *testing.T) {
+		clusterMachineList, err := safe.StateListAll[*omni.ClusterMachine](ctx, cli.Omni().State(), state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster)))
+		require.NoError(t, err)
+
+		require.Greater(t, clusterMachineList.Len(), 0)
+
+		for clusterMachine := range clusterMachineList.All() {
+			var extensionsConfig *omni.ExtensionsConfiguration
+
+			extensionsConfig, err = safe.StateGetByID[*omni.ExtensionsConfiguration](ctx, cli.Omni().State(), clusterMachine.Metadata().ID())
+			if err != nil && !state.IsNotFoundError(err) {
+				require.NoError(t, err)
+			}
+
+			updateSpec := func(res *omni.ExtensionsConfiguration) error {
+				res.Metadata().Labels().Set(omni.LabelCluster, cluster)
+				res.Metadata().Labels().Set(omni.LabelClusterMachine, clusterMachine.Metadata().ID())
+
+				res.TypedSpec().Value.Extensions = extensions
+
+				return nil
+			}
+
+			if extensionsConfig == nil {
+				extensionsConfig = omni.NewExtensionsConfiguration(resources.DefaultNamespace, clusterMachine.Metadata().ID())
+
+				require.NoError(t, updateSpec(extensionsConfig))
+
+				require.NoError(t, cli.Omni().State().Create(ctx, extensionsConfig))
+
+				continue
+			}
+
+			_, err = safe.StateUpdateWithConflicts[*omni.ExtensionsConfiguration](ctx, cli.Omni().State(), extensionsConfig.Metadata(), updateSpec)
+			require.NoError(t, err)
+		}
+	}
+}
