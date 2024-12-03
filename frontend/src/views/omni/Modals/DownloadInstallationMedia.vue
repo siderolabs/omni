@@ -87,7 +87,7 @@ included in the LICENSE file.
         PXE Boot URL
       </h3>
 
-      <div class="cursor-pointer px-1.5 py-1.5 rounded border border-naturals-N8 text-xs flex gap-2 items-center">
+      <div class="cursor-pointer px-1.5 py-1.5 rounded border border-naturals-N8 text-xs flex gap-2 items-center" :class="{'pointer-events-none': !supported}">
         <icon-button class="min-w-min" icon="refresh" @click="createSchematic" :icon-classes="{'animate-spin': creatingSchematic}" :disabled="!ready"/>
         <span v-if="copiedPXEURL" class="flex-1 text-sm">Copied!</span>
         <span v-else class="flex-1 break-all" @click="createSchematic">{{ pxeURL ? pxeURL : 'Click to generate' }}</span>
@@ -95,14 +95,15 @@ included in the LICENSE file.
       </div>
 
       <div>
-        <p class="text-xs">The generated image will include the kernel arguments required to register with Omni automatically.</p>
+        <p v-if="supported" class="text-xs">The generated image will include the kernel arguments required to register with Omni automatically.</p>
+        <p v-else class="text-xs text-primary-P2">{{ selectedOption }} supports only Talos version >= {{ minTalosVersion }}.</p>
       </div>
 
       <div class="flex justify-end gap-4">
         <t-button @click="close" class="w-32 h-9">
           Cancel
         </t-button>
-        <t-button @click="download" class="w-32 h-9" type="highlighted" :disabled="!ready">
+        <t-button @click="download" class="w-32 h-9" type="highlighted" :disabled="!ready || !supported">
           Download
         </t-button>
       </div>
@@ -139,6 +140,8 @@ import { CreateSchematicRequest, CreateSchematicRequestSiderolinkGRPCTunnelMode,
 import Tooltip from "@/components/common/Tooltip/Tooltip.vue";
 import { withRuntime } from "@/api/options";
 import { ConnectionParamsSpec } from "@/api/omni/specs/siderolink.pb";
+
+import * as semver from "semver";
 
 enum Phase {
   Idle = 0,
@@ -220,6 +223,35 @@ const selectedTalosVersion = ref(DefaultTalosVersion);
 const useGrpcTunnel = ref(false);
 const useGrpcTunnelDefault = ref(false);
 const ready = ref(false);
+
+const minTalosVersion = computed(() => {
+  const option = options.value.get(selectedOption.value);
+  if (!option) {
+    return null;
+  }
+
+  return option.spec.min_talos_version;
+});
+
+const supported = computed(() => {
+  if (minTalosVersion.value === null) {
+    return false;
+  }
+
+  if (!minTalosVersion.value) {
+    return true;
+  }
+
+  const selectedVersion = semver.parse(selectedTalosVersion.value, { loose: true });
+
+  selectedVersion.prerelease = [];
+
+  if (semver.lt(selectedVersion.format(), minTalosVersion.value, { loose: true })) {
+    return false;
+  }
+
+  return true;
+})
 
 watch(() => optionsWatch.items?.value.length, () => {
   options.value = watchOptions.value.reduce((map, obj) => {

@@ -489,6 +489,7 @@ export type InstallationMediaSpec = {
   extension?: string
   no_secure_boot?: boolean
   overlay?: string
+  min_talos_version?: string
 }
 
 export type ConfigPatchSpec = {

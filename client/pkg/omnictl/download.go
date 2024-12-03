@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-api-signature/pkg/message"
@@ -170,6 +171,25 @@ func findImage(ctx context.Context, client *client.Client, name, arch string) (*
 		})
 
 		return nil, fmt.Errorf("multiple images found:\n  %s", strings.Join(names, "\n  "))
+	}
+
+	minTalosVersion := result[0].TypedSpec().Value.MinTalosVersion
+	if minTalosVersion != "" {
+		minVersion, err := semver.ParseTolerant(minTalosVersion)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse min Talos version supported by the installation media: %w", err)
+		}
+
+		requestedVersion, err := semver.ParseTolerant(downloadCmdFlags.talosVersion)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse requested Talos version: %w", err)
+		}
+
+		requestedVersion.Pre = nil
+
+		if requestedVersion.LT(minVersion) {
+			return nil, fmt.Errorf("%s supports only Talos version >= %s", result[0].TypedSpec().Value.Name, minTalosVersion)
+		}
 	}
 
 	return result[0], nil

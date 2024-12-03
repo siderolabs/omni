@@ -635,6 +635,8 @@ message InstallationMediaSpec {
   bool no_secure_boot = 11;
   // Overlay is the overlay to be always used when generating the image of this type.
   string overlay = 12;
+  // MinTalosVersion defines minimum Talos version supported for the supplied configuration.
+  string min_talos_version = 13;
 }
 
 // ConfigPatchSpec represents the machine config patch.

@@ -32,13 +32,14 @@ const (
 )
 
 type installationMediaSpec struct {
-	Name         string
-	Architecture string
-	Profile      string
-	Type         string
-	ContentType  string
-	Overlay      string
-	SBC          bool
+	Name            string
+	Architecture    string
+	Profile         string
+	Type            string
+	ContentType     string
+	Overlay         string
+	MinTalosVersion string
+	SBC             bool
 }
 
 var installationMedia = []installationMediaSpec{
@@ -343,6 +344,15 @@ var installationMedia = []installationMediaSpec{
 		SBC:          true,
 		ContentType:  "application/x-xz",
 	},
+	{
+		Name:            "Turing RK1",
+		Architecture:    arm64Arch,
+		Profile:         "turingrk1",
+		Type:            rawType,
+		SBC:             true,
+		ContentType:     "application/x-xz",
+		MinTalosVersion: "1.9.0",
+	},
 }
 
 // InstallationMediaController manages omni.InstallationMedia.
@@ -389,6 +399,7 @@ func (ctrl *InstallationMediaController) Run(ctx context.Context, r controller.R
 			newMedia.TypedSpec().Value.DestFilePrefix = fmt.Sprintf("%s-omni-%s", fname.srcPrefix, config.Config.Name)
 			newMedia.TypedSpec().Value.Extension = fname.extension
 			newMedia.TypedSpec().Value.NoSecureBoot = m.SBC
+			newMedia.TypedSpec().Value.MinTalosVersion = m.MinTalosVersion
 
 			overlay := boards.GetOverlay(m.Profile)
 
