@@ -85,10 +85,7 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 
 				assertions.Equal(expectedType, machineconfig.Machine().Type())
 
-				var disk string
-
-				disk, err = machineconfig.Machine().Install().Disk()
-				assertions.NoError(err)
+				disk := machineconfig.Machine().Install().Disk()
 
 				var version string
 

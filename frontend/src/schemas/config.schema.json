@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://talos.dev/v1.8/schemas/config.schema.json",
+  "$id": "https://talos.dev/v1.9/schemas/config.schema.json",
   "$defs": {
     "block.DiskSelector": {
       "properties": {
@@ -636,6 +636,16 @@
           "description": "Configure the API server resources.\n",
           "markdownDescription": "Configure the API server resources.",
           "x-intellij-html-description": "\u003cp\u003eConfigure the API server resources.\u003c/p\u003e\n"
+        },
+        "authorizationConfig": {
+          "items": {
+            "$ref": "#/$defs/v1alpha1.AuthorizationConfigAuthorizerConfig"
+          },
+          "type": "array",
+          "title": "authorizationConfig",
+          "description": "Configure the API server authorization config. Node and RBAC authorizers are always added irrespective of the configuration.\n",
+          "markdownDescription": "Configure the API server authorization config. Node and RBAC authorizers are always added irrespective of the configuration.",
+          "x-intellij-html-description": "\u003cp\u003eConfigure the API server authorization config. Node and RBAC authorizers are always added irrespective of the configuration.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -670,6 +680,33 @@
           "description": "Configuration is an embedded configuration object to be used as the plugin’s\nconfiguration.\n",
           "markdownDescription": "Configuration is an embedded configuration object to be used as the plugin's\nconfiguration.",
           "x-intellij-html-description": "\u003cp\u003eConfiguration is an embedded configuration object to be used as the plugin\u0026rsquo;s\nconfiguration.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "v1alpha1.AuthorizationConfigAuthorizerConfig": {
+      "properties": {
+        "type": {
+          "type": "string",
+          "title": "type",
+          "description": "Type is the name of the authorizer. Allowed values are Node, RBAC, and Webhook.\n",
+          "markdownDescription": "Type is the name of the authorizer. Allowed values are `Node`, `RBAC`, and `Webhook`.",
+          "x-intellij-html-description": "\u003cp\u003eType is the name of the authorizer. Allowed values are \u003ccode\u003eNode\u003c/code\u003e, \u003ccode\u003eRBAC\u003c/code\u003e, and \u003ccode\u003eWebhook\u003c/code\u003e.\u003c/p\u003e\n"
+        },
+        "name": {
+          "type": "string",
+          "title": "name",
+          "description": "Name is used to describe the authorizer.\n",
+          "markdownDescription": "Name is used to describe the authorizer.",
+          "x-intellij-html-description": "\u003cp\u003eName is used to describe the authorizer.\u003c/p\u003e\n"
+        },
+        "webhook": {
+          "type": "object",
+          "title": "webhook",
+          "description": "webhook is the configuration for the webhook authorizer.\n",
+          "markdownDescription": "webhook is the configuration for the webhook authorizer.",
+          "x-intellij-html-description": "\u003cp\u003ewebhook is the configuration for the webhook authorizer.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -901,16 +938,29 @@
         "stp": {
           "$ref": "#/$defs/v1alpha1.STP",
           "title": "stp",
-          "description": "A bridge option.\nPlease see the official kernel documentation.\n",
-          "markdownDescription": "A bridge option.\nPlease see the official kernel documentation.",
-          "x-intellij-html-description": "\u003cp\u003eA bridge option.\nPlease see the official kernel documentation.\u003c/p\u003e\n"
+          "description": "Enable STP on this bridge.\nPlease see the official kernel documentation.\n",
+          "markdownDescription": "Enable STP on this bridge.\nPlease see the official kernel documentation.",
+          "x-intellij-html-description": "\u003cp\u003eEnable STP on this bridge.\nPlease see the official kernel documentation.\u003c/p\u003e\n"
         },
         "vlan": {
           "$ref": "#/$defs/v1alpha1.BridgeVLAN",
           "title": "vlan",
-          "description": "A bridge option.\nPlease see the official kernel documentation.\n",
-          "markdownDescription": "A bridge option.\nPlease see the official kernel documentation.",
-          "x-intellij-html-description": "\u003cp\u003eA bridge option.\nPlease see the official kernel documentation.\u003c/p\u003e\n"
+          "description": "Enable VLAN-awareness on this bridge.\nPlease see the official kernel documentation.\n",
+          "markdownDescription": "Enable VLAN-awareness on this bridge.\nPlease see the official kernel documentation.",
+          "x-intellij-html-description": "\u003cp\u003eEnable VLAN-awareness on this bridge.\nPlease see the official kernel documentation.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "v1alpha1.BridgePort": {
+      "properties": {
+        "master": {
+          "type": "string",
+          "title": "master",
+          "description": "The name of the bridge master interface\n",
+          "markdownDescription": "The name of the bridge master interface",
+          "x-intellij-html-description": "\u003cp\u003eThe name of the bridge master interface\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -1482,6 +1532,13 @@
           "markdownDescription": "Bridge specific options.",
           "x-intellij-html-description": "\u003cp\u003eBridge specific options.\u003c/p\u003e\n"
         },
+        "bridgePort": {
+          "$ref": "#/$defs/v1alpha1.BridgePort",
+          "title": "bridgePort",
+          "description": "Configure this device as a bridge port.\nThis can be used to dynamically assign network interfaces to a bridge.\n",
+          "markdownDescription": "Configure this device as a bridge port.\nThis can be used to dynamically assign network interfaces to a bridge.",
+          "x-intellij-html-description": "\u003cp\u003eConfigure this device as a bridge port.\nThis can be used to dynamically assign network interfaces to a bridge.\u003c/p\u003e\n"
+        },
         "vlans": {
           "items": {
             "$ref": "#/$defs/v1alpha1.Vlan"
@@ -2050,6 +2107,13 @@
           "description": "Configures host DNS caching resolver.\n",
           "markdownDescription": "Configures host DNS caching resolver.",
           "x-intellij-html-description": "\u003cp\u003eConfigures host DNS caching resolver.\u003c/p\u003e\n"
+        },
+        "imageCache": {
+          "$ref": "#/$defs/v1alpha1.ImageCacheConfig",
+          "title": "imageCache",
+          "description": "Enable Image Cache feature.\n",
+          "markdownDescription": "Enable Image Cache feature.",
+          "x-intellij-html-description": "\u003cp\u003eEnable Image Cache feature.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -2093,6 +2157,19 @@
           "description": "Resolve member hostnames using the host DNS resolver.\n\nWhen enabled, cluster member hostnames and node names are resolved using the host DNS resolver.\nThis requires service discovery to be enabled.\n",
           "markdownDescription": "Resolve member hostnames using the host DNS resolver.\n\nWhen enabled, cluster member hostnames and node names are resolved using the host DNS resolver.\nThis requires service discovery to be enabled.",
           "x-intellij-html-description": "\u003cp\u003eResolve member hostnames using the host DNS resolver.\u003c/p\u003e\n\n\u003cp\u003eWhen enabled, cluster member hostnames and node names are resolved using the host DNS resolver.\nThis requires service discovery to be enabled.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "v1alpha1.ImageCacheConfig": {
+      "properties": {
+        "localEnabled": {
+          "type": "boolean",
+          "title": "localEnabled",
+          "description": "Enable local image cache.\n",
+          "markdownDescription": "Enable local image cache.",
+          "x-intellij-html-description": "\u003cp\u003eEnable local image cache.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -2752,6 +2829,13 @@
           "markdownDescription": "Configures the seccomp profiles for the machine.",
           "x-intellij-html-description": "\u003cp\u003eConfigures the seccomp profiles for the machine.\u003c/p\u003e\n"
         },
+        "baseRuntimeSpecOverrides": {
+          "type": "object",
+          "title": "baseRuntimeSpecOverrides",
+          "description": "Override (patch) settings in the default OCI runtime spec for CRI containers.\n\nIt can be used to set some default container settings which are not configurable in Kubernetes,\nfor example default ulimits.\nNote: this change applies to all newly created containers, and it requires a reboot to take effect.\n",
+          "markdownDescription": "Override (patch) settings in the default OCI runtime spec for CRI containers.\n\nIt can be used to set some default container settings which are not configurable in Kubernetes,\nfor example default ulimits.\nNote: this change applies to all newly created containers, and it requires a reboot to take effect.",
+          "x-intellij-html-description": "\u003cp\u003eOverride (patch) settings in the default OCI runtime spec for CRI containers.\u003c/p\u003e\n\n\u003cp\u003eIt can be used to set some default container settings which are not configurable in Kubernetes,\nfor example default ulimits.\nNote: this change applies to all newly created containers, and it requires a reboot to take effect.\u003c/p\u003e\n"
+        },
         "nodeLabels": {
           "patternProperties": {
             ".*": {
@@ -2948,6 +3032,16 @@
           "markdownDescription": "Used to statically set the nameservers for the machine.\nDefaults to `1.1.1.1` and `8.8.8.8`",
           "x-intellij-html-description": "\u003cp\u003eUsed to statically set the nameservers for the machine.\nDefaults to \u003ccode\u003e1.1.1.1\u003c/code\u003e and \u003ccode\u003e8.8.8.8\u003c/code\u003e\u003c/p\u003e\n"
         },
+        "searchDomains": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "title": "searchDomains",
+          "description": "Used to statically set arbitrary search domains.\n",
+          "markdownDescription": "Used to statically set arbitrary search domains.",
+          "x-intellij-html-description": "\u003cp\u003eUsed to statically set arbitrary search domains.\u003c/p\u003e\n"
+        },
         "extraHostEntries": {
           "items": {
             "$ref": "#/$defs/v1alpha1.ExtraHost"
@@ -2988,9 +3082,16 @@
         "hardwareAddr": {
           "type": "string",
           "title": "hardwareAddr",
-          "description": "Device hardware address, supports matching by wildcard.\n",
-          "markdownDescription": "Device hardware address, supports matching by wildcard.",
-          "x-intellij-html-description": "\u003cp\u003eDevice hardware address, supports matching by wildcard.\u003c/p\u003e\n"
+          "description": "Device hardware (MAC) address, supports matching by wildcard.\n",
+          "markdownDescription": "Device hardware (MAC) address, supports matching by wildcard.",
+          "x-intellij-html-description": "\u003cp\u003eDevice hardware (MAC) address, supports matching by wildcard.\u003c/p\u003e\n"
+        },
+        "permanentAddr": {
+          "type": "string",
+          "title": "permanentAddr",
+          "description": "Device permanent hardware address, supports matching by wildcard.\nThe permanent address doesn’t change when the link is enslaved to a bond,\nso it’s recommended to use this field for bond members.\n",
+          "markdownDescription": "Device permanent hardware address, supports matching by wildcard.\nThe permanent address doesn't change when the link is enslaved to a bond,\nso it's recommended to use this field for bond members.",
+          "x-intellij-html-description": "\u003cp\u003eDevice permanent hardware address, supports matching by wildcard.\nThe permanent address doesn\u0026rsquo;t change when the link is enslaved to a bond,\nso it\u0026rsquo;s recommended to use this field for bond members.\u003c/p\u003e\n"
         },
         "pciID": {
           "type": "string",
@@ -3219,6 +3320,13 @@
           "description": "Use the exact path specified for the endpoint (don’t append /v2/).\nThis setting is often required for setting up multiple mirrors\non a single instance of a registry.\n",
           "markdownDescription": "Use the exact path specified for the endpoint (don't append /v2/).\nThis setting is often required for setting up multiple mirrors\non a single instance of a registry.",
           "x-intellij-html-description": "\u003cp\u003eUse the exact path specified for the endpoint (don\u0026rsquo;t append /v2/).\nThis setting is often required for setting up multiple mirrors\non a single instance of a registry.\u003c/p\u003e\n"
+        },
+        "skipFallback": {
+          "type": "boolean",
+          "title": "skipFallback",
+          "description": "Skip fallback to the upstream endpoint, for example the mirror configuration\nfor docker.io will not fallback to registry-1.docker.io.\n",
+          "markdownDescription": "Skip fallback to the upstream endpoint, for example the mirror configuration\nfor `docker.io` will not fallback to `registry-1.docker.io`.",
+          "x-intellij-html-description": "\u003cp\u003eSkip fallback to the upstream endpoint, for example the mirror configuration\nfor \u003ccode\u003edocker.io\u003c/code\u003e will not fallback to \u003ccode\u003eregistry-1.docker.io\u003c/code\u003e.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
