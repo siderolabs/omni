@@ -59,6 +59,11 @@ func GetOverlay(board string) *schematic.Overlay {
 			Name:  "rpi_generic",
 			Image: "siderolabs/sbc-raspberrypi",
 		}
+	case "turingrk1":
+		return &schematic.Overlay{
+			Name:  "turingrk1",
+			Image: "siderolabs/sbc-rockchip",
+		}
 	}
 
 	return nil

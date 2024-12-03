@@ -343,6 +343,14 @@ var installationMedia = []installationMediaSpec{
 		SBC:          true,
 		ContentType:  "application/x-xz",
 	},
+	{
+		Name:         "Turing RK1",
+		Architecture: arm64Arch,
+		Profile:      "turingrk1",
+		Type:         rawType,
+		SBC:          true,
+		ContentType:  "application/x-xz",
+	},
 }
 
 // InstallationMediaController manages omni.InstallationMedia.
