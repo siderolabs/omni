@@ -133,7 +133,7 @@ func TestInfraProviderAccess(t *testing.T) {
 
 	// ConfigPatchRequest
 
-	cpr := infra.NewConfigPatchRequest(resources.InfraProviderNamespace, "test-cpr")
+	cpr := infra.NewConfigPatchRequest("test-cpr")
 
 	// create
 	assert.NoError(t, st.Create(ctx, cpr))

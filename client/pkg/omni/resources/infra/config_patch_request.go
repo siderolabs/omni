@@ -15,9 +15,9 @@ import (
 )
 
 // NewConfigPatchRequest creates new ConfigPatchRequest resource.
-func NewConfigPatchRequest(ns string, id resource.ID) *ConfigPatchRequest {
+func NewConfigPatchRequest(id resource.ID) *ConfigPatchRequest {
 	return typed.NewResource[ConfigPatchRequestSpec, ConfigPatchRequestExtension](
-		resource.NewMetadata(ns, ConfigPatchRequestType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.InfraProviderNamespace, ConfigPatchRequestType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ConfigPatchSpec{}),
 	)
 }
