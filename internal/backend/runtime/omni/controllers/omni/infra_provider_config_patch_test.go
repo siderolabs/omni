@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -38,7 +37,7 @@ func (suite *InfraProviderConfigPatchControllerSuite) TestReconcile() {
 	id := "patch"
 	requestID := "request-1"
 
-	request := infra.NewConfigPatchRequest(resources.InfraProviderNamespace, id)
+	request := infra.NewConfigPatchRequest(id)
 	request.Metadata().Labels().Set(omni.LabelMachineRequest, requestID)
 	request.Metadata().Labels().Set(omni.LabelInfraProviderID, provider)
 

@@ -19,7 +19,6 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
@@ -143,7 +142,7 @@ func (context *Context[T]) UnmarshalProviderData(dest any) error {
 
 // CreateConfigPatch for the provisioned machine.
 func (context *Context[T]) CreateConfigPatch(ctx context.Context, name string, data []byte) error {
-	r := infra.NewConfigPatchRequest(resources.InfraProviderNamespace, name)
+	r := infra.NewConfigPatchRequest(name)
 
 	providerID, ok := context.machineRequest.Metadata().Labels().Get(omni.LabelInfraProviderID)
 	if !ok {

@@ -35,7 +35,7 @@ func NewInfraProviderConfigPatchController() *InfraProviderConfigPatchController
 				return omni.NewConfigPatch(resources.DefaultNamespace, request.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(configPatch *omni.ConfigPatch) *infra.ConfigPatchRequest {
-				return infra.NewConfigPatchRequest(resources.DefaultNamespace, configPatch.Metadata().ID())
+				return infra.NewConfigPatchRequest(configPatch.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, request *infra.ConfigPatchRequest, patch *omni.ConfigPatch) error {
 				machineRequestID, ok := request.Metadata().Labels().Get(omni.LabelMachineRequest)
