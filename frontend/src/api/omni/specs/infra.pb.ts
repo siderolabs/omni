@@ -47,6 +47,7 @@ export type InfraMachineSpec = {
   cluster_talos_version?: string
   extensions?: string[]
   wipe_id?: string
+  extra_kernel_args?: string
 }
 
 export type InfraMachineStateSpec = {

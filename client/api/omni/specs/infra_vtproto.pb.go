@@ -86,6 +86,7 @@ func (m *InfraMachineSpec) CloneVT() *InfraMachineSpec {
 	r.Accepted = m.Accepted
 	r.ClusterTalosVersion = m.ClusterTalosVersion
 	r.WipeId = m.WipeId
+	r.ExtraKernelArgs = m.ExtraKernelArgs
 	if rhs := m.Extensions; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -273,6 +274,9 @@ func (this *InfraMachineSpec) EqualVT(that *InfraMachineSpec) bool {
 		}
 	}
 	if this.WipeId != that.WipeId {
+		return false
+	}
+	if this.ExtraKernelArgs != that.ExtraKernelArgs {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -534,6 +538,13 @@ func (m *InfraMachineSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ExtraKernelArgs) > 0 {
+		i -= len(m.ExtraKernelArgs)
+		copy(dAtA[i:], m.ExtraKernelArgs)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ExtraKernelArgs)))
+		i--
+		dAtA[i] = 0x32
 	}
 	if len(m.WipeId) > 0 {
 		i -= len(m.WipeId)
@@ -819,6 +830,10 @@ func (m *InfraMachineSpec) SizeVT() (n int) {
 		}
 	}
 	l = len(m.WipeId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ExtraKernelArgs)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -1478,6 +1493,38 @@ func (m *InfraMachineSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.WipeId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExtraKernelArgs", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ExtraKernelArgs = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

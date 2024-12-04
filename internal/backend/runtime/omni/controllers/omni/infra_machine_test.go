@@ -58,12 +58,14 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 	config := omni.NewInfraMachineConfig(resources.DefaultNamespace, "machine-1")
 	config.TypedSpec().Value.Accepted = true
 	config.TypedSpec().Value.PowerState = specs.InfraMachineConfigSpec_POWER_STATE_ON
+	config.TypedSpec().Value.ExtraKernelArgs = "foo=bar bar=baz"
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, config))
 
 	assertResource[*infra.Machine](&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
 		assertion.True(r.TypedSpec().Value.Accepted)
 		assertion.Equal(specs.InfraMachineSpec_POWER_STATE_ON, r.TypedSpec().Value.PreferredPowerState)
+		assertion.Equal("foo=bar bar=baz", r.TypedSpec().Value.ExtraKernelArgs)
 	})
 
 	// allocate the machine to a cluster

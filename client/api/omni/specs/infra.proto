@@ -44,6 +44,8 @@ message InfraMachineSpec {
   //
   // It is used by the provider to ensure that the machine is wiped between allocations.
   string wipe_id = 5;
+
+  string extra_kernel_args = 6;
 }
 
 message InfraMachineStateSpec {

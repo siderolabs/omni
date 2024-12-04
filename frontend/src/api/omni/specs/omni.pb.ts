@@ -821,4 +821,5 @@ export type ClusterMachineRequestStatusSpec = {
 export type InfraMachineConfigSpec = {
   power_state?: InfraMachineConfigSpecMachinePowerState
   accepted?: boolean
+  extra_kernel_args?: string
 }

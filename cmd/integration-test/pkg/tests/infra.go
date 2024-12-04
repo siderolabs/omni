@@ -161,7 +161,14 @@ func AssertMachinesShouldBeDeprovisioned(testCtx context.Context, client *client
 // AcceptInfraMachines asserts that there are a certain number of machines that are not accepted, provisioned by the static infra provider with the given ID.
 //
 // It then accepts them all and asserts that the states of various resources are updated as expected.
-func AcceptInfraMachines(testCtx context.Context, omniState state.State, expectedCount int) TestFunc {
+func AcceptInfraMachines(testCtx context.Context, omniState state.State, expectedCount int, disableKexec bool) TestFunc {
+	const disableKexecConfigPatch = `machine:
+  install:
+    extraKernelArgs:
+      - kexec_load_disabled=1
+  sysctls:
+    kernel.kexec_load_disabled: "1"`
+
 	return func(t *testing.T) {
 		logger := zaptest.NewLogger(t)
 
@@ -200,7 +207,20 @@ func AcceptInfraMachines(testCtx context.Context, omniState state.State, expecte
 
 			infraMachineConfig.TypedSpec().Value.Accepted = true
 
+			if disableKexec {
+				infraMachineConfig.TypedSpec().Value.ExtraKernelArgs = "kexec_load_disabled=1"
+			}
+
 			require.NoError(t, omniState.Create(ctx, infraMachineConfig))
+
+			if disableKexec {
+				disableKexecConfigPatchRes := omni.NewConfigPatch(resources.DefaultNamespace, fmt.Sprintf("500-%s-disable-kexec", link.Metadata().ID()))
+
+				disableKexecConfigPatchRes.Metadata().Labels().Set(omni.LabelMachine, link.Metadata().ID())
+
+				require.NoError(t, disableKexecConfigPatchRes.TypedSpec().Value.SetUncompressedData([]byte(disableKexecConfigPatch)))
+				require.NoError(t, omniState.Create(ctx, disableKexecConfigPatchRes))
+			}
 		}
 
 		logger.Info("accepted machines", zap.String("infra_provider_id", infraProviderID), zap.Strings("machine_ids", ids))

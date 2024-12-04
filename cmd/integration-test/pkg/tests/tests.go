@@ -1339,8 +1339,10 @@ Tests common Omni operations on machines created by a static infrastructure prov
 
 - expect all machines to be unaccepted and accept them
 - assert that machines are ready to use
-- create a 3+1 cluster - assert that cluster is healthy and ready
+- create a 1+0 cluster - assert that cluster is healthy and ready
+- scale it up to be 3+1 - assert that cluster is healthy and ready
 - assert that machines are not ready to use (occupied)
+- scale it down to be 1+0 - assert that cluster is healthy and ready
 - destroy the cluster - assert that machines are wiped, then marked as ready to use
 - create a new 3+1 cluster
 - assert that cluster is healthy and ready
@@ -1351,19 +1353,38 @@ Tests common Omni operations on machines created by a static infrastructure prov
 			Subtests: subTests(
 				subTest{
 					"AcceptMachines",
-					AcceptInfraMachines(ctx, rootClient.Omni().State(), options.ExpectedMachines),
+					AcceptInfraMachines(ctx, rootClient.Omni().State(), options.ExpectedMachines, true), // disable kexec to test full reboot over the provider
 				},
 				subTest{
 					"ClusterShouldBeCreated",
 					CreateCluster(ctx, rootClient, ClusterOptions{
 						Name:          "integration-static-infra-provider",
-						ControlPlanes: 3,
-						Workers:       1,
+						ControlPlanes: 1,
+						Workers:       0,
 
 						MachineOptions: options.MachineOptions,
 						ScalingTimeout: options.ScalingTimeout,
 
 						SkipExtensionCheckOnCreate: true,
+					}),
+				},
+			).Append(
+				TestBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
+					ctx, rootClient,
+					"integration-static-infra-provider",
+					options.MachineOptions.TalosVersion,
+					options.MachineOptions.KubernetesVersion,
+					talosAPIKeyPrepare,
+				)...,
+			).Append(
+				subTest{
+					"ClusterShouldBeScaledUp",
+					ScaleClusterUp(ctx, rootClient.Omni().State(), ClusterOptions{
+						Name:           "integration-static-infra-provider",
+						ControlPlanes:  2,
+						Workers:        1,
+						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
 					}),
 				},
 			).Append(
@@ -1384,6 +1405,25 @@ Tests common Omni operations on machines created by a static infrastructure prov
 					AssertInfraMachinesAreAllocated(ctx, rootClient.Omni().State(), "integration-static-infra-provider",
 						options.MachineOptions.TalosVersion, []string{"siderolabs/binfmt-misc", "siderolabs/glibc"}),
 				},
+			).Append(
+				subTest{
+					"ClusterShouldBeScaledDown",
+					ScaleClusterDown(ctx, rootClient.Omni().State(), ClusterOptions{
+						Name:           "integration-static-infra-provider",
+						ControlPlanes:  -2,
+						Workers:        -1,
+						MachineOptions: options.MachineOptions,
+						ScalingTimeout: options.ScalingTimeout,
+					}),
+				},
+			).Append(
+				TestBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
+					ctx, rootClient,
+					"integration-static-infra-provider",
+					options.MachineOptions.TalosVersion,
+					options.MachineOptions.KubernetesVersion,
+					talosAPIKeyPrepare,
+				)...,
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",

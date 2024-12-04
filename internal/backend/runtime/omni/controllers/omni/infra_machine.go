@@ -112,8 +112,13 @@ func (h *infraMachineControllerHelper) transformExtraOutput(ctx context.Context,
 		return err
 	}
 
-	// the machine is deallocated, clear the cluster information and mark it for wipe by assigning it a new wipe ID
 	if clusterMachine.Metadata().Phase() == resource.PhaseTearingDown {
+		if clusterMachine.Metadata().Finalizers().Has(ClusterMachineConfigControllerName) {
+			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("cluster machine is not reset yet")
+		}
+
+		// the machine is deallocated, clear the cluster information and mark it for wipe by assigning it a new wipe ID
+
 		infraMachine.TypedSpec().Value.ClusterTalosVersion = ""
 		infraMachine.TypedSpec().Value.Extensions = nil
 		infraMachine.TypedSpec().Value.WipeId = uuid.NewString()
@@ -166,7 +171,13 @@ func (h *infraMachineControllerHelper) applyInfraMachineConfig(ctx context.Conte
 		return err
 	}
 
-	if config != nil { // apply user configuration: acceptance, preferred power state
+	const defaultPreferredPowerState = specs.InfraMachineSpec_POWER_STATE_OFF // todo: introduce a resource to configure this globally or per-provider level
+
+	// reset the user-override fields except the "Accepted" field
+	infraMachine.TypedSpec().Value.PreferredPowerState = defaultPreferredPowerState
+	infraMachine.TypedSpec().Value.ExtraKernelArgs = ""
+
+	if config != nil { // apply user configuration: acceptance, preferred power state, extra kernel args
 		infraMachine.TypedSpec().Value.Accepted = config.TypedSpec().Value.Accepted
 
 		switch config.TypedSpec().Value.PowerState {
@@ -174,11 +185,13 @@ func (h *infraMachineControllerHelper) applyInfraMachineConfig(ctx context.Conte
 			infraMachine.TypedSpec().Value.PreferredPowerState = specs.InfraMachineSpec_POWER_STATE_OFF
 		case specs.InfraMachineConfigSpec_POWER_STATE_ON:
 			infraMachine.TypedSpec().Value.PreferredPowerState = specs.InfraMachineSpec_POWER_STATE_ON
-		case specs.InfraMachineConfigSpec_POWER_STATE_DEFAULT: // todo: introduce a resource to configure this globally or per-provider level
-			infraMachine.TypedSpec().Value.PreferredPowerState = specs.InfraMachineSpec_POWER_STATE_OFF
+		case specs.InfraMachineConfigSpec_POWER_STATE_DEFAULT:
+			infraMachine.TypedSpec().Value.PreferredPowerState = defaultPreferredPowerState
 		default:
 			return fmt.Errorf("unknown power state: %v", config.TypedSpec().Value.PowerState.String())
 		}
+
+		infraMachine.TypedSpec().Value.ExtraKernelArgs = config.TypedSpec().Value.ExtraKernelArgs
 	}
 
 	return nil
