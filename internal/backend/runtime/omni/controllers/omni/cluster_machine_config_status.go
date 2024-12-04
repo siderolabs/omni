@@ -780,6 +780,12 @@ func (h *clusterMachineConfigStatusControllerHandler) deleteUpgradeMetaKey(ctx c
 			return nil
 		}
 
+		if status.Code(err) == codes.Unimplemented {
+			h.logger.Debug("upgrade meta key is not removed, unimplemented in the Talos version", zap.String("machine", machineConfig.Metadata().ID()))
+
+			return nil
+		}
+
 		return err
 	}
 
