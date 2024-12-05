@@ -17,6 +17,7 @@ import (
 	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -115,7 +116,7 @@ func (h *machineControllerHelper) handleStaticInfraProvider(ctx context.Context,
 		return err
 	}
 
-	accepted := infraMachine != nil && infraMachine.TypedSpec().Value.Accepted
+	accepted := infraMachine != nil && infraMachine.TypedSpec().Value.AcceptanceStatus == specs.InfraMachineConfigSpec_ACCEPTED
 
 	if !accepted {
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag](

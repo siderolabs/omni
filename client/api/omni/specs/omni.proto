@@ -1257,6 +1257,12 @@ message ClusterMachineRequestStatusSpec {
 
 // InfraMachineConfigSpec is the spec of the user-owned InfraMachineConfig resource.
 message InfraMachineConfigSpec {
+  enum AcceptanceStatus {
+    PENDING = 0;
+    ACCEPTED = 1;
+    REJECTED = 2;
+  }
+
   enum MachinePowerState {
     POWER_STATE_DEFAULT = 0;
     POWER_STATE_OFF = 1;
@@ -1264,6 +1270,6 @@ message InfraMachineConfigSpec {
   }
 
   MachinePowerState power_state = 1;
-  bool accepted = 2;
+  AcceptanceStatus acceptance_status = 2;
   string extra_kernel_args = 3;
 }

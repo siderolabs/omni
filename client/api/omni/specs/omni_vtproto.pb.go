@@ -2379,7 +2379,7 @@ func (m *InfraMachineConfigSpec) CloneVT() *InfraMachineConfigSpec {
 	}
 	r := new(InfraMachineConfigSpec)
 	r.PowerState = m.PowerState
-	r.Accepted = m.Accepted
+	r.AcceptanceStatus = m.AcceptanceStatus
 	r.ExtraKernelArgs = m.ExtraKernelArgs
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -5610,7 +5610,7 @@ func (this *InfraMachineConfigSpec) EqualVT(that *InfraMachineConfigSpec) bool {
 	if this.PowerState != that.PowerState {
 		return false
 	}
-	if this.Accepted != that.Accepted {
+	if this.AcceptanceStatus != that.AcceptanceStatus {
 		return false
 	}
 	if this.ExtraKernelArgs != that.ExtraKernelArgs {
@@ -11921,13 +11921,8 @@ func (m *InfraMachineConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i--
 		dAtA[i] = 0x1a
 	}
-	if m.Accepted {
-		i--
-		if m.Accepted {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
+	if m.AcceptanceStatus != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.AcceptanceStatus))
 		i--
 		dAtA[i] = 0x10
 	}
@@ -14405,8 +14400,8 @@ func (m *InfraMachineConfigSpec) SizeVT() (n int) {
 	if m.PowerState != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.PowerState))
 	}
-	if m.Accepted {
-		n += 2
+	if m.AcceptanceStatus != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.AcceptanceStatus))
 	}
 	l = len(m.ExtraKernelArgs)
 	if l > 0 {
@@ -30001,9 +29996,9 @@ func (m *InfraMachineConfigSpec) UnmarshalVT(dAtA []byte) error {
 			}
 		case 2:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Accepted", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field AcceptanceStatus", wireType)
 			}
-			var v int
+			m.AcceptanceStatus = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protohelpers.ErrIntOverflow
@@ -30013,12 +30008,11 @@ func (m *InfraMachineConfigSpec) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= int(b&0x7F) << shift
+				m.AcceptanceStatus |= InfraMachineConfigSpec_AcceptanceStatus(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			m.Accepted = bool(v != 0)
 		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ExtraKernelArgs", wireType)

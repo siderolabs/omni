@@ -36,7 +36,7 @@ message InfraMachineSpec {
   }
 
   MachinePowerState preferred_power_state = 1;
-  bool accepted = 2;
+  InfraMachineConfigSpec.AcceptanceStatus acceptance_status = 2;
   string cluster_talos_version = 3;
   repeated string extensions = 4;
 

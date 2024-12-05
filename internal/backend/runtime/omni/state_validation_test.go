@@ -1190,19 +1190,19 @@ func TestInfraMachineConfigValidation(t *testing.T) {
 
 	// recreate the conf, as accepted this time
 	conf = omnires.NewInfraMachineConfig(resources.DefaultNamespace, "test")
-	conf.TypedSpec().Value.Accepted = true
+	conf.TypedSpec().Value.AcceptanceStatus = specs.InfraMachineConfigSpec_ACCEPTED
 
 	require.NoError(t, st.Create(ctx, conf))
 
 	// try to "unaccept" it
 
 	_, err := safe.StateUpdateWithConflicts(ctx, wrappedState, conf.Metadata(), func(res *omnires.InfraMachineConfig) error {
-		res.TypedSpec().Value.Accepted = false
+		res.TypedSpec().Value.AcceptanceStatus = specs.InfraMachineConfigSpec_REJECTED
 
 		return nil
 	})
 	require.True(t, validated.IsValidationError(err), "expected validation error")
-	assert.ErrorContains(t, err, "an accepted machine cannot be unaccepted")
+	assert.ErrorContains(t, err, "acceptance status cannot be changed")
 
 	// try to destroy it
 

@@ -22,6 +22,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
@@ -195,7 +196,7 @@ func AcceptInfraMachines(testCtx context.Context, omniState state.State, expecte
 			require.NotEmpty(t, infraProviderID)
 
 			rtestutils.AssertResource[*infra.Machine](ctx, t, omniState, link.Metadata().ID(), func(res *infra.Machine, assertion *assert.Assertions) {
-				assertion.False(res.TypedSpec().Value.Accepted)
+				assertion.Equal(specs.InfraMachineConfigSpec_PENDING, res.TypedSpec().Value.AcceptanceStatus)
 			})
 
 			rtestutils.AssertNoResource[*infra.MachineStatus](ctx, t, omniState, link.Metadata().ID())
@@ -205,7 +206,7 @@ func AcceptInfraMachines(testCtx context.Context, omniState state.State, expecte
 			// Accept the machine
 			infraMachineConfig := omni.NewInfraMachineConfig(resources.DefaultNamespace, link.Metadata().ID())
 
-			infraMachineConfig.TypedSpec().Value.Accepted = true
+			infraMachineConfig.TypedSpec().Value.AcceptanceStatus = specs.InfraMachineConfigSpec_ACCEPTED
 
 			if disableKexec {
 				infraMachineConfig.TypedSpec().Value.ExtraKernelArgs = "kexec_load_disabled=1"
@@ -233,7 +234,7 @@ func AcceptInfraMachines(testCtx context.Context, omniState state.State, expecte
 
 		// Assert that the infra.Machines are now marked as accepted
 		rtestutils.AssertResources(ctx, t, omniState, ids, func(res *infra.Machine, assertion *assert.Assertions) {
-			assertion.True(res.TypedSpec().Value.Accepted)
+			assertion.Equal(specs.InfraMachineConfigSpec_ACCEPTED, res.TypedSpec().Value.AcceptanceStatus)
 		})
 
 		// Assert that omni.Machine resources are now created and marked as managed by the static infra provider

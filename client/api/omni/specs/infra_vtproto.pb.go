@@ -83,7 +83,7 @@ func (m *InfraMachineSpec) CloneVT() *InfraMachineSpec {
 	}
 	r := new(InfraMachineSpec)
 	r.PreferredPowerState = m.PreferredPowerState
-	r.Accepted = m.Accepted
+	r.AcceptanceStatus = m.AcceptanceStatus
 	r.ClusterTalosVersion = m.ClusterTalosVersion
 	r.WipeId = m.WipeId
 	r.ExtraKernelArgs = m.ExtraKernelArgs
@@ -258,7 +258,7 @@ func (this *InfraMachineSpec) EqualVT(that *InfraMachineSpec) bool {
 	if this.PreferredPowerState != that.PreferredPowerState {
 		return false
 	}
-	if this.Accepted != that.Accepted {
+	if this.AcceptanceStatus != that.AcceptanceStatus {
 		return false
 	}
 	if this.ClusterTalosVersion != that.ClusterTalosVersion {
@@ -569,13 +569,8 @@ func (m *InfraMachineSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x1a
 	}
-	if m.Accepted {
-		i--
-		if m.Accepted {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
+	if m.AcceptanceStatus != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.AcceptanceStatus))
 		i--
 		dAtA[i] = 0x10
 	}
@@ -816,8 +811,8 @@ func (m *InfraMachineSpec) SizeVT() (n int) {
 	if m.PreferredPowerState != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.PreferredPowerState))
 	}
-	if m.Accepted {
-		n += 2
+	if m.AcceptanceStatus != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.AcceptanceStatus))
 	}
 	l = len(m.ClusterTalosVersion)
 	if l > 0 {
@@ -1380,9 +1375,9 @@ func (m *InfraMachineSpec) UnmarshalVT(dAtA []byte) error {
 			}
 		case 2:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Accepted", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field AcceptanceStatus", wireType)
 			}
-			var v int
+			m.AcceptanceStatus = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protohelpers.ErrIntOverflow
@@ -1392,12 +1387,11 @@ func (m *InfraMachineSpec) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= int(b&0x7F) << shift
+				m.AcceptanceStatus |= InfraMachineConfigSpec_AcceptanceStatus(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			m.Accepted = bool(v != 0)
 		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ClusterTalosVersion", wireType)

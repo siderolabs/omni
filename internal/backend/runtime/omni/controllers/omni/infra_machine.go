@@ -178,7 +178,7 @@ func (h *infraMachineControllerHelper) applyInfraMachineConfig(ctx context.Conte
 	infraMachine.TypedSpec().Value.ExtraKernelArgs = ""
 
 	if config != nil { // apply user configuration: acceptance, preferred power state, extra kernel args
-		infraMachine.TypedSpec().Value.Accepted = config.TypedSpec().Value.Accepted
+		infraMachine.TypedSpec().Value.AcceptanceStatus = config.TypedSpec().Value.AcceptanceStatus
 
 		switch config.TypedSpec().Value.PowerState {
 		case specs.InfraMachineConfigSpec_POWER_STATE_OFF:

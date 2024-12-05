@@ -48,7 +48,7 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 		assertion.Equal("bare-metal", infraProviderID)
 
 		assertion.Equal(specs.InfraMachineSpec_POWER_STATE_OFF, r.TypedSpec().Value.PreferredPowerState)
-		assertion.False(r.TypedSpec().Value.Accepted)
+		assertion.Equal(specs.InfraMachineConfigSpec_PENDING, r.TypedSpec().Value.AcceptanceStatus)
 		assertion.Empty(r.TypedSpec().Value.ClusterTalosVersion)
 		assertion.Empty(r.TypedSpec().Value.Extensions)
 		assertion.Empty(r.TypedSpec().Value.WipeId)
@@ -56,14 +56,14 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 
 	// accept the machine, set its preferred power state to on
 	config := omni.NewInfraMachineConfig(resources.DefaultNamespace, "machine-1")
-	config.TypedSpec().Value.Accepted = true
+	config.TypedSpec().Value.AcceptanceStatus = specs.InfraMachineConfigSpec_ACCEPTED
 	config.TypedSpec().Value.PowerState = specs.InfraMachineConfigSpec_POWER_STATE_ON
 	config.TypedSpec().Value.ExtraKernelArgs = "foo=bar bar=baz"
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, config))
 
 	assertResource[*infra.Machine](&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
-		assertion.True(r.TypedSpec().Value.Accepted)
+		assertion.Equal(specs.InfraMachineConfigSpec_ACCEPTED, r.TypedSpec().Value.AcceptanceStatus)
 		assertion.Equal(specs.InfraMachineSpec_POWER_STATE_ON, r.TypedSpec().Value.PreferredPowerState)
 		assertion.Equal("foo=bar bar=baz", r.TypedSpec().Value.ExtraKernelArgs)
 	})

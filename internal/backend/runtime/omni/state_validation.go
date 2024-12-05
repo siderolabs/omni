@@ -1078,14 +1078,18 @@ func validateProviderData(ctx context.Context, st state.State, providerID, provi
 func infraMachineConfigValidationOptions(st state.State) []validated.StateOption {
 	return []validated.StateOption{
 		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, oldRes, newRes *omni.InfraMachineConfig, _ ...state.UpdateOption) error {
-			if oldRes.TypedSpec().Value.Accepted && !newRes.TypedSpec().Value.Accepted {
-				return errors.New("an accepted machine cannot be unaccepted")
+			if oldRes.TypedSpec().Value.AcceptanceStatus == specs.InfraMachineConfigSpec_PENDING {
+				return nil
+			}
+
+			if oldRes.TypedSpec().Value.AcceptanceStatus != newRes.TypedSpec().Value.AcceptanceStatus {
+				return errors.New("acceptance status cannot be changed after it is accepted or rejected")
 			}
 
 			return nil
 		})),
 		validated.WithDestroyValidations(validated.NewDestroyValidationForType(func(ctx context.Context, _ resource.Pointer, res *omni.InfraMachineConfig, _ ...state.DestroyOption) error {
-			if !res.TypedSpec().Value.Accepted {
+			if res.TypedSpec().Value.AcceptanceStatus != specs.InfraMachineConfigSpec_ACCEPTED {
 				return nil
 			}
 

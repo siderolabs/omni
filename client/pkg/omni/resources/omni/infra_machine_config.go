@@ -50,8 +50,8 @@ func (InfraMachineConfigExtension) ResourceDefinition() meta.ResourceDefinitionS
 				JSONPath: "{.powerstate}",
 			},
 			{
-				Name:     "Accepted",
-				JSONPath: "{.accepted}",
+				Name:     "Acceptance",
+				JSONPath: "{.acceptancestatus}",
 			},
 		},
 	}

@@ -150,6 +150,12 @@ export enum ClusterMachineRequestStatusSpecStage {
   FAILED = 5,
 }
 
+export enum InfraMachineConfigSpecAcceptanceStatus {
+  PENDING = 0,
+  ACCEPTED = 1,
+  REJECTED = 2,
+}
+
 export enum InfraMachineConfigSpecMachinePowerState {
   POWER_STATE_DEFAULT = 0,
   POWER_STATE_OFF = 1,
@@ -820,6 +826,6 @@ export type ClusterMachineRequestStatusSpec = {
 
 export type InfraMachineConfigSpec = {
   power_state?: InfraMachineConfigSpecMachinePowerState
-  accepted?: boolean
+  acceptance_status?: InfraMachineConfigSpecAcceptanceStatus
   extra_kernel_args?: string
 }

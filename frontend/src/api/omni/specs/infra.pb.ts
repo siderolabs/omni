@@ -43,7 +43,7 @@ export type MachineRequestStatusSpec = {
 
 export type InfraMachineSpec = {
   preferred_power_state?: InfraMachineSpecMachinePowerState
-  accepted?: boolean
+  acceptance_status?: SpecsOmni.InfraMachineConfigSpecAcceptanceStatus
   cluster_talos_version?: string
   extensions?: string[]
   wipe_id?: string

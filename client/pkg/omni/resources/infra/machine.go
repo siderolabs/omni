@@ -50,8 +50,8 @@ func (MachineExtension) ResourceDefinition() meta.ResourceDefinitionSpec {
 				JSONPath: "{.preferredpowerstate}",
 			},
 			{
-				Name:     "Accepted",
-				JSONPath: "{.accepted}",
+				Name:     "Acceptance",
+				JSONPath: "{.acceptancestatus}",
 			},
 			{
 				Name:     "Cluster Talos Version",
@@ -64,6 +64,10 @@ func (MachineExtension) ResourceDefinition() meta.ResourceDefinitionSpec {
 			{
 				Name:     "Wipe ID",
 				JSONPath: "{.wipeid}",
+			},
+			{
+				Name:     "Extra Kernel Args",
+				JSONPath: "{.extrakernelargs}",
 			},
 		},
 	}
