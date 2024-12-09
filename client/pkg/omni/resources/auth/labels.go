@@ -14,6 +14,7 @@ const (
 
 const (
 	// LabelPublicKeyUserID is the label that defines the user ID of the public key.
+	// tsgen:LabelPublicKeyUserID
 	LabelPublicKeyUserID = "user-id"
 
 	// LabelIdentityUserID is a label linking identity to the user.

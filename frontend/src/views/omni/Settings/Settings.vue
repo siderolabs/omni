@@ -31,7 +31,7 @@ import TabsHeader from "@/components/common/Tabs/TabsHeader.vue";
 import TabButton from "@/components/common/Tabs/TabButton.vue";
 
 type Props = {
-  inner: Component,
+  inner?: Component,
 };
 
 const routes = computed((): {name: string, to: RouteLocationRaw }[] => {
@@ -39,6 +39,10 @@ const routes = computed((): {name: string, to: RouteLocationRaw }[] => {
     {
       name: "Users",
       to: { name: "Users" },
+    },
+    {
+      name: "Service Accounts",
+      to: { name: "ServiceAccounts" },
     },
     {
       name: "Backups",

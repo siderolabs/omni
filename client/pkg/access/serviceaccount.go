@@ -9,7 +9,9 @@ import (
 )
 
 const (
-	serviceAccountDomain              = "serviceaccount.omni.sidero.dev"
+	// tsgen:ServiceAccountDomain
+	serviceAccountDomain = "serviceaccount.omni.sidero.dev"
+	// tsgen:InfraProviderServiceAccountDomain
 	infraProviderServiceAccountDomain = "infra-provider." + serviceAccountDomain
 
 	// ServiceAccountNameSuffix is appended to the name of all service accounts.
