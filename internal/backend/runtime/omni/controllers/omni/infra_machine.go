@@ -119,9 +119,12 @@ func (h *infraMachineControllerHelper) transformExtraOutput(ctx context.Context,
 
 		// the machine is deallocated, clear the cluster information and mark it for wipe by assigning it a new wipe ID
 
+		if infraMachine.TypedSpec().Value.ClusterTalosVersion != "" {
+			infraMachine.TypedSpec().Value.WipeId = uuid.NewString()
+		}
+
 		infraMachine.TypedSpec().Value.ClusterTalosVersion = ""
 		infraMachine.TypedSpec().Value.Extensions = nil
-		infraMachine.TypedSpec().Value.WipeId = uuid.NewString()
 
 		if err = r.RemoveFinalizer(ctx, clusterMachine.Metadata(), InfraMachineControllerName); err != nil {
 			return err
