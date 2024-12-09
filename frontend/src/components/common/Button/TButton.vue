@@ -181,7 +181,7 @@ const textOrder = computed(() : StyleValue => {
 }
 
 .t-button.compact {
-  @apply bg-transparent
+  @apply bg-naturals-N4
     py-0.5
     px-2
     h-6

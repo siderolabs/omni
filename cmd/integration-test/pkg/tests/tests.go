@@ -197,6 +197,18 @@ Generate various Talos images with Omni and try to download them.`,
 			},
 		},
 		{
+			Name: "CLICommands",
+			Description: `
+Verify various omnictl commands.`,
+			Parallel: true,
+			Subtests: []subTest{
+				{
+					"OmnictlUserCLIShouldWork",
+					AssertUserCLI(ctx, rootClient, options.OmnictlPath, options.HTTPEndpoint),
+				},
+			},
+		},
+		{
 			Name:         "KubernetesNodeAudit",
 			Description:  "Test the auditing of the Kubernetes nodes, i.e. when a node is gone from the Omni perspective but still exists on the Kubernetes cluster.",
 			Parallel:     true,

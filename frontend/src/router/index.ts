@@ -15,6 +15,7 @@ import OmniMachineLogs from "@/views/omni/Machines/MachineLogs.vue";
 import OmniMachinePatches from "@/views/omni/Machines/MachinePatches.vue";
 import OmniMachine from "@/views/omni/Machines/Machine.vue";
 import OmniUsers from "@/views/omni/Users/Users.vue";
+import OmniServiceAccounts from "@/views/omni/Users/ServiceAccounts.vue";
 import OmniSettings from "@/views/omni/Settings/Settings.vue";
 import Authenticate from "@/views/omni/Auth/Authenticate.vue";
 import OmniMachineClasses from "@/views/omni/MachineClasses/MachineClasses.vue";
@@ -68,7 +69,9 @@ import UserDestroy from "@/views/omni/Modals/UserDestroy.vue";
 import UpdateKubernetes from "@/views/omni/Modals/UpdateKubernetes.vue";
 import UpdateTalos from "@/views/omni/Modals/UpdateTalos.vue";
 import UserCreate from "@/views/omni/Modals/UserCreate.vue";
-import UserEdit from "@/views/omni/Modals/UserEdit.vue";
+import RoleEdit from "@/views/omni/Modals/RoleEdit.vue";
+import ServiceAccountCreate from "@/views/omni/Modals/ServiceAccountCreate.vue";
+import ServiceAccountRenew from "@/views/omni/Modals/ServiceAccountRenew.vue";
 
 import { current } from "@/context";
 import { authGuard } from "@auth0/auth0-vue";
@@ -240,6 +243,13 @@ const routes: RouteRecordRaw[] = [
           name: "Users",
           components: {
             inner: OmniUsers,
+          }
+        },
+        {
+          path: "serviceaccounts",
+          name: "ServiceAccounts",
+          components: {
+            inner: OmniServiceAccounts,
           }
         },
         {
@@ -445,7 +455,9 @@ const modals = {
   configPatchDestroy: ConfigPatchDestroy,
   userDestroy: UserDestroy,
   userCreate: UserCreate,
-  userEdit: UserEdit,
+  serviceAccountCreate: ServiceAccountCreate,
+  serviceAccountRenew: ServiceAccountRenew,
+  roleEdit: RoleEdit,
   updateExtensions: UpdateExtensions,
 };
 

@@ -174,7 +174,7 @@ spec:
     environment:
       WITH_DEBUG: "true"
       INTEGRATION_RUN_E2E_TEST: "true"
-      INTEGRATION_TEST_ARGS: "--test.run CleanState/|Auth/|DefaultCluster/"
+      INTEGRATION_TEST_ARGS: "--test.run CleanState/|Auth/|DefaultCluster/|CLICommands/"
       TALEMU_TEST_ARGS: "--test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/"
       RUN_TALEMU_TESTS: true
     jobs:

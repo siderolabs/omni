@@ -139,3 +139,31 @@ func createServiceAccount(ctx context.Context, t *testing.T, client *client.Clie
 
 	return encodedKey
 }
+
+// AssertUserCLI verifies user management cli commands.
+func AssertUserCLI(testCtx context.Context, client *client.Client, omnictlPath, httpEndpoint string) TestFunc {
+	return func(t *testing.T) {
+		name := "test-" + uuid.NewString()
+
+		key := createServiceAccount(testCtx, t, client, name)
+
+		_, _, err := runCmd(omnictlPath, httpEndpoint, key, "user", "create", "a@a.com", "--role", "Admin")
+		require.NoError(t, err)
+
+		stdin, _, err := runCmd(omnictlPath, httpEndpoint, key, "user", "list")
+		require.NoError(t, err)
+
+		require.Contains(t, stdin.String(), "a@a.com")
+
+		_, _, err = runCmd(omnictlPath, httpEndpoint, key, "user", "set-role", "--role", "Reader", "a@a.com")
+		require.NoError(t, err)
+
+		_, _, err = runCmd(omnictlPath, httpEndpoint, key, "user", "delete", "a@a.com")
+		require.NoError(t, err)
+
+		stdin, _, err = runCmd(omnictlPath, httpEndpoint, key, "user", "list")
+		require.NoError(t, err)
+
+		require.NotContains(t, stdin.String(), "a@a.com")
+	}
+}
