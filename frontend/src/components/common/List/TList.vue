@@ -99,6 +99,8 @@ defineExpose({
 
 const dots = "...";
 
+const emit = defineEmits(["itemsUpdate"]);
+
 const props = defineProps<{
   pagination?: boolean,
   search?: boolean,
@@ -136,6 +138,10 @@ const filterValueComputed = computed(() => {
 
 const offset = computed(() => {
   return (currentPage.value - 1) * selectedItemsPerPage.value;
+});
+
+vueWatch(items.value, () => {
+  emit('itemsUpdate', items.value);
 });
 
 const sortByState = computed(() => {

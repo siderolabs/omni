@@ -8,12 +8,12 @@ included in the LICENSE file.
   <div class="modal-window">
     <div class="heading">
       <h3 class="text-base text-naturals-N14 truncate">
-        Edit User {{ $route.query.identity }}
+        Edit {{ object }} {{ id }}
       </h3>
       <close-button @click="close" />
     </div>
 
-    <div class="flex gap-4">
+    <div class="flex gap-4 flex-wrap">
       <watch
         :opts="{ resource: { type: UserType, namespace: DefaultNamespace, id: $route.query.user as string }, runtime: Runtime.Omni }"
         class="flex-1">
@@ -23,7 +23,7 @@ included in the LICENSE file.
         </template>
       </watch>
       <t-button type="highlighted" @click="() => { handleRoleUpdate(); close() }" :disabled="!canManageUsers"
-        class="w-32 h-9">Update User</t-button>
+        class="h-9">Update {{ object }}</t-button>
     </div>
   </div>
 </template>
@@ -45,10 +45,13 @@ import Watch from "@/components/common/Watch/Watch.vue";
 const router = useRouter();
 const route = useRoute();
 
+
 const roles = [RoleNone, RoleReader, RoleOperator, RoleAdmin]
 
 const role: Ref<string | undefined> = ref();
-const identity = route.query.identity;
+
+const object = route.query.serviceAccount ? "Service Account" : "User";
+const id = route.query.identity ?? route.query.serviceAccount;
 
 const handleRoleUpdate = async () => {
   if (!role.value) {
@@ -56,7 +59,7 @@ const handleRoleUpdate = async () => {
   }
 
   if (!route.query.user) {
-    showError("Failed to Update User", "User id is not defined");
+    showError(`Failed to Update ${object}`, "User id is not defined");
 
     return;
   }
@@ -64,12 +67,12 @@ const handleRoleUpdate = async () => {
   try {
     await updateRole(route.query.user as string, role.value);
   } catch (e) {
-    showError("Failed to Update User", e.message)
+    showError(`Failed to Update ${object}`, e.message)
 
     return;
   }
 
-  showSuccess(`Successfully Updated User ${identity}`)
+  showSuccess(`Successfully Updated ${object} ${id}`)
 };
 
 let closed = false;

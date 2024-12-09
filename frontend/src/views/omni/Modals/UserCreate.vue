@@ -16,7 +16,7 @@ included in the LICENSE file.
     <div class="flex flex-col w-full h-full gap-4">
       <t-notification v-if="notification" v-bind="notification.props"/>
 
-      <div class="flex gap-2 items-center">
+      <div class="flex gap-2 items-center flex-wrap">
         <t-input title="User Email" class="flex-1 h-full" placeholder="..." v-model="identity"/>
         <t-select-list
             class="h-full"
