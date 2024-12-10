@@ -136,6 +136,7 @@ func (handler *Handler) handleSequenceEvent(ctx context.Context, event *machinea
 		helpers.CopyAllAnnotations(infraMachine, res)
 
 		res.TypedSpec().Value.Installed = true
+		res.TypedSpec().Value.LastModifiedBy = "omni"
 
 		return nil
 	}

@@ -52,6 +52,7 @@ export type InfraMachineSpec = {
 
 export type InfraMachineStateSpec = {
   installed?: boolean
+  last_modified_by?: string
 }
 
 export type InfraMachineStatusSpec = {

@@ -50,6 +50,7 @@ message InfraMachineSpec {
 
 message InfraMachineStateSpec {
   bool installed = 1;
+  string last_modified_by = 2;
 }
 
 message InfraMachineStatusSpec {
