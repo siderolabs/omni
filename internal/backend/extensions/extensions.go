@@ -18,6 +18,7 @@ const OfficialPrefix = "siderolabs/"
 var (
 	talosV170 = semver.MustParse("1.7.0")
 	talosV180 = semver.MustParse("1.8.0")
+	talosV190 = semver.MustParse("1.9.0")
 
 	talosV17RenamedExtensions = newBiMap[string, string](map[string]string{
 		OfficialPrefix + "xe-guest-utilities": OfficialPrefix + "xen-guest-agent",
@@ -28,6 +29,11 @@ var (
 		OfficialPrefix + "nvidia-open-gpu-kernel-modules": OfficialPrefix + "nvidia-open-gpu-kernel-modules-lts",
 		OfficialPrefix + "nonfree-kmod-nvidia":            OfficialPrefix + "nonfree-kmod-nvidia-lts",
 		OfficialPrefix + "nvidia-fabricmanager":           OfficialPrefix + "nvidia-fabric-manager-lts",
+	})
+
+	talosV19RenamedExtensions = newBiMap[string, string](map[string]string{
+		OfficialPrefix + "i915-ucode":      OfficialPrefix + "i915",
+		OfficialPrefix + "amdgpu-firmware": OfficialPrefix + "amdgpu",
 	})
 )
 
@@ -60,14 +66,15 @@ func MapNamesByVersion(extensions []string, talosVersion semver.Version) []strin
 
 	gte170 := talosVersion.GTE(talosV170)
 	gte180 := talosVersion.GTE(talosV180)
+	gte190 := talosVersion.GTE(talosV190)
 
 	return xslices.Map(extensions, func(extension string) string {
-		return mapSingleNameByVersion(extension, gte170, gte180)
+		return mapSingleNameByVersion(extension, gte170, gte180, gte190)
 	})
 }
 
 // mapSingleNameByVersion returns the renamed extension based on the talos version.
-func mapSingleNameByVersion(extension string, gte170, gte180 bool) string {
+func mapSingleNameByVersion(extension string, gte170, gte180, get190 bool) string {
 	if gte170 {
 		if name, ok := talosV17RenamedExtensions.Get(extension); ok {
 			return name
@@ -84,6 +91,16 @@ func mapSingleNameByVersion(extension string, gte170, gte180 bool) string {
 		}
 	} else {
 		if name, ok := talosV18RenamedExtensions.GetInverse(extension); ok {
+			return name
+		}
+	}
+
+	if get190 {
+		if name, ok := talosV19RenamedExtensions.Get(extension); ok {
+			return name
+		}
+	} else {
+		if name, ok := talosV19RenamedExtensions.GetInverse(extension); ok {
 			return name
 		}
 	}

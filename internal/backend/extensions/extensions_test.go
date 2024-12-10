@@ -72,4 +72,18 @@ func TestMap(t *testing.T) {
 			"siderolabs/xen-guest-agent",                    // kept as-is because not in the renamed list
 		}, mapped)
 	})
+
+	t.Run("talos-v1.9", func(t *testing.T) {
+		exts := []string{
+			"siderolabs/i915-ucode",
+			"siderolabs/amdgpu-firmware",
+		}
+
+		mapped := extensions.MapNamesByVersion(exts, semver.MustParse("1.9.0"))
+
+		require.Equal(t, []string{
+			"siderolabs/i915",   // mapped to the new name
+			"siderolabs/amdgpu", // mapped to the new name
+		}, mapped)
+	})
 }
