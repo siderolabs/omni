@@ -251,8 +251,14 @@ func AcceptInfraMachines(testCtx context.Context, omniState state.State, expecte
 			assertion.True(isManagedByStaticInfraProvider)
 		})
 
-		// Assert that infra.MachineStatus resources are now created, and they are marked as ready to use
+		// Assert that infra.MachineStatus resources are now created, machine labels are set on them, and they are marked as ready to use
 		rtestutils.AssertResources(ctx, t, omniState, ids, func(res *infra.MachineStatus, assertion *assert.Assertions) {
+			aVal, _ := res.Metadata().Labels().Get("a")
+			assertion.Equal("b", aVal)
+
+			_, cOk := res.Metadata().Labels().Get("c")
+			assertion.True(cOk)
+
 			assertion.True(res.TypedSpec().Value.ReadyToUse)
 		})
 	}
