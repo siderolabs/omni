@@ -180,8 +180,8 @@ github.com/siderolabs/proto-codec v0.1.1 h1:4jiUwW/vaXTZ+YNgZDs37B4aj/1mzV/erIkz
 github.com/siderolabs/proto-codec v0.1.1/go.mod h1:rIvmhKJG8+JwSCGPX+cQljpOMDmuHhLKPkt6KaFwEaU=
 github.com/siderolabs/protoenc v0.2.1 h1:BqxEmeWQeMpNP3R6WrPqDatX8sM/r4t97OP8mFmg6GA=
 github.com/siderolabs/protoenc v0.2.1/go.mod h1:StTHxjet1g11GpNAWiATgc8K0HMKiFSEVVFOa/H0otc=
-github.com/siderolabs/talos/pkg/machinery v1.9.0-beta.0 h1:ueS/a+PjzchYO3ZouHgpOZfoUTk/9dO+XHxH3uSM7IU=
-github.com/siderolabs/talos/pkg/machinery v1.9.0-beta.0/go.mod h1:jFnOdqa3IfiUHO/ZG0jfON7SxbNIkowVsom8pO0OwBU=
+github.com/siderolabs/talos/pkg/machinery v1.9.0-beta.1 h1:mhWMKHowS2ea1RTGeqYxicFAT92BE7plh2VgPVqwNpw=
+github.com/siderolabs/talos/pkg/machinery v1.9.0-beta.1/go.mod h1:jFnOdqa3IfiUHO/ZG0jfON7SxbNIkowVsom8pO0OwBU=
 github.com/spf13/cobra v1.8.1 h1:e5/vxKd/rZsfSJMUX1agtjeTDf+qv1/JdBF8gg5k9ZM=
 github.com/spf13/cobra v1.8.1/go.mod h1:wHxEcudfqmLYa8iTfL+OuZPbBZkmvliBWKIezN3kD9Y=
 github.com/spf13/pflag v1.0.5 h1:iy+VFUOCP1a+8yFto/drg2CJ5u0yRoB7fZw3DKv/JXA=

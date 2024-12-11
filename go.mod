@@ -78,7 +78,7 @@ require (
 	github.com/siderolabs/omni/client v0.42.1
 	github.com/siderolabs/proto-codec v0.1.1
 	github.com/siderolabs/siderolink v0.3.11
-	github.com/siderolabs/talos/pkg/machinery v1.9.0-beta.0
+	github.com/siderolabs/talos/pkg/machinery v1.9.0-beta.1
 	github.com/siderolabs/tcpproxy v0.1.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1

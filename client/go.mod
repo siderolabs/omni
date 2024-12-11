@@ -14,6 +14,7 @@ require (
 	github.com/ProtonMail/gopenpgp/v2 v2.8.1
 	github.com/adrg/xdg v0.5.3
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/blang/semver/v4 v4.0.0
 	github.com/cosi-project/runtime v0.7.5
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.18.0
@@ -33,7 +34,7 @@ require (
 	github.com/siderolabs/go-pointer v1.0.0
 	github.com/siderolabs/image-factory v0.6.2
 	github.com/siderolabs/proto-codec v0.1.1
-	github.com/siderolabs/talos/pkg/machinery v1.9.0-beta.0
+	github.com/siderolabs/talos/pkg/machinery v1.9.0-beta.1
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.10.0
 	github.com/xlab/treeprint v1.2.0
@@ -51,7 +52,6 @@ require (
 	github.com/ProtonMail/go-crypto v1.1.3 // indirect
 	github.com/ProtonMail/go-mime v0.0.0-20230322103455-7d82a3887f2f // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
-	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cloudflare/circl v1.5.0 // indirect
 	github.com/containerd/go-cni v1.1.10 // indirect
