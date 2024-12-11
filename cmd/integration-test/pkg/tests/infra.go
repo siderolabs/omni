@@ -251,7 +251,7 @@ func AcceptInfraMachines(testCtx context.Context, omniState state.State, expecte
 			assertion.True(isManagedByStaticInfraProvider)
 		})
 
-		// Assert that infra.MachineStatus resources are now created, machine labels are set on them, and they are marked as ready to use
+		// Assert that infra.MachineStatus resources are now created, powered off, marked as ready to use, and the machine labels are set on them
 		rtestutils.AssertResources(ctx, t, omniState, ids, func(res *infra.MachineStatus, assertion *assert.Assertions) {
 			aVal, _ := res.Metadata().Labels().Get("a")
 			assertion.Equal("b", aVal)
@@ -259,6 +259,7 @@ func AcceptInfraMachines(testCtx context.Context, omniState state.State, expecte
 			_, cOk := res.Metadata().Labels().Get("c")
 			assertion.True(cOk)
 
+			assertion.Equal(specs.InfraMachineStatusSpec_POWER_STATE_OFF, res.TypedSpec().Value.PowerState)
 			assertion.True(res.TypedSpec().Value.ReadyToUse)
 		})
 	}
@@ -279,19 +280,20 @@ func AssertInfraMachinesAreAllocated(testCtx context.Context, omniState state.St
 		for machineSetNode := range nodeList.All() {
 			id := machineSetNode.Metadata().ID()
 
-			// there must be an infra.Machine resource for each node
+			// There must be an infra.Machine resource for each node
 			rtestutils.AssertResource[*infra.Machine](ctx, t, omniState, id, func(res *infra.Machine, assertion *assert.Assertions) {
 				assertion.Equal(talosVersion, res.TypedSpec().Value.ClusterTalosVersion)
 				assertion.Empty(res.TypedSpec().Value.WipeId)
 				assertion.Equal(extensions, res.TypedSpec().Value.Extensions)
 			})
 
-			// machine is allocated, so the ReadyToUse field is set to false
+			// The machine is allocated, so the ReadyToUse field is set to false
 			rtestutils.AssertResource[*infra.MachineStatus](ctx, t, omniState, id, func(res *infra.MachineStatus, assertion *assert.Assertions) {
+				assertion.Equal(specs.InfraMachineStatusSpec_POWER_STATE_ON, res.TypedSpec().Value.PowerState)
 				assertion.False(res.TypedSpec().Value.ReadyToUse)
 			})
 
-			// omni receives a SequenceEvent from the SideroLink event sink and sets the Installed field to true
+			// Omni receives a SequenceEvent from the SideroLink event sink and sets the Installed field to true
 			rtestutils.AssertResource[*infra.MachineState](ctx, t, omniState, id, func(res *infra.MachineState, assertion *assert.Assertions) {
 				assertion.True(res.TypedSpec().Value.Installed)
 			})
