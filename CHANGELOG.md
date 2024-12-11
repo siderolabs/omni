@@ -1,3 +1,32 @@
+## [Omni 0.44.1](https://github.com/siderolabs/omni/releases/tag/v0.44.1) (2024-12-11)
+
+Welcome to the v0.44.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>2 commits</summary>
+<p>
+
+* [`614c272`](https://github.com/siderolabs/omni/commit/614c2729e66bca5d95c6a472bef07c6758e1e1ac) fix: fix panic in `ConfigPatchRequestController`
+* [`d86c30c`](https://github.com/siderolabs/omni/commit/d86c30c98c61ec795aec5fe5945ff31ac8fa8ec7) fix: ignore `Unimplemented` errors in `MetaDelete` calls
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.44.0](https://github.com/siderolabs/omni/releases/tag/v0.44.0)
+
+
 ## [Omni 0.44.0](https://github.com/siderolabs/omni/releases/tag/v0.44.0) (2024-11-11)
 
 Welcome to the v0.44.0 release of Omni!
