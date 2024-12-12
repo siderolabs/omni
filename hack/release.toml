@@ -6,19 +6,29 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v0.43.0"
+previous = "v0.44.0"
 
 [notes]
 
-  [notes.reset-machine]
-    title = "Reset Removed Machines"
+  [notes.user-management]
+    title = "User Management CLI"
     description = """\
-Omni will now try to wipe Talos installation from the machines which are removed from the instance.
+`omnictl` now has new commands for user management to make it consistent with the UI:
+
+- `omnictl user list`
+- `omnictl user create [email] --role [role]
+- `omnictl user delete [email]`
+- `omnictl user set-role email --role [role]`
 """
 
-  [notes.cluster-resolve]
-    title = "Automatically Resolve Cluster in `talosctl`"
+  [notes.service-accounts]
+    title = "Service Account Management UI"
     description = """\
-`talosctl` command now works without `--cluster` flag when using instance wide Talos config.
-Omni will automatically resolve the correct cluster.
+It is now possible to view, create, delete and edit service account in the Omni web UI.
+"""
+
+  [notes.turing-rk]
+    title = "New SBC Support"
+    description = """\
+Turing RK1 SBC installation media can now be downloaded from Omni.
 """
