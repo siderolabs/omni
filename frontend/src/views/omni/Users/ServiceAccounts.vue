@@ -7,7 +7,7 @@ included in the LICENSE file.
 <template>
   <div class="flex flex-col gap-2">
     <div class="flex justify-end">
-      <t-button @click="openUserCreate" icon="plus" icon-position="left" type="highlighted" :disabled="!canManageUsers || authType === AuthType.SAML">Create Service Account</t-button>
+      <t-button @click="openUserCreate" icon="plus" icon-position="left" type="highlighted" :disabled="!canManageUsers">Create Service Account</t-button>
     </div>
     <t-list :opts="watchOpts" pagination class="flex-1" search
       @items-update="fetchAccounts"
@@ -38,7 +38,6 @@ import ServiceAccountItem from "@/views/omni/Users/ServiceAccountItem.vue";
 import TButton from "@/components/common/Button/TButton.vue";
 import { Resource } from "@/api/grpc";
 import { canManageUsers } from "@/methods/auth";
-import { AuthType, authType } from "@/methods";
 import { Ref, watch } from "vue";
 import { ManagementService } from "@/api/omni/management/management.pb";
 import { ref } from "vue";
