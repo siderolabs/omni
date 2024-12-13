@@ -9,7 +9,7 @@ included in the LICENSE file.
     <div class="w-5 pointer-events-none"/>
     <div class="flex-1 grid grid-cols-4 -mr-3 items-center" @click="openNodeInfo">
       <div class="col-span-2 flex items-center gap-2">
-        <t-icon :icon="Object.keys(machine.spec.provision_status ?? {}).length ? 'cloud-connection' : 'server'" class="w-4 h-4 ml-2"/>
+        <t-icon :icon="icon" class="w-4 h-4 ml-2"/>
         <router-link :to="{ name: 'NodeOverview', params: { cluster: clusterName, machine: machine.metadata.id }}" class="list-item-link truncate">
           {{ nodeName }}
         </router-link>
@@ -37,7 +37,7 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { LabelHostname, LabelCluster, MachineLocked, LabelWorkerRole, UpdateLocked } from "@/api/resources";
+import { LabelHostname, LabelCluster, MachineLocked, LabelWorkerRole, UpdateLocked, LabelIsManagedByStaticInfraProvider } from "@/api/resources";
 import { useRouter } from "vue-router";
 import { computed, toRefs } from "vue";
 import { Resource } from "@/api/grpc";
@@ -60,6 +60,14 @@ const props = defineProps<{
 }>();
 
 const { machine, machineSet } = toRefs(props);
+
+const icon = computed(() => {
+  if (machine.value.metadata.labels?.[LabelIsManagedByStaticInfraProvider] !== undefined) {
+    return "server-network";
+  }
+
+  return Object.keys(machine.value.spec.provision_status ?? {}).length ? "cloud-connection" : "server";
+});
 
 const locked = computed(() => {
   return machine.value?.metadata?.annotations?.[MachineLocked] !== undefined;

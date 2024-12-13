@@ -31,6 +31,7 @@ import {
   ServerIcon,
   ServerStackIcon,
   CalendarIcon,
+  CpuChipIcon,
 } from "@heroicons/vue/24/outline";
 
 import {
@@ -114,6 +115,7 @@ const icons = {
   "rollback": defineAsyncComponent(() => import("../../icons/IconRollback.vue")),
   "extensions": defineAsyncComponent(() => import("../../icons/IconExtensions.vue")),
   "extensions-toggle": defineAsyncComponent(() => import("../../icons/IconExtensionsToggle.vue")),
+  "server-network": defineAsyncComponent(() => import("../../icons/IconServerNetwork.vue")),
   "document": DocumentIcon,
   "power": PowerIcon,
   "users": UsersIcon,
@@ -135,6 +137,7 @@ const icons = {
   "server-stack": ServerStackIcon,
   "lifebuoy": LifebuoyIcon,
   "calendar": CalendarIcon,
+  "cpu-chip": CpuChipIcon,
 };
 
 const getComponent = (icon: string): Component | undefined => {

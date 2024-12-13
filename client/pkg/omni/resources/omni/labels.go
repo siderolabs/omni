@@ -55,6 +55,7 @@ const (
 	LabelExposedServiceAlias = SystemLabelPrefix + "exposed-service-alias"
 
 	// LabelInfraProviderID is the infra provider ID for the resources managed by infra providers, e.g., infra.MachineRequest, infra.MachineRequestStatus.
+	// tsgen:LabelInfraProviderID
 	LabelInfraProviderID = SystemLabelPrefix + "infra-provider-id"
 
 	// LabelIsStaticInfraProvider is set on the infra.ProviderStatus resources to mark them as static providers - they do not work with MachineRequests to
@@ -82,7 +83,12 @@ const (
 	LabelNoManualAllocation = SystemLabelPrefix + "no-manual-allocation"
 
 	// LabelIsManagedByStaticInfraProvider is set on the machines managed by static infra providers.
+	// tsgen:LabelIsManagedByStaticInfraProvider
 	LabelIsManagedByStaticInfraProvider = SystemLabelPrefix + "is-managed-by-static-infra-provider"
+
+	// LabelMachinePendingAccept is added to the InfraMachine and is used to filter out the machines which are pending acceptance.
+	// tsgen:LabelMachinePendingAccept
+	LabelMachinePendingAccept = SystemLabelPrefix + "accept-pending"
 )
 
 const (

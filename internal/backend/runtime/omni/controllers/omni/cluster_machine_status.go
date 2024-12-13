@@ -92,6 +92,12 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 					return err
 				}
 
+				if _, ok := machineStatus.Metadata().Labels().Get(omni.LabelIsManagedByStaticInfraProvider); ok {
+					clusterMachineStatus.Metadata().Labels().Set(omni.LabelIsManagedByStaticInfraProvider, "")
+				} else {
+					clusterMachineStatus.Metadata().Labels().Delete(omni.LabelIsManagedByStaticInfraProvider)
+				}
+
 				if err = updateMachineProvisionStatus(ctx, r, machineStatus, cmsVal); err != nil {
 					return err
 				}
@@ -255,13 +261,12 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 
 func updateMachineProvisionStatus(ctx context.Context, r controller.Reader, machineStatus *omni.MachineStatus, cmsVal *specs.ClusterMachineStatusSpec) error {
 	machineRequestID, ok := machineStatus.Metadata().Labels().Get(omni.LabelMachineRequest)
-	if !ok {
-		cmsVal.ProvisionStatus = nil
-	}
 
 	cmsVal.ProvisionStatus = &specs.ClusterMachineStatusSpec_ProvisionStatus{}
 
-	cmsVal.ProvisionStatus.RequestId = machineRequestID
+	if ok {
+		cmsVal.ProvisionStatus.RequestId = machineRequestID
+	}
 
 	machineRequestStatus, err := safe.ReaderGetByID[*infra.MachineRequestStatus](ctx, r, machineRequestID)
 	if err != nil && !state.IsNotFoundError(err) {

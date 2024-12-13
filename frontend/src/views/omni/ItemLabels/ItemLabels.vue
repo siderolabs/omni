@@ -36,6 +36,7 @@ const { resource } = toRefs(props);
 defineEmits(['filterLabel']);
 
 const labelOrder = {
+  "is-managed-by-static-infra-provider": -1,
   "machine-request-set": -1,
   "no-manual-allocation": -1,
   "machine-request": -1,

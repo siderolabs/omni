@@ -7,9 +7,9 @@ import { Runtime } from "@/api/common/omni.pb";
 import { Code } from "@/api/google/rpc/code.pb";
 
 import { Resource, ResourceService } from "@/api/grpc";
-import { MachineLabelsSpec } from "@/api/omni/specs/omni.pb";
+import { InfraMachineConfigSpec, InfraMachineConfigSpecAcceptanceStatus, MachineLabelsSpec } from "@/api/omni/specs/omni.pb";
 import { withContext, withRuntime } from "@/api/options";
-import { DefaultNamespace, MachineLabelsType, MachineLocked, MachineSetNodeType, MachineStatusType, SiderolinkResourceType, SystemLabelPrefix } from "@/api/resources";
+import { DefaultNamespace, InfraMachineConfigType, MachineLabelsType, MachineLocked, MachineSetNodeType, MachineStatusType, SiderolinkResourceType, SystemLabelPrefix } from "@/api/resources";
 import { MachineService } from "@/api/talos/machine/machine.pb";
 import { destroyResources, getMachineConfigPatchesToDelete } from "@/methods/cluster";
 import { parseLabels } from "@/methods/labels";
@@ -164,3 +164,49 @@ export const updateTalosMaintenance = async (machine: string, talosVersion: stri
     nodes: [machine]
   }));
 }
+
+export const rejectMachine = async (machine: string) => {
+  await updateInfraMachineConfig(machine, (r: Resource<InfraMachineConfigSpec>) => {
+    r.spec.acceptance_status = InfraMachineConfigSpecAcceptanceStatus.REJECTED;
+  });
+};
+
+export const acceptMachine = async (machine: string) => {
+  await updateInfraMachineConfig(machine, (r: Resource<InfraMachineConfigSpec>) => {
+    r.spec.acceptance_status = InfraMachineConfigSpecAcceptanceStatus.ACCEPTED;
+  });
+};
+
+export const updateInfraMachineConfig = async (machine: string, modify: (r: Resource<InfraMachineConfigSpec>) => void) => {
+  const metadata = {
+    id: machine,
+    namespace: DefaultNamespace,
+    type: InfraMachineConfigType,
+  };
+
+  try {
+    const resource: Resource<InfraMachineConfigSpec> = await ResourceService.Get(metadata, withRuntime(Runtime.Omni));
+
+    modify(resource);
+
+    ResourceService.Update(resource, resource.metadata.version, withRuntime(Runtime.Omni))
+  } catch (e) {
+    if (e.code === Code.NOT_FOUND) {
+      const resource: Resource<InfraMachineConfigSpec> = {
+        metadata,
+        spec: {}
+      };
+
+      modify(resource);
+
+      await ResourceService.Create<Resource<InfraMachineConfigSpec>>(resource, withRuntime(Runtime.Omni));
+    }
+  }
+}
+
+export enum MachineFilterOption {
+  Manual = "manual",
+  Unaccepted = "unaccepted",
+  Provisioned = "provisioned",
+  PXE = "pxe",
+};

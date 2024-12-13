@@ -25,6 +25,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
 // InfraMachineControllerName is the name of the controller.
@@ -164,13 +165,18 @@ func (h *infraMachineControllerHelper) finalizerRemovalExtraOutput(ctx context.C
 		return err
 	}
 
+	_, err = helpers.HandleInput[*omni.InfraMachineConfig](ctx, r, InfraMachineControllerName, link)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // applyInfraMachineConfig applies the user-managed configuration from the omni.InfraMachineConfig resource into the infra.Machine.
-func (h *infraMachineControllerHelper) applyInfraMachineConfig(ctx context.Context, r controller.Reader, link *siderolink.Link, infraMachine *infra.Machine) error {
-	config, err := safe.ReaderGetByID[*omni.InfraMachineConfig](ctx, r, link.Metadata().ID())
-	if err != nil && !state.IsNotFoundError(err) {
+func (h *infraMachineControllerHelper) applyInfraMachineConfig(ctx context.Context, r controller.ReaderWriter, link *siderolink.Link, infraMachine *infra.Machine) error {
+	config, err := helpers.HandleInput[*omni.InfraMachineConfig](ctx, r, InfraMachineControllerName, link)
+	if err != nil {
 		return err
 	}
 
@@ -180,8 +186,12 @@ func (h *infraMachineControllerHelper) applyInfraMachineConfig(ctx context.Conte
 	infraMachine.TypedSpec().Value.PreferredPowerState = defaultPreferredPowerState
 	infraMachine.TypedSpec().Value.ExtraKernelArgs = ""
 
+	pendingAccept := config == nil
+
 	if config != nil { // apply user configuration: acceptance, preferred power state, extra kernel args
 		infraMachine.TypedSpec().Value.AcceptanceStatus = config.TypedSpec().Value.AcceptanceStatus
+
+		pendingAccept = infraMachine.TypedSpec().Value.AcceptanceStatus == specs.InfraMachineConfigSpec_PENDING
 
 		switch config.TypedSpec().Value.PowerState {
 		case specs.InfraMachineConfigSpec_POWER_STATE_OFF:
@@ -195,6 +205,12 @@ func (h *infraMachineControllerHelper) applyInfraMachineConfig(ctx context.Conte
 		}
 
 		infraMachine.TypedSpec().Value.ExtraKernelArgs = config.TypedSpec().Value.ExtraKernelArgs
+	}
+
+	if pendingAccept {
+		infraMachine.Metadata().Labels().Set(omni.LabelMachinePendingAccept, "")
+	} else {
+		infraMachine.Metadata().Labels().Delete(omni.LabelMachinePendingAccept)
 	}
 
 	return nil

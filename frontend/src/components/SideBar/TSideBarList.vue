@@ -15,7 +15,8 @@ included in the LICENSE file.
         :icon="item.icon"
         :label="item.label"
         :label-color="item.labelColor"
-      />
+      >
+      </t-menu-item>
     </div>
   </nav>
 </template>
@@ -30,7 +31,7 @@ export type SideBarItem = {
   route: string | RouteLocationRaw,
   icon?: IconType,
   label?: string | number,
-  labelColor?: string
+  labelColor?: string,
 }
 
 type Props = {

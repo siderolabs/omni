@@ -20,6 +20,7 @@ import OmniSettings from "@/views/omni/Settings/Settings.vue";
 import Authenticate from "@/views/omni/Auth/Authenticate.vue";
 import OmniMachineClasses from "@/views/omni/MachineClasses/MachineClasses.vue";
 import OmniMachineClass from "@/views/omni/MachineClasses/MachineClass.vue";
+import OmniMachinesPending from "@/views/omni/Machines/MachinesPending.vue";
 import OmniBackupStorageSettings from "@/views/omni/Settings/BackupStorage.vue";
 import OIDC from "@/views/omni/Auth/OIDC.vue";
 
@@ -72,6 +73,8 @@ import UserCreate from "@/views/omni/Modals/UserCreate.vue";
 import RoleEdit from "@/views/omni/Modals/RoleEdit.vue";
 import ServiceAccountCreate from "@/views/omni/Modals/ServiceAccountCreate.vue";
 import ServiceAccountRenew from "@/views/omni/Modals/ServiceAccountRenew.vue";
+import MachineAccept from "@/views/omni/Modals/MachineAccept.vue";
+import MachineReject from "@/views/omni/Modals/MachineReject.vue";
 
 import { current } from "@/context";
 import { authGuard } from "@auth0/auth0-vue";
@@ -79,13 +82,17 @@ import { AuthType, authType } from "@/methods";
 import { getAuthCookies, isAuthorized } from "@/methods/key";
 import { refreshTitle } from "@/methods/title";
 import { loadCurrentUser } from "@/methods/auth";
+import { MachineFilterOption } from "@/methods/machine";
 
 export const FrontendAuthFlow = "frontend";
 
 const withPrefix = (prefix: string, routes: RouteRecordRaw[], meta?: Record<string, any>) =>
   routes.map((route) => {
-    if (meta && !route.meta) {
-      route.meta = meta;
+    if (meta) {
+      route.meta = {
+        ...route.meta,
+        ...meta,
+      }
     }
 
     if (!route.beforeEnter) {
@@ -206,6 +213,35 @@ const routes: RouteRecordRaw[] = [
       path: "/machines",
       name: "Machines",
       component:  OmniMachines,
+    },
+    {
+      path: "/machines/manual",
+      name: "MachinesManual",
+      component: OmniMachines,
+      props: {
+        filter: MachineFilterOption.Manual,
+      },
+    },
+    {
+      path: "/machines/provisioned",
+      name: "MachinesProvisioned",
+      component: OmniMachines,
+      props: {
+        filter: MachineFilterOption.Provisioned,
+      },
+    },
+    {
+      path: "/machines/pxe",
+      name: "MachinesPXE",
+      component: OmniMachines,
+      props: {
+        filter: MachineFilterOption.PXE,
+      },
+    },
+    {
+      path: "/machines/pending",
+      name: "MachinesPending",
+      component: OmniMachinesPending,
     },
     {
       path: "/machine-classes",
@@ -458,6 +494,8 @@ const modals = {
   serviceAccountCreate: ServiceAccountCreate,
   serviceAccountRenew: ServiceAccountRenew,
   roleEdit: RoleEdit,
+  machineAccept: MachineAccept,
+  machineReject: MachineReject,
   updateExtensions: UpdateExtensions,
 };
 
