@@ -1,3 +1,164 @@
+## [Omni 0.45.0](https://github.com/siderolabs/omni/releases/tag/v0.45.0) (2024-12-16)
+
+Welcome to the v0.45.0 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Service Account Management UI
+
+It is now possible to view, create, delete and edit service account in the Omni web UI.
+
+
+### New SBC Support
+
+Turing RK1 SBC installation media can now be downloaded from Omni.
+
+
+### User Management CLI
+
+`omnictl` now has new commands for user management to make it consistent with the UI:
+
+- `omnictl user list`
+- `omnictl user create [email] --role [role]
+- `omnictl user delete [email]`
+- `omnictl user set-role email --role [role]`
+
+
+### Contributors
+
+* Utku Ozdemir
+* Noel Georgi
+* Andrey Smirnov
+* Artem Chernyshev
+* Dmitriy Matrenichev
+* Christopher Gill
+* Nico Berlee
+
+### Changes
+<details><summary>25 commits</summary>
+<p>
+
+* [`d75ae45`](https://github.com/siderolabs/omni/commit/d75ae45d13a96e9b7ff6d20d5a4a48ddc24f8b7c) fix: do not disable create service account button for SAML mode
+* [`b36198a`](https://github.com/siderolabs/omni/commit/b36198a1344b5a19a0cda8f8134faa01463cdebc) release(v0.45.0-beta.0): prepare release
+* [`99693cf`](https://github.com/siderolabs/omni/commit/99693cf0b2954787ccdb6a627d3d532149a1c5ad) test: assert power on/off status in static infra provider tests
+* [`471831c`](https://github.com/siderolabs/omni/commit/471831cb4966f6c2574059d566234fc76c0e2525) test: assert machine labels in static infra provider tests
+* [`8aeff65`](https://github.com/siderolabs/omni/commit/8aeff65edc5272d7b5c572a052de9d85f1832599) feat: update Talos machinery to final 1.9.0-beta.1
+* [`a7b603e`](https://github.com/siderolabs/omni/commit/a7b603e496c9e446d1089de049604127f033cd11) feat: implement CLI commands for user management
+* [`bbbf6f2`](https://github.com/siderolabs/omni/commit/bbbf6f2c770914a6c5c98ecec39113dfa832d122) feat: add Turing RK1 SoM to SBCs dropdown
+* [`d8e3aad`](https://github.com/siderolabs/omni/commit/d8e3aadb1b48e6dc3761097d265fc8a905a17747) chore: handle renamed drm extensions
+* [`6f3ce0d`](https://github.com/siderolabs/omni/commit/6f3ce0d2a154da28eb14866c2297d0953e2df54d) fix: regenerate wipe id of infra machines only once per de-allocation
+* [`ce40338`](https://github.com/siderolabs/omni/commit/ce403382d64cdfe53d9d3d2c80e5cfd6fe47af0a) feat: add `rejected` state to infra machine acceptance status
+* [`8a64ba7`](https://github.com/siderolabs/omni/commit/8a64ba77b0ce508c890125d0e55b6eb0ed5a598f) chore: bump COSI runtime to `v0.7.5`
+* [`815b2b0`](https://github.com/siderolabs/omni/commit/815b2b0a7e292b9f971ef766bff151beef4d0a21) feat: allow specifying extra kernel args on infra machines
+* [`95c22be`](https://github.com/siderolabs/omni/commit/95c22be714c4aa512ba05f2b36dbd394b25ba37a) chore: bump deps
+* [`e84b10a`](https://github.com/siderolabs/omni/commit/e84b10a9af29ae5248897f1d3a311a7801f906eb) fix: fix panic in `ConfigPatchRequestController`
+* [`ac362f9`](https://github.com/siderolabs/omni/commit/ac362f9727f8259969690e65e75923531a4c4aa2) fix: ignore `Unimplemented` errors in `MetaDelete` calls
+* [`377b550`](https://github.com/siderolabs/omni/commit/377b55095e3b45a77fa0e97a5ce88b687a9f5929) feat: update Talos machinery to v1.9.0-beta.0
+* [`776bc65`](https://github.com/siderolabs/omni/commit/776bc65b7ca09bf4e5102d0c05cfafa7ce58b389) test: add static infra provider (bare-metal provider) integration tests
+* [`d879c6e`](https://github.com/siderolabs/omni/commit/d879c6ef819b807e093b30091e83f547d3fc7426) chore: bump discovery service to `v1.0.8`
+* [`5a26d4c`](https://github.com/siderolabs/omni/commit/5a26d4c7ac9d2403d781844f2865797650a8ecd5) feat: add resources and controllers for bare metal infra provider
+* [`033e051`](https://github.com/siderolabs/omni/commit/033e051994203cd9878da0542b3b8714dc7452f5) chore: bump Go to 1.23.3, rekres, regenerate sources, make linters happy
+* [`9085e82`](https://github.com/siderolabs/omni/commit/9085e82822d406ed39797523f6e46eb07dadde07) fix: use the custom image factory host in backend and frontend
+* [`7fd2817`](https://github.com/siderolabs/omni/commit/7fd2817d05ff5e3fa3bfbfa0dd3436cb5a7f942d) chore: deprecate Talos 1.4
+* [`d46fe7e`](https://github.com/siderolabs/omni/commit/d46fe7e8ad55b5d02dcdb39682add96bb323cf4a) fix: fix compose.yaml typo
+* [`e4586f4`](https://github.com/siderolabs/omni/commit/e4586f4a3449a9c0f2ee033458a588095362fdab) fix: properly set up provider for autoprovision tests
+* [`05ab993`](https://github.com/siderolabs/omni/commit/05ab993d3da6aaae92b566e25adf3b83db09acd3) fix: properly map config patch requests in the infra provision ctrl
+</p>
+</details>
+
+### Changes since v0.45.0-beta.0
+<details><summary>1 commit</summary>
+<p>
+
+* [`d75ae45`](https://github.com/siderolabs/omni/commit/d75ae45d13a96e9b7ff6d20d5a4a48ddc24f8b7c) fix: do not disable create service account button for SAML mode
+</p>
+</details>
+
+### Changes from siderolabs/crypto
+<details><summary>1 commit</summary>
+<p>
+
+* [`0d45dee`](https://github.com/siderolabs/crypto/commit/0d45deefbcdd4bd6b6e549433b859083df55fc16) chore: bump deps
+</p>
+</details>
+
+### Changes from siderolabs/discovery-service
+<details><summary>1 commit</summary>
+<p>
+
+* [`2bb245a`](https://github.com/siderolabs/discovery-service/commit/2bb245aa38c1d59b671d5fb25b6fa802f408c521) fix: do not register storage metric collectors if it is not enabled
+</p>
+</details>
+
+### Changes from siderolabs/go-kubernetes
+<details><summary>4 commits</summary>
+<p>
+
+* [`06f07ab`](https://github.com/siderolabs/go-kubernetes/commit/06f07ab00042411a20344ebc539bb02b123f7a6a) chore: add authorization config api version
+* [`5ca8ab1`](https://github.com/siderolabs/go-kubernetes/commit/5ca8ab18d87a601f69134d988a81389f9bedc581) chore: kube-apiserver authorization config file support
+* [`0f62a7e`](https://github.com/siderolabs/go-kubernetes/commit/0f62a7e3c006d56601764088011d5dd20f70a7a5) feat: add one more deprecation/removal for v1.32
+* [`87d2e8e`](https://github.com/siderolabs/go-kubernetes/commit/87d2e8e664c3e3e64403bcfcfe2f8691f60c6481) feat: add one more deprecation for 1.32.0-beta.0
+</p>
+</details>
+
+### Changes from siderolabs/image-factory
+<details><summary>11 commits</summary>
+<p>
+
+* [`d0dcfe5`](https://github.com/siderolabs/image-factory/commit/d0dcfe52bea5f5a6f2f0856c9044478c91087669) release(v0.6.2): prepare release
+* [`a8cdc21`](https://github.com/siderolabs/image-factory/commit/a8cdc21f87c5a8b9b5e36ca992b59e9274b199a6) feat: update dependencies for Talos 1.9
+* [`b7f7fd3`](https://github.com/siderolabs/image-factory/commit/b7f7fd32cf4f26528c5aef2e45411780e1abbbb3) chore: add hash errata for tarball headers
+* [`370c137`](https://github.com/siderolabs/image-factory/commit/370c13708a20300b9ba9bb78113b933a40474e83) fix: vmware build assets on non-amd64
+* [`c102c95`](https://github.com/siderolabs/image-factory/commit/c102c95df616113654d67cca8df402ec1f996306) chore: alias i915/amdgpu extensions to new name
+* [`b7b4c71`](https://github.com/siderolabs/image-factory/commit/b7b4c71117449ec72cdd3ee26c011e73a5f30737) release(v0.6.1): prepare release
+* [`96c8455`](https://github.com/siderolabs/image-factory/commit/96c845517aeda1ea7b4c80c6203ce7e5643f33ab) chore: bump generated data
+* [`cc1074b`](https://github.com/siderolabs/image-factory/commit/cc1074b2b72506612fcfcf5d2fa9e3c439dc2181) release(v0.6.0): prepare release
+* [`0ca8240`](https://github.com/siderolabs/image-factory/commit/0ca82406f2de2b9bed4519dc96105816d528fb38) fix: secureboot iso gen
+* [`8e66370`](https://github.com/siderolabs/image-factory/commit/8e66370f4df437ba5c2df2290657a8272c74183f) feat: hide Talos metal agent extension on the UI
+* [`d98b007`](https://github.com/siderolabs/image-factory/commit/d98b00764522849dc226140e89216c254164da22) feat: reword wizard using GitHub Copilot
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/ProtonMail/gopenpgp/v2**                v2.7.5 -> v2.8.1
+* **github.com/aws/aws-sdk-go-v2**                     v1.32.3 -> v1.32.6
+* **github.com/aws/aws-sdk-go-v2/config**              v1.28.1 -> v1.28.6
+* **github.com/aws/aws-sdk-go-v2/feature/s3/manager**  v1.17.35 -> v1.17.43
+* **github.com/aws/aws-sdk-go-v2/service/s3**          v1.66.2 -> v1.71.0
+* **github.com/aws/smithy-go**                         v1.22.0 -> v1.22.1
+* **github.com/containers/image/v5**                   v5.32.2 -> v5.33.0
+* **github.com/cosi-project/runtime**                  v0.7.1 -> v0.7.5
+* **github.com/cosi-project/state-etcd**               v0.4.0 -> v0.4.1
+* **github.com/emicklei/dot**                          v1.6.2 -> v1.6.4
+* **github.com/grpc-ecosystem/grpc-gateway/v2**        v2.23.0 -> v2.24.0
+* **github.com/johannesboyne/gofakes3**                2db7ccb81e19 -> 0da3aa9c32ca
+* **github.com/siderolabs/crypto**                     v0.5.0 -> v0.5.1
+* **github.com/siderolabs/discovery-service**          v1.0.7 -> v1.0.8
+* **github.com/siderolabs/go-kubernetes**              v0.2.14 -> v0.2.17
+* **github.com/siderolabs/image-factory**              v0.5.0 -> v0.6.2
+* **github.com/siderolabs/talos/pkg/machinery**        v1.8.2 -> v1.9.0-beta.1
+* **github.com/stretchr/testify**                      v1.9.0 -> v1.10.0
+* **github.com/zitadel/oidc/v3**                       v3.32.1 -> v3.33.1
+* **go.etcd.io/etcd/client/pkg/v3**                    v3.5.16 -> v3.5.17
+* **go.etcd.io/etcd/client/v3**                        v3.5.16 -> v3.5.17
+* **go.etcd.io/etcd/server/v3**                        v3.5.16 -> v3.5.17
+* **golang.org/x/crypto**                              v0.28.0 -> v0.29.0
+* **golang.org/x/net**                                 v0.30.0 -> v0.31.0
+* **golang.org/x/sync**                                v0.8.0 -> v0.10.0
+* **golang.org/x/tools**                               v0.26.0 -> v0.27.0
+* **google.golang.org/grpc**                           v1.67.1 -> v1.68.0
+* **google.golang.org/protobuf**                       v1.35.1 -> v1.35.2
+* **k8s.io/api**                                       v0.31.2 -> v0.32.0-rc.1
+* **k8s.io/apimachinery**                              v0.31.2 -> v0.32.0-rc.1
+* **k8s.io/client-go**                                 v0.31.2 -> v0.32.0-rc.1
+* **sigs.k8s.io/controller-runtime**                   v0.19.1 -> v0.19.3
+
+Previous release can be found at [v0.44.0](https://github.com/siderolabs/omni/releases/tag/v0.44.0)
+
 ## [Omni 0.45.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.45.0-beta.0) (2024-12-12)
 
 Welcome to the v0.45.0-beta.0 release of Omni!  
