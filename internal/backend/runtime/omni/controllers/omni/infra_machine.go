@@ -84,6 +84,16 @@ func NewInfraMachineController() *InfraMachineController {
 type infraMachineControllerHelper struct{}
 
 func (h *infraMachineControllerHelper) transformExtraOutput(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, link *siderolink.Link, infraMachine *infra.Machine) error {
+	config, err := helpers.HandleInput[*omni.InfraMachineConfig](ctx, r, InfraMachineControllerName, link)
+	if err != nil {
+		return err
+	}
+
+	machineExts, err := helpers.HandleInput[*omni.MachineExtensions](ctx, r, InfraMachineControllerName, link)
+	if err != nil {
+		return err
+	}
+
 	providerID, ok := link.Metadata().Annotations().Get(omni.LabelInfraProviderID)
 	if !ok {
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the link is not created by an infra provider")
@@ -98,7 +108,7 @@ func (h *infraMachineControllerHelper) transformExtraOutput(ctx context.Context,
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the link is not created by a static infra provider")
 	}
 
-	if err = h.applyInfraMachineConfig(ctx, r, link, infraMachine); err != nil {
+	if err = h.applyInfraMachineConfig(infraMachine, config); err != nil {
 		return err
 	}
 
@@ -127,18 +137,16 @@ func (h *infraMachineControllerHelper) transformExtraOutput(ctx context.Context,
 		infraMachine.TypedSpec().Value.ClusterTalosVersion = ""
 		infraMachine.TypedSpec().Value.Extensions = nil
 
-		if err = r.RemoveFinalizer(ctx, clusterMachine.Metadata(), InfraMachineControllerName); err != nil {
-			return err
-		}
+		_, err = helpers.HandleInput[*omni.ClusterMachine](ctx, r, InfraMachineControllerName, link)
 
-		return nil
+		return err
 	}
 
 	if err = r.AddFinalizer(ctx, clusterMachine.Metadata(), InfraMachineControllerName); err != nil {
 		return err
 	}
 
-	talosVersion, extensions, err := h.getClusterInfo(ctx, r, link.Metadata().ID())
+	talosVersion, extensions, err := h.getClusterInfo(ctx, r, link.Metadata().ID(), machineExts)
 	if err != nil {
 		return err
 	}
@@ -152,34 +160,21 @@ func (h *infraMachineControllerHelper) transformExtraOutput(ctx context.Context,
 }
 
 func (h *infraMachineControllerHelper) finalizerRemovalExtraOutput(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, link *siderolink.Link) error {
-	clusterMachine, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, link.Metadata().ID())
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return nil
-		}
-
+	if _, err := helpers.HandleInput[*omni.InfraMachineConfig](ctx, r, InfraMachineControllerName, link); err != nil {
 		return err
 	}
 
-	if err = r.RemoveFinalizer(ctx, clusterMachine.Metadata(), InfraMachineControllerName); err != nil {
+	if _, err := helpers.HandleInput[*omni.MachineExtensions](ctx, r, InfraMachineControllerName, link); err != nil {
 		return err
 	}
 
-	_, err = helpers.HandleInput[*omni.InfraMachineConfig](ctx, r, InfraMachineControllerName, link)
-	if err != nil {
-		return err
-	}
+	_, err := helpers.HandleInput[*omni.ClusterMachine](ctx, r, InfraMachineControllerName, link)
 
-	return nil
+	return err
 }
 
 // applyInfraMachineConfig applies the user-managed configuration from the omni.InfraMachineConfig resource into the infra.Machine.
-func (h *infraMachineControllerHelper) applyInfraMachineConfig(ctx context.Context, r controller.ReaderWriter, link *siderolink.Link, infraMachine *infra.Machine) error {
-	config, err := helpers.HandleInput[*omni.InfraMachineConfig](ctx, r, InfraMachineControllerName, link)
-	if err != nil {
-		return err
-	}
-
+func (h *infraMachineControllerHelper) applyInfraMachineConfig(infraMachine *infra.Machine, config *omni.InfraMachineConfig) error {
 	const defaultPreferredPowerState = specs.InfraMachineSpec_POWER_STATE_OFF // todo: introduce a resource to configure this globally or per-provider level
 
 	// reset the user-override fields except the "Accepted" field
@@ -219,7 +214,7 @@ func (h *infraMachineControllerHelper) applyInfraMachineConfig(ctx context.Conte
 // getClusterInfo returns the Talos version and extensions for the given machine.
 //
 // At this point, the machine is known to be associated with a cluster.
-func (h *infraMachineControllerHelper) getClusterInfo(ctx context.Context, r controller.Reader, id resource.ID) (string, []string, error) {
+func (h *infraMachineControllerHelper) getClusterInfo(ctx context.Context, r controller.Reader, id resource.ID, machineExtensions *omni.MachineExtensions) (string, []string, error) {
 	schematicConfig, err := safe.ReaderGetByID[*omni.SchematicConfiguration](ctx, r, id)
 	if err != nil {
 		if state.IsNotFoundError(err) {
@@ -229,14 +224,11 @@ func (h *infraMachineControllerHelper) getClusterInfo(ctx context.Context, r con
 		return "", nil, err
 	}
 
-	machineExts, err := safe.ReaderGetByID[*omni.MachineExtensions](ctx, r, schematicConfig.Metadata().ID())
-	if err != nil {
-		if state.IsNotFoundError(err) { // no extensions
-			return schematicConfig.TypedSpec().Value.TalosVersion, nil, nil
-		}
+	var extensions []string
 
-		return "", nil, err
+	if machineExtensions != nil {
+		extensions = machineExtensions.TypedSpec().Value.Extensions
 	}
 
-	return schematicConfig.TypedSpec().Value.TalosVersion, machineExts.TypedSpec().Value.Extensions, nil
+	return schematicConfig.TypedSpec().Value.TalosVersion, extensions, nil
 }

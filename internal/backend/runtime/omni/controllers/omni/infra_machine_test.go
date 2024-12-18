@@ -62,6 +62,10 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, config))
 
+	assertResource[*omni.InfraMachineConfig](&suite.OmniSuite, config.Metadata(), func(r *omni.InfraMachineConfig, assertion *assert.Assertions) {
+		assertion.True(r.Metadata().Finalizers().Has(omnictrl.InfraMachineControllerName))
+	})
+
 	assertResource[*infra.Machine](&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
 		assertion.Equal(specs.InfraMachineConfigSpec_ACCEPTED, r.TypedSpec().Value.AcceptanceStatus)
 		assertion.Equal(specs.InfraMachineSpec_POWER_STATE_ON, r.TypedSpec().Value.PreferredPowerState)
@@ -97,6 +101,10 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, extensions))
 
+	assertResource[*omni.MachineExtensions](&suite.OmniSuite, extensions.Metadata(), func(r *omni.MachineExtensions, assertion *assert.Assertions) {
+		assertion.True(r.Metadata().Finalizers().Has(omnictrl.InfraMachineControllerName))
+	})
+
 	// assert that the cluster machine has the correct extensions
 	assertResource[*infra.Machine](&suite.OmniSuite, clusterMachine.Metadata(), func(r *infra.Machine, assertion *assert.Assertions) {
 		assertion.ElementsMatch([]string{"foo", "bar"}, r.TypedSpec().Value.Extensions)
@@ -127,8 +135,16 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 	// destroy the link
 	rtestutils.Destroy[*siderolink.Link](suite.ctx, suite.T(), suite.state, []string{link.Metadata().ID()})
 
-	// assert that the finalizer is removed
+	// assert that the finalizers are removed
 	assertResource[*omni.ClusterMachine](&suite.OmniSuite, infraMachineMD, func(r *omni.ClusterMachine, assertion *assert.Assertions) {
+		assertion.False(r.Metadata().Finalizers().Has(omnictrl.InfraMachineControllerName))
+	})
+
+	assertResource[*omni.InfraMachineConfig](&suite.OmniSuite, infraMachineMD, func(r *omni.InfraMachineConfig, assertion *assert.Assertions) {
+		assertion.False(r.Metadata().Finalizers().Has(omnictrl.InfraMachineControllerName))
+	})
+
+	assertResource[*omni.MachineExtensions](&suite.OmniSuite, infraMachineMD, func(r *omni.MachineExtensions, assertion *assert.Assertions) {
 		assertion.False(r.Metadata().Finalizers().Has(omnictrl.InfraMachineControllerName))
 	})
 
