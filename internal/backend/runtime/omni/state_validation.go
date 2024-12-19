@@ -1082,8 +1082,14 @@ func infraMachineConfigValidationOptions(st state.State) []validated.StateOption
 				return nil
 			}
 
-			if oldRes.TypedSpec().Value.AcceptanceStatus != newRes.TypedSpec().Value.AcceptanceStatus {
-				return errors.New("acceptance status cannot be changed after it is accepted or rejected")
+			if oldRes.TypedSpec().Value.AcceptanceStatus != specs.InfraMachineConfigSpec_PENDING &&
+				newRes.TypedSpec().Value.AcceptanceStatus == specs.InfraMachineConfigSpec_PENDING {
+				return errors.New("an accepted or rejected machine cannot be set to back to pending acceptance")
+			}
+
+			if oldRes.TypedSpec().Value.AcceptanceStatus == specs.InfraMachineConfigSpec_ACCEPTED &&
+				newRes.TypedSpec().Value.AcceptanceStatus == specs.InfraMachineConfigSpec_REJECTED {
+				return errors.New("an accepted machine cannot be rejected")
 			}
 
 			return nil

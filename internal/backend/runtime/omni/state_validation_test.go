@@ -1202,7 +1202,7 @@ func TestInfraMachineConfigValidation(t *testing.T) {
 		return nil
 	})
 	require.True(t, validated.IsValidationError(err), "expected validation error")
-	assert.ErrorContains(t, err, "acceptance status cannot be changed")
+	assert.ErrorContains(t, err, "an accepted machine cannot be rejected")
 
 	// try to destroy it
 
