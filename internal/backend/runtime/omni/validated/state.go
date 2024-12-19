@@ -105,14 +105,29 @@ func (v *State) Update(ctx context.Context, newResource resource.Resource, opts 
 		return err
 	}
 
+	var validationErrs error
+
 	// if the existing resource was not found, instead of returning the not found error, run the validations first
 	// only if the validations pass, return the not found error
-
-	var validationErrs error
 
 	for _, validation := range v.updateValidations {
 		if validationErr := validation(ctx, existing, newResource, opts...); validationErr != nil {
 			validationErrs = multierror.Append(validationErrs, validationErr)
+		}
+	}
+
+	// If the resource is tearing down, run the destroy validations as well
+	if newResource.Metadata().Phase() == resource.PhaseTearingDown {
+		updateOpts := state.UpdateOptions{}
+
+		for _, opt := range opts {
+			opt(&updateOpts)
+		}
+
+		for _, validation := range v.destroyValidations {
+			if validationErr := validation(ctx, newResource.Metadata(), existing, state.WithDestroyOwner(updateOpts.Owner)); validationErr != nil {
+				validationErrs = multierror.Append(validationErrs, validationErr)
+			}
 		}
 	}
 
