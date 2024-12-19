@@ -13,11 +13,13 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -204,4 +206,42 @@ func TestValidations(t *testing.T) {
 
 	_, err = innerSt.Get(ctx, machine.Metadata())
 	assert.True(t, state.IsNotFoundError(err))
+}
+
+func TestTeardownDestroyValidations(t *testing.T) {
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(
+		validated.NewState(innerSt,
+			validated.WithUpdateValidations(func(context.Context, resource.Resource, resource.Resource, ...state.UpdateOption) error {
+				return errors.New("update")
+			}), validated.WithDestroyValidations(func(_ context.Context, _ resource.Pointer, _ resource.Resource, option ...state.DestroyOption) error {
+				opts := state.DestroyOptions{}
+
+				for _, opt := range option {
+					opt(&opts)
+				}
+
+				return errors.New("destroy by " + opts.Owner)
+			}),
+		),
+	)
+
+	res := omni.NewCluster(resources.DefaultNamespace, "something")
+
+	require.NoError(t, st.Create(context.Background(), res))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	_, err := safe.StateUpdateWithConflicts(ctx, st, res.Metadata(), func(res *omni.Cluster) error {
+		res.TypedSpec().Value.TalosVersion = "1234"
+
+		return nil
+	})
+	require.EqualError(t, err, "failed to validate: 1 error occurred:\n\t* update\n\n")
+
+	const teardownOwner = "foobar-controller"
+
+	_, err = st.Teardown(ctx, res.Metadata(), state.WithTeardownOwner(teardownOwner))
+	require.EqualError(t, err, fmt.Sprintf("failed to validate: 2 errors occurred:\n\t* update\n\t* destroy by %s\n\n", teardownOwner))
 }
