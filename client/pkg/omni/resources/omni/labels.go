@@ -109,6 +109,10 @@ const (
 	// tsgen:MachineStatusLabelConnected
 	MachineStatusLabelConnected = SystemLabelPrefix + "connected"
 
+	// MachineStatusLabelReadyToUse is set if the machine is connected or is disconnected and powered off by the bare metal provider.
+	// tsgen:MachineStatusLabelReadyToUse
+	MachineStatusLabelReadyToUse = SystemLabelPrefix + "ready-to-use"
+
 	// MachineStatusLabelDisconnected is set if the machine is disconnected.
 	// tsgen:MachineStatusLabelDisconnected
 	MachineStatusLabelDisconnected = SystemLabelPrefix + "disconnected"

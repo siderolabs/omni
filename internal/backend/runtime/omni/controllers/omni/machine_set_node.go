@@ -376,7 +376,7 @@ func (ctrl *MachineSetNodeController) createNodes(
 			Key: omni.MachineStatusLabelAvailable,
 			Op:  resource.LabelOpExists,
 		}, resource.LabelTerm{
-			Key: omni.MachineStatusLabelConnected,
+			Key: omni.MachineStatusLabelReadyToUse,
 			Op:  resource.LabelOpExists,
 		}, resource.LabelTerm{
 			Key: omni.MachineStatusLabelReportingEvents,

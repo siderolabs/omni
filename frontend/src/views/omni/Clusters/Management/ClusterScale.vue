@@ -18,7 +18,7 @@ included in the LICENSE file.
           resource: resource,
           selectors: [
             `${MachineStatusLabelAvailable}`,
-            `${MachineStatusLabelConnected}`,
+            `${MachineStatusLabelReadyToUse}`,
             `!${MachineStatusLabelInvalidState}`,
             `${MachineStatusLabelReportingEvents}`,
             `!${LabelNoManualAllocation}`
@@ -79,10 +79,10 @@ import {
   MachineStatusType,
   MachineConfigGenOptionsType,
   MachineStatusLabelAvailable,
-  MachineStatusLabelConnected,
   MachineStatusLabelInvalidState,
   MachineStatusLabelReportingEvents,
   LabelNoManualAllocation,
+  MachineStatusLabelReadyToUse,
 } from "@/api/resources";
 import { showError, showSuccess } from "@/notification";
 import { useRoute, useRouter } from "vue-router";

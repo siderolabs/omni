@@ -24,6 +24,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
@@ -103,6 +104,11 @@ func (ctrl *MachineStatusController) Settings() controller.QSettings {
 				Type:      siderolink.ConnectionParamsType,
 				Kind:      controller.InputQMapped,
 			},
+			{
+				Namespace: resources.InfraProviderNamespace,
+				Type:      infra.InfraMachineStatusType,
+				Kind:      controller.InputQMapped,
+			},
 		},
 		Outputs: []controller.Output{
 			{
@@ -141,17 +147,13 @@ func (ctrl *MachineStatusController) MapInput(ctx context.Context, _ *zap.Logger
 	}
 
 	switch ptr.Type() {
-	case omni.MachineStatusType:
-		fallthrough
-	case omni.MachineType:
-		fallthrough
-	case omni.MachineSetNodeType:
-		fallthrough
-	case omni.ClusterMachineStatusType:
-		fallthrough
-	case omni.MachineLabelsType:
-		fallthrough
-	case omni.MachineStatusSnapshotType:
+	case omni.MachineStatusType,
+		omni.MachineType,
+		omni.MachineSetNodeType,
+		omni.ClusterMachineStatusType,
+		omni.MachineLabelsType,
+		infra.InfraMachineStatusType,
+		omni.MachineStatusSnapshotType:
 		return []resource.Pointer{
 			omni.NewMachine(resources.DefaultNamespace, ptr.ID()).Metadata(),
 		}, nil
@@ -245,19 +247,7 @@ func (ctrl *MachineStatusController) reconcileRunning(ctx context.Context, r con
 	return safe.WriterModify(ctx, r, omni.NewMachineStatus(resources.DefaultNamespace, machine.Metadata().ID()), func(m *omni.MachineStatus) error {
 		spec := m.TypedSpec().Value
 
-		connected := machine.TypedSpec().Value.Connected
-
-		spec.Connected = connected
-
 		helpers.CopyLabels(machine, m, omni.LabelMachineRequest, omni.LabelMachineRequestSet, omni.LabelNoManualAllocation, omni.LabelIsManagedByStaticInfraProvider)
-
-		if connected {
-			m.Metadata().Labels().Set(omni.MachineStatusLabelConnected, "")
-			m.Metadata().Labels().Delete(omni.MachineStatusLabelDisconnected)
-		} else {
-			m.Metadata().Labels().Delete(omni.MachineStatusLabelConnected)
-			m.Metadata().Labels().Set(omni.MachineStatusLabelDisconnected, "")
-		}
 
 		if reportingEvents {
 			m.Metadata().Labels().Set(omni.MachineStatusLabelReportingEvents, "")
@@ -273,8 +263,72 @@ func (ctrl *MachineStatusController) reconcileRunning(ctx context.Context, r con
 
 		omni.MachineStatusReconcileLabels(m)
 
-		return ctrl.setClusterRelation(inputs, m)
+		if err = ctrl.setClusterRelation(inputs, m); err != nil {
+			return err
+		}
+
+		ctrl.updateMachineConnectionStatus(machine, inputs, m)
+		ctrl.updateMachinePowerState(machine, inputs, m)
+
+		return nil
 	})
+}
+
+func (ctrl *MachineStatusController) updateMachinePowerState(machine *omni.Machine, inputs inputs, m *omni.MachineStatus) {
+	_, isManagedByStaticInfraProvider := machine.Metadata().Labels().Get(omni.LabelIsManagedByStaticInfraProvider)
+
+	if isManagedByStaticInfraProvider {
+		if inputs.infraMachineStatus == nil {
+			m.TypedSpec().Value.PowerState = specs.MachineStatusSpec_POWER_STATE_UNKNOWN
+
+			return
+		}
+
+		switch inputs.infraMachineStatus.TypedSpec().Value.PowerState {
+		case specs.InfraMachineStatusSpec_POWER_STATE_UNKNOWN:
+			m.TypedSpec().Value.PowerState = specs.MachineStatusSpec_POWER_STATE_UNKNOWN
+		case specs.InfraMachineStatusSpec_POWER_STATE_ON:
+			m.TypedSpec().Value.PowerState = specs.MachineStatusSpec_POWER_STATE_ON
+		case specs.InfraMachineStatusSpec_POWER_STATE_OFF:
+			m.TypedSpec().Value.PowerState = specs.MachineStatusSpec_POWER_STATE_OFF
+		}
+
+		return
+	}
+
+	m.TypedSpec().Value.PowerState = specs.MachineStatusSpec_POWER_STATE_UNSUPPORTED
+}
+
+func (ctrl *MachineStatusController) updateMachineConnectionStatus(machine *omni.Machine, inputs inputs, m *omni.MachineStatus) {
+	connected := machine.TypedSpec().Value.Connected
+
+	m.TypedSpec().Value.Connected = connected
+
+	if connected {
+		m.Metadata().Labels().Set(omni.MachineStatusLabelConnected, "")
+		m.Metadata().Labels().Delete(omni.MachineStatusLabelDisconnected)
+
+		m.Metadata().Labels().Set(omni.MachineStatusLabelReadyToUse, "")
+
+		return
+	}
+
+	m.Metadata().Labels().Delete(omni.MachineStatusLabelConnected)
+
+	infraMachineIsReadyToUse := inputs.infraMachineStatus != nil &&
+		inputs.infraMachineStatus.TypedSpec().Value.PowerState != specs.InfraMachineStatusSpec_POWER_STATE_UNKNOWN &&
+		inputs.infraMachineStatus.TypedSpec().Value.ReadyToUse
+
+	_, isManagedByStaticInfraProvider := machine.Metadata().Labels().Get(omni.LabelIsManagedByStaticInfraProvider)
+	if isManagedByStaticInfraProvider && infraMachineIsReadyToUse && m.TypedSpec().Value.Cluster == "" {
+		m.Metadata().Labels().Set(omni.MachineStatusLabelReadyToUse, "")
+		m.Metadata().Labels().Delete(omni.MachineStatusLabelDisconnected)
+
+		return
+	}
+
+	m.Metadata().Labels().Delete(omni.MachineStatusLabelReadyToUse)
+	m.Metadata().Labels().Set(omni.MachineStatusLabelDisconnected, "")
 }
 
 func (ctrl *MachineStatusController) reconcileTearingDown(ctx context.Context, r controller.QRuntime, logger *zap.Logger, machine *omni.Machine) error {
@@ -464,6 +518,7 @@ type inputs struct {
 	machineLabels         *omni.MachineLabels
 	machineStatusSnapshot *omni.MachineStatusSnapshot
 	talosConfig           *omni.TalosConfig
+	infraMachineStatus    *infra.MachineStatus
 }
 
 func (ctrl *MachineStatusController) handleInputs(ctx context.Context, r controller.QRuntime, machine *omni.Machine) (inputs, error) {
@@ -488,6 +543,11 @@ func (ctrl *MachineStatusController) handleInputs(ctx context.Context, r control
 	}
 
 	in.machineSetNode, err = helpers.HandleInput[*omni.MachineSetNode](ctx, r, ctrl.Name(), machine)
+	if err != nil {
+		return in, err
+	}
+
+	in.infraMachineStatus, err = helpers.HandleInput[*infra.MachineStatus](ctx, r, ctrl.Name(), machine)
 	if err != nil {
 		return in, err
 	}

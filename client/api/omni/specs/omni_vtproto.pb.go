@@ -361,6 +361,7 @@ func (m *MachineStatusSpec) CloneVT() *MachineStatusSpec {
 	r.Schematic = m.Schematic.CloneVT()
 	r.InitialTalosVersion = m.InitialTalosVersion
 	r.SecureBootStatus = m.SecureBootStatus.CloneVT()
+	r.PowerState = m.PowerState
 	if rhs := m.ImageLabels; rhs != nil {
 		tmpContainer := make(map[string]string, len(rhs))
 		for k, v := range rhs {
@@ -2948,6 +2949,9 @@ func (this *MachineStatusSpec) EqualVT(that *MachineStatusSpec) bool {
 				return false
 			}
 		}
+	}
+	if this.PowerState != that.PowerState {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -6539,6 +6543,13 @@ func (m *MachineStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.PowerState != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.PowerState))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa0
 	}
 	if len(m.Diagnostics) > 0 {
 		for iNdEx := len(m.Diagnostics) - 1; iNdEx >= 0; iNdEx-- {
@@ -12382,6 +12393,9 @@ func (m *MachineStatusSpec) SizeVT() (n int) {
 			n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
 	}
+	if m.PowerState != 0 {
+		n += 2 + protohelpers.SizeOfVarint(uint64(m.PowerState))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -17373,6 +17387,25 @@ func (m *MachineStatusSpec) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 20:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PowerState", wireType)
+			}
+			m.PowerState = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.PowerState |= MachineStatusSpec_PowerState(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

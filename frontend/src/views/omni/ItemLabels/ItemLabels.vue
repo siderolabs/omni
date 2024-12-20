@@ -41,6 +41,7 @@ const labelOrder = {
   "no-manual-allocation": -1,
   "machine-request": -1,
   "installed": -1,
+  "ready-to-use": -1,
   "reporting-events": -1,
   "invalid-state": 0,
   "cluster": 0,

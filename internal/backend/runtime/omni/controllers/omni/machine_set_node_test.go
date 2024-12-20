@@ -94,12 +94,14 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 			omni.MachineStatusLabelArch:            "amd64",
 			omni.MachineStatusLabelAvailable:       "",
 			omni.MachineStatusLabelConnected:       "",
+			omni.MachineStatusLabelReadyToUse:      "",
 			omni.MachineStatusLabelReportingEvents: "",
 		},
 		map[string]string{
 			omni.MachineStatusLabelAvailable:       "",
 			omni.MachineStatusLabelArch:            "amd64",
 			omni.MachineStatusLabelConnected:       "",
+			omni.MachineStatusLabelReadyToUse:      "",
 			omni.MachineStatusLabelReportingEvents: "",
 		},
 		map[string]string{},
@@ -108,6 +110,7 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 			omni.MachineStatusLabelAvailable:       "",
 			"userlabel":                            "value",
 			omni.MachineStatusLabelConnected:       "",
+			omni.MachineStatusLabelReadyToUse:      "",
 			omni.MachineStatusLabelReportingEvents: "",
 		},
 	)
@@ -204,17 +207,20 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 			omni.MachineStatusLabelCPU:             "AMD",
 			omni.MachineStatusLabelAvailable:       "",
 			omni.MachineStatusLabelConnected:       "",
+			omni.MachineStatusLabelReadyToUse:      "",
 			omni.MachineStatusLabelReportingEvents: "",
 		},
 		map[string]string{
 			omni.MachineStatusLabelCPU:             "AMD",
 			omni.MachineStatusLabelConnected:       "",
+			omni.MachineStatusLabelReadyToUse:      "",
 			omni.MachineStatusLabelReportingEvents: "",
 		},
 		map[string]string{
 			omni.MachineStatusLabelCPU:             "AMD",
 			omni.MachineStatusLabelAvailable:       "",
 			omni.MachineStatusLabelConnected:       "",
+			omni.MachineStatusLabelReadyToUse:      "",
 			omni.MachineStatusLabelReportingEvents: "",
 		},
 	)...)

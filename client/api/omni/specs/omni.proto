@@ -240,6 +240,15 @@ message MachineStatusSpec {
   SecureBootStatus secure_boot_status = 18;
 
   repeated Diagnostic diagnostics = 19;
+
+  enum PowerState {
+    POWER_STATE_UNKNOWN = 0;
+    POWER_STATE_UNSUPPORTED = 1;
+    POWER_STATE_ON = 2;
+    POWER_STATE_OFF = 3;
+  };
+
+  PowerState power_state = 20;
 }
 
 // TalosConfigSpec describes a Talos cluster config.
@@ -492,6 +501,7 @@ message ClusterMachineStatusSpec {
     SHUTTING_DOWN = 8;
     BEFORE_DESTROY = 9;
     DESTROYING = 5;
+    POWERING_ON = 10;
   }
 
   Stage stage = 2;

@@ -109,7 +109,8 @@ included in the LICENSE file.
         </div>
         <div class="mb-2 mt-4">Last Active</div>
         <div class="mb-2 mt-4">Created At</div>
-        <div class="mb-2 mt-4 col-span-3">Secure Boot</div>
+        <div class="mb-2 mt-4">Secure Boot</div>
+        <div class="mb-2 mt-4 col-span-2">Power State</div>
         <div>
           <div>{{ machineLastAlive }}</div>
         </div>
@@ -118,6 +119,21 @@ included in the LICENSE file.
         </div>
         <div>
           <div>{{ secureBoot }}</div>
+        </div>
+        <div class="flex gap-0.5 items-center" :class="{
+          'text-green-G1': machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_ON,
+          'text-naturals-N9': machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_OFF,
+          'text-naturals-N8': machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_UNKNOWN ||
+           machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_UNSUPPORTED
+        }">
+          <template v-if="machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_UNSUPPORTED || machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_UNKNOWN">
+            <t-icon icon="question" class="w-4 h-4 mr-1"/>
+            <div>{{ machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_UNSUPPORTED ? "Unsupported" : "Unknown" }}</div>
+          </template>
+          <template v-else>
+            <t-icon icon="dot" class="w-5 h-5 -ml-1"/>
+            <div>{{ machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_ON ? "On" : "Off" }}</div>
+          </template>
         </div>
       </div>
     </template>
@@ -145,6 +161,7 @@ import TIcon from "@/components/common/Icon/TIcon.vue";
 import WordHighlighter from "vue-word-highlighter";
 import { addMachineLabels, removeMachineLabels } from "@/methods/machine";
 import { canReadClusters, canReadMachineLogs, canRemoveMachines, canAccessMaintenanceNodes } from "@/methods/auth";
+import { MachineStatusSpecPowerState } from "@/api/omni/specs/omni.pb";
 
 type MachineWithLinkCounter = Resource<MachineStatusLinkSpec>;
 const props = defineProps<{

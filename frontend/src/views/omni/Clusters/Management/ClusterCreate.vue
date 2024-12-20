@@ -78,7 +78,7 @@ included in the LICENSE file.
           runtime: Runtime.Omni,
           selectors: [
             `${MachineStatusLabelAvailable}`,
-            `${MachineStatusLabelConnected}`,
+            `${MachineStatusLabelReadyToUse}`,
             `!${MachineStatusLabelInvalidState}`,
             `${MachineStatusLabelReportingEvents}`,
             `!${LabelNoManualAllocation}`
@@ -140,15 +140,15 @@ import {
   DefaultNamespace,
   MachineStatusType,
   MachineStatusLabelAvailable,
-  MachineStatusLabelConnected,
   MachineStatusLabelInvalidState,
   MachineStatusLabelReportingEvents,
   MachineConfigGenOptionsType,
   TalosVersionType,
   DefaultKubernetesVersion,
-PatchBaseWeightMachineSet,
-PatchBaseWeightCluster,
-LabelNoManualAllocation,
+  PatchBaseWeightMachineSet,
+  PatchBaseWeightCluster,
+  LabelNoManualAllocation,
+  MachineStatusLabelReadyToUse,
 } from "@/api/resources";
 import { MachineStatusSpec, TalosVersionSpec } from "@/api/omni/specs/omni.pb";
 import WatchResource, { itemID } from "@/api/watch";

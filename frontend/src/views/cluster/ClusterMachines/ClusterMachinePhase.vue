@@ -33,6 +33,10 @@ import TIcon, { IconType } from "@/components/common/Icon/TIcon.vue";
 import Popper from "vue3-popper";
 
 const connected = (machine: Resource<ClusterMachineStatusSpec>): boolean => {
+  if (machine.spec.stage === ClusterMachineStatusSpecStage.POWERING_ON) {
+    return true;
+  }
+
   return machine?.metadata.labels?.[MachineStatusLabelConnected] === "";
 };
 
@@ -59,7 +63,9 @@ const stageName = (machine: Resource<ClusterMachineStatusSpec>): string => {
     case ClusterMachineStatusSpecStage.DESTROYING:
       return "Destroying";
     case ClusterMachineStatusSpecStage.BEFORE_DESTROY:
-      return "Preparing to Destroy"
+      return "Preparing to Destroy";
+    case ClusterMachineStatusSpecStage.POWERING_ON:
+      return "Powering On";
     default:
       return "Unknown";
   }
@@ -74,6 +80,8 @@ const stageIcon = (machine: Resource<ClusterMachineStatusSpec>): IconType => {
     case ClusterMachineStatusSpecStage.REBOOTING:
     case ClusterMachineStatusSpecStage.SHUTTING_DOWN:
       return "loading";
+    case ClusterMachineStatusSpecStage.POWERING_ON:
+      return "power";
     case ClusterMachineStatusSpecStage.RUNNING:
     if (machine?.spec.ready) {
         return "check-in-circle";
@@ -98,6 +106,7 @@ const stageColor = (machine: Resource<ClusterMachineStatusSpec>): string => {
     case ClusterMachineStatusSpecStage.UPGRADING:
     case ClusterMachineStatusSpecStage.CONFIGURING:
     case ClusterMachineStatusSpecStage.REBOOTING:
+    case ClusterMachineStatusSpecStage.POWERING_ON:
       return Y1;
     case ClusterMachineStatusSpecStage.RUNNING:
       if (machine?.spec.ready || !connected(machine)) {

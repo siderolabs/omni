@@ -52,6 +52,13 @@ export enum MachineStatusSpecRole {
   WORKER = 2,
 }
 
+export enum MachineStatusSpecPowerState {
+  POWER_STATE_UNKNOWN = 0,
+  POWER_STATE_UNSUPPORTED = 1,
+  POWER_STATE_ON = 2,
+  POWER_STATE_OFF = 3,
+}
+
 export enum EtcdBackupStatusSpecStatus {
   Unknown = 0,
   Ok = 1,
@@ -70,6 +77,7 @@ export enum ClusterMachineStatusSpecStage {
   SHUTTING_DOWN = 8,
   BEFORE_DESTROY = 9,
   DESTROYING = 5,
+  POWERING_ON = 10,
 }
 
 export enum ClusterStatusSpecPhase {
@@ -275,6 +283,7 @@ export type MachineStatusSpec = {
   initial_talos_version?: string
   secure_boot_status?: SecureBootStatus
   diagnostics?: MachineStatusSpecDiagnostic[]
+  power_state?: MachineStatusSpecPowerState
 }
 
 export type TalosConfigSpec = {
