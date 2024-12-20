@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap/zaptest"
@@ -32,9 +33,53 @@ func mockRunner(id int, started chan<- int, closed <-chan error) func(ctx contex
 		case err := <-closed:
 			return err
 		case <-ctx.Done():
-			return ctx.Err()
+			return context.Cause(ctx)
 		}
 	}
+}
+
+func TestEtcdElectionsLost(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	logger := zaptest.NewLogger(t)
+
+	require.NoError(t, omni.GetEmbeddedEtcdClientWithServer(ctx, &config.EtcdParams{
+		Embedded:       true,
+		EmbeddedDBPath: t.TempDir(),
+		Endpoints:      []string{"http://localhost:0"},
+	}, logger, func(ctx context.Context, client *clientv3.Client, serverCloser func() error) error {
+		started := make(chan int)
+		closed := make(chan error)
+		errCh := make(chan error)
+		electionKey := uuid.NewString()
+
+		// run mock runner, it should win the elections and keep running
+		go func() {
+			errCh <- omni.EtcdElections(ctx, client, electionKey, logger, mockRunner(1, started, closed))
+		}()
+
+		select {
+		case id := <-started:
+			require.Equal(t, 1, id)
+		case <-ctx.Done():
+			t.Fatal("runner didn't start")
+		}
+
+		// abort etcd, that aborts the election campaign
+		assert.NoError(t, serverCloser())
+
+		// at this point the runner should stop
+		select {
+		case err := <-errCh:
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "etcd session closed")
+		case <-ctx.Done():
+			t.Fatal("runner didn't stop")
+		}
+
+		return nil
+	}))
 }
 
 func TestEtcdElections(t *testing.T) {
@@ -43,11 +88,11 @@ func TestEtcdElections(t *testing.T) {
 
 	logger := zaptest.NewLogger(t)
 
-	require.NoError(t, omni.GetEmbeddedEtcdClient(ctx, &config.EtcdParams{
+	require.NoError(t, omni.GetEmbeddedEtcdClientWithServer(ctx, &config.EtcdParams{
 		Embedded:       true,
 		EmbeddedDBPath: t.TempDir(),
 		Endpoints:      []string{"http://localhost:0"},
-	}, logger, func(ctx context.Context, client *clientv3.Client) error {
+	}, logger, func(ctx context.Context, client *clientv3.Client, _ func() error) error {
 		started := make(chan int)
 		closed := make(chan error)
 		errCh := make(chan error)

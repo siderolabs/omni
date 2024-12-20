@@ -22,8 +22,8 @@ func BuildEtcdPersistentState(ctx context.Context, params *config.Params, logger
 	return buildEtcdPersistentState(ctx, params, logger, f)
 }
 
-func GetEmbeddedEtcdClient(ctx context.Context, params *config.EtcdParams, logger *zap.Logger, f func(context.Context, *clientv3.Client) error) error {
-	return getEmbeddedEtcdClient(ctx, params, logger, f)
+func GetEmbeddedEtcdClientWithServer(ctx context.Context, params *config.EtcdParams, logger *zap.Logger, f func(context.Context, *clientv3.Client, func() error) error) error {
+	return getEmbeddedEtcdClientWithServerCloser(ctx, params, logger, f)
 }
 
 func EtcdElections(ctx context.Context, client *clientv3.Client, electionKey string, logger *zap.Logger, f func(ctx context.Context, client *clientv3.Client) error) error {

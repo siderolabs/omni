@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -137,6 +138,12 @@ func getEtcdClient(ctx context.Context, params *config.EtcdParams, logger *zap.L
 }
 
 func getEmbeddedEtcdClient(ctx context.Context, params *config.EtcdParams, logger *zap.Logger, f func(context.Context, *clientv3.Client) error) error {
+	return getEmbeddedEtcdClientWithServerCloser(ctx, params, logger, func(ctx context.Context, cli *clientv3.Client, _ func() error) error {
+		return f(ctx, cli)
+	})
+}
+
+func getEmbeddedEtcdClientWithServerCloser(ctx context.Context, params *config.EtcdParams, logger *zap.Logger, f func(ctx context.Context, cli *clientv3.Client, closer func() error) error) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -222,7 +229,7 @@ func getEmbeddedEtcdClient(ctx context.Context, params *config.EtcdParams, logge
 		return err
 	}
 
-	closer := func() error {
+	closer := sync.OnceValue(func() error {
 		if err = cli.Close(); err != nil && !errors.Is(err, context.Canceled) {
 			return fmt.Errorf("error closing client: %w", err)
 		}
@@ -236,7 +243,7 @@ func getEmbeddedEtcdClient(ctx context.Context, params *config.EtcdParams, logge
 		}
 
 		return nil
-	}
+	})
 
 	defer func() {
 		if err = closer(); err != nil {
@@ -244,7 +251,7 @@ func getEmbeddedEtcdClient(ctx context.Context, params *config.EtcdParams, logge
 		}
 	}()
 
-	return f(ctx, cli)
+	return f(ctx, cli, closer)
 }
 
 func getExternalEtcdClient(ctx context.Context, params *config.EtcdParams, logger *zap.Logger, f func(context.Context, *clientv3.Client) error) error {
