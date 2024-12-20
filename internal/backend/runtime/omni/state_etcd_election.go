@@ -7,6 +7,7 @@ package omni
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path"
 	"time"
@@ -76,30 +77,37 @@ campaignLoop:
 		logger.Info("resigned from the etcd election campaign", zap.Error(resignErr))
 	}()
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
 
 	panichandler.Go(func() {
 		observe := election.Observe(ctx)
 
-	observeLoop:
 		for {
 			select {
 			case <-sess.Done():
-				logger.Info("etcd session closed")
+				logger.Error("etcd session closed")
 
-				break observeLoop
+				cancel(errors.New("etcd session closed"))
+
+				return
 			case <-ctx.Done():
-				break observeLoop
+				return
 			case resp, ok := <-observe:
 				if !ok {
-					break observeLoop
+					logger.Error("etcd observe channel closed")
+
+					cancel(errors.New("etcd observe channel closed"))
+
+					return
 				}
 
 				if string(resp.Kvs[0].Value) != campaignKey {
-					logger.Info("detected new leader", zap.ByteString("leader", resp.Kvs[0].Value))
+					logger.Error("detected new leader", zap.ByteString("leader", resp.Kvs[0].Value))
 
-					break observeLoop
+					cancel(errors.New("etcd detected new leader"))
+
+					return
 				}
 			}
 		}
