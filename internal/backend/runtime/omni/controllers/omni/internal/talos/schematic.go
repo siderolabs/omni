@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/image-factory/pkg/constants"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	"github.com/siderolabs/talos/pkg/machinery/client"
@@ -51,10 +52,17 @@ func GetSchematicInfo(ctx context.Context, c *client.Client, defaultKernelArgs [
 		fullID       string
 		rawSchematic = &schematic.Schematic{}
 		manifest     string
+		inAgentMode  bool
 	)
 
 	err = items.ForEachErr(func(status *runtime.ExtensionStatus) error {
 		name := status.TypedSpec().Metadata.Name
+		if name == "metal-agent" {
+			inAgentMode = true
+
+			return nil
+		}
+
 		if name == constants.SchematicIDExtensionName { // skip the meta extension
 			fullID = status.TypedSpec().Metadata.Version
 
@@ -81,6 +89,18 @@ func GetSchematicInfo(ctx context.Context, c *client.Client, defaultKernelArgs [
 	})
 	if err != nil {
 		return SchematicInfo{}, err
+	}
+
+	if inAgentMode {
+		id, idErr := pointer.To(schematic.Schematic{}).ID()
+		if idErr != nil {
+			return SchematicInfo{}, fmt.Errorf("failed to calculate extensions schematic ID: %w", idErr)
+		}
+
+		return SchematicInfo{
+			ID:     id,
+			FullID: id,
+		}, nil
 	}
 
 	exts = extensions.MapNames(exts)

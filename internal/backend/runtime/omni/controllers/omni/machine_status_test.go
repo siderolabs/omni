@@ -328,17 +328,6 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 	}).ID()
 	suite.Require().NoError(err)
 
-	machine := omni.NewMachine(resources.DefaultNamespace, testID)
-	spec := machine.TypedSpec().Value
-
-	spec.Connected = true
-	spec.ManagementAddress = suite.socketConnectionString
-
-	suite.Require().NoError(suite.state.Create(suite.ctx, machine))
-
-	defaultSchematic, err := (&schematic.Schematic{}).ID()
-	suite.Require().NoError(err)
-
 	for _, tt := range []struct {
 		expected   *specs.MachineStatusSpec_Schematic
 		name       string
@@ -408,10 +397,49 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 				KernelArgs:       kernelArgs,
 			},
 		},
+		{
+			name: "agent mode empty list",
+			extensions: []*runtime.ExtensionStatusSpec{
+				{
+					Metadata: extensions.Metadata{
+						Name:        constants.SchematicIDExtensionName,
+						Description: "0",
+						Version:     "full-id",
+					},
+				},
+				{
+					Metadata: extensions.Metadata{
+						Name:        "metal-agent",
+						Description: "1",
+					},
+				},
+				{
+					Metadata: extensions.Metadata{
+						Name:        "hello-world-service",
+						Description: "2",
+					},
+				},
+			},
+			expected: &specs.MachineStatusSpec_Schematic{
+				Id:               defaultSchematic,
+				InitialSchematic: defaultSchematic,
+				FullId:           defaultSchematic,
+			},
+		},
 	} {
 		suite.T().Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
 			defer cancel()
+
+			id := "test-" + tt.name
+
+			machine := omni.NewMachine(resources.DefaultNamespace, id)
+			spec := machine.TypedSpec().Value
+
+			spec.Connected = true
+			spec.ManagementAddress = suite.socketConnectionString
+
+			suite.Require().NoError(suite.state.Create(suite.ctx, machine))
 
 			rtestutils.DestroyAll[*runtime.ExtensionStatus](ctx, t, suite.machineService.state)
 
@@ -424,7 +452,7 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 				suite.Require().NoError(suite.machineService.state.Create(ctx, res))
 			}
 
-			rtestutils.AssertResources(ctx, t, suite.state, []string{testID}, func(status *omni.MachineStatus, assert *assert.Assertions) {
+			rtestutils.AssertResources(ctx, t, suite.state, []string{id}, func(status *omni.MachineStatus, assert *assert.Assertions) {
 				assert.EqualValues(tt.expected, status.TypedSpec().Value.Schematic)
 			})
 		})
