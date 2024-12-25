@@ -173,6 +173,9 @@ func NewMachineSetEtcdAuditController(talosClientFactory *talos.ClientFactory, m
 		qtransform.WithExtraMappedInput(
 			mappers.MapByMachineSetLabel[*omni.ClusterMachineStatus, *omni.MachineSet](),
 		),
+		qtransform.WithExtraMappedInput(
+			mappers.MapByMachineSetLabelOnlyControlplane[*omni.ClusterMachineIdentity, *omni.MachineSet](),
+		),
 		qtransform.WithExtraMappedDestroyReadyInput(
 			mappers.MapByMachineSetLabel[*omni.ClusterMachine, *omni.MachineSet](),
 		),
@@ -335,6 +338,15 @@ func (auditor *etcdAuditor) auditEtcd(ctx context.Context, r controller.Reader, 
 
 // auditMember audits the etcd member in the given machine. It returns the member ID if it is ok (not an orphan).
 func (auditor *etcdAuditor) auditMember(ctx context.Context, r controller.Reader, machine, clusterName string) (uint64, error) {
+	clusterMachineIdentity, err := safe.ReaderGetByID[*omni.ClusterMachineIdentity](ctx, r, machine)
+	if err != nil && !state.IsNotFoundError(err) {
+		return 0, err
+	}
+
+	if clusterMachineIdentity != nil && clusterMachineIdentity.TypedSpec().Value.EtcdMemberId != 0 {
+		return clusterMachineIdentity.TypedSpec().Value.EtcdMemberId, nil
+	}
+
 	cli, err := auditor.getNodeClient(ctx, r, clusterName, machine)
 	if err != nil {
 		if errors.Is(err, errSkipNode) {
@@ -356,11 +368,17 @@ func (auditor *etcdAuditor) auditMember(ctx context.Context, r controller.Reader
 		etcdMember       *etcd.Member
 	)
 
-	if hasEtcdDirectory, err = auditor.checkEtcdDirectory(ctx, cli); err != nil {
+	if ephemeralMounted, err = auditor.checkEphemeralMount(ctx, cli); err != nil {
 		return 0, err
 	}
 
-	if ephemeralMounted, err = auditor.checkEphemeralMount(ctx, cli); err != nil {
+	if !ephemeralMounted {
+		requeueErr := fmt.Errorf("etcd audit skipped: machine %q from cluster %q doesn't have ephemeral partition mounted", machine, clusterName)
+
+		return 0, controller.NewRequeueError(requeueErr, auditor.requeueAfterDuration)
+	}
+
+	if hasEtcdDirectory, err = auditor.checkEtcdDirectory(ctx, cli); err != nil {
 		return 0, err
 	}
 
@@ -371,12 +389,6 @@ func (auditor *etcdAuditor) auditMember(ctx context.Context, r controller.Reader
 	// skip audit for the member that doesn't have etcd running
 	if !hasEtcdDirectory && etcdMember == nil {
 		return 0, nil
-	}
-
-	if !ephemeralMounted {
-		requeueErr := fmt.Errorf("etcd audit skipped: machine %q from cluster %q doesn't have ephemeral partition mounted", machine, clusterName)
-
-		return 0, controller.NewRequeueError(requeueErr, auditor.requeueAfterDuration)
 	}
 
 	if hasEtcdDirectory && etcdMember == nil {
