@@ -6,29 +6,5 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = false
-previous = "v0.44.0"
+previous = "v0.45.0"
 
-[notes]
-
-  [notes.user-management]
-    title = "User Management CLI"
-    description = """\
-`omnictl` now has new commands for user management to make it consistent with the UI:
-
-- `omnictl user list`
-- `omnictl user create [email] --role [role]
-- `omnictl user delete [email]`
-- `omnictl user set-role email --role [role]`
-"""
-
-  [notes.service-accounts]
-    title = "Service Account Management UI"
-    description = """\
-It is now possible to view, create, delete and edit service account in the Omni web UI.
-"""
-
-  [notes.turing-rk]
-    title = "New SBC Support"
-    description = """\
-Turing RK1 SBC installation media can now be downloaded from Omni.
-"""

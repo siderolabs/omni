@@ -1,3 +1,30 @@
+## [Omni 0.45.1](https://github.com/siderolabs/omni/releases/tag/v0.45.1) (2024-12-25)
+
+Welcome to the v0.45.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`322891c`](https://github.com/siderolabs/omni/commit/322891c773f3b4b39507a75363d09aa7992ddbbf) fix: never remove etcd members which ID is discovered at least once
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.45.0](https://github.com/siderolabs/omni/releases/tag/v0.45.0)
+
 ## [Omni 0.45.0](https://github.com/siderolabs/omni/releases/tag/v0.45.0) (2024-12-16)
 
 Welcome to the v0.45.0 release of Omni!
