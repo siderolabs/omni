@@ -90,8 +90,8 @@ const withPrefix = (prefix: string, routes: RouteRecordRaw[], meta?: Record<stri
   routes.map((route) => {
     if (meta) {
       route.meta = {
-        ...route.meta,
         ...meta,
+        ...route.meta,
       }
     }
 
