@@ -310,7 +310,7 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 				switch event.Type {
 				case state.Errored:
 					return fmt.Errorf("error watching COSI resource: %w", event.Error)
-				case state.Bootstrapped:
+				case state.Bootstrapped, state.Noop:
 					// ignore
 				case state.Created, state.Updated, state.Destroyed:
 					// poll machine version on each machine status update

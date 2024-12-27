@@ -389,7 +389,7 @@ func (r *Router) ResourceWatcher(ctx context.Context, s state.State, logger *zap
 			switch e.Type {
 			case state.Errored:
 				return fmt.Errorf("talos backend cluster watch failed: %w", e.Error)
-			case state.Bootstrapped:
+			case state.Bootstrapped, state.Noop:
 				// ignore
 			case state.Created, state.Updated, state.Destroyed:
 				if e.Resource.Metadata().Type() == omni.MachineType {

@@ -87,7 +87,7 @@ func (table *Table) WriteResource(r resource.Resource, event state.EventType) er
 			label = "-"
 		case state.Updated:
 			label = " "
-		case state.Errored, state.Bootstrapped: // ignored
+		case state.Errored, state.Bootstrapped, state.Noop: // ignored
 		}
 
 		values = append([]string{label}, values...)

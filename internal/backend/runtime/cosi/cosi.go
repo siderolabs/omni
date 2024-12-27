@@ -175,7 +175,7 @@ func WatchLegacy(ctx context.Context, st state.State, md resource.Metadata, out 
 				}
 
 				channel.SendWithContext(ctx, out, responseFromResource(ev, r))
-			case state.Bootstrapped:
+			case state.Bootstrapped, state.Noop:
 				// ignored, see Watch() below
 			case state.Errored:
 				return fmt.Errorf("watch error: %w", msg.Error)
@@ -273,6 +273,7 @@ func Watch(ctx context.Context, st state.State, md resource.Metadata, out chan<-
 			channel.SendWithContext(ctx, out, NewResponse(msg.Resource.Metadata().ID(), msg.Resource.Metadata().Namespace(), ev, msg.Resource))
 		case state.Bootstrapped:
 			bootstrapOnce.Do(bootstrapEvent)
+		case state.Noop: // ignore
 		case state.Errored:
 			return fmt.Errorf("watch error: %w", msg.Error)
 		}

@@ -15,7 +15,7 @@ require (
 	github.com/adrg/xdg v0.5.3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
-	github.com/cosi-project/runtime v0.8.1
+	github.com/cosi-project/runtime v0.9.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.18.0
 	github.com/gertd/go-pluralize v0.2.1

@@ -187,7 +187,7 @@ func syncDeleteResources(ctx context.Context, toDelete []resource.Resource, out 
 
 				yellow.Fprintf(out, "* destroyed%s %s\n", dryRun, boldFunc(utils.Describe(event.Resource))) //nolint:errcheck
 			}
-		case state.Bootstrapped:
+		case state.Bootstrapped, state.Noop:
 			// ignore
 		case state.Errored:
 			return event.Error

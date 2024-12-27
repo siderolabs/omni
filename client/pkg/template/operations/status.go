@@ -135,6 +135,7 @@ func statusTemplate(ctx context.Context, tmpl *template.Template, out io.Writer,
 			switch event.Type {
 			case state.Errored:
 				return fmt.Errorf("watch failed: %w", event.Error)
+			case state.Noop: // ignored
 			case state.Bootstrapped:
 				pendingBootstraps--
 			case state.Created, state.Updated:

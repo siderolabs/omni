@@ -143,7 +143,7 @@ func (d *Service) Start(ctx context.Context) error {
 			switch ev.Type {
 			case state.Errored:
 				return fmt.Errorf("dns service received an error event: %w", ev.Error)
-			case state.Bootstrapped:
+			case state.Bootstrapped, state.Noop:
 				// ignore
 			case state.Destroyed:
 				if ev.Resource == nil {

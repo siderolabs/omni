@@ -225,7 +225,7 @@ func (suite *MachineRequestSetStatusSuite) reconcileLabels(ctx context.Context) 
 				return nil
 			case event := <-ch:
 				switch event.Type {
-				case state.Bootstrapped:
+				case state.Bootstrapped, state.Noop:
 				case state.Errored:
 					return event.Error
 				case state.Destroyed:

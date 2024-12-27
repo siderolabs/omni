@@ -116,7 +116,7 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, _ *zap.Logger, notifyCh
 		switch event.Type {
 		case state.Errored:
 			return fmt.Errorf("error watching COSI resource: %w", event.Error)
-		case state.Bootstrapped, state.Destroyed:
+		case state.Bootstrapped, state.Destroyed, state.Noop:
 			// ignore
 		case state.Created, state.Updated:
 			snapshot := omni.NewMachineStatusSnapshot(resources.DefaultNamespace, spec.MachineID)

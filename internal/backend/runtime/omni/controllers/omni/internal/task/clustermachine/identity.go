@@ -178,7 +178,7 @@ func (spec IdentityCollectorTaskSpec) RunTask(ctx context.Context, logger *zap.L
 			switch event.Type {
 			case state.Errored:
 				return fmt.Errorf("watch failed: %w", event.Error)
-			case state.Bootstrapped, state.Destroyed:
+			case state.Bootstrapped, state.Destroyed, state.Noop:
 				// ignore
 			case state.Created, state.Updated:
 				switch r := event.Resource.(type) {

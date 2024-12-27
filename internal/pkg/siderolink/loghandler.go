@@ -72,7 +72,7 @@ func (h *LogHandler) Start(ctx context.Context) error {
 			return nil
 		case event := <-eventCh:
 			switch event.Type {
-			case state.Created, state.Updated, state.Bootstrapped:
+			case state.Created, state.Updated, state.Bootstrapped, state.Noop:
 				// ignore
 			case state.Errored:
 				return fmt.Errorf("error watching machines: %w", event.Error)

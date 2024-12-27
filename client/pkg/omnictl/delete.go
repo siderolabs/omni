@@ -146,7 +146,7 @@ func deleteResources(cmd *cobra.Command, args []string) func(ctx context.Context
 
 					fmt.Printf("destroyed %s %s\n", rd.TypedSpec().Type, event.Resource.Metadata().ID())
 				}
-			case state.Bootstrapped:
+			case state.Bootstrapped, state.Noop:
 				// ignore
 			case state.Errored:
 				return fmt.Errorf("error watching for resource deletion: %w", event.Error)
