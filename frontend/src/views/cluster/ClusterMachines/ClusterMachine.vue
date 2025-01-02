@@ -79,7 +79,10 @@ const lockable = computed(() => {
 
 const router = useRouter();
 
-const hostname = computed(() => ((props.machine?.metadata?.labels || {})[LabelHostname] ?? props.machine?.metadata.id))
+const hostname = computed(() => {
+  const labelHostname = props.machine?.metadata?.labels?.[LabelHostname];
+  return labelHostname && labelHostname !== "" ? labelHostname : props.machine?.metadata.id;
+})
 const nodeName = computed(() => (props.machine?.metadata?.labels || {})[ClusterMachineStatusLabelNodeName] || hostname.value);
 const clusterName = computed(() => (props.machine?.metadata?.labels || {})[LabelCluster]);
 
