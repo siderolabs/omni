@@ -47,11 +47,24 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 		assertion.True(ok)
 		assertion.Equal("bare-metal", infraProviderID)
 
-		assertion.Equal(specs.InfraMachineSpec_POWER_STATE_OFF, r.TypedSpec().Value.PreferredPowerState)
+		assertion.Equal(specs.InfraMachineSpec_POWER_STATE_ON, r.TypedSpec().Value.PreferredPowerState) // MachineStatus is not populated yet
 		assertion.Equal(specs.InfraMachineConfigSpec_PENDING, r.TypedSpec().Value.AcceptanceStatus)
 		assertion.Empty(r.TypedSpec().Value.ClusterTalosVersion)
 		assertion.Empty(r.TypedSpec().Value.Extensions)
 		assertion.Empty(r.TypedSpec().Value.WipeId)
+	})
+
+	machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, "machine-1")
+	machineStatus.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{}
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
+
+	assertResource[*omni.MachineStatus](&suite.OmniSuite, machineStatus.Metadata(), func(r *omni.MachineStatus, assertion *assert.Assertions) {
+		assertion.True(r.Metadata().Finalizers().Has(omnictrl.InfraMachineControllerName))
+	})
+
+	assertResource[*infra.Machine](&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
+		assertion.Equal(specs.InfraMachineSpec_POWER_STATE_OFF, r.TypedSpec().Value.PreferredPowerState) // expect the default state of "OFF"
 	})
 
 	// accept the machine, set its preferred power state to on
@@ -145,6 +158,10 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 	})
 
 	assertResource[*omni.MachineExtensions](&suite.OmniSuite, infraMachineMD, func(r *omni.MachineExtensions, assertion *assert.Assertions) {
+		assertion.False(r.Metadata().Finalizers().Has(omnictrl.InfraMachineControllerName))
+	})
+
+	assertResource[*omni.MachineStatus](&suite.OmniSuite, infraMachineMD, func(r *omni.MachineStatus, assertion *assert.Assertions) {
 		assertion.False(r.Metadata().Finalizers().Has(omnictrl.InfraMachineControllerName))
 	})
 

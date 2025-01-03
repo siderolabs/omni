@@ -21,8 +21,11 @@ type MachineCleanupController = cleanup.Controller[*omni.Machine]
 func NewMachineCleanupController() *MachineCleanupController {
 	return cleanup.NewController(
 		cleanup.Settings[*omni.Machine]{
-			Name:    "MachineCleanupController",
-			Handler: &helpers.SameIDHandler[*omni.Machine, *omni.MachineSetNode]{},
+			Name: "MachineCleanupController",
+			Handler: cleanup.Combine(
+				&helpers.SameIDHandler[*omni.Machine, *omni.MachineSetNode]{},
+				&helpers.SameIDHandler[*omni.Machine, *omni.InfraMachineConfig]{},
+			),
 		},
 	)
 }

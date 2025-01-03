@@ -65,6 +65,9 @@ func NewInfraMachineController() *InfraMachineController {
 			qtransform.MapperSameID[*omni.ClusterMachine, *siderolink.Link](),
 		),
 		qtransform.WithExtraMappedInput(
+			qtransform.MapperSameID[*omni.MachineStatus, *siderolink.Link](),
+		),
+		qtransform.WithExtraMappedInput(
 			func(ctx context.Context, _ *zap.Logger, runtime controller.QRuntime, res *infra.ProviderStatus) ([]resource.Pointer, error) {
 				linkList, err := safe.ReaderListAll[*siderolink.Link](ctx, runtime, state.WithLabelQuery(resource.LabelEqual(omni.LabelInfraProviderID, res.Metadata().ID())))
 				if err != nil {
@@ -94,6 +97,11 @@ func (h *infraMachineControllerHelper) transformExtraOutput(ctx context.Context,
 		return err
 	}
 
+	machineStatus, err := helpers.HandleInput[*omni.MachineStatus](ctx, r, InfraMachineControllerName, link)
+	if err != nil {
+		return err
+	}
+
 	providerID, ok := link.Metadata().Annotations().Get(omni.LabelInfraProviderID)
 	if !ok {
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the link is not created by an infra provider")
@@ -108,7 +116,9 @@ func (h *infraMachineControllerHelper) transformExtraOutput(ctx context.Context,
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the link is not created by a static infra provider")
 	}
 
-	if err = h.applyInfraMachineConfig(infraMachine, config); err != nil {
+	machineInfoCollected := machineStatus != nil && machineStatus.TypedSpec().Value.SecureBootStatus != nil
+
+	if err = h.applyInfraMachineConfig(infraMachine, config, machineInfoCollected); err != nil {
 		return err
 	}
 
@@ -168,13 +178,17 @@ func (h *infraMachineControllerHelper) finalizerRemovalExtraOutput(ctx context.C
 		return err
 	}
 
-	_, err := helpers.HandleInput[*omni.ClusterMachine](ctx, r, InfraMachineControllerName, link)
+	if _, err := helpers.HandleInput[*omni.ClusterMachine](ctx, r, InfraMachineControllerName, link); err != nil {
+		return err
+	}
+
+	_, err := helpers.HandleInput[*omni.MachineStatus](ctx, r, InfraMachineControllerName, link)
 
 	return err
 }
 
 // applyInfraMachineConfig applies the user-managed configuration from the omni.InfraMachineConfig resource into the infra.Machine.
-func (h *infraMachineControllerHelper) applyInfraMachineConfig(infraMachine *infra.Machine, config *omni.InfraMachineConfig) error {
+func (h *infraMachineControllerHelper) applyInfraMachineConfig(infraMachine *infra.Machine, config *omni.InfraMachineConfig, machineInfoCollected bool) error {
 	const defaultPreferredPowerState = specs.InfraMachineSpec_POWER_STATE_OFF // todo: introduce a resource to configure this globally or per-provider level
 
 	// reset the user-override fields except the "Accepted" field
@@ -207,6 +221,10 @@ func (h *infraMachineControllerHelper) applyInfraMachineConfig(infraMachine *inf
 		infraMachine.Metadata().Labels().Set(omni.LabelMachinePendingAccept, "")
 	} else {
 		infraMachine.Metadata().Labels().Delete(omni.LabelMachinePendingAccept)
+	}
+
+	if !machineInfoCollected { // we need the machine to stay powered on even if it is accepted, until Omni collects the machine information
+		infraMachine.TypedSpec().Value.PreferredPowerState = specs.InfraMachineSpec_POWER_STATE_ON
 	}
 
 	return nil
