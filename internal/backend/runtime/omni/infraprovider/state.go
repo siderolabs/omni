@@ -142,13 +142,7 @@ func (st *State) Update(ctx context.Context, newResource resource.Resource, opts
 
 	switch newResource.Metadata().Type() {
 	case infra.MachineRequestType, infra.InfraMachineType:
-		oldMd := oldResource.Metadata().Copy()
-		oldMd.Finalizers().Set(resource.Finalizers{})
-
-		newMd := newResource.Metadata().Copy()
-		newMd.Finalizers().Set(resource.Finalizers{})
-
-		if !oldMd.Equal(newMd) {
+		if !st.resourcesAreEqual(oldResource, newResource) {
 			return status.Errorf(codes.PermissionDenied, "infra providers are not allowed to update %q resources other than setting finalizers", newResource.Metadata().Type())
 		}
 	}
@@ -161,6 +155,44 @@ func (st *State) Update(ctx context.Context, newResource resource.Resource, opts
 	}
 
 	return status.Errorf(codes.NotFound, "not found")
+}
+
+func (st *State) resourcesAreEqual(res1, res2 resource.Resource) bool {
+	var ignoreVersion resource.Version
+
+	md1Copy := res1.Metadata().Copy()
+	md2Copy := res2.Metadata().Copy()
+
+	md1Copy.SetVersion(ignoreVersion)
+	md2Copy.SetVersion(ignoreVersion)
+	md1Copy.Finalizers().Set(resource.Finalizers{})
+	md2Copy.Finalizers().Set(resource.Finalizers{})
+
+	if !md1Copy.Equal(md2Copy) {
+		return false
+	}
+
+	type equaler interface {
+		Equal(any) bool
+	}
+
+	spec1 := res1.Spec()
+	spec2 := res2.Spec()
+
+	if spec1 == spec2 {
+		return true
+	}
+
+	if res1.Spec() == nil || res2.Spec() == nil {
+		return false
+	}
+
+	s1, ok := res1.Spec().(equaler)
+	if !ok {
+		return false
+	}
+
+	return s1.Equal(res2.Spec())
 }
 
 // Destroy implements state.CoreState interface.
