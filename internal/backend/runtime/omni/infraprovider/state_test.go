@@ -65,8 +65,8 @@ func TestInfraProviderAccess(t *testing.T) {
 
 		return nil
 	}, func(t *testing.T, err error) {
-		assert.True(t, validated.IsValidationError(err))
-		assert.ErrorContains(t, err, "machine request spec is immutable")
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+		assert.ErrorContains(t, err, `infra providers are not allowed to update "MachineRequests.omni.sidero.dev" resources other than setting finalizers`)
 	})
 
 	// InfraMachine
@@ -80,7 +80,8 @@ func TestInfraProviderAccess(t *testing.T) {
 
 		return nil
 	}, func(t *testing.T, err error) {
-		require.NoError(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+		assert.ErrorContains(t, err, `infra providers are not allowed to update "InfraMachines.omni.sidero.dev" resources other than setting finalizers`)
 	})
 
 	// MachineRequestStatus
@@ -209,6 +210,14 @@ func TestInternalAccess(t *testing.T) {
 
 	err = st.Create(ctx, mr)
 	assert.NoError(t, err)
+
+	_, err = safe.StateUpdateWithConflicts(ctx, st, mr.Metadata(), func(res *infra.MachineRequest) error {
+		res.TypedSpec().Value.TalosVersion = "v1.2.5"
+
+		return nil
+	})
+	assert.True(t, validated.IsValidationError(err))
+	assert.ErrorContains(t, err, "machine request spec is immutable")
 }
 
 func TestInfraProviderSpecificNamespace(t *testing.T) {
