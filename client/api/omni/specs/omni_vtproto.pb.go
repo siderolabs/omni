@@ -2383,6 +2383,7 @@ func (m *InfraMachineConfigSpec) CloneVT() *InfraMachineConfigSpec {
 	r.PowerState = m.PowerState
 	r.AcceptanceStatus = m.AcceptanceStatus
 	r.ExtraKernelArgs = m.ExtraKernelArgs
+	r.RequestedRebootId = m.RequestedRebootId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -5622,6 +5623,9 @@ func (this *InfraMachineConfigSpec) EqualVT(that *InfraMachineConfigSpec) bool {
 		return false
 	}
 	if this.ExtraKernelArgs != that.ExtraKernelArgs {
+		return false
+	}
+	if this.RequestedRebootId != that.RequestedRebootId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -11936,6 +11940,13 @@ func (m *InfraMachineConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.RequestedRebootId) > 0 {
+		i -= len(m.RequestedRebootId)
+		copy(dAtA[i:], m.RequestedRebootId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RequestedRebootId)))
+		i--
+		dAtA[i] = 0x22
+	}
 	if len(m.ExtraKernelArgs) > 0 {
 		i -= len(m.ExtraKernelArgs)
 		copy(dAtA[i:], m.ExtraKernelArgs)
@@ -14433,6 +14444,10 @@ func (m *InfraMachineConfigSpec) SizeVT() (n int) {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.AcceptanceStatus))
 	}
 	l = len(m.ExtraKernelArgs)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.RequestedRebootId)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -30124,6 +30139,38 @@ func (m *InfraMachineConfigSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ExtraKernelArgs = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RequestedRebootId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RequestedRebootId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

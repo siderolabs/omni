@@ -4,6 +4,7 @@
 * This file is a generated Typescript file for GRPC Gateway, DO NOT MODIFY
 */
 
+import * as GoogleProtobufTimestamp from "../../google/protobuf/timestamp.pb"
 import * as SpecsOmni from "./omni.pb"
 
 export enum MachineRequestStatusSpecStage {
@@ -48,6 +49,7 @@ export type InfraMachineSpec = {
   extensions?: string[]
   wipe_id?: string
   extra_kernel_args?: string
+  requested_reboot_id?: string
 }
 
 export type InfraMachineStateSpec = {
@@ -57,6 +59,8 @@ export type InfraMachineStateSpec = {
 export type InfraMachineStatusSpec = {
   power_state?: InfraMachineStatusSpecMachinePowerState
   ready_to_use?: boolean
+  last_reboot_id?: string
+  last_reboot_timestamp?: GoogleProtobufTimestamp.Timestamp
 }
 
 export type InfraProviderStatusSpec = {

@@ -1284,4 +1284,5 @@ message InfraMachineConfigSpec {
   MachinePowerState power_state = 1;
   AcceptanceStatus acceptance_status = 2;
   string extra_kernel_args = 3;
+  string requested_reboot_id = 4;
 }

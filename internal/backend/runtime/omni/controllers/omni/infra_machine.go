@@ -183,7 +183,8 @@ func (h *infraMachineControllerHelper) applyInfraMachineConfig(infraMachine *inf
 
 	pendingAccept := config == nil
 
-	if config != nil { // apply user configuration: acceptance, preferred power state, extra kernel args
+	if config != nil { // apply user configuration: acceptance, preferred power state, extra kernel args, requested reboot id
+		infraMachine.TypedSpec().Value.RequestedRebootId = config.TypedSpec().Value.RequestedRebootId
 		infraMachine.TypedSpec().Value.AcceptanceStatus = config.TypedSpec().Value.AcceptanceStatus
 
 		pendingAccept = infraMachine.TypedSpec().Value.AcceptanceStatus == specs.InfraMachineConfigSpec_PENDING

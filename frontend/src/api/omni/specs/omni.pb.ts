@@ -838,4 +838,5 @@ export type InfraMachineConfigSpec = {
   power_state?: InfraMachineConfigSpecMachinePowerState
   acceptance_status?: InfraMachineConfigSpecAcceptanceStatus
   extra_kernel_args?: string
+  requested_reboot_id?: string
 }

@@ -4,6 +4,7 @@ package specs;
 option go_package = "github.com/siderolabs/omni/client/api/omni/specs";
 
 import "omni/specs/omni.proto";
+import "google/protobuf/timestamp.proto";
 
 message MachineRequestSpec {
   string talos_version = 1;
@@ -46,6 +47,8 @@ message InfraMachineSpec {
   string wipe_id = 5;
 
   string extra_kernel_args = 6;
+
+  string requested_reboot_id = 7;
 }
 
 message InfraMachineStateSpec {
@@ -61,6 +64,8 @@ message InfraMachineStatusSpec {
 
   MachinePowerState power_state = 1;
   bool ready_to_use = 2;
+  string last_reboot_id = 3;
+  google.protobuf.Timestamp last_reboot_timestamp = 4;
 }
 
 message InfraProviderStatusSpec {
