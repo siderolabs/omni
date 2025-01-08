@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
@@ -270,8 +271,38 @@ func (ctrl *MachineStatusController) reconcileRunning(ctx context.Context, r con
 		ctrl.updateMachineConnectionStatus(machine, inputs, m)
 		ctrl.updateMachinePowerState(machine, inputs, m)
 
-		return nil
+		return ctrl.copyInfraProviderLabels(m, inputs.infraMachineStatus)
 	})
+}
+
+func (ctrl *MachineStatusController) copyInfraProviderLabels(machineStatus *omni.MachineStatus, infraMachineStatus *infra.MachineStatus) error {
+	if infraMachineStatus == nil {
+		return nil
+	}
+
+	providerID, ok := infraMachineStatus.Metadata().Labels().Get(omni.LabelInfraProviderID)
+	if !ok {
+		return fmt.Errorf("missing %q label on infra machine status", omni.LabelInfraProviderID)
+	}
+
+	labelPrefix := fmt.Sprintf(omni.InfraProviderLabelPrefixFormat, providerID)
+
+	// remove all existing provider ID labels
+	for k := range machineStatus.Metadata().Labels().Raw() {
+		if strings.HasPrefix(k, labelPrefix) {
+			machineStatus.Metadata().Labels().Delete(k)
+		}
+	}
+
+	for k, v := range infraMachineStatus.Metadata().Labels().Raw() {
+		if strings.HasPrefix(k, omni.SystemLabelPrefix) { // skip system labels
+			continue
+		}
+
+		machineStatus.Metadata().Labels().Set(labelPrefix+k, v)
+	}
+
+	return nil
 }
 
 func (ctrl *MachineStatusController) updateMachinePowerState(machine *omni.Machine, inputs inputs, m *omni.MachineStatus) {

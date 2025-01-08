@@ -262,6 +262,18 @@ func AcceptInfraMachines(testCtx context.Context, omniState state.State, expecte
 			assertion.Equal(specs.InfraMachineStatusSpec_POWER_STATE_OFF, res.TypedSpec().Value.PowerState)
 			assertion.True(res.TypedSpec().Value.ReadyToUse)
 		})
+
+		// Assert the infra provider labels on MachineStatus resources
+		rtestutils.AssertResources(ctx, t, omniState, ids, func(res *omni.MachineStatus, assertion *assert.Assertions) {
+			aLabel := fmt.Sprintf(omni.InfraProviderLabelPrefixFormat, infraProviderID) + "a"
+			aVal, _ := res.Metadata().Labels().Get(aLabel)
+
+			assertion.Equal("b", aVal)
+
+			cLabel := fmt.Sprintf(omni.InfraProviderLabelPrefixFormat, infraProviderID) + "c"
+			_, cOk := res.Metadata().Labels().Get(cLabel)
+			assertion.True(cOk)
+		})
 	}
 }
 

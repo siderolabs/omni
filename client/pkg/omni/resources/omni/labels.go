@@ -89,6 +89,9 @@ const (
 	// LabelMachinePendingAccept is added to the InfraMachine and is used to filter out the machines which are pending acceptance.
 	// tsgen:LabelMachinePendingAccept
 	LabelMachinePendingAccept = SystemLabelPrefix + "accept-pending"
+
+	// InfraProviderLabelPrefixFormat is the prefix of all labels which are managed by the infra providers.
+	InfraProviderLabelPrefixFormat = SystemLabelPrefix + "infra-provider[%s]/"
 )
 
 const (
