@@ -53,6 +53,18 @@ func (InfraMachineConfigExtension) ResourceDefinition() meta.ResourceDefinitionS
 				Name:     "Acceptance",
 				JSONPath: "{.acceptancestatus}",
 			},
+			{
+				Name:     "Extra Kernel Args",
+				JSONPath: "{.extrakernelargs}",
+			},
+			{
+				Name:     "Requested Reboot ID",
+				JSONPath: "{.requestedrebootid}",
+			},
+			{
+				Name:     "Cordoned",
+				JSONPath: "{.cordoned}",
+			},
 		},
 	}
 }

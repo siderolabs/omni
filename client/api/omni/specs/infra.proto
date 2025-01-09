@@ -47,8 +47,8 @@ message InfraMachineSpec {
   string wipe_id = 5;
 
   string extra_kernel_args = 6;
-
   string requested_reboot_id = 7;
+  bool cordoned = 8;
 }
 
 message InfraMachineStateSpec {

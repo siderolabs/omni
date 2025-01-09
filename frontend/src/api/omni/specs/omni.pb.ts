@@ -839,4 +839,5 @@ export type InfraMachineConfigSpec = {
   acceptance_status?: InfraMachineConfigSpecAcceptanceStatus
   extra_kernel_args?: string
   requested_reboot_id?: string
+  cordoned?: boolean
 }

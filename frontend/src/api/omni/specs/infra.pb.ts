@@ -50,6 +50,7 @@ export type InfraMachineSpec = {
   wipe_id?: string
   extra_kernel_args?: string
   requested_reboot_id?: string
+  cordoned?: boolean
 }
 
 export type InfraMachineStateSpec = {

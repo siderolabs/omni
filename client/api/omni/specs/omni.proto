@@ -1285,4 +1285,5 @@ message InfraMachineConfigSpec {
   AcceptanceStatus acceptance_status = 2;
   string extra_kernel_args = 3;
   string requested_reboot_id = 4;
+  bool cordoned = 5;
 }

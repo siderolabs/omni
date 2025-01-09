@@ -53,6 +53,14 @@ func (MachineStatusExtension) ResourceDefinition() meta.ResourceDefinitionSpec {
 				Name:     "Ready to Use",
 				JSONPath: "{.readytouse}",
 			},
+			{
+				Name:     "Last Reboot ID",
+				JSONPath: "{.lastrebootid}",
+			},
+			{
+				Name:     "Last Reboot Timestamp",
+				JSONPath: "{.lastreboottimestamp}",
+			},
 		},
 	}
 }

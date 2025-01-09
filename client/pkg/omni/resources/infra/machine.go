@@ -69,6 +69,14 @@ func (MachineExtension) ResourceDefinition() meta.ResourceDefinitionSpec {
 				Name:     "Extra Kernel Args",
 				JSONPath: "{.extrakernelargs}",
 			},
+			{
+				Name:     "Requested Reboot ID",
+				JSONPath: "{.requestedrebootid}",
+			},
+			{
+				Name:     "Cordoned",
+				JSONPath: "{.cordoned}",
+			},
 		},
 	}
 }
