@@ -60,18 +60,11 @@ included in the LICENSE file.
 
       <t-input v-model="kernelArguments"/>
 
-      <!-- TODO(image-factory): enable this after further testing and making sure that it works -->
-      <template v-if="false">
-        <h3 class="text-sm text-naturals-N14">
-          Secure Boot
-        </h3>
-
-        <t-checkbox
-            label="Enabled"
-            :disabled="installationMedia?.spec?.no_secure_boot"
-            @click="secureBoot = !secureBoot"
-            :checked="secureBoot && !installationMedia?.spec?.no_secure_boot"/>
-      </template>
+      <t-checkbox
+          label="Secure Boot"
+          :disabled="installationMedia?.spec?.no_secure_boot"
+          @click="secureBoot = !secureBoot"
+          :checked="secureBoot && !installationMedia?.spec?.no_secure_boot"/>
 
       <tooltip>
         <template #description>
