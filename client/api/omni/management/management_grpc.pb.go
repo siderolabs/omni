@@ -36,6 +36,7 @@ const (
 	ManagementService_CreateSchematic_FullMethodName            = "/management.ManagementService/CreateSchematic"
 	ManagementService_GetSupportBundle_FullMethodName           = "/management.ManagementService/GetSupportBundle"
 	ManagementService_ReadAuditLog_FullMethodName               = "/management.ManagementService/ReadAuditLog"
+	ManagementService_RebootMachine_FullMethodName              = "/management.ManagementService/RebootMachine"
 )
 
 // ManagementServiceClient is the client API for ManagementService service.
@@ -56,6 +57,7 @@ type ManagementServiceClient interface {
 	CreateSchematic(ctx context.Context, in *CreateSchematicRequest, opts ...grpc.CallOption) (*CreateSchematicResponse, error)
 	GetSupportBundle(ctx context.Context, in *GetSupportBundleRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetSupportBundleResponse], error)
 	ReadAuditLog(ctx context.Context, in *ReadAuditLogRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ReadAuditLogResponse], error)
+	RebootMachine(ctx context.Context, in *RebootMachineRequest, opts ...grpc.CallOption) (*RebootMachineResponse, error)
 }
 
 type managementServiceClient struct {
@@ -242,6 +244,16 @@ func (c *managementServiceClient) ReadAuditLog(ctx context.Context, in *ReadAudi
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ManagementService_ReadAuditLogClient = grpc.ServerStreamingClient[ReadAuditLogResponse]
 
+func (c *managementServiceClient) RebootMachine(ctx context.Context, in *RebootMachineRequest, opts ...grpc.CallOption) (*RebootMachineResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RebootMachineResponse)
+	err := c.cc.Invoke(ctx, ManagementService_RebootMachine_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ManagementServiceServer is the server API for ManagementService service.
 // All implementations must embed UnimplementedManagementServiceServer
 // for forward compatibility.
@@ -260,6 +272,7 @@ type ManagementServiceServer interface {
 	CreateSchematic(context.Context, *CreateSchematicRequest) (*CreateSchematicResponse, error)
 	GetSupportBundle(*GetSupportBundleRequest, grpc.ServerStreamingServer[GetSupportBundleResponse]) error
 	ReadAuditLog(*ReadAuditLogRequest, grpc.ServerStreamingServer[ReadAuditLogResponse]) error
+	RebootMachine(context.Context, *RebootMachineRequest) (*RebootMachineResponse, error)
 	mustEmbedUnimplementedManagementServiceServer()
 }
 
@@ -311,6 +324,9 @@ func (UnimplementedManagementServiceServer) GetSupportBundle(*GetSupportBundleRe
 }
 func (UnimplementedManagementServiceServer) ReadAuditLog(*ReadAuditLogRequest, grpc.ServerStreamingServer[ReadAuditLogResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method ReadAuditLog not implemented")
+}
+func (UnimplementedManagementServiceServer) RebootMachine(context.Context, *RebootMachineRequest) (*RebootMachineResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RebootMachine not implemented")
 }
 func (UnimplementedManagementServiceServer) mustEmbedUnimplementedManagementServiceServer() {}
 func (UnimplementedManagementServiceServer) testEmbeddedByValue()                           {}
@@ -557,6 +573,24 @@ func _ManagementService_ReadAuditLog_Handler(srv interface{}, stream grpc.Server
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ManagementService_ReadAuditLogServer = grpc.ServerStreamingServer[ReadAuditLogResponse]
 
+func _ManagementService_RebootMachine_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RebootMachineRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ManagementServiceServer).RebootMachine(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ManagementService_RebootMachine_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ManagementServiceServer).RebootMachine(ctx, req.(*RebootMachineRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ManagementService_ServiceDesc is the grpc.ServiceDesc for ManagementService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -603,6 +637,10 @@ var ManagementService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateSchematic",
 			Handler:    _ManagementService_CreateSchematic_Handler,
+		},
+		{
+			MethodName: "RebootMachine",
+			Handler:    _ManagementService_RebootMachine_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -160,6 +160,15 @@ export type ReadAuditLogResponse = {
   audit_log?: Uint8Array
 }
 
+export type RebootMachineRequest = {
+  machine_id?: string
+}
+
+export type RebootMachineResponse = {
+  reboot_id?: string
+  last_reboot_timestamp?: GoogleProtobufTimestamp.Timestamp
+}
+
 export class ManagementService {
   static Kubeconfig(req: KubeconfigRequest, ...options: fm.fetchOption[]): Promise<KubeconfigResponse> {
     return fm.fetchReq<KubeconfigRequest, KubeconfigResponse>("POST", `/management.ManagementService/Kubeconfig`, req, ...options)
@@ -202,5 +211,8 @@ export class ManagementService {
   }
   static ReadAuditLog(req: ReadAuditLogRequest, entityNotifier?: fm.NotifyStreamEntityArrival<ReadAuditLogResponse>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<ReadAuditLogRequest, ReadAuditLogResponse>("POST", `/management.ManagementService/ReadAuditLog`, req, entityNotifier, ...options)
+  }
+  static RebootMachine(req: RebootMachineRequest, ...options: fm.fetchOption[]): Promise<RebootMachineResponse> {
+    return fm.fetchReq<RebootMachineRequest, RebootMachineResponse>("POST", `/management.ManagementService/RebootMachine`, req, ...options)
   }
 }

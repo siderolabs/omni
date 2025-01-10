@@ -20,6 +20,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/google/uuid"
 	gateway "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/siderolabs/gen/optional"
 	"github.com/siderolabs/go-kubernetes/kubernetes/manifests"
@@ -38,6 +39,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	ctlcfg "github.com/siderolabs/omni/client/pkg/omnictl/config"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
@@ -652,6 +654,81 @@ func (s *managementServer) ReadAuditLog(req *management.ReadAuditLogRequest, srv
 	}
 
 	return closeFn()
+}
+
+func (s *managementServer) RebootMachine(ctx context.Context, req *management.RebootMachineRequest) (*management.RebootMachineResponse, error) {
+	if _, err := s.authCheckGRPC(ctx, auth.WithRole(role.Admin)); err != nil {
+		return nil, err
+	}
+
+	ctx = actor.MarkContextAsInternalActor(ctx)
+
+	if _, err := safe.StateGetByID[*infra.Machine](ctx, s.omniState, req.MachineId); err != nil {
+		if state.IsNotFoundError(err) {
+			return nil, status.Error(codes.NotFound, "infra machine not found")
+		}
+
+		return nil, err
+	}
+
+	newRebootID := uuid.NewString()
+
+	machineConfig, err := safe.StateGetByID[*omnires.InfraMachineConfig](ctx, s.omniState, req.MachineId)
+	if err != nil && !state.IsNotFoundError(err) {
+		return nil, err
+	}
+
+	if machineConfig == nil {
+		machineConfig = omnires.NewInfraMachineConfig(resources.DefaultNamespace, req.MachineId)
+
+		machineConfig.TypedSpec().Value.RequestedRebootId = newRebootID
+
+		if err = s.omniState.Create(ctx, machineConfig); err != nil {
+			return nil, err
+		}
+	} else {
+		if _, err = safe.StateUpdateWithConflicts(ctx, s.omniState, machineConfig.Metadata(), func(res *omnires.InfraMachineConfig) error {
+			res.TypedSpec().Value.RequestedRebootId = newRebootID
+
+			return nil
+		}); err != nil {
+			return nil, err
+		}
+	}
+
+	eventCh := make(chan safe.WrappedStateEvent[*infra.MachineStatus])
+
+	if err = safe.StateWatch[*infra.MachineStatus](ctx, s.omniState, infra.NewMachineStatus(req.MachineId).Metadata(), eventCh); err != nil {
+		return nil, err
+	}
+
+	var (
+		machineStatus *infra.MachineStatus
+		event         safe.WrappedStateEvent[*infra.MachineStatus]
+	)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case event = <-eventCh:
+		}
+
+		if event.Error() != nil {
+			return nil, event.Error()
+		}
+
+		if machineStatus, err = event.Resource(); err != nil {
+			return nil, err
+		}
+
+		if machineStatus.TypedSpec().Value.LastRebootId == newRebootID {
+			return &management.RebootMachineResponse{
+				RebootId:            newRebootID,
+				LastRebootTimestamp: machineStatus.TypedSpec().Value.LastRebootTimestamp,
+			}, nil
+		}
+	}
 }
 
 func parseTime(date string, fallback time.Time) (time.Time, error) {

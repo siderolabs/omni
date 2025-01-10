@@ -91,7 +91,7 @@ const (
 	LabelMachinePendingAccept = SystemLabelPrefix + "accept-pending"
 
 	// InfraProviderLabelPrefixFormat is the prefix of all labels which are managed by the infra providers.
-	InfraProviderLabelPrefixFormat = SystemLabelPrefix + "infra-provider[%s]/"
+	InfraProviderLabelPrefixFormat = SystemLabelPrefix + "infra-provider/%s/"
 )
 
 const (
