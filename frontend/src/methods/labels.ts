@@ -3,6 +3,8 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+import { InfraProviderLabelPrefix, SystemLabelPrefix } from "@/api/resources";
+
 export const parseLabels = (...labels: string[]): Record<string, string> => {
     const labelsMap: Record<string, string> = {};
 
@@ -16,12 +18,13 @@ export const parseLabels = (...labels: string[]): Record<string, string> => {
 }
 
 export type Label = {
-  key: string;
-  id: string,
-  value: string;
-  color: string;
-  removable?: boolean;
-  description?: string,
+  key: string
+  id: string
+  value: string
+  color: string
+  removable?: boolean
+  description?: string
+  icon?: string
 }
 
 const labelColors = {
@@ -74,4 +77,37 @@ export const selectors = (labels: Label[]) => {
 
     return `${label.key}=${label.value}`;
   });
+}
+
+const labelDescriptions = {
+  "invalid-state": "The machine is expected to be unallocated, but still has the configuration of a cluster.\nIt might be required to wipe the machine bypassing Omni."
+};
+
+export const getLabelFromID = (key: string, value: string): Label => {
+  const isUser = key.indexOf(SystemLabelPrefix) !== 0;
+
+  let strippedKey = key.replace(new RegExp(`^${SystemLabelPrefix}`), "");
+  let icon: string | undefined;
+  let color = getLabelColor(strippedKey);
+  let description = labelDescriptions[strippedKey];
+
+  if (key.indexOf(InfraProviderLabelPrefix) === 0) {
+    const parts = strippedKey.split("/");
+    strippedKey = parts[parts.length - 1];
+
+    icon = "server-network";
+    color = "green";
+
+    description = `Defined by the infra provider "${parts[1]}""`
+  }
+
+  return {
+    key: key,
+    id: strippedKey,
+    value: value,
+    color: color,
+    removable: isUser,
+    description: description,
+    icon: icon,
+  };
 }

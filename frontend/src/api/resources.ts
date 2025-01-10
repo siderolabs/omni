@@ -131,6 +131,7 @@ export const LabelMachineRequestSet = "omni.sidero.dev/machine-request-set";
 export const LabelNoManualAllocation = "omni.sidero.dev/no-manual-allocation";
 export const LabelIsManagedByStaticInfraProvider = "omni.sidero.dev/is-managed-by-static-infra-provider";
 export const LabelMachinePendingAccept = "omni.sidero.dev/accept-pending";
+export const InfraProviderLabelPrefix = "omni.sidero.dev/infra-provider";
 export const MachineStatusLabelConnected = "omni.sidero.dev/connected";
 export const MachineStatusLabelReadyToUse = "omni.sidero.dev/ready-to-use";
 export const MachineStatusLabelDisconnected = "omni.sidero.dev/disconnected";

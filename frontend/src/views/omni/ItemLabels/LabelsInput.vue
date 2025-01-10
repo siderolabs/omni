@@ -68,14 +68,13 @@ included in the LICENSE file.
 
 <script setup lang="ts">
 import { Runtime } from "@/api/common/omni.pb";
-import { SystemLabelPrefix } from "@/api/resources";
 
 import { ref, toRefs, watch } from "vue";
 import TInput from "@/components/common/TInput/TInput.vue";
 import { Resource, ResourceService } from "@/api/grpc";
 import { withAbortController, withRuntime } from "@/api/options";
 import ItemLabel from "../ItemLabels/ItemLabel.vue";
-import { getLabelColor } from "@/methods/labels";
+import { getLabelFromID as createLabel } from "@/methods/labels";
 
 type Label = {
   id: string
@@ -223,14 +222,11 @@ watch(filterValue, async (val: string, old: string) => {
 
   matchedLabelsCompletion.value = labelsCompletions.filter(matcher).map(
     item => {
-      const shortKey = item.key.replace(new RegExp(`^${SystemLabelPrefix}`), "");
+      const label = createLabel(item.key, item.value);
 
-      return {
-        id: item.value === "" ? `has label: ${shortKey}` : shortKey,
-        value: item.value,
-        key: item.key,
-        color: getLabelColor(shortKey)
-      }
+      label.id = item.value === "" ? `has label: ${label.id}` : label.id;
+
+      return label;
     }
   );
 });

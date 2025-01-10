@@ -90,8 +90,12 @@ const (
 	// tsgen:LabelMachinePendingAccept
 	LabelMachinePendingAccept = SystemLabelPrefix + "accept-pending"
 
+	// InfraProviderLabelPrefix is the prefix of all labels which are managed by the infra providers.
+	// tsgen:InfraProviderLabelPrefix
+	InfraProviderLabelPrefix = SystemLabelPrefix + "infra-provider"
+
 	// InfraProviderLabelPrefixFormat is the prefix of all labels which are managed by the infra providers.
-	InfraProviderLabelPrefixFormat = SystemLabelPrefix + "infra-provider[%s]/"
+	InfraProviderLabelPrefixFormat = InfraProviderLabelPrefix + "/%s/"
 )
 
 const (

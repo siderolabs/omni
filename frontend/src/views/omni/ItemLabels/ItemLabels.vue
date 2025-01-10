@@ -23,7 +23,7 @@ import TButton from "@/components/common/Button/TButton.vue";
 import TInput from "@/components/common/TInput/TInput.vue";
 import { showError } from "@/notification";
 import { SystemLabelPrefix } from "@/api/resources";
-import { Label, getLabelColor } from "@/methods/labels";
+import { Label, getLabelFromID } from "@/methods/labels";
 
 const props = defineProps<{
   resource: Resource
@@ -67,31 +67,19 @@ const getLabelOrder = (l: Label) => {
   return labelOrder[l.id] ?? 1000;
 }
 
-const labelDescriptions = {
-  "invalid-state": "The machine is expected to be unallocated, but still has the configuration of a cluster.\nIt might be required to wipe the machine bypassing Omni."
-};
-
 const labels = computed((): Array<Label> => {
   const labels = resource.value.metadata?.labels || {};
 
   let labelsArray: Array<Label> = [];
 
   for (const key in labels) {
-    const isUser = key.indexOf(SystemLabelPrefix) !== 0;
-    const strippedKey = key.replace(new RegExp(`^${SystemLabelPrefix}`), "");
+    const label = getLabelFromID(key, labels[key]);
 
-    if (labelOrder[strippedKey] === -1) {
+    if (getLabelOrder(label) === -1) {
       continue;
     }
 
-    labelsArray.push({
-      key: key,
-      id: strippedKey,
-      value: labels[key],
-      color: getLabelColor(strippedKey),
-      removable: isUser,
-      description: labelDescriptions[strippedKey],
-    })
+    labelsArray.push(label);
   }
 
   labelsArray.sort((a, b) => {
