@@ -172,6 +172,15 @@ message ReadAuditLogResponse {
   bytes audit_log = 1;
 }
 
+message RebootMachineRequest {
+  string machine_id = 1;
+}
+
+message RebootMachineResponse {
+  string reboot_id = 1;
+  google.protobuf.Timestamp last_reboot_timestamp = 3;
+}
+
 service ManagementService {
   rpc Kubeconfig(KubeconfigRequest) returns (KubeconfigResponse);
   rpc Talosconfig(TalosconfigRequest) returns (TalosconfigResponse);
@@ -187,4 +196,5 @@ service ManagementService {
   rpc CreateSchematic(CreateSchematicRequest) returns (CreateSchematicResponse);
   rpc GetSupportBundle(GetSupportBundleRequest) returns (stream GetSupportBundleResponse);
   rpc ReadAuditLog(ReadAuditLogRequest) returns (stream ReadAuditLogResponse);
+  rpc RebootMachine(RebootMachineRequest) returns (RebootMachineResponse);
 }

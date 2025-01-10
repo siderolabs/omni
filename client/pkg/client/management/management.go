@@ -248,6 +248,11 @@ func (client *Client) ReadAuditLog(ctx context.Context, start, end string) iter.
 	}
 }
 
+// RebootMachine reboots the infra machine with the given ID and blocks until the reboot completes.
+func (client *Client) RebootMachine(ctx context.Context, req *management.RebootMachineRequest) (*management.RebootMachineResponse, error) {
+	return client.conn.RebootMachine(ctx, req)
+}
+
 // LogReader is a log client reader which implements io.Reader.
 type LogReader struct {
 	ctx    context.Context //nolint:containedctx

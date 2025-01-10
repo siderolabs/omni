@@ -55,7 +55,7 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 	})
 
 	machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, "machine-1")
-	machineStatus.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{}
+	machineStatus.TypedSpec().Value.TalosVersion = "v1.9.1"
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
 
