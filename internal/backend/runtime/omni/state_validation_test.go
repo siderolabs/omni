@@ -973,8 +973,12 @@ func TestMachineClassValidation(t *testing.T) {
 	providerStatus := infra.NewProviderStatus("exists")
 	providerStatus.TypedSpec().Value.Schema = string(schema)
 
+	staticProvider := infra.NewProviderStatus("static")
+	staticProvider.Metadata().Labels().Set(omnires.LabelIsStaticInfraProvider, "")
+
 	require.NoError(t, st.Create(ctx, talosVersion))
 	require.NoError(t, st.Create(ctx, providerStatus))
+	require.NoError(t, st.Create(ctx, staticProvider))
 
 	// no provider id
 
@@ -1029,7 +1033,19 @@ disk: 1TB
 
 	require.True(t, validated.IsValidationError(err), "expected validation error")
 
+	// static infra provider usage is not allowed
+
+	machineClass.TypedSpec().Value.AutoProvision.ProviderId = staticProvider.Metadata().ID()
+
+	err = st.Create(ctx, machineClass)
+
+	require.Error(t, err)
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+
 	// valid
+
+	machineClass.TypedSpec().Value.AutoProvision.ProviderId = providerStatus.Metadata().ID()
 
 	machineClass.TypedSpec().Value.AutoProvision.ProviderData = `
 size: t2.small

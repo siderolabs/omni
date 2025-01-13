@@ -126,6 +126,7 @@ export const LabelMachine = "omni.sidero.dev/machine";
 export const LabelSystemPatch = "omni.sidero.dev/system-patch";
 export const LabelExposedServiceAlias = "omni.sidero.dev/exposed-service-alias";
 export const LabelInfraProviderID = "omni.sidero.dev/infra-provider-id";
+export const LabelIsStaticInfraProvider = "omni.sidero.dev/is-static-infra-provider";
 export const LabelMachineRequest = "omni.sidero.dev/machine-request";
 export const LabelMachineRequestSet = "omni.sidero.dev/machine-request-set";
 export const LabelNoManualAllocation = "omni.sidero.dev/no-manual-allocation";

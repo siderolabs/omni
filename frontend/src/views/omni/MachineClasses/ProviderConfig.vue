@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <template>
   <div class="text-naturals-N13">Infrastructure Provider</div>
-  <t-list :opts="{resource: { type: InfraProviderStatusType, namespace: InfraProviderNamespace }, runtime: Runtime.Omni}" :key="infraProvider" :search="showAllProviders" class="mb-1">
+  <t-list :opts="infraProviderResources" :key="infraProvider" :search="showAllProviders" class="mb-1">
     <template #default="{ items, searchQuery }">
       <div class="flex md:flex-col gap-2 max-md:flex-wrap">
         <div v-for="item in filterProviders(items)"
@@ -43,13 +43,20 @@ included in the LICENSE file.
 import { Runtime } from '@/api/common/omni.pb';
 import { Resource } from '@/api/grpc';
 import { InfraProviderStatusSpec } from '@/api/omni/specs/infra.pb';
-import { InfraProviderNamespace, InfraProviderStatusType } from '@/api/resources';
+import { InfraProviderNamespace, InfraProviderStatusType, LabelIsStaticInfraProvider } from '@/api/resources';
 import { computed, ref, toRefs } from 'vue';
 
 import TIcon from '@/components/common/Icon/TIcon.vue';
 import WordHighlighter from "vue-word-highlighter";
 import IconButton from '@/components/common/Button/IconButton.vue';
 import TList from '@/components/common/List/TList.vue';
+import { WatchOptions } from '@/api/watch';
+
+const infraProviderResources: WatchOptions = {
+  resource: { type: InfraProviderStatusType, namespace: InfraProviderNamespace },
+  runtime: Runtime.Omni,
+  selectors: [`!${LabelIsStaticInfraProvider}`],
+};
 
 const props = defineProps<{
   infraProvider?: string

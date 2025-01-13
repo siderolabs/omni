@@ -60,6 +60,7 @@ const (
 
 	// LabelIsStaticInfraProvider is set on the infra.ProviderStatus resources to mark them as static providers - they do not work with MachineRequests to
 	// allocate and de-allocate machines, but rather work with a static set of machines (e.g., bare-metal machines).
+	// tsgen:LabelIsStaticInfraProvider
 	LabelIsStaticInfraProvider = SystemLabelPrefix + "is-static-infra-provider"
 
 	// LabelMachineClassName is the name of the machine class.

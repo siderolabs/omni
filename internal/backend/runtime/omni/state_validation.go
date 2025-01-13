@@ -1072,6 +1072,10 @@ func validateProviderData(ctx context.Context, st state.State, providerID, provi
 		return fmt.Errorf("failed to get provider: %w", err)
 	}
 
+	if _, static := providerStatus.Metadata().Labels().Get(omni.LabelIsStaticInfraProvider); static {
+		return fmt.Errorf("cannot use static provider in the auto-provisioned machine class")
+	}
+
 	return validateSchema(providerStatus)
 }
 
