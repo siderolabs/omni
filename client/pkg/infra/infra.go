@@ -26,7 +26,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 )
 
-// ProviderConfig defines the schema, human readable provider name and description.
+// ProviderConfig defines the schema, human-readable provider name and description.
 type ProviderConfig struct {
 	Name        string `yaml:"name"`
 	Description string `yaml:"description"`
@@ -139,6 +139,18 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 		options.concurrency,
 		options.imageFactory,
 	)); err != nil {
+		return err
+	}
+
+	providerHealthStatusController, err := controllers.NewProviderHealthStatusController(provider.id, controllers.ProviderHealthStatusOptions{
+		HealthCheckFunc: options.healthCheckFunc,
+		Interval:        options.healthCheckInterval,
+	})
+	if err != nil {
+		return err
+	}
+
+	if err = runtime.RegisterController(providerHealthStatusController); err != nil {
 		return err
 	}
 

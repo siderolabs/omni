@@ -48,7 +48,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/k8s"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/oidc"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -57,6 +56,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
 	"github.com/siderolabs/omni/cmd/integration-test/pkg/clientconfig"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/infraprovider"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
@@ -1039,18 +1039,14 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			return rd.ResourceDefinition().Type
 		})
 
+		// infra provider resources have their custom authz logic, they are unit-tested in their package, exclude them
+		untestedResourceTypes = maps.Filter(untestedResourceTypes, func(resourceType resource.Type, _ struct{}) bool {
+			return !infraprovider.IsInfraProviderResource(resources.InfraProviderNamespace, resourceType)
+		})
+
 		// delete excluded resources from the untested set
 		delete(untestedResourceTypes, k8s.KubernetesResourceType)
 		delete(untestedResourceTypes, siderolink.DeprecatedLinkCounterType)
-
-		// infra provider resources have their custom authz logic, they are unit-tested in their package
-		delete(untestedResourceTypes, infra.MachineRequestType)
-		delete(untestedResourceTypes, infra.MachineRequestStatusType)
-		delete(untestedResourceTypes, infra.InfraMachineStateType)
-		delete(untestedResourceTypes, infra.InfraMachineType)
-		delete(untestedResourceTypes, infra.InfraMachineStatusType)
-		delete(untestedResourceTypes, infra.InfraProviderStatusType)
-		delete(untestedResourceTypes, infra.ConfigPatchRequestType)
 
 		for _, tc := range testCases {
 			for _, testVerb := range allVerbs {

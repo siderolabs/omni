@@ -90,7 +90,10 @@ func newNamespacedState(params *config.Params, primaryStorageCoreState state.Cor
 		return nil, nil, fmt.Errorf("failed to create etcd backup store: %w", err)
 	}
 
-	infraProviderState := infraprovider.NewState(primaryStorageCoreState, logger.With(logging.Component("infraprovider_state")))
+	buildEphemeralState := inmem.NewStateWithOptions(inmem.WithHistoryGap(20))
+	ephemeralState := buildEphemeralState(resources.EphemeralNamespace)
+	metaEphemeralState := buildEphemeralState(meta.NamespaceName)
+	infraProviderState := infraprovider.NewState(primaryStorageCoreState, ephemeralState, logger.With(logging.Component("infraprovider_state")))
 
 	namespacedState := namespaced.NewState(func(ns resource.Namespace) state.CoreState {
 		switch ns {
@@ -98,15 +101,17 @@ func newNamespacedState(params *config.Params, primaryStorageCoreState state.Cor
 			return virtualState
 		case resources.MetricsNamespace:
 			return secondaryStorageCoreState
-		case meta.NamespaceName, resources.EphemeralNamespace:
-			return inmem.NewStateWithOptions(inmem.WithHistoryGap(20))(ns)
+		case meta.NamespaceName:
+			return metaEphemeralState
+		case resources.EphemeralNamespace:
+			return ephemeralState
 		case resources.ExternalNamespace:
 			return &external.State{
 				CoreState:    primaryStorageCoreState,
 				StoreFactory: storeFactory,
 				Logger:       logger,
 			}
-		case resources.InfraProviderNamespace:
+		case resources.InfraProviderNamespace, resources.InfraProviderEphemeralNamespace:
 			return infraProviderState
 		default:
 			if strings.HasPrefix(ns, resources.InfraProviderSpecificNamespacePrefix) {

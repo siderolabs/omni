@@ -381,7 +381,17 @@ func CreateResource(resource *resources.Resource) (cosiresource.Resource, error)
 	return obj, nil
 }
 
+type gRPCError interface {
+	GRPCStatus() *status.Status
+}
+
 func wrapError(err error) error {
+	var grpcErr gRPCError
+
+	if errors.As(err, &grpcErr) { // avoid double wrapping
+		return err
+	}
+
 	switch {
 	case state.IsNotFoundError(err):
 		return status.Error(codes.NotFound, err.Error())

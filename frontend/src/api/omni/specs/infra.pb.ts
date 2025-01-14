@@ -70,3 +70,8 @@ export type InfraProviderStatusSpec = {
   description?: string
   icon?: string
 }
+
+export type InfraProviderHealthStatusSpec = {
+  last_heartbeat_timestamp?: GoogleProtobufTimestamp.Timestamp
+  error?: string
+}

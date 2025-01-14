@@ -8,7 +8,6 @@ package omni
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/meta"
@@ -17,14 +16,13 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/infraprovider"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
@@ -351,8 +349,8 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		return nil
 	}
 
-	// check if the resource is a infra provider resource - if it is, the access is managed in infraprovider.State
-	if strings.HasPrefix(access.ResourceNamespace, resources.InfraProviderSpecificNamespacePrefix) || access.ResourceNamespace == resources.InfraProviderNamespace {
+	// check if the resource is an infra provider resource - if it is, the access is managed in infraprovider.State
+	if infraprovider.IsInfraProviderResource(access.ResourceNamespace, access.ResourceType) {
 		return nil
 	}
 
@@ -504,12 +502,6 @@ func filterAccessByType(access state.Access) error {
 
 		return status.Error(codes.PermissionDenied, "only read, update and delete access is permitted")
 	case
-		infra.MachineRequestType,       // read-only for all except for InfraProvider role (checked in filterAccess)
-		infra.MachineRequestStatusType, // read-only for all except for InfraProvider role (checked in filterAccess)
-		infra.InfraMachineType,         // read-only for all except for InfraProvider role (checked in filterAccess)
-		infra.InfraMachineStateType,    // read-only for all except for InfraProvider role (checked in filterAccess)
-		infra.InfraMachineStatusType,   // read-only for all except for InfraProvider role (checked in filterAccess)
-		infra.InfraProviderStatusType,  // read-only for all except for InfraProvider role (checked in filterAccess)
 		omni.ClusterBootstrapStatusType,
 		omni.ClusterDestroyStatusType,
 		omni.ClusterEndpointType,

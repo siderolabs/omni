@@ -33,40 +33,42 @@ const infraProviderResourceSuffix = ".infraprovider.sidero.dev"
 
 // State is a state implementation doing special handling of the infra-provider specific resources.
 type State struct {
-	innerState state.CoreState
-	logger     *zap.Logger
+	persistentState state.CoreState
+	ephemeralState  state.CoreState
+	logger          *zap.Logger
 }
 
 // NewState creates a new State.
-func NewState(innerState state.CoreState, logger *zap.Logger) *State {
+func NewState(persistentState, ephemeralState state.CoreState, logger *zap.Logger) *State {
 	if logger == nil {
 		logger = zap.NewNop()
 	}
 
 	return &State{
-		innerState: validated.NewState(innerState, validationOptions()...),
-		logger:     logger,
+		persistentState: validated.NewState(persistentState, validationOptions()...),
+		ephemeralState:  ephemeralState,
+		logger:          logger,
 	}
 }
 
 // Get implements state.CoreState interface.
 func (st *State) Get(ctx context.Context, pointer resource.Pointer, option ...state.GetOption) (resource.Resource, error) {
-	infraProviderID, err := st.checkAuthorization(ctx, pointer.Namespace(), pointer.Type())
+	access, err := st.checkAccess(ctx, pointer.Namespace(), pointer.Type(), true)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := st.innerState.Get(ctx, pointer, option...)
+	res, err := access.targetState.Get(ctx, pointer, option...)
 	if err != nil {
 		return nil, err
 	}
 
-	if infraProviderID == "" {
+	if access.infraProviderID == "" {
 		return res, nil
 	}
 
 	resInfraProviderID, ok := res.Metadata().Labels().Get(omni.LabelInfraProviderID)
-	if ok && infraProviderID == resInfraProviderID {
+	if ok && access.infraProviderID == resInfraProviderID {
 		return res, nil
 	}
 
@@ -75,17 +77,17 @@ func (st *State) Get(ctx context.Context, pointer resource.Pointer, option ...st
 
 // List implements state.CoreState interface.
 func (st *State) List(ctx context.Context, kind resource.Kind, option ...state.ListOption) (resource.List, error) {
-	infraProviderID, err := st.checkAuthorization(ctx, kind.Namespace(), kind.Type())
+	access, err := st.checkAccess(ctx, kind.Namespace(), kind.Type(), true)
 	if err != nil {
 		return resource.List{}, err
 	}
 
-	list, err := st.innerState.List(ctx, kind, option...)
+	list, err := access.targetState.List(ctx, kind, option...)
 	if err != nil {
 		return resource.List{}, err
 	}
 
-	if infraProviderID == "" {
+	if access.infraProviderID == "" {
 		return list, nil
 	}
 
@@ -93,7 +95,7 @@ func (st *State) List(ctx context.Context, kind resource.Kind, option ...state.L
 
 	for _, item := range list.Items {
 		resInfraProviderID, ok := item.Metadata().Labels().Get(omni.LabelInfraProviderID)
-		if ok && infraProviderID == resInfraProviderID {
+		if ok && access.infraProviderID == resInfraProviderID {
 			filteredList = append(filteredList, item)
 		}
 	}
@@ -103,55 +105,57 @@ func (st *State) List(ctx context.Context, kind resource.Kind, option ...state.L
 
 // Create implements state.CoreState interface.
 func (st *State) Create(ctx context.Context, resource resource.Resource, option ...state.CreateOption) error {
-	infraProviderID, err := st.checkAuthorization(ctx, resource.Metadata().Namespace(), resource.Metadata().Type())
+	access, err := st.checkAccess(ctx, resource.Metadata().Namespace(), resource.Metadata().Type(), false)
 	if err != nil {
 		return err
 	}
 
-	if infraProviderID != "" {
-		switch resource.Metadata().Type() {
-		case infra.MachineRequestType, infra.InfraMachineType:
-			return status.Errorf(codes.PermissionDenied, "infra providers are not allowed to create %q resources", resource.Metadata().Type())
+	if access.infraProviderID == "" {
+		return access.targetState.Create(ctx, resource, option...)
+	}
+
+	if access.config.readOnlyForProviders {
+		return status.Errorf(codes.PermissionDenied, "infra providers are not allowed to create %q resources", resource.Metadata().Type())
+	}
+
+	if access.config.checkID {
+		if resource.Metadata().ID() != access.infraProviderID {
+			return status.Errorf(codes.InvalidArgument, "resource ID must match the infra provider ID %q", access.infraProviderID)
 		}
 	}
 
-	if infraProviderID == "" {
-		return st.innerState.Create(ctx, resource, option...)
-	}
+	resource.Metadata().Labels().Set(omni.LabelInfraProviderID, access.infraProviderID)
 
-	resource.Metadata().Labels().Set(omni.LabelInfraProviderID, infraProviderID)
-
-	return st.innerState.Create(ctx, resource, option...)
+	return access.targetState.Create(ctx, resource, option...)
 }
 
 // Update implements state.CoreState interface.
 func (st *State) Update(ctx context.Context, newResource resource.Resource, opts ...state.UpdateOption) error {
-	infraProviderID, err := st.checkAuthorization(ctx, newResource.Metadata().Namespace(), newResource.Metadata().Type())
+	access, err := st.checkAccess(ctx, newResource.Metadata().Namespace(), newResource.Metadata().Type(), false)
 	if err != nil {
 		return err
 	}
 
-	oldResource, err := st.innerState.Get(ctx, newResource.Metadata())
+	oldResource, err := access.targetState.Get(ctx, newResource.Metadata())
 	if err != nil {
 		return err
 	}
 
-	if infraProviderID == "" {
-		return st.innerState.Update(ctx, newResource, opts...)
+	if access.infraProviderID == "" {
+		return access.targetState.Update(ctx, newResource, opts...)
 	}
 
-	switch newResource.Metadata().Type() {
-	case infra.MachineRequestType, infra.InfraMachineType:
+	if access.config.readOnlyForProviders {
 		if !st.resourcesAreEqual(oldResource, newResource) {
 			return status.Errorf(codes.PermissionDenied, "infra providers are not allowed to update %q resources other than setting finalizers", newResource.Metadata().Type())
 		}
 	}
 
 	oldResInfraProviderID, ok := oldResource.Metadata().Labels().Get(omni.LabelInfraProviderID)
-	if ok && oldResInfraProviderID == infraProviderID {
-		newResource.Metadata().Labels().Set(omni.LabelInfraProviderID, infraProviderID)
+	if ok && oldResInfraProviderID == access.infraProviderID {
+		newResource.Metadata().Labels().Set(omni.LabelInfraProviderID, access.infraProviderID)
 
-		return st.innerState.Update(ctx, newResource, opts...)
+		return access.targetState.Update(ctx, newResource, opts...)
 	}
 
 	return status.Errorf(codes.NotFound, "not found")
@@ -197,23 +201,27 @@ func (st *State) resourcesAreEqual(res1, res2 resource.Resource) bool {
 
 // Destroy implements state.CoreState interface.
 func (st *State) Destroy(ctx context.Context, pointer resource.Pointer, option ...state.DestroyOption) error {
-	infraProviderID, err := st.checkAuthorization(ctx, pointer.Namespace(), pointer.Type())
+	access, err := st.checkAccess(ctx, pointer.Namespace(), pointer.Type(), false)
 	if err != nil {
 		return err
 	}
 
-	res, err := st.innerState.Get(ctx, pointer)
+	res, err := access.targetState.Get(ctx, pointer)
 	if err != nil {
 		return err
 	}
 
-	if infraProviderID == "" {
-		return st.innerState.Destroy(ctx, pointer, option...)
+	if access.infraProviderID == "" {
+		return access.targetState.Destroy(ctx, pointer, option...)
+	}
+
+	if access.config.readOnlyForProviders {
+		return status.Errorf(codes.PermissionDenied, "infra providers are not allowed to destroy %q resources", pointer.Type())
 	}
 
 	resInfraProviderID, ok := res.Metadata().Labels().Get(omni.LabelInfraProviderID)
-	if ok && infraProviderID == resInfraProviderID {
-		return st.innerState.Destroy(ctx, pointer, option...)
+	if ok && access.infraProviderID == resInfraProviderID {
+		return access.targetState.Destroy(ctx, pointer, option...)
 	}
 
 	return status.Errorf(codes.NotFound, "not found")
@@ -221,60 +229,79 @@ func (st *State) Destroy(ctx context.Context, pointer resource.Pointer, option .
 
 // Watch implements state.CoreState interface.
 func (st *State) Watch(ctx context.Context, pointer resource.Pointer, eventCh chan<- state.Event, option ...state.WatchOption) error {
-	infraProviderID, err := st.checkAuthorization(ctx, pointer.Namespace(), pointer.Type())
+	access, err := st.checkAccess(ctx, pointer.Namespace(), pointer.Type(), true)
 	if err != nil {
 		return err
 	}
 
-	if infraProviderID == "" {
-		return st.innerState.Watch(ctx, pointer, eventCh, option...)
+	if access.infraProviderID == "" {
+		return access.targetState.Watch(ctx, pointer, eventCh, option...)
 	}
 
-	innerEventCh := st.filterEvents(ctx, infraProviderID, eventCh)
+	innerEventCh := st.filterEvents(ctx, access.infraProviderID, eventCh)
 
-	return st.innerState.Watch(ctx, pointer, innerEventCh, option...)
+	return access.targetState.Watch(ctx, pointer, innerEventCh, option...)
 }
 
 // WatchKind implements state.CoreState interface.
 func (st *State) WatchKind(ctx context.Context, kind resource.Kind, eventCh chan<- state.Event, option ...state.WatchKindOption) error {
-	infraProviderID, err := st.checkAuthorization(ctx, kind.Namespace(), kind.Type())
+	access, err := st.checkAccess(ctx, kind.Namespace(), kind.Type(), true)
 	if err != nil {
 		return err
 	}
 
-	if infraProviderID == "" {
-		return st.innerState.WatchKind(ctx, kind, eventCh, option...)
+	if access.infraProviderID == "" {
+		return access.targetState.WatchKind(ctx, kind, eventCh, option...)
 	}
 
-	innerEventCh := st.filterEvents(ctx, infraProviderID, eventCh)
+	innerEventCh := st.filterEvents(ctx, access.infraProviderID, eventCh)
 
-	return st.innerState.WatchKind(ctx, kind, innerEventCh, option...)
+	return access.targetState.WatchKind(ctx, kind, innerEventCh, option...)
 }
 
 // WatchKindAggregated implements state.CoreState interface.
 func (st *State) WatchKindAggregated(ctx context.Context, kind resource.Kind, eventsCh chan<- []state.Event, option ...state.WatchKindOption) error {
-	infraProviderID, err := st.checkAuthorization(ctx, kind.Namespace(), kind.Type())
+	access, err := st.checkAccess(ctx, kind.Namespace(), kind.Type(), true)
 	if err != nil {
 		return err
 	}
 
-	if infraProviderID == "" {
-		return st.innerState.WatchKindAggregated(ctx, kind, eventsCh, option...)
+	if access.infraProviderID == "" {
+		return access.targetState.WatchKindAggregated(ctx, kind, eventsCh, option...)
 	}
 
-	innerEventsCh := st.filterEventsAggregated(ctx, infraProviderID, eventsCh)
+	innerEventsCh := st.filterEventsAggregated(ctx, access.infraProviderID, eventsCh)
 
-	return st.innerState.WatchKindAggregated(ctx, kind, innerEventsCh, option...)
+	return access.targetState.WatchKindAggregated(ctx, kind, innerEventsCh, option...)
 }
 
-func (st *State) checkAuthorization(ctx context.Context, ns resource.Namespace, resType resource.Type) (infraProviderID string, err error) {
+type accessCheckResult struct {
+	targetState     state.CoreState
+	infraProviderID string
+	config          resourceConfig
+}
+
+func (st *State) checkAccess(ctx context.Context, ns resource.Namespace, resType resource.Type, isReadAccess bool) (accessCheckResult, error) {
+	config, ok := getResourceConfig(ns, resType)
+	if !ok {
+		return accessCheckResult{}, status.Errorf(codes.PermissionDenied, "internal error: resource %q is not an infra provider managed resource", resType)
+	}
+
+	targetState := st.persistentState
+	if config.ephemeral {
+		targetState = st.ephemeralState
+	}
+
 	if actor.ContextIsInternalActor(ctx) {
-		return "", nil
+		return accessCheckResult{
+			config:      config,
+			targetState: targetState,
+		}, nil
 	}
 
 	checkResult, err := auth.CheckGRPC(ctx, auth.WithRole(role.InfraProvider))
 	if err != nil {
-		return "", err
+		return accessCheckResult{}, err
 	}
 
 	// if the role is exactly InfraProvider, additionally, check for the label match
@@ -283,17 +310,26 @@ func (st *State) checkAuthorization(ctx context.Context, ns resource.Namespace, 
 
 		checkLabel, err = st.checkNamespaceAndType(ns, checkResult.InfraProviderID, resType)
 		if err != nil {
-			return "", err
+			return accessCheckResult{}, err
 		}
 
 		// return the infra provider ID only for the resource live in a shared namespace, i.e., "infra-provider"
 		// as their infra provider ID label needs to be checked.
 		if checkLabel {
-			return checkResult.InfraProviderID, nil
+			return accessCheckResult{
+				infraProviderID: checkResult.InfraProviderID,
+				config:          config,
+				targetState:     targetState,
+			}, nil
 		}
+	} else if !isReadAccess { // not an infra provider, check for the read-only access
+		return accessCheckResult{}, status.Errorf(codes.PermissionDenied, "only infra providers are allowed to modify %q resources", resType)
 	}
 
-	return "", nil
+	return accessCheckResult{
+		config:      config,
+		targetState: targetState,
+	}, nil
 }
 
 func (st *State) filterEvents(ctx context.Context, infraProviderID string, eventCh chan<- state.Event) chan state.Event {
@@ -371,7 +407,8 @@ func (st *State) filterEventsAggregated(ctx context.Context, infraProviderID str
 }
 
 func (st *State) checkNamespaceAndType(ns resource.Namespace, infraProviderID string, resType resource.Type) (checkLabel bool, err error) {
-	if ns == resources.InfraProviderNamespace {
+	switch ns {
+	case resources.InfraProviderNamespace, resources.InfraProviderEphemeralNamespace:
 		return true, nil
 	}
 
@@ -388,4 +425,55 @@ func (st *State) checkNamespaceAndType(ns resource.Namespace, infraProviderID st
 
 	return false, status.Errorf(codes.PermissionDenied, "namespace not allowed, must be one of %s or %s",
 		resources.InfraProviderNamespace, infraProviderSpecificNamespace)
+}
+
+// resourceConfig defines the resource-specific configuration to be validated by the state.
+type resourceConfig struct {
+	readOnlyForProviders bool
+	ephemeral            bool
+	checkID              bool
+}
+
+// IsInfraProviderResource returns true if the given resource type is an infra provider specific resource.
+func IsInfraProviderResource(ns resource.Namespace, resType resource.Type) bool {
+	_, isInfraProviderResource := getResourceConfig(ns, resType)
+
+	return isInfraProviderResource
+}
+
+// getResourceConfig returns the configuration for the given resource type.
+func getResourceConfig(ns resource.Namespace, resType resource.Type) (config resourceConfig, isInfraProviderResource bool) {
+	if strings.HasPrefix(ns, resources.InfraProviderSpecificNamespacePrefix) {
+		return config, true
+	}
+
+	switch resType {
+	case infra.MachineRequestType:
+		return resourceConfig{
+			readOnlyForProviders: true,
+		}, true
+	case infra.MachineRequestStatusType:
+		return resourceConfig{}, true
+	case infra.InfraMachineType:
+		return resourceConfig{
+			readOnlyForProviders: true,
+		}, true
+	case infra.InfraMachineStateType:
+		return resourceConfig{}, true
+	case infra.InfraMachineStatusType:
+		return resourceConfig{}, true
+	case infra.InfraProviderStatusType:
+		return resourceConfig{
+			checkID: true,
+		}, true
+	case infra.InfraProviderHealthStatusType:
+		return resourceConfig{
+			ephemeral: ns == resources.InfraProviderEphemeralNamespace,
+			checkID:   true,
+		}, true
+	case infra.ConfigPatchRequestType:
+		return resourceConfig{}, true
+	default:
+		return resourceConfig{}, false
+	}
 }

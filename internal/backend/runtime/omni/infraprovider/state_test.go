@@ -51,14 +51,15 @@ func TestInfraProviderAccess(t *testing.T) {
 	ctx = prepareInfraProviderServiceAccount(ctx)
 
 	logger := zaptest.NewLogger(t)
-	innerSt := namespaced.NewState(inmem.Build)
-	st := state.WrapCore(infraprovider.NewState(innerSt, logger))
+	persistentState := namespaced.NewState(inmem.Build)
+	ephemeralState := namespaced.NewState(inmem.Build)
+	st := state.WrapCore(infraprovider.NewState(persistentState, ephemeralState, logger))
 
 	// MachineRequest
 
 	mr := infra.NewMachineRequest("test-mr")
 
-	testInfraProviderAccessInputResource(ctx, t, st, innerSt, mr, func(res *infra.MachineRequest) {
+	testInfraProviderAccessInputResource(ctx, t, st, persistentState, mr, func(res *infra.MachineRequest) {
 		res.TypedSpec().Value.TalosVersion = talosVersion
 	}, func(res *infra.MachineRequest) error {
 		res.TypedSpec().Value.TalosVersion = "v1.2.4"
@@ -73,7 +74,7 @@ func TestInfraProviderAccess(t *testing.T) {
 
 	infraMachine := infra.NewMachine("test-im")
 
-	testInfraProviderAccessInputResource(ctx, t, st, innerSt, infraMachine, func(res *infra.Machine) {
+	testInfraProviderAccessInputResource(ctx, t, st, persistentState, infraMachine, func(res *infra.Machine) {
 		res.TypedSpec().Value.PreferredPowerState = specs.InfraMachineSpec_POWER_STATE_ON
 	}, func(res *infra.Machine) error {
 		res.TypedSpec().Value.PreferredPowerState = specs.InfraMachineSpec_POWER_STATE_OFF
@@ -86,7 +87,7 @@ func TestInfraProviderAccess(t *testing.T) {
 
 	// MachineRequestStatus
 
-	testInfraProviderAccessOutputResource(ctx, t, st, innerSt, infra.NewMachineRequestStatus("test-mrs"), func(res *infra.MachineRequestStatus) error {
+	testInfraProviderAccessOutputResource(ctx, t, st, persistentState, infra.NewMachineRequestStatus("test-mrs"), func(res *infra.MachineRequestStatus) error {
 		res.TypedSpec().Value.Id = "12345"
 		res.TypedSpec().Value.Stage = specs.MachineRequestStatusSpec_PROVISIONING
 
@@ -95,7 +96,7 @@ func TestInfraProviderAccess(t *testing.T) {
 
 	// InfraMachineStatus
 
-	testInfraProviderAccessOutputResource(ctx, t, st, innerSt, infra.NewMachineStatus("test-ims"), func(res *infra.MachineStatus) error {
+	testInfraProviderAccessOutputResource(ctx, t, st, persistentState, infra.NewMachineStatus("test-ims"), func(res *infra.MachineStatus) error {
 		res.TypedSpec().Value.PowerState = specs.InfraMachineStatusSpec_POWER_STATE_ON
 
 		return nil
@@ -103,7 +104,12 @@ func TestInfraProviderAccess(t *testing.T) {
 
 	// InfraProviderStatus
 
-	status := infra.NewProviderStatus("test")
+	status := infra.NewProviderStatus("invalid-id")
+
+	err := st.Create(ctx, status)
+	assert.ErrorContains(t, err, fmt.Sprintf(`resource ID must match the infra provider ID "%s"`, infraProviderID))
+
+	status = infra.NewProviderStatus(infraProviderID)
 
 	// create
 	assert.NoError(t, st.Create(ctx, status))
@@ -121,7 +127,7 @@ func TestInfraProviderAccess(t *testing.T) {
 	assert.NoError(t, st.Create(ctx, cpr))
 
 	// assert that the label is set
-	res, err := innerSt.Get(ctx, cpr.Metadata())
+	res, err := persistentState.Get(ctx, cpr.Metadata())
 	require.NoError(t, err)
 
 	cpID, _ := res.Metadata().Labels().Get(omni.LabelInfraProviderID)
@@ -136,7 +142,7 @@ func TestInfraProviderAccess(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func testInfraProviderAccessInputResource[T resource.Resource](ctx context.Context, t *testing.T, st state.State, innerSt state.CoreState,
+func testInfraProviderAccessInputResource[T resource.Resource](ctx context.Context, t *testing.T, st state.State, persistentState state.CoreState,
 	res T, prepareRes func(res T), updateRes func(res T) error, assertUpdateResult func(*testing.T, error),
 ) {
 	// create
@@ -148,7 +154,7 @@ func testInfraProviderAccessInputResource[T resource.Resource](ctx context.Conte
 
 	prepareRes(res)
 
-	require.NoError(t, innerSt.Create(ctx, res))
+	require.NoError(t, persistentState.Create(ctx, res))
 
 	// update spec
 	_, err = safe.StateUpdateWithConflicts(ctx, st, res.Metadata(), updateRes)
@@ -172,12 +178,12 @@ func testInfraProviderAccessInputResource[T resource.Resource](ctx context.Conte
 	assert.NoError(t, err)
 }
 
-func testInfraProviderAccessOutputResource[T resource.Resource](ctx context.Context, t *testing.T, st state.State, innerSt state.CoreState, res T, updateRes func(res T) error) {
+func testInfraProviderAccessOutputResource[T resource.Resource](ctx context.Context, t *testing.T, st state.State, persistentState state.CoreState, res T, updateRes func(res T) error) {
 	// create
 	assert.NoError(t, st.Create(ctx, res))
 
 	// assert that the label is set
-	resAfterCreate, err := innerSt.Get(ctx, res.Metadata())
+	resAfterCreate, err := persistentState.Get(ctx, res.Metadata())
 	require.NoError(t, err)
 
 	cpID, _ := resAfterCreate.Metadata().Labels().Get(omni.LabelInfraProviderID)
@@ -198,8 +204,9 @@ func TestInternalAccess(t *testing.T) {
 
 	logger := zaptest.NewLogger(t)
 
-	innerSt := namespaced.NewState(inmem.Build)
-	st := state.WrapCore(infraprovider.NewState(innerSt, logger))
+	persistentState := namespaced.NewState(inmem.Build)
+	ephemeralState := namespaced.NewState(inmem.Build)
+	st := state.WrapCore(infraprovider.NewState(persistentState, ephemeralState, logger))
 	mr := infra.NewMachineRequest("test-mr")
 
 	err := st.Create(ctx, mr)
@@ -229,8 +236,9 @@ func TestInfraProviderSpecificNamespace(t *testing.T) {
 	ctx = prepareInfraProviderServiceAccount(ctx)
 
 	logger := zaptest.NewLogger(t)
-	innerSt := namespaced.NewState(inmem.Build)
-	st := state.WrapCore(infraprovider.NewState(innerSt, logger))
+	persistentState := namespaced.NewState(inmem.Build)
+	ephemeralState := namespaced.NewState(inmem.Build)
+	st := state.WrapCore(infraprovider.NewState(persistentState, ephemeralState, logger))
 
 	// try to create and update a resource in the infra-provider specific namespace, i.e., "infra-provider:qemu-1", assert that it is allowed
 
@@ -273,10 +281,11 @@ func TestInfraProviderIDChecks(t *testing.T) {
 	ctx = prepareInfraProviderServiceAccount(ctx)
 
 	logger := zaptest.NewLogger(t)
-	innerSt := namespaced.NewState(inmem.Build)
-	st := state.WrapCore(infraprovider.NewState(innerSt, logger))
+	persistentState := namespaced.NewState(inmem.Build)
+	ephemeralState := namespaced.NewState(inmem.Build)
+	st := state.WrapCore(infraprovider.NewState(persistentState, ephemeralState, logger))
 
-	prepareResources(ctx, t, innerSt)
+	prepareResources(ctx, t, persistentState)
 
 	// Get - assert that it is checked against infra provider id
 
@@ -348,13 +357,46 @@ func TestInfraProviderIDChecks(t *testing.T) {
 
 	cancel()
 
-	// Destroy - assert that it is checked against infra provider id
+	// Destroy - assert that it is checked against infra provider id.
+	// We check them on MachineRequestStatus resources, as MachineRequest resources are read-only for infra providers.
 
-	err = st.Destroy(ctx, infra.NewMachineRequest("mr-1").Metadata())
+	err = st.Destroy(ctx, infra.NewMachineRequestStatus("mrs-1").Metadata())
 	assert.NoError(t, err)
 
-	err = st.Destroy(ctx, infra.NewMachineRequest("mr-2").Metadata())
+	err = st.Destroy(ctx, infra.NewMachineRequestStatus("mrs-2").Metadata())
 	assert.Equal(t, codes.NotFound, status.Code(err))
+}
+
+func TestEphemeralState(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	ctx = prepareInfraProviderServiceAccount(ctx)
+
+	logger := zaptest.NewLogger(t)
+	persistentState := namespaced.NewState(inmem.Build)
+	ephemeralState := namespaced.NewState(inmem.Build)
+	st := state.WrapCore(infraprovider.NewState(persistentState, ephemeralState, logger))
+
+	ephemeralResource := infra.NewProviderHealthStatus(infraProviderID)
+
+	require.NoError(t, st.Create(ctx, ephemeralResource))
+
+	_, err := persistentState.Get(ctx, ephemeralResource.Metadata())
+	assert.True(t, state.IsNotFoundError(err), "ephemeral resource must not be stored in the persistent state")
+
+	_, err = st.Get(ctx, ephemeralResource.Metadata())
+	require.NoError(t, err)
+
+	ephemeralResource.TypedSpec().Value.Error = "test"
+
+	err = st.Update(ctx, ephemeralResource)
+	require.NoError(t, err)
+
+	err = st.Destroy(ctx, ephemeralResource.Metadata())
+	require.NoError(t, err)
 }
 
 type eventInfo struct {
@@ -392,7 +434,7 @@ func assertEvents(ctx context.Context, t *testing.T, eventCh chan state.Event, e
 	}
 }
 
-func prepareResources(ctx context.Context, t *testing.T, innerSt state.CoreState) {
+func prepareResources(ctx context.Context, t *testing.T, persistentState state.CoreState) {
 	mr1 := infra.NewMachineRequest("mr-1")
 	mr1.TypedSpec().Value.TalosVersion = talosVersion
 
@@ -403,8 +445,20 @@ func prepareResources(ctx context.Context, t *testing.T, innerSt state.CoreState
 
 	mr2.Metadata().Labels().Set(omni.LabelInfraProviderID, "aws-2")
 
-	require.NoError(t, innerSt.Create(ctx, mr1))
-	require.NoError(t, innerSt.Create(ctx, mr2))
+	mrs1 := infra.NewMachineRequestStatus("mrs-1")
+	mrs1.TypedSpec().Value.Id = "12345"
+
+	mrs1.Metadata().Labels().Set(omni.LabelInfraProviderID, infraProviderID)
+
+	mrs2 := infra.NewMachineRequestStatus("mrs-2")
+	mrs2.TypedSpec().Value.Id = "67890"
+
+	mrs2.Metadata().Labels().Set(omni.LabelInfraProviderID, "aws-2")
+
+	require.NoError(t, persistentState.Create(ctx, mr1))
+	require.NoError(t, persistentState.Create(ctx, mr2))
+	require.NoError(t, persistentState.Create(ctx, mrs1))
+	require.NoError(t, persistentState.Create(ctx, mrs2))
 }
 
 func prepareInfraProviderServiceAccount(ctx context.Context) context.Context {

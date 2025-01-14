@@ -5,19 +5,27 @@
 package infra
 
 import (
+	"context"
+	"time"
+
 	"github.com/cosi-project/runtime/pkg/state"
 
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/infra/provision"
 )
 
+// HealthCheckFunc defines a function that checks the health of the infra provider.
+type HealthCheckFunc func(context.Context) error
+
 // Options defines additional infra provider options.
 type Options struct {
-	omniEndpoint  string
-	state         state.State
-	imageFactory  provision.FactoryClient
-	clientOptions []client.Option
-	concurrency   uint
+	state               state.State
+	imageFactory        provision.FactoryClient
+	healthCheckFunc     HealthCheckFunc
+	omniEndpoint        string
+	clientOptions       []client.Option
+	concurrency         uint
+	healthCheckInterval time.Duration
 }
 
 // Option define an additional infra provider option.
@@ -58,5 +66,21 @@ func WithOmniEndpoint(value string) Option {
 func WithState(state state.State) Option {
 	return func(o *Options) {
 		o.state = state
+	}
+}
+
+// WithHealthCheckFunc sets the health check function for the infra provider.
+//
+// The health check function should return a descriptive error if the provider is unhealthy.
+func WithHealthCheckFunc(healthCheckFunc HealthCheckFunc) Option {
+	return func(o *Options) {
+		o.healthCheckFunc = healthCheckFunc
+	}
+}
+
+// WithHealthCheckInterval sets the health check interval for the infra provider.
+func WithHealthCheckInterval(interval time.Duration) Option {
+	return func(o *Options) {
+		o.healthCheckInterval = interval
 	}
 }

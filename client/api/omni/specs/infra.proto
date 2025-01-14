@@ -74,3 +74,8 @@ message InfraProviderStatusSpec {
   string description = 3;
   string icon = 4;
 }
+
+message InfraProviderHealthStatusSpec {
+  google.protobuf.Timestamp last_heartbeat_timestamp = 1;
+  string error = 2;
+}

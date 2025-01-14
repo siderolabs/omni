@@ -48,6 +48,13 @@ const ExternalNamespace resource.Namespace = "external"
 // tsgen:InfraProviderNamespace
 const InfraProviderNamespace resource.Namespace = "infra-provider"
 
+// InfraProviderEphemeralNamespace is the namespace for ephemeral infra provider specific resources.
+//
+// InfraProviderEphemeralNamespace has no persistence across restarts.
+//
+// tsgen:InfraProviderEphemeralNamespace
+const InfraProviderEphemeralNamespace resource.Namespace = InfraProviderNamespace + "-ephemeral"
+
 // InfraProviderSpecificNamespacePrefix is the prefix for infra provider specific namespaces.
 //
 // A infra-provider specific namespace is a namespace in which infra provider has full access.
