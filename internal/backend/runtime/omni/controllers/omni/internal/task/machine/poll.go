@@ -99,6 +99,9 @@ func pollVersion(ctx context.Context, c *client.Client, info *Info) error {
 }
 
 func pollHostname(ctx context.Context, c *client.Client, info *Info) error {
+	info.Hostname = pointer.To("")
+	info.Domainname = pointer.To("")
+
 	return forEachResource(
 		ctx,
 		c,
