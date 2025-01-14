@@ -6,7 +6,7 @@
 package constants
 
 // AnotherTalosVersion is used in the integration tests for Talos upgrade.
-const AnotherTalosVersion = "1.7.0"
+const AnotherTalosVersion = "1.9.0"
 
 // MinDiscoveredTalosVersion makes Omni pull the versions from this point.
 const MinDiscoveredTalosVersion = "1.3.0"
@@ -17,10 +17,10 @@ const MinTalosVersion = "1.5.0"
 // DefaultKubernetesVersion is pre-selected in the UI and used in the integration tests.
 //
 // tsgen:DefaultKubernetesVersion
-const DefaultKubernetesVersion = "1.30.5"
+const DefaultKubernetesVersion = "1.31.4"
 
 // AnotherKubernetesVersion is used in the integration tests for Kubernetes upgrade.
-const AnotherKubernetesVersion = "1.29.5"
+const AnotherKubernetesVersion = "1.30.5"
 
 // MinKubernetesVersion allowed to be used when creating the cluster.
 const MinKubernetesVersion = "1.24.0"
