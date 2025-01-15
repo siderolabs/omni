@@ -101,7 +101,7 @@ func benchmark(b *testing.B, large, compress, pool, dict bool) {
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		buffer, err := config.TypedSpec().Value.GetUncompressedData(specs.WithConfigCompressionOption(compressionConfig))
 		require.NoError(b, err)
 

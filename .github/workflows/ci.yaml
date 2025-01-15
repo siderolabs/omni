@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-11-25T13:10:36Z by kres b9ed228.
+# Generated on 2025-01-15T09:42:39Z by kres fcff05e.
 
 name: default
 concurrency:
@@ -171,7 +171,7 @@ jobs:
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "true"
-          INTEGRATION_TEST_ARGS: --test.run CleanState/|Auth/|DefaultCluster/
+          INTEGRATION_TEST_ARGS: --test.run CleanState/|Auth/|DefaultCluster/|CLICommands/
           RUN_TALEMU_TESTS: "true"
           TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
           WITH_DEBUG: "true"

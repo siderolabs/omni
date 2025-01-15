@@ -95,6 +95,8 @@ func AssertDownloadUsingCLI(testCtx context.Context, client *client.Client, omni
 func runCmd(path, endpoint, key string, args ...string) (bytes.Buffer, bytes.Buffer, error) {
 	var stdout, stderr bytes.Buffer
 
+	args = append([]string{"--insecure-skip-tls-verify"}, args...)
+
 	cmd := exec.Command(
 		path,
 		args...,
@@ -147,23 +149,23 @@ func AssertUserCLI(testCtx context.Context, client *client.Client, omnictlPath, 
 
 		key := createServiceAccount(testCtx, t, client, name)
 
-		_, _, err := runCmd(omnictlPath, httpEndpoint, key, "user", "create", "a@a.com", "--role", "Admin")
-		require.NoError(t, err)
+		stdout, stderr, err := runCmd(omnictlPath, httpEndpoint, key, "user", "create", "a@a.com", "--role", "Admin")
+		require.NoErrorf(t, err, "failed to create user. stdout: %q | stderr: %q", stdout.String(), stderr.String())
 
-		stdin, _, err := runCmd(omnictlPath, httpEndpoint, key, "user", "list")
-		require.NoError(t, err)
+		stdout, stderr, err = runCmd(omnictlPath, httpEndpoint, key, "user", "list")
+		require.NoErrorf(t, err, "failed to list users. stdout: %q | stderr: %q", stdout.String(), stderr.String())
 
-		require.Contains(t, stdin.String(), "a@a.com")
+		require.Contains(t, stdout.String(), "a@a.com")
 
-		_, _, err = runCmd(omnictlPath, httpEndpoint, key, "user", "set-role", "--role", "Reader", "a@a.com")
-		require.NoError(t, err)
+		stdout, stderr, err = runCmd(omnictlPath, httpEndpoint, key, "user", "set-role", "--role", "Reader", "a@a.com")
+		require.NoErrorf(t, err, "failed to set role. stdout: %q | stderr: %q", stdout.String(), stderr.String())
 
-		_, _, err = runCmd(omnictlPath, httpEndpoint, key, "user", "delete", "a@a.com")
-		require.NoError(t, err)
+		stdout, stderr, err = runCmd(omnictlPath, httpEndpoint, key, "user", "delete", "a@a.com")
+		require.NoErrorf(t, err, "failed to delete user. stdout: %q | stderr: %q", stdout.String(), stderr.String())
 
-		stdin, _, err = runCmd(omnictlPath, httpEndpoint, key, "user", "list")
-		require.NoError(t, err)
+		stdout, stderr, err = runCmd(omnictlPath, httpEndpoint, key, "user", "list")
+		require.NoErrorf(t, err, "failed to list users. stdout: %q | stderr: %q", stdout.String(), stderr.String())
 
-		require.NotContains(t, stdin.String(), "a@a.com")
+		require.NotContains(t, stdout.String(), "a@a.com")
 	}
 }

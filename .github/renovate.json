@@ -1,58 +1,36 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    ":dependencyDashboard",
-    ":gitSignOff",
-    ":semanticCommitScopeDisabled",
-    "schedule:earlyMondays"
-  ],
-  "prHeader": "Update Request | Renovate Bot",
-  "packageRules": [
-    {
-      "matchPackageNames": [
-        "golang/go"
-      ],
-      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)"
-    },
-    {
-      "matchPackagePatterns": [
-        "*"
-      ],
-      "matchDatasources": [
-        "docker"
-      ],
-      "groupName": "container images"
-    },
-    {
-      "matchPackagePatterns": [
-        "*"
-      ],
-      "matchDatasources": [
-        "go",
-        "golang-version"
-      ],
-      "groupName": "go packages"
-    },
-    {
-      "matchPackagePatterns": [
-        "*"
-      ],
-      "matchDatasources": [
-        "npm"
-      ],
-      "groupName": "node packages"
-    },
-    {
-      "matchPackagePatterns": [
-        "*"
-      ],
-      "matchDatasources": [
-        "git-refs",
-        "git-tags",
-        "github-tags",
-        "github-releases"
-      ],
-      "groupName": "releases"
-    }
-  ]
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "description": "THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.",
+    "prHeader": "Update Request | Renovate Bot",
+    "extends": [
+        ":dependencyDashboard",
+        ":gitSignOff",
+        ":semanticCommitScopeDisabled",
+        "schedule:earlyMondays"
+    ],
+    "packageRules": [
+        {
+            "groupName": "dependencies",
+            "matchUpdateTypes": [
+                "major",
+                "minor",
+                "patch",
+                "pin",
+                "digest"
+            ]
+        },
+        {
+            "enabled": false,
+            "matchFileNames": [
+                "Dockerfile"
+            ]
+        },
+        {
+            "enabled": false,
+            "matchFileNames": [
+                ".github/workflows/*.yaml"
+            ]
+        }
+    ],
+    "separateMajorMinor": false
 }

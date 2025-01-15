@@ -595,7 +595,7 @@ func makePath(path string) error {
 
 	if !ok {
 		if dirErr := os.MkdirAll(path, 0o755); dirErr != nil {
-			return err
+			return dirErr
 		}
 	}
 

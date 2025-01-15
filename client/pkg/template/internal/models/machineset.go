@@ -66,8 +66,6 @@ type MachineClassConfig struct {
 }
 
 // Size extends protobuf generated allocation type enum to parse string constants.
-//
-//nolint:recvcheck
 type Size struct {
 	Value          uint32
 	AllocationType specs.MachineSetSpec_MachineAllocation_Type
@@ -114,8 +112,6 @@ func (c Size) MarshalYAML() (any, error) {
 }
 
 // UpdateStrategyType extends protobuf generated update strategy enum to parse string constants.
-//
-//nolint:recvcheck
 type UpdateStrategyType uint32
 
 // UnmarshalYAML implements yaml.Unmarshaler.
