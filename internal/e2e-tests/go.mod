@@ -5,11 +5,11 @@ go 1.23.0
 require (
 	github.com/buger/jsonparser v1.1.1
 	github.com/google/uuid v1.6.0
-	github.com/playwright-community/playwright-go v0.4501.1
+	github.com/playwright-community/playwright-go v0.4901.0
 	github.com/stretchr/testify v1.10.0
 	github.com/wI2L/jsondiff v0.6.1
 	golang.org/x/sync v0.10.0
-	mvdan.cc/xurls/v2 v2.5.0
+	mvdan.cc/xurls/v2 v2.6.0
 )
 
 require (
