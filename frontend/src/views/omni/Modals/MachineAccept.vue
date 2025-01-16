@@ -15,6 +15,12 @@ included in the LICENSE file.
 
     <p class="text-xs py-2">Please confirm the action.</p>
 
+    <div class="text-xs">
+      <p class="text-primary-P3 py-2 font-bold">
+        Accepting the machine will wipe ALL of its disks.
+      </p>
+    </div>
+
     <div class="flex justify-end gap-4 mt-8">
       <t-button @click="reject" class="w-32 h-9" icon="check" iconPosition="left">
         Accept
