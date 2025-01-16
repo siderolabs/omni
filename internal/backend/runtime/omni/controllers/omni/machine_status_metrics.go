@@ -11,11 +11,14 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -43,6 +46,11 @@ func (ctrl *MachineStatusMetricsController) Inputs() []controller.Input {
 		{
 			Namespace: resources.DefaultNamespace,
 			Type:      omni.MachineStatusType,
+			Kind:      controller.InputWeak,
+		},
+		{
+			Namespace: resources.InfraProviderNamespace,
+			Type:      infra.InfraMachineType,
 			Kind:      controller.InputWeak,
 		},
 	}
@@ -90,6 +98,17 @@ func (ctrl *MachineStatusMetricsController) Run(ctx context.Context, r controlle
 		case <-r.EventCh():
 		}
 
+		pendingInfraMachines, err := safe.ReaderListAll[*infra.Machine](
+			ctx,
+			r,
+			state.WithLabelQuery(resource.LabelExists(omni.LabelMachinePendingAccept)),
+		)
+		if err != nil {
+			return err
+		}
+
+		pendingMachines := pendingInfraMachines.Len()
+
 		list, err := safe.ReaderListAll[*omni.MachineStatus](
 			ctx,
 			r,
@@ -129,6 +148,7 @@ func (ctrl *MachineStatusMetricsController) Run(ctx context.Context, r controlle
 				res.TypedSpec().Value.ConnectedMachinesCount = uint32(connectedMachines)
 				res.TypedSpec().Value.RegisteredMachinesCount = uint32(machines)
 				res.TypedSpec().Value.AllocatedMachinesCount = uint32(allocatedMachines)
+				res.TypedSpec().Value.PendingMachinesCount = uint32(pendingMachines)
 
 				return nil
 			},

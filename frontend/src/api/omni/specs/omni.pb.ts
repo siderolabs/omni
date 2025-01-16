@@ -793,6 +793,7 @@ export type MachineStatusMetricsSpec = {
   registered_machines_count?: number
   connected_machines_count?: number
   allocated_machines_count?: number
+  pending_machines_count?: number
 }
 
 export type ClusterStatusMetricsSpec = {

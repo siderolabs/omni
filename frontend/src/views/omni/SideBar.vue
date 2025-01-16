@@ -9,13 +9,31 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
 
-import TSidebarList from "@/components/SideBar/TSideBarList.vue";
+import TSidebarList, { SideBarItem } from "@/components/SideBar/TSideBarList.vue";
 import { canManageBackupStore, canManageUsers, canReadClusters, canReadMachines } from "@/methods/auth";
 import { setupBackupStatus } from "@/methods";
 import { IconType } from "@/components/common/Icon/TIcon.vue";
+import { Resource } from "@/api/grpc";
+import { MachineStatusMetricsSpec } from "@/api/omni/specs/omni.pb";
+import Watch from "@/api/watch";
+import { EphemeralNamespace, MachineStatusMetricsID, MachineStatusMetricsType } from "@/api/resources";
+import { Runtime } from "@/api/common/omni.pb";
+import pluralize from "pluralize";
+
+const machineMetrics = ref<Resource<MachineStatusMetricsSpec>>();
+const machineMetricsWatch = new Watch(machineMetrics);
+
+machineMetricsWatch.setup({
+  resource: {
+    namespace: EphemeralNamespace,
+    type: MachineStatusMetricsType,
+    id: MachineStatusMetricsID,
+  },
+  runtime: Runtime.Omni,
+});
 
 const route = useRoute();
 
@@ -33,7 +51,7 @@ const getRoute = (name: string, path: string) => {
 const { status: backupStatus } = setupBackupStatus();
 
 const items = computed(() => {
-  const result = [{
+  const result: SideBarItem[] = [{
     name: "Home",
     route: getRoute("Overview", "/omni/"),
     icon: "home" as IconType,
@@ -48,11 +66,18 @@ const items = computed(() => {
   }
 
   if (canReadMachines.value) {
-    result.push({
+    const item: SideBarItem = {
       name: "Machines",
       route: getRoute("Machines", "/omni/machines"),
       icon: "nodes",
-    });
+    };
+
+    if (machineMetrics.value?.spec.pending_machines_count) {
+      item.label = machineMetrics.value.spec.pending_machines_count;
+      item.tooltip = `${machineMetrics.value.spec.pending_machines_count} ${pluralize('machines', machineMetrics.value.spec.pending_machines_count)} not accepted`;
+    }
+
+    result.push(item);
   }
 
   if (canReadMachines.value) {

@@ -2167,6 +2167,7 @@ func (m *MachineStatusMetricsSpec) CloneVT() *MachineStatusMetricsSpec {
 	r.RegisteredMachinesCount = m.RegisteredMachinesCount
 	r.ConnectedMachinesCount = m.ConnectedMachinesCount
 	r.AllocatedMachinesCount = m.AllocatedMachinesCount
+	r.PendingMachinesCount = m.PendingMachinesCount
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -5338,6 +5339,9 @@ func (this *MachineStatusMetricsSpec) EqualVT(that *MachineStatusMetricsSpec) bo
 		return false
 	}
 	if this.AllocatedMachinesCount != that.AllocatedMachinesCount {
+		return false
+	}
+	if this.PendingMachinesCount != that.PendingMachinesCount {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -11454,6 +11458,11 @@ func (m *MachineStatusMetricsSpec) MarshalToSizedBufferVT(dAtA []byte) (int, err
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.PendingMachinesCount != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.PendingMachinesCount))
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.AllocatedMachinesCount != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.AllocatedMachinesCount))
 		i--
@@ -14272,6 +14281,9 @@ func (m *MachineStatusMetricsSpec) SizeVT() (n int) {
 	}
 	if m.AllocatedMachinesCount != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.AllocatedMachinesCount))
+	}
+	if m.PendingMachinesCount != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.PendingMachinesCount))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -28971,6 +28983,25 @@ func (m *MachineStatusMetricsSpec) UnmarshalVT(dAtA []byte) error {
 				b := dAtA[iNdEx]
 				iNdEx++
 				m.AllocatedMachinesCount |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PendingMachinesCount", wireType)
+			}
+			m.PendingMachinesCount = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.PendingMachinesCount |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}

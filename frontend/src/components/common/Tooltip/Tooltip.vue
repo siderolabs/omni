@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <popper offsetDistance="10" offsetSkid="30" :placement="placement" :show="show && (!!description || !!$slots.description)" class="popper">
+  <popper :offsetDistance="offsetDistance.toFixed()" :offsetSkid="offsetSkid.toFixed()" :placement="placement" :show="show && (!!description || !!$slots.description)" class="popper">
     <template #content>
       <div class="text-xs bg-naturals-N3 border border-naturals-N4 rounded p-4 text-naturals-N12 z-50">
         <p v-if="description" class="whitespace-pre">{{ description }}</p>
@@ -24,6 +24,8 @@ import Popper from "vue3-popper";
 
 type props = {
   description?: string,
+  offsetDistance?: number,
+  offsetSkid?: number,
   placement?:
       | "auto"
       | "auto-start"
@@ -46,6 +48,8 @@ withDefaults(
   defineProps<props>(),
   {
     placement: "auto-start",
+    offsetDistance: 10,
+    offsetSkid: 30
   }
 );
 

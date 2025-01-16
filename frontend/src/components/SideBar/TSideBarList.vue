@@ -15,6 +15,7 @@ included in the LICENSE file.
         :icon="item.icon"
         :label="item.label"
         :label-color="item.labelColor"
+        :tooltip="item.tooltip"
       >
       </t-menu-item>
     </div>
@@ -32,6 +33,7 @@ export type SideBarItem = {
   icon?: IconType,
   label?: string | number,
   labelColor?: string,
+  tooltip?: string
 }
 
 type Props = {

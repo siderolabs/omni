@@ -6,30 +6,33 @@ included in the LICENSE file.
 -->
 <template>
   <component :is="componentType" v-bind="componentAttributes">
-    <div :class="{'border-naturals-N5': expanded, 'border-transparent': !expanded}" class="border-b border-t divide-naturals-N5 flex flex-col">
-      <div class="item" :class="{'sub-item': subItem}">
-        <t-icon v-if="icon" class="item-icon" :icon="icon" :svg-base64="iconSvgBase64"/>
-        <p class="item-name truncate">{{ name }}</p>
-        <div v-if="label" class="rounded-full text-naturals-N13 bg-naturals-N4 text-xs p-1 w-6 h-6 text-center" :class="labelColor ? 'text-' + labelColor : ''">
-          {{ label }}
+    <Tooltip placement="right" :description="tooltip" :offset-distance="10" :offset-skid="0">
+      <div :class="{'border-naturals-N5': expanded, 'border-transparent': !expanded}" class="border-b border-t divide-naturals-N5 flex flex-col">
+        <div class="item" :class="{'sub-item': subItem}">
+          <t-icon v-if="icon" class="item-icon" :icon="icon" :svg-base64="iconSvgBase64"/>
+          <p class="item-name truncate">{{ name }}</p>
+          <div v-if="label" class="rounded-md text-naturals-N13 bg-naturals-N4 text-xs px-1.5 min-w-5 py-0.5 justify-center -my-2 text-center flex items-center font-bold" :class="labelColor ? 'text-' + labelColor : ''">
+            <span>{{ label }}</span>
+          </div>
+          <t-icon v-if="hasSubItems"
+            icon="arrow-up"
+            class="w-4 h-4 hover:text-naturals-N13 transition-color transition-transform duration-250"
+            :class="{'rotate-180': expanded}"
+            @click.stop.prevent="() => expanded = !expanded"
+            />
         </div>
-        <t-icon v-if="hasSubItems"
-          icon="arrow-up"
-          class="w-4 h-4 hover:text-naturals-N13 transition-color transition-transform duration-250"
-          :class="{'rotate-180': expanded}"
-          @click.stop.prevent="() => expanded = !expanded"
-          />
+        <div @click.stop.prevent v-if="expanded">
+          <slot/>
+        </div>
       </div>
-      <div @click.stop.prevent v-if="expanded">
-        <slot/>
-      </div>
-    </div>
+    </Tooltip>
   </component>
 </template>
 
 <script setup lang="ts">
 import TIcon, { IconType } from "@/components/common/Icon/TIcon.vue";
 import { ref } from "vue";
+import Tooltip from "../Tooltip/Tooltip.vue";
 
 type Props = {
   route: string | object,
@@ -41,6 +44,7 @@ type Props = {
   labelColor?: string,
   hasSubItems?: boolean
   subItem?: boolean
+  tooltip?: string
 };
 
 const props = defineProps<Props>();
