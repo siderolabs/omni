@@ -202,8 +202,14 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 					cmsVal.Stage = specs.ClusterMachineStatusSpec_CONFIGURING
 				}
 
-				if err = reconcilePoweringOn(ctx, r, clusterMachineStatus); err != nil {
-					return err
+				// if the machine snapshot has a power stage set (not NONE), overwrite the stage
+				switch statusSnapshot.TypedSpec().Value.PowerStage {
+				case specs.MachineStatusSnapshotSpec_POWER_STAGE_NONE:
+					// do not override
+				case specs.MachineStatusSnapshotSpec_POWER_STAGE_POWERED_OFF:
+					cmsVal.Stage = specs.ClusterMachineStatusSpec_POWERED_OFF
+				case specs.MachineStatusSnapshotSpec_POWER_STAGE_POWERING_ON:
+					cmsVal.Stage = specs.ClusterMachineStatusSpec_POWERING_ON
 				}
 
 				clusterMachineIdentity, err := safe.ReaderGet[*omni.ClusterMachineIdentity](ctx, r, omni.NewClusterMachineIdentity(
@@ -267,30 +273,6 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 		qtransform.WithIgnoreTeardownUntil(ClusterMachineEncryptionKeyControllerName), // destroy the ClusterMachineStatus after the ClusterMachineEncryptionKey is destroyed
 		qtransform.WithConcurrency(2),
 	)
-}
-
-// reconcilePoweringOn overwrites the machine stage if the machine is managed by the bare metal infra provider and is being powered on right now.
-func reconcilePoweringOn(ctx context.Context, r controller.Reader, clusterMachineStatus *omni.ClusterMachineStatus) error {
-	_, err := safe.ReaderGetByID[*infra.Machine](ctx, r, clusterMachineStatus.Metadata().ID())
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return nil
-		}
-
-		return err
-	}
-
-	infraMachineStatus, err := safe.ReaderGetByID[*infra.MachineStatus](ctx, r, clusterMachineStatus.Metadata().ID())
-	if err != nil && !state.IsNotFoundError(err) {
-		return err
-	}
-
-	// if the expected state is powered on, but the actual power state is off overwrite the cluster machine state to be "POWERING_ON"
-	if infraMachineStatus == nil || infraMachineStatus.TypedSpec().Value.PowerState != specs.InfraMachineStatusSpec_POWER_STATE_ON {
-		clusterMachineStatus.TypedSpec().Value.Stage = specs.ClusterMachineStatusSpec_POWERING_ON
-	}
-
-	return nil
 }
 
 func updateMachineProvisionStatus(ctx context.Context, r controller.Reader, machineStatus *omni.MachineStatus, cmsVal *specs.ClusterMachineStatusSpec) error {

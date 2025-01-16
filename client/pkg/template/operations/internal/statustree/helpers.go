@@ -129,6 +129,8 @@ func clusterMachineStageString(phase specs.ClusterMachineStatusSpec_Stage) strin
 		c = color.HiRedString
 	case specs.ClusterMachineStatusSpec_RUNNING:
 		c = color.GreenString
+	case specs.ClusterMachineStatusSpec_POWERED_OFF:
+		c = color.WhiteString
 	default:
 		c = fmt.Sprintf
 	}

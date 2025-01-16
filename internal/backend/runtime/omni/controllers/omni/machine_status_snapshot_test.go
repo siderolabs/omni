@@ -40,7 +40,7 @@ func (suite *MachineStatusSnapshotControllerSuite) TestReconcile() {
 
 	siderolinkEventsCh := make(chan *omni.MachineStatusSnapshot)
 
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineStatusSnapshotController(siderolinkEventsCh)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineStatusSnapshotController(siderolinkEventsCh, nil)))
 
 	m := omni.NewMachine(resources.DefaultNamespace, "1")
 	m.TypedSpec().Value.Connected = true

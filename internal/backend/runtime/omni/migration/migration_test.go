@@ -1393,7 +1393,7 @@ func (suite *MigrationSuite) TestSetMachineStatusSnapshotOwner() {
 		suite.Require().NoError(suite.state.Create(
 			ctx,
 			item,
-			state.WithCreateOwner(omnictrl.NewMachineStatusSnapshotController(nil).Name())),
+			state.WithCreateOwner(omnictrl.MachineStatusSnapshotControllerName)),
 		)
 	}
 
@@ -1405,7 +1405,7 @@ func (suite *MigrationSuite) TestSetMachineStatusSnapshotOwner() {
 	check := func(item *omni.MachineStatusSnapshot, expectedVersion int) {
 		result, err := safe.StateGet[*omni.MachineStatusSnapshot](ctx, suite.state, item.Metadata())
 		suite.Require().NoError(err)
-		suite.Require().Equal(omnictrl.NewMachineStatusSnapshotController(nil).Name(), result.Metadata().Owner())
+		suite.Require().Equal(omnictrl.MachineStatusSnapshotControllerName, result.Metadata().Owner())
 		suite.Require().EqualValues(result.Metadata().Version().Value(), expectedVersion)
 	}
 

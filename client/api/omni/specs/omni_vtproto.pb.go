@@ -1328,6 +1328,7 @@ func (m *MachineStatusSnapshotSpec) CloneVT() *MachineStatusSnapshotSpec {
 		return (*MachineStatusSnapshotSpec)(nil)
 	}
 	r := new(MachineStatusSnapshotSpec)
+	r.PowerStage = m.PowerStage
 	if rhs := m.MachineStatus; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface {
 			CloneVT() *machine.MachineStatusEvent
@@ -4182,6 +4183,9 @@ func (this *MachineStatusSnapshotSpec) EqualVT(that *MachineStatusSnapshotSpec) 
 			return false
 		}
 	} else if !proto.Equal(this.MachineStatus, that.MachineStatus) {
+		return false
+	}
+	if this.PowerStage != that.PowerStage {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -9350,6 +9354,11 @@ func (m *MachineStatusSnapshotSpec) MarshalToSizedBufferVT(dAtA []byte) (int, er
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.PowerStage != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.PowerStage))
+		i--
+		dAtA[i] = 0x10
+	}
 	if m.MachineStatus != nil {
 		if vtmsg, ok := interface{}(m.MachineStatus).(interface {
 			MarshalToSizedBufferVT([]byte) (int, error)
@@ -13446,6 +13455,9 @@ func (m *MachineStatusSnapshotSpec) SizeVT() (n int) {
 			l = proto.Size(m.MachineStatus)
 		}
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.PowerStage != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.PowerStage))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -24051,6 +24063,25 @@ func (m *MachineStatusSnapshotSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PowerStage", wireType)
+			}
+			m.PowerStage = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.PowerStage |= MachineStatusSnapshotSpec_PowerStage(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

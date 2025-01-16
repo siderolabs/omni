@@ -78,6 +78,7 @@ export enum ClusterMachineStatusSpecStage {
   BEFORE_DESTROY = 9,
   DESTROYING = 5,
   POWERING_ON = 10,
+  POWERED_OFF = 11,
 }
 
 export enum ClusterStatusSpecPhase {
@@ -115,6 +116,12 @@ export enum TalosUpgradeStatusSpecPhase {
   Failed = 3,
   Reverting = 4,
   InstallingExtensions = 5,
+}
+
+export enum MachineStatusSnapshotSpecPowerStage {
+  POWER_STAGE_NONE = 0,
+  POWER_STAGE_POWERED_OFF = 1,
+  POWER_STAGE_POWERING_ON = 2,
 }
 
 export enum ControlPlaneStatusSpecConditionStatus {
@@ -570,6 +577,7 @@ export type MachineLabelsSpec = {
 
 export type MachineStatusSnapshotSpec = {
   machine_status?: MachineMachine.MachineStatusEvent
+  power_stage?: MachineStatusSnapshotSpecPowerStage
 }
 
 export type ControlPlaneStatusSpecCondition = {

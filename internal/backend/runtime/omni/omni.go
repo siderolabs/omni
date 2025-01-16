@@ -39,6 +39,8 @@ import (
 	pkgruntime "github.com/siderolabs/omni/client/pkg/runtime"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
+	"github.com/siderolabs/omni/internal/backend/logging"
+	"github.com/siderolabs/omni/internal/backend/powerstage"
 	"github.com/siderolabs/omni/internal/backend/resourcelogger"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/cosi"
@@ -75,7 +77,8 @@ type Runtime struct {
 	cachedState state.State
 	virtual     *virtual.State
 
-	logger *zap.Logger
+	logger            *zap.Logger
+	powerStageWatcher *powerstage.Watcher
 }
 
 // New creates a new Omni runtime.
@@ -154,6 +157,9 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 			options.WithWarnOnUncachedReads(false), // turn this to true to debug resource cache misses
 		)
 	}
+
+	powerStageEventsCh := make(chan *omni.MachineStatusSnapshot)
+	powerStageWatcher := powerstage.NewWatcher(resourceState, powerStageEventsCh, logger.With(logging.Component("power_stage_watcher")))
 
 	controllerRuntime, err := cosiruntime.NewRuntime(resourceState, logger, opts...)
 	if err != nil {
@@ -258,7 +264,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewTalosConfigController(constants.CertificateValidityTime),
 		omnictrl.NewTalosExtensionsController(imageFactoryClient),
 		omnictrl.NewTalosUpgradeStatusController(),
-		omnictrl.NewMachineStatusSnapshotController(siderolinkEventsCh),
+		omnictrl.NewMachineStatusSnapshotController(siderolinkEventsCh, powerStageEventsCh),
 		omnictrl.NewMachineProvisionController(),
 		omnictrl.NewMachineRequestLinkController(resourceState),
 		omnictrl.NewLabelsExtractorController[*omni.MachineStatus](),
@@ -342,6 +348,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		dnsService:              dnsService,
 		workloadProxyReconciler: workloadProxyReconciler,
 		resourceLogger:          resourceLogger,
+		powerStageWatcher:       powerStageWatcher,
 		state:                   state.WrapCore(validated.NewState(resourceState, validationOptions...)),
 		cachedState:             state.WrapCore(validated.NewState(controllerRuntime.CachedState(), validationOptions...)),
 		virtual:                 virtualState,
@@ -365,6 +372,7 @@ func (r *Runtime) Run(ctx context.Context, eg newgroup.EGroup) {
 		newgroup.GoWithContext(ctx, eg, makeWrap(r.resourceLogger.Start, "resource logger failed"))
 	}
 
+	newgroup.GoWithContext(ctx, eg, makeWrap(r.powerStageWatcher.Run, "power stage watcher failed"))
 	newgroup.GoWithContext(ctx, eg, makeWrap(r.talosClientFactory.StartCacheManager, "talos client factory failed"))
 	newgroup.GoWithContext(ctx, eg, makeWrap(r.dnsService.Start, "dns service failed"))
 	newgroup.GoWithContext(ctx, eg, makeWrap(r.controllerRuntime.Run, "controller runtime failed"))

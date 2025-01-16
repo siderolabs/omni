@@ -442,7 +442,7 @@ message RedactedClusterMachineConfigSpec {
 
   // CompressedData contains the config bytes. It is only set if the config is not compressed. Otherwise, CompressedData is set instead.
   //
-  // Deprecated: use accessor methods GetUncompressedData/SetUncompressedDataa to manage this field.
+  // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
   bytes compressed_data = 2;
 }
 
@@ -502,6 +502,7 @@ message ClusterMachineStatusSpec {
     BEFORE_DESTROY = 9;
     DESTROYING = 5;
     POWERING_ON = 10;
+    POWERED_OFF = 11;
   }
 
   Stage stage = 2;
@@ -829,7 +830,14 @@ message MachineLabelsSpec {}
 
 // MachineStatusSnapshotSpec describes latest known status of MachineStatus Talos resource.
 message MachineStatusSnapshotSpec {
+  enum PowerStage {
+    POWER_STAGE_NONE = 0;
+    POWER_STAGE_POWERED_OFF = 1;
+    POWER_STAGE_POWERING_ON = 2;
+  }
+
   machine.MachineStatusEvent machine_status = 1;
+  PowerStage power_stage = 2;
 }
 
 enum ConditionType {

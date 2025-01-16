@@ -32,17 +32,19 @@ type MachineStatusSnapshotController struct {
 	runner       *task.Runner[snapshot.InfoChan, snapshot.CollectTaskSpec]
 	notifyCh     chan *omni.MachineStatusSnapshot
 	siderolinkCh <-chan *omni.MachineStatusSnapshot
+	powerStageCh <-chan *omni.MachineStatusSnapshot
 	generic.NamedController
 }
 
 // NewMachineStatusSnapshotController initializes MachineStatusSnapshotController.
-func NewMachineStatusSnapshotController(siderolinkEventsCh <-chan *omni.MachineStatusSnapshot) *MachineStatusSnapshotController {
+func NewMachineStatusSnapshotController(siderolinkEventsCh, powerStageEventsCh <-chan *omni.MachineStatusSnapshot) *MachineStatusSnapshotController {
 	return &MachineStatusSnapshotController{
 		NamedController: generic.NamedController{
 			ControllerName: MachineStatusSnapshotControllerName,
 		},
 		notifyCh:     make(chan *omni.MachineStatusSnapshot),
 		siderolinkCh: siderolinkEventsCh,
+		powerStageCh: powerStageEventsCh,
 		runner:       task.NewEqualRunner[snapshot.CollectTaskSpec](),
 	}
 }
@@ -84,6 +86,10 @@ func (ctrl *MachineStatusSnapshotController) Settings() controller.QSettings {
 						return err
 					}
 				case resource := <-ctrl.notifyCh:
+					if err := ctrl.reconcileSnapshot(ctx, r, resource); err != nil {
+						return err
+					}
+				case resource := <-ctrl.powerStageCh:
 					if err := ctrl.reconcileSnapshot(ctx, r, resource); err != nil {
 						return err
 					}
@@ -235,8 +241,12 @@ func (ctrl *MachineStatusSnapshotController) reconcileSnapshot(ctx context.Conte
 		return nil
 	}
 
-	if err := safe.WriterModify(ctx, r, omni.NewMachineStatusSnapshot(resources.DefaultNamespace, snapshot.Metadata().ID()), func(m *omni.MachineStatusSnapshot) error {
-		m.TypedSpec().Value = snapshot.TypedSpec().Value
+	if err = safe.WriterModify(ctx, r, omni.NewMachineStatusSnapshot(resources.DefaultNamespace, snapshot.Metadata().ID()), func(m *omni.MachineStatusSnapshot) error {
+		if snapshot.TypedSpec().Value.MachineStatus != nil { // if this is a power stage snapshot, it will not contain machine status, so we preserve the existing value
+			m.TypedSpec().Value.MachineStatus = snapshot.TypedSpec().Value.MachineStatus
+		}
+
+		m.TypedSpec().Value.PowerStage = snapshot.TypedSpec().Value.PowerStage // always set the power stage
 
 		return nil
 	}); err != nil && !state.IsPhaseConflictError(err) {

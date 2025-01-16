@@ -1175,7 +1175,7 @@ func setMachineStatusSnapshotOwner(ctx context.Context, st state.State, logger *
 		logger.Info("updating machine status snapshot with empty owner", zap.String("id", item.Metadata().String()))
 
 		_, err = safe.StateUpdateWithConflicts(ctx, st, item.Metadata(), func(res *omni.MachineStatusSnapshot) error {
-			return res.Metadata().SetOwner(omnictrl.NewMachineStatusSnapshotController(nil).Name())
+			return res.Metadata().SetOwner(omnictrl.MachineStatusSnapshotControllerName)
 		}, state.WithExpectedPhaseAny(), state.WithUpdateOwner(item.Metadata().Owner()))
 		if err != nil {
 			return err
