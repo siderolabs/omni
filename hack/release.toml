@@ -6,29 +6,30 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v0.44.0"
+previous = "v0.45.0"
 
 [notes]
 
-  [notes.user-management]
-    title = "User Management CLI"
+  [notes.bare-metal-infra-provider]
+    title = "Bare Metal Infra Provider Support"
     description = """\
-`omnictl` now has new commands for user management to make it consistent with the UI:
+Omni now supports [bare metal infra provider](https://github.com/siderolabs/omni-infra-provider-bare-metal/).
 
-- `omnictl user list`
-- `omnictl user create [email] --role [role]
-- `omnictl user delete [email]`
-- `omnictl user set-role email --role [role]`
+This provider operates as a standalone service that can be deployed within a bare-metal datacenter network.
+It manages machines via IPMI, supports PXE-based booting, and enables machine resets without relying on the Talos API.
+
+Its functionality closely resembles that of Sidero Metal.
+
+For detailed setup instructions, refer to the [documentation](https://omni.siderolabs.com/tutorials/setting-up-the-bare-metal-infrastructure-provider)..
 """
 
-  [notes.service-accounts]
-    title = "Service Account Management UI"
+  [notes.machine-categories]
+    title = "Machine Categories"
     description = """\
-It is now possible to view, create, delete and edit service account in the Omni web UI.
-"""
+The Machines page now categorizes machines based on how they were added to the account:
 
-  [notes.turing-rk]
-    title = "New SBC Support"
-    description = """\
-Turing RK1 SBC installation media can now be downloaded from Omni.
+- Manual: Machines manually added by installing Talos with siderolink parameters.
+- Provisioned: Machines created by infrastructure providers (e.g., KubeVirt).
+- PXE-Booted: Machines discovered and accepted from the bare-metal infrastructure provider.
+- Pending: Machines discovered but not yet accepted from the bare-metal infrastructure provider.
 """
