@@ -115,7 +115,7 @@ func (suite *SiderolinkSuite) SetupTest() {
 
 	var err error
 
-	eventHandler := machineevent.NewHandler(suite.state, zaptest.NewLogger(suite.T()), make(chan *omni.MachineStatusSnapshot))
+	eventHandler := machineevent.NewHandler(suite.state, zaptest.NewLogger(suite.T()), make(chan *omni.MachineStatusSnapshot), nil)
 
 	suite.manager, err = sideromanager.NewManager(suite.ctx, suite.state, &fakeWireguardHandler{}, params, zaptest.NewLogger(suite.T()), nil, eventHandler, nil)
 	suite.Require().NoError(err)

@@ -27,6 +27,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
@@ -555,7 +556,7 @@ func DestroyCluster(testCtx context.Context, st state.State, clusterName string)
 }
 
 // AssertDestroyCluster destroys a cluster and verifies that all dependent resources are gone.
-func AssertDestroyCluster(testCtx context.Context, st state.State, clusterName string, expectMachinesRemoved bool) TestFunc {
+func AssertDestroyCluster(testCtx context.Context, st state.State, clusterName string, expectMachinesRemoved, assertInfraMachinesState bool) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, 300*time.Second)
 		defer cancel()
@@ -604,6 +605,24 @@ func AssertDestroyCluster(testCtx context.Context, st state.State, clusterName s
 				"machine %q: available %v, bound %v, cluster %q", machine.Metadata().ID(), isAvailable, machineBound, machineCluster,
 			)
 		})
+
+		if assertInfraMachinesState {
+			rtestutils.AssertResources(ctx, t, st, clusterMachineIDs, func(res *infra.Machine, assertion *assert.Assertions) {
+				assertion.Empty(res.TypedSpec().Value.ClusterTalosVersion) // unallocated
+				assertion.Empty(res.TypedSpec().Value.Extensions)
+
+				if assertion.NotEmpty(res.TypedSpec().Value.WipeId) { // the machine should be marked for wipe
+					t.Logf("machine %q is marked for wipe: %s", res.Metadata().ID(), res.TypedSpec().Value.WipeId)
+				}
+			})
+
+			// the provider will wipe the machine and sets the Installed field to false
+			// after the machine is wiped, ReadyToUse field will be set to true
+			rtestutils.AssertResources(ctx, t, st, clusterMachineIDs, func(res *infra.MachineStatus, assertion *assert.Assertions) {
+				assertion.False(res.TypedSpec().Value.Installed)
+				assertion.True(res.TypedSpec().Value.ReadyToUse)
+			})
+		}
 	}
 }
 

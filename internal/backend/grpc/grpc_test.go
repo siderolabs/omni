@@ -94,7 +94,7 @@ func (suite *GrpcSuite) SetupTest() {
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zap.InfoLevel)
 
 	suite.runtime, err = omniruntime.New(clientFactory, dnsService, workloadProxyReconciler, nil,
-		imageFactoryClient, nil, nil, suite.state, nil, prometheus.NewRegistry(), discoveryServiceClientMock, nil, logger)
+		imageFactoryClient, nil, nil, nil, suite.state, nil, prometheus.NewRegistry(), discoveryServiceClientMock, nil, logger)
 	suite.Require().NoError(err)
 	runtime.Install(omniruntime.Name, suite.runtime)
 

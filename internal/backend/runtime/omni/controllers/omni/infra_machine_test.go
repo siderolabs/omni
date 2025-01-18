@@ -8,6 +8,7 @@ package omni_test
 import (
 	"testing"
 
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -27,7 +28,10 @@ type InfraMachineControllerSuite struct {
 func (suite *InfraMachineControllerSuite) TestReconcile() {
 	suite.startRuntime()
 
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewInfraMachineController()))
+	installEventCh := make(chan resource.ID, 1)
+	controller := omnictrl.NewInfraMachineController(installEventCh)
+
+	suite.Require().NoError(suite.runtime.RegisterQController(controller))
 
 	providerStatus := infra.NewProviderStatus("bare-metal")
 
@@ -52,6 +56,7 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 		assertion.Empty(r.TypedSpec().Value.ClusterTalosVersion)
 		assertion.Empty(r.TypedSpec().Value.Extensions)
 		assertion.Empty(r.TypedSpec().Value.WipeId)
+		assertion.Zero(r.TypedSpec().Value.InstallEventId)
 	})
 
 	machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, "machine-1")
@@ -60,7 +65,7 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 	suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
 
 	assertResource[*omni.MachineStatus](&suite.OmniSuite, machineStatus.Metadata(), func(r *omni.MachineStatus, assertion *assert.Assertions) {
-		assertion.True(r.Metadata().Finalizers().Has(omnictrl.InfraMachineControllerName))
+		assertion.True(r.Metadata().Finalizers().Has(controller.Name()))
 	})
 
 	assertResource[*infra.Machine](&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
@@ -76,7 +81,7 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 	suite.Require().NoError(suite.state.Create(suite.ctx, config))
 
 	assertResource[*omni.InfraMachineConfig](&suite.OmniSuite, config.Metadata(), func(r *omni.InfraMachineConfig, assertion *assert.Assertions) {
-		assertion.True(r.Metadata().Finalizers().Has(omnictrl.InfraMachineControllerName))
+		assertion.True(r.Metadata().Finalizers().Has(controller.Name()))
 	})
 
 	assertResource[*infra.Machine](&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
@@ -92,7 +97,7 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 
 	// assert that the finalizer is added
 	assertResource[*omni.ClusterMachine](&suite.OmniSuite, clusterMachine.Metadata(), func(r *omni.ClusterMachine, assertion *assert.Assertions) {
-		assertion.True(r.Metadata().Finalizers().Has(omnictrl.InfraMachineControllerName))
+		assertion.True(r.Metadata().Finalizers().Has(controller.Name()))
 	})
 
 	// create schematic configuration
@@ -115,7 +120,7 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 	suite.Require().NoError(suite.state.Create(suite.ctx, extensions))
 
 	assertResource[*omni.MachineExtensions](&suite.OmniSuite, extensions.Metadata(), func(r *omni.MachineExtensions, assertion *assert.Assertions) {
-		assertion.True(r.Metadata().Finalizers().Has(omnictrl.InfraMachineControllerName))
+		assertion.True(r.Metadata().Finalizers().Has(controller.Name()))
 	})
 
 	// assert that the cluster machine has the correct extensions
@@ -128,21 +133,37 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 
 	// assert that the finalizer is removed, cluster related fields are cleared, and a new wipe ID is generated
 	assertResource[*infra.Machine](&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
-		assertion.False(r.Metadata().Finalizers().Has(omnictrl.InfraMachineControllerName))
+		assertion.False(r.Metadata().Finalizers().Has(controller.Name()))
 
 		assertion.Empty(r.TypedSpec().Value.ClusterTalosVersion)
 		assertion.Empty(r.TypedSpec().Value.Extensions)
 		assertion.NotEmpty(r.TypedSpec().Value.WipeId)
 	})
 
-	// test finalizer removal
+	installEventCh <- infraMachineMD.ID()
+
+	// assert that install id is incremented
+
+	assertResource[*infra.Machine](&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
+		assertion.Equal(uint64(1), r.TypedSpec().Value.InstallEventId)
+	})
+
+	installEventCh <- infraMachineMD.ID()
+
+	// assert that install id is incremented again
+
+	assertResource[*infra.Machine](&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
+		assertion.Equal(uint64(2), r.TypedSpec().Value.InstallEventId)
+	})
+
+	// test finalizers
 
 	// reallocate the machine to a cluster
 	suite.Require().NoError(suite.state.Create(suite.ctx, clusterMachine))
 
 	// assert that the finalizer is added
 	assertResource[*omni.ClusterMachine](&suite.OmniSuite, clusterMachine.Metadata(), func(r *omni.ClusterMachine, assertion *assert.Assertions) {
-		assertion.True(r.Metadata().Finalizers().Has(omnictrl.InfraMachineControllerName))
+		assertion.True(r.Metadata().Finalizers().Has(controller.Name()))
 	})
 
 	// destroy the link
@@ -150,19 +171,19 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 
 	// assert that the finalizers are removed
 	assertResource[*omni.ClusterMachine](&suite.OmniSuite, infraMachineMD, func(r *omni.ClusterMachine, assertion *assert.Assertions) {
-		assertion.False(r.Metadata().Finalizers().Has(omnictrl.InfraMachineControllerName))
+		assertion.False(r.Metadata().Finalizers().Has(controller.Name()))
 	})
 
 	assertResource[*omni.InfraMachineConfig](&suite.OmniSuite, infraMachineMD, func(r *omni.InfraMachineConfig, assertion *assert.Assertions) {
-		assertion.False(r.Metadata().Finalizers().Has(omnictrl.InfraMachineControllerName))
+		assertion.False(r.Metadata().Finalizers().Has(controller.Name()))
 	})
 
 	assertResource[*omni.MachineExtensions](&suite.OmniSuite, infraMachineMD, func(r *omni.MachineExtensions, assertion *assert.Assertions) {
-		assertion.False(r.Metadata().Finalizers().Has(omnictrl.InfraMachineControllerName))
+		assertion.False(r.Metadata().Finalizers().Has(controller.Name()))
 	})
 
 	assertResource[*omni.MachineStatus](&suite.OmniSuite, infraMachineMD, func(r *omni.MachineStatus, assertion *assert.Assertions) {
-		assertion.False(r.Metadata().Finalizers().Has(omnictrl.InfraMachineControllerName))
+		assertion.False(r.Metadata().Finalizers().Has(controller.Name()))
 	})
 
 	// assert that infra.Machine is removed

@@ -58,8 +58,12 @@ func (MachineStatusExtension) ResourceDefinition() meta.ResourceDefinitionSpec {
 				JSONPath: "{.lastrebootid}",
 			},
 			{
-				Name:     "Last Reboot Timestamp",
+				Name:     "Last Reboot At",
 				JSONPath: "{.lastreboottimestamp}",
+			},
+			{
+				Name:     "Installed",
+				JSONPath: "{.installed}",
 			},
 		},
 	}

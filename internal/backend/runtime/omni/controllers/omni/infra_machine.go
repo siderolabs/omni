@@ -11,12 +11,11 @@ import (
 	"slices"
 
 	"github.com/cosi-project/runtime/pkg/controller"
-	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
+	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/google/uuid"
-	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/gen/xiter"
 	"go.uber.org/zap"
 
@@ -34,77 +33,165 @@ const InfraMachineControllerName = "InfraMachineController"
 // InfraMachineController manages InfraMachine resource lifecycle.
 //
 // InfraMachineController transforms an Omni Machine managed by a static infra provider to an infra.Machine, applying the user overrides in omni.InfraMachineConfig resource if present.
-type InfraMachineController = qtransform.QController[*siderolink.Link, *infra.Machine]
-
-// NewInfraMachineController initializes InfraMachineController.
-func NewInfraMachineController() *InfraMachineController {
-	helper := &infraMachineControllerHelper{}
-
-	return qtransform.NewQController(
-		qtransform.Settings[*siderolink.Link, *infra.Machine]{
-			Name: InfraMachineControllerName,
-			MapMetadataFunc: func(link *siderolink.Link) *infra.Machine {
-				return infra.NewMachine(link.Metadata().ID())
-			},
-			UnmapMetadataFunc: func(infraMachine *infra.Machine) *siderolink.Link {
-				return siderolink.NewLink(resources.DefaultNamespace, infraMachine.Metadata().ID(), nil)
-			},
-			TransformExtraOutputFunc:        helper.transformExtraOutput,
-			FinalizerRemovalExtraOutputFunc: helper.finalizerRemovalExtraOutput,
-		},
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.InfraMachineConfig, *siderolink.Link](),
-		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.SchematicConfiguration, *siderolink.Link](),
-		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.MachineExtensions, *siderolink.Link](),
-		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.ClusterMachine, *siderolink.Link](),
-		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.MachineStatus, *siderolink.Link](),
-		),
-		qtransform.WithExtraMappedInput(
-			func(ctx context.Context, _ *zap.Logger, runtime controller.QRuntime, res *infra.ProviderStatus) ([]resource.Pointer, error) {
-				linkList, err := safe.ReaderListAll[*siderolink.Link](ctx, runtime, state.WithLabelQuery(resource.LabelEqual(omni.LabelInfraProviderID, res.Metadata().ID())))
-				if err != nil {
-					return nil, err
-				}
-
-				ptrSeq := xiter.Map(func(in *siderolink.Link) resource.Pointer {
-					return in.Metadata()
-				}, linkList.All())
-
-				return slices.Collect(ptrSeq), nil
-			},
-		),
-	)
+type InfraMachineController struct {
+	installEventCh <-chan resource.ID
+	generic.NamedController
 }
 
-type infraMachineControllerHelper struct{}
+// NewInfraMachineController creates a new InfraMachineController.
+func NewInfraMachineController(installEventCh <-chan resource.ID) *InfraMachineController {
+	return &InfraMachineController{
+		installEventCh: installEventCh,
+		NamedController: generic.NamedController{
+			ControllerName: InfraMachineControllerName,
+		},
+	}
+}
 
-func (h *infraMachineControllerHelper) transformExtraOutput(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, link *siderolink.Link, infraMachine *infra.Machine) error {
-	config, err := helpers.HandleInput[*omni.InfraMachineConfig](ctx, r, InfraMachineControllerName, link)
+// Settings implements the controller.QController interface.
+func (ctrl *InfraMachineController) Settings() controller.QSettings {
+	return controller.QSettings{
+		Inputs: []controller.Input{
+			{
+				Namespace: resources.DefaultNamespace,
+				Type:      siderolink.LinkType,
+				Kind:      controller.InputQPrimary,
+			},
+			{
+				Namespace: resources.InfraProviderNamespace,
+				Type:      infra.InfraMachineType,
+				Kind:      controller.InputQMappedDestroyReady,
+			},
+			{
+				Namespace: resources.DefaultNamespace,
+				Type:      omni.InfraMachineConfigType,
+				Kind:      controller.InputQMapped,
+			},
+			{
+				Namespace: resources.DefaultNamespace,
+				Type:      omni.SchematicConfigurationType,
+				Kind:      controller.InputQMapped,
+			},
+			{
+				Namespace: resources.DefaultNamespace,
+				Type:      omni.MachineExtensionsType,
+				Kind:      controller.InputQMapped,
+			},
+			{
+				Namespace: resources.DefaultNamespace,
+				Type:      omni.ClusterMachineType,
+				Kind:      controller.InputQMapped,
+			},
+			{
+				Namespace: resources.DefaultNamespace,
+				Type:      omni.MachineStatusType,
+				Kind:      controller.InputQMapped,
+			},
+			{
+				Namespace: resources.InfraProviderNamespace,
+				Type:      infra.InfraProviderStatusType,
+				Kind:      controller.InputQMapped,
+			},
+		},
+		Outputs: []controller.Output{
+			{
+				Kind: controller.OutputExclusive,
+				Type: infra.InfraMachineType,
+			},
+		},
+		RunHook: func(ctx context.Context, _ *zap.Logger, r controller.QRuntime) error {
+			for {
+				select {
+				case <-ctx.Done():
+					return nil
+				case machineID := <-ctrl.installEventCh:
+					if err := ctrl.handleInstallEvent(ctx, r, machineID); err != nil {
+						return err
+					}
+				}
+			}
+		},
+	}
+}
+
+// Reconcile implements the controller.QController interface.
+func (ctrl *InfraMachineController) Reconcile(ctx context.Context, _ *zap.Logger, r controller.QRuntime, ptr resource.Pointer) error {
+	link, err := safe.ReaderGet[*siderolink.Link](ctx, r, ptr)
+	if err != nil {
+		if !state.IsNotFoundError(err) {
+			return err
+		}
+
+		// link is not found, so we prepare a fake link resource to trigger teardown logic
+		link = siderolink.NewLink(ptr.Namespace(), ptr.ID(), nil)
+		link.Metadata().SetPhase(resource.PhaseTearingDown)
+	}
+
+	if link.Metadata().Phase() == resource.PhaseTearingDown {
+		return ctrl.reconcileTearingDown(ctx, r, link)
+	}
+
+	return ctrl.reconcileRunning(ctx, r, link)
+}
+
+func (ctrl *InfraMachineController) reconcileTearingDown(ctx context.Context, r controller.QRuntime, link *siderolink.Link) error {
+	if _, err := helpers.HandleInput[*omni.InfraMachineConfig](ctx, r, ctrl.Name(), link); err != nil {
+		return err
+	}
+
+	if _, err := helpers.HandleInput[*omni.MachineExtensions](ctx, r, ctrl.Name(), link); err != nil {
+		return err
+	}
+
+	if _, err := helpers.HandleInput[*omni.ClusterMachine](ctx, r, ctrl.Name(), link); err != nil {
+		return err
+	}
+
+	if _, err := helpers.HandleInput[*omni.MachineStatus](ctx, r, ctrl.Name(), link); err != nil {
+		return err
+	}
+
+	md := infra.NewMachine(link.Metadata().ID()).Metadata()
+
+	ready, err := r.Teardown(ctx, md)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return r.RemoveFinalizer(ctx, link.Metadata(), ctrl.Name())
+		}
+
+		return err
+	}
+
+	if !ready {
+		return nil
+	}
+
+	if err = r.Destroy(ctx, md); err != nil {
+		return err
+	}
+
+	return r.RemoveFinalizer(ctx, link.Metadata(), ctrl.Name())
+}
+
+func (ctrl *InfraMachineController) reconcileRunning(ctx context.Context, r controller.QRuntime, link *siderolink.Link) error {
+	config, err := helpers.HandleInput[*omni.InfraMachineConfig](ctx, r, ctrl.Name(), link)
 	if err != nil {
 		return err
 	}
 
-	machineExts, err := helpers.HandleInput[*omni.MachineExtensions](ctx, r, InfraMachineControllerName, link)
+	machineExts, err := helpers.HandleInput[*omni.MachineExtensions](ctx, r, ctrl.Name(), link)
 	if err != nil {
 		return err
 	}
 
-	machineStatus, err := helpers.HandleInput[*omni.MachineStatus](ctx, r, InfraMachineControllerName, link)
+	machineStatus, err := helpers.HandleInput[*omni.MachineStatus](ctx, r, ctrl.Name(), link)
 	if err != nil {
 		return err
 	}
 
 	providerID, ok := link.Metadata().Annotations().Get(omni.LabelInfraProviderID)
 	if !ok {
-		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the link is not created by an infra provider")
+		return nil // the link is not created by an infra provider
 	}
 
 	providerStatus, err := safe.ReaderGetByID[*infra.ProviderStatus](ctx, r, providerID)
@@ -113,18 +200,44 @@ func (h *infraMachineControllerHelper) transformExtraOutput(ctx context.Context,
 	}
 
 	if _, isStaticProvider := providerStatus.Metadata().Labels().Get(omni.LabelIsStaticInfraProvider); !isStaticProvider {
-		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the link is not created by a static infra provider")
+		return nil // the link is not created by a static infra provider
 	}
 
 	machineInfoCollected := machineStatus != nil && machineStatus.TypedSpec().Value.SecureBootStatus != nil
 
-	if err = h.applyInfraMachineConfig(infraMachine, config, machineInfoCollected); err != nil {
+	helper := &infraMachineControllerHelper{
+		config:               config,
+		machineExts:          machineExts,
+		link:                 link,
+		runtime:              r,
+		machineInfoCollected: machineInfoCollected,
+		providerID:           providerID,
+		controllerName:       ctrl.Name(),
+	}
+
+	return safe.WriterModify[*infra.Machine](ctx, r, infra.NewMachine(link.Metadata().ID()), func(res *infra.Machine) error {
+		return helper.modify(ctx, res)
+	})
+}
+
+type infraMachineControllerHelper struct {
+	runtime              controller.QRuntime
+	config               *omni.InfraMachineConfig
+	machineExts          *omni.MachineExtensions
+	link                 *siderolink.Link
+	providerID           string
+	controllerName       string
+	machineInfoCollected bool
+}
+
+func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMachine *infra.Machine) error {
+	if err := helper.applyInfraMachineConfig(infraMachine, helper.config, helper.machineInfoCollected); err != nil {
 		return err
 	}
 
-	infraMachine.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
+	infraMachine.Metadata().Labels().Set(omni.LabelInfraProviderID, helper.providerID)
 
-	clusterMachine, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, link.Metadata().ID())
+	clusterMachine, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, helper.runtime, helper.link.Metadata().ID())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil
@@ -135,7 +248,7 @@ func (h *infraMachineControllerHelper) transformExtraOutput(ctx context.Context,
 
 	if clusterMachine.Metadata().Phase() == resource.PhaseTearingDown {
 		if clusterMachine.Metadata().Finalizers().Has(ClusterMachineConfigControllerName) {
-			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("cluster machine is not reset yet")
+			return nil // cluster machine is not reset yet
 		}
 
 		// the machine is deallocated, clear the cluster information and mark it for wipe by assigning it a new wipe ID
@@ -147,48 +260,86 @@ func (h *infraMachineControllerHelper) transformExtraOutput(ctx context.Context,
 		infraMachine.TypedSpec().Value.ClusterTalosVersion = ""
 		infraMachine.TypedSpec().Value.Extensions = nil
 
-		_, err = helpers.HandleInput[*omni.ClusterMachine](ctx, r, InfraMachineControllerName, link)
+		_, err = helpers.HandleInput[*omni.ClusterMachine](ctx, helper.runtime, helper.controllerName, helper.link)
 
 		return err
 	}
 
-	if err = r.AddFinalizer(ctx, clusterMachine.Metadata(), InfraMachineControllerName); err != nil {
+	if err = helper.runtime.AddFinalizer(ctx, clusterMachine.Metadata(), helper.controllerName); err != nil {
 		return err
 	}
 
-	talosVersion, extensions, err := h.getClusterInfo(ctx, r, link.Metadata().ID(), machineExts)
+	schematicConfig, err := safe.ReaderGetByID[*omni.SchematicConfiguration](ctx, helper.runtime, helper.link.Metadata().ID())
 	if err != nil {
+		if state.IsNotFoundError(err) {
+			// the schema configuration is not created yet, skip the cluster information collection
+			return nil
+		}
+
 		return err
+	}
+
+	var extensions []string
+
+	if helper.machineExts != nil {
+		extensions = helper.machineExts.TypedSpec().Value.Extensions
 	}
 
 	// set the cluster allocation information
 
-	infraMachine.TypedSpec().Value.ClusterTalosVersion = talosVersion
+	infraMachine.TypedSpec().Value.ClusterTalosVersion = schematicConfig.TypedSpec().Value.TalosVersion
 	infraMachine.TypedSpec().Value.Extensions = extensions
 
 	return nil
 }
 
-func (h *infraMachineControllerHelper) finalizerRemovalExtraOutput(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, link *siderolink.Link) error {
-	if _, err := helpers.HandleInput[*omni.InfraMachineConfig](ctx, r, InfraMachineControllerName, link); err != nil {
-		return err
+// MapInput implements the controller.QController interface.
+func (ctrl *InfraMachineController) MapInput(ctx context.Context, _ *zap.Logger, runtime controller.QRuntime, ptr resource.Pointer) ([]resource.Pointer, error) {
+	switch ptr.Type() {
+	case siderolink.LinkType,
+		infra.InfraMachineType,
+		omni.InfraMachineConfigType,
+		omni.SchematicConfigurationType,
+		omni.MachineExtensionsType,
+		omni.ClusterMachineType,
+		omni.MachineStatusType:
+		return []resource.Pointer{siderolink.NewLink(resources.DefaultNamespace, ptr.ID(), nil).Metadata()}, nil
+	case infra.InfraProviderStatusType:
+		linkList, err := safe.ReaderListAll[*siderolink.Link](ctx, runtime, state.WithLabelQuery(resource.LabelEqual(omni.LabelInfraProviderID, ptr.ID())))
+		if err != nil {
+			return nil, err
+		}
+
+		ptrSeq := xiter.Map(func(in *siderolink.Link) resource.Pointer {
+			return in.Metadata()
+		}, linkList.All())
+
+		return slices.Collect(ptrSeq), nil
 	}
 
-	if _, err := helpers.HandleInput[*omni.MachineExtensions](ctx, r, InfraMachineControllerName, link); err != nil {
-		return err
+	return nil, fmt.Errorf("unexpected resource type %q", ptr.Type())
+}
+
+func (ctrl *InfraMachineController) handleInstallEvent(ctx context.Context, r controller.QRuntime, machineID resource.ID) error {
+	if _, err := safe.ReaderGetByID[*infra.Machine](ctx, r, machineID); err != nil {
+		if state.IsNotFoundError(err) {
+			return nil // if there is no infra machine, there is nothing to do
+		}
 	}
 
-	if _, err := helpers.HandleInput[*omni.ClusterMachine](ctx, r, InfraMachineControllerName, link); err != nil {
-		return err
-	}
+	return safe.WriterModify(ctx, r, infra.NewMachine(machineID), func(machine *infra.Machine) error {
+		if machine.Metadata().Phase() == resource.PhaseTearingDown {
+			return nil
+		}
 
-	_, err := helpers.HandleInput[*omni.MachineStatus](ctx, r, InfraMachineControllerName, link)
+		machine.TypedSpec().Value.InstallEventId++
 
-	return err
+		return nil
+	})
 }
 
 // applyInfraMachineConfig applies the user-managed configuration from the omni.InfraMachineConfig resource into the infra.Machine.
-func (h *infraMachineControllerHelper) applyInfraMachineConfig(infraMachine *infra.Machine, config *omni.InfraMachineConfig, machineInfoCollected bool) error {
+func (helper *infraMachineControllerHelper) applyInfraMachineConfig(infraMachine *infra.Machine, config *omni.InfraMachineConfig, machineInfoCollected bool) error {
 	const defaultPreferredPowerState = specs.InfraMachineSpec_POWER_STATE_OFF // todo: introduce a resource to configure this globally or per-provider level
 
 	// reset the user-override fields except the "Accepted" field
@@ -229,26 +380,4 @@ func (h *infraMachineControllerHelper) applyInfraMachineConfig(infraMachine *inf
 	}
 
 	return nil
-}
-
-// getClusterInfo returns the Talos version and extensions for the given machine.
-//
-// At this point, the machine is known to be associated with a cluster.
-func (h *infraMachineControllerHelper) getClusterInfo(ctx context.Context, r controller.Reader, id resource.ID, machineExtensions *omni.MachineExtensions) (string, []string, error) {
-	schematicConfig, err := safe.ReaderGetByID[*omni.SchematicConfiguration](ctx, r, id)
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return "", nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("schema configuration is not created yet")
-		}
-
-		return "", nil, err
-	}
-
-	var extensions []string
-
-	if machineExtensions != nil {
-		extensions = machineExtensions.TypedSpec().Value.Extensions
-	}
-
-	return schematicConfig.TypedSpec().Value.TalosVersion, extensions, nil
 }

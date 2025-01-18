@@ -21,25 +21,25 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 )
 
 // Handler is a machine event handler.
 type Handler struct {
-	logger   *zap.Logger
-	state    state.State
-	notifyCh chan<- *omni.MachineStatusSnapshot
+	logger         *zap.Logger
+	state          state.State
+	notifyCh       chan<- *omni.MachineStatusSnapshot
+	installEventCh chan<- resource.ID
 }
 
 // NewHandler creates a new machine event handler.
-func NewHandler(state state.State, logger *zap.Logger, notifyCh chan<- *omni.MachineStatusSnapshot) *Handler {
+func NewHandler(state state.State, logger *zap.Logger, notifyCh chan<- *omni.MachineStatusSnapshot, installEventCh chan<- resource.ID) *Handler {
 	return &Handler{
-		state:    state,
-		logger:   logger,
-		notifyCh: notifyCh,
+		state:          state,
+		logger:         logger,
+		notifyCh:       notifyCh,
+		installEventCh: installEventCh,
 	}
 }
 
@@ -115,66 +115,17 @@ func (handler *Handler) handleSequenceEvent(ctx context.Context, event *machinea
 		setInstalled = true
 	}
 
-	// check if there is an infra machine for the machine
-	infraMachine, err := safe.StateGetByID[*infra.Machine](ctx, handler.state, machineID)
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			logger.Debug("no matching infra.Machine found for machine, remove machine state if it exists", zap.String("machine", machineID))
-
-			return handler.removeMachineState(ctx, machineID)
-		}
-
-		return err
-	}
-
 	if !setInstalled {
 		return nil
 	}
 
-	modify := func(res *infra.MachineState) error {
-		helpers.CopyAllLabels(infraMachine, res)
-		helpers.CopyAllAnnotations(infraMachine, res)
-
-		res.TypedSpec().Value.Installed = true
-
-		return nil
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case handler.installEventCh <- machineID:
 	}
 
-	machineState := infra.NewMachineState(machineID)
-
-	if err = modify(machineState); err != nil {
-		return err
-	}
-
-	err = handler.state.Create(ctx, machineState)
-	if err != nil {
-		if !state.IsConflictError(err) {
-			return err
-		}
-
-		if _, err = safe.StateUpdateWithConflicts(ctx, handler.state, machineState.Metadata(), modify); err != nil {
-			return err
-		}
-	}
-
-	logger.Info("marked infra machine as installed")
-
-	return nil
-}
-
-func (handler *Handler) removeMachineState(ctx context.Context, machineID resource.ID) error {
-	md := infra.NewMachineState(machineID).Metadata()
-
-	destroyReady, err := handler.state.Teardown(ctx, md)
-	if err != nil && !state.IsNotFoundError(err) {
-		return err
-	}
-
-	if destroyReady {
-		if err = handler.state.Destroy(ctx, md); err != nil && !state.IsNotFoundError(err) {
-			return err
-		}
-	}
+	logger.Info("sent machine installed event", zap.String("id", machineID))
 
 	return nil
 }

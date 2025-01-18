@@ -423,8 +423,8 @@ func (st *State) checkNamespaceAndType(ns resource.Namespace, infraProviderID st
 		return false, nil
 	}
 
-	return false, status.Errorf(codes.PermissionDenied, "namespace not allowed, must be one of %s or %s",
-		resources.InfraProviderNamespace, infraProviderSpecificNamespace)
+	return false, status.Errorf(codes.PermissionDenied, "namespace not allowed, must be one of: %s, %s, %s",
+		resources.InfraProviderNamespace, resources.InfraProviderEphemeralNamespace, infraProviderSpecificNamespace)
 }
 
 // resourceConfig defines the resource-specific configuration to be validated by the state.
@@ -444,7 +444,7 @@ func IsInfraProviderResource(ns resource.Namespace, resType resource.Type) bool 
 // getResourceConfig returns the configuration for the given resource type.
 func getResourceConfig(ns resource.Namespace, resType resource.Type) (config resourceConfig, isInfraProviderResource bool) {
 	if strings.HasPrefix(ns, resources.InfraProviderSpecificNamespacePrefix) {
-		return config, true
+		return resourceConfig{}, true
 	}
 
 	switch resType {
@@ -458,8 +458,6 @@ func getResourceConfig(ns resource.Namespace, resType resource.Type) (config res
 		return resourceConfig{
 			readOnlyForProviders: true,
 		}, true
-	case infra.InfraMachineStateType:
-		return resourceConfig{}, true
 	case infra.InfraMachineStatusType:
 		return resourceConfig{}, true
 	case infra.InfraProviderStatusType:

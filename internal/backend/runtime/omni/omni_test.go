@@ -84,7 +84,7 @@ func (suite *OmniRuntimeSuite) SetupTest() {
 	discoveryServiceClient := &discoveryClientMock{}
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zapcore.InfoLevel)
 
-	suite.runtime, err = omniruntime.New(clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil,
+	suite.runtime, err = omniruntime.New(clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil, nil,
 		resourceState, nil, prometheus.NewRegistry(), discoveryServiceClient, nil, logger)
 
 	suite.Require().NoError(err)

@@ -245,7 +245,7 @@ Verify various omnictl commands.`,
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-k8s-node-audit", false),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-k8s-node-audit", false, false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-k8s-node-audit"),
@@ -305,7 +305,7 @@ In the tests, we wipe and reboot the VMs to bring them back as available for the
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-forced-removal", false),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-forced-removal", false, false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-forced-removal"),
@@ -332,7 +332,7 @@ Regression test: create a cluster and destroy it without waiting for the cluster
 				},
 				subTest{
 					"ClusterShouldBeDestroyedImmediately",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-immediate", false),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-immediate", false, false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-immediate"),
@@ -500,7 +500,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling", false),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling", false, false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling"),
@@ -620,7 +620,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-machine-class-based-machine-sets", false),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-machine-class-based-machine-sets", false, false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-machine-class-based-machine-sets"),
@@ -747,7 +747,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-auto-provision", true),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-auto-provision", true, false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-auto-provision"),
@@ -796,7 +796,7 @@ Tests rolling update & scale down strategies for concurrency control for worker 
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-rolling-update-parallelism", false),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-rolling-update-parallelism", false, false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-rolling-update-parallelism"),
@@ -854,7 +854,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-replace-cp", false),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-replace-cp", false, false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-replace-cp"),
@@ -946,7 +946,7 @@ Tests applying various config patching, including "broken" config patches which 
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-config-patching", false),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-config-patching", false, false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-config-patching"),
@@ -1050,7 +1050,7 @@ Tests upgrading Talos version, including reverting a failed upgrade.`,
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-talos-upgrade", false),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-talos-upgrade", false, false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-talos-upgrade"),
@@ -1119,7 +1119,7 @@ Tests upgrading Kubernetes version, including reverting a failed upgrade.`,
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-k8s-upgrade", false),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-k8s-upgrade", false, false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-k8s-upgrade"),
@@ -1193,7 +1193,7 @@ Finally, a completely new cluster is created using the same backup to test the "
 				},
 				subTest{
 					"NewClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-etcd-backup-new-cluster", false),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-etcd-backup-new-cluster", false, false),
 				},
 			).Append(
 				TestBlockRestoreEtcdFromLatestBackup(ctx, rootClient, talosAPIKeyPrepare, options, 3,
@@ -1204,7 +1204,7 @@ Finally, a completely new cluster is created using the same backup to test the "
 			).Append(
 				subTest{
 					"RestoredClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-etcd-backup", false),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-etcd-backup", false, false),
 				},
 			),
 			Finalizer: func(t *testing.T) {
@@ -1314,7 +1314,7 @@ Test authorization on accessing Omni API, some tests run without a cluster, some
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-auth", false),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-auth", false, false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-auth"),
@@ -1373,7 +1373,7 @@ Test flow of cluster creation and scaling using cluster templates.`,
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-workload-proxy", false),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-workload-proxy", false, false),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-workload-proxy"),
@@ -1467,12 +1467,7 @@ Note: this test expects all machines to be provisioned by the bare-metal infra p
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-static-infra-provider", false),
-				},
-			).Append(
-				subTest{
-					"MachinesShouldBeUnallocated",
-					AssertAllInfraMachinesAreUnallocated(ctx, rootClient.Omni().State()),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-static-infra-provider", false, true),
 				},
 			).Append(
 				subTest{
@@ -1499,7 +1494,7 @@ Note: this test expects all machines to be provisioned by the bare-metal infra p
 			).Append(
 				subTest{
 					"ClusterShouldBeDestroyed",
-					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-static-infra-provider", false),
+					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-static-infra-provider", false, true),
 				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-static-infra-provider"),

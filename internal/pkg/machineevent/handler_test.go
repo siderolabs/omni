@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
@@ -30,7 +30,8 @@ import (
 func TestSequenceEvent(t *testing.T) {
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 	logger := zaptest.NewLogger(t)
-	handler := machineevent.NewHandler(st, logger, nil)
+	installEventCh := make(chan resource.ID, 1)
+	handler := machineevent.NewHandler(st, logger, nil, installEventCh)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	t.Cleanup(cancel)
@@ -52,7 +53,7 @@ func TestSequenceEvent(t *testing.T) {
 
 	require.NoError(t, handler.HandleEvent(ctx, event))
 
-	assertInfraMachineState(ctx, t, st, false, false)
+	assert.Len(t, installEventCh, 0)
 
 	// assert installed condition 1
 
@@ -67,9 +68,14 @@ func TestSequenceEvent(t *testing.T) {
 
 	require.NoError(t, handler.HandleEvent(ctx, event))
 
-	assertInfraMachineState(ctx, t, st, true, true)
+	assert.Len(t, installEventCh, 1)
 
-	require.NoError(t, st.Destroy(ctx, infra.NewMachineState("test-machine").Metadata()))
+	select {
+	case <-ctx.Done():
+		require.Fail(t, "timeout")
+	case installEvent := <-installEventCh:
+		assert.Equal(t, testMachine.Metadata().ID(), installEvent)
+	}
 
 	// assert installed condition 2
 
@@ -80,34 +86,11 @@ func TestSequenceEvent(t *testing.T) {
 
 	require.NoError(t, handler.HandleEvent(ctx, event))
 
-	assertInfraMachineState(ctx, t, st, true, true)
+	assert.Len(t, installEventCh, 1)
 
-	// remove the infra machine, assert that state is removed
-
-	require.NoError(t, st.Destroy(ctx, infraMachine.Metadata()))
-
-	event.Payload = &machine.SequenceEvent{
-		Sequence: "something",
+	select {
+	case <-ctx.Done():
+		require.Fail(t, "timeout")
+	case <-installEventCh:
 	}
-
-	require.NoError(t, handler.HandleEvent(ctx, event))
-
-	assertInfraMachineState(ctx, t, st, false, false)
-}
-
-func assertInfraMachineState(ctx context.Context, t *testing.T, st state.State, exists, installed bool) {
-	machineState, err := safe.StateGetByID[*infra.MachineState](ctx, st, "test-machine")
-	if err != nil {
-		if !state.IsNotFoundError(err) {
-			require.NoError(t, err)
-		}
-
-		if exists {
-			require.Fail(t, "machine state not found")
-		}
-
-		return
-	}
-
-	assert.Equal(t, installed, machineState.TypedSpec().Value.Installed)
 }

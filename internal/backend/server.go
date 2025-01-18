@@ -114,6 +114,7 @@ type Server struct {
 
 	linkCounterDeltaCh chan<- siderolink.LinkCounterDeltas
 	siderolinkEventsCh chan<- *omnires.MachineStatusSnapshot
+	installEventCh     chan<- resource.ID
 
 	proxyServer         Proxy
 	bindAddress         string
@@ -132,6 +133,7 @@ func NewServer(
 	imageFactoryClient *imagefactory.Client,
 	linkCounterDeltaCh chan<- siderolink.LinkCounterDeltas,
 	siderolinkEventsCh chan<- *omnires.MachineStatusSnapshot,
+	installEventCh chan<- resource.ID,
 	omniRuntime *omni.Runtime,
 	talosRuntime *talos.Runtime,
 	logHandler *siderolink.LogHandler,
@@ -152,6 +154,7 @@ func NewServer(
 		auditor:                 auditor,
 		linkCounterDeltaCh:      linkCounterDeltaCh,
 		siderolinkEventsCh:      siderolinkEventsCh,
+		installEventCh:          installEventCh,
 		proxyServer:             proxyServer,
 		bindAddress:             bindAddress,
 		metricsBindAddress:      metricsBindAddress,
@@ -555,7 +558,7 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 	}
 
 	omniState := s.omniRuntime.State()
-	machineEventHandler := machineevent.NewHandler(omniState, s.logger, s.siderolinkEventsCh)
+	machineEventHandler := machineevent.NewHandler(omniState, s.logger, s.siderolinkEventsCh, s.installEventCh)
 
 	slink, err := siderolink.NewManager(
 		ctx,

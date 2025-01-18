@@ -196,7 +196,6 @@ export const ConfigPatchRequestType = "ConfigPatchRequests.omni.sidero.dev";
 export const InfraMachineType = "InfraMachines.omni.sidero.dev";
 export const MachineRequestType = "MachineRequests.omni.sidero.dev";
 export const MachineRequestStatusType = "MachineRequestStatuses.omni.sidero.dev";
-export const InfraMachineStateType = "InfraMachineStates.omni.sidero.dev";
 export const InfraMachineStatusType = "InfraMachineStatuses.omni.sidero.dev";
 export const InfraProviderHealthStatusType = "InfraProviderHealthStatuses.omni.sidero.dev";
 export const InfraProviderStatusType = "InfraProviderStatuses.omni.sidero.dev";

@@ -77,6 +77,10 @@ func (MachineExtension) ResourceDefinition() meta.ResourceDefinitionSpec {
 				Name:     "Cordoned",
 				JSONPath: "{.cordoned}",
 			},
+			{
+				Name:     "Install Event ID",
+				JSONPath: "{.installeventid}",
+			},
 		},
 	}
 }

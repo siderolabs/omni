@@ -41,7 +41,7 @@ func TestOperatorTalosconfig(t *testing.T) {
 	discoveryServiceClient := &discoveryClientMock{}
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zapcore.InfoLevel)
 
-	r, err := omniruntime.New(clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil,
+	r, err := omniruntime.New(clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil, nil,
 		st, nil, prometheus.NewRegistry(), discoveryServiceClient, nil, logger)
 
 	require.NoError(t, err)

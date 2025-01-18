@@ -322,49 +322,7 @@ func AssertInfraMachinesAreAllocated(testCtx context.Context, omniState state.St
 			rtestutils.AssertResource[*infra.MachineStatus](ctx, t, omniState, id, func(res *infra.MachineStatus, assertion *assert.Assertions) {
 				assertion.Equal(specs.InfraMachineStatusSpec_POWER_STATE_ON, res.TypedSpec().Value.PowerState)
 				assertion.True(res.TypedSpec().Value.ReadyToUse)
-			})
-
-			// Omni receives a SequenceEvent from the SideroLink event sink and sets the Installed field to true
-			rtestutils.AssertResource[*infra.MachineState](ctx, t, omniState, id, func(res *infra.MachineState, assertion *assert.Assertions) {
 				assertion.True(res.TypedSpec().Value.Installed)
-			})
-		}
-	}
-}
-
-// AssertAllInfraMachinesAreUnallocated asserts that all infra machines are unallocated.
-func AssertAllInfraMachinesAreUnallocated(testCtx context.Context, omniState state.State) TestFunc {
-	return func(t *testing.T) {
-		logger := zaptest.NewLogger(t)
-
-		ctx, cancel := context.WithTimeout(testCtx, time.Minute*10)
-		defer cancel()
-
-		infraMachineList, err := safe.StateListAll[*infra.Machine](ctx, omniState)
-		require.NoError(t, err)
-
-		require.Greater(t, infraMachineList.Len(), 0)
-
-		for infraMachine := range infraMachineList.All() {
-			id := infraMachine.Metadata().ID()
-
-			rtestutils.AssertResource[*infra.Machine](ctx, t, omniState, id, func(res *infra.Machine, assertion *assert.Assertions) {
-				assertion.Empty(res.TypedSpec().Value.ClusterTalosVersion)
-				assertion.Empty(res.TypedSpec().Value.Extensions)
-
-				if assertion.NotEmpty(res.TypedSpec().Value.WipeId) { // the machine should be marked for wipe
-					logger.Info("machine is marked for wipe", zap.String("machine_id", id), zap.String("wipe_id", res.TypedSpec().Value.WipeId))
-				}
-			})
-
-			// provider wipes the machine and sets the Installed field to false
-			rtestutils.AssertResource[*infra.MachineState](ctx, t, omniState, id, func(res *infra.MachineState, assertion *assert.Assertions) {
-				assertion.False(res.TypedSpec().Value.Installed)
-			})
-
-			// after the machine is wiped, ReadyToUse field will be set to true
-			rtestutils.AssertResource[*infra.MachineStatus](ctx, t, omniState, id, func(res *infra.MachineStatus, assertion *assert.Assertions) {
-				assertion.True(res.TypedSpec().Value.ReadyToUse)
 			})
 		}
 	}

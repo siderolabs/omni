@@ -51,6 +51,7 @@ export type InfraMachineSpec = {
   extra_kernel_args?: string
   requested_reboot_id?: string
   cordoned?: boolean
+  install_event_id?: string
 }
 
 export type InfraMachineStateSpec = {
@@ -62,6 +63,7 @@ export type InfraMachineStatusSpec = {
   ready_to_use?: boolean
   last_reboot_id?: string
   last_reboot_timestamp?: GoogleProtobufTimestamp.Timestamp
+  installed?: boolean
 }
 
 export type InfraProviderStatusSpec = {

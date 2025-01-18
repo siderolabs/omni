@@ -16,6 +16,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/go-logr/zapr"
 	"github.com/prometheus/client_golang/prometheus"
@@ -191,6 +192,7 @@ func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtua
 
 		linkCounterDeltaCh := make(chan siderolink.LinkCounterDeltas)
 		siderolinkEventsCh := make(chan *omnires.MachineStatusSnapshot)
+		installEventCh := make(chan resource.ID)
 
 		defaultDiscoveryClient, err := discovery.NewClient(discovery.Options{
 			UseEmbeddedDiscoveryService: false,
@@ -217,7 +219,7 @@ func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtua
 		}()
 
 		omniRuntime, err := omni.New(talosClientFactory, dnsService, workloadProxyReconciler, resourceLogger,
-			imageFactoryClient, linkCounterDeltaCh, siderolinkEventsCh, resourceState, virtualState,
+			imageFactoryClient, linkCounterDeltaCh, siderolinkEventsCh, installEventCh, resourceState, virtualState,
 			prometheus.DefaultRegisterer, defaultDiscoveryClient, embeddedDiscoveryClient, logger.With(logging.Component("omni_runtime")))
 		if err != nil {
 			return fmt.Errorf("failed to set up the controller runtime: %w", err)
@@ -268,6 +270,7 @@ func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtua
 			imageFactoryClient,
 			linkCounterDeltaCh,
 			siderolinkEventsCh,
+			installEventCh,
 			omniRuntime,
 			talosRuntime,
 			logHandler,

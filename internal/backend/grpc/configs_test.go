@@ -59,7 +59,7 @@ func TestGenerateConfigs(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 
 	rt, err := omniruntime.New(nil, nil, nil, nil,
-		nil, nil, nil, st, nil, prometheus.NewRegistry(), nil, nil, logger)
+		nil, nil, nil, nil, st, nil, prometheus.NewRegistry(), nil, nil, logger)
 	require.NoError(t, err)
 
 	runtime.Install(omniruntime.Name, rt)
