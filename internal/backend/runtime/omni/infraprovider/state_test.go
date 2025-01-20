@@ -244,6 +244,7 @@ func TestInfraProviderSpecificNamespace(t *testing.T) {
 
 	res1 := newTestRes(infraProviderResNamespace, "test-res-1", testResSpec{str: "foo"})
 
+	require.True(t, infraprovider.IsInfraProviderResource(infraProviderResNamespace, res1.Metadata().Type()))
 	require.NoError(t, st.Create(ctx, res1))
 
 	_, err := safe.StateUpdateWithConflicts(ctx, st, res1.Metadata(), func(res *testRes) error {
