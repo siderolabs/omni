@@ -99,6 +99,8 @@ type Params struct {
 	AuditLogDir string `yaml:"auditLogDir"`
 
 	InitialServiceAccount InitialServiceAccount `yaml:"initialServiceAccount"`
+
+	EnableStripeReporting bool `yaml:"enableStripeReporting"`
 }
 
 // InitialServiceAccount allows creating a service account for automated omnictl runs on the Omni service deployment.

@@ -596,5 +596,12 @@ var initOnce = sync.OnceValue(func() *cobra.Command {
 		"the lifetime duration of the initial service account key",
 	)
 
+	rootCmd.Flags().BoolVar(
+		&config.Config.EnableStripeReporting,
+		"enable-stripe-reporting",
+		config.Config.EnableStripeReporting,
+		"enable Stripe machine usage reporting",
+	)
+
 	return rootCmd
 })

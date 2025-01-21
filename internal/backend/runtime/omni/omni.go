@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"os"
 	"slices"
 	"time"
 
@@ -278,6 +279,22 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 	if config.Config.Auth.SAML.Enabled {
 		controllers = append(controllers,
 			&omnictrl.SAMLAssertionController{},
+		)
+	}
+
+	if config.Config.EnableStripeReporting {
+		stripeAPIKey, ok := os.LookupEnv("STRIPE_API_KEY")
+		if !ok {
+			return nil, fmt.Errorf("environment variable STRIPE_API_KEY is not set")
+		}
+
+		subscriptionItemID, ok := os.LookupEnv("STRIPE_SUBSCRIPTION_ITEM_ID")
+		if !ok {
+			return nil, fmt.Errorf("environment variable STRIPE_SUBSCRIPTION_ITEM_ID is not set")
+		}
+
+		controllers = append(controllers,
+			omnictrl.NewStripeMetricsReporterController(stripeAPIKey, subscriptionItemID),
 		)
 	}
 

@@ -25,6 +25,7 @@ require (
 	github.com/benbjohnson/clock v1.3.5
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
+	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/containers/image/v5 v5.33.0
 	github.com/cosi-project/runtime v0.9.2
 	github.com/cosi-project/state-etcd v0.5.0
@@ -83,6 +84,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.10.0
+	github.com/stripe/stripe-go/v74 v74.30.0
 	github.com/zitadel/logging v0.6.1
 	github.com/zitadel/oidc/v3 v3.34.0
 	go.etcd.io/bbolt v1.3.11
@@ -129,7 +131,6 @@ require (
 	github.com/beevik/etree v1.4.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.8.0 // indirect
-	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.5.0 // indirect
 	github.com/containerd/go-cni v1.1.12 // indirect
