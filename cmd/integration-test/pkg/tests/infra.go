@@ -162,7 +162,7 @@ func AssertMachinesShouldBeDeprovisioned(testCtx context.Context, client *client
 // AcceptInfraMachines asserts that there are a certain number of machines that are not accepted, provisioned by the static infra provider with the given ID.
 //
 // It then accepts them all and asserts that the states of various resources are updated as expected.
-func AcceptInfraMachines(testCtx context.Context, omniState state.State, expectedCount int, disableKexec bool) TestFunc {
+func AcceptInfraMachines(testCtx context.Context, omniState state.State, infraProviderID string, expectedCount int, disableKexec bool) TestFunc {
 	const disableKexecConfigPatch = `machine:
   install:
     extraKernelArgs:
@@ -176,35 +176,56 @@ func AcceptInfraMachines(testCtx context.Context, omniState state.State, expecte
 		ctx, cancel := context.WithTimeout(testCtx, time.Minute*10)
 		defer cancel()
 
-		rtestutils.AssertLength[*siderolink.Link](ctx, t, omniState, expectedCount)
+		linksMap := make(map[string]*siderolink.Link, expectedCount)
 
-		linkList, err := safe.StateListAll[*siderolink.Link](ctx, omniState)
+		err := retry.Constant(time.Minute*10).RetryWithContext(ctx, func(ctx context.Context) error {
+			links, err := safe.ReaderListAll[*siderolink.Link](ctx, omniState)
+			if err != nil {
+				return err
+			}
+
+			discoveredLinks := 0
+
+			for link := range links.All() {
+				providerID, ok := link.Metadata().Annotations().Get(omni.LabelInfraProviderID)
+				if !ok {
+					continue
+				}
+
+				if infraProviderID == providerID {
+					discoveredLinks++
+				}
+
+				linksMap[link.Metadata().ID()] = link
+			}
+
+			if discoveredLinks != expectedCount {
+				return retry.ExpectedErrorf("expected %d static infra provider machines, got %d", expectedCount, discoveredLinks)
+			}
+
+			return nil
+		})
+
 		require.NoError(t, err)
 
 		// link count should match the expected count
-		require.Equal(t, expectedCount, linkList.Len())
+		require.Equal(t, expectedCount, len(linksMap))
 
-		ids := make([]resource.ID, 0, linkList.Len())
+		ids := make([]resource.ID, 0, len(linksMap))
 
-		var infraProviderID string
+		for id := range linksMap {
+			ids = append(ids, id)
 
-		for link := range linkList.All() {
-			ids = append(ids, link.Metadata().ID())
-
-			infraProviderID, _ = link.Metadata().Annotations().Get(omni.LabelInfraProviderID)
-
-			require.NotEmpty(t, infraProviderID)
-
-			rtestutils.AssertResource[*infra.Machine](ctx, t, omniState, link.Metadata().ID(), func(res *infra.Machine, assertion *assert.Assertions) {
+			rtestutils.AssertResource(ctx, t, omniState, id, func(res *infra.Machine, assertion *assert.Assertions) {
 				assertion.Equal(specs.InfraMachineConfigSpec_PENDING, res.TypedSpec().Value.AcceptanceStatus)
 			})
 
-			rtestutils.AssertNoResource[*infra.MachineStatus](ctx, t, omniState, link.Metadata().ID())
+			rtestutils.AssertNoResource[*infra.MachineStatus](ctx, t, omniState, id)
 
-			rtestutils.AssertNoResource[*omni.Machine](ctx, t, omniState, link.Metadata().ID())
+			rtestutils.AssertNoResource[*omni.Machine](ctx, t, omniState, id)
 
 			// Accept the machine
-			infraMachineConfig := omni.NewInfraMachineConfig(resources.DefaultNamespace, link.Metadata().ID())
+			infraMachineConfig := omni.NewInfraMachineConfig(resources.DefaultNamespace, id)
 
 			infraMachineConfig.TypedSpec().Value.AcceptanceStatus = specs.InfraMachineConfigSpec_ACCEPTED
 
@@ -215,22 +236,16 @@ func AcceptInfraMachines(testCtx context.Context, omniState state.State, expecte
 			require.NoError(t, omniState.Create(ctx, infraMachineConfig))
 
 			if disableKexec {
-				disableKexecConfigPatchRes := omni.NewConfigPatch(resources.DefaultNamespace, fmt.Sprintf("500-%s-disable-kexec", link.Metadata().ID()))
+				disableKexecConfigPatchRes := omni.NewConfigPatch(resources.DefaultNamespace, fmt.Sprintf("500-%s-disable-kexec", id))
 
-				disableKexecConfigPatchRes.Metadata().Labels().Set(omni.LabelMachine, link.Metadata().ID())
+				disableKexecConfigPatchRes.Metadata().Labels().Set(omni.LabelMachine, id)
 
 				require.NoError(t, disableKexecConfigPatchRes.TypedSpec().Value.SetUncompressedData([]byte(disableKexecConfigPatch)))
 				require.NoError(t, omniState.Create(ctx, disableKexecConfigPatchRes))
 			}
 		}
 
-		logger.Info("accepted machines", zap.String("infra_provider_id", infraProviderID), zap.Strings("machine_ids", ids))
-
-		providerStatus, err := safe.StateGetByID[*infra.ProviderStatus](ctx, omniState, infraProviderID)
-		require.NoError(t, err)
-
-		_, isStaticProvider := providerStatus.Metadata().Labels().Get(omni.LabelIsStaticInfraProvider)
-		require.True(t, isStaticProvider)
+		logger.Info("accepted machines", zap.Reflect("infra_provider_id", infraProviderID), zap.Strings("machine_ids", ids))
 
 		// Assert that the infra.Machines are now marked as accepted
 		rtestutils.AssertResources(ctx, t, omniState, ids, func(res *infra.Machine, assertion *assert.Assertions) {
@@ -265,6 +280,10 @@ func AcceptInfraMachines(testCtx context.Context, omniState state.State, expecte
 
 		// Assert the infra provider labels on MachineStatus resources
 		rtestutils.AssertResources(ctx, t, omniState, ids, func(res *omni.MachineStatus, assertion *assert.Assertions) {
+			link := linksMap[res.Metadata().ID()]
+
+			infraProviderID, _ := link.Metadata().Annotations().Get(omni.LabelInfraProviderID)
+
 			aLabel := fmt.Sprintf(omni.InfraProviderLabelPrefixFormat, infraProviderID) + "a"
 			aVal, _ := res.Metadata().Labels().Get(aLabel)
 
@@ -353,23 +372,36 @@ func AssertAllInfraMachinesAreUnallocated(testCtx context.Context, omniState sta
 
 // DestroyInfraMachines removes siderolink.Link resources for all machines managed by a static infra provider,
 // and asserts that the related infra.Machine and infra.MachineStatus resources are deleted.
-func DestroyInfraMachines(testCtx context.Context, omniState state.State) TestFunc {
+func DestroyInfraMachines(testCtx context.Context, omniState state.State, providerID string, count int) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, time.Minute*10)
 		defer cancel()
 
-		machineList, err := safe.StateListAll[*omni.Machine](ctx, omniState, state.WithLabelQuery(resource.LabelExists(omni.LabelIsManagedByStaticInfraProvider)))
+		links, err := safe.StateListAll[*siderolink.Link](ctx, omniState)
 		require.NoError(t, err)
 
-		require.Greater(t, machineList.Len(), 0)
+		var deleted int
 
-		for machine := range machineList.All() {
-			id := machine.Metadata().ID()
+		for link := range links.All() {
+			pid, ok := link.Metadata().Annotations().Get(omni.LabelInfraProviderID)
+			if !ok {
+				continue
+			}
+
+			if pid != providerID {
+				continue
+			}
+
+			id := link.Metadata().ID()
 
 			rtestutils.Destroy[*siderolink.Link](ctx, t, omniState, []string{id})
 
 			rtestutils.AssertNoResource[*infra.Machine](ctx, t, omniState, id)
 			rtestutils.AssertNoResource[*infra.MachineStatus](ctx, t, omniState, id)
+
+			deleted++
 		}
+
+		require.EqualValues(t, count, deleted)
 	}
 }

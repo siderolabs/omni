@@ -54,9 +54,10 @@ type TalosAPIKeyPrepareFunc func(ctx context.Context, contextName string) error
 type Options struct {
 	RunTestPattern string
 
-	CleanupLinks     bool
-	RunStatsCheck    bool
-	ExpectedMachines int
+	CleanupLinks                bool
+	SkipExtensionsCheckOnCreate bool
+	RunStatsCheck               bool
+	ExpectedMachines            int
 
 	RestartAMachineFunc RestartAMachineFunc
 	WipeAMachineFunc    WipeAMachineFunc
@@ -107,8 +108,9 @@ type MachineProvisionConfig struct {
 
 // MachineProviderConfig keeps the configuration of the infra provider for the machine provision config.
 type MachineProviderConfig struct {
-	ID   string `yaml:"id"`
-	Data string `yaml:"data"`
+	ID     string `yaml:"id"`
+	Data   string `yaml:"data"`
+	Static bool   `yaml:"static"`
 }
 
 // Run the integration tests.
@@ -223,6 +225,8 @@ Verify various omnictl commands.`,
 
 						MachineOptions: options.MachineOptions,
 						ScalingTimeout: options.ScalingTimeout,
+
+						SkipExtensionCheckOnCreate: options.SkipExtensionsCheckOnCreate,
 					}),
 				},
 			).Append(
@@ -276,6 +280,8 @@ In the tests, we wipe and reboot the VMs to bring them back as available for the
 
 						MachineOptions: options.MachineOptions,
 						ScalingTimeout: options.ScalingTimeout,
+
+						SkipExtensionCheckOnCreate: options.SkipExtensionsCheckOnCreate,
 					}),
 				},
 			).Append(
@@ -320,6 +326,8 @@ Regression test: create a cluster and destroy it without waiting for the cluster
 
 						MachineOptions: options.MachineOptions,
 						ScalingTimeout: options.ScalingTimeout,
+
+						SkipExtensionCheckOnCreate: options.SkipExtensionsCheckOnCreate,
 					}),
 				},
 				subTest{
@@ -401,6 +409,8 @@ In between the scaling operations, assert that the cluster is ready and accessib
 
 						MachineOptions: options.MachineOptions,
 						ScalingTimeout: options.ScalingTimeout,
+
+						SkipExtensionCheckOnCreate: options.SkipExtensionsCheckOnCreate,
 					}),
 				},
 			).Append(
@@ -519,6 +529,8 @@ In between the scaling operations, assert that the cluster is ready and accessib
 
 						MachineOptions: options.MachineOptions,
 						ScalingTimeout: options.ScalingTimeout,
+
+						SkipExtensionCheckOnCreate: options.SkipExtensionsCheckOnCreate,
 					}),
 				},
 			).Append(
@@ -638,6 +650,8 @@ In between the scaling operations, assert that the cluster is ready and accessib
 						MachineOptions: options.MachineOptions,
 						ProviderData:   options.defaultProviderData(),
 						ScalingTimeout: options.ScalingTimeout,
+
+						SkipExtensionCheckOnCreate: options.SkipExtensionsCheckOnCreate,
 					}),
 				},
 			).Append(
@@ -758,6 +772,8 @@ Tests rolling update & scale down strategies for concurrency control for worker 
 						Workers:       3,
 
 						MachineOptions: options.MachineOptions,
+
+						SkipExtensionCheckOnCreate: options.SkipExtensionsCheckOnCreate,
 					}),
 				},
 			).Append(
@@ -806,6 +822,8 @@ In between the scaling operations, assert that the cluster is ready and accessib
 
 						MachineOptions: options.MachineOptions,
 						ScalingTimeout: options.ScalingTimeout,
+
+						SkipExtensionCheckOnCreate: options.SkipExtensionsCheckOnCreate,
 					}),
 				},
 			).Append(
@@ -857,6 +875,8 @@ Tests applying various config patching, including "broken" config patches which 
 
 						MachineOptions: options.MachineOptions,
 						ScalingTimeout: options.ScalingTimeout,
+
+						SkipExtensionCheckOnCreate: options.SkipExtensionsCheckOnCreate,
 					}),
 				},
 			).Append(
@@ -950,6 +970,8 @@ Tests upgrading Talos version, including reverting a failed upgrade.`,
 							KubernetesVersion: options.AnotherKubernetesVersion, // use older Kubernetes compatible with AnotherTalosVersion
 						},
 						ScalingTimeout: options.ScalingTimeout,
+
+						SkipExtensionCheckOnCreate: options.SkipExtensionsCheckOnCreate,
 					}),
 				},
 			).Append(
@@ -960,11 +982,13 @@ Tests upgrading Talos version, including reverting a failed upgrade.`,
 					options.AnotherKubernetesVersion,
 					talosAPIKeyPrepare,
 				)...,
-			).Append(
+			).AppendIf(
+				!options.SkipExtensionsCheckOnCreate,
 				subTest{
 					"HelloWorldServiceExtensionShouldBePresent",
 					AssertExtensionIsPresent(ctx, rootClient, "integration-talos-upgrade", HelloWorldServiceExtensionName),
 				},
+			).Append(
 				subTest{
 					"TalosSchematicUpdateShouldSucceed",
 					AssertTalosSchematicUpdateFlow(ctx, rootClient, "integration-talos-upgrade"),
@@ -986,6 +1010,8 @@ Tests upgrading Talos version, including reverting a failed upgrade.`,
 					"ClusterBootstrapManifestSyncShouldBeSuccessful",
 					KubernetesBootstrapManifestSync(ctx, rootClient.Management(), "integration-talos-upgrade"),
 				},
+			).AppendIf(
+				!options.SkipExtensionsCheckOnCreate,
 				subTest{
 					"HelloWorldServiceExtensionShouldBePresent",
 					AssertExtensionIsPresent(ctx, rootClient, "integration-talos-upgrade", HelloWorldServiceExtensionName),
@@ -1048,6 +1074,8 @@ Tests upgrading Kubernetes version, including reverting a failed upgrade.`,
 							KubernetesVersion: options.AnotherKubernetesVersion,
 						},
 						ScalingTimeout: options.ScalingTimeout,
+
+						SkipExtensionCheckOnCreate: options.SkipExtensionsCheckOnCreate,
 					}),
 				},
 			).Append(
@@ -1121,6 +1149,8 @@ Finally, a completely new cluster is created using the same backup to test the "
 						},
 						MachineOptions: options.MachineOptions,
 						ScalingTimeout: options.ScalingTimeout,
+
+						SkipExtensionCheckOnCreate: options.SkipExtensionsCheckOnCreate,
 					}),
 				},
 			).Append(
@@ -1264,6 +1294,8 @@ Test authorization on accessing Omni API, some tests run without a cluster, some
 
 						MachineOptions: options.MachineOptions,
 						ScalingTimeout: options.ScalingTimeout,
+
+						SkipExtensionCheckOnCreate: options.SkipExtensionsCheckOnCreate,
 					}),
 				},
 			).Append(
@@ -1320,6 +1352,8 @@ Test flow of cluster creation and scaling using cluster templates.`,
 
 						MachineOptions: options.MachineOptions,
 						ScalingTimeout: options.ScalingTimeout,
+
+						SkipExtensionCheckOnCreate: options.SkipExtensionsCheckOnCreate,
 					},
 					),
 				},
@@ -1348,9 +1382,8 @@ Test flow of cluster creation and scaling using cluster templates.`,
 			Name: "StaticInfraProvider",
 			Description: `
 Tests common Omni operations on machines created by a static infrastructure provider:,
+Note: this test expects all machines to be provisioned by the bare-metal infra provider as it doesn't filter them.
 
-- expect all machines to be unaccepted and accept them
-- assert that machines are ready to use
 - create a 1+0 cluster - assert that cluster is healthy and ready
 - scale it up to be 3+1 - assert that cluster is healthy and ready
 - assert that machines are not ready to use (occupied)
@@ -1359,14 +1392,9 @@ Tests common Omni operations on machines created by a static infrastructure prov
 - create a new 3+1 cluster
 - assert that cluster is healthy and ready
 - remove links of the machines
-- assert that infra resources for those machines are removed
 `,
 			Parallel: true,
 			Subtests: subTests(
-				subTest{
-					"AcceptMachines",
-					AcceptInfraMachines(ctx, rootClient.Omni().State(), options.ExpectedMachines, true), // disable kexec to test full reboot over the provider
-				},
 				subTest{
 					"ClusterShouldBeCreated",
 					CreateCluster(ctx, rootClient, ClusterOptions{
@@ -1473,10 +1501,6 @@ Tests common Omni operations on machines created by a static infrastructure prov
 					"ClusterShouldBeDestroyed",
 					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-static-infra-provider", false),
 				},
-				subTest{
-					"InfraMachinesShouldBeDestroyed",
-					DestroyInfraMachines(ctx, rootClient.Omni().State()),
-				},
 			),
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-static-infra-provider"),
 		},
@@ -1523,6 +1547,15 @@ Tests common Omni operations on machines created by a static infrastructure prov
 
 	if options.provisionMachines() {
 		for i, cfg := range options.ProvisionConfigs {
+			if cfg.Provider.Static {
+				preRunTests = append(preRunTests, testing.InternalTest{
+					Name: "AcceptMachines",
+					F:    AcceptInfraMachines(ctx, rootClient.Omni().State(), cfg.Provider.ID, cfg.MachineCount, true), // disable kexec to test full reboot over the provider
+				})
+
+				continue
+			}
+
 			preRunTests = append(preRunTests, testing.InternalTest{
 				Name: "AssertMachinesShouldBeProvisioned",
 				F:    AssertMachinesShouldBeProvisioned(ctx, rootClient, cfg, fmt.Sprintf("provisioned%d", i), options.MachineOptions.TalosVersion),
@@ -1545,7 +1578,16 @@ Tests common Omni operations on machines created by a static infrastructure prov
 	postRunTests := []testing.InternalTest{}
 
 	if options.provisionMachines() {
-		for i := range options.ProvisionConfigs {
+		for i, cfg := range options.ProvisionConfigs {
+			if cfg.Provider.Static {
+				postRunTests = append(postRunTests, testing.InternalTest{
+					Name: "InfraMachinesShouldBeDestroyed",
+					F:    DestroyInfraMachines(ctx, rootClient.Omni().State(), cfg.Provider.ID, cfg.MachineCount),
+				})
+
+				continue
+			}
+
 			postRunTests = append(postRunTests, testing.InternalTest{
 				Name: "AssertMachinesShouldBeDeprovisioned",
 				F:    AssertMachinesShouldBeDeprovisioned(ctx, rootClient, fmt.Sprintf("provisioned%d", i)),
@@ -1695,5 +1737,13 @@ func subTests(items ...subTest) subTestList {
 }
 
 func (l subTestList) Append(items ...subTest) subTestList {
+	return append(l, items...)
+}
+
+func (l subTestList) AppendIf(condition bool, items ...subTest) subTestList {
+	if !condition {
+		return l
+	}
+
 	return append(l, items...)
 }

@@ -46,9 +46,10 @@ var rootCmd = &cobra.Command{
 			testOptions := tests.Options{
 				RunTestPattern: rootCmdFlags.runTestPattern,
 
-				ExpectedMachines: rootCmdFlags.expectedMachines,
-				CleanupLinks:     rootCmdFlags.cleanupLinks,
-				RunStatsCheck:    rootCmdFlags.runStatsCheck,
+				ExpectedMachines:            rootCmdFlags.expectedMachines,
+				CleanupLinks:                rootCmdFlags.cleanupLinks,
+				RunStatsCheck:               rootCmdFlags.runStatsCheck,
+				SkipExtensionsCheckOnCreate: rootCmdFlags.skipExtensionsCheckOnCreate,
 
 				MachineOptions:           rootCmdFlags.machineOptions,
 				AnotherTalosVersion:      rootCmdFlags.anotherTalosVersion,
@@ -157,11 +158,13 @@ var rootCmdFlags struct {
 	infraProvider  string
 	providerData   string
 
-	provisionMachinesCount int
-	expectedMachines       int
-	parallel               int64
-	cleanupLinks           bool
-	runStatsCheck          bool
+	provisionMachinesCount      int
+	expectedMachines            int
+	expectedBareMetalMachines   int
+	parallel                    int64
+	cleanupLinks                bool
+	runStatsCheck               bool
+	skipExtensionsCheckOnCreate bool
 
 	testsTimeout   time.Duration
 	scalingTimeout time.Duration
@@ -209,6 +212,8 @@ var onceInit = sync.OnceValue(func() *cobra.Command {
 	rootCmd.Flags().StringVar(&rootCmdFlags.providerData, "provider-data", "{}", "the infra provider machine template data to use")
 	rootCmd.Flags().DurationVar(&rootCmdFlags.scalingTimeout, "scale-timeout", time.Second*150, "scale up test timeout")
 	rootCmd.Flags().StringVar(&rootCmdFlags.provisionConfigFile, "provision-config-file", "", "provision machines with the more complicated configuration")
+	rootCmd.Flags().BoolVar(&rootCmdFlags.skipExtensionsCheckOnCreate, "skip-extensions-check-on-create", false,
+		"disables checking for hello-world-service extension on the machine allocation and in the upgrade tests")
 
 	rootCmd.MarkFlagsMutuallyExclusive("provision-machines", "provision-config-file")
 
