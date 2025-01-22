@@ -11,8 +11,10 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/kvutils"
+	"github.com/cosi-project/runtime/pkg/resource/protobuf"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/google/uuid"
@@ -1332,4 +1334,95 @@ func removeMaintenanceConfigPatchFinalizers(ctx context.Context, st state.State,
 	return items.ForEachErr(func(item *omni.MachineStatus) error {
 		return st.RemoveFinalizer(ctx, item.Metadata(), "MaintenanceConfigPatchController")
 	})
+}
+
+func compressMachineConfigsAndPatches(ctx context.Context, st state.State, l *zap.Logger) error {
+	doConfigPatch := updateSingle[string, specs.ConfigPatchSpec, *specs.ConfigPatchSpec]
+	doMachineConfig := updateSingle[[]byte, specs.ClusterMachineConfigSpec, *specs.ClusterMachineConfigSpec]
+	doRedactedMachineConfig := updateSingle[string, specs.RedactedClusterMachineConfigSpec, *specs.RedactedClusterMachineConfigSpec]
+
+	for _, fn := range []func(context.Context, state.State, *zap.Logger) error{
+		compressUncompressed[*omni.ConfigPatch](doConfigPatch),
+		compressUncompressed[*omni.ClusterMachineConfig](doMachineConfig),
+		compressUncompressed[*omni.RedactedClusterMachineConfig](doRedactedMachineConfig),
+		compressUncompressed[*omni.ClusterMachineConfigPatches](doClusterMachineConfigPatches),
+	} {
+		if err := fn(ctx, st, l); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func compressUncompressed[
+	R interface {
+		generic.ResourceWithRD
+		TypedSpec() *protobuf.ResourceSpec[T, S]
+	},
+	T any,
+	S protobuf.Spec[T],
+](update func(spec *protobuf.ResourceSpec[T, S]) (bool, error)) func(context.Context, state.State, *zap.Logger) error {
+	return func(ctx context.Context, st state.State, _ *zap.Logger) error {
+		items, err := safe.ReaderListAll[R](ctx, st)
+		if err != nil {
+			return err
+		}
+
+		for val := range items.All() {
+			spec := val.TypedSpec()
+
+			if ok, uerr := update(spec); uerr != nil {
+				return uerr
+			} else if !ok {
+				continue
+			}
+
+			if _, err = safe.StateUpdateWithConflicts(ctx, st, val.Metadata(), func(res R) error {
+				res.TypedSpec().Value = spec.Value
+
+				return nil
+			}); err != nil {
+				return fmt.Errorf("failed to update %s: %w", val.Metadata(), err)
+			}
+		}
+
+		return nil
+	}
+}
+
+func updateSingle[
+	D string | []byte,
+	T any,
+	S interface {
+		GetData() D
+		SetUncompressedData(data []byte, opts ...specs.CompressionOption) error
+		protobuf.Spec[T]
+	},
+](spec *protobuf.ResourceSpec[T, S]) (bool, error) {
+	data := spec.Value.GetData()
+	if len(data) == 0 {
+		return false, nil
+	}
+
+	err := spec.Value.SetUncompressedData([]byte(data))
+	if err != nil {
+		return false, fmt.Errorf("failed to compress data during migration: %w", err)
+	}
+
+	return true, nil
+}
+
+func doClusterMachineConfigPatches(spec *protobuf.ResourceSpec[specs.ClusterMachineConfigPatchesSpec, *specs.ClusterMachineConfigPatchesSpec]) (bool, error) {
+	patches := spec.Value.GetPatches()
+	if len(patches) == 0 {
+		return false, nil
+	}
+
+	err := spec.Value.SetUncompressedPatches(patches)
+	if err != nil {
+		return false, fmt.Errorf("failed to compress data during migration: %w", err)
+	}
+
+	return true, nil
 }

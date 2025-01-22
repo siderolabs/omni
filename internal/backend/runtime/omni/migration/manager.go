@@ -181,6 +181,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: removeMaintenanceConfigPatchFinalizers,
 				name:     "removeMaintenanceConfigPatchFinalizers",
 			},
+			{
+				callback: compressMachineConfigsAndPatches,
+				name:     "compressMachineConfigsAndPatches",
+			},
 		},
 	}
 }
