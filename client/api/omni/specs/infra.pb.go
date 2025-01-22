@@ -477,11 +477,12 @@ func (x *InfraMachineStateSpec) GetInstalled() bool {
 }
 
 type InfraMachineStatusSpec struct {
-	state               protoimpl.MessageState                   `protogen:"open.v1"`
-	PowerState          InfraMachineStatusSpec_MachinePowerState `protobuf:"varint,1,opt,name=power_state,json=powerState,proto3,enum=specs.InfraMachineStatusSpec_MachinePowerState" json:"power_state,omitempty"`
-	ReadyToUse          bool                                     `protobuf:"varint,2,opt,name=ready_to_use,json=readyToUse,proto3" json:"ready_to_use,omitempty"`
-	LastRebootId        string                                   `protobuf:"bytes,3,opt,name=last_reboot_id,json=lastRebootId,proto3" json:"last_reboot_id,omitempty"`
-	LastRebootTimestamp *timestamppb.Timestamp                   `protobuf:"bytes,4,opt,name=last_reboot_timestamp,json=lastRebootTimestamp,proto3" json:"last_reboot_timestamp,omitempty"`
+	state      protoimpl.MessageState                   `protogen:"open.v1"`
+	PowerState InfraMachineStatusSpec_MachinePowerState `protobuf:"varint,1,opt,name=power_state,json=powerState,proto3,enum=specs.InfraMachineStatusSpec_MachinePowerState" json:"power_state,omitempty"`
+	// ReadyToUse is set to true when the machine is not dirty, i.e., there is no pending wipe operation.
+	ReadyToUse          bool                   `protobuf:"varint,2,opt,name=ready_to_use,json=readyToUse,proto3" json:"ready_to_use,omitempty"`
+	LastRebootId        string                 `protobuf:"bytes,3,opt,name=last_reboot_id,json=lastRebootId,proto3" json:"last_reboot_id,omitempty"`
+	LastRebootTimestamp *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=last_reboot_timestamp,json=lastRebootTimestamp,proto3" json:"last_reboot_timestamp,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }

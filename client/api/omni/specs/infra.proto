@@ -63,6 +63,8 @@ message InfraMachineStatusSpec {
   }
 
   MachinePowerState power_state = 1;
+
+  // ReadyToUse is set to true when the machine is not dirty, i.e., there is no pending wipe operation.
   bool ready_to_use = 2;
   string last_reboot_id = 3;
   google.protobuf.Timestamp last_reboot_timestamp = 4;
