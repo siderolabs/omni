@@ -148,13 +148,13 @@ func (handler *Handler) handleSequenceEvent(ctx context.Context, event *machinea
 
 	err = handler.state.Create(ctx, machineState)
 	if err != nil {
-		if state.IsConflictError(err) {
-			if _, err = safe.StateUpdateWithConflicts(ctx, handler.state, machineState.Metadata(), modify); err != nil {
-				return err
-			}
+		if !state.IsConflictError(err) {
+			return err
 		}
 
-		return err
+		if _, err = safe.StateUpdateWithConflicts(ctx, handler.state, machineState.Metadata(), modify); err != nil {
+			return err
+		}
 	}
 
 	logger.Info("marked infra machine as installed")
