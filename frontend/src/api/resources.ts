@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Sidero Labs, Inc.
+// Copyright (c) 2025 Sidero Labs, Inc.
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
@@ -207,6 +207,8 @@ export const SiderolinkResourceType = "Links.omni.sidero.dev";
 export const SiderolinkCounterNamespace = "metrics";
 export const SysVersionType = "SysVersions.system.sidero.dev";
 export const SysVersionID = "current";
+export const AdvertisedEndpointsID = "current";
+export const AdvertisedEndpointsType = "AdvertisedEndpoints.omni.sidero.dev";
 export const ClusterPermissionsType = "ClusterPermissions.omni.sidero.dev";
 export const CurrentUserID = "current";
 export const CurrentUserType = "CurrentUsers.omni.sidero.dev";

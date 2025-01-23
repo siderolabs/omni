@@ -45,3 +45,7 @@ message LabelsCompletionSpec {
 
   map<string, Values> items = 1;
 }
+
+message AdvertisedEndpointsSpec {
+  string grpc_api_url = 1;
+}

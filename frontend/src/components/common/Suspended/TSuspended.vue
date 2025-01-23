@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2024 Sidero Labs, Inc.
+Copyright (c) 2025 Sidero Labs, Inc.
 
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
@@ -12,7 +12,7 @@ included in the LICENSE file.
         This account is currently <b>suspended</b> and in read-only mode. You can still access your resources but will not be able to make any changes.<br />
         Please contact support to resolve this issue.
       </div>
-    </div> 
+    </div>
   </div>
 </template>
 
