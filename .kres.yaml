@@ -350,7 +350,7 @@ kind: golang.Generate
 spec:
   versionPackagePath: internal/version
   licenseText: |
-    Copyright (c) 2024 Sidero Labs, Inc.
+    Copyright (c) 2025 Sidero Labs, Inc.
 
     Use of this software is governed by the Business Source License
     included in the LICENSE file.
@@ -430,7 +430,7 @@ spec:
 kind: js.Build
 spec:
   licenseText: |
-    Copyright (c) 2024 Sidero Labs, Inc.
+    Copyright (c) 2025 Sidero Labs, Inc.
 
     Use of this software is governed by the Business Source License
     included in the LICENSE file.
@@ -542,12 +542,12 @@ spec:
       params:
         Licensor: Sidero Labs, Inc.
         LicensedWork: Omni
-        Copyright: (c) 2024 Sidero Labs, Inc.
+        Copyright: (c) 2025 Sidero Labs, Inc.
         ChangeDate: "2029-01-17"
         ChangeLicense: Mozilla Public License, version 2.0
         EnterpriseLink: https://www.siderolabs.com/contact/
       header: |
-        // Copyright (c) 2024 Sidero Labs, Inc.
+        // Copyright (c) 2025 Sidero Labs, Inc.
         //
         // Use of this software is governed by the Business Source License
         // included in the LICENSE file.
@@ -561,7 +561,7 @@ spec:
   licenseChecks:
     - root: "."
       header: |
-        // Copyright (c) 2024 Sidero Labs, Inc.
+        // Copyright (c) 2025 Sidero Labs, Inc.
         //
         // Use of this software is governed by the Business Source License
         // included in the LICENSE file.
@@ -590,7 +590,7 @@ spec:
     - root: frontend/
       header: |
         <!--
-        Copyright (c) 2024 Sidero Labs, Inc.
+        Copyright (c) 2025 Sidero Labs, Inc.
 
         Use of this software is governed by the Business Source License
         included in the LICENSE file.

@@ -373,6 +373,50 @@ func (x *LabelsCompletionSpec) GetItems() map[string]*LabelsCompletionSpec_Value
 	return nil
 }
 
+type AdvertisedEndpointsSpec struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GrpcApiUrl    string                 `protobuf:"bytes,1,opt,name=grpc_api_url,json=grpcApiUrl,proto3" json:"grpc_api_url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdvertisedEndpointsSpec) Reset() {
+	*x = AdvertisedEndpointsSpec{}
+	mi := &file_omni_specs_virtual_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdvertisedEndpointsSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdvertisedEndpointsSpec) ProtoMessage() {}
+
+func (x *AdvertisedEndpointsSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_virtual_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdvertisedEndpointsSpec.ProtoReflect.Descriptor instead.
+func (*AdvertisedEndpointsSpec) Descriptor() ([]byte, []int) {
+	return file_omni_specs_virtual_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *AdvertisedEndpointsSpec) GetGrpcApiUrl() string {
+	if x != nil {
+		return x.GrpcApiUrl
+	}
+	return ""
+}
+
 type LabelsCompletionSpec_Values struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Items         []string               `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
@@ -382,7 +426,7 @@ type LabelsCompletionSpec_Values struct {
 
 func (x *LabelsCompletionSpec_Values) Reset() {
 	*x = LabelsCompletionSpec_Values{}
-	mi := &file_omni_specs_virtual_proto_msgTypes[4]
+	mi := &file_omni_specs_virtual_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -394,7 +438,7 @@ func (x *LabelsCompletionSpec_Values) String() string {
 func (*LabelsCompletionSpec_Values) ProtoMessage() {}
 
 func (x *LabelsCompletionSpec_Values) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_virtual_proto_msgTypes[4]
+	mi := &file_omni_specs_virtual_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -520,11 +564,14 @@ var file_omni_specs_virtual_proto_rawDesc = []byte{
 	0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x22, 0x2e, 0x73, 0x70, 0x65, 0x63, 0x73, 0x2e, 0x4c,
 	0x61, 0x62, 0x65, 0x6c, 0x73, 0x43, 0x6f, 0x6d, 0x70, 0x6c, 0x65, 0x74, 0x69, 0x6f, 0x6e, 0x53,
 	0x70, 0x65, 0x63, 0x2e, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75,
-	0x65, 0x3a, 0x02, 0x38, 0x01, 0x42, 0x32, 0x5a, 0x30, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e,
-	0x63, 0x6f, 0x6d, 0x2f, 0x73, 0x69, 0x64, 0x65, 0x72, 0x6f, 0x6c, 0x61, 0x62, 0x73, 0x2f, 0x6f,
-	0x6d, 0x6e, 0x69, 0x2f, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x6f,
-	0x6d, 0x6e, 0x69, 0x2f, 0x73, 0x70, 0x65, 0x63, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f,
-	0x33,
+	0x65, 0x3a, 0x02, 0x38, 0x01, 0x22, 0x3b, 0x0a, 0x17, 0x41, 0x64, 0x76, 0x65, 0x72, 0x74, 0x69,
+	0x73, 0x65, 0x64, 0x45, 0x6e, 0x64, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x73, 0x53, 0x70, 0x65, 0x63,
+	0x12, 0x20, 0x0a, 0x0c, 0x67, 0x72, 0x70, 0x63, 0x5f, 0x61, 0x70, 0x69, 0x5f, 0x75, 0x72, 0x6c,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x67, 0x72, 0x70, 0x63, 0x41, 0x70, 0x69, 0x55,
+	0x72, 0x6c, 0x42, 0x32, 0x5a, 0x30, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d,
+	0x2f, 0x73, 0x69, 0x64, 0x65, 0x72, 0x6f, 0x6c, 0x61, 0x62, 0x73, 0x2f, 0x6f, 0x6d, 0x6e, 0x69,
+	0x2f, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x6f, 0x6d, 0x6e, 0x69,
+	0x2f, 0x73, 0x70, 0x65, 0x63, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -539,18 +586,19 @@ func file_omni_specs_virtual_proto_rawDescGZIP() []byte {
 	return file_omni_specs_virtual_proto_rawDescData
 }
 
-var file_omni_specs_virtual_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_omni_specs_virtual_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_omni_specs_virtual_proto_goTypes = []any{
 	(*CurrentUserSpec)(nil),             // 0: specs.CurrentUserSpec
 	(*PermissionsSpec)(nil),             // 1: specs.PermissionsSpec
 	(*ClusterPermissionsSpec)(nil),      // 2: specs.ClusterPermissionsSpec
 	(*LabelsCompletionSpec)(nil),        // 3: specs.LabelsCompletionSpec
-	(*LabelsCompletionSpec_Values)(nil), // 4: specs.LabelsCompletionSpec.Values
-	nil,                                 // 5: specs.LabelsCompletionSpec.ItemsEntry
+	(*AdvertisedEndpointsSpec)(nil),     // 4: specs.AdvertisedEndpointsSpec
+	(*LabelsCompletionSpec_Values)(nil), // 5: specs.LabelsCompletionSpec.Values
+	nil,                                 // 6: specs.LabelsCompletionSpec.ItemsEntry
 }
 var file_omni_specs_virtual_proto_depIdxs = []int32{
-	5, // 0: specs.LabelsCompletionSpec.items:type_name -> specs.LabelsCompletionSpec.ItemsEntry
-	4, // 1: specs.LabelsCompletionSpec.ItemsEntry.value:type_name -> specs.LabelsCompletionSpec.Values
+	6, // 0: specs.LabelsCompletionSpec.items:type_name -> specs.LabelsCompletionSpec.ItemsEntry
+	5, // 1: specs.LabelsCompletionSpec.ItemsEntry.value:type_name -> specs.LabelsCompletionSpec.Values
 	2, // [2:2] is the sub-list for method output_type
 	2, // [2:2] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
@@ -569,7 +617,7 @@ func file_omni_specs_virtual_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_omni_specs_virtual_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

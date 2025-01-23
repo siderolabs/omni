@@ -44,3 +44,7 @@ export type LabelsCompletionSpecValues = {
 export type LabelsCompletionSpec = {
   items?: {[key: string]: LabelsCompletionSpecValues}
 }
+
+export type AdvertisedEndpointsSpec = {
+  grpc_api_url?: string
+}

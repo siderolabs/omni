@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2024 Sidero Labs, Inc.
+Copyright (c) 2025 Sidero Labs, Inc.
 
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
@@ -7,7 +7,7 @@ included in the LICENSE file.
 <template>
   <svg viewBox="0 0 18 18" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
     <mask id="toggle">
-      <rect id="cover" x="-5%" y="-5%" width="110%" height="110%" fill="white"/> 
+      <rect id="cover" x="-5%" y="-5%" width="110%" height="110%" fill="white"/>
       <circle cx="13" cy="3" r="4" fill="black"/>
     </mask>
     <path mask="url(#toggle)" d="M9 11.8125C7.4475 11.8125 6.1875 10.5525 6.1875 9C6.1875 7.4475 7.4475 6.1875 9 6.1875C10.5525 6.1875 11.8125 7.4475 11.8125 9C11.8125 10.5525 10.5525 11.8125 9 11.8125ZM9 7.3125C8.07 7.3125 7.3125 8.07 7.3125 9C7.3125 9.93 8.07 10.6875 9 10.6875C9.93 10.6875 10.6875 9.93 10.6875 9C10.6875 8.07 9.93 7.3125 9 7.3125Z"/>

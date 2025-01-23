@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2024 Sidero Labs, Inc.
+Copyright (c) 2025 Sidero Labs, Inc.
 
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
@@ -22,22 +22,7 @@ included in the LICENSE file.
       </div>
     </div>
 
-    <div v-if="key" class="flex flex-col text-xs gap-1 mt-5">
-      <span class="text-naturals-N13">Service account key:</span>
-      <code @mouseenter="() => showCopyButton = true" @mouseleave="() => showCopyButton = false" class="relative p-2">
-        <t-animation>
-          <div v-if="showCopyButton" class="absolute top-0 left-0 right-0 h-14 flex justify-end p-2 bg-gradient-to-b from-naturals-N0 rounded">
-            <span class="rounded">
-              <t-button @click="copyKey" type="compact">{{ copyState }}</t-button>
-            </span>
-          </div>
-        </t-animation>
-        {{ key }}
-      </code>
-
-      <span class="text-primary-P2 font-bold">Store the key securely as it will not be displayed again.</span>
-      <span>The service account can now be used through <code class="p-1">OMNI_ENDPOINT</code> and <code class="p-1">OMNI_SERVICE_ACCOUNT_KEY</code> variables in the CLI.</span>
-    </div>
+    <ServiceAccountKey v-if="key" :secret-key="key"/>
   </div>
 </template>
 
@@ -47,14 +32,14 @@ import { renewServiceAccount } from "@/methods/user";
 import { Notification, showError, showSuccess } from "@/notification";
 import { useRoute, useRouter } from "vue-router";
 
-import TAnimation from "@/components/common/Animation/TAnimation.vue";
 import CloseButton from "@/views/omni/Modals/CloseButton.vue";
 import TButton from "@/components/common/Button/TButton.vue";
 import { canManageUsers } from "@/methods/auth";
 import { AuthType, authType } from "@/methods";
 import TNotification from "@/components/common/Notification/TNotification.vue";
-import { copyText } from "vue3-clipboard";
 import TInput from "@/components/common/TInput/TInput.vue";
+
+import ServiceAccountKey from "./components/ServiceAccountKey.vue";
 
 const notification: Ref<Notification | null> = shallowRef(null);
 
@@ -63,8 +48,6 @@ const route = useRoute();
 
 const key = ref<string>();
 
-const showCopyButton = ref(false);
-const copyState = ref("Copy");
 const expiration = ref(365);
 
 const handleRenew = async () => {
@@ -77,22 +60,6 @@ const handleRenew = async () => {
   }
 
   showSuccess("Service Account Key Was Renewed", undefined, notification);
-};
-
-let timeout: NodeJS.Timeout
-
-const copyKey = () => {
-  copyText(key.value, undefined, () => {});
-
-  copyState.value = "Copied"
-
-  if (timeout !== undefined) {
-    clearTimeout(timeout);
-  }
-
-  timeout = setTimeout(() => {
-    copyState.value = "Copy"
-  }, 400);
 };
 
 let closed = false;

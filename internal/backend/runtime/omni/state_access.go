@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Sidero Labs, Inc.
+// Copyright (c) 2025 Sidero Labs, Inc.
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
@@ -433,6 +433,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.MachineStatusMetricsType,
 		omni.ClusterStatusMetricsType,
 		system.SysVersionType,
+		virtual.AdvertisedEndpointsType,
 		virtual.CurrentUserType,
 		virtual.ClusterPermissionsType,
 		virtual.PermissionsType:
@@ -561,6 +562,7 @@ func filterAccessByType(access state.Access) error {
 		system.ResourceLabelsType[*omni.MachineStatus](),
 		meta.NamespaceType,
 		meta.ResourceDefinitionType,
+		virtual.AdvertisedEndpointsType,
 		virtual.CurrentUserType,
 		virtual.PermissionsType,
 		virtual.KubernetesUsageType,
