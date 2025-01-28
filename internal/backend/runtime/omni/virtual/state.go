@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Sidero Labs, Inc.
+// Copyright (c) 2025 Sidero Labs, Inc.
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
@@ -25,6 +25,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
+	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
@@ -83,6 +84,8 @@ func (v *State) Get(ctx context.Context, ptr resource.Pointer, opts ...state.Get
 		return v.clusterPermissions(ctx, ptr)
 	case virtual.LabelsCompletionType:
 		return v.labelsCompletion(ctx, ptr)
+	case virtual.AdvertisedEndpointsType:
+		return v.advertisedEndpoints(ctx, ptr)
 	default:
 		return nil, errUnsupported(fmt.Errorf("unsupported resource type for get %q", ptr.Type()))
 	}
@@ -293,4 +296,16 @@ func (v *State) labelsCompletion(ctx context.Context, ptr resource.Pointer) (*vi
 	completion.TypedSpec().Value.Items = labels
 
 	return completion, nil
+}
+
+func (v *State) advertisedEndpoints(_ context.Context, ptr resource.Pointer) (*virtual.AdvertisedEndpoints, error) {
+	if ptr.ID() != virtual.AdvertisedEndpointsID {
+		return nil, fmt.Errorf("invalid endpoints id %q", ptr.ID())
+	}
+
+	res := virtual.NewAdvertisedEndpoints()
+
+	res.TypedSpec().Value.GrpcApiUrl = config.Config.APIURL
+
+	return res, nil
 }
