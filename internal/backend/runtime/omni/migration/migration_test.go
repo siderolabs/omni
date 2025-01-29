@@ -1723,6 +1723,25 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 		),
 	}
 
+	// Ensure we don't compress resources which are not in the running phase
+	thirdPatch := omni.NewClusterMachineConfigPatches(ns, "cluster-machine-config-patches-3")
+	thirdPatch.Metadata().SetPhase(resource.PhaseTearingDown)
+
+	checkMigrations = append(checkMigrations, startMigration(
+		ctx,
+		suite.T(),
+		suite.state,
+		thirdPatch,
+		func(t *testing.T, spec *omni.ClusterMachineConfigPatchesSpec) {
+			require.NoError(t, spec.Value.SetUncompressedPatches([]string{data2, data1}, disabled))
+		},
+		func(t *assert.Assertions, spec *omni.ClusterMachineConfigPatchesSpec) {
+			uncompressed := spec.Value.GetPatches()
+			t.Equal([]string{data2, data1}, uncompressed)
+			t.Empty(spec.Value.GetCompressedPatches())
+		},
+	))
+
 	require.NoError(suite.T(), suite.manager.Run(ctx, migration.WithFilter(filterWith("compressMachineConfigsAndPatches"))))
 
 	for _, check := range checkMigrations {

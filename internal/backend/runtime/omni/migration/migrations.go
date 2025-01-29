@@ -1370,6 +1370,10 @@ func compressUncompressed[
 		}
 
 		for val := range items.All() {
+			if val.Metadata().Phase() != resource.PhaseRunning {
+				continue
+			}
+
 			spec := val.TypedSpec()
 
 			if ok, uerr := update(spec); uerr != nil {
