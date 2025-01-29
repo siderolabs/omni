@@ -20,7 +20,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/siderolabs/go-loadbalancer/loadbalancer"
 	"github.com/siderolabs/go-loadbalancer/upstream"
-	"github.com/siderolabs/tcpproxy"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -57,11 +56,10 @@ type Reconciler struct {
 	clusterToAliasToLBStatus map[resource.ID]map[string]*lbStatus
 	aliasToCluster           map[string]resource.ID
 
-	connProvider *memconn.Provider
-	logger       *zap.Logger
-	lbLogger     *zap.Logger
-	logLevel     zapcore.Level
-	mu           sync.Mutex
+	logger   *zap.Logger
+	lbLogger *zap.Logger
+	logLevel zapcore.Level
+	mu       sync.Mutex
 }
 
 // NewReconciler creates a new Reconciler.
@@ -78,7 +76,6 @@ func NewReconciler(logger *zap.Logger, logLevel zapcore.Level) *Reconciler {
 	return &Reconciler{
 		clusterToAliasToLBStatus: map[resource.ID]map[string]*lbStatus{},
 		aliasToCluster:           map[string]resource.ID{},
-		connProvider:             provider,
 		logger:                   logger,
 		lbLogger:                 logger.WithOptions(zap.IncreaseLevel(zapcore.ErrorLevel)),
 		logLevel:                 logLevel,
@@ -123,10 +120,7 @@ func (registry *Reconciler) ensureLB(cluster resource.ID, alias string, upstream
 
 	if lbSts == nil { // no LB yet, create and start it
 		tcpLB := &loadbalancer.TCP{
-			Logger: registry.lbLogger,
-			Proxy: tcpproxy.Proxy{
-				ListenFunc: registry.connProvider.Listen,
-			},
+			Logger:         registry.lbLogger,
 			DialTimeout:    1 * time.Second,
 			TCPUserTimeout: 5 * time.Second,
 		}
@@ -195,9 +189,6 @@ func (registry *Reconciler) GetProxy(alias string) (http.Handler, resource.ID, e
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
-	proxy.Transport = &http.Transport{
-		DialContext: registry.connProvider.DialContext,
-	}
 
 	return proxy, clusterID, nil
 }
