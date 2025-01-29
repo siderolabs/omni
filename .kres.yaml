@@ -157,6 +157,7 @@ spec:
       - >-
         @hack/test/integration.sh
   ghaction:
+    condition: on-pull-request
     enabled: true
     sops: true
     artifacts:
