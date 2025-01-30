@@ -281,6 +281,7 @@ func (d *Service) updateEntryByMachineStatus(res *omni.MachineStatus) {
 
 	info := d.machineIDToInfo[res.Metadata().ID()]
 
+	info.ID = res.Metadata().ID()
 	info.TalosVersion = version
 	info.managementEndpoint = res.TypedSpec().Value.ManagementAddress
 
@@ -316,6 +317,8 @@ func (d *Service) deleteIdentityMappings(id resource.ID) {
 		d.nodenameToID.remove(info.Name, id)
 	}
 
+	info.Cluster = ""
+	info.Name = ""
 	info.address = ""
 
 	d.machineIDToInfo[id] = info

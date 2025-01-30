@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+//nolint:goconst
 package dns_test
 
 import (
@@ -115,7 +116,7 @@ func (suite *ServiceSuite) TestResolve() {
 	// destroy the identity, assert that it doesn't resolve anymore
 	suite.Require().NoError(suite.state.Destroy(suite.ctx, identity.Metadata()))
 
-	expected = dns.NewInfo(cluster, "test-1", "test-1-node", "")
+	expected = dns.NewInfo("", "test-1", "", "")
 	expected.TalosVersion = machineStatus.TypedSpec().Value.TalosVersion
 
 	// still resolves by the node id, but has an empty address
@@ -127,6 +128,49 @@ func (suite *ServiceSuite) TestResolve() {
 	suite.Require().NoError(suite.state.Destroy(suite.ctx, machineStatus.Metadata()))
 
 	suite.assertResolve("test-1", zeroInfo)
+}
+
+func (suite *ServiceSuite) TestResolveAllocateAndDeallocate() {
+	expected := dns.NewInfo("", "test-1", "", "")
+
+	expected.TalosVersion = "3.2.1"
+
+	// In the maintenance mode, we only have MachineStatus, so we start with that
+	// (means cache will be initialized with the data on MachineStatus and nothing else - no ClusterMachineIdentity)
+	machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, "test-1")
+
+	machineStatus.TypedSpec().Value.TalosVersion = "3.2.1"
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
+
+	suite.assertResolve("test-1", expected)
+
+	// allocate the machine to a cluster by creating a ClusterMachineIdentity
+
+	identity := omni.NewClusterMachineIdentity(resources.DefaultNamespace, "test-1")
+	identity.Metadata().Labels().Set(omni.LabelCluster, "test-cluster-1")
+
+	identity.TypedSpec().Value.Nodename = "test-1-node"
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, identity))
+
+	// assert that cluster information gets resolved
+
+	expected.Cluster = "test-cluster-1"
+	expected.Name = "test-1-node"
+
+	suite.assertResolve("test-1", expected)
+
+	// deallocate the machine by destroying the ClusterMachineIdentity
+
+	suite.Require().NoError(suite.state.Destroy(suite.ctx, identity.Metadata()))
+
+	// assert that the machine still resolves but the cluster information is gone
+
+	expected.Cluster = ""
+	expected.Name = ""
+
+	suite.assertResolve("test-1", expected)
 }
 
 func (suite *ServiceSuite) assertResolveAddress(cluster, node, expected string) {
