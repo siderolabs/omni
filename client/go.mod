@@ -5,13 +5,13 @@ go 1.23.4
 replace (
 	// forked go-yaml that introduces RawYAML interface, which can be used to populate YAML fields using bytes
 	// which are then encoded as a valid YAML blocks with proper indentiation
-	gopkg.in/yaml.v3 => github.com/unix4ever/yaml v0.0.0-20220527175918-f17b0f05cf2c
+	gopkg.in/yaml.v3 => github.com/unix4ever/yaml/v2 v2.4.0
 	// our fork for tcpproxy with fixes
 	inet.af/tcpproxy => github.com/smira/tcpproxy v0.0.0-20200125044825-b6bb9b5b8252
 )
 
 require (
-	github.com/ProtonMail/gopenpgp/v2 v2.8.2
+	github.com/ProtonMail/gopenpgp/v3 v3.1.2
 	github.com/adrg/xdg v0.5.3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
@@ -21,7 +21,7 @@ require (
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/google/uuid v1.6.0
 	github.com/gosuri/uiprogress v0.0.1
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.25.1
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/klauspost/compress v1.17.11
@@ -32,8 +32,8 @@ require (
 	github.com/siderolabs/go-api-signature v0.3.6
 	github.com/siderolabs/go-kubeconfig v0.1.0
 	github.com/siderolabs/go-pointer v1.0.0
-	github.com/siderolabs/image-factory v0.6.5
-	github.com/siderolabs/proto-codec v0.1.1
+	github.com/siderolabs/image-factory v0.6.6
+	github.com/siderolabs/proto-codec v0.1.2
 	github.com/siderolabs/talos/pkg/machinery v1.10.0-alpha.0
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.10.0
@@ -41,10 +41,10 @@ require (
 	go.uber.org/zap v1.27.0
 	golang.org/x/sync v0.10.0
 	golang.org/x/term v0.28.0
-	google.golang.org/grpc v1.69.4
-	google.golang.org/protobuf v1.36.3
+	google.golang.org/grpc v1.70.0
+	google.golang.org/protobuf v1.36.4
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/client-go v0.32.0
+	k8s.io/client-go v0.32.1
 )
 
 require (
