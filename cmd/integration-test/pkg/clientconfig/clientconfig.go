@@ -52,11 +52,10 @@ type clientOrError struct {
 	err    error
 }
 
-var clientCache = containers.ConcurrentMap[clientCacheKey, clientOrError]{}
-
 // ClientConfig is a test client.
 type ClientConfig struct {
-	endpoint string
+	endpoint    string
+	clientCache containers.ConcurrentMap[clientCacheKey, clientOrError]
 }
 
 // New creates a new test client config.
@@ -81,7 +80,8 @@ func (t *ClientConfig) GetClient(ctx context.Context, publicKeyOpts ...authcli.R
 func (t *ClientConfig) GetClientForEmail(ctx context.Context, email string, publicKeyOpts ...authcli.RegisterPGPPublicKeyOption) (*client.Client, error) {
 	cacheKey := t.buildCacheKey(email, publicKeyOpts)
 
-	cliOrErr, _ := clientCache.GetOrCall(cacheKey, func() clientOrError {
+	// The client is created by the cache callback, and will be closed by the cache on [ClientConfig.Close].
+	cliOrErr, _ := t.clientCache.GetOrCall(cacheKey, func() clientOrError {
 		if !constants.IsDebugBuild {
 			cli, err := createServiceAccountClient(ctx, t.endpoint, cacheKey)
 
@@ -113,7 +113,7 @@ func (t *ClientConfig) GetClientForEmail(ctx context.Context, email string, publ
 func (t *ClientConfig) Close() error {
 	var multiErr error
 
-	clientCache.ForEach(func(_ clientCacheKey, cliOrErr clientOrError) {
+	t.clientCache.ForEach(func(_ clientCacheKey, cliOrErr clientOrError) {
 		if cliOrErr.client != nil {
 			if err := cliOrErr.client.Close(); err != nil {
 				multiErr = multierror.Append(multiErr, err)
@@ -265,6 +265,8 @@ func createServiceAccountClient(ctx context.Context, endpoint string, cacheKey c
 	if err != nil {
 		return nil, err
 	}
+
+	defer rootClient.Close() //nolint:errcheck
 
 	name := fmt.Sprintf("%x", md5.Sum([]byte(cacheKey.email+cacheKey.role)))
 
