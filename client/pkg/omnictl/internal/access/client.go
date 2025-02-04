@@ -129,6 +129,8 @@ func WithClient(f func(ctx context.Context, client *client.Client) error, client
 			return err
 		}
 
+		defer client.Close() //nolint:errcheck
+
 		if !cliOpts.skipAuth {
 			// bootstrap the client, and perform auth/re-auth if needed via the unary call
 			// stream interceptor can't catch the auth error, as it comes async

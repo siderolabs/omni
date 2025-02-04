@@ -95,18 +95,27 @@ func (ctrl *MachineTeardownController) Reconcile(ctx context.Context, logger *za
 	return nil
 }
 
-func (ctrl *MachineTeardownController) resetMachine(ctx context.Context, r controller.QRuntime,
-	machineStatus *omni.MachineStatus, logger *zap.Logger,
+func (ctrl *MachineTeardownController) resetMachine(
+	ctx context.Context,
+	r controller.QRuntime,
+	machineStatus *omni.MachineStatus,
+	logger *zap.Logger,
 ) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 
-	client, err := ctrl.getClient(ctx, r, machineStatus)
+	c, err := ctrl.getClient(ctx, r, machineStatus)
 	if err != nil {
 		return err
 	}
 
-	disks, err := client.Disks(ctx)
+	defer func() {
+		if e := c.Close(); e != nil {
+			logger.Warn("failed to close reset-machine client", zap.Error(err))
+		}
+	}()
+
+	disks, err := c.Disks(ctx)
 	if err != nil {
 		logger.Warn("machine wipe check failed", zap.Error(err))
 
@@ -132,8 +141,7 @@ func (ctrl *MachineTeardownController) resetMachine(ctx context.Context, r contr
 	}
 
 	// try to wipe the machine without any attempts to retry it
-	err = client.Reset(ctx, false, false)
-	if err != nil {
+	if err = c.Reset(ctx, false, false); err != nil {
 		logger.Warn("machine wipe failed", zap.Error(err))
 
 		return nil

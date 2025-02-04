@@ -216,6 +216,10 @@ func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtua
 			if closeErr := defaultDiscoveryClient.Close(); closeErr != nil {
 				logger.Error("failed to close discovery client", zap.Error(closeErr))
 			}
+
+			if embeddedDiscoveryClient != nil {
+				embeddedDiscoveryClient.Close() //nolint:errcheck
+			}
 		}()
 
 		omniRuntime, err := omni.New(talosClientFactory, dnsService, workloadProxyReconciler, resourceLogger,
