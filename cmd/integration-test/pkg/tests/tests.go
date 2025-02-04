@@ -122,6 +122,8 @@ func Run(ctx context.Context, clientConfig *clientconfig.ClientConfig, options O
 		return err
 	}
 
+	defer rootClient.Close() //nolint:errcheck
+
 	talosAPIKeyPrepare := func(ctx context.Context, contextName string) error {
 		return clientconfig.TalosAPIKeyPrepare(ctx, rootClient, contextName)
 	}

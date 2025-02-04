@@ -46,17 +46,23 @@ func Example() {
 		"base64encodedkey", // From the generated service account.
 	))
 	if err != nil {
-		log.Fatalf("failed to create omni client %s", err)
+		log.Panicf("failed to create omni client %s", err)
 	}
 
 	// Omni service is using COSI https://github.com/cosi-project/runtime/.
 	// The same client is used to get resources in Talos.
 	st := client.Omni().State()
 
+	defer func() {
+		if e := client.Close(); e != nil {
+			log.Printf("failed to close client %s", e)
+		}
+	}()
+
 	// Getting the resources from the Omni state.
 	machines, err := safe.StateList[*omni.MachineStatus](ctx, st, omni.NewMachineStatus(resources.DefaultNamespace, "").Metadata())
 	if err != nil {
-		log.Fatalf("failed to get machines %s", err)
+		log.Panicf("failed to get machines %s", err)
 	}
 
 	var (
@@ -80,14 +86,20 @@ func Example() {
 	template := template.WithCluster("example.cluster")
 
 	if _, err = template.Sync(ctx, st); err != nil {
-		log.Fatalf("failed to sync cluster %s", err)
+		log.Panicf("failed to sync cluster %s", err)
+	}
+	if _, err = template.Sync(ctx, st); err != nil {
+		log.Panicf("failed to sync cluster %s", err)
 	}
 
 	log.Printf("sync cluster")
 
 	// Delete cluster.
 	if _, err = template.Delete(ctx, st); err != nil {
-		log.Fatalf("failed to delete the cluster %s", err)
+		log.Panicf("failed to delete the cluster %s", err)
+	}
+	if _, err = template.Delete(ctx, st); err != nil {
+		log.Panicf("failed to delete the cluster %s", err)
 	}
 
 	log.Printf("destroyed cluster")
@@ -107,7 +119,7 @@ func Example() {
 		machine.Metadata().ID(), // You can use machine UUID as Omni will properly resolve it into machine IP.
 	).CPUInfo(ctx, &emptypb.Empty{})
 	if err != nil {
-		log.Fatalf("failed to read machine CPU info %s", err)
+		log.Panicf("failed to read machine CPU info %s", err)
 	}
 
 	for _, message := range cpuInfo.Messages {
@@ -123,6 +135,6 @@ func Example() {
 	// Talking to Omni specific APIs: getting talosconfig.
 	_, err = client.Management().Talosconfig(ctx)
 	if err != nil {
-		log.Fatalf("failed to get talosconfig %s", err)
+		log.Panicf("failed to get talosconfig %s", err)
 	}
 }
