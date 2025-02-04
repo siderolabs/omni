@@ -93,6 +93,12 @@ func NewClusterBootstrapStatusController(etcdBackupStoreFactory store.Factory) *
 					return fmt.Errorf("error getting talos client for cluster '%s': %w", clusterStatus.Metadata().ID(), err)
 				}
 
+				defer func() {
+					if e := talosCli.Close(); e != nil {
+						logger.Error("failed to close talos client", zap.Error(e))
+					}
+				}()
+
 				bootstrapSpec := cpMachineSet.TypedSpec().Value.GetBootstrapSpec()
 				recoverEtcd := bootstrapSpec != nil
 

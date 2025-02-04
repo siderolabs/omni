@@ -327,5 +327,5 @@ func (spec IdentityCollectorTaskSpec) getClient(ctx context.Context) (*client.Cl
 		return nil, err
 	}
 
-	return c, err
+	return c, nil
 }

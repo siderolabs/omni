@@ -245,8 +245,7 @@ func (suite *GrpcSuite) TestCrud() {
 				} `json:"spec"`
 			}
 
-			e = json.Unmarshal([]byte(item), &data)
-			if e != nil {
+			if e = json.Unmarshal([]byte(item), &data); e != nil {
 				return e
 			}
 
