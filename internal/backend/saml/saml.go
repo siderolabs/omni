@@ -38,9 +38,10 @@ func NewHandler(state state.State, cfg *specs.AuthConfigSpec_SAML, logger *zap.L
 	}
 
 	opts := samlsp.Options{
-		URL:            *rootURL,
-		IDPMetadata:    idpMetadata,
-		LogoutBindings: []string{saml.HTTPPostBinding},
+		URL:               *rootURL,
+		IDPMetadata:       idpMetadata,
+		LogoutBindings:    []string{saml.HTTPPostBinding},
+		AllowIDPInitiated: true,
 	}
 
 	serviceProvider := samlsp.DefaultServiceProvider(opts)
