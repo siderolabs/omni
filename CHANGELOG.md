@@ -1,3 +1,35 @@
+## [Omni 0.46.2](https://github.com/siderolabs/omni/releases/tag/v0.46.2) (2025-02-05)
+
+Welcome to the v0.46.2 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Dmitriy Matrenichev
+* Artem Chernyshev
+* Utku Ozdemir
+
+### Changes
+<details><summary>4 commits</summary>
+<p>
+
+* [`ffd8929`](https://github.com/siderolabs/omni/commit/ffd892995ea62e1025d7986642630b17d96d3dc5) fix: enable IDP initiated SAML logins
+* [`1710ea0`](https://github.com/siderolabs/omni/commit/1710ea0e40d46102b84535e33c35cdc3a058a985) fix: don't forget to close grpc connections in tests
+* [`b6af6c7`](https://github.com/siderolabs/omni/commit/b6af6c7675b50522dfc6f53f3296f842afa1b7a3) fix: close grpc connections after their usage is complete
+* [`26ba403`](https://github.com/siderolabs/omni/commit/26ba403cbee057dd953c592645b9d7460f35c0f5) fix: fix node resolution cache for nodes in maintenance mode
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.46.1](https://github.com/siderolabs/omni/releases/tag/v0.46.1)
+
 ## [Omni 0.46.1](https://github.com/siderolabs/omni/releases/tag/v0.46.1) (2025-01-29)
 
 Welcome to the v0.46.1 release of Omni!
