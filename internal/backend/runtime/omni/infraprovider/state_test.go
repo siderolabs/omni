@@ -400,6 +400,59 @@ func TestEphemeralState(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestAdminOnlyRead(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	ctx = prepareInfraProviderServiceAccount(ctx)
+
+	logger := zaptest.NewLogger(t)
+	persistentState := namespaced.NewState(inmem.Build)
+	ephemeralState := namespaced.NewState(inmem.Build)
+	st := state.WrapCore(infraprovider.NewState(persistentState, ephemeralState, logger))
+
+	adminOnlyReadResource := infra.NewBMCConfig("test-bmc-config")
+
+	adminOnlyReadResource.Metadata().Labels().Set(omni.LabelInfraProviderID, infraProviderID)
+
+	require.NoError(t, persistentState.Create(ctx, adminOnlyReadResource))
+
+	// try to read it as an infra provider
+
+	_, err := st.Get(ctx, adminOnlyReadResource.Metadata())
+	assert.NoError(t, err)
+
+	// try to modify it as an infra provider
+
+	adminOnlyReadResource.Metadata().Labels().Set("foo", "bar")
+
+	err = st.Update(ctx, adminOnlyReadResource)
+	assert.Equal(t, codes.PermissionDenied, status.Code(err))
+	assert.ErrorContains(t, err, "infra providers are not allowed to update")
+
+	// try to read it with the reader role
+
+	ctx = prepareRole(ctx, role.Reader)
+
+	_, err = st.Get(ctx, adminOnlyReadResource.Metadata())
+	assert.Equal(t, codes.PermissionDenied, status.Code(err))
+	assert.ErrorContains(t, err, "only admins are allowed to read")
+
+	// try to read it with the admin role
+
+	ctx = prepareRole(ctx, role.Admin)
+
+	_, err = st.Get(ctx, adminOnlyReadResource.Metadata())
+	assert.NoError(t, err)
+
+	// try to modify it with the admin role
+
+	err = st.Update(ctx, adminOnlyReadResource)
+	assert.ErrorContains(t, err, "users are not allowed to modify")
+}
+
 type eventInfo struct {
 	ID   resource.ID
 	Type state.EventType
@@ -469,6 +522,15 @@ func prepareInfraProviderServiceAccount(ctx context.Context) context.Context {
 	ctx = ctxstore.WithValue(ctx, auth.IdentityContextKey{Identity: fullID})
 	ctx = ctxstore.WithValue(ctx, auth.VerifiedEmailContextKey{Email: fullID})
 	ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: role.InfraProvider})
+
+	return ctx
+}
+
+func prepareRole(ctx context.Context, role role.Role) context.Context {
+	ctx = ctxstore.WithValue(ctx, auth.EnabledAuthContextKey{Enabled: true})
+	ctx = ctxstore.WithValue(ctx, auth.IdentityContextKey{Identity: "admin@example.org"})
+	ctx = ctxstore.WithValue(ctx, auth.VerifiedEmailContextKey{Email: "admin@example.org"})
+	ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: role})
 
 	return ctx
 }
