@@ -77,3 +77,7 @@ export type InfraProviderHealthStatusSpec = {
   last_heartbeat_timestamp?: GoogleProtobufTimestamp.Timestamp
   error?: string
 }
+
+export type BMCConfigSpec = {
+  config?: SpecsOmni.InfraMachineBMCConfigSpec
+}

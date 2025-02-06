@@ -273,6 +273,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewClusterMachineRequestStatusController(),
 		omnictrl.NewMachineTeardownController(),
 		omnictrl.NewInfraMachineController(installEventCh),
+		omnictrl.NewBMCConfigController(),
 		omnictrl.NewInfraProviderConfigPatchController(),
 	}
 

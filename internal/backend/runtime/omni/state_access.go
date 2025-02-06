@@ -439,7 +439,13 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		virtual.PermissionsType:
 		// allow access with just valid signature
 		_, err = auth.CheckGRPC(ctx, auth.WithValidSignature(true))
-	case authres.IdentityType, authres.UserType, authres.SAMLLabelRuleType, authres.AccessPolicyType, omni.EtcdBackupS3ConfType:
+	case // admin-only resources
+		authres.IdentityType,
+		authres.UserType,
+		authres.SAMLLabelRuleType,
+		authres.AccessPolicyType,
+		omni.EtcdBackupS3ConfType,
+		omni.InfraMachineBMCConfigType:
 		var checkResult auth.CheckResult
 		// user management access
 		checkResult, err = auth.CheckGRPC(ctx, auth.WithRole(role.Admin))

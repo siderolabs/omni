@@ -315,15 +315,26 @@ func (st *State) checkAccess(ctx context.Context, ns resource.Namespace, resType
 
 		// return the infra provider ID only for the resource live in a shared namespace, i.e., "infra-provider"
 		// as their infra provider ID label needs to be checked.
+		infraProviderID := ""
 		if checkLabel {
-			return accessCheckResult{
-				infraProviderID: checkResult.InfraProviderID,
-				config:          config,
-				targetState:     targetState,
-			}, nil
+			infraProviderID = checkResult.InfraProviderID
 		}
-	} else if !isReadAccess { // not an infra provider, check for the read-only access
-		return accessCheckResult{}, status.Errorf(codes.PermissionDenied, "only infra providers are allowed to modify %q resources", resType)
+
+		return accessCheckResult{
+			infraProviderID: infraProviderID,
+			config:          config,
+			targetState:     targetState,
+		}, nil
+	}
+
+	// not an infra provider, run regular user checks
+
+	if !isReadAccess { // not an infra provider, check for the read-only access
+		return accessCheckResult{}, status.Errorf(codes.PermissionDenied, "users are not allowed to modify %q resources", resType)
+	}
+
+	if config.onlyAdminCanRead && checkResult.Role != role.Admin {
+		return accessCheckResult{}, status.Errorf(codes.PermissionDenied, "only admins are allowed to read %q resources", resType)
 	}
 
 	return accessCheckResult{
@@ -432,6 +443,7 @@ type resourceConfig struct {
 	readOnlyForProviders bool
 	ephemeral            bool
 	checkID              bool
+	onlyAdminCanRead     bool
 }
 
 // IsInfraProviderResource returns true if the given resource type is an infra provider specific resource.
@@ -471,6 +483,11 @@ func getResourceConfig(ns resource.Namespace, resType resource.Type) (config res
 		}, true
 	case infra.ConfigPatchRequestType:
 		return resourceConfig{}, true
+	case infra.BMCConfigType:
+		return resourceConfig{
+			onlyAdminCanRead:     true,
+			readOnlyForProviders: true,
+		}, true
 	default:
 		return resourceConfig{}, false
 	}

@@ -850,3 +850,19 @@ export type InfraMachineConfigSpec = {
   requested_reboot_id?: string
   cordoned?: boolean
 }
+
+export type InfraMachineBMCConfigSpecIPMI = {
+  address?: string
+  port?: number
+  username?: string
+  password?: string
+}
+
+export type InfraMachineBMCConfigSpecAPI = {
+  address?: string
+}
+
+export type InfraMachineBMCConfigSpec = {
+  ipmi?: InfraMachineBMCConfigSpecIPMI
+  api?: InfraMachineBMCConfigSpecAPI
+}

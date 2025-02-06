@@ -91,3 +91,7 @@ message InfraProviderHealthStatusSpec {
   google.protobuf.Timestamp last_heartbeat_timestamp = 1;
   string error = 2;
 }
+
+message BMCConfigSpec {
+  InfraMachineBMCConfigSpec config = 1;
+}
