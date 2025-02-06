@@ -1,3 +1,30 @@
+## [Omni 0.46.3](https://github.com/siderolabs/omni/releases/tag/v0.46.3) (2025-02-06)
+
+Welcome to the 0.46.3 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Dmitriy Matrenichev
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`3aca8a0`](https://github.com/siderolabs/omni/commit/3aca8a026ba562efbea2765cc5d21ce611871135) chore: omni enable config compression by default
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.46.2](https://github.com/siderolabs/omni/releases/tag/v0.46.2)
+
 ## [Omni 0.46.2](https://github.com/siderolabs/omni/releases/tag/v0.46.2) (2025-02-05)
 
 Welcome to the v0.46.2 release of Omni!
