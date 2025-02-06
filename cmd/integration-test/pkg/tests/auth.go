@@ -647,6 +647,11 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				isAdminOnly:    true,
 			},
 			{
+				resource:       omni.NewInfraMachineBMCConfig(uuid.New().String()),
+				allowedVerbSet: allVerbsSet,
+				isAdminOnly:    true,
+			},
+			{
 				resource:       cluster,
 				allowedVerbSet: allVerbsSet,
 			},

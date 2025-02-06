@@ -1296,3 +1296,19 @@ message InfraMachineConfigSpec {
   string requested_reboot_id = 4;
   bool cordoned = 5;
 }
+
+message InfraMachineBMCConfigSpec {
+  message IPMI {
+    string address = 1;
+    uint32 port = 2;
+    string username = 3;
+    string password = 4;
+  }
+
+  message API {
+    string address = 1;
+  }
+
+  IPMI ipmi = 1;
+  API api = 2;
+}
