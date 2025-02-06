@@ -297,7 +297,7 @@ var (
 		},
 
 		ConfigDataCompression: ConfigDataCompressionParams{
-			Enabled: false,
+			Enabled: true,
 		},
 
 		InitialServiceAccount: InitialServiceAccount{
