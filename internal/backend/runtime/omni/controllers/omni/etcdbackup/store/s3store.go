@@ -18,7 +18,6 @@ import (
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/credentials/ec2rolecreds"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -134,7 +133,7 @@ func (sf *S3StoreFactory) updateStore(ctx context.Context, st state.State, resou
 		return updateS3Status(ctx, st, err.Error())
 	}
 
-	sf.store = crypt.NewStore(s3store.NewStore(client, manager.NewUploader(client), bucket))
+	sf.store = crypt.NewStore(s3store.NewStore(client, bucket))
 	sf.bucket = bucket
 
 	logger.Debug("s3 store client is now set", zap.String("bucket", bucket))

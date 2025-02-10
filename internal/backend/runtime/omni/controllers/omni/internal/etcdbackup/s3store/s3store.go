@@ -23,17 +23,15 @@ import (
 
 // Store stores etcd backups in a specified S3 bucket.
 type Store struct {
-	client  *s3.Client
-	manager *manager.Uploader
-	bucket  string
+	client *s3.Client
+	bucket string
 }
 
 // NewStore initializes [Store].
-func NewStore(client *s3.Client, manager *manager.Uploader, bucket string) *Store {
+func NewStore(client *s3.Client, bucket string) *Store {
 	return &Store{
-		client:  client,
-		manager: manager,
-		bucket:  bucket,
+		client: client,
+		bucket: bucket,
 	}
 }
 
