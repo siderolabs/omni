@@ -41,6 +41,7 @@ type Server struct {
 type Handler interface {
 	HandleMessage(srcAddress netip.Addr, rawData []byte)
 	HandleError(srcAddress netip.Addr, err error)
+	HasLink(srcAddress netip.Addr) bool
 }
 
 // NewServer initializes new Server.
@@ -73,6 +74,19 @@ func (srv *Server) Serve() error {
 
 		remoteAddr, _ := netip.AddrFromSlice(srcAddr.IP)
 		remoteAddress := conn.RemoteAddr().String()
+
+		if !srv.handler.HasLink(remoteAddr) {
+			srv.logger.Warn(
+				"ignoring log handler connection attempt from the remote address: machine is not accepted yet",
+				zap.String("addr", remoteAddr.String()),
+			)
+
+			if err = conn.Close(); err != nil {
+				return err
+			}
+
+			continue
+		}
 
 		srv.wg.Add(1)
 		srv.m.Set(remoteAddress, conn)
@@ -141,6 +155,11 @@ func (ch *ConnHandler) HandleConn(addr netip.Addr, conn io.ReadCloser) {
 
 		ch.msgHandler.HandleMessage(addr, slice[:len(slice)-1])
 	}
+}
+
+// HasLink returns true if the instance has the link with the corresponding remote address.
+func (ch *ConnHandler) HasLink(addr netip.Addr) bool {
+	return ch.msgHandler.HasLink(addr)
 }
 
 func isTimeout(err error) bool {

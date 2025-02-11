@@ -90,6 +90,18 @@ func (h *LogHandler) Start(ctx context.Context) error {
 	}
 }
 
+// HasLink checks if the machine src address can be resolved into a siderolink.Link.
+func (h *LogHandler) HasLink(srcAddress netip.Addr) bool {
+	ip := srcAddress.String()
+	if ip == "" {
+		return false
+	}
+
+	_, err := h.Map.GetMachineID(ip)
+
+	return err == nil
+}
+
 // HandleMessage handles a log message.
 func (h *LogHandler) HandleMessage(srcAddress netip.Addr, rawData []byte) {
 	currentIP := srcAddress.String()

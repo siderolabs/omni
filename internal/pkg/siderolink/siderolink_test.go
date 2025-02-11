@@ -8,16 +8,20 @@ package siderolink_test
 import (
 	"context"
 	"errors"
+	"fmt"
+	"maps"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/controller/runtime"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
+	xmaps "github.com/siderolabs/gen/maps"
 	"github.com/siderolabs/gen/xtesting/must"
 	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/go-retry/retry"
@@ -36,6 +40,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/errgroup"
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
@@ -44,24 +49,15 @@ import (
 )
 
 type fakeWireguardHandler struct {
-	logger   *zap.Logger
-	loggerMu sync.Mutex
+	peers   map[string]wgtypes.Peer
+	peersMu sync.Mutex
 }
 
 func (h *fakeWireguardHandler) SetupDevice(wireguard.DeviceConfig) error {
 	return nil
 }
 
-func (h *fakeWireguardHandler) Run(ctx context.Context, logger *zap.Logger) error {
-	h.loggerMu.Lock()
-
-	unlock := sync.OnceFunc(h.loggerMu.Unlock)
-
-	defer unlock()
-
-	h.logger = logger
-
-	unlock()
+func (h *fakeWireguardHandler) Run(ctx context.Context, _ *zap.Logger) error {
 	<-ctx.Done()
 
 	return nil
@@ -72,21 +68,34 @@ func (h *fakeWireguardHandler) Shutdown() error {
 }
 
 func (h *fakeWireguardHandler) PeerEvent(_ context.Context, spec *specs.SiderolinkSpec, deleted bool) error {
-	h.loggerMu.Lock()
-	defer h.loggerMu.Unlock()
+	h.peersMu.Lock()
+	defer h.peersMu.Unlock()
 
-	msg := "updated peer"
 	if deleted {
-		msg = "removed peer"
-	}
+		delete(h.peers, spec.NodePublicKey)
+	} else {
+		if _, ok := h.peers[spec.NodePublicKey]; ok {
+			return fmt.Errorf("peer already exists")
+		}
 
-	h.logger.Info(msg, zap.String("public_key", spec.NodePublicKey), zap.String("address", spec.NodeSubnet))
+		h.peers[spec.NodePublicKey] = wgtypes.Peer{}
+	}
 
 	return nil
 }
 
 func (h *fakeWireguardHandler) Peers() ([]wgtypes.Peer, error) {
-	return []wgtypes.Peer{}, nil
+	h.peersMu.Lock()
+	defer h.peersMu.Unlock()
+
+	return xmaps.Values(h.peers), nil
+}
+
+func (h *fakeWireguardHandler) GetPeersMap() map[string]wgtypes.Peer {
+	h.peersMu.Lock()
+	defer h.peersMu.Unlock()
+
+	return maps.Clone(h.peers)
 }
 
 type SiderolinkSuite struct {
@@ -97,6 +106,7 @@ type SiderolinkSuite struct {
 
 	state   state.State
 	manager *sideromanager.Manager
+	runtime *runtime.Runtime
 	address string
 
 	wg sync.WaitGroup
@@ -115,12 +125,34 @@ func (suite *SiderolinkSuite) SetupTest() {
 
 	var err error
 
+	wgHandler := &fakeWireguardHandler{
+		peers: map[string]wgtypes.Peer{},
+	}
+
 	eventHandler := machineevent.NewHandler(suite.state, zaptest.NewLogger(suite.T()), make(chan *omni.MachineStatusSnapshot), nil)
 
-	suite.manager, err = sideromanager.NewManager(suite.ctx, suite.state, &fakeWireguardHandler{}, params, zaptest.NewLogger(suite.T()), nil, eventHandler, nil)
+	suite.manager, err = sideromanager.NewManager(suite.ctx, suite.state, wgHandler, params, zaptest.NewLogger(suite.T()), nil, eventHandler, nil)
 	suite.Require().NoError(err)
 
 	suite.startManager(params)
+
+	logger := zaptest.NewLogger(suite.T())
+
+	suite.runtime, err = runtime.NewRuntime(suite.state, logger)
+	suite.Require().NoError(err)
+
+	suite.wg.Add(1)
+
+	peers := sideromanager.NewPeersPool(logger, wgHandler)
+
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewLinkStatusController[*siderolink.PendingMachine](peers)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewLinkStatusController[*siderolink.Link](peers)))
+
+	go func() {
+		defer suite.wg.Done()
+
+		suite.Assert().NoError(suite.runtime.Run(suite.ctx))
+	}()
 }
 
 func (suite *SiderolinkSuite) startManager(params sideromanager.Params) {
@@ -164,7 +196,7 @@ func (suite *SiderolinkSuite) TestNodes() {
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*2)
 	defer cancel()
 
-	rtestutils.AssertResources[*siderolink.Config](ctx, suite.T(), suite.state, []string{
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{
 		siderolink.ConfigID,
 	}, func(r *siderolink.Config, assertion *assert.Assertions) {
 		assertion.NotEmpty(r.TypedSpec().Value.JoinToken)
@@ -172,7 +204,7 @@ func (suite *SiderolinkSuite) TestNodes() {
 		assertion.NotEmpty(r.TypedSpec().Value.PublicKey)
 	})
 
-	rtestutils.AssertResources[*siderolink.ConnectionParams](ctx, suite.T(), suite.state, []string{
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{
 		siderolink.ConfigID,
 	}, func(r *siderolink.ConnectionParams, assertion *assert.Assertions) {
 		assertion.NotEmpty(r.TypedSpec().Value.Args)
@@ -192,9 +224,11 @@ func (suite *SiderolinkSuite) TestNodes() {
 	suite.Require().NoError(err)
 
 	resp, err := client.Provision(suite.ctx, &pb.ProvisionRequest{
-		NodeUuid:      "testnode",
-		NodePublicKey: privateKey.PublicKey().String(),
-		JoinToken:     &spec.JoinToken,
+		NodeUuid:        "testnode",
+		NodePublicKey:   privateKey.PublicKey().String(),
+		JoinToken:       &spec.JoinToken,
+		TalosVersion:    pointer.To("v1.9.0"),
+		NodeUniqueToken: pointer.To("aaaa"),
 	})
 
 	suite.Require().NoError(err)
@@ -221,9 +255,11 @@ func (suite *SiderolinkSuite) TestNodes() {
 	)
 
 	reprovision, err := client.Provision(suite.ctx, &pb.ProvisionRequest{
-		NodeUuid:      "testnode",
-		NodePublicKey: privateKey.PublicKey().String(),
-		JoinToken:     &spec.JoinToken,
+		NodeUuid:        "testnode",
+		NodePublicKey:   privateKey.PublicKey().String(),
+		JoinToken:       &spec.JoinToken,
+		TalosVersion:    pointer.To("v1.9.0"),
+		NodeUniqueToken: pointer.To("aaaa"),
 	})
 
 	suite.Assert().NoError(err)
@@ -233,9 +269,11 @@ func (suite *SiderolinkSuite) TestNodes() {
 	suite.Assert().NoError(err)
 
 	reprovision, err = client.Provision(suite.ctx, &pb.ProvisionRequest{
-		NodeUuid:      "testnode",
-		NodePublicKey: privateKey.PublicKey().String(),
-		JoinToken:     &spec.JoinToken,
+		NodeUuid:        "testnode",
+		NodePublicKey:   privateKey.PublicKey().String(),
+		JoinToken:       &spec.JoinToken,
+		TalosVersion:    pointer.To("v1.9.0"),
+		NodeUniqueToken: pointer.To("aaaa"),
 	})
 
 	suite.Assert().NoError(err)
@@ -252,7 +290,7 @@ func (suite *SiderolinkSuite) TestNodeWithSeveralAdvertisedIPs() {
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*2)
 	defer cancel()
 
-	rtestutils.AssertResources[*siderolink.ConnectionParams](ctx, suite.T(), suite.state, []string{
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{
 		siderolink.ConfigID,
 	}, func(r *siderolink.ConnectionParams, assertion *assert.Assertions) {
 		assertion.NotEmpty(r.TypedSpec().Value.Args)
@@ -269,9 +307,11 @@ func (suite *SiderolinkSuite) TestNodeWithSeveralAdvertisedIPs() {
 	resp := must.Value(client.Provision(
 		suite.ctx,
 		&pb.ProvisionRequest{
-			NodeUuid:      "testnode",
-			NodePublicKey: privateKey.PublicKey().String(),
-			JoinToken:     &spec.JoinToken,
+			NodeUuid:        "testnode",
+			NodePublicKey:   privateKey.PublicKey().String(),
+			JoinToken:       &spec.JoinToken,
+			TalosVersion:    pointer.To("v1.9.0"),
+			NodeUniqueToken: pointer.To("aaaa"),
 		},
 	))(suite.T())
 
@@ -284,7 +324,7 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*2)
 	defer cancel()
 
-	rtestutils.AssertResources[*siderolink.Config](ctx, suite.T(), suite.state, []string{
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{
 		siderolink.ConfigID,
 	}, func(r *siderolink.Config, assertion *assert.Assertions) {
 		assertion.NotEmpty(r.TypedSpec().Value.JoinToken)
@@ -292,7 +332,7 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 		assertion.NotEmpty(r.TypedSpec().Value.PublicKey)
 	})
 
-	rtestutils.AssertResources[*siderolink.ConnectionParams](ctx, suite.T(), suite.state, []string{
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{
 		siderolink.ConfigID,
 	}, func(r *siderolink.ConnectionParams, assertion *assert.Assertions) {
 		assertion.NotEmpty(r.TypedSpec().Value.Args)
@@ -316,6 +356,8 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 		NodePublicKey:     privateKey.PublicKey().String(),
 		JoinToken:         &spec.JoinToken,
 		WireguardOverGrpc: pointer.To(true),
+		TalosVersion:      pointer.To("v1.9.0"),
+		NodeUniqueToken:   pointer.To("aaaa"),
 	})
 
 	suite.Require().NoError(err)
@@ -346,9 +388,11 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 	)
 
 	reprovision, err := client.Provision(suite.ctx, &pb.ProvisionRequest{
-		NodeUuid:      "testnode",
-		NodePublicKey: privateKey.PublicKey().String(),
-		JoinToken:     &spec.JoinToken,
+		NodeUuid:        "testnode",
+		NodePublicKey:   privateKey.PublicKey().String(),
+		JoinToken:       &spec.JoinToken,
+		TalosVersion:    pointer.To("v1.9.0"),
+		NodeUniqueToken: pointer.To("aaaa"),
 	})
 
 	expectedResp := resp.CloneVT()
@@ -363,9 +407,11 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 	suite.Assert().NoError(err)
 
 	reprovision, err = client.Provision(suite.ctx, &pb.ProvisionRequest{
-		NodeUuid:      "testnode",
-		NodePublicKey: privateKey.PublicKey().String(),
-		JoinToken:     &spec.JoinToken,
+		NodeUuid:        "testnode",
+		NodePublicKey:   privateKey.PublicKey().String(),
+		JoinToken:       &spec.JoinToken,
+		TalosVersion:    pointer.To("v1.9.0"),
+		NodeUniqueToken: pointer.To("aaaa"),
 	})
 
 	suite.Assert().NoError(err)
@@ -381,7 +427,11 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 		NodePublicKey:     privateKey.PublicKey().String(),
 		JoinToken:         &spec.JoinToken,
 		WireguardOverGrpc: pointer.To(true),
+		TalosVersion:      pointer.To("v1.9.0"),
+		NodeUniqueToken:   pointer.To("aaaa"),
 	})
+
+	suite.Require().NoError(err)
 
 	resp.GrpcPeerAddrPort = reprovision.GrpcPeerAddrPort
 	resp.ServerEndpoint = reprovision.ServerEndpoint

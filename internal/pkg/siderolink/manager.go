@@ -15,7 +15,6 @@ import (
 	"net/netip"
 	"os"
 	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
@@ -25,7 +24,6 @@ import (
 	"github.com/jxskiss/base62"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/siderolabs/gen/channel"
-	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/go-retry/retry"
 	eventsapi "github.com/siderolabs/siderolink/api/events"
 	pb "github.com/siderolabs/siderolink/api/siderolink"
@@ -40,18 +38,11 @@ import (
 	"golang.zx2c4.com/wireguard/conn"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/peer"
-	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/constants"
-	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
-	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/errgroup"
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
@@ -114,6 +105,11 @@ func NewManager(
 		allowedPeers:  wggrpc.NewAllowedPeers(),
 		peerTraffic:   wgbind.NewPeerTraffic(maxPendingClientMessages),
 		virtualPrefix: wireguard.VirtualNetworkPrefix(),
+		provisionServer: NewProvisionHandler(
+			logger,
+			state,
+			config.Config.DisableLegacyJoinTokens,
+		),
 	}
 
 	nodePrefix := wireguard.NetworkPrefix("")
@@ -135,13 +131,13 @@ func NewManager(
 
 // Manager sets up Siderolink server, manages it's state.
 type Manager struct {
-	pb.UnimplementedProvisionServiceServer
 	config              *siderolink.Config
 	logger              *zap.Logger
 	state               state.State
 	wgHandler           WireguardHandler
 	logHandler          *LogHandler
 	machineEventHandler *machineevent.Handler
+	provisionServer     *ProvisionHandler
 
 	metricBytesReceived prometheus.Counter
 	metricBytesSent     prometheus.Counter
@@ -252,7 +248,7 @@ func createListener(ctx context.Context, host, port string) (net.Listener, error
 
 // Register implements controller.Manager interface.
 func (manager *Manager) Register(server *grpc.Server) {
-	pb.RegisterProvisionServiceServer(server, manager)
+	pb.RegisterProvisionServiceServer(server, manager.provisionServer)
 	pb.RegisterWireGuardOverGRPCServiceServer(server, wggrpc.NewService(manager.peerTraffic, manager.allowedPeers, manager.logger))
 }
 
@@ -274,7 +270,9 @@ func (manager *Manager) Run(
 
 	eg.Go(func() error { return manager.pollWireguardPeers(groupCtx) })
 
-	eg.Go(func() error { return manager.cleanupDestroyedLinks(groupCtx) })
+	eg.Go(func() error {
+		return manager.provisionServer.runCleanup(groupCtx)
+	})
 
 	if listenHost == "" {
 		listenHost = manager.serverAddr.Addr().String()
@@ -448,21 +446,8 @@ func (manager *Manager) startLogServer(ctx context.Context, eg *errgroup.Group, 
 	return nil
 }
 
-//nolint:gocognit,gocyclo,cyclop
+//nolint:gocognit
 func (manager *Manager) pollWireguardPeers(ctx context.Context) error {
-	links, err := safe.StateListAll[*siderolink.Link](ctx, manager.state)
-	if err != nil {
-		return err
-	}
-
-	for link := range links.All() {
-		spec := link.TypedSpec().Value
-
-		if err = manager.wgHandler.PeerEvent(ctx, spec, false); err != nil {
-			return err
-		}
-	}
-
 	ticker := time.NewTicker(time.Second * 30)
 
 	defer ticker.Stop()
@@ -575,34 +560,6 @@ func (manager *Manager) pollWireguardPeers(ctx context.Context) error {
 	}
 }
 
-func (manager *Manager) cleanupDestroyedLinks(ctx context.Context) error {
-	events := make(chan state.Event)
-
-	md := resource.NewMetadata(resources.DefaultNamespace, siderolink.LinkType, "", resource.VersionUndefined)
-
-	if err := manager.state.WatchKind(ctx, md, events); err != nil {
-		return err
-	}
-
-	for {
-		select {
-		case event := <-events:
-			if event.Type == state.Destroyed {
-				link, ok := event.Resource.(*siderolink.Link)
-				if !ok {
-					return fmt.Errorf("failed to cast resource to siderolink.Link type")
-				}
-
-				if err := manager.wgHandler.PeerEvent(ctx, link.TypedSpec().Value, true); err != nil {
-					return err
-				}
-			}
-		case <-ctx.Done():
-			return nil
-		}
-	}
-}
-
 func (manager *Manager) updateConnectionParams(ctx context.Context, siderolinkConfig *siderolink.Config, eventSinkPort string) error {
 	connectionParams := siderolink.NewConnectionParams(
 		resources.DefaultNamespace,
@@ -655,196 +612,6 @@ func (manager *Manager) updateConnectionParams(ctx context.Context, siderolinkCo
 	}
 
 	return nil
-}
-
-type isDirty bool
-
-// getLink will return either the existing Link for the requesting node or a new Link.
-func (manager *Manager) getLink(ctx context.Context, req *pb.ProvisionRequest, id string) (*siderolink.Link, isDirty, error) {
-	res, err := safe.StateGet[*siderolink.Link](ctx, manager.state, resource.NewMetadata(siderolink.Namespace, siderolink.LinkType, id, resource.VersionUndefined))
-	if state.IsNotFoundError(err) {
-		if manager.wgConfig().JoinToken == "" {
-			return nil, false, status.Error(codes.PermissionDenied, "cannot accept new nodes if no join token is set")
-		}
-
-		if req.JoinToken == nil {
-			return nil, false, status.Error(codes.PermissionDenied, "empty join token")
-		}
-
-		var token jointoken.JoinToken
-
-		token, err = jointoken.Parse(*req.JoinToken)
-		if err != nil {
-			return nil, false, status.Errorf(codes.PermissionDenied, "invalid join token %s", err)
-		}
-
-		if !token.IsValid(manager.wgConfig().JoinToken) {
-			return nil, false, status.Error(codes.PermissionDenied, "invalid join token")
-		}
-
-		var spec *specs.SiderolinkSpec
-
-		spec, err = manager.generateLinkSpec(req)
-		if err != nil {
-			return nil, false, err
-		}
-
-		spec.Connected = true
-
-		link := siderolink.NewLink(siderolink.Namespace, id, spec)
-
-		if value, ok := token.ExtraData[omni.LabelInfraProviderID]; ok {
-			link.Metadata().Annotations().Set(omni.LabelInfraProviderID, value)
-		}
-
-		if err = manager.state.Create(ctx, link); err != nil {
-			return nil, false, err
-		}
-
-		return link, true, nil
-	}
-
-	return res, false, err
-}
-
-func getRemoteAddr(ctx context.Context) string {
-	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		if vals := md.Get("X-Forwarded-For"); vals != nil {
-			return vals[0]
-		}
-	}
-
-	p, ok := peer.FromContext(ctx)
-	if !ok {
-		return ""
-	}
-
-	return p.Addr.String()
-}
-
-// Provision the SideroLink.
-func (manager *Manager) Provision(ctx context.Context, req *pb.ProvisionRequest) (*pb.ProvisionResponse, error) {
-	ctx = actor.MarkContextAsInternalActor(ctx)
-
-	link, dirty, err := manager.getLink(ctx, req, req.NodeUuid)
-	if err != nil {
-		return nil, err
-	}
-
-	remoteAddr := getRemoteAddr(ctx)
-
-	host, _, err := net.SplitHostPort(remoteAddr)
-	if err != nil {
-		host = remoteAddr
-	}
-
-	spec := link.TypedSpec().Value
-
-	if spec.NodePublicKey != req.NodePublicKey || tunnelStatusChanged(req, link) {
-		if _, err = safe.StateUpdateWithConflicts(ctx, manager.state, link.Metadata(), func(r *siderolink.Link) error {
-			s := r.TypedSpec().Value
-
-			if err = manager.wgHandler.PeerEvent(ctx, s, true); err != nil {
-				return err
-			}
-
-			s.NodePublicKey = req.NodePublicKey
-			s.VirtualAddrport, err = manager.generateVirtualAddrPort(pointer.SafeDeref(req.WireguardOverGrpc))
-			if err != nil {
-				return err
-			}
-
-			spec = s
-
-			return nil
-		}); err != nil {
-			return nil, err
-		}
-
-		dirty = true
-	}
-
-	if spec.RemoteAddr != host {
-		if _, err = safe.StateUpdateWithConflicts(ctx, manager.state, link.Metadata(), func(r *siderolink.Link) error {
-			r.TypedSpec().Value.RemoteAddr = host
-
-			return nil
-		}); err != nil {
-			return nil, err
-		}
-	}
-
-	if dirty {
-		if err = manager.wgHandler.PeerEvent(ctx, spec, false); err != nil {
-			return nil, err
-		}
-	}
-
-	endpoint := manager.wgConfig().WireguardEndpoint
-	if manager.wgConfig().AdvertisedEndpoint != "" {
-		endpoint = manager.wgConfig().AdvertisedEndpoint
-	}
-
-	// If the virtual address is set, use it as the endpoint to prevent the client from connecting to the actual WG endpoint
-	if spec.VirtualAddrport != "" {
-		endpoint = spec.VirtualAddrport
-	}
-
-	endpoints := strings.Split(endpoint, ",")
-
-	return &pb.ProvisionResponse{
-		ServerEndpoint:    pb.MakeEndpoints(endpoints...),
-		ServerPublicKey:   manager.wgConfig().PublicKey,
-		NodeAddressPrefix: spec.NodeSubnet,
-		ServerAddress:     manager.wgConfig().ServerAddress,
-		GrpcPeerAddrPort:  spec.VirtualAddrport,
-	}, nil
-}
-
-func tunnelStatusChanged(req *pb.ProvisionRequest, link *siderolink.Link) bool {
-	wgOverGRPC := pointer.SafeDeref(req.WireguardOverGrpc)
-	virtualAddrPort := link.TypedSpec().Value.VirtualAddrport
-
-	return wgOverGRPC == (virtualAddrPort == "")
-}
-
-func (manager *Manager) generateLinkSpec(req *pb.ProvisionRequest) (*specs.SiderolinkSpec, error) {
-	nodePrefix := netip.MustParsePrefix(manager.wgConfig().Subnet)
-
-	// generated random address for the node
-	nodeAddress, err := wireguard.GenerateRandomNodeAddr(nodePrefix)
-	if err != nil {
-		return nil, fmt.Errorf("error generating random node address: %w", err)
-	}
-
-	pubKey, err := wgtypes.ParseKey(req.NodePublicKey)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("error parsing Wireguard key: %s", err))
-	}
-
-	virtualAddrPort, err := manager.generateVirtualAddrPort(pointer.SafeDeref(req.WireguardOverGrpc))
-	if err != nil {
-		return nil, err
-	}
-
-	return &specs.SiderolinkSpec{
-		NodeSubnet:      nodeAddress.String(),
-		NodePublicKey:   pubKey.String(),
-		VirtualAddrport: virtualAddrPort,
-	}, nil
-}
-
-func (manager *Manager) generateVirtualAddrPort(generate bool) (string, error) {
-	if !generate {
-		return "", nil
-	}
-
-	generated, err := wireguard.GenerateRandomNodeAddr(manager.virtualPrefix)
-	if err != nil {
-		return "", fmt.Errorf("error generating random virtual node address: %w", err)
-	}
-
-	return net.JoinHostPort(generated.Addr().String(), "50889"), nil
 }
 
 // Describe implements prom.Collector interface.

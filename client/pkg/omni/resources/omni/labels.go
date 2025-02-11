@@ -184,6 +184,9 @@ const (
 	// MachineStatusLabelInstalled means that Talos is installed on the machine.
 	// tsgen:MachineStatusLabelInstalled
 	MachineStatusLabelInstalled = SystemLabelPrefix + "installed"
+
+	// MachineUUID is set on the PendingMachine resource.
+	MachineUUID = SystemLabelPrefix + "machine-uuid"
 )
 
 const (

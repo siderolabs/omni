@@ -979,6 +979,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
+				resource:       siderolink.NewLinkStatus(siderolink.NewLink(resources.DefaultNamespace, uuid.NewString(), nil)),
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
 				resource:       omni.NewMachineRequestSetStatus(resources.DefaultNamespace, uuid.New().String()),
 				allowedVerbSet: allVerbsSet,
 			},
@@ -1034,6 +1038,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			{
 				resource: omni.NewBackupData(uuid.New().String()),
 			},
+			{
+				resource: siderolink.NewPendingMachineStatus(uuid.NewString()),
+			},
 		}...)
 
 		// custom resources
@@ -1041,6 +1048,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		testCases = append(testCases, []resourceAuthzTestCase{
 			{
 				resource:       siderolink.NewLink(resources.DefaultNamespace, uuid.New().String(), &specs.SiderolinkSpec{}),
+				allowedVerbSet: xslices.ToSet([]state.Verb{state.Get, state.List, state.Update, state.Destroy}),
+			},
+			{
+				resource:       siderolink.NewPendingMachine(uuid.New().String(), &specs.SiderolinkSpec{}),
 				allowedVerbSet: xslices.ToSet([]state.Verb{state.Get, state.List, state.Update, state.Destroy}),
 			},
 		}...)

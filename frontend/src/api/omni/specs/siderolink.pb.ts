@@ -22,6 +22,14 @@ export type SiderolinkSpec = {
   connected?: boolean
   virtual_addrport?: string
   remote_addr?: string
+  node_unique_token?: string
+}
+
+export type LinkStatusSpec = {
+  node_subnet?: string
+  node_public_key?: string
+  virtual_addrport?: string
+  link_id?: string
 }
 
 export type SiderolinkCounterSpec = {
@@ -38,4 +46,8 @@ export type ConnectionParamsSpec = {
   use_grpc_tunnel?: boolean
   events_port?: number
   logs_port?: number
+}
+
+export type PendingMachineStatusSpec = {
+  token?: string
 }

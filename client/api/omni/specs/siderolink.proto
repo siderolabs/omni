@@ -28,6 +28,19 @@ message SiderolinkSpec {
   // RemoteAddr is the machine address how it's visible from Omni
   // it is determined by reading X-Forwarded-For header coming from the gRPC API.
   string remote_addr = 8;
+  // NodeUniqueToken is the per node join token which is saved in the Node META partition after
+  // the machine is accepted in Omni.
+  // Only for Talos >= 1.6.
+  string node_unique_token = 9;
+}
+
+// LinkStatusSpec is created when the link peer event was submitted.
+message LinkStatusSpec {
+  string node_subnet = 1;
+  string node_public_key = 2;
+  string virtual_addrport = 3;
+  // LinkId is the ID of the resource which created the link status.
+  string link_id = 4;
 }
 
 // SiderolinkConnectionSpec describes each node connection information.
@@ -54,4 +67,9 @@ message ConnectionParamsSpec {
   int32 events_port = 9;
   // LogsPort is the logs port.
   int32 logs_port = 10;
+}
+
+// PendingMachineStatusSpec describes the spec of the pending machine status resource.
+message PendingMachineStatusSpec {
+  string token = 1;
 }

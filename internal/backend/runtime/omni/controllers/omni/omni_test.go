@@ -75,6 +75,7 @@ type machineService struct {
 	etcdLeaveClusterHandler func(context.Context, *machine.EtcdLeaveClusterRequest) (*machine.EtcdLeaveClusterResponse, error)
 
 	metaDeleteKeyToCount map[uint32]int
+	metaKeys             map[uint32]string
 
 	address string
 	state   state.State
@@ -99,6 +100,13 @@ func (ms *machineService) getMetaDeleteKeyToCount() map[uint32]int {
 	defer ms.lock.Unlock()
 
 	return maps.Clone(ms.metaDeleteKeyToCount)
+}
+
+func (ms *machineService) getMetaKeys() map[uint32]string {
+	ms.lock.Lock()
+	defer ms.lock.Unlock()
+
+	return maps.Clone(ms.metaKeys)
 }
 
 func (ms *machineService) ApplyConfiguration(_ context.Context, req *machine.ApplyConfigurationRequest) (*machine.ApplyConfigurationResponse, error) {
@@ -287,6 +295,19 @@ func (ms *machineService) ServiceList(context.Context, *emptypb.Empty) (*machine
 	return ms.serviceList, nil
 }
 
+func (ms *machineService) MetaWrite(_ context.Context, req *machine.MetaWriteRequest) (*machine.MetaWriteResponse, error) {
+	ms.lock.Lock()
+	defer ms.lock.Unlock()
+
+	if ms.metaKeys == nil {
+		ms.metaKeys = map[uint32]string{}
+	}
+
+	ms.metaKeys[req.Key] = string(req.Value)
+
+	return &machine.MetaWriteResponse{}, nil
+}
+
 func (ms *machineService) MetaDelete(_ context.Context, req *machine.MetaDeleteRequest) (*machine.MetaDeleteResponse, error) {
 	ms.lock.Lock()
 	defer ms.lock.Unlock()
@@ -296,6 +317,8 @@ func (ms *machineService) MetaDelete(_ context.Context, req *machine.MetaDeleteR
 	}
 
 	ms.metaDeleteKeyToCount[req.Key]++
+
+	delete(ms.metaKeys, req.Key)
 
 	return &machine.MetaDeleteResponse{}, nil
 }
@@ -326,7 +349,7 @@ type OmniSuite struct { //nolint:govet
 // to avoid clashing with other parallel test runs.
 // This server is used as a fake endpoint for each node we create for the cluster.
 // The single server is used for all nodes.
-func (suite *OmniSuite) newServer(suffix string, opts ...grpc.ServerOption) (*machineService, error) {
+func (suite *OmniSuite) newServer(suffix string) (*machineService, error) {
 	address := suite.socketPath + suffix
 
 	listener, err := net.Listen("unix", address)
@@ -334,7 +357,7 @@ func (suite *OmniSuite) newServer(suffix string, opts ...grpc.ServerOption) (*ma
 		return nil, err
 	}
 
-	machineServer := grpc.NewServer(opts...)
+	machineServer := grpc.NewServer()
 	suite.grpcServers = append(suite.grpcServers, machineServer)
 
 	st, err := newTalosState(suite.ctx)

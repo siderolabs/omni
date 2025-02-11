@@ -228,6 +228,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 	}
 
 	imageFactoryHost := imageFactoryBaseURL.Host
+	peers := siderolink.NewPeersPool(logger, siderolink.DefaultWireguardHandler)
 
 	qcontrollers := []controller.QController{
 		destroy.NewController[*siderolinkresources.Link](optional.Some[uint](4)),
@@ -275,6 +276,9 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewInfraMachineController(installEventCh),
 		omnictrl.NewBMCConfigController(),
 		omnictrl.NewInfraProviderConfigPatchController(),
+		omnictrl.NewLinkStatusController[*siderolinkresources.Link](peers),
+		omnictrl.NewLinkStatusController[*siderolinkresources.PendingMachine](peers),
+		omnictrl.NewPendingMachineStatusController(),
 	}
 
 	if config.Config.Auth.SAML.Enabled {
