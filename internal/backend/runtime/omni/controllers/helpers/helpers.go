@@ -9,8 +9,10 @@ package helpers
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -20,8 +22,11 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
+	"github.com/siderolabs/talos/pkg/machinery/client"
 
+	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
 // InputResourceVersionAnnotation is the annotation name where the inputs version sha is stored.
@@ -189,4 +194,55 @@ func HandleInput[T generic.ResourceWithRD, S generic.ResourceWithRD](ctx context
 	}
 
 	return res, nil
+}
+
+// GetTalosClient for the machine id.
+// Automatically pick secure or insecure client.
+func GetTalosClient[T generic.ResourceWithRD](ctx context.Context, r controller.Reader, address string, machine T) (*client.Client, error) {
+	opts := talos.GetSocketOptions(address)
+
+	createInsecureClient := func() (*client.Client, error) {
+		return client.New(ctx,
+			append(
+				opts,
+				client.WithTLSConfig(&tls.Config{
+					InsecureSkipVerify: true,
+				}),
+				client.WithEndpoints(address),
+			)...)
+	}
+
+	if reflect.ValueOf(machine).IsNil() {
+		return createInsecureClient()
+	}
+
+	clusterName, ok := machine.Metadata().Labels().Get(omni.LabelCluster)
+	if !ok {
+		return createInsecureClient()
+	}
+
+	talosConfig, err := safe.ReaderGet[*omni.TalosConfig](ctx, r, omni.NewTalosConfig(resources.DefaultNamespace, clusterName).Metadata())
+	if err != nil && !state.IsNotFoundError(err) {
+		return nil, fmt.Errorf("cluster '%s' failed to get talosconfig: %w", clusterName, err)
+	}
+
+	if talosConfig == nil {
+		return createInsecureClient()
+	}
+
+	var endpoints []string
+
+	if opts == nil {
+		endpoints = []string{address}
+	}
+
+	config := omni.NewTalosClientConfig(talosConfig, endpoints...)
+	opts = append(opts, client.WithConfig(config))
+
+	result, err := client.New(ctx, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create client to machine '%s': %w", machine.Metadata().ID(), err)
+	}
+
+	return result, nil
 }
