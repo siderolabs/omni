@@ -16,12 +16,11 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/optional"
-	"github.com/siderolabs/talos/pkg/machinery/client"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/runtime/talos"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
 // MachineTeardownControllerName is the name of the MachineTeardownController.
@@ -104,7 +103,7 @@ func (ctrl *MachineTeardownController) resetMachine(
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 
-	c, err := ctrl.getClient(ctx, r, machineStatus)
+	c, err := helpers.GetTalosClient(ctx, r, machineStatus.TypedSpec().Value.ManagementAddress, machineStatus)
 	if err != nil {
 		return err
 	}
@@ -150,53 +149,4 @@ func (ctrl *MachineTeardownController) resetMachine(
 	logger.Info("wiped Talos on the machine")
 
 	return nil
-}
-
-func (ctrl *MachineTeardownController) getClient(
-	ctx context.Context,
-	r controller.QRuntime,
-	machineStatus *omni.MachineStatus,
-) (*client.Client, error) {
-	address := machineStatus.TypedSpec().Value.ManagementAddress
-	opts := talos.GetSocketOptions(address)
-
-	clusterName, ok := machineStatus.Metadata().Labels().Get(omni.LabelCluster)
-	if !ok {
-		return client.New(ctx,
-			append(
-				opts,
-				client.WithTLSConfig(insecureTLSConfig),
-				client.WithEndpoints(address),
-			)...)
-	}
-
-	talosConfig, err := safe.ReaderGet[*omni.TalosConfig](ctx, r, omni.NewTalosConfig(resources.DefaultNamespace, clusterName).Metadata())
-	if err != nil && !state.IsNotFoundError(err) {
-		return nil, fmt.Errorf("cluster '%s' failed to get talosconfig: %w", clusterName, err)
-	}
-
-	if talosConfig == nil {
-		return client.New(ctx,
-			append(
-				opts,
-				client.WithTLSConfig(insecureTLSConfig),
-				client.WithEndpoints(address),
-			)...)
-	}
-
-	var endpoints []string
-
-	if opts == nil {
-		endpoints = []string{address}
-	}
-
-	config := omni.NewTalosClientConfig(talosConfig, endpoints...)
-	opts = append(opts, client.WithConfig(config))
-
-	result, err := client.New(ctx, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create client to machine '%s': %w", machineStatus.Metadata().ID(), err)
-	}
-
-	return result, nil
 }

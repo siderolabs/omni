@@ -26,6 +26,12 @@ const UserReserved2 = 13
 // UserReserved3 is github.com/siderolabs/talos/internal/pkg/meta.UserReserved3.
 const UserReserved3 = 14
 
+// UUIDOverride is github.com/siderolabs/talos/internal/pkg/meta.UUIDOVerride.
+const UUIDOverride = 15
+
+// UniqueMachineToken is github.com/siderolabs/talos/internal/pkg/meta.UniqueMachineToken.
+const UniqueMachineToken = 16
+
 // CanSetMetaKey checks if the meta key can be set using Omni/Image Factory.
 // To avoid messing up things which are internal to Talos.
 func CanSetMetaKey(key int) bool {

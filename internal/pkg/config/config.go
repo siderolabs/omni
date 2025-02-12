@@ -101,6 +101,8 @@ type Params struct {
 	InitialServiceAccount InitialServiceAccount `yaml:"initialServiceAccount"`
 
 	EnableStripeReporting bool `yaml:"enableStripeReporting"`
+
+	DisableLegacyJoinTokens bool `yaml:"disableLegacyJoinTokens"`
 }
 
 // InitialServiceAccount allows creating a service account for automated omnictl runs on the Omni service deployment.

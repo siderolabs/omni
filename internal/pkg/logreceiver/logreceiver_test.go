@@ -37,6 +37,10 @@ func (t *testLogHandler) HandleError(srcAddress netip.Addr, err error) {
 	t.t.Fatal(err)
 }
 
+func (t *testLogHandler) HasLink(netip.Addr) bool {
+	return true
+}
+
 func TestConnHandler(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 	handler := &testLogHandler{

@@ -607,5 +607,14 @@ var initOnce = sync.OnceValue(func() *cobra.Command {
 		"enable Stripe machine usage reporting",
 	)
 
+	rootCmd.Flags().BoolVar(
+		&config.Config.DisableLegacyJoinTokens,
+		"disable-legacy-join-tokens",
+		config.Config.DisableLegacyJoinTokens,
+		"disables joining the machines running Talos below 1.6 "+
+			"by forcing strict policy that uses join token only for the initial machine join, "+
+			"then uses randomly generated secret stored in the machine META partition",
+	)
+
 	return rootCmd
 })

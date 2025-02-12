@@ -406,6 +406,8 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.TalosUpgradeStatusType,
 		omni.RedactedClusterMachineConfigType,
 		siderolink.LinkType,
+		siderolink.PendingMachineType,
+		siderolink.LinkStatusType,
 		omni.MachineClassType,
 		omni.MachineExtensionsStatusType,
 		omni.MachineExtensionsType,
@@ -500,7 +502,8 @@ func filterAccessByType(access state.Access) error {
 	}
 
 	switch access.ResourceType {
-	case siderolink.LinkType:
+	case siderolink.PendingMachineType,
+		siderolink.LinkType:
 		// Allow read, update and delete access
 		// Update access is required for siderolink by rtestutils.Destroy[*siderolink.Link] call on integration tests
 		if access.Verb.Readonly() || access.Verb == state.Update || access.Verb == state.Destroy {
@@ -564,6 +567,7 @@ func filterAccessByType(access state.Access) error {
 		omni.MachineStatusMetricsType,
 		authres.AuthConfigType,
 		siderolink.ConnectionParamsType,
+		siderolink.LinkStatusType,
 		system.SysVersionType,
 		system.ResourceLabelsType[*omni.MachineStatus](),
 		meta.NamespaceType,
