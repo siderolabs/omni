@@ -201,7 +201,7 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 				}
 
 				// perform config apply
-				if err := handler.applyConfig(ctx, machineStatus, machineConfig, statusSnapshot); err != nil {
+				if err := handler.applyConfig(ctx, machineStatus, machineConfig, statusSnapshot, configStatus); err != nil {
 					grpcSt := client.Status(err)
 					if grpcSt != nil && grpcSt.Code() == codes.InvalidArgument {
 						configStatus.TypedSpec().Value.LastConfigError = grpcSt.Message()
@@ -466,6 +466,7 @@ func (h *clusterMachineConfigStatusControllerHandler) syncInstallImageAndSchemat
 
 func (h *clusterMachineConfigStatusControllerHandler) applyConfig(inputCtx context.Context,
 	machineStatus *omni.MachineStatus, machineConfig *omni.ClusterMachineConfig, statusSnapshot *omni.MachineStatusSnapshot,
+	configStatus *omni.ClusterMachineConfigStatus,
 ) error {
 	ctx, cancel := context.WithTimeout(inputCtx, 5*time.Second)
 	defer cancel()
@@ -487,6 +488,10 @@ func (h *clusterMachineConfigStatusControllerHandler) applyConfig(inputCtx conte
 		machineapi.MachineStatusEvent_UPGRADING:
 		// no way to apply config at this stage
 		return xerrors.NewTagged[qtransform.SkipReconcileTag](fmt.Errorf("machine '%s' is in %s stage", machineConfig.Metadata().ID(), statusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage()))
+	}
+
+	if configStatus.TypedSpec().Value.ClusterMachineConfigSha256 != "" && applyMaintenance {
+		return fmt.Errorf("failed to apply machine config: the machine is expected to be running in the normal mode, but is running in maintenance")
 	}
 
 	c, err := h.getClient(ctx, applyMaintenance, machineStatus, machineConfig)
