@@ -6,7 +6,6 @@
 package authrequest_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,8 +16,7 @@ import (
 )
 
 func TestStorage(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	ctx := t.Context()
 
 	s := authrequest.NewStorage()
 

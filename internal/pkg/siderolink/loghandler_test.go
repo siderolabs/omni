@@ -171,7 +171,7 @@ func TestLogHandler_HandleMessage(t *testing.T) {
 
 // TestLogHandlerStorage tests that log handler can store logs on the filesystem when log storage is enabled.
 func TestLogHandlerStorage(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	t.Cleanup(cancel)
 
 	machineMap := siderolink.NewMachineMap(&siderolink.MapStorage{
@@ -251,7 +251,7 @@ func TestLogHandlerStorage(t *testing.T) {
 }
 
 func TestLogHandlerStorageLegacyMigration(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	t.Cleanup(cancel)
 
 	machineMap := siderolink.NewMachineMap(&siderolink.MapStorage{
@@ -311,7 +311,7 @@ func TestLogHandlerStorageLegacyMigration(t *testing.T) {
 
 // TestLogHandlerStorageDisabled ensures that log handler works as expected without log storage.
 func TestLogHandlerStorageDisabled(t *testing.T) {
-	ctx, ctxCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, ctxCancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer ctxCancel()
 
 	machineMap := siderolink.NewMachineMap(&siderolink.MapStorage{

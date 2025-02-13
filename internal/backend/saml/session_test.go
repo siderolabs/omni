@@ -106,7 +106,7 @@ func TestUserInfo(t *testing.T) {
 }
 
 func TestReadLabelsFromAssertion(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	defer cancel()
 
 	s := state.WrapCore(namespaced.NewState(inmem.Build))

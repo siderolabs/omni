@@ -45,7 +45,7 @@ const (
 func TestInfraProviderAccess(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	ctx = prepareRole(ctx, role.InfraProvider)
@@ -197,7 +197,7 @@ func testInfraProviderAccessOutputResource[T resource.Resource](ctx context.Cont
 func TestInternalAccess(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	ctx = actor.MarkContextAsInternalActor(ctx)
@@ -230,7 +230,7 @@ func TestInternalAccess(t *testing.T) {
 func TestInfraProviderSpecificNamespace(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	ctx = prepareRole(ctx, role.InfraProvider)
@@ -276,7 +276,7 @@ func TestInfraProviderSpecificNamespace(t *testing.T) {
 func TestInfraProviderIDChecks(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	ctx = prepareRole(ctx, role.InfraProvider)
@@ -371,7 +371,7 @@ func TestInfraProviderIDChecks(t *testing.T) {
 func TestEphemeralState(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	ctx = prepareRole(ctx, role.InfraProvider)
@@ -403,7 +403,7 @@ func TestEphemeralState(t *testing.T) {
 func TestAdminOnlyRead(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	ctx = prepareRole(ctx, role.InfraProvider)

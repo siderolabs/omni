@@ -91,7 +91,7 @@ func TestCreate(t *testing.T) {
 
 	require := require.New(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	patch := omni.NewConfigPatch(resources.DefaultNamespace, "some")
 
@@ -173,7 +173,7 @@ func TestUpdate(t *testing.T) {
 
 	require := require.New(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	patch1 := omni.NewConfigPatch(resources.DefaultNamespace, "some")
 
@@ -311,7 +311,7 @@ func TestTeardown(t *testing.T) {
 
 	require := require.New(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	clusterMachines := []*omni.ClusterMachine{
 		omni.NewClusterMachine(resources.DefaultNamespace, "aa"),
@@ -374,7 +374,7 @@ func TestDestroy(t *testing.T) {
 
 	require := require.New(t)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	defer cancel()
 
 	clusterMachines := []*omni.ClusterMachine{

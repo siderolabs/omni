@@ -92,7 +92,7 @@ func Benchmark_ForAllCompatibleVersions(b *testing.B) {
 	b.ReportAllocs()
 	b.StartTimer()
 
-	for range b.N {
+	for b.Loop() {
 		err := omni.ForAllCompatibleVersions(talosVersions, k8sVersions, func(string, []string) error {
 			return nil
 		})

@@ -498,7 +498,7 @@ func (s *E2ESuite) assertClusterCreation() {
 }
 
 func (s *E2ESuite) assertTemplateExportAndSync() {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(s.T().Context(), 30*time.Second)
 	s.T().Cleanup(cancel)
 
 	s.prepareOmnictl(ctx)

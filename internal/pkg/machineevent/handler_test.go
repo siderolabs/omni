@@ -33,7 +33,7 @@ func TestSequenceEvent(t *testing.T) {
 	installEventCh := make(chan resource.ID, 1)
 	handler := machineevent.NewHandler(st, logger, nil, installEventCh)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	t.Cleanup(cancel)
 
 	testMachine := omni.NewMachine(resources.DefaultNamespace, "test-machine")

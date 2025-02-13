@@ -33,7 +33,7 @@ import (
 )
 
 func TestResourceLogger(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	t.Cleanup(cancel)
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))

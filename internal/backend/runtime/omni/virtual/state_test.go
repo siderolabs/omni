@@ -75,7 +75,7 @@ func (p *mockProducer) Stop() {
 func (p *mockProducer) Cleanup() {}
 
 func TestComputed(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
 	defer cancel()
 
 	mp := mockProducer{
@@ -174,7 +174,7 @@ func TestComputed(t *testing.T) {
 func TestDeduper(t *testing.T) {
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
 	defer cancel()
 
 	mp := mockProducer{

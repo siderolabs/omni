@@ -6,7 +6,6 @@
 package keys_test
 
 import (
-	"context"
 	"crypto/rsa"
 	"slices"
 	"sync"
@@ -37,8 +36,7 @@ func TestStorage(t *testing.T) {
 
 	t.Cleanup(wg.Wait)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	ctx := t.Context()
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 	clck := clock.NewMock()

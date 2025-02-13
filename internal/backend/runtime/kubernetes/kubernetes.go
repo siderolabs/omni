@@ -34,6 +34,7 @@ import (
 	"k8s.io/client-go/rest"
 	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/connrotation"
 
 	"github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/client/api/omni/resources"
@@ -400,10 +401,8 @@ func (r *Runtime) getOrCreateClient(ctx context.Context, opts *runtime.QueryOpti
 		r.metricActiveClients.Inc()
 		r.metricCacheMisses.Inc()
 
-		goruntime.SetFinalizer(client, func(client *Client) {
-			r.metricActiveClients.Dec()
-			client.Close()
-		})
+		goruntime.AddCleanup(client, func(m prometheus.Gauge) { m.Dec() }, r.metricActiveClients)
+		goruntime.AddCleanup(client, func(dialer *connrotation.Dialer) { dialer.CloseAll() }, client.dialer)
 
 		r.clientsCache.Add(id, client)
 

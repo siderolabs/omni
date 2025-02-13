@@ -17,7 +17,7 @@ import (
 
 func TestGroup(t *testing.T) {
 	t.Run("should not return an error if it was canceled", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		eg, innerCtx := errgroup.WithContext(ctx)
 		eg.Go(func() error {
 			// We can't wait on parent `Done` here because `context` package closes `Done` channel before
@@ -37,7 +37,7 @@ func TestGroup(t *testing.T) {
 	})
 
 	t.Run("should return an error if it was canceled", func(t *testing.T) {
-		eg, _ := errgroup.WithContext(context.Background())
+		eg, _ := errgroup.WithContext(t.Context())
 		eg.Go(func() error { return nil })
 		err := eg.Wait()
 		require.Contains(t, err.Error(), "sentinel error: function returned with nil error")
@@ -46,14 +46,14 @@ func TestGroup(t *testing.T) {
 	})
 
 	t.Run("should return an error if it got an error", func(t *testing.T) {
-		eg, _ := errgroup.WithContext(context.Background())
+		eg, _ := errgroup.WithContext(t.Context())
 		eg.Go(func() error { return errors.New("error") })
 		err := eg.Wait()
 		require.Contains(t, err.Error(), "error")
 	})
 
 	t.Run("should not hit ReturnError path on second Go call", func(t *testing.T) {
-		eg, _ := errgroup.WithContext(context.Background())
+		eg, _ := errgroup.WithContext(t.Context())
 		eg.Go(func() error { return errors.New("error") })
 		err := eg.Wait()
 		eg.Go(func() error { return nil })

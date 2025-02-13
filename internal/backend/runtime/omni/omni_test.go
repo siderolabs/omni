@@ -70,7 +70,7 @@ type OmniRuntimeSuite struct {
 }
 
 func (suite *OmniRuntimeSuite) SetupTest() {
-	suite.ctx, suite.ctxCancel = context.WithTimeout(context.Background(), 3*time.Minute)
+	suite.ctx, suite.ctxCancel = context.WithTimeout(suite.T().Context(), 3*time.Minute)
 
 	// disable auth in the context
 	suite.ctx = ctxstore.WithValue(suite.ctx, auth.EnabledAuthContextKey{Enabled: false})

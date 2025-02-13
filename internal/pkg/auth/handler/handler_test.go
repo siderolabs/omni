@@ -48,8 +48,7 @@ func testHandler(t *testing.T, authEnabled bool) {
 	ts := httptest.NewServer(wrapWithAuth(coreHandler))
 	defer ts.Close()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	ctx := t.Context()
 
 	type testCase struct { //nolint:govet
 		name string

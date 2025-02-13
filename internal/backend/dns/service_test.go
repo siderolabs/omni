@@ -42,7 +42,7 @@ type ServiceSuite struct {
 }
 
 func (suite *ServiceSuite) SetupTest() {
-	suite.ctx, suite.ctxCancel = context.WithTimeout(context.Background(), 3*time.Minute)
+	suite.ctx, suite.ctxCancel = context.WithTimeout(suite.T().Context(), 3*time.Minute)
 
 	suite.state = state.WrapCore(namespaced.NewState(inmem.Build))
 

@@ -6,7 +6,6 @@
 package kubernetes_test
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"testing"
@@ -27,7 +26,7 @@ func TestNewMachineMap(t *testing.T) {
 	t.Parallel()
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
-	ctx := context.Background()
+	ctx := t.Context()
 
 	cpNodes := []string{"cp1", "cp2"}
 	workerNodes := []string{"worker1", "worker2"}

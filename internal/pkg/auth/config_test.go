@@ -6,7 +6,6 @@
 package auth_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/cosi-project/runtime/pkg/state"
@@ -26,8 +25,7 @@ import (
 func TestEnsureAuthConfigResource(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	ctx := t.Context()
 
 	logger := zaptest.NewLogger(t).With(logging.Component("auth"))
 

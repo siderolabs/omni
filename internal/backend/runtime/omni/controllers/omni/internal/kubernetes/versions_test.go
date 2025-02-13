@@ -6,7 +6,6 @@
 package kubernetes_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/cosi-project/runtime/pkg/state"
@@ -56,7 +55,7 @@ func TestCalculateUpgradeVersions(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			st := state.WrapCore(namespaced.NewState(inmem.Build))
 

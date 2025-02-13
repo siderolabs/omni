@@ -44,7 +44,7 @@ var schema []byte
 func TestClusterValidation(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	talos15 := "1.5.0"
@@ -167,7 +167,7 @@ func TestClusterValidation(t *testing.T) {
 func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	buildState := func(conf config.EmbeddedDiscoveryServiceParams) (inner, outer state.State) {
@@ -255,7 +255,7 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 func TestRelationLabelsValidation(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
@@ -306,7 +306,7 @@ func TestRelationLabelsValidation(t *testing.T) {
 func TestMachineSetValidation(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	etcdBackupStoreFactory, err := store.NewStoreFactory()
@@ -405,7 +405,7 @@ func TestMachineSetValidation(t *testing.T) {
 func TestMachineSetBootstrapSpecValidation(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	clusterID := "test-cluster"
@@ -524,7 +524,7 @@ func TestMachineSetBootstrapSpecValidation(t *testing.T) {
 func TestMachineSetLockedAnnotation(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
@@ -574,7 +574,7 @@ func TestMachineSetLockedAnnotation(t *testing.T) {
 func TestIdentitySAMLValidation(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
@@ -627,7 +627,7 @@ func TestIdentitySAMLValidation(t *testing.T) {
 func TestCreateIdentityValidation(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
@@ -652,7 +652,7 @@ func TestCreateIdentityValidation(t *testing.T) {
 func TestExposedServiceAliasValidation(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
@@ -686,7 +686,7 @@ func TestExposedServiceAliasValidation(t *testing.T) {
 func TestConfigPatchValidation(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
@@ -755,7 +755,7 @@ machine:
 func TestEtcdBackupValidation(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
@@ -777,7 +777,7 @@ func TestEtcdBackupValidation(t *testing.T) {
 func TestSAMLLabelRuleValidation(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
@@ -805,7 +805,7 @@ func TestSAMLLabelRuleValidation(t *testing.T) {
 func TestMachineSetClassesValidation(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
@@ -906,7 +906,7 @@ func TestMachineSetClassesValidation(t *testing.T) {
 func TestMachineClassValidation(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
@@ -1059,7 +1059,7 @@ size: t2.small
 func TestS3ConfigValidation(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
@@ -1101,7 +1101,7 @@ func TestS3ConfigValidation(t *testing.T) {
 func TestSchematicConfigurationValidation(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
@@ -1139,7 +1139,7 @@ func TestMachineRequestSetValidation(t *testing.T) {
 	talosVersion2 := omnires.NewTalosVersion(resources.DefaultNamespace, "1.7.5")
 	talosVersion2.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.30.0"}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
@@ -1188,7 +1188,7 @@ size: t2.small
 func TestInfraMachineConfigValidation(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))

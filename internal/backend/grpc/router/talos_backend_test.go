@@ -45,7 +45,7 @@ func TestTalosBackendRoles(t *testing.T) {
 	// Start mock proxy.
 	const proxyEndpoint = "127.0.0.1:10500"
 
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 500*time.Second)
 	defer cancel()
 
 	g, ctx := errgroup.WithContext(ctx)
@@ -80,7 +80,7 @@ func TestNodeResolution(t *testing.T) {
 	}
 	talosBackend := router.NewTalosBackend("test-backend", "test-backend", resolver, nil, false, noOpVerifier)
 
-	testCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	testCtx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	t.Run(`resolvable "node"`, func(t *testing.T) {

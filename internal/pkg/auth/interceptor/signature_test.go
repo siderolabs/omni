@@ -105,13 +105,13 @@ func (suite *SignatureTestSuite) TearDownSuite() {
 }
 
 func (suite *SignatureTestSuite) TestMissingSignaturePassthrough() {
-	_, err := suite.testServiceClient.UnaryCall(context.Background(), &grpc_testing.SimpleRequest{})
+	_, err := suite.testServiceClient.UnaryCall(suite.T().Context(), &grpc_testing.SimpleRequest{})
 
 	suite.Assert().NoError(err)
 }
 
 func (suite *SignatureTestSuite) TestInvalidSignatureVersion() {
-	ctx := metadata.NewOutgoingContext(context.Background(), metadata.Pairs(
+	ctx := metadata.NewOutgoingContext(suite.T().Context(), metadata.Pairs(
 		message.SignatureHeaderKey, "invalid",
 	))
 
@@ -125,7 +125,7 @@ func (suite *SignatureTestSuite) TestInvalidSignatureVersion() {
 func (suite *SignatureTestSuite) TestMissingTimestamp() {
 	payload := base64.StdEncoding.EncodeToString([]byte("payload"))
 
-	ctx := metadata.NewOutgoingContext(context.Background(), metadata.Pairs(
+	ctx := metadata.NewOutgoingContext(suite.T().Context(), metadata.Pairs(
 		message.SignatureHeaderKey, fmt.Sprintf("%s test@example.org signer-1 %s", message.SignatureVersionV1, payload),
 	))
 
@@ -154,7 +154,7 @@ func (suite *SignatureTestSuite) TestValidSignature() {
 
 	signatureBase64 := base64.StdEncoding.EncodeToString(signature)
 
-	ctx := metadata.NewOutgoingContext(context.Background(), metadata.Pairs(
+	ctx := metadata.NewOutgoingContext(suite.T().Context(), metadata.Pairs(
 		message.SignatureHeaderKey, fmt.Sprintf(
 			"%s test@example.org %s %s",
 			message.SignatureVersionV1,

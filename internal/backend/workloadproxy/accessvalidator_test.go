@@ -38,7 +38,7 @@ func (m *mockRoleProvider) RoleForCluster(_ context.Context, id resource.ID) (ro
 }
 
 func TestAccessValidator(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))

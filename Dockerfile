@@ -2,14 +2,14 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-01-15T11:45:55Z by kres 3b3f992.
+# Generated on 2025-02-13T18:25:01Z by kres 7ee1272.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
 
-FROM ghcr.io/siderolabs/ca-certificates:v1.9.0 AS image-ca-certificates
+FROM ghcr.io/siderolabs/ca-certificates:v1.10.0-alpha.0-35-g85f8901 AS image-ca-certificates
 
-FROM ghcr.io/siderolabs/fhs:v1.9.0 AS image-fhs
+FROM ghcr.io/siderolabs/fhs:v1.10.0-alpha.0-35-g85f8901 AS image-fhs
 
 # base toolchain image
 FROM --platform=${BUILDPLATFORM} ${JS_TOOLCHAIN} AS js-toolchain

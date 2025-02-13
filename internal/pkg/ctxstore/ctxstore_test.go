@@ -6,7 +6,6 @@
 package ctxstore_test
 
 import (
-	"context"
 	"runtime"
 	"testing"
 
@@ -17,7 +16,7 @@ import (
 )
 
 func TestWithValue(t *testing.T) {
-	ctx := ctxstore.WithValue(context.Background(), "value1")
+	ctx := ctxstore.WithValue(t.Context(), "value1")
 	ctx = ctxstore.WithValue(ctx, 42)
 	ctx = ctxstore.WithValue(ctx, true)
 
@@ -63,8 +62,8 @@ func benchmarkFor[T any](b *testing.B, value T) {
 		result T
 	)
 
-	for range b.N {
-		ctx := ctxstore.WithValue(context.Background(), value)
+	for b.Loop() {
+		ctx := ctxstore.WithValue(b.Context(), value)
 
 		result, ok = ctxstore.Value[T](ctx)
 		if !ok {

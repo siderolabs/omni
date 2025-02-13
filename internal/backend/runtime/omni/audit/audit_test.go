@@ -52,7 +52,7 @@ func TestAudit(t *testing.T) {
 	createCtx := func() context.Context {
 		ad := makeAuditData("Mozilla/5.0", "10.10.0.1", "")
 
-		return ctxstore.WithValue(context.Background(), &ad)
+		return ctxstore.WithValue(t.Context(), &ad)
 	}
 
 	actions := []func(*testing.T){

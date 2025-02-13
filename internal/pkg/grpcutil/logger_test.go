@@ -85,7 +85,7 @@ func TestPayloadUnaryServerInterceptor(t *testing.T) {
 	defer runNoErr(dial.Close, "failed to close dial")
 
 	client := grpc_testing.NewTestServiceClient(dial)
-	ctx := metadata.NewOutgoingContext(context.Background(), metadata.Pairs("grpcgateway-user-agent", "test", "x-forwarded-for", "10.10.10.10"))
+	ctx := metadata.NewOutgoingContext(t.Context(), metadata.Pairs("grpcgateway-user-agent", "test", "x-forwarded-for", "10.10.10.10"))
 
 	res, err := client.UnaryCall(ctx, &grpc_testing.SimpleRequest{
 		Payload: &grpc_testing.Payload{

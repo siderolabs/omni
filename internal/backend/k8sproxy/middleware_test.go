@@ -77,7 +77,7 @@ func TestAuthorize(t *testing.T) {
 	ts := httptest.NewServer(k8sproxy.AuthorizeRequest(coreHandler, keyFunc, mockClusterUUIDResolver))
 	defer ts.Close()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
 	logger := zaptest.NewLogger(t)

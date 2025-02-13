@@ -26,13 +26,13 @@ func TestCheck(t *testing.T) {
 	}{
 		{
 			name:    "empty context",
-			ctx:     context.Background(),
+			ctx:     t.Context(),
 			errorIs: auth.ErrUnauthenticated,
 		},
 		{
 			name: "auth disabled",
 			ctx: ctxstore.WithValue(
-				context.Background(),
+				t.Context(),
 				auth.EnabledAuthContextKey{
 					Enabled: false,
 				},
@@ -41,7 +41,7 @@ func TestCheck(t *testing.T) {
 		{
 			name: "not authenticated, no requirements",
 			ctx: ctxstore.WithValue(
-				context.Background(),
+				t.Context(),
 				auth.EnabledAuthContextKey{
 					Enabled: true,
 				},
@@ -54,7 +54,7 @@ func TestCheck(t *testing.T) {
 		{
 			name: "not authenticated, verified email",
 			ctx: ctxstore.WithValue(
-				context.Background(),
+				t.Context(),
 				auth.EnabledAuthContextKey{
 					Enabled: true,
 				},
@@ -65,7 +65,7 @@ func TestCheck(t *testing.T) {
 		{
 			name: "not authenticated, none role",
 			ctx: ctxstore.WithValue(
-				context.Background(),
+				t.Context(),
 				auth.EnabledAuthContextKey{
 					Enabled: true,
 				},
@@ -76,7 +76,7 @@ func TestCheck(t *testing.T) {
 		{
 			name: "not authenticated, operator role",
 			ctx: ctxstore.WithValue(
-				context.Background(),
+				t.Context(),
 				auth.EnabledAuthContextKey{
 					Enabled: true,
 				},
@@ -88,7 +88,7 @@ func TestCheck(t *testing.T) {
 			name: "verified email",
 			ctx: ctxstore.WithValue(
 				ctxstore.WithValue(
-					context.Background(),
+					t.Context(),
 					auth.EnabledAuthContextKey{
 						Enabled: true,
 					},
@@ -108,7 +108,7 @@ func TestCheck(t *testing.T) {
 			name: "role okay",
 			ctx: ctxstore.WithValue(
 				ctxstore.WithValue(
-					context.Background(),
+					t.Context(),
 					auth.EnabledAuthContextKey{
 						Enabled: true,
 					},
@@ -128,7 +128,7 @@ func TestCheck(t *testing.T) {
 			name: "role mismatch",
 			ctx: ctxstore.WithValue(
 				ctxstore.WithValue(
-					context.Background(),
+					t.Context(),
 					auth.EnabledAuthContextKey{
 						Enabled: true,
 					},
@@ -146,7 +146,7 @@ func TestCheck(t *testing.T) {
 				ctxstore.WithValue(
 					ctxstore.WithValue(
 						ctxstore.WithValue(
-							context.Background(),
+							t.Context(),
 							auth.EnabledAuthContextKey{
 								Enabled: true,
 							},
@@ -176,7 +176,7 @@ func TestCheck(t *testing.T) {
 			name: "valid signature",
 			ctx: ctxstore.WithValue(
 				ctxstore.WithValue(
-					context.Background(),
+					t.Context(),
 					auth.EnabledAuthContextKey{
 						Enabled: true,
 					},
@@ -196,7 +196,7 @@ func TestCheck(t *testing.T) {
 			name: "missing signature",
 			ctx: ctxstore.WithValue(
 				ctxstore.WithValue(
-					context.Background(),
+					t.Context(),
 					auth.EnabledAuthContextKey{
 						Enabled: true,
 					},

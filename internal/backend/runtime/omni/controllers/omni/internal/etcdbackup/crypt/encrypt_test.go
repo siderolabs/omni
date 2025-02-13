@@ -244,7 +244,7 @@ func Benchmark_Encrypt(b *testing.B) {
 
 	data := &repeatReader{data: []byte("SIDERO")}
 
-	for range b.N {
+	for b.Loop() {
 		rdr := io.LimitReader(data, 10_000_000)
 
 		err := crypt.Encrypt(io.Discard, etcdbackup.EncryptionData{
@@ -302,7 +302,7 @@ func TestCrypt_Upload_Blocked(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			encryptor := crypt.NewStore(&backupBlocker{block: tt.blocked})
 
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			ctx, cancel := context.WithTimeout(t.Context(), 1*time.Second)
 			defer cancel()
 
 			err := encryptor.Upload(ctx, etcdbackup.Description{

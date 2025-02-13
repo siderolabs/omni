@@ -31,7 +31,7 @@ import (
 )
 
 func TestOperatorTalosconfig(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*10)
 	defer cancel()
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))

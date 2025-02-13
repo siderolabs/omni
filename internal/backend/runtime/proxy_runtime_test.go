@@ -148,7 +148,7 @@ func produce[T any](start, count int, fn func(i int) T) []T {
 }
 
 func testWatch(t *testing.T, msgs, expectedMsgs []runtime.WatchResponse, compareTotal bool, opts ...runtime.QueryOption) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
 	mock := runtimeMock{
@@ -241,7 +241,7 @@ func takeCount[T any](ctx context.Context, ch <-chan T, count int) ([]T, error) 
 func TestProxyRuntime_WatchContextCancel(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	mock := runtimeMock{
@@ -378,8 +378,7 @@ func newMachine(i int, val *specs.MachineStatusSpec) *omni.MachineStatus {
 }
 
 func testList(t *testing.T, original, expected runtime.ListResult, expectedErr error, opts ...runtime.QueryOption) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	mock := runtimeMock{
 		list: func(context.Context, ...runtime.QueryOption) (runtime.ListResult, error) {

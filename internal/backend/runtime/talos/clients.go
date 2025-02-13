@@ -233,13 +233,13 @@ func (factory *ClientFactory) Get(ctx context.Context, clusterName string) (*Cli
 
 		factory.metricActiveClients.Inc()
 
-		runtime.SetFinalizer(cli, func(c *Client) {
-			factory.logger.Debug("finalizing Talos client", zap.String("cluster", c.clusterName))
+		runtime.AddCleanup(cli, func(c *client.Client) {
+			factory.logger.Debug("finalizing Talos client", zap.String("cluster", clusterName))
 
 			factory.metricActiveClients.Dec()
 
-			c.Client.Close() //nolint:errcheck
-		})
+			c.Close() //nolint:errcheck
+		}, cli.Client)
 
 		factory.cache.Add(clusterName, cli)
 

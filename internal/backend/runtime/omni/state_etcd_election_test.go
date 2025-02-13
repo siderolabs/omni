@@ -39,7 +39,7 @@ func mockRunner(id int, started chan<- int, closed <-chan error) func(ctx contex
 }
 
 func TestEtcdElectionsLost(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 
 	logger := zaptest.NewLogger(t)
@@ -83,7 +83,7 @@ func TestEtcdElectionsLost(t *testing.T) {
 }
 
 func TestEtcdElections(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 
 	logger := zaptest.NewLogger(t)

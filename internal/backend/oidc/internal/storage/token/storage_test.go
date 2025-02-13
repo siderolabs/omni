@@ -7,7 +7,6 @@
 package token_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -30,8 +29,7 @@ import (
 )
 
 func TestValidateJWTProfileScopes(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	ctx := t.Context()
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 
@@ -51,8 +49,7 @@ func TestValidateJWTProfileScopes(t *testing.T) {
 }
 
 func TestGetPrivateClaimsFromScopes(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	ctx := t.Context()
 
 	userIdentity := "test-user"
 	userID := "test-user-id"
@@ -105,8 +102,7 @@ func TestGetPrivateClaimsFromScopes(t *testing.T) {
 }
 
 func TestSetUserinfoFromScopes(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	ctx := t.Context()
 
 	userIdentity := "test@example.com"
 	userID := "test-user-id"
@@ -220,8 +216,7 @@ func TestSetUserinfoFromScopes(t *testing.T) {
 }
 
 func TestTokenIntrospection(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	ctx := t.Context()
 
 	req := mockTokenRequest{}
 
@@ -275,8 +270,7 @@ func TestTokenIntrospection(t *testing.T) {
 }
 
 func TestRevokeToken(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	ctx := t.Context()
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 
@@ -294,8 +288,7 @@ func TestRevokeToken(t *testing.T) {
 }
 
 func TestTerminateSession(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	ctx := t.Context()
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 

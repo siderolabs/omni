@@ -107,7 +107,7 @@ func TestBreakGlassKubeconfig(t *testing.T) {
 	r, err := kubernetes.New(st)
 	require.NoError(t, err)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	defer cancel()
 
 	_, err = r.BreakGlassKubeconfig(ctx, "cluster1")

@@ -122,7 +122,7 @@ func TestEtcdInitialization(t *testing.T) {
 
 	for _, step := range steps {
 		res := t.Run(step.name, func(t *testing.T) {
-			err := omniruntime.BuildEtcdPersistentState(context.TODO(), &config.Params{
+			err := omniruntime.BuildEtcdPersistentState(t.Context(), &config.Params{
 				Name: "instance-name",
 				Storage: config.StorageParams{
 					Etcd: config.EtcdParams{
@@ -174,7 +174,7 @@ func TestEncryptDecrypt(t *testing.T) {
 				publicKeyFiles:   []string{"testdata/pgp/old_key.public"},
 			},
 			beforeGet: func(t *testing.T, state state.CoreState) {
-				err := state.Create(context.Background(), original)
+				err := state.Create(t.Context(), original)
 				require.NoError(t, err)
 			},
 		},
@@ -189,7 +189,7 @@ func TestEncryptDecrypt(t *testing.T) {
 
 	for _, step := range steps {
 		res := t.Run(step.name, func(t *testing.T) {
-			err := omniruntime.BuildEtcdPersistentState(context.TODO(), &config.Params{
+			err := omniruntime.BuildEtcdPersistentState(t.Context(), &config.Params{
 				Name: "instance-name",
 				Storage: config.StorageParams{
 					Etcd: config.EtcdParams{

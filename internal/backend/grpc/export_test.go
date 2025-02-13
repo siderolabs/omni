@@ -14,7 +14,6 @@ import (
 
 type ManagementServer = managementServer
 
-//nolint:revive
 func NewManagementServer(st state.State, imageFactoryClient *imagefactory.Client, logger *zap.Logger) *ManagementServer {
 	return &ManagementServer{
 		omniState:          st,

@@ -27,7 +27,7 @@ import (
 )
 
 func TestValidations(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
@@ -228,9 +228,9 @@ func TestTeardownDestroyValidations(t *testing.T) {
 
 	res := omni.NewCluster(resources.DefaultNamespace, "something")
 
-	require.NoError(t, st.Create(context.Background(), res))
+	require.NoError(t, st.Create(t.Context(), res))
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	_, err := safe.StateUpdateWithConflicts(ctx, st, res.Metadata(), func(res *omni.Cluster) error {

@@ -41,7 +41,7 @@ func assertUsers(ctx context.Context, t *testing.T, st state.State, expectedUser
 func TestInitialUsers(t *testing.T) {
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 	logger := zaptest.NewLogger(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	const (
 		john    = "john@example.com"

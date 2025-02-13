@@ -68,7 +68,7 @@ type GrpcSuite struct {
 }
 
 func (suite *GrpcSuite) SetupTest() {
-	suite.ctx, suite.ctxCancel = context.WithTimeout(context.Background(), 3*time.Minute)
+	suite.ctx, suite.ctxCancel = context.WithTimeout(suite.T().Context(), 3*time.Minute)
 
 	var err error
 

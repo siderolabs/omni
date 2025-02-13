@@ -8,10 +8,8 @@ package grpcutil
 import (
 	"context"
 	"fmt"
-	"iter"
 	"net/netip"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/cosi-project/runtime/api/v1alpha1"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
@@ -136,7 +134,7 @@ func setRealIPAddress(ctx context.Context) {
 	tags := grpc_ctxtags.Extract(ctx)
 
 	if values := md.Get("x-forwarded-for"); len(values) > 0 {
-		for str := range splitSeq(values[0], ",") {
+		for str := range strings.SplitSeq(values[0], ",") {
 			addr, err := netip.ParseAddr(strings.TrimSpace(str))
 			if err == nil {
 				grpc_ctxtags.Extract(ctx).Set("peer.address", addr.String())
@@ -270,53 +268,5 @@ func LogLevelInterceptors() (grpc.UnaryServerInterceptor, grpc.StreamServerInter
 func SetAuditData() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		return handler(SetAuditInCtx(ctx), req)
-	}
-}
-
-// splitSeq returns an iterator over the substrings of s separated by sep. It's a strings.SpletSeq from Go 1.24
-//
-// TODO: remove this function once we upgrade to Go 1.24.
-func splitSeq(s, sep string) iter.Seq[string] {
-	return splitSeqSave(s, sep, 0)
-}
-
-// TODO: remove this function once we upgrade to Go 1.24.
-func splitSeqSave(s, sep string, sepSave int) iter.Seq[string] {
-	if len(sep) == 0 {
-		return explodeSeq(s)
-	}
-
-	return func(yield func(string) bool) {
-		for {
-			i := strings.Index(s, sep)
-
-			if i < 0 {
-				break
-			}
-
-			frag := s[:i+sepSave]
-
-			if !yield(frag) {
-				return
-			}
-
-			s = s[i+len(sep):]
-		}
-
-		yield(s)
-	}
-}
-
-// TODO: remove this function once we upgrade to Go 1.24.
-func explodeSeq(s string) iter.Seq[string] {
-	return func(yield func(string) bool) {
-		for len(s) > 0 {
-			_, size := utf8.DecodeRuneInString(s)
-			if !yield(s[:size]) {
-				return
-			}
-
-			s = s[size:]
-		}
 	}
 }

@@ -6,10 +6,8 @@ package template_test
 
 import (
 	"bytes"
-	"context"
 	_ "embed"
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -118,13 +116,7 @@ func TestLoad(t *testing.T) {
 }
 
 func TestValidate(t *testing.T) {
-	cwd, err := os.Getwd()
-	require.NoError(t, err)
-
-	require.NoError(t, os.Chdir("testdata"))
-	t.Cleanup(func() {
-		os.Chdir(cwd) //nolint:errcheck
-	})
+	t.Chdir("testdata")
 
 	for _, tt := range []struct { //nolint:govet
 		name          string
@@ -294,13 +286,7 @@ func TestTranslate(t *testing.T) {
 
 	specs.SetCompressionConfig(compressionConfig)
 
-	cwd, err := os.Getwd()
-	require.NoError(t, err)
-
-	require.NoError(t, os.Chdir("testdata"))
-	t.Cleanup(func() {
-		os.Chdir(cwd) //nolint:errcheck
-	})
+	t.Chdir("testdata")
 
 	for _, tt := range []struct {
 		name     string
@@ -365,17 +351,11 @@ func TestTranslate(t *testing.T) {
 }
 
 func TestSync(t *testing.T) {
-	cwd, err := os.Getwd()
-	require.NoError(t, err)
-
-	require.NoError(t, os.Chdir("testdata"))
-	t.Cleanup(func() {
-		os.Chdir(cwd) //nolint:errcheck
-	})
+	t.Chdir("testdata")
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	templ1, err := template.Load(bytes.NewReader(cluster1))
 	require.NoError(t, err)
@@ -419,17 +399,11 @@ func TestSync(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	cwd, err := os.Getwd()
-	require.NoError(t, err)
-
-	require.NoError(t, os.Chdir("testdata"))
-	t.Cleanup(func() {
-		os.Chdir(cwd) //nolint:errcheck
-	})
+	t.Chdir("testdata")
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	templ1, err := template.Load(bytes.NewReader(cluster1))
 	require.NoError(t, err)

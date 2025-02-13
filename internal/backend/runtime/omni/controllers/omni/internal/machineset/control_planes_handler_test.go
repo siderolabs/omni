@@ -255,7 +255,7 @@ func TestControlPlanesHandler(t *testing.T) {
 				etcdStatus = &check.EtcdStatusResult{}
 			}
 
-			operations, err := machineset.ReconcileControlPlanes(context.Background(), rc, func(context.Context) (*check.EtcdStatusResult, error) {
+			operations, err := machineset.ReconcileControlPlanes(t.Context(), rc, func(context.Context) (*check.EtcdStatusResult, error) {
 				return etcdStatus, nil
 			})
 

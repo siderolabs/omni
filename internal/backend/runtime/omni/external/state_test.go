@@ -137,7 +137,7 @@ func TestStateList(t *testing.T) {
 				Logger:       zaptest.NewLogger(t),
 			}
 
-			list, err := s.List(context.Background(), tt.kind, tt.opts...)
+			list, err := s.List(t.Context(), tt.kind, tt.opts...)
 			tt.errCheck(t, err)
 
 			if len(list.Items) != len(tt.result) {
@@ -234,7 +234,7 @@ func TestStateGet(t *testing.T) {
 				Logger:       zaptest.NewLogger(t),
 			}
 
-			backup, err := s.Get(context.Background(), tt.pointer, tt.opts...)
+			backup, err := s.Get(t.Context(), tt.pointer, tt.opts...)
 			tt.errCheck(t, err)
 
 			if err == nil {

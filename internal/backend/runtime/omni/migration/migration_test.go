@@ -87,7 +87,7 @@ func (suite *MigrationSuite) SetupTest() {
 }
 
 func (suite *MigrationSuite) TestClusterInfo() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 
 	cluster, machine := suite.createCluster(ctx, "c1")
 
@@ -135,7 +135,7 @@ func (suite *MigrationSuite) TestClusterInfo() {
 }
 
 func (suite *MigrationSuite) TestConfigPatches() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 
 	_, machine := suite.createCluster(ctx, "c1")
 
@@ -187,7 +187,7 @@ func (suite *MigrationSuite) TestConfigPatches() {
 }
 
 func (suite *MigrationSuite) Test_changePublicKeyOwner() {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(suite.T().Context())
 	defer cancel()
 
 	keys := []*authres.PublicKey{
@@ -228,7 +228,7 @@ func (suite *MigrationSuite) Test_changePublicKeyOwner() {
 }
 
 func (suite *MigrationSuite) TestMachineSets() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 
 	cluster := suite.createClusterWithMachines(ctx, "c1", []machine{
 		{
@@ -343,7 +343,7 @@ func (suite *MigrationSuite) TestMachineSets() {
 }
 
 func (suite *MigrationSuite) TestClusterInfoTearingDown() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 
 	cluster, _ := suite.createCluster(ctx, "c1", "finzlier")
 
@@ -420,7 +420,7 @@ func (suite *MigrationSuite) createClusterWithMachines(ctx context.Context, name
 func (suite *MigrationSuite) TestUserDefaultScopes() {
 	var err error
 
-	ctx := context.Background()
+	ctx := suite.T().Context()
 
 	user1 := authres.NewUser(resources.DefaultNamespace, "user1")
 
@@ -453,7 +453,7 @@ func (suite *MigrationSuite) TestUserDefaultScopes() {
 func (suite *MigrationSuite) TestRollingStrategyOnControlPlaneMachineSets() {
 	var err error
 
-	ctx := context.Background()
+	ctx := suite.T().Context()
 
 	controlPlaneMachineSet := omni.NewMachineSet(resources.DefaultNamespace, "control-plane-set")
 	controlPlaneMachineSet.Metadata().Labels().Set("role-controlplane", "")
@@ -479,7 +479,7 @@ func (suite *MigrationSuite) TestRollingStrategyOnControlPlaneMachineSets() {
 func (suite *MigrationSuite) TestUpdateConfigPatchLabels() {
 	var err error
 
-	ctx := context.Background()
+	ctx := suite.T().Context()
 
 	cluster := omni.NewCluster(resources.DefaultNamespace, "cluster")
 	cluster.TypedSpec().Value.InstallImage = fmt.Sprintf("%s:v%s", config.Config.TalosRegistry, constants.DefaultTalosVersion) //nolint:staticcheck
@@ -573,7 +573,7 @@ func (suite *MigrationSuite) TestUpdateConfigPatchLabels() {
 }
 
 func (suite *MigrationSuite) TestMigrateMachineFinalizers() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
 	m1 := omni.NewMachine(resources.DefaultNamespace, "m1")
@@ -617,7 +617,7 @@ func (suite *MigrationSuite) TestMigrateMachineFinalizers() {
 }
 
 func (suite *MigrationSuite) TestMigrateConfigPatchLabels() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
 	p1 := omni.NewConfigPatch(resources.DefaultNamespace, "000-p1")
@@ -645,7 +645,7 @@ func (suite *MigrationSuite) TestMigrateConfigPatchLabels() {
 }
 
 func (suite *MigrationSuite) TestUpdateMachineStatusClusterRelations() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
 	msControlPlane := omni.NewMachineStatus(resources.DefaultNamespace, "msControlPlane")
@@ -714,7 +714,7 @@ func (suite *MigrationSuite) TestUpdateMachineStatusClusterRelations() {
 
 //nolint:staticcheck
 func (suite *MigrationSuite) TestAddServiceAccountScopesToUsers() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
 	id := uuid.New().String()
@@ -760,7 +760,7 @@ func (suite *MigrationSuite) TestAddServiceAccountScopesToUsers() {
 }
 
 func (suite *MigrationSuite) TestMigrateLabels() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
 	id := uuid.New().String()
@@ -804,7 +804,7 @@ func (suite *MigrationSuite) TestMigrateLabels() {
 
 //nolint:staticcheck
 func (suite *MigrationSuite) TestConvertScopesToRoles() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
 	userWithNoScopes := authres.NewUser(resources.DefaultNamespace, fmt.Sprintf("userWithNoScopes-%s", uuid.New().String()))
@@ -898,7 +898,7 @@ func (suite *MigrationSuite) TestConvertScopesToRoles() {
 }
 
 func (suite *MigrationSuite) TestLowercaseEmails() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
 	identityUppercase := authres.NewIdentity(resources.DefaultNamespace, "USER@a.com")
@@ -967,7 +967,7 @@ func (suite *MigrationSuite) TestLowercaseEmails() {
 }
 
 func (suite *MigrationSuite) TestPatchesExtraction() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 
 	clusterName := "patches"
 	machines := []machine{
@@ -1035,7 +1035,7 @@ func (suite *MigrationSuite) TestPatchesExtraction() {
 }
 
 func (suite *MigrationSuite) TestInstallDiskPatchMigration() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 
 	clusterName := "patches"
 	machines := []machine{
@@ -1138,7 +1138,7 @@ func (suite *MigrationSuite) TestInstallDiskPatchMigration() {
 }
 
 func (suite *MigrationSuite) TestSiderolinkCounterMigration() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 
 	version := system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
 	version.TypedSpec().Value.Version = 1
@@ -1165,7 +1165,7 @@ func (suite *MigrationSuite) TestSiderolinkCounterMigration() {
 }
 
 func (suite *MigrationSuite) TestFixClusterConfigVersionOwnership() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 
 	version := system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
 	version.TypedSpec().Value.Version = 1
@@ -1194,7 +1194,7 @@ func (suite *MigrationSuite) TestFixClusterConfigVersionOwnership() {
 }
 
 func (suite *MigrationSuite) TestUpdateClusterMachineConfigPatchesLabels() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 
 	version := system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
 	version.TypedSpec().Value.Version = 23
@@ -1238,7 +1238,7 @@ func (suite *MigrationSuite) TestUpdateClusterMachineConfigPatchesLabels() {
 }
 
 func (suite *MigrationSuite) TestClearEmptyConfigPatches() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 
 	cp1 := omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "1")
 
@@ -1285,7 +1285,7 @@ func (suite *MigrationSuite) TestClearEmptyConfigPatches() {
 }
 
 func (suite *MigrationSuite) TestCleanupDanglingSchematicConfigurations() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 
 	version := system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
 	version.TypedSpec().Value.Version = 23
@@ -1322,7 +1322,7 @@ func (suite *MigrationSuite) TestCleanupDanglingSchematicConfigurations() {
 }
 
 func (suite *MigrationSuite) TestCleanupExtensionConfigurationStatuses() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 
 	version := system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
 	version.TypedSpec().Value.Version = 23
@@ -1339,7 +1339,7 @@ func (suite *MigrationSuite) TestCleanupExtensionConfigurationStatuses() {
 }
 
 func (suite *MigrationSuite) TestDropExtensionsConfigurationFinalizers() {
-	ctx := context.Background()
+	ctx := suite.T().Context()
 
 	version := system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
 	suite.Require().NoError(suite.state.Create(ctx, version))
@@ -1361,7 +1361,7 @@ func (suite *MigrationSuite) TestDropExtensionsConfigurationFinalizers() {
 }
 
 func (suite *MigrationSuite) TestSetMachineStatusSnapshotOwner() {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(suite.T().Context())
 	defer cancel()
 
 	items := []*omni.MachineStatusSnapshot{
@@ -1402,7 +1402,7 @@ func (suite *MigrationSuite) TestSetMachineStatusSnapshotOwner() {
 }
 
 func (suite *MigrationSuite) TestMigrateInstallImageConfigIntoGenOptions() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	suite.T().Cleanup(cancel)
 
 	machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, "test")
@@ -1478,7 +1478,7 @@ func (suite *MigrationSuite) TestMigrateInstallImageConfigIntoGenOptions() {
 }
 
 func (suite *MigrationSuite) TestDropAllMaintenanceConfigs() {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(suite.T().Context(), time.Second*5)
 
 	defer cancel()
 
@@ -1543,7 +1543,7 @@ func (suite *MigrationSuite) TestDropAllMaintenanceConfigs() {
 }
 
 func (suite *MigrationSuite) testDeleteDeprecatedResources(createRes func(id string) resource.Resource, migrationFilter string) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(suite.T().Context(), time.Second*5)
 
 	defer cancel()
 
@@ -1597,7 +1597,7 @@ func (suite *MigrationSuite) TestDeleteMachineClassStatuses() {
 }
 
 func (suite *MigrationSuite) TestRemoveMaintenanceConfigPatchFinalizers() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
 	deprecatedControllerName := "MaintenanceConfigPatchController"
@@ -1630,7 +1630,7 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
 	const (
