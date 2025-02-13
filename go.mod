@@ -67,7 +67,7 @@ require (
 	github.com/siderolabs/go-circular v0.2.2
 	github.com/siderolabs/go-debug v0.4.0
 	github.com/siderolabs/go-kubernetes v0.2.17
-	github.com/siderolabs/go-loadbalancer v0.3.4
+	github.com/siderolabs/go-loadbalancer v0.4.0
 	github.com/siderolabs/go-pointer v1.0.0
 	github.com/siderolabs/go-procfs v0.1.2
 	github.com/siderolabs/go-retry v0.3.3
