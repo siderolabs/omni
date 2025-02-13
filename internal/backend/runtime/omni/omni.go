@@ -69,9 +69,8 @@ type Runtime struct {
 	talosClientFactory *talos.ClientFactory
 	storeFactory       store.Factory
 
-	dnsService              *dns.Service
-	workloadProxyReconciler *workloadproxy.Reconciler
-	resourceLogger          *resourcelogger.Logger
+	dnsService     *dns.Service
+	resourceLogger *resourcelogger.Logger
 
 	// resource state for internal consumers
 	state       state.State
@@ -85,10 +84,20 @@ type Runtime struct {
 // New creates a new Omni runtime.
 //
 //nolint:maintidx
-func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workloadProxyReconciler *workloadproxy.Reconciler,
-	resourceLogger *resourcelogger.Logger, imageFactoryClient *imagefactory.Client, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas,
-	siderolinkEventsCh <-chan *omni.MachineStatusSnapshot, installEventCh <-chan cosiresource.ID, resourceState state.State, virtualState *virtual.State, metricsRegistry prometheus.Registerer,
-	defaultDiscoveryClient, embeddedDiscoveryClient omnictrl.DiscoveryClient, logger *zap.Logger,
+func New(
+	talosClientFactory *talos.ClientFactory,
+	dnsService *dns.Service,
+	workloadProxyReconciler *workloadproxy.Reconciler,
+	resourceLogger *resourcelogger.Logger,
+	imageFactoryClient *imagefactory.Client,
+	linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas,
+	siderolinkEventsCh <-chan *omni.MachineStatusSnapshot,
+	installEventCh <-chan cosiresource.ID,
+	resourceState state.State,
+	virtualState *virtual.State,
+	metricsRegistry prometheus.Registerer,
+	defaultDiscoveryClient, embeddedDiscoveryClient omnictrl.DiscoveryClient,
+	logger *zap.Logger,
 ) (*Runtime, error) {
 	var opts []options.Option
 
@@ -367,17 +376,16 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 	)
 
 	return &Runtime{
-		controllerRuntime:       controllerRuntime,
-		talosClientFactory:      talosClientFactory,
-		storeFactory:            storeFactory,
-		dnsService:              dnsService,
-		workloadProxyReconciler: workloadProxyReconciler,
-		resourceLogger:          resourceLogger,
-		powerStageWatcher:       powerStageWatcher,
-		state:                   state.WrapCore(validated.NewState(resourceState, validationOptions...)),
-		cachedState:             state.WrapCore(validated.NewState(controllerRuntime.CachedState(), validationOptions...)),
-		virtual:                 virtualState,
-		logger:                  logger,
+		controllerRuntime:  controllerRuntime,
+		talosClientFactory: talosClientFactory,
+		storeFactory:       storeFactory,
+		dnsService:         dnsService,
+		resourceLogger:     resourceLogger,
+		powerStageWatcher:  powerStageWatcher,
+		state:              state.WrapCore(validated.NewState(resourceState, validationOptions...)),
+		cachedState:        state.WrapCore(validated.NewState(controllerRuntime.CachedState(), validationOptions...)),
+		virtual:            virtualState,
+		logger:             logger,
 	}, nil
 }
 

@@ -8,7 +8,6 @@ package omni
 import (
 	"context"
 	"fmt"
-	"net"
 	"slices"
 	"strconv"
 
@@ -17,18 +16,19 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/siderolabs/gen/xslices"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
+	"github.com/siderolabs/omni/internal/backend/workloadproxy"
 )
 
 // WorkloadProxyReconciler reconciles the workload proxies for a cluster.
 type WorkloadProxyReconciler interface {
 	// Reconcile reconciles the workload proxies for a cluster.
-	Reconcile(cluster resource.ID, aliasToUpstreamAddresses map[string][]string) error
+	Reconcile(cluster resource.ID, rd *workloadproxy.ReconcileData) error
+	DropAlias(alias string) bool
 }
 
 // ClusterWorkloadProxyStatusControllerName is the name of the controller.
@@ -128,10 +128,18 @@ func (helper *clusterWorkloadProxyStatusControllerHelper) transform(ctx context.
 		return fmt.Errorf("failed to list exposed services: %w", err)
 	}
 
-	aliasToUpstreamAddresses := make(map[string][]string, svcList.Len())
+	rd := &workloadproxy.ReconcileData{
+		AliasPort: make(map[string]string, svcList.Len()),
+		Hosts:     healthyTargetHosts,
+	}
 
 	for svc := range svcList.All() {
 		if svc.Metadata().Phase() == resource.PhaseTearingDown {
+			alias, ok := svc.Metadata().Labels().Get(omni.LabelExposedServiceAlias)
+			if ok {
+				helper.workloadProxyReconciler.DropAlias(alias)
+			}
+
 			if err = r.RemoveFinalizer(ctx, svc.Metadata(), ClusterWorkloadProxyStatusControllerName); err != nil {
 				return fmt.Errorf("failed to remove finalizer: %w", err)
 			}
@@ -150,16 +158,14 @@ func (helper *clusterWorkloadProxyStatusControllerHelper) transform(ctx context.
 			continue
 		}
 
-		aliasToUpstreamAddresses[alias] = xslices.Map(healthyTargetHosts, func(host string) string {
-			return net.JoinHostPort(host, strconv.Itoa(int(svc.TypedSpec().Value.Port)))
-		})
+		rd.AliasPort[alias] = strconv.Itoa(int(svc.TypedSpec().Value.Port))
 	}
 
-	if err = helper.workloadProxyReconciler.Reconcile(cluster.Metadata().ID(), aliasToUpstreamAddresses); err != nil {
+	if err = helper.workloadProxyReconciler.Reconcile(cluster.Metadata().ID(), rd); err != nil {
 		return fmt.Errorf("failed to reconcile load balancers: %w", err)
 	}
 
-	status.TypedSpec().Value.NumExposedServices = uint32(len(aliasToUpstreamAddresses))
+	status.TypedSpec().Value.NumExposedServices = uint32(len(rd.AliasPort))
 
 	return nil
 }
@@ -182,6 +188,13 @@ func (helper *clusterWorkloadProxyStatusControllerHelper) teardown(ctx context.C
 	}
 
 	for svc := range svcList.All() {
+		alias, ok := svc.Metadata().Labels().Get(omni.LabelExposedServiceAlias)
+		if !ok {
+			logger.Warn("missing label", zap.String("label", omni.LabelExposedServiceAlias), zap.String("service", svc.Metadata().ID()))
+		} else {
+			helper.workloadProxyReconciler.DropAlias(alias)
+		}
+
 		if err = r.RemoveFinalizer(ctx, svc.Metadata(), ClusterWorkloadProxyStatusControllerName); err != nil {
 			return fmt.Errorf("failed to remove finalizer: %w", err)
 		}

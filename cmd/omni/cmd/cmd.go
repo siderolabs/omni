@@ -173,6 +173,10 @@ func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtua
 		dnsService := dns.NewService(resourceState, logger)
 		workloadProxyReconciler := workloadproxy.NewReconciler(logger.With(logging.Component("workload_proxy_reconciler")), zapcore.DebugLevel)
 
+		if err := prometheus.DefaultRegisterer.Register(workloadProxyReconciler); err != nil {
+			return err
+		}
+
 		var resourceLogger *resourcelogger.Logger
 
 		if len(config.Config.LogResourceUpdatesTypes) > 0 {
