@@ -17,7 +17,6 @@ included in the LICENSE file.
             <stats-item pluralized-text="Machine" :count="itemsCount" icon="nodes" :text="filtered ? ' Found' : ' Total'"/>
           </page-header>
         </div>
-        <machine-tabs/>
       </template>
       <template #default="{ items, searchQuery }">
         <div class="header">
@@ -57,7 +56,6 @@ import { Resource } from "@/api/grpc";
 import TButton from "@/components/common/Button/TButton.vue";
 import WordHighlighter from "vue-word-highlighter";
 import { useRouter } from "vue-router";
-import MachineTabs from "./MachineTabs.vue";
 
 const router = useRouter();
 

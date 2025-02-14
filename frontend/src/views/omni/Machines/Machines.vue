@@ -13,6 +13,41 @@ included in the LICENSE file.
       :sortOptions="sortOptions"
       :filterValue="filterValue"
       >
+      <template #norecords>
+        <t-alert
+          type="info"
+          title="No Infrastructure Providers Connected"
+          v-if="filter === MachineFilterOption.Managed && infraProviderStatuses.length === 0"
+        >
+          <div class="flex gap-1">
+            Check the
+            <t-button type="subtle" @click="openDocs">documentation</t-button> on
+            how to configure and use infrastructure providers.
+          </div>
+        </t-alert>
+
+        <t-alert
+          type="info"
+          title="No Machines Found"
+          v-else-if="filter === MachineFilterOption.Manual"
+        >
+          <div class="flex gap-1">
+            Download and boot the
+            <t-button type="subtle" @click="() => $router.push({name: 'Overview', query: {modal: 'downloadInstallationMedia'}})">installation media</t-button> on
+            to connect machines to your Omni instance.
+          </div>
+        </t-alert>
+
+        <t-alert
+          type="info"
+          title="No Machines Found"
+          v-else
+        >
+          <div class="flex gap-1">
+            No entries of the requested resource type are found on the server.
+          </div>
+        </t-alert>
+      </template>
       <template #header="{ itemsCount, filtered }">
         <div class="flex gap-4">
           <page-header title="Machines" v-if="!filter">
@@ -29,10 +64,9 @@ included in the LICENSE file.
             </watch>
           </page-header>
           <page-header title="Manually Joined Machines" v-else-if="filter === MachineFilterOption.Manual"/>
-          <page-header title="Machines Provisioned by the Infra Providers" v-else-if="filter === MachineFilterOption.Provisioned"/>
-          <page-header title="Machines Managed by the Bare Metal Providers" v-else-if="filter === MachineFilterOption.PXE"/>
+          <page-header title="Machines Managed by the Infrastructure Providers" v-else-if="filter === MachineFilterOption.Managed"/>
+          <page-header :title="`Machines Managed by the Infrastructure Provider ${$route.params.provider}`" v-else-if="$route.params.provider"/>
         </div>
-        <machine-tabs/>
       </template>
       <template #input>
         <labels-input :completions-resource="{
@@ -53,7 +87,7 @@ included in the LICENSE file.
 
 <script setup lang="ts">
 import { Runtime } from "@/api/common/omni.pb";
-import { MetricsNamespace, MachineStatusLinkType, LabelsCompletionType, VirtualNamespace, MachineStatusType, MachineStatusMetricsType, MachineStatusMetricsID, EphemeralNamespace, LabelIsManagedByStaticInfraProvider, LabelMachineRequest } from "@/api/resources";
+import { MetricsNamespace, MachineStatusLinkType, LabelsCompletionType, VirtualNamespace, MachineStatusType, MachineStatusMetricsType, MachineStatusMetricsID, EphemeralNamespace, LabelIsManagedByStaticInfraProvider, LabelMachineRequest, LabelInfraProviderID, InfraProviderStatusType, InfraProviderNamespace } from "@/api/resources";
 import { itemID, WatchOptions } from "@/api/watch";
 
 import TList from "@/components/common/List/TList.vue";
@@ -68,7 +102,11 @@ import { MachineStatusMetricsSpec } from "@/api/omni/specs/omni.pb";
 import StatsItem from "@/components/common/Stats/StatsItem.vue";
 import { MachineFilterOption } from "@/methods/machine";
 import { toRefs } from "vue";
-import MachineTabs from "./MachineTabs.vue";
+import { useRoute } from "vue-router";
+import { InfraProviderStatusSpec } from "@/api/omni/specs/infra.pb";
+import WatchResource from "@/api/watch";
+import TAlert from "@/components/TAlert.vue";
+import TButton from "@/components/common/Button/TButton.vue";
 
 const props = defineProps<{
   filter?: MachineFilterOption,
@@ -76,19 +114,40 @@ const props = defineProps<{
 
 const { filter } = toRefs(props);
 
+const route = useRoute();
+
+const infraProviderStatuses = ref<Resource<InfraProviderStatusSpec>[]>([]);
+const infraProviderStatusesWatch = new WatchResource(infraProviderStatuses);
+
+infraProviderStatusesWatch.setup({
+  resource: {
+    type: InfraProviderStatusType,
+    namespace: InfraProviderNamespace,
+  },
+  runtime: Runtime.Omni
+});
+
 const watchOpts = computed<WatchOptions>(() => {
-  const selectors = labelsToSelectors(filterLabels.value) ?? [];
+  let selectors: string[] = [];
 
   switch (filter.value) {
     case MachineFilterOption.Manual:
-      selectors.push(`!${LabelMachineRequest}`, `!${LabelIsManagedByStaticInfraProvider}`);
+      selectors.push(`!${LabelMachineRequest},!${LabelIsManagedByStaticInfraProvider}`);
       break;
-    case MachineFilterOption.Provisioned:
-      selectors.push(`${LabelMachineRequest}`);
+    case MachineFilterOption.Managed:
+      selectors.push(`${LabelMachineRequest}`, `${LabelIsManagedByStaticInfraProvider}`);
       break;
-    case MachineFilterOption.PXE:
-      selectors.push(`${LabelIsManagedByStaticInfraProvider}`);
-      break;
+  }
+
+  if (route.params.provider) {
+    selectors.push(`${LabelInfraProviderID}=${route.params.provider}`);
+  }
+
+  const labelSelectors = labelsToSelectors(filterLabels.value);
+  if (labelSelectors) {
+    const q = labelSelectors.join(",");
+
+    selectors = selectors.map(item => item + "," + q);
   }
 
   return {
@@ -98,6 +157,7 @@ const watchOpts = computed<WatchOptions>(() => {
       namespace: MetricsNamespace,
     },
     selectors,
+    selectUsingOR: true,
   }
 });
 
@@ -126,4 +186,13 @@ const sortOptions = [
 
 const filterLabels = ref<Label[]>([]);
 const filterValue = ref("");
+
+const openDocs = () => {
+  window
+    .open(
+      "https://omni.siderolabs.com/explanation/infrastructure-providers",
+      "_blank"
+    )
+    ?.focus();
+};
 </script>

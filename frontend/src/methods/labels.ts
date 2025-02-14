@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import { InfraProviderLabelPrefix, SystemLabelPrefix } from "@/api/resources";
+import { InfraProviderLabelPrefix, LabelInfraProviderID, SystemLabelPrefix } from "@/api/resources";
 
 export const parseLabels = (...labels: string[]): Record<string, string> => {
     const labelsMap: Record<string, string> = {};
@@ -91,7 +91,7 @@ export const getLabelFromID = (key: string, value: string): Label => {
   let color = getLabelColor(strippedKey);
   let description = labelDescriptions[strippedKey];
 
-  if (key.indexOf(InfraProviderLabelPrefix) === 0) {
+  if (key.indexOf(InfraProviderLabelPrefix) === 0 && key !== LabelInfraProviderID) {
     const parts = strippedKey.split("/");
     strippedKey = parts[parts.length - 1];
 

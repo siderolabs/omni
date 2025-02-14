@@ -317,14 +317,14 @@ func (s *E2ESuite) TestCreateCluster() {
 func (s *E2ESuite) assertClusterCreation() {
 	s.withPage(s.baseURL, func(page playwright.Page) {
 		navigateToClusters := func() {
-			err := page.Locator(`p:has-text("Clusters")`).WaitFor()
+			err := page.Locator(`#sidebar-menu-clusters`).WaitFor()
 
 			s.Require().NoError(err)
 
 			clustersURL, err := url.JoinPath(s.baseURL, "/omni/clusters")
 			s.Require().NoError(err)
 
-			s.navigate(page, `p:has-text("Clusters")`, clustersURL)
+			s.navigate(page, `#sidebar-menu-clusters`, clustersURL)
 		}
 
 		navigateToClusters()

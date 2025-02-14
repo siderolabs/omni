@@ -13,11 +13,12 @@ included in the LICENSE file.
         :route="item.route"
         :name="item.name"
         :icon="item.icon"
+        :icon-svg-base64="item.iconSvgBase64"
         :label="item.label"
         :label-color="item.labelColor"
         :tooltip="item.tooltip"
-      >
-      </t-menu-item>
+        :sub-items="item.subItems"
+      />
     </div>
   </nav>
 </template>
@@ -29,11 +30,13 @@ import { IconType } from "../common/Icon/TIcon.vue";
 
 export type SideBarItem = {
   name: string,
-  route: string | RouteLocationRaw,
+  route?: string | RouteLocationRaw,
   icon?: IconType,
   label?: string | number,
   labelColor?: string,
   tooltip?: string
+  iconSvgBase64?: string
+  subItems?: SideBarItem[]
 }
 
 type Props = {

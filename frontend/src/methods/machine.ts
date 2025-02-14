@@ -207,6 +207,5 @@ export const updateInfraMachineConfig = async (machine: string, modify: (r: Reso
 export enum MachineFilterOption {
   Manual = "manual",
   Unaccepted = "unaccepted",
-  Provisioned = "provisioned",
-  PXE = "pxe",
+  Managed = "managed",
 };

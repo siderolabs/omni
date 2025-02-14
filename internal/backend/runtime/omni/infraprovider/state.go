@@ -329,7 +329,7 @@ func (st *State) checkAccess(ctx context.Context, ns resource.Namespace, resType
 
 	// not an infra provider, run regular user checks
 
-	if !isReadAccess { // not an infra provider, check for the read-only access
+	if !isReadAccess && resType != infra.InfraProviderStatusType { // not an infra provider, check for the read-only access
 		return accessCheckResult{}, status.Errorf(codes.PermissionDenied, "users are not allowed to modify %q resources", resType)
 	}
 

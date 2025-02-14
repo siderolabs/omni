@@ -19,12 +19,15 @@ import { IconType } from "@/components/common/Icon/TIcon.vue";
 import { Resource } from "@/api/grpc";
 import { MachineStatusMetricsSpec } from "@/api/omni/specs/omni.pb";
 import Watch from "@/api/watch";
-import { EphemeralNamespace, MachineStatusMetricsID, MachineStatusMetricsType } from "@/api/resources";
+import { EphemeralNamespace, InfraProviderNamespace, InfraProviderStatusType, MachineStatusMetricsID, MachineStatusMetricsType } from "@/api/resources";
 import { Runtime } from "@/api/common/omni.pb";
-import pluralize from "pluralize";
+import { InfraProviderStatusSpec } from "@/api/omni/specs/infra.pb";
 
 const machineMetrics = ref<Resource<MachineStatusMetricsSpec>>();
 const machineMetricsWatch = new Watch(machineMetrics);
+
+const infraProviderStatuses = ref<Resource<InfraProviderStatusSpec>[]>([]);
+const infraProvidersWatch = new Watch(infraProviderStatuses);
 
 machineMetricsWatch.setup({
   resource: {
@@ -34,6 +37,19 @@ machineMetricsWatch.setup({
   },
   runtime: Runtime.Omni,
 });
+
+infraProvidersWatch.setup(computed(() => {
+  if (!canReadMachines.value)
+    return
+
+  return {
+    resource: {
+      namespace: InfraProviderNamespace,
+      type: InfraProviderStatusType
+    },
+    runtime: Runtime.Omni
+  }
+}));
 
 const route = useRoute();
 
@@ -49,6 +65,20 @@ const getRoute = (name: string, path: string) => {
 };
 
 const { status: backupStatus } = setupBackupStatus();
+
+const groupProviders = (statuses: Resource<InfraProviderStatusSpec>[]): Record<string, Resource<InfraProviderStatusSpec>[]> => {
+  const res: Record<string, Resource<InfraProviderStatusSpec>[]> = {};
+
+  for (const status of statuses) {
+    if (!res[status.spec.name!]) {
+      res[status.spec.name!] = [];
+    }
+
+    res[status.spec.name!].push(status);
+  }
+
+  return res;
+};
 
 const items = computed(() => {
   const result: SideBarItem[] = [{
@@ -66,15 +96,67 @@ const items = computed(() => {
   }
 
   if (canReadMachines.value) {
+    const autoprovisionedMenuItem: SideBarItem = {
+      name: "Auto-Provisioned",
+      icon: "machines-autoprovisioned",
+      route: getRoute("MachinesManaged", "/omni/machines/managed")
+    };
+
+    if (infraProviderStatuses.value.length > 0) {
+      autoprovisionedMenuItem.subItems = [];
+
+      const items = groupProviders(infraProviderStatuses.value);
+
+      for (const name in items) {
+        const values = items[name];
+
+        const item: SideBarItem = {
+          name: name,
+          iconSvgBase64: values[0].spec.icon,
+        }
+
+        if (!item.iconSvgBase64) {
+          item.icon = "cloud-connection";
+        }
+
+        if (values.length > 1) {
+          item.subItems = [];
+
+          for (const provider of values) {
+            item.subItems.push({
+              name: provider.metadata.id!,
+              route: getRoute("MachinesManagedProvider",  `/omni/machines/managed/${provider.metadata.id!}`)
+            })
+          }
+        } else {
+          item.route = getRoute("MachinesManagedProvider",  `/omni/machines/managed/${values[0].metadata.id}`)
+        }
+
+        autoprovisionedMenuItem.subItems.push(item);
+      }
+    }
+
     const item: SideBarItem = {
       name: "Machines",
       route: getRoute("Machines", "/omni/machines"),
       icon: "nodes",
+      subItems: [
+        {
+          name: "Self-Managed",
+          route: getRoute("MachinesManual", "/omni/machines/manual"),
+          icon: "machines-manual",
+        },
+        autoprovisionedMenuItem,
+      ],
     };
 
     if (machineMetrics.value?.spec.pending_machines_count) {
-      item.label = machineMetrics.value.spec.pending_machines_count;
-      item.tooltip = `${machineMetrics.value.spec.pending_machines_count} ${pluralize('machines', machineMetrics.value.spec.pending_machines_count)} not accepted`;
+      item.subItems!.push({
+          name: "Pending",
+          route: getRoute("MachinesPending", "/omni/machines/pending"),
+          icon: "question",
+          label: machineMetrics.value.spec.pending_machines_count
+      });
     }
 
     result.push(item);

@@ -116,6 +116,8 @@ const icons = {
   "extensions": defineAsyncComponent(() => import("../../icons/IconExtensions.vue")),
   "extensions-toggle": defineAsyncComponent(() => import("../../icons/IconExtensionsToggle.vue")),
   "server-network": defineAsyncComponent(() => import("../../icons/IconServerNetwork.vue")),
+  "machines-manual": defineAsyncComponent(() => import("../../icons/IconMachinesManual.vue")),
+  "machines-autoprovisioned": defineAsyncComponent(() => import("../../icons/IconMachinesAutoprovisioned.vue")),
   "document": DocumentIcon,
   "power": PowerIcon,
   "users": UsersIcon,

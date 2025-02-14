@@ -246,6 +246,7 @@ export default class Watch<T extends Resource> extends WatchFunc {
 
     if (this.watchItems) {
       this.watchItems.reset();
+      this.total.value = 0;
     }
 
     if (this.items) {

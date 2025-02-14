@@ -37,6 +37,6 @@ watch(
 
 <style scoped>
 .sidebar {
-  @apply bg-naturals-N1 relative w-48 lg:w-64 h-full;
+  @apply bg-naturals-N1 relative w-48 lg:w-64 h-full border-r border-naturals-N4;
 }
 </style>
