@@ -181,7 +181,7 @@ ${ARTIFACTS}/talosctl cluster create \
     --controlplanes=1 \
     --workers=2 \
     --wait=false \
-    --mtu=1430 \
+    --mtu=1280 \
     --memory=3072 \
     --memory-workers=3072 \
     --cpus=3 \
@@ -201,7 +201,7 @@ ${ARTIFACTS}/talosctl cluster create \
     --controlplanes=1 \
     --workers=${KERNEL_ARGS_WORKERS_COUNT} \
     --wait=false \
-    --mtu=1430 \
+    --mtu=1280 \
     --memory=3072 \
     --memory-workers=3072 \
     --cpus=3 \
@@ -239,7 +239,7 @@ if [[ "${ENABLE_SECUREBOOT}" == "true" ]]; then
       --controlplanes=1 \
       --workers=1 \
       --wait=false \
-      --mtu=1430 \
+      --mtu=1280 \
       --memory=3072 \
       --memory-workers=3072 \
       --cpus=3 \
