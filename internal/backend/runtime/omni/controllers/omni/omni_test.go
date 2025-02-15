@@ -77,8 +77,9 @@ type machineService struct {
 	metaDeleteKeyToCount map[uint32]int
 	metaKeys             map[uint32]string
 
-	address string
-	state   state.State
+	address      string
+	state        state.State
+	talosVersion string
 }
 
 func (ms *machineService) getUpgradeRequests() []*machine.UpgradeRequest {
@@ -270,7 +271,7 @@ func (ms *machineService) Version(context.Context, *emptypb.Empty) (*machine.Ver
 		Messages: []*machine.Version{
 			{
 				Version: &machine.VersionInfo{
-					Tag: "v" + TalosVersion,
+					Tag: "v" + ms.talosVersion,
 				},
 			},
 		},
@@ -345,11 +346,16 @@ type OmniSuite struct { //nolint:govet
 	states   map[string]*server.State
 }
 
-// Start a mock gRPC server on the unix socket which is using a temp file,
+// newServer starts a mock gRPC server on the unix socket which is using a temp file,
 // to avoid clashing with other parallel test runs.
 // This server is used as a fake endpoint for each node we create for the cluster.
 // The single server is used for all nodes.
 func (suite *OmniSuite) newServer(suffix string) (*machineService, error) {
+	return suite.newServerWithTalosVersion(suffix, TalosVersion)
+}
+
+// newServerWithTalosVersion is the same as newServer, but allows to specify the Talos version.
+func (suite *OmniSuite) newServerWithTalosVersion(suffix, talosVersion string) (*machineService, error) {
 	address := suite.socketPath + suffix
 
 	listener, err := net.Listen("unix", address)
@@ -364,9 +370,10 @@ func (suite *OmniSuite) newServer(suffix string) (*machineService, error) {
 	suite.Require().NoError(err)
 
 	machineService := &machineService{
-		resetChan: make(chan *machine.ResetRequest, 10),
-		address:   address,
-		state:     st,
+		resetChan:    make(chan *machine.ResetRequest, 10),
+		address:      address,
+		state:        st,
+		talosVersion: talosVersion,
 	}
 
 	suite.statesMu.Lock()
@@ -480,8 +487,12 @@ func assertNoResource[R rtestutils.ResourceWithRD](suite *OmniSuite, r R) {
 }
 
 func (suite *OmniSuite) createCluster(clusterName string, controlPlanes, workers int) (*omni.Cluster, []*omni.ClusterMachine) {
+	return suite.createClusterWithTalosVersion(clusterName, controlPlanes, workers, TalosVersion)
+}
+
+func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, controlPlanes, workers int, talosVersion string) (*omni.Cluster, []*omni.ClusterMachine) {
 	cluster := omni.NewCluster(resources.DefaultNamespace, clusterName)
-	cluster.TypedSpec().Value.TalosVersion = TalosVersion
+	cluster.TypedSpec().Value.TalosVersion = talosVersion
 	cluster.TypedSpec().Value.KubernetesVersion = "1.24.1"
 
 	machines := make([]*omni.ClusterMachine, controlPlanes+workers)
