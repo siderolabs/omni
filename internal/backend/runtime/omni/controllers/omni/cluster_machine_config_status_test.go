@@ -458,6 +458,10 @@ func (suite *ClusterMachineConfigStatusSuite) TestUpgrades() {
 			if r.Image != expectedImage {
 				return fmt.Errorf("%d request image is invalid: expected %q got %q", i, expectedImage, r.Image)
 			}
+
+			if r.Stage {
+				suite.Require().Fail("unexpected stage request")
+			}
 		}
 
 		return nil
@@ -501,6 +505,81 @@ func (suite *ClusterMachineConfigStatusSuite) TestUpgrades() {
 			suite.T().Logf("upgrade meta key deletes: %v", count)
 		}
 	}, time.Second*5, 50*time.Millisecond)
+}
+
+func (suite *ClusterMachineConfigStatusSuite) TestStagedUpgrade() {
+	suite.startRuntime()
+
+	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
+	suite.Require().NoError(suite.state.Create(suite.ctx, siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)))
+
+	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
+	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil, 8090)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
+
+	// choose a Talos version affected by the readiness bug, so it will trigger a staged upgrade
+	actualTalosVersion := "1.9.1"
+
+	clusterName := "test-staged-upgrade"
+	cluster, machines := suite.createClusterWithTalosVersion(clusterName, 1, 0, actualTalosVersion)
+
+	suite.Require().Len(machines, 1)
+
+	clusterMachine := machines[0]
+
+	talosVersion := omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, clusterMachine.Metadata().ID())
+	talosVersion.TypedSpec().Value.TalosVersion = cluster.TypedSpec().Value.TalosVersion
+	suite.Require().NoError(suite.state.Create(suite.ctx, talosVersion))
+
+	statusSnapshot := omni.NewMachineStatusSnapshot(resources.DefaultNamespace, clusterMachine.Metadata().ID())
+
+	statusSnapshot.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{
+		Stage: machine.MachineStatusEvent_RUNNING,
+	}
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, statusSnapshot))
+
+	machineSvc, err := suite.newServerWithTalosVersion("-staged-upgrade", actualTalosVersion)
+	suite.Require().NoError(err)
+
+	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewMachineStatus(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata(), func(res *omni.MachineStatus) error {
+		res.TypedSpec().Value.Connected = true
+		res.TypedSpec().Value.Maintenance = false
+		res.TypedSpec().Value.ManagementAddress = unixSocket + machineSvc.address
+		res.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
+			Enabled: false,
+		}
+
+		return nil
+	},
+	)
+	suite.Require().NoError(err)
+
+	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, talosVersion.Metadata(), func(res *omni.ClusterMachineTalosVersion) error {
+		res.TypedSpec().Value.TalosVersion = "1.9.3"
+
+		return nil
+	})
+	suite.Require().NoError(err)
+
+	require.EventuallyWithT(suite.T(), func(collect *assert.CollectT) {
+		suite.Require().NoError(suite.ctx.Err())
+
+		requests := machineSvc.getUpgradeRequests()
+
+		if assert.NotEmpty(collect, requests, "no upgrade requests received") {
+			for _, request := range requests {
+				assert.True(collect, request.Stage, "expected staged upgrade")
+			}
+		}
+	}, time.Second*30, 100*time.Millisecond)
 }
 
 func (suite *ClusterMachineConfigStatusSuite) TestSchematicChanges() {

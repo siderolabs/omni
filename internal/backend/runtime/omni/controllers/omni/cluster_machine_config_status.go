@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -449,7 +450,12 @@ func (h *clusterMachineConfigStatusControllerHandler) syncInstallImageAndSchemat
 	upgradeCtx, upgradeCancel := context.WithTimeout(inputCtx, 5*time.Minute)
 	defer upgradeCancel()
 
-	_, err = c.Upgrade(upgradeCtx, image, !maintenance, false, false)
+	stageUpgrade, err := h.stageUpgrade(actualVersion)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = c.Upgrade(upgradeCtx, image, !maintenance, stageUpgrade, false)
 
 	// Failed Precondition means that the node is not in a state when the system can be upgraded.
 	if status.Code(err) == codes.FailedPrecondition {
@@ -462,6 +468,19 @@ func (h *clusterMachineConfigStatusControllerHandler) syncInstallImageAndSchemat
 	}
 
 	return false, err
+}
+
+// stageUpgrade decides if the upgrade should be staged.
+//
+// Currently, it is only required as a workaround for this bug affecting Talos 1.9.0-1.9.2:
+// https://github.com/siderolabs/talos/issues/10163.
+func (h *clusterMachineConfigStatusControllerHandler) stageUpgrade(actualTalosVersion string) (bool, error) {
+	version, err := semver.ParseTolerant(actualTalosVersion)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse talos version %q: %w", actualTalosVersion, err)
+	}
+
+	return version.Major == 1 && version.Minor == 9 && version.Patch < 3, nil
 }
 
 func (h *clusterMachineConfigStatusControllerHandler) applyConfig(inputCtx context.Context,
