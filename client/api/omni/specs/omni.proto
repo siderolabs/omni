@@ -1312,3 +1312,8 @@ message InfraMachineBMCConfigSpec {
   IPMI ipmi = 1;
   API api = 2;
 }
+
+message MaintenanceConfigStatusSpec {
+  // PublicKeyAtLastApply is the SideroLink public key of the machine at the time of the last apply.
+  string public_key_at_last_apply = 1;
+}

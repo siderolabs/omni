@@ -866,3 +866,7 @@ export type InfraMachineBMCConfigSpec = {
   ipmi?: InfraMachineBMCConfigSpecIPMI
   api?: InfraMachineBMCConfigSpecAPI
 }
+
+export type MaintenanceConfigStatusSpec = {
+  public_key_at_last_apply?: string
+}

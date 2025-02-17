@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-10-30T17:18:04Z by kres 6d3cad4.
+# Generated on 2025-02-18T13:59:57Z by kres 8a48729.
 
 name: e2e-workload-proxy-cron
 concurrency:
@@ -75,4 +75,5 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
+            /tmp/test-logs
           retention-days: "5"

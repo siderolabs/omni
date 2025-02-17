@@ -105,19 +105,27 @@ func deleteResources(cmd *cobra.Command, args []string) func(ctx context.Context
 			}
 		}
 
+		resourceIDsLeft := map[resource.ID]struct{}{}
+
 		// teardown all resources
 		for _, resourceID := range resourceIDs {
-			_, err = st.Teardown(ctx, resource.NewMetadata(deleteCmdFlags.namespace, rd.TypedSpec().Type, resourceID, resource.VersionUndefined))
-			if err != nil {
-				return err
+			destroyReady, teardownErr := st.Teardown(ctx, resource.NewMetadata(deleteCmdFlags.namespace, rd.TypedSpec().Type, resourceID, resource.VersionUndefined))
+			if teardownErr != nil {
+				return teardownErr
 			}
 
 			fmt.Printf("torn down %s %s\n", rd.TypedSpec().Type, resourceID)
-		}
 
-		resourceIDsLeft := map[resource.ID]struct{}{}
+			if destroyReady {
+				if err = st.Destroy(ctx, resource.NewMetadata(deleteCmdFlags.namespace, rd.TypedSpec().Type, resourceID, resource.VersionUndefined)); err != nil {
+					return err
+				}
 
-		for _, resourceID := range resourceIDs {
+				fmt.Printf("destroyed %s %s\n", rd.TypedSpec().Type, resourceID)
+
+				continue
+			}
+
 			resourceIDsLeft[resourceID] = struct{}{}
 		}
 

@@ -150,6 +150,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 			safe.WithResourceCache[*omni.TalosExtensions](),
 			safe.WithResourceCache[*omni.TalosUpgradeStatus](),
 			safe.WithResourceCache[*omni.TalosVersion](),
+			safe.WithResourceCache[*omni.MaintenanceConfigStatus](),
 			safe.WithResourceCache[*siderolinkresources.Config](),
 			safe.WithResourceCache[*siderolinkresources.ConnectionParams](),
 			safe.WithResourceCache[*siderolinkresources.Link](),
@@ -279,6 +280,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewLinkStatusController[*siderolinkresources.Link](peers),
 		omnictrl.NewLinkStatusController[*siderolinkresources.PendingMachine](peers),
 		omnictrl.NewPendingMachineStatusController(),
+		omnictrl.NewMaintenanceConfigStatusController(nil, siderolink.ListenHost, config.Config.EventSinkPort, config.Config.LogServerPort),
 	}
 
 	if config.Config.Auth.SAML.Enabled {

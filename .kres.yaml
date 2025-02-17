@@ -172,6 +172,7 @@ spec:
           paths:
             - "~/.talos/clusters/**/*.log"
             - "!~/.talos/clusters/**/swtpm.log"
+            - "/tmp/test-logs"
     environment:
       WITH_DEBUG: "true"
       INTEGRATION_RUN_E2E_TEST: "true"

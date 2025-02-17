@@ -115,7 +115,7 @@ func (x *SiderolinkConfigSpec) GetAdvertisedEndpoint() string {
 	return ""
 }
 
-// SiderolinkConnectionSpec describes each node connection information.
+// SiderolinkSpec describes each node connection information.
 type SiderolinkSpec struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	NodeSubnet      string                 `protobuf:"bytes,1,opt,name=node_subnet,json=nodeSubnet,proto3" json:"node_subnet,omitempty"`

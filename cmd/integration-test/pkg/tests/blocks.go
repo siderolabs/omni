@@ -19,7 +19,9 @@ import (
 )
 
 // TestBlockClusterShouldBeReady is a reusable block of assertions that can be used to verify that a cluster is fully ready.
-func TestBlockClusterShouldBeReady(ctx context.Context, rootClient *client.Client, clusterName, expectedTalosVersion string, talosAPIKeyPrepare TalosAPIKeyPrepareFunc) subTestList { //nolint:revive
+func TestBlockClusterShouldBeReady(ctx context.Context, rootClient *client.Client, clusterName,
+	expectedTalosVersion string, talosAPIKeyPrepare TalosAPIKeyPrepareFunc,
+) subTestList { //nolint:nolintlint,revive
 	return subTestList{
 		{
 			"ClusterMachinesShouldBeRunning",
@@ -62,7 +64,7 @@ func TestBlockClusterShouldBeReady(ctx context.Context, rootClient *client.Clien
 }
 
 // TestBlockProxyAPIAccessShouldWork is a reusable block of assertions that can be used to verify that Omni API proxies work.
-func TestBlockProxyAPIAccessShouldWork(ctx context.Context, rootClient *client.Client, clusterName string, talosAPIKeyPrepare TalosAPIKeyPrepareFunc) []subTest { //nolint:revive
+func TestBlockProxyAPIAccessShouldWork(ctx context.Context, rootClient *client.Client, clusterName string, talosAPIKeyPrepare TalosAPIKeyPrepareFunc) []subTest { //nolint:nolintlint,revive
 	return []subTest{
 		{
 			"ClusterKubernetesAPIShouldBeAccessibleViaOmni",
@@ -84,7 +86,7 @@ func TestBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
 	ctx context.Context, rootClient *client.Client,
 	clusterName, expectedTalosVersion, expectedKubernetesVersion string,
 	talosAPIKeyPrepare TalosAPIKeyPrepareFunc,
-) []subTest { //nolint:revive
+) []subTest { //nolint:nolintlint,revive
 	return TestBlockClusterShouldBeReady(ctx, rootClient, clusterName, expectedTalosVersion, talosAPIKeyPrepare).
 		Append(TestBlockProxyAPIAccessShouldWork(ctx, rootClient, clusterName, talosAPIKeyPrepare)...).
 		Append(
@@ -109,7 +111,7 @@ func TestBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
 // cluster's control plane can be broken, destroyed and then restored from an etcd backup.
 func TestBlockRestoreEtcdFromLatestBackup(ctx context.Context, rootClient *client.Client, talosAPIKeyPrepare TalosAPIKeyPrepareFunc,
 	options Options, controlPlaneNodeCount int, clusterName, assertDeploymentNS, assertDeploymentName string,
-) subTestList { //nolint:revive
+) subTestList { //nolint:nolintlint,revive
 	return subTestList{
 		subTest{
 			"ControlPlaneShouldBeBrokenThenDestroyed",
@@ -167,7 +169,7 @@ func TestBlockRestoreEtcdFromLatestBackup(ctx context.Context, rootClient *clien
 // new cluster can be created from another cluster's etcd backup.
 func TestBlockCreateClusterFromEtcdBackup(ctx context.Context, rootClient *client.Client, talosAPIKeyPrepare TalosAPIKeyPrepareFunc, options Options,
 	sourceClusterName, newClusterName, assertDeploymentNS, assertDeploymentName string,
-) subTestList { //nolint:revive
+) subTestList { //nolint:nolintlint,revive
 	return subTestList{
 		subTest{
 			"ClusterShouldBeCreatedFromEtcdBackup",
@@ -215,7 +217,7 @@ func TestBlockCreateClusterFromEtcdBackup(ctx context.Context, rootClient *clien
 
 // TestBlockKubernetesDeploymentCreateAndRunning is a reusable block of assertions that can be used to verify that a
 // Kubernetes deployment is created and has running pods.
-func TestBlockKubernetesDeploymentCreateAndRunning(ctx context.Context, managementClient *management.Client, clusterName, ns, name string) []subTest { //nolint:revive
+func TestBlockKubernetesDeploymentCreateAndRunning(ctx context.Context, managementClient *management.Client, clusterName, ns, name string) []subTest { //nolint:nolintlint,revive
 	return []subTest{
 		{
 			"KubernetesDeploymentShouldBeCreated",
@@ -235,7 +237,7 @@ func TestGroupClusterCreateAndReady(
 	talosAPIKeyPrepare TalosAPIKeyPrepareFunc,
 	name, description string,
 	options ClusterOptions,
-) testGroup { //nolint:revive
+) testGroup { //nolint:nolintlint,revive
 	clusterName := "integration-" + name
 	options.Name = clusterName
 

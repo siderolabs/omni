@@ -26,6 +26,11 @@ JOIN_TOKEN=testonly
 RUN_DIR=$(pwd)
 ENABLE_SECUREBOOT=${ENABLE_SECUREBOOT:-false}
 KERNEL_ARGS_WORKERS_COUNT=2
+TALEMU_CONTAINER_NAME=talemu
+TALEMU_INFRA_PROVIDER_IMAGE=ghcr.io/siderolabs/talemu-infra-provider:latest
+TEST_LOGS_DIR=/tmp/test-logs
+
+mkdir -p $TEST_LOGS_DIR
 
 # Download required artifacts.
 
@@ -64,6 +69,12 @@ fi
 function cleanup() {
   cd "${RUN_DIR}"
   rm -rf ${ARTIFACTS}/omni.db ${ARTIFACTS}/etcd/
+
+  if docker ps -a --format '{{.Names}}' | grep -q "^${TALEMU_CONTAINER_NAME}$"; then
+    docker stop ${TALEMU_CONTAINER_NAME} || true
+    docker logs ${TALEMU_CONTAINER_NAME} &>$TEST_LOGS_DIR/${TALEMU_CONTAINER_NAME}.log || true
+    docker rm -f ${TALEMU_CONTAINER_NAME} || true
+  fi
 }
 
 trap cleanup EXIT SIGINT
@@ -81,8 +92,8 @@ sleep 10
 
 docker cp internal/backend/runtime/omni/testdata/pgp/old_key.private vault-dev:/tmp/old_key.private
 docker exec -e VAULT_ADDR='http://0.0.0.0:8200' -e VAULT_TOKEN=dev-o-token vault-dev \
-    vault kv put -mount=secret omni-private-key \
-    private-key=@/tmp/old_key.private
+  vault kv put -mount=secret omni-private-key \
+  private-key=@/tmp/old_key.private
 
 sleep 5
 
@@ -93,7 +104,6 @@ sleep 2
 
 [ -f ${ARTIFACTS}/mc ] || curl -Lo ${ARTIFACTS}/mc https://dl.min.io/client/mc/release/linux-amd64/mc
 chmod +x ${ARTIFACTS}/mc && ${ARTIFACTS}/mc alias set myminio http://127.0.0.1:9000 access secret123 && ${ARTIFACTS}/mc mb myminio/mybucket
-
 
 # Launch Omni in the background.
 
@@ -111,51 +121,54 @@ mkdir -p omnictl
 cp -p ${ARTIFACTS}/omnictl-* omnictl/
 
 SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
-nice -n 10 ${ARTIFACTS}/omni-linux-amd64 \
-    --siderolink-wireguard-advertised-addr $LOCAL_IP:50180 \
-    --siderolink-api-advertised-url "grpc://$LOCAL_IP:8090" \
-    --auth-auth0-enabled true \
-    --advertised-api-url "${BASE_URL}" \
-    --auth-auth0-client-id "${AUTH0_CLIENT_ID}" \
-    --auth-auth0-domain "${AUTH0_DOMAIN}" \
-    --initial-users "${AUTH_USERNAME}" \
-    --private-key-source "vault://secret/omni-private-key" \
-    --public-key-files "internal/backend/runtime/omni/testdata/pgp/new_key.public" \
-    --bind-addr 0.0.0.0:8099 \
-    --key hack/certs/localhost-key.pem \
-    --cert hack/certs/localhost.pem \
-    --etcd-embedded-unsafe-fsync=true \
-    --etcd-backup-s3 \
-    --audit-log-dir /tmp/omni-data/audit-log \
-    "${REGISTRY_MIRROR_FLAGS[@]}" \
-    &
-
-KERNEL_ARGS="siderolink.api=grpc://$LOCAL_IP:8090?jointoken=${JOIN_TOKEN} talos.events.sink=[fdae:41e4:649b:9303::1]:8090 talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092"
+  nice -n 10 ${ARTIFACTS}/omni-linux-amd64 \
+  --siderolink-wireguard-advertised-addr $LOCAL_IP:50180 \
+  --siderolink-api-advertised-url "grpc://$LOCAL_IP:8090" \
+  --auth-auth0-enabled true \
+  --advertised-api-url "${BASE_URL}" \
+  --auth-auth0-client-id "${AUTH0_CLIENT_ID}" \
+  --auth-auth0-domain "${AUTH0_DOMAIN}" \
+  --initial-users "${AUTH_USERNAME}" \
+  --private-key-source "vault://secret/omni-private-key" \
+  --public-key-files "internal/backend/runtime/omni/testdata/pgp/new_key.public" \
+  --bind-addr 0.0.0.0:8099 \
+  --key hack/certs/localhost-key.pem \
+  --cert hack/certs/localhost.pem \
+  --etcd-embedded-unsafe-fsync=true \
+  --etcd-backup-s3 \
+  --audit-log-dir /tmp/omni-data/audit-log \
+  "${REGISTRY_MIRROR_FLAGS[@]}" \
+  &
 
 if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
   PROMETHEUS_CONTAINER=$(docker run --network host -p "9090:9090" -v "$(pwd)/hack/compose/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml" -it --rm -d prom/prometheus)
 
-  TALEMU_CONTAINER=$(docker run --network host --cap-add=NET_ADMIN -it --rm -d ghcr.io/siderolabs/talemu-infra-provider:latest --create-service-account --omni-api-endpoint=https://$LOCAL_IP:8099)
+  docker pull "${TALEMU_INFRA_PROVIDER_IMAGE}"
+  docker run --name $TALEMU_CONTAINER_NAME \
+    --network host --cap-add=NET_ADMIN \
+    -it -d \
+    "${TALEMU_INFRA_PROVIDER_IMAGE}" \
+    --create-service-account \
+    --omni-api-endpoint="https://$LOCAL_IP:8099"
 
   SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
-  ${ARTIFACTS}/integration-test-linux-amd64 \
-      --endpoint https://my-instance.localhost:8099 \
-      --talos-version=${TALOS_VERSION} \
-      --omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
-      --expected-machines=30 \
-      --provision-config-file=hack/test/provisionconfig.yaml \
-      --run-stats-check \
-      -t 4m \
-      -p 10 \
-      ${TALEMU_TEST_ARGS:-}
+    ${ARTIFACTS}/integration-test-linux-amd64 \
+    --endpoint https://my-instance.localhost:8099 \
+    --talos-version=${TALOS_VERSION} \
+    --omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
+    --expected-machines=30 \
+    --provision-config-file=hack/test/provisionconfig.yaml \
+    --run-stats-check \
+    -t 4m \
+    -p 10 \
+    ${TALEMU_TEST_ARGS:-}
 
-  docker stop $TALEMU_CONTAINER
-  docker rm -f $TALEMU_CONTAINER
-  docker rm -f $PROMETHEUS_CONTAINER
+  docker rm -f "$PROMETHEUS_CONTAINER"
 fi
 
 # Prepare partial machine config
-PARTIAL_CONFIG=$(cat <<EOF
+PARTIAL_CONFIG=$(
+  cat <<EOF
 apiVersion: v1alpha1
 kind: SideroLinkConfig
 apiUrl: grpc://$LOCAL_IP:8090?jointoken=${JOIN_TOKEN}
@@ -172,53 +185,54 @@ EOF
 )
 PARTIAL_CONFIG_DIR="${ARTIFACTS}/partial-config"
 mkdir -p "${PARTIAL_CONFIG_DIR}"
-echo "${PARTIAL_CONFIG}" > "${PARTIAL_CONFIG_DIR}/controlplane.yaml"
-echo "${PARTIAL_CONFIG}" > "${PARTIAL_CONFIG_DIR}/worker.yaml"
+echo "${PARTIAL_CONFIG}" >"${PARTIAL_CONFIG_DIR}/controlplane.yaml"
+echo "${PARTIAL_CONFIG}" >"${PARTIAL_CONFIG_DIR}/worker.yaml"
 
 # Partial config, no secure boot
 ${ARTIFACTS}/talosctl cluster create \
-    --provisioner=qemu \
-    --controlplanes=1 \
-    --workers=2 \
-    --wait=false \
-    --mtu=1430 \
-    --memory=3072 \
-    --memory-workers=3072 \
-    --cpus=3 \
-    --cpus-workers=3 \
-    --with-uuid-hostnames \
-    \
-    --name test-1 \
-    --cidr=172.20.0.0/24 \
-    --no-masquerade-cidrs=172.21.0.0/24,172.22.0.0/24 \
-    --input-dir="${PARTIAL_CONFIG_DIR}" \
-    --vmlinuz-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/kernel-amd64" \
-    --initrd-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/initramfs-amd64.xz"
+  --provisioner=qemu \
+  --controlplanes=1 \
+  --workers=2 \
+  --wait=false \
+  --mtu=1430 \
+  --memory=3072 \
+  --memory-workers=3072 \
+  --cpus=3 \
+  --cpus-workers=3 \
+  --with-uuid-hostnames \
+  \
+  --name test-1 \
+  --cidr=172.20.0.0/24 \
+  --no-masquerade-cidrs=172.21.0.0/24,172.22.0.0/24 \
+  --input-dir="${PARTIAL_CONFIG_DIR}" \
+  --vmlinuz-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/kernel-amd64" \
+  --initrd-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/initramfs-amd64.xz"
 
 # Kernel Args, no secure boot
 ${ARTIFACTS}/talosctl cluster create \
-    --provisioner=qemu \
-    --controlplanes=1 \
-    --workers=${KERNEL_ARGS_WORKERS_COUNT} \
-    --wait=false \
-    --mtu=1430 \
-    --memory=3072 \
-    --memory-workers=3072 \
-    --cpus=3 \
-    --cpus-workers=3 \
-    --with-uuid-hostnames \
-    \
-    --name test-2 \
-    --skip-injecting-config \
-    --with-init-node \
-    --cidr=172.21.0.0/24 \
-    --no-masquerade-cidrs=172.20.0.0/24,172.22.0.0/24 \
-    --extra-boot-kernel-args "siderolink.api=grpc://$LOCAL_IP:8090?jointoken=${JOIN_TOKEN} talos.events.sink=[fdae:41e4:649b:9303::1]:8090 talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092" \
-    --vmlinuz-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/kernel-amd64" \
-    --initrd-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/initramfs-amd64.xz"
+  --provisioner=qemu \
+  --controlplanes=1 \
+  --workers=${KERNEL_ARGS_WORKERS_COUNT} \
+  --wait=false \
+  --mtu=1430 \
+  --memory=3072 \
+  --memory-workers=3072 \
+  --cpus=3 \
+  --cpus-workers=3 \
+  --with-uuid-hostnames \
+  \
+  --name test-2 \
+  --skip-injecting-config \
+  --with-init-node \
+  --cidr=172.21.0.0/24 \
+  --no-masquerade-cidrs=172.20.0.0/24,172.22.0.0/24 \
+  --extra-boot-kernel-args "siderolink.api=grpc://$LOCAL_IP:8090?jointoken=${JOIN_TOKEN} talos.events.sink=[fdae:41e4:649b:9303::1]:8090 talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092" \
+  --vmlinuz-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/kernel-amd64" \
+  --initrd-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/initramfs-amd64.xz"
 
 # Prepare schematic with kernel args for secure boot
-SECURE_BOOT_SCHEMATIC=$(cat <<EOF
+SECURE_BOOT_SCHEMATIC=$(
+  cat <<EOF
 customization:
   extraKernelArgs:
     - siderolink.api=grpc://$LOCAL_IP:8090?jointoken=${JOIN_TOKEN}
@@ -235,38 +249,38 @@ SECURE_BOOT_SCHEMATIC_ID=$(curl -X POST --data-binary "${SECURE_BOOT_SCHEMATIC}"
 if [[ "${ENABLE_SECUREBOOT}" == "true" ]]; then
   # Kernel args, secure boot
   ${ARTIFACTS}/talosctl cluster create \
-      --provisioner=qemu \
-      --controlplanes=1 \
-      --workers=1 \
-      --wait=false \
-      --mtu=1430 \
-      --memory=3072 \
-      --memory-workers=3072 \
-      --cpus=3 \
-      --cpus-workers=3 \
-      --with-uuid-hostnames \
-      \
-      --name test-3 \
-      --skip-injecting-config \
-      --with-init-node \
-      --cidr=172.22.0.0/24 \
-      --no-masquerade-cidrs=172.20.0.0/24,172.21.0.0/24 \
-      --with-tpm2 \
-      --iso-path="https://factory.talos.dev/image/${SECURE_BOOT_SCHEMATIC_ID}/v${TALOS_VERSION}/metal-amd64-secureboot.iso" \
-      --disk-encryption-key-types=tpm
-  fi
+    --provisioner=qemu \
+    --controlplanes=1 \
+    --workers=1 \
+    --wait=false \
+    --mtu=1430 \
+    --memory=3072 \
+    --memory-workers=3072 \
+    --cpus=3 \
+    --cpus-workers=3 \
+    --with-uuid-hostnames \
+    \
+    --name test-3 \
+    --skip-injecting-config \
+    --with-init-node \
+    --cidr=172.22.0.0/24 \
+    --no-masquerade-cidrs=172.20.0.0/24,172.21.0.0/24 \
+    --with-tpm2 \
+    --iso-path="https://factory.talos.dev/image/${SECURE_BOOT_SCHEMATIC_ID}/v${TALOS_VERSION}/metal-amd64-secureboot.iso" \
+    --disk-encryption-key-types=tpm
+fi
 
 sleep 5
 
 # Run the integration test.
 
 SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
-${ARTIFACTS}/integration-test-linux-amd64 \
-    --endpoint https://my-instance.localhost:8099 \
-    --talos-version=${TALOS_VERSION} \
-    --omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
-    --expected-machines=8 `# equal to the masters+workers above` \
-    ${INTEGRATION_TEST_ARGS:-}
+  ${ARTIFACTS}/integration-test-linux-amd64 \
+  --endpoint https://my-instance.localhost:8099 \
+  --talos-version=${TALOS_VERSION} \
+  --omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
+  --expected-machines=8 `# equal to the masters+workers above` \
+  ${INTEGRATION_TEST_ARGS:-}
 
 if [ "${INTEGRATION_RUN_E2E_TEST:-true}" == "true" ]; then
   # Run the e2e test.
@@ -274,12 +288,12 @@ if [ "${INTEGRATION_RUN_E2E_TEST:-true}" == "true" ]; then
   cd internal/e2e-tests/
   docker buildx build --load . -t e2etest
   docker run --rm \
-      -e AUTH_PASSWORD=$AUTH_PASSWORD \
-      -e AUTH_USERNAME=$AUTH_USERNAME \
-      -e BASE_URL=$BASE_URL \
-      -e VIDEO_DIR="$VIDEO_DIR" \
-      --network=host \
-      e2etest
+    -e AUTH_PASSWORD="$AUTH_PASSWORD" \
+    -e AUTH_USERNAME="$AUTH_USERNAME" \
+    -e BASE_URL=$BASE_URL \
+    -e VIDEO_DIR="$VIDEO_DIR" \
+    --network=host \
+    e2etest
 fi
 
 # No cleanup here, as it runs in the CI as a container in a pod.
