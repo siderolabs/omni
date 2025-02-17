@@ -54,7 +54,7 @@ func (pc *provisionContext) isAuthorized() bool {
 	// explicitly return unauthorized if the machine has the unique token
 	// and it doesn't match with what is stored in the link resource
 	if pc.link != nil &&
-		pc.request.NodeUniqueToken != nil &&
+		pointer.SafeDeref(pc.request.NodeUniqueToken) != "" &&
 		pc.link.TypedSpec().Value.NodeUniqueToken != "" &&
 		*pc.request.NodeUniqueToken != pc.link.TypedSpec().Value.NodeUniqueToken {
 		return false
@@ -358,6 +358,13 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 	link, err := safe.StateGetByID[*siderolink.Link](ctx, h.state, req.NodeUuid)
 	if err != nil && !state.IsNotFoundError(err) {
 		return nil, err
+	}
+
+	// if the node unique token is empty in the incoming request and not empty in the existing link
+	// treat the link as not existing for this machine
+	// this is necessary for the correct UUID conflict resolution
+	if link != nil && link.TypedSpec().Value.NodeUniqueToken != "" && pointer.SafeDeref(req.NodeUniqueToken) == "" {
+		link = nil
 	}
 
 	// TODO: add support of several join tokens here
