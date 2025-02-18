@@ -325,7 +325,7 @@ func pollDisks(ctx context.Context, c *client.Client, info *Info) error {
 				continue
 			}
 
-			if disk.Type == storage.Disk_UNKNOWN {
+			if disk.Type == storage.Disk_UNKNOWN && disk.Modalias == "" && disk.Subsystem != "/sys/class/block" {
 				continue
 			}
 
