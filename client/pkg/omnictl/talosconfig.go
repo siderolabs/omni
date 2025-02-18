@@ -31,8 +31,9 @@ var talosconfigCmdFlags struct {
 // talosconfigCmd represents the get (resources) command.
 var talosconfigCmd = &cobra.Command{
 	Use:   "talosconfig [local-path]",
-	Short: "Download the admin talosconfig of a cluster",
-	Long: `Download the admin talosconfig of a cluster.
+	Short: "Download an admin talosconfig.",
+	Long: `Download the generic admin talosconfig of the Omni instance or the admin talosconfig of a cluster.
+Generic talosconfig can be used with any machine, including those in maintenance mode.
 If merge flag is defined, config will be merged with ~/.talos/config or [local-path] if specified.
 Otherwise talosconfig will be written to PWD or [local-path] if specified.`,
 	Args: cobra.MaximumNArgs(1),
@@ -139,7 +140,7 @@ func getTalosconfig(args []string) func(ctx context.Context, client *client.Clie
 }
 
 func init() {
-	talosconfigCmd.Flags().StringVarP(&talosconfigCmdFlags.cluster, "cluster", "c", "", "cluster to use")
+	talosconfigCmd.Flags().StringVarP(&talosconfigCmdFlags.cluster, "cluster", "c", "", "cluster to use. If omitted, download the generic talosconfig for the Omni instance.")
 	talosconfigCmd.Flags().BoolVarP(&talosconfigCmdFlags.force, "force", "f", false, "force overwrite of talosconfig if already present")
 	talosconfigCmd.Flags().BoolVarP(&talosconfigCmdFlags.merge, "merge", "m", true, "merge with existing talosconfig")
 	talosconfigCmd.Flags().BoolVar(&talosconfigCmdFlags.breakGlass, "break-glass", false, "get operator talosconfig that allows bypassing Omni (if enabled for the account)")
