@@ -108,7 +108,7 @@ func NewManager(
 		provisionServer: NewProvisionHandler(
 			logger,
 			state,
-			config.Config.DisableLegacyJoinTokens,
+			config.Config.JoinTokensMode,
 		),
 	}
 

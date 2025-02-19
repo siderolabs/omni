@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/siderolabs/talos/pkg/machinery/config/generate"
@@ -102,8 +104,48 @@ type Params struct {
 
 	EnableStripeReporting bool `yaml:"enableStripeReporting"`
 
-	DisableLegacyJoinTokens bool `yaml:"disableLegacyJoinTokens"`
+	JoinTokensMode JoinTokensMode `yaml:"joinTokensMode"`
 }
+
+// JoinTokensMode is the join token operation mode config.
+//
+//nolint:recvcheck
+type JoinTokensMode string
+
+// String implements pflag.Value.
+func (s JoinTokensMode) String() string {
+	return string(s)
+}
+
+// Set implements pflag.Value.
+func (s *JoinTokensMode) Set(value string) error {
+	if !slices.Contains(s.values(), value) {
+		return fmt.Errorf("should be one of %s", strings.Join(s.values(), ", "))
+	}
+
+	*s = JoinTokensMode(value)
+
+	return nil
+}
+
+// Type implements pflag.Value.
+func (s JoinTokensMode) Type() string {
+	return fmt.Sprintf("[%s]", strings.Join(s.values(), ","))
+}
+
+func (JoinTokensMode) values() []string {
+	return []string{JoinTokensModeLegacyOnly, JoinTokensModeLegacyAllowed, JoinTokensModeStrict}
+}
+
+const (
+	// JoinTokensModeLegacyOnly disables node unique token flow, uses only join token when letting the machine into the system.
+	JoinTokensModeLegacyOnly = "legacy"
+	// JoinTokensModeLegacyAllowed allows joining Talos nodes which do not support node unique token flow
+	// uses unique token flow only for the machines which support it.
+	JoinTokensModeLegacyAllowed = "legacyAllowed"
+	// JoinTokensModeStrict rejects the machines that do not support node unique tokens flow.
+	JoinTokensModeStrict = "strict"
+)
 
 // InitialServiceAccount allows creating a service account for automated omnictl runs on the Omni service deployment.
 type InitialServiceAccount struct {
@@ -329,6 +371,8 @@ var (
 			SnapshotInterval: 10 * time.Minute,
 			LogLevel:         zapcore.WarnLevel.String(),
 		},
+
+		JoinTokensMode: JoinTokensModeLegacyOnly,
 	}
 )
 

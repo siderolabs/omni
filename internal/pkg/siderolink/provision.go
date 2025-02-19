@@ -32,6 +32,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
+	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 var minSupportedSecureTokensVersion = semver.MustParse("1.6.0")
@@ -65,20 +66,20 @@ func (pc *provisionContext) isAuthorized() bool {
 }
 
 // NewProvisionHandler creates a new ProvisionHandler.
-func NewProvisionHandler(logger *zap.Logger, state state.State, disableLegacyJoinTokens bool) *ProvisionHandler {
+func NewProvisionHandler(logger *zap.Logger, state state.State, joinTokenMode config.JoinTokensMode) *ProvisionHandler {
 	return &ProvisionHandler{
-		logger:                  logger,
-		state:                   state,
-		disableLegacyJoinTokens: disableLegacyJoinTokens,
+		logger:        logger,
+		state:         state,
+		joinTokenMode: joinTokenMode,
 	}
 }
 
 // ProvisionHandler is the gRPC service that handles provision responses coming from the Talos nodes.
 type ProvisionHandler struct {
 	pb.UnimplementedProvisionServiceServer
-	logger                  *zap.Logger
-	state                   state.State
-	disableLegacyJoinTokens bool
+	logger        *zap.Logger
+	state         state.State
+	joinTokenMode config.JoinTokensMode
 }
 
 func (h *ProvisionHandler) runCleanup(ctx context.Context) error {
@@ -120,7 +121,7 @@ func (h *ProvisionHandler) Provision(ctx context.Context, req *pb.ProvisionReque
 		return nil, status.Error(codes.PermissionDenied, "unauthorized")
 	}
 
-	if !provisionContext.supportsSecureJoinTokens && h.disableLegacyJoinTokens {
+	if !provisionContext.supportsSecureJoinTokens && h.joinTokenMode == config.JoinTokensModeStrict {
 		return nil, status.Errorf(
 			codes.FailedPrecondition,
 			"Talos version %s is not supported on this Omni instance as '--disable-legacy-join-tokens' is set",
@@ -405,7 +406,7 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 		request:                  req,
 		hasValidJoinToken:        token != nil && token.IsValid(siderolinkConfig.TypedSpec().Value.JoinToken),
 		hasValidNodeUniqueToken:  link != nil && req.NodeUniqueToken != nil && link.TypedSpec().Value.NodeUniqueToken == *req.NodeUniqueToken,
-		supportsSecureJoinTokens: talosVersion.GTE(minSupportedSecureTokensVersion),
+		supportsSecureJoinTokens: h.joinTokenMode != config.JoinTokensModeLegacyOnly && talosVersion.GTE(minSupportedSecureTokensVersion),
 	}, nil
 }
 

@@ -33,6 +33,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
@@ -49,7 +50,7 @@ func TestProvision(t *testing.T) {
 		return privateKey.PublicKey().String()
 	}
 
-	setup := func(ctx context.Context, t *testing.T, disableLegacyJoinToken bool) (state.State, *siderolink.ProvisionHandler) {
+	setup := func(ctx context.Context, t *testing.T, mode config.JoinTokensMode) (state.State, *siderolink.ProvisionHandler) {
 		state := state.WrapCore(namespaced.NewState(inmem.Build))
 		logger := zaptest.NewLogger(t)
 
@@ -75,7 +76,7 @@ func TestProvision(t *testing.T) {
 			require.NoError(t, eg.Wait())
 		})
 
-		provisionHandler := siderolink.NewProvisionHandler(logger, state, disableLegacyJoinToken)
+		provisionHandler := siderolink.NewProvisionHandler(logger, state, mode)
 
 		config := siderolinkres.NewConfig(resources.DefaultNamespace)
 		config.TypedSpec().Value.ServerAddress = "127.0.0.1"
@@ -94,7 +95,7 @@ func TestProvision(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
 		defer cancel()
 
-		state, provisionHandler := setup(ctx, t, true)
+		state, provisionHandler := setup(ctx, t, config.JoinTokensModeStrict)
 
 		request := &pb.ProvisionRequest{
 			NodeUuid:      "machine-1",
@@ -156,7 +157,7 @@ func TestProvision(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
 			defer cancel()
 
-			state, provisionHandler := setup(ctx, t, true)
+			state, provisionHandler := setup(ctx, t, config.JoinTokensModeStrict)
 
 			request := &pb.ProvisionRequest{
 				NodeUuid:      fmt.Sprintf("machine-migration-%s", tt.name),
@@ -197,15 +198,16 @@ func TestProvision(t *testing.T) {
 	}
 
 	for _, mode := range []struct {
-		name           string
-		legacyDisabled bool
+		name string
+		mode config.JoinTokensMode
 	}{
 		{
 			name: "legacy",
+			mode: config.JoinTokensModeLegacyAllowed,
 		},
 		{
-			name:           "normal",
-			legacyDisabled: true,
+			name: "normal",
+			mode: config.JoinTokensModeStrict,
 		},
 	} {
 		for _, tt := range []struct {
@@ -285,7 +287,7 @@ func TestProvision(t *testing.T) {
 					JoinToken:     &validToken,
 				},
 				errcheck: func(t *testing.T, err error) {
-					if mode.legacyDisabled {
+					if mode.mode == config.JoinTokensModeStrict {
 						require.Equal(t, codes.FailedPrecondition, status.Code(err))
 
 						return
@@ -311,7 +313,7 @@ func TestProvision(t *testing.T) {
 				ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
 				defer cancel()
 
-				state, provisionHandler := setup(ctx, t, mode.legacyDisabled)
+				state, provisionHandler := setup(ctx, t, mode.mode)
 
 				if tt.linkSpec != nil {
 					require.NoError(t, state.Create(ctx, siderolinkres.NewLink(resources.DefaultNamespace, "machine", tt.linkSpec)))
@@ -331,7 +333,7 @@ func TestProvision(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
 		defer cancel()
 
-		state, provisionHandler := setup(ctx, t, false)
+		state, provisionHandler := setup(ctx, t, config.JoinTokensModeLegacyAllowed)
 
 		request := &pb.ProvisionRequest{
 			NodeUuid:      "machine-legacy",
@@ -362,7 +364,7 @@ func TestProvision(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
 		defer cancel()
 
-		state, provisionHandler := setup(ctx, t, true)
+		state, provisionHandler := setup(ctx, t, config.JoinTokensModeStrict)
 
 		token, err := jointoken.NewWithExtraData(validToken, map[string]string{
 			omni.LabelInfraProviderID: "test",
