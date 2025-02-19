@@ -1338,9 +1338,7 @@ func removeMaintenanceConfigPatchFinalizers(ctx context.Context, st state.State,
 
 func noopMigration(context.Context, state.State, *zap.Logger) error { return nil }
 
-var _ = compressMachineConfigsAndPatches
-
-func compressMachineConfigsAndPatches(ctx context.Context, st state.State, l *zap.Logger) error {
+func compressConfigsAndMachinePatches(ctx context.Context, st state.State, l *zap.Logger) error {
 	doConfigPatch := updateSingle[string, specs.ConfigPatchSpec, *specs.ConfigPatchSpec]
 	doMachineConfig := updateSingle[[]byte, specs.ClusterMachineConfigSpec, *specs.ClusterMachineConfigSpec]
 	doRedactedMachineConfig := updateSingle[string, specs.RedactedClusterMachineConfigSpec, *specs.RedactedClusterMachineConfigSpec]
