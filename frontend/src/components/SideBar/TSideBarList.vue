@@ -48,7 +48,7 @@ defineProps<Props>();
 
 <style scoped>
 .nav {
-  @apply py-2;
+  @apply pt-2;
 }
 .nav-list {
   @apply flex-col;

@@ -25,9 +25,9 @@ included in the LICENSE file.
             <t-icon icon="delete" class="w-4 h-4 text-red-R1"/>
           </tooltip>
         </div>
-        <div class="flex gap-1 items-center" v-else>
+        <div class="flex gap-1" v-else>
           <tooltip :description="maintenanceUpdateDescription" v-if="canAccessMaintenanceNodes">
-            <icon-button icon="arrow-up-tray" @click="openMaintenanceUpdate" :disabled="!canDoMaintenanceUpdate"/>
+            <icon-button icon="upgrade" @click="openMaintenanceUpdate" :disabled="!canDoMaintenanceUpdate"/>
           </tooltip>
           <div class="flex justify-end">
             <t-actions-box style="height: 24px">

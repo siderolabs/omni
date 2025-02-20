@@ -119,7 +119,9 @@ const componentType = props.route ? props.regularLink ? "a" : "router-link" : "d
 
 const componentAttributes = props.route ? props.regularLink ?
     { href: props.route, target: "_blank" } :
-    { to: props.route, activeClass: "item-active" } : {};
+    { to: props.route, activeClass: "item-active" } : { class: 'select-none cursor-pointer' };
+
+componentAttributes.class = (componentAttributes.class ?? "") + " item-container";
 </script>
 
 <style scoped>
@@ -173,15 +175,23 @@ const componentAttributes = props.route ? props.regularLink ?
   @apply rounded-md text-naturals-N13 bg-naturals-N4 text-xs px-1.5 min-w-5 py-0.5 justify-center -my-2 text-center flex items-center font-bold transition-colors duration-200;
 }
 
-.submenu-bg {
-  @apply bg-naturals-N0 border-t border-b border-naturals-N4;
-}
-
 .expand-button {
   @apply rounded-md bg-naturals-N4 -my-1 transition-colors duration-200 border border-transparent hover:border-naturals-N7 w-5 h-5 flex items-center justify-center;
 }
 
 .item:hover .expand-button {
   @apply bg-naturals-N2;
+}
+
+.submenu-bg {
+  @apply bg-naturals-N0 border-t border-naturals-N4;
+}
+
+.item-container:not(:last-child) .submenu-bg {
+  @apply border-b;
+}
+
+nav:last-of-type  .submenu-bg {
+  @apply border-b;
 }
 </style>

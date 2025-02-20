@@ -37,7 +37,7 @@ included in the LICENSE file.
           Machine Class: {{ machineSet.spec?.machine_allocation?.name }} ({{ machineClassMachineCount }})
         </div>
       </div>
-      <t-actions-box style="height: 24px" v-if="canRemoveMachineSet" @click.stop>
+      <t-actions-box class="-ml-4 mr-4 h-6" v-if="canRemoveMachineSet" @click.stop>
         <t-actions-box-item icon="delete" danger
           @click="() => openMachineSetDestroy(machineSet)">Destroy Machine Set</t-actions-box-item>
       </t-actions-box>

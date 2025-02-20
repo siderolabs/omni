@@ -8,7 +8,7 @@ included in the LICENSE file.
   <div class="overview-details-item">
     <div class="overview-item-name">{{ name }}</div>
     <div class="overview-item-value">
-      <span class="overview-item-text" v-if="value">{{ value }}</span> <slot />
+      <span class="overview-item-text" v-if="value">{{ value }}</span><slot/>
     </div>
   </div>
 </template>

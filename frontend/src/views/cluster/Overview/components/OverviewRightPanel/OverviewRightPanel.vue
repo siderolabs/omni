@@ -35,9 +35,9 @@ included in the LICENSE file.
         name="Talos Version"
         @click="openClusterUpdate(Update.Talos)"
       >
-        {{ talosVersion }}
+        <div>{{ talosVersion }}</div>
         <tooltip v-if="newTalosVersionsAvailable?.length" :description="`Newer Talos versions are avalable: ${newTalosVersionsAvailable.join(', ')}`">
-          <t-icon class="text-yellow-Y1 w-4 h-4 cursor-pointer" icon="arrow-up-tray" v-if="newTalosVersionsAvailable"/>
+          <t-icon class="w-4 h-4 cursor-pointer" icon="upgrade-available" v-if="newTalosVersionsAvailable"/>
         </tooltip>
       </overview-right-panel-item>
       <overview-right-panel-item
@@ -45,9 +45,9 @@ included in the LICENSE file.
         name="Kubernetes Version"
         @click="openClusterUpdate(Update.Kubernetes)"
       >
-        {{ kubernetesVersion }}
+        <div>{{ kubernetesVersion }}</div>
         <tooltip v-if="newKubernetesVersionsAvailable?.length" :description="`Newer Kubernetes versions are avalable: ${newKubernetesVersionsAvailable.join(', ')}`">
-          <t-icon class="text-yellow-Y1 w-4 h-4 cursor-pointer" icon="arrow-up-tray"/>
+          <t-icon class="w-4 h-4 cursor-pointer" icon="upgrade-available"/>
         </tooltip>
       </overview-right-panel-item>
     </div>

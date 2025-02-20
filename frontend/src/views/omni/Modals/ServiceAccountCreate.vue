@@ -16,18 +16,20 @@ included in the LICENSE file.
     <div class="flex flex-col w-full h-full gap-4">
       <t-notification v-if="notification" v-bind="notification.props"/>
 
-      <div class="flex flex-col gap-2" v-if="!key">
-        <t-input title="ID" class="flex-1 h-full" placeholder="..." v-model="name"/>
-        <t-input title="Expiration Days" type="number" :min="1" class="flex-1 h-full" v-model="expiration"/>
-        <t-select-list
-            class="h-full"
-            title="Role"
-            :values="roles"
-            :defaultValue="RoleReader"
-            @checkedValue="value => role = value"
-        />
-      </div>
+      <template v-if="!key">
+        <div class="flex flex-col gap-2">
+          <t-input title="ID" class="flex-1 h-full" placeholder="..." v-model="name"/>
+          <t-input title="Expiration Days" type="number" :min="1" class="flex-1 h-full" v-model="expiration"/>
+          <t-select-list
+              class="h-full"
+              title="Role"
+              :values="roles"
+              :defaultValue="RoleReader"
+              @checkedValue="value => role = value"
+          />
+        </div>
         <t-button type="highlighted" @click="handleCreate" :disabled="!canManageUsers && authType !== AuthType.SAML" class="h-9">Create Service Account</t-button>
+      </template>
     </div>
 
     <ServiceAccountKey v-if="key" :secret-key="key"/>

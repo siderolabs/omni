@@ -118,6 +118,8 @@ const icons = {
   "server-network": defineAsyncComponent(() => import("../../icons/IconServerNetwork.vue")),
   "machines-manual": defineAsyncComponent(() => import("../../icons/IconMachinesManual.vue")),
   "machines-autoprovisioned": defineAsyncComponent(() => import("../../icons/IconMachinesAutoprovisioned.vue")),
+  "upgrade": defineAsyncComponent(() => import("../../icons/IconUpgrade.vue")),
+  "upgrade-available": defineAsyncComponent(() => import("../../icons/IconUpgradeAvailable.vue")),
   "document": DocumentIcon,
   "power": PowerIcon,
   "users": UsersIcon,

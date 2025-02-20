@@ -173,8 +173,24 @@ const items = computed(() => {
   if (canManageUsers.value || (backupStatus.value.configurable && canManageBackupStore.value)) {
     result.push({
       name: "Settings",
-      route: getRoute("Settings", "/omni/settings"),
       icon: "settings",
+      subItems: [
+        {
+          name: "Users",
+          route: getRoute("Users", "/omni/settings/users"),
+          icon: "users",
+        },
+        {
+          name: "Service Accounts",
+          route: getRoute("ServiceAccounts", "/omni/settings/serviceaccounts"),
+          icon: "users",
+        },
+        {
+          name: "Backups",
+          route: getRoute("Backups", "/omni/settings/backups"),
+          icon: "rollback",
+        },
+      ],
     });
   }
 
