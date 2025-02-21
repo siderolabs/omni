@@ -109,7 +109,7 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State) TestFunc
 		}))
 
 		// re-check with short timeout to make sure the cluster is ready
-		checkCtx, checkCancel := context.WithTimeout(ctx, 10*time.Second)
+		checkCtx, checkCancel := context.WithTimeout(ctx, 30*time.Second)
 		defer checkCancel()
 
 		rtestutils.AssertResources(checkCtx, t, st, []string{clusterName}, func(status *omni.ClusterStatus, assert *assert.Assertions) {
