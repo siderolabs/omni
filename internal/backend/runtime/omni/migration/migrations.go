@@ -1388,7 +1388,7 @@ func compressUncompressed[
 				res.TypedSpec().Value = spec.Value
 
 				return nil
-			}); err != nil {
+			}, state.WithUpdateOwner(val.Metadata().Owner())); err != nil {
 				return fmt.Errorf("failed to update %s: %w", val.Metadata(), err)
 			}
 		}

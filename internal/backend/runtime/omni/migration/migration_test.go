@@ -1626,10 +1626,6 @@ func (suite *MigrationSuite) TestRemoveMaintenanceConfigPatchFinalizers() {
 }
 
 func (suite *MigrationSuite) TestCompressUncompressMigrations() {
-	if true {
-		return
-	}
-
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
@@ -1652,6 +1648,7 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 			omni.NewConfigPatch(ns, "config-patch-1"),
 			fillData[*specs.ConfigPatchSpec](data1, disabled),
 			checkCompressed[string, *specs.ConfigPatchSpec](encoded1),
+			"",
 		),
 		startMigration(
 			ctx,
@@ -1660,6 +1657,7 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 			omni.NewClusterMachineConfig(ns, "machine-config-1"),
 			fillData[*specs.ClusterMachineConfigSpec](data1, disabled),
 			checkCompressed[[]byte, *specs.ClusterMachineConfigSpec](encoded1),
+			omnictrl.ClusterMachineConfigControllerName,
 		),
 		startMigration(
 			ctx,
@@ -1668,6 +1666,7 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 			omni.NewRedactedClusterMachineConfig(ns, "redacted-machine-config-1"),
 			fillData[*specs.RedactedClusterMachineConfigSpec](data1, disabled),
 			checkCompressed[string, *specs.RedactedClusterMachineConfigSpec](encoded1),
+			omnictrl.NewRedactedClusterMachineConfigController().Name(),
 		),
 		startMigration(
 			ctx,
@@ -1676,6 +1675,7 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 			omni.NewConfigPatch(ns, "config-patch-2"),
 			fillData[*specs.ConfigPatchSpec](data2, disabled),
 			checkCompressed[string, *specs.ConfigPatchSpec](encoded2),
+			"",
 		),
 		startMigration(
 			ctx,
@@ -1684,6 +1684,7 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 			omni.NewClusterMachineConfig(ns, "machine-config-2"),
 			fillData[*specs.ClusterMachineConfigSpec](data2, disabled),
 			checkCompressed[[]byte, *specs.ClusterMachineConfigSpec](encoded2),
+			omnictrl.ClusterMachineConfigControllerName,
 		),
 		startMigration(
 			ctx,
@@ -1704,6 +1705,7 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 					t.Equalf(data, patches[i], "%x != %x", data, patches[i])
 				}
 			},
+			omnictrl.NewMachineSetController().Name(),
 		),
 		startMigration(
 			ctx,
@@ -1724,6 +1726,7 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 					t.Equalf(data, patches[i], "%x != %x", data, patches[i])
 				}
 			},
+			omnictrl.NewMachineSetController().Name(),
 		),
 	}
 
@@ -1744,9 +1747,10 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 			t.Equal([]string{data2, data1}, uncompressed)
 			t.Empty(spec.Value.GetCompressedPatches())
 		},
+		omnictrl.NewMachineSetController().Name(),
 	))
 
-	require.NoError(suite.T(), suite.manager.Run(ctx, migration.WithFilter(filterWith("compressMachineConfigsAndPatches"))))
+	require.NoError(suite.T(), suite.manager.Run(ctx, migration.WithFilter(filterWith("compressConfigsAndMachinePatches"))))
 
 	for _, check := range checkMigrations {
 		check(suite.T())
@@ -1767,10 +1771,11 @@ func startMigration[
 	res R,
 	fill func(t *testing.T, spec *protobuf.ResourceSpec[T, S]),
 	check func(t *assert.Assertions, spec *protobuf.ResourceSpec[T, S]),
+	owner string,
 ) func(t *testing.T) {
 	fill(t, res.TypedSpec())
 
-	require.NoError(t, st.Create(ctx, res))
+	require.NoError(t, st.Create(ctx, res, state.WithCreateOwner(owner)))
 
 	return func(t *testing.T) {
 		rtestutils.AssertResource(
