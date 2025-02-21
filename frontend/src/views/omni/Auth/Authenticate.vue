@@ -83,11 +83,7 @@ let logout: (value: any) => void;
  * @param url The URL to redirect to.
  */
 const redirectToURL = (url: string) => {
-  if (window.top) {
-    window.top.location.href = url;
-  } else {
-    window.location.href = url;
-  }
+  window.location.href = url;
 }
 
 let auth0: Auth0VueClient | undefined;
