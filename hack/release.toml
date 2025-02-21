@@ -6,30 +6,31 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v0.45.0"
+previous = "v0.46.0"
 
 [notes]
-
-  [notes.bare-metal-infra-provider]
-    title = "Bare Metal Infra Provider Support"
-    description = """\
-Omni now supports [bare metal infra provider](https://github.com/siderolabs/omni-infra-provider-bare-metal/).
-
-This provider operates as a standalone service that can be deployed within a bare-metal datacenter network.
-It manages machines via IPMI, supports PXE-based booting, and enables machine resets without relying on the Talos API.
-
-Its functionality closely resembles that of Sidero Metal.
-
-For detailed setup instructions, refer to the [documentation](https://omni.siderolabs.com/tutorials/setting-up-the-bare-metal-infrastructure-provider)..
-"""
 
   [notes.machine-categories]
     title = "Machine Categories"
     description = """\
-The Machines page now categorizes machines based on how they were added to the account:
+Machine categories were now moved to the sidebar, which gives a way to filter them by each particular provider.
+"""
 
-- Manual: Machines manually added by installing Talos with siderolink parameters.
-- Provisioned: Machines created by infrastructure providers (e.g., KubeVirt).
-- PXE-Booted: Machines discovered and accepted from the bare-metal infrastructure provider.
-- Pending: Machines discovered but not yet accepted from the bare-metal infrastructure provider.
+  [notes.service-accounts]
+    title = "Service Accounts UI"
+    description = """\
+Service accounts creation UI now presents the environment variables (endpoint and key) instead of the key only.
+"""
+
+  [notes.allow-manual-bmc-config]
+    title = "Manual BMC Configs"
+    description = """\
+BMC configs now can be set manually in the bare-metal infra provider.
+"""
+
+  [notes.partial-configs]
+    title = "Maintenance Configs"
+    description = """\
+Omni now injects KmsgLog and EventSink configs for each joined node.
+So the node will work even if only the siderolink config pushed to it.
 """
