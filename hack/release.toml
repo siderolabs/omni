@@ -6,31 +6,4 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v0.46.0"
-
-[notes]
-
-  [notes.machine-categories]
-    title = "Machine Categories"
-    description = """\
-Machine categories were now moved to the sidebar, which gives a way to filter them by each particular provider.
-"""
-
-  [notes.service-accounts]
-    title = "Service Accounts UI"
-    description = """\
-Service accounts creation UI now presents the environment variables (endpoint and key) instead of the key only.
-"""
-
-  [notes.allow-manual-bmc-config]
-    title = "Manual BMC Configs"
-    description = """\
-BMC configs now can be set manually in the bare-metal infra provider.
-"""
-
-  [notes.partial-configs]
-    title = "Maintenance Configs"
-    description = """\
-Omni now injects KmsgLog and EventSink configs for each joined node.
-So the node will work even if only the siderolink config pushed to it.
-"""
+previous = "v0.47.0-beta.0"
