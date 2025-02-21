@@ -9,6 +9,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -49,11 +50,30 @@ func clearConnectionRefused(ctx context.Context, t *testing.T, c *talosclient.Cl
 	ctx, cancel := context.WithTimeout(ctx, backoff.DefaultConfig.MaxDelay)
 	defer cancel()
 
+	doRequest := func() error {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("nodes didn't become available after delay: %s", backoff.DefaultConfig.MaxDelay)
+		default:
+		}
+
+		innerCtx, innerCancel := context.WithTimeout(ctx, time.Second)
+		defer innerCancel()
+
+		_, err := c.Version(talosclient.WithNodes(innerCtx, nodes...))
+
+		return err
+	}
+
 	require.NoError(t, retry.Constant(backoff.DefaultConfig.MaxDelay, retry.WithUnits(time.Second)).Retry(func() error {
 		for range numControlplanes {
-			_, err := c.Version(talosclient.WithNodes(ctx, nodes...))
+			err := doRequest()
 			if err == nil {
 				continue
+			}
+
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return retry.ExpectedError(err)
 			}
 
 			if strings.Contains(err.Error(), "connection refused") {
@@ -64,7 +84,7 @@ func clearConnectionRefused(ctx context.Context, t *testing.T, c *talosclient.Cl
 				return retry.ExpectedError(err)
 			}
 
-			t.Logf("clear connection refused err %s", err)
+			t.Logf("clear connection refused failed, error: %s", err)
 
 			return err
 		}
@@ -440,9 +460,9 @@ func AssertTalosVersion(testCtx context.Context, client *client.Client, clusterN
 			require.NoError(c.Close())
 		})
 
-		require.NoError(retry.Constant(time.Minute, retry.WithUnits(time.Second)).RetryWithContext(ctx, func(ctx context.Context) error {
-			clearConnectionRefused(ctx, t, c, len(machineIPs), machineIPs...)
+		clearConnectionRefused(ctx, t, c, len(machineIPs), machineIPs...)
 
+		require.NoError(retry.Constant(time.Minute, retry.WithUnits(time.Second)).RetryWithContext(ctx, func(ctx context.Context) error {
 			resp, err := c.Version(talosclient.WithNodes(ctx, machineIPs...))
 			if err != nil {
 				return retry.ExpectedError(err)
