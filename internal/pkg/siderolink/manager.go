@@ -537,7 +537,7 @@ func (manager *Manager) pollWireguardPeers(ctx context.Context) error {
 						spec.Connected = sinceLastHandshake < wireguard.PeerDownInterval
 					}
 
-					if !config.Config.SiderolinkDisableLastEndpoint {
+					if config.Config.SiderolinkDisableLastEndpoint {
 						spec.LastEndpoint = ""
 
 						return nil
