@@ -10,12 +10,15 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/talos/pkg/machinery/client/config"
 	"github.com/spf13/cobra"
 
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/client/management"
 	"github.com/siderolabs/omni/client/pkg/constants"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
 
@@ -45,31 +48,10 @@ Otherwise talosconfig will be written to PWD or [local-path] if specified.`,
 //nolint:gocognit
 func getTalosconfig(args []string) func(ctx context.Context, client *client.Client) error {
 	return func(ctx context.Context, client *client.Client) error {
-		var localPath string
-
-		if len(args) == 0 {
-			// no path given, use defaults
-			var err error
-
-			if talosconfigCmdFlags.merge {
-				localPath, err = config.GetTalosDirectory()
-				if err != nil {
-					return err
-				}
-
-				// TODO: figure out a proper way to get the path to .talos/config
-				localPath = filepath.Join(localPath, "config")
-			} else {
-				localPath, err = os.Getwd()
-				if err != nil {
-					return fmt.Errorf("error getting current working directory: %w", err)
-				}
-			}
-		} else {
-			localPath = args[0]
+		localPath, err := getLocalTalosconfigPath(args)
+		if err != nil {
+			return err
 		}
-
-		localPath = filepath.Clean(localPath)
 
 		st, err := os.Stat(localPath)
 		if err != nil {
@@ -108,6 +90,15 @@ func getTalosconfig(args []string) func(ctx context.Context, client *client.Clie
 		if talosconfigCmdFlags.cluster == "" {
 			data, err = client.Management().Talosconfig(ctx, opts...)
 		} else {
+			_, err = safe.ReaderGetByID[*omni.Cluster](ctx, client.Omni().State(), talosconfigCmdFlags.cluster)
+			if err != nil {
+				if !state.IsNotFoundError(err) {
+					return err
+				}
+
+				fmt.Fprintf(os.Stderr, "warning: cluster %q does not exist\n", talosconfigCmdFlags.cluster)
+			}
+
 			data, err = client.Management().WithCluster(talosconfigCmdFlags.cluster).Talosconfig(ctx, opts...)
 		}
 
@@ -137,6 +128,36 @@ func getTalosconfig(args []string) func(ctx context.Context, client *client.Clie
 
 		return os.WriteFile(localPath, data, 0o640)
 	}
+}
+
+func getLocalTalosconfigPath(args []string) (string, error) {
+	var localPath string
+
+	if len(args) == 0 {
+		// no path given, use defaults
+		var err error
+
+		if talosconfigCmdFlags.merge {
+			localPath, err = config.GetTalosDirectory()
+			if err != nil {
+				return "", err
+			}
+
+			// TODO: figure out a proper way to get the path to .talos/config
+			localPath = filepath.Join(localPath, "config")
+		} else {
+			localPath, err = os.Getwd()
+			if err != nil {
+				return "", fmt.Errorf("error getting current working directory: %w", err)
+			}
+		}
+	} else {
+		localPath = args[0]
+	}
+
+	localPath = filepath.Clean(localPath)
+
+	return localPath, nil
 }
 
 func init() {
