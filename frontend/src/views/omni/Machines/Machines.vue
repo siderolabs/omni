@@ -33,7 +33,7 @@ included in the LICENSE file.
         >
           <div class="flex gap-1">
             Download and boot the
-            <t-button type="subtle" @click="() => $router.push({name: 'Overview', query: {modal: 'downloadInstallationMedia'}})">installation media</t-button> on
+            <t-button type="subtle" @click="() => $router.push({name: 'Overview', query: {modal: 'downloadInstallationMedia'}})">installation media</t-button>
             to connect machines to your Omni instance.
           </div>
         </t-alert>

@@ -163,7 +163,7 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 					machineStatus.TypedSpec().Value.Schematic.Id != expectedSchematic
 
 				// don't run the upgrade check if the running version and expected versions match
-				if versionMismatch && installImage.TalosVersion != "" {
+				if versionMismatch {
 					inSync, syncErr := handler.syncInstallImageAndSchematic(ctx, configStatus, machineStatus, machineConfig, statusSnapshot, installImage)
 					if syncErr != nil {
 						return syncErr
