@@ -1,3 +1,143 @@
+## [Omni 0.47.0](https://github.com/siderolabs/omni/releases/tag/v0.47.0) (2025-02-24)
+
+Welcome to the v0.47.0 release of Omni!  
+*This is a pre-release of Omni*
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Manual BMC Configs
+
+BMC configs now can be set manually in the bare-metal infra provider.
+
+
+### Machine Categories
+
+Machine categories were now moved to the sidebar, which gives a way to filter them by each particular provider.
+
+
+### Maintenance Configs
+
+Omni now injects KmsgLog and EventSink configs for each joined node.
+So the node will work even if only the siderolink config pushed to it.
+
+
+### Service Accounts UI
+
+Service accounts creation UI now presents the environment variables (endpoint and key) instead of the key only.
+
+
+### Contributors
+
+* Artem Chernyshev
+* Dmitriy Matrenichev
+* Utku Ozdemir
+* Andrey Smirnov
+* Andrew Rynhard
+* Ethan Norlander
+
+### Changes
+<details><summary>29 commits</summary>
+<p>
+
+* [`fcf04aa`](https://github.com/siderolabs/omni/commit/fcf04aa2bdbefcb9f29d5f38abb107e8e897ef67) fix: fix bug with Omni adding machine to a cluster before upgrading
+* [`9e68edd`](https://github.com/siderolabs/omni/commit/9e68edd807531954e8a83f530f16571f921cf5b5) release(v0.47.0-beta.1): prepare release
+* [`d25146a`](https://github.com/siderolabs/omni/commit/d25146a031255475e0379dc4ca301ba916c2c854) fix: fix config compression migration
+* [`fbe0582`](https://github.com/siderolabs/omni/commit/fbe05822fde5cbc6e3785a33c21ee455c40a0f05) release(v0.47.0-beta.0): prepare release
+* [`f7b2cdf`](https://github.com/siderolabs/omni/commit/f7b2cdf0a9928172b987bca1c042ab8ec304f825) test: improve e2e upgrades and e2e templates tests stability
+* [`6a807c1`](https://github.com/siderolabs/omni/commit/6a807c12efe0e37c1275a298273f1fb64b0885ca) feat: push a partial config to machines in maintenance mode
+* [`1d291c4`](https://github.com/siderolabs/omni/commit/1d291c4e14cd69c88e5507e784e47b4f6f53be7a) fix: adjust the UI layout and get rid of a couple of bugs
+* [`5fe3223`](https://github.com/siderolabs/omni/commit/5fe3223999e1700ef053b7d145a67ca03266a870) feat: add a flag to enable secure join token flow
+* [`c662c2e`](https://github.com/siderolabs/omni/commit/c662c2e0305dddd0cafe56a782a88b887bc59001) feat: implement the machine categories UI for the sidebar
+* [`2cb37d8`](https://github.com/siderolabs/omni/commit/2cb37d8dc0a6861dd21f8c66733c67e1032a8eb6) chore: add `compressConfigsAndMachinePatches` migration back
+* [`2108697`](https://github.com/siderolabs/omni/commit/210869725d7f7730fc156d2dfcc76857261d723f) docs: how to download generic talosconfig in omnictl talosconfig help
+* [`7e32dcc`](https://github.com/siderolabs/omni/commit/7e32dcc2a6aed90559be03a0f872e9e0ad39efb4) fix: detect more block devices
+* [`2e9828a`](https://github.com/siderolabs/omni/commit/2e9828a3fdc5a043c5ec5db6e6246f2365a2d7f2) fix: properly handle duplicate UUID
+* [`ff107e5`](https://github.com/siderolabs/omni/commit/ff107e549c9cd96e35996bb225d9783fdc870de9) fix: add workaround to stage upgrades for talos `v1.9.0-v1.9.2`
+* [`9bb85f8`](https://github.com/siderolabs/omni/commit/9bb85f80344b47d82cb0f1458fa4257711ffeefb) feat: implement secure node join flow
+* [`0cda77b`](https://github.com/siderolabs/omni/commit/0cda77bbce5b5b5a3781bbd189abee00ea314771) chore: bump Go and rekres
+* [`0f7563f`](https://github.com/siderolabs/omni/commit/0f7563faa201e4b5941885326c5a994687cd2b67) fix: make the apply config fail if machine has wrong state
+* [`6fb1fcd`](https://github.com/siderolabs/omni/commit/6fb1fcd5dfd537c75d41174fe78eac1244e053b2) feat: allow manual bmc configuration for bare metal machines
+* [`b654b2c`](https://github.com/siderolabs/omni/commit/b654b2c287d7824578f889dd423cde61e5d013ac) chore: remove unused field in `s3store.Store`
+* [`2dc4dae`](https://github.com/siderolabs/omni/commit/2dc4dae4a8894c93ea9a13a3f0654db2a63772fd) chore: omni enable config compression by default
+* [`214eece`](https://github.com/siderolabs/omni/commit/214eece7c5d5403276079f0afa040a679d683655) chore: bump deps
+* [`651d98e`](https://github.com/siderolabs/omni/commit/651d98ea23daf35f78f3d3a520f5b5eed3575efb) fix: enable IDP initiated SAML logins
+* [`951c0de`](https://github.com/siderolabs/omni/commit/951c0de2bb2fed62e414c989007b4d5ac3c322c5) fix: don't forget to close grpc connections in tests
+* [`157ceac`](https://github.com/siderolabs/omni/commit/157ceac7f86804c8ca2fba2926a715802a3bbfa9) fix: close grpc connections after their usage is complete
+* [`6f014b1`](https://github.com/siderolabs/omni/commit/6f014b1ea164dd0872619422c9db9af3b8141681) fix: fix node resolution cache for nodes in maintenance mode
+* [`65244f6`](https://github.com/siderolabs/omni/commit/65244f67c7d8f30b7a146a48ab5514b39fd49d07) test: run the integration tests only for pull requests
+* [`ed946b3`](https://github.com/siderolabs/omni/commit/ed946b30a66b8d5cb939e149177981f6e00c6d7a) feat: display OMNI_ENDPOINT in the service account creation UI
+* [`7ae5af7`](https://github.com/siderolabs/omni/commit/7ae5af7744c5533f5116270208bea67559e82220) fix: do not compress resources with phase != running
+* [`4485296`](https://github.com/siderolabs/omni/commit/4485296e31a100a67b07b5b1c7a9e018b532d1e2) feat: add Stripe machine reporting
+</p>
+</details>
+
+### Changes since v0.47.0-beta.1
+<details><summary>1 commit</summary>
+<p>
+
+* [`fcf04aa`](https://github.com/siderolabs/omni/commit/fcf04aa2bdbefcb9f29d5f38abb107e8e897ef67) fix: fix bug with Omni adding machine to a cluster before upgrading
+</p>
+</details>
+
+### Changes from siderolabs/go-circular
+<details><summary>2 commits</summary>
+<p>
+
+* [`015a398`](https://github.com/siderolabs/go-circular/commit/015a398e79f2853714cd20d1135dc100f18b6c29) fix: replace static buffer allocation on growth
+* [`ed8685e`](https://github.com/siderolabs/go-circular/commit/ed8685e0cf9491d9a714e565e0e736439a94a73f) test: add more assertions for write length result
+</p>
+</details>
+
+### Changes from siderolabs/go-debug
+<details><summary>1 commit</summary>
+<p>
+
+* [`ea108ca`](https://github.com/siderolabs/go-debug/commit/ea108cacca8940426149e67ba00e414633e4ef3f) chore: add support for Go 1.24
+</p>
+</details>
+
+### Changes from siderolabs/proto-codec
+<details><summary>1 commit</summary>
+<p>
+
+* [`3235c29`](https://github.com/siderolabs/proto-codec/commit/3235c2984fa1bb3cd8d38c088127c46dd3d2860e) chore: bump deps
+</p>
+</details>
+
+### Changes from siderolabs/siderolink
+<details><summary>1 commit</summary>
+<p>
+
+* [`38e459e`](https://github.com/siderolabs/siderolink/commit/38e459e50c467791c9670a60ef41f58db246715a) chore: bump deps
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/cenkalti/backoff/v4**             v4.3.0 **_new_**
+* **github.com/cosi-project/runtime**            v0.9.2 -> v0.9.4
+* **github.com/cosi-project/state-etcd**         v0.5.0 -> v0.5.1
+* **github.com/grpc-ecosystem/grpc-gateway/v2**  v2.25.1 -> v2.26.0
+* **github.com/prometheus/common**               v0.61.0 -> v0.62.0
+* **github.com/siderolabs/go-circular**          v0.2.1 -> v0.2.2
+* **github.com/siderolabs/go-debug**             v0.4.0 -> v0.5.0
+* **github.com/siderolabs/proto-codec**          v0.1.1 -> v0.1.2
+* **github.com/siderolabs/siderolink**           v0.3.11 -> v0.3.12
+* **github.com/stripe/stripe-go/v74**            v74.30.0 **_new_**
+* **go.etcd.io/etcd/client/pkg/v3**              v3.5.17 -> v3.5.18
+* **go.etcd.io/etcd/client/v3**                  v3.5.17 -> v3.5.18
+* **go.etcd.io/etcd/server/v3**                  v3.5.17 -> v3.5.18
+* **golang.org/x/crypto**                        v0.32.0 -> v0.33.0
+* **golang.org/x/net**                           v0.34.0 -> v0.35.0
+* **golang.org/x/sync**                          v0.10.0 -> v0.11.0
+* **google.golang.org/grpc**                     v1.69.4 -> v1.70.0
+* **google.golang.org/protobuf**                 v1.36.3 -> v1.36.4
+
+Previous release can be found at [v0.46.0](https://github.com/siderolabs/omni/releases/tag/v0.46.0)
+
 ## [Omni 0.47.0-beta.1](https://github.com/siderolabs/omni/releases/tag/v0.47.0-beta.1) (2025-02-21)
 
 Welcome to the v0.47.0-beta.1 release of Omni!  
