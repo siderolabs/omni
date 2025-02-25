@@ -249,7 +249,8 @@ func createListener(ctx context.Context, host, port string) (net.Listener, error
 // Register implements controller.Manager interface.
 func (manager *Manager) Register(server *grpc.Server) {
 	pb.RegisterProvisionServiceServer(server, manager.provisionServer)
-	pb.RegisterWireGuardOverGRPCServiceServer(server, wggrpc.NewService(manager.peerTraffic, manager.allowedPeers, manager.logger))
+	pb.RegisterWireGuardOverGRPCServiceServer(server,
+		wggrpc.NewService(manager.peerTraffic, manager.allowedPeers, manager.logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel))))
 }
 
 // Run implements controller.Manager interface.
