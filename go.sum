@@ -267,6 +267,8 @@ github.com/hexops/gotextdiff v1.0.3 h1:gitA9+qJrrTCsiCl7+kh75nPqQt1cx4ZkudSTLoUq
 github.com/hexops/gotextdiff v1.0.3/go.mod h1:pSWU5MAI3yDq+fZBTazCSJysOMbxWL1BSow5/V2vxeg=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
+github.com/jellydator/ttlcache/v3 v3.3.0 h1:BdoC9cE81qXfrxeb9eoJi9dWrdhSuwXMAnHTbnBm4Wc=
+github.com/jellydator/ttlcache/v3 v3.3.0/go.mod h1:bj2/e0l4jRnQdrnSTaGTsh4GSXvMjQcy41i7th0GVGw=
 github.com/jmespath/go-jmespath v0.4.0 h1:BEgLn5cpjn8UN1mAw4NjwDrS35OdebyEtFe+9YPoQUg=
 github.com/jmespath/go-jmespath v0.4.0/go.mod h1:T8mJZnbsbmF+m6zOOFylbeCJqk5+pHWvzYPziyZiYoo=
 github.com/jmespath/go-jmespath/internal/testify v1.5.1/go.mod h1:L3OGu8Wl2/fWfCI6z80xFu9LTZmf1ZRjMHUOPmWr69U=
@@ -419,8 +421,8 @@ github.com/siderolabs/go-kubeconfig v0.1.0 h1:t/2oMWkLSdWHXglKPMz8ySXnx6ZjHckeGY
 github.com/siderolabs/go-kubeconfig v0.1.0/go.mod h1:eM3mO02Td6wYDvdi9zTbMrj1Q4WqEFN8XQ6pNjCUWkI=
 github.com/siderolabs/go-kubernetes v0.2.17 h1:xxwDtoPQx032Ot6zAhDyOssfMazZG57gjzDGkpaVJuE=
 github.com/siderolabs/go-kubernetes v0.2.17/go.mod h1:ac3dMOOYWdFvaBUfVvlJoc0ifFVHBdqth1CPsxSFaGA=
-github.com/siderolabs/go-loadbalancer v0.3.4 h1:clxUefcY20djLdHMrh2j3rjVYDwDApXh1us/6cgrgoo=
-github.com/siderolabs/go-loadbalancer v0.3.4/go.mod h1:v0ziDvpArNRSF5LO0PIPQIPIYYHxX/fk+Vlg0wuSIiM=
+github.com/siderolabs/go-loadbalancer v0.4.0 h1:nqZC4x1yZAFAtkb7eu5T1IoPaMDKu5jgQQGkk6rZa9s=
+github.com/siderolabs/go-loadbalancer v0.4.0/go.mod h1:tRVouZ9i2R/TRbNUF9MqyBlV2wsjX0cxkYTjPXcI9P0=
 github.com/siderolabs/go-pointer v1.0.0 h1:6TshPKep2doDQJAAtHUuHWXbca8ZfyRySjSBT/4GsMU=
 github.com/siderolabs/go-pointer v1.0.0/go.mod h1:HTRFUNYa3R+k0FFKNv11zgkaCLzEkWVzoYZ433P3kHc=
 github.com/siderolabs/go-procfs v0.1.2 h1:bDs9hHyYGE2HO1frpmUsD60yg80VIEDrx31fkbi4C8M=

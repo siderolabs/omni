@@ -50,12 +50,14 @@ require (
 	github.com/hashicorp/vault/api v1.15.0
 	github.com/hashicorp/vault/api/auth/kubernetes v0.8.0
 	github.com/hexops/gotextdiff v1.0.3
+	github.com/jellydator/ttlcache/v3 v3.3.0
 	github.com/johannesboyne/gofakes3 v0.0.0-20241026070602-0da3aa9c32ca
 	github.com/jonboulle/clockwork v0.5.0
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/jxskiss/base62 v1.1.0
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/prometheus/client_golang v1.20.5
+	github.com/prometheus/client_model v0.6.1
 	github.com/prometheus/common v0.62.0
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/siderolabs/crypto v0.5.1
@@ -67,7 +69,7 @@ require (
 	github.com/siderolabs/go-circular v0.2.2
 	github.com/siderolabs/go-debug v0.5.0
 	github.com/siderolabs/go-kubernetes v0.2.17
-	github.com/siderolabs/go-loadbalancer v0.3.4
+	github.com/siderolabs/go-loadbalancer v0.4.0
 	github.com/siderolabs/go-pointer v1.0.0
 	github.com/siderolabs/go-procfs v0.1.2
 	github.com/siderolabs/go-retry v0.3.3
@@ -80,7 +82,6 @@ require (
 	github.com/siderolabs/proto-codec v0.1.2
 	github.com/siderolabs/siderolink v0.3.12
 	github.com/siderolabs/talos/pkg/machinery v1.10.0-alpha.0
-	github.com/siderolabs/tcpproxy v0.1.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.10.0
@@ -205,7 +206,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20241121165744-79df5c4772f2 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rs/cors v1.11.1 // indirect
 	github.com/russellhaering/goxmldsig v1.4.0 // indirect
@@ -218,6 +218,7 @@ require (
 	github.com/siderolabs/go-kubeconfig v0.1.0 // indirect
 	github.com/siderolabs/net v0.4.0 // indirect
 	github.com/siderolabs/protoenc v0.2.2 // indirect
+	github.com/siderolabs/tcpproxy v0.1.0 // indirect
 	github.com/soheilhy/cmux v0.1.5 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
