@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <div class="flex flex-col gap-2 overflow-hidden">
+  <div class="flex flex-col gap-2 overflow-hidden min-h-36">
     <t-input icon="search" v-model="filterExtensions"/>
 
     <div class="grid grid-cols-4 bg-naturals-N4 uppercase text-xs text-naturals-N13 pl-2 py-2">
