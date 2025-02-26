@@ -12,7 +12,6 @@ import (
 	"crypto/tls"
 	"encoding/hex"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -22,6 +21,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
+	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -198,7 +198,10 @@ func HandleInput[T generic.ResourceWithRD, S generic.ResourceWithRD](ctx context
 
 // GetTalosClient for the machine id.
 // Automatically pick secure or insecure client.
-func GetTalosClient[T generic.ResourceWithRD](ctx context.Context, r controller.Reader, address string, machine T) (*client.Client, error) {
+func GetTalosClient[T interface {
+	*V
+	generic.ResourceWithRD
+}, V any](ctx context.Context, r controller.Reader, address string, machineResource T) (*client.Client, error) {
 	opts := talos.GetSocketOptions(address)
 
 	createInsecureClient := func() (*client.Client, error) {
@@ -212,11 +215,20 @@ func GetTalosClient[T generic.ResourceWithRD](ctx context.Context, r controller.
 			)...)
 	}
 
-	if reflect.ValueOf(machine).IsNil() {
+	if machineResource == nil {
 		return createInsecureClient()
 	}
 
-	clusterName, ok := machine.Metadata().Labels().Get(omni.LabelCluster)
+	machineStatusSnapshot, err := safe.ReaderGetByID[*omni.MachineStatusSnapshot](ctx, r, machineResource.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
+		return nil, err
+	}
+
+	if machineStatusSnapshot != nil && machineStatusSnapshot.TypedSpec().Value.MachineStatus.Stage == machine.MachineStatusEvent_MAINTENANCE {
+		return createInsecureClient()
+	}
+
+	clusterName, ok := machineResource.Metadata().Labels().Get(omni.LabelCluster)
 	if !ok {
 		return createInsecureClient()
 	}
@@ -241,7 +253,7 @@ func GetTalosClient[T generic.ResourceWithRD](ctx context.Context, r controller.
 
 	result, err := client.New(ctx, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create client to machine '%s': %w", machine.Metadata().ID(), err)
+		return nil, fmt.Errorf("failed to create client to machine '%s': %w", machineResource.Metadata().ID(), err)
 	}
 
 	return result, nil

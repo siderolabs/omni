@@ -237,6 +237,8 @@ func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMac
 
 	infraMachine.Metadata().Labels().Set(omni.LabelInfraProviderID, helper.providerID)
 
+	infraMachine.TypedSpec().Value.NodeUniqueToken = helper.link.TypedSpec().Value.NodeUniqueToken
+
 	clusterMachine, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, helper.runtime, helper.link.Metadata().ID())
 	if err != nil {
 		if state.IsNotFoundError(err) {

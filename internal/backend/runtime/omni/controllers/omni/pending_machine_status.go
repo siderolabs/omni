@@ -6,9 +6,13 @@
 package omni
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net/netip"
+	"slices"
 	"strings"
 	"time"
 
@@ -20,8 +24,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/talos/pkg/machinery/client"
+	"github.com/siderolabs/talos/pkg/machinery/resources/network"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -51,9 +57,9 @@ func NewPendingMachineStatusController() *PendingMachineStatusController {
 				siderolink.NewPendingMachine(res.TypedSpec().Value.LinkId, nil).Metadata(),
 			}, nil
 		}),
-		qtransform.WithExtraMappedInput(qtransform.MapperNone[*siderolink.Link]()),
 		qtransform.WithExtraMappedInput(qtransform.MapperNone[*omni.ClusterMachine]()),
 		qtransform.WithExtraMappedInput(qtransform.MapperNone[*omni.TalosConfig]()),
+		qtransform.WithExtraMappedInput(qtransform.MapperNone[*omni.MachineStatusSnapshot]()),
 		qtransform.WithConcurrency(32),
 	)
 }
@@ -86,11 +92,72 @@ func (handler *pendingMachineStatusHandler) reconcileRunning(
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 
-	if err = handler.handleUUIDConflicts(ctx, r, c, logger, pendingMachine, pendingMachineStatus); err != nil {
+	if err = handler.detectTalosInstallation(ctx, c, pendingMachineStatus); err != nil {
+		return err
+	}
+
+	if err = handler.handleUUIDConflicts(ctx, c, logger, pendingMachine, pendingMachineStatus); err != nil {
 		return err
 	}
 
 	return handler.generateUniqueNodeToken(ctx, c, logger, pendingMachineStatus)
+}
+
+// getMachineFingerprint gets all network devices and calculates the checksum out of their mac addresses.
+func (handler *pendingMachineStatusHandler) getMachineFingerprint(ctx context.Context, c *client.Client) (string, error) {
+	links, err := safe.ReaderListAll[*network.LinkStatus](ctx, c.COSI)
+	if err != nil {
+		return "", err
+	}
+
+	macAddresses := make([][]byte, 0, links.Len())
+
+	for link := range links.All() {
+		if !link.TypedSpec().Physical() {
+			continue
+		}
+
+		for _, addr := range [][]byte{link.TypedSpec().PermanentAddr, link.TypedSpec().HardwareAddr} {
+			if addr != nil {
+				macAddresses = append(macAddresses, addr)
+
+				break
+			}
+		}
+	}
+
+	slices.SortFunc(macAddresses, bytes.Compare)
+
+	hash := sha256.New()
+
+	for _, addr := range macAddresses {
+		hash.Write(addr)
+	}
+
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+func (handler *pendingMachineStatusHandler) detectTalosInstallation(
+	ctx context.Context,
+	c *client.Client,
+	pendingMachineStatus *siderolink.PendingMachineStatus,
+) error {
+	disks, err := c.Disks(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, m := range disks.Messages {
+		for _, disk := range m.Disks {
+			if disk.SystemDisk {
+				pendingMachineStatus.TypedSpec().Value.TalosInstalled = true
+
+				return nil
+			}
+		}
+	}
+
+	return nil
 }
 
 func (handler *pendingMachineStatusHandler) generateUniqueNodeToken(
@@ -104,7 +171,15 @@ func (handler *pendingMachineStatusHandler) generateUniqueNodeToken(
 		return nil
 	}
 
-	token := uuid.NewString()
+	fingerprint, err := handler.getMachineFingerprint(ctx, c)
+	if err != nil {
+		return err
+	}
+
+	token, err := jointoken.NewNodeUniqueToken(fingerprint, uuid.NewString()).Encode()
+	if err != nil {
+		return err
+	}
 
 	if err := c.MetaWrite(ctx, meta.UniqueMachineToken, []byte(token)); err != nil {
 		return err
@@ -119,28 +194,17 @@ func (handler *pendingMachineStatusHandler) generateUniqueNodeToken(
 
 func (handler *pendingMachineStatusHandler) handleUUIDConflicts(
 	ctx context.Context,
-	r controller.Reader,
 	c *client.Client,
 	logger *zap.Logger,
 	pendingMachine *siderolink.PendingMachine,
 	pendingMachineStatus *siderolink.PendingMachineStatus,
 ) error {
-	// skip if the machine UUID was already configured
-	_, configured := pendingMachineStatus.Metadata().Annotations().Get(omni.MachineUUID)
-	if configured {
-		return nil
-	}
-
 	machineUUID, ok := pendingMachine.Metadata().Labels().Get(omni.MachineUUID)
 	if !ok {
 		return fmt.Errorf("machine UUID is not set on the pending machine")
 	}
 
-	conflict, err := detectUUIDConflict(ctx, r, pendingMachine, machineUUID)
-	if err != nil {
-		return err
-	}
-
+	_, conflict := pendingMachine.Metadata().Annotations().Get(siderolink.PendingMachineUUIDConflict)
 	if !conflict {
 		pendingMachineStatus.Metadata().Annotations().Set(omni.MachineUUID, machineUUID)
 
@@ -149,37 +213,15 @@ func (handler *pendingMachineStatusHandler) handleUUIDConflicts(
 
 	id := uuid.NewString()
 
-	if err = c.MetaWrite(ctx, meta.UUIDOverride, []byte(id)); err != nil {
+	if err := c.MetaWrite(ctx, meta.UUIDOverride, []byte(id)); err != nil {
 		return err
 	}
 
-	logger.Info("detected UUID conflict, generated a random ID for the node", zap.String("machine", machineUUID), zap.String("new_uuid", id))
+	logger.Info("generated a random ID for the node", zap.String("machine", machineUUID), zap.String("new_uuid", id))
 
 	pendingMachineStatus.Metadata().Annotations().Set(omni.MachineUUID, id)
 
 	return nil
-}
-
-func detectUUIDConflict(ctx context.Context, r controller.Reader, pendingMachine *siderolink.PendingMachine, machineUUID string) (bool, error) {
-	conflicts, err := safe.ReaderListAll[*siderolink.PendingMachine](ctx, r, state.WithLabelQuery(
-		resource.LabelEqual(omni.MachineUUID, machineUUID),
-	))
-	if err != nil {
-		return false, err
-	}
-
-	if _, conflictFound := conflicts.Find(func(r *siderolink.PendingMachine) bool {
-		return r.Metadata().ID() != pendingMachine.Metadata().ID()
-	}); conflictFound {
-		return true, nil
-	}
-
-	link, err := safe.ReaderGetByID[*siderolink.Link](ctx, r, machineUUID)
-	if err != nil && !state.IsNotFoundError(err) {
-		return false, err
-	}
-
-	return link != nil && link.TypedSpec().Value.NodeUniqueToken != "", nil
 }
 
 func getClient(

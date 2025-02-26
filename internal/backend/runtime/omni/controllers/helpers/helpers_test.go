@@ -15,6 +15,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
+	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/config"
 	"github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
 	"github.com/siderolabs/talos/pkg/machinery/role"
@@ -52,6 +53,7 @@ func TestGetTalosClient(t *testing.T) {
 	for _, tt := range []struct {
 		name        string
 		withCluster bool
+		stage       machine.MachineStatusEvent_MachineStage
 	}{
 		{
 			withCluster: true,
@@ -59,6 +61,16 @@ func TestGetTalosClient(t *testing.T) {
 		},
 		{
 			name: "insecure",
+		},
+		{
+			withCluster: true,
+			stage:       machine.MachineStatusEvent_MAINTENANCE,
+			name:        "with cluster and snapshot in maintenance",
+		},
+		{
+			withCluster: true,
+			stage:       machine.MachineStatusEvent_INSTALLING,
+			name:        "with cluster and snapshot in some different stage",
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -70,6 +82,16 @@ func TestGetTalosClient(t *testing.T) {
 			st := state.WrapCore(namespaced.NewState(inmem.Build))
 
 			var clusterMachine *omni.ClusterMachine
+
+			if tt.stage != machine.MachineStatusEvent_UNKNOWN {
+				machineStatusSnapshot := omni.NewMachineStatusSnapshot(resources.DefaultNamespace, "m1")
+
+				machineStatusSnapshot.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{
+					Stage: tt.stage,
+				}
+
+				require.NoError(t, st.Create(ctx, machineStatusSnapshot))
+			}
 
 			if tt.withCluster {
 				cluster := omni.NewCluster(resources.DefaultNamespace, "test")

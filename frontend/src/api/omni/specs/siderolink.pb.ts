@@ -50,4 +50,5 @@ export type ConnectionParamsSpec = {
 
 export type PendingMachineStatusSpec = {
   token?: string
+  talos_installed?: boolean
 }

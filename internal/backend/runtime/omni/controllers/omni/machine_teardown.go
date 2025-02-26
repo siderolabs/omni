@@ -12,6 +12,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
+	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -54,13 +55,27 @@ func (ctrl *MachineTeardownController) Settings() controller.QSettings {
 				Type:      omni.TalosConfigType,
 				Kind:      controller.InputQMapped,
 			},
+			{
+				Namespace: resources.DefaultNamespace,
+				Type:      omni.MachineStatusSnapshotType,
+				Kind:      controller.InputQMapped,
+			},
 		},
 		Concurrency: optional.Some[uint](4),
 	}
 }
 
 // MapInput implements controller.QController interface.
-func (ctrl *MachineTeardownController) MapInput(_ context.Context, _ *zap.Logger, _ controller.QRuntime, ptr resource.Pointer) ([]resource.Pointer, error) {
+func (ctrl *MachineTeardownController) MapInput(ctx context.Context, logger *zap.Logger, r controller.QRuntime, ptr resource.Pointer) ([]resource.Pointer, error) {
+	if ptr.Type() == omni.MachineStatusSnapshotType {
+		return qtransform.MapperSameID[*omni.MachineStatusSnapshot, *omni.MachineStatus]()(
+			ctx,
+			logger,
+			r,
+			omni.NewMachineStatusSnapshot(resources.DefaultNamespace, ptr.ID()),
+		)
+	}
+
 	if ptr.Type() == omni.TalosConfigType {
 		return nil, nil
 	}

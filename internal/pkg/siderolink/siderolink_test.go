@@ -38,6 +38,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -104,10 +105,11 @@ type SiderolinkSuite struct {
 	ctx       context.Context //nolint:containedctx
 	ctxCancel context.CancelFunc
 
-	state   state.State
-	manager *sideromanager.Manager
-	runtime *runtime.Runtime
-	address string
+	state           state.State
+	manager         *sideromanager.Manager
+	runtime         *runtime.Runtime
+	nodeUniqueToken *string
+	address         string
 
 	wg sync.WaitGroup
 }
@@ -123,7 +125,11 @@ func (suite *SiderolinkSuite) SetupTest() {
 		APIEndpoint:        "127.0.0.1:0",
 	}
 
-	var err error
+	nodeUniqueToken, err := jointoken.NewNodeUniqueToken("fingerprint", "test-token").Encode()
+
+	suite.Require().NoError(err)
+
+	suite.nodeUniqueToken = pointer.To(nodeUniqueToken)
 
 	wgHandler := &fakeWireguardHandler{
 		peers: map[string]wgtypes.Peer{},
@@ -228,7 +234,7 @@ func (suite *SiderolinkSuite) TestNodes() {
 		NodePublicKey:   privateKey.PublicKey().String(),
 		JoinToken:       &spec.JoinToken,
 		TalosVersion:    pointer.To("v1.9.0"),
-		NodeUniqueToken: pointer.To("aaaa"),
+		NodeUniqueToken: suite.nodeUniqueToken,
 	})
 
 	suite.Require().NoError(err)
@@ -259,7 +265,7 @@ func (suite *SiderolinkSuite) TestNodes() {
 		NodePublicKey:   privateKey.PublicKey().String(),
 		JoinToken:       &spec.JoinToken,
 		TalosVersion:    pointer.To("v1.9.0"),
-		NodeUniqueToken: pointer.To("aaaa"),
+		NodeUniqueToken: suite.nodeUniqueToken,
 	})
 
 	suite.Assert().NoError(err)
@@ -273,7 +279,7 @@ func (suite *SiderolinkSuite) TestNodes() {
 		NodePublicKey:   privateKey.PublicKey().String(),
 		JoinToken:       &spec.JoinToken,
 		TalosVersion:    pointer.To("v1.9.0"),
-		NodeUniqueToken: pointer.To("aaaa"),
+		NodeUniqueToken: suite.nodeUniqueToken,
 	})
 
 	suite.Assert().NoError(err)
@@ -311,7 +317,7 @@ func (suite *SiderolinkSuite) TestNodeWithSeveralAdvertisedIPs() {
 			NodePublicKey:   privateKey.PublicKey().String(),
 			JoinToken:       &spec.JoinToken,
 			TalosVersion:    pointer.To("v1.9.0"),
-			NodeUniqueToken: pointer.To("aaaa"),
+			NodeUniqueToken: suite.nodeUniqueToken,
 		},
 	))(suite.T())
 
@@ -357,7 +363,7 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 		JoinToken:         &spec.JoinToken,
 		WireguardOverGrpc: pointer.To(true),
 		TalosVersion:      pointer.To("v1.9.0"),
-		NodeUniqueToken:   pointer.To("aaaa"),
+		NodeUniqueToken:   suite.nodeUniqueToken,
 	})
 
 	suite.Require().NoError(err)
@@ -392,7 +398,7 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 		NodePublicKey:   privateKey.PublicKey().String(),
 		JoinToken:       &spec.JoinToken,
 		TalosVersion:    pointer.To("v1.9.0"),
-		NodeUniqueToken: pointer.To("aaaa"),
+		NodeUniqueToken: suite.nodeUniqueToken,
 	})
 
 	expectedResp := resp.CloneVT()
@@ -411,7 +417,7 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 		NodePublicKey:   privateKey.PublicKey().String(),
 		JoinToken:       &spec.JoinToken,
 		TalosVersion:    pointer.To("v1.9.0"),
-		NodeUniqueToken: pointer.To("aaaa"),
+		NodeUniqueToken: suite.nodeUniqueToken,
 	})
 
 	suite.Assert().NoError(err)
@@ -428,7 +434,7 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 		JoinToken:         &spec.JoinToken,
 		WireguardOverGrpc: pointer.To(true),
 		TalosVersion:      pointer.To("v1.9.0"),
-		NodeUniqueToken:   pointer.To("aaaa"),
+		NodeUniqueToken:   suite.nodeUniqueToken,
 	})
 
 	suite.Require().NoError(err)

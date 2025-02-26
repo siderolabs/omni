@@ -72,4 +72,5 @@ message ConnectionParamsSpec {
 // PendingMachineStatusSpec describes the spec of the pending machine status resource.
 message PendingMachineStatusSpec {
   string token = 1;
+  bool talos_installed = 2;
 }

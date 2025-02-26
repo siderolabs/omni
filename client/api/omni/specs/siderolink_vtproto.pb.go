@@ -136,6 +136,7 @@ func (m *PendingMachineStatusSpec) CloneVT() *PendingMachineStatusSpec {
 	}
 	r := new(PendingMachineStatusSpec)
 	r.Token = m.Token
+	r.TalosInstalled = m.TalosInstalled
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -318,6 +319,9 @@ func (this *PendingMachineStatusSpec) EqualVT(that *PendingMachineStatusSpec) bo
 		return false
 	}
 	if this.Token != that.Token {
+		return false
+	}
+	if this.TalosInstalled != that.TalosInstalled {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -722,6 +726,16 @@ func (m *PendingMachineStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, err
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.TalosInstalled {
+		i--
+		if m.TalosInstalled {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
+	}
 	if len(m.Token) > 0 {
 		i -= len(m.Token)
 		copy(dAtA[i:], m.Token)
@@ -897,6 +911,9 @@ func (m *PendingMachineStatusSpec) SizeVT() (n int) {
 	l = len(m.Token)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.TalosInstalled {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -2042,6 +2059,26 @@ func (m *PendingMachineStatusSpec) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Token = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TalosInstalled", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.TalosInstalled = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

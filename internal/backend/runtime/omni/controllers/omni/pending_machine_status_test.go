@@ -36,14 +36,24 @@ func (suite *PendingMachineStatusSuite) TestReconcile() {
 
 	machineServices := map[string]*machineService{}
 
+	knownUUIDs := map[string]struct{}{}
+
 	createPendingMachine := func(name, uuid string) *siderolink.PendingMachine {
 		ms, err := suite.newServer(name)
 		suite.Require().NoError(err)
+
+		_, conflict := knownUUIDs[uuid]
+
+		knownUUIDs[uuid] = struct{}{}
 
 		machineServices[name] = ms
 
 		pendingMachine := siderolink.NewPendingMachine(name, &specs.SiderolinkSpec{})
 		pendingMachine.Metadata().Labels().Set(omni.MachineUUID, uuid)
+
+		if conflict {
+			pendingMachine.Metadata().Annotations().Set(siderolink.PendingMachineUUIDConflict, "")
+		}
 
 		pendingMachine.TypedSpec().Value.NodeSubnet = unixSocket + suite.socketPath + name
 

@@ -11,16 +11,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/controller"
+	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/controller/runtime"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
+	"github.com/google/uuid"
 	"github.com/siderolabs/go-pointer"
 	pb "github.com/siderolabs/siderolink/api/siderolink"
 	"github.com/siderolabs/siderolink/pkg/wireguard"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -37,11 +41,42 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
+type testPendingMachineStatusController = qtransform.QController[*siderolinkres.PendingMachine, *siderolinkres.PendingMachineStatus]
+
+func newPendingMachineStatusController(installedCallback func(machine *siderolinkres.PendingMachine) bool) *testPendingMachineStatusController {
+	return qtransform.NewQController(
+		qtransform.Settings[*siderolinkres.PendingMachine, *siderolinkres.PendingMachineStatus]{
+			Name: "PendingMachineStatusController",
+			MapMetadataFunc: func(pendingMachine *siderolinkres.PendingMachine) *siderolinkres.PendingMachineStatus {
+				return siderolinkres.NewPendingMachineStatus(pendingMachine.Metadata().ID())
+			},
+			UnmapMetadataFunc: func(pendingMachineStatus *siderolinkres.PendingMachineStatus) *siderolinkres.PendingMachine {
+				return siderolinkres.NewPendingMachine(pendingMachineStatus.Metadata().ID(), nil)
+			},
+			TransformFunc: func(_ context.Context, _ controller.Reader, _ *zap.Logger, machine *siderolinkres.PendingMachine, status *siderolinkres.PendingMachineStatus) error {
+				status.TypedSpec().Value.TalosInstalled = installedCallback(machine)
+
+				return nil
+			},
+		},
+		qtransform.WithConcurrency(32),
+	)
+}
+
 //nolint:maintidx
 func TestProvision(t *testing.T) {
 	t.Parallel()
 
-	validToken := "validToken"
+	validFingerprint := uuid.NewString()
+
+	validToken, e := jointoken.NewNodeUniqueToken(validFingerprint, "validToken").Encode()
+	require.NoError(t, e)
+
+	validFingerprintOnly, e := jointoken.NewNodeUniqueToken(validFingerprint, "randomized").Encode()
+	require.NoError(t, e)
+
+	invalidToken, e := jointoken.NewNodeUniqueToken(uuid.NewString(), "invalidToken").Encode()
+	require.NoError(t, e)
 
 	genKey := func() string {
 		privateKey, err := wgtypes.GeneratePrivateKey()
@@ -63,6 +98,9 @@ func TestProvision(t *testing.T) {
 
 		require.NoError(t, runtime.RegisterQController(omnictrl.NewLinkStatusController[*siderolinkres.PendingMachine](peers)))
 		require.NoError(t, runtime.RegisterQController(omnictrl.NewLinkStatusController[*siderolinkres.Link](peers)))
+		require.NoError(t, runtime.RegisterQController(newPendingMachineStatusController(func(*siderolinkres.PendingMachine) bool {
+			return true
+		})))
 
 		var eg errgroup.Group
 
@@ -118,7 +156,7 @@ func TestProvision(t *testing.T) {
 		require.NotEmpty(t, response.ServerPublicKey)
 		require.NotEmpty(t, response.NodeAddressPrefix)
 
-		request.NodeUniqueToken = pointer.To("token")
+		request.NodeUniqueToken = pointer.To(validToken)
 
 		response, err = provisionHandler.Provision(ctx, request)
 		require.NoError(t, err)
@@ -147,7 +185,7 @@ func TestProvision(t *testing.T) {
 		},
 		{
 			name:       "invalid token",
-			token:      "nope",
+			token:      invalidToken,
 			shouldFail: true,
 		},
 	} {
@@ -189,6 +227,11 @@ func TestProvision(t *testing.T) {
 				},
 			)
 
+			request.NodeUniqueToken = &validToken
+
+			_, err = provisionHandler.Provision(ctx, request)
+			require.NoError(t, err)
+
 			rtestutils.AssertResources(ctx, t, state, []string{request.NodeUuid},
 				func(r *siderolinkres.Link, assertion *assert.Assertions) {
 					assertion.Equal(r.TypedSpec().Value.NodePublicKey, request.NodePublicKey)
@@ -211,20 +254,69 @@ func TestProvision(t *testing.T) {
 		},
 	} {
 		for _, tt := range []struct {
-			request  *pb.ProvisionRequest
-			linkSpec *specs.SiderolinkSpec
-			errcheck func(t *testing.T, err error)
-			name     string
+			request           *pb.ProvisionRequest
+			linkSpec          *specs.SiderolinkSpec
+			errcheck          func(t *testing.T, err error)
+			name              string
+			talosNotInstalled bool
 		}{
+			{
+				name: "same fingerprint, valid join token, talos installed",
+				request: &pb.ProvisionRequest{
+					NodePublicKey:   genKey(),
+					NodeUniqueToken: pointer.To(validFingerprintOnly),
+					TalosVersion:    pointer.To("v1.6.0"),
+					JoinToken:       pointer.To(validToken),
+				},
+				linkSpec: &specs.SiderolinkSpec{
+					NodeUniqueToken: validToken,
+				},
+				errcheck: func(t *testing.T, err error) {
+					require.Error(t, err)
+					require.Equal(t, codes.PermissionDenied, status.Code(err))
+				},
+			},
+			{
+				name: "same fingerprint, valid join token, talos not installed",
+				request: &pb.ProvisionRequest{
+					NodePublicKey:   genKey(),
+					NodeUniqueToken: pointer.To(validFingerprintOnly),
+					TalosVersion:    pointer.To("v1.6.0"),
+					JoinToken:       pointer.To(validToken),
+				},
+				talosNotInstalled: true,
+				linkSpec: &specs.SiderolinkSpec{
+					NodeUniqueToken: validToken,
+				},
+				errcheck: func(t *testing.T, err error) {
+					require.NoError(t, err)
+				},
+			},
+			{
+				name: "same fingerprint, invalid join token, talos not installed",
+				request: &pb.ProvisionRequest{
+					NodePublicKey:   genKey(),
+					NodeUniqueToken: pointer.To(validFingerprintOnly),
+					TalosVersion:    pointer.To("v1.6.0"),
+				},
+				talosNotInstalled: true,
+				linkSpec: &specs.SiderolinkSpec{
+					NodeUniqueToken: validToken,
+				},
+				errcheck: func(t *testing.T, err error) {
+					require.Error(t, err)
+					require.Equal(t, codes.PermissionDenied, status.Code(err))
+				},
+			},
 			{
 				name: "no join token, valid node token",
 				request: &pb.ProvisionRequest{
 					NodePublicKey:   genKey(),
-					NodeUniqueToken: pointer.To("letmein"),
+					NodeUniqueToken: pointer.To(validToken),
 					TalosVersion:    pointer.To("v1.6.0"),
 				},
 				linkSpec: &specs.SiderolinkSpec{
-					NodeUniqueToken: "letmein",
+					NodeUniqueToken: validToken,
 				},
 				errcheck: func(t *testing.T, err error) {
 					require.NoError(t, err)
@@ -234,14 +326,15 @@ func TestProvision(t *testing.T) {
 				name: "valid join token, invalid node token",
 				request: &pb.ProvisionRequest{
 					NodePublicKey:   genKey(),
-					NodeUniqueToken: pointer.To("letmein"),
+					NodeUniqueToken: pointer.To(invalidToken),
 					TalosVersion:    pointer.To("v1.9.0"),
+					JoinToken:       pointer.To(validToken),
 				},
 				linkSpec: &specs.SiderolinkSpec{
-					NodeUniqueToken: "youshallnotpass",
+					NodeUniqueToken: validToken,
 				},
 				errcheck: func(t *testing.T, err error) {
-					require.Equal(t, codes.PermissionDenied, status.Code(err))
+					require.NoError(t, err)
 				},
 			},
 			{
@@ -251,9 +344,7 @@ func TestProvision(t *testing.T) {
 					TalosVersion:  pointer.To("v1.9.0"),
 					JoinToken:     pointer.To(validToken),
 				},
-				linkSpec: &specs.SiderolinkSpec{
-					NodeUniqueToken: "",
-				},
+				linkSpec: &specs.SiderolinkSpec{},
 				errcheck: func(t *testing.T, err error) {
 					require.NoError(t, err)
 				},
@@ -303,7 +394,13 @@ func TestProvision(t *testing.T) {
 					TalosVersion:  pointer.To("v1.4.0"),
 				},
 				errcheck: func(t *testing.T, err error) {
-					require.Equal(t, codes.PermissionDenied, status.Code(err))
+					if mode.mode == config.JoinTokensModeLegacyAllowed {
+						require.Equal(t, codes.PermissionDenied, status.Code(err))
+
+						return
+					}
+
+					require.Equal(t, codes.FailedPrecondition, status.Code(err))
 				},
 			},
 		} {
@@ -316,7 +413,12 @@ func TestProvision(t *testing.T) {
 				state, provisionHandler := setup(ctx, t, mode.mode)
 
 				if tt.linkSpec != nil {
-					require.NoError(t, state.Create(ctx, siderolinkres.NewLink(resources.DefaultNamespace, "machine", tt.linkSpec)))
+					link := siderolinkres.NewLink(resources.DefaultNamespace, "machine", tt.linkSpec)
+					if !tt.talosNotInstalled {
+						link.Metadata().Annotations().Set(siderolinkres.ForceValidNodeUniqueToken, "")
+					}
+
+					require.NoError(t, state.Create(ctx, link))
 				}
 
 				tt.request.NodeUuid = "machine"
@@ -358,6 +460,82 @@ func TestProvision(t *testing.T) {
 		rtestutils.AssertNoResource[*siderolinkres.PendingMachine](ctx, t, state, request.NodePublicKey)
 	})
 
+	t.Run("restrict legacy join", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+		defer cancel()
+
+		state, provisionHandler := setup(ctx, t, config.JoinTokensModeLegacyAllowed)
+
+		request := &pb.ProvisionRequest{
+			NodeUuid:      "machine-legacy",
+			NodePublicKey: genKey(),
+			TalosVersion:  pointer.To("v1.5.0"),
+			JoinToken:     pointer.To(validToken),
+		}
+
+		link := siderolinkres.NewLink(resources.DefaultNamespace, request.NodeUuid, &specs.SiderolinkSpec{
+			NodeUniqueToken: validToken,
+		})
+
+		require.NoError(t, state.Create(ctx, link))
+
+		_, err := provisionHandler.Provision(ctx, request)
+		require.Error(t, err)
+		require.EqualValues(t, codes.PermissionDenied, status.Code(err))
+	})
+
+	t.Run("UUID conflict", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+		defer cancel()
+
+		state, provisionHandler := setup(ctx, t, config.JoinTokensModeStrict)
+
+		uniqueToken, err := jointoken.NewNodeUniqueToken(uuid.NewString(), uuid.NewString()).Encode()
+		require.NoError(t, err)
+
+		request := &pb.ProvisionRequest{
+			NodeUuid:        "so-duplicate",
+			NodePublicKey:   genKey(),
+			TalosVersion:    pointer.To("v1.9.4"),
+			JoinToken:       pointer.To(validToken),
+			NodeUniqueToken: pointer.To(uniqueToken),
+		}
+
+		_, err = provisionHandler.Provision(ctx, request)
+		require.NoError(t, err)
+
+		uniqueToken, err = jointoken.NewNodeUniqueToken(uuid.NewString(), uuid.NewString()).Encode()
+		require.NoError(t, err)
+
+		request2 := &pb.ProvisionRequest{
+			NodeUuid:        "so-duplicate",
+			NodePublicKey:   genKey(),
+			TalosVersion:    pointer.To("v1.9.4"),
+			JoinToken:       pointer.To(validToken),
+			NodeUniqueToken: pointer.To(uniqueToken),
+		}
+
+		_, err = provisionHandler.Provision(ctx, request2)
+		require.NoError(t, err)
+
+		rtestutils.AssertResources(ctx, t, state, []string{request.NodeUuid},
+			func(r *siderolinkres.Link, assertion *assert.Assertions) {
+				assertion.Equal(r.TypedSpec().Value.NodePublicKey, request.NodePublicKey)
+			},
+		)
+
+		rtestutils.AssertNoResource[*siderolinkres.PendingMachine](ctx, t, state, request.NodePublicKey)
+		rtestutils.AssertResource(ctx, t, state, request2.NodePublicKey, func(r *siderolinkres.PendingMachine, assertion *assert.Assertions) {
+			_, conflict := r.Metadata().Annotations().Get(siderolinkres.PendingMachineUUIDConflict)
+
+			assertion.True(conflict)
+		})
+	})
+
 	t.Run("provider token", func(t *testing.T) {
 		t.Parallel()
 
@@ -375,12 +553,15 @@ func TestProvision(t *testing.T) {
 		encoded, err := token.Encode()
 		require.NoError(t, err)
 
+		uniqueToken, err := jointoken.NewNodeUniqueToken("fingerprint", "so-unique").Encode()
+		require.NoError(t, err)
+
 		request := &pb.ProvisionRequest{
 			NodeUuid:        "machine-from-provider",
 			NodePublicKey:   genKey(),
 			TalosVersion:    pointer.To("v1.9.4"),
 			JoinToken:       &encoded,
-			NodeUniqueToken: pointer.To("none"),
+			NodeUniqueToken: pointer.To(uniqueToken),
 		}
 
 		_, err = provisionHandler.Provision(ctx, request)

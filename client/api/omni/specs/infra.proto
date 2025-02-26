@@ -58,6 +58,9 @@ message InfraMachineSpec {
   // - Comparing the value of this counter with the stored value to determine if Talos is installed:
   //   It is installed if the value of the counter is greater than the stored value.
   uint64 install_event_id = 9;
+
+  // NodeUniqueToken is copied from the corresponding siderolink.Link resource.
+  string node_unique_token = 10;
 }
 
 message InfraMachineStateSpec {
@@ -78,6 +81,9 @@ message InfraMachineStatusSpec {
   string last_reboot_id = 3;
   google.protobuf.Timestamp last_reboot_timestamp = 4;
   bool installed = 5;
+  // WipedNodeUniqueToken is updated when the bare metal infra provider wipes the machine.
+  // It reads the current token from the infra.Machine resource and updates it here.
+  string wiped_node_unique_token = 6;
 }
 
 message InfraProviderStatusSpec {
