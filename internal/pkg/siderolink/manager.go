@@ -401,7 +401,7 @@ func (manager *Manager) startWireguard(ctx context.Context, eg *errgroup.Group, 
 			}
 		}()
 
-		return manager.wgHandler.Run(ctx, manager.logger)
+		return manager.wgHandler.Run(ctx, manager.logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))
 	})
 
 	return nil
