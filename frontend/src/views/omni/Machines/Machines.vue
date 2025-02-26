@@ -147,7 +147,11 @@ const watchOpts = computed<WatchOptions>(() => {
   if (labelSelectors) {
     const q = labelSelectors.join(",");
 
-    selectors = selectors.map(item => item + "," + q);
+    if (selectors.length === 0) {
+      selectors = [q];
+    } else {
+      selectors = selectors.map(item => item + "," + q);
+    }
   }
 
   return {
