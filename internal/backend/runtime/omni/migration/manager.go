@@ -6,8 +6,10 @@
 package migration
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
@@ -224,8 +226,6 @@ func (m *Manager) Run(ctx context.Context, opt ...Option) error {
 		o(&opts)
 	}
 
-	var currentVersion uint64
-
 	version, err := safe.StateGet[*system.DBVersion](
 		ctx,
 		m.state,
@@ -237,6 +237,8 @@ func (m *Manager) Run(ctx context.Context, opt ...Option) error {
 		}
 	}
 
+	logger := m.logger.With(zap.Bool("filter_enabled", opts.filter != nil), zap.Bool("fresh_omni", version == nil))
+
 	if version == nil {
 		version = system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
 
@@ -245,24 +247,45 @@ func (m *Manager) Run(ctx context.Context, opt ...Option) error {
 		}
 	}
 
-	currentVersion = version.TypedSpec().Value.Version
+	currentVersion := version.TypedSpec().Value.Version
+	opts.maxVersion = cmp.Or(opts.maxVersion, len(m.migrations))
 
-	if opts.maxVersion == 0 {
-		opts.maxVersion = len(m.migrations)
-	}
+	logger = logger.With(zap.Uint64("start_version", currentVersion), zap.Int("target_version", opts.maxVersion))
 
 	if len(m.migrations) < int(currentVersion) {
 		return fmt.Errorf("the current version of Omni is too old to run with the current DB version: %d", currentVersion)
 	}
 
-	for i, migration := range m.migrations[currentVersion:opts.maxVersion] {
-		if opts.filter != nil && !opts.filter(migration.name) {
+	migrations := m.migrations[currentVersion:opts.maxVersion]
+	if len(migrations) > 0 {
+		logger.Info("must do those migrations", zap.Int("total", len(migrations)))
+
+		for i, mig := range migrations {
+			logger.Info("migration", zap.String("name", mig.name), zap.Int("version", i))
+		}
+	} else {
+		logger.Info("no migrations to run")
+	}
+
+	total := time.Now()
+
+	for i, mig := range migrations {
+		if opts.filter != nil && !opts.filter(mig.name) {
+			logger.Info("skipping migration", zap.String("migration_name", mig.name), zap.Int("version", i))
+
 			continue
 		}
 
-		if err = migration.callback(ctx, m.state, m.logger); err != nil {
-			return fmt.Errorf("migration %s failed: %w", migration.name, err)
+		start := time.Now()
+		mLogger := logger.With(zap.String("migration_name", mig.name), zap.Int("at_version", i))
+
+		mLogger.Info("running migration")
+
+		if err = mig.callback(ctx, m.state, mLogger); err != nil {
+			return fmt.Errorf("migration %s failed: %w", mig.name, err)
 		}
+
+		mLogger.Info("migration completed", zap.Duration("took", time.Since(start)))
 
 		if _, err = safe.StateUpdateWithConflicts(ctx, m.state, version.Metadata(), func(dbVer *system.DBVersion) error {
 			dbVer.TypedSpec().Value.Version = currentVersion + uint64(i+1)
@@ -272,6 +295,8 @@ func (m *Manager) Run(ctx context.Context, opt ...Option) error {
 			return err
 		}
 	}
+
+	logger.Info("all migrations completed", zap.Duration("total", time.Since(total)))
 
 	return nil
 }
