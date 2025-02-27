@@ -1626,6 +1626,8 @@ func (suite *MigrationSuite) TestRemoveMaintenanceConfigPatchFinalizers() {
 }
 
 func (suite *MigrationSuite) TestCompressUncompressMigrations() {
+	suite.T().Skip("the migration for compressed resources is currently disabled")
+
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 

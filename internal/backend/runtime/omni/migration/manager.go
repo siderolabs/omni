@@ -188,7 +188,7 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				name:     "compressMachineConfigsAndPatches",
 			},
 			{
-				callback: compressConfigsAndMachinePatches,
+				callback: noopMigration,
 				name:     "compressConfigsAndMachinePatches",
 			},
 		},
