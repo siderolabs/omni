@@ -27,8 +27,11 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/meta"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/runtime"
+	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	configres "github.com/siderolabs/talos/pkg/machinery/resources/config"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	grpcstatus "google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -168,6 +171,15 @@ func (helper *maintenanceConfigStatusControllerHelper) transform(ctx context.Con
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine is not in maintenance mode")
 	}
 
+	talosVersion := machineStatus.TypedSpec().Value.TalosVersion
+	if talosVersion == "" {
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine has no talos version yet")
+	}
+
+	if !quirks.New(talosVersion).SupportsMultidoc() {
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("talos version does not support multidoc, nothing to do")
+	}
+
 	maintenanceTalosClient, err := helper.maintenanceClientFactory(ctx, machineStatus.TypedSpec().Value.ManagementAddress)
 	if err != nil {
 		return fmt.Errorf("error creating maintenance client: %w", err)
@@ -214,6 +226,10 @@ func (helper *maintenanceConfigStatusControllerHelper) transform(ctx context.Con
 		Data: patchedBytes,
 		Mode: machine.ApplyConfigurationRequest_AUTO,
 	}); err != nil {
+		if grpcstatus.Code(err) == codes.Unimplemented {
+			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine does not support applying configuration: %w", err)
+		}
+
 		return fmt.Errorf("error applying maintenance config: %w", err)
 	}
 
