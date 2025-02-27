@@ -67,6 +67,7 @@ func (suite *MachineStatusSnapshotControllerSuite) TestMaintenanceConfigStatus()
 	machineStatus.TypedSpec().Value.Maintenance = true
 
 	machineStatus.TypedSpec().Value.ManagementAddress = "test-address"
+	machineStatus.TypedSpec().Value.TalosVersion = "1.5.0"
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
 
