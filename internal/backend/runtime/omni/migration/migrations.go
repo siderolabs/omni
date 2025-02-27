@@ -1338,18 +1338,11 @@ func removeMaintenanceConfigPatchFinalizers(ctx context.Context, st state.State,
 
 func noopMigration(context.Context, state.State, *zap.Logger) error { return nil }
 
-var _ = compressConfigsAndMachinePatches
-
-func compressConfigsAndMachinePatches(ctx context.Context, st state.State, l *zap.Logger) error {
+func compressConfigPatches(ctx context.Context, st state.State, l *zap.Logger) error {
 	doConfigPatch := updateSingle[string, specs.ConfigPatchSpec, *specs.ConfigPatchSpec]
-	doMachineConfig := updateSingle[[]byte, specs.ClusterMachineConfigSpec, *specs.ClusterMachineConfigSpec]
-	doRedactedMachineConfig := updateSingle[string, specs.RedactedClusterMachineConfigSpec, *specs.RedactedClusterMachineConfigSpec]
 
 	for _, fn := range []func(context.Context, state.State, *zap.Logger) error{
 		compressUncompressed[*omni.ConfigPatch](doConfigPatch),
-		compressUncompressed[*omni.ClusterMachineConfig](doMachineConfig),
-		compressUncompressed[*omni.RedactedClusterMachineConfig](doRedactedMachineConfig),
-		compressUncompressed[*omni.ClusterMachineConfigPatches](doClusterMachineConfigPatches),
 	} {
 		if err := fn(ctx, st, l); err != nil {
 			return err
@@ -1367,22 +1360,38 @@ func compressUncompressed[
 	T any,
 	S protobuf.Spec[T],
 ](update func(spec *protobuf.ResourceSpec[T, S]) (bool, error)) func(context.Context, state.State, *zap.Logger) error {
-	return func(ctx context.Context, st state.State, _ *zap.Logger) error {
+	return func(ctx context.Context, st state.State, l *zap.Logger) error {
 		items, err := safe.ReaderListAll[R](ctx, st)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to list resources for compression: %w", err)
 		}
+
+		if total := items.Len(); total > 0 {
+			md := items.Get(0).Metadata()
+
+			l = l.With(zap.String("resource", md.String()), zap.Int("total_num", total))
+
+			l.Info("compressing resources")
+		}
+
+		processed := 0
+		alreadyCompressed := 0
+		nonRunning := 0
 
 		for val := range items.All() {
 			if val.Metadata().Phase() != resource.PhaseRunning {
+				nonRunning++
+
 				continue
 			}
 
 			spec := val.TypedSpec()
 
 			if ok, uerr := update(spec); uerr != nil {
-				return uerr
+				return fmt.Errorf("failed to compress %s: %w", val.Metadata().ID(), uerr)
 			} else if !ok {
+				alreadyCompressed++
+
 				continue
 			}
 
@@ -1393,7 +1402,15 @@ func compressUncompressed[
 			}, state.WithUpdateOwner(val.Metadata().Owner())); err != nil {
 				return fmt.Errorf("failed to update %s: %w", val.Metadata(), err)
 			}
+
+			processed++
 		}
+
+		l.Info("compress migration done",
+			zap.Int("processed", processed),
+			zap.Int("skipped_already_compressedd", alreadyCompressed),
+			zap.Int("skipped_non_running", nonRunning),
+		)
 
 		return nil
 	}
@@ -1414,20 +1431,6 @@ func updateSingle[
 	}
 
 	err := spec.Value.SetUncompressedData([]byte(data))
-	if err != nil {
-		return false, fmt.Errorf("failed to compress data during migration: %w", err)
-	}
-
-	return true, nil
-}
-
-func doClusterMachineConfigPatches(spec *protobuf.ResourceSpec[specs.ClusterMachineConfigPatchesSpec, *specs.ClusterMachineConfigPatchesSpec]) (bool, error) {
-	patches := spec.Value.GetPatches()
-	if len(patches) == 0 {
-		return false, nil
-	}
-
-	err := spec.Value.SetUncompressedPatches(patches)
 	if err != nil {
 		return false, fmt.Errorf("failed to compress data during migration: %w", err)
 	}

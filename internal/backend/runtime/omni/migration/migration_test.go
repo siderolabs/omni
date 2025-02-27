@@ -24,6 +24,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/google/uuid"
+	"github.com/klauspost/compress/zstd"
 	"github.com/siderolabs/gen/pair"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/gen/xtesting/must"
@@ -1626,8 +1627,6 @@ func (suite *MigrationSuite) TestRemoveMaintenanceConfigPatchFinalizers() {
 }
 
 func (suite *MigrationSuite) TestCompressUncompressMigrations() {
-	suite.T().Skip("the migration for compressed resources is currently disabled")
-
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
@@ -1656,84 +1655,15 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 			ctx,
 			suite.T(),
 			suite.state,
-			omni.NewClusterMachineConfig(ns, "machine-config-1"),
-			fillData[*specs.ClusterMachineConfigSpec](data1, disabled),
-			checkCompressed[[]byte, *specs.ClusterMachineConfigSpec](encoded1),
-			omnictrl.ClusterMachineConfigControllerName,
-		),
-		startMigration(
-			ctx,
-			suite.T(),
-			suite.state,
-			omni.NewRedactedClusterMachineConfig(ns, "redacted-machine-config-1"),
-			fillData[*specs.RedactedClusterMachineConfigSpec](data1, disabled),
-			checkCompressed[string, *specs.RedactedClusterMachineConfigSpec](encoded1),
-			omnictrl.NewRedactedClusterMachineConfigController().Name(),
-		),
-		startMigration(
-			ctx,
-			suite.T(),
-			suite.state,
 			omni.NewConfigPatch(ns, "config-patch-2"),
 			fillData[*specs.ConfigPatchSpec](data2, disabled),
 			checkCompressed[string, *specs.ConfigPatchSpec](encoded2),
 			"",
 		),
-		startMigration(
-			ctx,
-			suite.T(),
-			suite.state,
-			omni.NewClusterMachineConfig(ns, "machine-config-2"),
-			fillData[*specs.ClusterMachineConfigSpec](data2, disabled),
-			checkCompressed[[]byte, *specs.ClusterMachineConfigSpec](encoded2),
-			omnictrl.ClusterMachineConfigControllerName,
-		),
-		startMigration(
-			ctx,
-			suite.T(),
-			suite.state,
-			omni.NewClusterMachineConfigPatches(ns, "cluster-machine-config-patches-1"),
-			func(t *testing.T, spec *omni.ClusterMachineConfigPatchesSpec) {
-				require.NoError(t, spec.Value.SetUncompressedPatches([]string{data1, data2}, disabled))
-			},
-			func(t *assert.Assertions, spec *omni.ClusterMachineConfigPatchesSpec) {
-				uncompressed := spec.Value.GetPatches()
-				t.Empty(uncompressed)
-
-				patches := spec.Value.GetCompressedPatches()
-				t.NotEmpty(patches)
-
-				for i, data := range [][]byte{encoded1, encoded2} {
-					t.Equalf(data, patches[i], "%x != %x", data, patches[i])
-				}
-			},
-			omnictrl.NewMachineSetController().Name(),
-		),
-		startMigration(
-			ctx,
-			suite.T(),
-			suite.state,
-			omni.NewClusterMachineConfigPatches(ns, "cluster-machine-config-patches-2"),
-			func(t *testing.T, spec *omni.ClusterMachineConfigPatchesSpec) {
-				require.NoError(t, spec.Value.SetUncompressedPatches([]string{data2, data1}, disabled))
-			},
-			func(t *assert.Assertions, spec *omni.ClusterMachineConfigPatchesSpec) {
-				uncompressed := spec.Value.GetPatches()
-				t.Empty(uncompressed)
-
-				patches := spec.Value.GetCompressedPatches()
-				t.NotEmpty(patches)
-
-				for i, data := range [][]byte{encoded2, encoded1} {
-					t.Equalf(data, patches[i], "%x != %x", data, patches[i])
-				}
-			},
-			omnictrl.NewMachineSetController().Name(),
-		),
 	}
 
 	// Ensure we don't compress resources which are not in the running phase
-	thirdPatch := omni.NewClusterMachineConfigPatches(ns, "cluster-machine-config-patches-3")
+	thirdPatch := omni.NewConfigPatch(ns, "config-patch-3")
 	thirdPatch.Metadata().SetPhase(resource.PhaseTearingDown)
 
 	checkMigrations = append(checkMigrations, startMigration(
@@ -1741,18 +1671,47 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 		suite.T(),
 		suite.state,
 		thirdPatch,
-		func(t *testing.T, spec *omni.ClusterMachineConfigPatchesSpec) {
-			require.NoError(t, spec.Value.SetUncompressedPatches([]string{data2, data1}, disabled))
-		},
-		func(t *assert.Assertions, spec *omni.ClusterMachineConfigPatchesSpec) {
-			uncompressed := spec.Value.GetPatches()
-			t.Equal([]string{data2, data1}, uncompressed)
-			t.Empty(spec.Value.GetCompressedPatches())
+		fillData[*specs.ConfigPatchSpec](data2, disabled),
+		func(t *assert.Assertions, spec *omni.ConfigPatchSpec) {
+			uncompressed := spec.Value.GetData()
+			t.Equal(data2, uncompressed)
+			t.Empty(spec.Value.GetCompressedData())
 		},
 		omnictrl.NewMachineSetController().Name(),
 	))
 
-	require.NoError(suite.T(), suite.manager.Run(ctx, migration.WithFilter(filterWith("compressConfigsAndMachinePatches"))))
+	encodedDifferently := must.Value(zstd.NewWriter(
+		nil,
+		zstd.WithEncoderConcurrency(1),
+		zstd.WithWindowSize(1024),
+		zstd.WithEncoderCRC(false),
+	))(suite.T()).EncodeAll([]byte(data2), nil)
+
+	// Ensure we don't compress resources which are already compressed
+	checkMigrations = append(checkMigrations, startMigration(
+		ctx,
+		suite.T(),
+		suite.state,
+		omni.NewConfigPatch(ns, "config-patch-4"),
+		func(_ *testing.T, spec *omni.ConfigPatchSpec) {
+			spec.Value.CompressedData = encodedDifferently //nolint:staticcheck
+		},
+		func(t *assert.Assertions, spec *omni.ConfigPatchSpec) {
+			uncompressed := spec.Value.GetData()
+			t.Empty(uncompressed)
+			t.Equal(encodedDifferently, spec.Value.GetCompressedData())
+
+			data, err := spec.Value.GetUncompressedData()
+			t.NoError(err)
+
+			defer data.Free()
+
+			t.Equal(data2, string(data.Data()))
+		},
+		omnictrl.NewMachineSetController().Name(),
+	))
+
+	require.NoError(suite.T(), suite.manager.Run(ctx, migration.WithFilter(filterWith("compressConfigPatches"))))
 
 	for _, check := range checkMigrations {
 		check(suite.T())
