@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <component :is="componentType" v-bind="componentAttributes" @click.prevent="handleClick">
+  <component :is="componentType" v-bind="componentAttributes" @click="handleClick">
     <Tooltip placement="right" :description="tooltip" :offset-distance="10" :offset-skid="0">
       <div class="flex flex-col w-full">
         <div class="item w-full" :class="{'sub-item': level > 0, root: level === 0}" :style="{'padding-left': `${24*(level+1)}px`}">
@@ -93,7 +93,13 @@ const {
   level
 } = toRefs(props);
 
-const handleClick = () => {
+const handleClick = (event: Event) => {
+  if (props.regularLink) {
+    return; // Don't prevent default for regular links
+  }
+
+  event.preventDefault();
+
   if (!props.route) {
     expanded.value = !expanded.value;
   }
