@@ -43,6 +43,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	rt "github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 )
@@ -572,11 +573,16 @@ func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, contro
 
 		machines[i] = clusterMachine
 
+		link := siderolink.NewLink(resources.DefaultNamespace, clusterMachine.Metadata().ID(), &specs.SiderolinkSpec{
+			Connected: true,
+		})
+
 		suite.Require().NoError(suite.state.Create(suite.ctx, clusterMachineConfigPatches))
 		suite.Require().NoError(suite.state.Create(suite.ctx, clusterMachine))
 		suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
 		suite.Require().NoError(suite.state.Create(suite.ctx, machineState))
 		suite.Require().NoError(suite.state.Create(suite.ctx, machineSetNode))
+		suite.Require().NoError(suite.state.Create(suite.ctx, link))
 	}
 
 	// create loadbalancer lbConfig as it's port is used while generating kubernetes endpoint
@@ -614,6 +620,7 @@ func (suite *OmniSuite) destroyClusterByID(clusterID string) {
 		rtestutils.Destroy[*omni.ClusterMachineConfigPatches](ctx, suite.T(), suite.state, []string{cs.Metadata().ID()})
 		rtestutils.Destroy[*omni.MachineStatus](ctx, suite.T(), suite.state, []string{cs.Metadata().ID()})
 		rtestutils.Destroy[*omni.Machine](ctx, suite.T(), suite.state, []string{cs.Metadata().ID()})
+		rtestutils.Destroy[*siderolink.Link](ctx, suite.T(), suite.state, []string{cs.Metadata().ID()})
 	}
 
 	machineSets, err := safe.StateListAll[*omni.MachineSet](ctx, suite.state,

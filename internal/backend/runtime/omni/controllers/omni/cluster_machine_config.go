@@ -78,6 +78,9 @@ func NewClusterMachineConfigController(imageFactoryHost string, defaultGenOption
 			qtransform.MapperSameID[*omni.MachineConfigGenOptions, *omni.ClusterMachine](),
 		),
 		qtransform.WithExtraMappedInput(
+			qtransform.MapperSameID[*siderolink.Link, *omni.ClusterMachine](),
+		),
+		qtransform.WithExtraMappedInput(
 			mappers.MapClusterResourceToLabeledResources[*omni.Cluster, *omni.ClusterMachine](),
 		),
 		qtransform.WithExtraMappedInput(
@@ -237,12 +240,17 @@ func reconcileClusterMachineConfig(
 		return err
 	}
 
+	link, err := safe.ReaderGetByID[*siderolink.Link](ctx, r, clusterMachine.Metadata().ID())
+	if err != nil {
+		return fmt.Errorf("failed to get link: %w", err)
+	}
+
 	helper := clusterMachineConfigControllerHelper{
 		imageFactoryHost: imageFactoryHost,
 	}
 
 	data, err := helper.generateConfig(clusterMachine, clusterMachineConfigPatches, secrets, loadBalancerConfig,
-		cluster, clusterConfigVersion, machineConfigGenOptions, defaultGenOptions, connectionParams, eventSinkPort)
+		cluster, clusterConfigVersion, machineConfigGenOptions, defaultGenOptions, connectionParams, link, eventSinkPort)
 	if err != nil {
 		machineConfig.TypedSpec().Value.GenerationError = err.Error()
 
@@ -265,7 +273,7 @@ type clusterMachineConfigControllerHelper struct {
 
 func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.ClusterMachine, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, secrets *omni.ClusterSecrets,
 	loadbalancer *omni.LoadBalancerConfig, cluster *omni.Cluster, clusterConfigVersion *omni.ClusterConfigVersion, configGenOptions *omni.MachineConfigGenOptions, extraGenOptions []generate.Option,
-	connectionParams *siderolink.ConnectionParams, eventSinkPort int,
+	connectionParams *siderolink.ConnectionParams, link *siderolink.Link, eventSinkPort int,
 ) ([]byte, error) {
 	clusterName := cluster.Metadata().ID()
 
@@ -349,8 +357,7 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 	if quirks.New(talosVersion).SupportsMultidoc() {
 		var siderolinkConfig []byte
 
-		siderolinkConfig, err = renderSiderolinkJoinConfig(connectionParams, eventSinkPort)
-		if err != nil {
+		if siderolinkConfig, err = renderSiderolinkJoinConfig(connectionParams, link, eventSinkPort); err != nil {
 			return nil, err
 		}
 
@@ -484,8 +491,15 @@ func buildInstallImage(imageFactoryHost string, resID resource.ID, installImage 
 	return appconfig.Config.TalosRegistry + ":" + talosVersion, nil
 }
 
-func renderSiderolinkJoinConfig(connectionParams *siderolink.ConnectionParams, eventSinkPort int) ([]byte, error) {
-	url, err := siderolink.APIURL(connectionParams)
+func renderSiderolinkJoinConfig(connectionParams *siderolink.ConnectionParams, link *siderolink.Link, eventSinkPort int) ([]byte, error) {
+	var urlOpts []siderolink.APIURLOption
+
+	// If this machine is connected using the GRPC tunnel (grpc_tunnel=true), set it explicitly, so that option is preserved.
+	if link.TypedSpec().Value.GetVirtualAddrport() != "" {
+		urlOpts = append(urlOpts, siderolink.WithGRPCTunnel(true))
+	}
+
+	url, err := siderolink.APIURL(connectionParams, urlOpts...)
 	if err != nil {
 		return nil, err
 	}

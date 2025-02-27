@@ -70,10 +70,11 @@ included in the LICENSE file.
         <template #description>
           <div class="flex flex-col gap-1 p-2">
             <p>Configure Talos to use a GRPC tunnel for Siderolink (WireGuard) connection to Omni.</p>
-            <p>The default value configured for this Omni instance is <code>{{ useGrpcTunnelDefault.toString() }}</code>.</p>
+            <p v-if="useGrpcTunnelDefault">As it is enabled in Omni on instance-level, it cannot be disabled for the installation media.</p>
           </div>
         </template>
-        <t-checkbox :checked="useGrpcTunnel" label="Use Siderolink GRPC Tunnel"  @click="useGrpcTunnel = !useGrpcTunnel"/>
+        <t-checkbox :disabled="useGrpcTunnelDefault" :checked="useGrpcTunnel" display-checked-status-when-disabled
+            label="Use Siderolink GRPC Tunnel"  @click="useGrpcTunnel = !useGrpcTunnel"/>
       </tooltip>
 
       <h3 class="text-sm text-naturals-N14">

@@ -242,6 +242,13 @@ func downloadImageTo(ctx context.Context, client *client.Client, media *omni.Ins
 		return err
 	}
 
+	switch {
+	case grpcTunnelMode == management.CreateSchematicRequest_AUTO:
+		fmt.Fprintf(os.Stderr, "Using server's SideroLink gRPC tunnel setting: %v\n", schematicResp.GrpcTunnelEnabled)
+	case grpcTunnelMode == management.CreateSchematicRequest_DISABLED && schematicResp.GrpcTunnelEnabled:
+		fmt.Fprintf(os.Stderr, `WARNING: requested setting "--%s" is ignored because the server's SideroLink gRPC tunnel setting is enabled.\n`, useSiderolinkGRPCTunnelFlag)
+	}
+
 	if media.TypedSpec().Value.NoSecureBoot && downloadCmdFlags.secureBoot {
 		return fmt.Errorf("%q doesn't support secure boot", media.TypedSpec().Value.Name)
 	}

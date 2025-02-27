@@ -143,6 +143,7 @@ message CreateSchematicRequest {
 message CreateSchematicResponse {
   string schematic_id = 1;
   string pxe_url = 2;
+  bool grpc_tunnel_enabled = 3;
 }
 
 message GetSupportBundleRequest {

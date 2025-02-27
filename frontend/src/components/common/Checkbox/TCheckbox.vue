@@ -8,7 +8,7 @@ included in the LICENSE file.
   <div class="checkbox-wrapper" :class="{ 'cursor-not-allowed': disabled, 'cursor-pointer': !disabled }" @click="(e) => disabled ? e.stopImmediatePropagation() : null">
     <div class="checkbox" :class="{ checked: checked, disabled: disabled }">
       <t-animation>
-        <t-icon class="checkbox-icon" :icon="icon" v-show="checked && !disabled" />
+        <t-icon class="checkbox-icon" :icon="icon" v-show="checked && (!disabled || displayCheckedStatusWhenDisabled)" />
       </t-animation>
       <input type="checkbox" hidden :value="checked" />
     </div>
@@ -24,6 +24,7 @@ type Props = {
   checked?: boolean | number;
   label?: string;
   disabled?: boolean;
+  displayCheckedStatusWhenDisabled?: boolean;
   icon?: IconType
 };
 

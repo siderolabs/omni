@@ -45,7 +45,6 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
 
 	clusterName := "talos-default-2"
-
 	cluster, machines := suite.createCluster(clusterName, 1, 1)
 
 	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),

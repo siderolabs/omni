@@ -36,7 +36,7 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 		return nil, err
 	}
 
-	baseKernelArgs, err := s.getBaseKernelArgs(ctx, request.SiderolinkGrpcTunnelMode)
+	baseKernelArgs, tunnelEnabled, err := s.getBaseKernelArgs(ctx, request.SiderolinkGrpcTunnelMode)
 	if err != nil {
 		return nil, err
 	}
@@ -138,28 +138,31 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 	filename := media.TypedSpec().Value.GenerateFilename(!supportsOverlays, request.SecureBoot, false)
 
 	return &management.CreateSchematicResponse{
-		SchematicId: schematicInfo.FullID,
-		PxeUrl:      pxeURL.JoinPath("pxe", schematicInfo.FullID, request.TalosVersion, filename).String(),
+		SchematicId:       schematicInfo.FullID,
+		PxeUrl:            pxeURL.JoinPath("pxe", schematicInfo.FullID, request.TalosVersion, filename).String(),
+		GrpcTunnelEnabled: tunnelEnabled,
 	}, nil
 }
 
-func (s *managementServer) getBaseKernelArgs(ctx context.Context, grpcTunnelMode management.CreateSchematicRequest_SiderolinkGRPCTunnelMode) ([]string, error) {
+func (s *managementServer) getBaseKernelArgs(ctx context.Context, grpcTunnelMode management.CreateSchematicRequest_SiderolinkGRPCTunnelMode) (args []string, tunnelEnabled bool, err error) {
 	params, err := safe.StateGet[*siderolink.ConnectionParams](ctx, s.omniState, siderolink.NewConnectionParams(
 		resources.DefaultNamespace,
 		siderolink.ConfigID,
 	).Metadata())
 	if err != nil {
-		return nil, fmt.Errorf("failed to get Omni connection params for the extra kernel arguments: %w", err)
+		return nil, false, fmt.Errorf("failed to get Omni connection params for the extra kernel arguments: %w", err)
 	}
 
-	switch grpcTunnelMode {
-	case management.CreateSchematicRequest_AUTO:
-		return siderolink.KernelArgs(params), nil
-	case management.CreateSchematicRequest_ENABLED:
-		return siderolink.KernelArgsWithGRPCRTunnelMode(params, true)
-	case management.CreateSchematicRequest_DISABLED:
-		return siderolink.KernelArgsWithGRPCRTunnelMode(params, false)
-	default:
-		return nil, status.Errorf(codes.InvalidArgument, "invalid GRPC tunnel mode: %s", grpcTunnelMode)
+	// If the tunnel is enabled instance-wide or in the request, the final state is enabled
+	grpcTunnelEnabled := params.TypedSpec().Value.UseGrpcTunnel || grpcTunnelMode == management.CreateSchematicRequest_ENABLED
+
+	if grpcTunnelEnabled {
+		if args, err = siderolink.KernelArgsWithGRPCRTunnelMode(params, true); err != nil {
+			return nil, false, err
+		}
+	} else {
+		args = siderolink.KernelArgs(params)
 	}
+
+	return args, grpcTunnelEnabled, nil
 }
