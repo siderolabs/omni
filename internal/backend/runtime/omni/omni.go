@@ -352,6 +352,7 @@ func New(
 		"qcontroller_queue_length":   prometheus.NewDesc("omni_runtime_qcontroller_queue_length", "Number of queue controller queue length by controller name.", []string{"controller"}, nil),
 		"qcontroller_map_busy":       prometheus.NewDesc("omni_runtime_qcontroller_map_busy_seconds", "Number of seconds queue controller is busy by controller name.", []string{"controller"}, nil),
 		"qcontroller_reconcile_busy": prometheus.NewDesc("omni_runtime_qcontroller_reconcile_busy_seconds", "Number of seconds queue controller reconcile is busy by controller name.", []string{"controller"}, nil),
+		"cached_resources":           prometheus.NewDesc("omni_runtime_cached_resources", "Number of cached resources by resource type.", []string{"resource_type"}, nil),
 	})
 
 	metricsRegistry.MustRegister(expvarCollector)
