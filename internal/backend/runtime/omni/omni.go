@@ -197,6 +197,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		&omnictrl.ClusterMachineEncryptionController{},
 		&omnictrl.ClusterStatusMetricsController{},
 		&omnictrl.ClusterWorkloadProxyController{},
+		&omnictrl.ConfigPatchMetricsController{},
 		omnictrl.NewEtcdBackupOverallStatusController(),
 		backupController,
 		omnictrl.NewImagePullStatusController(&image.TalosImageClient{
