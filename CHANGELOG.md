@@ -1,3 +1,39 @@
+## [Omni 0.47.1](https://github.com/siderolabs/omni/releases/tag/v0.47.1) (2025-02-28)
+
+Welcome to the v0.47.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+* Dmitriy Matrenichev
+* Utku Ozdemir
+* Orzelius
+
+### Changes
+<details><summary>7 commits</summary>
+<p>
+
+* [`fb23d12`](https://github.com/siderolabs/omni/commit/fb23d12e0fd7f05a01cdc7d60c1a0ae2c480ce0a) fix: skip applying maintenance config to unsupported machines
+* [`b2edd82`](https://github.com/siderolabs/omni/commit/b2edd8252b9c9686e9a2888cd0f30cb6cc2b8e43) fix: disable `compressConfigsAndMachinePatches`
+* [`95b5372`](https://github.com/siderolabs/omni/commit/95b537254bd1488e53a22715871a262a9dbb82ed) fix: fix exposed service links on the sidebar
+* [`e1401fa`](https://github.com/siderolabs/omni/commit/e1401faae1cf19482b6b9867f52ab25e330fe401) fix: properly build the search query on the Machines page
+* [`d6eb100`](https://github.com/siderolabs/omni/commit/d6eb10063cfb87864c6ac089ef952596b72238c8) chore: add logging for migrations
+* [`c44a815`](https://github.com/siderolabs/omni/commit/c44a815fe6fd93eb79ff079a46c57b4a1e2f0f22) fix: extensions list hidden on small screens
+* [`06d5c53`](https://github.com/siderolabs/omni/commit/06d5c53e8ce5faf0c92882485141fb5befb6ef8b) fix: properly read the `siderolink-disable-last-endpoint` flag
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.47.0](https://github.com/siderolabs/omni/releases/tag/v0.47.0)
+
 ## [Omni 0.47.0](https://github.com/siderolabs/omni/releases/tag/v0.47.0) (2025-02-24)
 
 Welcome to the v0.47.0 release of Omni!  
