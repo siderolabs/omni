@@ -15,6 +15,12 @@ import (
 // OfficialPrefix is the prefix for the official extensions.
 const OfficialPrefix = "siderolabs/"
 
+// MetalAgentExtensionName is the name of the metal agent extension.
+const MetalAgentExtensionName = "metal-agent"
+
+// MetalAgentExtensionFullName is the full name of the metal agent extension including the prefix.
+const MetalAgentExtensionFullName = OfficialPrefix + MetalAgentExtensionName
+
 var (
 	talosV170 = semver.MustParse("1.7.0")
 	talosV180 = semver.MustParse("1.8.0")

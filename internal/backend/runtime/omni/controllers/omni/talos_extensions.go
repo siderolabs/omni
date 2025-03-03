@@ -20,6 +20,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/extensions"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 )
 
@@ -63,6 +64,10 @@ func NewTalosExtensionsController(imageFactoryClient *imagefactory.Client) *Talo
 				extensionsResource.TypedSpec().Value.Items = make([]*specs.TalosExtensionsSpec_Info, 0, len(extensionsVersions))
 
 				for _, ev := range extensionsVersions {
+					if ev.Name == extensions.MetalAgentExtensionFullName { // exclude the metal-agent extension
+						continue
+					}
+
 					info := &specs.TalosExtensionsSpec_Info{
 						Name:        ev.Name,
 						Digest:      ev.Digest,

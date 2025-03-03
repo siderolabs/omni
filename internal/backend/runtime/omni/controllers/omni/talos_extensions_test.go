@@ -28,6 +28,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/extensions"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -200,6 +201,10 @@ func (suite *TalosExtensionsSuite) TestReconcile() {
 					Digest:      "aaaa",
 					Author:      "Sidero Labs",
 					Description: "This system extension provides an example Talos extension service.",
+				},
+				{
+					Name: extensions.MetalAgentExtensionFullName, // should be excluded
+					Ref:  "github.com/siderolabs/metal-agent:v0.1.2",
 				},
 			},
 			"200.0.0": {

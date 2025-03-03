@@ -57,7 +57,7 @@ func GetSchematicInfo(ctx context.Context, c *client.Client, defaultKernelArgs [
 
 	err = items.ForEachErr(func(status *runtime.ExtensionStatus) error {
 		name := status.TypedSpec().Metadata.Name
-		if name == "metal-agent" {
+		if name == extensions.MetalAgentExtensionName {
 			inAgentMode = true
 
 			return nil
