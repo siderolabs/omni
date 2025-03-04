@@ -70,11 +70,11 @@ func (x *ClusterMachineConfigSpec) GetUncompressedData(opts ...CompressionOption
 		return newNoOpBuffer(nil), nil
 	}
 
-	if x.CompressedData == nil {
-		return newNoOpBuffer(x.Data), nil
+	if len(x.GetCompressedData()) == 0 {
+		return newNoOpBuffer(x.GetData()), nil
 	}
 
-	return doDecompress(x.CompressedData, getCompressionConfig(opts))
+	return doDecompress(x.GetCompressedData(), getCompressionConfig(opts))
 }
 
 // SetUncompressedData sets the config data in the ClusterMachineConfigSpec, compressing it if requested.
@@ -86,7 +86,7 @@ func (x *ClusterMachineConfigSpec) SetUncompressedData(data []byte, opts ...Comp
 	config := getCompressionConfig(opts)
 	compress := config.Enabled
 
-	if !compress {
+	if !compress || len(data) < config.MinThreshold {
 		x.Data = data
 		x.CompressedData = nil
 

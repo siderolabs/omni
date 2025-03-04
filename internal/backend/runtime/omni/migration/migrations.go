@@ -1339,7 +1339,7 @@ func removeMaintenanceConfigPatchFinalizers(ctx context.Context, st state.State,
 func noopMigration(context.Context, state.State, *zap.Logger) error { return nil }
 
 func compressConfigPatches(ctx context.Context, st state.State, l *zap.Logger) error {
-	doConfigPatch := updateSingle[string, specs.ConfigPatchSpec, *specs.ConfigPatchSpec]
+	doConfigPatch := updateSingle[string, specs.ConfigPatchSpec, *specs.ConfigPatchSpec](2048)
 
 	for _, fn := range []func(context.Context, state.State, *zap.Logger) error{
 		compressUncompressed[*omni.ConfigPatch](doConfigPatch),
@@ -1359,7 +1359,7 @@ func compressUncompressed[
 	},
 	T any,
 	S protobuf.Spec[T],
-](update func(spec *protobuf.ResourceSpec[T, S]) (bool, error)) func(context.Context, state.State, *zap.Logger) error {
+](update func(spec *protobuf.ResourceSpec[T, S]) (updateResult, error)) func(context.Context, state.State, *zap.Logger) error {
 	return func(ctx context.Context, st state.State, l *zap.Logger) error {
 		items, err := safe.ReaderListAll[R](ctx, st)
 		if err != nil {
@@ -1376,6 +1376,7 @@ func compressUncompressed[
 
 		processed := 0
 		alreadyCompressed := 0
+		belowThresholdNum := 0
 		nonRunning := 0
 
 		for val := range items.All() {
@@ -1387,12 +1388,22 @@ func compressUncompressed[
 
 			spec := val.TypedSpec()
 
-			if ok, uerr := update(spec); uerr != nil {
+			result, uerr := update(spec)
+			if uerr != nil {
 				return fmt.Errorf("failed to compress %s: %w", val.Metadata().ID(), uerr)
-			} else if !ok {
+			}
+
+			switch result {
+			case emptyData:
 				alreadyCompressed++
 
 				continue
+			case belowThreshold:
+				belowThresholdNum++
+
+				continue
+			case compressed:
+				processed++
 			}
 
 			if _, err = safe.StateUpdateWithConflicts(ctx, st, val.Metadata(), func(res R) error {
@@ -1402,14 +1413,13 @@ func compressUncompressed[
 			}, state.WithUpdateOwner(val.Metadata().Owner())); err != nil {
 				return fmt.Errorf("failed to update %s: %w", val.Metadata(), err)
 			}
-
-			processed++
 		}
 
 		l.Info("compress migration done",
-			zap.Int("processed", processed),
-			zap.Int("skipped_already_compressedd", alreadyCompressed),
+			zap.Int("compressed", processed),
+			zap.Int("skipped_already_compressed", alreadyCompressed),
 			zap.Int("skipped_non_running", nonRunning),
+			zap.Int("skipped_below_threshold", belowThresholdNum),
 		)
 
 		return nil
@@ -1424,16 +1434,30 @@ func updateSingle[
 		SetUncompressedData(data []byte, opts ...specs.CompressionOption) error
 		protobuf.Spec[T]
 	},
-](spec *protobuf.ResourceSpec[T, S]) (bool, error) {
-	data := spec.Value.GetData()
-	if len(data) == 0 {
-		return false, nil
-	}
+](threshold int) func(spec *protobuf.ResourceSpec[T, S]) (updateResult, error) {
+	return func(spec *protobuf.ResourceSpec[T, S]) (updateResult, error) {
+		data := spec.Value.GetData()
 
-	err := spec.Value.SetUncompressedData([]byte(data))
-	if err != nil {
-		return false, fmt.Errorf("failed to compress data during migration: %w", err)
-	}
+		switch size := len(data); {
+		case size == 0:
+			return emptyData, nil
+		case size < threshold:
+			return belowThreshold, nil
+		}
 
-	return true, nil
+		err := spec.Value.SetUncompressedData([]byte(data))
+		if err != nil {
+			return emptyData, fmt.Errorf("failed to compress data during migration: %w", err)
+		}
+
+		return compressed, nil
+	}
 }
+
+type updateResult int
+
+const (
+	emptyData updateResult = iota + 1
+	belowThreshold
+	compressed
+)

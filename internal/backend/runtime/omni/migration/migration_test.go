@@ -7,9 +7,10 @@ package migration_test
 
 import (
 	"context"
-	"encoding/hex"
+	"crypto/rand"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -1631,24 +1632,42 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 	defer cancel()
 
 	const (
-		data1 = "Hello world!"
-		data2 = "Hello Sidero!"
+		smallData1 = "Hello world!"
+		smallData2 = "Hello Sidero!"
 	)
 
-	encoded1 := must.Value(hex.DecodeString("28b52ffd040061000048656c6c6f20776f726c6421b27dfd7f"))(suite.T())
-	encoded2 := must.Value(hex.DecodeString("28b52ffd040069000048656c6c6f2053696465726f211ce853bc"))(suite.T())
-	disabled := specs.WithConfigCompressionOption(specs.CompressionConfig{Enabled: false})
+	disabled := specs.WithConfigCompressionOption(specs.CompressionConfig{Enabled: false, MinThreshold: 2048})
+
+	bigEnoughText := strings.Repeat(rand.Text(), 79) // 79 * 26 = 2054
+	bigEnoughTextEncoded := must.Value(zstd.NewWriter(
+		nil,
+		zstd.WithEncoderConcurrency(2),
+		zstd.WithWindowSize(1<<18), // 256KB
+	))(suite.T()).EncodeAll([]byte(bigEnoughText), nil)
 
 	const ns = resources.DefaultNamespace
+
+	// Ensure we don't compress resources which are not in the running phase
+	thirdPatch := omni.NewConfigPatch(ns, "config-patch-3")
+	thirdPatch.Metadata().SetPhase(resource.PhaseTearingDown)
 
 	checkMigrations := []func(t *testing.T){
 		startMigration(
 			ctx,
 			suite.T(),
 			suite.state,
+			omni.NewConfigPatch(ns, "config-patch-0"),
+			fillData[*specs.ConfigPatchSpec](bigEnoughText, disabled),
+			checkCompressed[string, *specs.ConfigPatchSpec](bigEnoughTextEncoded),
+			"",
+		),
+		startMigration(
+			ctx,
+			suite.T(),
+			suite.state,
 			omni.NewConfigPatch(ns, "config-patch-1"),
-			fillData[*specs.ConfigPatchSpec](data1, disabled),
-			checkCompressed[string, *specs.ConfigPatchSpec](encoded1),
+			fillData[*specs.ConfigPatchSpec](smallData1, disabled),
+			checkUncompressed[string, *specs.ConfigPatchSpec](smallData1),
 			"",
 		),
 		startMigration(
@@ -1656,36 +1675,31 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 			suite.T(),
 			suite.state,
 			omni.NewConfigPatch(ns, "config-patch-2"),
-			fillData[*specs.ConfigPatchSpec](data2, disabled),
-			checkCompressed[string, *specs.ConfigPatchSpec](encoded2),
+			fillData[*specs.ConfigPatchSpec](smallData2, disabled),
+			checkUncompressed[string, *specs.ConfigPatchSpec](smallData2),
 			"",
 		),
+		startMigration(
+			ctx,
+			suite.T(),
+			suite.state,
+			thirdPatch,
+			fillData[*specs.ConfigPatchSpec](smallData2, disabled),
+			func(t *assert.Assertions, spec *omni.ConfigPatchSpec) {
+				uncompressed := spec.Value.GetData()
+				t.Equal(smallData2, uncompressed)
+				t.Empty(spec.Value.GetCompressedData())
+			},
+			omnictrl.NewMachineSetController().Name(),
+		),
 	}
-
-	// Ensure we don't compress resources which are not in the running phase
-	thirdPatch := omni.NewConfigPatch(ns, "config-patch-3")
-	thirdPatch.Metadata().SetPhase(resource.PhaseTearingDown)
-
-	checkMigrations = append(checkMigrations, startMigration(
-		ctx,
-		suite.T(),
-		suite.state,
-		thirdPatch,
-		fillData[*specs.ConfigPatchSpec](data2, disabled),
-		func(t *assert.Assertions, spec *omni.ConfigPatchSpec) {
-			uncompressed := spec.Value.GetData()
-			t.Equal(data2, uncompressed)
-			t.Empty(spec.Value.GetCompressedData())
-		},
-		omnictrl.NewMachineSetController().Name(),
-	))
 
 	encodedDifferently := must.Value(zstd.NewWriter(
 		nil,
 		zstd.WithEncoderConcurrency(1),
 		zstd.WithWindowSize(1024),
 		zstd.WithEncoderCRC(false),
-	))(suite.T()).EncodeAll([]byte(data2), nil)
+	))(suite.T()).EncodeAll([]byte(smallData2), nil)
 
 	// Ensure we don't compress resources which are already compressed
 	checkMigrations = append(checkMigrations, startMigration(
@@ -1706,7 +1720,7 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 
 			defer data.Free()
 
-			t.Equal(data2, string(data.Data()))
+			t.Equal(smallData2, string(data.Data()))
 		},
 		omnictrl.NewMachineSetController().Name(),
 	))
@@ -1775,6 +1789,25 @@ func checkCompressed[
 		t.Empty(uncompressed)
 
 		result := spec.Value.GetCompressedData()
+		t.NotEmpty(result)
+		t.Equalf(data, result, "%x != %x", data, result)
+	}
+}
+
+func checkUncompressed[
+	D string | []byte,
+	S interface {
+		GetData() D
+		GetCompressedData() []byte
+		protobuf.Spec[T]
+	},
+	T any,
+](data D) func(t *assert.Assertions, spec *protobuf.ResourceSpec[T, S]) {
+	return func(t *assert.Assertions, spec *protobuf.ResourceSpec[T, S]) {
+		compressed := spec.Value.GetCompressedData()
+		t.Empty(compressed)
+
+		result := spec.Value.GetData()
 		t.NotEmpty(result)
 		t.Equalf(data, result, "%x != %x", data, result)
 	}

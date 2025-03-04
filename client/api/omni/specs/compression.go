@@ -11,29 +11,34 @@ import (
 
 	"github.com/klauspost/compress/zstd"
 	"github.com/siderolabs/gen/ensure"
+	"github.com/siderolabs/gen/optional"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"gopkg.in/yaml.v3"
+
+	"github.com/siderolabs/omni/client/pkg/constants"
 )
 
 // CompressionConfig represents the configuration for compression.
 type CompressionConfig struct {
-	ZstdEncoder *zstd.Encoder
-	ZstdDecoder *zstd.Decoder
-	BufferPool  BufferPool
-	Enabled     bool
+	ZstdEncoder  *zstd.Encoder
+	ZstdDecoder  *zstd.Decoder
+	BufferPool   BufferPool
+	Enabled      bool
+	MinThreshold int // ensure that value stays in sync with `compressionThresholdBytes`
 }
 
 var (
 	compressionConfig = CompressionConfig{
-		Enabled: true,
 		ZstdEncoder: ensure.Value(zstd.NewWriter(
 			nil,
 			zstd.WithEncoderConcurrency(2),
 			zstd.WithWindowSize(1<<18), // 256 KB
 		)),
-		ZstdDecoder: ensure.Value(zstd.NewReader(nil, zstd.WithDecoderConcurrency(0))),
-		BufferPool:  &NoOpBufferPool{},
+		ZstdDecoder:  ensure.Value(zstd.NewReader(nil, zstd.WithDecoderConcurrency(0))),
+		BufferPool:   &NoOpBufferPool{},
+		Enabled:      true,
+		MinThreshold: constants.CompressionThresholdBytes,
 	}
 
 	compressionConfigMu sync.RWMutex
@@ -62,16 +67,15 @@ func getCompressionConfig(opts []CompressionOption) CompressionConfig {
 		opt(&options)
 	}
 
-	if options.customConfig {
-		return options.Config
-	}
+	config := options.Config.ValueOr(GetCompressionConfig())
+	config.MinThreshold = options.minThreshold.ValueOr(config.MinThreshold)
 
-	return GetCompressionConfig()
+	return config
 }
 
 type compressionOptions struct {
-	Config       CompressionConfig
-	customConfig bool
+	Config       optional.Optional[CompressionConfig]
+	minThreshold optional.Optional[int]
 }
 
 // CompressionOption is a functional option for configuring compression.
@@ -80,8 +84,14 @@ type CompressionOption func(*compressionOptions)
 // WithConfigCompressionOption returns a CompressionOption that sets the given config as the compression config to be used instead of the default one.
 func WithConfigCompressionOption(config CompressionConfig) CompressionOption {
 	return func(opts *compressionOptions) {
-		opts.Config = config
-		opts.customConfig = true
+		opts.Config = optional.Some(config)
+	}
+}
+
+// WithCompressionMinThreshold returns a CompressionOption that sets the min threshold for compression.
+func WithCompressionMinThreshold(threshold int) CompressionOption {
+	return func(opts *compressionOptions) {
+		opts.minThreshold = optional.Some(threshold)
 	}
 }
 

@@ -5,10 +5,15 @@
 package specs
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
+	"iter"
 
 	"github.com/siderolabs/gen/xslices"
 	"gopkg.in/yaml.v3"
+
+	"github.com/siderolabs/omni/client/pkg/constants"
 )
 
 // MarshalJSON implements json.Marshaler interface.
@@ -79,16 +84,16 @@ func (x *ClusterMachineConfigPatchesSpec) GetUncompressedData(opts ...Compressio
 		return nil, nil
 	}
 
-	if x.CompressedPatches == nil {
-		return xslices.Map(x.Patches, func(patch string) Buffer {
+	if len(x.GetCompressedPatches()) == 0 {
+		return xslices.Map(x.GetPatches(), func(patch string) Buffer {
 			return newNoOpBuffer([]byte(patch))
 		}), nil
 	}
 
-	buffers := make([]Buffer, 0, len(x.CompressedPatches))
+	buffers := make([]Buffer, 0, len(x.GetCompressedPatches()))
 	config := getCompressionConfig(opts)
 
-	for _, compressed := range x.CompressedPatches {
+	for _, compressed := range x.GetCompressedPatches() {
 		buffer, err := doDecompress(compressed, config)
 		if err != nil {
 			return nil, err
@@ -109,7 +114,7 @@ func (x *ClusterMachineConfigPatchesSpec) SetUncompressedData(data [][]byte, opt
 	config := getCompressionConfig(opts)
 	compress := config.Enabled
 
-	if !compress {
+	if !compress || !isAnyAboveThreshold(data, config.MinThreshold) {
 		x.Patches = xslices.Map(data, func(patch []byte) string { return string(patch) })
 		x.CompressedPatches = nil
 
@@ -120,6 +125,16 @@ func (x *ClusterMachineConfigPatchesSpec) SetUncompressedData(data [][]byte, opt
 	x.Patches = nil
 
 	return nil
+}
+
+func isAnyAboveThreshold(data [][]byte, threshold int) bool {
+	for _, d := range data {
+		if len(d) >= threshold {
+			return true
+		}
+	}
+
+	return false
 }
 
 // GetUncompressedPatches returns the patches from the ClusterMachineConfigPatchesSpec, decompressing them if necessary.
@@ -143,4 +158,130 @@ func (x *ClusterMachineConfigPatchesSpec) SetUncompressedPatches(patches []strin
 	}
 
 	return x.SetUncompressedData(data, opts...)
+}
+
+// FromConfigPatches converts a list of ConfigPatchSpec to ClusterMachineConfigPatchesSpec.
+func (x *ClusterMachineConfigPatchesSpec) FromConfigPatches(
+	patches iter.Seq[*ConfigPatchSpec],
+	compressionEnabled bool,
+) error {
+	aboveThreshold, err := anyAboveThreshold(patches)
+	if err != nil {
+		return fmt.Errorf("failed to check if one patch is above threshold: %w", err)
+	}
+
+	if compressionEnabled || aboveThreshold {
+		return x.fromConfigPatchesCompress(patches)
+	}
+
+	return x.fromConfigPatchesNoCompress(patches)
+}
+
+func (x *ClusterMachineConfigPatchesSpec) fromConfigPatchesCompress(patches iter.Seq[*ConfigPatchSpec]) error {
+	for patch := range patches {
+		compr, err := getCompressed(patch)
+		if err != nil {
+			return err
+		} else if len(compr) == 0 {
+			continue
+		}
+
+		if len(compr) < 1024 { // this is a small patch, decompress to check if it's all whitespace
+			if isEmptyPatch(patch) {
+				continue
+			}
+		}
+
+		// append the patch
+		x.CompressedPatches = append(x.GetCompressedPatches(), compr)
+	}
+
+	return nil
+}
+
+func getCompressed(patch *ConfigPatchSpec) ([]byte, error) {
+	if isEmptyPatch(patch) {
+		return nil, nil
+	}
+
+	if compressedData := patch.GetCompressedData(); len(compressedData) > 0 {
+		return compressedData, nil
+	}
+
+	buffer, err := patch.GetUncompressedData()
+	if err != nil {
+		return nil, err
+	}
+
+	defer buffer.Free()
+
+	if err = patch.SetUncompressedData(buffer.Data(), WithCompressionMinThreshold(0)); err != nil {
+		return nil, err
+	}
+
+	return patch.GetCompressedData(), nil
+}
+
+func (x *ClusterMachineConfigPatchesSpec) fromConfigPatchesNoCompress(patches iter.Seq[*ConfigPatchSpec]) error {
+	for patch := range patches {
+		data, err := getUncompressed(patch)
+		if err != nil {
+			return err
+		} else if len(data) == 0 {
+			continue
+		}
+
+		x.Patches = append(x.GetPatches(), data)
+	}
+
+	return nil
+}
+
+func getUncompressed(patch *ConfigPatchSpec) (string, error) {
+	if isEmptyPatch(patch) {
+		return "", nil
+	}
+
+	if data := patch.GetData(); len(data) > 0 {
+		return data, nil
+	}
+
+	buffer, err := patch.GetUncompressedData()
+	if err != nil {
+		return "", err
+	}
+
+	defer buffer.Free()
+
+	return string(buffer.Data()), nil
+}
+
+func isEmptyPatch(patch *ConfigPatchSpec) bool {
+	buffer, err := patch.GetUncompressedData()
+	if err != nil {
+		return false
+	}
+
+	defer buffer.Free()
+
+	return len(bytes.TrimSpace(buffer.Data())) == 0
+}
+
+func anyAboveThreshold(patches iter.Seq[*ConfigPatchSpec]) (bool, error) {
+	for p := range patches {
+		data, err := p.GetUncompressedData()
+		if err != nil {
+			return false, err
+		}
+
+		total := len(data.Data())
+
+		data.Free()
+
+		if total >= constants.CompressionThresholdBytes {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

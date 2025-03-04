@@ -77,3 +77,6 @@ const KubernetesAdminCertCommonName = "omni:admin"
 // InfraProviderMetadataKey is the id of the key which is set by the infrastructure provider when it establishes client connection
 // to the Omni instance.
 const InfraProviderMetadataKey = "providerID"
+
+// CompressionThresholdBytes is the minimum marshaled size of the data to be considered for compression.
+const CompressionThresholdBytes = 2048

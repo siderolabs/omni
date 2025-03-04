@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//nolint:dupl,revive
+//nolint:revive
 package specs
 
 import (
@@ -67,13 +67,13 @@ func (x *ConfigPatchSpec) GetUncompressedData(opts ...CompressionOption) (Buffer
 		return newNoOpBuffer(nil), nil
 	}
 
-	if x.CompressedData == nil {
-		return newNoOpBuffer([]byte(x.Data)), nil
+	if len(x.GetCompressedData()) == 0 {
+		return newNoOpBuffer([]byte(x.GetData())), nil
 	}
 
 	config := getCompressionConfig(opts)
 
-	return doDecompress(x.CompressedData, config)
+	return doDecompress(x.GetCompressedData(), config)
 }
 
 // SetUncompressedData sets the patch data in the ConfigPatchSpec, compressing it if requested.
@@ -85,7 +85,7 @@ func (x *ConfigPatchSpec) SetUncompressedData(data []byte, opts ...CompressionOp
 	config := getCompressionConfig(opts)
 	compress := config.Enabled
 
-	if !compress {
+	if !compress || len(data) < config.MinThreshold {
 		x.Data = string(data)
 		x.CompressedData = nil
 

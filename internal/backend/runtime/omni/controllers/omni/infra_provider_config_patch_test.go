@@ -51,7 +51,7 @@ func (suite *InfraProviderConfigPatchControllerSuite) TestReconcile() {
 	suite.Require().NoError(suite.state.Create(ctx, status))
 
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{id}, func(configPatch *omni.ConfigPatch, assert *assert.Assertions) {
-		assert.Equal(configPatch.TypedSpec().Value.CompressedData, request.TypedSpec().Value.CompressedData) //nolint:staticcheck
+		assert.Equal(configPatch.TypedSpec().Value.GetCompressedData(), request.TypedSpec().Value.GetCompressedData())
 
 		value, ok := configPatch.Metadata().Labels().Get(omni.LabelMachine)
 		assert.True(ok)

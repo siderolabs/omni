@@ -15,6 +15,7 @@ import (
 	"github.com/klauspost/compress/zstd"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/constants"
 )
 
 var (
@@ -75,10 +76,11 @@ func BuildConfig(enabled, useDict, usePool bool) (specs.CompressionConfig, error
 	}
 
 	return specs.CompressionConfig{
-		Enabled:     enabled,
-		ZstdEncoder: encoder,
-		ZstdDecoder: decoder,
-		BufferPool:  pool,
+		ZstdEncoder:  encoder,
+		ZstdDecoder:  decoder,
+		BufferPool:   pool,
+		Enabled:      enabled,
+		MinThreshold: constants.CompressionThresholdBytes,
 	}, nil
 }
 
