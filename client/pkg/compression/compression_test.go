@@ -7,6 +7,7 @@ package compression_test
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -21,7 +22,10 @@ func TestClusterMachineConfigPatchesYAML(t *testing.T) {
 
 	// set some patches
 
-	err := res.TypedSpec().Value.SetUncompressedPatches([]string{"aaaa", "bbbb"})
+	aString := strings.Repeat("a", 2048)
+	bString := strings.Repeat("b", 2048)
+
+	err := res.TypedSpec().Value.SetUncompressedPatches([]string{aString, bString})
 	require.NoError(t, err)
 
 	// assert that the patches are compressed
@@ -38,8 +42,8 @@ func TestClusterMachineConfigPatchesYAML(t *testing.T) {
 
 	// assert that the patches are in the YAML in uncompressed form, and do not contain the compressed form
 
-	require.Contains(t, string(specYAML), "aaaa")
-	require.Contains(t, string(specYAML), "bbbb")
+	require.Contains(t, string(specYAML), aString)
+	require.Contains(t, string(specYAML), bString)
 	require.NotContains(t, string(specYAML), "compressed")
 
 	t.Logf("yaml:\n%s", string(specYAML))
@@ -60,9 +64,12 @@ func TestClusterMachineConfigPatchesYAML(t *testing.T) {
 func TestClusterMachineConfigPatchesJSON(t *testing.T) {
 	res := omni.NewClusterMachineConfigPatches("test", "test")
 
+	aString := strings.Repeat("a", 2048)
+	bString := strings.Repeat("b", 2048)
+
 	// set some patches
 
-	err := res.TypedSpec().Value.SetUncompressedPatches([]string{"aaaa", "bbbb"})
+	err := res.TypedSpec().Value.SetUncompressedPatches([]string{aString, bString})
 	require.NoError(t, err)
 
 	// assert that the patches are compressed
@@ -79,8 +86,8 @@ func TestClusterMachineConfigPatchesJSON(t *testing.T) {
 
 	// assert that the patches are in the JSON in uncompressed form, and do not contain the compressed form
 
-	require.Contains(t, string(specJSON), "aaaa")
-	require.Contains(t, string(specJSON), "bbbb")
+	require.Contains(t, string(specJSON), aString)
+	require.Contains(t, string(specJSON), bString)
 	require.NotContains(t, string(specJSON), "compressed")
 
 	t.Logf("json:\n%s", string(specJSON))

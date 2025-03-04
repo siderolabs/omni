@@ -85,7 +85,7 @@ func (x *ConfigPatchSpec) SetUncompressedData(data []byte, opts ...CompressionOp
 	config := getCompressionConfig(opts)
 	compress := config.Enabled
 
-	if !compress {
+	if !compress || len(data) < config.MinThreshold {
 		x.Data = string(data)
 		x.CompressedData = nil
 

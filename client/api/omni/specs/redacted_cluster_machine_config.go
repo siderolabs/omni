@@ -85,7 +85,7 @@ func (x *RedactedClusterMachineConfigSpec) SetUncompressedData(data []byte, opts
 	config := getCompressionConfig(opts)
 	compress := config.Enabled
 
-	if !compress {
+	if !compress || len(data) < config.MinThreshold {
 		x.Data = string(data)
 		x.CompressedData = nil
 
