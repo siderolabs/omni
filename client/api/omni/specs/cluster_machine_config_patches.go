@@ -109,7 +109,7 @@ func (x *ClusterMachineConfigPatchesSpec) SetUncompressedData(data [][]byte, opt
 	config := getCompressionConfig(opts)
 	compress := config.Enabled
 
-	if !compress {
+	if !compress || calcLen(data) < config.MinThreshold {
 		x.Patches = xslices.Map(data, func(patch []byte) string { return string(patch) })
 		x.CompressedPatches = nil
 
@@ -120,6 +120,16 @@ func (x *ClusterMachineConfigPatchesSpec) SetUncompressedData(data [][]byte, opt
 	x.Patches = nil
 
 	return nil
+}
+
+func calcLen(data [][]byte) int {
+	var result int
+
+	for _, d := range data {
+		result += len(d)
+	}
+
+	return result
 }
 
 // GetUncompressedPatches returns the patches from the ClusterMachineConfigPatchesSpec, decompressing them if necessary.

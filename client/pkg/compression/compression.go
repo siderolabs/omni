@@ -75,10 +75,11 @@ func BuildConfig(enabled, useDict, usePool bool) (specs.CompressionConfig, error
 	}
 
 	return specs.CompressionConfig{
-		Enabled:     enabled,
-		ZstdEncoder: encoder,
-		ZstdDecoder: decoder,
-		BufferPool:  pool,
+		ZstdEncoder:  encoder,
+		ZstdDecoder:  decoder,
+		BufferPool:   pool,
+		Enabled:      enabled,
+		MinThreshold: 2048,
 	}, nil
 }
 

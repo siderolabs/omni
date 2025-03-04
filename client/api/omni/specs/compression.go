@@ -18,22 +18,24 @@ import (
 
 // CompressionConfig represents the configuration for compression.
 type CompressionConfig struct {
-	ZstdEncoder *zstd.Encoder
-	ZstdDecoder *zstd.Decoder
-	BufferPool  BufferPool
-	Enabled     bool
+	ZstdEncoder  *zstd.Encoder
+	ZstdDecoder  *zstd.Decoder
+	BufferPool   BufferPool
+	Enabled      bool
+	MinThreshold int // ensure that value stays in sync with `compressionThresholdBytes`
 }
 
 var (
 	compressionConfig = CompressionConfig{
-		Enabled: true,
 		ZstdEncoder: ensure.Value(zstd.NewWriter(
 			nil,
 			zstd.WithEncoderConcurrency(2),
 			zstd.WithWindowSize(1<<18), // 256 KB
 		)),
-		ZstdDecoder: ensure.Value(zstd.NewReader(nil, zstd.WithDecoderConcurrency(0))),
-		BufferPool:  &NoOpBufferPool{},
+		ZstdDecoder:  ensure.Value(zstd.NewReader(nil, zstd.WithDecoderConcurrency(0))),
+		BufferPool:   &NoOpBufferPool{},
+		Enabled:      true,
+		MinThreshold: 2048,
 	}
 
 	compressionConfigMu sync.RWMutex
