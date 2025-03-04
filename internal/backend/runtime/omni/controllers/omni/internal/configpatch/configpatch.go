@@ -9,12 +9,13 @@ package configpatch
 import (
 	"context"
 	"fmt"
+	"iter"
 	"slices"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
-	"github.com/siderolabs/gen/xslices"
+	"github.com/siderolabs/gen/xiter"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
@@ -47,35 +48,42 @@ func (h *Helper) Get(machine *omni.ClusterMachine, machineSet *omni.MachineSet) 
 
 	machinePatchList := h.allConfigPatches.FilterLabelQuery(resource.LabelEqual(omni.LabelMachine, machine.Metadata().ID()))
 
-	clusterPatches := make([]*omni.ConfigPatch, 0, clusterPatchList.Len())
-	machineSetPatches := make([]*omni.ConfigPatch, 0, clusterPatchList.Len())
-	clusterMachinePatches := make([]*omni.ConfigPatch, 0, clusterPatchList.Len())
+	return slices.Collect(xiter.Filter(
+		func(configPatch *omni.ConfigPatch) bool {
+			return configPatch.Metadata().Phase() == resource.PhaseRunning
+		},
+		xiter.Concat(
+			asIter(machine, machineSet, clusterPatchList),
+			machinePatchList.All(),
+		),
+	)), nil
+}
 
-	for patch := range clusterPatchList.All() {
-		machineSetName, machineSetOk := patch.Metadata().Labels().Get(omni.LabelMachineSet)
-		clusterMachineName, clusterMachineOk := patch.Metadata().Labels().Get(omni.LabelClusterMachine)
+func asIter(machine *omni.ClusterMachine, machineSet *omni.MachineSet, clusterPatchList safe.List[*omni.ConfigPatch]) iter.Seq[*omni.ConfigPatch] {
+	return func(yield func(*omni.ConfigPatch) bool) {
+		for i := range 3 {
+			for patch := range clusterPatchList.All() {
+				machineSetName, machineSetOk := patch.Metadata().Labels().Get(omni.LabelMachineSet)
+				clusterMachineName, clusterMachineOk := patch.Metadata().Labels().Get(omni.LabelClusterMachine)
 
-		switch {
-		// machine set patch
-		case machineSetOk && machineSetName == machineSet.Metadata().ID():
-			machineSetPatches = append(machineSetPatches, patch)
-		// cluster machine patch
-		case clusterMachineOk && clusterMachineName == machine.Metadata().ID():
-			clusterMachinePatches = append(clusterMachinePatches, patch)
-		// cluster patch
-		case !machineSetOk && !clusterMachineOk:
-			clusterPatches = append(clusterPatches, patch)
+				var toYield *omni.ConfigPatch
+
+				switch {
+				// machine set patch
+				case i == 1 && machineSetOk && machineSetName == machineSet.Metadata().ID():
+					toYield = patch
+				// cluster machine patch
+				case i == 2 && clusterMachineOk && clusterMachineName == machine.Metadata().ID():
+					toYield = patch
+				// cluster patch
+				case i == 0 && !machineSetOk && !clusterMachineOk:
+					toYield = patch
+				}
+
+				if toYield != nil && !yield(toYield) {
+					return
+				}
+			}
 		}
 	}
-
-	patches := make([]*omni.ConfigPatch, 0, clusterPatchList.Len()+machinePatchList.Len())
-
-	patches = append(patches, clusterPatches...)
-	patches = append(patches, machineSetPatches...)
-	patches = append(patches, clusterMachinePatches...)
-	patches = slices.AppendSeq(patches, machinePatchList.All())
-
-	return xslices.Filter(patches, func(configPatch *omni.ConfigPatch) bool {
-		return configPatch.Metadata().Phase() == resource.PhaseRunning
-	}), nil
 }
