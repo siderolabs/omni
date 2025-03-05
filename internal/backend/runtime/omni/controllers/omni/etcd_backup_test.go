@@ -737,6 +737,8 @@ func (s *storeMock) Download(ctx context.Context, clusterUUID []byte, clusterNam
 
 type storeFactoryMock struct{ mock.Mock }
 
+func (s *storeFactoryMock) SetThroughputs(int64, int64) {}
+
 func (s *storeFactoryMock) GetStore() (etcdbackup.Store, error) {
 	args := s.Called()
 

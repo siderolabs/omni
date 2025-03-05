@@ -44,3 +44,5 @@ func (f *fileStoreFactory) Start(ctx context.Context, state state.State, _ *zap.
 }
 
 func (f *fileStoreFactory) Description() string { return fmt.Sprintf("local store: %s", f.path) }
+
+func (f *fileStoreFactory) SetThroughputs(int64, int64) {}

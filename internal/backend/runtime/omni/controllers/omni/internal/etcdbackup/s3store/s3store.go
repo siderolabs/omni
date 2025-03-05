@@ -18,21 +18,36 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 	"github.com/siderolabs/go-pointer"
+	"golang.org/x/time/rate"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
 )
 
 // Store stores etcd backups in a specified S3 bucket.
 type Store struct {
-	client *s3.Client
-	bucket string
+	client       *s3.Client
+	downloadRate *rate.Limiter
+	uploadRate   *rate.Limiter
+	bucket       string
 }
 
 // NewStore initializes [Store].
-func NewStore(client *s3.Client, bucket string) *Store {
+func NewStore(client *s3.Client, bucket string, upRate, downRate int64) *Store {
+	upLimit := rate.Inf
+	if upRate > 0 {
+		upLimit = rate.Limit(upRate)
+	}
+
+	downLimit := rate.Inf
+	if downRate > 0 {
+		downLimit = rate.Limit(downRate)
+	}
+
 	return &Store{
-		client: client,
-		bucket: bucket,
+		client:       client,
+		downloadRate: rate.NewLimiter(upLimit, int(upRate)),
+		uploadRate:   rate.NewLimiter(downLimit, int(downRate)),
+		bucket:       bucket,
 	}
 }
 
@@ -43,7 +58,7 @@ func (s *Store) Upload(ctx context.Context, descr etcdbackup.Description, r io.R
 	_, err := uploader.Upload(ctx, &s3.PutObjectInput{
 		Bucket: pointer.To(s.bucket),
 		Key:    pointer.To(path.Join(descr.ClusterUUID, etcdbackup.CreateSnapshotName(descr.Timestamp))),
-		Body:   r,
+		Body:   newReaderLimiter(io.NopCloser(r), s.uploadRate),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to upload backup to s3: %w", err)
@@ -62,7 +77,7 @@ func (s *Store) Download(ctx context.Context, _ []byte, clusterUUID, snapshotNam
 		return etcdbackup.BackupData{}, nil, fmt.Errorf("failed to get object: %w", err)
 	}
 
-	return etcdbackup.BackupData{}, result.Body, nil
+	return etcdbackup.BackupData{}, newReaderLimiter(result.Body, s.downloadRate), nil
 }
 
 // ListBackups returns a list of backups. Implements [EtcdBackupStore].
@@ -120,4 +135,38 @@ func (s *Store) ListBackups(ctx context.Context, clusterUUID string) (iter.Seq2[
 			}
 		}
 	}, nil
+}
+
+type readerLimiter struct {
+	rdr io.ReadCloser
+	l   *rate.Limiter
+}
+
+func newReaderLimiter(rdr io.ReadCloser, l *rate.Limiter) *readerLimiter {
+	return &readerLimiter{rdr: rdr, l: l}
+}
+
+func (r *readerLimiter) Read(p []byte) (int, error) {
+	burst := r.l.Burst()
+	if burst == 0 {
+		return r.rdr.Read(p)
+	}
+
+	readInto := p[:min(burst, len(p))]
+
+	err := r.l.WaitN(context.Background(), len(readInto))
+	if err != nil {
+		return 0, err
+	}
+
+	n, err := r.rdr.Read(readInto)
+	if err != nil {
+		return n, err
+	}
+
+	return n, nil
+}
+
+func (r *readerLimiter) Close() error {
+	return r.rdr.Close()
 }

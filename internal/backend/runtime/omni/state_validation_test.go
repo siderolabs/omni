@@ -1239,6 +1239,8 @@ type mockEtcdBackupStoreFactory struct {
 	store etcdbackup.Store
 }
 
+func (m *mockEtcdBackupStoreFactory) SetThroughputs(int64, int64) {}
+
 func (m *mockEtcdBackupStoreFactory) GetStore() (etcdbackup.Store, error) {
 	return m.store, nil
 }

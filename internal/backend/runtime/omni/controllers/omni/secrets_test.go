@@ -95,6 +95,8 @@ func (m *mockBackupStore) Download(context.Context, []byte, string, string) (etc
 
 type mockBackupStoreFactory struct{}
 
+func (m *mockBackupStoreFactory) SetThroughputs(int64, int64) {}
+
 func (m *mockBackupStoreFactory) GetStore() (etcdbackup.Store, error) { return &mockBackupStore{}, nil }
 
 func (m *mockBackupStoreFactory) Start(context.Context, state.State, *zap.Logger) error { return nil }

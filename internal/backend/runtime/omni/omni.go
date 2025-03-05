@@ -182,6 +182,11 @@ func New(
 		return nil, err
 	}
 
+	storeFactory.SetThroughputs(
+		config.Config.EtcdBackup.UploadLimit,
+		config.Config.EtcdBackup.DownloadLimit,
+	)
+
 	metricsRegistry.MustRegister(storeFactory)
 
 	backupController, err := omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
