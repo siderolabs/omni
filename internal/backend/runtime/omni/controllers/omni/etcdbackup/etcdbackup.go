@@ -10,17 +10,15 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"iter"
 	"strconv"
 	"strings"
 	"time"
 )
 
-// InfoIterator is a function that returns next backup info.
-type InfoIterator func() (Info, bool, error)
-
 // Lister is an interface that is used to list etcd backups.
 type Lister interface {
-	ListBackups(ctx context.Context, clusterUUID string) (InfoIterator, error)
+	ListBackups(ctx context.Context, clusterUUID string) (iter.Seq2[Info, error], error)
 }
 
 // Store is an interface that is used to upload etcd backups.

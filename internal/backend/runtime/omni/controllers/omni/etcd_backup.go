@@ -325,15 +325,22 @@ func (ctrl *EtcdBackupController) latestBackupTime(ctx context.Context, clusterU
 		return time.Time{}, fmt.Errorf("failed to get store: %w", err)
 	}
 
-	iter, err := st.ListBackups(ctx, clusterUUID)
+	it, err := st.ListBackups(ctx, clusterUUID)
 	if err != nil {
 		return time.Time{}, err
 	}
 
-	lastBackup, ok, err := iter()
-	if err != nil {
-		return time.Time{}, fmt.Errorf("failed to get last backup: %w", err)
-	} else if !ok {
+	var lastBackup etcdbackup.Info
+
+	for v, iterErr := range it {
+		if iterErr != nil {
+			return time.Time{}, fmt.Errorf("failed to get last backup: %w", err)
+		}
+
+		lastBackup = v
+	}
+
+	if lastBackup.Timestamp.IsZero() {
 		return time.Time{}, nil
 	}
 

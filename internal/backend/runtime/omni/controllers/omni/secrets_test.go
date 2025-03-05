@@ -10,11 +10,13 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"iter"
 	"testing"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/gen/xiter"
 	"github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -76,8 +78,8 @@ func (suite *ClusterSecretsSuite) TestNewSecrets() {
 
 type mockBackupStore struct{}
 
-func (m *mockBackupStore) ListBackups(context.Context, string) (etcdbackup.InfoIterator, error) {
-	return nil, nil //nolint:nilnil
+func (m *mockBackupStore) ListBackups(context.Context, string) (iter.Seq2[etcdbackup.Info, error], error) {
+	return xiter.Empty2, nil
 }
 
 func (m *mockBackupStore) Upload(context.Context, etcdbackup.Description, io.Reader) error {

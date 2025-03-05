@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"iter"
 	"strings"
 	"testing"
 	"time"
@@ -19,6 +20,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
+	"github.com/siderolabs/gen/xiter"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -1253,8 +1255,8 @@ type mockEtcdBackupStore struct {
 	snapshotName string
 }
 
-func (m *mockEtcdBackupStore) ListBackups(context.Context, string) (etcdbackup.InfoIterator, error) {
-	return nil, nil //nolint:nilnil
+func (m *mockEtcdBackupStore) ListBackups(context.Context, string) (iter.Seq2[etcdbackup.Info, error], error) {
+	return xiter.Empty2, nil
 }
 
 func (m *mockEtcdBackupStore) Upload(context.Context, etcdbackup.Description, io.Reader) error {

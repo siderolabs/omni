@@ -8,6 +8,7 @@ package omni_test
 import (
 	"context"
 	"io"
+	"iter"
 	"strings"
 	"testing"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/gen/xiter"
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -45,8 +47,8 @@ type mockEtcdBackupStore struct {
 	etcdBackupDataMock etcdbackup.BackupData
 }
 
-func (m *mockEtcdBackupStore) ListBackups(context.Context, string) (etcdbackup.InfoIterator, error) {
-	return nil, nil //nolint:nilnil
+func (m *mockEtcdBackupStore) ListBackups(context.Context, string) (iter.Seq2[etcdbackup.Info, error], error) {
+	return xiter.Empty2, nil
 }
 
 func (m *mockEtcdBackupStore) Upload(context.Context, etcdbackup.Description, io.Reader) error {

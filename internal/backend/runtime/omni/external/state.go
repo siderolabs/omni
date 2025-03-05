@@ -105,22 +105,17 @@ func (s *State) List(ctx context.Context, kind resource.Kind, opts ...state.List
 		return resource.List{}, fmt.Errorf("failed to get store: %w", err)
 	}
 
-	iter, err := st.ListBackups(ctx, clusterUUID.TypedSpec().Value.Uuid)
+	it, err := st.ListBackups(ctx, clusterUUID.TypedSpec().Value.Uuid)
 	if err != nil {
 		return resource.List{}, fmt.Errorf("failed to list backups for cluster %q: %w", parsed.ClusterID, err)
 	}
 
-	limit := 1000
-	result := make([]resource.Resource, 0, limit)
+	limit := 0
+	result := make([]resource.Resource, 0, 1000)
 
-	for range limit { // limit max number of iterations to 1000 for now
-		info, more, err := iter()
+	for info, err := range it {
 		if err != nil {
 			return resource.List{}, fmt.Errorf("failed to get the next backup: %w", err)
-		}
-
-		if !more {
-			break
 		}
 
 		etcdBackup := omni.NewEtcdBackup(clusterUUID.Metadata().ID(), info.Timestamp)
@@ -131,6 +126,12 @@ func (s *State) List(ctx context.Context, kind resource.Kind, opts ...state.List
 		etcdBackup.Metadata().Labels().Set(omni.LabelCluster, clusterUUID.Metadata().ID())
 
 		result = append(result, etcdBackup)
+
+		limit++
+
+		if limit >= 1000 {
+			break // limit max number of iterations to 1000 for now
+		}
 	}
 
 	return resource.List{Items: result}, nil

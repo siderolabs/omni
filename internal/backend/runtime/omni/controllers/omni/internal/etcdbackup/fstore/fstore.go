@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"iter"
 	"os"
 	"path/filepath"
 
@@ -39,7 +40,7 @@ func (store *FileStore) Download(_ context.Context, _ []byte, clusterUUID, snaps
 }
 
 // ListBackups returns a list of backups. Implements [Store].
-func (store *FileStore) ListBackups(_ context.Context, uuid string) (etcdbackup.InfoIterator, error) {
+func (store *FileStore) ListBackups(_ context.Context, uuid string) (iter.Seq2[etcdbackup.Info, error], error) {
 	storeAbsDir, err := filepath.Abs(store.dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get absolute path: %w", err)
@@ -50,29 +51,34 @@ func (store *FileStore) ListBackups(_ context.Context, uuid string) (etcdbackup.
 		return nil, fmt.Errorf("failed to read dir: %w", err)
 	}
 
-	return func() (etcdbackup.Info, bool, error) {
-		if len(backupFiles) == 0 {
-			return etcdbackup.Info{}, false, nil
+	return func(yield func(etcdbackup.Info, error) bool) {
+		for _, backupFile := range backupFiles {
+			stat, err := os.Stat(backupFile)
+			if err != nil {
+				if !yield(etcdbackup.Info{}, fmt.Errorf("failed to get file info: %w", err)) {
+					return
+				}
+
+				continue
+			}
+
+			timestamp, err := etcdbackup.ParseSnapshotName(stat.Name())
+			if err != nil {
+				if !yield(etcdbackup.Info{}, fmt.Errorf("failed to parse snapshot name: %w", err)) {
+					return
+				}
+
+				continue
+			}
+
+			if !yield(etcdbackup.Info{
+				Snapshot:  stat.Name(),
+				Timestamp: timestamp,
+				Reader:    func() (io.ReadCloser, error) { return os.Open(backupFile) },
+				Size:      stat.Size(),
+			}, nil) {
+				return
+			}
 		}
-
-		backupFile := backupFiles[0]
-		backupFiles = backupFiles[1:]
-
-		stat, err := os.Stat(backupFile)
-		if err != nil {
-			return etcdbackup.Info{}, true, fmt.Errorf("failed to get file info: %w", err)
-		}
-
-		timestamp, err := etcdbackup.ParseSnapshotName(stat.Name())
-		if err != nil {
-			return etcdbackup.Info{}, true, fmt.Errorf("failed to parse snapshot name: %w", err)
-		}
-
-		return etcdbackup.Info{
-			Snapshot:  stat.Name(),
-			Timestamp: timestamp,
-			Reader:    func() (io.ReadCloser, error) { return os.Open(backupFile) },
-			Size:      stat.Size(),
-		}, true, nil
 	}, nil
 }

@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"iter"
 	"regexp"
 	"testing"
 	"time"
@@ -59,7 +60,7 @@ func TestStateList(t *testing.T) {
 				},
 			},
 			storeFactory: &backupStore{
-				m: map[string]pair.Pair[etcdbackup.InfoIterator, error]{
+				m: map[string]pair.Pair[iter.Seq2[etcdbackup.Info, error], error]{
 					uuidStr1: pair.MakePair(makeIter(happyResult[0], happyResult[1]), error(nil)),
 				},
 			},
@@ -121,7 +122,7 @@ func TestStateList(t *testing.T) {
 				},
 			},
 			storeFactory: &backupStore{
-				m: map[string]pair.Pair[etcdbackup.InfoIterator, error]{
+				m: map[string]pair.Pair[iter.Seq2[etcdbackup.Info, error], error]{
 					uuidStr1: pair.MakePair(makeIter(), errors.New("list backups error")),
 				},
 			},
@@ -180,7 +181,7 @@ func TestStateGet(t *testing.T) {
 				},
 			},
 			storeFactory: &backupStore{
-				m: map[string]pair.Pair[etcdbackup.InfoIterator, error]{
+				m: map[string]pair.Pair[iter.Seq2[etcdbackup.Info, error], error]{
 					uuidStr1: pair.MakePair(makeIter(happyResult[0], happyResult[1]), error(nil)),
 				},
 			},
@@ -204,7 +205,7 @@ func TestStateGet(t *testing.T) {
 				},
 			},
 			storeFactory: &backupStore{
-				m: map[string]pair.Pair[etcdbackup.InfoIterator, error]{
+				m: map[string]pair.Pair[iter.Seq2[etcdbackup.Info, error], error]{
 					uuidStr1: pair.MakePair(makeIter(), error(nil)),
 				},
 			},
@@ -218,7 +219,7 @@ func TestStateGet(t *testing.T) {
 				},
 			},
 			storeFactory: &backupStore{
-				m: map[string]pair.Pair[etcdbackup.InfoIterator, error]{
+				m: map[string]pair.Pair[iter.Seq2[etcdbackup.Info, error], error]{
 					uuidStr1: pair.MakePair(makeIter(happyResult[1]), error(nil)),
 				},
 			},
@@ -281,10 +282,10 @@ type backupStore struct {
 	etcdbackup.Store
 	store.Factory
 
-	m map[string]pair.Pair[etcdbackup.InfoIterator, error]
+	m map[string]pair.Pair[iter.Seq2[etcdbackup.Info, error], error]
 }
 
-func (b *backupStore) ListBackups(_ context.Context, clusterUUID string) (etcdbackup.InfoIterator, error) {
+func (b *backupStore) ListBackups(_ context.Context, clusterUUID string) (iter.Seq2[etcdbackup.Info, error], error) {
 	if res, ok := b.m[clusterUUID]; ok {
 		return res.F1, res.F2
 	}
@@ -296,19 +297,16 @@ func (b *backupStore) GetStore() (etcdbackup.Store, error) {
 	return b, nil
 }
 
-func makeIter(slc ...pair.Pair[resource.ID, time.Time]) etcdbackup.InfoIterator {
-	return func() (etcdbackup.Info, bool, error) {
-		if len(slc) == 0 {
-			return etcdbackup.Info{}, false, nil
+func makeIter(slc ...pair.Pair[resource.ID, time.Time]) iter.Seq2[etcdbackup.Info, error] {
+	return func(yield func(etcdbackup.Info, error) bool) {
+		for _, result := range slc {
+			if !yield(etcdbackup.Info{
+				Timestamp: result.F2,
+				Reader:    nil,
+				Size:      0,
+			}, nil) {
+				return
+			}
 		}
-
-		result := slc[0]
-		slc = slc[1:]
-
-		return etcdbackup.Info{
-			Timestamp: result.F2,
-			Reader:    nil,
-			Size:      0,
-		}, true, nil
 	}
 }

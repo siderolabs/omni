@@ -8,6 +8,7 @@ package store
 import (
 	"context"
 	"io"
+	"iter"
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/prometheus/client_golang/prometheus"
@@ -88,7 +89,7 @@ type storeWithMetrics struct {
 	metrics *factoryWithMetrics
 }
 
-func (s *storeWithMetrics) ListBackups(ctx context.Context, clusterUUID string) (etcdbackup.InfoIterator, error) {
+func (s *storeWithMetrics) ListBackups(ctx context.Context, clusterUUID string) (iter.Seq2[etcdbackup.Info, error], error) {
 	return s.store.ListBackups(ctx, clusterUUID)
 }
 

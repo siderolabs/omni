@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"iter"
 
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
@@ -90,6 +91,6 @@ func (c *Store) Download(ctx context.Context, encryptionKey []byte, clusterUUID,
 }
 
 // ListBackups returns a list of backups. Implements [Store].
-func (c *Store) ListBackups(ctx context.Context, uuid string) (etcdbackup.InfoIterator, error) {
+func (c *Store) ListBackups(ctx context.Context, uuid string) (iter.Seq2[etcdbackup.Info, error], error) {
 	return c.wrapped.ListBackups(ctx, uuid)
 }

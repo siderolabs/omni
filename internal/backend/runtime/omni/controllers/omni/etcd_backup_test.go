@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"iter"
 	"net/http/httptest"
 	"path/filepath"
 	"slices"
@@ -25,6 +26,7 @@ import (
 	"github.com/johannesboyne/gofakes3/backend/s3mem"
 	"github.com/jonboulle/clockwork"
 	"github.com/siderolabs/gen/containers"
+	"github.com/siderolabs/gen/xiter"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/gen/xtesting/must"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
@@ -291,9 +293,7 @@ func (suite *EtcdBackupControllerSuite) TestSingleListCall() {
 
 	sfm.On(xmocks.Name((*sfm).GetStore)).Return(sm, nil)
 
-	sm.On(xmocks.Name((*storeMock).ListBackups), mock.Anything, mock.Anything).Return(etcdbackup.InfoIterator(func() (etcdbackup.Info, bool, error) {
-		return etcdbackup.Info{}, false, nil
-	}), nil).Twice()
+	sm.On(xmocks.Name((*storeMock).ListBackups), mock.Anything, mock.Anything).Return(iter.Seq2[etcdbackup.Info, error](xiter.Empty2[etcdbackup.Info, error]), nil).Twice()
 	sm.On(xmocks.Name((*storeMock).Upload), mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		ch <- xmocks.GetAs[etcdbackup.Description](args, 1).ClusterName
 		must.Value(io.Copy(io.Discard, xmocks.GetAs[io.Reader](args, 2)))
@@ -630,10 +630,10 @@ func (suite *EtcdBackupControllerSuite) TestS3Backup() {
 		suite.T().Logf("bucket: %s", b.Name)
 	}
 
-	iter, err := must.Value(sf.GetStore())(suite.T()).ListBackups(suite.ctx, clusters[0].TypedSpec().Value.ClusterUuid)
+	it, err := must.Value(sf.GetStore())(suite.T()).ListBackups(suite.ctx, clusters[0].TypedSpec().Value.ClusterUuid)
 	suite.Require().NoError(err)
 
-	backups := toSlice(iter, suite.T())
+	backups := toSlice(it, suite.T())
 	suite.Require().Len(backups, 1)
 
 	reader := must.Value(backups[0].Reader())(suite.T())
@@ -674,8 +674,8 @@ func (suite *EtcdBackupControllerSuite) eventuallyFindBackups(sf store.Factory, 
 		}
 
 		bd := must.Value(safe.StateGetByID[*omni.BackupData](suite.ctx, suite.state, clusterID))(suite.T())
-		iter := must.Value(st.ListBackups(suite.ctx, bd.TypedSpec().Value.ClusterUuid))(suite.T())
-		result = toSlice(iter, suite.T())
+		it := must.Value(st.ListBackups(suite.ctx, bd.TypedSpec().Value.ClusterUuid))(suite.T())
+		result = toSlice(it, suite.T())
 
 		assert.Len(collect, result, num, "cluster %s", clusterID)
 	}, 15*time.Second, 100*time.Microsecond)
@@ -717,10 +717,10 @@ func (t *talosClientMock) EtcdSnapshot(ctx context.Context, req *machine.EtcdSna
 
 type storeMock struct{ mock.Mock }
 
-func (s *storeMock) ListBackups(ctx context.Context, clusterUUID string) (etcdbackup.InfoIterator, error) {
+func (s *storeMock) ListBackups(ctx context.Context, clusterUUID string) (iter.Seq2[etcdbackup.Info, error], error) {
 	args := s.Called(ctx, clusterUUID)
 
-	return xmocks.Cast2[etcdbackup.InfoIterator, error](args)
+	return xmocks.Cast2[iter.Seq2[etcdbackup.Info, error], error](args)
 }
 
 func (s *storeMock) Upload(ctx context.Context, descr etcdbackup.Description, r io.Reader) error {
@@ -753,29 +753,23 @@ func (s *storeFactoryMock) Description() string {
 	return "mock store"
 }
 
-func toIter(infos []etcdbackup.Info) etcdbackup.InfoIterator {
-	return func() (etcdbackup.Info, bool, error) {
-		if len(infos) == 0 {
-			return etcdbackup.Info{}, false, nil
+func toIter(infos []etcdbackup.Info) iter.Seq2[etcdbackup.Info, error] {
+	return func(yield func(etcdbackup.Info, error) bool) {
+		for _, info := range infos {
+			if !yield(info, nil) {
+				break
+			}
 		}
-
-		info := infos[0]
-		infos = infos[1:]
-
-		return info, true, nil
 	}
 }
 
-func toSlice(iter etcdbackup.InfoIterator, t *testing.T) []etcdbackup.Info {
-	var result []etcdbackup.Info
+func toSlice(it iter.Seq2[etcdbackup.Info, error], t *testing.T) []etcdbackup.Info {
+	var result []etcdbackup.Info //nolint:prealloc
 
-	for {
-		info, ok := must.Values(iter())(t)
-		if !ok {
-			break
-		}
+	for v, err := range it {
+		require.NoError(t, err)
 
-		result = append(result, info)
+		result = append(result, v)
 	}
 
 	return result

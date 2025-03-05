@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"iter"
 	"path"
 	"strings"
 
@@ -65,7 +66,7 @@ func (s *Store) Download(ctx context.Context, _ []byte, clusterUUID, snapshotNam
 }
 
 // ListBackups returns a list of backups. Implements [EtcdBackupStore].
-func (s *Store) ListBackups(ctx context.Context, clusterUUID string) (etcdbackup.InfoIterator, error) {
+func (s *Store) ListBackups(ctx context.Context, clusterUUID string) (iter.Seq2[etcdbackup.Info, error], error) {
 	result, err := s.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
 		Bucket: pointer.To(s.bucket),
 		Prefix: pointer.To(fmt.Sprintf("%s/", clusterUUID)),
@@ -76,15 +77,8 @@ func (s *Store) ListBackups(ctx context.Context, clusterUUID string) (etcdbackup
 
 	contents := result.Contents
 
-	return func() (etcdbackup.Info, bool, error) {
-		for {
-			if len(contents) == 0 {
-				return etcdbackup.Info{}, false, nil
-			}
-
-			content := contents[0]
-			contents = contents[1:]
-
+	return func(yield func(etcdbackup.Info, error) bool) {
+		for _, content := range contents {
 			key := pointer.SafeDeref(content.Key)
 
 			uuidStr, snapshotName, found := strings.Cut(key, "/")
@@ -99,10 +93,14 @@ func (s *Store) ListBackups(ctx context.Context, clusterUUID string) (etcdbackup
 
 			timestamp, err := etcdbackup.ParseSnapshotName(snapshotName)
 			if err != nil {
-				return etcdbackup.Info{}, true, err
+				if !yield(etcdbackup.Info{}, fmt.Errorf("failed to parse snapshot name: %w", err)) {
+					return
+				}
+
+				continue
 			}
 
-			return etcdbackup.Info{
+			if !yield(etcdbackup.Info{
 				Snapshot:  snapshotName,
 				Timestamp: timestamp,
 				Reader: func() (io.ReadCloser, error) {
@@ -117,7 +115,9 @@ func (s *Store) ListBackups(ctx context.Context, clusterUUID string) (etcdbackup
 					return result.Body, nil
 				},
 				Size: pointer.SafeDeref(content.Size),
-			}, true, nil
+			}, nil) {
+				return
+			}
 		}
 	}, nil
 }
