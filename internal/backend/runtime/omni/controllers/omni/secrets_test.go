@@ -78,6 +78,8 @@ func (suite *ClusterSecretsSuite) TestNewSecrets() {
 
 type mockBackupStore struct{}
 
+func (m *mockBackupStore) SetThroughputs(int64, int64) {}
+
 func (m *mockBackupStore) ListBackups(context.Context, string) (iter.Seq2[etcdbackup.Info, error], error) {
 	return xiter.Empty2, nil
 }
@@ -94,6 +96,8 @@ func (m *mockBackupStore) Download(context.Context, []byte, string, string) (etc
 }
 
 type mockBackupStoreFactory struct{}
+
+func (m *mockBackupStoreFactory) SetThroughputs(int64, int64) {}
 
 func (m *mockBackupStoreFactory) GetStore() (etcdbackup.Store, error) { return &mockBackupStore{}, nil }
 

@@ -26,6 +26,7 @@ type Store interface {
 	Lister
 	Upload(ctx context.Context, descr Description, r io.Reader) error
 	Download(ctx context.Context, encryptionKey []byte, clusterUUID, snapshotName string) (BackupData, io.ReadCloser, error)
+	SetThroughputs(up, down int64)
 }
 
 // Description is a data that is used to describe backup.

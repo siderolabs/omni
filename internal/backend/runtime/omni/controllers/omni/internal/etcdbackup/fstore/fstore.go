@@ -82,3 +82,6 @@ func (store *FileStore) ListBackups(_ context.Context, uuid string) (iter.Seq2[e
 		}
 	}, nil
 }
+
+// SetThroughputs is a no-op. Implements [Store].
+func (store *FileStore) SetThroughputs(int64, int64) {}

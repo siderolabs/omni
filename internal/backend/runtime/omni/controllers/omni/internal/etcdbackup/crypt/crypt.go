@@ -94,3 +94,8 @@ func (c *Store) Download(ctx context.Context, encryptionKey []byte, clusterUUID,
 func (c *Store) ListBackups(ctx context.Context, uuid string) (iter.Seq2[etcdbackup.Info, error], error) {
 	return c.wrapped.ListBackups(ctx, uuid)
 }
+
+// SetThroughputs sets the upload and download throughput for the wrapped store.
+func (c *Store) SetThroughputs(up, down int64) {
+	c.wrapped.SetThroughputs(up, down)
+}

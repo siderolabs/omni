@@ -508,6 +508,20 @@ var initOnce = sync.OnceValue(func() *cobra.Command {
 		"maximal interval between etcd backups",
 	)
 
+	rootCmd.Flags().Int64Var(
+		&config.Config.EtcdBackup.UploadLimit,
+		"etcd-backup-upload-limit",
+		config.Config.EtcdBackup.UploadLimit,
+		"throughput limit for etcd backup uploads",
+	)
+
+	rootCmd.Flags().Int64Var(
+		&config.Config.EtcdBackup.DownloadLimit,
+		"etcd-backup-download-limit",
+		config.Config.EtcdBackup.DownloadLimit,
+		"throughput limit for etcd backup downloads",
+	)
+
 	rootCmd.Flags().StringSliceVar(&config.Config.LogResourceUpdatesTypes,
 		"log-resource-updates-types",
 		config.Config.LogResourceUpdatesTypes,

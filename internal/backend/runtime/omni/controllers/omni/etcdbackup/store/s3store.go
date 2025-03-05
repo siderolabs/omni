@@ -33,10 +33,12 @@ import (
 
 // S3StoreFactory is a factory for S3 stores.
 type S3StoreFactory struct { //nolint:govet
-	mx     sync.Mutex
-	store  etcdbackup.Store
-	err    error
-	bucket string
+	mx             sync.Mutex
+	store          etcdbackup.Store
+	err            error
+	bucket         string
+	upThroughput   int64
+	downThroughput int64
 }
 
 // NewS3StoreFactory returns a new S3 store factory.
@@ -136,6 +138,8 @@ func (sf *S3StoreFactory) updateStore(ctx context.Context, st state.State, resou
 	sf.store = crypt.NewStore(s3store.NewStore(client, bucket))
 	sf.bucket = bucket
 
+	sf.store.SetThroughputs(sf.upThroughput, sf.downThroughput)
+
 	logger.Debug("s3 store client is now set", zap.String("bucket", bucket))
 
 	return updateS3Status(ctx, st, "")
@@ -215,6 +219,15 @@ func (sf *S3StoreFactory) Description() string {
 	defer sf.mx.Unlock()
 
 	return fmt.Sprintf("s3 store: bucket %q", sf.bucket)
+}
+
+// SetThroughputs sets the download and upload throughput for the store.
+func (sf *S3StoreFactory) SetThroughputs(up, down int64) {
+	sf.mx.Lock()
+	defer sf.mx.Unlock()
+
+	sf.upThroughput = up
+	sf.downThroughput = down
 }
 
 // IsEmptyS3Conf returns true if the resource is empty.
