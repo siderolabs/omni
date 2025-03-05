@@ -323,6 +323,8 @@ type backupBlocker struct {
 	block bool
 }
 
+func (e *backupBlocker) SetThroughputs(up, down int64) { e.Store.SetThroughputs(up, down) }
+
 func (e *backupBlocker) Upload(ctx context.Context, _ etcdbackup.Description, r io.Reader) error {
 	if e.block {
 		<-ctx.Done()

@@ -1239,6 +1239,8 @@ type mockEtcdBackupStoreFactory struct {
 	store etcdbackup.Store
 }
 
+func (m *mockEtcdBackupStoreFactory) SetThroughputs(up, down int64) { m.store.SetThroughputs(up, down) }
+
 func (m *mockEtcdBackupStoreFactory) GetStore() (etcdbackup.Store, error) {
 	return m.store, nil
 }
@@ -1254,6 +1256,8 @@ type mockEtcdBackupStore struct {
 	clusterUUID  string
 	snapshotName string
 }
+
+func (m *mockEtcdBackupStore) SetThroughputs(int64, int64) {}
 
 func (m *mockEtcdBackupStore) ListBackups(context.Context, string) (iter.Seq2[etcdbackup.Info, error], error) {
 	return xiter.Empty2, nil

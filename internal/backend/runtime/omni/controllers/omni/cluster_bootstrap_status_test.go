@@ -35,6 +35,8 @@ type mockStoreFactory struct {
 	etcdBackupDataMock etcdbackup.BackupData
 }
 
+func (m *mockStoreFactory) SetThroughputs(int64, int64) {}
+
 func (m *mockStoreFactory) GetStore() (etcdbackup.Store, error) {
 	return &mockEtcdBackupStore{m.etcdBackupDataMock}, nil
 }
@@ -46,6 +48,8 @@ func (m *mockStoreFactory) Description() string { return "mock-store" }
 type mockEtcdBackupStore struct {
 	etcdBackupDataMock etcdbackup.BackupData
 }
+
+func (m *mockEtcdBackupStore) SetThroughputs(int64, int64) {}
 
 func (m *mockEtcdBackupStore) ListBackups(context.Context, string) (iter.Seq2[etcdbackup.Info, error], error) {
 	return xiter.Empty2, nil

@@ -285,6 +285,8 @@ type backupStore struct {
 	m map[string]pair.Pair[iter.Seq2[etcdbackup.Info, error], error]
 }
 
+func (b *backupStore) SetThroughputs(up, down int64) { b.Store.SetThroughputs(up, down) }
+
 func (b *backupStore) ListBackups(_ context.Context, clusterUUID string) (iter.Seq2[etcdbackup.Info, error], error) {
 	if res, ok := b.m[clusterUUID]; ok {
 		return res.F1, res.F2

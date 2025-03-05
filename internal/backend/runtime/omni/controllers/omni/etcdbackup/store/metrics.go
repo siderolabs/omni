@@ -84,10 +84,14 @@ func (s *factoryWithMetrics) Description() string {
 	return s.factory.Description()
 }
 
+func (s *factoryWithMetrics) SetThroughputs(up, down int64) { s.factory.SetThroughputs(up, down) }
+
 type storeWithMetrics struct {
 	store   etcdbackup.Store
 	metrics *factoryWithMetrics
 }
+
+func (s *storeWithMetrics) SetThroughputs(up, down int64) { s.store.SetThroughputs(up, down) }
 
 func (s *storeWithMetrics) ListBackups(ctx context.Context, clusterUUID string) (iter.Seq2[etcdbackup.Info, error], error) {
 	return s.store.ListBackups(ctx, clusterUUID)
