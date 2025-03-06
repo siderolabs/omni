@@ -17,7 +17,7 @@ import (
 // NewEtcdBackupStatus creates new etcd backup status info.
 func NewEtcdBackupStatus(id resource.ID) *EtcdBackupStatus {
 	return typed.NewResource[EtcdBackupStatusSpec, EtcdBackupStatusExtension](
-		resource.NewMetadata(resources.DefaultNamespace, EtcdBackupStatusType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.MetricsNamespace, EtcdBackupStatusType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.EtcdBackupStatusSpec{}),
 	)
 }
@@ -42,7 +42,7 @@ func (EtcdBackupStatusExtension) ResourceDefinition() meta.ResourceDefinitionSpe
 	return meta.ResourceDefinitionSpec{
 		Type:             EtcdBackupStatusType,
 		Aliases:          []resource.Type{},
-		DefaultNamespace: resources.DefaultNamespace,
+		DefaultNamespace: resources.MetricsNamespace,
 		PrintColumns: []meta.PrintColumn{
 			{
 				Name:     "Status",

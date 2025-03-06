@@ -195,6 +195,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: compressConfigPatches,
 				name:     "compressConfigPatches",
 			},
+			{
+				callback: moveEtcdBackupStatuses,
+				name:     "moveEtcdBackupStatuses",
+			},
 		},
 	}
 }
