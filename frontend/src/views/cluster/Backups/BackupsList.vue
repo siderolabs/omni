@@ -88,7 +88,7 @@ import {
   EtcdBackupType,
   LabelCluster,
   EtcdBackupStatusType,
-  DefaultNamespace,
+  MetricsNamespace,
   EtcdBackupOverallStatusID,
   EtcdBackupOverallStatusType,
 } from "@/api/resources";
@@ -119,7 +119,7 @@ const sortOptions = [
 const watchStatusOpts = computed((): WatchOptions => {
   return {
     resource: {
-      namespace: DefaultNamespace,
+      namespace: MetricsNamespace,
       type: EtcdBackupStatusType,
       id: route.params.cluster as string,
     },
@@ -130,7 +130,7 @@ const watchStatusOpts = computed((): WatchOptions => {
 const watchOverallStatusOpts = computed((): WatchOptions => {
   return {
     resource: {
-      namespace: DefaultNamespace,
+      namespace: MetricsNamespace,
       type: EtcdBackupOverallStatusType,
       id: EtcdBackupOverallStatusID,
     },

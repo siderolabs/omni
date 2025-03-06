@@ -1732,6 +1732,71 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 	}
 }
 
+func (suite *MigrationSuite) TestMoveEtcdBackupStatuses() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	newEtcdBackupStatusInOldNamespace := func(id resource.ID) *omni.EtcdBackupStatus {
+		return typed.NewResource[omni.EtcdBackupStatusSpec, omni.EtcdBackupStatusExtension](
+			resource.NewMetadata(resources.DefaultNamespace, omni.EtcdBackupStatusType, id, resource.VersionUndefined),
+			protobuf.NewResourceSpec(&specs.EtcdBackupStatusSpec{}),
+		)
+	}
+
+	status1 := newEtcdBackupStatusInOldNamespace("status1")
+
+	status1.TypedSpec().Value.Status = specs.EtcdBackupStatusSpec_Running
+	status1.TypedSpec().Value.Error = "e"
+
+	status2 := newEtcdBackupStatusInOldNamespace("status2")
+
+	overallStatus := typed.NewResource[omni.EtcdBackupOverallStatusSpec, omni.EtcdBackupOverallStatusExtension](
+		resource.NewMetadata(resources.DefaultNamespace, omni.EtcdBackupOverallStatusType, omni.EtcdBackupOverallStatusID, resource.VersionUndefined),
+		protobuf.NewResourceSpec(&specs.EtcdBackupOverallStatusSpec{}),
+	)
+
+	overallStatus.TypedSpec().Value.ConfigurationError = "e"
+
+	suite.Require().NoError(suite.state.Create(ctx, status1))
+	suite.Require().NoError(suite.state.Create(ctx, status2))
+	suite.Require().NoError(suite.state.Create(ctx, overallStatus))
+
+	_, err := suite.state.Teardown(ctx, status2.Metadata())
+	suite.Require().NoError(err)
+
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("moveEtcdBackupStatuses"))))
+
+	// Assert that ones in the old namespace are destroyed
+
+	_, err = safe.StateGet[*omni.EtcdBackupStatus](ctx, suite.state, status1.Metadata())
+	suite.Require().True(state.IsNotFoundError(err))
+
+	_, err = safe.StateGet[*omni.EtcdBackupStatus](ctx, suite.state, status2.Metadata())
+	suite.Require().True(state.IsNotFoundError(err))
+
+	_, err = safe.StateGet[*omni.EtcdBackupOverallStatus](ctx, suite.state, overallStatus.Metadata())
+	suite.Require().True(state.IsNotFoundError(err))
+
+	// Assert the new ones
+
+	status1, err = safe.StateGetByID[*omni.EtcdBackupStatus](ctx, suite.state, "status1")
+	suite.Require().NoError(err)
+
+	suite.Equal(resources.MetricsNamespace, status1.Metadata().Namespace())
+
+	suite.Equal(specs.EtcdBackupStatusSpec_Running, status1.TypedSpec().Value.Status)
+	suite.Equal("e", status1.TypedSpec().Value.Error)
+
+	_, err = safe.StateGetByID[*omni.EtcdBackupStatus](ctx, suite.state, "status2")
+	suite.Require().True(state.IsNotFoundError(err), "status2 should not exist as it was in tearing down phase")
+
+	overallStatus, err = safe.StateGetByID[*omni.EtcdBackupOverallStatus](ctx, suite.state, omni.EtcdBackupOverallStatusID)
+	suite.Require().NoError(err)
+
+	suite.Equal(resources.MetricsNamespace, overallStatus.Metadata().Namespace())
+	suite.Equal("e", overallStatus.TypedSpec().Value.ConfigurationError)
+}
+
 func startMigration[
 	R interface {
 		generic.ResourceWithRD
