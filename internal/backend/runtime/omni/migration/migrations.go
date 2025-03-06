@@ -1461,3 +1461,79 @@ const (
 	belowThreshold
 	compressed
 )
+
+func moveEtcdBackupStatuses(ctx context.Context, st state.State, logger *zap.Logger) error {
+	statusOldNamespaceMD := resource.NewMetadata(resources.DefaultNamespace, omni.EtcdBackupStatusType, "", resource.VersionUndefined)
+
+	statusList, err := safe.StateList[*omni.EtcdBackupStatus](ctx, st, statusOldNamespaceMD)
+	if err != nil {
+		return fmt.Errorf("failed to list etcd backup statuses: %w", err)
+	}
+
+	numMigrated := 0
+
+	for oldStatus := range statusList.All() {
+		if oldStatus.Metadata().Phase() == resource.PhaseRunning {
+			newStatus := omni.NewEtcdBackupStatus(oldStatus.Metadata().ID())
+
+			if err = newStatus.Metadata().SetOwner(oldStatus.Metadata().Owner()); err != nil {
+				return fmt.Errorf("failed to set owner for %q: %w", newStatus.Metadata(), err)
+			}
+
+			// No labels, annotations, etc. to copy
+
+			newStatus.TypedSpec().Value = oldStatus.TypedSpec().Value
+
+			if err = st.Create(ctx, newStatus, state.WithCreateOwner(oldStatus.Metadata().Owner())); err != nil {
+				return fmt.Errorf("failed to create %q: %w", newStatus.Metadata(), err)
+			}
+
+			numMigrated++
+		}
+
+		// This resource does not contain finalizers, so it's safe to destroy
+		if err = st.Destroy(ctx, oldStatus.Metadata(), state.WithDestroyOwner(oldStatus.Metadata().Owner())); err != nil {
+			return fmt.Errorf("failed to destroy %q: %w", oldStatus.Metadata(), err)
+		}
+	}
+
+	logger.Info("migrated etcd backup statuses", zap.Int("num_migrated", numMigrated), zap.Int("num_total", statusList.Len()))
+
+	overallStatusOldNamespaceMD := resource.NewMetadata(resources.DefaultNamespace, omni.EtcdBackupOverallStatusType, omni.EtcdBackupOverallStatusID, resource.VersionUndefined)
+
+	oldOverallStatus, err := safe.StateGet[*omni.EtcdBackupOverallStatus](ctx, st, overallStatusOldNamespaceMD)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			logger.Info("etcd backup overall status not found, skipping...")
+
+			return nil
+		}
+
+		return fmt.Errorf("failed to get etcd backup overall status: %w", err)
+	}
+
+	if oldOverallStatus.Metadata().Phase() == resource.PhaseRunning {
+		newOverallStatus := omni.NewEtcdBackupOverallStatus()
+
+		if err = newOverallStatus.Metadata().SetOwner(oldOverallStatus.Metadata().Owner()); err != nil {
+			return fmt.Errorf("failed to set owner for %q: %w", newOverallStatus.Metadata(), err)
+		}
+
+		// No labels, annotations, etc. to copy
+
+		newOverallStatus.TypedSpec().Value = oldOverallStatus.TypedSpec().Value
+
+		if err = st.Create(ctx, newOverallStatus, state.WithCreateOwner(oldOverallStatus.Metadata().Owner())); err != nil {
+			return fmt.Errorf("failed to create %q: %w", newOverallStatus.Metadata(), err)
+		}
+	}
+
+	// This resource does not contain finalizers, so it's safe to destroy
+	if err = st.Destroy(ctx, oldOverallStatus.Metadata(), state.WithDestroyOwner(oldOverallStatus.Metadata().Owner())); err != nil {
+		return fmt.Errorf("failed to destroy %q: %w", oldOverallStatus.Metadata(), err)
+	}
+
+	logger.Info("migrate etcd backup overall status", zap.Bool("created", oldOverallStatus.Metadata().Phase() == resource.PhaseRunning))
+
+	return nil
+}

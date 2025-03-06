@@ -90,7 +90,7 @@ func TestStateList(t *testing.T) {
 			opts: []state.ListOption{
 				state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, "cluster1")),
 			},
-			errCheck: check.EqualError(`unsupported resource type: unsupported resource kind for list "EtcdBackupStatuses.omni.sidero.dev(default/@undefined)"`),
+			errCheck: check.EqualError(`unsupported resource type: unsupported resource kind for list "EtcdBackupStatuses.omni.sidero.dev(metrics/@undefined)"`),
 		},
 		"empty cluster id": {
 			kind: etcdBackupPtr,
@@ -195,7 +195,7 @@ func TestStateGet(t *testing.T) {
 		},
 		"incorrect type": {
 			pointer:  omni.NewEtcdBackupStatus("").Metadata(),
-			errCheck: check.EqualError(`unsupported resource type: unsupported resource type for get "EtcdBackupStatuses.omni.sidero.dev(default/@undefined)"`),
+			errCheck: check.EqualError(`unsupported resource type: unsupported resource type for get "EtcdBackupStatuses.omni.sidero.dev(metrics/@undefined)"`),
 		},
 		"not found": {
 			pointer: omni.NewEtcdBackup("cluster1", happyResult[0].F2).Metadata(),

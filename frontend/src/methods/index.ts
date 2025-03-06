@@ -7,7 +7,7 @@ import { ManagementService } from "@/api/omni/management/management.pb";
 import { NodesViewFilterOptions, TCommonStatuses } from "@/constants";
 import { showError } from "@/notification";
 import { computed, ComputedRef, Ref, ref } from "vue";
-import { DefaultNamespace, EtcdBackupOverallStatusID, EtcdBackupOverallStatusType } from "@/api/resources";
+import { EtcdBackupOverallStatusID, EtcdBackupOverallStatusType, MetricsNamespace } from "@/api/resources";
 import { withContext } from "@/api/options";
 import { b64Decode, fetchOption } from "@/api/fetch.pb";
 import { V1Node } from "@kubernetes/client-node";
@@ -177,7 +177,7 @@ export const setupBackupStatus = (): { status: ComputedRef<BackupsStatus>, watch
   watch.setup({
     resource: {
       id: EtcdBackupOverallStatusID,
-      namespace: DefaultNamespace,
+      namespace: MetricsNamespace,
       type: EtcdBackupOverallStatusType,
     },
     runtime: Runtime.Omni,

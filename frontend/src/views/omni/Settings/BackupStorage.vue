@@ -44,7 +44,7 @@ import { canManageBackupStore } from "@/methods/auth";
 import { Resource, ResourceService } from "@/api/grpc";
 import { EtcdBackupOverallStatusSpec, EtcdBackupS3ConfSpec } from "@/api/omni/specs/omni.pb";
 import { Runtime } from "@/api/common/omni.pb";
-import { DefaultNamespace, EtcdBackupOverallStatusID, EtcdBackupOverallStatusType, EtcdBackupS3ConfID, EtcdBackupS3ConfType } from "@/api/resources";
+import { DefaultNamespace, EtcdBackupOverallStatusID, EtcdBackupOverallStatusType, EtcdBackupS3ConfID, EtcdBackupS3ConfType, MetricsNamespace } from "@/api/resources";
 import { withRuntime } from "@/api/options";
 import { Code } from '@/api/google/rpc/code.pb';
 
@@ -70,7 +70,7 @@ onMounted(async () => {
   const status: Resource<EtcdBackupOverallStatusSpec> = await ResourceService.Get({
     id: EtcdBackupOverallStatusID,
     type: EtcdBackupOverallStatusType,
-    namespace: DefaultNamespace,
+    namespace: MetricsNamespace,
   }, withRuntime(Runtime.Omni));
 
   store.value = status.spec.configuration_name!;

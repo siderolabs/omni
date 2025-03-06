@@ -223,7 +223,7 @@ import {
   KubernetesStatusType,
   DefaultNamespace,
   EtcdBackupStatusType,
-  ClusterDiagnosticsType,
+  ClusterDiagnosticsType, MetricsNamespace,
 } from "@/api/resources";
 import { BackupsStatus, downloadKubeconfig, downloadTalosconfig } from "@/methods";
 import { controlPlaneMachineSetId } from "@/methods/machineset";
@@ -313,7 +313,7 @@ kubernetesStatusWatch.setup({
 backupStatusWatch.setup({
   runtime: Runtime.Omni,
   resource: {
-    namespace: DefaultNamespace,
+    namespace: MetricsNamespace,
     type: EtcdBackupStatusType,
     id: route.params.cluster as string,
   }
