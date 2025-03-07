@@ -28,6 +28,7 @@ import (
 	eventsapi "github.com/siderolabs/siderolink/api/events"
 	pb "github.com/siderolabs/siderolink/api/siderolink"
 	"github.com/siderolabs/siderolink/pkg/events"
+	"github.com/siderolabs/siderolink/pkg/tun"
 	"github.com/siderolabs/siderolink/pkg/wgtunnel/wgbind"
 	"github.com/siderolabs/siderolink/pkg/wgtunnel/wggrpc"
 	"github.com/siderolabs/siderolink/pkg/wireguard"
@@ -383,12 +384,13 @@ func (manager *Manager) startWireguard(ctx context.Context, eg *errgroup.Group, 
 	}
 
 	if err = manager.wgHandler.SetupDevice(wireguard.DeviceConfig{
-		Bind:         wgbind.NewServerBind(conn.NewDefaultBind(), manager.virtualPrefix, manager.peerTraffic, manager.logger),
-		PeerHandler:  peerHandler,
-		Logger:       manager.logger,
-		ServerPrefix: serverAddr,
-		PrivateKey:   key,
-		ListenPort:   uint16(port),
+		Bind:               wgbind.NewServerBind(conn.NewDefaultBind(), manager.virtualPrefix, manager.peerTraffic, manager.logger),
+		PeerHandler:        peerHandler,
+		Logger:             manager.logger,
+		ServerPrefix:       serverAddr,
+		PrivateKey:         key,
+		ListenPort:         uint16(port),
+		InputPacketFilters: []tun.InputPacketFilter{tun.FilterAllExceptIP(serverAddr.Addr())},
 	}); err != nil {
 		return err
 	}

@@ -80,7 +80,7 @@ require (
 	github.com/siderolabs/kms-client v0.1.0
 	github.com/siderolabs/omni/client v0.45.0
 	github.com/siderolabs/proto-codec v0.1.2
-	github.com/siderolabs/siderolink v0.3.12
+	github.com/siderolabs/siderolink v0.3.13
 	github.com/siderolabs/talos/pkg/machinery v1.10.0-alpha.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
@@ -97,6 +97,7 @@ require (
 	golang.org/x/crypto v0.35.0
 	golang.org/x/net v0.35.0
 	golang.org/x/sync v0.11.0
+	golang.org/x/time v0.10.0
 	golang.org/x/tools v0.29.0
 	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20241231184526-a9ab2273dd10
@@ -251,7 +252,6 @@ require (
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/term v0.29.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
-	golang.org/x/time v0.10.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	google.golang.org/genproto v0.0.0-20250204164813-702378808489 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250227231956-55c901821b1e // indirect
