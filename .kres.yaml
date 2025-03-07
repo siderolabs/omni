@@ -530,6 +530,7 @@ spec:
     PLATFORM: linux/amd64,linux/arm64
   copyFrom:
     - stage: omnictl-all
+      name: omnictl-all
       destination: /omnictl/
 ---
 kind: service.CodeCov
