@@ -35,6 +35,7 @@ CGO_ENABLED ?= 0
 GOTOOLCHAIN ?= local
 KRES_IMAGE ?= ghcr.io/siderolabs/kres:latest
 CONFORMANCE_IMAGE ?= ghcr.io/siderolabs/conform:latest
+GOEXPERIMENT ?= synctest
 
 # docker build settings
 

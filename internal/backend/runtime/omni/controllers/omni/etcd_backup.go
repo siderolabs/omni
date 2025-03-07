@@ -16,7 +16,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/jonboulle/clockwork"
 	"github.com/siderolabs/gen/channel"
 	"github.com/siderolabs/gen/containers"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
@@ -45,8 +44,7 @@ type EtcdBackupController struct {
 type EtcdBackupControllerSettings struct {
 	ClientMaker  ClientMaker
 	StoreFactory store.Factory
-	Clock        clockwork.Clock // can be nil, will be replaced with real clock in that case
-	TickInterval time.Duration   // can be 0 in which case StoreFactory should be [store.DisabledStoreFactory]
+	TickInterval time.Duration // can be 0 in which case StoreFactory should be [store.DisabledStoreFactory]
 }
 
 // ClientMaker is a function that creates Talos client.
@@ -56,10 +54,6 @@ type ClientMaker func(ctx context.Context, clusterName string) (TalosClient, err
 func NewEtcdBackupController(s EtcdBackupControllerSettings) (*EtcdBackupController, error) {
 	if s.TickInterval < time.Minute && s.StoreFactory != store.DisabledStoreFactory {
 		return nil, errors.New("tick interval must be at least 1 minute")
-	}
-
-	if s.Clock == nil {
-		s.Clock = clockwork.NewRealClock()
 	}
 
 	return &EtcdBackupController{
@@ -112,13 +106,13 @@ func (ctrl *EtcdBackupController) Run(ctx context.Context, r controller.Runtime,
 		if state != channel.StateRecv {
 			// If we didn't receive any event, wait for tick interval.
 			// We don't drop here if we are getting stream of events, so we don't create unnecessary timers.
-			timer := ctrl.settings.Clock.NewTimer(ctrl.settings.TickInterval)
+			timer := time.NewTimer(ctrl.settings.TickInterval)
 
 			select {
 			case <-ctx.Done():
 				return nil
 			case <-r.EventCh():
-			case <-timer.Chan():
+			case <-timer.C:
 			}
 
 			timer.Stop()
@@ -183,7 +177,7 @@ func (ctrl *EtcdBackupController) run(ctx context.Context, r controller.Runtime,
 
 			backupResultCh <- result{
 				clusterID: backupData.Metadata().ID(),
-				time:      ctrl.settings.Clock.Now(),
+				time:      time.Now(),
 				err:       backupErr,
 			}
 
@@ -268,7 +262,7 @@ func (ctrl *EtcdBackupController) findClustersToBackup(ctx context.Context, r co
 
 		latestBackupTime, err := ctrl.latestBackupTime(ctx, backupData.TypedSpec().Value.ClusterUuid)
 		if err != nil {
-			ctrl.updateBackupStatus(ctx, r, clusterID, ctrl.settings.Clock.Now(), err, logger)
+			ctrl.updateBackupStatus(ctx, r, clusterID, time.Now(), err, logger)
 
 			return nil, fmt.Errorf("failed to get latest backup time for cluster %q: %w", clusterID, err)
 		}
@@ -281,7 +275,7 @@ func (ctrl *EtcdBackupController) findClustersToBackup(ctx context.Context, r co
 			continue
 		}
 
-		if elapsed := ctrl.settings.Clock.Since(latestBackupTime); elapsed >= value.Interval.AsDuration() {
+		if elapsed := time.Since(latestBackupTime); elapsed >= value.Interval.AsDuration() {
 			result = append(result, backupData)
 		}
 	}
@@ -307,7 +301,7 @@ func (ctrl *EtcdBackupController) shouldManualBackup(emb *omni.EtcdManualBackup)
 		return false
 	}
 
-	timeDiff := ctrl.settings.Clock.Now().Sub(manualBackupAt)
+	timeDiff := time.Since(manualBackupAt)
 	if timeDiff >= 10*time.Minute || timeDiff <= -10*time.Minute {
 		return false
 	}
@@ -372,7 +366,7 @@ func (ctrl *EtcdBackupController) doBackup(
 		}
 	}()
 
-	now := ctrl.settings.Clock.Now()
+	now := time.Now()
 
 	st, err := ctrl.settings.StoreFactory.GetStore()
 	if err != nil {

@@ -67,8 +67,13 @@ const (
 
 // New creates new Runtime.
 func New(omniState state.State) (*Runtime, error) {
+	return NewWithTTL(omniState, kubernetesClientTTL)
+}
+
+// NewWithTTL creates new Runtime with custom TTL.
+func NewWithTTL(omniState state.State, ttl time.Duration) (*Runtime, error) {
 	return &Runtime{
-		clientsCache: expirable.NewLRU[string, *Client](kubernetesClientLRUSize, nil, kubernetesClientTTL),
+		clientsCache: expirable.NewLRU[string, *Client](kubernetesClientLRUSize, nil, ttl),
 
 		state: omniState,
 
