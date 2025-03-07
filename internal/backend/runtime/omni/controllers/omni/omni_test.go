@@ -343,6 +343,8 @@ type OmniSuite struct { //nolint:govet
 
 	machineService *machineService
 
+	disableConnections bool
+
 	statesMu sync.Mutex
 	states   map[string]*server.State
 }
@@ -403,7 +405,7 @@ func (suite *OmniSuite) newServerWithTalosVersion(suffix, talosVersion string) (
 }
 
 func (suite *OmniSuite) SetupTest() {
-	suite.ctx, suite.ctxCancel = context.WithTimeout(suite.T().Context(), 20*time.Second)
+	suite.ctx, suite.ctxCancel = context.WithCancel(suite.T().Context())
 
 	suite.stateBuilder = dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
 
@@ -416,9 +418,13 @@ func (suite *OmniSuite) SetupTest() {
 	suite.runtime, err = runtime.NewRuntime(suite.state, logger)
 	suite.Require().NoError(err)
 
-	k8s, err := kubernetes.New(suite.state)
+	k8s, err := kubernetes.NewWithTTL(suite.state, 0)
 	suite.Require().NoError(err)
 	rt.Install(kubernetes.Name, k8s)
+
+	if suite.disableConnections {
+		return
+	}
 
 	if stdruntime.GOOS == "darwin" {
 		var temp string

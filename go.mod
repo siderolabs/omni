@@ -52,7 +52,6 @@ require (
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/jellydator/ttlcache/v3 v3.3.0
 	github.com/johannesboyne/gofakes3 v0.0.0-20241026070602-0da3aa9c32ca
-	github.com/jonboulle/clockwork v0.5.0
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/jxskiss/base62 v1.1.0
 	github.com/klauspost/compress v1.18.0
@@ -179,6 +178,7 @@ require (
 	github.com/hashicorp/go-sockaddr v1.0.7 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-7 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/josharian/native v1.1.0 // indirect
 	github.com/jsimonetti/rtnetlink/v2 v2.0.3-0.20241216183107-2d6e9f8ad3f2 // indirect

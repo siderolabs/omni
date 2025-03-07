@@ -15,6 +15,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -24,7 +25,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/johannesboyne/gofakes3"
 	"github.com/johannesboyne/gofakes3/backend/s3mem"
-	"github.com/jonboulle/clockwork"
 	"github.com/siderolabs/gen/containers"
 	"github.com/siderolabs/gen/xiter"
 	"github.com/siderolabs/gen/xslices"
@@ -54,7 +54,9 @@ import (
 func TestEtcdBackupControllerSuite(t *testing.T) {
 	t.Parallel()
 
-	suite.Run(t, new(EtcdBackupControllerSuite))
+	synctest.Run(func() {
+		suite.Run(t, new(EtcdBackupControllerSuite))
+	})
 }
 
 type EtcdBackupControllerSuite struct {
@@ -75,6 +77,8 @@ func (suite *EtcdBackupControllerSuite) register2(ctrl controller.Controller, er
 }
 
 func (suite *EtcdBackupControllerSuite) SetupTest() {
+	suite.OmniSuite.disableConnections = true
+
 	suite.OmniSuite.SetupTest()
 
 	suite.startRuntime()
@@ -87,7 +91,6 @@ func (suite *EtcdBackupControllerSuite) SetupTest() {
 }
 
 func (suite *EtcdBackupControllerSuite) TestEtcdBackup() {
-	fakeclock := fakeClock()
 	sf := suite.fileStoreFactory()
 	clientMock := &talosClientMock{}
 
@@ -102,15 +105,15 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackup() {
 			return clientMock, nil
 		},
 		StoreFactory: sf,
-		Clock:        fakeclock,
 		TickInterval: 10 * time.Minute,
 	}))
 
 	clusterNames := []string{"talos-default-1", "talos-default-2"}
 	clustersData := createClusters(suite, clusterNames, time.Hour)
-	start := fakeclock.Now()
+	start := time.Now()
 
-	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 11*time.Minute)
+	time.Sleep(11 * time.Minute)
+	synctest.Wait()
 
 	rtestutils.AssertResources(
 		suite.ctx,
@@ -128,7 +131,7 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackup() {
 
 			assertion.Equal(specs.EtcdBackupStatusSpec_Ok, value.Status)
 			assertion.Zero(value.Error)
-			assertion.WithinRange(value.LastBackupTime.AsTime(), start, fakeclock.Now())
+			assertion.WithinRange(value.LastBackupTime.AsTime(), start, time.Now())
 		},
 	)
 
@@ -137,7 +140,8 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackup() {
 		suite.eventuallyFindBackups(sf, cd.Metadata().ID(), 1)
 	}
 
-	blockAndAdvance(suite.ctx, suite.T(), fakeclock, time.Hour)
+	time.Sleep(time.Hour)
+	synctest.Wait()
 
 	for _, cd := range clustersData {
 		suite.eventuallyFindBackups(sf, cd.Metadata().ID(), 2)
@@ -146,7 +150,8 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackup() {
 	// Destroy the first cluster
 	suite.destroyClusterByID(clustersData[0].Metadata().ID())
 
-	blockAndAdvance(suite.ctx, suite.T(), fakeclock, time.Hour)
+	time.Sleep(time.Hour)
+	synctest.Wait()
 
 	suite.eventuallyFindBackups(sf, clustersData[1].Metadata().ID(), 3)
 
@@ -155,7 +160,6 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackup() {
 }
 
 func (suite *EtcdBackupControllerSuite) TestEtcdBackupFactoryFails() {
-	fakeclock := fakeClock()
 	sf := suite.fileStoreFactory()
 	clientMock := &talosClientMock{}
 
@@ -183,26 +187,27 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackupFactoryFails() {
 			return fn()
 		},
 		StoreFactory: sf,
-		Clock:        fakeclock,
 		TickInterval: 10 * time.Minute,
 	}))
 
 	clustersData := createClusters(suite, clusterNames, time.Hour)
 
-	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 11*time.Minute)
+	time.Sleep(11 * time.Minute)
+	synctest.Wait()
 
 	// Backups should be created for both clusters since those backups do not exist yet
 	for _, cluster := range clustersData {
 		suite.eventuallyFindBackups(sf, cluster.Metadata().ID(), 1)
 	}
 
-	start := fakeclock.Now()
+	start := time.Now()
 
 	m.Set(clusterNames[0], func() (omnictrl.TalosClient, error) {
 		return nil, errors.New("failed to create client")
 	})
 
-	blockAndAdvance(suite.ctx, suite.T(), fakeclock, time.Hour)
+	time.Sleep(time.Hour)
+	synctest.Wait()
 
 	assertResource(
 		&suite.OmniSuite,
@@ -210,12 +215,12 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackupFactoryFails() {
 		func(r *omni.EtcdBackupStatus, assertion *assert.Assertions) {
 			value := r.TypedSpec().Value
 
-			assertion.EqualValuesf(value.Error, "failed to create talos client for cluster, skipping cluster backup: failed to create client", "cluster %s", r.Metadata().ID())
+			assertion.EqualValuesf("failed to create talos client for cluster, skipping cluster backup: failed to create client", value.Error, "cluster %s", r.Metadata().ID())
 			assertion.Equalf(specs.EtcdBackupStatusSpec_Error, value.Status, "cluster %s", r.Metadata().ID())
 			assertion.WithinRangef(
 				value.LastBackupAttempt.AsTime(),
 				start,
-				fakeclock.Now(),
+				time.Now(),
 				"cluster %s",
 				r.Metadata().ID(),
 			)
@@ -231,7 +236,6 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackupFactoryFails() {
 }
 
 func (suite *EtcdBackupControllerSuite) TestDecryptEtcdBackup() {
-	fakeclock := fakeClock()
 	sf := suite.fileStoreFactory()
 	clientMock := &talosClientMock{}
 
@@ -246,14 +250,14 @@ func (suite *EtcdBackupControllerSuite) TestDecryptEtcdBackup() {
 			return clientMock, nil
 		},
 		StoreFactory: sf,
-		Clock:        fakeclock,
 		TickInterval: 10 * time.Minute,
 	}))
 
 	clusterNames := []string{"talos-default-6"}
 	clusters := createClusters(suite, clusterNames, time.Hour)
 
-	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 11*time.Minute)
+	time.Sleep(11 * time.Minute)
+	synctest.Wait()
 
 	clusterBackups := suite.eventuallyFindBackups(sf, clusters[0].Metadata().ID(), 1)
 
@@ -282,7 +286,6 @@ func (suite *EtcdBackupControllerSuite) TestDecryptEtcdBackup() {
 }
 
 func (suite *EtcdBackupControllerSuite) TestSingleListCall() {
-	fakeclock := fakeClock()
 	sfm := &storeFactoryMock{}
 	sm := &storeMock{}
 
@@ -311,20 +314,19 @@ func (suite *EtcdBackupControllerSuite) TestSingleListCall() {
 			return clientMock, nil
 		},
 		StoreFactory: sfm,
-		Clock:        fakeclock,
 		TickInterval: 10 * time.Minute,
 	}))
 
 	clusterNames := []string{"talos-default-7", "talos-default-8"}
 	clusters := createClusters(suite, clusterNames, time.Hour)
 
-	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 11*time.Minute)
+	time.Sleep(11 * time.Minute)
+	synctest.Wait()
 
 	suite.destroyClusterByID(clusters[0].Metadata().ID())
 
-	blockAndAdvance(suite.ctx, suite.T(), fakeclock, time.Hour)
-
-	suite.Require().NoError(fakeclock.BlockUntilContext(suite.ctx, 1))
+	time.Sleep(time.Hour)
+	synctest.Wait()
 
 	for i := range clusterNames {
 		suite.destroyClusterByID(clusters[i].Metadata().ID())
@@ -335,7 +337,6 @@ func (suite *EtcdBackupControllerSuite) TestListBackupsWithExistingData() {
 	clusterNames := []string{"talos-default-9", "talos-default-10"}
 	clusters := createClusters(suite, clusterNames, time.Hour)
 
-	fakeclock := fakeClock()
 	sfm := &storeFactoryMock{}
 	store := &storeMock{}
 
@@ -347,8 +348,8 @@ func (suite *EtcdBackupControllerSuite) TestListBackupsWithExistingData() {
 	store.
 		On(xmocks.Name((*storeMock).ListBackups), mock.Anything, mock.Anything).
 		Return(toIter([]etcdbackup.Info{
-			{Timestamp: fakeclock.Now().Add(time.Minute), Reader: nil, Size: 0},
-			{Timestamp: fakeclock.Now(), Reader: nil, Size: 0},
+			{Timestamp: time.Now().Add(time.Minute), Reader: nil, Size: 0},
+			{Timestamp: time.Now(), Reader: nil, Size: 0},
 		}), nil).
 		Twice()
 	store.On(xmocks.Name((*storeMock).Upload), mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -369,24 +370,23 @@ func (suite *EtcdBackupControllerSuite) TestListBackupsWithExistingData() {
 			return clientMock, nil
 		},
 		StoreFactory: sfm,
-		Clock:        fakeclock,
 		TickInterval: 10 * time.Minute,
 	}))
 
-	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 11*time.Minute)
+	time.Sleep(11 * time.Minute)
+	synctest.Wait()
 
 	suite.destroyClusterByID(clusters[0].Metadata().ID())
 
-	blockAndAdvance(suite.ctx, suite.T(), fakeclock, time.Hour)
-	blockAndAdvance(suite.ctx, suite.T(), fakeclock, time.Hour)
-
-	suite.Require().NoError(fakeclock.BlockUntilContext(suite.ctx, 1))
+	time.Sleep(time.Hour)
+	synctest.Wait()
+	time.Sleep(time.Hour)
+	synctest.Wait()
 
 	suite.destroyClusterByID(clusters[1].Metadata().ID())
 }
 
 func (suite *EtcdBackupControllerSuite) TestEtcdManualBackupFindResource() {
-	fakeclock := fakeClock()
 	sf := suite.fileStoreFactory()
 	clientMock := &talosClientMock{}
 
@@ -406,7 +406,6 @@ func (suite *EtcdBackupControllerSuite) TestEtcdManualBackupFindResource() {
 			return clientMock, nil
 		},
 		StoreFactory: sf,
-		Clock:        fakeclock,
 		TickInterval: time.Minute,
 	}))
 
@@ -414,12 +413,13 @@ func (suite *EtcdBackupControllerSuite) TestEtcdManualBackupFindResource() {
 	clustersData := createClusters(suite, clusterNames, 0) // 0 means that automatic backups are disabled
 
 	manualBackup := omni.NewEtcdManualBackup(clustersData[0].Metadata().ID())
-	manualBackup.TypedSpec().Value.BackupAt = timestamppb.New(fakeclock.Now().Add(15 * time.Second))
+	manualBackup.TypedSpec().Value.BackupAt = timestamppb.New(time.Now().Add(15 * time.Second))
 
 	err := suite.state.Create(suite.ctx, manualBackup)
 	suite.Require().NoError(err)
 
-	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 15*time.Second)
+	time.Sleep(15 * time.Second)
+	synctest.Wait()
 
 	backups := suite.eventuallyFindBackups(sf, clustersData[0].Metadata().ID(), 1)
 
@@ -450,7 +450,7 @@ func (suite *EtcdBackupControllerSuite) TestEtcdManualBackupFindResource() {
 
 	// Should return an error if no query is provided
 
-	_, err = safe.StateList[*omni.EtcdBackup](suite.ctx, suite.state, omni.NewEtcdBackup("", fakeclock.Now()).Metadata())
+	_, err = safe.StateList[*omni.EtcdBackup](suite.ctx, suite.state, omni.NewEtcdBackup("", time.Now()).Metadata())
 	suite.Require().Error(err)
 
 	for _, clusterData := range clustersData {
@@ -459,7 +459,6 @@ func (suite *EtcdBackupControllerSuite) TestEtcdManualBackupFindResource() {
 }
 
 func (suite *EtcdBackupControllerSuite) TestEtcdManualBackup() {
-	fakeclock := fakeClock()
 	sf := suite.fileStoreFactory()
 	clientMock := &talosClientMock{}
 
@@ -474,30 +473,31 @@ func (suite *EtcdBackupControllerSuite) TestEtcdManualBackup() {
 			return clientMock, nil
 		},
 		StoreFactory: sf,
-		Clock:        fakeclock,
 		TickInterval: time.Minute,
 	}))
 
 	clusterNames := []string{"talos-default-12", "talos-default-13"}
 	clustersData := createClusters(suite, clusterNames, 0) // 0 means that automatic backups are disabled
 
-	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 15*time.Second)
+	time.Sleep(15 * time.Second)
+	synctest.Wait()
 
 	assertNoResource(&suite.OmniSuite, omni.NewEtcdBackupStatus(clustersData[0].Metadata().ID()))
 	assertNoResource(&suite.OmniSuite, omni.NewEtcdBackupStatus(clustersData[1].Metadata().ID()))
 
 	manualBackup := omni.NewEtcdManualBackup(clustersData[0].Metadata().ID())
-	manualBackup.TypedSpec().Value.BackupAt = timestamppb.New(fakeclock.Now().Add(12 * time.Minute))
+	manualBackup.TypedSpec().Value.BackupAt = timestamppb.New(time.Now().Add(12 * time.Minute))
 
 	err := suite.state.Create(suite.ctx, manualBackup)
 	suite.Require().NoError(err)
 
-	now := fakeclock.Now()
+	now := time.Now()
 
 	assertNoResource(&suite.OmniSuite, omni.NewEtcdBackupStatus(clustersData[0].Metadata().ID()))
 	suite.eventuallyFindBackups(sf, clustersData[0].Metadata().ID(), 0)
 
-	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 12*time.Minute)
+	time.Sleep(12 * time.Minute)
+	synctest.Wait()
 
 	assertResource(
 		&suite.OmniSuite,
@@ -510,14 +510,14 @@ func (suite *EtcdBackupControllerSuite) TestEtcdManualBackup() {
 			assertion.WithinRange(
 				value.LastBackupTime.AsTime(),
 				now,
-				fakeclock.Now(),
+				time.Now(),
 				"cluster %s",
 				r.Metadata().ID(),
 			)
 			assertion.WithinRange(
 				value.LastBackupAttempt.AsTime(),
 				now,
-				fakeclock.Now(),
+				time.Now(),
 				"cluster %s",
 				r.Metadata().ID(),
 			)
@@ -526,11 +526,12 @@ func (suite *EtcdBackupControllerSuite) TestEtcdManualBackup() {
 
 	suite.eventuallyFindBackups(sf, clustersData[0].Metadata().ID(), 1)
 
-	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 10*time.Minute)
+	time.Sleep(10 * time.Minute)
+	synctest.Wait()
 
 	// Should ignore this backup
 	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, manualBackup.Metadata(), func(b *omni.EtcdManualBackup) error {
-		b.TypedSpec().Value.BackupAt = timestamppb.New(fakeclock.Now().Add(-12 * time.Minute))
+		b.TypedSpec().Value.BackupAt = timestamppb.New(time.Now().Add(-12 * time.Minute))
 
 		return nil
 	})
@@ -544,7 +545,6 @@ func (suite *EtcdBackupControllerSuite) TestEtcdManualBackup() {
 }
 
 func (suite *EtcdBackupControllerSuite) TestS3Backup() {
-	fakeclock := fakeClock()
 	logger := zaptest.NewLogger(suite.T())
 
 	backend := newFakeBackend(logger)
@@ -583,21 +583,18 @@ func (suite *EtcdBackupControllerSuite) TestS3Backup() {
 		On(xmocks.Name((*talosClientMock).EtcdSnapshot), mock.Anything, mock.Anything, mock.Anything).
 		Return(func() (io.ReadCloser, error) { return io.NopCloser(strings.NewReader("Hello World")), nil })
 
+	now := time.Now()
+
 	suite.register2(omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
 		ClientMaker: func(context.Context, string) (omnictrl.TalosClient, error) {
 			return clientMock, nil
 		},
 		StoreFactory: sf,
-		Clock:        fakeclock,
-		TickInterval: 10 * time.Minute,
+		TickInterval: time.Minute,
 	}))
 
 	clusterNames := []string{"talos-default-14"}
 	clusters := createClusters(suite, clusterNames, time.Hour)
-
-	now := fakeclock.Now()
-
-	blockAndAdvance(suite.ctx, suite.T(), fakeclock, 11*time.Minute)
 
 	assertResource(
 		&suite.OmniSuite,
@@ -610,14 +607,14 @@ func (suite *EtcdBackupControllerSuite) TestS3Backup() {
 			assertion.WithinRange(
 				value.LastBackupTime.AsTime(),
 				now,
-				fakeclock.Now(),
+				time.Now(),
 				"cluster %s",
 				r.Metadata().ID(),
 			)
 			assertion.WithinRange(
 				value.LastBackupAttempt.AsTime(),
 				now,
-				fakeclock.Now(),
+				time.Now(),
 				"cluster %s",
 				r.Metadata().ID(),
 			)
@@ -775,15 +772,6 @@ func toSlice(it iter.Seq2[etcdbackup.Info, error], t *testing.T) []etcdbackup.In
 	}
 
 	return result
-}
-
-func fakeClock() *clockwork.FakeClock {
-	return clockwork.NewFakeClockAt(time.Unix(0, 0).UTC())
-}
-
-func blockAndAdvance(ctx context.Context, t *testing.T, fc *clockwork.FakeClock, duration time.Duration) {
-	require.NoError(t, fc.BlockUntilContext(ctx, 1))
-	fc.Advance(duration)
 }
 
 type fakeBackend struct {
