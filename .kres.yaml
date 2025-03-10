@@ -74,6 +74,8 @@ spec:
         COMPOSE_DOCKER_CLI_BUILD=1
         DOCKER_BUILDKIT=1
         GO_LDFLAGS="$(GO_LDFLAGS)"
+        GOTOOLCHAIN="$(GOTOOLCHAIN)"
+        GOEXPERIMENT="$(GOEXPERIMENT)"
         docker compose --file ./hack/compose/docker-compose.yml --file ./hack/compose/docker-compose.override.yml up --build
 ---
 kind: custom.Step
@@ -141,6 +143,8 @@ spec:
         COMPOSE_DOCKER_CLI_BUILD=1
         DOCKER_BUILDKIT=1
         GO_LDFLAGS="$(GO_LDFLAGS)"
+        GOTOOLCHAIN="$(GOTOOLCHAIN)"
+        GOEXPERIMENT="$(GOEXPERIMENT)"
         docker compose --file ./hack/compose/docker-compose.yml --file ./hack/compose/docker-compose.override.yml down --rmi local --remove-orphans --volumes=$(REMOVE_VOLUMES)
 ---
 kind: custom.Step

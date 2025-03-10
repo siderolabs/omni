@@ -3,7 +3,6 @@
 # Use of this software is governed by the Business Source License
 # included in the LICENSE file.
 
-version: '3.8'
 services:
   omni:
     network_mode: host
@@ -49,6 +48,8 @@ services:
         - DEEPCOPY_VERSION=${DEEPCOPY_VERSION:?error}
         - TESTPKGS=${TESTPKGS:?error}
         - GO_LDFLAGS=${GO_LDFLAGS}
+        - GOEXPERIMENT=${GOEXPERIMENT}
+        - GOTOOLCHAIN=${GOTOOLCHAIN}
     environment:
       - VAULT_ADDR=http://127.0.0.1:8200
       - VAULT_TOKEN=dev-o-token

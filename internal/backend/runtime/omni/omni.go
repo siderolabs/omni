@@ -211,6 +211,7 @@ func New(
 		&omnictrl.ClusterMachineEncryptionController{},
 		&omnictrl.ClusterStatusMetricsController{},
 		&omnictrl.ClusterWorkloadProxyController{},
+		&omnictrl.ConfigPatchCleanupController{},
 		&omnictrl.ConfigPatchMetricsController{},
 		omnictrl.NewEtcdBackupOverallStatusController(),
 		backupController,
