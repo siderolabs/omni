@@ -110,6 +110,7 @@ func NewManager(
 			logger,
 			state,
 			config.Config.JoinTokensMode,
+			config.Config.SiderolinkUseGRPCTunnel,
 		),
 	}
 

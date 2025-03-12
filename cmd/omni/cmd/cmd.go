@@ -339,7 +339,8 @@ var initOnce = sync.OnceValue(func() *cobra.Command {
 		config.Config.SiderolinkWireguardAdvertisedAddress,
 		"advertised wireguard address which is passed down to the nodes.")
 	rootCmd.Flags().StringVar(&config.Config.SiderolinkWireguardBindAddress, "siderolink-wireguard-bind-addr", config.Config.SiderolinkWireguardBindAddress, "SideroLink WireGuard bind address.")
-	rootCmd.Flags().BoolVar(&config.Config.SiderolinkUseGRPCTunnel, "siderolink-use-grpc-tunnel", false, "use gRPC tunnel to wrap WireGuard traffic instead of UDP")
+	rootCmd.Flags().BoolVar(&config.Config.SiderolinkUseGRPCTunnel, "siderolink-use-grpc-tunnel", false, "use gRPC tunnel to wrap WireGuard traffic instead of UDP. When enabled, "+
+		"the SideroLink connections from Talos machines will be configured to use the tunnel mode, regardless of their individual configuration. ")
 
 	rootCmd.Flags().StringVar(&config.Config.MachineAPIBindAddress, "siderolink-api-bind-addr", config.Config.MachineAPIBindAddress, "SideroLink provision bind address.")
 	rootCmd.Flags().StringVar(&config.Config.MachineAPICertFile, "siderolink-api-cert", config.Config.MachineAPICertFile, "SideroLink TLS cert file path.")

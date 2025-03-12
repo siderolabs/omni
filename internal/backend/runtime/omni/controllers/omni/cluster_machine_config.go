@@ -492,14 +492,11 @@ func buildInstallImage(imageFactoryHost string, resID resource.ID, installImage 
 }
 
 func renderSiderolinkJoinConfig(connectionParams *siderolink.ConnectionParams, link *siderolink.Link, eventSinkPort int) ([]byte, error) {
-	var urlOpts []siderolink.APIURLOption
-
 	// If this machine is connected using the GRPC tunnel (grpc_tunnel=true), set it explicitly, so that option is preserved.
-	if link.TypedSpec().Value.GetVirtualAddrport() != "" {
-		urlOpts = append(urlOpts, siderolink.WithGRPCTunnel(true))
-	}
+	useSiderolinkGRPCTunnel := link.TypedSpec().Value.GetVirtualAddrport() != ""
 
-	url, err := siderolink.APIURL(connectionParams, urlOpts...)
+	// always pass the tunnel option explicitly here to avoid setting it to the instance default
+	url, err := siderolink.APIURL(connectionParams, siderolink.WithGRPCTunnel(useSiderolinkGRPCTunnel))
 	if err != nil {
 		return nil, err
 	}

@@ -18,6 +18,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
 	"github.com/cosi-project/runtime/pkg/resource/typed"
 	"github.com/siderolabs/gen/ensure"
+	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/runtime"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/siderolink"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
@@ -35,8 +36,8 @@ const (
 
 // APIURLOptions provides extra args to the APIURL method.
 type APIURLOptions struct {
+	grpcTunnel *bool
 	token      string
-	grpcTunnel bool
 }
 
 // APIURLOption provides extra arg to the APIURL method.
@@ -52,7 +53,7 @@ func WithJoinToken(token string) APIURLOption {
 // WithGRPCTunnel overrides default value for the grpc tunnel.
 func WithGRPCTunnel(enabled bool) APIURLOption {
 	return func(a *APIURLOptions) {
-		a.grpcTunnel = enabled
+		a.grpcTunnel = pointer.To(enabled)
 	}
 }
 
@@ -128,8 +129,7 @@ func APIURL(cfg *ConnectionParams, options ...APIURLOption) (string, error) {
 	}
 
 	opts := APIURLOptions{
-		token:      cfg.TypedSpec().Value.JoinToken,
-		grpcTunnel: cfg.TypedSpec().Value.UseGrpcTunnel,
+		token: cfg.TypedSpec().Value.JoinToken,
 	}
 
 	for _, o := range options {
@@ -139,8 +139,12 @@ func APIURL(cfg *ConnectionParams, options ...APIURLOption) (string, error) {
 	query := apiURL.Query()
 	query.Set("jointoken", opts.token)
 
-	if opts.grpcTunnel {
-		query.Set(grpcTunnelQueryParam, strconv.FormatBool(opts.grpcTunnel))
+	// Enable the GRPC tunnel only when:
+	// - It is explicitly set in the options, and it true, or
+	// - It is not explicitly set in the options, but it is enabled in the connection params.
+	if (opts.grpcTunnel != nil && *opts.grpcTunnel) ||
+		(opts.grpcTunnel == nil && cfg.TypedSpec().Value.UseGrpcTunnel) {
+		query.Set(grpcTunnelQueryParam, "true")
 	}
 
 	apiURL.RawQuery = query.Encode()

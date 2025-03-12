@@ -114,7 +114,7 @@ func TestProvision(t *testing.T) {
 			require.NoError(t, eg.Wait())
 		})
 
-		provisionHandler := siderolink.NewProvisionHandler(logger, state, mode)
+		provisionHandler := siderolink.NewProvisionHandler(logger, state, mode, false)
 
 		config := siderolinkres.NewConfig(resources.DefaultNamespace)
 		config.TypedSpec().Value.ServerAddress = "127.0.0.1"

@@ -58,6 +58,7 @@ type provisionContext struct {
 	forceValidNodeUniqueToken bool
 	supportsSecureJoinTokens  bool
 	tokenWasWiped             bool
+	useWireguardOverGRPC      bool
 }
 
 func (pc *provisionContext) isAuthorizedLegacyJoin() bool {
@@ -74,20 +75,22 @@ func (pc *provisionContext) isAuthorizedSecureFlow() bool {
 }
 
 // NewProvisionHandler creates a new ProvisionHandler.
-func NewProvisionHandler(logger *zap.Logger, state state.State, joinTokenMode config.JoinTokensMode) *ProvisionHandler {
+func NewProvisionHandler(logger *zap.Logger, state state.State, joinTokenMode config.JoinTokensMode, forceWireguardOverGRPC bool) *ProvisionHandler {
 	return &ProvisionHandler{
-		logger:        logger,
-		state:         state,
-		joinTokenMode: joinTokenMode,
+		logger:                 logger,
+		state:                  state,
+		joinTokenMode:          joinTokenMode,
+		forceWireguardOverGRPC: forceWireguardOverGRPC,
 	}
 }
 
 // ProvisionHandler is the gRPC service that handles provision responses coming from the Talos nodes.
 type ProvisionHandler struct {
 	pb.UnimplementedProvisionServiceServer
-	logger        *zap.Logger
-	state         state.State
-	joinTokenMode config.JoinTokensMode
+	logger                 *zap.Logger
+	state                  state.State
+	joinTokenMode          config.JoinTokensMode
+	forceWireguardOverGRPC bool
 }
 
 func (h *ProvisionHandler) runCleanup(ctx context.Context) error {
@@ -235,7 +238,7 @@ func updateResourceWithMatchingToken[T res](ctx context.Context, logger *zap.Log
 
 			s.NodePublicKey = provisionContext.request.NodePublicKey
 
-			s.VirtualAddrport, err = generateVirtualAddrPort(pointer.SafeDeref(provisionContext.request.WireguardOverGrpc))
+			s.VirtualAddrport, err = generateVirtualAddrPort(provisionContext.useWireguardOverGRPC)
 			if err != nil {
 				return err
 			}
@@ -452,7 +455,7 @@ func generateLinkSpec(provisionContext *provisionContext) (*specs.SiderolinkSpec
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("error parsing Wireguard key: %s", err))
 	}
 
-	virtualAddrPort, err := generateVirtualAddrPort(pointer.SafeDeref(provisionContext.request.WireguardOverGrpc))
+	virtualAddrPort, err := generateVirtualAddrPort(provisionContext.useWireguardOverGRPC)
 	if err != nil {
 		return nil, err
 	}
@@ -585,6 +588,7 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 		hasValidNodeUniqueToken:   linkNodeUniqueToken.Equal(requestNodeUniqueToken),
 		nodeUniqueTokensEnabled:   h.joinTokenMode != config.JoinTokensModeLegacyOnly,
 		supportsSecureJoinTokens:  supportsSecureJoinTokens,
+		useWireguardOverGRPC:      h.forceWireguardOverGRPC || pointer.SafeDeref(req.WireguardOverGrpc),
 	}, nil
 }
 
