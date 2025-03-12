@@ -7,11 +7,13 @@ package omni
 
 import (
 	"context"
+	"slices"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/talos/pkg/machinery/api/storage"
 	"go.uber.org/zap"
 
@@ -69,7 +71,11 @@ func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVers
 		genOptions.TypedSpec().Value.InstallImage.TalosVersion = clusterMachineTalosVersion.TypedSpec().Value.TalosVersion
 		genOptions.TypedSpec().Value.InstallImage.SchematicId = clusterMachineTalosVersion.TypedSpec().Value.SchematicId
 		genOptions.TypedSpec().Value.InstallImage.SchematicInitialized = machineStatus.TypedSpec().Value.Schematic != nil
-		genOptions.TypedSpec().Value.InstallImage.SchematicInvalid = machineStatus.TypedSpec().Value.GetSchematic().GetInvalid()
+
+		if genOptions.TypedSpec().Value.InstallImage.SchematicInitialized {
+			genOptions.TypedSpec().Value.InstallImage.SchematicInvalid = machineStatus.TypedSpec().Value.GetSchematic().GetInvalid()
+		}
+
 		genOptions.TypedSpec().Value.InstallImage.SecureBootStatus = machineStatus.TypedSpec().Value.SecureBootStatus
 	}
 
@@ -79,19 +85,33 @@ func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVers
 
 	installDisk := omni.GetMachineStatusSystemDisk(machineStatus)
 
-	diskSize := ^uint64(0)
-
 	if installDisk == "" {
-		for _, disk := range machineStatus.TypedSpec().Value.Hardware.Blockdevices {
-			if disk.Readonly || disk.Type == storage.Disk_CD.String() {
-				continue
+		const transportUSB = "usb"
+
+		candidates := machineStatus.TypedSpec().Value.Hardware.Blockdevices
+
+		candidates = xslices.Filter(candidates, func(disk *specs.MachineStatusSpec_HardwareStatus_BlockDevice) bool {
+			return !disk.Readonly && disk.Type != storage.Disk_CD.String() && disk.Size > installDiskMinSize
+		})
+
+		sortFunc := func(a, b *specs.MachineStatusSpec_HardwareStatus_BlockDevice) int {
+			if a.Transport == transportUSB && b.Transport != transportUSB {
+				return 1
+			} else if b.Transport == transportUSB && a.Transport != transportUSB {
+				return -1
 			}
 
-			if disk.Size >= installDiskMinSize && disk.Size < diskSize {
-				installDisk = disk.LinuxName
-
-				diskSize = disk.Size
+			if a.Size < b.Size {
+				return 1
 			}
+
+			return 0
+		}
+
+		slices.SortFunc(candidates, sortFunc)
+
+		if len(candidates) > 0 {
+			installDisk = candidates[0].LinuxName
 		}
 	}
 

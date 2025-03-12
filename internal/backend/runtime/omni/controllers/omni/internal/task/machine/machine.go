@@ -18,7 +18,10 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/channel"
 	"github.com/siderolabs/gen/maps"
+	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/talos/pkg/machinery/client"
+	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
+	"github.com/siderolabs/talos/pkg/machinery/resources/block"
 	"github.com/siderolabs/talos/pkg/machinery/resources/hardware"
 	"github.com/siderolabs/talos/pkg/machinery/resources/network"
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
@@ -152,11 +155,12 @@ func (spec CollectTaskSpec) sendInfo(ctx context.Context, info Info, notifyCh In
 //
 // It subscribes to resource updates and polls for resources that can't be watched.
 //
-//nolint:gocyclo,cyclop,gocognit
+//nolint:gocyclo,cyclop,gocognit,maintidx
 func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, notifyCh InfoChan) error {
 	var (
-		c   *client.Client
-		err error
+		c              *client.Client
+		err            error
+		diskTickerChan <-chan time.Time
 	)
 
 	opts := talos.GetSocketOptions(spec.Endpoint)
@@ -190,9 +194,6 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 		disksPollInterval = 5 * time.Minute
 		minPolInterval    = time.Second
 	)
-
-	disksTicker := time.NewTicker(disksPollInterval)
-	defer disksTicker.Stop()
 
 	pollTicker := time.NewTicker(minPolInterval)
 	defer pollTicker.Stop()
@@ -248,6 +249,9 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 		runtime.DiagnosticType: {
 			namespace: runtime.NamespaceName,
 		},
+		block.DiskType: {
+			namespace: block.NamespaceName,
+		},
 	}
 
 	for resourceType, watcher := range watchers {
@@ -266,11 +270,37 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 		}
 	}
 
+	info := Info{}
+
+	if err = pollVersion(ctx, c, &info); err != nil {
+		return err
+	}
+
+	skipPollers := map[string]struct{}{}
+
+	if quirks.New(pointer.SafeDeref(info.TalosVersion)).SkipDataPartitions() {
+		skipPollers["disks"] = struct{}{}
+	} else {
+		// initialize poller for get disks call
+		disksTicker := time.NewTicker(disksPollInterval)
+		defer disksTicker.Stop()
+
+		diskTickerChan = disksTicker.C
+	}
+
 	dirtyPollers := map[string]struct{}{}
+
+	markPollerDirty := func(name string) {
+		if _, skip := skipPollers[name]; skip {
+			return
+		}
+
+		dirtyPollers[name] = struct{}{}
+	}
 
 	// mark everything as dirty on start
 	for k := range machinePollers {
-		dirtyPollers[k] = struct{}{}
+		markPollerDirty(k)
 	}
 
 	for k := range resourcePollers {
@@ -278,7 +308,7 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 			continue
 		}
 
-		dirtyPollers[k] = struct{}{}
+		markPollerDirty(k)
 	}
 
 	for {
@@ -301,9 +331,9 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 			select {
 			case <-ctx.Done():
 				return nil
-			case <-disksTicker.C:
+			case <-diskTickerChan:
 				// poll disks as we have no way to watch for changes
-				dirtyPollers["disks"] = struct{}{}
+				markPollerDirty("disks")
 			case <-pollTicker.C:
 				break waitLoop
 			case event := <-watchCh:
@@ -315,7 +345,7 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 				case state.Created, state.Updated, state.Destroyed:
 					// poll machine version on each machine status update
 					if event.Resource.Metadata().Type() == runtime.MachineStatusType {
-						dirtyPollers["version"] = struct{}{}
+						markPollerDirty("version")
 
 						break waitLoop
 					}
@@ -327,7 +357,7 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 					}
 
 					if markAsDirty {
-						dirtyPollers[event.Resource.Metadata().Type()] = struct{}{}
+						markPollerDirty(event.Resource.Metadata().Type())
 					}
 				}
 			}

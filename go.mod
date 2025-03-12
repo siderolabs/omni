@@ -80,7 +80,7 @@ require (
 	github.com/siderolabs/omni/client v0.45.0
 	github.com/siderolabs/proto-codec v0.1.2
 	github.com/siderolabs/siderolink v0.3.13
-	github.com/siderolabs/talos/pkg/machinery v1.10.0-alpha.0
+	github.com/siderolabs/talos/pkg/machinery v1.10.0-alpha.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.10.0
@@ -215,7 +215,7 @@ require (
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	github.com/sasha-s/go-deadlock v0.3.5 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
-	github.com/siderolabs/go-blockdevice/v2 v2.0.11 // indirect
+	github.com/siderolabs/go-blockdevice/v2 v2.0.13 // indirect
 	github.com/siderolabs/go-kubeconfig v0.1.0 // indirect
 	github.com/siderolabs/net v0.4.0 // indirect
 	github.com/siderolabs/protoenc v0.2.2 // indirect
