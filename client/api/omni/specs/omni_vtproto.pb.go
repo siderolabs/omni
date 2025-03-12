@@ -153,6 +153,7 @@ func (m *MachineStatusSpec_HardwareStatus_BlockDevice) CloneVT() *MachineStatusS
 	r.BusPath = m.BusPath
 	r.SystemDisk = m.SystemDisk
 	r.Readonly = m.Readonly
+	r.Transport = m.Transport
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -2645,6 +2646,9 @@ func (this *MachineStatusSpec_HardwareStatus_BlockDevice) EqualVT(that *MachineS
 		return false
 	}
 	if this.Readonly != that.Readonly {
+		return false
+	}
+	if this.Transport != that.Transport {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -6131,6 +6135,13 @@ func (m *MachineStatusSpec_HardwareStatus_BlockDevice) MarshalToSizedBufferVT(dA
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Transport) > 0 {
+		i -= len(m.Transport)
+		copy(dAtA[i:], m.Transport)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Transport)))
+		i--
+		dAtA[i] = 0x6a
 	}
 	if m.Readonly {
 		i--
@@ -12507,6 +12518,10 @@ func (m *MachineStatusSpec_HardwareStatus_BlockDevice) SizeVT() (n int) {
 	if m.Readonly {
 		n += 2
 	}
+	l = len(m.Transport)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -15928,6 +15943,38 @@ func (m *MachineStatusSpec_HardwareStatus_BlockDevice) UnmarshalVT(dAtA []byte) 
 				}
 			}
 			m.Readonly = bool(v != 0)
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Transport", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Transport = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

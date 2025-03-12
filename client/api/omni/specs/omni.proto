@@ -84,6 +84,8 @@ message MachineStatusSpec {
       bool system_disk = 11;
       // Readonly disk.
       bool readonly = 12;
+      // Transport is the disk transport.
+      string transport = 13;
     }
 
     // CPU information.

@@ -69,7 +69,11 @@ func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVers
 		genOptions.TypedSpec().Value.InstallImage.TalosVersion = clusterMachineTalosVersion.TypedSpec().Value.TalosVersion
 		genOptions.TypedSpec().Value.InstallImage.SchematicId = clusterMachineTalosVersion.TypedSpec().Value.SchematicId
 		genOptions.TypedSpec().Value.InstallImage.SchematicInitialized = machineStatus.TypedSpec().Value.Schematic != nil
-		genOptions.TypedSpec().Value.InstallImage.SchematicInvalid = machineStatus.TypedSpec().Value.GetSchematic().GetInvalid()
+
+		if genOptions.TypedSpec().Value.InstallImage.SchematicInitialized {
+			genOptions.TypedSpec().Value.InstallImage.SchematicInvalid = machineStatus.TypedSpec().Value.GetSchematic().GetInvalid()
+		}
+
 		genOptions.TypedSpec().Value.InstallImage.SecureBootStatus = machineStatus.TypedSpec().Value.SecureBootStatus
 	}
 
@@ -79,7 +83,29 @@ func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVers
 
 	installDisk := omni.GetMachineStatusSystemDisk(machineStatus)
 
-	diskSize := ^uint64(0)
+	var selected *specs.MachineStatusSpec_HardwareStatus_BlockDevice
+
+	const transportUSB = "usb"
+
+	shouldSelect := func(other *specs.MachineStatusSpec_HardwareStatus_BlockDevice) bool {
+		if selected == nil {
+			return true
+		}
+
+		if other.Transport == transportUSB && selected.Transport != transportUSB {
+			return false
+		}
+
+		if other.Transport != transportUSB && selected.Transport == transportUSB {
+			return true
+		}
+
+		if other.Size < selected.Size {
+			return true
+		}
+
+		return false
+	}
 
 	if installDisk == "" {
 		for _, disk := range machineStatus.TypedSpec().Value.Hardware.Blockdevices {
@@ -87,10 +113,14 @@ func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVers
 				continue
 			}
 
-			if disk.Size >= installDiskMinSize && disk.Size < diskSize {
-				installDisk = disk.LinuxName
+			if disk.Size <= installDiskMinSize {
+				continue
+			}
 
-				diskSize = disk.Size
+			if shouldSelect(disk) {
+				selected = disk
+
+				installDisk = disk.LinuxName
 			}
 		}
 	}

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"path/filepath"
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource/meta"
@@ -24,6 +25,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/nethelpers"
+	"github.com/siderolabs/talos/pkg/machinery/resources/block"
 	"github.com/siderolabs/talos/pkg/machinery/resources/hardware"
 	"github.com/siderolabs/talos/pkg/machinery/resources/k8s"
 	"github.com/siderolabs/talos/pkg/machinery/resources/network"
@@ -50,11 +52,12 @@ var resourcePollers = map[string]machinePollFunction{
 	runtime.MetaKeyType:          pollMeta,
 	runtime.ExtensionStatusType:  pollExtensions,
 	runtime.DiagnosticType:       pollDiagnostics,
+	block.DiskType:               pollDisks,
 }
 
 var machinePollers = map[string]machinePollFunction{
 	"version": pollVersion,
-	"disks":   pollDisks,
+	"disks":   pollDisksLegacy,
 
 	// we do not use a resource poller for the secure boot status, as we want to mark
 	// secure boot explicitly to disabled (contrary to leaving it nil) if the feature is not available (i.e., older Talos versions).
@@ -312,6 +315,63 @@ func pollSecureBootStatus(ctx context.Context, c *client.Client, info *Info) err
 }
 
 func pollDisks(ctx context.Context, c *client.Client, info *Info) error {
+	info.Blockdevices = nil
+
+	systemDisk, err := safe.StateGetByID[*block.SystemDisk](ctx, c.COSI, block.SystemDiskID)
+	if err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
+
+	return forEachResource(
+		ctx,
+		c,
+		block.NamespaceName,
+		block.DiskType,
+		func(disk *block.Disk) error {
+			if strings.HasPrefix(disk.TypedSpec().DevPath, "/dev/loop") {
+				return nil
+			}
+
+			spec := disk.TypedSpec()
+
+			var diskType storage.Disk_DiskType
+
+			switch {
+			case spec.CDROM:
+				diskType = storage.Disk_CD
+			case spec.Transport == "nvme":
+				diskType = storage.Disk_NVME
+			case spec.Transport == "mmc":
+				diskType = storage.Disk_SD
+			case spec.Rotational:
+				diskType = storage.Disk_HDD
+			case spec.Transport != "":
+				diskType = storage.Disk_SSD
+			}
+
+			if diskType == storage.Disk_UNKNOWN && spec.Modalias == "" && spec.SubSystem != "/sys/class/block" {
+				return nil
+			}
+
+			info.Blockdevices = append(info.Blockdevices, &specs.MachineStatusSpec_HardwareStatus_BlockDevice{
+				Size:       spec.Size,
+				Model:      spec.Model,
+				LinuxName:  filepath.Join("/dev", disk.Metadata().ID()),
+				Serial:     spec.Serial,
+				Uuid:       spec.UUID,
+				Wwid:       spec.WWID,
+				Type:       diskType.String(),
+				BusPath:    spec.BusPath,
+				SystemDisk: systemDisk != nil && disk.Metadata().ID() == systemDisk.TypedSpec().DiskID,
+				Readonly:   spec.Readonly,
+				Transport:  spec.Transport,
+			})
+
+			return nil
+		})
+}
+
+func pollDisksLegacy(ctx context.Context, c *client.Client, info *Info) error {
 	info.Blockdevices = nil
 
 	disksResp, err := c.Disks(ctx)
