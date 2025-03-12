@@ -27,6 +27,9 @@ const (
 
 	// LabelInfraProvider is set when the service account is a infra provider service account.
 	LabelInfraProvider = omni.SystemLabelPrefix + "infra-provider"
+
+	// LabelTokenActive is set on the tokens which are active.
+	LabelTokenActive = omni.SystemLabelPrefix + "active-join-token"
 )
 
 const (

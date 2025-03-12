@@ -1090,3 +1090,93 @@ func infraMachineConfigValidationOptions(st state.State) []validated.StateOption
 		})),
 	}
 }
+
+const (
+	// tsgen:MaxJoinTokenNameLength
+	maxJoinTokenNameLength = 16
+	// tsgen:MinJoinTokenLength
+	minJoinTokenLength = 8
+)
+
+func joinTokenValidationOptions(st state.State) []validated.StateOption {
+	validateJoinTokenName := func(res *authres.JoinToken) error {
+		if res.TypedSpec().Value.Name == "" {
+			return errors.New("the join token name cannot be empty")
+		}
+
+		if len(res.TypedSpec().Value.Name) > maxJoinTokenNameLength {
+			return fmt.Errorf("join token name cannot be longer than %d symbols", maxJoinTokenNameLength)
+		}
+
+		return nil
+	}
+
+	checkDefault := func(ctx context.Context, id string) (bool, error) {
+		defaultJoinToken, err := safe.ReaderGetByID[*authres.DefaultJoinToken](ctx, st, authres.DefaultJoinTokenID)
+		if err != nil && !state.IsNotFoundError(err) {
+			return false, err
+		}
+
+		if defaultJoinToken == nil {
+			return false, nil
+		}
+
+		return defaultJoinToken.TypedSpec().Value.TokenId == id, nil
+	}
+
+	return []validated.StateOption{
+		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, _, res *authres.JoinToken, _ ...state.UpdateOption) error {
+			return validateJoinTokenName(res)
+		})),
+		validated.WithCreateValidations(validated.NewCreateValidationForType(func(_ context.Context, res *authres.JoinToken, _ ...state.CreateOption) error {
+			if err := validateJoinTokenName(res); err != nil {
+				return err
+			}
+
+			if len(res.Metadata().ID()) < minJoinTokenLength {
+				return fmt.Errorf("join token length cannot be shorter than %d symbols", minJoinTokenLength)
+			}
+
+			return nil
+		})),
+		validated.WithDestroyValidations(validated.NewDestroyValidationForType(
+			func(ctx context.Context, _ resource.Pointer, res *authres.JoinToken, _ ...state.DestroyOption) error {
+				isDefault, err := checkDefault(ctx, res.Metadata().ID())
+				if err != nil {
+					return err
+				}
+
+				if isDefault {
+					return fmt.Errorf("deleting default join token is not possible")
+				}
+
+				return nil
+			},
+		)),
+	}
+}
+
+func defaultJoinTokenValidationOptions() []validated.StateOption {
+	return []validated.StateOption{
+		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, _, res *authres.DefaultJoinToken, _ ...state.UpdateOption) error {
+			if res.Metadata().Phase() == resource.PhaseTearingDown {
+				if res.Metadata().ID() != authres.DefaultJoinTokenID {
+					return nil
+				}
+
+				return errors.New("destroying the default join token resource is not allowed")
+			}
+
+			return nil
+		})),
+		validated.WithDestroyValidations(validated.NewDestroyValidationForType(
+			func(_ context.Context, _ resource.Pointer, res *authres.DefaultJoinToken, _ ...state.DestroyOption) error {
+				if res.Metadata().ID() != authres.DefaultJoinTokenID {
+					return nil
+				}
+
+				return errors.New("destroying the default join token resource is not allowed")
+			},
+		)),
+	}
+}

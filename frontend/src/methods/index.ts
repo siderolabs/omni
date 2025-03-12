@@ -15,6 +15,7 @@ import { Resource } from "@/api/grpc";
 import { EtcdBackupOverallStatusSpec } from "@/api/omni/specs/omni.pb";
 import Watch from "@/api/watch";
 import { Runtime } from "@/api/common/omni.pb";
+import { copyText } from "vue3-clipboard";
 
 export const getStatus = (item: V1Node) => {
   const conditions = item?.status?.conditions;
@@ -208,3 +209,72 @@ export const setupBackupStatus = (): { status: ComputedRef<BackupsStatus>, watch
 export const isChrome = () => {
   return navigator.userAgent.toLowerCase().includes('chrome');
 }
+
+export const parseKernelArgs = (argsString: string, replaceToken?: string) => {
+  const args = argsString.split(" ");
+
+  const argsMap = args.reduce((acc, arg) => {
+    const [key, ...vals] = arg.split("=");
+    acc[key] = vals.join("=");
+    return acc;
+  }, {});
+
+  let apiURL = argsMap["siderolink.api"];
+  const talosEventsSink = argsMap["talos.events.sink"];
+  const talosLoggingKernel = argsMap["talos.logging.kernel"];
+
+  if (replaceToken) {
+    const url = URL.parse(apiURL);
+
+    url?.searchParams.set("jointoken", replaceToken);
+
+    apiURL = url?.toString();
+  }
+
+  return {
+    apiURL,
+    talosEventsSink,
+    talosLoggingKernel,
+  }
+};
+
+export type KernelArgs = {
+  apiURL: string
+  talosEventsSink: string
+  talosLoggingKernel: string
+}
+
+export const copyKernelArgs = (params: KernelArgs) => {
+  copyText(
+    `siderolink.api=${params.apiURL} talos.events.sink=${params.talosEventsSink} talos.logging.kernel=${params.talosLoggingKernel}`,
+    undefined,
+    () => {},
+  );
+}
+
+export const downloadMachineJoinConfig = (params: KernelArgs) => {
+  const config = `apiVersion: v1alpha1
+kind: SideroLinkConfig
+apiUrl: "${params.apiURL}"
+---
+apiVersion: v1alpha1
+kind: EventSinkConfig
+endpoint: "${params.talosEventsSink}"
+---
+apiVersion: v1alpha1
+kind: KmsgLogConfig
+name: omni-kmsg
+url: "${params.talosLoggingKernel}"
+`
+
+  const element = document.createElement("a");
+  element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(config));
+  element.setAttribute("download", "machine-config.yaml");
+
+  element.style.display = "none";
+  document.body.appendChild(element);
+
+  element.click();
+
+  document.body.removeChild(element);
+};

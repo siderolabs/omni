@@ -30,8 +30,11 @@ import (
 )
 
 const (
-	// grpcTunnelQueryParam is the query parameter key for enabling SideroLink gRPC tunnel.
-	grpcTunnelQueryParam = "grpc_tunnel"
+	// GrpcTunnelQueryParam is the query parameter key for enabling SideroLink gRPC tunnel.
+	GrpcTunnelQueryParam = "grpc_tunnel"
+
+	// JoinTokenQueryParam is the query parameter key for the join token.
+	JoinTokenQueryParam = "jointoken"
 )
 
 // APIURLOptions provides extra args to the APIURL method.
@@ -137,14 +140,14 @@ func APIURL(cfg *ConnectionParams, options ...APIURLOption) (string, error) {
 	}
 
 	query := apiURL.Query()
-	query.Set("jointoken", opts.token)
+	query.Set(JoinTokenQueryParam, opts.token)
 
 	// Enable the GRPC tunnel only when:
 	// - It is explicitly set in the options, and it true, or
 	// - It is not explicitly set in the options, but it is enabled in the connection params.
 	if (opts.grpcTunnel != nil && *opts.grpcTunnel) ||
 		(opts.grpcTunnel == nil && cfg.TypedSpec().Value.UseGrpcTunnel) {
-		query.Set(grpcTunnelQueryParam, "true")
+		query.Set(GrpcTunnelQueryParam, "true")
 	}
 
 	apiURL.RawQuery = query.Encode()
@@ -171,12 +174,12 @@ func GetConnectionArgsForProvider(connectionParams *ConnectionParams, providerID
 		return "", fmt.Errorf("failed to encode the siderolink token")
 	}
 
-	if err = replaceQuerySiderolinkAPIURLQueryValue(params, "jointoken", data); err != nil {
+	if err = replaceQuerySiderolinkAPIURLQueryValue(params, JoinTokenQueryParam, data); err != nil {
 		return "", err
 	}
 
 	if grpcTunnel != specs.GrpcTunnelMode_UNSET {
-		if err = replaceQuerySiderolinkAPIURLQueryValue(params, "grpc_tunnel", strconv.FormatBool(grpcTunnel == specs.GrpcTunnelMode_ENABLED)); err != nil {
+		if err = replaceQuerySiderolinkAPIURLQueryValue(params, GrpcTunnelQueryParam, strconv.FormatBool(grpcTunnel == specs.GrpcTunnelMode_ENABLED)); err != nil {
 			return "", err
 		}
 	}
@@ -238,15 +241,40 @@ func GetJoinConfigForProvider(connectionParams *ConnectionParams, providerID str
 	return buf.String(), nil
 }
 
-// KernelArgsWithGRPCRTunnelMode returns kernel args from the given connection params, overwriting the gRPC tunnel mode with the provided value in SideroLink API URL.
-func KernelArgsWithGRPCRTunnelMode(connectionParams *ConnectionParams, enabled bool) ([]string, error) {
+// KernelArgsOptions is the options fo the kernel args generator.
+type KernelArgsOptions struct {
+	replaceQueries map[string]string
+}
+
+// KernelArgsOption is the single option for the kernel args generator.
+type KernelArgsOption func(*KernelArgsOptions)
+
+// KernelArgsReplaceQuery replaces the query value.
+func KernelArgsReplaceQuery(key, value string) KernelArgsOption {
+	return func(kao *KernelArgsOptions) {
+		kao.replaceQueries[key] = value
+	}
+}
+
+// KernelArgsWithOptions returns kernel args from the given connection params, overwriting the query params.
+func KernelArgsWithOptions(connectionParams *ConnectionParams, options ...KernelArgsOption) ([]string, error) {
 	params := KernelArgs(connectionParams)
 	if len(params) == 0 {
 		return nil, errors.New("failed to get the connection params")
 	}
 
-	if err := replaceQuerySiderolinkAPIURLQueryValue(params, grpcTunnelQueryParam, strconv.FormatBool(enabled)); err != nil {
-		return nil, err
+	opts := KernelArgsOptions{
+		replaceQueries: map[string]string{},
+	}
+
+	for _, opt := range options {
+		opt(&opts)
+	}
+
+	for key, value := range opts.replaceQueries {
+		if err := replaceQuerySiderolinkAPIURLQueryValue(params, key, value); err != nil {
+			return nil, err
+		}
 	}
 
 	return params, nil

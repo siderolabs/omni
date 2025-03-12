@@ -152,13 +152,13 @@ func (c *MockFactorySetThroughputsCall) Return() *MockFactorySetThroughputsCall 
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockFactorySetThroughputsCall) Do(f func(int64, int64)) *MockFactorySetThroughputsCall {
+func (c *MockFactorySetThroughputsCall) Do(f func(uint64, uint64)) *MockFactorySetThroughputsCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockFactorySetThroughputsCall) DoAndReturn(f func(int64, int64)) *MockFactorySetThroughputsCall {
+func (c *MockFactorySetThroughputsCall) DoAndReturn(f func(uint64, uint64)) *MockFactorySetThroughputsCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

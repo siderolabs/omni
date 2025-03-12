@@ -1737,3 +1737,24 @@ func markVersionContract(ctx context.Context, st state.State, logger *zap.Logger
 
 	return nil
 }
+
+func migrateConnectionParamsToController(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
+	connectionParams, err := safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, st, siderolink.ConfigID)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil
+		}
+
+		return err
+	}
+
+	if connectionParams.Metadata().Owner() == omnictrl.ConnectionParamsControllerName {
+		return nil
+	}
+
+	_, err = safe.StateUpdateWithConflicts(ctx, st, connectionParams.Metadata(), func(res *siderolink.ConnectionParams) error {
+		return res.Metadata().SetOwner(omnictrl.ConnectionParamsControllerName)
+	}, state.WithExpectedPhaseAny())
+
+	return err
+}

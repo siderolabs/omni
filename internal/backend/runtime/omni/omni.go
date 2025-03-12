@@ -32,6 +32,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	omniresources "github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkresources "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -156,6 +157,8 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 			safe.WithResourceCache[*siderolinkresources.Link](),
 			safe.WithResourceCache[*system.ResourceLabels[*omni.MachineStatus]](),
 			safe.WithResourceCache[*infra.ConfigPatchRequest](),
+			safe.WithResourceCache[*auth.JoinToken](),
+			safe.WithResourceCache[*auth.JoinTokenStatus](),
 			options.WithWarnOnUncachedReads(false), // turn this to true to debug resource cache misses
 		)
 	}
@@ -288,6 +291,8 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewLinkStatusController[*siderolinkresources.PendingMachine](peers),
 		omnictrl.NewPendingMachineStatusController(),
 		omnictrl.NewMaintenanceConfigStatusController(nil, siderolink.ListenHost, config.Config.EventSinkPort, config.Config.LogServerPort),
+		omnictrl.NewConnectionParamsController(),
+		omnictrl.NewJoinTokenStatusController(),
 	}
 
 	if config.Config.Auth.SAML.Enabled {
@@ -371,6 +376,8 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		s3ConfigValidationOptions(),
 		machineRequestSetValidationOptions(resourceState),
 		infraMachineConfigValidationOptions(resourceState),
+		joinTokenValidationOptions(resourceState),
+		defaultJoinTokenValidationOptions(),
 	)
 
 	return &Runtime{

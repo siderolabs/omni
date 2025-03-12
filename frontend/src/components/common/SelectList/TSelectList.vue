@@ -22,7 +22,7 @@ included in the LICENSE file.
               <ListboxOption v-slot="{ active, selected }" class="menu-item" :value="item">
                 <div class="menu-item-wrapper">
                   <span class="menu-item-text" :class="{ active: active }">
-                    <word-highligher :query="searchTerm" :textToHighlight="item.toString()" highlightClass="text-naturals-N14 font-medium bg-transparent"/>
+                    <word-highligher :query="searchTerm" :textToHighlight="item.toString()" highlightClass="text-naturals-N14 font-medium bg-transparent truncate"/>
                   </span>
                   <t-icon icon="check" class="menu-check-icon" v-show="selected" />
                 </div>

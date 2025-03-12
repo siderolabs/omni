@@ -58,7 +58,7 @@ included in the LICENSE file.
                     <t-icon icon="copy" class="overview-copy-icon"
                       @click="() => copyValue(items[0]?.spec?.wireguard_endpoint)" />
                   </div>
-                  <div>Join Token</div>
+                  <div>Default Join Token</div>
                   <div>
                     <div class="flex-1 truncate text-right cursor-pointer select-none token" @click="() => showJoinToken = !showJoinToken">{{ showJoinToken ? items[0]?.spec?.join_token : items[0]?.spec?.join_token.replace(/./g, "•") }}</div>
                     <t-icon icon="copy" class="overview-copy-icon"
@@ -110,7 +110,7 @@ included in the LICENSE file.
             <div class="overview-card p-6 flex flex-col gap-5 place-items-stretch" style="width: 350px">
               <div class="text-naturals-N14 text-sm">Add Machines</div>
               <t-button icon="long-arrow-down" iconPosition="left" @click="() => openDownloadIso()">Download Installation Media</t-button>
-              <t-button icon="long-arrow-down" iconPosition="left" @click="() => downloadMachineJoinConfig(items[0]?.spec)">Download Machine Join Config</t-button>
+              <t-button icon="long-arrow-down" iconPosition="left" @click="() => getMachineJoinConfig(items[0]?.spec)">Download Machine Join Config</t-button>
               <t-button icon="copy" iconPosition="left" @click="() => copyValue(items[0]?.spec?.args)">Copy Kernel Parameters</t-button>
             </div>
             <div class="overview-card p-6 flex flex-col gap-5 place-items-stretch" style="width: 350px">
@@ -158,7 +158,7 @@ import { Runtime } from "@/api/common/omni.pb";
 import { Resource } from "@/api/grpc";
 import { itemID } from "@/api/watch";
 import { MachineStatusMetricsSpec } from "@/api/omni/specs/omni.pb";
-import { downloadOmniconfig, downloadTalosconfig, downloadAuditLog } from "@/methods";
+import { downloadOmniconfig, downloadTalosconfig, downloadAuditLog, parseKernelArgs } from "@/methods";
 
 import OverviewCircleChartItem from "@/views/cluster/Overview/components/OverviewCircleChart/OverviewCircleChartItem.vue";
 import TButton from "@/components/common/Button/TButton.vue";
@@ -169,6 +169,7 @@ import PageHeader from "@/components/common/PageHeader.vue";
 import { canCreateClusters, canReadAuditLog, canReadClusters, currentUser } from "@/methods/auth";
 import { ConnectionParamsSpec } from "@/api/omni/specs/siderolink.pb";
 import { auditLogEnabled } from "@/methods/features";
+import { downloadMachineJoinConfig } from "@/methods";
 
 const hasRoleNone = computed(() => {
   const role = currentUser.value?.spec?.role
@@ -233,47 +234,12 @@ const downloadTalosctl = () => {
   });
 };
 
-const downloadMachineJoinConfig = (item?: ConnectionParamsSpec) => {
+const getMachineJoinConfig = (item?: ConnectionParamsSpec) => {
   if (!item?.args) {
     return;
   }
 
-  // parse kernel args to extract the values for the template
-  const args = item.args.split(" ");
-  const argsMap = args.reduce((acc, arg) => {
-    const [key, ...vals] = arg.split("=");
-    acc[key] = vals.join("=");
-    return acc;
-  }, {});
-
-  const apiUrl = argsMap["siderolink.api"];
-  const talosEventsSink = argsMap["talos.events.sink"];
-  const talosLoggingKernel = argsMap["talos.logging.kernel"];
-
-  const config = `apiVersion: v1alpha1
-kind: SideroLinkConfig
-apiUrl: "${apiUrl}"
----
-apiVersion: v1alpha1
-kind: EventSinkConfig
-endpoint: "${talosEventsSink}"
----
-apiVersion: v1alpha1
-kind: KmsgLogConfig
-name: omni-kmsg
-url: "${talosLoggingKernel}"
-`
-
-  const element = document.createElement("a");
-  element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(config));
-  element.setAttribute("download", "machine-config.yaml");
-
-  element.style.display = "none";
-  document.body.appendChild(element);
-
-  element.click();
-
-  document.body.removeChild(element);
+  downloadMachineJoinConfig(parseKernelArgs(item.args));
 };
 
 const auditLogAvailable = ref(false);
