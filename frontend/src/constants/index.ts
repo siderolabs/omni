@@ -64,5 +64,8 @@ export enum TCommonStatuses {
   PROVISIONED = "Provisioned",
   DEPROVISIONING = "Deprovisioning",
   DISCONNECTED = "Disconnected",
-  AWAITING_CONNECTION = "Awaiting Connection"
+  AWAITING_CONNECTION = "Awaiting Connection",
+  ACTIVE = "Active",
+  REVOKED = "Revoked",
+  EXPIRED = "Expired"
 }

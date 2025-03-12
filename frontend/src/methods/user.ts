@@ -26,6 +26,7 @@ import { Runtime } from "@/api/common/omni.pb";
 import { Code } from "@/api/google/rpc/code.pb";
 import { withRuntime } from "@/api/options";
 import { ManagementService } from "@/api/omni/management/management.pb";
+import { isoNow } from "./time";
 
 export const createUser = async (email: string, role: string) => {
   const user: Resource<UserSpec> = {
@@ -88,6 +89,16 @@ export const updateRole = async (userID: string, role: string) => {
 
   await ResourceService.Update(user, undefined, withRuntime(Runtime.Omni));
 };
+
+export const createJoinToken = async (name: string, expirationDays?: number) => {
+  let expirationTime: string | undefined;
+
+  if (expirationDays !== undefined) {
+    expirationTime = isoNow({days: expirationDays})
+  }
+
+  await ManagementService.CreateJoinToken({expiration_time: expirationTime, name});
+}
 
 export const createServiceAccount = async (name: string, role: string, expirationDays: number = 365) => {
   const email = `${name}@${ role === RoleInfraProvider ? InfraProviderServiceAccountDomain : ServiceAccountDomain }`;

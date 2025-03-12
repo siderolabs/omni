@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import { DateTime, Duration, DurationLikeObject } from "luxon"
+import { DateTime, Duration, DurationLike, DurationLikeObject } from "luxon"
 
 export const relativeISO = (input: string): string => {
   return parseISO(input).toRelative()!;
@@ -17,8 +17,12 @@ export const formatISO = (input: string, format?: string): string => {
   return parseISO(input).toFormat(format);
 }
 
-export const isoNow = (): string => {
-  const date = DateTime.now();
+export const isoNow = (add?: DurationLike): string => {
+  let date = DateTime.now();
+
+  if (add) {
+    date = date.plus(add);
+  }
 
   return date.setLocale("en-US").toUTC().toISO();
 }

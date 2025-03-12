@@ -34,6 +34,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -98,9 +99,17 @@ func TestProvision(t *testing.T) {
 
 		require.NoError(t, runtime.RegisterQController(omnictrl.NewLinkStatusController[*siderolinkres.PendingMachine](peers)))
 		require.NoError(t, runtime.RegisterQController(omnictrl.NewLinkStatusController[*siderolinkres.Link](peers)))
+		require.NoError(t, runtime.RegisterQController(omnictrl.NewProviderJoinConfigController()))
 		require.NoError(t, runtime.RegisterQController(newPendingMachineStatusController(func(*siderolinkres.PendingMachine) bool {
 			return true
 		})))
+
+		siderolinkAPIconfig := siderolinkres.NewAPIConfig()
+		siderolinkAPIconfig.TypedSpec().Value.EventsPort = 8081
+		siderolinkAPIconfig.TypedSpec().Value.LogsPort = 8082
+		siderolinkAPIconfig.TypedSpec().Value.MachineApiAdvertisedUrl = "grpc://127.0.0.1:8090"
+
+		require.NoError(t, state.Create(ctx, siderolinkAPIconfig))
 
 		var eg errgroup.Group
 
@@ -119,10 +128,29 @@ func TestProvision(t *testing.T) {
 		config := siderolinkres.NewConfig()
 		config.TypedSpec().Value.ServerAddress = "127.0.0.1"
 		config.TypedSpec().Value.PublicKey = genKey()
-		config.TypedSpec().Value.JoinToken = validToken
+		config.TypedSpec().Value.InitialJoinToken = validToken
 		config.TypedSpec().Value.Subnet = wireguard.NetworkPrefix("").String()
 
 		require.NoError(t, state.Create(ctx, config))
+
+		tokenRes := siderolinkres.NewJoinToken(resources.DefaultNamespace, validToken)
+
+		tokenRes.TypedSpec().Value.Name = "default"
+
+		require.NoError(t, state.Create(ctx, tokenRes))
+
+		tokenStatusRes := siderolinkres.NewJoinTokenStatus(resources.DefaultNamespace, validToken)
+
+		tokenStatusRes.TypedSpec().Value.Name = "default"
+		tokenStatusRes.TypedSpec().Value.IsDefault = true
+		tokenStatusRes.TypedSpec().Value.State = specs.JoinTokenStatusSpec_ACTIVE
+
+		require.NoError(t, state.Create(ctx, tokenStatusRes))
+
+		defaultToken := siderolinkres.NewDefaultJoinToken()
+		defaultToken.TypedSpec().Value.TokenId = validToken
+
+		require.NoError(t, state.Create(ctx, defaultToken))
 
 		return state, provisionHandler
 	}
@@ -536,7 +564,7 @@ func TestProvision(t *testing.T) {
 		})
 	})
 
-	t.Run("provider token", func(t *testing.T) {
+	t.Run("v1 default token", func(t *testing.T) {
 		t.Parallel()
 
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
@@ -545,7 +573,63 @@ func TestProvision(t *testing.T) {
 		state, provisionHandler := setup(ctx, t, config.JoinTokensModeStrict)
 
 		token, err := jointoken.NewWithExtraData(validToken, map[string]string{
-			omni.LabelInfraProviderID: "test",
+			omni.LabelMachineRequest: "hi",
+		})
+
+		require.NoError(t, err)
+
+		encoded, err := token.Encode()
+		require.NoError(t, err)
+
+		uniqueToken, err := jointoken.NewNodeUniqueToken("fingerprint", "so-unique").Encode()
+		require.NoError(t, err)
+
+		request := &pb.ProvisionRequest{
+			NodeUuid:        "machine-from-provider",
+			NodePublicKey:   genKey(),
+			TalosVersion:    pointer.To("v1.9.4"),
+			JoinToken:       &encoded,
+			NodeUniqueToken: pointer.To(uniqueToken),
+		}
+
+		_, err = provisionHandler.Provision(ctx, request)
+		require.NoError(t, err)
+
+		rtestutils.AssertResources(ctx, t, state, []string{request.NodeUuid},
+			func(r *siderolinkres.Link, assertion *assert.Assertions) {
+				assertion.Equal(r.TypedSpec().Value.NodePublicKey, request.NodePublicKey)
+
+				requestID, ok := r.Metadata().Labels().Get(omni.LabelMachineRequest)
+				assertion.True(ok)
+				assertion.Equal("hi", requestID)
+			},
+		)
+
+		rtestutils.AssertNoResource[*siderolinkres.PendingMachine](ctx, t, state, request.NodePublicKey)
+	})
+
+	t.Run("provider unique token", func(t *testing.T) {
+		t.Parallel()
+
+		providerID := "test"
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+		defer cancel()
+
+		state, provisionHandler := setup(ctx, t, config.JoinTokensModeStrict)
+
+		require.NoError(t, state.Create(ctx, infra.NewProvider(providerID)))
+
+		var providerUniqueToken string
+
+		rtestutils.AssertResources(ctx, t, state, []string{providerID}, func(cfg *siderolinkres.ProviderJoinConfig, assert *assert.Assertions) {
+			assert.NotEmpty(cfg.TypedSpec().Value.JoinToken)
+
+			providerUniqueToken = cfg.TypedSpec().Value.JoinToken
+		})
+
+		token, err := jointoken.NewWithExtraData(providerUniqueToken, map[string]string{
+			omni.LabelInfraProviderID: providerID,
 		})
 
 		require.NoError(t, err)
@@ -578,5 +662,65 @@ func TestProvision(t *testing.T) {
 		)
 
 		rtestutils.AssertNoResource[*siderolinkres.PendingMachine](ctx, t, state, request.NodePublicKey)
+	})
+
+	t.Run("provider unique token invalid", func(t *testing.T) {
+		t.Parallel()
+
+		providerID := "test"
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+		defer cancel()
+
+		state, provisionHandler := setup(ctx, t, config.JoinTokensModeStrict)
+
+		require.NoError(t, state.Create(ctx, infra.NewProvider(providerID)))
+
+		rtestutils.AssertResources(ctx, t, state, []string{providerID}, func(cfg *siderolinkres.ProviderJoinConfig, assert *assert.Assertions) {
+			assert.NotEmpty(cfg.TypedSpec().Value.JoinToken)
+		})
+
+		token, err := jointoken.NewWithExtraData("meow", map[string]string{
+			omni.LabelInfraProviderID: providerID,
+		})
+
+		require.NoError(t, err)
+
+		encoded, err := token.Encode()
+		require.NoError(t, err)
+
+		uniqueToken, err := jointoken.NewNodeUniqueToken("fingerprint", "so-unique").Encode()
+		require.NoError(t, err)
+
+		request := &pb.ProvisionRequest{
+			NodeUuid:        "machine-from-provider",
+			NodePublicKey:   genKey(),
+			TalosVersion:    pointer.To("v1.9.4"),
+			JoinToken:       &encoded,
+			NodeUniqueToken: pointer.To(uniqueToken),
+		}
+
+		_, err = provisionHandler.Provision(ctx, request)
+		require.Equal(t, codes.PermissionDenied, status.Code(err))
+
+		token, err = jointoken.NewWithExtraData(validToken, map[string]string{
+			omni.LabelInfraProviderID: "nonexistent",
+		})
+
+		require.NoError(t, err)
+
+		encoded, err = token.Encode()
+		require.NoError(t, err)
+
+		request = &pb.ProvisionRequest{
+			NodeUuid:        "machine-from-provider",
+			NodePublicKey:   genKey(),
+			TalosVersion:    pointer.To("v1.9.4"),
+			JoinToken:       &encoded,
+			NodeUniqueToken: pointer.To(uniqueToken),
+		}
+
+		_, err = provisionHandler.Provision(ctx, request)
+		require.Equal(t, codes.PermissionDenied, status.Code(err))
 	})
 }

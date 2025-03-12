@@ -15,6 +15,7 @@ import { Resource } from "@/api/grpc";
 import { EtcdBackupOverallStatusSpec } from "@/api/omni/specs/omni.pb";
 import Watch from "@/api/watch";
 import { Runtime } from "@/api/common/omni.pb";
+import { copyText } from "vue3-clipboard";
 
 export const getStatus = (item: V1Node) => {
   const conditions = item?.status?.conditions;
@@ -208,3 +209,35 @@ export const setupBackupStatus = (): { status: ComputedRef<BackupsStatus>, watch
 export const isChrome = () => {
   return navigator.userAgent.toLowerCase().includes('chrome');
 }
+
+export const copyKernelArgs = async (joinToken?: string, useGRPCTunnel: boolean = false) => {
+  const response = await ManagementService.GetMachineJoinConfig({
+    join_token: joinToken,
+    use_grpc_tunnel: useGRPCTunnel,
+  });
+
+  copyText(
+    response.kernel_args!.join(" "),
+    undefined,
+    () => {},
+  );
+}
+
+export const downloadMachineJoinConfig = async (joinToken?: string, useGRPCTunnel: boolean = false) => {
+  const response = await ManagementService.GetMachineJoinConfig({
+    join_token: joinToken,
+    use_grpc_tunnel: useGRPCTunnel,
+  });
+
+
+  const element = document.createElement("a");
+  element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(response.config!));
+  element.setAttribute("download", "machine-config.yaml");
+
+  element.style.display = "none";
+  document.body.appendChild(element);
+
+  element.click();
+
+  document.body.removeChild(element);
+};

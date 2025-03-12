@@ -164,9 +164,20 @@ const items = computed(() => {
 
   if (canReadMachines.value) {
     result.push({
-      name: "Machine Classes",
-      route: getRoute("MachineClasses", "/omni/machine-classes"),
-      icon: "code-bracket",
+      name: "Machine Management",
+      icon: "nodes",
+      subItems: [
+        {
+          name: "Classes",
+          route: getRoute("MachineClasses", "/omni/machine-classes"),
+          icon: "code-bracket",
+        },
+        {
+          name: "Join Tokens",
+          route: getRoute("JoinTokens", "/omni/machine/jointokens"),
+          icon: "key"
+        },
+      ]
     });
   }
 

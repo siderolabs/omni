@@ -12,7 +12,7 @@ message SiderolinkConfigSpec {
   string wireguard_endpoint = 3;
   string subnet = 5;
   string server_address = 6;
-  string join_token = 7;
+  string initial_join_token = 7;
   string advertised_endpoint = 8;
 }
 
@@ -59,7 +59,7 @@ message ConnectionParamsSpec {
   string api_endpoint = 2;
   // WireguardEndpoint is the service IP visible from the internal SideroLink network.
   string wireguard_endpoint = 3;
-  // JoinToken is a join token required to connect to SideroLink.
+  // JoinToken is the default join token that can be used to connect to SideroLink.
   string join_token = 4;
   // UseGRPCTunnel is a flag to enable gRPC tunneling.
   bool use_grpc_tunnel = 5;

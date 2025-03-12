@@ -14,6 +14,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -35,20 +36,19 @@ func NewProviderJoinConfigController() *ProviderJoinConfigController {
 			UnmapMetadataFunc: func(config *siderolinkres.ProviderJoinConfig) *infra.Provider {
 				return infra.NewProvider(config.Metadata().ID())
 			},
-			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, provider *infra.Provider, providerJoinConfig *siderolinkres.ProviderJoinConfig) error {
-				connectionParams, err := safe.ReaderGetByID[*siderolinkres.ConnectionParams](ctx, r, siderolinkres.ConfigID)
-				if err != nil {
-					return err
-				}
-
+			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, provider *infra.Provider, providerJoinConfig *siderolinkres.ProviderJoinConfig) error {
 				siderolinkAPIConfig, err := safe.ReaderGetByID[*siderolinkres.APIConfig](ctx, r, siderolinkres.ConfigID)
 				if err != nil {
 					return err
 				}
 
 				if providerJoinConfig.TypedSpec().Value.JoinToken == "" {
-					// TODO: connection params will be removed and a random join token will be generated
-					providerJoinConfig.TypedSpec().Value.JoinToken = connectionParams.TypedSpec().Value.JoinToken
+					providerJoinConfig.TypedSpec().Value.JoinToken, err = jointoken.Generate()
+					if err != nil {
+						return err
+					}
+
+					logger.Info("generated join token for the infra provider")
 				}
 
 				joinOptions, err := siderolink.NewJoinOptions(
@@ -79,7 +79,6 @@ func NewProviderJoinConfigController() *ProviderJoinConfigController {
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(qtransform.MapperNone[*siderolinkres.ConnectionParams]()),
 		qtransform.WithExtraMappedInput(qtransform.MapperNone[*siderolinkres.APIConfig]()),
 		qtransform.WithConcurrency(4),
 	)

@@ -127,6 +127,7 @@ export type CreateSchematicRequest = {
   media_id?: string
   secure_boot?: boolean
   siderolink_grpc_tunnel_mode?: CreateSchematicRequestSiderolinkGRPCTunnelMode
+  join_token?: string
 }
 
 export type CreateSchematicResponse = {
@@ -187,11 +188,25 @@ export type MaintenanceUpgradeResponse = {
 
 export type GetMachineJoinConfigRequest = {
   use_grpc_tunnel?: boolean
+  join_token?: string
 }
 
 export type GetMachineJoinConfigResponse = {
   kernel_args?: string[]
   config?: string
+}
+
+export type GenJoinTokenResponse = {
+  token?: string
+}
+
+export type CreateJoinTokenRequest = {
+  name?: string
+  expiration_time?: GoogleProtobufTimestamp.Timestamp
+}
+
+export type CreateJoinTokenResponse = {
+  id?: string
 }
 
 export class ManagementService {
@@ -245,5 +260,8 @@ export class ManagementService {
   }
   static GetMachineJoinConfig(req: GetMachineJoinConfigRequest, ...options: fm.fetchOption[]): Promise<GetMachineJoinConfigResponse> {
     return fm.fetchReq<GetMachineJoinConfigRequest, GetMachineJoinConfigResponse>("POST", `/management.ManagementService/GetMachineJoinConfig`, req, ...options)
+  }
+  static CreateJoinToken(req: CreateJoinTokenRequest, ...options: fm.fetchOption[]): Promise<CreateJoinTokenResponse> {
+    return fm.fetchReq<CreateJoinTokenRequest, CreateJoinTokenResponse>("POST", `/management.ManagementService/CreateJoinToken`, req, ...options)
   }
 }

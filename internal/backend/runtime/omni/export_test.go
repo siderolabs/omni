@@ -89,3 +89,11 @@ func InfraMachineConfigValidationOptions(st state.State) []validated.StateOption
 func NodeForceDestroyRequestValidationOptions(st state.State) []validated.StateOption {
 	return nodeForceDestroyRequestValidationOptions(st)
 }
+
+func JoinTokenValidationOptions(st state.State) []validated.StateOption {
+	return joinTokenValidationOptions(st)
+}
+
+func DefaultJoinTokenValidationOptions() []validated.StateOption {
+	return defaultJoinTokenValidationOptions()
+}
