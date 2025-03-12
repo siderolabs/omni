@@ -52,7 +52,19 @@ func (e ExtraData) signature(token string) ([]byte, error) {
 	return mac.Sum(nil), nil
 }
 
-const v1Prefix = "v1:"
+const (
+	v1Prefix = "v1:"
+	v2Prefix = "v2:"
+)
+
+const (
+	// VersionPlain is the random token string.
+	VersionPlain = "plain"
+	// Version1 is the signed token that contains extra data.
+	Version1 = "1"
+	// Version2 is the same as version 1, but the provider uses individual tokens.
+	Version2 = "2"
+)
 
 // NewPlain token creates the token without extra data.
 func NewPlain(token string) JoinToken {
@@ -83,7 +95,8 @@ func NewWithExtraData(token string, extraData map[string]string) (JoinToken, err
 type JoinToken struct {
 	ExtraData ExtraData `json:"extra_data"`
 
-	token string
+	token   string
+	Version string `json:"-"`
 
 	Signature []byte `json:"signature"`
 }
@@ -92,8 +105,23 @@ type JoinToken struct {
 func Parse(value string) (JoinToken, error) {
 	var res JoinToken
 
-	if strings.HasPrefix(value, v1Prefix) {
-		data, err := base64.StdEncoding.DecodeString(strings.TrimLeft(value, v1Prefix))
+	res.Version = VersionPlain
+
+	var prefix string
+
+	switch {
+	case strings.HasPrefix(value, v1Prefix):
+		res.Version = Version1
+
+		prefix = v1Prefix
+	case strings.HasPrefix(value, v2Prefix):
+		res.Version = Version2
+
+		prefix = v2Prefix
+	}
+
+	if res.Version != VersionPlain {
+		data, err := base64.StdEncoding.DecodeString(strings.TrimLeft(value, prefix))
 		if err != nil {
 			return res, err
 		}
@@ -102,6 +130,7 @@ func Parse(value string) (JoinToken, error) {
 	}
 
 	res.token = value
+	res.Version = VersionPlain
 
 	return res, nil
 }
@@ -131,5 +160,5 @@ func (t JoinToken) Encode() (string, error) {
 		return "", err
 	}
 
-	return v1Prefix + base64.StdEncoding.EncodeToString(data), nil
+	return v2Prefix + base64.StdEncoding.EncodeToString(data), nil
 }

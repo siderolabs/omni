@@ -36,7 +36,7 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 		return nil, err
 	}
 
-	baseKernelArgs, tunnelEnabled, err := s.getBaseKernelArgs(ctx, request.SiderolinkGrpcTunnelMode)
+	baseKernelArgs, tunnelEnabled, err := s.getBaseKernelArgs(ctx, request.SiderolinkGrpcTunnelMode, request.JoinToken)
 	if err != nil {
 		return nil, err
 	}
@@ -144,13 +144,11 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 	}, nil
 }
 
-func (s *managementServer) getBaseKernelArgs(ctx context.Context, grpcTunnelMode management.CreateSchematicRequest_SiderolinkGRPCTunnelMode) (args []string, tunnelEnabled bool, err error) {
-	// TODO: read the token from the JoinToken resources
-	params, err := safe.StateGetByID[*siderolinkres.ConnectionParams](ctx, s.omniState, siderolinkres.ConfigID)
-	if err != nil {
-		return nil, false, fmt.Errorf("failed to get Omni connection params for the extra kernel arguments: %w", err)
-	}
-
+func (s *managementServer) getBaseKernelArgs(
+	ctx context.Context,
+	grpcTunnelMode management.CreateSchematicRequest_SiderolinkGRPCTunnelMode,
+	joinToken string,
+) (args []string, tunnelEnabled bool, err error) {
 	siderolinkAPIConfig, err := safe.StateGetByID[*siderolinkres.APIConfig](ctx, s.omniState, siderolinkres.ConfigID)
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to get Omni connection params for the extra kernel arguments: %w", err)
@@ -159,8 +157,19 @@ func (s *managementServer) getBaseKernelArgs(ctx context.Context, grpcTunnelMode
 	// If the tunnel is enabled instance-wide or in the request, the final state is enabled
 	grpcTunnelEnabled := grpcTunnelMode == management.CreateSchematicRequest_ENABLED
 
+	if joinToken == "" {
+		var defaultToken *siderolinkres.DefaultJoinToken
+
+		defaultToken, err = safe.StateGetByID[*siderolinkres.DefaultJoinToken](ctx, s.omniState, siderolinkres.DefaultJoinTokenID)
+		if err != nil {
+			return nil, false, fmt.Errorf("failed to get Omni connection params for the extra kernel arguments: %w", err)
+		}
+
+		joinToken = defaultToken.TypedSpec().Value.TokenId
+	}
+
 	opts, err := siderolink.NewJoinOptions(
-		siderolink.WithJoinToken(params.TypedSpec().Value.JoinToken),
+		siderolink.WithJoinToken(joinToken),
 		siderolink.WithGRPCTunnel(grpcTunnelEnabled),
 		siderolink.WithMachineAPIURL(siderolinkAPIConfig.TypedSpec().Value.MachineApiAdvertisedUrl),
 		siderolink.WithEventSinkPort(int(siderolinkAPIConfig.TypedSpec().Value.EventsPort)),

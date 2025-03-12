@@ -153,6 +153,9 @@ func (suite *SiderolinkSuite) SetupTest() {
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewLinkStatusController[*siderolink.PendingMachine](peers)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewLinkStatusController[*siderolink.Link](peers)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewConnectionParamsController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(&config.Config.Services)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewJoinTokenStatusController()))
 
 	go func() {
 		defer suite.wg.Done()
@@ -197,28 +200,32 @@ func (suite *SiderolinkSuite) startManager(params sideromanager.Params) {
 }
 
 func (suite *SiderolinkSuite) TestNodes() {
-	var spec *specs.ConnectionParamsSpec
-
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*2)
 	defer cancel()
 
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{
 		siderolink.ConfigID,
 	}, func(r *siderolink.Config, assertion *assert.Assertions) {
-		assertion.NotEmpty(r.TypedSpec().Value.JoinToken)
+		assertion.NotEmpty(r.TypedSpec().Value.InitialJoinToken)
 		assertion.NotEmpty(r.TypedSpec().Value.PrivateKey)
 		assertion.NotEmpty(r.TypedSpec().Value.PublicKey)
 	})
 
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{
 		siderolink.ConfigID,
-	}, func(r *siderolink.ConnectionParams, assertion *assert.Assertions) {
-		assertion.NotEmpty(r.TypedSpec().Value.Args)
-		assertion.NotEmpty(r.TypedSpec().Value.ApiEndpoint)
-		assertion.NotEmpty(r.TypedSpec().Value.JoinToken)
-		assertion.NotEmpty(r.TypedSpec().Value.WireguardEndpoint)
+	}, func(r *siderolink.APIConfig, assertion *assert.Assertions) {
+		assertion.NotEmpty(r.TypedSpec().Value.MachineApiAdvertisedUrl)
+		assertion.NotEmpty(r.TypedSpec().Value.WireguardAdvertisedEndpoint)
+	})
 
-		spec = r.TypedSpec().Value
+	var joinToken string
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{
+		siderolink.DefaultJoinTokenID,
+	}, func(r *siderolink.DefaultJoinToken, assertion *assert.Assertions) {
+		assertion.NotEmpty(r.TypedSpec().Value.TokenId)
+
+		joinToken = r.TypedSpec().Value.TokenId
 	})
 
 	conn, err := grpc.NewClient(suite.address, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -232,7 +239,7 @@ func (suite *SiderolinkSuite) TestNodes() {
 	resp, err := client.Provision(suite.ctx, &pb.ProvisionRequest{
 		NodeUuid:        "testnode",
 		NodePublicKey:   privateKey.PublicKey().String(),
-		JoinToken:       &spec.JoinToken,
+		JoinToken:       &joinToken,
 		TalosVersion:    pointer.To("v1.9.0"),
 		NodeUniqueToken: suite.nodeUniqueToken,
 	})
@@ -263,7 +270,7 @@ func (suite *SiderolinkSuite) TestNodes() {
 	reprovision, err := client.Provision(suite.ctx, &pb.ProvisionRequest{
 		NodeUuid:        "testnode",
 		NodePublicKey:   privateKey.PublicKey().String(),
-		JoinToken:       &spec.JoinToken,
+		JoinToken:       &joinToken,
 		TalosVersion:    pointer.To("v1.9.0"),
 		NodeUniqueToken: suite.nodeUniqueToken,
 	})
@@ -277,7 +284,7 @@ func (suite *SiderolinkSuite) TestNodes() {
 	reprovision, err = client.Provision(suite.ctx, &pb.ProvisionRequest{
 		NodeUuid:        "testnode",
 		NodePublicKey:   privateKey.PublicKey().String(),
-		JoinToken:       &spec.JoinToken,
+		JoinToken:       &joinToken,
 		TalosVersion:    pointer.To("v1.9.0"),
 		NodeUniqueToken: suite.nodeUniqueToken,
 	})
@@ -325,28 +332,32 @@ func (suite *SiderolinkSuite) TestNodeWithSeveralAdvertisedIPs() {
 }
 
 func (suite *SiderolinkSuite) TestVirtualNodes() {
-	var spec *specs.ConnectionParamsSpec
-
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*2)
 	defer cancel()
 
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{
 		siderolink.ConfigID,
 	}, func(r *siderolink.Config, assertion *assert.Assertions) {
-		assertion.NotEmpty(r.TypedSpec().Value.JoinToken)
+		assertion.NotEmpty(r.TypedSpec().Value.InitialJoinToken)
 		assertion.NotEmpty(r.TypedSpec().Value.PrivateKey)
 		assertion.NotEmpty(r.TypedSpec().Value.PublicKey)
 	})
 
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{
 		siderolink.ConfigID,
-	}, func(r *siderolink.ConnectionParams, assertion *assert.Assertions) {
-		assertion.NotEmpty(r.TypedSpec().Value.Args)
-		assertion.NotEmpty(r.TypedSpec().Value.ApiEndpoint)
-		assertion.NotEmpty(r.TypedSpec().Value.JoinToken)
-		assertion.NotEmpty(r.TypedSpec().Value.WireguardEndpoint)
+	}, func(r *siderolink.APIConfig, assertion *assert.Assertions) {
+		assertion.NotEmpty(r.TypedSpec().Value.MachineApiAdvertisedUrl)
+		assertion.NotEmpty(r.TypedSpec().Value.WireguardAdvertisedEndpoint)
+	})
 
-		spec = r.TypedSpec().Value
+	var joinToken string
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{
+		siderolink.DefaultJoinTokenID,
+	}, func(r *siderolink.DefaultJoinToken, assertion *assert.Assertions) {
+		assertion.NotEmpty(r.TypedSpec().Value.TokenId)
+
+		joinToken = r.TypedSpec().Value.TokenId
 	})
 
 	conn, err := grpc.NewClient(suite.address, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -360,7 +371,7 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 	resp, err := client.Provision(suite.ctx, &pb.ProvisionRequest{
 		NodeUuid:          "testnode",
 		NodePublicKey:     privateKey.PublicKey().String(),
-		JoinToken:         &spec.JoinToken,
+		JoinToken:         &joinToken,
 		WireguardOverGrpc: pointer.To(true),
 		TalosVersion:      pointer.To("v1.9.0"),
 		NodeUniqueToken:   suite.nodeUniqueToken,
@@ -396,7 +407,7 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 	reprovision, err := client.Provision(suite.ctx, &pb.ProvisionRequest{
 		NodeUuid:        "testnode",
 		NodePublicKey:   privateKey.PublicKey().String(),
-		JoinToken:       &spec.JoinToken,
+		JoinToken:       &joinToken,
 		TalosVersion:    pointer.To("v1.9.0"),
 		NodeUniqueToken: suite.nodeUniqueToken,
 	})
@@ -415,7 +426,7 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 	reprovision, err = client.Provision(suite.ctx, &pb.ProvisionRequest{
 		NodeUuid:        "testnode",
 		NodePublicKey:   privateKey.PublicKey().String(),
-		JoinToken:       &spec.JoinToken,
+		JoinToken:       &joinToken,
 		TalosVersion:    pointer.To("v1.9.0"),
 		NodeUniqueToken: suite.nodeUniqueToken,
 	})
@@ -431,7 +442,7 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 	reprovision, err = client.Provision(suite.ctx, &pb.ProvisionRequest{
 		NodeUuid:          "testnode",
 		NodePublicKey:     privateKey.PublicKey().String(),
-		JoinToken:         &spec.JoinToken,
+		JoinToken:         &joinToken,
 		WireguardOverGrpc: pointer.To(true),
 		TalosVersion:      pointer.To("v1.9.0"),
 		NodeUniqueToken:   suite.nodeUniqueToken,

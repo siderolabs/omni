@@ -41,7 +41,7 @@ func TestParse(t *testing.T) {
 
 	require.NoError(t, err)
 
-	assert.True(t, strings.HasPrefix(encoded, "v1:"))
+	assert.True(t, strings.HasPrefix(encoded, "v2:"))
 
 	parsed, err = jointoken.Parse(encoded)
 

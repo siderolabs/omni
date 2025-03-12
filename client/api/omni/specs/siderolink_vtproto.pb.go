@@ -32,7 +32,7 @@ func (m *SiderolinkConfigSpec) CloneVT() *SiderolinkConfigSpec {
 	r.WireguardEndpoint = m.WireguardEndpoint
 	r.Subnet = m.Subnet
 	r.ServerAddress = m.ServerAddress
-	r.JoinToken = m.JoinToken
+	r.InitialJoinToken = m.InitialJoinToken
 	r.AdvertisedEndpoint = m.AdvertisedEndpoint
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -247,7 +247,7 @@ func (this *SiderolinkConfigSpec) EqualVT(that *SiderolinkConfigSpec) bool {
 	if this.ServerAddress != that.ServerAddress {
 		return false
 	}
-	if this.JoinToken != that.JoinToken {
+	if this.InitialJoinToken != that.InitialJoinToken {
 		return false
 	}
 	if this.AdvertisedEndpoint != that.AdvertisedEndpoint {
@@ -549,10 +549,10 @@ func (m *SiderolinkConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i--
 		dAtA[i] = 0x42
 	}
-	if len(m.JoinToken) > 0 {
-		i -= len(m.JoinToken)
-		copy(dAtA[i:], m.JoinToken)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.JoinToken)))
+	if len(m.InitialJoinToken) > 0 {
+		i -= len(m.InitialJoinToken)
+		copy(dAtA[i:], m.InitialJoinToken)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.InitialJoinToken)))
 		i--
 		dAtA[i] = 0x3a
 	}
@@ -1159,7 +1159,7 @@ func (m *SiderolinkConfigSpec) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
-	l = len(m.JoinToken)
+	l = len(m.InitialJoinToken)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -1576,7 +1576,7 @@ func (m *SiderolinkConfigSpec) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 7:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field JoinToken", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field InitialJoinToken", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -1604,7 +1604,7 @@ func (m *SiderolinkConfigSpec) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.JoinToken = string(dAtA[iNdEx:postIndex])
+			m.InitialJoinToken = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 8:
 			if wireType != 2 {

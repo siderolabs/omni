@@ -9,7 +9,9 @@ import {
   VirtualNamespace,
   PermissionsType,
   PermissionsID,
-  ClusterPermissionsType
+  ClusterPermissionsType,
+  DefaultNamespace,
+  JoinTokenType
 } from "@/api/resources";
 
 import { ResourceService, Resource } from "@/api/grpc";
@@ -17,6 +19,7 @@ import { Runtime } from "@/api/common/omni.pb";
 import { ClusterPermissionsSpec, CurrentUserSpec, PermissionsSpec } from "@/api/omni/specs/virtual.pb";
 import { computed, ComputedRef, onBeforeMount, ref, Ref, watch } from "vue";
 import { withRuntime } from "@/api/options";
+import { JoinTokenSpec } from "@/api/omni/specs/auth.pb";
 
 export const currentUser: Ref<Resource<CurrentUserSpec> | undefined> = ref();
 export const permissions: Ref<Resource<PermissionsSpec> | undefined> = ref();
@@ -166,4 +169,36 @@ const refreshPermissions = async () => {
   } catch {
     permissions.value = undefined;
   }
+}
+
+export const revokeJoinToken = async (tokenID: string) => {
+  updateToken(tokenID, token => {
+    token.spec.revoked = true;
+  });
+}
+
+export const unrevokeJoinToken = async (tokenID: string) => {
+  updateToken(tokenID, token => {
+    token.spec.revoked = false;
+  });
+}
+
+export const deleteJoinToken = async (tokenID: string) => {
+  await ResourceService.Delete({
+    namespace: DefaultNamespace,
+    type: JoinTokenType,
+    id: tokenID,
+  }, withRuntime(Runtime.Omni));
+}
+
+const updateToken = async (tokenID: string, update: (token: Resource<JoinTokenSpec>) => void) => {
+  const token: Resource<JoinTokenSpec> = await ResourceService.Get({
+    namespace: DefaultNamespace,
+    type: JoinTokenType,
+    id: tokenID,
+  }, withRuntime(Runtime.Omni));
+
+  update(token);
+
+  await ResourceService.Update(token, token.metadata.version, withRuntime(Runtime.Omni));
 }

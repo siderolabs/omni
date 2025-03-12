@@ -31,7 +31,6 @@ import (
 	"github.com/siderolabs/siderolink/pkg/wgtunnel/wggrpc"
 	"github.com/siderolabs/siderolink/pkg/wireguard"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
-	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/proto"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/conn"
@@ -118,10 +117,6 @@ func NewManager(
 
 	cfg, err := manager.getOrCreateConfig(ctx, manager.serverAddr, nodePrefix, params)
 	if err != nil {
-		return nil, err
-	}
-
-	if err = manager.updateConnectionParams(ctx, cfg, params.EventSinkPort); err != nil {
 		return nil, err
 	}
 
@@ -342,18 +337,18 @@ func (manager *Manager) getOrCreateConfig(ctx context.Context, serverAddr netip.
 		spec.ServerAddress = serverAddr.Addr().String()
 		spec.Subnet = nodePrefix.String()
 
-		var joinToken string
-
-		joinToken, err = getJoinToken(manager.logger)
+		spec.InitialJoinToken, err = getJoinToken(manager.logger)
 		if err != nil {
-			return nil, fmt.Errorf("error getting join token: %w", err)
+			return nil, err
 		}
-
-		spec.JoinToken = joinToken
 
 		if err = manager.state.Create(ctx, cfg); err != nil {
 			return nil, err
 		}
+	}
+
+	if err = manager.ensureDefaultJoinToken(ctx, cfg.TypedSpec().Value.InitialJoinToken); err != nil {
+		return nil, err
 	}
 
 	// start siderolink
@@ -368,6 +363,43 @@ func (manager *Manager) getOrCreateConfig(ctx context.Context, serverAddr netip.
 	}
 
 	return cfg, nil
+}
+
+func (manager *Manager) ensureDefaultJoinToken(ctx context.Context, token string) error {
+	joinTokens, err := safe.ReaderListAll[*siderolink.JoinToken](ctx, manager.state)
+	if err != nil {
+		return err
+	}
+
+	if joinTokens.Len() != 0 {
+		return nil
+	}
+
+	manager.logger.Info("initializing the default join token")
+
+	defaultJoinToken := siderolink.NewDefaultJoinToken()
+
+	defaultJoinToken.TypedSpec().Value.TokenId = token
+
+	if err = manager.state.Create(ctx, defaultJoinToken); err != nil {
+		if !state.IsConflictError(err) {
+			return err
+		}
+
+		if _, err = safe.StateUpdateWithConflicts(ctx, manager.state, defaultJoinToken.Metadata(), func(res *siderolink.DefaultJoinToken) error {
+			res.TypedSpec().Value.TokenId = token
+
+			return nil
+		}); err != nil {
+			return err
+		}
+	}
+
+	joinToken := siderolink.NewJoinToken(resources.DefaultNamespace, token)
+
+	joinToken.TypedSpec().Value.Name = "initial token"
+
+	return manager.state.Create(ctx, joinToken)
 }
 
 func (manager *Manager) wgConfig() *specs.SiderolinkConfigSpec {
@@ -572,59 +604,6 @@ func (manager *Manager) pollWireguardPeers(ctx context.Context) error {
 			}
 		}
 	}
-}
-
-func (manager *Manager) updateConnectionParams(ctx context.Context, siderolinkConfig *siderolink.Config, eventSinkPort string) error {
-	connectionParams := siderolink.NewConnectionParams(
-		resources.DefaultNamespace,
-		siderolinkConfig.Metadata().ID(),
-	)
-
-	var err error
-	if err = manager.state.Create(ctx, connectionParams); err != nil && !state.IsConflictError(err) {
-		return err
-	}
-
-	if _, err = safe.StateUpdateWithConflicts(ctx, manager.state, connectionParams.Metadata(), func(res *siderolink.ConnectionParams) error {
-		spec := res.TypedSpec().Value
-
-		spec.ApiEndpoint = config.Config.Services.MachineAPI.URL()
-		spec.JoinToken = siderolinkConfig.TypedSpec().Value.JoinToken
-		spec.WireguardEndpoint = siderolinkConfig.TypedSpec().Value.AdvertisedEndpoint
-		spec.UseGrpcTunnel = config.Config.Services.Siderolink.UseGRPCTunnel
-		spec.LogsPort = int32(config.Config.Services.Siderolink.LogServerPort)
-		spec.EventsPort = int32(config.Config.Services.Siderolink.EventSinkPort)
-
-		var url string
-
-		url, err = siderolink.APIURL(res)
-		if err != nil {
-			return err
-		}
-
-		spec.Args = fmt.Sprintf("%s=%s %s=%s %s=tcp://%s",
-			talosconstants.KernelParamSideroLink,
-			url,
-			talosconstants.KernelParamEventsSink,
-			net.JoinHostPort(
-				siderolinkConfig.TypedSpec().Value.ServerAddress,
-				eventSinkPort,
-			),
-			talosconstants.KernelParamLoggingKernel,
-			net.JoinHostPort(
-				siderolinkConfig.TypedSpec().Value.ServerAddress,
-				strconv.Itoa(config.Config.Services.Siderolink.LogServerPort),
-			),
-		)
-
-		manager.logger.Info(fmt.Sprintf("add this kernel argument to a Talos instance you would like to connect: %s", spec.Args))
-
-		return nil
-	}); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // Describe implements prom.Collector interface.

@@ -1401,6 +1401,7 @@ func TestNodeForceDestroyRequestValidation(t *testing.T) {
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+
 	st := validated.NewState(innerSt, omni.NodeForceDestroyRequestValidationOptions(innerSt)...)
 
 	req := omnires.NewNodeForceDestroyRequest("test")
@@ -1411,6 +1412,92 @@ func TestNodeForceDestroyRequestValidation(t *testing.T) {
 
 	require.NoError(t, st.Create(ctx, omnires.NewClusterMachine(resources.DefaultNamespace, "test"))) // create the matching cluster machine
 	require.NoError(t, st.Create(ctx, req))                                                           // assert that we can create the destroy request now
+}
+
+func TestJoinTokenValidation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	t.Cleanup(cancel)
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+
+	st := validated.NewState(innerSt, omni.JoinTokenValidationOptions(innerSt)...)
+	wrappedState := state.WrapCore(st)
+
+	normalJoinToken := siderolink.NewJoinToken(resources.DefaultNamespace, "1234567812345678")
+	normalJoinToken.TypedSpec().Value.Name = "hello"
+
+	assert.NoError(t, wrappedState.Create(ctx, normalJoinToken))
+
+	_, err := safe.StateUpdateWithConflicts(ctx, wrappedState, normalJoinToken.Metadata(), func(token *siderolink.JoinToken) error {
+		token.TypedSpec().Value.Name = ""
+
+		return nil
+	})
+
+	assert.ErrorContains(t, err, "empty")
+
+	_, err = safe.StateUpdateWithConflicts(ctx, wrappedState, normalJoinToken.Metadata(), func(token *siderolink.JoinToken) error {
+		token.TypedSpec().Value.Name = "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+
+		return nil
+	})
+
+	assert.ErrorContains(t, err, "long")
+
+	_, err = safe.StateUpdateWithConflicts(ctx, wrappedState, normalJoinToken.Metadata(), func(token *siderolink.JoinToken) error {
+		token.TypedSpec().Value.Name = "hi"
+
+		return nil
+	})
+
+	assert.NoError(t, err)
+
+	defaultToken := siderolink.NewDefaultJoinToken()
+
+	defaultToken.TypedSpec().Value.TokenId = normalJoinToken.Metadata().ID()
+
+	require.NoError(t, wrappedState.Create(ctx, defaultToken))
+
+	assert.ErrorContains(t, wrappedState.Destroy(ctx, normalJoinToken.Metadata()), "not possible")
+
+	require.NoError(t, wrappedState.Destroy(ctx, defaultToken.Metadata()))
+
+	assert.NoError(t, wrappedState.Destroy(ctx, normalJoinToken.Metadata()))
+}
+
+func TestDefaultJoinTokenValidation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	t.Cleanup(cancel)
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := validated.NewState(innerSt, omni.DefaultJoinTokenValidationOptions()...)
+	wrappedState := state.WrapCore(st)
+
+	defaultToken := siderolink.NewDefaultJoinToken()
+
+	defaultToken.TypedSpec().Value.TokenId = "mm"
+
+	require.NoError(t, wrappedState.Create(ctx, defaultToken))
+
+	_, err := safe.StateUpdateWithConflicts(ctx, wrappedState, defaultToken.Metadata(), func(token *siderolink.DefaultJoinToken) error {
+		token.TypedSpec().Value.TokenId = "mmmm"
+
+		return nil
+	})
+
+	assert.NoError(t, err)
+
+	_, err = wrappedState.Teardown(ctx, defaultToken.Metadata())
+
+	assert.ErrorContains(t, err, "destroying")
+
+	err = wrappedState.Destroy(ctx, defaultToken.Metadata())
+
+	assert.ErrorContains(t, err, "destroying")
 }
 
 type mockEtcdBackupStoreFactory struct {

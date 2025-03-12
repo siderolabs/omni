@@ -595,6 +595,7 @@ type resourceAuthzTestCase struct {
 	isAdminOnly           bool
 	isSignatureSufficient bool
 	isPublic              bool
+	isDestroyNotAllowed   bool
 }
 
 // AssertResourceAuthz tests the authorization checks of the resources (state).
@@ -635,6 +636,11 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		machineExtensionsStatus := omni.NewMachineExtensionsStatus(resources.DefaultNamespace, uuid.New().String())
 		machineExtensionsStatus.Metadata().Labels().Set(omni.LabelCluster, uuid.New().String())
 
+		joinToken := siderolink.NewJoinToken(resources.DefaultNamespace, uuid.New().String())
+
+		defaultJoinToken := siderolink.NewDefaultJoinToken()
+		*defaultJoinToken.Metadata() = resource.NewMetadata(resources.DefaultNamespace, siderolink.DefaultJoinTokenType, uuid.New().String(), resource.VersionUndefined)
+
 		testCases := []resourceAuthzTestCase{
 			{
 				resource:       identity,
@@ -650,6 +656,17 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource:       accessPolicy,
 				allowedVerbSet: allVerbsSet,
 				isAdminOnly:    true,
+			},
+			{
+				resource:       joinToken,
+				allowedVerbSet: xslices.ToSet([]state.Verb{state.Get, state.List, state.Update, state.Destroy}),
+				isAdminOnly:    true,
+			},
+			{
+				resource:            defaultJoinToken,
+				allowedVerbSet:      allVerbsSet,
+				isAdminOnly:         true,
+				isDestroyNotAllowed: true,
 			},
 			{
 				resource:       samlLabelRule,
@@ -1025,6 +1042,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource:       siderolink.NewAPIConfig(),
 				allowedVerbSet: readOnlyVerbSet,
 			},
+			{
+				resource:       siderolink.NewJoinTokenStatus(resources.DefaultNamespace, uuid.NewString()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
 		}...)
 
 		// no access resources
@@ -1082,6 +1103,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource: siderolink.NewMachineJoinConfig(uuid.NewString()),
+			},
+			{
+				resource: siderolink.NewJoinTokenUsage(uuid.NewString()),
 			},
 		}...)
 

@@ -1119,3 +1119,84 @@ func nodeForceDestroyRequestValidationOptions(st state.State) []validated.StateO
 		})),
 	}
 }
+
+const (
+	// tsgen:MaxJoinTokenNameLength
+	MaxJoinTokenNameLength = 16
+)
+
+func joinTokenValidationOptions(st state.State) []validated.StateOption {
+	validateJoinTokenName := func(res *siderolink.JoinToken) error {
+		if res.TypedSpec().Value.Name == "" {
+			return errors.New("the join token name cannot be empty")
+		}
+
+		if len(res.TypedSpec().Value.Name) > MaxJoinTokenNameLength {
+			return fmt.Errorf("join token name cannot be longer than %d symbols", MaxJoinTokenNameLength)
+		}
+
+		return nil
+	}
+
+	checkDefault := func(ctx context.Context, id string) (bool, error) {
+		defaultJoinToken, err := safe.ReaderGetByID[*siderolink.DefaultJoinToken](ctx, st, siderolink.DefaultJoinTokenID)
+		if err != nil && !state.IsNotFoundError(err) {
+			return false, err
+		}
+
+		if defaultJoinToken == nil {
+			return false, nil
+		}
+
+		return defaultJoinToken.TypedSpec().Value.TokenId == id, nil
+	}
+
+	return []validated.StateOption{
+		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, old, res *siderolink.JoinToken, _ ...state.UpdateOption) error {
+			if old.TypedSpec().Value.Name == res.TypedSpec().Value.Name {
+				return nil
+			}
+
+			return validateJoinTokenName(res)
+		})),
+		validated.WithDestroyValidations(validated.NewDestroyValidationForType(
+			func(ctx context.Context, _ resource.Pointer, res *siderolink.JoinToken, _ ...state.DestroyOption) error {
+				isDefault, err := checkDefault(ctx, res.Metadata().ID())
+				if err != nil {
+					return err
+				}
+
+				if isDefault {
+					return fmt.Errorf("deleting default join token is not possible")
+				}
+
+				return nil
+			},
+		)),
+	}
+}
+
+func defaultJoinTokenValidationOptions() []validated.StateOption {
+	return []validated.StateOption{
+		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, _, res *siderolink.DefaultJoinToken, _ ...state.UpdateOption) error {
+			if res.Metadata().Phase() == resource.PhaseTearingDown {
+				if res.Metadata().ID() != siderolink.DefaultJoinTokenID {
+					return nil
+				}
+
+				return errors.New("destroying the default join token resource is not allowed")
+			}
+
+			return nil
+		})),
+		validated.WithDestroyValidations(validated.NewDestroyValidationForType(
+			func(_ context.Context, _ resource.Pointer, res *siderolink.DefaultJoinToken, _ ...state.DestroyOption) error {
+				if res.Metadata().ID() != siderolink.DefaultJoinTokenID {
+					return nil
+				}
+
+				return errors.New("destroying the default join token resource is not allowed")
+			},
+		)),
+	}
+}

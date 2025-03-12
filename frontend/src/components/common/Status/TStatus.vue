@@ -32,7 +32,7 @@ import {
   TPodsViewFilterOptions,
   TCommonStatuses,
 } from "@/constants";
-import { red, yellow } from "@/vars/colors";
+import { naturals, red, yellow } from "@/vars/colors";
 
 type Props = {
   iconType?: IconType;
@@ -86,6 +86,7 @@ const iconData = computed((): { iconColor?: string, iconTypeValue?: IconType } =
           iconTypeValue: "time",
           iconColor: yellow.Y1,
         };
+      case TCommonStatuses.ACTIVE:
       case TCommonStatuses.COMPLETED:
         return {
           iconTypeValue: "check-in-circle-classic",
@@ -96,6 +97,16 @@ const iconData = computed((): { iconColor?: string, iconTypeValue?: IconType } =
         return {
           iconTypeValue: "error",
           iconColor: "#FF5C56",
+        };
+      case TCommonStatuses.EXPIRED:
+        return {
+          iconTypeValue: "time",
+          iconColor: naturals.N10,
+        };
+      case TCommonStatuses.REVOKED:
+        return {
+          iconTypeValue: "error",
+          iconColor: naturals.N10,
         };
       case TCommonStatuses.ERROR:
         return {

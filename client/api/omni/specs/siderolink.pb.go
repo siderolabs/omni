@@ -31,7 +31,7 @@ type SiderolinkConfigSpec struct {
 	WireguardEndpoint  string                 `protobuf:"bytes,3,opt,name=wireguard_endpoint,json=wireguardEndpoint,proto3" json:"wireguard_endpoint,omitempty"`
 	Subnet             string                 `protobuf:"bytes,5,opt,name=subnet,proto3" json:"subnet,omitempty"`
 	ServerAddress      string                 `protobuf:"bytes,6,opt,name=server_address,json=serverAddress,proto3" json:"server_address,omitempty"`
-	JoinToken          string                 `protobuf:"bytes,7,opt,name=join_token,json=joinToken,proto3" json:"join_token,omitempty"`
+	InitialJoinToken   string                 `protobuf:"bytes,7,opt,name=initial_join_token,json=initialJoinToken,proto3" json:"initial_join_token,omitempty"`
 	AdvertisedEndpoint string                 `protobuf:"bytes,8,opt,name=advertised_endpoint,json=advertisedEndpoint,proto3" json:"advertised_endpoint,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
@@ -102,9 +102,9 @@ func (x *SiderolinkConfigSpec) GetServerAddress() string {
 	return ""
 }
 
-func (x *SiderolinkConfigSpec) GetJoinToken() string {
+func (x *SiderolinkConfigSpec) GetInitialJoinToken() string {
 	if x != nil {
-		return x.JoinToken
+		return x.InitialJoinToken
 	}
 	return ""
 }
@@ -355,7 +355,7 @@ type ConnectionParamsSpec struct {
 	ApiEndpoint string `protobuf:"bytes,2,opt,name=api_endpoint,json=apiEndpoint,proto3" json:"api_endpoint,omitempty"`
 	// WireguardEndpoint is the service IP visible from the internal SideroLink network.
 	WireguardEndpoint string `protobuf:"bytes,3,opt,name=wireguard_endpoint,json=wireguardEndpoint,proto3" json:"wireguard_endpoint,omitempty"`
-	// JoinToken is a join token required to connect to SideroLink.
+	// JoinToken is the default join token that can be used to connect to SideroLink.
 	JoinToken string `protobuf:"bytes,4,opt,name=join_token,json=joinToken,proto3" json:"join_token,omitempty"`
 	// UseGRPCTunnel is a flag to enable gRPC tunneling.
 	UseGrpcTunnel bool `protobuf:"varint,5,opt,name=use_grpc_tunnel,json=useGrpcTunnel,proto3" json:"use_grpc_tunnel,omitempty"`
@@ -733,7 +733,7 @@ var File_omni_specs_siderolink_proto protoreflect.FileDescriptor
 
 const file_omni_specs_siderolink_proto_rawDesc = "" +
 	"\n" +
-	"\x1bomni/specs/siderolink.proto\x12\x05specs\x1a\x1fgoogle/protobuf/timestamp.proto\"\x94\x02\n" +
+	"\x1bomni/specs/siderolink.proto\x12\x05specs\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa3\x02\n" +
 	"\x14SiderolinkConfigSpec\x12\x1f\n" +
 	"\vprivate_key\x18\x01 \x01(\tR\n" +
 	"privateKey\x12\x1d\n" +
@@ -741,9 +741,8 @@ const file_omni_specs_siderolink_proto_rawDesc = "" +
 	"public_key\x18\x02 \x01(\tR\tpublicKey\x12-\n" +
 	"\x12wireguard_endpoint\x18\x03 \x01(\tR\x11wireguardEndpoint\x12\x16\n" +
 	"\x06subnet\x18\x05 \x01(\tR\x06subnet\x12%\n" +
-	"\x0eserver_address\x18\x06 \x01(\tR\rserverAddress\x12\x1d\n" +
-	"\n" +
-	"join_token\x18\a \x01(\tR\tjoinToken\x12/\n" +
+	"\x0eserver_address\x18\x06 \x01(\tR\rserverAddress\x12,\n" +
+	"\x12initial_join_token\x18\a \x01(\tR\x10initialJoinToken\x12/\n" +
 	"\x13advertised_endpoint\x18\b \x01(\tR\x12advertisedEndpoint\"\xa0\x02\n" +
 	"\x0eSiderolinkSpec\x12\x1f\n" +
 	"\vnode_subnet\x18\x01 \x01(\tR\n" +

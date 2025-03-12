@@ -43,11 +43,12 @@ func (suite *MachineStatusLinkSuite) SetupTest() {
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineStatusLinkController(suite.deltaCh)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(serviceConfig)))
+	suite.Require().NoError(suite.runtime.RegisterQController(newMockJoinTokenUsageController[*omni.Machine]()))
 }
 
 func (suite *MachineStatusLinkSuite) TestBasicMachineOnAndOff() {
 	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
-	createConnectionParams(suite.ctx, suite.state, suite.T())
+	createJoinParams(suite.ctx, suite.state, suite.T())
 
 	machine := omni.NewMachine(resources.DefaultNamespace, testID)
 	machine.TypedSpec().Value.Connected = true
@@ -97,7 +98,7 @@ func (suite *MachineStatusLinkSuite) TestTwoMachines() {
 	machine1.TypedSpec().Value.Connected = true
 
 	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
-	createConnectionParams(suite.ctx, suite.state, suite.T())
+	createJoinParams(suite.ctx, suite.state, suite.T())
 
 	suite.create(machine1)
 

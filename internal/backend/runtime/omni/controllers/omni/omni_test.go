@@ -20,8 +20,12 @@ import (
 	"time"
 
 	cosiv1alpha1 "github.com/cosi-project/runtime/api/v1alpha1"
+	"github.com/cosi-project/runtime/pkg/controller"
+	"github.com/cosi-project/runtime/pkg/controller/generic"
+	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/controller/runtime"
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/resource/protobuf"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -696,4 +700,41 @@ func (b *dynamicStateBuilder) Set(ns resource.Namespace, state state.CoreState) 
 	}
 
 	b.m[ns] = state
+}
+
+func newMockJoinTokenUsageController[T generic.ResourceWithRD]() *qtransform.QController[T, *siderolink.JoinTokenUsage] {
+	return qtransform.NewQController(
+		qtransform.Settings[T, *siderolink.JoinTokenUsage]{
+			Name: "mockJoinTokenUsageController",
+			MapMetadataFunc: func(r T) *siderolink.JoinTokenUsage {
+				return siderolink.NewJoinTokenUsage(r.Metadata().ID())
+			},
+			UnmapMetadataFunc: func(usage *siderolink.JoinTokenUsage) T {
+				var t T
+
+				res, err := protobuf.CreateResource(t.ResourceDefinition().Type)
+				if err != nil {
+					panic(err)
+				}
+
+				*res.Metadata() = resource.NewMetadata(
+					t.ResourceDefinition().DefaultNamespace, t.ResourceDefinition().Type, usage.Metadata().ID(), resource.VersionUndefined,
+				)
+
+				return res.(T) //nolint:forcetypeassert,errcheck
+			},
+			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, _ T, usage *siderolink.JoinTokenUsage) error {
+				defaultToken, err := safe.ReaderGetByID[*siderolink.DefaultJoinToken](ctx, r, siderolink.DefaultJoinTokenID)
+				if err != nil {
+					return err
+				}
+
+				usage.TypedSpec().Value.TokenId = defaultToken.TypedSpec().Value.TokenId
+
+				return nil
+			},
+		},
+		qtransform.WithExtraMappedInput(qtransform.MapperNone[*siderolink.DefaultJoinToken]()),
+		qtransform.WithConcurrency(4),
+	)
 }

@@ -28,6 +28,10 @@ func init() {
 	registry.MustRegisterResource(ProviderJoinConfigType, &ProviderJoinConfig{})
 	registry.MustRegisterResource(MachineJoinConfigType, &MachineJoinConfig{})
 	registry.MustRegisterResource(APIConfigType, &APIConfig{})
+	registry.MustRegisterResource(JoinTokenType, &JoinToken{})
+	registry.MustRegisterResource(JoinTokenStatusType, &JoinTokenStatus{})
+	registry.MustRegisterResource(JoinTokenUsageType, &JoinTokenUsage{})
+	registry.MustRegisterResource(DefaultJoinTokenType, &DefaultJoinToken{})
 
 	// NOTE: this resource is not used anymore, but still used in the migration code.
 	registry.MustRegisterResource(DeprecatedLinkCounterType, &DeprecatedLinkCounter{})

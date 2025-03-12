@@ -71,7 +71,7 @@ func TestConnectionParamsKernelArgs(t *testing.T) {
 			name:      "with machine and request ID",
 			apiURL:    "https://127.0.0.1:8099",
 			expectedArgs: []string{
-				"siderolink.api=https://127.0.0.1:8099?grpc_tunnel=true&jointoken=v1%3AeyJleHRyYV9kYXRhIjp7Im9tbmk" +
+				"siderolink.api=https://127.0.0.1:8099?grpc_tunnel=true&jointoken=v2%3AeyJleHRyYV9kYXRhIjp7Im9tbmk" +
 					"uc2lkZXJvLmRldi9pbmZyYS1wcm92aWRlci1pZCI6InRlc3QiLCJvbW5pLnNpZGVyby5kZXYvbWFjaGluZS1yZXF1ZXN0Ijo" +
 					"icmVxdWVzdDEifSwic2lnbmF0dXJlIjoiellrTFRwOUVIanlwTGxrZG1mZjV2Z1A1SERXRktUUXBGR281REp2TDV4MD0ifQ%3D%3D",
 				"talos.events.sink=[fdae:41e4:649b:9303::1]:8091",
@@ -97,7 +97,7 @@ func TestConnectionParamsKernelArgs(t *testing.T) {
 			name:      "with provider",
 			apiURL:    "https://127.0.0.1:8099",
 			expectedArgs: []string{
-				"siderolink.api=https://127.0.0.1:8099?jointoken=v1%3AeyJleHRyYV9kYXRhIjp7Im9tbmkuc2lkZXJvLmRldi9pbmZyYS1wcm92a" +
+				"siderolink.api=https://127.0.0.1:8099?jointoken=v2%3AeyJleHRyYV9kYXRhIjp7Im9tbmkuc2lkZXJvLmRldi9pbmZyYS1wcm92a" +
 					"WRlci1pZCI6InRlc3QifSwic2lnbmF0dXJlIjoiWTNpZ285V2xJSVZOWWpXZmgyWlg5NnpnWW5UQjlwWTI3ZEJaVnJwNDJMZz0ifQ%3D%3D",
 				"talos.events.sink=[fdae:41e4:649b:9303::1]:8091",
 				"talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092",
@@ -231,7 +231,7 @@ url: tcp://[fdae:41e4:649b:9303::1]:8092
 			apiURL:    "https://127.0.0.1:8099",
 			expectedConfig: "apiVersion: v1alpha1\n" +
 				"kind: SideroLinkConfig\n" +
-				"apiUrl: https://127.0.0.1:8099?grpc_tunnel=true&jointoken=v1%3AeyJleHRyYV9kYXRhIjp7Im9tbmkuc2lkZXJvLmRldi9pbmZyYS1wcm" +
+				"apiUrl: https://127.0.0.1:8099?grpc_tunnel=true&jointoken=v2%3AeyJleHRyYV9kYXRhIjp7Im9tbmkuc2lkZXJvLmRldi9pbmZyYS1wcm" +
 				"92aWRlci1pZCI6InRlc3QiLCJvbW5pLnNpZGVyby5kZXYvbWFjaGluZS1yZXF1ZXN0IjoicmVxdWVzdDEifSwic2lnbmF0dXJlIjoiellrTFRwOUVIanl" +
 				"wTGxrZG1mZjV2Z1A1SERXRktUUXBGR281REp2TDV4MD0ifQ%3D%3D\n" +
 				"---\n" +
@@ -257,7 +257,7 @@ url: tcp://[fdae:41e4:649b:9303::1]:8092
 			apiURL:    "https://127.0.0.1:8099",
 			expectedConfig: "apiVersion: v1alpha1\n" +
 				"kind: SideroLinkConfig\n" +
-				"apiUrl: https://127.0.0.1:8099?jointoken=v1%3AeyJleHRyYV9kYXRhIjp7Im9tbmkuc2lkZXJvLmRldi9pbmZyYS1wcm92a" +
+				"apiUrl: https://127.0.0.1:8099?jointoken=v2%3AeyJleHRyYV9kYXRhIjp7Im9tbmkuc2lkZXJvLmRldi9pbmZyYS1wcm92a" +
 				"WRlci1pZCI6InRlc3QifSwic2lnbmF0dXJlIjoiWTNpZ285V2xJSVZOWWpXZmgyWlg5NnpnWW5UQjlwWTI3ZEJaVnJwNDJMZz0ifQ%3D%3D\n" +
 				"---\n" +
 				"apiVersion: v1alpha1\n" +

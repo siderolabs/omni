@@ -40,6 +40,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/constants"
+	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -751,21 +752,26 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 func (s *managementServer) GetMachineJoinConfig(ctx context.Context, request *management.GetMachineJoinConfigRequest) (*management.GetMachineJoinConfigResponse, error) {
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	// TODO: read the token from the JoinToken resources
-	params, err := safe.StateGetByID[*siderolinkres.ConnectionParams](ctx, s.omniState, siderolinkres.ConfigID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get Omni connection params for the extra kernel arguments: %w", err)
-	}
-
 	apiConfig, err := safe.StateGetByID[*siderolinkres.APIConfig](ctx, s.omniState, siderolinkres.ConfigID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get APIConfig for the extra kernel arguments: %w", err)
 	}
 
+	if request.JoinToken == "" {
+		var defaultToken *siderolinkres.DefaultJoinToken
+
+		defaultToken, err = safe.StateGetByID[*siderolinkres.DefaultJoinToken](ctx, s.omniState, siderolinkres.DefaultJoinTokenID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get the default join token: %w", err)
+		}
+
+		request.JoinToken = defaultToken.TypedSpec().Value.TokenId
+	}
+
 	// If the tunnel is enabled instance-wide or in the request, the final state is enabled
 	opts, err := siderolink.NewJoinOptions(
 		siderolink.WithMachineAPIURL(apiConfig.TypedSpec().Value.MachineApiAdvertisedUrl),
-		siderolink.WithJoinToken(params.TypedSpec().Value.JoinToken),
+		siderolink.WithJoinToken(request.JoinToken),
 		siderolink.WithGRPCTunnel(request.UseGrpcTunnel),
 		siderolink.WithEventSinkPort(int(apiConfig.TypedSpec().Value.EventsPort)),
 		siderolink.WithLogServerPort(int(apiConfig.TypedSpec().Value.LogsPort)),
@@ -780,7 +786,37 @@ func (s *managementServer) GetMachineJoinConfig(ctx context.Context, request *ma
 	}
 
 	return &management.GetMachineJoinConfigResponse{
-		Config: string(config),
+		Config:     string(config),
+		KernelArgs: opts.GetKernelArgs(),
+	}, nil
+}
+
+func (s *managementServer) CreateJoinToken(ctx context.Context, request *management.CreateJoinTokenRequest) (*management.CreateJoinTokenResponse, error) {
+	_, err := auth.CheckGRPC(ctx, auth.WithRole(role.Admin))
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := jointoken.Generate()
+	if err != nil {
+		return nil, err
+	}
+
+	joinToken := siderolinkres.NewJoinToken(resources.DefaultNamespace, token)
+
+	if request.Name == "" && len(request.Name) > omni.MaxJoinTokenNameLength {
+		return nil, status.Error(codes.InvalidArgument, "token name is invalid")
+	}
+
+	joinToken.TypedSpec().Value.Name = request.Name
+	joinToken.TypedSpec().Value.ExpirationTime = request.ExpirationTime
+
+	if err = s.omniState.Create(actor.MarkContextAsInternalActor(ctx), joinToken); err != nil {
+		return nil, err
+	}
+
+	return &management.CreateJoinTokenResponse{
+		Id: token,
 	}, nil
 }
 

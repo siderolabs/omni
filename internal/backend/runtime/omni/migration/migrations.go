@@ -1829,3 +1829,57 @@ func createProviders(ctx context.Context, st state.State, logger *zap.Logger, _ 
 
 	return nil
 }
+
+func migrateConnectionParamsToController(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
+	connectionParams, err := safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, st, siderolink.ConfigID)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil
+		}
+
+		return err
+	}
+
+	if connectionParams.Metadata().Owner() == omnictrl.ConnectionParamsControllerName {
+		return nil
+	}
+
+	_, err = safe.StateUpdateWithConflicts(ctx, st, connectionParams.Metadata(), func(res *siderolink.ConnectionParams) error {
+		return res.Metadata().SetOwner(omnictrl.ConnectionParamsControllerName)
+	}, state.WithExpectedPhaseAny())
+
+	return err
+}
+
+// populateJoinTokenUsage starting from 0.53 every machine provision request creates JoinTokenUsage resource.
+// Already existing machines won't call provision API, but should have resources created so we do it through migration.
+// As there was no multiple join token support in Omni they can be simply populated with the default token.
+func populateJoinTokenUsage(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
+	connectionParams, err := safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, st, siderolink.ConfigID)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil
+		}
+
+		return err
+	}
+
+	links, err := safe.ReaderListAll[*siderolink.Link](ctx, st)
+	if err != nil {
+		return err
+	}
+
+	for link := range links.All() {
+		if err = safe.StateModify(ctx, st, siderolink.NewJoinTokenUsage(link.Metadata().ID()),
+			func(res *siderolink.JoinTokenUsage) error {
+				res.TypedSpec().Value.TokenId = connectionParams.TypedSpec().Value.JoinToken
+
+				return nil
+			},
+		); err != nil {
+			return err
+		}
+	}
+
+	return err
+}

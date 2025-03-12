@@ -7,7 +7,7 @@ included in the LICENSE file.
 <template>
   <div class="flex flex-col gap-4">
     <div class="flex gap-1 items-start">
-      <page-header title="Settings" class="flex-1" :subtitle="$route.name"/>
+      <page-header title="Settings" class="flex-1" :subtitle="$route.meta.title"/>
     </div>
     <router-view name="inner"/>
   </div>

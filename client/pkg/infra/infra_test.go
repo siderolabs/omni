@@ -74,7 +74,7 @@ func validateConnectionParams(_ context.Context, _ *zap.Logger, pctx provision.C
 		return fmt.Errorf("invalid connection params: %w", err)
 	}
 
-	token := url.Query().Get("jointoken")
+	token := url.Query().Get(siderolink.JoinTokenQueryParam)
 	if token == "" {
 		return errors.New("invalid connection params")
 	}
@@ -167,7 +167,7 @@ func genSchematic(ctx context.Context, logger *zap.Logger, pctx provision.Contex
 			return err
 		}
 
-		expectedSchematic := "279f180d2195dbf1aa7c0864d0440d19dd562717c279d0bae979252c77141165"
+		expectedSchematic := "4e2a2ec4368100c1b21d4fa7be47f3d38ddab9185f34fc187f82400b1e20da17"
 
 		if schematic != expectedSchematic {
 			return fmt.Errorf("expected schematic id to be %s got %s", expectedSchematic, schematic)

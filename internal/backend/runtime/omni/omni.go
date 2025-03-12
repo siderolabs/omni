@@ -35,7 +35,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	siderolinkresources "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	virtualres "github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
 	pkgruntime "github.com/siderolabs/omni/client/pkg/runtime"
@@ -156,15 +156,19 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 			safe.WithResourceCache[*omni.TalosVersion](),
 			safe.WithResourceCache[*omni.MaintenanceConfigStatus](),
 			safe.WithResourceCache[*omni.MachineConfigDiff](),
-			safe.WithResourceCache[*siderolinkresources.Config](),
-			safe.WithResourceCache[*siderolinkresources.ConnectionParams](),
-			safe.WithResourceCache[*siderolinkresources.Link](),
+			safe.WithResourceCache[*siderolinkres.Config](),
+			safe.WithResourceCache[*siderolinkres.ConnectionParams](),
+			safe.WithResourceCache[*siderolinkres.Link](),
 			safe.WithResourceCache[*system.ResourceLabels[*omni.MachineStatus]](),
 			safe.WithResourceCache[*infra.ConfigPatchRequest](),
 			safe.WithResourceCache[*auth.ServiceAccountStatus](),
-			safe.WithResourceCache[*siderolinkresources.MachineJoinConfig](),
-			safe.WithResourceCache[*siderolinkresources.ProviderJoinConfig](),
-			safe.WithResourceCache[*siderolinkresources.APIConfig](),
+			safe.WithResourceCache[*siderolinkres.MachineJoinConfig](),
+			safe.WithResourceCache[*siderolinkres.ProviderJoinConfig](),
+			safe.WithResourceCache[*siderolinkres.APIConfig](),
+			safe.WithResourceCache[*siderolinkres.JoinToken](),
+			safe.WithResourceCache[*siderolinkres.JoinTokenStatus](),
+			safe.WithResourceCache[*siderolinkres.DefaultJoinToken](),
+			safe.WithResourceCache[*siderolinkres.JoinTokenUsage](),
 			options.WithWarnOnUncachedReads(false), // turn this to true to debug resource cache misses
 		)
 	}
@@ -241,13 +245,14 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		&omnictrl.OngoingTaskController{},
 		omnictrl.NewMachineRequestStatusCleanupController(),
 		omnictrl.NewInfraProviderCleanupController(),
+		omnictrl.NewLinkCleanupController(),
 	}
 
 	imageFactoryHost := imageFactoryClient.Host()
 	peers := siderolink.NewPeersPool(logger, siderolink.DefaultWireguardHandler)
 
 	qcontrollers := []controller.QController{
-		destroy.NewController[*siderolinkresources.Link](optional.Some[uint](4)),
+		destroy.NewController[*siderolinkres.Link](optional.Some[uint](4)),
 
 		omnictrl.NewBackupDataController(),
 		omnictrl.NewClusterBootstrapStatusController(storeFactory),
@@ -295,8 +300,8 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		omnictrl.NewInfraMachineController(installEventCh),
 		omnictrl.NewBMCConfigController(),
 		omnictrl.NewInfraProviderConfigPatchController(),
-		omnictrl.NewLinkStatusController[*siderolinkresources.Link](peers),
-		omnictrl.NewLinkStatusController[*siderolinkresources.PendingMachine](peers),
+		omnictrl.NewLinkStatusController[*siderolinkres.Link](peers),
+		omnictrl.NewLinkStatusController[*siderolinkres.PendingMachine](peers),
 		omnictrl.NewPendingMachineStatusController(),
 		omnictrl.NewMaintenanceConfigStatusController(nil, config.Config.Services.Siderolink.EventSinkPort, config.Config.Services.Siderolink.LogServerPort),
 		omnictrl.NewDiscoveryAffiliateDeleteTaskController(clockwork.NewRealClock(), discoveryClientCache),
@@ -306,6 +311,8 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		omnictrl.NewSiderolinkAPIConfigController(&config.Config.Services),
 		omnictrl.NewProviderJoinConfigController(),
 		omnictrl.NewMachineJoinConfigController(),
+		omnictrl.NewConnectionParamsController(),
+		omnictrl.NewJoinTokenStatusController(),
 	}
 
 	if config.Config.Auth.SAML.Enabled {
@@ -390,6 +397,8 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		machineRequestSetValidationOptions(cachedState),
 		infraMachineConfigValidationOptions(cachedState),
 		nodeForceDestroyRequestValidationOptions(cachedState),
+		joinTokenValidationOptions(cachedState),
+		defaultJoinTokenValidationOptions(),
 	)
 
 	return &Runtime{

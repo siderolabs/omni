@@ -35,7 +35,7 @@ func NewMachineJoinConfigController() *MachineJoinConfigController {
 				return omni.NewMachine(resources.DefaultNamespace, config.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, machine *omni.Machine, machineJoinConfig *siderolinkres.MachineJoinConfig) error {
-				connectionParams, err := safe.ReaderGetByID[*siderolinkres.ConnectionParams](ctx, r, siderolinkres.ConfigID)
+				tokenUsage, err := safe.ReaderGetByID[*siderolinkres.JoinTokenUsage](ctx, r, machine.Metadata().ID())
 				if err != nil {
 					return err
 				}
@@ -46,8 +46,7 @@ func NewMachineJoinConfigController() *MachineJoinConfigController {
 				}
 
 				joinOptions, err := siderolink.NewJoinOptions(
-					// TODO: join token will be read from the join token usage resource
-					siderolink.WithJoinToken(connectionParams.TypedSpec().Value.JoinToken),
+					siderolink.WithJoinToken(tokenUsage.TypedSpec().Value.TokenId),
 					siderolink.WithEventSinkPort(int(siderolinkAPIConfig.TypedSpec().Value.EventsPort)),
 					siderolink.WithLogServerPort(int(siderolinkAPIConfig.TypedSpec().Value.LogsPort)),
 					siderolink.WithMachineAPIURL(siderolinkAPIConfig.TypedSpec().Value.MachineApiAdvertisedUrl),
@@ -72,8 +71,8 @@ func NewMachineJoinConfigController() *MachineJoinConfigController {
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(qtransform.MapperNone[*siderolinkres.ConnectionParams]()),
 		qtransform.WithExtraMappedInput(qtransform.MapperNone[*siderolinkres.APIConfig]()),
+		qtransform.WithExtraMappedInput(qtransform.MapperSameID[*siderolinkres.JoinTokenUsage, *omni.Machine]()),
 		qtransform.WithConcurrency(4),
 	)
 }

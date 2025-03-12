@@ -378,7 +378,7 @@ func establishLink[T res](ctx context.Context, logger *zap.Logger, st state.Stat
 			return nil, err
 		}
 
-		link, err = updateResourceWithMatchingToken[T](ctx, logger, st, provisionContext, link, annotationsToAdd, annotationsToRemove)
+		link, err = updateResourceWithMatchingToken(ctx, logger, st, provisionContext, link, annotationsToAdd, annotationsToRemove)
 		if err != nil {
 			if state.IsPhaseConflictError(err) {
 				return nil, status.Errorf(codes.AlreadyExists, "the machine with the same UUID is already registered in Omni and is in the tearing down phase")
@@ -386,6 +386,15 @@ func establishLink[T res](ctx context.Context, logger *zap.Logger, st state.Stat
 
 			return nil, err
 		}
+	}
+
+	err = safe.StateModify(ctx, st, siderolink.NewJoinTokenUsage(link.Metadata().ID()), func(res *siderolink.JoinTokenUsage) error {
+		res.TypedSpec().Value.TokenId = pointer.SafeDeref(provisionContext.request.JoinToken)
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	return genProvisionResponse(ctx, logger, st, provisionContext, link, link.TypedSpec().Value)
@@ -491,21 +500,19 @@ func generateVirtualAddrPort(generate bool) (string, error) {
 	return net.JoinHostPort(generated.Addr().String(), "50889"), nil
 }
 
-//nolint:gocyclo,cyclop
 func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.ProvisionRequest) (*provisionContext, error) {
 	link, err := safe.StateGetByID[*siderolink.Link](ctx, h.state, req.NodeUuid)
 	if err != nil && !state.IsNotFoundError(err) {
 		return nil, err
 	}
 
-	// TODO: add support of several join tokens here
 	siderolinkConfig, err := safe.ReaderGetByID[*siderolink.Config](ctx, h.state, siderolink.ConfigID)
 	if err != nil {
 		return nil, err
 	}
 
 	var (
-		linkToken              *jointoken.JoinToken
+		requestJoinToken       *jointoken.JoinToken
 		requestNodeUniqueToken *jointoken.NodeUniqueToken
 		linkNodeUniqueToken    *jointoken.NodeUniqueToken
 		pendingMachineStatus   *siderolink.PendingMachineStatus
@@ -513,11 +520,9 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 		tokenWasWiped          bool
 	)
 
-	if req.JoinToken != nil {
-		linkToken, err = h.getJoinToken(*req.JoinToken)
-		if err != nil {
-			return nil, err
-		}
+	requestJoinToken, err = h.getJoinToken(ctx, pointer.SafeDeref(req.JoinToken))
+	if err != nil {
+		return nil, err
 	}
 
 	// if the version is not set, consider the machine be below 1.6
@@ -587,13 +592,13 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 		link:                      link,
 		pendingMachine:            pendingMachine,
 		pendingMachineStatus:      pendingMachineStatus,
-		token:                     linkToken,
+		token:                     requestJoinToken,
 		request:                   req,
 		requestNodeUniqueToken:    requestNodeUniqueToken,
 		linkNodeUniqueToken:       linkNodeUniqueToken,
 		forceValidNodeUniqueToken: forceValidUniqueToken,
 		tokenWasWiped:             tokenWasWiped,
-		hasValidJoinToken:         linkToken != nil && linkToken.IsValid(siderolinkConfig.TypedSpec().Value.JoinToken),
+		hasValidJoinToken:         requestJoinToken != nil,
 		hasValidNodeUniqueToken:   linkNodeUniqueToken.Equal(requestNodeUniqueToken),
 		nodeUniqueTokensEnabled:   h.joinTokenMode != config.JoinTokensModeLegacyOnly,
 		supportsSecureJoinTokens:  supportsSecureJoinTokens,
@@ -601,13 +606,79 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 	}, nil
 }
 
-func (h *ProvisionHandler) getJoinToken(tokenString string) (*jointoken.JoinToken, error) {
-	var token jointoken.JoinToken
+func (h *ProvisionHandler) validateTokenWithExtraData(ctx context.Context, linkToken jointoken.JoinToken) (*jointoken.JoinToken, error) {
+	var joinToken string
 
-	token, err := jointoken.Parse(tokenString)
+	// if the token version is V2, we should validate against the individual join token
+	if providerID, ok := linkToken.ExtraData[omni.LabelInfraProviderID]; ok && linkToken.Version == jointoken.Version2 {
+		providerJoinConfig, err := safe.ReaderGetByID[*siderolink.ProviderJoinConfig](ctx, h.state, providerID)
+		if err != nil {
+			if state.IsNotFoundError(err) {
+				h.logger.Warn("machine join token rejected: the provider is not registered in the system", zap.Error(err))
+
+				return nil, nil //nolint:nilnil
+			}
+
+			return nil, err
+		}
+
+		joinToken = providerJoinConfig.TypedSpec().Value.JoinToken
+	} else {
+		defaultJoinToken, err := safe.ReaderGetByID[*siderolink.DefaultJoinToken](ctx, h.state, siderolink.DefaultJoinTokenID)
+		if err != nil {
+			return nil, err
+		}
+
+		var joinTokenStatus *siderolink.JoinTokenStatus
+
+		joinTokenStatus, err = safe.ReaderGetByID[*siderolink.JoinTokenStatus](ctx, h.state, defaultJoinToken.TypedSpec().Value.TokenId)
+		if err != nil {
+			return nil, err
+		}
+
+		if joinTokenStatus.TypedSpec().Value.State != specs.JoinTokenStatusSpec_ACTIVE {
+			h.logger.Warn("machine join token rejected: the default join token is not active")
+
+			return nil, nil //nolint:nilnil
+		}
+
+		joinToken = joinTokenStatus.Metadata().ID()
+	}
+
+	if !linkToken.IsValid(joinToken) {
+		return nil, nil //nolint:nilnil
+	}
+
+	return &linkToken, nil
+}
+
+func (h *ProvisionHandler) getJoinToken(ctx context.Context, tokenString string) (*jointoken.JoinToken, error) {
+	if tokenString == "" {
+		return nil, nil //nolint:nilnil
+	}
+
+	var linkToken jointoken.JoinToken
+
+	linkToken, err := jointoken.Parse(tokenString)
 	if err != nil {
 		return nil, status.Errorf(codes.PermissionDenied, "invalid join token %s", err)
 	}
 
-	return &token, nil
+	// verify the token against the default token or provider token if using v1 version
+	if linkToken.Version != jointoken.VersionPlain {
+		return h.validateTokenWithExtraData(ctx, linkToken)
+	}
+
+	var tokenStatus *siderolink.JoinTokenStatus
+
+	tokenStatus, err = safe.ReaderGetByID[*siderolink.JoinTokenStatus](ctx, h.state, tokenString)
+	if err != nil && !state.IsNotFoundError(err) {
+		return nil, err
+	}
+
+	if tokenStatus == nil || tokenStatus.TypedSpec().Value.State != specs.JoinTokenStatusSpec_ACTIVE {
+		return nil, nil //nolint:nilnil
+	}
+
+	return &linkToken, nil
 }

@@ -409,6 +409,7 @@ func (m *CreateSchematicRequest) CloneVT() *CreateSchematicRequest {
 	r.MediaId = m.MediaId
 	r.SecureBoot = m.SecureBoot
 	r.SiderolinkGrpcTunnelMode = m.SiderolinkGrpcTunnelMode
+	r.JoinToken = m.JoinToken
 	if rhs := m.Extensions; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -662,6 +663,7 @@ func (m *GetMachineJoinConfigRequest) CloneVT() *GetMachineJoinConfigRequest {
 	}
 	r := new(GetMachineJoinConfigRequest)
 	r.UseGrpcTunnel = m.UseGrpcTunnel
+	r.JoinToken = m.JoinToken
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -692,6 +694,58 @@ func (m *GetMachineJoinConfigResponse) CloneVT() *GetMachineJoinConfigResponse {
 }
 
 func (m *GetMachineJoinConfigResponse) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *GenJoinTokenResponse) CloneVT() *GenJoinTokenResponse {
+	if m == nil {
+		return (*GenJoinTokenResponse)(nil)
+	}
+	r := new(GenJoinTokenResponse)
+	r.Token = m.Token
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *GenJoinTokenResponse) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *CreateJoinTokenRequest) CloneVT() *CreateJoinTokenRequest {
+	if m == nil {
+		return (*CreateJoinTokenRequest)(nil)
+	}
+	r := new(CreateJoinTokenRequest)
+	r.Name = m.Name
+	r.ExpirationTime = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ExpirationTime).CloneVT())
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *CreateJoinTokenRequest) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *CreateJoinTokenResponse) CloneVT() *CreateJoinTokenResponse {
+	if m == nil {
+		return (*CreateJoinTokenResponse)(nil)
+	}
+	r := new(CreateJoinTokenResponse)
+	r.Id = m.Id
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *CreateJoinTokenResponse) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -1201,6 +1255,9 @@ func (this *CreateSchematicRequest) EqualVT(that *CreateSchematicRequest) bool {
 	if this.SiderolinkGrpcTunnelMode != that.SiderolinkGrpcTunnelMode {
 		return false
 	}
+	if this.JoinToken != that.JoinToken {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1493,6 +1550,9 @@ func (this *GetMachineJoinConfigRequest) EqualVT(that *GetMachineJoinConfigReque
 	if this.UseGrpcTunnel != that.UseGrpcTunnel {
 		return false
 	}
+	if this.JoinToken != that.JoinToken {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1526,6 +1586,66 @@ func (this *GetMachineJoinConfigResponse) EqualVT(that *GetMachineJoinConfigResp
 
 func (this *GetMachineJoinConfigResponse) EqualMessageVT(thatMsg proto.Message) bool {
 	that, ok := thatMsg.(*GetMachineJoinConfigResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *GenJoinTokenResponse) EqualVT(that *GenJoinTokenResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Token != that.Token {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GenJoinTokenResponse) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*GenJoinTokenResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *CreateJoinTokenRequest) EqualVT(that *CreateJoinTokenRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	if !(*timestamppb1.Timestamp)(this.ExpirationTime).EqualVT((*timestamppb1.Timestamp)(that.ExpirationTime)) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CreateJoinTokenRequest) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*CreateJoinTokenRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *CreateJoinTokenResponse) EqualVT(that *CreateJoinTokenResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CreateJoinTokenResponse) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*CreateJoinTokenResponse)
 	if !ok {
 		return false
 	}
@@ -2509,6 +2629,13 @@ func (m *CreateSchematicRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.JoinToken) > 0 {
+		i -= len(m.JoinToken)
+		copy(dAtA[i:], m.JoinToken)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.JoinToken)))
+		i--
+		dAtA[i] = 0x42
+	}
 	if m.SiderolinkGrpcTunnelMode != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.SiderolinkGrpcTunnelMode))
 		i--
@@ -3142,6 +3269,13 @@ func (m *GetMachineJoinConfigRequest) MarshalToSizedBufferVT(dAtA []byte) (int, 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.JoinToken) > 0 {
+		i -= len(m.JoinToken)
+		copy(dAtA[i:], m.JoinToken)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.JoinToken)))
+		i--
+		dAtA[i] = 0x12
+	}
 	if m.UseGrpcTunnel {
 		i--
 		if m.UseGrpcTunnel {
@@ -3200,6 +3334,136 @@ func (m *GetMachineJoinConfigResponse) MarshalToSizedBufferVT(dAtA []byte) (int,
 			i--
 			dAtA[i] = 0xa
 		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GenJoinTokenResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GenJoinTokenResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GenJoinTokenResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Token) > 0 {
+		i -= len(m.Token)
+		copy(dAtA[i:], m.Token)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Token)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CreateJoinTokenRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CreateJoinTokenRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CreateJoinTokenRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ExpirationTime != nil {
+		size, err := (*timestamppb1.Timestamp)(m.ExpirationTime).MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Name) > 0 {
+		i -= len(m.Name)
+		copy(dAtA[i:], m.Name)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Name)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CreateJoinTokenResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CreateJoinTokenResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CreateJoinTokenResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Id) > 0 {
+		i -= len(m.Id)
+		copy(dAtA[i:], m.Id)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Id)))
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -3589,6 +3853,10 @@ func (m *CreateSchematicRequest) SizeVT() (n int) {
 	if m.SiderolinkGrpcTunnelMode != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.SiderolinkGrpcTunnelMode))
 	}
+	l = len(m.JoinToken)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -3805,6 +4073,10 @@ func (m *GetMachineJoinConfigRequest) SizeVT() (n int) {
 	if m.UseGrpcTunnel {
 		n += 2
 	}
+	l = len(m.JoinToken)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -3822,6 +4094,52 @@ func (m *GetMachineJoinConfigResponse) SizeVT() (n int) {
 		}
 	}
 	l = len(m.Config)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GenJoinTokenResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Token)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CreateJoinTokenRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Name)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.ExpirationTime != nil {
+		l = (*timestamppb1.Timestamp)(m.ExpirationTime).SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CreateJoinTokenResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Id)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -6273,6 +6591,38 @@ func (m *CreateSchematicRequest) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JoinToken", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.JoinToken = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -7615,6 +7965,38 @@ func (m *GetMachineJoinConfigRequest) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.UseGrpcTunnel = bool(v != 0)
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JoinToken", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.JoinToken = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -7729,6 +8111,291 @@ func (m *GetMachineJoinConfigResponse) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Config = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *GenJoinTokenResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GenJoinTokenResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GenJoinTokenResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Token", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Token = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *CreateJoinTokenRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CreateJoinTokenRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CreateJoinTokenRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Name = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpirationTime", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ExpirationTime == nil {
+				m.ExpirationTime = &timestamppb.Timestamp{}
+			}
+			if err := (*timestamppb1.Timestamp)(m.ExpirationTime).UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *CreateJoinTokenResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CreateJoinTokenResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CreateJoinTokenResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Id = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

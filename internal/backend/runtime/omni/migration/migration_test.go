@@ -2119,6 +2119,47 @@ func (suite *MigrationSuite) TestCreateProviders() {
 	suite.Assert().True(state.IsNotFoundError(err))
 }
 
+func (suite *MigrationSuite) TestMigrateConnectionParamsToController() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	params := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
+
+	suite.Require().NoError(suite.state.Create(ctx, params))
+
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("migrateConnectionParamsToController"))))
+
+	var err error
+
+	params, err = safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, suite.state, params.Metadata().ID())
+
+	suite.Require().NoError(err)
+
+	suite.Require().Equal(omnictrl.ConnectionParamsControllerName, params.Metadata().Owner())
+}
+
+func (suite *MigrationSuite) TestPopulateJoinTokenUsage() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	params := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
+	params.TypedSpec().Value.JoinToken = "defaulttoken"
+
+	suite.Require().NoError(suite.state.Create(ctx, params))
+
+	link := siderolink.NewLink(resources.DefaultNamespace, "machine1", nil)
+
+	suite.Require().NoError(suite.state.Create(ctx, link))
+
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("populateJoinTokenUsage"))))
+
+	usage, err := safe.ReaderGetByID[*siderolink.JoinTokenUsage](ctx, suite.state, link.Metadata().ID())
+
+	suite.Require().NoError(err)
+
+	suite.Require().Equal(params.TypedSpec().Value.JoinToken, usage.TypedSpec().Value.TokenId)
+}
+
 func startMigration[
 	R interface {
 		generic.ResourceWithRD

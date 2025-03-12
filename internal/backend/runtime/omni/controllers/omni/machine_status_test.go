@@ -69,11 +69,6 @@ func (suite *MachineStatusSuite) setup() {
 		suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)),
 	)
 
-	params := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
-	params.TypedSpec().Value.JoinToken = "testjointoken"
-
-	suite.Require().NoError(suite.state.Create(suite.ctx, params))
-
 	apiConfig := siderolink.NewAPIConfig()
 	apiConfig.TypedSpec().Value.LogsPort = 8092
 	apiConfig.TypedSpec().Value.EventsPort = 8091
@@ -81,8 +76,11 @@ func (suite *MachineStatusSuite) setup() {
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, apiConfig))
 
+	createJoinParams(suite.ctx, suite.state, suite.T())
+
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineStatusController(&imageFactoryClientMock{})))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(newMockJoinTokenUsageController[*omni.Machine]()))
 }
 
 const testID = "testID"
@@ -325,7 +323,7 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 	suite.setup()
 
 	kernelArgs := []string{
-		"siderolink.api=grpc://127.0.0.1:8090?jointoken=testjointoken",
+		"siderolink.api=grpc://127.0.0.1:8090?jointoken=testtoken",
 		"talos.events.sink=[fdae:41e4:649b:9303::1]:8091",
 		"talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092",
 	}

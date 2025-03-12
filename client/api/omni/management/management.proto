@@ -138,6 +138,7 @@ message CreateSchematicRequest {
   string media_id = 5;
   bool secure_boot = 6;
   SiderolinkGRPCTunnelMode siderolink_grpc_tunnel_mode = 7;
+  string join_token = 8;
 }
 
 message CreateSchematicResponse {
@@ -200,11 +201,25 @@ message MaintenanceUpgradeResponse {
 
 message GetMachineJoinConfigRequest {
   bool use_grpc_tunnel = 1;
+  string join_token = 2;
 }
 
 message GetMachineJoinConfigResponse {
   repeated string kernel_args = 1;
   string config = 2;
+}
+
+message GenJoinTokenResponse {
+  string token = 1;
+}
+
+message CreateJoinTokenRequest {
+  string name = 1;
+  google.protobuf.Timestamp expiration_time = 2;
+}
+
+message CreateJoinTokenResponse {
+  string id = 1;
 }
 
 service ManagementService {
@@ -225,4 +240,5 @@ service ManagementService {
   rpc ReadAuditLog(ReadAuditLogRequest) returns (stream ReadAuditLogResponse);
   rpc MaintenanceUpgrade(MaintenanceUpgradeRequest) returns (MaintenanceUpgradeResponse);
   rpc GetMachineJoinConfig(GetMachineJoinConfigRequest) returns (GetMachineJoinConfigResponse);
+  rpc CreateJoinToken(CreateJoinTokenRequest) returns (CreateJoinTokenResponse);
 }

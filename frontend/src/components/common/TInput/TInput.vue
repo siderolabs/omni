@@ -18,29 +18,29 @@ included in the LICENSE file.
   >
     <t-icon class="input-box-icon" v-if="icon" :icon="icon"/>
     <slot name="labels"/>
-    <template v-if="!disabled">
-      <span v-if="title" class="text-xs min-w-fit mr-1">{{title}}:</span>
-      <input
-        @input="updateValue($event.target?.['value'].trim())"
-        ref="input"
-        :value="modelValue"
-        :type="type"
-        class="input-box-input"
-        @focus="isFocused = true"
-        @blur="blurHandler"
-        :placeholder="placeholder"
+    <span v-if="title" class="text-xs min-w-fit mr-1">{{title}}:</span>
+    <input
+      :class="{'opacity-0': disabled}"
+      :readonly="disabled"
+      @input="updateValue($event.target?.['value'].trim())"
+      ref="input"
+      :value="modelValue"
+      :type="type"
+      class="input-box-input"
+      @focus="isFocused = true"
+      @blur="blurHandler"
+      :placeholder="placeholder"
+    />
+    <div v-if="type === 'number'" class="flex flex-col select-none -my-1">
+      <t-icon class="hover:text-naturals-N14 text-naturals-N12 w-2 h-2 rotate-180" icon="arrow-down" @click="updateValue(numberValue + step)"/>
+      <t-icon class="hover:text-naturals-N14 text-naturals-N12 w-2 h-2" icon="arrow-down"  @click="updateValue(numberValue - step)"/>
+    </div>
+    <div v-else-if="modelValue !== '' || onClear" @click.prevent="clearInput">
+      <t-icon
+        class="input-box-icon"
+        icon="close"
       />
-      <div v-if="type === 'number'" class="flex flex-col select-none items-center justify-center">
-        <t-icon class="hover:text-naturals-N14 text-naturals-N12 w-2 h-2 rotate-180" icon="arrow-down" @click="updateValue(numberValue + step)"/>
-        <t-icon class="hover:text-naturals-N14 text-naturals-N12 w-2 h-2" icon="arrow-down"  @click="updateValue(numberValue - step)"/>
-      </div>
-      <div v-else-if="modelValue !== '' || onClear" @click.prevent="clearInput">
-        <t-icon
-          class="input-box-icon"
-          icon="close"
-        />
-      </div>
-    </template>
+    </div>
   </label>
 </template>
 
@@ -200,5 +200,9 @@ input[type=number] {
 
 .disabled {
   @apply cursor-not-allowed bg-naturals-N3 border-naturals-N6;
+}
+
+.disabled * {
+  @apply pointer-events-none text-naturals-N9 select-none;
 }
 </style>

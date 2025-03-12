@@ -150,8 +150,8 @@ func (suite *GrpcSuite) TestSchematicCreate() {
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
 	defer cancel()
 
-	params := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
-	params.TypedSpec().Value.JoinToken = "abcd"
+	params := siderolink.NewDefaultJoinToken()
+	params.TypedSpec().Value.TokenId = "abcd"
 
 	suite.Require().NoError(suite.state.Create(ctx, params))
 

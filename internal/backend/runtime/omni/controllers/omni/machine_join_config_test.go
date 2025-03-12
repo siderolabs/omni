@@ -38,10 +38,10 @@ func (suite *MachineJoinConfigSuite) TestReconcile() {
 	apiConfig.TypedSpec().Value.LogsPort = 8092
 	apiConfig.TypedSpec().Value.MachineApiAdvertisedUrl = "http://127.0.0.1"
 
-	params := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
-	params.TypedSpec().Value.JoinToken = "jtoken"
-
 	machine := omni.NewMachine(resources.DefaultNamespace, "machine1")
+
+	params := siderolink.NewJoinTokenUsage(machine.Metadata().ID())
+	params.TypedSpec().Value.TokenId = "jtoken"
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, params))
 	suite.Require().NoError(suite.state.Create(suite.ctx, apiConfig))
