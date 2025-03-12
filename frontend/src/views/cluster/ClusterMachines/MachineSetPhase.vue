@@ -11,7 +11,7 @@ included in the LICENSE file.
       class="cluster-phase-box"
       >
         <t-icon :icon="phaseIcon(item)" class="h-4"/>
-        <div class="cluster-phase-name">{{ phaseName(item) || "" }}</div>
+        <div id="machine-set-phase-name">{{ phaseName(item) || "" }}</div>
       </div>
       <div v-if="item.spec.locked_updates"
         class="flex gap-1 items-center text-light-blue-400">

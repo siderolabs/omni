@@ -431,7 +431,7 @@ func (s *E2ESuite) assertClusterCreation() {
 				return retry.ExpectedErrorf("the cluster is not created yet")
 			}
 
-			runningMachineSet := page.Locator(`div[class="cluster-phase-name"]:has-text("Running")`)
+			runningMachineSet := page.Locator(`div[id="machine-set-phase-name"]:has-text("Running")`)
 			runningMachineSetCount, err := runningMachineSet.Count()
 			if err != nil {
 				openPage()
@@ -439,7 +439,7 @@ func (s *E2ESuite) assertClusterCreation() {
 				return retry.ExpectedErrorf("failed to get running machine sets count %s", err)
 			}
 
-			runningMachines := page.Locator(`div[class="cluster-stage-name"]:has-text("Running")`)
+			runningMachines := page.Locator(`div[id="cluster-machine-stage-name"]:has-text("Running")`)
 			runningMachinesCount, err := runningMachines.Count()
 			if err != nil {
 				openPage()

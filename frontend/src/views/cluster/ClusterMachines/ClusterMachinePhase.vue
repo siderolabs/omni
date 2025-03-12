@@ -7,20 +7,16 @@ included in the LICENSE file.
 <template>
   <div
     :style="'color: ' + stageColor(machine)"
-    :class="'cluster-stage-box' + (connected(machine) ? '' : ' brightness-50')"
   >
-    <popper v-if="!connected(machine)" hover placement="right" offsetDistance="4">
-      <template #content>
-        <div class="px-2 py-1 rounded bg-naturals-N4 drop-shadow text-naturals-N12">
-          The machine is unreachable. The last known state is shown.
+    <tooltip placement="bottom" :description="connected(machine) ? undefined : 'The machine is unreachable. The last known state is shown'">
+      <div class="flex gap-1"
+        :class="'cluster-stage-box' + (connected(machine) ? '' : ' brightness-50')">
+        <t-icon :icon="stageIcon(machine)" class="h-4" />
+        <div class="truncate flex-1" id="cluster-machine-stage-name">
+          {{ stageName(machine) || "" }}
         </div>
-      </template>
-      <t-icon class="w-4 h-4" icon="unknown"/>
-    </popper>
-    <t-icon v-else :icon="stageIcon(machine)" class="h-4" />
-    <div class="cluster-stage-name">
-      {{ stageName(machine) || "" }}
-    </div>
+      </div>
+    </tooltip>
   </div>
 </template>
 
@@ -30,7 +26,7 @@ import { MachineStatusLabelConnected } from "@/api/resources";
 import { Resource } from "@/api/grpc";
 
 import TIcon, { IconType } from "@/components/common/Icon/TIcon.vue";
-import Popper from "vue3-popper";
+import Tooltip from "@/components/common/Tooltip/Tooltip.vue";
 
 const connected = (machine: Resource<ClusterMachineStatusSpec>): boolean => {
   if (machine.spec.stage === ClusterMachineStatusSpecStage.POWERING_ON) {
@@ -72,6 +68,10 @@ const stageName = (machine: Resource<ClusterMachineStatusSpec>): string => {
 };
 
 const stageIcon = (machine: Resource<ClusterMachineStatusSpec>): IconType => {
+  if (!connected(machine)) {
+    return "unknown";
+  }
+
   switch (machine?.spec.stage) {
     case ClusterMachineStatusSpecStage.BOOTING:
     case ClusterMachineStatusSpecStage.INSTALLING:
