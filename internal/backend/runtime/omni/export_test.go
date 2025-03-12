@@ -85,3 +85,11 @@ func MachineRequestSetValidationOptions(st state.State) []validated.StateOption 
 func InfraMachineConfigValidationOptions(st state.State) []validated.StateOption {
 	return infraMachineConfigValidationOptions(st)
 }
+
+func JoinTokenValidationOptions(st state.State) []validated.StateOption {
+	return joinTokenValidationOptions(st)
+}
+
+func DefaultJoinTokenValidationOptions() []validated.StateOption {
+	return defaultJoinTokenValidationOptions()
+}

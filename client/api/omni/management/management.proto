@@ -138,6 +138,7 @@ message CreateSchematicRequest {
   string media_id = 5;
   bool secure_boot = 6;
   SiderolinkGRPCTunnelMode siderolink_grpc_tunnel_mode = 7;
+  string join_token = 8;
 }
 
 message CreateSchematicResponse {

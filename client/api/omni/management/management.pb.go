@@ -1028,6 +1028,7 @@ type CreateSchematicRequest struct {
 	MediaId                  string                                          `protobuf:"bytes,5,opt,name=media_id,json=mediaId,proto3" json:"media_id,omitempty"`
 	SecureBoot               bool                                            `protobuf:"varint,6,opt,name=secure_boot,json=secureBoot,proto3" json:"secure_boot,omitempty"`
 	SiderolinkGrpcTunnelMode CreateSchematicRequest_SiderolinkGRPCTunnelMode `protobuf:"varint,7,opt,name=siderolink_grpc_tunnel_mode,json=siderolinkGrpcTunnelMode,proto3,enum=management.CreateSchematicRequest_SiderolinkGRPCTunnelMode" json:"siderolink_grpc_tunnel_mode,omitempty"`
+	JoinToken                string                                          `protobuf:"bytes,8,opt,name=join_token,json=joinToken,proto3" json:"join_token,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
@@ -1109,6 +1110,13 @@ func (x *CreateSchematicRequest) GetSiderolinkGrpcTunnelMode() CreateSchematicRe
 		return x.SiderolinkGrpcTunnelMode
 	}
 	return CreateSchematicRequest_AUTO
+}
+
+func (x *CreateSchematicRequest) GetJoinToken() string {
+	if x != nil {
+		return x.JoinToken
+	}
+	return ""
 }
 
 type CreateSchematicResponse struct {
@@ -1804,7 +1812,7 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\fResponseType\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\f\n" +
 	"\bMANIFEST\x10\x01\x12\v\n" +
-	"\aROLLOUT\x10\x02\"\x96\x04\n" +
+	"\aROLLOUT\x10\x02\"\xb5\x04\n" +
 	"\x16CreateSchematicRequest\x12\x1e\n" +
 	"\n" +
 	"extensions\x18\x01 \x03(\tR\n" +
@@ -1816,7 +1824,9 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\bmedia_id\x18\x05 \x01(\tR\amediaId\x12\x1f\n" +
 	"\vsecure_boot\x18\x06 \x01(\bR\n" +
 	"secureBoot\x12z\n" +
-	"\x1bsiderolink_grpc_tunnel_mode\x18\a \x01(\x0e2;.management.CreateSchematicRequest.SiderolinkGRPCTunnelModeR\x18siderolinkGrpcTunnelMode\x1a=\n" +
+	"\x1bsiderolink_grpc_tunnel_mode\x18\a \x01(\x0e2;.management.CreateSchematicRequest.SiderolinkGRPCTunnelModeR\x18siderolinkGrpcTunnelMode\x12\x1d\n" +
+	"\n" +
+	"join_token\x18\b \x01(\tR\tjoinToken\x1a=\n" +
 	"\x0fMetaValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\rR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"?\n" +

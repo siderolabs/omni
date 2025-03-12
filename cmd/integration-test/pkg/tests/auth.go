@@ -585,6 +585,7 @@ type resourceAuthzTestCase struct {
 	isAdminOnly           bool
 	isSignatureSufficient bool
 	isPublic              bool
+	isDestroyNotAllowed   bool
 }
 
 // AssertResourceAuthz tests the authorization checks of the resources (state).
@@ -625,6 +626,11 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		machineExtensionsStatus := omni.NewMachineExtensionsStatus(resources.DefaultNamespace, uuid.New().String())
 		machineExtensionsStatus.Metadata().Labels().Set(omni.LabelCluster, uuid.New().String())
 
+		joinToken := authres.NewJoinToken(resources.DefaultNamespace, uuid.New().String())
+
+		defaultJoinToken := authres.NewDefaultJoinToken()
+		*defaultJoinToken.Metadata() = resource.NewMetadata(resources.DefaultNamespace, authres.DefaultJoinTokenType, uuid.New().String(), resource.VersionUndefined)
+
 		testCases := []resourceAuthzTestCase{
 			{
 				resource:       identity,
@@ -640,6 +646,17 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource:       accessPolicy,
 				allowedVerbSet: allVerbsSet,
 				isAdminOnly:    true,
+			},
+			{
+				resource:       joinToken,
+				allowedVerbSet: allVerbsSet,
+				isAdminOnly:    true,
+			},
+			{
+				resource:            defaultJoinToken,
+				allowedVerbSet:      allVerbsSet,
+				isAdminOnly:         true,
+				isDestroyNotAllowed: true,
 			},
 			{
 				resource:       samlLabelRule,
@@ -990,6 +1007,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource:       omni.NewMaintenanceConfigStatus(uuid.NewString()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
+			{
+				resource:       authres.NewJoinTokenStatus(resources.DefaultNamespace, uuid.NewString()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
 		}...)
 
 		// no access resources
@@ -1044,6 +1065,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource: siderolink.NewPendingMachineStatus(uuid.NewString()),
+			},
+			{
+				resource: authres.NewJoinTokenUsage(resources.DefaultNamespace, uuid.NewString()),
 			},
 		}...)
 

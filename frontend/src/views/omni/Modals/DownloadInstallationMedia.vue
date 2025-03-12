@@ -31,6 +31,11 @@ included in the LICENSE file.
           <t-select-list @checkedValue="setOption" title="Options" :defaultValue="defaultValue" :values="optionNames"
             :searcheable="true" />
         </div>
+
+        <div class="flex flex-wrap gap-4" v-if="joinToken">
+          <t-select-list @checkedValue="value => joinToken = value" title="Join Token" :defaultValue="joinToken" :values="joinTokenOptions"
+            :searcheable="true" />
+        </div>
       </div>
 
       <div class="flex">
@@ -106,8 +111,8 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { DefaultNamespace, DefaultTalosVersion, EphemeralNamespace, LabelsMeta, TalosVersionType, SecureBoot, ConnectionParamsType, ConfigID } from "@/api/resources";
-import { useRouter } from "vue-router";
+import { DefaultNamespace, DefaultTalosVersion, EphemeralNamespace, LabelsMeta, TalosVersionType, SecureBoot, ConnectionParamsType, ConfigID, JoinTokenStatusType, DefaultJoinTokenID, DefaultJoinTokenType } from "@/api/resources";
+import { useRoute, useRouter } from "vue-router";
 import { onUnmounted, ref, watch, computed, Ref, onMounted } from "vue";
 import { InstallationMediaType } from "@/api/resources";
 import { InstallationMediaSpec, TalosVersionSpec } from "@/api/omni/specs/omni.pb";
@@ -136,6 +141,7 @@ import { withRuntime } from "@/api/options";
 import { ConnectionParamsSpec } from "@/api/omni/specs/siderolink.pb";
 
 import * as semver from "semver";
+import { DefaultJoinTokenSpec, JoinTokenStatusSpec } from "@/api/omni/specs/auth.pb";
 
 enum Phase {
   Idle = 0,
@@ -145,11 +151,13 @@ enum Phase {
 
 const installExtensions = ref<Record<string, boolean>>({})
 const router = useRouter();
+const route = useRoute();
 const phase = ref(Phase.Idle);
 const showDescriptions = ref(false);
 const fileSizeLoaded = ref(0);
 const kernelArguments = ref("");
 const creatingSchematic = ref(false);
+const joinToken = ref("");
 
 let controller: AbortController;
 let closed = false;
@@ -186,10 +194,14 @@ const options: Ref<Map<string, Resource<InstallationMediaSpec>>> = ref(new Map<s
 
 const defaultValue = ref("")
 
-const talosVersionsResources: Ref<Resource<TalosVersionSpec>[]> = ref([])
+const talosVersionsResources: Ref<Resource<TalosVersionSpec>[]> = ref([]);
+
+const joinTokens: Ref<Resource<JoinTokenStatusSpec>[]> = ref([]);
 
 const optionsWatch = new WatchResource(watchOptions);
-const talosVersionsWatch = new WatchResource(talosVersionsResources)
+const talosVersionsWatch = new WatchResource(talosVersionsResources);
+const joinTokensWatch = new WatchResource(joinTokens);
+
 const schematicID = ref<string>();
 const pxeURL = ref<string>();
 const secureBoot = ref(false);
@@ -208,7 +220,15 @@ talosVersionsWatch.setup({
     type: TalosVersionType,
     namespace: DefaultNamespace,
   },
-})
+});
+
+joinTokensWatch.setup({
+  runtime: Runtime.Omni,
+  resource: {
+    type: JoinTokenStatusType,
+    namespace: DefaultNamespace
+  }
+});
 
 const talosVersions = computed(() => talosVersionsResources.value?.map(res => res.metadata.id!).sort(semver.compare));
 
@@ -217,6 +237,10 @@ const selectedTalosVersion = ref(DefaultTalosVersion);
 const useGrpcTunnel = ref(false);
 const useGrpcTunnelDefault = ref(false);
 const ready = ref(false);
+
+const joinTokenOptions = computed(() => {
+  return joinTokens.value?.map(res => res.spec.name!);
+});
 
 const minTalosVersion = computed(() => {
   const option = options.value.get(selectedOption.value);
@@ -273,7 +297,33 @@ onMounted(async () => {
   useGrpcTunnel.value = connectionParams.spec.use_grpc_tunnel || false;
   useGrpcTunnelDefault.value = connectionParams.spec.use_grpc_tunnel || false;
   ready.value = true;
-})
+
+  if (!joinToken.value) {
+    fetchCurrentJoinTokenName()
+  }
+});
+
+const fetchCurrentJoinTokenName = async () => {
+  if (route.query.joinToken) {
+    const token = await ResourceService.Get({
+      namespace: DefaultNamespace,
+      type: JoinTokenStatusType,
+      id: route.query.joinToken as string,
+    }, withRuntime(Runtime.Omni));
+
+    joinToken.value = token.spec.name;
+
+    return;
+  }
+
+  const defaultToken: Resource<DefaultJoinTokenSpec> = await ResourceService.Get({
+    namespace: DefaultNamespace,
+    type: DefaultJoinTokenType,
+    id: DefaultJoinTokenID,
+  }, withRuntime(Runtime.Omni));
+
+  joinToken.value = defaultToken.spec.token_id!;
+}
 
 onUnmounted(abortDownload);
 
@@ -286,6 +336,8 @@ const createSchematic = async () => {
 
   const grpcTunnelMode = useGrpcTunnel.value ? CreateSchematicRequestSiderolinkGRPCTunnelMode.ENABLED : CreateSchematicRequestSiderolinkGRPCTunnelMode.DISABLED;
 
+  const token = joinTokens.value.find(item => item.spec.name === joinToken.value);
+
   try {
     const schematic: CreateSchematicRequest = {
       extensions: [],
@@ -295,6 +347,7 @@ const createSchematic = async () => {
       talos_version: selectedTalosVersion.value,
       secure_boot: secureBoot.value,
       siderolink_grpc_tunnel_mode: grpcTunnelMode,
+      join_token: token?.metadata.id,
     };
 
     if (labels.value && Object.keys(labels.value).length > 0) {

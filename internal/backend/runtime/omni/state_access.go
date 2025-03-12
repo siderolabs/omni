@@ -421,6 +421,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.ExtensionsConfigurationType,
 		omni.ExtensionsConfigurationStatusType,
 		system.ResourceLabelsType[*omni.MachineStatus](),
+		authres.JoinTokenStatusType,
 		virtual.LabelsCompletionType,
 		virtual.KubernetesUsageType:
 		_, err = auth.CheckGRPC(ctx, auth.WithRole(verbToRole(access.Verb)))
@@ -447,6 +448,8 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		authres.UserType,
 		authres.SAMLLabelRuleType,
 		authres.AccessPolicyType,
+		authres.JoinTokenType,
+		authres.DefaultJoinTokenType,
 		omni.EtcdBackupS3ConfType,
 		omni.InfraMachineBMCConfigType:
 		var checkResult auth.CheckResult
@@ -454,11 +457,10 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		checkResult, err = auth.CheckGRPC(ctx, auth.WithRole(role.Admin))
 
 		if err == nil && (access.Verb == state.Destroy || access.Verb == state.Update) {
-			if access.ResourceType == authres.IdentityType && checkResult.Identity == access.ResourceID {
+			switch {
+			case access.ResourceType == authres.IdentityType && checkResult.Identity == access.ResourceID:
 				err = status.Errorf(codes.PermissionDenied, "destroying/updating resource %s is not allowed by the current user", access.ResourceID)
-			}
-
-			if access.ResourceType == authres.UserType && checkResult.UserID == access.ResourceID {
+			case access.ResourceType == authres.UserType && checkResult.UserID == access.ResourceID:
 				err = status.Errorf(codes.PermissionDenied, "destroying/updating resource %s is not allowed by the current user", access.ResourceID)
 			}
 		}
@@ -568,6 +570,7 @@ func filterAccessByType(access state.Access) error {
 		omni.MachineExtensionsType,
 		omni.MachineStatusMetricsType,
 		authres.AuthConfigType,
+		authres.JoinTokenStatusType,
 		siderolink.ConnectionParamsType,
 		siderolink.LinkStatusType,
 		system.SysVersionType,

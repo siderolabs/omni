@@ -127,6 +127,7 @@ export type CreateSchematicRequest = {
   media_id?: string
   secure_boot?: boolean
   siderolink_grpc_tunnel_mode?: CreateSchematicRequestSiderolinkGRPCTunnelMode
+  join_token?: string
 }
 
 export type CreateSchematicResponse = {

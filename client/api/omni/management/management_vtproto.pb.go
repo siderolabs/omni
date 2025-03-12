@@ -409,6 +409,7 @@ func (m *CreateSchematicRequest) CloneVT() *CreateSchematicRequest {
 	r.MediaId = m.MediaId
 	r.SecureBoot = m.SecureBoot
 	r.SiderolinkGrpcTunnelMode = m.SiderolinkGrpcTunnelMode
+	r.JoinToken = m.JoinToken
 	if rhs := m.Extensions; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -1126,6 +1127,9 @@ func (this *CreateSchematicRequest) EqualVT(that *CreateSchematicRequest) bool {
 		return false
 	}
 	if this.SiderolinkGrpcTunnelMode != that.SiderolinkGrpcTunnelMode {
+		return false
+	}
+	if this.JoinToken != that.JoinToken {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2351,6 +2355,13 @@ func (m *CreateSchematicRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.JoinToken) > 0 {
+		i -= len(m.JoinToken)
+		copy(dAtA[i:], m.JoinToken)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.JoinToken)))
+		i--
+		dAtA[i] = 0x42
+	}
 	if m.SiderolinkGrpcTunnelMode != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.SiderolinkGrpcTunnelMode))
 		i--
@@ -3258,6 +3269,10 @@ func (m *CreateSchematicRequest) SizeVT() (n int) {
 	}
 	if m.SiderolinkGrpcTunnelMode != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.SiderolinkGrpcTunnelMode))
+	}
+	l = len(m.JoinToken)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -5882,6 +5897,38 @@ func (m *CreateSchematicRequest) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JoinToken", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.JoinToken = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

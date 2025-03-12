@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strconv"
 
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/siderolabs/image-factory/pkg/client"
@@ -36,7 +37,7 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 		return nil, err
 	}
 
-	baseKernelArgs, tunnelEnabled, err := s.getBaseKernelArgs(ctx, request.SiderolinkGrpcTunnelMode)
+	baseKernelArgs, tunnelEnabled, err := s.getBaseKernelArgs(ctx, request.SiderolinkGrpcTunnelMode, request.JoinToken)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +145,11 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 	}, nil
 }
 
-func (s *managementServer) getBaseKernelArgs(ctx context.Context, grpcTunnelMode management.CreateSchematicRequest_SiderolinkGRPCTunnelMode) (args []string, tunnelEnabled bool, err error) {
+func (s *managementServer) getBaseKernelArgs(
+	ctx context.Context,
+	grpcTunnelMode management.CreateSchematicRequest_SiderolinkGRPCTunnelMode,
+	joinToken string,
+) (args []string, tunnelEnabled bool, err error) {
 	params, err := safe.StateGet[*siderolink.ConnectionParams](ctx, s.omniState, siderolink.NewConnectionParams(
 		resources.DefaultNamespace,
 		siderolink.ConfigID,
@@ -156,12 +161,18 @@ func (s *managementServer) getBaseKernelArgs(ctx context.Context, grpcTunnelMode
 	// If the tunnel is enabled instance-wide or in the request, the final state is enabled
 	grpcTunnelEnabled := params.TypedSpec().Value.UseGrpcTunnel || grpcTunnelMode == management.CreateSchematicRequest_ENABLED
 
+	opts := []siderolink.KernelArgsOption{}
+
+	if joinToken != "" {
+		opts = append(opts, siderolink.KernelArgsReplaceQuery(siderolink.JoinTokenQueryParam, joinToken))
+	}
+
 	if grpcTunnelEnabled {
-		if args, err = siderolink.KernelArgsWithGRPCRTunnelMode(params, true); err != nil {
-			return nil, false, err
-		}
-	} else {
-		args = siderolink.KernelArgs(params)
+		opts = append(opts, siderolink.KernelArgsReplaceQuery(siderolink.GrpcTunnelQueryParam, strconv.FormatBool(true)))
+	}
+
+	if args, err = siderolink.KernelArgsWithOptions(params, opts...); err != nil {
+		return nil, false, err
 	}
 
 	return args, grpcTunnelEnabled, nil
