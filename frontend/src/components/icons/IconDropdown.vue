@@ -5,15 +5,9 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <svg
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      fill-rule="evenodd"
-      clip-rule="evenodd"
-      d="M9.41411 10C8.52321 10 8.07704 11.0771 8.70701 11.7071L11.2928 14.2929C11.6833 14.6834 12.3165 14.6834 12.707 14.2929L15.2928 11.7071C15.9228 11.0771 15.4766 10 14.5857 10H9.41411Z"
-    />
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path fill-rule="evenodd" clip-rule="evenodd"
+      d="M5.83785 6C5.0929 6 4.71983 7.05699 5.24658 7.67517L7.40874 10.2126C7.73528 10.5958 8.26472 10.5958 8.59126 10.2126L10.7534 7.67517C11.2802 7.05699 10.9071 6 10.1622 6H5.83785Z"
+      fill="currentColor"/>
   </svg>
 </template>

@@ -91,7 +91,7 @@ const items = computed(() => {
     {
       name: "Pods",
       route: getRoute("Pods", "/pods"),
-      icon: "podes",
+      icon: "pods",
     },
     {
       name: "Config Patches",

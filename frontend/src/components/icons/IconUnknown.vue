@@ -27,5 +27,3 @@ included in the LICENSE file.
     />
   </svg>
 </template>
-<script setup lang="ts">
-</script>
