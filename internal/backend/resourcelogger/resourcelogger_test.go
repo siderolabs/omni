@@ -7,10 +7,10 @@ package resourcelogger_test
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"strings"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/state"
@@ -33,98 +33,95 @@ import (
 )
 
 func TestResourceLogger(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
-	t.Cleanup(cancel)
+	t.Setenv("TZ", "UTC")
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
-	resourceRegistry := registry.NewResourceRegistry(st)
+	synctest.Run(func() {
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
 
-	for _, r := range resourceregistry.Resources {
-		require.NoError(t, resourceRegistry.Register(ctx, r))
-	}
+		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		resourceRegistry := registry.NewResourceRegistry(st)
 
-	machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, "test")
-	cbs := omni.NewClusterBootstrapStatus(resources.DefaultNamespace, "test")
-	cp := omni.NewConfigPatch(resources.DefaultNamespace, "test")
+		for _, r := range resourceregistry.Resources {
+			require.NoError(t, resourceRegistry.Register(ctx, r))
+		}
 
-	logObserverCore, observedLogs := observer.New(zapcore.InfoLevel)
+		machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, "test")
+		cbs := omni.NewClusterBootstrapStatus(resources.DefaultNamespace, "test")
+		cp := omni.NewConfigPatch(resources.DefaultNamespace, "test")
 
-	logger := zap.New(logObserverCore)
+		logObserverCore, observedLogs := observer.New(zapcore.InfoLevel)
 
-	resLogger, err := resourcelogger.New(ctx, st, logger, zapcore.WarnLevel.String(), "machinestatus", "cbs", "configpatches")
-	require.NoError(t, err)
+		logger := zap.New(logObserverCore)
 
-	require.NoError(t, resLogger.StartWatches(ctx))
+		resLogger, err := resourcelogger.New(ctx, st, logger, zapcore.WarnLevel.String(), "machinestatus", "cbs", "configpatches")
+		require.NoError(t, err)
 
-	var eg errgroup.Group
+		require.NoError(t, resLogger.StartWatches(ctx))
 
-	t.Cleanup(func() {
-		cancel()
+		var eg errgroup.Group
 
-		require.NoError(t, eg.Wait())
-	})
+		defer func() {
+			cancel()
 
-	eg.Go(func() error { return resLogger.StartLogger(ctx) })
+			require.NoError(t, eg.Wait())
+		}()
 
-	machineStatus.TypedSpec().Value.Cluster = "some-cluster"
-	machineStatus.TypedSpec().Value.ManagementAddress = "some-address"
-	machineStatus.TypedSpec().Value.TalosVersion = "v1.2.3"
-	machineStatus.TypedSpec().Value.Role = specs.MachineStatusSpec_WORKER
-	machineStatus.TypedSpec().Value.Network = &specs.MachineStatusSpec_NetworkStatus{
-		Hostname:        "aaa",
-		Domainname:      "bbb",
-		Addresses:       []string{"1.2.3.4", "5.6.7.8"},
-		DefaultGateways: []string{"2.3.4.5"},
-		NetworkLinks: []*specs.MachineStatusSpec_NetworkStatus_NetworkLinkStatus{
-			{
-				LinuxName:       "linux-name",
-				HardwareAddress: "hw-address",
-				SpeedMbps:       1234,
-				LinkUp:          true,
-				Description:     "hello",
+		eg.Go(func() error { return resLogger.StartLogger(ctx) })
+
+		machineStatus.TypedSpec().Value.Cluster = "some-cluster"
+		machineStatus.TypedSpec().Value.ManagementAddress = "some-address"
+		machineStatus.TypedSpec().Value.TalosVersion = "v1.2.3"
+		machineStatus.TypedSpec().Value.Role = specs.MachineStatusSpec_WORKER
+		machineStatus.TypedSpec().Value.Network = &specs.MachineStatusSpec_NetworkStatus{
+			Hostname:        "aaa",
+			Domainname:      "bbb",
+			Addresses:       []string{"1.2.3.4", "5.6.7.8"},
+			DefaultGateways: []string{"2.3.4.5"},
+			NetworkLinks: []*specs.MachineStatusSpec_NetworkStatus_NetworkLinkStatus{
+				{
+					LinuxName:       "linux-name",
+					HardwareAddress: "hw-address",
+					SpeedMbps:       1234,
+					LinkUp:          true,
+					Description:     "hello",
+				},
 			},
-		},
-	}
-	cbs.TypedSpec().Value.Bootstrapped = false
+		}
+		cbs.TypedSpec().Value.Bootstrapped = false
 
-	err = cp.TypedSpec().Value.SetUncompressedData([]byte("some data"))
-	require.NoError(t, err)
+		err = cp.TypedSpec().Value.SetUncompressedData([]byte("some data"))
+		require.NoError(t, err)
 
-	require.NoError(t, st.Create(ctx, machineStatus))
-	require.NoError(t, st.Create(ctx, cbs))
-	require.NoError(t, st.Create(ctx, cp))
+		require.NoError(t, st.Create(ctx, machineStatus))
+		require.NoError(t, st.Create(ctx, cbs))
+		require.NoError(t, st.Create(ctx, cp))
 
-	machineStatus.TypedSpec().Value.Cluster = "some-cluster-updated"
-	machineStatus.TypedSpec().Value.ManagementAddress = "some-address-updated"
-	machineStatus.TypedSpec().Value.Network.Domainname = "ccc"
-	cbs.TypedSpec().Value.Bootstrapped = true
+		machineStatus.TypedSpec().Value.Cluster = "some-cluster-updated"
+		machineStatus.TypedSpec().Value.ManagementAddress = "some-address-updated"
+		machineStatus.TypedSpec().Value.Network.Domainname = "ccc"
+		cbs.TypedSpec().Value.Bootstrapped = true
 
-	err = cp.TypedSpec().Value.SetUncompressedData([]byte("some data updated"))
-	require.NoError(t, err)
+		err = cp.TypedSpec().Value.SetUncompressedData([]byte("some data updated"))
+		require.NoError(t, err)
 
-	// Wait for a bit more than a second to ensure that the value of the `updated:` field in the diff
-	// will be changed on the .Update calls (since those fields are formatted to the second-precision).
-	// When we don't do it, if we get very unlucky and there is a second tick between the creation
-	// and the update, the assertion will fail. By doing this, we ensure a deterministic diff output.
-	time.Sleep(1200 * time.Millisecond)
+		// sleep for a second, so the update time will differ from the creation time
+		time.Sleep(time.Second)
 
-	require.NoError(t, st.Update(ctx, machineStatus))
-	require.NoError(t, st.Update(ctx, cbs))
-	require.NoError(t, st.Update(ctx, cp))
+		require.NoError(t, st.Update(ctx, machineStatus))
+		require.NoError(t, st.Update(ctx, cbs))
+		require.NoError(t, st.Update(ctx, cp))
 
-	require.NoError(t, st.Destroy(ctx, machineStatus.Metadata()))
-	require.NoError(t, st.Destroy(ctx, cbs.Metadata()))
-	require.NoError(t, st.Destroy(ctx, cp.Metadata()))
+		require.NoError(t, st.Destroy(ctx, machineStatus.Metadata()))
+		require.NoError(t, st.Destroy(ctx, cbs.Metadata()))
+		require.NoError(t, st.Destroy(ctx, cp.Metadata()))
 
-	assert.EventuallyWithT(t, func(*assert.CollectT) {
+		// wait a bit for the logs to be observed
+		time.Sleep(3 * time.Second)
+
 		entries := xslices.Map(observedLogs.All(), func(entry observer.LoggedEntry) logEntry {
 			return parseLogEntry(t, entry)
 		})
-
-		cbsCreated := cbs.Metadata().Created().Format(time.RFC3339)
-		cbsUpdated := cbs.Metadata().Updated().Format(time.RFC3339)
-		machineStatusCreated := machineStatus.Metadata().Created().Format(time.RFC3339)
-		machineStatusUpdated := machineStatus.Metadata().Updated().Format(time.RFC3339)
 
 		assert.ElementsMatch(t, entries, []logEntry{
 			{
@@ -142,7 +139,7 @@ func TestResourceLogger(t *testing.T) {
 			{
 				message:  "resource updated",
 				resource: "ClusterBootstrapStatuses.omni.sidero.dev(default/test@2)",
-				diff: fmt.Sprintf(`--- ClusterBootstrapStatuses.omni.sidero.dev(default/test)
+				diff: `--- ClusterBootstrapStatuses.omni.sidero.dev(default/test)
 +++ ClusterBootstrapStatuses.omni.sidero.dev(default/test)
 @@ -2,10 +2,10 @@
      namespace: default
@@ -152,18 +149,18 @@ func TestResourceLogger(t *testing.T) {
 +    version: 2
      owner:
      phase: running
-     created: %s
--    updated: %s
-+    updated: %s
+     created: 2000-01-01T00:00:00Z
+-    updated: 2000-01-01T00:00:00Z
++    updated: 2000-01-01T00:00:01Z
  spec:
 -    bootstrapped: false
 +    bootstrapped: true
-`, cbsCreated, cbsCreated, cbsUpdated),
+`,
 			},
 			{
 				message:  "resource updated",
 				resource: "MachineStatuses.omni.sidero.dev(default/test@2)",
-				diff: fmt.Sprintf(`--- MachineStatuses.omni.sidero.dev(default/test)
+				diff: `--- MachineStatuses.omni.sidero.dev(default/test)
 +++ MachineStatuses.omni.sidero.dev(default/test)
 @@ -2,17 +2,17 @@
      namespace: default
@@ -173,9 +170,9 @@ func TestResourceLogger(t *testing.T) {
 +    version: 2
      owner:
      phase: running
-     created: %s
--    updated: %s
-+    updated: %s
+     created: 2000-01-01T00:00:00Z
+-    updated: 2000-01-01T00:00:00Z
++    updated: 2000-01-01T00:00:01Z
  spec:
      talosversion: v1.2.3
      hardware: null
@@ -199,7 +196,7 @@ func TestResourceLogger(t *testing.T) {
      role: 2
      platformmetadata: null
      imagelabels: {}
-`, machineStatusCreated, machineStatusCreated, machineStatusUpdated),
+`,
 			},
 			{
 				message:  "resource updated",
@@ -219,7 +216,7 @@ func TestResourceLogger(t *testing.T) {
 				resource: "ConfigPatches.omni.sidero.dev(default/test@2)",
 			},
 		})
-	}, 5*time.Second, 100*time.Millisecond)
+	})
 }
 
 type logEntry struct {
