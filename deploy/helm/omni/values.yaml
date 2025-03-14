@@ -35,6 +35,9 @@ resources:
   limits:
     cpu: 200m
     memory: 256Mi
+    # Required for /dev/net/tun
+    # https://www.talos.dev/v1.8/kubernetes-guides/configuration/device-plugins/
+    squat.ai/tun: 1
 extraArgs:
   # - --debug
   # - --image-factory-address=factory.talos.dev
