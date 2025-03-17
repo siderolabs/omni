@@ -69,12 +69,12 @@ included in the LICENSE file.
       <tooltip>
         <template #description>
           <div class="flex flex-col gap-1 p-2">
-            <p>Configure Talos to use a GRPC tunnel for Siderolink (WireGuard) connection to Omni.</p>
+            <p>Configure Talos to use the SideroLink (WireGuard) gRPC tunnel over HTTP2 for Omni management traffic, instead of UDP. Note that this will add overhead to the traffic.</p>
             <p v-if="useGrpcTunnelDefault">As it is enabled in Omni on instance-level, it cannot be disabled for the installation media.</p>
           </div>
         </template>
         <t-checkbox :disabled="useGrpcTunnelDefault" :checked="useGrpcTunnel" display-checked-status-when-disabled
-            label="Use Siderolink GRPC Tunnel"  @click="useGrpcTunnel = !useGrpcTunnel"/>
+            label="Tunnel Omni management traffic over HTTP2"  @click="useGrpcTunnel = !useGrpcTunnel"/>
       </tooltip>
 
       <h3 class="text-sm text-naturals-N14">

@@ -60,7 +60,8 @@ func init() {
 	downloadCmd.Flags().StringSliceVar(&downloadCmdFlags.labels, "initial-labels", nil, "Bake initial labels into the generated installation media")
 	downloadCmd.Flags().StringArrayVar(&downloadCmdFlags.extraKernelArgs, "extra-kernel-args", nil, "Add extra kernel args to the generated installation media")
 	downloadCmd.Flags().StringSliceVar(&downloadCmdFlags.extensions, "extensions", nil, "Generate installation media with extensions pre-installed")
-	downloadCmd.Flags().BoolVar(&downloadCmdFlags.useSiderolinkGRPCTunnel, useSiderolinkGRPCTunnelFlag, false, "Use SideroLink gRPC tunnel. When not set, the server default will be used.")
+	downloadCmd.Flags().BoolVar(&downloadCmdFlags.useSiderolinkGRPCTunnel, useSiderolinkGRPCTunnelFlag, false,
+		"Configure Talos to use the SideroLink (WireGuard) gRPC tunnel over HTTP2 for Omni management traffic, instead of UDP. Note that this will add overhead to the traffic.")
 
 	RootCmd.AddCommand(downloadCmd)
 }
