@@ -9,7 +9,9 @@ import {
   VirtualNamespace,
   PermissionsType,
   PermissionsID,
-  ClusterPermissionsType
+  ClusterPermissionsType,
+  ExposedServiceType,
+  DefaultNamespace
 } from "@/api/resources";
 
 import { ResourceService, Resource } from "@/api/grpc";
@@ -152,4 +154,26 @@ const refreshPermissions = async () => {
   } catch {
     permissions.value = undefined;
   }
+}
+
+export const verifyURL = async (url: string): Promise<boolean> => {
+  const matches = url.match(/https?:\/\/(\w{6}).*/);
+
+  const id = matches?.[1];
+
+  if (id) {
+    try {
+      await ResourceService.Get({
+        id: id,
+        namespace: DefaultNamespace,
+        type: ExposedServiceType,
+      }, withRuntime(Runtime.Omni));
+    } catch {
+      return false;
+    }
+
+    return true;
+  }
+
+  return url.indexOf("/") === 0;
 }

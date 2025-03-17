@@ -59,7 +59,7 @@ import {
   authHeader,
   authPublicKeyIDQueryParam,
   CLIAuthFlow,
-  AuthFlowQueryParam, WorkloadProxyAuthFlow, RedirectQueryParam
+  AuthFlowQueryParam, WorkloadProxyAuthFlow, RedirectQueryParam,
 } from "@/api/resources";
 import { FrontendAuthFlow } from "@/router";
 import { createKeys, saveKeys } from "@/methods/key";
@@ -71,6 +71,7 @@ import { withMetadata } from "@/api/options";
 import { fetchOption } from "@/api/fetch.pb";
 import { Code } from "@/api/google/rpc/code.pb";
 import { Auth0VueClient } from "@auth0/auth0-vue";
+import { verifyURL } from "@/methods/auth";
 
 const user = ref<User | undefined>(undefined);
 let idToken = "";
@@ -82,7 +83,11 @@ let logout: (value: any) => void;
  *
  * @param url The URL to redirect to.
  */
-const redirectToURL = (url: string) => {
+const redirectToURL = async (url: string) => {
+  if (!(await verifyURL(url))) {
+    url = "/";
+  }
+
   if (window.top) {
     window.top.location.href = url;
   } else {
