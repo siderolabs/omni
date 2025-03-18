@@ -10,6 +10,7 @@ import VueClipboard from 'vue3-clipboard';
 import AppUnavailable from '@/AppUnavailable.vue'
 import router from '@/router';
 
+
 import { initState, ResourceService, Resource } from "@/api/grpc";
 import { AuthConfigID, AuthConfigType, DefaultNamespace } from "@/api/resources";
 import { Runtime } from "@/api/common/omni.pb";
@@ -17,7 +18,21 @@ import { AuthConfigSpec } from "@/api/omni/specs/auth.pb";
 import { AuthType, authType, suspended } from "@/methods";
 import { createAuth0 } from "@auth0/auth0-vue";
 import { withRuntime } from "./api/options";
-import vClickOutside from "click-outside-vue3"
+import vClickOutside from "click-outside-vue3";
+import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
+import yamlWorker from 'monaco-yaml/yaml.worker?worker';
+
+if (process.env.NODE_ENV !== 'development') {
+  (self as any).MonacoEnvironment = {
+    getWorker(_: string, label: string) {
+      if (label === 'yaml') {
+        return new yamlWorker();
+      }
+
+      return new editorWorker();
+    }
+  };
+}
 
 const setupApp = async () => {
   let authConfigSpec: AuthConfigSpec | undefined = undefined
@@ -68,4 +83,4 @@ const setupApp = async () => {
 
 initState();
 
-setupApp()
+setupApp();

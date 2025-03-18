@@ -102,12 +102,29 @@ func (handler *StaticHandler) serveFile(w http.ResponseWriter, r *http.Request, 
 			return
 		}
 
+		defer file.Close() //nolint:errcheck
+
 		if path != index {
 			w.Header().Set("Vary", "Accept-Encoding, User-Agent")
 			w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d, immutable", handler.maxAgeSec))
-		}
+		} else {
+			w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 
-		defer file.Close() //nolint:errcheck
+			w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src * data: ; "+
+				";connect-src 'self' https://*.auth0.com ;font-src 'self' data: "+
+				";style-src 'self' 'unsafe-inline' https://fonts.googleapis.com data: ;upgrade-insecure-requests;"+
+				";frame-src https://*.auth0.com",
+			)
+
+			w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.Header().Set("Permissions-Policy", "accelerometer=(), ambient-light-sensor=(), "+
+				"autoplay=(self), battery=(), camera=(), cross-origin-isolated=(self), display-capture=(), "+
+				"document-domain=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), "+
+				"magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials=(self),"+
+				"screen-wake-lock=(), sync-xhr=(self), usb=(), web-share=(), xr-spatial-tracking=()",
+			)
+		}
 
 		http.ServeContent(w, r, file.Name(), handler.modTime, file)
 

@@ -201,4 +201,8 @@ monaco.editor.defineTheme("sidero", {
 .editor h4 {
   @apply font-bold;
 }
+
+.monaco-editor {
+  outline: 0;
+}
 </style>

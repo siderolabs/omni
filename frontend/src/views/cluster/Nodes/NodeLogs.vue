@@ -108,7 +108,11 @@ const plainText = (line: string) => {
   };
 }
 
-const params = computed<LogsRequest>(() => {
+const params = computed<LogsRequest | undefined>(() => {
+  if (route.params.service === "machine") {
+    return;
+  }
+
   return {
     namespace: "system",
     id: service.value,
@@ -134,7 +138,7 @@ watch(() => route.params.service, () => {
 
   logParser.setLineParser(getLineParser(svc));
   service.value = svc;
-})
+});
 
 const stream = setupLogStream(logs, MachineService.Logs, params, logParser, withRuntime(Runtime.Talos), withContext(context));
 

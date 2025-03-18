@@ -75,7 +75,7 @@ export class LineDelimitedLogParser {
   }
 }
 
-export const setupLogStream = <R extends Data, T>(logs: Ref<LogLine[]>, method: StreamingRequest<R, T>, params: T | ComputedRef<T> | Ref<T>, logParser: LogParser = new DefaultLogParser((l: string): LogLine => { return {msg: l} }), ...options: fetchOption[]): Ref<Stream<R, T> | undefined> => {
+export const setupLogStream = <R extends Data, T>(logs: Ref<LogLine[]>, method: StreamingRequest<R, T>, params: T | ComputedRef<T | undefined> | Ref<T>, logParser: LogParser = new DefaultLogParser((l: string): LogLine => { return {msg: l} }), ...options: fetchOption[]): Ref<Stream<R, T> | undefined> => {
   const stream: Ref<Stream<R, T> | undefined> = ref();
   let buffer: LogLine[] = [];
   let flush: NodeJS.Timeout | undefined;
@@ -96,6 +96,10 @@ export const setupLogStream = <R extends Data, T>(logs: Ref<LogLine[]>, method: 
     let clearLogs = false;
 
     const p = isRef(params) ? params.value : params;
+
+    if (!p) {
+      return;
+    }
 
     stream.value = subscribe(
       method,
