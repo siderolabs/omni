@@ -20,7 +20,7 @@ echo "127.0.0.1 my-instance.localhost" | tee -a /etc/hosts
 
 # Settings.
 
-TALOS_VERSION=1.9.2
+TALOS_VERSION=1.9.5
 ARTIFACTS=_out
 JOIN_TOKEN=testonly
 RUN_DIR=$(pwd)
