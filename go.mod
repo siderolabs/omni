@@ -35,7 +35,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.4
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/gertd/go-pluralize v0.2.1
-	github.com/go-jose/go-jose/v4 v4.0.4
+	github.com/go-jose/go-jose/v4 v4.0.5
 	github.com/go-logr/zapr v1.3.0
 	github.com/golang-jwt/jwt/v4 v4.5.1
 	github.com/google/go-cmp v0.6.0
