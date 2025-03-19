@@ -51,7 +51,7 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.26.1",
-    "vite": "^5.4.14",
+    "vite": "^5.2.12",
     "vite-plugin-monaco-editor": "^1.1.0",
     "vite-plugin-node-polyfills": "^0.22.0",
     "vue-tsc": "^2.2.8",
