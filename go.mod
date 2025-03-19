@@ -7,107 +7,107 @@ replace (
 	github.com/siderolabs/omni/client => ./client
 	// forked go-yaml that introduces RawYAML interface, which can be used to populate YAML fields using bytes
 	// which are then encoded as a valid YAML blocks with proper indentiation
-	gopkg.in/yaml.v3 => github.com/unix4ever/yaml v0.0.0-20220527175918-f17b0f05cf2c
+	gopkg.in/yaml.v3 => github.com/unix4ever/yaml/v2 v2.4.0
 )
 
 require (
 	filippo.io/age v1.2.1
-	github.com/ProtonMail/gopenpgp/v2 v2.8.3
+	github.com/ProtonMail/gopenpgp/v3 v3.1.3
 	github.com/adrg/xdg v0.5.3
 	github.com/akutz/memconn v0.1.1-0.20211110233653-dae351d188b3
-	github.com/auth0/go-jwt-middleware/v2 v2.2.2
-	github.com/aws/aws-sdk-go-v2 v1.32.8
-	github.com/aws/aws-sdk-go-v2/config v1.28.11
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.52
-	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.17.49
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.72.3
-	github.com/aws/smithy-go v1.22.1
+	github.com/auth0/go-jwt-middleware/v2 v2.3.0
+	github.com/aws/aws-sdk-go-v2 v1.36.3
+	github.com/aws/aws-sdk-go-v2/config v1.29.9
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.62
+	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.17.66
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.78.2
+	github.com/aws/smithy-go v1.22.3
 	github.com/benbjohnson/clock v1.3.5
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
-	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/containers/image/v5 v5.33.0
-	github.com/cosi-project/runtime v0.10.0
+	github.com/cenkalti/backoff/v5 v5.0.2
+	github.com/containers/image/v5 v5.34.2
+	github.com/cosi-project/runtime v0.10.1
 	github.com/cosi-project/state-etcd v0.5.1
 	github.com/crewjam/saml v0.4.14
 	github.com/dustin/go-humanize v1.0.1
-	github.com/emicklei/dot v1.6.4
+	github.com/emicklei/dot v1.8.0
 	github.com/felixge/httpsnoop v1.0.4
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/go-jose/go-jose/v4 v4.0.4
 	github.com/go-logr/zapr v1.3.0
-	github.com/golang-jwt/jwt/v4 v4.5.1
-	github.com/google/go-cmp v0.6.0
-	github.com/google/go-containerregistry v0.20.2
+	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/google/go-cmp v0.7.0
+	github.com/google/go-containerregistry v0.20.3
 	github.com/google/uuid v1.6.0
-	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
+	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.1
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.1
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/hashicorp/vault/api v1.15.0
-	github.com/hashicorp/vault/api/auth/kubernetes v0.8.0
+	github.com/hashicorp/vault/api v1.16.0
+	github.com/hashicorp/vault/api/auth/kubernetes v0.9.0
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/jellydator/ttlcache/v3 v3.3.0
-	github.com/johannesboyne/gofakes3 v0.0.0-20241026070602-0da3aa9c32ca
+	github.com/johannesboyne/gofakes3 5c39aecd6999
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/jxskiss/base62 v1.1.0
 	github.com/klauspost/compress v1.18.0
 	github.com/mattn/go-shellwords v1.0.12
-	github.com/prometheus/client_golang v1.20.5
-	github.com/prometheus/common v0.62.0
-	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
+	github.com/prometheus/client_golang v1.21.1
+	github.com/prometheus/common v0.63.0
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.1
 	github.com/siderolabs/crypto v0.5.1
-	github.com/siderolabs/discovery-api v0.1.5
-	github.com/siderolabs/discovery-client v0.1.10
-	github.com/siderolabs/discovery-service v1.0.9
+	github.com/siderolabs/discovery-api v0.1.6
+	github.com/siderolabs/discovery-client v0.1.11
+	github.com/siderolabs/discovery-service v1.0.10
 	github.com/siderolabs/gen v0.8.0
 	github.com/siderolabs/go-api-signature v0.3.6
 	github.com/siderolabs/go-circular v0.2.2
 	github.com/siderolabs/go-debug v0.5.0
-	github.com/siderolabs/go-kubernetes v0.2.17
+	github.com/siderolabs/go-kubernetes v0.2.20
 	github.com/siderolabs/go-loadbalancer v0.4.0
-	github.com/siderolabs/go-pointer v1.0.0
+	github.com/siderolabs/go-pointer v1.0.1
 	github.com/siderolabs/go-procfs v0.1.2
 	github.com/siderolabs/go-retry v0.3.3
 	github.com/siderolabs/go-tail v0.1.1
 	github.com/siderolabs/go-talos-support v0.1.2
 	github.com/siderolabs/grpc-proxy v0.5.1
-	github.com/siderolabs/image-factory v0.6.5
+	github.com/siderolabs/image-factory v0.6.7
 	github.com/siderolabs/kms-client v0.1.0
-	github.com/siderolabs/omni/client v0.45.0
+	github.com/siderolabs/omni/client v0.47.1
 	github.com/siderolabs/proto-codec v0.1.2
 	github.com/siderolabs/siderolink v0.3.13
-	github.com/siderolabs/talos/pkg/machinery v1.10.0-alpha.1
+	github.com/siderolabs/talos/pkg/machinery v1.10.0-alpha.2
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spf13/cobra v1.8.1
+	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
-	github.com/stripe/stripe-go/v74 v74.30.0
+	github.com/stripe/stripe-go/v76 v76.25.0
 	github.com/zitadel/logging v0.6.1
-	github.com/zitadel/oidc/v3 v3.34.0
+	github.com/zitadel/oidc/v3 v3.36.1
 	go.etcd.io/bbolt v1.4.0
-	go.etcd.io/etcd/client/pkg/v3 v3.5.18
-	go.etcd.io/etcd/client/v3 v3.5.18
-	go.etcd.io/etcd/server/v3 v3.5.18
+	go.etcd.io/etcd/client/pkg/v3 v3.5.19
+	go.etcd.io/etcd/client/v3 v3.5.19
+	go.etcd.io/etcd/server/v3 v3.5.19
 	go.uber.org/goleak v1.3.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.35.0
+	golang.org/x/crypto v0.36.0
 	golang.org/x/net v0.35.0
-	golang.org/x/sync v0.11.0
-	golang.org/x/time v0.10.0
-	golang.org/x/tools v0.29.0
+	golang.org/x/sync v0.12.0
+	golang.org/x/time v0.11.0
+	golang.org/x/tools v0.31.0
 	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20241231184526-a9ab2273dd10
-	google.golang.org/grpc v1.70.0
+	google.golang.org/grpc v1.71.0
 	google.golang.org/protobuf v1.36.5
 	gopkg.in/yaml.v3 v3.0.3
-	k8s.io/api v0.32.0
-	k8s.io/apimachinery v0.32.0
-	k8s.io/client-go v0.32.0
+	k8s.io/api v0.32.3
+	k8s.io/apimachinery v0.32.3
+	k8s.io/client-go v0.32.3
 	k8s.io/klog/v2 v2.130.1
-	sigs.k8s.io/controller-runtime v0.19.4
+	sigs.k8s.io/controller-runtime v0.20.3
 )
 
 require (

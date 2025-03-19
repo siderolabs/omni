@@ -9,7 +9,7 @@ require (
 	github.com/siderolabs/go-retry v0.3.3
 	github.com/stretchr/testify v1.10.0
 	github.com/wI2L/jsondiff v0.6.1
-	golang.org/x/sync v0.10.0
+	golang.org/x/sync v0.12.0
 	mvdan.cc/xurls/v2 v2.6.0
 )
 

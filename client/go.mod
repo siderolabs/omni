@@ -5,46 +5,46 @@ go 1.24.0
 replace (
 	// forked go-yaml that introduces RawYAML interface, which can be used to populate YAML fields using bytes
 	// which are then encoded as a valid YAML blocks with proper indentiation
-	gopkg.in/yaml.v3 => github.com/unix4ever/yaml v0.0.0-20220527175918-f17b0f05cf2c
+	gopkg.in/yaml.v3 => github.com/unix4ever/yaml/v2 v2.4.0
 	// our fork for tcpproxy with fixes
 	inet.af/tcpproxy => github.com/smira/tcpproxy v0.0.0-20200125044825-b6bb9b5b8252
 )
 
 require (
-	github.com/ProtonMail/gopenpgp/v2 v2.8.2
+	github.com/ProtonMail/gopenpgp/v3 v3.1.3
 	github.com/adrg/xdg v0.5.3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
-	github.com/cosi-project/runtime v0.9.4
+	github.com/cosi-project/runtime v0.10.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.18.0
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/google/uuid v1.6.0
 	github.com/gosuri/uiprogress v0.0.1
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.0
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hexops/gotextdiff v1.0.3
-	github.com/klauspost/compress v1.17.11
+	github.com/klauspost/compress v1.18.0
 	github.com/mattn/go-isatty v0.0.20
-	github.com/planetscale/vtprotobuf v0.6.1-0.20241121165744-79df5c4772f2
+	github.com/planetscale/vtprotobuf ba97887b0a25
 	github.com/sergi/go-diff v1.3.1
 	github.com/siderolabs/gen v0.8.0
 	github.com/siderolabs/go-api-signature v0.3.6
-	github.com/siderolabs/go-kubeconfig v0.1.0
-	github.com/siderolabs/go-pointer v1.0.0
-	github.com/siderolabs/image-factory v0.6.5
+	github.com/siderolabs/go-kubeconfig v0.1.1
+	github.com/siderolabs/go-pointer v1.0.1
+	github.com/siderolabs/image-factory v0.6.7
 	github.com/siderolabs/proto-codec v0.1.2
-	github.com/siderolabs/talos/pkg/machinery v1.10.0-alpha.1
-	github.com/spf13/cobra v1.8.1
+	github.com/siderolabs/talos/pkg/machinery v1.10.0-alpha.2
+	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	github.com/xlab/treeprint v1.2.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/sync v0.11.0
-	golang.org/x/term v0.28.0
-	google.golang.org/grpc v1.70.0
-	google.golang.org/protobuf v1.36.4
+	golang.org/x/sync v0.12.0
+	golang.org/x/term v0.30.0
+	google.golang.org/grpc v1.71.0
+	google.golang.org/protobuf v1.36.5
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/client-go v0.32.0
+	k8s.io/client-go v0.32.3
 )
 
 require (
