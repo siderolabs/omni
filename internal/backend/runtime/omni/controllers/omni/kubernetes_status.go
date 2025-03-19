@@ -6,17 +6,10 @@
 package omni
 
 import (
-	"bytes"
 	"cmp"
-	"compress/gzip"
 	"context"
-	"encoding/base64"
-	"encoding/xml"
-	"errors"
 	"fmt"
-	"io"
 	"slices"
-	"strconv"
 	"strings"
 	"sync/atomic"
 
@@ -32,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 
@@ -42,25 +34,9 @@ import (
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/exposedservice"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/image"
-)
-
-const (
-	// ServiceLabelAnnotationKey is the annotation to define the human-readable label of Kubernetes Services to expose them to Omni.
-	//
-	// tsgen:ServiceLabelAnnotationKey
-	ServiceLabelAnnotationKey = "omni-kube-service-exposer.sidero.dev/label"
-
-	// ServicePortAnnotationKey is the annotation to define the port of Kubernetes Services to expose them to Omni.
-	//
-	// tsgen:ServicePortAnnotationKey
-	ServicePortAnnotationKey = "omni-kube-service-exposer.sidero.dev/port"
-
-	// ServiceIconAnnotationKey is the annotation to define the icon of Kubernetes Services to expose them to Omni.
-	//
-	// tsgen:ServiceIconAnnotationKey
-	ServiceIconAnnotationKey = "omni-kube-service-exposer.sidero.dev/icon"
 )
 
 // KubernetesStatusController manages KubernetesStatus resource lifecycle.
@@ -198,169 +174,21 @@ func (ctrl *KubernetesStatusController) Run(ctx context.Context, r controller.Ru
 func (ctrl *KubernetesStatusController) updateExposedServices(ctx context.Context, r controller.Runtime, cluster string, services []*corev1.Service, logger *zap.Logger) error {
 	tracker := trackResource(r, resources.DefaultNamespace, omni.ExposedServiceType, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster)))
 
-	usedAliases := make(map[string]struct{})
+	reconciler, err := exposedservice.NewReconciler(ctx, r, logger, cluster, ctrl.workloadProxySubdomain, ctrl.advertisedAPIURL, services)
+	if err != nil {
+		return fmt.Errorf("error creating exposed service reconciler: %w", err)
+	}
 
-	for _, service := range services {
-		svcID := service.Name + "." + service.Namespace
-		svcLogger := logger.With(zap.String("service", svcID))
+	servicesToKeep, err := reconciler.ReconcileServices(ctx)
+	if err != nil {
+		return fmt.Errorf("error reconciling services: %w", err)
+	}
 
-		exposedService := omni.NewExposedService(resources.DefaultNamespace, cluster+"/"+svcID)
-
-		res, err := safe.ReaderGet[*omni.ExposedService](ctx, r, exposedService.Metadata())
-		if err != nil && !state.IsNotFoundError(err) {
-			return err
-		}
-
-		if res != nil && res.Metadata().Phase() == resource.PhaseTearingDown {
-			continue
-		}
-
-		port, err := strconv.Atoi(service.Annotations[ServicePortAnnotationKey])
-		if err != nil || port < 1 || port > 65535 {
-			svcLogger.Warn("invalid port on Service", zap.String("port", service.Annotations[ServicePortAnnotationKey]))
-
-			tracker.keep(exposedService)
-
-			continue
-		}
-
-		label, labelOk := service.Annotations[ServiceLabelAnnotationKey]
-		if !labelOk {
-			label = service.Name + "." + service.Namespace
-		}
-
-		icon, err := ctrl.parseIcon(service.Annotations[ServiceIconAnnotationKey])
-		if err != nil {
-			svcLogger.Debug("invalid icon on Service", zap.Error(err))
-		}
-
-		var alias string
-
-		if err = safe.WriterModify(ctx, r, exposedService, func(res *omni.ExposedService) error {
-			res.Metadata().Labels().Set(omni.LabelCluster, cluster)
-
-			if _, aliasExists := res.Metadata().Labels().Get(omni.LabelExposedServiceAlias); !aliasExists {
-				// alias is not set, resource is being created, not updated - generate an alias
-				generatedAlias, generateErr := ctrl.generateExposedServiceAlias(ctx, r, usedAliases)
-				if generateErr != nil {
-					return fmt.Errorf("error generating exposed service alias: %w", generateErr)
-				}
-
-				res.Metadata().Labels().Set(omni.LabelExposedServiceAlias, generatedAlias)
-			}
-
-			alias, _ = res.Metadata().Labels().Get(omni.LabelExposedServiceAlias)
-
-			res.TypedSpec().Value.Port = uint32(port)
-			res.TypedSpec().Value.Label = label
-			res.TypedSpec().Value.IconBase64 = icon
-
-			res.TypedSpec().Value.Url, err = ctrl.buildExposedServiceURL(alias)
-			if err != nil {
-				return fmt.Errorf("error building exposed service URL: %w", err)
-			}
-
-			return nil
-		}); err != nil {
-			return fmt.Errorf("error updating exposed service: %w", err)
-		}
-
-		usedAliases[alias] = struct{}{}
-
-		tracker.keep(exposedService)
+	for _, service := range servicesToKeep {
+		tracker.keep(service)
 	}
 
 	return tracker.cleanup(ctx)
-}
-
-func (ctrl *KubernetesStatusController) buildExposedServiceURL(alias string) (string, error) {
-	apiURLParts := strings.SplitN(ctrl.advertisedAPIURL, "//", 2)
-	if len(apiURLParts) != 2 {
-		return "", fmt.Errorf("invalid advertised API URL protocol: %s", ctrl.advertisedAPIURL)
-	}
-
-	protocol := apiURLParts[0]
-	rest := apiURLParts[1]
-
-	restParts := strings.SplitN(rest, ".", 2)
-	if len(restParts) != 2 {
-		return "", fmt.Errorf("invalid advertised API URL: %s", ctrl.advertisedAPIURL)
-	}
-
-	instanceName := restParts[0]
-	rest = restParts[1]
-
-	// example: g3a4ana-demo.proxy-us.omni.siderolabs.io
-	url := protocol + "//" + alias + "-" + instanceName + "." + ctrl.workloadProxySubdomain + "." + rest
-
-	return url, nil
-}
-
-func (ctrl *KubernetesStatusController) parseIcon(iconBase64 string) (string, error) {
-	if iconBase64 == "" {
-		return "", nil
-	}
-
-	iconBytes, err := base64.StdEncoding.DecodeString(iconBase64)
-	if err != nil {
-		return "", fmt.Errorf("error decoding icon: %w", err)
-	}
-
-	extractGzip := func(data []byte) ([]byte, error) {
-		reader, readerErr := gzip.NewReader(bytes.NewReader(data))
-		if readerErr != nil {
-			return nil, fmt.Errorf("error creating gzip reader: %w", readerErr)
-		}
-
-		defer reader.Close() //nolint:errcheck
-
-		return io.ReadAll(reader)
-	}
-
-	extractedBytes, err := extractGzip(iconBytes)
-	if err == nil {
-		// svg is probably not compressed
-		iconBytes = extractedBytes
-	}
-
-	isValidXML := func(data []byte) bool {
-		decoder := xml.NewDecoder(bytes.NewReader(data))
-
-		for {
-			if decodeErr := decoder.Decode(new(interface{})); decodeErr != nil {
-				return errors.Is(decodeErr, io.EOF)
-			}
-		}
-	}
-
-	if !isValidXML(iconBytes) {
-		return "", errors.New("icon is not a valid SVG")
-	}
-
-	return base64.StdEncoding.EncodeToString(iconBytes), nil
-}
-
-func (ctrl *KubernetesStatusController) generateExposedServiceAlias(ctx context.Context, r controller.Runtime, exclude map[string]struct{}) (string, error) {
-	attempts := 100
-
-	for range attempts {
-		alias := rand.String(6)
-
-		if _, ok := exclude[alias]; ok {
-			continue
-		}
-
-		existing, err := safe.ReaderListAll[*omni.ExposedService](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelExposedServiceAlias, alias)))
-		if err != nil {
-			return "", err
-		}
-
-		if existing.Len() == 0 {
-			return alias, nil
-		}
-	}
-
-	return "", fmt.Errorf("failed to generate exposed service alias after %d attempts", attempts)
 }
 
 //nolint:gocyclo,cyclop
@@ -759,7 +587,7 @@ func (w *kubernetesWatcher) servicesSync(ctx context.Context, notifyCh chan<- ku
 
 	// filter out non-exposed services
 	services = slices.DeleteFunc(services, func(service *corev1.Service) bool {
-		return !IsExposedServiceEvent(service, nil, w.logger)
+		return !exposedservice.IsExposedServiceEvent(service, nil, w.logger)
 	})
 
 	channel.SendWithContext(ctx, notifyCh,
@@ -770,57 +598,7 @@ func (w *kubernetesWatcher) servicesSync(ctx context.Context, notifyCh chan<- ku
 }
 
 func filterExposedServiceEvents(k8sObject, oldK8sObject any, logger *zap.Logger, syncFunc func()) {
-	if IsExposedServiceEvent(k8sObject, oldK8sObject, logger) {
+	if exposedservice.IsExposedServiceEvent(k8sObject, oldK8sObject, logger) {
 		syncFunc()
 	}
-}
-
-// IsExposedServiceEvent returns true if there is a change on the Kubernetes Services
-// that is relevant to the ExposedServices, i.e., they need to be re-synced.
-//
-// oldObj is nil for add and delete events, and non-nil for update events.
-func IsExposedServiceEvent(k8sObject, oldK8sObject any, logger *zap.Logger) bool {
-	isExposedService := func(obj any) bool {
-		service, ok := obj.(*corev1.Service)
-		if !ok {
-			logger.Warn("unexpected type", zap.String("type", fmt.Sprintf("%T", obj)))
-
-			return false
-		}
-
-		// check for ServicePortAnnotationKey annotation - the only annotation required for the exposed services
-		_, isAnnotated := service.GetObjectMeta().GetAnnotations()[ServicePortAnnotationKey]
-
-		return isAnnotated
-	}
-
-	if k8sObject == nil {
-		logger.Warn("unexpected nil k8sObject")
-
-		return false
-	}
-
-	// this is an add or delete event
-	if oldK8sObject == nil {
-		return isExposedService(k8sObject)
-	}
-
-	// this is an update event
-
-	// if neither of the old or new objects is an exposed service, there is no change
-	if !isExposedService(k8sObject) && !isExposedService(oldK8sObject) {
-		return false
-	}
-
-	oldAnnotations := oldK8sObject.(*corev1.Service).GetObjectMeta().GetAnnotations() //nolint:forcetypeassert,errcheck
-	newAnnotations := k8sObject.(*corev1.Service).GetObjectMeta().GetAnnotations()    //nolint:forcetypeassert,errcheck
-
-	for _, key := range []string{ServiceLabelAnnotationKey, ServicePortAnnotationKey, ServiceIconAnnotationKey} {
-		if oldAnnotations[key] != newAnnotations[key] {
-			return true
-		}
-	}
-
-	// no change in exposed service related annotations
-	return false
 }

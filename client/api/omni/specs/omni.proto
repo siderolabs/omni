@@ -982,6 +982,9 @@ message ExposedServiceSpec {
 
   // Url is the full URL to access the service.
   string url = 4;
+
+  // Error is the last error that occurred when trying to expose the service.
+  string error = 5;
 }
 
 // ClusterWorkloadProxyStatusSpec describes the status of the exposed services in a cluster.

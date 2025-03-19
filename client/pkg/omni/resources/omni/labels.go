@@ -54,6 +54,10 @@ const (
 	// tsgen:LabelExposedServiceAlias
 	LabelExposedServiceAlias = SystemLabelPrefix + "exposed-service-alias"
 
+	// LabelHasGeneratedExposedServiceAlias is set on the machine to indicate that the machine has generated exposed service alias.
+	// tsgen:LabelHasGeneratedExposedServiceAlias
+	LabelHasGeneratedExposedServiceAlias = SystemLabelPrefix + "has-generated-exposed-service-alias"
+
 	// LabelInfraProviderID is the infra provider ID for the resources managed by infra providers, e.g., infra.MachineRequest, infra.MachineRequestStatus.
 	// tsgen:LabelInfraProviderID
 	LabelInfraProviderID = SystemLabelPrefix + "infra-provider-id"

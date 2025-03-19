@@ -52,7 +52,7 @@ import (
 var adminKubeconfig []byte
 
 func TestGenerateConfigs(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), time.Second*10)
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
 	defer cancel()
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))

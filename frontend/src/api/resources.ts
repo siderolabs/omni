@@ -28,6 +28,7 @@ export const DefaultKubernetesVersion = "1.31.4";
 export const ServiceLabelAnnotationKey = "omni-kube-service-exposer.sidero.dev/label";
 export const ServicePortAnnotationKey = "omni-kube-service-exposer.sidero.dev/port";
 export const ServiceIconAnnotationKey = "omni-kube-service-exposer.sidero.dev/icon";
+export const ServicePrefixAnnotationKey = "omni-kube-service-exposer.sidero.dev/prefix";
 export const installDiskMinSize = 5e+09;
 export const authPublicKeyIDQueryParam = "public-key-id";
 export const SecureBoot = "secureboot";

@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package omni_test
+package exposedservice_test
 
 import (
 	"testing"
@@ -13,7 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/exposedservice"
 )
 
 func TestIsExposedServiceEvent(t *testing.T) {
@@ -42,8 +42,8 @@ func TestIsExposedServiceEvent(t *testing.T) {
 			obj: &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						omni.ServiceLabelAnnotationKey: "foo",
-						omni.ServiceIconAnnotationKey:  "bar",
+						exposedservice.ServiceLabelAnnotationKey: "foo",
+						exposedservice.ServiceIconAnnotationKey:  "bar",
 					},
 				},
 			},
@@ -54,7 +54,7 @@ func TestIsExposedServiceEvent(t *testing.T) {
 			obj: &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						omni.ServicePortAnnotationKey: "8080",
+						exposedservice.ServicePortAnnotationKey: "8080",
 					},
 				},
 			},
@@ -65,8 +65,8 @@ func TestIsExposedServiceEvent(t *testing.T) {
 			obj: &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						omni.ServicePortAnnotationKey:  "8080",
-						omni.ServiceLabelAnnotationKey: "foo",
+						exposedservice.ServicePortAnnotationKey:  "8080",
+						exposedservice.ServiceLabelAnnotationKey: "foo",
 					},
 				},
 				Spec: corev1.ServiceSpec{ClusterIP: "10.0.0.1"},
@@ -74,8 +74,8 @@ func TestIsExposedServiceEvent(t *testing.T) {
 			oldObj: &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						omni.ServicePortAnnotationKey:  "8080",
-						omni.ServiceLabelAnnotationKey: "foo",
+						exposedservice.ServicePortAnnotationKey:  "8080",
+						exposedservice.ServiceLabelAnnotationKey: "foo",
 					},
 				},
 				Spec: corev1.ServiceSpec{ClusterIP: "10.0.0.2"},
@@ -87,16 +87,16 @@ func TestIsExposedServiceEvent(t *testing.T) {
 			obj: &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						omni.ServicePortAnnotationKey:  "8080",
-						omni.ServiceLabelAnnotationKey: "foo",
+						exposedservice.ServicePortAnnotationKey:  "8080",
+						exposedservice.ServiceLabelAnnotationKey: "foo",
 					},
 				},
 			},
 			oldObj: &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						omni.ServicePortAnnotationKey:  "8080",
-						omni.ServiceLabelAnnotationKey: "bar", // different label
+						exposedservice.ServicePortAnnotationKey:  "8080",
+						exposedservice.ServiceLabelAnnotationKey: "bar", // different label
 					},
 				},
 			},
@@ -105,7 +105,7 @@ func TestIsExposedServiceEvent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			changed := omni.IsExposedServiceEvent(tt.obj, tt.oldObj, zaptest.NewLogger(t))
+			changed := exposedservice.IsExposedServiceEvent(tt.obj, tt.oldObj, zaptest.NewLogger(t))
 
 			assert.Equal(t, tt.expectChanged, changed)
 		})

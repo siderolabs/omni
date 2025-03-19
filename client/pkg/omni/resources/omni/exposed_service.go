@@ -56,6 +56,10 @@ func (ExposedServiceExtension) ResourceDefinition() meta.ResourceDefinitionSpec 
 				Name:     "URL",
 				JSONPath: "{.url}",
 			},
+			{
+				Name:     "Error",
+				JSONPath: "{.error}",
+			},
 		},
 	}
 }

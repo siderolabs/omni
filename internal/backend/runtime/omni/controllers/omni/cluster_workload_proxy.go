@@ -20,6 +20,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/exposedservice"
 )
 
 //go:embed data/kube-service-exposer-config-patch.tmpl.yaml
@@ -133,7 +134,7 @@ func (ctrl *ClusterWorkloadProxyController) getConfigPatchData() ([]byte, error)
 	}
 
 	opts := tmplOptions{
-		AnnotationKey: ServicePortAnnotationKey,
+		AnnotationKey: exposedservice.ServicePortAnnotationKey,
 	}
 
 	var buf bytes.Buffer
