@@ -43,6 +43,7 @@ import NodeDetails from "@/views/cluster/Nodes/NodeDetails.vue";
 import ClusterBackups from "@/views/cluster/Backups/Backups.vue";
 
 import PageNotFound from "@/views/common/PageNotFound.vue";
+import BadRequest from "@/views/common/BadRequest.vue";
 import Forbidden from "@/views/common/Forbidden.vue";
 
 // sidebars
@@ -180,6 +181,7 @@ const beforeEnter = async (to: RouteLocation) => {
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/omni/' },
   { path: "/forbidden", component: Forbidden },
+  { path: "/badrequest", component: BadRequest },
   ...withPrefix("/omni", [
     {
       path: "/authenticate",

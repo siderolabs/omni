@@ -42,10 +42,19 @@ type HTTPHandler struct {
 	mainURL             *url.URL
 	mainDomain          string
 	workloadProxyDomain string
+	redirectKey         []byte
 }
 
 // NewHTTPHandler creates a new HTTP handler that will proxy requests to the workload proxy.
-func NewHTTPHandler(next http.Handler, proxyProvider ProxyProvider, accessValidator AccessValidator, mainURL *url.URL, workloadProxySubdomain string, logger *zap.Logger) (*HTTPHandler, error) {
+func NewHTTPHandler(
+	next http.Handler,
+	proxyProvider ProxyProvider,
+	accessValidator AccessValidator,
+	mainURL *url.URL,
+	workloadProxySubdomain string,
+	logger *zap.Logger,
+	redirectKey []byte,
+) (*HTTPHandler, error) {
 	if logger == nil {
 		logger = zap.NewNop()
 	}
@@ -73,6 +82,7 @@ func NewHTTPHandler(next http.Handler, proxyProvider ProxyProvider, accessValida
 		mainDomain:          mainDomain,
 		workloadProxyDomain: workloadProxyDomain,
 		logger:              logger,
+		redirectKey:         redirectKey,
 	}, nil
 }
 
@@ -225,7 +235,7 @@ func (h *HTTPHandler) redirectToLogin(writer http.ResponseWriter, request *http.
 
 	loginURL.Path = "/omni/authenticate"
 	q := loginURL.Query()
-	q.Set(auth.RedirectQueryParam, reqURL.String())
+	q.Set(auth.RedirectQueryParam, EncodeRedirectURL(reqURL.String(), h.redirectKey))
 	q.Set(auth.FlowQueryParam, auth.ProxyAuthFlow)
 
 	loginURL.RawQuery = q.Encode()

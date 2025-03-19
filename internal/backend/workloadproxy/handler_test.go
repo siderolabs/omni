@@ -22,6 +22,8 @@ import (
 	"github.com/siderolabs/omni/internal/backend/workloadproxy"
 )
 
+var redirectSignature = []byte("1234")
+
 type mockProxyProvider struct {
 	aliases []string
 }
@@ -76,7 +78,7 @@ func TestHandler(t *testing.T) {
 		accessValidator := &mockAccessValidator{}
 		logger := zaptest.NewLogger(t)
 
-		handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, "proxy-us", logger)
+		handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, "proxy-us", logger, redirectSignature)
 		require.NoError(t, err)
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://instanceid.example.com/example", nil)
@@ -98,7 +100,7 @@ func TestHandler(t *testing.T) {
 		accessValidator := &mockAccessValidator{}
 		logger := zaptest.NewLogger(t)
 
-		handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, "proxy-us", logger)
+		handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, "proxy-us", logger, redirectSignature)
 		require.NoError(t, err)
 
 		rr := httptest.NewRecorder()
@@ -120,6 +122,10 @@ func TestHandler(t *testing.T) {
 		redirectedURL.Port()
 
 		redirectBackURL := redirectedURL.Query().Get("redirect")
+
+		redirectBackURL, err = workloadproxy.DecodeRedirectURL(redirectBackURL, redirectSignature)
+
+		require.NoError(t, err)
 
 		require.Equal(t, fmt.Sprintf("https://%s-instanceid.proxy-us.example.com:%s/example", testServiceAlias, redirectedURL.Port()), redirectBackURL)
 	})
@@ -144,7 +150,7 @@ func TestHandler(t *testing.T) {
 		accessValidator := &mockAccessValidator{}
 		logger := zaptest.NewLogger(t)
 
-		handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, "proxy-us", logger)
+		handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, "proxy-us", logger, redirectSignature)
 		require.NoError(t, err)
 
 		rr := httptest.NewRecorder()
@@ -178,7 +184,7 @@ func testSubdomainRequestWithCookies(ctx context.Context, t *testing.T, mainURL 
 	accessValidator := &mockAccessValidator{}
 	logger := zaptest.NewLogger(t)
 
-	handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, "proxy-us", logger)
+	handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, "proxy-us", logger, redirectSignature)
 	require.NoError(t, err)
 
 	rr := httptest.NewRecorder()

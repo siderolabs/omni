@@ -123,6 +123,7 @@ type Server struct {
 	k8sProxyBindAddress string
 	keyFile             string
 	certFile            string
+	workloadProxyKey    []byte
 }
 
 // NewServer creates new HTTP server.
@@ -165,6 +166,11 @@ func NewServer(
 	}
 
 	k8sruntime, err := kubernetes.New(omniRuntime.State())
+	if err != nil {
+		return nil, err
+	}
+
+	s.workloadProxyKey, err = workloadproxy.GenKey()
 	if err != nil {
 		return nil, err
 	}
@@ -314,7 +320,12 @@ func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
 		return nil, err
 	}
 
-	mux, err := makeMux(imageFactoryHandler, oidcProvider, samlHandler, s.omniRuntime, s.logger)
+	workloadProxyRedirect, err := workloadproxy.NewRedirectHandler(s.workloadProxyKey, s.logger)
+	if err != nil {
+		return nil, err
+	}
+
+	mux, err := makeMux(imageFactoryHandler, oidcProvider, workloadProxyRedirect, samlHandler, s.omniRuntime, s.logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create mux: %w", err)
 	}
@@ -638,6 +649,7 @@ func (s *Server) workloadProxyHandler(next http.Handler) (http.Handler, error) {
 		mainURL,
 		config.Config.WorkloadProxying.Subdomain,
 		s.logger.With(logging.Component("workload_proxy_handler")),
+		s.workloadProxyKey,
 	)
 }
 
@@ -771,7 +783,12 @@ func isSensitiveSpec(resource *resapi.Resource) bool {
 	return false
 }
 
-func makeMux(imageHandler, oidcHandler http.Handler, samlHandler *samlsp.Middleware, omniRuntime *omni.Runtime, logger *zap.Logger) (*http.ServeMux, error) {
+func makeMux(
+	imageHandler, oidcHandler, workloadProxyRedirect http.Handler,
+	samlHandler *samlsp.Middleware,
+	omniRuntime *omni.Runtime,
+	logger *zap.Logger,
+) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
 
 	muxHandle := func(route string, handler http.Handler, value string) {
@@ -806,6 +823,7 @@ func makeMux(imageHandler, oidcHandler http.Handler, samlHandler *samlsp.Middlew
 		return nil, err
 	}
 
+	muxHandle("/exposed/service", workloadProxyRedirect, "exposed-service-redirect")
 	muxHandle("/omnictl/", http.StripPrefix("/omnictl/", omnictlHndlr), "files")
 	muxHandle("/talosctl/downloads", talosctlHandler, "talosctl-downloads")
 	// actually enabled only in debug build

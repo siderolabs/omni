@@ -59,7 +59,8 @@ import {
   authHeader,
   authPublicKeyIDQueryParam,
   CLIAuthFlow,
-  AuthFlowQueryParam, WorkloadProxyAuthFlow, RedirectQueryParam
+  AuthFlowQueryParam, WorkloadProxyAuthFlow, RedirectQueryParam,
+  SignedRedirect
 } from "@/api/resources";
 import { FrontendAuthFlow } from "@/router";
 import { createKeys, saveKeys } from "@/methods/key";
@@ -164,7 +165,8 @@ const router = useRouter();
 let publicKeyId = route.query[authPublicKeyIDQueryParam] as string;
 
 const confirmed = ref(false);
-const redirect: string = route.query[RedirectQueryParam] as string;
+
+let redirect: string = route.query[RedirectQueryParam] as string;
 
 const generatePublicKey = async () => {
   if (!identity.value) {
@@ -197,10 +199,14 @@ const generatePublicKey = async () => {
     return;
   }
 
-  if (redirect.indexOf('http://') === 0 || redirect.indexOf('https://') === 0) {
-    redirectToURL(redirect)
+  if (redirect.indexOf(SignedRedirect) === 0) {
+    redirectToURL(`/exposed/service?${RedirectQueryParam}=${redirect}`);
 
     return;
+  }
+
+  if (redirect.indexOf("/") !== 0) {
+    redirect = "/";
   }
 
   await router.replace({ path: redirect });
