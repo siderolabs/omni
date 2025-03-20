@@ -58,6 +58,10 @@ const destroy = async () => {
     }, withRuntime(Runtime.Omni));
   } catch (e) {
     showError("Failed to remove the machine class", e.message)
+
+    close();
+
+    return;
   }
 
   close();
