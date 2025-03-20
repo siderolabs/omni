@@ -46,6 +46,7 @@ included in the LICENSE file.
           </div>
           <div class="text-xs flex flex-col gap-1">
             <p>Using <code>,</code> in a single condition will match them using <code>AND</code> operator.</p>
+            <p>Values containing <code>,</code> needs to be surrounded by <code>"</code>. If they value also contain <code>"</code>, they need to be escaped using <code>\</code>.</p>
             <p>Separate conditions are matched using <code>OR</code>.</p>
             <p>Allowed binary operators are
               <code>&gt;</code>,
@@ -122,6 +123,7 @@ import TButton from "@/components/common/Button/TButton.vue";
 import TButtonGroup from "@/components/common/Button/TButtonGroup.vue";
 import MachineTemplate from "./MachineTemplate.vue";
 import ProviderConfig from "./ProviderConfig.vue";
+import { sanitizeLabelValue } from "@/methods/labels";
 
 enum MachineClassMode {
   Manual = "Manual",
@@ -401,7 +403,8 @@ const handleBackspace = (event: KeyboardEvent, i: number) => {
 }
 
 const copyLabel = (label: {key: string, value: string}) => {
-  const block = `${label.key}${label.value ? ' = ' + label.value : '' }`;
+  const value = sanitizeLabelValue(label.value);
+  const block = `${label.key}${label.value ? ' = ' + value : '' }`;
 
   if (lastFocused.value >= conditions.value.length) {
     lastFocused.value = conditions.value.length - 1;

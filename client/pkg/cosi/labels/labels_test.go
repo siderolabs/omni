@@ -15,8 +15,9 @@ import (
 
 func TestParseQuery(t *testing.T) {
 	for _, tt := range []struct {
-		expected *resource.LabelQuery
-		query    string
+		expected      *resource.LabelQuery
+		expectedError string
+		query         string
 	}{
 		{
 			query: "!a",
@@ -235,6 +236,50 @@ func TestParseQuery(t *testing.T) {
 				},
 			},
 		},
+		{
+			query: `a="b, c"`,
+			expected: &resource.LabelQuery{
+				Terms: []resource.LabelTerm{
+					{
+						Key:   "a",
+						Op:    resource.LabelOpEqual,
+						Value: []string{"b, c"},
+					},
+				},
+			},
+		},
+		{
+			query: `a="b, \"c\""`,
+			expected: &resource.LabelQuery{
+				Terms: []resource.LabelTerm{
+					{
+						Key:   "a",
+						Op:    resource.LabelOpEqual,
+						Value: []string{`b, "c"`},
+					},
+				},
+			},
+		},
+		{
+			query: `a="b, \\"`,
+			expected: &resource.LabelQuery{
+				Terms: []resource.LabelTerm{
+					{
+						Key:   "a",
+						Op:    resource.LabelOpEqual,
+						Value: []string{`b, \`},
+					},
+				},
+			},
+		},
+		{
+			query:         `a="b, c`,
+			expectedError: "unterminated quoted string",
+		},
+		{
+			query:         `a="b,\`,
+			expectedError: "unterminated escape sequence",
+		},
 	} {
 		t.Run(tt.query, func(t *testing.T) {
 			require := require.New(t)
@@ -243,6 +288,10 @@ func TestParseQuery(t *testing.T) {
 
 			if tt.expected == nil {
 				require.Error(err)
+
+				if tt.expectedError != "" {
+					require.ErrorContains(err, tt.expectedError)
+				}
 
 				return
 			}

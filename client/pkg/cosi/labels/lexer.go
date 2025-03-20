@@ -246,6 +246,8 @@ func (l *lexer) lex() (tok lexerToken, lit string) {
 	switch ch, width := l.skipWhiteSpaces(l.read()); {
 	case ch == 0:
 		return endOfStringToken, ""
+	case ch == '"':
+		return l.scanQuotedString()
 	case isSpecialSymbol(ch):
 		l.pos -= width
 
@@ -268,4 +270,28 @@ func (l *lexer) lex() (tok lexerToken, lit string) {
 	}
 
 	return
+}
+
+func (l *lexer) scanQuotedString() (lexerToken, string) {
+	var buffer []rune
+
+	for { // Loop until we find the closing quote
+		ch, _ := l.read()
+		if ch == 0 {
+			return errorToken, "unterminated quoted string"
+		}
+
+		if ch == '"' { // Found closing quote; return token with the literal (without quotes)
+			return IdentifierToken, string(buffer)
+		}
+
+		if ch == '\\' { // Handle escaped characters (e.g., \" becomes ")
+			ch, _ = l.read()
+			if ch == 0 {
+				return errorToken, "unterminated escape sequence in quoted string"
+			}
+		}
+
+		buffer = append(buffer, ch)
+	}
 }

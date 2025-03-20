@@ -75,8 +75,22 @@ export const selectors = (labels: Label[]) => {
       return label.key;
     }
 
-    return `${label.key}=${label.value}`;
+    const value = sanitizeLabelValue(label.value);
+
+    return `${label.key}=${value}`;
   });
+}
+
+export const sanitizeLabelValue = (value: string): string => {
+  if (value.includes(",")) {
+    // Escape any double quotes in the value.
+    value = value.replace(/"/g, '\\"');
+
+    // Wrap the value in quotes.
+    return `"${value}"`;
+  }
+
+  return value;
 }
 
 const labelDescriptions = {
