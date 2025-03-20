@@ -93,12 +93,24 @@ func Etcd(ctx context.Context, r controller.Reader, clusterName string) error {
 		}
 	}
 
-	if (len(members)-1)%2 != 0 {
+	quorum := len(members)/2 + 1
+	optimalMembers := quorum*2 - 1
+
+	switch {
+	case len(members) == 2:
 		return newError(
 			specs.ControlPlaneStatusSpec_Condition_Warning,
 			false,
-			"Etcd members count doesn't match quorum, expected odd number, got %d",
+			"Etcd members count is equal to the minimum quorum %d. The cluster cannot tolerate the loss of any members",
+			quorum,
+		)
+	case len(members) != optimalMembers:
+		return newError(
+			specs.ControlPlaneStatusSpec_Condition_Warning,
+			false,
+			"Etcd members count %d is not optimal. Recommended count is %d",
 			len(members),
+			optimalMembers,
 		)
 	}
 

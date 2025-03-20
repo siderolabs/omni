@@ -30,9 +30,9 @@ included in the LICENSE file.
         @blur="blurHandler"
         :placeholder="placeholder"
       />
-      <div v-if="type === 'number'" class="flex flex-col select-none">
-        <t-icon class="hover:text-naturals-N14 w-2" icon="arrow-up" @click="updateValue(numberValue + step)"/>
-        <t-icon class="hover:text-naturals-N14 w-2" icon="arrow-down"  @click="updateValue(numberValue - step)"/>
+      <div v-if="type === 'number'" class="flex flex-col select-none items-center justify-center">
+        <t-icon class="hover:text-naturals-N14 text-naturals-N12 w-2 h-2 rotate-180" icon="arrow-down" @click="updateValue(numberValue + step)"/>
+        <t-icon class="hover:text-naturals-N14 text-naturals-N12 w-2 h-2" icon="arrow-down"  @click="updateValue(numberValue - step)"/>
       </div>
       <div v-else-if="modelValue !== '' || onClear" @click.prevent="clearInput">
         <t-icon

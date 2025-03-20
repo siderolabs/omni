@@ -8,8 +8,8 @@ included in the LICENSE file.
   <overview-right-panel-item
     :name="getConditionName(condition?.type)">
       <tooltip :description="condition.reason" placement="left">
-        <span v-bind:class="condition.status === ControlPlaneStatusSpecConditionStatus.Ready ? '' : 'text-red-R1'">
-          {{ condition.status === ControlPlaneStatusSpecConditionStatus.Ready ? 'OK' : 'Not Ready' }}
+        <span :style="{color: color}">
+          {{ text }}
         </span>
       </tooltip>
   </overview-right-panel-item>
@@ -19,11 +19,14 @@ included in the LICENSE file.
 import {
 ConditionType,
   ControlPlaneStatusSpecCondition,
+  ControlPlaneStatusSpecConditionSeverity,
   ControlPlaneStatusSpecConditionStatus,
 } from "@/api/omni/specs/omni.pb";
 
 import OverviewRightPanelItem from "@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanelItem.vue";
 import Tooltip from "@/components/common/Tooltip/Tooltip.vue";
+import { computed, toRefs } from "vue";
+import { naturals, red, yellow } from "@/vars/colors";
 
 const mapping: Record<ConditionType | number, string> = {};
 for (const key of Object.keys(ConditionType)) {
@@ -46,5 +49,33 @@ type Props = {
   condition: ControlPlaneStatusSpecCondition;
 };
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+const { condition } = toRefs(props);
+
+const color = computed(() => {
+  switch (condition.value.severity) {
+    case ControlPlaneStatusSpecConditionSeverity.Warning:
+      return yellow.Y1;
+    case ControlPlaneStatusSpecConditionSeverity.Error:
+      return red.R1;
+  }
+
+  return naturals.N12;
+});
+
+const text = computed(() => {
+  if (condition.value.status === ControlPlaneStatusSpecConditionStatus.Ready) {
+    return "OK";
+  }
+
+  switch (condition.value.severity) {
+    case ControlPlaneStatusSpecConditionSeverity.Warning:
+      return "Warning";
+    case ControlPlaneStatusSpecConditionSeverity.Error:
+      return "Not Ready";
+  }
+
+  return "Unknown";
+});
 </script>
