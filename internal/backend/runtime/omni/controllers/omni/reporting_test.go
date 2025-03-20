@@ -17,7 +17,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/stretchr/testify/suite"
-	"github.com/stripe/stripe-go/v74"
+	"github.com/stripe/stripe-go/v76"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"

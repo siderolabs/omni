@@ -176,7 +176,7 @@ export const resetKeys = () => {
 const genKey = async (email: string): Promise<{publicKey: string, privateKey: string}> => {
   const { privateKey, publicKey } = await generateKey({
     type: 'ecc',
-    curve: 'ed25519',
+    curve: 'ed25519Legacy',
     userIDs: [{ email: email.toLowerCase() }, ],
     keyExpirationTime: 7 * 60 * 60 + 50 * 60, // 7 hours 50 minutes
     config: {

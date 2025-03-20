@@ -62,8 +62,13 @@ const options: ApexOptions = {
         type: 'none',
       }
     },
+    active: {
+      filter: {
+        type: 'none',
+      }
+    }
   }
-}
+};
 
 const percentage = computed(() => chartFillPercents.value ?? 0);
 </script>

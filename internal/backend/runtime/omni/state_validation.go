@@ -22,7 +22,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/hashicorp/go-multierror"
-	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"gopkg.in/yaml.v3"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -1038,12 +1038,17 @@ func validateProviderData(ctx context.Context, st state.State, providerID, provi
 
 		filename := fmt.Sprintf("%s-schema.json", providerStatus.Metadata().ID())
 
-		compiler := jsonschema.NewCompiler()
-		if err := compiler.AddResource(filename, strings.NewReader(providerStatus.TypedSpec().Value.Schema)); err != nil {
+		schema, err := jsonschema.UnmarshalJSON(strings.NewReader(providerStatus.TypedSpec().Value.Schema))
+		if err != nil {
 			return fmt.Errorf("failed to load json schema for provider %q: %w", providerID, err)
 		}
 
-		schema, err := compiler.Compile(filename)
+		compiler := jsonschema.NewCompiler()
+		if err = compiler.AddResource(filename, schema); err != nil {
+			return fmt.Errorf("failed to load json schema for provider %q: %w", providerID, err)
+		}
+
+		sch, err := compiler.Compile(filename)
 		if err != nil {
 			return fmt.Errorf("failed to load json schema for provider %q: %w", providerID, err)
 		}
@@ -1060,7 +1065,7 @@ func validateProviderData(ctx context.Context, st state.State, providerID, provi
 			v = map[string]any{}
 		}
 
-		if err = schema.Validate(v); err != nil {
+		if err = sch.Validate(v); err != nil {
 			return err
 		}
 

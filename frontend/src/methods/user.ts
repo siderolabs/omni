@@ -94,7 +94,7 @@ export const createServiceAccount = async (name: string, role: string, expiratio
 
   const { privateKey, publicKey } = await generateKey({
     type: 'ecc',
-    curve: 'ed25519',
+    curve: 'ed25519Legacy',
     userIDs: [{ email: email }, ],
     keyExpirationTime: expirationDays * 24 * 60 * 60,
     config: {
@@ -123,7 +123,7 @@ export const createServiceAccount = async (name: string, role: string, expiratio
 export const renewServiceAccount = async (id: string, expirationDays: number = 365) => {
   const { privateKey, publicKey } = await generateKey({
     type: 'ecc',
-    curve: 'ed25519',
+    curve: 'ed25519Legacy',
     userIDs: [{ email: id }, ],
     keyExpirationTime: expirationDays * 24 * 60 * 60,
     config: {

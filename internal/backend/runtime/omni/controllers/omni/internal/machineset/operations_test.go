@@ -37,11 +37,11 @@ func (rt *runtime) Create(ctx context.Context, r resource.Resource) error {
 	return rt.State.Create(ctx, r)
 }
 
-func (rt *runtime) Destroy(ctx context.Context, r resource.Pointer, _ ...controller.Option) error {
+func (rt *runtime) Destroy(ctx context.Context, r resource.Pointer, _ ...controller.DeleteOption) error {
 	return rt.State.Destroy(ctx, r)
 }
 
-func (rt *runtime) Modify(ctx context.Context, r resource.Resource, f func(resource.Resource) error) error {
+func (rt *runtime) Modify(ctx context.Context, r resource.Resource, f func(resource.Resource) error, _ ...controller.ModifyOption) error {
 	_, err := rt.ModifyWithResult(ctx, r, f)
 
 	return err
@@ -51,7 +51,7 @@ func (rt *runtime) Update(ctx context.Context, r resource.Resource) error {
 	return rt.State.Update(ctx, r)
 }
 
-func (rt *runtime) ModifyWithResult(ctx context.Context, r resource.Resource, f func(resource.Resource) error) (resource.Resource, error) {
+func (rt *runtime) ModifyWithResult(ctx context.Context, r resource.Resource, f func(resource.Resource) error, _ ...controller.ModifyOption) (resource.Resource, error) {
 	res, err := rt.State.UpdateWithConflicts(ctx, r.Metadata(), f)
 	if state.IsNotFoundError(err) {
 		res = r.DeepCopy()
@@ -66,7 +66,7 @@ func (rt *runtime) ModifyWithResult(ctx context.Context, r resource.Resource, f 
 	return res, err
 }
 
-func (rt *runtime) Teardown(ctx context.Context, r resource.Pointer, _ ...controller.Option) (bool, error) {
+func (rt *runtime) Teardown(ctx context.Context, r resource.Pointer, _ ...controller.DeleteOption) (bool, error) {
 	return rt.State.Teardown(ctx, r)
 }
 

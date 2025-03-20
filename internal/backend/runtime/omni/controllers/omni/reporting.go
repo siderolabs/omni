@@ -10,13 +10,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cenkalti/backoff/v4"
+	"github.com/cenkalti/backoff/v5"
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/stripe/stripe-go/v74"
-	"github.com/stripe/stripe-go/v74/subscriptionitem"
+	"github.com/stripe/stripe-go/v76"
+	"github.com/stripe/stripe-go/v76/subscriptionitem"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -102,7 +102,7 @@ func (ctrl *StripeMetricsReporterController) Run(ctx context.Context, r controll
 		count := pendingCount
 		pendingCount = 0
 
-		err := updateStripeSubscriptionItemQuantity(ctrl.stripeSubscriptionItemID, count, log)
+		err := updateStripeSubscriptionItemQuantity(ctx, ctrl.stripeSubscriptionItemID, count, log)
 		if err != nil {
 			log.Error("Failed to update subscription item", zap.String("subscription_item_id", ctrl.stripeSubscriptionItemID), zap.Uint32("count", count), zap.Error(err))
 		}
@@ -140,8 +140,8 @@ func (ctrl *StripeMetricsReporterController) Run(ctx context.Context, r controll
 
 // updateStripeSubscriptionItemQuantity adjusts the quantity of a subscription.
 // Implements retry logic with exponential backoff for transient failures.
-func updateStripeSubscriptionItemQuantity(subscriptionItemID string, count uint32, log *zap.Logger) error {
-	operation := func() error {
+func updateStripeSubscriptionItemQuantity(ctx context.Context, subscriptionItemID string, count uint32, log *zap.Logger) error {
+	operation := func() (bool, error) {
 		newQuantity := count
 
 		log.Info("Updating subscription item quantity", zap.String("subscription_item_id", subscriptionItemID), zap.Uint32("new_quantity", newQuantity))
@@ -152,16 +152,15 @@ func updateStripeSubscriptionItemQuantity(subscriptionItemID string, count uint3
 
 		_, err := subscriptionitem.Update(subscriptionItemID, updateParams)
 		if err != nil {
-			return fmt.Errorf("failed to update subscription item %s quantity: %w", subscriptionItemID, err)
+			return false, fmt.Errorf("failed to update subscription item %s quantity: %w", subscriptionItemID, err)
 		}
 
-		return nil
+		return true, nil
 	}
 
 	backoffConfig := backoff.NewExponentialBackOff()
-	backoffConfig.MaxElapsedTime = 2 * time.Minute
 
-	err := backoff.Retry(operation, backoffConfig)
+	_, err := backoff.Retry(ctx, operation, backoff.WithMaxElapsedTime(2*time.Minute), backoff.WithBackOff(backoffConfig))
 	if err != nil {
 		return fmt.Errorf("failed to update subscription item after retries: %w", err)
 	}
