@@ -58,7 +58,7 @@ included in the LICENSE file.
               <template #default="{ items }">
                 <div class="flex items-center gap-6">
                   <stats-item text="Allocated" :count="items[0]?.spec.allocated_machines_count ?? 0" icon="arrow-right-square"/>
-                  <stats-item text="Capacity" units="%" :count="getCapacity(items[0])" icon="box"/>
+                  <stats-item text="Capacity Free" units="%" :count="getCapacity(items[0])" icon="box"/>
                 </div>
               </template>
             </watch>
