@@ -176,6 +176,9 @@ To enable etcd backups into the local directory, set the following command line 
 --etcd-backup-local-path /path/to/backup/dir
 ```
 
+You can also set the `etcd-backup-tick-interval` and `etcd-backup-jitter` to control the frequency of backups checks, that is when the backup check will be performed and the jitter value will be added to the backup check time.
+Keep in mind that jitter applied as delta to the backup time, so if you set jitter to 10s, backup will be performed in -5s to 5s from the backup time.
+
 For s3 you should also create `EtcdBackupS3Configs.omni.sidero.dev` resource in the default namespace, since this is
 the place where Omni gets s3 credentials and options from.
 For example, for minio s3 with bucket `mybucket` and operating locally on port `9000` that would be:

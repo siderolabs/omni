@@ -195,6 +195,7 @@ func New(
 		},
 		StoreFactory: storeFactory,
 		TickInterval: config.Config.EtcdBackup.TickInterval,
+		Jitter:       config.Config.EtcdBackup.Jitter,
 	})
 	if err != nil {
 		return nil, err

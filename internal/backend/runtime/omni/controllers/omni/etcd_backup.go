@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -31,6 +32,8 @@ import (
 )
 
 // EtcdBackupController manages etcd backups.
+//
+//nolint:govet
 type EtcdBackupController struct {
 	settings EtcdBackupControllerSettings
 
@@ -45,6 +48,7 @@ type EtcdBackupControllerSettings struct {
 	ClientMaker  ClientMaker
 	StoreFactory store.Factory
 	TickInterval time.Duration // can be 0 in which case StoreFactory should be [store.DisabledStoreFactory]
+	Jitter       time.Duration // can be 0 in which case jitter will be disabled
 }
 
 // ClientMaker is a function that creates Talos client.
@@ -54,6 +58,10 @@ type ClientMaker func(ctx context.Context, clusterName string) (TalosClient, err
 func NewEtcdBackupController(s EtcdBackupControllerSettings) (*EtcdBackupController, error) {
 	if s.TickInterval < time.Minute && s.StoreFactory != store.DisabledStoreFactory {
 		return nil, errors.New("tick interval must be at least 1 minute")
+	}
+
+	if s.Jitter < 0 {
+		return nil, errors.New("jitter must be non negative")
 	}
 
 	return &EtcdBackupController{
@@ -99,6 +107,7 @@ func (ctrl *EtcdBackupController) Run(ctx context.Context, r controller.Runtime,
 		"etcd backups are enabled",
 		zap.String("uploader", ctrl.settings.StoreFactory.Description()),
 		zap.Duration("tick_interval", ctrl.settings.TickInterval),
+		zap.Duration("jitter", ctrl.settings.Jitter),
 	)
 
 	for {
@@ -273,6 +282,11 @@ func (ctrl *EtcdBackupController) findClustersToBackup(ctx context.Context, r co
 			result = append(result, backupData)
 
 			continue
+		}
+
+		if ctrl.settings.Jitter != 0 {
+			jitter := rand.N[time.Duration](ctrl.settings.Jitter) - ctrl.settings.Jitter/2
+			latestBackupTime = latestBackupTime.Add(jitter)
 		}
 
 		if elapsed := time.Since(latestBackupTime); elapsed >= value.Interval.AsDuration() {

@@ -496,6 +496,13 @@ var initOnce = sync.OnceValue(func() *cobra.Command {
 	)
 
 	rootCmd.Flags().DurationVar(
+		&config.Config.EtcdBackup.Jitter,
+		"etcd-backup-jitter",
+		config.Config.EtcdBackup.Jitter,
+		"jitter for etcd backups, randomly added/subtracted from the interval between automatic etcd backups",
+	)
+
+	rootCmd.Flags().DurationVar(
 		&config.Config.EtcdBackup.MinInterval,
 		"etcd-backup-min-interval",
 		config.Config.EtcdBackup.MinInterval,

@@ -175,6 +175,7 @@ type EtcdBackupParams struct {
 	MaxInterval   time.Duration `yaml:"maxInterval"`
 	UploadLimit   int64         `yaml:"uploadLimit"`
 	DownloadLimit int64         `yaml:"downloadLimit"`
+	Jitter        time.Duration `yaml:"jitter"`
 }
 
 // GetStorageType returns the storage type.
@@ -360,6 +361,7 @@ var (
 			TickInterval: time.Minute,
 			MinInterval:  time.Hour,
 			MaxInterval:  24 * time.Hour,
+			Jitter:       10 * time.Minute,
 		},
 
 		LogResourceUpdatesLogLevel: zapcore.InfoLevel.String(),
