@@ -63,3 +63,24 @@ func (ClusterStatusExtension) ResourceDefinition() meta.ResourceDefinitionSpec {
 		},
 	}
 }
+
+// Make implements [typed.Maker] interface.
+func (ClusterStatusExtension) Make(_ *resource.Metadata, spec *ClusterStatusSpec) any {
+	return (*clusterStatusAux)(spec)
+}
+
+type clusterStatusAux ClusterStatusSpec
+
+func (m *clusterStatusAux) Match(searchFor string) bool {
+	val := m.Value
+
+	if searchFor == "ready" {
+		return val.Ready
+	}
+
+	if searchFor == "!ready" {
+		return !val.Ready
+	}
+
+	return false
+}

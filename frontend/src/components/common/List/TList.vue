@@ -13,6 +13,13 @@ included in the LICENSE file.
         <t-input v-else-if="search" class="flex-1" icon="search" v-model="filterValueInternal"/>
         <div class="flex-1" v-else/>
         <t-select-list
+            @checkedValue="(value: string) => { selectedFilterOption = value }"
+            v-if="filterOptions"
+            :title="filterCaption ?? 'Filter'"
+            :defaultValue="selectedFilterOption || ''"
+            :values="filterOptionsVariants"
+          />
+        <t-select-list
             @checkedValue="(value: string) => { selectedSortOption = value }"
             v-if="sortOptions"
             title="Sort by"
@@ -106,7 +113,9 @@ const props = defineProps<{
   search?: boolean,
   opts?: WatchOptions | WatchJoinOptions[] | object,
   sortOptions?: {id: string, desc: string, descending?: boolean}[],
+  filterOptions?: {query?: string, desc: string}[],
   filterValue?: string
+  filterCaption?: string
 }>();
 
 const itemsPerPage = [5, 10, 25, 50, 100];
@@ -121,6 +130,16 @@ const sortOptionsVariants = computed(() => {
   });
 });
 
+const filterOptionsVariants = computed(() => {
+  if (!props.filterOptions) {
+    return [];
+  }
+
+  return props.filterOptions.map((opt) => {
+    return opt.desc;
+  });
+});
+
 const { opts, filterValue } = toRefs(props);
 
 const items: Ref<Resource[]> = ref([]);
@@ -130,7 +149,8 @@ const optsList = props.opts as WatchJoinOptions[];
 const filterValueInternal = ref("");
 const currentPage = ref(1);
 const selectedItemsPerPage: Ref<number> = storageRef(localStorage, 'itemsPerPage', 10);
-const selectedSortOption: Ref<string | null> = ref(sortOptionsVariants?.value?.length ? sortOptionsVariants.value[0] : null);
+const selectedSortOption: Ref<string | undefined> = ref(sortOptionsVariants?.value?.[0]);
+const selectedFilterOption: Ref<string | undefined> = ref(filterOptionsVariants.value?.[0]);
 
 const filterValueComputed = computed(() => {
   return filterValue.value !== undefined ? filterValue.value : filterValueInternal.value;
@@ -203,6 +223,15 @@ const searchState = computed(() => {
   const parts = filterValueComputed.value.split(" ");
   const selectors: string[] = [];
   const searchFor: string[] = [];
+
+
+  if (selectedFilterOption.value) {
+    const selectedOptionQuery = props.filterOptions?.find(item => item.desc === selectedFilterOption.value)?.query;
+
+    if (selectedOptionQuery) {
+      searchFor.push(selectedOptionQuery);
+    }
+  }
 
   for (const part of parts) {
     const match = part.match(/^(.+):(.*)$/);

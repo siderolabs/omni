@@ -12,7 +12,9 @@ included in the LICENSE file.
       noRecordsAlert
       pagination
       errorsAlert
+      filterCaption="Status"
       :sortOptions="sortOptions"
+      :filterOptions="filterOptions"
       :filterValue="filterValue"
     >
       <template #header="{ itemsCount, filtered }">
@@ -106,6 +108,12 @@ const sortOptions = [
   {id: 'id', desc: 'ID ⬇', descending: true},
   {id: 'created', desc: 'Creation Time ⬆', descending: true},
   {id: 'created', desc: 'Creation Time ⬇'},
+];
+
+const filterOptions = [
+  {desc: "All"},
+  {desc: "Ready", query: "ready"},
+  {desc: "Not Ready", query: "!ready"},
 ];
 </script>
 
