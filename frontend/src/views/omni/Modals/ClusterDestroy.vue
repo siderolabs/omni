@@ -54,6 +54,7 @@ import TSpinner from "@/components/common/Spinner/TSpinner.vue";
 import { clusterDestroy } from "@/methods/cluster";
 import ManagedByTemplatesWarning from "@/views/cluster/ManagedByTemplatesWarning.vue";
 import { withRuntime } from '@/api/options';
+import { Code } from '@/api/google/rpc/code.pb';
 
 const router = useRouter();
 const route = useRoute();
@@ -105,7 +106,9 @@ const destroyCluster = async () => {
     } catch (e) {
       close();
 
-      showError("Failed to Destroy the Cluster", e.message)
+      if (e.code !== Code.NOT_FOUND) {
+        showError("Failed to Destroy the Cluster", e.message)
+      }
 
       return;
     }
@@ -142,7 +145,9 @@ const destroyCluster = async () => {
     } catch (e) {
       close();
 
-      showError("Failed to Destroy the Cluster", e.message)
+      if (e.code !== Code.NOT_FOUND) {
+        showError("Failed to Destroy the Cluster", e.message)
+      }
 
       return;
     }
