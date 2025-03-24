@@ -368,6 +368,7 @@ spec:
     - source: ./internal
       copy:
         - frontend/
+        - internal/backend/runtime/omni/controllers/omni/
   vtProtobufEnabled: true
   specs:
     - source: client/api/common/omni.proto

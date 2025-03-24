@@ -50,12 +50,9 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/external"
 )
 
-// Remove the plus sign to generate the mock.
-
-//nolint:lll
-//+go:generate go run go.uber.org/mock/mockgen@latest -destination=etcd_backup_mock_1_test.go -package omni_test -typed -copyright_file ../../../../../../.license-header.go.txt . TalosClient
-//+go:generate go run go.uber.org/mock/mockgen@latest -destination=etcd_backup_mock_2_test.go -package omni_test -typed -copyright_file ../../../../../../.license-header.go.txt github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store Factory
-//+go:generate go run go.uber.org/mock/mockgen@latest -destination=etcd_backup_mock_3_test.go -package omni_test -typed -copyright_file ../../../../../../.license-header.go.txt github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup Store
+//go:generate mockgen -destination=etcd_backup_mock_1_test.go -package omni_test -typed -copyright_file ../../../../../../hack/.license-header.go.txt . TalosClient
+//go:generate mockgen -destination=etcd_backup_mock_2_test.go -package omni_test -typed -copyright_file ../../../../../../hack/.license-header.go.txt github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store Factory
+//go:generate mockgen -destination=etcd_backup_mock_3_test.go -package omni_test -typed -copyright_file ../../../../../../hack/.license-header.go.txt github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup Store
 
 func TestEtcdBackupControllerSuite(t *testing.T) {
 	t.Parallel()
@@ -331,8 +328,11 @@ func (suite *EtcdBackupControllerSuite) TestSingleListCall() {
 		).
 		Times(3)
 
-	clientMock.EXPECT().EtcdSnapshot(gomock.Any(), gomock.Any(), gomock.Any()).
-		Return(io.NopCloser(strings.NewReader("Hello World")), nil).
+	clientMock.EXPECT().
+		EtcdSnapshot(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(context.Context, *machine.EtcdSnapshotRequest, ...grpc.CallOption) (io.ReadCloser, error) {
+			return io.NopCloser(strings.NewReader("Hello World")), nil
+		}).
 		AnyTimes()
 
 	suite.register2(omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
@@ -702,33 +702,40 @@ func (suite *EtcdBackupControllerSuite) TestBackupJitter() {
 		EtcdSnapshot(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(context.Context, *machine.EtcdSnapshotRequest, ...grpc.CallOption) (io.ReadCloser, error) {
 			return io.NopCloser(strings.NewReader("Hello World")), nil
-		}).Times(2)
+		}).
+		Times(4) // 2 clusters * 2 backups
 
-	jitter := 2 * time.Minute
+	jitter := 20 * time.Minute
 
 	suite.register2(omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
 		ClientMaker: func(context.Context, string) (omnictrl.TalosClient, error) {
 			return clientMock, nil
 		},
 		StoreFactory: sf,
-		TickInterval: 10 * time.Minute,
+		TickInterval: 1 * time.Minute, // smaller tick, more chances for jitter to be applied
 		Jitter:       jitter,
 	}))
 
 	clusterNames := []string{"talos-default-1", "talos-default-2"}
 	clustersData := createClusters(suite, clusterNames, time.Hour)
-	start := time.Now().UTC()
 
-	synctest.Wait()
+	synctest.Wait()                        // Wait for the first backup to be taken, it will be without jitter
+	time.Sleep(time.Hour + 10*time.Minute) // Sleep until the next backup is due
+
+	now := time.Now().UTC()
+
+	synctest.Wait() // Wait for the second backup to be taken, this one will have jitter
 
 	for _, cd := range clustersData {
 		st := must.Value(sf.GetStore())(suite.T())
 		backups := must.Value(st.ListBackups(suite.ctx, cd.TypedSpec().Value.ClusterUuid))(suite.T())
+		slc := toSlice(backups, suite.T())
 
-		for b, err := range backups {
-			suite.Require().NoError(err)
-			suite.Require().NotEqual(start, b.Timestamp)
-			suite.Require().WithinDuration(start, b.Timestamp, jitter)
+		suite.Require().Len(slc, 2)
+
+		for _, b := range slc[:1] { // we are only interested in the last backup (reverse order)
+			suite.Require().NotEqual(now, b.Timestamp.UTC())
+			suite.Require().WithinDuration(now, b.Timestamp, jitter)
 		}
 	}
 

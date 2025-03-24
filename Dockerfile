@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-03-10T16:26:44Z by kres ec5ec04.
+# Generated on 2025-03-24T15:08:55Z by kres d903dae.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -110,6 +110,9 @@ ENV GOPATH=/go
 ARG GOIMPORTS_VERSION
 RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg go install golang.org/x/tools/cmd/goimports@v${GOIMPORTS_VERSION}
 RUN mv /go/bin/goimports /bin
+ARG GOMOCK_VERSION
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg go install go.uber.org/mock/mockgen@v${GOMOCK_VERSION}
+RUN mv /go/bin/mockgen /bin
 ARG PROTOBUF_GO_VERSION
 RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg go install google.golang.org/protobuf/cmd/protoc-gen-go@v${PROTOBUF_GO_VERSION}
 RUN mv /go/bin/protoc-gen-go /bin
@@ -266,7 +269,6 @@ FROM base AS lint-golangci-lint
 WORKDIR /src
 COPY .golangci.yml .
 ENV GOGC=50
-RUN golangci-lint config verify --config .golangci.yml
 RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/root/.cache/golangci-lint,id=omni/root/.cache/golangci-lint,sharing=locked --mount=type=cache,target=/go/pkg,id=omni/go/pkg golangci-lint run --config .golangci.yml
 
 # runs golangci-lint
@@ -274,7 +276,6 @@ FROM base AS lint-golangci-lint-client
 WORKDIR /src/client
 COPY client/.golangci.yml .
 ENV GOGC=50
-RUN golangci-lint config verify --config .golangci.yml
 RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/root/.cache/golangci-lint,id=omni/root/.cache/golangci-lint,sharing=locked --mount=type=cache,target=/go/pkg,id=omni/go/pkg golangci-lint run --config .golangci.yml
 
 # runs govulncheck
@@ -315,6 +316,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 FROM scratch AS generate
 COPY --from=proto-compile /client/api/ /client/api/
 COPY --from=go-generate-0 /src/frontend frontend
+COPY --from=go-generate-0 /src/internal/backend/runtime/omni/controllers/omni internal/backend/runtime/omni/controllers/omni
 COPY --from=embed-abbrev-generate /src/internal/version internal/version
 
 FROM scratch AS unit-tests-client
