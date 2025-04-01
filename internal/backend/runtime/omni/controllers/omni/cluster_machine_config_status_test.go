@@ -19,6 +19,7 @@ import (
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
+	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -216,6 +217,9 @@ func (suite *ClusterMachineConfigStatusSuite) prepareMachines(machines []*omni.C
 				res.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
 					Enabled: false,
 				}
+				res.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
+					Platform: talosconstants.PlatformMetal,
+				}
 
 				return nil
 			},
@@ -283,6 +287,9 @@ func (suite *ClusterMachineConfigStatusSuite) TestResetUngraceful() {
 				res.TypedSpec().Value.ManagementAddress = unixSocket + machineService.address
 				res.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
 					Enabled: false,
+				}
+				res.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
+					Platform: talosconstants.PlatformMetal,
 				}
 
 				return nil
@@ -423,6 +430,9 @@ func (suite *ClusterMachineConfigStatusSuite) TestUpgrades() {
 				res.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
 					Enabled: false,
 				}
+				res.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
+					Platform: talosconstants.PlatformMetal,
+				}
 
 				return nil
 			},
@@ -432,7 +442,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestUpgrades() {
 	}
 
 	const (
-		expectedTalosVersion = "1.6.1"
+		expectedTalosVersion = "1.10.1"
 		expectedSchematicID  = "cccc"
 	)
 
@@ -453,7 +463,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestUpgrades() {
 			return retry.ExpectedErrorf("no upgrade requests received")
 		}
 
-		expectedImage := fmt.Sprintf("factory-test.talos.dev/installer/%s:v%s", expectedSchematicID, expectedTalosVersion)
+		expectedImage := fmt.Sprintf("factory-test.talos.dev/metal-installer/%s:v%s", expectedSchematicID, expectedTalosVersion)
 		for i, r := range requests {
 			if r.Image != expectedImage {
 				return fmt.Errorf("%d request image is invalid: expected %q got %q", i, expectedImage, r.Image)
@@ -556,6 +566,9 @@ func (suite *ClusterMachineConfigStatusSuite) TestStagedUpgrade() {
 		res.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
 			Enabled: false,
 		}
+		res.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
+			Platform: talosconstants.PlatformMetal,
+		}
 
 		return nil
 	},
@@ -601,7 +614,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestSchematicChanges() {
 
 	clusterName := "test-upgrades"
 
-	cluster, machines := suite.createCluster(clusterName, 1, 0)
+	cluster, machines := suite.createClusterWithTalosVersion(clusterName, 1, 0, "1.10.0")
 
 	for _, m := range machines {
 		talosVersion := omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, m.Metadata().ID())
@@ -636,6 +649,9 @@ func (suite *ClusterMachineConfigStatusSuite) TestSchematicChanges() {
 				res.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
 					Enabled: false,
 				}
+				res.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
+					Platform: talosconstants.PlatformMetal,
+				}
 
 				return nil
 			},
@@ -656,7 +672,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestSchematicChanges() {
 		suite.Require().NoError(err)
 	}
 
-	expectedFactoryImage := imageFactoryHost + "/installer/bbbb:v1.3.0"
+	expectedFactoryImage := imageFactoryHost + "/metal-installer/bbbb:v1.10.0" // expected image has the platform prefixed, as the Talos version is >= 1.10.0
 
 	suite.Require().NoError(retry.Constant(time.Second * 5).Retry(func() error {
 		requests := suite.machineService.getUpgradeRequests()
@@ -705,7 +721,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestSchematicChanges() {
 			return retry.ExpectedErrorf("no new upgrade requests received")
 		}
 
-		expectedImage := "ghcr.io/siderolabs/installer:v1.3.0"
+		expectedImage := "ghcr.io/siderolabs/installer:v1.10.0"
 		for i, image := range trimmedImages {
 			if image != expectedImage {
 				return fmt.Errorf("%d request image is invalid: expected %q got %q", i, expectedImage, image)
@@ -772,6 +788,9 @@ func (suite *ClusterMachineConfigStatusSuite) TestSecureBootInstallImage() {
 				res.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
 					Enabled: true,
 				}
+				res.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
+					Platform: talosconstants.PlatformMetal,
+				}
 				res.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
 					FullId: "abcd",
 				}
@@ -789,7 +808,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestSecureBootInstallImage() {
 			return retry.ExpectedErrorf("no upgrade requests received")
 		}
 
-		expectedImage := imageFactoryHost + "/installer-secureboot/abcd:v1.3.0"
+		expectedImage := imageFactoryHost + "/installer-secureboot/abcd:v1.3.0" // expected installer image without the platform prepended to it, as the Talos version is < 1.10.0
 		for i, r := range requests {
 			if r.Image != expectedImage {
 				return fmt.Errorf("%d request image is invalid: expected %q got %q", i, expectedImage, r.Image)

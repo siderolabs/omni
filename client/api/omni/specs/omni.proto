@@ -1056,6 +1056,8 @@ message MachineConfigGenOptionsSpec {
     bool schematic_invalid = 4;
     // SecureBootStatus is the status of the SecureBoot feature.
     SecureBootStatus secure_boot_status = 5;
+    // Platform is the machine platform to use for the install image.
+    string platform = 6;
   }
 
   string install_disk = 1;

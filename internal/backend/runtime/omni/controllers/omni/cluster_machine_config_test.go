@@ -14,10 +14,10 @@ import (
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
 	"github.com/siderolabs/talos/pkg/machinery/config/machine"
+	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -45,7 +45,7 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
 
 	clusterName := "talos-default-2"
-	cluster, machines := suite.createCluster(clusterName, 1, 1)
+	cluster, machines := suite.createClusterWithTalosVersion(clusterName, 1, 1, "1.10.0")
 
 	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
 		func(config *omni.ClusterMachineConfigPatches) error {
@@ -82,17 +82,14 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 					expectedType = machine.TypeControlPlane
 				}
 
-				assertions.Equal(expectedType, machineconfig.Machine().Type())
-
 				disk := machineconfig.Machine().Install().Disk()
 
-				var version string
-
-				version, err = omni.GetInstallImage(constants.TalosRegistry, "https://"+imageFactoryHost, defaultSchematic, cluster.TypedSpec().Value.TalosVersion)
-				assertions.NoError(err)
-
+				assertions.Equal(expectedType, machineconfig.Machine().Type())
 				assertions.Equal(testInstallDisk, disk)
-				assertions.Equal(version, machineconfig.Machine().Install().Image())
+				assertions.Equal(
+					fmt.Sprintf("%s/%s-installer/%s:v%s", imageFactoryHost, talosconstants.PlatformMetal, defaultSchematic, cluster.TypedSpec().Value.TalosVersion),
+					machineconfig.Machine().Install().Image(),
+				)
 
 				if i == 0 {
 					assertions.Equal(machineconfig.Machine().Network().Hostname(), "patched-node")

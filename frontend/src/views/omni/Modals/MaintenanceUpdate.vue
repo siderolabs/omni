@@ -141,10 +141,12 @@ const upgradeClick = async () =>  {
     return;
   }
 
+  const platform = machine.value?.spec?.platform_metadata?.platform;
+
   updating.value = true;
 
   try {
-    await updateTalosMaintenance(route.query.machine as string, selectedVersion.value, machine.value?.spec.schematic?.id);
+    await updateTalosMaintenance(route.query.machine as string, selectedVersion.value, platform, machine.value?.spec.schematic?.id);
   } catch (e) {
     showError("Failed to Do Maintenance Update", e.message)
 

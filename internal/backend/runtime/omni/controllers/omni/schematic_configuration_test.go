@@ -12,6 +12,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
+	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
@@ -66,6 +67,9 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	machineStatus.TypedSpec().Value.InitialTalosVersion = "1.7.0"
 	machineStatus.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
 		Enabled: false,
+	}
+	machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
+		Platform: talosconstants.PlatformMetal,
 	}
 
 	clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, machineName)

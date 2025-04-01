@@ -31,6 +31,7 @@ import (
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/api/storage"
+	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/resources/etcd"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -555,6 +556,9 @@ func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, contro
 		machineStatus.TypedSpec().Value.InitialTalosVersion = cluster.TypedSpec().Value.TalosVersion
 		machineStatus.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
 			Enabled: false,
+		}
+		machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
+			Platform: talosconstants.PlatformMetal,
 		}
 
 		if i < controlPlanes {

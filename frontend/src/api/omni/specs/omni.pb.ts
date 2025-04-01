@@ -694,6 +694,7 @@ export type MachineConfigGenOptionsSpecInstallImage = {
   schematic_initialized?: boolean
   schematic_invalid?: boolean
   secure_boot_status?: SecureBootStatus
+  platform?: string
 }
 
 export type MachineConfigGenOptionsSpec = {

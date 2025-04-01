@@ -15,6 +15,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -271,13 +272,15 @@ type clusterMachineConfigControllerHelper struct {
 	imageFactoryHost string
 }
 
+const talosVersionLatest = "latest"
+
 func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.ClusterMachine, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, secrets *omni.ClusterSecrets,
 	loadbalancer *omni.LoadBalancerConfig, cluster *omni.Cluster, clusterConfigVersion *omni.ClusterConfigVersion, configGenOptions *omni.MachineConfigGenOptions, extraGenOptions []generate.Option,
 	connectionParams *siderolink.ConnectionParams, link *siderolink.Link, eventSinkPort int,
 ) ([]byte, error) {
 	clusterName := cluster.Metadata().ID()
 
-	talosVersion := clusterConfigVersion.TypedSpec().Value.Version
+	talosVersion := cluster.TypedSpec().Value.TalosVersion
 	kubernetesVersion := clusterMachine.TypedSpec().Value.KubernetesVersion
 
 	if talosVersion == "" {
@@ -299,7 +302,7 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		genOptions = append(genOptions, generate.WithInstallDisk(configGenOptions.TypedSpec().Value.InstallDisk))
 	}
 
-	if talosVersion != "latest" {
+	if talosVersion != talosVersionLatest {
 		versionContract, parseErr := config.ParseContractFromVersion(talosVersion)
 		if parseErr != nil {
 			return nil, parseErr
@@ -464,7 +467,7 @@ func buildInstallImage(imageFactoryHost string, resID resource.ID, installImage 
 		installerName = "installer-secureboot"
 	}
 
-	if talosVersion == "latest" && schematicID != "" {
+	if talosVersion == talosVersionLatest && schematicID != "" {
 		return "", fmt.Errorf("machine %q has a schematic but using Talos version %q", resID, talosVersion)
 	}
 
@@ -478,6 +481,21 @@ func buildInstallImage(imageFactoryHost string, resID resource.ID, installImage 
 
 	if installImage.TalosVersion != "" {
 		talosVersion = installImage.TalosVersion
+	}
+
+	if talosVersion != talosVersionLatest {
+		version, err := semver.ParseTolerant(talosVersion)
+		if err != nil {
+			return "", fmt.Errorf("failed to parse Talos version %q: %w", talosVersion, err)
+		}
+
+		if version.Major >= 1 && version.Minor >= 10 { // prepend the platform to the installer name for Talos 1.10+
+			if installImage.Platform == "" {
+				return "", fmt.Errorf("machine %q has no platform set", resID)
+			}
+
+			installerName = installImage.Platform + "-" + installerName
+		}
 	}
 
 	if !strings.HasPrefix(talosVersion, "v") {

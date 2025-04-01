@@ -1779,6 +1779,7 @@ func (m *MachineConfigGenOptionsSpec_InstallImage) CloneVT() *MachineConfigGenOp
 	r.SchematicInitialized = m.SchematicInitialized
 	r.SchematicInvalid = m.SchematicInvalid
 	r.SecureBootStatus = m.SecureBootStatus.CloneVT()
+	r.Platform = m.Platform
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -4911,6 +4912,9 @@ func (this *MachineConfigGenOptionsSpec_InstallImage) EqualVT(that *MachineConfi
 		return false
 	}
 	if !this.SecureBootStatus.EqualVT(that.SecureBootStatus) {
+		return false
+	}
+	if this.Platform != that.Platform {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -10643,6 +10647,13 @@ func (m *MachineConfigGenOptionsSpec_InstallImage) MarshalToSizedBufferVT(dAtA [
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.Platform) > 0 {
+		i -= len(m.Platform)
+		copy(dAtA[i:], m.Platform)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Platform)))
+		i--
+		dAtA[i] = 0x32
+	}
 	if m.SecureBootStatus != nil {
 		size, err := m.SecureBootStatus.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -14292,6 +14303,10 @@ func (m *MachineConfigGenOptionsSpec_InstallImage) SizeVT() (n int) {
 	}
 	if m.SecureBootStatus != nil {
 		l = m.SecureBootStatus.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Platform)
+	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -27246,6 +27261,38 @@ func (m *MachineConfigGenOptionsSpec_InstallImage) UnmarshalVT(dAtA []byte) erro
 			if err := m.SecureBootStatus.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Platform", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Platform = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

@@ -98,16 +98,11 @@ func (suite *MigrationSuite) TestClusterInfo() {
 	var err error
 
 	cluster, err = safe.StateGet[*omni.Cluster](ctx, suite.state, cluster.Metadata())
-
-	suite.Require().NoError(err)
-
-	version, err := omni.GetInstallImage(constants.TalosRegistry, constants.ImageFactoryBaseURL, "", cluster.TypedSpec().Value.TalosVersion)
-
 	suite.Require().NoError(err)
 
 	suite.Require().Equal(
 		machine.TypedSpec().Value.InstallImage,
-		version,
+		constants.TalosRegistry+":v"+cluster.TypedSpec().Value.TalosVersion,
 	)
 
 	suite.Require().Equal(

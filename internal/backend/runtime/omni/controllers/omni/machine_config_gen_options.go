@@ -77,6 +77,7 @@ func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVers
 		}
 
 		genOptions.TypedSpec().Value.InstallImage.SecureBootStatus = machineStatus.TypedSpec().Value.SecureBootStatus
+		genOptions.TypedSpec().Value.InstallImage.Platform = machineStatus.TypedSpec().Value.GetPlatformMetadata().GetPlatform()
 	}
 
 	if machineStatus.TypedSpec().Value.Hardware == nil {
