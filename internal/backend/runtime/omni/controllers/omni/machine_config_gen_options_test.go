@@ -68,7 +68,7 @@ func TestGenInstallConfig(t *testing.T) {
 			},
 		},
 		{
-			name: "matched not usb",
+			name: "matched not usb not virtual",
 			machineStatusSpec: &specs.MachineStatusSpec{
 				Hardware: &specs.MachineStatusSpec_HardwareStatus{
 					Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{
@@ -76,6 +76,11 @@ func TestGenInstallConfig(t *testing.T) {
 							LinuxName: "/dev/sda",
 							Size:      8e9,
 							Transport: "usb",
+						},
+						{
+							LinuxName: "/dev/dm-0",
+							Size:      8e9,
+							BusPath:   "/virtual",
 						},
 						{
 							LinuxName: "/dev/sdb",
@@ -89,6 +94,11 @@ func TestGenInstallConfig(t *testing.T) {
 							LinuxName: "/dev/sdf",
 							Size:      7e9,
 							Transport: "usb",
+						},
+						{
+							LinuxName: "/dev/dm-1",
+							Size:      7e9,
+							BusPath:   "/virtual",
 						},
 					},
 				},

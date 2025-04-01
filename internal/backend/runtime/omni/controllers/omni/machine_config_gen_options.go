@@ -92,7 +92,7 @@ func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVers
 		candidates := machineStatus.TypedSpec().Value.Hardware.Blockdevices
 
 		candidates = xslices.Filter(candidates, func(disk *specs.MachineStatusSpec_HardwareStatus_BlockDevice) bool {
-			return !disk.Readonly && disk.Type != storage.Disk_CD.String() && disk.Size > installDiskMinSize
+			return !disk.Readonly && disk.Type != storage.Disk_CD.String() && disk.Size > installDiskMinSize && disk.BusPath != "/virtual"
 		})
 
 		sortFunc := func(a, b *specs.MachineStatusSpec_HardwareStatus_BlockDevice) int {

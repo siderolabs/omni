@@ -353,6 +353,10 @@ func pollDisks(ctx context.Context, c *client.Client, info *Info) error {
 				return nil
 			}
 
+			if len(spec.SecondaryDisks) > 0 || spec.BusPath == "/virtual" { // not a real disk, e.g., a device mapper device (lvm)
+				return nil
+			}
+
 			info.Blockdevices = append(info.Blockdevices, &specs.MachineStatusSpec_HardwareStatus_BlockDevice{
 				Size:       spec.Size,
 				Model:      spec.Model,
