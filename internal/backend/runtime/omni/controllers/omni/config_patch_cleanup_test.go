@@ -6,6 +6,7 @@
 package omni_test
 
 import (
+	"context"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -27,6 +28,7 @@ type ConfigPatchCleanupSuite struct {
 }
 
 func (suite *ConfigPatchCleanupSuite) SetupTest() {
+	suite.OmniSuite.ctx, suite.OmniSuite.ctxCancel = context.WithCancel(context.Background()) //nolint:fatcontext
 	suite.OmniSuite.disableConnections = true
 	suite.OmniSuite.SetupTest()
 	suite.startRuntime()

@@ -406,7 +406,15 @@ func (suite *OmniSuite) newServerWithTalosVersion(suffix, talosVersion string) (
 }
 
 func (suite *OmniSuite) SetupTest() {
-	suite.ctx, suite.ctxCancel = context.WithCancel(suite.T().Context())
+	if suite.ctx == nil {
+		// This check is important, because some of our tests use synctest package, which
+		// "mocks" the time, and advances it in multiple hours. Because the context is
+		// created inside the "bubble" when 20 seconds elapse, the suite will shut down
+		// before the test is actually finished. There are two test suites that currently
+		// need their separate contexts: [ConfigPatchCleanupSuite] and
+		// [EtcdBackupControllerSuite] in which we create context explicitly.
+		suite.ctx, suite.ctxCancel = context.WithTimeout(suite.T().Context(), 20*time.Second)
+	}
 
 	suite.stateBuilder = dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
 
@@ -484,6 +492,8 @@ func (suite *OmniSuite) TearDownTest() {
 	for _, s := range suite.grpcServers {
 		s.Stop()
 	}
+
+	suite.ctx, suite.ctxCancel = nil, nil
 }
 
 func assertResource[R rtestutils.ResourceWithRD](suite *OmniSuite, md interface{ ID() resource.ID }, assertionFunc func(r R, assertion *assert.Assertions)) {

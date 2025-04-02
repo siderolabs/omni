@@ -17,6 +17,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/dustin/go-humanize"
 	"github.com/siderolabs/gen/channel"
 	"github.com/siderolabs/gen/containers"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
@@ -387,6 +388,8 @@ func (ctrl *EtcdBackupController) doBackup(
 		return fmt.Errorf("failed to get store: %w", err)
 	}
 
+	crdr := &countingReader{rdr: rdr}
+
 	if err := st.Upload(
 		ctx,
 		etcdbackup.Description{
@@ -399,7 +402,7 @@ func (ctrl *EtcdBackupController) doBackup(
 				EncryptionKey:             backupData.TypedSpec().Value.EncryptionKey,
 			},
 		},
-		rdr,
+		crdr,
 	); err != nil {
 		return fmt.Errorf("failed to upload etcd snapshot for cluster: %w", err)
 	}
@@ -410,6 +413,7 @@ func (ctrl *EtcdBackupController) doBackup(
 		"uploaded etcd snapshot",
 		zap.String("cluster_uuid", backupData.TypedSpec().Value.ClusterUuid),
 		zap.String("snapshot_name", etcdbackup.CreateSnapshotName(now)),
+		zap.String("snapshot_size", humanize.IBytes(uint64(crdr.total))),
 		zap.Time("ts", now),
 	)
 
@@ -459,4 +463,18 @@ func (ctrl *EtcdBackupController) updateBackupStatus(
 // TalosClient is a subset of Talos client.
 type TalosClient interface {
 	EtcdSnapshot(ctx context.Context, req *machineapi.EtcdSnapshotRequest, callOptions ...grpc.CallOption) (io.ReadCloser, error)
+}
+
+type countingReader struct {
+	rdr   io.Reader
+	total int
+}
+
+func (r *countingReader) Read(p []byte) (int, error) {
+	n, err := r.rdr.Read(p)
+	if n > 0 {
+		r.total += n
+	}
+
+	return n, err
 }

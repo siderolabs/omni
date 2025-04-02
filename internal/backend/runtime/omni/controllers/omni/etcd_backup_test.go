@@ -57,9 +57,7 @@ import (
 func TestEtcdBackupControllerSuite(t *testing.T) {
 	t.Parallel()
 
-	synctest.Run(func() {
-		suite.Run(t, new(EtcdBackupControllerSuite))
-	})
+	synctest.Run(func() { suite.Run(t, new(EtcdBackupControllerSuite)) })
 }
 
 const description = "test"
@@ -82,6 +80,8 @@ func (suite *EtcdBackupControllerSuite) register2(ctrl controller.Controller, er
 }
 
 func (suite *EtcdBackupControllerSuite) SetupTest() {
+	suite.OmniSuite.ctx, suite.OmniSuite.ctxCancel = context.WithCancel(context.Background()) //nolint:fatcontext
+
 	suite.OmniSuite.disableConnections = true
 
 	suite.OmniSuite.SetupTest()
@@ -118,7 +118,7 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackup() {
 	clustersData := createClusters(suite, clusterNames, time.Hour)
 	start := time.Now()
 
-	time.Sleep(11 * time.Minute)
+	// Wait for the first backup to be created.
 	synctest.Wait()
 
 	rtestutils.AssertResources(
