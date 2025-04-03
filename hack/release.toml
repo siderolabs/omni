@@ -6,4 +6,32 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v0.47.0-beta.0"
+previous = "v0.47.0"
+
+[notes]
+
+[notes.filter-clusters-by-readiness]
+title = "Filter Clusters by Readiness"
+description = """\
+Clusters can now be filtered by readiness status in the Omni UI.
+"""
+
+[notes.explicit-exposed-service-prefixes]
+title = "Explicit Exposed Service Prefixes"
+description = """\
+Users can now explicitly specify the prefix for exposed services using the `omni-kube-service-exposer.sidero.dev/prefix` annotation on their Kubernetes Services.
+
+This is useful when users prefer not to have prefixes randomly generated.
+"""
+
+[notes.unused-config-patch-cleanup]
+title = "Cleanup of Unused Config Patches"
+description = """\
+User-managed config patches not associated with an existing target (e.g., cluster, machine set, or machine) are now cleaned up after 30 days.
+"""
+
+[notes.custom-etcd-backup-throughput]
+title = "Custom Etcd Backup Throughput"
+description = """\
+The throughput for etcd backup uploads/downloads can now be limited using the `--etcd-backup-upload-limit` and `--etcd-backup-download-limit` flags.
+"""
