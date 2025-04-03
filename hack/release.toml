@@ -33,5 +33,5 @@ User-managed config patches not associated with an existing target (e.g., cluste
 [notes.custom-etcd-backup-throughput]
 title = "Custom Etcd Backup Throughput"
 description = """\
-The throughput for etcd backup uploads/downloads can now be limited using the `--etcd-backup-upload-limit` and `--etcd-backup-download-limit` flags.
+The throughput for etcd backup uploads/downloads can now be limited using the `--etcd-backup-upload-limit-mbps` and `--etcd-backup-download-limit-mbps` flags.
 """

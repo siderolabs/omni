@@ -182,11 +182,10 @@ func New(
 		return nil, err
 	}
 
-	storeFactory.SetThroughputs(
-		config.Config.EtcdBackup.UploadLimit,
-		config.Config.EtcdBackup.DownloadLimit,
-	)
+	uploadLimitPerSecondBytes := config.Config.EtcdBackup.UploadLimitMbps * 125000     // Mbit in bytes
+	downloadLimitPerSecondBytes := config.Config.EtcdBackup.DownloadLimitMbps * 125000 // Mbit in bytes
 
+	storeFactory.SetThroughputs(uploadLimitPerSecondBytes, downloadLimitPerSecondBytes)
 	metricsRegistry.MustRegister(storeFactory)
 
 	backupController, err := omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{

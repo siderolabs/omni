@@ -36,4 +36,4 @@ func (d *disabledStoreFactory) Start(ctx context.Context, state state.State, _ *
 
 func (d *disabledStoreFactory) Description() string { return "disabled store" }
 
-func (d *disabledStoreFactory) SetThroughputs(int64, int64) {}
+func (d *disabledStoreFactory) SetThroughputs(uint64, uint64) {}

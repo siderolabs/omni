@@ -25,7 +25,7 @@ type Factory interface {
 	GetStore() (etcdbackup.Store, error)
 	Start(context.Context, state.State, *zap.Logger) error
 	Description() string
-	SetThroughputs(up, down int64)
+	SetThroughputs(up, down uint64)
 }
 
 // NewStoreFactory returns a new store factory.

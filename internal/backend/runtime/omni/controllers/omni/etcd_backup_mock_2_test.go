@@ -128,7 +128,7 @@ func (c *MockFactoryGetStoreCall) DoAndReturn(f func() (etcdbackup.Store, error)
 }
 
 // SetThroughputs mocks base method.
-func (m *MockFactory) SetThroughputs(up, down int64) {
+func (m *MockFactory) SetThroughputs(up, down uint64) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetThroughputs", up, down)
 }

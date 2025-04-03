@@ -32,7 +32,7 @@ type Store struct {
 }
 
 // NewStore initializes [Store].
-func NewStore(client *s3.Client, bucket string, upRate, downRate int64) *Store {
+func NewStore(client *s3.Client, bucket string, upRate, downRate uint64) *Store {
 	upLimit := rate.Inf
 	if upRate > 0 {
 		upLimit = rate.Limit(upRate)
@@ -154,12 +154,12 @@ func (r *readerLimiter) Read(p []byte) (int, error) {
 
 	readInto := p[:min(burst, len(p))]
 
-	err := r.l.WaitN(context.Background(), len(readInto))
+	n, err := r.rdr.Read(readInto)
 	if err != nil {
-		return 0, err
+		return n, err
 	}
 
-	n, err := r.rdr.Read(readInto)
+	err = r.l.WaitN(context.Background(), n)
 	if err != nil {
 		return n, err
 	}

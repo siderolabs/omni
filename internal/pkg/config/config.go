@@ -168,14 +168,14 @@ type EmbeddedDiscoveryServiceParams struct {
 
 // EtcdBackupParams defines etcd backup configs.
 type EtcdBackupParams struct {
-	LocalPath     string        `yaml:"localPath"`
-	S3Enabled     bool          `yaml:"s3Enabled"`
-	TickInterval  time.Duration `yaml:"tickInterval"`
-	MinInterval   time.Duration `yaml:"minInterval"`
-	MaxInterval   time.Duration `yaml:"maxInterval"`
-	UploadLimit   int64         `yaml:"uploadLimit"`
-	DownloadLimit int64         `yaml:"downloadLimit"`
-	Jitter        time.Duration `yaml:"jitter"`
+	LocalPath         string        `yaml:"localPath"`
+	S3Enabled         bool          `yaml:"s3Enabled"`
+	TickInterval      time.Duration `yaml:"tickInterval"`
+	MinInterval       time.Duration `yaml:"minInterval"`
+	MaxInterval       time.Duration `yaml:"maxInterval"`
+	UploadLimitMbps   uint64        `yaml:"uploadLimitMbps"`
+	DownloadLimitMbps uint64        `yaml:"downloadLimitMbps"`
+	Jitter            time.Duration `yaml:"jitter"`
 }
 
 // GetStorageType returns the storage type.

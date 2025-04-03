@@ -17,7 +17,7 @@ import (
 )
 
 func TestReaderLimiter(t *testing.T) {
-	const str = "Hello Siderolabs!"
+	const str = "Hello Siderolabs!!"
 
 	rdr := strings.NewReader(str)
 	r := rate.NewLimiter(rate.Limit(6), 6)
@@ -41,7 +41,7 @@ func TestReaderLimiter(t *testing.T) {
 		t.Fatalf("expected %q, got %q", str, builder.String())
 	}
 
-	if time.Since(now) < time.Second*3 {
-		t.Fatalf("expected at least 3 seconds to pass")
+	if e := time.Since(now); e < time.Second*2 {
+		t.Fatalf("expected at least 2 seconds to pass, got %v", e)
 	}
 }

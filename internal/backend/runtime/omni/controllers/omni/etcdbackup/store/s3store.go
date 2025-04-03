@@ -37,8 +37,8 @@ type S3StoreFactory struct { //nolint:govet
 	store          etcdbackup.Store
 	err            error
 	bucket         string
-	upThroughput   int64
-	downThroughput int64
+	upThroughput   uint64
+	downThroughput uint64
 }
 
 // NewS3StoreFactory returns a new S3 store factory.
@@ -220,7 +220,7 @@ func (sf *S3StoreFactory) Description() string {
 }
 
 // SetThroughputs sets the download and upload throughput for the store.
-func (sf *S3StoreFactory) SetThroughputs(up, down int64) {
+func (sf *S3StoreFactory) SetThroughputs(up, down uint64) {
 	sf.mx.Lock()
 	defer sf.mx.Unlock()
 
