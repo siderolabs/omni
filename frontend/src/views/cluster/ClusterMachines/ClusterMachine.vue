@@ -14,7 +14,7 @@ included in the LICENSE file.
           {{ nodeName }}
         </router-link>
       </div>
-      <div class="flex justify-between gap-2 col-span-2 pr-2">
+      <div class="flex justify-between gap-2 col-span-2 pr-2 items-center">
         <div class="flex gap-2">
           <cluster-machine-phase :machine="machine"/>
           <div v-if="lockedUpdate" class="flex gap-1 items-center text-light-blue-400 truncate">

@@ -181,6 +181,8 @@ monaco.editor.defineTheme("sidero", {
   colors: {
     "dropdown.background": naturals.N3,
 
+    "editorStickyScroll.background": naturals.N0,
+
     "editor.background": "#00000000",
 
     "editorHoverWidget.background": naturals.N3,
