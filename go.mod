@@ -37,7 +37,7 @@ require (
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/go-jose/go-jose/v4 v4.0.5
 	github.com/go-logr/zapr v1.3.0
-	github.com/golang-jwt/jwt/v4 v4.5.1
+	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-containerregistry v0.20.3
 	github.com/google/uuid v1.6.0
