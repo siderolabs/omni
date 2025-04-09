@@ -15,13 +15,14 @@ import {
   LabelMachineSet,
   MachineSetNodeType,
   MachineSetType,
-  TalosUpgradeStatusType
+  NodeForceDestroyRequestType,
+  TalosUpgradeStatusType,
 } from "@/api/resources";
 import {
   ClusterSpec,
   EtcdManualBackupSpec,
   KubernetesUpgradeStatusSpec,
-  MachineSetNodeSpec,
+  MachineSetNodeSpec, NodeForceDestroyRequestSpec,
   TalosUpgradeStatusSpec
 } from "@/api/omni/specs/omni.pb";
 import { Metadata } from "@/api/v1alpha1/resource.pb";
@@ -224,7 +225,7 @@ export const getMachineConfigPatchesToDelete = async (machineID: string) => {
   return resources;
 }
 
-export const destroyNodes = async (clusterName: string, ids: string[], ownerSkipHandler?: (s?: string) => boolean) => {
+export const destroyNodes = async (clusterName: string, ids: string[], force: boolean) => {
   const machineSetNodes: Record<string, MachineSetNode> = {};
   let controlPlanes = 0;
 
@@ -257,31 +258,51 @@ export const destroyNodes = async (clusterName: string, ids: string[], ownerSkip
   const resources: DeleteRequest[] = [];
 
   for (const id of ids) {
-    if (ownerSkipHandler && ownerSkipHandler(machineSetNodes[id]?.metadata?.owner)) {
-      continue;
-    }
-
-    if ((machineSetNodes[id].metadata?.labels || {})[LabelMachineSet] === controlPlaneMachineSetId(clusterName) && controlPlanes === 1) {
+    if ((machineSetNodes[id]?.metadata?.labels || {})[LabelMachineSet] === controlPlaneMachineSetId(clusterName) && controlPlanes === 1) {
       throw new ClusterCommandError(
         `Failed to Destroy Node ${id}`,
         "The cluster should have at least one control plane running"
       );
     }
 
-    if (!machineSetNodes[id]?.metadata) {
+    if (force) { // if this is a force-delete, MachineSetNode might already be gone, and it is ok
+      try {
+        await ResourceService.Get<Resource<NodeForceDestroyRequestSpec>>({
+          type: NodeForceDestroyRequestType,
+          namespace: DefaultNamespace,
+          id: id,
+        }, withRuntime(Runtime.Omni));
+      } catch (e) {
+        if (e.code !== Code.NOT_FOUND) {
+          throw e;
+        }
+
+        const forceDeleteRequest: Resource<NodeForceDestroyRequestSpec> = {
+          metadata: {
+            id: id,
+            namespace: DefaultNamespace,
+            type: NodeForceDestroyRequestType,
+          },
+          spec: {}
+        };
+
+        await ResourceService.Create(forceDeleteRequest, withRuntime(Runtime.Omni));
+      }
+    } else if (!machineSetNodes[id]?.metadata) { // if this is not a force-delete, and the node is not found, it is an error
       throw new ClusterCommandError(
         `Failed to Destroy Node ${id}`,
         "The node with such id is not part of the cluster"
       );
     }
 
-    const md = machineSetNodes[id].metadata;
-
-    resources.push({
-      id: md.id!,
-      namespace: md.namespace!,
-      type: md.type!,
-    });
+    if (machineSetNodes[id]) {
+      const md = machineSetNodes[id]?.metadata;
+      resources.push({
+        id: md.id!,
+        namespace: md.namespace!,
+        type: md.type!,
+      });
+    }
   }
 
   await destroyResources(resources);

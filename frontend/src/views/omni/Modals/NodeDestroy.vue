@@ -8,7 +8,12 @@ included in the LICENSE file.
   <div class="modal-window">
     <div class="heading">
       <h3 class="text-base text-naturals-N14">
-        Destroy the Node {{ node ?? $route.query.machine }} ?
+        <template v-if="!forceDestroy">
+          Destroy the Node {{ node ?? $route.query.machine }} ?
+        </template>
+        <template v-else>
+          Node {{ node ?? $route.query.machine }} is already being destroyed, attempt to force destroy?
+        </template>
       </h3>
       <close-button @click="close(true)"/>
     </div>
@@ -20,6 +25,7 @@ included in the LICENSE file.
       <div class="flex-1"/>
       <t-button @click="destroyNode" class="w-32 h-9" :disabled="scalingDown">
         <t-spinner v-if="scalingDown" class="w-5 h-5"/>
+        <span v-else-if="forceDestroy">Force Destroy</span>
         <span v-else>Destroy</span>
       </t-button>
     </div>
@@ -49,6 +55,7 @@ import { Runtime } from "@/api/common/omni.pb";
 import { ClusterMachineStatusSpec } from "@/api/omni/specs/omni.pb";
 import { withRuntime, withSelectors } from "@/api/options";
 import ManagedByTemplatesWarning from "@/views/cluster/ManagedByTemplatesWarning.vue";
+import { Code } from "@/api/google/rpc/code.pb";
 
 const router = useRouter();
 const route = useRoute();
@@ -73,11 +80,31 @@ const close = (goBack?: boolean) => {
   router.go(-1);
 };
 
+const forceDestroy = ref(false);
+
+const initRequiresForceDestroy = async () => {
+  try {
+    await ResourceService.Get({
+      type: MachineSetNodeType,
+      namespace: DefaultNamespace,
+      id: route.query.machine as string,
+    }, withRuntime(Runtime.Omni));
+  } catch (e) {
+    if (e.code !== Code.NOT_FOUND) {
+      throw e;
+    }
+
+    forceDestroy.value = true;
+  }
+};
+
 onMounted(async () => {
   let controlPlanes = 0;
   let isControlPlane = true;
 
   try {
+    await initRequiresForceDestroy();
+
     const clusterMachineStatus: Resource<ClusterMachineStatusSpec> = await ResourceService.Get({
       type: ClusterMachineStatusType,
       namespace: DefaultNamespace,
@@ -147,7 +174,7 @@ const destroyNode = async () => {
   }
 
   try {
-    await destroyNodes(route.query.cluster as string, [route.query.machine as string]);
+    await destroyNodes(route.query.cluster as string, [route.query.machine as string], forceDestroy.value);
   } catch (e) {
     if (e.errorNotification) {
       showError(
@@ -171,10 +198,17 @@ const destroyNode = async () => {
 
   close();
 
-  showSuccess(
-    `The Machine ${node.value} was Removed From the Machine Set`,
-    "The machine set is scaling down",
-  );
+  if (forceDestroy.value) {
+    showSuccess(
+        `The Machine ${node.value} is Attempted to be Forcefully Removed from the Cluster`,
+        "It might take a while until the machine is completely removed"
+    );
+  } else {
+    showSuccess(
+      `The Machine ${node.value} was Removed From the Machine Set`,
+      "The machine set is scaling down",
+    );
+  }
 }
 </script>
 
