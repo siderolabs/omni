@@ -178,6 +178,7 @@ export const MachineStatusMetricsType = "MachineStatusMetrics.omni.sidero.dev";
 export const MachineStatusMetricsID = "metrics";
 export const MachineStatusSnapshotType = "MachineStatusSnapshots.omni.sidero.dev";
 export const MaintenanceConfigStatusType = "MaintenanceConfigStatuses.omni.sidero.dev";
+export const NodeForceDestroyRequestType = "NodeForceDestroyRequests.omni.sidero.dev";
 export const OngoingTaskType = "OngoingTasks.omni.sidero.dev";
 export const RedactedClusterMachineConfigType = "RedactedClusterMachineConfigs.omni.sidero.dev";
 export const SchematicType = "Schematics.omni.sidero.dev";

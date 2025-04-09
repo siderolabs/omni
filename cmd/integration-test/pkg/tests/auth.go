@@ -672,6 +672,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: allVerbsSet,
 			},
 			{
+				resource:       omni.NewNodeForceDestroyRequest(uuid.New().String()),
+				allowedVerbSet: allVerbsSet,
+			},
+			{
 				resource:       machineClass,
 				allowedVerbSet: allVerbsSet,
 			},

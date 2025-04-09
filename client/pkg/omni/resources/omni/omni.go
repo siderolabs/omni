@@ -75,6 +75,7 @@ func init() {
 	registry.MustRegisterResource(MaintenanceConfigStatusType, &MaintenanceConfigStatus{})
 	registry.MustRegisterResource(LoadBalancerConfigType, &LoadBalancerConfig{})
 	registry.MustRegisterResource(LoadBalancerStatusType, &LoadBalancerStatus{})
+	registry.MustRegisterResource(NodeForceDestroyRequestType, &NodeForceDestroyRequest{})
 	registry.MustRegisterResource(OngoingTaskType, &OngoingTask{})
 	registry.MustRegisterResource(RedactedClusterMachineConfigType, &RedactedClusterMachineConfig{})
 	registry.MustRegisterResource(SchematicType, &Schematic{})

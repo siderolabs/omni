@@ -82,6 +82,8 @@ type machineService struct {
 	address      string
 	state        state.State
 	talosVersion string
+
+	onReset func(context.Context, *machine.ResetRequest) (*machine.ResetResponse, error)
 }
 
 func (ms *machineService) getUpgradeRequests() []*machine.UpgradeRequest {
@@ -150,7 +152,7 @@ func (ms *machineService) getBootstrapRequests() []*machine.BootstrapRequest {
 	return ms.bootstrapRequests
 }
 
-func (ms *machineService) Reset(_ context.Context, req *machine.ResetRequest) (*machine.ResetResponse, error) {
+func (ms *machineService) Reset(ctx context.Context, req *machine.ResetRequest) (*machine.ResetResponse, error) {
 	ms.lock.Lock()
 	defer ms.lock.Unlock()
 
@@ -158,6 +160,9 @@ func (ms *machineService) Reset(_ context.Context, req *machine.ResetRequest) (*
 
 	select {
 	case ms.resetChan <- req:
+		if ms.onReset != nil {
+			return ms.onReset(ctx, req)
+		}
 	default:
 	}
 

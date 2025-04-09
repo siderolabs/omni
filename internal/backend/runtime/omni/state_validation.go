@@ -1090,3 +1090,20 @@ func infraMachineConfigValidationOptions(st state.State) []validated.StateOption
 		})),
 	}
 }
+
+func nodeForceDestroyRequestValidationOptions(st state.State) []validated.StateOption {
+	return []validated.StateOption{
+		validated.WithCreateValidations(validated.NewCreateValidationForType(func(ctx context.Context, res *omni.NodeForceDestroyRequest, _ ...state.CreateOption) error {
+			_, err := safe.StateGetByID[*omni.ClusterMachine](ctx, st, res.Metadata().ID())
+			if err != nil {
+				if state.IsNotFoundError(err) {
+					return fmt.Errorf("cannot create/update a NodeForceDestroyRequest for node %q, as there is no matching cluster machine", res.Metadata().ID())
+				}
+
+				return err
+			}
+
+			return nil
+		})),
+	}
+}

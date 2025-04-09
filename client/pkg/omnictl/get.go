@@ -15,9 +15,10 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	omniresources "github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 	"github.com/siderolabs/omni/client/pkg/omnictl/output"
+	"github.com/siderolabs/omni/client/pkg/omnictl/resources"
 )
 
 var getCmdFlags struct {
@@ -56,7 +57,7 @@ func getResources(cmd *cobra.Command, args []string) func(ctx context.Context, c
 			resourceID = args[1]
 		}
 
-		rd, err := resolveResourceType(ctx, st, resourceType)
+		rd, err := resources.ResolveType(ctx, st, resourceType)
 		if err != nil {
 			return err
 		}
@@ -229,7 +230,7 @@ func getResources(cmd *cobra.Command, args []string) func(ctx context.Context, c
 }
 
 func init() {
-	getCmd.PersistentFlags().StringVarP(&getCmdFlags.namespace, "namespace", "n", resources.DefaultNamespace, "The resource namespace.")
+	getCmd.PersistentFlags().StringVarP(&getCmdFlags.namespace, "namespace", "n", omniresources.DefaultNamespace, "The resource namespace.")
 	getCmd.PersistentFlags().BoolVarP(&getCmdFlags.watch, "watch", "w", false, "Watch the resource state.")
 	getCmd.PersistentFlags().StringVarP(&getCmdFlags.output, "output", "o", "table", "Output format (json, table, yaml, jsonpath).")
 	getCmd.PersistentFlags().StringVarP(&getCmdFlags.selector, "selector", "l", "", "Selector (label query) to filter on, supports '=' and '==' (e.g. -l key1=value1,key2=value2)")

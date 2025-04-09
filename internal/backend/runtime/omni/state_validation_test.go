@@ -1235,6 +1235,25 @@ func TestInfraMachineConfigValidation(t *testing.T) {
 	require.NoError(t, st.Destroy(ctx, conf.Metadata()))
 }
 
+func TestNodeForceDestroyRequestValidation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	t.Cleanup(cancel)
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := validated.NewState(innerSt, omni.NodeForceDestroyRequestValidationOptions(innerSt)...)
+
+	req := omnires.NewNodeForceDestroyRequest("test")
+
+	err := st.Create(ctx, req)
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, `cannot create/update a NodeForceDestroyRequest for node "test", as there is no matching cluster machine`)
+
+	require.NoError(t, st.Create(ctx, omnires.NewClusterMachine(resources.DefaultNamespace, "test"))) // create the matching cluster machine
+	require.NoError(t, st.Create(ctx, req))                                                           // assert that we can create the destroy request now
+}
+
 type mockEtcdBackupStoreFactory struct {
 	store etcdbackup.Store
 }

@@ -85,3 +85,7 @@ func MachineRequestSetValidationOptions(st state.State) []validated.StateOption 
 func InfraMachineConfigValidationOptions(st state.State) []validated.StateOption {
 	return infraMachineConfigValidationOptions(st)
 }
+
+func NodeForceDestroyRequestValidationOptions(st state.State) []validated.StateOption {
+	return nodeForceDestroyRequestValidationOptions(st)
+}

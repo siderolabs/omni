@@ -384,6 +384,91 @@ func (suite *ClusterMachineConfigStatusSuite) TestResetUngraceful() {
 	}
 }
 
+func (suite *ClusterMachineConfigStatusSuite) TestForceDestroy() {
+	suite.startRuntime()
+
+	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
+	suite.Require().NoError(suite.state.Create(suite.ctx, siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)))
+
+	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
+	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil, 8090)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
+
+	clusterName := "force-destroy"
+	_, machines := suite.createCluster(clusterName, 3, 0)
+	brokenMachineID := machines[2].Metadata().ID()
+
+	for _, m := range machines {
+		machineSvc, err := suite.newServer(m.Metadata().ID())
+		suite.Require().NoError(err)
+
+		statusSnapshot := omni.NewMachineStatusSnapshot(resources.DefaultNamespace, m.Metadata().ID())
+
+		if m.Metadata().ID() == brokenMachineID {
+			statusSnapshot.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{ // set the broken machine stuck in the booting stage
+				Stage: machine.MachineStatusEvent_BOOTING,
+			}
+
+			machineSvc.lock.Lock()
+			machineSvc.etcdLeaveClusterHandler = func(context.Context, *machine.EtcdLeaveClusterRequest) (*machine.EtcdLeaveClusterResponse, error) {
+				return nil, errors.New("cannot leave, wasn't part of it")
+			}
+			machineSvc.onReset = func(context.Context, *machine.ResetRequest) (*machine.ResetResponse, error) {
+				_, updateErr := safe.StateUpdateWithConflicts(suite.ctx, suite.state, statusSnapshot.Metadata(), func(res *omni.MachineStatusSnapshot) error { //nolint:contextcheck
+					res.TypedSpec().Value.MachineStatus.Stage = machine.MachineStatusEvent_MAINTENANCE
+
+					return nil
+				})
+
+				return &machine.ResetResponse{}, updateErr
+			}
+			machineSvc.lock.Unlock()
+		} else {
+			statusSnapshot.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{ // set the healthy machines to the running stage
+				Stage: machine.MachineStatusEvent_RUNNING,
+			}
+		}
+
+		suite.Require().NoError(suite.state.Create(suite.ctx, statusSnapshot))
+
+		_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, resource.NewMetadata(
+			m.Metadata().Namespace(),
+			omni.MachineStatusType,
+			m.Metadata().ID(),
+			resource.VersionUndefined,
+		),
+			func(res *omni.MachineStatus) error {
+				res.TypedSpec().Value.Connected = true
+				res.TypedSpec().Value.Maintenance = false
+				res.TypedSpec().Value.ManagementAddress = unixSocket + machineSvc.address
+				res.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
+					Enabled: false,
+				}
+				res.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
+					Platform: talosconstants.PlatformMetal,
+				}
+
+				return nil
+			},
+		)
+
+		suite.Require().NoError(err)
+	}
+
+	require.NoError(suite.T(), suite.state.Create(suite.ctx, omni.NewNodeForceDestroyRequest(brokenMachineID)))       // create a force-destroy request
+	rtestutils.Destroy[*omni.ClusterMachine](suite.ctx, suite.T(), suite.state, []string{brokenMachineID})            // destroy the broken machine
+	rtestutils.AssertNoResource[*omni.ClusterMachineConfigStatus](suite.ctx, suite.T(), suite.state, brokenMachineID) // assert the broken machine is reset
+	rtestutils.AssertNoResource[*omni.NodeForceDestroyRequest](suite.ctx, suite.T(), suite.state, brokenMachineID)    // assert the force-destroy request is cleaned up after force-destroy was done
+}
+
 func (suite *ClusterMachineConfigStatusSuite) TestUpgrades() {
 	suite.startRuntime()
 

@@ -75,6 +75,7 @@ var (
 		omni.MachineExtensionsStatusType,
 		omni.MachineExtensionsType,
 		omni.ExtensionsConfigurationStatusType,
+		omni.NodeForceDestroyRequestType, // cluster label is not strictly required to be present on this resource, except when the cluster access is granted via ACLs
 	})
 
 	// userManagedResourceTypeSet is the set of resource types that are managed by the user.
@@ -404,6 +405,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.MachineRequestSetType,
 		omni.MachineSetStatusType,
 		omni.MaintenanceConfigStatusType,
+		omni.NodeForceDestroyRequestType,
 		omni.TalosUpgradeStatusType,
 		omni.RedactedClusterMachineConfigType,
 		siderolink.LinkType,
