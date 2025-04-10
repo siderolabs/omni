@@ -8,8 +8,6 @@ package omni_test
 import (
 	"context"
 	_ "embed"
-	"fmt"
-	"net"
 	"sync"
 	"testing"
 	"time"
@@ -17,8 +15,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
-	xmaps "github.com/siderolabs/gen/maps"
-	"github.com/siderolabs/gen/xslices"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
@@ -26,7 +22,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
-	"github.com/siderolabs/omni/internal/backend/workloadproxy"
 )
 
 type ClusterWorkloadProxyStatusSuite struct {
@@ -39,7 +34,7 @@ func (suite *ClusterWorkloadProxyStatusSuite) TestReconcile() {
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
 	defer cancel()
 
-	workloadProxyReconciler := &mockWorkloadProxyReconciler{t: suite.T()}
+	workloadProxyReconciler := &mockWorkloadProxyReconciler{}
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterWorkloadProxyStatusController(workloadProxyReconciler)))
 
@@ -120,7 +115,7 @@ func (suite *ClusterWorkloadProxyStatusSuite) TestReconcileMappedInputDeletion()
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*10)
 	defer cancel()
 
-	workloadProxyReconciler := &mockWorkloadProxyReconciler{t: suite.T()}
+	workloadProxyReconciler := &mockWorkloadProxyReconciler{}
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterWorkloadProxyStatusController(workloadProxyReconciler)))
 
@@ -200,20 +195,16 @@ func TestClusterWorkloadProxyStatusSuite(t *testing.T) {
 	suite.Run(t, new(ClusterWorkloadProxyStatusSuite))
 }
 
-//nolint:govet
 type mockWorkloadProxyReconciler struct {
-	mu   sync.Mutex
-	t    *testing.T
 	data map[resource.ID]map[string][]string
+	mu   sync.Mutex
 }
 
-func (m *mockWorkloadProxyReconciler) Reconcile(cluster resource.ID, rd *workloadproxy.ReconcileData) error {
+func (m *mockWorkloadProxyReconciler) Reconcile(cluster resource.ID, aliasToUpstreamAddresses map[string][]string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if rd == nil || len(rd.AliasPort) == 0 {
-		m.t.Logf("deleting cluster %q", cluster)
-
+	if len(aliasToUpstreamAddresses) == 0 {
 		delete(m.data, cluster)
 
 		if len(m.data) == 0 {
@@ -227,48 +218,9 @@ func (m *mockWorkloadProxyReconciler) Reconcile(cluster resource.ID, rd *workloa
 		m.data = map[resource.ID]map[string][]string{}
 	}
 
-	newCluster := true
-
-	for als := range rd.AliasPort {
-		for clusterID, alsToHost := range m.data {
-			if _, ok := alsToHost[als]; ok && clusterID != cluster {
-				panic(fmt.Errorf("alias %q already exists and used by cluster %q", als, clusterID))
-			}
-
-			if clusterID == cluster {
-				m.t.Logf("replacing data for cluster %q :: %v :: %v", cluster, rd.Hosts, rd.AliasPort)
-
-				newCluster = false
-			}
-		}
-	}
-
-	if newCluster {
-		m.t.Logf("creating data for cluster %q :: %v :: %v", cluster, rd.Hosts, rd.AliasPort)
-	}
-
-	m.data[cluster] = xmaps.Map(rd.AliasPort, func(alias string, port string) (string, []string) {
-		return alias, xslices.Map(rd.Hosts, func(host string) string { return net.JoinHostPort(host, port) })
-	})
+	m.data[cluster] = aliasToUpstreamAddresses
 
 	return nil
-}
-
-func (m *mockWorkloadProxyReconciler) DropAlias(alias string) bool {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	for clusterID, alsToHost := range m.data {
-		if _, ok := alsToHost[alias]; ok {
-			m.t.Logf("dropping alias %q from cluster %q", alias, clusterID)
-
-			delete(alsToHost, alias)
-
-			return true
-		}
-	}
-
-	return false
 }
 
 func (m *mockWorkloadProxyReconciler) assertState(t *testing.T, expected map[resource.ID]map[string][]string) {
