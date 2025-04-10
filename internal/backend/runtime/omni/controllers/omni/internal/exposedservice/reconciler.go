@@ -102,9 +102,15 @@ func (reconciler *Reconciler) ReconcileServices(ctx context.Context) ([]*omni.Ex
 }
 
 func (reconciler *Reconciler) reconcileService(ctx context.Context, exposedService *omni.ExposedService, service *corev1.Service, logger *zap.Logger) (keep bool, err error) {
+	var version resource.Version
+
 	existingExposedService := reconciler.exposedServices[exposedService.Metadata().ID()]
-	if existingExposedService != nil && existingExposedService.Metadata().Phase() == resource.PhaseTearingDown {
-		return false, nil
+	if existingExposedService != nil {
+		if existingExposedService.Metadata().Phase() == resource.PhaseTearingDown {
+			return false, nil
+		}
+
+		version = existingExposedService.Metadata().Version()
 	}
 
 	port, err := strconv.Atoi(service.Annotations[ServicePortAnnotationKey])
@@ -136,6 +142,22 @@ func (reconciler *Reconciler) reconcileService(ctx context.Context, exposedServi
 		return false, fmt.Errorf("error updating exposed service: %w", err)
 	}
 
+	updatedVersion := updatedService.Metadata().Version()
+	cluster, _ := updatedService.Metadata().Labels().Get(omni.LabelCluster)
+	hasExplicitAlias := updatedService.TypedSpec().Value.HasExplicitAlias
+
+	if !updatedVersion.Equal(version) {
+		logger.Info("updated exposed service",
+			zap.Uint64("version", updatedVersion.Value()),
+			zap.String("cluster", cluster),
+			zap.Bool("has_explicit_alias", hasExplicitAlias),
+			zap.String("url", updatedService.TypedSpec().Value.Url),
+			zap.Uint32("port", updatedService.TypedSpec().Value.Port),
+			zap.String("label", updatedService.TypedSpec().Value.Label),
+			zap.String("error", updatedService.TypedSpec().Value.Error),
+		)
+	}
+
 	alias, _ := updatedService.Metadata().Labels().Get(omni.LabelExposedServiceAlias)
 	reconciler.usedAliases[alias] = updatedService.Metadata().ID()
 	reconciler.exposedServices[updatedService.Metadata().ID()] = updatedService
@@ -146,8 +168,8 @@ func (reconciler *Reconciler) reconcileService(ctx context.Context, exposedServi
 func (reconciler *Reconciler) updateExposedService(res *omni.ExposedService, explicitAliasOpt optional.Optional[string], port int, label, icon string, logger *zap.Logger) error {
 	res.Metadata().Labels().Set(omni.LabelCluster, reconciler.cluster)
 
-	explicitAlias, explicitAliasRequested := explicitAliasOpt.Get()
-	_, hasGeneratedAlias := res.Metadata().Labels().Get(omni.LabelHasGeneratedExposedServiceAlias)
+	requestedExplicitAlias, explicitAliasRequested := explicitAliasOpt.Get()
+	hasExplicitAlias := res.TypedSpec().Value.HasExplicitAlias
 
 	var (
 		alias string
@@ -155,8 +177,8 @@ func (reconciler *Reconciler) updateExposedService(res *omni.ExposedService, exp
 	)
 
 	switch {
-	case explicitAlias != "": // replace the existing alias with the explicit one
-		alias = strings.ToLower(explicitAlias)
+	case requestedExplicitAlias != "": // replace the existing alias with the explicit one
+		alias = strings.ToLower(requestedExplicitAlias)
 
 		if currentOwner, ok := reconciler.usedAliases[alias]; ok && currentOwner != res.Metadata().ID() {
 			res.TypedSpec().Value.Error = fmt.Sprintf("requested alias %q is already used by another service", alias)
@@ -165,11 +187,11 @@ func (reconciler *Reconciler) updateExposedService(res *omni.ExposedService, exp
 
 			return nil
 		}
-	case !hasGeneratedAlias: // no alias, generate one
+	case hasExplicitAlias: // has an explicit alias, but it is not requested anymore, go back to a generated alias
 		if alias, err = reconciler.generateExposedServiceAlias(); err != nil {
 			return fmt.Errorf("error generating exposed service alias: %w", err)
 		}
-	default: // keep the existing alias
+	default: // keep the existing generated alias
 		alias, _ = res.Metadata().Labels().Get(omni.LabelExposedServiceAlias)
 	}
 
@@ -186,17 +208,15 @@ func (reconciler *Reconciler) updateExposedService(res *omni.ExposedService, exp
 
 	res.Metadata().Labels().Set(omni.LabelExposedServiceAlias, alias)
 
-	if explicitAliasRequested {
-		res.Metadata().Labels().Delete(omni.LabelHasGeneratedExposedServiceAlias)
-	} else {
-		res.Metadata().Labels().Set(omni.LabelHasGeneratedExposedServiceAlias, "")
-	}
+	// migration code to remove the old, now unused label
+	res.Metadata().Labels().Delete(omni.SystemLabelPrefix + "has-generated-exposed-service-alias")
 
 	res.TypedSpec().Value.Port = uint32(port)
 	res.TypedSpec().Value.Label = label
 	res.TypedSpec().Value.IconBase64 = icon
 	res.TypedSpec().Value.Url = serviceURL
 	res.TypedSpec().Value.Error = ""
+	res.TypedSpec().Value.HasExplicitAlias = explicitAliasRequested
 
 	return nil
 }

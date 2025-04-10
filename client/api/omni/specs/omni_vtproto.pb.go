@@ -1648,6 +1648,7 @@ func (m *ExposedServiceSpec) CloneVT() *ExposedServiceSpec {
 	r.IconBase64 = m.IconBase64
 	r.Url = m.Url
 	r.Error = m.Error
+	r.HasExplicitAlias = m.HasExplicitAlias
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -4727,6 +4728,9 @@ func (this *ExposedServiceSpec) EqualVT(that *ExposedServiceSpec) bool {
 		return false
 	}
 	if this.Error != that.Error {
+		return false
+	}
+	if this.HasExplicitAlias != that.HasExplicitAlias {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -10275,6 +10279,16 @@ func (m *ExposedServiceSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.HasExplicitAlias {
+		i--
+		if m.HasExplicitAlias {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x30
+	}
 	if len(m.Error) > 0 {
 		i -= len(m.Error)
 		copy(dAtA[i:], m.Error)
@@ -14161,6 +14175,9 @@ func (m *ExposedServiceSpec) SizeVT() (n int) {
 	l = len(m.Error)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.HasExplicitAlias {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -26344,6 +26361,26 @@ func (m *ExposedServiceSpec) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Error = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HasExplicitAlias", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.HasExplicitAlias = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

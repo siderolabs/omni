@@ -985,6 +985,9 @@ message ExposedServiceSpec {
 
   // Error is the last error that occurred when trying to expose the service.
   string error = 5;
+
+  // HasExplicitAlias is true if the service alias is set explicitly.
+  bool has_explicit_alias = 6;
 }
 
 // ClusterWorkloadProxyStatusSpec describes the status of the exposed services in a cluster.

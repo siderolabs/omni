@@ -655,6 +655,7 @@ export type ExposedServiceSpec = {
   icon_base64?: string
   url?: string
   error?: string
+  has_explicit_alias?: boolean
 }
 
 export type ClusterWorkloadProxyStatusSpec = {
