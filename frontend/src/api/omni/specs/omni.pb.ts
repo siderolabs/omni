@@ -873,3 +873,6 @@ export type InfraMachineBMCConfigSpec = {
 export type MaintenanceConfigStatusSpec = {
   public_key_at_last_apply?: string
 }
+
+export type NodeForceDestroyRequestSpec = {
+}

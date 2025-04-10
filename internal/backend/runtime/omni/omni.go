@@ -152,6 +152,7 @@ func New(
 			safe.WithResourceCache[*omni.MachineSetNode](),
 			safe.WithResourceCache[*omni.MachineStatus](),
 			safe.WithResourceCache[*omni.MachineStatusSnapshot](),
+			safe.WithResourceCache[*omni.NodeForceDestroyRequest](),
 			safe.WithResourceCache[*omni.RedactedClusterMachineConfig](),
 			safe.WithResourceCache[*omni.Schematic](),
 			safe.WithResourceCache[*omni.SchematicConfiguration](),
@@ -380,6 +381,7 @@ func New(
 		s3ConfigValidationOptions(),
 		machineRequestSetValidationOptions(resourceState),
 		infraMachineConfigValidationOptions(resourceState),
+		nodeForceDestroyRequestValidationOptions(resourceState),
 	)
 
 	return &Runtime{

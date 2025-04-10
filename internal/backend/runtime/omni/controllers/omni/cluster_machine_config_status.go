@@ -223,7 +223,7 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 
 				return nil
 			},
-			FinalizerRemovalFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, machineConfig *omni.ClusterMachineConfig) error {
+			FinalizerRemovalExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, machineConfig *omni.ClusterMachineConfig) error {
 				handler := clusterMachineConfigStatusControllerHandler{
 					r:             r,
 					logger:        logger,
@@ -241,6 +241,14 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 				err = handler.reset(ctx, machineConfig, clusterMachine)
 				if err != nil {
 					return err
+				}
+
+				if err = r.Destroy(ctx, omni.NewNodeForceDestroyRequest(clusterMachine.Metadata().ID()).Metadata(), controller.WithOwner("")); err != nil {
+					if !state.IsNotFoundError(err) {
+						return fmt.Errorf("failed to destroy NodeForceDestroyRequest %q: %w", clusterMachine.Metadata().ID(), err)
+					}
+				} else {
+					logger.Info("destroyed NodeForceDestroyRequest")
 				}
 
 				// delete ongoing resets information if the machine was reset
@@ -266,6 +274,9 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 			qtransform.MapperSameID[*omni.Machine, *omni.ClusterMachineConfig](),
 		),
 		qtransform.WithExtraMappedInput(
+			qtransform.MapperSameID[*omni.NodeForceDestroyRequest, *omni.ClusterMachineConfig](),
+		),
+		qtransform.WithExtraMappedInput(
 			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, infraMachineStatus *infra.MachineStatus) ([]resource.Pointer, error) {
 				return []resource.Pointer{omni.NewClusterMachineConfig(resources.DefaultNamespace, infraMachineStatus.Metadata().ID()).Metadata()}, nil
 			},
@@ -279,6 +290,10 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 		qtransform.WithExtraMappedInput(
 			qtransform.MapperNone[*siderolink.ConnectionParams](),
 		),
+		qtransform.WithExtraOutputs(controller.Output{
+			Type: omni.NodeForceDestroyRequestType,
+			Kind: controller.OutputShared,
+		}),
 	)
 }
 
@@ -573,7 +588,7 @@ func logClose(c io.Closer, logger *zap.Logger, additional string) {
 	}
 }
 
-//nolint:gocyclo,cyclop,gocognit
+//nolint:gocyclo,cyclop,gocognit,maintidx
 func (h *clusterMachineConfigStatusControllerHandler) reset(
 	ctx context.Context,
 	machineConfig *omni.ClusterMachineConfig,
@@ -686,6 +701,18 @@ func (h *clusterMachineConfigStatusControllerHandler) reset(
 	graceful := machineSet.Metadata().Phase() == resource.PhaseRunning
 
 	if !h.ongoingResets.isGraceful(clusterMachine.Metadata().ID()) {
+		graceful = false
+	}
+
+	nodeForceDestroyRequest, err := safe.ReaderGetByID[*omni.NodeForceDestroyRequest](ctx, h.r, machineConfig.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
+		return fmt.Errorf("failed to get node force delete request %q: %w", machineConfig.Metadata().ID(), err)
+	}
+
+	forceDestroy := nodeForceDestroyRequest != nil
+	if forceDestroy {
+		logger.Info("node is requested to be force destroyed")
+
 		graceful = false
 	}
 
