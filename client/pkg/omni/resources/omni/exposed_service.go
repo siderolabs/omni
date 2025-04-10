@@ -60,6 +60,10 @@ func (ExposedServiceExtension) ResourceDefinition() meta.ResourceDefinitionSpec 
 				Name:     "Error",
 				JSONPath: "{.error}",
 			},
+			{
+				Name:     "Has Explicit Alias",
+				JSONPath: "{.hasexplicitalias}",
+			},
 		},
 	}
 }
