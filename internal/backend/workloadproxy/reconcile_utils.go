@@ -55,7 +55,7 @@ func (a *aliasToCluster) ReplaceCluster(clusterID resource.ID, rd *ReconcileData
 	got, ok := a.clusters[clusterID]
 	if !ok {
 		for als := range rd.AliasesData() {
-			if res := a.aliases[alias(als)]; res.clusterData != nil {
+			if res, ok := a.aliases[alias(als)]; ok && res.clusterData.clusterID != clusterID {
 				return fmt.Errorf("alias %q already exists and used by cluster %q", als, res.clusterData.clusterID)
 			}
 		}
