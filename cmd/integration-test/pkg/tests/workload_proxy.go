@@ -8,6 +8,7 @@ package tests
 import (
 	"compress/gzip"
 	"context"
+	"crypto/tls"
 	_ "embed"
 	"encoding/base64"
 	"errors"
@@ -20,6 +21,7 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/siderolabs/go-pointer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -94,12 +96,17 @@ func AssertWorkloadProxy(testCtx context.Context, apiClient *client.Client, clus
 			svcURL = r.TypedSpec().Value.Url
 		})
 
+		clientTransport := cleanhttp.DefaultPooledTransport()
+		clientTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
 		httpClient := &http.Client{
 			CheckRedirect: func(*http.Request, []*http.Request) error {
 				return http.ErrUseLastResponse // disable follow redirects
 			},
-			Timeout: 5 * time.Second,
+			Timeout:   5 * time.Second,
+			Transport: clientTransport,
 		}
+		t.Cleanup(httpClient.CloseIdleConnections)
 
 		t.Logf("do a GET request to the exposed service URL, expect a redirect to authentication page")
 

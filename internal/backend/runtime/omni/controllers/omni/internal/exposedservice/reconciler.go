@@ -170,6 +170,7 @@ func (reconciler *Reconciler) updateExposedService(res *omni.ExposedService, exp
 
 	requestedExplicitAlias, explicitAliasRequested := explicitAliasOpt.Get()
 	hasExplicitAlias := res.TypedSpec().Value.HasExplicitAlias
+	_, hasExistingAlias := res.Metadata().Labels().Get(omni.LabelExposedServiceAlias)
 
 	var (
 		alias string
@@ -177,7 +178,8 @@ func (reconciler *Reconciler) updateExposedService(res *omni.ExposedService, exp
 	)
 
 	switch {
-	case requestedExplicitAlias != "": // replace the existing alias with the explicit one
+	// replace the existing alias with the explicit one
+	case requestedExplicitAlias != "":
 		alias = strings.ToLower(requestedExplicitAlias)
 
 		if currentOwner, ok := reconciler.usedAliases[alias]; ok && currentOwner != res.Metadata().ID() {
@@ -187,11 +189,15 @@ func (reconciler *Reconciler) updateExposedService(res *omni.ExposedService, exp
 
 			return nil
 		}
-	case hasExplicitAlias: // has an explicit alias, but it is not requested anymore, go back to a generated alias
+	// if the service
+	// - has an explicit alias, but it is not requested anymore, go back to a generated alias
+	// - has no alias at all yet, generate a new one
+	case hasExplicitAlias || !hasExistingAlias:
 		if alias, err = reconciler.generateExposedServiceAlias(); err != nil {
 			return fmt.Errorf("error generating exposed service alias: %w", err)
 		}
-	default: // keep the existing generated alias
+	// keep the existing generated alias
+	default:
 		alias, _ = res.Metadata().Labels().Get(omni.LabelExposedServiceAlias)
 	}
 
