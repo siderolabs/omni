@@ -1,3 +1,124 @@
+## [Omni 0.48.1](https://github.com/siderolabs/omni/releases/tag/v0.48.1) (2025-04-11)
+
+Welcome to the v0.48.1 release of Omni!  
+*This is a pre-release of Omni*
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* David Anderson
+* Brad Fitzpatrick
+* AdamEr8
+* Andrey Smirnov
+* Artem Chernyshev
+* Utku Ozdemir
+* Andrey Smirnov
+* Dominic Evans
+* Khionu Sybiern
+* Nathan Johnson
+* Ryan Cox
+* Vincent Batts
+* ignoramous
+
+### Changes
+<details><summary>4 commits</summary>
+<p>
+
+* [`09ea168`](https://github.com/siderolabs/omni/commit/09ea1682b744ed8756e4c3713fc9508b628c2f40) fix: fix existing alias check for exposed services
+* [`0a760c1`](https://github.com/siderolabs/omni/commit/0a760c1b2b24e84e1fe87c7918f9f028445eed51) fix: mark all exposed services to have a non-explicit alias
+* [`0b6318a`](https://github.com/siderolabs/omni/commit/0b6318a80b3ba0e177eef5f6b7127485584f3df4) fix: revert workload proxy LB refactoring
+* [`f417d12`](https://github.com/siderolabs/omni/commit/f417d12c1cc7961466bd2125f7520151540d5347) fix: use proper background for the sticky window in the code editor
+</p>
+</details>
+
+### Changes from siderolabs/tcpproxy
+<details><summary>70 commits</summary>
+<p>
+
+* [`3d4e7b8`](https://github.com/siderolabs/tcpproxy/commit/3d4e7b860749152f0aefc53594f4c5fb9285c3f3) chore: rename to siderolabs/tcpproxy
+* [`6f85d8e`](https://github.com/siderolabs/tcpproxy/commit/6f85d8e975e316d2e825db5c349c33eb8eb627d2) Implement correct half-close sequence for the connections.
+* [`8bea9a4`](https://github.com/siderolabs/tcpproxy/commit/8bea9a449198dd0d0184ae0a6770d556dea5e0a0) Add support for TCP_USER_TIMEOUT setting
+* [`91f8614`](https://github.com/siderolabs/tcpproxy/commit/91f861402626c6ba93eaa57ee257109c4f07bd00) remove old ACME tls-sni-01 stuff that LetsEncrypt removed March 2019
+* [`74ca1dc`](https://github.com/siderolabs/tcpproxy/commit/74ca1dc5d55168d202044c415dcf2e08d80c3fdc) add Proxy.AddSNIRouteFunc to do lookups by SNI dynamically
+* [`4e04b92`](https://github.com/siderolabs/tcpproxy/commit/4e04b92f29ea8f8a10d28528a47ecc0f93814473) gofmt for Go 1.19
+* [`be3ee21`](https://github.com/siderolabs/tcpproxy/commit/be3ee21c9fa0283869843039aa136fbf9b948bf0) (doc): s/tlsproxy/tcpproxy
+* [`2e577fe`](https://github.com/siderolabs/tcpproxy/commit/2e577fef49e2458ca3da06b30409df8f4eacb21e) Modified TestProxyPROXYOut to conform with the fixed version of PROXY protocol header format
+* [`0f9bced`](https://github.com/siderolabs/tcpproxy/commit/0f9bceda1a83b4a17e52ba327a6fb2561285ee1a) Fixed HAProxy's PROXY protocol v1 Human-readable header format in DialProxy
+* [`2825d76`](https://github.com/siderolabs/tcpproxy/commit/2825d768aaaef27e854631354415484406b1bc92) fix(test): update travis and e2e selfSignedCert fn
+* [`b6bb9b5`](https://github.com/siderolabs/tcpproxy/commit/b6bb9b5b82524122bcf27291ede32d1517a14ab8) Update import path to inet.af/tcpproxy
+* [`dfa16c6`](https://github.com/siderolabs/tcpproxy/commit/dfa16c61dad2b18a385dfb351adf71566720535b) tlsrouter/README: fix the go get url
+* [`f5c09fb`](https://github.com/siderolabs/tcpproxy/commit/f5c09fbedceb69e4b238dec52cdf9f2fe9a815e2) Take advantage of Go 1.11's splice support, unwrap Conns in DialProxy.HandleConn
+* [`7f81f77`](https://github.com/siderolabs/tcpproxy/commit/7f81f7701c9b584822030be9a3a701b125a56c91) Work around deadlock with Go tip (at Go rev f3f7bd5)
+* [`7efa37f`](https://github.com/siderolabs/tcpproxy/commit/7efa37ff5079eba4a39ddda1b79f65fc81c759e3) Quiet log spam in test.
+* [`dbc1514`](https://github.com/siderolabs/tcpproxy/commit/dbc151467a20b4513174bb3d6b1283e9419eb0f9) Adding the HostName field to the Conn struct (#18)
+* [`2b928d9`](https://github.com/siderolabs/tcpproxy/commit/2b928d9b07d782cc1a94736979d012792810658f) Link to docs
+* [`de1c7de`](https://github.com/siderolabs/tcpproxy/commit/de1c7ded2e6918c5b5b932682e0de144f4f1a31d) Add support for arbitrary matching against HTTP and SNI hostnames.
+* [`c6a0996`](https://github.com/siderolabs/tcpproxy/commit/c6a0996ce0f3db7b5c3e16e04c9e664936077c97) Support configurable routing of ACME tls-sni-01 challenges.
+* [`815c942`](https://github.com/siderolabs/tcpproxy/commit/815c9425f1ad46ffd3a3fb1bbefc05440072e4a4) Merge matcher and route into an interface that yields a Target.
+* [`2065af4`](https://github.com/siderolabs/tcpproxy/commit/2065af4b1e2d181a987a23f64c66f43e474469ff) Support HAProxy's PROXY protocol v1 in DialProxy.
+* [`e030359`](https://github.com/siderolabs/tcpproxy/commit/e03035937341374a9be6eb8459ffe4f23bacd185) Fix golint nits by adding docstrings and simplifying execution flow.
+* [`6d97c2a`](https://github.com/siderolabs/tcpproxy/commit/6d97c2aa8ea9d9f5a35614d1f4a2a7d6be28ae9a) Correct the package building command, and only deploy for master branch commits.
+* [`aa12504`](https://github.com/siderolabs/tcpproxy/commit/aa12504e4e35953c3281989f871e1293eb2114fe) Another attempt to fix Travis.
+* [`f6af481`](https://github.com/siderolabs/tcpproxy/commit/f6af481b22698c9c27dd2f6af1881ea995c72046) Make Travis test all packages, and remove the go.universe.tf import path.
+* [`d7e343e`](https://github.com/siderolabs/tcpproxy/commit/d7e343ee3d714651cbf09f4d77e56ad24f75eb33) Fix the godoc link to point to google/tcpproxy.
+* [`bef9f6a`](https://github.com/siderolabs/tcpproxy/commit/bef9f6aa62487d4adc7d8ddf9e29b9f28810316f) Merge bradfitz's tcpproxy codebase with the software formerly known as tlsrouter.
+* [`d86e96a`](https://github.com/siderolabs/tcpproxy/commit/d86e96a9d54bb62b297cf30dd2242b365fe33604) Move tlsrouter's readme to the command's directory.
+* [`9e73877`](https://github.com/siderolabs/tcpproxy/commit/9e73877b6b356885077a1b9c0ba349ce33c61438) Switch license to Apache2, add Google copyright headers.
+* [`cbf137d`](https://github.com/siderolabs/tcpproxy/commit/cbf137dac7b2c4aa2f45572c1214d07b30742241) Correct the travis build to kinda work.
+* [`3eb49e9`](https://github.com/siderolabs/tcpproxy/commit/3eb49e9b3902de95b3c9f5729d51ca7f61f02e5a) Move tlsrouter to cmd/tlsrouter, in preparation for rewrite as a pkg.
+* [`af97cdd`](https://github.com/siderolabs/tcpproxy/commit/af97cdd9d95a6cae6a52775ab8d5b3fc456a6817) Fix copy/paste-o in doc example.
+* [`3273f40`](https://github.com/siderolabs/tcpproxy/commit/3273f401801fb301dffe0380ae573ee34a4f5c36) Add vendor warning
+* [`e387889`](https://github.com/siderolabs/tcpproxy/commit/e3878897bde4f5d532f67738009cf1b9fcd2f408) Add TargetListener
+* [`2eb0155`](https://github.com/siderolabs/tcpproxy/commit/2eb0155fac2d41b022bc0a430d13aa3b45825f1d) Start of tcpproxy. No Listener or reverse dialing yet.
+* [`c58b44c`](https://github.com/siderolabs/tcpproxy/commit/c58b44c4fc69a3602d751d679c69c07e6bcbe24a) Make golint fail if lint errors are found, and fix said lint.
+* [`4621df9`](https://github.com/siderolabs/tcpproxy/commit/4621df99bdd73dbb3995055b9b4f3f062300c892) Clean up the Travis build a bit more, moving more stuff to the deploy stage.
+* [`96cc76f`](https://github.com/siderolabs/tcpproxy/commit/96cc76fdcd91148162fc3211dbfd486a86c1cb0f) Test Travis's new build stage support.
+* [`bbbede8`](https://github.com/siderolabs/tcpproxy/commit/bbbede8f604a6555c951f5d584ddf4e98f26191a) Make travis fetch the test-only dependency.
+* [`4b8641f`](https://github.com/siderolabs/tcpproxy/commit/4b8641f40e04705b8227f245be36457c05ccba2c) Add support for HAProxy's PROXY protocol.
+* [`d23eadc`](https://github.com/siderolabs/tcpproxy/commit/d23eadc3a6c89bf5058db893acee26d5f1d7e350) Upload packages based on Go 1.8, not 1.7.
+* [`7ef32e3`](https://github.com/siderolabs/tcpproxy/commit/7ef32e3c68ff50a2002528af7ff7676fb58be0a2) Add Go 1.8 to the build matrix.
+* [`e07ecec`](https://github.com/siderolabs/tcpproxy/commit/e07ececb94dd7fe786db042337ad2dc0d5a448a6) typo
+* [`aa3f9c9`](https://github.com/siderolabs/tcpproxy/commit/aa3f9c9ba10dc5b2d1b79d5de05ae6bf83483334) Remove debug print in acme code.
+* [`6664640`](https://github.com/siderolabs/tcpproxy/commit/666464088dba67b6748beea064ae830f3e699d37) Stop testing against Go 1.6.
+* [`728b8bc`](https://github.com/siderolabs/tcpproxy/commit/728b8bce14d8241b090ecf89c7f48224d5ba2c74) Add ACME routing support.
+* [`a5c2ccd`](https://github.com/siderolabs/tcpproxy/commit/a5c2ccd532db7f26e6f6caff9570f126b9f58713) Use nogroup as the group, not nobody.
+* [`a94dbd1`](https://github.com/siderolabs/tcpproxy/commit/a94dbd1d9e69346cbc08462da0b799f4d7d1d51f) Port extra error checking over from netboot.
+* [`3cd4412`](https://github.com/siderolabs/tcpproxy/commit/3cd44123fb97589bbb7aa8b0743c124a8ce81c9b) Clean up travis config a bit, and add missing copyright notice.
+* [`aded796`](https://github.com/siderolabs/tcpproxy/commit/aded79682ca01ac8c7fb17449d79f5274e727f2d) Add a deploy step to garbage-collect old packagecloud files.
+* [`3e6354c`](https://github.com/siderolabs/tcpproxy/commit/3e6354c147b050cb9b008ae44d68fd1d3d385723) Random change to force travis rebuild on latest code.
+* [`77fa998`](https://github.com/siderolabs/tcpproxy/commit/77fa9980b9f34a5dd58909748a7bf53d10333bec) Attempt to create a package with no version name.
+* [`bfef4ba`](https://github.com/siderolabs/tcpproxy/commit/bfef4ba5a22a178fb4a64f0fe9d98fcfd53edee0) Revert to just debian/jessie. It's the same package anyway.
+* [`173db90`](https://github.com/siderolabs/tcpproxy/commit/173db9074b8e6586588af6d63e4a0dabe8f48a73) Try the obvious way to specify a matrix of package tags.
+* [`ea58780`](https://github.com/siderolabs/tcpproxy/commit/ea5878082eb53bfe1c26e76671e912079590e058) Limit the deploy to only the go 1.7 build.
+* [`a2d0c96`](https://github.com/siderolabs/tcpproxy/commit/a2d0c96158d3810655fb71ead9187f1268541e3f) Skip cleanup so travis doesn't delete the freshly built .deb.
+* [`73ee2e7`](https://github.com/siderolabs/tcpproxy/commit/73ee2e798a4464ed94b947b5a6b6a8425b37f99e) Attempt a packagecloud push.
+* [`cbd4ea6`](https://github.com/siderolabs/tcpproxy/commit/cbd4ea6ea39c80d520d75e3e1cb140b55d6220fc) Attempt to build a debian package with FPM.
+* [`4f5b46f`](https://github.com/siderolabs/tcpproxy/commit/4f5b46f61cba8359944015dfbcbce4b88cc0fd00) Add a systemd unit file to run tlsrouter.
+* [`8cc8cac`](https://github.com/siderolabs/tcpproxy/commit/8cc8cac141994b55ac7f2b98ad363b2196d867f4) Document -hello-timeout in README.
+* [`e0a0158`](https://github.com/siderolabs/tcpproxy/commit/e0a01587f5d3c412231f18012f3f55743c5aa885) Add slowloris protection, in the form of a ClientHello timeout.
+* [`09cc4bb`](https://github.com/siderolabs/tcpproxy/commit/09cc4bb6199e7c8ef49d4c3f5e4077b49f892407) Remove support for SSL 3.0.
+* [`c41a68d`](https://github.com/siderolabs/tcpproxy/commit/c41a68d73b757355dbd1f433fc4e2afe161c1f7b) Add tests for hostname matching, and make DNS matches match entire string.
+* [`6546db4`](https://github.com/siderolabs/tcpproxy/commit/6546db44e46c75d1ec05fbd47f1396c49705c34d) Fix vet errors in Go 1.6.
+* [`e34c2a6`](https://github.com/siderolabs/tcpproxy/commit/e34c2a61afa52bf8cc245c1ff75cca10b231050e) Add more words to README.
+* [`b321571`](https://github.com/siderolabs/tcpproxy/commit/b321571464ebd231043ead1e15f23dba1c02970c) Add godoc comments to appease golint.
+* [`55ba69d`](https://github.com/siderolabs/tcpproxy/commit/55ba69dad29c3f6b3aec89789fc8a773cd776b28) Add a Travis CI config.
+* [`b8a3ed8`](https://github.com/siderolabs/tcpproxy/commit/b8a3ed89ade6a84297914e83559ff8cb1b7c5d33) Add DNS name support to config
+* [`0a0a9f6`](https://github.com/siderolabs/tcpproxy/commit/0a0a9f658b3a5aabf24cc9c78f2ff0baef7d5622) Add licensing and contributing information for release.
+* [`b1edd90`](https://github.com/siderolabs/tcpproxy/commit/b1edd90c0436159dcf4d3f794121633fb8ed9035) Initial commit.
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/golang-jwt/jwt/v4**    v4.5.1 -> v4.5.2
+* **github.com/siderolabs/tcpproxy**  v0.1.0 **_new_**
+
+Previous release can be found at [v0.48.0](https://github.com/siderolabs/omni/releases/tag/v0.48.0)
+
 ## [Omni 0.48.0](https://github.com/siderolabs/omni/releases/tag/v0.48.0) (2025-04-07)
 
 Welcome to the v0.48.0 release of Omni!  
