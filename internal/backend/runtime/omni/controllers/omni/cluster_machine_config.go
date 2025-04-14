@@ -272,22 +272,33 @@ type clusterMachineConfigControllerHelper struct {
 	imageFactoryHost string
 }
 
-const talosVersionLatest = "latest"
-
 func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.ClusterMachine, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, secrets *omni.ClusterSecrets,
 	loadbalancer *omni.LoadBalancerConfig, cluster *omni.Cluster, clusterConfigVersion *omni.ClusterConfigVersion, configGenOptions *omni.MachineConfigGenOptions, extraGenOptions []generate.Option,
 	connectionParams *siderolink.ConnectionParams, link *siderolink.Link, eventSinkPort int,
 ) ([]byte, error) {
 	clusterName := cluster.Metadata().ID()
 
-	talosVersion := cluster.TypedSpec().Value.TalosVersion
-	kubernetesVersion := clusterMachine.TypedSpec().Value.KubernetesVersion
+	// this is the version of Talos at the moment the cluster got created
+	//
+	// [NOTE]: this should be kept a constant for the lifetime of the cluster,
+	// as it dictates the Talos machinery config generation defaults.
+	// If this value is changed, it will cause the machine configuration to be regenerated
+	// with new version contract (defaults), and might cause unexpected issues.
+	//
+	// The desired version of Talos for this machine (not for config generation), but for the
+	// e.g. install image is stored in MachineConfigGenOptions.
+	initialTalosVersion := clusterConfigVersion.TypedSpec().Value.Version
 
-	if talosVersion == "" {
+	// [NOTE]: this is the version of Kubernetes of the cluster at the moment ClusterMachine was created.
+	// (i.e., the moment the Machine joined this cluster).
+	// Kubernetes upgrades are handled as config patches to the cluster machines.
+	initialKubernetesVersion := clusterMachine.TypedSpec().Value.KubernetesVersion
+
+	if initialTalosVersion == "" {
 		return nil, fmt.Errorf("talos version is not set on the resource %s", clusterConfigVersion.Metadata())
 	}
 
-	installImage, err := buildInstallImage(helper.imageFactoryHost, configGenOptions.Metadata().ID(), configGenOptions.TypedSpec().Value.InstallImage, talosVersion)
+	installImage, err := buildInstallImage(helper.imageFactoryHost, configGenOptions.Metadata().ID(), configGenOptions.TypedSpec().Value.InstallImage)
 	if err != nil {
 		return nil, err
 	}
@@ -302,18 +313,16 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		genOptions = append(genOptions, generate.WithInstallDisk(configGenOptions.TypedSpec().Value.InstallDisk))
 	}
 
-	if talosVersion != talosVersionLatest {
-		versionContract, parseErr := config.ParseContractFromVersion(talosVersion)
-		if parseErr != nil {
-			return nil, parseErr
-		}
+	versionContract, parseErr := config.ParseContractFromVersion(initialTalosVersion)
+	if parseErr != nil {
+		return nil, parseErr
+	}
 
-		genOptions = append(genOptions, generate.WithVersionContract(versionContract))
+	genOptions = append(genOptions, generate.WithVersionContract(versionContract))
 
-		// For Talos 1.5+, enable KubePrism feature. It's not enabled by default in the machine generation.
-		if versionContract.Greater(config.TalosVersion1_4) {
-			genOptions = append(genOptions, generate.WithKubePrismPort(constants.KubePrismPort))
-		}
+	// For Talos 1.5+, enable KubePrism feature. It's not enabled by default in the machine generation.
+	if versionContract.Greater(config.TalosVersion1_4) {
+		genOptions = append(genOptions, generate.WithKubePrismPort(constants.KubePrismPort))
 	}
 
 	// add the advertised host of the app so kube-apiserver cert is valid for external access
@@ -334,7 +343,7 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 	input, err := generate.NewInput(
 		clusterName,
 		loadbalancer.TypedSpec().Value.SiderolinkEndpoint,
-		kubernetesVersion,
+		initialKubernetesVersion,
 		genOptions...,
 	)
 	if err != nil {
@@ -357,7 +366,8 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		return nil, err
 	}
 
-	if quirks.New(talosVersion).SupportsMultidoc() {
+	// [TODO]: this should check current (minimum) version of the cluster (or current Talos version of the machine)
+	if quirks.New(initialTalosVersion).SupportsMultidoc() {
 		var siderolinkConfig []byte
 
 		if siderolinkConfig, err = renderSiderolinkJoinConfig(connectionParams, link, eventSinkPort); err != nil {
@@ -446,7 +456,7 @@ func stripTalosAPIAccessOSAdminRole(cfg config.Provider) (config.Provider, error
 	return container.New(updatedDocs...)
 }
 
-func buildInstallImage(imageFactoryHost string, resID resource.ID, installImage *specs.MachineConfigGenOptionsSpec_InstallImage, talosVersion string) (string, error) {
+func buildInstallImage(imageFactoryHost string, resID resource.ID, installImage *specs.MachineConfigGenOptionsSpec_InstallImage) (string, error) {
 	if imageFactoryHost == "" {
 		return "", fmt.Errorf("image factory host is not set")
 	}
@@ -467,10 +477,6 @@ func buildInstallImage(imageFactoryHost string, resID resource.ID, installImage 
 		installerName = "installer-secureboot"
 	}
 
-	if talosVersion == talosVersionLatest && schematicID != "" {
-		return "", fmt.Errorf("machine %q has a schematic but using Talos version %q", resID, talosVersion)
-	}
-
 	if installImage.SchematicId != "" {
 		schematicID = installImage.SchematicId
 	}
@@ -479,34 +485,34 @@ func buildInstallImage(imageFactoryHost string, resID resource.ID, installImage 
 		schematicID = ""
 	}
 
-	if installImage.TalosVersion != "" {
-		talosVersion = installImage.TalosVersion
+	desiredTalosVersion := installImage.TalosVersion
+
+	if desiredTalosVersion == "" {
+		return "", fmt.Errorf("machine %q has no talos version set", resID)
 	}
 
-	if talosVersion != talosVersionLatest {
-		version, err := semver.ParseTolerant(talosVersion)
-		if err != nil {
-			return "", fmt.Errorf("failed to parse Talos version %q: %w", talosVersion, err)
-		}
-
-		if version.Major >= 1 && version.Minor >= 10 { // prepend the platform to the installer name for Talos 1.10+
-			if installImage.Platform == "" {
-				return "", fmt.Errorf("machine %q has no platform set", resID)
-			}
-
-			installerName = installImage.Platform + "-" + installerName
-		}
+	version, err := semver.ParseTolerant(desiredTalosVersion)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse Talos version %q: %w", desiredTalosVersion, err)
 	}
 
-	if !strings.HasPrefix(talosVersion, "v") {
-		talosVersion = "v" + talosVersion
+	if version.Major >= 1 && version.Minor >= 10 { // prepend the platform to the installer name for Talos 1.10+
+		if installImage.Platform == "" {
+			return "", fmt.Errorf("machine %q has no platform set", resID)
+		}
+
+		installerName = installImage.Platform + "-" + installerName
+	}
+
+	if !strings.HasPrefix(desiredTalosVersion, "v") {
+		desiredTalosVersion = "v" + desiredTalosVersion
 	}
 
 	if schematicID != "" {
-		return imageFactoryHost + "/" + installerName + "/" + schematicID + ":" + talosVersion, nil
+		return imageFactoryHost + "/" + installerName + "/" + schematicID + ":" + desiredTalosVersion, nil
 	}
 
-	return appconfig.Config.TalosRegistry + ":" + talosVersion, nil
+	return appconfig.Config.TalosRegistry + ":" + desiredTalosVersion, nil
 }
 
 func renderSiderolinkJoinConfig(connectionParams *siderolink.ConnectionParams, link *siderolink.Link, eventSinkPort int) ([]byte, error) {

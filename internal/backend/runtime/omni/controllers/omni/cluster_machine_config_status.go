@@ -433,7 +433,7 @@ func (h *clusterMachineConfigStatusControllerHandler) syncInstallImageAndSchemat
 		return true, nil
 	}
 
-	image, err := buildInstallImage(h.imageFactoryHost, machineStatus.Metadata().ID(), installImage, expectedVersion)
+	image, err := buildInstallImage(h.imageFactoryHost, machineStatus.Metadata().ID(), installImage)
 	if err != nil {
 		return false, err
 	}
