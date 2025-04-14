@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/blang/semver"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/kvutils"
@@ -1534,6 +1535,155 @@ func moveEtcdBackupStatuses(ctx context.Context, st state.State, logger *zap.Log
 	}
 
 	logger.Info("migrate etcd backup overall status", zap.Bool("created", oldOverallStatus.Metadata().Phase() == resource.PhaseRunning))
+
+	return nil
+}
+
+// createVersionContractRevertConfigPatch creates a config patch to prevent the unwanted reboot
+// which would be caused by the following version contract fix: https://github.com/siderolabs/omni/issues/1097
+//
+// We create a system config patch with a low weight (so that the user patches will override it)
+// to preserve the config changes the revert would cause which would require a reboot, namely:
+// - preserve machine.features.diskQuotaSupport setting
+// - preserve machine.features.apidCheckExtKeyUsage setting.
+//
+//nolint:gocognit,gocyclo,cyclop
+func createVersionContractRevertConfigPatch(ctx context.Context, st state.State, logger *zap.Logger) error {
+	clusterConfigVersionList, err := safe.StateListAll[*omni.ClusterConfigVersion](ctx, st)
+	if err != nil {
+		return fmt.Errorf("failed to list cluster config versions: %w", err)
+	}
+
+	clusterConfigVersionMap := make(map[string]string, clusterConfigVersionList.Len())
+	for clusterConfigVersion := range clusterConfigVersionList.All() {
+		clusterConfigVersionMap[clusterConfigVersion.Metadata().ID()] = clusterConfigVersion.TypedSpec().Value.Version
+	}
+
+	clusterMachineConfigList, err := safe.StateListAll[*omni.ClusterMachineConfig](ctx, st)
+	if err != nil {
+		return fmt.Errorf("failed to list cluster machine config patches: %w", err)
+	}
+
+	clusterMachineConfigStatusList, err := safe.StateListAll[*omni.ClusterMachineConfigStatus](ctx, st)
+	if err != nil {
+		return fmt.Errorf("failed to list cluster machine config status: %w", err)
+	}
+
+	configStatusMap := make(map[string]*omni.ClusterMachineConfigStatus, clusterMachineConfigStatusList.Len())
+	for configStatus := range clusterMachineConfigStatusList.All() {
+		configStatusMap[configStatus.Metadata().ID()] = configStatus
+	}
+
+	numNothingToDo, numConfigWasNotApplied, numDiskQuotaSupportEnabled, numApidCheckExtKeyUsageEnabled := 0, 0, 0, 0
+
+	for clusterMachineConfig := range clusterMachineConfigList.All() {
+		id := clusterMachineConfig.Metadata().ID()
+		logger.Debug("checking cluster machine config patch", zap.String("id", id))
+
+		if clusterMachineConfig.Metadata().Phase() == resource.PhaseTearingDown {
+			continue
+		}
+
+		cluster, ok := clusterMachineConfig.Metadata().Labels().Get(omni.LabelCluster)
+		if !ok {
+			logger.Warn("cluster machine config does not have a cluster label, skipping...", zap.String("id", clusterMachineConfig.Metadata().ID()))
+
+			continue
+		}
+
+		clusterConfigVersion := clusterConfigVersionMap[cluster]
+		if clusterConfigVersion == "" {
+			logger.Warn("cluster does not have an initial version, skipping...", zap.String("id", clusterMachineConfig.Metadata().ID()), zap.String("cluster", cluster))
+
+			continue
+		}
+
+		initialVersion, err := semver.ParseTolerant(clusterConfigVersion)
+		if err != nil {
+			logger.Warn("failed to parse initial version, skipping...", zap.String("id", clusterMachineConfig.Metadata().ID()), zap.String("cluster", cluster), zap.Error(err))
+
+			continue
+		}
+
+		configStatus, ok := configStatusMap[id]
+		if !ok {
+			logger.Warn("cluster machine config status not found, skipping...", zap.String("id", clusterMachineConfig.Metadata().ID()))
+
+			continue
+		}
+
+		if configStatus.Metadata().Phase() == resource.PhaseTearingDown {
+			continue
+		}
+
+		if configStatus.TypedSpec().Value.ClusterMachineConfigVersion != clusterMachineConfig.Metadata().Version().String() {
+			logger.Info("cluster machine config version does not match, buggy config was probably not applied, skipping...",
+				zap.String("id", clusterMachineConfig.Metadata().ID()))
+
+			numConfigWasNotApplied++
+
+			continue
+		}
+
+		buffer, err := clusterMachineConfig.TypedSpec().Value.GetUncompressedData()
+		if err != nil {
+			return fmt.Errorf("failed to get uncompressed data: %w", err)
+		}
+
+		configDataStr := string(buffer.Data())
+
+		buffer.Free()
+
+		// see: https://github.com/siderolabs/omni/issues/1095
+		preserveDiskQuotaSupport := initialVersion.Major == 1 && initialVersion.Minor <= 4 && strings.Contains(configDataStr, "diskQuotaSupport: true")
+		preserveApidCheckExtKeyUsage := initialVersion.Major == 1 && initialVersion.Minor <= 2 && strings.Contains(configDataStr, "apidCheckExtKeyUsage: true")
+
+		if !preserveDiskQuotaSupport && !preserveApidCheckExtKeyUsage {
+			numNothingToDo++
+
+			continue
+		}
+
+		patchData := `machine:
+  features:
+`
+		if preserveDiskQuotaSupport {
+			patchData += "    diskQuotaSupport: true\n"
+
+			numDiskQuotaSupportEnabled++
+		}
+
+		if preserveApidCheckExtKeyUsage {
+			patchData += "    apidCheckExtKeyUsage: true\n"
+
+			numApidCheckExtKeyUsageEnabled++
+		}
+
+		configPatch := omni.NewConfigPatch(resources.DefaultNamespace, fmt.Sprintf("000-%s-preserve-version-contract", uuid.NewString()))
+
+		configPatch.Metadata().Annotations().Set(omni.ConfigPatchName, "preserve updated cluster features to prevent an unwanted reboot")
+		configPatch.Metadata().Annotations().Set(omni.ConfigPatchDescription, "Preserves the updated cluster features due to the version contract bug. "+
+			"For more info, see: https://github.com/siderolabs/omni/issues/1095.")
+
+		configPatch.Metadata().Labels().Set(omni.LabelCluster, cluster)
+		configPatch.Metadata().Labels().Set(omni.LabelClusterMachine, clusterMachineConfig.Metadata().ID())
+
+		if err = configPatch.TypedSpec().Value.SetUncompressedData([]byte(patchData)); err != nil {
+			return fmt.Errorf("failed to set uncompressed data: %w", err)
+		}
+
+		if err = st.Create(ctx, configPatch); err != nil {
+			return fmt.Errorf("failed to create config patch: %w", err)
+		}
+	}
+
+	logger.Info("created version contract revert config patches",
+		zap.Int("num_total_processed", clusterMachineConfigList.Len()),
+		zap.Int("num_config_was_not_applied", numConfigWasNotApplied),
+		zap.Int("num_disk_quota_support_enabled", numDiskQuotaSupportEnabled),
+		zap.Int("num_apid_check_ext_key_usage_enabled", numApidCheckExtKeyUsageEnabled),
+		zap.Int("num_nothing_to_do", numNothingToDo),
+	)
 
 	return nil
 }

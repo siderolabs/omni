@@ -10,6 +10,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -1796,6 +1797,184 @@ func (suite *MigrationSuite) TestMoveEtcdBackupStatuses() {
 	suite.Equal(resources.MetricsNamespace, overallStatus.Metadata().Namespace())
 	suite.Equal("EtcdBackupOverallStatusController", overallStatus.Metadata().Owner())
 	suite.Equal("e", overallStatus.TypedSpec().Value.ConfigurationError)
+}
+
+func (suite *MigrationSuite) TestCreateVersionContractRevertConfigPatch() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	clusterConfigVersion12 := omni.NewClusterConfigVersion(resources.DefaultNamespace, "cluster-12")
+	clusterConfigVersion12.TypedSpec().Value.Version = "v1.2.0"
+
+	clusterConfigVersion14 := omni.NewClusterConfigVersion(resources.DefaultNamespace, "cluster-14")
+	clusterConfigVersion14.TypedSpec().Value.Version = "v1.4.8"
+
+	// patch expected: apidCheckExtKeyUsage needs to be preserved
+	cluster12config1 := omni.NewClusterMachineConfig(resources.DefaultNamespace, "cluster-12-machine-1")
+	cluster12config1.Metadata().Labels().Set(omni.LabelCluster, "cluster-12")
+
+	suite.Require().NoError(cluster12config1.TypedSpec().Value.SetUncompressedData([]byte(`machine:
+  features:
+    apidCheckExtKeyUsage: true
+    foo: bar
+`)))
+
+	cluster12configStatus1 := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "cluster-12-machine-1")
+	cluster12configStatus1.TypedSpec().Value.ClusterMachineConfigVersion = "1" // mark the v1 to be applied
+
+	// no patch expected: it does not have any of the features to be preserved
+	cluster12config2 := omni.NewClusterMachineConfig(resources.DefaultNamespace, "cluster-12-machine-2")
+	cluster12config2.Metadata().Labels().Set(omni.LabelCluster, "cluster-12")
+
+	suite.Require().NoError(cluster12config2.TypedSpec().Value.SetUncompressedData([]byte(`machine:
+  features:
+    foo: bar
+`)))
+
+	cluster12configStatus2 := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "cluster-12-machine-2")
+	cluster12configStatus2.TypedSpec().Value.ClusterMachineConfigVersion = "1" // mark the v1 to be applied
+
+	// patch expected: **both** apidCheckExtKeyUsage and diskQuotaSupport need to be preserved
+	cluster12config3 := omni.NewClusterMachineConfig(resources.DefaultNamespace, "cluster-12-machine-3")
+	cluster12config3.Metadata().Labels().Set(omni.LabelCluster, "cluster-12")
+
+	suite.Require().NoError(cluster12config3.TypedSpec().Value.SetUncompressedData([]byte(`machine:
+  features:
+    foo: bar
+    apidCheckExtKeyUsage: true
+    baz: qux
+    diskQuotaSupport: true
+    quux: corge
+`)))
+
+	cluster12configStatus3 := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "cluster-12-machine-3")
+	cluster12configStatus3.TypedSpec().Value.ClusterMachineConfigVersion = "1" // mark the v1 to be applied
+
+	// patch expected: **only** diskQuotaSupport needs to be preserved
+	cluster14config1 := omni.NewClusterMachineConfig(resources.DefaultNamespace, "cluster-14-machine-1")
+	cluster14config1.Metadata().Labels().Set(omni.LabelCluster, "cluster-14")
+
+	suite.Require().NoError(cluster14config1.TypedSpec().Value.SetUncompressedData([]byte(`machine:
+  features:
+    foo: bar
+    diskQuotaSupport: true
+    apidCheckExtKeyUsage: true
+`)))
+
+	cluster14configStatus1 := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "cluster-14-machine-1")
+	cluster14configStatus1.TypedSpec().Value.ClusterMachineConfigVersion = "1" // mark the v1 to be applied
+
+	// no patch expected: it does not have any of the features to be preserved
+	cluster14config2 := omni.NewClusterMachineConfig(resources.DefaultNamespace, "cluster-14-machine-2")
+	cluster14config2.Metadata().Labels().Set(omni.LabelCluster, "cluster-14")
+
+	suite.Require().NoError(cluster14config2.TypedSpec().Value.SetUncompressedData([]byte(`machine:
+  features:
+    foo: bar
+`)))
+
+	cluster14configStatus2 := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "cluster-14-machine-2")
+	cluster14configStatus2.TypedSpec().Value.ClusterMachineConfigVersion = "1" // mark the v1 to be applied
+
+	// no patch expected, since it will be in tearing down phase
+	cluster14config3 := omni.NewClusterMachineConfig(resources.DefaultNamespace, "cluster-14-machine-3")
+	cluster14config3.Metadata().Labels().Set(omni.LabelCluster, "cluster-14")
+
+	suite.Require().NoError(cluster14config3.TypedSpec().Value.SetUncompressedData([]byte(`machine:
+  features:
+    foo: bar
+    diskQuotaSupport: true
+`)))
+
+	cluster14configStatus3 := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "cluster-14-machine-3")
+	cluster14configStatus3.TypedSpec().Value.ClusterMachineConfigVersion = "1" // mark the v1 to be applied
+
+	// no patch expected, since the ClusterMachineConfigStatus.Spec.ClusterMachineConfigVersion will indicate that this version of config was not applied
+	cluster14config4 := omni.NewClusterMachineConfig(resources.DefaultNamespace, "cluster-14-machine-4")
+	cluster14config4.Metadata().Labels().Set(omni.LabelCluster, "cluster-14")
+
+	suite.Require().NoError(cluster14config4.TypedSpec().Value.SetUncompressedData([]byte(`machine:
+  features:
+    foo: bar
+    diskQuotaSupport: true
+`)))
+
+	cluster14configStatus4 := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "cluster-14-machine-4")
+	cluster14configStatus4.TypedSpec().Value.ClusterMachineConfigVersion = "0" // mark the v0 to be applied, but v1 was not applied
+
+	suite.Require().NoError(suite.state.Create(ctx, clusterConfigVersion12))
+	suite.Require().NoError(suite.state.Create(ctx, clusterConfigVersion14))
+
+	suite.Require().NoError(suite.state.Create(ctx, cluster12config1))
+	suite.Require().NoError(suite.state.Create(ctx, cluster12config2))
+	suite.Require().NoError(suite.state.Create(ctx, cluster12config3))
+	suite.Require().NoError(suite.state.Create(ctx, cluster14config1))
+	suite.Require().NoError(suite.state.Create(ctx, cluster14config2))
+	suite.Require().NoError(suite.state.Create(ctx, cluster14config3))
+	suite.Require().NoError(suite.state.Create(ctx, cluster14config4))
+
+	suite.Require().NoError(suite.state.Create(ctx, cluster12configStatus1))
+	suite.Require().NoError(suite.state.Create(ctx, cluster12configStatus2))
+	suite.Require().NoError(suite.state.Create(ctx, cluster12configStatus3))
+	suite.Require().NoError(suite.state.Create(ctx, cluster14configStatus1))
+	suite.Require().NoError(suite.state.Create(ctx, cluster14configStatus2))
+	suite.Require().NoError(suite.state.Create(ctx, cluster14configStatus3))
+	suite.Require().NoError(suite.state.Create(ctx, cluster14configStatus4))
+
+	_, err := suite.state.Teardown(ctx, cluster14config3.Metadata())
+	suite.Require().NoError(err)
+
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("createVersionContractRevertConfigPatch"))))
+
+	patchList, err := safe.StateListAll[*omni.ConfigPatch](ctx, suite.state)
+	suite.Require().NoError(err)
+
+	suite.Require().Equal(3, patchList.Len(), "there should be 3 config patches")
+
+	assertPatch := func(machine *omni.ClusterMachineConfig, expected string) {
+		for patch := range patchList.All() {
+			cm, _ := patch.Metadata().Labels().Get(omni.LabelClusterMachine)
+			if cm == machine.Metadata().ID() {
+				suite.True(strings.HasPrefix(patch.Metadata().ID(), "000-"))
+				suite.True(strings.HasSuffix(patch.Metadata().ID(), "-preserve-version-contract"))
+
+				buf, err := patch.TypedSpec().Value.GetUncompressedData()
+				suite.Require().NoError(err)
+
+				dataBytes := slices.Clone(buf.Data())
+
+				buf.Free()
+
+				suite.Require().NoError(omni.ValidateConfigPatch(dataBytes))
+				suite.Equal(expected, string(dataBytes))
+
+				name, ok := patch.Metadata().Annotations().Get(omni.ConfigPatchName)
+				suite.Require().True(ok)
+				suite.Equal(name, "preserve updated cluster features to prevent an unwanted reboot")
+
+				description, ok := patch.Metadata().Annotations().Get(omni.ConfigPatchDescription)
+				suite.Require().True(ok)
+				suite.Equal(description, "Preserves the updated cluster features due to the version contract bug. "+
+					"For more info, see: https://github.com/siderolabs/omni/issues/1095.")
+			}
+		}
+	}
+
+	assertPatch(cluster12config1, `machine:
+  features:
+    apidCheckExtKeyUsage: true
+`)
+
+	assertPatch(cluster12config3, `machine:
+  features:
+    diskQuotaSupport: true
+    apidCheckExtKeyUsage: true
+`)
+
+	assertPatch(cluster14config2, `machine:
+  features:
+    diskQuotaSupport: true
+`)
 }
 
 func startMigration[
