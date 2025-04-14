@@ -54,8 +54,11 @@ func (h *Helper) Get(machine *omni.ClusterMachine, machineSet *omni.MachineSet) 
 	for patch := range clusterPatchList.All() {
 		machineSetName, machineSetOk := patch.Metadata().Labels().Get(omni.LabelMachineSet)
 		clusterMachineName, clusterMachineOk := patch.Metadata().Labels().Get(omni.LabelClusterMachine)
+		_, machineOk := patch.Metadata().Labels().Get(omni.LabelMachine)
 
 		switch {
+		// skip it, it's a machine patch (and it also has cluster label)
+		case machineOk:
 		// machine set patch
 		case machineSetOk && machineSetName == machineSet.Metadata().ID():
 			machineSetPatches = append(machineSetPatches, patch)

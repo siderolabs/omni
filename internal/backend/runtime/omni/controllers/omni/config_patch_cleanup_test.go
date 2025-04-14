@@ -57,6 +57,10 @@ func (suite *ConfigPatchCleanupSuite) TestReconcile() {
 	clusterPatch := omni.NewConfigPatch(resources.DefaultNamespace, "test-cluster-patch")
 	clusterPatch.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 
+	clusterWithNonExistentMachinePatch := omni.NewConfigPatch(resources.DefaultNamespace, "test-cluster-no-machine-patch")
+	clusterWithNonExistentMachinePatch.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
+	clusterWithNonExistentMachinePatch.Metadata().Labels().Set(omni.LabelMachine, "non-existent-machine")
+
 	machineSetPatch := omni.NewConfigPatch(resources.DefaultNamespace, "test-machine-set-patch")
 	machineSetPatch.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 	machineSetPatch.Metadata().Labels().Set(omni.LabelMachineSet, machineSet.Metadata().ID())
@@ -105,6 +109,7 @@ func (suite *ConfigPatchCleanupSuite) TestReconcile() {
 	suite.Require().NoError(suite.state.Create(suite.ctx, tearingDownPatch))
 	suite.Require().NoError(suite.state.Create(suite.ctx, patchWithOwner, state.WithCreateOwner("some-owner")))
 	suite.Require().NoError(suite.state.Create(suite.ctx, patchWithFinalizer))
+	suite.Require().NoError(suite.state.Create(suite.ctx, clusterWithNonExistentMachinePatch))
 
 	// advance until the early patch is deleted (so we know that we triggered the cleanup, and it worked as expected)
 
@@ -125,6 +130,7 @@ func (suite *ConfigPatchCleanupSuite) TestReconcile() {
 		tearingDownPatch.Metadata().ID(),
 		patchWithOwner.Metadata().ID(),
 		patchWithFinalizer.Metadata().ID(),
+		clusterWithNonExistentMachinePatch.Metadata().ID(),
 	}, func(r *omni.ConfigPatch, assertion *assert.Assertions) {
 		if r.Metadata().ID() == tearingDownPatch.Metadata().ID() { // assert that there was no phase change
 			assertion.Equal(resource.PhaseTearingDown, r.Metadata().Phase())
@@ -166,6 +172,7 @@ func (suite *ConfigPatchCleanupSuite) TestReconcile() {
 		clusterMachinePatch.Metadata().ID(),
 		machinePatch.Metadata().ID(),
 		patchWithOwner.Metadata().ID(),
+		clusterWithNonExistentMachinePatch.Metadata().ID(),
 	}, func(r *omni.ConfigPatch, assertion *assert.Assertions) {
 		assertion.Equal(resource.PhaseRunning, r.Metadata().Phase())
 	})

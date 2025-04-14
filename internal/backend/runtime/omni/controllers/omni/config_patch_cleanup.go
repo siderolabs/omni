@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
+	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/hashicorp/go-multierror"
@@ -134,7 +135,7 @@ func (ctrl *ConfigPatchCleanupController) processConfigPatch(ctx context.Context
 		return nil
 	}
 
-	logger.Info("destroy orphaned config patch")
+	logger.Info("destroy orphaned config patch", zap.Any("labels", configPatch.Metadata().Labels().Raw()))
 
 	destroyReady, err := r.Teardown(ctx, configPatch.Metadata(), controller.WithOwner(""))
 	if err != nil {
@@ -171,6 +172,25 @@ func (ctrl *ConfigPatchCleanupController) initDefaults() {
 	}
 }
 
+// isOrphanByLabel returns true if the resource is orphaned by label and linked resource T.
+func isOrphanByLabel[T generic.ResourceWithRD](ctx context.Context, r controller.Reader, label string, configPatch *omni.ConfigPatch) (bool, error) {
+	value, ok := configPatch.Metadata().Labels().Get(label)
+	if !ok {
+		return true, nil
+	}
+
+	_, err := safe.ReaderGetByID[T](ctx, r, value)
+	if err != nil && state.IsNotFoundError(err) {
+		return true, nil
+	}
+
+	if err != nil {
+		return false, err
+	}
+
+	return false, nil
+}
+
 // isOrphan checks if the ConfigPatch is orphaned.
 func (ctrl *ConfigPatchCleanupController) isOrphan(ctx context.Context, r controller.Reader, configPatch *omni.ConfigPatch) (bool, error) {
 	if configPatch.Metadata().Owner() != "" {
@@ -181,44 +201,30 @@ func (ctrl *ConfigPatchCleanupController) isOrphan(ctx context.Context, r contro
 		return false, nil
 	}
 
-	if machine, ok := configPatch.Metadata().Labels().Get(omni.LabelMachine); ok {
-		_, err := safe.ReaderGetByID[*omni.Machine](ctx, r, machine)
-		if err != nil && state.IsNotFoundError(err) {
-			return true, nil
+	for _, labelCheck := range []func() (bool, error){
+		func() (bool, error) {
+			return isOrphanByLabel[*omni.Machine](ctx, r, omni.LabelMachine, configPatch)
+		},
+		func() (bool, error) {
+			return isOrphanByLabel[*omni.ClusterMachine](ctx, r, omni.LabelClusterMachine, configPatch)
+		},
+		func() (bool, error) {
+			return isOrphanByLabel[*omni.MachineSet](ctx, r, omni.LabelMachineSet, configPatch)
+		},
+		func() (bool, error) {
+			return isOrphanByLabel[*omni.Cluster](ctx, r, omni.LabelCluster, configPatch)
+		},
+	} {
+		orphan, err := labelCheck()
+		if err != nil {
+			return false, err
 		}
 
-		return false, err
-	}
-
-	// The order is important here - ClusterMachine and MachineSet patches also has
-	// the Cluster label set, so the Cluster label should be checked last.
-
-	if clusterMachine, ok := configPatch.Metadata().Labels().Get(omni.LabelClusterMachine); ok {
-		_, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, clusterMachine)
-		if err != nil && state.IsNotFoundError(err) {
-			return true, nil
+		if !orphan {
+			return false, nil
 		}
-
-		return false, err
 	}
 
-	if machineSet, ok := configPatch.Metadata().Labels().Get(omni.LabelMachineSet); ok {
-		_, err := safe.ReaderGetByID[*omni.MachineSet](ctx, r, machineSet)
-		if err != nil && state.IsNotFoundError(err) {
-			return true, nil
-		}
-
-		return false, err
-	}
-
-	if cluster, ok := configPatch.Metadata().Labels().Get(omni.LabelCluster); ok {
-		_, err := safe.ReaderGetByID[*omni.Cluster](ctx, r, cluster)
-		if err != nil && state.IsNotFoundError(err) {
-			return true, nil
-		}
-
-		return false, err
-	}
-
+	// only if orphaned by all labels
 	return true, nil
 }
