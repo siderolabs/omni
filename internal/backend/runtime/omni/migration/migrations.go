@@ -40,10 +40,15 @@ const (
 	deprecatedControlPlaneRole = "role-controlplane"
 	deprecatedWorkerRole       = "role-worker"
 	deprecatedCluster          = "cluster"
+
+	// ContractFixConfigPatch is the deprecated config patch introduced in 0.48.2 and dropped in 0.48.3.
+	// we filter the patches with the following description to drop them in the migration.
+	ContractFixConfigPatch = "Preserves the updated cluster features due to the version contract bug. " +
+		"For more info, see: https://github.com/siderolabs/omni/issues/1095."
 )
 
 // populate Kubernetes versions and Talos versions ClusterMachineTemplates in the Cluster resources.
-func clusterInfo(ctx context.Context, s state.State, _ *zap.Logger) error {
+func clusterInfo(ctx context.Context, s state.State, _ *zap.Logger, _ migrationContext) error {
 	list, err := safe.StateListAll[*omni.Cluster](ctx, s)
 	if err != nil {
 		return err
@@ -88,7 +93,7 @@ func clusterInfo(ctx context.Context, s state.State, _ *zap.Logger) error {
 	return nil
 }
 
-func deprecateClusterMachineTemplates(ctx context.Context, s state.State, _ *zap.Logger) error {
+func deprecateClusterMachineTemplates(ctx context.Context, s state.State, _ *zap.Logger, _ migrationContext) error {
 	list, err := safe.StateListAll[*omni.ClusterMachineTemplate](ctx, s)
 	if err != nil {
 		return err
@@ -157,7 +162,7 @@ func deprecateClusterMachineTemplates(ctx context.Context, s state.State, _ *zap
 	return nil
 }
 
-func clusterMachinesToMachineSets(ctx context.Context, s state.State, logger *zap.Logger) error {
+func clusterMachinesToMachineSets(ctx context.Context, s state.State, logger *zap.Logger, _ migrationContext) error {
 	list, err := safe.StateListAll[*omni.ClusterMachine](ctx, s)
 	if err != nil {
 		return err
@@ -235,7 +240,7 @@ func clusterMachinesToMachineSets(ctx context.Context, s state.State, logger *za
 	return nil
 }
 
-func changePublicKeyOwner(ctx context.Context, s state.State, logger *zap.Logger) error {
+func changePublicKeyOwner(ctx context.Context, s state.State, logger *zap.Logger, _ migrationContext) error {
 	logger = logger.With(zap.String("migration", "changePublicKeyOwner"))
 
 	list, err := safe.StateListAll[*auth.PublicKey](ctx, s)
@@ -261,7 +266,7 @@ func changePublicKeyOwner(ctx context.Context, s state.State, logger *zap.Logger
 	return nil
 }
 
-func addDefaultScopesToUsers(ctx context.Context, s state.State, logger *zap.Logger) error {
+func addDefaultScopesToUsers(ctx context.Context, s state.State, logger *zap.Logger, _ migrationContext) error {
 	logger = logger.With(zap.String("migration", "addDefaultScopesToUsers"))
 
 	list, err := safe.StateListAll[*auth.User](ctx, s)
@@ -291,7 +296,7 @@ func addDefaultScopesToUsers(ctx context.Context, s state.State, logger *zap.Log
 	return nil
 }
 
-func setRollingStrategyOnControlPlaneMachineSets(ctx context.Context, s state.State, logger *zap.Logger) error {
+func setRollingStrategyOnControlPlaneMachineSets(ctx context.Context, s state.State, logger *zap.Logger, _ migrationContext) error {
 	logger = logger.With(zap.String("migration", "setRollingStrategyOnControlPlaneMachineSets"))
 
 	list, err := safe.StateListAll[*omni.MachineSet](
@@ -327,7 +332,7 @@ func setRollingStrategyOnControlPlaneMachineSets(ctx context.Context, s state.St
 	return nil
 }
 
-func updateConfigPatchLabels(ctx context.Context, s state.State, _ *zap.Logger) error {
+func updateConfigPatchLabels(ctx context.Context, s state.State, _ *zap.Logger, _ migrationContext) error {
 	clusterMachineList, err := safe.StateListAll[*omni.ClusterMachine](
 		ctx,
 		s,
@@ -403,7 +408,7 @@ func updateConfigPatchLabels(ctx context.Context, s state.State, _ *zap.Logger) 
 }
 
 // migrate finalizer on the Machine from 'ClusterMachineStatusController' to 'MachineSetStatusController'.
-func updateMachineFinalizers(ctx context.Context, s state.State, logger *zap.Logger) error {
+func updateMachineFinalizers(ctx context.Context, s state.State, logger *zap.Logger, _ migrationContext) error {
 	logger = logger.With(zap.String("migration", "updateMachineFinalizers"))
 
 	machineList, err := safe.StateListAll[*omni.Machine](ctx, s)
@@ -438,7 +443,7 @@ func updateMachineFinalizers(ctx context.Context, s state.State, logger *zap.Log
 	return nil
 }
 
-func labelConfigPatches(ctx context.Context, s state.State, _ *zap.Logger) error {
+func labelConfigPatches(ctx context.Context, s state.State, _ *zap.Logger, _ migrationContext) error {
 	patchList, err := safe.StateListAll[*omni.ConfigPatch](ctx, s)
 	if err != nil {
 		return err
@@ -460,7 +465,7 @@ func labelConfigPatches(ctx context.Context, s state.State, _ *zap.Logger) error
 	return nil
 }
 
-func updateMachineStatusClusterRelations(ctx context.Context, s state.State, _ *zap.Logger) error {
+func updateMachineStatusClusterRelations(ctx context.Context, s state.State, _ *zap.Logger, _ migrationContext) error {
 	msList, err := safe.StateListAll[*omni.MachineStatus](ctx, s)
 	if err != nil {
 		return err
@@ -516,7 +521,7 @@ func updateMachineStatusClusterRelations(ctx context.Context, s state.State, _ *
 }
 
 //nolint:staticcheck
-func addServiceAccountScopesToUsers(ctx context.Context, s state.State, _ *zap.Logger) error {
+func addServiceAccountScopesToUsers(ctx context.Context, s state.State, _ *zap.Logger, _ migrationContext) error {
 	userList, err := safe.StateListAll[*auth.User](ctx, s)
 	if err != nil {
 		return err
@@ -556,7 +561,7 @@ func addServiceAccountScopesToUsers(ctx context.Context, s state.State, _ *zap.L
 	return nil
 }
 
-func clusterInstallImageToTalosVersion(ctx context.Context, s state.State, _ *zap.Logger) error {
+func clusterInstallImageToTalosVersion(ctx context.Context, s state.State, _ *zap.Logger, _ migrationContext) error {
 	clusterList, err := safe.StateListAll[*omni.Cluster](ctx, s)
 	if err != nil {
 		return err
@@ -587,7 +592,7 @@ func clusterInstallImageToTalosVersion(ctx context.Context, s state.State, _ *za
 	return nil
 }
 
-func migrateLabels(ctx context.Context, s state.State, _ *zap.Logger) error {
+func migrateLabels(ctx context.Context, s state.State, _ *zap.Logger, _ migrationContext) error {
 	for _, r := range registry.Resources {
 		definition := r.ResourceDefinition()
 
@@ -622,7 +627,7 @@ func migrateLabels(ctx context.Context, s state.State, _ *zap.Logger) error {
 	return nil
 }
 
-func dropOldLabels(ctx context.Context, s state.State, _ *zap.Logger) error {
+func dropOldLabels(ctx context.Context, s state.State, _ *zap.Logger, _ migrationContext) error {
 	dropLabels := map[string]struct{}{
 		"address":                   {},
 		"arch":                      {},
@@ -693,7 +698,7 @@ func dropOldLabels(ctx context.Context, s state.State, _ *zap.Logger) error {
 	return nil
 }
 
-func convertScopesToRoles(ctx context.Context, st state.State, _ *zap.Logger) error {
+func convertScopesToRoles(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
 	scopesToRole := func(scopes scope.Scopes) role.Role {
 		scopeList := scopes.List()
 		if len(scopeList) == 0 {
@@ -765,7 +770,7 @@ func convertScopesToRoles(ctx context.Context, st state.State, _ *zap.Logger) er
 	return nil
 }
 
-func lowercaseAllIdentities(ctx context.Context, st state.State, _ *zap.Logger) error {
+func lowercaseAllIdentities(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
 	identities, err := safe.StateListAll[*auth.Identity](ctx, st)
 	if err != nil {
 		return fmt.Errorf("failed to list users: %w", err)
@@ -852,7 +857,7 @@ func lowercaseAllIdentities(ctx context.Context, st state.State, _ *zap.Logger) 
 	})
 }
 
-func removeConfigPatchesFromClusterMachines(ctx context.Context, st state.State, _ *zap.Logger) error {
+func removeConfigPatchesFromClusterMachines(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
 	items, err := safe.ReaderListAll[*omni.ClusterMachine](
 		ctx,
 		st,
@@ -925,7 +930,7 @@ func removeConfigPatchesFromClusterMachines(ctx context.Context, st state.State,
 // this migration does the following:
 //   - create machine config gen options resources.
 //   - reconcile machine config version to avoid triggering config apply calls on all machines.
-func machineInstallDiskPatches(ctx context.Context, st state.State, _ *zap.Logger) error {
+func machineInstallDiskPatches(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
 	items, err := safe.ReaderListAll[*omni.ClusterMachine](
 		ctx,
 		st,
@@ -960,7 +965,7 @@ func machineInstallDiskPatches(ctx context.Context, st state.State, _ *zap.Logge
 //
 // The rest of MachineStatusLink resource will be filled by the controller.
 // siderolink.DeprecatedLinkCounter will be destroyed at the end of the migration.
-func siderolinkCounters(ctx context.Context, s state.State, logger *zap.Logger) error {
+func siderolinkCounters(ctx context.Context, s state.State, logger *zap.Logger, _ migrationContext) error {
 	logger = logger.With(zap.String("migration", "siderolinkCounters"))
 
 	list, err := safe.StateListAll[*siderolink.DeprecatedLinkCounter](ctx, s)
@@ -994,7 +999,7 @@ func siderolinkCounters(ctx context.Context, s state.State, logger *zap.Logger) 
 
 // this migration fixes ownership of all ClusterConfigVersion resources, it was initially created by ClusterController,
 // but then it got it's own ClusterConfigVersion controller.
-func fixClusterTalosVersionOwnership(ctx context.Context, s state.State, _ *zap.Logger) error {
+func fixClusterTalosVersionOwnership(ctx context.Context, s state.State, _ *zap.Logger, _ migrationContext) error {
 	list, err := safe.StateListAll[*omni.ClusterConfigVersion](ctx, s)
 	if err != nil {
 		return err
@@ -1021,7 +1026,7 @@ func fixClusterTalosVersionOwnership(ctx context.Context, s state.State, _ *zap.
 }
 
 // add machine-set label to all cluster machine config patches resources.
-func updateClusterMachineConfigPatchesLabels(ctx context.Context, s state.State, _ *zap.Logger) error {
+func updateClusterMachineConfigPatchesLabels(ctx context.Context, s state.State, _ *zap.Logger, _ migrationContext) error {
 	list, err := safe.StateListAll[*omni.ClusterMachineConfigPatches](ctx, s)
 	if err != nil {
 		return err
@@ -1046,7 +1051,7 @@ func updateClusterMachineConfigPatchesLabels(ctx context.Context, s state.State,
 }
 
 // clearEmptyConfigPatches removes empty patches from all ClusterMachineConfigPatches resources.
-func clearEmptyConfigPatches(ctx context.Context, s state.State, _ *zap.Logger) error {
+func clearEmptyConfigPatches(ctx context.Context, s state.State, _ *zap.Logger, _ migrationContext) error {
 	list, err := safe.StateListAll[*omni.ClusterMachineConfigPatches](ctx, s)
 
 	return list.ForEachErr(func(res *omni.ClusterMachineConfigPatches) error {
@@ -1080,7 +1085,7 @@ func clearEmptyConfigPatches(ctx context.Context, s state.State, _ *zap.Logger) 
 }
 
 // removes schematic configurations which are not associated with the machines.
-func cleanupDanglingSchematicConfigurations(ctx context.Context, s state.State, _ *zap.Logger) error {
+func cleanupDanglingSchematicConfigurations(ctx context.Context, s state.State, _ *zap.Logger, _ migrationContext) error {
 	list, err := safe.StateListAll[*omni.SchematicConfiguration](ctx, s)
 	if err != nil {
 		return err
@@ -1112,7 +1117,7 @@ func cleanupDanglingSchematicConfigurations(ctx context.Context, s state.State, 
 	})
 }
 
-func cleanupExtensionsConfigurationStatuses(ctx context.Context, s state.State, _ *zap.Logger) error {
+func cleanupExtensionsConfigurationStatuses(ctx context.Context, s state.State, _ *zap.Logger, _ migrationContext) error {
 	list, err := safe.ReaderListAll[*omni.ExtensionsConfigurationStatus](ctx, s)
 	if err != nil {
 		return err
@@ -1135,7 +1140,7 @@ func cleanupExtensionsConfigurationStatuses(ctx context.Context, s state.State, 
 	})
 }
 
-func dropSchematicConfigurationsControllerFinalizer(ctx context.Context, s state.State, _ *zap.Logger) error {
+func dropSchematicConfigurationsControllerFinalizer(ctx context.Context, s state.State, _ *zap.Logger, _ migrationContext) error {
 	list, err := safe.ReaderListAll[*omni.ExtensionsConfiguration](ctx, s)
 	if err != nil {
 		return err
@@ -1158,13 +1163,13 @@ func dropSchematicConfigurationsControllerFinalizer(ctx context.Context, s state
 }
 
 // generateAllMaintenanceConfigs reconciles maintenance configs for all machines and update the inputs to avoid triggering config updates for each machine.
-func generateAllMaintenanceConfigs(context.Context, state.State, *zap.Logger) error {
+func generateAllMaintenanceConfigs(context.Context, state.State, *zap.Logger, migrationContext) error {
 	// deprecated
 	return nil
 }
 
 // setMachineStatusSnapshotOwner reconciles maintenance configs for all machines and update the inputs to avoid triggering config updates for each machine.
-func setMachineStatusSnapshotOwner(ctx context.Context, st state.State, logger *zap.Logger) error {
+func setMachineStatusSnapshotOwner(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
 	list, err := safe.StateListAll[*omni.MachineStatusSnapshot](ctx, st)
 	if err != nil {
 		return err
@@ -1191,7 +1196,7 @@ func setMachineStatusSnapshotOwner(ctx context.Context, st state.State, logger *
 // migrateInstallImageConfigIntoGenOptions creates the initial InstallImage resources using the existing MachineStatus and ClusterMachineTalosVersion resources.
 //
 // It then reconciles the config inputs for all machines to avoid triggering config updates for each machine.
-func migrateInstallImageConfigIntoGenOptions(ctx context.Context, st state.State, _ *zap.Logger) error {
+func migrateInstallImageConfigIntoGenOptions(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
 	list, err := safe.StateListAll[*omni.MachineConfigGenOptions](ctx, st)
 	if err != nil {
 		return err
@@ -1252,7 +1257,7 @@ func migrateInstallImageConfigIntoGenOptions(ctx context.Context, st state.State
 }
 
 // dropGeneratedMaintenanceConfigs drops all generated maintenance configs, they will be generated by the controller.
-func dropGeneratedMaintenanceConfigs(ctx context.Context, st state.State, _ *zap.Logger) error {
+func dropGeneratedMaintenanceConfigs(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
 	items, err := safe.ReaderListAll[*omni.MachineStatus](
 		ctx,
 		st,
@@ -1295,8 +1300,8 @@ func dropGeneratedMaintenanceConfigs(ctx context.Context, st state.State, _ *zap
 	})
 }
 
-func deleteAllResources(md resource.Metadata) func(context.Context, state.State, *zap.Logger) error {
-	return func(ctx context.Context, st state.State, _ *zap.Logger) error {
+func deleteAllResources(md resource.Metadata) func(context.Context, state.State, *zap.Logger, migrationContext) error {
+	return func(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
 		list, err := st.List(ctx, md)
 		if err != nil {
 			return err
@@ -1323,7 +1328,7 @@ func deleteAllResources(md resource.Metadata) func(context.Context, state.State,
 	}
 }
 
-func removeMaintenanceConfigPatchFinalizers(ctx context.Context, st state.State, _ *zap.Logger) error {
+func removeMaintenanceConfigPatchFinalizers(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
 	items, err := safe.ReaderListAll[*omni.MachineStatus](
 		ctx,
 		st,
@@ -1337,9 +1342,9 @@ func removeMaintenanceConfigPatchFinalizers(ctx context.Context, st state.State,
 	})
 }
 
-func noopMigration(context.Context, state.State, *zap.Logger) error { return nil }
+func noopMigration(context.Context, state.State, *zap.Logger, migrationContext) error { return nil }
 
-func compressConfigPatches(ctx context.Context, st state.State, l *zap.Logger) error {
+func compressConfigPatches(ctx context.Context, st state.State, l *zap.Logger, _ migrationContext) error {
 	doConfigPatch := updateSingle[string, specs.ConfigPatchSpec, *specs.ConfigPatchSpec](2048)
 
 	for _, fn := range []func(context.Context, state.State, *zap.Logger) error{
@@ -1463,7 +1468,7 @@ const (
 	compressed
 )
 
-func moveEtcdBackupStatuses(ctx context.Context, st state.State, logger *zap.Logger) error {
+func moveEtcdBackupStatuses(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
 	statusOldNamespaceMD := resource.NewMetadata(resources.DefaultNamespace, omni.EtcdBackupStatusType, "", resource.VersionUndefined)
 
 	statusList, err := safe.StateList[*omni.EtcdBackupStatus](ctx, st, statusOldNamespaceMD)
@@ -1539,8 +1544,70 @@ func moveEtcdBackupStatuses(ctx context.Context, st state.State, logger *zap.Log
 	return nil
 }
 
-// createVersionContractRevertConfigPatch creates a config patch to prevent the unwanted reboot
-// which would be caused by the following version contract fix: https://github.com/siderolabs/omni/issues/1097
+func dropObsoleteConfigPatches(ctx context.Context, st state.State, logger *zap.Logger, migrationContext migrationContext) error {
+	patchMigrationIndex := slices.IndexFunc(migrationContext.migrations, func(m *migration) bool {
+		return m.name == "oldVersionContractFix"
+	})
+
+	if patchMigrationIndex == -1 {
+		return fmt.Errorf("failed to find the old version contract fix migration")
+	}
+
+	if migrationContext.initialDBVersion < uint64(patchMigrationIndex) {
+		logger.Info("nothing to do because of the db version", zap.Uint64("initial_db_version", migrationContext.initialDBVersion), zap.Int("expects_greater_or_equal", patchMigrationIndex))
+
+		return nil
+	}
+
+	configPatches, err := safe.ReaderListAll[*omni.ConfigPatch](ctx, st,
+		state.WithLabelQuery(resource.LabelExists(omni.LabelCluster)),
+		state.WithLabelQuery(resource.LabelExists(omni.LabelClusterMachine)),
+	)
+	if err != nil {
+		return err
+	}
+
+	for r := range configPatches.All() {
+		description, ok := r.Metadata().Annotations().Get(omni.ConfigPatchDescription)
+		if !ok {
+			continue
+		}
+
+		if description != ContractFixConfigPatch {
+			continue
+		}
+
+		clusterMachine, ok := r.Metadata().Labels().Get(omni.LabelClusterMachine)
+		if !ok {
+			continue
+		}
+
+		logger.Info("removing obsolete config patch",
+			zap.String("patch_id", r.Metadata().ID()),
+			zap.String("id", clusterMachine),
+		)
+
+		_, err = safe.StateUpdateWithConflicts(ctx, st, r.Metadata(), func(res *omni.ConfigPatch) error {
+			for _, f := range *res.Metadata().Finalizers() {
+				res.Metadata().Finalizers().Remove(f)
+			}
+
+			return nil
+		}, state.WithExpectedPhaseAny())
+		if err != nil {
+			return err
+		}
+
+		if err = st.Destroy(ctx, r.Metadata()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// markVersionContract marks the cluster machine as being affected by the issue:
+// https://github.com/siderolabs/omni/issues/1097
 //
 // We create a system config patch with a low weight (so that the user patches will override it)
 // to preserve the config changes the revert would cause which would require a reboot, namely:
@@ -1548,7 +1615,7 @@ func moveEtcdBackupStatuses(ctx context.Context, st state.State, logger *zap.Log
 // - preserve machine.features.apidCheckExtKeyUsage setting.
 //
 //nolint:gocognit,gocyclo,cyclop
-func createVersionContractRevertConfigPatch(ctx context.Context, st state.State, logger *zap.Logger) error {
+func markVersionContract(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
 	clusterConfigVersionList, err := safe.StateListAll[*omni.ClusterConfigVersion](ctx, st)
 	if err != nil {
 		return fmt.Errorf("failed to list cluster config versions: %w", err)
@@ -1644,36 +1711,19 @@ func createVersionContractRevertConfigPatch(ctx context.Context, st state.State,
 			continue
 		}
 
-		patchData := `machine:
-  features:
-`
-		if preserveDiskQuotaSupport {
-			patchData += "    diskQuotaSupport: true\n"
+		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewClusterMachine(resources.DefaultNamespace, id).Metadata(), func(res *omni.ClusterMachine) error {
+			if preserveApidCheckExtKeyUsage {
+				res.Metadata().Annotations().Set(omni.PreserveApidCheckExtKeyUsage, "")
+			}
 
-			numDiskQuotaSupportEnabled++
-		}
+			if preserveDiskQuotaSupport {
+				res.Metadata().Annotations().Set(omni.PreserveDiskQuotaSupport, "")
+			}
 
-		if preserveApidCheckExtKeyUsage {
-			patchData += "    apidCheckExtKeyUsage: true\n"
-
-			numApidCheckExtKeyUsageEnabled++
-		}
-
-		configPatch := omni.NewConfigPatch(resources.DefaultNamespace, fmt.Sprintf("000-%s-preserve-version-contract", uuid.NewString()))
-
-		configPatch.Metadata().Annotations().Set(omni.ConfigPatchName, "preserve updated cluster features to prevent an unwanted reboot")
-		configPatch.Metadata().Annotations().Set(omni.ConfigPatchDescription, "Preserves the updated cluster features due to the version contract bug. "+
-			"For more info, see: https://github.com/siderolabs/omni/issues/1095.")
-
-		configPatch.Metadata().Labels().Set(omni.LabelCluster, cluster)
-		configPatch.Metadata().Labels().Set(omni.LabelClusterMachine, clusterMachineConfig.Metadata().ID())
-
-		if err = configPatch.TypedSpec().Value.SetUncompressedData([]byte(patchData)); err != nil {
-			return fmt.Errorf("failed to set uncompressed data: %w", err)
-		}
-
-		if err = st.Create(ctx, configPatch); err != nil {
-			return fmt.Errorf("failed to create config patch: %w", err)
+			return nil
+		}, state.WithExpectedPhaseAny(), state.WithUpdateOwner(omnictrl.NewMachineSetStatusController().ControllerName))
+		if err != nil && !state.IsPhaseConflictError(err) && !state.IsNotFoundError(err) {
+			return err
 		}
 	}
 

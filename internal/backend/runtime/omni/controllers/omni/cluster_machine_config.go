@@ -11,6 +11,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"text/template"
 	"time"
@@ -272,6 +273,7 @@ type clusterMachineConfigControllerHelper struct {
 	imageFactoryHost string
 }
 
+//nolint:gocyclo,cyclop
 func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.ClusterMachine, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, secrets *omni.ClusterSecrets,
 	loadbalancer *omni.LoadBalancerConfig, cluster *omni.Cluster, clusterConfigVersion *omni.ClusterConfigVersion, configGenOptions *omni.MachineConfigGenOptions, extraGenOptions []generate.Option,
 	connectionParams *siderolink.ConnectionParams, link *siderolink.Link, eventSinkPort int,
@@ -364,6 +366,22 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 	patchList, err := clusterMachineConfigPatches.TypedSpec().Value.GetUncompressedPatches()
 	if err != nil {
 		return nil, err
+	}
+
+	if _, preserveApidCheckExtKeyUsage := clusterMachine.Metadata().Annotations().Get(omni.PreserveApidCheckExtKeyUsage); preserveApidCheckExtKeyUsage {
+		patchList = slices.Insert(patchList, 0, `machine:
+  features:
+    apidCheckExtKeyUsage: true
+`,
+		)
+	}
+
+	if _, preserveDiskQuotaSupport := clusterMachine.Metadata().Annotations().Get(omni.PreserveDiskQuotaSupport); preserveDiskQuotaSupport {
+		patchList = slices.Insert(patchList, 0, `machine:
+  features:
+    diskQuotaSupport: true
+`,
+		)
 	}
 
 	// [TODO]: this should check current (minimum) version of the cluster (or current Talos version of the machine)

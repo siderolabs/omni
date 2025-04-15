@@ -144,6 +144,63 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 	}
 }
 
+func (suite *ClusterMachineConfigSuite) TestGeneratePreserveFeatures() {
+	suite.startRuntime()
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)))
+
+	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
+	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil, 8090)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
+
+	clusterName := "talos-default-old"
+	cluster, machines := suite.createClusterWithTalosVersion(clusterName, 1, 1, "1.2.0")
+
+	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, machines[0].Metadata(), func(res *omni.ClusterMachine) error {
+		res.Metadata().Annotations().Set(omni.PreserveApidCheckExtKeyUsage, "")
+		res.Metadata().Annotations().Set(omni.PreserveDiskQuotaSupport, "")
+
+		return nil
+	})
+
+	suite.Require().NoError(err)
+
+	assertResource(
+		&suite.OmniSuite,
+		*omni.NewClusterMachineConfig(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
+		func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
+			spec := res.TypedSpec().Value
+
+			buffer, bufferErr := spec.GetUncompressedData()
+			suite.Require().NoError(bufferErr)
+
+			defer buffer.Free()
+
+			configData := buffer.Data()
+
+			machineconfig, configErr := configloader.NewFromBytes(configData)
+			suite.Require().NoError(configErr)
+
+			assertions.True(machineconfig.Machine().Features().ApidCheckExtKeyUsageEnabled())
+			assertions.True(machineconfig.Machine().Features().DiskQuotaSupportEnabled())
+		},
+	)
+
+	suite.destroyCluster(cluster)
+
+	for _, m := range machines {
+		suite.Assert().NoError(retry.Constant(5*time.Second, retry.WithUnits(100*time.Millisecond)).Retry(
+			suite.assertNoResource(*omni.NewClusterMachineConfig(resources.DefaultNamespace, m.Metadata().ID()).Metadata()),
+		))
+	}
+}
+
 func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 	suite.startRuntime()
 
