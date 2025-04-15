@@ -1,3 +1,34 @@
+## [Omni 0.48.2](https://github.com/siderolabs/omni/releases/tag/v0.48.2) (2025-04-15)
+
+Welcome to the v0.48.2 release of Omni!  
+*This is a pre-release of Omni*
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Andrey Smirnov
+* Utku Ozdemir
+
+### Changes
+<details><summary>3 commits</summary>
+<p>
+
+* [`751d6f3`](https://github.com/siderolabs/omni/commit/751d6f3853b84cab8df74de6e5919f9e371db0fc) fix: use correct version contract for machine config generation
+* [`ced66e5`](https://github.com/siderolabs/omni/commit/ced66e5af4dc32409dc6f4b8f09fb4ddf48e8bb4) fix: create config patches to prevent reboot on version contract revert
+* [`6b5f315`](https://github.com/siderolabs/omni/commit/6b5f3151b476db856eb76882be4f7bb5014cdf4e) fix: config patch cleanup
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.48.1](https://github.com/siderolabs/omni/releases/tag/v0.48.1)
+
 ## [Omni 0.48.1](https://github.com/siderolabs/omni/releases/tag/v0.48.1) (2025-04-11)
 
 Welcome to the v0.48.1 release of Omni!  
