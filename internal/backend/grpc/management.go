@@ -72,6 +72,28 @@ type JWTSigningKeyProvider interface {
 	SigningKey(ctx context.Context) (op.SigningKey, error)
 }
 
+func newManagementServer(
+	omniState state.State,
+	jwtSigningKeyProvider JWTSigningKeyProvider,
+	logHandler *siderolink.LogHandler,
+	logger *zap.Logger,
+	dnsService *dns.Service,
+	imageFactoryClient *imagefactory.Client,
+	auditor AuditLogger,
+	omniconfigDest string,
+) *managementServer {
+	return &managementServer{
+		omniState:             omniState,
+		jwtSigningKeyProvider: jwtSigningKeyProvider,
+		logHandler:            logHandler,
+		logger:                logger,
+		dnsService:            dnsService,
+		imageFactoryClient:    imageFactoryClient,
+		auditor:               auditor,
+		omniconfigDest:        omniconfigDest,
+	}
+}
+
 // managementServer implements omni management service.
 type managementServer struct {
 	management.UnimplementedManagementServiceServer

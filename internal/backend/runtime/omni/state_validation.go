@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
-	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -22,8 +21,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/hashicorp/go-multierror"
-	"github.com/santhosh-tekuri/jsonschema/v6"
-	"gopkg.in/yaml.v3"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
@@ -38,6 +35,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/config"
+	omnijsonschema "github.com/siderolabs/omni/internal/pkg/jsonschema"
 )
 
 // clusterValidationOptions returns the validation options for the Talos and Kubernetes versions on the cluster resource.
@@ -1036,40 +1034,12 @@ func validateProviderData(ctx context.Context, st state.State, providerID, provi
 			return nil
 		}
 
-		filename := fmt.Sprintf("%s-schema.json", providerStatus.Metadata().ID())
-
-		schema, err := jsonschema.UnmarshalJSON(strings.NewReader(providerStatus.TypedSpec().Value.Schema))
+		schema, err := omnijsonschema.Parse(providerStatus.Metadata().ID(), providerStatus.TypedSpec().Value.Schema)
 		if err != nil {
 			return fmt.Errorf("failed to load json schema for provider %q: %w", providerID, err)
 		}
 
-		compiler := jsonschema.NewCompiler()
-		if err = compiler.AddResource(filename, schema); err != nil {
-			return fmt.Errorf("failed to load json schema for provider %q: %w", providerID, err)
-		}
-
-		sch, err := compiler.Compile(filename)
-		if err != nil {
-			return fmt.Errorf("failed to load json schema for provider %q: %w", providerID, err)
-		}
-
-		// NaN type causes jsonschema validator to crash with nil reference error
-		providerData = regexp.MustCompile(`(?i)\.nan`).ReplaceAllString(providerData, "null")
-
-		var v interface{}
-		if err = yaml.Unmarshal([]byte(providerData), &v); err != nil {
-			return fmt.Errorf("failed to unmarshal provider data %w", err)
-		}
-
-		if v == nil {
-			v = map[string]any{}
-		}
-
-		if err = sch.Validate(v); err != nil {
-			return err
-		}
-
-		return nil
+		return omnijsonschema.Validate(providerData, schema)
 	}
 
 	providerStatus, err := safe.ReaderGetByID[*infra.ProviderStatus](ctx, st, providerID)

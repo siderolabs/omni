@@ -64,16 +64,16 @@ func MakeServiceServers(
 		&oidcServer{
 			provider: oidcProvider,
 		},
-		&managementServer{
-			omniState:             state,
-			jwtSigningKeyProvider: jwtSigningKeyProvider,
-			logHandler:            logHandler,
-			logger:                logger.With(logging.Component("management_server")),
-			dnsService:            dnsService,
-			imageFactoryClient:    imageFactoryClient,
-			auditor:               auditor,
-			omniconfigDest:        dest,
-		},
+		newManagementServer(
+			state,
+			jwtSigningKeyProvider,
+			logHandler,
+			logger.With(logging.Component("management_server")),
+			dnsService,
+			imageFactoryClient,
+			auditor,
+			dest,
+		),
 		&authServer{
 			state:  state,
 			logger: logger.With(logging.Component("auth_server")),

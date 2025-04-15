@@ -12,13 +12,15 @@ included in the LICENSE file.
         :renderers="Object.freeze(renderers)"
         :schema="schema"
         :uischema="uiSchema"
-        @change="event => $emit('update:model-value', event.data)"
+        :additional-errors="errors"
+        validation-mode="NoValidation"
+        @change="onChange"
       />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, toRefs, watch } from "vue";
+import { computed, Ref, ref, toRefs, watch } from "vue";
 import { JsonForms } from "@jsonforms/vue";
 import {
   UISchemaElement,
@@ -48,6 +50,28 @@ import StringRenderer from "./StringRenderer.vue";
 import ArrayRenderer from "./ArrayRenderer.vue";
 import DateControlRenderer from "./DateControlRenderer.vue";
 import TimeControlRenderer from "./TimeControlRenderer.vue";
+import { ManagementService } from "@/api/omni/management/management.pb";
+
+import yaml from "js-yaml";
+
+const errors: Ref<{
+  dataPath: string;
+  schemaPath: string;
+  // Added to validation errors of propertyNames keyword schema
+  propertyName?: string;
+  // Excluded if messages set to false.
+  message?: string;
+  // These are added with the `verbose` option.
+  schema?: any;
+  parentSchema?: object;
+  data?: any;
+}[]> = ref([]);
+
+const emit = defineEmits(['update:model-value']);
+
+const onChange = async (event: {data: any, errors: any}) => {
+  emit('update:model-value', event.data);
+}
 
 const renderers = [
   {
@@ -98,11 +122,9 @@ const props = defineProps<{
   modelValue: any
 }>();
 
-const { jsonSchema } = toRefs(props);
+const { jsonSchema, modelValue } = toRefs(props);
 const schema = ref<JsonSchema>();
 const err = ref<Error>();
-
-defineEmits(['update:model-value'])
 
 const renderSchema = () => {
   err.value = undefined;
@@ -114,9 +136,37 @@ const renderSchema = () => {
   }
 };
 
+watch(modelValue, val => {
+  updateErrors(val);
+})
+
+const updateErrors = async (data: any) => {
+  if (!jsonSchema.value) {
+    return;
+  }
+
+  const response =  await ManagementService.ValidateJSONSchema({
+    schema: jsonSchema.value,
+    data: yaml.dump(data),
+  });
+
+  errors.value = response.errors?.map(
+    item => {
+      return {
+        schemaPath: item.schema_path!,
+        dataPath: item.data_path!,
+        message: item.cause,
+      }
+    }
+  ) ?? [];
+}
+
 watch(jsonSchema, renderSchema);
 
 renderSchema();
+
+console.log(modelValue.value)
+updateErrors(modelValue.value);
 
 const uiSchema = computed(() => {
   if (!schema.value) {

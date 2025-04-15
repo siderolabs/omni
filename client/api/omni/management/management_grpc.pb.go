@@ -27,6 +27,7 @@ const (
 	ManagementService_Omniconfig_FullMethodName                 = "/management.ManagementService/Omniconfig"
 	ManagementService_MachineLogs_FullMethodName                = "/management.ManagementService/MachineLogs"
 	ManagementService_ValidateConfig_FullMethodName             = "/management.ManagementService/ValidateConfig"
+	ManagementService_ValidateJSONSchema_FullMethodName         = "/management.ManagementService/ValidateJSONSchema"
 	ManagementService_CreateServiceAccount_FullMethodName       = "/management.ManagementService/CreateServiceAccount"
 	ManagementService_RenewServiceAccount_FullMethodName        = "/management.ManagementService/RenewServiceAccount"
 	ManagementService_ListServiceAccounts_FullMethodName        = "/management.ManagementService/ListServiceAccounts"
@@ -47,6 +48,7 @@ type ManagementServiceClient interface {
 	Omniconfig(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*OmniconfigResponse, error)
 	MachineLogs(ctx context.Context, in *MachineLogsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[common.Data], error)
 	ValidateConfig(ctx context.Context, in *ValidateConfigRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ValidateJSONSchema(ctx context.Context, in *ValidateJsonSchemaRequest, opts ...grpc.CallOption) (*ValidateJsonSchemaResponse, error)
 	CreateServiceAccount(ctx context.Context, in *CreateServiceAccountRequest, opts ...grpc.CallOption) (*CreateServiceAccountResponse, error)
 	RenewServiceAccount(ctx context.Context, in *RenewServiceAccountRequest, opts ...grpc.CallOption) (*RenewServiceAccountResponse, error)
 	ListServiceAccounts(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ListServiceAccountsResponse, error)
@@ -119,6 +121,16 @@ func (c *managementServiceClient) ValidateConfig(ctx context.Context, in *Valida
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, ManagementService_ValidateConfig_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *managementServiceClient) ValidateJSONSchema(ctx context.Context, in *ValidateJsonSchemaRequest, opts ...grpc.CallOption) (*ValidateJsonSchemaResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ValidateJsonSchemaResponse)
+	err := c.cc.Invoke(ctx, ManagementService_ValidateJSONSchema_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -251,6 +263,7 @@ type ManagementServiceServer interface {
 	Omniconfig(context.Context, *emptypb.Empty) (*OmniconfigResponse, error)
 	MachineLogs(*MachineLogsRequest, grpc.ServerStreamingServer[common.Data]) error
 	ValidateConfig(context.Context, *ValidateConfigRequest) (*emptypb.Empty, error)
+	ValidateJSONSchema(context.Context, *ValidateJsonSchemaRequest) (*ValidateJsonSchemaResponse, error)
 	CreateServiceAccount(context.Context, *CreateServiceAccountRequest) (*CreateServiceAccountResponse, error)
 	RenewServiceAccount(context.Context, *RenewServiceAccountRequest) (*RenewServiceAccountResponse, error)
 	ListServiceAccounts(context.Context, *emptypb.Empty) (*ListServiceAccountsResponse, error)
@@ -284,6 +297,9 @@ func (UnimplementedManagementServiceServer) MachineLogs(*MachineLogsRequest, grp
 }
 func (UnimplementedManagementServiceServer) ValidateConfig(context.Context, *ValidateConfigRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ValidateConfig not implemented")
+}
+func (UnimplementedManagementServiceServer) ValidateJSONSchema(context.Context, *ValidateJsonSchemaRequest) (*ValidateJsonSchemaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ValidateJSONSchema not implemented")
 }
 func (UnimplementedManagementServiceServer) CreateServiceAccount(context.Context, *CreateServiceAccountRequest) (*CreateServiceAccountResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateServiceAccount not implemented")
@@ -412,6 +428,24 @@ func _ManagementService_ValidateConfig_Handler(srv interface{}, ctx context.Cont
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ManagementServiceServer).ValidateConfig(ctx, req.(*ValidateConfigRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ManagementService_ValidateJSONSchema_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ValidateJsonSchemaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ManagementServiceServer).ValidateJSONSchema(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ManagementService_ValidateJSONSchema_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ManagementServiceServer).ValidateJSONSchema(ctx, req.(*ValidateJsonSchemaRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -579,6 +613,10 @@ var ManagementService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ValidateConfig",
 			Handler:    _ManagementService_ValidateConfig_Handler,
+		},
+		{
+			MethodName: "ValidateJSONSchema",
+			Handler:    _ManagementService_ValidateJSONSchema_Handler,
 		},
 		{
 			MethodName: "CreateServiceAccount",

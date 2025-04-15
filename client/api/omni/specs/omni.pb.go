@@ -4749,7 +4749,7 @@ type ExposedServiceSpec struct {
 	Url string `protobuf:"bytes,4,opt,name=url,proto3" json:"url,omitempty"`
 	// Error is the last error that occurred when trying to expose the service.
 	Error string `protobuf:"bytes,5,opt,name=error,proto3" json:"error,omitempty"`
-	// HasExplicitAlias is true if the service prefix is set explicitly.
+	// HasExplicitAlias is true if the service alias is set explicitly.
 	HasExplicitAlias bool `protobuf:"varint,6,opt,name=has_explicit_alias,json=hasExplicitAlias,proto3" json:"has_explicit_alias,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache

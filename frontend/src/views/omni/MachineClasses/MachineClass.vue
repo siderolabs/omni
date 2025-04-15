@@ -157,7 +157,7 @@ infraProvidersWatch.setup({
   runtime: Runtime.Omni
 });
 
-const props = defineProps<{edit: boolean}>();
+const props = defineProps<{edit?: boolean}>();
 const router = useRouter();
 const route = useRoute();
 const lastFocused = ref(0);
@@ -170,7 +170,7 @@ const kernelArguments = ref<string>("");
 const initialLabels = ref<Record<string, any>>({});
 const grpcTunnelMode = ref<GrpcTunnelMode>(GrpcTunnelMode.UNSET);
 
-const providerConfigs: Record<string, Record<string, any>> = {};
+const providerConfigs: Ref<Record<string, Record<string, any>>> = ref({});
 
 if (!props.edit) {
   notFound = ref(false);
@@ -322,7 +322,7 @@ if (props.edit) {
     }
 
     if (machineClass.value?.spec.auto_provision?.provider_id && machineClass.value?.spec.auto_provision?.provider_data) {
-      providerConfigs[machineClass.value.spec.auto_provision.provider_id] = yaml.load(machineClass.value?.spec.auto_provision?.provider_data) as Record<string, any>;
+      providerConfigs.value[machineClass.value.spec.auto_provision.provider_id] = yaml.load(machineClass.value?.spec.auto_provision?.provider_data) as Record<string, any>;
     }
 
     const matchLabels = machineClass.value?.spec?.match_labels;
@@ -478,7 +478,7 @@ const submit = async () => {
       ]
     }
 
-    const providerConfig = providerConfigs[infraProvider.value];
+    const providerConfig = providerConfigs.value[infraProvider.value];
 
     if (providerConfig) {
       machineClass.spec.auto_provision.provider_data = yaml.dump(providerConfig);

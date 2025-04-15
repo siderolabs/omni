@@ -173,12 +173,30 @@ message ReadAuditLogResponse {
   bytes audit_log = 1;
 }
 
+message ValidateJsonSchemaRequest {
+  string data = 1;
+  string schema = 2;
+}
+
+message ValidateJsonSchemaResponse {
+  message Error {
+    repeated Error errors = 1;
+
+    string schema_path = 2;
+    string data_path = 3;
+    string cause = 4;
+  }
+
+  repeated Error errors = 1;
+}
+
 service ManagementService {
   rpc Kubeconfig(KubeconfigRequest) returns (KubeconfigResponse);
   rpc Talosconfig(TalosconfigRequest) returns (TalosconfigResponse);
   rpc Omniconfig(google.protobuf.Empty) returns (OmniconfigResponse);
   rpc MachineLogs(MachineLogsRequest) returns (stream common.Data);
   rpc ValidateConfig(ValidateConfigRequest) returns (google.protobuf.Empty);
+  rpc ValidateJSONSchema(ValidateJsonSchemaRequest) returns (ValidateJsonSchemaResponse);
   rpc CreateServiceAccount(CreateServiceAccountRequest) returns (CreateServiceAccountResponse);
   rpc RenewServiceAccount(RenewServiceAccountRequest) returns (RenewServiceAccountResponse);
   rpc ListServiceAccounts(google.protobuf.Empty) returns (ListServiceAccountsResponse);

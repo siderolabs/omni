@@ -555,6 +555,73 @@ func (m *ReadAuditLogResponse) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
+func (m *ValidateJsonSchemaRequest) CloneVT() *ValidateJsonSchemaRequest {
+	if m == nil {
+		return (*ValidateJsonSchemaRequest)(nil)
+	}
+	r := new(ValidateJsonSchemaRequest)
+	r.Data = m.Data
+	r.Schema = m.Schema
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ValidateJsonSchemaRequest) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *ValidateJsonSchemaResponse_Error) CloneVT() *ValidateJsonSchemaResponse_Error {
+	if m == nil {
+		return (*ValidateJsonSchemaResponse_Error)(nil)
+	}
+	r := new(ValidateJsonSchemaResponse_Error)
+	r.SchemaPath = m.SchemaPath
+	r.DataPath = m.DataPath
+	r.Cause = m.Cause
+	if rhs := m.Errors; rhs != nil {
+		tmpContainer := make([]*ValidateJsonSchemaResponse_Error, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.Errors = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ValidateJsonSchemaResponse_Error) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *ValidateJsonSchemaResponse) CloneVT() *ValidateJsonSchemaResponse {
+	if m == nil {
+		return (*ValidateJsonSchemaResponse)(nil)
+	}
+	r := new(ValidateJsonSchemaResponse)
+	if rhs := m.Errors; rhs != nil {
+		tmpContainer := make([]*ValidateJsonSchemaResponse_Error, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.Errors = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ValidateJsonSchemaResponse) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (this *KubeconfigResponse) EqualVT(that *KubeconfigResponse) bool {
 	if this == that {
 		return true
@@ -1204,6 +1271,103 @@ func (this *ReadAuditLogResponse) EqualVT(that *ReadAuditLogResponse) bool {
 
 func (this *ReadAuditLogResponse) EqualMessageVT(thatMsg proto.Message) bool {
 	that, ok := thatMsg.(*ReadAuditLogResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *ValidateJsonSchemaRequest) EqualVT(that *ValidateJsonSchemaRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Data != that.Data {
+		return false
+	}
+	if this.Schema != that.Schema {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ValidateJsonSchemaRequest) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ValidateJsonSchemaRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *ValidateJsonSchemaResponse_Error) EqualVT(that *ValidateJsonSchemaResponse_Error) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.Errors) != len(that.Errors) {
+		return false
+	}
+	for i, vx := range this.Errors {
+		vy := that.Errors[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &ValidateJsonSchemaResponse_Error{}
+			}
+			if q == nil {
+				q = &ValidateJsonSchemaResponse_Error{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if this.SchemaPath != that.SchemaPath {
+		return false
+	}
+	if this.DataPath != that.DataPath {
+		return false
+	}
+	if this.Cause != that.Cause {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ValidateJsonSchemaResponse_Error) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ValidateJsonSchemaResponse_Error)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *ValidateJsonSchemaResponse) EqualVT(that *ValidateJsonSchemaResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.Errors) != len(that.Errors) {
+		return false
+	}
+	for i, vx := range this.Errors {
+		vy := that.Errors[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &ValidateJsonSchemaResponse_Error{}
+			}
+			if q == nil {
+				q = &ValidateJsonSchemaResponse_Error{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ValidateJsonSchemaResponse) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ValidateJsonSchemaResponse)
 	if !ok {
 		return false
 	}
@@ -2552,6 +2716,164 @@ func (m *ReadAuditLogResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	return len(dAtA) - i, nil
 }
 
+func (m *ValidateJsonSchemaRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ValidateJsonSchemaRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ValidateJsonSchemaRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Schema) > 0 {
+		i -= len(m.Schema)
+		copy(dAtA[i:], m.Schema)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Schema)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Data) > 0 {
+		i -= len(m.Data)
+		copy(dAtA[i:], m.Data)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Data)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ValidateJsonSchemaResponse_Error) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ValidateJsonSchemaResponse_Error) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ValidateJsonSchemaResponse_Error) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Cause) > 0 {
+		i -= len(m.Cause)
+		copy(dAtA[i:], m.Cause)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Cause)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.DataPath) > 0 {
+		i -= len(m.DataPath)
+		copy(dAtA[i:], m.DataPath)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.DataPath)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.SchemaPath) > 0 {
+		i -= len(m.SchemaPath)
+		copy(dAtA[i:], m.SchemaPath)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.SchemaPath)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Errors) > 0 {
+		for iNdEx := len(m.Errors) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Errors[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ValidateJsonSchemaResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ValidateJsonSchemaResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ValidateJsonSchemaResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Errors) > 0 {
+		for iNdEx := len(m.Errors) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Errors[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *KubeconfigResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -3049,6 +3371,68 @@ func (m *ReadAuditLogResponse) SizeVT() (n int) {
 	l = len(m.AuditLog)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ValidateJsonSchemaRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Data)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Schema)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ValidateJsonSchemaResponse_Error) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Errors) > 0 {
+		for _, e := range m.Errors {
+			l = e.SizeVT()
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	l = len(m.SchemaPath)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.DataPath)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Cause)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ValidateJsonSchemaResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Errors) > 0 {
+		for _, e := range m.Errors {
+			l = e.SizeVT()
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -6220,6 +6604,387 @@ func (m *ReadAuditLogResponse) UnmarshalVT(dAtA []byte) error {
 			m.AuditLog = append(m.AuditLog[:0], dAtA[iNdEx:postIndex]...)
 			if m.AuditLog == nil {
 				m.AuditLog = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ValidateJsonSchemaRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ValidateJsonSchemaRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ValidateJsonSchemaRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Data = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Schema", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Schema = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ValidateJsonSchemaResponse_Error) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ValidateJsonSchemaResponse_Error: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ValidateJsonSchemaResponse_Error: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Errors", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Errors = append(m.Errors, &ValidateJsonSchemaResponse_Error{})
+			if err := m.Errors[len(m.Errors)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SchemaPath", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SchemaPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DataPath", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DataPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Cause", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Cause = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ValidateJsonSchemaResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ValidateJsonSchemaResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ValidateJsonSchemaResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Errors", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Errors = append(m.Errors, &ValidateJsonSchemaResponse_Error{})
+			if err := m.Errors[len(m.Errors)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
 			}
 			iNdEx = postIndex
 		default:

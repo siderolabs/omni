@@ -161,6 +161,22 @@ export type ReadAuditLogResponse = {
   audit_log?: Uint8Array
 }
 
+export type ValidateJsonSchemaRequest = {
+  data?: string
+  schema?: string
+}
+
+export type ValidateJsonSchemaResponseError = {
+  errors?: ValidateJsonSchemaResponseError[]
+  schema_path?: string
+  data_path?: string
+  cause?: string
+}
+
+export type ValidateJsonSchemaResponse = {
+  errors?: ValidateJsonSchemaResponseError[]
+}
+
 export class ManagementService {
   static Kubeconfig(req: KubeconfigRequest, ...options: fm.fetchOption[]): Promise<KubeconfigResponse> {
     return fm.fetchReq<KubeconfigRequest, KubeconfigResponse>("POST", `/management.ManagementService/Kubeconfig`, req, ...options)
@@ -176,6 +192,9 @@ export class ManagementService {
   }
   static ValidateConfig(req: ValidateConfigRequest, ...options: fm.fetchOption[]): Promise<GoogleProtobufEmpty.Empty> {
     return fm.fetchReq<ValidateConfigRequest, GoogleProtobufEmpty.Empty>("POST", `/management.ManagementService/ValidateConfig`, req, ...options)
+  }
+  static ValidateJSONSchema(req: ValidateJsonSchemaRequest, ...options: fm.fetchOption[]): Promise<ValidateJsonSchemaResponse> {
+    return fm.fetchReq<ValidateJsonSchemaRequest, ValidateJsonSchemaResponse>("POST", `/management.ManagementService/ValidateJSONSchema`, req, ...options)
   }
   static CreateServiceAccount(req: CreateServiceAccountRequest, ...options: fm.fetchOption[]): Promise<CreateServiceAccountResponse> {
     return fm.fetchReq<CreateServiceAccountRequest, CreateServiceAccountResponse>("POST", `/management.ManagementService/CreateServiceAccount`, req, ...options)
