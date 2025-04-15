@@ -20,8 +20,13 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 )
 
+type migrationContext struct {
+	migrations       []*migration
+	initialDBVersion uint64
+}
+
 // Callback represents a single migration callback.
-type Callback func(ctx context.Context, state state.State, logger *zap.Logger) error
+type Callback func(ctx context.Context, state state.State, logger *zap.Logger, migrationContext migrationContext) error
 
 type migration struct {
 	callback Callback
@@ -200,8 +205,16 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				name:     "moveEtcdBackupStatuses",
 			},
 			{
-				callback: createVersionContractRevertConfigPatch,
-				name:     "createVersionContractRevertConfigPatch",
+				callback: noopMigration,
+				name:     "oldVersionContractFix",
+			},
+			{
+				callback: dropObsoleteConfigPatches,
+				name:     "dropObsoleteConfigPatches",
+			},
+			{
+				callback: markVersionContract,
+				name:     "markVersionContract",
 			},
 		},
 	}
@@ -293,7 +306,10 @@ func (m *Manager) Run(ctx context.Context, opt ...Option) error {
 
 		mLogger.Info("running migration")
 
-		if err = mig.callback(ctx, m.state, mLogger); err != nil {
+		if err = mig.callback(ctx, m.state, mLogger, migrationContext{
+			initialDBVersion: currentVersion,
+			migrations:       m.migrations,
+		}); err != nil {
 			return fmt.Errorf("migration %s failed: %w", mig.name, err)
 		}
 

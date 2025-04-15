@@ -10,7 +10,6 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -1799,7 +1798,76 @@ func (suite *MigrationSuite) TestMoveEtcdBackupStatuses() {
 	suite.Equal("e", overallStatus.TypedSpec().Value.ConfigurationError)
 }
 
-func (suite *MigrationSuite) TestCreateVersionContractRevertConfigPatch() {
+func (suite *MigrationSuite) TestDropObsoleteConfigPatches() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	cluster := "cluster-a"
+	machine := uuid.NewString()
+
+	obsoleteConfigPatch := omni.NewConfigPatch(
+		resources.DefaultNamespace,
+		"000-23f15aa7-07da-4ba1-8d9a-b42541547ce7-preserve-version-contract",
+		pair.MakePair(omni.LabelCluster, cluster),
+		pair.MakePair(omni.LabelClusterMachine, machine),
+	)
+
+	normalConfigPatch := omni.NewConfigPatch(
+		resources.DefaultNamespace,
+		"000-23f15aa7-07da-4ba1-8d9a-b42541547cee",
+		pair.MakePair(omni.LabelCluster, cluster),
+		pair.MakePair(omni.LabelClusterMachine, machine),
+	)
+
+	obsoleteConfigPatch.Metadata().Annotations().Set(omni.ConfigPatchDescription, migration.ContractFixConfigPatch)
+
+	suite.Require().NoError(suite.state.Create(ctx, obsoleteConfigPatch))
+	suite.Require().NoError(suite.state.Create(ctx, normalConfigPatch))
+
+	version := system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
+	version.TypedSpec().Value.Version = 39
+
+	suite.Require().NoError(suite.state.Create(ctx, version))
+
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("dropObsoleteConfigPatches"))))
+
+	_, err := safe.StateGet[*omni.ConfigPatch](ctx, suite.state, obsoleteConfigPatch.Metadata())
+	suite.Assert().True(state.IsNotFoundError(err))
+
+	_, err = safe.StateGet[*omni.ConfigPatch](ctx, suite.state, normalConfigPatch.Metadata())
+	suite.Assert().NoError(err)
+}
+
+func (suite *MigrationSuite) TestDropObsoleteConfigPatchesSkipped() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	cluster := "cluster-a"
+	machine := uuid.NewString()
+
+	obsoleteConfigPatch := omni.NewConfigPatch(
+		resources.DefaultNamespace,
+		"000-23f15aa7-07da-4ba1-8d9a-b42541547ce7-preserve-version-contract",
+		pair.MakePair(omni.LabelCluster, cluster),
+		pair.MakePair(omni.LabelClusterMachine, machine),
+	)
+
+	obsoleteConfigPatch.Metadata().Annotations().Set(omni.ConfigPatchDescription, migration.ContractFixConfigPatch)
+
+	suite.Require().NoError(suite.state.Create(ctx, obsoleteConfigPatch))
+
+	version := system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
+	version.TypedSpec().Value.Version = 38
+
+	suite.Require().NoError(suite.state.Create(ctx, version))
+
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("dropObsoleteConfigPatches"))))
+
+	_, err := safe.StateGet[*omni.ConfigPatch](ctx, suite.state, obsoleteConfigPatch.Metadata())
+	suite.Assert().NoError(err)
+}
+
+func (suite *MigrationSuite) TestMarkVersionContract() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
@@ -1902,6 +1970,25 @@ func (suite *MigrationSuite) TestCreateVersionContractRevertConfigPatch() {
 	cluster14configStatus4 := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "cluster-14-machine-4")
 	cluster14configStatus4.TypedSpec().Value.ClusterMachineConfigVersion = "0" // mark the v0 to be applied, but v1 was not applied
 
+	machineSetStatusControllerName := omnictrl.NewMachineSetStatusController().ControllerName
+
+	cluster12machine1 := omni.NewClusterMachine(resources.DefaultNamespace, cluster12config1.Metadata().ID())
+	cluster12machine2 := omni.NewClusterMachine(resources.DefaultNamespace, cluster12config2.Metadata().ID())
+	cluster12machine3 := omni.NewClusterMachine(resources.DefaultNamespace, cluster12config3.Metadata().ID())
+
+	cluster14machine1 := omni.NewClusterMachine(resources.DefaultNamespace, cluster14config1.Metadata().ID())
+	cluster14machine2 := omni.NewClusterMachine(resources.DefaultNamespace, cluster14config2.Metadata().ID())
+	cluster14machine3 := omni.NewClusterMachine(resources.DefaultNamespace, cluster14config3.Metadata().ID())
+	cluster14machine4 := omni.NewClusterMachine(resources.DefaultNamespace, cluster14config4.Metadata().ID())
+
+	suite.Require().NoError(suite.state.Create(ctx, cluster12machine1, state.WithCreateOwner(machineSetStatusControllerName)))
+	suite.Require().NoError(suite.state.Create(ctx, cluster12machine2, state.WithCreateOwner(machineSetStatusControllerName)))
+	suite.Require().NoError(suite.state.Create(ctx, cluster12machine3, state.WithCreateOwner(machineSetStatusControllerName)))
+	suite.Require().NoError(suite.state.Create(ctx, cluster14machine1, state.WithCreateOwner(machineSetStatusControllerName)))
+	suite.Require().NoError(suite.state.Create(ctx, cluster14machine2, state.WithCreateOwner(machineSetStatusControllerName)))
+	suite.Require().NoError(suite.state.Create(ctx, cluster14machine3, state.WithCreateOwner(machineSetStatusControllerName)))
+	suite.Require().NoError(suite.state.Create(ctx, cluster14machine4, state.WithCreateOwner(machineSetStatusControllerName)))
+
 	suite.Require().NoError(suite.state.Create(ctx, clusterConfigVersion12))
 	suite.Require().NoError(suite.state.Create(ctx, clusterConfigVersion14))
 
@@ -1924,57 +2011,36 @@ func (suite *MigrationSuite) TestCreateVersionContractRevertConfigPatch() {
 	_, err := suite.state.Teardown(ctx, cluster14config3.Metadata())
 	suite.Require().NoError(err)
 
-	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("createVersionContractRevertConfigPatch"))))
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("markVersionContract"))))
 
-	patchList, err := safe.StateListAll[*omni.ConfigPatch](ctx, suite.state)
+	clusterMachines, err := safe.StateListAll[*omni.ClusterMachine](ctx, suite.state)
 	suite.Require().NoError(err)
 
-	suite.Require().Equal(3, patchList.Len(), "there should be 3 config patches")
+	var updatedCount int
 
-	assertPatch := func(machine *omni.ClusterMachineConfig, expected string) {
-		for patch := range patchList.All() {
-			cm, _ := patch.Metadata().Labels().Get(omni.LabelClusterMachine)
-			if cm == machine.Metadata().ID() {
-				suite.True(strings.HasPrefix(patch.Metadata().ID(), "000-"))
-				suite.True(strings.HasSuffix(patch.Metadata().ID(), "-preserve-version-contract"))
+	for clusterMachine := range clusterMachines.All() {
+		_, preserveApidCheckExtKeyUsage := clusterMachine.Metadata().Annotations().Get(omni.PreserveApidCheckExtKeyUsage)
+		_, preserveDiskQuotaSupport := clusterMachine.Metadata().Annotations().Get(omni.PreserveDiskQuotaSupport)
 
-				buf, err := patch.TypedSpec().Value.GetUncompressedData()
-				suite.Require().NoError(err)
+		if preserveDiskQuotaSupport || preserveApidCheckExtKeyUsage {
+			updatedCount++
+		}
 
-				dataBytes := slices.Clone(buf.Data())
+		if clusterMachine.Metadata().ID() == cluster12config1.Metadata().ID() {
+			suite.Assert().True(preserveApidCheckExtKeyUsage)
+		}
 
-				buf.Free()
+		if clusterMachine.Metadata().ID() == cluster12config3.Metadata().ID() {
+			suite.Assert().True(preserveApidCheckExtKeyUsage)
+			suite.Assert().True(preserveDiskQuotaSupport)
+		}
 
-				suite.Require().NoError(omni.ValidateConfigPatch(dataBytes))
-				suite.Equal(expected, string(dataBytes))
-
-				name, ok := patch.Metadata().Annotations().Get(omni.ConfigPatchName)
-				suite.Require().True(ok)
-				suite.Equal(name, "preserve updated cluster features to prevent an unwanted reboot")
-
-				description, ok := patch.Metadata().Annotations().Get(omni.ConfigPatchDescription)
-				suite.Require().True(ok)
-				suite.Equal(description, "Preserves the updated cluster features due to the version contract bug. "+
-					"For more info, see: https://github.com/siderolabs/omni/issues/1095.")
-			}
+		if clusterMachine.Metadata().ID() == cluster14config1.Metadata().ID() {
+			suite.Assert().True(preserveDiskQuotaSupport)
 		}
 	}
 
-	assertPatch(cluster12config1, `machine:
-  features:
-    apidCheckExtKeyUsage: true
-`)
-
-	assertPatch(cluster12config3, `machine:
-  features:
-    diskQuotaSupport: true
-    apidCheckExtKeyUsage: true
-`)
-
-	assertPatch(cluster14config2, `machine:
-  features:
-    diskQuotaSupport: true
-`)
+	suite.Require().Equal(3, updatedCount, "there should be 3 machines updated")
 }
 
 func startMigration[

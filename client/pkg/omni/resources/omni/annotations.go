@@ -24,4 +24,12 @@ const (
 	// ConfigPatchDescription human readable patch description.
 	// tsgen:ConfigPatchDescription
 	ConfigPatchDescription = "description"
+
+	// PreserveDiskQuotaSupport marks the cluster machine to alter the config generation for it.
+	// It forces the config patch that enables diskQuotaSupport feature.
+	PreserveDiskQuotaSupport = SystemLabelPrefix + "preserve-disk-quota-support"
+
+	// PreserveApidCheckExtKeyUsage marks the cluster machine to alter the config generation for it.
+	// It forces the config patch that enables apidCheckExtkeyUsage feature.
+	PreserveApidCheckExtKeyUsage = SystemLabelPrefix + "preserve-apid-check-ext-key-usage"
 )
