@@ -1553,8 +1553,8 @@ func dropObsoleteConfigPatches(ctx context.Context, st state.State, logger *zap.
 		return fmt.Errorf("failed to find the old version contract fix migration")
 	}
 
-	if migrationContext.initialDBVersion < uint64(patchMigrationIndex) {
-		logger.Info("nothing to do because of the db version", zap.Uint64("initial_db_version", migrationContext.initialDBVersion), zap.Int("expects_greater_or_equal", patchMigrationIndex))
+	if migrationContext.initialDBVersion <= uint64(patchMigrationIndex) {
+		logger.Info("nothing to do because of the db version", zap.Uint64("initial_db_version", migrationContext.initialDBVersion), zap.Int("expect_greater", patchMigrationIndex))
 
 		return nil
 	}
@@ -1727,7 +1727,7 @@ func markVersionContract(ctx context.Context, st state.State, logger *zap.Logger
 		}
 	}
 
-	logger.Info("created version contract revert config patches",
+	logger.Info("added annotations on the cluster machine to fix the version contract mismatch",
 		zap.Int("num_total_processed", clusterMachineConfigList.Len()),
 		zap.Int("num_config_was_not_applied", numConfigWasNotApplied),
 		zap.Int("num_disk_quota_support_enabled", numDiskQuotaSupportEnabled),

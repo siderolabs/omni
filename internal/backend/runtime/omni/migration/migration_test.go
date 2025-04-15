@@ -1825,7 +1825,7 @@ func (suite *MigrationSuite) TestDropObsoleteConfigPatches() {
 	suite.Require().NoError(suite.state.Create(ctx, normalConfigPatch))
 
 	version := system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
-	version.TypedSpec().Value.Version = 39
+	version.TypedSpec().Value.Version = 40
 
 	suite.Require().NoError(suite.state.Create(ctx, version))
 
@@ -1856,10 +1856,7 @@ func (suite *MigrationSuite) TestDropObsoleteConfigPatchesSkipped() {
 
 	suite.Require().NoError(suite.state.Create(ctx, obsoleteConfigPatch))
 
-	version := system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
-	version.TypedSpec().Value.Version = 38
-
-	suite.Require().NoError(suite.state.Create(ctx, version))
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithMaxVersion(39)))
 
 	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("dropObsoleteConfigPatches"))))
 
