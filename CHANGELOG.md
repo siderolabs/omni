@@ -1,3 +1,31 @@
+## [Omni 0.48.3](https://github.com/siderolabs/omni/releases/tag/v0.48.3) (2025-04-16)
+
+Welcome to the v0.48.3 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>2 commits</summary>
+<p>
+
+* [`7e57fb87`](https://github.com/siderolabs/omni/commit/7e57fb87bf44721da77a8d557942f39f84774f72) fix: properly skip the contract config patch removal migration
+* [`4e008955`](https://github.com/siderolabs/omni/commit/4e0089550f43e2e888bfbf981ee73c1b1b4bf945) fix: add annotations on the `ClusterMachines` to force enable features
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.48.2](https://github.com/siderolabs/omni/releases/tag/v0.48.2)
+
 ## [Omni 0.48.2](https://github.com/siderolabs/omni/releases/tag/v0.48.2) (2025-04-15)
 
 Welcome to the v0.48.2 release of Omni!  
