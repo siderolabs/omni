@@ -240,6 +240,10 @@ func (h *HTTPHandler) redirectToLogin(writer http.ResponseWriter, request *http.
 
 	loginURL.RawQuery = q.Encode()
 
+	h.logger.Info("redirect workload proxy request to login",
+		zap.Stringer("request_url", request.URL),
+		zap.Stringer("login_url", loginURL))
+
 	http.Redirect(writer, request, loginURL.String(), http.StatusSeeOther)
 }
 

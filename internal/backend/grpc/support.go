@@ -310,6 +310,10 @@ func (s *managementServer) collectClusterResources(ctx context.Context, cluster 
 			rt:          omni.ExtensionsConfigurationType,
 			listOptions: clusterQuery,
 		},
+		{
+			rt:          omni.ExposedServiceType,
+			listOptions: clusterQuery,
+		},
 	}
 
 	machineIDs := map[string]struct{}{}
