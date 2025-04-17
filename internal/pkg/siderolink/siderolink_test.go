@@ -153,6 +153,8 @@ func (suite *SiderolinkSuite) SetupTest() {
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewLinkStatusController[*siderolink.PendingMachine](peers)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewLinkStatusController[*siderolink.Link](peers)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewConnectionParamsController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewJoinTokenStatusController()))
 
 	go func() {
 		defer suite.wg.Done()
@@ -205,7 +207,7 @@ func (suite *SiderolinkSuite) TestNodes() {
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{
 		siderolink.ConfigID,
 	}, func(r *siderolink.Config, assertion *assert.Assertions) {
-		assertion.NotEmpty(r.TypedSpec().Value.JoinToken)
+		assertion.NotEmpty(r.TypedSpec().Value.InitialJoinToken)
 		assertion.NotEmpty(r.TypedSpec().Value.PrivateKey)
 		assertion.NotEmpty(r.TypedSpec().Value.PublicKey)
 	})
@@ -333,7 +335,7 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{
 		siderolink.ConfigID,
 	}, func(r *siderolink.Config, assertion *assert.Assertions) {
-		assertion.NotEmpty(r.TypedSpec().Value.JoinToken)
+		assertion.NotEmpty(r.TypedSpec().Value.InitialJoinToken)
 		assertion.NotEmpty(r.TypedSpec().Value.PrivateKey)
 		assertion.NotEmpty(r.TypedSpec().Value.PublicKey)
 	})

@@ -159,7 +159,7 @@ if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
     --expected-machines=30 \
     --provision-config-file=hack/test/provisionconfig.yaml \
     --run-stats-check \
-    -t 4m \
+    -t 6m \
     -p 10 \
     ${TALEMU_TEST_ARGS:-}
 

@@ -18,6 +18,8 @@ var UserManagedResourceTypes = []resource.Type{
 	authres.UserType,
 	authres.AccessPolicyType,
 	authres.SAMLLabelRuleType,
+	authres.JoinTokenType,
+	authres.DefaultJoinTokenType,
 	omni.ClusterType,
 	omni.ConfigPatchType,
 	omni.EtcdManualBackupType,
