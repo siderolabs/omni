@@ -30,4 +30,5 @@ var UserManagedResourceTypes = []resource.Type{
 	omni.MachineRequestSetType,
 	omni.InfraMachineBMCConfigType,
 	omni.InfraMachineConfigType,
+	omni.NodeForceDestroyRequestType,
 }
