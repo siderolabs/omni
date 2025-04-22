@@ -210,7 +210,7 @@ talosVersionsWatch.setup({
   },
 })
 
-const talosVersions = computed(() => talosVersionsResources.value?.map(res => res.metadata.id!));
+const talosVersions = computed(() => talosVersionsResources.value?.map(res => res.metadata.id!).sort(semver.compare));
 
 const selectedOption = ref("");
 const selectedTalosVersion = ref(DefaultTalosVersion);
