@@ -375,6 +375,10 @@ func establishLink[T res](ctx context.Context, logger *zap.Logger, st state.Stat
 
 		link, err = updateResourceWithMatchingToken[T](ctx, logger, st, provisionContext, link, annotationsToAdd, annotationsToRemove)
 		if err != nil {
+			if state.IsPhaseConflictError(err) {
+				return nil, status.Errorf(codes.AlreadyExists, "the machine with the same UUID is already registered in Omni and is in the tearing down phase")
+			}
+
 			return nil, err
 		}
 	}
