@@ -52,7 +52,7 @@ type maintenanceClient struct {
 }
 
 func (c *maintenanceClient) GetMachineConfig(ctx context.Context) (*configres.MachineConfig, error) {
-	machineConfig, err := safe.ReaderGetByID[*configres.MachineConfig](ctx, c.talosClient.COSI, configres.V1Alpha1ID)
+	machineConfig, err := safe.ReaderGetByID[*configres.MachineConfig](ctx, c.talosClient.COSI, configres.ActiveID)
 	if err != nil && !state.IsNotFoundError(err) {
 		return nil, fmt.Errorf("error getting machine config: %w", err)
 	}

@@ -52,7 +52,7 @@ func (rt *runtime) Update(ctx context.Context, r resource.Resource) error {
 }
 
 func (rt *runtime) ModifyWithResult(ctx context.Context, r resource.Resource, f func(resource.Resource) error, _ ...controller.ModifyOption) (resource.Resource, error) {
-	res, err := rt.State.UpdateWithConflicts(ctx, r.Metadata(), f)
+	res, err := rt.UpdateWithConflicts(ctx, r.Metadata(), f)
 	if state.IsNotFoundError(err) {
 		res = r.DeepCopy()
 

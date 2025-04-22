@@ -87,7 +87,7 @@ func (Client) DevMode() bool {
 }
 
 // RestrictAdditionalIdTokenScopes allows specifying which custom scopes shall be asserted into the id_token.
-func (Client) RestrictAdditionalIdTokenScopes() func(scopes []string) []string { //nolint:revive,stylecheck
+func (Client) RestrictAdditionalIdTokenScopes() func(scopes []string) []string { //nolint:revive
 	return func(scopes []string) []string {
 		return scopes
 	}

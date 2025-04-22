@@ -69,7 +69,7 @@ func getTalosconfig(args []string) func(ctx context.Context, client *client.Clie
 		}
 
 		_, err = os.Stat(localPath)
-		if err == nil && !(talosconfigCmdFlags.force || talosconfigCmdFlags.merge) {
+		if err == nil && !talosconfigCmdFlags.force && !talosconfigCmdFlags.merge {
 			return fmt.Errorf("talosconfig file already exists, use --force to overwrite: %q", localPath)
 		} else if err != nil {
 			if os.IsNotExist(err) {

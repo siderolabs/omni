@@ -51,8 +51,13 @@ import (
 )
 
 //go:generate mockgen -destination=etcd_backup_mock_1_test.go -package omni_test -typed -copyright_file ../../../../../../hack/.license-header.go.txt . TalosClient
+//go:generate sed -i "s#// //#//#g" etcd_backup_mock_1_test.go
+
 //go:generate mockgen -destination=etcd_backup_mock_2_test.go -package omni_test -typed -copyright_file ../../../../../../hack/.license-header.go.txt github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store Factory
+//go:generate sed -i "s#// //#//#g" etcd_backup_mock_2_test.go
+
 //go:generate mockgen -destination=etcd_backup_mock_3_test.go -package omni_test -typed -copyright_file ../../../../../../hack/.license-header.go.txt github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup Store
+//go:generate sed -i "s#// //#//#g" etcd_backup_mock_3_test.go
 
 func TestEtcdBackupControllerSuite(t *testing.T) {
 	t.Parallel()
@@ -80,9 +85,9 @@ func (suite *EtcdBackupControllerSuite) register2(ctrl controller.Controller, er
 }
 
 func (suite *EtcdBackupControllerSuite) SetupTest() {
-	suite.OmniSuite.ctx, suite.OmniSuite.ctxCancel = context.WithCancel(context.Background()) //nolint:fatcontext
+	suite.ctx, suite.ctxCancel = context.WithCancel(context.Background())
 
-	suite.OmniSuite.disableConnections = true
+	suite.disableConnections = true
 
 	suite.OmniSuite.SetupTest()
 

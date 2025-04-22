@@ -87,7 +87,7 @@ func TestUserInfo(t *testing.T) {
 				"id-2837ca5976dd42731472c4d4da0c953603232b9f",
 				"id-3809fc8de18772f24b29629342ea4b91d6a5cadc",
 				"id-ebe26e0275903436e5a2c334d90f3e953985fd75",
-			})
+			}, *rootURL)
 			require.NoError(t, err)
 
 			user, err := saml.LocateUserInfo(assertion)

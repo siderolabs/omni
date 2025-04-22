@@ -13,6 +13,7 @@ import (
 
 type ReaderLimiter = readerLimiter
 
+//nolint:revive
 func NewReaderLimiter(rdr io.ReadCloser, l *rate.Limiter) *ReaderLimiter {
 	return &readerLimiter{rdr: rdr, l: l}
 }

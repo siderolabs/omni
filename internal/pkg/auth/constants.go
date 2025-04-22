@@ -9,7 +9,7 @@ import "github.com/siderolabs/go-api-signature/pkg/message"
 
 // These constants here are declared only for tsgen.
 //
-//nolint:deadcode,unused,varcheck
+//nolint:unused
 const (
 	// tsgen:SignatureHeaderKey
 	signatureHeaderKey = message.SignatureHeaderKey

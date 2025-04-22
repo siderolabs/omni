@@ -51,9 +51,10 @@ func Handler(next http.Handler, level int) http.Handler {
 
 		var encWriter writerFlusherCloser
 
-		if encoding == gzipEncoding {
+		switch encoding {
+		case gzipEncoding:
 			encWriter, _ = gzip.NewWriterLevel(w, level) //nolint:errcheck
-		} else if encoding == flateEncoding {
+		case flateEncoding:
 			encWriter, _ = flate.NewWriter(w, level) //nolint:errcheck
 		}
 

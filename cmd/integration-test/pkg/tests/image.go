@@ -38,12 +38,12 @@ func AssertSomeImagesAreDownloadable(testCtx context.Context, client *client.Cli
 		for val := range media.All() {
 			spec := val.TypedSpec().Value
 
-			switch {
-			case spec.Profile == constants.BoardRPiGeneric:
+			switch spec.Profile {
+			case constants.BoardRPiGeneric:
 				fallthrough
-			case spec.Profile == "aws":
+			case "aws":
 				fallthrough
-			case spec.Profile == "iso":
+			case "iso":
 				images = append(images, val)
 			}
 		}

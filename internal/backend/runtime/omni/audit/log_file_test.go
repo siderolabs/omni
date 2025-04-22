@@ -35,7 +35,7 @@ func TestLogFile_CurrentDay(t *testing.T) {
 		{shift: 30 * time.Minute, data: makeAuditData("Mozilla/5.0", "10.10.0.3", "random_email3@example.com")},
 	}
 
-	start := time.Date(2012, 1, 1, 23, 0, 0, 0, time.Local)
+	start := time.Date(2012, 1, 1, 23, 0, 0, 0, time.Local) //nolint:gosmopolitan
 	now := start
 	file := audit.NewLogFile(dir)
 
@@ -65,7 +65,7 @@ func TestLogFile_CurrentAndNewDay(t *testing.T) {
 		{shift: 5 * time.Minute, data: makeAuditData("Mozilla/5.0", "10.10.0.3", "random_email3@example.com")},
 	}
 
-	start := time.Date(2012, 1, 1, 23, 0, 0, 0, time.Local)
+	start := time.Date(2012, 1, 1, 23, 0, 0, 0, time.Local) //nolint:gosmopolitan
 	now := start
 	file := audit.NewLogFile(dir)
 
@@ -98,7 +98,7 @@ func TestLogFile_CurrentDayConcurrent(t *testing.T) {
 		entries = append(entries, entry{shift: time.Second, data: makeAuditData("Mozilla/5.0", address, email)})
 	}
 
-	start := time.Date(2012, 1, 1, 23, 0, 0, 0, time.Local)
+	start := time.Date(2012, 1, 1, 23, 0, 0, 0, time.Local) //nolint:gosmopolitan
 	now := start
 	file := audit.NewLogFile(dir)
 
@@ -202,7 +202,7 @@ func TestStreamLogFiles(t *testing.T) {
 
 	var builder strings.Builder
 
-	at := time.Date(2012, 1, 30, 0, 0, 0, 0, time.Local)
+	at := time.Date(2012, 1, 30, 0, 0, 0, 0, time.Local) //nolint:gosmopolitan
 
 	_, err := io.Copy(&builder, must.Value(audit.NewLogFile(fullpath).ReadAuditLog30Days(at))(t))
 	require.NoError(t, err)

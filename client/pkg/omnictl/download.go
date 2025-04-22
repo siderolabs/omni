@@ -429,7 +429,7 @@ func getSigner() (identity string, signer message.Signer, err error) {
 
 	key, keyErr := provider.ReadValidKey(contextName, configCtx.Auth.SideroV1.Identity)
 	if keyErr != nil {
-		return "", nil, fmt.Errorf("failed to read key: %w", err)
+		return "", nil, fmt.Errorf("failed to read key: %w", keyErr)
 	}
 
 	return configCtx.Auth.SideroV1.Identity, key, nil

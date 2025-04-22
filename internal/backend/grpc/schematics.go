@@ -102,7 +102,7 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 	if media.TypedSpec().Value.Overlay != "" && supportsOverlays {
 		var overlays []client.OverlayInfo
 
-		overlays, err = s.imageFactoryClient.Client.OverlaysVersions(ctx, request.TalosVersion)
+		overlays, err = s.imageFactoryClient.OverlaysVersions(ctx, request.TalosVersion)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get overlays list for the Talos version: %w", err)
 		}

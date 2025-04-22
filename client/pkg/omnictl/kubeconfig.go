@@ -105,7 +105,7 @@ func getKubeconfig(args []string) func(ctx context.Context, client *client.Clien
 		}
 
 		_, err = os.Stat(localPath)
-		if err == nil && !(kubeconfigCmdFlags.force || kubeconfigCmdFlags.merge) {
+		if err == nil && !kubeconfigCmdFlags.force && !kubeconfigCmdFlags.merge {
 			return fmt.Errorf("kubeconfig file already exists, use --force to overwrite: %q", localPath)
 		} else if err != nil {
 			if os.IsNotExist(err) {

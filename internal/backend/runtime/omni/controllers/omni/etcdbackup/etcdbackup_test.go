@@ -16,7 +16,7 @@ import (
 )
 
 func TestParseSnapshotName(t *testing.T) {
-	date := time.Date(2012, 1, 1, 12, 0, 0, 0, time.UTC).In(time.Local)
+	date := time.Date(2012, 1, 1, 12, 0, 0, 0, time.UTC).In(time.Local) //nolint:gosmopolitan
 	name := etcdbackup.CreateSnapshotName(date)
 	require.EqualValues(t, "FFFFFFFFB0FFB540.snapshot", name)
 

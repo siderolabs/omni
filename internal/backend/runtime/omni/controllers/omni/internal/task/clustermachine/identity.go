@@ -263,7 +263,7 @@ func (spec IdentityCollectorTaskSpec) getEtcdMemberID(ctx context.Context, clien
 
 	defer etcdClient.Close() //nolint:errcheck
 
-	members, err := etcdClient.Cluster.MemberList(ctx)
+	members, err := etcdClient.MemberList(ctx)
 	if err != nil {
 		return 0, err
 	}

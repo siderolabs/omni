@@ -117,13 +117,13 @@ func TestParseQuery(t *testing.T) {
 			},
 		},
 		{
-			query: "a >= 㰀㰀",
+			query: "a >= 㰀㰀", //nolint:gosmopolitan
 			expected: &resource.LabelQuery{
 				Terms: []resource.LabelTerm{
 					{
 						Key:    "a",
 						Op:     resource.LabelOpLTNumeric,
-						Value:  []string{"㰀㰀"},
+						Value:  []string{"㰀㰀"}, //nolint:gosmopolitan
 						Invert: true,
 					},
 				},

@@ -207,7 +207,7 @@ func (b *BasicResponse) Match(searchFor string) bool {
 
 // String implements fmt.Stringer.
 func (b *BasicResponse) String() string {
-	return fmt.Sprintf("{id=%q, namespace=%q, event_type=%q, total=%d}", b.BasicItem.id, b.BasicItem.ns, EventType(b), b.Unwrap().GetTotal())
+	return fmt.Sprintf("{id=%q, namespace=%q, event_type=%q, total=%d}", b.id, b.ns, EventType(b), b.Unwrap().GetTotal())
 }
 
 // MakeBasicItem creates a new basic item.

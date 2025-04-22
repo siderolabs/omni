@@ -32,6 +32,7 @@ func TestTruncateToDate(t *testing.T) {
 	require.Equal(t, "2012-01-01", truncated.Format("2006-01-02"))
 }
 
+//nolint:gosmopolitan
 func TestFindOldFiles(t *testing.T) {
 	mapFS := fstest.MapFS{
 		"logdir/2011-12-31.jsonlog": &fstest.MapFile{

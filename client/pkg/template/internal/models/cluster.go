@@ -181,7 +181,7 @@ func (cluster *Cluster) Translate(ctx TranslateContext) ([]resource.Resource, er
 
 	resourceList := append([]resource.Resource{clusterResource}, patches...)
 
-	schematicConfigurations := cluster.SystemExtensions.translate(
+	schematicConfigurations := cluster.translate(
 		ctx,
 		cluster.Name,
 	)

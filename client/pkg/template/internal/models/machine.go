@@ -140,7 +140,7 @@ func (machine *Machine) Translate(ctx TranslateContext) ([]resource.Resource, er
 
 	resourceList = append(resourceList, patches...)
 
-	schematicConfigurations := machine.SystemExtensions.translate(
+	schematicConfigurations := machine.translate(
 		ctx,
 		string(machine.Name),
 		pair.MakePair(omni.LabelClusterMachine, string(machine.Name)),

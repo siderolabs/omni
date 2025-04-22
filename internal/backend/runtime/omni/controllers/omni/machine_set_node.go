@@ -238,8 +238,8 @@ func (ctrl *MachineSetNodeController) getMachineAllocation(ctx context.Context, 
 
 	var manualAllocation bool
 
-	switch {
-	case machineAllocation.Source == specs.MachineSetSpec_MachineAllocation_MachineClass:
+	switch machineAllocation.Source {
+	case specs.MachineSetSpec_MachineAllocation_MachineClass:
 		machineClass, err := safe.ReaderGet[*omni.MachineClass](ctx, r, omni.NewMachineClass(resources.DefaultNamespace, machineAllocation.Name).Metadata())
 		if err != nil {
 			return nil, err
@@ -265,7 +265,7 @@ func (ctrl *MachineSetNodeController) getMachineAllocation(ctx context.Context, 
 		}
 
 		manualAllocation = true
-	case machineAllocation.Source == specs.MachineSetSpec_MachineAllocation_MachineRequestSet:
+	case specs.MachineSetSpec_MachineAllocation_MachineRequestSet:
 		selectors = append(selectors, resource.LabelQuery{
 			Terms: []resource.LabelTerm{
 				{

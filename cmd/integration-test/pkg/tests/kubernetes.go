@@ -482,11 +482,11 @@ func AssertKubernetesDeploymentHasRunningPods(ctx context.Context, managementCli
 				return
 			}
 
-			if deployment.Spec.Template.ObjectMeta.Annotations == nil {
-				deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{}
+			if deployment.Spec.Template.Annotations == nil {
+				deployment.Spec.Template.Annotations = map[string]string{}
 			}
 
-			deployment.Spec.Template.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
+			deployment.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
 
 			if _, err = deps.Update(ctx, deployment, metav1.UpdateOptions{}); !assert.NoError(collect, err) {
 				t.Logf("failed to update deployment %q/%q: %q", ns, name, err)
