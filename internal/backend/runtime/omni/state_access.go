@@ -76,6 +76,7 @@ var (
 		omni.MachineExtensionsType,
 		omni.ExtensionsConfigurationStatusType,
 		omni.NodeForceDestroyRequestType, // cluster label is not strictly required to be present on this resource, except when the cluster access is granted via ACLs
+		omni.DiscoveryAffiliateDeleteTaskType,
 	})
 
 	// userManagedResourceTypeSet is the set of resource types that are managed by the user.
@@ -382,6 +383,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.ClusterTaintType,
 		omni.ConfigPatchType,
 		omni.ControlPlaneStatusType,
+		omni.DiscoveryAffiliateDeleteTaskType,
 		omni.KubernetesNodeAuditResultType,
 		omni.ExposedServiceType,
 		omni.EtcdBackupType,
@@ -533,6 +535,7 @@ func filterAccessByType(access state.Access) error {
 		omni.ClusterUUIDType,
 		omni.ClusterWorkloadProxyStatusType,
 		omni.ControlPlaneStatusType,
+		omni.DiscoveryAffiliateDeleteTaskType,
 		omni.KubernetesNodeAuditResultType,
 		omni.ExposedServiceType,
 		omni.EtcdBackupType,

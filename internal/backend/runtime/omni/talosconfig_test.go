@@ -38,11 +38,11 @@ func TestOperatorTalosconfig(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 	clientFactory := talos.NewClientFactory(st, logger)
 	dnsService := dns.NewService(st, logger)
-	discoveryServiceClient := &discoveryClientMock{}
+	discoveryClientCache := &discoveryClientCacheMock{}
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zapcore.InfoLevel)
 
 	r, err := omniruntime.New(clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil, nil,
-		st, nil, prometheus.NewRegistry(), discoveryServiceClient, nil, logger)
+		st, nil, prometheus.NewRegistry(), discoveryClientCache, logger)
 
 	require.NoError(t, err)
 

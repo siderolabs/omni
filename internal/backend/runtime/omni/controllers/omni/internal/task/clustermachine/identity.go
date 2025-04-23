@@ -28,6 +28,7 @@ import (
 	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/resources/cluster"
+	"github.com/siderolabs/talos/pkg/machinery/resources/config"
 	"github.com/siderolabs/talos/pkg/machinery/resources/etcd"
 	"github.com/siderolabs/talos/pkg/machinery/resources/k8s"
 	"github.com/siderolabs/talos/pkg/machinery/resources/secrets"
@@ -101,7 +102,7 @@ func (spec IdentityCollectorTaskSpec) Equal(other IdentityCollectorTaskSpec) boo
 
 // RunTask runs the identity collector task.
 //
-//nolint:gocyclo,cyclop
+//nolint:gocyclo,cyclop,gocognit
 func (spec IdentityCollectorTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, notify IdentityCollectorChan) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -145,6 +146,7 @@ func (spec IdentityCollectorTaskSpec) RunTask(ctx context.Context, logger *zap.L
 		cluster.NewIdentity(cluster.NamespaceName, cluster.LocalIdentity),
 		k8s.NewNodename(k8s.NamespaceName, k8s.NodenameID),
 		k8s.NewNodeIP(k8s.NamespaceName, k8s.KubeletID),
+		cluster.NewConfig(config.NamespaceName, cluster.ConfigID),
 	}
 
 	if spec.isControlPlane && !runLegacyEtcdMemberIDCollector {
@@ -184,6 +186,21 @@ func (spec IdentityCollectorTaskSpec) RunTask(ctx context.Context, logger *zap.L
 				switch r := event.Resource.(type) {
 				case *cluster.Identity:
 					clusterMachineIdentity.TypedSpec().Value.NodeIdentity = r.TypedSpec().NodeID
+				case *cluster.Config:
+					discoveryServiceEnabled := r.TypedSpec().DiscoveryEnabled &&
+						r.TypedSpec().RegistryServiceEnabled &&
+						r.TypedSpec().ServiceEndpoint != ""
+
+					if discoveryServiceEnabled {
+						protocol := "https://"
+						if r.TypedSpec().ServiceEndpointInsecure {
+							protocol = "http://"
+						}
+
+						clusterMachineIdentity.TypedSpec().Value.DiscoveryServiceEndpoint = protocol + r.TypedSpec().ServiceEndpoint
+					} else {
+						clusterMachineIdentity.TypedSpec().Value.DiscoveryServiceEndpoint = ""
+					}
 				case *k8s.Nodename:
 					clusterMachineIdentity.TypedSpec().Value.Nodename = r.TypedSpec().Nodename
 				case *k8s.NodeIP:

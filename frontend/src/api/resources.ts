@@ -96,6 +96,7 @@ export const ClusterUUIDType = "ClusterUUIDs.omni.sidero.dev";
 export const ClusterWorkloadProxyStatusType = "ClusterWorkloadProxyStatuses.omni.sidero.dev";
 export const ConfigPatchType = "ConfigPatches.omni.sidero.dev";
 export const ControlPlaneStatusType = "ControlPlaneStatuses.omni.sidero.dev";
+export const DiscoveryAffiliateDeleteTaskType = "DiscoveryAffiliateDeleteTasks.omni.sidero.dev";
 export const EtcdBackupType = "EtcdBackups.omni.sidero.dev";
 export const EtcdBackupStoreStatusID = "etcdbackup-store-status";
 export const EtcdBackupStoreStatusType = "EtcdBackupStoreStatuses.omni.sidero.dev";

@@ -157,7 +157,6 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-//nolint:gocognit
 func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtual.State) error {
 	return func(ctx context.Context, resourceState state.State, virtualState *virtual.State) error {
 		auditWrap, auditErr := omni.NewAuditWrap(resourceState, config.Config, logger)
@@ -194,37 +193,14 @@ func runWithState(logger *zap.Logger) func(context.Context, state.State, *virtua
 		siderolinkEventsCh := make(chan *omnires.MachineStatusSnapshot)
 		installEventCh := make(chan resource.ID)
 
-		defaultDiscoveryClient, err := discovery.NewClient(discovery.Options{
-			UseEmbeddedDiscoveryService: false,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create default discovery client: %w", err)
-		}
+		discoveryClientCache := discovery.NewClientCache(logger.With(logging.Component("discovery_client_factory")))
+		defer discoveryClientCache.Close()
 
-		var embeddedDiscoveryClient *discovery.Client
-
-		if config.Config.EmbeddedDiscoveryService.Enabled {
-			if embeddedDiscoveryClient, err = discovery.NewClient(discovery.Options{
-				UseEmbeddedDiscoveryService:  true,
-				EmbeddedDiscoveryServicePort: config.Config.EmbeddedDiscoveryService.Port,
-			}); err != nil {
-				return fmt.Errorf("failed to create embedded discovery client: %w", err)
-			}
-		}
-
-		defer func() {
-			if closeErr := defaultDiscoveryClient.Close(); closeErr != nil {
-				logger.Error("failed to close discovery client", zap.Error(closeErr))
-			}
-
-			if embeddedDiscoveryClient != nil {
-				embeddedDiscoveryClient.Close() //nolint:errcheck
-			}
-		}()
+		prometheus.MustRegister(discoveryClientCache)
 
 		omniRuntime, err := omni.New(talosClientFactory, dnsService, workloadProxyReconciler, resourceLogger,
 			imageFactoryClient, linkCounterDeltaCh, siderolinkEventsCh, installEventCh, resourceState, virtualState,
-			prometheus.DefaultRegisterer, defaultDiscoveryClient, embeddedDiscoveryClient, logger.With(logging.Component("omni_runtime")))
+			prometheus.DefaultRegisterer, discoveryClientCache, logger.With(logging.Component("omni_runtime")))
 		if err != nil {
 			return fmt.Errorf("failed to set up the controller runtime: %w", err)
 		}

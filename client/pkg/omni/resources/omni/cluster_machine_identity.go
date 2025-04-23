@@ -43,6 +43,27 @@ func (ClusterMachineIdentityExtension) ResourceDefinition() meta.ResourceDefinit
 		Type:             ClusterMachineIdentityType,
 		Aliases:          []resource.Type{},
 		DefaultNamespace: resources.DefaultNamespace,
-		PrintColumns:     []meta.PrintColumn{},
+		PrintColumns: []meta.PrintColumn{
+			{
+				Name:     "Node Identity",
+				JSONPath: "{.nodeidentity}",
+			},
+			{
+				Name:     "Etcd Member ID",
+				JSONPath: "{.etcdmemberid}",
+			},
+			{
+				Name:     "Node Name",
+				JSONPath: "{.nodename}",
+			},
+			{
+				Name:     "Node IPs",
+				JSONPath: "{.nodeips}",
+			},
+			{
+				Name:     "Discovery Service Endpoint",
+				JSONPath: "{.discoveryserviceendpoint}",
+			},
+		},
 	}
 }

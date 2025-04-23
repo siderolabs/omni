@@ -77,7 +77,7 @@ func (suite *GrpcSuite) SetupTest() {
 	logger := zaptest.NewLogger(suite.T())
 	clientFactory := talos.NewClientFactory(suite.state, logger)
 	dnsService := dns.NewService(suite.state, logger)
-	discoveryServiceClientMock := &discoveryClientMock{}
+	discoveryClientCache := &discoveryClientCacheMock{}
 
 	suite.imageFactory = &imageFactoryMock{}
 
@@ -94,7 +94,7 @@ func (suite *GrpcSuite) SetupTest() {
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zap.InfoLevel)
 
 	suite.runtime, err = omniruntime.New(clientFactory, dnsService, workloadProxyReconciler, nil,
-		imageFactoryClient, nil, nil, nil, suite.state, nil, prometheus.NewRegistry(), discoveryServiceClientMock, nil, logger)
+		imageFactoryClient, nil, nil, nil, suite.state, nil, prometheus.NewRegistry(), discoveryClientCache, logger)
 	suite.Require().NoError(err)
 	runtime.Install(omniruntime.Name, suite.runtime)
 
@@ -335,10 +335,10 @@ func (suite *GrpcSuite) newServer(imageFactoryClient *imagefactory.Client, logge
 	return nil
 }
 
-type discoveryClientMock struct{}
+type discoveryClientCacheMock struct{}
 
 // AffiliateDelete implements the omni.DiscoveryClient interface.
-func (d *discoveryClientMock) AffiliateDelete(context.Context, string, string) error {
+func (d *discoveryClientCacheMock) AffiliateDelete(context.Context, string, string, string) error {
 	return nil
 }
 

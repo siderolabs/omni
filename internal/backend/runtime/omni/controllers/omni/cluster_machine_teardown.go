@@ -21,6 +21,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 )
 
@@ -29,22 +30,12 @@ const ClusterMachineTeardownControllerName = "ClusterMachineTeardownController"
 
 // ClusterMachineTeardownController processes additional teardown steps for a machine leaving a machine set.
 type ClusterMachineTeardownController struct {
-	defaultDiscoveryClient  DiscoveryClient
-	embeddedDiscoveryClient DiscoveryClient
 	generic.NamedController
 }
 
-// DiscoveryClient is an interface for interacting with the discovery service.
-type DiscoveryClient interface {
-	AffiliateDelete(ctx context.Context, cluster, affiliate string) error
-}
-
 // NewClusterMachineTeardownController initializes ClusterMachineTeardownController.
-func NewClusterMachineTeardownController(defaultDiscoveryClient, embeddedDiscoveryClient DiscoveryClient) *ClusterMachineTeardownController {
+func NewClusterMachineTeardownController() *ClusterMachineTeardownController {
 	return &ClusterMachineTeardownController{
-		defaultDiscoveryClient:  defaultDiscoveryClient,
-		embeddedDiscoveryClient: embeddedDiscoveryClient,
-
 		NamedController: generic.NamedController{
 			ControllerName: ClusterMachineTeardownControllerName,
 		},
@@ -67,11 +58,6 @@ func (ctrl *ClusterMachineTeardownController) Settings() controller.QSettings {
 			},
 			{
 				Namespace: resources.DefaultNamespace,
-				Type:      omni.ClusterStatusType,
-				Kind:      controller.InputQMapped,
-			},
-			{
-				Namespace: resources.DefaultNamespace,
 				Type:      omni.ClusterSecretsType,
 				Kind:      controller.InputQMapped,
 			},
@@ -79,6 +65,12 @@ func (ctrl *ClusterMachineTeardownController) Settings() controller.QSettings {
 				Namespace: resources.DefaultNamespace,
 				Type:      omni.ClusterMachineIdentityType,
 				Kind:      controller.InputQMapped,
+			},
+		},
+		Outputs: []controller.Output{
+			{
+				Kind: controller.OutputShared,
+				Type: omni.DiscoveryAffiliateDeleteTaskType,
 			},
 		},
 		Concurrency: optional.Some[uint](4),
@@ -92,9 +84,6 @@ func (ctrl *ClusterMachineTeardownController) MapInput(ctx context.Context, logg
 		mapper := mappers.MapByClusterLabel[*omni.Cluster, *omni.ClusterMachine]()
 
 		return mapper(ctx, logger, r, omni.NewCluster(ptr.Namespace(), ptr.ID()))
-	case omni.ClusterStatusType:
-		// do not map to any IDs - we only want to be able to read ClusterStatus in this controller, not to get triggered on its changes
-		return nil, nil
 	case omni.ClusterMachineIdentityType:
 		mapper := qtransform.MapperSameID[*omni.ClusterMachineIdentity, *omni.ClusterMachine]()
 
@@ -232,8 +221,21 @@ func (ctrl *ClusterMachineTeardownController) teardownNodeMember(
 
 	nodeID := clusterMachineIdentity.TypedSpec().Value.GetNodeIdentity()
 
-	if err = ctrl.deleteAffiliateFromDiscoveryService(ctx, r, clusterName, bundle.Cluster.ID, nodeID, logger); err != nil {
-		return fmt.Errorf("error deleting affiliate from discovery service: %w", err)
+	discoveryServiceEndpoint := clusterMachineIdentity.TypedSpec().Value.DiscoveryServiceEndpoint
+	if discoveryServiceEndpoint != "" {
+		if err = safe.WriterModify(ctx, r, omni.NewDiscoveryAffiliateDeleteTask(nodeID), func(res *omni.DiscoveryAffiliateDeleteTask) error {
+			helpers.CopyAllLabels(clusterMachineIdentity, res)
+
+			// set the cluster-machine label for informational/debugging purposes
+			res.Metadata().Labels().Set(omni.LabelClusterMachine, clusterMachine.Metadata().ID())
+
+			res.TypedSpec().Value.ClusterId = bundle.Cluster.ID
+			res.TypedSpec().Value.DiscoveryServiceEndpoint = discoveryServiceEndpoint
+
+			return nil
+		}); err != nil {
+			return err
+		}
 	}
 
 	if nodeNameOccurrences[clusterMachineIdentity.TypedSpec().Value.Nodename] == 1 {
@@ -241,44 +243,6 @@ func (ctrl *ClusterMachineTeardownController) teardownNodeMember(
 			logger.Warn("failed to delete the discovery service affiliate or the Kubernetes node for the cluster machine", zap.Error(err))
 		}
 	}
-
-	return nil
-}
-
-func (ctrl *ClusterMachineTeardownController) deleteAffiliateFromDiscoveryService(ctx context.Context, r controller.ReaderWriter,
-	clusterName, clusterID, nodeID string, logger *zap.Logger,
-) error {
-	clusterStatus, err := safe.ReaderGetByID[*omni.ClusterStatus](ctx, r, clusterName)
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return nil
-		}
-
-		return fmt.Errorf("error getting cluster status: %w", err)
-	}
-
-	var discoveryClient DiscoveryClient
-
-	usingEmbeddedDiscoveryService := clusterStatus.TypedSpec().Value.UseEmbeddedDiscoveryService
-	if usingEmbeddedDiscoveryService {
-		if ctrl.embeddedDiscoveryClient == nil {
-			// this should never happen, as usingEmbeddedDiscoveryService will be set to false if the client is not initialized, because the feature is not enabled for this Omni instance.
-			logger.Warn("cluster is using embedded discovery service but its client is not initialized, skipping affiliate deletion")
-
-			return nil
-		}
-
-		discoveryClient = ctrl.embeddedDiscoveryClient
-	} else {
-		discoveryClient = ctrl.defaultDiscoveryClient
-	}
-
-	if err = discoveryClient.AffiliateDelete(ctx, clusterID, nodeID); err != nil {
-		return fmt.Errorf("error deleting affiliate %s/%s: %w", clusterID, nodeID, err)
-	}
-
-	logger.Info("deleted the affiliate from the discovery service", zap.String("cluster_identity", clusterID), zap.String("node_identity", nodeID),
-		zap.Bool("embedded", usingEmbeddedDiscoveryService))
 
 	return nil
 }

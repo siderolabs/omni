@@ -21,6 +21,7 @@ import (
 	cosiresource "github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/jonboulle/clockwork"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/siderolabs/gen/optional"
@@ -88,7 +89,7 @@ type Runtime struct {
 func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workloadProxyReconciler *workloadproxy.Reconciler,
 	resourceLogger *resourcelogger.Logger, imageFactoryClient *imagefactory.Client, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas,
 	siderolinkEventsCh <-chan *omni.MachineStatusSnapshot, installEventCh <-chan cosiresource.ID, resourceState state.State, virtualState *virtual.State, metricsRegistry prometheus.Registerer,
-	defaultDiscoveryClient, embeddedDiscoveryClient omnictrl.DiscoveryClient, logger *zap.Logger,
+	discoveryClientCache omnictrl.DiscoveryClientCache, logger *zap.Logger,
 ) (*Runtime, error) {
 	var opts []options.Option
 
@@ -116,6 +117,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 			safe.WithResourceCache[*omni.ClusterUUID](),
 			safe.WithResourceCache[*omni.ClusterWorkloadProxyStatus](),
 			safe.WithResourceCache[*omni.ControlPlaneStatus](),
+			safe.WithResourceCache[*omni.DiscoveryAffiliateDeleteTask](),
 			safe.WithResourceCache[*omni.EtcdAuditResult](),
 			safe.WithResourceCache[*omni.EtcdBackupEncryption](),
 			safe.WithResourceCache[*omni.EtcdBackupStatus](),
@@ -248,7 +250,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewClusterEndpointController(),
 		omnictrl.NewClusterKubernetesNodesController(),
 		omnictrl.NewClusterMachineConfigController(imageFactoryHost, config.Config.DefaultConfigGenOptions, config.Config.EventSinkPort),
-		omnictrl.NewClusterMachineTeardownController(defaultDiscoveryClient, embeddedDiscoveryClient),
+		omnictrl.NewClusterMachineTeardownController(),
 		omnictrl.NewMachineConfigGenOptionsController(),
 		omnictrl.NewMachineStatusController(imageFactoryClient),
 		omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost),
@@ -289,6 +291,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewLinkStatusController[*siderolinkresources.PendingMachine](peers),
 		omnictrl.NewPendingMachineStatusController(),
 		omnictrl.NewMaintenanceConfigStatusController(nil, siderolink.ListenHost, config.Config.EventSinkPort, config.Config.LogServerPort),
+		omnictrl.NewDiscoveryAffiliateDeleteTaskController(clockwork.NewRealClock(), discoveryClientCache),
 	}
 
 	if config.Config.Auth.SAML.Enabled {

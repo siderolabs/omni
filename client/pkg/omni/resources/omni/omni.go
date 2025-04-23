@@ -31,6 +31,7 @@ func init() {
 	registry.MustRegisterResource(ClusterMachineTemplateType, &ClusterMachineTemplate{})
 	registry.MustRegisterResource(ClusterTaintType, &ClusterTaint{})
 	registry.MustRegisterResource(ConfigPatchType, &ConfigPatch{})
+	registry.MustRegisterResource(DiscoveryAffiliateDeleteTaskType, &DiscoveryAffiliateDeleteTask{})
 	registry.MustRegisterResource(EtcdAuditResultType, &EtcdAuditResult{})
 	registry.MustRegisterResource(EtcdBackupType, &EtcdBackup{})
 	registry.MustRegisterResource(EtcdBackupS3ConfType, &EtcdBackupS3Conf{})

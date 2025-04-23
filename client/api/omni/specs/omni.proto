@@ -458,6 +458,12 @@ message ClusterMachineIdentitySpec {
   string nodename = 3;
   // NodeIps are the IPs of the Kubernetes node.
   repeated string node_ips = 8;
+
+  // DiscoveryServiceEndpoint is the endpoint of the discovery service used by the node.
+  // It contains the protocol prefix (http://|https://) and the port.
+  //
+  // It is empty if discovery service is not enabled.
+  string discovery_service_endpoint = 9;
 }
 
 // ClusterMachineTemplateSpec
@@ -1330,3 +1336,8 @@ message MaintenanceConfigStatusSpec {
 
 // NodeForceDestroyRequestSpec is used to force delete a node.
 message NodeForceDestroyRequestSpec {}
+
+message DiscoveryAffiliateDeleteTaskSpec {
+  string cluster_id = 1;
+  string discovery_service_endpoint = 2;
+}

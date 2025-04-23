@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+// Package discovery provides a discovery service client.
 package discovery
 
 import (
@@ -11,17 +12,13 @@ import (
 	"fmt"
 	"net"
 	"net/url"
-	"strconv"
 	"time"
 
 	serverpb "github.com/siderolabs/discovery-api/api/v1alpha1/server/pb"
 	discoveryclient "github.com/siderolabs/discovery-client/pkg/client"
-	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
-
-	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
 const (
@@ -35,15 +32,9 @@ type Client struct {
 	clusterClient serverpb.ClusterClient
 }
 
-// Options are the options for the discovery service client.
-type Options struct {
-	UseEmbeddedDiscoveryService  bool
-	EmbeddedDiscoveryServicePort int
-}
-
 // NewClient creates a new discovery service client.
-func NewClient(options Options) (*Client, error) {
-	conn, err := createConn(options)
+func NewClient(endpoint string) (*Client, error) {
+	conn, err := createConn(endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create connection to discovery service: %w", err)
 	}
@@ -75,25 +66,39 @@ func (client *Client) Close() error {
 }
 
 // createConn creates a gRPC connection to the discovery service.
-func createConn(options Options) (*grpc.ClientConn, error) {
+func createConn(endpoint string) (*grpc.ClientConn, error) {
 	var (
 		transportCredentials credentials.TransportCredentials
-		target               string
+		host, port           string
 	)
 
-	if options.UseEmbeddedDiscoveryService {
-		target = net.JoinHostPort(siderolink.ListenHost, strconv.Itoa(options.EmbeddedDiscoveryServicePort))
-		transportCredentials = insecure.NewCredentials()
-	} else {
-		u, err := url.Parse(constants.DefaultDiscoveryServiceEndpoint)
-		if err != nil {
-			return nil, err
-		}
-
-		target = net.JoinHostPort(u.Host, "443")
-		transportCredentials = credentials.NewTLS(&tls.Config{})
+	parsed, err := url.ParseRequestURI(endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse discovery service URL %q: %w", endpoint, err)
 	}
 
+	switch parsed.Scheme {
+	case "http":
+		transportCredentials = insecure.NewCredentials()
+		host = parsed.Hostname()
+
+		port = parsed.Port()
+		if port == "" {
+			port = "80"
+		}
+	case "https":
+		transportCredentials = credentials.NewTLS(&tls.Config{})
+		host = parsed.Hostname()
+
+		port = parsed.Port()
+		if port == "" {
+			port = "443"
+		}
+	default:
+		return nil, fmt.Errorf("unsupported scheme %q for discovery service URL %q", parsed.Scheme, endpoint)
+	}
+
+	target := net.JoinHostPort(host, port)
 	opts := discoveryclient.GRPCDialOptions(discoveryclient.Options{
 		TTL: defaultTTL,
 	})

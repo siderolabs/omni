@@ -81,11 +81,11 @@ func (suite *OmniRuntimeSuite) SetupTest() {
 	logger := zaptest.NewLogger(suite.T())
 	clientFactory := talos.NewClientFactory(resourceState, logger)
 	dnsService := dns.NewService(resourceState, logger)
-	discoveryServiceClient := &discoveryClientMock{}
+	discoveryClientCache := &discoveryClientCacheMock{}
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zapcore.InfoLevel)
 
 	suite.runtime, err = omniruntime.New(clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil, nil,
-		resourceState, nil, prometheus.NewRegistry(), discoveryServiceClient, nil, logger)
+		resourceState, nil, prometheus.NewRegistry(), discoveryClientCache, logger)
 
 	suite.Require().NoError(err)
 
@@ -192,9 +192,9 @@ func TestOmniRuntimeSuite(t *testing.T) {
 	suite.Run(t, new(OmniRuntimeSuite))
 }
 
-type discoveryClientMock struct{}
+type discoveryClientCacheMock struct{}
 
-// AffiliateDelete implements the omni.DiscoveryClient interface.
-func (d *discoveryClientMock) AffiliateDelete(context.Context, string, string) error {
+// AffiliateDelete deletes an affiliate.
+func (d *discoveryClientCacheMock) AffiliateDelete(context.Context, string, string, string) error {
 	return nil
 }

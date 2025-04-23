@@ -406,6 +406,7 @@ export type ClusterMachineIdentitySpec = {
   etcd_member_id?: string
   nodename?: string
   node_ips?: string[]
+  discovery_service_endpoint?: string
 }
 
 export type ClusterMachineTemplateSpec = {
@@ -876,4 +877,9 @@ export type MaintenanceConfigStatusSpec = {
 }
 
 export type NodeForceDestroyRequestSpec = {
+}
+
+export type DiscoveryAffiliateDeleteTaskSpec = {
+  cluster_id?: string
+  discovery_service_endpoint?: string
 }
