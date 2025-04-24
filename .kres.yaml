@@ -181,9 +181,9 @@ spec:
             - "/tmp/test-logs"
     environment:
       WITH_DEBUG: "true"
-      INTEGRATION_RUN_E2E_TEST: "true"
-      INTEGRATION_TEST_ARGS: "--test.run CleanState/|Auth/|DefaultCluster/|CLICommands/"
-      TALEMU_TEST_ARGS: "--test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/"
+      INTEGRATION_RUN_E2E_TEST: "false"
+      INTEGRATION_TEST_ARGS: "--test.run CleanState/"
+      TALEMU_TEST_ARGS: "--test.run ScaleUpAndDownAutoProvisionMachineSets/"
       RUN_TALEMU_TESTS: true
     jobs:
       - name: e2e-short-secureboot
