@@ -55,6 +55,8 @@ func TestInfraProviderAccess(t *testing.T) {
 	ephemeralState := namespaced.NewState(inmem.Build)
 	st := state.WrapCore(infraprovider.NewState(persistentState, ephemeralState, logger))
 
+	require.NoError(t, persistentState.Create(ctx, infra.NewProvider("qemu-1")))
+
 	// MachineRequest
 
 	mr := infra.NewMachineRequest("test-mr")
@@ -240,6 +242,8 @@ func TestInfraProviderSpecificNamespace(t *testing.T) {
 	ephemeralState := namespaced.NewState(inmem.Build)
 	st := state.WrapCore(infraprovider.NewState(persistentState, ephemeralState, logger))
 
+	require.NoError(t, persistentState.Create(ctx, infra.NewProvider("qemu-1")))
+
 	// try to create and update a resource in the infra-provider specific namespace, i.e., "infra-provider:qemu-1", assert that it is allowed
 
 	res1 := newTestRes(infraProviderResNamespace, "test-res-1", testResSpec{str: "foo"})
@@ -285,6 +289,8 @@ func TestInfraProviderIDChecks(t *testing.T) {
 	persistentState := namespaced.NewState(inmem.Build)
 	ephemeralState := namespaced.NewState(inmem.Build)
 	st := state.WrapCore(infraprovider.NewState(persistentState, ephemeralState, logger))
+
+	require.NoError(t, persistentState.Create(ctx, infra.NewProvider("qemu-1")))
 
 	prepareResources(ctx, t, persistentState)
 
@@ -381,6 +387,8 @@ func TestEphemeralState(t *testing.T) {
 	ephemeralState := namespaced.NewState(inmem.Build)
 	st := state.WrapCore(infraprovider.NewState(persistentState, ephemeralState, logger))
 
+	require.NoError(t, persistentState.Create(ctx, infra.NewProvider("qemu-1")))
+
 	ephemeralResource := infra.NewProviderHealthStatus(infraProviderID)
 
 	require.NoError(t, st.Create(ctx, ephemeralResource))
@@ -412,6 +420,8 @@ func TestAdminOnlyRead(t *testing.T) {
 	persistentState := namespaced.NewState(inmem.Build)
 	ephemeralState := namespaced.NewState(inmem.Build)
 	st := state.WrapCore(infraprovider.NewState(persistentState, ephemeralState, logger))
+
+	require.NoError(t, persistentState.Create(ctx, infra.NewProvider("qemu-1")))
 
 	adminOnlyReadResource := infra.NewBMCConfig("test-bmc-config")
 

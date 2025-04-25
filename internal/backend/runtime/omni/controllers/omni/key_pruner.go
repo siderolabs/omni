@@ -67,7 +67,7 @@ func (k *KeyPrunerController) Outputs() []controller.Output {
 	return []controller.Output{
 		{
 			Type: auth.PublicKeyType,
-			Kind: controller.OutputExclusive,
+			Kind: controller.OutputShared,
 		},
 	}
 }

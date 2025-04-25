@@ -8,7 +8,7 @@ included in the LICENSE file.
   <div class="modal-window">
     <div class="heading">
       <h3 class="text-base text-naturals-N14">
-        Create Service Account
+        Setup a new Infra Provider
       </h3>
       <close-button @click="close"/>
     </div>
@@ -18,18 +18,9 @@ included in the LICENSE file.
 
       <template v-if="!key">
         <div class="flex flex-col gap-2">
-          <t-input title="ID" class="flex-1 h-full" placeholder="..." v-model="name" v-if="!route.query.name"/>
-          <t-input title="Expiration Days" type="number" :min="1" class="flex-1 h-full" v-model="expiration"/>
-          <t-select-list
-              class="h-full"
-              title="Role"
-              :values="roles"
-              :defaultValue="RoleReader"
-              v-if="!route.query.role"
-              @checkedValue="value => role = value"
-          />
+          <t-input title="Provider ID" class="flex-1 h-full" placeholder="examples: kubevirt, bare-metal" v-model="id"/>
         </div>
-        <t-button type="highlighted" @click="handleCreate" :disabled="!canManageUsers && authType !== AuthType.SAML" class="h-9">Create Service Account</t-button>
+        <t-button type="highlighted" @click="handleCreate" class="h-9">Next</t-button>
       </template>
     </div>
 
@@ -39,49 +30,37 @@ included in the LICENSE file.
 
 <script setup lang="ts">
 import { Ref, ref, shallowRef } from "vue";
-import { createServiceAccount } from "@/methods/user";
-import { Notification, showError, showSuccess } from "@/notification";
-import { useRoute, useRouter } from "vue-router";
-import { RoleNone, RoleReader, RoleOperator, RoleAdmin } from "@/api/resources";
+import { Notification, showError } from "@/notification";
+import { useRouter } from "vue-router";
 
 import CloseButton from "@/views/omni/Modals/CloseButton.vue";
 import TButton from "@/components/common/Button/TButton.vue";
-import { canManageUsers } from "@/methods/auth";
-import TSelectList from "@/components/common/SelectList/TSelectList.vue";
 import TInput from "@/components/common/TInput/TInput.vue";
-import { AuthType, authType } from "@/methods";
 import TNotification from "@/components/common/Notification/TNotification.vue";
 import ServiceAccountKey from "./components/ServiceAccountKey.vue";
+import { setupInfraProvider } from "@/methods/providers";
 
 const notification: Ref<Notification | null> = shallowRef(null);
 
-const expiration = ref(365);
+const id = ref("");
 const router = useRouter();
-const route = useRoute();
-const name = ref(route.query.name as string ?? "");
-
-const roles = [RoleNone, RoleReader, RoleOperator, RoleAdmin];
-
-const role: Ref<string> = ref(route.query.role as string ?? RoleReader);
 
 const key = ref<string>();
 
 const handleCreate = async () => {
-  if (name.value === "") {
+  if (id.value === "") {
     showError("Failed to Create Service Account", "Name is not defined", notification);
 
     return;
   }
 
   try {
-    key.value = await createServiceAccount(name.value, role.value, expiration.value);
+    key.value = await setupInfraProvider(id.value);
   } catch (e) {
     showError("Failed to Create Service Account", e.message, notification);
 
     return;
   }
-
-  showSuccess("Service Account Was Created", undefined, notification);
 };
 
 let closed = false;

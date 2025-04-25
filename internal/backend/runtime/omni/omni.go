@@ -33,6 +33,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	omniresources "github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkresources "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -125,6 +126,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 			safe.WithResourceCache[*omni.ExtensionsConfiguration](),
 			safe.WithResourceCache[*omni.ImagePullRequest](),
 			safe.WithResourceCache[*omni.ImagePullStatus](),
+			safe.WithResourceCache[*omni.InfraProviderCombinedStatus](),
 			safe.WithResourceCache[*omni.Kubeconfig](),
 			safe.WithResourceCache[*omni.KubernetesNodeAuditResult](),
 			safe.WithResourceCache[*omni.KubernetesStatus](),
@@ -159,6 +161,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 			safe.WithResourceCache[*siderolinkresources.Link](),
 			safe.WithResourceCache[*system.ResourceLabels[*omni.MachineStatus]](),
 			safe.WithResourceCache[*infra.ConfigPatchRequest](),
+			safe.WithResourceCache[*auth.ServiceAccountStatus](),
 			options.WithWarnOnUncachedReads(false), // turn this to true to debug resource cache misses
 		)
 	}
@@ -231,6 +234,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		),
 		&omnictrl.OngoingTaskController{},
 		omnictrl.NewMachineRequestStatusCleanupController(),
+		omnictrl.NewInfraProviderCleanupController(),
 	}
 
 	imageFactoryBaseURL, err := url.Parse(config.Config.ImageFactoryBaseURL)
@@ -292,6 +296,8 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewPendingMachineStatusController(),
 		omnictrl.NewMaintenanceConfigStatusController(nil, siderolink.ListenHost, config.Config.EventSinkPort, config.Config.LogServerPort),
 		omnictrl.NewDiscoveryAffiliateDeleteTaskController(clockwork.NewRealClock(), discoveryClientCache),
+		omnictrl.NewInfraProviderCombinedStatusController(),
+		omnictrl.NewServiceAccountStatusController(),
 	}
 
 	if config.Config.Auth.SAML.Enabled {

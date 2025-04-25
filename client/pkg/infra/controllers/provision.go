@@ -61,6 +61,9 @@ func (ctrl *ProvisionController[T]) Settings() controller.QSettings {
 	var t T
 
 	return controller.QSettings{
+		RunHook: func(ctx context.Context, _ *zap.Logger, q controller.QRuntime) error {
+			return ctrl.cleanupDanglingMachines(ctx, q)
+		},
 		Inputs: []controller.Input{
 			{
 				Namespace: resources.InfraProviderNamespace,
@@ -391,4 +394,29 @@ func (ctrl *ProvisionController[T]) reconcileTearingDown(ctx context.Context, r 
 	logger.Info("machine deprovisioned", zap.String("request_id", machineRequest.Metadata().ID()))
 
 	return r.RemoveFinalizer(ctx, machineRequest.Metadata(), ctrl.Name())
+}
+
+func (ctrl *ProvisionController[T]) cleanupDanglingMachines(ctx context.Context, r controller.QRuntime) error {
+	machines, err := safe.ReaderListAll[T](ctx, r)
+	if err != nil {
+		return err
+	}
+
+	for m := range machines.All() {
+		var request *infra.MachineRequest
+
+		request, err = safe.ReaderGetByID[*infra.MachineRequest](ctx, r, m.Metadata().ID())
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		if request == nil {
+			_, err = r.Teardown(ctx, m.Metadata())
+			if err != nil && !state.IsNotFoundError(err) {
+				return err
+			}
+		}
+	}
+
+	return nil
 }

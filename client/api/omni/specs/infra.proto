@@ -86,6 +86,8 @@ message InfraMachineStatusSpec {
   string wiped_node_unique_token = 6;
 }
 
+message InfraProviderSpec {}
+
 message InfraProviderStatusSpec {
   string schema = 1;
   string name = 2;

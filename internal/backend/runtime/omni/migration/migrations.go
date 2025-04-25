@@ -26,6 +26,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/registry"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -1754,6 +1755,43 @@ func dropMachineClassStatusFinalizers(ctx context.Context, st state.State, logge
 		logger.Info("remove machine class status controller finalizer from the resource", zap.String("id", machineClass.Metadata().ID()))
 
 		if err := st.RemoveFinalizer(ctx, machineClass.Metadata(), deprecatedFinalizer); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// createProviders creates infra.Provider resource for each existing infra.ProviderStatus.
+// This migration is required to avoid breaking user's providers connection which were created before 0.50.
+func createProviders(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
+	providers, err := safe.ReaderListAll[*infra.ProviderStatus](ctx, st)
+	if err != nil {
+		return err
+	}
+
+	for r := range providers.All() {
+		if r.Metadata().Phase() == resource.PhaseTearingDown {
+			continue
+		}
+
+		var provider *infra.Provider
+
+		provider, err = safe.ReaderGetByID[*infra.Provider](ctx, st, r.Metadata().ID())
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		if provider != nil {
+			continue
+		}
+
+		provider = infra.NewProvider(r.Metadata().ID())
+		provider.Metadata().Labels().Set(omni.LabelInfraProviderID, r.Metadata().ID())
+
+		logger.Info("register provider for the already existing provider status", zap.String("provider", r.Metadata().ID()))
+
+		if err = st.Create(ctx, provider); err != nil {
 			return err
 		}
 	}
