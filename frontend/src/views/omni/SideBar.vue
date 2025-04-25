@@ -186,6 +186,11 @@ const items = computed(() => {
           icon: "users",
         },
         {
+          name: "Infra Providers",
+          route: getRoute("InfraProviders",  "/omni/settings/infraproviders"),
+          icon: "machines-autoprovisioned",
+        },
+        {
           name: "Backups",
           route: getRoute("Backups", "/omni/settings/backups"),
           icon: "rollback",

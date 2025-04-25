@@ -68,6 +68,9 @@ export type InfraMachineStatusSpec = {
   wiped_node_unique_token?: string
 }
 
+export type InfraProviderSpec = {
+}
+
 export type InfraProviderStatusSpec = {
   schema?: string
   name?: string

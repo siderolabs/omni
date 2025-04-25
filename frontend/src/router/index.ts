@@ -17,6 +17,7 @@ import OmniMachine from "@/views/omni/Machines/Machine.vue";
 import OmniUsers from "@/views/omni/Users/Users.vue";
 import OmniServiceAccounts from "@/views/omni/Users/ServiceAccounts.vue";
 import OmniSettings from "@/views/omni/Settings/Settings.vue";
+import OmniInfraProviders from "@/views/omni/Settings/InfraProviders.vue";
 import Authenticate from "@/views/omni/Auth/Authenticate.vue";
 import OmniMachineClasses from "@/views/omni/MachineClasses/MachineClasses.vue";
 import OmniMachineClass from "@/views/omni/MachineClasses/MachineClass.vue";
@@ -84,6 +85,8 @@ import { getAuthCookies, isAuthorized } from "@/methods/key";
 import { refreshTitle } from "@/methods/title";
 import { loadCurrentUser } from "@/methods/auth";
 import { MachineFilterOption } from "@/methods/machine";
+import InfraProviderSetup from "@/views/omni/Modals/InfraProviderSetup.vue";
+import InfraProviderDelete from "@/views/omni/Modals/InfraProviderDelete.vue";
 
 export const FrontendAuthFlow = "frontend";
 
@@ -285,6 +288,13 @@ const routes: RouteRecordRaw[] = [
           name: "ServiceAccounts",
           components: {
             inner: OmniServiceAccounts,
+          }
+        },
+        {
+          path: "infraproviders",
+          name: "InfraProviders",
+          components: {
+            inner: OmniInfraProviders,
           }
         },
         {
@@ -496,6 +506,8 @@ const modals = {
   machineAccept: MachineAccept,
   machineReject: MachineReject,
   updateExtensions: UpdateExtensions,
+  infraProviderSetup: InfraProviderSetup,
+  infraProviderDelete: InfraProviderDelete,
 };
 
 export { modals };

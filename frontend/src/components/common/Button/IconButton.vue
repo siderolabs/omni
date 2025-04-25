@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <button :disabled="disabled" class="icon-button">
+  <button :disabled="disabled" class="icon-button" :class={danger}>
     <slot v-if="$slots.default"/>
     <t-icon
       v-else
@@ -21,8 +21,9 @@ import TIcon, { IconType } from "@/components/common/Icon/TIcon.vue";
 import { toRefs } from "vue";
 
 type Props = {
-  icon: IconType;
-  disabled?: boolean;
+  icon: IconType
+  disabled?: boolean
+  danger?: boolean
   iconClasses?: Record<string, boolean>
 };
 
@@ -50,6 +51,10 @@ button {
     disabled:text-naturals-N7
     disabled:cursor-not-allowed
     disabled:pointer-events-none;
+}
+
+.icon-button.danger {
+  @apply text-red-R1;
 }
 
 .icon-button.highlighted {

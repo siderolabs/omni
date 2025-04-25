@@ -18,6 +18,7 @@ import (
 
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
@@ -422,6 +423,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.MachineConfigGenOptionsType,
 		omni.SchematicType,
 		omni.SchematicConfigurationType,
+		omni.InfraProviderCombinedStatusType,
 		omni.ExtensionsConfigurationType,
 		omni.ExtensionsConfigurationStatusType,
 		system.ResourceLabelsType[*omni.MachineStatus](),
@@ -449,9 +451,11 @@ func filterAccess(ctx context.Context, access state.Access) error {
 	case // admin-only resources
 		authres.IdentityType,
 		authres.UserType,
+		authres.ServiceAccountStatusType,
 		authres.SAMLLabelRuleType,
 		authres.AccessPolicyType,
 		omni.EtcdBackupS3ConfType,
+		infra.ProviderType,
 		omni.InfraMachineBMCConfigType:
 		var checkResult auth.CheckResult
 		// user management access
@@ -545,6 +549,7 @@ func filterAccessByType(access state.Access) error {
 		omni.FeaturesConfigType,
 		omni.ImagePullRequestType,
 		omni.ImagePullStatusType,
+		omni.InfraProviderCombinedStatusType,
 		omni.KubernetesStatusType,
 		omni.KubernetesUpgradeManifestStatusType,
 		omni.KubernetesUpgradeStatusType,
@@ -573,6 +578,7 @@ func filterAccessByType(access state.Access) error {
 		omni.MachineExtensionsType,
 		omni.MachineStatusMetricsType,
 		authres.AuthConfigType,
+		authres.ServiceAccountStatusType,
 		siderolink.ConnectionParamsType,
 		siderolink.LinkStatusType,
 		system.SysVersionType,

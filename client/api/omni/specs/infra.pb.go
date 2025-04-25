@@ -588,6 +588,42 @@ func (x *InfraMachineStatusSpec) GetWipedNodeUniqueToken() string {
 	return ""
 }
 
+type InfraProviderSpec struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InfraProviderSpec) Reset() {
+	*x = InfraProviderSpec{}
+	mi := &file_omni_specs_infra_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InfraProviderSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InfraProviderSpec) ProtoMessage() {}
+
+func (x *InfraProviderSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_infra_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InfraProviderSpec.ProtoReflect.Descriptor instead.
+func (*InfraProviderSpec) Descriptor() ([]byte, []int) {
+	return file_omni_specs_infra_proto_rawDescGZIP(), []int{5}
+}
+
 type InfraProviderStatusSpec struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Schema        string                 `protobuf:"bytes,1,opt,name=schema,proto3" json:"schema,omitempty"`
@@ -600,7 +636,7 @@ type InfraProviderStatusSpec struct {
 
 func (x *InfraProviderStatusSpec) Reset() {
 	*x = InfraProviderStatusSpec{}
-	mi := &file_omni_specs_infra_proto_msgTypes[5]
+	mi := &file_omni_specs_infra_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -612,7 +648,7 @@ func (x *InfraProviderStatusSpec) String() string {
 func (*InfraProviderStatusSpec) ProtoMessage() {}
 
 func (x *InfraProviderStatusSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_infra_proto_msgTypes[5]
+	mi := &file_omni_specs_infra_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -625,7 +661,7 @@ func (x *InfraProviderStatusSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InfraProviderStatusSpec.ProtoReflect.Descriptor instead.
 func (*InfraProviderStatusSpec) Descriptor() ([]byte, []int) {
-	return file_omni_specs_infra_proto_rawDescGZIP(), []int{5}
+	return file_omni_specs_infra_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *InfraProviderStatusSpec) GetSchema() string {
@@ -666,7 +702,7 @@ type InfraProviderHealthStatusSpec struct {
 
 func (x *InfraProviderHealthStatusSpec) Reset() {
 	*x = InfraProviderHealthStatusSpec{}
-	mi := &file_omni_specs_infra_proto_msgTypes[6]
+	mi := &file_omni_specs_infra_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -678,7 +714,7 @@ func (x *InfraProviderHealthStatusSpec) String() string {
 func (*InfraProviderHealthStatusSpec) ProtoMessage() {}
 
 func (x *InfraProviderHealthStatusSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_infra_proto_msgTypes[6]
+	mi := &file_omni_specs_infra_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -691,7 +727,7 @@ func (x *InfraProviderHealthStatusSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InfraProviderHealthStatusSpec.ProtoReflect.Descriptor instead.
 func (*InfraProviderHealthStatusSpec) Descriptor() ([]byte, []int) {
-	return file_omni_specs_infra_proto_rawDescGZIP(), []int{6}
+	return file_omni_specs_infra_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *InfraProviderHealthStatusSpec) GetLastHeartbeatTimestamp() *timestamppb.Timestamp {
@@ -717,7 +753,7 @@ type BMCConfigSpec struct {
 
 func (x *BMCConfigSpec) Reset() {
 	*x = BMCConfigSpec{}
-	mi := &file_omni_specs_infra_proto_msgTypes[7]
+	mi := &file_omni_specs_infra_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -729,7 +765,7 @@ func (x *BMCConfigSpec) String() string {
 func (*BMCConfigSpec) ProtoMessage() {}
 
 func (x *BMCConfigSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_infra_proto_msgTypes[7]
+	mi := &file_omni_specs_infra_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -742,7 +778,7 @@ func (x *BMCConfigSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BMCConfigSpec.ProtoReflect.Descriptor instead.
 func (*BMCConfigSpec) Descriptor() ([]byte, []int) {
-	return file_omni_specs_infra_proto_rawDescGZIP(), []int{7}
+	return file_omni_specs_infra_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *BMCConfigSpec) GetConfig() *InfraMachineBMCConfigSpec {
@@ -812,7 +848,8 @@ const file_omni_specs_infra_proto_rawDesc = "" +
 	"\x11MachinePowerState\x12\x17\n" +
 	"\x13POWER_STATE_UNKNOWN\x10\x00\x12\x13\n" +
 	"\x0fPOWER_STATE_OFF\x10\x01\x12\x12\n" +
-	"\x0ePOWER_STATE_ON\x10\x02\"{\n" +
+	"\x0ePOWER_STATE_ON\x10\x02\"\x13\n" +
+	"\x11InfraProviderSpec\"{\n" +
 	"\x17InfraProviderStatusSpec\x12\x16\n" +
 	"\x06schema\x18\x01 \x01(\tR\x06schema\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
@@ -837,7 +874,7 @@ func file_omni_specs_infra_proto_rawDescGZIP() []byte {
 }
 
 var file_omni_specs_infra_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_omni_specs_infra_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_omni_specs_infra_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_omni_specs_infra_proto_goTypes = []any{
 	(MachineRequestStatusSpec_Stage)(0),           // 0: specs.MachineRequestStatusSpec.Stage
 	(InfraMachineSpec_MachinePowerState)(0),       // 1: specs.InfraMachineSpec.MachinePowerState
@@ -847,27 +884,28 @@ var file_omni_specs_infra_proto_goTypes = []any{
 	(*InfraMachineSpec)(nil),                      // 5: specs.InfraMachineSpec
 	(*InfraMachineStateSpec)(nil),                 // 6: specs.InfraMachineStateSpec
 	(*InfraMachineStatusSpec)(nil),                // 7: specs.InfraMachineStatusSpec
-	(*InfraProviderStatusSpec)(nil),               // 8: specs.InfraProviderStatusSpec
-	(*InfraProviderHealthStatusSpec)(nil),         // 9: specs.InfraProviderHealthStatusSpec
-	(*BMCConfigSpec)(nil),                         // 10: specs.BMCConfigSpec
-	(*Overlay)(nil),                               // 11: specs.Overlay
-	(*MetaValue)(nil),                             // 12: specs.MetaValue
-	(GrpcTunnelMode)(0),                           // 13: specs.GrpcTunnelMode
-	(InfraMachineConfigSpec_AcceptanceStatus)(0),  // 14: specs.InfraMachineConfigSpec.AcceptanceStatus
-	(*timestamppb.Timestamp)(nil),                 // 15: google.protobuf.Timestamp
-	(*InfraMachineBMCConfigSpec)(nil),             // 16: specs.InfraMachineBMCConfigSpec
+	(*InfraProviderSpec)(nil),                     // 8: specs.InfraProviderSpec
+	(*InfraProviderStatusSpec)(nil),               // 9: specs.InfraProviderStatusSpec
+	(*InfraProviderHealthStatusSpec)(nil),         // 10: specs.InfraProviderHealthStatusSpec
+	(*BMCConfigSpec)(nil),                         // 11: specs.BMCConfigSpec
+	(*Overlay)(nil),                               // 12: specs.Overlay
+	(*MetaValue)(nil),                             // 13: specs.MetaValue
+	(GrpcTunnelMode)(0),                           // 14: specs.GrpcTunnelMode
+	(InfraMachineConfigSpec_AcceptanceStatus)(0),  // 15: specs.InfraMachineConfigSpec.AcceptanceStatus
+	(*timestamppb.Timestamp)(nil),                 // 16: google.protobuf.Timestamp
+	(*InfraMachineBMCConfigSpec)(nil),             // 17: specs.InfraMachineBMCConfigSpec
 }
 var file_omni_specs_infra_proto_depIdxs = []int32{
-	11, // 0: specs.MachineRequestSpec.overlay:type_name -> specs.Overlay
-	12, // 1: specs.MachineRequestSpec.meta_values:type_name -> specs.MetaValue
-	13, // 2: specs.MachineRequestSpec.grpc_tunnel:type_name -> specs.GrpcTunnelMode
+	12, // 0: specs.MachineRequestSpec.overlay:type_name -> specs.Overlay
+	13, // 1: specs.MachineRequestSpec.meta_values:type_name -> specs.MetaValue
+	14, // 2: specs.MachineRequestSpec.grpc_tunnel:type_name -> specs.GrpcTunnelMode
 	0,  // 3: specs.MachineRequestStatusSpec.stage:type_name -> specs.MachineRequestStatusSpec.Stage
 	1,  // 4: specs.InfraMachineSpec.preferred_power_state:type_name -> specs.InfraMachineSpec.MachinePowerState
-	14, // 5: specs.InfraMachineSpec.acceptance_status:type_name -> specs.InfraMachineConfigSpec.AcceptanceStatus
+	15, // 5: specs.InfraMachineSpec.acceptance_status:type_name -> specs.InfraMachineConfigSpec.AcceptanceStatus
 	2,  // 6: specs.InfraMachineStatusSpec.power_state:type_name -> specs.InfraMachineStatusSpec.MachinePowerState
-	15, // 7: specs.InfraMachineStatusSpec.last_reboot_timestamp:type_name -> google.protobuf.Timestamp
-	15, // 8: specs.InfraProviderHealthStatusSpec.last_heartbeat_timestamp:type_name -> google.protobuf.Timestamp
-	16, // 9: specs.BMCConfigSpec.config:type_name -> specs.InfraMachineBMCConfigSpec
+	16, // 7: specs.InfraMachineStatusSpec.last_reboot_timestamp:type_name -> google.protobuf.Timestamp
+	16, // 8: specs.InfraProviderHealthStatusSpec.last_heartbeat_timestamp:type_name -> google.protobuf.Timestamp
+	17, // 9: specs.BMCConfigSpec.config:type_name -> specs.InfraMachineBMCConfigSpec
 	10, // [10:10] is the sub-list for method output_type
 	10, // [10:10] is the sub-list for method input_type
 	10, // [10:10] is the sub-list for extension type_name
@@ -887,7 +925,7 @@ func file_omni_specs_infra_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_omni_specs_infra_proto_rawDesc), len(file_omni_specs_infra_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

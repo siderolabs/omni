@@ -1336,3 +1336,18 @@ message DiscoveryAffiliateDeleteTaskSpec {
   string cluster_id = 1;
   string discovery_service_endpoint = 2;
 }
+
+// InfraProviderCombinedStatusSpec unifies ProviderStatus and ProviderHealthStatus.
+message InfraProviderCombinedStatusSpec {
+  string name = 1;
+  string description = 2;
+  string icon = 3;
+
+  message Health {
+    bool connected = 1;
+    string error = 2;
+    bool initialized = 3;
+  }
+
+  Health health = 4;
+}

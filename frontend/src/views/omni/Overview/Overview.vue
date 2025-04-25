@@ -21,7 +21,7 @@ included in the LICENSE file.
         Download omnictl</t-button>
     </div>
   </div>
-  <div v-else>
+  <div v-else class="flex flex-col">
     <page-header title="Home"/>
     <watch :opts="{
         resource: {
@@ -77,7 +77,7 @@ included in the LICENSE file.
                 </watch>
               </div>
             </div>
-            <div v-if="canReadClusters" class="overview-card">
+            <div v-if="canReadClusters" class="overview-card flex-1">
               <div class="flex flex-auto gap-6 p-6">
                 <div class="text-naturals-N14 text-sm">Recent Clusters</div>
                 <div class="grow" />

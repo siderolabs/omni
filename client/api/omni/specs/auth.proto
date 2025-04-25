@@ -164,3 +164,15 @@ message SAMLLabelRuleSpec {
   // AssignRoleOnRegistration is the role to be assigned to the user if this rule matches.
   string assign_role_on_registration = 2;
 }
+
+message ServiceAccountStatusSpec {
+  message PgpPublicKey {
+    string id = 1;
+    string armored = 2;
+    google.protobuf.Timestamp expiration = 3;
+  }
+
+  string role = 1;
+
+  repeated PgpPublicKey public_keys = 2;
+}

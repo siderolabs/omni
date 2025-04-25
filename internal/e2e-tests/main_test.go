@@ -314,6 +314,17 @@ func (s *E2ESuite) TestCreateCluster() {
 	s.assertTemplateExportAndSync()
 }
 
+func (s *E2ESuite) expandCluster(page playwright.Page, name string) {
+	id := fmt.Sprintf("#%s-cluster-box", name)
+
+	err := page.Locator(id).WaitFor(playwright.LocatorWaitForOptions{
+		Timeout: nil,
+	})
+	s.Require().NoError(err)
+
+	s.click(page, id)
+}
+
 func (s *E2ESuite) assertClusterCreation() {
 	s.withPage(s.baseURL, func(page playwright.Page) {
 		navigateToClusters := func() {
@@ -379,7 +390,7 @@ func (s *E2ESuite) assertClusterCreation() {
 
 		navigateToClusters()
 
-		err = page.Locator("div.clusters-box").WaitFor()
+		err = page.Locator("#talos-default-cluster-box").WaitFor()
 		s.Require().NoError(err)
 
 		clusterURL, err := url.JoinPath(s.baseURL, "/cluster/talos-default")
@@ -406,13 +417,7 @@ func (s *E2ESuite) assertClusterCreation() {
 
 		openPage := func() {
 			navigateToClusters()
-
-			err := page.Locator("svg.collapse-button").WaitFor(playwright.LocatorWaitForOptions{
-				Timeout: nil,
-			})
-			s.Require().NoError(err)
-
-			s.click(page, `svg.collapse-button`)
+			s.expandCluster(page, "talos-default")
 		}
 
 		openPage()
@@ -612,6 +617,8 @@ func (s *E2ESuite) TestOpenMachine() {
 	s.Require().NoError(err)
 
 	s.withPage(clustersURL, func(page playwright.Page) {
+		s.expandCluster(page, "talos-default")
+
 		node := page.Locator("#talos-default-control-planes > div:last-child")
 
 		s.Require().NoError(node.WaitFor())

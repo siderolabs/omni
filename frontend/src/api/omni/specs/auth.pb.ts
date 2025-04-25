@@ -133,3 +133,14 @@ export type SAMLLabelRuleSpec = {
   match_labels?: string[]
   assign_role_on_registration?: string
 }
+
+export type ServiceAccountStatusSpecPgpPublicKey = {
+  id?: string
+  armored?: string
+  expiration?: GoogleProtobufTimestamp.Timestamp
+}
+
+export type ServiceAccountStatusSpec = {
+  role?: string
+  public_keys?: ServiceAccountStatusSpecPgpPublicKey[]
+}

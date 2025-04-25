@@ -15,6 +15,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/hashicorp/go-multierror"
+	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -110,53 +111,37 @@ func (s *managementServer) ListServiceAccounts(ctx context.Context, _ *emptypb.E
 
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	identityList, err := safe.StateListAll[*authres.Identity](
+	serviceAccountStatus, err := safe.StateListAll[*authres.ServiceAccountStatus](
 		ctx,
 		s.omniState,
-		state.WithLabelQuery(resource.LabelExists(authres.LabelIdentityTypeServiceAccount)),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	serviceAccounts := make([]*management.ListServiceAccountsResponse_ServiceAccount, 0, identityList.Len())
+	serviceAccounts := make([]*management.ListServiceAccountsResponse_ServiceAccount, 0, serviceAccountStatus.Len())
 
-	for identity := range identityList.All() {
-		user, err := safe.StateGet[*authres.User](ctx, s.omniState, authres.NewUser(resources.DefaultNamespace, identity.TypedSpec().Value.UserId).Metadata())
-		if err != nil {
-			return nil, err
-		}
-
-		publicKeyList, err := safe.StateListAll[*authres.PublicKey](
-			ctx,
-			s.omniState,
-			state.WithLabelQuery(resource.LabelEqual(authres.LabelPublicKeyUserID, user.Metadata().ID())),
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		publicKeys := make([]*management.ListServiceAccountsResponse_ServiceAccount_PgpPublicKey, 0, publicKeyList.Len())
-
-		for key := range publicKeyList.All() {
-			publicKeys = append(publicKeys, &management.ListServiceAccountsResponse_ServiceAccount_PgpPublicKey{
-				Id:         key.Metadata().ID(),
-				Armored:    string(key.TypedSpec().Value.GetPublicKey()),
-				Expiration: key.TypedSpec().Value.GetExpiration(),
-			})
-		}
-
-		sa, isSa := pkgaccess.ParseServiceAccountFromFullID(identity.Metadata().ID())
+	for status := range serviceAccountStatus.All() {
+		sa, isSa := pkgaccess.ParseServiceAccountFromFullID(status.Metadata().ID())
 		if !isSa {
-			return nil, fmt.Errorf("unexpected service account ID %q", identity.Metadata().ID())
+			return nil, fmt.Errorf("unexpected service account ID %q", status.Metadata().ID())
 		}
 
 		name := sa.NameWithPrefix()
 
 		serviceAccounts = append(serviceAccounts, &management.ListServiceAccountsResponse_ServiceAccount{
-			Name:          name,
-			PgpPublicKeys: publicKeys,
-			Role:          user.TypedSpec().Value.GetRole(),
+			Name: name,
+			PgpPublicKeys: xslices.Map(
+				status.TypedSpec().Value.PublicKeys,
+				func(key *specs.ServiceAccountStatusSpec_PgpPublicKey) *management.ListServiceAccountsResponse_ServiceAccount_PgpPublicKey {
+					return &management.ListServiceAccountsResponse_ServiceAccount_PgpPublicKey{
+						Id:         key.Id,
+						Armored:    key.Armored,
+						Expiration: key.Expiration,
+					}
+				},
+			),
+			Role: status.TypedSpec().Value.Role,
 		})
 	}
 
@@ -202,19 +187,19 @@ func (s *managementServer) DestroyServiceAccount(ctx context.Context, req *manag
 	var destroyErr error
 
 	for _, pubKey := range pubKeys.Items {
-		err = s.omniState.Destroy(ctx, pubKey.Metadata())
-		if err != nil {
+		err = s.omniState.TeardownAndDestroy(ctx, pubKey.Metadata())
+		if err != nil && !state.IsNotFoundError(err) {
 			destroyErr = multierror.Append(destroyErr, err)
 		}
 	}
 
-	err = s.omniState.Destroy(ctx, identity.Metadata())
-	if err != nil {
+	err = s.omniState.TeardownAndDestroy(ctx, identity.Metadata())
+	if err != nil && !state.IsNotFoundError(err) {
 		destroyErr = multierror.Append(destroyErr, err)
 	}
 
-	err = s.omniState.Destroy(ctx, authres.NewUser(resources.DefaultNamespace, identity.TypedSpec().Value.UserId).Metadata())
-	if err != nil {
+	err = s.omniState.TeardownAndDestroy(ctx, authres.NewUser(resources.DefaultNamespace, identity.TypedSpec().Value.UserId).Metadata())
+	if err != nil && !state.IsNotFoundError(err) {
 		destroyErr = multierror.Append(destroyErr, err)
 	}
 

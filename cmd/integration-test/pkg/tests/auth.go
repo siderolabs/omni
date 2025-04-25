@@ -193,6 +193,13 @@ func AssertServiceAccountAPIFlow(testCtx context.Context, cli *client.Client) Te
 		_, err = renewedSACli.Omni().State().List(testCtx, resource.NewMetadata(resources.DefaultNamespace, omni.ClusterType, "", resource.VersionUndefined))
 		assert.NoError(t, err)
 
+		rtestutils.AssertResources(testCtx, t, cli.Omni().State(), []string{
+			name + pkgaccess.ServiceAccountNameSuffix,
+		}, func(res *authres.ServiceAccountStatus, assert *assert.Assertions) {
+			assert.Equal(string(role.Admin), res.TypedSpec().Value.Role)
+			assert.Equal(2, len(res.TypedSpec().Value.PublicKeys))
+		})
+
 		// list service accounts and ensure that the created service account is present
 		saList, err := cli.Management().ListServiceAccounts(testCtx)
 		assert.NoError(t, err)
@@ -996,6 +1003,15 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource:       omni.NewDiscoveryAffiliateDeleteTask(uuid.NewString()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
+				resource:       authres.NewServiceAccountStatus(uuid.NewString()),
+				allowedVerbSet: readOnlyVerbSet,
+				isAdminOnly:    true,
+			},
+			{
+				resource:       omni.NewInfraProviderCombinedStatus(uuid.NewString()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 		}...)

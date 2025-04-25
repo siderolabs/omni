@@ -14,6 +14,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 )
 
@@ -65,7 +66,7 @@ func (ctrl *ProviderHealthStatusController) Outputs() []controller.Output {
 func (ctrl *ProviderHealthStatusController) Run(ctx context.Context, r controller.Runtime, _ *zap.Logger) error {
 	interval := ctrl.options.Interval
 	if interval == 0 {
-		interval = 30 * time.Second
+		interval = constants.InfraProviderHealthCheckInterval
 	}
 
 	ticker := time.NewTicker(interval)

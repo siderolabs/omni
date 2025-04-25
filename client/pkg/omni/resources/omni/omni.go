@@ -49,6 +49,7 @@ func init() {
 	registry.MustRegisterResource(ImagePullStatusType, &ImagePullStatus{})
 	registry.MustRegisterResource(InfraMachineBMCConfigType, &InfraMachineBMCConfig{})
 	registry.MustRegisterResource(InfraMachineConfigType, &InfraMachineConfig{})
+	registry.MustRegisterResource(InfraProviderCombinedStatusType, &InfraProviderCombinedStatus{})
 	registry.MustRegisterResource(InstallationMediaType, &InstallationMedia{})
 	registry.MustRegisterResource(ControlPlaneStatusType, &ControlPlaneStatus{})
 	registry.MustRegisterResource(KubeconfigType, &Kubeconfig{})

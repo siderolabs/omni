@@ -220,6 +220,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: dropMachineClassStatusFinalizers,
 				name:     "dropMachineClassStatusFinalizers",
 			},
+			{
+				callback: createProviders,
+				name:     "createProviders",
+			},
 		},
 	}
 }

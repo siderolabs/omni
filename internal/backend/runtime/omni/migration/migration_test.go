@@ -43,6 +43,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
@@ -2071,6 +2072,48 @@ func (suite *MigrationSuite) TestDropMachineClassStatusFinalizers() {
 			}
 		},
 	)
+}
+
+func (suite *MigrationSuite) TestCreateProviders() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	p1status := infra.NewProviderStatus("p1")
+	p2status := infra.NewProviderStatus("p2")
+	p3status := infra.NewProviderStatus("p3")
+	p3status.Metadata().SetPhase(resource.PhaseTearingDown)
+
+	identity1 := authres.NewIdentity(resources.DefaultNamespace, "infra-provider:p1")
+	identity4 := authres.NewIdentity(resources.DefaultNamespace, "infra-provider:p4")
+	identityServiceAccount := authres.NewIdentity(resources.DefaultNamespace, "p5")
+
+	suite.Require().NoError(suite.state.Create(ctx, p1status))
+	suite.Require().NoError(suite.state.Create(ctx, p2status))
+	suite.Require().NoError(suite.state.Create(ctx, p3status))
+	suite.Require().NoError(suite.state.Create(ctx, identity1))
+	suite.Require().NoError(suite.state.Create(ctx, identity4))
+	suite.Require().NoError(suite.state.Create(ctx, identityServiceAccount))
+
+	p2 := infra.NewProvider(p2status.Metadata().ID())
+
+	suite.Require().NoError(suite.state.Create(ctx, p2))
+
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("createProviders"))))
+
+	_, err := safe.StateGetByID[*infra.Provider](ctx, suite.state, p1status.Metadata().ID())
+	suite.Assert().NoError(err)
+
+	_, err = safe.StateGetByID[*infra.Provider](ctx, suite.state, p2status.Metadata().ID())
+	suite.Assert().NoError(err)
+
+	_, err = safe.StateGetByID[*infra.Provider](ctx, suite.state, p3status.Metadata().ID())
+	suite.Assert().True(state.IsNotFoundError(err))
+
+	_, err = safe.StateGetByID[*infra.Provider](ctx, suite.state, "p4")
+	suite.Assert().NoError(err)
+
+	_, err = safe.StateGetByID[*infra.Provider](ctx, suite.state, "p5")
+	suite.Assert().True(state.IsNotFoundError(err))
 }
 
 func startMigration[

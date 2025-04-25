@@ -80,3 +80,6 @@ const InfraProviderMetadataKey = "providerID"
 
 // CompressionThresholdBytes is the minimum marshaled size of the data to be considered for compression.
 const CompressionThresholdBytes = 2048
+
+// InfraProviderHealthCheckInterval is the default interval of the infra provider health checks.
+const InfraProviderHealthCheckInterval = 30 * time.Second
