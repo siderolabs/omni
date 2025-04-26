@@ -87,6 +87,8 @@ REMOVE_VOLUMES ?= false
 # help menu
 
 export define HELP_MENU_HEADER
+
+define BUILD_SETUP_GUIDE
 # Getting Started
 
 To build this project, you must have the following installed:
