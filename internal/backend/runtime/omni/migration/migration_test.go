@@ -2040,6 +2040,25 @@ func (suite *MigrationSuite) TestMarkVersionContract() {
 	suite.Require().Equal(3, updatedCount, "there should be 3 machines updated")
 }
 
+func (suite *MigrationSuite) TestMigrateConnectionParamsToController() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	params := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
+
+	suite.Require().NoError(suite.state.Create(ctx, params))
+
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("migrateConnectionParamsToController"))))
+
+	var err error
+
+	params, err = safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, suite.state, params.Metadata().ID())
+
+	suite.Require().NoError(err)
+
+	suite.Require().Equal(omnictrl.ConnectionParamsControllerName, params.Metadata().Owner())
+}
+
 func startMigration[
 	R interface {
 		generic.ResourceWithRD

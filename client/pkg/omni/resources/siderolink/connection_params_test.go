@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -217,7 +218,9 @@ func TestKernelArgsWithGRPCTunnelMode(t *testing.T) {
 				Args: tt.args,
 			}
 
-			args, err := siderolink.KernelArgsWithGRPCRTunnelMode(connectionParams, tt.value)
+			args, err := siderolink.KernelArgsWithOptions(connectionParams,
+				siderolink.KernelArgsReplaceQuery(siderolink.GrpcTunnelQueryParam, strconv.FormatBool(tt.value)),
+			)
 			require.NoError(t, err)
 
 			assert.Equal(t, tt.expected, args)

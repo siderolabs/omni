@@ -22,6 +22,7 @@ import OmniMachineClasses from "@/views/omni/MachineClasses/MachineClasses.vue";
 import OmniMachineClass from "@/views/omni/MachineClasses/MachineClass.vue";
 import OmniMachinesPending from "@/views/omni/Machines/MachinesPending.vue";
 import OmniBackupStorageSettings from "@/views/omni/Settings/BackupStorage.vue";
+import OmniJoinTokens from "@/views/omni/Settings/JoinTokens.vue";
 import OIDC from "@/views/omni/Auth/OIDC.vue";
 
 // Cluster level routes
@@ -84,6 +85,9 @@ import { getAuthCookies, isAuthorized } from "@/methods/key";
 import { refreshTitle } from "@/methods/title";
 import { loadCurrentUser } from "@/methods/auth";
 import { MachineFilterOption } from "@/methods/machine";
+import JoinTokenCreate from "@/views/omni/Modals/JoinTokenCreate.vue";
+import JoinTokenRevoke from "@/views/omni/Modals/JoinTokenRevoke.vue";
+import JoinTokenDelete from "@/views/omni/Modals/JoinTokenDelete.vue";
 
 export const FrontendAuthFlow = "frontend";
 
@@ -266,6 +270,11 @@ const routes: RouteRecordRaw[] = [
       component:  PatchEdit,
     },
     {
+      path: "/machine/jointokens",
+      name: "JoinTokens",
+      component: OmniJoinTokens,
+    },
+    {
       path: "/settings",
       name: "Settings",
       component: OmniSettings,
@@ -278,6 +287,9 @@ const routes: RouteRecordRaw[] = [
           name: "Users",
           components: {
             inner: OmniUsers,
+          },
+          meta: {
+            title: "Users",
           }
         },
         {
@@ -285,6 +297,9 @@ const routes: RouteRecordRaw[] = [
           name: "ServiceAccounts",
           components: {
             inner: OmniServiceAccounts,
+          },
+          meta: {
+            title: "Service Accounts",
           }
         },
         {
@@ -292,6 +307,9 @@ const routes: RouteRecordRaw[] = [
           name: "BackupStorage",
           components: {
             inner: OmniBackupStorageSettings,
+          },
+          meta: {
+            title: "Backup Storage",
           }
         },
       ]
@@ -490,6 +508,9 @@ const modals = {
   configPatchDestroy: ConfigPatchDestroy,
   userDestroy: UserDestroy,
   userCreate: UserCreate,
+  joinTokenCreate: JoinTokenCreate,
+  joinTokenRevoke: JoinTokenRevoke,
+  joinTokenDelete: JoinTokenDelete,
   serviceAccountCreate: ServiceAccountCreate,
   serviceAccountRenew: ServiceAccountRenew,
   roleEdit: RoleEdit,

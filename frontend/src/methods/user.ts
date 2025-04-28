@@ -11,6 +11,7 @@ import {
   RoleInfraProvider,
   ServiceAccountDomain,
   InfraProviderServiceAccountDomain,
+  JoinTokenType,
 } from "@/api/resources";
 
 import {
@@ -19,13 +20,14 @@ import {
 } from 'openpgp/lightweight';
 
 import { Resource, ResourceService } from "@/api/grpc";
-import { UserSpec } from "@/api/omni/specs/auth.pb";
+import { JoinTokenSpec, UserSpec } from "@/api/omni/specs/auth.pb";
 import { v4 as uuidv4 } from 'uuid';
 import { IdentitySpec } from "@/api/omni/specs/auth.pb";
 import { Runtime } from "@/api/common/omni.pb";
 import { Code } from "@/api/google/rpc/code.pb";
 import { withRuntime } from "@/api/options";
 import { ManagementService } from "@/api/omni/management/management.pb";
+import { isoNow } from "./time";
 
 export const createUser = async (email: string, role: string) => {
   const user: Resource<UserSpec> = {
@@ -88,6 +90,29 @@ export const updateRole = async (userID: string, role: string) => {
 
   await ResourceService.Update(user, undefined, withRuntime(Runtime.Omni));
 };
+
+export const createJoinToken = async (id: string, name: string, expirationDays?: number) => {
+  let expirationTime: string | undefined;
+
+  if (expirationDays !== undefined) {
+    expirationTime = isoNow({days: expirationDays})
+  }
+
+  const joinToken: Resource<JoinTokenSpec> = {
+    metadata: {
+      id: id,
+      type: JoinTokenType,
+      namespace: DefaultNamespace,
+    },
+    spec: {
+      expiration_time: expirationTime,
+      revoked: false,
+      name,
+    }
+  };
+
+  await ResourceService.Create(joinToken, withRuntime(Runtime.Omni));
+}
 
 export const createServiceAccount = async (name: string, role: string, expirationDays: number = 365) => {
   const email = `${name}@${ role === RoleInfraProvider ? InfraProviderServiceAccountDomain : ServiceAccountDomain }`;

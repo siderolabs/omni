@@ -34,6 +34,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -119,10 +120,29 @@ func TestProvision(t *testing.T) {
 		config := siderolinkres.NewConfig(resources.DefaultNamespace)
 		config.TypedSpec().Value.ServerAddress = "127.0.0.1"
 		config.TypedSpec().Value.PublicKey = genKey()
-		config.TypedSpec().Value.JoinToken = validToken
+		config.TypedSpec().Value.InitialJoinToken = validToken
 		config.TypedSpec().Value.Subnet = wireguard.NetworkPrefix("").String()
 
 		require.NoError(t, state.Create(ctx, config))
+
+		tokenRes := auth.NewJoinToken(resources.DefaultNamespace, validToken)
+
+		tokenRes.TypedSpec().Value.Name = "default"
+
+		require.NoError(t, state.Create(ctx, tokenRes))
+
+		tokenStatusRes := auth.NewJoinTokenStatus(resources.DefaultNamespace, validToken)
+
+		tokenStatusRes.TypedSpec().Value.Name = "default"
+		tokenStatusRes.TypedSpec().Value.IsDefault = true
+		tokenStatusRes.TypedSpec().Value.State = specs.JoinTokenStatusSpec_ACTIVE
+
+		require.NoError(t, state.Create(ctx, tokenStatusRes))
+
+		defaultToken := auth.NewDefaultJoinToken()
+		defaultToken.TypedSpec().Value.TokenId = validToken
+
+		require.NoError(t, state.Create(ctx, defaultToken))
 
 		return state, provisionHandler
 	}

@@ -33,6 +33,13 @@ func (e ExtraData) signature(token string) ([]byte, error) {
 
 const v1Prefix = "v1:"
 
+const (
+	// VersionPlain is the random token string.
+	VersionPlain = "plain"
+	// Version1 is the signed token that contains extra data.
+	Version1 = "1"
+)
+
 // NewPlain token creates the token without extra data.
 func NewPlain(token string) JoinToken {
 	return JoinToken{
@@ -62,7 +69,8 @@ func NewWithExtraData(token string, extraData map[string]string) (JoinToken, err
 type JoinToken struct {
 	ExtraData ExtraData `json:"extra_data"`
 
-	token string
+	token   string
+	Version string `json:"-"`
 
 	Signature []byte `json:"signature"`
 }
@@ -77,10 +85,13 @@ func Parse(value string) (JoinToken, error) {
 			return res, err
 		}
 
+		res.Version = Version1
+
 		return res, json.Unmarshal(data, &res)
 	}
 
 	res.token = value
+	res.Version = VersionPlain
 
 	return res, nil
 }

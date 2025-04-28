@@ -190,11 +190,11 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 			},
 			{
 				callback: noopMigration,
-				name:     "compressMachineConfigsAndPatches",
+				name:     "noop",
 			},
 			{
 				callback: noopMigration,
-				name:     "compressConfigsAndMachinePatches",
+				name:     "noop",
 			},
 			{
 				callback: compressConfigPatches,
@@ -215,6 +215,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 			{
 				callback: markVersionContract,
 				name:     "markVersionContract",
+			},
+			{
+				callback: migrateConnectionParamsToController,
+				name:     "migrateConnectionParamsToController",
 			},
 		},
 	}
