@@ -195,22 +195,17 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 				shaSum := sha256.Sum256(buffer.Data())
 				shaSumString := hex.EncodeToString(shaSum[:])
 
-				if configStatus.TypedSpec().Value.ClusterMachineConfigSha256 == shaSumString {
-					// config is already applied
+				if configStatus.TypedSpec().Value.ClusterMachineConfigSha256 != shaSumString { // latest config is not yet applied, perform config apply
+					if err := handler.applyConfig(ctx, machineStatus, machineConfig, statusSnapshot, configStatus); err != nil {
+						grpcSt := client.Status(err)
+						if grpcSt != nil && grpcSt.Code() == codes.InvalidArgument {
+							configStatus.TypedSpec().Value.LastConfigError = grpcSt.Message()
 
-					return nil
-				}
+							return nil
+						}
 
-				// perform config apply
-				if err := handler.applyConfig(ctx, machineStatus, machineConfig, statusSnapshot, configStatus); err != nil {
-					grpcSt := client.Status(err)
-					if grpcSt != nil && grpcSt.Code() == codes.InvalidArgument {
-						configStatus.TypedSpec().Value.LastConfigError = grpcSt.Message()
-
-						return nil
+						return fmt.Errorf("failed to apply config to machine '%s': %w", machineConfig.Metadata().ID(), err)
 					}
-
-					return fmt.Errorf("failed to apply config to machine '%s': %w", machineConfig.Metadata().ID(), err)
 				}
 
 				helpers.CopyLabels(machineConfig, configStatus, omni.LabelMachineSet, omni.LabelCluster, omni.LabelControlPlaneRole, omni.LabelWorkerRole)
