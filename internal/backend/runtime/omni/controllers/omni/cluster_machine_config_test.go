@@ -10,11 +10,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/blang/semver"
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/siderolabs/go-retry/retry"
+	"github.com/siderolabs/talos/pkg/machinery/config"
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
+	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"github.com/siderolabs/talos/pkg/machinery/config/machine"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
+	"github.com/siderolabs/talos/pkg/machinery/version"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
@@ -254,6 +259,201 @@ func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 			assert.Empty(cfg.TypedSpec().Value.ClusterMachineVersion)
 		},
 	)
+}
+
+func (suite *ClusterMachineConfigSuite) TestConfigEncodingStability() {
+	suite.startRuntime()
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)))
+
+	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
+	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil, 8090)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
+
+	maxTalosVersion, err := semver.ParseTolerant(version.Tag)
+	suite.Require().NoError(err)
+
+	initialTalosMinorVersion := 2
+	maxTalosMinorVersion := int(maxTalosVersion.Minor)
+
+	var talosVersions []string
+
+	for i := initialTalosMinorVersion; i <= maxTalosMinorVersion; i++ {
+		talosVersions = append(talosVersions, fmt.Sprintf("1.%d.1", i)) // use .1 as the patch version instead of .0 so that the goconst linter does not complain
+	}
+
+	for i, initialVersion := range talosVersions {
+		suite.Run("initial-"+initialVersion, func() {
+			suite.testConfigEncodingStabilityFrom(talosVersions[i:])
+		})
+	}
+}
+
+func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityFrom(talosVersions []string) {
+	initialVersion := talosVersions[0]
+	upgradeVersions := talosVersions[1:]
+
+	clusterName := "test-config-encoding-stability-from-" + initialVersion
+	cluster, machines := suite.createClusterWithTalosVersion(clusterName, 1, 0, initialVersion)
+
+	var (
+		previousTalosVersion = initialVersion
+		previousConfig       config.Provider
+		err                  error
+	)
+
+	assertResource( // assert the initialConfig and initialize the previousConfig with it
+		&suite.OmniSuite,
+		*omni.NewClusterMachineConfig(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
+		func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
+			buffer, bufferErr := res.TypedSpec().Value.GetUncompressedData()
+			suite.Require().NoError(bufferErr)
+
+			defer buffer.Free()
+
+			configData := buffer.Data()
+
+			previousConfig, err = configloader.NewFromBytes(configData)
+			suite.Require().NoError(err)
+
+			assertions.Contains(previousConfig.Machine().Install().Image(), initialVersion)
+		},
+	)
+
+	for _, upgradeVersion := range upgradeVersions { // simulate upgrades and assert the config stability
+		suite.Run(fmt.Sprintf("from-%s-to-%s", previousTalosVersion, upgradeVersion), func() {
+			currentConfig := suite.testConfigEncodingStabilityTo(previousTalosVersion, upgradeVersion, cluster.Metadata().ID(), machines[0].Metadata().ID(), previousConfig)
+
+			previousConfig = currentConfig
+			previousTalosVersion = upgradeVersion
+		})
+	}
+
+	// assert that no unexpected features were enabled on the final config - we test the regressions in https://github.com/siderolabs/omni/issues/1095#issue-2993591967
+	finalConfig := previousConfig
+
+	// initialize the default feature values for assertions
+	manifestDirectoryDisabled := true
+	legacyMirrorRemoved := true
+	apidCheckExtKeyUsageEnabled := true
+	diskQuotaSupportEnabled := true
+	kubePrismEnabled := true
+	hostDNSEnabled := true
+	hostDNSForwardKubeDNSToHost := true
+	nodeHasLabelsSet := true
+
+	// invert the features which were not available/default at the time of the initial version
+	switch initialVersion {
+	case "1.2.1":
+		manifestDirectoryDisabled = false
+		legacyMirrorRemoved = false
+		apidCheckExtKeyUsageEnabled = false
+
+		fallthrough
+	case "1.3.1":
+		fallthrough
+	case "1.4.1":
+		diskQuotaSupportEnabled = false
+		kubePrismEnabled = false // kubeprism gets special treatment - even though it is enabled by default only for >=1.6, we enable it explicitly for >=1.5 in Omni
+
+		fallthrough
+	case "1.5.1":
+		fallthrough
+	case "1.6.1":
+		hostDNSEnabled = false
+
+		fallthrough
+	case "1.7.1":
+		hostDNSForwardKubeDNSToHost = false
+		nodeHasLabelsSet = false
+
+		fallthrough
+	case "1.8.1":
+		fallthrough
+	case "1.9.1":
+		fallthrough
+	case "1.10.1":
+	default:
+		suite.T().Fatalf("untested initial version: %s", initialVersion)
+	}
+
+	suite.Equal(manifestDirectoryDisabled, finalConfig.Machine().Kubelet().DisableManifestsDirectory(), "disableManifestsDirectory value has changed unexpectedly")
+	suite.Equal(legacyMirrorRemoved, len(finalConfig.Machine().Registries().Mirrors()) == 0, "legacy registry mirror value has changed unexpectedly")
+	suite.Equal(apidCheckExtKeyUsageEnabled, finalConfig.Machine().Features().ApidCheckExtKeyUsageEnabled(), "apidCheckExtKeyUsage feature value has changed unexpectedly")
+	suite.Equal(diskQuotaSupportEnabled, finalConfig.Machine().Features().DiskQuotaSupportEnabled(), "diskQuotaSupport feature value has changed unexpectedly")
+	suite.Equal(hostDNSEnabled, finalConfig.Machine().Features().HostDNS().Enabled(), "hostDNS feature value has changed unexpectedly")
+	suite.Equal(hostDNSForwardKubeDNSToHost, finalConfig.Machine().Features().HostDNS().ForwardKubeDNSToHost(), "hostDNS.forwardKubeDNSToHost value has changed unexpectedly")
+	suite.Equal(kubePrismEnabled, finalConfig.Machine().Features().KubePrism().Enabled(), "kubePrism feature value has changed unexpectedly")
+	suite.Equal(nodeHasLabelsSet, len(finalConfig.Machine().NodeLabels()) > 0, "node labels value has changed unexpectedly")
+}
+
+func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityTo(previousTalosVersion, upgradeTalosVersion string,
+	clusterID, machineID resource.ID, previousConfig config.Provider,
+) (currentConfig config.Provider) {
+	suite.T().Logf("upgrade %s->%s", previousTalosVersion, upgradeTalosVersion)
+	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewCluster(resources.DefaultNamespace, clusterID).Metadata(), func(res *omni.Cluster) error {
+		res.TypedSpec().Value.TalosVersion = upgradeTalosVersion
+
+		return nil
+	})
+	suite.Require().NoError(err)
+
+	assertResource(
+		&suite.OmniSuite,
+		*omni.NewClusterMachineConfig(resources.DefaultNamespace, machineID).Metadata(),
+		func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
+			spec := res.TypedSpec().Value
+
+			buffer, bufferErr := spec.GetUncompressedData()
+			suite.Require().NoError(bufferErr)
+
+			defer buffer.Free()
+
+			configData := buffer.Data()
+
+			currentConfig, err = configloader.NewFromBytes(configData)
+			suite.Require().NoError(err)
+
+			previousInstallImage := previousConfig.Machine().Install().Image()
+			currentInstallImage := currentConfig.Machine().Install().Image()
+
+			if !assertions.Containsf(currentInstallImage, upgradeTalosVersion, "the install image in the config is not updated yet to have the new version %q", upgradeTalosVersion) {
+				return
+			}
+
+			suite.T().Logf("compare configs %s<>%s", previousTalosVersion, upgradeTalosVersion)
+
+			suite.Require().Contains(previousInstallImage, previousTalosVersion) // make sure that we didn't overwrite the previous image, so we compare the correct two things
+			suite.configsAreEqual(previousConfig, currentConfig)
+		},
+	)
+
+	return currentConfig
+}
+
+func (suite *ClusterMachineConfigSuite) configsAreEqual(first, second config.Provider) {
+	// clone both configs to:
+	// - avoid modifying the original ones
+	// - be able to overwrite the install images, as the original ones are read-only
+	first = first.Clone()
+	second = second.Clone()
+
+	first.RawV1Alpha1().MachineConfig.MachineInstall.InstallImage = ""
+	second.RawV1Alpha1().MachineConfig.MachineInstall.InstallImage = ""
+
+	firstData, err := first.EncodeString(encoder.WithComments(encoder.CommentsDisabled))
+	suite.Require().NoError(err)
+
+	secondData, err := second.EncodeString(encoder.WithComments(encoder.CommentsDisabled))
+	suite.Require().NoError(err)
+
+	suite.Equal(firstData, secondData)
 }
 
 func TestClusterMachineConfigSuite(t *testing.T) {
