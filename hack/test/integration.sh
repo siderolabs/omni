@@ -20,7 +20,9 @@ echo "127.0.0.1 my-instance.localhost" | tee -a /etc/hosts
 
 # Settings.
 
-TALOS_VERSION=1.9.5
+TALOS_VERSION=1.10.0
+ENABLE_TALOS_PRERELEASE_VERSIONS=true # enabled for now, as the OtherTalosVersion is a beta one
+
 ARTIFACTS=_out
 JOIN_TOKEN=testonly
 RUN_DIR=$(pwd)
@@ -137,6 +139,7 @@ SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
   --etcd-embedded-unsafe-fsync=true \
   --etcd-backup-s3 \
   --audit-log-dir /tmp/omni-data/audit-log \
+  --enable-talos-pre-release-versions="${ENABLE_TALOS_PRERELEASE_VERSIONS}" \
   "${REGISTRY_MIRROR_FLAGS[@]}" \
   &
 
