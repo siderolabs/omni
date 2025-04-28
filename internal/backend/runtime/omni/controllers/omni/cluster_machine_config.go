@@ -273,7 +273,6 @@ type clusterMachineConfigControllerHelper struct {
 	imageFactoryHost string
 }
 
-//nolint:gocyclo,cyclop
 func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.ClusterMachine, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, secrets *omni.ClusterSecrets,
 	loadbalancer *omni.LoadBalancerConfig, cluster *omni.Cluster, clusterConfigVersion *omni.ClusterConfigVersion, configGenOptions *omni.MachineConfigGenOptions, extraGenOptions []generate.Option,
 	connectionParams *siderolink.ConnectionParams, link *siderolink.Link, eventSinkPort int,
@@ -326,14 +325,6 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 	if versionContract.Greater(config.TalosVersion1_4) {
 		genOptions = append(genOptions, generate.WithKubePrismPort(constants.KubePrismPort))
 	}
-
-	// add the advertised host of the app so kube-apiserver cert is valid for external access
-	apiHost, err := appconfig.Config.GetAdvertisedAPIHost()
-	if err != nil {
-		return nil, err
-	}
-
-	genOptions = append(genOptions, generate.WithAdditionalSubjectAltNames([]string{apiHost}))
 
 	secretBundle, err := omni.ToSecretsBundle(secrets)
 	if err != nil {
