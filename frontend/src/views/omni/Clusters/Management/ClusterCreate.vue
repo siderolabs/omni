@@ -387,6 +387,8 @@ const talosVersions = computed(() => {
     res.push(version.spec.version!);
   }
 
+  res.sort(semver.compare)
+
   return res;
 });
 
