@@ -1330,7 +1330,7 @@ Test flow of cluster creation and scaling using cluster templates.`,
 			Subtests: []subTest{
 				{
 					"TestClusterTemplateFlow",
-					AssertClusterTemplateFlow(ctx, rootClient.Omni().State()),
+					AssertClusterTemplateFlow(ctx, rootClient.Omni().State(), options.MachineOptions),
 				},
 			},
 			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "tmpl-cluster"),

@@ -455,7 +455,7 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientConfi
 			},
 			{
 				namePrefix:    "talos-etcd-status",
-				requiredRole:  role.Operator,
+				requiredRole:  role.Reader,
 				assertSuccess: assertSuccess,
 				assertFailure: func(t *testing.T, err error) {
 					assert.Truef(t, status.Code(err) == codes.PermissionDenied, "unexpected error: %v", err)
@@ -1243,7 +1243,7 @@ func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client, cli
 
 		clusterUnauthorized := omni.NewCluster(resources.DefaultNamespace, "unauthorized-"+testID)
 		clusterUnauthorized.TypedSpec().Value.TalosVersion = constants.DefaultTalosVersion
-		clusterUnauthorized.TypedSpec().Value.KubernetesVersion = "1.27.3"
+		clusterUnauthorized.TypedSpec().Value.KubernetesVersion = "1.28.3"
 
 		userState := userCli.Omni().State()
 
@@ -1259,7 +1259,7 @@ func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client, cli
 		// create a cluster that is authorized to the user by the ACL
 		clusterAuthorized := omni.NewCluster(resources.DefaultNamespace, clusterAuthorizedID)
 		clusterAuthorized.TypedSpec().Value.TalosVersion = constants.DefaultTalosVersion
-		clusterAuthorized.TypedSpec().Value.KubernetesVersion = "1.27.3"
+		clusterAuthorized.TypedSpec().Value.KubernetesVersion = "1.28.3"
 
 		err = userState.Create(ctx, clusterAuthorized)
 		require.NoError(t, err)

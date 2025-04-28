@@ -12,7 +12,7 @@ import (
 )
 
 // AnotherTalosVersion is used in the integration tests for Talos upgrade.
-const AnotherTalosVersion = "1.9.0"
+const AnotherTalosVersion = "1.10.0"
 
 // MinDiscoveredTalosVersion makes Omni pull the versions from this point.
 const MinDiscoveredTalosVersion = "1.3.0"
@@ -33,9 +33,8 @@ const MinKubernetesVersion = "1.24.0"
 
 // DenylistedTalosVersions is a list of versions which should never show up in the version picker.
 var DenylistedTalosVersions = Denylist{
-	"1.4.2":  {}, // issue with the number of open files limit
-	"1.4.3":  {}, // issue with the number of open files limit
-	"1.10.*": {}, // Omni is not ready for 1.10.x yet
+	"1.4.2": {}, // issue with the number of open files limit
+	"1.4.3": {}, // issue with the number of open files limit
 }
 
 // Denylist helper.

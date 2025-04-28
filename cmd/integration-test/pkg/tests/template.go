@@ -21,10 +21,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	clientconsts "github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/template/operations"
-	"github.com/siderolabs/omni/internal/pkg/constants"
 )
 
 //go:embed testdata/cluster-1.tmpl.yaml
@@ -50,7 +48,7 @@ func renderTemplate(t *testing.T, tmpl []byte, opts tmplOptions) []byte {
 }
 
 // AssertClusterTemplateFlow verifies cluster template operations.
-func AssertClusterTemplateFlow(testCtx context.Context, st state.State) TestFunc {
+func AssertClusterTemplateFlow(testCtx context.Context, st state.State, options MachineOptions) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, 20*time.Minute)
 		defer cancel()
@@ -72,8 +70,8 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State) TestFunc
 			machineIDs = mIDs
 
 			opts = tmplOptions{
-				KubernetesVersion: "v" + constants.DefaultKubernetesVersion,
-				TalosVersion:      "v" + clientconsts.DefaultTalosVersion,
+				KubernetesVersion: "v" + options.KubernetesVersion,
+				TalosVersion:      "v" + options.TalosVersion,
 
 				CP: machineIDs[:3],
 				W:  machineIDs[3:],

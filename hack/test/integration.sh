@@ -20,7 +20,9 @@ echo "127.0.0.1 my-instance.localhost" | tee -a /etc/hosts
 
 # Settings.
 
-TALOS_VERSION=1.9.5
+TALOS_VERSION=1.10.1
+ENABLE_TALOS_PRERELEASE_VERSIONS=false
+
 ARTIFACTS=_out
 JOIN_TOKEN=testonly
 RUN_DIR=$(pwd)
@@ -38,13 +40,24 @@ mkdir -p ${ARTIFACTS}
 
 [ -f ${ARTIFACTS}/talosctl ] || (crane export ghcr.io/siderolabs/talosctl:latest | tar x -C ${ARTIFACTS})
 
-# Your image schematic ID is: cf9b7aab9ed7c365d5384509b4d31c02fdaa06d2b3ac6cc0bc806f28130eff1f
-#
-# customization:
-#   systemExtensions:
-#     officialExtensions:
-#       - siderolabs/hello-world-service
-SCHEMATIC_ID="cf9b7aab9ed7c365d5384509b4d31c02fdaa06d2b3ac6cc0bc806f28130eff1f"
+# Determine the local IP SideroLink API will listen on
+LOCAL_IP=$(ip -o route get to 8.8.8.8 | sed -n 's/.*src \([0-9.]\+\).*/\1/p')
+
+# Prepare schematic with kernel args
+SCHEMATIC=$(
+  cat <<EOF
+customization:
+  extraKernelArgs:
+    - siderolink.api=grpc://$LOCAL_IP:8090?jointoken=${JOIN_TOKEN}
+    - talos.events.sink=[fdae:41e4:649b:9303::1]:8090
+    - talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/hello-world-service
+EOF
+)
+
+SCHEMATIC_ID=$(curl -X POST --data-binary "${SCHEMATIC}" https://factory.talos.dev/schematics | jq -r '.id')
 
 # Build registry mirror args.
 
@@ -78,9 +91,6 @@ function cleanup() {
 }
 
 trap cleanup EXIT SIGINT
-
-# Determine the local IP SideroLink API will listen on
-LOCAL_IP=$(ip -o route get to 8.8.8.8 | sed -n 's/.*src \([0-9.]\+\).*/\1/p')
 
 # Start Vault.
 
@@ -137,6 +147,7 @@ SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
   --etcd-embedded-unsafe-fsync=true \
   --etcd-backup-s3 \
   --audit-log-dir /tmp/omni-data/audit-log \
+  --enable-talos-pre-release-versions="${ENABLE_TALOS_PRERELEASE_VERSIONS}" \
   "${REGISTRY_MIRROR_FLAGS[@]}" \
   &
 
@@ -230,22 +241,6 @@ ${ARTIFACTS}/talosctl cluster create \
   --vmlinuz-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/kernel-amd64" \
   --initrd-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/initramfs-amd64.xz"
 
-# Prepare schematic with kernel args for secure boot
-SECURE_BOOT_SCHEMATIC=$(
-  cat <<EOF
-customization:
-  extraKernelArgs:
-    - siderolink.api=grpc://$LOCAL_IP:8090?jointoken=${JOIN_TOKEN}
-    - talos.events.sink=[fdae:41e4:649b:9303::1]:8090
-    - talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092
-  systemExtensions:
-    officialExtensions:
-      - siderolabs/hello-world-service
-EOF
-)
-
-SECURE_BOOT_SCHEMATIC_ID=$(curl -X POST --data-binary "${SECURE_BOOT_SCHEMATIC}" https://factory.talos.dev/schematics | jq -r '.id')
-
 if [[ "${ENABLE_SECUREBOOT}" == "true" ]]; then
   # Kernel args, secure boot
   ${ARTIFACTS}/talosctl cluster create \
@@ -266,7 +261,7 @@ if [[ "${ENABLE_SECUREBOOT}" == "true" ]]; then
     --cidr=172.22.0.0/24 \
     --no-masquerade-cidrs=172.20.0.0/24,172.21.0.0/24 \
     --with-tpm2 \
-    --iso-path="https://factory.talos.dev/image/${SECURE_BOOT_SCHEMATIC_ID}/v${TALOS_VERSION}/metal-amd64-secureboot.iso" \
+    --iso-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/metal-amd64-secureboot.iso" \
     --disk-encryption-key-types=tpm
 fi
 
