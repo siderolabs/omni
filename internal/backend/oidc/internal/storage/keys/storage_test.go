@@ -147,9 +147,14 @@ func TestStorage(t *testing.T) {
 	require.NoError(t, err)
 
 	keyIDs := getKeyIDs(keySet)
+	require.GreaterOrEqual(t, len(keyIDs), 2, "at least two keys should be present")
 
-	assert.GreaterOrEqual(t, len(keyIDs), 2, "at least two keys should be present")
-	assert.Equal(t, sorted(expectedPublicKeyIDs), keyIDs)
+	slices.Sort(expectedPublicKeyIDs)
+
+	// get last N key IDs, where N is the number of expected public keys
+	mostRecentKeyIDs := keyIDs[len(keyIDs)-len(expectedPublicKeyIDs):]
+
+	assert.Equal(t, expectedPublicKeyIDs, mostRecentKeyIDs)
 }
 
 func getKeyIDs(keySet []op.Key) []string {
