@@ -218,7 +218,6 @@ func (machineset *MachineSet) translate(ctx TranslateContext, nameSuffix, roleLa
 			Name:           machineset.MachineClass.Name,
 			MachineCount:   machineset.MachineClass.Size.Value,
 			AllocationType: machineset.MachineClass.Size.AllocationType,
-			Source:         specs.MachineSetSpec_MachineAllocation_MachineClass,
 		}
 	} else {
 		for _, machineID := range machineset.Machines {

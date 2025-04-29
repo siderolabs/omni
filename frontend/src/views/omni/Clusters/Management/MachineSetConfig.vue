@@ -64,7 +64,7 @@ import IconButton from "@/components/common/Button/IconButton.vue";
 import pluralize from "pluralize";
 import { LabelWorkerRole, PatchBaseWeightMachineSet } from "@/api/resources";
 import MachineSetConfigEdit from "../../Modals/MachineSetConfigEdit.vue";
-import { MachineSetSpecMachineAllocationSource, MachineClassSpec } from "@/api/omni/specs/omni.pb";
+import { MachineClassSpec } from "@/api/omni/specs/omni.pb";
 
 const emit = defineEmits(["update:modelValue"]);
 
@@ -140,7 +140,6 @@ watch([sourceName, machineCount, useMachineClasses, patches, allMachines], () =>
   const mc = useMachineClasses.value && sourceName.value !== undefined ? {
     name: sourceName.value,
     size: allMachines.value ? 'unlimited' : machineCount.value,
-    source: MachineSetSpecMachineAllocationSource.MachineClass,
   } : undefined;
 
   const machineSet: MachineSet = {

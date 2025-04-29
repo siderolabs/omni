@@ -17,7 +17,6 @@ import (
 	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
@@ -45,10 +44,6 @@ func NewMachineProvisionController() *MachineProvisionController {
 				machineAllocation := omni.GetMachineAllocation(machineSet)
 				if machineAllocation == nil {
 					return xerrors.NewTaggedf[qtransform.DestroyOutputTag]("machine set doesn't use automatic machine allocation")
-				}
-
-				if machineAllocation.Source != specs.MachineSetSpec_MachineAllocation_MachineClass {
-					return xerrors.NewTaggedf[qtransform.DestroyOutputTag]("machine allocation doesn't use machine classes")
 				}
 
 				clusterName, ok := machineSet.Metadata().Labels().Get(omni.LabelCluster)
@@ -128,8 +123,7 @@ func NewMachineProvisionController() *MachineProvisionController {
 				for machineSet := range machineSets.All() {
 					allocation := omni.GetMachineAllocation(machineSet)
 
-					if allocation == nil || allocation.Name != res.Metadata().ID() ||
-						allocation.Source != specs.MachineSetSpec_MachineAllocation_MachineClass {
+					if allocation == nil || allocation.Name != res.Metadata().ID() {
 						continue
 					}
 

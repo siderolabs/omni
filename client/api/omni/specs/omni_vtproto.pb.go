@@ -1156,7 +1156,6 @@ func (m *MachineSetSpec_MachineAllocation) CloneVT() *MachineSetSpec_MachineAllo
 	r.Name = m.Name
 	r.MachineCount = m.MachineCount
 	r.AllocationType = m.AllocationType
-	r.Source = m.Source
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -4064,9 +4063,6 @@ func (this *MachineSetSpec_MachineAllocation) EqualVT(that *MachineSetSpec_Machi
 		return false
 	}
 	if this.AllocationType != that.AllocationType {
-		return false
-	}
-	if this.Source != that.Source {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -9113,11 +9109,6 @@ func (m *MachineSetSpec_MachineAllocation) MarshalToSizedBufferVT(dAtA []byte) (
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.Source != 0 {
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Source))
-		i--
-		dAtA[i] = 0x20
-	}
 	if m.AllocationType != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.AllocationType))
 		i--
@@ -13836,9 +13827,6 @@ func (m *MachineSetSpec_MachineAllocation) SizeVT() (n int) {
 	}
 	if m.AllocationType != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.AllocationType))
-	}
-	if m.Source != 0 {
-		n += 1 + protohelpers.SizeOfVarint(uint64(m.Source))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -23551,25 +23539,6 @@ func (m *MachineSetSpec_MachineAllocation) UnmarshalVT(dAtA []byte) error {
 				b := dAtA[iNdEx]
 				iNdEx++
 				m.AllocationType |= MachineSetSpec_MachineAllocation_Type(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Source", wireType)
-			}
-			m.Source = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Source |= MachineSetSpec_MachineAllocation_Source(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}

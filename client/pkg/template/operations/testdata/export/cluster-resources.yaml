@@ -115,7 +115,6 @@ spec:
     name: mc1
     machinecount: 0
     allocationtype: 1
-    source: 0
   bootstrapspec: null
 ---
 
@@ -143,7 +142,6 @@ spec:
     name: mc2
     machinecount: 1
     allocationtype: 0
-    source: 0
   bootstrapspec: null
 ---
 

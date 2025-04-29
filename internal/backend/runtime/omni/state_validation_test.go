@@ -881,28 +881,6 @@ func TestMachineSetClassesValidation(t *testing.T) {
 	err = st.Update(ctx, machineSet)
 	require.True(t, validated.IsValidationError(err), "expected validation error")
 	require.ErrorContains(t, err, "machine set is not empty")
-
-	require.NoError(t, st.Destroy(ctx, machineSetNode.Metadata()))
-
-	machineSet.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
-		Name:   machineClass.Metadata().ID(),
-		Source: specs.MachineSetSpec_MachineAllocation_MachineClass,
-	}
-
-	require.NoError(t, st.Update(ctx, machineSet))
-
-	// changing source is not allowed too
-	machineSet.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
-		Name:   machineClass.Metadata().ID(),
-		Source: specs.MachineSetSpec_MachineAllocation_MachineRequestSet,
-	}
-
-	// add a node
-	require.NoError(t, innerSt.Create(ctx, machineSetNode))
-
-	err = st.Update(ctx, machineSet)
-	require.True(t, validated.IsValidationError(err), "expected validation error")
-	require.ErrorContains(t, err, "machine set is not empty")
 }
 
 func TestMachineClassValidation(t *testing.T) {

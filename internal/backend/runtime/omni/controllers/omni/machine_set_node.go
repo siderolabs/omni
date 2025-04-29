@@ -236,54 +236,39 @@ func (ctrl *MachineSetNodeController) getMachineAllocation(ctx context.Context, 
 		return nil, nil //nolint:nilnil
 	}
 
-	var manualAllocation bool
+	machineClass, err := safe.ReaderGet[*omni.MachineClass](ctx, r, omni.NewMachineClass(resources.DefaultNamespace, machineAllocation.Name).Metadata())
+	if err != nil {
+		return nil, err
+	}
 
-	switch machineAllocation.Source {
-	case specs.MachineSetSpec_MachineAllocation_MachineClass:
-		machineClass, err := safe.ReaderGet[*omni.MachineClass](ctx, r, omni.NewMachineClass(resources.DefaultNamespace, machineAllocation.Name).Metadata())
-		if err != nil {
-			return nil, err
-		}
-
-		if machineClass.TypedSpec().Value.AutoProvision != nil {
-			selectors = append(selectors, resource.LabelQuery{
-				Terms: []resource.LabelTerm{
-					{
-						Key:   omni.LabelMachineRequestSet,
-						Op:    resource.LabelOpEqual,
-						Value: []string{machineSet.Metadata().ID()},
-					},
-				},
-			})
-
-			break
-		}
-
-		selectors, err = labels.ParseSelectors(machineClass.TypedSpec().Value.MatchLabels)
-		if err != nil {
-			return nil, err
-		}
-
-		manualAllocation = true
-	case specs.MachineSetSpec_MachineAllocation_MachineRequestSet:
+	if machineClass.TypedSpec().Value.AutoProvision != nil {
 		selectors = append(selectors, resource.LabelQuery{
 			Terms: []resource.LabelTerm{
 				{
 					Key:   omni.LabelMachineRequestSet,
 					Op:    resource.LabelOpEqual,
-					Value: []string{machineAllocation.Name},
+					Value: []string{machineSet.Metadata().ID()},
 				},
 			},
 		})
-	default:
-		return nil, nil //nolint:nilnil
+
+		return &allocationConfig{
+			selectors:      selectors,
+			allocationType: machineAllocation.AllocationType,
+			machineCount:   machineAllocation.MachineCount,
+		}, nil
+	}
+
+	selectors, err = labels.ParseSelectors(machineClass.TypedSpec().Value.MatchLabels)
+	if err != nil {
+		return nil, err
 	}
 
 	return &allocationConfig{
 		selectors:      selectors,
 		allocationType: machineAllocation.AllocationType,
 		machineCount:   machineAllocation.MachineCount,
-		manual:         manualAllocation,
+		manual:         true,
 	}, nil
 }
 
