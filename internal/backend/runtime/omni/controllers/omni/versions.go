@@ -247,9 +247,7 @@ func (ctrl *VersionsController) reconcileTalosVersions(ctx context.Context, r co
 	talosVersions := ctrl.getVersionsAfter(allVersions, minDiscoveredTalosVersion, config.Config.EnableTalosPreReleaseVersions)
 
 	talosVersions = xslices.FilterInPlace(talosVersions, func(v string) bool {
-		_, denylisted := consts.DenylistedTalosVersions[v]
-
-		return !denylisted
+		return consts.DenylistedTalosVersions.IsAllowed(v)
 	})
 
 	err = forAllCompatibleVersions(talosVersions, k8sVersions, func(talosVer string, compatibleK8sVersions []string) error {
