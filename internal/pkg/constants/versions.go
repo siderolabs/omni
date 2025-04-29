@@ -5,6 +5,12 @@
 
 package constants
 
+import (
+	"fmt"
+
+	"github.com/blang/semver/v4"
+)
+
 // AnotherTalosVersion is used in the integration tests for Talos upgrade.
 const AnotherTalosVersion = "1.9.0"
 
@@ -26,7 +32,31 @@ const AnotherKubernetesVersion = "1.31.7"
 const MinKubernetesVersion = "1.24.0"
 
 // DenylistedTalosVersions is a list of versions which should never show up in the version picker.
-var DenylistedTalosVersions = map[string]struct{}{
-	"1.4.2": {}, // issue with the number of open files limit
-	"1.4.3": {}, // issue with the number of open files limit
+var DenylistedTalosVersions = Denylist{
+	"1.4.2":  {}, // issue with the number of open files limit
+	"1.4.3":  {}, // issue with the number of open files limit
+	"1.10.*": {}, // Omni is not ready for 1.10.x yet
+}
+
+// Denylist helper.
+type Denylist map[string]struct{}
+
+// IsAllowed checks if the version of Talos is allowed.
+func (d Denylist) IsAllowed(version string) bool {
+	if _, ok := d[version]; ok {
+		return false
+	}
+
+	ver, err := semver.ParseTolerant(version)
+	if err != nil {
+		return false
+	}
+
+	pattern := fmt.Sprintf("%d.%d.*", ver.Major, ver.Minor)
+
+	if _, ok := d[pattern]; ok {
+		return false
+	}
+
+	return true
 }
