@@ -1,3 +1,30 @@
+## [Omni 0.48.4](https://github.com/siderolabs/omni/releases/tag/v0.48.4) (2025-04-29)
+
+Welcome to the v0.48.4 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`7407d7a7`](https://github.com/siderolabs/omni/commit/7407d7a7c651829f4f4382b2e61e49b376c3cb96) fix: disable Talos >= 1.10 for now as Omni isn't ready for it yet
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.48.3](https://github.com/siderolabs/omni/releases/tag/v0.48.3)
+
 ## [Omni 0.48.3](https://github.com/siderolabs/omni/releases/tag/v0.48.3) (2025-04-16)
 
 Welcome to the v0.48.3 release of Omni!
