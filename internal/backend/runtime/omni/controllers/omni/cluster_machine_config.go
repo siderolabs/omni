@@ -230,7 +230,7 @@ func reconcileClusterMachineConfig(
 		return xerrors.NewTagged[qtransform.SkipReconcileTag](errors.New("machine schematic is not set detected"))
 	}
 
-	if installImage.SecureBootStatus == nil {
+	if installImage.SecurityState == nil {
 		logger.Error("secure boot status is not detected, skip reconcile")
 
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("secure boot status for machine %q is not yet set", machineConfigGenOptions.Metadata().ID())
@@ -468,13 +468,13 @@ func buildInstallImage(imageFactoryHost string, resID resource.ID, installImage 
 
 	schematicID := installImage.SchematicId
 
-	secureBootStatus := installImage.SecureBootStatus
-	if secureBootStatus == nil { // should never happen - must have been handled before entering this function
+	securityState := installImage.SecurityState
+	if securityState == nil { // should never happen - must have been handled before entering this function
 		return "", fmt.Errorf("machine %q has no secure boot status set", resID)
 	}
 
 	installerName := "installer"
-	if secureBootStatus.Enabled {
+	if securityState.SecureBoot {
 		installerName = "installer-secureboot"
 	}
 

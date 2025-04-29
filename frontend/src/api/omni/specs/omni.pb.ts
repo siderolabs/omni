@@ -177,8 +177,9 @@ export type MachineSpec = {
   connected?: boolean
 }
 
-export type SecureBootStatus = {
-  enabled?: boolean
+export type SecurityState = {
+  secure_boot?: boolean
+  booted_with_uki?: boolean
 }
 
 export type Overlay = {
@@ -284,9 +285,9 @@ export type MachineStatusSpec = {
   image_labels?: {[key: string]: string}
   schematic?: MachineStatusSpecSchematic
   initial_talos_version?: string
-  secure_boot_status?: SecureBootStatus
   diagnostics?: MachineStatusSpecDiagnostic[]
   power_state?: MachineStatusSpecPowerState
+  security_state?: SecurityState
 }
 
 export type TalosConfigSpec = {
@@ -689,8 +690,8 @@ export type MachineConfigGenOptionsSpecInstallImage = {
   schematic_id?: string
   schematic_initialized?: boolean
   schematic_invalid?: boolean
-  secure_boot_status?: SecureBootStatus
   platform?: string
+  security_state?: SecurityState
 }
 
 export type MachineConfigGenOptionsSpec = {

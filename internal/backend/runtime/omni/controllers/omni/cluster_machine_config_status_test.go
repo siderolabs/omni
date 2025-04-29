@@ -214,9 +214,7 @@ func (suite *ClusterMachineConfigStatusSuite) prepareMachines(machines []*omni.C
 			func(res *omni.MachineStatus) error {
 				res.TypedSpec().Value.Connected = true
 				res.TypedSpec().Value.Maintenance = false
-				res.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
-					Enabled: false,
-				}
+				res.TypedSpec().Value.SecurityState = &specs.SecurityState{}
 				res.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
 					Platform: talosconstants.PlatformMetal,
 				}
@@ -285,9 +283,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestResetUngraceful() {
 				res.TypedSpec().Value.Connected = true
 				res.TypedSpec().Value.Maintenance = false
 				res.TypedSpec().Value.ManagementAddress = unixSocket + machineService.address
-				res.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
-					Enabled: false,
-				}
+				res.TypedSpec().Value.SecurityState = &specs.SecurityState{}
 				res.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
 					Platform: talosconstants.PlatformMetal,
 				}
@@ -449,9 +445,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestForceDestroy() {
 				res.TypedSpec().Value.Connected = true
 				res.TypedSpec().Value.Maintenance = false
 				res.TypedSpec().Value.ManagementAddress = unixSocket + machineSvc.address
-				res.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
-					Enabled: false,
-				}
+				res.TypedSpec().Value.SecurityState = &specs.SecurityState{}
 				res.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
 					Platform: talosconstants.PlatformMetal,
 				}
@@ -512,9 +506,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestUpgrades() {
 			func(res *omni.MachineStatus) error {
 				res.TypedSpec().Value.Connected = true
 				res.TypedSpec().Value.Maintenance = false
-				res.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
-					Enabled: false,
-				}
+				res.TypedSpec().Value.SecurityState = &specs.SecurityState{}
 				res.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
 					Platform: talosconstants.PlatformMetal,
 				}
@@ -648,9 +640,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestStagedUpgrade() {
 		res.TypedSpec().Value.Connected = true
 		res.TypedSpec().Value.Maintenance = false
 		res.TypedSpec().Value.ManagementAddress = unixSocket + machineSvc.address
-		res.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
-			Enabled: false,
-		}
+		res.TypedSpec().Value.SecurityState = &specs.SecurityState{}
 		res.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
 			Platform: talosconstants.PlatformMetal,
 		}
@@ -731,9 +721,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestSchematicChanges() {
 			func(res *omni.MachineStatus) error {
 				res.TypedSpec().Value.Connected = true
 				res.TypedSpec().Value.Maintenance = false
-				res.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
-					Enabled: false,
-				}
+				res.TypedSpec().Value.SecurityState = &specs.SecurityState{}
 				res.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
 					Platform: talosconstants.PlatformMetal,
 				}
@@ -870,8 +858,9 @@ func (suite *ClusterMachineConfigStatusSuite) TestSecureBootInstallImage() {
 			func(res *omni.MachineStatus) error {
 				res.TypedSpec().Value.Connected = true
 				res.TypedSpec().Value.Maintenance = false
-				res.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
-					Enabled: true,
+				res.TypedSpec().Value.SecurityState = &specs.SecurityState{
+					SecureBoot:    true,
+					BootedWithUki: true,
 				}
 				res.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
 					Platform: talosconstants.PlatformMetal,

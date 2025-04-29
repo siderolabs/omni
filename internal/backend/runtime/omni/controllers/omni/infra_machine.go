@@ -203,7 +203,7 @@ func (ctrl *InfraMachineController) reconcileRunning(ctx context.Context, r cont
 		return nil // the link is not created by a static infra provider
 	}
 
-	machineInfoCollected := machineStatus != nil && machineStatus.TypedSpec().Value.SecureBootStatus != nil
+	machineInfoCollected := machineStatus != nil && machineStatus.TypedSpec().Value.SecurityState != nil
 
 	helper := &infraMachineControllerHelper{
 		config:               config,

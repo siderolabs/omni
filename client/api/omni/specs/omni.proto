@@ -18,10 +18,12 @@ message MachineSpec {
   reserved 4;
 }
 
-// SecureBootStatus describes the status of the SecureBoot feature.
-message SecureBootStatus {
-  // Enabled is true if SecureBoot is detected to be available and enabled.
-  bool enabled = 1;
+// SecurityState describes the UKI and secure boot information of the machine.
+message SecurityState {
+  // SecureBoot is true if secure boot is detected to be available and enabled.
+  bool secure_boot = 1; // use existing logic
+  // BootedWithUki is true if the machine is booted with a UKI. Always true if secure boot is enabled.
+  bool booted_with_uki = 2;
 }
 
 message Overlay {
@@ -238,8 +240,7 @@ message MachineStatusSpec {
   string initial_talos_version = 16;
 
   reserved 17;
-
-  SecureBootStatus secure_boot_status = 18;
+  reserved 18;
 
   repeated Diagnostic diagnostics = 19;
 
@@ -251,6 +252,8 @@ message MachineStatusSpec {
   };
 
   PowerState power_state = 20;
+
+  SecurityState security_state = 21;
 }
 
 // TalosConfigSpec describes a Talos cluster config.
@@ -1054,10 +1057,11 @@ message MachineConfigGenOptionsSpec {
     bool schematic_initialized = 3;
     // SchematicInvalid is true if the schematic is invalid.
     bool schematic_invalid = 4;
-    // SecureBootStatus is the status of the SecureBoot feature.
-    SecureBootStatus secure_boot_status = 5;
+    reserved 5;
     // Platform is the machine platform to use for the install image.
     string platform = 6;
+    // SecurityState is used to decide the secure boot enablement in the install image.
+    SecurityState security_state = 7;
   }
 
   string install_disk = 1;

@@ -67,7 +67,7 @@ type Info struct { //nolint:govet
 	NoAccess        bool
 
 	DefaultKernelArgs []string
-	SecureBootStatus  *specs.SecureBootStatus
+	SecurityState     *specs.SecurityState
 
 	Diagnostics []*specs.MachineStatusSpec_Diagnostic
 }

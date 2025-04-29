@@ -59,13 +59,13 @@ var machinePollers = map[string]machinePollFunction{
 	"version": pollVersion,
 	"disks":   pollDisksLegacy,
 
-	// we do not use a resource poller for the secure boot status, as we want to mark
-	// secure boot explicitly to disabled (contrary to leaving it nil) if the feature is not available (i.e., older Talos versions).
+	// we do not use a resource poller for the SecurityState, as we want to mark
+	// secure boot / UKI explicitly to disabled (contrary to leaving it nil) if the feature is not available (i.e., older Talos versions).
 	//
 	// resourcePollers skip polling the resource if it is not defined on the Talos API.
 	//
 	// furthermore, by doing this, we skip watching this resource, which is what we want, since it does not change over time.
-	"secureBootStatus": pollSecureBootStatus,
+	"securityState": pollSecurityState,
 }
 
 var allPollers = merged(resourcePollers, machinePollers)
@@ -283,32 +283,35 @@ func pollPlatformMetadata(ctx context.Context, c *client.Client, info *Info) err
 		})
 }
 
-func pollSecureBootStatus(ctx context.Context, c *client.Client, info *Info) error {
-	isSecureBootEnabled := func() (bool, error) {
-		_, err := safe.StateGetByID[*meta.ResourceDefinition](ctx, c.COSI, strings.ToLower(runtime.SecurityStateType))
-		if err != nil {
+func pollSecurityState(ctx context.Context, c *client.Client, info *Info) error {
+	probeSecurityState := func() (isSecureBoot, bootedWithUki bool, err error) {
+		if _, err = safe.StateGetByID[*meta.ResourceDefinition](ctx, c.COSI, strings.ToLower(runtime.SecurityStateType)); err != nil {
 			if !state.IsNotFoundError(err) {
-				return false, fmt.Errorf("failed to get security state rd: %w", err)
+				return false, false, fmt.Errorf("failed to get security state rd: %w", err)
 			}
 
-			return false, nil
+			return false, false, nil
 		}
 
 		securityState, err := safe.StateGetByID[*runtime.SecurityState](ctx, c.COSI, runtime.SecurityStateID)
 		if err != nil {
-			return false, fmt.Errorf("failed to get security state: %w", err)
+			return false, false, fmt.Errorf("failed to get security state: %w", err)
 		}
 
-		return securityState.TypedSpec().SecureBoot, nil
+		isSecureBoot = securityState.TypedSpec().SecureBoot
+		bootedWithUki = isSecureBoot || securityState.TypedSpec().BootedWithUKI
+
+		return isSecureBoot, bootedWithUki, nil
 	}
 
-	enabled, err := isSecureBootEnabled()
+	isSecureBoot, bootedWithUki, err := probeSecurityState()
 	if err != nil {
 		return err
 	}
 
-	info.SecureBootStatus = &specs.SecureBootStatus{
-		Enabled: enabled,
+	info.SecurityState = &specs.SecurityState{
+		SecureBoot:    isSecureBoot,
+		BootedWithUki: bootedWithUki,
 	}
 
 	return nil

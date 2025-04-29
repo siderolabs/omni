@@ -163,9 +163,9 @@ func (helper *schematicConfigurationHelper) reconcile(
 
 	machineExtensionsStatus.TypedSpec().Value.TalosVersion = ms.TypedSpec().Value.TalosVersion
 
-	secureBootStatus := ms.TypedSpec().Value.SecureBootStatus
-	if secureBootStatus == nil {
-		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("secure boot status for machine %q is not yet set", ms.Metadata().ID())
+	securityState := ms.TypedSpec().Value.SecurityState
+	if securityState == nil {
+		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("boot type for machine %q is not yet set", ms.Metadata().ID())
 	}
 
 	schematicInitialized := ms.TypedSpec().Value.Schematic != nil
@@ -174,7 +174,7 @@ func (helper *schematicConfigurationHelper) reconcile(
 		overlay = getOverlay(ms)
 		initialSchematic = ms.TypedSpec().Value.Schematic.InitialSchematic
 
-		if secureBootStatus.Enabled {
+		if securityState.BootedWithUki {
 			currentSchematic = ms.TypedSpec().Value.Schematic.FullId
 		} else {
 			currentSchematic = ms.TypedSpec().Value.Schematic.Id
@@ -186,7 +186,7 @@ func (helper *schematicConfigurationHelper) reconcile(
 		return nil, err
 	}
 
-	machineExtensions, err := newMachineExtensions(cluster, ms, extensions, secureBootStatus.Enabled)
+	machineExtensions, err := newMachineExtensions(cluster, ms, extensions, securityState.BootedWithUki)
 	if err != nil {
 		return nil, err
 	}
@@ -293,13 +293,13 @@ type machineExtensions struct {
 	meta               []schematic.MetaValue
 }
 
-func newMachineExtensions(cluster *omni.Cluster, machineStatus *omni.MachineStatus, exts *omni.MachineExtensions, secureBootEnabled bool) (machineExtensions, error) {
+func newMachineExtensions(cluster *omni.Cluster, machineStatus *omni.MachineStatus, exts *omni.MachineExtensions, isUKI bool) (machineExtensions, error) {
 	me := machineExtensions{
 		machineStatus: machineStatus,
 		cluster:       cluster,
 	}
 
-	if secureBootEnabled {
+	if isUKI {
 		schematicConfig := machineStatus.TypedSpec().Value.Schematic
 		if schematicConfig == nil {
 			return me, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("secure boot is enabled but the schematic information is not yet available")

@@ -65,9 +65,7 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 		InitialSchematic: initialSchematic,
 	}
 	machineStatus.TypedSpec().Value.InitialTalosVersion = "1.7.0"
-	machineStatus.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
-		Enabled: false,
-	}
+	machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{}
 	machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
 		Platform: talosconstants.PlatformMetal,
 	}

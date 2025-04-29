@@ -486,8 +486,8 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 			m.Metadata().Labels().Delete(omni.MachineStatusLabelInvalidState)
 		}
 
-		if event.SecureBootStatus != nil {
-			spec.SecureBootStatus = event.SecureBootStatus
+		if event.SecurityState != nil {
+			spec.SecurityState = event.SecurityState
 		}
 
 		if event.Schematic != nil {

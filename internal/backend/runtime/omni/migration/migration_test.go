@@ -1404,8 +1404,9 @@ func (suite *MigrationSuite) TestMigrateInstallImageConfigIntoGenOptions() {
 
 	machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, "test")
 
-	machineStatus.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
-		Enabled: true,
+	machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{
+		SecureBoot:    true,
+		BootedWithUki: true,
 	}
 
 	machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
@@ -1461,7 +1462,7 @@ func (suite *MigrationSuite) TestMigrateInstallImageConfigIntoGenOptions() {
 	suite.Equal("test-schematic-id", installImage.SchematicId)
 	suite.True(installImage.SchematicInitialized)
 	suite.True(installImage.SchematicInvalid)
-	suite.True(installImage.GetSecureBootStatus().GetEnabled())
+	suite.True(installImage.SecurityState.SecureBoot)
 
 	// assert that the input version is updated on the ClusterMachineConfig
 

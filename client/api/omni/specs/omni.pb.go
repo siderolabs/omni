@@ -1233,29 +1233,31 @@ func (x *MachineSpec) GetConnected() bool {
 	return false
 }
 
-// SecureBootStatus describes the status of the SecureBoot feature.
-type SecureBootStatus struct {
+// SecurityState describes the UKI and secure boot information of the machine.
+type SecurityState struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Enabled is true if SecureBoot is detected to be available and enabled.
-	Enabled       bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// SecureBoot is true if secure boot is detected to be available and enabled.
+	SecureBoot bool `protobuf:"varint,1,opt,name=secure_boot,json=secureBoot,proto3" json:"secure_boot,omitempty"` // use existing logic
+	// BootedWithUki is true if the machine is booted with a UKI. Always true if secure boot is enabled.
+	BootedWithUki bool `protobuf:"varint,2,opt,name=booted_with_uki,json=bootedWithUki,proto3" json:"booted_with_uki,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SecureBootStatus) Reset() {
-	*x = SecureBootStatus{}
+func (x *SecurityState) Reset() {
+	*x = SecurityState{}
 	mi := &file_omni_specs_omni_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SecureBootStatus) String() string {
+func (x *SecurityState) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SecureBootStatus) ProtoMessage() {}
+func (*SecurityState) ProtoMessage() {}
 
-func (x *SecureBootStatus) ProtoReflect() protoreflect.Message {
+func (x *SecurityState) ProtoReflect() protoreflect.Message {
 	mi := &file_omni_specs_omni_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1267,14 +1269,21 @@ func (x *SecureBootStatus) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SecureBootStatus.ProtoReflect.Descriptor instead.
-func (*SecureBootStatus) Descriptor() ([]byte, []int) {
+// Deprecated: Use SecurityState.ProtoReflect.Descriptor instead.
+func (*SecurityState) Descriptor() ([]byte, []int) {
 	return file_omni_specs_omni_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *SecureBootStatus) GetEnabled() bool {
+func (x *SecurityState) GetSecureBoot() bool {
 	if x != nil {
-		return x.Enabled
+		return x.SecureBoot
+	}
+	return false
+}
+
+func (x *SecurityState) GetBootedWithUki() bool {
+	if x != nil {
+		return x.BootedWithUki
 	}
 	return false
 }
@@ -1410,9 +1419,9 @@ type MachineStatusSpec struct {
 	Schematic        *MachineStatusSpec_Schematic        `protobuf:"bytes,14,opt,name=schematic,proto3" json:"schematic,omitempty"`
 	// InitialTalosVersion is set only once when the machine first joined Omni.
 	InitialTalosVersion string                          `protobuf:"bytes,16,opt,name=initial_talos_version,json=initialTalosVersion,proto3" json:"initial_talos_version,omitempty"`
-	SecureBootStatus    *SecureBootStatus               `protobuf:"bytes,18,opt,name=secure_boot_status,json=secureBootStatus,proto3" json:"secure_boot_status,omitempty"`
 	Diagnostics         []*MachineStatusSpec_Diagnostic `protobuf:"bytes,19,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
 	PowerState          MachineStatusSpec_PowerState    `protobuf:"varint,20,opt,name=power_state,json=powerState,proto3,enum=specs.MachineStatusSpec_PowerState" json:"power_state,omitempty"`
+	SecurityState       *SecurityState                  `protobuf:"bytes,21,opt,name=security_state,json=securityState,proto3" json:"security_state,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -1538,13 +1547,6 @@ func (x *MachineStatusSpec) GetInitialTalosVersion() string {
 	return ""
 }
 
-func (x *MachineStatusSpec) GetSecureBootStatus() *SecureBootStatus {
-	if x != nil {
-		return x.SecureBootStatus
-	}
-	return nil
-}
-
 func (x *MachineStatusSpec) GetDiagnostics() []*MachineStatusSpec_Diagnostic {
 	if x != nil {
 		return x.Diagnostics
@@ -1557,6 +1559,13 @@ func (x *MachineStatusSpec) GetPowerState() MachineStatusSpec_PowerState {
 		return x.PowerState
 	}
 	return MachineStatusSpec_POWER_STATE_UNKNOWN
+}
+
+func (x *MachineStatusSpec) GetSecurityState() *SecurityState {
+	if x != nil {
+		return x.SecurityState
+	}
+	return nil
 }
 
 // TalosConfigSpec describes a Talos cluster config.
@@ -8032,10 +8041,10 @@ type MachineConfigGenOptionsSpec_InstallImage struct {
 	SchematicInitialized bool `protobuf:"varint,3,opt,name=schematic_initialized,json=schematicInitialized,proto3" json:"schematic_initialized,omitempty"`
 	// SchematicInvalid is true if the schematic is invalid.
 	SchematicInvalid bool `protobuf:"varint,4,opt,name=schematic_invalid,json=schematicInvalid,proto3" json:"schematic_invalid,omitempty"`
-	// SecureBootStatus is the status of the SecureBoot feature.
-	SecureBootStatus *SecureBootStatus `protobuf:"bytes,5,opt,name=secure_boot_status,json=secureBootStatus,proto3" json:"secure_boot_status,omitempty"`
 	// Platform is the machine platform to use for the install image.
-	Platform      string `protobuf:"bytes,6,opt,name=platform,proto3" json:"platform,omitempty"`
+	Platform string `protobuf:"bytes,6,opt,name=platform,proto3" json:"platform,omitempty"`
+	// SecurityState is used to decide the secure boot enablement in the install image.
+	SecurityState *SecurityState `protobuf:"bytes,7,opt,name=security_state,json=securityState,proto3" json:"security_state,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -8098,18 +8107,18 @@ func (x *MachineConfigGenOptionsSpec_InstallImage) GetSchematicInvalid() bool {
 	return false
 }
 
-func (x *MachineConfigGenOptionsSpec_InstallImage) GetSecureBootStatus() *SecureBootStatus {
-	if x != nil {
-		return x.SecureBootStatus
-	}
-	return nil
-}
-
 func (x *MachineConfigGenOptionsSpec_InstallImage) GetPlatform() string {
 	if x != nil {
 		return x.Platform
 	}
 	return ""
+}
+
+func (x *MachineConfigGenOptionsSpec_InstallImage) GetSecurityState() *SecurityState {
+	if x != nil {
+		return x.SecurityState
+	}
+	return nil
 }
 
 type KubernetesUsageSpec_Quantity struct {
@@ -8592,15 +8601,17 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x15omni/specs/omni.proto\x12\x05specs\x1a\x1btalos/machine/machine.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/duration.proto\"f\n" +
 	"\vMachineSpec\x12-\n" +
 	"\x12management_address\x18\x01 \x01(\tR\x11managementAddress\x12\x1c\n" +
-	"\tconnected\x18\x02 \x01(\bR\tconnectedJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05\",\n" +
-	"\x10SecureBootStatus\x12\x18\n" +
-	"\aenabled\x18\x01 \x01(\bR\aenabled\"3\n" +
+	"\tconnected\x18\x02 \x01(\bR\tconnectedJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05\"X\n" +
+	"\rSecurityState\x12\x1f\n" +
+	"\vsecure_boot\x18\x01 \x01(\bR\n" +
+	"secureBoot\x12&\n" +
+	"\x0fbooted_with_uki\x18\x02 \x01(\bR\rbootedWithUki\"3\n" +
 	"\aOverlay\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05image\x18\x02 \x01(\tR\x05image\"3\n" +
 	"\tMetaValue\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\rR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value\"\xfe\x17\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"\xfa\x17\n" +
 	"\x11MachineStatusSpec\x12#\n" +
 	"\rtalos_version\x18\x01 \x01(\tR\ftalosVersion\x12C\n" +
 	"\bhardware\x18\x02 \x01(\v2'.specs.MachineStatusSpec.HardwareStatusR\bhardware\x12@\n" +
@@ -8617,10 +8628,10 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\fimage_labels\x18\r \x03(\v2).specs.MachineStatusSpec.ImageLabelsEntryR\vimageLabels\x12@\n" +
 	"\tschematic\x18\x0e \x01(\v2\".specs.MachineStatusSpec.SchematicR\tschematic\x122\n" +
 	"\x15initial_talos_version\x18\x10 \x01(\tR\x13initialTalosVersion\x12E\n" +
-	"\x12secure_boot_status\x18\x12 \x01(\v2\x17.specs.SecureBootStatusR\x10secureBootStatus\x12E\n" +
 	"\vdiagnostics\x18\x13 \x03(\v2#.specs.MachineStatusSpec.DiagnosticR\vdiagnostics\x12D\n" +
 	"\vpower_state\x18\x14 \x01(\x0e2#.specs.MachineStatusSpec.PowerStateR\n" +
-	"powerState\x1a\xe3\x06\n" +
+	"powerState\x12;\n" +
+	"\x0esecurity_state\x18\x15 \x01(\v2\x14.specs.SecurityStateR\rsecurityState\x1a\xe3\x06\n" +
 	"\x0eHardwareStatus\x12Q\n" +
 	"\n" +
 	"processors\x18\x01 \x03(\v21.specs.MachineStatusSpec.HardwareStatus.ProcessorR\n" +
@@ -8712,7 +8723,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x13POWER_STATE_UNKNOWN\x10\x00\x12\x1b\n" +
 	"\x17POWER_STATE_UNSUPPORTED\x10\x01\x12\x12\n" +
 	"\x0ePOWER_STATE_ON\x10\x02\x12\x13\n" +
-	"\x0fPOWER_STATE_OFF\x10\x03J\x04\b\b\x10\tJ\x04\b\f\x10\rJ\x04\b\x0f\x10\x10J\x04\b\x11\x10\x12\"E\n" +
+	"\x0fPOWER_STATE_OFF\x10\x03J\x04\b\b\x10\tJ\x04\b\f\x10\rJ\x04\b\x0f\x10\x10J\x04\b\x11\x10\x12J\x04\b\x12\x10\x13\"E\n" +
 	"\x0fTalosConfigSpec\x12\x0e\n" +
 	"\x02ca\x18\x01 \x01(\tR\x02ca\x12\x10\n" +
 	"\x03crt\x18\x02 \x01(\tR\x03crt\x12\x10\n" +
@@ -9064,17 +9075,17 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"metaValues\x12#\n" +
 	"\rprovider_data\x18\x04 \x01(\tR\fproviderData\x126\n" +
 	"\vgrpc_tunnel\x18\x05 \x01(\x0e2\x15.specs.GrpcTunnelModeR\n" +
-	"grpcTunnel\"\xb4\x03\n" +
+	"grpcTunnel\"\xb0\x03\n" +
 	"\x1bMachineConfigGenOptionsSpec\x12!\n" +
 	"\finstall_disk\x18\x01 \x01(\tR\vinstallDisk\x12T\n" +
-	"\rinstall_image\x18\x02 \x01(\v2/.specs.MachineConfigGenOptionsSpec.InstallImageR\finstallImage\x1a\x9b\x02\n" +
+	"\rinstall_image\x18\x02 \x01(\v2/.specs.MachineConfigGenOptionsSpec.InstallImageR\finstallImage\x1a\x97\x02\n" +
 	"\fInstallImage\x12#\n" +
 	"\rtalos_version\x18\x01 \x01(\tR\ftalosVersion\x12!\n" +
 	"\fschematic_id\x18\x02 \x01(\tR\vschematicId\x123\n" +
 	"\x15schematic_initialized\x18\x03 \x01(\bR\x14schematicInitialized\x12+\n" +
-	"\x11schematic_invalid\x18\x04 \x01(\bR\x10schematicInvalid\x12E\n" +
-	"\x12secure_boot_status\x18\x05 \x01(\v2\x17.specs.SecureBootStatusR\x10secureBootStatus\x12\x1a\n" +
-	"\bplatform\x18\x06 \x01(\tR\bplatform\"=\n" +
+	"\x11schematic_invalid\x18\x04 \x01(\bR\x10schematicInvalid\x12\x1a\n" +
+	"\bplatform\x18\x06 \x01(\tR\bplatform\x12;\n" +
+	"\x0esecurity_state\x18\a \x01(\v2\x14.specs.SecurityStateR\rsecurityStateJ\x04\b\x05\x10\x06\"=\n" +
 	"\x13EtcdAuditResultSpec\x12&\n" +
 	"\x0fetcd_member_ids\x18\x01 \x03(\x04R\retcdMemberIds\"$\n" +
 	"\x0eKubeconfigSpec\x12\x12\n" +
@@ -9297,7 +9308,7 @@ var file_omni_specs_omni_proto_goTypes = []any{
 	(InfraMachineConfigSpec_AcceptanceStatus)(0),              // 20: specs.InfraMachineConfigSpec.AcceptanceStatus
 	(InfraMachineConfigSpec_MachinePowerState)(0),             // 21: specs.InfraMachineConfigSpec.MachinePowerState
 	(*MachineSpec)(nil),                                       // 22: specs.MachineSpec
-	(*SecureBootStatus)(nil),                                  // 23: specs.SecureBootStatus
+	(*SecurityState)(nil),                                     // 23: specs.SecurityState
 	(*Overlay)(nil),                                           // 24: specs.Overlay
 	(*MetaValue)(nil),                                         // 25: specs.MetaValue
 	(*MachineStatusSpec)(nil),                                 // 26: specs.MachineStatusSpec
@@ -9424,9 +9435,9 @@ var file_omni_specs_omni_proto_depIdxs = []int32{
 	109, // 3: specs.MachineStatusSpec.platform_metadata:type_name -> specs.MachineStatusSpec.PlatformMetadata
 	112, // 4: specs.MachineStatusSpec.image_labels:type_name -> specs.MachineStatusSpec.ImageLabelsEntry
 	110, // 5: specs.MachineStatusSpec.schematic:type_name -> specs.MachineStatusSpec.Schematic
-	23,  // 6: specs.MachineStatusSpec.secure_boot_status:type_name -> specs.SecureBootStatus
-	111, // 7: specs.MachineStatusSpec.diagnostics:type_name -> specs.MachineStatusSpec.Diagnostic
-	5,   // 8: specs.MachineStatusSpec.power_state:type_name -> specs.MachineStatusSpec.PowerState
+	111, // 6: specs.MachineStatusSpec.diagnostics:type_name -> specs.MachineStatusSpec.Diagnostic
+	5,   // 7: specs.MachineStatusSpec.power_state:type_name -> specs.MachineStatusSpec.PowerState
+	23,  // 8: specs.MachineStatusSpec.security_state:type_name -> specs.SecurityState
 	117, // 9: specs.ClusterSpec.features:type_name -> specs.ClusterSpec.Features
 	30,  // 10: specs.ClusterSpec.backup_configuration:type_name -> specs.EtcdBackupConf
 	139, // 11: specs.EtcdBackupConf.interval:type_name -> google.protobuf.Duration
@@ -9500,7 +9511,7 @@ var file_omni_specs_omni_proto_depIdxs = []int32{
 	126, // 79: specs.KubernetesStatusSpec.NodeStaticPods.static_pods:type_name -> specs.KubernetesStatusSpec.StaticPodStatus
 	25,  // 80: specs.MachineClassSpec.Provision.meta_values:type_name -> specs.MetaValue
 	3,   // 81: specs.MachineClassSpec.Provision.grpc_tunnel:type_name -> specs.GrpcTunnelMode
-	23,  // 82: specs.MachineConfigGenOptionsSpec.InstallImage.secure_boot_status:type_name -> specs.SecureBootStatus
+	23,  // 82: specs.MachineConfigGenOptionsSpec.InstallImage.security_state:type_name -> specs.SecurityState
 	18,  // 83: specs.MachineExtensionsStatusSpec.Item.phase:type_name -> specs.MachineExtensionsStatusSpec.Item.Phase
 	84,  // [84:84] is the sub-list for method output_type
 	84,  // [84:84] is the sub-list for method input_type

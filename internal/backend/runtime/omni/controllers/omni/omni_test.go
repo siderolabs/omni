@@ -569,9 +569,7 @@ func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, contro
 			Id: defaultSchematic,
 		}
 		machineStatus.TypedSpec().Value.InitialTalosVersion = cluster.TypedSpec().Value.TalosVersion
-		machineStatus.TypedSpec().Value.SecureBootStatus = &specs.SecureBootStatus{
-			Enabled: false,
-		}
+		machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{}
 		machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
 			Platform: talosconstants.PlatformMetal,
 		}
