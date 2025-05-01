@@ -465,7 +465,12 @@ func (h *clusterMachineConfigStatusControllerHandler) syncInstallImageAndSchemat
 		return false, err
 	}
 
-	_, err = c.Upgrade(upgradeCtx, image, !maintenance, stageUpgrade, false)
+	_, err = c.UpgradeWithOptions(upgradeCtx,
+		client.WithUpgradeImage(image),
+		client.WithUpgradePreserve(!maintenance),
+		client.WithUpgradeStage(stageUpgrade),
+		client.WithUpgradeForce(false),
+	)
 
 	// Failed Precondition means that the node is not in a state when the system can be upgraded.
 	if status.Code(err) == codes.FailedPrecondition {

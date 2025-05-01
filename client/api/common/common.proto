@@ -3,6 +3,7 @@ syntax = "proto3";
 package common;
 
 option go_package = "github.com/siderolabs/talos/pkg/machinery/api/common";
+option java_package = "dev.talos.api.common";
 
 import "google/protobuf/any.proto";
 import "google/protobuf/descriptor.proto";
@@ -105,6 +106,10 @@ message PEMEncodedCertificateAndKey {
 
 message PEMEncodedKey {
   bytes key = 1;
+}
+
+message PEMEncodedCertificate {
+  bytes crt = 1;
 }
 
 message NetIP {

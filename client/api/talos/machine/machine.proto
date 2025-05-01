@@ -3,6 +3,7 @@ syntax = "proto3";
 package machine;
 
 option go_package = "github.com/siderolabs/talos/pkg/machinery/api/machine";
+option java_package = "dev.talos.api.machine";
 
 import "common/common.proto";
 import "google/protobuf/any.proto";
@@ -20,6 +21,7 @@ service MachineService {
   rpc Bootstrap(BootstrapRequest) returns (BootstrapResponse);
   rpc Containers(ContainersRequest) returns (ContainersResponse);
   rpc Copy(CopyRequest) returns (stream common.Data);
+  rpc CPUFreqStats(google.protobuf.Empty) returns (CPUFreqStatsResponse);
   rpc CPUInfo(google.protobuf.Empty) returns (CPUInfoResponse);
   rpc DiskStats(google.protobuf.Empty) returns (DiskStatsResponse);
   rpc Dmesg(DmesgRequest) returns (stream common.Data);
@@ -60,6 +62,7 @@ service MachineService {
   rpc DiskUsage(DiskUsageRequest) returns (stream DiskUsageInfo);
   rpc LoadAvg(google.protobuf.Empty) returns (LoadAvgResponse);
   rpc Logs(LogsRequest) returns (stream common.Data);
+  rpc LogsContainers(google.protobuf.Empty) returns (LogsContainersResponse);
   rpc Memory(google.protobuf.Empty) returns (MemoryResponse);
   rpc Mounts(google.protobuf.Empty) returns (MountsResponse);
   rpc NetworkDeviceStats(google.protobuf.Empty) returns (NetworkDeviceStatsResponse);
@@ -205,6 +208,7 @@ message ServiceStateEvent {
     FINISHED = 5;
     FAILED = 6;
     SKIPPED = 7;
+    STARTING = 8;
   }
   Action action = 2;
   string message = 3;
@@ -449,6 +453,8 @@ message ListRequest {
   // Types indicates what file type should be returned. If not indicated,
   // all files will be returned.
   repeated Type types = 4;
+  // Report xattrs
+  bool report_xattrs = 5;
 }
 
 // DiskUsageRequest describes a request to list disk usage of directories and regular files
@@ -489,6 +495,13 @@ message FileInfo {
   uint32 uid = 10;
   // Owner gid
   uint32 gid = 11;
+  // Extended attributes (if present and requested)
+  repeated Xattr xattrs = 12;
+}
+
+message Xattr {
+  string name = 1;
+  bytes data = 2;
 }
 
 // DiskUsageInfo describes a file or directory's information for du command
@@ -570,6 +583,16 @@ message ReadRequest {
   string path = 1;
 }
 
+// LogsContainer desribes all avalaible registered log containers.
+message LogsContainer {
+  common.Metadata metadata = 1;
+  repeated string ids = 2;
+}
+
+message LogsContainersResponse {
+  repeated LogsContainer messages = 1;
+}
+
 // rpc rollback
 message RollbackRequest {}
 
@@ -593,6 +616,8 @@ message ContainersRequest {
 message ContainerInfo {
   string namespace = 1;
   string id = 2;
+  string uid = 10;
+  string internal_id = 9;
   string image = 3;
   uint32 pid = 4;
   string status = 5;
@@ -638,6 +663,7 @@ message ProcessInfo {
   string command = 8;
   string executable = 9;
   string args = 10;
+  string label = 11;
 }
 
 // rpc restart
@@ -816,6 +842,24 @@ message SoftIRQStat {
   uint64 sched = 8;
   uint64 hrtimer = 9;
   uint64 rcu = 10;
+}
+
+// rpc CPUFreqStats
+
+message CPUFreqStatsResponse {
+  repeated CPUsFreqStats messages = 1;
+}
+
+message CPUsFreqStats {
+  common.Metadata metadata = 1;
+  repeated CPUFreqStats cpu_freq_stats = 2;
+}
+
+message CPUFreqStats {
+  uint64 current_frequency = 1;
+  uint64 minimum_frequency = 2;
+  uint64 maximum_frequency = 3;
+  string governor = 4;
 }
 
 // rpc CPUInfo

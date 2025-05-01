@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-04-22T09:44:01Z by kres fd5cab0.
+# Generated on 2025-05-01T11:19:51Z by kres 6cbcbd1.
 
 # common variables
 
@@ -25,9 +25,9 @@ GRPC_GO_VERSION ?= 1.5.1
 GRPC_GATEWAY_VERSION ?= 2.26.3
 VTPROTOBUF_VERSION ?= 0.6.0
 GOIMPORTS_VERSION ?= 0.32.0
-GOMOCK_VERSION ?= 0.5.1
+GOMOCK_VERSION ?= 0.5.2
 DEEPCOPY_VERSION ?= v0.5.6
-GOLANGCILINT_VERSION ?= v2.1.1
+GOLANGCILINT_VERSION ?= v2.1.5
 GOFUMPT_VERSION ?= v0.8.0
 GO_VERSION ?= 1.24.2
 GO_BUILDFLAGS ?=
@@ -77,7 +77,7 @@ COMMON_ARGS += --build-arg=DEEPCOPY_VERSION="$(DEEPCOPY_VERSION)"
 COMMON_ARGS += --build-arg=GOLANGCILINT_VERSION="$(GOLANGCILINT_VERSION)"
 COMMON_ARGS += --build-arg=GOFUMPT_VERSION="$(GOFUMPT_VERSION)"
 COMMON_ARGS += --build-arg=TESTPKGS="$(TESTPKGS)"
-JS_TOOLCHAIN ?= docker.io/oven/bun:1.2.9-alpine
+JS_TOOLCHAIN ?= docker.io/oven/bun:1.2.11-alpine
 TOOLCHAIN ?= docker.io/golang:1.24-alpine
 
 # extra variables
@@ -146,7 +146,7 @@ else
 GO_LDFLAGS += -s
 endif
 
-all: unit-tests-frontend lint-eslint frontend unit-tests-client unit-tests acompat integration-test image-integration-test omni image-omni omnictl dev-server docker-compose-up docker-compose-down mkcert-install mkcert-generate mkcert-uninstall run-integration-test lint
+all: unit-tests-frontend lint-eslint frontend unit-tests-client unit-tests acompat integration-test image-integration-test omni image-omni omnictl lint
 
 $(ARTIFACTS):  ## Creates artifacts directory.
 	@mkdir -p $(ARTIFACTS)

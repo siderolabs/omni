@@ -49,6 +49,7 @@ export enum ServiceStateEventAction {
   FINISHED = 5,
   FAILED = 6,
   SKIPPED = 7,
+  STARTING = 8,
 }
 
 export enum MachineStatusEventMachineStage {
@@ -63,10 +64,27 @@ export enum MachineStatusEventMachineStage {
   UPGRADING = 8,
 }
 
+export enum ResetRequestWipeMode {
+  ALL = 0,
+  SYSTEM_DISK = 1,
+  USER_DISKS = 2,
+}
+
+export enum UpgradeRequestRebootMode {
+  DEFAULT = 0,
+  POWERCYCLE = 1,
+}
+
 export enum ListRequestType {
   REGULAR = 0,
   DIRECTORY = 1,
   SYMLINK = 2,
+}
+
+export enum EtcdMemberAlarmAlarmType {
+  NONE = 0,
+  NOSPACE = 1,
+  CORRUPT = 2,
 }
 
 export enum MachineConfigMachineType {
@@ -76,10 +94,37 @@ export enum MachineConfigMachineType {
   TYPE_WORKER = 3,
 }
 
+export enum NetstatRequestFilter {
+  ALL = 0,
+  CONNECTED = 1,
+  LISTENING = 2,
+}
+
+export enum ConnectRecordState {
+  RESERVED = 0,
+  ESTABLISHED = 1,
+  SYN_SENT = 2,
+  SYN_RECV = 3,
+  FIN_WAIT1 = 4,
+  FIN_WAIT2 = 5,
+  TIME_WAIT = 6,
+  CLOSE = 7,
+  CLOSEWAIT = 8,
+  LASTACK = 9,
+  LISTEN = 10,
+  CLOSING = 11,
+}
+
+export enum ConnectRecordTimerActive {
+  OFF = 0,
+  ON = 1,
+  KEEPALIVE = 2,
+  TIMEWAIT = 3,
+  PROBE = 4,
+}
+
 export type ApplyConfigurationRequest = {
   data?: Uint8Array
-  on_reboot?: boolean
-  immediate?: boolean
   mode?: ApplyConfigurationRequestMode
   dry_run?: boolean
   try_mode_timeout?: GoogleProtobufDuration.Duration
@@ -200,6 +245,8 @@ export type ResetRequest = {
   graceful?: boolean
   reboot?: boolean
   system_partitions_to_wipe?: ResetPartitionSpec[]
+  user_disks_to_wipe?: string[]
+  mode?: ResetRequestWipeMode
 }
 
 export type Reset = {
@@ -229,6 +276,7 @@ export type UpgradeRequest = {
   preserve?: boolean
   stage?: boolean
   force?: boolean
+  reboot_mode?: UpgradeRequestRebootMode
 }
 
 export type Upgrade = {
@@ -322,6 +370,7 @@ export type ListRequest = {
   recurse?: boolean
   recursion_depth?: number
   types?: ListRequestType[]
+  report_xattrs?: boolean
 }
 
 export type DiskUsageRequest = {
@@ -343,6 +392,12 @@ export type FileInfo = {
   relative_name?: string
   uid?: number
   gid?: number
+  xattrs?: Xattr[]
+}
+
+export type Xattr = {
+  name?: string
+  data?: Uint8Array
 }
 
 export type DiskUsageInfo = {
@@ -410,6 +465,15 @@ export type ReadRequest = {
   path?: string
 }
 
+export type LogsContainer = {
+  metadata?: CommonCommon.Metadata
+  ids?: string[]
+}
+
+export type LogsContainersResponse = {
+  messages?: LogsContainer[]
+}
+
 export type RollbackRequest = {
 }
 
@@ -429,11 +493,14 @@ export type ContainersRequest = {
 export type ContainerInfo = {
   namespace?: string
   id?: string
+  uid?: string
+  internal_id?: string
   image?: string
   pid?: number
   status?: string
   pod_id?: string
   name?: string
+  network_namespace?: string
 }
 
 export type Container = {
@@ -470,6 +537,7 @@ export type ProcessInfo = {
   command?: string
   executable?: string
   args?: string
+  label?: string
 }
 
 export type RestartRequest = {
@@ -634,6 +702,22 @@ export type SoftIRQStat = {
   rcu?: string
 }
 
+export type CPUFreqStatsResponse = {
+  messages?: CPUsFreqStats[]
+}
+
+export type CPUsFreqStats = {
+  metadata?: CommonCommon.Metadata
+  cpu_freq_stats?: CPUFreqStats[]
+}
+
+export type CPUFreqStats = {
+  current_frequency?: string
+  minimum_frequency?: string
+  maximum_frequency?: string
+  governor?: string
+}
+
 export type CPUInfoResponse = {
   messages?: CPUsInfo[]
 }
@@ -754,6 +838,18 @@ export type EtcdRemoveMemberResponse = {
   messages?: EtcdRemoveMember[]
 }
 
+export type EtcdRemoveMemberByIDRequest = {
+  member_id?: string
+}
+
+export type EtcdRemoveMemberByID = {
+  metadata?: CommonCommon.Metadata
+}
+
+export type EtcdRemoveMemberByIDResponse = {
+  messages?: EtcdRemoveMemberByID[]
+}
+
 export type EtcdForfeitLeadershipRequest = {
 }
 
@@ -797,6 +893,59 @@ export type EtcdRecover = {
 
 export type EtcdRecoverResponse = {
   messages?: EtcdRecover[]
+}
+
+export type EtcdAlarmListResponse = {
+  messages?: EtcdAlarm[]
+}
+
+export type EtcdAlarm = {
+  metadata?: CommonCommon.Metadata
+  member_alarms?: EtcdMemberAlarm[]
+}
+
+export type EtcdMemberAlarm = {
+  member_id?: string
+  alarm?: EtcdMemberAlarmAlarmType
+}
+
+export type EtcdAlarmDisarmResponse = {
+  messages?: EtcdAlarmDisarm[]
+}
+
+export type EtcdAlarmDisarm = {
+  metadata?: CommonCommon.Metadata
+  member_alarms?: EtcdMemberAlarm[]
+}
+
+export type EtcdDefragmentResponse = {
+  messages?: EtcdDefragment[]
+}
+
+export type EtcdDefragment = {
+  metadata?: CommonCommon.Metadata
+}
+
+export type EtcdStatusResponse = {
+  messages?: EtcdStatus[]
+}
+
+export type EtcdStatus = {
+  metadata?: CommonCommon.Metadata
+  member_status?: EtcdMemberStatus
+}
+
+export type EtcdMemberStatus = {
+  member_id?: string
+  protocol_version?: string
+  db_size?: string
+  db_size_in_use?: string
+  leader?: string
+  raft_index?: string
+  raft_term?: string
+  raft_applied_index?: string
+  errors?: string[]
+  is_learner?: boolean
 }
 
 export type RouteConfig = {
@@ -905,6 +1054,119 @@ export type BPFInstruction = {
   k?: number
 }
 
+export type NetstatRequestFeature = {
+  pid?: boolean
+}
+
+export type NetstatRequestL4proto = {
+  tcp?: boolean
+  tcp6?: boolean
+  udp?: boolean
+  udp6?: boolean
+  udplite?: boolean
+  udplite6?: boolean
+  raw?: boolean
+  raw6?: boolean
+}
+
+export type NetstatRequestNetNS = {
+  hostnetwork?: boolean
+  netns?: string[]
+  allnetns?: boolean
+}
+
+export type NetstatRequest = {
+  filter?: NetstatRequestFilter
+  feature?: NetstatRequestFeature
+  l4proto?: NetstatRequestL4proto
+  netns?: NetstatRequestNetNS
+}
+
+export type ConnectRecordProcess = {
+  pid?: number
+  name?: string
+}
+
+export type ConnectRecord = {
+  l4proto?: string
+  localip?: string
+  localport?: number
+  remoteip?: string
+  remoteport?: number
+  state?: ConnectRecordState
+  txqueue?: string
+  rxqueue?: string
+  tr?: ConnectRecordTimerActive
+  timerwhen?: string
+  retrnsmt?: string
+  uid?: number
+  timeout?: string
+  inode?: string
+  ref?: string
+  pointer?: string
+  process?: ConnectRecordProcess
+  netns?: string
+}
+
+export type Netstat = {
+  metadata?: CommonCommon.Metadata
+  connectrecord?: ConnectRecord[]
+}
+
+export type NetstatResponse = {
+  messages?: Netstat[]
+}
+
+export type MetaWriteRequest = {
+  key?: number
+  value?: Uint8Array
+}
+
+export type MetaWrite = {
+  metadata?: CommonCommon.Metadata
+}
+
+export type MetaWriteResponse = {
+  messages?: MetaWrite[]
+}
+
+export type MetaDeleteRequest = {
+  key?: number
+}
+
+export type MetaDelete = {
+  metadata?: CommonCommon.Metadata
+}
+
+export type MetaDeleteResponse = {
+  messages?: MetaDelete[]
+}
+
+export type ImageListRequest = {
+  namespace?: CommonCommon.ContainerdNamespace
+}
+
+export type ImageListResponse = {
+  metadata?: CommonCommon.Metadata
+  name?: string
+  digest?: string
+  size?: string
+  created_at?: GoogleProtobufTimestamp.Timestamp
+}
+
+export type ImagePullRequest = {
+  namespace?: CommonCommon.ContainerdNamespace
+  reference?: string
+}
+
+export type ImagePull = {
+  metadata?: CommonCommon.Metadata
+}
+
+export type ImagePullResponse = {
+  messages?: ImagePull[]
+}
+
 export class MachineService {
   static ApplyConfiguration(req: ApplyConfigurationRequest, ...options: fm.fetchOption[]): Promise<ApplyConfigurationResponse> {
     return fm.fetchReq<ApplyConfigurationRequest, ApplyConfigurationResponse>("POST", `/machine.MachineService/ApplyConfiguration`, req, ...options)
@@ -917,6 +1179,9 @@ export class MachineService {
   }
   static Copy(req: CopyRequest, entityNotifier?: fm.NotifyStreamEntityArrival<CommonCommon.Data>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<CopyRequest, CommonCommon.Data>("POST", `/machine.MachineService/Copy`, req, entityNotifier, ...options)
+  }
+  static CPUFreqStats(req: GoogleProtobufEmpty.Empty, ...options: fm.fetchOption[]): Promise<CPUFreqStatsResponse> {
+    return fm.fetchReq<GoogleProtobufEmpty.Empty, CPUFreqStatsResponse>("POST", `/machine.MachineService/CPUFreqStats`, req, ...options)
   }
   static CPUInfo(req: GoogleProtobufEmpty.Empty, ...options: fm.fetchOption[]): Promise<CPUInfoResponse> {
     return fm.fetchReq<GoogleProtobufEmpty.Empty, CPUInfoResponse>("POST", `/machine.MachineService/CPUInfo`, req, ...options)
@@ -933,8 +1198,8 @@ export class MachineService {
   static EtcdMemberList(req: EtcdMemberListRequest, ...options: fm.fetchOption[]): Promise<EtcdMemberListResponse> {
     return fm.fetchReq<EtcdMemberListRequest, EtcdMemberListResponse>("POST", `/machine.MachineService/EtcdMemberList`, req, ...options)
   }
-  static EtcdRemoveMember(req: EtcdRemoveMemberRequest, ...options: fm.fetchOption[]): Promise<EtcdRemoveMemberResponse> {
-    return fm.fetchReq<EtcdRemoveMemberRequest, EtcdRemoveMemberResponse>("POST", `/machine.MachineService/EtcdRemoveMember`, req, ...options)
+  static EtcdRemoveMemberByID(req: EtcdRemoveMemberByIDRequest, ...options: fm.fetchOption[]): Promise<EtcdRemoveMemberByIDResponse> {
+    return fm.fetchReq<EtcdRemoveMemberByIDRequest, EtcdRemoveMemberByIDResponse>("POST", `/machine.MachineService/EtcdRemoveMemberByID`, req, ...options)
   }
   static EtcdLeaveCluster(req: EtcdLeaveClusterRequest, ...options: fm.fetchOption[]): Promise<EtcdLeaveClusterResponse> {
     return fm.fetchReq<EtcdLeaveClusterRequest, EtcdLeaveClusterResponse>("POST", `/machine.MachineService/EtcdLeaveCluster`, req, ...options)
@@ -944,6 +1209,18 @@ export class MachineService {
   }
   static EtcdSnapshot(req: EtcdSnapshotRequest, entityNotifier?: fm.NotifyStreamEntityArrival<CommonCommon.Data>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<EtcdSnapshotRequest, CommonCommon.Data>("POST", `/machine.MachineService/EtcdSnapshot`, req, entityNotifier, ...options)
+  }
+  static EtcdAlarmList(req: GoogleProtobufEmpty.Empty, ...options: fm.fetchOption[]): Promise<EtcdAlarmListResponse> {
+    return fm.fetchReq<GoogleProtobufEmpty.Empty, EtcdAlarmListResponse>("POST", `/machine.MachineService/EtcdAlarmList`, req, ...options)
+  }
+  static EtcdAlarmDisarm(req: GoogleProtobufEmpty.Empty, ...options: fm.fetchOption[]): Promise<EtcdAlarmDisarmResponse> {
+    return fm.fetchReq<GoogleProtobufEmpty.Empty, EtcdAlarmDisarmResponse>("POST", `/machine.MachineService/EtcdAlarmDisarm`, req, ...options)
+  }
+  static EtcdDefragment(req: GoogleProtobufEmpty.Empty, ...options: fm.fetchOption[]): Promise<EtcdDefragmentResponse> {
+    return fm.fetchReq<GoogleProtobufEmpty.Empty, EtcdDefragmentResponse>("POST", `/machine.MachineService/EtcdDefragment`, req, ...options)
+  }
+  static EtcdStatus(req: GoogleProtobufEmpty.Empty, ...options: fm.fetchOption[]): Promise<EtcdStatusResponse> {
+    return fm.fetchReq<GoogleProtobufEmpty.Empty, EtcdStatusResponse>("POST", `/machine.MachineService/EtcdStatus`, req, ...options)
   }
   static GenerateConfiguration(req: GenerateConfigurationRequest, ...options: fm.fetchOption[]): Promise<GenerateConfigurationResponse> {
     return fm.fetchReq<GenerateConfigurationRequest, GenerateConfigurationResponse>("POST", `/machine.MachineService/GenerateConfiguration`, req, ...options)
@@ -965,6 +1242,9 @@ export class MachineService {
   }
   static Logs(req: LogsRequest, entityNotifier?: fm.NotifyStreamEntityArrival<CommonCommon.Data>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<LogsRequest, CommonCommon.Data>("POST", `/machine.MachineService/Logs`, req, entityNotifier, ...options)
+  }
+  static LogsContainers(req: GoogleProtobufEmpty.Empty, ...options: fm.fetchOption[]): Promise<LogsContainersResponse> {
+    return fm.fetchReq<GoogleProtobufEmpty.Empty, LogsContainersResponse>("POST", `/machine.MachineService/LogsContainers`, req, ...options)
   }
   static Memory(req: GoogleProtobufEmpty.Empty, ...options: fm.fetchOption[]): Promise<MemoryResponse> {
     return fm.fetchReq<GoogleProtobufEmpty.Empty, MemoryResponse>("POST", `/machine.MachineService/Memory`, req, ...options)
@@ -1025,5 +1305,20 @@ export class MachineService {
   }
   static PacketCapture(req: PacketCaptureRequest, entityNotifier?: fm.NotifyStreamEntityArrival<CommonCommon.Data>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<PacketCaptureRequest, CommonCommon.Data>("POST", `/machine.MachineService/PacketCapture`, req, entityNotifier, ...options)
+  }
+  static Netstat(req: NetstatRequest, ...options: fm.fetchOption[]): Promise<NetstatResponse> {
+    return fm.fetchReq<NetstatRequest, NetstatResponse>("POST", `/machine.MachineService/Netstat`, req, ...options)
+  }
+  static MetaWrite(req: MetaWriteRequest, ...options: fm.fetchOption[]): Promise<MetaWriteResponse> {
+    return fm.fetchReq<MetaWriteRequest, MetaWriteResponse>("POST", `/machine.MachineService/MetaWrite`, req, ...options)
+  }
+  static MetaDelete(req: MetaDeleteRequest, ...options: fm.fetchOption[]): Promise<MetaDeleteResponse> {
+    return fm.fetchReq<MetaDeleteRequest, MetaDeleteResponse>("POST", `/machine.MachineService/MetaDelete`, req, ...options)
+  }
+  static ImageList(req: ImageListRequest, entityNotifier?: fm.NotifyStreamEntityArrival<ImageListResponse>, ...options: fm.fetchOption[]): Promise<void> {
+    return fm.fetchStreamingRequest<ImageListRequest, ImageListResponse>("POST", `/machine.MachineService/ImageList`, req, entityNotifier, ...options)
+  }
+  static ImagePull(req: ImagePullRequest, ...options: fm.fetchOption[]): Promise<ImagePullResponse> {
+    return fm.fetchReq<ImagePullRequest, ImagePullResponse>("POST", `/machine.MachineService/ImagePull`, req, ...options)
   }
 }
