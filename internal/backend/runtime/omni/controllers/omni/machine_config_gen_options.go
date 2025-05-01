@@ -6,6 +6,7 @@
 package omni
 
 import (
+	"cmp"
 	"context"
 	"slices"
 
@@ -102,11 +103,7 @@ func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVers
 				return -1
 			}
 
-			if a.Size < b.Size {
-				return 1
-			}
-
-			return 0
+			return cmp.Compare(a.Size, b.Size)
 		}
 
 		slices.SortFunc(candidates, sortFunc)

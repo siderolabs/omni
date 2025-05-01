@@ -106,6 +106,40 @@ func TestGenInstallConfig(t *testing.T) {
 			expectedInstallDisk: "/dev/sdb",
 		},
 		{
+			name: "select by size",
+			machineStatusSpec: &specs.MachineStatusSpec{
+				Hardware: &specs.MachineStatusSpec_HardwareStatus{
+					Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{
+						{
+							Size:      25165824000,
+							LinuxName: "/dev/sda",
+							Transport: "sata",
+							Type:      "HDD",
+						},
+						{
+							Size:      6442450944,
+							LinuxName: "/dev/vdb",
+							Transport: "usb",
+							Type:      "HDD",
+						},
+						{
+							Size:      6442450944,
+							LinuxName: "/dev/vda",
+							Transport: "virtio",
+							Type:      "HDD",
+						},
+						{
+							Size:      6442450943,
+							LinuxName: "/dev/vdc",
+							Transport: "usb",
+							Type:      "HDD",
+						},
+					},
+				},
+			},
+			expectedInstallDisk: "/dev/vda",
+		},
+		{
 			name: "system disk",
 			machineStatusSpec: &specs.MachineStatusSpec{
 				Hardware: &specs.MachineStatusSpec_HardwareStatus{
