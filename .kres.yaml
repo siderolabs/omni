@@ -411,10 +411,10 @@ spec:
     - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto
       subdirectory: google/rpc/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/3c8f51d707b897fb34ed3a9f7c32b7cd3e5ee5b0/api/common/common.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.10.0/api/common/common.proto
       subdirectory: common/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/3c8f51d707b897fb34ed3a9f7c32b7cd3e5ee5b0/api/machine/machine.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.10.0/api/machine/machine.proto
       subdirectory: talos/machine/
       genGateway: true
     - source: https://raw.githubusercontent.com/cosi-project/specification/c644a4b0fd408ec41bd29193bcdbd1a5b7feead2/proto/v1alpha1/resource.proto
@@ -448,7 +448,7 @@ kind: js.Protobuf
 spec:
   baseSpecPath: /client/api
   files:
-     - source: https://www.talos.dev/v1.9/schemas/config.schema.json
+     - source: https://www.talos.dev/v1.10/schemas/config.schema.json
        destination: frontend/src/schemas/config.schema.json
   destinationRoot: src/api
   specs:
@@ -491,7 +491,7 @@ spec:
     - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto
       subdirectory: google/rpc/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/03a20da9da5916c63015d355f4b56823778e994f/api/machine/machine.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.10.0/api/machine/machine.proto
       subdirectory: talos/machine
       genGateway: true
     - source: https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/any.proto
@@ -509,7 +509,7 @@ spec:
     - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/code.proto
       subdirectory: google/rpc/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/03a20da9da5916c63015d355f4b56823778e994f/api/common/common.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.10.0/api/common/common.proto
       subdirectory: common/
       genGateway: true
     - source: https://raw.githubusercontent.com/cosi-project/specification/5c734257bfa6a3acb01417809797dbfbe0e73c71/proto/v1alpha1/resource.proto

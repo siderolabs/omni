@@ -18,6 +18,12 @@ export enum ContainerDriver {
   CRI = 1,
 }
 
+export enum ContainerdNamespace {
+  NS_UNKNOWN = 0,
+  NS_SYSTEM = 1,
+  NS_CRI = 2,
+}
+
 export type Error = {
   code?: Code
   message?: string
@@ -58,6 +64,10 @@ export type PEMEncodedCertificateAndKey = {
 
 export type PEMEncodedKey = {
   key?: Uint8Array
+}
+
+export type PEMEncodedCertificate = {
+  crt?: Uint8Array
 }
 
 export type NetIP = {

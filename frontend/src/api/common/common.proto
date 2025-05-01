@@ -3,6 +3,7 @@ syntax = "proto3";
 package common;
 
 option go_package = "github.com/siderolabs/talos/pkg/machinery/api/common";
+option java_package = "dev.talos.api.common";
 
 import "google/protobuf/any.proto";
 import "google/protobuf/descriptor.proto";
@@ -88,6 +89,12 @@ enum ContainerDriver {
   CRI = 1;
 }
 
+enum ContainerdNamespace {
+  NS_UNKNOWN = 0;
+  NS_SYSTEM = 1;
+  NS_CRI = 2;
+}
+
 message URL {
   string full_path = 1;
 }
@@ -99,6 +106,10 @@ message PEMEncodedCertificateAndKey {
 
 message PEMEncodedKey {
   bytes key = 1;
+}
+
+message PEMEncodedCertificate {
+  bytes crt = 1;
 }
 
 message NetIP {

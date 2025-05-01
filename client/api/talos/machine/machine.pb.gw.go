@@ -130,6 +130,30 @@ func request_MachineService_Copy_0(ctx context.Context, marshaler runtime.Marsha
 	return stream, metadata, nil
 }
 
+func request_MachineService_CPUFreqStats_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := client.CPUFreqStats(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+}
+
+func local_request_MachineService_CPUFreqStats_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := server.CPUFreqStats(ctx, &protoReq)
+	return msg, metadata, err
+}
+
 func request_MachineService_CPUInfo_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var (
 		protoReq extEmptypb.Empty
@@ -621,6 +645,30 @@ func request_MachineService_Logs_0(ctx context.Context, marshaler runtime.Marsha
 	}
 	metadata.HeaderMD = header
 	return stream, metadata, nil
+}
+
+func request_MachineService_LogsContainers_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := client.LogsContainers(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+}
+
+func local_request_MachineService_LogsContainers_0(ctx context.Context, marshaler runtime.Marshaler, server extMachine.MachineServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq extEmptypb.Empty
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := server.LogsContainers(ctx, &protoReq)
+	return msg, metadata, err
 }
 
 func request_MachineService_Memory_0(ctx context.Context, marshaler runtime.Marshaler, client extMachine.MachineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
@@ -1284,6 +1332,26 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 		return
 	})
+	mux.Handle(http.MethodPost, pattern_MachineService_CPUFreqStats_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/CPUFreqStats", runtime.WithHTTPPathPattern("/machine.MachineService/CPUFreqStats"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_MachineService_CPUFreqStats_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_MachineService_CPUFreqStats_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
 	mux.Handle(http.MethodPost, pattern_MachineService_CPUInfo_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
@@ -1599,6 +1667,26 @@ func RegisterMachineServiceHandlerServer(ctx context.Context, mux *runtime.Serve
 		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 		return
+	})
+	mux.Handle(http.MethodPost, pattern_MachineService_LogsContainers_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/machine.MachineService/LogsContainers", runtime.WithHTTPPathPattern("/machine.MachineService/LogsContainers"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_MachineService_LogsContainers_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_MachineService_LogsContainers_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 	})
 	mux.Handle(http.MethodPost, pattern_MachineService_Memory_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
@@ -2169,6 +2257,23 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 		}
 		forward_MachineService_Copy_0(annotatedContext, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
 	})
+	mux.Handle(http.MethodPost, pattern_MachineService_CPUFreqStats_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/CPUFreqStats", runtime.WithHTTPPathPattern("/machine.MachineService/CPUFreqStats"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_MachineService_CPUFreqStats_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_MachineService_CPUFreqStats_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
 	mux.Handle(http.MethodPost, pattern_MachineService_CPUInfo_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
@@ -2525,6 +2630,23 @@ func RegisterMachineServiceHandlerClient(ctx context.Context, mux *runtime.Serve
 			return
 		}
 		forward_MachineService_Logs_0(annotatedContext, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
+	})
+	mux.Handle(http.MethodPost, pattern_MachineService_LogsContainers_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/machine.MachineService/LogsContainers", runtime.WithHTTPPathPattern("/machine.MachineService/LogsContainers"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_MachineService_LogsContainers_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_MachineService_LogsContainers_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 	})
 	mux.Handle(http.MethodPost, pattern_MachineService_Memory_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
@@ -2959,6 +3081,7 @@ var (
 	pattern_MachineService_Bootstrap_0                   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Bootstrap"}, ""))
 	pattern_MachineService_Containers_0                  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Containers"}, ""))
 	pattern_MachineService_Copy_0                        = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Copy"}, ""))
+	pattern_MachineService_CPUFreqStats_0                = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "CPUFreqStats"}, ""))
 	pattern_MachineService_CPUInfo_0                     = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "CPUInfo"}, ""))
 	pattern_MachineService_DiskStats_0                   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "DiskStats"}, ""))
 	pattern_MachineService_Dmesg_0                       = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Dmesg"}, ""))
@@ -2980,6 +3103,7 @@ var (
 	pattern_MachineService_DiskUsage_0                   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "DiskUsage"}, ""))
 	pattern_MachineService_LoadAvg_0                     = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "LoadAvg"}, ""))
 	pattern_MachineService_Logs_0                        = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Logs"}, ""))
+	pattern_MachineService_LogsContainers_0              = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "LogsContainers"}, ""))
 	pattern_MachineService_Memory_0                      = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Memory"}, ""))
 	pattern_MachineService_Mounts_0                      = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "Mounts"}, ""))
 	pattern_MachineService_NetworkDeviceStats_0          = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"machine.MachineService", "NetworkDeviceStats"}, ""))
@@ -3012,6 +3136,7 @@ var (
 	forward_MachineService_Bootstrap_0                   = runtime.ForwardResponseMessage
 	forward_MachineService_Containers_0                  = runtime.ForwardResponseMessage
 	forward_MachineService_Copy_0                        = runtime.ForwardResponseStream
+	forward_MachineService_CPUFreqStats_0                = runtime.ForwardResponseMessage
 	forward_MachineService_CPUInfo_0                     = runtime.ForwardResponseMessage
 	forward_MachineService_DiskStats_0                   = runtime.ForwardResponseMessage
 	forward_MachineService_Dmesg_0                       = runtime.ForwardResponseStream
@@ -3033,6 +3158,7 @@ var (
 	forward_MachineService_DiskUsage_0                   = runtime.ForwardResponseStream
 	forward_MachineService_LoadAvg_0                     = runtime.ForwardResponseMessage
 	forward_MachineService_Logs_0                        = runtime.ForwardResponseStream
+	forward_MachineService_LogsContainers_0              = runtime.ForwardResponseMessage
 	forward_MachineService_Memory_0                      = runtime.ForwardResponseMessage
 	forward_MachineService_Mounts_0                      = runtime.ForwardResponseMessage
 	forward_MachineService_NetworkDeviceStats_0          = runtime.ForwardResponseMessage

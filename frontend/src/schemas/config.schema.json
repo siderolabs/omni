@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://talos.dev/v1.9/schemas/config.schema.json",
+  "$id": "https://talos.dev/v1.10/schemas/config.schema.json",
   "$defs": {
     "block.DiskSelector": {
       "properties": {
@@ -13,7 +13,177 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "DiskSelector selects a disk for the volume."
+    },
+    "block.EncryptionKey": {
+      "properties": {
+        "slot": {
+          "type": "integer",
+          "title": "slot",
+          "description": "Key slot number for LUKS2 encryption.\n",
+          "markdownDescription": "Key slot number for LUKS2 encryption.",
+          "x-intellij-html-description": "\u003cp\u003eKey slot number for LUKS2 encryption.\u003c/p\u003e\n"
+        },
+        "static": {
+          "$ref": "#/$defs/block.EncryptionKeyStatic",
+          "title": "static",
+          "description": "Key which value is stored in the configuration file.\n",
+          "markdownDescription": "Key which value is stored in the configuration file.",
+          "x-intellij-html-description": "\u003cp\u003eKey which value is stored in the configuration file.\u003c/p\u003e\n"
+        },
+        "nodeID": {
+          "$ref": "#/$defs/block.EncryptionKeyNodeID",
+          "title": "nodeID",
+          "description": "Deterministically generated key from the node UUID and PartitionLabel.\n",
+          "markdownDescription": "Deterministically generated key from the node UUID and PartitionLabel.",
+          "x-intellij-html-description": "\u003cp\u003eDeterministically generated key from the node UUID and PartitionLabel.\u003c/p\u003e\n"
+        },
+        "kms": {
+          "$ref": "#/$defs/block.EncryptionKeyKMS",
+          "title": "kms",
+          "description": "KMS managed encryption key.\n",
+          "markdownDescription": "KMS managed encryption key.",
+          "x-intellij-html-description": "\u003cp\u003eKMS managed encryption key.\u003c/p\u003e\n"
+        },
+        "tpm": {
+          "$ref": "#/$defs/block.EncryptionKeyTPM",
+          "title": "tpm",
+          "description": "Enable TPM based disk encryption.\n",
+          "markdownDescription": "Enable TPM based disk encryption.",
+          "x-intellij-html-description": "\u003cp\u003eEnable TPM based disk encryption.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "EncryptionKey represents configuration for disk encryption key."
+    },
+    "block.EncryptionKeyKMS": {
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "title": "endpoint",
+          "description": "KMS endpoint to Seal/Unseal the key.\n",
+          "markdownDescription": "KMS endpoint to Seal/Unseal the key.",
+          "x-intellij-html-description": "\u003cp\u003eKMS endpoint to Seal/Unseal the key.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "EncryptionKeyKMS represents a key that is generated and then sealed/unsealed by the KMS server."
+    },
+    "block.EncryptionKeyNodeID": {
+      "properties": {},
+      "additionalProperties": false,
+      "type": "object",
+      "description": "EncryptionKeyNodeID represents deterministically generated key from the node UUID and PartitionLabel."
+    },
+    "block.EncryptionKeyStatic": {
+      "properties": {
+        "passphrase": {
+          "type": "string",
+          "title": "passphrase",
+          "description": "Defines the static passphrase value.\n",
+          "markdownDescription": "Defines the static passphrase value.",
+          "x-intellij-html-description": "\u003cp\u003eDefines the static passphrase value.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "EncryptionKeyStatic represents throw away key type."
+    },
+    "block.EncryptionKeyTPM": {
+      "properties": {
+        "checkSecurebootStatusOnEnroll": {
+          "type": "boolean",
+          "title": "checkSecurebootStatusOnEnroll",
+          "description": "Check that Secureboot is enabled in the EFI firmware.\nIf Secureboot is not enabled, the enrollment of the key will fail. As the TPM key is anyways bound to the value of PCR 7, changing Secureboot status or configuration after the initial enrollment will make the key unusable.\n",
+          "markdownDescription": "Check that Secureboot is enabled in the EFI firmware.\nIf Secureboot is not enabled, the enrollment of the key will fail. As the TPM key is anyways bound to the value of PCR 7, changing Secureboot status or configuration after the initial enrollment will make the key unusable.",
+          "x-intellij-html-description": "\u003cp\u003eCheck that Secureboot is enabled in the EFI firmware.\nIf Secureboot is not enabled, the enrollment of the key will fail. As the TPM key is anyways bound to the value of PCR 7, changing Secureboot status or configuration after the initial enrollment will make the key unusable.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "EncryptionKeyTPM represents a key that is generated and then sealed/unsealed by the TPM."
+    },
+    "block.EncryptionSpec": {
+      "properties": {
+        "provider": {
+          "enum": [
+            "luks2"
+          ],
+          "title": "provider",
+          "description": "Encryption provider to use for the encryption.\n",
+          "markdownDescription": "Encryption provider to use for the encryption.",
+          "x-intellij-html-description": "\u003cp\u003eEncryption provider to use for the encryption.\u003c/p\u003e\n"
+        },
+        "keys": {
+          "items": {
+            "$ref": "#/$defs/block.EncryptionKey"
+          },
+          "type": "array",
+          "title": "keys",
+          "description": "Defines the encryption keys generation and storage method.\n",
+          "markdownDescription": "Defines the encryption keys generation and storage method.",
+          "x-intellij-html-description": "\u003cp\u003eDefines the encryption keys generation and storage method.\u003c/p\u003e\n"
+        },
+        "cipher": {
+          "enum": [
+            "aes-xts-plain64",
+            "xchacha12,aes-adiantum-plain64",
+            "xchacha20,aes-adiantum-plain64"
+          ],
+          "title": "cipher",
+          "description": "Cipher to use for the encryption. Depends on the encryption provider.\n",
+          "markdownDescription": "Cipher to use for the encryption. Depends on the encryption provider.",
+          "x-intellij-html-description": "\u003cp\u003eCipher to use for the encryption. Depends on the encryption provider.\u003c/p\u003e\n"
+        },
+        "keySize": {
+          "type": "integer",
+          "title": "keySize",
+          "description": "Defines the encryption key length.\n",
+          "markdownDescription": "Defines the encryption key length.",
+          "x-intellij-html-description": "\u003cp\u003eDefines the encryption key length.\u003c/p\u003e\n"
+        },
+        "blockSize": {
+          "type": "integer",
+          "title": "blockSize",
+          "description": "Defines the encryption sector size.\n",
+          "markdownDescription": "Defines the encryption sector size.",
+          "x-intellij-html-description": "\u003cp\u003eDefines the encryption sector size.\u003c/p\u003e\n"
+        },
+        "options": {
+          "enum": [
+            "no_read_workqueue",
+            "no_write_workqueue",
+            "same_cpu_crypt"
+          ],
+          "title": "options",
+          "description": "Additional –perf parameters for the LUKS2 encryption.\n",
+          "markdownDescription": "Additional --perf parameters for the LUKS2 encryption.",
+          "x-intellij-html-description": "\u003cp\u003eAdditional \u0026ndash;perf parameters for the LUKS2 encryption.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "EncryptionSpec represents volume encryption settings."
+    },
+    "block.FilesystemSpec": {
+      "properties": {
+        "type": {
+          "enum": [
+            "ext4",
+            "xfs"
+          ],
+          "title": "type",
+          "description": "Filesystem type. Default is xfs.\n",
+          "markdownDescription": "Filesystem type. Default is `xfs`.",
+          "x-intellij-html-description": "\u003cp\u003eFilesystem type. Default is \u003ccode\u003exfs\u003c/code\u003e.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "FilesystemSpec configures the filesystem for the volume."
     },
     "block.ProvisioningSpec": {
       "properties": {
@@ -47,7 +217,65 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "ProvisioningSpec describes how the volume is provisioned."
+    },
+    "block.UserVolumeConfigV1Alpha1": {
+      "properties": {
+        "apiVersion": {
+          "enum": [
+            "v1alpha1"
+          ],
+          "title": "apiVersion",
+          "description": "apiVersion is the API version of the resource.\n",
+          "markdownDescription": "apiVersion is the API version of the resource.",
+          "x-intellij-html-description": "\u003cp\u003eapiVersion is the API version of the resource.\u003c/p\u003e\n"
+        },
+        "kind": {
+          "enum": [
+            "UserVolumeConfig"
+          ],
+          "title": "kind",
+          "description": "kind is the kind of the resource.\n",
+          "markdownDescription": "kind is the kind of the resource.",
+          "x-intellij-html-description": "\u003cp\u003ekind is the kind of the resource.\u003c/p\u003e\n"
+        },
+        "name": {
+          "type": "string",
+          "title": "name",
+          "description": "Name of the volume.\n\nName might be between 1 and 34 characters long and can only contain:\nlowercase and uppercase ASCII letters, digits, and hyphens.\n",
+          "markdownDescription": "Name of the volume.\n\nName might be between 1 and 34 characters long and can only contain:\nlowercase and uppercase ASCII letters, digits, and hyphens.",
+          "x-intellij-html-description": "\u003cp\u003eName of the volume.\u003c/p\u003e\n\n\u003cp\u003eName might be between 1 and 34 characters long and can only contain:\nlowercase and uppercase ASCII letters, digits, and hyphens.\u003c/p\u003e\n"
+        },
+        "provisioning": {
+          "$ref": "#/$defs/block.ProvisioningSpec",
+          "title": "provisioning",
+          "description": "The provisioning describes how the volume is provisioned.\n",
+          "markdownDescription": "The provisioning describes how the volume is provisioned.",
+          "x-intellij-html-description": "\u003cp\u003eThe provisioning describes how the volume is provisioned.\u003c/p\u003e\n"
+        },
+        "filesystem": {
+          "$ref": "#/$defs/block.FilesystemSpec",
+          "title": "filesystem",
+          "description": "The filesystem describes how the volume is formatted.\n",
+          "markdownDescription": "The filesystem describes how the volume is formatted.",
+          "x-intellij-html-description": "\u003cp\u003eThe filesystem describes how the volume is formatted.\u003c/p\u003e\n"
+        },
+        "encryption": {
+          "$ref": "#/$defs/block.EncryptionSpec",
+          "title": "encryption",
+          "description": "The encryption describes how the volume is encrypted.\n",
+          "markdownDescription": "The encryption describes how the volume is encrypted.",
+          "x-intellij-html-description": "\u003cp\u003eThe encryption describes how the volume is encrypted.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind"
+      ],
+      "description": "UserVolumeConfig is a user volume configuration document.\\nUser volume is automatically allocated as a partition on the specified disk\\nand mounted under `/var/mnt/\u003cname\u003e`.\\nThe partition label is automatically generated as `u-\u003cname\u003e`.\\n"
     },
     "block.VolumeConfigV1Alpha1": {
       "properties": {
@@ -89,7 +317,8 @@
       "required": [
         "apiVersion",
         "kind"
-      ]
+      ],
+      "description": "VolumeConfig is a system volume configuration document.\\nNote: at the moment, only `EPHEMERAL` and `IMAGE-CACHE` system volumes are supported.\\n"
     },
     "extensions.ConfigFile": {
       "properties": {
@@ -109,7 +338,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "ConfigFile is a config file for extension services."
     },
     "extensions.ServiceConfigV1Alpha1": {
       "properties": {
@@ -165,7 +395,53 @@
         "apiVersion",
         "kind",
         "name"
-      ]
+      ],
+      "description": "ExtensionServiceConfig is a extensionserviceconfig document."
+    },
+    "hardware.PCIDriverRebindConfigV1Alpha1": {
+      "properties": {
+        "apiVersion": {
+          "enum": [
+            "v1alpha1"
+          ],
+          "title": "apiVersion",
+          "description": "apiVersion is the API version of the resource.\n",
+          "markdownDescription": "apiVersion is the API version of the resource.",
+          "x-intellij-html-description": "\u003cp\u003eapiVersion is the API version of the resource.\u003c/p\u003e\n"
+        },
+        "kind": {
+          "enum": [
+            "PCIDriverRebindConfig"
+          ],
+          "title": "kind",
+          "description": "kind is the kind of the resource.\n",
+          "markdownDescription": "kind is the kind of the resource.",
+          "x-intellij-html-description": "\u003cp\u003ekind is the kind of the resource.\u003c/p\u003e\n"
+        },
+        "name": {
+          "type": "string",
+          "title": "name",
+          "description": "PCI device id\n",
+          "markdownDescription": "PCI device id",
+          "x-intellij-html-description": "\u003cp\u003ePCI device id\u003c/p\u003e\n"
+        },
+        "targetDriver": {
+          "type": "string",
+          "title": "targetDriver",
+          "description": "Target driver to rebind the PCI device to.\n",
+          "markdownDescription": "Target driver to rebind the PCI device to.",
+          "x-intellij-html-description": "\u003cp\u003eTarget driver to rebind the PCI device to.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind",
+        "name",
+        "targetDriver"
+      ],
+      "description": "PCIDriverRebindConfig allows to configure PCI driver rebinds."
     },
     "network.DefaultActionConfigV1Alpha1": {
       "properties": {
@@ -203,7 +479,183 @@
       "required": [
         "apiVersion",
         "kind"
-      ]
+      ],
+      "description": "NetworkDefaultActionConfig is a ingress firewall default action configuration document."
+    },
+    "network.EthernetChannelsConfig": {
+      "properties": {
+        "rx": {
+          "type": "integer",
+          "title": "rx",
+          "description": "Number of RX channels.\n",
+          "markdownDescription": "Number of RX channels.",
+          "x-intellij-html-description": "\u003cp\u003eNumber of RX channels.\u003c/p\u003e\n"
+        },
+        "tx": {
+          "type": "integer",
+          "title": "tx",
+          "description": "Number of TX channels.\n",
+          "markdownDescription": "Number of TX channels.",
+          "x-intellij-html-description": "\u003cp\u003eNumber of TX channels.\u003c/p\u003e\n"
+        },
+        "other": {
+          "type": "integer",
+          "title": "other",
+          "description": "Number of other channels.\n",
+          "markdownDescription": "Number of other channels.",
+          "x-intellij-html-description": "\u003cp\u003eNumber of other channels.\u003c/p\u003e\n"
+        },
+        "combined": {
+          "type": "integer",
+          "title": "combined",
+          "description": "Number of combined channels.\n",
+          "markdownDescription": "Number of combined channels.",
+          "x-intellij-html-description": "\u003cp\u003eNumber of combined channels.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "EthernetChannelsConfig is a configuration for Ethernet link channels."
+    },
+    "network.EthernetConfigV1Alpha1": {
+      "properties": {
+        "apiVersion": {
+          "enum": [
+            "v1alpha1"
+          ],
+          "title": "apiVersion",
+          "description": "apiVersion is the API version of the resource.\n",
+          "markdownDescription": "apiVersion is the API version of the resource.",
+          "x-intellij-html-description": "\u003cp\u003eapiVersion is the API version of the resource.\u003c/p\u003e\n"
+        },
+        "kind": {
+          "enum": [
+            "EthernetConfig"
+          ],
+          "title": "kind",
+          "description": "kind is the kind of the resource.\n",
+          "markdownDescription": "kind is the kind of the resource.",
+          "x-intellij-html-description": "\u003cp\u003ekind is the kind of the resource.\u003c/p\u003e\n"
+        },
+        "name": {
+          "type": "string",
+          "title": "name",
+          "description": "Name of the link (interface).\n",
+          "markdownDescription": "Name of the link (interface).",
+          "x-intellij-html-description": "\u003cp\u003eName of the link (interface).\u003c/p\u003e\n"
+        },
+        "features": {
+          "patternProperties": {
+            ".*": {
+              "type": "boolean"
+            }
+          },
+          "type": "object",
+          "title": "features",
+          "description": "Configuration for Ethernet features.\n\nSet of features available and whether they can be enabled or disabled is driver specific.\nUse talosctl get ethernetstatus \u0026lt;link\u0026gt; -o yaml to get the list of available features and\ntheir current status.\n",
+          "markdownDescription": "Configuration for Ethernet features.\n\nSet of features available and whether they can be enabled or disabled is driver specific.\nUse `talosctl get ethernetstatus \u003clink\u003e -o yaml` to get the list of available features and\ntheir current status.",
+          "x-intellij-html-description": "\u003cp\u003eConfiguration for Ethernet features.\u003c/p\u003e\n\n\u003cp\u003eSet of features available and whether they can be enabled or disabled is driver specific.\nUse \u003ccode\u003etalosctl get ethernetstatus \u0026lt;link\u0026gt; -o yaml\u003c/code\u003e to get the list of available features and\ntheir current status.\u003c/p\u003e\n"
+        },
+        "rings": {
+          "$ref": "#/$defs/network.EthernetRingsConfig",
+          "title": "rings",
+          "description": "Configuration for Ethernet link rings.\n\nThis is similar to ethtool -G command.\n",
+          "markdownDescription": "Configuration for Ethernet link rings.\n\nThis is similar to `ethtool -G` command.",
+          "x-intellij-html-description": "\u003cp\u003eConfiguration for Ethernet link rings.\u003c/p\u003e\n\n\u003cp\u003eThis is similar to \u003ccode\u003eethtool -G\u003c/code\u003e command.\u003c/p\u003e\n"
+        },
+        "channels": {
+          "$ref": "#/$defs/network.EthernetChannelsConfig",
+          "title": "channels",
+          "description": "Configuration for Ethernet link channels.\n\nThis is similar to ethtool -L command.\n",
+          "markdownDescription": "Configuration for Ethernet link channels.\n\nThis is similar to `ethtool -L` command.",
+          "x-intellij-html-description": "\u003cp\u003eConfiguration for Ethernet link channels.\u003c/p\u003e\n\n\u003cp\u003eThis is similar to \u003ccode\u003eethtool -L\u003c/code\u003e command.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind",
+        "name"
+      ],
+      "description": "EthernetConfig is a config document to configure Ethernet interfaces."
+    },
+    "network.EthernetRingsConfig": {
+      "properties": {
+        "rx": {
+          "type": "integer",
+          "title": "rx",
+          "description": "Number of RX rings.\n",
+          "markdownDescription": "Number of RX rings.",
+          "x-intellij-html-description": "\u003cp\u003eNumber of RX rings.\u003c/p\u003e\n"
+        },
+        "tx": {
+          "type": "integer",
+          "title": "tx",
+          "description": "Number of TX rings.\n",
+          "markdownDescription": "Number of TX rings.",
+          "x-intellij-html-description": "\u003cp\u003eNumber of TX rings.\u003c/p\u003e\n"
+        },
+        "rx-mini": {
+          "type": "integer",
+          "title": "rx-mini",
+          "description": "Number of RX mini rings.\n",
+          "markdownDescription": "Number of RX mini rings.",
+          "x-intellij-html-description": "\u003cp\u003eNumber of RX mini rings.\u003c/p\u003e\n"
+        },
+        "rx-jumbo": {
+          "type": "integer",
+          "title": "rx-jumbo",
+          "description": "Number of RX jumbo rings.\n",
+          "markdownDescription": "Number of RX jumbo rings.",
+          "x-intellij-html-description": "\u003cp\u003eNumber of RX jumbo rings.\u003c/p\u003e\n"
+        },
+        "rx-buf-len": {
+          "type": "integer",
+          "title": "rx-buf-len",
+          "description": "RX buffer length.\n",
+          "markdownDescription": "RX buffer length.",
+          "x-intellij-html-description": "\u003cp\u003eRX buffer length.\u003c/p\u003e\n"
+        },
+        "cqe-size": {
+          "type": "integer",
+          "title": "cqe-size",
+          "description": "CQE size.\n",
+          "markdownDescription": "CQE size.",
+          "x-intellij-html-description": "\u003cp\u003eCQE size.\u003c/p\u003e\n"
+        },
+        "tx-push": {
+          "type": "boolean",
+          "title": "tx-push",
+          "description": "TX push enabled.\n",
+          "markdownDescription": "TX push enabled.",
+          "x-intellij-html-description": "\u003cp\u003eTX push enabled.\u003c/p\u003e\n"
+        },
+        "rx-push": {
+          "type": "boolean",
+          "title": "rx-push",
+          "description": "RX push enabled.\n",
+          "markdownDescription": "RX push enabled.",
+          "x-intellij-html-description": "\u003cp\u003eRX push enabled.\u003c/p\u003e\n"
+        },
+        "tx-push-buf-len": {
+          "type": "integer",
+          "title": "tx-push-buf-len",
+          "description": "TX push buffer length.\n",
+          "markdownDescription": "TX push buffer length.",
+          "x-intellij-html-description": "\u003cp\u003eTX push buffer length.\u003c/p\u003e\n"
+        },
+        "tcp-data-split": {
+          "type": "boolean",
+          "title": "tcp-data-split",
+          "description": "TCP data split enabled.\n",
+          "markdownDescription": "TCP data split enabled.",
+          "x-intellij-html-description": "\u003cp\u003eTCP data split enabled.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "EthernetRingsConfig is a configuration for Ethernet link rings."
     },
     "network.IngressRule": {
       "properties": {
@@ -225,7 +677,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "IngressRule is a ingress rule."
     },
     "network.KubespanEndpointsConfigV1Alpha1": {
       "properties": {
@@ -263,7 +716,8 @@
       "required": [
         "apiVersion",
         "kind"
-      ]
+      ],
+      "description": "KubeSpanEndpointsConfig is a config document to configure KubeSpan endpoints."
     },
     "network.RuleConfigV1Alpha1": {
       "properties": {
@@ -316,7 +770,8 @@
         "apiVersion",
         "kind",
         "name"
-      ]
+      ],
+      "description": "NetworkRuleConfig is a network firewall rule config document."
     },
     "network.RulePortSelector": {
       "properties": {
@@ -351,7 +806,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "RulePortSelector is a port selector for the network rule."
     },
     "runtime.EventSinkV1Alpha1": {
       "properties": {
@@ -386,7 +842,8 @@
       "required": [
         "apiVersion",
         "kind"
-      ]
+      ],
+      "description": "EventSinkConfig is a event sink config document."
     },
     "runtime.KmsgLogV1Alpha1": {
       "properties": {
@@ -429,7 +886,8 @@
       "required": [
         "apiVersion",
         "kind"
-      ]
+      ],
+      "description": "KmsgLogConfig is a event sink config document."
     },
     "runtime.WatchdogTimerV1Alpha1": {
       "properties": {
@@ -472,7 +930,8 @@
       "required": [
         "apiVersion",
         "kind"
-      ]
+      ],
+      "description": "WatchdogTimerConfig is a watchdog timer config document."
     },
     "security.TrustedRootsConfigV1Alpha1": {
       "properties": {
@@ -515,7 +974,8 @@
         "apiVersion",
         "kind",
         "name"
-      ]
+      ],
+      "description": "TrustedRootsConfig allows to configure additional trusted CA roots."
     },
     "siderolink.ConfigV1Alpha1": {
       "properties": {
@@ -544,6 +1004,13 @@
           "description": "SideroLink API URL to connect to.\n",
           "markdownDescription": "SideroLink API URL to connect to.",
           "x-intellij-html-description": "\u003cp\u003eSideroLink API URL to connect to.\u003c/p\u003e\n"
+        },
+        "uniqueToken": {
+          "type": "string",
+          "title": "uniqueToken",
+          "description": "SideroLink unique token to use for the connection (optional).\n\nThis value is overridden with META key UniqueMachineToken.\n",
+          "markdownDescription": "SideroLink unique token to use for the connection (optional).\n\nThis value is overridden with META key UniqueMachineToken.",
+          "x-intellij-html-description": "\u003cp\u003eSideroLink unique token to use for the connection (optional).\u003c/p\u003e\n\n\u003cp\u003eThis value is overridden with META key UniqueMachineToken.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -551,7 +1018,8 @@
       "required": [
         "apiVersion",
         "kind"
-      ]
+      ],
+      "description": "SideroLinkConfig is a SideroLink connection machine configuration document."
     },
     "v1alpha1.APIServerConfig": {
       "properties": {
@@ -649,7 +1117,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "APIServerConfig represents the kube apiserver configuration options."
     },
     "v1alpha1.AdminKubeconfigConfig": {
       "properties": {
@@ -663,7 +1132,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "AdminKubeconfigConfig contains admin kubeconfig settings."
     },
     "v1alpha1.AdmissionPluginConfig": {
       "properties": {
@@ -683,7 +1153,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "AdmissionPluginConfig represents the API server admission plugin configuration."
     },
     "v1alpha1.AuthorizationConfigAuthorizerConfig": {
       "properties": {
@@ -710,7 +1181,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "AuthorizationConfigAuthorizerConfig represents the API server authorization config authorizer configuration."
     },
     "v1alpha1.Bond": {
       "properties": {
@@ -921,7 +1393,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "Bond contains the various options for configuring a bonded interface."
     },
     "v1alpha1.Bridge": {
       "properties": {
@@ -951,7 +1424,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "Bridge contains the various options for configuring a bridge interface."
     },
     "v1alpha1.BridgePort": {
       "properties": {
@@ -964,7 +1438,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "BridgePort contains settings for assigning a link to a bridge interface."
     },
     "v1alpha1.BridgeVLAN": {
       "properties": {
@@ -977,7 +1452,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "BridgeVLAN contains the various options for configuring the VLAN properties of a bridge interface."
     },
     "v1alpha1.CNIConfig": {
       "properties": {
@@ -1011,7 +1487,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "CNIConfig represents the CNI configuration options."
     },
     "v1alpha1.ClusterConfig": {
       "properties": {
@@ -1234,7 +1711,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "ClusterConfig represents the cluster-wide config values."
     },
     "v1alpha1.ClusterDiscoveryConfig": {
       "properties": {
@@ -1254,7 +1732,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "ClusterDiscoveryConfig struct configures cluster membership discovery."
     },
     "v1alpha1.ClusterInlineManifest": {
       "properties": {
@@ -1274,7 +1753,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "ClusterInlineManifest struct describes inline bootstrap manifests for the user."
     },
     "v1alpha1.ClusterNetworkConfig": {
       "properties": {
@@ -1314,7 +1794,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "ClusterNetworkConfig represents kube networking configuration options."
     },
     "v1alpha1.Config": {
       "properties": {
@@ -1350,7 +1831,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "Config defines the v1alpha1.Config Talos machine configuration document."
     },
     "v1alpha1.ControlPlaneConfig": {
       "properties": {
@@ -1372,7 +1854,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "ControlPlaneConfig represents the control plane configuration options."
     },
     "v1alpha1.ControllerManagerConfig": {
       "properties": {
@@ -1426,7 +1909,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "ControllerManagerConfig represents the kube controller manager configuration options."
     },
     "v1alpha1.CoreDNS": {
       "properties": {
@@ -1446,7 +1930,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "CoreDNS represents the CoreDNS config values."
     },
     "v1alpha1.DHCPOptions": {
       "properties": {
@@ -1480,7 +1965,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "DHCPOptions contains options for configuring the DHCP settings for a given interface."
     },
     "v1alpha1.Device": {
       "properties": {
@@ -1600,7 +2086,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "Device represents a network interface."
     },
     "v1alpha1.DeviceVIPConfig": {
       "properties": {
@@ -1627,7 +2114,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "DeviceVIPConfig contains settings for configuring a Virtual Shared IP on an interface."
     },
     "v1alpha1.DeviceWireguardConfig": {
       "properties": {
@@ -1664,7 +2152,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "DeviceWireguardConfig contains settings for configuring Wireguard network interface."
     },
     "v1alpha1.DeviceWireguardPeer": {
       "properties": {
@@ -1702,16 +2191,17 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "DeviceWireguardPeer a WireGuard device peer configuration."
     },
     "v1alpha1.DiscoveryRegistriesConfig": {
       "properties": {
         "kubernetes": {
           "$ref": "#/$defs/v1alpha1.RegistryKubernetesConfig",
           "title": "kubernetes",
-          "description": "Kubernetes registry uses Kubernetes API server to discover cluster members and stores additional information\nas annotations on the Node resources.\n",
-          "markdownDescription": "Kubernetes registry uses Kubernetes API server to discover cluster members and stores additional information\nas annotations on the Node resources.",
-          "x-intellij-html-description": "\u003cp\u003eKubernetes registry uses Kubernetes API server to discover cluster members and stores additional information\nas annotations on the Node resources.\u003c/p\u003e\n"
+          "description": "Kubernetes registry uses Kubernetes API server to discover cluster members and stores additional information\nas annotations on the Node resources.\n\nThis feature is deprecated as it is not compatible with Kubernetes 1.32+.\nSee https://github.com/siderolabs/talos/issues/9980 for more information.\n",
+          "markdownDescription": "Kubernetes registry uses Kubernetes API server to discover cluster members and stores additional information\nas annotations on the Node resources.\n\nThis feature is deprecated as it is not compatible with Kubernetes 1.32+.\nSee https://github.com/siderolabs/talos/issues/9980 for more information.",
+          "x-intellij-html-description": "\u003cp\u003eKubernetes registry uses Kubernetes API server to discover cluster members and stores additional information\nas annotations on the Node resources.\u003c/p\u003e\n\n\u003cp\u003eThis feature is deprecated as it is not compatible with Kubernetes 1.32+.\nSee \u003ca href=\"https://github.com/siderolabs/talos/issues/9980\" target=\"_blank\"\u003ehttps://github.com/siderolabs/talos/issues/9980\u003c/a\u003e for more information.\u003c/p\u003e\n"
         },
         "service": {
           "$ref": "#/$defs/v1alpha1.RegistryServiceConfig",
@@ -1722,27 +2212,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
-    },
-    "v1alpha1.DiskPartition": {
-      "properties": {
-        "size": {
-          "type": "integer",
-          "title": "size",
-          "description": "The size of partition: either bytes or human readable representation. If size: is omitted, the partition is sized to occupy the full disk.\n",
-          "markdownDescription": "The size of partition: either bytes or human readable representation. If `size:` is omitted, the partition is sized to occupy the full disk.",
-          "x-intellij-html-description": "\u003cp\u003eThe size of partition: either bytes or human readable representation. If \u003ccode\u003esize:\u003c/code\u003e is omitted, the partition is sized to occupy the full disk.\u003c/p\u003e\n"
-        },
-        "mountpoint": {
-          "type": "string",
-          "title": "mountpoint",
-          "description": "Where to mount the partition.\n",
-          "markdownDescription": "Where to mount the partition.",
-          "x-intellij-html-description": "\u003cp\u003eWhere to mount the partition.\u003c/p\u003e\n"
-        }
-      },
-      "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "DiscoveryRegistriesConfig struct configures cluster membership discovery."
     },
     "v1alpha1.EncryptionConfig": {
       "properties": {
@@ -1801,7 +2272,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "EncryptionConfig represents partition encryption settings."
     },
     "v1alpha1.EncryptionKey": {
       "properties": {
@@ -1842,7 +2314,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "EncryptionKey represents configuration for disk encryption key."
     },
     "v1alpha1.EncryptionKeyKMS": {
       "properties": {
@@ -1855,12 +2328,14 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "EncryptionKeyKMS represents a key that is generated and then sealed/unsealed by the KMS server."
     },
     "v1alpha1.EncryptionKeyNodeID": {
       "properties": {},
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "EncryptionKeyNodeID represents deterministically generated key from the node UUID and PartitionLabel."
     },
     "v1alpha1.EncryptionKeyStatic": {
       "properties": {
@@ -1873,7 +2348,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "EncryptionKeyStatic represents throw away key type."
     },
     "v1alpha1.EncryptionKeyTPM": {
       "properties": {
@@ -1886,12 +2362,14 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "EncryptionKeyTPM represents a key that is generated and then sealed/unsealed by the TPM."
     },
     "v1alpha1.Endpoint": {
       "properties": {},
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "Endpoint represents the endpoint URL parsed out of the machine config."
     },
     "v1alpha1.EtcdConfig": {
       "properties": {
@@ -1952,7 +2430,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "EtcdConfig represents the etcd configuration options."
     },
     "v1alpha1.ExternalCloudProviderConfig": {
       "properties": {
@@ -1975,7 +2454,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "ExternalCloudProviderConfig contains external cloud provider configuration."
     },
     "v1alpha1.ExtraHost": {
       "properties": {
@@ -1998,7 +2478,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "ExtraHost represents a host entry in /etc/hosts."
     },
     "v1alpha1.ExtraMount": {
       "properties": {
@@ -2055,7 +2536,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "ExtraMount wraps OCI Mount specification."
     },
     "v1alpha1.FeaturesConfig": {
       "properties": {
@@ -2124,7 +2606,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "FeaturesConfig describes individual Talos features that can be switched on or off."
     },
     "v1alpha1.FlannelCNIConfig": {
       "properties": {
@@ -2140,7 +2623,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "FlannelCNIConfig represents the Flannel CNI configuration options."
     },
     "v1alpha1.HostDNSConfig": {
       "properties": {
@@ -2167,7 +2651,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "HostDNSConfig describes the configuration for the host DNS resolver."
     },
     "v1alpha1.ImageCacheConfig": {
       "properties": {
@@ -2180,7 +2665,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "ImageCacheConfig describes the configuration for the Image Cache feature."
     },
     "v1alpha1.InstallConfig": {
       "properties": {
@@ -2204,9 +2690,9 @@
           },
           "type": "array",
           "title": "extraKernelArgs",
-          "description": "Allows for supplying extra kernel args via the bootloader.\nExisting kernel args can be removed by prefixing the argument with a -.\nFor example -console removes all console=\u0026lt;value\u0026gt; arguments, whereas -console=tty0 removes the console=tty0 default argument.\n",
-          "markdownDescription": "Allows for supplying extra kernel args via the bootloader.\nExisting kernel args can be removed by prefixing the argument with a `-`.\nFor example `-console` removes all `console=\u003cvalue\u003e` arguments, whereas `-console=tty0` removes the `console=tty0` default argument.",
-          "x-intellij-html-description": "\u003cp\u003eAllows for supplying extra kernel args via the bootloader.\nExisting kernel args can be removed by prefixing the argument with a \u003ccode\u003e-\u003c/code\u003e.\nFor example \u003ccode\u003e-console\u003c/code\u003e removes all \u003ccode\u003econsole=\u0026lt;value\u0026gt;\u003c/code\u003e arguments, whereas \u003ccode\u003e-console=tty0\u003c/code\u003e removes the \u003ccode\u003econsole=tty0\u003c/code\u003e default argument.\u003c/p\u003e\n"
+          "description": "Allows for supplying extra kernel args via the bootloader.\nExisting kernel args can be removed by prefixing the argument with a -.\nFor example -console removes all console=\u0026lt;value\u0026gt; arguments, whereas -console=tty0 removes the console=tty0 default argument.\nIf Talos is using systemd-boot as a bootloader (default for UEFI) this setting will be ignored.\n",
+          "markdownDescription": "Allows for supplying extra kernel args via the bootloader.\nExisting kernel args can be removed by prefixing the argument with a `-`.\nFor example `-console` removes all `console=\u003cvalue\u003e` arguments, whereas `-console=tty0` removes the `console=tty0` default argument.\nIf Talos is using systemd-boot as a bootloader (default for UEFI) this setting will be ignored.",
+          "x-intellij-html-description": "\u003cp\u003eAllows for supplying extra kernel args via the bootloader.\nExisting kernel args can be removed by prefixing the argument with a \u003ccode\u003e-\u003c/code\u003e.\nFor example \u003ccode\u003e-console\u003c/code\u003e removes all \u003ccode\u003econsole=\u0026lt;value\u0026gt;\u003c/code\u003e arguments, whereas \u003ccode\u003e-console=tty0\u003c/code\u003e removes the \u003ccode\u003econsole=tty0\u003c/code\u003e default argument.\nIf Talos is using systemd-boot as a bootloader (default for UEFI) this setting will be ignored.\u003c/p\u003e\n"
         },
         "image": {
           "type": "string",
@@ -2214,16 +2700,6 @@
           "description": "Allows for supplying the image used to perform the installation.\nImage reference for each Talos release can be found on\nGitHub releases page.\n",
           "markdownDescription": "Allows for supplying the image used to perform the installation.\nImage reference for each Talos release can be found on\n[GitHub releases page](https://github.com/siderolabs/talos/releases).",
           "x-intellij-html-description": "\u003cp\u003eAllows for supplying the image used to perform the installation.\nImage reference for each Talos release can be found on\n\u003ca href=\"https://github.com/siderolabs/talos/releases\" target=\"_blank\"\u003eGitHub releases page\u003c/a\u003e.\u003c/p\u003e\n"
-        },
-        "extensions": {
-          "items": {
-            "$ref": "#/$defs/v1alpha1.InstallExtensionConfig"
-          },
-          "type": "array",
-          "title": "extensions",
-          "description": "Allows for supplying additional system extension images to install on top of base Talos image.\n",
-          "markdownDescription": "Allows for supplying additional system extension images to install on top of base Talos image.",
-          "x-intellij-html-description": "\u003cp\u003eAllows for supplying additional system extension images to install on top of base Talos image.\u003c/p\u003e\n"
         },
         "wipe": {
           "type": "boolean",
@@ -2241,7 +2717,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "InstallConfig represents the installation options for preparing a node."
     },
     "v1alpha1.InstallDiskSelector": {
       "properties": {
@@ -2315,20 +2792,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
-    },
-    "v1alpha1.InstallExtensionConfig": {
-      "properties": {
-        "image": {
-          "type": "string",
-          "title": "image",
-          "description": "System extension image.\n",
-          "markdownDescription": "System extension image.",
-          "x-intellij-html-description": "\u003cp\u003eSystem extension image.\u003c/p\u003e\n"
-        }
-      },
-      "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "InstallDiskSelector represents a disk query parameters for the install disk lookup."
     },
     "v1alpha1.KernelConfig": {
       "properties": {
@@ -2344,7 +2809,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "KernelConfig struct configures Talos Linux kernel."
     },
     "v1alpha1.KernelModuleConfig": {
       "properties": {
@@ -2367,7 +2833,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "KernelModuleConfig struct configures Linux kernel modules to load."
     },
     "v1alpha1.KubePrism": {
       "properties": {
@@ -2387,7 +2854,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "KubePrism describes the configuration for the KubePrism load balancer."
     },
     "v1alpha1.KubeSpanFilters": {
       "properties": {
@@ -2403,7 +2871,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "KubeSpanFilters struct describes KubeSpan advanced network addresses filtering."
     },
     "v1alpha1.KubeletConfig": {
       "properties": {
@@ -2497,7 +2966,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "KubeletConfig represents the kubelet config values."
     },
     "v1alpha1.KubeletNodeIPConfig": {
       "properties": {
@@ -2513,7 +2983,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "KubeletNodeIPConfig represents the kubelet node IP configuration."
     },
     "v1alpha1.KubernetesTalosAPIAccessConfig": {
       "properties": {
@@ -2546,7 +3017,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "KubernetesTalosAPIAccessConfig describes the configuration for the Talos API access from Kubernetes pods."
     },
     "v1alpha1.LinuxIDMapping": {
       "properties": {
@@ -2573,7 +3045,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "LinuxIDMapping represents the Linux ID mapping."
     },
     "v1alpha1.LoggingConfig": {
       "properties": {
@@ -2589,7 +3062,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "LoggingConfig struct configures Talos logging."
     },
     "v1alpha1.LoggingDestination": {
       "properties": {
@@ -2623,7 +3097,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "LoggingDestination struct configures Talos logging destination."
     },
     "v1alpha1.MachineConfig": {
       "properties": {
@@ -2713,16 +3188,6 @@
           "description": "Provides machine specific network configuration options.\n",
           "markdownDescription": "Provides machine specific network configuration options.",
           "x-intellij-html-description": "\u003cp\u003eProvides machine specific network configuration options.\u003c/p\u003e\n"
-        },
-        "disks": {
-          "items": {
-            "$ref": "#/$defs/v1alpha1.MachineDisk"
-          },
-          "type": "array",
-          "title": "disks",
-          "description": "Used to partition, format and mount additional disks.\nSince the rootfs is read only with the exception of /var, mounts are only valid if they are under /var.\nNote that the partitioning and formatting is done only once, if and only if no existing XFS partitions are found.\nIf size: is omitted, the partition is sized to occupy the full disk.\n",
-          "markdownDescription": "Used to partition, format and mount additional disks.\nSince the rootfs is read only with the exception of `/var`, mounts are only valid if they are under `/var`.\nNote that the partitioning and formatting is done only once, if and only if no existing XFS partitions are found.\nIf `size:` is omitted, the partition is sized to occupy the full disk.",
-          "x-intellij-html-description": "\u003cp\u003eUsed to partition, format and mount additional disks.\nSince the rootfs is read only with the exception of \u003ccode\u003e/var\u003c/code\u003e, mounts are only valid if they are under \u003ccode\u003e/var\u003c/code\u003e.\nNote that the partitioning and formatting is done only once, if and only if no existing XFS partitions are found.\nIf \u003ccode\u003esize:\u003c/code\u003e is omitted, the partition is sized to occupy the full disk.\u003c/p\u003e\n"
         },
         "install": {
           "$ref": "#/$defs/v1alpha1.InstallConfig",
@@ -2881,7 +3346,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "MachineConfig represents the machine-specific config values."
     },
     "v1alpha1.MachineControlPlaneConfig": {
       "properties": {
@@ -2901,7 +3367,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "MachineControlPlaneConfig machine specific configuration options."
     },
     "v1alpha1.MachineControllerManagerConfig": {
       "properties": {
@@ -2914,30 +3381,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
-    },
-    "v1alpha1.MachineDisk": {
-      "properties": {
-        "device": {
-          "type": "string",
-          "title": "device",
-          "description": "The name of the disk to use.\n",
-          "markdownDescription": "The name of the disk to use.",
-          "x-intellij-html-description": "\u003cp\u003eThe name of the disk to use.\u003c/p\u003e\n"
-        },
-        "partitions": {
-          "items": {
-            "$ref": "#/$defs/v1alpha1.DiskPartition"
-          },
-          "type": "array",
-          "title": "partitions",
-          "description": "A list of partitions to create on the disk.\n",
-          "markdownDescription": "A list of partitions to create on the disk.",
-          "x-intellij-html-description": "\u003cp\u003eA list of partitions to create on the disk.\u003c/p\u003e\n"
-        }
-      },
-      "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "MachineControllerManagerConfig represents the machine specific ControllerManager config values."
     },
     "v1alpha1.MachineFile": {
       "properties": {
@@ -2975,7 +3420,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "MachineFile represents a file to write to disk."
     },
     "v1alpha1.MachineSchedulerConfig": {
       "properties": {
@@ -2988,7 +3434,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "MachineSchedulerConfig represents the machine specific Scheduler config values."
     },
     "v1alpha1.MachineSeccompProfile": {
       "properties": {
@@ -3008,7 +3455,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "MachineSeccompProfile defines seccomp profiles for the machine."
     },
     "v1alpha1.NetworkConfig": {
       "properties": {
@@ -3075,7 +3523,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "NetworkConfig represents the machine's networking config values."
     },
     "v1alpha1.NetworkDeviceSelector": {
       "properties": {
@@ -3123,7 +3572,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "NetworkDeviceSelector struct describes network device selector."
     },
     "v1alpha1.NetworkKubeSpan": {
       "properties": {
@@ -3171,7 +3621,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "NetworkKubeSpan struct describes KubeSpan configuration."
     },
     "v1alpha1.ProxyConfig": {
       "properties": {
@@ -3210,7 +3661,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "ProxyConfig represents the kube proxy configuration options."
     },
     "v1alpha1.RegistriesConfig": {
       "properties": {
@@ -3240,7 +3692,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "RegistriesConfig represents the image pull options."
     },
     "v1alpha1.RegistryAuthConfig": {
       "properties": {
@@ -3274,7 +3727,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "RegistryAuthConfig specifies authentication configuration for a registry."
     },
     "v1alpha1.RegistryConfig": {
       "properties": {
@@ -3294,7 +3748,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "RegistryConfig specifies auth \u0026 TLS config per registry."
     },
     "v1alpha1.RegistryKubernetesConfig": {
       "properties": {
@@ -3307,7 +3762,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "RegistryKubernetesConfig struct configures Kubernetes discovery registry."
     },
     "v1alpha1.RegistryMirrorConfig": {
       "properties": {
@@ -3337,7 +3793,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "RegistryMirrorConfig represents mirror configuration for a registry."
     },
     "v1alpha1.RegistryServiceConfig": {
       "properties": {
@@ -3357,7 +3814,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "RegistryServiceConfig struct configures Kubernetes discovery registry."
     },
     "v1alpha1.RegistryTLSConfig": {
       "properties": {
@@ -3393,7 +3851,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "RegistryTLSConfig specifies TLS config for HTTPS registries."
     },
     "v1alpha1.ResourcesConfig": {
       "properties": {
@@ -3413,7 +3872,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "ResourcesConfig represents the pod resources."
     },
     "v1alpha1.Route": {
       "properties": {
@@ -3454,7 +3914,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "Route represents a network route."
     },
     "v1alpha1.STP": {
       "properties": {
@@ -3467,7 +3928,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "STP contains the various options for configuring the STP properties of a bridge interface."
     },
     "v1alpha1.SchedulerConfig": {
       "properties": {
@@ -3528,7 +3990,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "SchedulerConfig represents the kube scheduler configuration options."
     },
     "v1alpha1.SystemDiskEncryptionConfig": {
       "properties": {
@@ -3548,7 +4011,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "SystemDiskEncryptionConfig specifies system disk partitions encryption settings."
     },
     "v1alpha1.TimeConfig": {
       "properties": {
@@ -3579,7 +4043,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "TimeConfig represents the options for configuring time on a machine."
     },
     "v1alpha1.UdevConfig": {
       "properties": {
@@ -3595,7 +4060,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "UdevConfig describes how the udev system should be configured."
     },
     "v1alpha1.VIPEquinixMetalConfig": {
       "properties": {
@@ -3608,7 +4074,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "VIPEquinixMetalConfig contains settings for Equinix Metal VIP management."
     },
     "v1alpha1.VIPHCloudConfig": {
       "properties": {
@@ -3621,7 +4088,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "VIPHCloudConfig contains settings for Hetzner Cloud VIP management."
     },
     "v1alpha1.Vlan": {
       "properties": {
@@ -3682,7 +4150,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "Vlan represents vlan settings for a device."
     },
     "v1alpha1.VolumeMountConfig": {
       "properties": {
@@ -3709,10 +4178,14 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "VolumeMountConfig struct describes extra volume mount for the static pods."
     }
   },
   "oneOf": [
+    {
+      "$ref": "#/$defs/block.UserVolumeConfigV1Alpha1"
+    },
     {
       "$ref": "#/$defs/block.VolumeConfigV1Alpha1"
     },
@@ -3720,7 +4193,13 @@
       "$ref": "#/$defs/extensions.ServiceConfigV1Alpha1"
     },
     {
+      "$ref": "#/$defs/hardware.PCIDriverRebindConfigV1Alpha1"
+    },
+    {
       "$ref": "#/$defs/network.DefaultActionConfigV1Alpha1"
+    },
+    {
+      "$ref": "#/$defs/network.EthernetConfigV1Alpha1"
     },
     {
       "$ref": "#/$defs/network.KubespanEndpointsConfigV1Alpha1"
