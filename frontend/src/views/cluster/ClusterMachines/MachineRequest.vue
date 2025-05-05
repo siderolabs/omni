@@ -40,7 +40,9 @@ const stage = computed(() => {
 </script>
 
 <template>
-  <div class="col-span-full grid grid-cols-subgrid items-center p-2 pr-4 text-xs text-naturals-n14">
+  <div
+    class="col-span-full grid grid-cols-subgrid items-center py-3 pr-4 pl-2 text-xs text-naturals-n14"
+  >
     <div class="col-span-2 ml-6 flex items-center gap-2">
       <IconHeaderDropdownLoading
         v-if="stage !== TCommonStatuses.PROVISIONED"

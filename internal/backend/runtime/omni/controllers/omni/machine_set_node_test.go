@@ -24,6 +24,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -86,7 +87,7 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
 	defer cancel()
 
-	suite.Require().NoError(suite.runtime.RegisterController(&omnictrl.MachineSetNodeController{}))
+	suite.Require().NoError(suite.runtime.RegisterQController(&omnictrl.MachineSetNodeController{}))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewLabelsExtractorController[*omni.MachineStatus]()))
 
@@ -99,8 +100,8 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 			omni.MachineStatusLabelReportingEvents: "",
 		},
 		map[string]string{
-			omni.MachineStatusLabelAvailable:       "",
 			omni.MachineStatusLabelArch:            "amd64",
+			omni.MachineStatusLabelAvailable:       "",
 			omni.MachineStatusLabelConnected:       "",
 			omni.MachineStatusLabelReadyToUse:      "",
 			omni.MachineStatusLabelReportingEvents: "",
@@ -119,23 +120,23 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "auto")
 
 	assertMachineSetNode := func(machine *omni.MachineStatus) {
-		assertResource(
-			&suite.OmniSuite,
-			omni.NewMachineSetNode(
-				resources.DefaultNamespace,
+		rtestutils.AssertResources(
+			ctx,
+			suite.T(),
+			suite.state,
+			[]string{
 				machine.Metadata().ID(),
-				machineSet).Metadata(),
+			},
 			func(*omni.MachineSetNode, *assert.Assertions) {},
 		)
 	}
 
 	assertNoMachineSetNode := func(machine *omni.MachineStatus) {
-		assertNoResource(
-			&suite.OmniSuite,
-			omni.NewMachineSetNode(
-				resources.DefaultNamespace,
-				machine.Metadata().ID(),
-				machineSet),
+		rtestutils.AssertNoResource[*omni.MachineSetNode](
+			ctx,
+			suite.T(),
+			suite.state,
+			machine.Metadata().ID(),
 		)
 	}
 
@@ -175,6 +176,8 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 	suite.Require().NoError(err)
 
 	// no changes after updating machine set machine class
+	// even though the node no longer matches the selector.
+	// Omni should not automatically remove nodes.
 	assertNoMachineSetNode(machines[3])
 	assertMachineSetNode(machines[0])
 
@@ -230,10 +233,34 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 	assertMachineSetNode(machines[6])
 	assertNoMachineSetNode(machines[5])
 
+	// remove machine4 from Omni and see it being removed from the machine set
 	rtestutils.Destroy[*omni.MachineStatus](ctx, suite.T(), suite.state, []string{machines[4].Metadata().ID()})
 	rtestutils.Teardown[*omni.Machine](ctx, suite.T(), suite.state, []string{machines[4].Metadata().ID()})
 
 	assertNoMachineSetNode(machines[4])
+
+	// test machine request delete handling
+	machineRequest := infra.NewMachineRequest("machine-request-1")
+
+	suite.Require().NoError(suite.state.Create(ctx, machineRequest))
+
+	machine := omni.NewMachine(resources.DefaultNamespace, machines[3].Metadata().ID()).Metadata()
+
+	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, machine,
+		func(res *omni.Machine) error {
+			res.Metadata().Labels().Set(omni.LabelMachineRequest, machineRequest.Metadata().ID())
+
+			return nil
+		},
+	)
+
+	suite.Require().NoError(err)
+
+	rtestutils.Destroy[*infra.MachineRequest](ctx, suite.T(), suite.state, []string{machineRequest.Metadata().ID()})
+
+	assertNoMachineSetNode(machines[3])
+
+	rtestutils.Destroy[*omni.MachineSet](ctx, suite.T(), suite.state, []string{machineSet.Metadata().ID()})
 }
 
 func TestSortFunction(t *testing.T) {

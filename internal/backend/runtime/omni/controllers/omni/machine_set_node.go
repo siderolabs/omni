@@ -7,7 +7,6 @@ package omni
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math"
 	"slices"
@@ -15,9 +14,11 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/controller"
+	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/gen/optional"
 	"github.com/siderolabs/gen/xslices"
 	"go.uber.org/zap"
 
@@ -30,11 +31,29 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 )
 
-var errClusterLocked = errors.New("cluster is locked")
-
 type machineStatusLabels = system.ResourceLabels[*omni.MachineStatus]
 
 const labelEvicted = "evicted"
+
+const unlimitedNodeCount = math.MaxInt32
+
+// assignableMachineStatusLabelTerms are the terms that have to be met in order for a machine to be considered for a machineSet.
+var assignableMachineStatusLabelTerms = []resource.LabelTerm{
+	{
+		Key: omni.MachineStatusLabelAvailable,
+		Op:  resource.LabelOpExists,
+	}, {
+		Key: omni.MachineStatusLabelReadyToUse,
+		Op:  resource.LabelOpExists,
+	}, {
+		Key: omni.MachineStatusLabelReportingEvents,
+		Op:  resource.LabelOpExists,
+	}, {
+		Key:    labelEvicted,
+		Op:     resource.LabelOpExists,
+		Invert: true,
+	},
+}
 
 // MachineSetNodeControllerName is the name of the MachineSetNodeController.
 const MachineSetNodeControllerName = "MachineSetNodeController"
@@ -42,171 +61,317 @@ const MachineSetNodeControllerName = "MachineSetNodeController"
 // MachineSetNodeController manages MachineSetNode resource lifecycle.
 //
 // MachineSetNodeController creates and deletes cluster machines, handles rolling updates.
-type MachineSetNodeController struct{}
-
-// Name implements controller.Controller interface.
-func (ctrl *MachineSetNodeController) Name() string {
-	return MachineSetNodeControllerName
+type MachineSetNodeController struct {
+	generic.NamedController
 }
 
-// Inputs implements controller.Controller interface.
-func (ctrl *MachineSetNodeController) Inputs() []controller.Input {
-	return []controller.Input{
-		{
-			Namespace: resources.DefaultNamespace,
-			Type:      omni.MachineSetType,
-			Kind:      controller.InputWeak,
-		},
-		{
-			Namespace: resources.DefaultNamespace,
-			Type:      omni.ClusterType,
-			Kind:      controller.InputWeak,
-		},
-		{
-			Namespace: resources.DefaultNamespace,
-			Type:      omni.MachineType,
-			Kind:      controller.InputWeak,
-		},
-		{
-			Namespace: resources.DefaultNamespace,
-			Type:      system.ResourceLabelsType[*omni.MachineStatus](),
-			Kind:      controller.InputWeak,
-		},
-		{
-			Namespace: resources.DefaultNamespace,
-			Type:      omni.MachineClassType,
-			Kind:      controller.InputWeak,
-		},
-		{
-			Namespace: resources.DefaultNamespace,
-			Type:      omni.MachineSetNodeType,
-			Kind:      controller.InputDestroyReady,
-		},
-		{
-			Namespace: resources.InfraProviderNamespace,
-			Type:      infra.MachineRequestType,
-			Kind:      controller.InputStrong,
+// NewMachineSetNodeController creates a new MachineSetNodeController.
+func NewMachineSetNodeController() *MachineSetNodeController {
+	return &MachineSetNodeController{
+		NamedController: generic.NamedController{
+			ControllerName: MachineSetNodeControllerName,
 		},
 	}
 }
 
-// Outputs implements controller.Controller interface.
-func (ctrl *MachineSetNodeController) Outputs() []controller.Output {
-	return []controller.Output{
-		{
-			Type: omni.MachineSetNodeType,
-			Kind: controller.OutputShared,
+// Settings implements QController.
+func (ctrl *MachineSetNodeController) Settings() controller.QSettings {
+	return controller.QSettings{
+		Inputs: []controller.Input{
+			{
+				Namespace: resources.DefaultNamespace,
+				Type:      omni.MachineSetType,
+				Kind:      controller.InputQPrimary,
+			},
+			{
+				Namespace: resources.DefaultNamespace,
+				Type:      omni.ClusterType,
+				Kind:      controller.InputQMapped,
+			},
+			{
+				Namespace: resources.DefaultNamespace,
+				Type:      omni.MachineType,
+				Kind:      controller.InputQMapped,
+			},
+			{
+				Namespace: resources.DefaultNamespace,
+				Type:      system.ResourceLabelsType[*omni.MachineStatus](),
+				Kind:      controller.InputQMapped,
+			},
+			{
+				Namespace: resources.DefaultNamespace,
+				Type:      omni.MachineClassType,
+				Kind:      controller.InputQMapped,
+			},
+			{
+				Namespace: resources.DefaultNamespace,
+				Type:      omni.MachineSetNodeType,
+				Kind:      controller.InputQMappedDestroyReady,
+			},
+			{
+				Namespace: resources.InfraProviderNamespace,
+				Type:      infra.MachineRequestType,
+				Kind:      controller.InputQMapped,
+			},
 		},
+		Outputs: []controller.Output{
+			{
+				Type: omni.MachineSetNodeType,
+				Kind: controller.OutputShared,
+			},
+		},
+		Concurrency: optional.Some(uint(4)),
 	}
 }
 
-// Run implements controller.Controller interface.
-//
-//nolint:gocognit,gocyclo,cyclop
-func (ctrl *MachineSetNodeController) Run(ctx context.Context, r controller.Runtime, logger *zap.Logger) error {
-	for {
-		select {
-		case <-ctx.Done():
+// MapInput implements controller.QController interface.
+func (ctrl *MachineSetNodeController) MapInput(
+	ctx context.Context, _ *zap.Logger, r controller.QRuntime, ptr controller.ReducedResourceMetadata,
+) ([]resource.Pointer, error) {
+	switch ptr.Type() {
+	case omni.ClusterType:
+		machineSets, err := safe.ReaderListAll[*omni.MachineSet](ctx, r,
+			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, ptr.ID())),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		return slices.Collect(machineSets.Pointers()), nil
+	case system.ResourceLabelsType[*omni.MachineStatus]():
+		status, err := safe.ReaderGetByID[*machineStatusLabels](ctx, r, ptr.ID())
+		if err != nil {
+			return nil, err
+		}
+
+		selector := resource.LabelQuery{
+			Terms: assignableMachineStatusLabelTerms,
+		}
+
+		machineIsPossiblyAssignable := selector.Matches(*status.Metadata().Labels())
+
+		if machineIsPossiblyAssignable {
+			return ctrl.getUpscalableMachinesets(ctx, r)
+		}
+
+		return getMachineSets(ctx, r, ptr.ID())
+	case omni.MachineType:
+		return getMachineSets(ctx, r, ptr.ID())
+	case omni.MachineClassType:
+		allMachineSets, err := safe.ReaderListAll[*omni.MachineSet](ctx, r)
+		if err != nil {
+			return nil, err
+		}
+
+		var machineSetsWithClass []resource.Pointer
+
+		allMachineSets.ForEach(func(ms *omni.MachineSet) {
+			allocation := ms.TypedSpec().Value.MachineAllocation
+			if allocation != nil && allocation.Name == ptr.ID() {
+				machineSetsWithClass = append(machineSetsWithClass, ms.Metadata())
+			}
+		})
+
+		return machineSetsWithClass, nil
+	case omni.MachineSetNodeType:
+		machineSetNode, err := safe.ReaderGet[*omni.MachineSetNode](ctx, r, ptr)
+		if err != nil {
+			if state.IsNotFoundError(err) {
+				return nil, nil
+			}
+
+			return nil, err
+		}
+
+		machineSetID, ok := machineSetNode.Metadata().Labels().Get(omni.LabelMachineSet)
+		if !ok {
+			return nil, nil
+		}
+
+		return []resource.Pointer{omni.NewMachineSet(resources.DefaultNamespace, machineSetID).Metadata()}, nil
+	case infra.MachineRequestType:
+		machines, err := safe.ReaderListAll[*omni.Machine](ctx, r,
+			state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequest, ptr.ID())),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		var machineSets []resource.Pointer
+
+		for machine := range machines.All() {
+			ms, err := getMachineSets(ctx, r, machine.Metadata().ID())
+			if err != nil {
+				return nil, err
+			}
+
+			if ms != nil {
+				machineSets = append(machineSets, ms...)
+			}
+		}
+
+		return machineSets, nil
+	}
+
+	return nil, fmt.Errorf("unexpected resource type %q", ptr.Type())
+}
+
+func (ctrl *MachineSetNodeController) getAllMachineSetNodes(ctx context.Context, r controller.QRuntime, opts ...state.ListOption) (safe.List[*omni.MachineSetNode], error) {
+	items, err := r.ListUncached(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.MachineSetNodeType, "", resource.VersionUndefined),
+		opts...,
+	)
+	if err != nil {
+		return safe.List[*omni.MachineSetNode]{}, err
+	}
+
+	return safe.NewList[*omni.MachineSetNode](items), nil
+}
+
+// Reconcile implements QController.
+func (ctrl *MachineSetNodeController) Reconcile(ctx context.Context, logger *zap.Logger, r controller.QRuntime, ptr resource.Pointer) error {
+	machineSet, err := safe.ReaderGet[*omni.MachineSet](ctx, r, ptr)
+	if err != nil {
+		if state.IsNotFoundError(err) {
 			return nil
-		case <-r.EventCh():
 		}
 
-		list, err := safe.ReaderListAll[*omni.MachineSet](ctx, r)
-		if err != nil {
-			return fmt.Errorf("error listing machine sets: %w", err)
+		return err
+	}
+
+	allocation := omni.GetMachineAllocation(machineSet)
+	if allocation == nil {
+		return nil
+	}
+
+	if machineSet.Metadata().Phase() == resource.PhaseRunning {
+		return ctrl.reconcileRunning(ctx, logger, r, machineSet)
+	}
+
+	return ctrl.reconcileTearingDown(ctx, r, machineSet)
+}
+
+func (ctrl *MachineSetNodeController) reconcileRunning(ctx context.Context, logger *zap.Logger, r controller.QRuntime, machineSet *omni.MachineSet) error {
+	if !machineSet.Metadata().Finalizers().Has(ctrl.Name()) {
+		if err := r.AddFinalizer(ctx, machineSet.Metadata(), ctrl.Name()); err != nil {
+			return err
+		}
+	}
+
+	clusterName, ok := machineSet.Metadata().Labels().Get(omni.LabelCluster)
+	if !ok {
+		return nil
+	}
+
+	cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, r, clusterName)
+	if err != nil {
+		return err
+	}
+
+	if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked {
+		logger.Warn("cluster is locked, skip reconcile", zap.String("cluster", cluster.Metadata().ID()))
+
+		return nil
+	}
+
+	machineSetNodes, err := ctrl.getAllMachineSetNodes(ctx, r,
+		state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID())),
+	)
+	if err != nil {
+		return err
+	}
+
+	nodeDiff, allocation, err := ctrl.shouldScale(ctx, r, machineSet, machineSetNodes)
+	if err != nil {
+		return err
+	}
+
+	allMachineStatuses, err := safe.ReaderListAll[*machineStatusLabels](ctx, r)
+	if err != nil {
+		return err
+	}
+
+	machineSetMachineStatusMap := map[resource.ID]*machineStatusLabels{}
+
+	machineSetNodes.ForEach(func(msn *omni.MachineSetNode) {
+		machineStatus, ok := allMachineStatuses.Find(func(msl *machineStatusLabels) bool { return msl.Metadata().ID() == msn.Metadata().ID() })
+		if !ok || machineStatus.Metadata().Phase() == resource.PhaseTearingDown {
+			return
 		}
 
-		machineSetNodes, err := r.ListUncached(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.MachineSetNodeType, "", resource.VersionUndefined))
-		if err != nil {
+		machineSetMachineStatusMap[msn.Metadata().ID()] = machineStatus
+	})
+
+	err = ctrl.scaleMachineSet(ctx, r, machineSet, cluster, allocation, allMachineStatuses, logger, machineSetNodes, machineSetMachineStatusMap, nodeDiff)
+	if err != nil {
+		return err
+	}
+
+	return ctrl.destroyOrphaned(ctx, r, machineSetNodes)
+}
+
+func (ctrl *MachineSetNodeController) reconcileTearingDown(ctx context.Context, r controller.QRuntime, machineSet *omni.MachineSet) error {
+	machineSetNodes, err := safe.ReaderListAll[*omni.MachineSetNode](ctx, r,
+		state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID())),
+	)
+	if err != nil {
+		return err
+	}
+
+	ready, err := helpers.TeardownAndDestroyAll(ctx, r, machineSetNodes.Pointers())
+	if err != nil {
+		return err
+	}
+
+	if !ready {
+		return nil
+	}
+
+	if machineSet.Metadata().Finalizers().Has(ctrl.Name()) {
+		if err := r.RemoveFinalizer(ctx, machineSet.Metadata(), ctrl.Name()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (ctrl *MachineSetNodeController) destroyOrphaned(
+	ctx context.Context,
+	r controller.QRuntime,
+	machineSetNodes safe.List[*omni.MachineSetNode],
+) error {
+	var toDestroy []resource.Pointer
+
+	for machineSetNode := range machineSetNodes.All() {
+		machine, err := safe.ReaderGetByID[*omni.Machine](ctx, r, machineSetNode.Metadata().ID())
+		if err != nil && !state.IsNotFoundError(err) {
 			return err
 		}
 
-		allMachineSetNodes := safe.NewList[*omni.MachineSetNode](machineSetNodes)
+		shouldDestroy := machine == nil || machine.Metadata().Phase() == resource.PhaseTearingDown
 
-		allMachines, err := safe.ReaderListAll[*omni.Machine](ctx, r)
-		if err != nil {
-			return err
-		}
-
-		machineMap := make(map[resource.ID]*omni.Machine, allMachines.Len())
-
-		err = allMachines.ForEachErr(func(machine *omni.Machine) error {
-			requestName, ok := machine.Metadata().Labels().Get(omni.LabelMachineRequest)
+		if machine != nil {
+			machineRequestID, ok := machine.Metadata().Labels().Get(omni.LabelMachineRequest)
 			if ok {
-				request, e := safe.ReaderGetByID[*infra.MachineRequest](ctx, r, requestName)
-				if e != nil && !state.IsNotFoundError(e) {
-					return e
+				var machineRequest *infra.MachineRequest
+
+				machineRequest, err = safe.ReaderGetByID[*infra.MachineRequest](ctx, r, machineRequestID)
+				if err != nil && !state.IsNotFoundError(err) {
+					return err
 				}
 
-				if request == nil || request.Metadata().Phase() == resource.PhaseTearingDown {
-					return nil
-				}
+				shouldDestroy = machineRequest == nil || machineRequest.Metadata().Phase() == resource.PhaseTearingDown
 			}
-
-			machineMap[machine.Metadata().ID()] = machine
-
-			return nil
-		})
-		if err != nil {
-			return err
 		}
 
-		allMachineStatuses, err := safe.ReaderListAll[*machineStatusLabels](ctx, r)
-		if err != nil {
-			return err
+		if shouldDestroy {
+			toDestroy = append(toDestroy, machineSetNode.Metadata())
 		}
-
-		machineStatusMap := map[resource.ID]*machineStatusLabels{}
-
-		allMachineStatuses.ForEach(func(ms *machineStatusLabels) {
-			if m, ok := machineMap[ms.Metadata().ID()]; !ok || m.Metadata().Phase() == resource.PhaseTearingDown {
-				ms.Metadata().Labels().Set(labelEvicted, "")
-
-				return
-			}
-
-			machineStatusMap[ms.Metadata().ID()] = ms
-		})
-
-		visited := map[resource.ID]struct{}{}
-
-		err = list.ForEachErr(func(machineSet *omni.MachineSet) error {
-			return ctrl.reconcileMachineSet(ctx, r, machineSet, allMachineStatuses, allMachineSetNodes, machineStatusMap, visited, logger)
-		})
-		if err != nil {
-			if errors.Is(err, errClusterLocked) {
-				continue
-			}
-
-			return err
-		}
-
-		err = allMachineSetNodes.ForEachErr(func(machineSetNode *omni.MachineSetNode) error {
-			if machineSetNode.Metadata().Owner() != ctrl.Name() {
-				return nil
-			}
-
-			machineSet, ok := machineSetNode.Metadata().Labels().Get(omni.LabelMachineSet)
-			if !ok {
-				return nil
-			}
-
-			machine, machineExists := machineMap[machineSetNode.Metadata().ID()]
-
-			if _, ok = visited[machineSet]; ok && machineExists && machine.Metadata().Phase() != resource.PhaseTearingDown {
-				return nil
-			}
-
-			_, err = helpers.TeardownAndDestroy(ctx, r, machineSetNode.Metadata())
-
-			return err
-		})
-		if err != nil {
-			return err
-		}
-
-		r.ResetRestartBackoff()
 	}
+
+	_, err := helpers.TeardownAndDestroyAll(ctx, r, slices.Values(toDestroy))
+
+	return err
 }
 
 type allocationConfig struct {
@@ -262,85 +427,79 @@ func (ctrl *MachineSetNodeController) getMachineAllocation(ctx context.Context, 
 	}, nil
 }
 
-func (ctrl *MachineSetNodeController) reconcileMachineSet(
+func (ctrl *MachineSetNodeController) scaleMachineSet(
 	ctx context.Context,
-	r controller.Runtime,
+	r controller.QRuntime,
 	machineSet *omni.MachineSet,
+	cluster *omni.Cluster,
+	allocation *allocationConfig,
 	allMachineStatuses safe.List[*machineStatusLabels],
-	allMachineSetNodes safe.List[*omni.MachineSetNode],
-	machineStatusMap map[resource.ID]*machineStatusLabels,
-	visited map[resource.ID]struct{},
 	logger *zap.Logger,
-) (err error) {
-	if machineSet.Metadata().Phase() == resource.PhaseTearingDown {
+	existingMachineSetNodes safe.List[*omni.MachineSetNode],
+	machineSetMachineStatusMap map[resource.ID]*machineStatusLabels,
+	diff int,
+) error {
+	if diff == 0 {
 		return nil
 	}
 
-	allocation, err := ctrl.getMachineAllocation(ctx, r, machineSet)
+	logFields := []zap.Field{zap.String("machine_set", machineSet.Metadata().ID())}
+
+	if diff < 0 {
+		logFields = append(logFields, zap.Int("pending", -diff))
+
+		logger.Info("scaling machine set down", logFields...)
+
+		return ctrl.deleteNodes(ctx, r, existingMachineSetNodes, machineSetMachineStatusMap, -diff, logger)
+	}
+
+	// don't scare users with big number
+	if diff != unlimitedNodeCount {
+		logFields = append(logFields, zap.Int("pending", diff))
+	}
+
+	logger.Info("scaling machine set up", logFields...)
+
+	return ctrl.createNodes(ctx, r, machineSet, cluster, allocation, allMachineStatuses, diff, logger)
+}
+
+func (ctrl *MachineSetNodeController) shouldScale(
+	ctx context.Context,
+	r controller.QRuntime,
+	machineSet *omni.MachineSet,
+	machineSetNodes safe.List[*omni.MachineSetNode],
+) (
+	nodeDiff int, allocation *allocationConfig, err error,
+) {
+	if machineSet.Metadata().Phase() == resource.PhaseTearingDown {
+		return 0, allocation, nil
+	}
+
+	allocation, err = ctrl.getMachineAllocation(ctx, r, machineSet)
 	if err != nil {
-		return err
+		return 0, allocation, err
 	}
 
 	if allocation == nil {
-		return nil
+		return 0, allocation, nil
 	}
-
-	clusterName, ok := machineSet.Metadata().Labels().Get(omni.LabelCluster)
-	if !ok {
-		return fmt.Errorf("failed to get cluster name of the machine set %q", machineSet.Metadata().ID())
-	}
-
-	cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, r, clusterName)
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return nil
-		}
-
-		return err
-	}
-
-	if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked {
-		logger.Warn("cluster is locked, skip reconcile", zap.String("cluster", cluster.Metadata().ID()))
-
-		return errClusterLocked
-	}
-
-	visited[machineSet.Metadata().ID()] = struct{}{}
-
-	existingMachineSetNodes := allMachineSetNodes.FilterLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID()))
 
 	switch allocation.allocationType {
 	case specs.MachineSetSpec_MachineAllocation_Unlimited:
-		err = ctrl.createNodes(ctx, r, cluster, machineSet, allocation, allMachineStatuses, math.MaxInt32, logger)
-
-		return err // unlimited allocation mode does not cause any machine pressure
+		nodeDiff = unlimitedNodeCount
 	case specs.MachineSetSpec_MachineAllocation_Static:
-		diff := int(allocation.machineCount) - existingMachineSetNodes.Len()
-
-		if diff == 0 {
-			return nil
-		}
-
-		if diff < 0 {
-			logger.Info("scaling machine set down", zap.Int("pending", -diff), zap.String("machine_set", machineSet.Metadata().ID()))
-
-			return ctrl.deleteNodes(ctx, r, existingMachineSetNodes, machineStatusMap, -diff, logger)
-		}
-
-		logger.Info("scaling machine set up", zap.Int("pending", diff), zap.String("machine_set", machineSet.Metadata().ID()))
-
-		return ctrl.createNodes(ctx, r, cluster, machineSet, allocation, allMachineStatuses, diff, logger)
+		nodeDiff = int(allocation.machineCount) - machineSetNodes.Len()
 	}
 
-	return nil
+	return nodeDiff, allocation, nil
 }
 
 //nolint:gocognit
 func (ctrl *MachineSetNodeController) createNodes(
 	ctx context.Context,
-	r controller.Runtime,
-	cluster *omni.Cluster,
+	r controller.QRuntime,
 	machineSet *omni.MachineSet,
+	cluster *omni.Cluster,
 	allocation *allocationConfig,
 	allMachineStatuses safe.List[*machineStatusLabels],
 	count int,
@@ -354,20 +513,7 @@ func (ctrl *MachineSetNodeController) createNodes(
 	}
 
 	for _, selector := range allocation.selectors {
-		selector.Terms = append(selector.Terms, resource.LabelTerm{
-			Key: omni.MachineStatusLabelAvailable,
-			Op:  resource.LabelOpExists,
-		}, resource.LabelTerm{
-			Key: omni.MachineStatusLabelReadyToUse,
-			Op:  resource.LabelOpExists,
-		}, resource.LabelTerm{
-			Key: omni.MachineStatusLabelReportingEvents,
-			Op:  resource.LabelOpExists,
-		}, resource.LabelTerm{
-			Key:    labelEvicted,
-			Op:     resource.LabelOpExists,
-			Invert: true,
-		})
+		selector.Terms = append(selector.Terms, assignableMachineStatusLabelTerms...)
 
 		if allocation.manual {
 			selector.Terms = append(selector.Terms, resource.LabelTerm{
@@ -431,7 +577,7 @@ func (ctrl *MachineSetNodeController) createNodes(
 
 func (ctrl *MachineSetNodeController) deleteNodes(
 	ctx context.Context,
-	r controller.Runtime,
+	r controller.QRuntime,
 	machineSetNodes safe.List[*omni.MachineSetNode],
 	machineStatuses map[string]*machineStatusLabels,
 	machinesToDestroyCount int,
@@ -522,4 +668,56 @@ func getSortFunction(machineStatuses map[resource.ID]*machineStatusLabels) func(
 
 		return a.Metadata().Created().Compare(b.Metadata().Created())
 	}
+}
+
+func getMachineSets(ctx context.Context, r controller.QRuntime, machineID resource.ID) ([]resource.Pointer, error) {
+	machineSetNode, err := safe.ReaderGetByID[*omni.MachineSetNode](ctx, r, machineID)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	machineSetID, ok := machineSetNode.Metadata().Labels().Get(omni.LabelMachineSet)
+	if !ok {
+		return nil, nil
+	}
+
+	return []resource.Pointer{omni.NewMachineSet(resources.DefaultNamespace, machineSetID).Metadata()}, nil
+}
+
+// getUpscalableMachinesets returns machine sets that have room to grow.
+func (ctrl *MachineSetNodeController) getUpscalableMachinesets(ctx context.Context, r controller.QRuntime) ([]resource.Pointer, error) {
+	allMachineSets, err := safe.ReaderListAll[*omni.MachineSet](ctx, r)
+	if err != nil {
+		return nil, err
+	}
+
+	upscalableMachineSets := []resource.Pointer{}
+
+	machineSetNodes, err := ctrl.getAllMachineSetNodes(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := allMachineSets.ForEachErr(func(ms *omni.MachineSet) error {
+		nodeDiff, _, err := ctrl.shouldScale(ctx, r, ms, machineSetNodes.FilterLabelQuery(
+			resource.LabelEqual(omni.LabelMachineSet, ms.Metadata().ID()),
+		))
+		if err != nil {
+			return err
+		}
+		// machineSet has room to grow and could potentially use more machines
+		if nodeDiff > 0 {
+			upscalableMachineSets = append(upscalableMachineSets, ms.Metadata())
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return upscalableMachineSets, nil
 }
