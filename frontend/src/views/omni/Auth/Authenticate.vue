@@ -200,7 +200,7 @@ const generatePublicKey = async () => {
   }
 
   if (redirect.indexOf(SignedRedirect) === 0) {
-    redirectToURL(`/exposed/service?${RedirectQueryParam}=${redirect}`);
+    redirectToURL(`/exposed/service?${RedirectQueryParam}=${encodeURIComponent(redirect)}`);
 
     return;
   }

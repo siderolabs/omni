@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-04-22T09:44:01Z by kres fd5cab0.
+# Generated on 2025-05-05T10:42:38Z by kres 1a0156b.
 
 version: "2"
 
@@ -48,6 +48,7 @@ linters:
     - protogetter # complains about us using Value field on typed spec, instead of GetValue which has a different signature
     - perfsprint # complains about us using fmt.Sprintf in non-performance critical code, updating just kres took too long
     - musttag # seems to be broken - goes into imported libraries and reports issues there
+    - nolintlint # gives false positives - disable until https://github.com/golangci/golangci-lint/issues/3228 is resolved
   # all available settings of specific linters
   settings:
     cyclop:
@@ -89,11 +90,6 @@ linters:
       simple: true
       range-loops: true # Report preallocation suggestions on range loops, true by default
       for-loops: false # Report preallocation suggestions on for loops, false by default
-    nolintlint:
-      allow-unused: false
-      allow-no-explanation: [ ]
-      require-explanation: false
-      require-specific: true
     rowserrcheck: { }
     testpackage: { }
     unparam:
