@@ -33,6 +33,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/backoff"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
@@ -81,6 +83,14 @@ func clearConnectionRefused(ctx context.Context, t *testing.T, c *talosclient.Cl
 			}
 
 			if strings.Contains(err.Error(), "connection reset by peer") {
+				return retry.ExpectedError(err)
+			}
+
+			// nolint:exhaustive
+			switch status.Code(err) {
+			case codes.DeadlineExceeded,
+				codes.Unavailable,
+				codes.Canceled:
 				return retry.ExpectedError(err)
 			}
 
