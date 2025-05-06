@@ -45,6 +45,13 @@ import yaml from "js-yaml";
 import { withRuntime, withSelectors } from "@/api/options";
 import { Runtime } from "@/api/common/omni.pb";
 
+export const typesOrder = {
+  [ClusterType]: 4,
+  [ConfigPatchType]: 3,
+  [MachineSetType]: 2,
+  [MachineSetNodeType]: 1
+};
+
 const dec2hex = (dec: number) => {
   return dec.toString(16).padStart(2, "0");
 }
@@ -333,7 +340,7 @@ export class State {
       cluster.spec.backup_configuration = undefined;
     }
 
-    const resources: Resource[] = [
+    let resources: Resource[] = [
       cluster,
     ];
 
@@ -460,6 +467,16 @@ export class State {
         [LabelMachineSet]: ms.metadata.id!,
       }, ms.metadata.id));
     }
+
+    resources = resources.sort((a: Resource, b: Resource) => {
+      if (typesOrder[a.metadata.type!] > typesOrder[b.metadata.type!]) {
+        return -1;
+      } else if (typesOrder[a.metadata.type!] < typesOrder[b.metadata.type!]) {
+        return 1;
+      }
+
+      return 0;
+    });
 
     if (!this.baseResources) {
       return resources;

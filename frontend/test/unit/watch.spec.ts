@@ -20,8 +20,6 @@ class fakeStream extends EventTarget {
   private reject?: (value: Error | PromiseLike<void>) => void;
 
   public run(...args: any[]): Promise<void> {
-    console.log("starting fake stream", ...args);
-
     this.dispatchEvent(new Event("run"));
 
     return new Promise<void>(

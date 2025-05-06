@@ -165,7 +165,6 @@ watch(jsonSchema, renderSchema);
 
 renderSchema();
 
-console.log(modelValue.value)
 updateErrors(modelValue.value);
 
 const uiSchema = computed(() => {

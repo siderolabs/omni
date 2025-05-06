@@ -6,7 +6,7 @@
 import { Resource } from "../../src/api/grpc";
 import { ClusterSpec, ConfigPatchSpec, MachineSetNodeSpec, MachineSetSpec, MachineSetSpecMachineAllocationType, MachineSetSpecUpdateStrategy } from "../../src/api/omni/specs/omni.pb";
 import { ClusterType, ConfigPatchType, DefaultNamespace, LabelCluster, LabelClusterMachine, LabelControlPlaneRole, LabelMachineSet, LabelWorkerRole, MachineSetNodeType, MachineSetType } from "../../src/api/resources";
-import { Cluster, initState, MachineSet, PatchID, state } from "../../src/states/cluster-management";
+import { Cluster, initState, MachineSet, PatchID, state, typesOrder } from "../../src/states/cluster-management";
 
 import { describe, expect, test } from "bun:test";
 
@@ -358,7 +358,7 @@ describe("cluster-management-state", () => {
         state.value.cluster = tt.cluster;
 
         if (tt.machineSets) {
-          for (let i = 0; i < tt.machineSets.length ?? 0; i++) {
+          for (let i = 0; i < tt.machineSets.length; i++) {
             const machineSet = tt.machineSets[i];
 
             if (state.value.machineSets.length <= i) {
@@ -386,12 +386,16 @@ describe("cluster-management-state", () => {
           empty[key] = {};
         }
 
+        for (let i = 1; i < resources.length; i++) {
+          expect(typesOrder[resources[i-1].metadata.type],
+            `${resources[i].metadata.type} is not expected after ${resources[i-1].metadata.type}`,
+          ).toBeGreaterThanOrEqual(typesOrder[resources[i].metadata.type]);
+        }
+
         for (const res of resources) {
           const expected = tt.expectedResources?.[res.metadata.type!]?.[res.metadata.id!];
 
-          console.log(`should have resource ${res.metadata.type}/${res.metadata.id}`);
-
-          expect(expected).toBeDefined();
+          expect(expected, `should have resource ${res.metadata.type}/${res.metadata.id}`).toBeDefined();
 
           delete tt.expectedResources?.[res.metadata.type!]?.[res.metadata.id!];
 
