@@ -13,6 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/exposedservice"
 )
 
@@ -42,8 +43,8 @@ func TestIsExposedServiceEvent(t *testing.T) {
 			obj: &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						exposedservice.ServiceLabelAnnotationKey: "foo",
-						exposedservice.ServiceIconAnnotationKey:  "bar",
+						constants.ExposedServiceLabelAnnotationKey: "foo",
+						constants.ExposedServiceIconAnnotationKey:  "bar",
 					},
 				},
 			},
@@ -54,7 +55,7 @@ func TestIsExposedServiceEvent(t *testing.T) {
 			obj: &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						exposedservice.ServicePortAnnotationKey: "8080",
+						constants.ExposedServicePortAnnotationKey: "8080",
 					},
 				},
 			},
@@ -65,8 +66,8 @@ func TestIsExposedServiceEvent(t *testing.T) {
 			obj: &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						exposedservice.ServicePortAnnotationKey:  "8080",
-						exposedservice.ServiceLabelAnnotationKey: "foo",
+						constants.ExposedServicePortAnnotationKey:  "8080",
+						constants.ExposedServiceLabelAnnotationKey: "foo",
 					},
 				},
 				Spec: corev1.ServiceSpec{ClusterIP: "10.0.0.1"},
@@ -74,8 +75,8 @@ func TestIsExposedServiceEvent(t *testing.T) {
 			oldObj: &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						exposedservice.ServicePortAnnotationKey:  "8080",
-						exposedservice.ServiceLabelAnnotationKey: "foo",
+						constants.ExposedServicePortAnnotationKey:  "8080",
+						constants.ExposedServiceLabelAnnotationKey: "foo",
 					},
 				},
 				Spec: corev1.ServiceSpec{ClusterIP: "10.0.0.2"},
@@ -87,16 +88,16 @@ func TestIsExposedServiceEvent(t *testing.T) {
 			obj: &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						exposedservice.ServicePortAnnotationKey:  "8080",
-						exposedservice.ServiceLabelAnnotationKey: "foo",
+						constants.ExposedServicePortAnnotationKey:  "8080",
+						constants.ExposedServiceLabelAnnotationKey: "foo",
 					},
 				},
 			},
 			oldObj: &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						exposedservice.ServicePortAnnotationKey:  "8080",
-						exposedservice.ServiceLabelAnnotationKey: "bar", // different label
+						constants.ExposedServicePortAnnotationKey:  "8080",
+						constants.ExposedServiceLabelAnnotationKey: "bar", // different label
 					},
 				},
 			},

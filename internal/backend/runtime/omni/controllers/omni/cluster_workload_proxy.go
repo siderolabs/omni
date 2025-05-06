@@ -18,9 +18,9 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/exposedservice"
 )
 
 //go:embed data/kube-service-exposer-config-patch.tmpl.yaml
@@ -134,7 +134,7 @@ func (ctrl *ClusterWorkloadProxyController) getConfigPatchData() ([]byte, error)
 	}
 
 	opts := tmplOptions{
-		AnnotationKey: exposedservice.ServicePortAnnotationKey,
+		AnnotationKey: constants.ExposedServicePortAnnotationKey,
 	}
 
 	var buf bytes.Buffer

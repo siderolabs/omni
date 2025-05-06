@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 
+	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
@@ -113,25 +114,25 @@ func (reconciler *Reconciler) reconcileService(ctx context.Context, exposedServi
 		version = existingExposedService.Metadata().Version()
 	}
 
-	port, err := strconv.Atoi(service.Annotations[ServicePortAnnotationKey])
+	port, err := strconv.Atoi(service.Annotations[constants.ExposedServicePortAnnotationKey])
 	if err != nil || port < 1 || port > 65535 {
-		logger.Warn("invalid port on Service", zap.String("port", service.Annotations[ServicePortAnnotationKey]))
+		logger.Warn("invalid port on Service", zap.String("port", service.Annotations[constants.ExposedServicePortAnnotationKey]))
 
 		return true, nil //nolint:nilerr
 	}
 
-	label, labelOk := service.Annotations[ServiceLabelAnnotationKey]
+	label, labelOk := service.Annotations[constants.ExposedServiceLabelAnnotationKey]
 	if !labelOk {
 		label = service.Name + "." + service.Namespace
 	}
 
-	icon, err := reconciler.parseIcon(service.Annotations[ServiceIconAnnotationKey])
+	icon, err := reconciler.parseIcon(service.Annotations[constants.ExposedServiceIconAnnotationKey])
 	if err != nil {
 		logger.Debug("invalid icon on Service", zap.Error(err))
 	}
 
 	explicitAliasOpt := optional.None[string]()
-	if explicitAlias, ok := service.Annotations[ServicePrefixAnnotationKey]; ok {
+	if explicitAlias, ok := service.Annotations[constants.ExposedServicePrefixAnnotationKey]; ok {
 		explicitAliasOpt = optional.Some(explicitAlias)
 	}
 

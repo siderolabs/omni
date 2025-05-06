@@ -27,9 +27,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	managementpb "github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -38,6 +35,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/integration/kubernetes"
 )
 
 // AssertKubernetesAPIAccessViaOmni verifies that cluster kubeconfig works.
@@ -48,10 +46,12 @@ func AssertKubernetesAPIAccessViaOmni(testCtx context.Context, rootClient *clien
 		ctx, cancel := context.WithTimeout(testCtx, timeout)
 		defer cancel()
 
+		ctx = kubernetes.WrapContext(ctx, t)
+		k8sClient := kubernetes.GetClient(ctx, t, rootClient.Management(), clusterName)
+
 		var (
-			k8sClient = getKubernetesClient(ctx, t, rootClient.Management(), clusterName)
-			k8sNodes  *corev1.NodeList
-			err       error
+			k8sNodes *corev1.NodeList
+			err      error
 		)
 
 		require.EventuallyWithT(t, func(collect *assert.CollectT) {
@@ -321,7 +321,8 @@ func AssertKubernetesDeploymentIsCreated(testCtx context.Context, managementClie
 		ctx, cancel := context.WithTimeout(testCtx, 120*time.Second)
 		defer cancel()
 
-		kubeClient := getKubernetesClient(ctx, t, managementClient, clusterName)
+		ctx = kubernetes.WrapContext(ctx, t)
+		kubeClient := kubernetes.GetClient(ctx, t, managementClient, clusterName)
 
 		deployment := appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
@@ -370,7 +371,8 @@ func AssertKubernetesSecretIsCreated(testCtx context.Context, managementClient *
 		ctx, cancel := context.WithTimeout(testCtx, 120*time.Second)
 		defer cancel()
 
-		kubeClient := getKubernetesClient(ctx, t, managementClient, clusterName)
+		ctx = kubernetes.WrapContext(ctx, t)
+		kubeClient := kubernetes.GetClient(ctx, t, managementClient, clusterName)
 
 		valBase64 := base64.StdEncoding.EncodeToString([]byte(testValue))
 
@@ -394,7 +396,8 @@ func AssertKubernetesSecretHasValue(testCtx context.Context, managementClient *m
 		ctx, cancel := context.WithTimeout(testCtx, 120*time.Second)
 		defer cancel()
 
-		kubeClient := getKubernetesClient(ctx, t, managementClient, clusterName)
+		ctx = kubernetes.WrapContext(ctx, t)
+		kubeClient := kubernetes.GetClient(ctx, t, managementClient, clusterName)
 
 		secret, err := kubeClient.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
 		require.NoError(t, err, "failed to get secret")
@@ -413,8 +416,10 @@ func AssertKubernetesSecretHasValue(testCtx context.Context, managementClient *m
 // 2. All the extra (stale) Kubernetes nodes are in NotReady state
 //
 // This assertion is useful to assert the expected nodes state when a cluster is created from an etcd backup.
-func AssertKubernetesNodesState(ctx context.Context, rootClient *client.Client, newClusterName string) func(t *testing.T) {
+func AssertKubernetesNodesState(testCtx context.Context, rootClient *client.Client, newClusterName string) func(t *testing.T) {
 	return func(t *testing.T) {
+		ctx := kubernetes.WrapContext(testCtx, t)
+
 		identityList, err := safe.StateListAll[*omni.ClusterMachineIdentity](ctx, rootClient.Omni().State(), state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, newClusterName)))
 		require.NoError(t, err)
 
@@ -435,7 +440,7 @@ func AssertKubernetesNodesState(ctx context.Context, rootClient *client.Client, 
 			return false
 		}
 
-		kubeClient := getKubernetesClient(ctx, t, rootClient.Management(), newClusterName)
+		kubeClient := kubernetes.GetClient(ctx, t, rootClient.Management(), newClusterName)
 
 		require.EventuallyWithT(t, func(collect *assert.CollectT) {
 			kubernetesNodes, listErr := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
@@ -467,9 +472,11 @@ func AssertKubernetesNodesState(ctx context.Context, rootClient *client.Client, 
 }
 
 // AssertKubernetesDeploymentHasRunningPods verifies that a deployment has running pods.
-func AssertKubernetesDeploymentHasRunningPods(ctx context.Context, managementClient *management.Client, clusterName, ns, name string) TestFunc {
+func AssertKubernetesDeploymentHasRunningPods(testCtx context.Context, managementClient *management.Client, clusterName, ns, name string) TestFunc {
 	return func(t *testing.T) {
-		deps := getKubernetesClient(ctx, t, managementClient, clusterName).AppsV1().Deployments(ns)
+		ctx := kubernetes.WrapContext(testCtx, t)
+		kubeClient := kubernetes.GetClient(ctx, t, managementClient, clusterName)
+		deps := kubeClient.AppsV1().Deployments(ns)
 
 		// restart the deployment, in case the pod is scheduled on a NotReady node (a node that is no longer valid, which was restored from an etcd backup)
 		require.EventuallyWithT(t, func(collect *assert.CollectT) {
@@ -513,22 +520,4 @@ func AssertKubernetesDeploymentHasRunningPods(ctx context.Context, managementCli
 			}
 		}, 2*time.Minute, 1*time.Second)
 	}
-}
-
-func getKubernetesClient(ctx context.Context, t *testing.T, managementClient *management.Client, clusterName string) *kubernetes.Clientset {
-	// use service account kubeconfig to bypass oidc flow
-	kubeconfigBytes, err := managementClient.WithCluster(clusterName).Kubeconfig(ctx,
-		management.WithServiceAccount(24*time.Hour, "integration-test", constants.DefaultAccessGroup),
-	)
-	require.NoError(t, err)
-
-	kubeconfig, err := clientcmd.BuildConfigFromKubeconfigGetter("", func() (*clientcmdapi.Config, error) {
-		return clientcmd.Load(kubeconfigBytes)
-	})
-	require.NoError(t, err)
-
-	cli, err := kubernetes.NewForConfig(kubeconfig)
-	require.NoError(t, err)
-
-	return cli
 }

@@ -110,6 +110,10 @@ func (h *HTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 		return
 	}
 
+	if !h.checkCookies(writer, request, clusterID) {
+		return
+	}
+
 	if proxy == nil {
 		h.logger.Debug("proxy is nil", zap.String("alias", alias))
 
@@ -118,7 +122,7 @@ func (h *HTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 		return
 	}
 
-	h.checkCookies(writer, request, proxy, clusterID)
+	proxy.ServeHTTP(writer, request)
 }
 
 // isWorkloadProxyRequest checks if the request is for the workload proxy.
@@ -145,12 +149,12 @@ func (h *HTTPHandler) isWorkloadProxyRequest(request *http.Request) bool {
 	return false
 }
 
-func (h *HTTPHandler) checkCookies(writer http.ResponseWriter, request *http.Request, proxy http.Handler, clusterID resource.ID) {
+func (h *HTTPHandler) checkCookies(writer http.ResponseWriter, request *http.Request, clusterID resource.ID) (valid bool) {
 	publicKeyID, publicKeyIDSignatureBase64 := h.getSignatureCookies(request)
 	if publicKeyID == "" || publicKeyIDSignatureBase64 == "" {
 		h.redirectToLogin(writer, request)
 
-		return
+		return false
 	}
 
 	if err := h.accessValidator.ValidateAccess(request.Context(), publicKeyID, publicKeyIDSignatureBase64, clusterID); err != nil {
@@ -160,10 +164,10 @@ func (h *HTTPHandler) checkCookies(writer http.ResponseWriter, request *http.Req
 
 		http.Redirect(writer, request, forbiddenURL, http.StatusSeeOther)
 
-		return
+		return false
 	}
 
-	proxy.ServeHTTP(writer, request)
+	return true
 }
 
 // parseServiceAliasFromHost parses the service alias from the request host.

@@ -185,7 +185,7 @@ func (registry *Reconciler) GetProxy(alias string) (http.Handler, resource.ID, e
 
 	lbSts := registry.clusterToAliasToLBStatus[clusterID][alias]
 	if lbSts == nil || lbSts.lb == nil {
-		return nil, "", nil
+		return nil, clusterID, nil
 	}
 
 	hostPort := registry.hostPortForAlias(clusterID, alias)
@@ -197,7 +197,10 @@ func (registry *Reconciler) GetProxy(alias string) (http.Handler, resource.ID, e
 
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 	proxy.Transport = &http.Transport{
-		DialContext: registry.connProvider.DialContext,
+		DialContext:           registry.connProvider.DialContext,
+		IdleConnTimeout:       90 * time.Second,
+		ResponseHeaderTimeout: 10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
 	}
 
 	return proxy, clusterID, nil

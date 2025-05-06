@@ -11,29 +11,8 @@ import (
 
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
-)
 
-const (
-	// ServiceLabelAnnotationKey is the annotation to define the human-readable label of Kubernetes Services to expose them to Omni.
-	//
-	// tsgen:ServiceLabelAnnotationKey
-	ServiceLabelAnnotationKey = "omni-kube-service-exposer.sidero.dev/label"
-
-	// ServicePortAnnotationKey is the annotation to define the port of Kubernetes Services to expose them to Omni.
-	//
-	// tsgen:ServicePortAnnotationKey
-	ServicePortAnnotationKey = "omni-kube-service-exposer.sidero.dev/port"
-
-	// ServiceIconAnnotationKey is the annotation to define the icon of Kubernetes Services to expose them to Omni.
-	//
-	// tsgen:ServiceIconAnnotationKey
-	ServiceIconAnnotationKey = "omni-kube-service-exposer.sidero.dev/icon"
-
-	// ServicePrefixAnnotationKey is the annotation to define the prefix of Kubernetes Services to expose them to Omni.
-	// When it is not defined, a prefix will be generated automatically.
-	//
-	// tsgen:ServicePrefixAnnotationKey
-	ServicePrefixAnnotationKey = "omni-kube-service-exposer.sidero.dev/prefix"
+	"github.com/siderolabs/omni/client/pkg/constants"
 )
 
 // IsExposedServiceEvent returns true if there is a change on the Kubernetes Services
@@ -50,7 +29,7 @@ func IsExposedServiceEvent(k8sObject, oldK8sObject any, logger *zap.Logger) bool
 		}
 
 		// check for ServicePortAnnotationKey annotation - the only annotation required for the exposed services
-		_, isAnnotated := service.GetObjectMeta().GetAnnotations()[ServicePortAnnotationKey]
+		_, isAnnotated := service.GetObjectMeta().GetAnnotations()[constants.ExposedServicePortAnnotationKey]
 
 		return isAnnotated
 	}
@@ -76,7 +55,10 @@ func IsExposedServiceEvent(k8sObject, oldK8sObject any, logger *zap.Logger) bool
 	oldAnnotations := oldK8sObject.(*corev1.Service).GetObjectMeta().GetAnnotations() //nolint:forcetypeassert,errcheck
 	newAnnotations := k8sObject.(*corev1.Service).GetObjectMeta().GetAnnotations()    //nolint:forcetypeassert,errcheck
 
-	for _, key := range []string{ServiceLabelAnnotationKey, ServicePortAnnotationKey, ServiceIconAnnotationKey, ServicePrefixAnnotationKey} {
+	for _, key := range []string{
+		constants.ExposedServiceLabelAnnotationKey, constants.ExposedServicePortAnnotationKey,
+		constants.ExposedServiceIconAnnotationKey, constants.ExposedServicePrefixAnnotationKey,
+	} {
 		if oldAnnotations[key] != newAnnotations[key] {
 			return true
 		}

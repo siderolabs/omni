@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -63,6 +64,8 @@ type ClusterOptions struct {
 	ScalingTimeout time.Duration
 
 	SkipExtensionCheckOnCreate bool
+
+	AllowSchedulingOnControlPlanes bool
 }
 
 // CreateCluster verifies cluster creation.
@@ -94,6 +97,10 @@ func CreateCluster(testCtx context.Context, cli *client.Client, options ClusterO
 			cluster.TypedSpec().Value.BackupConfiguration = options.EtcdBackup
 
 			require.NoError(st.Create(ctx, cluster))
+
+			if options.AllowSchedulingOnControlPlanes {
+				ensureAllowSchedulingOnControlPlanesConfigPatch(ctx, t, st, options.Name)
+			}
 
 			for i := range options.ControlPlanes {
 				t.Logf("Adding machine '%s' to control plane (cluster %q)", machineIDs[i], options.Name)
@@ -159,6 +166,10 @@ func CreateClusterWithMachineClass(testCtx context.Context, st state.State, opti
 		require.NoError(st.Create(ctx, cluster))
 		require.NoError(st.Create(ctx, kubespanEnabler))
 
+		if options.AllowSchedulingOnControlPlanes {
+			ensureAllowSchedulingOnControlPlanesConfigPatch(ctx, t, st, options.Name)
+		}
+
 		machineClass := omni.NewMachineClass(resources.DefaultNamespace, options.Name)
 
 		if options.InfraProvider != "" {
@@ -182,6 +193,17 @@ func CreateClusterWithMachineClass(testCtx context.Context, st state.State, opti
 
 		updateMachineClassMachineSets(ctx, t, st, options, machineClass)
 	}
+}
+
+func ensureAllowSchedulingOnControlPlanesConfigPatch(ctx context.Context, t *testing.T, st state.State, clusterID resource.ID) {
+	createOrUpdate(ctx, t, st, omni.NewConfigPatch(resources.DefaultNamespace, fmt.Sprintf("400-%s-control-planes-untaint", clusterID)), func(patch *omni.ConfigPatch) error {
+		patch.Metadata().Labels().Set(omni.LabelCluster, clusterID)
+		patch.Metadata().Labels().Set(omni.LabelMachineSet, omni.ControlPlanesResourceID(clusterID))
+
+		return patch.TypedSpec().Value.SetUncompressedData([]byte(`cluster:
+  allowSchedulingOnControlPlanes: true
+`))
+	})
 }
 
 // ScaleClusterMachineSets scales the cluster with machine sets which are using machine classes.
@@ -511,53 +533,6 @@ func AssertClusterKubernetesUsage(testCtx context.Context, st state.State, clust
 	}
 }
 
-// DestroyCluster destroys a cluster and waits for it to be destroyed.
-//
-// It is used as a finalizer when the test group fails.
-func DestroyCluster(testCtx context.Context, client *client.Client, supportBundleDir, clusterName string) TestFunc {
-	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, 6*time.Minute)
-		defer cancel()
-
-		st := client.Omni().State()
-
-		if err := saveSupportBundle(ctx, client, supportBundleDir, clusterName); err != nil {
-			t.Logf("failed to save support bundle: %v", err)
-		}
-
-		clusterMachineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, st, state.WithLabelQuery(
-			resource.LabelEqual(omni.LabelCluster, clusterName),
-		))
-
-		t.Log("destroying cluster", clusterName)
-
-		rtestutils.Teardown[*omni.Cluster](ctx, t, st, []resource.ID{clusterName})
-
-		rtestutils.AssertNoResource[*omni.Cluster](ctx, t, st, clusterName)
-
-		// wait for all machines to returned to the pool as 'available' or be part of a different cluster
-		rtestutils.AssertResources(ctx, t, st, clusterMachineIDs, func(machine *omni.MachineStatus, asrt *assert.Assertions) {
-			_, isAvailable := machine.Metadata().Labels().Get(omni.MachineStatusLabelAvailable)
-			machineCluster, machineBound := machine.Metadata().Labels().Get(omni.LabelCluster)
-
-			asrt.True(isAvailable || (machineBound && machineCluster != clusterName),
-				"machine %q: available %v, bound %v, cluster %q", machine.Metadata().ID(), isAvailable, machineBound, machineCluster,
-			)
-		})
-
-		_, err := st.Get(ctx, omni.NewMachineClass(resources.DefaultNamespace, clusterName).Metadata())
-		if state.IsNotFoundError(err) {
-			return
-		}
-
-		require.NoError(t, err)
-
-		t.Log("destroying related machine class", clusterName)
-
-		rtestutils.Destroy[*omni.MachineClass](ctx, t, st, []string{clusterName})
-	}
-}
-
 func saveSupportBundle(ctx context.Context, cli *client.Client, dir, cluster string) error {
 	supportBundle, err := cli.Management().GetSupportBundle(ctx, cluster, nil)
 	if err != nil {
@@ -568,7 +543,10 @@ func saveSupportBundle(ctx context.Context, cli *client.Client, dir, cluster str
 		return fmt.Errorf("failed to create directory %q: %w", dir, err)
 	}
 
-	if err = os.WriteFile("support-bundle-"+cluster+".zip", supportBundle, 0o644); err != nil {
+	fileName := time.Now().Format("2006-01-02_15-04-05") + "-support-bundle-" + cluster + ".zip"
+	bundlePath := filepath.Join(dir, fileName)
+
+	if err = os.WriteFile(bundlePath, supportBundle, 0o644); err != nil {
 		return fmt.Errorf("failed to write support bundle file %q: %w", cluster, err)
 	}
 
@@ -576,10 +554,20 @@ func saveSupportBundle(ctx context.Context, cli *client.Client, dir, cluster str
 }
 
 // AssertDestroyCluster destroys a cluster and verifies that all dependent resources are gone.
-func AssertDestroyCluster(testCtx context.Context, st state.State, clusterName string, expectMachinesRemoved, assertInfraMachinesState bool) TestFunc {
+func AssertDestroyCluster(testCtx context.Context, omniClient *client.Client, clusterName, outputDir string, expectMachinesRemoved, assertInfraMachinesState, doSaveSupportBundle bool) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, 300*time.Second)
 		defer cancel()
+
+		st := omniClient.Omni().State()
+
+		if doSaveSupportBundle {
+			t.Logf("saving support bundle for cluster %q into %q before destruction", clusterName, outputDir)
+
+			if err := saveSupportBundle(ctx, omniClient, outputDir, clusterName); err != nil {
+				t.Logf("failed to save support bundle: %v", err)
+			}
+		}
 
 		patches := rtestutils.ResourceIDs[*omni.ConfigPatch](ctx, t, st, state.WithLabelQuery(
 			resource.LabelEqual(omni.LabelCluster, clusterName),
@@ -617,7 +605,7 @@ func AssertDestroyCluster(testCtx context.Context, st state.State, clusterName s
 			return
 		}
 
-		// wait for all machines to returned to the pool as 'available' or be part of a different cluster
+		// wait for all machines to be returned to the pool as 'available' or be part of a different cluster
 		rtestutils.AssertResources(ctx, t, st, clusterMachineIDs, func(machine *omni.MachineStatus, asrt *assert.Assertions) {
 			_, isAvailable := machine.Metadata().Labels().Get(omni.MachineStatusLabelAvailable)
 			machineCluster, machineBound := machine.Metadata().Labels().Get(omni.LabelCluster)

@@ -239,6 +239,7 @@ func AssertClusterCreateAndReady(
 	name string,
 	options ClusterOptions,
 	testOutputDir string,
+	doSaveSupportBundle bool,
 ) []subTest { //nolint:nolintlint,revive
 	clusterName := "integration-" + name
 	options.Name = clusterName
@@ -258,7 +259,7 @@ func AssertClusterCreateAndReady(
 	).Append(
 		subTest{
 			"ClusterShouldBeDestroyed",
-			AssertDestroyCluster(ctx, rootClient.Omni().State(), clusterName, options.InfraProvider != "", false),
+			AssertDestroyCluster(ctx, rootClient, clusterName, testOutputDir, options.InfraProvider != "", false, doSaveSupportBundle),
 		},
 	)
 }
