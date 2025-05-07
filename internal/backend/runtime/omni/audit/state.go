@@ -123,6 +123,10 @@ func (a *auditState) Teardown(ctx context.Context, pointer resource.Pointer, opt
 	return a.state.Teardown(ctx, pointer, option...)
 }
 
+func (a *auditState) TeardownAndDestroy(ctx context.Context, pointer resource.Pointer, option ...state.TeardownAndDestroyOption) error {
+	return a.state.TeardownAndDestroy(ctx, pointer, option...)
+}
+
 func (a *auditState) AddFinalizer(ctx context.Context, pointer resource.Pointer, finalizer ...resource.Finalizer) error {
 	return a.state.AddFinalizer(ctx, pointer, finalizer...)
 }

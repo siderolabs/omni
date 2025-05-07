@@ -15,7 +15,7 @@ require (
 	github.com/adrg/xdg v0.5.3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
-	github.com/cosi-project/runtime v0.10.2
+	github.com/cosi-project/runtime v0.10.3
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.18.0
 	github.com/gertd/go-pluralize v0.2.1
@@ -28,19 +28,19 @@ require (
 	github.com/mattn/go-isatty v0.0.20
 	github.com/planetscale/vtprotobuf v0.6.1-0.20241121165744-79df5c4772f2
 	github.com/sergi/go-diff v1.3.1
-	github.com/siderolabs/gen v0.8.0
+	github.com/siderolabs/gen v0.8.1
 	github.com/siderolabs/go-api-signature v0.3.6
 	github.com/siderolabs/go-kubeconfig v0.1.1
 	github.com/siderolabs/go-pointer v1.0.1
-	github.com/siderolabs/image-factory v0.6.8
+	github.com/siderolabs/image-factory v0.7.0
 	github.com/siderolabs/proto-codec v0.1.2
-	github.com/siderolabs/talos/pkg/machinery v1.10.0-beta.0
+	github.com/siderolabs/talos/pkg/machinery v1.10.1
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	github.com/xlab/treeprint v1.2.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/sync v0.13.0
-	golang.org/x/term v0.31.0
+	golang.org/x/sync v0.14.0
+	golang.org/x/term v0.32.0
 	google.golang.org/grpc v1.72.0
 	google.golang.org/protobuf v1.36.6
 	gopkg.in/yaml.v3 v3.0.1
@@ -56,12 +56,12 @@ require (
 	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/containerd/go-cni v1.1.12 // indirect
 	github.com/containernetworking/cni v1.3.0 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.6 //indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.7 //indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fxamacker/cbor/v2 v2.8.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/google/cel-go v0.24.1 // indirect
+	github.com/google/cel-go v0.25.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/gosuri/uilive v0.0.4 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -86,26 +86,25 @@ require (
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/sasha-s/go-deadlock v0.3.5 // indirect
 	github.com/siderolabs/crypto v0.5.1 // indirect
-	github.com/siderolabs/go-blockdevice/v2 v2.0.16 // indirect
 	github.com/siderolabs/net v0.4.0 // indirect
 	github.com/siderolabs/protoenc v0.2.2 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.37.0 // indirect
-	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
-	golang.org/x/net v0.39.0 // indirect
-	golang.org/x/oauth2 v0.29.0 // indirect
-	golang.org/x/sys v0.32.0 // indirect
-	golang.org/x/text v0.24.0 // indirect
+	golang.org/x/crypto v0.38.0 // indirect
+	golang.org/x/exp v0.0.0-20250506013437-ce4c2cf36ca6 // indirect
+	golang.org/x/net v0.40.0 // indirect
+	golang.org/x/oauth2 v0.30.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/text v0.25.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250421163800-61c742ae3ef0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250421163800-61c742ae3ef0 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250505200425-f936aa4a68b2 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250505200425-f936aa4a68b2 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/apimachinery v0.34.0-alpha.0 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
-	k8s.io/utils v0.0.0-20250321185631-1f6e0b77f77e // indirect
+	k8s.io/utils v0.0.0-20250502105355-0f33e8f1c979 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.7.0 // indirect
