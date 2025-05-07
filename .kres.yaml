@@ -9,6 +9,11 @@ name: acompat
 spec:
   disableImage: true
 ---
+kind: auto.Helm
+spec:
+  enabled: true
+  chartDir: deploy/helm/omni
+---
 kind: common.GHWorkflow
 spec:
   customRunners:
