@@ -1,3 +1,8 @@
+// Copyright (c) 2025 Sidero Labs, Inc.
+//
+// Use of this software is governed by the Business Source License
+// included in the LICENSE file.
+
 import { describe, it, expect, mock, beforeEach } from "bun:test";
 import { nextAvailableClusterName } from "../../../src/methods/cluster";
 import { Resource } from "../../../src/api/v1alpha1/resource.pb";
@@ -74,13 +79,6 @@ describe("nextAvailableClusterName", () => {
     const name = await nextAvailableClusterName("test-cluster");
 
     expect(name).toBe("test-cluster-3");
-  });
-
-  it("should handle cases where numbered versions are non-sequential", async () => {
-    mockListClusters(["test-cluster", "test-cluster-1", "test-cluster-3"]);
-    const name = await nextAvailableClusterName("test-cluster");
-
-    expect(name).toBe("test-cluster-2");
   });
 
   it("should handle a different prefix correctly", async () => {

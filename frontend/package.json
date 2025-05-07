@@ -41,7 +41,6 @@
     "@types/pluralize": "^0.0.33",
     "@vitejs/plugin-vue": "^5.2.3",
     "autoprefixer": "^10.4.21",
-    "bun-types": "^1.2.12",
     "eslint-plugin-typescript": "^0.14.0",
     "eslint-plugin-vue": "^10.1.0",
     "fetch-intercept": "^2.4.0",
