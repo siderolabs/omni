@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-05-01T11:19:51Z by kres 6cbcbd1.
+# Generated on 2025-05-07T09:19:30Z by kres 5ad3e5f.
 
 # common variables
 
@@ -24,17 +24,19 @@ PROTOBUF_GO_VERSION ?= 1.36.6
 GRPC_GO_VERSION ?= 1.5.1
 GRPC_GATEWAY_VERSION ?= 2.26.3
 VTPROTOBUF_VERSION ?= 0.6.0
-GOIMPORTS_VERSION ?= 0.32.0
+GOIMPORTS_VERSION ?= 0.33.0
 GOMOCK_VERSION ?= 0.5.2
 DEEPCOPY_VERSION ?= v0.5.6
-GOLANGCILINT_VERSION ?= v2.1.5
+GOLANGCILINT_VERSION ?= v2.1.6
 GOFUMPT_VERSION ?= v0.8.0
-GO_VERSION ?= 1.24.2
+GO_VERSION ?= 1.24.3
 GO_BUILDFLAGS ?=
 GO_LDFLAGS ?=
 CGO_ENABLED ?= 0
 GOTOOLCHAIN ?= local
 GOEXPERIMENT ?= synctest
+HELMREPO ?= $(REGISTRY)/$(USERNAME)/charts
+COSIGN_ARGS ?=
 KRES_IMAGE ?= ghcr.io/siderolabs/kres:latest
 CONFORMANCE_IMAGE ?= ghcr.io/siderolabs/conform:latest
 
@@ -77,7 +79,7 @@ COMMON_ARGS += --build-arg=DEEPCOPY_VERSION="$(DEEPCOPY_VERSION)"
 COMMON_ARGS += --build-arg=GOLANGCILINT_VERSION="$(GOLANGCILINT_VERSION)"
 COMMON_ARGS += --build-arg=GOFUMPT_VERSION="$(GOFUMPT_VERSION)"
 COMMON_ARGS += --build-arg=TESTPKGS="$(TESTPKGS)"
-JS_TOOLCHAIN ?= docker.io/oven/bun:1.2.11-alpine
+JS_TOOLCHAIN ?= docker.io/oven/bun:1.2.12-alpine
 TOOLCHAIN ?= docker.io/golang:1.24-alpine
 
 # extra variables
@@ -146,7 +148,7 @@ else
 GO_LDFLAGS += -s
 endif
 
-all: unit-tests-frontend lint-eslint frontend unit-tests-client unit-tests acompat integration-test image-integration-test omni image-omni omnictl lint
+all: unit-tests-frontend lint-eslint frontend unit-tests-client unit-tests acompat integration-test image-integration-test omni image-omni omnictl helm lint
 
 $(ARTIFACTS):  ## Creates artifacts directory.
 	@mkdir -p $(ARTIFACTS)
@@ -196,6 +198,7 @@ frontend: $(ARTIFACTS)/frontend-js  ## Builds js release for frontend.
 
 generate:  ## Generate .proto definitions.
 	@$(MAKE) local-$@ DEST=./
+	@sed -i "s/appVersion: .*/appVersion: \"$$(cat internal/version/data/tag)\"/" deploy/helm/omni/Chart.yaml
 
 lint-golangci-lint-client:  ## Runs golangci-lint linter.
 	@$(MAKE) target-$@
@@ -353,6 +356,15 @@ omnictl-windows-amd64.exe: $(ARTIFACTS)/omnictl-windows-amd64.exe  ## Builds exe
 
 .PHONY: omnictl
 omnictl: omnictl-darwin-amd64 omnictl-darwin-arm64 omnictl-linux-amd64 omnictl-linux-arm64 omnictl-windows-amd64.exe  ## Builds executables for omnictl.
+
+.PHONY: helm
+helm:  ## Package helm chart
+	@helm package deploy/helm/omni -d $(ARTIFACTS)
+
+.PHONY: helm-release
+helm-release: helm  ## Release helm chart
+	@helm push $(ARTIFACTS)/omni-*.tgz oci://$(HELMREPO) 2>&1 | tee $(ARTIFACTS)/.digest
+	@cosign sign --yes $(COSING_ARGS) $(HELMREPO)/omni@$$(cat $(ARTIFACTS)/.digest | awk -F "[, ]+" '/Digest/{print $$NF}')
 
 .PHONY: dev-server
 dev-server:
