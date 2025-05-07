@@ -1,3 +1,30 @@
+## [Omni 0.49.1](https://github.com/siderolabs/omni/releases/tag/v0.49.1) (2025-05-07)
+
+Welcome to the v0.49.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`e952f991`](https://github.com/siderolabs/omni/commit/e952f991ae1438c994a0ef5261d5db0183c7c4c5) fix: fix crash in the SAML ACS handler
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.49.0](https://github.com/siderolabs/omni/releases/tag/v0.49.0)
+
 ## [Omni 0.49.0](https://github.com/siderolabs/omni/releases/tag/v0.49.0) (2025-05-06)
 
 Welcome to the v0.49.0 release of Omni!

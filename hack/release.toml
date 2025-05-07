@@ -6,19 +6,4 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = false
-previous = "v0.48.0"
-
-[notes]
-
-[notes.force-delete]
-title = "Control Plane Force Delete"
-description = """\
-Omni now allows forcefully removing the control plane nodes from the cluster, where etcd is not healthy.
-"""
-
-[notes.async-discovery-cleanup]
-title = "Async Discovery Service Cleanup"
-description = """\
-The machine teardown now no longer blocks on the discovery service being unavailable.
-If failed, discovery service removal is now handled async.
-"""
+previous = "v0.49.0"
