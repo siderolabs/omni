@@ -88,6 +88,23 @@ describe("nextAvailableClusterName", () => {
     expect(name).toBe("my-cluster-2");
   });
 
+  it("should return prefix-10 if prefix and prefix-1 through prefix-9 are taken", async () => {
+    mockListClusters([
+      "test-cluster",
+      "test-cluster-1",
+      "test-cluster-2",
+      "test-cluster-3",
+      "test-cluster-4",
+      "test-cluster-5",
+      "test-cluster-6",
+      "test-cluster-7",
+      "test-cluster-8",
+      "test-cluster-9",
+    ]);
+    const name = await nextAvailableClusterName("test-cluster");
+    expect(name).toBe("test-cluster-10");
+  });
+
   it("should call ResourceService.List with correct parameters and options", async () => {
     mockListClusters([]);
     await nextAvailableClusterName("test-prefix");
