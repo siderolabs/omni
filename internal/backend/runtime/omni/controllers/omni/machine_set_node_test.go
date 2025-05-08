@@ -85,7 +85,7 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
 	defer cancel()
 
-	suite.Require().NoError(suite.runtime.RegisterController(&omnictrl.MachineSetNodeController{}))
+	suite.Require().NoError(suite.runtime.RegisterQController(&omnictrl.MachineSetNodeController{}))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewLabelsExtractorController[*omni.MachineStatus]()))
 
@@ -98,8 +98,8 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 			omni.MachineStatusLabelReportingEvents: "",
 		},
 		map[string]string{
-			omni.MachineStatusLabelAvailable:       "",
 			omni.MachineStatusLabelArch:            "amd64",
+			omni.MachineStatusLabelAvailable:       "",
 			omni.MachineStatusLabelConnected:       "",
 			omni.MachineStatusLabelReadyToUse:      "",
 			omni.MachineStatusLabelReportingEvents: "",
@@ -174,6 +174,8 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 	suite.Require().NoError(err)
 
 	// no changes after updating machine set machine class
+	// even though the node no longer matches the selector.
+	// Omni should not automatically remove nodes.
 	assertNoMachineSetNode(machines[3])
 	assertMachineSetNode(machines[0])
 
