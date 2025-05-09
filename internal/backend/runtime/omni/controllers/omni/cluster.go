@@ -24,6 +24,8 @@ import (
 // ClusterController plays the role of machine discovery.
 type ClusterController = cleanup.Controller[*omni.Cluster]
 
+const clusterControllerName = "ClusterController"
+
 type handler struct {
 	handler   cleanup.Handler[*omni.Cluster]
 	finalizer string
@@ -59,13 +61,11 @@ func (c handler) Outputs() []controller.Output {
 
 // NewClusterController creates new ClusterController.
 func NewClusterController() *ClusterController {
-	name := "ClusterController"
-
 	return cleanup.NewController(
 		cleanup.Settings[*omni.Cluster]{
-			Name: name,
+			Name: clusterControllerName,
 			Handler: handler{
-				finalizer: name,
+				finalizer: clusterControllerName,
 				handler: cleanup.Combine(
 					cleanup.RemoveOutputs[*omni.MachineSet](func(cluster *omni.Cluster) state.ListOption {
 						return state.WithLabelQuery(

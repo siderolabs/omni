@@ -42,12 +42,12 @@ func NewClusterUUIDController() *ClusterUUIDController {
 					return nil
 				}
 
-				generatedUUUID, err := uuid.NewRandom()
+				generatedUUID, err := uuid.NewRandom()
 				if err != nil {
 					return fmt.Errorf("error generating cluster UUID for cluster '%s': %w", cluster.Metadata().ID(), err)
 				}
 
-				uuidStr := generatedUUUID.String()
+				uuidStr := generatedUUID.String()
 				clusterUUID.TypedSpec().Value.Uuid = uuidStr
 
 				clusterUUID.Metadata().Labels().Set(omni.LabelClusterUUID, uuidStr)
@@ -55,5 +55,6 @@ func NewClusterUUIDController() *ClusterUUIDController {
 				return nil
 			},
 		},
+		qtransform.WithIgnoreTeardownWhile(clusterControllerName),
 	)
 }
