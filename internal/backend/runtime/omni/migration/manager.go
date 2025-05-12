@@ -216,6 +216,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: markVersionContract,
 				name:     "markVersionContract",
 			},
+			{
+				callback: dropMachineClassStatusFinalizers,
+				name:     "dropMachineClassStatusFinalizers",
+			},
 		},
 	}
 }

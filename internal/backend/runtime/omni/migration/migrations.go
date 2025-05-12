@@ -1737,3 +1737,26 @@ func markVersionContract(ctx context.Context, st state.State, logger *zap.Logger
 
 	return nil
 }
+
+func dropMachineClassStatusFinalizers(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
+	machineClasses, err := safe.StateListAll[*omni.MachineClass](ctx, st)
+	if err != nil {
+		return fmt.Errorf("failed to list cluster config versions: %w", err)
+	}
+
+	deprecatedFinalizer := "MachineClassStatusController"
+
+	for machineClass := range machineClasses.All() {
+		if !machineClass.Metadata().Finalizers().Has(deprecatedFinalizer) {
+			continue
+		}
+
+		logger.Info("remove machine class status controller finalizer from the resource", zap.String("id", machineClass.Metadata().ID()))
+
+		if err := st.RemoveFinalizer(ctx, machineClass.Metadata(), deprecatedFinalizer); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
