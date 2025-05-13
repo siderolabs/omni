@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -95,9 +96,7 @@ func NewKubeconfigController(certificateValidity time.Duration) *KubeconfigContr
 					return nil, err
 				}
 
-				return safe.Map(secrets, func(secret *omni.ClusterSecrets) (resource.Pointer, error) {
-					return secret.Metadata(), nil
-				})
+				return slices.Collect(secrets.Pointers()), nil
 			},
 		),
 		qtransform.WithExtraMappedInput(

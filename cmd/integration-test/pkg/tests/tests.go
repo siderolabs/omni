@@ -1642,17 +1642,7 @@ func cleanupLinks(ctx context.Context, st state.State) error {
 	defer cancel()
 
 	return links.ForEachErr(func(r *siderolink.Link) error {
-		_, err := st.Teardown(ctx, r.Metadata())
-		if err != nil {
-			return err
-		}
-
-		_, err = st.WatchFor(ctx, r.Metadata(), state.WithFinalizerEmpty())
-		if err != nil && !state.IsNotFoundError(err) {
-			return err
-		}
-
-		err = st.Destroy(ctx, r.Metadata())
+		err := st.TeardownAndDestroy(ctx, r.Metadata())
 		if err != nil && !state.IsNotFoundError(err) {
 			return err
 		}

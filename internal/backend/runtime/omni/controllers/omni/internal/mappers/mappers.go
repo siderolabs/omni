@@ -8,6 +8,7 @@ package mappers
 
 import (
 	"context"
+	"slices"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
@@ -78,9 +79,7 @@ func MapClusterResourceToLabeledResources[I generic.ResourceWithRD, O generic.Re
 			return nil, err
 		}
 
-		return safe.Map(items, func(item O) (resource.Pointer, error) {
-			return item.Metadata(), nil
-		})
+		return slices.Collect(items.Pointers()), nil
 	}
 }
 
@@ -94,8 +93,6 @@ func MapMachineSetToLabeledResources[I generic.ResourceWithRD, O generic.Resourc
 			return nil, err
 		}
 
-		return safe.Map(items, func(item O) (resource.Pointer, error) {
-			return item.Metadata(), nil
-		})
+		return slices.Collect(items.Pointers()), nil
 	}
 }

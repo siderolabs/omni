@@ -21,6 +21,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/cosi/helpers"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
@@ -189,27 +190,9 @@ func (ctrl *MachineSetNodeController) Run(ctx context.Context, r controller.Runt
 				return nil
 			}
 
-			var ready bool
+			_, err = helpers.TeardownAndDestroy(ctx, r, machineSetNode.Metadata())
 
-			ready, err = r.Teardown(ctx, machineSetNode.Metadata())
-			if err != nil {
-				if state.IsNotFoundError(err) {
-					return nil
-				}
-
-				return err
-			}
-
-			if !ready {
-				return nil
-			}
-
-			err = r.Destroy(ctx, machineSetNode.Metadata())
-			if err != nil && state.IsNotFoundError(err) {
-				return err
-			}
-
-			return nil
+			return err
 		})
 		if err != nil {
 			return err
@@ -481,27 +464,19 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 			err   error
 		)
 
-		if ready, err = r.Teardown(ctx, usedMachineSetNodes[i].Metadata()); err != nil {
+		if ready, err = helpers.TeardownAndDestroy(ctx, r, usedMachineSetNodes[i].Metadata()); err != nil {
 			if state.IsNotFoundError(err) {
 				return nil
 			}
 
 			return err
 		}
-
-		logger.Info("removed machine set node", zap.String("machine", usedMachineSetNodes[i].Metadata().ID()))
 
 		if !ready {
 			return nil
 		}
 
-		if err = r.Destroy(ctx, usedMachineSetNodes[i].Metadata()); err != nil {
-			if state.IsNotFoundError(err) {
-				return nil
-			}
-
-			return err
-		}
+		logger.Info("removed machine set node", zap.String("machine", usedMachineSetNodes[i].Metadata().ID()))
 	}
 
 	return nil

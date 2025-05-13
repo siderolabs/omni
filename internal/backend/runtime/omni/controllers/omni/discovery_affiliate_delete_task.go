@@ -20,6 +20,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
 // DiscoveryClientCache is an interface for interacting with discovery services.
@@ -113,25 +114,13 @@ func (ctrl *DiscoveryAffiliateDeleteTaskController) Reconcile(ctx context.Contex
 		)
 	}
 
-	destroyReady, err := r.Teardown(ctx, ptr, controller.WithOwner(ClusterMachineTeardownControllerName))
+	destroyReady, err := helpers.TeardownAndDestroy(ctx, r, ptr, controller.WithOwner(ClusterMachineTeardownControllerName))
 	if err != nil {
-		if state.IsNotFoundError(err) {
-			return nil
-		}
-
 		return err
 	}
 
 	if !destroyReady {
 		return nil
-	}
-
-	if err = r.Destroy(ctx, ptr, controller.WithOwner(ClusterMachineTeardownControllerName)); err != nil {
-		if state.IsNotFoundError(err) {
-			return nil
-		}
-
-		return err
 	}
 
 	logger.Info("destroyed DiscoveryAffiliateDeleteTask")

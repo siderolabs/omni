@@ -14,11 +14,12 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
-	"github.com/hashicorp/go-multierror"
+	"github.com/siderolabs/gen/xiter"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/cosi/helpers"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkmanager "github.com/siderolabs/omni/internal/pkg/siderolink"
@@ -129,40 +130,26 @@ func cleanupOutputs[T generic.ResourceWithRD](
 		return fmt.Errorf("error listing output resources: %w", err)
 	}
 
-	var multiErr error
-
-	for out := range outputList.All() {
+	toDelete := xiter.Map(func(r T) resource.Pointer {
+		return r.Metadata()
+	}, xiter.Filter(func(r T) bool {
 		// always attempt clean up of tearing down outputs, even if there is a matching input
 		// in the case that output phase is tearing down, while touched is true, actually
 		// output belongs to a previous generation of the input resource with the same ID, so the output
 		// should be torn down first before the new output is created
-		if out.Metadata().Phase() != resource.PhaseTearingDown {
+		if r.Metadata().Phase() != resource.PhaseTearingDown {
 			// this output was touched (has active input), skip it
-			if hasActiveInput(out) {
-				continue
+			if hasActiveInput(r) {
+				return false
 			}
 		}
 
-		ready, err := r.Teardown(ctx, out.Metadata())
-		if err != nil {
-			multiErr = multierror.Append(multiErr, err)
+		return true
+	}, outputList.All()))
 
-			continue
-		}
+	_, err = helpers.TeardownAndDestroyAll(ctx, r, toDelete)
 
-		if !ready {
-			// still some finalizers left on the output, controller will be re-triggered
-			continue
-		}
-
-		if err = r.Destroy(ctx, out.Metadata()); err != nil {
-			multiErr = multierror.Append(multiErr, err)
-
-			continue
-		}
-	}
-
-	return multiErr
+	return err
 }
 
 func pickTime(newAlive time.Time, lastAlive *timestamppb.Timestamp) *timestamppb.Timestamp {

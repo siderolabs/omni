@@ -1578,18 +1578,18 @@ func (suite *MigrationSuite) testDeleteDeprecatedResources(createRes func(id str
 
 func (suite *MigrationSuite) TestDeleteMachineSetRequiredMachines() {
 	suite.testDeleteDeprecatedResources(func(id string) resource.Resource {
-		return typed.NewResource[dummy, machineSetRequiredMachinesExtension](
+		return typed.NewResource[null, machineSetRequiredMachinesExtension](
 			resource.NewMetadata(resources.DefaultNamespace, migration.MachineSetRequiredMachinesType, id, resource.VersionUndefined),
-			dummy{},
+			null{},
 		)
 	}, "deleteMachineSetRequiredMachines")
 }
 
 func (suite *MigrationSuite) TestDeleteMachineClassStatuses() {
 	suite.testDeleteDeprecatedResources(func(id string) resource.Resource {
-		return typed.NewResource[dummy, machineClassStatusExtension](
+		return typed.NewResource[null, machineClassStatusExtension](
 			resource.NewMetadata(resources.DefaultNamespace, migration.MachineClassStatusType, id, resource.VersionUndefined),
-			dummy{},
+			null{},
 		)
 	}, "deleteMachineClassStatuses")
 }

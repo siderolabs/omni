@@ -29,6 +29,9 @@ type DiscoveryAffiliateDeleteTaskSuite struct {
 func (suite *DiscoveryAffiliateDeleteTaskSuite) TestReconcile() {
 	suite.startRuntime()
 
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
+	defer cancel()
+
 	deleteCh := make(chan affiliateDelete)
 	clock := clockwork.NewFakeClock()
 	discoveryClientCache := &discoveryClientCacheMock{
@@ -42,11 +45,11 @@ func (suite *DiscoveryAffiliateDeleteTaskSuite) TestReconcile() {
 	task.TypedSpec().Value.ClusterId = "cluster1"
 	task.TypedSpec().Value.DiscoveryServiceEndpoint = "endpoint1"
 
-	suite.Require().NoError(suite.state.Create(suite.ctx, task, state.WithCreateOwner(omnictrl.ClusterMachineTeardownControllerName)))
+	suite.Require().NoError(suite.state.Create(ctx, task, state.WithCreateOwner(omnictrl.ClusterMachineTeardownControllerName)))
 
 	// capture the single deletion attempt and assert the values
 	select {
-	case <-suite.ctx.Done():
+	case <-ctx.Done():
 		suite.Require().Fail("reconciliation timed out")
 	case affDelete := <-deleteCh:
 		suite.Equal("endpoint1", affDelete.endpoint)

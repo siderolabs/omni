@@ -107,9 +107,7 @@ func NewTalosUpgradeStatusController() *TalosUpgradeStatusController {
 					return nil, err
 				}
 
-				return safe.Map(clusters, func(cluster *omni.Cluster) (resource.Pointer, error) {
-					return cluster.Metadata(), nil
-				})
+				return slices.Collect(clusters.Pointers()), nil
 			},
 		),
 		qtransform.WithExtraMappedInput(

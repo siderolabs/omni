@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
@@ -110,9 +111,7 @@ func NewClusterMachineRequestStatusController() *ClusterMachineRequestStatusCont
 					return nil, err
 				}
 
-				return safe.ToSlice(list, func(item *infra.MachineRequest) resource.Pointer {
-					return item.Metadata()
-				}), nil
+				return slices.Collect(list.Pointers()), nil
 			},
 		),
 		qtransform.WithExtraMappedInput(
@@ -127,9 +126,7 @@ func NewClusterMachineRequestStatusController() *ClusterMachineRequestStatusCont
 					return nil, err
 				}
 
-				return safe.ToSlice(list, func(item *infra.MachineRequest) resource.Pointer {
-					return item.Metadata()
-				}), nil
+				return slices.Collect(list.Pointers()), nil
 			},
 		),
 		qtransform.WithIgnoreTeardownUntil(ClusterMachineEncryptionKeyControllerName), // destroy the ClusterMachineRequestStatus after the ClusterMachineEncryptionKey is destroyed

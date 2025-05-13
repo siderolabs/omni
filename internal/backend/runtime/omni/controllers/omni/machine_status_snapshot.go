@@ -207,21 +207,13 @@ func (ctrl *MachineStatusSnapshotController) reconcileTearingDown(ctx context.Co
 
 	md := omni.NewMachineStatusSnapshot(resources.DefaultNamespace, machine.Metadata().ID()).Metadata()
 
-	ready, err := r.Teardown(ctx, md)
+	ready, err := helpers.TeardownAndDestroy(ctx, r, md)
 	if err != nil {
-		if state.IsNotFoundError(err) {
-			return r.RemoveFinalizer(ctx, machine.Metadata(), ctrl.Name())
-		}
-
 		return err
 	}
 
 	if !ready {
 		return nil
-	}
-
-	if err = r.Destroy(ctx, md); err != nil {
-		return err
 	}
 
 	return r.RemoveFinalizer(ctx, machine.Metadata(), ctrl.Name())

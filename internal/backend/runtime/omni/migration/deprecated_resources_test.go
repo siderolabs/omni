@@ -12,9 +12,9 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/migration"
 )
 
-type dummy struct{}
+type null struct{}
 
-func (d dummy) DeepCopy() dummy {
+func (d null) DeepCopy() null {
 	return d
 }
 

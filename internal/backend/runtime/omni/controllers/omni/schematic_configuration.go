@@ -73,15 +73,13 @@ func NewSchematicConfigurationController(imageFactoryClient SchematicEnsurer) *S
 			FinalizerRemovalExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, clusterMachine *omni.ClusterMachine) error {
 				statusMD := omni.NewMachineExtensionsStatus(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata()
 
-				ready, err := r.Teardown(ctx, statusMD)
-				if err != nil && !state.IsNotFoundError(err) {
+				ready, err := helpers.TeardownAndDestroy(ctx, r, statusMD)
+				if err != nil {
 					return err
 				}
 
-				if ready {
-					if err = r.Destroy(ctx, statusMD); err != nil && !state.IsNotFoundError(err) {
-						return err
-					}
+				if !ready {
+					return nil
 				}
 
 				err = r.RemoveFinalizer(ctx, omni.NewMachineExtensions(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata(), SchematicConfigurationControllerName)

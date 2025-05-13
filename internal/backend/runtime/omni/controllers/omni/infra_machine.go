@@ -153,21 +153,13 @@ func (ctrl *InfraMachineController) reconcileTearingDown(ctx context.Context, r 
 
 	md := infra.NewMachine(link.Metadata().ID()).Metadata()
 
-	ready, err := r.Teardown(ctx, md)
+	ready, err := helpers.TeardownAndDestroy(ctx, r, md)
 	if err != nil {
-		if state.IsNotFoundError(err) {
-			return r.RemoveFinalizer(ctx, link.Metadata(), ctrl.Name())
-		}
-
 		return err
 	}
 
 	if !ready {
 		return nil
-	}
-
-	if err = r.Destroy(ctx, md); err != nil {
-		return err
 	}
 
 	return r.RemoveFinalizer(ctx, link.Metadata(), ctrl.Name())

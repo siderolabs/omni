@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"errors"
+	"slices"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
@@ -75,7 +76,7 @@ func NewInfraProviderConfigPatchController() *InfraProviderConfigPatchController
 					return nil, err
 				}
 
-				return safe.ToSlice(patchRequests, func(r *infra.ConfigPatchRequest) resource.Pointer { return r.Metadata() }), nil
+				return slices.Collect(patchRequests.Pointers()), nil
 			},
 		),
 		qtransform.WithOutputKind(controller.OutputShared),

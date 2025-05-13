@@ -17,10 +17,10 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/hashicorp/go-multierror"
 	"github.com/siderolabs/gen/channel"
 	"github.com/siderolabs/gen/maps"
 	"github.com/siderolabs/gen/optional"
+	"github.com/siderolabs/gen/xiter"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,6 +29,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/cosi/helpers"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
@@ -315,30 +316,20 @@ func (ctrl *KubernetesStatusController) cleanupExposedServices(ctx context.Conte
 		return true
 	}
 
-	var multiErr error
-
-	for exposedService := range exposedServices.All() {
-		if !shouldDestroy(exposedService) {
-			continue
-		}
-
-		destroyReady, teardownErr := r.Teardown(ctx, exposedService.Metadata())
-		if teardownErr != nil {
-			multiErr = multierror.Append(multiErr, fmt.Errorf("error tearing down exposed service: %w", teardownErr))
-
-			continue
-		}
-
-		if !destroyReady {
-			continue
-		}
-
-		if destroyErr := r.Destroy(ctx, exposedService.Metadata()); destroyErr != nil {
-			multiErr = multierror.Append(multiErr, fmt.Errorf("error destroying exposed service: %w", destroyErr))
-		}
+	asPointer := func(res *omni.ExposedService) resource.Pointer {
+		return res.Metadata()
 	}
+	toDestroy := xiter.Map(
+		asPointer,
+		xiter.Filter(
+			shouldDestroy,
+			exposedServices.All(),
+		),
+	)
 
-	return multiErr
+	_, err = helpers.TeardownAndDestroyAll(ctx, r, toDestroy)
+
+	return err
 }
 
 var controlplanePodSelector = func() labels.Selector {

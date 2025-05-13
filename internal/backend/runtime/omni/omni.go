@@ -552,24 +552,13 @@ func (r *Runtime) Delete(ctx context.Context, setters ...runtime.QueryOption) er
 
 	md := cosiresource.NewMetadata(opts.Namespace, opts.Resource, opts.Name, cosiresource.VersionUndefined)
 
-	_, err := r.state.Teardown(ctx, md)
-	if err != nil {
-		return err
-	}
-
 	if opts.TeardownOnly {
-		return nil
-	}
+		_, err := r.state.Teardown(ctx, md)
 
-	if _, err = r.state.WatchFor(ctx, md, state.WithFinalizerEmpty()); err != nil {
 		return err
 	}
 
-	if err = r.state.Destroy(ctx, md); err != nil && !state.IsNotFoundError(err) {
-		return err
-	}
-
-	return nil
+	return r.state.TeardownAndDestroy(ctx, md)
 }
 
 // State returns runtime state.

@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -100,9 +101,7 @@ func (ctrl *ClusterMachineTeardownController) MapInput(ctx context.Context, logg
 			return nil, err
 		}
 
-		return safe.Map(machines, func(r *omni.ClusterMachine) (resource.Pointer, error) {
-			return r.Metadata(), nil
-		})
+		return slices.Collect(machines.Pointers()), nil
 	}
 
 	return nil, fmt.Errorf("unexpected resource type %q", ptr.Type())

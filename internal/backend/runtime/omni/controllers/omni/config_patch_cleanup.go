@@ -19,6 +19,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
 // ConfigPatchCleanupController removes orphaned ConfigPatch resources.
@@ -137,28 +138,9 @@ func (ctrl *ConfigPatchCleanupController) processConfigPatch(ctx context.Context
 
 	logger.Info("destroy orphaned config patch", zap.Any("labels", configPatch.Metadata().Labels().Raw()))
 
-	destroyReady, err := r.Teardown(ctx, configPatch.Metadata(), controller.WithOwner(""))
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return nil
-		}
+	_, err = helpers.TeardownAndDestroy(ctx, r, configPatch.Metadata(), controller.WithOwner(""))
 
-		return err
-	}
-
-	if !destroyReady {
-		return nil
-	}
-
-	if err = r.Destroy(ctx, configPatch.Metadata(), controller.WithOwner("")); err != nil {
-		if state.IsNotFoundError(err) {
-			return nil
-		}
-
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // initDefaults initializes default values for the controller if they are not set.

@@ -7,7 +7,6 @@ package omni_test
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
@@ -232,25 +231,7 @@ func (suite *MachineRequestSetStatusSuite) reconcileLabels(ctx context.Context) 
 					status := event.Resource.(*infra.MachineRequestStatus) //nolint:errcheck,forcetypeassert
 					res := system.NewResourceLabels[*omni.MachineStatus](status.TypedSpec().Value.Id)
 
-					_, err = suite.state.Teardown(ctx, res.Metadata())
-					if err != nil {
-						if state.IsNotFoundError(err) {
-							continue
-						}
-
-						return err
-					}
-
-					_, err = suite.state.WatchFor(ctx, res.Metadata(), state.WithFinalizerEmpty())
-					if err != nil {
-						if errors.Is(err, ctx.Err()) {
-							return nil
-						}
-
-						return err
-					}
-
-					err = suite.state.Destroy(ctx, res.Metadata())
+					err = suite.state.TeardownAndDestroy(ctx, res.Metadata())
 					if err != nil {
 						if state.IsNotFoundError(err) {
 							continue

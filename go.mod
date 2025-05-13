@@ -27,7 +27,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v5 v5.0.2
 	github.com/containers/image/v5 v5.35.0
-	github.com/cosi-project/runtime v0.10.3
+	github.com/cosi-project/runtime v0.10.5
 	github.com/cosi-project/state-etcd v0.5.2
 	github.com/crewjam/saml v0.5.1
 	github.com/dustin/go-humanize v1.0.1

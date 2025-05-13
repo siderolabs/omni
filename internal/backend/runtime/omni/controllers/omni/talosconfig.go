@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -76,9 +77,7 @@ func NewTalosConfigController(certificateValidity time.Duration) *TalosConfigCon
 					return nil, err
 				}
 
-				return safe.Map(secrets, func(secret *omni.ClusterSecrets) (resource.Pointer, error) {
-					return secret.Metadata(), nil
-				})
+				return slices.Collect(secrets.Pointers()), nil
 			},
 		),
 	)

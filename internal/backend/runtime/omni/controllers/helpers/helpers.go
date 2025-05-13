@@ -12,6 +12,7 @@ import (
 	"crypto/tls"
 	"encoding/hex"
 	"fmt"
+	"iter"
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -24,6 +25,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 
+	"github.com/siderolabs/omni/client/pkg/cosi/helpers"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
@@ -257,4 +259,27 @@ func GetTalosClient[T interface {
 	}
 
 	return result, nil
+}
+
+// TeardownAndDestroy calls Teardown for a resource, then calls Destroy if the resource doesn't have finalizers.
+// It returns true if the resource were destroyed.
+func TeardownAndDestroy(
+	ctx context.Context,
+	r controller.Writer,
+	ptr resource.Pointer,
+	options ...controller.DeleteOption,
+) (bool, error) {
+	return helpers.TeardownAndDestroy(ctx, r, ptr, options...)
+}
+
+// TeardownAndDestroyAll calls Teardown for all resources, then calls Destroy for all resources which
+// have no finalizers.
+// It returns true if all resources were destroyed.
+func TeardownAndDestroyAll(
+	ctx context.Context,
+	r controller.Writer,
+	resources iter.Seq[resource.Pointer],
+	options ...controller.DeleteOption,
+) (bool, error) {
+	return helpers.TeardownAndDestroyAll(ctx, r, resources, options...)
 }

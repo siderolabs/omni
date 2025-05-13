@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -137,9 +138,7 @@ func NewControlPlaneStatusController() *ControlPlaneStatusController {
 					return nil, err
 				}
 
-				return safe.Map(items, func(machineSet *omni.MachineSet) (resource.Pointer, error) {
-					return machineSet.Metadata(), nil
-				})
+				return slices.Collect(items.Pointers()), nil
 			},
 		),
 		qtransform.WithConcurrency(4),

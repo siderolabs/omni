@@ -18,6 +18,7 @@ import (
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/rand"
 
+	"github.com/siderolabs/omni/client/pkg/cosi/helpers"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -246,9 +247,7 @@ func scaleDown(ctx context.Context, r controller.ReaderWriter, machineRequests [
 }
 
 func deleteMachineRequest(ctx context.Context, r controller.ReaderWriter, request *infra.MachineRequest, machine *machineStatusLabels) error {
-	var deleted bool
-
-	deleted, err := teardownResource(ctx, r, request.Metadata())
+	deleted, err := helpers.TeardownAndDestroy(ctx, r, request.Metadata())
 	if err != nil {
 		return err
 	}
@@ -270,22 +269,10 @@ func (h *machineRequestSetStatusHandler) reconcileTearingDown(ctx context.Contex
 		return err
 	}
 
-	destroyReady := true
-
-	err = machineRequests.ForEachErr(func(res *infra.MachineRequest) error {
-		var ready bool
-
-		ready, err = teardownResource(ctx, r, res.Metadata())
-		if err != nil {
-			return err
-		}
-
-		if !ready {
-			destroyReady = false
-		}
-
-		return nil
-	})
+	destroyReady, err := helpers.TeardownAndDestroyAll(ctx, r, machineRequests.Pointers())
+	if err != nil {
+		return err
+	}
 
 	labels, err := safe.ReaderListAll[*machineStatusLabels](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
 	if err != nil {
@@ -295,29 +282,15 @@ func (h *machineRequestSetStatusHandler) reconcileTearingDown(ctx context.Contex
 	err = labels.ForEachErr(func(res *machineStatusLabels) error {
 		return r.RemoveFinalizer(ctx, res.Metadata(), MachineRequestSetStatusControllerName)
 	})
+	if err != nil {
+		return err
+	}
 
 	if !destroyReady {
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the machine request set still has tearing down machine requests")
 	}
 
 	return nil
-}
-
-func teardownResource(ctx context.Context, r controller.ReaderWriter, md *resource.Metadata) (bool, error) {
-	ready, err := r.Teardown(ctx, md)
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return true, nil
-		}
-
-		return false, err
-	}
-
-	if !ready {
-		return false, nil
-	}
-
-	return true, r.Destroy(ctx, md)
 }
 
 func mapMachineToMachineRequest(ctx context.Context, _ *zap.Logger, r controller.QRuntime, machine *machineStatusLabels) ([]resource.Pointer, error) {
