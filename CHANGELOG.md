@@ -1,3 +1,111 @@
+## [Omni 0.50.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.50.0-beta.0) (2025-05-15)
+
+Welcome to the v0.50.0-beta.0 release of Omni!  
+*This is a pre-release of Omni*
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Noel Georgi
+* Artem Chernyshev
+* Andrey Smirnov
+* Utku Ozdemir
+* Aleksandr Gamzin
+* Dmitriy Matrenichev
+* kalio007
+
+### Changes
+<details><summary>10 commits</summary>
+<p>
+
+* [`09f44685`](https://github.com/siderolabs/omni/commit/09f446858535c9c4e3d91d1e8a82f9f9bdbc7f4e) fix: pin AWS s3 libs version to 1.72.3
+* [`dc753f4e`](https://github.com/siderolabs/omni/commit/dc753f4e756b8a02002bc8077cb6a3f6278988dd) test: bump Talos version used in integration tests to `v1.10`
+* [`f21cedc7`](https://github.com/siderolabs/omni/commit/f21cedc7e70dcf86d98b9c1ef5b2a7be61ed8501) chore: introduce COSI state helpers to reduce boiler plate code count
+* [`9fcea4ea`](https://github.com/siderolabs/omni/commit/9fcea4eab3ab29f1f27403c441f30e03b1e071ac) test: add unit test for `nextAvailableClusterName` function
+* [`c9b62c23`](https://github.com/siderolabs/omni/commit/c9b62c23cc8c618c1245f3828c3bd67f6f48ed03) fix: update go-kubernetes library to the latest version
+* [`daaec8df`](https://github.com/siderolabs/omni/commit/daaec8dfa35d3b45088b82d8bb268bd5a00a7008) fix: remove deprecated controller finalizers from the machine classes
+* [`eaeff1ea`](https://github.com/siderolabs/omni/commit/eaeff1ea3fd616d7dc5844f3dfd7d7f902d1589a) fix: keep ClusterUUID resource alive until the cluster is destroyed
+* [`aa24c7c7`](https://github.com/siderolabs/omni/commit/aa24c7c707506d8bc2919482b140ebf43776631e) fix: fix crash in the SAML ACS handler
+* [`ccd5e7e4`](https://github.com/siderolabs/omni/commit/ccd5e7e44f3385531798502518439fb12cc950f4) chore: bump Go deps
+* [`47b6fb7c`](https://github.com/siderolabs/omni/commit/47b6fb7cc89af6d71a36c54f4a64e0beaaebed8d) feat(ci): support releasing helm charts
+</p>
+</details>
+
+### Changes from siderolabs/gen
+<details><summary>1 commit</summary>
+<p>
+
+* [`7c0324f`](https://github.com/siderolabs/gen/commit/7c0324fee9a7cfbdd117f43702fa273689f0db97) chore: future-proof HashTrieMap
+</p>
+</details>
+
+### Changes from siderolabs/go-circular
+<details><summary>1 commit</summary>
+<p>
+
+* [`5b39ef8`](https://github.com/siderolabs/go-circular/commit/5b39ef87df04efeaa47fe6374a8114f39c126122) fix: do not log error if chunk zero was never written
+</p>
+</details>
+
+### Changes from siderolabs/go-kubernetes
+<details><summary>2 commits</summary>
+<p>
+
+* [`9070be4`](https://github.com/siderolabs/go-kubernetes/commit/9070be4308e23d969ec4fc49b25dab4a27d512e7) fix: remove DynamicResourceAllocation feature gate
+* [`8cb588b`](https://github.com/siderolabs/go-kubernetes/commit/8cb588bc4c93d812de901a6a33e599ba2169cd96) fix: k8s 1.32->1.33 upgrade check
+</p>
+</details>
+
+### Changes from siderolabs/image-factory
+<details><summary>8 commits</summary>
+<p>
+
+* [`f930246`](https://github.com/siderolabs/image-factory/commit/f930246105e2e69df53bb38bfc581ce99efc1090) release(v0.7.0): prepare release
+* [`5b85f95`](https://github.com/siderolabs/image-factory/commit/5b85f95cb46746fb9e7050fe95f74ba19ffba506) chore: bump deps
+* [`cdfab7d`](https://github.com/siderolabs/image-factory/commit/cdfab7ded77a7114cf04e3a292ee63f0c6ef35ee) chore(ci): add an cron ci for talos main integration test
+* [`69525ba`](https://github.com/siderolabs/image-factory/commit/69525bae922888cb53f6bdf2f0e8900573c974d7) release(v0.6.9): prepare release
+* [`2820cb0`](https://github.com/siderolabs/image-factory/commit/2820cb013326d3f34a309a1dc6a7b6f2d64c1afa) feat(i18n): frontend localization support
+* [`f1187bc`](https://github.com/siderolabs/image-factory/commit/f1187bc84911f12fd421056a4ae1a6d8b190da5e) chore: bump deps
+* [`ba8640b`](https://github.com/siderolabs/image-factory/commit/ba8640be86296e546540c30ba047b917a783f1b2) chore: bump deps
+* [`b8308aa`](https://github.com/siderolabs/image-factory/commit/b8308aa592c9740917145ca8e861e9494b05aa47) chore: bump talos machinery
+</p>
+</details>
+
+### Changes from siderolabs/siderolink
+<details><summary>1 commit</summary>
+<p>
+
+* [`d2a79e0`](https://github.com/siderolabs/siderolink/commit/d2a79e0263806b68ff0a44ea9efa58b83fb269ec) fix: clean up device on failure
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/aws/aws-sdk-go-v2/feature/s3/manager**  v1.17.72 -> v1.17.49
+* **github.com/aws/aws-sdk-go-v2/service/s3**          v1.79.2 -> v1.72.3
+* **github.com/cosi-project/runtime**                  v0.10.2 -> v0.10.5
+* **github.com/cosi-project/state-etcd**               v0.5.1 -> v0.5.2
+* **github.com/siderolabs/gen**                        v0.8.0 -> v0.8.1
+* **github.com/siderolabs/go-circular**                v0.2.2 -> v0.2.3
+* **github.com/siderolabs/go-kubernetes**              v0.2.21 -> v0.2.23
+* **github.com/siderolabs/image-factory**              v0.6.8 -> v0.7.0
+* **github.com/siderolabs/omni/client**                v0.48.3 -> v0.49.0
+* **github.com/siderolabs/siderolink**                 v0.3.13 -> v0.3.14
+* **github.com/siderolabs/talos/pkg/machinery**        v1.10.0 -> v1.10.1
+* **github.com/zitadel/oidc/v3**                       v3.37.0 -> v3.38.1
+* **golang.org/x/crypto**                              v0.37.0 -> v0.38.0
+* **golang.org/x/net**                                 v0.39.0 -> v0.40.0
+* **golang.org/x/sync**                                v0.13.0 -> v0.14.0
+* **golang.org/x/text**                                v0.24.0 -> v0.25.0
+* **golang.org/x/tools**                               v0.32.0 -> v0.33.0
+* **golang.zx2c4.com/wireguard**                       12269c276173 -> 436f7fdc1670
+
+Previous release can be found at [v0.49.0](https://github.com/siderolabs/omni/releases/tag/v0.49.0)
+
 ## [Omni 0.49.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.49.0-beta.0) (2025-05-05)
 
 Welcome to the v0.49.0-beta.0 release of Omni!  
