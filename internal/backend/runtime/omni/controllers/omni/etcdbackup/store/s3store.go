@@ -201,7 +201,6 @@ func S3ClientFromResource(ctx context.Context, s3Conf *omni.EtcdBackupS3Conf) (*
 	client := s3.NewFromConfig(loadedCfg, func(o *s3.Options) {
 		o.UsePathStyle = true
 		o.BaseEndpoint = aws.String(baseEndpoint)
-		o.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
 	})
 
 	_, err = client.ListObjects(ctx, &s3.ListObjectsInput{Bucket: pointer.To(bucket)})
