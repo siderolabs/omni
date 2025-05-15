@@ -14,12 +14,14 @@ import {
 
 import { ResourceService, Resource } from "@/api/grpc";
 import { Runtime } from "@/api/common/omni.pb";
-import { CurrentUserSpec, PermissionsSpec } from "@/api/omni/specs/virtual.pb";
+import { ClusterPermissionsSpec, CurrentUserSpec, PermissionsSpec } from "@/api/omni/specs/virtual.pb";
 import { computed, ComputedRef, onBeforeMount, ref, Ref, watch } from "vue";
 import { withRuntime } from "@/api/options";
 
 export const currentUser: Ref<Resource<CurrentUserSpec> | undefined> = ref();
 export const permissions: Ref<Resource<PermissionsSpec> | undefined> = ref();
+
+const clusterPermissionsCache: Record<string, Resource<ClusterPermissionsSpec>> = {};
 
 export const setupClusterPermissions = (cluster: {value: string}) => {
   const result = {
@@ -38,12 +40,24 @@ export const setupClusterPermissions = (cluster: {value: string}) => {
     canManageClusterFeatures: ref(false),
   }
 
-  const updatePermissions = async () => {
-    const clusterPermissions = await ResourceService.Get({
+  const getPermissions = async (clusterName: string) => {
+    if (clusterPermissionsCache[clusterName]) {
+      return clusterPermissionsCache[clusterName];
+    }
+
+    const clusterPermissions: Resource<ClusterPermissionsSpec> = await ResourceService.Get({
       namespace: VirtualNamespace,
       type: ClusterPermissionsType,
-      id: cluster.value,
-    }, withRuntime(Runtime.Omni))
+      id: clusterName,
+    }, withRuntime(Runtime.Omni));
+
+    clusterPermissionsCache[clusterName] = clusterPermissions;
+
+    return clusterPermissions;
+  }
+
+  const updatePermissions = async () => {
+    const clusterPermissions = await getPermissions(cluster.value);
 
     result.canUpdateKubernetes.value = clusterPermissions?.spec?.can_update_kubernetes || false;
     result.canUpdateTalos.value = clusterPermissions?.spec?.can_update_talos || false;

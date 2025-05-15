@@ -16,20 +16,22 @@ included in the LICENSE file.
     <t-actions-box-item
       icon="power"
       @click="shutdownNode"
+      v-if="canRebootMachines"
     >Shutdown</t-actions-box-item>
     <t-actions-box-item
       icon="reboot"
       @click="rebootNode"
+      v-if="canRebootMachines"
     >Reboot</t-actions-box-item>
     <t-actions-box-item
-      v-if="clusterMachineStatus.spec.stage === ClusterMachineStatusSpecStage.BEFORE_DESTROY"
+      v-if="clusterMachineStatus.spec.stage === ClusterMachineStatusSpecStage.BEFORE_DESTROY && canAddClusterMachines"
       icon="rollback"
       @click="restoreNode"
     >
       Cancel Destroy
     </t-actions-box-item>
     <t-actions-box-item
-      v-else-if="!deleteDisabled"
+      v-else-if="!deleteDisabled && canRemoveMachines"
       icon="delete"
       danger
       @click="deleteNode"
@@ -44,6 +46,7 @@ import { useRouter } from 'vue-router';
 import { Resource } from "@/api/grpc";
 import { ClusterMachineStatusSpec, ClusterMachineStatusSpecStage } from "@/api/omni/specs/omni.pb";
 import { copyText } from "vue3-clipboard";
+import { setupClusterPermissions } from '@/methods/auth';
 
 import TActionsBox from "@/components/common/ActionsBox/TActionsBox.vue";
 import TActionsBoxItem from "@/components/common/ActionsBox/TActionsBoxItem.vue";
@@ -54,6 +57,8 @@ const props = defineProps<{
   deleteDisabled?: boolean,
   clusterMachineStatus: Resource<ClusterMachineStatusSpec>
 }>();
+
+const { canRebootMachines, canAddClusterMachines, canRemoveMachines } = setupClusterPermissions({ value: props.clusterName });
 
 const deleteNode = () => {
   router.push({

@@ -243,13 +243,13 @@ func (v *State) clusterPermissions(ctx context.Context, ptr resource.Pointer) (*
 	clusterPermissions := virtual.NewClusterPermissions(ptr.ID())
 
 	if userRole.Check(role.Reader) == nil {
-		clusterPermissions.TypedSpec().Value.CanRebootMachines = true
 		clusterPermissions.TypedSpec().Value.CanDownloadKubeconfig = true
 		clusterPermissions.TypedSpec().Value.CanDownloadTalosconfig = true
 		clusterPermissions.TypedSpec().Value.CanReadConfigPatches = true
 	}
 
 	if userRole.Check(role.Operator) == nil {
+		clusterPermissions.TypedSpec().Value.CanRebootMachines = true
 		clusterPermissions.TypedSpec().Value.CanAddMachines = true
 		clusterPermissions.TypedSpec().Value.CanRemoveMachines = true
 		clusterPermissions.TypedSpec().Value.CanUpdateKubernetes = true

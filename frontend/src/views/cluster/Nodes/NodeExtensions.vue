@@ -59,6 +59,7 @@ included in the LICENSE file.
     <div class="sticky -bottom-6 -my-6 -mx-6 bg-naturals-N1 border-t border-naturals-N5 h-16 flex items-center justify-end gap-2 px-12 py-6 text-xs">
       <t-button type="highlighted"
         @click="openExtensionsUpdate"
+        :disabled="!canUpdateTalos"
         >
         Update Extensions
       </t-button>
@@ -82,6 +83,7 @@ import TIcon from "@/components/common/Icon/TIcon.vue";
 import TSpinner from "@/components/common/Spinner/TSpinner.vue";
 import TAlert from "@/components/TAlert.vue";
 import WordHighlighter from "vue-word-highlighter";
+import { setupClusterPermissions } from "@/methods/auth";
 
 const machineExtensionsStatus = ref<Resource<MachineExtensionsStatusSpec>>();
 const machineExtensionsStatusWatch = new Watch(machineExtensionsStatus);
@@ -94,6 +96,8 @@ const machineExtensionsStatusWatchLoading = machineExtensionsStatusWatch.loading
 const ready = computed(() => {
   return !machineExtensionsStatusWatchLoading.value;
 });
+
+const { canUpdateTalos } = setupClusterPermissions(computed(() => route.params.cluster as string));
 
 machineExtensionsStatusWatch.setup(computed((): WatchOptions | undefined => {
   return {
