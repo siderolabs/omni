@@ -878,3 +878,16 @@ export type DiscoveryAffiliateDeleteTaskSpec = {
   cluster_id?: string
   discovery_service_endpoint?: string
 }
+
+export type InfraProviderCombinedStatusSpecHealth = {
+  connected?: boolean
+  error?: string
+  initialized?: boolean
+}
+
+export type InfraProviderCombinedStatusSpec = {
+  name?: string
+  description?: string
+  icon?: string
+  health?: InfraProviderCombinedStatusSpecHealth
+}

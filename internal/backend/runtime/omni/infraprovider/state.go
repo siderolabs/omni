@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/channel"
 	"go.uber.org/zap"
@@ -306,6 +307,19 @@ func (st *State) checkAccess(ctx context.Context, ns resource.Namespace, resType
 
 	// if the role is exactly InfraProvider, additionally, check for the label match
 	if checkResult.Role == role.InfraProvider {
+		_, err = safe.StateGetByID[*infra.Provider](actor.MarkContextAsInternalActor(ctx), st, checkResult.InfraProviderID)
+		if err != nil {
+			if state.IsNotFoundError(err) {
+				return accessCheckResult{}, status.Errorf(
+					codes.PermissionDenied,
+					"infra provider with name %q is not registered in the system",
+					checkResult.InfraProviderID,
+				)
+			}
+
+			return accessCheckResult{}, err
+		}
+
 		var checkLabel bool
 
 		checkLabel, err = st.checkNamespaceAndType(ns, checkResult.InfraProviderID, resType)
@@ -329,7 +343,7 @@ func (st *State) checkAccess(ctx context.Context, ns resource.Namespace, resType
 
 	// not an infra provider, run regular user checks
 
-	if !isReadAccess && resType != infra.InfraProviderStatusType { // not an infra provider, check for the read-only access
+	if !isReadAccess && resType != infra.ProviderType { // not an infra provider, check for the read-only access
 		return accessCheckResult{}, status.Errorf(codes.PermissionDenied, "users are not allowed to modify %q resources", resType)
 	}
 
@@ -480,6 +494,10 @@ func getResourceConfig(ns resource.Namespace, resType resource.Type) (config res
 		return resourceConfig{
 			ephemeral: ns == resources.InfraProviderEphemeralNamespace,
 			checkID:   true,
+		}, true
+	case infra.ProviderType:
+		return resourceConfig{
+			checkID: true,
 		}, true
 	case infra.ConfigPatchRequestType:
 		return resourceConfig{}, true

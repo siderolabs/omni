@@ -76,6 +76,11 @@ const iconData = computed((): { iconColor?: string, iconTypeValue?: IconType } =
           iconTypeValue: "check-in-circle-classic",
           iconColor: "#69C297",
         };
+      case TCommonStatuses.DISCONNECTED:
+        return {
+          iconTypeValue: "warning",
+          iconColor: red.R1,
+        };
       case TCommonStatuses.PROVISIONED:
         return {
           iconTypeValue: "time",
@@ -185,6 +190,11 @@ const iconData = computed((): { iconColor?: string, iconTypeValue?: IconType } =
         return {
           iconTypeValue: "time",
           iconColor: "#FFB200",
+        };
+      case TCommonStatuses.AWAITING_CONNECTION:
+        return {
+          iconTypeValue: "question",
+          iconColor: "#7D7D85",
         };
       default:
         return {

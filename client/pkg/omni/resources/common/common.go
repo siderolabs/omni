@@ -9,6 +9,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -31,4 +32,5 @@ var UserManagedResourceTypes = []resource.Type{
 	omni.InfraMachineBMCConfigType,
 	omni.InfraMachineConfigType,
 	omni.NodeForceDestroyRequestType,
+	infra.ProviderType,
 }

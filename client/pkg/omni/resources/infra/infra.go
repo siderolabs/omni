@@ -12,6 +12,7 @@ func init() {
 	registry.MustRegisterResource(MachineRequestStatusType, &MachineRequestStatus{})
 	registry.MustRegisterResource(InfraMachineType, &Machine{})
 	registry.MustRegisterResource(InfraMachineStatusType, &MachineStatus{})
+	registry.MustRegisterResource(ProviderType, &Provider{})
 	registry.MustRegisterResource(InfraProviderStatusType, &ProviderStatus{})
 	registry.MustRegisterResource(ConfigPatchRequestType, &ConfigPatchRequest{})
 	registry.MustRegisterResource(InfraProviderHealthStatusType, &ProviderHealthStatus{})

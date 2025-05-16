@@ -127,19 +127,22 @@ func MapID[I, O generic.ResourceWithRD](idGetter func(I) resource.ID, blockIfOwn
 	}
 }
 
-// CustomHandler is a cleanup handler that removes output resource that has the ID extracted from the resource by the custom fiunction.
+// CustomHandler is a cleanup handler that removes output resource that has the ID extracted from the resource by the custom function.
 //
 // It defines the input resource with the given InputKind, and skips the removal if the output resource is not owned by the given owner.
 type CustomHandler[I, O generic.ResourceWithRD] struct {
-	handler   func(ctx context.Context, r controller.Runtime, input I, owner string) error
-	Owner     string
-	InputKind controller.InputKind
-	noOutputs bool
+	handler      func(ctx context.Context, r controller.Runtime, input I, owner string) error
+	Owner        string
+	extraOutputs []controller.Output
+	InputKind    controller.InputKind
+	noOutputs    bool
 }
 
 // NewCustomHandler creates a new custom cleanup handler.
-func NewCustomHandler[I, O generic.ResourceWithRD](handler func(ctx context.Context, r controller.Runtime, input I, owner string) error, noOutputs bool) *CustomHandler[I, O] {
-	return &CustomHandler[I, O]{handler: handler, noOutputs: noOutputs}
+func NewCustomHandler[I, O generic.ResourceWithRD](handler func(ctx context.Context, r controller.Runtime, input I, owner string) error, noOutputs bool,
+	extraOutputs ...controller.Output,
+) *CustomHandler[I, O] {
+	return &CustomHandler[I, O]{handler: handler, noOutputs: noOutputs, extraOutputs: extraOutputs}
 }
 
 // FinalizerRemoval implements cleanup.Handler.
@@ -166,10 +169,10 @@ func (h *CustomHandler[I, O]) Outputs() []controller.Output {
 
 	var zeroOut O
 
-	return []controller.Output{
-		{
+	return append(h.extraOutputs,
+		controller.Output{
 			Type: zeroOut.ResourceDefinition().Type,
 			Kind: controller.OutputShared,
 		},
-	}
+	)
 }

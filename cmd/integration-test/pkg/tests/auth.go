@@ -998,6 +998,11 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource:       omni.NewDiscoveryAffiliateDeleteTask(uuid.NewString()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
+			{
+				resource:       authres.NewServiceAccountStatus(uuid.NewString()),
+				allowedVerbSet: readOnlyVerbSet,
+				isAdminOnly:    true,
+			},
 		}...)
 
 		// no access resources
