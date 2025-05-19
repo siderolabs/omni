@@ -8,9 +8,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	"unicode"
 
-	"github.com/blang/semver"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/hashicorp/go-multierror"
 	"github.com/siderolabs/gen/pair"
@@ -83,66 +81,28 @@ type TalosCluster struct {
 func (cluster *Cluster) Validate() error {
 	var multiErr error
 
-	if cluster.Name == "" {
-		multiErr = multierror.Append(multiErr, fmt.Errorf("name is required"))
+	validator := omni.ClusterValidator{
+		ID:                                cluster.Name,
+		KubernetesVersion:                 cluster.Kubernetes.Version,
+		TalosVersion:                      cluster.Talos.Version,
+		EncryptionEnabled:                 cluster.Features.DiskEncryption,
+		RequireVPrefixOnTalosVersionCheck: true,
 	}
 
-	for _, c := range cluster.Name {
-		if !unicode.IsDigit(c) && !unicode.IsLetter(c) && c != '-' && c != '_' {
-			multiErr = multierror.Append(multiErr, fmt.Errorf("name should only contain letters, digits, dashes and underscores"))
-
-			break
-		}
+	if err := validator.Validate(); err != nil {
+		multiErr = multierror.Append(multiErr, err)
 	}
 
 	if err := cluster.Descriptors.Validate(); err != nil {
 		multiErr = multierror.Append(multiErr, err)
 	}
 
-	multiErr = joinErrors(multiErr, cluster.Kubernetes.Validate(), cluster.Talos.Validate(), cluster.Patches.Validate())
+	if err := cluster.Patches.Validate(); err != nil {
+		multiErr = multierror.Append(multiErr, err)
+	}
 
 	if multiErr != nil {
 		return fmt.Errorf("error validating cluster %q: %w", cluster.Name, multiErr)
-	}
-
-	return nil
-}
-
-// Validate the model.
-func (kubernetes *KubernetesCluster) Validate() error {
-	var multiErr error
-
-	if kubernetes.Version == "" {
-		multiErr = multierror.Append(multiErr, fmt.Errorf("version is required"))
-	} else if _, err := semver.ParseTolerant(kubernetes.Version); err != nil {
-		multiErr = multierror.Append(multiErr, fmt.Errorf("version should be in semver format: %w", err))
-	}
-
-	if multiErr != nil {
-		return fmt.Errorf("error validating Kubernetes version: %w", multiErr)
-	}
-
-	return nil
-}
-
-// Validate the model.
-func (talos *TalosCluster) Validate() error {
-	var multiErr error
-
-	if talos.Version == "" {
-		multiErr = multierror.Append(multiErr, fmt.Errorf("version is required"))
-	} else {
-		if _, err := semver.ParseTolerant(talos.Version); err != nil {
-			multiErr = multierror.Append(multiErr, fmt.Errorf("version should be in semver format: %w", err))
-		}
-
-		if !strings.HasPrefix(talos.Version, "v") {
-			multiErr = multierror.Append(multiErr, fmt.Errorf("version should start with 'v'"))
-		}
-	}
-
-	if multiErr != nil {
-		return fmt.Errorf("error validating Talos version: %w", multiErr)
 	}
 
 	return nil

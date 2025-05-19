@@ -80,29 +80,6 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 		return fmt.Errorf("invalid kubernetes version %q: is not compatible with talos version %q", res.TypedSpec().Value.KubernetesVersion, res.TypedSpec().Value.TalosVersion)
 	}
 
-	encryptionSupport := semver.MustParse("1.5.0")
-
-	validateEncryption := func(res *omni.Cluster) error {
-		if !omni.GetEncryptionEnabled(res) {
-			return nil
-		}
-
-		var (
-			version semver.Version
-			err     error
-		)
-
-		if version, err = semver.ParseTolerant(res.TypedSpec().Value.TalosVersion); err != nil {
-			return err
-		}
-
-		if version.Compare(encryptionSupport) < 0 {
-			return errors.New("disk encryption is supported only for Talos version >= 1.5.0")
-		}
-
-		return nil
-	}
-
 	validateBackupInterval := func(res *omni.Cluster) error {
 		if conf := res.TypedSpec().Value.GetBackupConfiguration(); conf != nil {
 			switch conf := conf.GetInterval().AsDuration(); {
@@ -144,7 +121,14 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 		validated.WithCreateValidations(validated.NewCreateValidationForType(func(ctx context.Context, res *omni.Cluster, _ ...state.CreateOption) error {
 			var multiErr error
 
-			if err := validateEncryption(res); err != nil {
+			validator := omni.ClusterValidator{
+				ID:                res.Metadata().ID(),
+				KubernetesVersion: res.TypedSpec().Value.KubernetesVersion,
+				TalosVersion:      res.TypedSpec().Value.TalosVersion,
+				EncryptionEnabled: omni.GetEncryptionEnabled(res),
+			}
+
+			if err := validator.Validate(); err != nil {
 				multiErr = multierror.Append(multiErr, err)
 			}
 
@@ -172,8 +156,23 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 
 			skipTalosVersion := existingRes.TypedSpec().Value.TalosVersion == newRes.TypedSpec().Value.TalosVersion
 			skipKubernetesVersion := existingRes.TypedSpec().Value.KubernetesVersion == newRes.TypedSpec().Value.KubernetesVersion
+			encryptionEnabled := omni.GetEncryptionEnabled(newRes)
 
-			if omni.GetEncryptionEnabled(existingRes) != omni.GetEncryptionEnabled(newRes) {
+			validator := omni.ClusterValidator{
+				ID:                         newRes.Metadata().ID(),
+				SkipClusterIDCheck:         true,
+				KubernetesVersion:          newRes.TypedSpec().Value.KubernetesVersion,
+				TalosVersion:               newRes.TypedSpec().Value.TalosVersion,
+				EncryptionEnabled:          encryptionEnabled,
+				SkipTalosVersionCheck:      skipTalosVersion,
+				SkipKubernetesVersionCheck: skipKubernetesVersion,
+			}
+
+			if err := validator.Validate(); err != nil {
+				multiErr = multierror.Append(multiErr, err)
+			}
+
+			if omni.GetEncryptionEnabled(existingRes) != encryptionEnabled {
 				multiErr = multierror.Append(multiErr, errors.New("updating disk encryption settings is not allowed"))
 			}
 

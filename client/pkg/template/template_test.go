@@ -233,7 +233,11 @@ machine:
 		{
 			name: "clusterInvalid4",
 			data: clusterInvalid4,
-			expectedError: `1 error occurred:
+			expectedError: `2 errors occurred:
+	* error validating cluster "my-first-cluster": 1 error occurred:
+	* disk encryption is supported only for Talos version >= 1.5.0
+
+
 	* workers is invalid: 1 error occurred:
 	* machine set can not have both machines and machine class defined`,
 		},
