@@ -190,6 +190,14 @@ message ValidateJsonSchemaResponse {
   repeated Error errors = 1;
 }
 
+message MaintenanceUpgradeRequest {
+  string machine_id = 1;
+  string version = 2;
+}
+
+message MaintenanceUpgradeResponse {
+}
+
 service ManagementService {
   rpc Kubeconfig(KubeconfigRequest) returns (KubeconfigResponse);
   rpc Talosconfig(TalosconfigRequest) returns (TalosconfigResponse);
@@ -206,4 +214,5 @@ service ManagementService {
   rpc CreateSchematic(CreateSchematicRequest) returns (CreateSchematicResponse);
   rpc GetSupportBundle(GetSupportBundleRequest) returns (stream GetSupportBundleResponse);
   rpc ReadAuditLog(ReadAuditLogRequest) returns (stream ReadAuditLogResponse);
+  rpc MaintenanceUpgrade(MaintenanceUpgradeRequest) returns (MaintenanceUpgradeResponse);
 }

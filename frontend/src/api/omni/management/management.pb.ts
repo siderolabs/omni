@@ -177,6 +177,14 @@ export type ValidateJsonSchemaResponse = {
   errors?: ValidateJsonSchemaResponseError[]
 }
 
+export type MaintenanceUpgradeRequest = {
+  machine_id?: string
+  version?: string
+}
+
+export type MaintenanceUpgradeResponse = {
+}
+
 export class ManagementService {
   static Kubeconfig(req: KubeconfigRequest, ...options: fm.fetchOption[]): Promise<KubeconfigResponse> {
     return fm.fetchReq<KubeconfigRequest, KubeconfigResponse>("POST", `/management.ManagementService/Kubeconfig`, req, ...options)
@@ -222,5 +230,8 @@ export class ManagementService {
   }
   static ReadAuditLog(req: ReadAuditLogRequest, entityNotifier?: fm.NotifyStreamEntityArrival<ReadAuditLogResponse>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<ReadAuditLogRequest, ReadAuditLogResponse>("POST", `/management.ManagementService/ReadAuditLog`, req, entityNotifier, ...options)
+  }
+  static MaintenanceUpgrade(req: MaintenanceUpgradeRequest, ...options: fm.fetchOption[]): Promise<MaintenanceUpgradeResponse> {
+    return fm.fetchReq<MaintenanceUpgradeRequest, MaintenanceUpgradeResponse>("POST", `/management.ManagementService/MaintenanceUpgrade`, req, ...options)
   }
 }

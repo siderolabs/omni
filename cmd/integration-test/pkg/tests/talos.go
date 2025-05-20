@@ -729,16 +729,20 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 	talosAPIKeyPrepare TalosAPIKeyPrepareFunc,
 ) TestFunc {
 	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, 900*time.Second)
+		ctx, cancel := context.WithTimeout(testCtx, 15*time.Minute)
 		defer cancel()
 
 		require := require.New(t)
+
+		require.NotEqual(talosVersion1, talosVersion2, "versions should be different")
+
+		t.Logf("test maintenance upgrade flow from version %q to %q", talosVersion1, talosVersion2)
 
 		st := rootClient.Omni().State()
 
 		var allocatedMachineIDs []resource.ID
 
-		t.Logf("creating a cluster on version %s", talosVersion1)
+		t.Logf("creating a cluster on version %q", talosVersion1)
 
 		pickUnallocatedMachines(ctx, t, st, 1, func(machineIDs []resource.ID) {
 			allocatedMachineIDs = machineIDs
@@ -749,7 +753,7 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 
 			require.NoError(st.Create(ctx, cluster))
 
-			t.Logf("Adding machine '%s' to control plane (cluster %q, version %s)", machineIDs[0], clusterName, talosVersion2)
+			t.Logf("Adding machine %q to control plane (cluster %q, version %q)", machineIDs[0], clusterName, talosVersion1)
 			bindMachine(ctx, t, st, bindMachineOptions{
 				clusterName: clusterName,
 				role:        omni.LabelControlPlaneRole,
@@ -768,14 +772,20 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 			})
 		})
 
-		// wait for initial cluster on talosVersion1 to be ready
-		AssertClusterStatusReady(testCtx, st, clusterName)(t)
-		AssertTalosVersion(testCtx, rootClient, clusterName, talosVersion2, talosAPIKeyPrepare)
+		assertClusterReady := func(expectedVersion string) {
+			AssertClusterMachinesStage(ctx, rootClient.Omni().State(), clusterName, specs.ClusterMachineStatusSpec_RUNNING)(t)
+			AssertClusterMachinesReady(ctx, rootClient.Omni().State(), clusterName)(t)
+			AssertClusterStatusReady(ctx, st, clusterName)(t)
+			AssertTalosVersion(ctx, rootClient, clusterName, expectedVersion, talosAPIKeyPrepare)
+		}
+
+		// wait for the initial cluster on talosVersion1 to be ready
+		assertClusterReady(talosVersion1)
 
 		// destroy the cluster
-		AssertDestroyCluster(testCtx, st, clusterName, false, false)(t)
+		AssertDestroyCluster(ctx, st, clusterName, false, false)(t)
 
-		t.Logf("creating a cluster on version %s using same machines", talosVersion2)
+		t.Logf("creating a cluster on version %q using same machines", talosVersion2)
 
 		// re-create the cluster on talosVersion2
 		cluster := omni.NewCluster(resources.DefaultNamespace, clusterName)
@@ -784,7 +794,7 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 
 		require.NoError(st.Create(ctx, cluster))
 
-		t.Logf("Adding machine '%s' to control plane (cluster %q, version %s)", allocatedMachineIDs[0], clusterName, talosVersion2)
+		t.Logf("Adding machine %q to control plane (cluster %q, version %q)", allocatedMachineIDs[0], clusterName, talosVersion2)
 		bindMachine(ctx, t, st, bindMachineOptions{
 			clusterName: clusterName,
 			role:        omni.LabelControlPlaneRole,
@@ -792,10 +802,9 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 		})
 
 		// wait for cluster on talosVersion2 to be ready
-		AssertClusterStatusReady(testCtx, st, clusterName)(t)
-		AssertTalosVersion(testCtx, rootClient, clusterName, talosVersion2, talosAPIKeyPrepare)
+		assertClusterReady(talosVersion2)
 
-		AssertDestroyCluster(testCtx, st, clusterName, false, false)(t)
+		AssertDestroyCluster(ctx, st, clusterName, false, false)(t)
 	}
 }
 

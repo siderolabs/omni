@@ -8,6 +8,7 @@ package grpc
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -25,6 +26,7 @@ import (
 	"github.com/siderolabs/go-kubernetes/kubernetes/manifests"
 	"github.com/siderolabs/go-kubernetes/kubernetes/upgrade"
 	"github.com/siderolabs/talos/pkg/machinery/api/common"
+	"github.com/siderolabs/talos/pkg/machinery/client"
 	"github.com/zitadel/oidc/v3/pkg/op"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -44,6 +46,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
+	"github.com/siderolabs/omni/internal/backend/installimage"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
@@ -72,15 +75,8 @@ type JWTSigningKeyProvider interface {
 	SigningKey(ctx context.Context) (op.SigningKey, error)
 }
 
-func newManagementServer(
-	omniState state.State,
-	jwtSigningKeyProvider JWTSigningKeyProvider,
-	logHandler *siderolink.LogHandler,
-	logger *zap.Logger,
-	dnsService *dns.Service,
-	imageFactoryClient *imagefactory.Client,
-	auditor AuditLogger,
-	omniconfigDest string,
+func newManagementServer(omniState state.State, jwtSigningKeyProvider JWTSigningKeyProvider, logHandler *siderolink.LogHandler, logger *zap.Logger,
+	dnsService *dns.Service, imageFactoryClient *imagefactory.Client, auditor AuditLogger, omniconfigDest string,
 ) *managementServer {
 	return &managementServer{
 		omniState:             omniState,
@@ -674,6 +670,68 @@ func (s *managementServer) ReadAuditLog(req *management.ReadAuditLogRequest, srv
 	}
 
 	return closeFn()
+}
+
+// MaintenanceUpgrade performs a maintenance upgrade on a specified machine.
+func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *management.MaintenanceUpgradeRequest) (*management.MaintenanceUpgradeResponse, error) {
+	s.logger.Info("maintenance upgrade request received", zap.String("machine_id", req.MachineId), zap.String("version", req.Version))
+
+	if _, err := s.authCheckGRPC(ctx, auth.WithRole(role.Operator)); err != nil {
+		return nil, err
+	}
+
+	if req.MachineId == "" {
+		return nil, status.Error(codes.InvalidArgument, "machine id is required")
+	}
+
+	ctx = actor.MarkContextAsInternalActor(ctx)
+
+	machineStatus, err := safe.StateGetByID[*omnires.MachineStatus](ctx, s.omniState, req.MachineId)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil, status.Error(codes.NotFound, "machine not found")
+		}
+
+		return nil, fmt.Errorf("failed to get machine status: %w", err)
+	}
+
+	if !machineStatus.TypedSpec().Value.Maintenance {
+		return nil, status.Error(codes.FailedPrecondition, "machine is not in maintenance mode")
+	}
+
+	machineConfigGenOptions, err := safe.ReaderGetByID[*omnires.MachineConfigGenOptions](ctx, s.omniState, req.MachineId)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil, status.Error(codes.NotFound, "machine config gen options not found")
+		}
+
+		return nil, fmt.Errorf("failed to get machine config gen options: %w", err)
+	}
+
+	installImage := machineConfigGenOptions.TypedSpec().Value.InstallImage
+	installImage.TalosVersion = req.Version
+
+	installImageStr, err := installimage.Build(s.imageFactoryClient.Host(), req.MachineId, installImage)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build install image: %w", err)
+	}
+
+	s.logger.Info("built maintenance upgrade image", zap.String("image", installImageStr))
+
+	address := machineStatus.TypedSpec().Value.ManagementAddress
+	opts := talos.GetSocketOptions(address)
+	opts = append(opts, client.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}), client.WithEndpoints(address))
+
+	talosClient, err := client.New(ctx, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create talos client: %w", err)
+	}
+
+	if _, err = talosClient.UpgradeWithOptions(ctx, client.WithUpgradeImage(installImageStr)); err != nil {
+		return nil, fmt.Errorf("failed to upgrade machine: %w", err)
+	}
+
+	return &management.MaintenanceUpgradeResponse{}, nil
 }
 
 func parseTime(date string, fallback time.Time) (time.Time, error) {

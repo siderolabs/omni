@@ -54,8 +54,8 @@ import { MachineStatusSpec, TalosVersionSpec } from "@/api/omni/specs/omni.pb";
 import { Resource } from "@/api/grpc";
 import ManagedByTemplatesWarning from "@/views/cluster/ManagedByTemplatesWarning.vue";
 import Watch from "@/api/watch";
-import { updateTalosMaintenance } from "@/methods/machine";
 import { showError, showSuccess } from "@/notification";
+import { ManagementService } from "@/api/omni/management/management.pb";
 
 const router = useRouter();
 const route = useRoute();
@@ -141,12 +141,13 @@ const upgradeClick = async () =>  {
     return;
   }
 
-  const platform = machine.value?.spec?.platform_metadata?.platform;
-
   updating.value = true;
 
   try {
-    await updateTalosMaintenance(route.query.machine as string, selectedVersion.value, platform, machine.value?.spec.schematic?.id);
+    await ManagementService.MaintenanceUpgrade({
+      machine_id: route.query.machine as string,
+      version: selectedVersion.value,
+    })
   } catch (e) {
     showError("Failed to Do Maintenance Update", e.message)
 

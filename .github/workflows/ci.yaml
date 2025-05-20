@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-02-18T13:59:57Z by kres 8a48729.
+# Generated on 2025-05-22T17:54:46Z by kres 9f64b0d.
 
 name: default
 concurrency:
@@ -174,7 +174,7 @@ jobs:
           INTEGRATION_RUN_E2E_TEST: "true"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|Auth/|DefaultCluster/|CLICommands/
           RUN_TALEMU_TESTS: "true"
-          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceUpgrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
@@ -205,15 +205,15 @@ jobs:
             !_out/etcd
             !_out/secondary-storage/**
           retention-days: "5"
-      - name: save-talos-logs-artifacts
+      - name: save-integration-test-artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: talos-logs
+          name: integration-test
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/test-logs
+            /tmp/integration-test
           retention-days: "5"
       - name: Generate Checksums
         if: startsWith(github.ref, 'refs/tags/')
@@ -299,19 +299,19 @@ jobs:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|EtcdBackupAndRestore
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceUpgrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
-      - name: save-talos-logs-artifacts
+      - name: save-integration-test-artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: talos-logs-e2e-backups
+          name: integration-test-e2e-backups
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/test-logs
+            /tmp/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-forced-removal:
@@ -378,19 +378,19 @@ jobs:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|ForcedMachineRemoval/|ReplaceControlPlanes/|ConfigPatching/|KubernetesNodeAudit/
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceUpgrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
-      - name: save-talos-logs-artifacts
+      - name: save-integration-test-artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: talos-logs-e2e-forced-removal
+          name: integration-test-e2e-forced-removal
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/test-logs
+            /tmp/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-scaling:
@@ -457,19 +457,19 @@ jobs:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|RollingUpdateParallelism
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceUpgrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
-      - name: save-talos-logs-artifacts
+      - name: save-integration-test-artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: talos-logs-e2e-scaling
+          name: integration-test-e2e-scaling
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/test-logs
+            /tmp/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-short:
@@ -536,19 +536,19 @@ jobs:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|TalosImageGeneration/|ImmediateClusterDestruction/|DefaultCluster/|EncryptedCluster/|SinglenodeCluster/|Auth/
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceUpgrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
-      - name: save-talos-logs-artifacts
+      - name: save-integration-test-artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: talos-logs-e2e-short
+          name: integration-test-e2e-short
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/test-logs
+            /tmp/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-short-secureboot:
@@ -616,19 +616,19 @@ jobs:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|TalosImageGeneration/|ImmediateClusterDestruction/|DefaultCluster/|EncryptedCluster/|SinglenodeCluster/|Auth/
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceUpgrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
-      - name: save-talos-logs-artifacts
+      - name: save-integration-test-artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: talos-logs-e2e-short-secureboot
+          name: integration-test-e2e-short-secureboot
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/test-logs
+            /tmp/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-templates:
@@ -695,19 +695,19 @@ jobs:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|ClusterTemplate/
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceUpgrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
-      - name: save-talos-logs-artifacts
+      - name: save-integration-test-artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: talos-logs-e2e-templates
+          name: integration-test-e2e-templates
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/test-logs
+            /tmp/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-upgrades:
@@ -772,21 +772,21 @@ jobs:
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: --test.run CleanState/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/
+          INTEGRATION_TEST_ARGS: --test.run CleanState/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceUpgrade/
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceUpgrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
-      - name: save-talos-logs-artifacts
+      - name: save-integration-test-artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: talos-logs-e2e-upgrades
+          name: integration-test-e2e-upgrades
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/test-logs
+            /tmp/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-workload-proxy:
@@ -853,18 +853,18 @@ jobs:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|WorkloadProxy
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceUpgrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
-      - name: save-talos-logs-artifacts
+      - name: save-integration-test-artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: talos-logs-e2e-workload-proxy
+          name: integration-test-e2e-workload-proxy
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/test-logs
+            /tmp/integration-test
           retention-days: "5"
         continue-on-error: true

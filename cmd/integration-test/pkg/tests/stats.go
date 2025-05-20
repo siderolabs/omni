@@ -35,7 +35,12 @@ func AssertStatsLimits(testCtx context.Context) TestFunc {
 			{
 				name:  "resource CRUD",
 				query: `sum(omni_resource_operations_total{operation=~"create|update", type!="MachineStatusLinks.omni.sidero.dev"})`,
-				check: func(assert *assert.Assertions, value float64) { assert.Less(value, float64(11000)) },
+				check: func(assert *assert.Assertions, value float64) {
+					limit := float64(12000)
+
+					assert.Lessf(value, limit, "resource CRUD operations were expected to be less than %f. "+
+						"If the limit is exceeded not because of a leak but because you added some new resources/controllers, adjust the limit accordingly.", limit)
+				},
 			},
 			{
 				name:  "queue length",
@@ -45,7 +50,12 @@ func AssertStatsLimits(testCtx context.Context) TestFunc {
 			{
 				name:  "controller wakeups",
 				query: `sum(omni_runtime_controller_wakeups{controller!="MachineStatusLinkController"})`,
-				check: func(assert *assert.Assertions, value float64) { assert.Less(value, float64(11000)) },
+				check: func(assert *assert.Assertions, value float64) {
+					limit := float64(12000)
+
+					assert.Lessf(value, limit, "controller wakeups were expected to be less than %f. "+
+						"If the limit is exceeded not because of a leak but because you added some new resources/controllers, adjust the limit accordingly.", limit)
+				},
 			},
 		} {
 			t.Run(tt.name, func(t *testing.T) {

@@ -72,6 +72,7 @@ type Options struct {
 	OmnictlPath              string
 	ScalingTimeout           time.Duration
 	StaticInfraProvider      string
+	OutputDir                string
 }
 
 func (o Options) defaultInfraProvider() string {
@@ -250,7 +251,7 @@ Verify various omnictl commands.`,
 					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-k8s-node-audit", false, false),
 				},
 			),
-			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-k8s-node-audit"),
+			Finalizer: DestroyCluster(ctx, rootClient, options.OutputDir, "integration-k8s-node-audit"),
 		},
 		{
 			Name: "ForcedMachineRemoval",
@@ -310,7 +311,7 @@ In the tests, we wipe and reboot the VMs to bring them back as available for the
 					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-forced-removal", false, false),
 				},
 			),
-			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-forced-removal"),
+			Finalizer: DestroyCluster(ctx, rootClient, options.OutputDir, "integration-forced-removal"),
 		},
 		{
 			Name: "ImmediateClusterDestruction",
@@ -337,7 +338,7 @@ Regression test: create a cluster and destroy it without waiting for the cluster
 					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-immediate", false, false),
 				},
 			),
-			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-immediate"),
+			Finalizer: DestroyCluster(ctx, rootClient, options.OutputDir, "integration-immediate"),
 		},
 		TestGroupClusterCreateAndReady(
 			ctx,
@@ -353,6 +354,7 @@ Don't do any changes to the cluster.`,
 
 				MachineOptions: options.MachineOptions,
 			},
+			options.OutputDir,
 		),
 		TestGroupClusterCreateAndReady(
 			ctx,
@@ -371,6 +373,7 @@ Don't do any changes to the cluster.`,
 					DiskEncryption: true,
 				},
 			},
+			options.OutputDir,
 		),
 		TestGroupClusterCreateAndReady(
 			ctx,
@@ -386,6 +389,7 @@ Don't do any changes to the cluster.`,
 
 				MachineOptions: options.MachineOptions,
 			},
+			options.OutputDir,
 		),
 		{
 			Name: "ScaleUpAndDown",
@@ -505,7 +509,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling", false, false),
 				},
 			),
-			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling"),
+			Finalizer: DestroyCluster(ctx, rootClient, options.OutputDir, "integration-scaling"),
 		},
 		{
 			Name: "ScaleUpAndDownMachineClassBasedMachineSets",
@@ -625,7 +629,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-machine-class-based-machine-sets", false, false),
 				},
 			),
-			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-machine-class-based-machine-sets"),
+			Finalizer: DestroyCluster(ctx, rootClient, options.OutputDir, "integration-scaling-machine-class-based-machine-sets"),
 		},
 		{
 			Name: "ScaleUpAndDownAutoProvisionMachineSets",
@@ -752,7 +756,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-auto-provision", true, false),
 				},
 			),
-			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-scaling-auto-provision"),
+			Finalizer: DestroyCluster(ctx, rootClient, options.OutputDir, "integration-scaling-auto-provision"),
 		},
 		{
 			Name: "RollingUpdateParallelism",
@@ -801,7 +805,7 @@ Tests rolling update & scale down strategies for concurrency control for worker 
 					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-rolling-update-parallelism", false, false),
 				},
 			),
-			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-rolling-update-parallelism"),
+			Finalizer: DestroyCluster(ctx, rootClient, options.OutputDir, "integration-rolling-update-parallelism"),
 		},
 		{
 			Name: "ReplaceControlPlanes",
@@ -859,7 +863,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-replace-cp", false, false),
 				},
 			),
-			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-replace-cp"),
+			Finalizer: DestroyCluster(ctx, rootClient, options.OutputDir, "integration-replace-cp"),
 		},
 		{
 			Name: "ConfigPatching",
@@ -951,7 +955,7 @@ Tests applying various config patching, including "broken" config patches which 
 					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-config-patching", false, false),
 				},
 			),
-			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-config-patching"),
+			Finalizer: DestroyCluster(ctx, rootClient, options.OutputDir, "integration-config-patching"),
 		},
 		{
 			Name: "TalosUpgrades",
@@ -1055,7 +1059,7 @@ Tests upgrading Talos version, including reverting a failed upgrade.`,
 					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-talos-upgrade", false, false),
 				},
 			),
-			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-talos-upgrade"),
+			Finalizer: DestroyCluster(ctx, rootClient, options.OutputDir, "integration-talos-upgrade"),
 		},
 		{
 			Name: "KubernetesUpgrades",
@@ -1124,7 +1128,7 @@ Tests upgrading Kubernetes version, including reverting a failed upgrade.`,
 					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-k8s-upgrade", false, false),
 				},
 			),
-			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-k8s-upgrade"),
+			Finalizer: DestroyCluster(ctx, rootClient, options.OutputDir, "integration-k8s-upgrade"),
 		},
 		{
 			Name: "EtcdBackupAndRestore",
@@ -1210,8 +1214,8 @@ Finally, a completely new cluster is created using the same backup to test the "
 				},
 			),
 			Finalizer: func(t *testing.T) {
-				DestroyCluster(ctx, rootClient.Omni().State(), "integration-etcd-backup")(t)
-				DestroyCluster(ctx, rootClient.Omni().State(), "integration-etcd-backup-new-cluster")(t)
+				DestroyCluster(ctx, rootClient, options.OutputDir, "integration-etcd-backup")(t)
+				DestroyCluster(ctx, rootClient, options.OutputDir, "integration-etcd-backup-new-cluster")(t)
 			},
 		},
 		{
@@ -1237,7 +1241,7 @@ Finally, a completely new cluster is created using the same backup to test the "
 					),
 				},
 			),
-			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-maintenance-upgrade"),
+			Finalizer: DestroyCluster(ctx, rootClient, options.OutputDir, "integration-maintenance-upgrade"),
 		},
 		{
 			Name: "Auth",
@@ -1319,7 +1323,7 @@ Test authorization on accessing Omni API, some tests run without a cluster, some
 					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-auth", false, false),
 				},
 			),
-			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-auth"),
+			Finalizer: DestroyCluster(ctx, rootClient, options.OutputDir, "integration-auth"),
 		},
 		{
 			Name: "ClusterTemplate",
@@ -1333,7 +1337,7 @@ Test flow of cluster creation and scaling using cluster templates.`,
 					AssertClusterTemplateFlow(ctx, rootClient.Omni().State(), options.MachineOptions),
 				},
 			},
-			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "tmpl-cluster"),
+			Finalizer: DestroyCluster(ctx, rootClient, options.OutputDir, "tmpl-cluster"),
 		},
 		{
 			Name:         "WorkloadProxy",
@@ -1378,7 +1382,7 @@ Test flow of cluster creation and scaling using cluster templates.`,
 					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-workload-proxy", false, false),
 				},
 			),
-			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-workload-proxy"),
+			Finalizer: DestroyCluster(ctx, rootClient, options.OutputDir, "integration-workload-proxy"),
 		},
 		{
 			Name: "StaticInfraProvider",
@@ -1499,7 +1503,7 @@ Note: this test expects all machines to be provisioned by the bare-metal infra p
 					AssertDestroyCluster(ctx, rootClient.Omni().State(), "integration-static-infra-provider", false, true),
 				},
 			),
-			Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), "integration-static-infra-provider"),
+			Finalizer: DestroyCluster(ctx, rootClient, options.OutputDir, "integration-static-infra-provider"),
 		},
 	}
 

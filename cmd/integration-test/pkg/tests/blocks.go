@@ -237,6 +237,7 @@ func TestGroupClusterCreateAndReady(
 	talosAPIKeyPrepare TalosAPIKeyPrepareFunc,
 	name, description string,
 	options ClusterOptions,
+	testOutputDir string,
 ) testGroup { //nolint:nolintlint,revive
 	clusterName := "integration-" + name
 	options.Name = clusterName
@@ -264,6 +265,6 @@ func TestGroupClusterCreateAndReady(
 				AssertDestroyCluster(ctx, rootClient.Omni().State(), clusterName, options.InfraProvider != "", false),
 			},
 		),
-		Finalizer: DestroyCluster(ctx, rootClient.Omni().State(), clusterName),
+		Finalizer: DestroyCluster(ctx, rootClient, testOutputDir, clusterName),
 	}
 }

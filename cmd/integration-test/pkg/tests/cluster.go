@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand/v2"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -517,10 +518,16 @@ func AssertClusterKubernetesUsage(testCtx context.Context, st state.State, clust
 // DestroyCluster destroys a cluster and waits for it to be destroyed.
 //
 // It is used as a finalizer when the test group fails.
-func DestroyCluster(testCtx context.Context, st state.State, clusterName string) TestFunc {
+func DestroyCluster(testCtx context.Context, client *client.Client, supportBundleDir, clusterName string) TestFunc {
 	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, 300*time.Second)
+		ctx, cancel := context.WithTimeout(testCtx, 6*time.Minute)
 		defer cancel()
+
+		st := client.Omni().State()
+
+		if err := saveSupportBundle(ctx, client, supportBundleDir, clusterName); err != nil {
+			t.Logf("failed to save support bundle: %v", err)
+		}
 
 		clusterMachineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, st, state.WithLabelQuery(
 			resource.LabelEqual(omni.LabelCluster, clusterName),
@@ -553,6 +560,23 @@ func DestroyCluster(testCtx context.Context, st state.State, clusterName string)
 
 		rtestutils.Destroy[*omni.MachineClass](ctx, t, st, []string{clusterName})
 	}
+}
+
+func saveSupportBundle(ctx context.Context, cli *client.Client, dir, cluster string) error {
+	supportBundle, err := cli.Management().GetSupportBundle(ctx, cluster, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get support bundle before destruction for cluster %q: %w", cluster, err)
+	}
+
+	if err = os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("failed to create directory %q: %w", dir, err)
+	}
+
+	if err = os.WriteFile("support-bundle-"+cluster+".zip", supportBundle, 0o644); err != nil {
+		return fmt.Errorf("failed to write support bundle file %q: %w", cluster, err)
+	}
+
+	return nil
 }
 
 // AssertDestroyCluster destroys a cluster and verifies that all dependent resources are gone.

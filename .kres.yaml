@@ -176,19 +176,19 @@ spec:
       extraPaths:
         - "!_out/etcd"
         - "!_out/secondary-storage/**"
-      additional:
-        - name: talos-logs
+      additional: # save the integration test artifacts: Talos logs, support bundles, etc.
+        - name: integration-test
           always: true
           continueOnError: true
           paths:
             - "~/.talos/clusters/**/*.log"
             - "!~/.talos/clusters/**/swtpm.log"
-            - "/tmp/test-logs"
+            - "/tmp/integration-test"
     environment:
       WITH_DEBUG: "true"
       INTEGRATION_RUN_E2E_TEST: "true"
       INTEGRATION_TEST_ARGS: "--test.run CleanState/|Auth/|DefaultCluster/|CLICommands/"
-      TALEMU_TEST_ARGS: "--test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/"
+      TALEMU_TEST_ARGS: "--test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceUpgrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/"
       RUN_TALEMU_TESTS: true
     jobs:
       - name: e2e-short-secureboot
@@ -249,7 +249,7 @@ spec:
           - integration/e2e-upgrades
         environmentOverride:
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: "--test.run CleanState/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/"
+          INTEGRATION_TEST_ARGS: "--test.run CleanState/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceUpgrade/"
           RUN_TALEMU_TESTS: false
       - name: e2e-templates
         crons:

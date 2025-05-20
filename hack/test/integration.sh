@@ -20,7 +20,7 @@ echo "127.0.0.1 my-instance.localhost" | tee -a /etc/hosts
 
 # Settings.
 
-TALOS_VERSION=1.10.1
+TALOS_VERSION=1.10.2
 ENABLE_TALOS_PRERELEASE_VERSIONS=false
 
 ARTIFACTS=_out
@@ -30,9 +30,9 @@ ENABLE_SECUREBOOT=${ENABLE_SECUREBOOT:-false}
 KERNEL_ARGS_WORKERS_COUNT=2
 TALEMU_CONTAINER_NAME=talemu
 TALEMU_INFRA_PROVIDER_IMAGE=ghcr.io/unix4ever/talemu-infra-provider:v1.8.0-alpha.1-19-g52c73bc-dirty
-TEST_LOGS_DIR=/tmp/test-logs
+TEST_OUTPUTS_DIR=/tmp/integration-test
 
-mkdir -p $TEST_LOGS_DIR
+mkdir -p $TEST_OUTPUTS_DIR
 
 # Download required artifacts.
 
@@ -85,7 +85,7 @@ function cleanup() {
 
   if docker ps -a --format '{{.Names}}' | grep -q "^${TALEMU_CONTAINER_NAME}$"; then
     docker stop ${TALEMU_CONTAINER_NAME} || true
-    docker logs ${TALEMU_CONTAINER_NAME} &>$TEST_LOGS_DIR/${TALEMU_CONTAINER_NAME}.log || true
+    docker logs ${TALEMU_CONTAINER_NAME} &>$TEST_OUTPUTS_DIR/${TALEMU_CONTAINER_NAME}.log || true
     docker rm -f ${TALEMU_CONTAINER_NAME} || true
   fi
 }
@@ -169,6 +169,7 @@ if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
     --omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
     --expected-machines=30 \
     --provision-config-file=hack/test/provisionconfig.yaml \
+    --output-dir="${TEST_OUTPUTS_DIR}" \
     --run-stats-check \
     -t 10m \
     -p 10 \

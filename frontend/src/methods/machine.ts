@@ -8,13 +8,10 @@ import { Code } from "@/api/google/rpc/code.pb";
 
 import { Resource, ResourceService } from "@/api/grpc";
 import { InfraMachineConfigSpec, InfraMachineConfigSpecAcceptanceStatus, MachineLabelsSpec } from "@/api/omni/specs/omni.pb";
-import { withContext, withRuntime } from "@/api/options";
+import { withRuntime } from "@/api/options";
 import { DefaultNamespace, InfraMachineConfigType, MachineLabelsType, MachineLocked, MachineSetNodeType, MachineStatusType, SiderolinkResourceType, SystemLabelPrefix } from "@/api/resources";
-import { MachineService } from "@/api/talos/machine/machine.pb";
 import { destroyResources, getMachineConfigPatchesToDelete } from "@/methods/cluster";
 import { parseLabels } from "@/methods/labels";
-import { getImageFactoryBaseURL } from "@/methods/features";
-import * as semver from "semver";
 
 export const addMachineLabels = async (machineID: string, ...labels: string[]) => {
   let resource: Resource = {
@@ -150,31 +147,6 @@ const copyUserLabels = (src: Resource, dst: Resource) => {
       dst.metadata.labels[key] = src.metadata.labels[key];
     }
   }
-}
-
-export const updateTalosMaintenance = async (machine: string, talosVersion: string, platform?: string, schematic?: string) => {
-  const imageFactoryBaseURL = await getImageFactoryBaseURL();
-
-  const host = new URL(imageFactoryBaseURL).host;
-
-  let image = `ghcr.io/siderolabs/installer:v${talosVersion}`;
-
-  if (schematic) {
-    if (!platform) {
-      throw new Error("Platform is required when schematic is specified");
-    }
-
-    // prepend platform for Talos 1.10.0 and later
-    const major = semver.major(talosVersion)
-    const minor = semver.minor(talosVersion)
-    const installerName = major >= 1 && minor >= 10 ? `${platform}-installer` : "installer";
-
-    image = `${host}/${installerName}/${schematic}:v${talosVersion}`;
-  }
-
-  await MachineService.Upgrade({image}, withRuntime(Runtime.Talos), withContext({
-    nodes: [machine]
-  }));
 }
 
 export const rejectMachine = async (machine: string) => {

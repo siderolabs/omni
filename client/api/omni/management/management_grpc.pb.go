@@ -37,6 +37,7 @@ const (
 	ManagementService_CreateSchematic_FullMethodName            = "/management.ManagementService/CreateSchematic"
 	ManagementService_GetSupportBundle_FullMethodName           = "/management.ManagementService/GetSupportBundle"
 	ManagementService_ReadAuditLog_FullMethodName               = "/management.ManagementService/ReadAuditLog"
+	ManagementService_MaintenanceUpgrade_FullMethodName         = "/management.ManagementService/MaintenanceUpgrade"
 )
 
 // ManagementServiceClient is the client API for ManagementService service.
@@ -58,6 +59,7 @@ type ManagementServiceClient interface {
 	CreateSchematic(ctx context.Context, in *CreateSchematicRequest, opts ...grpc.CallOption) (*CreateSchematicResponse, error)
 	GetSupportBundle(ctx context.Context, in *GetSupportBundleRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetSupportBundleResponse], error)
 	ReadAuditLog(ctx context.Context, in *ReadAuditLogRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ReadAuditLogResponse], error)
+	MaintenanceUpgrade(ctx context.Context, in *MaintenanceUpgradeRequest, opts ...grpc.CallOption) (*MaintenanceUpgradeResponse, error)
 }
 
 type managementServiceClient struct {
@@ -254,6 +256,16 @@ func (c *managementServiceClient) ReadAuditLog(ctx context.Context, in *ReadAudi
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ManagementService_ReadAuditLogClient = grpc.ServerStreamingClient[ReadAuditLogResponse]
 
+func (c *managementServiceClient) MaintenanceUpgrade(ctx context.Context, in *MaintenanceUpgradeRequest, opts ...grpc.CallOption) (*MaintenanceUpgradeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MaintenanceUpgradeResponse)
+	err := c.cc.Invoke(ctx, ManagementService_MaintenanceUpgrade_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ManagementServiceServer is the server API for ManagementService service.
 // All implementations must embed UnimplementedManagementServiceServer
 // for forward compatibility.
@@ -273,6 +285,7 @@ type ManagementServiceServer interface {
 	CreateSchematic(context.Context, *CreateSchematicRequest) (*CreateSchematicResponse, error)
 	GetSupportBundle(*GetSupportBundleRequest, grpc.ServerStreamingServer[GetSupportBundleResponse]) error
 	ReadAuditLog(*ReadAuditLogRequest, grpc.ServerStreamingServer[ReadAuditLogResponse]) error
+	MaintenanceUpgrade(context.Context, *MaintenanceUpgradeRequest) (*MaintenanceUpgradeResponse, error)
 	mustEmbedUnimplementedManagementServiceServer()
 }
 
@@ -327,6 +340,9 @@ func (UnimplementedManagementServiceServer) GetSupportBundle(*GetSupportBundleRe
 }
 func (UnimplementedManagementServiceServer) ReadAuditLog(*ReadAuditLogRequest, grpc.ServerStreamingServer[ReadAuditLogResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method ReadAuditLog not implemented")
+}
+func (UnimplementedManagementServiceServer) MaintenanceUpgrade(context.Context, *MaintenanceUpgradeRequest) (*MaintenanceUpgradeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MaintenanceUpgrade not implemented")
 }
 func (UnimplementedManagementServiceServer) mustEmbedUnimplementedManagementServiceServer() {}
 func (UnimplementedManagementServiceServer) testEmbeddedByValue()                           {}
@@ -591,6 +607,24 @@ func _ManagementService_ReadAuditLog_Handler(srv interface{}, stream grpc.Server
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ManagementService_ReadAuditLogServer = grpc.ServerStreamingServer[ReadAuditLogResponse]
 
+func _ManagementService_MaintenanceUpgrade_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MaintenanceUpgradeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ManagementServiceServer).MaintenanceUpgrade(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ManagementService_MaintenanceUpgrade_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ManagementServiceServer).MaintenanceUpgrade(ctx, req.(*MaintenanceUpgradeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ManagementService_ServiceDesc is the grpc.ServiceDesc for ManagementService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -641,6 +675,10 @@ var ManagementService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateSchematic",
 			Handler:    _ManagementService_CreateSchematic_Handler,
+		},
+		{
+			MethodName: "MaintenanceUpgrade",
+			Handler:    _ManagementService_MaintenanceUpgrade_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

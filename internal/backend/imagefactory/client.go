@@ -9,6 +9,7 @@ package imagefactory
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/safe"
@@ -25,6 +26,7 @@ import (
 type Client struct {
 	state state.State
 	*client.Client
+	host string
 }
 
 // NewClient creates a new image factory client.
@@ -34,10 +36,25 @@ func NewClient(omniState state.State, imageFactoryBaseURL string) (*Client, erro
 		return nil, err
 	}
 
+	baseURL, err := url.Parse(imageFactoryBaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse image factory base URL %q: %w", imageFactoryBaseURL, err)
+	}
+
 	return &Client{
 		state:  omniState,
 		Client: factoryClient,
+		host:   baseURL.Host,
 	}, nil
+}
+
+// Host returns the host of the image factory client.
+func (cli *Client) Host() string {
+	if cli == nil {
+		return ""
+	}
+
+	return cli.host
 }
 
 // EnsuredSchematic contains information on the ensured schematics.

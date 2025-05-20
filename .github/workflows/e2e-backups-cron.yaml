@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-02-18T13:59:57Z by kres 8a48729.
+# Generated on 2025-05-22T17:54:46Z by kres 9f64b0d.
 
 name: e2e-backups-cron
 concurrency:
@@ -63,17 +63,17 @@ jobs:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run CleanState/|EtcdBackupAndRestore
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceDowngrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
+          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceUpgrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test
-      - name: save-talos-logs-artifacts
+      - name: save-integration-test-artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: talos-logs
+          name: integration-test
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/test-logs
+            /tmp/integration-test
           retention-days: "5"

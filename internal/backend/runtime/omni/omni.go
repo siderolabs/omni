@@ -9,7 +9,6 @@ package omni
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"os"
 	"slices"
 	"time"
@@ -237,12 +236,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewInfraProviderCleanupController(),
 	}
 
-	imageFactoryBaseURL, err := url.Parse(config.Config.ImageFactoryBaseURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse image factory base URL %q: %w", config.Config.ImageFactoryBaseURL, err)
-	}
-
-	imageFactoryHost := imageFactoryBaseURL.Host
+	imageFactoryHost := imageFactoryClient.Host()
 	peers := siderolink.NewPeersPool(logger, siderolink.DefaultWireguardHandler)
 
 	qcontrollers := []controller.QController{

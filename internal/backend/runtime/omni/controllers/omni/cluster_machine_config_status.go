@@ -37,6 +37,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/internal/backend/installimage"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	talosutils "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/talos"
@@ -443,7 +444,7 @@ func (h *clusterMachineConfigStatusControllerHandler) syncInstallImageAndSchemat
 		return true, nil
 	}
 
-	image, err := buildInstallImage(h.imageFactoryHost, machineStatus.Metadata().ID(), installImage)
+	image, err := installimage.Build(h.imageFactoryHost, machineStatus.Metadata().ID(), installImage)
 	if err != nil {
 		return false, err
 	}

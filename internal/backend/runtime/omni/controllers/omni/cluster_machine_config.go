@@ -12,10 +12,8 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 	"text/template"
 
-	"github.com/blang/semver"
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -33,13 +31,12 @@ import (
 	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/internal/backend/installimage"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
-	appconfig "github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/constants"
 )
 
@@ -298,7 +295,7 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		return nil, fmt.Errorf("talos version is not set on the resource %s", clusterConfigVersion.Metadata())
 	}
 
-	installImage, err := buildInstallImage(helper.imageFactoryHost, configGenOptions.Metadata().ID(), configGenOptions.TypedSpec().Value.InstallImage)
+	installImage, err := installimage.Build(helper.imageFactoryHost, configGenOptions.Metadata().ID(), configGenOptions.TypedSpec().Value.InstallImage)
 	if err != nil {
 		return nil, err
 	}
@@ -455,65 +452,6 @@ func stripTalosAPIAccessOSAdminRole(cfg config.Provider) (config.Provider, error
 	}
 
 	return container.New(updatedDocs...)
-}
-
-func buildInstallImage(imageFactoryHost string, resID resource.ID, installImage *specs.MachineConfigGenOptionsSpec_InstallImage) (string, error) {
-	if imageFactoryHost == "" {
-		return "", fmt.Errorf("image factory host is not set")
-	}
-
-	if !installImage.SchematicInitialized {
-		return "", fmt.Errorf("machine %q has no schematic information set", resID)
-	}
-
-	schematicID := installImage.SchematicId
-
-	securityState := installImage.SecurityState
-	if securityState == nil { // should never happen - must have been handled before entering this function
-		return "", fmt.Errorf("machine %q has no secure boot status set", resID)
-	}
-
-	installerName := "installer"
-	if securityState.SecureBoot {
-		installerName = "installer-secureboot"
-	}
-
-	if installImage.SchematicId != "" {
-		schematicID = installImage.SchematicId
-	}
-
-	if installImage.SchematicInvalid {
-		schematicID = ""
-	}
-
-	desiredTalosVersion := installImage.TalosVersion
-
-	if desiredTalosVersion == "" {
-		return "", fmt.Errorf("machine %q has no talos version set", resID)
-	}
-
-	version, err := semver.ParseTolerant(desiredTalosVersion)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse Talos version %q: %w", desiredTalosVersion, err)
-	}
-
-	if version.Major >= 1 && version.Minor >= 10 { // prepend the platform to the installer name for Talos 1.10+
-		if installImage.Platform == "" {
-			return "", fmt.Errorf("machine %q has no platform set", resID)
-		}
-
-		installerName = installImage.Platform + "-" + installerName
-	}
-
-	if !strings.HasPrefix(desiredTalosVersion, "v") {
-		desiredTalosVersion = "v" + desiredTalosVersion
-	}
-
-	if schematicID != "" {
-		return imageFactoryHost + "/" + installerName + "/" + schematicID + ":" + desiredTalosVersion, nil
-	}
-
-	return appconfig.Config.TalosRegistry + ":" + desiredTalosVersion, nil
 }
 
 func renderSiderolinkJoinConfig(connectionParams *siderolink.ConnectionParams, link *siderolink.Link, eventSinkPort int) ([]byte, error) {
