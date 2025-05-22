@@ -29,7 +29,7 @@ RUN_DIR=$(pwd)
 ENABLE_SECUREBOOT=${ENABLE_SECUREBOOT:-false}
 KERNEL_ARGS_WORKERS_COUNT=2
 TALEMU_CONTAINER_NAME=talemu
-TALEMU_INFRA_PROVIDER_IMAGE=ghcr.io/unix4ever/talemu-infra-provider:v1.8.0-alpha.1-19-g52c73bc-dirty
+TALEMU_INFRA_PROVIDER_IMAGE=ghcr.io/siderolabs/talemu-infra-provider:latest
 TEST_OUTPUTS_DIR=/tmp/integration-test
 
 mkdir -p $TEST_OUTPUTS_DIR
