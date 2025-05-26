@@ -40,6 +40,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/access"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
@@ -2083,9 +2084,9 @@ func (suite *MigrationSuite) TestCreateProviders() {
 	p3status := infra.NewProviderStatus("p3")
 	p3status.Metadata().SetPhase(resource.PhaseTearingDown)
 
-	identity1 := authres.NewIdentity(resources.DefaultNamespace, "infra-provider:p1")
-	identity4 := authres.NewIdentity(resources.DefaultNamespace, "infra-provider:p4")
-	identityServiceAccount := authres.NewIdentity(resources.DefaultNamespace, "p5")
+	identity1 := authres.NewIdentity(resources.DefaultNamespace, "p1"+access.InfraProviderServiceAccountNameSuffix)
+	identity4 := authres.NewIdentity(resources.DefaultNamespace, "p4"+access.InfraProviderServiceAccountNameSuffix)
+	identityServiceAccount := authres.NewIdentity(resources.DefaultNamespace, "p5"+access.ServiceAccountNameSuffix)
 
 	suite.Require().NoError(suite.state.Create(ctx, p1status))
 	suite.Require().NoError(suite.state.Create(ctx, p2status))

@@ -1786,7 +1786,7 @@ func createProviders(ctx context.Context, st state.State, logger *zap.Logger, _ 
 						return false
 					}
 
-					if res.Metadata().Type() == auth.IdentityType && !strings.HasPrefix(res.Metadata().ID(), access.InfraProviderServiceAccountPrefix) {
+					if res.Metadata().Type() == auth.IdentityType && !strings.HasSuffix(res.Metadata().ID(), access.InfraProviderServiceAccountNameSuffix) {
 						return false
 					}
 
@@ -1795,7 +1795,9 @@ func createProviders(ctx context.Context, st state.State, logger *zap.Logger, _ 
 			),
 			func(res resource.Resource) string {
 				if res.Metadata().Type() == auth.IdentityType {
-					return strings.TrimPrefix(res.Metadata().ID(), access.InfraProviderServiceAccountPrefix)
+					sa, _ := access.ParseServiceAccountFromFullID(res.Metadata().ID())
+
+					return sa.BaseName
 				}
 
 				return res.Metadata().ID()

@@ -15,6 +15,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/optional"
+	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -28,17 +29,21 @@ import (
 // ServiceAccountStatusController generates information about Talos extensions available for a Talos version.
 type ServiceAccountStatusController = qtransform.QController[*auth.Identity, *auth.ServiceAccountStatus]
 
+const serviceAccountStatusControllerName = "ServiceAccountStatusController"
+
 // NewServiceAccountStatusController instantiates the ServiceAccountStatus controller.
+//
+//nolint:gocognit
 func NewServiceAccountStatusController() *ServiceAccountStatusController {
 	return qtransform.NewQController(
 		qtransform.Settings[*auth.Identity, *auth.ServiceAccountStatus]{
-			Name: "ServiceAccountStatusController",
+			Name: serviceAccountStatusControllerName,
 			MapMetadataOptionalFunc: func(identity *auth.Identity) optional.Optional[*auth.ServiceAccountStatus] {
 				if _, isServiceAccount := identity.Metadata().Labels().Get(auth.LabelIdentityTypeServiceAccount); !isServiceAccount {
 					return optional.None[*auth.ServiceAccountStatus]()
 				}
 
-				if strings.HasPrefix(identity.Metadata().ID(), access.InfraProviderServiceAccountPrefix) {
+				if strings.HasSuffix(identity.Metadata().ID(), access.InfraProviderServiceAccountNameSuffix) {
 					return optional.None[*auth.ServiceAccountStatus]()
 				}
 
@@ -47,15 +52,56 @@ func NewServiceAccountStatusController() *ServiceAccountStatusController {
 			UnmapMetadataFunc: func(r *auth.ServiceAccountStatus) *auth.Identity {
 				return auth.NewIdentity(resources.DefaultNamespace, r.Metadata().ID())
 			},
-			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, identity *auth.Identity, status *auth.ServiceAccountStatus) error {
-				user, err := safe.ReaderGetByID[*auth.User](ctx, r, identity.TypedSpec().Value.UserId)
+			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, identity *auth.Identity, status *auth.ServiceAccountStatus) error {
+				publicKeyList, err := safe.ReaderListAll[*auth.PublicKey](
+					ctx,
+					r,
+					state.WithLabelQuery(resource.LabelEqual(auth.LabelPublicKeyUserID, identity.TypedSpec().Value.UserId)),
+				)
 				if err != nil {
 					return err
 				}
 
-				status.TypedSpec().Value.Role = user.TypedSpec().Value.Role
-				status.TypedSpec().Value.PublicKeys = []*specs.ServiceAccountStatusSpec_PgpPublicKey{}
+				status.TypedSpec().Value.PublicKeys = nil
 
+				for key := range publicKeyList.All() {
+					if key.Metadata().Phase() == resource.PhaseRunning {
+						if !key.Metadata().Finalizers().Has(serviceAccountStatusControllerName) {
+							if err = r.AddFinalizer(ctx, key.Metadata(), serviceAccountStatusControllerName); err != nil {
+								return err
+							}
+						}
+					} else {
+						if err = r.RemoveFinalizer(ctx, key.Metadata(), serviceAccountStatusControllerName); err != nil {
+							return err
+						}
+
+						continue
+					}
+
+					status.TypedSpec().Value.PublicKeys = append(status.TypedSpec().Value.PublicKeys,
+						&specs.ServiceAccountStatusSpec_PgpPublicKey{
+							Id:         key.Metadata().ID(),
+							Armored:    string(key.TypedSpec().Value.GetPublicKey()),
+							Expiration: key.TypedSpec().Value.GetExpiration(),
+						},
+					)
+				}
+
+				user, err := safe.ReaderGetByID[*auth.User](ctx, r, identity.TypedSpec().Value.UserId)
+				if err != nil {
+					if state.IsNotFoundError(err) {
+						return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
+					}
+
+					return err
+				}
+
+				status.TypedSpec().Value.Role = user.TypedSpec().Value.Role
+
+				return nil
+			},
+			FinalizerRemovalExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, identity *auth.Identity) error {
 				publicKeyList, err := safe.ReaderListAll[*auth.PublicKey](
 					ctx,
 					r,
@@ -66,13 +112,9 @@ func NewServiceAccountStatusController() *ServiceAccountStatusController {
 				}
 
 				for key := range publicKeyList.All() {
-					status.TypedSpec().Value.PublicKeys = append(status.TypedSpec().Value.PublicKeys,
-						&specs.ServiceAccountStatusSpec_PgpPublicKey{
-							Id:         key.Metadata().ID(),
-							Armored:    string(key.TypedSpec().Value.GetPublicKey()),
-							Expiration: key.TypedSpec().Value.GetExpiration(),
-						},
-					)
+					if err = r.RemoveFinalizer(ctx, key.Metadata(), serviceAccountStatusControllerName); err != nil {
+						return err
+					}
 				}
 
 				return nil

@@ -20,8 +20,8 @@ const (
 	// InfraProviderServiceAccountPrefix is the prefix required for infra provider service accounts.
 	InfraProviderServiceAccountPrefix = "infra-provider:"
 
-	// infraProviderServiceAccountNameSuffix is appended to the name of all infra provider service accounts.
-	infraProviderServiceAccountNameSuffix = "@" + infraProviderServiceAccountDomain
+	// InfraProviderServiceAccountNameSuffix is appended to the name of all infra provider service accounts.
+	InfraProviderServiceAccountNameSuffix = "@" + infraProviderServiceAccountDomain
 )
 
 // ServiceAccount represents a service account.
@@ -71,7 +71,7 @@ func ParseServiceAccountFromName(name string) ServiceAccount {
 	if strings.HasPrefix(name, InfraProviderServiceAccountPrefix) {
 		isInfraProvider = true
 		baseName = strings.TrimPrefix(name, InfraProviderServiceAccountPrefix)
-		suffix = infraProviderServiceAccountNameSuffix
+		suffix = InfraProviderServiceAccountNameSuffix
 	}
 
 	return ServiceAccount{
@@ -88,7 +88,7 @@ func ParseServiceAccountFromName(name string) ServiceAccount {
 // Result: ServiceAccount{BaseName: "aws-1", Suffix: "@infra-provider.serviceaccount.omni.sidero.dev", IsInfraProvider: true}.
 func ParseServiceAccountFromFullID(fullID string) (sa ServiceAccount, isSa bool) {
 	hasServiceAccountSuffix := strings.HasSuffix(fullID, ServiceAccountNameSuffix)
-	hasInfraProviderServiceAccountSuffix := strings.HasSuffix(fullID, infraProviderServiceAccountNameSuffix)
+	hasInfraProviderServiceAccountSuffix := strings.HasSuffix(fullID, InfraProviderServiceAccountNameSuffix)
 
 	if !hasServiceAccountSuffix && !hasInfraProviderServiceAccountSuffix {
 		return ServiceAccount{}, false
@@ -99,7 +99,7 @@ func ParseServiceAccountFromFullID(fullID string) (sa ServiceAccount, isSa bool)
 
 	if hasInfraProviderServiceAccountSuffix {
 		isInfraProvider = true
-		suffix = infraProviderServiceAccountNameSuffix
+		suffix = InfraProviderServiceAccountNameSuffix
 	}
 
 	return ServiceAccount{
