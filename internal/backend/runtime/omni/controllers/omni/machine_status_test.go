@@ -424,6 +424,7 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 				Id:               defaultSchematic,
 				InitialSchematic: defaultSchematic,
 				FullId:           defaultSchematic,
+				InAgentMode:      true,
 			},
 		},
 	} {

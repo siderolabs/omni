@@ -26,12 +26,13 @@ var ErrInvalidSchematic = fmt.Errorf("invalid schematic")
 
 // SchematicInfo contains the information about the schematic - the plain schematic ID and the extensions.
 type SchematicInfo struct {
-	ID         string
-	FullID     string
-	Overlay    schematic.Overlay
-	Extensions []string
-	KernelArgs []string
-	MetaValues []schematic.MetaValue
+	ID          string
+	FullID      string
+	Overlay     schematic.Overlay
+	Extensions  []string
+	KernelArgs  []string
+	MetaValues  []schematic.MetaValue
+	InAgentMode bool
 }
 
 // Equal compares schematic id with both extensions ID and Full ID.
@@ -98,8 +99,9 @@ func GetSchematicInfo(ctx context.Context, c *client.Client, defaultKernelArgs [
 		}
 
 		return SchematicInfo{
-			ID:     id,
-			FullID: id,
+			ID:          id,
+			FullID:      id,
+			InAgentMode: true,
 		}, nil
 	}
 

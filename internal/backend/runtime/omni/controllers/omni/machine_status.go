@@ -511,6 +511,8 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 			} else if spec.Schematic.InitialSchematic == "" {
 				spec.Schematic.InitialSchematic = spec.Schematic.FullId
 			}
+
+			spec.Schematic.InAgentMode = event.Schematic.InAgentMode
 		}
 
 		spec.Maintenance = event.MaintenanceMode

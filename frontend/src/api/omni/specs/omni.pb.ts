@@ -263,6 +263,7 @@ export type MachineStatusSpecSchematic = {
   kernel_args?: string[]
   meta_values?: MetaValue[]
   full_id?: string
+  in_agent_mode?: boolean
 }
 
 export type MachineStatusSpecDiagnostic = {

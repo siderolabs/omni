@@ -294,6 +294,7 @@ func (m *MachineStatusSpec_Schematic) CloneVT() *MachineStatusSpec_Schematic {
 	r.InitialSchematic = m.InitialSchematic
 	r.Overlay = m.Overlay.CloneVT()
 	r.FullId = m.FullId
+	r.InAgentMode = m.InAgentMode
 	if rhs := m.Extensions; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -2993,6 +2994,9 @@ func (this *MachineStatusSpec_Schematic) EqualVT(that *MachineStatusSpec_Schemat
 		}
 	}
 	if this.FullId != that.FullId {
+		return false
+	}
+	if this.InAgentMode != that.InAgentMode {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -6760,6 +6764,16 @@ func (m *MachineStatusSpec_Schematic) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.InAgentMode {
+		i--
+		if m.InAgentMode {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x50
 	}
 	if len(m.FullId) > 0 {
 		i -= len(m.FullId)
@@ -13129,6 +13143,9 @@ func (m *MachineStatusSpec_Schematic) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if m.InAgentMode {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -17684,6 +17701,26 @@ func (m *MachineStatusSpec_Schematic) UnmarshalVT(dAtA []byte) error {
 			}
 			m.FullId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InAgentMode", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.InAgentMode = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

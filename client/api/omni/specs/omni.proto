@@ -182,6 +182,9 @@ message MachineStatusSpec {
     //
     // It is used instead of Id primarily when the machine has secure boot enabled.
     string full_id = 9;
+
+    // InAgentMode indicates that the machine is running in agent mode.
+    bool in_agent_mode = 10;
   }
 
   message Diagnostic {

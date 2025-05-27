@@ -19,7 +19,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xerrors"
-	"github.com/siderolabs/talos/pkg/machinery/api/machine"
+	machine "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	"github.com/siderolabs/talos/pkg/machinery/config"
 	"github.com/siderolabs/talos/pkg/machinery/config/configpatcher"
@@ -33,6 +33,7 @@ import (
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -169,6 +170,14 @@ func (helper *maintenanceConfigStatusControllerHelper) transform(ctx context.Con
 
 	if !machineStatus.TypedSpec().Value.Maintenance {
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine is not in maintenance mode")
+	}
+
+	if machineStatus.TypedSpec().Value.PowerState == specs.MachineStatusSpec_POWER_STATE_OFF {
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine is powered off, skip maintenance config update")
+	}
+
+	if machineStatus.TypedSpec().Value.Schematic.GetInAgentMode() {
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine is in agent mode, cannot apply config, skip")
 	}
 
 	talosVersion := machineStatus.TypedSpec().Value.TalosVersion

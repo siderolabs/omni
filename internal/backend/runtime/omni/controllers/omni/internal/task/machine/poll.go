@@ -489,7 +489,8 @@ func pollExtensions(ctx context.Context, c *client.Client, info *Info) error {
 		return err
 	}
 
-	if schematicInfo.Overlay.Name == "" {
+	// In the agent mode, the Read API is not supported, so we can skip the overlay detection.
+	if !schematicInfo.InAgentMode && schematicInfo.Overlay.Name == "" {
 		overlay, err := detectOverlay(ctx, c)
 		if err != nil && status.Code(err) != codes.Unimplemented {
 			return err

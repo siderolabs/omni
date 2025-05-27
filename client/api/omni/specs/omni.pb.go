@@ -6875,7 +6875,9 @@ type MachineStatusSpec_Schematic struct {
 	// FullId is the full id of the schematic - including the kernel command line arguments, META content etc.
 	//
 	// It is used instead of Id primarily when the machine has secure boot enabled.
-	FullId        string `protobuf:"bytes,9,opt,name=full_id,json=fullId,proto3" json:"full_id,omitempty"`
+	FullId string `protobuf:"bytes,9,opt,name=full_id,json=fullId,proto3" json:"full_id,omitempty"`
+	// InAgentMode indicates that the machine is running in agent mode.
+	InAgentMode   bool `protobuf:"varint,10,opt,name=in_agent_mode,json=inAgentMode,proto3" json:"in_agent_mode,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6964,6 +6966,13 @@ func (x *MachineStatusSpec_Schematic) GetFullId() string {
 		return x.FullId
 	}
 	return ""
+}
+
+func (x *MachineStatusSpec_Schematic) GetInAgentMode() bool {
+	if x != nil {
+		return x.InAgentMode
+	}
+	return false
 }
 
 type MachineStatusSpec_Diagnostic struct {
@@ -8740,7 +8749,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x05image\x18\x02 \x01(\tR\x05image\"3\n" +
 	"\tMetaValue\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\rR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value\"\xfa\x17\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"\x9e\x18\n" +
 	"\x11MachineStatusSpec\x12#\n" +
 	"\rtalos_version\x18\x01 \x01(\tR\ftalosVersion\x12C\n" +
 	"\bhardware\x18\x02 \x01(\v2'.specs.MachineStatusSpec.HardwareStatusR\bhardware\x12@\n" +
@@ -8820,7 +8829,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"instanceId\x12\x1f\n" +
 	"\vprovider_id\x18\a \x01(\tR\n" +
 	"providerId\x12\x12\n" +
-	"\x04spot\x18\b \x01(\bR\x04spot\x1a\x9f\x02\n" +
+	"\x04spot\x18\b \x01(\bR\x04spot\x1a\xc3\x02\n" +
 	"\tSchematic\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\ainvalid\x18\x02 \x01(\bR\ainvalid\x12\x1e\n" +
@@ -8833,7 +8842,9 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"kernelArgs\x121\n" +
 	"\vmeta_values\x18\b \x03(\v2\x10.specs.MetaValueR\n" +
 	"metaValues\x12\x17\n" +
-	"\afull_id\x18\t \x01(\tR\x06fullIdJ\x04\b\x05\x10\x06\x1aP\n" +
+	"\afull_id\x18\t \x01(\tR\x06fullId\x12\"\n" +
+	"\rin_agent_mode\x18\n" +
+	" \x01(\bR\vinAgentModeJ\x04\b\x05\x10\x06\x1aP\n" +
 	"\n" +
 	"Diagnostic\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +

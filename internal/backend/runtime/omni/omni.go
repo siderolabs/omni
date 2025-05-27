@@ -166,7 +166,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 	}
 
 	powerStageEventsCh := make(chan *omni.MachineStatusSnapshot)
-	powerStageWatcher := powerstage.NewWatcher(resourceState, powerStageEventsCh, logger.With(logging.Component("power_stage_watcher")))
+	powerStageWatcher := powerstage.NewWatcher(resourceState, powerStageEventsCh, logger.With(logging.Component("power_stage_watcher")), powerstage.WatcherOptions{})
 
 	controllerRuntime, err := cosiruntime.NewRuntime(resourceState, logger, opts...)
 	if err != nil {

@@ -115,6 +115,12 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 					return xerrors.NewTagged[qtransform.SkipReconcileTag](fmt.Errorf("machine status '%s' does not have schematic information", machineConfig.Metadata().ID()))
 				}
 
+				if machineStatus.TypedSpec().Value.Schematic.InAgentMode {
+					logger.Error("machine is in agent mode, skip reconcile")
+
+					return xerrors.NewTagged[qtransform.SkipReconcileTag](fmt.Errorf("machine status '%s' schematic is in agent mode", machineConfig.Metadata().ID()))
+				}
+
 				// if the machine is managed by a static infra provider, we need to ensure that the infra machine is ready to use
 				if _, isManagedByStaticInfraProvider := machineStatus.Metadata().Labels().Get(omni.LabelIsManagedByStaticInfraProvider); isManagedByStaticInfraProvider {
 					var infraMachineStatus *infra.MachineStatus
