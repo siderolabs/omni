@@ -1,3 +1,31 @@
+## [Omni 0.50.1](https://github.com/siderolabs/omni/releases/tag/v0.50.1) (2025-05-27)
+
+Welcome to the v0.50.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>2 commits</summary>
+<p>
+
+* [`1719ae35`](https://github.com/siderolabs/omni/commit/1719ae3563f4350e8a03c60afc6b833802453e3f) test: use latest Talemu infra provider version in the integration tests
+* [`4d8f73aa`](https://github.com/siderolabs/omni/commit/4d8f73aa7ba6fa41eee65fd6a93b4a52090b502d) fix: properly detect infra provider service accounts
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.50.0](https://github.com/siderolabs/omni/releases/tag/v0.50.0)
+
 ## [Omni 0.50.0](https://github.com/siderolabs/omni/releases/tag/v0.50.0) (2025-05-23)
 
 Welcome to the v0.50.0 release of Omni!

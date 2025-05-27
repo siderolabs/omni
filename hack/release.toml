@@ -6,15 +6,4 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = false
-previous = "v0.49.0"
-
-[notes]
-[notes.infra-providers]
-title = "Infra Providers"
-description = """\
-Omni now has the UI for viewing and managing infra providers.
-Additionally, the service accounts with the role `InfraProvider` are no longer displayed
-in the UI and not returned in the `omnictl serviceaccounts list` CLI command.
-
-Infra providers now got their own set of CLI commands under `omnictl infraprovider`.
-"""
+previous = "v0.50.0"
