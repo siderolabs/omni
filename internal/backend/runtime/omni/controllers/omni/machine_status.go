@@ -218,7 +218,7 @@ func (ctrl *MachineStatusController) reconcileRunning(ctx context.Context, r con
 	if inputs.machineStatusSnapshot != nil {
 		reportingEvents = true
 
-		maintenanceMode = inputs.machineStatusSnapshot.TypedSpec().Value.MachineStatus.Stage == machineapi.MachineStatusEvent_MAINTENANCE
+		maintenanceMode = inputs.machineStatusSnapshot.TypedSpec().Value.MachineStatus.GetStage() == machineapi.MachineStatusEvent_MAINTENANCE
 	}
 
 	var params *siderolink.ConnectionParams
