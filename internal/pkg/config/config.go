@@ -34,7 +34,7 @@ type Params struct {
 	// AccountID is the stable identifier of the instance.
 	//
 	// Omni will use that to build paths to etcd storage, etc.
-	AccountID string `yaml:"account_id"`
+	AccountID string `yaml:"accountID"`
 	// Name is the user-facing name of the instance.
 	//
 	// Omni will use to present some information to the user.
@@ -52,6 +52,7 @@ type Params struct {
 	SiderolinkWireguardAdvertisedAddress string `yaml:"siderolinkWireguardAdvertisedAddress"`
 	SiderolinkDisableLastEndpoint        bool   `yaml:"siderolinkDisableLastEndpoint"`
 	SiderolinkUseGRPCTunnel              bool   `yaml:"siderolinkUseGRPCTunnel"`
+	RunDebugServer                       bool   `yaml:"runDebugServer"`
 
 	EventSinkPort    int                `yaml:"eventSinkPort"`
 	SideroLinkAPIURL string             `yaml:"siderolinkAPIURL"`
@@ -277,7 +278,58 @@ var (
 	localIP = getLocalIPOrEmpty()
 
 	// Config holds the application config and provides the default values for it.
-	Config = &Params{
+	Config = InitDefault()
+)
+
+// GetImageFactoryPXEBaseURL reads image factory PXE address from the args.
+func (p *Params) GetImageFactoryPXEBaseURL() (*url.URL, error) {
+	if p.ImageFactoryPXEBaseURL != "" {
+		return url.Parse(p.ImageFactoryPXEBaseURL)
+	}
+
+	url, err := url.Parse(p.ImageFactoryBaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid URL specified for the image factory: %w", err)
+	}
+
+	url.Host = fmt.Sprintf("pxe.%s", url.Host)
+
+	return url, nil
+}
+
+// GetAdvertisedAPIHost returns the advertised host (IP or domain) of the API without the port.
+func (p *Params) GetAdvertisedAPIHost() (string, error) {
+	apiURL, err := url.Parse(p.SideroLinkAPIURL)
+	if err != nil {
+		return "", err
+	}
+
+	apiHost, _, err := net.SplitHostPort(apiURL.Host)
+	if err != nil {
+		apiHost = apiURL.Host
+	}
+
+	return apiHost, nil
+}
+
+// GetOIDCIssuerEndpoint returns the OIDC issuer endpoint.
+func (p *Params) GetOIDCIssuerEndpoint() (string, error) {
+	u, err := url.Parse(p.APIURL)
+	if err != nil {
+		return "", err
+	}
+
+	u.Path, err = url.JoinPath(u.Path, "/oidc")
+	if err != nil {
+		return "", err
+	}
+
+	return u.String(), nil
+}
+
+// InitDefault creates the default config.
+func InitDefault() *Params {
+	return &Params{
 		AccountID:                            "edd2822a-7834-4fe0-8172-cc5581f13a8d",
 		Name:                                 "default",
 		APIURL:                               fmt.Sprintf("http://%s", net.JoinHostPort("localhost", "8080")),
@@ -377,53 +429,8 @@ var (
 		},
 
 		JoinTokensMode: JoinTokensModeLegacyOnly,
+		RunDebugServer: true,
 	}
-)
-
-// GetImageFactoryPXEBaseURL reads image factory PXE address from the args.
-func (p *Params) GetImageFactoryPXEBaseURL() (*url.URL, error) {
-	if p.ImageFactoryPXEBaseURL != "" {
-		return url.Parse(p.ImageFactoryPXEBaseURL)
-	}
-
-	url, err := url.Parse(p.ImageFactoryBaseURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid URL specified for the image factory: %w", err)
-	}
-
-	url.Host = fmt.Sprintf("pxe.%s", url.Host)
-
-	return url, nil
-}
-
-// GetAdvertisedAPIHost returns the advertised host (IP or domain) of the API without the port.
-func (p *Params) GetAdvertisedAPIHost() (string, error) {
-	apiURL, err := url.Parse(p.SideroLinkAPIURL)
-	if err != nil {
-		return "", err
-	}
-
-	apiHost, _, err := net.SplitHostPort(apiURL.Host)
-	if err != nil {
-		apiHost = apiURL.Host
-	}
-
-	return apiHost, nil
-}
-
-// GetOIDCIssuerEndpoint returns the OIDC issuer endpoint.
-func (p *Params) GetOIDCIssuerEndpoint() (string, error) {
-	u, err := url.Parse(p.APIURL)
-	if err != nil {
-		return "", err
-	}
-
-	u.Path, err = url.JoinPath(u.Path, "/oidc")
-	if err != nil {
-		return "", err
-	}
-
-	return u.String(), nil
 }
 
 func getLocalIPOrEmpty() string {

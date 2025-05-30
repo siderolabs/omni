@@ -8,27 +8,21 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"sync"
 	"syscall"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/go-logr/zapr"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/siderolabs/gen/ensure"
 	"github.com/siderolabs/go-debug"
-	"github.com/siderolabs/talos/pkg/machinery/config/generate"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"k8s.io/klog/v2"
 
-	"github.com/siderolabs/omni/client/pkg/compression"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -44,7 +38,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/workloadproxy"
 	"github.com/siderolabs/omni/internal/pkg/auth"
-	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/user"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
@@ -68,15 +61,11 @@ func runDebugServer(ctx context.Context, logger *zap.Logger) {
 // rootCmd represents the base command when called without any subcommands.
 var rootCmd = &cobra.Command{
 	Use:          "omni",
-	Short:        "Talos and Sidero frontend",
-	Long:         ``,
+	Short:        "Omni Kubernetes management platform service",
+	Long:         "This executable runs both frontend and backend",
 	SilenceUsage: true,
 	Version:      version.Tag,
 	RunE: func(*cobra.Command, []string) error {
-		if config.Config.Auth.SAML.URL != "" && config.Config.Auth.SAML.Metadata != "" {
-			return errors.New("flags --auth-saml-url and --auth-saml-metadata are mutually exclusive")
-		}
-
 		var loggerConfig zap.Config
 
 		if constants.IsDebugBuild {
@@ -99,32 +88,6 @@ var rootCmd = &cobra.Command{
 			return fmt.Errorf("failed to set up logging: %w", err)
 		}
 
-		if err = compression.InitConfig(config.Config.ConfigDataCompression.Enabled); err != nil {
-			return err
-		}
-
-		logger.Info("initialized resource compression config", zap.Bool("enabled", config.Config.ConfigDataCompression.Enabled))
-
-		// set kubernetes logger to use warn log level and use zap
-		klog.SetLogger(zapr.NewLogger(logger.WithOptions(zap.IncreaseLevel(zapcore.WarnLevel)).With(logging.Component("kubernetes"))))
-
-		if constants.IsDebugBuild {
-			logger.Warn("running debug build")
-		}
-
-		for _, registryMirror := range rootCmdArgs.registryMirrors {
-			hostname, endpoint, ok := strings.Cut(registryMirror, "=")
-			if !ok {
-				return fmt.Errorf("invalid registry mirror spec: %q", registryMirror)
-			}
-
-			config.Config.DefaultConfigGenOptions = append(config.Config.DefaultConfigGenOptions, generate.WithRegistryMirror(hostname, endpoint))
-		}
-
-		logger.Info("starting Omni", zap.String("version", version.Tag))
-
-		logger.Debug("using config", zap.Any("config", config.Config))
-
 		signals := make(chan os.Signal, 1)
 
 		signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
@@ -141,19 +104,7 @@ var rootCmd = &cobra.Command{
 			cancel()
 		}, logger)
 
-		panichandler.Go(func() {
-			runDebugServer(ctx, logger)
-		}, logger)
-
-		// this global context propagates into all controllers and any other background activities
-		ctx = actor.MarkContextAsInternalActor(ctx)
-
-		err = omni.NewState(ctx, config.Config, logger, prometheus.DefaultRegisterer, runWithState(logger))
-		if err != nil {
-			return fmt.Errorf("failed to run Omni: %w", err)
-		}
-
-		return nil
+		return RunService(ctx, logger, config.Config)
 	},
 }
 
@@ -459,6 +410,7 @@ var initOnce = sync.OnceValue(func() *cobra.Command {
 	)
 
 	rootCmd.MarkFlagsMutuallyExclusive("etcd-backup-s3", "etcd-backup-local-path")
+	rootCmd.MarkFlagsMutuallyExclusive("auth-saml-url", "auth-saml-metadata")
 
 	rootCmd.Flags().DurationVar(
 		&config.Config.EtcdBackup.TickInterval,
