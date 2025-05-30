@@ -116,6 +116,7 @@ func newBoltStateBuilder(path string, options *bbolt.Options, compact bool, logg
 	return func(ns resource.Namespace) state.CoreState {
 		return inmem.NewStateWithOptions(inmem.WithBackingStore(boltStore.WithNamespace(ns)),
 			inmem.WithHistoryGap(20),
+			inmem.WithHistoryInitialCapacity(1000),
 			inmem.WithHistoryMaxCapacity(5000),
 		)(ns)
 	}, boltStore, nil
