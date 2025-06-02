@@ -164,15 +164,17 @@ if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
 
   SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
     ${ARTIFACTS}/integration-test-linux-amd64 \
-    --endpoint https://my-instance.localhost:8099 \
-    --talos-version=${TALOS_VERSION} \
-    --omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
-    --expected-machines=30 \
-    --provision-config-file=hack/test/provisionconfig.yaml \
-    --output-dir="${TEST_OUTPUTS_DIR}" \
-    --run-stats-check \
-    -t 10m \
-    -p 10 \
+    --omni.endpoint https://my-instance.localhost:8099 \
+    --omni.talos-version=${TALOS_VERSION} \
+    --omni.omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
+    --omni.expected-machines=30 \
+    --omni.provision-config-file=hack/test/provisionconfig.yaml \
+    --omni.output-dir="${TEST_OUTPUTS_DIR}" \
+    --omni.run-stats-check \
+    --test.timeout 10m \
+    --test.parallel 10 \
+    --test.failfast \
+    --test.v \
     ${TALEMU_TEST_ARGS:-}
 
   docker rm -f "$PROMETHEUS_CONTAINER"
@@ -272,10 +274,12 @@ sleep 5
 
 SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
   ${ARTIFACTS}/integration-test-linux-amd64 \
-  --endpoint https://my-instance.localhost:8099 \
-  --talos-version=${TALOS_VERSION} \
-  --omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
-  --expected-machines=8 `# equal to the masters+workers above` \
+  --omni.endpoint https://my-instance.localhost:8099 \
+  --omni.talos-version=${TALOS_VERSION} \
+  --omni.omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
+  --omni.expected-machines=8 `# equal to the masters+workers above` \
+  --test.failfast \
+  --test.v \
   ${INTEGRATION_TEST_ARGS:-}
 
 if [ "${INTEGRATION_RUN_E2E_TEST:-true}" == "true" ]; then

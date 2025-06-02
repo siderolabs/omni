@@ -3,7 +3,9 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package tests
+//go:build integration
+
+package integration_test
 
 import (
 	"archive/zip"
@@ -636,9 +638,11 @@ func AssertTalosUpgradeIsCancelable(testCtx context.Context, st state.State, clu
 
 		events := make(chan state.Event)
 
-		require.NoError(t, st.WatchKind(ctx, omni.NewClusterMachineStatus(resources.DefaultNamespace, "").Metadata(), events),
-			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
-		)
+		t.Logf("watching for the machines in cluster %q", clusterName)
+
+		require.NoError(t, st.WatchKind(ctx, omni.NewClusterMachineStatus(resources.DefaultNamespace, "").Metadata(), events,
+			state.WatchWithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
+		))
 
 		ids := []string{}
 
@@ -678,6 +682,8 @@ func AssertTalosUpgradeIsCancelable(testCtx context.Context, st state.State, clu
 						}
 
 						ids = append(ids, res.Metadata().ID())
+
+						t.Logf("found machine %q, labels %#v", res.Metadata().ID(), res.Metadata().Labels())
 
 						break outer
 					}

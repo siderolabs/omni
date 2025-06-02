@@ -3,7 +3,9 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package tests
+//go:build integration
+
+package integration_test
 
 import (
 	"compress/gzip"
@@ -33,8 +35,8 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/cmd/integration-test/pkg/clientconfig"
 	"github.com/siderolabs/omni/internal/backend/workloadproxy"
+	"github.com/siderolabs/omni/internal/pkg/clientconfig"
 )
 
 //go:embed testdata/sidero-labs-icon.svg

@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-10-31T13:15:39Z by kres 6d3cad4-dirty.
+# Generated on 2025-05-30T17:31:23Z by kres 9f64b0d.
 
 *
 !frontend/src
@@ -28,5 +28,6 @@
 !CONTRIBUTING.md
 !DEVELOPMENT.md
 !README.md
+!SECURITY.md
 !.markdownlint.json
 !.license-header.go.txt

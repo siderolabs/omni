@@ -3,7 +3,9 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package tests
+//go:build integration
+
+package integration_test
 
 import (
 	"context"
@@ -55,11 +57,11 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
-	"github.com/siderolabs/omni/cmd/integration-test/pkg/clientconfig"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/infraprovider"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
+	"github.com/siderolabs/omni/internal/pkg/clientconfig"
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
 )
 

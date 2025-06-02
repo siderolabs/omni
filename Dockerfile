@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-05-20T20:30:25Z by kres 9f64b0d.
+# Generated on 2025-06-02T21:18:31Z by kres 99b55ad-dirty.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -29,6 +29,7 @@ COPY ./CHANGELOG.md ./CHANGELOG.md
 COPY ./CONTRIBUTING.md ./CONTRIBUTING.md
 COPY ./DEVELOPMENT.md ./DEVELOPMENT.md
 COPY ./README.md ./README.md
+COPY ./SECURITY.md ./SECURITY.md
 RUN bunx markdownlint --ignore "CHANGELOG.md" --ignore "**/node_modules/**" --ignore '**/hack/chglog/**' --rules sentences-per-line .
 
 # collects proto specs
@@ -337,29 +338,65 @@ ARG SHA
 ARG TAG
 RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg go build ${GO_BUILDFLAGS} -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=acompat -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /acompat-linux-amd64
 
-# builds integration-test-linux-amd64
-FROM base AS integration-test-linux-amd64-build
+# builds integration-test-darwin-amd64
+FROM base AS integration-test-darwin-amd64-build
 COPY --from=generate / /
 COPY --from=embed-generate / /
-WORKDIR /src/cmd/integration-test
+WORKDIR /src/internal/integration
 ARG GO_BUILDFLAGS
 ARG GO_LDFLAGS
 ARG VERSION_PKG="internal/version"
 ARG SHA
 ARG TAG
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GOARCH=amd64 GOOS=linux go build ${GO_BUILDFLAGS} -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=integration-test -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /integration-test-linux-amd64
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GOARCH=amd64 GOOS=darwin go test -c -covermode=atomic -tags integration,sidero.debug -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=integration-test -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /integration-test-darwin-amd64
+
+# builds integration-test-darwin-arm64
+FROM base AS integration-test-darwin-arm64-build
+COPY --from=generate / /
+COPY --from=embed-generate / /
+WORKDIR /src/internal/integration
+ARG GO_BUILDFLAGS
+ARG GO_LDFLAGS
+ARG VERSION_PKG="internal/version"
+ARG SHA
+ARG TAG
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GOARCH=arm64 GOOS=darwin go test -c -covermode=atomic -tags integration,sidero.debug -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=integration-test -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /integration-test-darwin-arm64
+
+# builds integration-test-linux-amd64
+FROM base AS integration-test-linux-amd64-build
+COPY --from=generate / /
+COPY --from=embed-generate / /
+WORKDIR /src/internal/integration
+ARG GO_BUILDFLAGS
+ARG GO_LDFLAGS
+ARG VERSION_PKG="internal/version"
+ARG SHA
+ARG TAG
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GOARCH=amd64 GOOS=linux go test -c -covermode=atomic -tags integration,sidero.debug -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=integration-test -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /integration-test-linux-amd64
 
 # builds integration-test-linux-arm64
 FROM base AS integration-test-linux-arm64-build
 COPY --from=generate / /
 COPY --from=embed-generate / /
-WORKDIR /src/cmd/integration-test
+WORKDIR /src/internal/integration
 ARG GO_BUILDFLAGS
 ARG GO_LDFLAGS
 ARG VERSION_PKG="internal/version"
 ARG SHA
 ARG TAG
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GOARCH=arm64 GOOS=linux go build ${GO_BUILDFLAGS} -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=integration-test -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /integration-test-linux-arm64
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GOARCH=arm64 GOOS=linux go test -c -covermode=atomic -tags integration,sidero.debug -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=integration-test -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /integration-test-linux-arm64
+
+# builds make-cookies-linux-amd64
+FROM base AS make-cookies-linux-amd64-build
+COPY --from=generate / /
+COPY --from=embed-generate / /
+WORKDIR /src/cmd/make-cookies
+ARG GO_BUILDFLAGS
+ARG GO_LDFLAGS
+ARG VERSION_PKG="internal/version"
+ARG SHA
+ARG TAG
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg go build ${GO_BUILDFLAGS} -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=make-cookies -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /make-cookies-linux-amd64
 
 # builds omni-darwin-amd64
 FROM base AS omni-darwin-amd64-build
@@ -472,11 +509,20 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 FROM scratch AS acompat-linux-amd64
 COPY --from=acompat-linux-amd64-build /acompat-linux-amd64 /acompat-linux-amd64
 
+FROM scratch AS integration-test-darwin-amd64
+COPY --from=integration-test-darwin-amd64-build /integration-test-darwin-amd64 /integration-test-darwin-amd64
+
+FROM scratch AS integration-test-darwin-arm64
+COPY --from=integration-test-darwin-arm64-build /integration-test-darwin-arm64 /integration-test-darwin-arm64
+
 FROM scratch AS integration-test-linux-amd64
 COPY --from=integration-test-linux-amd64-build /integration-test-linux-amd64 /integration-test-linux-amd64
 
 FROM scratch AS integration-test-linux-arm64
 COPY --from=integration-test-linux-arm64-build /integration-test-linux-arm64 /integration-test-linux-arm64
+
+FROM scratch AS make-cookies-linux-amd64
+COPY --from=make-cookies-linux-amd64-build /make-cookies-linux-amd64 /make-cookies-linux-amd64
 
 FROM scratch AS omni-darwin-amd64
 COPY --from=omni-darwin-amd64-build /omni-darwin-amd64 /omni-darwin-amd64
@@ -513,8 +559,15 @@ COPY --from=acompat-linux-amd64 / /
 FROM integration-test-linux-${TARGETARCH} AS integration-test
 
 FROM scratch AS integration-test-all
+COPY --from=integration-test-darwin-amd64 / /
+COPY --from=integration-test-darwin-arm64 / /
 COPY --from=integration-test-linux-amd64 / /
 COPY --from=integration-test-linux-arm64 / /
+
+FROM make-cookies-linux-${TARGETARCH} AS make-cookies
+
+FROM scratch AS make-cookies-all
+COPY --from=make-cookies-linux-amd64 / /
 
 FROM omni-linux-${TARGETARCH} AS omni
 
@@ -535,7 +588,6 @@ COPY --from=omnictl-windows-amd64.exe / /
 
 FROM scratch AS image-integration-test
 ARG TARGETARCH
-COPY --from=integration-test integration-test-linux-${TARGETARCH} /integration-test
 COPY --from=integration-test integration-test-linux-${TARGETARCH} /integration-test
 COPY --from=image-fhs / /
 COPY --from=image-ca-certificates / /

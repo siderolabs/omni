@@ -3,7 +3,9 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package tests
+//go:build integration
+
+package integration_test
 
 import (
 	"context"
@@ -11,19 +13,24 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"strings"
+	"testing"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	talosclient "github.com/siderolabs/talos/pkg/machinery/client"
-	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
+	talosclientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
 	"github.com/siderolabs/talos/pkg/machinery/resources/cluster"
+	"golang.org/x/sync/semaphore"
 
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
+	"github.com/siderolabs/omni/internal/pkg/clientconfig"
 )
 
 func resourceDetails(res resource.Resource) string {
@@ -137,7 +144,7 @@ func talosClient(ctx context.Context, cli *client.Client, clusterName string) (*
 		return nil, errors.New("empty talosconfig")
 	}
 
-	config, err := clientconfig.FromBytes(data)
+	config, err := talosclientconfig.FromBytes(data)
 	if err != nil {
 		return nil, err
 	}
@@ -176,4 +183,128 @@ func talosNodeIPs(ctx context.Context, talosState state.State) ([]string, error)
 	}
 
 	return nodeIPs, nil
+}
+
+//nolint:govet
+type testGroup struct {
+	Name         string
+	Description  string
+	Parallel     bool
+	MachineClaim int
+	Subtests     []subTest
+	Finalizer    func(t *testing.T)
+}
+
+//nolint:govet
+type subTest struct {
+	Name string
+	F    func(t *testing.T)
+}
+
+type subTestList []subTest
+
+func subTests(items ...subTest) subTestList {
+	return items
+}
+
+func (l subTestList) Append(items ...subTest) subTestList {
+	return append(l, items...)
+}
+
+// MachineOptions are the options for machine creation.
+type MachineOptions struct {
+	TalosVersion      string
+	KubernetesVersion string
+}
+
+// TestFunc is a testing function prototype.
+type TestFunc func(t *testing.T)
+
+// RestartAMachineFunc is a function to restart a machine by UUID.
+type RestartAMachineFunc func(ctx context.Context, uuid string) error
+
+// WipeAMachineFunc is a function to wipe a machine by UUID.
+type WipeAMachineFunc func(ctx context.Context, uuid string) error
+
+// FreezeAMachineFunc is a function to freeze a machine by UUID.
+type FreezeAMachineFunc func(ctx context.Context, uuid string) error
+
+// HTTPRequestSignerFunc is function to sign the HTTP request.
+type HTTPRequestSignerFunc func(ctx context.Context, req *http.Request) error
+
+// TalosAPIKeyPrepareFunc is a function to prepare a public key for Talos API auth.
+type TalosAPIKeyPrepareFunc func(ctx context.Context, contextName string) error
+
+// Options for the test runner.
+//
+//nolint:govet
+type Options struct {
+	CleanupLinks                bool
+	SkipExtensionsCheckOnCreate bool
+	RunStatsCheck               bool
+	ExpectedMachines            int
+
+	RestartAMachineFunc RestartAMachineFunc
+	WipeAMachineFunc    WipeAMachineFunc
+	FreezeAMachineFunc  FreezeAMachineFunc
+	ProvisionConfigs    []MachineProvisionConfig
+
+	MachineOptions MachineOptions
+
+	HTTPEndpoint             string
+	AnotherTalosVersion      string
+	AnotherKubernetesVersion string
+	OmnictlPath              string
+	ScalingTimeout           time.Duration
+	StaticInfraProvider      string
+	OutputDir                string
+}
+
+func (o Options) defaultInfraProvider() string {
+	if len(o.ProvisionConfigs) == 0 {
+		return ""
+	}
+
+	return o.ProvisionConfigs[0].Provider.ID
+}
+
+func (o Options) defaultProviderData() string {
+	if len(o.ProvisionConfigs) == 0 {
+		return "{}"
+	}
+
+	return o.ProvisionConfigs[0].Provider.Data
+}
+
+func (o Options) provisionMachines() bool {
+	var totalMachineCount int
+
+	for _, cfg := range o.ProvisionConfigs {
+		totalMachineCount += cfg.MachineCount
+	}
+
+	return totalMachineCount > 0
+}
+
+// MachineProvisionConfig tells the test to provision machines from the infra provider.
+type MachineProvisionConfig struct {
+	Provider     MachineProviderConfig `yaml:"provider"`
+	MachineCount int                   `yaml:"count"`
+}
+
+// MachineProviderConfig keeps the configuration of the infra provider for the machine provision config.
+type MachineProviderConfig struct {
+	ID     string `yaml:"id"`
+	Data   string `yaml:"data"`
+	Static bool   `yaml:"static"`
+}
+
+// TestOptions constains all common data that might be required to run the tests.
+type TestOptions struct {
+	Options
+	omniClient         *client.Client
+	talosAPIKeyPrepare TalosAPIKeyPrepareFunc
+	clientConfig       *clientconfig.ClientConfig
+
+	machineSemaphore *semaphore.Weighted
 }

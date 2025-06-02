@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-05-22T17:54:46Z by kres 9f64b0d.
+# Generated on 2025-06-02T21:18:31Z by kres 99b55ad-dirty.
 
 name: e2e-short-secureboot-cron
 concurrency:
@@ -62,9 +62,9 @@ jobs:
         env:
           ENABLE_SECUREBOOT: "true"
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: --test.run CleanState/|TalosImageGeneration/|ImmediateClusterDestruction/|DefaultCluster/|EncryptedCluster/|SinglenodeCluster/|Auth/
+          INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|ImmediateClusterDestruction|DefaultCluster|EncryptedCluster|SinglenodeCluster|Auth)$
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceUpgrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/
+          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
           WITH_DEBUG: "true"
         run: |
           sudo -E make run-integration-test

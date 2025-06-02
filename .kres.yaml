@@ -9,10 +9,35 @@ name: acompat
 spec:
   disableImage: true
 ---
+kind: auto.CommandConfig
+name: make-cookies
+spec:
+  disableImage: true
+---
 kind: auto.Helm
 spec:
   enabled: true
   chartDir: deploy/helm/omni
+---
+kind: auto.IntegrationTests
+spec:
+  tests:
+    - path: internal/integration
+      name: integration-test
+      enableDockerImage: true
+      outputs:
+        linux-amd64:
+          GOOS: linux
+          GOARCH: amd64
+        linux-arm64:
+          GOOS: linux
+          GOARCH: arm64
+        darwin-amd64:
+          GOOS: darwin
+          GOARCH: amd64
+        darwin-arm64:
+          GOOS: darwin
+          GOARCH: arm64
 ---
 kind: common.GHWorkflow
 spec:
@@ -187,8 +212,8 @@ spec:
     environment:
       WITH_DEBUG: "true"
       INTEGRATION_RUN_E2E_TEST: "true"
-      INTEGRATION_TEST_ARGS: "--test.run CleanState/|Auth/|DefaultCluster/|CLICommands/"
-      TALEMU_TEST_ARGS: "--test.run ImmediateClusterDestruction/|EncryptedCluster/|SinglenodeCluster/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceUpgrade/|ClusterTemplate/|ScaleUpAndDownAutoProvisionMachineSets/"
+      INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|Auth|DefaultCluster|CLICommands)$"
+      TALEMU_TEST_ARGS: "--test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$"
       RUN_TALEMU_TESTS: true
     jobs:
       - name: e2e-short-secureboot
@@ -200,7 +225,7 @@ spec:
           - integration/e2e-short-secureboot
         environmentOverride:
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: "--test.run CleanState/|TalosImageGeneration/|ImmediateClusterDestruction/|DefaultCluster/|EncryptedCluster/|SinglenodeCluster/|Auth/"
+          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|ImmediateClusterDestruction|DefaultCluster|EncryptedCluster|SinglenodeCluster|Auth)$"
           RUN_TALEMU_TESTS: false
           ENABLE_SECUREBOOT: true
       - name: e2e-short
@@ -213,7 +238,7 @@ spec:
           - integration/e2e-short
         environmentOverride:
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: "--test.run CleanState/|TalosImageGeneration/|ImmediateClusterDestruction/|DefaultCluster/|EncryptedCluster/|SinglenodeCluster/|Auth/"
+          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|ImmediateClusterDestruction|DefaultCluster|EncryptedCluster|SinglenodeCluster|Auth)$"
           RUN_TALEMU_TESTS: false
       - name: e2e-scaling
         crons:
@@ -225,7 +250,7 @@ spec:
           - integration/e2e-scaling
         environmentOverride:
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: "--test.run CleanState/|ScaleUpAndDown/|ScaleUpAndDownMachineClassBasedMachineSets/|RollingUpdateParallelism"
+          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|RollingUpdateParallelism)$"
           RUN_TALEMU_TESTS: false
       - name: e2e-forced-removal
         crons:
@@ -237,7 +262,7 @@ spec:
           - integration/e2e-forced-removal
         environmentOverride:
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: "--test.run CleanState/|ForcedMachineRemoval/|ReplaceControlPlanes/|ConfigPatching/|KubernetesNodeAudit/"
+          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|ForcedMachineRemoval|ReplaceControlPlanes|ConfigPatching|KubernetesNodeAudit)$"
           RUN_TALEMU_TESTS: false
       - name: e2e-upgrades
         crons:
@@ -249,7 +274,7 @@ spec:
           - integration/e2e-upgrades
         environmentOverride:
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: "--test.run CleanState/|TalosUpgrades/|KubernetesUpgrades/|MaintenanceUpgrade/"
+          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade)$"
           RUN_TALEMU_TESTS: false
       - name: e2e-templates
         crons:
@@ -261,7 +286,7 @@ spec:
           - integration/e2e-templates
         environmentOverride:
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: "--test.run CleanState/|ClusterTemplate/"
+          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|ClusterTemplate)$"
           RUN_TALEMU_TESTS: false
       - name: e2e-backups
         crons:
@@ -273,7 +298,7 @@ spec:
           - integration/e2e-backups
         environmentOverride:
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: "--test.run CleanState/|EtcdBackupAndRestore"
+          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|EtcdBackupAndRestore)$"
           RUN_TALEMU_TESTS: false
       - name: e2e-workload-proxy
         crons:
@@ -285,7 +310,7 @@ spec:
           - integration/e2e-workload-proxy
         environmentOverride:
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: "--test.run CleanState/|WorkloadProxy"
+          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|WorkloadProxy)$"
           RUN_TALEMU_TESTS: false
 ---
 kind: common.Build
@@ -347,17 +372,6 @@ spec:
     windows-amd64.exe:
       GOOS: windows
       GOARCH: amd64
----
-kind: golang.Build
-name: integration-test
-spec:
-  outputs:
-    linux-amd64:
-      GOOS: linux
-      GOARCH: amd64
-    linux-arm64:
-      GOOS: linux
-      GOARCH: arm64
 ---
 kind: golang.Generate
 spec:
@@ -527,13 +541,6 @@ spec:
   artifacts:
     - omnictl-*
     - omni-*
----
-kind: common.Image
-name: image-integration-test
-spec:
-  extraEnvironment:
-    PLATFORM: linux/amd64,linux/arm64
-  imageName: "omni-integration-test"
 ---
 kind: common.Image
 name: image-omni

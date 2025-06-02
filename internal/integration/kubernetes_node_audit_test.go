@@ -3,7 +3,9 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package tests
+//go:build integration
+
+package integration_test
 
 import (
 	"context"
@@ -20,7 +22,6 @@ import (
 	"go.uber.org/zap/zaptest"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -31,7 +32,9 @@ import (
 //  3. Assert that the ClusterMachine resource is deleted - the ClusterMachineTeardownController did not block its deletion despite failing to remove the node from Kubernetes.
 //  4. Wake the control plane back up.
 //  5. Assert that the worker node eventually gets removed from Kubernetes due to node audit.
-func AssertKubernetesNodeAudit(ctx context.Context, st state.State, clusterName string, omniClient *client.Client, options Options) TestFunc {
+func AssertKubernetesNodeAudit(ctx context.Context, clusterName string, options *TestOptions) TestFunc {
+	st := options.omniClient.Omni().State()
+
 	return func(t *testing.T) {
 		if options.FreezeAMachineFunc == nil || options.RestartAMachineFunc == nil {
 			t.Skip("skip the test as FreezeAMachineFunc or RestartAMachineFunc is not set")
@@ -82,7 +85,7 @@ func AssertKubernetesNodeAudit(ctx context.Context, st state.State, clusterName 
 			require.NoError(t, options.RestartAMachineFunc(ctx, id))
 		}
 
-		kubernetesClient := getKubernetesClient(ctx, t, omniClient.Management(), clusterName)
+		kubernetesClient := getKubernetesClient(ctx, t, options.omniClient.Management(), clusterName)
 
 		logger.Info("assert that the node is removed from Kubernetes due to node audit")
 

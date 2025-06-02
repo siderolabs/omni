@@ -12,8 +12,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/siderolabs/omni/cmd/integration-test/pkg/clientconfig"
 	"github.com/siderolabs/omni/internal/backend/workloadproxy"
+	"github.com/siderolabs/omni/internal/pkg/clientconfig"
 )
 
 func main() {

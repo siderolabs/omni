@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-05-20T20:30:25Z by kres 9f64b0d.
+# Generated on 2025-06-02T21:18:31Z by kres 99b55ad-dirty.
 
 # common variables
 
@@ -148,7 +148,7 @@ else
 GO_LDFLAGS += -s
 endif
 
-all: unit-tests-frontend lint-eslint frontend unit-tests-client unit-tests acompat integration-test image-integration-test omni image-omni omnictl helm lint
+all: unit-tests-frontend lint-eslint frontend unit-tests-client unit-tests acompat make-cookies omni image-omni omnictl helm integration-test image-integration-test lint
 
 $(ARTIFACTS):  ## Creates artifacts directory.
 	@mkdir -p $(ARTIFACTS)
@@ -256,33 +256,15 @@ acompat-linux-amd64: $(ARTIFACTS)/acompat-linux-amd64  ## Builds executable for 
 .PHONY: acompat
 acompat: acompat-linux-amd64  ## Builds executables for acompat.
 
-.PHONY: $(ARTIFACTS)/integration-test-linux-amd64
-$(ARTIFACTS)/integration-test-linux-amd64:
-	@$(MAKE) local-integration-test-linux-amd64 DEST=$(ARTIFACTS)
+.PHONY: $(ARTIFACTS)/make-cookies-linux-amd64
+$(ARTIFACTS)/make-cookies-linux-amd64:
+	@$(MAKE) local-make-cookies-linux-amd64 DEST=$(ARTIFACTS)
 
-.PHONY: integration-test-linux-amd64
-integration-test-linux-amd64: $(ARTIFACTS)/integration-test-linux-amd64  ## Builds executable for integration-test-linux-amd64.
+.PHONY: make-cookies-linux-amd64
+make-cookies-linux-amd64: $(ARTIFACTS)/make-cookies-linux-amd64  ## Builds executable for make-cookies-linux-amd64.
 
-.PHONY: $(ARTIFACTS)/integration-test-linux-arm64
-$(ARTIFACTS)/integration-test-linux-arm64:
-	@$(MAKE) local-integration-test-linux-arm64 DEST=$(ARTIFACTS)
-
-.PHONY: integration-test-linux-arm64
-integration-test-linux-arm64: $(ARTIFACTS)/integration-test-linux-arm64  ## Builds executable for integration-test-linux-arm64.
-
-.PHONY: integration-test
-integration-test: integration-test-linux-amd64 integration-test-linux-arm64  ## Builds executables for integration-test.
-
-.PHONY: lint-markdown
-lint-markdown:  ## Runs markdownlint.
-	@$(MAKE) target-$@
-
-.PHONY: lint
-lint: lint-eslint lint-golangci-lint-client lint-gofumpt-client lint-govulncheck-client lint-golangci-lint lint-gofumpt lint-govulncheck lint-markdown  ## Run all linters for the project.
-
-.PHONY: image-integration-test
-image-integration-test:  ## Builds image for omni-integration-test.
-	@$(MAKE) registry-$@ IMAGE_NAME="omni-integration-test"
+.PHONY: make-cookies
+make-cookies: make-cookies-linux-amd64  ## Builds executables for make-cookies.
 
 .PHONY: $(ARTIFACTS)/omni-darwin-amd64
 $(ARTIFACTS)/omni-darwin-amd64:
@@ -314,6 +296,13 @@ omni-linux-arm64: $(ARTIFACTS)/omni-linux-arm64  ## Builds executable for omni-l
 
 .PHONY: omni
 omni: omni-darwin-amd64 omni-darwin-arm64 omni-linux-amd64 omni-linux-arm64  ## Builds executables for omni.
+
+.PHONY: lint-markdown
+lint-markdown:  ## Runs markdownlint.
+	@$(MAKE) target-$@
+
+.PHONY: lint
+lint: lint-eslint lint-golangci-lint-client lint-gofumpt-client lint-govulncheck-client lint-golangci-lint lint-gofumpt lint-govulncheck lint-markdown  ## Run all linters for the project.
 
 .PHONY: image-omni
 image-omni:  ## Builds image for omni.
@@ -365,6 +354,41 @@ helm:  ## Package helm chart
 helm-release: helm  ## Release helm chart
 	@helm push $(ARTIFACTS)/omni-*.tgz oci://$(HELMREPO) 2>&1 | tee $(ARTIFACTS)/.digest
 	@cosign sign --yes $(COSING_ARGS) $(HELMREPO)/omni@$$(cat $(ARTIFACTS)/.digest | awk -F "[, ]+" '/Digest/{print $$NF}')
+
+.PHONY: $(ARTIFACTS)/integration-test-darwin-amd64
+$(ARTIFACTS)/integration-test-darwin-amd64:
+	@$(MAKE) local-integration-test-darwin-amd64 DEST=$(ARTIFACTS)
+
+.PHONY: integration-test-darwin-amd64
+integration-test-darwin-amd64: $(ARTIFACTS)/integration-test-darwin-amd64  ## Builds executable for integration-test-darwin-amd64.
+
+.PHONY: $(ARTIFACTS)/integration-test-darwin-arm64
+$(ARTIFACTS)/integration-test-darwin-arm64:
+	@$(MAKE) local-integration-test-darwin-arm64 DEST=$(ARTIFACTS)
+
+.PHONY: integration-test-darwin-arm64
+integration-test-darwin-arm64: $(ARTIFACTS)/integration-test-darwin-arm64  ## Builds executable for integration-test-darwin-arm64.
+
+.PHONY: $(ARTIFACTS)/integration-test-linux-amd64
+$(ARTIFACTS)/integration-test-linux-amd64:
+	@$(MAKE) local-integration-test-linux-amd64 DEST=$(ARTIFACTS)
+
+.PHONY: integration-test-linux-amd64
+integration-test-linux-amd64: $(ARTIFACTS)/integration-test-linux-amd64  ## Builds executable for integration-test-linux-amd64.
+
+.PHONY: $(ARTIFACTS)/integration-test-linux-arm64
+$(ARTIFACTS)/integration-test-linux-arm64:
+	@$(MAKE) local-integration-test-linux-arm64 DEST=$(ARTIFACTS)
+
+.PHONY: integration-test-linux-arm64
+integration-test-linux-arm64: $(ARTIFACTS)/integration-test-linux-arm64  ## Builds executable for integration-test-linux-arm64.
+
+.PHONY: integration-test
+integration-test: integration-test-darwin-amd64 integration-test-darwin-arm64 integration-test-linux-amd64 integration-test-linux-arm64  ## Builds executables for integration-test.
+
+.PHONY: image-integration-test
+image-integration-test:  ## Builds image for integration-test.
+	@$(MAKE) registry-$@ IMAGE_NAME="integration-test"
 
 .PHONY: dev-server
 dev-server:
