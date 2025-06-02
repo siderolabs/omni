@@ -90,7 +90,7 @@ func newNamespacedState(params *config.Params, primaryStorageCoreState state.Cor
 		return nil, nil, fmt.Errorf("failed to create etcd backup store: %w", err)
 	}
 
-	buildEphemeralState := inmem.NewStateWithOptions(inmem.WithHistoryGap(20))
+	buildEphemeralState := inmem.NewStateWithOptions(inmem.WithHistoryGap(20), inmem.WithHistoryMaxCapacity(10000))
 	ephemeralState := buildEphemeralState(resources.EphemeralNamespace)
 	metaEphemeralState := buildEphemeralState(meta.NamespaceName)
 	infraProviderState := infraprovider.NewState(primaryStorageCoreState, ephemeralState, logger.With(logging.Component("infraprovider_state")))
