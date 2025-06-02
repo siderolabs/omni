@@ -23,6 +23,10 @@ func Build(imageFactoryHost string, resID resource.ID, installImage *specs.Machi
 		return "", fmt.Errorf("image factory host is not set")
 	}
 
+	if installImage == nil {
+		return "", fmt.Errorf("install image is nil for machine %q", resID)
+	}
+
 	if !installImage.SchematicInitialized {
 		return "", fmt.Errorf("machine %q has no schematic information set", resID)
 	}

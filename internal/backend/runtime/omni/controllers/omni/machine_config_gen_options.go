@@ -70,7 +70,6 @@ func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVers
 
 		genOptions.TypedSpec().Value.InstallImage.SchematicId = clusterMachineTalosVersion.TypedSpec().Value.SchematicId
 		genOptions.TypedSpec().Value.InstallImage.TalosVersion = clusterMachineTalosVersion.TypedSpec().Value.TalosVersion
-		genOptions.TypedSpec().Value.InstallImage.SchematicId = clusterMachineTalosVersion.TypedSpec().Value.SchematicId
 		genOptions.TypedSpec().Value.InstallImage.SchematicInitialized = machineStatus.TypedSpec().Value.Schematic != nil
 
 		if genOptions.TypedSpec().Value.InstallImage.SchematicInitialized {

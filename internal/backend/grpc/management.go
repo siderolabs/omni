@@ -38,6 +38,7 @@ import (
 
 	commonOmni "github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/client/api/omni/management"
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -699,17 +700,28 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 		return nil, status.Error(codes.FailedPrecondition, "machine is not in maintenance mode")
 	}
 
-	machineConfigGenOptions, err := safe.ReaderGetByID[*omnires.MachineConfigGenOptions](ctx, s.omniState, req.MachineId)
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return nil, status.Error(codes.NotFound, "machine config gen options not found")
-		}
-
-		return nil, fmt.Errorf("failed to get machine config gen options: %w", err)
+	schematic := machineStatus.TypedSpec().Value.Schematic
+	if schematic == nil || schematic.FullId == "" {
+		return nil, status.Error(codes.FailedPrecondition, "machine schematic is not known yet")
 	}
 
-	installImage := machineConfigGenOptions.TypedSpec().Value.InstallImage
-	installImage.TalosVersion = req.Version
+	platform := machineStatus.TypedSpec().Value.GetPlatformMetadata().GetPlatform()
+	if platform == "" {
+		return nil, status.Error(codes.FailedPrecondition, "machine platform is not known yet")
+	}
+
+	securityState := machineStatus.TypedSpec().Value.SecurityState
+	if securityState == nil {
+		return nil, status.Error(codes.FailedPrecondition, "machine security state is not known yet")
+	}
+
+	installImage := &specs.MachineConfigGenOptionsSpec_InstallImage{
+		TalosVersion:         req.Version,
+		SchematicId:          schematic.FullId,
+		SchematicInitialized: true,
+		Platform:             platform,
+		SecurityState:        securityState,
+	}
 
 	installImageStr, err := installimage.Build(s.imageFactoryClient.Host(), req.MachineId, installImage)
 	if err != nil {
