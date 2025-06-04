@@ -24,16 +24,16 @@ import (
 // UpdateResources creates or updates the features omni.FeaturesConfig resource with the current feature flags.
 func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger) error {
 	updateFeaturesConfig := func(res *omni.FeaturesConfig) error {
-		res.TypedSpec().Value.EnableWorkloadProxying = config.Config.WorkloadProxying.Enabled
-		res.TypedSpec().Value.EmbeddedDiscoveryService = config.Config.EmbeddedDiscoveryService.Enabled
+		res.TypedSpec().Value.EnableWorkloadProxying = config.Config.Services.WorkloadProxy.Enabled
+		res.TypedSpec().Value.EmbeddedDiscoveryService = config.Config.Services.EmbeddedDiscoveryService.Enabled
 		res.TypedSpec().Value.EtcdBackupSettings = &specs.EtcdBackupSettings{
 			TickInterval: durationpb.New(config.Config.EtcdBackup.TickInterval),
 			MinInterval:  durationpb.New(config.Config.EtcdBackup.MinInterval),
 			MaxInterval:  durationpb.New(config.Config.EtcdBackup.MaxInterval),
 		}
 
-		res.TypedSpec().Value.AuditLogEnabled = config.Config.AuditLogDir != ""
-		res.TypedSpec().Value.ImageFactoryBaseUrl = config.Config.ImageFactoryBaseURL
+		res.TypedSpec().Value.AuditLogEnabled = config.Config.Logs.Audit.Path != ""
+		res.TypedSpec().Value.ImageFactoryBaseUrl = config.Config.Registries.ImageFactoryBaseURL
 
 		return nil
 	}
@@ -55,7 +55,7 @@ func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger) er
 			return fmt.Errorf("failed to create features config: %w", err)
 		}
 
-		logger.Info("created features config resource", zap.Bool("enable_workload_proxying", config.Config.WorkloadProxying.Enabled))
+		logger.Info("created features config resource", zap.Bool("enable_workload_proxying", config.Config.Services.WorkloadProxy.Enabled))
 
 		return nil
 	}
@@ -64,7 +64,7 @@ func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger) er
 		return fmt.Errorf("failed to update features config: %w", err)
 	}
 
-	logger.Info("updated features config resource", zap.Bool("enable_workload_proxying", config.Config.WorkloadProxying.Enabled))
+	logger.Info("updated features config resource", zap.Bool("enable_workload_proxying", config.Config.Services.WorkloadProxy.Enabled))
 
 	return nil
 }

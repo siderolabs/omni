@@ -23,7 +23,7 @@ import (
 )
 
 // NewLogHandler returns a new LogHandler.
-func NewLogHandler(machineMap *MachineMap, omniState state.State, storageConfig *config.MachineLogConfigParams, logger *zap.Logger) (*LogHandler, error) {
+func NewLogHandler(machineMap *MachineMap, omniState state.State, storageConfig *config.LogsMachine, logger *zap.Logger) (*LogHandler, error) {
 	cache, err := NewMachineCache(storageConfig, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create machine cache: %w", err)

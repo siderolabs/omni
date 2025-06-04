@@ -103,7 +103,7 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 		)
 	}
 
-	newImage := fmt.Sprintf("%s:v1.0.2", conf.Config.TalosRegistry)
+	newImage := fmt.Sprintf("%s:v1.0.2", conf.Config.Registries.Talos)
 
 	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
 		func(config *omni.ClusterMachineConfigPatches) error {

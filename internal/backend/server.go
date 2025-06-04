@@ -9,7 +9,6 @@ package backend
 import (
 	"compress/gzip"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,7 +21,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -35,7 +33,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	protobufserver "github.com/cosi-project/runtime/pkg/state/protobuf/server"
 	"github.com/crewjam/saml/samlsp"
-	"github.com/fsnotify/fsnotify"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
@@ -63,7 +60,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/debug"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/factory"
@@ -80,6 +76,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/saml"
+	"github.com/siderolabs/omni/internal/backend/services"
 	"github.com/siderolabs/omni/internal/backend/workloadproxy"
 	"github.com/siderolabs/omni/internal/frontend"
 	"github.com/siderolabs/omni/internal/memconn"
@@ -116,19 +113,16 @@ type Server struct {
 	siderolinkEventsCh chan<- *omnires.MachineStatusSnapshot
 	installEventCh     chan<- resource.ID
 
-	proxyServer         Proxy
-	bindAddress         string
-	metricsBindAddress  string
-	pprofBindAddress    string
-	k8sProxyBindAddress string
-	keyFile             string
-	certFile            string
-	workloadProxyKey    []byte
+	pprofBindAddress string
+	apiService       config.Service
+	metricsService   config.Service
+	devServerProxy   config.DevServerProxyService
+	k8sProxyService  config.KubernetesProxyService
+	workloadProxyKey []byte
 }
 
 // NewServer creates new HTTP server.
 func NewServer(
-	bindAddress, metricsBindAddress, k8sProxyBindAddress, pprofBindAddress string,
 	dnsService *dns.Service,
 	workloadProxyReconciler *workloadproxy.Reconciler,
 	imageFactoryClient *imagefactory.Client,
@@ -139,8 +133,6 @@ func NewServer(
 	talosRuntime *talos.Runtime,
 	logHandler *siderolink.LogHandler,
 	authConfig *authres.Config,
-	keyFile, certFile string,
-	proxyServer Proxy,
 	auditor Auditor,
 	logger *zap.Logger,
 ) (*Server, error) {
@@ -156,13 +148,11 @@ func NewServer(
 		linkCounterDeltaCh:      linkCounterDeltaCh,
 		siderolinkEventsCh:      siderolinkEventsCh,
 		installEventCh:          installEventCh,
-		proxyServer:             proxyServer,
-		bindAddress:             bindAddress,
-		metricsBindAddress:      metricsBindAddress,
-		pprofBindAddress:        pprofBindAddress,
-		k8sProxyBindAddress:     k8sProxyBindAddress,
-		keyFile:                 keyFile,
-		certFile:                certFile,
+		devServerProxy:          config.Config.Services.DevServerProxy,
+		apiService:              config.Config.Services.API,
+		metricsService:          config.Config.Services.Metrics,
+		pprofBindAddress:        config.Config.Debug.Pprof.Endpoint,
+		k8sProxyService:         config.Config.Services.KubernetesProxy,
 	}
 
 	k8sruntime, err := kubernetes.New(omniRuntime.State())
@@ -237,28 +227,22 @@ func (s *Server) Run(ctx context.Context) error {
 		return err
 	}
 
-	var crtData *certData
-
-	if s.certFile != "" && s.keyFile != "" {
-		crtData = &certData{certFile: s.certFile, keyFile: s.keyFile}
-	}
-
 	workloadProxyHandler, err := s.workloadProxyHandler(mux)
 	if err != nil {
 		return fmt.Errorf("failed to create workload proxy handler: %w", err)
 	}
 
-	apiSrv := s.makeAPIServer(workloadProxyHandler, proxyServer, crtData)
+	apiSrv := s.makeAPIServer(workloadProxyHandler, proxyServer)
 
 	fns := []func() error{
 		func() error { return proxyServer.Serve(ctx, gtwyDialsTo) },
 		func() error { return actualSrv.Serve(ctx, prxDialsTo) },
 		func() error { return apiSrv.Run(ctx) },
-		func() error { return runMetricsServer(ctx, s.metricsBindAddress, s.logger) },
+		func() error { return s.runMetricsServer(ctx) },
 		func() error {
-			return runK8sProxyServer(ctx, s.k8sProxyBindAddress, oidcStorage, crtData, s.omniRuntime.State(), s.auditor, s.logger)
+			return s.runK8sProxyServer(ctx, oidcStorage)
 		},
-		func() error { return s.proxyServer.Run(ctx, apiSrv.Handler(), s.logger) },
+		func() error { return s.runDevProxyServer(ctx, apiSrv.Handler()) },
 		func() error { return s.logHandler.Start(ctx) },
 		func() error { return s.runMachineAPI(ctx) },
 		func() error { return s.auditor.RunCleanup(ctx) },
@@ -272,11 +256,13 @@ func (s *Server) Run(ctx context.Context) error {
 		eg.Go(fn)
 	}
 
-	if err = runLocalResourceServer(ctx, runtimeState, serverOptions, eg, s.logger); err != nil {
-		return fmt.Errorf("failed to run local resource server: %w", err)
+	if config.Config.Services.LocalResourceService.Enabled {
+		if err = runLocalResourceServer(ctx, runtimeState, serverOptions, eg, s.logger); err != nil {
+			return fmt.Errorf("failed to run local resource server: %w", err)
+		}
 	}
 
-	if config.Config.EmbeddedDiscoveryService.Enabled {
+	if config.Config.Services.EmbeddedDiscoveryService.Enabled {
 		eg.Go(func() error {
 			if err = runEmbeddedDiscoveryService(ctx, s.logger); err != nil {
 				return fmt.Errorf("failed to run discovery server over Siderolink: %w", err)
@@ -286,7 +272,7 @@ func (s *Server) Run(ctx context.Context) error {
 		})
 	}
 
-	if config.Config.InitialServiceAccount.Enabled {
+	if config.Config.Auth.InitialServiceAccount.Enabled {
 		if err = s.createInitialServiceAccount(ctx); err != nil {
 			return err
 		}
@@ -298,10 +284,11 @@ func (s *Server) Run(ctx context.Context) error {
 func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
 	imageFactoryHandler := handler.NewAuthConfig(
 		handler.NewSignature(
-			&factory.Handler{
-				State:  s.omniRuntime.State(),
-				Logger: s.logger.With(logging.Component("factory_proxy")),
-			},
+			factory.NewHandler(
+				s.omniRuntime.State(),
+				s.logger.With(logging.Component("factory_proxy")),
+				&config.Config.Registries,
+			),
 			s.authenticatorFunc(),
 			s.logger,
 		),
@@ -557,15 +544,15 @@ func (s *Server) authenticatorFunc() auth.AuthenticatorFunc {
 }
 
 func (s *Server) runMachineAPI(ctx context.Context) error {
-	wgAddress := config.Config.SiderolinkWireguardBindAddress
+	wgAddress := config.Config.Services.Siderolink.WireGuard.BindEndpoint
 
 	params := siderolink.Params{
 		WireguardEndpoint:  wgAddress,
-		AdvertisedEndpoint: config.Config.SiderolinkWireguardAdvertisedAddress,
-		APIEndpoint:        config.Config.MachineAPIBindAddress,
-		Cert:               config.Config.MachineAPICertFile,
-		Key:                config.Config.MachineAPIKeyFile,
-		EventSinkPort:      strconv.Itoa(config.Config.EventSinkPort),
+		AdvertisedEndpoint: config.Config.Services.Siderolink.WireGuard.AdvertisedEndpoint,
+		MachineAPIEndpoint: config.Config.Services.MachineAPI.BindEndpoint,
+		MachineAPITLSCert:  config.Config.Services.MachineAPI.CertFile,
+		MachineAPITLSKey:   config.Config.Services.MachineAPI.KeyFile,
+		EventSinkPort:      strconv.Itoa(config.Config.Services.Siderolink.EventSinkPort),
 	}
 
 	omniState := s.omniRuntime.State()
@@ -614,9 +601,9 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 	eg.Go(func() error {
 		return slink.Run(groupCtx,
 			siderolink.ListenHost,
-			strconv.Itoa(config.Config.EventSinkPort),
+			strconv.Itoa(config.Config.Services.Siderolink.EventSinkPort),
 			strconv.Itoa(talosconstants.TrustdPort),
-			strconv.Itoa(config.Config.LogServerPort),
+			strconv.Itoa(config.Config.Services.Siderolink.LogServerPort),
 		)
 	})
 
@@ -637,7 +624,7 @@ func (s *Server) workloadProxyHandler(next http.Handler) (http.Handler, error) {
 		return nil, fmt.Errorf("failed to create pgp signature validator: %w", err)
 	}
 
-	mainURL, err := url.Parse(config.Config.APIURL)
+	mainURL, err := url.Parse(config.Config.Services.API.URL())
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse API URL: %w", err)
 	}
@@ -647,15 +634,15 @@ func (s *Server) workloadProxyHandler(next http.Handler) (http.Handler, error) {
 		s.workloadProxyReconciler,
 		pgpSignatureValidator,
 		mainURL,
-		config.Config.WorkloadProxying.Subdomain,
+		config.Config.Services.WorkloadProxy.Subdomain,
 		s.logger.With(logging.Component("workload_proxy_handler")),
 		s.workloadProxyKey,
 	)
 }
 
-func (s *Server) makeAPIServer(regular http.Handler, grpcServer *grpcServer, data *certData) *apiServer {
+func (s *Server) makeAPIServer(regular http.Handler, grpcServer *grpcServer) *apiServer {
 	wrap := func(fn func(w http.ResponseWriter, req *http.Request)) http.Handler {
-		if data != nil {
+		if s.apiService.IsSecure() {
 			return http.HandlerFunc(fn)
 		}
 
@@ -663,40 +650,40 @@ func (s *Server) makeAPIServer(regular http.Handler, grpcServer *grpcServer, dat
 		return h2c.NewHandler(http.HandlerFunc(fn), &http2.Server{})
 	}
 
-	srv := &http.Server{
-		Addr: s.bindAddress,
-		Handler: wrap(func(w http.ResponseWriter, req *http.Request) {
-			if req.ProtoMajor == 2 && strings.HasPrefix(
-				req.Header.Get("Content-Type"), "application/grpc") {
-				// grpcServer provides top-level gRPC proxy handler.
-				grpcServer.ServeHTTP(w, setRealIPRequest(req))
+	handler := wrap(func(w http.ResponseWriter, req *http.Request) {
+		if req.ProtoMajor == 2 && strings.HasPrefix(
+			req.Header.Get("Content-Type"), "application/grpc") {
+			// grpcServer provides top-level gRPC proxy handler.
+			grpcServer.ServeHTTP(w, setRealIPRequest(req))
 
-				return
-			}
+			return
+		}
 
-			// handler contains "regular" HTTP handlers
-			regular.ServeHTTP(w, req)
-		}),
-	}
+		// handler contains "regular" HTTP handlers
+		regular.ServeHTTP(w, req)
+	})
 
 	return &apiServer{
-		srv:    srv,
-		cert:   data,
-		logger: s.logger.With(zap.String("server", s.bindAddress), zap.String("server_type", "api")),
+		srv: services.NewFromConfig(
+			&s.apiService,
+			handler,
+		),
+		handler: handler,
+		logger:  s.logger.With(zap.String("server", s.apiService.BindEndpoint), zap.String("server_type", "api")),
 	}
 }
 
 type apiServer struct {
-	srv    *http.Server
-	cert   *certData
-	logger *zap.Logger
+	srv     *services.Server
+	handler http.Handler
+	logger  *zap.Logger
 }
 
 func (s *apiServer) Run(ctx context.Context) error {
-	return (&server{server: s.srv, certData: s.cert}).Run(ctx, s.logger)
+	return s.srv.Run(ctx, s.logger)
 }
 
-func (s *apiServer) Handler() http.Handler { return s.srv.Handler }
+func (s *apiServer) Handler() http.Handler { return s.handler }
 
 func recoveryHandler(logger *zap.Logger) grpc_recovery.RecoveryHandlerFunc {
 	return func(p any) error {
@@ -865,33 +852,32 @@ func getOmnictlDownloads(dir string) (http.Handler, error) {
 	return http.FileServer(http.Dir(dir)), nil
 }
 
-func runMetricsServer(ctx context.Context, bindAddress string, logger *zap.Logger) error {
+func (s *Server) runDevProxyServer(ctx context.Context, next http.Handler) error {
+	handler, err := services.NewFrontendHandler(s.devServerProxy.ProxyTo, s.logger)
+	if err != nil {
+		return fmt.Errorf("failed to set up frontend handler: %w", err)
+	}
+
+	return services.NewProxy(s.devServerProxy, handler).Run(ctx, next, s.logger)
+}
+
+func (s *Server) runMetricsServer(ctx context.Context) error {
 	var metricsMux http.ServeMux
 
 	metricsMux.Handle("/metrics", promhttp.Handler())
 
-	metricsServer := &http.Server{
-		Addr:    bindAddress,
-		Handler: &metricsMux,
-	}
+	logger := s.logger.With(zap.String("server", s.metricsService.BindEndpoint), zap.String("server_type", "metrics"))
 
-	logger = logger.With(zap.String("server", bindAddress), zap.String("server_type", "metrics"))
-
-	return (&server{server: metricsServer}).Run(ctx, logger)
+	return services.NewFromConfig(&s.metricsService, &metricsMux).Run(ctx, logger)
 }
 
 type oidcStore interface {
 	GetPublicKeyByID(keyID string) (any, error)
 }
 
-func runK8sProxyServer(
+func (s *Server) runK8sProxyServer(
 	ctx context.Context,
-	bindAddress string,
 	oidcStorage oidcStore,
-	data *certData,
-	runtimeState state.State,
-	wrapper k8sproxy.MiddlewareWrapper,
-	logger *zap.Logger,
 ) error {
 	keyFunc := func(_ context.Context, keyID string) (any, error) {
 		return oidcStorage.GetPublicKeyByID(keyID)
@@ -900,7 +886,7 @@ func runK8sProxyServer(
 	clusterUUIDResolver := func(ctx context.Context, clusterID string) (resource.ID, error) {
 		ctx = actor.MarkContextAsInternalActor(ctx)
 
-		uuid, resolveErr := safe.StateGetByID[*omnires.ClusterUUID](ctx, runtimeState, clusterID)
+		uuid, resolveErr := safe.StateGetByID[*omnires.ClusterUUID](ctx, s.omniRuntime.State(), clusterID)
 		if resolveErr != nil {
 			return "", fmt.Errorf("failed to resolve cluster ID to UUID: %w", resolveErr)
 		}
@@ -908,7 +894,7 @@ func runK8sProxyServer(
 		return uuid.TypedSpec().Value.Uuid, nil
 	}
 
-	k8sProxyHandler, err := k8sproxy.NewHandler(keyFunc, clusterUUIDResolver, wrapper, logger)
+	k8sProxyHandler, err := k8sproxy.NewHandler(keyFunc, clusterUUIDResolver, s.auditor, s.logger)
 	if err != nil {
 		return err
 	}
@@ -918,19 +904,14 @@ func runK8sProxyServer(
 	k8sProxy := monitoring.NewHandler(
 		logging.NewHandler(
 			k8sProxyHandler,
-			logger.With(zap.String("handler", "k8s_proxy")),
+			s.logger.With(zap.String("handler", "k8s_proxy")),
 		),
 		prometheus.Labels{"handler": "k8s-proxy"},
 	)
 
-	k8sProxyServer := &http.Server{
-		Addr:    bindAddress,
-		Handler: k8sProxy,
-	}
+	logger := s.logger.With(zap.String("server", s.k8sProxyService.BindEndpoint), zap.String("server_type", "k8s_proxy"))
 
-	logger = logger.With(zap.String("server", bindAddress), zap.String("server_type", "k8s_proxy"))
-
-	return (&server{server: k8sProxyServer, certData: data}).Run(ctx, logger)
+	return services.NewFromConfig(&s.k8sProxyService, k8sProxy).Run(ctx, logger)
 }
 
 // setRealIPRequest extracts ip from the request and sets it to the X-Forwarded-For header if there is no
@@ -952,183 +933,8 @@ func setRealIPRequest(req *http.Request) *http.Request {
 	return newReq
 }
 
-type server struct {
-	server   *http.Server
-	certData *certData
-}
-
-type certData struct {
-	cert     tls.Certificate
-	certFile string
-	keyFile  string
-	mu       sync.Mutex
-	loaded   bool
-}
-
-func (c *certData) load() error {
-	cert, err := tls.LoadX509KeyPair(c.certFile, c.keyFile)
-	if err != nil {
-		return err
-	}
-
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	c.loaded = true
-	c.cert = cert
-
-	return nil
-}
-
-func (c *certData) getCert() (*tls.Certificate, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if !c.loaded {
-		return nil, fmt.Errorf("the cert wasn't loaded yet")
-	}
-
-	return &c.cert, nil
-}
-
-func (c *certData) runWatcher(ctx context.Context, logger *zap.Logger) error {
-	w, err := fsnotify.NewWatcher()
-	if err != nil {
-		return fmt.Errorf("error creating fsnotify watcher: %w", err)
-	}
-	defer w.Close() //nolint:errcheck
-
-	if err = w.Add(c.certFile); err != nil {
-		return fmt.Errorf("error adding watch for file %s: %w", c.certFile, err)
-	}
-
-	if err = w.Add(c.keyFile); err != nil {
-		return fmt.Errorf("error adding watch for file %s: %w", c.keyFile, err)
-	}
-
-	handleEvent := func(e fsnotify.Event) error {
-		defer func() {
-			if err = c.load(); err != nil {
-				logger.Error("failed to load certs", zap.Error(err))
-
-				return
-			}
-
-			logger.Info("reloaded certs")
-		}()
-
-		if !e.Has(fsnotify.Remove) && !e.Has(fsnotify.Rename) {
-			return nil
-		}
-
-		if err = w.Remove(e.Name); err != nil {
-			logger.Error("failed to remove file watch, it may have been deleted", zap.String("file", e.Name), zap.Error(err))
-		}
-
-		if err = w.Add(e.Name); err != nil {
-			return fmt.Errorf("error adding watch for file %s: %w", e.Name, err)
-		}
-
-		return nil
-	}
-
-	for {
-		select {
-		case e := <-w.Events:
-			if err = handleEvent(e); err != nil {
-				return err
-			}
-		case err = <-w.Errors:
-			return fmt.Errorf("received fsnotify error: %w", err)
-		case <-ctx.Done():
-			return nil
-		}
-	}
-}
-
-func (s *server) Run(ctx context.Context, logger *zap.Logger) error {
-	logger.Info("server starting")
-	defer logger.Info("server stopped")
-
-	stop := xcontext.AfterFuncSync(ctx, func() { //nolint:contextcheck
-		logger.Info("server stopping")
-
-		shutdownCtx, shutdownCtxCancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer shutdownCtxCancel()
-
-		err := s.shutdown(shutdownCtx)
-		if err != nil {
-			logger.Error("failed to gracefully stop server", zap.Error(err))
-		}
-	})
-
-	defer stop()
-
-	if err := s.listenAndServe(ctx, logger); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return fmt.Errorf("failed to serve: %w", err)
-	}
-
-	return nil
-}
-
-func (s *server) listenAndServe(ctx context.Context, logger *zap.Logger) error {
-	if s.certData == nil {
-		return s.server.ListenAndServe()
-	}
-
-	if err := s.certData.load(); err != nil {
-		return err
-	}
-
-	s.server.TLSConfig = &tls.Config{
-		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
-			return s.certData.getCert()
-		},
-	}
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	eg := panichandler.NewErrGroup()
-
-	eg.Go(func() error {
-		for {
-			err := s.certData.runWatcher(ctx, logger)
-
-			if err == nil {
-				return nil
-			}
-
-			logger.Error("cert watcher crashed, restarting in 5 seconds", zap.Error(err))
-
-			time.Sleep(time.Second * 5)
-		}
-	})
-
-	eg.Go(func() error {
-		defer cancel()
-
-		return s.server.ListenAndServeTLS("", "")
-	})
-
-	return eg.Wait()
-}
-
-func (s *server) shutdown(ctx context.Context) error {
-	err := s.server.Shutdown(ctx)
-	if !errors.Is(ctx.Err(), err) {
-		return err
-	}
-
-	if closeErr := s.server.Close(); closeErr != nil {
-		return fmt.Errorf("failed to close server: %w", closeErr)
-	}
-
-	return err
-}
-
 func runLocalResourceServer(ctx context.Context, st state.CoreState, serverOptions []grpc.ServerOption, eg *errgroup.Group, logger *zap.Logger) error {
-	listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", config.Config.LocalResourceServerPort))
+	listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", config.Config.Services.LocalResourceService.Port))
 	if err != nil {
 		return fmt.Errorf("failed to listen: %w", err)
 	}
@@ -1191,7 +997,7 @@ func runLocalResourceServer(ctx context.Context, st state.CoreState, serverOptio
 }
 
 func (s *Server) createInitialServiceAccount(ctx context.Context) error {
-	serviceAccountEmail := config.Config.InitialServiceAccount.Name + access.ServiceAccountNameSuffix
+	serviceAccountEmail := config.Config.Auth.InitialServiceAccount.Name + access.ServiceAccountNameSuffix
 
 	identity, err := safe.ReaderGetByID[*authres.Identity](ctx, s.omniRuntime.State(), serviceAccountEmail)
 	if err != nil && !state.IsNotFoundError(err) {
@@ -1203,7 +1009,7 @@ func (s *Server) createInitialServiceAccount(ctx context.Context) error {
 		return nil
 	}
 
-	key, err := pgp.GenerateKey(config.Config.InitialServiceAccount.Name, "automation initial", serviceAccountEmail, config.Config.InitialServiceAccount.Lifetime)
+	key, err := pgp.GenerateKey(config.Config.Auth.InitialServiceAccount.Name, "automation initial", serviceAccountEmail, config.Config.Auth.InitialServiceAccount.Lifetime)
 	if err != nil {
 		return fmt.Errorf("failed to create initial service account key, generate failed: %w", err)
 	}
@@ -1216,8 +1022,8 @@ func (s *Server) createInitialServiceAccount(ctx context.Context) error {
 	_, err = serviceaccountmgmt.Create(
 		ctx,
 		s.omniRuntime.State(),
-		config.Config.InitialServiceAccount.Name,
-		config.Config.InitialServiceAccount.Role,
+		config.Config.Auth.InitialServiceAccount.Name,
+		config.Config.Auth.InitialServiceAccount.Role,
 		false,
 		[]byte(k),
 	)
@@ -1225,15 +1031,15 @@ func (s *Server) createInitialServiceAccount(ctx context.Context) error {
 		return fmt.Errorf("failed to create initial service account key: %w", err)
 	}
 
-	data, err := serviceaccount.Encode(config.Config.InitialServiceAccount.Name, key)
+	data, err := serviceaccount.Encode(config.Config.Auth.InitialServiceAccount.Name, key)
 	if err != nil {
 		return fmt.Errorf("failed to create initial service account key, failed to encode: %w", err)
 	}
 
-	if err = os.WriteFile(config.Config.InitialServiceAccount.KeyPath, []byte(data), 0o640); err != nil {
+	if err = os.WriteFile(config.Config.Auth.InitialServiceAccount.KeyPath, []byte(data), 0o640); err != nil {
 		return fmt.Errorf(
 			"failed to create initial service account key, failed to write key to path %q: %w",
-			config.Config.InitialServiceAccount.KeyPath,
+			config.Config.Auth.InitialServiceAccount.KeyPath,
 			err,
 		)
 	}
@@ -1243,7 +1049,7 @@ func (s *Server) createInitialServiceAccount(ctx context.Context) error {
 
 // runEmbeddedDiscoveryService runs an embedded discovery service over Siderolink.
 func runEmbeddedDiscoveryService(ctx context.Context, logger *zap.Logger) error {
-	logLevel, err := zapcore.ParseLevel(config.Config.EmbeddedDiscoveryService.LogLevel)
+	logLevel, err := zapcore.ParseLevel(config.Config.Services.EmbeddedDiscoveryService.LogLevel)
 	if err != nil {
 		logLevel = zapcore.WarnLevel
 
@@ -1254,13 +1060,13 @@ func runEmbeddedDiscoveryService(ctx context.Context, logger *zap.Logger) error 
 
 	if err = retry.Constant(30*time.Second, retry.WithUnits(time.Second)).RetryWithContext(ctx, func(context.Context) error {
 		err = service.Run(ctx, service.Options{
-			ListenAddr:        net.JoinHostPort(siderolink.ListenHost, strconv.Itoa(config.Config.EmbeddedDiscoveryService.Port)),
+			ListenAddr:        net.JoinHostPort(siderolink.ListenHost, strconv.Itoa(config.Config.Services.EmbeddedDiscoveryService.Port)),
 			GCInterval:        time.Minute,
 			MetricsRegisterer: registerer,
 
-			SnapshotsEnabled: config.Config.EmbeddedDiscoveryService.SnapshotsEnabled,
-			SnapshotInterval: config.Config.EmbeddedDiscoveryService.SnapshotInterval,
-			SnapshotPath:     config.Config.EmbeddedDiscoveryService.SnapshotPath,
+			SnapshotsEnabled: config.Config.Services.EmbeddedDiscoveryService.SnapshotsEnabled,
+			SnapshotInterval: config.Config.Services.EmbeddedDiscoveryService.SnapshotsInterval,
+			SnapshotPath:     config.Config.Services.EmbeddedDiscoveryService.SnapshotsPath,
 		}, logger.WithOptions(zap.IncreaseLevel(logLevel)).With(logging.Component("discovery_service")))
 
 		if errors.Is(err, syscall.EADDRNOTAVAIL) {
@@ -1284,14 +1090,9 @@ func runPprofServer(ctx context.Context, bindAddress string, l *zap.Logger) erro
 	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 
-	srv := &http.Server{
-		Addr:    bindAddress,
-		Handler: mux,
-	}
-
 	l = l.With(zap.String("server", bindAddress), zap.String("server_type", "pprof"))
 
-	return (&server{server: srv}).Run(ctx, l)
+	return services.NewInsecure(bindAddress, mux).Run(ctx, l)
 }
 
 //nolint:unparam

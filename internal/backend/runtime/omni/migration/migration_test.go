@@ -481,7 +481,7 @@ func (suite *MigrationSuite) TestUpdateConfigPatchLabels() {
 	ctx := suite.T().Context()
 
 	cluster := omni.NewCluster(resources.DefaultNamespace, "cluster")
-	cluster.TypedSpec().Value.InstallImage = fmt.Sprintf("%s:v%s", config.Config.TalosRegistry, constants.DefaultTalosVersion) //nolint:staticcheck
+	cluster.TypedSpec().Value.InstallImage = fmt.Sprintf("%s:v%s", config.Config.Registries.Talos, constants.DefaultTalosVersion) //nolint:staticcheck
 
 	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "machine-set")
 	machineSet.Metadata().Labels().Set("cluster", cluster.Metadata().ID())

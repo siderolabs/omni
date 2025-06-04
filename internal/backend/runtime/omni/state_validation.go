@@ -42,7 +42,7 @@ import (
 // Validation is only syntactic - they are checked whether they are valid semver strings.
 //
 //nolint:gocognit,gocyclo,cyclop
-func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackupParams, embeddedDiscoveryServiceConfig config.EmbeddedDiscoveryServiceParams) []validated.StateOption {
+func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup, embeddedDiscoveryServiceConfig config.EmbeddedDiscoveryService) []validated.StateOption {
 	validateVersions := func(ctx context.Context, existingRes *omni.Cluster, res *omni.Cluster, skipTalosVersion, skipKubernetesVersion bool) error {
 		if skipTalosVersion && skipKubernetesVersion {
 			return nil
@@ -710,7 +710,7 @@ func hasUppercaseLetters(s string) bool {
 	return false
 }
 
-func identityValidationOptions(samlConfig config.SAMLParams) []validated.StateOption {
+func identityValidationOptions(samlConfig config.SAML) []validated.StateOption {
 	return []validated.StateOption{
 		validated.WithCreateValidations(validated.NewCreateValidationForType(func(ctx context.Context, res *authres.Identity, _ ...state.CreateOption) error {
 			var errs error

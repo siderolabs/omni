@@ -396,7 +396,7 @@ func (ctrl *InstallationMediaController) Run(ctx context.Context, r controller.R
 			newMedia.TypedSpec().Value.Name = m.Name
 			newMedia.TypedSpec().Value.Profile = m.Profile
 			newMedia.TypedSpec().Value.ContentType = m.ContentType
-			newMedia.TypedSpec().Value.DestFilePrefix = fmt.Sprintf("%s-omni-%s", fname.srcPrefix, config.Config.Name)
+			newMedia.TypedSpec().Value.DestFilePrefix = fmt.Sprintf("%s-omni-%s", fname.srcPrefix, config.Config.Account.Name)
 			newMedia.TypedSpec().Value.Extension = fname.extension
 			newMedia.TypedSpec().Value.NoSecureBoot = m.SBC
 			newMedia.TypedSpec().Value.MinTalosVersion = m.MinTalosVersion

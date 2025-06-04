@@ -20,7 +20,7 @@ import (
 )
 
 // EnsureAuthConfigResource creates/configures the auth config resource.
-func EnsureAuthConfigResource(ctx context.Context, st state.State, logger *zap.Logger, authParams config.AuthParams) (*auth.Config, error) {
+func EnsureAuthConfigResource(ctx context.Context, st state.State, logger *zap.Logger, authParams config.Auth) (*auth.Config, error) {
 	err := validateParams(authParams)
 	if err != nil {
 		return nil, err
@@ -105,7 +105,7 @@ func EnsureAuthConfigResource(ctx context.Context, st state.State, logger *zap.L
 	return authConfig, nil
 }
 
-func validateParams(authParams config.AuthParams) error {
+func validateParams(authParams config.Auth) error {
 	if !authParams.SAML.Enabled && !authParams.Auth0.Enabled && !authParams.WebAuthn.Enabled {
 		return errors.New("no authentication is enabled")
 	}

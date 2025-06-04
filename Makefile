@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-06-02T21:18:31Z by kres 99b55ad-dirty.
+# Generated on 2025-06-06T17:20:38Z by kres fc6afbe-dirty.
 
 # common variables
 
@@ -79,7 +79,7 @@ COMMON_ARGS += --build-arg=DEEPCOPY_VERSION="$(DEEPCOPY_VERSION)"
 COMMON_ARGS += --build-arg=GOLANGCILINT_VERSION="$(GOLANGCILINT_VERSION)"
 COMMON_ARGS += --build-arg=GOFUMPT_VERSION="$(GOFUMPT_VERSION)"
 COMMON_ARGS += --build-arg=TESTPKGS="$(TESTPKGS)"
-JS_TOOLCHAIN ?= docker.io/oven/bun:1.2.13-alpine
+JS_TOOLCHAIN ?= docker.io/oven/bun:1.2.15-alpine
 TOOLCHAIN ?= docker.io/golang:1.24-alpine
 
 # extra variables
@@ -148,7 +148,7 @@ else
 GO_LDFLAGS += -s
 endif
 
-all: unit-tests-frontend lint-eslint frontend unit-tests-client unit-tests acompat make-cookies omni image-omni omnictl helm integration-test image-integration-test lint
+all: unit-tests-frontend lint-eslint frontend unit-tests-client unit-tests acompat make-cookies omni image-omni omnictl helm integration-test image-omni-integration-test lint
 
 $(ARTIFACTS):  ## Creates artifacts directory.
 	@mkdir -p $(ARTIFACTS)
@@ -386,9 +386,9 @@ integration-test-linux-arm64: $(ARTIFACTS)/integration-test-linux-arm64  ## Buil
 .PHONY: integration-test
 integration-test: integration-test-darwin-amd64 integration-test-darwin-arm64 integration-test-linux-amd64 integration-test-linux-arm64  ## Builds executables for integration-test.
 
-.PHONY: image-integration-test
-image-integration-test:  ## Builds image for integration-test.
-	@$(MAKE) registry-$@ IMAGE_NAME="integration-test"
+.PHONY: image-omni-integration-test
+image-omni-integration-test:  ## Builds image for omni-integration-test.
+	@$(MAKE) registry-$@ IMAGE_NAME="omni-integration-test"
 
 .PHONY: dev-server
 dev-server:
