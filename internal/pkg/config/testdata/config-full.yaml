@@ -1,0 +1,120 @@
+---
+account:
+  id: "uuid"
+  name: "artem"
+
+services:
+  api:
+    endpoint: 0.0.0.0:8099
+  metrics:
+    endpoint: 0.0.0.0:2122
+  kubernetesProxy:
+    endpoint: 0.0.0.0:8095
+    certFile: certFile
+    keyFile: keyFile
+  siderolink:
+    wireGuard:
+      endpoint: localhost:50180
+      advertisedEndpoint: 192.168.88.219:50180
+    disableLastEndpoint: true
+    useGRPCTunnel: true
+    eventSinkPort: 8091
+    logServerPort: 8092
+    joinTokensMode: strict
+  machineAPI:
+    endpoint: 0.0.0.0:8090
+    advertisedURL: "grpc://192.168.88.219:8090"
+    certFile: hack/certs/api.cert
+    keyFile: hack/certs/api.key
+  localResourceService:
+    enabled: false
+    port: 8081
+  embeddedDiscoveryService:
+    enabled: true
+    port: 8093
+    snapshotsEnabled: true
+    snapshotsPath: "_out/secondary-storage/discovery-service-state.binpb"
+    logLevel: Warn
+  loadBalancer:
+    minPort: 10000
+    maxPort: 20000
+    dialTimeout: 30s
+  devServerProxy:
+    endpoint: 0.0.0.0:8120
+  workloadProxy:
+    enabled: true
+    subdomain: "proxy-us"
+
+debug:
+  server:
+    endpoint: 0.0.0.0:9988
+  pprof:
+    endpoint: 0.0.0.0:8124
+
+auth:
+  keyPruner:
+    interval: 1m
+  auth0:
+    enabled: true
+    clientID: TODO
+    domain: TODO
+    initialUsers:
+      - test-user@siderolabs.com
+  initialServiceAccount:
+    enabled: true
+    role: Admin
+    keyPath: _out/test-sa
+    name: tests
+    lifetime: 1m
+
+registries:
+  talos: ghcr.io/siderolabs/installer
+  kubernetes: ghcr.io/siderolabs/kubelet
+  imageFactoryBaseURL: https://factory.talos.dev
+
+storage:
+  vault:
+    url: http://127.0.0.1:8200
+    token: dev-o-token
+  secondary:
+    path: "_out/secondary-storage/bolt.db"
+  default:
+    kind: etcd
+    boltdb:
+      path: "_out/omni.db"
+    etcd:
+      endpoints:
+        - http://localhost:2379
+      dialKeepAliveTime: 30s
+      dialKeepAliveTimeout: 5s
+      caFile: etcd/ca.crt
+      certFile: etcd/client.crt
+      keyFile: etcd/client.key
+      embedded: true
+      privateKeySource: "vault://secret/omni-private-key"
+      publicKeyFiles:
+        - "internal/backend/runtime/omni/testdata/pgp/new_key.public"
+      embeddedUnsafeFsync: true
+      embeddedDBPath: _out/etcd/
+
+logs:
+  machine:
+    storage:
+      enabled: true
+      path: "_out/logs"
+      flushPeriod: 10m
+      flushJitter: 0.1
+  audit:
+    path: _out/audit
+  resourceLogger:
+    types:
+      - Links.omni.siderolabs.dev
+    logLevel: Info
+  stripe:
+    enabled: true
+
+features:
+  enableTalosPreReleaseVersions: true
+  enableConfigDataCompression: true
+  enableBreakGlassConfigs: true
+  disableControllerRuntimeCache: false

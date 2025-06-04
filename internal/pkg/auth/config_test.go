@@ -31,8 +31,8 @@ func TestEnsureAuthConfigResource(t *testing.T) {
 
 	for _, tt := range []struct { //nolint:govet
 		name              string
-		initialConfig     config.AuthParams
-		updatedConfig     *config.AuthParams
+		initialConfig     config.Auth
+		updatedConfig     *config.Auth
 		expected          *specs.AuthConfigSpec
 		expectInitError   bool
 		expectUpdateError bool
@@ -43,8 +43,8 @@ func TestEnsureAuthConfigResource(t *testing.T) {
 		},
 		{
 			name: "enable auth0",
-			initialConfig: config.AuthParams{
-				Auth0: config.Auth0Params{
+			initialConfig: config.Auth{
+				Auth0: config.Auth0{
 					Enabled:  true,
 					ClientID: "client-id",
 					Domain:   "domain",
@@ -62,8 +62,8 @@ func TestEnsureAuthConfigResource(t *testing.T) {
 		},
 		{
 			name: "enable webauthn",
-			initialConfig: config.AuthParams{
-				WebAuthn: config.WebAuthnParams{
+			initialConfig: config.Auth{
+				WebAuthn: config.WebAuthn{
 					Enabled: true,
 				},
 			},
@@ -77,14 +77,14 @@ func TestEnsureAuthConfigResource(t *testing.T) {
 		},
 		{
 			name: "make webauthn not required",
-			initialConfig: config.AuthParams{
-				WebAuthn: config.WebAuthnParams{
+			initialConfig: config.Auth{
+				WebAuthn: config.WebAuthn{
 					Enabled:  true,
 					Required: true,
 				},
 			},
-			updatedConfig: &config.AuthParams{
-				WebAuthn: config.WebAuthnParams{
+			updatedConfig: &config.Auth{
+				WebAuthn: config.WebAuthn{
 					Enabled:  true,
 					Required: false,
 				},
@@ -99,14 +99,14 @@ func TestEnsureAuthConfigResource(t *testing.T) {
 		},
 		{
 			name: "fail to disable webauthn",
-			initialConfig: config.AuthParams{
-				WebAuthn: config.WebAuthnParams{
+			initialConfig: config.Auth{
+				WebAuthn: config.WebAuthn{
 					Enabled:  true,
 					Required: true,
 				},
 			},
-			updatedConfig: &config.AuthParams{
-				WebAuthn: config.WebAuthnParams{
+			updatedConfig: &config.Auth{
+				WebAuthn: config.WebAuthn{
 					Enabled: false,
 				},
 			},
@@ -114,29 +114,29 @@ func TestEnsureAuthConfigResource(t *testing.T) {
 		},
 		{
 			name: "fail to disable auth0",
-			initialConfig: config.AuthParams{
-				Auth0: config.Auth0Params{
+			initialConfig: config.Auth{
+				Auth0: config.Auth0{
 					Enabled:  true,
 					ClientID: "client-id",
 					Domain:   "domain",
 				},
 			},
-			updatedConfig:     &config.AuthParams{},
+			updatedConfig:     &config.Auth{},
 			expectUpdateError: true,
 		},
 		{
 			name: "switch from auth0 to SAML",
-			initialConfig: config.AuthParams{
-				Auth0: config.Auth0Params{
+			initialConfig: config.Auth{
+				Auth0: config.Auth0{
 					Enabled:  true,
 					ClientID: "client-id",
 					Domain:   "domain",
 				},
 			},
-			updatedConfig: &config.AuthParams{
-				SAML: config.SAMLParams{
-					Enabled: true,
-					URL:     "http://samltest.sp/idp",
+			updatedConfig: &config.Auth{
+				SAML: config.SAML{
+					Enabled:     true,
+					MetadataURL: "http://samltest.sp/idp",
 				},
 			},
 			expected: &specs.AuthConfigSpec{
@@ -150,13 +150,13 @@ func TestEnsureAuthConfigResource(t *testing.T) {
 		},
 		{
 			name: "fail to disable SAML",
-			initialConfig: config.AuthParams{
-				SAML: config.SAMLParams{
-					Enabled: true,
-					URL:     "http://samltest.sp/idp",
+			initialConfig: config.Auth{
+				SAML: config.SAML{
+					Enabled:     true,
+					MetadataURL: "http://samltest.sp/idp",
 				},
 			},
-			updatedConfig:     &config.AuthParams{},
+			updatedConfig:     &config.Auth{},
 			expectUpdateError: true,
 		},
 	} {

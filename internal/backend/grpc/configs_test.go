@@ -92,10 +92,10 @@ func TestGenerateConfigs(t *testing.T) {
 		require.Equal(t, codes.PermissionDenied, status.Code(err), err)
 	})
 
-	config.Config.EnableBreakGlassConfigs = true
+	config.Config.Features.EnableBreakGlassConfigs = true
 
 	defer func() {
-		config.Config.EnableBreakGlassConfigs = false
+		config.Config.Features.EnableBreakGlassConfigs = false
 	}()
 
 	t.Run("kubeconfig enabled no cluster", func(t *testing.T) {

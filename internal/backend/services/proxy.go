@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package backend
+package services
 
 import (
 	"context"
@@ -16,6 +16,8 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+
+	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 // Proxy is a proxy server.
@@ -23,28 +25,24 @@ type Proxy interface {
 	Run(ctx context.Context, next http.Handler, logger *zap.Logger) error
 }
 
-// NewProxyServer creates a new proxy server. If the destination is empty, the proxy server will be a no-op.
-func NewProxyServer(bindAddr string, proxyTo http.Handler, keyFile, certFile string) Proxy {
+// NewProxy creates a new proxy server. If the destination is empty, the proxy server will be a no-op.
+func NewProxy(config config.DevServerProxyService, handler http.Handler) Proxy {
 	switch {
-	case bindAddr == "":
+	case config.BindEndpoint == "":
 		return &nopProxy{reason: "bind address is empty"}
-	case proxyTo == nopHandler:
+	case config.ProxyTo == "":
 		return &nopProxy{reason: "proxy destination is empty"}
 	default:
 		return &httpProxy{
-			bindAddr: bindAddr,
-			proxyTo:  proxyTo,
-			keyFile:  keyFile,
-			certFile: certFile,
+			config:  config,
+			proxyTo: handler,
 		}
 	}
 }
 
 type httpProxy struct {
-	proxyTo  http.Handler
-	bindAddr string
-	keyFile  string
-	certFile string
+	proxyTo http.Handler
+	config  config.DevServerProxyService
 }
 
 func hasPrefix(s string, prefixes ...string) bool {
@@ -58,26 +56,20 @@ func hasPrefix(s string, prefixes ...string) bool {
 }
 
 func (prx *httpProxy) Run(ctx context.Context, next http.Handler, logger *zap.Logger) error {
-	srv := &server{
-		server: &http.Server{
-			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if hasPrefix(r.URL.Path, "/api/", "/omnictl/", "/talosctl/", "/image/") {
-					next.ServeHTTP(w, r)
+	srv := NewFromConfig(
+		&prx.config,
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if hasPrefix(r.URL.Path, "/api/", "/omnictl/", "/talosctl/", "/image/") {
+				next.ServeHTTP(w, r)
 
-					return
-				}
+				return
+			}
 
-				prx.proxyTo.ServeHTTP(w, r)
-			}),
-			Addr: prx.bindAddr,
-		},
-		certData: &certData{
-			certFile: prx.certFile,
-			keyFile:  prx.keyFile,
-		},
-	}
+			prx.proxyTo.ServeHTTP(w, r)
+		}),
+	)
 
-	logger = logger.With(zap.String("server", prx.bindAddr), zap.String("server_type", "proxy_server"))
+	logger = logger.With(zap.String("server", prx.config.BindEndpoint), zap.String("server_type", "proxy_server"))
 
 	return srv.Run(ctx, logger)
 }

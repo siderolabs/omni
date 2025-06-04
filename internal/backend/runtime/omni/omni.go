@@ -93,7 +93,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 ) (*Runtime, error) {
 	var opts []options.Option
 
-	if !config.Config.DisableControllerRuntimeCache {
+	if !config.Config.Features.DisableControllerRuntimeCache {
 		opts = append(opts,
 			safe.WithResourceCache[*omni.BackupData](),
 			safe.WithResourceCache[*omni.ConfigPatch](),
@@ -215,7 +215,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 			TalosClientFactory: talosClientFactory,
 			NodeResolver:       dnsService,
 		}),
-		omnictrl.NewKubernetesStatusController(config.Config.APIURL, config.Config.WorkloadProxying.Subdomain),
+		omnictrl.NewKubernetesStatusController(config.Config.Services.API.URL(), config.Config.Services.WorkloadProxy.Subdomain),
 		&omnictrl.LoadBalancerController{},
 		&omnictrl.MachineSetNodeController{},
 		&omnictrl.MachineSetDestroyStatusController{},
@@ -224,12 +224,12 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		&omnictrl.MachineStatusMetricsController{},
 		&omnictrl.VersionsController{},
 		omnictrl.NewClusterLoadBalancerController(
-			config.Config.LoadBalancer.MinPort,
-			config.Config.LoadBalancer.MaxPort,
+			config.Config.Services.LoadBalancer.MinPort,
+			config.Config.Services.LoadBalancer.MaxPort,
 		),
 		&omnictrl.InstallationMediaController{},
 		omnictrl.NewKeyPrunerController(
-			config.Config.KeyPruner.Interval,
+			config.Config.Auth.KeyPruner.Interval,
 		),
 		&omnictrl.OngoingTaskController{},
 		omnictrl.NewMachineRequestStatusCleanupController(),
@@ -247,18 +247,22 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewClusterConfigVersionController(),
 		omnictrl.NewClusterEndpointController(),
 		omnictrl.NewClusterKubernetesNodesController(),
-		omnictrl.NewClusterMachineConfigController(imageFactoryHost, config.Config.DefaultConfigGenOptions, config.Config.EventSinkPort),
+		omnictrl.NewClusterMachineConfigController(
+			imageFactoryHost,
+			config.Config.Registries.Mirrors,
+			config.Config.Services.Siderolink.EventSinkPort,
+		),
 		omnictrl.NewClusterMachineTeardownController(),
 		omnictrl.NewMachineConfigGenOptionsController(),
 		omnictrl.NewMachineStatusController(imageFactoryClient),
 		omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost),
 		omnictrl.NewClusterMachineEncryptionKeyController(),
 		omnictrl.NewClusterMachineStatusController(),
-		omnictrl.NewClusterStatusController(config.Config.EmbeddedDiscoveryService.Enabled),
+		omnictrl.NewClusterStatusController(config.Config.Services.EmbeddedDiscoveryService.Enabled),
 		omnictrl.NewClusterDiagnosticsController(),
 		omnictrl.NewClusterUUIDController(),
 		omnictrl.NewControlPlaneStatusController(),
-		omnictrl.NewDiscoveryServiceConfigPatchController(config.Config.EmbeddedDiscoveryService.Port),
+		omnictrl.NewDiscoveryServiceConfigPatchController(config.Config.Services.EmbeddedDiscoveryService.Port),
 		omnictrl.NewKubernetesNodeAuditController(nil, time.Minute),
 		omnictrl.NewEtcdBackupEncryptionController(),
 		omnictrl.NewClusterWorkloadProxyStatusController(workloadProxyReconciler),
@@ -288,7 +292,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewLinkStatusController[*siderolinkresources.Link](peers),
 		omnictrl.NewLinkStatusController[*siderolinkresources.PendingMachine](peers),
 		omnictrl.NewPendingMachineStatusController(),
-		omnictrl.NewMaintenanceConfigStatusController(nil, siderolink.ListenHost, config.Config.EventSinkPort, config.Config.LogServerPort),
+		omnictrl.NewMaintenanceConfigStatusController(nil, siderolink.ListenHost, config.Config.Services.Siderolink.EventSinkPort, config.Config.Services.Siderolink.LogServerPort),
 		omnictrl.NewDiscoveryAffiliateDeleteTaskController(clockwork.NewRealClock(), discoveryClientCache),
 		omnictrl.NewInfraProviderCombinedStatusController(),
 		omnictrl.NewServiceAccountStatusController(),
@@ -300,7 +304,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		)
 	}
 
-	if config.Config.EnableStripeReporting {
+	if config.Config.Logs.Stripe.Enabled {
 		stripeAPIKey, ok := os.LookupEnv("STRIPE_API_KEY")
 		if !ok {
 			return nil, fmt.Errorf("environment variable STRIPE_API_KEY is not set")
@@ -359,7 +363,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 	metricsRegistry.MustRegister(expvarCollector)
 
 	validationOptions := slices.Concat(
-		clusterValidationOptions(resourceState, config.Config.EtcdBackup, config.Config.EmbeddedDiscoveryService),
+		clusterValidationOptions(resourceState, config.Config.EtcdBackup, config.Config.Services.EmbeddedDiscoveryService),
 		relationLabelsValidationOptions(),
 		accessPolicyValidationOptions(),
 		authorizationValidationOptions(resourceState),

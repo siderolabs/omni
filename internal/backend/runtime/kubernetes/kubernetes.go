@@ -303,11 +303,11 @@ func (r *Runtime) GetOIDCKubeconfig(context *common.Context, identity string, ex
 		Identity     string
 		ExtraOptions []string
 	}{
-		InstanceName: config.Config.Name,
+		InstanceName: config.Config.Account.Name,
 		ClusterName:  context.Name,
 
 		EndpointOIDC:            issuerEndpoint,
-		KubernetesProxyEndpoint: config.Config.KubernetesProxyURL,
+		KubernetesProxyEndpoint: config.Config.Services.KubernetesProxy.URL(),
 
 		ClientID:     external.DefaultClientID,
 		Identity:     identity,

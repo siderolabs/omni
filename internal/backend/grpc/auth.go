@@ -269,7 +269,7 @@ func verifiedEmail(ctx context.Context) (string, error) {
 }
 
 func (s *authServer) buildLoginURL(pgpKeyID string) (string, error) {
-	loginURL, err := url.Parse(config.Config.APIURL)
+	loginURL, err := url.Parse(config.Config.Services.API.URL())
 	if err != nil {
 		return "", err
 	}

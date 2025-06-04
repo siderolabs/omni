@@ -1,0 +1,72 @@
+---
+account:
+  id: "uuid"
+  name: "artem"
+
+services:
+  api:
+    endpoint: 0.0.0.0:8099
+  kubernetesProxy:
+    endpoint: 0.0.0.0:8095
+    certFile: certFile
+    keyFile: keyFile
+
+auth:
+  keyPruner:
+    interval: 1m
+  auth0:
+    enabled: true
+  saml:
+    enabled: true
+
+registries:
+  talos: ghcr.io/siderolabs/installer
+  kubernetes: ghcr.io/siderolabs/kubelet
+  imageFactoryBaseURL: https://factory.talos.dev
+
+storage:
+  vault:
+    url: http://127.0.0.1:8200
+    token: dev-o-token
+  secondary:
+    path: "_out/secondary-storage/bolt.db"
+  default:
+    kind: etcd
+    boltdb:
+      path: "_out/omni.db"
+    etcd:
+      endpoints:
+        - http://localhost:2379
+      dialKeepAliveTime: 30s
+      dialKeepAliveTimeout: 5s
+      caFile: etcd/ca.crt
+      certFile: etcd/client.crt
+      keyFile: etcd/client.key
+      embedded: true
+      privateKeySource: "vault://secret/omni-private-key"
+      publicKeyFiles:
+        - "internal/backend/runtime/omni/testdata/pgp/new_key.public"
+      embeddedUnsafeFsync: true
+      embeddedDBPath: _out/etcd/
+
+logs:
+  machine:
+    storage:
+      enabled: true
+      path: "_out/logs"
+      flushPeriod: 10m
+      flushJitter: 0.1
+  audit:
+    path: _out/audit
+  resourceLogger:
+    types:
+      - Links.omni.siderolabs.dev
+    logLevel: Info
+  stripe:
+    enabled: true
+
+features:
+  enableTalosPreReleaseVersions: true
+  enableConfigDataCompression: true
+  enableBreakGlassConfigs: true
+  disableControllerRuntimeCache: false

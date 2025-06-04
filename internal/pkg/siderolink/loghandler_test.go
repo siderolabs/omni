@@ -35,13 +35,15 @@ import (
 )
 
 func TestLogHandler_HandleMessage(t *testing.T) {
-	storageConfig := config.MachineLogConfigParams{
+	storageConfig := config.LogsMachine{
 		BufferInitialCapacity: 16,
 		BufferMaxCapacity:     128,
 		BufferSafetyGap:       16,
-		NumCompressedChunks:   5,
-		StorageFlushPeriod:    time.Second,
-		StorageEnabled:        false,
+		Storage: config.LogsMachineStorage{
+			NumCompressedChunks: 5,
+			FlushPeriod:         time.Second,
+			Enabled:             false,
+		},
 	}
 
 	t.Run("empty log message", func(t *testing.T) {
@@ -189,11 +191,13 @@ func TestLogHandlerStorage(t *testing.T) {
 	tempDir := t.TempDir()
 	logger := zaptest.NewLogger(t)
 
-	logHandler, err := siderolink.NewLogHandler(machineMap, st, &config.MachineLogConfigParams{
-		StorageEnabled:        true,
-		StoragePath:           tempDir,
-		StorageFlushPeriod:    2 * time.Second,
-		NumCompressedChunks:   5,
+	logHandler, err := siderolink.NewLogHandler(machineMap, st, &config.LogsMachine{
+		Storage: config.LogsMachineStorage{
+			Enabled:             true,
+			Path:                tempDir,
+			FlushPeriod:         2 * time.Second,
+			NumCompressedChunks: 5,
+		},
 		BufferInitialCapacity: 16,
 		BufferMaxCapacity:     128,
 		BufferSafetyGap:       16,
@@ -274,11 +278,13 @@ func TestLogHandlerStorageLegacyMigration(t *testing.T) {
 	require.NoError(t, os.WriteFile(legacyLogPath, legacyLog, 0o644))
 	require.NoError(t, os.WriteFile(legacyLogHashPath, []byte(hex.EncodeToString(legacyHash[:])), 0o644))
 
-	logHandler, err := siderolink.NewLogHandler(machineMap, st, &config.MachineLogConfigParams{
-		StorageEnabled:        true,
-		StoragePath:           tempDir,
-		StorageFlushPeriod:    1 * time.Second,
-		NumCompressedChunks:   5,
+	logHandler, err := siderolink.NewLogHandler(machineMap, st, &config.LogsMachine{
+		Storage: config.LogsMachineStorage{
+			Enabled:             true,
+			Path:                tempDir,
+			FlushPeriod:         1 * time.Second,
+			NumCompressedChunks: 5,
+		},
 		BufferInitialCapacity: 16,
 		BufferMaxCapacity:     128,
 		BufferSafetyGap:       16,
@@ -327,10 +333,12 @@ func TestLogHandlerStorageDisabled(t *testing.T) {
 	require.NoError(t, st.Create(ctx, omni.NewMachine(resources.DefaultNamespace, "machine-2")))
 
 	tempDir := t.TempDir()
-	storageConfig := config.MachineLogConfigParams{
-		StorageEnabled:     false,
-		StoragePath:        tempDir,
-		StorageFlushPeriod: 100 * time.Millisecond,
+	storageConfig := config.LogsMachine{
+		Storage: config.LogsMachineStorage{
+			Enabled:     false,
+			Path:        tempDir,
+			FlushPeriod: 100 * time.Millisecond,
+		},
 	}
 
 	handler, err := siderolink.NewLogHandler(machineMap, st, &storageConfig, zaptest.NewLogger(t))

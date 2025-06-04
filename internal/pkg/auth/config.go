@@ -20,7 +20,7 @@ import (
 )
 
 // EnsureAuthConfigResource creates/configures the auth config resource.
-func EnsureAuthConfigResource(ctx context.Context, st state.State, logger *zap.Logger, authParams config.AuthParams) (*auth.Config, error) {
+func EnsureAuthConfigResource(ctx context.Context, st state.State, logger *zap.Logger, authParams config.Auth) (*auth.Config, error) {
 	err := validateParams(authParams)
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func EnsureAuthConfigResource(ctx context.Context, st state.State, logger *zap.L
 		res.TypedSpec().Value.Auth0.ClientId = authParams.Auth0.ClientID
 		res.TypedSpec().Value.Auth0.UseFormData = authParams.Auth0.UseFormData
 		res.TypedSpec().Value.Saml.Enabled = authParams.SAML.Enabled
-		res.TypedSpec().Value.Saml.Url = authParams.SAML.URL
+		res.TypedSpec().Value.Saml.Url = authParams.SAML.MetadataURL
 		res.TypedSpec().Value.Saml.Metadata = authParams.SAML.Metadata
 		res.TypedSpec().Value.Saml.LabelRules = authParams.SAML.LabelRules
 
@@ -105,7 +105,7 @@ func EnsureAuthConfigResource(ctx context.Context, st state.State, logger *zap.L
 	return authConfig, nil
 }
 
-func validateParams(authParams config.AuthParams) error {
+func validateParams(authParams config.Auth) error {
 	if !authParams.SAML.Enabled && !authParams.Auth0.Enabled && !authParams.WebAuthn.Enabled {
 		return errors.New("no authentication is enabled")
 	}
@@ -114,7 +114,7 @@ func validateParams(authParams config.AuthParams) error {
 		return errors.New("both auth0 and SAML auth are enabled, only one can be enabled at the same time")
 	}
 
-	if authParams.SAML.Enabled && authParams.SAML.URL == "" && authParams.SAML.Metadata == "" {
+	if authParams.SAML.Enabled && authParams.SAML.MetadataURL == "" && authParams.SAML.Metadata == "" {
 		return errors.New("SAML is enabled but neither URL nor metadata is set")
 	}
 

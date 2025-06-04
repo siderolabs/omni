@@ -25,6 +25,7 @@ spec:
     - path: internal/integration
       name: integration-test
       enableDockerImage: true
+      imageName: omni-integration-test
       outputs:
         linux-amd64:
           GOOS: linux

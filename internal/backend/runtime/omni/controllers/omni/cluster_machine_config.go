@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"text/template"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -52,7 +53,7 @@ const ClusterMachineConfigControllerName = "ClusterMachineConfigController"
 type ClusterMachineConfigController = qtransform.QController[*omni.ClusterMachine, *omni.ClusterMachineConfig]
 
 // NewClusterMachineConfigController initializes ClusterMachineConfigController.
-func NewClusterMachineConfigController(imageFactoryHost string, defaultGenOptions []generate.Option, eventSinkPort int) *ClusterMachineConfigController {
+func NewClusterMachineConfigController(imageFactoryHost string, registryMirrors []string, eventSinkPort int) *ClusterMachineConfigController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.ClusterMachine, *omni.ClusterMachineConfig]{
 			Name: ClusterMachineConfigControllerName,
@@ -63,7 +64,7 @@ func NewClusterMachineConfigController(imageFactoryHost string, defaultGenOption
 				return omni.NewClusterMachine(resources.DefaultNamespace, machineConfig.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, clusterMachine *omni.ClusterMachine, machineConfig *omni.ClusterMachineConfig) error {
-				return reconcileClusterMachineConfig(ctx, r, logger, clusterMachine, machineConfig, defaultGenOptions, eventSinkPort, imageFactoryHost)
+				return reconcileClusterMachineConfig(ctx, r, logger, clusterMachine, machineConfig, registryMirrors, eventSinkPort, imageFactoryHost)
 			},
 		},
 		qtransform.WithExtraMappedInput(
@@ -104,7 +105,7 @@ func reconcileClusterMachineConfig(
 	logger *zap.Logger,
 	clusterMachine *omni.ClusterMachine,
 	machineConfig *omni.ClusterMachineConfig,
-	defaultGenOptions []generate.Option,
+	registryMirrors []string,
 	eventSinkPort int,
 	imageFactoryHost string,
 ) error {
@@ -247,8 +248,19 @@ func reconcileClusterMachineConfig(
 		imageFactoryHost: imageFactoryHost,
 	}
 
+	configGenOptions := make([]generate.Option, 0, len(registryMirrors))
+
+	for _, registryMirror := range registryMirrors {
+		hostname, endpoint, ok := strings.Cut(registryMirror, "=")
+		if !ok {
+			return fmt.Errorf("invalid registry mirror spec: %q", registryMirror)
+		}
+
+		configGenOptions = append(configGenOptions, generate.WithRegistryMirror(hostname, endpoint))
+	}
+
 	data, err := helper.generateConfig(clusterMachine, clusterMachineConfigPatches, secrets, loadBalancerConfig,
-		cluster, clusterConfigVersion, machineConfigGenOptions, defaultGenOptions, connectionParams, link, eventSinkPort)
+		cluster, clusterConfigVersion, machineConfigGenOptions, configGenOptions, connectionParams, link, eventSinkPort)
 	if err != nil {
 		machineConfig.TypedSpec().Value.GenerationError = err.Error()
 

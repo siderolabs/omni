@@ -7,15 +7,17 @@
 package config
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/url"
-	"slices"
-	"strings"
+	"os"
 	"time"
 
-	"github.com/siderolabs/talos/pkg/machinery/config/generate"
+	"github.com/go-playground/validator/v10"
+	"github.com/siderolabs/gen/xyaml"
 	"go.uber.org/zap/zapcore"
 
 	consts "github.com/siderolabs/omni/client/pkg/constants"
@@ -27,251 +29,84 @@ const (
 	wireguardDefaultPort = "50180"
 )
 
+// FromBytes loads the config from bytes.
+func FromBytes(data []byte) (*Params, error) {
+	return parseConfig(bytes.NewBuffer(data))
+}
+
+// LoadFromFile loads the config from the file.
+func LoadFromFile(path string) (*Params, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	defer f.Close() //nolint:errcheck
+
+	return parseConfig(f)
+}
+
+func parseConfig(r io.Reader) (*Params, error) {
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+
+	var config Params
+
+	if err := xyaml.UnmarshalStrict(data, &config); err != nil {
+		return nil, err
+	}
+
+	return &config, nil
+}
+
 // Params defines application configs.
 //
 //nolint:govet
 type Params struct {
-	// AccountID is the stable identifier of the instance.
+	Account    Account    `yaml:"account" validate:"required"`
+	Services   Services   `yaml:"services" validate:"required"`
+	Auth       Auth       `yaml:"auth" validate:"required"`
+	Logs       Logs       `yaml:"logs" validate:"required"`
+	Storage    Storage    `yaml:"storage" validate:"required"`
+	EtcdBackup EtcdBackup `yaml:"etcdBackup"`
+	Registries Registries `yaml:"registries" validate:"required"`
+	Debug      Debug      `yaml:"debug"`
+	Features   Features   `yaml:"features"`
+}
+
+// Validate Omni params.
+func (p *Params) Validate() error {
+	validate := validator.New(validator.WithRequiredStructEnabled())
+
+	return validate.Struct(p)
+}
+
+// Account defines Omni account settings.
+type Account struct {
+	// ID is the stable identifier of the instance.
 	//
 	// Omni will use that to build paths to etcd storage, etc.
-	AccountID string `yaml:"accountID"`
+	ID string `yaml:"id" validate:"required"`
 	// Name is the user-facing name of the instance.
 	//
 	// Omni will use to present some information to the user.
 	// Name can be changed at any time.
-	Name string `yaml:"name"`
-
-	APIURL                string `yaml:"apiURL"`
-	MachineAPIBindAddress string `yaml:"apiBindAddress"`
-	MachineAPICertFile    string `yaml:"apiCertFile"`
-	MachineAPIKeyFile     string `yaml:"apiKeyFile"`
-
-	KubernetesProxyURL                   string `yaml:"kubernetesProxyURL"`
-	SiderolinkEnabled                    bool   `yaml:"siderolinkEnabled"`
-	SiderolinkWireguardBindAddress       string `yaml:"siderolinkWireguardBindAddress"`
-	SiderolinkWireguardAdvertisedAddress string `yaml:"siderolinkWireguardAdvertisedAddress"`
-	SiderolinkDisableLastEndpoint        bool   `yaml:"siderolinkDisableLastEndpoint"`
-	SiderolinkUseGRPCTunnel              bool   `yaml:"siderolinkUseGRPCTunnel"`
-	RunDebugServer                       bool   `yaml:"runDebugServer"`
-
-	EventSinkPort    int                `yaml:"eventSinkPort"`
-	SideroLinkAPIURL string             `yaml:"siderolinkAPIURL"`
-	LoadBalancer     LoadBalancerParams `yaml:"loadbalancer"`
-	LogServerPort    int                `yaml:"logServerPort"`
-
-	MachineLogConfig MachineLogConfigParams `yaml:"machineLogConfig"`
-
-	Auth AuthParams `yaml:"auth"`
-
-	InitialUsers []string `yaml:"initialUsers"`
-
-	TalosRegistry string `yaml:"talosRegistry"`
-
-	KubernetesRegistry string `yaml:"kubernetesRegistry"`
-
-	ImageFactoryBaseURL    string `yaml:"imageFactoryAddress"`
-	ImageFactoryPXEBaseURL string `yaml:"imageFactoryProxyAddress"`
-
-	Storage StorageParams `yaml:"storage"`
-
-	SecondaryStorage BoltDBParams `yaml:"secondaryStorage"`
-
-	DefaultConfigGenOptions []generate.Option `yaml:"-" json:"-"`
-
-	KeyPruner KeyPrunerParams `yaml:"keyPruner"`
-
-	EnableTalosPreReleaseVersions bool `yaml:"enableTalosPreReleaseVersions"`
-
-	WorkloadProxying WorkloadProxyingParams `yaml:"workloadProxying"`
-
-	ConfigDataCompression ConfigDataCompressionParams `yaml:"configDataCompression"`
-
-	LocalResourceServerPort int `yaml:"localResourceServerPort"`
-
-	EtcdBackup EtcdBackupParams `yaml:"etcdBackup"`
-
-	DisableControllerRuntimeCache bool `yaml:"disableControllerRuntimeCache"`
-
-	LogResourceUpdatesTypes    []string `yaml:"logResourceUpdatesTypes"`
-	LogResourceUpdatesLogLevel string   `yaml:"logResourceUpdatesLogLevel"`
-
-	EmbeddedDiscoveryService EmbeddedDiscoveryServiceParams `yaml:"embeddedDiscoveryService"`
-
-	EnableBreakGlassConfigs bool `yaml:"enableBreakGlassConfigs"`
-
-	AuditLogDir string `yaml:"auditLogDir"`
-
-	InitialServiceAccount InitialServiceAccount `yaml:"initialServiceAccount"`
-
-	EnableStripeReporting bool `yaml:"enableStripeReporting"`
-
-	JoinTokensMode JoinTokensMode `yaml:"joinTokensMode"`
+	Name string `yaml:"name" validate:"required"`
 }
 
-// JoinTokensMode is the join token operation mode config.
-//
-//nolint:recvcheck
-type JoinTokensMode string
+// Registries configures docker registries to be used for the Talos and Kubernetes images.
+// Also it has URLs for the image factory.
+type Registries struct {
+	Talos      string `yaml:"talos" validate:"required"`
+	Kubernetes string `yaml:"kubernetes" validate:"required"`
 
-// String implements pflag.Value.
-func (s JoinTokensMode) String() string {
-	return string(s)
-}
+	ImageFactoryBaseURL    string `yaml:"imageFactoryBaseURL" validate:"required"`
+	ImageFactoryPXEBaseURL string `yaml:"imageFactoryPXEBaseURL"`
 
-// Set implements pflag.Value.
-func (s *JoinTokensMode) Set(value string) error {
-	if !slices.Contains(s.values(), value) {
-		return fmt.Errorf("should be one of %s", strings.Join(s.values(), ", "))
-	}
-
-	*s = JoinTokensMode(value)
-
-	return nil
-}
-
-// Type implements pflag.Value.
-func (s JoinTokensMode) Type() string {
-	return fmt.Sprintf("[%s]", strings.Join(s.values(), ","))
-}
-
-func (JoinTokensMode) values() []string {
-	return []string{JoinTokensModeLegacyOnly, JoinTokensModeLegacyAllowed, JoinTokensModeStrict}
-}
-
-const (
-	// JoinTokensModeLegacyOnly disables node unique token flow, uses only join token when letting the machine into the system.
-	JoinTokensModeLegacyOnly = "legacy"
-	// JoinTokensModeLegacyAllowed allows joining Talos nodes which do not support node unique token flow
-	// uses unique token flow only for the machines which support it.
-	JoinTokensModeLegacyAllowed = "legacyAllowed"
-	// JoinTokensModeStrict rejects the machines that do not support node unique tokens flow.
-	JoinTokensModeStrict = "strict"
-)
-
-// InitialServiceAccount allows creating a service account for automated omnictl runs on the Omni service deployment.
-type InitialServiceAccount struct {
-	Role     string
-	KeyPath  string
-	Name     string
-	Lifetime time.Duration
-	Enabled  bool
-}
-
-// EmbeddedDiscoveryServiceParams defines embedded discovery service configs.
-type EmbeddedDiscoveryServiceParams struct {
-	SnapshotPath     string        `yaml:"snapshotPath"`
-	LogLevel         string        `yaml:"logLevel"`
-	Enabled          bool          `yaml:"enabled"`
-	SnapshotsEnabled bool          `yaml:"snapshotsEnabled"`
-	Port             int           `yaml:"port"`
-	SnapshotInterval time.Duration `yaml:"snapshotInterval"`
-}
-
-// EtcdBackupParams defines etcd backup configs.
-type EtcdBackupParams struct {
-	LocalPath         string        `yaml:"localPath"`
-	S3Enabled         bool          `yaml:"s3Enabled"`
-	TickInterval      time.Duration `yaml:"tickInterval"`
-	MinInterval       time.Duration `yaml:"minInterval"`
-	MaxInterval       time.Duration `yaml:"maxInterval"`
-	UploadLimitMbps   uint64        `yaml:"uploadLimitMbps"`
-	DownloadLimitMbps uint64        `yaml:"downloadLimitMbps"`
-	Jitter            time.Duration `yaml:"jitter"`
-}
-
-// GetStorageType returns the storage type.
-func (ebp EtcdBackupParams) GetStorageType() (EtcdBackupStorage, error) {
-	if ebp.LocalPath != "" && ebp.S3Enabled {
-		return "", errors.New("both localPath and s3 are set")
-	}
-
-	switch {
-	case ebp.LocalPath == "" && !ebp.S3Enabled:
-		return EtcdBackupTypeS3, nil
-	case ebp.LocalPath != "":
-		return EtcdBackupTypeFS, nil
-	case ebp.S3Enabled:
-		return EtcdBackupTypeS3, nil
-	default:
-		return "", errors.New("unknown backup storage type")
-	}
-}
-
-// WorkloadProxyingParams defines workload proxying configs.
-type WorkloadProxyingParams struct {
-	Subdomain string `yaml:"subdomain"`
-	Enabled   bool   `yaml:"enabled"`
-}
-
-// ConfigDataCompressionParams defines config data compression configs.
-//
-//nolint:revive
-type ConfigDataCompressionParams struct {
-	Enabled bool `yaml:"enabled"`
-}
-
-// LoadBalancerParams defines load balancer configs.
-type LoadBalancerParams struct {
-	MinPort int `yaml:"minPort"`
-	MaxPort int `yaml:"maxPort"`
-
-	DialTimeout     time.Duration `yaml:"dialTimeout"`
-	KeepAlivePeriod time.Duration `yaml:"keepAlivePeriod"`
-	TCPUserTimeout  time.Duration `yaml:"tcpUserTimeout"`
-
-	HealthCheckInterval time.Duration `yaml:"healthCheckInterval"`
-	HealthCheckTimeout  time.Duration `yaml:"healthCheckTimeout"`
-}
-
-// StorageParams defines storage configs.
-type StorageParams struct {
-	// Kind can be either 'boltdb' or 'etcd'.
-	Kind   string       `yaml:"kind"`
-	Boltdb BoltDBParams `yaml:"boltdb"`
-	Etcd   EtcdParams   `yaml:"etcd"`
-}
-
-// BoltDBParams defines boltdb storage configs.
-type BoltDBParams struct {
-	Path string `yaml:"path"`
-}
-
-// EtcdParams defines etcd storage configs.
-type EtcdParams struct { ///nolint:govet
-	// External etcd: list of endpoints, as host:port pairs.
-	Endpoints            []string      `yaml:"endpoints"`
-	DialKeepAliveTime    time.Duration `yaml:"dialKeepAliveTime"`
-	DialKeepAliveTimeout time.Duration `yaml:"dialKeepAliveTimeout"`
-	CAPath               string        `yaml:"caPath"`
-	CertPath             string        `yaml:"certPath"`
-	KeyPath              string        `yaml:"keyPath"`
-
-	// Use embedded etcd server (no clustering).
-	Embedded            bool   `yaml:"embedded"`
-	EmbeddedDBPath      string `yaml:"embeddedDBPath"`
-	EmbeddedUnsafeFsync bool   `yaml:"embeddedUnsafeFsync"`
-
-	PrivateKeySource string   `yaml:"privateKeySource"`
-	PublicKeyFiles   []string `yaml:"publicKeysFiles"`
-}
-
-// KeyPrunerParams defines key pruner configs.
-type KeyPrunerParams struct {
-	Interval time.Duration `yaml:"interval"`
-}
-
-// MachineLogConfigParams defines log storage configuration.
-type MachineLogConfigParams struct {
-	StoragePath string `yaml:"directory"`
-
-	BufferInitialCapacity int `yaml:"bufferInitialCapacity"`
-	BufferMaxCapacity     int `yaml:"bufferMaxCapacity"`
-	BufferSafetyGap       int `yaml:"bufferSafetyGap"`
-	NumCompressedChunks   int `yaml:"numCompressedChunks"`
-
-	StorageFlushPeriod time.Duration `yaml:"flushPeriod"`
-	StorageFlushJitter float64       `yaml:"flushJitter"`
-	StorageEnabled     bool          `yaml:"enabled"`
+	// Mirrors enables registry mirrors for all Talos machines connected to Omni.
+	Mirrors []string `yaml:"mirrors"`
 }
 
 var (
@@ -283,11 +118,11 @@ var (
 
 // GetImageFactoryPXEBaseURL reads image factory PXE address from the args.
 func (p *Params) GetImageFactoryPXEBaseURL() (*url.URL, error) {
-	if p.ImageFactoryPXEBaseURL != "" {
-		return url.Parse(p.ImageFactoryPXEBaseURL)
+	if p.Registries.ImageFactoryPXEBaseURL != "" {
+		return url.Parse(p.Registries.ImageFactoryPXEBaseURL)
 	}
 
-	url, err := url.Parse(p.ImageFactoryBaseURL)
+	url, err := url.Parse(p.Registries.ImageFactoryBaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid URL specified for the image factory: %w", err)
 	}
@@ -297,24 +132,9 @@ func (p *Params) GetImageFactoryPXEBaseURL() (*url.URL, error) {
 	return url, nil
 }
 
-// GetAdvertisedAPIHost returns the advertised host (IP or domain) of the API without the port.
-func (p *Params) GetAdvertisedAPIHost() (string, error) {
-	apiURL, err := url.Parse(p.SideroLinkAPIURL)
-	if err != nil {
-		return "", err
-	}
-
-	apiHost, _, err := net.SplitHostPort(apiURL.Host)
-	if err != nil {
-		apiHost = apiURL.Host
-	}
-
-	return apiHost, nil
-}
-
 // GetOIDCIssuerEndpoint returns the OIDC issuer endpoint.
 func (p *Params) GetOIDCIssuerEndpoint() (string, error) {
-	u, err := url.Parse(p.APIURL)
+	u, err := url.Parse(p.Services.API.URL())
 	if err != nil {
 		return "", err
 	}
@@ -327,109 +147,152 @@ func (p *Params) GetOIDCIssuerEndpoint() (string, error) {
 	return u.String(), nil
 }
 
+// PopulateFallbacks in the config file.
+func (p *Params) PopulateFallbacks() {
+	// copy the keys from the main API server if kubernetes proxy doesn't have certs defined explicitly.
+	if !p.Services.KubernetesProxy.IsSecure() {
+		p.Services.KubernetesProxy.CertFile = p.Services.API.CertFile
+		p.Services.KubernetesProxy.KeyFile = p.Services.API.KeyFile
+	}
+
+	// copy the keys from the main API server if dev server proxy doesn't have certs defined explicitly.
+	if !p.Services.DevServerProxy.IsSecure() {
+		p.Services.DevServerProxy.CertFile = p.Services.API.CertFile
+		p.Services.DevServerProxy.KeyFile = p.Services.API.KeyFile
+	}
+}
+
 // InitDefault creates the default config.
 func InitDefault() *Params {
 	return &Params{
-		AccountID:                            "edd2822a-7834-4fe0-8172-cc5581f13a8d",
-		Name:                                 "default",
-		APIURL:                               fmt.Sprintf("http://%s", net.JoinHostPort("localhost", "8080")),
-		KubernetesProxyURL:                   fmt.Sprintf("https://%s", net.JoinHostPort("localhost", "8095")),
-		SiderolinkEnabled:                    true,
-		SiderolinkWireguardBindAddress:       net.JoinHostPort("0.0.0.0", wireguardDefaultPort),
-		SiderolinkWireguardAdvertisedAddress: net.JoinHostPort(localIP, wireguardDefaultPort),
-		MachineAPIBindAddress:                net.JoinHostPort(localIP, "8090"),
-		EventSinkPort:                        8090,
-		SideroLinkAPIURL:                     fmt.Sprintf("grpc://%s", net.JoinHostPort(localIP, "8090")),
-		LoadBalancer: LoadBalancerParams{
-			MinPort: 10000,
-			MaxPort: 35000,
-
-			DialTimeout:     15 * time.Second,
-			KeepAlivePeriod: 30 * time.Second,
-			TCPUserTimeout:  30 * time.Second,
-
-			HealthCheckInterval: 20 * time.Second,
-			HealthCheckTimeout:  15 * time.Second,
+		Account: Account{
+			ID:   "edd2822a-7834-4fe0-8172-cc5581f13a8d",
+			Name: "default",
 		},
-		KeyPruner: KeyPrunerParams{
-			Interval: 10 * time.Minute,
-		},
-		LogServerPort: 8092,
-		MachineLogConfig: MachineLogConfigParams{
-			BufferInitialCapacity: 16384,
-			BufferMaxCapacity:     131072,
-			BufferSafetyGap:       256,
-			NumCompressedChunks:   5,
-			StorageEnabled:        true,
-			StoragePath:           "_out/logs",
-			StorageFlushPeriod:    10 * time.Minute,
-			StorageFlushJitter:    0.1,
-		},
-		TalosRegistry:       consts.TalosRegistry,
-		KubernetesRegistry:  consts.KubernetesRegistry,
-		ImageFactoryBaseURL: consts.ImageFactoryBaseURL,
-		Storage: StorageParams{
-			Kind: "etcd",
-			Boltdb: BoltDBParams{
-				Path: "_out/omni.db",
+		Services: Services{
+			API: Service{
+				BindEndpoint: net.JoinHostPort("localhost", "8080"),
 			},
-			Etcd: EtcdParams{
-				Endpoints:            []string{"http://localhost:2379"},
-				DialKeepAliveTime:    30 * time.Second,
-				DialKeepAliveTimeout: 5 * time.Second,
-				CAPath:               "etcd/ca.crt",
-				CertPath:             "etcd/client.crt",
-				KeyPath:              "etcd/client.key",
+			KubernetesProxy: KubernetesProxyService{
+				BindEndpoint: net.JoinHostPort("localhost", "8095"),
+			},
+			Metrics: Service{
+				BindEndpoint: net.JoinHostPort("0.0.0.0", "2122"),
+			},
+			Siderolink: SiderolinkService{
+				WireGuard: SiderolinkWireGuard{
+					BindEndpoint:       net.JoinHostPort("0.0.0.0", wireguardDefaultPort),
+					AdvertisedEndpoint: net.JoinHostPort(localIP, wireguardDefaultPort),
+				},
+				EventSinkPort:  8090,
+				LogServerPort:  8092,
+				JoinTokensMode: JoinTokensModeLegacyOnly,
+			},
+			MachineAPI: MachineAPI{
+				BindEndpoint: net.JoinHostPort(localIP, "8090"),
+			},
+			LoadBalancer: LoadBalancerService{
+				MinPort: 10000,
+				MaxPort: 35000,
 
-				Embedded:       true,
-				EmbeddedDBPath: "_out/etcd/",
+				DialTimeout:     15 * time.Second,
+				KeepAlivePeriod: 30 * time.Second,
+				TCPUserTimeout:  30 * time.Second,
+
+				HealthCheckInterval: 20 * time.Second,
+				HealthCheckTimeout:  15 * time.Second,
+			},
+			LocalResourceService: LocalResourceService{
+				Enabled: true,
+				Port:    8081,
+			},
+			EmbeddedDiscoveryService: EmbeddedDiscoveryService{
+				Enabled:           true,
+				Port:              8093,
+				SnapshotsEnabled:  true,
+				SnapshotsPath:     "_out/secondary-storage/discovery-service-state.binpb",
+				SnapshotsInterval: 10 * time.Minute,
+				LogLevel:          zapcore.WarnLevel.String(),
+			},
+			WorkloadProxy: WorkloadProxy{
+				Subdomain: "proxy-us",
+				Enabled:   true,
 			},
 		},
-
-		SecondaryStorage: BoltDBParams{
-			Path: "_out/secondary-storage/bolt.db",
+		Auth: Auth{
+			KeyPruner: KeyPrunerConfig{
+				Interval: 10 * time.Minute,
+			},
+			InitialServiceAccount: InitialServiceAccount{
+				Enabled:  false,
+				Role:     string(role.Admin),
+				KeyPath:  "_out/initial-service-account-key",
+				Name:     "automation",
+				Lifetime: time.Hour,
+			},
 		},
-
-		WorkloadProxying: WorkloadProxyingParams{
-			Enabled:   true,
-			Subdomain: "proxy-us",
+		Registries: Registries{
+			Talos:               consts.TalosRegistry,
+			Kubernetes:          consts.KubernetesRegistry,
+			ImageFactoryBaseURL: consts.ImageFactoryBaseURL,
 		},
-
-		ConfigDataCompression: ConfigDataCompressionParams{
-			Enabled: true,
+		Logs: Logs{
+			Audit: LogsAudit{
+				Path: "_out/audit",
+			},
+			ResourceLogger: ResourceLoggerConfig{
+				LogLevel: zapcore.InfoLevel.String(),
+				Types:    common.UserManagedResourceTypes,
+			},
+			Machine: LogsMachine{
+				BufferInitialCapacity: 16384,
+				BufferMaxCapacity:     131072,
+				BufferSafetyGap:       256,
+				Storage: LogsMachineStorage{
+					Enabled:             true,
+					Path:                "_out/logs",
+					FlushPeriod:         10 * time.Minute,
+					FlushJitter:         0.1,
+					NumCompressedChunks: 5,
+				},
+			},
 		},
+		Storage: Storage{
+			Secondary: BoltDB{
+				Path: "_out/secondary-storage/bolt.db",
+			},
+			Default: StorageDefault{
+				Kind: "etcd",
+				Boltdb: BoltDB{
+					Path: "_out/omni.db",
+				},
+				Etcd: EtcdParams{
+					Endpoints:            []string{"http://localhost:2379"},
+					DialKeepAliveTime:    30 * time.Second,
+					DialKeepAliveTimeout: 5 * time.Second,
+					CAFile:               "etcd/ca.crt",
+					CertFile:             "etcd/client.crt",
+					KeyFile:              "etcd/client.key",
 
-		InitialServiceAccount: InitialServiceAccount{
-			Enabled:  false,
-			Role:     string(role.Admin),
-			KeyPath:  "_out/initial-service-account-key",
-			Name:     "automation",
-			Lifetime: time.Hour,
+					Embedded:       true,
+					EmbeddedDBPath: "_out/etcd/",
+				},
+			},
 		},
-
-		LocalResourceServerPort: 8081,
-
-		EtcdBackup: EtcdBackupParams{
+		Features: Features{
+			EnableConfigDataCompression: true,
+		},
+		EtcdBackup: EtcdBackup{
 			TickInterval: time.Minute,
 			MinInterval:  time.Hour,
 			MaxInterval:  24 * time.Hour,
 			Jitter:       10 * time.Minute,
 		},
-
-		LogResourceUpdatesLogLevel: zapcore.InfoLevel.String(),
-		LogResourceUpdatesTypes:    common.UserManagedResourceTypes,
-
-		EmbeddedDiscoveryService: EmbeddedDiscoveryServiceParams{
-			Enabled:          true,
-			Port:             8093,
-			SnapshotsEnabled: true,
-			SnapshotPath:     "_out/secondary-storage/discovery-service-state.binpb",
-			SnapshotInterval: 10 * time.Minute,
-			LogLevel:         zapcore.WarnLevel.String(),
+		Debug: Debug{
+			Server: DebugServer{
+				Endpoint: ":9988",
+			},
 		},
-
-		JoinTokensMode: JoinTokensModeLegacyOnly,
-		RunDebugServer: true,
 	}
 }
 

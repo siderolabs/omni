@@ -305,7 +305,7 @@ func (v *State) advertisedEndpoints(_ context.Context, ptr resource.Pointer) (*v
 
 	res := virtual.NewAdvertisedEndpoints()
 
-	res.TypedSpec().Value.GrpcApiUrl = config.Config.APIURL
+	res.TypedSpec().Value.GrpcApiUrl = config.Config.Services.API.URL()
 
 	return res, nil
 }

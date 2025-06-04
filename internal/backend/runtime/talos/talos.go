@@ -199,8 +199,8 @@ func (r *Runtime) GetTalosconfigRaw(context *common.Context, identity string) ([
 		Identity: identity,
 	}
 
-	contextName := config.Config.Name
-	apiURL := config.Config.APIURL
+	contextName := config.Config.Account.Name
+	apiURL := config.Config.Services.API.URL()
 
 	cluster := ""
 
