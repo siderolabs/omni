@@ -179,7 +179,7 @@ func (ctrl *ConfigPatchCleanupController) isOrphan(ctx context.Context, r contro
 		return false, nil
 	}
 
-	if time.Since(configPatch.Metadata().Updated()) < ctrl.DeleteOlderThan {
+	if time.Since(configPatch.Metadata().Updated()) < ctrl.DeleteOlderThan || time.Since(configPatch.Metadata().Created()) < ctrl.DeleteOlderThan {
 		return false, nil
 	}
 
