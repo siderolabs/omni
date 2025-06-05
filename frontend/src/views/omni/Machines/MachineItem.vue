@@ -123,10 +123,13 @@ included in the LICENSE file.
         <div class="flex gap-0.5 items-center" :class="{
           'text-green-G1': machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_ON,
           'text-naturals-N9': machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_OFF,
-          'text-naturals-N8': machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_UNKNOWN ||
+          'text-naturals-N8': machine.spec.message_status?.power_state === undefined ||
+           machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_UNKNOWN ||
            machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_UNSUPPORTED
         }">
-          <template v-if="machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_UNSUPPORTED || machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_UNKNOWN">
+          <template v-if=" machine.spec.message_status?.power_state === undefined ||
+          machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_UNSUPPORTED ||
+          machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_UNKNOWN">
             <t-icon icon="question" class="w-4 h-4 mr-1"/>
             <div>{{ machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_UNSUPPORTED ? "Unsupported" : "Unknown" }}</div>
           </template>
