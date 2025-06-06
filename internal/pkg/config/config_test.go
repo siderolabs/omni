@@ -1,0 +1,90 @@
+// Copyright (c) 2025 Sidero Labs, Inc.
+//
+// Use of this software is governed by the Business Source License
+// included in the LICENSE file.
+
+// Package config contains the application config loading functions.
+package config_test
+
+import (
+	_ "embed"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/siderolabs/omni/internal/pkg/config"
+)
+
+//go:embed testdata/config-full.yaml
+var configFull []byte
+
+//go:embed testdata/invalid-join-token-mode.yaml
+var configInvalidJoinTokenMode []byte
+
+//go:embed testdata/conflicting-auth.yaml
+var conflictingAuth []byte
+
+//go:embed testdata/backups.yaml
+var backups []byte
+
+//go:embed testdata/unknown-keys.yaml
+var unknownKeys []byte
+
+func TestValidateConfig(t *testing.T) {
+	for _, tt := range []struct {
+		name        string
+		validateErr string
+		loadErr     string
+		config      []byte
+	}{
+		{
+			name:        "empty",
+			config:      []byte("{}"),
+			validateErr: "required",
+		},
+		{
+			name:   "full",
+			config: configFull,
+		},
+		{
+			name:        "invalid join tokens mode",
+			config:      configInvalidJoinTokenMode,
+			validateErr: "JoinTokensMode",
+		},
+		{
+			name:        "conflicting auth",
+			config:      conflictingAuth,
+			validateErr: "Field validation for 'Auth0' failed",
+		},
+		{
+			name:        "conflicting backups",
+			config:      backups,
+			validateErr: "Field validation for 'LocalPath' failed",
+		},
+		{
+			name:    "unknown keys",
+			config:  unknownKeys,
+			loadErr: "unknown keys found",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, err := config.FromBytes(tt.config)
+			if tt.loadErr != "" {
+				require.ErrorContains(t, err, tt.loadErr)
+
+				return
+			}
+
+			require.NoError(t, err)
+
+			err = cfg.Validate()
+			if tt.validateErr != "" {
+				require.ErrorContains(t, err, tt.validateErr)
+
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
+}

@@ -18,6 +18,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/keyprovider"
+	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 // Loader is an interface that returns a private key.
@@ -102,12 +103,19 @@ func makeVaultHTTPLoader(source string, logger *zap.Logger) (Loader, error) {
 
 	token, ok := os.LookupEnv("VAULT_TOKEN")
 	if !ok {
-		return nil, errors.New("VAULT_TOKEN is not set")
+		token = config.Config.Storage.Vault.Token
+
+		if token == "" {
+			return nil, errors.New("VAULT_TOKEN is not set")
+		}
 	}
 
 	addr, ok := os.LookupEnv("VAULT_ADDR")
 	if !ok {
-		return nil, errors.New("VAULT_ADDR is not set")
+		addr = config.Config.Storage.Vault.URL
+		if addr == "" {
+			return nil, errors.New("VAULT_ADDR is not set")
+		}
 	}
 
 	return &VaultHTTPLoader{

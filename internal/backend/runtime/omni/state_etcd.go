@@ -42,16 +42,16 @@ import (
 const compressionThresholdBytes = 2048
 
 func buildEtcdPersistentState(ctx context.Context, params *config.Params, logger *zap.Logger, f func(context.Context, namespaced.StateBuilder) error) error {
-	prefix := fmt.Sprintf("/omni/%s", url.PathEscape(params.AccountID))
+	prefix := fmt.Sprintf("/omni/%s", url.PathEscape(params.Account.ID))
 
-	return getEtcdClient(ctx, &params.Storage.Etcd, logger, func(ctx context.Context, etcdClient *clientv3.Client) error {
+	return getEtcdClient(ctx, &params.Storage.Default.Etcd, logger, func(ctx context.Context, etcdClient *clientv3.Client) error {
 		return etcdElections(ctx, etcdClient, prefix, logger, func(ctx context.Context, _ *clientv3.Client) error {
-			cipher, err := makeCipher(params.AccountID, params.Storage.Etcd, etcdClient, logger) //nolint:contextcheck
+			cipher, err := makeCipher(params.Account.ID, params.Storage.Default.Etcd, etcdClient, logger) //nolint:contextcheck
 			if err != nil {
 				return err
 			}
 
-			salt := sha256.Sum256([]byte(params.AccountID))
+			salt := sha256.Sum256([]byte(params.Account.ID))
 
 			etcdState := etcd.NewState(
 				etcdClient,
@@ -261,15 +261,15 @@ func getExternalEtcdClient(ctx context.Context, params *config.EtcdParams, logge
 
 	logger.Info("starting etcd client",
 		zap.Strings("endpoints", params.Endpoints),
-		zap.String("cert_path", params.CertPath),
-		zap.String("key_path", params.KeyPath),
-		zap.String("ca_path", params.CAPath),
+		zap.String("cert_path", params.CertFile),
+		zap.String("key_path", params.KeyFile),
+		zap.String("ca_path", params.CAFile),
 	)
 
 	tlsInfo := transport.TLSInfo{
-		CertFile:      params.CertPath,
-		KeyFile:       params.KeyPath,
-		TrustedCAFile: params.CAPath,
+		CertFile:      params.CertFile,
+		KeyFile:       params.KeyFile,
+		TrustedCAFile: params.CAFile,
 	}
 
 	tlsConfig, err := tlsInfo.ClientConfig()

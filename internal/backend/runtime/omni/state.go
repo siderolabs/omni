@@ -66,19 +66,19 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 		)
 	}
 
-	switch params.Storage.Kind {
+	switch params.Storage.Default.Kind {
 	case "boltdb":
-		return buildBoltPersistentState(ctx, params.Storage.Boltdb.Path, logger, stateFunc)
+		return buildBoltPersistentState(ctx, params.Storage.Default.Boltdb.Path, logger, stateFunc)
 	case "etcd":
 		return buildEtcdPersistentState(ctx, params, logger, stateFunc)
 	default:
-		return fmt.Errorf("unknown storage kind %q", params.Storage.Kind)
+		return fmt.Errorf("unknown storage kind %q", params.Storage.Default.Kind)
 	}
 }
 
 func newNamespacedState(params *config.Params, primaryStorageCoreState state.CoreState, virtualState *virtual.State, logger *zap.Logger) (*namespaced.State, func(), error) {
 	secondaryStorageCoreState, secondaryStorageBackingStore, err := newBoltPersistentState(
-		params.SecondaryStorage.Path, &bbolt.Options{
+		params.Storage.Secondary.Path, &bbolt.Options{
 			NoSync: true, // we do not need fsync for the secondary storage
 		}, true, logger)
 	if err != nil {
@@ -166,7 +166,7 @@ func initResources(ctx context.Context, resourceState state.State, logger *zap.L
 
 	sysVersion := system.NewSysVersion(resources.EphemeralNamespace, system.SysVersionID)
 	sysVersion.TypedSpec().Value.BackendVersion = version.Tag
-	sysVersion.TypedSpec().Value.InstanceName = config.Config.Name
+	sysVersion.TypedSpec().Value.InstanceName = config.Config.Account.Name
 	sysVersion.TypedSpec().Value.BackendApiVersion = version.API
 
 	if err := resourceState.Create(ctx, sysVersion); err != nil {
@@ -190,22 +190,22 @@ func stateWithMetrics(namespacedState *namespaced.State, metricsRegistry prometh
 
 // NewAuditWrap creates a new audit wrap.
 func NewAuditWrap(resState state.State, params *config.Params, logger *zap.Logger) (*AuditWrap, error) {
-	if params.AuditLogDir == "" {
+	if params.Logs.Audit.Path == "" {
 		logger.Info("audit log disabled")
 
 		return &AuditWrap{state: resState}, nil
 	}
 
-	logger.Info("audit log enabled", zap.String("dir", params.AuditLogDir))
+	logger.Info("audit log enabled", zap.String("dir", params.Logs.Audit.Path))
 
-	a, err := audit.NewLog(params.AuditLogDir, logger)
+	a, err := audit.NewLog(params.Logs.Audit.Path, logger)
 	if err != nil {
 		return nil, err
 	}
 
 	hooks.Init(a)
 
-	return &AuditWrap{state: resState, log: a, dir: params.AuditLogDir}, nil
+	return &AuditWrap{state: resState, log: a, dir: params.Logs.Audit.Path}, nil
 }
 
 // AuditWrap is builder/wrapper for creating logged access to Omni and Talos nodes.

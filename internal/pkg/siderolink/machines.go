@@ -36,14 +36,14 @@ import (
 type MachineCache struct {
 	machineBuffers   containers.LazyMap[MachineID, *circular.Buffer]
 	logger           *zap.Logger
-	logStorageConfig *config.MachineLogConfigParams
+	logStorageConfig *config.LogsMachine
 	compressor       *zstd.Compressor
 	mx               sync.Mutex
 	inited           bool
 }
 
 // NewMachineCache returns a new MachineCache.
-func NewMachineCache(logStorageConfig *config.MachineLogConfigParams, logger *zap.Logger) (*MachineCache, error) {
+func NewMachineCache(logStorageConfig *config.LogsMachine, logger *zap.Logger) (*MachineCache, error) {
 	compressor, err := zstd.NewCompressor()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create log compressor: %w", err)
@@ -92,13 +92,13 @@ func (m *MachineCache) GetBuffer(id MachineID) (*circular.Buffer, error) {
 		return val, nil
 	}
 
-	if !m.logStorageConfig.StorageEnabled {
+	if !m.logStorageConfig.Storage.Enabled {
 		return nil, &BufferNotFoundError{id: id}
 	}
 
 	// Probe the file system to check if a log file exists for this machine.
 	// Check both for the old (/path/machine-id.log) and the new (/path/machine-id.log.NUM) format.
-	glob := filepath.Join(m.logStorageConfig.StoragePath, string(id)+".log*")
+	glob := filepath.Join(m.logStorageConfig.Storage.Path, string(id)+".log*")
 
 	matches, err := filepath.Glob(glob)
 	if err != nil {
@@ -149,7 +149,7 @@ func (m *MachineCache) Remove(id MachineID) error {
 
 	m.machineBuffers.Remove(id)
 
-	matches, err := filepath.Glob(filepath.Join(m.logStorageConfig.StoragePath, string(id)+".log*"))
+	matches, err := filepath.Glob(filepath.Join(m.logStorageConfig.Storage.Path, string(id)+".log*"))
 	if err != nil {
 		return fmt.Errorf("failed to list log files for machine %q: %w", id, err)
 	}
@@ -194,15 +194,15 @@ func (m *MachineCache) init() {
 				circular.WithInitialCapacity(m.logStorageConfig.BufferInitialCapacity),
 				circular.WithMaxCapacity(m.logStorageConfig.BufferMaxCapacity),
 				circular.WithSafetyGap(m.logStorageConfig.BufferSafetyGap),
-				circular.WithNumCompressedChunks(m.logStorageConfig.NumCompressedChunks, m.compressor),
+				circular.WithNumCompressedChunks(m.logStorageConfig.Storage.NumCompressedChunks, m.compressor),
 				circular.WithLogger(m.logger),
 			}
 
-			if m.logStorageConfig.StorageEnabled {
+			if m.logStorageConfig.Storage.Enabled {
 				bufferOpts = append(bufferOpts, circular.WithPersistence(circular.PersistenceOptions{
-					ChunkPath:     filepath.Join(m.logStorageConfig.StoragePath, string(id)+".log"),
-					FlushInterval: m.logStorageConfig.StorageFlushPeriod,
-					FlushJitter:   m.logStorageConfig.StorageFlushJitter,
+					ChunkPath:     filepath.Join(m.logStorageConfig.Storage.Path, string(id)+".log"),
+					FlushInterval: m.logStorageConfig.Storage.FlushPeriod,
+					FlushJitter:   m.logStorageConfig.Storage.FlushJitter,
 				}))
 			}
 
@@ -211,7 +211,7 @@ func (m *MachineCache) init() {
 				return nil, fmt.Errorf("failed to create circular buffer for machine '%s': %w", id, err)
 			}
 
-			if m.logStorageConfig.StorageEnabled {
+			if m.logStorageConfig.Storage.Enabled {
 				loadLegacyLogs(m.logStorageConfig, id, buffer, m.logger)
 			}
 
@@ -327,8 +327,8 @@ func IsBufferNotFoundError(err error) bool {
 // It removes the old log file and its hash file regardless of the result.
 //
 // It is a best-effort function and does not return any error.
-func loadLegacyLogs(config *config.MachineLogConfigParams, id MachineID, writer io.Writer, logger *zap.Logger) {
-	filePath := filepath.Join(config.StoragePath, fmt.Sprintf("%s.log", id))
+func loadLegacyLogs(config *config.LogsMachine, id MachineID, writer io.Writer, logger *zap.Logger) {
+	filePath := filepath.Join(config.Storage.Path, fmt.Sprintf("%s.log", id))
 	shaSumPath := filePath + ".sha256sum"
 
 	defer func() {

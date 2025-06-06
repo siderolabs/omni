@@ -146,6 +146,7 @@ SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
   --cert hack/certs/localhost.pem \
   --etcd-embedded-unsafe-fsync=true \
   --etcd-backup-s3 \
+  --join-tokens-mode strict \
   --audit-log-dir /tmp/omni-data/audit-log \
   --enable-talos-pre-release-versions="${ENABLE_TALOS_PRERELEASE_VERSIONS}" \
   "${REGISTRY_MIRROR_FLAGS[@]}" \

@@ -109,8 +109,8 @@ func NewManager(
 		provisionServer: NewProvisionHandler(
 			logger,
 			state,
-			config.Config.JoinTokensMode,
-			config.Config.SiderolinkUseGRPCTunnel,
+			config.Config.Services.Siderolink.JoinTokensMode,
+			config.Config.Services.Siderolink.UseGRPCTunnel,
 		),
 	}
 
@@ -192,34 +192,34 @@ func generateJoinToken() (string, error) {
 type Params struct {
 	WireguardEndpoint  string
 	AdvertisedEndpoint string
-	APIEndpoint        string
-	Cert               string
-	Key                string
+	MachineAPIEndpoint string
+	MachineAPITLSCert  string
+	MachineAPITLSKey   string
 	EventSinkPort      string
 }
 
 // NewListener creates a new listener.
 func (p *Params) NewListener() (net.Listener, error) {
-	if p.APIEndpoint == "" {
+	if p.MachineAPIEndpoint == "" {
 		return nil, errors.New("no siderolink API endpoint specified")
 	}
 
 	switch {
-	case p.Cert == "" && p.Key == "":
+	case p.MachineAPITLSCert == "" && p.MachineAPITLSKey == "":
 		// no key, no cert - use plain TCP
-		return net.Listen("tcp", p.APIEndpoint)
-	case p.Cert == "":
+		return net.Listen("tcp", p.MachineAPIEndpoint)
+	case p.MachineAPITLSCert == "":
 		return nil, errors.New("siderolink cert is required")
-	case p.Key == "":
+	case p.MachineAPITLSKey == "":
 		return nil, errors.New("siderolink key is required")
 	}
 
-	cert, err := tls.LoadX509KeyPair(p.Cert, p.Key)
+	cert, err := tls.LoadX509KeyPair(p.MachineAPITLSCert, p.MachineAPITLSKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load siderolink cert/key: %w", err)
 	}
 
-	return tls.Listen("tcp", p.APIEndpoint, &tls.Config{
+	return tls.Listen("tcp", p.MachineAPIEndpoint, &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		NextProtos:   []string{"h2"},
 	})
@@ -541,7 +541,7 @@ func (manager *Manager) pollWireguardPeers(ctx context.Context) error {
 						spec.Connected = sinceLastHandshake < wireguard.PeerDownInterval
 					}
 
-					if config.Config.SiderolinkDisableLastEndpoint {
+					if config.Config.Services.Siderolink.DisableLastEndpoint {
 						spec.LastEndpoint = ""
 
 						return nil
@@ -579,12 +579,12 @@ func (manager *Manager) updateConnectionParams(ctx context.Context, siderolinkCo
 	if _, err = safe.StateUpdateWithConflicts(ctx, manager.state, connectionParams.Metadata(), func(res *siderolink.ConnectionParams) error {
 		spec := res.TypedSpec().Value
 
-		spec.ApiEndpoint = config.Config.SideroLinkAPIURL
+		spec.ApiEndpoint = config.Config.Services.MachineAPI.URL()
 		spec.JoinToken = siderolinkConfig.TypedSpec().Value.JoinToken
 		spec.WireguardEndpoint = siderolinkConfig.TypedSpec().Value.AdvertisedEndpoint
-		spec.UseGrpcTunnel = config.Config.SiderolinkUseGRPCTunnel
-		spec.LogsPort = int32(config.Config.LogServerPort)
-		spec.EventsPort = int32(config.Config.EventSinkPort)
+		spec.UseGrpcTunnel = config.Config.Services.Siderolink.UseGRPCTunnel
+		spec.LogsPort = int32(config.Config.Services.Siderolink.LogServerPort)
+		spec.EventsPort = int32(config.Config.Services.Siderolink.EventSinkPort)
 
 		var url string
 
@@ -604,7 +604,7 @@ func (manager *Manager) updateConnectionParams(ctx context.Context, siderolinkCo
 			talosconstants.KernelParamLoggingKernel,
 			net.JoinHostPort(
 				siderolinkConfig.TypedSpec().Value.ServerAddress,
-				strconv.Itoa(config.Config.LogServerPort),
+				strconv.Itoa(config.Config.Services.Siderolink.LogServerPort),
 			),
 		)
 

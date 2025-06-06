@@ -30,8 +30,18 @@ import (
 
 // Handler of image requests.
 type Handler struct {
-	State  state.State
-	Logger *zap.Logger
+	state  state.State
+	logger *zap.Logger
+	config *config.Registries
+}
+
+// NewHandler creates a new factory proxy handler.
+func NewHandler(state state.State, logger *zap.Logger, config *config.Registries) *Handler {
+	return &Handler{
+		state:  state,
+		logger: logger,
+		config: config,
+	}
 }
 
 func setContentHeaders(w http.ResponseWriter, contentType, filename string) {
@@ -45,7 +55,7 @@ func httpNotFound(w http.ResponseWriter) {
 }
 
 func (handler *Handler) handleError(msg string, w http.ResponseWriter, err error) {
-	handler.Logger.Error(msg, zap.Error(err))
+	handler.logger.Error(msg, zap.Error(err))
 
 	switch status.Code(err) { //nolint:exhaustive
 	case codes.Unauthenticated:
@@ -71,7 +81,7 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	params, err := parseRequest(r, handler.State)
+	params, err := parseRequest(r, handler.state, handler.config)
 	if err != nil {
 		if errors.Is(err, errNotFound) {
 			httpNotFound(w)
@@ -84,7 +94,7 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handler.Logger.Info("proxy request", zap.String("url", params.ProxyURL))
+	handler.logger.Info("proxy request", zap.String("url", params.ProxyURL))
 
 	proxyReq, err := http.NewRequestWithContext(r.Context(), r.Method, params.ProxyURL, nil)
 	if err != nil {
@@ -138,7 +148,7 @@ type ProxyParams struct {
 	DestinationFilename string
 }
 
-func parseRequest(r *http.Request, st state.State) (*ProxyParams, error) {
+func parseRequest(r *http.Request, st state.State, config *config.Registries) (*ProxyParams, error) {
 	segments := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 
 	if len(segments) < 4 {
@@ -177,7 +187,7 @@ func parseRequest(r *http.Request, st state.State) (*ProxyParams, error) {
 		DestinationFilename: fmt.Sprintf("%s-%s.%s", media.TypedSpec().Value.DestFilePrefix, srcFilename, media.TypedSpec().Value.Extension),
 	}
 
-	proxyURL, err := url.Parse(config.Config.ImageFactoryBaseURL)
+	proxyURL, err := url.Parse(config.ImageFactoryBaseURL)
 	if err != nil {
 		return nil, err
 	}

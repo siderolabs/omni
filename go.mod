@@ -3,6 +3,7 @@ module github.com/siderolabs/omni
 go 1.24.2
 
 replace (
+	github.com/siderolabs/gen => github.com/unix4ever/gen v0.0.0-20250606184729-3e319e7e52c5
 	// use nested module
 	github.com/siderolabs/omni/client => ./client
 	// forked go-yaml that introduces RawYAML interface, which can be used to populate YAML fields using bytes
@@ -37,6 +38,7 @@ require (
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/go-jose/go-jose/v4 v4.1.0
 	github.com/go-logr/zapr v1.3.0
+	github.com/go-playground/validator/v10 v10.26.0
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-containerregistry v0.20.3
@@ -113,6 +115,8 @@ require (
 	sigs.k8s.io/controller-runtime v0.20.4
 )
 
+require github.com/go-logr/logr v1.4.2
+
 require (
 	cel.dev/expr v0.23.1 // indirect
 	github.com/ProtonMail/go-crypto v1.2.0 // indirect
@@ -153,13 +157,15 @@ require (
 	github.com/evanphx/json-patch v5.9.11+incompatible // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.8.0 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-chi/chi/v5 v5.2.1 // indirect
-	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.21.1 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.1 // indirect
+	github.com/go-playground/locales v0.14.1 // indirect
+	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/btree v1.1.3 // indirect
@@ -184,6 +190,7 @@ require (
 	github.com/josharian/native v1.1.0 // indirect
 	github.com/jsimonetti/rtnetlink/v2 v2.0.3 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/mailru/easyjson v0.9.0 // indirect
 	github.com/mattermost/xml-roundtrip-validator v0.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect

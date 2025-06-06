@@ -220,7 +220,7 @@ func (h *HTTPHandler) getSignatureCookies(request *http.Request) (publicKeyID st
 }
 
 func (h *HTTPHandler) redirectToLogin(writer http.ResponseWriter, request *http.Request) {
-	loginURL, err := url.Parse(config.Config.APIURL)
+	loginURL, err := url.Parse(config.Config.Services.API.URL())
 	if err != nil {
 		h.logger.Warn("failed to redirect to login", zap.Error(err))
 

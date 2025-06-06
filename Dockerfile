@@ -1,8 +1,8 @@
-# syntax = docker/dockerfile-upstream:1.15.1-labs
+# syntax = docker/dockerfile-upstream:1.16.0-labs
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-06-02T21:18:31Z by kres 99b55ad-dirty.
+# Generated on 2025-06-06T17:20:38Z by kres fc6afbe-dirty.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -20,7 +20,7 @@ ENV GOPATH=/go
 ENV PATH=${PATH}:/usr/local/go/bin
 
 # runs markdownlint
-FROM docker.io/oven/bun:1.2.13-alpine AS lint-markdown
+FROM docker.io/oven/bun:1.2.15-alpine AS lint-markdown
 WORKDIR /src
 RUN bun i markdownlint-cli@0.45.0 sentences-per-line@0.3.0
 COPY .markdownlint.json .
@@ -586,13 +586,13 @@ COPY --from=omnictl-linux-amd64 / /
 COPY --from=omnictl-linux-arm64 / /
 COPY --from=omnictl-windows-amd64.exe / /
 
-FROM scratch AS image-integration-test
+FROM scratch AS image-omni-integration-test
 ARG TARGETARCH
-COPY --from=integration-test integration-test-linux-${TARGETARCH} /integration-test
+COPY --from=integration-test integration-test-linux-${TARGETARCH} /omni-integration-test
 COPY --from=image-fhs / /
 COPY --from=image-ca-certificates / /
 LABEL org.opencontainers.image.source=https://github.com/siderolabs/omni
-ENTRYPOINT ["/integration-test"]
+ENTRYPOINT ["/omni-integration-test"]
 
 FROM scratch AS image-omni
 ARG TARGETARCH

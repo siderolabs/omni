@@ -123,14 +123,18 @@ func TestEtcdInitialization(t *testing.T) {
 	for _, step := range steps {
 		res := t.Run(step.name, func(t *testing.T) {
 			err := omniruntime.BuildEtcdPersistentState(t.Context(), &config.Params{
-				Name: "instance-name",
-				Storage: config.StorageParams{
-					Etcd: config.EtcdParams{
-						Embedded:         true,
-						EmbeddedDBPath:   etcdDir,
-						PrivateKeySource: step.args.privateKeySource,
-						PublicKeyFiles:   step.args.publicKeyFiles,
-						Endpoints:        []string{"http://localhost:0"},
+				Account: config.Account{
+					Name: "instance-name",
+				},
+				Storage: config.Storage{
+					Default: config.StorageDefault{
+						Etcd: config.EtcdParams{
+							Embedded:         true,
+							EmbeddedDBPath:   etcdDir,
+							PrivateKeySource: step.args.privateKeySource,
+							PublicKeyFiles:   step.args.publicKeyFiles,
+							Endpoints:        []string{"http://localhost:0"},
+						},
 					},
 				},
 			}, zaptest.NewLogger(t), func(context.Context, namespaced.StateBuilder) error {
@@ -190,14 +194,18 @@ func TestEncryptDecrypt(t *testing.T) {
 	for _, step := range steps {
 		res := t.Run(step.name, func(t *testing.T) {
 			err := omniruntime.BuildEtcdPersistentState(t.Context(), &config.Params{
-				Name: "instance-name",
-				Storage: config.StorageParams{
-					Etcd: config.EtcdParams{
-						Embedded:         true,
-						EmbeddedDBPath:   etcdDir,
-						PrivateKeySource: step.args.privateKeySource,
-						PublicKeyFiles:   step.args.publicKeyFiles,
-						Endpoints:        []string{"http://localhost:0"},
+				Account: config.Account{
+					Name: "instance-name",
+				},
+				Storage: config.Storage{
+					Default: config.StorageDefault{
+						Etcd: config.EtcdParams{
+							Embedded:         true,
+							EmbeddedDBPath:   etcdDir,
+							PrivateKeySource: step.args.privateKeySource,
+							PublicKeyFiles:   step.args.publicKeyFiles,
+							Endpoints:        []string{"http://localhost:0"},
+						},
 					},
 				},
 			}, zaptest.NewLogger(t),

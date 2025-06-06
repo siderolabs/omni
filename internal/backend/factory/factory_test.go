@@ -20,6 +20,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/factory"
+	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 func TestParseRequest(t *testing.T) {
@@ -92,7 +93,9 @@ func TestParseRequest(t *testing.T) {
 			request, err := http.NewRequestWithContext(ctx, http.MethodHead, "https://localhost"+tt.incomingURL, nil)
 			require.NoError(err)
 
-			params, err := factory.ParseRequest(request, state)
+			params, err := factory.ParseRequest(request, state, &config.Registries{
+				ImageFactoryBaseURL: "https://factory.talos.dev",
+			})
 			if tt.shouldFail {
 				require.Error(err)
 
