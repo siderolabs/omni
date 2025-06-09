@@ -20,8 +20,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/stretchr/testify/suite"
@@ -48,7 +46,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
-	"github.com/siderolabs/omni/internal/backend/workloadproxy"
+	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/interceptor"
 )
@@ -72,9 +70,11 @@ func (suite *GrpcSuite) SetupTest() {
 
 	var err error
 
-	suite.state = state.WrapCore(namespaced.NewState(inmem.Build))
-
 	logger := zaptest.NewLogger(suite.T())
+
+	st := omniruntime.NewTestState(logger)
+	suite.state = st.Default()
+
 	clientFactory := talos.NewClientFactory(suite.state, logger)
 	dnsService := dns.NewService(suite.state, logger)
 	discoveryClientCache := &discoveryClientCacheMock{}
@@ -93,8 +93,10 @@ func (suite *GrpcSuite) SetupTest() {
 
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zap.InfoLevel)
 
-	suite.runtime, err = omniruntime.New(clientFactory, dnsService, workloadProxyReconciler, nil,
-		imageFactoryClient, nil, nil, nil, suite.state, nil, prometheus.NewRegistry(), discoveryClientCache, logger)
+	suite.runtime, err = omniruntime.NewRuntime(
+		clientFactory, dnsService, workloadProxyReconciler, nil,
+		imageFactoryClient, nil, nil, nil, st, prometheus.NewRegistry(), discoveryClientCache, logger,
+	)
 	suite.Require().NoError(err)
 	runtime.Install(omniruntime.Name, suite.runtime)
 
@@ -195,7 +197,7 @@ func (suite *GrpcSuite) TestCrud() {
 	suite.Assert().NoError(err)
 
 	res, err := safe.StateGet[*omni.ConfigPatch](ctx, suite.state, metadata)
-	suite.Assert().NoError(err)
+	suite.Require().NoError(err)
 
 	suite.Require().True(proto.Equal(res.TypedSpec().Value, resourceSpec))
 

@@ -26,8 +26,10 @@ type Proxy interface {
 }
 
 // NewProxy creates a new proxy server. If the destination is empty, the proxy server will be a no-op.
-func NewProxy(config config.DevServerProxyService, handler http.Handler) Proxy {
+func NewProxy(config *config.DevServerProxyService, handler http.Handler) Proxy {
 	switch {
+	case config == nil:
+		return &nopProxy{reason: "dev proxy is disabled"}
 	case config.BindEndpoint == "":
 		return &nopProxy{reason: "bind address is empty"}
 	case config.ProxyTo == "":
@@ -42,7 +44,7 @@ func NewProxy(config config.DevServerProxyService, handler http.Handler) Proxy {
 
 type httpProxy struct {
 	proxyTo http.Handler
-	config  config.DevServerProxyService
+	config  *config.DevServerProxyService
 }
 
 func hasPrefix(s string, prefixes ...string) bool {
@@ -57,7 +59,7 @@ func hasPrefix(s string, prefixes ...string) bool {
 
 func (prx *httpProxy) Run(ctx context.Context, next http.Handler, logger *zap.Logger) error {
 	srv := NewFromConfig(
-		&prx.config,
+		prx.config,
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if hasPrefix(r.URL.Path, "/api/", "/omnictl/", "/talosctl/", "/image/") {
 				next.ServeHTTP(w, r)
@@ -87,14 +89,14 @@ func (n *nopProxy) Run(ctx context.Context, _ http.Handler, logger *zap.Logger) 
 }
 
 // NewFrontendHandler creates a new frontend handler from the given dst address. If dst is empty, the handler will be a no-op.
-func NewFrontendHandler(dst string, logger *zap.Logger) (http.Handler, error) {
-	if dst == "" {
+func NewFrontendHandler(config *config.DevServerProxyService, logger *zap.Logger) (http.Handler, error) {
+	if config == nil || config.ProxyTo == "" {
 		logger.Info("frontend handler disabled")
 
 		return nopHandler, nil
 	}
 
-	parse, err := url.ParseRequestURI(dst)
+	parse, err := url.ParseRequestURI(config.ProxyTo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse proxy destination: %w", err)
 	}
@@ -112,7 +114,7 @@ func NewFrontendHandler(dst string, logger *zap.Logger) (http.Handler, error) {
 		ExpectContinueTimeout: 1 * time.Second,
 	}
 
-	logger.Info("frontend handler enabled", zap.String("destination", dst))
+	logger.Info("frontend handler enabled", zap.String("destination", config.ProxyTo))
 
 	return proxy, nil
 }

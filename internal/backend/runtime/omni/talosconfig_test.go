@@ -12,8 +12,6 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/prometheus/client_golang/prometheus"
 	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
 	"github.com/siderolabs/talos/pkg/machinery/config"
@@ -27,22 +25,22 @@ import (
 	"github.com/siderolabs/omni/internal/backend/dns"
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
-	"github.com/siderolabs/omni/internal/backend/workloadproxy"
+	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
 )
 
 func TestOperatorTalosconfig(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second*10)
 	defer cancel()
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
 	logger := zaptest.NewLogger(t)
-	clientFactory := talos.NewClientFactory(st, logger)
-	dnsService := dns.NewService(st, logger)
+	st := omniruntime.NewTestState(logger)
+	clientFactory := talos.NewClientFactory(st.Default(), logger)
+	dnsService := dns.NewService(st.Default(), logger)
 	discoveryClientCache := &discoveryClientCacheMock{}
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zapcore.InfoLevel)
 
-	r, err := omniruntime.New(clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil, nil,
-		st, nil, prometheus.NewRegistry(), discoveryClientCache, logger)
+	r, err := omniruntime.NewRuntime(clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil, nil,
+		st, prometheus.NewRegistry(), discoveryClientCache, logger)
 
 	require.NoError(t, err)
 
@@ -60,7 +58,7 @@ func TestOperatorTalosconfig(t *testing.T) {
 
 	secrets.TypedSpec().Value.Data = data
 
-	require.NoError(t, st.Create(ctx, secrets))
+	require.NoError(t, st.Default().Create(ctx, secrets))
 
 	cfg, err := r.OperatorTalosconfig(ctx, "cluster1")
 	require.NoError(t, err)
@@ -85,9 +83,9 @@ func TestOperatorTalosconfig(t *testing.T) {
 	m2.TypedSpec().Value.NodeIps = []string{"10.1.0.3"}
 	m3.TypedSpec().Value.NodeIps = []string{"10.1.0.4"}
 
-	require.NoError(t, st.Create(ctx, m1))
-	require.NoError(t, st.Create(ctx, m2))
-	require.NoError(t, st.Create(ctx, m3))
+	require.NoError(t, st.Default().Create(ctx, m1))
+	require.NoError(t, st.Default().Create(ctx, m2))
+	require.NoError(t, st.Default().Create(ctx, m3))
 
 	cfg, err = r.OperatorTalosconfig(ctx, "cluster1")
 	require.NoError(t, err)

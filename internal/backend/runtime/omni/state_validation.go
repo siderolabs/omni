@@ -42,7 +42,7 @@ import (
 // Validation is only syntactic - they are checked whether they are valid semver strings.
 //
 //nolint:gocognit,gocyclo,cyclop
-func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup, embeddedDiscoveryServiceConfig config.EmbeddedDiscoveryService) []validated.StateOption {
+func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup, embeddedDiscoveryServiceConfig *config.EmbeddedDiscoveryService) []validated.StateOption {
 	validateVersions := func(ctx context.Context, existingRes *omni.Cluster, res *omni.Cluster, skipTalosVersion, skipKubernetesVersion bool) error {
 		if skipTalosVersion && skipKubernetesVersion {
 			return nil

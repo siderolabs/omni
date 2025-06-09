@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
@@ -29,6 +30,30 @@ var backups []byte
 
 //go:embed testdata/unknown-keys.yaml
 var unknownKeys []byte
+
+func TestMergeConfig(t *testing.T) {
+	cfg, err := config.Init(zaptest.NewLogger(t),
+		&config.Params{
+			Services: config.Services{
+				API: &config.Service{
+					BindEndpoint: "0.0.0.0:80",
+					CertFile:     "crt",
+					KeyFile:      "key",
+				},
+			},
+			Storage: config.Storage{
+				Default: config.StorageDefault{
+					Etcd: config.EtcdParams{
+						PrivateKeySource: "vault",
+					},
+				},
+			},
+		},
+	)
+
+	require.NoError(t, err)
+	require.True(t, cfg.Services.EmbeddedDiscoveryService.Enabled)
+}
 
 func TestValidateConfig(t *testing.T) {
 	for _, tt := range []struct {

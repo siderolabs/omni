@@ -14,27 +14,20 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/siderolabs/gen/ensure"
-	"github.com/siderolabs/go-debug"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
+	"github.com/siderolabs/omni/cmd/omni/pkg/app"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni"
+	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/version"
 )
-
-func runDebugServer(ctx context.Context, logger *zap.Logger, bindEndpoint string) {
-	debugLogFunc := func(msg string) {
-		logger.Info(msg)
-	}
-
-	if err := debug.ListenAndServe(ctx, bindEndpoint, debugLogFunc); err != nil {
-		logger.Panic("failed to start debug server", zap.Error(err))
-	}
-}
 
 // rootCmd represents the base command when called without any subcommands.
 var rootCmd = &cobra.Command{
@@ -95,7 +88,29 @@ var rootCmd = &cobra.Command{
 			configs = append(configs, cfg)
 		}
 
-		return RunService(ctx, logger, append(configs, cmdConfig)...)
+		config, err := app.PrepareConfig(logger, append(configs, cmdConfig)...)
+		if err != nil {
+			return err
+		}
+
+		ctx = actor.MarkContextAsInternalActor(ctx)
+
+		state, err := omni.NewState(ctx, config, logger, prometheus.DefaultRegisterer)
+		if err != nil {
+			return err
+		}
+
+		defer func() {
+			if err = state.Close(); err != nil {
+				logger.Error("failed to close the state gracefully", zap.Error(err))
+			}
+		}()
+
+		if constants.IsDebugBuild {
+			logger.Warn("running debug build")
+		}
+
+		return app.Run(ctx, state, config, logger)
 	},
 }
 
@@ -127,7 +142,7 @@ var initOnce = sync.OnceValue(func() *cobra.Command {
 	return rootCmd
 })
 
-var cmdConfig = config.InitDefault()
+var cmdConfig = config.Default()
 
 func defineServiceFlags() {
 	// API
