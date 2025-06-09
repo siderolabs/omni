@@ -64,7 +64,7 @@ func AssertDownloadUsingCLI(testCtx context.Context, client *client.Client, omni
 
 		name := "test-" + uuid.NewString()
 
-		key := createServiceAccount(testCtx, t, client, name)
+		key := createServiceAccount(testCtx, t, client, name, role.Admin)
 
 		for _, image := range images {
 			t.Run(image.Metadata().ID(), func(t *testing.T) {
@@ -121,7 +121,7 @@ func runCmd(path, endpoint, key string, args ...string) (bytes.Buffer, bytes.Buf
 	return stdout, stderr, err
 }
 
-func createServiceAccount(ctx context.Context, t *testing.T, client *client.Client, name string) string {
+func createServiceAccount(ctx context.Context, t *testing.T, client *client.Client, name string, role role.Role) string {
 	// generate a new PGP key with long lifetime
 	comment := fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
 
@@ -135,7 +135,7 @@ func createServiceAccount(ctx context.Context, t *testing.T, client *client.Clie
 	require.NoError(t, err)
 
 	// create service account with the generated key
-	_, err = client.Management().CreateServiceAccount(ctx, name, armoredPublicKey, string(role.Admin), true)
+	_, err = client.Management().CreateServiceAccount(ctx, name, armoredPublicKey, string(role), false)
 	require.NoError(t, err)
 
 	encodedKey, err := serviceaccount.Encode(name, key)
@@ -149,7 +149,7 @@ func AssertUserCLI(testCtx context.Context, client *client.Client, omnictlPath, 
 	return func(t *testing.T) {
 		name := "test-" + uuid.NewString()
 
-		key := createServiceAccount(testCtx, t, client, name)
+		key := createServiceAccount(testCtx, t, client, name, role.Admin)
 
 		stdout, stderr, err := runCmd(omnictlPath, httpEndpoint, key, "user", "create", "a@a.com", "--role", "Admin")
 		require.NoErrorf(t, err, "failed to create user. stdout: %q | stderr: %q", stdout.String(), stderr.String())

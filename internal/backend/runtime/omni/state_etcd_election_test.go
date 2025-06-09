@@ -7,34 +7,30 @@ package omni_test
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
-func mockRunner(id int, started chan<- int, closed <-chan error) func(ctx context.Context, client *clientv3.Client) error {
-	return func(ctx context.Context, _ *clientv3.Client) error {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case started <- id:
-		}
+func mockRunner(ctx context.Context, id int, started chan<- int, closed <-chan struct{}) {
+	select {
+	case <-ctx.Done():
+		return
+	case started <- id:
+	}
 
-		select {
-		case err := <-closed:
-			return err
-		case <-ctx.Done():
-			return context.Cause(ctx)
-		}
+	select {
+	case <-closed:
+		return
+	case <-ctx.Done():
+		return
 	}
 }
 
@@ -44,119 +40,122 @@ func TestEtcdElectionsLost(t *testing.T) {
 
 	logger := zaptest.NewLogger(t)
 
-	require.NoError(t, omni.GetEmbeddedEtcdClientWithServer(ctx, &config.EtcdParams{
+	state, err := omni.GetEmbeddedEtcdClientWithServer(&config.EtcdParams{
 		Embedded:       true,
 		EmbeddedDBPath: t.TempDir(),
 		Endpoints:      []string{"http://localhost:0"},
-	}, logger, func(ctx context.Context, client *clientv3.Client, serverCloser func() error) error {
-		started := make(chan int)
-		closed := make(chan error)
-		errCh := make(chan error)
-		electionKey := uuid.NewString()
+		RunElections:   true,
+	}, logger)
 
-		// run mock runner, it should win the elections and keep running
-		go func() {
-			errCh <- omni.EtcdElections(ctx, client, electionKey, logger, mockRunner(1, started, closed))
-		}()
+	require.NoError(t, err)
 
-		select {
-		case id := <-started:
-			require.Equal(t, 1, id)
-		case <-ctx.Done():
-			t.Fatal("runner didn't start")
-		}
+	started := make(chan int)
+	errCh := make(chan error, 1)
+	electionKey := uuid.NewString()
 
-		// abort etcd, that aborts the election campaign
-		assert.NoError(t, serverCloser())
+	// run mock runner, it should win the elections and keep running
+	go func() {
+		errCh <- state.RunElections(ctx, electionKey, logger)
 
-		// at this point the runner should stop
-		select {
-		case err := <-errCh:
-			require.Error(t, err)
-			require.Contains(t, err.Error(), "etcd session closed")
-		case <-ctx.Done():
-			t.Fatal("runner didn't stop")
-		}
+		defer state.StopElections(electionKey) //nolint:errcheck
 
-		return nil
-	}))
+		mockRunner(ctx, 1, started, nil)
+	}()
+
+	select {
+	case id := <-started:
+		require.Equal(t, 1, id)
+	case <-ctx.Done():
+		t.Fatal("runner didn't start")
+	}
+
+	// abort etcd, that aborts the election campaign
+	assert.NoError(t, state.Close())
+
+	select {
+	case err := <-errCh:
+		require.NoError(t, err)
+	case <-ctx.Done():
+		t.Fatal("runner didn't stop")
+	}
 }
 
 func TestEtcdElections(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 
 	logger := zaptest.NewLogger(t)
 
-	require.NoError(t, omni.GetEmbeddedEtcdClientWithServer(ctx, &config.EtcdParams{
+	state, err := omni.GetEmbeddedEtcdClientWithServer(&config.EtcdParams{
 		Embedded:       true,
 		EmbeddedDBPath: t.TempDir(),
 		Endpoints:      []string{"http://localhost:0"},
-	}, logger, func(ctx context.Context, client *clientv3.Client, _ func() error) error {
-		started := make(chan int)
-		closed := make(chan error)
-		errCh := make(chan error)
-		electionKey := uuid.NewString()
+		RunElections:   true,
+	}, logger)
 
-		// run the first mock runnner, it should win the elections and keep running
-		go func() {
-			errCh <- omni.EtcdElections(ctx, client, electionKey, logger, mockRunner(1, started, closed))
-		}()
+	require.NoError(t, err)
 
-		select {
-		case id := <-started:
-			require.Equal(t, 1, id)
-		case <-ctx.Done():
-			t.Fatal("first runner didn't start")
-		}
+	started := make(chan int, 2)
+	closed := make(chan struct{})
+	errCh := make(chan error, 10)
+	electionKey := uuid.NewString()
 
-		// run the second mock runner, it should not start as the elections are already won
-		go func() {
-			errCh <- omni.EtcdElections(ctx, client, electionKey, logger, mockRunner(2, started, closed))
-		}()
+	// run the first mock runnner, it should win the elections and keep running
+	go func() {
+		errCh <- state.RunElections(ctx, electionKey, logger)
 
-		select {
-		case <-started:
-			t.Fatal("shouldn't start second runner")
-		case <-time.After(time.Second):
-		}
+		defer state.StopElections(electionKey) //nolint:errcheck
 
-		// stop the first runner, the second runner should start
-		select {
-		case closed <- nil:
-		case <-ctx.Done():
-			t.Fatal("first runner didn't stop")
-		}
+		mockRunner(ctx, 1, started, closed)
+	}()
 
-		select {
-		case err := <-errCh:
-			require.NoError(t, err)
-		case <-ctx.Done():
-			t.Fatal("first runner didn't stop")
-		}
+	select {
+	case id := <-started:
+		require.Equal(t, 1, id)
+	case <-ctx.Done():
+		t.Fatal("first runner didn't start")
+	}
 
-		select {
-		case id := <-started:
-			require.Equal(t, 2, id)
-		case <-ctx.Done():
-			t.Fatal("second runner didn't start")
-		}
+	// run the second mock runner, it should not start as the elections are already won
+	go func() {
+		errCh <- state.RunElections(ctx, electionKey, logger)
 
-		// stop the second runner, it should terminate
-		select {
-		case closed <- errors.New("stopped"):
-		case <-ctx.Done():
-			t.Fatal("second runner didn't stop")
-		}
+		defer state.StopElections(electionKey) //nolint:errcheck
 
-		select {
-		case err := <-errCh:
-			require.Error(t, err)
-			require.EqualError(t, err, "stopped")
-		case <-ctx.Done():
-			t.Fatal("second runner didn't stop")
-		}
+		mockRunner(ctx, 2, started, closed)
+	}()
 
-		return nil
-	}))
+	select {
+	case <-started:
+		t.Fatal("shouldn't start second runner")
+	case <-time.After(time.Second):
+	}
+
+	// stop the first runner, the second runner should start
+	select {
+	case closed <- struct{}{}:
+	case <-ctx.Done():
+		t.Fatal("first runner didn't stop")
+	}
+
+	select {
+	case id := <-started:
+		require.Equal(t, 2, id)
+	case <-ctx.Done():
+		t.Fatal("second runner didn't start")
+	}
+
+	// stop the second runner, it should terminate
+	select {
+	case closed <- struct{}{}:
+	case <-ctx.Done():
+		t.Fatal("second runner didn't stop")
+	}
+
+	select {
+	case err := <-errCh:
+		require.NoError(t, err)
+	case <-ctx.Done():
+		t.Fatal("second runner didn't stop")
+	}
 }

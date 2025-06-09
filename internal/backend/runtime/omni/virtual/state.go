@@ -49,7 +49,7 @@ func NewState(state state.State) *State {
 // RunComputed starts a new computed producer on the virtual state
 // which runs until the context is canceled.
 func (v *State) RunComputed(ctx context.Context, t resource.Type, factory ProducerFactory, resolveID ProducerIDTransformer, logger *zap.Logger) {
-	st := NewComputed(t, factory, resolveID, time.Minute, logger)
+	st := NewComputed(t, factory, resolveID, time.Minute, logger, true)
 
 	v.computed[t] = st
 

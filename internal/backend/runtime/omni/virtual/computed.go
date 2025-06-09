@@ -39,11 +39,13 @@ func NoTransform(_ context.Context, ptr resource.Pointer) (resource.Pointer, err
 }
 
 // NewComputed creates new computed state.
-func NewComputed(resourceType string, factory ProducerFactory, resolveID ProducerIDTransformer, cleanupInterval time.Duration, logger *zap.Logger) *Computed {
+func NewComputed(resourceType string, factory ProducerFactory, resolveID ProducerIDTransformer, cleanupInterval time.Duration, logger *zap.Logger, registerMetrics bool) *Computed {
 	state := state.WrapCore(namespaced.NewState(inmem.Build))
 	scheduler := NewDedupScheduler(resourceType, state, factory, cleanupInterval, logger)
 
-	prometheus.DefaultRegisterer.MustRegister(scheduler)
+	if registerMetrics {
+		prometheus.DefaultRegisterer.MustRegister(scheduler)
+	}
 
 	return &Computed{
 		state:          state,

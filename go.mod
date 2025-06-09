@@ -13,7 +13,7 @@ replace (
 require (
 	filippo.io/age v1.2.1
 	github.com/ProtonMail/gopenpgp/v2 v2.8.3
-	github.com/adrg/xdg v0.5.3
+	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/akutz/memconn v0.1.1-0.20211110233653-dae351d188b3
 	github.com/auth0/go-jwt-middleware/v2 v2.3.0
 	github.com/aws/aws-sdk-go-v2 v1.36.3

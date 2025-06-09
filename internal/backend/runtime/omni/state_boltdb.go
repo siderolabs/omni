@@ -6,7 +6,6 @@
 package omni
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"os"
@@ -22,24 +21,16 @@ import (
 	"go.uber.org/zap"
 )
 
-func buildBoltPersistentState(ctx context.Context, path string, logger *zap.Logger, f func(context.Context, namespaced.StateBuilder) error) error {
-	builder, backingStore, err := newBoltStateBuilder(path, nil, false, logger)
-	if err != nil {
-		return err
-	}
-
-	defer backingStore.Close() //nolint:errcheck
-
-	return f(ctx, builder)
-}
-
-func newBoltPersistentState(path string, options *bbolt.Options, compact bool, logger *zap.Logger) (st state.CoreState, backingStore io.Closer, err error) {
+func newBoltPersistentState(path string, options *bbolt.Options, compact bool, logger *zap.Logger) (*PersistentState, error) {
 	builder, backingStore, err := newBoltStateBuilder(path, options, compact, logger)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return namespaced.NewState(builder), backingStore, nil
+	return &PersistentState{
+		State: namespaced.NewState(builder),
+		Close: backingStore.Close,
+	}, nil
 }
 
 func newBoltStateBuilder(path string, options *bbolt.Options, compact bool, logger *zap.Logger) (

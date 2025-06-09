@@ -14,16 +14,13 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"sync"
 	"time"
 
-	"github.com/cosi-project/runtime/pkg/resource"
-	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/runtime/pkg/state/impl/store"
 	"github.com/cosi-project/runtime/pkg/state/impl/store/compression"
 	"github.com/cosi-project/runtime/pkg/state/impl/store/encryption"
 	"github.com/cosi-project/state-etcd/pkg/state/impl/etcd"
+	"github.com/hashicorp/go-multierror"
 	"github.com/siderolabs/gen/xslices"
 	"go.etcd.io/etcd/client/pkg/v3/transport"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -41,40 +38,66 @@ import (
 // compressionThresholdBytes is the minimum marshaled size of the data to be considered for compression.
 const compressionThresholdBytes = 2048
 
-func buildEtcdPersistentState(ctx context.Context, params *config.Params, logger *zap.Logger, f func(context.Context, namespaced.StateBuilder) error) error {
+func newEtcdPersistentState(ctx context.Context, params *config.Params, logger *zap.Logger) (state *PersistentState, err error) {
 	prefix := fmt.Sprintf("/omni/%s", url.PathEscape(params.Account.ID))
 
-	return getEtcdClient(ctx, &params.Storage.Default.Etcd, logger, func(ctx context.Context, etcdClient *clientv3.Client) error {
-		return etcdElections(ctx, etcdClient, prefix, logger, func(ctx context.Context, _ *clientv3.Client) error {
-			cipher, err := makeCipher(params.Account.ID, params.Storage.Default.Etcd, etcdClient, logger) //nolint:contextcheck
-			if err != nil {
-				return err
+	var etcdState EtcdState
+
+	etcdState, err = getEtcdState(&params.Storage.Default.Etcd, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err != nil {
+			logger.Error("closing etcd state after the error")
+
+			if e := etcdState.Close(); e != nil {
+				logger.Error("failed to gracefully close etcd state", zap.Error(e))
 			}
+		}
+	}()
 
-			salt := sha256.Sum256([]byte(params.Account.ID))
+	if params.Storage.Default.Etcd.RunElections || !params.Storage.Default.Etcd.Embedded {
+		err = etcdState.RunElections(ctx, prefix, logger)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		logger.Info("skipped elections",
+			zap.Bool("embedded", params.Storage.Default.Etcd.Embedded),
+			zap.Bool("force_elections", params.Storage.Default.Etcd.RunElections),
+		)
+	}
 
-			etcdState := etcd.NewState(
-				etcdClient,
-				encryption.NewMarshaler(
-					compression.NewMarshaler(
-						store.ProtobufMarshaler{},
-						compression.ZStd(),
-						compressionThresholdBytes,
-					),
-					cipher,
-				),
-				etcd.WithKeyPrefix(prefix),
-				etcd.WithSalt(salt[:]),
-			)
+	var cipher *encryption.Cipher
 
-			stateBuilder := func(resource.Namespace) state.CoreState {
-				// etcdState handles all namespaces in a single instance
-				return etcdState
-			}
+	cipher, err = makeCipher(params.Account.ID, params.Storage.Default.Etcd, etcdState.Client(), logger) //nolint:contextcheck
+	if err != nil {
+		return nil, err
+	}
 
-			return f(ctx, stateBuilder)
-		})
-	})
+	salt := sha256.Sum256([]byte(params.Account.ID))
+
+	coreState := etcd.NewState(
+		etcdState.Client(),
+		encryption.NewMarshaler(
+			compression.NewMarshaler(
+				store.ProtobufMarshaler{},
+				compression.ZStd(),
+				compressionThresholdBytes,
+			),
+			cipher,
+		),
+		etcd.WithKeyPrefix(prefix),
+		etcd.WithSalt(salt[:]),
+	)
+
+	return &PersistentState{
+		State:  coreState,
+		Close:  etcdState.Close,
+		errors: etcdState.err(),
+	}, nil
 }
 
 func makeCipher(name string, etcdParams config.EtcdParams, etcdClient etcd.Client, logger *zap.Logger) (*encryption.Cipher, error) {
@@ -127,26 +150,18 @@ func loadPublicKeys(params config.EtcdParams) ([]keyprovider.PublicKeyData, erro
 	return publicKeys, nil
 }
 
-func getEtcdClient(ctx context.Context, params *config.EtcdParams, logger *zap.Logger, f func(context.Context, *clientv3.Client) error) error {
+func getEtcdState(params *config.EtcdParams, logger *zap.Logger) (EtcdState, error) {
 	logger = logger.With(logging.Component("server"))
 
 	if params.Embedded {
-		return getEmbeddedEtcdClient(ctx, params, logger, f)
+		return getEmbeddedEtcdState(params, logger)
 	}
 
-	return getExternalEtcdClient(ctx, params, logger, f)
+	return getExternalEtcdState(params, logger)
 }
 
-func getEmbeddedEtcdClient(ctx context.Context, params *config.EtcdParams, logger *zap.Logger, f func(context.Context, *clientv3.Client) error) error {
-	return getEmbeddedEtcdClientWithServerCloser(ctx, params, logger, func(ctx context.Context, cli *clientv3.Client, _ func() error) error {
-		return f(ctx, cli)
-	})
-}
-
-func getEmbeddedEtcdClientWithServerCloser(ctx context.Context, params *config.EtcdParams, logger *zap.Logger, f func(ctx context.Context, cli *clientv3.Client, closer func() error) error) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
+// getEmbeddedEtcdState runs the embedded etcd and creates a client for it.
+func getEmbeddedEtcdState(params *config.EtcdParams, logger *zap.Logger) (EtcdState, error) {
 	logger = logger.WithOptions(
 		// never enable debug logs for etcd, they are too chatty
 		zap.IncreaseLevel(zap.InfoLevel),
@@ -168,7 +183,7 @@ func getEmbeddedEtcdClientWithServerCloser(ctx context.Context, params *config.E
 
 	peerURL, err := url.Parse("http://localhost:0")
 	if err != nil {
-		return fmt.Errorf("failed to parse URL: %w", err)
+		return nil, fmt.Errorf("failed to parse URL: %w", err)
 	}
 
 	cfg.ListenPeerUrls = []url.URL{*peerURL}
@@ -178,7 +193,7 @@ func getEmbeddedEtcdClientWithServerCloser(ctx context.Context, params *config.E
 	for _, endpoint := range params.Endpoints {
 		clientURL, parseErr := url.Parse(endpoint)
 		if parseErr != nil {
-			return fmt.Errorf("failed to parse URL: %w", parseErr)
+			return nil, fmt.Errorf("failed to parse URL: %w", parseErr)
 		}
 
 		clientURLs = append(clientURLs, *clientURL)
@@ -188,15 +203,17 @@ func getEmbeddedEtcdClientWithServerCloser(ctx context.Context, params *config.E
 
 	embeddedServer, err := embed.StartEtcd(cfg)
 	if err != nil {
-		return fmt.Errorf("failed to start embedded etcd: %w", err)
+		return nil, fmt.Errorf("failed to start embedded etcd: %w", err)
 	}
+
+	errs := make(chan error, 1)
 
 	panichandler.Go(func() {
 		for etcdErr := range embeddedServer.Err() {
 			if etcdErr != nil {
-				logger.Error("embedded etcd error", zap.Error(etcdErr))
+				errs <- etcdErr
 
-				cancel()
+				return
 			}
 		}
 	}, logger)
@@ -207,10 +224,14 @@ func getEmbeddedEtcdClientWithServerCloser(ctx context.Context, params *config.E
 
 	select {
 	case <-embeddedServer.Server.ReadyNotify():
+	case <-embeddedServer.Err():
+		embeddedServer.Close()
+
+		return nil, errors.New("etcd failed to start")
 	case <-time.After(15 * time.Second):
 		embeddedServer.Close()
 
-		return errors.New("etcd failed to start")
+		return nil, errors.New("etcd failed to start")
 	}
 
 	cli, err := clientv3.New(clientv3.Config{
@@ -226,37 +247,25 @@ func getEmbeddedEtcdClientWithServerCloser(ctx context.Context, params *config.E
 		).With(logging.Component("etcd_client")),
 	})
 	if err != nil {
-		return err
-	}
-
-	closer := sync.OnceValue(func() error {
-		if err = cli.Close(); err != nil && !errors.Is(err, context.Canceled) {
-			return fmt.Errorf("error closing client: %w", err)
-		}
-
 		embeddedServer.Close()
 
-		select {
-		case <-embeddedServer.Server.StopNotify():
-		case <-time.After(15 * time.Second):
-			return errors.New("timeout stopping etcd server")
-		}
+		return nil, err
+	}
 
-		return nil
-	})
-
-	defer func() {
-		if err = closer(); err != nil {
-			logger.Error("error stopping embedded etcd", zap.Error(err))
-		}
-	}()
-
-	return f(ctx, cli, closer)
+	return &embeddedEtcd{
+		etcdState: etcdState{
+			client:    cli,
+			elections: map[string]*etcdElections{},
+			errors:    errs,
+		},
+		embeddedServer: embeddedServer,
+	}, nil
 }
 
-func getExternalEtcdClient(ctx context.Context, params *config.EtcdParams, logger *zap.Logger, f func(context.Context, *clientv3.Client) error) error {
+// getExternalEtcdState creates a client for the external etcd.
+func getExternalEtcdState(params *config.EtcdParams, logger *zap.Logger) (EtcdState, error) {
 	if len(params.Endpoints) == 0 {
-		return errors.New("no etcd endpoints provided")
+		return nil, errors.New("no etcd endpoints provided")
 	}
 
 	logger.Info("starting etcd client",
@@ -274,7 +283,7 @@ func getExternalEtcdClient(ctx context.Context, params *config.EtcdParams, logge
 
 	tlsConfig, err := tlsInfo.ClientConfig()
 	if err != nil {
-		return fmt.Errorf("error building etcd client TLS config: %w", err)
+		return nil, fmt.Errorf("error building etcd client TLS config: %w", err)
 	}
 
 	cli, err := clientv3.New(clientv3.Config{
@@ -293,22 +302,113 @@ func getExternalEtcdClient(ctx context.Context, params *config.EtcdParams, logge
 		).With(logging.Component("etcd_client")),
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	closer := func() error {
-		if err = cli.Close(); err != nil && !errors.Is(err, context.Canceled) {
-			return fmt.Errorf("error closing client: %w", err)
-		}
+	return &externalEtcd{
+		etcdState: etcdState{
+			elections: map[string]*etcdElections{},
+			client:    cli,
+		},
+	}, nil
+}
 
+// EtcdState starts etcd backed COSI state.
+type EtcdState interface {
+	Client() *clientv3.Client
+	Close() error
+	RunElections(context.Context, string, *zap.Logger) error
+	StopElections(string) error
+
+	err() <-chan error
+}
+
+type etcdState struct {
+	client    *clientv3.Client
+	elections map[string]*etcdElections
+	errors    chan error
+}
+
+// RunElections allows using global concurrency locks in Omni.
+func (e *etcdState) RunElections(ctx context.Context, prefix string, logger *zap.Logger) error {
+	e.elections[prefix] = newEtcdElections(logger)
+
+	return e.elections[prefix].run(ctx, e.client, prefix, e.errors)
+}
+
+// StopElections unlocks the used prefix.
+func (e *etcdState) StopElections(prefix string) error {
+	ee, ok := e.elections[prefix]
+	if !ok {
 		return nil
 	}
 
-	defer func() {
-		if err = closer(); err != nil {
-			logger.Error("error stopping embedded etcd", zap.Error(err))
-		}
-	}()
+	if err := ee.stop(); err != nil {
+		return err
+	}
 
-	return f(ctx, cli)
+	delete(e.elections, prefix)
+
+	return nil
+}
+
+func (e *etcdState) stopAllElections() error {
+	for _, ee := range e.elections {
+		if err := ee.stop(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (e *etcdState) err() <-chan error {
+	return e.errors
+}
+
+type embeddedEtcd struct {
+	etcdState
+	embeddedServer *embed.Etcd
+}
+
+func (e *embeddedEtcd) Client() *clientv3.Client {
+	return e.client
+}
+
+func (e *embeddedEtcd) Close() error {
+	var errs error
+
+	if err := e.stopAllElections(); err != nil && !errors.Is(err, context.Canceled) {
+		errs = multierror.Append(errs, err)
+	}
+
+	if err := e.client.Close(); err != nil && !errors.Is(err, context.Canceled) {
+		errs = multierror.Append(errs, err)
+	}
+
+	e.embeddedServer.Close()
+
+	select {
+	case <-e.embeddedServer.Server.StopNotify():
+	case <-time.After(15 * time.Second):
+		errs = multierror.Append(errs, errors.New("timeout stopping etcd server"))
+	}
+
+	return errs
+}
+
+type externalEtcd struct {
+	etcdState
+}
+
+func (e *externalEtcd) Client() *clientv3.Client {
+	return e.client
+}
+
+func (e *externalEtcd) Close() error {
+	if err := e.stopAllElections(); err != nil {
+		return err
+	}
+
+	return e.client.Close()
 }

@@ -28,7 +28,7 @@ type MachineRequestLinkSuite struct {
 func (suite *MachineRequestLinkSuite) TestReconcile() {
 	require := suite.Require()
 
-	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*10)
 	defer cancel()
 
 	suite.startRuntime()

@@ -56,7 +56,6 @@ func assertClusterAndAPIReady(t *testing.T, clusterName string, options *TestOpt
 		clusterName,
 		optionsStruct.talosVersion,
 		optionsStruct.kubernetesVersion,
-		options.talosAPIKeyPrepare,
 	))
 }
 
@@ -96,7 +95,7 @@ Wait for all expected machines to join and be in maintenance mode.`)
 
 		t.Run(
 			"MachinesShouldBeReachableInMaintenanceMode",
-			AssertTalosMaintenanceAPIAccessViaOmni(ctx, options.omniClient, options.talosAPIKeyPrepare),
+			AssertTalosMaintenanceAPIAccessViaOmni(ctx, options.omniClient),
 		)
 
 		t.Run(
@@ -182,7 +181,6 @@ Test the auditing of the Kubernetes nodes, i.e. when a node is gone from the Omn
 				clusterName,
 				options.MachineOptions.TalosVersion,
 				options.MachineOptions.KubernetesVersion,
-				options.talosAPIKeyPrepare,
 			),
 		)
 
@@ -227,7 +225,6 @@ In the tests, we wipe and reboot the VMs to bring them back as available for the
 				options.omniClient,
 				clusterName,
 				options.MachineOptions.TalosVersion,
-				options.talosAPIKeyPrepare,
 			))
 		}
 
@@ -330,7 +327,6 @@ Don't do any changes to the cluster.`)
 		runTests(t, AssertClusterCreateAndReady(
 			t.Context(),
 			options.omniClient,
-			options.talosAPIKeyPrepare,
 			"default",
 			clusterOptions,
 			options.OutputDir,
@@ -362,7 +358,6 @@ Don't do any changes to the cluster.`)
 		runTests(t, AssertClusterCreateAndReady(
 			t.Context(),
 			options.omniClient,
-			options.talosAPIKeyPrepare,
 			"encrypted",
 			clusterOptions,
 			options.OutputDir,
@@ -391,7 +386,6 @@ Don't do any changes to the cluster.`)
 		runTests(t, AssertClusterCreateAndReady(
 			t.Context(),
 			options.omniClient,
-			options.talosAPIKeyPrepare,
 			"singlenode",
 			clusterOptions,
 			options.OutputDir,
@@ -815,7 +809,7 @@ Tests applying various config patching, including "broken" config patches which 
 
 		t.Run(
 			"LargeImmediateConfigPatchShouldBeAppliedAndRemoved",
-			AssertLargeImmediateConfigApplied(t.Context(), options.omniClient, clusterName, options.talosAPIKeyPrepare),
+			AssertLargeImmediateConfigApplied(t.Context(), options.omniClient, clusterName),
 		)
 
 		assertClusterAndAPIReady(t, clusterName, options)
@@ -834,14 +828,14 @@ Tests applying various config patching, including "broken" config patches which 
 
 		t.Run(
 			"ConfigPatchWithRebootShouldBeApplied",
-			AssertConfigPatchWithReboot(t.Context(), options.omniClient, clusterName, options.talosAPIKeyPrepare),
+			AssertConfigPatchWithReboot(t.Context(), options.omniClient, clusterName),
 		)
 
 		assertClusterAndAPIReady(t, clusterName, options)
 
 		t.Run(
 			"InvalidConfigPatchShouldNotBeApplied",
-			AssertConfigPatchWithInvalidConfig(t.Context(), options.omniClient, clusterName, options.talosAPIKeyPrepare),
+			AssertConfigPatchWithInvalidConfig(t.Context(), options.omniClient, clusterName),
 		)
 
 		assertClusterAndAPIReady(t, clusterName, options)
@@ -1069,7 +1063,7 @@ Finally, a completely new cluster is created using the same backup to test the "
 
 		runTests(
 			t,
-			AssertBlockCreateClusterFromEtcdBackup(t.Context(), options.omniClient, options.talosAPIKeyPrepare, options.Options,
+			AssertBlockCreateClusterFromEtcdBackup(t.Context(), options.omniClient, options.Options,
 				clusterName,
 				secondClusterName,
 				"default",
@@ -1089,7 +1083,7 @@ Finally, a completely new cluster is created using the same backup to test the "
 
 		runTests(
 			t,
-			AssertBlockRestoreEtcdFromLatestBackup(t.Context(), options.omniClient, options.talosAPIKeyPrepare, options.Options,
+			AssertBlockRestoreEtcdFromLatestBackup(t.Context(), options.omniClient, options.Options,
 				3,
 				clusterName,
 				"default",
@@ -1124,7 +1118,6 @@ Create a cluster out of the same machine on version2, Omni should upgrade the ma
 				options.AnotherKubernetesVersion,
 				options.MachineOptions.TalosVersion,
 				options.AnotherTalosVersion,
-				options.talosAPIKeyPrepare,
 			),
 		)
 	}
@@ -1281,9 +1274,9 @@ Test workload service proxying feature`)
 		}))
 
 		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), omniClient, cluster1, options.MachineOptions.TalosVersion,
-			options.MachineOptions.KubernetesVersion, options.talosAPIKeyPrepare))
+			options.MachineOptions.KubernetesVersion))
 		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), omniClient, cluster2, options.MachineOptions.TalosVersion,
-			options.MachineOptions.KubernetesVersion, options.talosAPIKeyPrepare))
+			options.MachineOptions.KubernetesVersion))
 
 		parentCtx := t.Context()
 

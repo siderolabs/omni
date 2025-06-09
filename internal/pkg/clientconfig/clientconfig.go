@@ -12,33 +12,32 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
 	"runtime"
 	"slices"
-	"sync"
 	"time"
 
-	"github.com/adrg/xdg"
+	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/hashicorp/go-multierror"
 	"github.com/siderolabs/gen/containers"
 	authpb "github.com/siderolabs/go-api-signature/api/auth"
 	authcli "github.com/siderolabs/go-api-signature/pkg/client/auth"
-	"github.com/siderolabs/go-api-signature/pkg/client/interceptor"
 	"github.com/siderolabs/go-api-signature/pkg/message"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
 	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
-	"google.golang.org/grpc"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/pkg/access"
 	"github.com/siderolabs/omni/client/pkg/client"
-	"github.com/siderolabs/omni/client/pkg/constants"
+	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth"
+	"github.com/siderolabs/omni/internal/pkg/auth/role"
+	omnisa "github.com/siderolabs/omni/internal/pkg/auth/serviceaccount"
 )
 
 const (
-	defaultEmail = "test-user@siderolabs.com"
+	defaultServiceAccount = "integration" + access.ServiceAccountNameSuffix
+	defaultEmail          = "test-user@siderolabs.com"
 )
 
 type clientCacheKey struct {
@@ -54,14 +53,16 @@ type clientOrError struct {
 
 // ClientConfig is a test client.
 type ClientConfig struct {
-	endpoint    string
-	clientCache containers.ConcurrentMap[clientCacheKey, clientOrError]
+	endpoint          string
+	serviceAccountKey string
+	clientCache       containers.ConcurrentMap[clientCacheKey, clientOrError]
 }
 
 // New creates a new test client config.
-func New(endpoint string) *ClientConfig {
+func New(endpoint, serviceAccountKey string) *ClientConfig {
 	return &ClientConfig{
-		endpoint: endpoint,
+		endpoint:          endpoint,
+		serviceAccountKey: serviceAccountKey,
 	}
 }
 
@@ -70,7 +71,7 @@ func New(endpoint string) *ClientConfig {
 // Clients are cached by their configuration, so if a client with the
 // given configuration was created before, the cached one will be returned.
 func (t *ClientConfig) GetClient(ctx context.Context, publicKeyOpts ...authcli.RegisterPGPPublicKeyOption) (*client.Client, error) {
-	return t.GetClientForEmail(ctx, defaultEmail, publicKeyOpts...)
+	return t.GetClientForEmail(ctx, defaultServiceAccount, publicKeyOpts...)
 }
 
 // GetClientForEmail returns a test client for the given email.
@@ -82,23 +83,7 @@ func (t *ClientConfig) GetClientForEmail(ctx context.Context, email string, publ
 
 	// The client is created by the cache callback, and will be closed by the cache on [ClientConfig.Close].
 	cliOrErr, _ := t.clientCache.GetOrCall(cacheKey, func() clientOrError {
-		if !constants.IsDebugBuild {
-			cli, err := createServiceAccountClient(ctx, t.endpoint, cacheKey)
-
-			return clientOrError{
-				client: cli,
-				err:    err,
-			}
-		}
-
-		signatureInterceptor := buildSignatureInterceptor(email, publicKeyOpts...)
-
-		cli, err := client.New(t.endpoint,
-			client.WithGrpcOpts(
-				grpc.WithUnaryInterceptor(signatureInterceptor.Unary()),
-				grpc.WithStreamInterceptor(signatureInterceptor.Stream()),
-			),
-		)
+		cli, err := createServiceAccountClient(ctx, t.endpoint, t.serviceAccountKey, cacheKey)
 
 		return clientOrError{
 			client: cli,
@@ -187,81 +172,45 @@ func RegisterKeyGetIDSignatureBase64(ctx context.Context, client *client.Client)
 	return id, idSignatureBase66, nil
 }
 
-var talosAPIKeyMutex sync.Mutex
+// CreateServiceAccount using the direct access to the Omni state.
+func CreateServiceAccount(ctx context.Context, name string, st state.State) (string, error) {
+	// generate a new PGP key with long lifetime
+	comment := fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
 
-// TalosAPIKeyPrepare prepares a public key to be used with tests interacting via Talos API client using the default test email.
-func TalosAPIKeyPrepare(ctx context.Context, client *client.Client, contextName string) error {
-	return TalosAPIKeyPrepareWithEmail(ctx, client, contextName, defaultEmail)
-}
+	serviceAccountEmail := name + access.ServiceAccountNameSuffix
 
-// TalosAPIKeyPrepareWithEmail prepares a public key to be used with tests interacting via Talos API client using the given email.
-func TalosAPIKeyPrepareWithEmail(ctx context.Context, client *client.Client, contextName, email string) error {
-	talosAPIKeyMutex.Lock()
-	defer talosAPIKeyMutex.Unlock()
-
-	path, err := xdg.DataFile(filepath.Join("talos", "keys", fmt.Sprintf("%s-%s.pgp", contextName, email)))
+	key, err := pgp.GenerateKey(name, comment, serviceAccountEmail, auth.ServiceAccountMaxAllowedLifetime)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	stat, err := os.Stat(path)
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
-
-	if stat != nil && time.Since(stat.ModTime()) < 2*time.Hour {
-		return nil
-	}
-
-	newKey, err := pgp.GenerateKey("", "", email, 4*time.Hour)
+	armoredPublicKey, err := key.ArmorPublic()
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	err = registerKey(ctx, client.Auth(), newKey, email)
-	if err != nil {
-		return err
+	identity, err := safe.ReaderGetByID[*authres.Identity](ctx, st, serviceAccountEmail)
+	if err != nil && !state.IsNotFoundError(err) {
+		return "", err
 	}
 
-	keyArmored, err := newKey.Armor()
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(path, []byte(keyArmored), 0o600)
-}
-
-func buildSignatureInterceptor(email string, publicKeyOpts ...authcli.RegisterPGPPublicKeyOption) *interceptor.Interceptor {
-	userKeyFunc := func(ctx context.Context, cc *grpc.ClientConn, _ *interceptor.Options) (message.Signer, error) {
-		newKey, err := pgp.GenerateKey("", "", email, 4*time.Hour)
+	if identity != nil {
+		err = omnisa.Destroy(ctx, st, name)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
-
-		authCli := authcli.NewClient(cc)
-
-		err = registerKey(ctx, authCli, newKey, email, publicKeyOpts...)
-		if err != nil {
-			return nil, err
-		}
-
-		return newKey, nil
 	}
 
-	return interceptor.New(interceptor.Options{
-		GetUserKeyFunc:   userKeyFunc,
-		RenewUserKeyFunc: userKeyFunc,
-		Identity:         email,
-	})
+	_, err = omnisa.Create(ctx, st, name, string(role.Admin), false, []byte(armoredPublicKey))
+	if err != nil {
+		return "", err
+	}
+
+	return serviceaccount.Encode(name, key)
 }
 
-func createServiceAccountClient(ctx context.Context, endpoint string, cacheKey clientCacheKey) (*client.Client, error) {
-	serviceAccount := os.Getenv("OMNI_SERVICE_ACCOUNT_KEY")
-	if serviceAccount == "" {
-		return nil, fmt.Errorf("OMNI_SERVICE_ACCOUNT_KEY environment variable is not set")
-	}
-
-	rootClient, err := client.New(endpoint, client.WithServiceAccount(serviceAccount))
+func createServiceAccountClient(ctx context.Context, endpoint, serviceAccountKey string, cacheKey clientCacheKey) (*client.Client, error) {
+	rootClient, err := client.New(endpoint, client.WithServiceAccount(serviceAccountKey))
 	if err != nil {
 		return nil, err
 	}
@@ -273,11 +222,21 @@ func createServiceAccountClient(ctx context.Context, endpoint string, cacheKey c
 	// generate a new PGP key with long lifetime
 	comment := fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
 
-	serviceAccountEmail := name + access.ServiceAccountNameSuffix
+	suffix := access.ServiceAccountNameSuffix
+
+	if cacheKey.role == string(role.InfraProvider) {
+		suffix = access.InfraProviderServiceAccountNameSuffix
+	}
+
+	serviceAccountEmail := name + suffix
 
 	key, err := pgp.GenerateKey(name, comment, serviceAccountEmail, auth.ServiceAccountMaxAllowedLifetime)
 	if err != nil {
 		return nil, err
+	}
+
+	if cacheKey.role == string(role.InfraProvider) {
+		name = access.InfraProviderServiceAccountPrefix + name
 	}
 
 	armoredPublicKey, err := key.ArmorPublic()

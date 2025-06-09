@@ -47,7 +47,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/workloadproxy"
+	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
 	"github.com/siderolabs/omni/internal/integration/kubernetes"
 	"github.com/siderolabs/omni/internal/pkg/clientconfig"
 )

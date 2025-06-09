@@ -67,16 +67,22 @@ fi
 
 if [[ "${CI:-false}" == "true" ]]; then
   REGISTRY_MIRROR_FLAGS=()
+  REGISTRY_MIRROR_CONFIG="
+registries:
+  mirrors:
+"
 
   for registry in docker.io k8s.gcr.io quay.io gcr.io ghcr.io registry.k8s.io factory.talos.dev; do
     service="registry-${registry//./-}.ci.svc"
     addr=$(python3 -c "import socket; print(socket.gethostbyname('${service}'))")
 
     REGISTRY_MIRROR_FLAGS+=("--registry-mirror=${registry}=http://${addr}:5000")
+    REGISTRY_MIRROR_CONFIG+="    - ${registry}=http://${addr}:5000\n"e
   done
 else
   # use the value from the environment, if present
   REGISTRY_MIRROR_FLAGS=("${REGISTRY_MIRROR_FLAGS:-}")
+  REGISTRY_MIRROR_CONFIG="("${REGISTRY_MIRROR_CONFIG:-}")"
 fi
 
 function cleanup() {
@@ -125,32 +131,81 @@ export BASE_URL=https://my-instance.localhost:8099/
 export VIDEO_DIR=""
 export AUTH0_CLIENT_ID="${AUTH0_CLIENT_ID}"
 export AUTH0_DOMAIN="${AUTH0_DOMAIN}"
+export OMNI_CONFIG="${TEST_OUTPUTS_DIR}/config.yaml"
 
 # Create omnictl downloads directory (required by the server) and copy the omnictl binaries in it.
 mkdir -p omnictl
 cp -p ${ARTIFACTS}/omnictl-* omnictl/
 
-SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
-  nice -n 10 ${ARTIFACTS}/omni-linux-amd64 \
-  --siderolink-wireguard-advertised-addr $LOCAL_IP:50180 \
-  --siderolink-api-advertised-url "grpc://$LOCAL_IP:8090" \
-  --auth-auth0-enabled true \
-  --advertised-api-url "${BASE_URL}" \
-  --auth-auth0-client-id "${AUTH0_CLIENT_ID}" \
-  --auth-auth0-domain "${AUTH0_DOMAIN}" \
-  --initial-users "${AUTH_USERNAME}" \
-  --private-key-source "vault://secret/omni-private-key" \
-  --public-key-files "internal/backend/runtime/omni/testdata/pgp/new_key.public" \
-  --bind-addr 0.0.0.0:8099 \
-  --key hack/certs/localhost-key.pem \
-  --cert hack/certs/localhost.pem \
-  --etcd-embedded-unsafe-fsync=true \
-  --etcd-backup-s3 \
-  --join-tokens-mode strict \
-  --audit-log-dir /tmp/omni-data/audit-log \
-  --enable-talos-pre-release-versions="${ENABLE_TALOS_PRERELEASE_VERSIONS}" \
-  "${REGISTRY_MIRROR_FLAGS[@]}" \
-  &
+echo "---
+services:
+  api:
+    endpoint: 0.0.0.0:8099
+    advertisedURL: ${BASE_URL}
+    certFile: hack/certs/localhost.pem
+    keyFile: hack/certs/localhost-key.pem
+  metrics:
+    endpoint: 0.0.0.0:2122
+  kubernetesProxy:
+    endpoint: localhost:8095
+  siderolink:
+    wireGuard:
+      endpoint: ${LOCAL_IP}:50180
+      advertisedEndpoint: ${LOCAL_IP}:50180
+    joinTokensMode: strict
+  machineAPI:
+    endpoint: ${LOCAL_IP}:8090
+    advertisedURL: grpc://${LOCAL_IP}:8090
+  workloadProxy:
+    enabled: true
+    subdomain: proxy-us
+auth:
+  auth0:
+    enabled: true
+    clientID: ${AUTH0_CLIENT_ID}
+    domain: ${AUTH0_DOMAIN}
+    initialUsers:
+      - ${AUTH_USERNAME}
+etcdBackup:
+  s3Enabled: true
+${REGISTRY_MIRROR_CONFIG}
+
+storage:
+  vault:
+    url: http://127.0.0.1:8200
+    token: dev-o-token
+  secondary:
+    path: ${ARTIFACTS}/secondary-storage/bolt.db
+  default:
+    kind: etcd
+    etcd:
+      endpoints:
+        - http://localhost:2379
+      dialKeepAliveTime: 30s
+      dialKeepAliveTimeout: 5s
+      caFile: etcd/ca.crt
+      certFile: etcd/client.crt
+      keyFile: etcd/client.key
+      embedded: true
+      privateKeySource: \"vault://secret/omni-private-key\"
+      publicKeyFiles:
+        - internal/backend/runtime/omni/testdata/pgp/new_key.public
+      embeddedUnsafeFsync: true
+      embeddedDBPath: ${ARTIFACTS}/etcd/
+logs:
+  machine:
+    storage:
+      enabled: true
+      path: /tmp/omni-data/machine-log
+      flushPeriod: 10m
+      flushJitter: 0.1
+  audit:
+    path: ${TEST_OUTPUTS_DIR}/audit-log
+features:
+  enableTalosPreReleaseVersions: ${ENABLE_TALOS_PRERELEASE_VERSIONS}
+  enableConfigDataCompression: true
+  enableBreakGlassConfigs: true
+  disableControllerRuntimeCache: false" > ${OMNI_CONFIG}
 
 if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
   PROMETHEUS_CONTAINER=$(docker run --network host -p "9090:9090" -v "$(pwd)/hack/compose/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml" -it --rm -d prom/prometheus)
@@ -163,15 +218,19 @@ if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
     --create-service-account \
     --omni-api-endpoint="https://$LOCAL_IP:8099"
 
+  SIDEROLINK_DEV_JOIN_TOKEN=${JOIN_TOKEN} \
   SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
     ${ARTIFACTS}/integration-test-linux-amd64 \
-    --omni.endpoint https://my-instance.localhost:8099 \
     --omni.talos-version=${TALOS_VERSION} \
     --omni.omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
     --omni.expected-machines=30 \
     --omni.provision-config-file=hack/test/provisionconfig.yaml \
     --omni.output-dir="${TEST_OUTPUTS_DIR}" \
     --omni.run-stats-check \
+    --omni.embedded \
+    --omni.config-path ${OMNI_CONFIG} \
+    --omni.log-output ${TEST_OUTPUTS_DIR}/omni-emulator.log \
+    --test.coverprofile=${ARTIFACTS}/coverage-emulator.txt \
     --test.timeout 10m \
     --test.parallel 10 \
     --test.failfast \
@@ -269,21 +328,51 @@ if [[ "${ENABLE_SECUREBOOT}" == "true" ]]; then
     --disk-encryption-key-types=tpm
 fi
 
-sleep 5
-
 # Run the integration test.
 
+SIDEROLINK_DEV_JOIN_TOKEN=${JOIN_TOKEN} \
 SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
   ${ARTIFACTS}/integration-test-linux-amd64 \
-  --omni.endpoint https://my-instance.localhost:8099 \
   --omni.talos-version=${TALOS_VERSION} \
   --omni.omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
   --omni.expected-machines=8 `# equal to the masters+workers above` \
+  --omni.embedded \
+  --omni.config-path ${OMNI_CONFIG} \
+  --omni.log-output=${TEST_OUTPUTS_DIR}/omni-integration.log \
   --test.failfast \
+  --test.coverprofile=${ARTIFACTS}/coverage-integration.txt \
   --test.v \
   ${INTEGRATION_TEST_ARGS:-}
 
 if [ "${INTEGRATION_RUN_E2E_TEST:-true}" == "true" ]; then
+  # write partial omni config
+  echo "---
+  services:
+    api:
+      endpoint: 0.0.0.0:8099
+      advertisedURL: ${BASE_URL}
+      certFile: hack/certs/localhost.pem
+      keyFile: hack/certs/localhost-key.pem" > ${TEST_OUTPUTS_DIR}/e2e-config.yaml
+
+
+  SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
+    nice -n 10 ${ARTIFACTS}/omni-linux-amd64 --config-path ${TEST_OUTPUTS_DIR}/e2e-config.yaml \
+    --siderolink-wireguard-advertised-addr $LOCAL_IP:50180 \
+    --siderolink-api-advertised-url "grpc://$LOCAL_IP:8090" \
+    --auth-auth0-enabled true \
+    --auth-auth0-client-id "${AUTH0_CLIENT_ID}" \
+    --auth-auth0-domain "${AUTH0_DOMAIN}" \
+    --initial-users "${AUTH_USERNAME}" \
+    --private-key-source "vault://secret/omni-private-key" \
+    --public-key-files "internal/backend/runtime/omni/testdata/pgp/new_key.public" \
+    --etcd-embedded-unsafe-fsync=true \
+    --etcd-backup-s3 \
+    --join-tokens-mode strict \
+    --audit-log-dir ${TEST_OUTPUTS_DIR}/audit-log \
+    --config-data-compression-enabled \
+    --enable-talos-pre-release-versions="${ENABLE_TALOS_PRERELEASE_VERSIONS}" \
+    "${REGISTRY_MIRROR_FLAGS[@]}"&
+
   # Run the e2e test.
   # the e2e tests are in a submodule and need to be executed in a container with playwright dependencies
   cd internal/e2e-tests/

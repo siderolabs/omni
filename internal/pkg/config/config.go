@@ -151,7 +151,7 @@ func Default() *Params {
 			Secondary: BoltDB{
 				Path: "_out/secondary-storage/bolt.db",
 			},
-			Default: StorageDefault{
+			Default: &StorageDefault{
 				Kind: "etcd",
 				Boltdb: BoltDB{
 					Path: "_out/omni.db",

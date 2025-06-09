@@ -48,7 +48,7 @@ func TestMergeConfig(t *testing.T) {
 				},
 			},
 			Storage: config.Storage{
-				Default: config.StorageDefault{
+				Default: &config.StorageDefault{
 					Etcd: config.EtcdParams{
 						PrivateKeySource: "vault",
 					},

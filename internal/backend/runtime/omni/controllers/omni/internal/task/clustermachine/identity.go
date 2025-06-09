@@ -217,7 +217,7 @@ func (spec IdentityCollectorTaskSpec) RunTask(ctx context.Context, logger *zap.L
 					clusterMachineIdentity.TypedSpec().Value.EtcdMemberId = membID
 				}
 
-				channel.SendWithContext(ctx, notify, clusterMachineIdentity)
+				channel.SendWithContext(ctx, notify, clusterMachineIdentity.DeepCopy().(*omni.ClusterMachineIdentity)) //nolint:forcetypeassert,errcheck
 			}
 		}
 	}

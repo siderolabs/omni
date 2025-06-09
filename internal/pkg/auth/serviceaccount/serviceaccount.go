@@ -10,8 +10,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/google/uuid"
+	"github.com/hashicorp/go-multierror"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -53,9 +56,13 @@ func Create(ctx context.Context, st state.State, name, userRole string, useUserR
 
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	_, err := st.Get(ctx, authres.NewIdentity(resources.DefaultNamespace, id).Metadata())
+	ptr := authres.NewIdentity(resources.DefaultNamespace, id).Metadata()
+
+	_, err := st.Get(ctx, ptr)
 	if err == nil {
-		return "", fmt.Errorf("service account %q already exists", id)
+		return "", &eConflict{
+			res: ptr,
+		}
 	}
 
 	if !state.IsNotFoundError(err) { // the identity must not exist
@@ -124,4 +131,50 @@ func Create(ctx context.Context, st state.State, name, userRole string, useUserR
 	}
 
 	return key.ID, nil
+}
+
+// Destroy service account.
+func Destroy(ctx context.Context, st state.State, name string) error {
+	sa := access.ParseServiceAccountFromName(name)
+	id := sa.FullID()
+
+	identity, err := safe.StateGet[*authres.Identity](ctx, st, authres.NewIdentity(resources.DefaultNamespace, id).Metadata())
+	if err != nil {
+		return err
+	}
+
+	_, isServiceAccount := identity.Metadata().Labels().Get(authres.LabelIdentityTypeServiceAccount)
+	if !isServiceAccount {
+		return &eNotFound{}
+	}
+
+	pubKeys, err := st.List(
+		ctx,
+		authres.NewPublicKey(resources.DefaultNamespace, "").Metadata(),
+		state.WithLabelQuery(resource.LabelEqual(authres.LabelIdentityUserID, identity.TypedSpec().Value.UserId)),
+	)
+	if err != nil {
+		return err
+	}
+
+	var destroyErr error
+
+	for _, pubKey := range pubKeys.Items {
+		err = st.TeardownAndDestroy(ctx, pubKey.Metadata())
+		if err != nil && !state.IsNotFoundError(err) {
+			destroyErr = multierror.Append(destroyErr, err)
+		}
+	}
+
+	err = st.TeardownAndDestroy(ctx, identity.Metadata())
+	if err != nil && !state.IsNotFoundError(err) {
+		destroyErr = multierror.Append(destroyErr, err)
+	}
+
+	err = st.TeardownAndDestroy(ctx, authres.NewUser(resources.DefaultNamespace, identity.TypedSpec().Value.UserId).Metadata())
+	if err != nil && !state.IsNotFoundError(err) {
+		destroyErr = multierror.Append(destroyErr, err)
+	}
+
+	return destroyErr
 }

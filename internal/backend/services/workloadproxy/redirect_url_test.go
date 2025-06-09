@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/siderolabs/omni/internal/backend/workloadproxy"
+	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
 )
 
 func TestRedirectURL(t *testing.T) {

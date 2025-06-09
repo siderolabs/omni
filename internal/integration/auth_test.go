@@ -44,6 +44,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/access"
 	pkgaccess "github.com/siderolabs/omni/client/pkg/access"
 	"github.com/siderolabs/omni/client/pkg/client"
 	managementcli "github.com/siderolabs/omni/client/pkg/client/management"
@@ -1218,21 +1219,15 @@ func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client, cli
 
 		testID := "acl-test-" + uuid.NewString()
 
-		user := authres.NewUser(resources.DefaultNamespace, testID)
+		saName := "service-account-" + testID
 
-		user.TypedSpec().Value.Role = string(role.Reader)
+		key := createServiceAccount(ctx, t, rootCli, saName, role.Reader)
 
-		require.NoError(t, rootState.Create(ctx, user))
+		identity := saName + access.ServiceAccountNameSuffix
 
-		t.Cleanup(func() { destroy(ctx, t, rootCli, user.Metadata()) })
-
-		identity := authres.NewIdentity(resources.DefaultNamespace, fmt.Sprintf("user-%s@siderolabs.com", testID))
-
-		identity.TypedSpec().Value.UserId = user.Metadata().ID()
-
-		require.NoError(t, rootState.Create(ctx, identity))
-
-		t.Cleanup(func() { destroy(ctx, t, rootCli, identity.Metadata()) })
+		t.Cleanup(func() {
+			require.NoError(t, rootCli.Management().DestroyServiceAccount(ctx, saName))
+		})
 
 		accessPolicy := authres.NewAccessPolicy()
 
@@ -1243,7 +1238,7 @@ func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client, cli
 
 		accessPolicy.TypedSpec().Value.Rules = []*specs.AccessPolicyRule{
 			{
-				Users:    []string{identity.Metadata().ID()},
+				Users:    []string{identity},
 				Clusters: []string{clusterAuthorizedID},
 				Role:     string(role.Operator),
 			},
@@ -1254,7 +1249,7 @@ func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client, cli
 
 		t.Cleanup(func() { destroy(ctx, t, rootCli, accessPolicy.Metadata()) })
 
-		userCli, err := clientConfig.GetClientForEmail(ctx, identity.Metadata().ID())
+		userCli, err := client.New(rootCli.Endpoint(), client.WithServiceAccount(key))
 		require.NoError(t, err)
 
 		t.Cleanup(func() { userCli.Close() }) //nolint:errcheck

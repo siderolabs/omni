@@ -39,75 +39,163 @@ import (
 	"github.com/siderolabs/omni/internal/version"
 )
 
-// NewState creates a production Omni state.
-func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, metricsRegistry prometheus.Registerer, f func(context.Context, state.State, *virtual.State) error) error {
-	stateFunc := func(ctx context.Context, persistentStateBuilder namespaced.StateBuilder) error {
-		primaryStorageCoreState := persistentStateBuilder(resources.DefaultNamespace)
-		virtualState := virtual.NewState(state.WrapCore(primaryStorageCoreState))
+// PersistentState keeps the state and the close function.
+type PersistentState struct {
+	State  state.CoreState
+	Close  func() error
+	errors <-chan error
+}
 
-		namespacedState, closer, err := newNamespacedState(params, primaryStorageCoreState, virtualState, logger)
-		if err != nil {
-			return err
-		}
+// State wraps virtual and default cosi states.
+type State struct {
+	virtualState *virtual.State
+	defaultState state.State
+	auditWrap    *AuditWrap
 
-		defer closer()
+	logger *zap.Logger
 
-		measuredState := stateWithMetrics(namespacedState, metricsRegistry)
-		resourceState := state.WrapCore(measuredState)
+	defaultPersistentState   *PersistentState
+	secondaryPersistentState *PersistentState
+}
 
-		if err = initResources(ctx, resourceState, logger); err != nil {
-			return err
-		}
+// Default returns the default state.
+func (s *State) Default() state.State {
+	return s.defaultState
+}
 
-		return f(
-			ctx,
-			resourceState,
-			virtualState,
-		)
+// Virtual returns the virtual state.
+func (s *State) Virtual() *virtual.State {
+	return s.virtualState
+}
+
+// Auditor returns the state auditor.
+func (s *State) Auditor() *AuditWrap {
+	return s.auditWrap
+}
+
+// RunAuditCleanup runs the audit cleanup.
+func (s *State) RunAuditCleanup(ctx context.Context) error {
+	return s.auditWrap.RunCleanup(ctx)
+}
+
+// DefaultCore returns the default core state.
+func (s *State) DefaultCore() state.CoreState {
+	return s.defaultPersistentState.State
+}
+
+// Close closes the state.
+func (s *State) Close() error {
+	if err := s.secondaryPersistentState.Close(); err != nil {
+		s.logger.Warn("failed to close secondary storage backing store", zap.Error(err))
 	}
+
+	return s.defaultPersistentState.Close()
+}
+
+// HandleErrors must be called by the Omni server to be able to handle state errors that happen asynchronously.
+func (s *State) HandleErrors(ctx context.Context) error {
+	select {
+	case err := <-s.defaultPersistentState.errors:
+		return err
+	case <-ctx.Done():
+	}
+
+	return nil
+}
+
+// NewState creates a production Omni state.
+func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, metricsRegistry prometheus.Registerer) (*State, error) {
+	var (
+		defaultPersistentState *PersistentState
+		err                    error
+	)
 
 	switch params.Storage.Default.Kind {
 	case "boltdb":
-		return buildBoltPersistentState(ctx, params.Storage.Default.Boltdb.Path, logger, stateFunc)
+		defaultPersistentState, err = newBoltPersistentState(params.Storage.Default.Boltdb.Path, nil, false, logger)
 	case "etcd":
-		return buildEtcdPersistentState(ctx, params, logger, stateFunc)
+		defaultPersistentState, err = newEtcdPersistentState(ctx, params, logger)
 	default:
-		return fmt.Errorf("unknown storage kind %q", params.Storage.Default.Kind)
+		return nil, fmt.Errorf("unknown storage kind %q", params.Storage.Default.Kind)
 	}
-}
 
-func newNamespacedState(params *config.Params, primaryStorageCoreState state.CoreState, virtualState *virtual.State, logger *zap.Logger) (*namespaced.State, func(), error) {
-	secondaryStorageCoreState, secondaryStorageBackingStore, err := newBoltPersistentState(
+	if err != nil {
+		return nil, err
+	}
+
+	virtualState := virtual.NewState(state.WrapCore(defaultPersistentState.State))
+
+	secondaryPersistentState, err := newBoltPersistentState(
 		params.Storage.Secondary.Path, &bbolt.Options{
 			NoSync: true, // we do not need fsync for the secondary storage
 		}, true, logger)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create BoltDB state for secondary storage: %w", err)
+		return nil, fmt.Errorf("failed to create BoltDB state for secondary storage: %w", err)
 	}
 
+	namespacedState, err := newNamespacedState(
+		defaultPersistentState.State,
+		secondaryPersistentState.State,
+		virtualState,
+		logger,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	measuredState := stateWithMetrics(namespacedState, metricsRegistry)
+	defaultState := state.WrapCore(measuredState)
+
+	if err = initResources(ctx, defaultState, logger); err != nil {
+		return nil, err
+	}
+
+	auditWrap, err := NewAuditWrap(defaultState, config.Config, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	defaultState = auditWrap.WrapState(defaultState)
+
+	return &State{
+		defaultState: defaultState,
+		virtualState: virtualState,
+		auditWrap:    auditWrap,
+
+		defaultPersistentState:   defaultPersistentState,
+		secondaryPersistentState: secondaryPersistentState,
+	}, nil
+}
+
+func newNamespacedState(
+	defaultCoreState state.CoreState,
+	secondaryCoreState state.CoreState,
+	virtualState *virtual.State,
+	logger *zap.Logger,
+) (*namespaced.State, error) {
 	storeFactory, err := store.NewStoreFactory()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create etcd backup store: %w", err)
+		return nil, fmt.Errorf("failed to create etcd backup store: %w", err)
 	}
 
 	buildEphemeralState := inmem.NewStateWithOptions(inmem.WithHistoryGap(20), inmem.WithHistoryMaxCapacity(10000))
 	ephemeralState := buildEphemeralState(resources.EphemeralNamespace)
 	metaEphemeralState := buildEphemeralState(meta.NamespaceName)
-	infraProviderState := infraprovider.NewState(primaryStorageCoreState, ephemeralState, logger.With(logging.Component("infraprovider_state")))
+	infraProviderState := infraprovider.NewState(defaultCoreState, ephemeralState, logger.With(logging.Component("infraprovider_state")))
 
 	namespacedState := namespaced.NewState(func(ns resource.Namespace) state.CoreState {
 		switch ns {
 		case resources.VirtualNamespace:
 			return virtualState
 		case resources.MetricsNamespace:
-			return secondaryStorageCoreState
+			return secondaryCoreState
 		case meta.NamespaceName:
 			return metaEphemeralState
 		case resources.EphemeralNamespace:
 			return ephemeralState
 		case resources.ExternalNamespace:
 			return &external.State{
-				CoreState:    primaryStorageCoreState,
+				CoreState:    defaultCoreState,
 				StoreFactory: storeFactory,
 				Logger:       logger,
 			}
@@ -118,15 +206,11 @@ func newNamespacedState(params *config.Params, primaryStorageCoreState state.Cor
 				return infraProviderState
 			}
 
-			return primaryStorageCoreState
+			return defaultCoreState
 		}
 	})
 
-	return namespacedState, func() {
-		if err := secondaryStorageBackingStore.Close(); err != nil {
-			logger.Warn("failed to close secondary storage backing store", zap.Error(err))
-		}
-	}, nil
+	return namespacedState, nil
 }
 
 func initResources(ctx context.Context, resourceState state.State, logger *zap.Logger) error {
@@ -151,6 +235,8 @@ func initResources(ctx context.Context, resourceState state.State, logger *zap.L
 		{resources.VirtualNamespace, "Namespace for virtual resources"},
 		{resources.ExternalNamespace, "Namespace for external resources"},
 		{resources.MetricsNamespace, "Secondary storage namespace for resources"},
+		{resources.InfraProviderNamespace, "Infra providers persistent namespace"},
+		{resources.InfraProviderEphemeralNamespace, "Infra providers ephemeral namespace"},
 	} {
 		if err := namespaceRegistry.Register(ctx, ns.name, ns.description); err != nil {
 			return err
@@ -261,4 +347,17 @@ func (w *AuditWrap) WrapState(resourceState state.State) state.State {
 	}
 
 	return audit.WrapState(resourceState, w.log)
+}
+
+// NewTestState creates a new test state using the in-memory storage and no virtual one.
+func NewTestState(logger *zap.Logger) *State {
+	defaultPersistentState := &PersistentState{
+		State: namespaced.NewState(inmem.Build),
+	}
+
+	return &State{
+		defaultState:           state.WrapCore(defaultPersistentState.State),
+		defaultPersistentState: defaultPersistentState,
+		logger:                 logger,
+	}
 }

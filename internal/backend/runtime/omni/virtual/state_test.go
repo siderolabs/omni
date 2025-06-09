@@ -105,7 +105,7 @@ func TestComputed(t *testing.T) {
 		return &mp, nil
 	}
 
-	st := virtual.NewComputed(virtualres.CurrentUserType, newProducer, virtual.NoTransform, time.Second, zaptest.NewLogger(t))
+	st := virtual.NewComputed(virtualres.CurrentUserType, newProducer, virtual.NoTransform, time.Second, zaptest.NewLogger(t), false)
 
 	var eg errgroup.Group
 

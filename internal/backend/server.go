@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-// Package backend contains all internal backend code.
+// Package backend is the main omni entrypoint.
 package backend
 
 import (
@@ -77,7 +77,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/saml"
 	"github.com/siderolabs/omni/internal/backend/services"
-	"github.com/siderolabs/omni/internal/backend/workloadproxy"
+	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
 	"github.com/siderolabs/omni/internal/frontend"
 	"github.com/siderolabs/omni/internal/memconn"
 	"github.com/siderolabs/omni/internal/pkg/auth"
@@ -100,6 +100,7 @@ import (
 
 // Server is main backend entrypoint that starts REST API, WebSocket and Serves static contents.
 type Server struct {
+	state                   *omni.State
 	omniRuntime             *omni.Runtime
 	logger                  *zap.Logger
 	logHandler              *siderolink.LogHandler
@@ -107,7 +108,6 @@ type Server struct {
 	dnsService              *dns.Service
 	workloadProxyReconciler *workloadproxy.Reconciler
 	imageFactoryClient      *imagefactory.Client
-	auditor                 Auditor
 
 	linkCounterDeltaCh chan<- siderolink.LinkCounterDeltas
 	siderolinkEventsCh chan<- *omnires.MachineStatusSnapshot
@@ -123,6 +123,7 @@ type Server struct {
 
 // NewServer creates new HTTP server.
 func NewServer(
+	state *omni.State,
 	dnsService *dns.Service,
 	workloadProxyReconciler *workloadproxy.Reconciler,
 	imageFactoryClient *imagefactory.Client,
@@ -133,10 +134,10 @@ func NewServer(
 	talosRuntime *talos.Runtime,
 	logHandler *siderolink.LogHandler,
 	authConfig *authres.Config,
-	auditor Auditor,
 	logger *zap.Logger,
 ) (*Server, error) {
 	s := &Server{
+		state:                   state,
 		omniRuntime:             omniRuntime,
 		logger:                  logger.With(logging.Component("server")),
 		logHandler:              logHandler,
@@ -144,7 +145,6 @@ func NewServer(
 		dnsService:              dnsService,
 		workloadProxyReconciler: workloadProxyReconciler,
 		imageFactoryClient:      imageFactoryClient,
-		auditor:                 auditor,
 		linkCounterDeltaCh:      linkCounterDeltaCh,
 		siderolinkEventsCh:      siderolinkEventsCh,
 		installEventCh:          installEventCh,
@@ -155,7 +155,7 @@ func NewServer(
 		k8sProxyService:         config.Config.Services.KubernetesProxy,
 	}
 
-	k8sruntime, err := kubernetes.New(omniRuntime.State())
+	k8sruntime, err := kubernetes.New(state.Default())
 	if err != nil {
 		return nil, err
 	}
@@ -179,13 +179,13 @@ func (s *Server) RegisterRuntime(name string, r runtime.Runtime) {
 	runtime.Install(name, r)
 }
 
-// Run runs HTTP server.
+// Run runs everything.
 func (s *Server) Run(ctx context.Context) error {
 	eg, ctx := errgroup.WithContext(ctx)
 
 	s.omniRuntime.Run(ctx, eg)
 
-	runtimeState := s.omniRuntime.State()
+	runtimeState := s.state.Default()
 	oidcStorage := oidc.NewStorage(runtimeState, s.logger)
 
 	eg.Go(func() error { return oidcStorage.Run(ctx) })
@@ -205,8 +205,8 @@ func (s *Server) Run(ctx context.Context) error {
 		return err
 	}
 
-	services := grpcomni.MakeServiceServers(
-		s.omniRuntime.State(),
+	servicesServer := grpcomni.MakeServiceServers(
+		s.state.Default(),
 		s.omniRuntime.CachedState(),
 		s.logHandler,
 		oidcProvider,
@@ -214,10 +214,10 @@ func (s *Server) Run(ctx context.Context) error {
 		s.dnsService,
 		s.imageFactoryClient,
 		s.logger,
-		s.auditor,
+		s.state.Auditor(),
 	)
 
-	actualSrv, gtwyDialsTo, err := s.serverAndGateway(ctx, services, mux, serverOptions...)
+	actualSrv, gtwyDialsTo, err := s.serverAndGateway(ctx, servicesServer, mux, serverOptions...)
 	if err != nil {
 		return err
 	}
@@ -245,11 +245,18 @@ func (s *Server) Run(ctx context.Context) error {
 		func() error { return s.runDevProxyServer(ctx, apiSrv.Handler()) },
 		func() error { return s.logHandler.Start(ctx) },
 		func() error { return s.runMachineAPI(ctx) },
-		func() error { return s.auditor.RunCleanup(ctx) },
+		func() error { return s.state.RunAuditCleanup(ctx) },
+		func() error { return s.state.HandleErrors(ctx) },
 	}
 
 	if s.pprofBindAddress != "" {
 		fns = append(fns, func() error { return runPprofServer(ctx, s.pprofBindAddress, s.logger) })
+	}
+
+	if config.Config.Debug.Server.Endpoint != "" {
+		fns = append(fns, func() error {
+			return services.RunDebugServer(ctx, s.logger, config.Config.Debug.Server.Endpoint)
+		})
 	}
 
 	for _, fn := range fns {
@@ -285,7 +292,7 @@ func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
 	imageFactoryHandler := handler.NewAuthConfig(
 		handler.NewSignature(
 			factory.NewHandler(
-				s.omniRuntime.State(),
+				s.state.Default(),
 				s.logger.With(logging.Component("factory_proxy")),
 				&config.Config.Registries,
 			),
@@ -301,7 +308,7 @@ func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
 			return nil, nil //nolint:nilnil
 		}
 
-		return saml.NewHandler(s.omniRuntime.State(), s.authConfig.TypedSpec().Value.Saml, s.logger)
+		return saml.NewHandler(s.state.Default(), s.authConfig.TypedSpec().Value.Saml, s.logger)
 	}()
 	if err != nil {
 		return nil, err
@@ -312,7 +319,7 @@ func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
 		return nil, err
 	}
 
-	mux, err := makeMux(imageFactoryHandler, oidcProvider, workloadProxyRedirect, samlHandler, s.omniRuntime, s.logger)
+	mux, err := makeMux(imageFactoryHandler, oidcProvider, workloadProxyRedirect, samlHandler, s.state, s.omniRuntime, s.logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create mux: %w", err)
 	}
@@ -347,10 +354,10 @@ func (s *Server) makeProxyServer(ctx context.Context, eg *errgroup.Group) (*grpc
 
 	rtr, err := router.NewRouter(
 		transport,
-		s.omniRuntime.State(),
+		s.state.Default(),
 		s.dnsService,
 		authres.Enabled(s.authConfig),
-		s.auditor,
+		s.state.Auditor(),
 		interceptor.NewSignature(s.authenticatorFunc(), s.logger).Unary(),
 	)
 	if err != nil {
@@ -359,7 +366,7 @@ func (s *Server) makeProxyServer(ctx context.Context, eg *errgroup.Group) (*grpc
 
 	prometheus.MustRegister(rtr)
 
-	eg.Go(func() error { return rtr.ResourceWatcher(ctx, s.omniRuntime.State(), s.logger) })
+	eg.Go(func() error { return rtr.ResourceWatcher(ctx, s.state.Default(), s.logger) })
 
 	srv := router.NewServer(rtr,
 		router.Interceptors(s.logger),
@@ -388,8 +395,6 @@ func (s *Server) buildServerOptions() ([]grpc.ServerOption, error) {
 	recoveryOpt := grpc_recovery.WithRecoveryHandler(recoveryHandler(s.logger))
 	messageProducer := grpcutil.LogLevelOverridingMessageProducer(grpc_zap.DefaultMessageProducer)
 	logLevelOverrideUnaryInterceptor, logLevelOverrideStreamInterceptor := grpcutil.LogLevelInterceptors()
-
-	grpc_prometheus.EnableHandlingTimeHistogram(grpc_prometheus.WithHistogramBuckets([]float64{0.001, 0.01, 0.1, 1, 10, 30, 60, 120, 300, 600}))
 
 	unaryInterceptors := []grpc.UnaryServerInterceptor{
 		grpc_ctxtags.UnaryServerInterceptor(),
@@ -480,7 +485,7 @@ func (s *Server) getAuthInterceptors() ([]interceptorCreator, error) {
 		result = append(result, interceptor.NewJWT(verifier, s.logger))
 
 	case s.authConfig.TypedSpec().Value.Saml.Enabled:
-		result = append(result, interceptor.NewSAML(s.omniRuntime.State(), s.logger))
+		result = append(result, interceptor.NewSAML(s.state.Default(), s.logger))
 	}
 
 	return result, nil
@@ -492,7 +497,7 @@ func (s *Server) authenticatorFunc() auth.AuthenticatorFunc {
 
 		ptr := authres.NewPublicKey(resources.DefaultNamespace, fingerprint).Metadata()
 
-		pubKey, err := safe.StateGet[*authres.PublicKey](ctx, s.omniRuntime.State(), ptr)
+		pubKey, err := safe.StateGet[*authres.PublicKey](ctx, s.state.Default(), ptr)
 		if err != nil {
 			return nil, err
 		}
@@ -520,7 +525,7 @@ func (s *Server) authenticatorFunc() auth.AuthenticatorFunc {
 			return nil, err
 		}
 
-		user, err := safe.StateGet[*authres.User](ctx, s.omniRuntime.State(), resource.NewMetadata(resources.DefaultNamespace, authres.UserType, userID, resource.VersionUndefined))
+		user, err := safe.StateGet[*authres.User](ctx, s.state.Default(), resource.NewMetadata(resources.DefaultNamespace, authres.UserType, userID, resource.VersionUndefined))
 		if err != nil {
 			return nil, err
 		}
@@ -555,7 +560,7 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 		EventSinkPort:      strconv.Itoa(config.Config.Services.Siderolink.EventSinkPort),
 	}
 
-	omniState := s.omniRuntime.State()
+	omniState := s.state.Default()
 	machineEventHandler := machineevent.NewHandler(omniState, s.logger, s.siderolinkEventsCh, s.installEventCh)
 
 	slink, err := siderolink.NewManager(
@@ -613,12 +618,12 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 }
 
 func (s *Server) workloadProxyHandler(next http.Handler) (http.Handler, error) {
-	roleProvider, err := workloadproxy.NewAccessPolicyRoleProvider(s.omniRuntime.State())
+	roleProvider, err := workloadproxy.NewAccessPolicyRoleProvider(s.state.Default())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create access policy role provider: %w", err)
 	}
 
-	pgpSignatureValidator, err := workloadproxy.NewPGPAccessValidator(s.omniRuntime.State(), roleProvider,
+	pgpSignatureValidator, err := workloadproxy.NewPGPAccessValidator(s.state.Default(), roleProvider,
 		s.logger.With(logging.Component("pgp_access_validator")))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create pgp signature validator: %w", err)
@@ -773,6 +778,7 @@ func isSensitiveSpec(resource *resapi.Resource) bool {
 func makeMux(
 	imageHandler, oidcHandler, workloadProxyRedirect http.Handler,
 	samlHandler *samlsp.Middleware,
+	state *omni.State,
 	omniRuntime *omni.Runtime,
 	logger *zap.Logger,
 ) (*http.ServeMux, error) {
@@ -805,7 +811,7 @@ func makeMux(
 		return nil, err
 	}
 
-	talosctlHandler, err := makeTalosctlHandler(omniRuntime.State(), logger)
+	talosctlHandler, err := makeTalosctlHandler(state.Default(), logger)
 	if err != nil {
 		return nil, err
 	}
@@ -814,7 +820,7 @@ func makeMux(
 	muxHandle("/omnictl/", http.StripPrefix("/omnictl/", omnictlHndlr), "files")
 	muxHandle("/talosctl/downloads", talosctlHandler, "talosctl-downloads")
 	// actually enabled only in debug build
-	muxHandle("/debug/", debug.NewHandler(omniRuntime.GetCOSIRuntime(), omniRuntime.State()), "debug")
+	muxHandle("/debug/", debug.NewHandler(omniRuntime.GetCOSIRuntime(), state.Default()), "debug")
 
 	// OIDC Provider
 	mux.Handle("/oidc/",
@@ -830,7 +836,7 @@ func makeMux(
 	)
 
 	// Health checks
-	muxHandle("/healthz", health.NewHandler(omniRuntime.State(), logger), "health")
+	muxHandle("/healthz", health.NewHandler(state.Default(), logger), "health")
 
 	return mux, nil
 }
@@ -886,7 +892,7 @@ func (s *Server) runK8sProxyServer(
 	clusterUUIDResolver := func(ctx context.Context, clusterID string) (resource.ID, error) {
 		ctx = actor.MarkContextAsInternalActor(ctx)
 
-		uuid, resolveErr := safe.StateGetByID[*omnires.ClusterUUID](ctx, s.omniRuntime.State(), clusterID)
+		uuid, resolveErr := safe.StateGetByID[*omnires.ClusterUUID](ctx, s.state.Default(), clusterID)
 		if resolveErr != nil {
 			return "", fmt.Errorf("failed to resolve cluster ID to UUID: %w", resolveErr)
 		}
@@ -894,7 +900,7 @@ func (s *Server) runK8sProxyServer(
 		return uuid.TypedSpec().Value.Uuid, nil
 	}
 
-	k8sProxyHandler, err := k8sproxy.NewHandler(keyFunc, clusterUUIDResolver, s.auditor, s.logger)
+	k8sProxyHandler, err := k8sproxy.NewHandler(keyFunc, clusterUUIDResolver, s.state.Auditor(), s.logger)
 	if err != nil {
 		return err
 	}
@@ -999,7 +1005,7 @@ func runLocalResourceServer(ctx context.Context, st state.CoreState, serverOptio
 func (s *Server) createInitialServiceAccount(ctx context.Context) error {
 	serviceAccountEmail := config.Config.Auth.InitialServiceAccount.Name + access.ServiceAccountNameSuffix
 
-	identity, err := safe.ReaderGetByID[*authres.Identity](ctx, s.omniRuntime.State(), serviceAccountEmail)
+	identity, err := safe.ReaderGetByID[*authres.Identity](ctx, s.state.Default(), serviceAccountEmail)
 	if err != nil && !state.IsNotFoundError(err) {
 		return err
 	}
@@ -1021,7 +1027,7 @@ func (s *Server) createInitialServiceAccount(ctx context.Context) error {
 
 	_, err = serviceaccountmgmt.Create(
 		ctx,
-		s.omniRuntime.State(),
+		s.state.Default(),
 		config.Config.Auth.InitialServiceAccount.Name,
 		config.Config.Auth.InitialServiceAccount.Role,
 		false,

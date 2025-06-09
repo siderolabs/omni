@@ -29,7 +29,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
-	"github.com/siderolabs/omni/internal/backend/workloadproxy"
+	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
@@ -84,8 +84,8 @@ func (suite *OmniRuntimeSuite) SetupTest() {
 	discoveryClientCache := &discoveryClientCacheMock{}
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zapcore.InfoLevel)
 
-	suite.runtime, err = omniruntime.New(clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil, nil,
-		resourceState, nil, prometheus.NewRegistry(), discoveryClientCache, logger)
+	suite.runtime, err = omniruntime.NewRuntime(clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil, nil,
+		omniruntime.NewMockState(resourceState), prometheus.NewRegistry(), discoveryClientCache, logger)
 
 	suite.Require().NoError(err)
 

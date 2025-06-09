@@ -12,19 +12,19 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/keystorage"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/siderolabs/gen/xtesting/check"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/keyprovider"
-	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
@@ -122,24 +122,33 @@ func TestEtcdInitialization(t *testing.T) {
 
 	for _, step := range steps {
 		res := t.Run(step.name, func(t *testing.T) {
-			err := omniruntime.BuildEtcdPersistentState(t.Context(), &config.Params{
-				Account: config.Account{
-					Name: "instance-name",
-				},
-				Storage: config.Storage{
-					Default: config.StorageDefault{
-						Etcd: config.EtcdParams{
-							Embedded:         true,
-							EmbeddedDBPath:   etcdDir,
-							PrivateKeySource: step.args.privateKeySource,
-							PublicKeyFiles:   step.args.publicKeyFiles,
-							Endpoints:        []string{"http://localhost:0"},
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second*10)
+
+			defer cancel()
+
+			state, err := omni.NewEtcdPersistentState(ctx,
+				&config.Params{
+					Account: config.Account{
+						Name: "instance-name",
+					},
+					Storage: config.Storage{
+						Default: &config.StorageDefault{
+							Etcd: config.EtcdParams{
+								Embedded:         true,
+								EmbeddedDBPath:   etcdDir,
+								PrivateKeySource: step.args.privateKeySource,
+								PublicKeyFiles:   step.args.publicKeyFiles,
+								Endpoints:        []string{"http://localhost:0"},
+							},
 						},
 					},
 				},
-			}, zaptest.NewLogger(t), func(context.Context, namespaced.StateBuilder) error {
-				return nil
-			})
+				zaptest.NewLogger(t),
+			)
+
+			if state != nil {
+				require.NoError(t, state.Close())
+			}
 
 			step.expectedErr(t, err)
 		})
@@ -159,7 +168,7 @@ func TestEncryptDecrypt(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	original := omni.NewCluster(resources.DefaultNamespace, "clusterID")
+	original := omnires.NewCluster(resources.DefaultNamespace, "clusterID")
 
 	type args struct {
 		privateKeySource string
@@ -193,38 +202,42 @@ func TestEncryptDecrypt(t *testing.T) {
 
 	for _, step := range steps {
 		res := t.Run(step.name, func(t *testing.T) {
-			err := omniruntime.BuildEtcdPersistentState(t.Context(), &config.Params{
-				Account: config.Account{
-					Name: "instance-name",
-				},
-				Storage: config.Storage{
-					Default: config.StorageDefault{
-						Etcd: config.EtcdParams{
-							Embedded:         true,
-							EmbeddedDBPath:   etcdDir,
-							PrivateKeySource: step.args.privateKeySource,
-							PublicKeyFiles:   step.args.publicKeyFiles,
-							Endpoints:        []string{"http://localhost:0"},
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+			defer cancel()
+
+			state, err := omni.NewEtcdPersistentState(ctx,
+				&config.Params{
+					Account: config.Account{
+						Name: "instance-name",
+					},
+					Storage: config.Storage{
+						Default: &config.StorageDefault{
+							Etcd: config.EtcdParams{
+								Embedded:         true,
+								EmbeddedDBPath:   etcdDir,
+								PrivateKeySource: step.args.privateKeySource,
+								PublicKeyFiles:   step.args.publicKeyFiles,
+								Endpoints:        []string{"http://localhost:0"},
+							},
 						},
 					},
-				},
-			}, zaptest.NewLogger(t),
-				func(ctx context.Context, stateBuilder namespaced.StateBuilder) error {
-					coreState := stateBuilder(resources.DefaultNamespace)
-					if step.beforeGet != nil {
-						step.beforeGet(t, coreState)
-					}
-
-					got, err := coreState.Get(ctx, original.Metadata())
-					require.NoError(t, err)
-
-					require.True(t, resource.Equal(original, got))
-
-					return nil
-				},
+				}, zaptest.NewLogger(t),
 			)
 
 			require.NoError(t, err)
+
+			t.Cleanup(func() {
+				require.NoError(t, state.Close())
+			})
+
+			if step.beforeGet != nil {
+				step.beforeGet(t, state.State)
+			}
+
+			got, err := state.State.Get(ctx, original.Metadata())
+			require.NoError(t, err)
+
+			require.True(t, resource.Equal(original, got))
 		})
 
 		if !res {

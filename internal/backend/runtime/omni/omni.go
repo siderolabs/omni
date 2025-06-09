@@ -54,7 +54,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual/pkg/producers"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
-	"github.com/siderolabs/omni/internal/backend/workloadproxy"
+	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	newgroup "github.com/siderolabs/omni/internal/pkg/errgroup"
@@ -83,12 +83,12 @@ type Runtime struct {
 	powerStageWatcher *powerstage.Watcher
 }
 
-// New creates a new Omni runtime.
+// NewRuntime creates a new Omni runtime.
 //
 //nolint:maintidx
-func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workloadProxyReconciler *workloadproxy.Reconciler,
+func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workloadProxyReconciler *workloadproxy.Reconciler,
 	resourceLogger *resourcelogger.Logger, imageFactoryClient *imagefactory.Client, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas,
-	siderolinkEventsCh <-chan *omni.MachineStatusSnapshot, installEventCh <-chan cosiresource.ID, resourceState state.State, virtualState *virtual.State, metricsRegistry prometheus.Registerer,
+	siderolinkEventsCh <-chan *omni.MachineStatusSnapshot, installEventCh <-chan cosiresource.ID, st *State, metricsRegistry prometheus.Registerer,
 	discoveryClientCache omnictrl.DiscoveryClientCache, logger *zap.Logger,
 ) (*Runtime, error) {
 	var opts []options.Option
@@ -166,9 +166,9 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 	}
 
 	powerStageEventsCh := make(chan *omni.MachineStatusSnapshot)
-	powerStageWatcher := powerstage.NewWatcher(resourceState, powerStageEventsCh, logger.With(logging.Component("power_stage_watcher")), powerstage.WatcherOptions{})
+	powerStageWatcher := powerstage.NewWatcher(st.Default(), powerStageEventsCh, logger.With(logging.Component("power_stage_watcher")), powerstage.WatcherOptions{})
 
-	controllerRuntime, err := cosiruntime.NewRuntime(resourceState, logger, opts...)
+	controllerRuntime, err := cosiruntime.NewRuntime(st.Default(), logger, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +281,7 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		omnictrl.NewTalosUpgradeStatusController(),
 		omnictrl.NewMachineStatusSnapshotController(siderolinkEventsCh, powerStageEventsCh),
 		omnictrl.NewMachineProvisionController(),
-		omnictrl.NewMachineRequestLinkController(resourceState),
+		omnictrl.NewMachineRequestLinkController(st.Default()),
 		omnictrl.NewLabelsExtractorController[*omni.MachineStatus](),
 		omnictrl.NewMachineRequestSetStatusController(),
 		omnictrl.NewClusterMachineRequestStatusController(),
@@ -363,23 +363,23 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 	metricsRegistry.MustRegister(expvarCollector)
 
 	validationOptions := slices.Concat(
-		clusterValidationOptions(resourceState, config.Config.EtcdBackup, config.Config.Services.EmbeddedDiscoveryService),
+		clusterValidationOptions(st.Default(), config.Config.EtcdBackup, config.Config.Services.EmbeddedDiscoveryService),
 		relationLabelsValidationOptions(),
 		accessPolicyValidationOptions(),
-		authorizationValidationOptions(resourceState),
+		authorizationValidationOptions(st.Default()),
 		roleValidationOptions(),
-		machineSetNodeValidationOptions(resourceState),
-		machineSetValidationOptions(resourceState, storeFactory),
-		machineClassValidationOptions(resourceState),
+		machineSetNodeValidationOptions(st.Default()),
+		machineSetValidationOptions(st.Default(), storeFactory),
+		machineClassValidationOptions(st.Default()),
 		identityValidationOptions(config.Config.Auth.SAML),
 		exposedServiceValidationOptions(),
-		configPatchValidationOptions(resourceState),
+		configPatchValidationOptions(st.Default()),
 		etcdManualBackupValidationOptions(),
 		samlLabelRuleValidationOptions(),
 		s3ConfigValidationOptions(),
-		machineRequestSetValidationOptions(resourceState),
-		infraMachineConfigValidationOptions(resourceState),
-		nodeForceDestroyRequestValidationOptions(resourceState),
+		machineRequestSetValidationOptions(st.Default()),
+		infraMachineConfigValidationOptions(st.Default()),
+		nodeForceDestroyRequestValidationOptions(st.Default()),
 	)
 
 	return &Runtime{
@@ -390,9 +390,9 @@ func New(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workl
 		workloadProxyReconciler: workloadProxyReconciler,
 		resourceLogger:          resourceLogger,
 		powerStageWatcher:       powerStageWatcher,
-		state:                   state.WrapCore(validated.NewState(resourceState, validationOptions...)),
+		state:                   state.WrapCore(validated.NewState(st.Default(), validationOptions...)),
 		cachedState:             state.WrapCore(validated.NewState(controllerRuntime.CachedState(), validationOptions...)),
-		virtual:                 virtualState,
+		virtual:                 st.Virtual(),
 		logger:                  logger,
 	}, nil
 }
@@ -563,11 +563,6 @@ func (r *Runtime) Delete(ctx context.Context, setters ...runtime.QueryOption) er
 	}
 
 	return r.state.TeardownAndDestroy(ctx, md)
-}
-
-// State returns runtime state.
-func (r *Runtime) State() state.State { //nolint:ireturn
-	return r.state
 }
 
 // CachedState returns runtime cached state.

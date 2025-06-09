@@ -9,8 +9,6 @@ import (
 	"context"
 
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
-	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
@@ -18,16 +16,18 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
-func BuildEtcdPersistentState(ctx context.Context, params *config.Params, logger *zap.Logger, f func(context.Context, namespaced.StateBuilder) error) error {
-	return buildEtcdPersistentState(ctx, params, logger, f)
+func NewMockState(st state.State) *State {
+	return &State{
+		defaultState: st,
+	}
 }
 
-func GetEmbeddedEtcdClientWithServer(ctx context.Context, params *config.EtcdParams, logger *zap.Logger, f func(context.Context, *clientv3.Client, func() error) error) error {
-	return getEmbeddedEtcdClientWithServerCloser(ctx, params, logger, f)
+func NewEtcdPersistentState(ctx context.Context, params *config.Params, logger *zap.Logger) (*PersistentState, error) {
+	return newEtcdPersistentState(ctx, params, logger)
 }
 
-func EtcdElections(ctx context.Context, client *clientv3.Client, electionKey string, logger *zap.Logger, f func(ctx context.Context, client *clientv3.Client) error) error {
-	return etcdElections(ctx, client, electionKey, logger, f)
+func GetEmbeddedEtcdClientWithServer(params *config.EtcdParams, logger *zap.Logger) (EtcdState, error) {
+	return getEmbeddedEtcdState(params, logger)
 }
 
 func ClusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup, embeddedDiscoveryServiceConfig *config.EmbeddedDiscoveryService) []validated.StateOption {

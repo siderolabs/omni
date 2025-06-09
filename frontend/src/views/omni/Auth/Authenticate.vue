@@ -27,7 +27,7 @@ included in the LICENSE file.
           Could not get user's email address from the authentication provider...
         </div>
         <template v-else>
-          <div v-if="confirmed">
+          <div v-if="confirmed" id="confirmed">
             Successfully logged in as {{identity}}, you can return to the application...
           </div>
           <div v-else class="w-full flex flex-col gap-4">
@@ -35,8 +35,8 @@ included in the LICENSE file.
             <user-info user="user" class="user-info"/>
             <div class="w-full flex flex-col gap-3">
               <t-button type="secondary" class="w-full"  @click="switchUser">Switch User</t-button>
-              <t-button v-if="$route.query[AuthFlowQueryParam] === Auth.CLI" class="w-full" type="highlighted" @click="confirmPublicKey">Grant Access</t-button>
-              <t-button v-else class="w-full" type="highlighted" @click="generatePublicKey">Log In</t-button>
+              <t-button v-if="$route.query[AuthFlowQueryParam] === Auth.CLI" id="confirm" class="w-full" type="highlighted" @click="confirmPublicKey">Grant Access</t-button>
+              <t-button v-else id="login" class="w-full" type="highlighted" @click="generatePublicKey">Log In</t-button>
             </div>
           </div>
         </template>

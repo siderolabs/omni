@@ -79,7 +79,27 @@ func (s *E2ESuite) SetupTest() {
 	s.Require().NotEmpty(s.password, "password is not set")
 }
 
-func (s *E2ESuite) withPage(url string, f func(page playwright.Page)) {
+type loginFlow func(*testing.T, playwright.Page)
+
+func loginUser(t *testing.T, page playwright.Page) {
+	logIn := page.Locator("button#login")
+
+	require.NoError(t, logIn.WaitFor())
+
+	require.NoError(t, logIn.Click())
+}
+
+func loginCLI(t *testing.T, page playwright.Page) {
+	logIn := page.Locator("button#confirm")
+
+	require.NoError(t, logIn.WaitFor())
+
+	require.NoError(t, logIn.Click())
+
+	require.NoError(t, page.Locator("#confirmed").WaitFor())
+}
+
+func (s *E2ESuite) withPage(url string, loginFlow loginFlow, f func(page playwright.Page)) {
 	var recordVideo *playwright.RecordVideo
 
 	if s.videoDir != "" {
@@ -129,11 +149,7 @@ func (s *E2ESuite) withPage(url string, f func(page playwright.Page)) {
 
 	s.click(page, `button[type="submit"]:has-text("Continue"):visible`)
 
-	logIn := page.Locator("button.t-button.highlighted")
-
-	s.Require().NoError(logIn.WaitFor())
-
-	s.Require().NoError(logIn.Click())
+	loginFlow(s.T(), page)
 
 	f(page)
 }
@@ -177,7 +193,7 @@ func (s *E2ESuite) runOmnictlCommand(ctx context.Context, args string, stderrHan
 	eg.Go(func() error {
 		defer cancel()
 
-		return errors.Join(cmd.Wait(), writer.Close())
+		return errors.Join(cmd.Wait(), writer.Close(), ctx.Err())
 	})
 
 	for {
@@ -196,7 +212,7 @@ func (s *E2ESuite) prepareOmnictl(ctx context.Context) {
 	s.T().Logf("preparing omnictl")
 
 	// download omnictl and omniconfig
-	s.withPage(s.baseURL, func(page playwright.Page) {
+	s.withPage(s.baseURL, loginUser, func(page playwright.Page) {
 		downloadOmnictlButton := page.Locator(`span:has-text("Download omnictl"):visible`)
 
 		s.Require().NoError(downloadOmnictlButton.Click())
@@ -246,7 +262,7 @@ func (s *E2ESuite) prepareOmnictl(ctx context.Context) {
 
 		// We do not need to do anything in the callback function, withPage goes through the auth flow
 		// for the auth URL by clicking the "Grant Access" button.
-		s.withPage(authURL, func(page playwright.Page) {})
+		s.withPage(authURL, loginCLI, func(page playwright.Page) {})
 	})
 	s.Require().NoError(err, "failed to prepare omnictl")
 
@@ -256,7 +272,7 @@ func (s *E2ESuite) prepareOmnictl(ctx context.Context) {
 func (s *E2ESuite) TestTitle() {
 	expected := "Omni - default"
 
-	s.withPage(s.baseURL, func(page playwright.Page) {
+	s.withPage(s.baseURL, loginUser, func(page playwright.Page) {
 		err := retry.Constant(time.Second*5, retry.WithUnits(time.Millisecond*100)).Retry(func() error {
 			title, err := page.Title()
 			s.Require().NoError(err)
@@ -275,7 +291,7 @@ func (s *E2ESuite) TestTitle() {
 func (s *E2ESuite) TestAuditLog() {
 	s.T().Logf("getting audit log")
 
-	s.withPage(s.baseURL, func(page playwright.Page) {
+	s.withPage(s.baseURL, loginUser, func(page playwright.Page) {
 		downloadAuditLog := page.Locator(`span:has-text("Get audit log"):visible`)
 
 		s.Require().NoError(downloadAuditLog.Click())
@@ -292,7 +308,7 @@ func (s *E2ESuite) TestAuditLog() {
 }
 
 func (s *E2ESuite) TestClickViewAll() {
-	s.withPage(s.baseURL, func(page playwright.Page) {
+	s.withPage(s.baseURL, loginUser, func(page playwright.Page) {
 		viewAllButton := page.Locator("text=View All")
 
 		err := viewAllButton.WaitFor()
@@ -326,7 +342,7 @@ func (s *E2ESuite) expandCluster(page playwright.Page, name string) {
 }
 
 func (s *E2ESuite) assertClusterCreation() {
-	s.withPage(s.baseURL, func(page playwright.Page) {
+	s.withPage(s.baseURL, loginUser, func(page playwright.Page) {
 		navigateToClusters := func() {
 			err := page.Locator(`#sidebar-menu-clusters`).WaitFor()
 
@@ -417,7 +433,6 @@ func (s *E2ESuite) assertClusterCreation() {
 
 		openPage := func() {
 			navigateToClusters()
-			s.expandCluster(page, "talos-default")
 		}
 
 		openPage()
@@ -503,7 +518,7 @@ func (s *E2ESuite) assertClusterCreation() {
 }
 
 func (s *E2ESuite) assertTemplateExportAndSync() {
-	ctx, cancel := context.WithTimeout(s.T().Context(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(s.T().Context(), 60*time.Second)
 	s.T().Cleanup(cancel)
 
 	s.prepareOmnictl(ctx)
@@ -616,7 +631,7 @@ func (s *E2ESuite) TestOpenMachine() {
 	clustersURL, err := url.JoinPath(s.baseURL, "/omni/clusters")
 	s.Require().NoError(err)
 
-	s.withPage(clustersURL, func(page playwright.Page) {
+	s.withPage(clustersURL, loginUser, func(page playwright.Page) {
 		s.expandCluster(page, "talos-default")
 
 		node := page.Locator("#talos-default-control-planes > div:last-child")

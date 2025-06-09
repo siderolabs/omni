@@ -49,12 +49,10 @@ const (
 //
 // Config patch is generated to be large to test the edge case.
 // The patch is removed on finalize.
-func AssertLargeImmediateConfigApplied(testCtx context.Context, cli *client.Client, clusterName string, talosAPIKeyPrepare TalosAPIKeyPrepareFunc) TestFunc {
+func AssertLargeImmediateConfigApplied(testCtx context.Context, cli *client.Client, clusterName string) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, 3*time.Minute)
 		defer cancel()
-
-		require.NoError(t, talosAPIKeyPrepare(ctx, "default"))
 
 		talosCli, err := talosClient(ctx, cli, clusterName)
 		require.NoError(t, err)
@@ -148,13 +146,11 @@ func AssertLargeImmediateConfigApplied(testCtx context.Context, cli *client.Clie
 // AssertConfigPatchWithReboot tests that config patch that requires reboot gets applied to a single node, the node reboots and gets back.
 //
 // The patch is NOT removed.
-func AssertConfigPatchWithReboot(testCtx context.Context, cli *client.Client, clusterName string, talosAPIKeyPrepare TalosAPIKeyPrepareFunc) TestFunc {
+func AssertConfigPatchWithReboot(testCtx context.Context, cli *client.Client, clusterName string) TestFunc {
 	return func(t *testing.T) {
 		// just a single machine with a reboot, so it should take no more than 3 minutes
 		ctx, cancel := context.WithTimeout(testCtx, 3*time.Minute)
 		defer cancel()
-
-		require.NoError(t, talosAPIKeyPrepare(ctx, "default"))
 
 		talosCli, err := talosClient(ctx, cli, clusterName)
 		require.NoError(t, err)
@@ -231,12 +227,10 @@ func AssertConfigPatchWithReboot(testCtx context.Context, cli *client.Client, cl
 }
 
 // AssertConfigPatchWithInvalidConfig tests that a machine is able to recover from a patch with broken config when the broken patch is deleted.
-func AssertConfigPatchWithInvalidConfig(testCtx context.Context, cli *client.Client, clusterName string, talosAPIKeyPrepare TalosAPIKeyPrepareFunc) TestFunc {
+func AssertConfigPatchWithInvalidConfig(testCtx context.Context, cli *client.Client, clusterName string) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, 8*time.Minute)
 		defer cancel()
-
-		require.NoError(t, talosAPIKeyPrepare(ctx, "default"))
 
 		st := cli.Omni().State()
 

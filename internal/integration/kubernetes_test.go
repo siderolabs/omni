@@ -246,7 +246,16 @@ func KubernetesBootstrapManifestSync(testCtx context.Context, managementClient *
 			return nil
 		}
 
-		require.NoError(t, managementClient.WithCluster(clusterName).KubernetesSyncManifests(ctx, false, syncHandler))
+		err := retry.Constant(time.Minute).RetryWithContext(ctx, func(ctx context.Context) error {
+			err := managementClient.WithCluster(clusterName).KubernetesSyncManifests(ctx, false, syncHandler)
+			if err != nil {
+				return retry.ExpectedError(err)
+			}
+
+			return nil
+		})
+
+		require.NoError(t, err)
 	}
 }
 

@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/siderolabs/gen/ensure"
 	"github.com/siderolabs/talos/pkg/machinery/config/merge"
 	"github.com/spf13/cobra"
@@ -22,6 +23,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/cmd/omni/pkg/app"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/version"
@@ -80,7 +82,22 @@ var rootCmd = &cobra.Command{
 
 		ctx = actor.MarkContextAsInternalActor(ctx)
 
-		return app.Run(ctx, config, logger)
+		state, err := omni.NewState(ctx, config, logger, prometheus.DefaultRegisterer)
+		if err != nil {
+			return err
+		}
+
+		defer func() {
+			if err = state.Close(); err != nil {
+				logger.Error("failed to close the state gracefully", zap.Error(err))
+			}
+		}()
+
+		if constants.IsDebugBuild {
+			logger.Warn("running debug build")
+		}
+
+		return app.Run(ctx, state, config, logger)
 	},
 }
 

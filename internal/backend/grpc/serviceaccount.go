@@ -10,11 +10,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/hashicorp/go-multierror"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
 	"google.golang.org/grpc/codes"
@@ -158,56 +156,12 @@ func (s *managementServer) DestroyServiceAccount(ctx context.Context, req *manag
 
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	sa := pkgaccess.ParseServiceAccountFromName(req.Name)
-	id := sa.FullID()
-
-	identity, err := safe.StateGet[*authres.Identity](ctx, s.omniState, authres.NewIdentity(resources.DefaultNamespace, id).Metadata())
+	err = serviceaccount.Destroy(ctx, s.omniState, req.Name)
 	if state.IsNotFoundError(err) {
-		return nil, status.Errorf(codes.NotFound, "service account %q not found", id)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	_, isServiceAccount := identity.Metadata().Labels().Get(authres.LabelIdentityTypeServiceAccount)
-	if !isServiceAccount {
 		return nil, status.Errorf(codes.NotFound, "service account %q not found", req.Name)
 	}
 
-	pubKeys, err := s.omniState.List(
-		ctx,
-		authres.NewPublicKey(resources.DefaultNamespace, "").Metadata(),
-		state.WithLabelQuery(resource.LabelEqual(authres.LabelIdentityUserID, identity.TypedSpec().Value.UserId)),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	var destroyErr error
-
-	for _, pubKey := range pubKeys.Items {
-		err = s.omniState.TeardownAndDestroy(ctx, pubKey.Metadata())
-		if err != nil && !state.IsNotFoundError(err) {
-			destroyErr = multierror.Append(destroyErr, err)
-		}
-	}
-
-	err = s.omniState.TeardownAndDestroy(ctx, identity.Metadata())
-	if err != nil && !state.IsNotFoundError(err) {
-		destroyErr = multierror.Append(destroyErr, err)
-	}
-
-	err = s.omniState.TeardownAndDestroy(ctx, authres.NewUser(resources.DefaultNamespace, identity.TypedSpec().Value.UserId).Metadata())
-	if err != nil && !state.IsNotFoundError(err) {
-		destroyErr = multierror.Append(destroyErr, err)
-	}
-
-	if destroyErr != nil {
-		return nil, destroyErr
-	}
-
-	return &emptypb.Empty{}, nil
+	return &emptypb.Empty{}, err
 }
 
 func (s *managementServer) serviceAccountKubeconfig(ctx context.Context, req *management.KubeconfigRequest) (*management.KubeconfigResponse, error) {

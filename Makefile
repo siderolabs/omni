@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-06-11T10:19:52Z by kres 5128bc1.
+# Generated on 2025-06-11T18:28:11Z by kres 37c4809-dirty.
 
 # common variables
 
@@ -246,6 +246,9 @@ unit-tests:  ## Performs unit tests
 unit-tests-race:  ## Performs unit tests with race detection enabled.
 	@$(MAKE) target-$@
 
+run-integration-test: integration-test-linux-amd64 omnictl-linux-amd64 omni-linux-amd64
+	@hack/test/integration.sh
+
 .PHONY: $(ARTIFACTS)/acompat-linux-amd64
 $(ARTIFACTS)/acompat-linux-amd64:
 	@$(MAKE) local-acompat-linux-amd64 DEST=$(ARTIFACTS)
@@ -390,10 +393,6 @@ integration-test: integration-test-darwin-amd64 integration-test-darwin-arm64 in
 image-omni-integration-test:  ## Builds image for omni-integration-test.
 	@$(MAKE) registry-$@ IMAGE_NAME="omni-integration-test"
 
-.PHONY: dev-server
-dev-server:
-	hack/dev-server.sh
-
 .PHONY: docker-compose-up
 docker-compose-up:
 	ARTIFACTS="$(ARTIFACTS)" SHA="$(SHA)" TAG="$(TAG)" USERNAME="$(USERNAME)" REGISTRY="$(REGISTRY)" JS_TOOLCHAIN="$(JS_TOOLCHAIN)" PROTOBUF_TS_VERSION="$(PROTOBUF_TS_VERSION)" PROTOBUF_GRPC_GATEWAY_TS_VERSION="$(PROTOBUF_GRPC_GATEWAY_TS_VERSION)" NODE_BUILD_ARGS="$(NODE_BUILD_ARGS)" TOOLCHAIN="$(TOOLCHAIN)" CGO_ENABLED="$(CGO_ENABLED)" GO_BUILDFLAGS="$(GO_BUILDFLAGS)" GOLANGCILINT_VERSION="$(GOLANGCILINT_VERSION)" GOFUMPT_VERSION="$(GOFUMPT_VERSION)" GOIMPORTS_VERSION="$(GOIMPORTS_VERSION)" GOMOCK_VERSION="$(GOMOCK_VERSION)" PROTOBUF_GO_VERSION="$(PROTOBUF_GO_VERSION)" GRPC_GO_VERSION="$(GRPC_GO_VERSION)" GRPC_GATEWAY_VERSION="$(GRPC_GATEWAY_VERSION)" VTPROTOBUF_VERSION="$(VTPROTOBUF_VERSION)" DEEPCOPY_VERSION="$(DEEPCOPY_VERSION)" TESTPKGS="$(TESTPKGS)" COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 GO_LDFLAGS="$(GO_LDFLAGS)" GOTOOLCHAIN="$(GOTOOLCHAIN)" GOEXPERIMENT="$(GOEXPERIMENT)" docker compose --file ./hack/compose/docker-compose.yml --file ./hack/compose/docker-compose.override.yml up --build
@@ -413,9 +412,6 @@ mkcert-generate:
 .PHONY: mkcert-uninstall
 mkcert-uninstall:
 	go run ./hack/generate-certs uninstall
-
-run-integration-test: integration-test-linux-amd64 omnictl-linux-amd64 omni-linux-amd64
-	@hack/test/integration.sh
 
 .PHONY: rekres
 rekres:
