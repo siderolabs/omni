@@ -174,7 +174,8 @@ func InitDefault() *Params {
 				BindEndpoint: net.JoinHostPort("localhost", "8080"),
 			},
 			KubernetesProxy: KubernetesProxyService{
-				BindEndpoint: net.JoinHostPort("localhost", "8095"),
+				BindEndpoint:  net.JoinHostPort("0.0.0.0", "8095"),
+				AdvertisedURL: "https://localhost:8095",
 			},
 			Metrics: Service{
 				BindEndpoint: net.JoinHostPort("0.0.0.0", "2122"),
