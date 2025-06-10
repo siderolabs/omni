@@ -29,12 +29,13 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/cosi/helpers"
+	cosihelpers "github.com/siderolabs/omni/client/pkg/cosi/helpers"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/exposedservice"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/image"
@@ -175,18 +176,53 @@ func (ctrl *KubernetesStatusController) Run(ctx context.Context, r controller.Ru
 func (ctrl *KubernetesStatusController) updateExposedServices(ctx context.Context, r controller.Runtime, cluster string, services []*corev1.Service, logger *zap.Logger) error {
 	tracker := trackResource(r, resources.DefaultNamespace, omni.ExposedServiceType, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster)))
 
-	reconciler, err := exposedservice.NewReconciler(ctx, r, logger, cluster, ctrl.workloadProxySubdomain, ctrl.advertisedAPIURL, services)
+	exposedServiceList, err := safe.ReaderListAll[*omni.ExposedService](ctx, r)
+	if err != nil {
+		return fmt.Errorf("error listing exposed services: %w", err)
+	}
+
+	exposedServices := slices.Collect(exposedServiceList.All())
+
+	reconciler, err := exposedservice.NewReconciler(cluster, ctrl.workloadProxySubdomain, ctrl.advertisedAPIURL, exposedServices, services, logger)
 	if err != nil {
 		return fmt.Errorf("error creating exposed service reconciler: %w", err)
 	}
 
-	servicesToKeep, err := reconciler.ReconcileServices(ctx)
+	servicesToUpdate, err := reconciler.ReconcileServices()
 	if err != nil {
 		return fmt.Errorf("error reconciling services: %w", err)
 	}
 
-	for _, service := range servicesToKeep {
-		tracker.keep(service)
+	for _, service := range servicesToUpdate {
+		version := service.Metadata().Version()
+
+		updatedService, updateErr := safe.WriterModifyWithResult(ctx, r, service, func(res *omni.ExposedService) error {
+			helpers.SyncAllLabels(service, res)
+			helpers.SyncAllAnnotations(service, res)
+			res.TypedSpec().Value = service.TypedSpec().Value
+
+			return nil
+		})
+		if updateErr != nil {
+			return fmt.Errorf("error updating exposed service %s: %w", service.Metadata().ID(), updateErr)
+		}
+
+		updatedVersion := updatedService.Metadata().Version()
+		serviceCluster, _ := updatedService.Metadata().Labels().Get(omni.LabelCluster)
+
+		if !updatedVersion.Equal(version) {
+			logger.Info("updated exposed service",
+				zap.Uint64("version", updatedVersion.Value()),
+				zap.String("cluster", serviceCluster),
+				zap.Bool("has_explicit_alias", updatedService.TypedSpec().Value.HasExplicitAlias),
+				zap.String("url", updatedService.TypedSpec().Value.Url),
+				zap.Uint32("port", updatedService.TypedSpec().Value.Port),
+				zap.String("label", updatedService.TypedSpec().Value.Label),
+				zap.String("error", updatedService.TypedSpec().Value.Error),
+			)
+		}
+
+		tracker.keep(updatedService)
 	}
 
 	return tracker.cleanup(ctx)
@@ -327,7 +363,7 @@ func (ctrl *KubernetesStatusController) cleanupExposedServices(ctx context.Conte
 		),
 	)
 
-	_, err = helpers.TeardownAndDestroyAll(ctx, r, toDestroy)
+	_, err = cosihelpers.TeardownAndDestroyAll(ctx, r, toDestroy)
 
 	return err
 }

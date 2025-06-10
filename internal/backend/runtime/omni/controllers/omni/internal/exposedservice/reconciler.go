@@ -8,7 +8,6 @@ package exposedservice
 import (
 	"bytes"
 	"compress/gzip"
-	"context"
 	"encoding/base64"
 	"encoding/xml"
 	"errors"
@@ -18,9 +17,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/resource"
-	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/siderolabs/gen/optional"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -33,7 +30,6 @@ import (
 
 // Reconciler is the reconciler for ExposedService resources.
 type Reconciler struct {
-	r      controller.ReaderWriter
 	logger *zap.Logger
 
 	exposedServices map[resource.ID]*omni.ExposedService
@@ -49,47 +45,46 @@ type Reconciler struct {
 // NewReconciler creates a new ExposedService reconciler.
 //
 // The Reconciler is supposed to be used only once.
-func NewReconciler(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, cluster, workloadProxySubdomain,
-	advertisedAPIURL string, services []*corev1.Service,
+func NewReconciler(cluster, workloadProxySubdomain, advertisedAPIURL string,
+	exposedServices []*omni.ExposedService, kubernetesServices []*corev1.Service, logger *zap.Logger,
 ) (*Reconciler, error) {
-	exposedServicesList, err := safe.ReaderListAll[*omni.ExposedService](ctx, r)
-	if err != nil {
-		return nil, fmt.Errorf("error listing exposed services: %w", err)
-	}
+	exposedServicesMap := make(map[resource.ID]*omni.ExposedService, len(exposedServices))
+	usedAliases := make(map[string]resource.ID, len(exposedServicesMap))
 
-	exposedServices := make(map[resource.ID]*omni.ExposedService, exposedServicesList.Len())
-	usedAliases := make(map[string]resource.ID, exposedServicesList.Len())
-
-	for exposedService := range exposedServicesList.All() {
+	for _, exposedService := range exposedServices {
 		alias, _ := exposedService.Metadata().Labels().Get(omni.LabelExposedServiceAlias)
-		exposedServices[exposedService.Metadata().ID()] = exposedService
+		exposedServicesMap[exposedService.Metadata().ID()] = exposedService
 		usedAliases[alias] = exposedService.Metadata().ID()
 	}
 
 	return &Reconciler{
-		r:                      r,
 		logger:                 logger,
 		usedAliases:            usedAliases,
-		exposedServices:        exposedServices,
+		exposedServices:        exposedServicesMap,
 		cluster:                cluster,
 		workloadProxySubdomain: workloadProxySubdomain,
 		advertisedAPIURL:       advertisedAPIURL,
-		services:               services,
+		services:               kubernetesServices,
 	}, nil
 }
 
 // ReconcileServices reconciles the ExposedService resources for the given services and returns the ones that should be kept.
 //
 // It is supposed to be called only once.
-func (reconciler *Reconciler) ReconcileServices(ctx context.Context) ([]*omni.ExposedService, error) {
+func (reconciler *Reconciler) ReconcileServices() ([]*omni.ExposedService, error) {
 	servicesToKeep := make([]*omni.ExposedService, 0, len(reconciler.services))
 
 	for _, service := range reconciler.services {
 		svcID := service.Name + "." + service.Namespace
 		logger := reconciler.logger.With(zap.String("service", svcID))
-		exposedService := omni.NewExposedService(resources.DefaultNamespace, reconciler.cluster+"/"+svcID)
+		exposedServiceID := reconciler.cluster + "/" + svcID
 
-		keep, err := reconciler.reconcileService(ctx, exposedService, service, logger)
+		exposedService := reconciler.exposedServices[exposedServiceID]
+		if exposedService == nil {
+			exposedService = omni.NewExposedService(resources.DefaultNamespace, reconciler.cluster+"/"+svcID)
+		}
+
+		keep, err := reconciler.reconcileService(exposedService, service, logger)
 		if err != nil {
 			return nil, err
 		}
@@ -102,18 +97,7 @@ func (reconciler *Reconciler) ReconcileServices(ctx context.Context) ([]*omni.Ex
 	return servicesToKeep, nil
 }
 
-func (reconciler *Reconciler) reconcileService(ctx context.Context, exposedService *omni.ExposedService, service *corev1.Service, logger *zap.Logger) (keep bool, err error) {
-	var version resource.Version
-
-	existingExposedService := reconciler.exposedServices[exposedService.Metadata().ID()]
-	if existingExposedService != nil {
-		if existingExposedService.Metadata().Phase() == resource.PhaseTearingDown {
-			return false, nil
-		}
-
-		version = existingExposedService.Metadata().Version()
-	}
-
+func (reconciler *Reconciler) reconcileService(exposedService *omni.ExposedService, service *corev1.Service, logger *zap.Logger) (keep bool, err error) {
 	port, err := strconv.Atoi(service.Annotations[constants.ExposedServicePortAnnotationKey])
 	if err != nil || port < 1 || port > 65535 {
 		logger.Warn("invalid port on Service", zap.String("port", service.Annotations[constants.ExposedServicePortAnnotationKey]))
@@ -136,32 +120,13 @@ func (reconciler *Reconciler) reconcileService(ctx context.Context, exposedServi
 		explicitAliasOpt = optional.Some(explicitAlias)
 	}
 
-	updatedService, err := safe.WriterModifyWithResult(ctx, reconciler.r, exposedService, func(res *omni.ExposedService) error {
-		return reconciler.updateExposedService(res, explicitAliasOpt, port, label, icon, logger)
-	})
-	if err != nil {
+	if err = reconciler.updateExposedService(exposedService, explicitAliasOpt, port, label, icon, logger); err != nil {
 		return false, fmt.Errorf("error updating exposed service: %w", err)
 	}
 
-	updatedVersion := updatedService.Metadata().Version()
-	cluster, _ := updatedService.Metadata().Labels().Get(omni.LabelCluster)
-	hasExplicitAlias := updatedService.TypedSpec().Value.HasExplicitAlias
-
-	if !updatedVersion.Equal(version) {
-		logger.Info("updated exposed service",
-			zap.Uint64("version", updatedVersion.Value()),
-			zap.String("cluster", cluster),
-			zap.Bool("has_explicit_alias", hasExplicitAlias),
-			zap.String("url", updatedService.TypedSpec().Value.Url),
-			zap.Uint32("port", updatedService.TypedSpec().Value.Port),
-			zap.String("label", updatedService.TypedSpec().Value.Label),
-			zap.String("error", updatedService.TypedSpec().Value.Error),
-		)
-	}
-
-	alias, _ := updatedService.Metadata().Labels().Get(omni.LabelExposedServiceAlias)
-	reconciler.usedAliases[alias] = updatedService.Metadata().ID()
-	reconciler.exposedServices[updatedService.Metadata().ID()] = updatedService
+	alias, _ := exposedService.Metadata().Labels().Get(omni.LabelExposedServiceAlias)
+	reconciler.usedAliases[alias] = exposedService.Metadata().ID()
+	reconciler.exposedServices[exposedService.Metadata().ID()] = exposedService
 
 	return true, nil
 }
@@ -171,7 +136,19 @@ func (reconciler *Reconciler) updateExposedService(res *omni.ExposedService, exp
 
 	requestedExplicitAlias, explicitAliasRequested := explicitAliasOpt.Get()
 	hasExplicitAlias := res.TypedSpec().Value.HasExplicitAlias
-	_, hasExistingAlias := res.Metadata().Labels().Get(omni.LabelExposedServiceAlias)
+	currentAlias, hasExistingAlias := res.Metadata().Labels().Get(omni.LabelExposedServiceAlias)
+	requestedExplicitAlias = strings.ToLower(requestedExplicitAlias)
+	currentAlias = strings.ToLower(currentAlias)
+
+	// if the service has an explicit alias, but it is now getting a new alias,
+	// we need to free it here, so that it can be reused by another service
+	abandoningCurrentExplicitAlias := hasExistingAlias && hasExplicitAlias &&
+		(!explicitAliasRequested || requestedExplicitAlias != currentAlias)
+	if abandoningCurrentExplicitAlias {
+		if ownerID, ok := reconciler.usedAliases[currentAlias]; ok && ownerID == res.Metadata().ID() {
+			delete(reconciler.usedAliases, currentAlias)
+		}
+	}
 
 	var (
 		alias string

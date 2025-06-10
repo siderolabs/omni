@@ -86,6 +86,23 @@ func CopyLabels(src, dst resource.Resource, keys ...string) {
 	})
 }
 
+// SyncAllLabels synchronizes all labels from one resource to another.
+// It copies all labels from the source resource to the destination resource
+// and removes any labels from the destination resource that are not present in the source resource.
+func SyncAllLabels(src, dst resource.Resource) {
+	dst.Metadata().Labels().Do(func(tmp kvutils.TempKV) {
+		for key, value := range src.Metadata().Labels().Raw() {
+			tmp.Set(key, value)
+		}
+
+		for key := range dst.Metadata().Labels().Raw() {
+			if _, ok := src.Metadata().Labels().Get(key); !ok {
+				tmp.Delete(key)
+			}
+		}
+	})
+}
+
 // CopyAllAnnotations copies all annotations from one resource to another.
 func CopyAllAnnotations(src, dst resource.Resource) {
 	dst.Metadata().Annotations().Do(func(tmp kvutils.TempKV) {
@@ -101,6 +118,23 @@ func CopyAnnotations(src, dst resource.Resource, annotations ...string) {
 		for _, key := range annotations {
 			if label, ok := src.Metadata().Annotations().Get(key); ok {
 				tmp.Set(key, label)
+			}
+		}
+	})
+}
+
+// SyncAllAnnotations synchronizes all annotations from one resource to another.
+// It copies all annotations from the source resource to the destination resource
+// and removes any annotations from the destination resource that are not present in the source resource.
+func SyncAllAnnotations(src, dst resource.Resource) {
+	dst.Metadata().Annotations().Do(func(tmp kvutils.TempKV) {
+		for key, value := range src.Metadata().Annotations().Raw() {
+			tmp.Set(key, value)
+		}
+
+		for key := range dst.Metadata().Annotations().Raw() {
+			if _, ok := src.Metadata().Annotations().Get(key); !ok {
+				tmp.Delete(key)
 			}
 		}
 	})
