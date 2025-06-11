@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-06-06T17:20:38Z by kres fc6afbe-dirty.
+# Generated on 2025-06-11T10:19:52Z by kres 5128bc1.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -348,7 +348,7 @@ ARG GO_LDFLAGS
 ARG VERSION_PKG="internal/version"
 ARG SHA
 ARG TAG
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GOARCH=amd64 GOOS=darwin go test -c -covermode=atomic -tags integration,sidero.debug -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=integration-test -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /integration-test-darwin-amd64
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GOARCH=amd64 GOOS=darwin go test -c -covermode=atomic -coverpkg=github.com/siderolabs/omni/client/...,github.com/siderolabs/omni/... -tags integration,sidero.debug -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=integration-test -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /integration-test-darwin-amd64
 
 # builds integration-test-darwin-arm64
 FROM base AS integration-test-darwin-arm64-build
@@ -360,7 +360,7 @@ ARG GO_LDFLAGS
 ARG VERSION_PKG="internal/version"
 ARG SHA
 ARG TAG
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GOARCH=arm64 GOOS=darwin go test -c -covermode=atomic -tags integration,sidero.debug -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=integration-test -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /integration-test-darwin-arm64
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GOARCH=arm64 GOOS=darwin go test -c -covermode=atomic -coverpkg=github.com/siderolabs/omni/client/...,github.com/siderolabs/omni/... -tags integration,sidero.debug -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=integration-test -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /integration-test-darwin-arm64
 
 # builds integration-test-linux-amd64
 FROM base AS integration-test-linux-amd64-build
@@ -372,7 +372,7 @@ ARG GO_LDFLAGS
 ARG VERSION_PKG="internal/version"
 ARG SHA
 ARG TAG
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GOARCH=amd64 GOOS=linux go test -c -covermode=atomic -tags integration,sidero.debug -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=integration-test -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /integration-test-linux-amd64
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GOARCH=amd64 GOOS=linux go test -c -covermode=atomic -coverpkg=github.com/siderolabs/omni/client/...,github.com/siderolabs/omni/... -tags integration,sidero.debug -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=integration-test -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /integration-test-linux-amd64
 
 # builds integration-test-linux-arm64
 FROM base AS integration-test-linux-arm64-build
@@ -384,7 +384,7 @@ ARG GO_LDFLAGS
 ARG VERSION_PKG="internal/version"
 ARG SHA
 ARG TAG
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GOARCH=arm64 GOOS=linux go test -c -covermode=atomic -tags integration,sidero.debug -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=integration-test -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /integration-test-linux-arm64
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GOARCH=arm64 GOOS=linux go test -c -covermode=atomic -coverpkg=github.com/siderolabs/omni/client/...,github.com/siderolabs/omni/... -tags integration,sidero.debug -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=integration-test -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /integration-test-linux-arm64
 
 # builds make-cookies-linux-amd64
 FROM base AS make-cookies-linux-amd64-build

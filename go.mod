@@ -1,9 +1,8 @@
 module github.com/siderolabs/omni
 
-go 1.24.2
+go 1.24.4
 
 replace (
-	github.com/siderolabs/gen => github.com/unix4ever/gen v0.0.0-20250606184729-3e319e7e52c5
 	// use nested module
 	github.com/siderolabs/omni/client => ./client
 	// forked go-yaml that introduces RawYAML interface, which can be used to populate YAML fields using bytes
@@ -65,7 +64,7 @@ require (
 	github.com/siderolabs/discovery-api v0.1.6
 	github.com/siderolabs/discovery-client v0.1.11
 	github.com/siderolabs/discovery-service v1.0.10
-	github.com/siderolabs/gen v0.8.1
+	github.com/siderolabs/gen v0.8.4
 	github.com/siderolabs/go-api-signature v0.3.6
 	github.com/siderolabs/go-circular v0.2.3
 	github.com/siderolabs/go-debug v0.5.0
@@ -81,7 +80,7 @@ require (
 	github.com/siderolabs/kms-client v0.1.0
 	github.com/siderolabs/omni/client v0.49.0
 	github.com/siderolabs/proto-codec v0.1.2
-	github.com/siderolabs/siderolink v0.3.14
+	github.com/siderolabs/siderolink v0.3.15
 	github.com/siderolabs/talos/pkg/machinery v1.10.1
 	github.com/siderolabs/tcpproxy v0.1.0
 	github.com/sirupsen/logrus v1.9.3
@@ -97,10 +96,10 @@ require (
 	go.uber.org/goleak v1.3.0
 	go.uber.org/mock v0.5.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.38.0
-	golang.org/x/net v0.40.0
-	golang.org/x/sync v0.14.0
-	golang.org/x/text v0.25.0
+	golang.org/x/crypto v0.39.0
+	golang.org/x/net v0.41.0
+	golang.org/x/sync v0.15.0
+	golang.org/x/text v0.26.0
 	golang.org/x/time v0.11.0
 	golang.org/x/tools v0.33.0
 	golang.zx2c4.com/wireguard v0.0.0-20250505131008-436f7fdc1670
@@ -252,7 +251,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
 	golang.org/x/exp v0.0.0-20250506013437-ce4c2cf36ca6 // indirect
-	golang.org/x/mod v0.24.0 // indirect
+	golang.org/x/mod v0.25.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/term v0.32.0 // indirect

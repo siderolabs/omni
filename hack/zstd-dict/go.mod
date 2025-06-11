@@ -1,6 +1,6 @@
 module github.com/siderolabs/omni-hack-zstd-dict
 
-go 1.24.1
+go 1.24.4
 
 require (
 	github.com/klauspost/compress v1.18.0
