@@ -15,6 +15,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/gen/optional"
 	"github.com/stripe/stripe-go/v76"
 	"github.com/stripe/stripe-go/v76/subscriptionitem"
 	"go.uber.org/zap"
@@ -94,13 +95,17 @@ func (ctrl *StripeMetricsReporterController) Run(ctx context.Context, r controll
 	stripe.Key = ctrl.stripeAPIKey
 
 	var (
-		pendingCount uint32
+		pendingCount optional.Optional[uint32]
 		timerCh      <-chan time.Time
 	)
 
 	processPending := func() {
-		count := pendingCount
-		pendingCount = 0
+		if !pendingCount.IsPresent() {
+			return
+		}
+
+		count := pendingCount.ValueOr(0)
+		pendingCount = optional.Optional[uint32]{} // Reset to empty
 
 		err := updateStripeSubscriptionItemQuantity(ctx, ctrl.stripeSubscriptionItemID, count, log)
 		if err != nil {
@@ -130,7 +135,7 @@ func (ctrl *StripeMetricsReporterController) Run(ctx context.Context, r controll
 			return err
 		}
 
-		pendingCount = metrics.TypedSpec().Value.RegisteredMachinesCount
+		pendingCount = optional.Some(metrics.TypedSpec().Value.RegisteredMachinesCount)
 
 		timerCh = time.After(ctrl.debounceDuration)
 
