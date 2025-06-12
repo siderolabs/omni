@@ -26,25 +26,25 @@ type HTTPService interface {
 //nolint:govet
 type Services struct {
 	// API is the Omni gRPC API service, gateway and the frontend.
-	API Service `yaml:"api"`
+	API *Service `yaml:"api"`
 	// DevServerProxy is used in Omni development and allows proxying through Omni to the node JS dev server.
-	DevServerProxy DevServerProxyService `yaml:"devServerProxy"`
+	DevServerProxy *DevServerProxyService `yaml:"devServerProxy"`
 	// Metrics exposes prometheus metrics.
-	Metrics Service `yaml:"metrics"`
+	Metrics *Service `yaml:"metrics"`
 	// KubernetesProxy proxies the Kubernetes API to the clusters managed by Omni.
-	KubernetesProxy KubernetesProxyService `yaml:"kubernetesProxy"`
+	KubernetesProxy *KubernetesProxyService `yaml:"kubernetesProxy"`
 	// Siderolink manages WireGuard connections to the Talos machines connected to Omni.
-	Siderolink SiderolinkService `yaml:"siderolink"`
+	Siderolink *SiderolinkService `yaml:"siderolink"`
 	// MachineAPI is the public API of Omni that helps to establish WireGuard connections.
-	MachineAPI MachineAPI `yaml:"machineAPI"`
+	MachineAPI *MachineAPI `yaml:"machineAPI"`
 	// LocalResourceService runs COSI API service that gives readonly access to all resources.
-	LocalResourceService LocalResourceService `yaml:"localResourceService"`
+	LocalResourceService *LocalResourceService `yaml:"localResourceService"`
 	// EmbeddedDiscoveryService runs https://discovery.talos.dev/ inside Omni.
-	EmbeddedDiscoveryService EmbeddedDiscoveryService `yaml:"embeddedDiscoveryService"`
+	EmbeddedDiscoveryService *EmbeddedDiscoveryService `yaml:"embeddedDiscoveryService"`
 	// LoadBalancer configures Omni Kubernetes loadbalancer runner.
-	LoadBalancer LoadBalancerService `yaml:"loadBalancer"`
+	LoadBalancer *LoadBalancerService `yaml:"loadBalancer"`
 	// WorkloadProxy runs the workload proxy service in Omni.
-	WorkloadProxy WorkloadProxy `yaml:"workloadProxy"`
+	WorkloadProxy *WorkloadProxy `yaml:"workloadProxy"`
 }
 
 // Service is the base service config.

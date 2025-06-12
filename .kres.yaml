@@ -46,11 +46,15 @@ spec:
     - self-hosted
     - omni
 ---
+kind: service.CodeCov
+spec:
+  inputPaths:
+    - coverage-emulator.txt
+    - coverage-integration.txt
+---
 kind: auto.CustomSteps
 spec:
   steps:
-    - name: dev-server
-      toplevel: true
     - name: docker-compose-up
       toplevel: true
     - name: docker-compose-down
@@ -63,15 +67,8 @@ spec:
       toplevel: true
     - name: run-integration-test
       toplevel: true
----
-kind: custom.Step
-name: dev-server
-spec:
-  makefile:
-    enabled: true
-    phony: true
-    script:
-      - hack/dev-server.sh
+      dependants:
+        - coverage
 ---
 kind: custom.Step
 name: docker-compose-up
@@ -212,6 +209,7 @@ spec:
             - "/tmp/integration-test"
     environment:
       WITH_DEBUG: "true"
+      WITH_RACE: "true"
       INTEGRATION_RUN_E2E_TEST: "true"
       INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|Auth|DefaultCluster|CLICommands)$"
       TALEMU_TEST_ARGS: "--test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$"

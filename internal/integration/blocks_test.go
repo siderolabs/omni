@@ -21,7 +21,7 @@ import (
 
 // AssertBlockClusterShouldBeReady is a reusable block of assertions that can be used to verify that a cluster is fully ready.
 func AssertBlockClusterShouldBeReady(ctx context.Context, rootClient *client.Client, clusterName,
-	expectedTalosVersion string, talosAPIKeyPrepare TalosAPIKeyPrepareFunc,
+	expectedTalosVersion string,
 ) subTestList { //nolint:nolintlint,revive
 	return subTestList{
 		{
@@ -51,21 +51,21 @@ func AssertBlockClusterShouldBeReady(ctx context.Context, rootClient *client.Cli
 		},
 		{
 			"EtcdMembersShouldMatchOmniResources",
-			AssertEtcdMembershipMatchesOmniResources(ctx, rootClient, clusterName, talosAPIKeyPrepare),
+			AssertEtcdMembershipMatchesOmniResources(ctx, rootClient, clusterName),
 		},
 		{
 			"TalosMembersShouldMatchOmniResources",
-			AssertTalosMembersMatchOmni(ctx, rootClient, clusterName, talosAPIKeyPrepare),
+			AssertTalosMembersMatchOmni(ctx, rootClient, clusterName),
 		},
 		{
 			"TalosVersionShouldMatchExpected",
-			AssertTalosVersion(ctx, rootClient, clusterName, expectedTalosVersion, talosAPIKeyPrepare),
+			AssertTalosVersion(ctx, rootClient, clusterName, expectedTalosVersion),
 		},
 	}
 }
 
 // AssertBlockProxyAPIAccessShouldWork is a reusable block of assertions that can be used to verify that Omni API proxies work.
-func AssertBlockProxyAPIAccessShouldWork(ctx context.Context, rootClient *client.Client, clusterName string, talosAPIKeyPrepare TalosAPIKeyPrepareFunc) []subTest { //nolint:nolintlint,revive
+func AssertBlockProxyAPIAccessShouldWork(ctx context.Context, rootClient *client.Client, clusterName string) []subTest { //nolint:nolintlint,revive
 	return []subTest{
 		{
 			"ClusterKubernetesAPIShouldBeAccessibleViaOmni",
@@ -73,7 +73,7 @@ func AssertBlockProxyAPIAccessShouldWork(ctx context.Context, rootClient *client
 		},
 		{
 			"ClusterTalosAPIShouldBeAccessibleViaOmni",
-			AssertTalosAPIAccessViaOmni(ctx, rootClient, clusterName, talosAPIKeyPrepare),
+			AssertTalosAPIAccessViaOmni(ctx, rootClient, clusterName),
 		},
 	}
 }
@@ -86,10 +86,9 @@ func AssertBlockProxyAPIAccessShouldWork(ctx context.Context, rootClient *client
 func AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
 	ctx context.Context, rootClient *client.Client,
 	clusterName, expectedTalosVersion, expectedKubernetesVersion string,
-	talosAPIKeyPrepare TalosAPIKeyPrepareFunc,
 ) []subTest { //nolint:nolintlint,revive
-	return AssertBlockClusterShouldBeReady(ctx, rootClient, clusterName, expectedTalosVersion, talosAPIKeyPrepare).
-		Append(AssertBlockProxyAPIAccessShouldWork(ctx, rootClient, clusterName, talosAPIKeyPrepare)...).
+	return AssertBlockClusterShouldBeReady(ctx, rootClient, clusterName, expectedTalosVersion).
+		Append(AssertBlockProxyAPIAccessShouldWork(ctx, rootClient, clusterName)...).
 		Append(
 			subTest{
 				"ClusterKubernetesVersionShouldBeCorrect",
@@ -110,7 +109,7 @@ func AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
 
 // AssertBlockRestoreEtcdFromLatestBackup is a reusable block of assertions that can be used to verify that a
 // cluster's control plane can be broken, destroyed and then restored from an etcd backup.
-func AssertBlockRestoreEtcdFromLatestBackup(ctx context.Context, rootClient *client.Client, talosAPIKeyPrepare TalosAPIKeyPrepareFunc,
+func AssertBlockRestoreEtcdFromLatestBackup(ctx context.Context, rootClient *client.Client,
 	options Options, controlPlaneNodeCount int, clusterName, assertDeploymentNS, assertDeploymentName string,
 ) subTestList { //nolint:nolintlint,revive
 	return subTestList{
@@ -142,7 +141,7 @@ func AssertBlockRestoreEtcdFromLatestBackup(ctx context.Context, rootClient *cli
 		},
 		subTest{
 			"EtcdMembersShouldMatchOmniResources",
-			AssertEtcdMembershipMatchesOmniResources(ctx, rootClient, clusterName, talosAPIKeyPrepare),
+			AssertEtcdMembershipMatchesOmniResources(ctx, rootClient, clusterName),
 		},
 	).Append(
 		subTest{
@@ -155,7 +154,7 @@ func AssertBlockRestoreEtcdFromLatestBackup(ctx context.Context, rootClient *cli
 		},
 		subTest{
 			"KubeletShouldBeRestartedOnWorkers",
-			AssertTalosServiceIsRestarted(ctx, rootClient, clusterName, talosAPIKeyPrepare, "kubelet", resource.LabelExists(omni.LabelWorkerRole)),
+			AssertTalosServiceIsRestarted(ctx, rootClient, clusterName, "kubelet", resource.LabelExists(omni.LabelWorkerRole)),
 		},
 		subTest{
 			"KubernetesDeploymentShouldHaveRunningPods",
@@ -168,7 +167,7 @@ func AssertBlockRestoreEtcdFromLatestBackup(ctx context.Context, rootClient *cli
 
 // AssertBlockCreateClusterFromEtcdBackup is a reusable block of assertions that can be used to verify that a
 // new cluster can be created from another cluster's etcd backup.
-func AssertBlockCreateClusterFromEtcdBackup(ctx context.Context, rootClient *client.Client, talosAPIKeyPrepare TalosAPIKeyPrepareFunc, options Options,
+func AssertBlockCreateClusterFromEtcdBackup(ctx context.Context, rootClient *client.Client, options Options,
 	sourceClusterName, newClusterName, assertDeploymentNS, assertDeploymentName string,
 ) subTestList { //nolint:nolintlint,revive
 	return subTestList{
@@ -196,7 +195,7 @@ func AssertBlockCreateClusterFromEtcdBackup(ctx context.Context, rootClient *cli
 		},
 		subTest{
 			"EtcdMembersShouldMatchOmniResources",
-			AssertEtcdMembershipMatchesOmniResources(ctx, rootClient, newClusterName, talosAPIKeyPrepare),
+			AssertEtcdMembershipMatchesOmniResources(ctx, rootClient, newClusterName),
 		},
 	).Append(
 		subTest{
@@ -235,7 +234,6 @@ func AssertBlockKubernetesDeploymentCreateAndRunning(ctx context.Context, manage
 func AssertClusterCreateAndReady(
 	ctx context.Context,
 	rootClient *client.Client,
-	talosAPIKeyPrepare TalosAPIKeyPrepareFunc,
 	name string,
 	options ClusterOptions,
 	testOutputDir string,
@@ -250,7 +248,7 @@ func AssertClusterCreateAndReady(
 			CreateCluster(ctx, rootClient, options),
 		},
 	).Append(
-		AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(ctx, rootClient, clusterName, options.MachineOptions.TalosVersion, options.MachineOptions.KubernetesVersion, talosAPIKeyPrepare)...,
+		AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(ctx, rootClient, clusterName, options.MachineOptions.TalosVersion, options.MachineOptions.KubernetesVersion)...,
 	).Append(
 		subTest{
 			"AssertSupportBundleContents",

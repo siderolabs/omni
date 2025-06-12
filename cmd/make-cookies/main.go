@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/siderolabs/omni/internal/backend/workloadproxy"
+	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
 	"github.com/siderolabs/omni/internal/pkg/clientconfig"
 )
 
@@ -32,7 +32,7 @@ func app() error {
 		return fmt.Errorf("usage: %s <endpoint>", os.Args[0])
 	}
 
-	cfg := clientconfig.New(os.Args[1])
+	cfg := clientconfig.New(os.Args[1], os.Getenv("OMNI_SERVICE_ACCOUNT_KEY"))
 	defer cfg.Close() //nolint:errcheck
 
 	client, err := cfg.GetClient(ctx)

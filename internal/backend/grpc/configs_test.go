@@ -17,8 +17,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/siderolabs/go-api-signature/pkg/message"
 	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
@@ -55,23 +53,23 @@ func TestGenerateConfigs(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
 	defer cancel()
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
 	logger := zaptest.NewLogger(t)
+	st := omniruntime.NewTestState(logger)
 
-	rt, err := omniruntime.New(nil, nil, nil, nil,
-		nil, nil, nil, nil, st, nil, prometheus.NewRegistry(), nil, logger)
+	rt, err := omniruntime.NewRuntime(nil, nil, nil, nil,
+		nil, nil, nil, nil, st, prometheus.NewRegistry(), nil, logger)
 	require.NoError(t, err)
 
 	runtime.Install(omniruntime.Name, rt)
 
-	k8s, err := kubernetes.New(st)
+	k8s, err := kubernetes.New(st.Default())
 	require.NoError(t, err)
 
 	runtime.Install(kubernetes.Name, k8s)
 
 	clusterName := "cluster1"
 
-	address := runServer(t, st)
+	address := runServer(t, st.Default())
 
 	c, err := client.New(address)
 	require.NoError(t, err)
@@ -109,7 +107,7 @@ func TestGenerateConfigs(t *testing.T) {
 
 		kubeconfigResource.TypedSpec().Value.Data = adminKubeconfig
 
-		require.NoError(t, st.Create(ctx, kubeconfigResource))
+		require.NoError(t, st.Default().Create(ctx, kubeconfigResource))
 
 		var kubeconfig []byte
 
@@ -121,10 +119,10 @@ func TestGenerateConfigs(t *testing.T) {
 
 		var taint *omni.ClusterTaint
 
-		taint, err = safe.ReaderGetByID[*omni.ClusterTaint](ctx, st, clusterName)
+		taint, err = safe.ReaderGetByID[*omni.ClusterTaint](ctx, st.Default(), clusterName)
 		require.NoError(t, err)
 
-		require.NoError(t, st.Destroy(ctx, taint.Metadata()))
+		require.NoError(t, st.Default().Destroy(ctx, taint.Metadata()))
 	})
 
 	t.Run("kubeconfig enabled no auth", func(t *testing.T) {
@@ -154,7 +152,7 @@ func TestGenerateConfigs(t *testing.T) {
 
 		secrets.TypedSpec().Value.Data = data
 
-		require.NoError(t, st.Create(ctx, secrets))
+		require.NoError(t, st.Default().Create(ctx, secrets))
 
 		var cfg []byte
 
@@ -170,10 +168,10 @@ func TestGenerateConfigs(t *testing.T) {
 
 		var taint *omni.ClusterTaint
 
-		taint, err = safe.ReaderGetByID[*omni.ClusterTaint](ctx, st, clusterName)
+		taint, err = safe.ReaderGetByID[*omni.ClusterTaint](ctx, st.Default(), clusterName)
 		require.NoError(t, err)
 
-		require.NoError(t, st.Destroy(ctx, taint.Metadata()))
+		require.NoError(t, st.Default().Destroy(ctx, taint.Metadata()))
 	})
 }
 

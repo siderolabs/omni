@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-06-06T17:20:38Z by kres fc6afbe-dirty.
+# Generated on 2025-06-09T15:23:59Z by kres 37c4809-dirty.
 
 name: e2e-forced-removal-cron
 concurrency:
@@ -65,6 +65,7 @@ jobs:
           RUN_TALEMU_TESTS: "false"
           TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
           WITH_DEBUG: "true"
+          WITH_RACE: "true"
         run: |
           sudo -E make run-integration-test
       - name: save-integration-test-artifacts
