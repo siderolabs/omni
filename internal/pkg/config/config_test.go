@@ -30,6 +30,9 @@ var backups []byte
 //go:embed testdata/unknown-keys.yaml
 var unknownKeys []byte
 
+//go:embed testdata/config-no-tls-certs.yaml
+var configNoTLSCerts []byte
+
 func TestValidateConfig(t *testing.T) {
 	for _, tt := range []struct {
 		name        string
@@ -65,6 +68,12 @@ func TestValidateConfig(t *testing.T) {
 			name:    "unknown keys",
 			config:  unknownKeys,
 			loadErr: "unknown keys found",
+		},
+		{
+			// Having no TLS cert/key neither for the API nor for Kubernetes Proxy Server is NOT an error,
+			// as Omni might be running behind a reverse proxy that handles the TLS termination.
+			name:   "no tls certs",
+			config: configNoTLSCerts,
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

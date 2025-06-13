@@ -1,0 +1,31 @@
+account:
+  id:  some-id 
+  name:  some-name 
+
+services:
+  api:
+    endpoint:  localhost:8080 
+  siderolink:
+    joinTokensMode:  strict 
+  kubernetesProxy:
+    endpoint: 0.0.0.0:8095
+
+auth:
+  keyPruner:
+    interval:  10m 
+
+logs:
+  audit:
+    path:  _out/audit 
+
+storage:
+  secondary:
+    path:  _out/secondary-storage/bolt.db 
+  default:
+    kind:  etcd 
+    etcd:
+      privateKeySource: some-source
+registries:
+  talos:  factory.talos.dev 
+  kubernetes:  registry.k8s.io 
+  imageFactoryBaseURL:  https://factory.talos.dev 

@@ -106,9 +106,9 @@ type KubernetesProxyService struct {
 	// This value is used in the machine join config, kernel params and schematics generation.
 	AdvertisedURL string `yaml:"advertisedURL"`
 	// CertFile is the TLS cert.
-	CertFile string `yaml:"certFile" validate:"required"`
+	CertFile string `yaml:"certFile"`
 	// KeyFile is the TLS key.
-	KeyFile string `yaml:"keyFile" validate:"required"`
+	KeyFile string `yaml:"keyFile"`
 }
 
 // GetBindEndpoint implements HTTPService.
