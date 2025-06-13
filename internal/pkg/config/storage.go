@@ -40,7 +40,7 @@ type BoltDB struct {
 // EtcdParams defines etcd storage configs.
 type EtcdParams struct { ///nolint:govet
 	// External etcd: list of endpoints, as host:port pairs.
-	Endpoints            []string      `yaml:"endpoints"`
+	Endpoints            []string      `yaml:"endpoints" merge:"replace"`
 	DialKeepAliveTime    time.Duration `yaml:"dialKeepAliveTime"`
 	DialKeepAliveTimeout time.Duration `yaml:"dialKeepAliveTimeout"`
 	CAFile               string        `yaml:"caFile"`
@@ -53,5 +53,5 @@ type EtcdParams struct { ///nolint:govet
 	EmbeddedUnsafeFsync bool   `yaml:"embeddedUnsafeFsync"`
 
 	PrivateKeySource string   `yaml:"privateKeySource" validate:"required"`
-	PublicKeyFiles   []string `yaml:"publicKeyFiles"`
+	PublicKeyFiles   []string `yaml:"publicKeyFiles" merge:"replace"`
 }

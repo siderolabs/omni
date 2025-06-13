@@ -58,7 +58,7 @@ type ResourceLoggerConfig struct {
 	// LogLevel is the level of the logs to use when writing the data.
 	LogLevel string `yaml:"logLevel"`
 	// Types is the list of the resource types to log to stdout.
-	Types []string `yaml:"types"`
+	Types []string `yaml:"types" merge:"replace"`
 }
 
 // LogsStripe report usage metrics to stripe.

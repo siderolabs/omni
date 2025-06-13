@@ -107,11 +107,13 @@ var rootCmdArgs struct {
 // RootCmd returns the root command.
 func RootCmd() *cobra.Command { return initOnce() }
 
+var cmdConfig = config.InitDefault()
+
 var initOnce = sync.OnceValue(func() *cobra.Command {
 	rootCmd.Flags().BoolVar(&rootCmdArgs.debug, "debug", false, "enable debug logs.")
 
-	rootCmd.Flags().StringVar(&config.Config.Account.ID, "account-id", config.Config.Account.ID, "instance account ID, should never be changed.")
-	rootCmd.Flags().StringVar(&config.Config.Account.Name, "name", config.Config.Account.Name, "instance user-facing name.")
+	rootCmd.Flags().StringVar(&cmdConfig.Account.ID, "account-id", cmdConfig.Account.ID, "instance account ID, should never be changed.")
+	rootCmd.Flags().StringVar(&cmdConfig.Account.Name, "name", cmdConfig.Account.Name, "instance user-facing name.")
 
 	defineServiceFlags()
 	defineAuthFlags()
@@ -126,8 +128,6 @@ var initOnce = sync.OnceValue(func() *cobra.Command {
 
 	return rootCmd
 })
-
-var cmdConfig = config.InitDefault()
 
 func defineServiceFlags() {
 	// API
