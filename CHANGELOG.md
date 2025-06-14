@@ -1,3 +1,32 @@
+## [Omni 0.51.0-beta.1](https://github.com/siderolabs/omni/releases/tag/v0.51.0-beta.1) (2025-06-14)
+
+Welcome to the v0.51.0-beta.1 release of Omni!  
+*This is a pre-release of Omni*
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Utku Ozdemir
+
+### Changes
+<details><summary>2 commits</summary>
+<p>
+
+* [`4b40dc1`](https://github.com/siderolabs/omni/commit/4b40dc1dcf20c94479b5838fe66d52cb5206160e) fix: do more fixes on config backward-compatibility
+* [`3085c3f`](https://github.com/siderolabs/omni/commit/3085c3f73b97ea0cb8e61084ef623913530e0a19) fix: remove `required` config validation from k8s proxy cert and key
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.51.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.51.0-beta.0)
+
 ## [Omni 0.51.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v0.51.0-beta.0) (2025-06-13)
 
 Welcome to the v0.51.0-beta.0 release of Omni!
