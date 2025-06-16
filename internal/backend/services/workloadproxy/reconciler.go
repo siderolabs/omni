@@ -6,83 +6,56 @@
 package workloadproxy
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"slices"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/akutz/memconn"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/hashicorp/go-multierror"
-	"github.com/siderolabs/go-loadbalancer/loadbalancer"
 	"github.com/siderolabs/go-loadbalancer/upstream"
-	"github.com/siderolabs/tcpproxy"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/siderolabs/omni/internal/backend/workloadproxy/lb"
 )
 
-type lbStatus struct {
-	lb *loadbalancer.TCP
-}
-
-// Close closes the load balancer and waits for it to terminate.
-//
-// It should be called only if it was successfully started, otherwise it blocks indefinitely on the Wait call.
-func (lbSts *lbStatus) Close() error {
-	var lb *loadbalancer.TCP
-
-	lb, lbSts.lb = lbSts.lb, nil
-
-	if lb == nil {
-		return nil
-	}
-
-	if err := lb.Close(); err != nil {
-		return fmt.Errorf("failed to close LB: %w", err)
-	}
-
-	if err := lb.Wait(); err != nil && !errors.Is(err, net.ErrClosed) {
-		return fmt.Errorf("failed to wait for load balancer: %w", err)
-	}
-
-	return nil
-}
+const aliasClusterIDSeparator = ":"
 
 // Reconciler reconciles the load balancers for a cluster.
 type Reconciler struct {
-	clusterToAliasToLBStatus map[resource.ID]map[string]*lbStatus
-	aliasToCluster           map[string]resource.ID
+	clusterToAliasToLB map[resource.ID]map[string]*lb.LB
+	aliasToCluster     map[string]resource.ID
 
-	connProvider *memconn.Provider
-	logger       *zap.Logger
-	lbLogger     *zap.Logger
-	logLevel     zapcore.Level
-	mu           sync.Mutex
+	logger      *zap.Logger
+	lbLogger    *zap.Logger
+	proxyDialer *net.Dialer
+
+	logLevel zapcore.Level
+	mu       sync.Mutex
 }
 
 // NewReconciler creates a new Reconciler.
 func NewReconciler(logger *zap.Logger, logLevel zapcore.Level) *Reconciler {
-	// use an in-memory transport for the connections to the load balancer
-	provider := &memconn.Provider{}
-
-	provider.MapNetwork("tcp", "memu")
-
 	if logger == nil {
 		logger = zap.NewNop()
 	}
 
 	return &Reconciler{
-		clusterToAliasToLBStatus: map[resource.ID]map[string]*lbStatus{},
-		aliasToCluster:           map[string]resource.ID{},
-		connProvider:             provider,
-		logger:                   logger,
-		lbLogger:                 logger.WithOptions(zap.IncreaseLevel(zapcore.ErrorLevel)),
-		logLevel:                 logLevel,
+		clusterToAliasToLB: map[resource.ID]map[string]*lb.LB{},
+		aliasToCluster:     map[string]resource.ID{},
+		logger:             logger,
+		lbLogger:           logger.WithOptions(zap.IncreaseLevel(zapcore.ErrorLevel)),
+		logLevel:           logLevel,
+		proxyDialer: &net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		},
 	}
 }
 
@@ -96,7 +69,7 @@ func (registry *Reconciler) Reconcile(cluster resource.ID, aliasToUpstreamAddres
 	var errs error
 
 	// drop removed LBs
-	for alias := range registry.clusterToAliasToLBStatus[cluster] {
+	for alias := range registry.clusterToAliasToLB[cluster] {
 		if _, ok := aliasToUpstreamAddresses[alias]; ok { // still present
 			continue
 		}
@@ -119,56 +92,29 @@ func (registry *Reconciler) Reconcile(cluster resource.ID, aliasToUpstreamAddres
 func (registry *Reconciler) ensureLB(cluster resource.ID, alias string, upstreamAddresses []string) error {
 	registry.logger.Log(registry.logLevel, "ensure LB", zap.String("cluster", cluster), zap.String("alias", alias), zap.Strings("upstream_addresses", upstreamAddresses))
 
-	hostPort := registry.hostPortForAlias(cluster, alias)
-	lbSts := registry.clusterToAliasToLBStatus[cluster][alias]
+	aliasLB := registry.clusterToAliasToLB[cluster][alias]
 
-	if lbSts == nil { // no LB yet, create and start it
-		tcpLB := &loadbalancer.TCP{
-			Logger: registry.lbLogger,
-			Proxy: tcpproxy.Proxy{
-				ListenFunc: registry.connProvider.Listen,
-			},
-			DialTimeout:    1 * time.Second,
-			TCPUserTimeout: 5 * time.Second,
-		}
+	if aliasLB == nil { // no LB yet, create it
+		var err error
 
-		if err := tcpLB.AddRoute(
-			hostPort, slices.Values(upstreamAddresses),
+		aliasLB, err = lb.New(upstreamAddresses, registry.lbLogger,
 			upstream.WithHealthcheckTimeout(time.Second),
 			upstream.WithHealthcheckInterval(time.Minute),
-		); err != nil {
-			return fmt.Errorf("failed to add route for %q/%q: %w", cluster, alias, err)
-		}
-
-		if err := tcpLB.Start(); err != nil {
-			registry.logger.Log(registry.logLevel, "failed to start LB, attempt to stop it")
-
-			startErr := fmt.Errorf("failed to start LB for %q/%q: %w", cluster, alias, err)
-
-			// we still need to close the loadbalancer, so that the health checks goroutines get terminated
-			if closeErr := tcpLB.Close(); closeErr != nil {
-				return errors.Join(startErr, fmt.Errorf("failed to close LB: %w", closeErr))
-			}
-
-			return startErr
-		}
-
-		lbSts = &lbStatus{
-			lb: tcpLB,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create LB for %q/%q: %w", cluster, alias, err)
 		}
 	}
 
-	if err := lbSts.lb.ReconcileRoute(hostPort, slices.Values(upstreamAddresses)); err != nil {
-		return fmt.Errorf("failed to reconcile route for %q/%q: %w", cluster, alias, err)
-	}
+	aliasLB.Reconcile(upstreamAddresses)
 
 	registry.aliasToCluster[alias] = cluster
 
-	if aliasToLB := registry.clusterToAliasToLBStatus[cluster]; aliasToLB == nil {
-		registry.clusterToAliasToLBStatus[cluster] = map[string]*lbStatus{}
+	if aliasToLB := registry.clusterToAliasToLB[cluster]; aliasToLB == nil {
+		registry.clusterToAliasToLB[cluster] = map[string]*lb.LB{}
 	}
 
-	registry.clusterToAliasToLBStatus[cluster][alias] = lbSts
+	registry.clusterToAliasToLB[cluster][alias] = aliasLB
 
 	return nil
 }
@@ -183,12 +129,12 @@ func (registry *Reconciler) GetProxy(alias string) (http.Handler, resource.ID, e
 		return nil, "", nil
 	}
 
-	lbSts := registry.clusterToAliasToLBStatus[clusterID][alias]
-	if lbSts == nil || lbSts.lb == nil {
+	aliasLB := registry.clusterToAliasToLB[clusterID][alias]
+	if aliasLB == nil {
 		return nil, clusterID, nil
 	}
 
-	hostPort := registry.hostPortForAlias(clusterID, alias)
+	hostPort := alias + aliasClusterIDSeparator + clusterID + ":80"
 
 	targetURL := &url.URL{
 		Scheme: "http",
@@ -197,7 +143,9 @@ func (registry *Reconciler) GetProxy(alias string) (http.Handler, resource.ID, e
 
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 	proxy.Transport = &http.Transport{
-		DialContext:           registry.connProvider.DialContext,
+		DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
+			return registry.dialProxy(ctx, network, address)
+		},
 		IdleConnTimeout:       90 * time.Second,
 		ResponseHeaderTimeout: 10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
@@ -206,29 +154,59 @@ func (registry *Reconciler) GetProxy(alias string) (http.Handler, resource.ID, e
 	return proxy, clusterID, nil
 }
 
+func (registry *Reconciler) dialProxy(ctx context.Context, network, address string) (net.Conn, error) {
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		return nil, fmt.Errorf("failed to split host and port from address %s: %w", address, err)
+	}
+
+	parts := strings.SplitN(host, aliasClusterIDSeparator, 2)
+	if len(parts) < 2 {
+		return nil, fmt.Errorf("invalid address format: %s", address)
+	}
+
+	alias := parts[0]
+	clusterID := parts[1]
+
+	destAddress, err := registry.pickDestAddress(clusterID, alias)
+	if err != nil {
+		return nil, fmt.Errorf("failed to pick destination address for alias %s in cluster %s: %w", alias, clusterID, err)
+	}
+
+	return registry.proxyDialer.DialContext(ctx, network, destAddress)
+}
+
+func (registry *Reconciler) pickDestAddress(cluster resource.ID, alias string) (string, error) {
+	registry.mu.Lock()
+	defer registry.mu.Unlock()
+
+	aliasLB := registry.clusterToAliasToLB[cluster][alias]
+	if aliasLB == nil {
+		return "", fmt.Errorf("no load balancer found for cluster %s and alias %s", cluster, alias)
+	}
+
+	destAddress, err := aliasLB.PickAddress()
+	if err != nil {
+		return "", fmt.Errorf("failed to pick address for alias %s: %w", alias, err)
+	}
+
+	return destAddress, nil
+}
+
 func (registry *Reconciler) removeLB(cluster resource.ID, alias string) {
 	registry.logger.Log(registry.logLevel, "remove LB", zap.String("cluster", cluster), zap.String("alias", alias))
 
-	aliasToLB := registry.clusterToAliasToLBStatus[cluster]
-	lbSts := aliasToLB[alias]
+	aliasToLB := registry.clusterToAliasToLB[cluster]
+	aliasLB := aliasToLB[alias]
 
-	if lbSts != nil {
-		if err := lbSts.Close(); err != nil {
-			registry.logger.Error("failed to close LB", zap.String("cluster", cluster), zap.String("alias", alias), zap.Error(err))
-		}
+	if aliasLB != nil {
+		aliasLB.Shutdown()
 	}
 
 	delete(aliasToLB, alias)
 	delete(registry.aliasToCluster, alias)
 
 	if len(aliasToLB) == 0 {
-		delete(registry.clusterToAliasToLBStatus, cluster)
+		delete(registry.clusterToAliasToLB, cluster)
 	}
-}
-
-// hostPortForAlias returns a unique IP:port for the given cluster and alias.
-//
-// The value is arbitrary, as it uses in-memory transport, never reached via the network.
-func (registry *Reconciler) hostPortForAlias(clusterID resource.ID, alias string) string {
-	return fmt.Sprintf("%s_%s:4242", clusterID, alias)
 }
