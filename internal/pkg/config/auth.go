@@ -15,11 +15,11 @@ import (
 //nolint:govet
 type Auth struct {
 	// Auth0 auth type configuration.
-	Auth0 Auth0 `yaml:"auth0" validate:"excluded_with=SAML"`
+	Auth0 Auth0 `yaml:"auth0" validate:"excluded_if=SAML.Enabled true"`
 	// WebAuthn auth type configuration.
 	WebAuthn WebAuthn `yaml:"webauthn"`
 	// SAML auth type configuration.
-	SAML SAML `yaml:"saml" validate:"excluded_with=Auth0"`
+	SAML SAML `yaml:"saml"  validate:"excluded_if=Auth0.Enabled true"`
 
 	// KeyPruner automatically removes the unused public keys registered in Omni.
 	KeyPruner KeyPrunerConfig `yaml:"keyPruner"`

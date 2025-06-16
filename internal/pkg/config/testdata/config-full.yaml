@@ -60,6 +60,8 @@ auth:
     domain: TODO
     initialUsers:
       - test-user@siderolabs.com
+  saml:
+    enabled: false
   initialServiceAccount:
     enabled: true
     role: Admin

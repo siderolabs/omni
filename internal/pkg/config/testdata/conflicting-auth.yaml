@@ -10,6 +10,8 @@ services:
     endpoint: 0.0.0.0:8095
     certFile: certFile
     keyFile: keyFile
+  siderolink:
+    joinTokensMode: strict
 
 auth:
   keyPruner:
