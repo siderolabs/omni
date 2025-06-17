@@ -18,8 +18,11 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/siderolabs/gen/xyaml"
+	"github.com/siderolabs/talos/pkg/machinery/config/merge"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
+	"github.com/siderolabs/omni/client/pkg/compression"
 	consts "github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
@@ -46,142 +49,26 @@ func LoadFromFile(path string) (*Params, error) {
 	return parseConfig(f)
 }
 
-func parseConfig(r io.Reader) (*Params, error) {
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-
-	var config Params
-
-	if err := xyaml.UnmarshalStrict(data, &config); err != nil {
-		return nil, err
-	}
-
-	return &config, nil
-}
-
-// Params defines application configs.
-//
-//nolint:govet
-type Params struct {
-	Account    Account    `yaml:"account" validate:"required"`
-	Services   Services   `yaml:"services" validate:"required"`
-	Auth       Auth       `yaml:"auth" validate:"required"`
-	Logs       Logs       `yaml:"logs" validate:"required"`
-	Storage    Storage    `yaml:"storage" validate:"required"`
-	EtcdBackup EtcdBackup `yaml:"etcdBackup"`
-	Registries Registries `yaml:"registries" validate:"required"`
-	Debug      Debug      `yaml:"debug"`
-	Features   Features   `yaml:"features"`
-}
-
-// Validate Omni params.
-func (p *Params) Validate() error {
-	validate := validator.New(validator.WithRequiredStructEnabled())
-
-	return validate.Struct(p)
-}
-
-// Account defines Omni account settings.
-type Account struct {
-	// ID is the stable identifier of the instance.
-	//
-	// Omni will use that to build paths to etcd storage, etc.
-	ID string `yaml:"id" validate:"required"`
-	// Name is the user-facing name of the instance.
-	//
-	// Omni will use to present some information to the user.
-	// Name can be changed at any time.
-	Name string `yaml:"name" validate:"required"`
-}
-
-// Registries configures docker registries to be used for the Talos and Kubernetes images.
-// Also it has URLs for the image factory.
-type Registries struct {
-	Talos      string `yaml:"talos" validate:"required"`
-	Kubernetes string `yaml:"kubernetes" validate:"required"`
-
-	ImageFactoryBaseURL    string `yaml:"imageFactoryBaseURL" validate:"required"`
-	ImageFactoryPXEBaseURL string `yaml:"imageFactoryPXEBaseURL"`
-
-	// Mirrors enables registry mirrors for all Talos machines connected to Omni.
-	Mirrors []string `yaml:"mirrors"`
-}
-
-var (
-	localIP = getLocalIPOrEmpty()
-
-	// Config holds the application config and provides the default values for it.
-	Config = InitDefault()
-)
-
-// GetImageFactoryPXEBaseURL reads image factory PXE address from the args.
-func (p *Params) GetImageFactoryPXEBaseURL() (*url.URL, error) {
-	if p.Registries.ImageFactoryPXEBaseURL != "" {
-		return url.Parse(p.Registries.ImageFactoryPXEBaseURL)
-	}
-
-	url, err := url.Parse(p.Registries.ImageFactoryBaseURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid URL specified for the image factory: %w", err)
-	}
-
-	url.Host = fmt.Sprintf("pxe.%s", url.Host)
-
-	return url, nil
-}
-
-// GetOIDCIssuerEndpoint returns the OIDC issuer endpoint.
-func (p *Params) GetOIDCIssuerEndpoint() (string, error) {
-	u, err := url.Parse(p.Services.API.URL())
-	if err != nil {
-		return "", err
-	}
-
-	u.Path, err = url.JoinPath(u.Path, "/oidc")
-	if err != nil {
-		return "", err
-	}
-
-	return u.String(), nil
-}
-
-// PopulateFallbacks in the config file.
-func (p *Params) PopulateFallbacks() {
-	// copy the keys from the main API server if kubernetes proxy doesn't have certs defined explicitly.
-	if !p.Services.KubernetesProxy.IsSecure() {
-		p.Services.KubernetesProxy.CertFile = p.Services.API.CertFile
-		p.Services.KubernetesProxy.KeyFile = p.Services.API.KeyFile
-	}
-
-	// copy the keys from the main API server if dev server proxy doesn't have certs defined explicitly.
-	if !p.Services.DevServerProxy.IsSecure() {
-		p.Services.DevServerProxy.CertFile = p.Services.API.CertFile
-		p.Services.DevServerProxy.KeyFile = p.Services.API.KeyFile
-	}
-}
-
-// InitDefault creates the default config.
-func InitDefault() *Params {
+// Default creates the new default configuration.
+func Default() *Params {
 	return &Params{
 		Account: Account{
 			ID:   "edd2822a-7834-4fe0-8172-cc5581f13a8d",
 			Name: "default",
 		},
 		Services: Services{
-			API: Service{
+			API: &Service{
 				BindEndpoint:  net.JoinHostPort("0.0.0.0", "8080"),
 				AdvertisedURL: "http://localhost:8080",
 			},
-			KubernetesProxy: KubernetesProxyService{
+			KubernetesProxy: &KubernetesProxyService{
 				BindEndpoint:  net.JoinHostPort("0.0.0.0", "8095"),
 				AdvertisedURL: "https://localhost:8095",
 			},
-			Metrics: Service{
+			Metrics: &Service{
 				BindEndpoint: net.JoinHostPort("0.0.0.0", "2122"),
 			},
-			Siderolink: SiderolinkService{
+			Siderolink: &SiderolinkService{
 				WireGuard: SiderolinkWireGuard{
 					BindEndpoint:       net.JoinHostPort("0.0.0.0", wireguardDefaultPort),
 					AdvertisedEndpoint: net.JoinHostPort(localIP, wireguardDefaultPort),
@@ -190,10 +77,10 @@ func InitDefault() *Params {
 				LogServerPort:  8092,
 				JoinTokensMode: JoinTokensModeLegacyOnly,
 			},
-			MachineAPI: MachineAPI{
+			MachineAPI: &MachineAPI{
 				BindEndpoint: net.JoinHostPort(localIP, "8090"),
 			},
-			LoadBalancer: LoadBalancerService{
+			LoadBalancer: &LoadBalancerService{
 				MinPort: 10000,
 				MaxPort: 35000,
 
@@ -204,11 +91,12 @@ func InitDefault() *Params {
 				HealthCheckInterval: 20 * time.Second,
 				HealthCheckTimeout:  15 * time.Second,
 			},
-			LocalResourceService: LocalResourceService{
+			DevServerProxy: &DevServerProxyService{},
+			LocalResourceService: &LocalResourceService{
 				Enabled: true,
 				Port:    8081,
 			},
-			EmbeddedDiscoveryService: EmbeddedDiscoveryService{
+			EmbeddedDiscoveryService: &EmbeddedDiscoveryService{
 				Enabled:           true,
 				Port:              8093,
 				SnapshotsEnabled:  true,
@@ -216,7 +104,7 @@ func InitDefault() *Params {
 				SnapshotsInterval: 10 * time.Minute,
 				LogLevel:          zapcore.WarnLevel.String(),
 			},
-			WorkloadProxy: WorkloadProxy{
+			WorkloadProxy: &WorkloadProxy{
 				Subdomain: "proxy-us",
 				Enabled:   true,
 			},
@@ -277,6 +165,7 @@ func InitDefault() *Params {
 					KeyFile:              "etcd/client.key",
 
 					Embedded:       true,
+					RunElections:   false,
 					EmbeddedDBPath: "_out/etcd/",
 				},
 			},
@@ -295,6 +184,155 @@ func InitDefault() *Params {
 				Endpoint: ":9988",
 			},
 		},
+	}
+}
+
+// Init the config using defaults, merge with overrides, populate fallbacks and validate.
+func Init(logger *zap.Logger, params ...*Params) (*Params, error) {
+	config := Default()
+
+	for _, override := range params {
+		if err := merge.Merge(config, override); err != nil {
+			return nil, err
+		}
+	}
+
+	config.PopulateFallbacks()
+
+	if err := config.Validate(); err != nil {
+		return nil, err
+	}
+
+	if err := compression.InitConfig(config.Features.EnableConfigDataCompression); err != nil {
+		return nil, err
+	}
+
+	logger.Info("initialized resource compression config", zap.Bool("enabled", config.Features.EnableConfigDataCompression))
+
+	return config, nil
+}
+
+func parseConfig(r io.Reader) (*Params, error) {
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+
+	var config Params
+
+	if err := xyaml.UnmarshalStrict(data, &config); err != nil {
+		return nil, err
+	}
+
+	return &config, nil
+}
+
+// Params defines application configs.
+//
+//nolint:govet
+type Params struct {
+	Account    Account    `yaml:"account" validate:"required"`
+	Services   Services   `yaml:"services" validate:"required"`
+	Auth       Auth       `yaml:"auth" validate:"required"`
+	Logs       Logs       `yaml:"logs" validate:"required"`
+	Storage    Storage    `yaml:"storage" validate:"required"`
+	EtcdBackup EtcdBackup `yaml:"etcdBackup"`
+	Registries Registries `yaml:"registries" validate:"required"`
+	Debug      Debug      `yaml:"debug"`
+	Features   Features   `yaml:"features"`
+}
+
+// Validate Omni params.
+func (p *Params) Validate() error {
+	validate := validator.New(validator.WithRequiredStructEnabled())
+
+	if err := validate.Struct(p); err != nil {
+		return err
+	}
+
+	if p.Auth.Auth0.Enabled && p.Auth.SAML.Enabled {
+		return fmt.Errorf("SAML and Auth0 are mutually exclusive")
+	}
+
+	return nil
+}
+
+// Account defines Omni account settings.
+type Account struct {
+	// ID is the stable identifier of the instance.
+	//
+	// Omni will use that to build paths to etcd storage, etc.
+	ID string `yaml:"id" validate:"required"`
+	// Name is the user-facing name of the instance.
+	//
+	// Omni will use to present some information to the user.
+	// Name can be changed at any time.
+	Name string `yaml:"name" validate:"required"`
+}
+
+// Registries configures docker registries to be used for the Talos and Kubernetes images.
+// Also it has URLs for the image factory.
+type Registries struct {
+	Talos      string `yaml:"talos" validate:"required"`
+	Kubernetes string `yaml:"kubernetes" validate:"required"`
+
+	ImageFactoryBaseURL    string `yaml:"imageFactoryBaseURL" validate:"required"`
+	ImageFactoryPXEBaseURL string `yaml:"imageFactoryPXEBaseURL"`
+
+	// Mirrors enables registry mirrors for all Talos machines connected to Omni.
+	Mirrors []string `yaml:"mirrors"`
+}
+
+var (
+	localIP = getLocalIPOrEmpty()
+
+	// Config holds the application config and provides the default values for it.
+	Config = Default()
+)
+
+// GetImageFactoryPXEBaseURL reads image factory PXE address from the args.
+func (p *Params) GetImageFactoryPXEBaseURL() (*url.URL, error) {
+	if p.Registries.ImageFactoryPXEBaseURL != "" {
+		return url.Parse(p.Registries.ImageFactoryPXEBaseURL)
+	}
+
+	url, err := url.Parse(p.Registries.ImageFactoryBaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid URL specified for the image factory: %w", err)
+	}
+
+	url.Host = fmt.Sprintf("pxe.%s", url.Host)
+
+	return url, nil
+}
+
+// GetOIDCIssuerEndpoint returns the OIDC issuer endpoint.
+func (p *Params) GetOIDCIssuerEndpoint() (string, error) {
+	u, err := url.Parse(p.Services.API.URL())
+	if err != nil {
+		return "", err
+	}
+
+	u.Path, err = url.JoinPath(u.Path, "/oidc")
+	if err != nil {
+		return "", err
+	}
+
+	return u.String(), nil
+}
+
+// PopulateFallbacks in the config file.
+func (p *Params) PopulateFallbacks() {
+	// copy the keys from the main API server if kubernetes proxy doesn't have certs defined explicitly.
+	if !p.Services.KubernetesProxy.IsSecure() {
+		p.Services.KubernetesProxy.CertFile = p.Services.API.CertFile
+		p.Services.KubernetesProxy.KeyFile = p.Services.API.KeyFile
+	}
+
+	// copy the keys from the main API server if dev server proxy doesn't have certs defined explicitly.
+	if p.Services.DevServerProxy != nil && !p.Services.DevServerProxy.IsSecure() {
+		p.Services.DevServerProxy.CertFile = p.Services.API.CertFile
+		p.Services.DevServerProxy.KeyFile = p.Services.API.KeyFile
 	}
 }
 

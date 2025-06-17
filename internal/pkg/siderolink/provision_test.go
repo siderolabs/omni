@@ -85,7 +85,7 @@ func TestProvision(t *testing.T) {
 		return privateKey.PublicKey().String()
 	}
 
-	setup := func(ctx context.Context, t *testing.T, mode config.JoinTokensMode) (state.State, *siderolink.ProvisionHandler) {
+	setup := func(ctx context.Context, t *testing.T, mode string) (state.State, *siderolink.ProvisionHandler) {
 		state := state.WrapCore(namespaced.NewState(inmem.Build))
 		logger := zaptest.NewLogger(t)
 
@@ -242,7 +242,7 @@ func TestProvision(t *testing.T) {
 
 	for _, mode := range []struct {
 		name string
-		mode config.JoinTokensMode
+		mode string
 	}{
 		{
 			name: "legacy",

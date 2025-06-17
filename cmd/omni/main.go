@@ -7,14 +7,14 @@
 package main
 
 import (
-	"os"
+	"log"
 
 	_ "github.com/siderolabs/omni/cmd/acompat" // this package should always be imported first for init->set env to work
 	"github.com/siderolabs/omni/cmd/omni/cmd"
 )
 
 func main() {
-	if err := cmd.RootCmd().Execute(); err != nil {
-		os.Exit(1)
+	if err := cmd.Execute(); err != nil {
+		log.Fatalf("failed to run Omni: %s", err)
 	}
 }

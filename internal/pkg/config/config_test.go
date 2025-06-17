@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
@@ -32,6 +33,33 @@ var unknownKeys []byte
 
 //go:embed testdata/config-no-tls-certs.yaml
 var configNoTLSCerts []byte
+
+//go:embed testdata/enable-saml.yaml
+var enableSAML []byte
+
+func TestMergeConfig(t *testing.T) {
+	cfg, err := config.Init(zaptest.NewLogger(t),
+		&config.Params{
+			Services: config.Services{
+				API: &config.Service{
+					BindEndpoint: "0.0.0.0:80",
+					CertFile:     "crt",
+					KeyFile:      "key",
+				},
+			},
+			Storage: config.Storage{
+				Default: config.StorageDefault{
+					Etcd: config.EtcdParams{
+						PrivateKeySource: "vault",
+					},
+				},
+			},
+		},
+	)
+
+	require.NoError(t, err)
+	require.True(t, cfg.Services.EmbeddedDiscoveryService.Enabled)
+}
 
 func TestValidateConfig(t *testing.T) {
 	for _, tt := range []struct {
@@ -57,7 +85,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			name:        "conflicting auth",
 			config:      conflictingAuth,
-			validateErr: "Field validation for 'Auth0' failed",
+			validateErr: "mutually exclusive",
 		},
 		{
 			name:        "conflicting backups",
@@ -74,6 +102,10 @@ func TestValidateConfig(t *testing.T) {
 			// as Omni might be running behind a reverse proxy that handles the TLS termination.
 			name:   "no tls certs",
 			config: configNoTLSCerts,
+		},
+		{
+			name:   "SAML with initial users",
+			config: enableSAML,
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

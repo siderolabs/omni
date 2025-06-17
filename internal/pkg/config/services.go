@@ -7,8 +7,6 @@ package config
 
 import (
 	"fmt"
-	"slices"
-	"strings"
 	"time"
 )
 
@@ -26,25 +24,25 @@ type HTTPService interface {
 //nolint:govet
 type Services struct {
 	// API is the Omni gRPC API service, gateway and the frontend.
-	API Service `yaml:"api"`
+	API *Service `yaml:"api"`
 	// DevServerProxy is used in Omni development and allows proxying through Omni to the node JS dev server.
-	DevServerProxy DevServerProxyService `yaml:"devServerProxy"`
+	DevServerProxy *DevServerProxyService `yaml:"devServerProxy"`
 	// Metrics exposes prometheus metrics.
-	Metrics Service `yaml:"metrics"`
+	Metrics *Service `yaml:"metrics"`
 	// KubernetesProxy proxies the Kubernetes API to the clusters managed by Omni.
-	KubernetesProxy KubernetesProxyService `yaml:"kubernetesProxy"`
+	KubernetesProxy *KubernetesProxyService `yaml:"kubernetesProxy"`
 	// Siderolink manages WireGuard connections to the Talos machines connected to Omni.
-	Siderolink SiderolinkService `yaml:"siderolink"`
+	Siderolink *SiderolinkService `yaml:"siderolink"`
 	// MachineAPI is the public API of Omni that helps to establish WireGuard connections.
-	MachineAPI MachineAPI `yaml:"machineAPI"`
+	MachineAPI *MachineAPI `yaml:"machineAPI"`
 	// LocalResourceService runs COSI API service that gives readonly access to all resources.
-	LocalResourceService LocalResourceService `yaml:"localResourceService"`
+	LocalResourceService *LocalResourceService `yaml:"localResourceService"`
 	// EmbeddedDiscoveryService runs https://discovery.talos.dev/ inside Omni.
-	EmbeddedDiscoveryService EmbeddedDiscoveryService `yaml:"embeddedDiscoveryService"`
+	EmbeddedDiscoveryService *EmbeddedDiscoveryService `yaml:"embeddedDiscoveryService"`
 	// LoadBalancer configures Omni Kubernetes loadbalancer runner.
-	LoadBalancer LoadBalancerService `yaml:"loadBalancer"`
+	LoadBalancer *LoadBalancerService `yaml:"loadBalancer"`
 	// WorkloadProxy runs the workload proxy service in Omni.
-	WorkloadProxy WorkloadProxy `yaml:"workloadProxy"`
+	WorkloadProxy *WorkloadProxy `yaml:"workloadProxy"`
 }
 
 // Service is the base service config.
@@ -148,7 +146,7 @@ type SiderolinkService struct {
 	// - strict - only for Talos >= 1.6.x
 	// - legacyAllowed - relies on the legacy join tokens mode for Talos < 1.6.x (less secure, use only if Talos upgrade is not an option)
 	// - legacy - does not use node unique join tokens mode
-	JoinTokensMode JoinTokensMode `yaml:"joinTokensMode"  validate:"oneof=strict legacyAllowed legacy"`
+	JoinTokensMode string `yaml:"joinTokensMode"  validate:"oneof=strict legacyAllowed legacy"`
 	// DisableLastEndpoint disables populating last known peer endpoint for the WireGuard peers.
 	// Using last known peer endpoints helps Omni quicker re-establish WireGuard connection to the nodes
 	// after it is restarted.
@@ -230,36 +228,6 @@ type LoadBalancerService struct {
 type WorkloadProxy struct {
 	Subdomain string `yaml:"subdomain"`
 	Enabled   bool   `yaml:"enabled"`
-}
-
-// JoinTokensMode is the join token operation mode config.
-//
-//nolint:recvcheck
-type JoinTokensMode string
-
-// String implements pflag.Value.
-func (s JoinTokensMode) String() string {
-	return string(s)
-}
-
-// Set implements pflag.Value.
-func (s *JoinTokensMode) Set(value string) error {
-	if !slices.Contains(s.values(), value) {
-		return fmt.Errorf("should be one of %s", strings.Join(s.values(), ", "))
-	}
-
-	*s = JoinTokensMode(value)
-
-	return nil
-}
-
-// Type implements pflag.Value.
-func (s JoinTokensMode) Type() string {
-	return fmt.Sprintf("[%s]", strings.Join(s.values(), ","))
-}
-
-func (JoinTokensMode) values() []string {
-	return []string{JoinTokensModeLegacyOnly, JoinTokensModeLegacyAllowed, JoinTokensModeStrict}
 }
 
 const (

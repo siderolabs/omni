@@ -58,7 +58,7 @@ func TestClusterValidation(t *testing.T) {
 	}
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, config.EmbeddedDiscoveryService{})...)
+	st := validated.NewState(innerSt, omni.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, &config.EmbeddedDiscoveryService{})...)
 
 	talosVersion1 := omnires.NewTalosVersion(resources.DefaultNamespace, "1.4.0")
 	talosVersion1.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.27.0", "1.27.1"}
@@ -172,7 +172,7 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	buildState := func(conf config.EmbeddedDiscoveryService) (inner, outer state.State) {
+	buildState := func(conf *config.EmbeddedDiscoveryService) (inner, outer state.State) {
 		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 		st := validated.NewState(innerSt, omni.ClusterValidationOptions(state.WrapCore(innerSt), config.EtcdBackup{}, conf)...)
 
@@ -182,7 +182,7 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 	t.Run("disabled instance-wide - create", func(t *testing.T) {
 		t.Parallel()
 
-		_, st := buildState(config.EmbeddedDiscoveryService{
+		_, st := buildState(&config.EmbeddedDiscoveryService{
 			Enabled: false,
 		})
 
@@ -202,7 +202,7 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 		t.Parallel()
 
 		// prepare a cluster which has the feature enabled, while it is disabled instance-wide
-		innerSt, st := buildState(config.EmbeddedDiscoveryService{
+		innerSt, st := buildState(&config.EmbeddedDiscoveryService{
 			Enabled: false,
 		})
 
@@ -231,7 +231,7 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 	t.Run("enabled instance-wide", func(t *testing.T) {
 		t.Parallel()
 
-		_, st := buildState(config.EmbeddedDiscoveryService{
+		_, st := buildState(&config.EmbeddedDiscoveryService{
 			Enabled: true,
 		})
 

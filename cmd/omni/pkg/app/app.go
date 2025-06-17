@@ -3,7 +3,8 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package cmd
+// Package app contains the Omni startup methods.
+package app
 
 import (
 	"context"
@@ -11,15 +12,11 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/go-logr/zapr"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/siderolabs/talos/pkg/machinery/config/merge"
+	"github.com/siderolabs/go-debug"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"k8s.io/klog/v2"
 
-	"github.com/siderolabs/omni/client/pkg/compression"
-	"github.com/siderolabs/omni/client/pkg/constants"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
@@ -40,44 +37,32 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 	"github.com/siderolabs/omni/internal/pkg/features"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
-	"github.com/siderolabs/omni/internal/version"
 )
 
-// RunService starts the main Omni server.
-func RunService(ctx context.Context, logger *zap.Logger, paramsList ...*config.Params) error {
-	cfg := config.InitDefault()
+// PrepareConfig prepare the Omni configuration.
+func PrepareConfig(logger *zap.Logger, params ...*config.Params) (*config.Params, error) {
+	var err error
 
-	for _, params := range paramsList {
-		if err := merge.Merge(cfg, params); err != nil {
-			return err
-		}
+	config.Config, err = config.Init(logger, params...)
+	if err != nil {
+		return nil, err
 	}
 
-	cfg.PopulateFallbacks()
+	return config.Config, nil
+}
 
-	if err := cfg.Validate(); err != nil {
-		return err
+func runDebugServer(ctx context.Context, logger *zap.Logger, bindEndpoint string) {
+	debugLogFunc := func(msg string) {
+		logger.Info(msg)
 	}
 
-	config.Config = cfg
-
-	if err := compression.InitConfig(config.Config.Features.EnableConfigDataCompression); err != nil {
-		return err
+	if err := debug.ListenAndServe(ctx, bindEndpoint, debugLogFunc); err != nil {
+		logger.Panic("failed to start debug server", zap.Error(err))
 	}
+}
 
-	logger.Info("initialized resource compression config", zap.Bool("enabled", config.Config.Features.EnableConfigDataCompression))
-
-	// set kubernetes logger to use warn log level and use zap
-	klog.SetLogger(zapr.NewLogger(logger.WithOptions(zap.IncreaseLevel(zapcore.WarnLevel)).With(logging.Component("kubernetes"))))
-
-	if constants.IsDebugBuild {
-		logger.Warn("running debug build")
-	}
-
-	logger.Info("starting Omni", zap.String("version", version.Tag))
-
-	logger.Debug("using config", zap.Any("config", config.Config))
-
+// Run the Omni service.
+func Run(ctx context.Context, cfg *config.Params, logger *zap.Logger) error {
 	if cfg.Debug.Server.Endpoint != "" {
 		panichandler.Go(func() {
 			runDebugServer(ctx, logger, cfg.Debug.Server.Endpoint)

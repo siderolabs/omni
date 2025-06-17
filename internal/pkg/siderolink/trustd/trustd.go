@@ -80,8 +80,6 @@ func getCertificate(st state.State, serverAddr net.IP) func(info *tls.ClientHell
 func NewServer(logger *zap.Logger, st state.State, serverAddr net.IP) *grpc.Server {
 	recoveryOpt := grpc_recovery.WithRecoveryHandler(recoveryHandler(logger))
 
-	grpc_prometheus.EnableHandlingTimeHistogram(grpc_prometheus.WithHistogramBuckets([]float64{0.001, 0.01, 0.1, 1, 10, 30, 60, 120, 300, 600}))
-
 	unaryInterceptors := []grpc.UnaryServerInterceptor{
 		grpc_ctxtags.UnaryServerInterceptor(),
 		grpc_zap.UnaryServerInterceptor(logger),

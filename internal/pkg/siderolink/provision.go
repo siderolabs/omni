@@ -75,7 +75,7 @@ func (pc *provisionContext) isAuthorizedSecureFlow() bool {
 }
 
 // NewProvisionHandler creates a new ProvisionHandler.
-func NewProvisionHandler(logger *zap.Logger, state state.State, joinTokenMode config.JoinTokensMode, forceWireguardOverGRPC bool) *ProvisionHandler {
+func NewProvisionHandler(logger *zap.Logger, state state.State, joinTokenMode string, forceWireguardOverGRPC bool) *ProvisionHandler {
 	return &ProvisionHandler{
 		logger:                 logger,
 		state:                  state,
@@ -89,7 +89,7 @@ type ProvisionHandler struct {
 	pb.UnimplementedProvisionServiceServer
 	logger                 *zap.Logger
 	state                  state.State
-	joinTokenMode          config.JoinTokensMode
+	joinTokenMode          string
 	forceWireguardOverGRPC bool
 }
 

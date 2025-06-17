@@ -114,10 +114,10 @@ type Server struct {
 	installEventCh     chan<- resource.ID
 
 	pprofBindAddress string
-	apiService       config.Service
-	metricsService   config.Service
-	devServerProxy   config.DevServerProxyService
-	k8sProxyService  config.KubernetesProxyService
+	apiService       *config.Service
+	metricsService   *config.Service
+	devServerProxy   *config.DevServerProxyService
+	k8sProxyService  *config.KubernetesProxyService
 	workloadProxyKey []byte
 }
 
@@ -665,7 +665,7 @@ func (s *Server) makeAPIServer(regular http.Handler, grpcServer *grpcServer) *ap
 
 	return &apiServer{
 		srv: services.NewFromConfig(
-			&s.apiService,
+			s.apiService,
 			handler,
 		),
 		handler: handler,
@@ -853,7 +853,7 @@ func getOmnictlDownloads(dir string) (http.Handler, error) {
 }
 
 func (s *Server) runDevProxyServer(ctx context.Context, next http.Handler) error {
-	handler, err := services.NewFrontendHandler(s.devServerProxy.ProxyTo, s.logger)
+	handler, err := services.NewFrontendHandler(s.devServerProxy, s.logger)
 	if err != nil {
 		return fmt.Errorf("failed to set up frontend handler: %w", err)
 	}
@@ -868,7 +868,7 @@ func (s *Server) runMetricsServer(ctx context.Context) error {
 
 	logger := s.logger.With(zap.String("server", s.metricsService.BindEndpoint), zap.String("server_type", "metrics"))
 
-	return services.NewFromConfig(&s.metricsService, &metricsMux).Run(ctx, logger)
+	return services.NewFromConfig(s.metricsService, &metricsMux).Run(ctx, logger)
 }
 
 type oidcStore interface {
@@ -911,7 +911,7 @@ func (s *Server) runK8sProxyServer(
 
 	logger := s.logger.With(zap.String("server", s.k8sProxyService.BindEndpoint), zap.String("server_type", "k8s_proxy"))
 
-	return services.NewFromConfig(&s.k8sProxyService, k8sProxy).Run(ctx, logger)
+	return services.NewFromConfig(s.k8sProxyService, k8sProxy).Run(ctx, logger)
 }
 
 // setRealIPRequest extracts ip from the request and sets it to the X-Forwarded-For header if there is no

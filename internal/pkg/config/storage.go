@@ -51,6 +51,9 @@ type EtcdParams struct { ///nolint:govet
 	Embedded            bool   `yaml:"embedded"`
 	EmbeddedDBPath      string `yaml:"embeddedDBPath"`
 	EmbeddedUnsafeFsync bool   `yaml:"embeddedUnsafeFsync"`
+	// Force running elections.
+	// Disabling elections is not possible if etcd is not running in embedded mode.
+	RunElections bool `yaml:"runElections"`
 
 	PrivateKeySource string   `yaml:"privateKeySource" validate:"required"`
 	PublicKeyFiles   []string `yaml:"publicKeyFiles" merge:"replace"`

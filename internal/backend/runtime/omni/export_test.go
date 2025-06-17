@@ -30,7 +30,7 @@ func EtcdElections(ctx context.Context, client *clientv3.Client, electionKey str
 	return etcdElections(ctx, client, electionKey, logger, f)
 }
 
-func ClusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup, embeddedDiscoveryServiceConfig config.EmbeddedDiscoveryService) []validated.StateOption {
+func ClusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup, embeddedDiscoveryServiceConfig *config.EmbeddedDiscoveryService) []validated.StateOption {
 	return clusterValidationOptions(st, etcdBackupConfig, embeddedDiscoveryServiceConfig)
 }
 

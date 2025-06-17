@@ -11,36 +11,27 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 
 	"github.com/siderolabs/gen/ensure"
-	"github.com/siderolabs/go-debug"
+	"github.com/siderolabs/talos/pkg/machinery/config/merge"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
+	"github.com/siderolabs/omni/cmd/omni/pkg/app"
+	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/version"
 )
-
-func runDebugServer(ctx context.Context, logger *zap.Logger, bindEndpoint string) {
-	debugLogFunc := func(msg string) {
-		logger.Info(msg)
-	}
-
-	if err := debug.ListenAndServe(ctx, bindEndpoint, debugLogFunc); err != nil {
-		logger.Panic("failed to start debug server", zap.Error(err))
-	}
-}
 
 // rootCmd represents the base command when called without any subcommands.
 var rootCmd = &cobra.Command{
 	Use:          "omni",
 	Short:        "Omni Kubernetes management platform service",
-	Long:         "This executable runs both frontend and backend",
+	Long:         "This executable runs both Omni frontend and Omni backend",
 	SilenceUsage: true,
 	Version:      version.Tag,
 	RunE: func(*cobra.Command, []string) error {
@@ -82,20 +73,14 @@ var rootCmd = &cobra.Command{
 			cancel()
 		}, logger)
 
-		var configs []*config.Params
-
-		if rootCmdArgs.configPath != "" {
-			var cfg *config.Params
-
-			cfg, err = config.LoadFromFile(rootCmdArgs.configPath)
-			if err != nil {
-				return err
-			}
-
-			configs = append(configs, cfg)
+		config, err := app.PrepareConfig(logger, cmdConfig)
+		if err != nil {
+			return err
 		}
 
-		return RunService(ctx, logger, append(configs, cmdConfig)...)
+		ctx = actor.MarkContextAsInternalActor(ctx)
+
+		return app.Run(ctx, config, logger)
 	},
 }
 
@@ -104,13 +89,35 @@ var rootCmdArgs struct {
 	debug      bool
 }
 
-// RootCmd returns the root command.
-func RootCmd() *cobra.Command { return initOnce() }
+// Execute the command.
+func Execute() error {
+	rootCmd.Flags().StringVar(&rootCmdArgs.configPath, "config-path", "", "load the config from the file, flags have bigger priority")
 
-var cmdConfig = config.InitDefault()
+	// Parsing the config path flag early to let it populate the initial configuration
+	// ignore all errors, they will be handled in the Execute
+	rootCmd.Flags().Parse(os.Args[1:]) //nolint:errcheck
 
-var initOnce = sync.OnceValue(func() *cobra.Command {
-	rootCmd.Flags().BoolVar(&rootCmdArgs.debug, "debug", false, "enable debug logs.")
+	if rootCmdArgs.configPath == "" {
+		return newCommand().Execute()
+	}
+
+	cfg, err := config.LoadFromFile(rootCmdArgs.configPath)
+	if err != nil {
+		return err
+	}
+
+	// override the cmdConfig with the config loaded from the file
+	if err := merge.Merge(cmdConfig, cfg); err != nil {
+		return err
+	}
+
+	return newCommand().Execute()
+}
+
+var cmdConfig = config.Default()
+
+func newCommand() *cobra.Command {
+	rootCmd.Flags().BoolVar(&rootCmdArgs.debug, "debug", constants.IsDebugBuild, "enable debug logs.")
 
 	rootCmd.Flags().StringVar(&cmdConfig.Account.ID, "account-id", cmdConfig.Account.ID, "instance account ID, should never be changed.")
 	rootCmd.Flags().StringVar(&cmdConfig.Account.Name, "name", cmdConfig.Account.Name, "instance user-facing name.")
@@ -124,10 +131,8 @@ var initOnce = sync.OnceValue(func() *cobra.Command {
 	defineDebugFlags()
 	defineEtcdBackupsFlags()
 
-	rootCmd.Flags().StringVar(&rootCmdArgs.configPath, "config-path", "", "load the config from the file, flags have bigger priority")
-
 	return rootCmd
-})
+}
 
 func defineServiceFlags() {
 	// API
@@ -146,13 +151,13 @@ func defineServiceFlags() {
 	rootCmd.Flags().StringVar(
 		&cmdConfig.Services.API.KeyFile,
 		"key",
-		"",
+		cmdConfig.Services.API.KeyFile,
 		"TLS key file",
 	)
 	rootCmd.Flags().StringVar(
 		&cmdConfig.Services.API.CertFile,
 		"cert",
-		"",
+		cmdConfig.Services.API.CertFile,
 		"TLS cert file",
 	)
 
@@ -194,13 +199,13 @@ func defineServiceFlags() {
 	rootCmd.Flags().BoolVar(
 		&cmdConfig.Services.Siderolink.DisableLastEndpoint,
 		"siderolink-disable-last-endpoint",
-		false,
+		cmdConfig.Services.Siderolink.DisableLastEndpoint,
 		"do not populate last known peer endpoint for the WireGuard peers",
 	)
 	rootCmd.Flags().BoolVar(
 		&cmdConfig.Services.Siderolink.UseGRPCTunnel,
 		"siderolink-use-grpc-tunnel",
-		false,
+		cmdConfig.Services.Siderolink.UseGRPCTunnel,
 		"use gRPC tunnel to wrap WireGuard traffic instead of UDP. When enabled, "+
 			"the SideroLink connections from Talos machines will be configured to use the tunnel mode, regardless of their individual configuration. ",
 	)
@@ -216,9 +221,10 @@ func defineServiceFlags() {
 		cmdConfig.Services.Siderolink.LogServerPort,
 		"port for TCP log server",
 	)
-	rootCmd.Flags().Var(
+	rootCmd.Flags().StringVar(
 		&cmdConfig.Services.Siderolink.JoinTokensMode,
 		"join-tokens-mode",
+		cmdConfig.Services.Siderolink.JoinTokensMode,
 		"configures Talos machine join flow to use secure node tokens",
 	)
 
@@ -331,10 +337,14 @@ func defineServiceFlags() {
 
 	// DevServerProxy
 	rootCmd.Flags().StringVar(
-		&cmdConfig.Services.DevServerProxy.ProxyTo, "frontend-dst", "",
+		&cmdConfig.Services.DevServerProxy.ProxyTo,
+		"frontend-dst",
+		cmdConfig.Services.DevServerProxy.ProxyTo,
 		"destination address non API requests from proxy server.")
 	rootCmd.Flags().StringVar(
-		&cmdConfig.Services.DevServerProxy.BindEndpoint, "frontend-bind", "",
+		&cmdConfig.Services.DevServerProxy.BindEndpoint,
+		"frontend-bind",
+		cmdConfig.Services.DevServerProxy.BindEndpoint,
 		"proxy server which will redirect all non API requests to the definied frontend server.")
 }
 
@@ -540,8 +550,6 @@ func defineStorageFlags() {
 		"file containing private key to use for decrypting master key slot.",
 	)
 
-	ensure.NoError(rootCmd.MarkFlagRequired("private-key-source"))
-
 	rootCmd.Flags().StringSliceVar(
 		&cmdConfig.Storage.Default.Etcd.PublicKeyFiles,
 		"public-key-files",
@@ -585,7 +593,7 @@ func defineRegistriesFlags() {
 	rootCmd.Flags().StringSliceVar(
 		&cmdConfig.Registries.Mirrors,
 		"registry-mirror",
-		[]string{},
+		cmdConfig.Registries.Mirrors,
 		"list of registry mirrors to use in format: <registry host>=<mirror URL>",
 	)
 }
