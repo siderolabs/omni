@@ -1,3 +1,39 @@
+## [Omni 0.51.0-beta.2](https://github.com/siderolabs/omni/releases/tag/v0.51.0-beta.2) (2025-06-17)
+
+Welcome to the v0.51.0-beta.2 release of Omni!  
+*This is a pre-release of Omni*
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### 
+
+Omni can now be configured using `YAML` configuration file in addition to the command line flags.
+The parameter `--config-file` can be used for that. Any command line flags have higher priority.
+
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>2 commits</summary>
+<p>
+
+* [`493d00ca`](https://github.com/siderolabs/omni/commit/493d00ca54aaff425182de491b58c78f5faa40c2) fix: properly support `--config-path` argument
+* [`742faec7`](https://github.com/siderolabs/omni/commit/742faec7001b6d5c04a68966b42c4da52665d94d) fix: do not mark SAML and Auth0 config sections as mutually exclusive
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.51.0-beta.1](https://github.com/siderolabs/omni/releases/tag/v0.51.0-beta.1)
+
+
 ## [Omni 0.51.0-beta.1](https://github.com/siderolabs/omni/releases/tag/v0.51.0-beta.1) (2025-06-14)
 
 Welcome to the v0.51.0-beta.1 release of Omni!  

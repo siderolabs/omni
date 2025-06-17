@@ -6,5 +6,12 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v0.51.0-beta.0"
+previous = "v0.51.0-beta.1"
 
+[notes]
+
+[notes.config-file]
+description = """\
+Omni can now be configured using `YAML` configuration file in addition to the command line flags.
+The parameter `--config-file` can be used for that. Any command line flags have higher priority.
+"""
