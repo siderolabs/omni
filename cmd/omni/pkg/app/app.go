@@ -64,7 +64,8 @@ func Run(ctx context.Context, state *omni.State, config *config.Params, logger *
 	prometheus.MustRegister(talosClientFactory)
 
 	dnsService := dns.NewService(state.Default(), logger)
-	workloadProxyReconciler := workloadproxy.NewReconciler(logger.With(logging.Component("workload_proxy_reconciler")), zapcore.DebugLevel)
+	workloadProxyReconciler := workloadproxy.NewReconciler(logger.With(logging.Component("workload_proxy_reconciler")),
+		zapcore.DebugLevel, config.Services.WorkloadProxy.StopLBsAfter)
 
 	var (
 		resourceLogger *resourcelogger.Logger
