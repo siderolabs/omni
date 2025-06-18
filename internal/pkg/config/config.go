@@ -121,8 +121,9 @@ func Default() *Params {
 				LogLevel:          zapcore.WarnLevel.String(),
 			},
 			WorkloadProxy: &WorkloadProxy{
-				Subdomain: "proxy-us",
-				Enabled:   true,
+				Subdomain:    "proxy-us",
+				Enabled:      true,
+				StopLBsAfter: 5 * time.Minute,
 			},
 		},
 		Auth: Auth{
