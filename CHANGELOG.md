@@ -1,3 +1,97 @@
+## [Omni 0.51.0](https://github.com/siderolabs/omni/releases/tag/v0.51.0) (2025-06-18)
+
+Welcome to the v0.51.0 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### 
+
+Omni can now be configured using `YAML` configuration file in addition to the command line flags.
+The parameter `--config-file` can be used for that. Any command line flags have higher priority.
+
+
+### Contributors
+
+* Utku Ozdemir
+* Artem Chernyshev
+* Andrew Rynhard
+* Andrey Smirnov
+
+### Changes
+<details><summary>25 commits</summary>
+<p>
+
+* [`e5773d63`](https://github.com/siderolabs/omni/commit/e5773d6382c8cacb3930540dd54ce7b86df1a84e) release(v0.51.0): prepare release
+* [`a36d3575`](https://github.com/siderolabs/omni/commit/a36d35758af11ee07dd1753c43b6344a1b259efe) release(v0.51.0-beta.2): prepare release
+* [`493d00ca`](https://github.com/siderolabs/omni/commit/493d00ca54aaff425182de491b58c78f5faa40c2) fix: properly support `--config-path` argument
+* [`742faec7`](https://github.com/siderolabs/omni/commit/742faec7001b6d5c04a68966b42c4da52665d94d) fix: do not mark SAML and Auth0 config sections as mutually exclusive
+* [`de86c749`](https://github.com/siderolabs/omni/commit/de86c749ff31b1a2a8d1010d12c7098b9a14581c) release(v0.51.0-beta.1): prepare release
+* [`4b40dc1d`](https://github.com/siderolabs/omni/commit/4b40dc1dcf20c94479b5838fe66d52cb5206160e) fix: do more fixes on config backward-compatibility
+* [`3085c3f7`](https://github.com/siderolabs/omni/commit/3085c3f73b97ea0cb8e61084ef623913530e0a19) fix: remove `required` config validation from k8s proxy cert and key
+* [`bf6c38ab`](https://github.com/siderolabs/omni/commit/bf6c38abe0c4eba55f9de7ad26bc2e655b521874) release(v0.51.0-beta.0): prepare release
+* [`7a815ba1`](https://github.com/siderolabs/omni/commit/7a815ba1143b4ec6441dfc0e10042183c7fed3c3) fix: prevent zero machine count reports on controller shutdown
+* [`33e796e2`](https://github.com/siderolabs/omni/commit/33e796e2a4edc9bcc898f5abab30acfb1bdc8713) chore: rekres, bump Go to 1.24.4, SideroLink to v0.3.15
+* [`f3cec18a`](https://github.com/siderolabs/omni/commit/f3cec18a297003a00bbe632e469df2c335fb9b65) fix: fix exposed service prefix conflict resolution
+* [`5e4c10b3`](https://github.com/siderolabs/omni/commit/5e4c10b32137caef3806d5559d8201f387d115af) fix: use `0.0.0.0:8095` as the default bind endpoint for Kubernetes
+* [`ccd55cc8`](https://github.com/siderolabs/omni/commit/ccd55cc8fb5fddaab91ffc817649ca05fa82702b) feat: rewrite Omni config management
+* [`05aad4d8`](https://github.com/siderolabs/omni/commit/05aad4d86fbf897fbed90ae4b845228dd496cbde) fix: check config patch creation time as well as updated on orphan check
+* [`f3783edc`](https://github.com/siderolabs/omni/commit/f3783edcb0a875f321554e8e7aad6fcd4559c496) fix: display unknown power state correctly on the machines screen
+* [`7c19c318`](https://github.com/siderolabs/omni/commit/7c19c318e810937959464f4d279d58dbbf672c6e) test: improve workload proxying tests
+* [`c9c4c8e1`](https://github.com/siderolabs/omni/commit/c9c4c8e10db05e177d139ff07e5b98fac96581bc) test: use `go test` to build and run Omni integration tests
+* [`df5a2b92`](https://github.com/siderolabs/omni/commit/df5a2b92f98f8671993669a34ed12493cc871884) fix: bump inmem COSI state history capacity
+* [`aa5d89d6`](https://github.com/siderolabs/omni/commit/aa5d89d6d41be2b1c97de442b73d9736948f876a) fix: fix panic in maintenance upgrade
+* [`404bbd93`](https://github.com/siderolabs/omni/commit/404bbd9357f06a58718e1fc0b0c3a78842f6fe85) chore: allow running Omni programmatically from other Go code
+* [`98466220`](https://github.com/siderolabs/omni/commit/98466220bf9a4320fc012e627763593c1c230b3b) fix: fix nil dereference in machine status controller
+* [`13bb8b54`](https://github.com/siderolabs/omni/commit/13bb8b54060f02517ed7164ff71e3328d52c2937) docs: update SECURITY.md
+* [`178d2add`](https://github.com/siderolabs/omni/commit/178d2add3a0a77bf88414bd8a38d94226677137d) fix: make sure `powering on` stage is correctly set on infra machines
+* [`e5d1b4b0`](https://github.com/siderolabs/omni/commit/e5d1b4b0837c3cae9a1ae2347fdc9cf71a35f4fe) fix: properly detect infra provider service accounts
+* [`d88bb1df`](https://github.com/siderolabs/omni/commit/d88bb1df064a2069cb89fe7f1e67d518d6199d09) test: use latest Talemu infra provider version in the integration tests
+</p>
+</details>
+
+### Changes since v0.51.0-beta.2
+<details><summary>1 commit</summary>
+<p>
+
+* [`e5773d63`](https://github.com/siderolabs/omni/commit/e5773d6382c8cacb3930540dd54ce7b86df1a84e) release(v0.51.0): prepare release
+</p>
+</details>
+
+### Changes from siderolabs/gen
+<details><summary>3 commits</summary>
+<p>
+
+* [`dcb2b74`](https://github.com/siderolabs/gen/commit/dcb2b7417879f230a569ce834dad5c89bd09d6bf) feat: add `panicsafe` package
+* [`b36ee43`](https://github.com/siderolabs/gen/commit/b36ee43f667a7a56b340a3e769868ff2a609bb5b) feat: make `xyaml.CheckUnknownKeys` public
+* [`3e319e7`](https://github.com/siderolabs/gen/commit/3e319e7e52c5a74d1730be8e47952b3d16d91148) feat: implement `xyaml.UnmarshalStrict`
+</p>
+</details>
+
+### Changes from siderolabs/siderolink
+<details><summary>2 commits</summary>
+<p>
+
+* [`5f46f65`](https://github.com/siderolabs/siderolink/commit/5f46f6583b9d03f91c9bb5f637149fe466d17bfc) feat: handle panics in goroutines
+* [`d09ff45`](https://github.com/siderolabs/siderolink/commit/d09ff45b450a37aa84652fa70b5cd3467ee8243d) fix: race in wait value
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/go-logr/logr**                 v1.4.2 **_new_**
+* **github.com/go-playground/validator/v10**  v10.26.0 **_new_**
+* **github.com/siderolabs/gen**               v0.8.1 -> v0.8.4
+* **github.com/siderolabs/siderolink**        v0.3.14 -> v0.3.15
+* **golang.org/x/crypto**                     v0.38.0 -> v0.39.0
+* **golang.org/x/net**                        v0.40.0 -> v0.41.0
+* **golang.org/x/sync**                       v0.14.0 -> v0.15.0
+* **golang.org/x/text**                       v0.25.0 -> v0.26.0
+
+Previous release can be found at [v0.50.0](https://github.com/siderolabs/omni/releases/tag/v0.50.0)
+
 ## [Omni 0.51.0-beta.2](https://github.com/siderolabs/omni/releases/tag/v0.51.0-beta.2) (2025-06-17)
 
 Welcome to the v0.51.0-beta.2 release of Omni!  
