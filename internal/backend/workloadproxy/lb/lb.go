@@ -9,9 +9,7 @@ package lb
 
 import (
 	"context"
-	"net"
 	"slices"
-	"syscall"
 	"time"
 
 	"github.com/siderolabs/gen/xslices"
@@ -32,6 +30,10 @@ func New(upstreamAddresses []string, logger *zap.Logger, options ...upstream.Lis
 	}))
 	nodesEqual := func(a, b node) bool { return a.address == b.address }
 
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+
 	upstreams, err := upstream.NewListWithCmp(nodes, nodesEqual, options...)
 	if err != nil {
 		return nil, err
@@ -44,22 +46,33 @@ func New(upstreamAddresses []string, logger *zap.Logger, options ...upstream.Lis
 }
 
 // Reconcile updates the list of upstream addresses in the load balancer.
-func (lb *LB) Reconcile(upstreamAddresses []string) {
+func (lb *LB) Reconcile(upstreamAddresses []string) error {
 	nodes := slices.Values(xslices.Map(upstreamAddresses, func(addr string) node {
 		return node{address: addr, logger: lb.logger}
 	}))
 
 	lb.upstreams.Reconcile(nodes)
+
+	return nil
 }
 
 // PickAddress picks a healthy upstream address from the load balancer.
-func (lb *LB) PickAddress() (string, error) {
+func (lb *LB) PickAddress(ctx context.Context) (string, error) {
+	if err := lb.upstreams.WaitForInitialHealthcheck(ctx); err != nil {
+		return "", err
+	}
+
 	pickedNode, err := lb.upstreams.Pick()
 	if err != nil {
 		return "", err
 	}
 
 	return pickedNode.address, nil
+}
+
+// Notify notifies the load balancer for it to refresh its internal state.
+func (lb *LB) Notify() error {
+	return nil
 }
 
 // Shutdown shuts down the load balancer and its upstream health checks.
@@ -73,6 +86,9 @@ type node struct {
 	address string // host:port
 }
 
+// HealthCheck implements the [upstream.Backend] interface for node.
+//
+// It is taken as-is from the upstream package.
 func (upstream node) HealthCheck(ctx context.Context) (upstream.Tier, error) {
 	start := time.Now()
 	err := upstream.healthCheck(ctx)
@@ -117,15 +133,4 @@ func calcTier(err error, elapsed time.Duration) (upstream.Tier, error) {
 
 	// We should never get here, but there is no way to tell this to Go compiler.
 	return upstream.Tier(len(mins)), err
-}
-
-func probeDialer() *net.Dialer {
-	return &net.Dialer{
-		// The dialer reduces the TIME-WAIT period to 1 seconds instead of the OS default of 60 seconds.
-		Control: func(_, _ string, c syscall.RawConn) error {
-			return c.Control(func(fd uintptr) {
-				syscall.SetsockoptLinger(int(fd), syscall.SOL_SOCKET, syscall.SO_LINGER, &syscall.Linger{Onoff: 1, Linger: 1}) //nolint: errcheck
-			})
-		},
-	}
 }

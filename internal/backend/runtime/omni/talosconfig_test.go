@@ -38,7 +38,7 @@ func TestOperatorTalosconfig(t *testing.T) {
 	clientFactory := talos.NewClientFactory(st.Default(), logger)
 	dnsService := dns.NewService(st.Default(), logger)
 	discoveryClientCache := &discoveryClientCacheMock{}
-	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zapcore.InfoLevel)
+	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zapcore.InfoLevel, 30*time.Second)
 
 	r, err := omniruntime.NewRuntime(clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil, nil,
 		st, prometheus.NewRegistry(), discoveryClientCache, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))

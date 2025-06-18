@@ -164,6 +164,7 @@ services:
   workloadProxy:
     enabled: true
     subdomain: proxy-us
+    stopLBsAfter: 15s # use a short duration to test turning lazy LBs on/off
 auth:
   auth0:
     enabled: true
