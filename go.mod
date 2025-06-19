@@ -3,6 +3,7 @@ module github.com/siderolabs/omni
 go 1.24.4
 
 replace (
+	github.com/siderolabs/go-loadbalancer => github.com/utkuozdemir/sidero-go-loadbalancer v0.0.0-20250618214846-5e7a8b21cbdb
 	// use nested module
 	github.com/siderolabs/omni/client => ./client
 	// forked go-yaml that introduces RawYAML interface, which can be used to populate YAML fields using bytes
