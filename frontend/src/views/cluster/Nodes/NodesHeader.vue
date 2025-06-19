@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <template>
   <div class="flex justify-between items-start flex-wrap mb-7">
-    <t-breadcrumbs :nodeName="$route.params.machine as string"/>
+    <t-breadcrumbs :nodeName="nodeName"/>
     <div class="flex">
       <t-button
         class="header-button"
@@ -50,18 +50,32 @@ included in the LICENSE file.
 
 <script setup lang="ts">
 import { useRoute, useRouter } from "vue-router";
-import { computed, ref, Ref } from "vue";
+import { computed, onMounted, ref, Ref } from "vue";
 import { setupClusterPermissions } from "@/methods/auth";
 
 import TBreadcrumbs from "@/components/TBreadcrumbs.vue";
 import TButton from "@/components/common/Button/TButton.vue";
 import Watch from "@/api/watch";
-import { Resource } from "@/api/grpc";
-import { DefaultNamespace, MachineSetNodeType } from "@/api/resources";
+import { Resource, ResourceService } from "@/api/grpc";
+import { DefaultNamespace, MachineSetNodeType, MachineStatusType } from "@/api/resources";
 import { Runtime } from "@/api/common/omni.pb";
+import { MachineStatusSpec } from "@/api/omni/specs/omni.pb";
+import { withRuntime } from "@/api/options";
 
 const route = useRoute();
 const router = useRouter();
+
+const nodeName = ref(route.params.machine as string);
+
+onMounted(async () => {
+  const res: Resource<MachineStatusSpec> = await ResourceService.Get({
+    namespace: DefaultNamespace,
+    type: MachineStatusType,
+    id: route.params.machine! as string,
+  }, withRuntime(Runtime.Omni));
+
+  nodeName.value = res.spec.network?.hostname || res.metadata.id!;
+});
 
 const shutdownNode = () => {
   router.push({

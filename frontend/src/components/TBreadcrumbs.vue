@@ -11,7 +11,7 @@ included in the LICENSE file.
         <router-link
           v-if="idx !== breadcrumbs.length - 1"
           class="all transition"
-          :to="crumb.to"
+          :to="crumb.to!"
           >{{
             crumb.text === $route.params.machine && !!nodeName
               ? nodeName
