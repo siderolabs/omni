@@ -234,33 +234,49 @@ func (s *Server) Run(ctx context.Context) error {
 
 	apiSrv := s.makeAPIServer(workloadProxyHandler, proxyServer)
 
-	fns := []func() error{
-		func() error { return proxyServer.Serve(ctx, gtwyDialsTo) },
-		func() error { return actualSrv.Serve(ctx, prxDialsTo) },
-		func() error { return apiSrv.Run(ctx) },
-		func() error { return s.runMetricsServer(ctx) },
-		func() error {
-			return s.runK8sProxyServer(ctx, oidcStorage)
-		},
-		func() error { return s.runDevProxyServer(ctx, apiSrv.Handler()) },
-		func() error { return s.logHandler.Start(ctx) },
-		func() error { return s.runMachineAPI(ctx) },
-		func() error { return s.state.RunAuditCleanup(ctx) },
-		func() error { return s.state.HandleErrors(ctx) },
+	type subsystem struct {
+		run  func() error
+		name string
+	}
+
+	newSubsystem := func(name string, f func() error) subsystem {
+		return subsystem{
+			run: func() error {
+				defer func() {
+					s.logger.Info("subsystem stopped", zap.String("name", name))
+				}()
+
+				return f()
+			},
+			name: name,
+		}
+	}
+
+	subsystems := []subsystem{
+		newSubsystem("gateway proxy server", func() error { return proxyServer.Serve(ctx, gtwyDialsTo) }),
+		newSubsystem("HTTP server", func() error { return actualSrv.Serve(ctx, prxDialsTo) }),
+		newSubsystem("internal gRPC server", func() error { return apiSrv.Run(ctx) }),
+		newSubsystem("metrics server", func() error { return s.runMetricsServer(ctx) }),
+		newSubsystem("k8s proxy server", func() error { return s.runK8sProxyServer(ctx, oidcStorage) }),
+		newSubsystem("frontend dev proxy server", func() error { return s.runDevProxyServer(ctx, apiSrv.Handler()) }),
+		newSubsystem("log handler", func() error { return s.logHandler.Start(ctx) }),
+		newSubsystem("machine API", func() error { return s.runMachineAPI(ctx) }),
+		newSubsystem("audit cleanup", func() error { return s.state.RunAuditCleanup(ctx) }),
+		newSubsystem("state error handler", func() error { return s.state.HandleErrors(ctx) }),
 	}
 
 	if s.pprofBindAddress != "" {
-		fns = append(fns, func() error { return runPprofServer(ctx, s.pprofBindAddress, s.logger) })
+		subsystems = append(subsystems, newSubsystem("pprof server", func() error { return runPprofServer(ctx, s.pprofBindAddress, s.logger) }))
 	}
 
-	if config.Config.Debug.Server.Endpoint != "" {
-		fns = append(fns, func() error {
+	if config.Config.Debug.Server.Endpoint != "" && constants.IsDebugBuild {
+		subsystems = append(subsystems, newSubsystem("debug server", func() error {
 			return services.RunDebugServer(ctx, s.logger, config.Config.Debug.Server.Endpoint)
-		})
+		}))
 	}
 
-	for _, fn := range fns {
-		eg.Go(fn)
+	for _, subsystem := range subsystems {
+		eg.Go(subsystem.run)
 	}
 
 	if config.Config.Services.LocalResourceService.Enabled {

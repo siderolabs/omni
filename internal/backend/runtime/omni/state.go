@@ -96,6 +96,8 @@ func (s *State) Close() error {
 func (s *State) HandleErrors(ctx context.Context) error {
 	select {
 	case err := <-s.defaultPersistentState.errors:
+		s.logger.Error("state failed", zap.Error(err))
+
 		return err
 	case <-ctx.Done():
 	}
