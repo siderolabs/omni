@@ -533,80 +533,92 @@ func AssertClusterKubernetesUsage(testCtx context.Context, st state.State, clust
 	}
 }
 
-func saveSupportBundle(ctx context.Context, cli *client.Client, dir, cluster string) error {
+func saveAllSupportBundles(t *testing.T, cli *client.Client, dir string) {
+	ctx := t.Context()
+	omniState := cli.Omni().State()
+
+	list, err := safe.StateListAll[*omni.Cluster](ctx, omniState)
+	require.NoError(t, err, "failed to list all clusters")
+
+	for cluster := range list.All() {
+		t.Logf("save support bundle for cluster %q", cluster.Metadata().ID())
+
+		var savePath string
+
+		if savePath, err = saveSupportBundle(ctx, cli, dir, cluster.Metadata().ID()); err != nil {
+			t.Logf("failed to save support bundle for cluster %q: %v", cluster.Metadata().ID(), err)
+
+			continue
+		}
+
+		t.Logf("saved support bundle for cluster %q to %q", cluster.Metadata().ID(), savePath)
+	}
+}
+
+func saveSupportBundle(ctx context.Context, cli *client.Client, dir, cluster string) (string, error) {
 	supportBundle, err := cli.Management().GetSupportBundle(ctx, cluster, nil)
 	if err != nil {
-		return fmt.Errorf("failed to get support bundle before destruction for cluster %q: %w", cluster, err)
+		return "", fmt.Errorf("failed to get support bundle before destruction for cluster %q: %w", cluster, err)
 	}
 
 	if err = os.MkdirAll(dir, 0o755); err != nil {
-		return fmt.Errorf("failed to create directory %q: %w", dir, err)
+		return "", fmt.Errorf("failed to create directory %q: %w", dir, err)
 	}
 
 	fileName := time.Now().Format("2006-01-02_15-04-05") + "-support-bundle-" + cluster + ".zip"
 	bundlePath := filepath.Join(dir, fileName)
 
 	if err = os.WriteFile(bundlePath, supportBundle, 0o644); err != nil {
-		return fmt.Errorf("failed to write support bundle file %q: %w", cluster, err)
+		return "", fmt.Errorf("failed to write support bundle file %q: %w", cluster, err)
 	}
 
-	return nil
+	return bundlePath, nil
 }
 
 // AssertDestroyCluster destroys a cluster and verifies that all dependent resources are gone.
-func AssertDestroyCluster(testCtx context.Context, omniClient *client.Client, clusterName, outputDir string, expectMachinesRemoved, assertInfraMachinesState, doSaveSupportBundle bool) TestFunc {
+func AssertDestroyCluster(testCtx context.Context, omniState state.State, clusterName string, expectMachinesRemoved, assertInfraMachinesState bool) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, 300*time.Second)
 		defer cancel()
 
-		st := omniClient.Omni().State()
-
-		if doSaveSupportBundle {
-			t.Logf("saving support bundle for cluster %q into %q before destruction", clusterName, outputDir)
-
-			if err := saveSupportBundle(ctx, omniClient, outputDir, clusterName); err != nil {
-				t.Logf("failed to save support bundle: %v", err)
-			}
-		}
-
-		patches := rtestutils.ResourceIDs[*omni.ConfigPatch](ctx, t, st, state.WithLabelQuery(
+		patches := rtestutils.ResourceIDs[*omni.ConfigPatch](ctx, t, omniState, state.WithLabelQuery(
 			resource.LabelEqual(omni.LabelCluster, clusterName),
 		))
 
-		machineSets := rtestutils.ResourceIDs[*omni.MachineSet](ctx, t, st, state.WithLabelQuery(
+		machineSets := rtestutils.ResourceIDs[*omni.MachineSet](ctx, t, omniState, state.WithLabelQuery(
 			resource.LabelEqual(omni.LabelCluster, clusterName),
 		))
 
-		clusterMachineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, st, state.WithLabelQuery(
+		clusterMachineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, omniState, state.WithLabelQuery(
 			resource.LabelEqual(omni.LabelCluster, clusterName),
 		))
 
 		t.Log("destroying cluster", clusterName)
 
-		_, err := st.Teardown(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.ClusterType, clusterName, resource.VersionUndefined))
+		_, err := omniState.Teardown(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.ClusterType, clusterName, resource.VersionUndefined))
 
 		require.NoError(t, err)
 
-		rtestutils.AssertNoResource[*omni.Cluster](ctx, t, st, clusterName)
+		rtestutils.AssertNoResource[*omni.Cluster](ctx, t, omniState, clusterName)
 
 		for _, id := range patches {
-			rtestutils.AssertNoResource[*omni.ConfigPatch](ctx, t, st, id)
+			rtestutils.AssertNoResource[*omni.ConfigPatch](ctx, t, omniState, id)
 		}
 
 		for _, id := range machineSets {
-			rtestutils.AssertNoResource[*omni.MachineSet](ctx, t, st, id)
+			rtestutils.AssertNoResource[*omni.MachineSet](ctx, t, omniState, id)
 		}
 
 		if expectMachinesRemoved {
 			for _, id := range clusterMachineIDs {
-				rtestutils.AssertNoResource[*omni.MachineStatus](ctx, t, st, id)
+				rtestutils.AssertNoResource[*omni.MachineStatus](ctx, t, omniState, id)
 			}
 
 			return
 		}
 
 		// wait for all machines to be returned to the pool as 'available' or be part of a different cluster
-		rtestutils.AssertResources(ctx, t, st, clusterMachineIDs, func(machine *omni.MachineStatus, asrt *assert.Assertions) {
+		rtestutils.AssertResources(ctx, t, omniState, clusterMachineIDs, func(machine *omni.MachineStatus, asrt *assert.Assertions) {
 			_, isAvailable := machine.Metadata().Labels().Get(omni.MachineStatusLabelAvailable)
 			machineCluster, machineBound := machine.Metadata().Labels().Get(omni.LabelCluster)
 			asrt.True(isAvailable || (machineBound && machineCluster != clusterName),
@@ -615,7 +627,7 @@ func AssertDestroyCluster(testCtx context.Context, omniClient *client.Client, cl
 		})
 
 		if assertInfraMachinesState {
-			rtestutils.AssertResources(ctx, t, st, clusterMachineIDs, func(res *infra.Machine, assertion *assert.Assertions) {
+			rtestutils.AssertResources(ctx, t, omniState, clusterMachineIDs, func(res *infra.Machine, assertion *assert.Assertions) {
 				assertion.Empty(res.TypedSpec().Value.ClusterTalosVersion) // unallocated
 				assertion.Empty(res.TypedSpec().Value.Extensions)
 
@@ -626,7 +638,7 @@ func AssertDestroyCluster(testCtx context.Context, omniClient *client.Client, cl
 
 			// the provider will wipe the machine and sets the Installed field to false
 			// after the machine is wiped, ReadyToUse field will be set to true
-			rtestutils.AssertResources(ctx, t, st, clusterMachineIDs, func(res *infra.MachineStatus, assertion *assert.Assertions) {
+			rtestutils.AssertResources(ctx, t, omniState, clusterMachineIDs, func(res *infra.MachineStatus, assertion *assert.Assertions) {
 				assertion.False(res.TypedSpec().Value.Installed)
 				assertion.True(res.TypedSpec().Value.ReadyToUse)
 			})

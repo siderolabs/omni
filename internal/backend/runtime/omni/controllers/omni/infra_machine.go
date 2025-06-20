@@ -240,6 +240,8 @@ func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMac
 		return err
 	}
 
+	helpers.CopyLabels(clusterMachine, infraMachine, omni.LabelCluster, omni.LabelMachineSet, omni.LabelControlPlaneRole, omni.LabelWorkerRole)
+
 	if clusterMachine.Metadata().Phase() == resource.PhaseTearingDown {
 		if clusterMachine.Metadata().Finalizers().Has(ClusterMachineConfigControllerName) {
 			return nil // cluster machine is not reset yet
