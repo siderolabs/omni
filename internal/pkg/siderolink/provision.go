@@ -199,6 +199,10 @@ func createResource[T res](ctx context.Context, st state.State, provisionContext
 		if value, ok := provisionContext.token.ExtraData[omni.LabelInfraProviderID]; ok {
 			link.Metadata().Annotations().Set(omni.LabelInfraProviderID, value)
 		}
+
+		if value, ok := provisionContext.token.ExtraData[omni.LabelMachineRequest]; ok {
+			link.Metadata().Labels().Set(omni.LabelMachineRequest, value)
+		}
 	}
 
 	link.TypedSpec().Value, err = generateLinkSpec(provisionContext)
