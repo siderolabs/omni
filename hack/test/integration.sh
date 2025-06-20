@@ -22,6 +22,7 @@ echo "127.0.0.1 my-instance.localhost" | tee -a /etc/hosts
 
 TALOS_VERSION=1.10.2
 ENABLE_TALOS_PRERELEASE_VERSIONS=false
+ANOTHER_OMNI_VERSION="${ANOTHER_OMNI_VERSION:-latest}"
 
 ARTIFACTS=_out
 JOIN_TOKEN=testonly
@@ -31,6 +32,7 @@ KERNEL_ARGS_WORKERS_COUNT=2
 TALEMU_CONTAINER_NAME=talemu
 TALEMU_INFRA_PROVIDER_IMAGE=ghcr.io/siderolabs/talemu-infra-provider:latest
 TEST_OUTPUTS_DIR=/tmp/integration-test
+INTEGRATION_PREPARE_TEST_ARGS="${INTEGRATION_PREPARE_TEST_ARGS:-}"
 
 mkdir -p $TEST_OUTPUTS_DIR
 
@@ -82,7 +84,7 @@ registries:
 else
   # use the value from the environment, if present
   REGISTRY_MIRROR_FLAGS=("${REGISTRY_MIRROR_FLAGS:-}")
-  REGISTRY_MIRROR_CONFIG="("${REGISTRY_MIRROR_CONFIG:-}")"
+  REGISTRY_MIRROR_CONFIG="${REGISTRY_MIRROR_CONFIG:-}"
 fi
 
 function cleanup() {
@@ -326,6 +328,31 @@ if [[ "${ENABLE_SECUREBOOT}" == "true" ]]; then
     --with-tpm2 \
     --iso-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/metal-amd64-secureboot.iso" \
     --disk-encryption-key-types=tpm
+fi
+
+if [ -n "$ANOTHER_OMNI_VERSION" ] && [ -n "$INTEGRATION_PREPARE_TEST_ARGS" ]; then
+  docker run \
+    --cap-add=NET_ADMIN \
+    --device=/dev/net/tun \
+    -v $(pwd)/hack/certs:/hack/certs \
+    -v $(pwd)/${ARTIFACTS}:/_out/ \
+    -v ${TEST_OUTPUTS_DIR}:/outputs/ \
+    -v ${OMNI_CONFIG}:/config.yaml \
+    -v $(pwd)/omnictl/:/omnictl/ \
+    -v $(pwd)/internal/backend/runtime/omni/testdata/pgp/:/internal/backend/runtime/omni/testdata/pgp/ \
+    -e SIDEROLINK_DEV_JOIN_TOKEN=${JOIN_TOKEN} \
+    -e SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
+    --network host \
+    ghcr.io/siderolabs/omni-integration-test:${ANOTHER_OMNI_VERSION} \
+    --omni.talos-version=${TALOS_VERSION} \
+    --omni.omnictl-path=/_out/omnictl-linux-amd64 \
+    --omni.expected-machines=8 \
+    --omni.embedded \
+    --omni.config-path /config.yaml \
+    --omni.log-output=/outputs/omni-upgrade-prepare.log \
+    --test.failfast \
+    --test.v \
+    ${INTEGRATION_PREPARE_TEST_ARGS:-}
 fi
 
 # Run the integration test.
