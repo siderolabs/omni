@@ -24,6 +24,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/mattn/go-shellwords"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -33,7 +34,6 @@ import (
 	"golang.org/x/sync/semaphore"
 	"gopkg.in/yaml.v3"
 
-	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	clientconsts "github.com/siderolabs/omni/client/pkg/constants"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -333,6 +333,12 @@ func preRunHooks(t *testing.T, options *TestOptions) {
 }
 
 func postRunHooks(t *testing.T, options *TestOptions) {
+	if t.Failed() {
+		t.Logf("there are failed tests, save support bundle for all cluster")
+
+		saveAllSupportBundles(t, options.omniClient, options.OutputDir)
+	}
+
 	if options.provisionMachines() {
 		for i, cfg := range options.ProvisionConfigs {
 			if cfg.Provider.Static {
