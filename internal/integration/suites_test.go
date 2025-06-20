@@ -1367,3 +1367,99 @@ Note: this test expects all machines to be provisioned by the bare-metal infra p
 		)
 	}
 }
+
+func testOmniUpgradePrepare(options *TestOptions) TestFunc {
+	return func(t *testing.T) {
+		t.Log(`
+Test Omni upgrades, the first half that runs on the previous Omni version
+
+- create 3+1 cluster
+- enable and verify workload proxying
+- save cluster snapshot in the cluster resource for the future use`)
+
+		t.Parallel()
+
+		options.claimMachines(t, 4)
+
+		omniClient := options.omniClient
+		clusterName := "integration-omni-upgrades"
+
+		t.Run("ClusterShouldBeCreated", CreateCluster(t.Context(), omniClient, ClusterOptions{
+			Name:          clusterName,
+			ControlPlanes: 3,
+			Workers:       1,
+
+			Features: &specs.ClusterSpec_Features{
+				EnableWorkloadProxy: true,
+			},
+
+			MachineOptions: options.MachineOptions,
+			ScalingTimeout: options.ScalingTimeout,
+
+			SkipExtensionCheckOnCreate: options.SkipExtensionsCheckOnCreate,
+
+			AllowSchedulingOnControlPlanes: true,
+		}))
+
+		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), omniClient, clusterName, options.MachineOptions.TalosVersion,
+			options.MachineOptions.KubernetesVersion))
+
+		parentCtx := t.Context()
+
+		t.Run("WorkloadProxyShouldBeTested", func(t *testing.T) {
+			workloadproxy.Test(parentCtx, t, omniClient, clusterName)
+		})
+
+		t.Run("SaveClusterSnapshot", SaveClusterSnapshot(t.Context(), omniClient, clusterName))
+	}
+}
+
+func testOmniUpgradeVerify(options *TestOptions) TestFunc {
+	return func(t *testing.T) {
+		t.Log(`
+Test Omni upgrades, the second half that runs on the current Omni version
+
+- check that the cluster exists and is healthy
+- verify that machines were not restarted
+- check that machine configuration was not changed
+- verify workload proxying still works
+- scale up the cluster by one worker`)
+
+		t.Parallel()
+
+		options.claimMachines(t, 5)
+
+		omniClient := options.omniClient
+		clusterName := "integration-omni-upgrades"
+
+		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), omniClient, clusterName, options.MachineOptions.TalosVersion,
+			options.MachineOptions.KubernetesVersion))
+
+		parentCtx := t.Context()
+
+		t.Run("AssertMachinesNotRebootedConfigUnchanged", AssertClusterSnapshot(t.Context(), omniClient, clusterName))
+
+		t.Run("WorkloadProxyShouldBeTested", func(t *testing.T) {
+			workloadproxy.Test(parentCtx, t, omniClient, clusterName)
+		})
+
+		t.Run(
+			"OneWorkerShouldBeAdded",
+			ScaleClusterUp(t.Context(), options.omniClient.Omni().State(), ClusterOptions{
+				Name:           clusterName,
+				ControlPlanes:  0,
+				Workers:        1,
+				MachineOptions: options.MachineOptions,
+				ScalingTimeout: options.ScalingTimeout,
+			}),
+		)
+
+		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), omniClient, clusterName, options.MachineOptions.TalosVersion,
+			options.MachineOptions.KubernetesVersion))
+
+		t.Run(
+			"ClusterShouldBeDestroyed",
+			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, false),
+		)
+	}
+}
