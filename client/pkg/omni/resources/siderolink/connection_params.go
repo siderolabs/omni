@@ -153,15 +153,15 @@ func APIURL(cfg *ConnectionParams, options ...APIURLOption) (string, error) {
 }
 
 // GetConnectionArgsForProvider composes connection args for the specific provider.
-func GetConnectionArgsForProvider(connectionParams *ConnectionParams, providerID string, grpcTunnel specs.GrpcTunnelMode) (string, error) {
+func GetConnectionArgsForProvider(connectionParams *ConnectionParams,
+	providerID string, grpcTunnel specs.GrpcTunnelMode, opts ...JoinConfigOption,
+) (string, error) {
 	params := KernelArgs(connectionParams)
 	if len(params) == 0 {
 		return "", errors.New("failed to get the connection params")
 	}
 
-	token, err := jointoken.NewWithExtraData(connectionParams.TypedSpec().Value.JoinToken, map[string]string{
-		omni.LabelInfraProviderID: providerID,
-	})
+	token, err := getJoinTokenWithExtraData(connectionParams.TypedSpec().Value.JoinToken, providerID, opts...)
 	if err != nil {
 		return "", err
 	}
@@ -184,11 +184,44 @@ func GetConnectionArgsForProvider(connectionParams *ConnectionParams, providerID
 	return strings.Join(params, " "), nil
 }
 
-// GetJoinConfigForProvider composes Omni join config.
-func GetJoinConfigForProvider(connectionParams *ConnectionParams, providerID string, grpcTunnel specs.GrpcTunnelMode) (string, error) {
-	token, err := jointoken.NewWithExtraData(connectionParams.TypedSpec().Value.JoinToken, map[string]string{
+// JoinConfigOption represents a single optional arg to the GetJoinConfigForProvider function.
+type JoinConfigOption func(*JoinConfigOptions)
+
+// JoinConfigOptions is the additional options to the GetJoinConfigForProvider function.
+type JoinConfigOptions struct {
+	requestID string
+}
+
+// WithEncodeRequestID additionally encodes the request ID right in the join token.
+// NOTE: use only when the join tokens are passed to the nodes though the config and not baked into the schematics.
+// Otherwise it will blow up the schematics count in the factory.
+func WithEncodeRequestID(requestID string) JoinConfigOption {
+	return func(opts *JoinConfigOptions) {
+		opts.requestID = requestID
+	}
+}
+
+func getJoinTokenWithExtraData(token, providerID string, opts ...JoinConfigOption) (jointoken.JoinToken, error) {
+	var options JoinConfigOptions
+
+	for _, opt := range opts {
+		opt(&options)
+	}
+
+	extraData := map[string]string{
 		omni.LabelInfraProviderID: providerID,
-	})
+	}
+
+	if options.requestID != "" {
+		extraData[omni.LabelMachineRequest] = options.requestID
+	}
+
+	return jointoken.NewWithExtraData(token, extraData)
+}
+
+// GetJoinConfigForProvider composes Omni join config.
+func GetJoinConfigForProvider(connectionParams *ConnectionParams, providerID string, grpcTunnel specs.GrpcTunnelMode, joinTokenOpts ...JoinConfigOption) (string, error) {
+	token, err := getJoinTokenWithExtraData(connectionParams.TypedSpec().Value.JoinToken, providerID, joinTokenOpts...)
 	if err != nil {
 		return "", err
 	}

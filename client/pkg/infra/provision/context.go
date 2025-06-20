@@ -84,6 +84,8 @@ func WithOverlay(overlay schematic.Overlay) SchematicOption {
 type ConnectionParams struct {
 	KernelArgs string
 	JoinConfig string
+
+	CustomDataEncoded bool
 }
 
 // NewContext creates a new provision context.
@@ -216,6 +218,12 @@ func (context *Context[T]) GenerateSchematicID(ctx context.Context, logger *zap.
 	}
 
 	if !schematicOptions.skipConnectionParams {
+		if context.ConnectionParams.CustomDataEncoded {
+			return "", errors.New(`the provider is configured to encode machine request ID into the join tokens,
+so generating the schematics with the embedded Omni connection params is not allowed.
+Please use WithoutConnectionParams option. The Omni connection params should be injected the other way, which depends on the provider`)
+		}
+
 		res.Customization.ExtraKernelArgs = append(
 			res.Customization.ExtraKernelArgs,
 			strings.Split(context.ConnectionParams.KernelArgs, " ")...,

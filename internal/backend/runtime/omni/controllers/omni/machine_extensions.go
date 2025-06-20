@@ -80,6 +80,8 @@ func (ctrl *MachineExtensionsController) MapInput(ctx context.Context, _ *zap.Lo
 		if state.IsNotFoundError(err) {
 			return nil, nil
 		}
+
+		return nil, err
 	}
 
 	switch ptr.Type() {

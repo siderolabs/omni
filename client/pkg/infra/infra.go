@@ -8,6 +8,7 @@ package infra
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/controller/runtime"
@@ -69,7 +70,10 @@ func NewProvider[V any, T RD[V]](
 
 	t := T(&zero)
 
-	if err := protobuf.RegisterResource(t.ResourceDefinition().Type, t); err != nil {
+	if err := protobuf.RegisterResource(
+		t.ResourceDefinition().Type,
+		t,
+	); err != nil && !strings.Contains(err.Error(), "is already registered") {
 		return nil, err
 	}
 
@@ -138,6 +142,7 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 		provider.provisioner,
 		options.concurrency,
 		options.imageFactory,
+		options.encodeRequestIDsIntoTokens,
 	)); err != nil {
 		return err
 	}
