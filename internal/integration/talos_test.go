@@ -773,7 +773,7 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 		assertClusterReady(talosVersion1)
 
 		// destroy the cluster
-		AssertDestroyCluster(ctx, rootClient, clusterName, "", false, false, false)(t)
+		AssertDestroyCluster(ctx, rootClient.Omni().State(), clusterName, false, false)(t)
 
 		t.Logf("creating a cluster on version %q using same machines", talosVersion2)
 
@@ -794,7 +794,7 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 		// wait for cluster on talosVersion2 to be ready
 		assertClusterReady(talosVersion2)
 
-		AssertDestroyCluster(ctx, rootClient, clusterName, "", false, false, false)(t)
+		AssertDestroyCluster(ctx, rootClient.Omni().State(), clusterName, false, false)(t)
 	}
 }
 

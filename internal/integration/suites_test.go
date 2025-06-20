@@ -195,7 +195,7 @@ Test the auditing of the Kubernetes nodes, i.e. when a node is gone from the Omn
 
 		t.Run(
 			"ClusterShouldBeDestroyed",
-			AssertDestroyCluster(t.Context(), options.omniClient, clusterName, options.OutputDir, false, false, t.Failed()),
+			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, false),
 		)
 	}
 }
@@ -270,7 +270,7 @@ In the tests, we wipe and reboot the VMs to bring them back as available for the
 
 		t.Run(
 			"ClusterShouldBeDestroyed",
-			AssertDestroyCluster(t.Context(), options.omniClient, clusterName, options.OutputDir, false, false, t.Failed()),
+			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, false),
 		)
 	}
 }
@@ -302,7 +302,7 @@ Regression test: create a cluster and destroy it without waiting for the cluster
 
 		t.Run(
 			"ClusterShouldBeDestroyed",
-			AssertDestroyCluster(t.Context(), options.omniClient, clusterName, options.OutputDir, false, false, t.Failed()),
+			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, false),
 		)
 	}
 }
@@ -324,14 +324,7 @@ Don't do any changes to the cluster.`)
 
 		options.claimMachines(t, clusterOptions.ControlPlanes+clusterOptions.Workers)
 
-		runTests(t, AssertClusterCreateAndReady(
-			t.Context(),
-			options.omniClient,
-			"default",
-			clusterOptions,
-			options.OutputDir,
-			t.Failed(),
-		))
+		runTests(t, AssertClusterCreateAndReady(t.Context(), options.omniClient, "default", clusterOptions))
 	}
 }
 
@@ -355,14 +348,7 @@ Don't do any changes to the cluster.`)
 
 		options.claimMachines(t, clusterOptions.ControlPlanes+clusterOptions.Workers)
 
-		runTests(t, AssertClusterCreateAndReady(
-			t.Context(),
-			options.omniClient,
-			"encrypted",
-			clusterOptions,
-			options.OutputDir,
-			t.Failed(),
-		))
+		runTests(t, AssertClusterCreateAndReady(t.Context(), options.omniClient, "encrypted", clusterOptions))
 	}
 }
 
@@ -383,14 +369,7 @@ Don't do any changes to the cluster.`)
 
 		options.claimMachines(t, clusterOptions.ControlPlanes+clusterOptions.Workers)
 
-		runTests(t, AssertClusterCreateAndReady(
-			t.Context(),
-			options.omniClient,
-			"singlenode",
-			clusterOptions,
-			options.OutputDir,
-			t.Failed(),
-		))
+		runTests(t, AssertClusterCreateAndReady(t.Context(), options.omniClient, "singlenode", clusterOptions))
 	}
 }
 
@@ -483,7 +462,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 
 		t.Run(
 			"ClusterShouldBeDestroyed",
-			AssertDestroyCluster(t.Context(), options.omniClient, clusterName, options.OutputDir, false, false, t.Failed()),
+			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, false),
 		)
 	}
 }
@@ -577,7 +556,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 
 		t.Run(
 			"ClusterShouldBeDestroyed",
-			AssertDestroyCluster(t.Context(), options.omniClient, clusterName, options.OutputDir, false, false, t.Failed()),
+			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, false),
 		)
 	}
 }
@@ -677,7 +656,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 
 		t.Run(
 			"ClusterShouldBeDestroyed",
-			AssertDestroyCluster(t.Context(), options.omniClient, clusterName, options.OutputDir, true, false, t.Failed()),
+			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, true, false),
 		)
 	}
 }
@@ -725,7 +704,7 @@ Tests rolling update & scale down strategies for concurrency control for worker 
 
 		t.Run(
 			"ClusterShouldBeDestroyed",
-			AssertDestroyCluster(t.Context(), options.omniClient, clusterName, options.OutputDir, false, false, t.Failed()),
+			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, false),
 		)
 	}
 }
@@ -775,7 +754,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 
 		t.Run(
 			"ClusterShouldBeDestroyed",
-			AssertDestroyCluster(t.Context(), options.omniClient, clusterName, options.OutputDir, false, false, t.Failed()),
+			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, false),
 		)
 	}
 }
@@ -842,7 +821,7 @@ Tests applying various config patching, including "broken" config patches which 
 
 		t.Run(
 			"ClusterShouldBeDestroyed",
-			AssertDestroyCluster(t.Context(), options.omniClient, clusterName, options.OutputDir, false, false, t.Failed()),
+			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, false),
 		)
 	}
 }
@@ -939,7 +918,7 @@ Tests upgrading Talos version, including reverting a failed upgrade.`)
 
 		t.Run(
 			"ClusterShouldBeDestroyed",
-			AssertDestroyCluster(t.Context(), options.omniClient, clusterName, options.OutputDir, false, false, t.Failed()),
+			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, false),
 		)
 	}
 }
@@ -994,7 +973,7 @@ Tests upgrading Kubernetes version, including reverting a failed upgrade.`)
 
 		t.Run(
 			"ClusterShouldBeDestroyed",
-			AssertDestroyCluster(t.Context(), options.omniClient, clusterName, options.OutputDir, false, false, t.Failed()),
+			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, false),
 		)
 	}
 }
@@ -1078,7 +1057,7 @@ Finally, a completely new cluster is created using the same backup to test the "
 
 		t.Run(
 			"NewClusterShouldBeDestroyed",
-			AssertDestroyCluster(t.Context(), options.omniClient, secondClusterName, options.OutputDir, false, false, t.Failed()),
+			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), secondClusterName, false, false),
 		)
 
 		runTests(
@@ -1093,7 +1072,7 @@ Finally, a completely new cluster is created using the same backup to test the "
 
 		t.Run(
 			"RestoredClusterShouldBeDestroyed",
-			AssertDestroyCluster(t.Context(), options.omniClient, clusterName, options.OutputDir, false, false, t.Failed()),
+			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, false),
 		)
 	}
 }
@@ -1206,7 +1185,7 @@ Test authorization on accessing Omni API, some tests run without a cluster, some
 
 		t.Run(
 			"ClusterShouldBeDestroyed",
-			AssertDestroyCluster(t.Context(), options.omniClient, clusterName, options.OutputDir, false, false, t.Failed()),
+			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, false),
 		)
 	}
 }
@@ -1284,8 +1263,8 @@ Test workload service proxying feature`)
 			workloadproxy.Test(parentCtx, t, omniClient, cluster1, cluster2)
 		})
 
-		t.Run("ClusterShouldBeDestroyed-"+cluster1, AssertDestroyCluster(t.Context(), options.omniClient, cluster1, options.OutputDir, false, false, t.Failed()))
-		t.Run("ClusterShouldBeDestroyed-"+cluster2, AssertDestroyCluster(t.Context(), options.omniClient, cluster2, options.OutputDir, false, false, t.Failed()))
+		t.Run("ClusterShouldBeDestroyed-"+cluster1, AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), cluster1, false, false))
+		t.Run("ClusterShouldBeDestroyed-"+cluster2, AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), cluster2, false, false))
 	}
 }
 
@@ -1363,7 +1342,7 @@ Note: this test expects all machines to be provisioned by the bare-metal infra p
 
 		t.Run(
 			"ClusterShouldBeDestroyed",
-			AssertDestroyCluster(t.Context(), options.omniClient, clusterName, options.OutputDir, false, true, t.Failed()),
+			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, true),
 		)
 
 		t.Run(
@@ -1384,7 +1363,7 @@ Note: this test expects all machines to be provisioned by the bare-metal infra p
 
 		t.Run(
 			"ClusterShouldBeDestroyed",
-			AssertDestroyCluster(t.Context(), options.omniClient, clusterName, options.OutputDir, false, true, t.Failed()),
+			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, true),
 		)
 	}
 }
