@@ -84,6 +84,8 @@ func WithOverlay(overlay schematic.Overlay) SchematicOption {
 type ConnectionParams struct {
 	KernelArgs string
 	JoinConfig string
+
+	CustomDataEncoded bool
 }
 
 // NewContext creates a new provision context.
@@ -216,6 +218,12 @@ func (context *Context[T]) GenerateSchematicID(ctx context.Context, logger *zap.
 	}
 
 	if !schematicOptions.skipConnectionParams {
+		if context.ConnectionParams.CustomDataEncoded {
+			return "", errors.New(`the provider is configured to embed connection parameters into the schematic, but it also includes a machine request ID, which is not allowed
+in the connection parameters in the schematic. If the machine request ID must be part of the connection parameters,
+provide them to the machine through another mechanism using the infrastructure provider`)
+		}
+
 		res.Customization.ExtraKernelArgs = append(
 			res.Customization.ExtraKernelArgs,
 			strings.Split(context.ConnectionParams.KernelArgs, " ")...,

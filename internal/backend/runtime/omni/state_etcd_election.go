@@ -67,7 +67,11 @@ func (ee *etcdElections) run(ctx context.Context, client *clientv3.Client, elect
 	campaignErrCh := make(chan error)
 
 	panichandler.Go(func() {
-		campaignErrCh <- ee.election.Campaign(ctx, campaignKey)
+		ee.mu.Lock()
+		election := ee.election
+		ee.mu.Unlock()
+
+		campaignErrCh <- election.Campaign(ctx, campaignKey)
 	}, ee.logger)
 
 	ee.logger.Info("running the etcd election campaign")

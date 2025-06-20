@@ -86,3 +86,6 @@ export type InfraProviderHealthStatusSpec = {
 export type BMCConfigSpec = {
   config?: SpecsOmni.InfraMachineBMCConfigSpec
 }
+
+export type MachineRegistrationSpec = {
+}

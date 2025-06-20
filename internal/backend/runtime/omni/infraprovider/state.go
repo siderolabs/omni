@@ -20,6 +20,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 	"github.com/siderolabs/omni/internal/pkg/auth"
@@ -437,6 +438,10 @@ func (st *State) checkNamespaceAndType(ns resource.Namespace, infraProviderID st
 		return true, nil
 	}
 
+	if resType == siderolink.LinkType {
+		return true, nil
+	}
+
 	infraProviderSpecificNamespace := resources.InfraProviderSpecificNamespacePrefix + infraProviderID
 	if ns == infraProviderSpecificNamespace {
 		resTypeSuffix := "." + infraProviderID + infraProviderResourceSuffix
@@ -474,6 +479,10 @@ func getResourceConfig(ns resource.Namespace, resType resource.Type) (config res
 	}
 
 	switch resType {
+	case infra.MachineRegistrationType:
+		return resourceConfig{
+			readOnlyForProviders: true,
+		}, true
 	case infra.MachineRequestType:
 		return resourceConfig{
 			readOnlyForProviders: true,

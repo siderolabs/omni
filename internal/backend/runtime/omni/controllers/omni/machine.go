@@ -49,6 +49,20 @@ func NewMachineController() *MachineController {
 			qtransform.MapperNone[*omni.MachineRequestSet](),
 		),
 		qtransform.WithExtraMappedInput(
+			qtransform.MapperNone[*infra.MachineRequest](),
+		),
+		qtransform.WithExtraMappedInput(
+			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, res *infra.MachineRequestStatus) ([]resource.Pointer, error) {
+				if res.TypedSpec().Value.Id == "" {
+					return nil, nil
+				}
+
+				return []resource.Pointer{
+					siderolink.NewLink(resources.DefaultNamespace, res.TypedSpec().Value.Id, nil).Metadata(),
+				}, nil
+			},
+		),
+		qtransform.WithExtraMappedInput(
 			qtransform.MapperNone[*infra.ProviderStatus](),
 		),
 		qtransform.WithExtraMappedInput(
@@ -133,18 +147,36 @@ func (h *machineControllerHelper) handleStaticInfraProvider(ctx context.Context,
 //
 // It then matches the machine request set owner to the machine provision controller, and if it matches, sets the no manual allocation label on the machine.
 func (h *machineControllerHelper) handleProvisioningInfraProvider(ctx context.Context, r controller.Reader, link *siderolink.Link, machine *omni.Machine) error {
-	_, ok := link.Metadata().Labels().Get(omni.LabelMachineRequest)
+	machineRequestID, ok := link.Metadata().Labels().Get(omni.LabelMachineRequest)
 	if !ok {
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag](
 			"the link is created by the infra provider, but doesn't have the machine request label yet",
 		)
 	}
 
-	machineRequestSetID, ok := link.Metadata().Labels().Get(omni.LabelMachineRequestSet)
-	if !ok {
+	machineRequest, err := safe.ReaderGetByID[*infra.MachineRequest](ctx, r, machineRequestID)
+	if err != nil {
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag](
-			"the link is created by the infra provider, but doesn't have the machine request set label yet",
+			"the link is created by the infra provider, but the machine request doesn't exist",
 		)
+	}
+
+	machineRequestStatus, err := safe.ReaderGetByID[*infra.MachineRequestStatus](ctx, r, machineRequestID)
+	if err != nil {
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag](
+			"the link is created by the infra provider, but the machine request status doesn't exist",
+		)
+	}
+
+	if machineRequestStatus.TypedSpec().Value.Id == "" {
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag](
+			"waiting for the machine request status UUID to be populated",
+		)
+	}
+
+	machineRequestSetID, ok := machineRequest.Metadata().Labels().Get(omni.LabelMachineRequestSet)
+	if !ok {
+		return nil
 	}
 
 	machineRequestSet, err := safe.ReaderGetByID[*omni.MachineRequestSet](ctx, r, machineRequestSetID)
@@ -155,6 +187,8 @@ func (h *machineControllerHelper) handleProvisioningInfraProvider(ctx context.Co
 	if machineRequestSet != nil && machineRequestSet.Metadata().Owner() == machineProvisionControllerName {
 		machine.Metadata().Labels().Set(omni.LabelNoManualAllocation, "")
 	}
+
+	machine.Metadata().Labels().Set(omni.LabelMachineRequestSet, machineRequestSetID)
 
 	return nil
 }

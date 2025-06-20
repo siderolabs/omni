@@ -19,13 +19,14 @@ type HealthCheckFunc func(context.Context) error
 
 // Options defines additional infra provider options.
 type Options struct {
-	state               state.State
-	imageFactory        provision.FactoryClient
-	healthCheckFunc     HealthCheckFunc
-	omniEndpoint        string
-	clientOptions       []client.Option
-	concurrency         uint
-	healthCheckInterval time.Duration
+	state                      state.State
+	imageFactory               provision.FactoryClient
+	healthCheckFunc            HealthCheckFunc
+	omniEndpoint               string
+	clientOptions              []client.Option
+	concurrency                uint
+	healthCheckInterval        time.Duration
+	encodeRequestIDsIntoTokens bool
 }
 
 // Option define an additional infra provider option.
@@ -82,5 +83,17 @@ func WithHealthCheckFunc(healthCheckFunc HealthCheckFunc) Option {
 func WithHealthCheckInterval(interval time.Duration) Option {
 	return func(o *Options) {
 		o.healthCheckInterval = interval
+	}
+}
+
+// WithEncodeRequestIDsIntoTokens enables encoding the request IDs into tokens.
+// This eliminates the need for setting the node UUID on the MachineRequestStatus.
+// Omni will be able to map the machine request to the link immediately as the machine joins.
+//
+// NOTE: Only use this configuration when the join config is supplied though a metadata server, nocloud image or similar flows.
+// Trying to encode that into a machine schematic will cause the provision to fail.
+func WithEncodeRequestIDsIntoTokens() Option {
+	return func(o *Options) {
+		o.encodeRequestIDsIntoTokens = true
 	}
 }

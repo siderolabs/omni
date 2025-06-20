@@ -26,11 +26,22 @@ func NewResourceLabels[T generic.ResourceWithRD](id string) *ResourceLabels[T] {
 
 const suffix = "Labels"
 
-type null struct{}
+// Null represents a null spec.
+type Null struct{}
 
 // MarshalProto implements ProtoMarshaler.
-func (null) MarshalProto() ([]byte, error) {
+func (Null) MarshalProto() ([]byte, error) {
 	return nil, nil
+}
+
+// UnmarshalProto implements ProtoMarshaler.
+func (Null) UnmarshalProto([]byte) error {
+	return nil
+}
+
+// DeepCopy implement DeepCopyable interface.
+func (d Null) DeepCopy() Null {
+	return d
 }
 
 // ResourceLabels is a special resource type that has no spec but stores all extracted labels from the source resource.
@@ -45,7 +56,7 @@ func (t *ResourceLabels[T]) Metadata() *resource.Metadata {
 
 // Spec implements resource.Resource.
 func (t *ResourceLabels[T]) Spec() any {
-	return null{}
+	return Null{}
 }
 
 // DeepCopy returns a deep copy of Resource.

@@ -145,6 +145,8 @@ func (ctrl *MachineStatusController) MapInput(ctx context.Context, _ *zap.Logger
 		if state.IsNotFoundError(err) {
 			return nil, nil
 		}
+
+		return nil, err
 	}
 
 	switch ptr.Type() {

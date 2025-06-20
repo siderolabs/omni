@@ -77,6 +77,10 @@ func (ctrl *MachineRequestLinkController) Reconcile(ctx context.Context,
 		return err
 	}
 
+	if machineRequestStatus.TypedSpec().Value.Id == "" {
+		return nil
+	}
+
 	link := siderolink.NewLink(resources.DefaultNamespace, machineRequestStatus.TypedSpec().Value.Id, nil)
 
 	_, err = safe.StateUpdateWithConflicts(ctx, ctrl.state, link.Metadata(), func(r *siderolink.Link) error {

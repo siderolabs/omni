@@ -142,6 +142,25 @@ func TestInfraProviderAccess(t *testing.T) {
 		return res.TypedSpec().Value.SetUncompressedData([]byte("{}"))
 	})
 	assert.NoError(t, err)
+
+	// MachineRegistration
+
+	machineRegistration := infra.NewMachineRegistration("machine")
+	machineRegistration.Metadata().Labels().Set(omni.LabelInfraProviderID, "qemu-1")
+
+	err = persistentState.Create(ctx, machineRegistration)
+	require.NoError(t, err)
+
+	err = st.Create(ctx, machineRegistration)
+	assert.ErrorContains(t, err, "infra providers are not allowed to create")
+
+	machineRegistration.Metadata().Labels().Set(omni.LabelCluster, "1")
+
+	assert.ErrorContains(t, st.Update(ctx, machineRegistration), "infra providers are not allowed to update")
+
+	_, err = st.Get(ctx, machineRegistration.Metadata())
+
+	assert.NoError(t, err)
 }
 
 func testInfraProviderAccessInputResource[T resource.Resource](ctx context.Context, t *testing.T, st state.State, persistentState state.CoreState,

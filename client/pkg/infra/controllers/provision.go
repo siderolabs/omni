@@ -35,24 +35,26 @@ const currentStepAnnotation = "infra." + omni.SystemLabelPrefix + "step"
 // ProvisionController is the generic controller that operates the Provisioner.
 type ProvisionController[T generic.ResourceWithRD] struct {
 	generic.NamedController
-	provisioner  provision.Provisioner[T]
-	imageFactory provision.FactoryClient
-	providerID   string
-	concurrency  uint
+	provisioner                provision.Provisioner[T]
+	imageFactory               provision.FactoryClient
+	providerID                 string
+	concurrency                uint
+	encodeRequestIDsIntoTokens bool
 }
 
 // NewProvisionController creates new ProvisionController.
 func NewProvisionController[T generic.ResourceWithRD](providerID string, provisioner provision.Provisioner[T], concurrency uint,
-	imageFactory provision.FactoryClient,
+	imageFactory provision.FactoryClient, encodeRequestIDsIntoTokens bool,
 ) *ProvisionController[T] {
 	return &ProvisionController[T]{
 		NamedController: generic.NamedController{
 			ControllerName: providerID + ".ProvisionController",
 		},
-		providerID:   providerID,
-		provisioner:  provisioner,
-		concurrency:  concurrency,
-		imageFactory: imageFactory,
+		providerID:                 providerID,
+		provisioner:                provisioner,
+		concurrency:                concurrency,
+		imageFactory:               imageFactory,
+		encodeRequestIDsIntoTokens: encodeRequestIDsIntoTokens,
 	}
 }
 
@@ -74,6 +76,11 @@ func (ctrl *ProvisionController[T]) Settings() controller.QSettings {
 				Namespace: resources.InfraProviderNamespace,
 				Type:      infra.MachineRequestStatusType,
 				Kind:      controller.InputQMappedDestroyReady,
+			},
+			{
+				Namespace: resources.InfraProviderNamespace,
+				Type:      infra.MachineRegistrationType,
+				Kind:      controller.InputQMapped,
 			},
 			{
 				Namespace: resources.DefaultNamespace,
@@ -119,6 +126,24 @@ func (ctrl *ProvisionController[T]) MapInput(ctx context.Context, _ *zap.Logger,
 	switch ptr.Type() {
 	case siderolink.ConnectionParamsType:
 		return nil, nil
+	case infra.MachineRegistrationType:
+		mr, err := safe.ReaderGetByID[*infra.MachineRegistration](ctx, r, ptr.ID())
+		if err != nil {
+			if state.IsNotFoundError(err) {
+				return nil, nil
+			}
+
+			return nil, err
+		}
+
+		machineRequest, ok := mr.Metadata().Labels().Get(omni.LabelMachineRequest)
+		if !ok {
+			return nil, nil
+		}
+
+		return []resource.Pointer{
+			infra.NewMachineRequest(machineRequest).Metadata(),
+		}, nil
 	case infra.ConfigPatchRequestType:
 		configPatchRequest, err := safe.ReaderGetByID[*infra.ConfigPatchRequest](ctx, r, ptr.ID())
 		if err != nil {
@@ -185,6 +210,7 @@ func (ctrl *ProvisionController[T]) Reconcile(ctx context.Context,
 	})
 }
 
+//nolint:gocognit
 func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r controller.QRuntime, logger *zap.Logger,
 	machineRequest *infra.MachineRequest, machineRequestStatus *infra.MachineRequestStatus,
 ) error {
@@ -219,6 +245,23 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 			if err = r.UnmarshalJSON([]byte("{}")); err != nil {
 				return err
 			}
+		}
+	}
+
+	if machineRequestStatus.TypedSpec().Value.Id == "" {
+		var machines safe.List[*infra.MachineRegistration]
+
+		machines, err = safe.ReaderListAll[*infra.MachineRegistration](ctx, r, state.WithLabelQuery(
+			resource.LabelEqual(omni.LabelMachineRequest, machineRequest.Metadata().ID())),
+		)
+		if err != nil {
+			return err
+		}
+
+		if machines.Len() == 1 {
+			logger.Info("setting machine request UUID", zap.String("machine", machines.Get(0).Metadata().ID()))
+
+			machineRequestStatus.TypedSpec().Value.Id = machines.Get(0).Metadata().ID()
 		}
 	}
 
@@ -339,19 +382,31 @@ func (ctrl *ProvisionController[T]) getConnectionArgs(ctx context.Context, r con
 		return provision.ConnectionParams{}, err
 	}
 
-	kernelArgs, err := siderolink.GetConnectionArgsForProvider(connectionParams, ctrl.providerID, request.TypedSpec().Value.GrpcTunnel)
+	opts := []siderolink.JoinConfigOption{}
+
+	if ctrl.encodeRequestIDsIntoTokens {
+		opts = append(opts, siderolink.WithEncodeRequestID(request.Metadata().ID()))
+	}
+
+	kernelArgs, err := siderolink.GetConnectionArgsForProvider(connectionParams, ctrl.providerID, request.TypedSpec().Value.GrpcTunnel, opts...)
 	if err != nil {
 		return provision.ConnectionParams{}, err
 	}
 
-	joinConfig, err := siderolink.GetJoinConfigForProvider(connectionParams, ctrl.providerID, request.TypedSpec().Value.GrpcTunnel)
+	joinConfig, err := siderolink.GetJoinConfigForProvider(
+		connectionParams,
+		ctrl.providerID,
+		request.TypedSpec().Value.GrpcTunnel,
+		opts...,
+	)
 	if err != nil {
 		return provision.ConnectionParams{}, err
 	}
 
 	return provision.ConnectionParams{
-		KernelArgs: kernelArgs,
-		JoinConfig: joinConfig,
+		KernelArgs:        kernelArgs,
+		JoinConfig:        joinConfig,
+		CustomDataEncoded: ctrl.encodeRequestIDsIntoTokens,
 	}, nil
 }
 

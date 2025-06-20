@@ -103,3 +103,5 @@ message InfraProviderHealthStatusSpec {
 message BMCConfigSpec {
   InfraMachineBMCConfigSpec config = 1;
 }
+
+message MachineRegistrationSpec {}

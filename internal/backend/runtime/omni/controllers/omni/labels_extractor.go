@@ -43,6 +43,7 @@ func NewLabelsExtractorController[T generic.ResourceWithRD]() *qtransform.QContr
 			},
 			TransformFunc: func(_ context.Context, _ controller.Reader, _ *zap.Logger, res T, labels *system.ResourceLabels[T]) error {
 				*labels.Metadata().Labels() = *res.Metadata().Labels()
+				*labels.Metadata().Annotations() = *res.Metadata().Annotations()
 
 				return nil
 			},

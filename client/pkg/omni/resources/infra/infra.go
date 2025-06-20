@@ -17,4 +17,5 @@ func init() {
 	registry.MustRegisterResource(ConfigPatchRequestType, &ConfigPatchRequest{})
 	registry.MustRegisterResource(InfraProviderHealthStatusType, &ProviderHealthStatus{})
 	registry.MustRegisterResource(BMCConfigType, &BMCConfig{})
+	registry.MustRegisterResource(MachineRegistrationType, &MachineRegistration{})
 }

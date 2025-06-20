@@ -24,6 +24,7 @@ func TestConnectionParamsKernelArgs(t *testing.T) {
 		spec         *specs.ConnectionParamsSpec
 		name         string
 		expectedArgs string
+		requestID    string
 		expectError  bool
 		grpcTunnel   specs.GrpcTunnelMode
 	}{
@@ -46,6 +47,17 @@ func TestConnectionParamsKernelArgs(t *testing.T) {
 			expectedArgs: "siderolink.api=https://127.0.0.1:8099?jointoken=v1%3AeyJleHRyYV9kYXRhIjp7Im" +
 				"9tbmkuc2lkZXJvLmRldi9pbmZyYS1wcm92aWRlci1pZCI6InRlc3QifSwic2lnbmF0dXJlIjoiWTNpZ285V2xJSVZ" +
 				"OWWpXZmgyWlg5NnpnWW5UQjlwWTI3ZEJaVnJwNDJMZz0ifQ%3D%3D a=b",
+		},
+		{
+			spec: &specs.ConnectionParamsSpec{
+				Args:      "siderolink.api=https://127.0.0.1:8099?jointoken=abcd a=b",
+				JoinToken: "abcd",
+			},
+			name: "secure",
+			expectedArgs: "siderolink.api=https://127.0.0.1:8099?jointoken=v1%3AeyJleHRyYV9kYXRhIjp7Im9tbmk" +
+				"uc2lkZXJvLmRldi9pbmZyYS1wcm92aWRlci1pZCI6InRlc3QiLCJvbW5pLnNpZGVyby5kZXYvbWFjaGluZS1yZXF1ZXN0Ijo" +
+				"icmVxdWVzdDEifSwic2lnbmF0dXJlIjoiellrTFRwOUVIanlwTGxrZG1mZjV2Z1A1SERXRktUUXBGR281REp2TDV4MD0ifQ%3D%3D a=b",
+			requestID: "request1",
 		},
 		{
 			spec: &specs.ConnectionParamsSpec{
@@ -89,7 +101,13 @@ func TestConnectionParamsKernelArgs(t *testing.T) {
 			connectionParams := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
 			connectionParams.TypedSpec().Value = tt.spec
 
-			args, err := siderolink.GetConnectionArgsForProvider(connectionParams, "test", tt.grpcTunnel)
+			opts := []siderolink.JoinConfigOption{}
+
+			if tt.requestID != "" {
+				opts = append(opts, siderolink.WithEncodeRequestID(tt.requestID))
+			}
+
+			args, err := siderolink.GetConnectionArgsForProvider(connectionParams, "test", tt.grpcTunnel, opts...)
 
 			if tt.expectError {
 				require.Error(t, err, args)

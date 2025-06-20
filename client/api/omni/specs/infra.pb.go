@@ -788,6 +788,42 @@ func (x *BMCConfigSpec) GetConfig() *InfraMachineBMCConfigSpec {
 	return nil
 }
 
+type MachineRegistrationSpec struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MachineRegistrationSpec) Reset() {
+	*x = MachineRegistrationSpec{}
+	mi := &file_omni_specs_infra_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MachineRegistrationSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MachineRegistrationSpec) ProtoMessage() {}
+
+func (x *MachineRegistrationSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_infra_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MachineRegistrationSpec.ProtoReflect.Descriptor instead.
+func (*MachineRegistrationSpec) Descriptor() ([]byte, []int) {
+	return file_omni_specs_infra_proto_rawDescGZIP(), []int{9}
+}
+
 var File_omni_specs_infra_proto protoreflect.FileDescriptor
 
 const file_omni_specs_infra_proto_rawDesc = "" +
@@ -859,7 +895,8 @@ const file_omni_specs_infra_proto_rawDesc = "" +
 	"\x18last_heartbeat_timestamp\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x16lastHeartbeatTimestamp\x12\x14\n" +
 	"\x05error\x18\x02 \x01(\tR\x05error\"I\n" +
 	"\rBMCConfigSpec\x128\n" +
-	"\x06config\x18\x01 \x01(\v2 .specs.InfraMachineBMCConfigSpecR\x06configB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
+	"\x06config\x18\x01 \x01(\v2 .specs.InfraMachineBMCConfigSpecR\x06config\"\x19\n" +
+	"\x17MachineRegistrationSpecB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
 
 var (
 	file_omni_specs_infra_proto_rawDescOnce sync.Once
@@ -874,7 +911,7 @@ func file_omni_specs_infra_proto_rawDescGZIP() []byte {
 }
 
 var file_omni_specs_infra_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_omni_specs_infra_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_omni_specs_infra_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_omni_specs_infra_proto_goTypes = []any{
 	(MachineRequestStatusSpec_Stage)(0),           // 0: specs.MachineRequestStatusSpec.Stage
 	(InfraMachineSpec_MachinePowerState)(0),       // 1: specs.InfraMachineSpec.MachinePowerState
@@ -888,24 +925,25 @@ var file_omni_specs_infra_proto_goTypes = []any{
 	(*InfraProviderStatusSpec)(nil),               // 9: specs.InfraProviderStatusSpec
 	(*InfraProviderHealthStatusSpec)(nil),         // 10: specs.InfraProviderHealthStatusSpec
 	(*BMCConfigSpec)(nil),                         // 11: specs.BMCConfigSpec
-	(*Overlay)(nil),                               // 12: specs.Overlay
-	(*MetaValue)(nil),                             // 13: specs.MetaValue
-	(GrpcTunnelMode)(0),                           // 14: specs.GrpcTunnelMode
-	(InfraMachineConfigSpec_AcceptanceStatus)(0),  // 15: specs.InfraMachineConfigSpec.AcceptanceStatus
-	(*timestamppb.Timestamp)(nil),                 // 16: google.protobuf.Timestamp
-	(*InfraMachineBMCConfigSpec)(nil),             // 17: specs.InfraMachineBMCConfigSpec
+	(*MachineRegistrationSpec)(nil),               // 12: specs.MachineRegistrationSpec
+	(*Overlay)(nil),                               // 13: specs.Overlay
+	(*MetaValue)(nil),                             // 14: specs.MetaValue
+	(GrpcTunnelMode)(0),                           // 15: specs.GrpcTunnelMode
+	(InfraMachineConfigSpec_AcceptanceStatus)(0),  // 16: specs.InfraMachineConfigSpec.AcceptanceStatus
+	(*timestamppb.Timestamp)(nil),                 // 17: google.protobuf.Timestamp
+	(*InfraMachineBMCConfigSpec)(nil),             // 18: specs.InfraMachineBMCConfigSpec
 }
 var file_omni_specs_infra_proto_depIdxs = []int32{
-	12, // 0: specs.MachineRequestSpec.overlay:type_name -> specs.Overlay
-	13, // 1: specs.MachineRequestSpec.meta_values:type_name -> specs.MetaValue
-	14, // 2: specs.MachineRequestSpec.grpc_tunnel:type_name -> specs.GrpcTunnelMode
+	13, // 0: specs.MachineRequestSpec.overlay:type_name -> specs.Overlay
+	14, // 1: specs.MachineRequestSpec.meta_values:type_name -> specs.MetaValue
+	15, // 2: specs.MachineRequestSpec.grpc_tunnel:type_name -> specs.GrpcTunnelMode
 	0,  // 3: specs.MachineRequestStatusSpec.stage:type_name -> specs.MachineRequestStatusSpec.Stage
 	1,  // 4: specs.InfraMachineSpec.preferred_power_state:type_name -> specs.InfraMachineSpec.MachinePowerState
-	15, // 5: specs.InfraMachineSpec.acceptance_status:type_name -> specs.InfraMachineConfigSpec.AcceptanceStatus
+	16, // 5: specs.InfraMachineSpec.acceptance_status:type_name -> specs.InfraMachineConfigSpec.AcceptanceStatus
 	2,  // 6: specs.InfraMachineStatusSpec.power_state:type_name -> specs.InfraMachineStatusSpec.MachinePowerState
-	16, // 7: specs.InfraMachineStatusSpec.last_reboot_timestamp:type_name -> google.protobuf.Timestamp
-	16, // 8: specs.InfraProviderHealthStatusSpec.last_heartbeat_timestamp:type_name -> google.protobuf.Timestamp
-	17, // 9: specs.BMCConfigSpec.config:type_name -> specs.InfraMachineBMCConfigSpec
+	17, // 7: specs.InfraMachineStatusSpec.last_reboot_timestamp:type_name -> google.protobuf.Timestamp
+	17, // 8: specs.InfraProviderHealthStatusSpec.last_heartbeat_timestamp:type_name -> google.protobuf.Timestamp
+	18, // 9: specs.BMCConfigSpec.config:type_name -> specs.InfraMachineBMCConfigSpec
 	10, // [10:10] is the sub-list for method output_type
 	10, // [10:10] is the sub-list for method input_type
 	10, // [10:10] is the sub-list for extension type_name
@@ -925,7 +963,7 @@ func file_omni_specs_infra_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_omni_specs_infra_proto_rawDesc), len(file_omni_specs_infra_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   9,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

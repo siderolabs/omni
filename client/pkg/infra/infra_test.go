@@ -59,6 +59,7 @@ type provisioner struct {
 	machinesMu sync.Mutex
 }
 
+//nolint:gocyclo,cyclop,gocognit
 func validateConnectionParams(_ context.Context, _ *zap.Logger, pctx provision.Context[*TestResource]) error {
 	parts := strings.Split(pctx.ConnectionParams.KernelArgs, " ")
 	if len(parts) == 0 {
@@ -96,6 +97,17 @@ func validateConnectionParams(_ context.Context, _ *zap.Logger, pctx provision.C
 
 	if value != providerID {
 		return fmt.Errorf("expected provider id %s got %s", providerID, value)
+	}
+
+	if pctx.ConnectionParams.CustomDataEncoded {
+		value, ok = t.ExtraData[omni.LabelMachineRequest]
+		if !ok {
+			return errors.New("invalid connection params: missing machine ID in the extra data")
+		}
+
+		if value != pctx.GetRequestID() {
+			return fmt.Errorf("expected machine request id %s got %s", providerID, value)
+		}
 	}
 
 	if pctx.ConnectionParams.JoinConfig == "" {
@@ -146,23 +158,30 @@ func validateConnectionParams(_ context.Context, _ *zap.Logger, pctx provision.C
 }
 
 func genSchematic(ctx context.Context, logger *zap.Logger, pctx provision.Context[*TestResource]) error {
-	schematic, err := pctx.GenerateSchematicID(ctx, logger)
+	if pctx.ConnectionParams.CustomDataEncoded {
+		_, err := pctx.GenerateSchematicID(ctx, logger)
+		if err == nil {
+			return errors.New("generating schematics with the connection params must be not allowed")
+		}
+	} else {
+		schematic, err := pctx.GenerateSchematicID(ctx, logger)
+		if err != nil {
+			return err
+		}
+
+		expectedSchematic := "a35d01089c2122ee67ef6f9a0834f01a405d8d6eb70a99a5979c41eeda504720"
+
+		if schematic != expectedSchematic {
+			return fmt.Errorf("expected schematic id to be %s got %s", expectedSchematic, schematic)
+		}
+	}
+
+	schematic, err := pctx.GenerateSchematicID(ctx, logger, provision.WithoutConnectionParams())
 	if err != nil {
 		return err
 	}
 
-	expectedSchematic := "a35d01089c2122ee67ef6f9a0834f01a405d8d6eb70a99a5979c41eeda504720"
-
-	if schematic != expectedSchematic {
-		return fmt.Errorf("expected schematic id to be %s got %s", expectedSchematic, schematic)
-	}
-
-	schematic, err = pctx.GenerateSchematicID(ctx, logger, provision.WithoutConnectionParams())
-	if err != nil {
-		return err
-	}
-
-	expectedSchematic = "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"
+	expectedSchematic := "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"
 
 	if schematic != expectedSchematic {
 		return fmt.Errorf("expected schematic id to be %s got %s", expectedSchematic, schematic)
@@ -253,81 +272,96 @@ func (p *provisioner) getMachine(id string) *ms {
 }
 
 func TestInfra(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	for _, tt := range []struct {
+		name    string
+		options []infra.Option
+	}{
+		{
+			name: "no options",
+		},
+		{
+			name:    "encode request IDs",
+			options: []infra.Option{infra.WithEncodeRequestIDsIntoTokens()},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 
-	t.Cleanup(cancel)
+			t.Cleanup(cancel)
 
-	provisionChannel := make(chan struct{}, 1)
+			provisionChannel := make(chan struct{}, 1)
 
-	p := &provisioner{
-		ch: provisionChannel,
+			p := &provisioner{
+				ch: provisionChannel,
+			}
+
+			state := setupInfra(ctx, t, p, tt.options...)
+
+			customLabel := "custom"
+			customValue := "hello"
+
+			machineRequest := infrares.NewMachineRequest("test1")
+			machineRequest.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
+			machineRequest.Metadata().Labels().Set(customLabel, customValue)
+
+			patchID := machineRequest.Metadata().ID()
+
+			require.NoError(t, state.Create(ctx, machineRequest))
+
+			connectionParams := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
+			connectionParams.TypedSpec().Value.JoinToken = "abcd"
+			connectionParams.TypedSpec().Value.Args = constants.KernelParamSideroLink + "=http://127.0.0.1:8099?jointoken=abcd"
+			connectionParams.TypedSpec().Value.ApiEndpoint = "http://127.0.0.1:8099"
+			connectionParams.TypedSpec().Value.LogsPort = 8092
+			connectionParams.TypedSpec().Value.EventsPort = 8091
+
+			require.NoError(t, state.Create(ctx, connectionParams))
+
+			rtestutils.AssertResources(ctx, t, state, []string{machineRequest.Metadata().ID()}, func(machineRequestStatus *infrares.MachineRequestStatus, assert *assert.Assertions) {
+				val, ok := machineRequestStatus.Metadata().Labels().Get(omni.LabelInfraProviderID)
+
+				assert.True(ok)
+				assert.Equal(providerID, val)
+
+				val, ok = machineRequestStatus.Metadata().Labels().Get(customLabel)
+				assert.True(ok)
+				assert.Equal(customValue, val)
+
+				assert.Equal(specs.MachineRequestStatusSpec_PROVISIONING, machineRequestStatus.TypedSpec().Value.Stage)
+			})
+
+			require.True(t, channel.SendWithContext(ctx, provisionChannel, struct{}{}))
+
+			rtestutils.AssertResources(ctx, t, state, []string{machineRequest.Metadata().ID()}, func(machineRequestStatus *infrares.MachineRequestStatus, assert *assert.Assertions) {
+				assert.Equal(specs.MachineRequestStatusSpec_PROVISIONED, machineRequestStatus.TypedSpec().Value.Stage)
+			})
+
+			rtestutils.AssertResources(ctx, t, state, []string{patchID}, func(r *infrares.ConfigPatchRequest, assert *assert.Assertions) {
+				data, err := r.TypedSpec().Value.GetUncompressedData()
+
+				assert.NoError(err)
+				assert.EqualValues([]byte("machine: {}"), data.Data())
+			})
+
+			rtestutils.AssertResources(ctx, t, state, []string{machineRequest.Metadata().ID()}, func(testResource *TestResource, assert *assert.Assertions) {
+				assert.True(testResource.TypedSpec().Value.Connected)
+			})
+
+			require.NotNil(t, p.getMachine(machineRequest.Metadata().ID()))
+
+			rtestutils.Destroy[*infrares.MachineRequest](ctx, t, state, []string{machineRequest.Metadata().ID()})
+
+			rtestutils.AssertNoResource[*infrares.MachineRequestStatus](ctx, t, state, machineRequest.Metadata().ID())
+			rtestutils.AssertNoResource[*TestResource](ctx, t, state, machineRequest.Metadata().ID())
+
+			require.Nil(t, p.getMachine(machineRequest.Metadata().ID()))
+
+			rtestutils.AssertNoResource[*infrares.ConfigPatchRequest](ctx, t, state, patchID)
+		})
 	}
-
-	state := setupInfra(ctx, t, p)
-
-	customLabel := "custom"
-	customValue := "hello"
-
-	machineRequest := infrares.NewMachineRequest("test1")
-	machineRequest.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
-	machineRequest.Metadata().Labels().Set(customLabel, customValue)
-
-	patchID := machineRequest.Metadata().ID()
-
-	require.NoError(t, state.Create(ctx, machineRequest))
-
-	connectionParams := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
-	connectionParams.TypedSpec().Value.JoinToken = "abcd"
-	connectionParams.TypedSpec().Value.Args = constants.KernelParamSideroLink + "=http://127.0.0.1:8099?jointoken=abcd"
-	connectionParams.TypedSpec().Value.ApiEndpoint = "http://127.0.0.1:8099"
-	connectionParams.TypedSpec().Value.LogsPort = 8092
-	connectionParams.TypedSpec().Value.EventsPort = 8091
-
-	require.NoError(t, state.Create(ctx, connectionParams))
-
-	rtestutils.AssertResources(ctx, t, state, []string{machineRequest.Metadata().ID()}, func(machineRequestStatus *infrares.MachineRequestStatus, assert *assert.Assertions) {
-		val, ok := machineRequestStatus.Metadata().Labels().Get(omni.LabelInfraProviderID)
-
-		assert.True(ok)
-		assert.Equal(providerID, val)
-
-		val, ok = machineRequestStatus.Metadata().Labels().Get(customLabel)
-		assert.True(ok)
-		assert.Equal(customValue, val)
-
-		assert.Equal(specs.MachineRequestStatusSpec_PROVISIONING, machineRequestStatus.TypedSpec().Value.Stage)
-	})
-
-	require.True(t, channel.SendWithContext(ctx, provisionChannel, struct{}{}))
-
-	rtestutils.AssertResources(ctx, t, state, []string{machineRequest.Metadata().ID()}, func(machineRequestStatus *infrares.MachineRequestStatus, assert *assert.Assertions) {
-		assert.Equal(specs.MachineRequestStatusSpec_PROVISIONED, machineRequestStatus.TypedSpec().Value.Stage)
-	})
-
-	rtestutils.AssertResources(ctx, t, state, []string{patchID}, func(r *infrares.ConfigPatchRequest, assert *assert.Assertions) {
-		data, err := r.TypedSpec().Value.GetUncompressedData()
-
-		assert.NoError(err)
-		assert.EqualValues([]byte("machine: {}"), data.Data())
-	})
-
-	rtestutils.AssertResources(ctx, t, state, []string{machineRequest.Metadata().ID()}, func(testResource *TestResource, assert *assert.Assertions) {
-		assert.True(testResource.TypedSpec().Value.Connected)
-	})
-
-	require.NotNil(t, p.getMachine(machineRequest.Metadata().ID()))
-
-	rtestutils.Destroy[*infrares.MachineRequest](ctx, t, state, []string{machineRequest.Metadata().ID()})
-
-	rtestutils.AssertNoResource[*infrares.MachineRequestStatus](ctx, t, state, machineRequest.Metadata().ID())
-	rtestutils.AssertNoResource[*TestResource](ctx, t, state, machineRequest.Metadata().ID())
-
-	require.Nil(t, p.getMachine(machineRequest.Metadata().ID()))
-
-	rtestutils.AssertNoResource[*infrares.ConfigPatchRequest](ctx, t, state, patchID)
 }
 
-func setupInfra(ctx context.Context, t *testing.T, p *provisioner) state.State {
+func setupInfra(ctx context.Context, t *testing.T, p *provisioner, opts ...infra.Option) state.State {
 	state := state.WrapCore(namespaced.NewState(inmem.Build))
 
 	logger := zaptest.NewLogger(t)
@@ -344,8 +378,10 @@ func setupInfra(ctx context.Context, t *testing.T, p *provisioner) state.State {
 
 	eg, ctx := errgroup.WithContext(ctx)
 
+	opts = append(opts, infra.WithState(state), infra.WithImageFactoryClient(&imageFactoryClientMock{}))
+
 	eg.Go(func() error {
-		return provider.Run(ctx, logger, infra.WithState(state), infra.WithImageFactoryClient(&imageFactoryClientMock{}))
+		return provider.Run(ctx, logger, opts...)
 	})
 
 	t.Cleanup(func() {

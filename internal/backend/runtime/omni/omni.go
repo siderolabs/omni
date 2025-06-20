@@ -296,6 +296,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		omnictrl.NewDiscoveryAffiliateDeleteTaskController(clockwork.NewRealClock(), discoveryClientCache),
 		omnictrl.NewInfraProviderCombinedStatusController(),
 		omnictrl.NewServiceAccountStatusController(),
+		omnictrl.NewInfraMachineRegistrationController(),
 	}
 
 	if config.Config.Auth.SAML.Enabled {

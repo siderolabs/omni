@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/state/impl/store"
@@ -324,20 +325,28 @@ type EtcdState interface {
 }
 
 type etcdState struct {
-	client    *clientv3.Client
-	elections map[string]*etcdElections
-	errors    chan error
+	client      *clientv3.Client
+	elections   map[string]*etcdElections
+	errors      chan error
+	electionsMu sync.Mutex
 }
 
 // RunElections allows using global concurrency locks in Omni.
 func (e *etcdState) RunElections(ctx context.Context, prefix string, logger *zap.Logger) error {
-	e.elections[prefix] = newEtcdElections(logger)
+	elections := newEtcdElections(logger)
 
-	return e.elections[prefix].run(ctx, e.client, prefix, e.errors)
+	e.electionsMu.Lock()
+	e.elections[prefix] = elections
+	e.electionsMu.Unlock()
+
+	return elections.run(ctx, e.client, prefix, e.errors)
 }
 
 // StopElections unlocks the used prefix.
 func (e *etcdState) StopElections(prefix string) error {
+	e.electionsMu.Lock()
+	defer e.electionsMu.Unlock()
+
 	ee, ok := e.elections[prefix]
 	if !ok {
 		return nil
@@ -353,6 +362,9 @@ func (e *etcdState) StopElections(prefix string) error {
 }
 
 func (e *etcdState) stopAllElections() error {
+	e.electionsMu.Lock()
+	defer e.electionsMu.Unlock()
+
 	for _, ee := range e.elections {
 		if err := ee.stop(); err != nil {
 			return err
@@ -367,8 +379,8 @@ func (e *etcdState) err() <-chan error {
 }
 
 type embeddedEtcd struct {
-	etcdState
 	embeddedServer *embed.Etcd
+	etcdState
 }
 
 func (e *embeddedEtcd) Client() *clientv3.Client {
