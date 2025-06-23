@@ -7,6 +7,7 @@ package grpcutil
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/netip"
 	"strings"
@@ -76,19 +77,26 @@ func (j *jsonpbObjectMarshaler) MarshalLogObject(e zapcore.ObjectEncoder) error 
 }
 
 func (j *jsonpbObjectMarshaler) MarshalJSON() ([]byte, error) {
-	res, err := marshaller.Marshal(j.pb)
+	res, err := marshaler.Marshal(j.pb)
 	if err != nil {
 		return nil, fmt.Errorf("json serializer failed: %w", err)
 	}
 
 	if j.bodyLimit > 0 && len(res) > j.bodyLimit {
 		res = res[:j.bodyLimit]
+
+		// add the "..." suffix to indicate it was capped and re-marshal it so that we will still have a valid JSON
+		res = append(res, []byte("...")...)
+
+		if res, err = json.Marshal(string(res)); err != nil {
+			return nil, fmt.Errorf("json serializer failed while re-marshaling: %w", err)
+		}
 	}
 
 	return res, nil
 }
 
-var marshaller = protojson.MarshalOptions{}
+var marshaler = protojson.MarshalOptions{}
 
 // SetRealPeerAddress returns a new unary server interceptor that adds the real peer address for "peer.address" tag.
 func SetRealPeerAddress() grpc.UnaryServerInterceptor {
