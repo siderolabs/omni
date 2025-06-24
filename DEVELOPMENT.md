@@ -1,12 +1,19 @@
 # Developing Omni
 
+This guide assumes a MacOS or a Linux system.
+Using [OrbStack](https://orbstack.dev/) is reccommended on Macos.
+
+Make sure you have a running [Talos development environment](https://www.talos.dev/latest/advanced/developing-talos/) before proceeding with this guide.
+
 Decide on the CIDR for the local set of QEMU Talos machines.
 In this document, we are going to use the `172.20.0.0/24` CIDR, but you can use any CIDR you want.
 
-With the CIDR `172.20.0.0/24`, the bridge IP is going to be `172.20.0.1`, so we are going to use the bridge IP
+With the CIDR `172.20.0.0/24`, the bridge IP is going to be `172.20.0.1`, so we are going to use that IP
 as the Omni endpoint QEMU VMs can reach.
 
 ## Build Omni and omnictl
+
+For example for `linux` on `amd64`.
 
 ```shell
 make omni-linux-amd64
@@ -56,6 +63,15 @@ This should result in the following (git-ignored) files:
 - `hack/generate-certs/certs/localhost-key.pem`
 - `hack/compose/docker-compose.override.yml`
 
+Depending on your environment you'll need to rewrite or add some options to the `hack/compose/docker-compose.override.yml` file.
+
+- If you are on MacOs the following options have to be set due to networking limitations on the platform:
+  - Set `--machine-api-bind-addr` to `0.0.0.0:8090`
+  - Set `--siderolink-wireguard-bind-addr` to `0.0.0.0:50180`
+  - Set `--siderolink-wireguard-advertised-addr` to `172.20.0.1:50180`
+  - Set `--event-sink-port` to `8091`
+  - Set `--machine-api-advertised-url` to `grpc://172.20.0.1:8090`
+
 After that, you can run the following command to start the docker-compose environment:
 
 ```shell
@@ -98,12 +114,13 @@ go run ./hack/generate-certs uninstall
 
 ```shell
 sudo -E _out/talosctl-linux-amd64 cluster create \
-    --provisioner=qemu --cidr=172.20.0.0/24 --install-image=ghcr.io/siderolabs/installer:v1.3.2 --memory 2048 --memory-workers 2048 --disk 6144 --cpus 2 --controlplanes 1 --workers 5 \
-    --extra-boot-kernel-args 'siderolink.api=grpc://<HOST_IP>:8090?jointoken=w7uVuW3zbVKIYQuzEcyetAHeYMeo5q2L9RvkAVfCfSCD  talos.events.sink=[fdae:41e4:649b:9303::1]:8090 talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092'
+    --provisioner=qemu --cidr=172.20.0.0/24 --install-image=ghcr.io/siderolabs/installer:v1.3.2 --memory 2048 --memory-workers 2048 --disk 6144 --cpus 2 --controlplanes 1 --workers 3 \
+    --extra-boot-kernel-args ''siderolink.api=grpc://<OMNI_IP>:8090?jointoken=w7uVuW3zbVKIYQuzEcyetAHeYMeo5q2L9RvkAVfCfSCD talos.events.sink=[fdae:41e4:649b:9303::1]:8091 talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092''
     --skip-injecting-config --wait=false --with-init-node
 ```
 
-> Note: `<HOST_IP>` is the IP address of the host machine, which is used by the Talos VMs to connect to Omni.
+> Note: `<OMNI_IP>` is the IP address on which the Omni instance can be accessed by the machines.
+> It can also be the bridge IP if the Omni is running on the host network or it can be the host machine's local IP.
 > Omni also prints these args in the startup logs.
 
 ## Open Omni UI
