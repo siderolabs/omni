@@ -83,6 +83,7 @@ import {
   MachineStatusLabelReportingEvents,
   LabelNoManualAllocation,
   MachineStatusLabelReadyToUse,
+  MachineStatusLabelInstalled,
 } from "@/api/resources";
 import { showError, showSuccess } from "@/notification";
 import { useRoute, useRouter } from "vue-router";
@@ -160,7 +161,7 @@ const detectVersionMismatch = (machine: Resource<MachineStatusSpec>) => {
   const clusterVersion = semver.parse(state.value.cluster.talosVersion);
   const machineVersion = semver.parse(machine.spec.talos_version);
 
-  const installed = machine.spec.hardware?.blockdevices?.find(item => item.system_disk);
+  const installed = machine.metadata.labels?.[MachineStatusLabelInstalled] !== undefined;
 
   if (!installed) {
     if (machineVersion?.major == clusterVersion?.major && machineVersion?.minor == clusterVersion?.minor) {

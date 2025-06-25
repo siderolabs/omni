@@ -30,6 +30,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	talosschematic "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/talos"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
@@ -43,9 +44,10 @@ type SchematicInfo struct {
 
 // Info contains information gathered about a machine.
 type Info struct { //nolint:govet
-	TalosVersion  *string
-	Arch          *string
-	MachineLabels *omni.MachineLabels
+	TalosVersion       *string
+	Arch               *string
+	MachineLabels      *omni.MachineLabels
+	InfraMachineStatus *infra.MachineStatus
 
 	Hostname        *string
 	Domainname      *string
@@ -81,6 +83,7 @@ type CollectTaskSpec struct {
 
 	TalosConfig                *omni.TalosConfig
 	MachineLabels              *omni.MachineLabels
+	InfraMachineStatus         *infra.MachineStatus
 	Endpoint                   string
 	MachineID                  string
 	DefaultSchematicKernelArgs []string
@@ -372,7 +375,8 @@ func (spec CollectTaskSpec) poll(ctx context.Context, c *client.Client, pollers 
 		// set this early to make pollers act on the machine labels
 		MachineLabels: spec.MachineLabels,
 		// set this early to allow machine schematic collector to be able to fall back to the default kernel args if they cannot be read from the Talos API
-		DefaultKernelArgs: spec.DefaultSchematicKernelArgs,
+		DefaultKernelArgs:  spec.DefaultSchematicKernelArgs,
+		InfraMachineStatus: spec.InfraMachineStatus,
 	}
 
 	for _, poller := range pollers {

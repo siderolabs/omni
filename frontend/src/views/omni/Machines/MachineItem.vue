@@ -165,6 +165,7 @@ import WordHighlighter from "vue-word-highlighter";
 import { addMachineLabels, removeMachineLabels } from "@/methods/machine";
 import { canReadClusters, canReadMachineLogs, canRemoveMachines, canAccessMaintenanceNodes } from "@/methods/auth";
 import { MachineStatusSpecPowerState } from "@/api/omni/specs/omni.pb";
+import { MachineStatusLabelInstalled } from "@/api/resources";
 
 type MachineWithLinkCounter = Resource<MachineStatusLinkSpec>;
 const props = defineProps<{
@@ -271,7 +272,7 @@ const canDoMaintenanceUpdate = computed(() => {
     return false;
   }
 
-  return machine.value.spec.message_status?.hardware?.blockdevices?.findIndex(disk => disk.system_disk) !== -1;
+  return machine.value.metadata.labels?.[MachineStatusLabelInstalled] !== undefined;
 });
 
 const maintenanceUpdateDescription = computed(() => {

@@ -236,6 +236,7 @@ func (ctrl *MachineStatusController) reconcileRunning(ctx context.Context, r con
 		MaintenanceMode:            inputs.talosConfig == nil || maintenanceMode,
 		MachineID:                  machine.Metadata().ID(),
 		MachineLabels:              inputs.machineLabels,
+		InfraMachineStatus:         inputs.infraMachineStatus,
 		DefaultSchematicKernelArgs: siderolink.KernelArgs(params),
 	}
 
@@ -271,7 +272,7 @@ func (ctrl *MachineStatusController) reconcileRunning(ctx context.Context, r con
 
 		helpers.CopyUserLabels(m, ctrl.mergeLabels(m, inputs.machineLabels))
 
-		omni.MachineStatusReconcileLabels(m)
+		ctrl.reconcileLabels(m, inputs.infraMachineStatus)
 
 		if err = ctrl.setClusterRelation(inputs, m); err != nil {
 			return err
@@ -519,7 +520,7 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 
 		spec.Maintenance = event.MaintenanceMode
 
-		omni.MachineStatusReconcileLabels(m)
+		ctrl.reconcileLabels(m, event.InfraMachineStatus)
 
 		return nil
 	}); err != nil && !state.IsPhaseConflictError(err) {
@@ -544,6 +545,24 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 	}
 
 	return nil
+}
+
+// reconcileLabels is a wrapper around omni.MachineStatusReconcileLabels, but it overrides the "installed" label
+// based on a matching infra.MachineStatus for that machine.
+//
+// This is because if there is a matching infra.MachineStatus, it means that the machine is managed by a static infrastructure provider (e.g., the bare-metal provider),
+// and it might be powered off by the provider. In that case, the block disks information on the MachineStatus might be not up to date,
+// and the information on infra.MachineStatus will be more reliable.
+func (ctrl *MachineStatusController) reconcileLabels(machineStatus *omni.MachineStatus, infraMachineStatus *infra.MachineStatus) {
+	omni.MachineStatusReconcileLabels(machineStatus)
+
+	if infraMachineStatus != nil {
+		if infraMachineStatus.TypedSpec().Value.Installed {
+			machineStatus.Metadata().Labels().Set(omni.MachineStatusLabelInstalled, "")
+		} else {
+			machineStatus.Metadata().Labels().Delete(omni.MachineStatusLabelInstalled)
+		}
+	}
 }
 
 type inputs struct {
