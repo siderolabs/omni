@@ -45,6 +45,11 @@ func NewHandler(state state.State, cfg *specs.AuthConfigSpec_SAML, logger *zap.L
 	}
 
 	serviceProvider := samlsp.DefaultServiceProvider(opts)
+
+	if cfg.NameIdFormat != "" {
+		serviceProvider.AuthnNameIDFormat = saml.NameIDFormat(cfg.NameIdFormat)
+	}
+
 	requestTracker := samlsp.DefaultRequestTracker(opts, &serviceProvider)
 	requestTracker.Codec = &Encoder{}
 

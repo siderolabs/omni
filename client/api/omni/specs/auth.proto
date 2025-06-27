@@ -27,6 +27,7 @@ message AuthConfigSpec {
     // LabelRules defines custom rules on how to extract SAML attributes from the
     // saml assertion and turn them into labels.
     map<string, string> label_rules = 4;
+    string name_id_format = 5;
   }
 
   Auth0 auth0 = 1;
