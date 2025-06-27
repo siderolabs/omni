@@ -392,6 +392,12 @@ func defineAuthFlags() {
 		"auth-saml-label-rules",
 		"defines mapping of SAML assertion attributes into Omni identity labels",
 	)
+	rootCmd.Flags().StringVar(
+		&cmdConfig.Auth.SAML.NameIDFormat,
+		"auth-saml-name-id-format",
+		cmdConfig.Auth.SAML.NameIDFormat,
+		"allows setting name ID format for the account",
+	)
 	rootCmd.Flags().StringSliceVar(
 		&cmdConfig.Auth.Auth0.InitialUsers,
 		"initial-users",

@@ -923,6 +923,7 @@ type AuthConfigSpec_SAML struct {
 	// LabelRules defines custom rules on how to extract SAML attributes from the
 	// saml assertion and turn them into labels.
 	LabelRules    map[string]string `protobuf:"bytes,4,rep,name=label_rules,json=labelRules,proto3" json:"label_rules,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	NameIdFormat  string            `protobuf:"bytes,5,opt,name=name_id_format,json=nameIdFormat,proto3" json:"name_id_format,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -983,6 +984,13 @@ func (x *AuthConfigSpec_SAML) GetLabelRules() map[string]string {
 		return x.LabelRules
 	}
 	return nil
+}
+
+func (x *AuthConfigSpec_SAML) GetNameIdFormat() string {
+	if x != nil {
+		return x.NameIdFormat
+	}
+	return ""
 }
 
 type AccessPolicyUserGroup_User struct {
@@ -1485,7 +1493,7 @@ var File_omni_specs_auth_proto protoreflect.FileDescriptor
 
 const file_omni_specs_auth_proto_rawDesc = "" +
 	"\n" +
-	"\x15omni/specs/auth.proto\x12\x05specs\x1a\x1btalos/machine/machine.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe6\x04\n" +
+	"\x15omni/specs/auth.proto\x12\x05specs\x1a\x1btalos/machine/machine.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8c\x05\n" +
 	"\x0eAuthConfigSpec\x121\n" +
 	"\x05auth0\x18\x01 \x01(\v2\x1b.specs.AuthConfigSpec.Auth0R\x05auth0\x12:\n" +
 	"\bwebauthn\x18\x02 \x01(\v2\x1e.specs.AuthConfigSpec.WebauthnR\bwebauthn\x12\x1c\n" +
@@ -1498,13 +1506,14 @@ const file_omni_specs_auth_proto_rawDesc = "" +
 	"\vuseFormData\x18\x04 \x01(\bR\vuseFormData\x1a@\n" +
 	"\bWebauthn\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x1a\n" +
-	"\brequired\x18\x02 \x01(\bR\brequired\x1a\xda\x01\n" +
+	"\brequired\x18\x02 \x01(\bR\brequired\x1a\x80\x02\n" +
 	"\x04SAML\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x10\n" +
 	"\x03url\x18\x02 \x01(\tR\x03url\x12\x1a\n" +
 	"\bmetadata\x18\x03 \x01(\tR\bmetadata\x12K\n" +
 	"\vlabel_rules\x18\x04 \x03(\v2*.specs.AuthConfigSpec.SAML.LabelRulesEntryR\n" +
-	"labelRules\x1a=\n" +
+	"labelRules\x12$\n" +
+	"\x0ename_id_format\x18\x05 \x01(\tR\fnameIdFormat\x1a=\n" +
 	"\x0fLabelRulesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"Q\n" +

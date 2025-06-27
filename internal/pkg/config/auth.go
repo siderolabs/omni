@@ -55,10 +55,11 @@ type WebAuthn struct {
 
 // SAML holds configuration parameters for SAML auth.
 type SAML struct {
-	LabelRules  SAMLLabelRules `yaml:"labelRules"`
-	MetadataURL string         `yaml:"url" validate:"excluded_with=Metadata"`
-	Metadata    string         `yaml:"metadata" validate:"excluded_with=MetadataURL"`
-	Enabled     bool           `yaml:"enabled"`
+	LabelRules   SAMLLabelRules `yaml:"labelRules"`
+	MetadataURL  string         `yaml:"url" validate:"excluded_with=Metadata"`
+	Metadata     string         `yaml:"metadata" validate:"excluded_with=MetadataURL"`
+	NameIDFormat string         `yaml:"nameIDFormat"`
+	Enabled      bool           `yaml:"enabled"`
 }
 
 // KeyPrunerConfig defines key pruner configs.
