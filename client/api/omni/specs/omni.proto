@@ -16,6 +16,8 @@ message MachineSpec {
   bool connected = 2;
   reserved 3;
   reserved 4;
+  // UseGrpcTunnel enables using gRPC tunnel for the machine.
+  bool use_grpc_tunnel = 5;
 }
 
 // SecurityState describes the UKI and secure boot information of the machine.

@@ -52,3 +52,25 @@ export type PendingMachineStatusSpec = {
   token?: string
   talos_installed?: boolean
 }
+
+export type JoinConfig = {
+  kernel_args?: string[]
+  config?: string
+}
+
+export type SiderolinkAPIConfigSpec = {
+  machine_api_advertised_url?: string
+  wireguard_advertised_endpoint?: string
+  enforce_grpc_tunnel?: boolean
+  events_port?: number
+  logs_port?: number
+}
+
+export type ProviderJoinConfigSpec = {
+  config?: JoinConfig
+  join_token?: string
+}
+
+export type MachineJoinConfigSpec = {
+  config?: JoinConfig
+}

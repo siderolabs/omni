@@ -4,5 +4,3 @@
 // included in the LICENSE file.
 
 package siderolink
-
-var GenerateJoinToken = generateJoinToken

@@ -7,7 +7,6 @@ package omni_test
 
 import (
 	"context"
-	"strings"
 	"testing"
 	"time"
 
@@ -31,8 +30,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
-
-const testSchematicKernelArgs = "key1=val1 key2=val2"
 
 type imageFactoryClientMock struct{}
 
@@ -73,11 +70,19 @@ func (suite *MachineStatusSuite) setup() {
 	)
 
 	params := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
-	params.TypedSpec().Value.Args = testSchematicKernelArgs
+	params.TypedSpec().Value.JoinToken = "testjointoken"
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, params))
 
+	apiConfig := siderolink.NewAPIConfig()
+	apiConfig.TypedSpec().Value.LogsPort = 8092
+	apiConfig.TypedSpec().Value.EventsPort = 8091
+	apiConfig.TypedSpec().Value.MachineApiAdvertisedUrl = "grpc://127.0.0.1:8090"
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, apiConfig))
+
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineStatusController(&imageFactoryClientMock{})))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
 }
 
 const testID = "testID"
@@ -319,7 +324,11 @@ func (suite *MachineStatusSuite) TestMachineUserLabels() {
 func (suite *MachineStatusSuite) TestMachineSchematic() {
 	suite.setup()
 
-	kernelArgs := strings.Split(testSchematicKernelArgs, " ")
+	kernelArgs := []string{
+		"siderolink.api=grpc://127.0.0.1:8090?jointoken=testjointoken",
+		"talos.events.sink=[fdae:41e4:649b:9303::1]:8091",
+		"talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092",
+	}
 
 	vanillaID, err := pointer.To(schematic.Schematic{
 		Customization: schematic.Customization{

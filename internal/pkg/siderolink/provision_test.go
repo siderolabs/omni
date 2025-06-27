@@ -116,7 +116,7 @@ func TestProvision(t *testing.T) {
 
 		provisionHandler := siderolink.NewProvisionHandler(logger, state, mode, false)
 
-		config := siderolinkres.NewConfig(resources.DefaultNamespace)
+		config := siderolinkres.NewConfig()
 		config.TypedSpec().Value.ServerAddress = "127.0.0.1"
 		config.TypedSpec().Value.PublicKey = genKey()
 		config.TypedSpec().Value.JoinToken = validToken

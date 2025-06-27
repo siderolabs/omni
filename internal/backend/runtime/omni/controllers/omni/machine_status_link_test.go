@@ -18,7 +18,6 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	siderolinkmanager "github.com/siderolabs/omni/internal/pkg/siderolink"
 )
@@ -41,11 +40,13 @@ func (suite *MachineStatusLinkSuite) SetupTest() {
 		&imageFactoryClientMock{},
 	)))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineStatusLinkController(suite.deltaCh)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(serviceConfig)))
 }
 
 func (suite *MachineStatusLinkSuite) TestBasicMachineOnAndOff() {
 	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
-	suite.Require().NoError(suite.state.Create(suite.ctx, siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)))
+	createConnectionParams(suite.ctx, suite.state, suite.T())
 
 	machine := omni.NewMachine(resources.DefaultNamespace, testID)
 	machine.TypedSpec().Value.Connected = true
@@ -95,7 +96,7 @@ func (suite *MachineStatusLinkSuite) TestTwoMachines() {
 	machine1.TypedSpec().Value.Connected = true
 
 	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
-	suite.Require().NoError(suite.state.Create(suite.ctx, siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)))
+	createConnectionParams(suite.ctx, suite.state, suite.T())
 
 	suite.create(machine1)
 

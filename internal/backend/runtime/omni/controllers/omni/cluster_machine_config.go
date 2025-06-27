@@ -6,14 +6,11 @@
 package omni
 
 import (
-	"bytes"
 	"context"
-	_ "embed"
 	"errors"
 	"fmt"
 	"slices"
 	"strings"
-	"text/template"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
@@ -41,9 +38,6 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/constants"
 )
 
-//go:embed data/siderolink-config-patch.yaml
-var siderolinkConfigPatchData string
-
 // ClusterMachineConfigControllerName is the name of the ClusterMachineConfigController.
 const ClusterMachineConfigControllerName = "ClusterMachineConfigController"
 
@@ -53,7 +47,7 @@ const ClusterMachineConfigControllerName = "ClusterMachineConfigController"
 type ClusterMachineConfigController = qtransform.QController[*omni.ClusterMachine, *omni.ClusterMachineConfig]
 
 // NewClusterMachineConfigController initializes ClusterMachineConfigController.
-func NewClusterMachineConfigController(imageFactoryHost string, registryMirrors []string, eventSinkPort int) *ClusterMachineConfigController {
+func NewClusterMachineConfigController(imageFactoryHost string, registryMirrors []string) *ClusterMachineConfigController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.ClusterMachine, *omni.ClusterMachineConfig]{
 			Name: ClusterMachineConfigControllerName,
@@ -64,7 +58,7 @@ func NewClusterMachineConfigController(imageFactoryHost string, registryMirrors 
 				return omni.NewClusterMachine(resources.DefaultNamespace, machineConfig.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, clusterMachine *omni.ClusterMachine, machineConfig *omni.ClusterMachineConfig) error {
-				return reconcileClusterMachineConfig(ctx, r, logger, clusterMachine, machineConfig, registryMirrors, eventSinkPort, imageFactoryHost)
+				return reconcileClusterMachineConfig(ctx, r, logger, clusterMachine, machineConfig, registryMirrors, imageFactoryHost)
 			},
 		},
 		qtransform.WithExtraMappedInput(
@@ -75,9 +69,6 @@ func NewClusterMachineConfigController(imageFactoryHost string, registryMirrors 
 		),
 		qtransform.WithExtraMappedInput(
 			qtransform.MapperSameID[*omni.MachineConfigGenOptions, *omni.ClusterMachine](),
-		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*siderolink.Link, *omni.ClusterMachine](),
 		),
 		qtransform.WithExtraMappedInput(
 			mappers.MapClusterResourceToLabeledResources[*omni.Cluster, *omni.ClusterMachine](),
@@ -92,7 +83,7 @@ func NewClusterMachineConfigController(imageFactoryHost string, registryMirrors 
 			mappers.MapClusterResourceToLabeledResources[*omni.LoadBalancerConfig, *omni.ClusterMachine](),
 		),
 		qtransform.WithExtraMappedInput(
-			qtransform.MapperNone[*siderolink.ConnectionParams](),
+			qtransform.MapperSameID[*siderolink.MachineJoinConfig, *omni.ClusterMachine](),
 		),
 		qtransform.WithConcurrency(2),
 	)
@@ -106,7 +97,6 @@ func reconcileClusterMachineConfig(
 	clusterMachine *omni.ClusterMachine,
 	machineConfig *omni.ClusterMachineConfig,
 	registryMirrors []string,
-	eventSinkPort int,
 	imageFactoryHost string,
 ) error {
 	clusterName, ok := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
@@ -194,6 +184,15 @@ func reconcileClusterMachineConfig(
 		return err
 	}
 
+	machineJoinConfig, err := safe.ReaderGetByID[*siderolink.MachineJoinConfig](ctx, r, clusterMachine.Metadata().ID())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
+		}
+
+		return err
+	}
+
 	inputs := []resource.Resource{
 		secrets,
 		clusterMachine,
@@ -201,6 +200,7 @@ func reconcileClusterMachineConfig(
 		cluster,
 		clusterMachineConfigPatches,
 		machineConfigGenOptions,
+		machineJoinConfig,
 	}
 
 	if !helpers.UpdateInputsVersions(machineConfig, inputs...) {
@@ -234,16 +234,6 @@ func reconcileClusterMachineConfig(
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("secure boot status for machine %q is not yet set", machineConfigGenOptions.Metadata().ID())
 	}
 
-	connectionParams, err := safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, r, siderolink.ConfigID)
-	if err != nil {
-		return err
-	}
-
-	link, err := safe.ReaderGetByID[*siderolink.Link](ctx, r, clusterMachine.Metadata().ID())
-	if err != nil {
-		return fmt.Errorf("failed to get link: %w", err)
-	}
-
 	helper := clusterMachineConfigControllerHelper{
 		imageFactoryHost: imageFactoryHost,
 	}
@@ -260,7 +250,7 @@ func reconcileClusterMachineConfig(
 	}
 
 	data, err := helper.generateConfig(clusterMachine, clusterMachineConfigPatches, secrets, loadBalancerConfig,
-		cluster, clusterConfigVersion, machineConfigGenOptions, configGenOptions, connectionParams, link, eventSinkPort)
+		cluster, clusterConfigVersion, machineConfigGenOptions, configGenOptions, machineJoinConfig)
 	if err != nil {
 		machineConfig.TypedSpec().Value.GenerationError = err.Error()
 
@@ -283,7 +273,7 @@ type clusterMachineConfigControllerHelper struct {
 
 func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.ClusterMachine, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, secrets *omni.ClusterSecrets,
 	loadbalancer *omni.LoadBalancerConfig, cluster *omni.Cluster, clusterConfigVersion *omni.ClusterConfigVersion, configGenOptions *omni.MachineConfigGenOptions, extraGenOptions []generate.Option,
-	connectionParams *siderolink.ConnectionParams, link *siderolink.Link, eventSinkPort int,
+	machineJoinConfig *siderolink.MachineJoinConfig,
 ) ([]byte, error) {
 	clusterName := cluster.Metadata().ID()
 
@@ -385,13 +375,7 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 
 	// [TODO]: this should check current (minimum) version of the cluster (or current Talos version of the machine)
 	if quirks.New(initialTalosVersion).SupportsMultidoc() {
-		var siderolinkConfig []byte
-
-		if siderolinkConfig, err = renderSiderolinkJoinConfig(connectionParams, link, eventSinkPort); err != nil {
-			return nil, err
-		}
-
-		patchList = append(patchList, string(siderolinkConfig))
+		patchList = append(patchList, machineJoinConfig.TypedSpec().Value.Config.Config)
 	}
 
 	patches, err := configpatcher.LoadPatches(patchList)
@@ -464,34 +448,4 @@ func stripTalosAPIAccessOSAdminRole(cfg config.Provider) (config.Provider, error
 	}
 
 	return container.New(updatedDocs...)
-}
-
-func renderSiderolinkJoinConfig(connectionParams *siderolink.ConnectionParams, link *siderolink.Link, eventSinkPort int) ([]byte, error) {
-	// If this machine is connected using the GRPC tunnel (grpc_tunnel=true), set it explicitly, so that option is preserved.
-	useSiderolinkGRPCTunnel := link.TypedSpec().Value.GetVirtualAddrport() != ""
-
-	// always pass the tunnel option explicitly here to avoid setting it to the instance default
-	url, err := siderolink.APIURL(connectionParams, siderolink.WithGRPCTunnel(useSiderolinkGRPCTunnel))
-	if err != nil {
-		return nil, err
-	}
-
-	template, err := template.New("patch").Parse(siderolinkConfigPatchData)
-	if err != nil {
-		return nil, err
-	}
-
-	var buffer bytes.Buffer
-
-	if err = template.Execute(&buffer, struct {
-		APIURL        string
-		EventSinkPort int
-	}{
-		APIURL:        url,
-		EventSinkPort: eventSinkPort,
-	}); err != nil {
-		return nil, err
-	}
-
-	return buffer.Bytes(), nil
 }

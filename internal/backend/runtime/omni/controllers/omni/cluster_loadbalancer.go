@@ -88,7 +88,7 @@ func (ctrl *ClusterLoadBalancerController) Run(ctx context.Context, r controller
 		case <-r.EventCh():
 		}
 
-		siderolink, err := safe.ReaderGet[*siderolink.Config](ctx, r, siderolink.NewConfig(resources.DefaultNamespace).Metadata())
+		siderolink, err := safe.ReaderGet[*siderolink.Config](ctx, r, siderolink.NewConfig().Metadata())
 		if err != nil {
 			if state.IsNotFoundError(err) {
 				continue

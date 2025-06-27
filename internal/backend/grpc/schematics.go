@@ -21,9 +21,9 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/pkg/meta"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/client/pkg/siderolink"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -145,24 +145,30 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 }
 
 func (s *managementServer) getBaseKernelArgs(ctx context.Context, grpcTunnelMode management.CreateSchematicRequest_SiderolinkGRPCTunnelMode) (args []string, tunnelEnabled bool, err error) {
-	params, err := safe.StateGet[*siderolink.ConnectionParams](ctx, s.omniState, siderolink.NewConnectionParams(
-		resources.DefaultNamespace,
-		siderolink.ConfigID,
-	).Metadata())
+	// TODO: read the token from the JoinToken resources
+	params, err := safe.StateGetByID[*siderolinkres.ConnectionParams](ctx, s.omniState, siderolinkres.ConfigID)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to get Omni connection params for the extra kernel arguments: %w", err)
+	}
+
+	siderolinkAPIConfig, err := safe.StateGetByID[*siderolinkres.APIConfig](ctx, s.omniState, siderolinkres.ConfigID)
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to get Omni connection params for the extra kernel arguments: %w", err)
 	}
 
 	// If the tunnel is enabled instance-wide or in the request, the final state is enabled
-	grpcTunnelEnabled := params.TypedSpec().Value.UseGrpcTunnel || grpcTunnelMode == management.CreateSchematicRequest_ENABLED
+	grpcTunnelEnabled := grpcTunnelMode == management.CreateSchematicRequest_ENABLED
 
-	if grpcTunnelEnabled {
-		if args, err = siderolink.KernelArgsWithGRPCRTunnelMode(params, true); err != nil {
-			return nil, false, err
-		}
-	} else {
-		args = siderolink.KernelArgs(params)
+	opts, err := siderolink.NewJoinOptions(
+		siderolink.WithJoinToken(params.TypedSpec().Value.JoinToken),
+		siderolink.WithGRPCTunnel(grpcTunnelEnabled),
+		siderolink.WithMachineAPIURL(siderolinkAPIConfig.TypedSpec().Value.MachineApiAdvertisedUrl),
+		siderolink.WithEventSinkPort(int(siderolinkAPIConfig.TypedSpec().Value.EventsPort)),
+		siderolink.WithLogServerPort(int(siderolinkAPIConfig.TypedSpec().Value.LogsPort)),
+	)
+	if err != nil {
+		return nil, false, err
 	}
 
-	return args, grpcTunnelEnabled, nil
+	return opts.GetKernelArgs(), grpcTunnelEnabled, nil
 }

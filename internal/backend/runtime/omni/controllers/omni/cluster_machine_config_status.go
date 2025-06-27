@@ -287,10 +287,10 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 			mappers.MapClusterResourceToLabeledResources[*omni.TalosConfig, *omni.ClusterMachineConfig](),
 		),
 		qtransform.WithExtraMappedInput(
-			qtransform.MapperNone[*omni.MachineSet](),
+			qtransform.MapperSameID[*siderolink.MachineJoinConfig, *omni.ClusterMachineConfig](),
 		),
 		qtransform.WithExtraMappedInput(
-			qtransform.MapperNone[*siderolink.ConnectionParams](),
+			qtransform.MapperNone[*omni.MachineSet](),
 		),
 		qtransform.WithExtraOutputs(controller.Output{
 			Type: omni.NodeForceDestroyRequestType,
@@ -427,12 +427,16 @@ func (h *clusterMachineConfigStatusControllerHandler) syncInstallImageAndSchemat
 		return false, err
 	}
 
-	params, err := safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, h.r, siderolink.ConfigID)
+	params, err := safe.ReaderGetByID[*siderolink.MachineJoinConfig](ctx, h.r, machineConfig.Metadata().ID())
 	if err != nil {
+		if state.IsNotFoundError(err) {
+			return false, xerrors.NewTagged[qtransform.SkipReconcileTag](err)
+		}
+
 		return false, err
 	}
 
-	schematicInfo, err := talosutils.GetSchematicInfo(ctx, c, siderolink.KernelArgs(params))
+	schematicInfo, err := talosutils.GetSchematicInfo(ctx, c, params.TypedSpec().Value.Config.KernelArgs)
 	if err != nil {
 		if !errors.Is(err, talosutils.ErrInvalidSchematic) {
 			return false, err

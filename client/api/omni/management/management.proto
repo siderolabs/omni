@@ -198,6 +198,15 @@ message MaintenanceUpgradeRequest {
 message MaintenanceUpgradeResponse {
 }
 
+message GetMachineJoinConfigRequest {
+  bool use_grpc_tunnel = 1;
+}
+
+message GetMachineJoinConfigResponse {
+  repeated string kernel_args = 1;
+  string config = 2;
+}
+
 service ManagementService {
   rpc Kubeconfig(KubeconfigRequest) returns (KubeconfigResponse);
   rpc Talosconfig(TalosconfigRequest) returns (TalosconfigResponse);
@@ -215,4 +224,5 @@ service ManagementService {
   rpc GetSupportBundle(GetSupportBundleRequest) returns (stream GetSupportBundleResponse);
   rpc ReadAuditLog(ReadAuditLogRequest) returns (stream ReadAuditLogResponse);
   rpc MaintenanceUpgrade(MaintenanceUpgradeRequest) returns (MaintenanceUpgradeResponse);
+  rpc GetMachineJoinConfig(GetMachineJoinConfigRequest) returns (GetMachineJoinConfigResponse);
 }

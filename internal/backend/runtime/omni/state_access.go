@@ -362,6 +362,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 	// authentication and authorization checks
 	switch access.ResourceType {
 	case omni.MachineType, // infra provider needs to be able to read machines to find out force-deleted ones and deprovision them
+		siderolink.APIConfigType,        // infra provider needs to be able to read connection params to join nodes to Omni
 		siderolink.ConnectionParamsType: // infra provider needs to be able to read connection params to join nodes to Omni
 		_, err = auth.CheckGRPC(ctx, auth.WithRole(role.InfraProvider))
 	case
@@ -581,6 +582,7 @@ func filterAccessByType(access state.Access) error {
 		authres.ServiceAccountStatusType,
 		siderolink.ConnectionParamsType,
 		siderolink.LinkStatusType,
+		siderolink.APIConfigType,
 		system.SysVersionType,
 		system.ResourceLabelsType[*omni.MachineStatus](),
 		meta.NamespaceType,

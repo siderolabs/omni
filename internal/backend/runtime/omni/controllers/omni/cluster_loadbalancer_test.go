@@ -33,7 +33,7 @@ func (suite *ClusterLoadBalancerSuite) TestReconcile() {
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterEndpointController()))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterLoadBalancerController(5000, 6000)))
 
-	siderolinkConfig := siderolink.NewConfig(resources.DefaultNamespace)
+	siderolinkConfig := siderolink.NewConfig()
 	suite.Require().NoError(suite.state.Create(suite.ctx, siderolinkConfig))
 
 	clusterName := "talos-default-3"

@@ -249,6 +249,9 @@ func (ctrl *ClusterMachineTeardownController) teardownNodeMember(
 func (ctrl *ClusterMachineTeardownController) deleteNodeFromKubernetes(ctx context.Context, clusterMachine *omni.ClusterMachine,
 	clusterMachineIdentity *omni.ClusterMachineIdentity, logger *zap.Logger,
 ) error {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*20)
+	defer cancel()
+
 	clusterName, ok := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
 	if !ok {
 		return fmt.Errorf("cluster machine %q doesn't have cluster label set", clusterMachine.Metadata().ID())

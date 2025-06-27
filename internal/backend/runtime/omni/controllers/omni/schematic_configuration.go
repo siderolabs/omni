@@ -25,7 +25,6 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/extensions"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
@@ -101,9 +100,6 @@ func NewSchematicConfigurationController(imageFactoryClient SchematicEnsurer) *S
 		),
 		qtransform.WithExtraMappedInput(
 			qtransform.MapperSameID[*omni.MachineExtensions, *omni.ClusterMachine](),
-		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperNone[*siderolink.ConnectionParams](),
 		),
 		qtransform.WithExtraOutputs(
 			controller.Output{

@@ -109,9 +109,9 @@ included in the LICENSE file.
           <div class="flex-col space-y-6">
             <div class="overview-card p-6 flex flex-col gap-5 place-items-stretch" style="width: 350px">
               <div class="text-naturals-N14 text-sm">Add Machines</div>
-              <t-button icon="long-arrow-down" iconPosition="left" @click="() => openDownloadIso()">Download Installation Media</t-button>
-              <t-button icon="long-arrow-down" iconPosition="left" @click="() => downloadMachineJoinConfig(items[0]?.spec)">Download Machine Join Config</t-button>
-              <t-button icon="copy" iconPosition="left" @click="() => copyValue(items[0]?.spec?.args)">Copy Kernel Parameters</t-button>
+              <t-button icon="long-arrow-down" iconPosition="left" @click="openDownloadIso">Download Installation Media</t-button>
+              <t-button icon="long-arrow-down" iconPosition="left" @click="downloadMachineJoinConfig">Download Machine Join Config</t-button>
+              <t-button icon="copy" iconPosition="left" @click="copyKernelArgs">Copy Kernel Parameters</t-button>
             </div>
             <div class="overview-card p-6 flex flex-col gap-5 place-items-stretch" style="width: 350px">
               <div class="text-naturals-N14 text-sm">CLI</div>
@@ -167,8 +167,8 @@ import ClusterStatus from "@/views/omni/Clusters/ClusterStatus.vue";
 import Watch from "@/components/common/Watch/Watch.vue";
 import PageHeader from "@/components/common/PageHeader.vue";
 import { canCreateClusters, canReadAuditLog, canReadClusters, currentUser } from "@/methods/auth";
-import { ConnectionParamsSpec } from "@/api/omni/specs/siderolink.pb";
 import { auditLogEnabled } from "@/methods/features";
+import { ManagementService } from "@/api/omni/management/management.pb";
 
 const hasRoleNone = computed(() => {
   const role = currentUser.value?.spec?.role
@@ -233,39 +233,17 @@ const downloadTalosctl = () => {
   });
 };
 
-const downloadMachineJoinConfig = (item?: ConnectionParamsSpec) => {
-  if (!item?.args) {
-    return;
-  }
+const copyKernelArgs = async () => {
+  const response = await ManagementService.GetMachineJoinConfig({});
 
-  // parse kernel args to extract the values for the template
-  const args = item.args.split(" ");
-  const argsMap = args.reduce((acc, arg) => {
-    const [key, ...vals] = arg.split("=");
-    acc[key] = vals.join("=");
-    return acc;
-  }, {});
+  copyValue(response.kernel_args!.join(" "));
+}
 
-  const apiUrl = argsMap["siderolink.api"];
-  const talosEventsSink = argsMap["talos.events.sink"];
-  const talosLoggingKernel = argsMap["talos.logging.kernel"];
-
-  const config = `apiVersion: v1alpha1
-kind: SideroLinkConfig
-apiUrl: "${apiUrl}"
----
-apiVersion: v1alpha1
-kind: EventSinkConfig
-endpoint: "${talosEventsSink}"
----
-apiVersion: v1alpha1
-kind: KmsgLogConfig
-name: omni-kmsg
-url: "${talosLoggingKernel}"
-`
+const downloadMachineJoinConfig = async () => {
+  const response = await ManagementService.GetMachineJoinConfig({});
 
   const element = document.createElement("a");
-  element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(config));
+  element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(response.config!));
   element.setAttribute("download", "machine-config.yaml");
 
   element.style.display = "none";

@@ -499,6 +499,236 @@ func (x *PendingMachineStatusSpec) GetTalosInstalled() bool {
 	return false
 }
 
+type JoinConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	KernelArgs    []string               `protobuf:"bytes,1,rep,name=kernel_args,json=kernelArgs,proto3" json:"kernel_args,omitempty"`
+	Config        string                 `protobuf:"bytes,2,opt,name=config,proto3" json:"config,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JoinConfig) Reset() {
+	*x = JoinConfig{}
+	mi := &file_omni_specs_siderolink_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinConfig) ProtoMessage() {}
+
+func (x *JoinConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_siderolink_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinConfig.ProtoReflect.Descriptor instead.
+func (*JoinConfig) Descriptor() ([]byte, []int) {
+	return file_omni_specs_siderolink_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *JoinConfig) GetKernelArgs() []string {
+	if x != nil {
+		return x.KernelArgs
+	}
+	return nil
+}
+
+func (x *JoinConfig) GetConfig() string {
+	if x != nil {
+		return x.Config
+	}
+	return ""
+}
+
+type SiderolinkAPIConfigSpec struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// MachineApiAdvertisedUrl is the machine service gRPC API URL (external domain/ip, schema and port).
+	// Talos nodes use this API to get the siderolink connection params, key management server also runs there.
+	MachineApiAdvertisedUrl string `protobuf:"bytes,1,opt,name=machine_api_advertised_url,json=machineApiAdvertisedUrl,proto3" json:"machine_api_advertised_url,omitempty"`
+	// WireguardAdvertisedEndpoint is the service IP visible from the internal SideroLink network.
+	WireguardAdvertisedEndpoint string `protobuf:"bytes,2,opt,name=wireguard_advertised_endpoint,json=wireguardAdvertisedEndpoint,proto3" json:"wireguard_advertised_endpoint,omitempty"`
+	// EnforceGRPCTunnel is a flag to enable gRPC tunneling.
+	EnforceGrpcTunnel bool `protobuf:"varint,3,opt,name=enforce_grpc_tunnel,json=enforceGrpcTunnel,proto3" json:"enforce_grpc_tunnel,omitempty"`
+	// EventsPort is the siderolink events port.
+	EventsPort int32 `protobuf:"varint,4,opt,name=events_port,json=eventsPort,proto3" json:"events_port,omitempty"`
+	// LogsPort is the logs port.
+	LogsPort      int32 `protobuf:"varint,5,opt,name=logs_port,json=logsPort,proto3" json:"logs_port,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SiderolinkAPIConfigSpec) Reset() {
+	*x = SiderolinkAPIConfigSpec{}
+	mi := &file_omni_specs_siderolink_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SiderolinkAPIConfigSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SiderolinkAPIConfigSpec) ProtoMessage() {}
+
+func (x *SiderolinkAPIConfigSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_siderolink_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SiderolinkAPIConfigSpec.ProtoReflect.Descriptor instead.
+func (*SiderolinkAPIConfigSpec) Descriptor() ([]byte, []int) {
+	return file_omni_specs_siderolink_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *SiderolinkAPIConfigSpec) GetMachineApiAdvertisedUrl() string {
+	if x != nil {
+		return x.MachineApiAdvertisedUrl
+	}
+	return ""
+}
+
+func (x *SiderolinkAPIConfigSpec) GetWireguardAdvertisedEndpoint() string {
+	if x != nil {
+		return x.WireguardAdvertisedEndpoint
+	}
+	return ""
+}
+
+func (x *SiderolinkAPIConfigSpec) GetEnforceGrpcTunnel() bool {
+	if x != nil {
+		return x.EnforceGrpcTunnel
+	}
+	return false
+}
+
+func (x *SiderolinkAPIConfigSpec) GetEventsPort() int32 {
+	if x != nil {
+		return x.EventsPort
+	}
+	return 0
+}
+
+func (x *SiderolinkAPIConfigSpec) GetLogsPort() int32 {
+	if x != nil {
+		return x.LogsPort
+	}
+	return 0
+}
+
+type ProviderJoinConfigSpec struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Config        *JoinConfig            `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
+	JoinToken     string                 `protobuf:"bytes,2,opt,name=join_token,json=joinToken,proto3" json:"join_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProviderJoinConfigSpec) Reset() {
+	*x = ProviderJoinConfigSpec{}
+	mi := &file_omni_specs_siderolink_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProviderJoinConfigSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProviderJoinConfigSpec) ProtoMessage() {}
+
+func (x *ProviderJoinConfigSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_siderolink_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProviderJoinConfigSpec.ProtoReflect.Descriptor instead.
+func (*ProviderJoinConfigSpec) Descriptor() ([]byte, []int) {
+	return file_omni_specs_siderolink_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ProviderJoinConfigSpec) GetConfig() *JoinConfig {
+	if x != nil {
+		return x.Config
+	}
+	return nil
+}
+
+func (x *ProviderJoinConfigSpec) GetJoinToken() string {
+	if x != nil {
+		return x.JoinToken
+	}
+	return ""
+}
+
+type MachineJoinConfigSpec struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Config        *JoinConfig            `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MachineJoinConfigSpec) Reset() {
+	*x = MachineJoinConfigSpec{}
+	mi := &file_omni_specs_siderolink_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MachineJoinConfigSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MachineJoinConfigSpec) ProtoMessage() {}
+
+func (x *MachineJoinConfigSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_siderolink_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MachineJoinConfigSpec.ProtoReflect.Descriptor instead.
+func (*MachineJoinConfigSpec) Descriptor() ([]byte, []int) {
+	return file_omni_specs_siderolink_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *MachineJoinConfigSpec) GetConfig() *JoinConfig {
+	if x != nil {
+		return x.Config
+	}
+	return nil
+}
+
 var File_omni_specs_siderolink_proto protoreflect.FileDescriptor
 
 const file_omni_specs_siderolink_proto_rawDesc = "" +
@@ -550,7 +780,25 @@ const file_omni_specs_siderolink_proto_rawDesc = "" +
 	" \x01(\x05R\blogsPort\"Y\n" +
 	"\x18PendingMachineStatusSpec\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12'\n" +
-	"\x0ftalos_installed\x18\x02 \x01(\bR\x0etalosInstalledB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
+	"\x0ftalos_installed\x18\x02 \x01(\bR\x0etalosInstalled\"E\n" +
+	"\n" +
+	"JoinConfig\x12\x1f\n" +
+	"\vkernel_args\x18\x01 \x03(\tR\n" +
+	"kernelArgs\x12\x16\n" +
+	"\x06config\x18\x02 \x01(\tR\x06config\"\x88\x02\n" +
+	"\x17SiderolinkAPIConfigSpec\x12;\n" +
+	"\x1amachine_api_advertised_url\x18\x01 \x01(\tR\x17machineApiAdvertisedUrl\x12B\n" +
+	"\x1dwireguard_advertised_endpoint\x18\x02 \x01(\tR\x1bwireguardAdvertisedEndpoint\x12.\n" +
+	"\x13enforce_grpc_tunnel\x18\x03 \x01(\bR\x11enforceGrpcTunnel\x12\x1f\n" +
+	"\vevents_port\x18\x04 \x01(\x05R\n" +
+	"eventsPort\x12\x1b\n" +
+	"\tlogs_port\x18\x05 \x01(\x05R\blogsPort\"b\n" +
+	"\x16ProviderJoinConfigSpec\x12)\n" +
+	"\x06config\x18\x01 \x01(\v2\x11.specs.JoinConfigR\x06config\x12\x1d\n" +
+	"\n" +
+	"join_token\x18\x02 \x01(\tR\tjoinToken\"B\n" +
+	"\x15MachineJoinConfigSpec\x12)\n" +
+	"\x06config\x18\x01 \x01(\v2\x11.specs.JoinConfigR\x06configB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
 
 var (
 	file_omni_specs_siderolink_proto_rawDescOnce sync.Once
@@ -564,7 +812,7 @@ func file_omni_specs_siderolink_proto_rawDescGZIP() []byte {
 	return file_omni_specs_siderolink_proto_rawDescData
 }
 
-var file_omni_specs_siderolink_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_omni_specs_siderolink_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_omni_specs_siderolink_proto_goTypes = []any{
 	(*SiderolinkConfigSpec)(nil),     // 0: specs.SiderolinkConfigSpec
 	(*SiderolinkSpec)(nil),           // 1: specs.SiderolinkSpec
@@ -572,15 +820,21 @@ var file_omni_specs_siderolink_proto_goTypes = []any{
 	(*SiderolinkCounterSpec)(nil),    // 3: specs.SiderolinkCounterSpec
 	(*ConnectionParamsSpec)(nil),     // 4: specs.ConnectionParamsSpec
 	(*PendingMachineStatusSpec)(nil), // 5: specs.PendingMachineStatusSpec
-	(*timestamppb.Timestamp)(nil),    // 6: google.protobuf.Timestamp
+	(*JoinConfig)(nil),               // 6: specs.JoinConfig
+	(*SiderolinkAPIConfigSpec)(nil),  // 7: specs.SiderolinkAPIConfigSpec
+	(*ProviderJoinConfigSpec)(nil),   // 8: specs.ProviderJoinConfigSpec
+	(*MachineJoinConfigSpec)(nil),    // 9: specs.MachineJoinConfigSpec
+	(*timestamppb.Timestamp)(nil),    // 10: google.protobuf.Timestamp
 }
 var file_omni_specs_siderolink_proto_depIdxs = []int32{
-	6, // 0: specs.SiderolinkCounterSpec.last_alive:type_name -> google.protobuf.Timestamp
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	10, // 0: specs.SiderolinkCounterSpec.last_alive:type_name -> google.protobuf.Timestamp
+	6,  // 1: specs.ProviderJoinConfigSpec.config:type_name -> specs.JoinConfig
+	6,  // 2: specs.MachineJoinConfigSpec.config:type_name -> specs.JoinConfig
+	3,  // [3:3] is the sub-list for method output_type
+	3,  // [3:3] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_omni_specs_siderolink_proto_init() }
@@ -594,7 +848,7 @@ func file_omni_specs_siderolink_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_omni_specs_siderolink_proto_rawDesc), len(file_omni_specs_siderolink_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

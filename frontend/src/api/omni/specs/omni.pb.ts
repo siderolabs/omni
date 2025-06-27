@@ -175,6 +175,7 @@ export enum InfraMachineConfigSpecMachinePowerState {
 export type MachineSpec = {
   management_address?: string
   connected?: boolean
+  use_grpc_tunnel?: boolean
 }
 
 export type SecurityState = {

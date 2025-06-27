@@ -27,7 +27,8 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/client/pkg/siderolink"
 )
 
 const currentStepAnnotation = "infra." + omni.SystemLabelPrefix + "step"
@@ -83,10 +84,16 @@ func (ctrl *ProvisionController[T]) Settings() controller.QSettings {
 				Kind:      controller.InputQMapped,
 			},
 			{
-				Namespace: resources.DefaultNamespace,
-				Type:      siderolink.ConnectionParamsType,
+				Namespace: resources.InfraProviderNamespace,
+				Type:      siderolinkres.ProviderJoinConfigType,
 				Kind:      controller.InputQMapped,
-				ID:        optional.Some(siderolink.ConfigID),
+				ID:        optional.Some(ctrl.providerID),
+			},
+			{
+				Namespace: resources.DefaultNamespace,
+				Type:      siderolinkres.APIConfigType,
+				Kind:      controller.InputQMapped,
+				ID:        optional.Some(siderolinkres.ConfigID),
 			},
 			{
 				Namespace: resources.InfraProviderNamespace,
@@ -124,7 +131,8 @@ func (ctrl *ProvisionController[T]) MapInput(ctx context.Context, _ *zap.Logger,
 	var t T
 
 	switch ptr.Type() {
-	case siderolink.ConnectionParamsType:
+	case siderolinkres.ProviderJoinConfigType,
+		siderolinkres.APIConfigType:
 		return nil, nil
 	case infra.MachineRegistrationType:
 		mr, err := safe.ReaderGetByID[*infra.MachineRegistration](ctx, r, ptr.ID())
@@ -377,35 +385,44 @@ func (ctrl *ProvisionController[T]) initializeStatus(ctx context.Context, r cont
 }
 
 func (ctrl *ProvisionController[T]) getConnectionArgs(ctx context.Context, r controller.QRuntime, request *infra.MachineRequest) (provision.ConnectionParams, error) {
-	connectionParams, err := safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, r, siderolink.ConfigID)
+	providerJoinConfig, err := safe.ReaderGetByID[*siderolinkres.ProviderJoinConfig](ctx, r, ctrl.providerID)
 	if err != nil {
 		return provision.ConnectionParams{}, err
 	}
 
-	opts := []siderolink.JoinConfigOption{}
+	siderolinkAPIConfig, err := safe.ReaderGetByID[*siderolinkres.APIConfig](ctx, r, siderolinkres.ConfigID)
+	if err != nil {
+		return provision.ConnectionParams{}, err
+	}
+
+	options := []siderolink.JoinConfigOption{
+		siderolink.WithJoinToken(providerJoinConfig.TypedSpec().Value.JoinToken),
+		siderolink.WithMachineAPIURL(siderolinkAPIConfig.TypedSpec().Value.MachineApiAdvertisedUrl),
+		siderolink.WithGRPCTunnel(request.TypedSpec().Value.GrpcTunnel == specs.GrpcTunnelMode_ENABLED),
+		siderolink.WithEventSinkPort(int(siderolinkAPIConfig.TypedSpec().Value.EventsPort)),
+		siderolink.WithLogServerPort(int(siderolinkAPIConfig.TypedSpec().Value.LogsPort)),
+		siderolink.WithProvider(infra.NewProvider(ctrl.providerID)),
+	}
 
 	if ctrl.encodeRequestIDsIntoTokens {
-		opts = append(opts, siderolink.WithEncodeRequestID(request.Metadata().ID()))
+		options = append(options, siderolink.WithMachineRequestID(request.Metadata().ID()))
 	}
 
-	kernelArgs, err := siderolink.GetConnectionArgsForProvider(connectionParams, ctrl.providerID, request.TypedSpec().Value.GrpcTunnel, opts...)
+	opts, err := siderolink.NewJoinOptions(options...)
 	if err != nil {
 		return provision.ConnectionParams{}, err
 	}
 
-	joinConfig, err := siderolink.GetJoinConfigForProvider(
-		connectionParams,
-		ctrl.providerID,
-		request.TypedSpec().Value.GrpcTunnel,
-		opts...,
-	)
+	kernelArgs := opts.GetKernelArgs()
+
+	joinConfig, err := opts.RenderJoinConfig()
 	if err != nil {
 		return provision.ConnectionParams{}, err
 	}
 
 	return provision.ConnectionParams{
 		KernelArgs:        kernelArgs,
-		JoinConfig:        joinConfig,
+		JoinConfig:        string(joinConfig),
 		CustomDataEncoded: ctrl.encodeRequestIDsIntoTokens,
 	}, nil
 }

@@ -161,6 +161,9 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 			safe.WithResourceCache[*system.ResourceLabels[*omni.MachineStatus]](),
 			safe.WithResourceCache[*infra.ConfigPatchRequest](),
 			safe.WithResourceCache[*auth.ServiceAccountStatus](),
+			safe.WithResourceCache[*siderolinkresources.MachineJoinConfig](),
+			safe.WithResourceCache[*siderolinkresources.ProviderJoinConfig](),
+			safe.WithResourceCache[*siderolinkresources.APIConfig](),
 			options.WithWarnOnUncachedReads(false), // turn this to true to debug resource cache misses
 		)
 	}
@@ -250,7 +253,6 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		omnictrl.NewClusterMachineConfigController(
 			imageFactoryHost,
 			config.Config.Registries.Mirrors,
-			config.Config.Services.Siderolink.EventSinkPort,
 		),
 		omnictrl.NewClusterMachineTeardownController(),
 		omnictrl.NewMachineConfigGenOptionsController(),
@@ -292,11 +294,14 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		omnictrl.NewLinkStatusController[*siderolinkresources.Link](peers),
 		omnictrl.NewLinkStatusController[*siderolinkresources.PendingMachine](peers),
 		omnictrl.NewPendingMachineStatusController(),
-		omnictrl.NewMaintenanceConfigStatusController(nil, siderolink.ListenHost, config.Config.Services.Siderolink.EventSinkPort, config.Config.Services.Siderolink.LogServerPort),
+		omnictrl.NewMaintenanceConfigStatusController(nil, config.Config.Services.Siderolink.EventSinkPort, config.Config.Services.Siderolink.LogServerPort),
 		omnictrl.NewDiscoveryAffiliateDeleteTaskController(clockwork.NewRealClock(), discoveryClientCache),
 		omnictrl.NewInfraProviderCombinedStatusController(),
 		omnictrl.NewServiceAccountStatusController(),
 		omnictrl.NewInfraMachineRegistrationController(),
+		omnictrl.NewSiderolinkAPIConfigController(&config.Config.Services),
+		omnictrl.NewProviderJoinConfigController(),
+		omnictrl.NewMachineJoinConfigController(),
 	}
 
 	if config.Config.Auth.SAML.Enabled {

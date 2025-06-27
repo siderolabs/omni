@@ -35,7 +35,7 @@ func (suite *KubeconfigSuite) TestReconcile() {
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterLoadBalancerController(1000, 2000)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewKubeconfigController(2 * time.Second)))
 
-	siderolinkConfig := siderolink.NewConfig(resources.DefaultNamespace)
+	siderolinkConfig := siderolink.NewConfig()
 	siderolinkConfig.TypedSpec().Value.ServerAddress = "fa87::1"
 	require.NoError(suite.state.Create(suite.ctx, siderolinkConfig))
 

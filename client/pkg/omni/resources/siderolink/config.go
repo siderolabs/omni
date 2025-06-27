@@ -11,6 +11,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/typed"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/omni/resources"
 )
 
 const (
@@ -25,9 +26,9 @@ const (
 )
 
 // NewConfig creates new Config resource.
-func NewConfig(ns string) *Config {
+func NewConfig() *Config {
 	return typed.NewResource[ConfigSpec, ConfigExtension](
-		resource.NewMetadata(ns, ConfigType, ConfigID, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ConfigType, ConfigID, resource.VersionUndefined),
 		protobuf.NewResourceSpec(
 			&specs.SiderolinkConfigSpec{},
 		),

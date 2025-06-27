@@ -1017,6 +1017,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource:       omni.NewInfraProviderCombinedStatus(uuid.NewString()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
+			{
+				resource:       siderolink.NewAPIConfig(),
+				allowedVerbSet: readOnlyVerbSet,
+			},
 		}...)
 
 		// no access resources
@@ -1049,7 +1053,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource: omni.NewTalosConfig(resources.DefaultNamespace, uuid.New().String()),
 			},
 			{
-				resource: siderolink.NewConfig(resources.DefaultNamespace),
+				resource: siderolink.NewConfig(),
 			},
 			{
 				resource: omni.NewClusterMachineConfig(resources.DefaultNamespace, uuid.New().String()),
@@ -1071,6 +1075,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource: siderolink.NewPendingMachineStatus(uuid.NewString()),
+			},
+			{
+				resource: siderolink.NewMachineJoinConfig(uuid.NewString()),
 			},
 		}...)
 

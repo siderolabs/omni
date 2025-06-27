@@ -8,9 +8,6 @@ package omni
 import (
 	"context"
 	"fmt"
-	"net"
-	"net/url"
-	"strconv"
 	"sync"
 	"time"
 
@@ -24,9 +21,6 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config"
 	"github.com/siderolabs/talos/pkg/machinery/config/configpatcher"
 	"github.com/siderolabs/talos/pkg/machinery/config/container"
-	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
-	"github.com/siderolabs/talos/pkg/machinery/config/types/meta"
-	"github.com/siderolabs/talos/pkg/machinery/config/types/runtime"
 	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	configres "github.com/siderolabs/talos/pkg/machinery/resources/config"
 	"go.uber.org/zap"
@@ -36,7 +30,8 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/client/pkg/siderolink"
 )
 
 // MaintenanceClientFactory creates a new MaintenanceClient.
@@ -68,25 +63,25 @@ func (c *maintenanceClient) ApplyConfiguration(ctx context.Context, req *machine
 // MaintenanceConfigStatusController manages MaintenanceConfigStatus resource lifecycle.
 //
 // MaintenanceConfigStatusController generates cluster UUID for every cluster.
-type MaintenanceConfigStatusController = qtransform.QController[*siderolink.Link, *omni.MaintenanceConfigStatus]
+type MaintenanceConfigStatusController = qtransform.QController[*siderolinkres.Link, *omni.MaintenanceConfigStatus]
 
 // NewMaintenanceConfigStatusController initializes MaintenanceConfigStatusController.
-func NewMaintenanceConfigStatusController(maintenanceClientFactory MaintenanceClientFactory, siderolinkListenHost string, eventSinkPort, logServerPort int) *MaintenanceConfigStatusController {
-	helper := newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory, siderolinkListenHost, eventSinkPort, logServerPort)
+func NewMaintenanceConfigStatusController(maintenanceClientFactory MaintenanceClientFactory, eventSinkPort, logServerPort int) *MaintenanceConfigStatusController {
+	helper := newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory, eventSinkPort, logServerPort)
 
 	return qtransform.NewQController(
-		qtransform.Settings[*siderolink.Link, *omni.MaintenanceConfigStatus]{
+		qtransform.Settings[*siderolinkres.Link, *omni.MaintenanceConfigStatus]{
 			Name: "MaintenanceConfigStatusController",
-			MapMetadataFunc: func(link *siderolink.Link) *omni.MaintenanceConfigStatus {
+			MapMetadataFunc: func(link *siderolinkres.Link) *omni.MaintenanceConfigStatus {
 				return omni.NewMaintenanceConfigStatus(link.Metadata().ID())
 			},
-			UnmapMetadataFunc: func(status *omni.MaintenanceConfigStatus) *siderolink.Link {
-				return siderolink.NewLink(resources.DefaultNamespace, status.Metadata().ID(), nil)
+			UnmapMetadataFunc: func(status *omni.MaintenanceConfigStatus) *siderolinkres.Link {
+				return siderolinkres.NewLink(resources.DefaultNamespace, status.Metadata().ID(), nil)
 			},
 			TransformFunc: helper.transform,
 		},
 		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.MachineStatus, *siderolink.Link](),
+			qtransform.MapperSameID[*omni.MachineStatus, *siderolinkres.Link](),
 		),
 		qtransform.WithConcurrency(32),
 	)
@@ -97,8 +92,7 @@ type maintenanceConfigStatusControllerHelper struct {
 	maintenanceClientFactory MaintenanceClientFactory
 }
 
-func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory MaintenanceClientFactory,
-	siderolinkListenHost string, eventSinkPort, logServerPort int,
+func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory MaintenanceClientFactory, eventSinkPort, logServerPort int,
 ) *maintenanceConfigStatusControllerHelper {
 	if maintenanceClientFactory == nil {
 		maintenanceClientFactory = func(ctx context.Context, managementAddress string) (MaintenanceClient, error) {
@@ -116,28 +110,18 @@ func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory Mainten
 	return &maintenanceConfigStatusControllerHelper{
 		maintenanceClientFactory: maintenanceClientFactory,
 		getMachineConfigPatch: sync.OnceValues(func() (configpatcher.Patch, error) {
-			eventSinkConfig := runtime.NewEventSinkV1Alpha1()
-			eventSinkConfig.Endpoint = net.JoinHostPort(siderolinkListenHost, strconv.Itoa(eventSinkPort))
-
-			kmsgLogURL, err := url.Parse("tcp://" + net.JoinHostPort(siderolinkListenHost, strconv.Itoa(logServerPort)))
+			cfg, err := siderolink.NewJoinOptions(
+				siderolink.WithoutMachineAPIURL(),
+				siderolink.WithEventSinkPort(eventSinkPort),
+				siderolink.WithLogServerPort(logServerPort),
+			)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse kmsg log URL: %w", err)
+				return nil, err
 			}
 
-			kmsgLogConfig := runtime.NewKmsgLogV1Alpha1()
-			kmsgLogConfig.MetaName = "omni-kmsg"
-			kmsgLogConfig.KmsgLogURL = meta.URL{
-				URL: kmsgLogURL,
-			}
-
-			configContainer, err := container.New(eventSinkConfig, kmsgLogConfig)
+			configBytes, err := cfg.RenderJoinConfig()
 			if err != nil {
-				return nil, fmt.Errorf("failed to create config container: %w", err)
-			}
-
-			configBytes, err := configContainer.EncodeBytes(encoder.WithComments(encoder.CommentsDisabled))
-			if err != nil {
-				return nil, fmt.Errorf("failed to encode config container: %w", err)
+				return nil, err
 			}
 
 			patch, err := configpatcher.LoadPatch(configBytes)
@@ -150,7 +134,7 @@ func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory Mainten
 	}
 }
 
-func (helper *maintenanceConfigStatusControllerHelper) transform(ctx context.Context, r controller.Reader, logger *zap.Logger, link *siderolink.Link, status *omni.MaintenanceConfigStatus) error {
+func (helper *maintenanceConfigStatusControllerHelper) transform(ctx context.Context, r controller.Reader, logger *zap.Logger, link *siderolinkres.Link, status *omni.MaintenanceConfigStatus) error {
 	if link.TypedSpec().Value.NodePublicKey == status.TypedSpec().Value.PublicKeyAtLastApply {
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("public key has not changed (not rebooted/reconnected), skip")
 	}

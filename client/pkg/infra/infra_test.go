@@ -24,7 +24,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/siderolabs/gen/channel"
 	"github.com/siderolabs/image-factory/pkg/schematic"
-	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -36,7 +35,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/infra"
 	"github.com/siderolabs/omni/client/pkg/infra/provision"
 	"github.com/siderolabs/omni/client/pkg/jointoken"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	infrares "github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -61,7 +59,7 @@ type provisioner struct {
 
 //nolint:gocyclo,cyclop,gocognit
 func validateConnectionParams(_ context.Context, _ *zap.Logger, pctx provision.Context[*TestResource]) error {
-	parts := strings.Split(pctx.ConnectionParams.KernelArgs, " ")
+	parts := pctx.ConnectionParams.KernelArgs
 	if len(parts) == 0 {
 		return errors.New("invalid connection params")
 	}
@@ -169,7 +167,7 @@ func genSchematic(ctx context.Context, logger *zap.Logger, pctx provision.Contex
 			return err
 		}
 
-		expectedSchematic := "a35d01089c2122ee67ef6f9a0834f01a405d8d6eb70a99a5979c41eeda504720"
+		expectedSchematic := "279f180d2195dbf1aa7c0864d0440d19dd562717c279d0bae979252c77141165"
 
 		if schematic != expectedSchematic {
 			return fmt.Errorf("expected schematic id to be %s got %s", expectedSchematic, schematic)
@@ -297,6 +295,20 @@ func TestInfra(t *testing.T) {
 
 			state := setupInfra(ctx, t, p, tt.options...)
 
+			providerJoinConfig := siderolink.NewProviderJoinConfig(providerID)
+			providerJoinConfig.TypedSpec().Value.JoinToken = "abcd"
+
+			providerJoinConfig.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
+
+			require.NoError(t, state.Create(ctx, providerJoinConfig))
+
+			siderolinkAPIConfig := siderolink.NewAPIConfig()
+			siderolinkAPIConfig.TypedSpec().Value.MachineApiAdvertisedUrl = "http://127.0.0.1:8099"
+			siderolinkAPIConfig.TypedSpec().Value.LogsPort = 8092
+			siderolinkAPIConfig.TypedSpec().Value.EventsPort = 8091
+
+			require.NoError(t, state.Create(ctx, siderolinkAPIConfig))
+
 			customLabel := "custom"
 			customValue := "hello"
 
@@ -307,15 +319,6 @@ func TestInfra(t *testing.T) {
 			patchID := machineRequest.Metadata().ID()
 
 			require.NoError(t, state.Create(ctx, machineRequest))
-
-			connectionParams := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
-			connectionParams.TypedSpec().Value.JoinToken = "abcd"
-			connectionParams.TypedSpec().Value.Args = constants.KernelParamSideroLink + "=http://127.0.0.1:8099?jointoken=abcd"
-			connectionParams.TypedSpec().Value.ApiEndpoint = "http://127.0.0.1:8099"
-			connectionParams.TypedSpec().Value.LogsPort = 8092
-			connectionParams.TypedSpec().Value.EventsPort = 8091
-
-			require.NoError(t, state.Create(ctx, connectionParams))
 
 			rtestutils.AssertResources(ctx, t, state, []string{machineRequest.Metadata().ID()}, func(machineRequestStatus *infrares.MachineRequestStatus, assert *assert.Assertions) {
 				val, ok := machineRequestStatus.Metadata().Labels().Get(omni.LabelInfraProviderID)

@@ -487,6 +487,10 @@ func getResourceConfig(ns resource.Namespace, resType resource.Type) (config res
 		return resourceConfig{
 			readOnlyForProviders: true,
 		}, true
+	case siderolink.ProviderJoinConfigType:
+		return resourceConfig{
+			readOnlyForProviders: true,
+		}, true
 	case infra.MachineRequestStatusType:
 		return resourceConfig{}, true
 	case infra.InfraMachineType:

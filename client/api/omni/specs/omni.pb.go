@@ -1184,7 +1184,9 @@ type MachineSpec struct {
 	// IP which can be used to access Talos API.
 	ManagementAddress string `protobuf:"bytes,1,opt,name=management_address,json=managementAddress,proto3" json:"management_address,omitempty"`
 	// Connected is copied from the corresponding Link resource.
-	Connected     bool `protobuf:"varint,2,opt,name=connected,proto3" json:"connected,omitempty"`
+	Connected bool `protobuf:"varint,2,opt,name=connected,proto3" json:"connected,omitempty"`
+	// UseGrpcTunnel enables using gRPC tunnel for the machine.
+	UseGrpcTunnel bool `protobuf:"varint,5,opt,name=use_grpc_tunnel,json=useGrpcTunnel,proto3" json:"use_grpc_tunnel,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1229,6 +1231,13 @@ func (x *MachineSpec) GetManagementAddress() string {
 func (x *MachineSpec) GetConnected() bool {
 	if x != nil {
 		return x.Connected
+	}
+	return false
+}
+
+func (x *MachineSpec) GetUseGrpcTunnel() bool {
+	if x != nil {
+		return x.UseGrpcTunnel
 	}
 	return false
 }
@@ -8736,10 +8745,11 @@ var File_omni_specs_omni_proto protoreflect.FileDescriptor
 
 const file_omni_specs_omni_proto_rawDesc = "" +
 	"\n" +
-	"\x15omni/specs/omni.proto\x12\x05specs\x1a\x1btalos/machine/machine.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/duration.proto\"f\n" +
+	"\x15omni/specs/omni.proto\x12\x05specs\x1a\x1btalos/machine/machine.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/duration.proto\"\x8e\x01\n" +
 	"\vMachineSpec\x12-\n" +
 	"\x12management_address\x18\x01 \x01(\tR\x11managementAddress\x12\x1c\n" +
-	"\tconnected\x18\x02 \x01(\bR\tconnectedJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05\"X\n" +
+	"\tconnected\x18\x02 \x01(\bR\tconnected\x12&\n" +
+	"\x0fuse_grpc_tunnel\x18\x05 \x01(\bR\ruseGrpcTunnelJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05\"X\n" +
 	"\rSecurityState\x12\x1f\n" +
 	"\vsecure_boot\x18\x01 \x01(\bR\n" +
 	"secureBoot\x12&\n" +

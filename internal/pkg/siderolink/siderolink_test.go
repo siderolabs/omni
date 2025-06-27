@@ -452,16 +452,6 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 	suite.Require().Equal(reprovision.GrpcPeerAddrPort, res.TypedSpec().Value.VirtualAddrport)
 }
 
-func (suite *SiderolinkSuite) TestGenerateJoinToken() {
-	token, err := sideromanager.GenerateJoinToken()
-
-	suite.Assert().NoError(err)
-
-	tokenLen := len(token)
-	suite.Assert().Less(tokenLen, 52)
-	suite.Assert().Greater(tokenLen, 42)
-}
-
 func (suite *SiderolinkSuite) TearDownTest() {
 	suite.T().Log("tear down")
 

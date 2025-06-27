@@ -102,7 +102,7 @@ func (ctrl *MachineStatusController) Settings() controller.QSettings {
 			},
 			{
 				Namespace: resources.DefaultNamespace,
-				Type:      siderolink.ConnectionParamsType,
+				Type:      siderolink.MachineJoinConfigType,
 				Kind:      controller.InputQMapped,
 			},
 			{
@@ -156,7 +156,8 @@ func (ctrl *MachineStatusController) MapInput(ctx context.Context, _ *zap.Logger
 		omni.ClusterMachineStatusType,
 		omni.MachineLabelsType,
 		infra.InfraMachineStatusType,
-		omni.MachineStatusSnapshotType:
+		omni.MachineStatusSnapshotType,
+		siderolink.MachineJoinConfigType:
 		return []resource.Pointer{
 			omni.NewMachine(resources.DefaultNamespace, ptr.ID()).Metadata(),
 		}, nil
@@ -173,8 +174,6 @@ func (ctrl *MachineStatusController) MapInput(ctx context.Context, _ *zap.Logger
 		})
 
 		return res, nil
-	case siderolink.ConnectionParamsType:
-		return nil, nil
 	}
 
 	return nil, fmt.Errorf("unexpected resource type %q", ptr.Type())
@@ -223,11 +222,15 @@ func (ctrl *MachineStatusController) reconcileRunning(ctx context.Context, r con
 		maintenanceMode = inputs.machineStatusSnapshot.TypedSpec().Value.MachineStatus.GetStage() == machineapi.MachineStatusEvent_MAINTENANCE
 	}
 
-	var params *siderolink.ConnectionParams
+	var config *siderolink.MachineJoinConfig
 
-	params, err = safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, r, siderolink.ConfigID)
+	config, err = safe.ReaderGetByID[*siderolink.MachineJoinConfig](ctx, r, machine.Metadata().ID())
 	if err != nil {
-		return fmt.Errorf("error reading connection params: %w", err)
+		if state.IsNotFoundError(err) {
+			return nil
+		}
+
+		return err
 	}
 
 	spec := machinetask.CollectTaskSpec{
@@ -237,7 +240,7 @@ func (ctrl *MachineStatusController) reconcileRunning(ctx context.Context, r con
 		MachineID:                  machine.Metadata().ID(),
 		MachineLabels:              inputs.machineLabels,
 		InfraMachineStatus:         inputs.infraMachineStatus,
-		DefaultSchematicKernelArgs: siderolink.KernelArgs(params),
+		DefaultSchematicKernelArgs: config.TypedSpec().Value.Config.KernelArgs,
 	}
 
 	if !machine.TypedSpec().Value.Connected {

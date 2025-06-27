@@ -7,6 +7,7 @@ package omni_test
 
 import (
 	"context"
+	"net"
 	"net/url"
 	"testing"
 
@@ -22,6 +23,7 @@ import (
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	siderolinkomni "github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
 type MaintenanceConfigStatusControllerSuite struct {
@@ -50,7 +52,7 @@ func (suite *MachineStatusSnapshotControllerSuite) TestMaintenanceConfigStatus()
 	}
 
 	// Register the controller and start the runtime
-	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, "test-host", 123, 456)
+	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456)
 
 	suite.Require().NoError(suite.runtime.RegisterQController(controller))
 
@@ -98,8 +100,8 @@ func (suite *MachineStatusSnapshotControllerSuite) TestMaintenanceConfigStatus()
 	dataStr := string(applyConfigReq.Data)
 
 	suite.Contains(dataStr, "omni-kmsg")
-	suite.Contains(dataStr, "test-host:123")
-	suite.Contains(dataStr, "test-host:456")
+	suite.Contains(dataStr, net.JoinHostPort(siderolinkomni.ListenHost, "123"))
+	suite.Contains(dataStr, net.JoinHostPort(siderolinkomni.ListenHost, "456"))
 	suite.Equal(machine.ApplyConfigurationRequest_AUTO, applyConfigReq.GetMode())
 
 	// Change machine's siderolink public key to simulate a reboot
@@ -147,8 +149,8 @@ func (suite *MachineStatusSnapshotControllerSuite) TestMaintenanceConfigStatus()
 	suite.Contains(dataStr, "kind: SideroLinkConfig")
 	suite.Contains(dataStr, "http://example.org")
 	suite.Contains(dataStr, "omni-kmsg")
-	suite.Contains(dataStr, "test-host:123")
-	suite.Contains(dataStr, "test-host:456")
+	suite.Contains(dataStr, net.JoinHostPort(siderolinkomni.ListenHost, "123"))
+	suite.Contains(dataStr, net.JoinHostPort(siderolinkomni.ListenHost, "456"))
 	suite.Equal(machine.ApplyConfigurationRequest_AUTO, applyConfigReq.GetMode())
 	suite.Contains(dataStr, u.String())
 }

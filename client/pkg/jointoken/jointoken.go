@@ -7,11 +7,32 @@ package jointoken
 
 import (
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"strings"
+
+	"github.com/jxskiss/base62"
 )
+
+// JoinTokenLen number of random bytes to be encoded in the join token.
+// The real length of the token will depend on the base62 encoding,
+// whose lengths happpens to be non-deterministic.
+const JoinTokenLen = 32
+
+// Generate the random join token string.
+func Generate() (string, error) {
+	b := make([]byte, JoinTokenLen)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("failed to read random bytes: %w", err)
+	}
+
+	token := base62.EncodeToString(b)
+
+	return token, nil
+}
 
 // ExtraData is the type of the extra token data.
 type ExtraData map[string]string

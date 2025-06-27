@@ -256,7 +256,7 @@ func (suite *MachineSetStatusSuite) SetupTest() {
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetStatusController()))
 
 	// create siderolink config as it's endpoint is used while generating kubernetes endpoint
-	siderolink := siderolink.NewConfig(resources.DefaultNamespace)
+	siderolink := siderolink.NewConfig()
 	siderolink.TypedSpec().Value.WireguardEndpoint = "0.0.0.0"
 
 	if err := suite.state.Create(suite.ctx, siderolink); err != nil && !state.IsConflictError(err) {

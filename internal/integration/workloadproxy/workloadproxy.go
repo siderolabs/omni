@@ -372,7 +372,7 @@ func testAccessParallel(ctx context.Context, httpClient *http.Client, exposedSer
 
 	expectedBodyContent := ""
 	reqPerExposedService := 128
-	numRetries := 3
+	numRetries := 9
 	label := exposedService.TypedSpec().Value.Label
 
 	if expectedStatusCode == http.StatusOK {

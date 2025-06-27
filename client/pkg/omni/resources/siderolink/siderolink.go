@@ -25,6 +25,9 @@ func init() {
 	registry.MustRegisterResource(PendingMachineType, &PendingMachine{})
 	registry.MustRegisterResource(PendingMachineStatusType, &PendingMachineStatus{})
 	registry.MustRegisterResource(LinkStatusType, &LinkStatus{})
+	registry.MustRegisterResource(ProviderJoinConfigType, &ProviderJoinConfig{})
+	registry.MustRegisterResource(MachineJoinConfigType, &MachineJoinConfig{})
+	registry.MustRegisterResource(APIConfigType, &APIConfig{})
 
 	// NOTE: this resource is not used anymore, but still used in the migration code.
 	registry.MustRegisterResource(DeprecatedLinkCounterType, &DeprecatedLinkCounter{})

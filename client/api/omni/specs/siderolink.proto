@@ -74,3 +74,31 @@ message PendingMachineStatusSpec {
   string token = 1;
   bool talos_installed = 2;
 }
+
+message JoinConfig {
+  repeated string kernel_args = 1;
+  string config = 2;
+}
+
+message SiderolinkAPIConfigSpec {
+  // MachineApiAdvertisedUrl is the machine service gRPC API URL (external domain/ip, schema and port).
+  // Talos nodes use this API to get the siderolink connection params, key management server also runs there.
+  string machine_api_advertised_url = 1;
+  // WireguardAdvertisedEndpoint is the service IP visible from the internal SideroLink network.
+  string wireguard_advertised_endpoint = 2;
+  // EnforceGRPCTunnel is a flag to enable gRPC tunneling.
+  bool enforce_grpc_tunnel = 3;
+  // EventsPort is the siderolink events port.
+  int32 events_port = 4;
+  // LogsPort is the logs port.
+  int32 logs_port = 5;
+}
+
+message ProviderJoinConfigSpec {
+  JoinConfig config = 1;
+  string join_token = 2;
+}
+
+message MachineJoinConfigSpec {
+  JoinConfig config = 1;
+}

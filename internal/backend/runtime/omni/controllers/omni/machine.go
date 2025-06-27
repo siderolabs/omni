@@ -100,6 +100,8 @@ func (h *machineControllerHelper) transform(ctx context.Context, r controller.Re
 
 	machine.Metadata().Labels().Set(omni.MachineAddressLabel, spec.ManagementAddress)
 
+	machine.TypedSpec().Value.UseGrpcTunnel = link.TypedSpec().Value.VirtualAddrport != ""
+
 	return nil
 }
 

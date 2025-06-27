@@ -13,7 +13,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -152,9 +151,16 @@ func (suite *GrpcSuite) TestSchematicCreate() {
 	defer cancel()
 
 	params := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
-	params.TypedSpec().Value.Args = "arg=value"
+	params.TypedSpec().Value.JoinToken = "abcd"
 
 	suite.Require().NoError(suite.state.Create(ctx, params))
+
+	apiConfig := siderolink.NewAPIConfig()
+	apiConfig.TypedSpec().Value.EventsPort = 8091
+	apiConfig.TypedSpec().Value.LogsPort = 8092
+	apiConfig.TypedSpec().Value.MachineApiAdvertisedUrl = "grpc://127.0.0.1:8090"
+
+	suite.Require().NoError(suite.state.Create(ctx, apiConfig))
 
 	client := management.NewManagementServiceClient(suite.conn)
 
@@ -292,8 +298,14 @@ func (suite *GrpcSuite) TestSchematicCreate() {
 				return uint32(k.Key), k.Value
 			})
 
+			args := []string{
+				"siderolink.api=grpc://127.0.0.1:8090?jointoken=abcd",
+				"talos.events.sink=[fdae:41e4:649b:9303::1]:8091",
+				"talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092",
+			}
+
 			require.EqualValues(t, req.MetaValues, meta)
-			require.Equal(t, strings.Join(append([]string{params.TypedSpec().Value.Args}, req.ExtraKernelArgs...), " "), strings.Join(config.Customization.ExtraKernelArgs, " "))
+			require.Equal(t, append(args, req.ExtraKernelArgs...), config.Customization.ExtraKernelArgs)
 		})
 	}
 }

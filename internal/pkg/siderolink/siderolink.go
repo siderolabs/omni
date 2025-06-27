@@ -7,16 +7,12 @@
 package siderolink
 
 import (
-	"net/netip"
-
-	"github.com/siderolabs/siderolink/pkg/wireguard"
+	"github.com/siderolabs/omni/client/pkg/siderolink"
 )
 
 // ListenHost is the host SideroLink should listen.
 var ListenHost string
 
 func init() {
-	siderolinkNetworkPrefix := wireguard.NetworkPrefix("")
-
-	ListenHost = netip.PrefixFrom(siderolinkNetworkPrefix.Addr().Next(), siderolinkNetworkPrefix.Bits()).Addr().String()
+	ListenHost = siderolink.GetListenHost()
 }

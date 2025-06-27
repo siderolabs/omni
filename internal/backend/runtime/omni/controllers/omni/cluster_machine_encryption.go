@@ -44,7 +44,7 @@ func (*ClusterMachineEncryptionController) Inputs() []controller.Input {
 		},
 		{
 			Namespace: resources.DefaultNamespace,
-			Type:      siderolink.ConnectionParamsType,
+			Type:      siderolink.APIConfigType,
 			ID:        optional.Some(siderolink.ConfigID),
 			Kind:      controller.InputWeak,
 		},
@@ -78,12 +78,12 @@ func (ctrl *ClusterMachineEncryptionController) Run(ctx context.Context, r contr
 			return err
 		}
 
-		params, err := safe.ReaderGet[*siderolink.ConnectionParams](ctx, r, siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID).Metadata())
+		params, err := safe.ReaderGetByID[*siderolink.APIConfig](ctx, r, siderolink.ConfigID)
 		if err != nil {
 			return err
 		}
 
-		kmsEndpoint := params.TypedSpec().Value.ApiEndpoint
+		kmsEndpoint := params.TypedSpec().Value.MachineApiAdvertisedUrl
 
 		template, err := template.New("patch").Parse(encryptionConfigPatchData)
 		if err != nil {

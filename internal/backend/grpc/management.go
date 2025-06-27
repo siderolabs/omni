@@ -42,8 +42,10 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	ctlcfg "github.com/siderolabs/omni/client/pkg/omnictl/config"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
+	"github.com/siderolabs/omni/client/pkg/siderolink"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
@@ -59,7 +61,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
-	"github.com/siderolabs/omni/internal/pkg/siderolink"
+	siderolinkinternal "github.com/siderolabs/omni/internal/pkg/siderolink"
 	"github.com/siderolabs/omni/internal/pkg/xcontext"
 )
 
@@ -76,7 +78,7 @@ type JWTSigningKeyProvider interface {
 	SigningKey(ctx context.Context) (op.SigningKey, error)
 }
 
-func newManagementServer(omniState state.State, jwtSigningKeyProvider JWTSigningKeyProvider, logHandler *siderolink.LogHandler, logger *zap.Logger,
+func newManagementServer(omniState state.State, jwtSigningKeyProvider JWTSigningKeyProvider, logHandler *siderolinkinternal.LogHandler, logger *zap.Logger,
 	dnsService *dns.Service, imageFactoryClient *imagefactory.Client, auditor AuditLogger, omniconfigDest string,
 ) *managementServer {
 	return &managementServer{
@@ -98,7 +100,7 @@ type managementServer struct {
 	omniState             state.State
 	jwtSigningKeyProvider JWTSigningKeyProvider
 
-	logHandler         *siderolink.LogHandler
+	logHandler         *siderolinkinternal.LogHandler
 	logger             *zap.Logger
 	dnsService         *dns.Service
 	imageFactoryClient *imagefactory.Client
@@ -250,7 +252,7 @@ func (s *managementServer) MachineLogs(request *management.MachineLogsRequest, r
 		tailLines = optional.Some(request.TailLines)
 	}
 
-	logReader, err := s.logHandler.GetReader(siderolink.MachineID(machineID), request.Follow, tailLines)
+	logReader, err := s.logHandler.GetReader(siderolinkinternal.MachineID(machineID), request.Follow, tailLines)
 	if err != nil {
 		return handleError(err)
 	}
@@ -746,6 +748,42 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 	return &management.MaintenanceUpgradeResponse{}, nil
 }
 
+func (s *managementServer) GetMachineJoinConfig(ctx context.Context, request *management.GetMachineJoinConfigRequest) (*management.GetMachineJoinConfigResponse, error) {
+	ctx = actor.MarkContextAsInternalActor(ctx)
+
+	// TODO: read the token from the JoinToken resources
+	params, err := safe.StateGetByID[*siderolinkres.ConnectionParams](ctx, s.omniState, siderolinkres.ConfigID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Omni connection params for the extra kernel arguments: %w", err)
+	}
+
+	apiConfig, err := safe.StateGetByID[*siderolinkres.APIConfig](ctx, s.omniState, siderolinkres.ConfigID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get APIConfig for the extra kernel arguments: %w", err)
+	}
+
+	// If the tunnel is enabled instance-wide or in the request, the final state is enabled
+	opts, err := siderolink.NewJoinOptions(
+		siderolink.WithMachineAPIURL(apiConfig.TypedSpec().Value.MachineApiAdvertisedUrl),
+		siderolink.WithJoinToken(params.TypedSpec().Value.JoinToken),
+		siderolink.WithGRPCTunnel(request.UseGrpcTunnel),
+		siderolink.WithEventSinkPort(int(apiConfig.TypedSpec().Value.EventsPort)),
+		siderolink.WithLogServerPort(int(apiConfig.TypedSpec().Value.LogsPort)),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	config, err := opts.RenderJoinConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	return &management.GetMachineJoinConfigResponse{
+		Config: string(config),
+	}, nil
+}
+
 func parseTime(date string, fallback time.Time) (time.Time, error) {
 	if date == "" {
 		return fallback, nil
@@ -829,7 +867,7 @@ func handleError(err error) error {
 	switch {
 	case errors.Is(err, io.EOF):
 		return nil
-	case siderolink.IsBufferNotFoundError(err):
+	case siderolinkinternal.IsBufferNotFoundError(err):
 		return status.Error(codes.NotFound, err.Error())
 	}
 

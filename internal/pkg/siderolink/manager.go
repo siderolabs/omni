@@ -7,7 +7,6 @@ package siderolink
 
 import (
 	"context"
-	"crypto/rand"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -21,7 +20,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/jxskiss/base62"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/siderolabs/gen/channel"
 	"github.com/siderolabs/go-retry/retry"
@@ -42,6 +40,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/constants"
+	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -162,30 +161,18 @@ const siderolinkDevJoinTokenEnvVar = "SIDEROLINK_DEV_JOIN_TOKEN"
 func getJoinToken(logger *zap.Logger) (string, error) {
 	joinToken := os.Getenv(siderolinkDevJoinTokenEnvVar)
 	if joinToken == "" {
-		return generateJoinToken()
+		return jointoken.Generate()
 	}
 
 	if !constants.IsDebugBuild {
 		logger.Sugar().Warnf("environment variable %s is set, but this is not a debug build, ignoring", siderolinkDevJoinTokenEnvVar)
 
-		return generateJoinToken()
+		return jointoken.Generate()
 	}
 
 	logger.Sugar().Warnf("using a static join token from environment variable %s. THIS IS NOT RECOMMENDED FOR PRODUCTION USE.", siderolinkDevJoinTokenEnvVar)
 
 	return joinToken, nil
-}
-
-// generateJoinToken generates a base62 encoded token.
-func generateJoinToken() (string, error) {
-	b := make([]byte, JoinTokenLen)
-	if _, err := rand.Read(b); err != nil {
-		return "", fmt.Errorf("failed to read random bytes: %w", err)
-	}
-
-	token := base62.EncodeToString(b)
-
-	return token, nil
 }
 
 // Params are the parameters for the Manager.
@@ -337,7 +324,7 @@ func (manager *Manager) getOrCreateConfig(ctx context.Context, serverAddr netip.
 			return nil, err
 		}
 
-		newConfig := siderolink.NewConfig(siderolink.Namespace)
+		newConfig := siderolink.NewConfig()
 		cfg = newConfig
 
 		spec := newConfig.TypedSpec().Value

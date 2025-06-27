@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"slices"
-	"strings"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -82,8 +81,8 @@ func WithOverlay(overlay schematic.Overlay) SchematicOption {
 
 // ConnectionParams represents kernel params and join config for making the machine join Omni.
 type ConnectionParams struct {
-	KernelArgs string
 	JoinConfig string
+	KernelArgs []string
 
 	CustomDataEncoded bool
 }
@@ -226,7 +225,7 @@ provide them to the machine through another mechanism using the infrastructure p
 
 		res.Customization.ExtraKernelArgs = append(
 			res.Customization.ExtraKernelArgs,
-			strings.Split(context.ConnectionParams.KernelArgs, " ")...,
+			context.ConnectionParams.KernelArgs...,
 		)
 	}
 

@@ -51,3 +51,13 @@ func TestParse(t *testing.T) {
 
 	assert.True(t, parsed.IsValid("1234"))
 }
+
+func TestGenerateJoinToken(t *testing.T) {
+	token, err := jointoken.Generate()
+
+	assert.NoError(t, err)
+
+	tokenLen := len(token)
+	assert.Less(t, tokenLen, 52)
+	assert.Greater(t, tokenLen, 42)
+}

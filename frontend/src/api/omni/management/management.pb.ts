@@ -185,6 +185,15 @@ export type MaintenanceUpgradeRequest = {
 export type MaintenanceUpgradeResponse = {
 }
 
+export type GetMachineJoinConfigRequest = {
+  use_grpc_tunnel?: boolean
+}
+
+export type GetMachineJoinConfigResponse = {
+  kernel_args?: string[]
+  config?: string
+}
+
 export class ManagementService {
   static Kubeconfig(req: KubeconfigRequest, ...options: fm.fetchOption[]): Promise<KubeconfigResponse> {
     return fm.fetchReq<KubeconfigRequest, KubeconfigResponse>("POST", `/management.ManagementService/Kubeconfig`, req, ...options)
@@ -233,5 +242,8 @@ export class ManagementService {
   }
   static MaintenanceUpgrade(req: MaintenanceUpgradeRequest, ...options: fm.fetchOption[]): Promise<MaintenanceUpgradeResponse> {
     return fm.fetchReq<MaintenanceUpgradeRequest, MaintenanceUpgradeResponse>("POST", `/management.ManagementService/MaintenanceUpgrade`, req, ...options)
+  }
+  static GetMachineJoinConfig(req: GetMachineJoinConfigRequest, ...options: fm.fetchOption[]): Promise<GetMachineJoinConfigResponse> {
+    return fm.fetchReq<GetMachineJoinConfigRequest, GetMachineJoinConfigResponse>("POST", `/management.ManagementService/GetMachineJoinConfig`, req, ...options)
   }
 }
