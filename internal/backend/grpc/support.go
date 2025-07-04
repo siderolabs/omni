@@ -28,6 +28,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
@@ -316,6 +317,18 @@ func (s *managementServer) collectClusterResources(ctx context.Context, cluster 
 		},
 		{
 			rt:          omni.DiscoveryAffiliateDeleteTaskType,
+			listOptions: clusterQuery,
+		},
+		{
+			rt:          omni.MachineConfigDiffType,
+			listOptions: clusterQuery,
+		},
+		{
+			rt:          infra.InfraMachineType,
+			listOptions: clusterQuery,
+		},
+		{
+			rt:          infra.InfraMachineStatusType,
 			listOptions: clusterQuery,
 		},
 	}

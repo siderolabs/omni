@@ -354,6 +354,8 @@ type OmniSuite struct { //nolint:govet
 
 	statesMu sync.Mutex
 	states   map[string]*server.State
+
+	runtimeErr error
 }
 
 // newServer starts a mock gRPC server on the unix socket which is using a temp file,
@@ -469,7 +471,7 @@ func (suite *OmniSuite) startRuntime() {
 	go func() {
 		defer suite.wg.Done()
 
-		suite.Assert().NoError(suite.runtime.Run(suite.ctx))
+		suite.runtimeErr = suite.runtime.Run(suite.ctx)
 	}()
 }
 
@@ -494,6 +496,8 @@ func (suite *OmniSuite) TearDownTest() {
 	suite.ctxCancel()
 
 	suite.wg.Wait()
+
+	suite.Require().NoError(suite.runtimeErr)
 
 	for _, s := range suite.grpcServers {
 		s.Stop()

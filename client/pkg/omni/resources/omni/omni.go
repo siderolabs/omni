@@ -58,6 +58,7 @@ func init() {
 	registry.MustRegisterResource(KubernetesUpgradeManifestStatusType, &KubernetesUpgradeManifestStatus{})
 	registry.MustRegisterResource(KubernetesUpgradeStatusType, &KubernetesUpgradeStatus{})
 	registry.MustRegisterResource(KubernetesVersionType, &KubernetesVersion{})
+	registry.MustRegisterResource(MachineConfigDiffType, &MachineConfigDiff{})
 	registry.MustRegisterResource(MachineLabelsType, &MachineLabels{})
 	registry.MustRegisterResource(MachineType, &Machine{})
 	registry.MustRegisterResource(MachineClassType, &MachineClass{})

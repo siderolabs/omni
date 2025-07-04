@@ -155,6 +155,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 			safe.WithResourceCache[*omni.TalosUpgradeStatus](),
 			safe.WithResourceCache[*omni.TalosVersion](),
 			safe.WithResourceCache[*omni.MaintenanceConfigStatus](),
+			safe.WithResourceCache[*omni.MachineConfigDiff](),
 			safe.WithResourceCache[*siderolinkresources.Config](),
 			safe.WithResourceCache[*siderolinkresources.ConnectionParams](),
 			safe.WithResourceCache[*siderolinkresources.Link](),
@@ -168,9 +169,6 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		)
 	}
 
-	powerStageEventsCh := make(chan *omni.MachineStatusSnapshot)
-	powerStageWatcher := powerstage.NewWatcher(st.Default(), powerStageEventsCh, logger.With(logging.Component("power_stage_watcher")), powerstage.WatcherOptions{})
-
 	controllerRuntime, err := cosiruntime.NewRuntime(st.Default(), logger, opts...)
 	if err != nil {
 		return nil, err
@@ -180,6 +178,12 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 	if err != nil {
 		return nil, err
 	}
+
+	cachedCoreState := controllerRuntime.CachedState()
+	cachedState := state.WrapCore(cachedCoreState)
+
+	powerStageEventsCh := make(chan *omni.MachineStatusSnapshot)
+	powerStageWatcher := powerstage.NewWatcher(cachedState, powerStageEventsCh, logger.With(logging.Component("power_stage_watcher")), powerstage.WatcherOptions{})
 
 	uploadLimitPerSecondBytes := config.Config.EtcdBackup.UploadLimitMbps * 125000     // Mbit in bytes
 	downloadLimitPerSecondBytes := config.Config.EtcdBackup.DownloadLimitMbps * 125000 // Mbit in bytes
@@ -275,7 +279,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		omnictrl.NewMachineExtensionsController(),
 		omnictrl.NewMachineSetStatusController(),
 		omnictrl.NewMachineSetEtcdAuditController(talosClientFactory, time.Minute),
-		omnictrl.NewRedactedClusterMachineConfigController(),
+		omnictrl.NewRedactedClusterMachineConfigController(omnictrl.RedactedClusterMachineConfigControllerOptions{}),
 		omnictrl.NewSchematicConfigurationController(imageFactoryClient),
 		omnictrl.NewSecretsController(storeFactory),
 		omnictrl.NewTalosConfigController(constants.CertificateValidityTime),
@@ -369,23 +373,23 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 	metricsRegistry.MustRegister(expvarCollector)
 
 	validationOptions := slices.Concat(
-		clusterValidationOptions(st.Default(), config.Config.EtcdBackup, config.Config.Services.EmbeddedDiscoveryService),
+		clusterValidationOptions(cachedState, config.Config.EtcdBackup, config.Config.Services.EmbeddedDiscoveryService),
 		relationLabelsValidationOptions(),
 		accessPolicyValidationOptions(),
-		authorizationValidationOptions(st.Default()),
+		authorizationValidationOptions(cachedState),
 		roleValidationOptions(),
-		machineSetNodeValidationOptions(st.Default()),
-		machineSetValidationOptions(st.Default(), storeFactory),
-		machineClassValidationOptions(st.Default()),
+		machineSetNodeValidationOptions(cachedState),
+		machineSetValidationOptions(cachedState, storeFactory),
+		machineClassValidationOptions(cachedState),
 		identityValidationOptions(config.Config.Auth.SAML),
 		exposedServiceValidationOptions(),
-		configPatchValidationOptions(st.Default()),
+		configPatchValidationOptions(cachedState),
 		etcdManualBackupValidationOptions(),
 		samlLabelRuleValidationOptions(),
 		s3ConfigValidationOptions(),
-		machineRequestSetValidationOptions(st.Default()),
-		infraMachineConfigValidationOptions(st.Default()),
-		nodeForceDestroyRequestValidationOptions(st.Default()),
+		machineRequestSetValidationOptions(cachedState),
+		infraMachineConfigValidationOptions(cachedState),
+		nodeForceDestroyRequestValidationOptions(cachedState),
 	)
 
 	return &Runtime{
@@ -397,7 +401,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		resourceLogger:          resourceLogger,
 		powerStageWatcher:       powerStageWatcher,
 		state:                   state.WrapCore(validated.NewState(st.Default(), validationOptions...)),
-		cachedState:             state.WrapCore(validated.NewState(controllerRuntime.CachedState(), validationOptions...)),
+		cachedState:             state.WrapCore(validated.NewState(cachedCoreState, validationOptions...)),
 		virtual:                 st.Virtual(),
 		logger:                  logger,
 	}, nil

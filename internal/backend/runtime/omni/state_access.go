@@ -78,6 +78,10 @@ var (
 		omni.ExtensionsConfigurationStatusType,
 		omni.NodeForceDestroyRequestType, // cluster label is not strictly required to be present on this resource, except when the cluster access is granted via ACLs
 		omni.DiscoveryAffiliateDeleteTaskType,
+		omni.RedactedClusterMachineConfigType,
+		omni.MachineConfigDiffType,
+		infra.InfraMachineType,
+		infra.InfraMachineStatusType,
 	})
 
 	// userManagedResourceTypeSet is the set of resource types that are managed by the user.
@@ -412,6 +416,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.NodeForceDestroyRequestType,
 		omni.TalosUpgradeStatusType,
 		omni.RedactedClusterMachineConfigType,
+		omni.MachineConfigDiffType,
 		siderolink.LinkType,
 		siderolink.PendingMachineType,
 		siderolink.LinkStatusType,
@@ -572,6 +577,7 @@ func filterAccessByType(access state.Access) error {
 		omni.InstallationMediaType,
 		omni.OngoingTaskType,
 		omni.RedactedClusterMachineConfigType,
+		omni.MachineConfigDiffType,
 		omni.SchematicType,
 		omni.SchematicConfigurationType,
 		omni.ExtensionsConfigurationStatusType,

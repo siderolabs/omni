@@ -70,6 +70,8 @@ func Init(a *audit.Log) {
 	audit.ShouldLogUpdate(a, configPatchUpdate, audit.WithInternalAgent())
 	audit.ShouldLogUpdateWithConflicts(a, configPatchUpdate, audit.WithInternalAgent())
 	audit.ShouldLogDestroy(a, omni.ConfigPatchType, configPatchDestroy, audit.WithInternalAgent())
+
+	audit.ShouldLogCreate(a, machineConfigDiffCreate, audit.WithInternalAgent())
 }
 
 func publicKeyCreate(_ context.Context, data *audit.Data, res *auth.PublicKey, _ ...state.CreateOption) error {
@@ -385,6 +387,15 @@ func configPatchDestroy(_ context.Context, data *audit.Data, ptr resource.Pointe
 	initPtrField(&data.ConfigPatch)
 
 	data.ConfigPatch.ID = ptr.ID()
+
+	return nil
+}
+
+func machineConfigDiffCreate(_ context.Context, data *audit.Data, res *omni.MachineConfigDiff, _ ...state.CreateOption) error {
+	initPtrField(&data.MachineConfigDiff)
+
+	data.MachineConfigDiff.ID = res.Metadata().ID()
+	data.MachineConfigDiff.Diff = res.TypedSpec().Value.Diff
 
 	return nil
 }

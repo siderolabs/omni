@@ -162,6 +162,7 @@ export const ClusterMachineStatusLabelNodeName = "omni.sidero.dev/node-name";
 export const ExtensionsConfigurationLabel = "omni.sidero.dev/root-configuration";
 export const MachineType = "Machines.omni.sidero.dev";
 export const MachineClassType = "MachineClasses.omni.sidero.dev";
+export const MachineConfigDiffType = "MachineConfigDiffs.omni.sidero.dev";
 export const MachineConfigGenOptionsType = "MachineConfigGenOptions.omni.sidero.dev";
 export const MachineExtensionsType = "MachineExtensions.omni.sidero.dev";
 export const MachineExtensionsStatusType = "MachineExtensionsStatuses.omni.sidero.dev";

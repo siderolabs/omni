@@ -21,17 +21,18 @@ const (
 
 // Data contains the audit data.
 type Data struct {
-	NewUser        *NewUser        `json:"new_user,omitempty"`
-	Machine        *Machine        `json:"machine,omitempty"`
-	MachineLabels  *MachineLabels  `json:"machine_labels,omitempty"`
-	AccessPolicy   *AccessPolicy   `json:"access_policy,omitempty"`
-	Cluster        *Cluster        `json:"cluster,omitempty"`
-	MachineSet     *MachineSet     `json:"machine_set,omitempty"`
-	MachineSetNode *MachineSetNode `json:"machine_set_node,omitempty"`
-	ConfigPatch    *ConfigPatch    `json:"config_patch,omitempty"`
-	TalosAccess    *TalosAccess    `json:"talos_access,omitempty"`
-	K8SAccess      *K8SAccess      `json:"k8s_access,omitempty"`
-	Session        Session         `json:"session,omitempty"`
+	NewUser           *NewUser           `json:"new_user,omitempty"`
+	Machine           *Machine           `json:"machine,omitempty"`
+	MachineLabels     *MachineLabels     `json:"machine_labels,omitempty"`
+	AccessPolicy      *AccessPolicy      `json:"access_policy,omitempty"`
+	Cluster           *Cluster           `json:"cluster,omitempty"`
+	MachineSet        *MachineSet        `json:"machine_set,omitempty"`
+	MachineSetNode    *MachineSetNode    `json:"machine_set_node,omitempty"`
+	ConfigPatch       *ConfigPatch       `json:"config_patch,omitempty"`
+	MachineConfigDiff *MachineConfigDiff `json:"machine_config_diff,omitempty"`
+	TalosAccess       *TalosAccess       `json:"talos_access,omitempty"`
+	K8SAccess         *K8SAccess         `json:"k8s_access,omitempty"`
+	Session           Session            `json:"session,omitempty"`
 }
 
 // Session contains information about the current session.
@@ -109,6 +110,12 @@ type ConfigPatch struct {
 	Labels map[string]string `json:"labels,omitempty"`
 	ID     string            `json:"id,omitempty"`
 	Data   string            `json:"data,omitempty"`
+}
+
+// MachineConfigDiff struct contains information about the machine configuration diff.
+type MachineConfigDiff struct {
+	ID   resource.ID `json:"id,omitempty"`
+	Diff string      `json:"diff,omitempty"`
 }
 
 // TalosAccess struct contains information about the access to the Talos node.

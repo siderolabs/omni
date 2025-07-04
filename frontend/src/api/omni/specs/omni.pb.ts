@@ -893,3 +893,7 @@ export type InfraProviderCombinedStatusSpec = {
   icon?: string
   health?: InfraProviderCombinedStatusSpecHealth
 }
+
+export type MachineConfigDiffSpec = {
+  diff?: string
+}

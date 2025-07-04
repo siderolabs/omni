@@ -900,6 +900,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
+				resource:       omni.NewMachineConfigDiff(uuid.New().String()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
 				resource:       omni.NewImagePullRequest(resources.DefaultNamespace, uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
