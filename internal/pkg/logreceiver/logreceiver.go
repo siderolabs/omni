@@ -108,6 +108,19 @@ func (srv *Server) Stop() {
 			remotrAddr := conn.RemoteAddr().String()
 			srv.logger.Info("closing connection", zap.String("remote_addr", remotrAddr))
 
+			tcpConn, ok := conn.(*net.TCPConn)
+			if ok {
+				// set linger to 0 to forcefully close the connection with RST.
+				// This configuration is needed to handle clients that only do WRITE operation on this connection.
+				// Such clients are not doing any READ operation, therefore connections can't be terminated gracefully.
+				// Termination only happens when client attempts to WRITE to an already closed connection. Since
+				// such a scenario depends on the client, it's safer to forcefully terminate the connection on the
+				// client by sending an RST.
+				if err := tcpConn.SetLinger(0); err != nil {
+					srv.logger.Error("error setting linger on connection", zap.Error(err))
+				}
+			}
+
 			err := conn.Close()
 			if err != nil {
 				srv.logger.Warn("error closing connection", zap.String("remote_addr", remotrAddr), zap.Error(err))

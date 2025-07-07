@@ -265,17 +265,36 @@ func (manager *Manager) Run(
 	trustdPort string,
 	logServerPort string,
 ) error {
-	eg, groupCtx := errgroup.WithContext(ctx)
+	eg, ctx := errgroup.WithContext(ctx)
 
-	if err := manager.startWireguard(groupCtx, eg, manager.serverAddr); err != nil {
+	if err := manager.runWireguard(ctx, eg, listenHost, eventSinkPort, trustdPort, logServerPort); err != nil {
 		return err
 	}
 
-	eg.Go(func() error { return manager.pollWireguardPeers(groupCtx) })
+	return eg.Wait()
+}
 
-	eg.Go(func() error {
-		return manager.provisionServer.runCleanup(groupCtx)
-	})
+func (manager *Manager) runWireguard(ctx context.Context, eg *errgroup.Group, listenHost, eventSinkPort, trustdPort, logServerPort string) error {
+	wireguardCtx, wireguardCancel := context.WithCancel(context.Background())
+	defer wireguardCancel()
+
+	if err := manager.startWireguard(wireguardCtx, eg, manager.serverAddr); err != nil { //nolint:contextcheck
+		return err
+	}
+
+	if err := manager.runWireguardServices(ctx, listenHost, eventSinkPort, trustdPort, logServerPort); err != nil {
+		return fmt.Errorf("error running wireguard services: %w", err)
+	}
+
+	return nil
+}
+
+func (manager *Manager) runWireguardServices(ctx context.Context, listenHost, eventSinkPort, trustdPort, logServerPort string) error {
+	eg, ctx := errgroup.WithContext(ctx)
+
+	eg.Go(func() error { return manager.pollWireguardPeers(ctx) })
+
+	eg.Go(func() error { return manager.provisionServer.runCleanup(ctx) })
 
 	if listenHost == "" {
 		listenHost = manager.serverAddr.Addr().String()
@@ -291,18 +310,23 @@ func (manager *Manager) Run(
 		return err
 	}
 
-	manager.startEventsGRPC(groupCtx, eg, eventSinkListener)
-	manager.startTrustdGRPC(groupCtx, eg, trustdListener, manager.serverAddr)
+	manager.startEventsGRPC(ctx, eg, eventSinkListener)
+	manager.startTrustdGRPC(ctx, eg, trustdListener, manager.serverAddr)
 
 	if logServerPort != "" {
 		// Check that the log server port is set, and we are actually running the server
-		err := manager.startLogServer(groupCtx, eg, manager.serverAddr, logServerPort)
-		if err != nil {
+		if err = manager.startLogServer(ctx, eg, manager.serverAddr, logServerPort); err != nil {
 			return err
 		}
 	}
 
-	return eg.Wait()
+	err = eg.Wait()
+
+	gracePeriod := 5 * time.Second
+	manager.logger.Info("all wireguard services exited, waiting to allow transmission of final packages to kernel", zap.Duration("grace_pediod", gracePeriod))
+	time.Sleep(gracePeriod)
+
+	return err
 }
 
 func (manager *Manager) getOrCreateConfig(ctx context.Context, serverAddr netip.Prefix, nodePrefix netip.Prefix, params Params) (*siderolink.Config, error) {
