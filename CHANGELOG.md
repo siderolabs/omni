@@ -1,3 +1,66 @@
+## [Omni 1.0.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v1.0.0-beta.0) (2025-07-07)
+
+Welcome to the v1.0.0-beta.0 release of Omni!  
+*This is a pre-release of Omni*
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Support Fusion Auth
+
+Fusion Auth provider is now supported via SAML.
+Additional parameter `--auth-saml-name-id-format` must be set to make the provider to work.
+
+
+### Infra Providers Request ID
+
+Infra providers can now be configured to encode `MachineRequest` ID into the join token.
+With that enabled setting the machine UUID in the `MachineRequestStatus` is no longer required in the provider:
+Omni will automatically map the `MachineRequest` ID to the node UUID and will populate the field in the status.
+
+This change is useful in the infra providers where it's impossible to get the created machine UUID.
+
+
+### Allow `talosctl wipe disk` Command
+
+`talosctl wipe disk` can now be used with Omni managed nodes.
+Omni will impersonate `os:admin` role for it if the user has write access to the cluster.
+
+
+### Contributors
+
+* Artem Chernyshev
+* Utku Ozdemir
+* Orzelius
+
+### Changes
+<details><summary>13 commits</summary>
+<p>
+
+* [`e1d47496`](https://github.com/siderolabs/omni/commit/e1d474960513543b6312631031b91c2789f465f3) feat: allow `talosctl wipe disk` command
+* [`877b3791`](https://github.com/siderolabs/omni/commit/877b379100154f9b8455a47746e068ee89298d4c) fix: update SAML library to the forked version with the ACS parser fix
+* [`b1225c93`](https://github.com/siderolabs/omni/commit/b1225c9312b4b98e885e3e90c92e3ff544c3274f) feat: support setting custom name ID format in SAML metadata
+* [`c60820f0`](https://github.com/siderolabs/omni/commit/c60820f05ed29aaaa3746b5316f52c11cbcd2899) fix: correctly detect installation status for bare-metal machines
+* [`344d0618`](https://github.com/siderolabs/omni/commit/344d0618dd44473967efbeaf96b4c637addb3964) feat: allow encoding the machine request ID into the join tokens
+* [`a7fe525c`](https://github.com/siderolabs/omni/commit/a7fe525ce1d0d99e2e6241f8ba7d66e0d27eeee5) test: test updating from old Omni version to the current
+* [`abfe93c0`](https://github.com/siderolabs/omni/commit/abfe93c02cb5e8330ba04851f63b715e87f9d9f1) docs: add guide for development on darwin
+* [`0ad0a67b`](https://github.com/siderolabs/omni/commit/0ad0a67b041b8ddab5ae43ef175e2a70d540d375) test: save a support bundle when a test suite has failed
+* [`9e4f8198`](https://github.com/siderolabs/omni/commit/9e4f8198cdd06aa016ace155072b2283511cdcf8) fix: make sure clipped req/resp content logs are still valid JSONs
+* [`1c307300`](https://github.com/siderolabs/omni/commit/1c3073001731267530b1a17d2084a09d3b24a657) feat: show the actual node name in the node overview breadcrumbs
+* [`c097b5f1`](https://github.com/siderolabs/omni/commit/c097b5f14dfc809671c273a60c2b3e2b06b5d293) fix: do not try running debug server in the prod builds
+* [`8a93c2d5`](https://github.com/siderolabs/omni/commit/8a93c2d5baef913cc991c90ffa0b158467c5dcd6) refactor: bring back the reverted new workload proxy dialing logic
+* [`122b7960`](https://github.com/siderolabs/omni/commit/122b79605fec8b9b86950c094c37d8b41a5b72cf) test: run Omni as part of integration tests
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v0.51.0](https://github.com/siderolabs/omni/releases/tag/v0.51.0)
+
 ## [Omni 0.51.0-beta.2](https://github.com/siderolabs/omni/releases/tag/v0.51.0-beta.2) (2025-06-17)
 
 Welcome to the v0.51.0-beta.2 release of Omni!  
