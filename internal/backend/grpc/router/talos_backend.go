@@ -12,6 +12,7 @@ import (
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-api-signature/pkg/message"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
+	"github.com/siderolabs/talos/pkg/machinery/api/storage"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
 	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
 	"google.golang.org/grpc"
@@ -39,6 +40,11 @@ var operatorMethodSet = xslices.ToSet([]string{
 	grpcutil.MustFullMethodName(&machine.MachineService_ServiceDesc, "ServiceStart"),
 	grpcutil.MustFullMethodName(&machine.MachineService_ServiceDesc, "ServiceStop"),
 	grpcutil.MustFullMethodName(&machine.MachineService_ServiceDesc, "Shutdown"),
+})
+
+// adminMethodSet is the set of methods that are allowed to be called by the minimum role of os:admin.
+var adminMethodSet = xslices.ToSet([]string{
+	grpcutil.MustFullMethodName(&storage.StorageService_ServiceDesc, "BlockDeviceWipe"),
 })
 
 // TalosBackend implements a backend (proxying one2one to a Talos node).
@@ -156,6 +162,13 @@ func (backend *TalosBackend) setRoleHeaders(ctx context.Context, md metadata.MD,
 	}
 
 	minTalosVersion := backend.minTalosVersion(info)
+
+	// methods that should have admin access
+	if _, ok := adminMethodSet[fullMethodName]; ok {
+		setHeaderData(ctx, md, constants.APIAuthzRoleMetadataKey, talosrole.MakeSet(talosrole.Admin).Strings()...)
+
+		return
+	}
 
 	// min Talos version is >= 1.4.0, we can use Operator role
 	if minTalosVersion != nil && minTalosVersion.GTE(semver.MustParse("1.4.0")) {
