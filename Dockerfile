@@ -305,7 +305,16 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 FROM base AS unit-tests-race
 WORKDIR /src
 ARG TESTPKGS
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg --mount=type=cache,target=/tmp,id=omni/tmp CGO_ENABLED=1 go test -v -race -count 1 ${TESTPKGS}
+#RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg --mount=type=cache,target=/tmp,id=omni/tmp CGO_ENABLED=1 go test -v -race -count 1 ${TESTPKGS}
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg,id=omni/go/pkg \
+    sh -c "set -o pipefail && \
+           CGO_ENABLED=1 go test -v -race -count 1 ${TESTPKGS} 2>&1 | tee /tmp/test_output.log || \
+           (echo '---' && \
+            echo '--- TEST COMMAND FAILED: DISPLAYING FULL LOG' && \
+            echo '---' && \
+            cat /tmp/test_output.log && \
+            exit 1)"
 
 # runs unit-tests
 FROM base AS unit-tests-run
