@@ -17,6 +17,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/siderolabs/talos/pkg/machinery/config/bundle"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
@@ -49,7 +50,7 @@ func (suite *ClientsSuite) SetupTest() {
 
 	logger := zaptest.NewLogger(suite.T()).With(logging.Component("clients"))
 
-	suite.runtime, err = runtime.NewRuntime(suite.state, logger)
+	suite.runtime, err = runtime.NewRuntime(suite.state, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))
 	suite.Require().NoError(err)
 
 	suite.wg.Add(1)

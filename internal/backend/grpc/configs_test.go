@@ -23,6 +23,7 @@ import (
 	machineryconfig "github.com/siderolabs/talos/pkg/machinery/config"
 	talossecrets "github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -57,7 +58,7 @@ func TestGenerateConfigs(t *testing.T) {
 	st := omniruntime.NewTestState(logger)
 
 	rt, err := omniruntime.NewRuntime(nil, nil, nil, nil,
-		nil, nil, nil, nil, st, prometheus.NewRegistry(), nil, logger)
+		nil, nil, nil, nil, st, prometheus.NewRegistry(), nil, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))
 	require.NoError(t, err)
 
 	runtime.Install(omniruntime.Name, rt)

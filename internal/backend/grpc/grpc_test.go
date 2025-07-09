@@ -95,7 +95,7 @@ func (suite *GrpcSuite) SetupTest() {
 
 	suite.runtime, err = omniruntime.NewRuntime(
 		clientFactory, dnsService, workloadProxyReconciler, nil,
-		imageFactoryClient, nil, nil, nil, st, prometheus.NewRegistry(), discoveryClientCache, logger,
+		imageFactoryClient, nil, nil, nil, st, prometheus.NewRegistry(), discoveryClientCache, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)),
 	)
 	suite.Require().NoError(err)
 	runtime.Install(omniruntime.Name, suite.runtime)

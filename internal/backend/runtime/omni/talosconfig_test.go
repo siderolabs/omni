@@ -17,6 +17,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config"
 	talossecrets "github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
 
@@ -40,7 +41,7 @@ func TestOperatorTalosconfig(t *testing.T) {
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zapcore.InfoLevel)
 
 	r, err := omniruntime.NewRuntime(clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil, nil,
-		st, prometheus.NewRegistry(), discoveryClientCache, logger)
+		st, prometheus.NewRegistry(), discoveryClientCache, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))
 
 	require.NoError(t, err)
 

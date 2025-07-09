@@ -144,7 +144,7 @@ func (suite *SiderolinkSuite) SetupTest() {
 
 	logger := zaptest.NewLogger(suite.T())
 
-	suite.runtime, err = runtime.NewRuntime(suite.state, logger)
+	suite.runtime, err = runtime.NewRuntime(suite.state, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))
 	suite.Require().NoError(err)
 
 	suite.wg.Add(1)

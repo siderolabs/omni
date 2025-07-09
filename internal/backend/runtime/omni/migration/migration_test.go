@@ -35,6 +35,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gopkg.in/yaml.v3"
@@ -87,7 +88,7 @@ func (suite *MigrationSuite) SetupTest() {
 
 	suite.logger = zaptest.NewLogger(suite.T())
 
-	suite.manager = migration.NewManager(suite.state, suite.logger)
+	suite.manager = migration.NewManager(suite.state, suite.logger.WithOptions(zap.IncreaseLevel(zapcore.WarnLevel)))
 }
 
 func (suite *MigrationSuite) TestClusterInfo() {
@@ -1116,7 +1117,7 @@ func (suite *MigrationSuite) TestInstallDiskPatchMigration() {
 	oldVer := config.Metadata().Version()
 
 	// run controllers and verify that the config resource hasn't changed
-	runtime, err := runtime.NewRuntime(suite.state, suite.logger)
+	runtime, err := runtime.NewRuntime(suite.state, suite.logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))
 	suite.Require().NoError(err)
 
 	suite.Require().NoError(runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))

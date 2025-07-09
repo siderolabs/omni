@@ -19,6 +19,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
@@ -85,7 +86,7 @@ func (suite *OmniRuntimeSuite) SetupTest() {
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zapcore.InfoLevel)
 
 	suite.runtime, err = omniruntime.NewRuntime(clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil, nil,
-		omniruntime.NewMockState(resourceState), prometheus.NewRegistry(), discoveryClientCache, logger)
+		omniruntime.NewMockState(resourceState), prometheus.NewRegistry(), discoveryClientCache, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))
 
 	suite.Require().NoError(err)
 

@@ -35,6 +35,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/resources/etcd"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -429,7 +430,7 @@ func (suite *OmniSuite) SetupTest() {
 
 	logger := zaptest.NewLogger(suite.T())
 
-	suite.runtime, err = runtime.NewRuntime(suite.state, logger)
+	suite.runtime, err = runtime.NewRuntime(suite.state, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))
 	suite.Require().NoError(err)
 
 	k8s, err := kubernetes.NewWithTTL(suite.state, 0)

@@ -91,7 +91,7 @@ func TestProvision(t *testing.T) {
 
 		ctx, cancel := context.WithCancel(ctx)
 
-		runtime, err := runtime.NewRuntime(state, logger)
+		runtime, err := runtime.NewRuntime(state, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))
 		require.NoError(t, err)
 
 		peers := siderolink.NewPeersPool(logger, &fakeWireguardHandler{peers: map[string]wgtypes.Peer{}})
