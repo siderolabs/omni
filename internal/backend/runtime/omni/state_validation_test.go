@@ -7,11 +7,13 @@ package omni_test
 
 import (
 	"context"
+	"crypto/rand"
 	_ "embed"
 	"errors"
 	"fmt"
 	"io"
 	"iter"
+	"math/big"
 	"strings"
 	"testing"
 	"time"
@@ -43,13 +45,28 @@ import (
 //go:embed testdata/infra.json
 var schema []byte
 
-func TestClusterValidation(t *testing.T) {
+func GenerateRandomString(t *testing.T, n int) string {
+	t.Helper()
+
+	const letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-"
+
+	ret := make([]byte, n)
+
+	for i := range n {
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
+		require.NoError(t, err)
+
+		ret[i] = letters[num.Int64()]
+	}
+
+	return string(ret)
+}
+
+func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 	t.Parallel()
 
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
-
-	talos15 := "1.5.0"
 
 	etcdBackupConfig := config.EtcdBackup{
 		TickInterval: time.Minute,
@@ -60,110 +77,274 @@ func TestClusterValidation(t *testing.T) {
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	st := validated.NewState(innerSt, omni.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, &config.EmbeddedDiscoveryService{})...)
 
-	talosVersion1 := omnires.NewTalosVersion(resources.DefaultNamespace, "1.4.0")
-	talosVersion1.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.27.0", "1.27.1"}
+	// prepare talos versions
+	for _, prep := range []struct {
+		version       string
+		compatibleK8s []string
+		deprecated    bool
+	}{
+		{"1.3.0", []string{"1.26.0", "1.27.1"}, true},
+		{"1.3.4", []string{"1.26.0", "1.27.1"}, true},
+		{"1.4.0", []string{"1.27.0", "1.27.1"}, false},
+		{"1.5.0", []string{"1.28.0", "1.28.1", "1.29.0", "1.30.0"}, false},
+	} {
+		talosVersion := omnires.NewTalosVersion(resources.DefaultNamespace, prep.version)
+		talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = prep.compatibleK8s
+		talosVersion.TypedSpec().Value.Deprecated = prep.deprecated
 
-	talosVersion2 := omnires.NewTalosVersion(resources.DefaultNamespace, talos15)
-	talosVersion2.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.28.0", "1.28.1"}
-
-	talosVersion3 := omnires.NewTalosVersion(resources.DefaultNamespace, "1.3.0")
-	talosVersion3.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.26.0", "1.27.1"}
-	talosVersion3.TypedSpec().Value.Deprecated = true
-
-	talosVersion4 := omnires.NewTalosVersion(resources.DefaultNamespace, "1.3.4")
-	talosVersion4.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.26.0", "1.27.1"}
-	talosVersion4.TypedSpec().Value.Deprecated = true
-
-	require.NoError(t, st.Create(ctx, talosVersion1))
-	require.NoError(t, st.Create(ctx, talosVersion2))
-	require.NoError(t, st.Create(ctx, talosVersion3))
-	require.NoError(t, st.Create(ctx, talosVersion4))
-
-	cluster := omnires.NewCluster(resources.DefaultNamespace, "test")
-
-	// create
-	err := st.Create(ctx, cluster)
-
-	require.True(t, validated.IsValidationError(err), "expected validation error")
-	assert.ErrorContains(t, err, "invalid talos version")
-
-	cluster.TypedSpec().Value.TalosVersion = "1.3.0"
-	err = st.Create(ctx, cluster)
-
-	require.True(t, validated.IsValidationError(err), "expected validation error")
-	assert.ErrorContains(t, err, "is no longer supported")
-
-	cluster.TypedSpec().Value.TalosVersion = "1.4.0"
-	cluster.TypedSpec().Value.KubernetesVersion = "1.26.0"
-
-	err = st.Create(ctx, cluster)
-	require.True(t, validated.IsValidationError(err), "expected validation error")
-	assert.ErrorContains(t, err, "invalid kubernetes version")
-
-	cluster.TypedSpec().Value.KubernetesVersion = "1.27.0"
-
-	require.NoError(t, st.Create(ctx, cluster))
-
-	// update
-	cluster.TypedSpec().Value.TalosVersion = talos15
-	cluster.TypedSpec().Value.KubernetesVersion = "1.27.1"
-
-	// incompatible update
-	err = st.Update(ctx, cluster)
-	require.True(t, validated.IsValidationError(err), "expected validation error")
-	assert.ErrorContains(t, err, "invalid kubernetes version")
-
-	cluster.TypedSpec().Value.TalosVersion = talos15
-	cluster.TypedSpec().Value.KubernetesVersion = "1.27.0"
-
-	// incompatible update, but because the kubernetes version did not change, it's allowed
-	require.NoError(t, st.Update(ctx, cluster))
-
-	cluster.TypedSpec().Value.TalosVersion = "invalid"
-
-	require.NoError(t, innerSt.Update(ctx, cluster))
-
-	// invalid Talos version, but because it did not change, it's allowed
-
-	cluster.TypedSpec().Value.KubernetesVersion = "1.28.0"
-
-	require.NoError(t, st.Update(ctx, cluster))
-
-	// try to enable encryption
-	cluster.TypedSpec().Value.Features = &specs.ClusterSpec_Features{
-		DiskEncryption: true,
+		require.NoError(t, st.Create(ctx, talosVersion))
 	}
 
-	err = st.Update(ctx, cluster)
-	require.True(t, validated.IsValidationError(err), "expected validation error")
+	t.Run("create", func(t *testing.T) {
+		t.Parallel()
 
-	cluster = omnires.NewCluster(resources.DefaultNamespace, "encryption")
-	cluster.TypedSpec().Value.TalosVersion = "1.4.7"
-	cluster.TypedSpec().Value.KubernetesVersion = "1.27.1"
-	cluster.TypedSpec().Value.Features = &specs.ClusterSpec_Features{
-		DiskEncryption: true,
-	}
+		createTests := []struct { //nolint:govet
+			name              string
+			talosVersion      string
+			kubernetesVersion string
+			features          *specs.ClusterSpec_Features
 
-	err = st.Create(ctx, cluster)
+			shouldFail    bool
+			errorContains string
+			errorIs       func(error) bool
+		}{
+			{
+				name:          "no talos version set",
+				shouldFail:    true,
+				errorIs:       validated.IsValidationError,
+				errorContains: "invalid talos version",
+			},
+			{
+				name:          "unsupported talos version",
+				talosVersion:  "1.3.0",
+				shouldFail:    true,
+				errorIs:       validated.IsValidationError,
+				errorContains: "is no longer supported",
+			},
+			{
+				name:          "unsupported kubernetes version",
+				talosVersion:  "1.4.0",
+				shouldFail:    true,
+				errorIs:       validated.IsValidationError,
+				errorContains: "invalid kubernetes version",
+			},
+			{
+				name:              "encryption on unsupported talos",
+				talosVersion:      "1.4.0",
+				kubernetesVersion: "1.27.1",
+				features: &specs.ClusterSpec_Features{
+					DiskEncryption: true,
+				},
+				shouldFail:    true,
+				errorIs:       validated.IsValidationError,
+				errorContains: "disk encryption is supported only for Talos version",
+			},
+			{
+				name:              "success",
+				talosVersion:      "1.4.0",
+				kubernetesVersion: "1.27.0",
+			},
+			{
+				name:              "encryption success",
+				talosVersion:      "1.5.0",
+				kubernetesVersion: "1.28.0",
+				features: &specs.ClusterSpec_Features{
+					DiskEncryption: true,
+				},
+			},
+		}
 
-	require.True(t, validated.IsValidationError(err), "expected validation error")
+		for _, tc := range createTests {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
 
-	cluster.TypedSpec().Value.TalosVersion = talos15
-	cluster.TypedSpec().Value.KubernetesVersion = "1.28.1"
+				// generate random cluster name
+				clusterName := "test-cluster-" + GenerateRandomString(t, 6)
 
-	require.NoError(t, st.Create(ctx, cluster))
+				cluster := omnires.NewCluster(resources.DefaultNamespace, clusterName)
 
-	cluster = omnires.NewCluster(resources.DefaultNamespace, "old")
+				t.Cleanup(func() {
+					_ = innerSt.Destroy(ctx, cluster.Metadata()) //nolint:errcheck // ignore error on cleanup
+				})
 
-	cluster.TypedSpec().Value.TalosVersion = "1.3.0"
-	err = innerSt.Create(ctx, cluster)
+				if tc.talosVersion != "" {
+					cluster.TypedSpec().Value.TalosVersion = tc.talosVersion
+				}
 
-	require.NoError(t, err)
+				if tc.kubernetesVersion != "" {
+					cluster.TypedSpec().Value.KubernetesVersion = tc.kubernetesVersion
+				}
 
-	cluster.TypedSpec().Value.TalosVersion = "1.3.4"
+				if tc.features != nil {
+					cluster.TypedSpec().Value.Features = tc.features
+				}
 
-	err = st.Update(ctx, cluster)
-	require.NoError(t, err)
+				err := st.Create(ctx, cluster)
+
+				if tc.shouldFail {
+					require.Error(t, err, "create expected to fail")
+
+					if tc.errorIs != nil {
+						require.True(t, tc.errorIs(err), "expected error to match the target")
+					}
+
+					if tc.errorContains != "" {
+						assert.ErrorContains(t, err, tc.errorContains)
+					}
+				} else {
+					assert.NoError(t, err)
+				}
+			})
+		}
+	})
+
+	t.Run("update", func(t *testing.T) {
+		t.Parallel()
+
+		type clusterVersions struct {
+			features          *specs.ClusterSpec_Features
+			talosVersion      string
+			kubernetesVersion string
+		}
+
+		defaultVersions := clusterVersions{
+			talosVersion:      "1.4.0",
+			kubernetesVersion: "1.27.0",
+		}
+
+		updateTests := []struct { //nolint:govet
+			name string
+
+			from clusterVersions
+			to   clusterVersions
+
+			shouldFail    bool
+			errorIs       func(error) bool
+			errorContains string
+		}{
+			{
+				name: "incompatible update",
+				from: defaultVersions,
+				to: clusterVersions{
+					talosVersion:      "1.5.0",
+					kubernetesVersion: "1.27.1",
+				},
+				shouldFail:    true,
+				errorIs:       validated.IsValidationError,
+				errorContains: "invalid kubernetes version",
+			},
+			{
+				name: "incompatible update no k8s update",
+				from: defaultVersions,
+				to: clusterVersions{
+					talosVersion:      "1.5.0",
+					kubernetesVersion: defaultVersions.kubernetesVersion,
+				},
+				shouldFail:    true,
+				errorIs:       validated.IsValidationError,
+				errorContains: "invalid kubernetes version",
+			},
+			{
+				name: "invalid talos kubernetes upgrade",
+				from: clusterVersions{
+					talosVersion:      "invalid",
+					kubernetesVersion: "1.27.0",
+				},
+				to: clusterVersions{
+					talosVersion:      "invalid",
+					kubernetesVersion: "1.28.0",
+				},
+			},
+			{
+				name: "enable encryption on update",
+				from: defaultVersions,
+				to: clusterVersions{
+					talosVersion:      defaultVersions.talosVersion,
+					kubernetesVersion: defaultVersions.kubernetesVersion,
+					features: &specs.ClusterSpec_Features{
+						DiskEncryption: true,
+					},
+				},
+				shouldFail: true,
+				errorIs:    validated.IsValidationError,
+			},
+			{
+				name: "deprecated upgrade",
+				from: clusterVersions{
+					talosVersion:      "1.3.0",
+					kubernetesVersion: "1.26.0",
+				},
+				to: clusterVersions{
+					talosVersion:      "1.3.4",
+					kubernetesVersion: "1.26.0",
+				},
+			},
+			{
+				name: "over 1 minor jump upgrade",
+				from: clusterVersions{
+					talosVersion:      "1.5.0",
+					kubernetesVersion: "1.28.0",
+				},
+				to: clusterVersions{
+					talosVersion:      "1.5.0",
+					kubernetesVersion: "1.30.0",
+				},
+				shouldFail:    true,
+				errorIs:       validated.IsValidationError,
+				errorContains: "kubernetes version is not supported for upgrade",
+			},
+		}
+
+		// update
+		for _, tc := range updateTests {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
+				// generate random cluster name
+				clusterName := "test-cluster-" + GenerateRandomString(t, 6)
+
+				cluster := omnires.NewCluster(resources.DefaultNamespace, clusterName)
+
+				t.Cleanup(func() {
+					_ = innerSt.Destroy(ctx, cluster.Metadata()) //nolint:errcheck // ignore error on cleanup
+				})
+
+				cluster.TypedSpec().Value.TalosVersion = tc.from.talosVersion
+				cluster.TypedSpec().Value.KubernetesVersion = tc.from.kubernetesVersion
+				cluster.TypedSpec().Value.Features = tc.from.features
+
+				require.NoError(t, innerSt.Create(ctx, cluster))
+
+				if tc.to.talosVersion != "" {
+					cluster.TypedSpec().Value.TalosVersion = tc.to.talosVersion
+				}
+
+				if tc.to.kubernetesVersion != "" {
+					cluster.TypedSpec().Value.KubernetesVersion = tc.to.kubernetesVersion
+				}
+
+				if tc.to.features != nil {
+					cluster.TypedSpec().Value.Features = tc.to.features
+				}
+
+				err := st.Update(ctx, cluster)
+
+				if tc.shouldFail {
+					require.Error(t, err, "update expected to fail")
+
+					if tc.errorIs != nil {
+						require.True(t, tc.errorIs(err), "expected error to be")
+					}
+
+					if tc.errorContains != "" {
+						assert.ErrorContains(t, err, tc.errorContains)
+					}
+				} else {
+					assert.NoError(t, err, "update expected to succeed")
+				}
+			})
+		}
+	})
 }
 
 func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {

@@ -21,6 +21,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/hashicorp/go-multierror"
+	"github.com/siderolabs/go-kubernetes/kubernetes/upgrade"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
@@ -69,6 +70,16 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 
 		if skipKubernetesVersion {
 			return nil
+		}
+
+		var currentKubernetesVersion string
+
+		if existingRes != nil {
+			currentKubernetesVersion = existingRes.TypedSpec().Value.KubernetesVersion
+		}
+
+		if err = validateKubernetesVersion(currentKubernetesVersion, res.TypedSpec().Value.KubernetesVersion); err != nil {
+			return err
 		}
 
 		for _, compatibleKubernetesVersion := range talosVersion.TypedSpec().Value.CompatibleKubernetesVersions {
@@ -155,7 +166,7 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 			var multiErr error
 
 			skipTalosVersion := existingRes.TypedSpec().Value.TalosVersion == newRes.TypedSpec().Value.TalosVersion
-			skipKubernetesVersion := existingRes.TypedSpec().Value.KubernetesVersion == newRes.TypedSpec().Value.KubernetesVersion
+			skipKubernetesVersion := skipTalosVersion && existingRes.TypedSpec().Value.KubernetesVersion == newRes.TypedSpec().Value.KubernetesVersion
 			encryptionEnabled := omni.GetEncryptionEnabled(newRes)
 
 			validator := omni.ClusterValidator{
@@ -1007,6 +1018,23 @@ func validateTalosVersion(ctx context.Context, st state.State, current, newVersi
 	// 1.3.0 -> 1.3.7 should still work for example
 	if talosVersion.TypedSpec().Value.Deprecated && !currentVersionIsDeprecated {
 		return fmt.Errorf("talos version %q is no longer supported", newVersion)
+	}
+
+	return nil
+}
+
+func validateKubernetesVersion(current, newVersion string) error {
+	if current == "" {
+		return nil
+	}
+
+	upgradePath, err := upgrade.NewPath(current, newVersion)
+	if err != nil {
+		return err
+	}
+
+	if !upgradePath.IsSupported() {
+		return fmt.Errorf("kubernetes version is not supported for upgrade to %q from %q", newVersion, current)
 	}
 
 	return nil
