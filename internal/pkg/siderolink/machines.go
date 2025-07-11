@@ -85,6 +85,7 @@ func (m *MachineCache) WriteMessage(id MachineID, rawData []byte) error {
 func (m *MachineCache) GetBuffer(id MachineID) (*circular.Buffer, error) {
 	m.mx.Lock()
 	defer m.mx.Unlock()
+
 	m.init()
 
 	val, ok := m.machineBuffers.Get(id)
@@ -116,6 +117,7 @@ func (m *MachineCache) GetBuffer(id MachineID) (*circular.Buffer, error) {
 func (m *MachineCache) GetWriter(id MachineID) (io.Writer, error) {
 	m.mx.Lock()
 	defer m.mx.Unlock()
+
 	m.init()
 
 	val, err := m.machineBuffers.GetOrCreate(id)

@@ -85,7 +85,6 @@ func (metrics *stateMetrics) Create(ctx context.Context, r resource.Resource, op
 	metrics.resourceOperations.WithLabelValues("create", r.Metadata().Type()).Inc()
 
 	err := metrics.st.Create(ctx, r, opts...)
-
 	if err == nil {
 		metrics.resourceThroughput.WithLabelValues("write", r.Metadata().Type()).Inc()
 	}
@@ -97,7 +96,6 @@ func (metrics *stateMetrics) Update(ctx context.Context, newResource resource.Re
 	metrics.resourceOperations.WithLabelValues("update", newResource.Metadata().Type()).Inc()
 
 	err := metrics.st.Update(ctx, newResource, opts...)
-
 	if err == nil {
 		metrics.resourceThroughput.WithLabelValues("write", newResource.Metadata().Type()).Inc()
 	}
@@ -109,7 +107,6 @@ func (metrics *stateMetrics) Destroy(ctx context.Context, r resource.Pointer, op
 	metrics.resourceOperations.WithLabelValues("destroy", r.Type()).Inc()
 
 	err := metrics.st.Destroy(ctx, r, opts...)
-
 	if err == nil {
 		metrics.resourceThroughput.WithLabelValues("write", r.Type()).Inc()
 	}

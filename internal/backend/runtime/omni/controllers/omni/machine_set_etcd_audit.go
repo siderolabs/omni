@@ -209,6 +209,7 @@ func (auditor *etcdAuditor) updateOrphanMembers(cluster string, currentOrphanedM
 
 	// log the previous orphans that are no longer orphans after the check is done
 	noMoreOrphansSet := xslices.ToSetFunc(xmaps.Keys(auditor.clusterToOrphanedMembers[cluster]), etcd.FormatMemberID)
+
 	defer func() {
 		// remove all orphans that are still orphans
 		for orphan := range auditor.clusterToOrphanedMembers[cluster] {

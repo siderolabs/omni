@@ -59,6 +59,7 @@ import (
 
 type MigrationSuite struct {
 	suite.Suite
+
 	state   state.State
 	manager *migration.Manager
 	logger  *zap.Logger

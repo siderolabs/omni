@@ -88,6 +88,7 @@ func Example() {
 	if _, err = template.Sync(ctx, st); err != nil {
 		log.Panicf("failed to sync cluster %s", err)
 	}
+
 	if _, err = template.Sync(ctx, st); err != nil {
 		log.Panicf("failed to sync cluster %s", err)
 	}
@@ -98,6 +99,7 @@ func Example() {
 	if _, err = template.Delete(ctx, st); err != nil {
 		log.Panicf("failed to delete the cluster %s", err)
 	}
+
 	if _, err = template.Delete(ctx, st); err != nil {
 		log.Panicf("failed to delete the cluster %s", err)
 	}

@@ -90,7 +90,6 @@ func (ctrl *MachineRequestLinkController) Reconcile(ctx context.Context,
 
 		return nil
 	})
-
 	if state.IsPhaseConflictError(err) {
 		return nil
 	}

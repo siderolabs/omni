@@ -320,6 +320,7 @@ func TestCrypt_Upload_Blocked(t *testing.T) {
 
 type backupBlocker struct {
 	etcdbackup.Store
+
 	block bool
 }
 

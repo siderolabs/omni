@@ -30,6 +30,7 @@ import (
 
 type runtimeMock struct {
 	runtime.Runtime
+
 	watch func(ctx context.Context, responses chan<- runtime.WatchResponse, option ...runtime.QueryOption) error
 	list  func(ctx context.Context, opts ...runtime.QueryOption) (runtime.ListResult, error)
 }

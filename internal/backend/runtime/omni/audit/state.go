@@ -14,14 +14,22 @@ import (
 
 // WrapState wraps the given state with audit log state.
 func WrapState(s state.State, l *Log) state.State {
-	return &auditState{
+	st := &auditState{
 		state:  s,
 		logger: l,
 	}
+
+	st.wrappedSelfState = state.WrapCore(st)
+
+	return st
 }
 
 type auditState struct {
-	state  state.State
+	state state.State
+
+	// we wrap this auditState itself to be able to implement Modify and ModifyWithResult methods
+	wrappedSelfState state.State
+
 	logger *Log
 }
 
@@ -137,4 +145,12 @@ func (a *auditState) RemoveFinalizer(ctx context.Context, pointer resource.Point
 
 func (a *auditState) ContextWithTeardown(ctx context.Context, pointer resource.Pointer) (context.Context, error) {
 	return a.state.ContextWithTeardown(ctx, pointer)
+}
+
+func (a *auditState) Modify(ctx context.Context, emptyResource resource.Resource, updateFunc func(resource.Resource) error, options ...state.UpdateOption) error {
+	return a.wrappedSelfState.Modify(ctx, emptyResource, updateFunc, options...)
+}
+
+func (a *auditState) ModifyWithResult(ctx context.Context, emptyResource resource.Resource, updateFunc func(resource.Resource) error, options ...state.UpdateOption) (resource.Resource, error) {
+	return a.wrappedSelfState.ModifyWithResult(ctx, emptyResource, updateFunc, options...)
 }

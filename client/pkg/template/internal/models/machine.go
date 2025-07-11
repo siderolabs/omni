@@ -90,7 +90,6 @@ func (machine *Machine) Validate() error {
 	}
 
 	multiErr = joinErrors(multiErr, machine.Name.Validate(), machine.Install.Validate(), machine.Patches.Validate())
-
 	if multiErr != nil {
 		return fmt.Errorf("machine %q is invalid: %w", machine.Name, multiErr)
 	}

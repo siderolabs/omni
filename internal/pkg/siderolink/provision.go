@@ -87,6 +87,7 @@ func NewProvisionHandler(logger *zap.Logger, state state.State, joinTokenMode st
 // ProvisionHandler is the gRPC service that handles provision responses coming from the Talos nodes.
 type ProvisionHandler struct {
 	pb.UnimplementedProvisionServiceServer
+
 	logger                 *zap.Logger
 	state                  state.State
 	joinTokenMode          string

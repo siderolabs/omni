@@ -352,7 +352,6 @@ url: tcp://[fdae:41e4:649b:9303::1]:8092
 				var dest any
 
 				err = dec.Decode(&dest)
-
 				if errors.Is(err, io.EOF) {
 					break
 				}

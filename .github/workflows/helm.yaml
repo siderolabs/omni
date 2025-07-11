@@ -1,8 +1,7 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-06-06T17:20:38Z by kres fc6afbe-dirty.
+# Generated on 2025-07-11T15:30:30Z by kres c691b83.
 
-name: helm
 concurrency:
   group: helm-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
@@ -16,6 +15,7 @@ concurrency:
       - release-*
     paths:
       - deploy/helm/**
+name: helm
 jobs:
   default:
     permissions:

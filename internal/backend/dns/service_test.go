@@ -30,6 +30,7 @@ const cluster = "test-cluster-1"
 
 type ServiceSuite struct {
 	suite.Suite
+
 	state state.State
 
 	dnsService *dns.Service

@@ -17,6 +17,7 @@ func (*eNotFound) NotFoundError() {}
 //nolint:errname
 type eConflict struct {
 	error
+
 	res resource.Pointer
 }
 

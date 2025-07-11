@@ -760,7 +760,6 @@ func (h *clusterMachineConfigStatusControllerHandler) reset(
 			},
 		},
 	})
-
 	if err == nil {
 		attempt := h.ongoingResets.handleReset(clusterMachine.Metadata().ID())
 		logger.Info("resetting node", zap.Uint("attempt", attempt), zap.Bool("graceful", graceful))

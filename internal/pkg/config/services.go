@@ -94,6 +94,7 @@ func (s *Service) URL() string {
 // DevServerProxyService is used in Omni development and allows proxying through Omni to the node JS dev server.
 type DevServerProxyService struct {
 	Service `yaml:",inline"`
+
 	ProxyTo string `yaml:"proxyTo"`
 }
 

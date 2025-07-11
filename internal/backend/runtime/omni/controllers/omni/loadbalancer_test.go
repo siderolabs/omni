@@ -33,6 +33,7 @@ type mockLoadBalancer struct {
 
 func (lb *mockLoadBalancer) Start(upstreamCh <-chan []string) error {
 	var ctx context.Context
+
 	ctx, lb.ctxCancel = context.WithCancel(context.Background())
 
 	lb.wg.Add(2)

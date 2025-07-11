@@ -24,6 +24,7 @@ import (
 
 type MachineStatusLinkSuite struct {
 	OmniSuite
+
 	deltaCh chan siderolinkmanager.LinkCounterDeltas
 }
 

@@ -38,6 +38,7 @@ func (t *testNodeResolver) Resolve(_, node string) dns.Info {
 func TestTalosBackendRoles(t *testing.T) {
 	// Start mock server.
 	const serverEndpoint = "127.0.0.1:10501"
+
 	serverCloser := startTestServer(must.Value(net.Listen("tcp", serverEndpoint))(t))
 
 	t.Cleanup(func() { require.NoError(t, serverCloser()) })

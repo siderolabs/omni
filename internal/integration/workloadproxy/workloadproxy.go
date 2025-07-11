@@ -392,7 +392,9 @@ func testAccessParallel(ctx context.Context, httpClient *http.Client, exposedSer
 
 			if err := testAccessSingleWithRetries(ctx, httpClient, svcURL, expectedStatusCode, expectedBodyContent, numRetries, cookies...); err != nil {
 				lock.Lock()
+
 				svcErrs[err.Error()] = err
+
 				lock.Unlock()
 			}
 		}()

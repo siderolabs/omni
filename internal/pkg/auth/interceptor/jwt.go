@@ -82,7 +82,6 @@ func (i *JWT) intercept(ctx context.Context) (context.Context, error) {
 		i.logger.Info("invalid jwt", zap.Error(err))
 
 		var errEmailNotVerified *auth0.EmailNotVerifiedError
-
 		if errors.As(err, &errEmailNotVerified) {
 			return nil, status.Error(codes.Unauthenticated,
 				fmt.Sprintf(`Email address %q is not verified. Please check your email for a message to verify it, then click "Log In" again.`,

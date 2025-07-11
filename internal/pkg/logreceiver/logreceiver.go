@@ -93,6 +93,7 @@ func (srv *Server) Serve() error {
 
 		panichandler.Go(func() {
 			defer srv.wg.Done()
+
 			srv.handler.HandleConn(remoteAddr, conn)
 			srv.m.Remove(remoteAddress)
 		}, srv.logger)

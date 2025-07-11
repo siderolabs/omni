@@ -55,7 +55,6 @@ func main() {
 
 		return toRun()
 	}
-
 	if err := run(); err != nil {
 		printStderr("\n\napp failed with error: %v\n", err)
 		os.Exit(1)

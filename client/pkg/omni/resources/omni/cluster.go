@@ -180,7 +180,6 @@ func (validator ClusterValidator) validateEncryption() error {
 		version           semver.Version
 		err               error
 	)
-
 	if version, err = semver.ParseTolerant(validator.TalosVersion); err != nil {
 		return err
 	}

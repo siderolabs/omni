@@ -56,6 +56,7 @@ type StreamHooks struct {
 
 type serverStreamHook struct {
 	grpc.ServerStream
+
 	info  *grpc.StreamServerInfo
 	hooks StreamHooks
 }

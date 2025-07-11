@@ -40,6 +40,7 @@ func TestPayloadUnaryServerInterceptor(t *testing.T) {
 	defer runNoErr(listener.Close, "failed to close listener")
 
 	var dst bytes.Buffer
+
 	logger := newLogger(&dst)
 
 	server := grpc.NewServer(grpc.ChainUnaryInterceptor(

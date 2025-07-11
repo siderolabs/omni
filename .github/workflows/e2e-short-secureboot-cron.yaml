@@ -1,14 +1,14 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-06-09T15:23:59Z by kres 37c4809-dirty.
+# Generated on 2025-07-11T15:30:30Z by kres c691b83.
 
-name: e2e-short-secureboot-cron
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 "on":
   schedule:
     - cron: 30 1 * * *
+name: e2e-short-secureboot-cron
 jobs:
   default:
     runs-on:
