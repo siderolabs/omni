@@ -11,7 +11,7 @@ export type SiderolinkConfigSpec = {
   wireguard_endpoint?: string
   subnet?: string
   server_address?: string
-  join_token?: string
+  initial_join_token?: string
   advertised_endpoint?: string
 }
 

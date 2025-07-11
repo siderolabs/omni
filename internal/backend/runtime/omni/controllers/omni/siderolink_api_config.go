@@ -33,11 +33,11 @@ func NewSiderolinkAPIConfigController(services *config.Services) *SiderolinkAPIC
 			UnmapMetadataFunc: func(*siderolink.APIConfig) *siderolink.Config {
 				return siderolink.NewConfig()
 			},
-			TransformFunc: func(_ context.Context, _ controller.Reader, _ *zap.Logger, siderolinkConfig *siderolink.Config, params *siderolink.APIConfig) error {
+			TransformFunc: func(_ context.Context, _ controller.Reader, _ *zap.Logger, _ *siderolink.Config, params *siderolink.APIConfig) error {
 				spec := params.TypedSpec().Value
 
 				spec.MachineApiAdvertisedUrl = services.MachineAPI.URL()
-				spec.WireguardAdvertisedEndpoint = siderolinkConfig.TypedSpec().Value.WireguardEndpoint
+				spec.WireguardAdvertisedEndpoint = services.Siderolink.WireGuard.AdvertisedEndpoint
 				spec.EnforceGrpcTunnel = services.Siderolink.UseGRPCTunnel
 				spec.LogsPort = int32(services.Siderolink.LogServerPort)
 				spec.EventsPort = int32(services.Siderolink.EventSinkPort)

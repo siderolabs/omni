@@ -2118,6 +2118,101 @@ func (suite *MigrationSuite) TestCreateProviders() {
 	suite.Assert().True(state.IsNotFoundError(err))
 }
 
+func (suite *MigrationSuite) TestMigrateConnectionParamsToController() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	params := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
+
+	suite.Require().NoError(suite.state.Create(ctx, params))
+
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("migrateConnectionParamsToController"))))
+
+	var err error
+
+	params, err = safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, suite.state, params.Metadata().ID())
+
+	suite.Require().NoError(err)
+
+	suite.Require().Equal(omnictrl.ConnectionParamsControllerName, params.Metadata().Owner())
+}
+
+func (suite *MigrationSuite) TestPopulateJoinTokenUsage() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	params := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
+	params.TypedSpec().Value.JoinToken = "defaulttoken"
+
+	suite.Require().NoError(suite.state.Create(ctx, params))
+
+	link := siderolink.NewLink(resources.DefaultNamespace, "machine1", nil)
+
+	suite.Require().NoError(suite.state.Create(ctx, link))
+
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("populateJoinTokenUsage"))))
+
+	usage, err := safe.ReaderGetByID[*siderolink.JoinTokenUsage](ctx, suite.state, link.Metadata().ID())
+
+	suite.Require().NoError(err)
+
+	suite.Require().Equal(params.TypedSpec().Value.JoinToken, usage.TypedSpec().Value.TokenId)
+}
+
+func (suite *MigrationSuite) TestPopulateProviderJoinToken() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	params := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
+	params.TypedSpec().Value.JoinToken = "defaulttoken"
+
+	suite.Require().NoError(suite.state.Create(ctx, params))
+
+	provider1 := infra.NewProviderStatus("p1")
+	provider2 := infra.NewProviderStatus("p2")
+	provider2.Metadata().SetPhase(resource.PhaseTearingDown)
+
+	provider3 := infra.NewProviderStatus("p3")
+	provider4 := infra.NewProviderStatus("p4")
+
+	suite.Require().NoError(suite.state.Create(ctx, provider1))
+	suite.Require().NoError(suite.state.Create(ctx, provider2))
+	suite.Require().NoError(suite.state.Create(ctx, provider3))
+	suite.Require().NoError(suite.state.Create(ctx, provider4))
+
+	controllerName := omnictrl.NewProviderJoinConfigController().Name()
+
+	joinConfig3 := siderolink.NewProviderJoinConfig("p3")
+	joinConfig3.TypedSpec().Value.JoinToken = "defined"
+
+	joinConfig4 := siderolink.NewProviderJoinConfig("p4")
+
+	suite.Require().NoError(suite.state.Create(ctx, joinConfig3, state.WithCreateOwner(controllerName)))
+	suite.Require().NoError(suite.state.Create(ctx, joinConfig4, state.WithCreateOwner(controllerName)))
+
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("populateProviderJoinToken"))))
+
+	joinConfig, err := safe.ReaderGetByID[*siderolink.ProviderJoinConfig](ctx, suite.state, provider1.Metadata().ID())
+
+	suite.Require().NoError(err)
+
+	suite.Require().Equal(params.TypedSpec().Value.JoinToken, joinConfig.TypedSpec().Value.JoinToken)
+
+	_, err = safe.ReaderGetByID[*siderolink.ProviderJoinConfig](ctx, suite.state, provider2.Metadata().ID())
+
+	suite.Require().True(state.IsNotFoundError(err))
+
+	joinConfig, err = safe.ReaderGetByID[*siderolink.ProviderJoinConfig](ctx, suite.state, provider3.Metadata().ID())
+
+	suite.Require().NoError(err)
+	suite.Require().Equal(joinConfig3.TypedSpec().Value.JoinToken, joinConfig.TypedSpec().Value.JoinToken)
+
+	joinConfig, err = safe.ReaderGetByID[*siderolink.ProviderJoinConfig](ctx, suite.state, provider4.Metadata().ID())
+
+	suite.Require().NoError(err)
+	suite.Require().Equal(params.TypedSpec().Value.JoinToken, joinConfig.TypedSpec().Value.JoinToken)
+}
+
 func startMigration[
 	R interface {
 		generic.ResourceWithRD

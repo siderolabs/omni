@@ -74,7 +74,7 @@ func validateConnectionParams(_ context.Context, _ *zap.Logger, pctx provision.C
 		return fmt.Errorf("invalid connection params: %w", err)
 	}
 
-	token := url.Query().Get("jointoken")
+	token := url.Query().Get(siderolink.JoinTokenQueryParam)
 	if token == "" {
 		return errors.New("invalid connection params")
 	}

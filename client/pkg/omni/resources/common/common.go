@@ -11,6 +11,7 @@ import (
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
 
 // UserManagedResourceTypes is a list of resource types that are managed by the user.
@@ -19,6 +20,8 @@ var UserManagedResourceTypes = []resource.Type{
 	authres.UserType,
 	authres.AccessPolicyType,
 	authres.SAMLLabelRuleType,
+	siderolink.JoinTokenType,
+	siderolink.DefaultJoinTokenType,
 	omni.ClusterType,
 	omni.ConfigPatchType,
 	omni.EtcdManualBackupType,

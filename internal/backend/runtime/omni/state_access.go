@@ -420,6 +420,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		siderolink.LinkType,
 		siderolink.PendingMachineType,
 		siderolink.LinkStatusType,
+		siderolink.JoinTokenStatusType,
 		omni.MachineClassType,
 		omni.MachineExtensionsStatusType,
 		omni.MachineExtensionsType,
@@ -460,6 +461,8 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		authres.ServiceAccountStatusType,
 		authres.SAMLLabelRuleType,
 		authres.AccessPolicyType,
+		siderolink.JoinTokenType,
+		siderolink.DefaultJoinTokenType,
 		omni.EtcdBackupS3ConfType,
 		infra.ProviderType,
 		omni.InfraMachineBMCConfigType:
@@ -467,12 +470,15 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		// user management access
 		checkResult, err = auth.CheckGRPC(ctx, auth.WithRole(role.Admin))
 
-		if err == nil && (access.Verb == state.Destroy || access.Verb == state.Update) {
-			if access.ResourceType == authres.IdentityType && checkResult.Identity == access.ResourceID {
-				err = status.Errorf(codes.PermissionDenied, "destroying/updating resource %s is not allowed by the current user", access.ResourceID)
-			}
+		if err == nil && access.Verb == state.Create && access.ResourceType == siderolink.JoinTokenType {
+			err = status.Error(codes.PermissionDenied, "creating resource JoinTokenType is not allowed, should be done via the management.CreateJoinToken API call")
+		}
 
-			if access.ResourceType == authres.UserType && checkResult.UserID == access.ResourceID {
+		if err == nil && (access.Verb == state.Destroy || access.Verb == state.Update) {
+			switch {
+			case access.ResourceType == authres.IdentityType && checkResult.Identity == access.ResourceID:
+				err = status.Errorf(codes.PermissionDenied, "destroying/updating resource %s is not allowed by the current user", access.ResourceID)
+			case access.ResourceType == authres.UserType && checkResult.UserID == access.ResourceID:
 				err = status.Errorf(codes.PermissionDenied, "destroying/updating resource %s is not allowed by the current user", access.ResourceID)
 			}
 		}
@@ -586,6 +592,7 @@ func filterAccessByType(access state.Access) error {
 		omni.MachineStatusMetricsType,
 		authres.AuthConfigType,
 		authres.ServiceAccountStatusType,
+		siderolink.JoinTokenStatusType,
 		siderolink.ConnectionParamsType,
 		siderolink.LinkStatusType,
 		siderolink.APIConfigType,

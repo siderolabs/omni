@@ -30,6 +30,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
 
@@ -37,12 +38,7 @@ type ClusterMachineConfigStatusSuite struct {
 	OmniSuite
 }
 
-func (suite *ClusterMachineConfigStatusSuite) TestApplyReset() {
-	suite.startRuntime()
-
-	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
-	createConnectionParams(suite.ctx, suite.state, suite.T())
-
+func (suite *ClusterMachineConfigStatusSuite) registerControllers() {
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil)))
@@ -56,6 +52,16 @@ func (suite *ClusterMachineConfigStatusSuite) TestApplyReset() {
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(serviceConfig)))
+	suite.Require().NoError(suite.runtime.RegisterQController(newMockJoinTokenUsageController[*siderolink.Link]()))
+}
+
+func (suite *ClusterMachineConfigStatusSuite) TestApplyReset() {
+	suite.startRuntime()
+
+	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
+	createJoinParams(suite.ctx, suite.state, suite.T())
+
+	suite.registerControllers()
 
 	clusterName := "talos-default-4"
 
@@ -125,21 +131,9 @@ func (suite *ClusterMachineConfigStatusSuite) TestResetMachineRemoved() {
 	suite.startRuntime()
 
 	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
-	createConnectionParams(suite.ctx, suite.state, suite.T())
+	createJoinParams(suite.ctx, suite.state, suite.T())
 
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(serviceConfig)))
+	suite.registerControllers()
 
 	clusterName := "machine-ungraceful-reset"
 
@@ -234,21 +228,9 @@ func (suite *ClusterMachineConfigStatusSuite) TestResetUngraceful() {
 	suite.startRuntime()
 
 	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
-	createConnectionParams(suite.ctx, suite.state, suite.T())
+	createJoinParams(suite.ctx, suite.state, suite.T())
 
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(serviceConfig)))
+	suite.registerControllers()
 
 	clusterName := "talos-default-5"
 
@@ -389,21 +371,9 @@ func (suite *ClusterMachineConfigStatusSuite) TestForceDestroy() {
 	suite.startRuntime()
 
 	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
-	createConnectionParams(suite.ctx, suite.state, suite.T())
+	createJoinParams(suite.ctx, suite.state, suite.T())
 
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(serviceConfig)))
+	suite.registerControllers()
 
 	clusterName := "force-destroy"
 	_, machines := suite.createCluster(clusterName, 3, 0)
@@ -474,20 +444,9 @@ func (suite *ClusterMachineConfigStatusSuite) TestUpgrades() {
 	suite.startRuntime()
 
 	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
-	createConnectionParams(suite.ctx, suite.state, suite.T())
+	createJoinParams(suite.ctx, suite.state, suite.T())
 
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(serviceConfig)))
+	suite.registerControllers()
 
 	clusterName := "test-upgrades"
 
@@ -607,20 +566,9 @@ func (suite *ClusterMachineConfigStatusSuite) TestStagedUpgrade() {
 	suite.startRuntime()
 
 	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
-	createConnectionParams(suite.ctx, suite.state, suite.T())
+	createJoinParams(suite.ctx, suite.state, suite.T())
 
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(serviceConfig)))
+	suite.registerControllers()
 
 	// choose a Talos version affected by the readiness bug, so it will trigger a staged upgrade
 	actualTalosVersion := "1.9.1"
@@ -685,20 +633,9 @@ func (suite *ClusterMachineConfigStatusSuite) TestSchematicChanges() {
 	suite.startRuntime()
 
 	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
-	createConnectionParams(suite.ctx, suite.state, suite.T())
+	createJoinParams(suite.ctx, suite.state, suite.T())
 
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(serviceConfig)))
+	suite.registerControllers()
 
 	clusterName := "test-upgrades"
 
@@ -824,20 +761,9 @@ func (suite *ClusterMachineConfigStatusSuite) TestSecureBootInstallImage() {
 	suite.startRuntime()
 
 	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
-	createConnectionParams(suite.ctx, suite.state, suite.T())
+	createJoinParams(suite.ctx, suite.state, suite.T())
 
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(serviceConfig)))
+	suite.registerControllers()
 
 	clusterName := "test-secure-boot-install-image"
 
@@ -911,15 +837,7 @@ func (suite *ClusterMachineConfigStatusSuite) TestSecureBootInstallImage() {
 func (suite *ClusterMachineConfigStatusSuite) TestGenerationErrorPropagation() {
 	suite.startRuntime()
 
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(serviceConfig)))
+	suite.registerControllers()
 
 	clusterName := "test-generation-error-propagation"
 

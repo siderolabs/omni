@@ -224,6 +224,18 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: createProviders,
 				name:     "createProviders",
 			},
+			{
+				callback: migrateConnectionParamsToController,
+				name:     "migrateConnectionParamsToController",
+			},
+			{
+				callback: populateJoinTokenUsage,
+				name:     "populateJoinTokenUsage",
+			},
+			{
+				callback: populateProviderJoinToken,
+				name:     "populateProviderJoinToken",
+			},
 		},
 	}
 }

@@ -47,11 +47,7 @@ type ClusterMachineConfigSuite struct {
 	OmniSuite
 }
 
-func (suite *ClusterMachineConfigSuite) TestReconcile() {
-	suite.startRuntime()
-
-	createConnectionParams(suite.ctx, suite.state, suite.T())
-
+func (suite *ClusterMachineConfigSuite) registerControllers() {
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
@@ -63,6 +59,15 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(serviceConfig)))
+	suite.Require().NoError(suite.runtime.RegisterQController(newMockJoinTokenUsageController[*siderolink.Link]()))
+}
+
+func (suite *ClusterMachineConfigSuite) TestReconcile() {
+	suite.startRuntime()
+
+	createJoinParams(suite.ctx, suite.state, suite.T())
+
+	suite.registerControllers()
 
 	clusterName := "talos-default-2"
 	cluster, machines := suite.createClusterWithTalosVersion(clusterName, 1, 1, "1.10.0")
@@ -167,19 +172,9 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 func (suite *ClusterMachineConfigSuite) TestGeneratePreserveFeatures() {
 	suite.startRuntime()
 
-	createConnectionParams(suite.ctx, suite.state, suite.T())
+	createJoinParams(suite.ctx, suite.state, suite.T())
 
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(serviceConfig)))
+	suite.registerControllers()
 
 	clusterName := "talos-default-old"
 	cluster, machines := suite.createClusterWithTalosVersion(clusterName, 1, 1, "1.2.0")
@@ -226,18 +221,9 @@ func (suite *ClusterMachineConfigSuite) TestGeneratePreserveFeatures() {
 func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 	suite.startRuntime()
 
-	createConnectionParams(suite.ctx, suite.state, suite.T())
+	createJoinParams(suite.ctx, suite.state, suite.T())
 
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(serviceConfig)))
+	suite.registerControllers()
 
 	clusterName := "test-generation-error"
 
@@ -283,19 +269,9 @@ func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 func (suite *ClusterMachineConfigSuite) TestConfigEncodingStability() {
 	suite.startRuntime()
 
-	createConnectionParams(suite.ctx, suite.state, suite.T())
+	createJoinParams(suite.ctx, suite.state, suite.T())
 
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(serviceConfig)))
+	suite.registerControllers()
 
 	maxTalosVersion, err := semver.ParseTolerant(version.Tag)
 	suite.Require().NoError(err)
@@ -483,9 +459,9 @@ func TestClusterMachineConfigSuite(t *testing.T) {
 	suite.Run(t, new(ClusterMachineConfigSuite))
 }
 
-func createConnectionParams(ctx context.Context, state state.State, t *testing.T) {
-	params := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
-	params.TypedSpec().Value.JoinToken = "testtoken"
+func createJoinParams(ctx context.Context, state state.State, t *testing.T) {
+	params := siderolink.NewDefaultJoinToken()
+	params.TypedSpec().Value.TokenId = "testtoken"
 
 	require.NoError(t, state.Create(ctx, params))
 	require.NoError(t, state.Create(ctx, siderolink.NewConfig()))

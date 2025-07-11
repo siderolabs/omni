@@ -7,6 +7,8 @@ package omni_test
 
 import (
 	"context"
+	"fmt"
+	"net/url"
 	"testing"
 	"time"
 
@@ -14,8 +16,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -38,35 +41,54 @@ func (suite *ProviderJoinConfigSuite) TestReconcile() {
 	apiConfig.TypedSpec().Value.LogsPort = 8092
 	apiConfig.TypedSpec().Value.MachineApiAdvertisedUrl = "http://127.0.0.1"
 
-	params := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
-	params.TypedSpec().Value.JoinToken = "jtoken"
+	defaultToken := siderolink.NewDefaultJoinToken()
+	defaultToken.TypedSpec().Value.TokenId = "jtoken"
 
-	suite.Require().NoError(suite.state.Create(suite.ctx, params))
+	suite.Require().NoError(suite.state.Create(suite.ctx, defaultToken))
 	suite.Require().NoError(suite.state.Create(suite.ctx, apiConfig))
 
 	provider := infra.NewProvider("testprovider")
 
 	suite.Require().NoError(suite.state.Create(ctx, provider))
 
-	expectedConfig := "apiVersion: v1alpha1\n" +
-		"kind: SideroLinkConfig\n" +
-		"apiUrl: http://127.0.0.1?jointoken=v1%3AeyJleHRyYV9kYXRhIjp7Im9tbmkuc2lkZXJv" +
-		"LmRldi9pbmZyYS1wcm92aWRlci1pZCI6InRlc3Rwcm92aWRlciJ9LCJzaWduYXR1cmUiOiJEQnRi" +
-		"b0NDeURlQ1pBSXVkQnovTGhYSVNnMlVpZGViRzJad1hDa1ZCU3RvPSJ9\n" +
-		"---\n" +
-		"apiVersion: v1alpha1\n" +
-		"kind: EventSinkConfig\n" +
-		"endpoint: '[fdae:41e4:649b:9303::1]:8091'\n" +
-		"---\n" +
-		"apiVersion: v1alpha1\n" +
-		"kind: KmsgLogConfig\n" +
-		"name: omni-kmsg\n" +
-		"url: tcp://[fdae:41e4:649b:9303::1]:8092\n"
+	var token string
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{provider.Metadata().ID()},
+		func(res *siderolink.ProviderJoinConfig, assert *assert.Assertions) {
+			token = res.TypedSpec().Value.JoinToken
+
+			assert.NotEmpty(token)
+		},
+	)
+
+	jt, err := jointoken.NewWithExtraData(token, map[string]string{
+		omni.LabelInfraProviderID: provider.Metadata().ID(),
+	})
+
+	suite.Require().NoError(err)
+
+	expectedToken, err := jt.Encode()
+
+	suite.Require().NoError(err)
+
+	expectedToken = url.QueryEscape(expectedToken)
+
+	expectedConfig := fmt.Sprintf(`apiVersion: v1alpha1
+kind: SideroLinkConfig
+apiUrl: http://127.0.0.1?jointoken=%s
+---
+apiVersion: v1alpha1
+kind: EventSinkConfig
+endpoint: '[fdae:41e4:649b:9303::1]:8091'
+---
+apiVersion: v1alpha1
+kind: KmsgLogConfig
+name: omni-kmsg
+url: tcp://[fdae:41e4:649b:9303::1]:8092
+`, expectedToken)
 
 	expectedKernelArgs := []string{
-		"siderolink.api=http://127.0.0.1?jointoken=v1%3AeyJleHRyYV9kYXRhIjp7Im9tbmkuc2l" +
-			"kZXJvLmRldi9pbmZyYS1wcm92aWRlci1pZCI6InRlc3Rwcm92aWRlciJ9LCJzaWduYXR1cmUiOiJ" +
-			"EQnRib0NDeURlQ1pBSXVkQnovTGhYSVNnMlVpZGViRzJad1hDa1ZCU3RvPSJ9",
+		fmt.Sprintf("siderolink.api=http://127.0.0.1?jointoken=%s", expectedToken),
 		"talos.events.sink=[fdae:41e4:649b:9303::1]:8091",
 		"talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092",
 	}
