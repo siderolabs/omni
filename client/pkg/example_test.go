@@ -14,7 +14,6 @@ import (
 //nolint:wsl,testableexamples
 func Example() {
 	// This is an example of building omnictl executable.
-
 	version.Name = "omni"
 	version.SHA = "build SHA" // Optional.
 	version.Tag = "v0.29.0"   // Optional.

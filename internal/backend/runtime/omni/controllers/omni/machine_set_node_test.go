@@ -31,6 +31,7 @@ import (
 
 type MachineSetNodeSuite struct {
 	OmniSuite
+
 	machinesOffset int
 }
 

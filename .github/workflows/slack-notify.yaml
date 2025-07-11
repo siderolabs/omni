@@ -1,8 +1,7 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-06-20T12:04:15Z by kres 5128bc1.
+# Generated on 2025-07-11T15:30:30Z by kres c691b83.
 
-name: slack-notify
 "on":
   workflow_run:
     workflows:
@@ -18,6 +17,7 @@ name: slack-notify
       - e2e-omni-upgrade-cron
     types:
       - completed
+name: slack-notify
 jobs:
   slack-notify:
     runs-on:

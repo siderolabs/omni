@@ -815,6 +815,7 @@ func toSlice(it iter.Seq2[etcdbackup.Info, error], t *testing.T) []etcdbackup.In
 
 type fakeBackend struct {
 	*s3mem.Backend
+
 	logger *zap.Logger
 }
 

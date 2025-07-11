@@ -59,6 +59,7 @@ func (suite *ClusterSecretsSuite) TestNewSecrets() {
 			suite.Require().NotEmpty(clusterSecretsSpec.GetData())
 
 			var bundle secrets.Bundle
+
 			err := json.Unmarshal(clusterSecretsSpec.Data, &bundle)
 			suite.Require().NoError(err)
 			suite.Require().NotEmpty(bundle)
@@ -150,6 +151,7 @@ func (suite *ClusterSecretsSuite) TestSecretsFromBackup() {
 			suite.Require().NotEmpty(clusterSecretsSpec.GetData())
 
 			var bundle secrets.Bundle
+
 			err := json.Unmarshal(clusterSecretsSpec.Data, &bundle)
 			suite.Require().NoError(err)
 			suite.Require().NotEmpty(bundle)

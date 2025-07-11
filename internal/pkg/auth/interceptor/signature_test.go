@@ -34,6 +34,7 @@ import (
 
 type testServer struct {
 	grpc_testing.UnimplementedTestServiceServer
+
 	t *testing.T
 }
 
@@ -43,11 +44,8 @@ func (s testServer) UnaryCall(_ context.Context, _ *grpc_testing.SimpleRequest) 
 
 type SignatureTestSuite struct {
 	testServiceClient grpc_testing.TestServiceClient
-
-	clientConn *grpc.ClientConn
-
-	key *pgp.Key
-
+	clientConn        *grpc.ClientConn
+	key               *pgp.Key
 	test.GRPCSuite
 }
 

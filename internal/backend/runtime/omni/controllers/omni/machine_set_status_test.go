@@ -886,6 +886,7 @@ func (suite *MachineSetStatusSuite) TestMachineLocks() {
 	var eg errgroup.Group
 
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*10)
+
 	defer func() {
 		cancel()
 

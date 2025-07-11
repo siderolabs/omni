@@ -64,6 +64,7 @@ func newTestResource(ns resource.Namespace, id resource.ID, spec *specs.AuthConf
 
 type OmniRuntimeSuite struct {
 	suite.Suite
+
 	runtime   *omniruntime.Runtime
 	ctx       context.Context //nolint:containedctx
 	ctxCancel context.CancelFunc

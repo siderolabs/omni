@@ -24,9 +24,10 @@ import (
 
 // Client is the image factory client.
 type Client struct {
-	state state.State
 	*client.Client
-	host string
+
+	state state.State
+	host  string
 }
 
 // NewClient creates a new image factory client.

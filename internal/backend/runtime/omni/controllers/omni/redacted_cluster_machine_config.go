@@ -247,6 +247,7 @@ func (ctrl *RedactedClusterMachineConfigController) saveDiff(ctx context.Context
 	}
 
 	const rfc3339Millis = "2006-01-02T15:04:05.000Z07:00"
+
 	diffID := cmcr.Metadata().ID() + "-" + ctrl.options.Clock.Now().UTC().Format(rfc3339Millis)
 	diffRes := omni.NewMachineConfigDiff(diffID)
 

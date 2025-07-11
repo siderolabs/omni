@@ -39,6 +39,7 @@ import (
 // SchematicInfo contains all collected schematic information.
 type SchematicInfo struct {
 	talosschematic.SchematicInfo
+
 	Invalid bool
 }
 
@@ -317,7 +318,6 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 	for {
 		if len(dirtyPollers) > 0 {
 			info, err := spec.poll(ctx, c, maps.Keys(dirtyPollers))
-
 			if !spec.sendInfo(ctx, info, notifyCh, err) {
 				return nil
 			}

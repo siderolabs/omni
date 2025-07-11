@@ -32,6 +32,7 @@ import (
 
 type kubernetesUsagePointer struct {
 	resource.Pointer
+
 	id string
 }
 
@@ -139,7 +140,6 @@ func (ku *KubernetesUsage) Start() error {
 
 			return nil
 		})
-
 		if state.IsNotFoundError(err) {
 			err = ku.state.Create(context.Background(), usage)
 		}

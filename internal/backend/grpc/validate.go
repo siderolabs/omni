@@ -102,7 +102,6 @@ func (s *managementServer) ValidateJSONSchema(ctx context.Context, request *mana
 	err = omnijsonschema.Validate(request.Data, schema)
 	if err != nil {
 		var validationError *jsonschema.ValidationError
-
 		if !errors.As(err, &validationError) {
 			return nil, err
 		}

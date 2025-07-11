@@ -166,7 +166,9 @@ func (l *lexer) read() (rune, int) {
 // scanIDOrKeyword scans string to recognize literal token (for example 'in') or an identifier.
 func (l *lexer) scanIDOrKeyword() (tok lexerToken, lit string) {
 	var buffer []rune
+
 IdentifierLoop:
+
 	for {
 		switch ch, width := l.read(); {
 		case ch == 0:

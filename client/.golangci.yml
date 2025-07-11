@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-05-30T19:29:08Z by kres 9f64b0d-dirty.
+# Generated on 2025-07-11T15:30:30Z by kres c691b83.
 
 version: "2"
 
@@ -49,6 +49,9 @@ linters:
     - perfsprint # complains about us using fmt.Sprintf in non-performance critical code, updating just kres took too long
     - musttag # seems to be broken - goes into imported libraries and reports issues there
     - nolintlint # gives false positives - disable until https://github.com/golangci/golangci-lint/issues/3228 is resolved
+    - wsl # replaced by wsl_v5
+    - noinlineerr
+    - embeddedstructfieldcheck # fighting in many places with fieldalignment
   # all available settings of specific linters
   settings:
     cyclop:
@@ -90,6 +93,10 @@ linters:
       simple: true
       range-loops: true # Report preallocation suggestions on range loops, true by default
       for-loops: false # Report preallocation suggestions on for loops, false by default
+    revive:
+      rules:
+        - name: var-naming # Complains about package names like "common"
+          disabled: true
     rowserrcheck: { }
     testpackage: { }
     unparam:

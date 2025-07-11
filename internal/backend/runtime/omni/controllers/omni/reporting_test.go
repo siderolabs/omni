@@ -51,7 +51,9 @@ func (suite *StripeMetricsReporterControllerSuite) TestReconcile() {
 			suite.Assert().Equal("/v1/subscription_items/sub_item_id", r.URL.Path)
 
 			mu.Lock()
+
 			count := machineCount
+
 			mu.Unlock()
 
 			w.WriteHeader(http.StatusOK)
@@ -76,7 +78,9 @@ func (suite *StripeMetricsReporterControllerSuite) TestReconcile() {
 			if quantityStr := r.Form.Get("quantity"); quantityStr != "" {
 				if newCount, err := strconv.ParseInt(quantityStr, 10, 64); err == nil {
 					mu.Lock()
+
 					machineCount = newCount
+
 					mu.Unlock()
 
 					w.WriteHeader(http.StatusOK)

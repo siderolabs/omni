@@ -466,7 +466,6 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		var checkResult auth.CheckResult
 		// user management access
 		checkResult, err = auth.CheckGRPC(ctx, auth.WithRole(role.Admin))
-
 		if err == nil && (access.Verb == state.Destroy || access.Verb == state.Update) {
 			if access.ResourceType == authres.IdentityType && checkResult.Identity == access.ResourceID {
 				err = status.Errorf(codes.PermissionDenied, "destroying/updating resource %s is not allowed by the current user", access.ResourceID)

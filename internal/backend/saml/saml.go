@@ -119,7 +119,6 @@ func createErrorHandler(logger *zap.Logger) func(http.ResponseWriter, *http.Requ
 
 	return func(w http.ResponseWriter, r *http.Request, err error) {
 		var invalidSAML *saml.InvalidResponseError
-
 		if errors.As(err, &invalidSAML) {
 			logger.Warn("received invalid saml response",
 				zap.String("response", invalidSAML.Response),

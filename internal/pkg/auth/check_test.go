@@ -211,7 +211,6 @@ func TestCheck(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := auth.Check(tt.ctx, tt.opts...)
-
 			if tt.errorIs != nil {
 				assert.ErrorIs(t, err, tt.errorIs)
 

@@ -76,6 +76,7 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 	var eg errgroup.Group
 
 	reconcilerCtx, reconcilerCancel := context.WithCancel(ctx)
+
 	defer func() {
 		reconcilerCancel()
 

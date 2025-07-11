@@ -463,7 +463,6 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 			ready bool
 			err   error
 		)
-
 		if ready, err = helpers.TeardownAndDestroy(ctx, r, usedMachineSetNodes[i].Metadata()); err != nil {
 			if state.IsNotFoundError(err) {
 				return nil

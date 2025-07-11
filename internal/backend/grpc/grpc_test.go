@@ -53,6 +53,7 @@ import (
 
 type GrpcSuite struct {
 	suite.Suite
+
 	runtime      *omniruntime.Runtime
 	server       *grpc.Server
 	conn         *grpc.ClientConn
@@ -235,7 +236,6 @@ func (suite *GrpcSuite) TestCrud() {
 			Namespace: resources.DefaultNamespace,
 			Type:      omni.ConfigPatchType,
 		})
-
 		if e != nil {
 			return e
 		}

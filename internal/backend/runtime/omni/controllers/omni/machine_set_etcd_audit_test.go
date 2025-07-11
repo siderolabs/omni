@@ -34,6 +34,7 @@ import (
 
 type MachineSetEtcdAuditSuite struct {
 	OmniSuite
+
 	clientFactory *talos.ClientFactory
 	resources     []resource.Resource
 }

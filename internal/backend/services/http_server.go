@@ -199,7 +199,6 @@ func (s *Server) listenAndServe(ctx context.Context, logger *zap.Logger) error {
 	eg.Go(func() error {
 		for {
 			err := s.certData.runWatcher(ctx, logger)
-
 			if err == nil {
 				return nil
 			}

@@ -48,7 +48,6 @@ func (controlplane *ControlPlane) Validate() error {
 	}
 
 	multiErr = joinErrors(multiErr, controlplane.MachineSet.Validate(), controlplane.Machines.Validate(), controlplane.Patches.Validate())
-
 	if multiErr != nil {
 		return fmt.Errorf("controlplane is invalid: %w", multiErr)
 	}

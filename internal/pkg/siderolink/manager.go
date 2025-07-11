@@ -219,7 +219,6 @@ func createListener(ctx context.Context, host, port string) (net.Listener, error
 		listener net.Listener
 		err      error
 	)
-
 	if err = retry.Constant(20*time.Second, retry.WithUnits(100*time.Millisecond)).RetryWithContext(
 		ctx, func(context.Context) error {
 			listener, err = net.Listen("tcp", endpoint)
@@ -582,7 +581,6 @@ func (manager *Manager) updateConnectionParams(ctx context.Context, siderolinkCo
 	)
 
 	var err error
-
 	if err = manager.state.Create(ctx, connectionParams); err != nil && !state.IsConflictError(err) {
 		return err
 	}
@@ -637,7 +635,9 @@ func (manager *Manager) Describe(ch chan<- *prometheus.Desc) {
 // Collect implements prom.Collector interface.
 func (manager *Manager) Collect(ch chan<- prometheus.Metric) {
 	ch <- manager.metricBytesReceived
+
 	ch <- manager.metricBytesSent
+
 	ch <- manager.metricLastHandshake
 }
 

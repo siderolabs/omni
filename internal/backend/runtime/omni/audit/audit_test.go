@@ -108,6 +108,7 @@ func TestAudit(t *testing.T) {
 
 type wrapFS struct {
 	subFS
+
 	File string
 }
 

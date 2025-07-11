@@ -34,7 +34,6 @@ func (workers *Workers) Validate() error {
 	}
 
 	multiErr = joinErrors(multiErr, workers.MachineSet.Validate(), workers.Machines.Validate(), workers.Patches.Validate())
-
 	if multiErr != nil {
 		return fmt.Errorf("workers is invalid: %w", multiErr)
 	}

@@ -54,6 +54,7 @@ func (l *LogFile) Dump(data any) error {
 
 func (l *LogFile) dumpAt(data any, at time.Time) error {
 	b := l.pool.Get()
+
 	defer func() { b.Reset(); l.pool.Put(b) }()
 
 	err := json.NewEncoder(b).Encode(data)

@@ -99,6 +99,7 @@ func NewWithTTL(omniState state.State, ttl time.Duration) (*Runtime, error) {
 // Runtime implements runtime.Runtime.
 type Runtime struct { //nolint:govet // there is just a single instance
 	cleanuperTracker
+
 	clientsCache *expirable.LRU[string, *Client]
 	sf           singleflight.Group
 

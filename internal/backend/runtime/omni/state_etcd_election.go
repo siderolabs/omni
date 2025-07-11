@@ -56,7 +56,6 @@ func (ee *etcdElections) createSession(ctx context.Context, client *clientv3.Cli
 
 func (ee *etcdElections) run(ctx context.Context, client *clientv3.Client, electionKey string, errChan chan<- error) error {
 	var err error
-
 	if err = ee.createSession(ctx, client, electionKey); err != nil {
 		return err
 	}

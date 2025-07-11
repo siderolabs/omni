@@ -38,7 +38,6 @@ func Create(ctx context.Context, st state.State, name, userRole string, useUserR
 
 	if !useUserRole {
 		var err error
-
 		if saRole, err = role.Parse(userRole); err != nil {
 			return "", err
 		}
