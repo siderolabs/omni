@@ -613,6 +613,14 @@ message ClusterBootstrapStatusSpec {
 message ClusterSecretsSpec {
   // Bytes holding serialized cluster secrets.
   bytes data = 1;
+  // imported holds origin of the cluster secrets.
+  bool imported = 2;
+}
+
+// ImportedClusterSecretsSpec describes imported cluster secrets.
+message ImportedClusterSecretsSpec {
+  // data holds imported cluster secrets.
+  string data = 1;
 }
 
 // LoadBalancerConfigSpec describes the configuration of a load balancer.

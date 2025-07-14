@@ -13,9 +13,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/siderolabs/talos/pkg/machinery/config"
+	talossecrets "github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"gopkg.in/yaml.v3"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/integration/workloadproxy"
 	"github.com/siderolabs/omni/internal/pkg/clientconfig"
@@ -316,6 +321,7 @@ Don't do any changes to the cluster.`)
 		t.Parallel()
 
 		clusterOptions := ClusterOptions{
+			Name:          "integration-default",
 			ControlPlanes: 3,
 			Workers:       2,
 
@@ -324,7 +330,7 @@ Don't do any changes to the cluster.`)
 
 		options.claimMachines(t, clusterOptions.ControlPlanes+clusterOptions.Workers)
 
-		runTests(t, AssertClusterCreateAndReady(t.Context(), options.omniClient, "default", clusterOptions))
+		runTests(t, AssertClusterCreateAndReady(t.Context(), options.omniClient, clusterOptions))
 	}
 }
 
@@ -337,6 +343,7 @@ Don't do any changes to the cluster.`)
 		t.Parallel()
 
 		clusterOptions := ClusterOptions{
+			Name:          "integration-encrypted",
 			ControlPlanes: 1,
 			Workers:       1,
 
@@ -348,7 +355,7 @@ Don't do any changes to the cluster.`)
 
 		options.claimMachines(t, clusterOptions.ControlPlanes+clusterOptions.Workers)
 
-		runTests(t, AssertClusterCreateAndReady(t.Context(), options.omniClient, "encrypted", clusterOptions))
+		runTests(t, AssertClusterCreateAndReady(t.Context(), options.omniClient, clusterOptions))
 	}
 }
 
@@ -361,6 +368,7 @@ Don't do any changes to the cluster.`)
 		t.Parallel()
 
 		clusterOptions := ClusterOptions{
+			Name:          "integration-singlenode",
 			ControlPlanes: 1,
 			Workers:       0,
 
@@ -369,7 +377,7 @@ Don't do any changes to the cluster.`)
 
 		options.claimMachines(t, clusterOptions.ControlPlanes+clusterOptions.Workers)
 
-		runTests(t, AssertClusterCreateAndReady(t.Context(), options.omniClient, "singlenode", clusterOptions))
+		runTests(t, AssertClusterCreateAndReady(t.Context(), options.omniClient, clusterOptions))
 	}
 }
 
@@ -1460,6 +1468,50 @@ Test Omni upgrades, the second half that runs on the current Omni version
 		t.Run(
 			"ClusterShouldBeDestroyed",
 			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, false),
+		)
+	}
+}
+
+func testClusterImport(options *TestOptions) TestFunc {
+	return func(t *testing.T) {
+		t.Log(`
+Create a single node imported cluster, assert that the cluster is ready and accessible and using the imported secrets bundle.`)
+
+		t.Parallel()
+
+		clusterOptions := ClusterOptions{
+			Name:          "integration-imported-cluster",
+			ControlPlanes: 1,
+			Workers:       0,
+
+			MachineOptions:             options.MachineOptions,
+			SkipExtensionCheckOnCreate: true,
+		}
+
+		bundle, err := talossecrets.NewBundle(talossecrets.NewFixedClock(time.Now()), config.TalosVersion1_10)
+		require.NoError(t, err)
+
+		bundleYaml, err := yaml.Marshal(bundle)
+		require.NoError(t, err)
+
+		ics := omni.NewImportedClusterSecrets(resources.DefaultNamespace, clusterOptions.Name)
+		ics.TypedSpec().Value.Data = string(bundleYaml)
+
+		require.NoError(t, options.omniClient.Omni().State().Create(t.Context(), ics))
+
+		options.claimMachines(t, clusterOptions.ControlPlanes+clusterOptions.Workers)
+
+		t.Run(
+			"ClusterShouldBeCreated",
+			CreateCluster(t.Context(), options.omniClient, clusterOptions),
+		)
+
+		assertClusterAndAPIReady(t, clusterOptions.Name, options)
+		assertClusterIsImported(t.Context(), t, options.omniClient.Omni().State(), clusterOptions.Name, bundleYaml)
+
+		t.Run(
+			"ClusterShouldBeDestroyed",
+			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterOptions.Name, false, false),
 		)
 	}
 }

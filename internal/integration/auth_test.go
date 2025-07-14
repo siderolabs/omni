@@ -641,6 +641,8 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		defaultJoinToken := siderolink.NewDefaultJoinToken()
 		*defaultJoinToken.Metadata() = resource.NewMetadata(resources.DefaultNamespace, siderolink.DefaultJoinTokenType, uuid.New().String(), resource.VersionUndefined)
 
+		importedClusterSecret := omni.NewImportedClusterSecrets(resources.DefaultNamespace, cluster.Metadata().ID())
+
 		testCases := []resourceAuthzTestCase{
 			{
 				resource:       identity,
@@ -734,6 +736,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			{
 				resource:       machineExtensionsStatus,
 				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
+				resource:       importedClusterSecret,
+				allowedVerbSet: allVerbsSet,
 			},
 		}
 

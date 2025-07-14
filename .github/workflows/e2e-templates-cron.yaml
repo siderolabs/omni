@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-07-11T15:30:30Z by kres c691b83.
+# Generated on 2025-07-14T11:13:09Z by kres c691b83.
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -63,7 +63,7 @@ jobs:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|ClusterTemplate)$
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
+          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets|ClusterImport)$
           WITH_DEBUG: "true"
           WITH_RACE: "true"
         run: |

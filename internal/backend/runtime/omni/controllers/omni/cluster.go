@@ -17,6 +17,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
 // ClusterController manages Cluster resource lifecycle.
@@ -94,6 +95,7 @@ func NewClusterController() *ClusterController {
 					cleanup.HasNoOutputs[*omni.ClusterMachineConfig](func(cluster *omni.Cluster) state.ListOption {
 						return state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID()))
 					}),
+					&helpers.SameIDHandler[*omni.Cluster, *omni.ImportedClusterSecrets]{},
 				),
 			},
 		},

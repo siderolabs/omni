@@ -472,6 +472,11 @@ export type ClusterBootstrapStatusSpec = {
 
 export type ClusterSecretsSpec = {
   data?: Uint8Array
+  imported?: boolean
+}
+
+export type ImportedClusterSecretsSpec = {
+  data?: string
 }
 
 export type LoadBalancerConfigSpec = {

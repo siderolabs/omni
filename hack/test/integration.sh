@@ -207,6 +207,7 @@ features:
   enableTalosPreReleaseVersions: ${ENABLE_TALOS_PRERELEASE_VERSIONS}
   enableConfigDataCompression: true
   enableBreakGlassConfigs: true
+  enableClusterImport: true
   disableControllerRuntimeCache: false" > ${OMNI_CONFIG}
 
 if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
@@ -398,6 +399,7 @@ if [ "${INTEGRATION_RUN_E2E_TEST:-true}" == "true" ]; then
     --audit-log-dir ${TEST_OUTPUTS_DIR}/audit-log \
     --config-data-compression-enabled \
     --enable-talos-pre-release-versions="${ENABLE_TALOS_PRERELEASE_VERSIONS}" \
+    --enable-cluster-import \
     "${REGISTRY_MIRROR_FLAGS[@]}"&
 
   # Run the e2e test.

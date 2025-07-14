@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-07-11T15:30:30Z by kres c691b83.
+# Generated on 2025-07-14T11:13:09Z by kres c691b83.
 
 "on":
   workflow_run:
@@ -15,6 +15,7 @@
       - e2e-backups-cron
       - e2e-workload-proxy-cron
       - e2e-omni-upgrade-cron
+      - e2e-cluster-import-cron
     types:
       - completed
 name: slack-notify

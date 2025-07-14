@@ -212,7 +212,7 @@ spec:
       WITH_RACE: "true"
       INTEGRATION_RUN_E2E_TEST: "true"
       INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|Auth|DefaultCluster|CLICommands)$"
-      TALEMU_TEST_ARGS: "--test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$"
+      TALEMU_TEST_ARGS: "--test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets|ClusterImport)$"
       RUN_TALEMU_TESTS: true
     jobs:
       - name: e2e-short-secureboot
@@ -323,6 +323,18 @@ spec:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_PREPARE_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|OmniUpgradePrepare)$"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(OmniUpgradeVerify)$"
+          RUN_TALEMU_TESTS: false
+      - name: e2e-cluster-import
+        crons:
+          - '30 1 * * *'
+        runnerLabels:
+          - omni
+        triggerLabels:
+          - integration/e2e
+          - integration/e2e-cluster-import
+        environmentOverride:
+          INTEGRATION_RUN_E2E_TEST: "false"
+          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|ClusterImport)$"
           RUN_TALEMU_TESTS: false
 ---
 kind: common.Build

@@ -35,6 +35,8 @@ import (
 type SecretsController = qtransform.QController[*omni.Cluster, *omni.ClusterSecrets]
 
 // NewSecretsController instantiates the secrets controller.
+//
+//nolint:gocognit
 func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.Cluster, *omni.ClusterSecrets]{
@@ -65,6 +67,30 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsControll
 					return err
 				}
 
+				ics, err := safe.ReaderGetByID[*omni.ImportedClusterSecrets](ctx, r, cluster.Metadata().ID())
+				if err != nil {
+					if !state.IsNotFoundError(err) {
+						return err
+					}
+				} else {
+					var bundle *talossecrets.Bundle
+					bundle, err = omni.FromImportedSecretsToSecretsBundle(ics)
+					if err != nil {
+						return fmt.Errorf("failed to decode imported cluster secrets: %w", err)
+					}
+
+					var data []byte
+					data, err = json.Marshal(bundle)
+					if err != nil {
+						return fmt.Errorf("error marshaling secrets: %w", err)
+					}
+
+					secrets.TypedSpec().Value.Imported = true
+					secrets.TypedSpec().Value.Data = data
+
+					return nil
+				}
+
 				bundle, err := talossecrets.NewBundle(talossecrets.NewFixedClock(time.Now()), versionContract)
 				if err != nil {
 					return fmt.Errorf("error generating secrets: %w", err)
@@ -88,6 +114,7 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsControll
 					return fmt.Errorf("error marshaling secrets: %w", err)
 				}
 
+				secrets.TypedSpec().Value.Imported = false
 				secrets.TypedSpec().Value.Data = data
 
 				return nil
@@ -125,6 +152,9 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsControll
 		qtransform.WithExtraMappedInput(
 			// no need to requeue anything, just allow the controller to read data (when restoring from another cluster backup)
 			qtransform.MapperNone[*omni.BackupData](),
+		),
+		qtransform.WithExtraMappedInput(
+			qtransform.MapperSameID[*omni.ImportedClusterSecrets, *omni.Cluster](),
 		),
 	)
 }

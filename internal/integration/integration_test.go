@@ -235,6 +235,7 @@ func TestIntegration(t *testing.T) {
 		t.Run("StaticInfraProvider", testStaticInfraProvider(testOptions))
 		t.Run("OmniUpgradePrepare", testOmniUpgradePrepare(testOptions))
 		t.Run("OmniUpgradeVerify", testOmniUpgradeVerify(testOptions))
+		t.Run("ClusterImport", testClusterImport(testOptions))
 	})
 
 	postRunHooks(t, testOptions)

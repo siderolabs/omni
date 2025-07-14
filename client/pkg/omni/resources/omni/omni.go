@@ -47,6 +47,7 @@ func init() {
 	registry.MustRegisterResource(FeaturesConfigType, &FeaturesConfig{})
 	registry.MustRegisterResource(ImagePullRequestType, &ImagePullRequest{})
 	registry.MustRegisterResource(ImagePullStatusType, &ImagePullStatus{})
+	registry.MustRegisterResource(ImportedClusterSecretsType, &ImportedClusterSecrets{})
 	registry.MustRegisterResource(InfraMachineBMCConfigType, &InfraMachineBMCConfig{})
 	registry.MustRegisterResource(InfraMachineConfigType, &InfraMachineConfig{})
 	registry.MustRegisterResource(InfraProviderCombinedStatusType, &InfraProviderCombinedStatus{})

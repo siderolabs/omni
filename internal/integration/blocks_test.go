@@ -231,26 +231,23 @@ func AssertBlockKubernetesDeploymentCreateAndRunning(ctx context.Context, manage
 }
 
 // AssertClusterCreateAndReady is a reusable group of tests that can be used to verify that a cluster is created and ready.
-func AssertClusterCreateAndReady(ctx context.Context, rootClient *client.Client, name string, options ClusterOptions) []subTest { //nolint:nolintlint,revive
-	clusterName := "integration-" + name
-	options.Name = clusterName
-
+func AssertClusterCreateAndReady(ctx context.Context, rootClient *client.Client, options ClusterOptions) []subTest { //nolint:nolintlint,revive
 	return subTests(
 		subTest{
 			"ClusterShouldBeCreated",
 			CreateCluster(ctx, rootClient, options),
 		},
 	).Append(
-		AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(ctx, rootClient, clusterName, options.MachineOptions.TalosVersion, options.MachineOptions.KubernetesVersion)...,
+		AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(ctx, rootClient, options.Name, options.MachineOptions.TalosVersion, options.MachineOptions.KubernetesVersion)...,
 	).Append(
 		subTest{
 			"AssertSupportBundleContents",
-			AssertSupportBundleContents(ctx, rootClient, clusterName),
+			AssertSupportBundleContents(ctx, rootClient, options.Name),
 		},
 	).Append(
 		subTest{
 			"ClusterShouldBeDestroyed",
-			AssertDestroyCluster(ctx, rootClient.Omni().State(), clusterName, options.InfraProvider != "", false),
+			AssertDestroyCluster(ctx, rootClient.Omni().State(), options.Name, options.InfraProvider != "", false),
 		},
 	)
 }

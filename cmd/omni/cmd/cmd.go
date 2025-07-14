@@ -663,6 +663,13 @@ func defineFeatureFlags() {
 		cmdConfig.Features.DisableControllerRuntimeCache,
 		"disable watch-based cache for controller-runtime (affects performance)",
 	)
+
+	rootCmd.Flags().BoolVar(
+		&cmdConfig.Features.EnableClusterImport,
+		"enable-cluster-import",
+		cmdConfig.Features.EnableClusterImport,
+		"enable cluster import feature.",
+	)
 }
 
 func defineDebugFlags() {

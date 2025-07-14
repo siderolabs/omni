@@ -73,6 +73,11 @@ func NewClusterStatusController(embeddedDiscoveryServiceEnabled bool) *ClusterSt
 					return err
 				}
 
+				clusterSecrets, err := safe.ReaderGetByID[*omni.ClusterSecrets](ctx, r, cluster.Metadata().ID())
+				if err != nil && !state.IsNotFoundError(err) {
+					return err
+				}
+
 				cpStatusReady := false
 
 				clusterIsAvailable := false
@@ -167,6 +172,12 @@ func NewClusterStatusController(embeddedDiscoveryServiceEnabled bool) *ClusterSt
 
 				helpers.CopyUserLabels(clusterStatus, cluster.Metadata().Labels().Raw())
 
+				if clusterSecrets != nil && clusterSecrets.TypedSpec().Value.Imported {
+					clusterStatus.Metadata().Labels().Set(omni.LabelClusterTainted, "")
+				} else {
+					clusterStatus.Metadata().Labels().Delete(omni.LabelClusterTainted)
+				}
+
 				return nil
 			},
 		},
@@ -178,6 +189,9 @@ func NewClusterStatusController(embeddedDiscoveryServiceEnabled bool) *ClusterSt
 		),
 		qtransform.WithExtraMappedInput(
 			mappers.MapByClusterLabel[*omni.ControlPlaneStatus, *omni.Cluster](),
+		),
+		qtransform.WithExtraMappedInput(
+			qtransform.MapperSameID[*omni.ClusterSecrets, *omni.Cluster](),
 		),
 		qtransform.WithIgnoreTeardownUntil(), // keep ClusterStatus alive until every other controller is done with Cluster
 	)

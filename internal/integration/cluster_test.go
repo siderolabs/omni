@@ -9,6 +9,8 @@ package integration_test
 
 import (
 	"context"
+	_ "embed"
+	"encoding/base64"
 	"fmt"
 	"math/rand/v2"
 	"os"
@@ -24,6 +26,9 @@ import (
 	"github.com/siderolabs/gen/pair"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-retry/retry"
+	talosclient "github.com/siderolabs/talos/pkg/machinery/client"
+	talossecrets "github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
+	"github.com/siderolabs/talos/pkg/machinery/role"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
@@ -600,6 +605,7 @@ func AssertDestroyCluster(testCtx context.Context, omniState state.State, cluste
 		require.NoError(t, err)
 
 		rtestutils.AssertNoResource[*omni.Cluster](ctx, t, omniState, clusterName)
+		rtestutils.AssertNoResource[*omni.ImportedClusterSecrets](ctx, t, omniState, clusterName)
 
 		for _, id := range patches {
 			rtestutils.AssertNoResource[*omni.ConfigPatch](ctx, t, omniState, id)
@@ -942,4 +948,35 @@ func updateMachineClassMachineSets(ctx context.Context, t *testing.T, st state.S
       node-labels: %s=%s`, nodeLabel, machineID)))
 		})
 	}
+}
+
+func assertClusterIsImported(ctx context.Context, t *testing.T, st state.State, clusterID string, secretsBundle []byte) {
+	clusterStatus, err := safe.StateGetByID[*omni.ClusterStatus](ctx, st, clusterID)
+	require.NoError(t, err)
+
+	_, ok := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTainted)
+	require.True(t, ok, "cluster status doesn't have cluster tainted label")
+
+	var bundle *talossecrets.Bundle
+	require.NoError(t, yaml.Unmarshal(secretsBundle, &bundle))
+
+	talosConfig := omni.NewTalosConfig(resources.DefaultNamespace, clusterID)
+	clientCert, err := talossecrets.NewAdminCertificateAndKey(time.Now(), bundle.Certs.OS, role.MakeSet(role.Admin), time.Hour)
+	require.NoError(t, err)
+
+	talosConfig.TypedSpec().Value.Key = base64.StdEncoding.EncodeToString(clientCert.Key)
+	talosConfig.TypedSpec().Value.Crt = base64.StdEncoding.EncodeToString(clientCert.Crt)
+	talosConfig.TypedSpec().Value.Ca = base64.StdEncoding.EncodeToString(bundle.Certs.OS.Crt)
+
+	endpoints, err := safe.ReaderGetByID[*omni.ClusterEndpoint](ctx, st, clusterID)
+	require.NoError(t, err)
+
+	talosCli, err := talosclient.New(ctx,
+		talosclient.WithCluster(clusterID),
+		talosclient.WithConfig(omni.NewTalosClientConfig(talosConfig, endpoints.TypedSpec().Value.ManagementAddresses...)),
+	)
+	require.NoError(t, err)
+
+	_, err = talosCli.Version(ctx)
+	require.NoError(t, err)
 }

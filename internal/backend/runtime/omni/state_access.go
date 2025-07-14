@@ -51,6 +51,7 @@ var (
 		omni.EtcdAuditResultType,
 		omni.EtcdBackupStatusType,
 		omni.EtcdManualBackupType,
+		omni.ImportedClusterSecretsType,
 	})
 
 	// clusterLabelTypeSet is the set of resource types which have the related cluster's ID as a label.
@@ -399,6 +400,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.EtcdManualBackupType,
 		omni.ImagePullRequestType,
 		omni.ImagePullStatusType,
+		omni.ImportedClusterSecretsType,
 		omni.InfraMachineConfigType,
 		omni.KubernetesStatusType,
 		omni.KubernetesUpgradeManifestStatusType,

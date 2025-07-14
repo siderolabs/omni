@@ -8,7 +8,7 @@ concurrency:
 "on":
   schedule:
     - cron: 30 1 * * *
-name: e2e-forced-removal-cron
+name: e2e-cluster-import-cron
 jobs:
   default:
     runs-on:
@@ -61,7 +61,7 @@ jobs:
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|ForcedMachineRemoval|ReplaceControlPlanes|ConfigPatching|KubernetesNodeAudit)$
+          INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|ClusterImport)$
           RUN_TALEMU_TESTS: "false"
           TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets|ClusterImport)$
           WITH_DEBUG: "true"

@@ -1200,3 +1200,42 @@ func defaultJoinTokenValidationOptions() []validated.StateOption {
 		)),
 	}
 }
+
+func importedClusterSecretValidationOptions(st state.State, clusterImportEnabled bool) []validated.StateOption {
+	return []validated.StateOption{
+		validated.WithCreateValidations(validated.NewCreateValidationForType(func(ctx context.Context, res *omni.ImportedClusterSecrets, _ ...state.CreateOption) error {
+			if !clusterImportEnabled {
+				return errors.New("cluster import feature is not enabled")
+			}
+
+			return validateImportedClusterSecrets(ctx, st, res)
+		})),
+		validated.WithUpdateValidations(validated.NewUpdateValidationForType(
+			func(ctx context.Context, oldRes *omni.ImportedClusterSecrets, newRes *omni.ImportedClusterSecrets, _ ...state.UpdateOption) error {
+				return validateImportedClusterSecrets(ctx, st, newRes)
+			})),
+	}
+}
+
+func validateImportedClusterSecrets(ctx context.Context, st state.State, res *omni.ImportedClusterSecrets) error {
+	_, err := safe.StateGetByID[*omni.Cluster](ctx, st, res.Metadata().ID())
+	if err != nil {
+		if !state.IsNotFoundError(err) {
+			return err
+		}
+	} else {
+		return fmt.Errorf("cannot create/update an ImportedClusterSecrets, as there is already an existing cluster with name: %q", res.Metadata().ID())
+	}
+
+	bundle, err := omni.FromImportedSecretsToSecretsBundle(res)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal imported cluster secret: %w", err)
+	}
+
+	err = bundle.Validate()
+	if err != nil {
+		return fmt.Errorf("failed to validate imported cluster secret: %w", err)
+	}
+
+	return nil
+}

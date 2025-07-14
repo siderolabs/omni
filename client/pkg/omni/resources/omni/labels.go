@@ -101,6 +101,10 @@ const (
 
 	// InfraProviderLabelPrefixFormat is the prefix of all labels which are managed by the infra providers.
 	InfraProviderLabelPrefixFormat = InfraProviderLabelPrefix + "/%s/"
+
+	// LabelClusterTainted is added to the ClusterStatus and is used to relay if the cluster secrets are sourced from ImportedClusterSecrets.
+	// tsgen:LabelClusterTainted
+	LabelClusterTainted = SystemLabelPrefix + "tainted"
 )
 
 const (

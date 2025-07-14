@@ -1500,6 +1500,57 @@ func TestDefaultJoinTokenValidation(t *testing.T) {
 	assert.ErrorContains(t, err, "destroying")
 }
 
+var (
+	//go:embed controllers/omni/data/secrets-valid.yaml
+	validSecrets string
+
+	//go:embed controllers/omni/data/secrets-broken.yaml
+	brokenSecrets string
+
+	//go:embed controllers/omni/data/secrets-invalid.yaml
+	invalidSecrets string
+)
+
+func TestImportedClusterSecretValidation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	t.Cleanup(cancel)
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := validated.NewState(innerSt, omni.ImportedClusterSecretValidationOptions(innerSt, true)...)
+	res := omnires.NewImportedClusterSecrets(resources.DefaultNamespace, "test")
+
+	res.TypedSpec().Value.Data = brokenSecrets
+	require.True(t, validated.IsValidationError(st.Create(ctx, res)), "expected validation error")
+
+	res.TypedSpec().Value.Data = validSecrets
+	require.NoError(t, st.Create(ctx, res))
+	require.NoError(t, st.Update(ctx, res))
+
+	res.TypedSpec().Value.Data = brokenSecrets
+	require.True(t, validated.IsValidationError(st.Update(ctx, res)), "expected validation error")
+	require.NoError(t, st.Destroy(ctx, res.Metadata()))
+
+	res.TypedSpec().Value.Data = invalidSecrets
+	err := st.Create(ctx, res)
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "cluster.secret is required")
+	assert.ErrorContains(t, err, "one of [secrets.secretboxencryptionsecret, secrets.aescbcencryptionsecret] is required")
+	assert.ErrorContains(t, err, "trustdinfo is required")
+	assert.ErrorContains(t, err, "certs.etcd is invalid")
+	assert.ErrorContains(t, err, "certs.k8saggregator is required")
+	assert.ErrorContains(t, err, "certs.os is invalid")
+
+	cluster := omnires.NewCluster(resources.DefaultNamespace, "test")
+	require.NoError(t, st.Create(ctx, cluster))
+
+	res.TypedSpec().Value.Data = validSecrets
+	err = st.Create(ctx, res)
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "cannot create/update an ImportedClusterSecrets, as there is already an existing cluster with name")
+}
+
 type mockEtcdBackupStoreFactory struct {
 	store etcdbackup.Store
 }

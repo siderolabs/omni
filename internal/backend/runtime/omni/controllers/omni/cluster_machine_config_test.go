@@ -376,6 +376,8 @@ func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityFrom(talosVer
 	case "1.9.1":
 		fallthrough
 	case "1.10.1":
+		fallthrough
+	case "1.11.1":
 	default:
 		suite.T().Fatalf("untested initial version: %s", initialVersion)
 	}

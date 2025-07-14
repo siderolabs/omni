@@ -10,6 +10,7 @@ type Features struct {
 	EnableTalosPreReleaseVersions bool `yaml:"enableTalosPreReleaseVersions"`
 	EnableBreakGlassConfigs       bool `yaml:"enableBreakGlassConfigs"`
 	EnableConfigDataCompression   bool `yaml:"enableConfigDataCompression"`
+	EnableClusterImport           bool `yaml:"enableClusterImport"`
 
 	DisableControllerRuntimeCache bool `yaml:"disableControllerRuntimeCache"`
 }

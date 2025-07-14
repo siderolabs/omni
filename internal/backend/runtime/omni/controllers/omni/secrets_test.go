@@ -8,6 +8,7 @@ package omni_test
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"io"
 	"iter"
@@ -63,6 +64,7 @@ func (suite *ClusterSecretsSuite) TestNewSecrets() {
 			err := json.Unmarshal(clusterSecretsSpec.Data, &bundle)
 			suite.Require().NoError(err)
 			suite.Require().NotEmpty(bundle)
+			suite.Require().Equal(clusterSecretsSpec.Imported, false)
 		})
 
 	// Check that we can get cluster secrets by metadata.
@@ -159,6 +161,56 @@ func (suite *ClusterSecretsSuite) TestSecretsFromBackup() {
 			// assert that the AES-CBC and Secretbox encryption secrets are set to the values from the backup data
 			suite.Require().Equal("aes-cbc-test", bundle.Secrets.AESCBCEncryptionSecret)
 			suite.Require().Equal("secretbox-test", bundle.Secrets.SecretboxEncryptionSecret)
+		})
+}
+
+//go:embed data/secrets-valid.yaml
+var validSecretsBundle string
+
+func (suite *ClusterSecretsSuite) TestImportedSecrets() {
+	require := suite.Require()
+
+	suite.startRuntime()
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(&mockBackupStoreFactory{})))
+
+	cluster := omni.NewCluster(resources.DefaultNamespace, "clusterID")
+	cluster.TypedSpec().Value.TalosVersion = "1.10.5"
+
+	require.NoError(suite.state.Create(suite.ctx, cluster))
+
+	// create ClusterUUID, as it will be looked up by SecretsController to find the source cluster ID
+	clusterUUID := omni.NewClusterUUID(cluster.Metadata().ID())
+	clusterUUID.TypedSpec().Value.Uuid = "test-uuid"
+
+	clusterUUID.Metadata().Labels().Set(omni.LabelClusterUUID, "test-uuid")
+
+	require.NoError(suite.state.Create(suite.ctx, clusterUUID))
+
+	// create ImportedClusterSecret, as it will be looked up by SecretsController to attempt importing secrets bundle
+	importedClusterSecrets := omni.NewImportedClusterSecrets(resources.DefaultNamespace, cluster.Metadata().ID())
+	importedClusterSecrets.TypedSpec().Value.Data = validSecretsBundle
+
+	require.NoError(suite.state.Create(suite.ctx, importedClusterSecrets))
+
+	machineSet := omni.NewMachineSet(resources.DefaultNamespace, omni.ControlPlanesResourceID(cluster.Metadata().ID()))
+	require.NoError(suite.state.Create(suite.ctx, machineSet))
+
+	var foundClusterSecrets *omni.ClusterSecrets
+
+	assertResource(
+		&suite.OmniSuite,
+		*omni.NewClusterSecrets(resources.DefaultNamespace, cluster.Metadata().ID()).Metadata(),
+		func(res *omni.ClusterSecrets, _ *assert.Assertions) {
+			foundClusterSecrets = res
+			clusterSecretsSpec := foundClusterSecrets.TypedSpec().Value
+			suite.Require().NotEmpty(clusterSecretsSpec.GetData())
+
+			var bundle secrets.Bundle
+
+			err := json.Unmarshal(clusterSecretsSpec.Data, &bundle)
+			suite.Require().NoError(err)
+			suite.Require().NotEmpty(bundle)
+			suite.Require().Equal(clusterSecretsSpec.Imported, true)
 		})
 }
 
