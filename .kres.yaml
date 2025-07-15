@@ -336,6 +336,7 @@ spec:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|ClusterImport)$"
           RUN_TALEMU_TESTS: false
+          ENABLE_CLUSTER_IMPORT: true
 ---
 kind: common.Build
 spec:
