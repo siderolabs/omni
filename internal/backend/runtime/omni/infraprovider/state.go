@@ -7,6 +7,7 @@ package infraprovider
 
 import (
 	"context"
+	"slices"
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -69,8 +70,7 @@ func (st *State) Get(ctx context.Context, pointer resource.Pointer, option ...st
 		return res, nil
 	}
 
-	resInfraProviderID, ok := res.Metadata().Labels().Get(omni.LabelInfraProviderID)
-	if ok && access.infraProviderID == resInfraProviderID {
+	if st.shouldSendResource(res, access.infraProviderID) {
 		return res, nil
 	}
 
@@ -93,14 +93,9 @@ func (st *State) List(ctx context.Context, kind resource.Kind, option ...state.L
 		return list, nil
 	}
 
-	filteredList := make([]resource.Resource, 0, len(list.Items))
-
-	for _, item := range list.Items {
-		resInfraProviderID, ok := item.Metadata().Labels().Get(omni.LabelInfraProviderID)
-		if ok && access.infraProviderID == resInfraProviderID {
-			filteredList = append(filteredList, item)
-		}
-	}
+	filteredList := slices.DeleteFunc(list.Items, func(res resource.Resource) bool {
+		return !st.shouldSendResource(res, access.infraProviderID)
+	})
 
 	return resource.List{Items: filteredList}, nil
 }
@@ -374,20 +369,9 @@ func (st *State) filterEvents(ctx context.Context, infraProviderID string, event
 					return
 				}
 
-				if event.Type == state.Bootstrapped || event.Type == state.Errored {
+				if st.shouldSendEvent(event, infraProviderID) {
 					channel.SendWithContext(ctx, eventCh, event)
-
-					continue
 				}
-
-				if event.Resource != nil {
-					resInfraProviderID, cpOk := event.Resource.Metadata().Labels().Get(omni.LabelInfraProviderID)
-					if !cpOk || infraProviderID != resInfraProviderID {
-						continue // discard
-					}
-				}
-
-				channel.SendWithContext(ctx, eventCh, event)
 			}
 		}
 	}, st.logger)
@@ -411,18 +395,9 @@ func (st *State) filterEventsAggregated(ctx context.Context, infraProviderID str
 					return
 				}
 
-				filteredEvents := make([]state.Event, 0, len(events))
-
-				for _, event := range events {
-					if event.Resource != nil {
-						resInfraProviderID, cpOk := event.Resource.Metadata().Labels().Get(omni.LabelInfraProviderID)
-						if !cpOk || infraProviderID != resInfraProviderID {
-							continue // discard
-						}
-					}
-
-					filteredEvents = append(filteredEvents, event)
-				}
+				filteredEvents := slices.DeleteFunc(events, func(event state.Event) bool {
+					return !st.shouldSendEvent(event, infraProviderID)
+				})
 
 				channel.SendWithContext(ctx, eventsCh, filteredEvents)
 			}
@@ -430,6 +405,26 @@ func (st *State) filterEventsAggregated(ctx context.Context, infraProviderID str
 	}, st.logger)
 
 	return innerEventsCh
+}
+
+func (st *State) shouldSendEvent(event state.Event, infraProviderID string) bool {
+	if event.Resource == nil {
+		return true
+	}
+
+	switch event.Type {
+	case state.Noop, state.Bootstrapped, state.Errored:
+		return true
+	case state.Created, state.Updated, state.Destroyed:
+	}
+
+	return st.shouldSendResource(event.Resource, infraProviderID)
+}
+
+func (st *State) shouldSendResource(res resource.Resource, infraProviderID string) bool {
+	resInfraProviderID, ok := res.Metadata().Labels().Get(omni.LabelInfraProviderID)
+
+	return ok && resInfraProviderID == infraProviderID
 }
 
 func (st *State) checkNamespaceAndType(ns resource.Namespace, infraProviderID string, resType resource.Type) (checkLabel bool, err error) {

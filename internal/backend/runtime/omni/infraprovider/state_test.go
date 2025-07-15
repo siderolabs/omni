@@ -368,7 +368,7 @@ func TestInfraProviderIDChecks(t *testing.T) {
 
 	eventCh = make(chan state.Event)
 
-	err = st.WatchKind(watchCtx, infra.NewMachineRequest("").Metadata(), eventCh, state.WithBootstrapContents(true))
+	err = st.WatchKind(watchCtx, infra.NewMachineRequest("").Metadata(), eventCh, state.WithBootstrapContents(true), state.WithBootstrapBookmark(true))
 	require.NoError(t, err)
 
 	assertEvents(watchCtx, t, eventCh, []eventInfo{
@@ -378,6 +378,9 @@ func TestInfraProviderIDChecks(t *testing.T) {
 		},
 		{
 			Type: state.Bootstrapped,
+		},
+		{
+			Type: state.Noop,
 		},
 	})
 
