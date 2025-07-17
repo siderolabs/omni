@@ -22,6 +22,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/client/management"
 	"github.com/siderolabs/omni/client/pkg/client/oidc"
 	"github.com/siderolabs/omni/client/pkg/client/omni"
+	"github.com/siderolabs/omni/client/pkg/client/resource"
 	"github.com/siderolabs/omni/client/pkg/client/talos"
 	"github.com/siderolabs/omni/client/pkg/compression"
 	"github.com/siderolabs/omni/client/pkg/constants"
@@ -133,6 +134,11 @@ func (c *Client) Auth() *auth.Client {
 // Talos provides access to Talos machine API.
 func (c *Client) Talos() *talos.Client {
 	return talos.NewClient(c.conn)
+}
+
+// Resource provides access to the resources API.
+func (c *Client) Resource() *resource.Client {
+	return resource.NewClient(c.conn)
 }
 
 // Endpoint returns the endpoint this client is configured to talk to.
