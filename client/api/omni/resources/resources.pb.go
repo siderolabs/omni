@@ -14,6 +14,7 @@ import (
 	v1alpha1 "github.com/cosi-project/runtime/api/v1alpha1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	_ "google.golang.org/protobuf/types/known/emptypb"
 
 	_ "github.com/siderolabs/omni/client/api/common"
 )
@@ -78,6 +79,55 @@ func (x EventType) Number() protoreflect.EnumNumber {
 // Deprecated: Use EventType.Descriptor instead.
 func (EventType) EnumDescriptor() ([]byte, []int) {
 	return file_omni_resources_resources_proto_rawDescGZIP(), []int{0}
+}
+
+type DependencyGraphResponse_Node_Type int32
+
+const (
+	DependencyGraphResponse_Node_UNKNOWN    DependencyGraphResponse_Node_Type = 0
+	DependencyGraphResponse_Node_CONTROLLER DependencyGraphResponse_Node_Type = 1
+	DependencyGraphResponse_Node_RESOURCE   DependencyGraphResponse_Node_Type = 2
+)
+
+// Enum value maps for DependencyGraphResponse_Node_Type.
+var (
+	DependencyGraphResponse_Node_Type_name = map[int32]string{
+		0: "UNKNOWN",
+		1: "CONTROLLER",
+		2: "RESOURCE",
+	}
+	DependencyGraphResponse_Node_Type_value = map[string]int32{
+		"UNKNOWN":    0,
+		"CONTROLLER": 1,
+		"RESOURCE":   2,
+	}
+)
+
+func (x DependencyGraphResponse_Node_Type) Enum() *DependencyGraphResponse_Node_Type {
+	p := new(DependencyGraphResponse_Node_Type)
+	*p = x
+	return p
+}
+
+func (x DependencyGraphResponse_Node_Type) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DependencyGraphResponse_Node_Type) Descriptor() protoreflect.EnumDescriptor {
+	return file_omni_resources_resources_proto_enumTypes[1].Descriptor()
+}
+
+func (DependencyGraphResponse_Node_Type) Type() protoreflect.EnumType {
+	return &file_omni_resources_resources_proto_enumTypes[1]
+}
+
+func (x DependencyGraphResponse_Node_Type) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use DependencyGraphResponse_Node_Type.Descriptor instead.
+func (DependencyGraphResponse_Node_Type) EnumDescriptor() ([]byte, []int) {
+	return file_omni_resources_resources_proto_rawDescGZIP(), []int{17, 0, 0}
 }
 
 type Resource struct {
@@ -884,11 +934,339 @@ func (*DeleteResponse) Descriptor() ([]byte, []int) {
 	return file_omni_resources_resources_proto_rawDescGZIP(), []int{13}
 }
 
+type ControllersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ControllersRequest) Reset() {
+	*x = ControllersRequest{}
+	mi := &file_omni_resources_resources_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ControllersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ControllersRequest) ProtoMessage() {}
+
+func (x *ControllersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_resources_resources_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ControllersRequest.ProtoReflect.Descriptor instead.
+func (*ControllersRequest) Descriptor() ([]byte, []int) {
+	return file_omni_resources_resources_proto_rawDescGZIP(), []int{14}
+}
+
+type ControllersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Controllers   []string               `protobuf:"bytes,1,rep,name=controllers,proto3" json:"controllers,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ControllersResponse) Reset() {
+	*x = ControllersResponse{}
+	mi := &file_omni_resources_resources_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ControllersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ControllersResponse) ProtoMessage() {}
+
+func (x *ControllersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_resources_resources_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ControllersResponse.ProtoReflect.Descriptor instead.
+func (*ControllersResponse) Descriptor() ([]byte, []int) {
+	return file_omni_resources_resources_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ControllersResponse) GetControllers() []string {
+	if x != nil {
+		return x.Controllers
+	}
+	return nil
+}
+
+type DependencyGraphRequest struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Controllers      []string               `protobuf:"bytes,1,rep,name=controllers,proto3" json:"controllers,omitempty"`
+	ShowDestroyReady bool                   `protobuf:"varint,2,opt,name=show_destroy_ready,json=showDestroyReady,proto3" json:"show_destroy_ready,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *DependencyGraphRequest) Reset() {
+	*x = DependencyGraphRequest{}
+	mi := &file_omni_resources_resources_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DependencyGraphRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DependencyGraphRequest) ProtoMessage() {}
+
+func (x *DependencyGraphRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_resources_resources_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DependencyGraphRequest.ProtoReflect.Descriptor instead.
+func (*DependencyGraphRequest) Descriptor() ([]byte, []int) {
+	return file_omni_resources_resources_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *DependencyGraphRequest) GetControllers() []string {
+	if x != nil {
+		return x.Controllers
+	}
+	return nil
+}
+
+func (x *DependencyGraphRequest) GetShowDestroyReady() bool {
+	if x != nil {
+		return x.ShowDestroyReady
+	}
+	return false
+}
+
+type DependencyGraphResponse struct {
+	state         protoimpl.MessageState          `protogen:"open.v1"`
+	Nodes         []*DependencyGraphResponse_Node `protobuf:"bytes,1,rep,name=nodes,proto3" json:"nodes,omitempty"`
+	Edges         []*DependencyGraphResponse_Edge `protobuf:"bytes,2,rep,name=edges,proto3" json:"edges,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DependencyGraphResponse) Reset() {
+	*x = DependencyGraphResponse{}
+	mi := &file_omni_resources_resources_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DependencyGraphResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DependencyGraphResponse) ProtoMessage() {}
+
+func (x *DependencyGraphResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_resources_resources_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DependencyGraphResponse.ProtoReflect.Descriptor instead.
+func (*DependencyGraphResponse) Descriptor() ([]byte, []int) {
+	return file_omni_resources_resources_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *DependencyGraphResponse) GetNodes() []*DependencyGraphResponse_Node {
+	if x != nil {
+		return x.Nodes
+	}
+	return nil
+}
+
+func (x *DependencyGraphResponse) GetEdges() []*DependencyGraphResponse_Edge {
+	if x != nil {
+		return x.Edges
+	}
+	return nil
+}
+
+type DependencyGraphResponse_Node struct {
+	state         protoimpl.MessageState            `protogen:"open.v1"`
+	Id            string                            `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Label         string                            `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	Type          DependencyGraphResponse_Node_Type `protobuf:"varint,3,opt,name=type,proto3,enum=omni.resources.DependencyGraphResponse_Node_Type" json:"type,omitempty"`
+	Labels        []string                          `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty"`
+	Fields        []string                          `protobuf:"bytes,5,rep,name=fields,proto3" json:"fields,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DependencyGraphResponse_Node) Reset() {
+	*x = DependencyGraphResponse_Node{}
+	mi := &file_omni_resources_resources_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DependencyGraphResponse_Node) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DependencyGraphResponse_Node) ProtoMessage() {}
+
+func (x *DependencyGraphResponse_Node) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_resources_resources_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DependencyGraphResponse_Node.ProtoReflect.Descriptor instead.
+func (*DependencyGraphResponse_Node) Descriptor() ([]byte, []int) {
+	return file_omni_resources_resources_proto_rawDescGZIP(), []int{17, 0}
+}
+
+func (x *DependencyGraphResponse_Node) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *DependencyGraphResponse_Node) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *DependencyGraphResponse_Node) GetType() DependencyGraphResponse_Node_Type {
+	if x != nil {
+		return x.Type
+	}
+	return DependencyGraphResponse_Node_UNKNOWN
+}
+
+func (x *DependencyGraphResponse_Node) GetLabels() []string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
+func (x *DependencyGraphResponse_Node) GetFields() []string {
+	if x != nil {
+		return x.Fields
+	}
+	return nil
+}
+
+type DependencyGraphResponse_Edge struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Source        string                 `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
+	Target        string                 `protobuf:"bytes,3,opt,name=target,proto3" json:"target,omitempty"`
+	EdgeType      int32                  `protobuf:"varint,4,opt,name=edge_type,json=edgeType,proto3" json:"edge_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DependencyGraphResponse_Edge) Reset() {
+	*x = DependencyGraphResponse_Edge{}
+	mi := &file_omni_resources_resources_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DependencyGraphResponse_Edge) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DependencyGraphResponse_Edge) ProtoMessage() {}
+
+func (x *DependencyGraphResponse_Edge) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_resources_resources_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DependencyGraphResponse_Edge.ProtoReflect.Descriptor instead.
+func (*DependencyGraphResponse_Edge) Descriptor() ([]byte, []int) {
+	return file_omni_resources_resources_proto_rawDescGZIP(), []int{17, 1}
+}
+
+func (x *DependencyGraphResponse_Edge) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *DependencyGraphResponse_Edge) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *DependencyGraphResponse_Edge) GetTarget() string {
+	if x != nil {
+		return x.Target
+	}
+	return ""
+}
+
+func (x *DependencyGraphResponse_Edge) GetEdgeType() int32 {
+	if x != nil {
+		return x.EdgeType
+	}
+	return 0
+}
+
 var File_omni_resources_resources_proto protoreflect.FileDescriptor
 
 const file_omni_resources_resources_proto_rawDesc = "" +
 	"\n" +
-	"\x1eomni/resources/resources.proto\x12\x0eomni.resources\x1a\x11common/omni.proto\x1a\x17v1alpha1/resource.proto\"S\n" +
+	"\x1eomni/resources/resources.proto\x12\x0eomni.resources\x1a\x1bgoogle/protobuf/empty.proto\x1a\x11common/omni.proto\x1a\x17v1alpha1/resource.proto\"S\n" +
 	"\bResource\x123\n" +
 	"\bmetadata\x18\x01 \x01(\v2\x17.cosi.resource.MetadataR\bmetadata\x12\x12\n" +
 	"\x04spec\x18\x02 \x01(\tR\x04spec\"N\n" +
@@ -944,13 +1322,38 @@ const file_omni_resources_resources_proto_rawDesc = "" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12\x0e\n" +
 	"\x02id\x18\x03 \x01(\tR\x02id\"\x10\n" +
-	"\x0eDeleteResponse*S\n" +
+	"\x0eDeleteResponse\"\x14\n" +
+	"\x12ControllersRequest\"7\n" +
+	"\x13ControllersResponse\x12 \n" +
+	"\vcontrollers\x18\x01 \x03(\tR\vcontrollers\"h\n" +
+	"\x16DependencyGraphRequest\x12 \n" +
+	"\vcontrollers\x18\x01 \x03(\tR\vcontrollers\x12,\n" +
+	"\x12show_destroy_ready\x18\x02 \x01(\bR\x10showDestroyReady\"\xdf\x03\n" +
+	"\x17DependencyGraphResponse\x12B\n" +
+	"\x05nodes\x18\x01 \x03(\v2,.omni.resources.DependencyGraphResponse.NodeR\x05nodes\x12B\n" +
+	"\x05edges\x18\x02 \x03(\v2,.omni.resources.DependencyGraphResponse.EdgeR\x05edges\x1a\xd6\x01\n" +
+	"\x04Node\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12E\n" +
+	"\x04type\x18\x03 \x01(\x0e21.omni.resources.DependencyGraphResponse.Node.TypeR\x04type\x12\x16\n" +
+	"\x06labels\x18\x04 \x03(\tR\x06labels\x12\x16\n" +
+	"\x06fields\x18\x05 \x03(\tR\x06fields\"1\n" +
+	"\x04Type\x12\v\n" +
+	"\aUNKNOWN\x10\x00\x12\x0e\n" +
+	"\n" +
+	"CONTROLLER\x10\x01\x12\f\n" +
+	"\bRESOURCE\x10\x02\x1ac\n" +
+	"\x04Edge\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06source\x18\x02 \x01(\tR\x06source\x12\x16\n" +
+	"\x06target\x18\x03 \x01(\tR\x06target\x12\x1b\n" +
+	"\tedge_type\x18\x04 \x01(\x05R\bedgeType*S\n" +
 	"\tEventType\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\v\n" +
 	"\aCREATED\x10\x01\x12\v\n" +
 	"\aUPDATED\x10\x02\x12\r\n" +
 	"\tDESTROYED\x10\x03\x12\x10\n" +
-	"\fBOOTSTRAPPED\x10\x042\x82\x04\n" +
+	"\fBOOTSTRAPPED\x10\x042\xbe\x05\n" +
 	"\x0fResourceService\x12>\n" +
 	"\x03Get\x12\x1a.omni.resources.GetRequest\x1a\x1b.omni.resources.GetResponse\x12A\n" +
 	"\x04List\x12\x1b.omni.resources.ListRequest\x1a\x1c.omni.resources.ListResponse\x12G\n" +
@@ -958,7 +1361,9 @@ const file_omni_resources_resources_proto_rawDesc = "" +
 	"\x06Update\x12\x1d.omni.resources.UpdateRequest\x1a\x1e.omni.resources.UpdateResponse\x12G\n" +
 	"\x06Delete\x12\x1d.omni.resources.DeleteRequest\x1a\x1e.omni.resources.DeleteResponse\x12I\n" +
 	"\bTeardown\x12\x1d.omni.resources.DeleteRequest\x1a\x1e.omni.resources.DeleteResponse\x12F\n" +
-	"\x05Watch\x12\x1c.omni.resources.WatchRequest\x1a\x1d.omni.resources.WatchResponse0\x01B6Z4github.com/siderolabs/omni/client/api/omni/resourcesb\x06proto3"
+	"\x05Watch\x12\x1c.omni.resources.WatchRequest\x1a\x1d.omni.resources.WatchResponse0\x01\x12V\n" +
+	"\vControllers\x12\".omni.resources.ControllersRequest\x1a#.omni.resources.ControllersResponse\x12b\n" +
+	"\x0fDependencyGraph\x12&.omni.resources.DependencyGraphRequest\x1a'.omni.resources.DependencyGraphResponseB6Z4github.com/siderolabs/omni/client/api/omni/resourcesb\x06proto3"
 
 var (
 	file_omni_resources_resources_proto_rawDescOnce sync.Once
@@ -972,51 +1377,65 @@ func file_omni_resources_resources_proto_rawDescGZIP() []byte {
 	return file_omni_resources_resources_proto_rawDescData
 }
 
-var file_omni_resources_resources_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_omni_resources_resources_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_omni_resources_resources_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_omni_resources_resources_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_omni_resources_resources_proto_goTypes = []any{
-	(EventType)(0),            // 0: omni.resources.EventType
-	(*Resource)(nil),          // 1: omni.resources.Resource
-	(*GetRequest)(nil),        // 2: omni.resources.GetRequest
-	(*GetResponse)(nil),       // 3: omni.resources.GetResponse
-	(*ListRequest)(nil),       // 4: omni.resources.ListRequest
-	(*ListResponse)(nil),      // 5: omni.resources.ListResponse
-	(*Event)(nil),             // 6: omni.resources.Event
-	(*WatchRequest)(nil),      // 7: omni.resources.WatchRequest
-	(*WatchResponse)(nil),     // 8: omni.resources.WatchResponse
-	(*CreateRequest)(nil),     // 9: omni.resources.CreateRequest
-	(*CreateResponse)(nil),    // 10: omni.resources.CreateResponse
-	(*UpdateRequest)(nil),     // 11: omni.resources.UpdateRequest
-	(*UpdateResponse)(nil),    // 12: omni.resources.UpdateResponse
-	(*DeleteRequest)(nil),     // 13: omni.resources.DeleteRequest
-	(*DeleteResponse)(nil),    // 14: omni.resources.DeleteResponse
-	(*v1alpha1.Metadata)(nil), // 15: cosi.resource.Metadata
+	(EventType)(0),                         // 0: omni.resources.EventType
+	(DependencyGraphResponse_Node_Type)(0), // 1: omni.resources.DependencyGraphResponse.Node.Type
+	(*Resource)(nil),                       // 2: omni.resources.Resource
+	(*GetRequest)(nil),                     // 3: omni.resources.GetRequest
+	(*GetResponse)(nil),                    // 4: omni.resources.GetResponse
+	(*ListRequest)(nil),                    // 5: omni.resources.ListRequest
+	(*ListResponse)(nil),                   // 6: omni.resources.ListResponse
+	(*Event)(nil),                          // 7: omni.resources.Event
+	(*WatchRequest)(nil),                   // 8: omni.resources.WatchRequest
+	(*WatchResponse)(nil),                  // 9: omni.resources.WatchResponse
+	(*CreateRequest)(nil),                  // 10: omni.resources.CreateRequest
+	(*CreateResponse)(nil),                 // 11: omni.resources.CreateResponse
+	(*UpdateRequest)(nil),                  // 12: omni.resources.UpdateRequest
+	(*UpdateResponse)(nil),                 // 13: omni.resources.UpdateResponse
+	(*DeleteRequest)(nil),                  // 14: omni.resources.DeleteRequest
+	(*DeleteResponse)(nil),                 // 15: omni.resources.DeleteResponse
+	(*ControllersRequest)(nil),             // 16: omni.resources.ControllersRequest
+	(*ControllersResponse)(nil),            // 17: omni.resources.ControllersResponse
+	(*DependencyGraphRequest)(nil),         // 18: omni.resources.DependencyGraphRequest
+	(*DependencyGraphResponse)(nil),        // 19: omni.resources.DependencyGraphResponse
+	(*DependencyGraphResponse_Node)(nil),   // 20: omni.resources.DependencyGraphResponse.Node
+	(*DependencyGraphResponse_Edge)(nil),   // 21: omni.resources.DependencyGraphResponse.Edge
+	(*v1alpha1.Metadata)(nil),              // 22: cosi.resource.Metadata
 }
 var file_omni_resources_resources_proto_depIdxs = []int32{
-	15, // 0: omni.resources.Resource.metadata:type_name -> cosi.resource.Metadata
+	22, // 0: omni.resources.Resource.metadata:type_name -> cosi.resource.Metadata
 	0,  // 1: omni.resources.Event.event_type:type_name -> omni.resources.EventType
-	6,  // 2: omni.resources.WatchResponse.event:type_name -> omni.resources.Event
-	1,  // 3: omni.resources.CreateRequest.resource:type_name -> omni.resources.Resource
-	1,  // 4: omni.resources.UpdateRequest.resource:type_name -> omni.resources.Resource
-	2,  // 5: omni.resources.ResourceService.Get:input_type -> omni.resources.GetRequest
-	4,  // 6: omni.resources.ResourceService.List:input_type -> omni.resources.ListRequest
-	9,  // 7: omni.resources.ResourceService.Create:input_type -> omni.resources.CreateRequest
-	11, // 8: omni.resources.ResourceService.Update:input_type -> omni.resources.UpdateRequest
-	13, // 9: omni.resources.ResourceService.Delete:input_type -> omni.resources.DeleteRequest
-	13, // 10: omni.resources.ResourceService.Teardown:input_type -> omni.resources.DeleteRequest
-	7,  // 11: omni.resources.ResourceService.Watch:input_type -> omni.resources.WatchRequest
-	3,  // 12: omni.resources.ResourceService.Get:output_type -> omni.resources.GetResponse
-	5,  // 13: omni.resources.ResourceService.List:output_type -> omni.resources.ListResponse
-	10, // 14: omni.resources.ResourceService.Create:output_type -> omni.resources.CreateResponse
-	12, // 15: omni.resources.ResourceService.Update:output_type -> omni.resources.UpdateResponse
-	14, // 16: omni.resources.ResourceService.Delete:output_type -> omni.resources.DeleteResponse
-	14, // 17: omni.resources.ResourceService.Teardown:output_type -> omni.resources.DeleteResponse
-	8,  // 18: omni.resources.ResourceService.Watch:output_type -> omni.resources.WatchResponse
-	12, // [12:19] is the sub-list for method output_type
-	5,  // [5:12] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	7,  // 2: omni.resources.WatchResponse.event:type_name -> omni.resources.Event
+	2,  // 3: omni.resources.CreateRequest.resource:type_name -> omni.resources.Resource
+	2,  // 4: omni.resources.UpdateRequest.resource:type_name -> omni.resources.Resource
+	20, // 5: omni.resources.DependencyGraphResponse.nodes:type_name -> omni.resources.DependencyGraphResponse.Node
+	21, // 6: omni.resources.DependencyGraphResponse.edges:type_name -> omni.resources.DependencyGraphResponse.Edge
+	1,  // 7: omni.resources.DependencyGraphResponse.Node.type:type_name -> omni.resources.DependencyGraphResponse.Node.Type
+	3,  // 8: omni.resources.ResourceService.Get:input_type -> omni.resources.GetRequest
+	5,  // 9: omni.resources.ResourceService.List:input_type -> omni.resources.ListRequest
+	10, // 10: omni.resources.ResourceService.Create:input_type -> omni.resources.CreateRequest
+	12, // 11: omni.resources.ResourceService.Update:input_type -> omni.resources.UpdateRequest
+	14, // 12: omni.resources.ResourceService.Delete:input_type -> omni.resources.DeleteRequest
+	14, // 13: omni.resources.ResourceService.Teardown:input_type -> omni.resources.DeleteRequest
+	8,  // 14: omni.resources.ResourceService.Watch:input_type -> omni.resources.WatchRequest
+	16, // 15: omni.resources.ResourceService.Controllers:input_type -> omni.resources.ControllersRequest
+	18, // 16: omni.resources.ResourceService.DependencyGraph:input_type -> omni.resources.DependencyGraphRequest
+	4,  // 17: omni.resources.ResourceService.Get:output_type -> omni.resources.GetResponse
+	6,  // 18: omni.resources.ResourceService.List:output_type -> omni.resources.ListResponse
+	11, // 19: omni.resources.ResourceService.Create:output_type -> omni.resources.CreateResponse
+	13, // 20: omni.resources.ResourceService.Update:output_type -> omni.resources.UpdateResponse
+	15, // 21: omni.resources.ResourceService.Delete:output_type -> omni.resources.DeleteResponse
+	15, // 22: omni.resources.ResourceService.Teardown:output_type -> omni.resources.DeleteResponse
+	9,  // 23: omni.resources.ResourceService.Watch:output_type -> omni.resources.WatchResponse
+	17, // 24: omni.resources.ResourceService.Controllers:output_type -> omni.resources.ControllersResponse
+	19, // 25: omni.resources.ResourceService.DependencyGraph:output_type -> omni.resources.DependencyGraphResponse
+	17, // [17:26] is the sub-list for method output_type
+	8,  // [8:17] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_omni_resources_resources_proto_init() }
@@ -1029,8 +1448,8 @@ func file_omni_resources_resources_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_omni_resources_resources_proto_rawDesc), len(file_omni_resources_resources_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   14,
+			NumEnums:      2,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

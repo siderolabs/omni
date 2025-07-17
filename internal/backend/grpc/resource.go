@@ -11,6 +11,7 @@ import (
 	"errors"
 	"time"
 
+	cosiruntime "github.com/cosi-project/runtime/pkg/controller/runtime"
 	cosiresource "github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -29,9 +30,18 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime"
 )
 
+func newResourceServer(state state.State, runtime *cosiruntime.Runtime) *ResourceServer {
+	return &ResourceServer{
+		runtime: runtime,
+		state:   state,
+	}
+}
+
 // ResourceServer implements resources CRUD API.
 type ResourceServer struct {
 	resources.UnimplementedResourceServiceServer
+	runtime *cosiruntime.Runtime
+	state   state.State
 }
 
 func (s *ResourceServer) register(server grpc.ServiceRegistrar) {

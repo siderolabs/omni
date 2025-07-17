@@ -20,13 +20,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ResourceService_Get_FullMethodName      = "/omni.resources.ResourceService/Get"
-	ResourceService_List_FullMethodName     = "/omni.resources.ResourceService/List"
-	ResourceService_Create_FullMethodName   = "/omni.resources.ResourceService/Create"
-	ResourceService_Update_FullMethodName   = "/omni.resources.ResourceService/Update"
-	ResourceService_Delete_FullMethodName   = "/omni.resources.ResourceService/Delete"
-	ResourceService_Teardown_FullMethodName = "/omni.resources.ResourceService/Teardown"
-	ResourceService_Watch_FullMethodName    = "/omni.resources.ResourceService/Watch"
+	ResourceService_Get_FullMethodName             = "/omni.resources.ResourceService/Get"
+	ResourceService_List_FullMethodName            = "/omni.resources.ResourceService/List"
+	ResourceService_Create_FullMethodName          = "/omni.resources.ResourceService/Create"
+	ResourceService_Update_FullMethodName          = "/omni.resources.ResourceService/Update"
+	ResourceService_Delete_FullMethodName          = "/omni.resources.ResourceService/Delete"
+	ResourceService_Teardown_FullMethodName        = "/omni.resources.ResourceService/Teardown"
+	ResourceService_Watch_FullMethodName           = "/omni.resources.ResourceService/Watch"
+	ResourceService_Controllers_FullMethodName     = "/omni.resources.ResourceService/Controllers"
+	ResourceService_DependencyGraph_FullMethodName = "/omni.resources.ResourceService/DependencyGraph"
 )
 
 // ResourceServiceClient is the client API for ResourceService service.
@@ -40,6 +42,8 @@ type ResourceServiceClient interface {
 	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
 	Teardown(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
 	Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WatchResponse], error)
+	Controllers(ctx context.Context, in *ControllersRequest, opts ...grpc.CallOption) (*ControllersResponse, error)
+	DependencyGraph(ctx context.Context, in *DependencyGraphRequest, opts ...grpc.CallOption) (*DependencyGraphResponse, error)
 }
 
 type resourceServiceClient struct {
@@ -129,6 +133,26 @@ func (c *resourceServiceClient) Watch(ctx context.Context, in *WatchRequest, opt
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ResourceService_WatchClient = grpc.ServerStreamingClient[WatchResponse]
 
+func (c *resourceServiceClient) Controllers(ctx context.Context, in *ControllersRequest, opts ...grpc.CallOption) (*ControllersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ControllersResponse)
+	err := c.cc.Invoke(ctx, ResourceService_Controllers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *resourceServiceClient) DependencyGraph(ctx context.Context, in *DependencyGraphRequest, opts ...grpc.CallOption) (*DependencyGraphResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DependencyGraphResponse)
+	err := c.cc.Invoke(ctx, ResourceService_DependencyGraph_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ResourceServiceServer is the server API for ResourceService service.
 // All implementations must embed UnimplementedResourceServiceServer
 // for forward compatibility.
@@ -140,6 +164,8 @@ type ResourceServiceServer interface {
 	Delete(context.Context, *DeleteRequest) (*DeleteResponse, error)
 	Teardown(context.Context, *DeleteRequest) (*DeleteResponse, error)
 	Watch(*WatchRequest, grpc.ServerStreamingServer[WatchResponse]) error
+	Controllers(context.Context, *ControllersRequest) (*ControllersResponse, error)
+	DependencyGraph(context.Context, *DependencyGraphRequest) (*DependencyGraphResponse, error)
 	mustEmbedUnimplementedResourceServiceServer()
 }
 
@@ -170,6 +196,12 @@ func (UnimplementedResourceServiceServer) Teardown(context.Context, *DeleteReque
 }
 func (UnimplementedResourceServiceServer) Watch(*WatchRequest, grpc.ServerStreamingServer[WatchResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method Watch not implemented")
+}
+func (UnimplementedResourceServiceServer) Controllers(context.Context, *ControllersRequest) (*ControllersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Controllers not implemented")
+}
+func (UnimplementedResourceServiceServer) DependencyGraph(context.Context, *DependencyGraphRequest) (*DependencyGraphResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DependencyGraph not implemented")
 }
 func (UnimplementedResourceServiceServer) mustEmbedUnimplementedResourceServiceServer() {}
 func (UnimplementedResourceServiceServer) testEmbeddedByValue()                         {}
@@ -311,6 +343,42 @@ func _ResourceService_Watch_Handler(srv interface{}, stream grpc.ServerStream) e
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ResourceService_WatchServer = grpc.ServerStreamingServer[WatchResponse]
 
+func _ResourceService_Controllers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ControllersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ResourceServiceServer).Controllers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ResourceService_Controllers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ResourceServiceServer).Controllers(ctx, req.(*ControllersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ResourceService_DependencyGraph_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DependencyGraphRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ResourceServiceServer).DependencyGraph(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ResourceService_DependencyGraph_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ResourceServiceServer).DependencyGraph(ctx, req.(*DependencyGraphRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ResourceService_ServiceDesc is the grpc.ServiceDesc for ResourceService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -341,6 +409,14 @@ var ResourceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Teardown",
 			Handler:    _ResourceService_Teardown_Handler,
+		},
+		{
+			MethodName: "Controllers",
+			Handler:    _ResourceService_Controllers_Handler,
+		},
+		{
+			MethodName: "DependencyGraph",
+			Handler:    _ResourceService_DependencyGraph_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

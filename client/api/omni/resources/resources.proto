@@ -3,6 +3,7 @@ package omni.resources;
 
 option go_package = "github.com/siderolabs/omni/client/api/omni/resources";
 
+import "google/protobuf/empty.proto";
 import "common/omni.proto";
 import "v1alpha1/resource.proto";
 
@@ -97,6 +98,43 @@ message DeleteRequest {
 message DeleteResponse {
 }
 
+message ControllersRequest {}
+
+message ControllersResponse {
+  repeated string controllers = 1;
+}
+
+message DependencyGraphRequest {
+  repeated string controllers = 1;
+  bool show_destroy_ready = 2;
+}
+
+message DependencyGraphResponse {
+  message Node {
+    enum Type {
+      UNKNOWN = 0;
+      CONTROLLER = 1;
+      RESOURCE = 2;
+    }
+
+    string id = 1;
+    string label = 2;
+    Type type = 3;
+    repeated string labels = 4;
+    repeated string fields = 5;
+  }
+
+  message Edge {
+    string id = 1;
+    string source = 2;
+    string target = 3;
+    int32 edge_type = 4;
+  }
+
+  repeated Node nodes = 1;
+  repeated Edge edges = 2;
+}
+
 service ResourceService {
   rpc Get(GetRequest) returns (GetResponse);
   rpc List(ListRequest) returns (ListResponse);
@@ -105,4 +143,7 @@ service ResourceService {
   rpc Delete(DeleteRequest) returns (DeleteResponse);
   rpc Teardown(DeleteRequest) returns (DeleteResponse);
   rpc Watch(WatchRequest) returns (stream WatchResponse);
+
+  rpc Controllers(ControllersRequest) returns (ControllersResponse);
+  rpc DependencyGraph(DependencyGraphRequest) returns (DependencyGraphResponse);
 }

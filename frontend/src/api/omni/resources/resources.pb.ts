@@ -15,6 +15,12 @@ export enum EventType {
   BOOTSTRAPPED = 4,
 }
 
+export enum DependencyGraphResponseNodeType {
+  UNKNOWN = 0,
+  CONTROLLER = 1,
+  RESOURCE = 2,
+}
+
 export type Resource = {
   metadata?: CosiResourceResource.Metadata
   spec?: string
@@ -94,6 +100,38 @@ export type DeleteRequest = {
 export type DeleteResponse = {
 }
 
+export type ControllersRequest = {
+}
+
+export type ControllersResponse = {
+  controllers?: string[]
+}
+
+export type DependencyGraphRequest = {
+  controllers?: string[]
+  show_destroy_ready?: boolean
+}
+
+export type DependencyGraphResponseNode = {
+  id?: string
+  label?: string
+  type?: DependencyGraphResponseNodeType
+  labels?: string[]
+  fields?: string[]
+}
+
+export type DependencyGraphResponseEdge = {
+  id?: string
+  source?: string
+  target?: string
+  edge_type?: number
+}
+
+export type DependencyGraphResponse = {
+  nodes?: DependencyGraphResponseNode[]
+  edges?: DependencyGraphResponseEdge[]
+}
+
 export class ResourceService {
   static Get(req: GetRequest, ...options: fm.fetchOption[]): Promise<GetResponse> {
     return fm.fetchReq<GetRequest, GetResponse>("POST", `/omni.resources.ResourceService/Get`, req, ...options)
@@ -115,5 +153,11 @@ export class ResourceService {
   }
   static Watch(req: WatchRequest, entityNotifier?: fm.NotifyStreamEntityArrival<WatchResponse>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<WatchRequest, WatchResponse>("POST", `/omni.resources.ResourceService/Watch`, req, entityNotifier, ...options)
+  }
+  static Controllers(req: ControllersRequest, ...options: fm.fetchOption[]): Promise<ControllersResponse> {
+    return fm.fetchReq<ControllersRequest, ControllersResponse>("POST", `/omni.resources.ResourceService/Controllers`, req, ...options)
+  }
+  static DependencyGraph(req: DependencyGraphRequest, ...options: fm.fetchOption[]): Promise<DependencyGraphResponse> {
+    return fm.fetchReq<DependencyGraphRequest, DependencyGraphResponse>("POST", `/omni.resources.ResourceService/DependencyGraph`, req, ...options)
   }
 }

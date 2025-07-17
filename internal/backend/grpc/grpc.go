@@ -28,6 +28,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/monitoring"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/memconn"
 	"github.com/siderolabs/omni/internal/pkg/compress"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -43,7 +44,7 @@ type ServiceServer interface {
 // MakeServiceServers creates a list of service servers.
 func MakeServiceServers(
 	state state.State,
-	cachedState state.State,
+	omniRuntime *omni.Runtime,
 	logHandler *siderolink.LogHandler,
 	oidcProvider OIDCProvider,
 	jwtSigningKeyProvider JWTSigningKeyProvider,
@@ -60,7 +61,10 @@ func MakeServiceServers(
 	}
 
 	servers := []ServiceServer{
-		&ResourceServer{},
+		newResourceServer(
+			state,
+			omniRuntime.GetCOSIRuntime(),
+		),
 		&oidcServer{
 			provider: oidcProvider,
 		},
@@ -79,7 +83,7 @@ func MakeServiceServers(
 			logger: logger.With(logging.Component("auth_server")),
 		},
 		&COSIResourceServer{
-			State: cachedState,
+			State: omniRuntime.CachedState(),
 		},
 		&machineService{},
 	}

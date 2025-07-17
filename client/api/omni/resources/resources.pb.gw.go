@@ -220,6 +220,60 @@ func request_ResourceService_Watch_0(ctx context.Context, marshaler runtime.Mars
 	return stream, metadata, nil
 }
 
+func request_ResourceService_Controllers_0(ctx context.Context, marshaler runtime.Marshaler, client ResourceServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq ControllersRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
+	msg, err := client.Controllers(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+}
+
+func local_request_ResourceService_Controllers_0(ctx context.Context, marshaler runtime.Marshaler, server ResourceServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq ControllersRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := server.Controllers(ctx, &protoReq)
+	return msg, metadata, err
+}
+
+func request_ResourceService_DependencyGraph_0(ctx context.Context, marshaler runtime.Marshaler, client ResourceServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq DependencyGraphRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
+	msg, err := client.DependencyGraph(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+}
+
+func local_request_ResourceService_DependencyGraph_0(ctx context.Context, marshaler runtime.Marshaler, server ResourceServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq DependencyGraphRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := server.DependencyGraph(ctx, &protoReq)
+	return msg, metadata, err
+}
+
 // RegisterResourceServiceHandlerServer registers the http handlers for service ResourceService to "mux".
 // UnaryRPC     :call ResourceServiceServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
@@ -352,6 +406,46 @@ func RegisterResourceServiceHandlerServer(ctx context.Context, mux *runtime.Serv
 		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 		return
+	})
+	mux.Handle(http.MethodPost, pattern_ResourceService_Controllers_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/omni.resources.ResourceService/Controllers", runtime.WithHTTPPathPattern("/omni.resources.ResourceService/Controllers"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_ResourceService_Controllers_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_ResourceService_Controllers_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
+	mux.Handle(http.MethodPost, pattern_ResourceService_DependencyGraph_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/omni.resources.ResourceService/DependencyGraph", runtime.WithHTTPPathPattern("/omni.resources.ResourceService/DependencyGraph"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_ResourceService_DependencyGraph_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_ResourceService_DependencyGraph_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 	})
 
 	return nil
@@ -512,25 +606,63 @@ func RegisterResourceServiceHandlerClient(ctx context.Context, mux *runtime.Serv
 		}
 		forward_ResourceService_Watch_0(annotatedContext, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
 	})
+	mux.Handle(http.MethodPost, pattern_ResourceService_Controllers_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/omni.resources.ResourceService/Controllers", runtime.WithHTTPPathPattern("/omni.resources.ResourceService/Controllers"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_ResourceService_Controllers_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_ResourceService_Controllers_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
+	mux.Handle(http.MethodPost, pattern_ResourceService_DependencyGraph_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/omni.resources.ResourceService/DependencyGraph", runtime.WithHTTPPathPattern("/omni.resources.ResourceService/DependencyGraph"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_ResourceService_DependencyGraph_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_ResourceService_DependencyGraph_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
 	return nil
 }
 
 var (
-	pattern_ResourceService_Get_0      = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"omni.resources.ResourceService", "Get"}, ""))
-	pattern_ResourceService_List_0     = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"omni.resources.ResourceService", "List"}, ""))
-	pattern_ResourceService_Create_0   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"omni.resources.ResourceService", "Create"}, ""))
-	pattern_ResourceService_Update_0   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"omni.resources.ResourceService", "Update"}, ""))
-	pattern_ResourceService_Delete_0   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"omni.resources.ResourceService", "Delete"}, ""))
-	pattern_ResourceService_Teardown_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"omni.resources.ResourceService", "Teardown"}, ""))
-	pattern_ResourceService_Watch_0    = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"omni.resources.ResourceService", "Watch"}, ""))
+	pattern_ResourceService_Get_0             = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"omni.resources.ResourceService", "Get"}, ""))
+	pattern_ResourceService_List_0            = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"omni.resources.ResourceService", "List"}, ""))
+	pattern_ResourceService_Create_0          = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"omni.resources.ResourceService", "Create"}, ""))
+	pattern_ResourceService_Update_0          = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"omni.resources.ResourceService", "Update"}, ""))
+	pattern_ResourceService_Delete_0          = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"omni.resources.ResourceService", "Delete"}, ""))
+	pattern_ResourceService_Teardown_0        = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"omni.resources.ResourceService", "Teardown"}, ""))
+	pattern_ResourceService_Watch_0           = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"omni.resources.ResourceService", "Watch"}, ""))
+	pattern_ResourceService_Controllers_0     = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"omni.resources.ResourceService", "Controllers"}, ""))
+	pattern_ResourceService_DependencyGraph_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"omni.resources.ResourceService", "DependencyGraph"}, ""))
 )
 
 var (
-	forward_ResourceService_Get_0      = runtime.ForwardResponseMessage
-	forward_ResourceService_List_0     = runtime.ForwardResponseMessage
-	forward_ResourceService_Create_0   = runtime.ForwardResponseMessage
-	forward_ResourceService_Update_0   = runtime.ForwardResponseMessage
-	forward_ResourceService_Delete_0   = runtime.ForwardResponseMessage
-	forward_ResourceService_Teardown_0 = runtime.ForwardResponseMessage
-	forward_ResourceService_Watch_0    = runtime.ForwardResponseStream
+	forward_ResourceService_Get_0             = runtime.ForwardResponseMessage
+	forward_ResourceService_List_0            = runtime.ForwardResponseMessage
+	forward_ResourceService_Create_0          = runtime.ForwardResponseMessage
+	forward_ResourceService_Update_0          = runtime.ForwardResponseMessage
+	forward_ResourceService_Delete_0          = runtime.ForwardResponseMessage
+	forward_ResourceService_Teardown_0        = runtime.ForwardResponseMessage
+	forward_ResourceService_Watch_0           = runtime.ForwardResponseStream
+	forward_ResourceService_Controllers_0     = runtime.ForwardResponseMessage
+	forward_ResourceService_DependencyGraph_0 = runtime.ForwardResponseMessage
 )

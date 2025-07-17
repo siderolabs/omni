@@ -27,7 +27,6 @@ export const workloadProxyPublicKeyIdSignatureBase64Cookie = "publicKeyIdSignatu
 export const DefaultKubernetesVersion = "1.33.2";
 export const installDiskMinSize = 5e+09;
 export const MaxJoinTokenNameLength = 16;
-export const MinJoinTokenLength = 8;
 export const authPublicKeyIDQueryParam = "public-key-id";
 export const SecureBoot = "secureboot";
 export const DefaultTalosVersion = "1.10.5";

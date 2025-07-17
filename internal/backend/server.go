@@ -207,7 +207,7 @@ func (s *Server) Run(ctx context.Context) error {
 
 	servicesServer := grpcomni.MakeServiceServers(
 		s.state.Default(),
-		s.omniRuntime.CachedState(),
+		s.omniRuntime,
 		s.logHandler,
 		oidcProvider,
 		oidcStorage,
