@@ -19,10 +19,11 @@ set -eoux pipefail
 echo "127.0.0.1 my-instance.localhost" | tee -a /etc/hosts
 
 # Settings.
+LATEST_STABLE_OMNI=$(git tag -l --sort=-version:refname HEAD "v*" | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
 
 TALOS_VERSION=1.10.2
 ENABLE_TALOS_PRERELEASE_VERSIONS=false
-ANOTHER_OMNI_VERSION="${ANOTHER_OMNI_VERSION:-latest}"
+ANOTHER_OMNI_VERSION="${ANOTHER_OMNI_VERSION:-$LATEST_STABLE_OMNI}"
 
 ARTIFACTS=_out
 JOIN_TOKEN=testonly
@@ -33,6 +34,7 @@ TALEMU_CONTAINER_NAME=talemu
 TALEMU_INFRA_PROVIDER_IMAGE=ghcr.io/siderolabs/talemu-infra-provider:latest
 TEST_OUTPUTS_DIR=/tmp/integration-test
 INTEGRATION_PREPARE_TEST_ARGS="${INTEGRATION_PREPARE_TEST_ARGS:-}"
+ENABLE_CLUSTER_IMPORT=${ENABLE_CLUSTER_IMPORT:-false}
 
 mkdir -p $TEST_OUTPUTS_DIR
 
@@ -135,6 +137,12 @@ export AUTH0_CLIENT_ID="${AUTH0_CLIENT_ID}"
 export AUTH0_DOMAIN="${AUTH0_DOMAIN}"
 export OMNI_CONFIG="${TEST_OUTPUTS_DIR}/config.yaml"
 
+if [[ "${ENABLE_CLUSTER_IMPORT:-false}" == "true" ]]; then
+  CLUSTER_IMPORT_CONFIG="enableClusterImport: true"
+else
+  CLUSTER_IMPORT_CONFIG=""
+fi
+
 # Create omnictl downloads directory (required by the server) and copy the omnictl binaries in it.
 mkdir -p omnictl
 cp -p ${ARTIFACTS}/omnictl-* omnictl/
@@ -207,7 +215,7 @@ features:
   enableTalosPreReleaseVersions: ${ENABLE_TALOS_PRERELEASE_VERSIONS}
   enableConfigDataCompression: true
   enableBreakGlassConfigs: true
-  enableClusterImport: true
+  ${CLUSTER_IMPORT_CONFIG}
   disableControllerRuntimeCache: false" > ${OMNI_CONFIG}
 
 if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
@@ -354,6 +362,8 @@ if [ -n "$ANOTHER_OMNI_VERSION" ] && [ -n "$INTEGRATION_PREPARE_TEST_ARGS" ]; th
     --test.failfast \
     --test.v \
     ${INTEGRATION_PREPARE_TEST_ARGS:-}
+
+    # --omni.ignore-unknown-fields # TODO: enable when we release 0.53
 fi
 
 # Run the integration test.
