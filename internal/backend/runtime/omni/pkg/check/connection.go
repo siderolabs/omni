@@ -28,7 +28,7 @@ func Connection(ctx context.Context, r controller.Reader, clusterName string) er
 		),
 	)
 	if err != nil {
-		return newError(specs.ControlPlaneStatusSpec_Condition_Error, true, "Failed to get the list of machines %s", err.Error())
+		return newErrorf(specs.ControlPlaneStatusSpec_Condition_Error, true, "Failed to get the list of machines %s", err.Error())
 	}
 
 	for val := range clusterMachineStatuses.All() {
@@ -38,5 +38,5 @@ func Connection(ctx context.Context, r controller.Reader, clusterName string) er
 		}
 	}
 
-	return newError(specs.ControlPlaneStatusSpec_Condition_Warning, true, "No control plane nodes are connected")
+	return newErrorf(specs.ControlPlaneStatusSpec_Condition_Warning, true, "No control plane nodes are connected")
 }

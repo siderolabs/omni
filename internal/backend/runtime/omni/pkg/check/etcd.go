@@ -40,7 +40,7 @@ func (e *Error) Error() string {
 	return e.message
 }
 
-func newError(severity specs.ControlPlaneStatusSpec_Condition_Severity, interrupt bool, msg string, params ...any) error {
+func newErrorf(severity specs.ControlPlaneStatusSpec_Condition_Severity, interrupt bool, msg string, params ...any) error {
 	return &Error{
 		Status:    specs.ControlPlaneStatusSpec_Condition_NotReady,
 		Severity:  severity,
@@ -49,30 +49,22 @@ func newError(severity specs.ControlPlaneStatusSpec_Condition_Severity, interrup
 	}
 }
 
-// Etcd checks that all etcd members are healthy and are in sync,
-// etcd responds on all nodes.
+// Etcd checks that all etcd members are healthy and are in sync, etcd responds on all nodes.
 func Etcd(ctx context.Context, r controller.Reader, clusterName string) error {
-	clusterMachineStatuses, err := safe.ReaderListAll[*omni.ClusterMachineStatus](
-		ctx,
-		r,
-		state.WithLabelQuery(
-			resource.LabelEqual(omni.LabelCluster, clusterName),
-			resource.LabelExists(omni.LabelControlPlaneRole),
-		),
+	clusterMachineStatuses, err := safe.ReaderListAll[*omni.ClusterMachineStatus](ctx, r, state.WithLabelQuery(
+		resource.LabelEqual(omni.LabelCluster, clusterName),
+		resource.LabelExists(omni.LabelControlPlaneRole),
+	),
 	)
 	if err != nil {
-		return newError(specs.ControlPlaneStatusSpec_Condition_Error, false, "Failed to get the list of machines %s", err.Error())
+		return newErrorf(specs.ControlPlaneStatusSpec_Condition_Error, false, "Failed to get the list of machines %s", err.Error())
 	}
 
 	var members map[uint64]string
 
 	for item := range clusterMachineStatuses.All() {
-		nodeMembers, err := GetEtcdMembers(ctx, r, clusterName, item)
+		nodeMembers, err := checkEtcd(ctx, r, clusterName, item)
 		if err != nil {
-			if talos.IsClientNotReadyError(err) {
-				return newError(specs.ControlPlaneStatusSpec_Condition_Error, false, "Talos client is not ready on node %s", item.Metadata().ID())
-			}
-
 			return err
 		}
 
@@ -83,7 +75,7 @@ func Etcd(ctx context.Context, r controller.Reader, clusterName string) error {
 		}
 
 		if !maps.Equal(members, nodeMembers) {
-			return newError(
+			return newErrorf(
 				specs.ControlPlaneStatusSpec_Condition_Error,
 				false,
 				"Etcd members don't match on nodes %s and %s",
@@ -98,14 +90,14 @@ func Etcd(ctx context.Context, r controller.Reader, clusterName string) error {
 
 	switch {
 	case len(members) == 2:
-		return newError(
+		return newErrorf(
 			specs.ControlPlaneStatusSpec_Condition_Warning,
 			false,
 			"Etcd members count is equal to the minimum quorum %d. The cluster cannot tolerate the loss of any members",
 			quorum,
 		)
 	case len(members) != optimalMembers:
-		return newError(
+		return newErrorf(
 			specs.ControlPlaneStatusSpec_Condition_Warning,
 			false,
 			"Etcd members count %d is not optimal. Recommended count is %d",
@@ -117,8 +109,38 @@ func Etcd(ctx context.Context, r controller.Reader, clusterName string) error {
 	return nil
 }
 
-// GetEtcdMembers returns etcd members for a machine.
-func GetEtcdMembers(ctx context.Context, r controller.Reader, clusterName string, clusterMachineStatuses ...*omni.ClusterMachineStatus) (map[uint64]string, error) {
+func checkEtcd(ctx context.Context, r controller.Reader, clusterName string, clusterMachineStatus *omni.ClusterMachineStatus) (map[uint64]string, error) {
+	talosClient, err := buildTalosClient(ctx, r, clusterName, clusterMachineStatus)
+	if err != nil {
+		return nil, err
+	}
+
+	defer talosClient.Close() //nolint:errcheck
+
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	defer cancel()
+
+	if err = checkEtcdStatus(ctx, talosClient); err != nil {
+		if talos.IsClientNotReadyError(err) {
+			return nil, newErrorf(specs.ControlPlaneStatusSpec_Condition_Error, false, "Talos client is not ready on node %s", clusterMachineStatus.Metadata().ID())
+		}
+
+		return nil, newErrorf(specs.ControlPlaneStatusSpec_Condition_Error, false, "Etcd status check failed: %s", err.Error())
+	}
+
+	members, err := getEtcdMembers(ctx, talosClient)
+	if err != nil {
+		if talos.IsClientNotReadyError(err) {
+			return nil, newErrorf(specs.ControlPlaneStatusSpec_Condition_Error, false, "Talos client is not ready on node %s", clusterMachineStatus.Metadata().ID())
+		}
+
+		return nil, newErrorf(specs.ControlPlaneStatusSpec_Condition_Error, false, "Failed to get etcd members: %s", err.Error())
+	}
+
+	return members, nil
+}
+
+func buildTalosClient(ctx context.Context, r controller.Reader, clusterName string, clusterMachineStatuses ...*omni.ClusterMachineStatus) (*client.Client, error) {
 	talosConfig, err := safe.ReaderGet[*omni.TalosConfig](ctx, r, resource.NewMetadata(resources.DefaultNamespace, omni.TalosConfigType, clusterName, resource.VersionUndefined))
 	if err != nil {
 		if state.IsNotFoundError(err) {
@@ -152,14 +174,12 @@ func GetEtcdMembers(ctx context.Context, r controller.Reader, clusterName string
 
 	config := omni.NewTalosClientConfig(talosConfig, endpoints...)
 
-	c, err := client.New(ctx, append(unixSocketOpts, client.WithConfig(config))...)
-	if err != nil {
-		return nil, err
-	}
+	return client.New(ctx, append(unixSocketOpts, client.WithConfig(config))...)
+}
 
-	defer c.Close() //nolint:errcheck
-
-	response, err := c.EtcdMemberList(ctx, &machine.EtcdMemberListRequest{})
+// GetEtcdMembers returns etcd members for a machine.
+func getEtcdMembers(ctx context.Context, talosClient *client.Client) (map[uint64]string, error) {
+	response, err := talosClient.EtcdMemberList(ctx, &machine.EtcdMemberListRequest{})
 	if err != nil {
 		return nil, err
 	}
@@ -173,6 +193,22 @@ func GetEtcdMembers(ctx context.Context, r controller.Reader, clusterName string
 	}
 
 	return members, nil
+}
+
+func checkEtcdStatus(ctx context.Context, talosClient *client.Client) error {
+	status, err := talosClient.EtcdStatus(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, message := range status.Messages {
+		memberErrors := message.GetMemberStatus().GetErrors()
+		if len(memberErrors) > 0 {
+			return fmt.Errorf("etcd member %q has errors: %s", message.GetMemberStatus().GetMemberId(), strings.Join(memberErrors, ", "))
+		}
+	}
+
+	return nil
 }
 
 // CanScaleDown verifies that the machine can be safely removed from the control planes machine set.
@@ -246,7 +282,14 @@ func EtcdStatus(ctx context.Context, r controller.Reader, machineSet *omni.Machi
 		return nil, err
 	}
 
-	etcdMembers, err := GetEtcdMembers(ctx, r, clusterName, toSlice(statuses)...)
+	talosClient, err := buildTalosClient(ctx, r, clusterName, toSlice(statuses)...)
+	if err != nil {
+		return nil, err
+	}
+
+	defer talosClient.Close() //nolint:errcheck
+
+	etcdMembers, err := getEtcdMembers(ctx, talosClient)
 	if err != nil {
 		return nil, err
 	}
