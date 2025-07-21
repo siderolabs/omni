@@ -160,6 +160,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 			safe.WithResourceCache[*siderolinkres.Config](),
 			safe.WithResourceCache[*siderolinkres.ConnectionParams](),
 			safe.WithResourceCache[*siderolinkres.Link](),
+			safe.WithResourceCache[*siderolinkres.NodeUniqueToken](),
 			safe.WithResourceCache[*system.ResourceLabels[*omni.MachineStatus]](),
 			safe.WithResourceCache[*infra.ConfigPatchRequest](),
 			safe.WithResourceCache[*auth.ServiceAccountStatus](),

@@ -2160,6 +2160,40 @@ func (suite *MigrationSuite) TestPopulateJoinTokenUsage() {
 	suite.Require().Equal(params.TypedSpec().Value.JoinToken, usage.TypedSpec().Value.TokenId)
 }
 
+func (suite *MigrationSuite) TestUniqueTokenResource() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	link1 := siderolink.NewLink(resources.DefaultNamespace, "machine1", &specs.SiderolinkSpec{
+		NodeUniqueToken: "mmmmmmmm", //nolint:staticcheck
+	})
+
+	link2 := siderolink.NewLink(resources.DefaultNamespace, "machine2", &specs.SiderolinkSpec{})
+
+	link3 := siderolink.NewLink(resources.DefaultNamespace, "machine3", &specs.SiderolinkSpec{})
+	link3.Metadata().SetPhase(resource.PhaseTearingDown)
+
+	suite.Require().NoError(suite.state.Create(ctx, link1))
+	suite.Require().NoError(suite.state.Create(ctx, link2))
+	suite.Require().NoError(suite.state.Create(ctx, link3))
+
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("populateNodeUniqueTokens"))))
+
+	token1, err := safe.ReaderGetByID[*siderolink.NodeUniqueToken](ctx, suite.state, link1.Metadata().ID())
+
+	suite.Require().NoError(err)
+
+	suite.Require().Equal(token1.TypedSpec().Value.Token, link1.TypedSpec().Value.NodeUniqueToken) //nolint:staticcheck
+
+	_, err = safe.ReaderGetByID[*siderolink.NodeUniqueToken](ctx, suite.state, link2.Metadata().ID())
+
+	suite.Require().True(state.IsNotFoundError(err))
+
+	_, err = safe.ReaderGetByID[*siderolink.NodeUniqueToken](ctx, suite.state, link3.Metadata().ID())
+
+	suite.Require().True(state.IsNotFoundError(err))
+}
+
 func startMigration[
 	R interface {
 		generic.ResourceWithRD

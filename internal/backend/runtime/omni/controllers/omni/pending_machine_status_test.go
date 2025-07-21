@@ -67,8 +67,9 @@ func (suite *PendingMachineStatusSuite) TestReconcile() {
 	defaultUUID := "uuid"
 
 	type machine struct {
-		link *specs.SiderolinkSpec
-		uuid string
+		link            *specs.SiderolinkSpec
+		nodeUniqueToken string
+		uuid            string
 	}
 
 	machines := []machine{
@@ -89,10 +90,9 @@ func (suite *PendingMachineStatusSuite) TestReconcile() {
 			link: &specs.SiderolinkSpec{},
 		},
 		{
-			uuid: "conflict-link",
-			link: &specs.SiderolinkSpec{
-				NodeUniqueToken: "abcdefg",
-			},
+			uuid:            "conflict-link",
+			link:            &specs.SiderolinkSpec{},
+			nodeUniqueToken: "abcdefg",
 		},
 	}
 
@@ -101,6 +101,13 @@ func (suite *PendingMachineStatusSuite) TestReconcile() {
 	links := make([]*siderolink.LinkStatus, 0, len(machines))
 
 	for index, m := range machines {
+		if m.nodeUniqueToken != "" {
+			nodeUniqueToken := siderolink.NewNodeUniqueToken(m.uuid)
+			nodeUniqueToken.TypedSpec().Value.Token = m.nodeUniqueToken
+
+			suite.Require().NoError(suite.state.Create(ctx, nodeUniqueToken))
+		}
+
 		pm := createPendingMachine(fmt.Sprintf("p%d", index), m.uuid)
 
 		awaitMachines = append(awaitMachines, pm.Metadata().ID())

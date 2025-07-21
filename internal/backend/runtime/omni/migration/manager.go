@@ -232,6 +232,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: populateJoinTokenUsage,
 				name:     "populateJoinTokenUsage",
 			},
+			{
+				callback: populateNodeUniqueTokens,
+				name:     "populateNodeUniqueTokens",
+			},
 		},
 	}
 }

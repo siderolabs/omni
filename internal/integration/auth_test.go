@@ -1113,6 +1113,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			{
 				resource: siderolink.NewJoinTokenUsage(uuid.NewString()),
 			},
+			{
+				resource: siderolink.NewNodeUniqueToken(uuid.NewString()),
+			},
 		}...)
 
 		// custom resources

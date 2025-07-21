@@ -74,3 +74,7 @@ export type ProviderJoinConfigSpec = {
 export type MachineJoinConfigSpec = {
   config?: JoinConfig
 }
+
+export type NodeUniqueTokenSpec = {
+  token?: string
+}

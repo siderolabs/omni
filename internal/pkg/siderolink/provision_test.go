@@ -193,7 +193,12 @@ func TestProvision(t *testing.T) {
 			func(r *siderolinkres.Link, assertion *assert.Assertions) {
 				assertion.NotEmpty(r.TypedSpec().Value.NodeSubnet)
 				assertion.Equal(r.TypedSpec().Value.NodePublicKey, request.NodePublicKey)
-				require.Equal(t, *request.NodeUniqueToken, r.TypedSpec().Value.NodeUniqueToken)
+			},
+		)
+
+		rtestutils.AssertResources(ctx, t, state, []string{request.NodeUuid},
+			func(r *siderolinkres.NodeUniqueToken, assertion *assert.Assertions) {
+				require.Equal(t, *request.NodeUniqueToken, r.TypedSpec().Value.Token)
 			},
 		)
 
@@ -285,6 +290,7 @@ func TestProvision(t *testing.T) {
 			request           *pb.ProvisionRequest
 			linkSpec          *specs.SiderolinkSpec
 			errcheck          func(t *testing.T, err error)
+			nodeUniqueToken   string
 			name              string
 			talosNotInstalled bool
 		}{
@@ -296,9 +302,8 @@ func TestProvision(t *testing.T) {
 					TalosVersion:    pointer.To("v1.6.0"),
 					JoinToken:       pointer.To(validToken),
 				},
-				linkSpec: &specs.SiderolinkSpec{
-					NodeUniqueToken: validToken,
-				},
+				linkSpec:        &specs.SiderolinkSpec{},
+				nodeUniqueToken: validToken,
 				errcheck: func(t *testing.T, err error) {
 					require.Error(t, err)
 					require.Equal(t, codes.PermissionDenied, status.Code(err))
@@ -313,39 +318,47 @@ func TestProvision(t *testing.T) {
 					JoinToken:       pointer.To(validToken),
 				},
 				talosNotInstalled: true,
-				linkSpec: &specs.SiderolinkSpec{
-					NodeUniqueToken: validToken,
-				},
+				linkSpec:          &specs.SiderolinkSpec{},
+				nodeUniqueToken:   validToken,
 				errcheck: func(t *testing.T, err error) {
 					require.NoError(t, err)
 				},
 			},
 			{
-				name: "same fingerprint, invalid join token, talos not installed",
+				name: "sa %#vme fingerprint, in, provisionContext.requestNodeUniqueTokenvalid join token, talos not installed",
 				request: &pb.ProvisionRequest{
 					NodePublicKey:   genKey(),
 					NodeUniqueToken: pointer.To(validFingerprintOnly),
 					TalosVersion:    pointer.To("v1.6.0"),
 				},
 				talosNotInstalled: true,
-				linkSpec: &specs.SiderolinkSpec{
-					NodeUniqueToken: validToken,
-				},
+				nodeUniqueToken:   validToken,
 				errcheck: func(t *testing.T, err error) {
 					require.Error(t, err)
 					require.Equal(t, codes.PermissionDenied, status.Code(err))
 				},
 			},
 			{
-				name: "no join token, valid node token",
+				name: "no join token, valid node token, has link",
 				request: &pb.ProvisionRequest{
 					NodePublicKey:   genKey(),
 					NodeUniqueToken: pointer.To(validToken),
 					TalosVersion:    pointer.To("v1.6.0"),
 				},
-				linkSpec: &specs.SiderolinkSpec{
-					NodeUniqueToken: validToken,
+				nodeUniqueToken: validToken,
+				linkSpec:        &specs.SiderolinkSpec{},
+				errcheck: func(t *testing.T, err error) {
+					require.NoError(t, err)
 				},
+			},
+			{
+				name: "no join token, valid node token, no link",
+				request: &pb.ProvisionRequest{
+					NodePublicKey:   genKey(),
+					NodeUniqueToken: pointer.To(validToken),
+					TalosVersion:    pointer.To("v1.6.0"),
+				},
+				nodeUniqueToken: validToken,
 				errcheck: func(t *testing.T, err error) {
 					require.NoError(t, err)
 				},
@@ -358,9 +371,7 @@ func TestProvision(t *testing.T) {
 					TalosVersion:    pointer.To("v1.9.0"),
 					JoinToken:       pointer.To(validToken),
 				},
-				linkSpec: &specs.SiderolinkSpec{
-					NodeUniqueToken: validToken,
-				},
+				nodeUniqueToken: validToken,
 				errcheck: func(t *testing.T, err error) {
 					require.NoError(t, err)
 				},
@@ -440,8 +451,18 @@ func TestProvision(t *testing.T) {
 
 				state, provisionHandler := setup(ctx, t, mode.mode)
 
+				machine := tt.name
+
+				if tt.nodeUniqueToken != "" {
+					nodeUniqueToken := siderolinkres.NewNodeUniqueToken(machine)
+
+					nodeUniqueToken.TypedSpec().Value.Token = tt.nodeUniqueToken
+
+					require.NoError(t, state.Create(ctx, nodeUniqueToken))
+				}
+
 				if tt.linkSpec != nil {
-					link := siderolinkres.NewLink(resources.DefaultNamespace, "machine", tt.linkSpec)
+					link := siderolinkres.NewLink(resources.DefaultNamespace, machine, tt.linkSpec)
 					if !tt.talosNotInstalled {
 						link.Metadata().Annotations().Set(siderolinkres.ForceValidNodeUniqueToken, "")
 					}
@@ -449,7 +470,7 @@ func TestProvision(t *testing.T) {
 					require.NoError(t, state.Create(ctx, link))
 				}
 
-				tt.request.NodeUuid = "machine"
+				tt.request.NodeUuid = machine
 
 				_, err := provisionHandler.Provision(ctx, tt.request)
 				tt.errcheck(t, err)
@@ -503,11 +524,13 @@ func TestProvision(t *testing.T) {
 			JoinToken:     pointer.To(validToken),
 		}
 
-		link := siderolinkres.NewLink(resources.DefaultNamespace, request.NodeUuid, &specs.SiderolinkSpec{
-			NodeUniqueToken: validToken,
-		})
+		link := siderolinkres.NewLink(resources.DefaultNamespace, request.NodeUuid, &specs.SiderolinkSpec{})
+
+		nodeUniqueToken := siderolinkres.NewNodeUniqueToken(request.NodeUuid)
+		nodeUniqueToken.TypedSpec().Value.Token = validToken
 
 		require.NoError(t, state.Create(ctx, link))
+		require.NoError(t, state.Create(ctx, nodeUniqueToken))
 
 		_, err := provisionHandler.Provision(ctx, request)
 		require.Error(t, err)

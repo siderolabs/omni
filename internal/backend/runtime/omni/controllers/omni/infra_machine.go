@@ -49,6 +49,8 @@ func NewInfraMachineController(installEventCh <-chan resource.ID) *InfraMachineC
 }
 
 // Settings implements the controller.QController interface.
+//
+//nolint:dupl
 func (ctrl *InfraMachineController) Settings() controller.QSettings {
 	return controller.QSettings{
 		Inputs: []controller.Input{
@@ -56,6 +58,11 @@ func (ctrl *InfraMachineController) Settings() controller.QSettings {
 				Namespace: resources.DefaultNamespace,
 				Type:      siderolink.LinkType,
 				Kind:      controller.InputQPrimary,
+			},
+			{
+				Namespace: resources.DefaultNamespace,
+				Type:      siderolink.NodeUniqueTokenType,
+				Kind:      controller.InputQMapped,
 			},
 			{
 				Namespace: resources.InfraProviderNamespace,
@@ -151,6 +158,11 @@ func (ctrl *InfraMachineController) reconcileTearingDown(ctx context.Context, r 
 		return err
 	}
 
+	_, err := helpers.HandleInput[*siderolink.NodeUniqueToken](ctx, r, ctrl.Name(), link)
+	if err != nil {
+		return err
+	}
+
 	md := infra.NewMachine(link.Metadata().ID()).Metadata()
 
 	ready, err := helpers.TeardownAndDestroy(ctx, r, md)
@@ -181,6 +193,11 @@ func (ctrl *InfraMachineController) reconcileRunning(ctx context.Context, r cont
 		return err
 	}
 
+	nodeUniqueToken, err := helpers.HandleInput[*siderolink.NodeUniqueToken](ctx, r, ctrl.Name(), link)
+	if err != nil {
+		return err
+	}
+
 	providerID, ok := link.Metadata().Annotations().Get(omni.LabelInfraProviderID)
 	if !ok {
 		return nil // the link is not created by an infra provider
@@ -201,6 +218,7 @@ func (ctrl *InfraMachineController) reconcileRunning(ctx context.Context, r cont
 		config:               config,
 		machineExts:          machineExts,
 		link:                 link,
+		nodeUniqueToken:      nodeUniqueToken,
 		runtime:              r,
 		machineInfoCollected: machineInfoCollected,
 		providerID:           providerID,
@@ -217,6 +235,7 @@ type infraMachineControllerHelper struct {
 	config               *omni.InfraMachineConfig
 	machineExts          *omni.MachineExtensions
 	link                 *siderolink.Link
+	nodeUniqueToken      *siderolink.NodeUniqueToken
 	providerID           string
 	controllerName       string
 	machineInfoCollected bool
@@ -229,7 +248,9 @@ func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMac
 
 	infraMachine.Metadata().Labels().Set(omni.LabelInfraProviderID, helper.providerID)
 
-	infraMachine.TypedSpec().Value.NodeUniqueToken = helper.link.TypedSpec().Value.NodeUniqueToken
+	if helper.nodeUniqueToken != nil {
+		infraMachine.TypedSpec().Value.NodeUniqueToken = helper.nodeUniqueToken.TypedSpec().Value.Token
+	}
 
 	clusterMachine, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, helper.runtime, helper.link.Metadata().ID())
 	if err != nil {
@@ -293,6 +314,7 @@ func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMac
 func (ctrl *InfraMachineController) MapInput(ctx context.Context, _ *zap.Logger, runtime controller.QRuntime, ptr resource.Pointer) ([]resource.Pointer, error) {
 	switch ptr.Type() {
 	case siderolink.LinkType,
+		siderolink.NodeUniqueTokenType,
 		infra.InfraMachineType,
 		omni.InfraMachineConfigType,
 		omni.SchematicConfigurationType,

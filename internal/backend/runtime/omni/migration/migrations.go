@@ -1883,3 +1883,38 @@ func populateJoinTokenUsage(ctx context.Context, st state.State, _ *zap.Logger, 
 
 	return err
 }
+
+func populateNodeUniqueTokens(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
+	links, err := safe.ReaderListAll[*siderolink.Link](ctx, st)
+	if err != nil {
+		return err
+	}
+
+	for link := range links.All() {
+		if link.TypedSpec().Value.NodeUniqueToken == "" || link.Metadata().Phase() == resource.PhaseTearingDown { //nolint:staticcheck
+			continue
+		}
+
+		if err = safe.StateModify(ctx, st, siderolink.NewNodeUniqueToken(link.Metadata().ID()),
+			func(res *siderolink.NodeUniqueToken) error {
+				res.TypedSpec().Value.Token = link.TypedSpec().Value.NodeUniqueToken //nolint:staticcheck
+
+				return nil
+			},
+		); err != nil {
+			return err
+		}
+
+		if err = safe.StateModify(ctx, st, link,
+			func(res *siderolink.Link) error {
+				res.TypedSpec().Value.NodeUniqueToken = "" //nolint:staticcheck
+
+				return nil
+			},
+		); err != nil {
+			return err
+		}
+	}
+
+	return err
+}

@@ -32,6 +32,7 @@ func init() {
 	registry.MustRegisterResource(JoinTokenStatusType, &JoinTokenStatus{})
 	registry.MustRegisterResource(JoinTokenUsageType, &JoinTokenUsage{})
 	registry.MustRegisterResource(DefaultJoinTokenType, &DefaultJoinToken{})
+	registry.MustRegisterResource(NodeUniqueTokenType, &NodeUniqueToken{})
 
 	// NOTE: this resource is not used anymore, but still used in the migration code.
 	registry.MustRegisterResource(DeprecatedLinkCounterType, &DeprecatedLinkCounter{})

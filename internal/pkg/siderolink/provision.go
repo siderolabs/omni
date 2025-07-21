@@ -162,8 +162,8 @@ func updateAnnotations(res resource.Resource, annotationsToAdd []string, annotat
 	}
 }
 
-// createResource creates the link resource (PendingMachine/Link) if it doesn't exist.
-func createResource[T res](ctx context.Context, st state.State, provisionContext *provisionContext,
+// newLink creates the link resource (PendingMachine/Link).
+func newLink[T res](provisionContext *provisionContext,
 	annotationsToAdd []string, annotationsToRemove []string,
 ) (T, error) {
 	var (
@@ -217,49 +217,20 @@ func createResource[T res](ctx context.Context, st state.State, provisionContext
 
 	updateAnnotations(res, annotationsToAdd, annotationsToRemove)
 
-	return link, st.Create(ctx, res)
+	return link, nil
 }
 
-func updateResourceWithMatchingToken[T res](ctx context.Context, logger *zap.Logger,
-	st state.State, provisionContext *provisionContext, r T, annotationsToAdd []string, annotationsToRemove []string,
-) (T, error) {
-	return safe.StateUpdateWithConflicts(ctx, st, r.Metadata(), func(link T) error {
-		s := link.TypedSpec().Value
+func updateNodeUniqueToken(ctx context.Context, logger *zap.Logger, st state.State, provisionContext *provisionContext, md *resource.Metadata) error {
+	return safe.StateModify(ctx, st, siderolink.NewNodeUniqueToken(md.ID()), func(res *siderolink.NodeUniqueToken) error {
+		defer func() {
+			res.TypedSpec().Value.Token = pointer.SafeDeref(provisionContext.request.NodeUniqueToken)
+		}()
 
-		if link.Metadata().Type() == siderolink.PendingMachineType {
-			link.Metadata().Annotations().Set("timestamp", time.Now().String())
-		}
-
-		updateSpec := func() error {
-			s.NodeUniqueToken = pointer.SafeDeref(provisionContext.request.NodeUniqueToken)
-
-			if provisionContext.pendingMachine != nil {
-				s.NodeSubnet = provisionContext.pendingMachine.TypedSpec().Value.NodeSubnet
-
-				logger.Info("updated subnet", zap.String("subnet", s.NodeSubnet))
-			}
-
-			var err error
-
-			s.NodePublicKey = provisionContext.request.NodePublicKey
-
-			s.VirtualAddrport, err = generateVirtualAddrPort(provisionContext.useWireguardOverGRPC)
-			if err != nil {
-				return err
-			}
-
-			updateAnnotations(link, annotationsToAdd, annotationsToRemove)
-
+		if res.TypedSpec().Value.Token == "" {
 			return nil
 		}
 
-		if s.NodeUniqueToken == "" {
-			logger.Debug("set unique node token")
-
-			return updateSpec()
-		}
-
-		linkNodeUniqueToken, err := jointoken.ParseNodeUniqueToken(s.NodeUniqueToken)
+		linkNodeUniqueToken, err := jointoken.ParseNodeUniqueToken(res.TypedSpec().Value.Token)
 		if err != nil {
 			return err
 		}
@@ -268,7 +239,7 @@ func updateResourceWithMatchingToken[T res](ctx context.Context, logger *zap.Log
 			!provisionContext.forceValidNodeUniqueToken && provisionContext.requestNodeUniqueToken.IsSameFingerprint(linkNodeUniqueToken) {
 			logger.Debug("overwrite the existing node unique token")
 
-			return updateSpec()
+			return nil
 		}
 
 		// the token has the same fingerprint, but the random part doesn't match
@@ -282,6 +253,37 @@ func updateResourceWithMatchingToken[T res](ctx context.Context, logger *zap.Log
 		}
 
 		return errUUIDConflict
+	})
+}
+
+func updateResource[T res](ctx context.Context, logger *zap.Logger,
+	st state.State, provisionContext *provisionContext, r T, annotationsToAdd []string, annotationsToRemove []string,
+) (T, error) {
+	return safe.StateUpdateWithConflicts(ctx, st, r.Metadata(), func(link T) error {
+		s := link.TypedSpec().Value
+
+		if link.Metadata().Type() == siderolink.PendingMachineType {
+			link.Metadata().Annotations().Set("timestamp", time.Now().String())
+		}
+
+		if provisionContext.pendingMachine != nil {
+			s.NodeSubnet = provisionContext.pendingMachine.TypedSpec().Value.NodeSubnet
+
+			logger.Info("updated subnet", zap.String("subnet", s.NodeSubnet))
+		}
+
+		var err error
+
+		s.NodePublicKey = provisionContext.request.NodePublicKey
+
+		s.VirtualAddrport, err = generateVirtualAddrPort(provisionContext.useWireguardOverGRPC)
+		if err != nil {
+			return err
+		}
+
+		updateAnnotations(link, annotationsToAdd, annotationsToRemove)
+
+		return nil
 	})
 }
 
@@ -382,13 +384,23 @@ func (h *ProvisionHandler) removePendingMachine(ctx context.Context, pendingMach
 func establishLink[T res](ctx context.Context, logger *zap.Logger, st state.State, provisionContext *provisionContext,
 	annotationsToAdd []string, annotationsToRemove []string,
 ) (*pb.ProvisionResponse, error) {
-	link, err := createResource[T](ctx, st, provisionContext, annotationsToAdd, annotationsToRemove)
+	link, err := newLink[T](provisionContext, annotationsToAdd, annotationsToRemove)
 	if err != nil {
+		return nil, err
+	}
+
+	if link.Metadata().Type() == siderolink.LinkType && provisionContext.requestNodeUniqueToken != nil {
+		if err = updateNodeUniqueToken(ctx, logger, st, provisionContext, link.Metadata()); err != nil {
+			return nil, err
+		}
+	}
+
+	if err = st.Create(ctx, link); err != nil {
 		if !state.IsConflictError(err) {
 			return nil, err
 		}
 
-		link, err = updateResourceWithMatchingToken(ctx, logger, st, provisionContext, link, annotationsToAdd, annotationsToRemove)
+		link, err = updateResource(ctx, logger, st, provisionContext, link, annotationsToAdd, annotationsToRemove)
 		if err != nil {
 			if state.IsPhaseConflictError(err) {
 				return nil, status.Errorf(codes.AlreadyExists, "the machine with the same UUID is already registered in Omni and is in the tearing down phase")
@@ -494,7 +506,6 @@ func generateLinkSpec(provisionContext *provisionContext) (*specs.SiderolinkSpec
 		NodeSubnet:      nodeAddress,
 		NodePublicKey:   pubKey.String(),
 		VirtualAddrport: virtualAddrPort,
-		NodeUniqueToken: pointer.SafeDeref(provisionContext.request.NodeUniqueToken),
 		Connected:       true,
 	}, nil
 }
@@ -512,6 +523,7 @@ func generateVirtualAddrPort(generate bool) (string, error) {
 	return net.JoinHostPort(generated.Addr().String(), "50889"), nil
 }
 
+//nolint:gocyclo,cyclop
 func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.ProvisionRequest) (*provisionContext, error) {
 	link, err := safe.StateGetByID[*siderolink.Link](ctx, h.state, req.NodeUuid)
 	if err != nil && !state.IsNotFoundError(err) {
@@ -528,9 +540,15 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 		requestNodeUniqueToken *jointoken.NodeUniqueToken
 		linkNodeUniqueToken    *jointoken.NodeUniqueToken
 		pendingMachineStatus   *siderolink.PendingMachineStatus
+		nodeUniqueToken        *siderolink.NodeUniqueToken
 		forceValidUniqueToken  bool
 		tokenWasWiped          bool
 	)
+
+	nodeUniqueToken, err = safe.ReaderGetByID[*siderolink.NodeUniqueToken](ctx, h.state, req.NodeUuid)
+	if err != nil && !state.IsNotFoundError(err) {
+		return nil, err
+	}
 
 	requestJoinToken, err = h.getJoinToken(ctx, pointer.SafeDeref(req.JoinToken))
 	if err != nil {
@@ -575,10 +593,12 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 		forceValidUniqueToken = pendingMachineStatus.TypedSpec().Value.TalosInstalled
 	}
 
-	if link != nil {
-		_, forceValidUniqueToken = link.Metadata().Annotations().Get(siderolink.ForceValidNodeUniqueToken)
+	if nodeUniqueToken != nil {
+		if link != nil {
+			_, forceValidUniqueToken = link.Metadata().Annotations().Get(siderolink.ForceValidNodeUniqueToken)
+		}
 
-		linkNodeUniqueToken, err = jointoken.ParseNodeUniqueToken(link.TypedSpec().Value.NodeUniqueToken)
+		linkNodeUniqueToken, err = jointoken.ParseNodeUniqueToken(nodeUniqueToken.TypedSpec().Value.Token)
 		if err != nil {
 			return nil, err
 		}
@@ -590,7 +610,7 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 			return nil, err
 		}
 
-		if machineStatus != nil && link.TypedSpec().Value.NodeUniqueToken == machineStatus.TypedSpec().Value.WipedNodeUniqueToken {
+		if machineStatus != nil && nodeUniqueToken.TypedSpec().Value.Token == machineStatus.TypedSpec().Value.WipedNodeUniqueToken {
 			forceValidUniqueToken = false
 
 			tokenWasWiped = true

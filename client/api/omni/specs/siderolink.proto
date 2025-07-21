@@ -28,10 +28,7 @@ message SiderolinkSpec {
   // RemoteAddr is the machine address how it's visible from Omni
   // it is determined by reading X-Forwarded-For header coming from the gRPC API.
   string remote_addr = 8;
-  // NodeUniqueToken is the per node join token which is saved in the Node META partition after
-  // the machine is accepted in Omni.
-  // Only for Talos >= 1.6.
-  string node_unique_token = 9;
+  string node_unique_token = 9 [deprecated = true];
 }
 
 // LinkStatusSpec is created when the link peer event was submitted.
@@ -101,4 +98,11 @@ message ProviderJoinConfigSpec {
 
 message MachineJoinConfigSpec {
   JoinConfig config = 1;
+}
+
+message NodeUniqueTokenSpec {
+  // Token is the per node join token which is saved in the Node META partition after
+  // the machine is accepted in Omni.
+  // Only for Talos >= 1.6.
+  string token = 1;
 }

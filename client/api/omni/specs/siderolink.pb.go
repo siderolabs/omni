@@ -127,9 +127,7 @@ type SiderolinkSpec struct {
 	// RemoteAddr is the machine address how it's visible from Omni
 	// it is determined by reading X-Forwarded-For header coming from the gRPC API.
 	RemoteAddr string `protobuf:"bytes,8,opt,name=remote_addr,json=remoteAddr,proto3" json:"remote_addr,omitempty"`
-	// NodeUniqueToken is the per node join token which is saved in the Node META partition after
-	// the machine is accepted in Omni.
-	// Only for Talos >= 1.6.
+	// Deprecated: Marked as deprecated in omni/specs/siderolink.proto.
 	NodeUniqueToken string `protobuf:"bytes,9,opt,name=node_unique_token,json=nodeUniqueToken,proto3" json:"node_unique_token,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
@@ -207,6 +205,7 @@ func (x *SiderolinkSpec) GetRemoteAddr() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in omni/specs/siderolink.proto.
 func (x *SiderolinkSpec) GetNodeUniqueToken() string {
 	if x != nil {
 		return x.NodeUniqueToken
@@ -729,6 +728,53 @@ func (x *MachineJoinConfigSpec) GetConfig() *JoinConfig {
 	return nil
 }
 
+type NodeUniqueTokenSpec struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Token is the per node join token which is saved in the Node META partition after
+	// the machine is accepted in Omni.
+	// Only for Talos >= 1.6.
+	Token         string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NodeUniqueTokenSpec) Reset() {
+	*x = NodeUniqueTokenSpec{}
+	mi := &file_omni_specs_siderolink_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NodeUniqueTokenSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NodeUniqueTokenSpec) ProtoMessage() {}
+
+func (x *NodeUniqueTokenSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_siderolink_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NodeUniqueTokenSpec.ProtoReflect.Descriptor instead.
+func (*NodeUniqueTokenSpec) Descriptor() ([]byte, []int) {
+	return file_omni_specs_siderolink_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *NodeUniqueTokenSpec) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
 var File_omni_specs_siderolink_proto protoreflect.FileDescriptor
 
 const file_omni_specs_siderolink_proto_rawDesc = "" +
@@ -743,7 +789,7 @@ const file_omni_specs_siderolink_proto_rawDesc = "" +
 	"\x06subnet\x18\x05 \x01(\tR\x06subnet\x12%\n" +
 	"\x0eserver_address\x18\x06 \x01(\tR\rserverAddress\x12,\n" +
 	"\x12initial_join_token\x18\a \x01(\tR\x10initialJoinToken\x12/\n" +
-	"\x13advertised_endpoint\x18\b \x01(\tR\x12advertisedEndpoint\"\xa0\x02\n" +
+	"\x13advertised_endpoint\x18\b \x01(\tR\x12advertisedEndpoint\"\xa4\x02\n" +
 	"\x0eSiderolinkSpec\x12\x1f\n" +
 	"\vnode_subnet\x18\x01 \x01(\tR\n" +
 	"nodeSubnet\x12&\n" +
@@ -752,8 +798,8 @@ const file_omni_specs_siderolink_proto_rawDesc = "" +
 	"\tconnected\x18\x04 \x01(\bR\tconnected\x12)\n" +
 	"\x10virtual_addrport\x18\a \x01(\tR\x0fvirtualAddrport\x12\x1f\n" +
 	"\vremote_addr\x18\b \x01(\tR\n" +
-	"remoteAddr\x12*\n" +
-	"\x11node_unique_token\x18\t \x01(\tR\x0fnodeUniqueTokenJ\x04\b\x05\x10\x06J\x04\b\x06\x10\a\"\x9d\x01\n" +
+	"remoteAddr\x12.\n" +
+	"\x11node_unique_token\x18\t \x01(\tB\x02\x18\x01R\x0fnodeUniqueTokenJ\x04\b\x05\x10\x06J\x04\b\x06\x10\a\"\x9d\x01\n" +
 	"\x0eLinkStatusSpec\x12\x1f\n" +
 	"\vnode_subnet\x18\x01 \x01(\tR\n" +
 	"nodeSubnet\x12&\n" +
@@ -797,7 +843,9 @@ const file_omni_specs_siderolink_proto_rawDesc = "" +
 	"\n" +
 	"join_token\x18\x02 \x01(\tR\tjoinToken\"B\n" +
 	"\x15MachineJoinConfigSpec\x12)\n" +
-	"\x06config\x18\x01 \x01(\v2\x11.specs.JoinConfigR\x06configB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
+	"\x06config\x18\x01 \x01(\v2\x11.specs.JoinConfigR\x06config\"+\n" +
+	"\x13NodeUniqueTokenSpec\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05tokenB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
 
 var (
 	file_omni_specs_siderolink_proto_rawDescOnce sync.Once
@@ -811,7 +859,7 @@ func file_omni_specs_siderolink_proto_rawDescGZIP() []byte {
 	return file_omni_specs_siderolink_proto_rawDescData
 }
 
-var file_omni_specs_siderolink_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_omni_specs_siderolink_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_omni_specs_siderolink_proto_goTypes = []any{
 	(*SiderolinkConfigSpec)(nil),     // 0: specs.SiderolinkConfigSpec
 	(*SiderolinkSpec)(nil),           // 1: specs.SiderolinkSpec
@@ -823,10 +871,11 @@ var file_omni_specs_siderolink_proto_goTypes = []any{
 	(*SiderolinkAPIConfigSpec)(nil),  // 7: specs.SiderolinkAPIConfigSpec
 	(*ProviderJoinConfigSpec)(nil),   // 8: specs.ProviderJoinConfigSpec
 	(*MachineJoinConfigSpec)(nil),    // 9: specs.MachineJoinConfigSpec
-	(*timestamppb.Timestamp)(nil),    // 10: google.protobuf.Timestamp
+	(*NodeUniqueTokenSpec)(nil),      // 10: specs.NodeUniqueTokenSpec
+	(*timestamppb.Timestamp)(nil),    // 11: google.protobuf.Timestamp
 }
 var file_omni_specs_siderolink_proto_depIdxs = []int32{
-	10, // 0: specs.SiderolinkCounterSpec.last_alive:type_name -> google.protobuf.Timestamp
+	11, // 0: specs.SiderolinkCounterSpec.last_alive:type_name -> google.protobuf.Timestamp
 	6,  // 1: specs.ProviderJoinConfigSpec.config:type_name -> specs.JoinConfig
 	6,  // 2: specs.MachineJoinConfigSpec.config:type_name -> specs.JoinConfig
 	3,  // [3:3] is the sub-list for method output_type
@@ -847,7 +896,7 @@ func file_omni_specs_siderolink_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_omni_specs_siderolink_proto_rawDesc), len(file_omni_specs_siderolink_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

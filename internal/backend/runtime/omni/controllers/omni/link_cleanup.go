@@ -23,6 +23,7 @@ func NewLinkCleanupController() *LinkCleanupController {
 			Name: "LinkCleanupController",
 			Handler: cleanup.Combine(
 				&helpers.SameIDHandler[*siderolink.Link, *siderolink.JoinTokenUsage]{},
+				&helpers.SameIDHandler[*siderolink.Link, *siderolink.NodeUniqueToken]{},
 			),
 		},
 	)
