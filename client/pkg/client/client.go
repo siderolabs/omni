@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/url"
 	"slices"
+	"time"
 
 	"github.com/siderolabs/go-api-signature/pkg/client/auth"
 	_ "github.com/siderolabs/proto-codec/codec" // for encoding.CodecV2
@@ -18,6 +19,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/encoding/gzip"
+	"google.golang.org/grpc/keepalive"
 
 	"github.com/siderolabs/omni/client/pkg/client/management"
 	"github.com/siderolabs/omni/client/pkg/client/oidc"
@@ -90,6 +92,9 @@ func New(endpoint string, opts ...Option) (*Client, error) {
 			grpc.UseCompressor(gzip.Name),
 		),
 		grpc.WithSharedWriteBuffer(true),
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time: time.Minute,
+		}),
 	)
 
 	c := &Client{
