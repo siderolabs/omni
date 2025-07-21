@@ -6,30 +6,21 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v0.51.0"
+previous = "v0.52.0"
 
 [notes]
 
-[notes.talosctl-wipe]
-title = "Allow `talosctl wipe disk` Command"
+[notes.multiple-join-tokens]
+title = "Multiple Join Token Support"
 description = """\
-`talosctl wipe disk` can now be used with Omni managed nodes.
-Omni will impersonate `os:admin` role for it if the user has write access to the cluster.
+Omni now supports multiple SideroLink join tokens.
+It now creates the default non-expiring token, then the user can create more tokens and delete the old ones.
 """
 
-[notes.fusion-auth]
-title = "Support Fusion Auth"
+[notes.redacted-config-diff]
+title = "Config Change History"
 description = """\
-Fusion Auth provider is now supported via SAML.
-Additional parameter `--auth-saml-name-id-format` must be set to `urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress`.
-"""
-
-[notes.providers]
-title = "Infra Providers Request ID"
-description = """\
-Infra providers can now be configured to encode `MachineRequest` ID into the join token.
-With that enabled setting the machine UUID in the `MachineRequestStatus` is no longer required in the provider:
-Omni will automatically map the `MachineRequest` ID to the node UUID and will populate the field in the status.
-
-This change is useful in the infra providers where it's impossible to get the created machine UUID.
+There is now `MachineConfigDiffs.omni.sidero.dev` resource that keeps the history of
+each machine config changes.
+It keeps up to 1000 diffs for the last 30 days.
 """
