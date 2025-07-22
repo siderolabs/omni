@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -24,6 +25,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/cosi/helpers"
 	infrares "github.com/siderolabs/omni/client/pkg/infra/internal/resources"
 	"github.com/siderolabs/omni/client/pkg/infra/provision"
+	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -41,12 +43,16 @@ type ProvisionController[T generic.ResourceWithRD] struct {
 	providerID                 string
 	concurrency                uint
 	encodeRequestIDsIntoTokens bool
+	useV2Tokens                bool
 }
 
 // NewProvisionController creates new ProvisionController.
 func NewProvisionController[T generic.ResourceWithRD](providerID string, provisioner provision.Provisioner[T], concurrency uint,
 	imageFactory provision.FactoryClient, encodeRequestIDsIntoTokens bool,
+	resourceDefinitions map[string]struct{},
 ) *ProvisionController[T] {
+	_, providerJoinConfigRegistered := resourceDefinitions[strings.ToLower(siderolinkres.ProviderJoinConfigType)]
+
 	return &ProvisionController[T]{
 		NamedController: generic.NamedController{
 			ControllerName: providerID + ".ProvisionController",
@@ -56,6 +62,7 @@ func NewProvisionController[T generic.ResourceWithRD](providerID string, provisi
 		concurrency:                concurrency,
 		imageFactory:               imageFactory,
 		encodeRequestIDsIntoTokens: encodeRequestIDsIntoTokens,
+		useV2Tokens:                providerJoinConfigRegistered,
 	}
 }
 
@@ -63,49 +70,65 @@ func NewProvisionController[T generic.ResourceWithRD](providerID string, provisi
 func (ctrl *ProvisionController[T]) Settings() controller.QSettings {
 	var t T
 
-	return controller.QSettings{
-		RunHook: func(ctx context.Context, _ *zap.Logger, q controller.QRuntime) error {
-			return ctrl.cleanupDanglingMachines(ctx, q)
+	inputs := []controller.Input{
+		{
+			Namespace: resources.InfraProviderNamespace,
+			Type:      infra.MachineRequestType,
+			Kind:      controller.InputQPrimary,
 		},
-		Inputs: []controller.Input{
-			{
-				Namespace: resources.InfraProviderNamespace,
-				Type:      infra.MachineRequestType,
-				Kind:      controller.InputQPrimary,
-			},
-			{
-				Namespace: resources.InfraProviderNamespace,
-				Type:      infra.MachineRequestStatusType,
-				Kind:      controller.InputQMappedDestroyReady,
-			},
-			{
-				Namespace: resources.InfraProviderNamespace,
-				Type:      infra.MachineRegistrationType,
-				Kind:      controller.InputQMapped,
-			},
-			{
+		{
+			Namespace: resources.InfraProviderNamespace,
+			Type:      infra.MachineRequestStatusType,
+			Kind:      controller.InputQMappedDestroyReady,
+		},
+		{
+			Namespace: resources.InfraProviderNamespace,
+			Type:      infra.MachineRegistrationType,
+			Kind:      controller.InputQMapped,
+		},
+		{
+			Namespace: resources.InfraProviderNamespace,
+			Type:      infra.ConfigPatchRequestType,
+			Kind:      controller.InputQMappedDestroyReady,
+		},
+		{
+			Namespace: t.ResourceDefinition().DefaultNamespace,
+			Type:      t.ResourceDefinition().Type,
+			Kind:      controller.InputQMappedDestroyReady,
+		},
+	}
+
+	if ctrl.useV2Tokens {
+		inputs = append(inputs,
+			controller.Input{
 				Namespace: resources.InfraProviderNamespace,
 				Type:      siderolinkres.ProviderJoinConfigType,
 				Kind:      controller.InputQMapped,
 				ID:        optional.Some(ctrl.providerID),
 			},
-			{
+			controller.Input{
 				Namespace: resources.DefaultNamespace,
 				Type:      siderolinkres.APIConfigType,
 				Kind:      controller.InputQMapped,
 				ID:        optional.Some(siderolinkres.ConfigID),
 			},
-			{
-				Namespace: resources.InfraProviderNamespace,
-				Type:      infra.ConfigPatchRequestType,
-				Kind:      controller.InputQMappedDestroyReady,
+		)
+	} else {
+		inputs = append(inputs,
+			controller.Input{
+				Namespace: resources.DefaultNamespace,
+				Type:      siderolinkres.ConnectionParamsType,
+				Kind:      controller.InputQMapped,
+				ID:        optional.Some(siderolinkres.ConfigID),
 			},
-			{
-				Namespace: t.ResourceDefinition().DefaultNamespace,
-				Type:      t.ResourceDefinition().Type,
-				Kind:      controller.InputQMappedDestroyReady,
-			},
+		)
+	}
+
+	return controller.QSettings{
+		RunHook: func(ctx context.Context, _ *zap.Logger, q controller.QRuntime) error {
+			return ctrl.cleanupDanglingMachines(ctx, q)
 		},
+		Inputs: inputs,
 		Outputs: []controller.Output{
 			{
 				Kind: controller.OutputExclusive,
@@ -385,23 +408,43 @@ func (ctrl *ProvisionController[T]) initializeStatus(ctx context.Context, r cont
 }
 
 func (ctrl *ProvisionController[T]) getConnectionArgs(ctx context.Context, r controller.QRuntime, request *infra.MachineRequest) (provision.ConnectionParams, error) {
-	providerJoinConfig, err := safe.ReaderGetByID[*siderolinkres.ProviderJoinConfig](ctx, r, ctrl.providerID)
-	if err != nil {
-		return provision.ConnectionParams{}, err
-	}
+	var options []siderolink.JoinConfigOption
 
-	siderolinkAPIConfig, err := safe.ReaderGetByID[*siderolinkres.APIConfig](ctx, r, siderolinkres.ConfigID)
-	if err != nil {
-		return provision.ConnectionParams{}, err
-	}
+	if ctrl.useV2Tokens {
+		providerJoinConfig, err := safe.ReaderGetByID[*siderolinkres.ProviderJoinConfig](ctx, r, ctrl.providerID)
+		if err != nil {
+			return provision.ConnectionParams{}, err
+		}
 
-	options := []siderolink.JoinConfigOption{
-		siderolink.WithJoinToken(providerJoinConfig.TypedSpec().Value.JoinToken),
-		siderolink.WithMachineAPIURL(siderolinkAPIConfig.TypedSpec().Value.MachineApiAdvertisedUrl),
-		siderolink.WithGRPCTunnel(request.TypedSpec().Value.GrpcTunnel == specs.GrpcTunnelMode_ENABLED),
-		siderolink.WithEventSinkPort(int(siderolinkAPIConfig.TypedSpec().Value.EventsPort)),
-		siderolink.WithLogServerPort(int(siderolinkAPIConfig.TypedSpec().Value.LogsPort)),
-		siderolink.WithProvider(infra.NewProvider(ctrl.providerID)),
+		siderolinkAPIConfig, err := safe.ReaderGetByID[*siderolinkres.APIConfig](ctx, r, siderolinkres.ConfigID)
+		if err != nil {
+			return provision.ConnectionParams{}, err
+		}
+
+		options = []siderolink.JoinConfigOption{
+			siderolink.WithJoinToken(providerJoinConfig.TypedSpec().Value.JoinToken),
+			siderolink.WithMachineAPIURL(siderolinkAPIConfig.TypedSpec().Value.MachineApiAdvertisedUrl),
+			siderolink.WithGRPCTunnel(request.TypedSpec().Value.GrpcTunnel == specs.GrpcTunnelMode_ENABLED),
+			siderolink.WithEventSinkPort(int(siderolinkAPIConfig.TypedSpec().Value.EventsPort)),
+			siderolink.WithLogServerPort(int(siderolinkAPIConfig.TypedSpec().Value.LogsPort)),
+			siderolink.WithProvider(infra.NewProvider(ctrl.providerID)),
+		}
+	} else {
+		// legacy flow
+		connectionParams, err := safe.ReaderGetByID[*siderolinkres.ConnectionParams](ctx, r, siderolinkres.ConfigID)
+		if err != nil {
+			return provision.ConnectionParams{}, err
+		}
+
+		options = []siderolink.JoinConfigOption{
+			siderolink.WithJoinToken(connectionParams.TypedSpec().Value.JoinToken),
+			siderolink.WithMachineAPIURL(connectionParams.TypedSpec().Value.ApiEndpoint),
+			siderolink.WithGRPCTunnel(request.TypedSpec().Value.GrpcTunnel == specs.GrpcTunnelMode_ENABLED),
+			siderolink.WithEventSinkPort(int(connectionParams.TypedSpec().Value.EventsPort)),
+			siderolink.WithLogServerPort(int(connectionParams.TypedSpec().Value.LogsPort)),
+			siderolink.WithProvider(infra.NewProvider(ctrl.providerID)),
+			siderolink.WithJoinTokenVersion(jointoken.Version1),
+		}
 	}
 
 	if ctrl.encodeRequestIDsIntoTokens {

@@ -61,7 +61,7 @@ func (suite *ProviderJoinConfigSuite) TestReconcile() {
 		},
 	)
 
-	jt, err := jointoken.NewWithExtraData(token, map[string]string{
+	jt, err := jointoken.NewWithExtraData(token, jointoken.Version2, map[string]string{
 		omni.LabelInfraProviderID: provider.Metadata().ID(),
 	})
 

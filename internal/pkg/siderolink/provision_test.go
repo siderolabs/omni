@@ -572,7 +572,7 @@ func TestProvision(t *testing.T) {
 
 		state, provisionHandler := setup(ctx, t, config.JoinTokensModeStrict)
 
-		token, err := jointoken.NewWithExtraData(validToken, map[string]string{
+		token, err := jointoken.NewWithExtraData(validToken, jointoken.Version1, map[string]string{
 			omni.LabelMachineRequest: "hi",
 		})
 
@@ -628,7 +628,7 @@ func TestProvision(t *testing.T) {
 			providerUniqueToken = cfg.TypedSpec().Value.JoinToken
 		})
 
-		token, err := jointoken.NewWithExtraData(providerUniqueToken, map[string]string{
+		token, err := jointoken.NewWithExtraData(providerUniqueToken, jointoken.Version2, map[string]string{
 			omni.LabelInfraProviderID: providerID,
 		})
 
@@ -680,7 +680,7 @@ func TestProvision(t *testing.T) {
 			assert.NotEmpty(cfg.TypedSpec().Value.JoinToken)
 		})
 
-		token, err := jointoken.NewWithExtraData("meow", map[string]string{
+		token, err := jointoken.NewWithExtraData("meow", jointoken.Version2, map[string]string{
 			omni.LabelInfraProviderID: providerID,
 		})
 
@@ -703,7 +703,7 @@ func TestProvision(t *testing.T) {
 		_, err = provisionHandler.Provision(ctx, request)
 		require.Equal(t, codes.PermissionDenied, status.Code(err))
 
-		token, err = jointoken.NewWithExtraData(validToken, map[string]string{
+		token, err = jointoken.NewWithExtraData(validToken, jointoken.Version2, map[string]string{
 			omni.LabelInfraProviderID: "nonexistent",
 		})
 

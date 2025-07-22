@@ -32,6 +32,7 @@ type JoinConfigOptions struct {
 	extraTokenData              map[string]string
 	joinToken                   string
 	machineAPIURL               string
+	version                     string
 	useGRPCTunnel               bool
 	withoutSiderolinkJoinConfig bool
 	logServerPort               int
@@ -72,6 +73,15 @@ func WithMachine(machine *omni.Machine) JoinConfigOption {
 		if providerID, ok := machine.Metadata().Annotations().Get(omni.LabelInfraProviderID); ok {
 			opts.extraTokenData[omni.LabelInfraProviderID] = providerID
 		}
+	}
+}
+
+// WithJoinTokenVersion sets the version of the join token.
+//
+// If not set, it will default to jointoken.Version2.
+func WithJoinTokenVersion(version string) JoinConfigOption {
+	return func(opts *JoinConfigOptions) {
+		opts.version = version
 	}
 }
 
@@ -145,6 +155,10 @@ func NewJoinOptions(opts ...JoinConfigOption) (*JoinOptions, error) {
 
 	for _, o := range opts {
 		o(&options)
+	}
+
+	if options.version == "" {
+		options.version = jointoken.Version2
 	}
 
 	if options.logServerPort == 0 {
@@ -272,7 +286,7 @@ func encodeToken(options JoinConfigOptions) (string, error) {
 	}
 
 	if len(options.extraTokenData) != 0 {
-		jt, err := jointoken.NewWithExtraData(options.joinToken, options.extraTokenData)
+		jt, err := jointoken.NewWithExtraData(options.joinToken, options.version, options.extraTokenData)
 		if err != nil {
 			return "", err
 		}

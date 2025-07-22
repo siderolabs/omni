@@ -21,6 +21,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
+	"github.com/cosi-project/runtime/pkg/state/registry"
 	"github.com/google/uuid"
 	"github.com/siderolabs/gen/channel"
 	"github.com/siderolabs/image-factory/pkg/schematic"
@@ -37,6 +38,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/jointoken"
 	infrares "github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	resourceregistry "github.com/siderolabs/omni/client/pkg/omni/resources/registry"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
 
@@ -366,6 +368,15 @@ func TestInfra(t *testing.T) {
 
 func setupInfra(ctx context.Context, t *testing.T, p *provisioner, opts ...infra.Option) state.State {
 	state := state.WrapCore(namespaced.NewState(inmem.Build))
+
+	resourceRegistry := registry.NewResourceRegistry(state)
+
+	require.NoError(t, resourceRegistry.RegisterDefault(ctx))
+
+	// register Omni resources
+	for _, r := range resourceregistry.Resources {
+		require.NoError(t, resourceRegistry.Register(ctx, r))
+	}
 
 	logger := zaptest.NewLogger(t)
 

@@ -12,6 +12,8 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/controller/runtime"
+	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -137,12 +139,18 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 		return err
 	}
 
+	rds, err := getResourceDefinitions(ctx, st)
+	if err != nil {
+		return err
+	}
+
 	if err = runtime.RegisterQController(controllers.NewProvisionController(
 		provider.id,
 		provider.provisioner,
 		options.concurrency,
 		options.imageFactory,
 		options.encodeRequestIDsIntoTokens,
+		rds,
 	)); err != nil {
 		return err
 	}
@@ -183,6 +191,21 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 	}
 
 	return runtime.Run(ctx)
+}
+
+func getResourceDefinitions(ctx context.Context, state state.State) (map[string]struct{}, error) {
+	resp, err := state.List(ctx, resource.NewMetadata(meta.NamespaceName, meta.ResourceDefinitionType, "", resource.VersionUndefined))
+	if err != nil {
+		return nil, err
+	}
+
+	rds := make(map[string]struct{}, len(resp.Items))
+
+	for _, rd := range resp.Items {
+		rds[rd.Metadata().ID()] = struct{}{}
+	}
+
+	return rds, nil
 }
 
 // ResourceType generates the correct resource name for the resources managed by the infra providers.
