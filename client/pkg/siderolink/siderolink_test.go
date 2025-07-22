@@ -118,6 +118,24 @@ func TestConnectionParamsKernelArgs(t *testing.T) {
 			eventSinkPort: 8091,
 			logServerPort: 8092,
 		},
+		{
+			joinToken: "v1:eyJleHRyYV9kYXRhIjp7Im9tbmkuc2lkZXJvLmRldi9pbmZyYS1wcm92a" +
+				"WRlci1pZCI6InRlc3QifSwic2lnbmF0dXJlIjoiWTNpZ285V2xJSVZOWWpXZmgyWlg5NnpnWW5UQjlwWTI3ZEJaVnJwNDJMZz0ifQ==",
+			name:   "already encoded",
+			apiURL: "https://127.0.0.1:8099",
+			expectedArgs: []string{
+				"siderolink.api=https://127.0.0.1:8099?jointoken=" +
+					"v1%3AeyJleHRyYV9kYXRhIjp7Im9tbmkuc2lkZXJvLmRldi9pbmZyYS1wcm92a" +
+					"WRlci1pZCI6InRlc3QifSwic2lnbmF0dXJlIjoiWTNpZ285V2xJSVZOWWpXZmgyWlg5NnpnWW5UQjlwWTI3ZEJaVnJwNDJMZz0ifQ%3D%3D",
+				"talos.events.sink=[fdae:41e4:649b:9303::1]:8091",
+				"talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092",
+			},
+			eventSinkPort: 8091,
+			logServerPort: 8092,
+			machine: &machine{
+				providerID: "test",
+			},
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			options := []siderolink.JoinConfigOption{

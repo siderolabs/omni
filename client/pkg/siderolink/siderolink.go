@@ -261,6 +261,16 @@ func (opts *JoinOptions) RenderJoinConfig() ([]byte, error) {
 }
 
 func encodeToken(options JoinConfigOptions) (string, error) {
+	token, err := jointoken.Parse(options.joinToken)
+	if err != nil {
+		return "", err
+	}
+
+	// if the token is already encoded do nothing
+	if token.Version != jointoken.VersionPlain {
+		return options.joinToken, nil
+	}
+
 	if len(options.extraTokenData) != 0 {
 		jt, err := jointoken.NewWithExtraData(options.joinToken, options.extraTokenData)
 		if err != nil {
