@@ -14,38 +14,54 @@ import (
 	"github.com/siderolabs/omni/client/pkg/jointoken"
 )
 
-func TestParse(t *testing.T) {
-	token := jointoken.NewPlain("1234")
+func TestEncodeParse(t *testing.T) {
+	t.Parallel()
+
+	t.Run("plain", func(t *testing.T) {
+		t.Parallel()
+
+		token := jointoken.NewPlain("1234")
+
+		encoded, err := token.Encode()
+
+		require.NoError(t, err)
+
+		assert.True(t, token.IsValid("1234"))
+
+		parsed, err := jointoken.Parse(encoded)
+
+		require.NoError(t, err)
+
+		assert.True(t, parsed.IsValid("1234"))
+	})
+
+	t.Run("v1", func(t *testing.T) {
+		t.Parallel()
+
+		tokenWithExtraData(t, jointoken.Version1)
+	})
+
+	t.Run("v2", func(t *testing.T) {
+		t.Parallel()
+
+		tokenWithExtraData(t, jointoken.Version2)
+	})
+}
+
+func tokenWithExtraData(t *testing.T, version string) {
+	token, err := jointoken.NewWithExtraData("1234", version, map[string]string{
+		"a": "b",
+	})
+
+	require.NoError(t, err)
 
 	encoded, err := token.Encode()
 
 	require.NoError(t, err)
 
-	assert.True(t, token.IsValid("1234"))
+	assert.True(t, strings.HasPrefix(encoded, "v"+version+":"))
 
 	parsed, err := jointoken.Parse(encoded)
-
-	require.NoError(t, err)
-
-	assert.True(t, parsed.IsValid("1234"))
-
-	token, err = jointoken.NewWithExtraData("1234", map[string]string{
-		"a": "b",
-	})
-
-	require.NotEmpty(t, token.Signature)
-
-	require.NoError(t, err)
-
-	encoded, err = token.Encode()
-
-	require.NoError(t, err)
-
-	assert.True(t, strings.HasPrefix(encoded, "v2:"))
-
-	parsed, err = jointoken.Parse(encoded)
-
-	require.NotEmpty(t, parsed.Signature)
 
 	require.NoError(t, err)
 

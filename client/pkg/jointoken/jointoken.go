@@ -74,10 +74,15 @@ func NewPlain(token string) JoinToken {
 }
 
 // NewWithExtraData creates the token with extra data.
-func NewWithExtraData(token string, extraData map[string]string) (JoinToken, error) {
+func NewWithExtraData(token, version string, extraData map[string]string) (JoinToken, error) {
+	if _, err := versionToPrefix(version); err != nil {
+		return JoinToken{}, err
+	}
+
 	t := JoinToken{
 		ExtraData: extraData,
 		token:     token,
+		Version:   version,
 	}
 
 	var err error
@@ -160,5 +165,23 @@ func (t JoinToken) Encode() (string, error) {
 		return "", err
 	}
 
-	return v2Prefix + base64.StdEncoding.EncodeToString(data), nil
+	prefix, err := versionToPrefix(t.Version)
+	if err != nil {
+		return "", err
+	}
+
+	return prefix + base64.StdEncoding.EncodeToString(data), nil
+}
+
+func versionToPrefix(version string) (string, error) {
+	switch version {
+	case Version1:
+		return v1Prefix, nil
+	case Version2:
+		return v2Prefix, nil
+	case VersionPlain:
+		return "", fmt.Errorf("version %q does not have a prefix", VersionPlain)
+	default:
+		return "", fmt.Errorf("unsupported version %q", version)
+	}
 }

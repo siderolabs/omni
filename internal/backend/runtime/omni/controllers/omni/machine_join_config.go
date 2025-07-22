@@ -14,6 +14,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -40,6 +41,11 @@ func NewMachineJoinConfigController() *MachineJoinConfigController {
 					return err
 				}
 
+				parsedTokenUsage, err := jointoken.Parse(tokenUsage.TypedSpec().Value.TokenId)
+				if err != nil {
+					return err
+				}
+
 				siderolinkAPIConfig, err := safe.ReaderGetByID[*siderolinkres.APIConfig](ctx, r, siderolinkres.ConfigID)
 				if err != nil {
 					return err
@@ -51,6 +57,7 @@ func NewMachineJoinConfigController() *MachineJoinConfigController {
 					siderolink.WithLogServerPort(int(siderolinkAPIConfig.TypedSpec().Value.LogsPort)),
 					siderolink.WithMachineAPIURL(siderolinkAPIConfig.TypedSpec().Value.MachineApiAdvertisedUrl),
 					siderolink.WithMachine(machine),
+					siderolink.WithVersion(parsedTokenUsage.Version),
 				)
 				if err != nil {
 					return err

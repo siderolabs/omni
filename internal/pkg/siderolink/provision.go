@@ -286,11 +286,19 @@ func updateResourceWithMatchingToken[T res](ctx context.Context, logger *zap.Log
 }
 
 func (h *ProvisionHandler) provision(ctx context.Context, provisionContext *provisionContext) (*pb.ProvisionResponse, error) {
-	logger := h.logger.With(zap.String("machine", provisionContext.request.NodeUuid))
+	logger := h.logger.With(
+		zap.String("machine", provisionContext.request.NodeUuid),
+		zap.Bool("node_unique_tokens_enabled", provisionContext.nodeUniqueTokensEnabled),
+		zap.Bool("supports_secure_join_tokens", provisionContext.supportsSecureJoinTokens),
+		zap.Bool("has_valid_join_token", provisionContext.hasValidJoinToken),
+		zap.Bool("has_link_node_unique_token", provisionContext.linkNodeUniqueToken != nil),
+	)
 
 	// legacy flow, let it join unconditionally
 	if !provisionContext.nodeUniqueTokensEnabled || !provisionContext.supportsSecureJoinTokens {
 		if !provisionContext.isAuthorizedLegacyJoin() {
+			logger.Warn("machine is not allowed to join using legacy join flow")
+
 			return nil, status.Error(codes.PermissionDenied, "unauthorized")
 		}
 
@@ -298,6 +306,8 @@ func (h *ProvisionHandler) provision(ctx context.Context, provisionContext *prov
 	}
 
 	if !provisionContext.isAuthorizedSecureFlow() {
+		logger.Warn("machine is not allowed to join using secure join flow")
+
 		return nil, status.Error(codes.PermissionDenied, "unauthorized")
 	}
 
@@ -661,6 +671,8 @@ func (h *ProvisionHandler) getJoinToken(ctx context.Context, tokenString string)
 
 	linkToken, err := jointoken.Parse(tokenString)
 	if err != nil {
+		h.logger.Warn("machine join token rejected: invalid join token", zap.Error(err))
+
 		return nil, status.Errorf(codes.PermissionDenied, "invalid join token %s", err)
 	}
 
