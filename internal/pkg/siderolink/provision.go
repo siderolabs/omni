@@ -388,13 +388,15 @@ func establishLink[T res](ctx context.Context, logger *zap.Logger, st state.Stat
 		}
 	}
 
-	err = safe.StateModify(ctx, st, siderolink.NewJoinTokenUsage(link.Metadata().ID()), func(res *siderolink.JoinTokenUsage) error {
-		res.TypedSpec().Value.TokenId = pointer.SafeDeref(provisionContext.request.JoinToken)
+	if link.Metadata().Type() == siderolink.LinkType {
+		err = safe.StateModify(ctx, st, siderolink.NewJoinTokenUsage(link.Metadata().ID()), func(res *siderolink.JoinTokenUsage) error {
+			res.TypedSpec().Value.TokenId = pointer.SafeDeref(provisionContext.request.JoinToken)
 
-		return nil
-	})
-	if err != nil {
-		return nil, err
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return genProvisionResponse(ctx, logger, st, provisionContext, link, link.TypedSpec().Value)
