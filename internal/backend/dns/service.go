@@ -272,8 +272,6 @@ func (d *Service) updateEntryByMachineStatus(res *omni.MachineStatus) {
 	version := res.TypedSpec().Value.TalosVersion
 	if version == "" {
 		d.logger.Warn("no Talos version in the machine status", zap.String("id", res.Metadata().ID()))
-
-		return
 	}
 
 	d.lock.Lock()
