@@ -235,7 +235,7 @@ func (opts *JoinOptions) GetKernelArgs() []string {
 }
 
 // RenderJoinConfig creates the raw join config from the JoinOptions.
-func (opts *JoinOptions) RenderJoinConfig() ([]byte, error) {
+func (opts *JoinOptions) RenderJoinConfig(extraDocuments ...config.Document) ([]byte, error) {
 	var docs []config.Document
 
 	if opts.apiURL != nil {
@@ -261,6 +261,8 @@ func (opts *JoinOptions) RenderJoinConfig() ([]byte, error) {
 
 		docs = append(docs, kmsgLogConfig)
 	}
+
+	docs = append(docs, extraDocuments...)
 
 	if len(docs) == 0 {
 		return nil, fmt.Errorf("no documents were added, the args should have either of the following options: WithMachineAPIURL, WithEventSinkPort, WithLogServerPort")

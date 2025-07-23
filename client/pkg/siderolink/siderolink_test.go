@@ -10,6 +10,8 @@ import (
 	"io"
 	"testing"
 
+	"github.com/siderolabs/talos/pkg/machinery/config/config"
+	"github.com/siderolabs/talos/pkg/machinery/config/types/security"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
 
@@ -197,6 +199,7 @@ func TestConnectionParamsJoinConfig(t *testing.T) {
 		apiURL         string
 		name           string
 		providerID     string
+		extraDocs      []config.Document
 		eventSinkPort  int
 		logServerPort  int
 		expectError    bool
@@ -313,6 +316,34 @@ url: tcp://[fdae:41e4:649b:9303::1]:8092
 		{
 			expectError: true,
 		},
+		{
+			joinToken: "abcd",
+			name:      "with all params",
+			apiURL:    "https://127.0.0.1:8099",
+			expectedConfig: `apiVersion: v1alpha1
+kind: SideroLinkConfig
+apiUrl: https://127.0.0.1:8099?jointoken=abcd
+---
+apiVersion: v1alpha1
+kind: EventSinkConfig
+endpoint: '[fdae:41e4:649b:9303::1]:8091'
+---
+apiVersion: v1alpha1
+kind: KmsgLogConfig
+name: omni-kmsg
+url: tcp://[fdae:41e4:649b:9303::1]:8092
+---
+apiVersion: v1alpha1
+kind: TrustedRootsConfig
+name: ""
+certificates: ""
+`,
+			eventSinkPort: 8091,
+			logServerPort: 8092,
+			extraDocs: []config.Document{
+				security.NewTrustedRootsConfigV1Alpha1(),
+			},
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			options := []siderolink.JoinConfigOption{
@@ -354,7 +385,7 @@ url: tcp://[fdae:41e4:649b:9303::1]:8092
 
 			require.NoError(t, err)
 
-			config, err := opts.RenderJoinConfig()
+			config, err := opts.RenderJoinConfig(tt.extraDocs...)
 			if tt.expectError {
 				require.Error(t, err)
 
