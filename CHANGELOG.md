@@ -1,3 +1,81 @@
+## [Omni 1.1.0](https://github.com/siderolabs/omni/releases/tag/v1.1.0) (2025-07-24)
+
+Welcome to the v1.1.0 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Multiple Join Token Support
+
+Omni now supports multiple SideroLink join tokens.
+It now creates the default non-expiring token, then the user can create more tokens and delete the old ones.
+
+
+### Config Change History
+
+There is now `MachineConfigDiffs.omni.sidero.dev` resource that keeps the history of
+each machine config changes.
+It keeps up to 1000 diffs for the last 30 days.
+
+
+### Contributors
+
+* Artem Chernyshev
+* Andrey Smirnov
+* Utku Ozdemir
+* Oguz Kilcan
+* Mateusz Urbanek
+
+### Changes
+<details><summary>20 commits</summary>
+<p>
+
+* [`c761e347`](https://github.com/siderolabs/omni/commit/c761e34765539bba31f47f1d395387513005a34c) release(v1.0.0-beta.1): prepare release
+* [`28158ed8`](https://github.com/siderolabs/omni/commit/28158ed855513548aa4d78bc7e0cf91e6f6d3dc3) fix: ignore `MachineStatus` having no TalosVersion in DNS service
+* [`da3f28f6`](https://github.com/siderolabs/omni/commit/da3f28f6b1f0a01c5a90216fa4b5e7aa3c780ac0) chore: support encoding extra docs in `siderolink.RenderJoinConfig`
+* [`f4582116`](https://github.com/siderolabs/omni/commit/f458211621f30c2a07720a4773dbba49d2967ce7) fix: allow encoding join tokens using v1 version
+* [`80ff037a`](https://github.com/siderolabs/omni/commit/80ff037a84d5e75c28a4836ac258f8ad9ec9fb36) fix: do not try to encode `v1/v2` tokens in siderolink.NewJoinToken
+* [`7b7c021d`](https://github.com/siderolabs/omni/commit/7b7c021da8b911780635d86e19baac78e814516e) fix: do not create `JoinTokenUsage` for `PendingMachines`
+* [`2c4f34a7`](https://github.com/siderolabs/omni/commit/2c4f34a7da44c3318da326e116a6bb8f5ccd1e65) fix: fix etcd status check in control plane status
+* [`b0f76343`](https://github.com/siderolabs/omni/commit/b0f76343100033927a40ea0e604d5be8a84b3592) feat: implement the API for reading resources and their dependency graph
+* [`e945cc7b`](https://github.com/siderolabs/omni/commit/e945cc7b8b342f5f79ecc822edd50a57d69d9210) release(v1.0.0-beta.0): prepare release
+* [`a2722856`](https://github.com/siderolabs/omni/commit/a27228563a6a649641e885cd39ef55e88d5402c5) chore: enable gRPC keepalive in the Omni client
+* [`f8de9a6d`](https://github.com/siderolabs/omni/commit/f8de9a6d96453bf3e5b9f33668fa35169ada24c0) feat: add support for imported cluster secrets
+* [`753259c2`](https://github.com/siderolabs/omni/commit/753259c26edd3e1f61a98a69d334212fa7a9a03b) fix: do not filter out noop events in the infra provider state
+* [`ab1f7cc7`](https://github.com/siderolabs/omni/commit/ab1f7cc7fab1d111d561dbf0f2239c169bada5aa) feat: implement multiple token support and token management
+* [`0e76483b`](https://github.com/siderolabs/omni/commit/0e76483bab6b9f377bf3e3779f3d02d284a9a782) chore: rekres, bump deps, Go, Talos and k8s versions, satisfy linters
+* [`e1c1aaea`](https://github.com/siderolabs/omni/commit/e1c1aaea7a304b2efbd318280afe6afbd18487ab) fix: add validation of k8s version
+* [`f1b47f08`](https://github.com/siderolabs/omni/commit/f1b47f08d9a808f5aa635d4ff5b642986305d8a2) feat: log and store redacted machine config diffs
+* [`a7ac6372`](https://github.com/siderolabs/omni/commit/a7ac63725d0c8de5cdfc6620607f072a032e383a) chore: rewrite join config generation
+* [`66c7897b`](https://github.com/siderolabs/omni/commit/66c7897bb8a657e6d7c391dfa7f35401d9a1d123) chore: update zstd module `go.mod` deps
+* [`3b701483`](https://github.com/siderolabs/omni/commit/3b7014839a91ef152b7b82c5b8ae0020ea549e31) test: reduce the log verbosity in unit tests
+* [`ff32ae4c`](https://github.com/siderolabs/omni/commit/ff32ae4c7f660a0a1c2e8159e0f9bf52c4b76955) fix: gracefully handle logServer shutdown
+</p>
+</details>
+
+### Changes from siderolabs/crypto
+<details><summary>5 commits</summary>
+<p>
+
+* [`62a079b`](https://github.com/siderolabs/crypto/commit/62a079b6915dc6dff602dca835fafbeabb6adbce) fix: update TLS config, add tests for TLS interactions
+* [`c2b4e26`](https://github.com/siderolabs/crypto/commit/c2b4e26d7d7e45e8269a040fb0251446354ba8ef) fix: remove code duplication and fix Ed255119 CA generation
+* [`2a07632`](https://github.com/siderolabs/crypto/commit/2a076326bbdd3da61460197a3fa1a0484a347478) fix: enforce FIPS-140-3 compliance
+* [`17107ae`](https://github.com/siderolabs/crypto/commit/17107ae45403a2bcd4fecfb4660b60276652b00d) fix: add generic CSR generator and OpenSSL interop
+* [`53659fc`](https://github.com/siderolabs/crypto/commit/53659fc35f6abd4ada7ffa22ef1b148cf93c0f28) refactor: split into files
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/cosi-project/runtime**            v0.10.5 -> v0.10.6
+* **github.com/siderolabs/crypto**               v0.5.1 -> v0.6.3
+* **github.com/siderolabs/talos/pkg/machinery**  v1.10.1 -> da5a4449f1a9
+* **google.golang.org/grpc**                     v1.72.0 -> v1.73.0
+
+Previous release can be found at [v0.52.0](https://github.com/siderolabs/omni/releases/tag/v0.52.0)
+
 ## [Omni 1.0.0-beta.1](https://github.com/siderolabs/omni/releases/tag/v1.0.0-beta.1) (2025-07-24)
 
 Welcome to the v1.0.0-beta.1 release of Omni!  
