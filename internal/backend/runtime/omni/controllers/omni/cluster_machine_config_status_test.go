@@ -52,6 +52,7 @@ func (suite *ClusterMachineConfigStatusSuite) registerControllers(withUpgradeSta
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(serviceConfig)))
 	suite.Require().NoError(suite.runtime.RegisterQController(newMockJoinTokenUsageController[*siderolink.Link]()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterOperationStatusController()))
 
 	if withUpgradeStatusController {
 		suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
