@@ -92,7 +92,7 @@ func (suite *GrpcSuite) SetupTest() {
 	imageFactoryClient, err := imagefactory.NewClient(suite.state, suite.imageFactory.address)
 	suite.Require().NoError(err)
 
-	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zap.InfoLevel)
+	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zap.InfoLevel, 30*time.Second)
 
 	suite.runtime, err = omniruntime.NewRuntime(
 		clientFactory, dnsService, workloadProxyReconciler, nil,
