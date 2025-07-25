@@ -21,6 +21,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
 // MachineConfigGenOptionsControllerName is the name of the MachineConfigGenOptionsController.
@@ -63,9 +64,11 @@ func NewMachineConfigGenOptionsController() *MachineConfigGenOptionsController {
 
 // GenInstallConfig creates a config patch with an automatically picked install disk.
 func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVersion *omni.ClusterMachineTalosVersion, genOptions *omni.MachineConfigGenOptions) {
+	helpers.SyncLabels(machineStatus, genOptions, omni.LabelCluster)
+
 	if clusterMachineTalosVersion != nil {
 		if genOptions.TypedSpec().Value.InstallImage == nil {
-			genOptions.TypedSpec().Value.InstallImage = &specs.MachineConfigGenOptionsSpec_InstallImage{}
+			genOptions.TypedSpec().Value.InstallImage = &specs.InstallImage{}
 		}
 
 		genOptions.TypedSpec().Value.InstallImage.SchematicId = clusterMachineTalosVersion.TypedSpec().Value.SchematicId

@@ -1063,6 +1063,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource:       siderolink.NewNodeUniqueTokenStatus(uuid.NewString()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
+			{
+				resource:       omni.NewClusterOperationStatus(resources.DefaultNamespace, uuid.NewString()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
 		}...)
 
 		// no access resources
@@ -1099,6 +1103,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource: omni.NewClusterMachineConfig(resources.DefaultNamespace, uuid.New().String()),
+			},
+			{
+				resource: omni.NewClusterMachineExtendedConfig(resources.DefaultNamespace, uuid.New().String()),
 			},
 			{
 				resource: omni.NewClusterSecrets(resources.DefaultNamespace, uuid.New().String()),

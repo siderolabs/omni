@@ -108,10 +108,12 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 			safe.WithResourceCache[*omni.ClusterMachineConfigPatches](),
 			safe.WithResourceCache[*omni.ClusterMachineConfigStatus](),
 			safe.WithResourceCache[*omni.ClusterMachineEncryptionKey](),
+			safe.WithResourceCache[*omni.ClusterMachineExtendedConfig](),
 			safe.WithResourceCache[*omni.ClusterMachineIdentity](),
 			safe.WithResourceCache[*omni.ClusterMachineStatus](),
 			safe.WithResourceCache[*omni.ClusterMachineRequestStatus](),
 			safe.WithResourceCache[*omni.ClusterMachineTalosVersion](),
+			safe.WithResourceCache[*omni.ClusterOperationStatus](),
 			safe.WithResourceCache[*omni.ClusterStatus](),
 			safe.WithResourceCache[*omni.ClusterSecrets](),
 			safe.WithResourceCache[*omni.ClusterUUID](),
@@ -317,6 +319,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		omnictrl.NewConnectionParamsController(),
 		omnictrl.NewJoinTokenStatusController(),
 		omnictrl.NewNodeUniqueTokenCleanupController(time.Minute),
+		omnictrl.NewClusterOperationStatusController(),
 	}
 
 	if config.Config.Auth.SAML.Enabled {

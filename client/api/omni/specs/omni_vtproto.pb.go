@@ -1791,11 +1791,11 @@ func (m *MachineClassSpec) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
-func (m *MachineConfigGenOptionsSpec_InstallImage) CloneVT() *MachineConfigGenOptionsSpec_InstallImage {
+func (m *InstallImage) CloneVT() *InstallImage {
 	if m == nil {
-		return (*MachineConfigGenOptionsSpec_InstallImage)(nil)
+		return (*InstallImage)(nil)
 	}
-	r := new(MachineConfigGenOptionsSpec_InstallImage)
+	r := new(InstallImage)
 	r.TalosVersion = m.TalosVersion
 	r.SchematicId = m.SchematicId
 	r.SchematicInitialized = m.SchematicInitialized
@@ -1809,7 +1809,7 @@ func (m *MachineConfigGenOptionsSpec_InstallImage) CloneVT() *MachineConfigGenOp
 	return r
 }
 
-func (m *MachineConfigGenOptionsSpec_InstallImage) CloneMessageVT() proto.Message {
+func (m *InstallImage) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -2582,6 +2582,40 @@ func (m *MachineConfigDiffSpec) CloneVT() *MachineConfigDiffSpec {
 }
 
 func (m *MachineConfigDiffSpec) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *ClusterMachineExtendedConfigSpec) CloneVT() *ClusterMachineExtendedConfigSpec {
+	if m == nil {
+		return (*ClusterMachineExtendedConfigSpec)(nil)
+	}
+	r := new(ClusterMachineExtendedConfigSpec)
+	r.ConfigSpec = m.ConfigSpec.CloneVT()
+	r.InstallImage = m.InstallImage.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ClusterMachineExtendedConfigSpec) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *ClusterOperationStatusSpec) CloneVT() *ClusterOperationStatusSpec {
+	if m == nil {
+		return (*ClusterOperationStatusSpec)(nil)
+	}
+	r := new(ClusterOperationStatusSpec)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ClusterOperationStatusSpec) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -5039,7 +5073,7 @@ func (this *MachineClassSpec) EqualMessageVT(thatMsg proto.Message) bool {
 	}
 	return this.EqualVT(that)
 }
-func (this *MachineConfigGenOptionsSpec_InstallImage) EqualVT(that *MachineConfigGenOptionsSpec_InstallImage) bool {
+func (this *InstallImage) EqualVT(that *InstallImage) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -5066,8 +5100,8 @@ func (this *MachineConfigGenOptionsSpec_InstallImage) EqualVT(that *MachineConfi
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *MachineConfigGenOptionsSpec_InstallImage) EqualMessageVT(thatMsg proto.Message) bool {
-	that, ok := thatMsg.(*MachineConfigGenOptionsSpec_InstallImage)
+func (this *InstallImage) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*InstallImage)
 	if !ok {
 		return false
 	}
@@ -6073,6 +6107,44 @@ func (this *MachineConfigDiffSpec) EqualVT(that *MachineConfigDiffSpec) bool {
 
 func (this *MachineConfigDiffSpec) EqualMessageVT(thatMsg proto.Message) bool {
 	that, ok := thatMsg.(*MachineConfigDiffSpec)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *ClusterMachineExtendedConfigSpec) EqualVT(that *ClusterMachineExtendedConfigSpec) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.ConfigSpec.EqualVT(that.ConfigSpec) {
+		return false
+	}
+	if !this.InstallImage.EqualVT(that.InstallImage) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ClusterMachineExtendedConfigSpec) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ClusterMachineExtendedConfigSpec)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *ClusterOperationStatusSpec) EqualVT(that *ClusterOperationStatusSpec) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ClusterOperationStatusSpec) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ClusterOperationStatusSpec)
 	if !ok {
 		return false
 	}
@@ -10965,7 +11037,7 @@ func (m *MachineClassSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *MachineConfigGenOptionsSpec_InstallImage) MarshalVT() (dAtA []byte, err error) {
+func (m *InstallImage) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -10978,12 +11050,12 @@ func (m *MachineConfigGenOptionsSpec_InstallImage) MarshalVT() (dAtA []byte, err
 	return dAtA[:n], nil
 }
 
-func (m *MachineConfigGenOptionsSpec_InstallImage) MarshalToVT(dAtA []byte) (int, error) {
+func (m *InstallImage) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *MachineConfigGenOptionsSpec_InstallImage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *InstallImage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -12976,6 +13048,92 @@ func (m *MachineConfigDiffSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
+func (m *ClusterMachineExtendedConfigSpec) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ClusterMachineExtendedConfigSpec) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ClusterMachineExtendedConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.InstallImage != nil {
+		size, err := m.InstallImage.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.ConfigSpec != nil {
+		size, err := m.ConfigSpec.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ClusterOperationStatusSpec) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ClusterOperationStatusSpec) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ClusterOperationStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *MachineSpec) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -14903,7 +15061,7 @@ func (m *MachineClassSpec) SizeVT() (n int) {
 	return n
 }
 
-func (m *MachineConfigGenOptionsSpec_InstallImage) SizeVT() (n int) {
+func (m *InstallImage) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -15670,6 +15828,34 @@ func (m *MachineConfigDiffSpec) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ClusterMachineExtendedConfigSpec) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ConfigSpec != nil {
+		l = m.ConfigSpec.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.InstallImage != nil {
+		l = m.InstallImage.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ClusterOperationStatusSpec) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	n += len(m.unknownFields)
 	return n
 }
@@ -27999,7 +28185,7 @@ func (m *MachineClassSpec) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *MachineConfigGenOptionsSpec_InstallImage) UnmarshalVT(dAtA []byte) error {
+func (m *InstallImage) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -28022,10 +28208,10 @@ func (m *MachineConfigGenOptionsSpec_InstallImage) UnmarshalVT(dAtA []byte) erro
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: MachineConfigGenOptionsSpec_InstallImage: wiretype end group for non-group")
+			return fmt.Errorf("proto: InstallImage: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: MachineConfigGenOptionsSpec_InstallImage: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: InstallImage: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -28313,7 +28499,7 @@ func (m *MachineConfigGenOptionsSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.InstallImage == nil {
-				m.InstallImage = &MachineConfigGenOptionsSpec_InstallImage{}
+				m.InstallImage = &InstallImage{}
 			}
 			if err := m.InstallImage.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -32751,6 +32937,180 @@ func (m *MachineConfigDiffSpec) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Diff = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ClusterMachineExtendedConfigSpec) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ClusterMachineExtendedConfigSpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ClusterMachineExtendedConfigSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConfigSpec", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ConfigSpec == nil {
+				m.ConfigSpec = &ClusterMachineConfigSpec{}
+			}
+			if err := m.ConfigSpec.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InstallImage", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.InstallImage == nil {
+				m.InstallImage = &InstallImage{}
+			}
+			if err := m.InstallImage.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ClusterOperationStatusSpec) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ClusterOperationStatusSpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ClusterOperationStatusSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

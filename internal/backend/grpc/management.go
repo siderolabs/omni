@@ -718,7 +718,7 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 		return nil, status.Error(codes.FailedPrecondition, "machine security state is not known yet")
 	}
 
-	installImage := &specs.MachineConfigGenOptionsSpec_InstallImage{
+	installImage := &specs.InstallImage{
 		TalosVersion:         req.Version,
 		SchematicId:          schematic.FullId,
 		SchematicInitialized: true,

@@ -1059,24 +1059,25 @@ message MachineClassSpec {
   Provision auto_provision = 2;
 }
 
+// InstallImage contains the information needed to build the install image URL of a machine to be used by the Talos installer.
+message InstallImage {
+  // TalosVersion is the Talos version to use for the install image.
+  string talos_version = 1;
+  // SchematicId is the schematic id to use for the install image.
+  string schematic_id = 2;
+  // SchematicInitialized is true if the schematic is initialized.
+  bool schematic_initialized = 3;
+  // SchematicInvalid is true if the schematic is invalid.
+  bool schematic_invalid = 4;
+  reserved 5;
+  // Platform is the machine platform to use for the install image.
+  string platform = 6;
+  // SecurityState is used to decide the secure boot enablement in the install image.
+  SecurityState security_state = 7;
+}
+
 // MachineConfigGenOptionsSpec describes machine related config generation inputs.
 message MachineConfigGenOptionsSpec {
-  message InstallImage {
-    // TalosVersion is the Talos version to use for the install image.
-    string talos_version = 1;
-    // SchematicId is the schematic id to use for the install image.
-    string schematic_id = 2;
-    // SchematicInitialized is true if the schematic is initialized.
-    bool schematic_initialized = 3;
-    // SchematicInvalid is true if the schematic is invalid.
-    bool schematic_invalid = 4;
-    reserved 5;
-    // Platform is the machine platform to use for the install image.
-    string platform = 6;
-    // SecurityState is used to decide the secure boot enablement in the install image.
-    SecurityState security_state = 7;
-  }
-
   string install_disk = 1;
 
   // InstallImage contains the information needed to build the install image URL of a machine to be used by the Talos installer.
@@ -1367,4 +1368,13 @@ message InfraProviderCombinedStatusSpec {
 
 message MachineConfigDiffSpec {
   string diff = 1;
+}
+
+message ClusterMachineExtendedConfigSpec {
+  ClusterMachineConfigSpec config_spec = 1;
+  InstallImage install_image = 2;
+}
+
+message ClusterOperationStatusSpec {
+  // TODO
 }

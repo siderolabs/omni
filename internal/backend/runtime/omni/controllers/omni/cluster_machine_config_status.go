@@ -31,7 +31,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
@@ -53,7 +52,7 @@ const (
 // ClusterMachineConfigStatusController manages ClusterMachineStatus resource lifecycle.
 //
 // ClusterMachineConfigStatusController applies the generated machine config  on each corresponding machine.
-type ClusterMachineConfigStatusController = qtransform.QController[*omni.ClusterMachineConfig, *omni.ClusterMachineConfigStatus]
+type ClusterMachineConfigStatusController = qtransform.QController[*omni.ClusterMachineExtendedConfig, *omni.ClusterMachineConfigStatus]
 
 // NewClusterMachineConfigStatusController initializes ClusterMachineConfigStatusController.
 //
@@ -64,15 +63,15 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 	}
 
 	return qtransform.NewQController(
-		qtransform.Settings[*omni.ClusterMachineConfig, *omni.ClusterMachineConfigStatus]{
+		qtransform.Settings[*omni.ClusterMachineExtendedConfig, *omni.ClusterMachineConfigStatus]{
 			Name: "ClusterMachineConfigStatusController",
-			MapMetadataFunc: func(machineConfig *omni.ClusterMachineConfig) *omni.ClusterMachineConfigStatus {
+			MapMetadataFunc: func(machineConfig *omni.ClusterMachineExtendedConfig) *omni.ClusterMachineConfigStatus {
 				return omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, machineConfig.Metadata().ID())
 			},
-			UnmapMetadataFunc: func(machineConfigStatus *omni.ClusterMachineConfigStatus) *omni.ClusterMachineConfig {
-				return omni.NewClusterMachineConfig(resources.DefaultNamespace, machineConfigStatus.Metadata().ID())
+			UnmapMetadataFunc: func(machineConfigStatus *omni.ClusterMachineConfigStatus) *omni.ClusterMachineExtendedConfig {
+				return omni.NewClusterMachineExtendedConfig(resources.DefaultNamespace, machineConfigStatus.Metadata().ID())
 			},
-			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, machineConfig *omni.ClusterMachineConfig, configStatus *omni.ClusterMachineConfigStatus) error {
+			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, machineConfig *omni.ClusterMachineExtendedConfig, configStatus *omni.ClusterMachineConfigStatus) error {
 				handler := clusterMachineConfigStatusControllerHandler{
 					r:             r,
 					logger:        logger,
@@ -81,8 +80,8 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 					imageFactoryHost: imageFactoryHost,
 				}
 
-				if machineConfig.TypedSpec().Value.GenerationError != "" {
-					configStatus.TypedSpec().Value.LastConfigError = machineConfig.TypedSpec().Value.GenerationError
+				if machineConfig.TypedSpec().Value.ConfigSpec.GenerationError != "" {
+					configStatus.TypedSpec().Value.LastConfigError = machineConfig.TypedSpec().Value.ConfigSpec.GenerationError
 
 					return nil
 				}
@@ -143,16 +142,7 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 					}
 				}
 
-				genOptions, err := safe.ReaderGet[*omni.MachineConfigGenOptions](ctx, r, omni.NewMachineConfigGenOptions(resources.DefaultNamespace, machineConfig.Metadata().ID()).Metadata())
-				if err != nil {
-					if state.IsNotFoundError(err) {
-						return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("'%s' machine config gen options not found: %w", machineConfig.Metadata().ID(), err)
-					}
-
-					return fmt.Errorf("failed to get install image '%s': %w", machineConfig.Metadata().ID(), err)
-				}
-
-				installImage := genOptions.TypedSpec().Value.InstallImage
+				installImage := machineConfig.TypedSpec().Value.InstallImage
 				if installImage == nil {
 					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("'%s' install image not found", machineConfig.Metadata().ID())
 				}
@@ -171,7 +161,7 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 
 				// don't run the upgrade check if the running version and expected versions match
 				if versionMismatch {
-					inSync, syncErr := handler.syncInstallImageAndSchematic(ctx, configStatus, machineStatus, machineConfig, statusSnapshot, installImage)
+					inSync, syncErr := handler.syncInstallImageAndSchematic(ctx, configStatus, machineStatus, machineConfig, statusSnapshot)
 					if syncErr != nil {
 						return syncErr
 					}
@@ -192,7 +182,7 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 					}
 				}
 
-				buffer, err := machineConfig.TypedSpec().Value.GetUncompressedData()
+				buffer, err := machineConfig.TypedSpec().Value.ConfigSpec.GetUncompressedData()
 				if err != nil {
 					return err
 				}
@@ -217,7 +207,7 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 
 				helpers.CopyLabels(machineConfig, configStatus, omni.LabelMachineSet, omni.LabelCluster, omni.LabelControlPlaneRole, omni.LabelWorkerRole)
 
-				configStatus.TypedSpec().Value.ClusterMachineVersion = machineConfig.TypedSpec().Value.ClusterMachineVersion
+				configStatus.TypedSpec().Value.ClusterMachineVersion = machineConfig.TypedSpec().Value.ConfigSpec.ClusterMachineVersion
 				configStatus.TypedSpec().Value.ClusterMachineConfigVersion = machineConfig.Metadata().Version().String()
 				configStatus.TypedSpec().Value.ClusterMachineConfigSha256 = shaSumString
 
@@ -225,7 +215,7 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 
 				return nil
 			},
-			FinalizerRemovalExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, machineConfig *omni.ClusterMachineConfig) error {
+			FinalizerRemovalExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, machineConfig *omni.ClusterMachineExtendedConfig) error {
 				handler := clusterMachineConfigStatusControllerHandler{
 					r:             r,
 					logger:        logger,
@@ -261,33 +251,30 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 		},
 		qtransform.WithConcurrency(8),
 		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.ClusterMachine, *omni.ClusterMachineConfig](),
+			qtransform.MapperSameID[*omni.ClusterMachine, *omni.ClusterMachineExtendedConfig](),
 		),
 		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.MachineStatus, *omni.ClusterMachineConfig](),
+			qtransform.MapperSameID[*omni.MachineStatus, *omni.ClusterMachineExtendedConfig](),
 		),
 		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.MachineStatusSnapshot, *omni.ClusterMachineConfig](),
+			qtransform.MapperSameID[*omni.MachineStatusSnapshot, *omni.ClusterMachineExtendedConfig](),
 		),
 		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.MachineConfigGenOptions, *omni.ClusterMachineConfig](),
+			qtransform.MapperSameID[*omni.Machine, *omni.ClusterMachineExtendedConfig](),
 		),
 		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.Machine, *omni.ClusterMachineConfig](),
-		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.NodeForceDestroyRequest, *omni.ClusterMachineConfig](),
+			qtransform.MapperSameID[*omni.NodeForceDestroyRequest, *omni.ClusterMachineExtendedConfig](),
 		),
 		qtransform.WithExtraMappedInput(
 			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, infraMachineStatus *infra.MachineStatus) ([]resource.Pointer, error) {
-				return []resource.Pointer{omni.NewClusterMachineConfig(resources.DefaultNamespace, infraMachineStatus.Metadata().ID()).Metadata()}, nil
+				return []resource.Pointer{omni.NewClusterMachineExtendedConfig(resources.DefaultNamespace, infraMachineStatus.Metadata().ID()).Metadata()}, nil
 			},
 		),
 		qtransform.WithExtraMappedInput(
-			mappers.MapClusterResourceToLabeledResources[*omni.TalosConfig, *omni.ClusterMachineConfig](),
+			mappers.MapClusterResourceToLabeledResources[*omni.TalosConfig, *omni.ClusterMachineExtendedConfig](),
 		),
 		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*siderolink.MachineJoinConfig, *omni.ClusterMachineConfig](),
+			qtransform.MapperSameID[*siderolink.MachineJoinConfig, *omni.ClusterMachineExtendedConfig](),
 		),
 		qtransform.WithExtraMappedInput(
 			qtransform.MapperNone[*omni.MachineSet](),
@@ -390,7 +377,7 @@ type clusterMachineConfigStatusControllerHandler struct {
 }
 
 func (h *clusterMachineConfigStatusControllerHandler) syncInstallImageAndSchematic(inputCtx context.Context, configStatus *omni.ClusterMachineConfigStatus,
-	machineStatus *omni.MachineStatus, machineConfig *omni.ClusterMachineConfig, statusSnapshot *omni.MachineStatusSnapshot, installImage *specs.MachineConfigGenOptionsSpec_InstallImage,
+	machineStatus *omni.MachineStatus, machineConfig *omni.ClusterMachineExtendedConfig, statusSnapshot *omni.MachineStatusSnapshot,
 ) (bool, error) {
 	// use short timeout for the all API calls but upgrade to quickly skip "dead" nodes
 	ctx, cancel := context.WithTimeout(inputCtx, 5*time.Second)
@@ -408,6 +395,7 @@ func (h *clusterMachineConfigStatusControllerHandler) syncInstallImageAndSchemat
 		return configStatus.TypedSpec().Value.TalosVersion != "", nil
 	}
 
+	installImage := machineConfig.TypedSpec().Value.InstallImage
 	if installImage.TalosVersion == "" {
 		return false, xerrors.NewTagged[qtransform.SkipReconcileTag](fmt.Errorf("machine '%s' does not have talos version", machineConfig.Metadata().ID()))
 	}
@@ -510,7 +498,7 @@ func (h *clusterMachineConfigStatusControllerHandler) stageUpgrade(actualTalosVe
 }
 
 func (h *clusterMachineConfigStatusControllerHandler) applyConfig(inputCtx context.Context,
-	machineStatus *omni.MachineStatus, machineConfig *omni.ClusterMachineConfig, statusSnapshot *omni.MachineStatusSnapshot,
+	machineStatus *omni.MachineStatus, machineConfig *omni.ClusterMachineExtendedConfig, statusSnapshot *omni.MachineStatusSnapshot,
 	configStatus *omni.ClusterMachineConfigStatus,
 ) error {
 	ctx, cancel := context.WithTimeout(inputCtx, 5*time.Second)
@@ -554,7 +542,7 @@ func (h *clusterMachineConfigStatusControllerHandler) applyConfig(inputCtx conte
 	ctx, applyCancel := context.WithTimeout(inputCtx, time.Minute)
 	defer applyCancel()
 
-	data, err := machineConfig.TypedSpec().Value.GetUncompressedData()
+	data, err := machineConfig.TypedSpec().Value.ConfigSpec.GetUncompressedData()
 	if err != nil {
 		return err
 	}
@@ -602,7 +590,7 @@ func logClose(c io.Closer, logger *zap.Logger, additional string) {
 //nolint:gocyclo,cyclop,gocognit
 func (h *clusterMachineConfigStatusControllerHandler) reset(
 	ctx context.Context,
-	machineConfig *omni.ClusterMachineConfig,
+	machineConfig *omni.ClusterMachineExtendedConfig,
 	clusterMachine *omni.ClusterMachine,
 ) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -820,7 +808,7 @@ func (h *clusterMachineConfigStatusControllerHandler) getClient(
 	ctx context.Context,
 	useMaintenance bool,
 	machineStatus *omni.MachineStatus,
-	machineConfig *omni.ClusterMachineConfig,
+	machineConfig *omni.ClusterMachineExtendedConfig,
 ) (*client.Client, error) {
 	address := machineStatus.TypedSpec().Value.ManagementAddress
 	opts := talos.GetSocketOptions(address)
@@ -865,7 +853,7 @@ func (h *clusterMachineConfigStatusControllerHandler) getClient(
 	return result, nil
 }
 
-func (h *clusterMachineConfigStatusControllerHandler) deleteUpgradeMetaKey(ctx context.Context, machineStatus *omni.MachineStatus, machineConfig *omni.ClusterMachineConfig) error {
+func (h *clusterMachineConfigStatusControllerHandler) deleteUpgradeMetaKey(ctx context.Context, machineStatus *omni.MachineStatus, machineConfig *omni.ClusterMachineExtendedConfig) error {
 	client, err := h.getClient(ctx, false, machineStatus, machineConfig)
 	if err != nil {
 		return fmt.Errorf("failed to get client for machine %q: %w", machineConfig.Metadata().ID(), err)

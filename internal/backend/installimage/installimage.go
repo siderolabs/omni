@@ -18,7 +18,7 @@ import (
 )
 
 // Build builds the install image for the provided properties.
-func Build(imageFactoryHost string, resID resource.ID, installImage *specs.MachineConfigGenOptionsSpec_InstallImage) (string, error) {
+func Build(imageFactoryHost string, resID resource.ID, installImage *specs.InstallImage) (string, error) {
 	if imageFactoryHost == "" {
 		return "", fmt.Errorf("image factory host is not set")
 	}
