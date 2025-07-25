@@ -105,6 +105,7 @@ spec:
         GO_LDFLAGS="$(GO_LDFLAGS)"
         GOTOOLCHAIN="$(GOTOOLCHAIN)"
         GOEXPERIMENT="$(GOEXPERIMENT)"
+        WITH_DEBUG="$(WITH_DEBUG)"
         docker compose --file ./hack/compose/docker-compose.yml --file ./hack/compose/docker-compose.override.yml up --build
 ---
 kind: custom.Step
@@ -175,6 +176,7 @@ spec:
         GO_LDFLAGS="$(GO_LDFLAGS)"
         GOTOOLCHAIN="$(GOTOOLCHAIN)"
         GOEXPERIMENT="$(GOEXPERIMENT)"
+        WITH_DEBUG="$(WITH_DEBUG)"
         docker compose --file ./hack/compose/docker-compose.yml --file ./hack/compose/docker-compose.override.yml down --rmi local --remove-orphans --volumes=$(REMOVE_VOLUMES)
 ---
 kind: custom.Step
