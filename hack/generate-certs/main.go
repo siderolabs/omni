@@ -280,4 +280,7 @@ services:
       {{- if ne .PprofBindAddress ""}}
       --pprof-bind-addr {{ .PprofBindAddress }}
       {{- end}}
+	omni-inspector:
+		environment:
+			- OMNI_ENDPOINT={{ .BindAddr }}
 `

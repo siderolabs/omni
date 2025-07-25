@@ -124,6 +124,16 @@ services:
     restart: on-failure
     command: -c "mc alias set myminio http://minio-server:9000 access secret123 && mc mb --ignore-existing myminio/mybucket"
 
+  omni-inspector:
+    image: ghcr.io/siderolabs/omni-inspector:latest
+    container_name: omni-inspector
+    depends_on:
+      - omni
+    network_mode: host
+    restart: on-failure
+    command: >-
+      --omni-debug=${WITH_DEBUG:-false}
+
 volumes:
   etcd:
   logs:
