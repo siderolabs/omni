@@ -1851,7 +1851,7 @@ func migrateConnectionParamsToController(ctx context.Context, st state.State, _ 
 	return err
 }
 
-// populateJoinTokenUsage starting from 0.53 every machine provision request creates JoinTokenUsage resource.
+// populateJoinTokenUsage starting from 1.0 every machine provision request creates JoinTokenUsage resource.
 // Already existing machines won't call provision API, but should have resources created so we do it through migration.
 // As there was no multiple join token support in Omni they can be simply populated with the default token.
 func populateJoinTokenUsage(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {

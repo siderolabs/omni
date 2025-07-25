@@ -72,9 +72,10 @@ var (
 	skipExtensionsCheckOnCreate bool
 	artifactsOutputDir          string
 
-	runEmbeddedOmni bool
-	omniConfigPath  string
-	omniLogOutput   string
+	runEmbeddedOmni     bool
+	ignoreUnknownFields bool
+	omniConfigPath      string
+	omniLogOutput       string
 )
 
 func TestIntegration(t *testing.T) {
@@ -273,6 +274,7 @@ func init() {
 	flag.BoolVar(&runEmbeddedOmni, "omni.embedded", false, "runs embedded Omni in the tests")
 	flag.StringVar(&omniConfigPath, "omni.config-path", "", "embedded Omni config path")
 	flag.StringVar(&omniLogOutput, "omni.log-output", "_out/omni-test.log", "output logs directory")
+	flag.BoolVar(&ignoreUnknownFields, "omni.ignore-unknown-fields", false, "makes Omni config loader ignore unknown fields")
 }
 
 func execCmd(ctx context.Context, parsedScript []string, args ...string) error {
@@ -391,7 +393,13 @@ func runOmni(t *testing.T) (string, error) {
 		return "", errors.New("omni.config-path must be set when running embedded Omni")
 	}
 
-	params, err := config.LoadFromFile(omniConfigPath)
+	var opts []config.ParseOption
+
+	if ignoreUnknownFields {
+		opts = append(opts, config.WithIgnoreUnknownFields())
+	}
+
+	params, err := config.LoadFromFile(omniConfigPath, opts...)
 	if err != nil {
 		return "", fmt.Errorf("failed to load omni config %w", err)
 	}

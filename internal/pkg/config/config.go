@@ -21,6 +21,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/merge"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/yaml.v3"
 
 	"github.com/siderolabs/omni/client/pkg/compression"
 	consts "github.com/siderolabs/omni/client/pkg/constants"
@@ -32,13 +33,28 @@ const (
 	wireguardDefaultPort = "50180"
 )
 
+// ParseOption describes an additional optional arg to the parseConfig function.
+type ParseOption func(*ParseOptions)
+
+// ParseOptions describes additional options for parsing the Omni config.
+type ParseOptions struct {
+	ignoreUnknownFields bool
+}
+
+// WithIgnoreUnknownFields ignores the unknown fields present in the config file.
+func WithIgnoreUnknownFields() ParseOption {
+	return func(po *ParseOptions) {
+		po.ignoreUnknownFields = true
+	}
+}
+
 // FromBytes loads the config from bytes.
-func FromBytes(data []byte) (*Params, error) {
+func FromBytes(data []byte, opts ...ParseOption) (*Params, error) {
 	return parseConfig(bytes.NewBuffer(data))
 }
 
 // LoadFromFile loads the config from the file.
-func LoadFromFile(path string) (*Params, error) {
+func LoadFromFile(path string, opts ...ParseOption) (*Params, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -46,7 +62,7 @@ func LoadFromFile(path string) (*Params, error) {
 
 	defer f.Close() //nolint:errcheck
 
-	return parseConfig(f)
+	return parseConfig(f, opts...)
 }
 
 // Default creates the new default configuration.
@@ -212,7 +228,19 @@ func Init(logger *zap.Logger, params ...*Params) (*Params, error) {
 	return config, nil
 }
 
-func parseConfig(r io.Reader) (*Params, error) {
+func parseConfig(r io.Reader, opts ...ParseOption) (*Params, error) {
+	var options ParseOptions
+
+	for _, o := range opts {
+		o(&options)
+	}
+
+	if options.ignoreUnknownFields {
+		var config Params
+
+		return &config, yaml.NewDecoder(r).Decode(&config)
+	}
+
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
