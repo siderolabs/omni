@@ -8,6 +8,7 @@ package omni
 import (
 	"github.com/cosi-project/runtime/pkg/controller/generic/cleanup"
 
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
@@ -24,6 +25,7 @@ func NewLinkCleanupController() *LinkCleanupController {
 			Handler: cleanup.Combine(
 				&helpers.SameIDHandler[*siderolink.Link, *siderolink.JoinTokenUsage]{},
 				&helpers.SameIDHandler[*siderolink.Link, *siderolink.NodeUniqueToken]{},
+				&helpers.SameIDHandler[*siderolink.Link, *omni.MachineLabels]{},
 			),
 		},
 	)
