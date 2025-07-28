@@ -638,8 +638,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 
 		joinToken := siderolink.NewJoinToken(resources.DefaultNamespace, uuid.New().String())
 
-		defaultJoinToken := siderolink.NewDefaultJoinToken()
-		*defaultJoinToken.Metadata() = resource.NewMetadata(resources.DefaultNamespace, siderolink.DefaultJoinTokenType, uuid.New().String(), resource.VersionUndefined)
+		defaultJoinToken, err := safe.StateGetByID[*siderolink.DefaultJoinToken](rootCtx, rootCli.Omni().State(), siderolink.DefaultJoinTokenID)
+
+		require.NoError(t, err)
 
 		importedClusterSecret := omni.NewImportedClusterSecrets(resources.DefaultNamespace, cluster.Metadata().ID())
 
@@ -1222,11 +1223,12 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 						default:
 							if accessErr != nil {
 								toleratedErrors := map[string]string{
-									"NotFoundError":                 "doesn't exist",
-									"ValidationError":               "failed to validate",
-									"UnsupportedError":              "unsupported resource type",
-									"AlreadyExists(AccessPolicy)":   "resource AccessPolicies.omni.sidero.dev(default/access-policy@undefined) already exists",
-									"VersionConflict(AccessPolicy)": "failed to update: resource AccessPolicies.omni.sidero.dev(default/access-policy@1) update conflict: expected version",
+									"NotFoundError":                   "doesn't exist",
+									"ValidationError":                 "failed to validate",
+									"UnsupportedError":                "unsupported resource type",
+									"AlreadyExists(DefaultJoinToken)": "resource DefaultJoinTokens.omni.sidero.dev(default/default@1) already exists",
+									"AlreadyExists(AccessPolicy)":     "resource AccessPolicies.omni.sidero.dev(default/access-policy@undefined) already exists",
+									"VersionConflict(AccessPolicy)":   "failed to update: resource AccessPolicies.omni.sidero.dev(default/access-policy@1) update conflict: expected version",
 								}
 
 								isExpectedError := false

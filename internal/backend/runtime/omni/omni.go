@@ -400,7 +400,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		infraMachineConfigValidationOptions(cachedState),
 		nodeForceDestroyRequestValidationOptions(cachedState),
 		joinTokenValidationOptions(cachedState),
-		defaultJoinTokenValidationOptions(),
+		defaultJoinTokenValidationOptions(cachedState),
 		importedClusterSecretValidationOptions(cachedState, config.Config.Features.EnableClusterImport),
 	)
 

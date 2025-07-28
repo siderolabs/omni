@@ -1176,9 +1176,26 @@ func joinTokenValidationOptions(st state.State) []validated.StateOption {
 	}
 }
 
-func defaultJoinTokenValidationOptions() []validated.StateOption {
+func defaultJoinTokenValidationOptions(st state.State) []validated.StateOption {
+	validateToken := func(ctx context.Context, id string) error {
+		_, err := safe.ReaderGetByID[*siderolink.JoinToken](ctx, st, id)
+		if err != nil {
+			if state.IsNotFoundError(err) {
+				return fmt.Errorf("no token with id %q exists", id)
+			}
+
+			return err
+		}
+
+		return nil
+	}
+
 	return []validated.StateOption{
-		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, _, res *siderolink.DefaultJoinToken, _ ...state.UpdateOption) error {
+		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(ctx context.Context, _, res *siderolink.DefaultJoinToken, _ ...state.UpdateOption) error {
+			if err := validateToken(ctx, res.TypedSpec().Value.TokenId); err != nil {
+				return err
+			}
+
 			if res.Metadata().Phase() == resource.PhaseTearingDown {
 				if res.Metadata().ID() != siderolink.DefaultJoinTokenID {
 					return nil
@@ -1190,7 +1207,11 @@ func defaultJoinTokenValidationOptions() []validated.StateOption {
 			return nil
 		})),
 		validated.WithDestroyValidations(validated.NewDestroyValidationForType(
-			func(_ context.Context, _ resource.Pointer, res *siderolink.DefaultJoinToken, _ ...state.DestroyOption) error {
+			func(ctx context.Context, _ resource.Pointer, res *siderolink.DefaultJoinToken, _ ...state.DestroyOption) error {
+				if err := validateToken(ctx, res.TypedSpec().Value.TokenId); err != nil {
+					return err
+				}
+
 				if res.Metadata().ID() != siderolink.DefaultJoinTokenID {
 					return nil
 				}

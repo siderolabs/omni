@@ -1474,10 +1474,18 @@ func TestDefaultJoinTokenValidation(t *testing.T) {
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.DefaultJoinTokenValidationOptions()...)
+	st := validated.NewState(innerSt, omni.DefaultJoinTokenValidationOptions(innerSt)...)
 	wrappedState := state.WrapCore(st)
 
 	defaultToken := siderolink.NewDefaultJoinToken()
+
+	joinToken := siderolink.NewJoinToken(resources.DefaultNamespace, "mm")
+
+	require.NoError(t, st.Create(ctx, joinToken))
+
+	joinToken = siderolink.NewJoinToken(resources.DefaultNamespace, "mmmm")
+
+	require.NoError(t, st.Create(ctx, joinToken))
 
 	defaultToken.TypedSpec().Value.TokenId = "mm"
 
@@ -1490,6 +1498,14 @@ func TestDefaultJoinTokenValidation(t *testing.T) {
 	})
 
 	assert.NoError(t, err)
+
+	_, err = safe.StateUpdateWithConflicts(ctx, wrappedState, defaultToken.Metadata(), func(token *siderolink.DefaultJoinToken) error {
+		token.TypedSpec().Value.TokenId = "mmmmmm"
+
+		return nil
+	})
+
+	assert.Error(t, err)
 
 	_, err = wrappedState.Teardown(ctx, defaultToken.Metadata())
 

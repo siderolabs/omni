@@ -94,8 +94,8 @@ func JoinTokenValidationOptions(st state.State) []validated.StateOption {
 	return joinTokenValidationOptions(st)
 }
 
-func DefaultJoinTokenValidationOptions() []validated.StateOption {
-	return defaultJoinTokenValidationOptions()
+func DefaultJoinTokenValidationOptions(st state.State) []validated.StateOption {
+	return defaultJoinTokenValidationOptions(st)
 }
 
 func ImportedClusterSecretValidationOptions(st state.State, clusterImportEnabled bool) []validated.StateOption {

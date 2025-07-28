@@ -20,6 +20,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
 )
@@ -399,4 +400,22 @@ func (client *ClusterClient) KubernetesSyncManifests(ctx context.Context, dryRun
 			return err
 		}
 	}
+}
+
+// CreateJoinToken creates a join token and returns it's ID.
+func (client *Client) CreateJoinToken(ctx context.Context, name string, ttl time.Duration) (string, error) {
+	var expirationTime *timestamppb.Timestamp
+	if ttl > 0 {
+		expirationTime = timestamppb.New(time.Now().Add(ttl))
+	}
+
+	resp, err := client.conn.CreateJoinToken(ctx, &management.CreateJoinTokenRequest{
+		Name:           name,
+		ExpirationTime: expirationTime,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return resp.Id, nil
 }
