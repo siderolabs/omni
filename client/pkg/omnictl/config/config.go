@@ -180,6 +180,10 @@ func (c *Config) Merge(additionalConfigPath string) ([]Rename, error) {
 			renames = append(renames, Rename{name, mergedName})
 		}
 
+		if c.Contexts == nil {
+			c.Contexts = map[string]*Context{}
+		}
+
 		c.Contexts[mergedName] = ctx
 	}
 
