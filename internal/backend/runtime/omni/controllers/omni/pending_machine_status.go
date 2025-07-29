@@ -6,13 +6,9 @@
 package omni
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"net/netip"
-	"slices"
 	"strings"
 	"time"
 
@@ -24,7 +20,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/talos/pkg/machinery/client"
-	"github.com/siderolabs/talos/pkg/machinery/resources/network"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/jointoken"
@@ -103,40 +98,6 @@ func (handler *pendingMachineStatusHandler) reconcileRunning(
 	return handler.generateUniqueNodeToken(ctx, c, logger, pendingMachineStatus)
 }
 
-// getMachineFingerprint gets all network devices and calculates the checksum out of their mac addresses.
-func (handler *pendingMachineStatusHandler) getMachineFingerprint(ctx context.Context, c *client.Client) (string, error) {
-	links, err := safe.ReaderListAll[*network.LinkStatus](ctx, c.COSI)
-	if err != nil {
-		return "", err
-	}
-
-	macAddresses := make([][]byte, 0, links.Len())
-
-	for link := range links.All() {
-		if !link.TypedSpec().Physical() {
-			continue
-		}
-
-		for _, addr := range [][]byte{link.TypedSpec().PermanentAddr, link.TypedSpec().HardwareAddr} {
-			if addr != nil {
-				macAddresses = append(macAddresses, addr)
-
-				break
-			}
-		}
-	}
-
-	slices.SortFunc(macAddresses, bytes.Compare)
-
-	hash := sha256.New()
-
-	for _, addr := range macAddresses {
-		hash.Write(addr)
-	}
-
-	return hex.EncodeToString(hash.Sum(nil)), nil
-}
-
 func (handler *pendingMachineStatusHandler) detectTalosInstallation(
 	ctx context.Context,
 	c *client.Client,
@@ -171,7 +132,7 @@ func (handler *pendingMachineStatusHandler) generateUniqueNodeToken(
 		return nil
 	}
 
-	fingerprint, err := handler.getMachineFingerprint(ctx, c)
+	fingerprint, err := jointoken.GetMachineFingerprint(ctx, c)
 	if err != nil {
 		return err
 	}

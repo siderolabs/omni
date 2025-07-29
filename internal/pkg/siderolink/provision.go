@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
@@ -32,20 +31,19 @@ import (
 	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/client/pkg/siderolink"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
-var minSupportedSecureTokensVersion = semver.MustParse("1.6.0")
-
 var errUUIDConflict = fmt.Errorf("UUID conflict")
 
 type provisionContext struct {
-	siderolinkConfig       *siderolink.Config
-	link                   *siderolink.Link
-	pendingMachine         *siderolink.PendingMachine
-	pendingMachineStatus   *siderolink.PendingMachineStatus
+	siderolinkConfig       *siderolinkres.Config
+	link                   *siderolinkres.Link
+	pendingMachine         *siderolinkres.PendingMachine
+	pendingMachineStatus   *siderolinkres.PendingMachineStatus
 	token                  *jointoken.JoinToken
 	requestNodeUniqueToken *jointoken.NodeUniqueToken
 	linkNodeUniqueToken    *jointoken.NodeUniqueToken
@@ -104,7 +102,7 @@ func (h *ProvisionHandler) runCleanup(ctx context.Context) error {
 		case <-ctx.Done():
 			return nil
 		case <-ticker.C:
-			pendingMachines, err := safe.ReaderListAll[*siderolink.PendingMachine](ctx, h.state)
+			pendingMachines, err := safe.ReaderListAll[*siderolinkres.PendingMachine](ctx, h.state)
 			if err != nil {
 				h.logger.Error("pending machine cleanup failed", zap.Error(err))
 			}
@@ -173,7 +171,7 @@ func newLink[T res](provisionContext *provisionContext,
 
 	rd := zero.ResourceDefinition()
 
-	if rd.Type == siderolink.LinkType {
+	if rd.Type == siderolinkres.LinkType {
 		id = provisionContext.request.NodeUuid
 	} else {
 		id = provisionContext.request.NodePublicKey
@@ -211,7 +209,7 @@ func newLink[T res](provisionContext *provisionContext,
 		return zero, err
 	}
 
-	if link.Metadata().Type() == siderolink.PendingMachineType {
+	if link.Metadata().Type() == siderolinkres.PendingMachineType {
 		link.Metadata().Labels().Set(omni.MachineUUID, provisionContext.request.NodeUuid)
 	}
 
@@ -220,40 +218,42 @@ func newLink[T res](provisionContext *provisionContext,
 	return link, nil
 }
 
-func updateNodeUniqueToken(ctx context.Context, logger *zap.Logger, st state.State, provisionContext *provisionContext, md *resource.Metadata) error {
-	return safe.StateModify(ctx, st, siderolink.NewNodeUniqueToken(md.ID()), func(res *siderolink.NodeUniqueToken) error {
-		defer func() {
-			res.TypedSpec().Value.Token = pointer.SafeDeref(provisionContext.request.NodeUniqueToken)
-		}()
+func updateNodeUniqueToken(ctx context.Context, logger *zap.Logger, st state.State, provisionContext *provisionContext) error {
+	return safe.StateModify(ctx, st, siderolinkres.NewNodeUniqueToken(provisionContext.request.NodeUuid),
+		func(res *siderolinkres.NodeUniqueToken) error {
+			defer func() {
+				res.TypedSpec().Value.Token = pointer.SafeDeref(provisionContext.request.NodeUniqueToken)
+			}()
 
-		if res.TypedSpec().Value.Token == "" {
-			return nil
-		}
+			if res.TypedSpec().Value.Token == "" {
+				return nil
+			}
 
-		linkNodeUniqueToken, err := jointoken.ParseNodeUniqueToken(res.TypedSpec().Value.Token)
-		if err != nil {
-			return err
-		}
+			linkNodeUniqueToken, err := jointoken.ParseNodeUniqueToken(res.TypedSpec().Value.Token)
+			if err != nil {
+				return err
+			}
 
-		if linkNodeUniqueToken.Equal(provisionContext.requestNodeUniqueToken) ||
-			!provisionContext.forceValidNodeUniqueToken && provisionContext.requestNodeUniqueToken.IsSameFingerprint(linkNodeUniqueToken) {
-			logger.Debug("overwrite the existing node unique token")
+			if linkNodeUniqueToken.Equal(provisionContext.requestNodeUniqueToken) ||
+				!provisionContext.forceValidNodeUniqueToken && provisionContext.requestNodeUniqueToken.IsSameFingerprint(linkNodeUniqueToken) {
+				logger.Debug("overwrite the existing node unique token")
 
-			return nil
-		}
+				return nil
+			}
 
-		// the token has the same fingerprint, but the random part doesn't match
-		// return the error
-		// this case might happen if there is a hardware failure, so that the node
-		// has lost it's META partition contents
-		if linkNodeUniqueToken.IsSameFingerprint(provisionContext.requestNodeUniqueToken) {
-			logger.Warn("machine connection rejected: the machine has the correct fingerprint, but the random token part doesn't match")
+			// the token has the same fingerprint, but the random part doesn't match
+			// return the error
+			// this case might happen if there is a hardware failure, so that the node
+			// has lost it's META partition contents
+			if linkNodeUniqueToken.IsSameFingerprint(provisionContext.requestNodeUniqueToken) {
+				logger.Warn("machine connection rejected: the machine has the correct fingerprint, but the random token part doesn't match")
 
-			return status.Error(codes.PermissionDenied, "unauthorized")
-		}
+				return status.Error(codes.PermissionDenied, "unauthorized")
+			}
 
-		return errUUIDConflict
-	})
+			return errUUIDConflict
+		},
+	)
 }
 
 func updateResource[T res](ctx context.Context, logger *zap.Logger,
@@ -262,7 +262,7 @@ func updateResource[T res](ctx context.Context, logger *zap.Logger,
 	return safe.StateUpdateWithConflicts(ctx, st, r.Metadata(), func(link T) error {
 		s := link.TypedSpec().Value
 
-		if link.Metadata().Type() == siderolink.PendingMachineType {
+		if link.Metadata().Type() == siderolinkres.PendingMachineType {
 			link.Metadata().Annotations().Set("timestamp", time.Now().String())
 		}
 
@@ -304,7 +304,7 @@ func (h *ProvisionHandler) provision(ctx context.Context, provisionContext *prov
 			return nil, status.Error(codes.PermissionDenied, "unauthorized")
 		}
 
-		return establishLink[*siderolink.Link](ctx, h.logger, h.state, provisionContext, nil, nil)
+		return establishLink[*siderolinkres.Link](ctx, h.logger, h.state, provisionContext, nil, nil)
 	}
 
 	if !provisionContext.isAuthorizedSecureFlow() {
@@ -317,7 +317,7 @@ func (h *ProvisionHandler) provision(ctx context.Context, provisionContext *prov
 	// put the machine into the limbo state by creating the pending machine resource
 	// the controller will then pick it up and create a wireguard peer for it
 	if provisionContext.requestNodeUniqueToken == nil {
-		return establishLink[*siderolink.PendingMachine](ctx, h.logger, h.state, provisionContext, nil, nil)
+		return establishLink[*siderolinkres.PendingMachine](ctx, h.logger, h.state, provisionContext, nil, nil)
 	}
 
 	annotationsToAdd := []string{}
@@ -326,14 +326,14 @@ func (h *ProvisionHandler) provision(ctx context.Context, provisionContext *prov
 	switch {
 	// the token was wiped, reset the link annotation until Talos gets installed again
 	case provisionContext.tokenWasWiped:
-		annotationsToRemove = append(annotationsToRemove, siderolink.ForceValidNodeUniqueToken)
+		annotationsToRemove = append(annotationsToRemove, siderolinkres.ForceValidNodeUniqueToken)
 	// if we detected that Talos installed during provision
 	// mark the link with the annotation to block using the link without the unique node token
 	case provisionContext.forceValidNodeUniqueToken:
-		annotationsToAdd = append(annotationsToAdd, siderolink.ForceValidNodeUniqueToken)
+		annotationsToAdd = append(annotationsToAdd, siderolinkres.ForceValidNodeUniqueToken)
 	}
 
-	response, err := establishLink[*siderolink.Link](ctx, h.logger, h.state, provisionContext, annotationsToAdd, annotationsToRemove)
+	response, err := establishLink[*siderolinkres.Link](ctx, h.logger, h.state, provisionContext, annotationsToAdd, annotationsToRemove)
 	if err != nil {
 		if errors.Is(err, errUUIDConflict) {
 			logger.Info("detected UUID conflict", zap.String("peer", provisionContext.request.NodePublicKey))
@@ -341,7 +341,7 @@ func (h *ProvisionHandler) provision(ctx context.Context, provisionContext *prov
 			// link is there, but the token doesn't match and the fingerprint differs, keep the machine in the limbo state
 			// mark pending machine as having the UUID conflict, PendingMachineStatus controller should inject the new UUID
 			// and the machine will re-join
-			return establishLink[*siderolink.PendingMachine](ctx, h.logger, h.state, provisionContext, []string{siderolink.PendingMachineUUIDConflict}, nil)
+			return establishLink[*siderolinkres.PendingMachine](ctx, h.logger, h.state, provisionContext, []string{siderolinkres.PendingMachineUUIDConflict}, nil)
 		}
 
 		return nil, err
@@ -350,7 +350,7 @@ func (h *ProvisionHandler) provision(ctx context.Context, provisionContext *prov
 	return response, nil
 }
 
-func (h *ProvisionHandler) removePendingMachine(ctx context.Context, pendingMachine *siderolink.PendingMachine) error {
+func (h *ProvisionHandler) removePendingMachine(ctx context.Context, pendingMachine *siderolinkres.PendingMachine) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
 
@@ -389,9 +389,13 @@ func establishLink[T res](ctx context.Context, logger *zap.Logger, st state.Stat
 		return nil, err
 	}
 
-	if link.Metadata().Type() == siderolink.LinkType && provisionContext.requestNodeUniqueToken != nil {
-		if err = updateNodeUniqueToken(ctx, logger, st, provisionContext, link.Metadata()); err != nil {
-			return nil, err
+	if provisionContext.requestNodeUniqueToken != nil {
+		link.Metadata().Annotations().Set(omni.CreatedWithUniqueToken, "")
+
+		if link.Metadata().Type() == siderolinkres.LinkType {
+			if err = updateNodeUniqueToken(ctx, logger, st, provisionContext); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -410,8 +414,8 @@ func establishLink[T res](ctx context.Context, logger *zap.Logger, st state.Stat
 		}
 	}
 
-	if link.Metadata().Type() == siderolink.LinkType {
-		err = safe.StateModify(ctx, st, siderolink.NewJoinTokenUsage(link.Metadata().ID()), func(res *siderolink.JoinTokenUsage) error {
+	if link.Metadata().Type() == siderolinkres.LinkType {
+		err = safe.StateModify(ctx, st, siderolinkres.NewJoinTokenUsage(link.Metadata().ID()), func(res *siderolinkres.JoinTokenUsage) error {
 			res.TypedSpec().Value.TokenId = pointer.SafeDeref(provisionContext.request.JoinToken)
 
 			return nil
@@ -433,7 +437,7 @@ func genProvisionResponse(ctx context.Context, logger *zap.Logger, st state.Stat
 	logger.Debug("waiting for the Wireguard peer to be created", zap.String("link", link.Metadata().String()))
 
 	_, err := st.WatchFor(ctx,
-		siderolink.NewLinkStatus(link).Metadata(),
+		siderolinkres.NewLinkStatus(link).Metadata(),
 		state.WithPhases(resource.PhaseRunning),
 		state.WithCondition(func(r resource.Resource) (bool, error) {
 			return !resource.IsTombstone(r), nil
@@ -525,12 +529,12 @@ func generateVirtualAddrPort(generate bool) (string, error) {
 
 //nolint:gocyclo,cyclop
 func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.ProvisionRequest) (*provisionContext, error) {
-	link, err := safe.StateGetByID[*siderolink.Link](ctx, h.state, req.NodeUuid)
+	link, err := safe.StateGetByID[*siderolinkres.Link](ctx, h.state, req.NodeUuid)
 	if err != nil && !state.IsNotFoundError(err) {
 		return nil, err
 	}
 
-	siderolinkConfig, err := safe.ReaderGetByID[*siderolink.Config](ctx, h.state, siderolink.ConfigID)
+	siderolinkConfig, err := safe.ReaderGetByID[*siderolinkres.Config](ctx, h.state, siderolinkres.ConfigID)
 	if err != nil {
 		return nil, err
 	}
@@ -539,13 +543,13 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 		requestJoinToken       *jointoken.JoinToken
 		requestNodeUniqueToken *jointoken.NodeUniqueToken
 		linkNodeUniqueToken    *jointoken.NodeUniqueToken
-		pendingMachineStatus   *siderolink.PendingMachineStatus
-		nodeUniqueToken        *siderolink.NodeUniqueToken
+		pendingMachineStatus   *siderolinkres.PendingMachineStatus
+		nodeUniqueToken        *siderolinkres.NodeUniqueToken
 		forceValidUniqueToken  bool
 		tokenWasWiped          bool
 	)
 
-	nodeUniqueToken, err = safe.ReaderGetByID[*siderolink.NodeUniqueToken](ctx, h.state, req.NodeUuid)
+	nodeUniqueToken, err = safe.ReaderGetByID[*siderolinkres.NodeUniqueToken](ctx, h.state, req.NodeUuid)
 	if err != nil && !state.IsNotFoundError(err) {
 		return nil, err
 	}
@@ -555,17 +559,13 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 		return nil, err
 	}
 
-	// if the version is not set, consider the machine be below 1.6
-	talosVersion := semver.MustParse("1.5.0")
+	talosVersion := "1.5.0"
 
-	if pointer.SafeDeref(req.TalosVersion) != "" {
-		talosVersion, err = semver.ParseTolerant(*req.TalosVersion)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse Talos version %q from the provision request %w", *req.TalosVersion, err)
-		}
+	if req.TalosVersion != nil {
+		talosVersion = *req.TalosVersion
 	}
 
-	pendingMachine, err := safe.ReaderGetByID[*siderolink.PendingMachine](ctx, h.state, req.NodePublicKey)
+	pendingMachine, err := safe.ReaderGetByID[*siderolinkres.PendingMachine](ctx, h.state, req.NodePublicKey)
 	if err != nil && !state.IsNotFoundError(err) {
 		return nil, err
 	}
@@ -578,9 +578,9 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 	}
 
 	if pendingMachine != nil {
-		pendingMachineStatus, err = safe.StateWatchFor[*siderolink.PendingMachineStatus](ctx,
+		pendingMachineStatus, err = safe.StateWatchFor[*siderolinkres.PendingMachineStatus](ctx,
 			h.state,
-			siderolink.NewPendingMachineStatus(pendingMachine.Metadata().ID()).Metadata(),
+			siderolinkres.NewPendingMachineStatus(pendingMachine.Metadata().ID()).Metadata(),
 			state.WithPhases(resource.PhaseRunning),
 			state.WithCondition(func(r resource.Resource) (bool, error) {
 				return !resource.IsTombstone(r), nil
@@ -595,7 +595,7 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 
 	if nodeUniqueToken != nil {
 		if link != nil {
-			_, forceValidUniqueToken = link.Metadata().Annotations().Get(siderolink.ForceValidNodeUniqueToken)
+			_, forceValidUniqueToken = link.Metadata().Annotations().Get(siderolinkres.ForceValidNodeUniqueToken)
 		}
 
 		linkNodeUniqueToken, err = jointoken.ParseNodeUniqueToken(nodeUniqueToken.TypedSpec().Value.Token)
@@ -617,8 +617,6 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 		}
 	}
 
-	supportsSecureJoinTokens := talosVersion.GTE(minSupportedSecureTokensVersion)
-
 	return &provisionContext{
 		siderolinkConfig:          siderolinkConfig,
 		link:                      link,
@@ -633,7 +631,7 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 		hasValidJoinToken:         requestJoinToken != nil,
 		hasValidNodeUniqueToken:   linkNodeUniqueToken.Equal(requestNodeUniqueToken),
 		nodeUniqueTokensEnabled:   h.joinTokenMode != config.JoinTokensModeLegacyOnly,
-		supportsSecureJoinTokens:  supportsSecureJoinTokens,
+		supportsSecureJoinTokens:  siderolink.SupportsSecureJoinTokens(talosVersion),
 		useWireguardOverGRPC:      h.forceWireguardOverGRPC || pointer.SafeDeref(req.WireguardOverGrpc),
 	}, nil
 }
@@ -643,7 +641,7 @@ func (h *ProvisionHandler) validateTokenWithExtraData(ctx context.Context, linkT
 
 	// if the token version is V2, we should validate against the individual join token
 	if providerID, ok := linkToken.ExtraData[omni.LabelInfraProviderID]; ok && linkToken.Version == jointoken.Version2 {
-		providerJoinConfig, err := safe.ReaderGetByID[*siderolink.ProviderJoinConfig](ctx, h.state, providerID)
+		providerJoinConfig, err := safe.ReaderGetByID[*siderolinkres.ProviderJoinConfig](ctx, h.state, providerID)
 		if err != nil {
 			if state.IsNotFoundError(err) {
 				h.logger.Warn("machine join token rejected: the provider is not registered in the system", zap.Error(err))
@@ -656,14 +654,14 @@ func (h *ProvisionHandler) validateTokenWithExtraData(ctx context.Context, linkT
 
 		joinToken = providerJoinConfig.TypedSpec().Value.JoinToken
 	} else {
-		defaultJoinToken, err := safe.ReaderGetByID[*siderolink.DefaultJoinToken](ctx, h.state, siderolink.DefaultJoinTokenID)
+		defaultJoinToken, err := safe.ReaderGetByID[*siderolinkres.DefaultJoinToken](ctx, h.state, siderolinkres.DefaultJoinTokenID)
 		if err != nil {
 			return nil, err
 		}
 
-		var joinTokenStatus *siderolink.JoinTokenStatus
+		var joinTokenStatus *siderolinkres.JoinTokenStatus
 
-		joinTokenStatus, err = safe.ReaderGetByID[*siderolink.JoinTokenStatus](ctx, h.state, defaultJoinToken.TypedSpec().Value.TokenId)
+		joinTokenStatus, err = safe.ReaderGetByID[*siderolinkres.JoinTokenStatus](ctx, h.state, defaultJoinToken.TypedSpec().Value.TokenId)
 		if err != nil {
 			return nil, err
 		}
@@ -703,9 +701,9 @@ func (h *ProvisionHandler) getJoinToken(ctx context.Context, tokenString string)
 		return h.validateTokenWithExtraData(ctx, linkToken)
 	}
 
-	var tokenStatus *siderolink.JoinTokenStatus
+	var tokenStatus *siderolinkres.JoinTokenStatus
 
-	tokenStatus, err = safe.ReaderGetByID[*siderolink.JoinTokenStatus](ctx, h.state, tokenString)
+	tokenStatus, err = safe.ReaderGetByID[*siderolinkres.JoinTokenStatus](ctx, h.state, tokenString)
 	if err != nil && !state.IsNotFoundError(err) {
 		return nil, err
 	}

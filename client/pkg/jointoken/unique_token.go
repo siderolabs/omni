@@ -6,8 +6,16 @@
 package jointoken
 
 import (
+	"bytes"
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"slices"
 
+	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/siderolabs/talos/pkg/machinery/client"
+	"github.com/siderolabs/talos/pkg/machinery/resources/network"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -16,6 +24,40 @@ import (
 type NodeUniqueToken struct {
 	Fingerprint string
 	Token       string
+}
+
+// GetMachineFingerprint gets all network devices and calculates the checksum out of their mac addresses.
+func GetMachineFingerprint(ctx context.Context, c *client.Client) (string, error) {
+	links, err := safe.ReaderListAll[*network.LinkStatus](ctx, c.COSI)
+	if err != nil {
+		return "", err
+	}
+
+	macAddresses := make([][]byte, 0, links.Len())
+
+	for link := range links.All() {
+		if !link.TypedSpec().Physical() {
+			continue
+		}
+
+		for _, addr := range [][]byte{link.TypedSpec().PermanentAddr, link.TypedSpec().HardwareAddr} {
+			if addr != nil {
+				macAddresses = append(macAddresses, addr)
+
+				break
+			}
+		}
+	}
+
+	slices.SortFunc(macAddresses, bytes.Compare)
+
+	hash := sha256.New()
+
+	for _, addr := range macAddresses {
+		hash.Write(addr)
+	}
+
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 // NewNodeUniqueToken creates the node unique token.

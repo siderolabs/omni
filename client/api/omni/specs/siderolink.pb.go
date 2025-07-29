@@ -23,6 +23,61 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type NodeUniqueTokenStatusSpec_State int32
+
+const (
+	NodeUniqueTokenStatusSpec_UNKNOWN     NodeUniqueTokenStatusSpec_State = 0
+	NodeUniqueTokenStatusSpec_PERSISTENT  NodeUniqueTokenStatusSpec_State = 1
+	NodeUniqueTokenStatusSpec_EPHEMERAL   NodeUniqueTokenStatusSpec_State = 2
+	NodeUniqueTokenStatusSpec_NONE        NodeUniqueTokenStatusSpec_State = 3
+	NodeUniqueTokenStatusSpec_UNSUPPORTED NodeUniqueTokenStatusSpec_State = 4
+)
+
+// Enum value maps for NodeUniqueTokenStatusSpec_State.
+var (
+	NodeUniqueTokenStatusSpec_State_name = map[int32]string{
+		0: "UNKNOWN",
+		1: "PERSISTENT",
+		2: "EPHEMERAL",
+		3: "NONE",
+		4: "UNSUPPORTED",
+	}
+	NodeUniqueTokenStatusSpec_State_value = map[string]int32{
+		"UNKNOWN":     0,
+		"PERSISTENT":  1,
+		"EPHEMERAL":   2,
+		"NONE":        3,
+		"UNSUPPORTED": 4,
+	}
+)
+
+func (x NodeUniqueTokenStatusSpec_State) Enum() *NodeUniqueTokenStatusSpec_State {
+	p := new(NodeUniqueTokenStatusSpec_State)
+	*p = x
+	return p
+}
+
+func (x NodeUniqueTokenStatusSpec_State) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (NodeUniqueTokenStatusSpec_State) Descriptor() protoreflect.EnumDescriptor {
+	return file_omni_specs_siderolink_proto_enumTypes[0].Descriptor()
+}
+
+func (NodeUniqueTokenStatusSpec_State) Type() protoreflect.EnumType {
+	return &file_omni_specs_siderolink_proto_enumTypes[0]
+}
+
+func (x NodeUniqueTokenStatusSpec_State) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use NodeUniqueTokenStatusSpec_State.Descriptor instead.
+func (NodeUniqueTokenStatusSpec_State) EnumDescriptor() ([]byte, []int) {
+	return file_omni_specs_siderolink_proto_rawDescGZIP(), []int{11, 0}
+}
+
 // SiderolinkConfigSpec describes siderolink wireguard server state to persist it across restarts.
 type SiderolinkConfigSpec struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
@@ -775,6 +830,50 @@ func (x *NodeUniqueTokenSpec) GetToken() string {
 	return ""
 }
 
+type NodeUniqueTokenStatusSpec struct {
+	state         protoimpl.MessageState          `protogen:"open.v1"`
+	State         NodeUniqueTokenStatusSpec_State `protobuf:"varint,1,opt,name=state,proto3,enum=specs.NodeUniqueTokenStatusSpec_State" json:"state,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NodeUniqueTokenStatusSpec) Reset() {
+	*x = NodeUniqueTokenStatusSpec{}
+	mi := &file_omni_specs_siderolink_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NodeUniqueTokenStatusSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NodeUniqueTokenStatusSpec) ProtoMessage() {}
+
+func (x *NodeUniqueTokenStatusSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_siderolink_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NodeUniqueTokenStatusSpec.ProtoReflect.Descriptor instead.
+func (*NodeUniqueTokenStatusSpec) Descriptor() ([]byte, []int) {
+	return file_omni_specs_siderolink_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *NodeUniqueTokenStatusSpec) GetState() NodeUniqueTokenStatusSpec_State {
+	if x != nil {
+		return x.State
+	}
+	return NodeUniqueTokenStatusSpec_UNKNOWN
+}
+
 var File_omni_specs_siderolink_proto protoreflect.FileDescriptor
 
 const file_omni_specs_siderolink_proto_rawDesc = "" +
@@ -845,7 +944,16 @@ const file_omni_specs_siderolink_proto_rawDesc = "" +
 	"\x15MachineJoinConfigSpec\x12)\n" +
 	"\x06config\x18\x01 \x01(\v2\x11.specs.JoinConfigR\x06config\"+\n" +
 	"\x13NodeUniqueTokenSpec\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05tokenB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
+	"\x05token\x18\x01 \x01(\tR\x05token\"\xa9\x01\n" +
+	"\x19NodeUniqueTokenStatusSpec\x12<\n" +
+	"\x05state\x18\x01 \x01(\x0e2&.specs.NodeUniqueTokenStatusSpec.StateR\x05state\"N\n" +
+	"\x05State\x12\v\n" +
+	"\aUNKNOWN\x10\x00\x12\x0e\n" +
+	"\n" +
+	"PERSISTENT\x10\x01\x12\r\n" +
+	"\tEPHEMERAL\x10\x02\x12\b\n" +
+	"\x04NONE\x10\x03\x12\x0f\n" +
+	"\vUNSUPPORTED\x10\x04B2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
 
 var (
 	file_omni_specs_siderolink_proto_rawDescOnce sync.Once
@@ -859,30 +967,34 @@ func file_omni_specs_siderolink_proto_rawDescGZIP() []byte {
 	return file_omni_specs_siderolink_proto_rawDescData
 }
 
-var file_omni_specs_siderolink_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_omni_specs_siderolink_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_omni_specs_siderolink_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_omni_specs_siderolink_proto_goTypes = []any{
-	(*SiderolinkConfigSpec)(nil),     // 0: specs.SiderolinkConfigSpec
-	(*SiderolinkSpec)(nil),           // 1: specs.SiderolinkSpec
-	(*LinkStatusSpec)(nil),           // 2: specs.LinkStatusSpec
-	(*SiderolinkCounterSpec)(nil),    // 3: specs.SiderolinkCounterSpec
-	(*ConnectionParamsSpec)(nil),     // 4: specs.ConnectionParamsSpec
-	(*PendingMachineStatusSpec)(nil), // 5: specs.PendingMachineStatusSpec
-	(*JoinConfig)(nil),               // 6: specs.JoinConfig
-	(*SiderolinkAPIConfigSpec)(nil),  // 7: specs.SiderolinkAPIConfigSpec
-	(*ProviderJoinConfigSpec)(nil),   // 8: specs.ProviderJoinConfigSpec
-	(*MachineJoinConfigSpec)(nil),    // 9: specs.MachineJoinConfigSpec
-	(*NodeUniqueTokenSpec)(nil),      // 10: specs.NodeUniqueTokenSpec
-	(*timestamppb.Timestamp)(nil),    // 11: google.protobuf.Timestamp
+	(NodeUniqueTokenStatusSpec_State)(0), // 0: specs.NodeUniqueTokenStatusSpec.State
+	(*SiderolinkConfigSpec)(nil),         // 1: specs.SiderolinkConfigSpec
+	(*SiderolinkSpec)(nil),               // 2: specs.SiderolinkSpec
+	(*LinkStatusSpec)(nil),               // 3: specs.LinkStatusSpec
+	(*SiderolinkCounterSpec)(nil),        // 4: specs.SiderolinkCounterSpec
+	(*ConnectionParamsSpec)(nil),         // 5: specs.ConnectionParamsSpec
+	(*PendingMachineStatusSpec)(nil),     // 6: specs.PendingMachineStatusSpec
+	(*JoinConfig)(nil),                   // 7: specs.JoinConfig
+	(*SiderolinkAPIConfigSpec)(nil),      // 8: specs.SiderolinkAPIConfigSpec
+	(*ProviderJoinConfigSpec)(nil),       // 9: specs.ProviderJoinConfigSpec
+	(*MachineJoinConfigSpec)(nil),        // 10: specs.MachineJoinConfigSpec
+	(*NodeUniqueTokenSpec)(nil),          // 11: specs.NodeUniqueTokenSpec
+	(*NodeUniqueTokenStatusSpec)(nil),    // 12: specs.NodeUniqueTokenStatusSpec
+	(*timestamppb.Timestamp)(nil),        // 13: google.protobuf.Timestamp
 }
 var file_omni_specs_siderolink_proto_depIdxs = []int32{
-	11, // 0: specs.SiderolinkCounterSpec.last_alive:type_name -> google.protobuf.Timestamp
-	6,  // 1: specs.ProviderJoinConfigSpec.config:type_name -> specs.JoinConfig
-	6,  // 2: specs.MachineJoinConfigSpec.config:type_name -> specs.JoinConfig
-	3,  // [3:3] is the sub-list for method output_type
-	3,  // [3:3] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	13, // 0: specs.SiderolinkCounterSpec.last_alive:type_name -> google.protobuf.Timestamp
+	7,  // 1: specs.ProviderJoinConfigSpec.config:type_name -> specs.JoinConfig
+	7,  // 2: specs.MachineJoinConfigSpec.config:type_name -> specs.JoinConfig
+	0,  // 3: specs.NodeUniqueTokenStatusSpec.state:type_name -> specs.NodeUniqueTokenStatusSpec.State
+	4,  // [4:4] is the sub-list for method output_type
+	4,  // [4:4] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_omni_specs_siderolink_proto_init() }
@@ -895,13 +1007,14 @@ func file_omni_specs_siderolink_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_omni_specs_siderolink_proto_rawDesc), len(file_omni_specs_siderolink_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   11,
+			NumEnums:      1,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_omni_specs_siderolink_proto_goTypes,
 		DependencyIndexes: file_omni_specs_siderolink_proto_depIdxs,
+		EnumInfos:         file_omni_specs_siderolink_proto_enumTypes,
 		MessageInfos:      file_omni_specs_siderolink_proto_msgTypes,
 	}.Build()
 	File_omni_specs_siderolink_proto = out.File

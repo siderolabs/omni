@@ -5,6 +5,15 @@
 */
 
 import * as GoogleProtobufTimestamp from "../../google/protobuf/timestamp.pb"
+
+export enum NodeUniqueTokenStatusSpecState {
+  UNKNOWN = 0,
+  PERSISTENT = 1,
+  EPHEMERAL = 2,
+  NONE = 3,
+  UNSUPPORTED = 4,
+}
+
 export type SiderolinkConfigSpec = {
   private_key?: string
   public_key?: string
@@ -77,4 +86,8 @@ export type MachineJoinConfigSpec = {
 
 export type NodeUniqueTokenSpec = {
   token?: string
+}
+
+export type NodeUniqueTokenStatusSpec = {
+  state?: NodeUniqueTokenStatusSpecState
 }

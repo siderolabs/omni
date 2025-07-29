@@ -161,6 +161,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 			safe.WithResourceCache[*siderolinkres.ConnectionParams](),
 			safe.WithResourceCache[*siderolinkres.Link](),
 			safe.WithResourceCache[*siderolinkres.NodeUniqueToken](),
+			safe.WithResourceCache[*siderolinkres.NodeUniqueTokenStatus](),
 			safe.WithResourceCache[*system.ResourceLabels[*omni.MachineStatus]](),
 			safe.WithResourceCache[*infra.ConfigPatchRequest](),
 			safe.WithResourceCache[*auth.ServiceAccountStatus](),
@@ -315,11 +316,18 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		omnictrl.NewMachineJoinConfigController(),
 		omnictrl.NewConnectionParamsController(),
 		omnictrl.NewJoinTokenStatusController(),
+		omnictrl.NewNodeUniqueTokenCleanupController(time.Minute),
 	}
 
 	if config.Config.Auth.SAML.Enabled {
 		controllers = append(controllers,
 			&omnictrl.SAMLAssertionController{},
+		)
+	}
+
+	if config.Config.Services.Siderolink.JoinTokensMode != config.JoinTokensModeLegacyOnly {
+		qcontrollers = append(qcontrollers,
+			omnictrl.NewNodeUniqueTokenStatusController(),
 		)
 	}
 

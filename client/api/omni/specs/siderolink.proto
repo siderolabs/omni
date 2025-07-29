@@ -106,3 +106,15 @@ message NodeUniqueTokenSpec {
   // Only for Talos >= 1.6.
   string token = 1;
 }
+
+message NodeUniqueTokenStatusSpec {
+  enum State {
+    UNKNOWN = 0;
+    PERSISTENT = 1;
+    EPHEMERAL = 2;
+    NONE = 3;
+    UNSUPPORTED = 4;
+  }
+
+  State state = 1;
+}

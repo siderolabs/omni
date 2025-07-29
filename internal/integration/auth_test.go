@@ -1053,6 +1053,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource:       siderolink.NewJoinTokenStatus(resources.DefaultNamespace, uuid.NewString()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
+			{
+				resource:       siderolink.NewNodeUniqueTokenStatus(uuid.NewString()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
 		}...)
 
 		// no access resources

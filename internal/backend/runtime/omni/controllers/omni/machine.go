@@ -91,7 +91,7 @@ func (h *machineControllerHelper) transform(ctx context.Context, r controller.Re
 
 	helpers.CopyLabels(link, machine, omni.LabelMachineRequest, omni.LabelMachineRequestSet)
 
-	helpers.CopyAnnotations(link, machine, omni.LabelInfraProviderID)
+	helpers.CopyAnnotations(link, machine, omni.LabelInfraProviderID, omni.CreatedWithUniqueToken)
 
 	spec := machine.TypedSpec().Value
 
