@@ -79,7 +79,8 @@ registries:
     addr=$(python3 -c "import socket; print(socket.gethostbyname('${service}'))")
 
     REGISTRY_MIRROR_FLAGS+=("--registry-mirror=${registry}=http://${addr}:5000")
-    REGISTRY_MIRROR_CONFIG+="    - ${registry}=http://${addr}:5000\n"e
+    REGISTRY_MIRROR_CONFIG+="    - ${registry}=http://${addr}:5000"
+    REGISTRY_MIRROR_CONFIG+=$'\n'
   done
 else
   # use the value from the environment, if present
