@@ -103,6 +103,26 @@ func SyncAllLabels(src, dst resource.Resource) {
 	})
 }
 
+// SyncLabels synchronizes provided labels from one resource to another.
+// It copies provided labels from the source resource to the destination resource
+// and removes any provided label from the destination resource that are not present in the source resource.
+func SyncLabels(src, dst resource.Resource, keys ...string) {
+	dst.Metadata().Labels().Do(func(tmp kvutils.TempKV) {
+		for _, key := range keys {
+			label, ok := src.Metadata().Labels().Get(key)
+			if ok {
+				tmp.Set(key, label)
+			}
+
+			if !ok {
+				if _, ok = dst.Metadata().Labels().Get(key); ok {
+					tmp.Delete(key)
+				}
+			}
+		}
+	})
+}
+
 // CopyAllAnnotations copies all annotations from one resource to another.
 func CopyAllAnnotations(src, dst resource.Resource) {
 	dst.Metadata().Annotations().Do(func(tmp kvutils.TempKV) {
