@@ -14,6 +14,13 @@ export enum NodeUniqueTokenStatusSpecState {
   UNSUPPORTED = 4,
 }
 
+export enum JoinTokenStatusSpecState {
+  UNKNOWN = 0,
+  ACTIVE = 1,
+  REVOKED = 2,
+  EXPIRED = 3,
+}
+
 export type SiderolinkConfigSpec = {
   private_key?: string
   public_key?: string
@@ -90,4 +97,32 @@ export type NodeUniqueTokenSpec = {
 
 export type NodeUniqueTokenStatusSpec = {
   state?: NodeUniqueTokenStatusSpecState
+}
+
+export type JoinTokenSpec = {
+  expiration_time?: GoogleProtobufTimestamp.Timestamp
+  revoked?: boolean
+  name?: string
+}
+
+export type JoinTokenStatusSpecWarning = {
+  machine?: string
+  message?: string
+}
+
+export type JoinTokenStatusSpec = {
+  state?: JoinTokenStatusSpecState
+  is_default?: boolean
+  use_count?: string
+  expiration_time?: GoogleProtobufTimestamp.Timestamp
+  name?: string
+  warnings?: JoinTokenStatusSpecWarning[]
+}
+
+export type JoinTokenUsageSpec = {
+  token_id?: string
+}
+
+export type DefaultJoinTokenSpec = {
+  token_id?: string
 }

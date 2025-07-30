@@ -12,10 +12,13 @@ included in the LICENSE file.
       </h3>
       <close-button @click="close" />
     </div>
+
+    <join-token-warnings :id="id" @ready="isReady = true" class="flex-1 mb-2"/>
+
     <p class="text-xs text-primary-P2">This action CANNOT be undone. This will permanently delete the Join Token.</p>
 
     <div class="flex justify-end gap-4 mt-8">
-      <t-button @click="revoke" class="w-32 h-9" icon="delete">
+      <t-button @click="deleteToken" class="w-32 h-9" icon="delete" :disabled="!isReady">
         Delete
       </t-button>
     </div>
@@ -29,11 +32,15 @@ import CloseButton from "@/views/omni/Modals/CloseButton.vue";
 import TButton from "@/components/common/Button/TButton.vue";
 import { showError } from "@/notification";
 import { deleteJoinToken } from "@/methods/auth";
+import { ref } from "vue";
+import JoinTokenWarnings from "@/views/omni/Modals/components/JoinTokenWarnings.vue";
 
 const router = useRouter();
 const route = useRoute();
 
 const id = route.query.token as string;
+
+const isReady = ref(false);
 
 let closed = false;
 
@@ -47,7 +54,7 @@ const close = () => {
   router.go(-1);
 };
 
-const revoke = async () => {
+const deleteToken = async () => {
   try {
     await deleteJoinToken(id);
   } catch (e) {
