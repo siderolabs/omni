@@ -105,7 +105,7 @@ import TActionsBoxItem from "@/components/common/ActionsBox/TActionsBoxItem.vue"
 
 import { canManageUsers, unrevokeJoinToken } from "@/methods/auth";
 import { TCommonStatuses } from "@/constants";
-import { DefaultJoinTokenSpec, JoinTokenStatusSpecState } from "@/api/omni/specs/auth.pb";
+import { DefaultJoinTokenSpec, JoinTokenStatusSpecState } from "@/api/omni/specs/siderolink.pb";
 import { relativeISO } from "@/methods/time";
 import { ResourceService } from "@/api/grpc";
 import { withRuntime } from "@/api/options";

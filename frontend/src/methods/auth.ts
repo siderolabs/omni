@@ -19,7 +19,7 @@ import { Runtime } from "@/api/common/omni.pb";
 import { ClusterPermissionsSpec, CurrentUserSpec, PermissionsSpec } from "@/api/omni/specs/virtual.pb";
 import { computed, ComputedRef, onBeforeMount, ref, Ref, watch } from "vue";
 import { withRuntime } from "@/api/options";
-import { JoinTokenSpec } from "@/api/omni/specs/auth.pb";
+import { JoinTokenSpec } from "@/api/omni/specs/siderolink.pb";
 
 export const currentUser: Ref<Resource<CurrentUserSpec> | undefined> = ref();
 export const permissions: Ref<Resource<PermissionsSpec> | undefined> = ref();

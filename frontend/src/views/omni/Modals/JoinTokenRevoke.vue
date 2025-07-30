@@ -5,17 +5,20 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <div class="modal-window">
+  <div class="modal-window flex flex-col max-h-screen">
     <div class="heading">
       <h3 class="text-base text-naturals-N14 truncate flex-1">
         Revoke the token {{ id }} ?
       </h3>
       <close-button @click="close" />
     </div>
+
+    <join-token-warnings :id="$route.query.token as string" @ready="isReady = true" class="flex-1 mb-2"/>
+
     <p class="text-xs">Please confirm the action.</p>
 
     <div class="flex justify-end gap-4 mt-8">
-      <t-button @click="revoke" class="w-32 h-9">
+      <t-button @click="revoke" class="w-32 h-9" :disabled="!isReady">
         Revoke
       </t-button>
     </div>
@@ -29,6 +32,8 @@ import CloseButton from "@/views/omni/Modals/CloseButton.vue";
 import TButton from "@/components/common/Button/TButton.vue";
 import { revokeJoinToken } from "@/methods/auth";
 import { showError } from "@/notification";
+import JoinTokenWarnings from "@/views/omni/Modals/components/JoinTokenWarnings.vue";
+import { ref } from "vue";
 
 const router = useRouter();
 const route = useRoute();
@@ -36,6 +41,8 @@ const route = useRoute();
 const id = route.query.token as string;
 
 let closed = false;
+
+const isReady = ref(false);
 
 const close = () => {
   if (closed) {
