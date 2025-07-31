@@ -447,6 +447,7 @@ func (r *Runtime) Run(ctx context.Context, eg newgroup.EGroup) {
 	newgroup.GoWithContext(ctx, eg, makeWrap(r.talosClientFactory.StartCacheManager, "talos client factory failed"))
 	newgroup.GoWithContext(ctx, eg, makeWrap(r.dnsService.Start, "dns service failed"))
 	newgroup.GoWithContext(ctx, eg, makeWrap(r.controllerRuntime.Run, "controller runtime failed"))
+	newgroup.GoWithContext(ctx, eg, makeWrap(r.workloadProxyReconciler.Run, "workload proxy reconciler failed"))
 
 	newgroup.GoWithContext(ctx, eg, func() error { return r.storeFactory.Start(ctx, r.state, r.logger) })
 
