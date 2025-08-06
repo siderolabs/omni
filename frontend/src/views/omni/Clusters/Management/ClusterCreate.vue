@@ -301,6 +301,7 @@ const detectVersionMismatch = (machine: Resource<MachineStatusSpec>) => {
   const machineVersion = semver.parse(machine.spec.talos_version);
 
   const installed = machine.metadata.labels?.[MachineStatusLabelInstalled] !== undefined;
+  const inAgentMode = !!machine.spec.schematic?.in_agent_mode;
 
   if (!machineVersion || !clusterVersion) {
     return null;
@@ -308,6 +309,10 @@ const detectVersionMismatch = (machine: Resource<MachineStatusSpec>) => {
 
   if (!installed) {
     if (machineVersion?.major == clusterVersion?.major && machineVersion?.minor == clusterVersion?.minor) {
+      return null;
+    }
+
+    if (inAgentMode) {
       return null;
     }
 
