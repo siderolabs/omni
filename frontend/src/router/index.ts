@@ -138,33 +138,17 @@ export const checkAuthorized =  async (to: RouteLocation, requireCookies?: boole
 export function getBreadcrumbs(route: RouteLocation) {
   const crumbs: {text: string, to?: { name: string, query: any}}[] = [];
 
-  if (route.params.machine) {
-    if (route.params.cluster) {
-      crumbs.push(
-        {
-          text: `All Nodes`,
-          to: { name: "Nodes", query: route.query },
-        },
-        {
-          text: `${route.params.machine}`,
-          to: { name: "NodeOverview", query: route.query },
-        }
-      );
-    } else {
-      crumbs.push(
-        {
-          text: "Machines",
-          to: { name: "Machines", query: route.query },
-        },
-      )
-    }
-  }
-
-  if (route.params.service) {
-    crumbs.push({
-      text: `${route.params.service} Logs`,
-      to: { name: "NodeLogs", query: route.query },
-    });
+  if (route.params.cluster) {
+    crumbs.push(
+      {
+        text: `${route.params.cluster}`,
+        to: { name: "ClusterOverview", query: route.query },
+      },
+      {
+        text: `${route.params.machine}`,
+        to: { name: "NodeOverview", query: route.query },
+      }
+    );
   }
 
   return crumbs;

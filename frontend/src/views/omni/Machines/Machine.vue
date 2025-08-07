@@ -7,7 +7,7 @@ included in the LICENSE file.
 <template>
   <div class="flex flex-col gap-4">
     <div class="flex justify-between h-9">
-      <t-breadcrumbs :last="`${machine}`"/>
+      <PageHeader :title="`${machine}`" />
     </div>
     <tabs-header class="border-b border-naturals-N4 pb-3.5">
       <tab-button is="router-link"
@@ -34,7 +34,7 @@ import { Resource, ResourceService } from "@/api/grpc";
 import { MachineStatusSpec } from "@/api/omni/specs/omni.pb";
 import { withRuntime } from "@/api/options";
 import { DefaultNamespace, MachineStatusType } from "@/api/resources";
-import TBreadcrumbs from "@/components/TBreadcrumbs.vue";
+import PageHeader from "@/components/common/PageHeader.vue";
 import { onBeforeMount, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 
