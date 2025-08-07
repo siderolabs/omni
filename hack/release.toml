@@ -6,21 +6,4 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = false
-previous = "v0.52.0"
-
-[notes]
-
-[notes.multiple-join-tokens]
-title = "Multiple Join Token Support"
-description = """\
-Omni now supports multiple SideroLink join tokens.
-It now creates the default non-expiring token, then the user can create more tokens and delete the old ones.
-"""
-
-[notes.redacted-config-diff]
-title = "Config Change History"
-description = """\
-There is now `MachineConfigDiffs.omni.sidero.dev` resource that keeps the history of
-each machine config changes.
-It keeps up to 1000 diffs for the last 30 days.
-"""
+previous = "v1.0.0"
