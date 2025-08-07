@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-07-18T15:48:02Z by kres b869533.
+# Generated on 2025-08-04T18:17:12Z by kres 95bf7d7.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -86,7 +86,8 @@ ARG PROTOBUF_GRPC_GATEWAY_TS_VERSION
 RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg go install github.com/siderolabs/protoc-gen-grpc-gateway-ts@v${PROTOBUF_GRPC_GATEWAY_TS_VERSION}
 RUN mv /go/bin/protoc-gen-grpc-gateway-ts /bin
 COPY frontend/package.json ./
-RUN --mount=type=cache,target=/src/node_modules,id=omni/src/node_modules,sharing=locked bun install
+COPY frontend/bun.lock ./
+RUN --mount=type=cache,target=/src/node_modules,id=omni/src/node_modules,sharing=locked bun install --frozen-lockfile
 COPY frontend/tsconfig*.json ./
 COPY frontend/bunfig.toml ./
 COPY frontend/*.html ./
