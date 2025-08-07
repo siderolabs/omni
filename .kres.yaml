@@ -652,3 +652,7 @@ spec:
     - e2e-upgrades
     - e2e-backups
     - e2e-forced-removal
+---
+kind: common.Repository
+spec:
+  conformMaximumOfOneCommit: false
