@@ -30,8 +30,11 @@ import (
 // ControlPlaneStatusController creates ControlPlaneStatus resource for controlplane MachineSets.
 type ControlPlaneStatusController = qtransform.QController[*omni.MachineSet, *omni.ControlPlaneStatus]
 
-// ControlPlaneCheckTimeout is the timeout for the controlplane checks.
-const ControlPlaneCheckTimeout = 5 * time.Minute
+const (
+	// ControlPlaneCheckTimeout is the timeout for the controlplane checks.
+	ControlPlaneCheckTimeout = 5 * time.Minute
+	requeueTimeout           = 30 * time.Minute
+)
 
 // NewControlPlaneStatusController initializes ControlPlaneStatusController.
 func NewControlPlaneStatusController() *ControlPlaneStatusController {
@@ -81,6 +84,7 @@ func NewControlPlaneStatusController() *ControlPlaneStatusController {
 					interrupted     bool
 				)
 
+				var checkErr error
 				for _, handler := range handlers {
 					if interrupted {
 						spec.SetCondition(
@@ -102,6 +106,7 @@ func NewControlPlaneStatusController() *ControlPlaneStatusController {
 
 							interrupted = checkFail.Interrupt
 							interruptReason = fmt.Sprintf("The check wasn't run because the condition check %q has failed", handler.condition.String())
+							checkErr = errors.Join(checkErr, err)
 
 							continue
 						}
@@ -112,7 +117,11 @@ func NewControlPlaneStatusController() *ControlPlaneStatusController {
 					spec.SetCondition(handler.condition, specs.ControlPlaneStatusSpec_Condition_Ready, specs.ControlPlaneStatusSpec_Condition_Info, "")
 				}
 
-				return nil
+				if checkErr != nil {
+					return checkErr
+				}
+
+				return controller.NewRequeueInterval(requeueTimeout)
 			},
 		},
 		qtransform.WithExtraMappedInput(
