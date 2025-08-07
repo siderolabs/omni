@@ -53,7 +53,7 @@ const close = () => {
 const node = setupNodenameWatch(route.query.machine as string);
 const context = getContext();
 
-const { canRebootMachines } = setupClusterPermissions(computed(() => context.cluster));
+const { canRebootMachines } = setupClusterPermissions(computed(() => context.cluster ?? ''));
 
 const reboot = async () => {
   state.value = "Rebooting";

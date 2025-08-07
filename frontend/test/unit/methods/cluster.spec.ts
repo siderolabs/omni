@@ -3,50 +3,50 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import { describe, it, expect, mock, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { nextAvailableClusterName } from "../../../src/methods/cluster";
-import { Resource } from "../../../src/api/v1alpha1/resource.pb";
-import { ClusterSpec } from "../../../src/api/omni/specs/omni.pb";
 import { Runtime } from "../../../src/api/common/omni.pb";
 import { ResourceService } from "../../../src/api/grpc";
 import { DefaultNamespace, ClusterType } from "../../../src/api/resources";
 import { withRuntime } from "../../../src/api/options";
 
-mock.module("../../../src/api/grpc", () => ({
+vi.mock("../../../src/api/grpc", () => ({
   ResourceService: {
-    List: mock(async () => []),
+    List: vi.fn(async () => []),
   },
 }));
 
-mock.module("../../../src/api/resources", () => ({
+vi.mock("../../../src/api/resources", () => ({
   DefaultNamespace: "default",
   ClusterType: "Cluster",
 }));
 
-mock.module("../../../src/api/options", () => ({
-  withRuntime: mock((runtime: Runtime) => ({ runtime })),
+vi.mock("../../../src/api/options", () => ({
+  withRuntime: vi.fn((runtime: Runtime) => ({ runtime })),
 }));
 
 describe("nextAvailableClusterName", () => {
   const mockListClusters = (clusterIds: string[]) => {
-    const mockResources: Resource<ClusterSpec>[] = clusterIds.map((id) => ({
-      metadata: {
-        id,
-        type: ClusterType,
-        namespace: DefaultNamespace,
-        version: "1",
-      },
-      spec: {} as ClusterSpec,
-    }));
-
-    (ResourceService.List as any).mockImplementation(async () => mockResources);
+    vi.mocked(ResourceService.List).mockReturnValue(
+      Promise.resolve(
+        clusterIds.map((id) => ({
+          metadata: {
+            id,
+            type: ClusterType,
+            namespace: DefaultNamespace,
+            version: "1",
+          },
+          spec: {},
+        }))
+      )
+    );
   };
 
   beforeEach(() => {
     // Clear and reset mocks using type assertion
-    (ResourceService.List as any).mockClear();
-    (ResourceService.List as any).mockImplementation(async () => []);
-    (withRuntime as any).mockClear();
+    vi.mocked(ResourceService.List).mockClear();
+    vi.mocked(ResourceService.List).mockImplementation(async () => []);
+    vi.mocked(withRuntime).mockClear();
   });
 
   it("should return the prefix if no clusters exist", async () => {

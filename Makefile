@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-07-25T10:55:11Z by kres a3d02c0.
+# Generated on 2025-08-07T16:42:52Z by kres 1d1c1cb.
 
 # common variables
 
@@ -79,7 +79,7 @@ COMMON_ARGS += --build-arg=DEEPCOPY_VERSION="$(DEEPCOPY_VERSION)"
 COMMON_ARGS += --build-arg=GOLANGCILINT_VERSION="$(GOLANGCILINT_VERSION)"
 COMMON_ARGS += --build-arg=GOFUMPT_VERSION="$(GOFUMPT_VERSION)"
 COMMON_ARGS += --build-arg=TESTPKGS="$(TESTPKGS)"
-JS_TOOLCHAIN ?= docker.io/oven/bun:1.2.18-alpine
+JS_TOOLCHAIN ?= docker.io/node:22-alpine
 TOOLCHAIN ?= docker.io/golang:1.24-alpine
 
 # extra variables

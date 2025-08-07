@@ -8,7 +8,7 @@ import { ClusterSpec, ConfigPatchSpec, MachineSetNodeSpec, MachineSetSpec, Machi
 import { ClusterType, ConfigPatchType, DefaultNamespace, LabelCluster, LabelClusterMachine, LabelControlPlaneRole, LabelMachineSet, LabelWorkerRole, MachineSetNodeType, MachineSetType } from "../../src/api/resources";
 import { Cluster, initState, MachineSet, PatchID, state, typesOrder } from "../../src/states/cluster-management";
 
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 const crypto = require('crypto');
 

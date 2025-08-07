@@ -7,7 +7,7 @@
 //
 // Generated on 2024-06-06T10:10:11Z by kres 827a05c-dirty.
 
-// run bun install eslint-plugin-vue typescript-eslint -d for each frontend
+// run npm i -D eslint-plugin-vue typescript-eslint for each frontend
 // to make the linter work
 //@ts-check
 import pluginVue from 'eslint-plugin-vue'

@@ -16,7 +16,7 @@ included in the LICENSE file.
     <div class="flex flex-wrap gap-4 mb-5">
       <div v-if="selectedOption" class="flex flex-wrap gap-4">
         <t-select-list @checkedValue="setVersion" title="version" :defaultValue="defaultVersion"
-                       :values="Object.keys(talosctlRelease?.release_data?.available_versions)"
+                       :values="Object.keys(talosctlRelease?.release_data.available_versions ?? {})"
                        :searcheable="true"/>
         <t-select-list @checkedValue="setOption" title="talosctl" :defaultValue="defaultValue"
                        :values="versionBinaries"
@@ -48,7 +48,7 @@ import { useRouter } from "vue-router";
 import TButton from "@/components/common/Button/TButton.vue";
 import TSelectList from "@/components/common/SelectList/TSelectList.vue";
 import CloseButton from "@/views/omni/Modals/CloseButton.vue";
-import { computed, onMounted, Ref, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { showError } from "@/notification";
 import TSpinner from "@/components/common/Spinner/TSpinner.vue";
 
@@ -77,25 +77,32 @@ onMounted(async () => {
     return;
   }
 
-  defaultVersion.value = talosctlRelease.value.release_data.default_version
+  defaultVersion.value = talosctlRelease.value?.release_data.default_version
   selectedVersion.value = defaultVersion.value;
 
-  defaultValue.value = talosctlRelease.value.release_data.available_versions[defaultVersion.value].find((item) => item.url.endsWith("linux-amd64"))?.name as string;
+  defaultValue.value = defaultVersion.value &&
+    talosctlRelease.value?.release_data
+    .available_versions[defaultVersion.value]
+    .find((item) => item.url.endsWith("linux-amd64"))
+    ?.name;
+
   selectedOption.value = defaultValue.value;
 });
 
-const talosctlRelease: Ref<ResponseData> = ref({});
-const defaultValue = ref("");
-const selectedOption = ref("");
+const talosctlRelease = ref<ResponseData>();
+const defaultValue = ref<string>();
+const selectedOption = ref<string>();
 const setOption = (value: string) => selectedOption.value = value;
-const defaultVersion = ref("");
-const selectedVersion = ref("");
+const defaultVersion = ref<string>();
+const selectedVersion = ref<string>();
 const setVersion = (value: string) => selectedVersion.value = value;
 
 const download = async () => {
   close();
 
-  const link = talosctlRelease?.value?.release_data?.available_versions[selectedVersion.value].find((item) => item.name == selectedOption.value);
+  if (!selectedVersion.value) return
+
+  const link = talosctlRelease.value?.release_data.available_versions[selectedVersion.value].find((item) => item.name == selectedOption.value);
   if (!link) {
     return;
   }
@@ -107,20 +114,14 @@ const download = async () => {
   a.remove();
 }
 
-const versionBinaries = computed(() => {
-  const result = talosctlRelease
-    ?.value
+const versionBinaries = computed<string[]>(() => {
+  if (!selectedVersion.value) return []
+
+  return talosctlRelease
+    .value
     ?.release_data
-    ?.available_versions[selectedVersion.value]
-    ?.map((item) => {
-      return item.name as string
-    });
-
-  if (!result) {
-    return [] as string[];
-  }
-
-  return result;
+    .available_versions[selectedVersion.value]
+    ?.map((item) => item.name) ?? [];
 });
 
 interface ResponseData {

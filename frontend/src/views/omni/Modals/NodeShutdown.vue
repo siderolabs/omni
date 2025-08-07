@@ -54,7 +54,7 @@ const close = () => {
 
 const context = getContext();
 
-const { canRebootMachines } = setupClusterPermissions(computed(() => context.cluster));
+const { canRebootMachines } = setupClusterPermissions(computed(() => context.cluster ?? ''));
 
 const shutdown = async () => {
   state.value = "Shutdown in progress";

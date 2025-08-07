@@ -196,11 +196,11 @@ const { status: backupStatus } = setupBackupStatus();
 
 const state = initState();
 
-const addLabels = (id: string, ...labels: string[]) => {
+const addLabels = (_: string, ...labels: string[]) => {
   state.value.addClusterLabels(labels);
 }
 
-const removeLabels = (id: string, ...keys: string[]) => {
+const removeLabels = (_: string, ...keys: string[]) => {
   state.value.removeClusterLabels(keys);
 }
 

@@ -87,11 +87,11 @@ services:
   node-dev:
     network_mode: host
     container_name: local-node
-    image: oven/bun:alpine
+    image: node:22-alpine
     volumes:
       - ../../frontend:/app:rw
     working_dir: /app
-    command: sh -c 'bun install && bun run serve'
+    command: sh -c 'npm i && npm run serve'
     stop_signal: SIGKILL
 
   minio-server:

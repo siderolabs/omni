@@ -103,7 +103,7 @@ included in the LICENSE file.
               type="secondary"
               class="place-self-end"
               icon="close"
-              @click="revertKubernetesUpgrade(context.cluster)"
+              @click="revertKubernetesUpgrade(context.cluster ?? '')"
               >Cancel</t-button
             >
           </div>
@@ -150,7 +150,7 @@ included in the LICENSE file.
               type="secondary"
               class="place-self-end"
               icon="close"
-              @click="revertTalosUpgrade(context.cluster)"
+              @click="revertTalosUpgrade(context.cluster ?? '')"
               >Cancel</t-button
             >
           </div>
@@ -163,13 +163,13 @@ included in the LICENSE file.
             <div class="flex flex-col gap-2">
               <cluster-workload-proxying-checkbox
                   :checked="enableWorkloadProxy"
-                  @click="setClusterWorkloadProxy(context.cluster, !enableWorkloadProxy)"
+                  @click="setClusterWorkloadProxy(context.cluster ?? '', !enableWorkloadProxy)"
                   :disabled="!canManageClusterFeatures"/>
               <embedded-discovery-service-checkbox
                   :checked="useEmbeddedDiscoveryService"
                   :disabled="!canManageClusterFeatures || !isEmbeddedDiscoveryServiceAvailable"
                   @click="toggleUseEmbeddedDiscoveryService"/>
-              <cluster-etcd-backup-checkbox :backup-status="backupStatus" @update:cluster="(spec) => setClusterEtcdBackupsConfig(context.cluster, spec)" :cluster="currentCluster.spec"/>
+              <cluster-etcd-backup-checkbox :backup-status="backupStatus" @update:cluster="(spec) => setClusterEtcdBackupsConfig(context.cluster ?? '', spec)" :cluster="currentCluster.spec"/>
             </div>
           </div>
           <div class="overview-card flex-1 mb-5 px-6">
@@ -340,7 +340,7 @@ const isEmbeddedDiscoveryServiceAvailable = ref(false);
 const toggleUseEmbeddedDiscoveryService = async () => {
   const newValue = isEmbeddedDiscoveryServiceAvailable.value ? !useEmbeddedDiscoveryService.value : false;
 
-  await setUseEmbeddedDiscoveryService(context.cluster, newValue);
+  await setUseEmbeddedDiscoveryService(context.cluster ?? '', newValue);
 }
 
 onMounted(async () => {

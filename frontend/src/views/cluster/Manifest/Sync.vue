@@ -67,7 +67,8 @@ included in the LICENSE file.
           </div>
           <div class="diff" v-if="item.object">
             {{
-              textDecoder.decode(b64Decode(item.object))
+              // TODO: Fix the type? Marked as Uint8Array but we are receiving a b64 encoded string
+              textDecoder.decode(b64Decode(item.object as unknown as string))
             }}
           </div>
         </template>

@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-08-04T18:17:12Z by kres 95bf7d7.
+# Generated on 2025-08-07T17:32:19Z by kres 0b55a0b.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -85,11 +85,9 @@ WORKDIR /src
 ARG PROTOBUF_GRPC_GATEWAY_TS_VERSION
 RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg go install github.com/siderolabs/protoc-gen-grpc-gateway-ts@v${PROTOBUF_GRPC_GATEWAY_TS_VERSION}
 RUN mv /go/bin/protoc-gen-grpc-gateway-ts /bin
-COPY frontend/package.json ./
-COPY frontend/bun.lock ./
-RUN --mount=type=cache,target=/src/node_modules,id=omni/src/node_modules,sharing=locked bun install --frozen-lockfile
+COPY frontend/package*.json ./
+RUN --mount=type=cache,target=/root/.npm,id=omni/root/.npm,sharing=locked npm ci
 COPY frontend/tsconfig*.json ./
-COPY frontend/bunfig.toml ./
 COPY frontend/*.html ./
 COPY frontend/*.ts ./
 COPY frontend/*.js ./
@@ -142,13 +140,13 @@ RUN go install mvdan.cc/gofumpt@${GOFUMPT_VERSION} \
 # builds frontend
 FROM --platform=${BUILDPLATFORM} js AS frontend
 ARG JS_BUILD_ARGS
-RUN --mount=type=cache,target=/src/node_modules,id=omni/src/node_modules bun run build ${JS_BUILD_ARGS}
+RUN npm run build ${JS_BUILD_ARGS}
 RUN mkdir -p /internal/frontend/dist
 RUN cp -rf ./dist/* /internal/frontend/dist
 
 # runs eslint
 FROM js AS lint-eslint
-RUN --mount=type=cache,target=/src/node_modules,id=omni/src/node_modules bun run lint
+RUN npm run lint
 
 # runs protobuf compiler
 FROM js AS proto-compile-frontend
@@ -188,8 +186,7 @@ RUN rm /frontend/src/api/omni/specs/ephemeral.proto
 
 # runs js unit-tests
 FROM js AS unit-tests-frontend
-RUN --mount=type=cache,target=/src/node_modules,id=omni/src/node_modules,sharing=locked bun add -d @happy-dom/global-registrator
-RUN --mount=type=cache,target=/src/node_modules,id=omni/src/node_modules CI=true bun run test
+RUN CI=true npm test
 
 FROM tools AS embed-generate
 ARG SHA

@@ -13,7 +13,7 @@ import { Runtime } from "../../src/api/common/omni.pb";
 import { DefaultNamespace, MachineType } from "../../src/api/resources";
 import { ref } from "vue";
 import { Metadata } from "../../src/api/v1alpha1/resource.pb";
-import { test, describe, expect } from "bun:test";
+import { test, describe, expect } from "vitest";
 
 class fakeStream extends EventTarget {
   private resolve?: (value: void | PromiseLike<void>) => void;

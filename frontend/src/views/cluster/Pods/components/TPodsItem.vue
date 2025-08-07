@@ -56,7 +56,7 @@ included in the LICENSE file.
           </div>
           <div class="row-info-item">
             <p class="row-info-title">Age</p>
-            <p class="row-info-value">{{ item.status?.startTime ? getAge(item.status?.startTime) : "" }}</p>
+            <p class="row-info-value">{{ item.status?.startTime ? getAge(String(item.status?.startTime)) : "" }}</p>
           </div>
           <div class="row-info-item">
             <p class="row-info-title">Pod IP</p>

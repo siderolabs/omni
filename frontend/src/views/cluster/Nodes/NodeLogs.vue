@@ -96,7 +96,7 @@ const parsers = {
     const date = DateTime.fromSeconds(parseFloat(parsed.ts) / 1000);
 
     return {
-      date: date.toISO(),
+      date: date.toISO() ?? undefined,
       msg: `[${parsed.level ?? 'info'}] ${parsed.msg} ${formatLoggingContext(parsed, "msg", "ts", "level")}`,
     }
   },

@@ -3,12 +3,12 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-/// <reference types="vitest" />
+/// <reference types="vitest/config" />
 
 import { defineConfig, UserConfig } from 'vite'
 import { fileURLToPath, URL } from 'node:url'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
-import monacoEditorPlugin from 'vite-plugin-monaco-editor'
+import monacoEditorPlugin from 'vite-plugin-monaco-editor-esm'
 
 import vue from '@vitejs/plugin-vue'
 
@@ -23,6 +23,9 @@ export default defineConfig(({ command }) => {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
       }
+    },
+    test: {
+      environment: 'happy-dom',
     },
     server: {
       port: 8121,

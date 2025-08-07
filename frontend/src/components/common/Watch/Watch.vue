@@ -56,8 +56,8 @@ type Props = {
 const props = defineProps<Props>();
 const items = ref<T[]>([]);
 
-const watchSingle: Watch<T> | undefined = (props.opts as { length: number })?.length == undefined ? new Watch<T>(items) : undefined;
-const watchJoin: WatchJoin<T> | undefined = (props.opts as { length: number })?.length != undefined ? new WatchJoin<T>(items) : undefined;
+const watchSingle = !Array.isArray(props.opts) ? new Watch(items) : undefined;
+const watchJoin = Array.isArray(props.opts) ? new WatchJoin(items) : undefined;
 
 const resourceWatch = watchSingle ?? watchJoin;
 

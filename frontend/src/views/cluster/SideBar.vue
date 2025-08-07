@@ -37,9 +37,7 @@ import { setupWorkloadProxyingEnabledFeatureWatch } from "@/methods/features";
 
 const route = useRoute();
 
-const getRoute = (name: string, path: string) => {
-  return `/cluster/${route.params.cluster}${path}`;
-};
+const getRoute = (path: string) => `/cluster/${route.params.cluster}${path}`;
 
 const kubernetesUpgradeManifestStatus: Ref<
   Resource<KubernetesUpgradeManifestStatusSpec> | undefined
@@ -80,22 +78,22 @@ const items = computed(() => {
   const result: SideBarItem[] = [
     {
       name: "Overview",
-      route: getRoute("Overview", "/overview"),
+      route: getRoute("/overview"),
       icon: "overview",
     },
     {
       name: "Nodes",
-      route: getRoute("Nodes", "/nodes"),
+      route: getRoute("/nodes"),
       icon: "nodes",
     },
     {
       name: "Pods",
-      route: getRoute("Pods", "/pods"),
+      route: getRoute("/pods"),
       icon: "pods",
     },
     {
       name: "Config Patches",
-      route: getRoute("ClusterConfigPatches", "/patches"),
+      route: getRoute("/patches"),
       icon: "settings",
     },
   ];
@@ -103,7 +101,7 @@ const items = computed(() => {
   if (canSyncKubernetesManifests.value) {
     result.push({
       name: "Bootstrap Manifests",
-      route: getRoute("KubernetesManifestSync", "/manifests"),
+      route: getRoute("/manifests"),
       icon: "bootstrap-manifests",
       label: pendingManifests.value,
       labelColor: pendingManifests.value === "!" ? "red-R1" : undefined,
@@ -113,7 +111,7 @@ const items = computed(() => {
   if (canManageClusterFeatures.value) {
     result.push({
       name: "Backups",
-      route: getRoute("EtcdBackups", "/backups"),
+      route: getRoute("/backups"),
       icon: "rollback",
     });
   }

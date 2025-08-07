@@ -70,7 +70,7 @@ clusterDiagnosticsWatch.setup({
 });
 
 const nodesWithDiagnostics = computed(() => {
-  const nodes = clusterDiagnostics.value?.spec?.nodes?.map(node => node.id) ?? [];
+  const nodes = clusterDiagnostics.value?.spec?.nodes?.map(node => node.id ?? '') ?? [];
   return new Set(nodes);
 });
 

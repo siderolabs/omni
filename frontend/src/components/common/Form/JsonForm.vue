@@ -20,7 +20,8 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { computed, Ref, ref, toRefs, watch } from "vue";
+import { type ErrorObject } from"ajv";
+import { computed, ref, toRefs, watch } from "vue";
 import { JsonForms } from "@jsonforms/vue";
 import {
   UISchemaElement,
@@ -54,18 +55,7 @@ import { ManagementService } from "@/api/omni/management/management.pb";
 
 import yaml from "js-yaml";
 
-const errors: Ref<{
-  dataPath: string;
-  schemaPath: string;
-  // Added to validation errors of propertyNames keyword schema
-  propertyName?: string;
-  // Excluded if messages set to false.
-  message?: string;
-  // These are added with the `verbose` option.
-  schema?: any;
-  parentSchema?: object;
-  data?: any;
-}[]> = ref([]);
+const errors = ref<ErrorObject[]>([]);
 
 const emit = defineEmits(['update:model-value']);
 
@@ -150,14 +140,16 @@ const updateErrors = async (data: any) => {
     data: yaml.dump(data),
   });
 
-  errors.value = response.errors?.map(
-    item => {
-      return {
-        schemaPath: item.schema_path!,
-        dataPath: item.data_path!,
-        message: item.cause,
-      }
-    }
+  errors.value = response.errors?.map<ErrorObject>(
+    item => ({
+      // TODO: Required props for ErrorObject, but possible that this error feature is not working currently
+      keyword: '',
+      instancePath: '',
+      params: {},
+      schemaPath: item.schema_path!,
+      dataPath: item.data_path!,
+      message: item.cause,
+    })
   ) ?? [];
 }
 

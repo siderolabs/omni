@@ -306,10 +306,12 @@ const handleMaxMem = (_, m): number => {
 };
 
 const handleProcs = (oldObj, newObj) => {
-  const delta = diff(oldObj, newObj);
+  const {processCreated} = diff(oldObj, newObj);
 
   return {
-    created: delta["processCreated"],
+    // The diff algorithm should never return only numbers Record<string, number> for this case
+    // But due to how its typed, adding a fallback just incase
+    created: typeof processCreated === 'number' ? processCreated : Number(processCreated),
     running: newObj["processRunning"],
     blocked: newObj["processBlocked"],
   }
