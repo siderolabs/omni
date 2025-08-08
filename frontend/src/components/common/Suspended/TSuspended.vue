@@ -9,7 +9,8 @@ included in the LICENSE file.
     <div class="suspended__wrapper">
       <t-icon class="suspended__icon" icon="attention" />
       <div class="suspended__content-box">
-        This account is currently <b>suspended</b> and in read-only mode. You can still access your resources but will not be able to make any changes.<br />
+        This account is currently <b>suspended</b> and in read-only mode. You can still access your
+        resources but will not be able to make any changes.<br />
         Please contact support to resolve this issue.
       </div>
     </div>
@@ -17,7 +18,7 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import TIcon from "@/components/common/Icon/TIcon.vue";
+import TIcon from '@/components/common/Icon/TIcon.vue'
 </script>
 
 <style scoped>

@@ -7,29 +7,46 @@ included in the LICENSE file.
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">
-        Download Talosctl
-      </h3>
-      <close-button @click="close"/>
+      <h3 class="text-base text-naturals-N14">Download Talosctl</h3>
+      <close-button @click="close" />
     </div>
 
     <div class="flex flex-wrap gap-4 mb-5">
       <div v-if="selectedOption" class="flex flex-wrap gap-4">
-        <t-select-list @checkedValue="setVersion" title="version" :defaultValue="defaultVersion"
-                       :values="Object.keys(talosctlRelease?.release_data.available_versions ?? {})"
-                       :searcheable="true"/>
-        <t-select-list @checkedValue="setOption" title="talosctl" :defaultValue="defaultValue"
-                       :values="versionBinaries"
-                       :searcheable="true"/>
+        <t-select-list
+          @checkedValue="setVersion"
+          title="version"
+          :defaultValue="defaultVersion"
+          :values="Object.keys(talosctlRelease?.release_data.available_versions ?? {})"
+          :searcheable="true"
+        />
+        <t-select-list
+          @checkedValue="setOption"
+          title="talosctl"
+          :defaultValue="defaultValue"
+          :values="versionBinaries"
+          :searcheable="true"
+        />
       </div>
       <div v-else>
-        <t-spinner class="w-6 h-6"/>
+        <t-spinner class="w-6 h-6" />
       </div>
     </div>
 
     <div>
-      <p class="text-xs"><code>talosctl</code> can be used to access cluster nodes using Talos machine API.</p>
-      <p class="text-xs">More downloads links can be found <a target="_blank" rel="noopener noreferrer" class="download-link text-xs" href="https://github.com/siderolabs/talos/releases">here</a>.</p>
+      <p class="text-xs">
+        <code>talosctl</code> can be used to access cluster nodes using Talos machine API.
+      </p>
+      <p class="text-xs">
+        More downloads links can be found
+        <a
+          target="_blank"
+          rel="noopener noreferrer"
+          class="download-link text-xs"
+          href="https://github.com/siderolabs/talos/releases"
+          >here</a
+        >.
+      </p>
     </div>
 
     <div class="flex justify-end gap-4 mt-8">
@@ -44,99 +61,101 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { useRouter } from "vue-router";
-import TButton from "@/components/common/Button/TButton.vue";
-import TSelectList from "@/components/common/SelectList/TSelectList.vue";
-import CloseButton from "@/views/omni/Modals/CloseButton.vue";
-import { computed, onMounted, ref } from "vue";
-import { showError } from "@/notification";
-import TSpinner from "@/components/common/Spinner/TSpinner.vue";
+import { useRouter } from 'vue-router'
+import TButton from '@/components/common/Button/TButton.vue'
+import TSelectList from '@/components/common/SelectList/TSelectList.vue'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
+import { computed, onMounted, ref } from 'vue'
+import { showError } from '@/notification'
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 
-const router = useRouter();
-let closed = false;
+const router = useRouter()
+let closed = false
 
 const close = () => {
   if (closed) {
-    return;
+    return
   }
 
-  closed = true;
+  closed = true
 
-  router.go(-1);
-};
+  router.go(-1)
+}
 
 onMounted(async () => {
   // Its sad that you cannot execute async function in computed
-  const url = "/talosctl/downloads";
+  const url = '/talosctl/downloads'
 
   try {
-    const res = await fetch(url);
-    talosctlRelease.value = await res.json();
+    const res = await fetch(url)
+    talosctlRelease.value = await res.json()
   } catch (e) {
-    showError(e.message);
-    return;
+    showError(e.message)
+    return
   }
 
   defaultVersion.value = talosctlRelease.value?.release_data.default_version
-  selectedVersion.value = defaultVersion.value;
+  selectedVersion.value = defaultVersion.value
 
-  defaultValue.value = defaultVersion.value &&
-    talosctlRelease.value?.release_data
-    .available_versions[defaultVersion.value]
-    .find((item) => item.url.endsWith("linux-amd64"))
-    ?.name;
+  defaultValue.value =
+    defaultVersion.value &&
+    talosctlRelease.value?.release_data.available_versions[defaultVersion.value].find((item) =>
+      item.url.endsWith('linux-amd64'),
+    )?.name
 
-  selectedOption.value = defaultValue.value;
-});
+  selectedOption.value = defaultValue.value
+})
 
-const talosctlRelease = ref<ResponseData>();
-const defaultValue = ref<string>();
-const selectedOption = ref<string>();
-const setOption = (value: string) => selectedOption.value = value;
-const defaultVersion = ref<string>();
-const selectedVersion = ref<string>();
-const setVersion = (value: string) => selectedVersion.value = value;
+const talosctlRelease = ref<ResponseData>()
+const defaultValue = ref<string>()
+const selectedOption = ref<string>()
+const setOption = (value: string) => (selectedOption.value = value)
+const defaultVersion = ref<string>()
+const selectedVersion = ref<string>()
+const setVersion = (value: string) => (selectedVersion.value = value)
 
 const download = async () => {
-  close();
+  close()
 
   if (!selectedVersion.value) return
 
-  const link = talosctlRelease.value?.release_data.available_versions[selectedVersion.value].find((item) => item.name == selectedOption.value);
+  const link = talosctlRelease.value?.release_data.available_versions[selectedVersion.value].find(
+    (item) => item.name == selectedOption.value,
+  )
   if (!link) {
-    return;
+    return
   }
 
-  const a = document.createElement('a');
-  a.href = link.url;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  const a = document.createElement('a')
+  a.href = link.url
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
 }
 
 const versionBinaries = computed<string[]>(() => {
   if (!selectedVersion.value) return []
 
-  return talosctlRelease
-    .value
-    ?.release_data
-    .available_versions[selectedVersion.value]
-    ?.map((item) => item.name) ?? [];
-});
+  return (
+    talosctlRelease.value?.release_data.available_versions[selectedVersion.value]?.map(
+      (item) => item.name,
+    ) ?? []
+  )
+})
 
 interface ResponseData {
-  status: string,
-  release_data: ReleaseData,
+  status: string
+  release_data: ReleaseData
 }
 
 interface ReleaseData {
-  default_version: string,
-  available_versions: {[key: string]: Asset[]},
+  default_version: string
+  available_versions: { [key: string]: Asset[] }
 }
 
 interface Asset {
-  name: string,
-  url: string,
+  name: string
+  url: string
 }
 </script>
 

@@ -8,19 +8,19 @@ included in the LICENSE file.
   <label
     @click.prevent="
       () => {
-        isFocused = true;
-        if ($refs.input) ($refs.input as any).focus();
+        isFocused = true
+        if ($refs.input) ($refs.input as any).focus()
       }
     "
     v-click-outside="() => (isFocused = false)"
     class="input-box"
     :class="[{ focused: isFocused, secondary, primary: !secondary, compact, disabled }]"
   >
-    <t-icon class="input-box-icon" v-if="icon" :icon="icon"/>
-    <slot name="labels"/>
-    <span v-if="title" class="text-xs min-w-fit mr-1">{{title}}:</span>
+    <t-icon class="input-box-icon" v-if="icon" :icon="icon" />
+    <slot name="labels" />
+    <span v-if="title" class="text-xs min-w-fit mr-1">{{ title }}:</span>
     <input
-      :class="{'opacity-0': disabled}"
+      :class="{ 'opacity-0': disabled }"
       :readonly="disabled"
       @input="updateValue($event.target?.['value'].trim())"
       ref="input"
@@ -32,124 +32,128 @@ included in the LICENSE file.
       :placeholder="placeholder"
     />
     <div v-if="type === 'number'" class="flex flex-col select-none -my-1">
-      <t-icon class="hover:text-naturals-N14 text-naturals-N12 w-2 h-2 rotate-180" icon="arrow-down" @click="updateValue(numberValue + step)"/>
-      <t-icon class="hover:text-naturals-N14 text-naturals-N12 w-2 h-2" icon="arrow-down"  @click="updateValue(numberValue - step)"/>
+      <t-icon
+        class="hover:text-naturals-N14 text-naturals-N12 w-2 h-2 rotate-180"
+        icon="arrow-down"
+        @click="updateValue(numberValue + step)"
+      />
+      <t-icon
+        class="hover:text-naturals-N14 text-naturals-N12 w-2 h-2"
+        icon="arrow-down"
+        @click="updateValue(numberValue - step)"
+      />
     </div>
     <div v-else-if="modelValue !== '' || onClear" @click.prevent="clearInput">
-      <t-icon
-        class="input-box-icon"
-        icon="close"
-      />
+      <t-icon class="input-box-icon" icon="close" />
     </div>
   </label>
 </template>
 
 <script setup lang="ts">
-import { watch, ref, toRefs, onMounted, Ref, computed } from "vue";
+import type { Ref } from 'vue'
+import { watch, ref, toRefs, onMounted, computed } from 'vue'
 
-import TIcon, { IconType } from "@/components/common/Icon/TIcon.vue";
+import type { IconType } from '@/components/common/Icon/TIcon.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
 
-const emit = defineEmits(["update:model-value", "blur"]);
+const emit = defineEmits(['update:model-value', 'blur'])
 
 type propsType = {
-  icon?: IconType,
-  title?: string,
-  modelValue: string | number,
-  placeholder?: string,
-  focus?: boolean,
-  secondary?: boolean,
-  compact?: boolean,
-  type?: "text" | "number" | "password",
-  max?: number,
-  min?: number,
+  icon?: IconType
+  title?: string
+  modelValue: string | number
+  placeholder?: string
+  focus?: boolean
+  secondary?: boolean
+  compact?: boolean
+  type?: 'text' | 'number' | 'password'
+  max?: number
+  min?: number
   disabled?: boolean
   step?: number
   onClear?: () => void
 }
 
-const props = withDefaults(
-  defineProps<propsType>(),
-  {
-    type: "text",
-    step: 1
-  }
-);
+const props = withDefaults(defineProps<propsType>(), {
+  type: 'text',
+  step: 1,
+})
 
-const { modelValue, focus } = toRefs(props);
+const { modelValue, focus } = toRefs(props)
 
 const numberValue = computed(() => {
-  return parseFloat(modelValue.value as string) ?? 0;
-});
+  return parseFloat(modelValue.value as string) ?? 0
+})
 
 const updateValue = (value: string | number) => {
-  if (props.type === "number") {
+  if (props.type === 'number') {
     if (value === undefined || value === '') {
-      return;
+      return
     }
 
-    let numberValue = typeof value === "number" ? value as number : parseFloat(value);
+    let numberValue = typeof value === 'number' ? (value as number) : parseFloat(value)
 
-    numberValue = Number(numberValue.toFixed(1));
+    numberValue = Number(numberValue.toFixed(1))
 
     if (isNaN(numberValue)) {
-      numberValue = 0;
+      numberValue = 0
     }
 
     if (props.max !== undefined) {
-      numberValue = Math.min(props.max, numberValue);
+      numberValue = Math.min(props.max, numberValue)
     }
 
     if (props.min !== undefined) {
-      numberValue = Math.max(props.min, numberValue);
+      numberValue = Math.max(props.min, numberValue)
     }
 
-    emit("update:model-value", numberValue);
+    emit('update:model-value', numberValue)
 
-    return;
+    return
   }
 
-  emit("update:model-value", value);
+  emit('update:model-value', value)
 }
 
 defineExpose({
   getCaretPosition(): number | void {
     if (!input.value) {
-      return;
+      return
     }
 
-    return input.value.selectionStart;
-  }
+    return input.value.selectionStart
+  },
 })
 
-const isFocused = ref(false);
-const input: Ref<{focus: () => void, selectionStart: number} | null> = ref(null);
+const isFocused = ref(false)
+const input: Ref<{ focus: () => void; selectionStart: number } | null> = ref(null)
 
 const clearInput = () => {
-  updateValue("");
+  updateValue('')
 
   if (props.onClear) {
-    props.onClear();
+    props.onClear()
   }
-};
+}
 
 const blurHandler = () => {
-  isFocused.value = false;
-  emit("blur", "");
-};
+  isFocused.value = false
+  emit('blur', '')
+}
 
 if (focus.value) {
   watch(focus, () => {
     if (focus.value && input.value) {
-      input.value?.focus();
+      input.value?.focus()
     }
-  });
+  })
 }
 
 onMounted(() => {
   if (focus?.value && input.value) {
-    input.value.focus();
+    input.value.focus()
   }
-});
+})
 </script>
 
 <style scoped>
@@ -194,7 +198,7 @@ input::-webkit-inner-spin-button {
 }
 
 /* Firefox */
-input[type=number] {
+input[type='number'] {
   -moz-appearance: textfield;
 }
 

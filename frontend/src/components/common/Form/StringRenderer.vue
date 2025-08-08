@@ -20,19 +20,15 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import {
-  RendererProps,
-  useJsonFormsControl,
-} from "@jsonforms/vue";
-import {
-  ControlElement,
-} from "@jsonforms/core";
-import TInput from "../TInput/TInput.vue";
-import ContentWrapper from "./ContentWrapper.vue";
+import type { RendererProps } from '@jsonforms/vue'
+import { useJsonFormsControl } from '@jsonforms/vue'
+import type { ControlElement } from '@jsonforms/core'
+import TInput from '../TInput/TInput.vue'
+import ContentWrapper from './ContentWrapper.vue'
 
-const props = defineProps<RendererProps<ControlElement>>();
+const props = defineProps<RendererProps<ControlElement>>()
 
-const p = useJsonFormsControl(props);
+const p = useJsonFormsControl(props)
 
 const control = p.control
 </script>

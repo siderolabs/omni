@@ -8,10 +8,7 @@ included in the LICENSE file.
   <header class="t-header">
     <div class="t-header-nav-wrapper">
       <div class="t-header-logo-wrapper">
-        <router-link
-          to="/"
-          class="flex items-center gap-1 text-lg text-naturals-N13 uppercase"
-        >
+        <router-link to="/" class="flex items-center gap-1 text-lg text-naturals-N13 uppercase">
           <t-icon class="t-header-icon w-7 h-7" icon="logo" />
           <span class="font-bold">Sidero</span>
           <span>Omni</span>
@@ -41,8 +38,8 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import TIcon from "@/components/common/Icon/TIcon.vue";
-import OngoingTasks from "@/components/common/OngoingTasks/OngoingTasks.vue";
+import TIcon from '@/components/common/Icon/TIcon.vue'
+import OngoingTasks from '@/components/common/OngoingTasks/OngoingTasks.vue'
 </script>
 
 <style scoped>

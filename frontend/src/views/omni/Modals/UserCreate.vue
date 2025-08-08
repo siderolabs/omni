@@ -7,88 +7,91 @@ included in the LICENSE file.
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">
-        Create User
-      </h3>
-      <close-button @click="close"/>
+      <h3 class="text-base text-naturals-N14">Create User</h3>
+      <close-button @click="close" />
     </div>
 
     <div class="flex flex-col w-full h-full gap-4">
-      <t-notification v-if="notification" v-bind="notification.props"/>
+      <t-notification v-if="notification" v-bind="notification.props" />
 
       <div class="flex gap-2 items-center flex-wrap">
-        <t-input title="User Email" class="flex-1 h-full" placeholder="..." v-model="identity"/>
+        <t-input title="User Email" class="flex-1 h-full" placeholder="..." v-model="identity" />
         <t-select-list
-            class="h-full"
-            title="Role"
-            :values="roles"
-            :defaultValue="RoleReader"
-            @checkedValue="value => role = value"
+          class="h-full"
+          title="Role"
+          :values="roles"
+          :defaultValue="RoleReader"
+          @checkedValue="(value) => (role = value)"
         />
-        <t-button type="highlighted" @click="handleUserCreate" :disabled="!canManageUsers && authType !== AuthType.SAML" class="w-32 h-9">Create User</t-button>
+        <t-button
+          type="highlighted"
+          @click="handleUserCreate"
+          :disabled="!canManageUsers && authType !== AuthType.SAML"
+          class="w-32 h-9"
+          >Create User</t-button
+        >
       </div>
     </div>
-
   </div>
 </template>
 
 <script setup lang="ts">
-import { Ref, ref, shallowRef } from "vue";
-import { createUser } from "@/methods/user";
-import { Notification, showError, showSuccess } from "@/notification";
-import { useRouter } from "vue-router";
-import { RoleNone, RoleReader, RoleOperator, RoleAdmin } from "@/api/resources";
+import type { Ref } from 'vue'
+import { ref, shallowRef } from 'vue'
+import { createUser } from '@/methods/user'
+import type { Notification } from '@/notification'
+import { showError, showSuccess } from '@/notification'
+import { useRouter } from 'vue-router'
+import { RoleNone, RoleReader, RoleOperator, RoleAdmin } from '@/api/resources'
 
-import CloseButton from "@/views/omni/Modals/CloseButton.vue";
-import TButton from "@/components/common/Button/TButton.vue";
-import { canManageUsers } from "@/methods/auth";
-import TSelectList from "@/components/common/SelectList/TSelectList.vue";
-import TInput from "@/components/common/TInput/TInput.vue";
-import { AuthType, authType } from "@/methods";
-import TNotification from "@/components/common/Notification/TNotification.vue";
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
+import TButton from '@/components/common/Button/TButton.vue'
+import { canManageUsers } from '@/methods/auth'
+import TSelectList from '@/components/common/SelectList/TSelectList.vue'
+import TInput from '@/components/common/TInput/TInput.vue'
+import { AuthType, authType } from '@/methods'
+import TNotification from '@/components/common/Notification/TNotification.vue'
 
-const notification: Ref<Notification | null> = shallowRef(null);
+const notification: Ref<Notification | null> = shallowRef(null)
 
-const identity = ref("");
-const router = useRouter();
+const identity = ref('')
+const router = useRouter()
 
 const roles = [RoleNone, RoleReader, RoleOperator, RoleAdmin]
 
 const role: Ref<string> = ref(RoleReader)
 
 const handleUserCreate = async () => {
-  if (identity.value === "") {
-    showError("Failed to Create User", "User email is not defined", notification);
+  if (identity.value === '') {
+    showError('Failed to Create User', 'User email is not defined', notification)
 
-    return;
+    return
   }
 
   try {
-    await createUser(identity.value, role.value);
+    await createUser(identity.value, role.value)
   } catch (e) {
-    showError("Failed to Create User", e.message, notification);
+    showError('Failed to Create User', e.message, notification)
 
-    return;
+    return
   }
 
-  close();
+  close()
 
-  showSuccess(
-      `The User ${identity.value} is created`,
-  );
-};
+  showSuccess(`The User ${identity.value} is created`)
+}
 
-let closed = false;
+let closed = false
 
 const close = () => {
   if (closed) {
-    return;
+    return
   }
 
-  closed = true;
+  closed = true
 
-  router.go(-1);
-};
+  router.go(-1)
+}
 </script>
 
 <style scoped>

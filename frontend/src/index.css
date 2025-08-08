@@ -5,16 +5,16 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 */
 
-@import url("@/fonts.css");
+@import url('@/fonts.css');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
-  font-family: "Roboto", sans-serif;
+  font-family: 'Roboto', sans-serif;
 }
 
-*:focus{
+*:focus {
   outline: none;
 }
 
@@ -46,9 +46,23 @@ body {
     --background-alpha: 0.18;
     --border-alpha: 0.3;
     --lighten-by: 20;
-    color: hsl(var(--label-h), calc(var(--label-s) * 1%), calc((var(--label-l) + var(--lighten-by)) * 1%));
-    background-color: hsla(var(--label-h), calc(var(--label-s) * 1%), calc((var(--label-l) + var(--lighten-by)) * 1%), var(--background-alpha));
-    border-color: hsla(var(--label-h), calc(var(--label-s) * 1%), calc((var(--label-l) + var(--lighten-by)) * 1%), var(--border-alpha));
+    color: hsl(
+      var(--label-h),
+      calc(var(--label-s) * 1%),
+      calc((var(--label-l) + var(--lighten-by)) * 1%)
+    );
+    background-color: hsla(
+      var(--label-h),
+      calc(var(--label-s) * 1%),
+      calc((var(--label-l) + var(--lighten-by)) * 1%),
+      var(--background-alpha)
+    );
+    border-color: hsla(
+      var(--label-h),
+      calc(var(--label-s) * 1%),
+      calc((var(--label-l) + var(--lighten-by)) * 1%),
+      var(--border-alpha)
+    );
   }
 }
 

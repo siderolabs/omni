@@ -38,106 +38,95 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import TIcon from "@/components/common/Icon/TIcon.vue";
-import { computed, ref, toRefs } from "vue";
-import { watch } from "vue";
+import TIcon from '@/components/common/Icon/TIcon.vue'
+import { computed, ref, toRefs } from 'vue'
+import { watch } from 'vue'
 
 type Props = {
-  items: any[];
-  perPage?: number;
-  searchOption: string;
-};
+  items: any[]
+  perPage?: number
+  searchOption: string
+}
 
 const props = withDefaults(defineProps<Props>(), {
   perPage: 8,
-});
+})
 
-const { items, perPage, searchOption } = toRefs(props);
-const DOTS = "...";
-const currentPage = ref(1);
+const { items, perPage, searchOption } = toRefs(props)
+const DOTS = '...'
+const currentPage = ref(1)
 const totalPageCount = computed(() => {
-  return Math.ceil(items.value.length / perPage.value);
-});
+  return Math.ceil(items.value.length / perPage.value)
+})
 const range = (start, end) => {
-  const length = end - start + 1;
-  return Array.from({ length }, (_, idx) => idx + start);
-};
-const siblingCount = ref(1);
+  const length = end - start + 1
+  return Array.from({ length }, (_, idx) => idx + start)
+}
+const siblingCount = ref(1)
 const paginationRange = computed(() => {
-  const totalPageNumbers = siblingCount.value + 5;
+  const totalPageNumbers = siblingCount.value + 5
   if (totalPageNumbers >= totalPageCount.value) {
-    return range(1, totalPageCount.value);
+    return range(1, totalPageCount.value)
   }
-  const leftSiblingIndex = Math.max(
-    currentPage.value - siblingCount.value,
-    1
-  );
-  const rightSiblingIndex = Math.min(
-    currentPage.value + siblingCount.value,
-    totalPageCount.value
-  );
-  const shouldShowLeftDots = leftSiblingIndex > 2;
-  const shouldShowRightDots = rightSiblingIndex < totalPageCount.value - 2;
-  const firstPageIndex = 1;
-  const lastPageIndex = totalPageCount.value;
+  const leftSiblingIndex = Math.max(currentPage.value - siblingCount.value, 1)
+  const rightSiblingIndex = Math.min(currentPage.value + siblingCount.value, totalPageCount.value)
+  const shouldShowLeftDots = leftSiblingIndex > 2
+  const shouldShowRightDots = rightSiblingIndex < totalPageCount.value - 2
+  const firstPageIndex = 1
+  const lastPageIndex = totalPageCount.value
   if (!shouldShowLeftDots && shouldShowRightDots) {
-    const leftItemCount = 3 + 2 * siblingCount.value;
-    const leftRange = range(1, leftItemCount);
-    return [...leftRange, DOTS, totalPageCount.value];
+    const leftItemCount = 3 + 2 * siblingCount.value
+    const leftRange = range(1, leftItemCount)
+    return [...leftRange, DOTS, totalPageCount.value]
   }
   if (shouldShowLeftDots && !shouldShowRightDots) {
-    const rightItemCount = 3 + 2 * siblingCount.value;
-    const rightRange = range(
-      totalPageCount.value - rightItemCount + 1,
-      totalPageCount.value
-    );
-    return [firstPageIndex, DOTS, ...rightRange];
+    const rightItemCount = 3 + 2 * siblingCount.value
+    const rightRange = range(totalPageCount.value - rightItemCount + 1, totalPageCount.value)
+    return [firstPageIndex, DOTS, ...rightRange]
   }
   if (shouldShowLeftDots && shouldShowRightDots) {
-    const middleRange = range(leftSiblingIndex, rightSiblingIndex);
-    return [firstPageIndex, DOTS, ...middleRange, DOTS, lastPageIndex];
+    const middleRange = range(leftSiblingIndex, rightSiblingIndex)
+    return [firstPageIndex, DOTS, ...middleRange, DOTS, lastPageIndex]
   }
 
-  return [];
-});
+  return []
+})
 const lastPage = computed(() => {
-  return (
-    paginationRange.value &&
-    paginationRange.value[paginationRange.value.length - 1]
-  );
-});
+  return paginationRange.value && paginationRange.value[paginationRange.value.length - 1]
+})
 
 const onNext = () => {
-  if (currentPage.value === lastPage.value) return;
-  currentPage.value += 1;
-};
+  if (currentPage.value === lastPage.value) return
+  currentPage.value += 1
+}
 
 const onPrevious = () => {
-  if (currentPage.value === 1) return;
-  currentPage.value -= 1;
-};
+  if (currentPage.value === 1) return
+  currentPage.value -= 1
+}
 const onPageClick = (value) => {
   if (value !== DOTS) {
-    currentPage.value = value;
+    currentPage.value = value
   }
-};
+}
 watch(
   () => searchOption.value,
   () => {
-    currentPage.value = 1;
-  });
+    currentPage.value = 1
+  },
+)
 
 const isInvisible = computed(() => {
-  return !totalPageCount.value ||
+  return (
+    !totalPageCount.value ||
     currentPage.value === 0 ||
-    (paginationRange.value && paginationRange.value.length < 2);
-});
+    (paginationRange.value && paginationRange.value.length < 2)
+  )
+})
 
 const filteredItems = computed(() => {
-  return items.value
-    .slice((currentPage.value - 1) * perPage.value)
-    .slice(0, perPage.value);
-});
+  return items.value.slice((currentPage.value - 1) * perPage.value).slice(0, perPage.value)
+})
 </script>
 
 <style scoped>

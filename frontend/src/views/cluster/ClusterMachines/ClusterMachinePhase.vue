@@ -5,15 +5,20 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <div
-    :style="'color: ' + stageColor(machine)"
-  >
-    <tooltip placement="bottom" :description="connected(machine) ? undefined : 'The machine is unreachable. The last known state is shown'">
-      <div class="flex gap-1"
-        :class="'cluster-stage-box' + (connected(machine) ? '' : ' brightness-50')">
+  <div :style="'color: ' + stageColor(machine)">
+    <tooltip
+      placement="bottom"
+      :description="
+        connected(machine) ? undefined : 'The machine is unreachable. The last known state is shown'
+      "
+    >
+      <div
+        class="flex gap-1"
+        :class="'cluster-stage-box' + (connected(machine) ? '' : ' brightness-50')"
+      >
         <t-icon :icon="stageIcon(machine)" class="h-4" />
         <div class="truncate flex-1" id="cluster-machine-stage-name">
-          {{ stageName(machine) || "" }}
+          {{ stageName(machine) || '' }}
         </div>
       </div>
     </tooltip>
@@ -21,55 +26,57 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { ClusterMachineStatusSpecStage, ClusterMachineStatusSpec } from "@/api/omni/specs/omni.pb";
-import { MachineStatusLabelConnected } from "@/api/resources";
-import { Resource } from "@/api/grpc";
+import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
+import { ClusterMachineStatusSpecStage } from '@/api/omni/specs/omni.pb'
+import { MachineStatusLabelConnected } from '@/api/resources'
+import type { Resource } from '@/api/grpc'
 
-import TIcon, { IconType } from "@/components/common/Icon/TIcon.vue";
-import Tooltip from "@/components/common/Tooltip/Tooltip.vue";
+import type { IconType } from '@/components/common/Icon/TIcon.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
+import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 
 const connected = (machine: Resource<ClusterMachineStatusSpec>): boolean => {
   if (machine.spec.stage === ClusterMachineStatusSpecStage.POWERING_ON) {
-    return true;
+    return true
   }
 
-  return machine?.metadata.labels?.[MachineStatusLabelConnected] === "";
-};
+  return machine?.metadata.labels?.[MachineStatusLabelConnected] === ''
+}
 
 const stageName = (machine: Resource<ClusterMachineStatusSpec>): string => {
   switch (machine?.spec.stage) {
     case ClusterMachineStatusSpecStage.BOOTING:
-      return "Booting";
+      return 'Booting'
     case ClusterMachineStatusSpecStage.INSTALLING:
-      return "Installing";
+      return 'Installing'
     case ClusterMachineStatusSpecStage.UPGRADING:
-      return "Upgrading";
+      return 'Upgrading'
     case ClusterMachineStatusSpecStage.CONFIGURING:
-      return "Configuring";
+      return 'Configuring'
     case ClusterMachineStatusSpecStage.RUNNING:
       if (machine?.spec.ready || !connected(machine)) {
-        return "Running";
+        return 'Running'
       } else {
-        return "Not Ready";
+        return 'Not Ready'
       }
     case ClusterMachineStatusSpecStage.REBOOTING:
-      return "Rebooting";
+      return 'Rebooting'
     case ClusterMachineStatusSpecStage.SHUTTING_DOWN:
-      return "Shutting Down";
+      return 'Shutting Down'
     case ClusterMachineStatusSpecStage.DESTROYING:
-      return "Destroying";
+      return 'Destroying'
     case ClusterMachineStatusSpecStage.BEFORE_DESTROY:
-      return "Preparing to Destroy";
+      return 'Preparing to Destroy'
     case ClusterMachineStatusSpecStage.POWERING_ON:
-      return "Powering On";
+      return 'Powering On'
     default:
-      return "Unknown";
+      return 'Unknown'
   }
-};
+}
 
 const stageIcon = (machine: Resource<ClusterMachineStatusSpec>): IconType => {
   if (!connected(machine)) {
-    return "unknown";
+    return 'unknown'
   }
 
   switch (machine?.spec.stage) {
@@ -79,26 +86,26 @@ const stageIcon = (machine: Resource<ClusterMachineStatusSpec>): IconType => {
     case ClusterMachineStatusSpecStage.CONFIGURING:
     case ClusterMachineStatusSpecStage.REBOOTING:
     case ClusterMachineStatusSpecStage.SHUTTING_DOWN:
-      return "loading";
+      return 'loading'
     case ClusterMachineStatusSpecStage.POWERING_ON:
-      return "power";
+      return 'power'
     case ClusterMachineStatusSpecStage.RUNNING:
-    if (machine?.spec.ready) {
-        return "check-in-circle";
+      if (machine?.spec.ready) {
+        return 'check-in-circle'
       } else {
-        return "error";
+        return 'error'
       }
     case ClusterMachineStatusSpecStage.BEFORE_DESTROY:
-      return "loading";
+      return 'loading'
     case ClusterMachineStatusSpecStage.DESTROYING:
-      return "delete";
+      return 'delete'
     default:
-      return "unknown";
+      return 'unknown'
   }
-};
+}
 
 const stageColor = (machine: Resource<ClusterMachineStatusSpec>): string => {
-  const Y1 = "#FFB200";
+  const Y1 = '#FFB200'
 
   switch (machine?.spec.stage) {
     case ClusterMachineStatusSpecStage.BOOTING:
@@ -107,28 +114,27 @@ const stageColor = (machine: Resource<ClusterMachineStatusSpec>): string => {
     case ClusterMachineStatusSpecStage.CONFIGURING:
     case ClusterMachineStatusSpecStage.REBOOTING:
     case ClusterMachineStatusSpecStage.POWERING_ON:
-      return Y1;
+      return Y1
     case ClusterMachineStatusSpecStage.RUNNING:
       if (machine?.spec.ready || !connected(machine)) {
-        return "#69C297";
+        return '#69C297'
       } else {
-        return "#FF5F2A";
+        return '#FF5F2A'
       }
     case ClusterMachineStatusSpecStage.SHUTTING_DOWN:
     case ClusterMachineStatusSpecStage.BEFORE_DESTROY:
     case ClusterMachineStatusSpecStage.DESTROYING:
-      return "#FF5F2A";
+      return '#FF5F2A'
     default:
-      return Y1;
+      return Y1
   }
-};
+}
 
 type Props = {
-  machine: Resource<ClusterMachineStatusSpec>;
-};
+  machine: Resource<ClusterMachineStatusSpec>
+}
 
-defineProps<Props>();
-
+defineProps<Props>()
 </script>
 
 <style>

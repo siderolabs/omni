@@ -6,6 +6,6 @@ included in the LICENSE file.
 -->
 <template>
   <div class="flex gap-6 pb-3.5 border-b border-naturals-N4">
-    <slot/>
+    <slot />
   </div>
 </template>

@@ -5,38 +5,50 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <component :is="label.description ? Tooltip : 'div'" :description="label.description" placement="bottom-start">
-    <span class="flex items-center cursor-pointer transition-all" v-bind:class="`resource-label label-${label.color}`"
-      @click.stop="() => $emit('filterLabel', label)">
-      <t-icon v-if="label.icon" :icon="label.icon as IconType" class="w-3.5 h-3.5 mr-1 -ml-1"/>
+  <component
+    :is="label.description ? Tooltip : 'div'"
+    :description="label.description"
+    placement="bottom-start"
+  >
+    <span
+      class="flex items-center cursor-pointer transition-all"
+      v-bind:class="`resource-label label-${label.color}`"
+      @click.stop="() => $emit('filterLabel', label)"
+    >
+      <t-icon v-if="label.icon" :icon="label.icon as IconType" class="w-3.5 h-3.5 mr-1 -ml-1" />
       <template v-if="label.value">
         {{ label.id }}:<span class="font-semibold">{{ label.value }}</span>
       </template>
       <span v-else class="font-semibold">
         {{ label.id }}
       </span>
-      <t-icon v-if="label.removable && removeLabel" icon="close" class="destroy-label-button"
-        @click.stop="() => removeLabel?.(label.key)" />
+      <t-icon
+        v-if="label.removable && removeLabel"
+        icon="close"
+        class="destroy-label-button"
+        @click.stop="() => removeLabel?.(label.key)"
+      />
     </span>
   </component>
 </template>
 
 <script setup lang="ts">
-import Tooltip from "@/components/common/Tooltip/Tooltip.vue";
-import TIcon, { IconType } from "@/components/common/Icon/TIcon.vue";
+import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
+import type { IconType } from '@/components/common/Icon/TIcon.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
 
 defineProps<{
   label: {
-    key: string,
-    id: string,
-    value: string,
-    color: string,
-    description?: string,
-    removable?: boolean,
-    icon?: string,
-  },
-  removeLabel?: (key :string) => Promise<void>
-}>();
+    key: string
+    id: string
+    value: string
+    color: string
+    description?: string
+    removable?: boolean
+    icon?: string
+  }
+  removeLabel?: (key: string) => Promise<void>
+}>()
 </script>
 
 <style scoped>

@@ -8,15 +8,12 @@ included in the LICENSE file.
   <div class="wrapper">
     <div class="wrapper-box">
       <div class="wrapper-head">
-        <slot name="head"/>
+        <slot name="head" />
       </div>
       <div class="wrapper-body-box">
-        <div
-          class="wrapper-body"
-          :style="{ height }"
-        >
+        <div class="wrapper-body" :style="{ height }">
           <div ref="body">
-            <slot name="body"/>
+            <slot name="body" />
           </div>
         </div>
       </div>
@@ -25,42 +22,48 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { Ref, ref, toRefs, computed, watch, onUnmounted } from "vue";
+import type { Ref } from 'vue'
+import { ref, toRefs, computed, watch, onUnmounted } from 'vue'
 
-const props = withDefaults(defineProps<{
-  isSliderOpened?: boolean,
-}>(), {
-  isSliderOpened: false
-});
+const props = withDefaults(
+  defineProps<{
+    isSliderOpened?: boolean
+  }>(),
+  {
+    isSliderOpened: false,
+  },
+)
 
-const { isSliderOpened } = toRefs(props);
+const { isSliderOpened } = toRefs(props)
 
-const body: Ref<Element | undefined> = ref();
+const body: Ref<Element | undefined> = ref()
 
-
-const resizeObserver = new ResizeObserver(function() {
-  elementHeight.value = body.value?.clientHeight ?? 0;
-});
+const resizeObserver = new ResizeObserver(function () {
+  elementHeight.value = body.value?.clientHeight ?? 0
+})
 
 onUnmounted(() => {
-  resizeObserver.disconnect();
-});
+  resizeObserver.disconnect()
+})
 
-const elementHeight = ref(0);
+const elementHeight = ref(0)
 
-watch(() => body.value, () => {
-  resizeObserver.disconnect();
+watch(
+  () => body.value,
+  () => {
+    resizeObserver.disconnect()
 
-  if (!body.value) {
-    return;
-  }
+    if (!body.value) {
+      return
+    }
 
-  resizeObserver.observe(body.value);
-});
+    resizeObserver.observe(body.value)
+  },
+)
 
 const height = computed(() => {
-  return isSliderOpened.value ? `${elementHeight.value}px` : '0';
-});
+  return isSliderOpened.value ? `${elementHeight.value}px` : '0'
+})
 </script>
 
 <style scoped>

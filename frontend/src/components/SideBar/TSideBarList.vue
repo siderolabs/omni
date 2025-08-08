@@ -24,16 +24,16 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import TMenuItem from "@/components/common/MenuItem/TMenuItem.vue";
-import { RouteLocationRaw } from "vue-router";
-import { IconType } from "../common/Icon/TIcon.vue";
+import TMenuItem from '@/components/common/MenuItem/TMenuItem.vue'
+import type { RouteLocationRaw } from 'vue-router'
+import type { IconType } from '../common/Icon/TIcon.vue'
 
 export type SideBarItem = {
-  name: string,
-  route?: string | RouteLocationRaw,
-  icon?: IconType,
-  label?: string | number,
-  labelColor?: string,
+  name: string
+  route?: string | RouteLocationRaw
+  icon?: IconType
+  label?: string | number
+  labelColor?: string
   tooltip?: string
   iconSvgBase64?: string
   subItems?: SideBarItem[]
@@ -43,7 +43,7 @@ type Props = {
   items: SideBarItem[]
 }
 
-defineProps<Props>();
+defineProps<Props>()
 </script>
 
 <style scoped>

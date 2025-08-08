@@ -15,7 +15,7 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import TButton from "@/components/common/Button/TButton.vue";
+import TButton from '@/components/common/Button/TButton.vue'
 </script>
 
 <style scoped>

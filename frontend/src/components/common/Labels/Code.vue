@@ -5,9 +5,16 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <code @mouseenter="() => showCopyButton = true" @mouseleave="() => showCopyButton = false" class="relative p-2 overflow-hidden">
+  <code
+    @mouseenter="() => (showCopyButton = true)"
+    @mouseleave="() => (showCopyButton = false)"
+    class="relative p-2 overflow-hidden"
+  >
     <t-animation>
-      <div v-if="showCopyButton" class="absolute top-0 left-0 right-0 h-14 flex justify-end p-1 bg-gradient-to-b from-naturals-N0 bg-opacity-25 rounded">
+      <div
+        v-if="showCopyButton"
+        class="absolute top-0 left-0 right-0 h-14 flex justify-end p-1 bg-gradient-to-b from-naturals-N0 bg-opacity-25 rounded"
+      >
         <span class="rounded">
           <button @click="copyKey">{{ copyState }}</button>
         </span>
@@ -18,34 +25,34 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import TAnimation from "@/components/common/Animation/TAnimation.vue";
-import { ref, toRefs } from 'vue';
-import { copyText } from "vue3-clipboard";
+import TAnimation from '@/components/common/Animation/TAnimation.vue'
+import { ref, toRefs } from 'vue'
+import { copyText } from 'vue3-clipboard'
 
 const props = defineProps<{
   text: string
-}>();
+}>()
 
-const { text } = toRefs(props);
+const { text } = toRefs(props)
 
-const showCopyButton = ref(false);
-const copyState = ref("Copy");
+const showCopyButton = ref(false)
+const copyState = ref('Copy')
 
-let timeout: NodeJS.Timeout;
+let timeout: number
 
 const copyKey = () => {
-  copyText(text.value, undefined, () => {});
+  copyText(text.value, undefined, () => {})
 
-  copyState.value = "Copied"
+  copyState.value = 'Copied'
 
   if (timeout !== undefined) {
-    clearTimeout(timeout);
+    clearTimeout(timeout)
   }
 
   timeout = setTimeout(() => {
-    copyState.value = "Copy"
-  }, 400);
-};
+    copyState.value = 'Copy'
+  }, 400)
+}
 </script>
 
 <style scoped>

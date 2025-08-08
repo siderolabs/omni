@@ -5,13 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <svg
-    width="51"
-    height="50"
-    viewBox="0 0 51 50"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg width="51" height="50" viewBox="0 0 51 50" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect
       x="11.3164"
       width="40"
@@ -47,5 +41,4 @@ included in the LICENSE file.
     />
   </svg>
 </template>
-<script setup lang="ts">
-</script>
+<script setup lang="ts"></script>

@@ -14,28 +14,27 @@ included in the LICENSE file.
       :disabled="!control.enabled"
       @change="(event) => p.handleChange(control.path, (event.target as any)?.value)"
     />
-    <div class="absolute flex flex-1 top-0 right-0 bottom-0 w-16 items-center justify-center pointer-events-none" v-if="isChrome()">
-      <t-icon icon="time" class="w-4 h-4"/>
+    <div
+      class="absolute flex flex-1 top-0 right-0 bottom-0 w-16 items-center justify-center pointer-events-none"
+      v-if="isChrome()"
+    >
+      <t-icon icon="time" class="w-4 h-4" />
     </div>
   </content-wrapper>
 </template>
 
 <script setup lang="ts">
-import {
-  RendererProps,
-  useJsonFormsControl,
-} from "@jsonforms/vue";
-import {
-  ControlElement,
-} from "@jsonforms/core";
-import ContentWrapper from "./ContentWrapper.vue";
-import { computed } from "vue";
-import TIcon from "../Icon/TIcon.vue";
-import { isChrome } from "@/methods";
+import type { RendererProps } from '@jsonforms/vue'
+import { useJsonFormsControl } from '@jsonforms/vue'
+import type { ControlElement } from '@jsonforms/core'
+import ContentWrapper from './ContentWrapper.vue'
+import { computed } from 'vue'
+import TIcon from '../Icon/TIcon.vue'
+import { isChrome } from '@/methods'
 
-const props = defineProps<RendererProps<ControlElement>>();
+const props = defineProps<RendererProps<ControlElement>>()
 
-const p = useJsonFormsControl(props);
+const p = useJsonFormsControl(props)
 
 const control = p.control
 
@@ -43,15 +42,15 @@ const dataTime = computed(() => (control.value.data ?? '').substr(0, 16))
 </script>
 
 <style scoped>
-input[type="time"] {
+input[type='time'] {
   @apply border border-naturals-N7 px-2 py-1 rounded;
 }
 
-input[type="time"]::-webkit-inner-spin-button {
+input[type='time']::-webkit-inner-spin-button {
   display: none;
 }
 
-input[type="time"]::-webkit-calendar-picker-indicator {
+input[type='time']::-webkit-calendar-picker-indicator {
   opacity: 0;
 }
 </style>

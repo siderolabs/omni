@@ -7,14 +7,22 @@ included in the LICENSE file.
 <template>
   <div class="flex flex-col flex-1">
     <t-list-item v-for="diagnostic in diagnostics" :key="diagnostic.id" disable-border-on-expand>
-      <a class="diagnostic-item" :href="'https://talos.dev/diagnostic/' + diagnostic.id" target="_blank">
-        <t-icon icon="warning" class="w-4 h-4 text-yellow-400 mr-2"/>
+      <a
+        class="diagnostic-item"
+        :href="'https://talos.dev/diagnostic/' + diagnostic.id"
+        target="_blank"
+      >
+        <t-icon icon="warning" class="w-4 h-4 text-yellow-400 mr-2" />
         <div class="text-yellow-400">{{ diagnostic.message }}</div>
       </a>
       <template #details>
         <div class="diagnostic-sublist">
-          <div class="diagnostic-subitem" v-for="(detail, index) in diagnostic.details" :key="index">
-            <t-icon icon="dot" class="w-4 h-4 mr-2"/>
+          <div
+            class="diagnostic-subitem"
+            v-for="(detail, index) in diagnostic.details"
+            :key="index"
+          >
+            <t-icon icon="dot" class="w-4 h-4 mr-2" />
             <span class="flex-1">{{ detail }}</span>
           </div>
         </div>
@@ -23,15 +31,15 @@ included in the LICENSE file.
   </div>
 </template>
 <script setup lang="ts">
-import { MachineStatusSpecDiagnostic } from "@/api/omni/specs/omni.pb";
-import TListItem from "@/components/common/List/TListItem.vue";
-import TIcon from "@/components/common/Icon/TIcon.vue";
+import type { MachineStatusSpecDiagnostic } from '@/api/omni/specs/omni.pb'
+import TListItem from '@/components/common/List/TListItem.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
 
 type Props = {
-  diagnostics?: MachineStatusSpecDiagnostic[],
-};
+  diagnostics?: MachineStatusSpecDiagnostic[]
+}
 
-defineProps<Props>();
+defineProps<Props>()
 </script>
 
 <style scoped>

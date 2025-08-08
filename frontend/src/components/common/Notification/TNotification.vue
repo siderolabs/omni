@@ -23,10 +23,7 @@ included in the LICENSE file.
         icon="check-in-circle-classic"
       />
       <div class="notification__content-box">
-        <h2
-          class="notification__title"
-          :class="type === 'error' && 'notification__title--error'"
-        >
+        <h2 class="notification__title" :class="type === 'error' && 'notification__title--error'">
           {{ title }}
         </h2>
         <p class="notification__description" v-if="body">{{ body }}</p>
@@ -49,7 +46,7 @@ included in the LICENSE file.
         class="notification__right-button"
         @click="
           () => {
-            abort ? abort() : (close ? close(): null);
+            abort ? abort() : close ? close() : null
           }
         "
         >{{ buttonTitle }}</t-button
@@ -59,38 +56,38 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import TButton from "@/components/common/Button/TButton.vue";
-import TIcon from "@/components/common/Icon/TIcon.vue";
+import TButton from '@/components/common/Button/TButton.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
 
-import { useRoute } from "vue-router";
-import { watch } from "vue";
+import { useRoute } from 'vue-router'
+import { watch } from 'vue'
 
 type Props = {
-  type?: "error" | "in-progress" | "success" | "info";
-  title?: string;
-  body?: string;
-  abort?: () => void;
-  isButtonHidden?: boolean;
-  buttonTitle?: "Dismiss" | "Abort";
-  onLeftButtonClick?: () => void;
-  onRightButtonClick?: () => void;
-  close?: () => void;
+  type?: 'error' | 'in-progress' | 'success' | 'info'
+  title?: string
+  body?: string
+  abort?: () => void
+  isButtonHidden?: boolean
+  buttonTitle?: 'Dismiss' | 'Abort'
+  onLeftButtonClick?: () => void
+  onRightButtonClick?: () => void
+  close?: () => void
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  type: "in-progress",
-  buttonTitle: "Dismiss",
+  type: 'in-progress',
+  buttonTitle: 'Dismiss',
   isButtonHidden: false,
-});
+})
 
-const route = useRoute();
+const route = useRoute()
 
 watch(
   () => route.path,
   () => {
-    if (props.close) props.close();
-  }
-);
+    if (props.close) props.close()
+  },
+)
 </script>
 
 <style scoped>

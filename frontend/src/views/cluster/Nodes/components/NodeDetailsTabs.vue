@@ -6,7 +6,8 @@ included in the LICENSE file.
 -->
 <template>
   <tabs-header class="border-b border-naturals-N4 pb-3.5">
-    <tab-button is="router-link"
+    <tab-button
+      is="router-link"
       v-for="route in routes"
       :key="route.name"
       :to="route.to"
@@ -18,51 +19,50 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { computed, toRefs } from 'vue';
-import { RouteLocationRaw } from 'vue-router';
+import { computed, toRefs } from 'vue'
+import type { RouteLocationRaw } from 'vue-router'
 
-import TabButton from "@/components/common/Tabs/TabButton.vue"
-import TabsHeader from "@/components/common/Tabs/TabsHeader.vue"
+import TabButton from '@/components/common/Tabs/TabButton.vue'
+import TabsHeader from '@/components/common/Tabs/TabsHeader.vue'
 
 const props = defineProps<{
-  machine: string,
-}>();
+  machine: string
+}>()
 
-const { machine } = toRefs(props);
+const { machine } = toRefs(props)
 
-const routes = computed((): {name: string, to: RouteLocationRaw }[] => {
+const routes = computed((): { name: string; to: RouteLocationRaw }[] => {
   return [
     {
-      name: "Overview",
-      to: { name: "NodeOverview", params: { machine: machine.value } },
+      name: 'Overview',
+      to: { name: 'NodeOverview', params: { machine: machine.value } },
     },
     {
-      name: "Monitor",
-      to: { name: "NodeMonitor", params: { machine: machine.value } },
+      name: 'Monitor',
+      to: { name: 'NodeMonitor', params: { machine: machine.value } },
     },
     {
-      name: "Console Logs",
-      to: { name: "NodeLogs", params: { machine: machine.value, service: "machine" } },
+      name: 'Console Logs',
+      to: { name: 'NodeLogs', params: { machine: machine.value, service: 'machine' } },
     },
     {
-      name: "Config",
-      to: { name: "NodeConfig", params: { machine: machine.value } },
+      name: 'Config',
+      to: { name: 'NodeConfig', params: { machine: machine.value } },
     },
     {
-      name: "Patches",
-      to: { name: "NodePatches", params: { machine: machine.value } },
+      name: 'Patches',
+      to: { name: 'NodePatches', params: { machine: machine.value } },
     },
     {
-      name: "Mounts",
-      to: { name: "NodeMounts", params: { machine: machine.value } },
+      name: 'Mounts',
+      to: { name: 'NodeMounts', params: { machine: machine.value } },
     },
     {
-      name: "Extensions",
-      to: { name: "NodeExtensions", params: { machine: machine.value } },
-    }
-  ];
+      name: 'Extensions',
+      to: { name: 'NodeExtensions', params: { machine: machine.value } },
+    },
+  ]
 })
-
 </script>
 
 <style scoped>
@@ -76,7 +76,7 @@ const routes = computed((): {name: string, to: RouteLocationRaw }[] => {
 
 .router-link-active::before {
   @apply block absolute bg-primary-P3 w-full animate-fadein;
-  content: "";
+  content: '';
   height: 2px;
   bottom: -15px;
 }

@@ -5,32 +5,28 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <button :disabled="disabled" class="icon-button" :class={danger}>
-    <slot v-if="$slots.default"/>
-    <t-icon
-      v-else
-      class="icon-button-icon"
-      :class="iconClasses"
-      :icon="icon"
-    />
+  <button :disabled="disabled" class="icon-button" :class="{ danger }">
+    <slot v-if="$slots.default" />
+    <t-icon v-else class="icon-button-icon" :class="iconClasses" :icon="icon" />
   </button>
 </template>
 
 <script setup lang="ts">
-import TIcon, { IconType } from "@/components/common/Icon/TIcon.vue";
-import { toRefs } from "vue";
+import type { IconType } from '@/components/common/Icon/TIcon.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
+import { toRefs } from 'vue'
 
 type Props = {
   icon: IconType
   disabled?: boolean
   danger?: boolean
   iconClasses?: Record<string, boolean>
-};
+}
 
 const props = withDefaults(defineProps<Props>(), {
   disabled: false,
-});
-const { icon, disabled } = toRefs(props);
+})
+const { icon, disabled } = toRefs(props)
 </script>
 
 <style scoped>

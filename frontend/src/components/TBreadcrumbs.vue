@@ -8,22 +8,11 @@ included in the LICENSE file.
   <div class="flex items-startflex-row flex-wrap" v-if="breadcrumbs.length > 0">
     <template v-for="(crumb, idx) in breadcrumbs" :key="crumb.text">
       <div class="flex items-center">
-        <router-link
-          v-if="idx !== breadcrumbs.length - 1"
-          class="all transition"
-          :to="crumb.to!"
-          >{{
-            crumb.text === $route.params.machine && !!nodeName
-              ? nodeName
-              : crumb.text
-          }}</router-link
-        >
+        <router-link v-if="idx !== breadcrumbs.length - 1" class="all transition" :to="crumb.to!">{{
+          crumb.text === $route.params.machine && !!nodeName ? nodeName : crumb.text
+        }}</router-link>
         <p v-if="idx == breadcrumbs.length - 1" class="last">
-          {{
-            crumb.text === $route.params.machine && !!nodeName
-              ? nodeName
-              : crumb.text
-          }}
+          {{ crumb.text === $route.params.machine && !!nodeName ? nodeName : crumb.text }}
         </p>
         <svg
           v-if="idx < breadcrumbs.length - 1"
@@ -41,31 +30,31 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { useRoute } from "vue-router";
-import { computed, toRefs } from "vue";
-import { getBreadcrumbs } from "@/router";
+import { useRoute } from 'vue-router'
+import { computed, toRefs } from 'vue'
+import { getBreadcrumbs } from '@/router'
 
 type Props = {
-  nodeName?: string,
+  nodeName?: string
   last?: string
-};
-const props = defineProps<Props>();
+}
+const props = defineProps<Props>()
 
-const { last } = toRefs(props);
+const { last } = toRefs(props)
 
-const route = useRoute();
+const route = useRoute()
 
 const breadcrumbs = computed(() => {
-  const res = getBreadcrumbs(route);
+  const res = getBreadcrumbs(route)
 
   if (last?.value) {
     res.push({
-      text: last.value
+      text: last.value,
     })
   }
 
-  return res;
-});
+  return res
+})
 </script>
 
 <style scoped>

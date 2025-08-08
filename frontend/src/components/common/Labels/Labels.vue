@@ -6,26 +6,47 @@ included in the LICENSE file.
 -->
 <template>
   <div class="flex flex-wrap gap-1.5 items-center text-xs">
-    <span v-for="label, key in modelValue" :key="key" class="flex items-center cursor-pointer" v-bind:class="`resource-label label-${label.color ?? defaultColor}`">
-        <template v-if="label.value">
+    <span
+      v-for="(label, key) in modelValue"
+      :key="key"
+      class="flex items-center cursor-pointer"
+      v-bind:class="`resource-label label-${label.color ?? defaultColor}`"
+    >
+      <template v-if="label.value">
         {{ key }}:<span class="font-semibold">{{ label.value }}</span>
-        </template>
-        <span v-else class="font-semibold">
+      </template>
+      <span v-else class="font-semibold">
         {{ key }}
-        </span>
-        <t-icon v-if="label.canRemove" icon="close" class="destroy-label-button" @click.stop="() => removeLabel(key)"/>
+      </span>
+      <t-icon
+        v-if="label.canRemove"
+        icon="close"
+        class="destroy-label-button"
+        @click.stop="() => removeLabel(key)"
+      />
     </span>
-    <t-input @keydown.enter="addLabel" v-model="currentLabel" compact @click.stop @blur="addLabel" :focus="addingLabel" v-if="addingLabel" class="w-24 h-6"/>
-    <t-button icon="tag" type="compact" @click.stop="editLabels" v-else-if="!readonly">new label</t-button>
+    <t-input
+      @keydown.enter="addLabel"
+      v-model="currentLabel"
+      compact
+      @click.stop
+      @blur="addLabel"
+      :focus="addingLabel"
+      v-if="addingLabel"
+      class="w-24 h-6"
+    />
+    <t-button icon="tag" type="compact" @click.stop="editLabels" v-else-if="!readonly"
+      >new label</t-button
+    >
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, toRefs } from "vue";
+import { ref, toRefs } from 'vue'
 
-import TButton from "@/components/common/Button/TButton.vue";
-import TInput from "@/components/common/TInput/TInput.vue";
-import TIcon from "@/components/common/Icon/TIcon.vue";
+import TButton from '@/components/common/Button/TButton.vue'
+import TInput from '@/components/common/TInput/TInput.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
 
 type Label = {
   value: string
@@ -33,62 +54,64 @@ type Label = {
   color?: string
 }
 
-const props = withDefaults(defineProps<{
-  modelValue: Record<string, Label>
-  onAdd?: (value: string) => Promise<void>
-  onRemove?: (value: string) => Promise<void>
-  readonly?: boolean
-  defaultColor?: string
-}>(),
+const props = withDefaults(
+  defineProps<{
+    modelValue: Record<string, Label>
+    onAdd?: (value: string) => Promise<void>
+    onRemove?: (value: string) => Promise<void>
+    readonly?: boolean
+    defaultColor?: string
+  }>(),
   {
-    defaultColor: 'light6'
-  }
-);
+    defaultColor: 'light6',
+  },
+)
 
 const { modelValue } = toRefs(props)
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue'])
 
-const addingLabel = ref(false);
-const currentLabel = ref("");
+const addingLabel = ref(false)
+const currentLabel = ref('')
 
 const editLabels = () => {
-  addingLabel.value = true;
-};
+  addingLabel.value = true
+}
 
 const addLabel = async () => {
-  addingLabel.value = false;
+  addingLabel.value = false
 
   if (!currentLabel.value.trim()) {
-    return;
+    return
   }
 
-  const parts = currentLabel.value.split(":");
+  const parts = currentLabel.value.split(':')
 
-  currentLabel.value = "";
+  currentLabel.value = ''
 
-  emit("update:modelValue", {...modelValue.value,
+  emit('update:modelValue', {
+    ...modelValue.value,
     [parts[0]]: {
-      value: parts[1] ?? "",
+      value: parts[1] ?? '',
       canRemove: true,
-    }
-  });
+    },
+  })
 }
 
 const removeLabel = async (key: string) => {
   if (props.onRemove) {
-    props.onRemove(key);
+    props.onRemove(key)
   }
 
-  addingLabel.value = false;
+  addingLabel.value = false
 
-  currentLabel.value = "";
+  currentLabel.value = ''
 
-  const copied = {...modelValue.value};
+  const copied = { ...modelValue.value }
 
-  delete copied[key];
+  delete copied[key]
 
-  emit("update:modelValue", copied);
-};
+  emit('update:modelValue', copied)
+}
 </script>
 
 <style>

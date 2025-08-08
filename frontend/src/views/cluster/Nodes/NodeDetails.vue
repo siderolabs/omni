@@ -6,16 +6,13 @@ included in the LICENSE file.
 -->
 <template>
   <div class="flex flex-col">
-    <nodes-header/>
-    <node-details-tabs
-      :machine="$route.params.machine as string"
-      class="mb-4"
-    />
-    <router-view name="nodeDetails"/>
+    <nodes-header />
+    <node-details-tabs :machine="$route.params.machine as string" class="mb-4" />
+    <router-view name="nodeDetails" />
   </div>
 </template>
 
 <script setup lang="ts">
-import NodesHeader from "@/views/cluster/Nodes/NodesHeader.vue";
-import NodeDetailsTabs from "@/views/cluster/Nodes/components/NodeDetailsTabs.vue";
+import NodesHeader from '@/views/cluster/Nodes/NodesHeader.vue'
+import NodeDetailsTabs from '@/views/cluster/Nodes/components/NodeDetailsTabs.vue'
 </script>

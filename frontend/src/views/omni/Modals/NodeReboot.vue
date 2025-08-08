@@ -8,17 +8,13 @@ included in the LICENSE file.
   <div class="modal-wrapper" @click.self="close">
     <div class="modal">
       <div class="modal-heading">
-        <h3 id="modal-title" class="modal-name">
-          Reboot the machine {{ node }} ?
-        </h3>
+        <h3 id="modal-title" class="modal-name">Reboot the machine {{ node }} ?</h3>
         <t-icon class="modal-exit" icon="close" />
       </div>
       <p class="text-xs">Please confirm the action.</p>
 
       <div class="modal-buttons-box">
-        <t-button @click="close" class="modal-button" type="secondary"
-          >Cancel</t-button
-        >
+        <t-button @click="close" class="modal-button" type="secondary">Cancel</t-button>
         <t-button
           @click="reboot"
           :disabled="!canRebootMachines || state === 'Rebooting'"
@@ -31,70 +27,60 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import TButton from "@/components/common/Button/TButton.vue";
-import { computed, ref } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { MachineService } from "@/api/talos/machine/machine.pb";
-import { withContext, withRuntime } from "@/api/options";
-import { Runtime } from "@/api/common/omni.pb";
-import { showError, showSuccess } from "@/notification";
-import { setupNodenameWatch } from "@/methods/node";
-import { getContext } from "@/context";
-import { setupClusterPermissions } from "@/methods/auth";
+import TButton from '@/components/common/Button/TButton.vue'
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { MachineService } from '@/api/talos/machine/machine.pb'
+import { withContext, withRuntime } from '@/api/options'
+import { Runtime } from '@/api/common/omni.pb'
+import { showError, showSuccess } from '@/notification'
+import { setupNodenameWatch } from '@/methods/node'
+import { getContext } from '@/context'
+import { setupClusterPermissions } from '@/methods/auth'
 
-const route = useRoute();
-const router = useRouter();
-const state = ref("Reboot");
+const route = useRoute()
+const router = useRouter()
+const state = ref('Reboot')
 
 const close = () => {
-  router.go(-1);
-};
+  router.go(-1)
+}
 
-const node = setupNodenameWatch(route.query.machine as string);
-const context = getContext();
+const node = setupNodenameWatch(route.query.machine as string)
+const context = getContext()
 
-const { canRebootMachines } = setupClusterPermissions(computed(() => context.cluster ?? ''));
+const { canRebootMachines } = setupClusterPermissions(computed(() => context.cluster ?? ''))
 
 const reboot = async () => {
-  state.value = "Rebooting";
-  const nodeName = node.value ?? route.query.machine as string;
+  state.value = 'Rebooting'
+  const nodeName = node.value ?? (route.query.machine as string)
 
   try {
-    const res = await MachineService.Reboot(
-      {},
-      withRuntime(Runtime.Talos),
-      withContext(context),
-    );
+    const res = await MachineService.Reboot({}, withRuntime(Runtime.Talos), withContext(context))
 
-    const errors: string[] = [];
-    for (const message of (res.messages || [])) {
+    const errors: string[] = []
+    for (const message of res.messages || []) {
       if (message?.metadata?.error)
-        errors.push(
-          `${message.metadata.hostname || nodeName} ${message.metadata.error
-          }`
-        );
+        errors.push(`${message.metadata.hostname || nodeName} ${message.metadata.error}`)
     }
 
-    if (errors.length > 0) throw new Error(errors.join(", "));
+    if (errors.length > 0) throw new Error(errors.join(', '))
   } catch (e: any) {
-    close();
+    close()
 
-    showError("Failed to Issue Reboot", e.toString());
+    showError('Failed to Issue Reboot', e.toString())
 
     return
   }
 
   if (route.query.goback) {
-    close();
+    close()
   } else {
-    await router.push({ name: 'ClusterOverview', params: { cluster: route.params.cluster } });
+    await router.push({ name: 'ClusterOverview', params: { cluster: route.params.cluster } })
   }
 
-  showSuccess(
-    "Machine Reboot",
-    `Machine ${nodeName} is rebooting now.`
-  );
-};
+  showSuccess('Machine Reboot', `Machine ${nodeName} is rebooting now.`)
+}
 </script>
 
 <style scoped>

@@ -13,30 +13,30 @@ included in the LICENSE file.
       :default-value="control.data ?? 'unset'"
       :disabled="!control.enabled"
       :values="values"
-      @checked-value="(value) => p.handleChange(control.path, control.options.find(item => item.label === value)?.value)"/>
+      @checked-value="
+        (value) =>
+          p.handleChange(control.path, control.options.find((item) => item.label === value)?.value)
+      "
+    />
   </content-wrapper>
 </template>
 
 <script setup lang="ts">
-import {
-  RendererProps,
-  useJsonFormsEnumControl,
-} from "@jsonforms/vue";
-import {
-  ControlElement
-} from "@jsonforms/core";
+import type { RendererProps } from '@jsonforms/vue'
+import { useJsonFormsEnumControl } from '@jsonforms/vue'
+import type { ControlElement } from '@jsonforms/core'
 
-import TSelectList from '../SelectList/TSelectList.vue';
-import { computed } from "vue";
-import ContentWrapper from "./ContentWrapper.vue";
+import TSelectList from '../SelectList/TSelectList.vue'
+import { computed } from 'vue'
+import ContentWrapper from './ContentWrapper.vue'
 
-const props = defineProps<RendererProps<ControlElement>>();
+const props = defineProps<RendererProps<ControlElement>>()
 
-const p = useJsonFormsEnumControl(props);
+const p = useJsonFormsEnumControl(props)
 
 const control = p.control
 
 const values = computed(() => {
-  return control.value.options.map(item => item.label);
-});
+  return control.value.options.map((item) => item.label)
+})
 </script>

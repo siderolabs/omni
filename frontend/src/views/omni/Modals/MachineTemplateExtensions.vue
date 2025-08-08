@@ -5,80 +5,71 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <div class="modal-window flex flex-col gap-4" style="height: 90%;">
+  <div class="modal-window flex flex-col gap-4" style="height: 90%">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">
-        Set Extensions
-      </h3>
+      <h3 class="text-base text-naturals-N14">Set Extensions</h3>
       <close-button @click="close" />
     </div>
 
-    <extensions-picker v-model="requestedExtensions" :talos-version="talosVersion"
-      class="flex-1" />
+    <extensions-picker v-model="requestedExtensions" :talos-version="talosVersion" class="flex-1" />
 
     <div class="flex justify-between gap-4">
-      <t-button @click="close" type="secondary">
-        Cancel
-      </t-button>
+      <t-button @click="close" type="secondary"> Cancel </t-button>
       <div class="flex gap-4">
         <t-button @click="() => updateExtensions(requestedExtensions)" type="highlighted">
           Save
         </t-button>
       </div>
-
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import CloseButton from "@/views/omni/Modals/CloseButton.vue";
-import TButton from "@/components/common/Button/TButton.vue";
-import ExtensionsPicker from "@/views/omni/Extensions/ExtensionsPicker.vue";
-import { closeModal } from "@/modal";
-import { ref, toRefs } from "vue";
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
+import TButton from '@/components/common/Button/TButton.vue'
+import ExtensionsPicker from '@/views/omni/Extensions/ExtensionsPicker.vue'
+import { closeModal } from '@/modal'
+import { ref, toRefs } from 'vue'
 
 const props = defineProps<{
   talosVersion: string
   modelValue?: string[]
   onSave: (e?: string[]) => void
-}>();
+}>()
 
-const {
-  talosVersion,
-  modelValue,
-} = toRefs(props);
+const { talosVersion, modelValue } = toRefs(props)
 
 const close = () => {
-  closeModal();
-};
+  closeModal()
+}
 
-const requestedExtensions = ref<Record<string, boolean>>({});
+const requestedExtensions = ref<Record<string, boolean>>({})
 
 if (modelValue.value) {
   for (const key of modelValue.value) {
-    requestedExtensions.value[key] = true;
+    requestedExtensions.value[key] = true
   }
 }
 
 const updateExtensions = (extensions?: Record<string, boolean>) => {
   if (extensions === undefined) {
-    props.onSave();
+    props.onSave()
   } else {
-    const list: string[] = [];
+    const list: string[] = []
     for (const key in extensions) {
       if (!extensions[key]) {
-        continue;
+        continue
       }
 
-      list.push(key);
+      list.push(key)
     }
 
-    list.sort();
+    list.sort()
 
-    props.onSave(list);
+    props.onSave(list)
   }
 
-  close();
+  close()
 }
 </script>
 

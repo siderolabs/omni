@@ -11,22 +11,28 @@ import {
   PermissionsID,
   ClusterPermissionsType,
   DefaultNamespace,
-  JoinTokenType
-} from "@/api/resources";
+  JoinTokenType,
+} from '@/api/resources'
 
-import { ResourceService, Resource } from "@/api/grpc";
-import { Runtime } from "@/api/common/omni.pb";
-import { ClusterPermissionsSpec, CurrentUserSpec, PermissionsSpec } from "@/api/omni/specs/virtual.pb";
-import { computed, ComputedRef, onBeforeMount, ref, Ref, watch } from "vue";
-import { withRuntime } from "@/api/options";
-import { JoinTokenSpec } from "@/api/omni/specs/auth.pb";
+import type { Resource } from '@/api/grpc'
+import { ResourceService } from '@/api/grpc'
+import { Runtime } from '@/api/common/omni.pb'
+import type {
+  ClusterPermissionsSpec,
+  CurrentUserSpec,
+  PermissionsSpec,
+} from '@/api/omni/specs/virtual.pb'
+import type { ComputedRef, Ref } from 'vue'
+import { computed, onBeforeMount, ref, watch } from 'vue'
+import { withRuntime } from '@/api/options'
+import type { JoinTokenSpec } from '@/api/omni/specs/auth.pb'
 
-export const currentUser: Ref<Resource<CurrentUserSpec> | undefined> = ref();
-export const permissions: Ref<Resource<PermissionsSpec> | undefined> = ref();
+export const currentUser: Ref<Resource<CurrentUserSpec> | undefined> = ref()
+export const permissions: Ref<Resource<PermissionsSpec> | undefined> = ref()
 
-const clusterPermissionsCache: Record<string, Resource<ClusterPermissionsSpec>> = {};
+const clusterPermissionsCache: Record<string, Resource<ClusterPermissionsSpec>> = {}
 
-export const setupClusterPermissions = (cluster: {value: string}) => {
+export const setupClusterPermissions = (cluster: { value: string }) => {
   const result = {
     canUpdateKubernetes: ref(false),
     canUpdateTalos: ref(false),
@@ -45,160 +51,180 @@ export const setupClusterPermissions = (cluster: {value: string}) => {
 
   const getPermissions = async (clusterName: string) => {
     if (clusterPermissionsCache[clusterName]) {
-      return clusterPermissionsCache[clusterName];
+      return clusterPermissionsCache[clusterName]
     }
 
-    const clusterPermissions: Resource<ClusterPermissionsSpec> = await ResourceService.Get({
-      namespace: VirtualNamespace,
-      type: ClusterPermissionsType,
-      id: clusterName,
-    }, withRuntime(Runtime.Omni));
+    const clusterPermissions: Resource<ClusterPermissionsSpec> = await ResourceService.Get(
+      {
+        namespace: VirtualNamespace,
+        type: ClusterPermissionsType,
+        id: clusterName,
+      },
+      withRuntime(Runtime.Omni),
+    )
 
-    clusterPermissionsCache[clusterName] = clusterPermissions;
+    clusterPermissionsCache[clusterName] = clusterPermissions
 
-    return clusterPermissions;
+    return clusterPermissions
   }
 
   const updatePermissions = async () => {
-    const clusterPermissions = await getPermissions(cluster.value);
+    const clusterPermissions = await getPermissions(cluster.value)
 
-    result.canUpdateKubernetes.value = clusterPermissions?.spec?.can_update_kubernetes || false;
-    result.canUpdateTalos.value = clusterPermissions?.spec?.can_update_talos || false;
-    result.canDownloadKubeconfig.value = clusterPermissions?.spec?.can_download_kubeconfig || false;
-    result.canDownloadTalosconfig.value = clusterPermissions?.spec?.can_download_talosconfig || false;
-    result.canDownloadSupportBundle.value = clusterPermissions?.spec?.can_download_support_bundle || false;
-    result.canAddClusterMachines.value = clusterPermissions?.spec?.can_add_machines || false;
-    result.canRemoveClusterMachines.value = clusterPermissions?.spec?.can_remove_machines || false;
-    result.canSyncKubernetesManifests.value = clusterPermissions?.spec?.can_sync_kubernetes_manifests || false;
-    result.canReadConfigPatches.value = clusterPermissions?.spec?.can_read_config_patches || false;
-    result.canManageConfigPatches.value = clusterPermissions?.spec?.can_manage_config_patches || false;
-    result.canRebootMachines.value = clusterPermissions?.spec?.can_reboot_machines || false;
-    result.canRemoveMachines.value = clusterPermissions?.spec?.can_remove_machines || false;
-    result.canManageClusterFeatures.value = clusterPermissions?.spec?.can_manage_cluster_features || false;
+    result.canUpdateKubernetes.value = clusterPermissions?.spec?.can_update_kubernetes || false
+    result.canUpdateTalos.value = clusterPermissions?.spec?.can_update_talos || false
+    result.canDownloadKubeconfig.value = clusterPermissions?.spec?.can_download_kubeconfig || false
+    result.canDownloadTalosconfig.value =
+      clusterPermissions?.spec?.can_download_talosconfig || false
+    result.canDownloadSupportBundle.value =
+      clusterPermissions?.spec?.can_download_support_bundle || false
+    result.canAddClusterMachines.value = clusterPermissions?.spec?.can_add_machines || false
+    result.canRemoveClusterMachines.value = clusterPermissions?.spec?.can_remove_machines || false
+    result.canSyncKubernetesManifests.value =
+      clusterPermissions?.spec?.can_sync_kubernetes_manifests || false
+    result.canReadConfigPatches.value = clusterPermissions?.spec?.can_read_config_patches || false
+    result.canManageConfigPatches.value =
+      clusterPermissions?.spec?.can_manage_config_patches || false
+    result.canRebootMachines.value = clusterPermissions?.spec?.can_reboot_machines || false
+    result.canRemoveMachines.value = clusterPermissions?.spec?.can_remove_machines || false
+    result.canManageClusterFeatures.value =
+      clusterPermissions?.spec?.can_manage_cluster_features || false
   }
 
-  onBeforeMount(updatePermissions);
-  watch(cluster, updatePermissions);
+  onBeforeMount(updatePermissions)
+  watch(cluster, updatePermissions)
 
   return result
-};
+}
 
 export const canManageUsers: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_manage_users ?? false;
-});
+  return permissions?.value?.spec?.can_manage_users ?? false
+})
 
 export const canReadClusters: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_read_clusters ?? false;
-});
+  return permissions?.value?.spec?.can_read_clusters ?? false
+})
 
 export const canReadMachines: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_read_machines ?? false;
-});
+  return permissions?.value?.spec?.can_read_machines ?? false
+})
 
 export const canCreateClusters: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_create_clusters ?? false;
-});
+  return permissions?.value?.spec?.can_create_clusters ?? false
+})
 
 export const canRemoveMachines: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_remove_machines ?? false;
-});
+  return permissions?.value?.spec?.can_remove_machines ?? false
+})
 
 export const canReadMachineLogs: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_read_machine_logs ?? false;
-});
+  return permissions?.value?.spec?.can_read_machine_logs ?? false
+})
 
 export const canReadMachineConfigPatches: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_read_machine_config_patches ?? false;
-});
+  return permissions?.value?.spec?.can_read_machine_config_patches ?? false
+})
 
 export const canManageMachineConfigPatches: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_manage_machine_config_patches ?? false;
-});
+  return permissions?.value?.spec?.can_manage_machine_config_patches ?? false
+})
 
 export const canManageBackupStore: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_manage_backup_store ?? false;
-});
+  return permissions?.value?.spec?.can_manage_backup_store ?? false
+})
 
 export const canAccessMaintenanceNodes: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_access_maintenance_nodes ?? false;
-});
+  return permissions?.value?.spec?.can_access_maintenance_nodes ?? false
+})
 
 export const canReadAuditLog: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_read_audit_log ?? false;
-});
+  return permissions?.value?.spec?.can_read_audit_log ?? false
+})
 
 export const loadCurrentUser = async () => {
   if (!currentUser.value) {
-    await refreshCurrentUser();
+    await refreshCurrentUser()
   }
 
   if (!permissions.value) {
-    await refreshPermissions();
+    await refreshPermissions()
   }
 }
 
 const refreshCurrentUser = async () => {
-  if (!window.localStorage.getItem("identity")) {
-    currentUser.value = undefined;
-    return;
+  if (!window.localStorage.getItem('identity')) {
+    currentUser.value = undefined
+    return
   }
 
   try {
-    currentUser.value = await ResourceService.Get({
-      namespace: VirtualNamespace,
-      type: CurrentUserType,
-      id: CurrentUserID,
-    }, withRuntime(Runtime.Omni));
+    currentUser.value = await ResourceService.Get(
+      {
+        namespace: VirtualNamespace,
+        type: CurrentUserType,
+        id: CurrentUserID,
+      },
+      withRuntime(Runtime.Omni),
+    )
   } catch {
-    currentUser.value = undefined;
+    currentUser.value = undefined
   }
 }
 
 const refreshPermissions = async () => {
   if (!currentUser.value) {
-    permissions.value = undefined;
-    return;
+    permissions.value = undefined
+    return
   }
 
   try {
-    permissions.value = await ResourceService.Get({
-      namespace: VirtualNamespace,
-      type: PermissionsType,
-      id: PermissionsID,
-    }, withRuntime(Runtime.Omni));
+    permissions.value = await ResourceService.Get(
+      {
+        namespace: VirtualNamespace,
+        type: PermissionsType,
+        id: PermissionsID,
+      },
+      withRuntime(Runtime.Omni),
+    )
   } catch {
-    permissions.value = undefined;
+    permissions.value = undefined
   }
 }
 
 export const revokeJoinToken = async (tokenID: string) => {
-  updateToken(tokenID, token => {
-    token.spec.revoked = true;
-  });
+  updateToken(tokenID, (token) => {
+    token.spec.revoked = true
+  })
 }
 
 export const unrevokeJoinToken = async (tokenID: string) => {
-  updateToken(tokenID, token => {
-    token.spec.revoked = false;
-  });
+  updateToken(tokenID, (token) => {
+    token.spec.revoked = false
+  })
 }
 
 export const deleteJoinToken = async (tokenID: string) => {
-  await ResourceService.Delete({
-    namespace: DefaultNamespace,
-    type: JoinTokenType,
-    id: tokenID,
-  }, withRuntime(Runtime.Omni));
+  await ResourceService.Delete(
+    {
+      namespace: DefaultNamespace,
+      type: JoinTokenType,
+      id: tokenID,
+    },
+    withRuntime(Runtime.Omni),
+  )
 }
 
 const updateToken = async (tokenID: string, update: (token: Resource<JoinTokenSpec>) => void) => {
-  const token: Resource<JoinTokenSpec> = await ResourceService.Get({
-    namespace: DefaultNamespace,
-    type: JoinTokenType,
-    id: tokenID,
-  }, withRuntime(Runtime.Omni));
+  const token: Resource<JoinTokenSpec> = await ResourceService.Get(
+    {
+      namespace: DefaultNamespace,
+      type: JoinTokenType,
+      id: tokenID,
+    },
+    withRuntime(Runtime.Omni),
+  )
 
-  update(token);
+  update(token)
 
-  await ResourceService.Update(token, token.metadata.version, withRuntime(Runtime.Omni));
+  await ResourceService.Update(token, token.metadata.version, withRuntime(Runtime.Omni))
 }

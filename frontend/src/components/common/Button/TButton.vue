@@ -15,46 +15,52 @@ included in the LICENSE file.
       toggle,
     }"
   >
-    <span class="t-button-text whitespace-nowrap" v-if="$slots.default" :style="textOrder" :class="{ 'text-red-R1': danger }">
-      <slot/>
+    <span
+      class="t-button-text whitespace-nowrap"
+      v-if="$slots.default"
+      :style="textOrder"
+      :class="{ 'text-red-R1': danger }"
+    >
+      <slot />
     </span>
-    <t-icon :icon="icon" v-if="icon" class="button-icon" :class="{ 'text-red-R1': danger, type }"/>
+    <t-icon :icon="icon" v-if="icon" class="button-icon" :class="{ 'text-red-R1': danger, type }" />
   </button>
 </template>
 
 <script setup lang="ts">
-import { computed, toRefs, StyleValue } from "vue";
-import TIcon, { IconType } from "@/components/common/Icon/TIcon.vue";
+import type { StyleValue } from 'vue'
+import { computed, toRefs } from 'vue'
+import type { IconType } from '@/components/common/Icon/TIcon.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
 
 type Props = {
-  type?: "primary" | "secondary" | "subtle" | "subtle-xs" |"compact" | "highlighted";
-  toggle?: boolean;
-  disabled?: boolean;
-  icon?: IconType;
-  danger?: boolean;
-  iconPosition?: "left" | "middle" | "right";
-  isLightHover?: boolean;
-};
+  type?: 'primary' | 'secondary' | 'subtle' | 'subtle-xs' | 'compact' | 'highlighted'
+  toggle?: boolean
+  disabled?: boolean
+  icon?: IconType
+  danger?: boolean
+  iconPosition?: 'left' | 'middle' | 'right'
+  isLightHover?: boolean
+}
 
 const props = withDefaults(defineProps<Props>(), {
-  type: "primary",
+  type: 'primary',
   toggle: false,
   disabled: false,
   danger: false,
-  iconPosition: "right",
+  iconPosition: 'right',
   isLightHover: false,
-});
+})
 
-const { type, toggle, disabled, icon, danger, iconPosition, isLightHover } = toRefs(props);
+const { type, toggle, disabled, icon, danger, iconPosition, isLightHover } = toRefs(props)
 
-const textOrder = computed(() : StyleValue => {
-  if (iconPosition.value === "left") {
-    return { order: 1 };
+const textOrder = computed((): StyleValue => {
+  if (iconPosition.value === 'left') {
+    return { order: 1 }
   }
 
-  return {};
-});
-
+  return {}
+})
 </script>
 
 <style scoped>

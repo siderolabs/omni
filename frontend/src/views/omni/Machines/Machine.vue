@@ -10,7 +10,8 @@ included in the LICENSE file.
       <PageHeader :title="`${machine}`" />
     </div>
     <tabs-header class="border-b border-naturals-N4 pb-3.5">
-      <tab-button is="router-link"
+      <tab-button
+        is="router-link"
         v-for="route in routes"
         :key="route.name"
         :to="route.to"
@@ -19,53 +20,57 @@ included in the LICENSE file.
         {{ route.name }}
       </tab-button>
     </tabs-header>
-    <router-view name="inner" class="flex-1"/>
+    <router-view name="inner" class="flex-1" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import { RouteLocationRaw } from "vue-router";
-import TabsHeader from "@/components/common/Tabs/TabsHeader.vue";
-import TabButton from "@/components/common/Tabs/TabButton.vue";
+import { computed } from 'vue'
+import type { RouteLocationRaw } from 'vue-router'
+import TabsHeader from '@/components/common/Tabs/TabsHeader.vue'
+import TabButton from '@/components/common/Tabs/TabButton.vue'
 
-import { Runtime } from "@/api/common/omni.pb";
-import { Resource, ResourceService } from "@/api/grpc";
-import { MachineStatusSpec } from "@/api/omni/specs/omni.pb";
-import { withRuntime } from "@/api/options";
-import { DefaultNamespace, MachineStatusType } from "@/api/resources";
-import PageHeader from "@/components/common/PageHeader.vue";
-import { onBeforeMount, ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { Runtime } from '@/api/common/omni.pb'
+import type { Resource } from '@/api/grpc'
+import { ResourceService } from '@/api/grpc'
+import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
+import { withRuntime } from '@/api/options'
+import { DefaultNamespace, MachineStatusType } from '@/api/resources'
+import PageHeader from '@/components/common/PageHeader.vue'
+import { onBeforeMount, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
-const routes = computed((): {name: string, to: RouteLocationRaw }[] => {
+const routes = computed((): { name: string; to: RouteLocationRaw }[] => {
   return [
     {
-      name: "Logs",
-      to: { name: "MachineLogs" },
+      name: 'Logs',
+      to: { name: 'MachineLogs' },
     },
     {
-      name: "Patches",
-      to: { name: "MachineConfigPatches" },
+      name: 'Patches',
+      to: { name: 'MachineConfigPatches' },
     },
-  ];
-});
+  ]
+})
 
-const route = useRoute();
+const route = useRoute()
 
 const getMachineName = async () => {
-  const res: Resource<MachineStatusSpec> = await ResourceService.Get({
-    namespace: DefaultNamespace,
-    type: MachineStatusType,
-    id: route.params.machine! as string,
-  }, withRuntime(Runtime.Omni));
+  const res: Resource<MachineStatusSpec> = await ResourceService.Get(
+    {
+      namespace: DefaultNamespace,
+      type: MachineStatusType,
+      id: route.params.machine! as string,
+    },
+    withRuntime(Runtime.Omni),
+  )
 
-  machine.value = res.spec.network?.hostname || res.metadata.id!;
-};
+  machine.value = res.spec.network?.hostname || res.metadata.id!
+}
 
-const machine = ref(route.params.machine);
+const machine = ref(route.params.machine)
 
-onBeforeMount(getMachineName);
+onBeforeMount(getMachineName)
 watch(() => route.params, getMachineName)
 </script>
 
@@ -80,7 +85,7 @@ watch(() => route.params, getMachineName)
 
 .router-link-active::before {
   @apply block absolute bg-primary-P3 w-full animate-fadein;
-  content: "";
+  content: '';
   height: 2px;
   bottom: -15px;
 }

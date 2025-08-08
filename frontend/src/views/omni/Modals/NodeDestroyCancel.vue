@@ -13,16 +13,23 @@ included in the LICENSE file.
       <close-button @click="close(true)" />
     </div>
     <watch
-      :opts="{ resource: { namespace: DefaultNamespace, id: $route.query.machine as string, type: ClusterMachineType }, runtime: Runtime.Omni }" spinner>
+      :opts="{
+        resource: {
+          namespace: DefaultNamespace,
+          id: $route.query.machine as string,
+          type: ClusterMachineType,
+        },
+        runtime: Runtime.Omni,
+      }"
+      spinner
+    >
       <template #default="{ items }">
         <template v-if="canRestore(items)">
           <p class="text-xs mb-2">Please confirm the action.</p>
 
           <div class="flex items-end gap-4 mt-2">
             <div class="flex-1" />
-            <t-button @click="() => restore(items[0])" class="h-9">
-              Restore Machine
-            </t-button>
+            <t-button @click="() => restore(items[0])" class="h-9"> Restore Machine </t-button>
           </div>
         </template>
         <template v-else>
@@ -30,9 +37,7 @@ included in the LICENSE file.
 
           <div class="flex items-end gap-4 mt-2">
             <div class="flex-1" />
-            <t-button @click="close" class="h-9">
-              Close
-            </t-button>
+            <t-button @click="close" class="h-9"> Close </t-button>
           </div>
         </template>
       </template>
@@ -41,87 +46,76 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { useRoute, useRouter } from "vue-router";
-import { showError, showSuccess } from "@/notification";
-import { setupNodenameWatch } from "@/methods/node";
+import { useRoute, useRouter } from 'vue-router'
+import { showError, showSuccess } from '@/notification'
+import { setupNodenameWatch } from '@/methods/node'
 
-import CloseButton from "@/views/omni/Modals/CloseButton.vue";
-import TButton from "@/components/common/Button/TButton.vue";
-import { Resource } from "@/api/grpc";
-import {
-  ClusterMachineType,
-  DefaultNamespace,
-} from "@/api/resources";
-import { ClusterMachineSpec } from "@/api/omni/specs/omni.pb";
-import { Runtime } from "@/api/common/omni.pb";
-import Watch from "@/components/common/Watch/Watch.vue";
-import { restoreNode } from "@/methods/cluster";
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
+import TButton from '@/components/common/Button/TButton.vue'
+import type { Resource } from '@/api/grpc'
+import { ClusterMachineType, DefaultNamespace } from '@/api/resources'
+import type { ClusterMachineSpec } from '@/api/omni/specs/omni.pb'
+import { Runtime } from '@/api/common/omni.pb'
+import Watch from '@/components/common/Watch/Watch.vue'
+import { restoreNode } from '@/methods/cluster'
 
-const router = useRouter();
-const route = useRoute();
+const router = useRouter()
+const route = useRoute()
 
-let closed = false;
+let closed = false
 
 const close = (goBack?: boolean) => {
   if (closed) {
-    return;
+    return
   }
 
   if (!goBack && !route.query.goback) {
-    router.push({ name: 'ClusterOverview', params: { cluster: route.query.cluster as string } });
+    router.push({ name: 'ClusterOverview', params: { cluster: route.query.cluster as string } })
 
-    return;
+    return
   }
 
-  closed = true;
+  closed = true
 
-  router.go(-1);
-};
-
-const canRestore = (items: Resource[]) => {
-  return items.length === 0 || items[0].metadata.phase !== 'Running';
+  router.go(-1)
 }
 
-const node = setupNodenameWatch(route.query.machine as string);
+const canRestore = (items: Resource[]) => {
+  return items.length === 0 || items[0].metadata.phase !== 'Running'
+}
+
+const node = setupNodenameWatch(route.query.machine as string)
 
 const restore = async (clusterMachine: Resource<ClusterMachineSpec>) => {
   if (!route.query.machine) {
-    showError(
-      "Failed to Restore The Machine Set Node",
-      "The machine id not resolved",
-    )
+    showError('Failed to Restore The Machine Set Node', 'The machine id not resolved')
 
-    close(true);
+    close(true)
 
-    return;
+    return
   }
 
   try {
-    await restoreNode(clusterMachine);
+    await restoreNode(clusterMachine)
   } catch (e) {
     if (e.errorNotification) {
-      showError(
-        e.errorNotification.title,
-        e.errorNotification.details,
-      )
+      showError(e.errorNotification.title, e.errorNotification.details)
 
-      close(true);
+      close(true)
 
-      return;
+      return
     }
 
-    close(true);
+    close(true)
 
-    showError("Failed to Restore The Node", e.message)
+    showError('Failed to Restore The Node', e.message)
 
-    return;
+    return
   }
 
-  close();
+  close()
 
-  showSuccess(
-    `The Machine ${node.value} was Restored`,
-  );
+  showSuccess(`The Machine ${node.value} was Restored`)
 }
 </script>
 

@@ -7,9 +7,7 @@ included in the LICENSE file.
 <template>
   <div class="nodes-list-item">
     <p class="node-name">
-      <router-link
-        :to="{ name: 'NodeOverview', params: { machine: item.metadata.id } }"
-      >
+      <router-link :to="{ name: 'NodeOverview', params: { machine: item.metadata.id } }">
         <WordHighlighter
           :query="searchOption"
           :textToHighlight="nodeName"
@@ -33,76 +31,80 @@ included in the LICENSE file.
       />
     </p>
     <p class="flex flex-wrap">
-      <tag
-        class="nodes-list-item-role"
-        v-for="role in roles"
-        :key="role">
-       {{ role }}
+      <tag class="nodes-list-item-role" v-for="role in roles" :key="role">
+        {{ role }}
       </tag>
     </p>
     <p>
-      <t-status :title="status"/>
+      <t-status :title="status" />
     </p>
     <div class="nodes-list-item-menu -ml-6">
-      <node-context-menu :cluster-machine-status="item" :cluster-name="route.params.cluster as string"/>
+      <node-context-menu
+        :cluster-machine-status="item"
+        :cluster-name="route.params.cluster as string"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, toRefs } from "vue";
-import { useRoute } from "vue-router";
-import { getStatus } from "@/methods";
-import { ClusterMachineStatusLabelNodeName } from "@/api/resources";
-import { Resource } from "@/api/grpc";
-import { ClusterMachineStatusSpec } from "@/api/omni/specs/omni.pb";
-import { V1NodeSpec, V1NodeStatus } from "@kubernetes/client-node";
+import { computed, toRefs } from 'vue'
+import { useRoute } from 'vue-router'
+import { getStatus } from '@/methods'
+import { ClusterMachineStatusLabelNodeName } from '@/api/resources'
+import type { Resource } from '@/api/grpc'
+import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
+import type { V1NodeSpec, V1NodeStatus } from '@kubernetes/client-node'
 
-import TStatus from "@/components/common/Status/TStatus.vue";
-import Tag from "@/components/common/Tag/Tag.vue";
-import WordHighlighter from "vue-word-highlighter";
-import NodeContextMenu from "@/views/common/NodeContextMenu.vue";
+import TStatus from '@/components/common/Status/TStatus.vue'
+import Tag from '@/components/common/Tag/Tag.vue'
+import WordHighlighter from 'vue-word-highlighter'
+import NodeContextMenu from '@/views/common/NodeContextMenu.vue'
 
 type MemberSpec = {
-  operatingSystem: string,
-  addresses: string[],
-  nodeId?: string,
+  operatingSystem: string
+  addresses: string[]
+  nodeId?: string
 }
 
 const props = defineProps<{
   item: Resource<ClusterMachineStatusSpec & V1NodeSpec & MemberSpec, V1NodeStatus>
-  searchOption?: string,
-}>();
+  searchOption?: string
+}>()
 
-const { item } = toRefs(props);
+const { item } = toRefs(props)
 
 const os = computed(() => {
-  return item.value.spec.operatingSystem || "unknown";
-});
+  return item.value.spec.operatingSystem || 'unknown'
+})
 
 const nodeName = computed(() => {
-  return (item.value.metadata.labels || {})[ClusterMachineStatusLabelNodeName] ?? item.value.spec.nodeId ?? item.value.metadata.id;
-});
+  return (
+    (item.value.metadata.labels || {})[ClusterMachineStatusLabelNodeName] ??
+    item.value.spec.nodeId ??
+    item.value.metadata.id
+  )
+})
 
-const status = computed(() => getStatus(item.value));
+const status = computed(() => getStatus(item.value))
 
 const ip = computed(() => {
-  return (item.value?.spec?.addresses ?? {})[0] ?? "";
-});
+  return (item.value?.spec?.addresses ?? {})[0] ?? ''
+})
 
 const roles = computed(() => {
-  const roles: any = [];
+  const roles: any = []
 
   for (const label in item.value?.metadata.labels) {
-    if (label.indexOf("node-role.kubernetes.io/") != -1) {
-      roles.push(label.split("/")[1]);
+    if (label.indexOf('node-role.kubernetes.io/') != -1) {
+      roles.push(label.split('/')[1])
     }
   }
 
-  return roles;
-});
+  return roles
+})
 
-const route = useRoute();
+const route = useRoute()
 </script>
 
 <style scoped>

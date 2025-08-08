@@ -5,13 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <svg
-    width="60"
-    height="60"
-    viewBox="0 0 60 60"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path
       d="M35.1106 23.2263H36.2694L39.5724 19.9233L39.7343 18.5205C33.5868 13.0938 24.2048 13.68 18.7781 19.8275C17.2704 21.5338 16.1777 23.5662 15.5801 25.7651C15.9473 25.6146 16.3556 25.5895 16.7389 25.6967L23.3448 24.6064C23.3448 24.6064 23.6802 24.0498 23.8558 24.084C26.7938 20.8563 31.7392 20.4799 35.1334 23.2263H35.1106Z"
       fill="#EA4335"
@@ -30,5 +24,4 @@ included in the LICENSE file.
     />
   </svg>
 </template>
-<script setup lang="ts">
-</script>
+<script setup lang="ts"></script>

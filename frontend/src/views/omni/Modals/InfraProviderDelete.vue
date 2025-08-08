@@ -7,64 +7,66 @@ included in the LICENSE file.
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">
-        Delete Infra Provider {{ $route.query.provider }}
-      </h3>
+      <h3 class="text-base text-naturals-N14">Delete Infra Provider {{ $route.query.provider }}</h3>
       <close-button @click="close" />
     </div>
     <p class="text-xs">Please confirm the action.</p>
-    <div class="text-yellow-Y1 text-xs my-3">The infra provider service will no longer be able to connect to Omni. And it's service account key will be removed.</div>
+    <div class="text-yellow-Y1 text-xs my-3">
+      The infra provider service will no longer be able to connect to Omni. And it's service account
+      key will be removed.
+    </div>
     <div class="flex justify-end">
-      <t-button @click="deleteProvider" class="w-32 h-9">
-        Delete
-      </t-button>
+      <t-button @click="deleteProvider" class="w-32 h-9"> Delete </t-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { showError, showSuccess } from "@/notification";
-import { useRoute, useRouter } from "vue-router";
+import { showError, showSuccess } from '@/notification'
+import { useRoute, useRouter } from 'vue-router'
 
-import CloseButton from "@/views/omni/Modals/CloseButton.vue";
-import TButton from "@/components/common/Button/TButton.vue";
-import { ResourceService } from "@/api/grpc";
-import { InfraProviderNamespace, ProviderType } from "@/api/resources";
-import { withRuntime } from "@/api/options";
-import { Runtime } from "@/api/common/omni.pb";
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
+import TButton from '@/components/common/Button/TButton.vue'
+import { ResourceService } from '@/api/grpc'
+import { InfraProviderNamespace, ProviderType } from '@/api/resources'
+import { withRuntime } from '@/api/options'
+import { Runtime } from '@/api/common/omni.pb'
 
-const router = useRouter();
-const route = useRoute();
+const router = useRouter()
+const route = useRoute()
 
 const deleteProvider = async () => {
   try {
-    await ResourceService.Delete({
-      namespace: InfraProviderNamespace,
-      id: route.query.provider as string,
-      type: ProviderType,
-    }, withRuntime(Runtime.Omni));
+    await ResourceService.Delete(
+      {
+        namespace: InfraProviderNamespace,
+        id: route.query.provider as string,
+        type: ProviderType,
+      },
+      withRuntime(Runtime.Omni),
+    )
   } catch (e) {
-    showError("Failed to Delete Infra Provider", e.message);
+    showError('Failed to Delete Infra Provider', e.message)
 
-    return;
+    return
   } finally {
-    close();
+    close()
   }
 
-  showSuccess(`Infra Provider ${route.query.provider} Deleted`, undefined);
-};
+  showSuccess(`Infra Provider ${route.query.provider} Deleted`, undefined)
+}
 
-let closed = false;
+let closed = false
 
 const close = () => {
   if (closed) {
-    return;
+    return
   }
 
-  closed = true;
+  closed = true
 
-  router.go(-1);
-};
+  router.go(-1)
+}
 </script>
 
 <style scoped>
@@ -77,6 +79,6 @@ const close = () => {
 }
 
 code {
- @apply break-all rounded bg-naturals-N4;
+  @apply break-all rounded bg-naturals-N4;
 }
 </style>

@@ -17,14 +17,14 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { computed, toRefs } from "vue";
-import ApexChart from "vue3-apexcharts";
-import { primary, naturals } from "@/vars/colors";
-import { ApexOptions } from "apexcharts";
+import { computed, toRefs } from 'vue'
+import ApexChart from 'vue3-apexcharts'
+import { primary, naturals } from '@/vars/colors'
+import type { ApexOptions } from 'apexcharts'
 
-const props = defineProps<{ chartFillPercents:  number | string }>();
+const props = defineProps<{ chartFillPercents: number | string }>()
 
-const { chartFillPercents } = toRefs(props);
+const { chartFillPercents } = toRefs(props)
 const options: ApexOptions = {
   chart: {
     dropShadow: {
@@ -40,10 +40,10 @@ const options: ApexOptions = {
     radialBar: {
       hollow: {
         margin: 0,
-        size: "60",
+        size: '60',
       },
       track: {
-        background: naturals.N0
+        background: naturals.N0,
       },
       dataLabels: {
         show: false,
@@ -54,23 +54,23 @@ const options: ApexOptions = {
     colors: [primary.P3],
   },
   stroke: {
-    lineCap: "round"
+    lineCap: 'round',
   },
   states: {
     hover: {
       filter: {
         type: 'none',
-      }
+      },
     },
     active: {
       filter: {
         type: 'none',
-      }
-    }
-  }
-};
+      },
+    },
+  },
+}
 
-const percentage = computed(() => chartFillPercents.value ?? 0);
+const percentage = computed(() => chartFillPercents.value ?? 0)
 </script>
 
 <style scoped>

@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-08-07T17:32:19Z by kres 0b55a0b.
+# Generated on 2025-08-11T09:10:19Z by kres 79636f7.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -85,17 +85,17 @@ WORKDIR /src
 ARG PROTOBUF_GRPC_GATEWAY_TS_VERSION
 RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg go install github.com/siderolabs/protoc-gen-grpc-gateway-ts@v${PROTOBUF_GRPC_GATEWAY_TS_VERSION}
 RUN mv /go/bin/protoc-gen-grpc-gateway-ts /bin
-COPY frontend/package*.json ./
-RUN --mount=type=cache,target=/root/.npm,id=omni/root/.npm,sharing=locked npm ci
-COPY frontend/tsconfig*.json ./
-COPY frontend/*.html ./
-COPY frontend/*.ts ./
+COPY frontend/*.json ./
 COPY frontend/*.js ./
-COPY frontend/*.ico ./
+COPY frontend/*.ts ./
+COPY frontend/*.html ./
+COPY frontend/.npmrc ./
+COPY frontend/.editorconfig ./
+COPY frontend/.prettier* ./
 COPY ./frontend/src ./src
 COPY ./frontend/test ./test
-COPY ./frontend/eslint.config.js ./eslint.config.js
-COPY ./frontend/postcss.config.js ./postcss.config.js
+COPY ./frontend/public ./public
+RUN --mount=type=cache,target=/root/.npm,id=omni/root/.npm,sharing=locked npm ci
 
 # build tools
 FROM --platform=${BUILDPLATFORM} toolchain AS tools

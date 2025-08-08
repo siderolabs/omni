@@ -20,5 +20,4 @@ included in the LICENSE file.
   line-height: 300px;
 }
 </style>
-<script setup lang="ts">
-</script>
+<script setup lang="ts"></script>

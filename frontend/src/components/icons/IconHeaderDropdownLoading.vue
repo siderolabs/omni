@@ -26,10 +26,10 @@ included in the LICENSE file.
 
 <script setup lang="ts">
 type Props = {
-  active: boolean;
-};
+  active: boolean
+}
 
-defineProps<Props>();
+defineProps<Props>()
 </script>
 
 <style scoped>
@@ -39,15 +39,15 @@ defineProps<Props>();
   height: 16px;
 }
 
-.icon[active=true] path:nth-child(1) {
+.icon[active='true'] path:nth-child(1) {
   animation: loadingDots 2s ease-in-out infinite;
   animation-delay: 0s;
 }
-.icon[active=true] path:nth-child(2) {
+.icon[active='true'] path:nth-child(2) {
   animation: loadingDots 2s ease-in-out infinite;
   animation-delay: 0.2s;
 }
-.icon[active=true] path:nth-child(3) {
+.icon[active='true'] path:nth-child(3) {
   animation: loadingDots 2s ease-in-out infinite;
   animation-delay: 0.4s;
 }

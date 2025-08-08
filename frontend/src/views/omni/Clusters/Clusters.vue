@@ -20,25 +20,48 @@ included in the LICENSE file.
       <template #header="{ itemsCount, filtered }">
         <div class="flex gap-1 items-start">
           <page-header title="Clusters" class="flex-1">
-            <stats-item icon="clusters" pluralized-text="Cluster" :count="itemsCount" :text=" filtered ? ' Found' : ' Total'"/>
-            <watch :opts="{resource: { type: ClusterStatusMetricsType, id: ClusterStatusMetricsID, namespace: EphemeralNamespace }, runtime: Runtime.Omni}">
+            <stats-item
+              icon="clusters"
+              pluralized-text="Cluster"
+              :count="itemsCount"
+              :text="filtered ? ' Found' : ' Total'"
+            />
+            <watch
+              :opts="{
+                resource: {
+                  type: ClusterStatusMetricsType,
+                  id: ClusterStatusMetricsID,
+                  namespace: EphemeralNamespace,
+                },
+                runtime: Runtime.Omni,
+              }"
+            >
               <template #default="{ items }">
-                <stats-item hide-zero icon="warning" :count="items[0]?.spec.not_ready_count ?? 0" text=" Not Ready"/>
+                <stats-item
+                  hide-zero
+                  icon="warning"
+                  :count="items[0]?.spec.not_ready_count ?? 0"
+                  text=" Not Ready"
+                />
               </template>
             </watch>
           </page-header>
-          <t-button :disabled="!canCreateClusters" @click="openClusterCreate" type="highlighted">Create Cluster</t-button>
+          <t-button :disabled="!canCreateClusters" @click="openClusterCreate" type="highlighted"
+            >Create Cluster</t-button
+          >
         </div>
       </template>
       <template #input>
-        <labels-input :completions-resource="{
-          id: ClusterStatusType,
-          type: LabelsCompletionType,
-          namespace: VirtualNamespace,
-        }"
-        class="w-full"
-        v-model:filter-labels="filterLabels"
-        v-model:filter-value="filterValue"/>
+        <labels-input
+          :completions-resource="{
+            id: ClusterStatusType,
+            type: LabelsCompletionType,
+            namespace: VirtualNamespace,
+          }"
+          class="w-full"
+          v-model:filter-labels="filterLabels"
+          v-model:filter-value="filterValue"
+        />
       </template>
       <template #default="{ items, searchQuery }">
         <div class="flex flex-col gap-2">
@@ -53,12 +76,14 @@ included in the LICENSE file.
               <div>Actions</div>
             </div>
           </div>
-          <cluster-item v-for="(item, index) in items"
+          <cluster-item
+            v-for="(item, index) in items"
             :key="itemID(item)"
             :defaultOpen="index === 0"
             :search-query="searchQuery"
-            @filterLabels="label => addLabel(filterLabels, label)"
-            :item="item"/>
+            @filterLabels="(label) => addLabel(filterLabels, label)"
+            :item="item"
+          />
         </div>
       </template>
     </t-list>
@@ -66,23 +91,33 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { useRouter } from "vue-router";
-import { DefaultNamespace, ClusterStatusType, LabelsCompletionType, VirtualNamespace, ClusterStatusMetricsType, ClusterStatusMetricsID, EphemeralNamespace } from "@/api/resources";
-import { Runtime } from "@/api/common/omni.pb";
-import { WatchOptions, itemID } from "@/api/watch";
+import { useRouter } from 'vue-router'
+import {
+  DefaultNamespace,
+  ClusterStatusType,
+  LabelsCompletionType,
+  VirtualNamespace,
+  ClusterStatusMetricsType,
+  ClusterStatusMetricsID,
+  EphemeralNamespace,
+} from '@/api/resources'
+import { Runtime } from '@/api/common/omni.pb'
+import type { WatchOptions } from '@/api/watch'
+import { itemID } from '@/api/watch'
 
-import TList from "@/components/common/List/TList.vue";
-import TButton from "@/components/common/Button/TButton.vue";
-import ClusterItem from "@/views/omni/Clusters/ClusterItem.vue";
-import PageHeader from "@/components/common/PageHeader.vue";
-import { computed, ref } from "vue";
-import { canCreateClusters } from "@/methods/auth";
-import LabelsInput from "../ItemLabels/LabelsInput.vue";
-import { addLabel, selectors, Label } from "@/methods/labels";
-import StatsItem from "@/components/common/Stats/StatsItem.vue";
-import Watch from "@/components/common/Watch/Watch.vue";
+import TList from '@/components/common/List/TList.vue'
+import TButton from '@/components/common/Button/TButton.vue'
+import ClusterItem from '@/views/omni/Clusters/ClusterItem.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
+import { computed, ref } from 'vue'
+import { canCreateClusters } from '@/methods/auth'
+import LabelsInput from '../ItemLabels/LabelsInput.vue'
+import type { Label } from '@/methods/labels'
+import { addLabel, selectors } from '@/methods/labels'
+import StatsItem from '@/components/common/Stats/StatsItem.vue'
+import Watch from '@/components/common/Watch/Watch.vue'
 
-const router = useRouter();
+const router = useRouter()
 
 const watchOpts = computed<WatchOptions>(() => {
   return {
@@ -92,29 +127,29 @@ const watchOpts = computed<WatchOptions>(() => {
       type: ClusterStatusType,
     },
     selectors: selectors(filterLabels.value),
-    sortByField: "created",
+    sortByField: 'created',
   }
-});
+})
 
-const filterValue = ref("");
-const filterLabels = ref<Label[]>([]);
+const filterValue = ref('')
+const filterLabels = ref<Label[]>([])
 
 const openClusterCreate = () => {
-  router.push({ name: "ClusterCreate" })
-};
+  router.push({ name: 'ClusterCreate' })
+}
 
 const sortOptions = [
-  {id: 'id', desc: 'ID ⬆'},
-  {id: 'id', desc: 'ID ⬇', descending: true},
-  {id: 'created', desc: 'Creation Time ⬆', descending: true},
-  {id: 'created', desc: 'Creation Time ⬇'},
-];
+  { id: 'id', desc: 'ID ⬆' },
+  { id: 'id', desc: 'ID ⬇', descending: true },
+  { id: 'created', desc: 'Creation Time ⬆', descending: true },
+  { id: 'created', desc: 'Creation Time ⬇' },
+]
 
 const filterOptions = [
-  {desc: "All"},
-  {desc: "Ready", query: "ready"},
-  {desc: "Not Ready", query: "!ready"},
-];
+  { desc: 'All' },
+  { desc: 'Ready', query: 'ready' },
+  { desc: 'Not Ready', query: '!ready' },
+]
 </script>
 
 <style scoped>

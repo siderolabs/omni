@@ -3,10 +3,12 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import { Data } from "@/api/common/common.pb";
-import { subscribe, StreamingRequest, Stream } from "@/api/grpc";
-import { isRef, onMounted, onUnmounted, ref, Ref, ComputedRef, watch } from "vue";
-import { fetchOption } from "@/api/fetch.pb";
+import type { Data } from '@/api/common/common.pb'
+import type { StreamingRequest, Stream } from '@/api/grpc'
+import { subscribe } from '@/api/grpc'
+import type { Ref, ComputedRef } from 'vue'
+import { isRef, onMounted, onUnmounted, ref, watch } from 'vue'
+import type { fetchOption } from '@/api/fetch.pb'
 
 export type LogLine = {
   date?: string
@@ -22,13 +24,11 @@ export class DefaultLogParser {
   private parseLine: (chunk: string) => LogLine
 
   constructor(parseLine: (chunk: string) => LogLine) {
-    this.parseLine = parseLine;
+    this.parseLine = parseLine
   }
 
   parse(chunk: string): LogLine[] {
-    return [
-      this.parseLine(chunk)
-    ];
+    return [this.parseLine(chunk)]
   }
 
   reset() {
@@ -38,113 +38,121 @@ export class DefaultLogParser {
 
 export class LineDelimitedLogParser {
   private parseLine: (chunk: string) => LogLine
-  private buffer: string = "";
+  private buffer: string = ''
 
   constructor(parseLine: (chunk: string) => LogLine) {
-    this.parseLine = parseLine;
+    this.parseLine = parseLine
   }
 
   public setLineParser(parseLine: (chunk: string) => LogLine) {
-    this.parseLine = parseLine;
+    this.parseLine = parseLine
   }
 
   parse(chunk: string): LogLine[] {
-    this.buffer += chunk;
-    const splitPoint = this.buffer.lastIndexOf("\n");
+    this.buffer += chunk
+    const splitPoint = this.buffer.lastIndexOf('\n')
 
     if (splitPoint === -1) {
-      return [];
+      return []
     }
 
-    const logs: LogLine[] = [];
-    for (const l of this.buffer.slice(0, splitPoint).split("\n")) {
+    const logs: LogLine[] = []
+    for (const l of this.buffer.slice(0, splitPoint).split('\n')) {
       if (!l.trim()) {
-        continue;
+        continue
       }
 
-      logs.push(this.parseLine(l));
+      logs.push(this.parseLine(l))
     }
 
-    this.buffer = this.buffer.slice(splitPoint+1, this.buffer.length);
+    this.buffer = this.buffer.slice(splitPoint + 1, this.buffer.length)
 
-    return logs;
+    return logs
   }
 
   reset() {
-    this.buffer = "";
+    this.buffer = ''
   }
 }
 
-export const setupLogStream = <R extends Data, T>(logs: Ref<LogLine[]>, method: StreamingRequest<R, T>, params: T | ComputedRef<T | undefined> | Ref<T>, logParser: LogParser = new DefaultLogParser((l: string): LogLine => { return {msg: l} }), ...options: fetchOption[]): Ref<Stream<R, T> | undefined> => {
-  const stream: Ref<Stream<R, T> | undefined> = ref();
-  let buffer: LogLine[] = [];
-  let flush: NodeJS.Timeout | undefined;
+export const setupLogStream = <R extends Data, T>(
+  logs: Ref<LogLine[]>,
+  method: StreamingRequest<R, T>,
+  params: T | ComputedRef<T | undefined> | Ref<T>,
+  logParser: LogParser = new DefaultLogParser((l: string): LogLine => {
+    return { msg: l }
+  }),
+  ...options: fetchOption[]
+): Ref<Stream<R, T> | undefined> => {
+  const stream: Ref<Stream<R, T> | undefined> = ref()
+  let buffer: LogLine[] = []
+  let flush: number | undefined
 
   const reset = () => {
-    logs.value = [];
-    logParser.reset();
-    clearTimeout(flush);
-  };
+    logs.value = []
+    logParser.reset()
+    clearTimeout(flush)
+  }
 
   const init = () => {
     if (stream.value) {
-      stream.value.shutdown();
+      stream.value.shutdown()
     }
 
-    reset();
+    reset()
 
-    let clearLogs = false;
+    let clearLogs = false
 
-    const p = isRef(params) ? params.value : params;
+    const p = isRef(params) ? params.value : params
 
     if (!p) {
-      return;
+      return
     }
 
     stream.value = subscribe(
       method,
       p,
       (resp: Data & { error?: string }) => {
-        clearTimeout(flush);
+        clearTimeout(flush)
 
         if (resp.error) {
-          clearLogs = true;
-          return;
+          clearLogs = true
+          return
         }
 
-        if (clearLogs) reset();
+        if (clearLogs) reset()
 
-        clearLogs = false;
+        clearLogs = false
 
         if (resp.bytes) {
-          const line = window.atob(resp.bytes.toString());
+          const line = window.atob(resp.bytes.toString())
 
           try {
-            buffer.push(...logParser.parse(line));
+            buffer.push(...logParser.parse(line))
           } catch (e) {
-            console.error(`failed to parse line ${line}`, e);
+            console.error(`failed to parse line ${line}`, e)
           }
         }
 
         // accumulate frequent updates and then flush them in a single call
         flush = setTimeout(() => {
-          logs.value = logs.value.concat(buffer);
-          buffer = [];
-        }, 50);
+          logs.value = logs.value.concat(buffer)
+          buffer = []
+        }, 50)
       },
       options,
-    );
-  };
+    )
+  }
 
-  onMounted(init);
+  onMounted(init)
 
   onUnmounted(() => {
-    if (stream.value) stream.value.shutdown();
-  });
+    if (stream.value) stream.value.shutdown()
+  })
 
   if (isRef(params)) {
     watch(params, init)
   }
 
-  return stream;
+  return stream
 }

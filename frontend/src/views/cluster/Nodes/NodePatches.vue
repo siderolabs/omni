@@ -7,20 +7,20 @@ included in the LICENSE file.
 <template>
   <watch spinner :opts="opts">
     <template #default="{ items }">
-      <patches :machine="items[0]"/>
+      <patches :machine="items[0]" />
     </template>
   </watch>
 </template>
 
 <script setup lang="ts">
-import { Runtime } from '@/api/common/omni.pb';
-import { DefaultNamespace, MachineStatusType } from '@/api/resources';
-import Watch from '@/components/common/Watch/Watch.vue';
-import { computed } from 'vue';
-import { useRoute } from 'vue-router';
-import Patches from '../Config/Patches.vue';
+import { Runtime } from '@/api/common/omni.pb'
+import { DefaultNamespace, MachineStatusType } from '@/api/resources'
+import Watch from '@/components/common/Watch/Watch.vue'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import Patches from '../Config/Patches.vue'
 
-const route = useRoute();
+const route = useRoute()
 
 const opts = computed(() => {
   return {
@@ -31,5 +31,5 @@ const opts = computed(() => {
     },
     runtime: Runtime.Omni,
   }
-});
+})
 </script>

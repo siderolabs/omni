@@ -16,25 +16,32 @@ included in the LICENSE file.
           <p class="font-roboto">{{ ExposedServiceLabelAnnotationKey }} (optional)</p>
           <p class="font-roboto">{{ ExposedServiceIconAnnotationKey }} (optional)</p>
         </div>
-        <p>If the icon is specified, it must be a valid base64 of either a gzipped or uncompressed svg image.</p>
+        <p>
+          If the icon is specified, it must be a valid base64 of either a gzipped or uncompressed
+          svg image.
+        </p>
       </div>
     </template>
-    <t-checkbox :checked="checked" label="Workload Service Proxying" :disabled="disabled"/>
+    <t-checkbox :checked="checked" label="Workload Service Proxying" :disabled="disabled" />
   </tooltip>
 </template>
 
 <script setup lang="ts">
-import { setupWorkloadProxyingEnabledFeatureWatch } from "@/methods/features";
-import TCheckbox from "@/components/common/Checkbox/TCheckbox.vue";
-import Tooltip from "@/components/common/Tooltip/Tooltip.vue";
-import { ExposedServiceIconAnnotationKey, ExposedServiceLabelAnnotationKey, ExposedServicePortAnnotationKey } from "@/api/resources";
+import { setupWorkloadProxyingEnabledFeatureWatch } from '@/methods/features'
+import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
+import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
+import {
+  ExposedServiceIconAnnotationKey,
+  ExposedServiceLabelAnnotationKey,
+  ExposedServicePortAnnotationKey,
+} from '@/api/resources'
 
 type Props = {
-  checked?: boolean;
-  disabled?: boolean;
-};
+  checked?: boolean
+  disabled?: boolean
+}
 
-defineProps<Props>();
+defineProps<Props>()
 
-const workloadProxyingEnabled = setupWorkloadProxyingEnabledFeatureWatch();
+const workloadProxyingEnabled = setupWorkloadProxyingEnabledFeatureWatch()
 </script>

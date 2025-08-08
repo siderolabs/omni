@@ -6,34 +6,38 @@ included in the LICENSE file.
 -->
 <template>
   <div class="flex flex-col gap-2">
-    <machine-logs-container class="flex-1"/>
+    <machine-logs-container class="flex-1" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { Runtime } from "@/api/common/omni.pb";
-import { Resource, ResourceService } from "@/api/grpc";
-import { MachineStatusSpec } from "@/api/omni/specs/omni.pb";
-import { withRuntime } from "@/api/options";
-import { DefaultNamespace, MachineStatusType } from "@/api/resources";
-import MachineLogsContainer from "@/views/omni/Machines/MachineLogsContainer.vue";
-import { onBeforeMount, ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { Runtime } from '@/api/common/omni.pb'
+import type { Resource } from '@/api/grpc'
+import { ResourceService } from '@/api/grpc'
+import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
+import { withRuntime } from '@/api/options'
+import { DefaultNamespace, MachineStatusType } from '@/api/resources'
+import MachineLogsContainer from '@/views/omni/Machines/MachineLogsContainer.vue'
+import { onBeforeMount, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
-const route = useRoute();
+const route = useRoute()
 
 const getMachineName = async () => {
-  const res: Resource<MachineStatusSpec> = await ResourceService.Get({
-    namespace: DefaultNamespace,
-    type: MachineStatusType,
-    id: route.params.machine! as string,
-  }, withRuntime(Runtime.Omni));
+  const res: Resource<MachineStatusSpec> = await ResourceService.Get(
+    {
+      namespace: DefaultNamespace,
+      type: MachineStatusType,
+      id: route.params.machine! as string,
+    },
+    withRuntime(Runtime.Omni),
+  )
 
-  machine.value = res.spec.network?.hostname || res.metadata.id!;
-};
+  machine.value = res.spec.network?.hostname || res.metadata.id!
+}
 
-const machine = ref(route.params.machine);
+const machine = ref(route.params.machine)
 
-onBeforeMount(getMachineName);
+onBeforeMount(getMachineName)
 watch(() => route.params, getMachineName)
 </script>

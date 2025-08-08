@@ -17,23 +17,23 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import OverviewCircleChart from "@/views/cluster/Overview/components/OverviewCircleChart/OverviewCircleChart.vue";
-import { toRefs } from "vue";
+import OverviewCircleChart from '@/views/cluster/Overview/components/OverviewCircleChart/OverviewCircleChart.vue'
+import { toRefs } from 'vue'
 
 type Props = {
-  name: string;
-  usageName: string;
-  totalLegend?: string;
-  usagePercents: number | string;
-  usageTotal: number | string;
-  chartFillPercents: number | string;
-};
+  name: string
+  usageName: string
+  totalLegend?: string
+  usagePercents: number | string
+  usageTotal: number | string
+  chartFillPercents: number | string
+}
 
 const props = withDefaults(defineProps<Props>(), {
-  totalLegend: "Total",
-});
+  totalLegend: 'Total',
+})
 
-const { name, usageName, totalLegend, usagePercents, usageTotal, chartFillPercents } = toRefs(props);
+const { name, usageName, totalLegend, usagePercents, usageTotal, chartFillPercents } = toRefs(props)
 </script>
 
 <style scoped>

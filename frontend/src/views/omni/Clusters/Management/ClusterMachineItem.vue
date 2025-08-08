@@ -11,16 +11,25 @@ included in the LICENSE file.
         <div class="truncate flex-1 flex items-center gap-2">
           <span class="font-bold pr-2">
             <word-highlighter
-                :query="(searchQuery ?? '')"
-                :textToHighlight="item?.spec?.network?.hostname ?? item?.metadata?.id"
-                split-by-space
-                highlightClass="bg-naturals-N14"/>
+              :query="searchQuery ?? ''"
+              :textToHighlight="item?.spec?.network?.hostname ?? item?.metadata?.id"
+              split-by-space
+              highlightClass="bg-naturals-N14"
+            />
           </span>
-          <machine-item-labels :resource="item" :add-label-func="addMachineLabels" :remove-label-func="removeMachineLabels" @filter-label="e => $emit('filterLabel', e)"/>
+          <machine-item-labels
+            :resource="item"
+            :add-label-func="addMachineLabels"
+            :remove-label-func="removeMachineLabels"
+            @filter-label="(e) => $emit('filterLabel', e)"
+          />
         </div>
         <div class="flex justify-end flex-initial w-128 gap-4 items-center">
           <template v-if="machineSetIndex !== undefined">
-            <div v-if="systemDiskPath" class="pr-8 pl-3 py-1.5 text-naturals-N11 rounded border border-naturals-N6 cursor-not-allowed">
+            <div
+              v-if="systemDiskPath"
+              class="pr-8 pl-3 py-1.5 text-naturals-N11 rounded border border-naturals-N6 cursor-not-allowed"
+            >
               Install Disk: {{ systemDiskPath }}
             </div>
             <div v-else>
@@ -29,25 +38,40 @@ included in the LICENSE file.
                 title="Install Disk"
                 @checkedValue="setInstallDisk"
                 :values="disks"
-                :defaultValue="item.spec.install_disk ?? disks[0]"/>
+                :defaultValue="item.spec.install_disk ?? disks[0]"
+              />
             </div>
           </template>
           <div>
-            <machine-set-picker :options="options" :machine-set-index="machineSetIndex" @update:machineSetIndex="value => machineSetIndex = value"/>
+            <machine-set-picker
+              :options="options"
+              :machine-set-index="machineSetIndex"
+              @update:machineSetIndex="(value) => (machineSetIndex = value)"
+            />
           </div>
           <div class="flex items-center gap-1">
             <icon-button
               class="text-naturals-N14 my-auto"
               @click="openExtensionConfig"
-              :id="machineSetIndex !== undefined ? `extensions-${options?.[machineSetIndex]?.id}` : undefined"
+              :id="
+                machineSetIndex !== undefined
+                  ? `extensions-${options?.[machineSetIndex]?.id}`
+                  : undefined
+              "
               :disabled="machineSetIndex === undefined || options?.[machineSetIndex]?.disabled"
-              :icon="systemExtensions ? 'extensions-toggle' : 'extensions'"/>
+              :icon="systemExtensions ? 'extensions-toggle' : 'extensions'"
+            />
             <icon-button
               class="text-naturals-N14 my-auto"
               @click="openPatchConfig"
               :id="machineSetIndex !== undefined ? options?.[machineSetIndex]?.id : undefined"
               :disabled="machineSetIndex === undefined || options?.[machineSetIndex]?.disabled"
-              :icon="machineSetNode.patches[machinePatchID] && machineSetIndex !== undefined ? 'settings-toggle': 'settings'"/>
+              :icon="
+                machineSetNode.patches[machinePatchID] && machineSetIndex !== undefined
+                  ? 'settings-toggle'
+                  : 'settings'
+              "
+            />
           </div>
         </div>
       </div>
@@ -61,7 +85,8 @@ included in the LICENSE file.
         <div class="mb-2 mt-4">Network Interfaces</div>
         <div>
           <div v-for="(processor, index) in item?.spec?.hardware?.processors" :key="index">
-            {{ (processor.frequency ?? 0) / 1000 }} GHz, {{ processor.core_count }} {{ pluralize("core", processor.core_count) }}, {{ processor.description }}
+            {{ (processor.frequency ?? 0) / 1000 }} GHz, {{ processor.core_count }}
+            {{ pluralize('core', processor.core_count) }}, {{ processor.description }}
           </div>
         </div>
         <div>
@@ -76,7 +101,7 @@ included in the LICENSE file.
         </div>
         <div>
           <div>
-            {{ item.spec?.network?.addresses?.join(", ") }}
+            {{ item.spec?.network?.addresses?.join(', ') }}
           </div>
         </div>
         <div>
@@ -90,169 +115,177 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { computed, Ref, ref, toRefs, watch } from "vue";
-import { formatBytes } from "@/methods";
+import type { Ref } from 'vue'
+import { computed, ref, toRefs, watch } from 'vue'
+import { formatBytes } from '@/methods'
 import {
-  LabelControlPlaneRole, PatchBaseWeightClusterMachine, PatchWeightInstallDisk,
-} from "@/api/resources";
-import pluralize from 'pluralize';
-import { showModal } from "@/modal";
-import {
+  LabelControlPlaneRole,
+  PatchBaseWeightClusterMachine,
+  PatchWeightInstallDisk,
+} from '@/api/resources'
+import pluralize from 'pluralize'
+import { showModal } from '@/modal'
+import type {
   MachineStatusSpec,
   MachineStatusSpecHardwareStatusBlockDevice,
   MachineConfigGenOptionsSpec,
-} from "@/api/omni/specs/omni.pb";
-import { SiderolinkSpec } from "@/api/omni/specs/siderolink.pb";
-import { Resource } from "@/api/grpc";
+} from '@/api/omni/specs/omni.pb'
+import type { SiderolinkSpec } from '@/api/omni/specs/siderolink.pb'
+import type { Resource } from '@/api/grpc'
 
-import TListItem from "@/components/common/List/TListItem.vue";
-import TSelectList from "@/components/common/SelectList/TSelectList.vue";
-import IconButton from "@/components/common/Button/IconButton.vue";
-import ConfigPatchEdit from "@/views/omni/Modals/ConfigPatchEdit.vue";
-import MachineItemLabels from "@/views/omni/ItemLabels/ItemLabels.vue";
-import WordHighlighter from "vue-word-highlighter";
-import {addMachineLabels, removeMachineLabels} from "@/methods/machine";
-import { MachineSet, MachineSetNode, state, PatchID } from "@/states/cluster-management";
-import MachineSetPicker, { PickerOption } from "./MachineSetPicker.vue";
+import TListItem from '@/components/common/List/TListItem.vue'
+import TSelectList from '@/components/common/SelectList/TSelectList.vue'
+import IconButton from '@/components/common/Button/IconButton.vue'
+import ConfigPatchEdit from '@/views/omni/Modals/ConfigPatchEdit.vue'
+import MachineItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
+import WordHighlighter from 'vue-word-highlighter'
+import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
+import type { MachineSet, MachineSetNode } from '@/states/cluster-management'
+import { state, PatchID } from '@/states/cluster-management'
+import type { PickerOption } from './MachineSetPicker.vue'
+import MachineSetPicker from './MachineSetPicker.vue'
 
-import yaml from "js-yaml";
-import CreateExtensions from "../../Modals/CreateExtensions.vue";
+import yaml from 'js-yaml'
+import CreateExtensions from '../../Modals/CreateExtensions.vue'
 
 type MemModule = {
-  size_mb?: number,
+  size_mb?: number
   description?: string
 }
 
-defineEmits(['filterLabel']);
+defineEmits(['filterLabel'])
 
 const props = defineProps<{
-  item: Resource<MachineStatusSpec & SiderolinkSpec & MachineConfigGenOptionsSpec>,
-  reset?: number,
-  searchQuery?: string,
+  item: Resource<MachineStatusSpec & SiderolinkSpec & MachineConfigGenOptionsSpec>
+  reset?: number
+  searchQuery?: string
   versionMismatch: string | null
-}>();
+}>()
 
-const { item, reset, versionMismatch } = toRefs(props);
+const { item, reset, versionMismatch } = toRefs(props)
 
 const machineSetNode = ref<MachineSetNode>({
   patches: {},
-});
-const machineSetIndex = ref<number | undefined>();
-const systemDiskPath: Ref<string | undefined> = ref();
-const disks: Ref<string[]> = ref([]);
+})
+const machineSetIndex = ref<number | undefined>()
+const systemDiskPath: Ref<string | undefined> = ref()
+const disks: Ref<string[]> = ref([])
 
 const computeState = () => {
-  const bds: MachineStatusSpecHardwareStatusBlockDevice[] = item?.value?.spec?.hardware?.blockdevices || [];
-  const diskPaths: string[] = [];
+  const bds: MachineStatusSpecHardwareStatusBlockDevice[] =
+    item?.value?.spec?.hardware?.blockdevices || []
+  const diskPaths: string[] = []
 
-  const index = bds?.findIndex((device: MachineStatusSpecHardwareStatusBlockDevice) => device.system_disk);
+  const index = bds?.findIndex(
+    (device: MachineStatusSpecHardwareStatusBlockDevice) => device.system_disk,
+  )
   if (index >= 0) {
-    systemDiskPath.value = bds[index].linux_name;
+    systemDiskPath.value = bds[index].linux_name
   }
 
   for (const device of bds) {
-    if (device.readonly || device.type === "CD") {
-      continue;
+    if (device.readonly || device.type === 'CD') {
+      continue
     }
 
-    diskPaths.push(device.linux_name!);
+    diskPaths.push(device.linux_name!)
   }
 
-  disks.value = diskPaths;
+  disks.value = diskPaths
 
   computeMachineAssignment()
 }
 
 const computeMachineAssignment = () => {
-  for (var i = 0; i < state.value.machineSets.length; i++) {
-    const machineSet = state.value.machineSets[i];
+  for (let i = 0; i < state.value.machineSets.length; i++) {
+    const machineSet = state.value.machineSets[i]
 
-    for(const id in machineSet.machines) {
+    for (const id in machineSet.machines) {
       if (item.value.metadata.id === id) {
-        machineSetIndex.value = i;
+        machineSetIndex.value = i
 
-        return;
+        return
       }
     }
   }
 
-  machineSetIndex.value = undefined;
+  machineSetIndex.value = undefined
 }
 
-computeState();
+computeState()
 
-watch(item, computeState);
-watch(state.value, computeMachineAssignment);
+watch(item, computeState)
+watch(state.value, computeMachineAssignment)
 
 watch(versionMismatch, (value: string | null) => {
   if (value) {
-    machineSetIndex.value = undefined;
+    machineSetIndex.value = undefined
   }
-});
+})
 
 watch(machineSetIndex, (val?: number, old?: number) => {
   if (val !== undefined) {
-    state.value.setMachine(val, item.value.metadata.id!, machineSetNode.value);
+    state.value.setMachine(val, item.value.metadata.id!, machineSetNode.value)
   }
 
   if (old !== undefined) {
-    state.value.removeMachine(old, item.value.metadata.id!);
+    state.value.removeMachine(old, item.value.metadata.id!)
   }
-});
+})
 
 if (reset.value) {
   watch(reset, () => {
-    machineSetIndex.value = undefined;
-  });
+    machineSetIndex.value = undefined
+  })
 }
 
 watch(machineSetNode, () => {
   if (!machineSetIndex.value) {
-    return;
+    return
   }
 
-  state.value.setMachine(machineSetIndex.value, item.value.metadata.id!, machineSetNode.value);
-});
+  state.value.setMachine(machineSetIndex.value, item.value.metadata.id!, machineSetNode.value)
+})
 
 const filterValid = (modules: MemModule[]): MemModule[] => {
-  return modules.filter((mem) => mem.size_mb);
-};
+  return modules.filter((mem) => mem.size_mb)
+}
 
 const memoryModules = computed(() => {
-  return filterValid(item?.value?.spec?.hardware?.memory_modules || []);
-});
+  return filterValid(item?.value?.spec?.hardware?.memory_modules || [])
+})
 
 const options: Ref<PickerOption[]> = computed(() => {
-  let memoryCapacity = 0;
+  let memoryCapacity = 0
   for (const mem of memoryModules.value) {
-    memoryCapacity += mem.size_mb ?? 0;
+    memoryCapacity += mem.size_mb ?? 0
   }
 
-  const cpMemoryThreshold = 2 * 1024;
-  const workerMemoryTheshold = 1024;
+  const cpMemoryThreshold = 2 * 1024
+  const workerMemoryTheshold = 1024
 
-  const canUseAsControlPlane = memoryCapacity == 0 || memoryCapacity >= cpMemoryThreshold;
-  const canUseAsWorker = memoryCapacity == 0 || memoryCapacity >= workerMemoryTheshold;
+  const canUseAsControlPlane = memoryCapacity == 0 || memoryCapacity >= cpMemoryThreshold
+  const canUseAsWorker = memoryCapacity == 0 || memoryCapacity >= workerMemoryTheshold
 
   return state.value.machineSets.map((ms: MachineSet) => {
-    let disabled = ms.role === LabelControlPlaneRole ? !canUseAsControlPlane : !canUseAsWorker;
-    let tooltip: string | undefined;
+    let disabled = ms.role === LabelControlPlaneRole ? !canUseAsControlPlane : !canUseAsWorker
+    let tooltip: string | undefined
 
     if (disabled) {
       if (ms.role === LabelControlPlaneRole) {
-        tooltip = `The node must have more than ${formatBytes(cpMemoryThreshold * 1024 * 1024)} of RAM to be used as a control plane`;
+        tooltip = `The node must have more than ${formatBytes(cpMemoryThreshold * 1024 * 1024)} of RAM to be used as a control plane`
       } else {
-        tooltip = `The node must have more than ${formatBytes(workerMemoryTheshold * 1024 * 1024)} of RAM to be used as a worker`;
+        tooltip = `The node must have more than ${formatBytes(workerMemoryTheshold * 1024 * 1024)} of RAM to be used as a worker`
       }
     }
 
     if (ms.machineAllocation) {
-      disabled = true;
+      disabled = true
       tooltip = `The machine class ${ms.id} is using machine class so no manual allocation is possible`
     }
 
     if (versionMismatch.value) {
-      disabled = true;
+      disabled = true
       tooltip = versionMismatch.value
     }
 
@@ -262,11 +295,11 @@ const options: Ref<PickerOption[]> = computed(() => {
       tooltip: tooltip,
       color: ms.color,
     }
-  });
-});
+  })
+})
 
-const machinePatchID = `cm-${item.value.metadata.id!}`;
-const installDiskPatchID = `cm-${item.value.metadata.id!}-${PatchID.InstallDisk}`;
+const machinePatchID = `cm-${item.value.metadata.id!}`
+const installDiskPatchID = `cm-${item.value.metadata.id!}-${PatchID.InstallDisk}`
 
 const setInstallDisk = (value: string) => {
   machineSetNode.value.patches[installDiskPatchID] = {
@@ -274,39 +307,36 @@ const setInstallDisk = (value: string) => {
       machine: {
         install: {
           disk: value,
-        }
-      }
+        },
+      },
     }),
     systemPatch: true,
     weight: PatchWeightInstallDisk,
     nameAnnotation: PatchID.InstallDisk,
-  };
-};
+  }
+}
 
-const systemExtensions = ref<string[]>();
+const systemExtensions = ref<string[]>()
 
 const openExtensionConfig = () => {
-  showModal(
-    CreateExtensions,
-    {
-      machine: item.value.metadata.id!,
-      modelValue: systemExtensions.value,
-      onSave(extensions?: string[]) {
-        machineSetNode.value.systemExtensions = extensions;
+  showModal(CreateExtensions, {
+    machine: item.value.metadata.id!,
+    modelValue: systemExtensions.value,
+    onSave(extensions?: string[]) {
+      machineSetNode.value.systemExtensions = extensions
 
-        systemExtensions.value = extensions;
-      }
+      systemExtensions.value = extensions
     },
-  )
-};
+  })
+}
 
 const openPatchConfig = () => {
-  showModal(
-    ConfigPatchEdit,
-    {
-      tabs: [
-        {
-          config: machineSetNode.value.patches[machinePatchID]?.data ?? `# Machine config patch for node "${item.value.metadata.id}"
+  showModal(ConfigPatchEdit, {
+    tabs: [
+      {
+        config:
+          machineSetNode.value.patches[machinePatchID]?.data ??
+          `# Machine config patch for node "${item.value.metadata.id}"
 
 # You can write partial Talos machine config here which will override the default
 # Talos machine config for this machine generated by Omni.
@@ -316,22 +346,21 @@ machine:
   network:
     hostname: "${item.value.metadata.id}"
 `,
-          id: `Node ${item.value.metadata.id}`,
-        }
-      ],
-      onSave(config: string) {
-        if (!config) {
-          delete machineSetNode.value.patches[machinePatchID];
+        id: `Node ${item.value.metadata.id}`,
+      },
+    ],
+    onSave(config: string) {
+      if (!config) {
+        delete machineSetNode.value.patches[machinePatchID]
 
-          return;
-        }
+        return
+      }
 
-        machineSetNode.value.patches[machinePatchID] = {
-          data: config,
-          weight: PatchBaseWeightClusterMachine,
-        };
+      machineSetNode.value.patches[machinePatchID] = {
+        data: config,
+        weight: PatchBaseWeightClusterMachine,
       }
     },
-  )
-};
+  })
+}
 </script>

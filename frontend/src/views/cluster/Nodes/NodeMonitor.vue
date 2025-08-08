@@ -34,7 +34,7 @@ included in the LICENSE file.
             name="mem"
             title="Memory"
             type="area"
-            :stroke="{ curve: 'smooth', width: [2, 0.5, 0.5], dashArray: [0, 2, 2]}"
+            :stroke="{ curve: 'smooth', width: [2, 0.5, 0.5], dashArray: [0, 2, 2] }"
             :colors="['#FF8B59', '#AAAAAA', '#AAAAAA']"
             :runtime="Runtime.Talos"
             :resource="{
@@ -48,7 +48,11 @@ included in the LICENSE file.
             :total-fn="handleTotalMem"
             :min-fn="() => 0"
             :max-fn="handleMaxMem"
-            :formatter="(input: number) => { return formatBytes(input * 1024) }"
+            :formatter="
+              (input: number) => {
+                return formatBytes(input * 1024)
+              }
+            "
           />
         </div>
       </div>
@@ -119,9 +123,7 @@ included in the LICENSE file.
           <div>
             {{ process.cpuTime }}
           </div>
-          <div class="col-span-4 truncate">
-            {{ process.command }} {{ process.args }}
-          </div>
+          <div class="col-span-4 truncate">{{ process.command }} {{ process.args }}</div>
         </div>
       </div>
     </div>
@@ -129,109 +131,110 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { getContext } from '@/context';
-import { ref, onMounted, onUnmounted, computed, Ref } from 'vue';
-import { MachineService } from '@/api/talos/machine/machine.pb';
-import { Runtime } from "@/api/common/omni.pb";
-import { ArrowDownIcon, } from '@heroicons/vue/24/solid';
-import { formatBytes } from "@/methods";
-import { TalosCPUType, TalosMemoryType, TalosPerfNamespace, TalosCPUID, TalosMemoryID } from '@/api/resources';
-import { withContext, withRuntime } from '@/api/options';
+import { getContext } from '@/context'
+import type { Ref } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { MachineService } from '@/api/talos/machine/machine.pb'
+import { Runtime } from '@/api/common/omni.pb'
+import { ArrowDownIcon } from '@heroicons/vue/24/solid'
+import { formatBytes } from '@/methods'
+import {
+  TalosCPUType,
+  TalosMemoryType,
+  TalosPerfNamespace,
+  TalosCPUID,
+  TalosMemoryID,
+} from '@/api/resources'
+import { withContext, withRuntime } from '@/api/options'
 
-import NodesMonitorChart from '@/views/cluster/Nodes/components/NodesMonitorChart.vue';
+import NodesMonitorChart from '@/views/cluster/Nodes/components/NodesMonitorChart.vue'
 
 function diff(a, b) {
-  const result: Record<string, number | object> = {};
+  const result: Record<string, number | object> = {}
 
   for (const key in a) {
-    const left = a[key];
-    const right = b[key];
+    const left = a[key]
+    const right = b[key]
 
-    const tleft = typeof left;
-    const tright = typeof right;
+    const tleft = typeof left
+    const tright = typeof right
 
     if (tleft !== tright) {
-      continue;
+      continue
     }
 
-    if (tleft === "object")
-      result[key] = diff(left, right);
-    else
-      result[key] = left - right;
+    if (tleft === 'object') result[key] = diff(left, right)
+    else result[key] = left - right
   }
 
-  return result;
+  return result
 }
 
-const processes: Ref<Record<string, any>[]> = ref([]);
-const context = getContext();
+const processes: Ref<Record<string, any>[]> = ref([])
+const context = getContext()
 const headers = [
-  { id: "pid" },
-  { id: "state" },
-  { id: "threads" },
-  { id: "cpu", header: "CPU %" },
-  { id: "mem", header: "Memory %" },
-  { id: "virtualMemory", header: "Virt Memory" },
-  { id: "residentMemory", header: "Res Memory" },
-  { id: "cpuTime", header: "Time+" },
-  { id: "command" },
-];
-const sort = ref("cpu");
-const sortReverse = ref(true);
+  { id: 'pid' },
+  { id: 'state' },
+  { id: 'threads' },
+  { id: 'cpu', header: 'CPU %' },
+  { id: 'mem', header: 'Memory %' },
+  { id: 'virtualMemory', header: 'Virt Memory' },
+  { id: 'residentMemory', header: 'Res Memory' },
+  { id: 'cpuTime', header: 'Time+' },
+  { id: 'command' },
+]
+const sort = ref('cpu')
+const sortReverse = ref(true)
 
-let memTotal = 0;
-let interval;
+let memTotal = 0
+let interval
 
 const sum = (obj, ...args) => {
-  let res = 0;
+  let res = 0
   for (const k of args) {
-    res += obj[k] || 0;
+    res += obj[k] || 0
   }
 
-  return res;
-};
+  return res
+}
 
 const getCPUTotal = (stat) => {
-  const idle = sum(stat, "idle", "iowait");
-  const nonIdle = sum(stat, "user", "nice", "system", "irq", "steal", "softIrq");
+  const idle = sum(stat, 'idle', 'iowait')
+  const nonIdle = sum(stat, 'user', 'nice', 'system', 'irq', 'steal', 'softIrq')
 
-  return idle + nonIdle;
-};
+  return idle + nonIdle
+}
 
-const prevProcs: Record<string, any> = {};
-let prevCPU = 0;
+const prevProcs: Record<string, any> = {}
+let prevCPU = 0
 
 const loadProcs = async () => {
-  if (memTotal === 0)
-    return;
+  if (memTotal === 0) return
 
-  const options = [
-    withRuntime(Runtime.Talos),
-    withContext(context),
-  ];
+  const options = [withRuntime(Runtime.Talos), withContext(context)]
 
-  const resp = await MachineService.Processes({}, ...options);
+  const resp = await MachineService.Processes({}, ...options)
 
-  const procs: Record<string, any>[] = [];
+  const procs: Record<string, any>[] = []
 
   const r = await MachineService.SystemStat({}, ...options)
 
-  const systemStat = r.messages![0];
-  const cpuTotal = getCPUTotal(systemStat.cpu_total) / systemStat.cpu!.length;
+  const systemStat = r.messages![0]
+  const cpuTotal = getCPUTotal(systemStat.cpu_total) / systemStat.cpu!.length
 
-  const total = memTotal * 1024;
+  const total = memTotal * 1024
 
   for (const message of resp.messages!) {
     for (const proc of message.processes!) {
-      let cpuDiff = 0;
+      let cpuDiff = 0
 
       if (prevProcs[proc.pid!] && proc.cpu_time) {
-        cpuDiff = proc.cpu_time! - prevProcs[proc.pid!].cpu_time;
+        cpuDiff = proc.cpu_time! - prevProcs[proc.pid!].cpu_time
       }
 
       procs.push({
-        mem: parseInt(proc.resident_memory || '0') / total * 100,
-        cpu: cpuDiff / (cpuTotal - prevCPU) * 100,
+        mem: (parseInt(proc.resident_memory || '0') / total) * 100,
+        cpu: (cpuDiff / (cpuTotal - prevCPU)) * 100,
         threads: proc.threads!,
         pid: proc.pid!,
         state: proc.state!,
@@ -240,52 +243,52 @@ const loadProcs = async () => {
         command: proc.command!,
         cpuTime: proc.cpu_time || 0,
         args: proc.args!,
-      });
+      })
 
-      prevProcs[proc.pid!] = proc;
+      prevProcs[proc.pid!] = proc
     }
   }
 
-  prevCPU = cpuTotal;
+  prevCPU = cpuTotal
 
-  processes.value = procs;
+  processes.value = procs
 }
 
 onMounted(() => {
-  loadProcs();
-  interval = setInterval(loadProcs, 5000);
-});
+  loadProcs()
+  interval = setInterval(loadProcs, 5000)
+})
 
 onUnmounted(() => {
-  clearInterval(interval);
-});
+  clearInterval(interval)
+})
 
 const handleCPU = (oldObj, newObj) => {
-  const delta = diff(oldObj, newObj);
-  const stat = delta["cpuTotal"];
-  const total = getCPUTotal(stat);
+  const delta = diff(oldObj, newObj)
+  const stat = delta['cpuTotal']
+  const total = getCPUTotal(stat)
 
   return {
-    system: stat["system"] / total * 100,
-    user: stat["user"] / total * 100,
-  };
-};
+    system: (stat['system'] / total) * 100,
+    user: (stat['user'] / total) * 100,
+  }
+}
 
 const handleTotalCPU = (oldObj, newObj) => {
-  const point = handleCPU(oldObj, newObj);
+  const point = handleCPU(oldObj, newObj)
 
-  return `${(point.user + point.system).toFixed(1)} %`;
-};
+  return `${(point.user + point.system).toFixed(1)} %`
+}
 
-const handleMem = (_, m: { used: number, cached: number, buffers: number, total: number }) => {
+const handleMem = (_, m: { used: number; cached: number; buffers: number; total: number }) => {
   const used = m.used - m.cached - m.buffers
 
-  const memoryInitialized = memTotal === 0;
+  const memoryInitialized = memTotal === 0
 
-  memTotal = m.total;
+  memTotal = m.total
 
   if (memoryInitialized) {
-    loadProcs();
+    loadProcs()
   }
 
   return {
@@ -293,51 +296,49 @@ const handleMem = (_, m: { used: number, cached: number, buffers: number, total:
     cached: m.cached,
     buffers: m.buffers,
   }
-};
+}
 
 const handleTotalMem = (_, m) => {
-  const used = m["used"] - m["cached"] - m["buffers"];
+  const used = m['used'] - m['cached'] - m['buffers']
 
-  return `${formatBytes(used * 1024)} / ${formatBytes(m["total"] * 1024)}`;
-};
+  return `${formatBytes(used * 1024)} / ${formatBytes(m['total'] * 1024)}`
+}
 
 const handleMaxMem = (_, m): number => {
-  return m["total"];
-};
+  return m['total']
+}
 
 const handleProcs = (oldObj, newObj) => {
-  const {processCreated} = diff(oldObj, newObj);
+  const { processCreated } = diff(oldObj, newObj)
 
   return {
     // The diff algorithm should never return only numbers Record<string, number> for this case
     // But due to how its typed, adding a fallback just incase
     created: typeof processCreated === 'number' ? processCreated : Number(processCreated),
-    running: newObj["processRunning"],
-    blocked: newObj["processBlocked"],
+    running: newObj['processRunning'],
+    blocked: newObj['processBlocked'],
   }
-};
+}
 
 const sortedProcesses = computed<Record<string, any>[]>(() => {
   return [...processes.value].sort((a, b) => {
-    let res = 0;
+    let res = 0
     if (a[sort.value] > b[sort.value]) {
-      res = 1;
+      res = 1
     } else if (a[sort.value] < b[sort.value]) {
-      res = -1;
+      res = -1
     }
 
-    return sortReverse.value ? -1 * res : res;
-  });
-});
+    return sortReverse.value ? -1 * res : res
+  })
+})
 
 const sortBy = (id: string) => {
-  if (id === sort.value)
-    sortReverse.value = !sortReverse.value
-  else
-    sortReverse.value = true;
+  if (id === sort.value) sortReverse.value = !sortReverse.value
+  else sortReverse.value = true
 
-  sort.value = id;
-};
+  sort.value = id
+}
 </script>
 
 <style scoped>

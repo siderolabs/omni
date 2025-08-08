@@ -8,7 +8,7 @@ included in the LICENSE file.
   <div class="overview-right-box">
     <div class="overview-right-box-wrapper">
       <h3 class="overview-details-title">Cluster Details</h3>
-      <managed-by-templates-warning warning-style="short"/>
+      <managed-by-templates-warning warning-style="short" />
       <overview-right-panel-item
         v-if="currentCluster?.metadata?.created"
         name="Created"
@@ -25,8 +25,10 @@ included in the LICENSE file.
       <overview-right-panel-item name="Node Warnings" v-if="numNodesWithDiagnostics > 0">
         <div class="flex items-center gap-1">
           {{ numTotalDiagnostics }} (in {{ numNodesWithDiagnostics }} nodes)
-          <tooltip description="Some machines have diagnostic warnings. See the machines section for details.">
-            <t-icon class="text-yellow-Y1 w-4 h-4" icon="warning"/>
+          <tooltip
+            description="Some machines have diagnostic warnings. See the machines section for details."
+          >
+            <t-icon class="text-yellow-Y1 w-4 h-4" icon="warning" />
           </tooltip>
         </div>
       </overview-right-panel-item>
@@ -36,8 +38,15 @@ included in the LICENSE file.
         @click="openClusterUpdate(Update.Talos)"
       >
         <div>{{ talosVersion }}</div>
-        <tooltip v-if="newTalosVersionsAvailable?.length" :description="`Newer Talos versions are avalable: ${newTalosVersionsAvailable.join(', ')}`">
-          <t-icon class="w-4 h-4 cursor-pointer" icon="upgrade-available" v-if="newTalosVersionsAvailable"/>
+        <tooltip
+          v-if="newTalosVersionsAvailable?.length"
+          :description="`Newer Talos versions are avalable: ${newTalosVersionsAvailable.join(', ')}`"
+        >
+          <t-icon
+            class="w-4 h-4 cursor-pointer"
+            icon="upgrade-available"
+            v-if="newTalosVersionsAvailable"
+          />
         </tooltip>
       </overview-right-panel-item>
       <overview-right-panel-item
@@ -46,46 +55,50 @@ included in the LICENSE file.
         @click="openClusterUpdate(Update.Kubernetes)"
       >
         <div>{{ kubernetesVersion }}</div>
-        <tooltip v-if="newKubernetesVersionsAvailable?.length" :description="`Newer Kubernetes versions are avalable: ${newKubernetesVersionsAvailable.join(', ')}`">
-          <t-icon class="w-4 h-4 cursor-pointer" icon="upgrade-available"/>
+        <tooltip
+          v-if="newKubernetesVersionsAvailable?.length"
+          :description="`Newer Kubernetes versions are avalable: ${newKubernetesVersionsAvailable.join(', ')}`"
+        >
+          <t-icon class="w-4 h-4 cursor-pointer" icon="upgrade-available" />
         </tooltip>
       </overview-right-panel-item>
     </div>
     <template v-if="currentCluster?.spec">
-      <div class="divider"/>
+      <div class="divider" />
       <div class="overview-right-box-wrapper overview-right-box-wrapper-moved">
         <h3 class="overview-details-title">Control Plane</h3>
-        <overview-right-panel-item
-          name="Ready">
+        <overview-right-panel-item name="Ready">
           <span v-bind:class="currentCluster?.spec?.controlplaneReady ? '' : 'text-red-R1'">
-            {{ currentCluster?.spec?.controlplaneReady ? 'Yes' : 'No'  }}
+            {{ currentCluster?.spec?.controlplaneReady ? 'Yes' : 'No' }}
           </span>
         </overview-right-panel-item>
-          <overview-right-panel-item
-            v-if="currentCluster?.metadata?.created"
-            name="Last Backup"
-          >
-            <div class="flex gap-1" v-if="startingEtcdBackup">
-              Starting...
-              <t-spinner class="w-4 h-4"/>
-            </div>
-            <template v-else>
-              <tooltip v-if="lastBackupError">
-                <template #description>
-                  <div class="max-w-lg break-words">{{ lastBackupError }}</div>
-                </template>
-                <t-icon class="text-yellow-Y1 w-4 h-4" icon="warning"/>
-              </tooltip>
-              {{ backupTime }}
-              <tooltip description="Trigger Etcd Backup" v-if="etcdBackups?.enabled">
-                <t-icon class="text-green-G1 w-4 h-4 cursor-pointer" icon="play-circle" @click="runEtcdBackup"/>
-              </tooltip>
-            </template>
-          </overview-right-panel-item>
+        <overview-right-panel-item v-if="currentCluster?.metadata?.created" name="Last Backup">
+          <div class="flex gap-1" v-if="startingEtcdBackup">
+            Starting...
+            <t-spinner class="w-4 h-4" />
+          </div>
+          <template v-else>
+            <tooltip v-if="lastBackupError">
+              <template #description>
+                <div class="max-w-lg break-words">{{ lastBackupError }}</div>
+              </template>
+              <t-icon class="text-yellow-Y1 w-4 h-4" icon="warning" />
+            </tooltip>
+            {{ backupTime }}
+            <tooltip description="Trigger Etcd Backup" v-if="etcdBackups?.enabled">
+              <t-icon
+                class="text-green-G1 w-4 h-4 cursor-pointer"
+                icon="play-circle"
+                @click="runEtcdBackup"
+              />
+            </tooltip>
+          </template>
+        </overview-right-panel-item>
         <overview-right-panel-condition
           v-for="condition in controlPlaneStatus?.spec.conditions"
           :key="condition.type?.toString()"
-          :condition="condition" />
+          :condition="condition"
+        />
       </div>
       <div class="divider" />
       <div class="overview-right-box-wrapper overview-right-box-wrapper-moved">
@@ -100,7 +113,7 @@ included in the LICENSE file.
           :value="kubernetesStatus.spec.nodes.length ?? 0"
         />
       </div>
-      <div class="divider"/>
+      <div class="divider" />
       <div class="overview-right-box-wrapper overview-right-box-wrapper-moved">
         <div class="overview-details-item">
           <t-button
@@ -132,15 +145,21 @@ included in the LICENSE file.
             type="primary"
             icon="lifebuoy"
             iconPosition="left"
-          >Download Support Bundle</t-button
+            >Download Support Bundle</t-button
           >
         </div>
       </div>
-      <div class="divider"/>
+      <div class="divider" />
       <div class="overview-right-box-wrapper overview-right-box-wrapper-moved">
         <div class="overview-details-item">
           <t-button
-            @click="() => $router.push({ name: 'ClusterScale', params: { cluster: currentCluster?.metadata?.id } })"
+            @click="
+              () =>
+                $router.push({
+                  name: 'ClusterScale',
+                  params: { cluster: currentCluster?.metadata?.id },
+                })
+            "
             class="overview-item-button w-full"
             type="highlighted"
             icon="nodes"
@@ -173,7 +192,13 @@ included in the LICENSE file.
         </div>
         <div class="overview-details-item">
           <t-button
-            @click="() => $router.push({ name: 'ClusterConfigPatches', params: { cluster: currentCluster?.metadata?.id } })"
+            @click="
+              () =>
+                $router.push({
+                  name: 'ClusterConfigPatches',
+                  params: { cluster: currentCluster?.metadata?.id },
+                })
+            "
             class="overview-item-button w-full"
             type="primary"
             icon="settings"
@@ -187,7 +212,12 @@ included in the LICENSE file.
             type="secondary"
             icon="delete"
             iconPosition="left"
-            @click="() => $router.push({query: { modal: 'clusterDestroy', cluster: currentCluster?.metadata?.id }})"
+            @click="
+              () =>
+                $router.push({
+                  query: { modal: 'clusterDestroy', cluster: currentCluster?.metadata?.id },
+                })
+            "
             :disabled="!canRemoveClusterMachines"
             >Destroy Cluster</t-button
           >
@@ -195,18 +225,19 @@ included in the LICENSE file.
       </div>
     </template>
     <div v-else class="flex items-center justify-center p-4">
-      <t-spinner class="w-6 h-6"/>
+      <t-spinner class="w-6 h-6" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useRoute, useRouter } from "vue-router";
-import { computed, Ref, ref, toRefs } from "vue";
-import { formatISO } from "@/methods/time";
-import { Resource } from "@/api/grpc";
-import Watch from "@/api/watch";
-import {
+import { useRoute, useRouter } from 'vue-router'
+import type { Ref } from 'vue'
+import { computed, ref, toRefs } from 'vue'
+import { formatISO } from '@/methods/time'
+import type { Resource } from '@/api/grpc'
+import Watch from '@/api/watch'
+import type {
   ClusterStatusSpec,
   ControlPlaneStatusSpec,
   KubernetesStatusSpec,
@@ -215,73 +246,73 @@ import {
   EtcdBackupStatusSpec,
   ClusterDiagnosticsSpec,
   ClusterDiagnosticsSpecNode,
-} from "@/api/omni/specs/omni.pb";
-import { Runtime } from "@/api/common/omni.pb";
+} from '@/api/omni/specs/omni.pb'
+import { Runtime } from '@/api/common/omni.pb'
 import {
   ClusterStatusType,
   ControlPlaneStatusType,
   KubernetesStatusType,
   DefaultNamespace,
   EtcdBackupStatusType,
-  ClusterDiagnosticsType, MetricsNamespace,
-} from "@/api/resources";
-import { BackupsStatus, downloadKubeconfig, downloadTalosconfig } from "@/methods";
-import { controlPlaneMachineSetId } from "@/methods/machineset";
-import * as semver from "semver";
+  ClusterDiagnosticsType,
+  MetricsNamespace,
+} from '@/api/resources'
+import type { BackupsStatus } from '@/methods'
+import { downloadKubeconfig, downloadTalosconfig } from '@/methods'
+import { controlPlaneMachineSetId } from '@/methods/machineset'
+import * as semver from 'semver'
 
-import TSpinner from "@/components/common/Spinner/TSpinner.vue";
-import TClusterStatus from "@/views/omni/Clusters/ClusterStatus.vue";
-import TButton from "@/components/common/Button/TButton.vue";
-import OverviewRightPanelItem
-  from "@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanelItem.vue";
-import OverviewRightPanelCondition
-  from "@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanelCondition.vue";
-import TIcon from "@/components/common/Icon/TIcon.vue";
-import Tooltip from "@/components/common/Tooltip/Tooltip.vue";
-import { setupClusterPermissions } from "@/methods/auth";
-import { triggerEtcdBackup } from "@/methods/cluster";
-import { showError } from "@/notification";
-import ManagedByTemplatesWarning from "@/views/cluster/ManagedByTemplatesWarning.vue";
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import TClusterStatus from '@/views/omni/Clusters/ClusterStatus.vue'
+import TButton from '@/components/common/Button/TButton.vue'
+import OverviewRightPanelItem from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanelItem.vue'
+import OverviewRightPanelCondition from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanelCondition.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
+import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
+import { setupClusterPermissions } from '@/methods/auth'
+import { triggerEtcdBackup } from '@/methods/cluster'
+import { showError } from '@/notification'
+import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 
-const route = useRoute();
-const router = useRouter();
+const route = useRoute()
+const router = useRouter()
 
-const currentCluster: Ref<Resource<ClusterStatusSpec> | undefined> = ref();
-const currentClusterWatch = new Watch(currentCluster);
+const currentCluster: Ref<Resource<ClusterStatusSpec> | undefined> = ref()
+const currentClusterWatch = new Watch(currentCluster)
 
-const backupStatus: Ref<Resource<EtcdBackupStatusSpec> | undefined> = ref();
-const backupStatusWatch = new Watch(backupStatus);
+const backupStatus: Ref<Resource<EtcdBackupStatusSpec> | undefined> = ref()
+const backupStatusWatch = new Watch(backupStatus)
 
-const controlPlaneStatus: Ref<Resource<ControlPlaneStatusSpec> | undefined> = ref();
-const controlPlaneStatusWatch = new Watch(controlPlaneStatus);
+const controlPlaneStatus: Ref<Resource<ControlPlaneStatusSpec> | undefined> = ref()
+const controlPlaneStatusWatch = new Watch(controlPlaneStatus)
 
-const kubernetesStatus: Ref<Resource<KubernetesStatusSpec> | undefined> = ref();
-const kubernetesStatusWatch = new Watch(kubernetesStatus);
+const kubernetesStatus: Ref<Resource<KubernetesStatusSpec> | undefined> = ref()
+const kubernetesStatusWatch = new Watch(kubernetesStatus)
 
-const clusterDiagnostics: Ref<Resource<ClusterDiagnosticsSpec> | undefined> = ref();
-const clusterDiagnosticsWatch = new Watch(clusterDiagnostics);
+const clusterDiagnostics: Ref<Resource<ClusterDiagnosticsSpec> | undefined> = ref()
+const clusterDiagnosticsWatch = new Watch(clusterDiagnostics)
 
 const numNodesWithDiagnostics = computed(() => {
-  return clusterDiagnostics.value?.spec.nodes?.length || 0;
-});
+  return clusterDiagnostics.value?.spec.nodes?.length || 0
+})
 
 const numTotalDiagnostics = computed(() => {
-  const nodes: ClusterDiagnosticsSpecNode[] = clusterDiagnostics.value?.spec?.nodes || [];
-  return nodes.reduce((sum, node) => sum + (node.num_diagnostics || 0), 0) || 0;
-});
+  const nodes: ClusterDiagnosticsSpecNode[] = clusterDiagnostics.value?.spec?.nodes || []
+  return nodes.reduce((sum, node) => sum + (node.num_diagnostics || 0), 0) || 0
+})
 
 const props = defineProps<{
-  kubernetesUpgradeStatus: Resource<KubernetesUpgradeStatusSpec> | undefined,
-  talosUpgradeStatus: Resource<TalosUpgradeStatusSpec> | undefined,
-  etcdBackups: BackupsStatus | undefined,
-}>();
+  kubernetesUpgradeStatus: Resource<KubernetesUpgradeStatusSpec> | undefined
+  talosUpgradeStatus: Resource<TalosUpgradeStatusSpec> | undefined
+  etcdBackups: BackupsStatus | undefined
+}>()
 
 enum Update {
   Talos,
-  Kubernetes
+  Kubernetes,
 }
 
-const { kubernetesUpgradeStatus, talosUpgradeStatus } = toRefs(props);
+const { kubernetesUpgradeStatus, talosUpgradeStatus } = toRefs(props)
 
 currentClusterWatch.setup({
   runtime: Runtime.Omni,
@@ -290,7 +321,7 @@ currentClusterWatch.setup({
     type: ClusterStatusType,
     id: route.params.cluster as string,
   },
-});
+})
 
 controlPlaneStatusWatch.setup({
   runtime: Runtime.Omni,
@@ -299,7 +330,7 @@ controlPlaneStatusWatch.setup({
     type: ControlPlaneStatusType,
     id: controlPlaneMachineSetId(route.params.cluster as string),
   },
-});
+})
 
 kubernetesStatusWatch.setup({
   runtime: Runtime.Omni,
@@ -308,7 +339,7 @@ kubernetesStatusWatch.setup({
     type: KubernetesStatusType,
     id: route.params.cluster as string,
   },
-});
+})
 
 backupStatusWatch.setup({
   runtime: Runtime.Omni,
@@ -316,8 +347,8 @@ backupStatusWatch.setup({
     namespace: MetricsNamespace,
     type: EtcdBackupStatusType,
     id: route.params.cluster as string,
-  }
-});
+  },
+})
 
 clusterDiagnosticsWatch.setup({
   runtime: Runtime.Omni,
@@ -325,35 +356,35 @@ clusterDiagnosticsWatch.setup({
     namespace: DefaultNamespace,
     type: ClusterDiagnosticsType,
     id: route.params.cluster as string,
-  }
-});
+  },
+})
 
 const lastBackupError = computed(() => {
-  return backupStatus.value?.spec.error;
+  return backupStatus.value?.spec.error
 })
 
 const backupTime = computed(() => {
-  const t = backupStatus?.value?.spec.last_backup_time;
+  const t = backupStatus?.value?.spec.last_backup_time
 
   if (!t) {
-    return "Never";
+    return 'Never'
   }
 
-  return formatISO(t, 'yyyy-LL-dd HH:mm:ss');
-});
+  return formatISO(t, 'yyyy-LL-dd HH:mm:ss')
+})
 
-const startingEtcdBackup = ref(false);
+const startingEtcdBackup = ref(false)
 
 const runEtcdBackup = async () => {
-  startingEtcdBackup.value = true;
+  startingEtcdBackup.value = true
 
   try {
-    await triggerEtcdBackup(route.params.cluster as string);
+    await triggerEtcdBackup(route.params.cluster as string)
   } catch (e) {
-    showError("Failed to Trigger Manual Etcd Backup", e.message);
+    showError('Failed to Trigger Manual Etcd Backup', e.message)
   }
 
-  startingEtcdBackup.value = false;
+  startingEtcdBackup.value = false
 }
 
 const kubernetesUpgradeAvailable = () => {
@@ -364,60 +395,66 @@ const talosUpdateAvailable = () => {
   return (talosUpgradeStatus?.value?.spec?.upgrade_versions?.length ?? 0) > 0
 }
 
-const getUpgradeAvailable = (spec: {last_upgrade_version?: string, current_upgrade_version?: string, upgrade_versions?: string[]}) => {
+const getUpgradeAvailable = (spec: {
+  last_upgrade_version?: string
+  current_upgrade_version?: string
+  upgrade_versions?: string[]
+}) => {
   if (spec.current_upgrade_version || !spec.upgrade_versions || !spec.last_upgrade_version) {
-    return [];
+    return []
   }
 
   return spec.upgrade_versions.filter((version: string) => {
-    return semver.compare(spec.last_upgrade_version!, version) == -1;
-  });
+    return semver.compare(spec.last_upgrade_version!, version) == -1
+  })
 }
 
 const kubernetesVersion = computed(() => {
-  return getVersion(kubernetesUpgradeStatus.value!.spec);
-});
+  return getVersion(kubernetesUpgradeStatus.value!.spec)
+})
 
 const talosVersion = computed(() => {
-  return getVersion(talosUpgradeStatus.value!.spec);
-});
+  return getVersion(talosUpgradeStatus.value!.spec)
+})
 
 const newKubernetesVersionsAvailable = computed(() => {
-  return getUpgradeAvailable(kubernetesUpgradeStatus.value!.spec);
-});
+  return getUpgradeAvailable(kubernetesUpgradeStatus.value!.spec)
+})
 
 const newTalosVersionsAvailable = computed(() => {
-  return getUpgradeAvailable(talosUpgradeStatus.value!.spec);
-});
+  return getUpgradeAvailable(talosUpgradeStatus.value!.spec)
+})
 
-const getVersion = (spec: {last_upgrade_version?: string, current_upgrade_version?: string}) => {
+const getVersion = (spec: { last_upgrade_version?: string; current_upgrade_version?: string }) => {
   if (spec.current_upgrade_version && spec.last_upgrade_version) {
     return `${spec.last_upgrade_version} ⇾ ${spec.current_upgrade_version}`
   }
 
-  return spec.last_upgrade_version;
+  return spec.last_upgrade_version
 }
 
 const openClusterUpdate = (type: Update) => {
   if (type === Update.Kubernetes && !canUpdateKubernetes.value) {
-    return;
+    return
   }
 
   if (type === Update.Talos && !canUpdateTalos.value) {
-    return;
+    return
   }
 
-  const modal = type === Update.Talos ? "updateTalos" : "updateKubernetes";
+  const modal = type === Update.Talos ? 'updateTalos' : 'updateKubernetes'
 
-  router.push({ query: { modal: modal, cluster: currentCluster?.value?.metadata?.id } });
+  router.push({ query: { modal: modal, cluster: currentCluster?.value?.metadata?.id } })
 }
 
 const openDownloadSupportBundle = () => {
   if (!canDownloadSupportBundle.value) {
-    return;
+    return
   }
 
-  router.push({ query: { modal: "downloadSupportBundle", cluster: currentCluster?.value?.metadata?.id } });
+  router.push({
+    query: { modal: 'downloadSupportBundle', cluster: currentCluster?.value?.metadata?.id },
+  })
 }
 
 const {

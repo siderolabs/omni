@@ -7,7 +7,7 @@ included in the LICENSE file.
 <template>
   <div class="flex flex-col">
     <div class="flex gap-1 items-start">
-      <page-header title="Create Cluster" class="flex-1"/>
+      <page-header title="Create Cluster" class="flex-1" />
     </div>
     <div class="flex flex-col items-stretch gap-4 flex-1">
       <div class="flex w-full gap-2 h-9">
@@ -16,7 +16,7 @@ included in the LICENSE file.
           class="flex-1 h-full"
           placeholder="..."
           :model-value="state.cluster.name ?? ''"
-          @update:model-value="value => state.cluster.name = value"
+          @update:model-value="(value) => (state.cluster.name = value)"
         />
         <t-select-list
           class="h-full"
@@ -42,7 +42,11 @@ included in the LICENSE file.
         </t-button>
       </div>
       <div class="text-naturals-N13">Cluster Labels</div>
-      <item-labels :resource="labelContainer" :add-label-func="addLabels" :remove-label-func="removeLabels"/>
+      <item-labels
+        :resource="labelContainer"
+        :add-label-func="addLabels"
+        :remove-label-func="removeLabels"
+      />
       <div class="text-naturals-N13">Cluster Features</div>
       <div class="flex flex-col gap-3 max-w-sm">
         <tooltip placement="bottom">
@@ -53,45 +57,67 @@ included in the LICENSE file.
               <p class="text-primary-P2">This feature is only available for Talos >= 1.5.0.</p>
             </div>
           </template>
-          <t-checkbox :checked="state.cluster.features?.encryptDisks" label="Encrypt Disks" @click="state.cluster.features.encryptDisks = !state.cluster.features.encryptDisks && supportsEncryption" :disabled="!supportsEncryption"/>
+          <t-checkbox
+            :checked="state.cluster.features?.encryptDisks"
+            label="Encrypt Disks"
+            @click="
+              state.cluster.features.encryptDisks =
+                !state.cluster.features.encryptDisks && supportsEncryption
+            "
+            :disabled="!supportsEncryption"
+          />
         </tooltip>
         <cluster-workload-proxying-checkbox
-            :checked="state.cluster.features.enableWorkloadProxy"
-            @click="() => (state.cluster.features.enableWorkloadProxy = !state.cluster.features.enableWorkloadProxy)"/>
+          :checked="state.cluster.features.enableWorkloadProxy"
+          @click="
+            () =>
+              (state.cluster.features.enableWorkloadProxy =
+                !state.cluster.features.enableWorkloadProxy)
+          "
+        />
         <embedded-discovery-service-checkbox
-            :checked="state.cluster.features.useEmbeddedDiscoveryService"
-            :disabled="!isEmbeddedDiscoveryServiceAvailable"
-            :talos-version="state.cluster.talosVersion"
-            @click="toggleUseEmbeddedDiscoveryService"/>
-        <cluster-etcd-backup-checkbox :backup-status="backupStatus" @update:cluster="(spec) => {
-          state.cluster.etcdBackupConfig = spec.backup_configuration
-        }" :cluster="{
-          backup_configuration: state.cluster.etcdBackupConfig
-        }"/>
+          :checked="state.cluster.features.useEmbeddedDiscoveryService"
+          :disabled="!isEmbeddedDiscoveryServiceAvailable"
+          :talos-version="state.cluster.talosVersion"
+          @click="toggleUseEmbeddedDiscoveryService"
+        />
+        <cluster-etcd-backup-checkbox
+          :backup-status="backupStatus"
+          @update:cluster="
+            (spec) => {
+              state.cluster.etcdBackupConfig = spec.backup_configuration
+            }
+          "
+          :cluster="{
+            backup_configuration: state.cluster.etcdBackupConfig,
+          }"
+        />
       </div>
       <div class="text-naturals-N13">Machine Sets</div>
-      <MachineSets/>
+      <MachineSets />
       <div class="text-naturals-N13">Available Machines</div>
       <t-list
-        :opts="[{
-          resource: resource,
-          runtime: Runtime.Omni,
-          selectors: [
-            `${MachineStatusLabelAvailable}`,
-            `${MachineStatusLabelReadyToUse}`,
-            `!${MachineStatusLabelInvalidState}`,
-            `${MachineStatusLabelReportingEvents}`,
-            `!${LabelNoManualAllocation}`
-          ],
-          sortByField: 'created'
-        },
-        {
-          resource: {
-            type: MachineConfigGenOptionsType,
-            namespace: DefaultNamespace,
+        :opts="[
+          {
+            resource: resource,
+            runtime: Runtime.Omni,
+            selectors: [
+              `${MachineStatusLabelAvailable}`,
+              `${MachineStatusLabelReadyToUse}`,
+              `!${MachineStatusLabelInvalidState}`,
+              `${MachineStatusLabelReportingEvents}`,
+              `!${LabelNoManualAllocation}`,
+            ],
+            sortByField: 'created',
           },
-          runtime: Runtime.Omni,
-        }]"
+          {
+            resource: {
+              type: MachineConfigGenOptionsType,
+              namespace: DefaultNamespace,
+            },
+            runtime: Runtime.Omni,
+          },
+        ]"
         search
         pagination
         class="flex-1"
@@ -134,8 +160,9 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { Ref, ref, onMounted, computed, watch } from "vue";
-import { Runtime } from "@/api/common/omni.pb";
+import type { Ref } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
+import { Runtime } from '@/api/common/omni.pb'
 import {
   DefaultNamespace,
   MachineStatusType,
@@ -150,85 +177,89 @@ import {
   LabelNoManualAllocation,
   MachineStatusLabelReadyToUse,
   MachineStatusLabelInstalled,
-} from "@/api/resources";
-import { MachineStatusSpec, TalosVersionSpec } from "@/api/omni/specs/omni.pb";
-import WatchResource, { itemID } from "@/api/watch";
-import { showError, showSuccess } from "@/notification";
-import { Resource } from "@/api/grpc";
-import { clusterSync, nextAvailableClusterName, embeddedDiscoveryServiceAvailable } from "@/methods/cluster";
-import { useRouter } from "vue-router";
-import { showModal } from "@/modal";
-import * as semver from "semver";
-import yaml from "js-yaml";
+} from '@/api/resources'
+import type { MachineStatusSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
+import WatchResource, { itemID } from '@/api/watch'
+import { showError, showSuccess } from '@/notification'
+import type { Resource } from '@/api/grpc'
+import {
+  clusterSync,
+  nextAvailableClusterName,
+  embeddedDiscoveryServiceAvailable,
+} from '@/methods/cluster'
+import { useRouter } from 'vue-router'
+import { showModal } from '@/modal'
+import * as semver from 'semver'
+import yaml from 'js-yaml'
 
-import TButton from "@/components/common/Button/TButton.vue";
-import TInput from "@/components/common/TInput/TInput.vue";
-import TAlert from "@/components/TAlert.vue";
-import TSelectList from "@/components/common/SelectList/TSelectList.vue";
-import ClusterMachineItem from "@/views/omni/Clusters/Management/ClusterMachineItem.vue";
-import ConfigPatchEdit from "@/views/omni/Modals/ConfigPatchEdit.vue";
-import ClusterMenu from "@/views/omni/Clusters/ClusterMenu.vue";
-import PageHeader from "@/components/common/PageHeader.vue";
-import TList from "@/components/common/List/TList.vue";
-import ItemLabels from "@/views/omni/ItemLabels/ItemLabels.vue";
-import { canCreateClusters } from "@/methods/auth";
-import TCheckbox from "@/components/common/Checkbox/TCheckbox.vue";
-import Tooltip from "@/components/common/Tooltip/Tooltip.vue";
-import ClusterWorkloadProxyingCheckbox from "@/views/omni/Clusters/ClusterWorkloadProxyingCheckbox.vue";
-import ClusterEtcdBackupCheckbox from "@/views/omni/Clusters/ClusterEtcdBackupCheckbox.vue";
-import UntaintSingleNode from "@/views/omni/Modals/UntaintSingleNode.vue";
-import MachineSets from "./MachineSets.vue";
-import { initState, PatchID } from "@/states/cluster-management";
-import { setupBackupStatus } from "@/methods";
-import EmbeddedDiscoveryServiceCheckbox from "@/views/omni/Clusters/EmbeddedDiscoveryServiceCheckbox.vue";
+import TButton from '@/components/common/Button/TButton.vue'
+import TInput from '@/components/common/TInput/TInput.vue'
+import TAlert from '@/components/TAlert.vue'
+import TSelectList from '@/components/common/SelectList/TSelectList.vue'
+import ClusterMachineItem from '@/views/omni/Clusters/Management/ClusterMachineItem.vue'
+import ConfigPatchEdit from '@/views/omni/Modals/ConfigPatchEdit.vue'
+import ClusterMenu from '@/views/omni/Clusters/ClusterMenu.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
+import TList from '@/components/common/List/TList.vue'
+import ItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
+import { canCreateClusters } from '@/methods/auth'
+import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
+import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
+import ClusterWorkloadProxyingCheckbox from '@/views/omni/Clusters/ClusterWorkloadProxyingCheckbox.vue'
+import ClusterEtcdBackupCheckbox from '@/views/omni/Clusters/ClusterEtcdBackupCheckbox.vue'
+import UntaintSingleNode from '@/views/omni/Modals/UntaintSingleNode.vue'
+import MachineSets from './MachineSets.vue'
+import { initState, PatchID } from '@/states/cluster-management'
+import { setupBackupStatus } from '@/methods'
+import EmbeddedDiscoveryServiceCheckbox from '@/views/omni/Clusters/EmbeddedDiscoveryServiceCheckbox.vue'
 
 const labelContainer: Ref<Resource> = computed(() => {
   return {
     metadata: {
-        id: "label-container",
-        labels: state.value.cluster.labels ?? {},
+      id: 'label-container',
+      labels: state.value.cluster.labels ?? {},
     },
-    spec: {}
-  };
-});
+    spec: {},
+  }
+})
 
-const { status: backupStatus } = setupBackupStatus();
+const { status: backupStatus } = setupBackupStatus()
 
-const state = initState();
+const state = initState()
 
 const addLabels = (_: string, ...labels: string[]) => {
-  state.value.addClusterLabels(labels);
+  state.value.addClusterLabels(labels)
 }
 
 const removeLabels = (_: string, ...keys: string[]) => {
-  state.value.removeClusterLabels(keys);
+  state.value.removeClusterLabels(keys)
 }
 
 const supportsEncryption = computed(() => {
-  return semver.compare(state.value.cluster.talosVersion, "v1.5.0") >= 0;
-});
+  return semver.compare(state.value.cluster.talosVersion ?? '', 'v1.5.0') >= 0
+})
 
-const router = useRouter();
+const router = useRouter()
 
-const kubernetesVersionSelector: Ref<{ selectItem: (s: string) => void } | undefined> = ref();
+const kubernetesVersionSelector: Ref<{ selectItem: (s: string) => void } | undefined> = ref()
 
-const talosVersionsList: Ref<Resource<TalosVersionSpec>[]> = ref([]);
-const talosVersionsWatch = new WatchResource(talosVersionsList);
-const reset = ref(0);
+const talosVersionsList: Ref<Resource<TalosVersionSpec>[]> = ref([])
+const talosVersionsWatch = new WatchResource(talosVersionsList)
+const reset = ref(0)
 
 const kubernetesVersions: Ref<string[]> = computed(() => {
   for (const version of talosVersionsList.value) {
     if (version.spec.version == state.value.cluster.talosVersion) {
-      return version.spec.compatible_kubernetes_versions ?? [];
+      return version.spec.compatible_kubernetes_versions ?? []
     }
   }
 
-  return [];
-});
+  return []
+})
 
-watch(kubernetesVersions, k8sVersions => {
+watch(kubernetesVersions, (k8sVersions) => {
   if (k8sVersions.length == 0) {
-    kubernetesVersionSelector?.value?.selectItem("")
+    kubernetesVersionSelector?.value?.selectItem('')
     return
   }
 
@@ -251,7 +282,7 @@ watch(kubernetesVersions, k8sVersions => {
     // select the latest supported Kubernetes version by the chosen Talos version (k8sVersions are sorted on backend)
     kubernetesVersionSelector?.value?.selectItem(k8sVersions[k8sVersions.length - 1])
   }
-});
+})
 
 talosVersionsWatch.setup({
   runtime: Runtime.Omni,
@@ -259,88 +290,106 @@ talosVersionsWatch.setup({
     type: TalosVersionType,
     namespace: DefaultNamespace,
   },
-});
+})
 
-const isEmbeddedDiscoveryServiceAvailable = ref(false);
+const isEmbeddedDiscoveryServiceAvailable = ref(false)
 
-watch(state.value.cluster, async cluster => {
-  isEmbeddedDiscoveryServiceAvailable.value = await embeddedDiscoveryServiceAvailable(cluster?.talosVersion);
+watch(state.value.cluster, async (cluster) => {
+  isEmbeddedDiscoveryServiceAvailable.value = await embeddedDiscoveryServiceAvailable(
+    cluster?.talosVersion,
+  )
 
   if (!isEmbeddedDiscoveryServiceAvailable.value) {
-    state.value.cluster.features.useEmbeddedDiscoveryService = false;
+    state.value.cluster.features.useEmbeddedDiscoveryService = false
   }
-});
+})
 
 const toggleUseEmbeddedDiscoveryService = async () => {
-  isEmbeddedDiscoveryServiceAvailable.value = await embeddedDiscoveryServiceAvailable(state.value.cluster?.talosVersion);
+  isEmbeddedDiscoveryServiceAvailable.value = await embeddedDiscoveryServiceAvailable(
+    state.value.cluster?.talosVersion,
+  )
 
   if (!isEmbeddedDiscoveryServiceAvailable.value) {
-    state.value.cluster.features.useEmbeddedDiscoveryService = false;
+    state.value.cluster.features.useEmbeddedDiscoveryService = false
 
-    return;
+    return
   }
 
-  state.value.cluster.features.useEmbeddedDiscoveryService = !state.value.cluster.features.useEmbeddedDiscoveryService;
+  state.value.cluster.features.useEmbeddedDiscoveryService =
+    !state.value.cluster.features.useEmbeddedDiscoveryService
 }
 
 onMounted(async () => {
-  state.value.cluster.name = await nextAvailableClusterName(state.value.cluster.name ?? "talos-default");
-  isEmbeddedDiscoveryServiceAvailable.value = await embeddedDiscoveryServiceAvailable(state.value.cluster?.talosVersion);
-});
+  state.value.cluster.name = await nextAvailableClusterName(
+    state.value.cluster.name ?? 'talos-default',
+  )
+  isEmbeddedDiscoveryServiceAvailable.value = await embeddedDiscoveryServiceAvailable(
+    state.value.cluster?.talosVersion,
+  )
+})
 
 const createCluster = async () => {
   if (state.value.untaintSingleNode()) {
     showModal(UntaintSingleNode, { onContinue: createCluster_ })
   } else {
-    await createCluster_(false);
+    await createCluster_(false)
   }
-};
+}
 
 const detectVersionMismatch = (machine: Resource<MachineStatusSpec>) => {
-  const clusterVersion = semver.parse(state.value.cluster.talosVersion);
-  const machineVersion = semver.parse(machine.spec.talos_version);
+  const clusterVersion = semver.parse(state.value.cluster.talosVersion)
+  const machineVersion = semver.parse(machine.spec.talos_version)
 
-  const installed = machine.metadata.labels?.[MachineStatusLabelInstalled] !== undefined;
-  const inAgentMode = !!machine.spec.schematic?.in_agent_mode;
+  const installed = machine.metadata.labels?.[MachineStatusLabelInstalled] !== undefined
+  const inAgentMode = !!machine.spec.schematic?.in_agent_mode
 
   if (!machineVersion || !clusterVersion) {
-    return null;
+    return null
   }
 
   if (!installed) {
-    if (machineVersion?.major == clusterVersion?.major && machineVersion?.minor == clusterVersion?.minor) {
-      return null;
+    if (
+      machineVersion?.major == clusterVersion?.major &&
+      machineVersion?.minor == clusterVersion?.minor
+    ) {
+      return null
     }
 
     if (inAgentMode) {
-      return null;
+      return null
     }
 
-    return "The machine running from ISO or PXE must have the same major and minor version as the cluster it is going to be added to. Please use another ISO or change the cluster Talos version";
+    return 'The machine running from ISO or PXE must have the same major and minor version as the cluster it is going to be added to. Please use another ISO or change the cluster Talos version'
   }
-  if (machineVersion?.major <= clusterVersion?.major && machineVersion?.minor <= clusterVersion?.minor) {
-    return null;
+  if (
+    machineVersion?.major <= clusterVersion?.major &&
+    machineVersion?.minor <= clusterVersion?.minor
+  ) {
+    return null
   }
 
-  return "The machine has newer Talos version installed: downgrade is not allowed. Upgrade the machine or change Talos cluster version";
+  return 'The machine has newer Talos version installed: downgrade is not allowed. Upgrade the machine or change Talos cluster version'
 }
 
 const createCluster_ = async (untaint: boolean) => {
-  if (typeof state.value.controlPlanesCount === 'number' && (state.value.controlPlanesCount - 1) % 2 !== 0) {
+  if (
+    typeof state.value.controlPlanesCount === 'number' &&
+    (state.value.controlPlanesCount - 1) % 2 !== 0
+  ) {
     showError(
-      "Invalid Number of Control Planes",
-      "The total number of control plane nodes must be an odd number to ensure etcd stability. (Three control plane nodes are required for a highly available control plane.)"
+      'Invalid Number of Control Planes',
+      'The total number of control plane nodes must be an odd number to ensure etcd stability. (Three control plane nodes are required for a highly available control plane.)',
     )
 
-    return;
+    return
   }
 
   if (untaint) {
     state.value.controlPlanes().patches[PatchID.Untaint] = {
       data: yaml.dump({
         cluster: {
-          allowSchedulingOnControlPlanes: true
-        }
+          allowSchedulingOnControlPlanes: true,
+        },
       }),
       weight: PatchBaseWeightMachineSet,
       systemPatch: true,
@@ -348,73 +397,73 @@ const createCluster_ = async (untaint: boolean) => {
   }
 
   try {
-    await clusterSync(state.value.resources());
+    await clusterSync(state.value.resources())
   } catch (e) {
-    if (e.message && e.message.indexOf("already exists") >= 0) {
-      state.value.cluster.name = await nextAvailableClusterName("talos-default");
+    if (e.message && e.message.indexOf('already exists') >= 0) {
+      state.value.cluster.name = await nextAvailableClusterName('talos-default')
     }
 
     if (e.errorNotification) {
-      showError(e.errorNotification.title, e.errorNotification.details);
+      showError(e.errorNotification.title, e.errorNotification.details)
 
-      return;
+      return
     }
 
-    showError("Failed to Create the Cluster", e.message);
+    showError('Failed to Create the Cluster', e.message)
 
-    return;
+    return
   }
 
   showSuccess(
-    "Succesfully Created Cluster",
-    `Cluster name: ${state.value.cluster.name}, control planes: ${state.value.controlPlanesCount}, workers: ${state.value.workersCount}`
-  );
+    'Succesfully Created Cluster',
+    `Cluster name: ${state.value.cluster.name}, control planes: ${state.value.controlPlanesCount}, workers: ${state.value.workersCount}`,
+  )
 
-  const clusterName = state.value.cluster.name;
+  const clusterName = state.value.cluster.name
 
-  initState();
+  initState()
 
-  router.push({ name: "ClusterOverview", params: { cluster: clusterName } });
+  router.push({ name: 'ClusterOverview', params: { cluster: clusterName } })
 }
 
 const resource = {
   namespace: DefaultNamespace,
   type: MachineStatusType,
-};
+}
 
 const talosVersions = computed(() => {
-  const res: string[] = [];
+  const res: string[] = []
 
   for (const version of talosVersionsList.value) {
     if (version.spec.deprecated) {
-      continue;
+      continue
     }
 
-    res.push(version.spec.version!);
+    res.push(version.spec.version!)
   }
 
   res.sort(semver.compare)
 
-  return res;
-});
+  return res
+})
 
 const hasConfigs = computed(() => {
-  return Object.keys(state.value.cluster.patches).length > 0;
-});
+  return Object.keys(state.value.cluster.patches).length > 0
+})
 
 const openPatchConfig = () => {
   showModal(ConfigPatchEdit, {
     tabs: [
       {
-        id: "Cluster",
-        config: state.value.cluster.patches[PatchID.Default]?.data ?? "",
+        id: 'Cluster',
+        config: state.value.cluster.patches[PatchID.Default]?.data ?? '',
       },
     ],
     onSave: async (config: string) => {
-      if (config == "") {
-        delete state.value.cluster.patches[PatchID.Default];
+      if (config == '') {
+        delete state.value.cluster.patches[PatchID.Default]
 
-        return;
+        return
       }
 
       state.value.cluster.patches[PatchID.Default] = {
@@ -422,14 +471,15 @@ const openPatchConfig = () => {
         weight: PatchBaseWeightCluster,
       }
     },
-  });
-};
+  })
+}
 
-const list: Ref<{ addFilterLabel: (label: { key: string, value?: string }) => void } | null> = ref(null);
+const list: Ref<{ addFilterLabel: (label: { key: string; value?: string }) => void } | null> =
+  ref(null)
 
-const filterByLabel = (e: { key: string, value?: string }) => {
+const filterByLabel = (e: { key: string; value?: string }) => {
   if (list.value) {
-    list.value.addFilterLabel(e);
+    list.value.addFilterLabel(e)
   }
 }
 </script>

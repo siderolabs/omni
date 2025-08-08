@@ -7,7 +7,15 @@ included in the LICENSE file.
 <template>
   <div>
     <svg class="spinner" viewBox="0 0 70 70" xmlns="http://www.w3.org/2000/svg">
-      <circle class="path" fill="none" stroke-width="9" stroke-linecap="round" cx="35" cy="35" r="30"></circle>
+      <circle
+        class="path"
+        fill="none"
+        stroke-width="9"
+        stroke-linecap="round"
+        cx="35"
+        cy="35"
+        r="30"
+      ></circle>
     </svg>
   </div>
 </template>

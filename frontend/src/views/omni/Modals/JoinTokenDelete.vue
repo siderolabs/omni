@@ -7,54 +7,52 @@ included in the LICENSE file.
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14 truncate flex-1">
-        Delete the token {{ id }} ?
-      </h3>
+      <h3 class="text-base text-naturals-N14 truncate flex-1">Delete the token {{ id }} ?</h3>
       <close-button @click="close" />
     </div>
-    <p class="text-xs text-primary-P2">This action CANNOT be undone. This will permanently delete the Join Token.</p>
+    <p class="text-xs text-primary-P2">
+      This action CANNOT be undone. This will permanently delete the Join Token.
+    </p>
 
     <div class="flex justify-end gap-4 mt-8">
-      <t-button @click="revoke" class="w-32 h-9" icon="delete">
-        Delete
-      </t-button>
+      <t-button @click="revoke" class="w-32 h-9" icon="delete"> Delete </t-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useRoute, useRouter } from "vue-router";
+import { useRoute, useRouter } from 'vue-router'
 
-import CloseButton from "@/views/omni/Modals/CloseButton.vue";
-import TButton from "@/components/common/Button/TButton.vue";
-import { showError } from "@/notification";
-import { deleteJoinToken } from "@/methods/auth";
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
+import TButton from '@/components/common/Button/TButton.vue'
+import { showError } from '@/notification'
+import { deleteJoinToken } from '@/methods/auth'
 
-const router = useRouter();
-const route = useRoute();
+const router = useRouter()
+const route = useRoute()
 
-const id = route.query.token as string;
+const id = route.query.token as string
 
-let closed = false;
+let closed = false
 
 const close = () => {
   if (closed) {
-    return;
+    return
   }
 
-  closed = true;
+  closed = true
 
-  router.go(-1);
-};
+  router.go(-1)
+}
 
 const revoke = async () => {
   try {
-    await deleteJoinToken(id);
+    await deleteJoinToken(id)
   } catch (e) {
-    showError("Failed to Delete Token", e.message);
+    showError('Failed to Delete Token', e.message)
   }
 
-  close();
+  close()
 }
 </script>
 

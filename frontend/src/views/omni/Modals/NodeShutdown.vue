@@ -8,17 +8,13 @@ included in the LICENSE file.
   <div class="modal-wrapper" @click.self="close">
     <div class="modal">
       <div class="modal-heading">
-        <h3 id="modal-title" class="modal-name">
-          Shutdown the machine {{ node }} ?
-        </h3>
+        <h3 id="modal-title" class="modal-name">Shutdown the machine {{ node }} ?</h3>
         <t-icon class="modal-exit" icon="close" />
       </div>
       <p class="text-xs">Please confirm the action.</p>
 
       <div class="modal-buttons-box">
-        <t-button @click="close" class="modal-button" type="secondary"
-          >Cancel</t-button
-        >
+        <t-button @click="close" class="modal-button" type="secondary">Cancel</t-button>
         <t-button
           @click="shutdown"
           :disabled="!canRebootMachines || state === 'Shutdown in progress'"
@@ -31,71 +27,61 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import TButton from "@/components/common/Button/TButton.vue";
-import { computed, ref } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { MachineService } from "@/api/talos/machine/machine.pb";
-import { Runtime } from "@/api/common/omni.pb";
-import { showError, showSuccess } from "@/notification";
-import { getContext } from "@/context";
-import { setupNodenameWatch } from "@/methods/node";
-import { withContext, withRuntime } from "@/api/options";
-import { setupClusterPermissions } from "@/methods/auth";
+import TButton from '@/components/common/Button/TButton.vue'
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { MachineService } from '@/api/talos/machine/machine.pb'
+import { Runtime } from '@/api/common/omni.pb'
+import { showError, showSuccess } from '@/notification'
+import { getContext } from '@/context'
+import { setupNodenameWatch } from '@/methods/node'
+import { withContext, withRuntime } from '@/api/options'
+import { setupClusterPermissions } from '@/methods/auth'
 
-const route = useRoute();
-const router = useRouter();
-const state = ref("Shutdown");
+const route = useRoute()
+const router = useRouter()
+const state = ref('Shutdown')
 
-const node = setupNodenameWatch(route.query.machine as string);
+const node = setupNodenameWatch(route.query.machine as string)
 
 const close = () => {
-  router.go(-1);
-};
+  router.go(-1)
+}
 
-const context = getContext();
+const context = getContext()
 
-const { canRebootMachines } = setupClusterPermissions(computed(() => context.cluster ?? ''));
+const { canRebootMachines } = setupClusterPermissions(computed(() => context.cluster ?? ''))
 
 const shutdown = async () => {
-  state.value = "Shutdown in progress";
+  state.value = 'Shutdown in progress'
 
-  const nodeName = node.value ?? route.query.machine as string;
+  const nodeName = node.value ?? (route.query.machine as string)
 
   try {
-    const res = await MachineService.Shutdown(
-      {},
-      withRuntime(Runtime.Talos),
-      withContext(context),
-    );
+    const res = await MachineService.Shutdown({}, withRuntime(Runtime.Talos), withContext(context))
 
-    const errors: string[] = [];
-    for (const message of (res.messages || [])) {
+    const errors: string[] = []
+    for (const message of res.messages || []) {
       if (message?.metadata?.error)
-        errors.push(
-          `${message.metadata.hostname || nodeName} ${message.metadata.error
-          }`
-        );
+        errors.push(`${message.metadata.hostname || nodeName} ${message.metadata.error}`)
     }
-    if (errors.length > 0) throw new Error(errors.join(", "));
+    if (errors.length > 0) throw new Error(errors.join(', '))
   } catch (e: any) {
-    close();
+    close()
 
-    showError("Failed to Issue Shutdown", e.toString());
+    showError('Failed to Issue Shutdown', e.toString())
 
     return
   }
 
   if (route.query.goback) {
-    close();
+    close()
   } else {
-    await router.push({ name: 'ClusterOverview', params: { cluster: context.cluster } });
+    await router.push({ name: 'ClusterOverview', params: { cluster: context.cluster } })
   }
 
-  showSuccess(
-    "Machine Shutdown",
-    `Machine ${nodeName} is shutting down now.`
-  );
-};
+  showSuccess('Machine Shutdown', `Machine ${nodeName} is shutting down now.`)
+}
 </script>
 
 <style scoped>

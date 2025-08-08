@@ -5,13 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <svg
-    width="60"
-    height="60"
-    viewBox="0 0 60 60"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path
       d="M29.9028 14C29.4317 14 28.9666 14.024 28.5054 14.0639V45.8773C28.9666 45.9172 29.4317 45.9411 29.9028 45.9411C30.374 45.9411 30.8391 45.9172 31.3003 45.8773L31.3003 14.0639C30.8391 14.024 30.374 14 29.9028 14Z"
       fill="url(#paint0_linear_562_23508)"
@@ -91,5 +85,4 @@ included in the LICENSE file.
     </defs>
   </svg>
 </template>
-<script setup lang="ts">
-</script>
+<script setup lang="ts"></script>

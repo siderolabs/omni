@@ -10,18 +10,12 @@ included in the LICENSE file.
       <div v-if="title" class="w-full text-left text-naturals-N13 pl-3 text-xs">
         {{ title }}
       </div>
-      <div
-        v-if="total"
-        class="w-full text-right pr-3 text-xs"
-      >
+      <div v-if="total" class="w-full text-right pr-3 text-xs">
         {{ total }}
       </div>
     </div>
     <div id="chartContainer" class="flex-1">
-      <div
-        v-if="err || loading"
-        class="flex flex-row justify-center items-center w-full h-full"
-      >
+      <div v-if="err || loading" class="flex flex-row justify-center items-center w-full h-full">
         <div
           v-if="err"
           class="flex justify-center items-center w-1/2 gap-4 text-talos-gray-500 text-sm"
@@ -31,7 +25,7 @@ included in the LICENSE file.
           </div>
           <div>{{ err }}</div>
         </div>
-        <t-spinner v-else class="w-5 h-5"/>
+        <t-spinner v-else class="w-5 h-5" />
       </div>
       <apex-chart
         v-else
@@ -46,77 +40,98 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { ref, toRefs, computed, Ref } from "vue";
+import type { Ref } from 'vue'
+import { ref, toRefs, computed } from 'vue'
 
-import { WatchContext } from "@/api/watch";
-import ApexChart from "vue3-apexcharts";
-import TSpinner from "@/components/common/Spinner/TSpinner.vue";
-import { ExclamationCircleIcon } from "@heroicons/vue/24/outline";
-import { DateTime } from "luxon";
-import { WatchResponse, EventType } from "@/api/omni/resources/resources.pb";
-import { WatchEventSpec, WatchFunc } from "@/api/watch";
-import { Metadata } from '@/api/v1alpha1/resource.pb';
-import { Runtime } from "@/api/common/omni.pb";
+import type { WatchContext } from '@/api/watch'
+import ApexChart from 'vue3-apexcharts'
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import { ExclamationCircleIcon } from '@heroicons/vue/24/outline'
+import { DateTime } from 'luxon'
+import type { WatchResponse } from '@/api/omni/resources/resources.pb'
+import { EventType } from '@/api/omni/resources/resources.pb'
+import type { WatchEventSpec } from '@/api/watch'
+import { WatchFunc } from '@/api/watch'
+import type { Metadata } from '@/api/v1alpha1/resource.pb'
+import type { Runtime } from '@/api/common/omni.pb'
 
 type Props<T> = {
-  name: string,
-  type: string,
-  title: string,
-  resource: Metadata,
-  runtime: Runtime,
-  pointFn: (spec: T, old: T) => Record<string, number>,
-  animations?: boolean,
-  legend?: boolean,
-  dataLabels?: boolean,
-  stacked?: boolean,
-  stroke?: { curve: string, width: number | number[], dashArray?: number | number[] },
-  colors?: string[],
-  tailEvents?: number,
-  context?: WatchContext,
-  totalFn?: (spec: T, old: T) => string,
-  minFn?: (spec: T, old: T) => number,
-  maxFn?: (spec: T, old: T) => number,
-  formatter?: (value: number) => string,
+  name: string
+  type: string
+  title: string
+  resource: Metadata
+  runtime: Runtime
+  pointFn: (spec: T, old: T) => Record<string, number>
+  animations?: boolean
+  legend?: boolean
+  dataLabels?: boolean
+  stacked?: boolean
+  stroke?: { curve: string; width: number | number[]; dashArray?: number | number[] }
+  colors?: string[]
+  tailEvents?: number
+  context?: WatchContext
+  totalFn?: (spec: T, old: T) => string
+  minFn?: (spec: T, old: T) => number
+  maxFn?: (spec: T, old: T) => number
+  formatter?: (value: number) => string
 }
 
 const props = withDefaults(defineProps<Props<any>>(), {
-  stroke: () => { return { curve: "smooth", width: 2, dashArray: 0 } },
-  colors: () => ["#FFB103", '#FF8B59'],
+  stroke: () => {
+    return { curve: 'smooth', width: 2, dashArray: 0 }
+  },
+  colors: () => ['#FFB103', '#FF8B59'],
   tailEvents: () => 25,
-});
+})
 
-const { name, resource, runtime, context, animations, legend, dataLabels, stroke, pointFn, colors, totalFn, tailEvents, minFn, maxFn, stacked, formatter } =
-  toRefs(props);
+const {
+  name,
+  resource,
+  runtime,
+  context,
+  animations,
+  legend,
+  dataLabels,
+  stroke,
+  pointFn,
+  colors,
+  totalFn,
+  tailEvents,
+  minFn,
+  maxFn,
+  stacked,
+  formatter,
+} = toRefs(props)
 
-const series: Ref<Record<string, any>[]> = ref([]);
-const seriesMap = {};
-let points = {};
-let flush = {};
-const total = ref();
+const series: Ref<Record<string, any>[]> = ref([])
+const seriesMap = {}
+const points = {}
+const flush = {}
+const total = ref()
 
-const min: Ref<number | undefined> = ref(undefined);
-const max: Ref<number | undefined> = ref(undefined);
+const min: Ref<number | undefined> = ref(undefined)
+const max: Ref<number | undefined> = ref(undefined)
 
 const handlePoint = (message: WatchResponse, spec: WatchEventSpec) => {
   if (message.event?.event_type != EventType.UPDATED) {
-    return;
+    return
   }
 
-  const resource = spec.res;
-  const old = spec.old;
+  const resource = spec.res
+  const old = spec.old
 
-  const data = pointFn.value(resource?.spec, old?.spec);
+  const data = pointFn.value(resource?.spec, old?.spec)
 
   if (totalFn?.value) {
-    total.value = totalFn.value(resource?.spec, old?.spec);
+    total.value = totalFn.value(resource?.spec, old?.spec)
   }
 
   if (minFn?.value) {
-    min.value = minFn.value(resource?.spec, old?.spec);
+    min.value = minFn.value(resource?.spec, old?.spec)
   }
 
   if (maxFn?.value) {
-    max.value = maxFn.value(resource?.spec, old?.spec);
+    max.value = maxFn.value(resource?.spec, old?.spec)
   }
 
   for (const key in data) {
@@ -124,62 +139,62 @@ const handlePoint = (message: WatchResponse, spec: WatchEventSpec) => {
       series.value.push({
         name: key,
         data: [],
-      });
+      })
 
       seriesMap[key] = {
         index: series.value.length - 1,
         version: 0,
-      };
+      }
     }
 
-    const version = resource?.metadata?.version || "";
-    const meta = seriesMap[key];
+    const version = resource?.metadata?.version || ''
+    const meta = seriesMap[key]
     if (version <= meta.version) {
-      continue;
+      continue
     }
 
-    let point: number | number[] = data[key];
-    const updated = resource?.metadata?.updated;
+    let point: number | number[] = data[key]
+    const updated = resource?.metadata?.updated
     if (updated) {
-      point = [DateTime.fromISO(updated.toString()).toMillis(), point];
+      point = [DateTime.fromISO(updated.toString()).toMillis(), point]
     }
 
-    clearTimeout(flush[meta.index]);
+    clearTimeout(flush[meta.index])
 
-    if (!points[meta.index]) points[meta.index] = [];
+    if (!points[meta.index]) points[meta.index] = []
 
-    points[meta.index].push(point);
-    meta.version = version;
+    points[meta.index].push(point)
+    meta.version = version
 
     flush[meta.index] = setTimeout(() => {
-      let dst = series.value[meta.index].data;
+      let dst = series.value[meta.index].data
 
-      dst = dst.concat(points[meta.index]);
+      dst = dst.concat(points[meta.index])
 
       if (dst.length >= tailEvents.value) {
-        dst.splice(0, dst.length - tailEvents.value + 1);
+        dst.splice(0, dst.length - tailEvents.value + 1)
       }
 
-      series.value[meta.index].data = dst;
-      points[meta.index] = [];
-    }, 50);
+      series.value[meta.index].data = dst
+      points[meta.index] = []
+    }, 50)
   }
-};
+}
 
-const w = new WatchFunc(handlePoint);
+const w = new WatchFunc(handlePoint)
 
 w.setup({
   resource: resource.value,
   runtime: runtime.value,
   tailEvents: tailEvents.value,
   context: context?.value,
-});
+})
 
 const options = computed(() => {
   return {
     chart: {
       type: props.type,
-      background: "#00000000",
+      background: '#00000000',
       id: name.value,
       zoom: {
         enabled: false,
@@ -190,7 +205,7 @@ const options = computed(() => {
       toolbar: {
         show: false,
       },
-      stacked: stacked?.value
+      stacked: stacked?.value,
     },
     legend: {
       show: legend?.value,
@@ -203,7 +218,7 @@ const options = computed(() => {
     tooltip: {
       theme: 'dark',
       x: {
-        format: "HH:mm:ss",
+        format: 'HH:mm:ss',
       },
       style: {
         fontSize: '12px',
@@ -212,7 +227,7 @@ const options = computed(() => {
     },
     colors: colors.value,
     fill: {
-      type: "gradient",
+      type: 'gradient',
       gradient: {
         shadeIntensity: 1,
         opacityFrom: 0.4,
@@ -221,7 +236,7 @@ const options = computed(() => {
       },
     },
     grid: {
-      borderColor: "#272932",
+      borderColor: '#272932',
       strokeDashArray: 10,
       xaxis: {
         lines: {
@@ -235,13 +250,13 @@ const options = computed(() => {
       },
     },
     xaxis: {
-      type: "datetime",
+      type: 'datetime',
       labels: {
         datetimeFormatter: {
-          year: "yyyy",
+          year: 'yyyy',
           month: "MMM 'yy",
-          day: "dd MMM",
-          hour: "HH:mm",
+          day: 'dd MMM',
+          hour: 'HH:mm',
         },
         style: {
           colors: '#5B5C64',
@@ -273,11 +288,11 @@ const options = computed(() => {
         },
       },
     },
-  };
-});
+  }
+})
 
-const err = w.err;
-const loading = w.loading;
+const err = w.err
+const loading = w.loading
 </script>
 
 <style>

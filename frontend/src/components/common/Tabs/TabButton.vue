@@ -6,24 +6,22 @@ included in the LICENSE file.
 -->
 <template>
   <component :is="is" class="tab" :class="{ active: selected }">
-    <slot/>
+    <slot />
   </component>
 </template>
 
 <script setup lang="ts">
-import { toRefs } from "vue";
+import { toRefs } from 'vue'
 
 type Props = {
-  selected: boolean;
+  selected: boolean
   is?: string
-};
+}
 
-const props = withDefaults(defineProps<Props>(),
-  {
-    is: "div"
-  },
-);
-const { selected } = toRefs(props);
+const props = withDefaults(defineProps<Props>(), {
+  is: 'div',
+})
+const { selected } = toRefs(props)
 </script>
 
 <style scoped>
@@ -37,7 +35,7 @@ const { selected } = toRefs(props);
 
 .active::before {
   @apply block absolute bg-primary-P3 w-full animate-fadein;
-  content: "";
+  content: '';
   height: 2px;
   bottom: -15px;
 }

@@ -8,17 +8,23 @@ included in the LICENSE file.
   <div class="list-item-box">
     <t-slide-down-wrapper :isSliderOpened="!collapsed">
       <template #head>
-        <div @click="() => { collapsed = !collapsed }"
-          class="flex items-center bg-naturals-N1 pl-2 pr-4 py-4 hover:bg-naturals-N3 cursor-pointer gap-2">
+        <div
+          @click="
+            () => {
+              collapsed = !collapsed
+            }
+          "
+          class="flex items-center bg-naturals-N1 pl-2 pr-4 py-4 hover:bg-naturals-N3 cursor-pointer gap-2"
+        >
           <div class="mx-2" v-if="$slots.title">
             <slot name="title"></slot>
           </div>
           <div class="expand-button" v-if="$slots.details">
             <t-icon
-                :class="{'rotate-180': !collapsed}"
-                class="w-5 h-5 hover:text-naturals-N13 transition-color transition-transform duration-250"
-                icon="drop-up"
-                />
+              :class="{ 'rotate-180': !collapsed }"
+              class="w-5 h-5 hover:text-naturals-N13 transition-color transition-transform duration-250"
+              icon="drop-up"
+            />
           </div>
           <slot></slot>
         </div>
@@ -30,24 +36,27 @@ included in the LICENSE file.
   </div>
 </template>
 
-
 <script setup lang="ts">
-import TSlideDownWrapper from "../SlideDownWrapper/TSlideDownWrapper.vue";
-import TIcon from "../Icon/TIcon.vue";
+import TSlideDownWrapper from '../SlideDownWrapper/TSlideDownWrapper.vue'
+import TIcon from '../Icon/TIcon.vue'
 
-import storageRef from "@/methods/storage";
+import storageRef from '@/methods/storage'
 
 const props = defineProps<{
   listID: string
   itemID: string
   defaultOpen?: boolean
-}>();
+}>()
 
-const collapsed = storageRef(sessionStorage, `${props.listID}-collapsed-${props.itemID}`, !props.defaultOpen);
+const collapsed = storageRef(
+  sessionStorage,
+  `${props.listID}-collapsed-${props.itemID}`,
+  !props.defaultOpen,
+)
 
 defineExpose({
   collapsed,
-});
+})
 </script>
 
 <style>

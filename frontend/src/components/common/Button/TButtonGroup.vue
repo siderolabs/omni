@@ -5,14 +5,32 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <radio-group :modelValue="modelValue" @update:model-value="(value) => emit('update:modelValue', value)"
-    class="flex p-1 bg-naturals-N3 rounded gap-0.5 t-button-group">
-    <radio-group-option v-for="(option, index) in options" :key="index" v-slot="{ checked }" :value="option.value"
-      as="template" :disabled="option.disabled">
-      <div @click="() => (checked && deselectEnabled) ? emit('update:modelValue', null) : null">
-        <popper :disabled="!option.tooltip" hover placement="top" :interactive="false" offsetDistance="10" class="popper">
+  <radio-group
+    :modelValue="modelValue"
+    @update:model-value="(value) => emit('update:modelValue', value)"
+    class="flex p-1 bg-naturals-N3 rounded gap-0.5 t-button-group"
+  >
+    <radio-group-option
+      v-for="(option, index) in options"
+      :key="index"
+      v-slot="{ checked }"
+      :value="option.value"
+      as="template"
+      :disabled="option.disabled"
+    >
+      <div @click="() => (checked && deselectEnabled ? emit('update:modelValue', null) : null)">
+        <popper
+          :disabled="!option.tooltip"
+          hover
+          placement="top"
+          :interactive="false"
+          offsetDistance="10"
+          class="popper"
+        >
           <template #content>
-            <div class="rounded px-4 py-2 text-naturals-N10 bg-naturals-N4 border border-naturals-N6 drop-shadow max-w-72 text-xs">
+            <div
+              class="rounded px-4 py-2 text-naturals-N10 bg-naturals-N4 border border-naturals-N6 drop-shadow max-w-72 text-xs"
+            >
               {{ option.tooltip }}
             </div>
           </template>
@@ -28,8 +46,8 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { RadioGroup, RadioGroupOption, } from '@headlessui/vue'
-import Popper from 'vue3-popper';
+import { RadioGroup, RadioGroupOption } from '@headlessui/vue'
+import Popper from 'vue3-popper'
 
 type Props = {
   modelValue: any
@@ -39,18 +57,17 @@ type Props = {
     value: any
     disabled?: boolean
     tooltip?: string
-  }[];
+  }[]
 }
 
-defineProps<Props>();
+defineProps<Props>()
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue'])
 </script>
 
 <style scoped>
 .t-button-group button {
-  @apply
-    flex
+  @apply flex
     items-center
     justify-center
     gap-1

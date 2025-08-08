@@ -56,7 +56,9 @@ included in the LICENSE file.
           </div>
           <div class="row-info-item">
             <p class="row-info-title">Age</p>
-            <p class="row-info-value">{{ item.status?.startTime ? getAge(String(item.status?.startTime)) : "" }}</p>
+            <p class="row-info-value">
+              {{ item.status?.startTime ? getAge(String(item.status?.startTime)) : '' }}
+            </p>
           </div>
           <div class="row-info-item">
             <p class="row-info-title">Pod IP</p>
@@ -64,11 +66,13 @@ included in the LICENSE file.
           </div>
         </div>
         <div class="flex flex-col gap-2 px-7 mt-5">
-          <div class="row-info-title font-bold">
-            Containers
-          </div>
+          <div class="row-info-title font-bold">Containers</div>
           <div class="flex flex-wrap gap-2">
-            <div class="text-xs text-naturals-N12 rounded bg-naturals-N4 p-1 px-2" v-for="container in item.spec?.containers" :key="container.name">
+            <div
+              class="text-xs text-naturals-N12 rounded bg-naturals-N4 p-1 px-2"
+              v-for="container in item.spec?.containers"
+              :key="container.name"
+            >
               {{ container.image }}
             </div>
           </div>
@@ -79,44 +83,42 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { computed, ref, toRefs } from "vue";
-import { DateTime } from "luxon";
-import { V1Pod } from "@kubernetes/client-node";
+import { computed, ref, toRefs } from 'vue'
+import { DateTime } from 'luxon'
+import type { V1Pod } from '@kubernetes/client-node'
 
-import TIcon from "@/components/common/Icon/TIcon.vue";
-import TStatus from "@/components/common/Status/TStatus.vue";
-import TSlideDownWrapper from "@/components/common/SlideDownWrapper/TSlideDownWrapper.vue";
-import WordHighlighter from "vue-word-highlighter";
+import TIcon from '@/components/common/Icon/TIcon.vue'
+import TStatus from '@/components/common/Status/TStatus.vue'
+import TSlideDownWrapper from '@/components/common/SlideDownWrapper/TSlideDownWrapper.vue'
+import WordHighlighter from 'vue-word-highlighter'
 
 type Props = {
-  searchOption: string;
-  item: V1Pod,
-};
+  searchOption: string
+  item: V1Pod
+}
 
 const props = defineProps<Props>()
 
-const { item } = toRefs(props);
+const { item } = toRefs(props)
 
-const isDropdownOpened = ref(false);
+const isDropdownOpened = ref(false)
 
 const readyContainers = computed(() =>
-  item.value?.status?.containerStatuses?.filter((item: any) => item?.ready === true)
-);
+  item.value?.status?.containerStatuses?.filter((item: any) => item?.ready === true),
+)
 
 const restartCount = computed(() =>
   item.value?.status?.containerStatuses?.reduce((amount, reducer: any) => {
-    return amount + reducer.restartCount;
-  }, 0)
-);
+    return amount + reducer.restartCount
+  }, 0),
+)
 
 const getAge = (age: string) => {
-  const currentDate = DateTime.now();
-  const currentAge = DateTime.fromISO(age);
+  const currentDate = DateTime.now()
+  const currentAge = DateTime.fromISO(age)
 
-  return currentDate
-    .diff(currentAge, ["days", "hours", "minutes"])
-    .toFormat("dd'd' hh'h' mm'm'");
-};
+  return currentDate.diff(currentAge, ['days', 'hours', 'minutes']).toFormat("dd'd' hh'h' mm'm'")
+}
 </script>
 
 <style scoped>

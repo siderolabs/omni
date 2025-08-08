@@ -6,94 +6,88 @@ included in the LICENSE file.
 -->
 <template>
   <div class="watch">
-    <div
-      v-if="spinner && loading"
-      class="flex flex-row justify-center items-center w-full h-full"
-    >
-      <t-spinner class="loading-spinner"/>
+    <div v-if="spinner && loading" class="flex flex-row justify-center items-center w-full h-full">
+      <t-spinner class="loading-spinner" />
     </div>
     <template v-else-if="errorsAlert && err">
-      <t-alert v-if="!$slots.error"
-        title="Failed to Fetch Data"
-        type="error"
-      >
-        {{ err }}.
-      </t-alert>
-      <slot name="error" v-else err="err"/>
+      <t-alert v-if="!$slots.error" title="Failed to Fetch Data" type="error"> {{ err }}. </t-alert>
+      <slot name="error" v-else err="err" />
     </template>
     <template v-else-if="noRecordsAlert && items.length == 0">
-      <t-alert
-        v-if="!$slots.norecords"
-        type="info"
-        title="No Records"
-        >No entries of the requested resource type are found on the
-        server.</t-alert
+      <t-alert v-if="!$slots.norecords" type="info" title="No Records"
+        >No entries of the requested resource type are found on the server.</t-alert
       >
-      <slot name="norecords"/>
+      <slot name="norecords" />
     </template>
-    <div class="wrapper" v-show="!loading && !err && (items.length > 0 || !noRecordsAlert) || displayAlways">
-      <slot :items="items" :watch="resourceWatch"/>
+    <div
+      class="wrapper"
+      v-show="(!loading && !err && (items.length > 0 || !noRecordsAlert)) || displayAlways"
+    >
+      <slot :items="items" :watch="resourceWatch" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts" generic="T extends Resource">
-import Watch, { WatchJoin, WatchOptions, WatchJoinOptions } from "@/api/watch";
-import { computed, ref, toRefs } from "vue";
+import type { WatchOptions, WatchJoinOptions } from '@/api/watch'
+import Watch, { WatchJoin } from '@/api/watch'
+import { computed, ref, toRefs } from 'vue'
 
-import TAlert from "@/components/TAlert.vue";
-import TSpinner from "@/components/common/Spinner/TSpinner.vue";
-import { Resource } from "@/api/grpc";
+import TAlert from '@/components/TAlert.vue'
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import type { Resource } from '@/api/grpc'
 
 type Props = {
-  opts: WatchJoinOptions[] | WatchOptions & object | undefined, // & Object is used to make Vue validator happy
-  spinner?: boolean,
+  opts: WatchJoinOptions[] | (WatchOptions & object) | undefined // & Object is used to make Vue validator happy
+  spinner?: boolean
   noRecordsAlert?: boolean
-  errorsAlert?: boolean,
-  displayAlways?: boolean,
-};
+  errorsAlert?: boolean
+  displayAlways?: boolean
+}
 
-const props = defineProps<Props>();
-const items = ref<T[]>([]);
+const props = defineProps<Props>()
+const items = ref<T[]>([])
 
-const watchSingle = !Array.isArray(props.opts) ? new Watch(items) : undefined;
-const watchJoin = Array.isArray(props.opts) ? new WatchJoin(items) : undefined;
+const watchSingle = !Array.isArray(props.opts) ? new Watch(items) : undefined
+const watchJoin = Array.isArray(props.opts) ? new WatchJoin(items) : undefined
 
-const resourceWatch = watchSingle ?? watchJoin;
+const resourceWatch = watchSingle ?? watchJoin
 
-const { opts } = toRefs(props);
+const { opts } = toRefs(props)
 
 if (watchJoin) {
   watchJoin.setup(
     computed(() => {
       if (!opts?.value) {
-        return;
+        return
       }
 
-      return (opts.value as WatchJoinOptions[])[0];
+      return (opts.value as WatchJoinOptions[])[0]
     }),
     computed(() => {
       if (!opts?.value) {
-        return;
+        return
       }
 
-      const o = opts.value as WatchJoinOptions[];
+      const o = opts.value as WatchJoinOptions[]
 
-      return o.slice(1, o.length);
-    })
-  );
+      return o.slice(1, o.length)
+    }),
+  )
 } else if (watchSingle) {
-  watchSingle.setup(computed(() => {
-    if (!opts?.value) {
-      return;
-    }
+  watchSingle.setup(
+    computed(() => {
+      if (!opts?.value) {
+        return
+      }
 
-    return opts.value as WatchOptions
-  }));
+      return opts.value as WatchOptions
+    }),
+  )
 }
 
-const err = resourceWatch!.err;
-const loading = resourceWatch!.loading;
+const err = resourceWatch!.err
+const loading = resourceWatch!.loading
 </script>
 
 <style scoped>

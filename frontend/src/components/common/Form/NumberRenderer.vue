@@ -22,40 +22,32 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import {
-  RendererProps,
-  useJsonFormsControl,
-} from "@jsonforms/vue";
-import {
-  ControlElement,
-  Resolve
-} from "@jsonforms/core";
-import TInput from "../TInput/TInput.vue";
-import ContentWrapper from "./ContentWrapper.vue";
-import { computed } from "vue";
+import type { RendererProps } from '@jsonforms/vue'
+import { useJsonFormsControl } from '@jsonforms/vue'
+import type { ControlElement } from '@jsonforms/core'
+import { Resolve } from '@jsonforms/core'
+import TInput from '../TInput/TInput.vue'
+import ContentWrapper from './ContentWrapper.vue'
+import { computed } from 'vue'
 
-const props = defineProps<RendererProps<ControlElement>>();
+const props = defineProps<RendererProps<ControlElement>>()
 
-const p = useJsonFormsControl(props);
+const p = useJsonFormsControl(props)
 
 const control = p.control
 
 const schema = computed(() => {
-  return Resolve.schema(
-    props.schema,
-    control.value.uischema.scope,
-    control.value.rootSchema
-  );
-});
+  return Resolve.schema(props.schema, control.value.uischema.scope, control.value.rootSchema)
+})
 
-const oldVal = control.value.data;
+const oldVal = control.value.data
 
 if (schema.value.minimum) {
-  control.value.data = Math.max(control.value.data, schema.value.minimum);
+  control.value.data = Math.max(control.value.data, schema.value.minimum)
 }
 
 if (schema.value.maximum) {
-  control.value.data = Math.min(control.value.data, schema.value.maximum);
+  control.value.data = Math.min(control.value.data, schema.value.maximum)
 }
 
 if (oldVal !== control.value.data) {

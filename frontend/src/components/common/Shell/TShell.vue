@@ -6,26 +6,23 @@ included in the LICENSE file.
 -->
 <template>
   <div class="shell">
-    <div
-      class="shell__menu"
-      :class="{ 'shell__menu--hidden': !isSidebarVisible }"
-    >
+    <div class="shell__menu" :class="{ 'shell__menu--hidden': !isSidebarVisible }">
       <slot name="menu"></slot>
     </div>
     <div class="shell__content">
-        <slot name="content"></slot>
+      <slot name="content"></slot>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import { useRoute } from "vue-router";
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 
-const route = useRoute();
+const route = useRoute()
 const isSidebarVisible = computed(() => {
-  return route.path !== "/dashboard";
-});
+  return route.path !== '/dashboard'
+})
 </script>
 
 <style scoped>

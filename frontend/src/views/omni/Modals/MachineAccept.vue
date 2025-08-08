@@ -7,10 +7,8 @@ included in the LICENSE file.
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">
-        Accept the Machine {{ $route.query.machine }} ?
-      </h3>
-      <close-button @click="close"/>
+      <h3 class="text-base text-naturals-N14">Accept the Machine {{ $route.query.machine }} ?</h3>
+      <close-button @click="close" />
     </div>
 
     <p class="text-xs py-2">Please confirm the action.</p>
@@ -30,40 +28,38 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { useRoute, useRouter } from "vue-router";
-import { showError, showSuccess } from "@/notification";
+import { useRoute, useRouter } from 'vue-router'
+import { showError, showSuccess } from '@/notification'
 
-import CloseButton from "@/views/omni/Modals/CloseButton.vue";
-import TButton from "@/components/common/Button/TButton.vue";
-import { acceptMachine } from "@/methods/machine";
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
+import TButton from '@/components/common/Button/TButton.vue'
+import { acceptMachine } from '@/methods/machine'
 
-const router = useRouter();
-const route = useRoute();
+const router = useRouter()
+const route = useRoute()
 
-let closed = false;
+let closed = false
 
 const close = () => {
   if (closed) {
-    return;
+    return
   }
 
-  closed = true;
+  closed = true
 
-  router.go(-1);
-};
+  router.go(-1)
+}
 
 const reject = async () => {
   try {
-    await acceptMachine(route.query.machine as string);
+    await acceptMachine(route.query.machine as string)
   } catch (e) {
     showError(`Failed to Accept the Machine ${route.query.machine}`, e.message)
   }
 
-  close();
+  close()
 
-  showSuccess(
-    `The Machine ${route.query.machine} was Accepted`,
-  );
+  showSuccess(`The Machine ${route.query.machine} was Accepted`)
 }
 </script>
 

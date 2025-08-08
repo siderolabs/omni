@@ -9,35 +9,35 @@ included in the LICENSE file.
     <div class="text-naturals-N11 text-xs flex items-center gap-2">
       {{ control.label }}{{ description }}
       <tooltip :description="control.errors" v-if="control.errors">
-        <t-icon icon="warning" class="text-yellow-Y1 w-4 h-4"/>
+        <t-icon icon="warning" class="text-yellow-Y1 w-4 h-4" />
       </tooltip>
     </div>
-    <slot/>
+    <slot />
   </div>
   <div class="flex py-4 px-3 gap-3 items-center" v-else>
     <div class="flex-1">
-      <slot/>
+      <slot />
     </div>
     <tooltip :description="control.errors" v-if="control.errors">
-      <t-icon icon="warning" class="text-yellow-Y1 w-4 h-4 -my-1.5"/>
+      <t-icon icon="warning" class="text-yellow-Y1 w-4 h-4 -my-1.5" />
     </tooltip>
   </div>
 </template>
 
 <script setup lang="ts">
-import Tooltip from '../Tooltip/Tooltip.vue';
-import TIcon from '../Icon/TIcon.vue';
-import { computed } from 'vue';
+import Tooltip from '../Tooltip/Tooltip.vue'
+import TIcon from '../Icon/TIcon.vue'
+import { computed } from 'vue'
 
 const props = defineProps<{
   control: {
     label: string
     errors: string
     description?: string
-  },
+  }
 }>()
 
 const description = computed(() => {
-  return props.control.description ? ` (${props.control.description})` : "";
+  return props.control.description ? ` (${props.control.description})` : ''
 })
 </script>

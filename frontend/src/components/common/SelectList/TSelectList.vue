@@ -9,20 +9,37 @@ included in the LICENSE file.
     <Listbox v-model="selectedItem">
       <ListboxButton class="menu-button flex items-center gap-1">
         <div class="flex overflow-hidden">
-          <div class="menu-title" v-if="title">{{ title }}:</div><div class="flex-1 truncate">{{ selectedItem }}</div>
+          <div class="menu-title" v-if="title">{{ title }}:</div>
+          <div class="flex-1 truncate">{{ selectedItem }}</div>
         </div>
         <t-icon class="menu-arrow" icon="arrow-down" />
       </ListboxButton>
       <t-animation @after-enter="focusSearch = true" @after-leave="focusSearch = false">
         <ListboxOptions class="menu-items" :class="`${menuAlign}-0`">
-          <t-input @keydown.stop="() => {}" :focus="focusSearch" icon="search" v-if="searcheable" title="" class="search-box" placeholder="Search"
-            v-model="searchTerm"/>
+          <t-input
+            @keydown.stop="() => {}"
+            :focus="focusSearch"
+            icon="search"
+            v-if="searcheable"
+            title=""
+            class="search-box"
+            placeholder="Search"
+            v-model="searchTerm"
+          />
           <div class="menu-items-wrapper" v-if="filteredValues.length > 0">
-            <div @click="$emit('checkedValue', item)" v-for="(item, idx) in filteredValues" :key="idx">
+            <div
+              @click="$emit('checkedValue', item)"
+              v-for="(item, idx) in filteredValues"
+              :key="idx"
+            >
               <ListboxOption v-slot="{ active, selected }" class="menu-item" :value="item">
                 <div class="menu-item-wrapper">
                   <span class="menu-item-text" :class="{ active: active }">
-                    <word-highligher :query="searchTerm" :textToHighlight="item.toString()" highlightClass="text-naturals-N14 font-medium bg-transparent truncate"/>
+                    <word-highligher
+                      :query="searchTerm"
+                      :textToHighlight="item.toString()"
+                      highlightClass="text-naturals-N14 font-medium bg-transparent truncate"
+                    />
                   </span>
                   <t-icon icon="check" class="menu-check-icon" v-show="selected" />
                 </div>
@@ -36,54 +53,50 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import {
-  Listbox,
-  ListboxButton,
-  ListboxOptions,
-  ListboxOption,
-} from "@headlessui/vue";
+import { Listbox, ListboxButton, ListboxOptions, ListboxOption } from '@headlessui/vue'
 
-import { ref, toRefs, computed } from "vue";
-import TIcon from "@/components/common/Icon/TIcon.vue";
-import TInput from "@/components/common/TInput/TInput.vue";
-import TAnimation from "@/components/common/Animation/TAnimation.vue";
-import WordHighligher from "vue-word-highlighter";
+import { ref, toRefs, computed } from 'vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
+import TInput from '@/components/common/TInput/TInput.vue'
+import TAnimation from '@/components/common/Animation/TAnimation.vue'
+import WordHighligher from 'vue-word-highlighter'
 
-const props = withDefaults(defineProps<{
-  title?: string,
-  defaultValue?: (string | number),
-  values: (string | number)[],
-  searcheable?: boolean,
-  menuAlign?: "left" | "right"
-}>(),
+const props = withDefaults(
+  defineProps<{
+    title?: string
+    defaultValue?: string | number
+    values: (string | number)[]
+    searcheable?: boolean
+    menuAlign?: 'left' | 'right'
+  }>(),
   {
-    menuAlign: "left",
-  }
-);
+    menuAlign: 'left',
+  },
+)
 
-const emit = defineEmits(["checkedValue"]);
+const emit = defineEmits(['checkedValue'])
 
-const { values } = toRefs(props);
-const searchTerm = ref("");
-const selectedItem = ref(props.defaultValue);
-const focusSearch = ref(false);
+const { values } = toRefs(props)
+const searchTerm = ref('')
+const selectedItem = ref(props.defaultValue)
+const focusSearch = ref(false)
 
 defineExpose({
   selectItem: (value: string) => {
-    selectedItem.value = value;
-    emit("checkedValue", value);
-  }
-});
+    selectedItem.value = value
+    emit('checkedValue', value)
+  },
+})
 
 const filteredValues = computed(() => {
   if (!searchTerm.value) {
-    return values.value;
+    return values.value
   }
 
-  const term = searchTerm.value.toLowerCase();
+  const term = searchTerm.value.toLowerCase()
 
-  return values.value.filter(item => item.toString().toLowerCase().indexOf(term) != -1);
-});
+  return values.value.filter((item) => item.toString().toLowerCase().indexOf(term) != -1)
+})
 </script>
 
 <style scoped>

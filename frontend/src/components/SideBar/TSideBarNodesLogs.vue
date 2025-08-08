@@ -35,21 +35,29 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, Ref } from "vue";
+import type { Ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
-import TMenuItem from "@/components/common/MenuItem/TMenuItem.vue";
-import { getContext } from "@/context";
-import { ResourceService, Resource } from "@/api/grpc";
-import { Runtime } from "@/api/common/omni.pb";
-import TAnimation from "@/components/common/Animation/TAnimation.vue";
-import { TalosK8sNamespace, TalosNodenameID, TalosNodenameType, TalosRuntimeNamespace, TalosServiceType } from "@/api/resources"
-import { withContext, withRuntime } from "@/api/options";
+import TMenuItem from '@/components/common/MenuItem/TMenuItem.vue'
+import { getContext } from '@/context'
+import type { Resource } from '@/api/grpc'
+import { ResourceService } from '@/api/grpc'
+import { Runtime } from '@/api/common/omni.pb'
+import TAnimation from '@/components/common/Animation/TAnimation.vue'
+import {
+  TalosK8sNamespace,
+  TalosNodenameID,
+  TalosNodenameType,
+  TalosRuntimeNamespace,
+  TalosServiceType,
+} from '@/api/resources'
+import { withContext, withRuntime } from '@/api/options'
 
-defineProps<{ name: string }>();
+defineProps<{ name: string }>()
 
-const services: Ref<any[]> = ref([]);
-const node = ref();
-const context = getContext();
+const services: Ref<any[]> = ref([])
+const node = ref()
+const context = getContext()
 
 onMounted(async () => {
   const response = await ResourceService.List(
@@ -59,12 +67,12 @@ onMounted(async () => {
     },
     withRuntime(Runtime.Talos),
     withContext(context),
-  );
+  )
 
   for (const items of response) {
-    services.value = services.value.concat(items);
+    services.value = services.value.concat(items)
   }
-});
+})
 
 onMounted(async () => {
   interface Nodename {
@@ -79,10 +87,10 @@ onMounted(async () => {
     },
     withRuntime(Runtime.Talos),
     withContext(context),
-  );
+  )
 
-  node.value = nodename.spec.nodename;
-});
+  node.value = nodename.spec.nodename
+})
 </script>
 
 <style scoped>

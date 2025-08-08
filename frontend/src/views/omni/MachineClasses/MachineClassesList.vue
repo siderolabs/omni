@@ -16,16 +16,19 @@ included in the LICENSE file.
       </div>
       <t-list-item v-for="item in items" :key="item.metadata.id!">
         <div class="text-naturals-N12 relative pr-3" :class="{ 'pl-7': !item.spec.description }">
-          <icon-button icon="delete" @click="() => openMachineClassDestroy(item.metadata.id!)" class="absolute right-0 my-auto top-0 bottom-0"/>
+          <icon-button
+            icon="delete"
+            @click="() => openMachineClassDestroy(item.metadata.id!)"
+            class="absolute right-0 my-auto top-0 bottom-0"
+          />
           <div class="list-grid">
             <div>
               <router-link
                 :to="{ name: 'MachineClassEdit', params: { classname: item.metadata.id } }"
-                class="list-item-link">
-                <WordHighlighter
-                  highlight-class="bg-naturals-N14"
-                  :query="searchQuery">
-                    {{ item.metadata.id }}
+                class="list-item-link"
+              >
+                <WordHighlighter highlight-class="bg-naturals-N14" :query="searchQuery">
+                  {{ item.metadata.id }}
                 </WordHighlighter>
               </router-link>
             </div>
@@ -45,17 +48,17 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { Runtime } from "@/api/common/omni.pb";
-import { DefaultNamespace, MachineClassType } from "@/api/resources";
-import { WatchOptions } from "@/api/watch";
-import { computed } from "vue";
-import { useRouter } from "vue-router";
+import { Runtime } from '@/api/common/omni.pb'
+import { DefaultNamespace, MachineClassType } from '@/api/resources'
+import type { WatchOptions } from '@/api/watch'
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 
-import WordHighlighter from "vue-word-highlighter";
-import TList from "@/components/common/List/TList.vue";
-import TListItem from "@/components/common/List/TListItem.vue";
-import IconButton from "@/components/common/Button/IconButton.vue";
-import Tag from "@/components/common/Tag/Tag.vue";
+import WordHighlighter from 'vue-word-highlighter'
+import TList from '@/components/common/List/TList.vue'
+import TListItem from '@/components/common/List/TListItem.vue'
+import IconButton from '@/components/common/Button/IconButton.vue'
+import Tag from '@/components/common/Tag/Tag.vue'
 
 const watchOpts = computed((): WatchOptions => {
   return {
@@ -65,9 +68,9 @@ const watchOpts = computed((): WatchOptions => {
     },
     runtime: Runtime.Omni,
   }
-});
+})
 
-const router = useRouter();
+const router = useRouter()
 
 const openMachineClassDestroy = (id: string) => {
   router.push({ query: { modal: 'machineClassDestroy', classname: id } })

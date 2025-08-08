@@ -26,53 +26,52 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { computed, toRefs } from "vue";
-import { TPodsViewFilterOptions } from "@/constants";
-import { V1Pod } from "@kubernetes/client-node";
+import { computed, toRefs } from 'vue'
+import { TPodsViewFilterOptions } from '@/constants'
+import type { V1Pod } from '@kubernetes/client-node'
 
-import TPodsItem from "@/views/cluster/Pods/components/TPodsItem.vue";
-import TPagination from "@/components/common/Pagination/TPagination.vue";
+import TPodsItem from '@/views/cluster/Pods/components/TPodsItem.vue'
+import TPagination from '@/components/common/Pagination/TPagination.vue'
 
 type Props = {
-  items: any;
-  filterOption: string;
-  searchOption: string;
-};
+  items: any
+  filterOption: string
+  searchOption: string
+}
 
-const props = defineProps<Props>();
+const props = defineProps<Props>()
 
-const PAGINATION_PER_PAGE = 9;
-const { items, filterOption, searchOption } = toRefs(props);
+const PAGINATION_PER_PAGE = 9
+const { items, filterOption, searchOption } = toRefs(props)
 
 const filteredItems = computed(() => {
-  if (filterOption.value === TPodsViewFilterOptions.ALL && searchOption.value === "") {
-    return items?.value;
+  if (filterOption.value === TPodsViewFilterOptions.ALL && searchOption.value === '') {
+    return items?.value
   }
 
   return items?.value?.filter((elem: V1Pod) => {
-    if (filterOption.value !== TPodsViewFilterOptions.ALL && elem?.status?.phase !== filterOption.value) {
-      return false;
+    if (
+      filterOption.value !== TPodsViewFilterOptions.ALL &&
+      elem?.status?.phase !== filterOption.value
+    ) {
+      return false
     }
 
-    if (searchOption.value === "") {
-      return true;
+    if (searchOption.value === '') {
+      return true
     }
 
-    const searchOptions = [
-      elem?.metadata?.name,
-      elem?.metadata?.namespace,
-      elem?.spec?.nodeName,
-    ];
+    const searchOptions = [elem?.metadata?.name, elem?.metadata?.namespace, elem?.spec?.nodeName]
 
     for (const value of searchOptions) {
       if (value?.includes(searchOption.value)) {
-        return true;
+        return true
       }
     }
 
-    return false;
+    return false
   })
-});
+})
 </script>
 
 <style scoped>

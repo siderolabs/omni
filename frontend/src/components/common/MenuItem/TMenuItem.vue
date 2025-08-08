@@ -8,8 +8,17 @@ included in the LICENSE file.
   <component :is="componentType" v-bind="componentAttributes" @click="handleClick">
     <Tooltip placement="right" :description="tooltip" :offset-distance="10" :offset-skid="0">
       <div class="flex flex-col w-full">
-        <div class="item w-full" :class="{'sub-item': level > 0, root: level === 0}" :style="{'padding-left': `${24*(level+1)}px`}">
-          <t-icon v-if="icon || iconSvgBase64" class="item-icon" :icon="icon" :svg-base64="iconSvgBase64"/>
+        <div
+          class="item w-full"
+          :class="{ 'sub-item': level > 0, root: level === 0 }"
+          :style="{ 'padding-left': `${24 * (level + 1)}px` }"
+        >
+          <t-icon
+            v-if="icon || iconSvgBase64"
+            class="item-icon"
+            :icon="icon"
+            :svg-base64="iconSvgBase64"
+          />
           <span class="item-name" :id="`sidebar-menu-${name.toLowerCase()}`">{{ name }}</span>
           <div v-if="label" class="item-label" :class="labelColor ? 'text-' + labelColor : ''">
             <span>{{ label }}</span>
@@ -17,28 +26,40 @@ included in the LICENSE file.
 
           <div class="expand-button" v-if="subItems?.length">
             <t-icon
-                @click.stop.prevent="() => expanded = !expanded"
-                class="w-6 h-6 hover:text-naturals-N13 transition-color transition-transform duration-250"
-                :class="{'rotate-180': !expanded}"
-                icon="drop-up"
-                />
+              @click.stop.prevent="() => (expanded = !expanded)"
+              class="w-6 h-6 hover:text-naturals-N13 transition-color transition-transform duration-250"
+              :class="{ 'rotate-180': !expanded }"
+              icon="drop-up"
+            />
           </div>
         </div>
-        <div @click.stop.prevent v-if="expanded" class="relative overflow-hidden" :class="{'submenu-bg': level === 0}">
-          <div class="flex gap-2 relative transition-all duration-200" v-for="item, index in (subItems ?? [])" :key="item.name">
-            <div class="mx-5 absolute border-l-2 border-b-2 top-0 border-naturals-N8 h-4 z-20 transition-color duration-200"
+        <div
+          @click.stop.prevent
+          v-if="expanded"
+          class="relative overflow-hidden"
+          :class="{ 'submenu-bg': level === 0 }"
+        >
+          <div
+            class="flex gap-2 relative transition-all duration-200"
+            v-for="(item, index) in subItems ?? []"
+            :key="item.name"
+          >
+            <div
+              class="mx-5 absolute border-l-2 border-b-2 top-0 border-naturals-N8 h-4 z-20 transition-color duration-200"
               :class="{
                 'w-2': index === (subItems?.length || 0) - 1 || item.route === $route.path,
                 'border-primary-P2': index <= selectedIndex,
               }"
               :style="linePadding"
-              />
-            <div class="mx-5 absolute border-l-2 top-4 bottom-0 border-naturals-N8 w-2 z-20 transition-color duration-200"
+            />
+            <div
+              class="mx-5 absolute border-l-2 top-4 bottom-0 border-naturals-N8 w-2 z-20 transition-color duration-200"
               :class="{
-                  'border-primary-P2': index < selectedIndex,
+                'border-primary-P2': index < selectedIndex,
               }"
               :style="linePadding"
-              v-if="index != (subItems?.length ?? 0) - 1"/>
+              v-if="index != (subItems?.length ?? 0) - 1"
+            />
             <TMenuItem
               class="flex-1 w-full"
               :route="item.route"
@@ -52,7 +73,7 @@ included in the LICENSE file.
               :sub-item="true"
               :tooltip="item.tooltip"
               :sub-items="item.subItems"
-              />
+            />
           </div>
         </div>
       </div>
@@ -61,73 +82,71 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import TIcon, { IconType } from "@/components/common/Icon/TIcon.vue";
-import { computed, toRefs } from "vue";
-import Tooltip from "../Tooltip/Tooltip.vue";
-import { useRoute } from "vue-router";
-import storageRef from "@/methods/storage";
+import type { IconType } from '@/components/common/Icon/TIcon.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
+import { computed, toRefs } from 'vue'
+import Tooltip from '../Tooltip/Tooltip.vue'
+import { useRoute } from 'vue-router'
+import storageRef from '@/methods/storage'
 
 type Props = {
-  route?: string | object,
-  regularLink?: boolean,
-  name: string,
-  icon?: IconType,
-  iconSvgBase64?: string,
-  label?: string | number,
-  labelColor?: string,
+  route?: string | object
+  regularLink?: boolean
+  name: string
+  icon?: IconType
+  iconSvgBase64?: string
+  label?: string | number
+  labelColor?: string
   level?: number
   tooltip?: string
   subItems?: Props[]
-};
+}
 
-const props = withDefaults(defineProps<Props>(),
-  {
-    level: 0
-  }
-);
+const props = withDefaults(defineProps<Props>(), {
+  level: 0,
+})
 
-const expanded = storageRef(sessionStorage, `sidebar-expanded-${props.level}-${props.name}`, false);
-const vueroute = useRoute();
-const {
-  subItems,
-  level
-} = toRefs(props);
+const expanded = storageRef(sessionStorage, `sidebar-expanded-${props.level}-${props.name}`, false)
+const vueroute = useRoute()
+const { subItems, level } = toRefs(props)
 
 const handleClick = (event: Event) => {
   if (props.regularLink) {
-    return; // Don't prevent default for regular links
+    return // Don't prevent default for regular links
   }
 
-  event.preventDefault();
+  event.preventDefault()
 
   if (!props.route) {
-    expanded.value = !expanded.value;
+    expanded.value = !expanded.value
   }
-};
+}
 
 const selectedIndex = computed(() => {
-  return subItems.value?.findIndex(item => item.route === vueroute.path) ?? -1;
-});
+  return subItems.value?.findIndex((item) => item.route === vueroute.path) ?? -1
+})
 
 const linePadding = computed(() => {
   if (level.value === 0) {
     return {
-      'left': '14px'
-    };
+      left: '14px',
+    }
   }
 
   return {
-    'left': `${24 * level.value + 11}px`
-  };
-});
+    left: `${24 * level.value + 11}px`,
+  }
+})
 
-const componentType = props.route ? props.regularLink ? "a" : "router-link" : "div";
+const componentType = props.route ? (props.regularLink ? 'a' : 'router-link') : 'div'
 
-const componentAttributes = props.route ? props.regularLink ?
-    { href: props.route, target: "_blank" } :
-    { to: props.route, activeClass: "item-active" } : { class: 'select-none cursor-pointer' };
+const componentAttributes = props.route
+  ? props.regularLink
+    ? { href: props.route, target: '_blank' }
+    : { to: props.route, activeClass: 'item-active' }
+  : { class: 'select-none cursor-pointer' }
 
-componentAttributes.class = (componentAttributes.class ?? "") + " item-container";
+componentAttributes.class = (componentAttributes.class ?? '') + ' item-container'
 </script>
 
 <style scoped>
@@ -197,7 +216,7 @@ componentAttributes.class = (componentAttributes.class ?? "") + " item-container
   @apply border-b;
 }
 
-nav:last-of-type  .submenu-bg {
+nav:last-of-type .submenu-bg {
   @apply border-b;
 }
 </style>

@@ -5,20 +5,13 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <div class="flex-1 flex flex-col overflow-hidden -mb-6 -mx-6 relative" :style="{width: 'auto'}">
+  <div class="flex-1 flex flex-col overflow-hidden -mb-6 -mx-6 relative" :style="{ width: 'auto' }">
     <div class="overflow-hidden flex-1 flex flex-col px-6 pb-16">
       <page-header :title="title" :subtitle="subtitle as string" :notes="notes" />
-      <managed-by-templates-warning :cluster="currentCluster"/>
+      <managed-by-templates-warning :cluster="currentCluster" />
       <div v-if="state === State.NotExists" class="flex items-center gap-3 mb-4">
-        <t-input
-          v-model="patchName"
-          title="Name"
-        />
-        <t-input
-          class="flex-1"
-          v-model="patchDescription"
-          title="Description"
-        />
+        <t-input v-model="patchName" title="Name" />
+        <t-input class="flex-1" v-model="patchDescription" title="Description" />
         <t-select-list
           @checkedValue="setPatchType"
           v-if="patchTypes"
@@ -27,14 +20,10 @@ included in the LICENSE file.
           :values="patchTypes"
         />
         <popper :show="weight < 100 || weight > 900" placement="bottom-start">
-          <t-input type="number"
-            v-model="weight"
-            title="Weight"
-            class="w-28"
-          />
+          <t-input type="number" v-model="weight" title="Weight" class="w-28" />
           <template #content>
             <div class="rounded bg-naturals-N3 p-2 flex items-center gap-2 text-xs">
-              <t-icon icon="warning" class="w-5 h-5 fill-current text-yellow-Y1"/>
+              <t-icon icon="warning" class="w-5 h-5 fill-current text-yellow-Y1" />
               Weight should be in range of 100-900.
             </div>
           </template>
@@ -42,41 +31,47 @@ included in the LICENSE file.
       </div>
       <div class="font-sm flex-1 overflow-y-hidden rounded bg-naturals-N1 py-3 px-2 mb-7">
         <div v-if="!ready" class="flex items-center justify-center w-full h-full">
-          <t-spinner class="w-6 h-6"/>
+          <t-spinner class="w-6 h-6" />
         </div>
 
         <CodeEditor
-            v-else
-            v-model:value="config"
-            @editorDidMount="editorDidMount"
-            :options="{ readOnly: !canManageConfigPatches }"
-            :validators="[checkEncryption]"
+          v-else
+          v-model:value="config"
+          @editorDidMount="editorDidMount"
+          :options="{ readOnly: !canManageConfigPatches }"
+          :validators="[checkEncryption]"
         />
-
       </div>
     </div>
     <div
-      class="absolute bg-naturals-N1 border-t border-naturals-N4 h-16 gap-4 flex items-center py-3 px-5 bottom-0 left-0 right-0">
-      <t-button class="secondary" @click="() => $router.push({name: patchListPage })">Back</t-button>
-      <div class="flex-1"/>
-      <t-button type="highlighted" @click="saveConfig" :disabled="!canManageConfigPatches || saving">
-        <t-spinner v-if="saving" class="w-5 h-5"/>
-        <span v-else>
-          Save
-        </span>
+      class="absolute bg-naturals-N1 border-t border-naturals-N4 h-16 gap-4 flex items-center py-3 px-5 bottom-0 left-0 right-0"
+    >
+      <t-button class="secondary" @click="() => $router.push({ name: patchListPage })"
+        >Back</t-button
+      >
+      <div class="flex-1" />
+      <t-button
+        type="highlighted"
+        @click="saveConfig"
+        :disabled="!canManageConfigPatches || saving"
+      >
+        <t-spinner v-if="saving" class="w-5 h-5" />
+        <span v-else> Save </span>
       </t-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, Ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import type { Ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
-import PageHeader from "@/components/common/PageHeader.vue";
-import { Runtime } from "@/api/common/omni.pb";
-import { ResourceService, Resource } from "@/api/grpc";
-import { ClusterSpec, ConfigPatchSpec, MachineSetSpec } from "@/api/omni/specs/omni.pb";
+import PageHeader from '@/components/common/PageHeader.vue'
+import { Runtime } from '@/api/common/omni.pb'
+import type { Resource } from '@/api/grpc'
+import { ResourceService } from '@/api/grpc'
+import type { ClusterSpec, ConfigPatchSpec, MachineSetSpec } from '@/api/omni/specs/omni.pb'
 import {
   ConfigPatchType,
   ClusterMachineStatusType,
@@ -92,97 +87,100 @@ import {
   ConfigPatchDescription,
   MachineSetType,
   MachineStatusType,
-} from "@/api/resources";
-import { showError } from "@/notification";
-import TSpinner from "@/components/common/Spinner/TSpinner.vue";
-import Watch from "../../../api/watch";
-import TButton from "@/components/common/Button/TButton.vue";
-import TInput from "@/components/common/TInput/TInput.vue";
-import TIcon from "@/components/common/Icon/TIcon.vue";
-import TSelectList from "@/components/common/SelectList/TSelectList.vue";
-import Popper from "vue3-popper";
+} from '@/api/resources'
+import { showError } from '@/notification'
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import Watch from '../../../api/watch'
+import TButton from '@/components/common/Button/TButton.vue'
+import TInput from '@/components/common/TInput/TInput.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
+import TSelectList from '@/components/common/SelectList/TSelectList.vue'
+import Popper from 'vue3-popper'
 
-import { Code } from "@/api/google/rpc/code.pb";
-import { EventType, WatchResponse } from "@/api/omni/resources/resources.pb";
+import { Code } from '@/api/google/rpc/code.pb'
+import type { WatchResponse } from '@/api/omni/resources/resources.pb'
+import { EventType } from '@/api/omni/resources/resources.pb'
 
-import CodeEditor from "@/components/common/CodeEditor/CodeEditor.vue";
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
-import { withRuntime } from "@/api/options";
-import { canManageMachineConfigPatches, canReadMachineConfigPatches } from "@/methods/auth";
-import { machineSetTitle, sortMachineSetIds } from "@/methods/machineset";
-import ManagedByTemplatesWarning from "@/views/cluster/ManagedByTemplatesWarning.vue";
+import CodeEditor from '@/components/common/CodeEditor/CodeEditor.vue'
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
+import { withRuntime } from '@/api/options'
+import { canManageMachineConfigPatches, canReadMachineConfigPatches } from '@/methods/auth'
+import { machineSetTitle, sortMachineSetIds } from '@/methods/machineset'
+import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 
 type Props = {
-  currentCluster?: Resource<ClusterSpec>,
-};
+  currentCluster?: Resource<ClusterSpec>
+}
 
-defineProps<Props>();
+defineProps<Props>()
 
-const route = useRoute();
+const route = useRoute()
 
-const bootstrapped = ref(false);
-const patch:Ref<Resource<ConfigPatchSpec> | undefined> = ref();
+const bootstrapped = ref(false)
+const patch: Ref<Resource<ConfigPatchSpec> | undefined> = ref()
 const patchWatch = new Watch(patch, (e: WatchResponse) => {
   if (e.event?.event_type === EventType.BOOTSTRAPPED) {
-    bootstrapped.value = true;
+    bootstrapped.value = true
   }
-});
+})
 
-let patchListPage: string;
+let patchListPage: string
 
 switch (route.name) {
-case "ClusterMachinePatchEdit":
-  patchListPage = "NodePatches"
-  break;
+  case 'ClusterMachinePatchEdit':
+    patchListPage = 'NodePatches'
+    break
 
-case "ClusterPatchEdit":
-  patchListPage = "ClusterConfigPatches"
+  case 'ClusterPatchEdit':
+    patchListPage = 'ClusterConfigPatches'
 
-  break;
-default:
-  patchListPage = "MachineConfigPatches"
+    break
+  default:
+    patchListPage = 'MachineConfigPatches'
 
-  break;
+    break
 }
 
-const config = ref("");
+const config = ref('')
 
-const weight = ref(0);
-const patchName = ref("User defined patch");
-const patchDescription = ref("");
+const weight = ref(0)
+const patchName = ref('User defined patch')
+const patchDescription = ref('')
 
 enum PatchType {
-  Cluster = "Cluster",
-  ClusterMachine = "Cluster Machine",
-  Machine = "Machine"
+  Cluster = 'Cluster',
+  ClusterMachine = 'Cluster Machine',
+  Machine = 'Machine',
 }
 
-let codeEditor: monaco.editor.IStandaloneCodeEditor | undefined;
+let codeEditor: monaco.editor.IStandaloneCodeEditor | undefined
 
 const editorDidMount = (editor: monaco.editor.IStandaloneCodeEditor) => {
-  codeEditor = editor;
-};
+  codeEditor = editor
+}
 
-const machine = ref<Resource>();
-const machineWatch = new Watch(machine);
+const machine = ref<Resource>()
+const machineWatch = new Watch(machine)
 
-machineWatch.setup(computed(() => {
-  if (!route.params.machine) {
-    return;
-  }
+machineWatch.setup(
+  computed(() => {
+    if (!route.params.machine) {
+      return
+    }
 
-  return {
-    resource: {
-      type: MachineStatusType,
-      id: route.params.machine as string,
-      namespace: DefaultNamespace,
-    },
-    runtime: Runtime.Omni,
-  }
-}));
+    return {
+      resource: {
+        type: MachineStatusType,
+        id: route.params.machine as string,
+        namespace: DefaultNamespace,
+      },
+      runtime: Runtime.Omni,
+    }
+  }),
+)
 
-const nodeIDMap: Record<string, string> = {};
-const machineSetIDMap: Record<string, string> = {};
+const nodeIDMap: Record<string, string> = {}
+const machineSetIDMap: Record<string, string> = {}
 const patchToCreate: Resource<ConfigPatchSpec> = {
   metadata: {
     namespace: DefaultNamespace,
@@ -190,150 +188,151 @@ const patchToCreate: Resource<ConfigPatchSpec> = {
     labels: {},
     annotations: {
       [ConfigPatchName]: patchName.value,
-    }
+    },
   },
   spec: {
-    data: "",
-  }
-};
+    data: '',
+  },
+}
 
 const checkEncryption = (model: monaco.editor.ITextModel, tokens: monaco.Token[]) => {
-  const markers: monaco.editor.IMarkerData[] = [];
+  const markers: monaco.editor.IMarkerData[] = []
   if (!cluster.value?.spec?.features?.disk_encryption) {
-    return markers;
+    return markers
   }
 
   if (tokens.length === 0) {
-    return markers;
+    return markers
   }
 
-  let offset = 0;
+  let offset = 0
 
   for (const token of tokens) {
-    const pos = model.getPositionAt(offset);
-    const word = model.getWordAtPosition(pos);
-    offset += token.offset;
+    const pos = model.getPositionAt(offset)
+    const word = model.getWordAtPosition(pos)
+    offset += token.offset
 
-    if (token.type !== "type.yaml") {
-      continue;
+    if (token.type !== 'type.yaml') {
+      continue
     }
 
-    if (word?.word === "systemDiskEncryption") {
+    if (word?.word === 'systemDiskEncryption') {
       markers.push({
         startColumn: word.startColumn,
         endColumn: word.endColumn,
-        message: "Will have no effect: KMS encryption is enabled.\nKMS encryption config patch always has a higher priority.",
+        message:
+          'Will have no effect: KMS encryption is enabled.\nKMS encryption config patch always has a higher priority.',
         severity: monaco.MarkerSeverity.Info,
         endLineNumber: pos.lineNumber,
         startLineNumber: pos.lineNumber,
-        tags: [
-          monaco.MarkerTag.Unnecessary
-        ]
-      });
+        tags: [monaco.MarkerTag.Unnecessary],
+      })
 
-      break;
+      break
     }
   }
 
-  return markers;
+  return markers
 }
 
-let selectedPatchType: string;
+let selectedPatchType: string
 
 const setPatchType = (value: string) => {
-  selectedPatchType = value;
-};
+  selectedPatchType = value
+}
 
-const machineSets: Ref<Resource<MachineSetSpec>[]> = ref([]);
-const machineSetsWatch = new Watch(machineSets);
+const machineSets: Ref<Resource<MachineSetSpec>[]> = ref([])
+const machineSetsWatch = new Watch(machineSets)
 const machineSetTitles = computed(() => {
-  const sorted = sortMachineSetIds(route.params.cluster as string, machineSets.value.map(value => value.metadata.id!));
+  const sorted = sortMachineSetIds(
+    route.params.cluster as string,
+    machineSets.value.map((value) => value.metadata.id!),
+  )
 
-  return sorted.map(machineSetId => {
-    const title = machineSetTitle(route.params.cluster as string, machineSetId);
-    machineSetIDMap[title] = machineSetId ?? "";
+  return sorted.map((machineSetId) => {
+    const title = machineSetTitle(route.params.cluster as string, machineSetId)
+    machineSetIDMap[title] = machineSetId ?? ''
     return title
-  });
-});
+  })
+})
 
-const clusterMachines = ref([]);
+const clusterMachines = ref([])
 const machines = computed(() => {
   return clusterMachines.value.map((item: Resource) => {
-    const name = `Node: ${(item.metadata?.labels ?? {})[LabelHostname] || item.metadata.id}`;
+    const name = `Node: ${(item.metadata?.labels ?? {})[LabelHostname] || item.metadata.id}`
 
-    nodeIDMap[name] = item.metadata.id!;
+    nodeIDMap[name] = item.metadata.id!
 
-    return name;
-  });
-});
+    return name
+  })
+})
 
-const clusterMachinesWatch = new Watch(clusterMachines);
+const clusterMachinesWatch = new Watch(clusterMachines)
 
-const cluster: Ref<Resource | undefined> = ref();
+const cluster: Ref<Resource | undefined> = ref()
 
-const clusterWatch = new Watch(cluster);
+const clusterWatch = new Watch(cluster)
 
-const router = useRouter();
+const router = useRouter()
 
 watch(weight, (value: number) => {
   if (value < 100 || value > 900) {
-    return;
+    return
   }
 
-  let id = route.params.patch as string;
-  const match = /^\d+-(.+)/.exec(id);
+  let id = route.params.patch as string
+  const match = /^\d+-(.+)/.exec(id)
   if (match) {
-    id = match[1];
+    id = match[1]
   }
 
-  router.replace({ params: { patch: `${value}-${id}` } });
-});
+  router.replace({ params: { patch: `${value}-${id}` } })
+})
 
 watch(patchName, () => {
   if (patchName.value) {
-    patchToCreate.metadata.annotations![ConfigPatchName] = patchName.value;
+    patchToCreate.metadata.annotations![ConfigPatchName] = patchName.value
   } else {
-    delete patchToCreate.metadata.annotations![ConfigPatchName];
+    delete patchToCreate.metadata.annotations![ConfigPatchName]
   }
-});
+})
 
 watch(patchDescription, () => {
   if (patchName.value) {
-    patchToCreate.metadata.annotations![ConfigPatchDescription] = patchDescription.value;
+    patchToCreate.metadata.annotations![ConfigPatchDescription] = patchDescription.value
   } else {
-    delete patchToCreate.metadata.annotations![ConfigPatchDescription];
+    delete patchToCreate.metadata.annotations![ConfigPatchDescription]
   }
-});
+})
 
 const loadPatch = () => {
-  const match = /^(\d+)-.+/.exec(route.params.patch as string);
+  const match = /^(\d+)-.+/.exec(route.params.patch as string)
 
   if (match) {
-    weight.value = Math.min(
-      999,
-      Math.max(0, parseInt(match[1]))
-    );
+    weight.value = Math.min(999, Math.max(0, parseInt(match[1])))
   } else {
-    weight.value = 500;
+    weight.value = 500
   }
 
   if (patch.value?.spec?.data) {
-    config.value = patch.value.spec.data;
+    config.value = patch.value.spec.data
   }
 }
 
-patchWatch.setup(computed(() => {
-  return {
-    runtime: Runtime.Omni,
-    resource: {
-      namespace: DefaultNamespace,
-      type: ConfigPatchType,
-      id: route.params.patch as string,
+patchWatch.setup(
+  computed(() => {
+    return {
+      runtime: Runtime.Omni,
+      resource: {
+        namespace: DefaultNamespace,
+        type: ConfigPatchType,
+        id: route.params.patch as string,
+      },
     }
-  }
-}));
+  }),
+)
 
-const patchWatchOptions = ref();
+const patchWatchOptions = ref()
 
 const updatePatchWatchOptions = () => {
   patchWatchOptions.value = {
@@ -344,71 +343,71 @@ const updatePatchWatchOptions = () => {
       id: route.params.patch as string,
     },
   }
-};
+}
 
-updatePatchWatchOptions();
-watch(() => route.params.patch, updatePatchWatchOptions);
+updatePatchWatchOptions()
+watch(() => route.params.patch, updatePatchWatchOptions)
 
-loadPatch();
-watch(patch, loadPatch);
+loadPatch()
+watch(patch, loadPatch)
 
 const patchTypes = computed(() => {
-  if (route.params.cluster && route.name != "ClusterMachinePatchEdit") {
+  if (route.params.cluster && route.name != 'ClusterMachinePatchEdit') {
     return [PatchType.Cluster as string].concat(machineSetTitles.value).concat(machines.value)
   }
 
   if (machine.value?.metadata.labels?.[LabelCluster] ?? route.params.machine) {
-    return [PatchType.Machine, PatchType.ClusterMachine];
+    return [PatchType.Machine, PatchType.ClusterMachine]
   }
 
-  return undefined;
-});
+  return undefined
+})
 
 enum State {
   Unknown = 0,
   Exists = 1,
-  NotExists = 2
+  NotExists = 2,
 }
 
 const state = computed(() => {
   if (!bootstrapped.value) {
-    return State.Unknown;
+    return State.Unknown
   }
 
-  return patch.value ? State.Exists : State.NotExists;
-});
+  return patch.value ? State.Exists : State.NotExists
+})
 
 const title = computed(() => {
   if (!canReadConfigPatches.value) {
-    return "View Patch"
+    return 'View Patch'
   }
 
   if (state.value === State.NotExists) {
-    return "Create Patch";
+    return 'Create Patch'
   }
 
   if (state.value === State.Exists) {
-    return "Edit Patch";
+    return 'Edit Patch'
   }
 
-  return "Loading...";
+  return 'Loading...'
 })
 
 const subtitle = computed(() => {
   if (state.value === State.Unknown) {
-    return "";
+    return ''
   }
 
-  return "Patch ID: " + route.params.patch as string;
-});
+  return ('Patch ID: ' + route.params.patch) as string
+})
 
 const notes = computed(() => {
   if (state.value === State.Exists || state.value === State.NotExists) {
-    return "Note: Patches are applied immediately on creation/modification, and may result in graceful reboots."
+    return 'Note: Patches are applied immediately on creation/modification, and may result in graceful reboots.'
   }
 
-  return "";
-});
+  return ''
+})
 
 patchWatch.setup({
   runtime: Runtime.Omni,
@@ -416,8 +415,8 @@ patchWatch.setup({
     namespace: DefaultNamespace,
     type: ConfigPatchType,
     id: route.params.patch as string,
-  }
-});
+  },
+})
 
 if (route.params.cluster) {
   machineSetsWatch.setup({
@@ -426,8 +425,8 @@ if (route.params.cluster) {
       namespace: DefaultNamespace,
       type: MachineSetType,
     },
-    selectors: [`${LabelCluster}=${route.params.cluster}`]
-  });
+    selectors: [`${LabelCluster}=${route.params.cluster}`],
+  })
 
   clusterMachinesWatch.setup({
     runtime: Runtime.Omni,
@@ -435,8 +434,8 @@ if (route.params.cluster) {
       namespace: DefaultNamespace,
       type: ClusterMachineStatusType,
     },
-    selectors: [`${LabelCluster}=${route.params.cluster}`]
-  });
+    selectors: [`${LabelCluster}=${route.params.cluster}`],
+  })
 
   clusterWatch.setup({
     runtime: Runtime.Omni,
@@ -445,17 +444,17 @@ if (route.params.cluster) {
       type: ClusterMachineStatusType,
       id: route.params.cluster as string,
     },
-  });
+  })
 }
 
 const ready = computed(() => {
-  return permissionsLoaded.value && !patchWatch.loading.value;
-});
+  return permissionsLoaded.value && !patchWatch.loading.value
+})
 
-const saving = ref(false);
+const saving = ref(false)
 
 const getPatchLabels = () => {
-  const patchType = selectedPatchType ?? patchTypes.value?.[0];
+  const patchType = selectedPatchType ?? patchTypes.value?.[0]
 
   if (!patchType || patchType === PatchType.Machine) {
     return {
@@ -463,118 +462,116 @@ const getPatchLabels = () => {
     }
   }
 
-  const cluster = route.params.cluster ?? machine.value?.metadata.labels?.[LabelCluster];
+  const cluster = route.params.cluster ?? machine.value?.metadata.labels?.[LabelCluster]
   if (!cluster) {
-    throw new Error("failed to determine machine cluster");
+    throw new Error('failed to determine machine cluster')
   }
 
   const labels = {
     [LabelCluster]: cluster as string,
   }
 
-  const machineID = nodeIDMap[patchType];
+  const machineID = nodeIDMap[patchType]
 
   if (patchType === PatchType.ClusterMachine || machineID) {
-    labels[LabelClusterMachine] = machineID ?? machine.value?.metadata.id;
+    labels[LabelClusterMachine] = machineID ?? machine.value?.metadata.id
   }
 
-  const machineSetID = machineSetIDMap[patchType];
+  const machineSetID = machineSetIDMap[patchType]
 
   if (machineSetID) {
-    labels[LabelMachineSet] = machineSetID;
+    labels[LabelMachineSet] = machineSetID
   }
 
   return labels
 }
 
 const saveConfig = async () => {
-  const create = (state.value === State.NotExists);
+  const create = state.value === State.NotExists
 
   if (codeEditor) {
-    config.value = codeEditor.getValue();
+    config.value = codeEditor.getValue()
   }
 
-  let currentPatch: Resource<ConfigPatchSpec> | undefined = patch.value;
+  let currentPatch: Resource<ConfigPatchSpec> | undefined = patch.value
 
   if (create) {
-    patchToCreate.metadata.id = route.params.patch as string;
-    patchToCreate.spec.data = config.value;
+    patchToCreate.metadata.id = route.params.patch as string
+    patchToCreate.spec.data = config.value
 
-    currentPatch = patchToCreate;
-    currentPatch.metadata.labels = getPatchLabels();
+    currentPatch = patchToCreate
+    currentPatch.metadata.labels = getPatchLabels()
   }
 
   if (!currentPatch) {
-    return;
+    return
   }
 
-  saving.value = true;
+  saving.value = true
 
-  currentPatch.spec.data = config.value;
+  currentPatch.spec.data = config.value
 
   try {
     if (!create) {
-      await ResourceService.Update(currentPatch, undefined, withRuntime(Runtime.Omni));
+      await ResourceService.Update(currentPatch, undefined, withRuntime(Runtime.Omni))
     } else {
       if (weight.value < 100 || weight.value > 900) {
-        throw new Error(
-          "User patch weight must be in range 100-900",
-        );
+        throw new Error('User patch weight must be in range 100-900')
       }
 
-      await ResourceService.Create(currentPatch, withRuntime(Runtime.Omni));
+      await ResourceService.Create(currentPatch, withRuntime(Runtime.Omni))
     }
 
     patch.value = currentPatch
     router.push({ name: patchListPage })
   } catch (e) {
     if (e.code === Code.INVALID_ARGUMENT) {
-      showError(
-          "The Config is Invalid",
-          e.message?.replace("failed to validate: ", ""),
-      );
+      showError('The Config is Invalid', e.message?.replace('failed to validate: ', ''))
     } else {
-      showError(
-          "Failed to Update the Config",
-          e.message,
-      );
+      showError('Failed to Update the Config', e.message)
     }
   } finally {
-    saving.value = false;
+    saving.value = false
   }
-};
+}
 
-const permissionsLoaded = ref(false);
-const canReadConfigPatches = ref(false);
-const canManageConfigPatches = ref(false);
+const permissionsLoaded = ref(false)
+const canReadConfigPatches = ref(false)
+const canManageConfigPatches = ref(false)
 
 const updatePermissions = async () => {
   if (route.params.cluster) {
-    const clusterPermissions = await ResourceService.Get({
-      namespace: VirtualNamespace,
-      type: ClusterPermissionsType,
-      id: route.params.cluster as string,
-    }, withRuntime(Runtime.Omni));
+    const clusterPermissions = await ResourceService.Get(
+      {
+        namespace: VirtualNamespace,
+        type: ClusterPermissionsType,
+        id: route.params.cluster as string,
+      },
+      withRuntime(Runtime.Omni),
+    )
 
-    canReadConfigPatches.value = clusterPermissions?.spec?.can_read_config_patches || false;
-    canManageConfigPatches.value = clusterPermissions?.spec?.can_manage_config_patches || false;
+    canReadConfigPatches.value = clusterPermissions?.spec?.can_read_config_patches || false
+    canManageConfigPatches.value = clusterPermissions?.spec?.can_manage_config_patches || false
   } else if (route.params.machine) {
-    canReadConfigPatches.value = canReadMachineConfigPatches.value;
-    canManageConfigPatches.value = canManageMachineConfigPatches.value;
+    canReadConfigPatches.value = canReadMachineConfigPatches.value
+    canManageConfigPatches.value = canManageMachineConfigPatches.value
   } else {
-    throw new Error("failed to determine the owner of the patch from the URI");
+    throw new Error('failed to determine the owner of the patch from the URI')
   }
 
-  permissionsLoaded.value = true;
-};
+  permissionsLoaded.value = true
+}
 
-watch(() => route.params,  async () => {
-  await updatePermissions();
-});
+watch(
+  () => route.params,
+  async () => {
+    await updatePermissions()
+  },
+)
 
 onMounted(async () => {
-  await updatePermissions();
-});
+  await updatePermissions()
+})
 </script>
 
 <style>
@@ -583,23 +580,23 @@ onMounted(async () => {
   background-color: #00000000 !important;
 }
 
-.CodeMirror-gutters, .CodeMirror-scrollbar-filler {
-  background-color: #13141C !important;
+.CodeMirror-gutters,
+.CodeMirror-scrollbar-filler {
+  background-color: #13141c !important;
 }
 
 .CodeMirror * {
-  font-family: "Roboto Mono", "consolas", sans-serif;
+  font-family: 'Roboto Mono', 'consolas', sans-serif;
 }
 
 .CodeMirror-lint-tooltip * {
   font-size: 12px;
-  font-family: "Roboto Mono", "consolas", sans-serif;
+  font-family: 'Roboto Mono', 'consolas', sans-serif;
 }
 
 /* The lint marker gutter */
 .CodeMirror-lint-tooltip {
-  @apply
-    p-4
+  @apply p-4
     bg-naturals-N3
     text-naturals-N10
     rounded-md
@@ -663,10 +660,11 @@ onMounted(async () => {
 }
 
 .CodeMirror-lint-marker-multiple {
-  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAcAAAAHCAMAAADzjKfhAAAACVBMVEUAAAAAAAC/v7914kyHAAAAAXRSTlMAQObYZgAAACNJREFUeNo1ioEJAAAIwmz/H90iFFSGJgFMe3gaLZ0od+9/AQZ0ADosbYraAAAAAElFTkSuQmCC");
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAcAAAAHCAMAAADzjKfhAAAACVBMVEUAAAAAAAC/v7914kyHAAAAAXRSTlMAQObYZgAAACNJREFUeNo1ioEJAAAIwmz/H90iFFSGJgFMe3gaLZ0od+9/AQZ0ADosbYraAAAAAElFTkSuQmCC');
   background-repeat: no-repeat;
   background-position: right bottom;
-  width: 100%; height: 100%;
+  width: 100%;
+  height: 100%;
 }
 
 .CodeMirror-lint-line-error {

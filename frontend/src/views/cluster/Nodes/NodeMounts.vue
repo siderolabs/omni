@@ -21,10 +21,16 @@ included in the LICENSE file.
           <div>{{ item.spec.source }}</div>
           <div>{{ item.spec.target }}</div>
           <div class="flex">
-            <div class="flex gap-1 items-center rounded bg-naturals-N4 px-2 py-1" :style="{ color: encryptionColor(item) }">
-              <LockClosedIcon v-if="isEncrypted(item) === Encryption.Enabled" class="w-3 h-3"/>
-              <LockOpenIcon v-else-if="isEncrypted(item) === Encryption.Disabled" class="w-3 h-3"/>
-              <QuestionMarkCircleIcon v-else-if="isEncrypted(item) === Encryption.Unknown" class="w-4 h-4"/>
+            <div
+              class="flex gap-1 items-center rounded bg-naturals-N4 px-2 py-1"
+              :style="{ color: encryptionColor(item) }"
+            >
+              <LockClosedIcon v-if="isEncrypted(item) === Encryption.Enabled" class="w-3 h-3" />
+              <LockOpenIcon v-else-if="isEncrypted(item) === Encryption.Disabled" class="w-3 h-3" />
+              <QuestionMarkCircleIcon
+                v-else-if="isEncrypted(item) === Encryption.Unknown"
+                class="w-4 h-4"
+              />
               {{ isEncrypted(item) }}
             </div>
           </div>
@@ -35,22 +41,22 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { Runtime } from "@/api/common/omni.pb";
-import { Resource } from "@/api/grpc";
-import { TalosMountStatusType, TalosRuntimeNamespace } from "@/api/resources";
-import { WatchOptions } from "@/api/watch";
-import TList from "@/components/common/List/TList.vue";
-import TListItem from "@/components/common/List/TListItem.vue";
-import { getContext } from "@/context";
-import { QuestionMarkCircleIcon } from "@heroicons/vue/24/outline";
-import { LockClosedIcon, LockOpenIcon } from "@heroicons/vue/24/solid";
-import { computed } from "vue";
-import { red, green, yellow } from "@/vars/colors";
+import { Runtime } from '@/api/common/omni.pb'
+import type { Resource } from '@/api/grpc'
+import { TalosMountStatusType, TalosRuntimeNamespace } from '@/api/resources'
+import type { WatchOptions } from '@/api/watch'
+import TList from '@/components/common/List/TList.vue'
+import TListItem from '@/components/common/List/TListItem.vue'
+import { getContext } from '@/context'
+import { QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
+import { LockClosedIcon, LockOpenIcon } from '@heroicons/vue/24/solid'
+import { computed } from 'vue'
+import { red, green, yellow } from '@/vars/colors'
 
 enum Encryption {
-  Unknown = "unknown",
-  Enabled = "enabled",
-  Disabled = "disabled"
+  Unknown = 'unknown',
+  Enabled = 'enabled',
+  Disabled = 'disabled',
 }
 
 const watchOpts = computed((): WatchOptions => {
@@ -62,24 +68,24 @@ const watchOpts = computed((): WatchOptions => {
     runtime: Runtime.Talos,
     context: getContext(),
   }
-});
+})
 
-const isEncrypted = (item: Resource<{encrypted?: boolean}>) => {
+const isEncrypted = (item: Resource<{ encrypted?: boolean }>) => {
   if (item.spec.encrypted === undefined) {
-    return Encryption.Unknown;
+    return Encryption.Unknown
   }
 
-  return item.spec.encrypted ? Encryption.Enabled : Encryption.Disabled;
-};
+  return item.spec.encrypted ? Encryption.Enabled : Encryption.Disabled
+}
 
 const encryptionColor = (item: Resource) => {
   switch (isEncrypted(item)) {
     case Encryption.Disabled:
-      return red.R1;
+      return red.R1
     case Encryption.Enabled:
-      return green.G1;
+      return green.G1
     case Encryption.Unknown:
-      return yellow.Y1;
+      return yellow.Y1
   }
 }
 </script>

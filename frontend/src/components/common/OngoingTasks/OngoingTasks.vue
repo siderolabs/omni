@@ -9,9 +9,13 @@ included in the LICENSE file.
     <watch v-if="watchOpts" :opts="watchOpts" display-always>
       <template #default="{ items }">
         <div class="dropdown" @click="() => toggleDropdown()">
-          <icon-header-dropdown-loading :active="items.length > 0"/>
+          <icon-header-dropdown-loading :active="items.length > 0" />
           <span class="dropdown-name">Ongoing Tasks</span>
-          <t-icon class="dropdown-icon" :class="{ 'dropdown-icon-open': dropdownOpen }" icon="arrow-down" />
+          <t-icon
+            class="dropdown-icon"
+            :class="{ 'dropdown-icon-open': dropdownOpen }"
+            icon="arrow-down"
+          />
         </div>
         <t-animation>
           <div v-show="dropdownOpen" class="dropdown-list">
@@ -20,7 +24,7 @@ included in the LICENSE file.
                 <div class="item-heading">
                   <h3 class="item-title">{{ item.spec.title }}</h3>
                   <span class="item-time">{{
-                    formatISO(item.metadata.created as string, "HH:mm:ss")
+                    formatISO(item.metadata.created as string, 'HH:mm:ss')
                   }}</span>
                 </div>
                 <p class="item-description truncate">
@@ -29,23 +33,49 @@ included in the LICENSE file.
                   </template>
                   <template v-else>
                     <div class="flex gap-2 text-xs items-center">
-                      <template v-if="(item.spec.kubernetes_upgrade ?? item.spec.talos_upgrade).current_upgrade_version">
+                      <template
+                        v-if="
+                          (item.spec.kubernetes_upgrade ?? item.spec.talos_upgrade)
+                            .current_upgrade_version
+                        "
+                      >
                         <span v-if="item.spec.kubernetes_upgrade">Upgrade Kubernetes</span>
                         <span v-else>Upgrade Talos</span>
-                        <div class="flex-1"/>
-                        <span class="rounded bg-naturals-N4 px-2 text-xs text-naturals-N13 font-bold">
-                          {{ (item.spec.kubernetes_upgrade ?? item.spec.talos_upgrade).last_upgrade_version }}
+                        <div class="flex-1" />
+                        <span
+                          class="rounded bg-naturals-N4 px-2 text-xs text-naturals-N13 font-bold"
+                        >
+                          {{
+                            (item.spec.kubernetes_upgrade ?? item.spec.talos_upgrade)
+                              .last_upgrade_version
+                          }}
                         </span>
                         <span>⇾</span>
-                        <span class="rounded bg-naturals-N4 px-2 text-xs text-naturals-N13 font-bold">
-                          {{ (item.spec.kubernetes_upgrade ?? item.spec.talos_upgrade).current_upgrade_version }}
+                        <span
+                          class="rounded bg-naturals-N4 px-2 text-xs text-naturals-N13 font-bold"
+                        >
+                          {{
+                            (item.spec.kubernetes_upgrade ?? item.spec.talos_upgrade)
+                              .current_upgrade_version
+                          }}
                         </span>
                       </template>
-                      <template v-else-if="(item.spec?.kubernetes_upgrade?.phase ?? item.spec?.talos_upgrade?.phase) === KubernetesUpgradeStatusSpecPhase.Reverting">
+                      <template
+                        v-else-if="
+                          (item.spec?.kubernetes_upgrade?.phase ??
+                            item.spec?.talos_upgrade?.phase) ===
+                          KubernetesUpgradeStatusSpecPhase.Reverting
+                        "
+                      >
                         <span>Reverting back to</span>
-                        <div class="flex-1"/>
-                        <span class="rounded bg-naturals-N4 px-2 text-xs text-naturals-N13 font-bold">
-                          {{ (item.spec.kubernetes_upgrade ?? item.spec.talos_upgrade).last_upgrade_version }}
+                        <div class="flex-1" />
+                        <span
+                          class="rounded bg-naturals-N4 px-2 text-xs text-naturals-N13 font-bold"
+                        >
+                          {{
+                            (item.spec.kubernetes_upgrade ?? item.spec.talos_upgrade)
+                              .last_upgrade_version
+                          }}
                         </span>
                       </template>
                       <template v-else>
@@ -57,7 +87,7 @@ included in the LICENSE file.
               </div>
             </template>
             <div v-else class="text-xs w-32 p-4 flex items-center justify-center gap-2">
-              <t-icon icon="check" class="w-4 h-4"/>
+              <t-icon icon="check" class="w-4 h-4" />
               No tasks
             </div>
           </div>
@@ -68,45 +98,42 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref } from 'vue'
 
-import { itemID } from "@/api/watch";
-import { Runtime } from "@/api/common/omni.pb";
-import {
-  EphemeralNamespace,
-  OngoingTaskType,
-} from "@/api/resources";
-import { formatISO } from "@/methods/time";
-import { authorized } from "@/methods/key";
-import { KubernetesUpgradeStatusSpecPhase } from "@/api/omni/specs/omni.pb";
+import { itemID } from '@/api/watch'
+import { Runtime } from '@/api/common/omni.pb'
+import { EphemeralNamespace, OngoingTaskType } from '@/api/resources'
+import { formatISO } from '@/methods/time'
+import { authorized } from '@/methods/key'
+import { KubernetesUpgradeStatusSpecPhase } from '@/api/omni/specs/omni.pb'
 
-import TIcon from "@/components/common/Icon/TIcon.vue";
-import TAnimation from "@/components/common/Animation/TAnimation.vue";
-import Watch from "@/components/common/Watch/Watch.vue";
-import IconHeaderDropdownLoading from "@/components/icons/IconHeaderDropdownLoading.vue";
+import TIcon from '@/components/common/Icon/TIcon.vue'
+import TAnimation from '@/components/common/Animation/TAnimation.vue'
+import Watch from '@/components/common/Watch/Watch.vue'
+import IconHeaderDropdownLoading from '@/components/icons/IconHeaderDropdownLoading.vue'
 
 const watchOpts = computed(() => {
   if (authorized.value) {
-    return { resource: resource, runtime: Runtime.Omni };
+    return { resource: resource, runtime: Runtime.Omni }
   }
 
-  return undefined;
-});
+  return undefined
+})
 
-const dropdownOpen = ref(false);
+const dropdownOpen = ref(false)
 
 const resource = {
   namespace: EphemeralNamespace,
   type: OngoingTaskType,
-};
+}
 
 const toggleDropdown = () => {
-  dropdownOpen.value = !dropdownOpen.value;
-};
+  dropdownOpen.value = !dropdownOpen.value
+}
 
 const onClickOutside = () => {
-  dropdownOpen.value = false;
-};
+  dropdownOpen.value = false
+}
 </script>
 
 <style scoped>

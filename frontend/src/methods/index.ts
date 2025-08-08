@@ -3,47 +3,53 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import { ManagementService } from "@/api/omni/management/management.pb";
-import { NodesViewFilterOptions, TCommonStatuses } from "@/constants";
-import { showError } from "@/notification";
-import { computed, ComputedRef, Ref, ref } from "vue";
-import { EtcdBackupOverallStatusID, EtcdBackupOverallStatusType, MetricsNamespace } from "@/api/resources";
-import { withContext } from "@/api/options";
-import { b64Decode, fetchOption } from "@/api/fetch.pb";
-import { V1Node } from "@kubernetes/client-node";
-import { Resource } from "@/api/grpc";
-import { EtcdBackupOverallStatusSpec } from "@/api/omni/specs/omni.pb";
-import Watch from "@/api/watch";
-import { Runtime } from "@/api/common/omni.pb";
-import { copyText } from "vue3-clipboard";
+import { ManagementService } from '@/api/omni/management/management.pb'
+import { NodesViewFilterOptions, TCommonStatuses } from '@/constants'
+import { showError } from '@/notification'
+import type { ComputedRef, Ref } from 'vue'
+import { computed, ref } from 'vue'
+import {
+  EtcdBackupOverallStatusID,
+  EtcdBackupOverallStatusType,
+  MetricsNamespace,
+} from '@/api/resources'
+import { withContext } from '@/api/options'
+import type { fetchOption } from '@/api/fetch.pb'
+import { b64Decode } from '@/api/fetch.pb'
+import type { V1Node } from '@kubernetes/client-node'
+import type { Resource } from '@/api/grpc'
+import type { EtcdBackupOverallStatusSpec } from '@/api/omni/specs/omni.pb'
+import Watch from '@/api/watch'
+import { Runtime } from '@/api/common/omni.pb'
+import { copyText } from 'vue3-clipboard'
 
 export const getStatus = (item: V1Node) => {
-  const conditions = item?.status?.conditions;
-  if (!conditions) return TCommonStatuses.LOADING;
+  const conditions = item?.status?.conditions
+  if (!conditions) return TCommonStatuses.LOADING
 
   for (const c of conditions) {
-    if (c.type === NodesViewFilterOptions.READY && c.status === "True")
-      return NodesViewFilterOptions.READY;
+    if (c.type === NodesViewFilterOptions.READY && c.status === 'True')
+      return NodesViewFilterOptions.READY
   }
 
-  return NodesViewFilterOptions.NOT_READY;
-};
+  return NodesViewFilterOptions.NOT_READY
+}
 
 export const getServiceHealthStatus = (service) => {
   return service?.spec?.unknown
     ? TCommonStatuses.HEALTH_UNKNOWN
     : service?.spec?.healthy
-    ? TCommonStatuses.READY
-    : TCommonStatuses.UNHEALTHY;
-};
+      ? TCommonStatuses.READY
+      : TCommonStatuses.UNHEALTHY
+}
 
-export const cpuParser = (input)=> {
-  const milliMatch = input.match(/^([0-9]+)m$/);
+export const cpuParser = (input) => {
+  const milliMatch = input.match(/^([0-9]+)m$/)
   if (milliMatch) {
-    return milliMatch[1] / 1000;
+    return milliMatch[1] / 1000
   }
 
-  return parseFloat(input);
+  return parseFloat(input)
 }
 
 const memoryMultipliers = {
@@ -59,97 +65,94 @@ const memoryMultipliers = {
   Ti: 1024 ** 4,
   Pi: 1024 ** 5,
   Ei: 1024 ** 6,
-};
+}
 
 export const memoryParser = (input) => {
-  const unitMatch = input.match(/^([0-9]+)([A-Za-z]{1,2})$/);
+  const unitMatch = input.match(/^([0-9]+)([A-Za-z]{1,2})$/)
   if (unitMatch) {
-    return parseInt(unitMatch[1], 10) * memoryMultipliers[unitMatch[2]];
+    return parseInt(unitMatch[1], 10) * memoryMultipliers[unitMatch[2]]
   }
 
-  return parseInt(input, 10);
+  return parseInt(input, 10)
 }
 
 export const formatBytes = (bytes, decimals = 2) => {
-  if (!bytes) return '0 Bytes';
+  if (!bytes) return '0 Bytes'
 
-  const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  const k = 1024
+  const dm = decimals < 0 ? 0 : decimals
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
 
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
 
-  return (bytes / Math.pow(k, i)).toFixed(dm) + ' ' + sizes[i];
+  return (bytes / Math.pow(k, i)).toFixed(dm) + ' ' + sizes[i]
 }
 
 export const downloadKubeconfig = async (cluster: string) => {
-  const link = document.createElement("a");
+  const link = document.createElement('a')
   try {
-    const response = await ManagementService.Kubeconfig(
-      {},
-      withContext({cluster}),
-    );
+    const response = await ManagementService.Kubeconfig({}, withContext({ cluster }))
 
-    link.href = `data:application/octet-stream;charset=utf-16le;base64,${response.kubeconfig}`;
-    link.download = `${cluster}-kubeconfig.yaml`;
-    link.click();
+    link.href = `data:application/octet-stream;charset=utf-16le;base64,${response.kubeconfig}`
+    link.download = `${cluster}-kubeconfig.yaml`
+    link.click()
   } catch (e) {
-    showError("Failed to download Kubeconfig", e.message || e.toString());
+    showError('Failed to download Kubeconfig', e.message || e.toString())
   }
-};
+}
 
 export const downloadTalosconfig = async (cluster?: string) => {
-  const link = document.createElement("a");
-  const opts: fetchOption[] = [];
+  const link = document.createElement('a')
+  const opts: fetchOption[] = []
 
   if (cluster) {
-    opts.push(withContext({cluster}));
+    opts.push(withContext({ cluster }))
   }
 
   try {
-    const response = await ManagementService.Talosconfig({}, ...opts);
+    const response = await ManagementService.Talosconfig({}, ...opts)
 
-    link.href = `data:application/octet-stream;charset=utf-16le;base64,${response.talosconfig}`;
-    link.download = cluster ? `${cluster}-talosconfig.yaml` : "talosconfig.yaml";
-    link.click();
+    link.href = `data:application/octet-stream;charset=utf-16le;base64,${response.talosconfig}`
+    link.download = cluster ? `${cluster}-talosconfig.yaml` : 'talosconfig.yaml'
+    link.click()
   } catch (e) {
-    showError("Failed to download Talosconfig", e.message || e.toString());
+    showError('Failed to download Talosconfig', e.message || e.toString())
   }
-};
+}
 
 export const downloadOmniconfig = async () => {
-  const link = document.createElement("a");
+  const link = document.createElement('a')
   try {
-    const response = await ManagementService.Omniconfig({});
+    const response = await ManagementService.Omniconfig({})
 
-    link.href = `data:application/octet-stream;charset=utf-16le;base64,${response.omniconfig}`;
-    link.download = "omniconfig.yaml";
-    link.click();
+    link.href = `data:application/octet-stream;charset=utf-16le;base64,${response.omniconfig}`
+    link.download = 'omniconfig.yaml'
+    link.click()
   } catch (e) {
-    showError("Failed to download omniconfig", e.message || e.toString());
+    showError('Failed to download omniconfig', e.message || e.toString())
   }
-};
+}
 
 export const downloadAuditLog = async () => {
   try {
-    const result: Uint8Array[] = [];
+    const result: Uint8Array[] = []
 
-    await ManagementService.ReadAuditLog({}, resp => {
-      const data = resp.audit_log as unknown as string; // audit_log is actually not a Uint8Array, but a base64 string
+    await ManagementService.ReadAuditLog({}, (resp) => {
+      const data = resp.audit_log as unknown as string // audit_log is actually not a Uint8Array, but a base64 string
 
-      result.push(b64Decode(data));
-    });
+      result.push(b64Decode(data))
+    })
 
-    const link = document.createElement("a");
-    link.href = window.URL.createObjectURL(new Blob(result, {type: "application/json"}));
-    link.download = "auditlog.jsonlog";
-    link.click();
+    const link = document.createElement('a')
+    link.href = window.URL.createObjectURL(new Blob(result, { type: 'application/json' }))
+    link.download = 'auditlog.jsonlog'
+    link.click()
   } catch (e) {
-    showError("Failed to download audit log", e.error?.message ?? e.message ?? e.toString());
+    showError('Failed to download audit log', e.error?.message ?? e.message ?? e.toString())
   }
-};
+}
 
-export const suspended = ref(false);
+export const suspended = ref(false)
 
 export enum AuthType {
   None = 0,
@@ -157,23 +160,26 @@ export enum AuthType {
   SAML = 2,
 }
 
-export const authType: Ref<AuthType> = ref(AuthType.None);
+export const authType: Ref<AuthType> = ref(AuthType.None)
 
 export type BackupsStatus = {
   enabled: boolean
   error?: string
   configurable?: boolean
   store?: string
-};
+}
 
 const capitalize = (w: string) => {
   return `${w.charAt(0).toUpperCase()}${w.slice(1)}`
 }
 
-export const setupBackupStatus = (): { status: ComputedRef<BackupsStatus>, watch: Watch<Resource<EtcdBackupOverallStatusSpec>> } => {
-  const res = ref<Resource<EtcdBackupOverallStatusSpec>>();
+export const setupBackupStatus = (): {
+  status: ComputedRef<BackupsStatus>
+  watch: Watch<Resource<EtcdBackupOverallStatusSpec>>
+} => {
+  const res = ref<Resource<EtcdBackupOverallStatusSpec>>()
 
-  const watch = new Watch<Resource<EtcdBackupOverallStatusSpec>>(res);
+  const watch = new Watch<Resource<EtcdBackupOverallStatusSpec>>(res)
 
   watch.setup({
     resource: {
@@ -182,10 +188,10 @@ export const setupBackupStatus = (): { status: ComputedRef<BackupsStatus>, watch
       type: EtcdBackupOverallStatusType,
     },
     runtime: Runtime.Omni,
-  });
+  })
   return {
     status: computed(() => {
-      const configurable = res.value?.spec.configuration_name === 's3';
+      const configurable = res.value?.spec.configuration_name === 's3'
 
       if (res.value?.spec.configuration_error) {
         return {
@@ -193,7 +199,7 @@ export const setupBackupStatus = (): { status: ComputedRef<BackupsStatus>, watch
           enabled: false,
           configurable,
           store: res.value.spec.configuration_name,
-        };
+        }
       }
 
       return {
@@ -202,42 +208,43 @@ export const setupBackupStatus = (): { status: ComputedRef<BackupsStatus>, watch
         store: res.value?.spec.configuration_name,
       }
     }),
-    watch
-  };
+    watch,
+  }
 }
 
 export const isChrome = () => {
-  return navigator.userAgent.toLowerCase().includes('chrome');
+  return navigator.userAgent.toLowerCase().includes('chrome')
 }
 
 export const copyKernelArgs = async (joinToken?: string, useGRPCTunnel: boolean = false) => {
   const response = await ManagementService.GetMachineJoinConfig({
     join_token: joinToken,
     use_grpc_tunnel: useGRPCTunnel,
-  });
+  })
 
-  copyText(
-    response.kernel_args!.join(" "),
-    undefined,
-    () => {},
-  );
+  copyText(response.kernel_args!.join(' '), undefined, () => {})
 }
 
-export const downloadMachineJoinConfig = async (joinToken?: string, useGRPCTunnel: boolean = false) => {
+export const downloadMachineJoinConfig = async (
+  joinToken?: string,
+  useGRPCTunnel: boolean = false,
+) => {
   const response = await ManagementService.GetMachineJoinConfig({
     join_token: joinToken,
     use_grpc_tunnel: useGRPCTunnel,
-  });
+  })
 
+  const element = document.createElement('a')
+  element.setAttribute(
+    'href',
+    'data:text/plain;charset=utf-8,' + encodeURIComponent(response.config!),
+  )
+  element.setAttribute('download', 'machine-config.yaml')
 
-  const element = document.createElement("a");
-  element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(response.config!));
-  element.setAttribute("download", "machine-config.yaml");
+  element.style.display = 'none'
+  document.body.appendChild(element)
 
-  element.style.display = "none";
-  document.body.appendChild(element);
+  element.click()
 
-  element.click();
-
-  document.body.removeChild(element);
-};
+  document.body.removeChild(element)
+}

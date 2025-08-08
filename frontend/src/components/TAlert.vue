@@ -8,7 +8,7 @@ included in the LICENSE file.
   <div class="alert" :class="'alert-' + type">
     <div class="alert-box">
       <div class="alert-icon-wrapper" id="icon">
-        <t-icon :icon="icons[type]"/>
+        <t-icon :icon="icons[type]" />
       </div>
       <div class="alert-info-wrapper">
         <h3 id="title">{{ title }}</h3>
@@ -19,41 +19,39 @@ included in the LICENSE file.
         </div>
       </div>
       <div class="flex-1 flex justify-end pr-2" v-if="dismiss">
-        <t-button
-          type="compact"
-          class="notification-right-button"
-          @click="dismiss?.action"
-          >{{ dismiss.name }}</t-button
-        >
+        <t-button type="compact" class="notification-right-button" @click="dismiss?.action">{{
+          dismiss.name
+        }}</t-button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import TIcon, { IconType } from "@/components/common/Icon/TIcon.vue";
+import type { IconType } from '@/components/common/Icon/TIcon.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
 
-import TButton from "@/components/common/Button/TButton.vue";
+import TButton from '@/components/common/Button/TButton.vue'
 
-export type AlertType = "error" | "info" | "success" | "warn";
+export type AlertType = 'error' | 'info' | 'success' | 'warn'
 
 type Props = {
-  type: AlertType;
-  title: string;
+  type: AlertType
+  title: string
   dismiss?: {
-    name: string;
-    action: () => void;
-  };
-};
+    name: string
+    action: () => void
+  }
+}
 
-defineProps<Props>();
+defineProps<Props>()
 
 const icons: Record<AlertType, IconType> = {
-  "error": "error",
-  "info": "info",
-  "success": "check-in-circle",
-  "warn": "warning",
-};
+  error: 'error',
+  info: 'info',
+  success: 'check-in-circle',
+  warn: 'warning',
+}
 </script>
 
 <style>

@@ -10,7 +10,7 @@ included in the LICENSE file.
       <h3 class="text-base text-naturals-N14">
         Destroy the Machine Class {{ $route.query.classname }} ?
       </h3>
-      <close-button @click="close"/>
+      <close-button @click="close" />
     </div>
 
     <p class="text-xs py-2">Please confirm the action.</p>
@@ -24,51 +24,52 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { useRoute, useRouter } from "vue-router";
-import { showError, showSuccess } from "@/notification";
-import { ResourceService } from "@/api/grpc";
-import { Runtime } from "@/api/common/omni.pb";
-import { withRuntime } from "@/api/options";
-import { DefaultNamespace, MachineClassType } from "@/api/resources";
+import { useRoute, useRouter } from 'vue-router'
+import { showError, showSuccess } from '@/notification'
+import { ResourceService } from '@/api/grpc'
+import { Runtime } from '@/api/common/omni.pb'
+import { withRuntime } from '@/api/options'
+import { DefaultNamespace, MachineClassType } from '@/api/resources'
 
-import CloseButton from "@/views/omni/Modals/CloseButton.vue";
-import TButton from "@/components/common/Button/TButton.vue";
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
+import TButton from '@/components/common/Button/TButton.vue'
 
-const router = useRouter();
-const route = useRoute();
+const router = useRouter()
+const route = useRoute()
 
-let closed = false;
+let closed = false
 
 const close = () => {
   if (closed) {
-    return;
+    return
   }
 
-  closed = true;
+  closed = true
 
-  router.go(-1);
-};
+  router.go(-1)
+}
 
 const destroy = async () => {
   try {
-    await ResourceService.Delete({
-      id: route.query.classname as string,
-      namespace: DefaultNamespace,
-      type: MachineClassType,
-    }, withRuntime(Runtime.Omni));
+    await ResourceService.Delete(
+      {
+        id: route.query.classname as string,
+        namespace: DefaultNamespace,
+        type: MachineClassType,
+      },
+      withRuntime(Runtime.Omni),
+    )
   } catch (e) {
-    showError("Failed to remove the machine class", e.message)
+    showError('Failed to remove the machine class', e.message)
 
-    close();
+    close()
 
-    return;
+    return
   }
 
-  close();
+  close()
 
-  showSuccess(
-    `The Machine Class ${route.query.classname} was Destroyed`,
-  );
+  showSuccess(`The Machine Class ${route.query.classname} was Destroyed`)
 }
 </script>
 

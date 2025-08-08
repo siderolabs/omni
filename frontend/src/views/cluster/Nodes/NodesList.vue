@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <template>
   <div class="flex flex-col w-full gap-4">
-    <page-header title="All Nodes"/>
+    <page-header title="All Nodes" />
     <t-list :opts="opts" search pagination>
       <template #default="{ items, searchQuery }">
         <div class="nodes-list">
@@ -32,58 +32,64 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { getContext } from "@/context";
-import { kubernetes, ClusterMachineStatusType, LabelCluster, ClusterMachineStatusLabelNodeName, TalosMemberType, TalosClusterNamespace } from "@/api/resources";
-import { Runtime } from "@/api/common/omni.pb";
-import { ClusterMachineStatusSpec } from "@/api/omni/specs/omni.pb";
-import { useRoute } from "vue-router";
-import { DefaultNamespace } from "@/api/resources";
-import { V1Node } from "@kubernetes/client-node";
+import { getContext } from '@/context'
+import {
+  kubernetes,
+  ClusterMachineStatusType,
+  LabelCluster,
+  ClusterMachineStatusLabelNodeName,
+  TalosMemberType,
+  TalosClusterNamespace,
+} from '@/api/resources'
+import { Runtime } from '@/api/common/omni.pb'
+import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
+import { useRoute } from 'vue-router'
+import { DefaultNamespace } from '@/api/resources'
+import type { V1Node } from '@kubernetes/client-node'
 
-import TList from "@/components/common/List/TList.vue";
-import PageHeader from "@/components/common/PageHeader.vue";
-import NodesItem from "@/views/cluster/Nodes/components/NodesItem.vue";
-import TGroupAnimation from "@/components/common/Animation/TGroupAnimation.vue";
-import { Resource } from "@/api/grpc";
+import TList from '@/components/common/List/TList.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
+import NodesItem from '@/views/cluster/Nodes/components/NodesItem.vue'
+import TGroupAnimation from '@/components/common/Animation/TGroupAnimation.vue'
+import type { Resource } from '@/api/grpc'
 
-const route = useRoute();
-const context = getContext();
+const route = useRoute()
+const context = getContext()
 
 const opts = [
-{
-  runtime: Runtime.Omni,
-  resource: {
-    type: ClusterMachineStatusType,
-    namespace: DefaultNamespace,
+  {
+    runtime: Runtime.Omni,
+    resource: {
+      type: ClusterMachineStatusType,
+      namespace: DefaultNamespace,
+    },
+    selectors: [`${LabelCluster}=${route.params.cluster}`],
+    idFunc: (item: Resource<ClusterMachineStatusSpec>): string => {
+      return (item?.metadata?.labels ?? {})[ClusterMachineStatusLabelNodeName] ?? item.metadata.id
+    },
   },
-  selectors: [
-    `${LabelCluster}=${route.params.cluster}`
-  ],
-  idFunc: (item: Resource<ClusterMachineStatusSpec>): string => {
-    return (item?.metadata?.labels ?? {})[ClusterMachineStatusLabelNodeName] ?? item.metadata.id;
-  }
-},
-{
-  runtime: Runtime.Kubernetes,
-  resource: {
-    type: kubernetes.node,
+  {
+    runtime: Runtime.Kubernetes,
+    resource: {
+      type: kubernetes.node,
+    },
+    context,
+    idFunc: (item: V1Node): string => {
+      return item.metadata!.name!
+    },
   },
-  context,
-  idFunc: (item: V1Node): string => {
-    return item.metadata!.name!;
-  }
-},
-{
-  runtime: Runtime.Talos,
-  resource: {
-    type: TalosMemberType,
-    namespace: TalosClusterNamespace,
+  {
+    runtime: Runtime.Talos,
+    resource: {
+      type: TalosMemberType,
+      namespace: TalosClusterNamespace,
+    },
+    context,
+    idFunc: (item: any): string => {
+      return item.metadata.id
+    },
   },
-  context,
-  idFunc: (item: any): string => {
-    return item.metadata.id;
-  }
-}];
+]
 </script>
 
 <style scoped>

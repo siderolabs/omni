@@ -7,10 +7,8 @@ included in the LICENSE file.
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">
-        Untaint single node cluster
-      </h3>
-      <close-button @click="closeModal"/>
+      <h3 class="text-base text-naturals-N14">Untaint single node cluster</h3>
+      <close-button @click="closeModal" />
     </div>
     <p class="text-xs">Apply patch that will enable scheduling user workloads on this node?</p>
 
@@ -22,19 +20,19 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { closeModal } from "@/modal";
+import { closeModal } from '@/modal'
 
-import CloseButton from "@/views/omni/Modals/CloseButton.vue";
-import TButton from "@/components/common/Button/TButton.vue";
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
+import TButton from '@/components/common/Button/TButton.vue'
 
 const props = defineProps<{
-  onContinue: (untaint: boolean) => void;
-}>();
+  onContinue: (untaint: boolean) => void
+}>()
 
 const onContinue = (untaint: boolean) => {
-  closeModal();
-  props.onContinue(untaint);
-};
+  closeModal()
+  props.onContinue(untaint)
+}
 </script>
 
 <style scoped>

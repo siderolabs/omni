@@ -8,24 +8,13 @@ included in the LICENSE file.
   <div class="flex flex-col gap-2">
     <div class="flex items-start">
       <page-header class="flex-1" :title="title" />
-      <t-button
-        type="highlighted"
-        @click="applyChanges"
-        :disabled="applyChangesDisabled"
+      <t-button type="highlighted" @click="applyChanges" :disabled="applyChangesDisabled"
         >Apply Changes ({{ numChanges }})</t-button
       >
     </div>
-    <t-alert v-if="error"
-      title="Manifest Sync Error"
-      type="error"
-    >
-      {{ error }}.
-    </t-alert>
+    <t-alert v-if="error" title="Manifest Sync Error" type="error"> {{ error }}. </t-alert>
     <div class="flex-1 font-sm overflow-y-auto" ref="resultsComponent">
-      <div
-        v-if="loading"
-        class="w-full h-full flex items-center justify-center"
-      >
+      <div v-if="loading" class="w-full h-full flex items-center justify-center">
         <t-spinner class="w-6 h-6" />
       </div>
       <t-list-item
@@ -39,29 +28,33 @@ included in the LICENSE file.
           </span>
           <span
             :class="{
-              'text-primary-P3': item.diff && syncParams.dry_run && item.response_type !== KubernetesSyncManifestResponseResponseType.UNKNOWN,
-              'text-green-G1': item.diff && !syncParams.dry_run && item.response_type !== KubernetesSyncManifestResponseResponseType.UNKNOWN,
-              'text-red-R1': item.response_type === KubernetesSyncManifestResponseResponseType.UNKNOWN,
+              'text-primary-P3':
+                item.diff &&
+                syncParams.dry_run &&
+                item.response_type !== KubernetesSyncManifestResponseResponseType.UNKNOWN,
+              'text-green-G1':
+                item.diff &&
+                !syncParams.dry_run &&
+                item.response_type !== KubernetesSyncManifestResponseResponseType.UNKNOWN,
+              'text-red-R1':
+                item.response_type === KubernetesSyncManifestResponseResponseType.UNKNOWN,
             }"
             >{{ item.path }}</span
           >
           <span v-if="!item.diff" class="text-naturals-N9"> (No changes) </span>
-          <span v-if="item.diff && !syncParams.dry_run" class="text-green-G1">
-            (Updated)
-          </span>
+          <span v-if="item.diff && !syncParams.dry_run" class="text-green-G1"> (Updated) </span>
         </template>
         <template
           #details
           v-if="
-          [KubernetesSyncManifestResponseResponseType.MANIFEST, KubernetesSyncManifestResponseResponseType.UNKNOWN].includes(item.response_type!)
+            [
+              KubernetesSyncManifestResponseResponseType.MANIFEST,
+              KubernetesSyncManifestResponseResponseType.UNKNOWN,
+            ].includes(item.response_type!)
           "
         >
           <div class="diff bottom-line" v-if="item.diff">
-            <div
-              v-for="diff in item.diff.split('\n')"
-              :key="diff"
-              :class="highlightDiff(diff)"
-            >
+            <div v-for="diff in item.diff.split('\n')" :key="diff" :class="highlightDiff(diff)">
               {{ diff }}
             </div>
           </div>
@@ -78,152 +71,139 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import {
-  computed,
-  ref,
-  Ref,
-  onMounted,
-  onUnmounted,
-  nextTick,
-  watch,
-} from "vue";
-import { useRoute } from "vue-router";
+import type { Ref } from 'vue'
+import { computed, ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
-import PageHeader from "@/components/common/PageHeader.vue";
-import TSpinner from "@/components/common/Spinner/TSpinner.vue";
-import TListItem from "@/components/common/List/TListItem.vue";
-import TButton from "@/components/common/Button/TButton.vue";
-import { showSuccess } from "@/notification";
-import TAlert from "@/components/TAlert.vue";
+import PageHeader from '@/components/common/PageHeader.vue'
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import TListItem from '@/components/common/List/TListItem.vue'
+import TButton from '@/components/common/Button/TButton.vue'
+import { showSuccess } from '@/notification'
+import TAlert from '@/components/TAlert.vue'
 
-import {
+import type {
   KubernetesSyncManifestRequest,
   KubernetesSyncManifestResponse,
+} from '@/api/omni/management/management.pb'
+import {
   ManagementService,
   KubernetesSyncManifestResponseResponseType,
-} from "@/api/omni/management/management.pb";
-import { subscribe, Stream } from "@/api/grpc";
-import { withContext, withRuntime } from "@/api/options";
-import { Runtime } from "@/api/common/omni.pb";
-import { getContext } from "@/context";
-import { b64Decode } from "@/api/fetch.pb";
+} from '@/api/omni/management/management.pb'
+import type { Stream } from '@/api/grpc'
+import { subscribe } from '@/api/grpc'
+import { withContext, withRuntime } from '@/api/options'
+import { Runtime } from '@/api/common/omni.pb'
+import { getContext } from '@/context'
+import { b64Decode } from '@/api/fetch.pb'
 
-const textDecoder = new TextDecoder();
+const textDecoder = new TextDecoder()
 
-const route = useRoute();
-const context = getContext();
+const route = useRoute()
+const context = getContext()
 
-const loading = ref(true);
-const loaded = ref(false);
+const loading = ref(true)
+const loaded = ref(false)
 
-const resultsComponent: Ref<HTMLDivElement | undefined> = ref();
+const resultsComponent: Ref<HTMLDivElement | undefined> = ref()
 
 const title = computed(() => {
-  return `Bootstrap Manifest Sync for ${route.params.cluster}`;
-});
+  return `Bootstrap Manifest Sync for ${route.params.cluster}`
+})
 
 const syncParams: Ref<KubernetesSyncManifestRequest> = ref({
   dry_run: true,
-});
+})
 
 const applyChangesDisabled = computed(() => {
-  return (
-    !loaded.value ||
-    loading.value ||
-    !syncParams.value.dry_run ||
-    numChanges.value === 0
-  );
-});
+  return !loaded.value || loading.value || !syncParams.value.dry_run || numChanges.value === 0
+})
 
 const numChanges = computed(() => {
-  return syncResults.value.filter(
-    (item) => item.diff !== undefined && item.diff !== ""
-  ).length;
-});
+  return syncResults.value.filter((item) => item.diff !== undefined && item.diff !== '').length
+})
 
 const applyChanges = () => {
-  syncParams.value.dry_run = false;
-};
+  syncParams.value.dry_run = false
+}
 
-const syncResults: Ref<KubernetesSyncManifestResponse[]> = ref([]);
+const syncResults: Ref<KubernetesSyncManifestResponse[]> = ref([])
 
 const itemID = (item: KubernetesSyncManifestResponse) => {
-  return `${item.response_type}-${item.path}`;
-};
+  return `${item.response_type}-${item.path}`
+}
 
 const itemImportant = (item: KubernetesSyncManifestResponse) => {
   return (
     item.response_type === KubernetesSyncManifestResponseResponseType.UNKNOWN ||
-    (item.response_type ===
-      KubernetesSyncManifestResponseResponseType.MANIFEST &&
+    (item.response_type === KubernetesSyncManifestResponseResponseType.MANIFEST &&
       item.diff !== undefined &&
-      item.diff !== "" &&
+      item.diff !== '' &&
       syncParams.value.dry_run)
-  );
-};
+  )
+}
 
 const itemLabel = (item: KubernetesSyncManifestResponse) => {
   switch (item.response_type) {
     case KubernetesSyncManifestResponseResponseType.UNKNOWN:
-      return "ERROR";
+      return 'ERROR'
     case KubernetesSyncManifestResponseResponseType.MANIFEST:
-      return "Manifest";
+      return 'Manifest'
     case KubernetesSyncManifestResponseResponseType.ROLLOUT:
-      return "Rollout";
+      return 'Rollout'
     default:
-      return "Unknown";
+      return 'Unknown'
   }
 }
 
 const highlightDiff = (line: string) => {
-  if (line.startsWith("@@")) {
-    return "text-talos-gray-500";
+  if (line.startsWith('@@')) {
+    return 'text-talos-gray-500'
   }
 
-  if (line.startsWith("- ")) {
-    return "text-red-500";
+  if (line.startsWith('- ')) {
+    return 'text-red-500'
   }
 
-  if (line.startsWith("+ ")) {
-    return "text-green-500";
+  if (line.startsWith('+ ')) {
+    return 'text-green-500'
   }
 
-  return "";
-};
+  return ''
+}
 
-const error = ref<string>();
+const error = ref<string>()
 
 const setupSyncStream = () => {
   const stream: Ref<
-    | Stream<KubernetesSyncManifestRequest, KubernetesSyncManifestResponse>
-    | undefined
-  > = ref();
+    Stream<KubernetesSyncManifestRequest, KubernetesSyncManifestResponse> | undefined
+  > = ref()
 
   const reset = () => {
-    syncResults.value = [];
-    loaded.value = false;
-  };
+    syncResults.value = []
+    loaded.value = false
+  }
 
   const processItem = (resp: KubernetesSyncManifestResponse) => {
-    loading.value = false;
+    loading.value = false
 
-    syncResults.value = syncResults.value.concat(resp);
+    syncResults.value = syncResults.value.concat(resp)
 
     nextTick(() => {
       if (resultsComponent.value && !loaded.value) {
         // scroll to the bottom
-        resultsComponent.value.scrollTop = resultsComponent.value.scrollHeight;
+        resultsComponent.value.scrollTop = resultsComponent.value.scrollHeight
       }
-    });
-  };
+    })
+  }
 
   const init = () => {
     if (stream.value) {
-      stream.value.shutdown();
-      loading.value = true;
+      stream.value.shutdown()
+      loading.value = true
     }
 
-    reset();
+    reset()
 
     stream.value = subscribe(
       ManagementService.KubernetesSyncManifests,
@@ -232,32 +212,32 @@ const setupSyncStream = () => {
       [withRuntime(Runtime.Talos), withContext(context)],
       undefined,
       (e: Error) => {
-        error.value = e.message;
-        loading.value = false;
+        error.value = e.message
+        loading.value = false
       },
       () => {
-        loaded.value = true;
-        error.value = undefined;
+        loaded.value = true
+        error.value = undefined
 
         if (!syncParams.value.dry_run) {
-          showSuccess("Bootstrap manifests updated successfully");
+          showSuccess('Bootstrap manifests updated successfully')
         }
-      }
-    );
-  };
+      },
+    )
+  }
 
-  onMounted(init);
+  onMounted(init)
 
   onUnmounted(() => {
-    if (stream.value) stream.value.shutdown();
-  });
+    if (stream.value) stream.value.shutdown()
+  })
 
-  watch(syncParams.value, init);
+  watch(syncParams.value, init)
 
-  return stream;
-};
+  return stream
+}
 
-setupSyncStream();
+setupSyncStream()
 </script>
 
 <style scoped>

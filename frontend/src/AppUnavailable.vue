@@ -9,13 +9,14 @@ included in the LICENSE file.
     <t-header />
     <div class="flex flex-col flex-1 items-center justify-center">
       <div class="error">
-        <t-icon icon="warning" class="h-12 w-12 fill-current text-naturals-N14"/>
+        <t-icon icon="warning" class="h-12 w-12 fill-current text-naturals-N14" />
         <div class="flex flex-col text-naturals-N13">
+          <div>It appears we are experiencing some issues.</div>
           <div>
-            It appears we are experiencing some issues.
-          </div>
-          <div>
-            Please try later again or <a class="contact-link text-naturals-N12" href="https://www.siderolabs.com/contact/">contact us</a>.
+            Please try later again or
+            <a class="contact-link text-naturals-N12" href="https://www.siderolabs.com/contact/"
+              >contact us</a
+            >.
           </div>
         </div>
       </div>
@@ -24,8 +25,8 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import THeader from "@/components/THeader/THeader.vue";
-import TIcon from "@/components/common/Icon/TIcon.vue";
+import THeader from '@/components/THeader/THeader.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
 </script>
 
 <style scoped>

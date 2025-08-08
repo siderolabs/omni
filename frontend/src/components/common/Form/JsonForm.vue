@@ -8,26 +8,23 @@ included in the LICENSE file.
   <div>
     <json-forms
       v-if="schema && uiSchema"
-        :data="modelValue"
-        :renderers="Object.freeze(renderers)"
-        :schema="schema"
-        :uischema="uiSchema"
-        :additional-errors="errors"
-        validation-mode="NoValidation"
-        @change="onChange"
-      />
+      :data="modelValue"
+      :renderers="Object.freeze(renderers)"
+      :schema="schema"
+      :uischema="uiSchema"
+      :additional-errors="errors"
+      validation-mode="NoValidation"
+      @change="onChange"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { type ErrorObject } from"ajv";
-import { computed, ref, toRefs, watch } from "vue";
-import { JsonForms } from "@jsonforms/vue";
+import { type ErrorObject } from 'ajv'
+import { computed, ref, toRefs, watch } from 'vue'
+import { JsonForms } from '@jsonforms/vue'
+import type { UISchemaElement, Layout, Scoped, JsonSchema } from '@jsonforms/core'
 import {
-  UISchemaElement,
-  Layout,
-  Scoped,
-  JsonSchema,
   isBooleanControl,
   isOneOfEnumControl,
   isEnumControl,
@@ -38,29 +35,29 @@ import {
   isDateControl,
   isTimeControl,
   schemaTypeIs,
-  rankWith
-} from '@jsonforms/core';
-import { vanillaRenderers } from "@jsonforms/vue-vanilla";
-import BooleanRenderer from "./BooleanRenderer.vue";
-import EnumOneOfRenderer from "./EnumOneOfRenderer.vue";
-import EnumRenderer from "./EnumRenderer.vue";
-import NumberRenderer from "./NumberRenderer.vue";
-import IntegerRenderer from "./IntegerRenderer.vue";
-import DateTimeControlRenderer from "./DateTimeControlRenderer.vue";
-import StringRenderer from "./StringRenderer.vue";
-import ArrayRenderer from "./ArrayRenderer.vue";
-import DateControlRenderer from "./DateControlRenderer.vue";
-import TimeControlRenderer from "./TimeControlRenderer.vue";
-import { ManagementService } from "@/api/omni/management/management.pb";
+  rankWith,
+} from '@jsonforms/core'
+import { vanillaRenderers } from '@jsonforms/vue-vanilla'
+import BooleanRenderer from './BooleanRenderer.vue'
+import EnumOneOfRenderer from './EnumOneOfRenderer.vue'
+import EnumRenderer from './EnumRenderer.vue'
+import NumberRenderer from './NumberRenderer.vue'
+import IntegerRenderer from './IntegerRenderer.vue'
+import DateTimeControlRenderer from './DateTimeControlRenderer.vue'
+import StringRenderer from './StringRenderer.vue'
+import ArrayRenderer from './ArrayRenderer.vue'
+import DateControlRenderer from './DateControlRenderer.vue'
+import TimeControlRenderer from './TimeControlRenderer.vue'
+import { ManagementService } from '@/api/omni/management/management.pb'
 
-import yaml from "js-yaml";
+import yaml from 'js-yaml'
 
-const errors = ref<ErrorObject[]>([]);
+const errors = ref<ErrorObject[]>([])
 
-const emit = defineEmits(['update:model-value']);
+const emit = defineEmits(['update:model-value'])
 
-const onChange = async (event: {data: any, errors: any}) => {
-  emit('update:model-value', event.data);
+const onChange = async (event: { data: any; errors: any }) => {
+  emit('update:model-value', event.data)
 }
 
 const renderers = [
@@ -105,43 +102,43 @@ const renderers = [
     tester: rankWith(50, isTimeControl),
   },
   ...vanillaRenderers,
-];
+]
 
 const props = defineProps<{
   jsonSchema: string
   modelValue: any
-}>();
+}>()
 
-const { jsonSchema, modelValue } = toRefs(props);
-const schema = ref<JsonSchema>();
-const err = ref<Error>();
+const { jsonSchema, modelValue } = toRefs(props)
+const schema = ref<JsonSchema>()
+const err = ref<Error>()
 
 const renderSchema = () => {
-  err.value = undefined;
+  err.value = undefined
 
   try {
-    schema.value = JSON.parse(jsonSchema.value);
+    schema.value = JSON.parse(jsonSchema.value)
   } catch (e) {
-    err.value = e;
+    err.value = e
   }
-};
+}
 
-watch(modelValue, val => {
-  updateErrors(val);
+watch(modelValue, (val) => {
+  updateErrors(val)
 })
 
 const updateErrors = async (data: any) => {
   if (!jsonSchema.value) {
-    return;
+    return
   }
 
-  const response =  await ManagementService.ValidateJSONSchema({
+  const response = await ManagementService.ValidateJSONSchema({
     schema: jsonSchema.value,
     data: yaml.dump(data),
-  });
+  })
 
-  errors.value = response.errors?.map<ErrorObject>(
-    item => ({
+  errors.value =
+    response.errors?.map<ErrorObject>((item) => ({
       // TODO: Required props for ErrorObject, but possible that this error feature is not working currently
       keyword: '',
       instancePath: '',
@@ -149,38 +146,37 @@ const updateErrors = async (data: any) => {
       schemaPath: item.schema_path!,
       dataPath: item.data_path!,
       message: item.cause,
-    })
-  ) ?? [];
+    })) ?? []
 }
 
-watch(jsonSchema, renderSchema);
+watch(jsonSchema, renderSchema)
 
-renderSchema();
+renderSchema()
 
-updateErrors(modelValue.value);
+updateErrors(modelValue.value)
 
 const uiSchema = computed(() => {
   if (!schema.value) {
-    return;
+    return
   }
 
   const layout: Layout = {
     type: 'VerticalLayout',
     elements: [],
-  };
+  }
 
   for (const key in schema.value.properties) {
     if (schema.value.properties[key].type === 'null') {
-      continue;
+      continue
     }
 
     layout.elements.push({
       type: 'Control',
-      scope: `#/properties/${key}`
-    } as Scoped & UISchemaElement);
+      scope: `#/properties/${key}`,
+    } as Scoped & UISchemaElement)
   }
 
-  return layout;
+  return layout
 })
 </script>
 

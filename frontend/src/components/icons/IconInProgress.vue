@@ -5,12 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <svg
-    class="icon"
-    viewBox="0 0 21 21"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg class="icon" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="10.5" cy="10.5" r="10.5" />
     <path
       fill-rule="evenodd"
@@ -68,5 +63,4 @@ included in the LICENSE file.
   @apply origin-center;
 }
 </style>
-<script setup lang="ts">
-</script>
+<script setup lang="ts"></script>

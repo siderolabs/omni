@@ -11,44 +11,42 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { watch, ref, type Component, shallowRef, type Ref } from "vue";
-import { useRoute } from "vue-router";
-import { modals } from "@/router";
-import { modal } from "@/modal";
+import { watch, ref, type Component, shallowRef, type Ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { modals } from '@/router'
+import { modal } from '@/modal'
 
-const route = useRoute();
-const view: Ref<Component | null> = shallowRef(null);
-const props = ref({});
+const route = useRoute()
+const view: Ref<Component | null> = shallowRef(null)
+const props = ref({})
 
 const updateState = () => {
   if (modal.value) {
-    view.value = modal.value.component;
-    props.value = modal.value.props || {};
+    view.value = modal.value.component
+    props.value = modal.value.props || {}
 
-    return;
+    return
   }
 
-  props.value = {};
-  view.value = route.query.modal
-    ? modals[route.query.modal as string]
-    : null;
-};
+  props.value = {}
+  view.value = route.query.modal ? modals[route.query.modal as string] : null
+}
 
 watch(
   () => route.query.modal,
   () => {
-    if (route.query.modal) modal.value = null;
+    if (route.query.modal) modal.value = null
 
-    updateState();
-  }
-);
+    updateState()
+  },
+)
 
 // modals which do not need to be tied to the URI
 watch(modal, () => {
-  updateState();
-});
+  updateState()
+})
 
-updateState();
+updateState()
 </script>
 
 <style scoped>

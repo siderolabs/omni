@@ -25,9 +25,9 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { ref, toRefs } from "vue";
-import TIcon from "@/components/common/Icon/TIcon.vue";
-import TAnimation from "@/components/common/Animation/TAnimation.vue";
+import { ref, toRefs } from 'vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
+import TAnimation from '@/components/common/Animation/TAnimation.vue'
 
 type Props = {
   label?: string
@@ -38,7 +38,7 @@ const props = defineProps<Props>()
 
 const { label, info } = toRefs(props)
 
-const isInfoVisible = ref(false);
+const isInfoVisible = ref(false)
 </script>
 
 <style scoped>
@@ -60,7 +60,7 @@ const isInfoVisible = ref(false);
   z-index: 0;
 }
 .label__info::before {
-  content: "";
+  content: '';
   @apply w-3 h-3 bg-naturals-N3 border border-naturals-N4 absolute block border-r-0 border-t-0;
   border-radius: 1px;
   transform: rotate(45deg);

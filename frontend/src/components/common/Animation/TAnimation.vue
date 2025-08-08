@@ -11,14 +11,14 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { toRefs } from "vue";
+import { toRefs } from 'vue'
 
 type Props = {
   name?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  name: "fade",
+  name: 'fade',
 })
 
 const { name } = toRefs(props)

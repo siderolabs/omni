@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <template>
   <TabList class="tabs">
-    <slot/>
+    <slot />
   </TabList>
 </template>
 

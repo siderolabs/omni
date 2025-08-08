@@ -1,24 +1,24 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-08-04T18:17:12Z by kres 95bf7d7.
+# Generated on 2025-08-11T08:26:36Z by kres 0b55a0b-dirty.
 
 *
 !frontend/src
 !frontend/test
+!frontend/public
 !client/api
 !client/pkg
 !cmd
 !internal
 !docs
 !frontend/*.json
-!frontend/*.lock
-!frontend/*.toml
 !frontend/*.js
 !frontend/*.ts
 !frontend/*.html
-!frontend/*.ico
-!frontend/public
-!frontend/eslint.config.js
+!frontend/.npmrc
+!frontend/.editorconfig
+!frontend/.prettier*
+!frontend/eslint.config.ts
 !internal/frontend/frontend.go
 !client/go.mod
 !client/go.sum

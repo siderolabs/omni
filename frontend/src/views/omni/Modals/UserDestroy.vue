@@ -15,110 +15,111 @@ included in the LICENSE file.
     <p class="text-xs">Please confirm the action.</p>
 
     <div class="flex justify-end gap-4 mt-8">
-      <t-button @click="destroy" class="w-32 h-9">
-        Delete
-      </t-button>
+      <t-button @click="destroy" class="w-32 h-9"> Delete </t-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { DefaultNamespace, IdentityType, UserType } from "@/api/resources";
-import { useRoute, useRouter } from "vue-router";
-import { showError, showSuccess } from "@/notification";
-import { ResourceService } from "@/api/grpc";
-import { Code } from '@/api/google/rpc/code.pb';
-import { Runtime } from "@/api/common/omni.pb";
+import { DefaultNamespace, IdentityType, UserType } from '@/api/resources'
+import { useRoute, useRouter } from 'vue-router'
+import { showError, showSuccess } from '@/notification'
+import { ResourceService } from '@/api/grpc'
+import { Code } from '@/api/google/rpc/code.pb'
+import { Runtime } from '@/api/common/omni.pb'
 
-import CloseButton from "@/views/omni/Modals/CloseButton.vue";
-import TButton from "@/components/common/Button/TButton.vue";
-import { withRuntime } from "@/api/options";
-import { ManagementService } from "@/api/omni/management/management.pb";
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
+import TButton from '@/components/common/Button/TButton.vue'
+import { withRuntime } from '@/api/options'
+import { ManagementService } from '@/api/omni/management/management.pb'
 
-const router = useRouter();
-const route = useRoute();
+const router = useRouter()
+const route = useRoute()
 
-const object = route.query.serviceAccount ? "Service Account" : "User";
-const id = route.query.identity ?? route.query.serviceAccount;
+const object = route.query.serviceAccount ? 'Service Account' : 'User'
+const id = route.query.identity ?? route.query.serviceAccount
 
-let closed = false;
+let closed = false
 
 const close = () => {
   if (closed) {
-    return;
+    return
   }
 
-  closed = true;
+  closed = true
 
-  router.go(-1);
-};
+  router.go(-1)
+}
 
 const destroy = async () => {
-  let destroyed = true;
+  let destroyed = true
 
   if (route.query.serviceAccount) {
-    const parts = (id as string).split("@");
-    let name = parts[0];
+    const parts = (id as string).split('@')
+    let name = parts[0]
 
-    if (parts[1].indexOf("infra-provider") !== -1) {
-      name = `infra-provider:${name}`;
+    if (parts[1].indexOf('infra-provider') !== -1) {
+      name = `infra-provider:${name}`
     }
 
     try {
       await ManagementService.DestroyServiceAccount({
         name,
-      });
+      })
     } catch (e) {
-      showError("Failed to Delete the Service Account", e.message)
+      showError('Failed to Delete the Service Account', e.message)
 
-      return;
+      return
     }
 
-    close();
+    close()
 
     showSuccess(`Deleted Service Account ${id}`)
 
-    return;
+    return
   }
 
   if (route.query.user) {
     try {
-      await ResourceService.Delete({
-        namespace: DefaultNamespace,
-        type: UserType,
-        id: route.query.user as string,
-      }, withRuntime(Runtime.Omni));
+      await ResourceService.Delete(
+        {
+          namespace: DefaultNamespace,
+          type: UserType,
+          id: route.query.user as string,
+        },
+        withRuntime(Runtime.Omni),
+      )
     } catch (e) {
       if (e.code !== Code.NOT_FOUND) {
-        showError("Failed to Remove the User", e.message)
+        showError('Failed to Remove the User', e.message)
 
-        destroyed = false;
+        destroyed = false
       }
     }
   }
 
   if (route.query.identity) {
     try {
-      await ResourceService.Delete({
-        namespace: DefaultNamespace,
-        type: IdentityType,
-        id: route.query.identity as string,
-      }, withRuntime(Runtime.Omni));
+      await ResourceService.Delete(
+        {
+          namespace: DefaultNamespace,
+          type: IdentityType,
+          id: route.query.identity as string,
+        },
+        withRuntime(Runtime.Omni),
+      )
     } catch (e) {
       if (e.code !== Code.NOT_FOUND) {
-        showError("Failed to Remove the Identity", e.message)
+        showError('Failed to Remove the Identity', e.message)
 
-        destroyed = false;
+        destroyed = false
       }
     }
   }
 
-  close();
+  close()
 
-  if (destroyed)
-    showSuccess(
-      `The User ${route.query.identity} was Destroyed`
-    );
+  if (destroyed) showSuccess(`The User ${route.query.identity} was Destroyed`)
 }
 </script>
 

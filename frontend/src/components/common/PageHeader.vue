@@ -5,11 +5,11 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <div class="flex flex-col gap-1" :class="{'mb-7': !subtitle, 'mb-2': subtitle}">
+  <div class="flex flex-col gap-1" :class="{ 'mb-7': !subtitle, 'mb-2': subtitle }">
     <div class="flex gap-6 items-center">
       <h3 class="title">{{ title }}</h3>
       <div class="max-md:hidden flex gap-6 items-center">
-        <slot/>
+        <slot />
       </div>
     </div>
     <div v-if="subtitle" class="text-sm text-naturals-N13">{{ subtitle }}</div>
@@ -19,12 +19,12 @@ included in the LICENSE file.
 
 <script setup lang="ts">
 type Props = {
-  title: string;
-  subtitle?: string;
-  notes?: string;
-};
+  title: string
+  subtitle?: string
+  notes?: string
+}
 
-defineProps<Props>();
+defineProps<Props>()
 </script>
 
 <style scoped>

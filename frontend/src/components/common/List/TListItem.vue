@@ -15,7 +15,7 @@ included in the LICENSE file.
               class="row-arrow"
               :class="{ pushed: isDropdownOpened }"
               icon="drop-up"
-              />
+            />
           </span>
           <div class="row-head">
             <slot></slot>
@@ -32,19 +32,19 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import TIcon from "@/components/common/Icon/TIcon.vue";
-import { toRefs, ref } from "vue";
+import TIcon from '@/components/common/Icon/TIcon.vue'
+import { toRefs, ref } from 'vue'
 
-import TSlideDownWrapper from "@/components/common/SlideDownWrapper/TSlideDownWrapper.vue";
+import TSlideDownWrapper from '@/components/common/SlideDownWrapper/TSlideDownWrapper.vue'
 
 const props = defineProps<{
-  isDefaultOpened?: boolean,
-  disableBorderOnExpand?: boolean,
-}>();
+  isDefaultOpened?: boolean
+  disableBorderOnExpand?: boolean
+}>()
 
-const { isDefaultOpened } = toRefs(props);
+const { isDefaultOpened } = toRefs(props)
 
-const isDropdownOpened = ref(isDefaultOpened?.value as boolean);
+const isDropdownOpened = ref(isDefaultOpened?.value as boolean)
 </script>
 
 <style scoped>

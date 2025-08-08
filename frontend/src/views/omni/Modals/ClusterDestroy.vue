@@ -7,22 +7,23 @@ included in the LICENSE file.
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">
-        Destroy the Cluster {{ $route.query.cluster }} ?
-      </h3>
-      <close-button @click="close"/>
+      <h3 class="text-base text-naturals-N14">Destroy the Cluster {{ $route.query.cluster }} ?</h3>
+      <close-button @click="close" />
     </div>
-    <managed-by-templates-warning warning-style="popup"/>
+    <managed-by-templates-warning warning-style="popup" />
     <p class="text-xs" v-if="destroying">{{ phase }}...</p>
     <p class="text-xs" v-else-if="loading">Checking the cluster status...</p>
     <div v-else-if="disconnectedMachines.length > 0" class="text-xs">
       <p class="text-primary-P3 py-2">
-        Cluster <code>{{ $route.query.cluster }}</code> has {{ disconnectedMachines.length }} disconnected {{ pluralize('machine', disconnectedMachines.length, false) }}.
-        Destroying the cluster now will also destroy disconnected machines.
+        Cluster <code>{{ $route.query.cluster }}</code> has
+        {{ disconnectedMachines.length }} disconnected
+        {{ pluralize('machine', disconnectedMachines.length, false) }}. Destroying the cluster now
+        will also destroy disconnected machines.
       </p>
       <p class="text-primary-P3 py-2 font-bold">
-        These machines will need to be wiped and reinstalled to be used with Omni again.
-        If the machines can be recovered, you may wish to recover them before destroying the cluster, to allow a graceful reset of the machines.
+        These machines will need to be wiped and reinstalled to be used with Omni again. If the
+        machines can be recovered, you may wish to recover them before destroying the cluster, to
+        allow a graceful reset of the machines.
       </p>
     </div>
     <p v-else class="text-xs">Please confirm the action.</p>
@@ -30,139 +31,143 @@ included in the LICENSE file.
     <div class="flex justify-end gap-4 mt-8">
       <t-button @click="destroyCluster" :disabled="destroying || loading" class="w-32 h-9">
         <t-spinner v-if="destroying" class="w-5 h-5" />
-        <span v-else>
-          Destroy
-        </span>
+        <span v-else> Destroy </span>
       </t-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, Ref } from 'vue';
-import { useRoute, useRouter } from "vue-router";
-import { showError, showSuccess } from "@/notification";
-import pluralize from "pluralize";
-import { Resource, ResourceService } from "@/api/grpc";
-import Watch from "@/api/watch";
-import { Runtime } from "@/api/common/omni.pb";
-import { MachineStatusLabelDisconnected, MachineStatusType, DefaultNamespace, LabelCluster, SiderolinkResourceType } from "@/api/resources";
+import type { Ref } from 'vue'
+import { ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { showError, showSuccess } from '@/notification'
+import pluralize from 'pluralize'
+import type { Resource } from '@/api/grpc'
+import { ResourceService } from '@/api/grpc'
+import Watch from '@/api/watch'
+import { Runtime } from '@/api/common/omni.pb'
+import {
+  MachineStatusLabelDisconnected,
+  MachineStatusType,
+  DefaultNamespace,
+  LabelCluster,
+  SiderolinkResourceType,
+} from '@/api/resources'
 
-import CloseButton from "@/views/omni/Modals/CloseButton.vue";
-import TButton from "@/components/common/Button/TButton.vue";
-import TSpinner from "@/components/common/Spinner/TSpinner.vue";
-import { clusterDestroy } from "@/methods/cluster";
-import ManagedByTemplatesWarning from "@/views/cluster/ManagedByTemplatesWarning.vue";
-import { withRuntime } from '@/api/options';
-import { Code } from '@/api/google/rpc/code.pb';
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
+import TButton from '@/components/common/Button/TButton.vue'
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import { clusterDestroy } from '@/methods/cluster'
+import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
+import { withRuntime } from '@/api/options'
+import { Code } from '@/api/google/rpc/code.pb'
 
-const router = useRouter();
-const route = useRoute();
-const phase = ref("");
-let closed = false;
+const router = useRouter()
+const route = useRoute()
+const phase = ref('')
+let closed = false
 
-const disconnectedMachines: Ref<Resource[]> = ref([]);
+const disconnectedMachines: Ref<Resource[]> = ref([])
 
 const close = () => {
   if (closed) {
-    return;
+    return
   }
 
-  closed = true;
+  closed = true
 
-  router.go(-1);
-};
+  router.go(-1)
+}
 
-const machinesWatch = new Watch(disconnectedMachines);
-const loading = machinesWatch.loading;
+const machinesWatch = new Watch(disconnectedMachines)
+const loading = machinesWatch.loading
 
 machinesWatch.setup({
   resource: {
     namespace: DefaultNamespace,
     type: MachineStatusType,
   },
-  selectors: [
-    MachineStatusLabelDisconnected,
-    `${LabelCluster}=${route.query.cluster as string}`,
-  ],
-  runtime: Runtime.Omni
-});
+  selectors: [MachineStatusLabelDisconnected, `${LabelCluster}=${route.query.cluster as string}`],
+  runtime: Runtime.Omni,
+})
 
 const destroyCluster = async () => {
-  destroying.value = true;
+  destroying.value = true
 
   // copy machines to avoid updates coming from the watch
-  const machines = disconnectedMachines.value.slice(0, disconnectedMachines.value.length);
+  const machines = disconnectedMachines.value.slice(0, disconnectedMachines.value.length)
 
   for (const machine of machines) {
-    phase.value = `Tearing down disconnected machine ${machine.metadata.id}`;
+    phase.value = `Tearing down disconnected machine ${machine.metadata.id}`
 
     try {
-      await ResourceService.Teardown({
-        namespace: DefaultNamespace,
-        type: SiderolinkResourceType,
-        id: machine.metadata.id!,
-      }, withRuntime(Runtime.Omni));
+      await ResourceService.Teardown(
+        {
+          namespace: DefaultNamespace,
+          type: SiderolinkResourceType,
+          id: machine.metadata.id!,
+        },
+        withRuntime(Runtime.Omni),
+      )
     } catch (e) {
-      close();
+      close()
 
       if (e.code !== Code.NOT_FOUND) {
-        showError("Failed to Destroy the Cluster", e.message)
+        showError('Failed to Destroy the Cluster', e.message)
       }
 
-      return;
+      return
     }
   }
 
   try {
     await clusterDestroy(route.query.cluster as string)
   } catch (e) {
-    close();
+    close()
 
     if (e.errorNotification) {
-      showError(
-        e.errorNotification.title,
-        e.errorNotification.details,
-      )
+      showError(e.errorNotification.title, e.errorNotification.details)
 
-      return;
+      return
     }
 
-    showError("Failed to Destroy the Cluster", e.message);
+    showError('Failed to Destroy the Cluster', e.message)
 
-    return;
+    return
   }
 
   for (const machine of machines) {
-    phase.value = `Remove disconnected machine ${machine.metadata.id}`;
+    phase.value = `Remove disconnected machine ${machine.metadata.id}`
 
     try {
-      await ResourceService.Delete({
-        namespace: DefaultNamespace,
-        type: SiderolinkResourceType,
-        id: machine.metadata.id!,
-      }, withRuntime(Runtime.Omni));
+      await ResourceService.Delete(
+        {
+          namespace: DefaultNamespace,
+          type: SiderolinkResourceType,
+          id: machine.metadata.id!,
+        },
+        withRuntime(Runtime.Omni),
+      )
     } catch (e) {
-      close();
+      close()
 
       if (e.code !== Code.NOT_FOUND) {
-        showError("Failed to Destroy the Cluster", e.message)
+        showError('Failed to Destroy the Cluster', e.message)
       }
 
-      return;
+      return
     }
   }
 
-  destroying.value = false;
+  destroying.value = false
 
-  close();
+  close()
 
-  showSuccess(
-    `The Cluster ${route.query.cluster} is Tearing Down`,
-  );
+  showSuccess(`The Cluster ${route.query.cluster} is Tearing Down`)
 }
 
-const destroying = ref(false);
+const destroying = ref(false)
 </script>
 
 <style scoped>

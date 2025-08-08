@@ -9,60 +9,49 @@ included in the LICENSE file.
     <div class="overview">
       <div class="overview-container">
         <div class="overview-charts-box relative">
-          <div class="flex flex-wrap justify-around w-full items-stretch gap-2 transition-opacity duration-500" :class="{'opacity-25': !showStats}">
+          <div
+            class="flex flex-wrap justify-around w-full items-stretch gap-2 transition-opacity duration-500"
+            :class="{ 'opacity-25': !showStats }"
+          >
             <radial-bar
               name="CPU"
               :total="getNumber(usage?.spec?.cpu?.capacity)"
-              :labels="[
-                'Requests',
-                'Limits',
-              ]"
-              :series="[
-                getNumber(usage?.spec?.cpu?.requests),
-                getNumber(usage?.spec?.cpu?.limits)
-              ]"
+              :labels="['Requests', 'Limits']"
+              :series="[getNumber(usage?.spec?.cpu?.requests), getNumber(usage?.spec?.cpu?.limits)]"
             />
             <radial-bar
               name="Pods"
               :total="getNumber(usage?.spec?.pods?.capacity)"
-              :labels="[
-                'Requests',
-              ]"
-              :series="[
-                getNumber(usage?.spec?.pods?.count)
-              ]"
+              :labels="['Requests']"
+              :series="[getNumber(usage?.spec?.pods?.count)]"
               :formatter="(value: number) => value.toFixed(0)"
             />
             <radial-bar
               name="Memory"
               :total="getNumber(usage?.spec?.mem?.capacity)"
-              :labels="[
-                'Requests',
-                'Limits',
-              ]"
-              :series="[
-                getNumber(usage?.spec?.mem?.requests),
-                getNumber(usage?.spec?.mem?.limits)
-              ]"
+              :labels="['Requests', 'Limits']"
+              :series="[getNumber(usage?.spec?.mem?.requests), getNumber(usage?.spec?.mem?.limits)]"
               :formatter="formatBytes"
             />
             <radial-bar
               name="Ephemeral Storage"
               :total="getNumber(usage?.spec?.storage?.capacity)"
-              :labels="[
-                'Requests',
-                'Limits',
-              ]"
+              :labels="['Requests', 'Limits']"
               :series="[
                 getNumber(usage?.spec?.storage?.requests),
-                getNumber(usage?.spec?.storage?.limits)
+                getNumber(usage?.spec?.storage?.limits),
               ]"
               :formatter="formatBytes"
             />
           </div>
-          <div v-if="!showStats" class="absolute top-0 left-0 bottom-0 right-0 flex items-center justify-center text-sm">
+          <div
+            v-if="!showStats"
+            class="absolute top-0 left-0 bottom-0 right-0 flex items-center justify-center text-sm"
+          >
             <div class="flex flex-col gap-2">
-              <div class="text-naturals-N13">Kubernetes stats are disabled due to the size of the cluster</div>
+              <div class="text-naturals-N13">
+                Kubernetes stats are disabled due to the size of the cluster
+              </div>
             </div>
           </div>
         </div>
@@ -82,16 +71,14 @@ included in the LICENSE file.
               </span>
             </template>
             <template v-else>
-              <span class="overview-box-title">
-                Reverting back to
-              </span>
+              <span class="overview-box-title"> Reverting back to </span>
               <span class="overview-upgrade-version">
                 {{ kubernetesUpgradeStatus.spec.last_upgrade_version }}
               </span>
             </template>
           </div>
           <div class="border-t-8 border-naturals-N4 p-4 text-xs flex items-center gap-2">
-            <t-icon icon="loading" class="animate-spin w-6 h-6 text-yellow-Y1"/>
+            <t-icon icon="loading" class="animate-spin w-6 h-6 text-yellow-Y1" />
             <div class="flex-1">
               {{ kubernetesUpgradeStatus.spec.step }}
               <template v-if="kubernetesUpgradeStatus.spec.status">
@@ -99,7 +86,9 @@ included in the LICENSE file.
               </template>
             </div>
             <t-button
-              v-if="kubernetesUpgradeStatus.spec.phase === KubernetesUpgradeStatusSpecPhase.Upgrading"
+              v-if="
+                kubernetesUpgradeStatus.spec.phase === KubernetesUpgradeStatusSpecPhase.Upgrading
+              "
               type="secondary"
               class="place-self-end"
               icon="close"
@@ -123,22 +112,24 @@ included in the LICENSE file.
                 {{ talosUpgradeStatus.spec.current_upgrade_version }}
               </span>
             </template>
-            <template v-else-if="talosUpgradeStatus.spec.phase === TalosUpgradeStatusSpecPhase.Reverting">
-              <span class="overview-box-title">
-                Reverting back to
-              </span>
+            <template
+              v-else-if="talosUpgradeStatus.spec.phase === TalosUpgradeStatusSpecPhase.Reverting"
+            >
+              <span class="overview-box-title"> Reverting back to </span>
               <span class="overview-upgrade-version">
                 {{ talosUpgradeStatus.spec.last_upgrade_version }}
               </span>
             </template>
-            <template v-else-if="talosUpgradeStatus.spec.phase === TalosUpgradeStatusSpecPhase.InstallingExtensions">
-              <span class="overview-box-title">
-                Installing Extensions
-              </span>
+            <template
+              v-else-if="
+                talosUpgradeStatus.spec.phase === TalosUpgradeStatusSpecPhase.InstallingExtensions
+              "
+            >
+              <span class="overview-box-title"> Installing Extensions </span>
             </template>
           </div>
           <div class="border-t-8 border-naturals-N4 p-4 text-xs flex items-center gap-2">
-            <t-icon icon="loading" class="animate-spin w-6 h-6 text-yellow-Y1"/>
+            <t-icon icon="loading" class="animate-spin w-6 h-6 text-yellow-Y1" />
             <div class="flex-1">
               {{ talosUpgradeStatus.spec.status }}
               <template v-if="talosUpgradeStatus.spec.status">
@@ -146,7 +137,10 @@ included in the LICENSE file.
               </template>
             </div>
             <t-button
-              v-if="talosUpgradeStatus.spec.phase === TalosUpgradeStatusSpecPhase.Upgrading && talosUpgradeStatus.spec.current_upgrade_version"
+              v-if="
+                talosUpgradeStatus.spec.phase === TalosUpgradeStatusSpecPhase.Upgrading &&
+                talosUpgradeStatus.spec.current_upgrade_version
+              "
               type="secondary"
               class="place-self-end"
               icon="close"
@@ -162,29 +156,38 @@ included in the LICENSE file.
             </div>
             <div class="flex flex-col gap-2">
               <cluster-workload-proxying-checkbox
-                  :checked="enableWorkloadProxy"
-                  @click="setClusterWorkloadProxy(context.cluster ?? '', !enableWorkloadProxy)"
-                  :disabled="!canManageClusterFeatures"/>
+                :checked="enableWorkloadProxy"
+                @click="setClusterWorkloadProxy(context.cluster ?? '', !enableWorkloadProxy)"
+                :disabled="!canManageClusterFeatures"
+              />
               <embedded-discovery-service-checkbox
-                  :checked="useEmbeddedDiscoveryService"
-                  :disabled="!canManageClusterFeatures || !isEmbeddedDiscoveryServiceAvailable"
-                  @click="toggleUseEmbeddedDiscoveryService"/>
-              <cluster-etcd-backup-checkbox :backup-status="backupStatus" @update:cluster="(spec) => setClusterEtcdBackupsConfig(context.cluster ?? '', spec)" :cluster="currentCluster.spec"/>
+                :checked="useEmbeddedDiscoveryService"
+                :disabled="!canManageClusterFeatures || !isEmbeddedDiscoveryServiceAvailable"
+                @click="toggleUseEmbeddedDiscoveryService"
+              />
+              <cluster-etcd-backup-checkbox
+                :backup-status="backupStatus"
+                @update:cluster="(spec) => setClusterEtcdBackupsConfig(context.cluster ?? '', spec)"
+                :cluster="currentCluster.spec"
+              />
             </div>
           </div>
           <div class="overview-card flex-1 mb-5 px-6">
             <div class="mb-3">
               <span class="overview-box-title">Labels</span>
             </div>
-            <item-labels :resource="currentCluster" :add-label-func="addClusterLabels"
-              :remove-label-func="removeClusterLabels"/>
+            <item-labels
+              :resource="currentCluster"
+              :add-label-func="addClusterLabels"
+              :remove-label-func="removeClusterLabels"
+            />
           </div>
         </div>
         <div class="overview-machines-list">
           <div class="overview-box-header">
             <span class="overview-box-title">Machines</span>
           </div>
-          <cluster-machines :clusterID="context.cluster!"/>
+          <cluster-machines :clusterID="context.cluster!" />
         </div>
       </div>
       <overview-right-panel
@@ -197,72 +200,84 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, Ref, toRefs, watch } from "vue";
-import { getContext } from "@/context";
-import { formatBytes, setupBackupStatus } from "@/methods";
-import { KubernetesUsageType, VirtualNamespace, TalosUpgradeStatusType, ClusterStatusType } from "@/api/resources";
-import { Resource } from "@/api/grpc";
-import Watch from "@/api/watch";
-import { Runtime } from "@/api/common/omni.pb";
+import type { Ref } from 'vue'
+import { computed, onMounted, ref, toRefs, watch } from 'vue'
+import { getContext } from '@/context'
+import { formatBytes, setupBackupStatus } from '@/methods'
+import {
+  KubernetesUsageType,
+  VirtualNamespace,
+  TalosUpgradeStatusType,
+  ClusterStatusType,
+} from '@/api/resources'
+import type { Resource } from '@/api/grpc'
+import Watch from '@/api/watch'
+import { Runtime } from '@/api/common/omni.pb'
 import {
   addClusterLabels,
   removeClusterLabels,
   revertKubernetesUpgrade,
   revertTalosUpgrade,
   setClusterWorkloadProxy,
-  setClusterEtcdBackupsConfig, setUseEmbeddedDiscoveryService,
-} from "@/methods/cluster";
-import {
+  setClusterEtcdBackupsConfig,
+  setUseEmbeddedDiscoveryService,
+} from '@/methods/cluster'
+import type {
   ClusterSpec,
   ClusterStatusSpec,
   KubernetesUpgradeStatusSpec,
-  KubernetesUpgradeStatusSpecPhase,
   KubernetesUsageSpec,
   TalosUpgradeStatusSpec,
-  TalosUpgradeStatusSpecPhase
-} from "@/api/omni/specs/omni.pb";
-import { KubernetesUpgradeStatusType, DefaultNamespace } from "@/api/resources";
+} from '@/api/omni/specs/omni.pb'
+import {
+  KubernetesUpgradeStatusSpecPhase,
+  TalosUpgradeStatusSpecPhase,
+} from '@/api/omni/specs/omni.pb'
+import { KubernetesUpgradeStatusType, DefaultNamespace } from '@/api/resources'
 
-import ClusterMachines from "@/views/cluster/ClusterMachines/ClusterMachines.vue";
-import OverviewRightPanel from "@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanel.vue";
-import TButton from "@/components/common/Button/TButton.vue";
-import TIcon from "@/components/common/Icon/TIcon.vue";
-import ItemLabels from "@/views/omni/ItemLabels/ItemLabels.vue";
-import RadialBar from "@/components/common/Charts/RadialBar.vue";
-import { setupClusterPermissions } from "@/methods/auth";
+import ClusterMachines from '@/views/cluster/ClusterMachines/ClusterMachines.vue'
+import OverviewRightPanel from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanel.vue'
+import TButton from '@/components/common/Button/TButton.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
+import ItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
+import RadialBar from '@/components/common/Charts/RadialBar.vue'
+import { setupClusterPermissions } from '@/methods/auth'
 
-import { embeddedDiscoveryServiceFeatureAvailable, setupWorkloadProxyingEnabledFeatureWatch } from "@/methods/features";
-import ClusterWorkloadProxyingCheckbox from "@/views/omni/Clusters/ClusterWorkloadProxyingCheckbox.vue";
-import ClusterEtcdBackupCheckbox from "@/views/omni/Clusters/ClusterEtcdBackupCheckbox.vue";
-import EmbeddedDiscoveryServiceCheckbox from "@/views/omni/Clusters/EmbeddedDiscoveryServiceCheckbox.vue";
+import {
+  embeddedDiscoveryServiceFeatureAvailable,
+  setupWorkloadProxyingEnabledFeatureWatch,
+} from '@/methods/features'
+import ClusterWorkloadProxyingCheckbox from '@/views/omni/Clusters/ClusterWorkloadProxyingCheckbox.vue'
+import ClusterEtcdBackupCheckbox from '@/views/omni/Clusters/ClusterEtcdBackupCheckbox.vue'
+import EmbeddedDiscoveryServiceCheckbox from '@/views/omni/Clusters/EmbeddedDiscoveryServiceCheckbox.vue'
 
 // Do not show stats if the cluster has more than this number of machines.
 // Because it overloads the UI and the backend for no good reason.
-const clusterSizeStatsThreshold = 50;
+const clusterSizeStatsThreshold = 50
 
 type Props = {
-  currentCluster: Resource<ClusterSpec>,
-};
+  currentCluster: Resource<ClusterSpec>
+}
 
 const props = defineProps<Props>()
-const { currentCluster } = toRefs(props);
+const { currentCluster } = toRefs(props)
 
-const enableWorkloadProxy = ref(currentCluster.value.spec.features?.enable_workload_proxy || false);
-const useEmbeddedDiscoveryService = ref(currentCluster.value.spec.features?.use_embedded_discovery_service || false);
+const enableWorkloadProxy = ref(currentCluster.value.spec.features?.enable_workload_proxy || false)
+const useEmbeddedDiscoveryService = ref(
+  currentCluster.value.spec.features?.use_embedded_discovery_service || false,
+)
 
 watch(currentCluster, (cluster) => {
-  enableWorkloadProxy.value = cluster.spec.features?.enable_workload_proxy || false;
-  useEmbeddedDiscoveryService.value = cluster.spec.features?.use_embedded_discovery_service || false;
-});
+  enableWorkloadProxy.value = cluster.spec.features?.enable_workload_proxy || false
+  useEmbeddedDiscoveryService.value = cluster.spec.features?.use_embedded_discovery_service || false
+})
 
-const { status: backupStatus } = setupBackupStatus();
+const { status: backupStatus } = setupBackupStatus()
 
-const context = getContext();
+const context = getContext()
 
-const kubernetesUpgradeStatus: Ref<
-  Resource<KubernetesUpgradeStatusSpec> | undefined
-> = ref();
-const kubernetesUpgradeStatusWatch = new Watch(kubernetesUpgradeStatus);
+const kubernetesUpgradeStatus: Ref<Resource<KubernetesUpgradeStatusSpec> | undefined> = ref()
+const kubernetesUpgradeStatusWatch = new Watch(kubernetesUpgradeStatus)
 
 kubernetesUpgradeStatusWatch.setup({
   runtime: Runtime.Omni,
@@ -271,15 +286,15 @@ kubernetesUpgradeStatusWatch.setup({
     type: KubernetesUpgradeStatusType,
     id: context.cluster,
   },
-});
+})
 
-const clusterStatus: Ref<Resource<ClusterStatusSpec> | undefined> = ref();
+const clusterStatus: Ref<Resource<ClusterStatusSpec> | undefined> = ref()
 
-const usage: Ref<Resource<KubernetesUsageSpec> | undefined> = ref();
+const usage: Ref<Resource<KubernetesUsageSpec> | undefined> = ref()
 
-const usageWatch = new Watch(usage);
+const usageWatch = new Watch(usage)
 
-const clusterStatusWatch = new Watch(clusterStatus);
+const clusterStatusWatch = new Watch(clusterStatus)
 
 clusterStatusWatch.setup({
   runtime: Runtime.Omni,
@@ -287,40 +302,40 @@ clusterStatusWatch.setup({
     namespace: DefaultNamespace,
     type: ClusterStatusType,
     id: context.cluster,
-  }
-});
+  },
+})
 
 const showStats = computed(() => {
-  return (clusterStatus.value?.spec.machines?.total ?? 0) < clusterSizeStatsThreshold;
-});
+  return (clusterStatus.value?.spec.machines?.total ?? 0) < clusterSizeStatsThreshold
+})
 
-usageWatch.setup(computed(() => {
-  if (!clusterStatus.value) {
-    return;
-  }
+usageWatch.setup(
+  computed(() => {
+    if (!clusterStatus.value) {
+      return
+    }
 
-  if (!showStats.value) {
-    return;
-  }
+    if (!showStats.value) {
+      return
+    }
 
-  return {
-    runtime: Runtime.Omni,
-    resource: {
-      namespace: VirtualNamespace,
-      type: KubernetesUsageType,
-      id: context.cluster,
-    },
-  }
-}));
+    return {
+      runtime: Runtime.Omni,
+      resource: {
+        namespace: VirtualNamespace,
+        type: KubernetesUsageType,
+        id: context.cluster,
+      },
+    }
+  }),
+)
 
 const getNumber = (value?: number): number => {
-  return value ?? 0;
+  return value ?? 0
 }
 
-const talosUpgradeStatus: Ref<
-  Resource<TalosUpgradeStatusSpec> | undefined
-> = ref();
-const talosUpgradeStatusWatch = new Watch(talosUpgradeStatus);
+const talosUpgradeStatus: Ref<Resource<TalosUpgradeStatusSpec> | undefined> = ref()
+const talosUpgradeStatusWatch = new Watch(talosUpgradeStatus)
 
 talosUpgradeStatusWatch.setup({
   runtime: Runtime.Omni,
@@ -329,28 +344,32 @@ talosUpgradeStatusWatch.setup({
     type: TalosUpgradeStatusType,
     id: context.cluster,
   },
-});
+})
 
-const { canManageClusterFeatures } = setupClusterPermissions(computed(() => currentCluster.value.metadata.id as string));
+const { canManageClusterFeatures } = setupClusterPermissions(
+  computed(() => currentCluster.value.metadata.id as string),
+)
 
-const workloadProxyingEnabled = setupWorkloadProxyingEnabledFeatureWatch();
+const workloadProxyingEnabled = setupWorkloadProxyingEnabledFeatureWatch()
 
-const isEmbeddedDiscoveryServiceAvailable = ref(false);
+const isEmbeddedDiscoveryServiceAvailable = ref(false)
 
 const toggleUseEmbeddedDiscoveryService = async () => {
-  const newValue = isEmbeddedDiscoveryServiceAvailable.value ? !useEmbeddedDiscoveryService.value : false;
+  const newValue = isEmbeddedDiscoveryServiceAvailable.value
+    ? !useEmbeddedDiscoveryService.value
+    : false
 
-  await setUseEmbeddedDiscoveryService(context.cluster ?? '', newValue);
+  await setUseEmbeddedDiscoveryService(context.cluster ?? '', newValue)
 }
 
 onMounted(async () => {
-  isEmbeddedDiscoveryServiceAvailable.value = await embeddedDiscoveryServiceFeatureAvailable();
-});
+  isEmbeddedDiscoveryServiceAvailable.value = await embeddedDiscoveryServiceFeatureAvailable()
+})
 </script>
 
 <style scoped>
 .overview-card {
-    @apply py-5 bg-naturals-N2 rounded;
+  @apply py-5 bg-naturals-N2 rounded;
 }
 .divider {
   @apply w-full bg-naturals-N4;

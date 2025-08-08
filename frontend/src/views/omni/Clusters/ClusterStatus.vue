@@ -5,91 +5,89 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-    <div
-      v-bind:style="'color: ' + phaseColor(cluster)"
-      class="cluster-status-box"
-    >
-      <t-icon v-bind:icon="phaseIcon(cluster)" class="h-4" />
-      <div class="cluster-status-name">{{ phaseName(cluster) || "" }}</div>
-    </div>
+  <div v-bind:style="'color: ' + phaseColor(cluster)" class="cluster-status-box">
+    <t-icon v-bind:icon="phaseIcon(cluster)" class="h-4" />
+    <div class="cluster-status-name">{{ phaseName(cluster) || '' }}</div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import TIcon, { IconType } from "@/components/common/Icon/TIcon.vue";
-import { ClusterStatusSpec, ClusterStatusSpecPhase } from "@/api/omni/specs/omni.pb";
-import { Resource } from "@/api/grpc";
-import { green, red, yellow } from "@/vars/colors";
+import type { IconType } from '@/components/common/Icon/TIcon.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
+import type { ClusterStatusSpec } from '@/api/omni/specs/omni.pb'
+import { ClusterStatusSpecPhase } from '@/api/omni/specs/omni.pb'
+import type { Resource } from '@/api/grpc'
+import { green, red, yellow } from '@/vars/colors'
 
 type Props = {
-  cluster?: Resource<ClusterStatusSpec>;
-};
+  cluster?: Resource<ClusterStatusSpec>
+}
 
-defineProps<Props>();
+defineProps<Props>()
 
 const phaseName = (cluster?: Resource<ClusterStatusSpec>): string => {
   switch (cluster?.spec.phase) {
     case ClusterStatusSpecPhase.SCALING_UP:
-      return "Scaling Up";
+      return 'Scaling Up'
     case ClusterStatusSpecPhase.SCALING_DOWN:
-      return "Scaling Down";
+      return 'Scaling Down'
     case ClusterStatusSpecPhase.RUNNING:
       if (cluster?.spec.ready) {
-        return "Running";
+        return 'Running'
       } else {
-        return "Not Ready";
+        return 'Not Ready'
       }
     case ClusterStatusSpecPhase.DESTROYING:
-      return "Destroying";
+      return 'Destroying'
     default:
-      return "Unknown";
+      return 'Unknown'
   }
-};
+}
 
 const phaseIcon = (cluster?: Resource<ClusterStatusSpec>): IconType => {
   switch (cluster?.spec.phase) {
     case ClusterStatusSpecPhase.SCALING_UP:
     case ClusterStatusSpecPhase.SCALING_DOWN:
-      return "loading";
+      return 'loading'
     case ClusterStatusSpecPhase.RUNNING:
       if (cluster?.spec.ready) {
-        return "check-in-circle";
+        return 'check-in-circle'
       } else {
-        return "error";
+        return 'error'
       }
     case ClusterStatusSpecPhase.DESTROYING:
-      return "delete";
+      return 'delete'
     default:
-      return "unknown";
+      return 'unknown'
   }
-};
+}
 
 const phaseColor = (cluster?: Resource<ClusterStatusSpec>): string => {
   switch (cluster?.spec.phase) {
     case ClusterStatusSpecPhase.SCALING_UP:
     case ClusterStatusSpecPhase.SCALING_DOWN:
-      return yellow.Y1;
+      return yellow.Y1
     case ClusterStatusSpecPhase.RUNNING:
       if (cluster?.spec.ready) {
-        return green.G1;
+        return green.G1
       } else {
-        return red.R1;
+        return red.R1
       }
     case ClusterStatusSpecPhase.DESTROYING:
-      return red.R1;
+      return red.R1
     default:
-      return yellow.Y1;
+      return yellow.Y1
   }
-};
-
+}
 </script>
 
 <style>
-  .cluster-status-box {
-    display: flex;
-    align-items: center;
-  }
+.cluster-status-box {
+  display: flex;
+  align-items: center;
+}
 
-  .cluster-status-name {
-    margin-left: 5px;
-  }
+.cluster-status-name {
+  margin-left: 5px;
+}
 </style>

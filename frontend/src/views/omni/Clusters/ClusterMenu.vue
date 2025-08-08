@@ -13,9 +13,7 @@ included in the LICENSE file.
       </div>
       <div v-if="warning" class="text-yellow-Y1 text-xs">{{ warning }}</div>
     </div>
-    <t-button v-if="onReset" @click="onReset" type="secondary">
-      Cancel
-    </t-button>
+    <t-button v-if="onReset" @click="onReset" type="secondary"> Cancel </t-button>
     <t-button iconPosition="left" @click="onSubmit" type="highlighted" :disabled="disabled">
       {{ action }}
     </t-button>
@@ -23,43 +21,42 @@ included in the LICENSE file.
 </template>
 
 <script setup lang="ts">
-import pluralize from "pluralize";
-import { computed, toRefs } from "vue";
+import pluralize from 'pluralize'
+import { computed, toRefs } from 'vue'
 
-import TButton from "@/components/common/Button/TButton.vue";
+import TButton from '@/components/common/Button/TButton.vue'
 
 type Props = {
-  action: string,
-  controlPlanes?: number | string,
-  workers?: number | string,
-  onSubmit: () => void,
-  onReset?: () => void,
+  action: string
+  controlPlanes?: number | string
+  workers?: number | string
+  onSubmit: () => void
+  onReset?: () => void
   warning?: string
   disabled?: boolean
 }
 
-
 const props = withDefaults(defineProps<Props>(), {
-  disabled: false
-});
+  disabled: false,
+})
 
-const { controlPlanes, workers } = toRefs(props);
+const { controlPlanes, workers } = toRefs(props)
 
 const controlPlaneCount = computed(() => {
-  if (typeof controlPlanes?.value === "number") {
-    return `${controlPlanes.value} Control ${pluralize("Plane", controlPlanes.value as number, false)}`;
+  if (typeof controlPlanes?.value === 'number') {
+    return `${controlPlanes.value} Control ${pluralize('Plane', controlPlanes.value as number, false)}`
   }
 
-  return `Control Planes: ${controlPlanes?.value}`;
-});
+  return `Control Planes: ${controlPlanes?.value}`
+})
 
 const workersCount = computed(() => {
-  if (typeof workers?.value === "number") {
-    return `${workers.value} ${pluralize("Worker", workers.value as number, false)}`;
+  if (typeof workers?.value === 'number') {
+    return `${workers.value} ${pluralize('Worker', workers.value as number, false)}`
   }
 
-  return `Workers: ${workers?.value}`;
-});
+  return `Workers: ${workers?.value}`
+})
 </script>
 
 <style scoped>

@@ -5,25 +5,26 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <div class="action-item" :class="{'action-item-danger': danger}">
-    <t-icon class="action-item-icon" :icon="icon"/>
+  <div class="action-item" :class="{ 'action-item-danger': danger }">
+    <t-icon class="action-item-icon" :icon="icon" />
     <span class="action-item-text">
-        <slot/>
+      <slot />
     </span>
   </div>
 </template>
 
 <script setup lang="ts">
-import TIcon, { IconType } from "@/components/common/Icon/TIcon.vue";
+import type { IconType } from '@/components/common/Icon/TIcon.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
 
 type Props = {
-  icon: IconType;
-  danger?: boolean;
-};
+  icon: IconType
+  danger?: boolean
+}
 
 withDefaults(defineProps<Props>(), {
   danger: false,
-});
+})
 </script>
 
 <style scoped>
@@ -50,5 +51,4 @@ withDefaults(defineProps<Props>(), {
 .action-item-danger:hover > * {
   @apply text-primary-P1;
 }
-
 </style>
