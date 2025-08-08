@@ -19,10 +19,11 @@ set -eoux pipefail
 echo "127.0.0.1 my-instance.localhost" | tee -a /etc/hosts
 
 # Settings.
+LATEST_STABLE_OMNI=$(git tag -l --sort=-version:refname HEAD "v*" | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
 
 TALOS_VERSION=1.10.2
 ENABLE_TALOS_PRERELEASE_VERSIONS=false
-ANOTHER_OMNI_VERSION="${ANOTHER_OMNI_VERSION:-latest}"
+ANOTHER_OMNI_VERSION="${ANOTHER_OMNI_VERSION:-$LATEST_STABLE_OMNI}"
 
 ARTIFACTS=_out
 JOIN_TOKEN=testonly
@@ -209,7 +210,8 @@ features:
   enableConfigDataCompression: true
   enableBreakGlassConfigs: true
   enableClusterImport: true
-  disableControllerRuntimeCache: false" > ${OMNI_CONFIG}
+  disableControllerRuntimeCache: false
+" > ${OMNI_CONFIG}
 
 if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
   PROMETHEUS_CONTAINER=$(docker run --network host -p "9090:9090" -v "$(pwd)/hack/compose/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml" -it --rm -d prom/prometheus)
@@ -354,7 +356,9 @@ if [ -n "$ANOTHER_OMNI_VERSION" ] && [ -n "$INTEGRATION_PREPARE_TEST_ARGS" ]; th
     --omni.log-output=/outputs/omni-upgrade-prepare.log \
     --test.failfast \
     --test.v \
+    --omni.ignore-unknown-fields \
     ${INTEGRATION_PREPARE_TEST_ARGS:-}
+
 fi
 
 # Run the integration test.
