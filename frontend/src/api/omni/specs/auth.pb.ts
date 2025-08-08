@@ -5,14 +5,6 @@
 */
 
 import * as GoogleProtobufTimestamp from "../../google/protobuf/timestamp.pb"
-
-export enum JoinTokenStatusSpecState {
-  UNKNOWN = 0,
-  ACTIVE = 1,
-  REVOKED = 2,
-  EXPIRED = 3,
-}
-
 export type AuthConfigSpecAuth0 = {
   enabled?: boolean
   domain?: string
@@ -152,26 +144,4 @@ export type ServiceAccountStatusSpecPgpPublicKey = {
 export type ServiceAccountStatusSpec = {
   role?: string
   public_keys?: ServiceAccountStatusSpecPgpPublicKey[]
-}
-
-export type JoinTokenSpec = {
-  expiration_time?: GoogleProtobufTimestamp.Timestamp
-  revoked?: boolean
-  name?: string
-}
-
-export type JoinTokenStatusSpec = {
-  state?: JoinTokenStatusSpecState
-  is_default?: boolean
-  use_count?: string
-  expiration_time?: GoogleProtobufTimestamp.Timestamp
-  name?: string
-}
-
-export type JoinTokenUsageSpec = {
-  token_id?: string
-}
-
-export type DefaultJoinTokenSpec = {
-  token_id?: string
 }

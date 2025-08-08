@@ -5,13 +5,18 @@
 package omnictl
 
 import (
+	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/fatih/color"
+	"github.com/gertd/go-pluralize"
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -31,6 +36,14 @@ var (
 
 	joinTokenRenewFlags struct {
 		ttl time.Duration
+	}
+
+	joinTokenRevokeFlags struct {
+		force bool
+	}
+
+	joinTokenDeleteFlags struct {
+		force bool
 	}
 
 	// joinTokenCmd represents the jointoken command.
@@ -70,6 +83,10 @@ var (
 			id := args[0]
 
 			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+				if err := checkTokenWarnings(ctx, client, id, "revoke"); err != nil {
+					return err
+				}
+
 				_, err := safe.StateUpdateWithConflicts(
 					ctx,
 					client.Omni().State(),
@@ -242,6 +259,10 @@ var (
 			id := args[0]
 
 			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+				if err := checkTokenWarnings(ctx, client, id, "delete"); err != nil {
+					return err
+				}
+
 				err := client.Omni().State().TeardownAndDestroy(ctx, siderolink.NewJoinToken(resources.DefaultNamespace, id).Metadata())
 				if err != nil {
 					return fmt.Errorf("failed to delete a join token: %w", err)
@@ -266,9 +287,82 @@ func init() {
 	joinTokenCmd.AddCommand(joinTokenUnrevokeCmd)
 	joinTokenCmd.AddCommand(joinTokenRenewCmd)
 
+	joinTokenRevokeCmd.Flags().BoolVarP(&joinTokenRevokeFlags.force, "force", "f", false, "Revoke the token even if it is going to make the machines to disconnect")
+
+	joinTokenDeleteCmd.Flags().BoolVarP(&joinTokenDeleteFlags.force, "force", "f", false, "Delete the token even if it is going to make the machines to disconnect")
+
 	joinTokenCreateCmd.Flags().DurationVarP(&joinTokenCreateFlags.ttl, "ttl", "t", 0, "TTL for the join token")
 
 	joinTokenRenewCmd.Flags().DurationVarP(&joinTokenRenewFlags.ttl, "ttl", "t", 0, "TTL for the join token")
 
 	joinTokenRenewCmd.MarkFlagRequired("ttl") //nolint:errcheck
+}
+
+func checkTokenWarnings(ctx context.Context, client *client.Client, id, operation string) error {
+	joinTokenStatus, err := safe.ReaderGetByID[*siderolink.JoinTokenStatus](ctx, client.Omni().State(), id)
+	if err != nil {
+		return err
+	}
+
+	yellow := color.New(color.FgYellow)
+
+	if joinTokenStatus.TypedSpec().Value.Warnings != nil {
+		if _, err = yellow.Fprintf(
+			os.Stderr,
+			"WARNING: %d of %s won't be able to connect if the token is revoked/deleted\n",
+			len(joinTokenStatus.TypedSpec().Value.Warnings),
+			pluralize.NewClient().Pluralize("machine", int(joinTokenStatus.TypedSpec().Value.UseCount), true)); err != nil {
+			return err
+		}
+
+		writer := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+
+		if _, err = fmt.Fprintf(writer, "MACHINE\tDETAILS\n"); err != nil {
+			return err
+		}
+
+		for _, warning := range joinTokenStatus.TypedSpec().Value.Warnings {
+			if _, err = fmt.Fprintf(writer, "%s\t%s\n", warning.Machine, warning.Message); err != nil {
+				return err
+			}
+		}
+
+		if err = writer.Flush(); err != nil {
+			return err
+		}
+
+		var confirmed bool
+
+		confirmed, err = askConfirmation(fmt.Sprintf("Do you still want to %s the token?", operation))
+		if err != nil {
+			return err
+		}
+
+		if !confirmed {
+			return errors.New("operation was aborted")
+		}
+	}
+
+	return nil
+}
+
+func askConfirmation(prompt string) (bool, error) {
+	if joinTokenDeleteFlags.force || joinTokenRevokeFlags.force {
+		return true, nil
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+
+	fmt.Printf("%s [y/N]: ", prompt)
+
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		return false, err
+	}
+
+	if strings.ToLower(strings.TrimSpace(response)) == "y" {
+		return true, nil
+	}
+
+	return false, nil
 }
