@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-08-07T17:32:19Z by kres 0b55a0b.
+# Generated on 2025-08-08T17:14:00Z by kres 0b55a0b.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -92,9 +92,9 @@ COPY frontend/*.html ./
 COPY frontend/*.ts ./
 COPY frontend/*.js ./
 COPY frontend/*.ico ./
+COPY frontend/public ./
 COPY ./frontend/src ./src
 COPY ./frontend/test ./test
-COPY ./frontend/eslint.config.js ./eslint.config.js
 COPY ./frontend/postcss.config.js ./postcss.config.js
 
 # build tools
