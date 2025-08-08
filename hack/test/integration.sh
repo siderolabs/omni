@@ -24,6 +24,7 @@ LATEST_STABLE_OMNI=$(git tag -l --sort=-version:refname HEAD "v*" | grep -E '^v?
 TALOS_VERSION=1.10.2
 ENABLE_TALOS_PRERELEASE_VERSIONS=false
 ANOTHER_OMNI_VERSION="${ANOTHER_OMNI_VERSION:-$LATEST_STABLE_OMNI}"
+KUBERNETES_VERSION=1.33.3
 
 ARTIFACTS=_out
 JOIN_TOKEN=testonly
@@ -228,6 +229,7 @@ if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
   SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
     ${ARTIFACTS}/integration-test-linux-amd64 \
     --omni.talos-version=${TALOS_VERSION} \
+    --omni.kubernetes-version=${KUBERNETES_VERSION} \
     --omni.omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
     --omni.expected-machines=30 \
     --omni.provision-config-file=hack/test/provisionconfig.yaml \
@@ -349,6 +351,7 @@ if [ -n "$ANOTHER_OMNI_VERSION" ] && [ -n "$INTEGRATION_PREPARE_TEST_ARGS" ]; th
     --network host \
     ghcr.io/siderolabs/omni-integration-test:${ANOTHER_OMNI_VERSION} \
     --omni.talos-version=${TALOS_VERSION} \
+    --omni.kubernetes-version=${KUBERNETES_VERSION} \
     --omni.omnictl-path=/_out/omnictl-linux-amd64 \
     --omni.expected-machines=8 \
     --omni.embedded \
@@ -367,6 +370,7 @@ SIDEROLINK_DEV_JOIN_TOKEN=${JOIN_TOKEN} \
 SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
   ${ARTIFACTS}/integration-test-linux-amd64 \
   --omni.talos-version=${TALOS_VERSION} \
+  --omni.kubernetes-version=${KUBERNETES_VERSION} \
   --omni.omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
   --omni.expected-machines=8 `# equal to the masters+workers above` \
   --omni.embedded \
