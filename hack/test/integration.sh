@@ -19,10 +19,12 @@ set -eoux pipefail
 echo "127.0.0.1 my-instance.localhost" | tee -a /etc/hosts
 
 # Settings.
+LATEST_STABLE_OMNI=$(git tag -l --sort=-version:refname HEAD "v*" | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
 
 TALOS_VERSION=1.10.2
 ENABLE_TALOS_PRERELEASE_VERSIONS=false
-ANOTHER_OMNI_VERSION="${ANOTHER_OMNI_VERSION:-latest}"
+ANOTHER_OMNI_VERSION="${ANOTHER_OMNI_VERSION:-$LATEST_STABLE_OMNI}"
+KUBERNETES_VERSION=1.33.3
 
 ARTIFACTS=_out
 JOIN_TOKEN=testonly
@@ -209,7 +211,8 @@ features:
   enableConfigDataCompression: true
   enableBreakGlassConfigs: true
   enableClusterImport: true
-  disableControllerRuntimeCache: false" > ${OMNI_CONFIG}
+  disableControllerRuntimeCache: false
+" > ${OMNI_CONFIG}
 
 if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
   PROMETHEUS_CONTAINER=$(docker run --network host -p "9090:9090" -v "$(pwd)/hack/compose/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml" -it --rm -d prom/prometheus)
@@ -226,6 +229,7 @@ if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
   SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
     ${ARTIFACTS}/integration-test-linux-amd64 \
     --omni.talos-version=${TALOS_VERSION} \
+    --omni.kubernetes-version=${KUBERNETES_VERSION} \
     --omni.omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
     --omni.expected-machines=30 \
     --omni.provision-config-file=hack/test/provisionconfig.yaml \
@@ -347,6 +351,7 @@ if [ -n "$ANOTHER_OMNI_VERSION" ] && [ -n "$INTEGRATION_PREPARE_TEST_ARGS" ]; th
     --network host \
     ghcr.io/siderolabs/omni-integration-test:${ANOTHER_OMNI_VERSION} \
     --omni.talos-version=${TALOS_VERSION} \
+    --omni.kubernetes-version=${KUBERNETES_VERSION} \
     --omni.omnictl-path=/_out/omnictl-linux-amd64 \
     --omni.expected-machines=8 \
     --omni.embedded \
@@ -354,7 +359,9 @@ if [ -n "$ANOTHER_OMNI_VERSION" ] && [ -n "$INTEGRATION_PREPARE_TEST_ARGS" ]; th
     --omni.log-output=/outputs/omni-upgrade-prepare.log \
     --test.failfast \
     --test.v \
+    --omni.ignore-unknown-fields \
     ${INTEGRATION_PREPARE_TEST_ARGS:-}
+
 fi
 
 # Run the integration test.
@@ -363,6 +370,7 @@ SIDEROLINK_DEV_JOIN_TOKEN=${JOIN_TOKEN} \
 SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
   ${ARTIFACTS}/integration-test-linux-amd64 \
   --omni.talos-version=${TALOS_VERSION} \
+  --omni.kubernetes-version=${KUBERNETES_VERSION} \
   --omni.omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
   --omni.expected-machines=8 `# equal to the masters+workers above` \
   --omni.embedded \
