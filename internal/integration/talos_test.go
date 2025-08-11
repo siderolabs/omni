@@ -285,24 +285,21 @@ func AssertTalosAPIAccessViaOmni(testCtx context.Context, omniClient *client.Cli
 // AssertEtcdMembershipMatchesOmniResources checks that etcd members are in sync with the Omni MachineStatus information.
 func AssertEtcdMembershipMatchesOmniResources(testCtx context.Context, client *client.Client, cluster string) TestFunc {
 	return func(t *testing.T) {
-		require := require.New(t)
-		assert := assert.New(t)
-
-		ctx, cancel := context.WithTimeout(testCtx, 90*time.Second)
+		ctx, cancel := context.WithTimeout(testCtx, 5*time.Minute)
 		defer cancel()
 
 		data, err := client.Management().Talosconfig(ctx)
-		require.NoError(err)
-		assert.NotEmpty(data)
+		require.NoError(t, err)
+		assert.NotEmpty(t, data)
 
 		config, err := clientconfig.FromBytes(data)
-		require.NoError(err)
+		require.NoError(t, err)
 
 		c, err := talosclient.New(ctx, talosclient.WithConfig(config), talosclient.WithCluster(cluster))
-		require.NoError(err)
+		require.NoError(t, err)
 
 		t.Cleanup(func() {
-			require.NoError(c.Close())
+			require.NoError(t, c.Close())
 		})
 
 		machineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, client.Omni().State(),
@@ -314,43 +311,41 @@ func AssertEtcdMembershipMatchesOmniResources(testCtx context.Context, client *c
 
 		clearConnectionRefused(ctx, t, c, len(machineIDs), machineIDs...)
 
-		resp, err := c.EtcdMemberList(ctx, &machine.EtcdMemberListRequest{})
-		require.NoError(err)
+		require.EventuallyWithT(t, func(collect *assert.CollectT) {
+			require.NoError(t, ctx.Err())
 
-		err = retry.Constant(time.Minute*2, retry.WithUnits(time.Second)).Retry(func() error {
+			resp, err := c.EtcdMemberList(ctx, &machine.EtcdMemberListRequest{})
+			require.NoError(collect, err)
+
 			clusterMachines := map[string]any{}
 
 			for _, machineID := range machineIDs {
 				var machineStatus *omni.MachineStatus
 
 				machineStatus, err = safe.StateGet[*omni.MachineStatus](ctx, client.Omni().State(), omni.NewMachineStatus(resources.DefaultNamespace, machineID).Metadata())
-				if err != nil {
-					return retry.ExpectedError(err)
-				}
+				require.NoError(collect, err)
 
 				clusterMachines[machineStatus.TypedSpec().Value.Network.Hostname] = struct{}{}
 			}
 
 			for _, m := range resp.Messages {
-				if len(clusterMachines) != len(m.Members) {
+				if !assert.True(collect, len(clusterMachines) == len(m.Members)) {
 					memberIDs := xslices.Map(m.Members, func(m *machine.EtcdMember) string { return etcd.FormatMemberID(m.Id) })
 
-					return retry.ExpectedErrorf("the count of members doesn't match the count of machines, expected %d, got: %d, members list: %s", len(clusterMachines), len(m.Members), memberIDs)
+					t.Logf("the count of members doesn't match the count of machines, expected %d, got: %d, members list: %s", len(clusterMachines), len(m.Members), memberIDs)
+					return
 				}
 
 				for _, member := range m.Members {
 					_, ok := clusterMachines[member.Hostname]
 
-					if !ok {
-						return retry.ExpectedErrorf("found etcd member which doesn't have associated machine status")
+					if !assert.True(collect, ok) {
+						t.Logf("found etcd member which doesn't have associated machine status")
+						return
 					}
 				}
 			}
-
-			return nil
-		})
-
-		require.NoError(err)
+		}, 5*time.Minute, 20*time.Second)
 	}
 }
 
