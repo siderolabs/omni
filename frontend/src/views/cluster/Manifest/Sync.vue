@@ -4,98 +4,31 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex flex-col gap-2">
-    <div class="flex items-start">
-      <page-header class="flex-1" :title="title" />
-      <t-button type="highlighted" @click="applyChanges" :disabled="applyChangesDisabled"
-        >Apply Changes ({{ numChanges }})</t-button
-      >
-    </div>
-    <t-alert v-if="error" title="Manifest Sync Error" type="error"> {{ error }}. </t-alert>
-    <div class="flex-1 font-sm overflow-y-auto" ref="resultsComponent">
-      <div v-if="loading" class="w-full h-full flex items-center justify-center">
-        <t-spinner class="w-6 h-6" />
-      </div>
-      <t-list-item
-        v-for="item in syncResults"
-        :key="itemID(item)"
-        :isDefaultOpened="itemImportant(item)"
-      >
-        <template #default>
-          <span class="label">
-            {{ itemLabel(item) }}
-          </span>
-          <span
-            :class="{
-              'text-primary-P3':
-                item.diff &&
-                syncParams.dry_run &&
-                item.response_type !== KubernetesSyncManifestResponseResponseType.UNKNOWN,
-              'text-green-G1':
-                item.diff &&
-                !syncParams.dry_run &&
-                item.response_type !== KubernetesSyncManifestResponseResponseType.UNKNOWN,
-              'text-red-R1':
-                item.response_type === KubernetesSyncManifestResponseResponseType.UNKNOWN,
-            }"
-            >{{ item.path }}</span
-          >
-          <span v-if="!item.diff" class="text-naturals-N9"> (No changes) </span>
-          <span v-if="item.diff && !syncParams.dry_run" class="text-green-G1"> (Updated) </span>
-        </template>
-        <template
-          #details
-          v-if="
-            [
-              KubernetesSyncManifestResponseResponseType.MANIFEST,
-              KubernetesSyncManifestResponseResponseType.UNKNOWN,
-            ].includes(item.response_type!)
-          "
-        >
-          <div class="diff bottom-line" v-if="item.diff">
-            <div v-for="diff in item.diff.split('\n')" :key="diff" :class="highlightDiff(diff)">
-              {{ diff }}
-            </div>
-          </div>
-          <div class="diff" v-if="item.object">
-            {{
-              // TODO: Fix the type? Marked as Uint8Array but we are receiving a b64 encoded string
-              textDecoder.decode(b64Decode(item.object as unknown as string))
-            }}
-          </div>
-        </template>
-      </t-list-item>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import type { Ref } from 'vue'
-import { computed, ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
-import PageHeader from '@/components/common/PageHeader.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
-import TListItem from '@/components/common/List/TListItem.vue'
-import TButton from '@/components/common/Button/TButton.vue'
-import { showSuccess } from '@/notification'
-import TAlert from '@/components/TAlert.vue'
-
+import { Runtime } from '@/api/common/omni.pb'
+import { b64Decode } from '@/api/fetch.pb'
+import type { Stream } from '@/api/grpc'
+import { subscribe } from '@/api/grpc'
 import type {
   KubernetesSyncManifestRequest,
   KubernetesSyncManifestResponse,
 } from '@/api/omni/management/management.pb'
 import {
-  ManagementService,
   KubernetesSyncManifestResponseResponseType,
+  ManagementService,
 } from '@/api/omni/management/management.pb'
-import type { Stream } from '@/api/grpc'
-import { subscribe } from '@/api/grpc'
 import { withContext, withRuntime } from '@/api/options'
-import { Runtime } from '@/api/common/omni.pb'
+import TButton from '@/components/common/Button/TButton.vue'
+import TListItem from '@/components/common/List/TListItem.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import TAlert from '@/components/TAlert.vue'
 import { getContext } from '@/context'
-import { b64Decode } from '@/api/fetch.pb'
+import { showSuccess } from '@/notification'
 
 const textDecoder = new TextDecoder()
 
@@ -240,9 +173,75 @@ const setupSyncStream = () => {
 setupSyncStream()
 </script>
 
+<template>
+  <div class="flex flex-col gap-2">
+    <div class="flex items-start">
+      <PageHeader class="flex-1" :title="title" />
+      <TButton type="highlighted" :disabled="applyChangesDisabled" @click="applyChanges"
+        >Apply Changes ({{ numChanges }})</TButton
+      >
+    </div>
+    <TAlert v-if="error" title="Manifest Sync Error" type="error"> {{ error }}. </TAlert>
+    <div ref="resultsComponent" class="font-sm flex-1 overflow-y-auto">
+      <div v-if="loading" class="flex h-full w-full items-center justify-center">
+        <TSpinner class="h-6 w-6" />
+      </div>
+      <TListItem
+        v-for="item in syncResults"
+        :key="itemID(item)"
+        :is-default-opened="itemImportant(item)"
+      >
+        <template #default>
+          <span class="label">
+            {{ itemLabel(item) }}
+          </span>
+          <span
+            :class="{
+              'text-primary-P3':
+                item.diff &&
+                syncParams.dry_run &&
+                item.response_type !== KubernetesSyncManifestResponseResponseType.UNKNOWN,
+              'text-green-G1':
+                item.diff &&
+                !syncParams.dry_run &&
+                item.response_type !== KubernetesSyncManifestResponseResponseType.UNKNOWN,
+              'text-red-R1':
+                item.response_type === KubernetesSyncManifestResponseResponseType.UNKNOWN,
+            }"
+            >{{ item.path }}</span
+          >
+          <span v-if="!item.diff" class="text-naturals-N9"> (No changes) </span>
+          <span v-if="item.diff && !syncParams.dry_run" class="text-green-G1"> (Updated) </span>
+        </template>
+        <template
+          v-if="
+            [
+              KubernetesSyncManifestResponseResponseType.MANIFEST,
+              KubernetesSyncManifestResponseResponseType.UNKNOWN,
+            ].includes(item.response_type!)
+          "
+          #details
+        >
+          <div v-if="item.diff" class="diff bottom-line">
+            <div v-for="diff in item.diff.split('\n')" :key="diff" :class="highlightDiff(diff)">
+              {{ diff }}
+            </div>
+          </div>
+          <div v-if="item.object" class="diff">
+            {{
+              // TODO: Fix the type? Marked as Uint8Array but we are receiving a b64 encoded string
+              textDecoder.decode(b64Decode(item.object as unknown as string))
+            }}
+          </div>
+        </template>
+      </TListItem>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .diff {
-  @apply font-roboto whitespace-pre pt-2;
+  @apply whitespace-pre pt-2 font-roboto;
 }
 
 .bottom-line {
@@ -250,6 +249,6 @@ setupSyncStream()
   border-radius: 4px 4px 0 0;
 }
 .label {
-  @apply uppercase font-bold text-xs bg-naturals-N3 text-naturals-N9 px-2 py-1 rounded-full mr-2;
+  @apply mr-2 rounded-full bg-naturals-N3 px-2 py-1 text-xs font-bold uppercase text-naturals-N9;
 }
 </style>

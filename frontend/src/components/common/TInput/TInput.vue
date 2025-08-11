@@ -4,54 +4,9 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <label
-    @click.prevent="
-      () => {
-        isFocused = true
-        if ($refs.input) ($refs.input as any).focus()
-      }
-    "
-    v-click-outside="() => (isFocused = false)"
-    class="input-box"
-    :class="[{ focused: isFocused, secondary, primary: !secondary, compact, disabled }]"
-  >
-    <t-icon class="input-box-icon" v-if="icon" :icon="icon" />
-    <slot name="labels" />
-    <span v-if="title" class="text-xs min-w-fit mr-1">{{ title }}:</span>
-    <input
-      :class="{ 'opacity-0': disabled }"
-      :readonly="disabled"
-      @input="updateValue($event.target?.['value'].trim())"
-      ref="input"
-      :value="modelValue"
-      :type="type"
-      class="input-box-input"
-      @focus="isFocused = true"
-      @blur="blurHandler"
-      :placeholder="placeholder"
-    />
-    <div v-if="type === 'number'" class="flex flex-col select-none -my-1">
-      <t-icon
-        class="hover:text-naturals-N14 text-naturals-N12 w-2 h-2 rotate-180"
-        icon="arrow-down"
-        @click="updateValue(numberValue + step)"
-      />
-      <t-icon
-        class="hover:text-naturals-N14 text-naturals-N12 w-2 h-2"
-        icon="arrow-down"
-        @click="updateValue(numberValue - step)"
-      />
-    </div>
-    <div v-else-if="modelValue !== '' || onClear" @click.prevent="clearInput">
-      <t-icon class="input-box-icon" icon="close" />
-    </div>
-  </label>
-</template>
-
 <script setup lang="ts">
 import type { Ref } from 'vue'
-import { watch, ref, toRefs, onMounted, computed } from 'vue'
+import { computed, onMounted, ref, toRefs, watch } from 'vue'
 
 import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
@@ -156,9 +111,54 @@ onMounted(() => {
 })
 </script>
 
+<template>
+  <label
+    v-click-outside="() => (isFocused = false)"
+    class="input-box"
+    :class="[{ focused: isFocused, secondary, primary: !secondary, compact, disabled }]"
+    @click.prevent="
+      () => {
+        isFocused = true
+        if ($refs.input) ($refs.input as any).focus()
+      }
+    "
+  >
+    <TIcon v-if="icon" class="input-box-icon" :icon="icon" />
+    <slot name="labels" />
+    <span v-if="title" class="mr-1 min-w-fit text-xs">{{ title }}:</span>
+    <input
+      ref="input"
+      :class="{ 'opacity-0': disabled }"
+      :readonly="disabled"
+      :value="modelValue"
+      :type="type"
+      class="input-box-input"
+      :placeholder="placeholder"
+      @input="updateValue($event.target?.['value'].trim())"
+      @focus="isFocused = true"
+      @blur="blurHandler"
+    />
+    <div v-if="type === 'number'" class="-my-1 flex select-none flex-col">
+      <TIcon
+        class="h-2 w-2 rotate-180 text-naturals-N12 hover:text-naturals-N14"
+        icon="arrow-down"
+        @click="updateValue(numberValue + step)"
+      />
+      <TIcon
+        class="h-2 w-2 text-naturals-N12 hover:text-naturals-N14"
+        icon="arrow-down"
+        @click="updateValue(numberValue - step)"
+      />
+    </div>
+    <div v-else-if="modelValue !== '' || onClear" @click.prevent="clearInput">
+      <TIcon class="input-box-icon" icon="close" />
+    </div>
+  </label>
+</template>
+
 <style scoped>
 .input-box {
-  @apply flex justify-start items-center p-2 border border-naturals-N8 rounded transition-colors gap-2 gap-y-3;
+  @apply flex items-center justify-start gap-2 gap-y-3 rounded border border-naturals-N8 p-2 transition-colors;
 }
 
 .compact {
@@ -166,11 +166,11 @@ onMounted(() => {
 }
 
 .input-box-icon {
-  @apply fill-current text-naturals-N8 transition-colors cursor-pointer w-4 h-4;
+  @apply h-4 w-4 cursor-pointer fill-current text-naturals-N8 transition-colors;
 }
 
 .input-box-input {
-  @apply bg-transparent border-none outline-none flex-1 text-naturals-N13 focus:outline-none  focus:border-transparent text-xs transition-colors placeholder-naturals-N7;
+  @apply flex-1 border-none bg-transparent text-xs text-naturals-N13 placeholder-naturals-N7 outline-none transition-colors focus:border-transparent focus:outline-none;
 
   min-width: 0.5rem;
 }
@@ -203,10 +203,10 @@ input[type='number'] {
 }
 
 .disabled {
-  @apply cursor-not-allowed bg-naturals-N3 border-naturals-N6;
+  @apply cursor-not-allowed border-naturals-N6 bg-naturals-N3;
 }
 
 .disabled * {
-  @apply pointer-events-none text-naturals-N9 select-none;
+  @apply pointer-events-none select-none text-naturals-N9;
 }
 </style>

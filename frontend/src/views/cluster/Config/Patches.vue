@@ -4,134 +4,52 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex flex-col gap-4 overflow-y-auto">
-    <managed-by-templates-warning :cluster="cluster" />
-    <div class="flex gap-4">
-      <t-input class="flex-1" placeholder="Search..." icon="search" v-model="filter" />
-      <t-button type="highlighted" @click="openPatchCreate" :disabled="!canManageConfigPatches"
-        >Create Patch</t-button
-      >
-    </div>
-    <div class="flex-1 font-sm">
-      <div v-if="loading" class="w-full h-full flex items-center justify-center">
-        <t-spinner class="w-6 h-6" />
-      </div>
-      <t-alert v-else-if="patches.length === 0" title="No Config Patches" type="info">
-        There are no config patches
-        {{
-          machine?.metadata.id
-            ? `associated with machine ${machine.metadata.id}`
-            : cluster?.metadata.id
-              ? `associated with cluster ${cluster.metadata.id}`
-              : `on the account`
-        }}
-      </t-alert>
-      <disclosure v-else as="div" :defaultOpen="true" v-for="group in routes" :key="group.name">
-        <template v-slot="{ open }">
-          <disclosure-button as="div" class="disclosure">
-            <t-icon
-              icon="arrow-up"
-              class="w-4 h-4 absolute top-0 bottom-0 m-auto right-4"
-              :class="{ 'rotate-180': open }"
-            />
-            <div class="grid grid-cols-4">
-              <word-highlighter
-                :text-to-highlight="group.name"
-                :query="filter"
-                highlight-class="bg-naturals-N14"
-              />
-              <div>ID</div>
-              <div class="col-span-2">Description</div>
-            </div>
-          </disclosure-button>
-          <disclosure-panel>
-            <div
-              v-for="item in group.items"
-              :key="item.name"
-              @click="() => $router.push(item.route)"
-              class="grid grid-cols-4 relative items-center gap-2 w-full text-xs px-4 py-2 my-2 cursor-pointer hover:text-naturals-N12 hover:bg-naturals-N3 transition-colors duration-200"
-            >
-              <icon-button
-                @click.stop="
-                  () => {
-                    $router.push({ query: { modal: 'configPatchDestroy', id: item.id } })
-                  }
-                "
-                :disabled="!canManageConfigPatches"
-                icon="delete"
-                class="w-4 h-4 absolute top-0 bottom-0 m-auto right-3"
-              />
-              <div class="pointer-events-none flex items-center gap-4">
-                <document-icon class="w-4 h-4" />
-                <word-highlighter
-                  :text-to-highlight="item.name"
-                  :query="filter"
-                  highlight-class="bg-naturals-N14"
-                />
-              </div>
-              <word-highlighter
-                :text-to-highlight="item.id"
-                :query="filter"
-                highlight-class="pointer-events-none bg-naturals-N14"
-              />
-              <div class="pointer-events-none col-span-2 truncate">
-                {{ item.description }}
-              </div>
-            </div>
-          </disclosure-panel>
-        </template>
-      </disclosure>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
+import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/vue'
+import { DocumentIcon } from '@heroicons/vue/24/solid'
+import { v4 as uuidv4 } from 'uuid'
+import type { Ref } from 'vue'
+import { computed, onMounted, ref, toRefs, watch } from 'vue'
+import type { RouteLocationRaw } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import WordHighlighter from 'vue-word-highlighter'
+
+import { Runtime } from '@/api/common/omni.pb'
+import type { Resource } from '@/api/grpc'
+import { ResourceService } from '@/api/grpc'
+import type { ClusterSpec, ConfigPatchSpec } from '@/api/omni/specs/omni.pb'
+import { withRuntime } from '@/api/options'
 import {
-  ConfigPatchType,
   ClusterMachineStatusType,
-  DefaultNamespace,
-  LabelCluster,
-  LabelMachineSet,
-  LabelClusterMachine,
-  LabelMachine,
-  LabelHostname,
-  VirtualNamespace,
   ClusterPermissionsType,
   ConfigPatchDescription,
   ConfigPatchName,
+  ConfigPatchType,
+  DefaultNamespace,
+  LabelCluster,
+  LabelClusterMachine,
+  LabelHostname,
+  LabelMachine,
+  LabelMachineSet,
+  VirtualNamespace,
 } from '@/api/resources'
-import type { Resource } from '@/api/grpc'
-import { ResourceService } from '@/api/grpc'
-import type { RouteLocationRaw } from 'vue-router'
-import { useRoute, useRouter } from 'vue-router'
-import type { Ref } from 'vue'
-import { ref, computed, watch, onMounted, toRefs } from 'vue'
-import type { ClusterSpec, ConfigPatchSpec } from '@/api/omni/specs/omni.pb'
+import { LabelSystemPatch } from '@/api/resources'
 import type { WatchOptions } from '@/api/watch'
 import Watch from '@/api/watch'
-import { v4 as uuidv4 } from 'uuid'
-
-import TAlert from '@/components/TAlert.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/vue'
-import TInput from '@/components/common/TInput/TInput.vue'
-import { DocumentIcon } from '@heroicons/vue/24/solid'
-import WordHighlighter from 'vue-word-highlighter'
 import IconButton from '@/components/common/Button/IconButton.vue'
-import { Runtime } from '@/api/common/omni.pb'
-import { LabelSystemPatch } from '@/api/resources'
-import { withRuntime } from '@/api/options'
+import TButton from '@/components/common/Button/TButton.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import TInput from '@/components/common/TInput/TInput.vue'
+import TAlert from '@/components/TAlert.vue'
 import { canManageMachineConfigPatches, canReadMachineConfigPatches } from '@/methods/auth'
 import {
   controlPlaneTitle,
-  machineSetTitle,
   defaultWorkersTitle,
+  machineSetTitle,
   workersTitlePrefix,
 } from '@/methods/machineset'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
-import TButton from '@/components/common/Button/TButton.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -229,7 +147,7 @@ const routes = computed(() => {
       hostnames[(item.metadata.labels || {})[LabelClusterMachine]],
     ]
 
-    if (filter.value != '' && !includes(filter.value, searchValues)) {
+    if (filter.value !== '' && !includes(filter.value, searchValues)) {
       return
     }
 
@@ -349,8 +267,90 @@ onMounted(async () => {
 })
 </script>
 
+<template>
+  <div class="flex flex-col gap-4 overflow-y-auto">
+    <ManagedByTemplatesWarning :cluster="cluster" />
+    <div class="flex gap-4">
+      <TInput v-model="filter" class="flex-1" placeholder="Search..." icon="search" />
+      <TButton type="highlighted" :disabled="!canManageConfigPatches" @click="openPatchCreate"
+        >Create Patch</TButton
+      >
+    </div>
+    <div class="font-sm flex-1">
+      <div v-if="loading" class="flex h-full w-full items-center justify-center">
+        <TSpinner class="h-6 w-6" />
+      </div>
+      <TAlert v-else-if="patches.length === 0" title="No Config Patches" type="info">
+        There are no config patches
+        {{
+          machine?.metadata.id
+            ? `associated with machine ${machine.metadata.id}`
+            : cluster?.metadata.id
+              ? `associated with cluster ${cluster.metadata.id}`
+              : `on the account`
+        }}
+      </TAlert>
+      <Disclosure v-for="group in routes" v-else :key="group.name" as="div" :default-open="true">
+        <template #default="{ open }">
+          <DisclosureButton as="div" class="disclosure">
+            <TIcon
+              icon="arrow-up"
+              class="absolute bottom-0 right-4 top-0 m-auto h-4 w-4"
+              :class="{ 'rotate-180': open }"
+            />
+            <div class="grid grid-cols-4">
+              <WordHighlighter
+                :text-to-highlight="group.name"
+                :query="filter"
+                highlight-class="bg-naturals-N14"
+              />
+              <div>ID</div>
+              <div class="col-span-2">Description</div>
+            </div>
+          </DisclosureButton>
+          <DisclosurePanel>
+            <div
+              v-for="item in group.items"
+              :key="item.name"
+              class="relative my-2 grid w-full cursor-pointer grid-cols-4 items-center gap-2 px-4 py-2 text-xs transition-colors duration-200 hover:bg-naturals-N3 hover:text-naturals-N12"
+              @click="() => $router.push(item.route)"
+            >
+              <IconButton
+                :disabled="!canManageConfigPatches"
+                icon="delete"
+                class="absolute bottom-0 right-3 top-0 m-auto h-4 w-4"
+                @click.stop="
+                  () => {
+                    $router.push({ query: { modal: 'configPatchDestroy', id: item.id } })
+                  }
+                "
+              />
+              <div class="pointer-events-none flex items-center gap-4">
+                <DocumentIcon class="h-4 w-4" />
+                <WordHighlighter
+                  :text-to-highlight="item.name"
+                  :query="filter"
+                  highlight-class="bg-naturals-N14"
+                />
+              </div>
+              <WordHighlighter
+                :text-to-highlight="item.id"
+                :query="filter"
+                highlight-class="pointer-events-none bg-naturals-N14"
+              />
+              <div class="pointer-events-none col-span-2 truncate">
+                {{ item.description }}
+              </div>
+            </div>
+          </DisclosurePanel>
+        </template>
+      </Disclosure>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .disclosure {
-  @apply relative text-xs text-naturals-N11 bg-naturals-N1 font-bold py-3 px-4 cursor-pointer hover:text-naturals-N14 transition-colors duration-200 select-none;
+  @apply relative cursor-pointer select-none bg-naturals-N1 px-4 py-3 text-xs font-bold text-naturals-N11 transition-colors duration-200 hover:text-naturals-N14;
 }
 </style>

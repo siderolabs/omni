@@ -4,90 +4,15 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <component :is="componentType" v-bind="componentAttributes" @click="handleClick">
-    <Tooltip placement="right" :description="tooltip" :offset-distance="10" :offset-skid="0">
-      <div class="flex flex-col w-full">
-        <div
-          class="item w-full"
-          :class="{ 'sub-item': level > 0, root: level === 0 }"
-          :style="{ 'padding-left': `${24 * (level + 1)}px` }"
-        >
-          <t-icon
-            v-if="icon || iconSvgBase64"
-            class="item-icon"
-            :icon="icon"
-            :svg-base64="iconSvgBase64"
-          />
-          <span class="item-name" :id="`sidebar-menu-${name.toLowerCase()}`">{{ name }}</span>
-          <div v-if="label" class="item-label" :class="labelColor ? 'text-' + labelColor : ''">
-            <span>{{ label }}</span>
-          </div>
-
-          <div class="expand-button" v-if="subItems?.length">
-            <t-icon
-              @click.stop.prevent="() => (expanded = !expanded)"
-              class="w-6 h-6 hover:text-naturals-N13 transition-color transition-transform duration-250"
-              :class="{ 'rotate-180': !expanded }"
-              icon="drop-up"
-            />
-          </div>
-        </div>
-        <div
-          @click.stop.prevent
-          v-if="expanded"
-          class="relative overflow-hidden"
-          :class="{ 'submenu-bg': level === 0 }"
-        >
-          <div
-            class="flex gap-2 relative transition-all duration-200"
-            v-for="(item, index) in subItems ?? []"
-            :key="item.name"
-          >
-            <div
-              class="mx-5 absolute border-l-2 border-b-2 top-0 border-naturals-N8 h-4 z-20 transition-color duration-200"
-              :class="{
-                'w-2': index === (subItems?.length || 0) - 1 || item.route === $route.path,
-                'border-primary-P2': index <= selectedIndex,
-              }"
-              :style="linePadding"
-            />
-            <div
-              class="mx-5 absolute border-l-2 top-4 bottom-0 border-naturals-N8 w-2 z-20 transition-color duration-200"
-              :class="{
-                'border-primary-P2': index < selectedIndex,
-              }"
-              :style="linePadding"
-              v-if="index != (subItems?.length ?? 0) - 1"
-            />
-            <TMenuItem
-              class="flex-1 w-full"
-              :route="item.route"
-              :regular-link="item.regularLink"
-              :name="item.name"
-              :icon="item.icon"
-              :icon-svg-base64="item.iconSvgBase64"
-              :label="item.label"
-              :label-color="item.labelColor"
-              :level="level + 1"
-              :sub-item="true"
-              :tooltip="item.tooltip"
-              :sub-items="item.subItems"
-            />
-          </div>
-        </div>
-      </div>
-    </Tooltip>
-  </component>
-</template>
-
 <script setup lang="ts">
+import { computed, toRefs } from 'vue'
+import { useRoute } from 'vue-router'
+
 import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
-import { computed, toRefs } from 'vue'
-import Tooltip from '../Tooltip/Tooltip.vue'
-import { useRoute } from 'vue-router'
 import storageRef from '@/methods/storage'
+
+import Tooltip from '../Tooltip/Tooltip.vue'
 
 type Props = {
   route?: string | object
@@ -149,13 +74,90 @@ const componentAttributes = props.route
 componentAttributes.class = (componentAttributes.class ?? '') + ' item-container'
 </script>
 
+<template>
+  <component :is="componentType" v-bind="componentAttributes" @click="handleClick">
+    <Tooltip placement="right" :description="tooltip" :offset-distance="10" :offset-skid="0">
+      <div class="flex w-full flex-col">
+        <div
+          class="item w-full"
+          :class="{ 'sub-item': level > 0, root: level === 0 }"
+          :style="{ 'padding-left': `${24 * (level + 1)}px` }"
+        >
+          <TIcon
+            v-if="icon || iconSvgBase64"
+            class="item-icon"
+            :icon="icon"
+            :svg-base64="iconSvgBase64"
+          />
+          <span :id="`sidebar-menu-${name.toLowerCase()}`" class="item-name">{{ name }}</span>
+          <div v-if="label" class="item-label" :class="labelColor ? 'text-' + labelColor : ''">
+            <span>{{ label }}</span>
+          </div>
+
+          <div v-if="subItems?.length" class="expand-button">
+            <TIcon
+              class="transition-color duration-250 h-6 w-6 transition-transform hover:text-naturals-N13"
+              :class="{ 'rotate-180': !expanded }"
+              icon="drop-up"
+              @click.stop.prevent="() => (expanded = !expanded)"
+            />
+          </div>
+        </div>
+        <div
+          v-if="expanded"
+          class="relative overflow-hidden"
+          :class="{ 'submenu-bg': level === 0 }"
+          @click.stop.prevent
+        >
+          <div
+            v-for="(item, index) in subItems ?? []"
+            :key="item.name"
+            class="relative flex gap-2 transition-all duration-200"
+          >
+            <div
+              class="transition-color absolute top-0 z-20 mx-5 h-4 border-b-2 border-l-2 border-naturals-N8 duration-200"
+              :class="{
+                'w-2': index === (subItems?.length || 0) - 1 || item.route === $route.path,
+                'border-primary-P2': index <= selectedIndex,
+              }"
+              :style="linePadding"
+            />
+            <div
+              v-if="index !== (subItems?.length ?? 0) - 1"
+              class="transition-color absolute bottom-0 top-4 z-20 mx-5 w-2 border-l-2 border-naturals-N8 duration-200"
+              :class="{
+                'border-primary-P2': index < selectedIndex,
+              }"
+              :style="linePadding"
+            />
+            <TMenuItem
+              class="w-full flex-1"
+              :route="item.route"
+              :regular-link="item.regularLink"
+              :name="item.name"
+              :icon="item.icon"
+              :icon-svg-base64="item.iconSvgBase64"
+              :label="item.label"
+              :label-color="item.labelColor"
+              :level="level + 1"
+              :sub-item="true"
+              :tooltip="item.tooltip"
+              :sub-items="item.subItems"
+            />
+          </div>
+        </div>
+      </div>
+    </Tooltip>
+  </component>
+</template>
+
 <style scoped>
 .item {
-  @apply flex border-transparent justify-start items-center transition-all duration-200 hover:bg-naturals-N4 py-1.5 my-0.5;
+  @apply my-0.5 flex items-center justify-start border-transparent py-1.5 transition-all duration-200 hover:bg-naturals-N4;
 }
 
 .item.root {
-  @apply px-6 border-l-2 gap-4;
+  @apply gap-4 border-l-2 px-6;
 }
 
 .item:hover .item-icon {
@@ -189,19 +191,19 @@ componentAttributes.class = (componentAttributes.class ?? '') + ' item-container
 }
 
 .item-name {
-  @apply text-xs text-naturals-N11 transition-colors duration-200 flex-1 truncate;
+  @apply flex-1 truncate text-xs text-naturals-N11 transition-colors duration-200;
 }
 
 .item.sub-item {
-  @apply pr-6 gap-2;
+  @apply gap-2 pr-6;
 }
 
 .item-label {
-  @apply rounded-md text-naturals-N13 bg-naturals-N4 text-xs px-1.5 min-w-5 py-0.5 justify-center -my-2 text-center flex items-center font-bold transition-colors duration-200;
+  @apply -my-2 flex min-w-5 items-center justify-center rounded-md bg-naturals-N4 px-1.5 py-0.5 text-center text-xs font-bold text-naturals-N13 transition-colors duration-200;
 }
 
 .expand-button {
-  @apply rounded-md bg-naturals-N4 -my-1 transition-colors duration-200 border border-transparent hover:border-naturals-N7 w-5 h-5 flex items-center justify-center;
+  @apply -my-1 flex h-5 w-5 items-center justify-center rounded-md border border-transparent bg-naturals-N4 transition-colors duration-200 hover:border-naturals-N7;
 }
 
 .item:hover .expand-button {
@@ -209,7 +211,7 @@ componentAttributes.class = (componentAttributes.class ?? '') + ' item-container
 }
 
 .submenu-bg {
-  @apply bg-naturals-N0 border-t border-naturals-N4;
+  @apply border-t border-naturals-N4 bg-naturals-N0;
 }
 
 .item-container:not(:last-child) .submenu-bg {

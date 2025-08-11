@@ -4,54 +4,20 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window">
-    <div class="heading">
-      <h3 class="text-base text-naturals-N14 truncate">
-        Renew the Key for the Account {{ $route.query.serviceAccount }}
-      </h3>
-      <close-button @click="close" />
-    </div>
-
-    <div class="flex flex-col w-full h-full gap-4">
-      <t-notification v-if="notification" v-bind="notification.props" />
-
-      <div class="flex flex-col gap-2" v-if="!key">
-        <t-input
-          title="Expiration Days"
-          type="number"
-          :min="1"
-          class="flex-1 h-full"
-          v-model="expiration"
-        />
-        <t-button
-          type="highlighted"
-          @click="handleRenew"
-          :disabled="!canManageUsers && authType !== AuthType.SAML"
-          class="h-9"
-          >Generate New Key</t-button
-        >
-      </div>
-    </div>
-
-    <ServiceAccountKey v-if="key" :secret-key="key" />
-  </div>
-</template>
-
 <script setup lang="ts">
 import type { Ref } from 'vue'
 import { ref, shallowRef } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+
+import TButton from '@/components/common/Button/TButton.vue'
+import TNotification from '@/components/common/Notification/TNotification.vue'
+import TInput from '@/components/common/TInput/TInput.vue'
+import { AuthType, authType } from '@/methods'
+import { canManageUsers } from '@/methods/auth'
 import { renewServiceAccount } from '@/methods/user'
 import type { Notification } from '@/notification'
 import { showError, showSuccess } from '@/notification'
-import { useRoute, useRouter } from 'vue-router'
-
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
-import TButton from '@/components/common/Button/TButton.vue'
-import { canManageUsers } from '@/methods/auth'
-import { AuthType, authType } from '@/methods'
-import TNotification from '@/components/common/Notification/TNotification.vue'
-import TInput from '@/components/common/TInput/TInput.vue'
 
 import ServiceAccountKey from './components/ServiceAccountKey.vue'
 
@@ -89,13 +55,47 @@ const close = () => {
 }
 </script>
 
+<template>
+  <div class="modal-window">
+    <div class="heading">
+      <h3 class="truncate text-base text-naturals-N14">
+        Renew the Key for the Account {{ $route.query.serviceAccount }}
+      </h3>
+      <CloseButton @click="close" />
+    </div>
+
+    <div class="flex h-full w-full flex-col gap-4">
+      <TNotification v-if="notification" v-bind="notification.props" />
+
+      <div v-if="!key" class="flex flex-col gap-2">
+        <TInput
+          v-model="expiration"
+          title="Expiration Days"
+          type="number"
+          :min="1"
+          class="h-full flex-1"
+        />
+        <TButton
+          type="highlighted"
+          :disabled="!canManageUsers && authType !== AuthType.SAML"
+          class="h-9"
+          @click="handleRenew"
+          >Generate New Key</TButton
+        >
+      </div>
+    </div>
+
+    <ServiceAccountKey v-if="key" :secret-key="key" />
+  </div>
+</template>
+
 <style scoped>
 .window {
-  @apply rounded bg-naturals-N2 z-30 w-1/3 flex flex-col p-8;
+  @apply z-30 flex w-1/3 flex-col rounded bg-naturals-N2 p-8;
 }
 
 .heading {
-  @apply flex justify-between items-center mb-5 text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
 }
 
 code {

@@ -5,8 +5,9 @@
 
 /// <reference types="vitest/config" />
 
-import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
+
+import vue from '@vitejs/plugin-vue'
 import { defineConfig, type UserConfig } from 'vite'
 import monacoEditorPlugin from 'vite-plugin-monaco-editor-esm'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'

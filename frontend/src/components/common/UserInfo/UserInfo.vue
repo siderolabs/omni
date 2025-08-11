@@ -4,36 +4,15 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex gap-2 items-center" :class="fontSize">
-    <img
-      v-if="avatar"
-      class="rounded-full"
-      :class="imageSize"
-      :src="avatar as string"
-      referrerpolicy="no-referrer"
-    />
-    <div class="flex flex-col flex-1 truncate">
-      <div class="text-naturals-N13 truncate">{{ fullname }}</div>
-      {{ identity }}
-    </div>
-    <t-actions-box v-if="withLogoutControls" placement="top">
-      <div @click="doLogout">
-        <div class="px-4 py-2 cursor-pointer hover:text-naturals-N12">Log Out</div>
-      </div>
-    </t-actions-box>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { useAuth0 } from '@auth0/auth0-vue'
 import { computed } from 'vue'
-import { resetKeys } from '@/methods/key'
-import { currentUser } from '@/methods/auth'
+import { useRoute } from 'vue-router'
 
 import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
-import { useRoute } from 'vue-router'
 import { AuthType, authType } from '@/methods'
+import { currentUser } from '@/methods/auth'
+import { resetKeys } from '@/methods/key'
 
 type Props = {
   withLogoutControls?: boolean
@@ -41,7 +20,6 @@ type Props = {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  withLogoutControls: false,
   size: 'normal',
 })
 
@@ -90,3 +68,24 @@ const doLogout = async () => {
   }
 }
 </script>
+
+<template>
+  <div class="flex items-center gap-2" :class="fontSize">
+    <img
+      v-if="avatar"
+      class="rounded-full"
+      :class="imageSize"
+      :src="avatar as string"
+      referrerpolicy="no-referrer"
+    />
+    <div class="flex flex-1 flex-col truncate">
+      <div class="truncate text-naturals-N13">{{ fullname }}</div>
+      {{ identity }}
+    </div>
+    <TActionsBox v-if="withLogoutControls" placement="top">
+      <div @click="doLogout">
+        <div class="cursor-pointer px-4 py-2 hover:text-naturals-N12">Log Out</div>
+      </div>
+    </TActionsBox>
+  </div>
+</template>

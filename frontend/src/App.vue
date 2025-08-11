@@ -4,40 +4,39 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
+<script setup lang="ts">
+import TNotification from '@/components/common/Notification/TNotification.vue'
+import TShell from '@/components/common/Shell/TShell.vue'
+import TSuspended from '@/components/common/Suspended/TSuspended.vue'
+import TSideBar from '@/components/SideBar/TSideBar.vue'
+import THeader from '@/components/THeader/THeader.vue'
+import TModal from '@/components/TModal.vue'
+import { suspended } from '@/methods'
+import { notification } from '@/notification'
+</script>
+
 <template>
   <div class="root">
-    <t-modal />
-    <t-header id="header" />
-    <t-shell class="shell">
+    <TModal />
+    <THeader id="header" />
+    <TShell class="shell">
       <template #menu>
-        <t-side-bar />
+        <TSideBar />
       </template>
       <template #content>
-        <div class="flex flex-col w-full h-full gap-4">
-          <t-suspended v-if="suspended" />
-          <t-notification v-if="notification" v-bind="notification.props" />
-          <router-view class="w-full h-full" />
+        <div class="flex h-full w-full flex-col gap-4">
+          <TSuspended v-if="suspended" />
+          <TNotification v-if="notification" v-bind="notification.props" />
+          <router-view class="h-full w-full" />
         </div>
       </template>
-    </t-shell>
+    </TShell>
   </div>
 </template>
 
-<script setup lang="ts">
-import { notification } from '@/notification'
-import { suspended } from '@/methods'
-
-import THeader from '@/components/THeader/THeader.vue'
-import TShell from '@/components/common/Shell/TShell.vue'
-import TSideBar from '@/components/SideBar/TSideBar.vue'
-import TModal from '@/components/TModal.vue'
-import TSuspended from '@/components/common/Suspended/TSuspended.vue'
-import TNotification from '@/components/common/Notification/TNotification.vue'
-</script>
-
 <style scoped>
 .root {
-  @apply text-naturals-N11 h-screen flex flex-col;
+  @apply flex h-screen flex-col text-naturals-N11;
 }
 
 .shell {

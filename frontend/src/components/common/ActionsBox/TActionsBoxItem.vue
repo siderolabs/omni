@@ -4,15 +4,6 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="action-item" :class="{ 'action-item-danger': danger }">
-    <t-icon class="action-item-icon" :icon="icon" />
-    <span class="action-item-text">
-      <slot />
-    </span>
-  </div>
-</template>
-
 <script setup lang="ts">
 import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
@@ -22,14 +13,21 @@ type Props = {
   danger?: boolean
 }
 
-withDefaults(defineProps<Props>(), {
-  danger: false,
-})
+withDefaults(defineProps<Props>(), {})
 </script>
+
+<template>
+  <div class="action-item" :class="{ 'action-item-danger': danger }">
+    <TIcon class="action-item-icon" :icon="icon" />
+    <span class="action-item-text">
+      <slot />
+    </span>
+  </div>
+</template>
 
 <style scoped>
 .action-item {
-  @apply flex items-center cursor-pointer w-full px-3 py-2 gap-2;
+  @apply flex w-full cursor-pointer items-center gap-2 px-3 py-2;
 }
 
 .action-item:hover > * {
@@ -37,7 +35,7 @@ withDefaults(defineProps<Props>(), {
 }
 
 .action-item-icon {
-  @apply w-4 h-4 transition-colors;
+  @apply h-4 w-4 transition-colors;
 }
 
 .action-item-text {

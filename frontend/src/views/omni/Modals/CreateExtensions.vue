@@ -4,54 +4,19 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window flex flex-col gap-4" style="height: 90%">
-    <div class="heading">
-      <h3 class="text-base text-naturals-N14">Set Extensions</h3>
-      <close-button @click="close" />
-    </div>
-
-    <div v-if="machineStatus" class="flex flex-col gap-4 flex-1 overflow-hidden">
-      <extensions-picker
-        v-model="requestedExtensions"
-        :talos-version="machineStatus?.spec.talos_version!.slice(1)"
-        class="flex-1"
-      />
-
-      <div class="flex justify-between gap-4">
-        <t-button @click="close" type="secondary"> Cancel </t-button>
-        <div class="flex gap-4">
-          <t-button
-            @click="() => updateExtensions()"
-            icon="reset"
-            :disabled="modelValue === undefined"
-          >
-            Revert
-          </t-button>
-          <t-button @click="() => updateExtensions(requestedExtensions)" type="highlighted">
-            Save
-          </t-button>
-        </div>
-      </div>
-    </div>
-    <div v-else class="flex items-center justify-center">
-      <t-spinner class="w-6 h-6" />
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import CloseButton from '@/views/omni/Modals/CloseButton.vue'
-import TButton from '@/components/common/Button/TButton.vue'
-import ExtensionsPicker from '@/views/omni/Extensions/ExtensionsPicker.vue'
 import { computed, ref, toRefs, watch } from 'vue'
-import Watch from '@/api/watch'
+
+import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, MachineStatusType } from '@/api/resources'
-import { Runtime } from '@/api/common/omni.pb'
+import Watch from '@/api/watch'
+import TButton from '@/components/common/Button/TButton.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import { closeModal } from '@/modal'
+import ExtensionsPicker from '@/views/omni/Extensions/ExtensionsPicker.vue'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const props = defineProps<{
   machine: string
@@ -128,12 +93,48 @@ const updateExtensions = (extensions?: Record<string, boolean>) => {
 }
 </script>
 
+<template>
+  <div class="modal-window flex flex-col gap-4" style="height: 90%">
+    <div class="heading">
+      <h3 class="text-base text-naturals-N14">Set Extensions</h3>
+      <CloseButton @click="close" />
+    </div>
+
+    <div v-if="machineStatus" class="flex flex-1 flex-col gap-4 overflow-hidden">
+      <ExtensionsPicker
+        v-model="requestedExtensions"
+        :talos-version="machineStatus?.spec.talos_version!.slice(1)"
+        class="flex-1"
+      />
+
+      <div class="flex justify-between gap-4">
+        <TButton type="secondary" @click="close"> Cancel </TButton>
+        <div class="flex gap-4">
+          <TButton
+            icon="reset"
+            :disabled="modelValue === undefined"
+            @click="() => updateExtensions()"
+          >
+            Revert
+          </TButton>
+          <TButton type="highlighted" @click="() => updateExtensions(requestedExtensions)">
+            Save
+          </TButton>
+        </div>
+      </div>
+    </div>
+    <div v-else class="flex items-center justify-center">
+      <TSpinner class="h-6 w-6" />
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .modal-window {
-  @apply w-1/2 h-auto p-8;
+  @apply h-auto w-1/2 p-8;
 }
 
 .heading {
-  @apply flex justify-between items-center text-xl text-naturals-N14;
+  @apply flex items-center justify-between text-xl text-naturals-N14;
 }
 </style>

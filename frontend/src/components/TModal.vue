@@ -4,17 +4,12 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="container-modal" v-if="view">
-    <component :is="view" v-bind="props" />
-  </div>
-</template>
-
 <script setup lang="ts">
-import { watch, ref, type Component, shallowRef, type Ref } from 'vue'
+import { type Component, type Ref, ref, shallowRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { modals } from '@/router'
+
 import { modal } from '@/modal'
+import { modals } from '@/router'
 
 const route = useRoute()
 const view: Ref<Component | null> = shallowRef(null)
@@ -49,9 +44,15 @@ watch(modal, () => {
 updateState()
 </script>
 
+<template>
+  <div v-if="view" class="container-modal">
+    <component :is="view" v-bind="props" />
+  </div>
+</template>
+
 <style scoped>
 .container-modal {
-  @apply fixed left-0 right-0 bottom-0 top-0 z-30 flex justify-center items-center py-4;
+  @apply fixed bottom-0 left-0 right-0 top-0 z-30 flex items-center justify-center py-4;
   background-color: rgba(16, 17, 24, 0.9);
 }
 </style>

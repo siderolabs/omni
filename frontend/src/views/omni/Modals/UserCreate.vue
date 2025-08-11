@@ -4,53 +4,22 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window">
-    <div class="heading">
-      <h3 class="text-base text-naturals-N14">Create User</h3>
-      <close-button @click="close" />
-    </div>
-
-    <div class="flex flex-col w-full h-full gap-4">
-      <t-notification v-if="notification" v-bind="notification.props" />
-
-      <div class="flex gap-2 items-center flex-wrap">
-        <t-input title="User Email" class="flex-1 h-full" placeholder="..." v-model="identity" />
-        <t-select-list
-          class="h-full"
-          title="Role"
-          :values="roles"
-          :defaultValue="RoleReader"
-          @checkedValue="(value) => (role = value)"
-        />
-        <t-button
-          type="highlighted"
-          @click="handleUserCreate"
-          :disabled="!canManageUsers && authType !== AuthType.SAML"
-          class="w-32 h-9"
-          >Create User</t-button
-        >
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import type { Ref } from 'vue'
 import { ref, shallowRef } from 'vue'
-import { createUser } from '@/methods/user'
-import type { Notification } from '@/notification'
-import { showError, showSuccess } from '@/notification'
 import { useRouter } from 'vue-router'
-import { RoleNone, RoleReader, RoleOperator, RoleAdmin } from '@/api/resources'
 
-import CloseButton from '@/views/omni/Modals/CloseButton.vue'
+import { RoleAdmin, RoleNone, RoleOperator, RoleReader } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
-import { canManageUsers } from '@/methods/auth'
+import TNotification from '@/components/common/Notification/TNotification.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import { AuthType, authType } from '@/methods'
-import TNotification from '@/components/common/Notification/TNotification.vue'
+import { canManageUsers } from '@/methods/auth'
+import { createUser } from '@/methods/user'
+import type { Notification } from '@/notification'
+import { showError, showSuccess } from '@/notification'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const notification: Ref<Notification | null> = shallowRef(null)
 
@@ -94,12 +63,43 @@ const close = () => {
 }
 </script>
 
+<template>
+  <div class="modal-window">
+    <div class="heading">
+      <h3 class="text-base text-naturals-N14">Create User</h3>
+      <CloseButton @click="close" />
+    </div>
+
+    <div class="flex h-full w-full flex-col gap-4">
+      <TNotification v-if="notification" v-bind="notification.props" />
+
+      <div class="flex flex-wrap items-center gap-2">
+        <TInput v-model="identity" title="User Email" class="h-full flex-1" placeholder="..." />
+        <TSelectList
+          class="h-full"
+          title="Role"
+          :values="roles"
+          :default-value="RoleReader"
+          @checked-value="(value) => (role = value)"
+        />
+        <TButton
+          type="highlighted"
+          :disabled="!canManageUsers && authType !== AuthType.SAML"
+          class="h-9 w-32"
+          @click="handleUserCreate"
+          >Create User</TButton
+        >
+      </div>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .window {
-  @apply rounded bg-naturals-N2 z-30 w-1/3 flex flex-col p-8;
+  @apply z-30 flex w-1/3 flex-col rounded bg-naturals-N2 p-8;
 }
 
 .heading {
-  @apply flex justify-between items-center mb-5 text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
 }
 </style>

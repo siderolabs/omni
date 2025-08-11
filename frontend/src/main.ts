@@ -3,24 +3,26 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import { createApp } from 'vue'
 import '@/index.css'
-import App from '@/App.vue'
-import VueClipboard from 'vue3-clipboard'
-import AppUnavailable from '@/AppUnavailable.vue'
-import router from '@/router'
 
-import type { Resource } from '@/api/grpc'
-import { initState, ResourceService } from '@/api/grpc'
-import { AuthConfigID, AuthConfigType, DefaultNamespace } from '@/api/resources'
-import { Runtime } from '@/api/common/omni.pb'
-import type { AuthConfigSpec } from '@/api/omni/specs/auth.pb'
-import { AuthType, authType, suspended } from '@/methods'
 import { createAuth0 } from '@auth0/auth0-vue'
-import { withRuntime } from './api/options'
 import vClickOutside from 'click-outside-vue3'
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 import yamlWorker from 'monaco-yaml/yaml.worker?worker'
+import { createApp } from 'vue'
+import VueClipboard from 'vue3-clipboard'
+
+import { Runtime } from '@/api/common/omni.pb'
+import type { Resource } from '@/api/grpc'
+import { initState, ResourceService } from '@/api/grpc'
+import type { AuthConfigSpec } from '@/api/omni/specs/auth.pb'
+import { AuthConfigID, AuthConfigType, DefaultNamespace } from '@/api/resources'
+import App from '@/App.vue'
+import AppUnavailable from '@/AppUnavailable.vue'
+import { AuthType, authType, suspended } from '@/methods'
+import router from '@/router'
+
+import { withRuntime } from './api/options'
 
 if (import.meta.env.PROD) {
   self.MonacoEnvironment = {

@@ -3,13 +3,13 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+import { Runtime } from '@/api/common/omni.pb'
+import { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
-import { EphemeralNamespace, SysVersionID, SysVersionType } from '@/api/resources'
-import { Runtime } from '@/api/common/omni.pb'
 import type { SysVersionSpec } from '@/api/omni/specs/system.pb'
-import { Code } from '@/api/google/rpc/code.pb'
 import { withRuntime } from '@/api/options'
+import { EphemeralNamespace, SysVersionID, SysVersionType } from '@/api/resources'
 
 let title: string | undefined = undefined
 
@@ -35,7 +35,7 @@ export const refreshTitle = async () => {
       document.title = title
     }
   } catch (e) {
-    if (e?.code != Code.UNAUTHENTICATED) {
+    if (e?.code !== Code.UNAUTHENTICATED) {
       console.log('failed to get sysversion resource', e)
     }
   }

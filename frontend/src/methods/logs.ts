@@ -3,12 +3,13 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import type { Data } from '@/api/common/common.pb'
-import type { StreamingRequest, Stream } from '@/api/grpc'
-import { subscribe } from '@/api/grpc'
-import type { Ref, ComputedRef } from 'vue'
+import type { ComputedRef, Ref } from 'vue'
 import { isRef, onMounted, onUnmounted, ref, watch } from 'vue'
+
+import type { Data } from '@/api/common/common.pb'
 import type { fetchOption } from '@/api/fetch.pb'
+import type { Stream, StreamingRequest } from '@/api/grpc'
+import { subscribe } from '@/api/grpc'
 
 export type LogLine = {
   date?: string

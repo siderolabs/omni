@@ -3,17 +3,18 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import defaultTheme from 'tailwindcss/defaultTheme'
-import colors from 'tailwindcss/colors'
-import * as colorsTheme from './src/vars/colors'
 import type { Config } from 'tailwindcss'
+import colors from 'tailwindcss/colors'
+import defaultTheme from 'tailwindcss/defaultTheme'
+
+import * as colorsTheme from './src/vars/colors'
 
 export default {
   content: ['./public/**/*.html', './src/**/*.vue'],
   darkMode: 'class',
   theme: {
     fontFamily: {
-      sans: ['Inter var', ...defaultTheme?.fontFamily?.['sans']],
+      sans: ['Inter var', ...defaultTheme?.fontFamily?.sans],
       roboto: ['Roboto Mono', 'monospace'],
       firasans: ['Fira Sans', 'Roboto', 'sans-serif'],
     },

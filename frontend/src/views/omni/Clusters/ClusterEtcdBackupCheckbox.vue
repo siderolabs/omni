@@ -4,70 +4,19 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex gap-1 items-center">
-    <t-checkbox
-      :checked="enabled"
-      @click="toggleBackupsEnabled"
-      label="Control Plane Backups"
-      class="flex-1"
-      :disabled="!backupStatus.enabled"
-    />
-    <div
-      v-if="!backupStatus.enabled && backupStatus.configurable"
-      class="text-xs flex gap-1 items-center"
-    >
-      <t-button
-        v-if="canManageBackupStore"
-        type="subtle-xs"
-        @click="$router.push({ name: 'BackupStorage' })"
-        icon="settings"
-        icon-position="left"
-        class="text-xs"
-        >Configure Storage</t-button
-      >
-      <div v-else class="truncate flex-1">Backup Storage Disabled</div>
-    </div>
-    <div class="flex text-xs items-center gap-2 h-6" v-else-if="enabled">
-      <span>Interval:</span>
-      <template v-if="!editingBackupConfig">
-        <span class="text-naturals-N13">{{ interval?.toHuman() }}</span>
-        <icon-button v-if="!editingBackupConfig" @click="startEditingBackupInterval" icon="edit" />
-      </template>
-      <template v-else>
-        <div class="w-12">
-          <t-input
-            @keydown.escape="editingBackupConfig = false"
-            @keydown.enter="updateBackupInterval"
-            v-click-outside="() => (editingBackupConfig = false)"
-            type="number"
-            v-model="backupIntervalPreview"
-            compact
-            focus
-            :min="1"
-            :max="24"
-          />
-        </div>
-        <div class="text-naturals-N13">{{ pluralize('hour', backupIntervalPreview) }}</div>
-        <icon-button @click="updateBackupInterval" icon="check" />
-      </template>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { computed, ref, toRefs } from 'vue'
-import type { Duration as GoogleProtobufDuration } from '@/api/google/protobuf/duration.pb'
-
-import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
-import IconButton from '@/components/common/Button/IconButton.vue'
-import { formatDuration, parseDuration } from '@/methods/time'
-import pluralize from 'pluralize'
 import { Duration } from 'luxon'
+import pluralize from 'pluralize'
+import { computed, ref, toRefs } from 'vue'
+
+import type { Duration as GoogleProtobufDuration } from '@/api/google/protobuf/duration.pb'
+import IconButton from '@/components/common/Button/IconButton.vue'
+import TButton from '@/components/common/Button/TButton.vue'
+import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import type { BackupsStatus } from '@/methods'
-import TButton from '@/components/common/Button/TButton.vue'
 import { canManageBackupStore } from '@/methods/auth'
+import { formatDuration, parseDuration } from '@/methods/time'
 
 const editingBackupConfig = ref(false)
 
@@ -136,3 +85,54 @@ const updateBackupInterval = () => {
   emit('update:cluster', c)
 }
 </script>
+
+<template>
+  <div class="flex items-center gap-1">
+    <TCheckbox
+      :checked="enabled"
+      label="Control Plane Backups"
+      class="flex-1"
+      :disabled="!backupStatus.enabled"
+      @click="toggleBackupsEnabled"
+    />
+    <div
+      v-if="!backupStatus.enabled && backupStatus.configurable"
+      class="flex items-center gap-1 text-xs"
+    >
+      <TButton
+        v-if="canManageBackupStore"
+        type="subtle-xs"
+        icon="settings"
+        icon-position="left"
+        class="text-xs"
+        @click="$router.push({ name: 'BackupStorage' })"
+        >Configure Storage</TButton
+      >
+      <div v-else class="flex-1 truncate">Backup Storage Disabled</div>
+    </div>
+    <div v-else-if="enabled" class="flex h-6 items-center gap-2 text-xs">
+      <span>Interval:</span>
+      <template v-if="!editingBackupConfig">
+        <span class="text-naturals-N13">{{ interval?.toHuman() }}</span>
+        <IconButton v-if="!editingBackupConfig" icon="edit" @click="startEditingBackupInterval" />
+      </template>
+      <template v-else>
+        <div class="w-12">
+          <TInput
+            v-model="backupIntervalPreview"
+            v-click-outside="() => (editingBackupConfig = false)"
+            type="number"
+            compact
+            focus
+            :min="1"
+            :max="24"
+            @keydown.escape="editingBackupConfig = false"
+            @keydown.enter="updateBackupInterval"
+          />
+        </div>
+        <div class="text-naturals-N13">{{ pluralize('hour', backupIntervalPreview) }}</div>
+        <IconButton icon="check" @click="updateBackupInterval" />
+      </template>
+    </div>
+  </div>
+</template>

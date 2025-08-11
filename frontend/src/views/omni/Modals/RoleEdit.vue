@@ -4,73 +4,27 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window">
-    <div class="heading">
-      <h3 class="text-base text-naturals-N14 truncate">Edit {{ object }} {{ id }}</h3>
-      <close-button @click="close" />
-    </div>
-
-    <div class="flex gap-4 flex-wrap">
-      <watch
-        :opts="{
-          resource: {
-            type: UserType,
-            namespace: DefaultNamespace,
-            id: $route.query.user as string,
-          },
-          runtime: Runtime.Omni,
-        }"
-        class="flex-1"
-      >
-        <template #default="{ items }">
-          <t-select-list
-            v-if="items[0]?.spec?.role"
-            class="h-full"
-            title="Role"
-            :values="roles"
-            :defaultValue="items[0]?.spec?.role"
-            @checkedValue="(value) => (role = value)"
-          />
-        </template>
-      </watch>
-      <t-button
-        type="highlighted"
-        @click="
-          () => {
-            handleRoleUpdate()
-            close()
-          }
-        "
-        :disabled="!canManageUsers"
-        class="h-9"
-        >Update {{ object }}</t-button
-      >
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import type { Ref } from 'vue'
 import { ref } from 'vue'
-import { updateRole } from '@/methods/user'
-import { showError, showSuccess } from '@/notification'
 import { useRoute, useRouter } from 'vue-router'
+
 import { Runtime } from '@/api/common/omni.pb'
 import {
-  RoleNone,
-  RoleReader,
-  RoleOperator,
-  RoleAdmin,
   DefaultNamespace,
+  RoleAdmin,
+  RoleNone,
+  RoleOperator,
+  RoleReader,
   UserType,
 } from '@/api/resources'
-import { canManageUsers } from '@/methods/auth'
-
-import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import Watch from '@/components/common/Watch/Watch.vue'
+import { canManageUsers } from '@/methods/auth'
+import { updateRole } from '@/methods/user'
+import { showError, showSuccess } from '@/notification'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -117,12 +71,58 @@ const close = () => {
 }
 </script>
 
+<template>
+  <div class="modal-window">
+    <div class="heading">
+      <h3 class="truncate text-base text-naturals-N14">Edit {{ object }} {{ id }}</h3>
+      <CloseButton @click="close" />
+    </div>
+
+    <div class="flex flex-wrap gap-4">
+      <Watch
+        :opts="{
+          resource: {
+            type: UserType,
+            namespace: DefaultNamespace,
+            id: $route.query.user as string,
+          },
+          runtime: Runtime.Omni,
+        }"
+        class="flex-1"
+      >
+        <template #default="{ items }">
+          <TSelectList
+            v-if="items[0]?.spec?.role"
+            class="h-full"
+            title="Role"
+            :values="roles"
+            :default-value="items[0]?.spec?.role"
+            @checked-value="(value) => (role = value)"
+          />
+        </template>
+      </Watch>
+      <TButton
+        type="highlighted"
+        :disabled="!canManageUsers"
+        class="h-9"
+        @click="
+          () => {
+            handleRoleUpdate()
+            close()
+          }
+        "
+        >Update {{ object }}</TButton
+      >
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .window {
-  @apply rounded bg-naturals-N2 z-30 w-1/3 flex flex-col p-8;
+  @apply z-30 flex w-1/3 flex-col rounded bg-naturals-N2 p-8;
 }
 
 .heading {
-  @apply flex justify-between items-center mb-5 text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
 }
 </style>

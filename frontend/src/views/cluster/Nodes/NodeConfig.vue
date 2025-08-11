@@ -4,22 +4,18 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <CodeEditor v-model:value="config" :options="{ readOnly: true }" />
-</template>
-
 <script setup lang="ts">
 import type { Ref } from 'vue'
 import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
+
+import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import type { RedactedClusterMachineConfigSpec } from '@/api/omni/specs/omni.pb'
-import Watch from '@/api/watch'
-import { Runtime } from '@/api/common/omni.pb'
 import { DefaultNamespace, RedactedClusterMachineConfigType } from '@/api/resources'
-import { useRoute } from 'vue-router'
-import { getContext } from '@/context'
-
+import Watch from '@/api/watch'
 import CodeEditor from '@/components/common/CodeEditor/CodeEditor.vue'
+import { getContext } from '@/context'
 
 const route = useRoute()
 
@@ -46,6 +42,10 @@ watch.setup(
   }),
 )
 </script>
+
+<template>
+  <CodeEditor v-model:value="config" :options="{ readOnly: true }" />
+</template>
 
 <style>
 .monaco-editor-vue3 h4 {

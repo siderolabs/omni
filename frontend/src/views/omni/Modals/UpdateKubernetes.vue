@@ -4,94 +4,26 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window flex flex-col max-h-screen my-4 gap-2">
-    <div class="heading">
-      <h3 class="text-base text-naturals-N14">Update Kubernetes</h3>
-      <close-button @click="close" />
-    </div>
-    <managed-by-templates-warning warning-style="popup" />
-    <template v-if="status">
-      <radio-group
-        id="k8s-upgrade-version"
-        class="text-naturals-N13 overflow-y-auto flex-1 flex flex-col gap-2"
-        v-model="selectedVersion"
-      >
-        <template v-for="(versions, group) in upgradeVersions" :key="group">
-          <radio-group-label as="div" class="pl-7 font-bold bg-naturals-N4 w-full p-1 text-sm">{{
-            group
-          }}</radio-group-label>
-          <div class="flex flex-col gap-1">
-            <radio-group-option
-              v-for="version in versions"
-              :key="version"
-              v-slot="{ checked }"
-              :value="version"
-            >
-              <div
-                class="flex items-center gap-2 cursor-pointer text-sm px-2 py-1 hover:bg-naturals-N4 tranform transition-color"
-                :class="{ 'bg-naturals-N4': checked }"
-              >
-                <t-checkbox :checked="checked" />
-                {{ version }}
-                <span v-if="version === status.spec.last_upgrade_version">(current)</span>
-              </div>
-            </radio-group-option>
-          </div>
-        </template>
-      </radio-group>
-    </template>
-
-    <p class="text-xs">
-      Changing the Kubernetes version can result in control plane downtime. During this change you
-      will be able to cancel the upgrade.
-    </p>
-    <p class="text-xs">This operation starts immediately.</p>
-
-    <div v-if="runningPrechecks" class="text-primary-P3 text-xs">
-      Running pre-checks to validate the upgrade...
-    </div>
-
-    <div v-if="preCheckError" class="text-primary-P3 text-xs font-mono whitespace-pre-line">
-      {{ preCheckError }}
-    </div>
-
-    <div class="flex justify-end gap-4">
-      <t-button
-        @click="upgradeClick"
-        class="w-32 h-9"
-        :disabled="
-          !status || runningPrechecks || selectedVersion === status?.spec?.last_upgrade_version
-        "
-        type="highlighted"
-      >
-        <t-spinner v-if="runningPrechecks || !status" class="w-5 h-5" />
-        <span v-else>{{ action }}</span>
-      </t-button>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
+import { RadioGroup, RadioGroupLabel, RadioGroupOption } from '@headlessui/vue'
+import * as semver from 'semver'
 import type { Ref } from 'vue'
-import { ref, computed, watch } from 'vue'
-import { DefaultNamespace, KubernetesUpgradeStatusType } from '@/api/resources'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
-import { upgradeKubernetes } from '@/methods/cluster'
-import * as semver from 'semver'
-import { RadioGroup, RadioGroupLabel, RadioGroupOption } from '@headlessui/vue'
-
-import CloseButton from '@/views/omni/Modals/CloseButton.vue'
-import TButton from '@/components/common/Button/TButton.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
-import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
-import Watch from '@/api/watch'
-import type { KubernetesUpgradeStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ManagementService } from '@/api/omni/management/management.pb'
+import type { KubernetesUpgradeStatusSpec } from '@/api/omni/specs/omni.pb'
 import { withContext } from '@/api/options'
+import { DefaultNamespace, KubernetesUpgradeStatusType } from '@/api/resources'
+import Watch from '@/api/watch'
+import TButton from '@/components/common/Button/TButton.vue'
+import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import { upgradeKubernetes } from '@/methods/cluster'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -205,11 +137,79 @@ const upgradeClick = async () => {
 }
 </script>
 
+<template>
+  <div class="modal-window my-4 flex max-h-screen flex-col gap-2">
+    <div class="heading">
+      <h3 class="text-base text-naturals-N14">Update Kubernetes</h3>
+      <CloseButton @click="close" />
+    </div>
+    <ManagedByTemplatesWarning warning-style="popup" />
+    <template v-if="status">
+      <RadioGroup
+        id="k8s-upgrade-version"
+        v-model="selectedVersion"
+        class="flex flex-1 flex-col gap-2 overflow-y-auto text-naturals-N13"
+      >
+        <template v-for="(versions, group) in upgradeVersions" :key="group">
+          <RadioGroupLabel as="div" class="w-full bg-naturals-N4 p-1 pl-7 text-sm font-bold">{{
+            group
+          }}</RadioGroupLabel>
+          <div class="flex flex-col gap-1">
+            <RadioGroupOption
+              v-for="version in versions"
+              :key="version"
+              v-slot="{ checked }"
+              :value="version"
+            >
+              <div
+                class="tranform transition-color flex cursor-pointer items-center gap-2 px-2 py-1 text-sm hover:bg-naturals-N4"
+                :class="{ 'bg-naturals-N4': checked }"
+              >
+                <TCheckbox :checked="checked" />
+                {{ version }}
+                <span v-if="version === status.spec.last_upgrade_version">(current)</span>
+              </div>
+            </RadioGroupOption>
+          </div>
+        </template>
+      </RadioGroup>
+    </template>
+
+    <p class="text-xs">
+      Changing the Kubernetes version can result in control plane downtime. During this change you
+      will be able to cancel the upgrade.
+    </p>
+    <p class="text-xs">This operation starts immediately.</p>
+
+    <div v-if="runningPrechecks" class="text-xs text-primary-P3">
+      Running pre-checks to validate the upgrade...
+    </div>
+
+    <div v-if="preCheckError" class="font-mono whitespace-pre-line text-xs text-primary-P3">
+      {{ preCheckError }}
+    </div>
+
+    <div class="flex justify-end gap-4">
+      <TButton
+        class="h-9 w-32"
+        :disabled="
+          !status || runningPrechecks || selectedVersion === status?.spec?.last_upgrade_version
+        "
+        type="highlighted"
+        @click="upgradeClick"
+      >
+        <TSpinner v-if="runningPrechecks || !status" class="h-5 w-5" />
+        <span v-else>{{ action }}</span>
+      </TButton>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .heading {
-  @apply flex justify-between items-center mb-5 text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
 }
 optgroup {
-  @apply text-naturals-N14 font-bold;
+  @apply font-bold text-naturals-N14;
 }
 </style>

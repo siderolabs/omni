@@ -4,46 +4,20 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window">
-    <div class="heading">
-      <h3 class="text-base text-naturals-N14">Setup a new Infra Provider</h3>
-      <close-button @click="close" />
-    </div>
-
-    <div class="flex flex-col w-full h-full gap-4">
-      <t-notification v-if="notification" v-bind="notification.props" />
-
-      <template v-if="!key">
-        <div class="flex flex-col gap-2">
-          <t-input
-            title="Provider ID"
-            class="flex-1 h-full"
-            placeholder="examples: kubevirt, bare-metal"
-            v-model="id"
-          />
-        </div>
-        <t-button type="highlighted" @click="handleCreate" class="h-9">Next</t-button>
-      </template>
-    </div>
-
-    <ServiceAccountKey v-if="key" :secret-key="key" />
-  </div>
-</template>
-
 <script setup lang="ts">
 import type { Ref } from 'vue'
 import { ref, shallowRef } from 'vue'
-import type { Notification } from '@/notification'
-import { showError } from '@/notification'
 import { useRouter } from 'vue-router'
 
-import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
-import TInput from '@/components/common/TInput/TInput.vue'
 import TNotification from '@/components/common/Notification/TNotification.vue'
-import ServiceAccountKey from './components/ServiceAccountKey.vue'
+import TInput from '@/components/common/TInput/TInput.vue'
 import { setupInfraProvider } from '@/methods/providers'
+import type { Notification } from '@/notification'
+import { showError } from '@/notification'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
+
+import ServiceAccountKey from './components/ServiceAccountKey.vue'
 
 const notification: Ref<Notification | null> = shallowRef(null)
 
@@ -81,13 +55,40 @@ const close = () => {
 }
 </script>
 
+<template>
+  <div class="modal-window">
+    <div class="heading">
+      <h3 class="text-base text-naturals-N14">Setup a new Infra Provider</h3>
+      <CloseButton @click="close" />
+    </div>
+
+    <div class="flex h-full w-full flex-col gap-4">
+      <TNotification v-if="notification" v-bind="notification.props" />
+
+      <template v-if="!key">
+        <div class="flex flex-col gap-2">
+          <TInput
+            v-model="id"
+            title="Provider ID"
+            class="h-full flex-1"
+            placeholder="examples: kubevirt, bare-metal"
+          />
+        </div>
+        <TButton type="highlighted" class="h-9" @click="handleCreate">Next</TButton>
+      </template>
+    </div>
+
+    <ServiceAccountKey v-if="key" :secret-key="key" />
+  </div>
+</template>
+
 <style scoped>
 .window {
-  @apply rounded bg-naturals-N2 z-30 w-1/3 flex flex-col p-8;
+  @apply z-30 flex w-1/3 flex-col rounded bg-naturals-N2 p-8;
 }
 
 .heading {
-  @apply flex justify-between items-center mb-5 text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
 }
 
 code {

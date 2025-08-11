@@ -4,42 +4,13 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="text-xs font-medium flex flex-col items-center justify-center gap-1">
-    <h4 class="text-naturals-N13">{{ name }}</h4>
-    <apex-chart
-      class="flex-1"
-      :height="200"
-      :width="200"
-      type="radialBar"
-      :options="options"
-      :series="normalized"
-    />
-    <div class="flex flex-col gap-1 -mt-4 w-full px-4">
-      <div
-        v-for="(label, index) in labels"
-        :key="label"
-        class="flex gap-1 items-center text-naturals-N13"
-      >
-        <div class="w-2.5 h-2.5 rounded-sm" :style="{ 'background-color': colors[index] }" />
-        <div class="flex-1">{{ label }}</div>
-        <div>{{ formatter(series[index]) }}</div>
-      </div>
-      <div class="flex gap-1 items-center">
-        <div class="flex-1">Capacity</div>
-        <div>{{ formatter(total) }}</div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { primary, naturals, green, red, yellow } from '@/vars/colors'
 import type { ApexOptions } from 'apexcharts'
 import type { Ref } from 'vue'
 import { computed, toRefs } from 'vue'
-
 import ApexChart from 'vue3-apexcharts'
+
+import { green, naturals, primary, red, yellow } from '@/vars/colors'
 
 type Props = {
   name: string
@@ -108,3 +79,32 @@ const options: Ref<ApexOptions> = computed(() => {
   }
 })
 </script>
+
+<template>
+  <div class="flex flex-col items-center justify-center gap-1 text-xs font-medium">
+    <h4 class="text-naturals-N13">{{ name }}</h4>
+    <ApexChart
+      class="flex-1"
+      :height="200"
+      :width="200"
+      type="radialBar"
+      :options="options"
+      :series="normalized"
+    />
+    <div class="-mt-4 flex w-full flex-col gap-1 px-4">
+      <div
+        v-for="(label, index) in labels"
+        :key="label"
+        class="flex items-center gap-1 text-naturals-N13"
+      >
+        <div class="h-2.5 w-2.5 rounded-sm" :style="{ 'background-color': colors[index] }" />
+        <div class="flex-1">{{ label }}</div>
+        <div>{{ formatter(series[index]) }}</div>
+      </div>
+      <div class="flex items-center gap-1">
+        <div class="flex-1">Capacity</div>
+        <div>{{ formatter(total) }}</div>
+      </div>
+    </div>
+  </div>
+</template>

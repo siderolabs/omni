@@ -4,23 +4,12 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="chart-wrapper">
-    <apex-chart
-      :height="200"
-      :width="200"
-      type="radialBar"
-      :options="options"
-      :series="[percentage]"
-    />
-  </div>
-</template>
-
 <script setup lang="ts">
+import type { ApexOptions } from 'apexcharts'
 import { computed, toRefs } from 'vue'
 import ApexChart from 'vue3-apexcharts'
-import { primary, naturals } from '@/vars/colors'
-import type { ApexOptions } from 'apexcharts'
+
+import { naturals, primary } from '@/vars/colors'
 
 const props = defineProps<{ chartFillPercents: number | string }>()
 
@@ -73,8 +62,20 @@ const options: ApexOptions = {
 const percentage = computed(() => chartFillPercents.value ?? 0)
 </script>
 
+<template>
+  <div class="chart-wrapper">
+    <ApexChart
+      :height="200"
+      :width="200"
+      type="radialBar"
+      :options="options"
+      :series="[percentage]"
+    />
+  </div>
+</template>
+
 <style scoped>
 .chart-wrapper {
-  @apply flex items-center justify-start z-0;
+  @apply z-0 flex items-center justify-start;
 }
 </style>

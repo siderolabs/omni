@@ -3,6 +3,9 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+import { describe, expect, test } from 'vitest'
+import { type Ref, ref } from 'vue'
+
 import { Runtime } from '@/api/common/omni.pb'
 import type { fetchOption, NotifyStreamEntityArrival, RequestOptions } from '@/api/fetch.pb'
 import type { Resource } from '@/api/grpc'
@@ -17,8 +20,6 @@ import type { MachineSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, MachineType } from '@/api/resources'
 import type { Metadata } from '@/api/v1alpha1/resource.pb'
 import Watch from '@/api/watch'
-import { describe, expect, test } from 'vitest'
-import { type Ref, ref } from 'vue'
 
 class fakeStream extends EventTarget {
   private resolve?: (value: void | PromiseLike<void>) => void

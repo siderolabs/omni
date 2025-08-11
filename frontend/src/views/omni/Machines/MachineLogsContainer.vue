@@ -4,27 +4,17 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex flex-col">
-    <div class="mb-4">
-      <t-input placeholder="Search..." v-model="searchInput" icon="search" />
-    </div>
-    <log-viewer class="flex-1" :logs="logs" :searchOption="searchInput" />
-  </div>
-</template>
-
 <script setup lang="ts">
 import type { Ref } from 'vue'
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { formatISO } from '@/methods/time'
 
-import { setupLogStream, DefaultLogParser } from '@/methods/logs'
-import type { LogLine } from '@/methods/logs'
 import { ManagementService } from '@/api/omni/management/management.pb'
-
-import TInput from '@/components/common/TInput/TInput.vue'
 import LogViewer from '@/components/common/LogViewer/LogViewer.vue'
+import TInput from '@/components/common/TInput/TInput.vue'
+import type { LogLine } from '@/methods/logs'
+import { DefaultLogParser, setupLogStream } from '@/methods/logs'
+import { formatISO } from '@/methods/time'
 
 const logs: Ref<LogLine[]> = ref([])
 const route = useRoute()
@@ -55,3 +45,12 @@ setupLogStream(
   }),
 )
 </script>
+
+<template>
+  <div class="flex flex-col">
+    <div class="mb-4">
+      <TInput v-model="searchInput" placeholder="Search..." icon="search" />
+    </div>
+    <LogViewer class="flex-1" :logs="logs" :search-option="searchInput" />
+  </div>
+</template>

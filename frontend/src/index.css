@@ -19,12 +19,12 @@ body {
 }
 
 *::-webkit-scrollbar {
-  @apply w-1.5 h-1.5;
+  @apply h-1.5 w-1.5;
   background-color: transparent;
 }
 
 *::-webkit-scrollbar-thumb {
-  @apply w-1.5 h-1.5 bg-naturals-N5 border border-naturals-N4 rounded;
+  @apply h-1.5 w-1.5 rounded border border-naturals-N4 bg-naturals-N5;
 }
 
 body {
@@ -33,11 +33,11 @@ body {
 }
 
 .modal-window {
-  @apply rounded bg-naturals-N3 z-30 p-8 flex flex-col w-1/3;
+  @apply z-30 flex w-1/3 flex-col rounded bg-naturals-N3 p-8;
 }
 
 .list-item-link {
-  @apply font-bold text-naturals-N14 hover:text-naturals-N9 transition;
+  @apply font-bold text-naturals-N14 transition hover:text-naturals-N9;
 }
 
 @layer components {

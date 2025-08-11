@@ -38,19 +38,19 @@ export const sortMachineSetIds = (clusterId: string | undefined, ids: string[]):
     const nameA = machineSetName(clusterId, a)
     const nameB = machineSetName(clusterId, b)
 
-    if (nameA == ControlPlanesIDSuffix) {
+    if (nameA === ControlPlanesIDSuffix) {
       return -1
     }
 
-    if (nameB == ControlPlanesIDSuffix) {
+    if (nameB === ControlPlanesIDSuffix) {
       return 1
     }
 
-    if (nameA == DefaultWorkersIDSuffix) {
+    if (nameA === DefaultWorkersIDSuffix) {
       return -1
     }
 
-    if (nameB == DefaultWorkersIDSuffix) {
+    if (nameB === DefaultWorkersIDSuffix) {
       return 1
     }
 
@@ -66,11 +66,11 @@ export const machineSetTitle = (clusterId?: string, id?: string) => {
     return ''
   }
 
-  if (name == ControlPlanesIDSuffix) {
+  if (name === ControlPlanesIDSuffix) {
     return controlPlaneTitle
   }
 
-  if (name == DefaultWorkersIDSuffix) {
+  if (name === DefaultWorkersIDSuffix) {
     return defaultWorkersTitle
   }
 

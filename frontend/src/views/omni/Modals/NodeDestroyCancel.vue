@@ -4,60 +4,19 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window">
-    <div class="heading">
-      <h3 class="text-base text-naturals-N14">
-        Cancel Destroy of Node {{ node ?? $route.query.machine }} ?
-      </h3>
-      <close-button @click="close(true)" />
-    </div>
-    <watch
-      :opts="{
-        resource: {
-          namespace: DefaultNamespace,
-          id: $route.query.machine as string,
-          type: ClusterMachineType,
-        },
-        runtime: Runtime.Omni,
-      }"
-      spinner
-    >
-      <template #default="{ items }">
-        <template v-if="canRestore(items)">
-          <p class="text-xs mb-2">Please confirm the action.</p>
-
-          <div class="flex items-end gap-4 mt-2">
-            <div class="flex-1" />
-            <t-button @click="() => restore(items[0])" class="h-9"> Restore Machine </t-button>
-          </div>
-        </template>
-        <template v-else>
-          <p class="text-xs mb-2">Restoring the machine is not possible at this stage.</p>
-
-          <div class="flex items-end gap-4 mt-2">
-            <div class="flex-1" />
-            <t-button @click="close" class="h-9"> Close </t-button>
-          </div>
-        </template>
-      </template>
-    </watch>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
-import { showError, showSuccess } from '@/notification'
-import { setupNodenameWatch } from '@/methods/node'
 
-import CloseButton from '@/views/omni/Modals/CloseButton.vue'
-import TButton from '@/components/common/Button/TButton.vue'
-import type { Resource } from '@/api/grpc'
-import { ClusterMachineType, DefaultNamespace } from '@/api/resources'
-import type { ClusterMachineSpec } from '@/api/omni/specs/omni.pb'
 import { Runtime } from '@/api/common/omni.pb'
+import type { Resource } from '@/api/grpc'
+import type { ClusterMachineSpec } from '@/api/omni/specs/omni.pb'
+import { ClusterMachineType, DefaultNamespace } from '@/api/resources'
+import TButton from '@/components/common/Button/TButton.vue'
 import Watch from '@/components/common/Watch/Watch.vue'
 import { restoreNode } from '@/methods/cluster'
+import { setupNodenameWatch } from '@/methods/node'
+import { showError, showSuccess } from '@/notification'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -119,8 +78,49 @@ const restore = async (clusterMachine: Resource<ClusterMachineSpec>) => {
 }
 </script>
 
+<template>
+  <div class="modal-window">
+    <div class="heading">
+      <h3 class="text-base text-naturals-N14">
+        Cancel Destroy of Node {{ node ?? $route.query.machine }} ?
+      </h3>
+      <CloseButton @click="close(true)" />
+    </div>
+    <Watch
+      :opts="{
+        resource: {
+          namespace: DefaultNamespace,
+          id: $route.query.machine as string,
+          type: ClusterMachineType,
+        },
+        runtime: Runtime.Omni,
+      }"
+      spinner
+    >
+      <template #default="{ items }">
+        <template v-if="canRestore(items)">
+          <p class="mb-2 text-xs">Please confirm the action.</p>
+
+          <div class="mt-2 flex items-end gap-4">
+            <div class="flex-1" />
+            <TButton class="h-9" @click="() => restore(items[0])"> Restore Machine </TButton>
+          </div>
+        </template>
+        <template v-else>
+          <p class="mb-2 text-xs">Restoring the machine is not possible at this stage.</p>
+
+          <div class="mt-2 flex items-end gap-4">
+            <div class="flex-1" />
+            <TButton class="h-9" @click="close"> Close </TButton>
+          </div>
+        </template>
+      </template>
+    </Watch>
+  </div>
+</template>
+
 <style scoped>
 .heading {
-  @apply flex justify-between items-center mb-5 text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
 }
 </style>

@@ -4,71 +4,23 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window">
-    <div class="heading">
-      <h3 class="text-base text-naturals-N14">Create Service Account</h3>
-      <close-button @click="close" />
-    </div>
-
-    <div class="flex flex-col w-full h-full gap-4">
-      <t-notification v-if="notification" v-bind="notification.props" />
-
-      <template v-if="!key">
-        <div class="flex flex-col gap-2">
-          <t-input
-            title="ID"
-            class="flex-1 h-full"
-            placeholder="..."
-            v-model="name"
-            v-if="!route.query.name"
-          />
-          <t-input
-            title="Expiration Days"
-            type="number"
-            :min="1"
-            class="flex-1 h-full"
-            v-model="expiration"
-          />
-          <t-select-list
-            class="h-full"
-            title="Role"
-            :values="roles"
-            :defaultValue="RoleReader"
-            v-if="!route.query.role"
-            @checkedValue="(value) => (role = value)"
-          />
-        </div>
-        <t-button
-          type="highlighted"
-          @click="handleCreate"
-          :disabled="!canManageUsers && authType !== AuthType.SAML"
-          class="h-9"
-          >Create Service Account</t-button
-        >
-      </template>
-    </div>
-
-    <ServiceAccountKey v-if="key" :secret-key="key" />
-  </div>
-</template>
-
 <script setup lang="ts">
 import type { Ref } from 'vue'
 import { ref, shallowRef } from 'vue'
-import { createServiceAccount } from '@/methods/user'
-import type { Notification } from '@/notification'
-import { showError, showSuccess } from '@/notification'
 import { useRoute, useRouter } from 'vue-router'
-import { RoleNone, RoleReader, RoleOperator, RoleAdmin } from '@/api/resources'
 
-import CloseButton from '@/views/omni/Modals/CloseButton.vue'
+import { RoleAdmin, RoleNone, RoleOperator, RoleReader } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
-import { canManageUsers } from '@/methods/auth'
+import TNotification from '@/components/common/Notification/TNotification.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import { AuthType, authType } from '@/methods'
-import TNotification from '@/components/common/Notification/TNotification.vue'
+import { canManageUsers } from '@/methods/auth'
+import { createServiceAccount } from '@/methods/user'
+import type { Notification } from '@/notification'
+import { showError, showSuccess } from '@/notification'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
+
 import ServiceAccountKey from './components/ServiceAccountKey.vue'
 
 const notification: Ref<Notification | null> = shallowRef(null)
@@ -115,13 +67,62 @@ const close = () => {
 }
 </script>
 
+<template>
+  <div class="modal-window">
+    <div class="heading">
+      <h3 class="text-base text-naturals-N14">Create Service Account</h3>
+      <CloseButton @click="close" />
+    </div>
+
+    <div class="flex h-full w-full flex-col gap-4">
+      <TNotification v-if="notification" v-bind="notification.props" />
+
+      <template v-if="!key">
+        <div class="flex flex-col gap-2">
+          <TInput
+            v-if="!route.query.name"
+            v-model="name"
+            title="ID"
+            class="h-full flex-1"
+            placeholder="..."
+          />
+          <TInput
+            v-model="expiration"
+            title="Expiration Days"
+            type="number"
+            :min="1"
+            class="h-full flex-1"
+          />
+          <TSelectList
+            v-if="!route.query.role"
+            class="h-full"
+            title="Role"
+            :values="roles"
+            :default-value="RoleReader"
+            @checked-value="(value) => (role = value)"
+          />
+        </div>
+        <TButton
+          type="highlighted"
+          :disabled="!canManageUsers && authType !== AuthType.SAML"
+          class="h-9"
+          @click="handleCreate"
+          >Create Service Account</TButton
+        >
+      </template>
+    </div>
+
+    <ServiceAccountKey v-if="key" :secret-key="key" />
+  </div>
+</template>
+
 <style scoped>
 .window {
-  @apply rounded bg-naturals-N2 z-30 w-1/3 flex flex-col p-8;
+  @apply z-30 flex w-1/3 flex-col rounded bg-naturals-N2 p-8;
 }
 
 .heading {
-  @apply flex justify-between items-center mb-5 text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
 }
 
 code {

@@ -4,34 +4,15 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="wrapper">
-    <div class="wrapper-box">
-      <div class="wrapper-head">
-        <slot name="head" />
-      </div>
-      <div class="wrapper-body-box">
-        <div class="wrapper-body" :style="{ height }">
-          <div ref="body">
-            <slot name="body" />
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import type { Ref } from 'vue'
-import { ref, toRefs, computed, watch, onUnmounted } from 'vue'
+import { computed, onUnmounted, ref, toRefs, watch } from 'vue'
 
 const props = withDefaults(
   defineProps<{
     isSliderOpened?: boolean
   }>(),
-  {
-    isSliderOpened: false,
-  },
+  {},
 )
 
 const { isSliderOpened } = toRefs(props)
@@ -66,9 +47,26 @@ const height = computed(() => {
 })
 </script>
 
+<template>
+  <div class="wrapper">
+    <div class="wrapper-box">
+      <div class="wrapper-head">
+        <slot name="head" />
+      </div>
+      <div class="wrapper-body-box">
+        <div class="wrapper-body" :style="{ height }">
+          <div ref="body">
+            <slot name="body" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .wrapper {
-  @apply w-full flex flex-col;
+  @apply flex w-full flex-col;
 }
 
 .wrapper-body {

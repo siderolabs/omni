@@ -4,69 +4,20 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window" style="min-height: 350px">
-    <div class="flex px-8 my-7 items-center">
-      <div class="heading">Edit Config Patch</div>
-      <div class="flex justify-end flex-1">
-        <t-button @click="openDocs" icon="question" type="subtle" iconPosition="left"
-          >Config Reference</t-button
-        >
-      </div>
-    </div>
-    <div class="px-8 relative" v-if="err">
-      <t-alert
-        class="absolute z-50 left-8 right-8 top-16"
-        type="error"
-        :title="err.title"
-        :dismiss="{ action: () => (err = null), name: 'Close' }"
-        >{{ err.message }}</t-alert
-      >
-    </div>
-    <TabGroup as="div" class="flex-1 flex flex-col overflow-hidden">
-      <TabList>
-        <tabs-header class="px-6">
-          <Tab v-slot="{ selected }" v-for="tab in tabs" :key="tab.id">
-            <TabButton :selected="selected">
-              {{ tab.id }}
-            </TabButton>
-          </Tab>
-        </tabs-header>
-      </TabList>
-      <TabPanels as="template">
-        <TabPanel as="template" :key="tab.id" v-for="tab in tabs">
-          <div class="flex-1 overflow-y-auto font-sm bg-naturals-N2">
-            <CodeEditor
-              :value="configs[tab.id].value"
-              @update:value="(updated) => (configs[tab.id].value = updated)"
-            />
-          </div>
-        </TabPanel>
-      </TabPanels>
-    </TabGroup>
-    <div class="flex p-4 gap-4 bg-naturals-N3 rounded-b justify-between">
-      <t-button type="secondary" @click="close">Cancel</t-button>
-      <t-button @click="saveAndClose">Save</t-button>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
+import { Tab, TabGroup, TabPanel, TabPanels } from '@headlessui/vue'
 import type { Ref } from 'vue'
 import { ref, toRefs } from 'vue'
-import { closeModal } from '@/modal'
-import { ManagementService } from '@/api/omni/management/management.pb'
+
 import { Code } from '@/api/google/rpc/code.pb'
-
+import { ManagementService } from '@/api/omni/management/management.pb'
 import TButton from '@/components/common/Button/TButton.vue'
-import TAlert from '@/components/TAlert.vue'
-import TabList from '@/components/common/Tabs/TabList.vue'
-import TabButton from '@/components/common/Tabs/TabButton.vue'
-import TabsHeader from '@/components/common/Tabs/TabsHeader.vue'
-
-import { TabGroup, TabPanel, TabPanels, Tab } from '@headlessui/vue'
-
 import CodeEditor from '@/components/common/CodeEditor/CodeEditor.vue'
+import TabButton from '@/components/common/Tabs/TabButton.vue'
+import TabList from '@/components/common/Tabs/TabList.vue'
+import TabsHeader from '@/components/common/Tabs/TabsHeader.vue'
+import TAlert from '@/components/TAlert.vue'
+import { closeModal } from '@/modal'
 
 interface Props {
   onSave: (config: string, id?: string) => void
@@ -135,9 +86,56 @@ const openDocs = () => {
 }
 </script>
 
+<template>
+  <div class="modal-window" style="min-height: 350px">
+    <div class="my-7 flex items-center px-8">
+      <div class="heading">Edit Config Patch</div>
+      <div class="flex flex-1 justify-end">
+        <TButton icon="question" type="subtle" icon-position="left" @click="openDocs"
+          >Config Reference</TButton
+        >
+      </div>
+    </div>
+    <div v-if="err" class="relative px-8">
+      <TAlert
+        class="absolute left-8 right-8 top-16 z-50"
+        type="error"
+        :title="err.title"
+        :dismiss="{ action: () => (err = null), name: 'Close' }"
+        >{{ err.message }}</TAlert
+      >
+    </div>
+    <TabGroup as="div" class="flex flex-1 flex-col overflow-hidden">
+      <TabList>
+        <TabsHeader class="px-6">
+          <Tab v-for="tab in tabs" v-slot="{ selected }" :key="tab.id">
+            <TabButton :selected="selected">
+              {{ tab.id }}
+            </TabButton>
+          </Tab>
+        </TabsHeader>
+      </TabList>
+      <TabPanels as="template">
+        <TabPanel v-for="tab in tabs" :key="tab.id" as="template">
+          <div class="font-sm flex-1 overflow-y-auto bg-naturals-N2">
+            <CodeEditor
+              :value="configs[tab.id].value"
+              @update:value="(updated) => (configs[tab.id].value = updated)"
+            />
+          </div>
+        </TabPanel>
+      </TabPanels>
+    </TabGroup>
+    <div class="flex justify-between gap-4 rounded-b bg-naturals-N3 p-4">
+      <TButton type="secondary" @click="close">Cancel</TButton>
+      <TButton @click="saveAndClose">Save</TButton>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .modal-window {
-  @apply p-0 w-2/3 h-2/3;
+  @apply h-2/3 w-2/3 p-0;
 }
 .heading {
   @apply text-xl text-naturals-N14;

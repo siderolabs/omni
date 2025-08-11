@@ -4,71 +4,17 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex flex-col gap-2">
-    <div class="flex justify-end">
-      <t-button
-        @click="openInfraProviderSetup"
-        icon-position="left"
-        type="highlighted"
-        :disabled="!canManageUsers"
-        >New Infra Provider Setup</t-button
-      >
-    </div>
-    <t-list :opts="watchOpts" search noRecordsAlert pagination errorsAlert filterCaption="Status">
-      <template #default="{ items }">
-        <div class="flex flex-col gap-2">
-          <list-item-box
-            v-for="item in items"
-            listID="providers"
-            :itemID="item.metadata.id!"
-            :key="itemID(item)"
-            :class="{ 'border-dashed': !item.spec.name }"
-          >
-            <template #default>
-              <div class="flex w-full">
-                <div class="providers-grid">
-                  <div class="flex gap-3 items-center text-md text-naturals-N13">
-                    <t-icon :svg-base-64="item.spec.icon" icon="cloud-connection" class="w-8 h-8" />
-                    <div class="flex flex-col gap-0.5">
-                      <div>{{ item.spec.name }}</div>
-                      <div class="text-xs text-naturals-N10 font-bold">
-                        ID: {{ item.metadata.id! }}
-                      </div>
-                    </div>
-                  </div>
-                  <t-status :title="getStatus(item)" />
-                  <div class="truncate text-xs">
-                    {{ item.spec.description }}
-                  </div>
-                </div>
-                <icon-button icon="key" @click="() => openRotateSecretKey(item.metadata.id!)" />
-                <icon-button
-                  icon="delete"
-                  danger
-                  @click="() => openInfraProviderDelete(item.metadata.id!)"
-                />
-              </div>
-            </template>
-          </list-item-box>
-        </div>
-      </template>
-    </t-list>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { Runtime } from '@/api/common/omni.pb'
-import type { WatchOptions } from '@/api/watch'
-import { itemID } from '@/api/watch'
-
-import ListItemBox from '@/components/common/List/ListItemBox.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
-
-import TList from '@/components/common/List/TList.vue'
 import { computed, ref } from 'vue'
-import type { Label } from '@/methods/labels'
-import { selectors } from '@/methods/labels'
+import { useRouter } from 'vue-router'
+
+import { Runtime } from '@/api/common/omni.pb'
+import { Code } from '@/api/google/rpc/code.pb'
+import type { Resource } from '@/api/grpc'
+import { ResourceService } from '@/api/grpc'
+import type { IdentitySpec } from '@/api/omni/specs/auth.pb'
+import type { InfraProviderCombinedStatusSpec } from '@/api/omni/specs/omni.pb'
+import { withRuntime } from '@/api/options'
 import {
   DefaultNamespace,
   EphemeralNamespace,
@@ -77,18 +23,18 @@ import {
   InfraProviderServiceAccountDomain,
   RoleInfraProvider,
 } from '@/api/resources'
-import TStatus from '@/components/common/Status/TStatus.vue'
-import TButton from '@/components/common/Button/TButton.vue'
-import { TCommonStatuses } from '@/constants'
-import type { Resource } from '@/api/grpc'
-import { ResourceService } from '@/api/grpc'
-import type { InfraProviderCombinedStatusSpec } from '@/api/omni/specs/omni.pb'
+import type { WatchOptions } from '@/api/watch'
+import { itemID } from '@/api/watch'
 import IconButton from '@/components/common/Button/IconButton.vue'
+import TButton from '@/components/common/Button/TButton.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
+import ListItemBox from '@/components/common/List/ListItemBox.vue'
+import TList from '@/components/common/List/TList.vue'
+import TStatus from '@/components/common/Status/TStatus.vue'
+import { TCommonStatuses } from '@/constants'
 import { canManageUsers } from '@/methods/auth'
-import { useRouter } from 'vue-router'
-import { withRuntime } from '@/api/options'
-import { Code } from '@/api/google/rpc/code.pb'
-import type { IdentitySpec } from '@/api/omni/specs/auth.pb'
+import type { Label } from '@/methods/labels'
+import { selectors } from '@/methods/labels'
 
 const router = useRouter()
 
@@ -165,8 +111,68 @@ const openRotateSecretKey = async (name: string) => {
 }
 </script>
 
+<template>
+  <div class="flex flex-col gap-2">
+    <div class="flex justify-end">
+      <TButton
+        icon-position="left"
+        type="highlighted"
+        :disabled="!canManageUsers"
+        @click="openInfraProviderSetup"
+        >New Infra Provider Setup</TButton
+      >
+    </div>
+    <TList
+      :opts="watchOpts"
+      search
+      no-records-alert
+      pagination
+      errors-alert
+      filter-caption="Status"
+    >
+      <template #default="{ items }">
+        <div class="flex flex-col gap-2">
+          <ListItemBox
+            v-for="item in items"
+            :key="itemID(item)"
+            list-i-d="providers"
+            :item-i-d="item.metadata.id!"
+            :class="{ 'border-dashed': !item.spec.name }"
+          >
+            <template #default>
+              <div class="flex w-full">
+                <div class="providers-grid">
+                  <div class="text-md flex items-center gap-3 text-naturals-N13">
+                    <TIcon :svg-base-64="item.spec.icon" icon="cloud-connection" class="h-8 w-8" />
+                    <div class="flex flex-col gap-0.5">
+                      <div>{{ item.spec.name }}</div>
+                      <div class="text-xs font-bold text-naturals-N10">
+                        ID: {{ item.metadata.id! }}
+                      </div>
+                    </div>
+                  </div>
+                  <TStatus :title="getStatus(item)" />
+                  <div class="truncate text-xs">
+                    {{ item.spec.description }}
+                  </div>
+                </div>
+                <IconButton icon="key" @click="() => openRotateSecretKey(item.metadata.id!)" />
+                <IconButton
+                  icon="delete"
+                  danger
+                  @click="() => openInfraProviderDelete(item.metadata.id!)"
+                />
+              </div>
+            </template>
+          </ListItemBox>
+        </div>
+      </template>
+    </TList>
+  </div>
+</template>
+
 <style scoped>
 .providers-grid {
-  @apply flex-1 grid grid-cols-4 mx-1 -my-2 items-center;
+  @apply -my-2 mx-1 grid flex-1 grid-cols-4 items-center;
 }
 </style>

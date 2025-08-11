@@ -4,50 +4,10 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="text-naturals-N13">Infrastructure Provider</div>
-  <t-list
-    :opts="infraProviderResources"
-    :key="infraProvider"
-    :search="showAllProviders"
-    class="mb-1"
-  >
-    <template #default="{ items, searchQuery }">
-      <div class="flex md:flex-col gap-2 max-md:flex-wrap">
-        <div
-          v-for="item in filterProviders(items)"
-          class="provider-item"
-          :key="item.metadata.id"
-          :class="{ selected: item.metadata.id === infraProvider && showAllProviders }"
-          @click="() => setInfraProvider(item)"
-        >
-          <div class="flex gap-2 items-center">
-            <div class="flex items-center text-sm text-naturals-N13 gap-3 flex-1">
-              <t-icon :svg-base-64="item.spec.icon" icon="cloud-connection" class="w-10 h-10" />
-              <div class="flex flex-col gap-1">
-                <div>{{ item.spec.name }}</div>
-                <div class="text-xs text-naturals-N11 px-2 py-0.5 rounded bg-naturals-N4">
-                  id:
-                  <WordHighlighter
-                    :query="searchQuery"
-                    :textToHighlight="item.metadata.id"
-                    highlightClass="bg-naturals-N14"
-                  />
-                </div>
-              </div>
-              <div class="flex-1 text-right text-xs pr-3 max-md:hidden">
-                {{ item.spec.description }}
-              </div>
-            </div>
-            <icon-button icon="edit" v-if="!showAllProviders" />
-          </div>
-        </div>
-      </div>
-    </template>
-  </t-list>
-</template>
-
 <script setup lang="ts">
+import { computed, ref, toRefs } from 'vue'
+import WordHighlighter from 'vue-word-highlighter'
+
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import type { InfraProviderStatusSpec } from '@/api/omni/specs/infra.pb'
@@ -56,13 +16,10 @@ import {
   InfraProviderStatusType,
   LabelIsStaticInfraProvider,
 } from '@/api/resources'
-import { computed, ref, toRefs } from 'vue'
-
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import WordHighlighter from 'vue-word-highlighter'
-import IconButton from '@/components/common/Button/IconButton.vue'
-import TList from '@/components/common/List/TList.vue'
 import type { WatchOptions } from '@/api/watch'
+import IconButton from '@/components/common/Button/IconButton.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
+import TList from '@/components/common/List/TList.vue'
 
 const infraProviderResources: WatchOptions = {
   resource: { type: InfraProviderStatusType, namespace: InfraProviderNamespace },
@@ -104,9 +61,52 @@ const setInfraProvider = (item: Resource<InfraProviderStatusSpec>) => {
 }
 </script>
 
+<template>
+  <div class="text-naturals-N13">Infrastructure Provider</div>
+  <TList
+    :key="infraProvider"
+    :opts="infraProviderResources"
+    :search="showAllProviders"
+    class="mb-1"
+  >
+    <template #default="{ items, searchQuery }">
+      <div class="flex gap-2 max-md:flex-wrap md:flex-col">
+        <div
+          v-for="item in filterProviders(items)"
+          :key="item.metadata.id"
+          class="provider-item"
+          :class="{ selected: item.metadata.id === infraProvider && showAllProviders }"
+          @click="() => setInfraProvider(item)"
+        >
+          <div class="flex items-center gap-2">
+            <div class="flex flex-1 items-center gap-3 text-sm text-naturals-N13">
+              <TIcon :svg-base-64="item.spec.icon" icon="cloud-connection" class="h-10 w-10" />
+              <div class="flex flex-col gap-1">
+                <div>{{ item.spec.name }}</div>
+                <div class="rounded bg-naturals-N4 px-2 py-0.5 text-xs text-naturals-N11">
+                  id:
+                  <WordHighlighter
+                    :query="searchQuery"
+                    :text-to-highlight="item.metadata.id"
+                    highlight-class="bg-naturals-N14"
+                  />
+                </div>
+              </div>
+              <div class="flex-1 pr-3 text-right text-xs max-md:hidden">
+                {{ item.spec.description }}
+              </div>
+            </div>
+            <IconButton v-if="!showAllProviders" icon="edit" />
+          </div>
+        </div>
+      </div>
+    </template>
+  </TList>
+</template>
+
 <style scoped>
 .provider-item {
-  @apply p-3 rounded border border-naturals-N6 bg-naturals-N2 cursor-pointer transition-colors duration-200 hover:bg-naturals-N3 hover:border-naturals-N8 max-md:flex-1 min-w-fit;
+  @apply min-w-fit cursor-pointer rounded border border-naturals-N6 bg-naturals-N2 p-3 transition-colors duration-200 hover:border-naturals-N8 hover:bg-naturals-N3 max-md:flex-1;
 }
 
 .selected {

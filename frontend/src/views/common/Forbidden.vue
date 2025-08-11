@@ -4,15 +4,16 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
+<script setup lang="ts"></script>
+
 <template>
   <div class="flex items-center justify-center">
     <div class="flex flex-col items-center">
       <div class="code">403</div>
-      <div class="text-xl text-center">Access Denied</div>
+      <div class="text-center text-xl">Access Denied</div>
     </div>
   </div>
 </template>
-
 <style scoped>
 .code {
   @apply font-bold text-naturals-N2;
@@ -20,4 +21,3 @@ included in the LICENSE file.
   line-height: 300px;
 }
 </style>
-<script setup lang="ts"></script>

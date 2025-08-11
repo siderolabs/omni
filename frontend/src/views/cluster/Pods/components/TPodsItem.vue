@@ -4,93 +4,15 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="row" :class="{ opened: isDropdownOpened }">
-    <t-slide-down-wrapper :isSliderOpened="isDropdownOpened">
-      <template v-slot:head
-        ><ul class="row-wrapper">
-          <li class="row-item">
-            <t-icon
-              @click="() => (isDropdownOpened = !isDropdownOpened)"
-              class="row-arrow"
-              :class="{ 'row-arrow-right--pushed': isDropdownOpened }"
-              icon="drop-up"
-            />
-            <span>
-              <WordHighlighter
-                :query="searchOption"
-                :textToHighlight="item.metadata?.namespace"
-                highlightClass="bg-naturals-N14"
-              />
-            </span>
-          </li>
-          <li class="row-item">
-            <WordHighlighter
-              :query="searchOption"
-              :textToHighlight="item.metadata?.name"
-              highlightClass="bg-naturals-N14"
-            />
-          </li>
-          <li class="row-item">
-            <t-status :title="item.status?.phase" />
-          </li>
-          <li class="row-item row-item--spaced">
-            <span>
-              <WordHighlighter
-                :query="searchOption"
-                :textToHighlight="item.spec?.nodeName"
-                highlightClass="bg-naturals-N14"
-            /></span>
-          </li>
-        </ul>
-      </template>
-      <template v-slot:body>
-        <div class="row-info-box">
-          <div class="row-info-item">
-            <p class="row-info-title">Restarts</p>
-            <p class="row-info-value">{{ restartCount }}</p>
-          </div>
-          <div class="row-info-item">
-            <p class="row-info-title">Ready Containers</p>
-            <p class="row-info-value">{{ readyContainers?.length }}</p>
-          </div>
-          <div class="row-info-item">
-            <p class="row-info-title">Age</p>
-            <p class="row-info-value">
-              {{ item.status?.startTime ? getAge(String(item.status?.startTime)) : '' }}
-            </p>
-          </div>
-          <div class="row-info-item">
-            <p class="row-info-title">Pod IP</p>
-            <p class="row-info-value">{{ item.status?.podIP }}</p>
-          </div>
-        </div>
-        <div class="flex flex-col gap-2 px-7 mt-5">
-          <div class="row-info-title font-bold">Containers</div>
-          <div class="flex flex-wrap gap-2">
-            <div
-              class="text-xs text-naturals-N12 rounded bg-naturals-N4 p-1 px-2"
-              v-for="container in item.spec?.containers"
-              :key="container.name"
-            >
-              {{ container.image }}
-            </div>
-          </div>
-        </div>
-      </template>
-    </t-slide-down-wrapper>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { computed, ref, toRefs } from 'vue'
-import { DateTime } from 'luxon'
 import type { V1Pod } from '@kubernetes/client-node'
+import { DateTime } from 'luxon'
+import { computed, ref, toRefs } from 'vue'
+import WordHighlighter from 'vue-word-highlighter'
 
 import TIcon from '@/components/common/Icon/TIcon.vue'
-import TStatus from '@/components/common/Status/TStatus.vue'
 import TSlideDownWrapper from '@/components/common/SlideDownWrapper/TSlideDownWrapper.vue'
-import WordHighlighter from 'vue-word-highlighter'
+import TStatus from '@/components/common/Status/TStatus.vue'
 
 type Props = {
   searchOption: string
@@ -121,9 +43,87 @@ const getAge = (age: string) => {
 }
 </script>
 
+<template>
+  <div class="row" :class="{ opened: isDropdownOpened }">
+    <TSlideDownWrapper :is-slider-opened="isDropdownOpened">
+      <template #head
+        ><ul class="row-wrapper">
+          <li class="row-item">
+            <TIcon
+              class="row-arrow"
+              :class="{ 'row-arrow-right--pushed': isDropdownOpened }"
+              icon="drop-up"
+              @click="() => (isDropdownOpened = !isDropdownOpened)"
+            />
+            <span>
+              <WordHighlighter
+                :query="searchOption"
+                :text-to-highlight="item.metadata?.namespace"
+                highlight-class="bg-naturals-N14"
+              />
+            </span>
+          </li>
+          <li class="row-item">
+            <WordHighlighter
+              :query="searchOption"
+              :text-to-highlight="item.metadata?.name"
+              highlight-class="bg-naturals-N14"
+            />
+          </li>
+          <li class="row-item">
+            <TStatus :title="item.status?.phase" />
+          </li>
+          <li class="row-item row-item--spaced">
+            <span>
+              <WordHighlighter
+                :query="searchOption"
+                :text-to-highlight="item.spec?.nodeName"
+                highlight-class="bg-naturals-N14"
+            /></span>
+          </li>
+        </ul>
+      </template>
+      <template #body>
+        <div class="row-info-box">
+          <div class="row-info-item">
+            <p class="row-info-title">Restarts</p>
+            <p class="row-info-value">{{ restartCount }}</p>
+          </div>
+          <div class="row-info-item">
+            <p class="row-info-title">Ready Containers</p>
+            <p class="row-info-value">{{ readyContainers?.length }}</p>
+          </div>
+          <div class="row-info-item">
+            <p class="row-info-title">Age</p>
+            <p class="row-info-value">
+              {{ item.status?.startTime ? getAge(String(item.status?.startTime)) : '' }}
+            </p>
+          </div>
+          <div class="row-info-item">
+            <p class="row-info-title">Pod IP</p>
+            <p class="row-info-value">{{ item.status?.podIP }}</p>
+          </div>
+        </div>
+        <div class="mt-5 flex flex-col gap-2 px-7">
+          <div class="row-info-title font-bold">Containers</div>
+          <div class="flex flex-wrap gap-2">
+            <div
+              v-for="container in item.spec?.containers"
+              :key="container.name"
+              class="rounded bg-naturals-N4 p-1 px-2 text-xs text-naturals-N12"
+            >
+              {{ container.image }}
+            </div>
+          </div>
+        </div>
+      </template>
+    </TSlideDownWrapper>
+  </div>
+</template>
+
 <style scoped>
 .row {
-  @apply relative w-full border border-transparent  flex flex-col items-center mb-1 transition-all duration-500;
+  @apply relative mb-1 flex w-full flex-col items-center border border-transparent transition-all duration-500;
   min-width: 450px;
   padding: 19px 14px 19px 8px;
   border-bottom: 1px solid rgba(39, 41, 50, var(--tw-border-opacity));
@@ -141,11 +141,11 @@ const getAge = (age: string) => {
   border-bottom: 1px solid rgba(44, 46, 56, var(--tw-border-opacity));
 }
 .row-wrapper {
-  @apply w-full flex justify-start items-center;
+  @apply flex w-full items-center justify-start;
 }
 
 .row-item {
-  @apply text-xs text-naturals-N13 flex items-center;
+  @apply flex items-center text-xs text-naturals-N13;
 }
 .row-item:nth-child(1) {
   width: 18.1%;
@@ -163,7 +163,7 @@ const getAge = (age: string) => {
   @apply flex justify-between;
 }
 .row-arrow {
-  @apply fill-current text-naturals-N11 hover:bg-naturals-N7 transition-all rounded duration-300 cursor-pointer mr-1;
+  @apply mr-1 cursor-pointer rounded fill-current text-naturals-N11 transition-all duration-300 hover:bg-naturals-N7;
   transform: rotate(-180deg);
   width: 24px;
   height: 24px;
@@ -175,7 +175,7 @@ const getAge = (age: string) => {
   @apply absolute right-4;
 }
 .row-box-actions-item {
-  @apply flex items-center cursor-pointer w-full;
+  @apply flex w-full cursor-pointer items-center;
   padding: 17px 14px;
 }
 .row-box-actions-item:first-of-type {
@@ -185,7 +185,7 @@ const getAge = (age: string) => {
   @apply border-t border-naturals-N4;
 }
 .row-actions-item-icon {
-  @apply w-4 h-4 fill-current transition-colors;
+  @apply h-4 w-4 fill-current transition-colors;
   margin-right: 6px;
 }
 .row-actions-item-icon--delete {
@@ -215,7 +215,7 @@ const getAge = (age: string) => {
   padding-top: 26px;
 }
 .row-info-item {
-  @apply text-xs text-naturals-N13 flex flex-col;
+  @apply flex flex-col text-xs text-naturals-N13;
 }
 .row-info-item:nth-child(1) {
   width: 18.1%;
@@ -238,7 +238,7 @@ const getAge = (age: string) => {
   @apply text-xs;
 }
 .box-actions-list {
-  @apply bg-naturals-N3 rounded border border-naturals-N4 flex justify-center flex-col items-start z-20;
+  @apply z-20 flex flex-col items-start justify-center rounded border border-naturals-N4 bg-naturals-N3;
   min-width: 161px;
 }
 </style>

@@ -4,31 +4,12 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="label">
-    <t-icon
-      class="label-icon"
-      :style="{
-        fill: !!color ? color : iconData?.iconColor || iconColor.color,
-      }"
-      :icon="!!iconType ? iconType : iconData?.iconTypeValue"
-    />
-    <span
-      class="label-title"
-      :style="{
-        color: !!color ? color : iconData?.iconColor || iconColor.color,
-      }"
-      v-if="title"
-      >{{ title }}</span
-    >
-  </div>
-</template>
-
 <script setup lang="ts">
 import { computed, toRefs } from 'vue'
+
 import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
-import { NodesViewFilterOptions, TPodsViewFilterOptions, TCommonStatuses } from '@/constants'
+import { NodesViewFilterOptions, TCommonStatuses, TPodsViewFilterOptions } from '@/constants'
 import { naturals, red, yellow } from '@/vars/colors'
 
 type Props = {
@@ -234,6 +215,26 @@ const iconColor = computed(() => {
   return {}
 })
 </script>
+
+<template>
+  <div class="label">
+    <TIcon
+      class="label-icon"
+      :style="{
+        fill: !!color ? color : iconData?.iconColor || iconColor.color,
+      }"
+      :icon="!!iconType ? iconType : iconData?.iconTypeValue"
+    />
+    <span
+      v-if="title"
+      class="label-title"
+      :style="{
+        color: !!color ? color : iconData?.iconColor || iconColor.color,
+      }"
+      >{{ title }}</span
+    >
+  </div>
+</template>
 
 <style scoped>
 .label {

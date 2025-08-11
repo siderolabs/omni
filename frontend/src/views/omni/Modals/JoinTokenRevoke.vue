@@ -4,27 +4,13 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window">
-    <div class="heading">
-      <h3 class="text-base text-naturals-N14 truncate flex-1">Revoke the token {{ id }} ?</h3>
-      <close-button @click="close" />
-    </div>
-    <p class="text-xs">Please confirm the action.</p>
-
-    <div class="flex justify-end gap-4 mt-8">
-      <t-button @click="revoke" class="w-32 h-9"> Revoke </t-button>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
 
-import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
 import { revokeJoinToken } from '@/methods/auth'
 import { showError } from '@/notification'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -54,8 +40,22 @@ const revoke = async () => {
 }
 </script>
 
+<template>
+  <div class="modal-window">
+    <div class="heading">
+      <h3 class="flex-1 truncate text-base text-naturals-N14">Revoke the token {{ id }} ?</h3>
+      <CloseButton @click="close" />
+    </div>
+    <p class="text-xs">Please confirm the action.</p>
+
+    <div class="mt-8 flex justify-end gap-4">
+      <TButton class="h-9 w-32" @click="revoke"> Revoke </TButton>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .heading {
-  @apply flex gap-2 items-center mb-5 text-xl text-naturals-N14;
+  @apply mb-5 flex items-center gap-2 text-xl text-naturals-N14;
 }
 </style>

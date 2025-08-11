@@ -5,6 +5,7 @@
 
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
+
 import type { WatchContext } from '@/api/watch'
 
 export const current: any = ref(localStorage.context ? JSON.parse(localStorage.context) : null)

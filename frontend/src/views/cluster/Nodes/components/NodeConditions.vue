@@ -4,22 +4,9 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex gap-1 flex-wrap">
-    <tooltip v-for="condition in conditions" :description="condition.reason" :key="condition.name">
-      <div
-        class="rounded-md py-1 px-3 cursor-pointer bg-naturals-N8 text-naturals-N12 bg-opacity-25 font-bold text-xs flex gap-1 items-center"
-      >
-        {{ condition.name }}
-        <t-icon icon="warning" class="w-3 h-3 -mr-1 text-yellow-Y1" />
-      </div>
-    </tooltip>
-  </div>
-</template>
-
 <script setup lang="ts">
-import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
+import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 
 defineProps<{
   conditions: {
@@ -28,3 +15,16 @@ defineProps<{
   }[]
 }>()
 </script>
+
+<template>
+  <div class="flex flex-wrap gap-1">
+    <Tooltip v-for="condition in conditions" :key="condition.name" :description="condition.reason">
+      <div
+        class="flex cursor-pointer items-center gap-1 rounded-md bg-naturals-N8 bg-opacity-25 px-3 py-1 text-xs font-bold text-naturals-N12"
+      >
+        {{ condition.name }}
+        <TIcon icon="warning" class="-mr-1 h-3 w-3 text-yellow-Y1" />
+      </div>
+    </Tooltip>
+  </div>
+</template>

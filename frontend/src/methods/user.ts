@@ -3,27 +3,27 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+import { enums, generateKey } from 'openpgp/lightweight'
+import { v4 as uuidv4 } from 'uuid'
+
+import { Runtime } from '@/api/common/omni.pb'
+import { Code } from '@/api/google/rpc/code.pb'
+import type { Resource } from '@/api/grpc'
+import { ResourceService } from '@/api/grpc'
+import { ManagementService } from '@/api/omni/management/management.pb'
+import type { UserSpec } from '@/api/omni/specs/auth.pb'
+import type { IdentitySpec } from '@/api/omni/specs/auth.pb'
+import { withRuntime } from '@/api/options'
 import {
   DefaultNamespace,
-  UserType,
   IdentityType,
+  InfraProviderServiceAccountDomain,
   LabelIdentityUserID,
   RoleInfraProvider,
   ServiceAccountDomain,
-  InfraProviderServiceAccountDomain,
+  UserType,
 } from '@/api/resources'
 
-import { enums, generateKey } from 'openpgp/lightweight'
-
-import type { Resource } from '@/api/grpc'
-import { ResourceService } from '@/api/grpc'
-import type { UserSpec } from '@/api/omni/specs/auth.pb'
-import { v4 as uuidv4 } from 'uuid'
-import type { IdentitySpec } from '@/api/omni/specs/auth.pb'
-import { Runtime } from '@/api/common/omni.pb'
-import { Code } from '@/api/google/rpc/code.pb'
-import { withRuntime } from '@/api/options'
-import { ManagementService } from '@/api/omni/management/management.pb'
 import { isoNow } from './time'
 
 export const createUser = async (email: string, role: string) => {

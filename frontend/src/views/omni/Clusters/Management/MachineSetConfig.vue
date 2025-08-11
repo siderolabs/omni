@@ -4,92 +4,28 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div
-    class="text-xs px-2 py-2 pr-3 border rounded my-1 border-naturals-N5 bg-naturals-N3 text-naturals-N13 flex gap-2 items-center"
-  >
-    <machine-set-label :color="modelValue.color" class="w-10" :machine-set-id="modelValue.id" />
-    <div class="flex-1 flex flex-wrap items-center gap-x-4 gap-y-1">
-      <div class="w-32 truncate" :title="modelValue.name">
-        {{ modelValue.name }}
-      </div>
-      <div class="flex gap-2 items-center">
-        Allocation Mode: <t-button-group :options="allocationModes" v-model="allocationMode" />
-      </div>
-      <template v-if="useMachineClasses">
-        <t-select-list
-          v-if="machineClasses"
-          class="h-6 w-48"
-          @checkedValue="
-            (value: string) => {
-              sourceName = value
-            }
-          "
-          title="Name"
-          :defaultValue="sourceName ?? machineClassOptions[0]"
-          :values="machineClassOptions"
-        />
-        <t-spinner v-else class="h-4 w-4" />
-      </template>
-      <t-checkbox
-        v-if="useMachineClasses && !selectedMachineClass?.spec.auto_provision"
-        :checked="unlimited"
-        label="Use All Available Machines"
-        @click="unlimited = !unlimited"
-        class="h-6"
-      />
-      <div class="w-32" v-if="!allMachines">
-        <t-input
-          class="h-6"
-          title="Size"
-          v-if="useMachineClasses"
-          type="number"
-          :min="0"
-          v-model="machineCount"
-          compact
-        />
-        <div v-else>{{ pluralize('Machines', Object.keys(modelValue.machines).length, true) }}</div>
-      </div>
-    </div>
-    <div class="w-24 flex justify-end items-center gap-2">
-      <t-button v-if="!noRemove" class="h-6" type="compact" @click="onRemove">Remove</t-button>
-      <div class="flex gap-1 justify-center">
-        <icon-button
-          v-if="modelValue.role === LabelWorkerRole"
-          @click="openMachineSetConfig"
-          icon="chart-bar"
-        />
-        <icon-button
-          @click="openPatchConfig"
-          :icon="patches[PatchID.Default] ? 'settings-toggle' : 'settings'"
-        />
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
+import pluralize from 'pluralize'
 import type { Ref } from 'vue'
 import { computed, ref, toRefs, watch } from 'vue'
-import type { Resource } from '@/api/grpc'
-import type { MachineSet, ConfigPatch } from '@/states/cluster-management'
-import { PatchID } from '@/states/cluster-management'
-import { showModal } from '@/modal'
 
+import type { Resource } from '@/api/grpc'
+import type { MachineClassSpec } from '@/api/omni/specs/omni.pb'
+import { LabelWorkerRole, PatchBaseWeightMachineSet } from '@/api/resources'
+import IconButton from '@/components/common/Button/IconButton.vue'
+import TButton from '@/components/common/Button/TButton.vue'
 import TButtonGroup from '@/components/common/Button/TButtonGroup.vue'
-import MachineSetLabel from '@/views/omni/Clusters/Management/MachineSetLabel.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
-import TButton from '@/components/common/Button/TButton.vue'
+import { showModal } from '@/modal'
+import type { ConfigPatch, MachineSet } from '@/states/cluster-management'
+import { PatchID } from '@/states/cluster-management'
+import MachineSetLabel from '@/views/omni/Clusters/Management/MachineSetLabel.vue'
 import ConfigPatchEdit from '@/views/omni/Modals/ConfigPatchEdit.vue'
-import IconButton from '@/components/common/Button/IconButton.vue'
 
-import pluralize from 'pluralize'
-import { LabelWorkerRole, PatchBaseWeightMachineSet } from '@/api/resources'
 import MachineSetConfigEdit from '../../Modals/MachineSetConfigEdit.vue'
-import type { MachineClassSpec } from '@/api/omni/specs/omni.pb'
 
 const emit = defineEmits(['update:modelValue'])
 
@@ -216,3 +152,67 @@ const openPatchConfig = () => {
   })
 }
 </script>
+
+<template>
+  <div
+    class="my-1 flex items-center gap-2 rounded border border-naturals-N5 bg-naturals-N3 px-2 py-2 pr-3 text-xs text-naturals-N13"
+  >
+    <MachineSetLabel :color="modelValue.color" class="w-10" :machine-set-id="modelValue.id" />
+    <div class="flex flex-1 flex-wrap items-center gap-x-4 gap-y-1">
+      <div class="w-32 truncate" :title="modelValue.name">
+        {{ modelValue.name }}
+      </div>
+      <div class="flex items-center gap-2">
+        Allocation Mode: <TButtonGroup v-model="allocationMode" :options="allocationModes" />
+      </div>
+      <template v-if="useMachineClasses">
+        <TSelectList
+          v-if="machineClasses"
+          class="h-6 w-48"
+          title="Name"
+          :default-value="sourceName ?? machineClassOptions[0]"
+          :values="machineClassOptions"
+          @checked-value="
+            (value: string) => {
+              sourceName = value
+            }
+          "
+        />
+        <TSpinner v-else class="h-4 w-4" />
+      </template>
+      <TCheckbox
+        v-if="useMachineClasses && !selectedMachineClass?.spec.auto_provision"
+        :checked="unlimited"
+        label="Use All Available Machines"
+        class="h-6"
+        @click="unlimited = !unlimited"
+      />
+      <div v-if="!allMachines" class="w-32">
+        <TInput
+          v-if="useMachineClasses"
+          v-model="machineCount"
+          class="h-6"
+          title="Size"
+          type="number"
+          :min="0"
+          compact
+        />
+        <div v-else>{{ pluralize('Machines', Object.keys(modelValue.machines).length, true) }}</div>
+      </div>
+    </div>
+    <div class="flex w-24 items-center justify-end gap-2">
+      <TButton v-if="!noRemove" class="h-6" type="compact" @click="onRemove">Remove</TButton>
+      <div class="flex justify-center gap-1">
+        <IconButton
+          v-if="modelValue.role === LabelWorkerRole"
+          icon="chart-bar"
+          @click="openMachineSetConfig"
+        />
+        <IconButton
+          :icon="patches[PatchID.Default] ? 'settings-toggle' : 'settings'"
+          @click="openPatchConfig"
+        />
+      </div>
+    </div>
+  </div>
+</template>

@@ -4,29 +4,6 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <t-animation>
-    <div class="menu flex items-center">
-      <div class="flex flex-col">
-        <div class="menu__amount-box flex-1">
-          <span class="menu__amount-box--light">{{ controlPlanes }}</span>
-          <span class="menu__amount-box--light"
-            >Control {{ pluralize('Plane', controlPlanes, false) }},</span
-          >
-          <span class="menu__amount-box--light">{{ workers }}</span>
-          <span class="menu__amount-box--light">{{ pluralize('Worker', workers, false) }}</span>
-          selected
-        </div>
-        <div v-if="warning" class="text-red-R1">{{ warning }}</div>
-      </div>
-      <t-button iconPosition="left" @click="onSubmit">
-        {{ action }}
-      </t-button>
-      <t-icon class="menu__exit-button" icon="close" @click="onReset" />
-    </div>
-  </t-animation>
-</template>
-
 <script setup lang="ts">
 import pluralize from 'pluralize'
 
@@ -44,24 +21,47 @@ defineProps<{
 }>()
 </script>
 
+<template>
+  <TAnimation>
+    <div class="menu flex items-center">
+      <div class="flex flex-col">
+        <div class="menu__amount-box flex-1">
+          <span class="menu__amount-box--light">{{ controlPlanes }}</span>
+          <span class="menu__amount-box--light"
+            >Control {{ pluralize('Plane', controlPlanes, false) }},</span
+          >
+          <span class="menu__amount-box--light">{{ workers }}</span>
+          <span class="menu__amount-box--light">{{ pluralize('Worker', workers, false) }}</span>
+          selected
+        </div>
+        <div v-if="warning" class="text-red-R1">{{ warning }}</div>
+      </div>
+      <TButton icon-position="left" @click="onSubmit">
+        {{ action }}
+      </TButton>
+      <TIcon class="menu__exit-button" icon="close" @click="onReset" />
+    </div>
+  </TAnimation>
+</template>
+
 <style scoped>
 .menu {
-  @apply bg-naturals-N3 p-5 fixed rounded z-20 flex w-full gap-4;
+  @apply fixed z-20 flex w-full gap-4 rounded bg-naturals-N3 p-5;
   width: 452px;
   min-height: 56px;
   bottom: 32px;
   left: calc(50% - 240px);
 }
 .menu__amount-box {
-  @apply text-xs text-naturals-N8 flex items-center;
+  @apply flex items-center text-xs text-naturals-N8;
 }
 .menu__amount-box--light {
-  @apply text-naturals-N13 mr-1;
+  @apply mr-1 text-naturals-N13;
 }
 .menu__buttons-box {
   @apply flex items-center;
 }
 .menu__exit-button {
-  @apply fill-current text-naturals-N7 cursor-pointer transition-colors hover:text-naturals-N8 w-6 h-6;
+  @apply h-6 w-6 cursor-pointer fill-current text-naturals-N7 transition-colors hover:text-naturals-N8;
 }
 </style>

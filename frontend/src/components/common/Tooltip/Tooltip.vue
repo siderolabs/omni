@@ -4,28 +4,6 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <popper
-    :offsetDistance="offsetDistance.toFixed()"
-    :offsetSkid="offsetSkid.toFixed()"
-    :placement="placement"
-    :show="show && (!!description || !!$slots.description)"
-    class="popper"
-  >
-    <template #content>
-      <div
-        class="text-xs bg-naturals-N3 border border-naturals-N4 rounded p-4 text-naturals-N12 z-50"
-      >
-        <p v-if="description" class="whitespace-pre">{{ description }}</p>
-        <slot v-else name="description" />
-      </div>
-    </template>
-    <div @mouseover="show = true" @mouseleave="show = false">
-      <slot />
-    </div>
-  </popper>
-</template>
-
 <script setup lang="ts">
 import { ref } from 'vue'
 import Popper from 'vue3-popper'
@@ -60,6 +38,28 @@ withDefaults(defineProps<props>(), {
 
 const show = ref(false)
 </script>
+
+<template>
+  <Popper
+    :offset-distance="offsetDistance.toFixed()"
+    :offset-skid="offsetSkid.toFixed()"
+    :placement="placement"
+    :show="show && (!!description || !!$slots.description)"
+    class="popper"
+  >
+    <template #content>
+      <div
+        class="z-50 rounded border border-naturals-N4 bg-naturals-N3 p-4 text-xs text-naturals-N12"
+      >
+        <p v-if="description" class="whitespace-pre">{{ description }}</p>
+        <slot v-else name="description" />
+      </div>
+    </template>
+    <div @mouseover="show = true" @mouseleave="show = false">
+      <slot />
+    </div>
+  </Popper>
+</template>
 
 <style scoped>
 .popper {

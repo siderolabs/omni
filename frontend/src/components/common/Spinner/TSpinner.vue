@@ -22,7 +22,7 @@ included in the LICENSE file.
 
 <style scoped>
 .spinner {
-  @apply w-full h-full;
+  @apply h-full w-full;
   animation: rotator 1.4s linear infinite;
 }
 @keyframes rotator {

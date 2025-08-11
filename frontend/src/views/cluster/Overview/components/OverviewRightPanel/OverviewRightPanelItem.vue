@@ -4,16 +4,6 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="overview-details-item">
-    <div class="overview-item-name">{{ name }}</div>
-    <div class="overview-item-value">
-      <span class="overview-item-text" v-if="value">{{ value }}</span
-      ><slot />
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 defineProps<{
   name: string
@@ -21,9 +11,19 @@ defineProps<{
 }>()
 </script>
 
+<template>
+  <div class="overview-details-item">
+    <div class="overview-item-name">{{ name }}</div>
+    <div class="overview-item-value">
+      <span v-if="value" class="overview-item-text">{{ value }}</span
+      ><slot />
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .overview-details-item {
-  @apply w-full flex justify-between;
+  @apply flex w-full justify-between;
   align-items: flex-start !important;
 }
 .overview-item-name {
@@ -31,7 +31,7 @@ defineProps<{
   min-width: 40px;
 }
 .overview-item-value {
-  @apply text-xs text-naturals-N13 flex items-center gap-1;
+  @apply flex items-center gap-1 text-xs text-naturals-N13;
 }
 .overview-item-text {
   margin-right: 2px;

@@ -4,26 +4,14 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex gap-2">
-    <div v-bind:style="'color: ' + phaseColor(item)" class="cluster-phase-box">
-      <t-icon :icon="phaseIcon(item)" class="h-4" />
-      <div id="machine-set-phase-name">{{ phaseName(item) || '' }}</div>
-    </div>
-    <div v-if="item.spec.locked_updates" class="flex gap-1 items-center text-light-blue-400">
-      <t-icon icon="time" class="h-4" />
-      {{ pluralize('Pending Config Update', item.spec.locked_updates, true) }}
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import type { IconType } from '@/components/common/Icon/TIcon.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
+import pluralize from 'pluralize'
+
+import type { Resource } from '@/api/grpc'
 import type { MachineSetStatusSpec } from '@/api/omni/specs/omni.pb'
 import { MachineSetPhase } from '@/api/omni/specs/omni.pb'
-import type { Resource } from '@/api/grpc'
-import pluralize from 'pluralize'
+import type { IconType } from '@/components/common/Icon/TIcon.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
 
 const phaseName = (machineset: Resource<MachineSetStatusSpec>): string => {
   switch (machineset?.spec.phase) {
@@ -97,6 +85,19 @@ type Props = {
 
 defineProps<Props>()
 </script>
+
+<template>
+  <div class="flex gap-2">
+    <div :style="'color: ' + phaseColor(item)" class="cluster-phase-box">
+      <TIcon :icon="phaseIcon(item)" class="h-4" />
+      <div id="machine-set-phase-name">{{ phaseName(item) || '' }}</div>
+    </div>
+    <div v-if="item.spec.locked_updates" class="flex items-center gap-1 text-light-blue-400">
+      <TIcon icon="time" class="h-4" />
+      {{ pluralize('Pending Config Update', item.spec.locked_updates, true) }}
+    </div>
+  </div>
+</template>
 
 <style>
 .cluster-phase-box {

@@ -4,109 +4,50 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex-1 flex flex-col overflow-hidden -mb-6 -mx-6 relative" :style="{ width: 'auto' }">
-    <div class="overflow-hidden flex-1 flex flex-col px-6 pb-16">
-      <page-header :title="title" :subtitle="subtitle as string" :notes="notes" />
-      <managed-by-templates-warning :cluster="currentCluster" />
-      <div v-if="state === State.NotExists" class="flex items-center gap-3 mb-4">
-        <t-input v-model="patchName" title="Name" />
-        <t-input class="flex-1" v-model="patchDescription" title="Description" />
-        <t-select-list
-          @checkedValue="setPatchType"
-          v-if="patchTypes"
-          title="Patch Target"
-          :defaultValue="patchTypes[0]"
-          :values="patchTypes"
-        />
-        <popper :show="weight < 100 || weight > 900" placement="bottom-start">
-          <t-input type="number" v-model="weight" title="Weight" class="w-28" />
-          <template #content>
-            <div class="rounded bg-naturals-N3 p-2 flex items-center gap-2 text-xs">
-              <t-icon icon="warning" class="w-5 h-5 fill-current text-yellow-Y1" />
-              Weight should be in range of 100-900.
-            </div>
-          </template>
-        </popper>
-      </div>
-      <div class="font-sm flex-1 overflow-y-hidden rounded bg-naturals-N1 py-3 px-2 mb-7">
-        <div v-if="!ready" class="flex items-center justify-center w-full h-full">
-          <t-spinner class="w-6 h-6" />
-        </div>
-
-        <CodeEditor
-          v-else
-          v-model:value="config"
-          @editorDidMount="editorDidMount"
-          :options="{ readOnly: !canManageConfigPatches }"
-          :validators="[checkEncryption]"
-        />
-      </div>
-    </div>
-    <div
-      class="absolute bg-naturals-N1 border-t border-naturals-N4 h-16 gap-4 flex items-center py-3 px-5 bottom-0 left-0 right-0"
-    >
-      <t-button class="secondary" @click="() => $router.push({ name: patchListPage })"
-        >Back</t-button
-      >
-      <div class="flex-1" />
-      <t-button
-        type="highlighted"
-        @click="saveConfig"
-        :disabled="!canManageConfigPatches || saving"
-      >
-        <t-spinner v-if="saving" class="w-5 h-5" />
-        <span v-else> Save </span>
-      </t-button>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
 import type { Ref } from 'vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-
-import PageHeader from '@/components/common/PageHeader.vue'
-import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
-import { ResourceService } from '@/api/grpc'
-import type { ClusterSpec, ConfigPatchSpec, MachineSetSpec } from '@/api/omni/specs/omni.pb'
-import {
-  ConfigPatchType,
-  ClusterMachineStatusType,
-  DefaultNamespace,
-  LabelCluster,
-  LabelHostname,
-  LabelMachineSet,
-  LabelMachine,
-  LabelClusterMachine,
-  VirtualNamespace,
-  ClusterPermissionsType,
-  ConfigPatchName,
-  ConfigPatchDescription,
-  MachineSetType,
-  MachineStatusType,
-} from '@/api/resources'
-import { showError } from '@/notification'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
-import Watch from '../../../api/watch'
-import TButton from '@/components/common/Button/TButton.vue'
-import TInput from '@/components/common/TInput/TInput.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import Popper from 'vue3-popper'
 
+import { Runtime } from '@/api/common/omni.pb'
 import { Code } from '@/api/google/rpc/code.pb'
+import type { Resource } from '@/api/grpc'
+import { ResourceService } from '@/api/grpc'
 import type { WatchResponse } from '@/api/omni/resources/resources.pb'
 import { EventType } from '@/api/omni/resources/resources.pb'
-
-import CodeEditor from '@/components/common/CodeEditor/CodeEditor.vue'
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
+import type { ClusterSpec, ConfigPatchSpec, MachineSetSpec } from '@/api/omni/specs/omni.pb'
 import { withRuntime } from '@/api/options'
+import {
+  ClusterMachineStatusType,
+  ClusterPermissionsType,
+  ConfigPatchDescription,
+  ConfigPatchName,
+  ConfigPatchType,
+  DefaultNamespace,
+  LabelCluster,
+  LabelClusterMachine,
+  LabelHostname,
+  LabelMachine,
+  LabelMachineSet,
+  MachineSetType,
+  MachineStatusType,
+  VirtualNamespace,
+} from '@/api/resources'
+import TButton from '@/components/common/Button/TButton.vue'
+import CodeEditor from '@/components/common/CodeEditor/CodeEditor.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
+import TSelectList from '@/components/common/SelectList/TSelectList.vue'
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import TInput from '@/components/common/TInput/TInput.vue'
 import { canManageMachineConfigPatches, canReadMachineConfigPatches } from '@/methods/auth'
 import { machineSetTitle, sortMachineSetIds } from '@/methods/machineset'
+import { showError } from '@/notification'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
+
+import Watch from '../../../api/watch'
 
 type Props = {
   currentCluster?: Resource<ClusterSpec>
@@ -352,7 +293,7 @@ loadPatch()
 watch(patch, loadPatch)
 
 const patchTypes = computed(() => {
-  if (route.params.cluster && route.name != 'ClusterMachinePatchEdit') {
+  if (route.params.cluster && route.name !== 'ClusterMachinePatchEdit') {
     return [PatchType.Cluster as string].concat(machineSetTitles.value).concat(machines.value)
   }
 
@@ -574,6 +515,58 @@ onMounted(async () => {
 })
 </script>
 
+<template>
+  <div class="relative -mx-6 -mb-6 flex flex-1 flex-col overflow-hidden" :style="{ width: 'auto' }">
+    <div class="flex flex-1 flex-col overflow-hidden px-6 pb-16">
+      <PageHeader :title="title" :subtitle="subtitle as string" :notes="notes" />
+      <ManagedByTemplatesWarning :cluster="currentCluster" />
+      <div v-if="state === State.NotExists" class="mb-4 flex items-center gap-3">
+        <TInput v-model="patchName" title="Name" />
+        <TInput v-model="patchDescription" class="flex-1" title="Description" />
+        <TSelectList
+          v-if="patchTypes"
+          title="Patch Target"
+          :default-value="patchTypes[0]"
+          :values="patchTypes"
+          @checked-value="setPatchType"
+        />
+        <Popper :show="weight < 100 || weight > 900" placement="bottom-start">
+          <TInput v-model="weight" type="number" title="Weight" class="w-28" />
+          <template #content>
+            <div class="flex items-center gap-2 rounded bg-naturals-N3 p-2 text-xs">
+              <TIcon icon="warning" class="h-5 w-5 fill-current text-yellow-Y1" />
+              Weight should be in range of 100-900.
+            </div>
+          </template>
+        </Popper>
+      </div>
+      <div class="font-sm mb-7 flex-1 overflow-y-hidden rounded bg-naturals-N1 px-2 py-3">
+        <div v-if="!ready" class="flex h-full w-full items-center justify-center">
+          <TSpinner class="h-6 w-6" />
+        </div>
+
+        <CodeEditor
+          v-else
+          v-model:value="config"
+          :options="{ readOnly: !canManageConfigPatches }"
+          :validators="[checkEncryption]"
+          @editor-did-mount="editorDidMount"
+        />
+      </div>
+    </div>
+    <div
+      class="absolute bottom-0 left-0 right-0 flex h-16 items-center gap-4 border-t border-naturals-N4 bg-naturals-N1 px-5 py-3"
+    >
+      <TButton class="secondary" @click="() => $router.push({ name: patchListPage })">Back</TButton>
+      <div class="flex-1" />
+      <TButton type="highlighted" :disabled="!canManageConfigPatches || saving" @click="saveConfig">
+        <TSpinner v-if="saving" class="h-5 w-5" />
+        <span v-else> Save </span>
+      </TButton>
+    </div>
+  </div>
+</template>
+
 <style>
 .CodeMirror {
   font-size: 14px;
@@ -596,15 +589,7 @@ onMounted(async () => {
 
 /* The lint marker gutter */
 .CodeMirror-lint-tooltip {
-  @apply p-4
-    bg-naturals-N3
-    text-naturals-N10
-    rounded-md
-    overflow-hidden
-    drop-shadow
-    fixed
-    whitespace-pre
-    whitespace-pre-wrap;
+  @apply fixed overflow-hidden whitespace-pre whitespace-pre-wrap rounded-md bg-naturals-N3 p-4 text-naturals-N10 drop-shadow;
 
   z-index: 100;
   max-width: 600px;

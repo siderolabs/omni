@@ -4,33 +4,11 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div :style="'color: ' + stageColor(machine)">
-    <tooltip
-      placement="bottom"
-      :description="
-        connected(machine) ? undefined : 'The machine is unreachable. The last known state is shown'
-      "
-    >
-      <div
-        class="flex gap-1"
-        :class="'cluster-stage-box' + (connected(machine) ? '' : ' brightness-50')"
-      >
-        <t-icon :icon="stageIcon(machine)" class="h-4" />
-        <div class="truncate flex-1" id="cluster-machine-stage-name">
-          {{ stageName(machine) || '' }}
-        </div>
-      </div>
-    </tooltip>
-  </div>
-</template>
-
 <script setup lang="ts">
+import type { Resource } from '@/api/grpc'
 import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterMachineStatusSpecStage } from '@/api/omni/specs/omni.pb'
 import { MachineStatusLabelConnected } from '@/api/resources'
-import type { Resource } from '@/api/grpc'
-
 import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
@@ -136,6 +114,27 @@ type Props = {
 
 defineProps<Props>()
 </script>
+
+<template>
+  <div :style="'color: ' + stageColor(machine)">
+    <Tooltip
+      placement="bottom"
+      :description="
+        connected(machine) ? undefined : 'The machine is unreachable. The last known state is shown'
+      "
+    >
+      <div
+        class="flex gap-1"
+        :class="'cluster-stage-box' + (connected(machine) ? '' : ' brightness-50')"
+      >
+        <TIcon :icon="stageIcon(machine)" class="h-4" />
+        <div id="cluster-machine-stage-name" class="flex-1 truncate">
+          {{ stageName(machine) || '' }}
+        </div>
+      </div>
+    </Tooltip>
+  </div>
+</template>
 
 <style>
 .cluster-stage-box {

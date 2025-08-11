@@ -4,12 +4,6 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <transition :name="name">
-    <slot class="slot" />
-  </transition>
-</template>
-
 <script setup lang="ts">
 import { toRefs } from 'vue'
 
@@ -23,6 +17,12 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { name } = toRefs(props)
 </script>
+
+<template>
+  <transition :name="name">
+    <slot class="slot" />
+  </transition>
+</template>
 
 <style scoped>
 .fade-enter-active,

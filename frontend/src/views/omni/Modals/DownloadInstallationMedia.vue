@@ -4,207 +4,54 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window flex flex-col gap-4 overflow-y-scroll" style="height: 90%">
-    <div class="heading">
-      <h3 class="text-base text-naturals-N14">Download Installation Media</h3>
-      <close-button @click="close" />
-    </div>
-
-    <div v-if="phase !== Phase.Idle" class="flex flex-col items-center">
-      <div class="flex gap-2 items-center">
-        <document-arrow-down-icon class="w-5 h-5" />{{ installationMedia?.spec.name }}
-      </div>
-      <div class="flex gap-2 items-center">
-        <t-spinner class="w-5 h-5" />
-        <span v-if="phase === Phase.Loading">{{ downloaded }}</span>
-        <span v-else>Generating Image</span>
-      </div>
-    </div>
-    <template v-else>
-      <div class="flex gap-3 flex-wrap">
-        <div v-if="talosVersions" class="flex flex-wrap gap-4">
-          <t-select-list
-            @checkedValue="setTalosVersion"
-            title="Talos Version"
-            :defaultValue="DefaultTalosVersion"
-            :values="talosVersions"
-            :searcheable="true"
-          />
-        </div>
-
-        <div v-if="!!optionsWatch && defaultValue" class="flex flex-wrap gap-4">
-          <t-select-list
-            @checkedValue="setOption"
-            title="Options"
-            :defaultValue="defaultValue"
-            :values="optionNames"
-            :searcheable="true"
-          />
-        </div>
-
-        <div class="flex flex-wrap gap-4" v-if="joinToken">
-          <t-select-list
-            @checkedValue="(value) => (joinToken = value)"
-            title="Join Token"
-            :defaultValue="joinToken"
-            :values="joinTokenOptions"
-            :searcheable="true"
-          />
-        </div>
-      </div>
-
-      <div class="flex">
-        <h3 class="text-sm text-naturals-N14 flex-1">Pre-Install Extensions</h3>
-        <t-checkbox
-          class="col-span-2"
-          label="Show Descriptions"
-          @click="showDescriptions = !showDescriptions"
-          :checked="showDescriptions"
-        />
-      </div>
-
-      <extensions-picker
-        v-model="installExtensions"
-        :talos-version="selectedTalosVersion"
-        class="flex-1"
-        :show-descriptions="showDescriptions"
-      />
-
-      <h3 class="text-sm text-naturals-N14">Machine User Labels</h3>
-
-      <div class="flex items-center gap-2">
-        <Labels v-model="labels" />
-      </div>
-
-      <h3 class="text-sm text-naturals-N14">Additional Kernel Arguments</h3>
-
-      <t-input v-model="kernelArguments" />
-
-      <t-checkbox
-        label="Secure Boot"
-        :disabled="installationMedia?.spec?.no_secure_boot"
-        @click="secureBoot = !secureBoot"
-        :checked="secureBoot && !installationMedia?.spec?.no_secure_boot"
-      />
-
-      <tooltip>
-        <template #description>
-          <div class="flex flex-col gap-1 p-2">
-            <p>
-              Configure Talos to use the SideroLink (WireGuard) gRPC tunnel over HTTP2 for Omni
-              management traffic, instead of UDP. Note that this will add overhead to the traffic.
-            </p>
-            <p v-if="useGrpcTunnelDefault">
-              As it is enabled in Omni on instance-level, it cannot be disabled for the installation
-              media.
-            </p>
-          </div>
-        </template>
-        <t-checkbox
-          :disabled="useGrpcTunnelDefault"
-          :checked="useGrpcTunnel"
-          display-checked-status-when-disabled
-          label="Tunnel Omni management traffic over HTTP2"
-          @click="useGrpcTunnel = !useGrpcTunnel"
-        />
-      </tooltip>
-
-      <h3 class="text-sm text-naturals-N14">PXE Boot URL</h3>
-
-      <div
-        class="cursor-pointer px-1.5 py-1.5 rounded border border-naturals-N8 text-xs flex gap-2 items-center"
-        :class="{ 'pointer-events-none': !supported }"
-      >
-        <icon-button
-          class="min-w-min"
-          icon="refresh"
-          @click="createSchematic"
-          :icon-classes="{ 'animate-spin': creatingSchematic }"
-          :disabled="!ready"
-        />
-        <span v-if="copiedPXEURL" class="flex-1 text-sm">Copied!</span>
-        <span v-else class="flex-1 break-all" @click="createSchematic">{{
-          pxeURL ? pxeURL : 'Click to generate'
-        }}</span>
-        <icon-button class="min-w-min" icon="copy" @click="copyPXEURL" />
-      </div>
-
-      <div>
-        <p v-if="supported" class="text-xs">
-          The generated image will include the kernel arguments required to register with Omni
-          automatically.
-        </p>
-        <p v-else class="text-xs text-primary-P2">
-          {{ selectedOption }} supports only Talos version >= {{ minTalosVersion }}.
-        </p>
-      </div>
-
-      <div class="flex justify-end gap-4">
-        <t-button @click="close" class="w-32 h-9"> Cancel </t-button>
-        <t-button
-          @click="download"
-          class="w-32 h-9"
-          type="highlighted"
-          :disabled="!ready || !supported"
-        >
-          Download
-        </t-button>
-      </div>
-    </template>
-  </div>
-</template>
-
 <script setup lang="ts">
-import {
-  DefaultNamespace,
-  DefaultTalosVersion,
-  EphemeralNamespace,
-  LabelsMeta,
-  TalosVersionType,
-  SecureBoot,
-  ConfigID,
-  JoinTokenStatusType,
-  DefaultJoinTokenID,
-  DefaultJoinTokenType,
-  APIConfigType,
-} from '@/api/resources'
-import { useRoute, useRouter } from 'vue-router'
+import { DocumentArrowDownIcon } from '@heroicons/vue/24/outline'
+import yaml from 'js-yaml'
+import * as semver from 'semver'
 import type { Ref } from 'vue'
-import { onUnmounted, ref, watch, computed, onMounted } from 'vue'
-import { InstallationMediaType } from '@/api/resources'
-import type { InstallationMediaSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { copyText } from 'vue3-clipboard'
+
 import { Runtime } from '@/api/common/omni.pb'
-import { showError } from '@/notification'
-import { formatBytes } from '@/methods'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
-
-import CloseButton from '@/views/omni/Modals/CloseButton.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
-import TButton from '@/components/common/Button/TButton.vue'
-import TSelectList from '@/components/common/SelectList/TSelectList.vue'
-import Labels from '@/components/common/Labels/Labels.vue'
-import WatchResource from '@/api/watch'
-import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
-import TInput from '@/components/common/TInput/TInput.vue'
-import IconButton from '@/components/common/Button/IconButton.vue'
-import yaml from 'js-yaml'
-import ExtensionsPicker from '@/views/omni/Extensions/ExtensionsPicker.vue'
-
-import { copyText } from 'vue3-clipboard'
-import { DocumentArrowDownIcon } from '@heroicons/vue/24/outline'
 import type { CreateSchematicRequest } from '@/api/omni/management/management.pb'
 import {
   CreateSchematicRequestSiderolinkGRPCTunnelMode,
   ManagementService,
 } from '@/api/omni/management/management.pb'
-import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
-import { withRuntime } from '@/api/options'
-
-import * as semver from 'semver'
 import type { DefaultJoinTokenSpec, JoinTokenStatusSpec } from '@/api/omni/specs/auth.pb'
+import type { InstallationMediaSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
 import type { SiderolinkAPIConfigSpec } from '@/api/omni/specs/siderolink.pb'
+import { withRuntime } from '@/api/options'
+import {
+  APIConfigType,
+  ConfigID,
+  DefaultJoinTokenID,
+  DefaultJoinTokenType,
+  DefaultNamespace,
+  DefaultTalosVersion,
+  EphemeralNamespace,
+  JoinTokenStatusType,
+  LabelsMeta,
+  SecureBoot,
+  TalosVersionType,
+} from '@/api/resources'
+import { InstallationMediaType } from '@/api/resources'
+import WatchResource from '@/api/watch'
+import IconButton from '@/components/common/Button/IconButton.vue'
+import TButton from '@/components/common/Button/TButton.vue'
+import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
+import Labels from '@/components/common/Labels/Labels.vue'
+import TSelectList from '@/components/common/SelectList/TSelectList.vue'
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import TInput from '@/components/common/TInput/TInput.vue'
+import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
+import { formatBytes } from '@/methods'
+import { showError } from '@/notification'
+import ExtensionsPicker from '@/views/omni/Extensions/ExtensionsPicker.vue'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 enum Phase {
   Idle = 0,
@@ -603,12 +450,163 @@ const downloaded = computed(() => {
 })
 </script>
 
+<template>
+  <div class="modal-window flex flex-col gap-4 overflow-y-scroll" style="height: 90%">
+    <div class="heading">
+      <h3 class="text-base text-naturals-N14">Download Installation Media</h3>
+      <CloseButton @click="close" />
+    </div>
+
+    <div v-if="phase !== Phase.Idle" class="flex flex-col items-center">
+      <div class="flex items-center gap-2">
+        <DocumentArrowDownIcon class="h-5 w-5" />{{ installationMedia?.spec.name }}
+      </div>
+      <div class="flex items-center gap-2">
+        <TSpinner class="h-5 w-5" />
+        <span v-if="phase === Phase.Loading">{{ downloaded }}</span>
+        <span v-else>Generating Image</span>
+      </div>
+    </div>
+    <template v-else>
+      <div class="flex flex-wrap gap-3">
+        <div v-if="talosVersions" class="flex flex-wrap gap-4">
+          <TSelectList
+            title="Talos Version"
+            :default-value="DefaultTalosVersion"
+            :values="talosVersions"
+            :searcheable="true"
+            @checked-value="setTalosVersion"
+          />
+        </div>
+
+        <div v-if="!!optionsWatch && defaultValue" class="flex flex-wrap gap-4">
+          <TSelectList
+            title="Options"
+            :default-value="defaultValue"
+            :values="optionNames"
+            :searcheable="true"
+            @checked-value="setOption"
+          />
+        </div>
+
+        <div v-if="joinToken" class="flex flex-wrap gap-4">
+          <TSelectList
+            title="Join Token"
+            :default-value="joinToken"
+            :values="joinTokenOptions"
+            :searcheable="true"
+            @checked-value="(value) => (joinToken = value)"
+          />
+        </div>
+      </div>
+
+      <div class="flex">
+        <h3 class="flex-1 text-sm text-naturals-N14">Pre-Install Extensions</h3>
+        <TCheckbox
+          class="col-span-2"
+          label="Show Descriptions"
+          :checked="showDescriptions"
+          @click="showDescriptions = !showDescriptions"
+        />
+      </div>
+
+      <ExtensionsPicker
+        v-model="installExtensions"
+        :talos-version="selectedTalosVersion"
+        class="flex-1"
+        :show-descriptions="showDescriptions"
+      />
+
+      <h3 class="text-sm text-naturals-N14">Machine User Labels</h3>
+
+      <div class="flex items-center gap-2">
+        <Labels v-model="labels" />
+      </div>
+
+      <h3 class="text-sm text-naturals-N14">Additional Kernel Arguments</h3>
+
+      <TInput v-model="kernelArguments" />
+
+      <TCheckbox
+        label="Secure Boot"
+        :disabled="installationMedia?.spec?.no_secure_boot"
+        :checked="secureBoot && !installationMedia?.spec?.no_secure_boot"
+        @click="secureBoot = !secureBoot"
+      />
+
+      <Tooltip>
+        <template #description>
+          <div class="flex flex-col gap-1 p-2">
+            <p>
+              Configure Talos to use the SideroLink (WireGuard) gRPC tunnel over HTTP2 for Omni
+              management traffic, instead of UDP. Note that this will add overhead to the traffic.
+            </p>
+            <p v-if="useGrpcTunnelDefault">
+              As it is enabled in Omni on instance-level, it cannot be disabled for the installation
+              media.
+            </p>
+          </div>
+        </template>
+        <TCheckbox
+          :disabled="useGrpcTunnelDefault"
+          :checked="useGrpcTunnel"
+          display-checked-status-when-disabled
+          label="Tunnel Omni management traffic over HTTP2"
+          @click="useGrpcTunnel = !useGrpcTunnel"
+        />
+      </Tooltip>
+
+      <h3 class="text-sm text-naturals-N14">PXE Boot URL</h3>
+
+      <div
+        class="flex cursor-pointer items-center gap-2 rounded border border-naturals-N8 px-1.5 py-1.5 text-xs"
+        :class="{ 'pointer-events-none': !supported }"
+      >
+        <IconButton
+          class="min-w-min"
+          icon="refresh"
+          :icon-classes="{ 'animate-spin': creatingSchematic }"
+          :disabled="!ready"
+          @click="createSchematic"
+        />
+        <span v-if="copiedPXEURL" class="flex-1 text-sm">Copied!</span>
+        <span v-else class="flex-1 break-all" @click="createSchematic">{{
+          pxeURL ? pxeURL : 'Click to generate'
+        }}</span>
+        <IconButton class="min-w-min" icon="copy" @click="copyPXEURL" />
+      </div>
+
+      <div>
+        <p v-if="supported" class="text-xs">
+          The generated image will include the kernel arguments required to register with Omni
+          automatically.
+        </p>
+        <p v-else class="text-xs text-primary-P2">
+          {{ selectedOption }} supports only Talos version >= {{ minTalosVersion }}.
+        </p>
+      </div>
+
+      <div class="flex justify-end gap-4">
+        <TButton class="h-9 w-32" @click="close"> Cancel </TButton>
+        <TButton
+          class="h-9 w-32"
+          type="highlighted"
+          :disabled="!ready || !supported"
+          @click="download"
+        >
+          Download
+        </TButton>
+      </div>
+    </template>
+  </div>
+</template>
+
 <style scoped>
 .modal-window {
-  @apply w-1/2 h-auto p-8;
+  @apply h-auto w-1/2 p-8;
 }
 
 .heading {
-  @apply flex justify-between items-center text-xl text-naturals-N14;
+  @apply flex items-center justify-between text-xl text-naturals-N14;
 }
 </style>

@@ -4,45 +4,13 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window">
-    <div class="heading">
-      <h3 class="text-base text-naturals-N14">Download Omnictl</h3>
-      <close-button @click="close" />
-    </div>
-
-    <div class="flex flex-wrap gap-4 mb-5">
-      <t-select-list
-        @checkedValue="setOption"
-        title="omnictl"
-        :defaultValue="defaultValue"
-        :values="options"
-        :searcheable="true"
-      />
-    </div>
-
-    <div>
-      <p class="text-xs"><code>omnictl</code> can be used to access omni resources.</p>
-    </div>
-
-    <div class="flex justify-end gap-4 mt-8">
-      <t-button @click="close" class="w-32 h-9">
-        <span> Cancel </span>
-      </t-button>
-      <t-button @click="download" class="w-32 h-9">
-        <span> Download </span>
-      </t-button>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import TButton from '@/components/common/Button/TButton.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
-import { ref } from 'vue'
 
 const router = useRouter()
 let closed = false
@@ -86,12 +54,44 @@ const setOption = (value: string) => {
 const defaultValue = options[2]
 </script>
 
+<template>
+  <div class="modal-window">
+    <div class="heading">
+      <h3 class="text-base text-naturals-N14">Download Omnictl</h3>
+      <CloseButton @click="close" />
+    </div>
+
+    <div class="mb-5 flex flex-wrap gap-4">
+      <TSelectList
+        title="omnictl"
+        :default-value="defaultValue"
+        :values="options"
+        :searcheable="true"
+        @checked-value="setOption"
+      />
+    </div>
+
+    <div>
+      <p class="text-xs"><code>omnictl</code> can be used to access omni resources.</p>
+    </div>
+
+    <div class="mt-8 flex justify-end gap-4">
+      <TButton class="h-9 w-32" @click="close">
+        <span> Cancel </span>
+      </TButton>
+      <TButton class="h-9 w-32" @click="download">
+        <span> Download </span>
+      </TButton>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .modal-window {
-  @apply w-1/3 h-auto p-8;
+  @apply h-auto w-1/3 p-8;
 }
 
 .heading {
-  @apply flex justify-between items-center mb-5 text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
 }
 </style>

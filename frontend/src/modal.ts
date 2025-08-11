@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import type { Ref, Component, AllowedComponentProps, VNodeProps } from 'vue'
+import type { AllowedComponentProps, Component, Ref, VNodeProps } from 'vue'
 import { shallowRef } from 'vue'
 
 type ComponentProps<C extends Component> = C extends new (...args: any) => any

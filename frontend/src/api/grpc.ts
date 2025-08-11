@@ -3,27 +3,28 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+import type { Ref } from 'vue'
+import { ref } from 'vue'
+
+import type { Metadata as TalosMetadata } from '@/api/common/common.pb'
+import type { fetchOption, NotifyStreamEntityArrival } from '@/api/fetch.pb'
+import { setCommonFetchOptions } from '@/api/fetch.pb'
+import { Code } from '@/api/google/rpc/code.pb'
 import type {
+  CreateRequest,
+  CreateResponse,
+  DeleteRequest,
+  DeleteResponse,
   GetRequest,
   ListRequest,
-  CreateRequest,
   UpdateRequest,
-  DeleteRequest,
-  CreateResponse,
   UpdateResponse,
-  DeleteResponse,
   WatchRequest,
   WatchResponse,
 } from '@/api/omni/resources/resources.pb'
 import { ResourceService as WrappedResourceService } from '@/api/omni/resources/resources.pb'
-import type { Metadata } from '@/api/v1alpha1/resource.pb'
-import type { Metadata as TalosMetadata } from '@/api/common/common.pb'
-import type { Ref } from 'vue'
-import { ref } from 'vue'
-import { Code } from '@/api/google/rpc/code.pb'
-import type { fetchOption, NotifyStreamEntityArrival } from '@/api/fetch.pb'
-import { setCommonFetchOptions } from '@/api/fetch.pb'
 import { withAbortController, withPathPrefix } from '@/api/options'
+import type { Metadata } from '@/api/v1alpha1/resource.pb'
 
 export const initState = () => {
   setCommonFetchOptions(withPathPrefix('/api'))
@@ -266,14 +267,14 @@ export class RequestError extends Error {
   public code: number = Code.UNKNOWN
 
   constructor(response: any) {
-    super(response['message'] || response['code'])
+    super(response.message || response.code)
 
-    this.code = response['code']
+    this.code = response.code
   }
 }
 
 export const checkError = <T>(response: { code?: Code } & T): T => {
-  if (response.code != null) {
+  if (response.code) {
     throw new RequestError(response)
   }
 

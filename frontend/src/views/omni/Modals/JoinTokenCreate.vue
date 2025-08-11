@@ -4,71 +4,21 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window">
-    <div class="heading">
-      <h3 class="text-base text-naturals-N14">Create Join Token</h3>
-      <close-button @click="close" />
-    </div>
-
-    <div class="flex flex-col w-full h-full gap-4">
-      <t-notification v-if="notification" v-bind="notification.props" />
-
-      <template v-if="!key">
-        <div class="flex flex-col gap-2">
-          <t-input title="Name" class="flex-1 h-full" v-model="name" :onClear="() => (name = '')" />
-          <div class="flex gap-1 items-center text-xs">
-            Lifetime:
-            <t-button-group
-              :options="[
-                {
-                  label: 'No Expiration',
-                  value: Lifetime.NeverExpire,
-                },
-                {
-                  label: 'Limited',
-                  value: Lifetime.Limited,
-                },
-              ]"
-              v-model="lifetime"
-            />
-          </div>
-          <t-input
-            :disabled="lifetime === Lifetime.NeverExpire"
-            title="Expiration Days"
-            type="number"
-            :min="1"
-            class="flex-1"
-            v-model="expiration"
-          />
-        </div>
-        <t-button
-          type="highlighted"
-          @click="handleCreate"
-          :disabled="!canManageUsers && authType !== AuthType.SAML"
-          class="h-9"
-          >Create Join Token</t-button
-        >
-      </template>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import type { Ref } from 'vue'
 import { ref, shallowRef } from 'vue'
+import { useRouter } from 'vue-router'
+
+import TButton from '@/components/common/Button/TButton.vue'
+import TButtonGroup from '@/components/common/Button/TButtonGroup.vue'
+import TNotification from '@/components/common/Notification/TNotification.vue'
+import TInput from '@/components/common/TInput/TInput.vue'
+import { AuthType, authType } from '@/methods'
+import { canManageUsers } from '@/methods/auth'
 import { createJoinToken } from '@/methods/user'
 import type { Notification } from '@/notification'
 import { showError, showSuccess } from '@/notification'
-import { useRouter } from 'vue-router'
-
-import TButtonGroup from '@/components/common/Button/TButtonGroup.vue'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
-import TButton from '@/components/common/Button/TButton.vue'
-import { canManageUsers } from '@/methods/auth'
-import TInput from '@/components/common/TInput/TInput.vue'
-import { AuthType, authType } from '@/methods'
-import TNotification from '@/components/common/Notification/TNotification.vue'
 
 enum Lifetime {
   NeverExpire = 'Never Expire',
@@ -86,7 +36,7 @@ const key = ref<string>()
 const name = ref<string>('')
 
 const handleCreate = async () => {
-  if (name.value == '') {
+  if (name.value === '') {
     showError('Failed to Create Join Token', 'Name is not defined', notification)
 
     return
@@ -121,13 +71,63 @@ const close = () => {
 }
 </script>
 
+<template>
+  <div class="modal-window">
+    <div class="heading">
+      <h3 class="text-base text-naturals-N14">Create Join Token</h3>
+      <CloseButton @click="close" />
+    </div>
+
+    <div class="flex h-full w-full flex-col gap-4">
+      <TNotification v-if="notification" v-bind="notification.props" />
+
+      <template v-if="!key">
+        <div class="flex flex-col gap-2">
+          <TInput v-model="name" title="Name" class="h-full flex-1" :on-clear="() => (name = '')" />
+          <div class="flex items-center gap-1 text-xs">
+            Lifetime:
+            <TButtonGroup
+              v-model="lifetime"
+              :options="[
+                {
+                  label: 'No Expiration',
+                  value: Lifetime.NeverExpire,
+                },
+                {
+                  label: 'Limited',
+                  value: Lifetime.Limited,
+                },
+              ]"
+            />
+          </div>
+          <TInput
+            v-model="expiration"
+            :disabled="lifetime === Lifetime.NeverExpire"
+            title="Expiration Days"
+            type="number"
+            :min="1"
+            class="flex-1"
+          />
+        </div>
+        <TButton
+          type="highlighted"
+          :disabled="!canManageUsers && authType !== AuthType.SAML"
+          class="h-9"
+          @click="handleCreate"
+          >Create Join Token</TButton
+        >
+      </template>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .window {
-  @apply rounded bg-naturals-N2 z-30 w-1/3 flex flex-col p-8;
+  @apply z-30 flex w-1/3 flex-col rounded bg-naturals-N2 p-8;
 }
 
 .heading {
-  @apply flex justify-between items-center mb-5 text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
 }
 
 code {

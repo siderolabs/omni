@@ -4,53 +4,39 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div>
-    <json-forms
-      v-if="schema && uiSchema"
-      :data="modelValue"
-      :renderers="Object.freeze(renderers)"
-      :schema="schema"
-      :uischema="uiSchema"
-      :additional-errors="errors"
-      validation-mode="NoValidation"
-      @change="onChange"
-    />
-  </div>
-</template>
-
 <script setup lang="ts">
-import { type ErrorObject } from 'ajv'
-import { computed, ref, toRefs, watch } from 'vue'
-import { JsonForms } from '@jsonforms/vue'
-import type { UISchemaElement, Layout, Scoped, JsonSchema } from '@jsonforms/core'
+import type { JsonSchema, Layout, Scoped, UISchemaElement } from '@jsonforms/core'
 import {
   isBooleanControl,
-  isOneOfEnumControl,
-  isEnumControl,
-  isNumberControl,
-  isIntegerControl,
-  isDateTimeControl,
-  isStringControl,
   isDateControl,
+  isDateTimeControl,
+  isEnumControl,
+  isIntegerControl,
+  isNumberControl,
+  isOneOfEnumControl,
+  isStringControl,
   isTimeControl,
-  schemaTypeIs,
   rankWith,
+  schemaTypeIs,
 } from '@jsonforms/core'
+import { JsonForms } from '@jsonforms/vue'
 import { vanillaRenderers } from '@jsonforms/vue-vanilla'
-import BooleanRenderer from './BooleanRenderer.vue'
-import EnumOneOfRenderer from './EnumOneOfRenderer.vue'
-import EnumRenderer from './EnumRenderer.vue'
-import NumberRenderer from './NumberRenderer.vue'
-import IntegerRenderer from './IntegerRenderer.vue'
-import DateTimeControlRenderer from './DateTimeControlRenderer.vue'
-import StringRenderer from './StringRenderer.vue'
-import ArrayRenderer from './ArrayRenderer.vue'
-import DateControlRenderer from './DateControlRenderer.vue'
-import TimeControlRenderer from './TimeControlRenderer.vue'
+import { type ErrorObject } from 'ajv'
+import yaml from 'js-yaml'
+import { computed, ref, toRefs, watch } from 'vue'
+
 import { ManagementService } from '@/api/omni/management/management.pb'
 
-import yaml from 'js-yaml'
+import ArrayRenderer from './ArrayRenderer.vue'
+import BooleanRenderer from './BooleanRenderer.vue'
+import DateControlRenderer from './DateControlRenderer.vue'
+import DateTimeControlRenderer from './DateTimeControlRenderer.vue'
+import EnumOneOfRenderer from './EnumOneOfRenderer.vue'
+import EnumRenderer from './EnumRenderer.vue'
+import IntegerRenderer from './IntegerRenderer.vue'
+import NumberRenderer from './NumberRenderer.vue'
+import StringRenderer from './StringRenderer.vue'
+import TimeControlRenderer from './TimeControlRenderer.vue'
 
 const errors = ref<ErrorObject[]>([])
 
@@ -180,6 +166,21 @@ const uiSchema = computed(() => {
 })
 </script>
 
+<template>
+  <div>
+    <JsonForms
+      v-if="schema && uiSchema"
+      :data="modelValue"
+      :renderers="Object.freeze(renderers)"
+      :schema="schema"
+      :uischema="uiSchema"
+      :additional-errors="errors"
+      validation-mode="NoValidation"
+      @change="onChange"
+    />
+  </div>
+</template>
+
 <style scoped>
 .vertical-layout {
   @apply flex flex-col divide-y divide-naturals-N4;
@@ -188,7 +189,7 @@ const uiSchema = computed(() => {
 
 <style>
 .group {
-  @apply m-2 border border-naturals-N6 rounded;
+  @apply m-2 rounded border border-naturals-N6;
 }
 
 .group > .group-item:not(:first-of-type) {
@@ -196,6 +197,6 @@ const uiSchema = computed(() => {
 }
 
 .group-label {
-  @apply px-1 ml-1 mt-3 text-naturals-N13 -mb-1.5;
+  @apply -mb-1.5 ml-1 mt-3 px-1 text-naturals-N13;
 }
 </style>

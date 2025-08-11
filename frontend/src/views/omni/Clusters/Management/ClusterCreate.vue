@@ -4,214 +4,60 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex flex-col">
-    <div class="flex gap-1 items-start">
-      <page-header title="Create Cluster" class="flex-1" />
-    </div>
-    <div class="flex flex-col items-stretch gap-4 flex-1">
-      <div class="flex w-full gap-2 h-9">
-        <t-input
-          title="Cluster Name"
-          class="flex-1 h-full"
-          placeholder="..."
-          :model-value="state.cluster.name ?? ''"
-          @update:model-value="(value) => (state.cluster.name = value)"
-        />
-        <t-select-list
-          class="h-full"
-          title="Talos Version"
-          :values="talosVersions"
-          :defaultValue="state.cluster.talosVersion"
-          @checkedValue="(value) => (state.cluster.talosVersion = value)"
-        />
-        <t-select-list
-          class="h-full"
-          title="Kubernetes Version"
-          :values="kubernetesVersions"
-          :defaultValue="state.cluster.kubernetesVersion"
-          @checkedValue="(value) => (state.cluster.kubernetesVersion = value)"
-          ref="kubernetesVersionSelector"
-        />
-        <t-button
-          type="primary"
-          :icon="hasConfigs ? 'settings-toggle' : 'settings'"
-          @click="openPatchConfig"
-        >
-          Config Patches
-        </t-button>
-      </div>
-      <div class="text-naturals-N13">Cluster Labels</div>
-      <item-labels
-        :resource="labelContainer"
-        :add-label-func="addLabels"
-        :remove-label-func="removeLabels"
-      />
-      <div class="text-naturals-N13">Cluster Features</div>
-      <div class="flex flex-col gap-3 max-w-sm">
-        <tooltip placement="bottom">
-          <template #description>
-            <div class="flex flex-col gap-1 p-2">
-              <p>Encrypt machine disks using Omni as a key management server.</p>
-              <p>Once cluster is created it is not possible to update encryption settings.</p>
-              <p class="text-primary-P2">This feature is only available for Talos >= 1.5.0.</p>
-            </div>
-          </template>
-          <t-checkbox
-            :checked="state.cluster.features?.encryptDisks"
-            label="Encrypt Disks"
-            @click="
-              state.cluster.features.encryptDisks =
-                !state.cluster.features.encryptDisks && supportsEncryption
-            "
-            :disabled="!supportsEncryption"
-          />
-        </tooltip>
-        <cluster-workload-proxying-checkbox
-          :checked="state.cluster.features.enableWorkloadProxy"
-          @click="
-            () =>
-              (state.cluster.features.enableWorkloadProxy =
-                !state.cluster.features.enableWorkloadProxy)
-          "
-        />
-        <embedded-discovery-service-checkbox
-          :checked="state.cluster.features.useEmbeddedDiscoveryService"
-          :disabled="!isEmbeddedDiscoveryServiceAvailable"
-          :talos-version="state.cluster.talosVersion"
-          @click="toggleUseEmbeddedDiscoveryService"
-        />
-        <cluster-etcd-backup-checkbox
-          :backup-status="backupStatus"
-          @update:cluster="
-            (spec) => {
-              state.cluster.etcdBackupConfig = spec.backup_configuration
-            }
-          "
-          :cluster="{
-            backup_configuration: state.cluster.etcdBackupConfig,
-          }"
-        />
-      </div>
-      <div class="text-naturals-N13">Machine Sets</div>
-      <MachineSets />
-      <div class="text-naturals-N13">Available Machines</div>
-      <t-list
-        :opts="[
-          {
-            resource: resource,
-            runtime: Runtime.Omni,
-            selectors: [
-              `${MachineStatusLabelAvailable}`,
-              `${MachineStatusLabelReadyToUse}`,
-              `!${MachineStatusLabelInvalidState}`,
-              `${MachineStatusLabelReportingEvents}`,
-              `!${LabelNoManualAllocation}`,
-            ],
-            sortByField: 'created',
-          },
-          {
-            resource: {
-              type: MachineConfigGenOptionsType,
-              namespace: DefaultNamespace,
-            },
-            runtime: Runtime.Omni,
-          },
-        ]"
-        search
-        pagination
-        class="flex-1"
-        ref="list"
-      >
-        <template #norecords>
-          <t-alert v-if="!$slots.norecords" type="info" title="No Machines Available"
-            >Machine is available when it is connected, not allocated and is reporting Talos
-            events.</t-alert
-          >
-        </template>
-        <template #default="{ items, searchQuery }">
-          <cluster-machine-item
-            v-for="item in items"
-            :version-mismatch="detectVersionMismatch(item)"
-            :key="itemID(item)"
-            :reset="reset"
-            :item="item"
-            :search-query="searchQuery"
-            @filter-label="filterByLabel"
-          />
-        </template>
-      </t-list>
-      <div
-        v-if="state.controlPlanesCount != 0"
-        class="bg-naturals-N1 border-t border-naturals-N4 -mb-6 -mx-6 h-16 flex items-center py-3 px-5"
-      >
-        <cluster-menu
-          class="w-full"
-          :controlPlanes="state.controlPlanesCount"
-          :workers="state.workersCount"
-          :onSubmit="createCluster"
-          :onReset="() => reset++"
-          :disabled="!canCreateClusters"
-          action="Create Cluster"
-        />
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
+import yaml from 'js-yaml'
+import * as semver from 'semver'
 import type { Ref } from 'vue'
-import { ref, onMounted, computed, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+
 import { Runtime } from '@/api/common/omni.pb'
-import {
-  DefaultNamespace,
-  MachineStatusType,
-  MachineStatusLabelAvailable,
-  MachineStatusLabelInvalidState,
-  MachineStatusLabelReportingEvents,
-  MachineConfigGenOptionsType,
-  TalosVersionType,
-  DefaultKubernetesVersion,
-  PatchBaseWeightMachineSet,
-  PatchBaseWeightCluster,
-  LabelNoManualAllocation,
-  MachineStatusLabelReadyToUse,
-  MachineStatusLabelInstalled,
-} from '@/api/resources'
-import type { MachineStatusSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
-import WatchResource, { itemID } from '@/api/watch'
-import { showError, showSuccess } from '@/notification'
 import type { Resource } from '@/api/grpc'
+import type { MachineStatusSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
+import {
+  DefaultKubernetesVersion,
+  DefaultNamespace,
+  LabelNoManualAllocation,
+  MachineConfigGenOptionsType,
+  MachineStatusLabelAvailable,
+  MachineStatusLabelInstalled,
+  MachineStatusLabelInvalidState,
+  MachineStatusLabelReadyToUse,
+  MachineStatusLabelReportingEvents,
+  MachineStatusType,
+  PatchBaseWeightCluster,
+  PatchBaseWeightMachineSet,
+  TalosVersionType,
+} from '@/api/resources'
+import WatchResource, { itemID } from '@/api/watch'
+import TButton from '@/components/common/Button/TButton.vue'
+import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
+import TList from '@/components/common/List/TList.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
+import TSelectList from '@/components/common/SelectList/TSelectList.vue'
+import TInput from '@/components/common/TInput/TInput.vue'
+import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
+import TAlert from '@/components/TAlert.vue'
+import { setupBackupStatus } from '@/methods'
+import { canCreateClusters } from '@/methods/auth'
 import {
   clusterSync,
-  nextAvailableClusterName,
   embeddedDiscoveryServiceAvailable,
+  nextAvailableClusterName,
 } from '@/methods/cluster'
-import { useRouter } from 'vue-router'
 import { showModal } from '@/modal'
-import * as semver from 'semver'
-import yaml from 'js-yaml'
-
-import TButton from '@/components/common/Button/TButton.vue'
-import TInput from '@/components/common/TInput/TInput.vue'
-import TAlert from '@/components/TAlert.vue'
-import TSelectList from '@/components/common/SelectList/TSelectList.vue'
-import ClusterMachineItem from '@/views/omni/Clusters/Management/ClusterMachineItem.vue'
-import ConfigPatchEdit from '@/views/omni/Modals/ConfigPatchEdit.vue'
-import ClusterMenu from '@/views/omni/Clusters/ClusterMenu.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
-import TList from '@/components/common/List/TList.vue'
-import ItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
-import { canCreateClusters } from '@/methods/auth'
-import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
-import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
-import ClusterWorkloadProxyingCheckbox from '@/views/omni/Clusters/ClusterWorkloadProxyingCheckbox.vue'
-import ClusterEtcdBackupCheckbox from '@/views/omni/Clusters/ClusterEtcdBackupCheckbox.vue'
-import UntaintSingleNode from '@/views/omni/Modals/UntaintSingleNode.vue'
-import MachineSets from './MachineSets.vue'
+import { showError, showSuccess } from '@/notification'
 import { initState, PatchID } from '@/states/cluster-management'
-import { setupBackupStatus } from '@/methods'
+import ClusterEtcdBackupCheckbox from '@/views/omni/Clusters/ClusterEtcdBackupCheckbox.vue'
+import ClusterMenu from '@/views/omni/Clusters/ClusterMenu.vue'
+import ClusterWorkloadProxyingCheckbox from '@/views/omni/Clusters/ClusterWorkloadProxyingCheckbox.vue'
 import EmbeddedDiscoveryServiceCheckbox from '@/views/omni/Clusters/EmbeddedDiscoveryServiceCheckbox.vue'
+import ClusterMachineItem from '@/views/omni/Clusters/Management/ClusterMachineItem.vue'
+import ItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
+import ConfigPatchEdit from '@/views/omni/Modals/ConfigPatchEdit.vue'
+import UntaintSingleNode from '@/views/omni/Modals/UntaintSingleNode.vue'
+
+import MachineSets from './MachineSets.vue'
 
 const labelContainer: Ref<Resource> = computed(() => {
   return {
@@ -249,7 +95,7 @@ const reset = ref(0)
 
 const kubernetesVersions: Ref<string[]> = computed(() => {
   for (const version of talosVersionsList.value) {
-    if (version.spec.version == state.value.cluster.talosVersion) {
+    if (version.spec.version === state.value.cluster.talosVersion) {
       return version.spec.compatible_kubernetes_versions ?? []
     }
   }
@@ -258,7 +104,7 @@ const kubernetesVersions: Ref<string[]> = computed(() => {
 })
 
 watch(kubernetesVersions, (k8sVersions) => {
-  if (k8sVersions.length == 0) {
+  if (k8sVersions.length === 0) {
     kubernetesVersionSelector?.value?.selectItem('')
     return
   }
@@ -349,8 +195,8 @@ const detectVersionMismatch = (machine: Resource<MachineStatusSpec>) => {
 
   if (!installed) {
     if (
-      machineVersion?.major == clusterVersion?.major &&
-      machineVersion?.minor == clusterVersion?.minor
+      machineVersion?.major === clusterVersion?.major &&
+      machineVersion?.minor === clusterVersion?.minor
     ) {
       return null
     }
@@ -460,7 +306,7 @@ const openPatchConfig = () => {
       },
     ],
     onSave: async (config: string) => {
-      if (config == '') {
+      if (config === '') {
         delete state.value.cluster.patches[PatchID.Default]
 
         return
@@ -483,3 +329,158 @@ const filterByLabel = (e: { key: string; value?: string }) => {
   }
 }
 </script>
+
+<template>
+  <div class="flex flex-col">
+    <div class="flex items-start gap-1">
+      <PageHeader title="Create Cluster" class="flex-1" />
+    </div>
+    <div class="flex flex-1 flex-col items-stretch gap-4">
+      <div class="flex h-9 w-full gap-2">
+        <TInput
+          title="Cluster Name"
+          class="h-full flex-1"
+          placeholder="..."
+          :model-value="state.cluster.name ?? ''"
+          @update:model-value="(value) => (state.cluster.name = value)"
+        />
+        <TSelectList
+          class="h-full"
+          title="Talos Version"
+          :values="talosVersions"
+          :default-value="state.cluster.talosVersion"
+          @checked-value="(value) => (state.cluster.talosVersion = value)"
+        />
+        <TSelectList
+          ref="kubernetesVersionSelector"
+          class="h-full"
+          title="Kubernetes Version"
+          :values="kubernetesVersions"
+          :default-value="state.cluster.kubernetesVersion"
+          @checked-value="(value) => (state.cluster.kubernetesVersion = value)"
+        />
+        <TButton
+          type="primary"
+          :icon="hasConfigs ? 'settings-toggle' : 'settings'"
+          @click="openPatchConfig"
+        >
+          Config Patches
+        </TButton>
+      </div>
+      <div class="text-naturals-N13">Cluster Labels</div>
+      <ItemLabels
+        :resource="labelContainer"
+        :add-label-func="addLabels"
+        :remove-label-func="removeLabels"
+      />
+      <div class="text-naturals-N13">Cluster Features</div>
+      <div class="flex max-w-sm flex-col gap-3">
+        <Tooltip placement="bottom">
+          <template #description>
+            <div class="flex flex-col gap-1 p-2">
+              <p>Encrypt machine disks using Omni as a key management server.</p>
+              <p>Once cluster is created it is not possible to update encryption settings.</p>
+              <p class="text-primary-P2">This feature is only available for Talos >= 1.5.0.</p>
+            </div>
+          </template>
+          <TCheckbox
+            :checked="state.cluster.features?.encryptDisks"
+            label="Encrypt Disks"
+            :disabled="!supportsEncryption"
+            @click="
+              state.cluster.features.encryptDisks =
+                !state.cluster.features.encryptDisks && supportsEncryption
+            "
+          />
+        </Tooltip>
+        <ClusterWorkloadProxyingCheckbox
+          :checked="state.cluster.features.enableWorkloadProxy"
+          @click="
+            () =>
+              (state.cluster.features.enableWorkloadProxy =
+                !state.cluster.features.enableWorkloadProxy)
+          "
+        />
+        <EmbeddedDiscoveryServiceCheckbox
+          :checked="state.cluster.features.useEmbeddedDiscoveryService"
+          :disabled="!isEmbeddedDiscoveryServiceAvailable"
+          :talos-version="state.cluster.talosVersion"
+          @click="toggleUseEmbeddedDiscoveryService"
+        />
+        <ClusterEtcdBackupCheckbox
+          :backup-status="backupStatus"
+          :cluster="{
+            backup_configuration: state.cluster.etcdBackupConfig,
+          }"
+          @update:cluster="
+            (spec) => {
+              state.cluster.etcdBackupConfig = spec.backup_configuration
+            }
+          "
+        />
+      </div>
+      <div class="text-naturals-N13">Machine Sets</div>
+      <MachineSets />
+      <div class="text-naturals-N13">Available Machines</div>
+      <TList
+        ref="list"
+        :opts="[
+          {
+            resource: resource,
+            runtime: Runtime.Omni,
+            selectors: [
+              `${MachineStatusLabelAvailable}`,
+              `${MachineStatusLabelReadyToUse}`,
+              `!${MachineStatusLabelInvalidState}`,
+              `${MachineStatusLabelReportingEvents}`,
+              `!${LabelNoManualAllocation}`,
+            ],
+            sortByField: 'created',
+          },
+          {
+            resource: {
+              type: MachineConfigGenOptionsType,
+              namespace: DefaultNamespace,
+            },
+            runtime: Runtime.Omni,
+          },
+        ]"
+        search
+        pagination
+        class="flex-1"
+      >
+        <template #norecords>
+          <TAlert v-if="!$slots.norecords" type="info" title="No Machines Available"
+            >Machine is available when it is connected, not allocated and is reporting Talos
+            events.</TAlert
+          >
+        </template>
+        <template #default="{ items, searchQuery }">
+          <ClusterMachineItem
+            v-for="item in items"
+            :key="itemID(item)"
+            :version-mismatch="detectVersionMismatch(item)"
+            :reset="reset"
+            :item="item"
+            :search-query="searchQuery"
+            @filter-label="filterByLabel"
+          />
+        </template>
+      </TList>
+      <div
+        v-if="state.controlPlanesCount !== 0"
+        class="-mx-6 -mb-6 flex h-16 items-center border-t border-naturals-N4 bg-naturals-N1 px-5 py-3"
+      >
+        <ClusterMenu
+          class="w-full"
+          :control-planes="state.controlPlanesCount"
+          :workers="state.workersCount"
+          :on-submit="createCluster"
+          :on-reset="() => reset++"
+          :disabled="!canCreateClusters"
+          action="Create Cluster"
+        />
+      </div>
+    </div>
+  </div>
+</template>

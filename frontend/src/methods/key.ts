@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+import * as fetchIntercept from 'fetch-intercept'
 import type { Key, PrivateKey } from 'openpgp/lightweight'
 import {
   createMessage,
@@ -12,19 +13,19 @@ import {
   readPrivateKey,
   sign,
 } from 'openpgp/lightweight'
+import { ref } from 'vue'
+
+import { b64Encode } from '@/api/fetch.pb'
 import { AuthService } from '@/api/omni/auth/auth.pb'
-import * as fetchIntercept from 'fetch-intercept'
 import {
   authHeader,
   PayloadHeaderKey,
   SignatureHeaderKey,
-  TimestampHeaderKey,
   SignatureVersionV1,
+  TimestampHeaderKey,
   workloadProxyPublicKeyIdCookie,
   workloadProxyPublicKeyIdSignatureBase64Cookie,
 } from '@/api/resources'
-import { ref } from 'vue'
-import { b64Encode } from '@/api/fetch.pb'
 
 let interceptorsRegistered = false
 let keysReloadTimeout: number
@@ -250,7 +251,7 @@ const registerInterceptors = () => {
     request: async (url, config?: { headers?: Headers; method?: string }) => {
       url = encodeURI(url)
 
-      if (!/^\/(api|image)/.test(url) || url.indexOf('/api/auth.') != -1) {
+      if (!/^\/(api|image)/.test(url) || url.indexOf('/api/auth.') !== -1) {
         return [url, config]
       }
 
@@ -265,7 +266,7 @@ const registerInterceptors = () => {
       const ts = (new Date().getTime() / 1000).toFixed(0)
 
       try {
-        if (url.indexOf('/api') == 0) {
+        if (url.indexOf('/api') === 0) {
           config.headers.set(`Grpc-Metadata-${TimestampHeaderKey}`, ts)
 
           const payload = JSON.stringify(buildPayload(url, config))
@@ -277,7 +278,7 @@ const registerInterceptors = () => {
             `Grpc-Metadata-${SignatureHeaderKey}`,
             `${SignatureVersionV1} ${keys?.identity} ${fingerprint} ${signature}`,
           )
-        } else if (url.indexOf('/image/') == 0) {
+        } else if (url.indexOf('/image/') === 0) {
           config.headers.set(TimestampHeaderKey, ts)
 
           const sha256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855' // empty string sha256

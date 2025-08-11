@@ -4,115 +4,30 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div
-    class="h-screen py-4 gap-2 z-30 overflow-hidden flex items-center justify-center"
-    :class="{ 'w-3/5': Object.keys(sourceToProgress).length > 0 }"
-  >
-    <div class="rounded bg-naturals-N2 p-8 flex flex-col min-w-fit w-full max-h-full gap-2">
-      <div class="heading">
-        <h3 class="text-base text-naturals-N14">Download Support Bundle</h3>
-        <close-button @click="close" />
-      </div>
-
-      <div class="flex-1 overflow-y-auto pr-2">
-        <template v-if="sortedSources.length > 0">
-          <div
-            v-for="source in sortedSources"
-            :key="source"
-            class="rounded-md text-xs my-1 border border-naturals-N6 flex flex-col divide-naturals-N6 divide-y overflow-hidden"
-          >
-            <div class="flex gap-2 px-3 bg-naturals-N3 p-3">
-              <icon-button
-                icon="arrow-up"
-                class="transition-transform"
-                :class="{ 'rotate-180': expanded[source] }"
-                @click="() => (expanded[source] = !expanded[source])"
-              />
-              <div class="list-grid text-naturals-N12 flex-1">
-                <div class="truncate">{{ source }}</div>
-                <div class="flex gap-2 col-span-2 items-center">
-                  <t-icon
-                    class="w-4 h-4"
-                    :icon="sourceToProgress[source].icon"
-                    :style="{ color: sourceToProgress[source].color }"
-                  />
-                  <progress-bar
-                    class="flex-1"
-                    :progress="sourceToProgress[source].progress"
-                    :color="sourceToProgress[source].color"
-                  />
-                </div>
-              </div>
-            </div>
-            <div v-if="expanded[source]" class="py-4">
-              <tooltip
-                v-for="state in sourceToProgress[source].states"
-                :key="state.text"
-                :description="state.error"
-              >
-                <div
-                  class="flex gap-2 items-center px-4 py-0.5 cursor-pointer hover:bg-naturals-N4"
-                >
-                  <t-icon
-                    class="w-4 h-4"
-                    :class="{
-                      'text-green-G1': state.error === undefined,
-                      'text-red-R1': state.error,
-                    }"
-                    :icon="state.error ? 'warning' : 'check'"
-                  />
-                  <div>{{ state.text }}</div>
-                </div>
-              </tooltip>
-            </div>
-          </div>
-        </template>
-      </div>
-
-      <div class="flex justify-end gap-4">
-        <t-button
-          @click="download"
-          class="w-32 h-9"
-          :disabled="!canDownloadSupportBundle || started"
-          type="highlighted"
-        >
-          <t-spinner v-if="!status" class="w-5 h-5" />
-          <span v-else>Download</span>
-        </t-button>
-        <t-button @click="close" class="w-32 h-9">
-          <t-spinner v-if="!status" class="w-5 h-5" />
-          <span v-else>{{ closeText }}</span>
-        </t-button>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import type { Ref } from 'vue'
-import { ref, computed, watch, onUnmounted } from 'vue'
-import { DefaultNamespace, TalosUpgradeStatusType } from '@/api/resources'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Runtime } from '@/api/common/omni.pb'
-import type { TalosUpgradeStatusSpec } from '@/api/omni/specs/omni.pb'
-import type { Resource } from '@/api/grpc'
-import { setupClusterPermissions } from '@/methods/auth'
-import { ManagementService } from '@/api/omni/management/management.pb'
-import { showError } from '@/notification'
-import { b64Decode } from '@/api/fetch.pb'
-import { green, red, yellow } from '@/vars/colors'
-import { withAbortController } from '@/api/options'
 
-import ProgressBar from '@/components/common/ProgressBar/ProgressBar.vue'
-import CloseButton from '@/views/omni/Modals/CloseButton.vue'
-import TButton from '@/components/common/Button/TButton.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import { Runtime } from '@/api/common/omni.pb'
+import { b64Decode } from '@/api/fetch.pb'
+import type { Resource } from '@/api/grpc'
+import { ManagementService } from '@/api/omni/management/management.pb'
+import type { TalosUpgradeStatusSpec } from '@/api/omni/specs/omni.pb'
+import { withAbortController } from '@/api/options'
+import { DefaultNamespace, TalosUpgradeStatusType } from '@/api/resources'
 import Watch from '@/api/watch'
 import IconButton from '@/components/common/Button/IconButton.vue'
+import TButton from '@/components/common/Button/TButton.vue'
 import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
+import ProgressBar from '@/components/common/ProgressBar/ProgressBar.vue'
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
+import { setupClusterPermissions } from '@/methods/auth'
+import { showError } from '@/notification'
+import { green, red, yellow } from '@/vars/colors'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -271,13 +186,98 @@ const { canDownloadSupportBundle } = setupClusterPermissions(
 )
 </script>
 
+<template>
+  <div
+    class="z-30 flex h-screen items-center justify-center gap-2 overflow-hidden py-4"
+    :class="{ 'w-3/5': Object.keys(sourceToProgress).length > 0 }"
+  >
+    <div class="flex max-h-full w-full min-w-fit flex-col gap-2 rounded bg-naturals-N2 p-8">
+      <div class="heading">
+        <h3 class="text-base text-naturals-N14">Download Support Bundle</h3>
+        <CloseButton @click="close" />
+      </div>
+
+      <div class="flex-1 overflow-y-auto pr-2">
+        <template v-if="sortedSources.length > 0">
+          <div
+            v-for="source in sortedSources"
+            :key="source"
+            class="my-1 flex flex-col divide-y divide-naturals-N6 overflow-hidden rounded-md border border-naturals-N6 text-xs"
+          >
+            <div class="flex gap-2 bg-naturals-N3 p-3 px-3">
+              <IconButton
+                icon="arrow-up"
+                class="transition-transform"
+                :class="{ 'rotate-180': expanded[source] }"
+                @click="() => (expanded[source] = !expanded[source])"
+              />
+              <div class="list-grid flex-1 text-naturals-N12">
+                <div class="truncate">{{ source }}</div>
+                <div class="col-span-2 flex items-center gap-2">
+                  <TIcon
+                    class="h-4 w-4"
+                    :icon="sourceToProgress[source].icon"
+                    :style="{ color: sourceToProgress[source].color }"
+                  />
+                  <ProgressBar
+                    class="flex-1"
+                    :progress="sourceToProgress[source].progress"
+                    :color="sourceToProgress[source].color"
+                  />
+                </div>
+              </div>
+            </div>
+            <div v-if="expanded[source]" class="py-4">
+              <Tooltip
+                v-for="state in sourceToProgress[source].states"
+                :key="state.text"
+                :description="state.error"
+              >
+                <div
+                  class="flex cursor-pointer items-center gap-2 px-4 py-0.5 hover:bg-naturals-N4"
+                >
+                  <TIcon
+                    class="h-4 w-4"
+                    :class="{
+                      'text-green-G1': state.error === undefined,
+                      'text-red-R1': state.error,
+                    }"
+                    :icon="state.error ? 'warning' : 'check'"
+                  />
+                  <div>{{ state.text }}</div>
+                </div>
+              </Tooltip>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <div class="flex justify-end gap-4">
+        <TButton
+          class="h-9 w-32"
+          :disabled="!canDownloadSupportBundle || started"
+          type="highlighted"
+          @click="download"
+        >
+          <TSpinner v-if="!status" class="h-5 w-5" />
+          <span v-else>Download</span>
+        </TButton>
+        <TButton class="h-9 w-32" @click="close">
+          <TSpinner v-if="!status" class="h-5 w-5" />
+          <span v-else>{{ closeText }}</span>
+        </TButton>
+      </div>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .heading {
-  @apply flex justify-between items-center mb-5 text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
 }
 
 optgroup {
-  @apply text-naturals-N14 font-bold;
+  @apply font-bold text-naturals-N14;
 }
 
 .list-grid {
@@ -285,6 +285,6 @@ optgroup {
 }
 
 .header {
-  @apply bg-naturals-N2 mb-1 py-2 px-6 text-xs;
+  @apply mb-1 bg-naturals-N2 px-6 py-2 text-xs;
 }
 </style>

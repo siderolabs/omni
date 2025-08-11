@@ -5,13 +5,14 @@
 
 import type { Ref } from 'vue'
 import { computed, ref } from 'vue'
+
+import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
 import type { FeaturesConfigSpec } from '@/api/omni/specs/omni.pb'
-import Watch from '@/api/watch'
-import { Runtime } from '@/api/common/omni.pb'
-import { FeaturesConfigType, DefaultNamespace, FeaturesConfigID } from '@/api/resources'
 import { withRuntime } from '@/api/options'
+import { DefaultNamespace, FeaturesConfigID, FeaturesConfigType } from '@/api/resources'
+import Watch from '@/api/watch'
 
 export const setupWorkloadProxyingEnabledFeatureWatch = (): Ref<boolean> => {
   const featuresConfig: Ref<Resource<FeaturesConfigSpec> | undefined> = ref()

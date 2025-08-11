@@ -4,28 +4,18 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <overview-right-panel-item :name="getConditionName(condition?.type)">
-    <tooltip :description="condition.reason" placement="left">
-      <span :style="{ color: color }">
-        {{ text }}
-      </span>
-    </tooltip>
-  </overview-right-panel-item>
-</template>
-
 <script setup lang="ts">
+import { computed, toRefs } from 'vue'
+
 import type { ControlPlaneStatusSpecCondition } from '@/api/omni/specs/omni.pb'
 import {
   ConditionType,
   ControlPlaneStatusSpecConditionSeverity,
   ControlPlaneStatusSpecConditionStatus,
 } from '@/api/omni/specs/omni.pb'
-
-import OverviewRightPanelItem from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanelItem.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
-import { computed, toRefs } from 'vue'
 import { naturals, red, yellow } from '@/vars/colors'
+import OverviewRightPanelItem from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanelItem.vue'
 
 const mapping: Record<ConditionType | number, string> = {}
 for (const key of Object.keys(ConditionType)) {
@@ -78,3 +68,13 @@ const text = computed(() => {
   return 'Unknown'
 })
 </script>
+
+<template>
+  <OverviewRightPanelItem :name="getConditionName(condition?.type)">
+    <Tooltip :description="condition.reason" placement="left">
+      <span :style="{ color: color }">
+        {{ text }}
+      </span>
+    </Tooltip>
+  </OverviewRightPanelItem>
+</template>

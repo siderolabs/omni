@@ -4,61 +4,16 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex items-center justify-center">
-    <div class="bg-naturals-N3 drop-shadow-md px-8 py-8 rounded-md flex flex-col gap-2">
-      <div class="flex gap-4 items-center">
-        <t-icon icon="kubernetes" class="fill-color w-6 h-6" />
-        <div class="text-xl font-bold text-naturals-N13">
-          <div>Authenticate Kubernetes Access</div>
-        </div>
-      </div>
-
-      <div v-if="!authRequestId" class="mx-12">Public key ID parameter is missing...</div>
-      <template v-else>
-        <div class="w-full flex flex-col gap-4">
-          <div>The Kubernetes access is going to be granted for the user:</div>
-          <user-info user="user" class="user-info" />
-          <div
-            v-if="authCode"
-            class="w-full flex items-center justify-center gap-0.5 p-1 border-naturals-N4 border rounded-lg pl-2"
-          >
-            <div class="mr-2 text-sm text-naturals-N14">Access Code</div>
-            <div class="flex-1" />
-            <div
-              class="bg-naturals-N6 text-naturals-N14 font-roboto font-bold px-2 py-0.5 rounded-l-md cursor-pointer"
-              @click="copyCode"
-            >
-              {{ copied ? 'Copied' : authCode }}
-            </div>
-            <div
-              class="bg-naturals-N6 text-naturals-N14 px-2 py-1 rounded-r-md hover:bg-naturals-N8 transition-colors cursor-pointer"
-              @click="copyCode"
-            >
-              <t-icon icon="copy" class="h-5" />
-            </div>
-          </div>
-          <div v-else class="w-full flex flex-col gap-3 my-0.5">
-            <t-button class="w-full" type="highlighted" @click="confirmOIDCRequest"
-              >Grant Access</t-button
-            >
-          </div>
-        </div>
-      </template>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { showError } from '@/notification'
+import { ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { OIDCService } from '@/api/omni/oidc/oidc.pb'
 import { copyText } from 'vue3-clipboard'
 
+import { OIDCService } from '@/api/omni/oidc/oidc.pb'
 import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import UserInfo from '@/components/common/UserInfo/UserInfo.vue'
-import { ref } from 'vue'
+import { showError } from '@/notification'
 
 const route = useRoute()
 
@@ -103,8 +58,53 @@ const copyCode = () => {
 }
 </script>
 
+<template>
+  <div class="flex items-center justify-center">
+    <div class="flex flex-col gap-2 rounded-md bg-naturals-N3 px-8 py-8 drop-shadow-md">
+      <div class="flex items-center gap-4">
+        <TIcon icon="kubernetes" class="fill-color h-6 w-6" />
+        <div class="text-xl font-bold text-naturals-N13">
+          <div>Authenticate Kubernetes Access</div>
+        </div>
+      </div>
+
+      <div v-if="!authRequestId" class="mx-12">Public key ID parameter is missing...</div>
+      <template v-else>
+        <div class="flex w-full flex-col gap-4">
+          <div>The Kubernetes access is going to be granted for the user:</div>
+          <UserInfo user="user" class="user-info" />
+          <div
+            v-if="authCode"
+            class="flex w-full items-center justify-center gap-0.5 rounded-lg border border-naturals-N4 p-1 pl-2"
+          >
+            <div class="mr-2 text-sm text-naturals-N14">Access Code</div>
+            <div class="flex-1" />
+            <div
+              class="cursor-pointer rounded-l-md bg-naturals-N6 px-2 py-0.5 font-roboto font-bold text-naturals-N14"
+              @click="copyCode"
+            >
+              {{ copied ? 'Copied' : authCode }}
+            </div>
+            <div
+              class="cursor-pointer rounded-r-md bg-naturals-N6 px-2 py-1 text-naturals-N14 transition-colors hover:bg-naturals-N8"
+              @click="copyCode"
+            >
+              <TIcon icon="copy" class="h-5" />
+            </div>
+          </div>
+          <div v-else class="my-0.5 flex w-full flex-col gap-3">
+            <TButton class="w-full" type="highlighted" @click="confirmOIDCRequest"
+              >Grant Access</TButton
+            >
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .user-info {
-  @apply px-6 py-2 rounded-md bg-naturals-N6;
+  @apply rounded-md bg-naturals-N6 px-6 py-2;
 }
 </style>

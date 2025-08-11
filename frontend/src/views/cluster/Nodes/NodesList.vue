@@ -4,54 +4,27 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex flex-col w-full gap-4">
-    <page-header title="All Nodes" />
-    <t-list :opts="opts" search pagination>
-      <template #default="{ items, searchQuery }">
-        <div class="nodes-list">
-          <div class="nodes-list-heading">
-            <p>Name</p>
-            <p>IP</p>
-            <p>OS</p>
-            <p>Roles</p>
-            <p>Status</p>
-          </div>
-          <t-group-animation>
-            <nodes-item
-              v-for="item in items"
-              :key="item.metadata.id!"
-              :item="item"
-              :searchOption="searchQuery"
-            />
-          </t-group-animation>
-        </div>
-      </template>
-    </t-list>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { getContext } from '@/context'
-import {
-  kubernetes,
-  ClusterMachineStatusType,
-  LabelCluster,
-  ClusterMachineStatusLabelNodeName,
-  TalosMemberType,
-  TalosClusterNamespace,
-} from '@/api/resources'
-import { Runtime } from '@/api/common/omni.pb'
-import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
-import { useRoute } from 'vue-router'
-import { DefaultNamespace } from '@/api/resources'
 import type { V1Node } from '@kubernetes/client-node'
+import { useRoute } from 'vue-router'
 
+import { Runtime } from '@/api/common/omni.pb'
+import type { Resource } from '@/api/grpc'
+import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
+import {
+  ClusterMachineStatusLabelNodeName,
+  ClusterMachineStatusType,
+  kubernetes,
+  LabelCluster,
+  TalosClusterNamespace,
+  TalosMemberType,
+} from '@/api/resources'
+import { DefaultNamespace } from '@/api/resources'
+import TGroupAnimation from '@/components/common/Animation/TGroupAnimation.vue'
 import TList from '@/components/common/List/TList.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
+import { getContext } from '@/context'
 import NodesItem from '@/views/cluster/Nodes/components/NodesItem.vue'
-import TGroupAnimation from '@/components/common/Animation/TGroupAnimation.vue'
-import type { Resource } from '@/api/grpc'
 
 const route = useRoute()
 const context = getContext()
@@ -92,12 +65,39 @@ const opts = [
 ]
 </script>
 
+<template>
+  <div class="flex w-full flex-col gap-4">
+    <PageHeader title="All Nodes" />
+    <TList :opts="opts" search pagination>
+      <template #default="{ items, searchQuery }">
+        <div class="nodes-list">
+          <div class="nodes-list-heading">
+            <p>Name</p>
+            <p>IP</p>
+            <p>OS</p>
+            <p>Roles</p>
+            <p>Status</p>
+          </div>
+          <TGroupAnimation>
+            <NodesItem
+              v-for="item in items"
+              :key="item.metadata.id!"
+              :item="item"
+              :search-option="searchQuery"
+            />
+          </TGroupAnimation>
+        </div>
+      </template>
+    </TList>
+  </div>
+</template>
+
 <style scoped>
 .nodes-list-heading {
   @apply flex items-center bg-naturals-N2;
   padding: 10px 16px;
 }
 .nodes-list-heading > p {
-  @apply text-xs text-naturals-N13 w-1/5;
+  @apply w-1/5 text-xs text-naturals-N13;
 }
 </style>

@@ -4,27 +4,14 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <t-sidebar-list :items="items" />
-</template>
-
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
-import type { SideBarItem } from '@/components/SideBar/TSideBarList.vue'
-import TSidebarList from '@/components/SideBar/TSideBarList.vue'
-import {
-  canManageBackupStore,
-  canManageUsers,
-  canReadClusters,
-  canReadMachines,
-} from '@/methods/auth'
-import { setupBackupStatus } from '@/methods'
-import type { IconType } from '@/components/common/Icon/TIcon.vue'
+import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
+import type { InfraProviderStatusSpec } from '@/api/omni/specs/infra.pb'
 import type { MachineStatusMetricsSpec } from '@/api/omni/specs/omni.pb'
-import Watch from '@/api/watch'
 import {
   EphemeralNamespace,
   InfraProviderNamespace,
@@ -32,8 +19,17 @@ import {
   MachineStatusMetricsID,
   MachineStatusMetricsType,
 } from '@/api/resources'
-import { Runtime } from '@/api/common/omni.pb'
-import type { InfraProviderStatusSpec } from '@/api/omni/specs/infra.pb'
+import Watch from '@/api/watch'
+import type { IconType } from '@/components/common/Icon/TIcon.vue'
+import type { SideBarItem } from '@/components/SideBar/TSideBarList.vue'
+import TSidebarList from '@/components/SideBar/TSideBarList.vue'
+import { setupBackupStatus } from '@/methods'
+import {
+  canManageBackupStore,
+  canManageUsers,
+  canReadClusters,
+  canReadMachines,
+} from '@/methods/auth'
 
 const machineMetrics = ref<Resource<MachineStatusMetricsSpec>>()
 const machineMetricsWatch = new Watch(machineMetrics)
@@ -238,3 +234,7 @@ const items = computed(() => {
   return result
 })
 </script>
+
+<template>
+  <TSidebarList :items="items" />
+</template>

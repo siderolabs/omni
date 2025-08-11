@@ -3,16 +3,17 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+import type { Ref } from 'vue'
+import { computed, ref } from 'vue'
+
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
+import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import {
   ClusterMachineStatusLabelNodeName,
   ClusterMachineStatusType,
   DefaultNamespace,
 } from '@/api/resources'
-import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
-import type { Ref } from 'vue'
-import { computed, ref } from 'vue'
 import Watch from '@/api/watch'
 
 export const setupNodenameWatch = (id: string | string[]): Ref<string> => {

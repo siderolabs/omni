@@ -4,32 +4,13 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window flex flex-col gap-4" style="height: 90%">
-    <div class="heading">
-      <h3 class="text-base text-naturals-N14">Set Extensions</h3>
-      <close-button @click="close" />
-    </div>
-
-    <extensions-picker v-model="requestedExtensions" :talos-version="talosVersion" class="flex-1" />
-
-    <div class="flex justify-between gap-4">
-      <t-button @click="close" type="secondary"> Cancel </t-button>
-      <div class="flex gap-4">
-        <t-button @click="() => updateExtensions(requestedExtensions)" type="highlighted">
-          Save
-        </t-button>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import CloseButton from '@/views/omni/Modals/CloseButton.vue'
-import TButton from '@/components/common/Button/TButton.vue'
-import ExtensionsPicker from '@/views/omni/Extensions/ExtensionsPicker.vue'
-import { closeModal } from '@/modal'
 import { ref, toRefs } from 'vue'
+
+import TButton from '@/components/common/Button/TButton.vue'
+import { closeModal } from '@/modal'
+import ExtensionsPicker from '@/views/omni/Extensions/ExtensionsPicker.vue'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const props = defineProps<{
   talosVersion: string
@@ -73,12 +54,32 @@ const updateExtensions = (extensions?: Record<string, boolean>) => {
 }
 </script>
 
+<template>
+  <div class="modal-window flex flex-col gap-4" style="height: 90%">
+    <div class="heading">
+      <h3 class="text-base text-naturals-N14">Set Extensions</h3>
+      <CloseButton @click="close" />
+    </div>
+
+    <ExtensionsPicker v-model="requestedExtensions" :talos-version="talosVersion" class="flex-1" />
+
+    <div class="flex justify-between gap-4">
+      <TButton type="secondary" @click="close"> Cancel </TButton>
+      <div class="flex gap-4">
+        <TButton type="highlighted" @click="() => updateExtensions(requestedExtensions)">
+          Save
+        </TButton>
+      </div>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .modal-window {
-  @apply w-1/2 h-auto p-8;
+  @apply h-auto w-1/2 p-8;
 }
 
 .heading {
-  @apply flex justify-between items-center text-xl text-naturals-N14;
+  @apply flex items-center justify-between text-xl text-naturals-N14;
 }
 </style>

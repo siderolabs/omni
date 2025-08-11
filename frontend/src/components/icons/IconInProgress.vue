@@ -4,6 +4,8 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
+<script setup lang="ts"></script>
+
 <template>
   <svg class="icon" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="10.5" cy="10.5" r="10.5" />
@@ -57,10 +59,8 @@ included in the LICENSE file.
     />
   </svg>
 </template>
-
 <style scoped>
 .icon {
   @apply origin-center;
 }
 </style>
-<script setup lang="ts"></script>

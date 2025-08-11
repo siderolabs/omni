@@ -4,103 +4,32 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <watch :opts="watchOverallStatusOpts" spinner noRecordsAlert errorsAlert>
-    <template #default="overallStatus">
-      <t-alert
-        v-if="overallStatus.items[0]?.spec?.configuration_error"
-        type="warn"
-        :title="`The backups storage is not properly configured: ${overallStatus.items[0]?.spec?.configuration_error}`"
-      >
-        <div class="flex gap-1">
-          Check the
-          <t-button type="subtle" @click="openDocs">documentation</t-button> on how to configure s3
-          backups using CLI.
-        </div>
-        <div class="flex gap-1" v-if="canManageBackupStore">
-          Or<t-button @click="$router.push({ name: 'BackupStorage' })" type="subtle"
-            >configure backups in the UI.</t-button
-          >
-        </div>
-      </t-alert>
-      <watch v-else :opts="watchStatusOpts" spinner noRecordsAlert errorsAlert>
-        <template #default="status">
-          <t-list
-            :opts="watchOpts"
-            search
-            :sortOptions="sortOptions"
-            :key="status.items[0]?.metadata?.updated"
-          >
-            <template #default="{ items, searchQuery }">
-              <div class="header">
-                <div class="list-grid">
-                  <div>ID</div>
-                  <div>Creation Date</div>
-                  <div>Size</div>
-                  <div>Snapshot ID</div>
-                </div>
-              </div>
-              <t-list-item v-for="item in items" :key="item.metadata.id!">
-                <div
-                  class="text-naturals-N12 relative pr-3"
-                  :class="{ 'pl-7': !item.spec.description }"
-                >
-                  <div class="list-grid">
-                    <WordHighlighter
-                      :query="searchQuery"
-                      :textToHighlight="item.metadata.id"
-                      highlightClass="bg-naturals-N14"
-                    />
-                    <div class="text-naturals-N14">
-                      {{ formatISO(item.spec.created_at as string, dateFormat) }}
-                    </div>
-                    <div class="text-naturals-N14">
-                      {{ formatBytes(parseInt(item.spec.size ?? '0')) }}
-                    </div>
-                    <div class="text-naturals-N14 flex gap-2 items-center">
-                      {{ item.spec.snapshot }}
-                      <icon-button
-                        icon="copy"
-                        @click="copyText(item.spec.snapshot, undefined, () => {})"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </t-list-item>
-            </template>
-          </t-list>
-        </template>
-      </watch>
-    </template>
-  </watch>
-</template>
-
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import WordHighlighter from 'vue-word-highlighter'
+import { copyText } from 'vue3-clipboard'
+
 import { Runtime } from '@/api/common/omni.pb'
 import {
-  ExternalNamespace,
-  EtcdBackupType,
-  LabelCluster,
-  EtcdBackupStatusType,
-  MetricsNamespace,
   EtcdBackupOverallStatusID,
   EtcdBackupOverallStatusType,
+  EtcdBackupStatusType,
+  EtcdBackupType,
+  ExternalNamespace,
+  LabelCluster,
+  MetricsNamespace,
 } from '@/api/resources'
 import type { WatchOptions } from '@/api/watch'
-import { computed } from 'vue'
-import { formatISO } from '@/methods/time'
-import { useRoute } from 'vue-router'
-import { copyText } from 'vue3-clipboard'
-import { formatBytes } from '@/methods'
-
-import TList from '@/components/common/List/TList.vue'
-import TListItem from '@/components/common/List/TListItem.vue'
-import TAlert from '@/components/TAlert.vue'
-import WordHighlighter from 'vue-word-highlighter'
 import IconButton from '@/components/common/Button/IconButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
+import TList from '@/components/common/List/TList.vue'
+import TListItem from '@/components/common/List/TListItem.vue'
 import Watch from '@/components/common/Watch/Watch.vue'
+import TAlert from '@/components/TAlert.vue'
+import { formatBytes } from '@/methods'
 import { canManageBackupStore } from '@/methods/auth'
+import { formatISO } from '@/methods/time'
 
 const dateFormat = 'HH:mm MMM d y'
 const route = useRoute()
@@ -150,12 +79,83 @@ const openDocs = () => {
 }
 </script>
 
+<template>
+  <Watch :opts="watchOverallStatusOpts" spinner no-records-alert errors-alert>
+    <template #default="overallStatus">
+      <TAlert
+        v-if="overallStatus.items[0]?.spec?.configuration_error"
+        type="warn"
+        :title="`The backups storage is not properly configured: ${overallStatus.items[0]?.spec?.configuration_error}`"
+      >
+        <div class="flex gap-1">
+          Check the
+          <TButton type="subtle" @click="openDocs">documentation</TButton> on how to configure s3
+          backups using CLI.
+        </div>
+        <div v-if="canManageBackupStore" class="flex gap-1">
+          Or<TButton type="subtle" @click="$router.push({ name: 'BackupStorage' })"
+            >configure backups in the UI.</TButton
+          >
+        </div>
+      </TAlert>
+      <Watch v-else :opts="watchStatusOpts" spinner no-records-alert errors-alert>
+        <template #default="status">
+          <TList
+            :key="status.items[0]?.metadata?.updated"
+            :opts="watchOpts"
+            search
+            :sort-options="sortOptions"
+          >
+            <template #default="{ items, searchQuery }">
+              <div class="header">
+                <div class="list-grid">
+                  <div>ID</div>
+                  <div>Creation Date</div>
+                  <div>Size</div>
+                  <div>Snapshot ID</div>
+                </div>
+              </div>
+              <TListItem v-for="item in items" :key="item.metadata.id!">
+                <div
+                  class="relative pr-3 text-naturals-N12"
+                  :class="{ 'pl-7': !item.spec.description }"
+                >
+                  <div class="list-grid">
+                    <WordHighlighter
+                      :query="searchQuery"
+                      :text-to-highlight="item.metadata.id"
+                      highlight-class="bg-naturals-N14"
+                    />
+                    <div class="text-naturals-N14">
+                      {{ formatISO(item.spec.created_at as string, dateFormat) }}
+                    </div>
+                    <div class="text-naturals-N14">
+                      {{ formatBytes(parseInt(item.spec.size ?? '0')) }}
+                    </div>
+                    <div class="flex items-center gap-2 text-naturals-N14">
+                      {{ item.spec.snapshot }}
+                      <IconButton
+                        icon="copy"
+                        @click="copyText(item.spec.snapshot, undefined, () => {})"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </TListItem>
+            </template>
+          </TList>
+        </template>
+      </Watch>
+    </template>
+  </Watch>
+</template>
+
 <style scoped>
 .header {
-  @apply bg-naturals-N2 mb-1 py-2 px-6 text-xs pl-10;
+  @apply mb-1 bg-naturals-N2 px-6 py-2 pl-10 text-xs;
 }
 
 .list-grid {
-  @apply grid grid-cols-4 items-center justify-center pr-12 gap-1;
+  @apply grid grid-cols-4 items-center justify-center gap-1 pr-12;
 }
 </style>

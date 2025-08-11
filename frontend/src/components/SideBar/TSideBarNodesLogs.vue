@@ -4,46 +4,14 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <t-animation>
-    <div class="logs">
-      <p class="logs-title">Service logs for:</p>
-      <p class="logs-node-name truncate">{{ node }}</p>
-      <ul class="logs-list">
-        <t-menu-item
-          icon="log"
-          :isItemVisible="true"
-          v-for="service in services"
-          :name="service?.metadata?.id"
-          :key="service?.metadata?.id"
-          :route="{
-            name: 'Logs',
-            query: {
-              cluster: $route.query.cluster,
-              namespace: $route.query.namespace,
-              uid: $route.query.uid,
-            },
-            params: {
-              machine: $route.params.machine,
-              service: service?.metadata?.id,
-            },
-          }"
-        />
-      </ul>
-    </div>
-  </t-animation>
-</template>
-
 <script setup lang="ts">
 import type { Ref } from 'vue'
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 
-import TMenuItem from '@/components/common/MenuItem/TMenuItem.vue'
-import { getContext } from '@/context'
+import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
-import { Runtime } from '@/api/common/omni.pb'
-import TAnimation from '@/components/common/Animation/TAnimation.vue'
+import { withContext, withRuntime } from '@/api/options'
 import {
   TalosK8sNamespace,
   TalosNodenameID,
@@ -51,7 +19,9 @@ import {
   TalosRuntimeNamespace,
   TalosServiceType,
 } from '@/api/resources'
-import { withContext, withRuntime } from '@/api/options'
+import TAnimation from '@/components/common/Animation/TAnimation.vue'
+import TMenuItem from '@/components/common/MenuItem/TMenuItem.vue'
+import { getContext } from '@/context'
 
 defineProps<{ name: string }>()
 
@@ -93,19 +63,49 @@ onMounted(async () => {
 })
 </script>
 
+<template>
+  <TAnimation>
+    <div class="logs">
+      <p class="logs-title">Service logs for:</p>
+      <p class="logs-node-name truncate">{{ node }}</p>
+      <ul class="logs-list">
+        <TMenuItem
+          v-for="service in services"
+          :key="service?.metadata?.id"
+          icon="log"
+          :is-item-visible="true"
+          :name="service?.metadata?.id"
+          :route="{
+            name: 'Logs',
+            query: {
+              cluster: $route.query.cluster,
+              namespace: $route.query.namespace,
+              uid: $route.query.uid,
+            },
+            params: {
+              machine: $route.params.machine,
+              service: service?.metadata?.id,
+            },
+          }"
+        />
+      </ul>
+    </div>
+  </TAnimation>
+</template>
+
 <style scoped>
 .logs {
   @apply w-full py-4;
 }
 .logs-title {
-  @apply text-xs text-naturals-N8 mb-2 px-6;
+  @apply mb-2 px-6 text-xs text-naturals-N8;
 }
 .logs-node-name {
-  @apply text-xs text-naturals-N13 mb-6 px-6;
+  @apply mb-6 px-6 text-xs text-naturals-N13;
   font-size: 13px;
 }
 .logs-item {
-  @apply w-full flex justify-start items-center mb-4 cursor-pointer;
+  @apply mb-4 flex w-full cursor-pointer items-center justify-start;
 }
 .logs-icon {
   @apply mr-4 fill-current text-naturals-N10;

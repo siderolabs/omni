@@ -4,57 +4,16 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <t-actions-box style="height: 24px">
-    <t-actions-box-item
-      icon="log"
-      @click="
-        $router.push({
-          name: 'MachineLogs',
-          params: { machine: clusterMachineStatus.metadata.id! },
-        })
-      "
-    >
-      Logs
-    </t-actions-box-item>
-    <t-actions-box-item icon="copy" @click="copyMachineID">Copy Machine ID</t-actions-box-item>
-    <t-actions-box-item icon="power" @click="shutdownNode" v-if="canRebootMachines"
-      >Shutdown</t-actions-box-item
-    >
-    <t-actions-box-item icon="reboot" @click="rebootNode" v-if="canRebootMachines"
-      >Reboot</t-actions-box-item
-    >
-    <t-actions-box-item
-      v-if="
-        clusterMachineStatus.spec.stage === ClusterMachineStatusSpecStage.BEFORE_DESTROY &&
-        canAddClusterMachines
-      "
-      icon="rollback"
-      @click="restoreNode"
-    >
-      Cancel Destroy
-    </t-actions-box-item>
-    <t-actions-box-item
-      v-else-if="!deleteDisabled && canRemoveMachines"
-      icon="delete"
-      danger
-      @click="deleteNode"
-    >
-      Destroy
-    </t-actions-box-item>
-  </t-actions-box>
-</template>
-
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { copyText } from 'vue3-clipboard'
+
 import type { Resource } from '@/api/grpc'
 import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterMachineStatusSpecStage } from '@/api/omni/specs/omni.pb'
-import { copyText } from 'vue3-clipboard'
-import { setupClusterPermissions } from '@/methods/auth'
-
 import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/common/ActionsBox/TActionsBoxItem.vue'
+import { setupClusterPermissions } from '@/methods/auth'
 
 const router = useRouter()
 const props = defineProps<{
@@ -115,3 +74,44 @@ const copyMachineID = () => {
   copyText(props.clusterMachineStatus.metadata.id!, undefined, () => {})
 }
 </script>
+
+<template>
+  <TActionsBox style="height: 24px">
+    <TActionsBoxItem
+      icon="log"
+      @click="
+        $router.push({
+          name: 'MachineLogs',
+          params: { machine: clusterMachineStatus.metadata.id! },
+        })
+      "
+    >
+      Logs
+    </TActionsBoxItem>
+    <TActionsBoxItem icon="copy" @click="copyMachineID">Copy Machine ID</TActionsBoxItem>
+    <TActionsBoxItem v-if="canRebootMachines" icon="power" @click="shutdownNode"
+      >Shutdown</TActionsBoxItem
+    >
+    <TActionsBoxItem v-if="canRebootMachines" icon="reboot" @click="rebootNode"
+      >Reboot</TActionsBoxItem
+    >
+    <TActionsBoxItem
+      v-if="
+        clusterMachineStatus.spec.stage === ClusterMachineStatusSpecStage.BEFORE_DESTROY &&
+        canAddClusterMachines
+      "
+      icon="rollback"
+      @click="restoreNode"
+    >
+      Cancel Destroy
+    </TActionsBoxItem>
+    <TActionsBoxItem
+      v-else-if="!deleteDisabled && canRemoveMachines"
+      icon="delete"
+      danger
+      @click="deleteNode"
+    >
+      Destroy
+    </TActionsBoxItem>
+  </TActionsBox>
+</template>

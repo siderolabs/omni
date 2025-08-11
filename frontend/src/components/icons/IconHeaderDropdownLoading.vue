@@ -4,6 +4,14 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
+<script setup lang="ts">
+type Props = {
+  active: boolean
+}
+
+defineProps<Props>()
+</script>
+
 <template>
   <svg
     class="icon"
@@ -24,17 +32,9 @@ included in the LICENSE file.
   </svg>
 </template>
 
-<script setup lang="ts">
-type Props = {
-  active: boolean
-}
-
-defineProps<Props>()
-</script>
-
 <style scoped>
 .icon {
-  @apply flex justify-center items-center fill-current transition-transform;
+  @apply flex items-center justify-center fill-current transition-transform;
   width: 16px;
   height: 16px;
 }

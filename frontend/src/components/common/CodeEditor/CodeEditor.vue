@@ -4,17 +4,13 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div id="editor" class="w-full h-full" ref="editor" />
-</template>
-
 <script setup lang="ts">
-import configSchema from '@/schemas/config.schema.json'
-import { naturals } from '@/vars/colors'
-import { ref, toRefs, watch } from 'vue'
-
 import * as monaco from 'monaco-editor'
 import { configureMonacoYaml } from 'monaco-yaml'
+import { ref, toRefs, watch } from 'vue'
+
+import configSchema from '@/schemas/config.schema.json'
+import { naturals } from '@/vars/colors'
 
 type Props = {
   value: string
@@ -35,8 +31,8 @@ const editor = ref<HTMLElement>()
 
 let instance: monaco.editor.IStandaloneCodeEditor | undefined
 
-if (!window['monacoConfigured']) {
-  window['monacoConfigured'] = true
+if (!window.monacoConfigured) {
+  window.monacoConfigured = true
 
   // adjust configSchema by copying it first, and adding the $patch property with the value
   // "delete" to all definitions which are structs with properties
@@ -200,6 +196,10 @@ monaco.editor.defineTheme('sidero', {
   },
 })
 </script>
+
+<template>
+  <div id="editor" ref="editor" class="h-full w-full" />
+</template>
 
 <style>
 .editor h4 {

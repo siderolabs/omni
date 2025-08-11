@@ -4,19 +4,12 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div v-bind:style="'color: ' + phaseColor(cluster)" class="cluster-status-box">
-    <t-icon v-bind:icon="phaseIcon(cluster)" class="h-4" />
-    <div class="cluster-status-name">{{ phaseName(cluster) || '' }}</div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import type { IconType } from '@/components/common/Icon/TIcon.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
+import type { Resource } from '@/api/grpc'
 import type { ClusterStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterStatusSpecPhase } from '@/api/omni/specs/omni.pb'
-import type { Resource } from '@/api/grpc'
+import type { IconType } from '@/components/common/Icon/TIcon.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
 import { green, red, yellow } from '@/vars/colors'
 
 type Props = {
@@ -80,6 +73,13 @@ const phaseColor = (cluster?: Resource<ClusterStatusSpec>): string => {
   }
 }
 </script>
+
+<template>
+  <div :style="'color: ' + phaseColor(cluster)" class="cluster-status-box">
+    <TIcon :icon="phaseIcon(cluster)" class="h-4" />
+    <div class="cluster-status-name">{{ phaseName(cluster) || '' }}</div>
+  </div>
+</template>
 
 <style>
 .cluster-status-box {

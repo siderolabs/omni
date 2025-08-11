@@ -4,22 +4,6 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="menu flex items-center">
-    <div class="flex flex-1 flex-col">
-      <div class="menu-amount-box flex-1">
-        <span class="menu-amount-box-light">{{ controlPlaneCount }},</span>
-        <span class="menu-amount-box-light">{{ workersCount }}</span> selected
-      </div>
-      <div v-if="warning" class="text-yellow-Y1 text-xs">{{ warning }}</div>
-    </div>
-    <t-button v-if="onReset" @click="onReset" type="secondary"> Cancel </t-button>
-    <t-button iconPosition="left" @click="onSubmit" type="highlighted" :disabled="disabled">
-      {{ action }}
-    </t-button>
-  </div>
-</template>
-
 <script setup lang="ts">
 import pluralize from 'pluralize'
 import { computed, toRefs } from 'vue'
@@ -36,9 +20,7 @@ type Props = {
   disabled?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  disabled: false,
-})
+const props = withDefaults(defineProps<Props>(), {})
 
 const { controlPlanes, workers } = toRefs(props)
 
@@ -59,20 +41,36 @@ const workersCount = computed(() => {
 })
 </script>
 
+<template>
+  <div class="menu flex items-center">
+    <div class="flex flex-1 flex-col">
+      <div class="menu-amount-box flex-1">
+        <span class="menu-amount-box-light">{{ controlPlaneCount }},</span>
+        <span class="menu-amount-box-light">{{ workersCount }}</span> selected
+      </div>
+      <div v-if="warning" class="text-xs text-yellow-Y1">{{ warning }}</div>
+    </div>
+    <TButton v-if="onReset" type="secondary" @click="onReset"> Cancel </TButton>
+    <TButton icon-position="left" type="highlighted" :disabled="disabled" @click="onSubmit">
+      {{ action }}
+    </TButton>
+  </div>
+</template>
+
 <style scoped>
 .menu {
   @apply flex gap-4;
 }
 .menu-amount-box {
-  @apply text-xs text-naturals-N8 flex items-center;
+  @apply flex items-center text-xs text-naturals-N8;
 }
 .menu-amount-box-light {
-  @apply text-naturals-N13 mr-1;
+  @apply mr-1 text-naturals-N13;
 }
 .menu-buttons-box {
   @apply flex items-center;
 }
 .menu-exit-button {
-  @apply fill-current text-naturals-N7 cursor-pointer transition-colors hover:text-naturals-N8 w-6 h-6;
+  @apply h-6 w-6 cursor-pointer fill-current text-naturals-N7 transition-colors hover:text-naturals-N8;
 }
 </style>

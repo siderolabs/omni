@@ -4,170 +4,51 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="monitor">
-    <div class="monitor-charts-box">
-      <div class="monitor-charts-wrapper">
-        <div class="monitor-chart">
-          <nodes-monitor-chart
-            class="h-full"
-            name="cpu"
-            title="CPU usage"
-            type="area"
-            :colors="['#FFB103', '#FF8B59']"
-            :runtime="Runtime.Talos"
-            :resource="{
-              type: TalosCPUType,
-              namespace: TalosPerfNamespace,
-              id: TalosCPUID,
-            }"
-            :context="context"
-            :point-fn="handleCPU"
-            :total-fn="handleTotalCPU"
-            :min-fn="() => 0"
-            :max-fn="() => 100"
-          />
-        </div>
-        <div class="monitor-chart">
-          <nodes-monitor-chart
-            class="h-full"
-            name="mem"
-            title="Memory"
-            type="area"
-            :stroke="{ curve: 'smooth', width: [2, 0.5, 0.5], dashArray: [0, 2, 2] }"
-            :colors="['#FF8B59', '#AAAAAA', '#AAAAAA']"
-            :runtime="Runtime.Talos"
-            :resource="{
-              type: TalosMemoryType,
-              namespace: TalosPerfNamespace,
-              id: TalosMemoryID,
-            }"
-            stacked
-            :context="context"
-            :point-fn="handleMem"
-            :total-fn="handleTotalMem"
-            :min-fn="() => 0"
-            :max-fn="handleMaxMem"
-            :formatter="
-              (input: number) => {
-                return formatBytes(input * 1024)
-              }
-            "
-          />
-        </div>
-      </div>
-      <div class="monitor-charts-wrapper">
-        <div class="monitor-chart monitor-chart-wide">
-          <nodes-monitor-chart
-            class="h-full"
-            name="procs"
-            title="Processes"
-            type="area"
-            :colors="['#5DA8D1', '#69C197', '#FFB103']"
-            :runtime="Runtime.Talos"
-            :resource="{
-              type: TalosCPUType,
-              namespace: TalosPerfNamespace,
-              id: TalosCPUID,
-            }"
-            :context="context"
-            :point-fn="handleProcs"
-          />
-        </div>
-      </div>
-    </div>
-    <div class="monitor-data-wrapper">
-      <div class="grid grid-cols-12 uppercase font-bold select-none">
-        <div
-          v-for="h in headers"
-          @click="() => sortBy(h.id)"
-          :key="h.id"
-          class="flex flex-row items-center text-center cursor-pointer gap-1 text-xs capitalize hover:text-naturals-N10 transition-colors"
-        >
-          <span>{{ h.header || h.id }}</span>
-          <arrow-down-icon
-            class="w-3 h-3"
-            :class="{ transform: sortReverse, 'rotate-180': sortReverse }"
-            v-if="sort === h.id"
-          />
-        </div>
-      </div>
-      <div class="monitor-data-box">
-        <div
-          class="grid grid-cols-12 text-xs text-naturals-N12 py-2"
-          v-for="process in sortedProcesses"
-          :key="process.pid"
-          :title="process.command + ' ' + process.args"
-        >
-          <div>
-            {{ process.pid }}
-          </div>
-          <div>
-            {{ process.state }}
-          </div>
-          <div>
-            {{ process.threads }}
-          </div>
-          <div>
-            {{ process.cpu.toFixed(1) }}
-          </div>
-          <div>
-            {{ process.mem.toFixed(1) }}
-          </div>
-          <div>
-            {{ formatBytes(process.virtualMemory) }}
-          </div>
-          <div>
-            {{ formatBytes(process.residentMemory) }}
-          </div>
-          <div>
-            {{ process.cpuTime }}
-          </div>
-          <div class="col-span-4 truncate">{{ process.command }} {{ process.args }}</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { getContext } from '@/context'
-import type { Ref } from 'vue'
-import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { MachineService } from '@/api/talos/machine/machine.pb'
-import { Runtime } from '@/api/common/omni.pb'
 import { ArrowDownIcon } from '@heroicons/vue/24/solid'
-import { formatBytes } from '@/methods'
+import type { Ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+
+import { Runtime } from '@/api/common/omni.pb'
+import { withContext, withRuntime } from '@/api/options'
 import {
+  TalosCPUID,
   TalosCPUType,
+  TalosMemoryID,
   TalosMemoryType,
   TalosPerfNamespace,
-  TalosCPUID,
-  TalosMemoryID,
 } from '@/api/resources'
-import { withContext, withRuntime } from '@/api/options'
-
+import { MachineService } from '@/api/talos/machine/machine.pb'
+import { getContext } from '@/context'
+import { formatBytes } from '@/methods'
 import NodesMonitorChart from '@/views/cluster/Nodes/components/NodesMonitorChart.vue'
 
-function diff(a, b) {
-  const result: Record<string, number | object> = {}
+interface Diffable {
+  [key: string]: number | Diffable | Diffable[]
+}
+
+function diff<T extends Diffable>(a: T, b: T): T {
+  const result: Diffable = {}
 
   for (const key in a) {
     const left = a[key]
     const right = b[key]
 
-    const tleft = typeof left
-    const tright = typeof right
-
-    if (tleft !== tright) {
-      continue
+    if (typeof left === 'number' && typeof right === 'number') {
+      result[key] = left - right
+    } else if (Array.isArray(left) && Array.isArray(right)) {
+      result[key] = left.map((val, i) => diff(val, right[i]))
+    } else if (
+      !Array.isArray(left) &&
+      !Array.isArray(right) &&
+      typeof left === 'object' &&
+      typeof right === 'object'
+    ) {
+      result[key] = diff(left, right)
     }
-
-    if (tleft === 'object') result[key] = diff(left, right)
-    else result[key] = left - right
   }
 
-  return result
+  return result as T
 }
 
 const processes: Ref<Record<string, any>[]> = ref([])
@@ -265,12 +146,12 @@ onUnmounted(() => {
 
 const handleCPU = (oldObj, newObj) => {
   const delta = diff(oldObj, newObj)
-  const stat = delta['cpuTotal']
+  const stat = delta.cpuTotal
   const total = getCPUTotal(stat)
 
   return {
-    system: (stat['system'] / total) * 100,
-    user: (stat['user'] / total) * 100,
+    system: (stat.system / total) * 100,
+    user: (stat.user / total) * 100,
   }
 }
 
@@ -299,13 +180,13 @@ const handleMem = (_, m: { used: number; cached: number; buffers: number; total:
 }
 
 const handleTotalMem = (_, m) => {
-  const used = m['used'] - m['cached'] - m['buffers']
+  const used = m.used - m.cached - m.buffers
 
-  return `${formatBytes(used * 1024)} / ${formatBytes(m['total'] * 1024)}`
+  return `${formatBytes(used * 1024)} / ${formatBytes(m.total * 1024)}`
 }
 
 const handleMaxMem = (_, m): number => {
-  return m['total']
+  return m.total
 }
 
 const handleProcs = (oldObj, newObj) => {
@@ -315,8 +196,8 @@ const handleProcs = (oldObj, newObj) => {
     // The diff algorithm should never return only numbers Record<string, number> for this case
     // But due to how its typed, adding a fallback just incase
     created: typeof processCreated === 'number' ? processCreated : Number(processCreated),
-    running: newObj['processRunning'],
-    blocked: newObj['processBlocked'],
+    running: newObj.processRunning,
+    blocked: newObj.processBlocked,
   }
 }
 
@@ -341,6 +222,132 @@ const sortBy = (id: string) => {
 }
 </script>
 
+<template>
+  <div class="monitor">
+    <div class="monitor-charts-box">
+      <div class="monitor-charts-wrapper">
+        <div class="monitor-chart">
+          <NodesMonitorChart
+            class="h-full"
+            name="cpu"
+            title="CPU usage"
+            type="area"
+            :colors="['#FFB103', '#FF8B59']"
+            :runtime="Runtime.Talos"
+            :resource="{
+              type: TalosCPUType,
+              namespace: TalosPerfNamespace,
+              id: TalosCPUID,
+            }"
+            :context="context"
+            :point-fn="handleCPU"
+            :total-fn="handleTotalCPU"
+            :min-fn="() => 0"
+            :max-fn="() => 100"
+          />
+        </div>
+        <div class="monitor-chart">
+          <NodesMonitorChart
+            class="h-full"
+            name="mem"
+            title="Memory"
+            type="area"
+            :stroke="{ curve: 'smooth', width: [2, 0.5, 0.5], dashArray: [0, 2, 2] }"
+            :colors="['#FF8B59', '#AAAAAA', '#AAAAAA']"
+            :runtime="Runtime.Talos"
+            :resource="{
+              type: TalosMemoryType,
+              namespace: TalosPerfNamespace,
+              id: TalosMemoryID,
+            }"
+            stacked
+            :context="context"
+            :point-fn="handleMem"
+            :total-fn="handleTotalMem"
+            :min-fn="() => 0"
+            :max-fn="handleMaxMem"
+            :formatter="
+              (input: number) => {
+                return formatBytes(input * 1024)
+              }
+            "
+          />
+        </div>
+      </div>
+      <div class="monitor-charts-wrapper">
+        <div class="monitor-chart monitor-chart-wide">
+          <NodesMonitorChart
+            class="h-full"
+            name="procs"
+            title="Processes"
+            type="area"
+            :colors="['#5DA8D1', '#69C197', '#FFB103']"
+            :runtime="Runtime.Talos"
+            :resource="{
+              type: TalosCPUType,
+              namespace: TalosPerfNamespace,
+              id: TalosCPUID,
+            }"
+            :context="context"
+            :point-fn="handleProcs"
+          />
+        </div>
+      </div>
+    </div>
+    <div class="monitor-data-wrapper">
+      <div class="grid select-none grid-cols-12 font-bold uppercase">
+        <div
+          v-for="h in headers"
+          :key="h.id"
+          class="flex cursor-pointer flex-row items-center gap-1 text-center text-xs capitalize transition-colors hover:text-naturals-N10"
+          @click="() => sortBy(h.id)"
+        >
+          <span>{{ h.header || h.id }}</span>
+          <ArrowDownIcon
+            v-if="sort === h.id"
+            class="h-3 w-3"
+            :class="{ transform: sortReverse, 'rotate-180': sortReverse }"
+          />
+        </div>
+      </div>
+      <div class="monitor-data-box">
+        <div
+          v-for="process in sortedProcesses"
+          :key="process.pid"
+          class="grid grid-cols-12 py-2 text-xs text-naturals-N12"
+          :title="process.command + ' ' + process.args"
+        >
+          <div>
+            {{ process.pid }}
+          </div>
+          <div>
+            {{ process.state }}
+          </div>
+          <div>
+            {{ process.threads }}
+          </div>
+          <div>
+            {{ process.cpu.toFixed(1) }}
+          </div>
+          <div>
+            {{ process.mem.toFixed(1) }}
+          </div>
+          <div>
+            {{ formatBytes(process.virtualMemory) }}
+          </div>
+          <div>
+            {{ formatBytes(process.residentMemory) }}
+          </div>
+          <div>
+            {{ process.cpuTime }}
+          </div>
+          <div class="col-span-4 truncate">{{ process.command }} {{ process.args }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .monitor {
   @apply flex flex-col justify-start pb-5;
@@ -350,13 +357,13 @@ const sortBy = (id: string) => {
   padding-bottom: 0 !important;
 }
 .monitor-charts-wrapper {
-  @apply flex flex-1 gap-2 mb-6;
+  @apply mb-6 flex flex-1 gap-2;
 }
 .monitor-charts-wrapper:last-of-type {
   @apply mb-0;
 }
 .monitor-chart {
-  @apply flex-1 bg-naturals-N2 rounded p-3 pt-4;
+  @apply flex-1 rounded bg-naturals-N2 p-3 pt-4;
   min-height: 220px;
 }
 .monitor-chart:nth-child(1) {
@@ -372,9 +379,9 @@ const sortBy = (id: string) => {
   border-radius: 4px 4px 0 0;
 }
 .monitor-data-wrapper {
-  @apply px-2 lg:px-8 pt-5 text-xs text-naturals-N13 flex-1 flex flex-col overflow-hidden w-full bg-naturals-N2;
+  @apply flex w-full flex-1 flex-col overflow-hidden bg-naturals-N2 px-2 pt-5 text-xs text-naturals-N13 lg:px-8;
 }
 .monitor-data-box {
-  @apply flex-1 overflow-x-auto py-3 bg-naturals-N2;
+  @apply flex-1 overflow-x-auto bg-naturals-N2 py-3;
 }
 </style>

@@ -4,56 +4,21 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex flex-col">
-    <div class="flex justify-between">
-      <div v-if="title" class="w-full text-left text-naturals-N13 pl-3 text-xs">
-        {{ title }}
-      </div>
-      <div v-if="total" class="w-full text-right pr-3 text-xs">
-        {{ total }}
-      </div>
-    </div>
-    <div id="chartContainer" class="flex-1">
-      <div v-if="err || loading" class="flex flex-row justify-center items-center w-full h-full">
-        <div
-          v-if="err"
-          class="flex justify-center items-center w-1/2 gap-4 text-talos-gray-500 text-sm"
-        >
-          <div class="flex-0">
-            <exclamation-circle-icon class="w-6 h-6" />
-          </div>
-          <div>{{ err }}</div>
-        </div>
-        <t-spinner v-else class="w-5 h-5" />
-      </div>
-      <apex-chart
-        v-else
-        width="100%"
-        height="100%"
-        :type="type"
-        :options="options"
-        :series="series ?? []"
-      />
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import type { Ref } from 'vue'
-import { ref, toRefs, computed } from 'vue'
-
-import type { WatchContext } from '@/api/watch'
-import ApexChart from 'vue3-apexcharts'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import { ExclamationCircleIcon } from '@heroicons/vue/24/outline'
 import { DateTime } from 'luxon'
+import type { Ref } from 'vue'
+import { computed, ref, toRefs } from 'vue'
+import ApexChart from 'vue3-apexcharts'
+
+import type { Runtime } from '@/api/common/omni.pb'
 import type { WatchResponse } from '@/api/omni/resources/resources.pb'
 import { EventType } from '@/api/omni/resources/resources.pb'
+import type { Metadata } from '@/api/v1alpha1/resource.pb'
+import type { WatchContext } from '@/api/watch'
 import type { WatchEventSpec } from '@/api/watch'
 import { WatchFunc } from '@/api/watch'
-import type { Metadata } from '@/api/v1alpha1/resource.pb'
-import type { Runtime } from '@/api/common/omni.pb'
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 
 type Props<T> = {
   name: string
@@ -113,7 +78,7 @@ const min: Ref<number | undefined> = ref(undefined)
 const max: Ref<number | undefined> = ref(undefined)
 
 const handlePoint = (message: WatchResponse, spec: WatchEventSpec) => {
-  if (message.event?.event_type != EventType.UPDATED) {
+  if (message.event?.event_type !== EventType.UPDATED) {
     return
   }
 
@@ -294,6 +259,41 @@ const options = computed(() => {
 const err = w.err
 const loading = w.loading
 </script>
+
+<template>
+  <div class="flex flex-col">
+    <div class="flex justify-between">
+      <div v-if="title" class="w-full pl-3 text-left text-xs text-naturals-N13">
+        {{ title }}
+      </div>
+      <div v-if="total" class="w-full pr-3 text-right text-xs">
+        {{ total }}
+      </div>
+    </div>
+    <div id="chartContainer" class="flex-1">
+      <div v-if="err || loading" class="flex h-full w-full flex-row items-center justify-center">
+        <div
+          v-if="err"
+          class="flex w-1/2 items-center justify-center gap-4 text-sm text-talos-gray-500"
+        >
+          <div class="flex-0">
+            <ExclamationCircleIcon class="h-6 w-6" />
+          </div>
+          <div>{{ err }}</div>
+        </div>
+        <TSpinner v-else class="h-5 w-5" />
+      </div>
+      <ApexChart
+        v-else
+        width="100%"
+        height="100%"
+        :type="type"
+        :options="options"
+        :series="series ?? []"
+      />
+    </div>
+  </div>
+</template>
 
 <style>
 #chartContainer .apexcharts-tooltip {

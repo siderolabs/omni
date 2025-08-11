@@ -4,55 +4,16 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window">
-    <div class="flex px-8 my-7 items-center">
-      <div class="heading">Machine Set Scaling Configuration</div>
-    </div>
-    <div class="flex-1 flex flex-col">
-      <div class="flex gap-2 items-center text-sm border-b border-naturals-N4 px-8 py-2 flex-wrap">
-        <div class="w-32">Update Strategy</div>
-        <t-button-group :options="options" v-model="updateStrategy" class="flex-1" />
-        <template v-if="updateStrategy !== MachineSetSpecUpdateStrategy.Unset">
-          <div>Max Parallelism</div>
-          <div>
-            <t-input type="number" v-model="updateParallelism" class="h-7 w-12" />
-          </div>
-        </template>
-        <div v-else class="h-7 flex items-center">Update All Simultaneously</div>
-      </div>
-      <div class="flex gap-2 items-center text-sm border-b border-naturals-N4 px-8 py-2 flex-wrap">
-        <div class="w-32">Delete Strategy</div>
-        <t-button-group :options="options" v-model="deleteStrategy" class="flex-1" />
-        <template v-if="deleteStrategy !== MachineSetSpecUpdateStrategy.Unset">
-          <div>Max Parallelism</div>
-          <div>
-            <t-input type="number" v-model="deleteParallelism" class="h-7 w-12" />
-          </div>
-        </template>
-        <div v-else class="h-7 flex items-center">
-          <span>Delete All Simultaneously</span>
-        </div>
-      </div>
-    </div>
-    <div class="flex p-4 gap-4 bg-naturals-N3 rounded-b justify-between">
-      <t-button type="secondary" @click="close">Cancel</t-button>
-      <t-button @click="saveAndClose">Save</t-button>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, toRefs } from 'vue'
-import { closeModal } from '@/modal'
 
+import { MachineSetSpecUpdateStrategy } from '@/api/omni/specs/omni.pb'
 import TButton from '@/components/common/Button/TButton.vue'
+import TButtonGroup from '@/components/common/Button/TButtonGroup.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
-
+import { closeModal } from '@/modal'
 import type { MachineSet } from '@/states/cluster-management'
 import { state } from '@/states/cluster-management'
-import { MachineSetSpecUpdateStrategy } from '@/api/omni/specs/omni.pb'
-import TButtonGroup from '@/components/common/Button/TButtonGroup.vue'
 
 const options = [
   {
@@ -120,6 +81,44 @@ const saveAndClose = async () => {
   close()
 }
 </script>
+
+<template>
+  <div class="modal-window">
+    <div class="my-7 flex items-center px-8">
+      <div class="heading">Machine Set Scaling Configuration</div>
+    </div>
+    <div class="flex flex-1 flex-col">
+      <div class="flex flex-wrap items-center gap-2 border-b border-naturals-N4 px-8 py-2 text-sm">
+        <div class="w-32">Update Strategy</div>
+        <TButtonGroup v-model="updateStrategy" :options="options" class="flex-1" />
+        <template v-if="updateStrategy !== MachineSetSpecUpdateStrategy.Unset">
+          <div>Max Parallelism</div>
+          <div>
+            <TInput v-model="updateParallelism" type="number" class="h-7 w-12" />
+          </div>
+        </template>
+        <div v-else class="flex h-7 items-center">Update All Simultaneously</div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 border-b border-naturals-N4 px-8 py-2 text-sm">
+        <div class="w-32">Delete Strategy</div>
+        <TButtonGroup v-model="deleteStrategy" :options="options" class="flex-1" />
+        <template v-if="deleteStrategy !== MachineSetSpecUpdateStrategy.Unset">
+          <div>Max Parallelism</div>
+          <div>
+            <TInput v-model="deleteParallelism" type="number" class="h-7 w-12" />
+          </div>
+        </template>
+        <div v-else class="flex h-7 items-center">
+          <span>Delete All Simultaneously</span>
+        </div>
+      </div>
+    </div>
+    <div class="flex justify-between gap-4 rounded-b bg-naturals-N3 p-4">
+      <TButton type="secondary" @click="close">Cancel</TButton>
+      <TButton @click="saveAndClose">Save</TButton>
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .modal-window {

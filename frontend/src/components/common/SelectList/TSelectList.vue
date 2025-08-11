@@ -4,62 +4,14 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="menu">
-    <Listbox v-model="selectedItem">
-      <ListboxButton class="menu-button flex items-center gap-1">
-        <div class="flex overflow-hidden">
-          <div class="menu-title" v-if="title">{{ title }}:</div>
-          <div class="flex-1 truncate">{{ selectedItem }}</div>
-        </div>
-        <t-icon class="menu-arrow" icon="arrow-down" />
-      </ListboxButton>
-      <t-animation @after-enter="focusSearch = true" @after-leave="focusSearch = false">
-        <ListboxOptions class="menu-items" :class="`${menuAlign}-0`">
-          <t-input
-            @keydown.stop="() => {}"
-            :focus="focusSearch"
-            icon="search"
-            v-if="searcheable"
-            title=""
-            class="search-box"
-            placeholder="Search"
-            v-model="searchTerm"
-          />
-          <div class="menu-items-wrapper" v-if="filteredValues.length > 0">
-            <div
-              @click="$emit('checkedValue', item)"
-              v-for="(item, idx) in filteredValues"
-              :key="idx"
-            >
-              <ListboxOption v-slot="{ active, selected }" class="menu-item" :value="item">
-                <div class="menu-item-wrapper">
-                  <span class="menu-item-text" :class="{ active: active }">
-                    <word-highligher
-                      :query="searchTerm"
-                      :textToHighlight="item.toString()"
-                      highlightClass="text-naturals-N14 font-medium bg-transparent truncate"
-                    />
-                  </span>
-                  <t-icon icon="check" class="menu-check-icon" v-show="selected" />
-                </div>
-              </ListboxOption>
-            </div>
-          </div>
-        </ListboxOptions>
-      </t-animation>
-    </Listbox>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { Listbox, ListboxButton, ListboxOptions, ListboxOption } from '@headlessui/vue'
+import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from '@headlessui/vue'
+import { computed, ref, toRefs } from 'vue'
+import WordHighligher from 'vue-word-highlighter'
 
-import { ref, toRefs, computed } from 'vue'
+import TAnimation from '@/components/common/Animation/TAnimation.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
-import TAnimation from '@/components/common/Animation/TAnimation.vue'
-import WordHighligher from 'vue-word-highlighter'
 
 const props = withDefaults(
   defineProps<{
@@ -95,9 +47,57 @@ const filteredValues = computed(() => {
 
   const term = searchTerm.value.toLowerCase()
 
-  return values.value.filter((item) => item.toString().toLowerCase().indexOf(term) != -1)
+  return values.value.filter((item) => item.toString().toLowerCase().indexOf(term) !== -1)
 })
 </script>
+
+<template>
+  <div class="menu">
+    <Listbox v-model="selectedItem">
+      <ListboxButton class="menu-button flex items-center gap-1">
+        <div class="flex overflow-hidden">
+          <div v-if="title" class="menu-title">{{ title }}:</div>
+          <div class="flex-1 truncate">{{ selectedItem }}</div>
+        </div>
+        <TIcon class="menu-arrow" icon="arrow-down" />
+      </ListboxButton>
+      <TAnimation @after-enter="focusSearch = true" @after-leave="focusSearch = false">
+        <ListboxOptions class="menu-items" :class="`${menuAlign}-0`">
+          <TInput
+            v-if="searcheable"
+            v-model="searchTerm"
+            :focus="focusSearch"
+            icon="search"
+            title=""
+            class="search-box"
+            placeholder="Search"
+            @keydown.stop="() => {}"
+          />
+          <div v-if="filteredValues.length > 0" class="menu-items-wrapper">
+            <div
+              v-for="(item, idx) in filteredValues"
+              :key="idx"
+              @click="$emit('checkedValue', item)"
+            >
+              <ListboxOption v-slot="{ active, selected }" class="menu-item" :value="item">
+                <div class="menu-item-wrapper">
+                  <span class="menu-item-text" :class="{ active: active }">
+                    <WordHighligher
+                      :query="searchTerm"
+                      :text-to-highlight="item.toString()"
+                      highlight-class="text-naturals-N14 font-medium bg-transparent truncate"
+                    />
+                  </span>
+                  <TIcon v-show="selected" icon="check" class="menu-check-icon" />
+                </div>
+              </ListboxOption>
+            </div>
+          </div>
+        </ListboxOptions>
+      </TAnimation>
+    </Listbox>
+  </div>
+</template>
 
 <style scoped>
 .menu {
@@ -105,12 +105,12 @@ const filteredValues = computed(() => {
 }
 
 .menu-button {
-  @apply w-full h-full bg-naturals-N2 rounded border border-naturals-N7 flex justify-between items-center text-xs text-naturals-N14;
+  @apply flex h-full w-full items-center justify-between rounded border border-naturals-N7 bg-naturals-N2 text-xs text-naturals-N14;
   padding: 9px 12px;
 }
 
 .menu-title {
-  @apply text-xs mr-1 whitespace-nowrap truncate;
+  @apply mr-1 truncate whitespace-nowrap text-xs;
 }
 
 .menu-arrow {
@@ -120,25 +120,25 @@ const filteredValues = computed(() => {
 }
 
 .menu-items {
-  @apply flex flex-col rounded bg-naturals-N3 border border-naturals-N4 absolute top-10 min-w-full z-10 gap-1 p-1.5;
+  @apply absolute top-10 z-10 flex min-w-full flex-col gap-1 rounded border border-naturals-N4 bg-naturals-N3 p-1.5;
   max-height: 280px;
 }
 
 .search-box {
-  @apply text-xs text-naturals-N9 h-8;
+  @apply h-8 text-xs text-naturals-N9;
 }
 
 .menu-item {
-  @apply text-xs text-naturals-N9 cursor-pointer;
+  @apply cursor-pointer text-xs text-naturals-N9;
   padding: 6px 12px;
 }
 
 .menu-item-wrapper {
-  @apply flex justify-between items-center;
+  @apply flex items-center justify-between;
 }
 
 .menu-item-text {
-  @apply transition-all truncate;
+  @apply truncate transition-all;
   margin-right: 8px;
 }
 
@@ -151,6 +151,6 @@ const filteredValues = computed(() => {
 }
 
 .menu-check-icon {
-  @apply w-3 h-3 fill-current text-naturals-N14;
+  @apply h-3 w-3 fill-current text-naturals-N14;
 }
 </style>

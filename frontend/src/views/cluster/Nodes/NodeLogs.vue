@@ -4,51 +4,22 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="logs">
-    <machine-logs-container
-      v-if="$route.params.service === 'machine'"
-      :machineId="route.params.machine as string"
-      class="logs-container"
-    />
-    <div v-else class="logs-container">
-      <div class="mb-4">
-        <t-input placeholder="Search..." v-model="inputValue" icon="search" />
-      </div>
-      <t-alert
-        v-if="err"
-        :title="logs ? 'Disconnected' : 'Failed to Fetch Logs'"
-        type="error"
-        class="mb-2"
-      >
-        {{ err }}
-      </t-alert>
-      <log-viewer
-        :logs="logs"
-        :searchOption="inputValue"
-        class="flex-1"
-        :with-date="parsers[$route.params.service as string] !== undefined"
-      />
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
+import { DateTime } from 'luxon'
 import type { Ref } from 'vue'
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+
+import { Runtime } from '@/api/common/omni.pb'
+import { withContext, withRuntime } from '@/api/options'
 import type { LogsRequest } from '@/api/talos/machine/machine.pb'
 import { MachineService } from '@/api/talos/machine/machine.pb'
-import { Runtime } from '@/api/common/omni.pb'
-import { getContext } from '@/context'
-import type { LogLine } from '@/methods/logs'
-import { setupLogStream, LineDelimitedLogParser } from '@/methods/logs'
-import { withContext, withRuntime } from '@/api/options'
-import { DateTime } from 'luxon'
-
+import LogViewer from '@/components/common/LogViewer/LogViewer.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import TAlert from '@/components/TAlert.vue'
-import LogViewer from '@/components/common/LogViewer/LogViewer.vue'
+import { getContext } from '@/context'
+import type { LogLine } from '@/methods/logs'
+import { LineDelimitedLogParser, setupLogStream } from '@/methods/logs'
 import MachineLogsContainer from '@/views/omni/Machines/MachineLogsContainer.vue'
 
 const route = useRoute()
@@ -164,9 +135,38 @@ const err = computed(() => {
 })
 </script>
 
+<template>
+  <div class="logs">
+    <MachineLogsContainer
+      v-if="$route.params.service === 'machine'"
+      :machine-id="route.params.machine as string"
+      class="logs-container"
+    />
+    <div v-else class="logs-container">
+      <div class="mb-4">
+        <TInput v-model="inputValue" placeholder="Search..." icon="search" />
+      </div>
+      <TAlert
+        v-if="err"
+        :title="logs ? 'Disconnected' : 'Failed to Fetch Logs'"
+        type="error"
+        class="mb-2"
+      >
+        {{ err }}
+      </TAlert>
+      <LogViewer
+        :logs="logs"
+        :search-option="inputValue"
+        class="flex-1"
+        :without-date="!parsers[$route.params.service as string]"
+      />
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .logs {
-  @apply flex flex-col h-full;
+  @apply flex h-full flex-col;
   max-height: calc(100vh - 150px);
   overflow: hidden;
 }

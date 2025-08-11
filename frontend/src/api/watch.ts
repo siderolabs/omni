@@ -5,15 +5,16 @@
 
 import type { Ref } from 'vue'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+
 import { Runtime } from '@/api/common/omni.pb'
-import type { WatchRequest, WatchResponse } from '@/api/omni/resources/resources.pb'
-import { EventType } from '@/api/omni/resources/resources.pb'
+import type { fetchOption } from '@/api/fetch.pb'
 import type { Resource, Stream } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
-import type { Metadata } from '@/api/v1alpha1/resource.pb'
+import type { WatchRequest, WatchResponse } from '@/api/omni/resources/resources.pb'
+import { EventType } from '@/api/omni/resources/resources.pb'
 import type { GRPCMetadata } from '@/api/options'
 import { withContext, withMetadata, withRuntime } from '@/api/options'
-import type { fetchOption } from '@/api/fetch.pb'
+import type { Metadata } from '@/api/v1alpha1/resource.pb'
 
 export interface Callback {
   (message: WatchResponse, spec: WatchEventSpec)
@@ -278,7 +279,7 @@ export default class Watch<T extends Resource> extends WatchFunc {
   }
 
   private singleItemHandler(message: WatchResponse, spec: WatchEventSpec) {
-    if (message.event?.event_type == EventType.BOOTSTRAPPED) {
+    if (message.event?.event_type === EventType.BOOTSTRAPPED) {
       this.loading.value = false
 
       return
@@ -306,7 +307,7 @@ export default class Watch<T extends Resource> extends WatchFunc {
   private listHandler(message: WatchResponse, spec: WatchEventSpec) {
     if (!this.items || !this.watchItems) return
 
-    if (message.event?.event_type == EventType.BOOTSTRAPPED) {
+    if (message.event?.event_type === EventType.BOOTSTRAPPED) {
       this.loading.value = false
 
       this.watchItems.bootstrap()
@@ -405,7 +406,7 @@ function getInsertionIndex<T>(
 export const itemID = (item: {
   metadata: { id?: string; name?: string; namespace?: string }
 }): string => {
-  if (item.metadata == null) {
+  if (item.metadata === null) {
     return ''
   }
 
@@ -463,7 +464,7 @@ class WatchItems<T> {
 
     const foundIndex = this.findIndex(id, items)
 
-    if (foundIndex == -1) {
+    if (foundIndex === -1) {
       return
     }
 
@@ -595,12 +596,12 @@ export class WatchJoin<T extends Resource> {
           this.itemMap[resourceType] = {}
         }
 
-        if (resourceType == this.primaryResourceType) {
+        if (resourceType === this.primaryResourceType) {
           this.lastTotal = resp.total ?? 0
         }
 
         if (
-          resourceType == this.primaryResourceType &&
+          resourceType === this.primaryResourceType &&
           resp.event?.event_type === EventType.BOOTSTRAPPED
         ) {
           if (!this.watchItems) throw new Error('assertion failed on watchItems !== null')
@@ -612,7 +613,7 @@ export class WatchJoin<T extends Resource> {
           return
         }
 
-        if (resourceType == this.primaryResourceType) {
+        if (resourceType === this.primaryResourceType) {
           this.lastTotal = resp.total ?? 0
 
           if (this.watchItems?.bootstrapped) {

@@ -4,147 +4,36 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex flex-col gap-2">
-    <div class="flex gap-1 items-start">
-      <page-header title="Machine Join Tokens" class="flex-1" />
-    </div>
-    <div class="flex justify-end">
-      <t-button
-        @click="openUserCreate"
-        icon="plus"
-        icon-position="left"
-        type="highlighted"
-        :disabled="!canManageUsers"
-        >Create Join Token</t-button
-      >
-    </div>
-    <t-list :opts="watchOpts" pagination class="flex-1" search>
-      <template #default="{ items }">
-        <div class="tokens-header">
-          <div class="tokens-grid">
-            <div>Name</div>
-            <div>Token</div>
-            <div>Status</div>
-            <div>Expiration</div>
-            <div>Use Count</div>
-          </div>
-        </div>
-        <t-list-item v-for="item in items" :key="itemID(item)">
-          <div class="flex gap-2">
-            <div class="tokens-grid flex-1">
-              <div class="flex gap-2 items-center">
-                <span class="truncate">{{ item.spec.name ?? 'initial token' }}</span>
-                <div
-                  v-if="item.spec.is_default"
-                  class="px-2 py-1 rounded bg-primary-P3 bg-opacity-10 text-primary-P3"
-                >
-                  Default
-                </div>
-              </div>
-              <div
-                class="truncate font-roboto cursor-pointer"
-                @click="() => (showTokens = !showTokens)"
-              >
-                {{ showTokens ? item.metadata.id : item.metadata.id?.replace(/./g, '•') }}
-              </div>
-              <t-status :title="getStatusString(item.spec.state)" />
-              <div v-if="item.spec.expiration_time">
-                {{ relativeISO(item.spec.expiration_time) }}
-              </div>
-              <div v-else>Never</div>
-              <div>
-                {{ item.spec.use_count ?? 0 }}
-              </div>
-            </div>
-            <t-actions-box>
-              <template v-if="item.spec.state === JoinTokenStatusSpecState.ACTIVE">
-                <t-actions-box-item icon="copy" @click="() => copyValue(item.metadata.id!)">
-                  Copy Token
-                </t-actions-box-item>
-                <t-actions-box-item icon="copy" @click="() => copyKernelParams(item.metadata.id!)">
-                  Copy Kernel Params
-                </t-actions-box-item>
-                <t-actions-box-item
-                  icon="long-arrow-down"
-                  @click="() => getMachineJoinConfig(item.metadata.id!)"
-                >
-                  Download Machine Join Config
-                </t-actions-box-item>
-                <t-actions-box-item
-                  icon="long-arrow-down"
-                  @click="() => openDownloadInstallationMedia(item.metadata.id!)"
-                >
-                  Download Installation Media
-                </t-actions-box-item>
-                <div class="my-0.5 w-full border-naturals-N5 border-b" />
-                <t-actions-box-item
-                  icon="check"
-                  v-if="!item.spec.is_default"
-                  @click="() => makeDefault(item.metadata.id!)"
-                >
-                  Make Default
-                </t-actions-box-item>
-
-                <t-actions-box-item
-                  icon="error"
-                  danger
-                  @click="() => openRevokeToken(item.metadata.id!)"
-                >
-                  Revoke
-                </t-actions-box-item>
-              </template>
-              <template v-else>
-                <t-actions-box-item icon="reset" @click="unrevokeJoinToken(item.metadata.id!)">
-                  Unrevoke
-                </t-actions-box-item>
-                <t-actions-box-item
-                  icon="delete"
-                  @click="() => openDeleteToken(item.metadata.id!)"
-                  danger
-                >
-                  Delete
-                </t-actions-box-item>
-              </template>
-            </t-actions-box>
-          </div>
-        </t-list-item>
-      </template>
-    </t-list>
-  </div>
-</template>
-
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Runtime } from '@/api/common/omni.pb'
-import {
-  DefaultNamespace,
-  JoinTokenStatusType,
-  DefaultJoinTokenID,
-  DefaultJoinTokenType,
-} from '@/api/resources'
-import { itemID } from '@/api/watch'
 import { copyText } from 'vue3-clipboard'
 
-import TList from '@/components/common/List/TList.vue'
-import TButton from '@/components/common/Button/TButton.vue'
-import TListItem from '@/components/common/List/TListItem.vue'
-import TStatus from '@/components/common/Status/TStatus.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
-import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
-import TActionsBoxItem from '@/components/common/ActionsBox/TActionsBoxItem.vue'
-
-import { canManageUsers, unrevokeJoinToken } from '@/methods/auth'
-import { TCommonStatuses } from '@/constants'
+import { Runtime } from '@/api/common/omni.pb'
+import type { Resource } from '@/api/grpc'
+import { ResourceService } from '@/api/grpc'
 import type { DefaultJoinTokenSpec } from '@/api/omni/specs/auth.pb'
 import { JoinTokenStatusSpecState } from '@/api/omni/specs/auth.pb'
-import { relativeISO } from '@/methods/time'
-import { ResourceService } from '@/api/grpc'
 import { withRuntime } from '@/api/options'
-import type { Resource } from '@/api/grpc'
+import {
+  DefaultJoinTokenID,
+  DefaultJoinTokenType,
+  DefaultNamespace,
+  JoinTokenStatusType,
+} from '@/api/resources'
+import { itemID } from '@/api/watch'
+import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
+import TActionsBoxItem from '@/components/common/ActionsBox/TActionsBoxItem.vue'
+import TButton from '@/components/common/Button/TButton.vue'
+import TList from '@/components/common/List/TList.vue'
+import TListItem from '@/components/common/List/TListItem.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
+import TStatus from '@/components/common/Status/TStatus.vue'
+import { TCommonStatuses } from '@/constants'
 import { copyKernelArgs, downloadMachineJoinConfig } from '@/methods'
+import { canManageUsers, unrevokeJoinToken } from '@/methods/auth'
+import { relativeISO } from '@/methods/time'
 import { showError } from '@/notification'
-import { ref } from 'vue'
 
 const router = useRouter()
 const showTokens = ref(false)
@@ -232,13 +121,123 @@ const openDeleteToken = (token: string) => {
 }
 </script>
 
+<template>
+  <div class="flex flex-col gap-2">
+    <div class="flex items-start gap-1">
+      <PageHeader title="Machine Join Tokens" class="flex-1" />
+    </div>
+    <div class="flex justify-end">
+      <TButton
+        icon="plus"
+        icon-position="left"
+        type="highlighted"
+        :disabled="!canManageUsers"
+        @click="openUserCreate"
+        >Create Join Token</TButton
+      >
+    </div>
+    <TList :opts="watchOpts" pagination class="flex-1" search>
+      <template #default="{ items }">
+        <div class="tokens-header">
+          <div class="tokens-grid">
+            <div>Name</div>
+            <div>Token</div>
+            <div>Status</div>
+            <div>Expiration</div>
+            <div>Use Count</div>
+          </div>
+        </div>
+        <TListItem v-for="item in items" :key="itemID(item)">
+          <div class="flex gap-2">
+            <div class="tokens-grid flex-1">
+              <div class="flex items-center gap-2">
+                <span class="truncate">{{ item.spec.name ?? 'initial token' }}</span>
+                <div
+                  v-if="item.spec.is_default"
+                  class="rounded bg-primary-P3 bg-opacity-10 px-2 py-1 text-primary-P3"
+                >
+                  Default
+                </div>
+              </div>
+              <div
+                class="cursor-pointer truncate font-roboto"
+                @click="() => (showTokens = !showTokens)"
+              >
+                {{ showTokens ? item.metadata.id : item.metadata.id?.replace(/./g, '•') }}
+              </div>
+              <TStatus :title="getStatusString(item.spec.state)" />
+              <div v-if="item.spec.expiration_time">
+                {{ relativeISO(item.spec.expiration_time) }}
+              </div>
+              <div v-else>Never</div>
+              <div>
+                {{ item.spec.use_count ?? 0 }}
+              </div>
+            </div>
+            <TActionsBox>
+              <template v-if="item.spec.state === JoinTokenStatusSpecState.ACTIVE">
+                <TActionsBoxItem icon="copy" @click="() => copyValue(item.metadata.id!)">
+                  Copy Token
+                </TActionsBoxItem>
+                <TActionsBoxItem icon="copy" @click="() => copyKernelParams(item.metadata.id!)">
+                  Copy Kernel Params
+                </TActionsBoxItem>
+                <TActionsBoxItem
+                  icon="long-arrow-down"
+                  @click="() => getMachineJoinConfig(item.metadata.id!)"
+                >
+                  Download Machine Join Config
+                </TActionsBoxItem>
+                <TActionsBoxItem
+                  icon="long-arrow-down"
+                  @click="() => openDownloadInstallationMedia(item.metadata.id!)"
+                >
+                  Download Installation Media
+                </TActionsBoxItem>
+                <div class="my-0.5 w-full border-b border-naturals-N5" />
+                <TActionsBoxItem
+                  v-if="!item.spec.is_default"
+                  icon="check"
+                  @click="() => makeDefault(item.metadata.id!)"
+                >
+                  Make Default
+                </TActionsBoxItem>
+
+                <TActionsBoxItem
+                  icon="error"
+                  danger
+                  @click="() => openRevokeToken(item.metadata.id!)"
+                >
+                  Revoke
+                </TActionsBoxItem>
+              </template>
+              <template v-else>
+                <TActionsBoxItem icon="reset" @click="unrevokeJoinToken(item.metadata.id!)">
+                  Unrevoke
+                </TActionsBoxItem>
+                <TActionsBoxItem
+                  icon="delete"
+                  danger
+                  @click="() => openDeleteToken(item.metadata.id!)"
+                >
+                  Delete
+                </TActionsBoxItem>
+              </template>
+            </TActionsBox>
+          </div>
+        </TListItem>
+      </template>
+    </TList>
+  </div>
+</template>
+
 <style scoped>
 .tokens-grid {
-  @apply grid grid-cols-5 pr-10 gap-4 items-center;
+  @apply grid grid-cols-5 items-center gap-4 pr-10;
 }
 
 .tokens-header {
-  @apply bg-naturals-N2 mb-1 px-3 py-2 pr-12;
+  @apply mb-1 bg-naturals-N2 px-3 py-2 pr-12;
 }
 
 .tokens-header > * {

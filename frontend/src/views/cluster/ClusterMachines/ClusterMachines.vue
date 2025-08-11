@@ -4,49 +4,26 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div>
-    <watch
-      v-for="id in watches"
-      :opts="{
-        resource: { namespace: DefaultNamespace, type: MachineSetStatusType, id: id },
-        runtime: Runtime.Omni,
-      }"
-      spinner
-      :key="id"
-    >
-      <template #default="{ items }">
-        <machine-set
-          v-for="item in items"
-          :key="itemID(item)"
-          :machineSet="item"
-          :id="item.metadata.id"
-          :nodes-with-diagnostics="nodesWithDiagnostics"
-        />
-      </template>
-    </watch>
-  </div>
-</template>
-
 <script setup lang="ts">
 import type { Ref } from 'vue'
-import { toRefs, ref, computed } from 'vue'
+import { computed, ref, toRefs } from 'vue'
+
+import { Runtime } from '@/api/common/omni.pb'
+import type { Resource } from '@/api/grpc'
+import type { ClusterDiagnosticsSpec, MachineSetSpec } from '@/api/omni/specs/omni.pb'
 import {
+  ClusterDiagnosticsType,
   DefaultNamespace,
-  MachineSetStatusType,
   LabelCluster,
   LabelControlPlaneRole,
   MachineSetNodeType,
+  MachineSetStatusType,
   MachineSetType,
-  ClusterDiagnosticsType,
 } from '@/api/resources'
-import { Runtime } from '@/api/common/omni.pb'
 import WatchResource, { itemID } from '@/api/watch'
-import type { Resource } from '@/api/grpc'
-import type { ClusterDiagnosticsSpec, MachineSetSpec } from '@/api/omni/specs/omni.pb'
+import Watch from '@/components/common/Watch/Watch.vue'
 import { sortMachineSetIds } from '@/methods/machineset'
 
-import Watch from '@/components/common/Watch/Watch.vue'
 import MachineSet from './MachineSet.vue'
 
 const props = defineProps<{
@@ -111,3 +88,27 @@ machineNodesWatch.setup(
   }),
 )
 </script>
+
+<template>
+  <div>
+    <Watch
+      v-for="id in watches"
+      :key="id"
+      :opts="{
+        resource: { namespace: DefaultNamespace, type: MachineSetStatusType, id: id },
+        runtime: Runtime.Omni,
+      }"
+      spinner
+    >
+      <template #default="{ items }">
+        <MachineSet
+          v-for="item in items"
+          :id="item.metadata.id"
+          :key="itemID(item)"
+          :machine-set="item"
+          :nodes-with-diagnostics="nodesWithDiagnostics"
+        />
+      </template>
+    </Watch>
+  </div>
+</template>

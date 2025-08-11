@@ -4,115 +4,22 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="border-t-8 border-naturals-N4" v-if="machines.length > 0 || requests.length > 0">
-    <div class="flex items-center border-naturals-N4 border-b pl-3 text-naturals-N14">
-      <div class="py-2 clusters-grid flex-1 items-center">
-        <div class="flex flex-wrap gap-2 col-span-2 justify-between items-center">
-          <div class="flex-1 flex items-center">
-            <div class="flex items-center gap-2 bg-naturals-N4 w-40 rounded truncate py-2 px-3">
-              <t-icon icon="server-stack" class="w-4 h-4" />
-              <div class="truncate flex-1">
-                {{ machineSetTitle(clusterID, machineSet?.metadata?.id) }}
-              </div>
-            </div>
-          </div>
-          <div class="flex-1 flex max-md:ml-1 md:ml-10">
-            <t-spinner class="w-4 h-4" v-if="scaling" />
-            <div class="flex items-center gap-1" v-else-if="!editingMachinesCount">
-              <div class="flex items-center">
-                {{ machineSet?.spec?.machines?.healthy || 0 }}/
-                <div :class="{ 'text-lg mt-0.5': requestedMachines === '∞' }">
-                  {{ requestedMachines }}
-                </div>
-              </div>
-              <icon-button
-                icon="edit"
-                v-if="machineSet.spec.machine_allocation?.name"
-                @click="editingMachinesCount = !editingMachinesCount"
-              />
-            </div>
-            <div v-else class="flex items-center gap-1">
-              <div class="w-12">
-                <t-input
-                  :min="0"
-                  class="h-6"
-                  compact
-                  type="number"
-                  v-model="machineCount"
-                  @keydown.enter="() => updateMachineCount()"
-                />
-              </div>
-              <icon-button icon="check" @click="() => updateMachineCount()" />
-              <t-button
-                v-if="canUseAll"
-                type="subtle"
-                @click="() => updateMachineCount(MachineSetSpecMachineAllocationType.Unlimited)"
-              >
-                Use All
-              </t-button>
-            </div>
-          </div>
-        </div>
-        <machine-set-phase
-          :item="machineSet"
-          :class="{ 'col-span-2': !machineSet.spec?.machine_allocation?.name }"
-          class="ml-2"
-        />
-        <div
-          v-if="machineSet.spec?.machine_allocation?.name"
-          class="rounded bg-naturals-N4 px-3 py-2 max-w-min max-md:col-span-4"
-        >
-          Machine Class: {{ machineSet.spec?.machine_allocation?.name }} ({{
-            machineClassMachineCount
-          }})
-        </div>
-      </div>
-      <t-actions-box class="-ml-4 mr-4 h-6" v-if="canRemoveMachineSet" @click.stop>
-        <t-actions-box-item icon="delete" danger @click="() => openMachineSetDestroy(machineSet)"
-          >Destroy Machine Set</t-actions-box-item
-        >
-      </t-actions-box>
-      <div v-else class="w-6" />
-    </div>
-    <cluster-machine
-      class="machine-item"
-      :id="machine.metadata.id"
-      :machine-set="machineSet"
-      :has-diagnostic-info="nodesWithDiagnostics?.has(machine.metadata.id!)"
-      v-for="machine in machines"
-      :key="itemID(machine)"
-      :machine="machine"
-      :deleteDisabled="!canRemoveMachine"
-    />
-    <machine-request
-      class="machine-item"
-      v-for="request in pendingRequests"
-      :key="itemID(request)"
-      :request-status="request"
-    />
-    <div
-      v-if="hiddenMachinesCount > 0"
-      class="text-xs p-4 pl-9 border-t border-naturals-N4 flex gap-1 items-center"
-    >
-      {{ pluralize('machine', hiddenMachinesCount, true) }} are hidden
-      <t-button type="subtle" @click="showMachinesCount = undefined"
-        ><span class="text-xs">Show all...</span></t-button
-      >
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
+import pluralize from 'pluralize'
+import { computed, ref, toRefs, watch } from 'vue'
+import { useRouter } from 'vue-router'
+
+import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
 import type {
-  MachineSetStatusSpec,
+  ClusterMachineRequestStatusSpec,
   ClusterMachineStatusSpec,
   MachineClassSpec,
-  ClusterMachineRequestStatusSpec,
+  MachineSetStatusSpec,
 } from '@/api/omni/specs/omni.pb'
 import { MachineSetSpecMachineAllocationType } from '@/api/omni/specs/omni.pb'
+import { withRuntime } from '@/api/options'
 import {
   ClusterMachineRequestStatusType,
   ClusterMachineStatusType,
@@ -122,27 +29,22 @@ import {
   LabelMachineSet,
   MachineClassType,
 } from '@/api/resources'
-import { computed, ref, toRefs, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import { setupClusterPermissions } from '@/methods/auth'
 import Watch, { itemID } from '@/api/watch'
-import { Runtime } from '@/api/common/omni.pb'
+import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
+import TActionsBoxItem from '@/components/common/ActionsBox/TActionsBoxItem.vue'
+import IconButton from '@/components/common/Button/IconButton.vue'
+import TButton from '@/components/common/Button/TButton.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import TInput from '@/components/common/TInput/TInput.vue'
+import { setupClusterPermissions } from '@/methods/auth'
 import { machineSetTitle, scaleMachineSet } from '@/methods/machineset'
 import { controlPlaneMachineSetId, defaultWorkersMachineSetId } from '@/methods/machineset'
 import { showError } from '@/notification'
-import pluralize from 'pluralize'
 
-import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
-import TActionsBoxItem from '@/components/common/ActionsBox/TActionsBoxItem.vue'
 import ClusterMachine from './ClusterMachine.vue'
-import MachineSetPhase from './MachineSetPhase.vue'
-import IconButton from '@/components/common/Button/IconButton.vue'
-import TButton from '@/components/common/Button/TButton.vue'
-import TInput from '@/components/common/TInput/TInput.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
-import { withRuntime } from '@/api/options'
 import MachineRequest from './MachineRequest.vue'
+import MachineSetPhase from './MachineSetPhase.vue'
 
 const showMachinesCount = ref<number | undefined>(25)
 
@@ -314,6 +216,105 @@ const machineClassMachineCount = computed(() => {
   return pluralize('Machine', machineSet.value.spec?.machine_allocation?.machine_count ?? 0, true)
 })
 </script>
+
+<template>
+  <div v-if="machines.length > 0 || requests.length > 0" class="border-t-8 border-naturals-N4">
+    <div class="flex items-center border-b border-naturals-N4 pl-3 text-naturals-N14">
+      <div class="clusters-grid flex-1 items-center py-2">
+        <div class="col-span-2 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex flex-1 items-center">
+            <div class="flex w-40 items-center gap-2 truncate rounded bg-naturals-N4 px-3 py-2">
+              <TIcon icon="server-stack" class="h-4 w-4" />
+              <div class="flex-1 truncate">
+                {{ machineSetTitle(clusterID, machineSet?.metadata?.id) }}
+              </div>
+            </div>
+          </div>
+          <div class="flex flex-1 max-md:ml-1 md:ml-10">
+            <TSpinner v-if="scaling" class="h-4 w-4" />
+            <div v-else-if="!editingMachinesCount" class="flex items-center gap-1">
+              <div class="flex items-center">
+                {{ machineSet?.spec?.machines?.healthy || 0 }}/
+                <div :class="{ 'mt-0.5 text-lg': requestedMachines === '∞' }">
+                  {{ requestedMachines }}
+                </div>
+              </div>
+              <IconButton
+                v-if="machineSet.spec.machine_allocation?.name"
+                icon="edit"
+                @click="editingMachinesCount = !editingMachinesCount"
+              />
+            </div>
+            <div v-else class="flex items-center gap-1">
+              <div class="w-12">
+                <TInput
+                  v-model="machineCount"
+                  :min="0"
+                  class="h-6"
+                  compact
+                  type="number"
+                  @keydown.enter="() => updateMachineCount()"
+                />
+              </div>
+              <IconButton icon="check" @click="() => updateMachineCount()" />
+              <TButton
+                v-if="canUseAll"
+                type="subtle"
+                @click="() => updateMachineCount(MachineSetSpecMachineAllocationType.Unlimited)"
+              >
+                Use All
+              </TButton>
+            </div>
+          </div>
+        </div>
+        <MachineSetPhase
+          :item="machineSet"
+          :class="{ 'col-span-2': !machineSet.spec?.machine_allocation?.name }"
+          class="ml-2"
+        />
+        <div
+          v-if="machineSet.spec?.machine_allocation?.name"
+          class="max-w-min rounded bg-naturals-N4 px-3 py-2 max-md:col-span-4"
+        >
+          Machine Class: {{ machineSet.spec?.machine_allocation?.name }} ({{
+            machineClassMachineCount
+          }})
+        </div>
+      </div>
+      <TActionsBox v-if="canRemoveMachineSet" class="-ml-4 mr-4 h-6" @click.stop>
+        <TActionsBoxItem icon="delete" danger @click="() => openMachineSetDestroy(machineSet)"
+          >Destroy Machine Set</TActionsBoxItem
+        >
+      </TActionsBox>
+      <div v-else class="w-6" />
+    </div>
+    <ClusterMachine
+      v-for="machine in machines"
+      :id="machine.metadata.id"
+      :key="itemID(machine)"
+      class="machine-item"
+      :machine-set="machineSet"
+      :has-diagnostic-info="nodesWithDiagnostics?.has(machine.metadata.id!)"
+      :machine="machine"
+      :delete-disabled="!canRemoveMachine"
+    />
+    <MachineRequest
+      v-for="request in pendingRequests"
+      :key="itemID(request)"
+      class="machine-item"
+      :request-status="request"
+    />
+    <div
+      v-if="hiddenMachinesCount > 0"
+      class="flex items-center gap-1 border-t border-naturals-N4 p-4 pl-9 text-xs"
+    >
+      {{ pluralize('machine', hiddenMachinesCount, true) }} are hidden
+      <TButton type="subtle" @click="showMachinesCount = undefined"
+        ><span class="text-xs">Show all...</span></TButton
+      >
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .machine-item:not(:last-of-type) {

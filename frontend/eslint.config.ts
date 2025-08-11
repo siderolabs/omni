@@ -3,16 +3,19 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import { globalIgnores } from 'eslint/config'
-import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
-import pluginVue from 'eslint-plugin-vue'
 import pluginVitest from '@vitest/eslint-plugin'
 import skipFormatting from '@vue/eslint-config-prettier/skip-formatting'
+import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
+import { globalIgnores } from 'eslint/config'
+import simpleImportSort from 'eslint-plugin-simple-import-sort'
+import pluginVue from 'eslint-plugin-vue'
 
 export default defineConfigWithVueTs(
   globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**', 'src/api/resources.ts']),
 
   pluginVue.configs['flat/essential'],
+  pluginVue.configs['flat/strongly-recommended'],
+  pluginVue.configs['flat/recommended'],
   vueTsConfigs.recommended,
 
   {
@@ -22,9 +25,29 @@ export default defineConfigWithVueTs(
   skipFormatting,
 
   {
-    name: 'Temporarily ignored rules',
-    files: ['**/*.{ts,mts,tsx,vue}'],
+    name: 'Custom lint rules',
+    files: ['**/*.{ts,vue}'],
+    plugins: {
+      'simple-import-sort': simpleImportSort,
+    },
     rules: {
+      'dot-notation': 'error',
+      eqeqeq: 'error',
+      'simple-import-sort/imports': 'error',
+      'simple-import-sort/exports': 'error',
+      'vue/block-lang': ['error', { script: { lang: 'ts' } }],
+      'vue/block-order': ['error', { order: ['script', 'template', 'style'] }],
+      'vue/component-api-style': 'error',
+      'vue/component-name-in-template-casing': 'error',
+      'vue/component-options-name-casing': 'error',
+      'vue/match-component-file-name': 'error',
+      'vue/match-component-import-name': 'error',
+      'vue/next-tick-style': 'error',
+      'vue/no-boolean-default': 'error',
+      'vue/no-template-target-blank': 'error',
+      'vue/no-useless-mustaches': 'error',
+
+      // Temporarily disabled rules
       'vue/multi-word-component-names': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',
     },

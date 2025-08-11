@@ -4,20 +4,14 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <watch spinner :opts="opts">
-    <template #default="{ items }">
-      <patches :machine="items[0]" />
-    </template>
-  </watch>
-</template>
-
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
 import { Runtime } from '@/api/common/omni.pb'
 import { DefaultNamespace, MachineStatusType } from '@/api/resources'
 import Watch from '@/components/common/Watch/Watch.vue'
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+
 import Patches from '../Config/Patches.vue'
 
 const route = useRoute()
@@ -33,3 +27,11 @@ const opts = computed(() => {
   }
 })
 </script>
+
+<template>
+  <Watch spinner :opts="opts">
+    <template #default="{ items }">
+      <Patches :machine="items[0]" />
+    </template>
+  </Watch>
+</template>

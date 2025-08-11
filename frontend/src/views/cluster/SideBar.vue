@@ -4,37 +4,22 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex-1">
-    <omni-side-bar class="border-b border-naturals-N4" />
-    <p class="text-xs text-naturals-N8 mt-5 mb-2 px-6">Cluster</p>
-    <p class="text-xs text-naturals-N13 px-6 truncate">
-      {{ $route.params.cluster }}
-    </p>
-    <t-sidebar-list :items="items" />
-
-    <exposed-service-side-bar
-      v-if="workloadProxyingEnabled && cluster?.spec?.features?.enable_workload_proxy"
-    />
-  </div>
-</template>
-
 <script setup lang="ts">
 import type { Ref } from 'vue'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
+import { Runtime } from '@/api/common/omni.pb'
+import type { Resource } from '@/api/grpc'
+import type { ClusterSpec, KubernetesUpgradeManifestStatusSpec } from '@/api/omni/specs/omni.pb'
+import { ClusterType, DefaultNamespace, KubernetesUpgradeManifestStatusType } from '@/api/resources'
+import Watch from '@/api/watch'
 import type { SideBarItem } from '@/components/SideBar/TSideBarList.vue'
 import { default as TSidebarList } from '@/components/SideBar/TSideBarList.vue'
-import OmniSideBar from '@/views/omni/SideBar.vue'
-import type { Resource } from '@/api/grpc'
-import Watch from '@/api/watch'
-import type { ClusterSpec, KubernetesUpgradeManifestStatusSpec } from '@/api/omni/specs/omni.pb'
-import { KubernetesUpgradeManifestStatusType, DefaultNamespace, ClusterType } from '@/api/resources'
-import { Runtime } from '@/api/common/omni.pb'
 import { setupClusterPermissions } from '@/methods/auth'
-import ExposedServiceSideBar from '@/views/cluster/ExposedService/ExposedServiceSideBar.vue'
 import { setupWorkloadProxyingEnabledFeatureWatch } from '@/methods/features'
+import ExposedServiceSideBar from '@/views/cluster/ExposedService/ExposedServiceSideBar.vue'
+import OmniSideBar from '@/views/omni/SideBar.vue'
 
 const route = useRoute()
 
@@ -124,3 +109,18 @@ const items = computed(() => {
 
 const workloadProxyingEnabled = setupWorkloadProxyingEnabledFeatureWatch()
 </script>
+
+<template>
+  <div class="flex-1">
+    <OmniSideBar class="border-b border-naturals-N4" />
+    <p class="mb-2 mt-5 px-6 text-xs text-naturals-N8">Cluster</p>
+    <p class="truncate px-6 text-xs text-naturals-N13">
+      {{ $route.params.cluster }}
+    </p>
+    <TSidebarList :items="items" />
+
+    <ExposedServiceSideBar
+      v-if="workloadProxyingEnabled && cluster?.spec?.features?.enable_workload_proxy"
+    />
+  </div>
+</template>

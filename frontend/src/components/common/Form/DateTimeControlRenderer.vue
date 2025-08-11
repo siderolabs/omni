@@ -4,33 +4,16 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <content-wrapper class="relative" :control="control">
-    <input
-      class="bg-transparent outline-none text-naturals-N13 focus:outline-none focus:border-transparent text-xs transition-colors placeholder-naturals-N7 -my-1"
-      :id="control.id + '-input'"
-      type="datetime-local"
-      :value="dataTime"
-      :disabled="!control.enabled"
-      @change="(event) => p.handleChange(control.path, toISOString((event.target as any)?.value))"
-    />
-    <div
-      class="absolute flex flex-1 top-0 right-0 bottom-0 w-16 items-center justify-center pointer-events-none"
-      v-if="isChrome()"
-    >
-      <t-icon icon="calendar" class="w-4 h-4" />
-    </div>
-  </content-wrapper>
-</template>
-
 <script setup lang="ts">
+import type { ControlElement } from '@jsonforms/core'
 import type { RendererProps } from '@jsonforms/vue'
 import { useJsonFormsControl } from '@jsonforms/vue'
-import type { ControlElement } from '@jsonforms/core'
-import ContentWrapper from './ContentWrapper.vue'
 import { computed } from 'vue'
-import TIcon from '../Icon/TIcon.vue'
+
 import { isChrome } from '@/methods'
+
+import TIcon from '../Icon/TIcon.vue'
+import ContentWrapper from './ContentWrapper.vue'
 
 const props = defineProps<RendererProps<ControlElement>>()
 
@@ -45,9 +28,28 @@ const toISOString = (inputDateTime: string) => {
 }
 </script>
 
+<template>
+  <ContentWrapper class="relative" :control="control">
+    <input
+      :id="control.id + '-input'"
+      class="-my-1 bg-transparent text-xs text-naturals-N13 placeholder-naturals-N7 outline-none transition-colors focus:border-transparent focus:outline-none"
+      type="datetime-local"
+      :value="dataTime"
+      :disabled="!control.enabled"
+      @change="(event) => p.handleChange(control.path, toISOString((event.target as any)?.value))"
+    />
+    <div
+      v-if="isChrome()"
+      class="pointer-events-none absolute bottom-0 right-0 top-0 flex w-16 flex-1 items-center justify-center"
+    >
+      <TIcon icon="calendar" class="h-4 w-4" />
+    </div>
+  </ContentWrapper>
+</template>
+
 <style scoped>
 input[type='datetime-local'] {
-  @apply border border-naturals-N7 px-2 py-1 rounded;
+  @apply rounded border border-naturals-N7 px-2 py-1;
 }
 
 input[type='datetime-local']::-webkit-inner-spin-button {

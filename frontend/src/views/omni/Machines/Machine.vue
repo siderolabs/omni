@@ -4,31 +4,11 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex flex-col gap-4">
-    <div class="flex justify-between h-9">
-      <PageHeader :title="`${machine}`" />
-    </div>
-    <tabs-header class="border-b border-naturals-N4 pb-3.5">
-      <tab-button
-        is="router-link"
-        v-for="route in routes"
-        :key="route.name"
-        :to="route.to"
-        :selected="$route.name === route.to"
-      >
-        {{ route.name }}
-      </tab-button>
-    </tabs-header>
-    <router-view name="inner" class="flex-1" />
-  </div>
-</template>
-
 <script setup lang="ts">
 import { computed } from 'vue'
+import { onBeforeMount, ref, watch } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import TabsHeader from '@/components/common/Tabs/TabsHeader.vue'
-import TabButton from '@/components/common/Tabs/TabButton.vue'
+import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -37,8 +17,8 @@ import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { withRuntime } from '@/api/options'
 import { DefaultNamespace, MachineStatusType } from '@/api/resources'
 import PageHeader from '@/components/common/PageHeader.vue'
-import { onBeforeMount, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import TabButton from '@/components/common/Tabs/TabButton.vue'
+import TabsHeader from '@/components/common/Tabs/TabsHeader.vue'
 
 const routes = computed((): { name: string; to: RouteLocationRaw }[] => {
   return [
@@ -74,17 +54,37 @@ onBeforeMount(getMachineName)
 watch(() => route.params, getMachineName)
 </script>
 
+<template>
+  <div class="flex flex-col gap-4">
+    <div class="flex h-9 justify-between">
+      <PageHeader :title="`${machine}`" />
+    </div>
+    <TabsHeader class="border-b border-naturals-N4 pb-3.5">
+      <TabButton
+        is="router-link"
+        v-for="route in routes"
+        :key="route.name"
+        :to="route.to"
+        :selected="$route.name === route.to"
+      >
+        {{ route.name }}
+      </TabButton>
+    </TabsHeader>
+    <router-view name="inner" class="flex-1" />
+  </div>
+</template>
+
 <style scoped>
 .content {
-  @apply w-full border-b border-naturals-N4 flex;
+  @apply flex w-full border-b border-naturals-N4;
 }
 
 .router-link-active {
-  @apply text-naturals-N13 relative;
+  @apply relative text-naturals-N13;
 }
 
 .router-link-active::before {
-  @apply block absolute bg-primary-P3 w-full animate-fadein;
+  @apply absolute block w-full animate-fadein bg-primary-P3;
   content: '';
   height: 2px;
   bottom: -15px;

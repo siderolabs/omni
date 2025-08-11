@@ -4,34 +4,10 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="alert" :class="'alert-' + type">
-    <div class="alert-box">
-      <div class="alert-icon-wrapper" id="icon">
-        <t-icon :icon="icons[type]" />
-      </div>
-      <div class="alert-info-wrapper">
-        <h3 id="title">{{ title }}</h3>
-        <div id="description" v-if="$slots.default">
-          <p>
-            <slot></slot>
-          </p>
-        </div>
-      </div>
-      <div class="flex-1 flex justify-end pr-2" v-if="dismiss">
-        <t-button type="compact" class="notification-right-button" @click="dismiss?.action">{{
-          dismiss.name
-        }}</t-button>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
+import TButton from '@/components/common/Button/TButton.vue'
 import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
-
-import TButton from '@/components/common/Button/TButton.vue'
 
 export type AlertType = 'error' | 'info' | 'success' | 'warn'
 
@@ -54,16 +30,39 @@ const icons: Record<AlertType, IconType> = {
 }
 </script>
 
+<template>
+  <div class="alert" :class="'alert-' + type">
+    <div class="alert-box">
+      <div id="icon" class="alert-icon-wrapper">
+        <TIcon :icon="icons[type]" />
+      </div>
+      <div class="alert-info-wrapper">
+        <h3 id="title">{{ title }}</h3>
+        <div v-if="$slots.default" id="description">
+          <p>
+            <slot></slot>
+          </p>
+        </div>
+      </div>
+      <div v-if="dismiss" class="flex flex-1 justify-end pr-2">
+        <TButton type="compact" class="notification-right-button" @click="dismiss?.action">{{
+          dismiss.name
+        }}</TButton>
+      </div>
+    </div>
+  </div>
+</template>
+
 <style>
 .alert {
-  @apply p-4 rounded-md bg-naturals-N0 border border-naturals-N6 border-l-4;
+  @apply rounded-md border border-l-4 border-naturals-N6 bg-naturals-N0 p-4;
 }
 
 .alert-box {
   @apply flex items-center;
 }
 .alert-icon-wrapper {
-  @apply flex justify-center items-center;
+  @apply flex items-center justify-center;
 }
 
 .alert-info-wrapper {
@@ -79,7 +78,7 @@ const icons: Record<AlertType, IconType> = {
 }
 
 #icon > * {
-  @apply w-5 h-5;
+  @apply h-5 w-5;
 }
 
 .alert-error {
@@ -122,7 +121,7 @@ const icons: Record<AlertType, IconType> = {
 
 .alert-warn {
   border: 1px solid #272932;
-  @apply border-l-yellow-Y1 border-l-4;
+  @apply border-l-4 border-l-yellow-Y1;
 }
 
 .alert-warn #title {

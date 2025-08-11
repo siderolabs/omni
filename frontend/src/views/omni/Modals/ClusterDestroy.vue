@@ -4,64 +4,31 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window">
-    <div class="heading">
-      <h3 class="text-base text-naturals-N14">Destroy the Cluster {{ $route.query.cluster }} ?</h3>
-      <close-button @click="close" />
-    </div>
-    <managed-by-templates-warning warning-style="popup" />
-    <p class="text-xs" v-if="destroying">{{ phase }}...</p>
-    <p class="text-xs" v-else-if="loading">Checking the cluster status...</p>
-    <div v-else-if="disconnectedMachines.length > 0" class="text-xs">
-      <p class="text-primary-P3 py-2">
-        Cluster <code>{{ $route.query.cluster }}</code> has
-        {{ disconnectedMachines.length }} disconnected
-        {{ pluralize('machine', disconnectedMachines.length, false) }}. Destroying the cluster now
-        will also destroy disconnected machines.
-      </p>
-      <p class="text-primary-P3 py-2 font-bold">
-        These machines will need to be wiped and reinstalled to be used with Omni again. If the
-        machines can be recovered, you may wish to recover them before destroying the cluster, to
-        allow a graceful reset of the machines.
-      </p>
-    </div>
-    <p v-else class="text-xs">Please confirm the action.</p>
-
-    <div class="flex justify-end gap-4 mt-8">
-      <t-button @click="destroyCluster" :disabled="destroying || loading" class="w-32 h-9">
-        <t-spinner v-if="destroying" class="w-5 h-5" />
-        <span v-else> Destroy </span>
-      </t-button>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
+import pluralize from 'pluralize'
 import type { Ref } from 'vue'
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { showError, showSuccess } from '@/notification'
-import pluralize from 'pluralize'
+
+import { Runtime } from '@/api/common/omni.pb'
+import { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
-import Watch from '@/api/watch'
-import { Runtime } from '@/api/common/omni.pb'
+import { withRuntime } from '@/api/options'
 import {
-  MachineStatusLabelDisconnected,
-  MachineStatusType,
   DefaultNamespace,
   LabelCluster,
+  MachineStatusLabelDisconnected,
+  MachineStatusType,
   SiderolinkResourceType,
 } from '@/api/resources'
-
-import CloseButton from '@/views/omni/Modals/CloseButton.vue'
+import Watch from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import { clusterDestroy } from '@/methods/cluster'
+import { showError, showSuccess } from '@/notification'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
-import { withRuntime } from '@/api/options'
-import { Code } from '@/api/google/rpc/code.pb'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -170,12 +137,45 @@ const destroyCluster = async () => {
 const destroying = ref(false)
 </script>
 
+<template>
+  <div class="modal-window">
+    <div class="heading">
+      <h3 class="text-base text-naturals-N14">Destroy the Cluster {{ $route.query.cluster }} ?</h3>
+      <CloseButton @click="close" />
+    </div>
+    <ManagedByTemplatesWarning warning-style="popup" />
+    <p v-if="destroying" class="text-xs">{{ phase }}...</p>
+    <p v-else-if="loading" class="text-xs">Checking the cluster status...</p>
+    <div v-else-if="disconnectedMachines.length > 0" class="text-xs">
+      <p class="py-2 text-primary-P3">
+        Cluster <code>{{ $route.query.cluster }}</code> has
+        {{ disconnectedMachines.length }} disconnected
+        {{ pluralize('machine', disconnectedMachines.length, false) }}. Destroying the cluster now
+        will also destroy disconnected machines.
+      </p>
+      <p class="py-2 font-bold text-primary-P3">
+        These machines will need to be wiped and reinstalled to be used with Omni again. If the
+        machines can be recovered, you may wish to recover them before destroying the cluster, to
+        allow a graceful reset of the machines.
+      </p>
+    </div>
+    <p v-else class="text-xs">Please confirm the action.</p>
+
+    <div class="mt-8 flex justify-end gap-4">
+      <TButton :disabled="destroying || loading" class="h-9 w-32" @click="destroyCluster">
+        <TSpinner v-if="destroying" class="h-5 w-5" />
+        <span v-else> Destroy </span>
+      </TButton>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .window {
-  @apply rounded bg-naturals-N2 z-30 w-1/3 flex flex-col p-8;
+  @apply z-30 flex w-1/3 flex-col rounded bg-naturals-N2 p-8;
 }
 
 .heading {
-  @apply flex justify-between items-center mb-5 text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
 }
 </style>

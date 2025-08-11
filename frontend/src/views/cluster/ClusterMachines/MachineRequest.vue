@@ -4,41 +4,16 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div
-    class="flex items-center h-3 gap-1 text-xs py-6 pl-3 pr-11 text-naturals-N14 bg-center bg-no-repeat bg-opacity-25"
-  >
-    <div class="w-5 pointer-events-none" />
-    <div class="flex-1 grid grid-cols-4 -mr-3 items-center">
-      <div class="col-span-2 flex items-center gap-2">
-        <icon-header-dropdown-loading
-          v-if="stage !== TCommonStatuses.PROVISIONED"
-          active
-          class="w-4 h-4 ml-2"
-        />
-        <t-icon v-else icon="cloud-connection" class="w-4 h-4 ml-2" />
-        {{ requestStatus.metadata.id }}
-      </div>
-      <div>
-        <t-status :title="stage" />
-      </div>
-      <div class="truncate text-xs text-naturals-N11" :title="requestStatus.spec.status">
-        {{ requestStatus.spec.status }}
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import type { Resource } from '@/api/grpc'
+import { computed, toRefs } from 'vue'
 
-import TStatus from '@/components/common/Status/TStatus.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
+import type { Resource } from '@/api/grpc'
 import type { ClusterMachineRequestStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterMachineRequestStatusSpecStage } from '@/api/omni/specs/omni.pb'
-import { computed, toRefs } from 'vue'
-import { TCommonStatuses } from '@/constants'
+import TIcon from '@/components/common/Icon/TIcon.vue'
+import TStatus from '@/components/common/Status/TStatus.vue'
 import IconHeaderDropdownLoading from '@/components/icons/IconHeaderDropdownLoading.vue'
+import { TCommonStatuses } from '@/constants'
 
 const props = defineProps<{
   requestStatus: Resource<ClusterMachineRequestStatusSpec>
@@ -63,3 +38,28 @@ const stage = computed(() => {
   return TCommonStatuses.UNKNOWN
 })
 </script>
+
+<template>
+  <div
+    class="flex h-3 items-center gap-1 bg-opacity-25 bg-center bg-no-repeat py-6 pl-3 pr-11 text-xs text-naturals-N14"
+  >
+    <div class="pointer-events-none w-5" />
+    <div class="-mr-3 grid flex-1 grid-cols-4 items-center">
+      <div class="col-span-2 flex items-center gap-2">
+        <IconHeaderDropdownLoading
+          v-if="stage !== TCommonStatuses.PROVISIONED"
+          active
+          class="ml-2 h-4 w-4"
+        />
+        <TIcon v-else icon="cloud-connection" class="ml-2 h-4 w-4" />
+        {{ requestStatus.metadata.id }}
+      </div>
+      <div>
+        <TStatus :title="stage" />
+      </div>
+      <div class="truncate text-xs text-naturals-N11" :title="requestStatus.spec.status">
+        {{ requestStatus.spec.status }}
+      </div>
+    </div>
+  </div>
+</template>

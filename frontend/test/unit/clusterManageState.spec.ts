@@ -3,6 +3,9 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+import crypto from 'crypto'
+import { describe, expect, test, vi } from 'vitest'
+
 import type { Resource } from '@/api/grpc'
 import {
   type ClusterSpec,
@@ -32,8 +35,6 @@ import {
   state,
   typesOrder,
 } from '@/states/cluster-management'
-import crypto from 'crypto'
-import { describe, expect, test, vi } from 'vitest'
 
 vi.stubGlobal('crypto', {
   getRandomValues: (arr: unknown[]) => crypto.randomBytes(arr.length),

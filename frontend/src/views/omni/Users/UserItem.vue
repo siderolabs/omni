@@ -4,46 +4,17 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <t-list-item>
-    <template #default>
-      <div class="flex items-center gap-2">
-        <div class="users-grid text-naturals-N13 flex-1">
-          <div class="font-bold">{{ item.metadata.id }}</div>
-          <div class="px-2 py-1 max-w-min text-naturals-N10 rounded bg-naturals-N3">
-            {{ props.item.spec.role ?? 'None' }}
-          </div>
-          <div class="flex flex-wrap gap-1 col-span-3">
-            <div v-for="label in labels" :key="label" class="resource-label text-xs label-light6">
-              {{ label }}
-            </div>
-          </div>
-        </div>
-        <div class="flex justify-between">
-          <t-actions-box v-if="canManageUsers" style="height: 24px">
-            <t-actions-box-item icon="edit" @click.stop="editUser">Edit User</t-actions-box-item>
-            <t-actions-box-item icon="delete" @click.stop="deleteUser" danger
-              >Delete User</t-actions-box-item
-            >
-          </t-actions-box>
-        </div>
-      </div>
-    </template>
-  </t-list-item>
-</template>
-
 <script setup lang="ts">
-import type { UserSpec, IdentitySpec } from '@/api/omni/specs/auth.pb'
-import type { Resource } from '@/api/grpc'
-
+import { computed, toRefs } from 'vue'
 import { useRouter } from 'vue-router'
 
-import TListItem from '@/components/common/List/TListItem.vue'
+import type { Resource } from '@/api/grpc'
+import type { IdentitySpec, UserSpec } from '@/api/omni/specs/auth.pb'
+import { SAMLLabelPrefix } from '@/api/resources'
 import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/common/ActionsBox/TActionsBoxItem.vue'
+import TListItem from '@/components/common/List/TListItem.vue'
 import { canManageUsers } from '@/methods/auth'
-import { computed, toRefs } from 'vue'
-import { SAMLLabelPrefix } from '@/api/resources'
 
 const props = defineProps<{
   item: Resource<UserSpec & IdentitySpec>
@@ -84,13 +55,41 @@ const editUser = () => {
 }
 </script>
 
+<template>
+  <TListItem>
+    <template #default>
+      <div class="flex items-center gap-2">
+        <div class="users-grid flex-1 text-naturals-N13">
+          <div class="font-bold">{{ item.metadata.id }}</div>
+          <div class="max-w-min rounded bg-naturals-N3 px-2 py-1 text-naturals-N10">
+            {{ props.item.spec.role ?? 'None' }}
+          </div>
+          <div class="col-span-3 flex flex-wrap gap-1">
+            <div v-for="label in labels" :key="label" class="resource-label label-light6 text-xs">
+              {{ label }}
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-between">
+          <TActionsBox v-if="canManageUsers" style="height: 24px">
+            <TActionsBoxItem icon="edit" @click.stop="editUser">Edit User</TActionsBoxItem>
+            <TActionsBoxItem icon="delete" danger @click.stop="deleteUser"
+              >Delete User</TActionsBoxItem
+            >
+          </TActionsBox>
+        </div>
+      </div>
+    </template>
+  </TListItem>
+</template>
+
 <style scoped>
 .users-grid {
-  @apply grid grid-cols-5 pr-2 items-center;
+  @apply grid grid-cols-5 items-center pr-2;
 }
 
 .users-grid > * {
-  @apply text-xs truncate;
+  @apply truncate text-xs;
 }
 
 .scope > * {

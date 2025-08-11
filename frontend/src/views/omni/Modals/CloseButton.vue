@@ -4,13 +4,13 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <t-icon
-    class="fill-current text-naturals-N10 cursor-pointer transition-colors hover:text-naturals-N14 w-6 h-6"
-    icon="close"
-  />
-</template>
-
 <script setup lang="ts">
 import TIcon from '@/components/common/Icon/TIcon.vue'
 </script>
+
+<template>
+  <TIcon
+    class="h-6 w-6 cursor-pointer fill-current text-naturals-N10 transition-colors hover:text-naturals-N14"
+    icon="close"
+  />
+</template>

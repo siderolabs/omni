@@ -4,47 +4,19 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window flex flex-col gap-4" style="height: 90%">
-    <div class="heading">
-      <h3 class="text-base text-naturals-N14">Update Extensions</h3>
-      <close-button @click="close" />
-    </div>
-
-    <div v-if="machineExtensionsStatus" class="flex flex-col gap-4 flex-1 overflow-hidden">
-      <extensions-picker
-        v-model="enabledExtensions"
-        :talos-version="machineExtensionsStatus?.spec.talos_version!.slice(1)"
-        class="flex-1"
-        :indeterminate="indeterminate"
-        :immutable-extensions="immutableExtensions"
-      />
-
-      <div class="flex justify-between gap-4">
-        <t-button @click="close" type="secondary"> Cancel </t-button>
-        <t-button @click="updateExtensions" type="highlighted"> Update </t-button>
-      </div>
-    </div>
-    <div v-else class="flex items-center justify-center">
-      <t-spinner class="w-6 h-6" />
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import CloseButton from '@/views/omni/Modals/CloseButton.vue'
-import TButton from '@/components/common/Button/TButton.vue'
-import ExtensionsPicker from '@/views/omni/Extensions/ExtensionsPicker.vue'
-import { computed, ref, watch } from 'vue'
-import Watch from '@/api/watch'
+import { Runtime } from '@/api/common/omni.pb'
+import { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
 import type {
   ExtensionsConfigurationSpec,
   MachineExtensionsStatusSpec,
 } from '@/api/omni/specs/omni.pb'
+import { withRuntime } from '@/api/options'
 import {
   DefaultNamespace,
   ExtensionsConfigurationType,
@@ -52,11 +24,12 @@ import {
   LabelClusterMachine,
   MachineExtensionsStatusType,
 } from '@/api/resources'
-import { Runtime } from '@/api/common/omni.pb'
+import Watch from '@/api/watch'
+import TButton from '@/components/common/Button/TButton.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import { showError } from '@/notification'
-import { withRuntime } from '@/api/options'
-import { Code } from '@/api/google/rpc/code.pb'
+import ExtensionsPicker from '@/views/omni/Extensions/ExtensionsPicker.vue'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -200,12 +173,39 @@ const updateExtensionsConfig = async () => {
 }
 </script>
 
+<template>
+  <div class="modal-window flex flex-col gap-4" style="height: 90%">
+    <div class="heading">
+      <h3 class="text-base text-naturals-N14">Update Extensions</h3>
+      <CloseButton @click="close" />
+    </div>
+
+    <div v-if="machineExtensionsStatus" class="flex flex-1 flex-col gap-4 overflow-hidden">
+      <ExtensionsPicker
+        v-model="enabledExtensions"
+        :talos-version="machineExtensionsStatus?.spec.talos_version!.slice(1)"
+        class="flex-1"
+        :indeterminate="indeterminate"
+        :immutable-extensions="immutableExtensions"
+      />
+
+      <div class="flex justify-between gap-4">
+        <TButton type="secondary" @click="close"> Cancel </TButton>
+        <TButton type="highlighted" @click="updateExtensions"> Update </TButton>
+      </div>
+    </div>
+    <div v-else class="flex items-center justify-center">
+      <TSpinner class="h-6 w-6" />
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .modal-window {
-  @apply w-1/2 h-auto p-8;
+  @apply h-auto w-1/2 p-8;
 }
 
 .heading {
-  @apply flex justify-between items-center text-xl text-naturals-N14;
+  @apply flex items-center justify-between text-xl text-naturals-N14;
 }
 </style>

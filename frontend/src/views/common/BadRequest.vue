@@ -8,7 +8,7 @@ included in the LICENSE file.
   <div class="flex items-center justify-center">
     <div class="flex flex-col items-center">
       <div class="code">400</div>
-      <div class="text-xl text-center">Bad Request</div>
+      <div class="text-center text-xl">Bad Request</div>
     </div>
   </div>
 </template>

@@ -4,20 +4,6 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <tabs-header class="border-b border-naturals-N4 pb-3.5">
-    <tab-button
-      is="router-link"
-      v-for="route in routes"
-      :key="route.name"
-      :to="route.to"
-      :selected="$route.name === route.to"
-    >
-      {{ route.name }}
-    </tab-button>
-  </tabs-header>
-</template>
-
 <script setup lang="ts">
 import { computed, toRefs } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
@@ -65,17 +51,31 @@ const routes = computed((): { name: string; to: RouteLocationRaw }[] => {
 })
 </script>
 
+<template>
+  <TabsHeader class="border-b border-naturals-N4 pb-3.5">
+    <TabButton
+      is="router-link"
+      v-for="route in routes"
+      :key="route.name"
+      :to="route.to"
+      :selected="$route.name === route.to"
+    >
+      {{ route.name }}
+    </TabButton>
+  </TabsHeader>
+</template>
+
 <style scoped>
 .content {
-  @apply w-full border-b border-naturals-N4 flex;
+  @apply flex w-full border-b border-naturals-N4;
 }
 
 .router-link-active {
-  @apply text-naturals-N13 relative;
+  @apply relative text-naturals-N13;
 }
 
 .router-link-active::before {
-  @apply block absolute bg-primary-P3 w-full animate-fadein;
+  @apply absolute block w-full animate-fadein bg-primary-P3;
   content: '';
   height: 2px;
   bottom: -15px;

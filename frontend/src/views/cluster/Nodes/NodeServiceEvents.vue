@@ -4,29 +4,8 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="pl-1 mt-4 -mb-2">
-    <div class="w-full h-full border-l-2 border-naturals-N4 flex flex-col gap-4">
-      <div v-for="event in events" :key="event.ts" class="grid grid-cols-6 gap-3">
-        <div class="flex items-center gap-3">
-          <div
-            class="rounded-full p-1 max-w-min"
-            :class="eventStyle(event.state!).color"
-            style="margin-left: -11px"
-          >
-            <t-icon :icon="eventStyle(event.state!).icon" class="w-3 h-3 text-white" />
-          </div>
-          <div class="font-bold">{{ event.state }}</div>
-        </div>
-        <div class="col-span-5">{{ relativeISO(event.ts!) }} {{ event.msg }}</div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import type { ServiceEvent } from '@/api/talos/machine/machine.pb'
-
 import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import { relativeISO } from '@/methods/time'
@@ -70,3 +49,23 @@ const eventStyle = (state: string) => {
   }
 }
 </script>
+
+<template>
+  <div class="-mb-2 mt-4 pl-1">
+    <div class="flex h-full w-full flex-col gap-4 border-l-2 border-naturals-N4">
+      <div v-for="event in events" :key="event.ts" class="grid grid-cols-6 gap-3">
+        <div class="flex items-center gap-3">
+          <div
+            class="max-w-min rounded-full p-1"
+            :class="eventStyle(event.state!).color"
+            style="margin-left: -11px"
+          >
+            <TIcon :icon="eventStyle(event.state!).icon" class="h-3 w-3 text-white" />
+          </div>
+          <div class="font-bold">{{ event.state }}</div>
+        </div>
+        <div class="col-span-5">{{ relativeISO(event.ts!) }} {{ event.msg }}</div>
+      </div>
+    </div>
+  </div>
+</template>

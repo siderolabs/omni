@@ -3,29 +3,29 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import {
-  CurrentUserID,
-  CurrentUserType,
-  VirtualNamespace,
-  PermissionsType,
-  PermissionsID,
-  ClusterPermissionsType,
-  DefaultNamespace,
-  JoinTokenType,
-} from '@/api/resources'
+import type { ComputedRef, Ref } from 'vue'
+import { computed, onBeforeMount, ref, watch } from 'vue'
 
+import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
-import { Runtime } from '@/api/common/omni.pb'
+import type { JoinTokenSpec } from '@/api/omni/specs/auth.pb'
 import type {
   ClusterPermissionsSpec,
   CurrentUserSpec,
   PermissionsSpec,
 } from '@/api/omni/specs/virtual.pb'
-import type { ComputedRef, Ref } from 'vue'
-import { computed, onBeforeMount, ref, watch } from 'vue'
 import { withRuntime } from '@/api/options'
-import type { JoinTokenSpec } from '@/api/omni/specs/auth.pb'
+import {
+  ClusterPermissionsType,
+  CurrentUserID,
+  CurrentUserType,
+  DefaultNamespace,
+  JoinTokenType,
+  PermissionsID,
+  PermissionsType,
+  VirtualNamespace,
+} from '@/api/resources'
 
 export const currentUser: Ref<Resource<CurrentUserSpec> | undefined> = ref()
 export const permissions: Ref<Resource<PermissionsSpec> | undefined> = ref()

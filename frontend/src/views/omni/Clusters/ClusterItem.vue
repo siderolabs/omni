@@ -4,101 +4,15 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <list-item-box
-    :itemID="item.metadata.id!"
-    :id="`${item.metadata.id}-cluster-box`"
-    listID="cluster"
-    ref="box"
-  >
-    <template #default>
-      <div class="clusters-grid flex-1">
-        <div class="list-item-link">
-          <router-link :to="{ name: 'ClusterOverview', params: { cluster: item?.metadata.id } }">
-            <word-highlighter
-              :query="searchQuery ?? ''"
-              :textToHighlight="item.metadata.id"
-              split-by-space
-              highlightClass="bg-naturals-N14"
-            />
-          </router-link>
-        </div>
-        <div class="ml-3" id="machine-count">
-          {{ item?.spec?.machines?.healthy ?? 0 }}/{{ item?.spec?.machines?.total ?? 0 }}
-        </div>
-        <div />
-        <item-labels
-          class="ml-5"
-          v-if="item"
-          :resource="item"
-          :add-label-func="addClusterLabels"
-          :remove-label-func="removeClusterLabels"
-          @filter-label="(e) => $emit('filterLabels', e)"
-        />
-      </div>
-      <tooltip description="Open Cluster Dashboard" class="h-6">
-        <icon-button
-          icon="dashboard"
-          @click.stop="() => $router.push({ path: '/cluster/' + item?.metadata.id + '/overview' })"
-        />
-      </tooltip>
-      <t-actions-box style="height: 24px" @click.stop>
-        <t-actions-box-item
-          icon="nodes"
-          @click="
-            () => $router.push({ name: 'ClusterScale', params: { cluster: item?.metadata?.id } })
-          "
-          v-if="canAddClusterMachines"
-          >Cluster Scaling
-        </t-actions-box-item>
-        <t-actions-box-item
-          icon="settings"
-          @click="
-            () =>
-              $router.push({
-                name: 'ClusterConfigPatches',
-                params: { cluster: item?.metadata?.id },
-              })
-          "
-          >Config Patches
-        </t-actions-box-item>
-        <t-actions-box-item
-          icon="dashboard"
-          @click="
-            () => $router.push({ name: 'ClusterOverview', params: { cluster: item?.metadata?.id } })
-          "
-          >Open Dashboard
-        </t-actions-box-item>
-        <t-actions-box-item
-          icon="kube-config"
-          @click="() => downloadKubeconfig(item?.metadata?.id as string)"
-          v-if="canDownloadKubeconfig"
-          >Download <code>kubeconfig</code></t-actions-box-item
-        >
-        <t-actions-box-item
-          icon="talos-config"
-          @click="() => downloadTalosconfig(item?.metadata?.id)"
-          v-if="canDownloadTalosconfig"
-          >Download <code>talosconfig</code></t-actions-box-item
-        >
-        <t-actions-box-item
-          icon="delete"
-          danger
-          @click="openClusterDestroy"
-          v-if="canRemoveClusterMachines"
-          >Destroy Cluster</t-actions-box-item
-        >
-      </t-actions-box>
-    </template>
-    <template #details>
-      <cluster-machines :clusterID="item.metadata.id!" />
-    </template>
-  </list-item-box>
-</template>
-
 <script setup lang="ts">
 import type { Ref } from 'vue'
-import { computed, toRefs, ref } from 'vue'
+import { computed, ref, toRefs } from 'vue'
+import { useRouter } from 'vue-router'
+import WordHighlighter from 'vue-word-highlighter'
+
+import { Runtime } from '@/api/common/omni.pb'
+import type { Resource } from '@/api/grpc'
+import type { ClusterStatusSpec, MachineSetSpec } from '@/api/omni/specs/omni.pb'
 import {
   DefaultNamespace,
   LabelCluster,
@@ -106,25 +20,18 @@ import {
   MachineSetNodeType,
   MachineSetType,
 } from '@/api/resources'
-import { downloadKubeconfig, downloadTalosconfig } from '@/methods'
-import { useRouter } from 'vue-router'
-import { addClusterLabels, removeClusterLabels } from '@/methods/cluster'
-import { controlPlaneMachineSetId } from '@/methods/machineset'
-import type { Resource } from '@/api/grpc'
-import type { ClusterStatusSpec, MachineSetSpec } from '@/api/omni/specs/omni.pb'
-import { Runtime } from '@/api/common/omni.pb'
 import WatchResource from '@/api/watch'
-
 import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/common/ActionsBox/TActionsBoxItem.vue'
-import ClusterMachines from '@/views/cluster/ClusterMachines/ClusterMachines.vue'
 import IconButton from '@/components/common/Button/IconButton.vue'
-import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
-import WordHighlighter from 'vue-word-highlighter'
-import ItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
-import { setupClusterPermissions } from '@/methods/auth'
-
 import ListItemBox from '@/components/common/List/ListItemBox.vue'
+import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
+import { downloadKubeconfig, downloadTalosconfig } from '@/methods'
+import { setupClusterPermissions } from '@/methods/auth'
+import { addClusterLabels, removeClusterLabels } from '@/methods/cluster'
+import { controlPlaneMachineSetId } from '@/methods/machineset'
+import ClusterMachines from '@/views/cluster/ClusterMachines/ClusterMachines.vue'
+import ItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
 
 const box = ref<{ collapsed: boolean }>()
 
@@ -193,12 +100,104 @@ machineNodesWatch.setup(
 )
 </script>
 
+<template>
+  <ListItemBox
+    :id="`${item.metadata.id}-cluster-box`"
+    ref="box"
+    :item-i-d="item.metadata.id!"
+    list-i-d="cluster"
+  >
+    <template #default>
+      <div class="clusters-grid flex-1">
+        <div class="list-item-link">
+          <router-link :to="{ name: 'ClusterOverview', params: { cluster: item?.metadata.id } }">
+            <WordHighlighter
+              :query="searchQuery ?? ''"
+              :text-to-highlight="item.metadata.id"
+              split-by-space
+              highlight-class="bg-naturals-N14"
+            />
+          </router-link>
+        </div>
+        <div id="machine-count" class="ml-3">
+          {{ item?.spec?.machines?.healthy ?? 0 }}/{{ item?.spec?.machines?.total ?? 0 }}
+        </div>
+        <div />
+        <ItemLabels
+          v-if="item"
+          class="ml-5"
+          :resource="item"
+          :add-label-func="addClusterLabels"
+          :remove-label-func="removeClusterLabels"
+          @filter-label="(e) => $emit('filterLabels', e)"
+        />
+      </div>
+      <Tooltip description="Open Cluster Dashboard" class="h-6">
+        <IconButton
+          icon="dashboard"
+          @click.stop="() => $router.push({ path: '/cluster/' + item?.metadata.id + '/overview' })"
+        />
+      </Tooltip>
+      <TActionsBox style="height: 24px" @click.stop>
+        <TActionsBoxItem
+          v-if="canAddClusterMachines"
+          icon="nodes"
+          @click="
+            () => $router.push({ name: 'ClusterScale', params: { cluster: item?.metadata?.id } })
+          "
+          >Cluster Scaling
+        </TActionsBoxItem>
+        <TActionsBoxItem
+          icon="settings"
+          @click="
+            () =>
+              $router.push({
+                name: 'ClusterConfigPatches',
+                params: { cluster: item?.metadata?.id },
+              })
+          "
+          >Config Patches
+        </TActionsBoxItem>
+        <TActionsBoxItem
+          icon="dashboard"
+          @click="
+            () => $router.push({ name: 'ClusterOverview', params: { cluster: item?.metadata?.id } })
+          "
+          >Open Dashboard
+        </TActionsBoxItem>
+        <TActionsBoxItem
+          v-if="canDownloadKubeconfig"
+          icon="kube-config"
+          @click="() => downloadKubeconfig(item?.metadata?.id as string)"
+          >Download <code>kubeconfig</code></TActionsBoxItem
+        >
+        <TActionsBoxItem
+          v-if="canDownloadTalosconfig"
+          icon="talos-config"
+          @click="() => downloadTalosconfig(item?.metadata?.id)"
+          >Download <code>talosconfig</code></TActionsBoxItem
+        >
+        <TActionsBoxItem
+          v-if="canRemoveClusterMachines"
+          icon="delete"
+          danger
+          @click="openClusterDestroy"
+          >Destroy Cluster</TActionsBoxItem
+        >
+      </TActionsBox>
+    </template>
+    <template #details>
+      <ClusterMachines :cluster-i-d="item.metadata.id!" />
+    </template>
+  </ListItemBox>
+</template>
+
 <style>
 .clusters-grid {
-  @apply items-center grid grid-cols-4 pr-2 gap-2;
+  @apply grid grid-cols-4 items-center gap-2 pr-2;
 }
 
 .clusters-grid > * {
-  @apply text-xs truncate;
+  @apply truncate text-xs;
 }
 </style>

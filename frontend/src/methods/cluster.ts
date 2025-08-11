@@ -3,6 +3,24 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+import { isEqual } from 'lodash'
+import * as semver from 'semver'
+import type { Ref } from 'vue'
+
+import { Runtime } from '@/api/common/omni.pb'
+import { Code } from '@/api/google/rpc/code.pb'
+import type { Resource } from '@/api/grpc'
+import { ResourceService } from '@/api/grpc'
+import type { DeleteRequest } from '@/api/omni/resources/resources.pb'
+import type {
+  ClusterSpec,
+  EtcdManualBackupSpec,
+  KubernetesUpgradeStatusSpec,
+  MachineSetNodeSpec,
+  NodeForceDestroyRequestSpec,
+  TalosUpgradeStatusSpec,
+} from '@/api/omni/specs/omni.pb'
+import { withRuntime, withSelectors, withTimeout } from '@/api/options'
 import {
   ClusterType,
   ConfigPatchType,
@@ -18,28 +36,11 @@ import {
   NodeForceDestroyRequestType,
   TalosUpgradeStatusType,
 } from '@/api/resources'
-import type {
-  ClusterSpec,
-  EtcdManualBackupSpec,
-  KubernetesUpgradeStatusSpec,
-  MachineSetNodeSpec,
-  NodeForceDestroyRequestSpec,
-  TalosUpgradeStatusSpec,
-} from '@/api/omni/specs/omni.pb'
 import type { Metadata } from '@/api/v1alpha1/resource.pb'
-import type { Resource } from '@/api/grpc'
-import { ResourceService } from '@/api/grpc'
-import { Runtime } from '@/api/common/omni.pb'
-import { withRuntime, withSelectors, withTimeout } from '@/api/options'
-import { isEqual } from 'lodash'
-
-import type { Ref } from 'vue'
-import { Code } from '@/api/google/rpc/code.pb'
-import type { DeleteRequest } from '@/api/omni/resources/resources.pb'
+import { embeddedDiscoveryServiceFeatureAvailable } from '@/methods/features'
 import { parseLabels } from '@/methods/labels'
 import { controlPlaneMachineSetId } from '@/methods/machineset'
-import * as semver from 'semver'
-import { embeddedDiscoveryServiceFeatureAvailable } from '@/methods/features'
+
 import { isoNow } from './time'
 
 export type MachineConfig = {
@@ -96,7 +97,7 @@ export const destroyResources = async (resources: DeleteRequest[], phase?: Ref<s
 
       await ResourceService.Delete(request, withRuntime(Runtime.Omni), withTimeout(timeout))
     } catch (e) {
-      if (e.code != Code.NOT_FOUND) {
+      if (e.code !== Code.NOT_FOUND) {
         throw e
       }
     }

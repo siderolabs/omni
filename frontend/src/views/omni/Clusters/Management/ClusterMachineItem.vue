@@ -4,149 +4,39 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <t-list-item>
-    <template #default>
-      <div class="flex items-center text-naturals-N13">
-        <div class="truncate flex-1 flex items-center gap-2">
-          <span class="font-bold pr-2">
-            <word-highlighter
-              :query="searchQuery ?? ''"
-              :textToHighlight="item?.spec?.network?.hostname ?? item?.metadata?.id"
-              split-by-space
-              highlightClass="bg-naturals-N14"
-            />
-          </span>
-          <machine-item-labels
-            :resource="item"
-            :add-label-func="addMachineLabels"
-            :remove-label-func="removeMachineLabels"
-            @filter-label="(e) => $emit('filterLabel', e)"
-          />
-        </div>
-        <div class="flex justify-end flex-initial w-128 gap-4 items-center">
-          <template v-if="machineSetIndex !== undefined">
-            <div
-              v-if="systemDiskPath"
-              class="pr-8 pl-3 py-1.5 text-naturals-N11 rounded border border-naturals-N6 cursor-not-allowed"
-            >
-              Install Disk: {{ systemDiskPath }}
-            </div>
-            <div v-else>
-              <t-select-list
-                class="h-7"
-                title="Install Disk"
-                @checkedValue="setInstallDisk"
-                :values="disks"
-                :defaultValue="item.spec.install_disk ?? disks[0]"
-              />
-            </div>
-          </template>
-          <div>
-            <machine-set-picker
-              :options="options"
-              :machine-set-index="machineSetIndex"
-              @update:machineSetIndex="(value) => (machineSetIndex = value)"
-            />
-          </div>
-          <div class="flex items-center gap-1">
-            <icon-button
-              class="text-naturals-N14 my-auto"
-              @click="openExtensionConfig"
-              :id="
-                machineSetIndex !== undefined
-                  ? `extensions-${options?.[machineSetIndex]?.id}`
-                  : undefined
-              "
-              :disabled="machineSetIndex === undefined || options?.[machineSetIndex]?.disabled"
-              :icon="systemExtensions ? 'extensions-toggle' : 'extensions'"
-            />
-            <icon-button
-              class="text-naturals-N14 my-auto"
-              @click="openPatchConfig"
-              :id="machineSetIndex !== undefined ? options?.[machineSetIndex]?.id : undefined"
-              :disabled="machineSetIndex === undefined || options?.[machineSetIndex]?.disabled"
-              :icon="
-                machineSetNode.patches[machinePatchID] && machineSetIndex !== undefined
-                  ? 'settings-toggle'
-                  : 'settings'
-              "
-            />
-          </div>
-        </div>
-      </div>
-    </template>
-    <template #details>
-      <div class="pl-6 grid grid-cols-5">
-        <div class="mb-2 mt-4">Processors</div>
-        <div class="mb-2 mt-4">Memory</div>
-        <div class="mb-2 mt-4">Block Devices</div>
-        <div class="mb-2 mt-4">Addresses</div>
-        <div class="mb-2 mt-4">Network Interfaces</div>
-        <div>
-          <div v-for="(processor, index) in item?.spec?.hardware?.processors" :key="index">
-            {{ (processor.frequency ?? 0) / 1000 }} GHz, {{ processor.core_count }}
-            {{ pluralize('core', processor.core_count) }}, {{ processor.description }}
-          </div>
-        </div>
-        <div>
-          <div v-for="(mem, index) in memoryModules" :key="index">
-            {{ formatBytes((mem?.size_mb || 0) * 1024 * 1024) }} {{ mem.description }}
-          </div>
-        </div>
-        <div>
-          <div v-for="(dev, index) in item?.spec?.hardware?.blockdevices" :key="index">
-            {{ dev.linux_name }} {{ formatBytes(dev.size) }} {{ dev.type }}
-          </div>
-        </div>
-        <div>
-          <div>
-            {{ item.spec?.network?.addresses?.join(', ') }}
-          </div>
-        </div>
-        <div>
-          <div v-for="(link, index) in item?.spec?.network?.network_links" :key="index">
-            {{ link.linux_name }} {{ link.hardware_address }} {{ link.link_up ? 'UP' : 'DOWN' }}
-          </div>
-        </div>
-      </div>
-    </template>
-  </t-list-item>
-</template>
-
 <script setup lang="ts">
+import yaml from 'js-yaml'
+import pluralize from 'pluralize'
 import type { Ref } from 'vue'
 import { computed, ref, toRefs, watch } from 'vue'
-import { formatBytes } from '@/methods'
+import WordHighlighter from 'vue-word-highlighter'
+
+import type { Resource } from '@/api/grpc'
+import type {
+  MachineConfigGenOptionsSpec,
+  MachineStatusSpec,
+  MachineStatusSpecHardwareStatusBlockDevice,
+} from '@/api/omni/specs/omni.pb'
+import type { SiderolinkSpec } from '@/api/omni/specs/siderolink.pb'
 import {
   LabelControlPlaneRole,
   PatchBaseWeightClusterMachine,
   PatchWeightInstallDisk,
 } from '@/api/resources'
-import pluralize from 'pluralize'
-import { showModal } from '@/modal'
-import type {
-  MachineStatusSpec,
-  MachineStatusSpecHardwareStatusBlockDevice,
-  MachineConfigGenOptionsSpec,
-} from '@/api/omni/specs/omni.pb'
-import type { SiderolinkSpec } from '@/api/omni/specs/siderolink.pb'
-import type { Resource } from '@/api/grpc'
-
+import IconButton from '@/components/common/Button/IconButton.vue'
 import TListItem from '@/components/common/List/TListItem.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
-import IconButton from '@/components/common/Button/IconButton.vue'
-import ConfigPatchEdit from '@/views/omni/Modals/ConfigPatchEdit.vue'
-import MachineItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
-import WordHighlighter from 'vue-word-highlighter'
+import { formatBytes } from '@/methods'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
+import { showModal } from '@/modal'
 import type { MachineSet, MachineSetNode } from '@/states/cluster-management'
-import { state, PatchID } from '@/states/cluster-management'
+import { PatchID, state } from '@/states/cluster-management'
+import MachineItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
+import ConfigPatchEdit from '@/views/omni/Modals/ConfigPatchEdit.vue'
+
+import CreateExtensions from '../../Modals/CreateExtensions.vue'
 import type { PickerOption } from './MachineSetPicker.vue'
 import MachineSetPicker from './MachineSetPicker.vue'
-
-import yaml from 'js-yaml'
-import CreateExtensions from '../../Modals/CreateExtensions.vue'
 
 type MemModule = {
   size_mb?: number
@@ -264,8 +154,8 @@ const options: Ref<PickerOption[]> = computed(() => {
   const cpMemoryThreshold = 2 * 1024
   const workerMemoryTheshold = 1024
 
-  const canUseAsControlPlane = memoryCapacity == 0 || memoryCapacity >= cpMemoryThreshold
-  const canUseAsWorker = memoryCapacity == 0 || memoryCapacity >= workerMemoryTheshold
+  const canUseAsControlPlane = memoryCapacity === 0 || memoryCapacity >= cpMemoryThreshold
+  const canUseAsWorker = memoryCapacity === 0 || memoryCapacity >= workerMemoryTheshold
 
   return state.value.machineSets.map((ms: MachineSet) => {
     let disabled = ms.role === LabelControlPlaneRole ? !canUseAsControlPlane : !canUseAsWorker
@@ -364,3 +254,113 @@ machine:
   })
 }
 </script>
+
+<template>
+  <TListItem>
+    <template #default>
+      <div class="flex items-center text-naturals-N13">
+        <div class="flex flex-1 items-center gap-2 truncate">
+          <span class="pr-2 font-bold">
+            <WordHighlighter
+              :query="searchQuery ?? ''"
+              :text-to-highlight="item?.spec?.network?.hostname ?? item?.metadata?.id"
+              split-by-space
+              highlight-class="bg-naturals-N14"
+            />
+          </span>
+          <MachineItemLabels
+            :resource="item"
+            :add-label-func="addMachineLabels"
+            :remove-label-func="removeMachineLabels"
+            @filter-label="(e) => $emit('filterLabel', e)"
+          />
+        </div>
+        <div class="w-128 flex flex-initial items-center justify-end gap-4">
+          <template v-if="machineSetIndex !== undefined">
+            <div
+              v-if="systemDiskPath"
+              class="cursor-not-allowed rounded border border-naturals-N6 py-1.5 pl-3 pr-8 text-naturals-N11"
+            >
+              Install Disk: {{ systemDiskPath }}
+            </div>
+            <div v-else>
+              <TSelectList
+                class="h-7"
+                title="Install Disk"
+                :values="disks"
+                :default-value="item.spec.install_disk ?? disks[0]"
+                @checked-value="setInstallDisk"
+              />
+            </div>
+          </template>
+          <div>
+            <MachineSetPicker
+              :options="options"
+              :machine-set-index="machineSetIndex"
+              @update:machine-set-index="(value) => (machineSetIndex = value)"
+            />
+          </div>
+          <div class="flex items-center gap-1">
+            <IconButton
+              :id="
+                machineSetIndex !== undefined
+                  ? `extensions-${options?.[machineSetIndex]?.id}`
+                  : undefined
+              "
+              class="my-auto text-naturals-N14"
+              :disabled="machineSetIndex === undefined || options?.[machineSetIndex]?.disabled"
+              :icon="systemExtensions ? 'extensions-toggle' : 'extensions'"
+              @click="openExtensionConfig"
+            />
+            <IconButton
+              :id="machineSetIndex !== undefined ? options?.[machineSetIndex]?.id : undefined"
+              class="my-auto text-naturals-N14"
+              :disabled="machineSetIndex === undefined || options?.[machineSetIndex]?.disabled"
+              :icon="
+                machineSetNode.patches[machinePatchID] && machineSetIndex !== undefined
+                  ? 'settings-toggle'
+                  : 'settings'
+              "
+              @click="openPatchConfig"
+            />
+          </div>
+        </div>
+      </div>
+    </template>
+    <template #details>
+      <div class="grid grid-cols-5 pl-6">
+        <div class="mb-2 mt-4">Processors</div>
+        <div class="mb-2 mt-4">Memory</div>
+        <div class="mb-2 mt-4">Block Devices</div>
+        <div class="mb-2 mt-4">Addresses</div>
+        <div class="mb-2 mt-4">Network Interfaces</div>
+        <div>
+          <div v-for="(processor, index) in item?.spec?.hardware?.processors" :key="index">
+            {{ (processor.frequency ?? 0) / 1000 }} GHz, {{ processor.core_count }}
+            {{ pluralize('core', processor.core_count) }}, {{ processor.description }}
+          </div>
+        </div>
+        <div>
+          <div v-for="(mem, index) in memoryModules" :key="index">
+            {{ formatBytes((mem?.size_mb || 0) * 1024 * 1024) }} {{ mem.description }}
+          </div>
+        </div>
+        <div>
+          <div v-for="(dev, index) in item?.spec?.hardware?.blockdevices" :key="index">
+            {{ dev.linux_name }} {{ formatBytes(dev.size) }} {{ dev.type }}
+          </div>
+        </div>
+        <div>
+          <div>
+            {{ item.spec?.network?.addresses?.join(', ') }}
+          </div>
+        </div>
+        <div>
+          <div v-for="(link, index) in item?.spec?.network?.network_links" :key="index">
+            {{ link.linux_name }} {{ link.hardware_address }} {{ link.link_up ? 'UP' : 'DOWN' }}
+          </div>
+        </div>
+      </div>
+    </template>
+  </TListItem>
+</template>

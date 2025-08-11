@@ -4,21 +4,10 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="item">
-    <h4 class="item__name">{{ name }}</h4>
-    <overview-circle-chart :chartFillPercents="chartFillPercents" />
-    <p class="item__use">
-      {{ usageName }}
-      <span class="item__use-percents">{{ usagePercents }}%</span>
-    </p>
-    <p class="item__total">{{ usageTotal }} {{ totalLegend }}</p>
-  </div>
-</template>
-
 <script setup lang="ts">
-import OverviewCircleChart from '@/views/cluster/Overview/components/OverviewCircleChart/OverviewCircleChart.vue'
 import { toRefs } from 'vue'
+
+import OverviewCircleChart from '@/views/cluster/Overview/components/OverviewCircleChart/OverviewCircleChart.vue'
 
 type Props = {
   name: string
@@ -36,18 +25,30 @@ const props = withDefaults(defineProps<Props>(), {
 const { name, usageName, totalLegend, usagePercents, usageTotal, chartFillPercents } = toRefs(props)
 </script>
 
+<template>
+  <div class="item">
+    <h4 class="item__name">{{ name }}</h4>
+    <OverviewCircleChart :chart-fill-percents="chartFillPercents" />
+    <p class="item__use">
+      {{ usageName }}
+      <span class="item__use-percents">{{ usagePercents }}%</span>
+    </p>
+    <p class="item__total">{{ usageTotal }} {{ totalLegend }}</p>
+  </div>
+</template>
+
 <style scoped>
 .item {
-  @apply flex flex-col items-center justify-start mb-10 2xl:mb-0;
+  @apply mb-10 flex flex-col items-center justify-start 2xl:mb-0;
 }
 .item__name {
   @apply text-xs font-medium text-naturals-N13;
 }
 .item__use {
-  @apply text-xs font-medium text-naturals-N13 mb-4;
+  @apply mb-4 text-xs font-medium text-naturals-N13;
 }
 .item__use-percents {
-  @apply text-xs font-medium text-naturals-N10 pl-2;
+  @apply pl-2 text-xs font-medium text-naturals-N10;
 }
 .item__total {
   @apply text-xs font-medium text-naturals-N10;

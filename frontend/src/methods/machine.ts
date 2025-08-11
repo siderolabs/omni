@@ -5,7 +5,6 @@
 
 import { Runtime } from '@/api/common/omni.pb'
 import { Code } from '@/api/google/rpc/code.pb'
-
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
 import type { InfraMachineConfigSpec, MachineLabelsSpec } from '@/api/omni/specs/omni.pb'

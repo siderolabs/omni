@@ -5,6 +5,10 @@
 
 // MachineSet is the state used in cluster creation flow.
 
+import yaml from 'js-yaml'
+import { ref } from 'vue'
+
+import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
 import type {
@@ -21,6 +25,7 @@ import {
   MachineSetSpecMachineAllocationType,
   MachineSetSpecUpdateStrategy,
 } from '@/api/omni/specs/omni.pb'
+import { withRuntime, withSelectors } from '@/api/options'
 import {
   ClusterType,
   ConfigPatchName,
@@ -41,12 +46,8 @@ import {
   PatchBaseWeightClusterMachine,
   PatchBaseWeightMachineSet,
 } from '@/api/resources'
-import { controlPlaneMachineSetId, defaultWorkersMachineSetId } from '@/methods/machineset'
-import { ref } from 'vue'
 import { parseLabels } from '@/methods/labels'
-import yaml from 'js-yaml'
-import { withRuntime, withSelectors } from '@/api/options'
-import { Runtime } from '@/api/common/omni.pb'
+import { controlPlaneMachineSetId, defaultWorkersMachineSetId } from '@/methods/machineset'
 
 export const typesOrder = {
   [ClusterType]: 4,
@@ -259,7 +260,7 @@ export class State {
     }
 
     // not a single node cluster
-    if (nodes != 1) {
+    if (nodes !== 1) {
       return false
     }
 
@@ -547,7 +548,7 @@ export class State {
         parts.push(prefix)
       }
 
-      if (key != '') {
+      if (key !== '') {
         parts.push(key)
       }
 
@@ -594,7 +595,7 @@ export class State {
     let count = 0
 
     for (const ms of this.machineSets) {
-      if (ms.role != kind) {
+      if (ms.role !== kind) {
         continue
       }
 
@@ -724,8 +725,8 @@ export const populateExisting = async (clusterName: string) => {
     }
 
     if (
-      a.metadata.id == defaultWorkersMachineSetId(clusterName) &&
-      b.metadata.id != controlPlaneMachineSetId(clusterName)
+      a.metadata.id === defaultWorkersMachineSetId(clusterName) &&
+      b.metadata.id !== controlPlaneMachineSetId(clusterName)
     ) {
       return -1
     }

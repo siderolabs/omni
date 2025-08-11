@@ -4,74 +4,26 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="logs-list">
-    <div class="logs-list-heading">
-      <div class="logs-list-heading-wrapper">
-        <p class="logs-list-heading-name" v-if="withDate">Date</p>
-        <p class="logs-list-heading-name">Message</p>
-      </div>
-      <div class="flex gap-6">
-        <t-button icon="copy" type="compact" @click="copyLogs">Copy</t-button>
-        <t-checkbox label="Follow Logs" :checked="follow" @click="() => (follow = !follow)" />
-      </div>
-    </div>
-    <dynamic-scroller
-      class="logs-view"
-      ref="logView"
-      @update="scrollToBottom"
-      @resize="scrollToBottom"
-      :emit-update="waitUpdate"
-      :items="displayLogs"
-      :min-item-size="200"
-    >
-      <template v-slot="{ item, index, active }">
-        <dynamic-scroller-item
-          class="logs-item grid-cols-6"
-          :key="index"
-          :active="active"
-          :size-dependencies="[item.msg]"
-          :item="item"
-          :data-index="index"
-        >
-          <div class="logs-item-date" v-if="withDate">
-            {{ item.date }}
-          </div>
-          <div class="logs-item-message">
-            <WordHighlighter
-              :query="searchOption"
-              :textToHighlight="item.msg"
-              highlightClass="bg-naturals-N14"
-            />
-          </div>
-        </dynamic-scroller-item>
-      </template>
-    </dynamic-scroller>
-  </div>
-</template>
-
 <script setup lang="ts">
+import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
+
 import type { Component } from 'vue'
-import { computed, ref, toRefs, onMounted, onUpdated, watch, nextTick } from 'vue'
-import type { LogLine } from '@/methods/logs'
+import { computed, nextTick, onMounted, onUpdated, ref, toRefs, watch } from 'vue'
 import { DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller'
+import WordHighlighter from 'vue-word-highlighter'
 import { copyText } from 'vue3-clipboard'
 
 import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
-import WordHighlighter from 'vue-word-highlighter'
-
-import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
+import type { LogLine } from '@/methods/logs'
 
 type Props = {
   logs: LogLine[]
   searchOption: string
-  withDate?: boolean
+  withoutDate?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  withDate: true,
-})
+const props = withDefaults(defineProps<Props>(), {})
 
 const follow = ref(true)
 const logView: Component = ref(null)
@@ -139,12 +91,58 @@ watch(logs, () => {
 })
 </script>
 
+<template>
+  <div class="logs-list">
+    <div class="logs-list-heading">
+      <div class="logs-list-heading-wrapper">
+        <p v-if="!withoutDate" class="logs-list-heading-name">Date</p>
+        <p class="logs-list-heading-name">Message</p>
+      </div>
+      <div class="flex gap-6">
+        <TButton icon="copy" type="compact" @click="copyLogs">Copy</TButton>
+        <TCheckbox label="Follow Logs" :checked="follow" @click="() => (follow = !follow)" />
+      </div>
+    </div>
+    <DynamicScroller
+      ref="logView"
+      class="logs-view"
+      :emit-update="waitUpdate"
+      :items="displayLogs"
+      :min-item-size="200"
+      @update="scrollToBottom"
+      @resize="scrollToBottom"
+    >
+      <template #default="{ item, index, active }">
+        <DynamicScrollerItem
+          :key="index"
+          class="logs-item grid-cols-6"
+          :active="active"
+          :size-dependencies="[item.msg]"
+          :item="item"
+          :data-index="index"
+        >
+          <div v-if="!withoutDate" class="logs-item-date">
+            {{ item.date }}
+          </div>
+          <div class="logs-item-message">
+            <WordHighlighter
+              :query="searchOption"
+              :text-to-highlight="item.msg"
+              highlight-class="bg-naturals-N14"
+            />
+          </div>
+        </DynamicScrollerItem>
+      </template>
+    </DynamicScroller>
+  </div>
+</template>
+
 <style scoped>
 .logs-list {
   @apply flex flex-col;
 }
 .logs-list-heading {
-  @apply flex w-full bg-naturals-N2 justify-between items-center;
+  @apply flex w-full items-center justify-between bg-naturals-N2;
   padding: 10px 16px;
   border-radius: 2px;
 }
@@ -152,12 +150,12 @@ watch(logs, () => {
   @apply flex w-full;
 }
 .logs-list-heading-name {
-  @apply text-xs text-naturals-N13 w-full;
+  @apply w-full text-xs text-naturals-N13;
   min-width: 100px;
   max-width: 300px;
 }
 .logs-view {
-  @apply flex flex-col w-full grow overflow-auto h-72;
+  @apply flex h-72 w-full grow flex-col overflow-auto;
 }
 
 .logs-item {
@@ -165,11 +163,11 @@ watch(logs, () => {
   padding: 5px 0px 5px 16px;
 }
 .logs-item-date {
-  @apply text-xs font-roboto w-full;
+  @apply w-full font-roboto text-xs;
   min-width: 100px;
   max-width: 300px;
 }
 .logs-item-message {
-  @apply w-full text-xs font-roboto break-all;
+  @apply w-full break-all font-roboto text-xs;
 }
 </style>

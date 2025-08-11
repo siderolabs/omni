@@ -38,4 +38,4 @@ export function isDark(mode: string): boolean {
   return false
 }
 
-export { theme, systemTheme }
+export { systemTheme, theme }

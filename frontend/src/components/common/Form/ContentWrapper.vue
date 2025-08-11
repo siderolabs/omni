@@ -4,30 +4,11 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex justify-between py-3 px-3 items-center gap-2" v-if="control.label">
-    <div class="text-naturals-N11 text-xs flex items-center gap-2">
-      {{ control.label }}{{ description }}
-      <tooltip :description="control.errors" v-if="control.errors">
-        <t-icon icon="warning" class="text-yellow-Y1 w-4 h-4" />
-      </tooltip>
-    </div>
-    <slot />
-  </div>
-  <div class="flex py-4 px-3 gap-3 items-center" v-else>
-    <div class="flex-1">
-      <slot />
-    </div>
-    <tooltip :description="control.errors" v-if="control.errors">
-      <t-icon icon="warning" class="text-yellow-Y1 w-4 h-4 -my-1.5" />
-    </tooltip>
-  </div>
-</template>
-
 <script setup lang="ts">
-import Tooltip from '../Tooltip/Tooltip.vue'
-import TIcon from '../Icon/TIcon.vue'
 import { computed } from 'vue'
+
+import TIcon from '../Icon/TIcon.vue'
+import Tooltip from '../Tooltip/Tooltip.vue'
 
 const props = defineProps<{
   control: {
@@ -41,3 +22,23 @@ const description = computed(() => {
   return props.control.description ? ` (${props.control.description})` : ''
 })
 </script>
+
+<template>
+  <div v-if="control.label" class="flex items-center justify-between gap-2 px-3 py-3">
+    <div class="flex items-center gap-2 text-xs text-naturals-N11">
+      {{ control.label }}{{ description }}
+      <Tooltip v-if="control.errors" :description="control.errors">
+        <TIcon icon="warning" class="h-4 w-4 text-yellow-Y1" />
+      </Tooltip>
+    </div>
+    <slot />
+  </div>
+  <div v-else class="flex items-center gap-3 px-3 py-4">
+    <div class="flex-1">
+      <slot />
+    </div>
+    <Tooltip v-if="control.errors" :description="control.errors">
+      <TIcon icon="warning" class="-my-1.5 h-4 w-4 text-yellow-Y1" />
+    </Tooltip>
+  </div>
+</template>

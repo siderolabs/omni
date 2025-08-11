@@ -4,37 +4,31 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <img v-if="svgBase64" alt="" :src="`data:image/svg+xml;base64,${svgBase64}`" />
-  <component v-else :is="component" class="min-w-content" />
-</template>
-
 <script setup lang="ts">
-import { type Component, computed, defineAsyncComponent, toRefs } from 'vue'
 import {
-  UsersIcon,
-  DocumentIcon,
-  PowerIcon,
-  UserIcon,
-  UserPlusIcon,
-  TagIcon,
   ArrowUpCircleIcon,
   ArrowUpTrayIcon,
+  CalendarIcon,
+  ChartBarIcon,
+  CircleStackIcon,
+  CodeBracketIcon,
+  CpuChipIcon,
+  DocumentIcon,
   DocumentTextIcon,
   LockClosedIcon,
   LockOpenIcon,
-  WindowIcon,
-  CodeBracketIcon,
   PlayCircleIcon,
-  CircleStackIcon,
-  ChartBarIcon,
+  PowerIcon,
   ServerIcon,
   ServerStackIcon,
-  CalendarIcon,
-  CpuChipIcon,
+  TagIcon,
+  UserIcon,
+  UserPlusIcon,
+  UsersIcon,
+  WindowIcon,
 } from '@heroicons/vue/24/outline'
-
 import { LifebuoyIcon } from '@heroicons/vue/24/solid'
+import { type Component, computed, defineAsyncComponent, toRefs } from 'vue'
 
 const icons = {
   'action-horizontal': defineAsyncComponent(() => import('../../icons/IconActionHorizontal.vue')),
@@ -169,3 +163,8 @@ const component = computed(() => {
   return getComponent(icon.value)
 })
 </script>
+
+<template>
+  <img v-if="svgBase64" alt="" :src="`data:image/svg+xml;base64,${svgBase64}`" />
+  <component :is="component" v-else class="min-w-content" />
+</template>

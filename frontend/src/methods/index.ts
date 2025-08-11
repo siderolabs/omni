@@ -3,25 +3,26 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import { ManagementService } from '@/api/omni/management/management.pb'
-import { NodesViewFilterOptions, TCommonStatuses } from '@/constants'
-import { showError } from '@/notification'
+import type { V1Node } from '@kubernetes/client-node'
 import type { ComputedRef, Ref } from 'vue'
 import { computed, ref } from 'vue'
+import { copyText } from 'vue3-clipboard'
+
+import { Runtime } from '@/api/common/omni.pb'
+import type { fetchOption } from '@/api/fetch.pb'
+import { b64Decode } from '@/api/fetch.pb'
+import type { Resource } from '@/api/grpc'
+import { ManagementService } from '@/api/omni/management/management.pb'
+import type { EtcdBackupOverallStatusSpec } from '@/api/omni/specs/omni.pb'
+import { withContext } from '@/api/options'
 import {
   EtcdBackupOverallStatusID,
   EtcdBackupOverallStatusType,
   MetricsNamespace,
 } from '@/api/resources'
-import { withContext } from '@/api/options'
-import type { fetchOption } from '@/api/fetch.pb'
-import { b64Decode } from '@/api/fetch.pb'
-import type { V1Node } from '@kubernetes/client-node'
-import type { Resource } from '@/api/grpc'
-import type { EtcdBackupOverallStatusSpec } from '@/api/omni/specs/omni.pb'
 import Watch from '@/api/watch'
-import { Runtime } from '@/api/common/omni.pb'
-import { copyText } from 'vue3-clipboard'
+import { NodesViewFilterOptions, TCommonStatuses } from '@/constants'
+import { showError } from '@/notification'
 
 export const getStatus = (item: V1Node) => {
   const conditions = item?.status?.conditions

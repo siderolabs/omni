@@ -4,52 +4,18 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex flex-col">
-    <page-header title="All Pods" />
-    <watch
-      :opts="{ resource: { type: kubernetes.pod }, runtime: Runtime.Kubernetes, context }"
-      class="flex-1"
-      noRecordsAlert
-      errorsAlert
-      spinner
-    >
-      <template #default="{ items }">
-        <div class="pods">
-          <div class="pods__search-box">
-            <t-input secondary placeholder="Search..." v-model="inputValue" />
-            <t-select-list
-              @checkedValue="setFilterOption"
-              title="Phase"
-              :defaultValue="TPodsViewFilterOptions.ALL"
-              :values="filterOptions"
-            />
-          </div>
-          <ul class="pods__table-heading">
-            <li class="pods__row-name">Namespace</li>
-            <li class="pods__row-name">Name</li>
-            <li class="pods__row-name">Phase</li>
-            <li class="pods__row-name">Node</li>
-          </ul>
-          <t-pods-list :items="items" :filterOption="filterOption" :searchOption="inputValue" />
-        </div>
-      </template>
-    </watch>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { getContext } from '@/context'
-import { kubernetes } from '@/api/resources'
 import { ref } from 'vue'
-import { TPodsViewFilterOptions } from '@/constants'
-import { Runtime } from '@/api/common/omni.pb'
 
+import { Runtime } from '@/api/common/omni.pb'
+import { kubernetes } from '@/api/resources'
+import PageHeader from '@/components/common/PageHeader.vue'
+import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import Watch from '@/components/common/Watch/Watch.vue'
+import { TPodsViewFilterOptions } from '@/constants'
+import { getContext } from '@/context'
 import TPodsList from '@/views/cluster/Pods/components/TPodsList.vue'
-import TSelectList from '@/components/common/SelectList/TSelectList.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
 
 const context = getContext()
 const filterOption = ref(TPodsViewFilterOptions.ALL)
@@ -62,15 +28,49 @@ const setFilterOption = (data: TPodsViewFilterOptions) => {
 const filterOptions = Object.keys(TPodsViewFilterOptions).map((key) => TPodsViewFilterOptions[key])
 </script>
 
+<template>
+  <div class="flex flex-col">
+    <PageHeader title="All Pods" />
+    <Watch
+      :opts="{ resource: { type: kubernetes.pod }, runtime: Runtime.Kubernetes, context }"
+      class="flex-1"
+      no-records-alert
+      errors-alert
+      spinner
+    >
+      <template #default="{ items }">
+        <div class="pods">
+          <div class="pods__search-box">
+            <TInput v-model="inputValue" secondary placeholder="Search..." />
+            <TSelectList
+              title="Phase"
+              :default-value="TPodsViewFilterOptions.ALL"
+              :values="filterOptions"
+              @checked-value="setFilterOption"
+            />
+          </div>
+          <ul class="pods__table-heading">
+            <li class="pods__row-name">Namespace</li>
+            <li class="pods__row-name">Name</li>
+            <li class="pods__row-name">Phase</li>
+            <li class="pods__row-name">Node</li>
+          </ul>
+          <TPodsList :items="items" :filter-option="filterOption" :search-option="inputValue" />
+        </div>
+      </template>
+    </Watch>
+  </div>
+</template>
+
 <style scoped>
 .pods {
-  @apply flex flex-col h-full pt-2;
+  @apply flex h-full flex-col pt-2;
 }
 .pods__search-box {
-  @apply flex justify-between mb-3;
+  @apply mb-3 flex justify-between;
 }
 .pods__table-heading {
-  @apply w-full rounded bg-naturals-N2 flex justify-between items-center mb-1;
+  @apply mb-1 flex w-full items-center justify-between rounded bg-naturals-N2;
   padding: 10px 33px;
 }
 .pods__row-name {

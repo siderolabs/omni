@@ -4,108 +4,17 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div
-    class="relative"
-    @keydown.enter="() => autoComplete(selectedSuggestion)"
-    @keydown.arrow-up.prevent="
-      () => {
-        if (selectedSuggestion > 0) {
-          selectedSuggestion--
-        }
-      }
-    "
-    @keydown.backspace="
-      () => {
-        if (input?.getCaretPosition() !== 0) {
-          return
-        }
-
-        if (selectedLabel !== undefined) {
-          removeLabel(selectedLabel)
-
-          if (selectedLabel > 0) {
-            selectedLabel--
-          } else {
-            selectedLabel = undefined
-          }
-
-          return
-        }
-
-        selectedLabel = filterLabels.length - 1
-      }
-    "
-    @keydown.arrow-down="
-      () => {
-        if (selectedSuggestion < matchedLabelsCompletion.length - 1) {
-          selectedSuggestion++
-        }
-      }
-    "
-  >
-    <t-input
-      class="flex-1 h-full flex-wrap text-xs"
-      icon="search"
-      :model-value="filterValue"
-      @update:model-value="(value) => $emit('update:filter-value', value)"
-      ref="input"
-      v-click-outside="() => (showCompletions = false)"
-      @click="showCompletions = true"
-      :onClear="
-        () => {
-          $emit('update:filter-labels', [])
-        }
-      "
-    >
-      <template #labels>
-        <div
-          class="label"
-          :class="{ selected: selectedLabel === index }"
-          v-for="(label, index) in filterLabels"
-          :key="label.key"
-        >
-          <item-label
-            :label="{
-              ...label,
-              removable: true,
-            }"
-            :remove-label="
-              async () => {
-                removeLabel(index)
-              }
-            "
-          />
-        </div>
-      </template>
-    </t-input>
-    <div
-      v-if="matchedLabelsCompletion.length > 0 && showCompletions"
-      class="flex flex-col rounded bg-naturals-N2 border border-naturals-N4 absolute top-full left-0 min-w-full z-10 divide-y divide-naturals-N6 mt-1"
-    >
-      <div
-        v-for="(suggestion, index) in matchedLabelsCompletion"
-        :key="index"
-        class="label-suggestion"
-        :class="{ selected: index === selectedSuggestion }"
-        @click="autoComplete(index)"
-      >
-        <item-label :label="suggestion" class="pointer-events-none" />
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { Runtime } from '@/api/common/omni.pb'
-
 import { ref, toRefs, watch } from 'vue'
-import TInput from '@/components/common/TInput/TInput.vue'
+
+import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
 import { withAbortController, withRuntime } from '@/api/options'
-import ItemLabel from '../ItemLabels/ItemLabel.vue'
+import TInput from '@/components/common/TInput/TInput.vue'
 import { getLabelFromID as createLabel } from '@/methods/labels'
+
+import ItemLabel from '../ItemLabels/ItemLabel.vue'
 
 type Label = {
   id: string
@@ -268,9 +177,101 @@ watch(filterValue, async (val: string, old: string) => {
 })
 </script>
 
+<template>
+  <div
+    class="relative"
+    @keydown.enter="() => autoComplete(selectedSuggestion)"
+    @keydown.arrow-up.prevent="
+      () => {
+        if (selectedSuggestion > 0) {
+          selectedSuggestion--
+        }
+      }
+    "
+    @keydown.backspace="
+      () => {
+        if (input?.getCaretPosition() !== 0) {
+          return
+        }
+
+        if (selectedLabel !== undefined) {
+          removeLabel(selectedLabel)
+
+          if (selectedLabel > 0) {
+            selectedLabel--
+          } else {
+            selectedLabel = undefined
+          }
+
+          return
+        }
+
+        selectedLabel = filterLabels.length - 1
+      }
+    "
+    @keydown.arrow-down="
+      () => {
+        if (selectedSuggestion < matchedLabelsCompletion.length - 1) {
+          selectedSuggestion++
+        }
+      }
+    "
+  >
+    <TInput
+      ref="input"
+      v-click-outside="() => (showCompletions = false)"
+      class="h-full flex-1 flex-wrap text-xs"
+      icon="search"
+      :model-value="filterValue"
+      :on-clear="
+        () => {
+          $emit('update:filter-labels', [])
+        }
+      "
+      @update:model-value="(value) => $emit('update:filter-value', value)"
+      @click="showCompletions = true"
+    >
+      <template #labels>
+        <div
+          v-for="(label, index) in filterLabels"
+          :key="label.key"
+          class="label"
+          :class="{ selected: selectedLabel === index }"
+        >
+          <ItemLabel
+            :label="{
+              ...label,
+              removable: true,
+            }"
+            :remove-label="
+              async () => {
+                removeLabel(index)
+              }
+            "
+          />
+        </div>
+      </template>
+    </TInput>
+    <div
+      v-if="matchedLabelsCompletion.length > 0 && showCompletions"
+      class="absolute left-0 top-full z-10 mt-1 flex min-w-full flex-col divide-y divide-naturals-N6 rounded border border-naturals-N4 bg-naturals-N2"
+    >
+      <div
+        v-for="(suggestion, index) in matchedLabelsCompletion"
+        :key="index"
+        class="label-suggestion"
+        :class="{ selected: index === selectedSuggestion }"
+        @click="autoComplete(index)"
+      >
+        <ItemLabel :label="suggestion" class="pointer-events-none" />
+      </div>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .label-suggestion {
-  @apply text-xs flex hover:bg-naturals-N4 py-2 px-2 cursor-pointer;
+  @apply flex cursor-pointer px-2 py-2 text-xs hover:bg-naturals-N4;
 }
 
 .label-suggestion.selected {
@@ -278,7 +279,7 @@ watch(filterValue, async (val: string, old: string) => {
 }
 
 .label {
-  @apply rounded-md p-0.5 border border-opacity-0 border-white transition-all -mx-1 -my-2;
+  @apply -mx-1 -my-2 rounded-md border border-white border-opacity-0 p-0.5 transition-all;
 }
 
 .label.selected {

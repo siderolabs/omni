@@ -4,92 +4,35 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex items-center justify-center">
-    <div class="bg-naturals-N3 drop-shadow-md px-8 py-8 rounded-md flex flex-col gap-2">
-      <div class="flex gap-4 items-center">
-        <t-icon icon="key" class="fill-color w-6 h-6" />
-        <div class="text-xl font-bold text-naturals-N13">
-          <div v-if="$route.query[AuthFlowQueryParam] === Auth.CLI">Authenticate CLI Access</div>
-          <div v-else-if="$route.query[AuthFlowQueryParam] === Auth.Frontend">
-            Authenticate UI Access
-          </div>
-          <div v-else-if="$route.query[AuthFlowQueryParam] === Auth.WorkloadProxy">
-            Authenticate Workload Proxy Access
-          </div>
-        </div>
-      </div>
-
-      <div v-if="!publicKeyId && $route.query[AuthFlowQueryParam] === Auth.CLI" class="mx-12">
-        Public key ID parameter is missing...
-      </div>
-      <template v-else>
-        <div v-if="!authenticated">Redirecting to the authentication provider...</div>
-        <div v-else-if="!identity">
-          Could not get user's email address from the authentication provider...
-        </div>
-        <template v-else>
-          <div v-if="confirmed" id="confirmed">
-            Successfully logged in as {{ identity }}, you can return to the application...
-          </div>
-          <div v-else class="w-full flex flex-col gap-4">
-            <div>The keys are going to be issued for the user:</div>
-            <user-info user="user" class="user-info" />
-            <div class="w-full flex flex-col gap-3">
-              <t-button type="secondary" class="w-full" @click="switchUser">Switch User</t-button>
-              <t-button
-                v-if="$route.query[AuthFlowQueryParam] === Auth.CLI"
-                id="confirm"
-                class="w-full"
-                type="highlighted"
-                @click="confirmPublicKey"
-                >Grant Access</t-button
-              >
-              <t-button
-                v-else
-                id="login"
-                class="w-full"
-                type="highlighted"
-                @click="generatePublicKey"
-                >Log In</t-button
-              >
-            </div>
-          </div>
-        </template>
-      </template>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
+import type { User } from '@auth0/auth0-spa-js'
+import type { Auth0VueClient } from '@auth0/auth0-vue'
 import { useAuth0 } from '@auth0/auth0-vue'
 import { computed, onMounted, ref } from 'vue'
-import { AuthService } from '@/api/omni/auth/auth.pb'
-import { showError } from '@/notification'
-import { AuthType, authType } from '@/methods'
 import { useRoute, useRouter } from 'vue-router'
-import type { User } from '@auth0/auth0-spa-js'
+
+import type { fetchOption } from '@/api/fetch.pb'
+import { Code } from '@/api/google/rpc/code.pb'
+import { AuthService } from '@/api/omni/auth/auth.pb'
+import { withMetadata } from '@/api/options'
 import {
   authBearerHeaderPrefix,
-  samlSessionHeader,
+  AuthFlowQueryParam,
   authHeader,
   authPublicKeyIDQueryParam,
   CLIAuthFlow,
-  AuthFlowQueryParam,
-  WorkloadProxyAuthFlow,
   RedirectQueryParam,
+  samlSessionHeader,
   SignedRedirect,
+  WorkloadProxyAuthFlow,
 } from '@/api/resources'
-import { FrontendAuthFlow } from '@/router'
-import { createKeys, saveKeys } from '@/methods/key'
-
 import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import UserInfo from '@/components/common/UserInfo/UserInfo.vue'
-import { withMetadata } from '@/api/options'
-import type { fetchOption } from '@/api/fetch.pb'
-import { Code } from '@/api/google/rpc/code.pb'
-import type { Auth0VueClient } from '@auth0/auth0-vue'
+import { AuthType, authType } from '@/methods'
+import { createKeys, saveKeys } from '@/methods/key'
+import { showError } from '@/notification'
+import { FrontendAuthFlow } from '@/router'
 
 const user = ref<User | undefined>(undefined)
 let idToken = ''
@@ -273,7 +216,7 @@ const confirmPublicKey = async () => {
   } catch (e) {
     showError('Failed to confirm public key', e.message)
 
-    if (e?.code == Code.UNAUTHENTICATED && auth0) {
+    if (e?.code === Code.UNAUTHENTICATED && auth0) {
       renewIdToken = true
     }
 
@@ -292,8 +235,65 @@ const Auth = {
 }
 </script>
 
+<template>
+  <div class="flex items-center justify-center">
+    <div class="flex flex-col gap-2 rounded-md bg-naturals-N3 px-8 py-8 drop-shadow-md">
+      <div class="flex items-center gap-4">
+        <TIcon icon="key" class="fill-color h-6 w-6" />
+        <div class="text-xl font-bold text-naturals-N13">
+          <div v-if="$route.query[AuthFlowQueryParam] === Auth.CLI">Authenticate CLI Access</div>
+          <div v-else-if="$route.query[AuthFlowQueryParam] === Auth.Frontend">
+            Authenticate UI Access
+          </div>
+          <div v-else-if="$route.query[AuthFlowQueryParam] === Auth.WorkloadProxy">
+            Authenticate Workload Proxy Access
+          </div>
+        </div>
+      </div>
+
+      <div v-if="!publicKeyId && $route.query[AuthFlowQueryParam] === Auth.CLI" class="mx-12">
+        Public key ID parameter is missing...
+      </div>
+      <template v-else>
+        <div v-if="!authenticated">Redirecting to the authentication provider...</div>
+        <div v-else-if="!identity">
+          Could not get user's email address from the authentication provider...
+        </div>
+        <template v-else>
+          <div v-if="confirmed" id="confirmed">
+            Successfully logged in as {{ identity }}, you can return to the application...
+          </div>
+          <div v-else class="flex w-full flex-col gap-4">
+            <div>The keys are going to be issued for the user:</div>
+            <UserInfo user="user" class="user-info" />
+            <div class="flex w-full flex-col gap-3">
+              <TButton type="secondary" class="w-full" @click="switchUser">Switch User</TButton>
+              <TButton
+                v-if="$route.query[AuthFlowQueryParam] === Auth.CLI"
+                id="confirm"
+                class="w-full"
+                type="highlighted"
+                @click="confirmPublicKey"
+                >Grant Access</TButton
+              >
+              <TButton
+                v-else
+                id="login"
+                class="w-full"
+                type="highlighted"
+                @click="generatePublicKey"
+                >Log In</TButton
+              >
+            </div>
+          </div>
+        </template>
+      </template>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .user-info {
-  @apply px-6 py-2 rounded-md bg-naturals-N6;
+  @apply rounded-md bg-naturals-N6 px-6 py-2;
 }
 </style>

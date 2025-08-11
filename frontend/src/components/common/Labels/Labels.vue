@@ -4,49 +4,12 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex flex-wrap gap-1.5 items-center text-xs">
-    <span
-      v-for="(label, key) in modelValue"
-      :key="key"
-      class="flex items-center cursor-pointer"
-      v-bind:class="`resource-label label-${label.color ?? defaultColor}`"
-    >
-      <template v-if="label.value">
-        {{ key }}:<span class="font-semibold">{{ label.value }}</span>
-      </template>
-      <span v-else class="font-semibold">
-        {{ key }}
-      </span>
-      <t-icon
-        v-if="label.canRemove"
-        icon="close"
-        class="destroy-label-button"
-        @click.stop="() => removeLabel(key)"
-      />
-    </span>
-    <t-input
-      @keydown.enter="addLabel"
-      v-model="currentLabel"
-      compact
-      @click.stop
-      @blur="addLabel"
-      :focus="addingLabel"
-      v-if="addingLabel"
-      class="w-24 h-6"
-    />
-    <t-button icon="tag" type="compact" @click.stop="editLabels" v-else-if="!readonly"
-      >new label</t-button
-    >
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, toRefs } from 'vue'
 
 import TButton from '@/components/common/Button/TButton.vue'
-import TInput from '@/components/common/TInput/TInput.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
+import TInput from '@/components/common/TInput/TInput.vue'
 
 type Label = {
   value: string
@@ -114,8 +77,45 @@ const removeLabel = async (key: string) => {
 }
 </script>
 
+<template>
+  <div class="flex flex-wrap items-center gap-1.5 text-xs">
+    <span
+      v-for="(label, key) in modelValue"
+      :key="key"
+      class="flex cursor-pointer items-center"
+      :class="`resource-label label-${label.color ?? defaultColor}`"
+    >
+      <template v-if="label.value">
+        {{ key }}:<span class="font-semibold">{{ label.value }}</span>
+      </template>
+      <span v-else class="font-semibold">
+        {{ key }}
+      </span>
+      <TIcon
+        v-if="label.canRemove"
+        icon="close"
+        class="destroy-label-button"
+        @click.stop="() => removeLabel(key)"
+      />
+    </span>
+    <TInput
+      v-if="addingLabel"
+      v-model="currentLabel"
+      compact
+      :focus="addingLabel"
+      class="h-6 w-24"
+      @keydown.enter="addLabel"
+      @click.stop
+      @blur="addLabel"
+    />
+    <TButton v-else-if="!readonly" icon="tag" type="compact" @click.stop="editLabels"
+      >new label</TButton
+    >
+  </div>
+</template>
+
 <style>
 .destroy-label-button {
-  @apply w-3 h-3 -mr-1 ml-1 inline-block hover:text-naturals-N1 cursor-pointer hover:bg-naturals-N14 transition-all rounded-full;
+  @apply -mr-1 ml-1 inline-block h-3 w-3 cursor-pointer rounded-full transition-all hover:bg-naturals-N14 hover:text-naturals-N1;
 }
 </style>

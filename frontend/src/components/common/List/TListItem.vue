@@ -4,37 +4,10 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="row" :class="{ opened: isDropdownOpened && !disableBorderOnExpand }">
-    <t-slide-down-wrapper :isSliderOpened="isDropdownOpened">
-      <template #head>
-        <div class="flex items-center">
-          <span v-if="$slots.details">
-            <t-icon
-              @click="() => (isDropdownOpened = !isDropdownOpened)"
-              class="row-arrow"
-              :class="{ pushed: isDropdownOpened }"
-              icon="drop-up"
-            />
-          </span>
-          <div class="row-head">
-            <slot></slot>
-          </div>
-        </div>
-      </template>
-      <template #body>
-        <div class="row-details">
-          <slot name="details"></slot>
-        </div>
-      </template>
-    </t-slide-down-wrapper>
-  </div>
-</template>
-
 <script setup lang="ts">
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import { toRefs, ref } from 'vue'
+import { ref, toRefs } from 'vue'
 
+import TIcon from '@/components/common/Icon/TIcon.vue'
 import TSlideDownWrapper from '@/components/common/SlideDownWrapper/TSlideDownWrapper.vue'
 
 const props = defineProps<{
@@ -47,16 +20,43 @@ const { isDefaultOpened } = toRefs(props)
 const isDropdownOpened = ref(isDefaultOpened?.value as boolean)
 </script>
 
+<template>
+  <div class="row" :class="{ opened: isDropdownOpened && !disableBorderOnExpand }">
+    <TSlideDownWrapper :is-slider-opened="isDropdownOpened">
+      <template #head>
+        <div class="flex items-center">
+          <span v-if="$slots.details">
+            <TIcon
+              class="row-arrow"
+              :class="{ pushed: isDropdownOpened }"
+              icon="drop-up"
+              @click="() => (isDropdownOpened = !isDropdownOpened)"
+            />
+          </span>
+          <div class="row-head">
+            <slot></slot>
+          </div>
+        </div>
+      </template>
+      <template #body>
+        <div class="row-details">
+          <slot name="details"></slot>
+        </div>
+      </template>
+    </TSlideDownWrapper>
+  </div>
+</template>
+
 <style scoped>
 .row {
-  @apply w-full border border-transparent flex flex-col items-center transition-all duration-500 text-xs text-naturals-N13 px-2 py-4;
+  @apply flex w-full flex-col items-center border border-transparent px-2 py-4 text-xs text-naturals-N13 transition-all duration-500;
   min-width: 450px;
   border-bottom: 1px solid rgba(39, 41, 50);
   border-radius: 4px 4px 0 0;
 }
 
 .row-head {
-  @apply px-1 flex-1;
+  @apply flex-1 px-1;
 }
 
 .row:last-of-type {
@@ -64,7 +64,7 @@ const isDropdownOpened = ref(isDefaultOpened?.value as boolean)
 }
 
 .opened {
-  @apply rounded border-naturals-N5 mt-1;
+  @apply mt-1 rounded border-naturals-N5;
 }
 
 .opened:last-of-type {
@@ -72,11 +72,11 @@ const isDropdownOpened = ref(isDefaultOpened?.value as boolean)
 }
 
 .row-wrapper {
-  @apply w-full flex justify-start items-center;
+  @apply flex w-full items-center justify-start;
 }
 
 .row-arrow {
-  @apply fill-current text-naturals-N11 hover:bg-naturals-N7 transition-all rounded duration-300 cursor-pointer mr-1;
+  @apply mr-1 cursor-pointer rounded fill-current text-naturals-N11 transition-all duration-300 hover:bg-naturals-N7;
   transform: rotate(-180deg);
   width: 24px;
   height: 24px;

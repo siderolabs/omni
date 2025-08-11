@@ -4,36 +4,25 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div>
-    <div class="border-b border-naturals-N4">
-      <cluster-side-bar />
-    </div>
-    <p class="text-xs text-naturals-N8 mt-5 mb-2 px-6">Node</p>
-    <p class="text-xs text-naturals-N13 px-6 truncate">{{ node }}</p>
-    <t-sidebar-list :items="items" />
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { getContext } from '@/context'
+
+import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
-import { Runtime } from '@/api/common/omni.pb'
+import { withRuntime } from '@/api/options'
 import {
   ClusterMachineIdentityType,
   DefaultNamespace,
   TalosRuntimeNamespace,
   TalosServiceType,
 } from '@/api/resources'
-import { withRuntime } from '@/api/options'
-
+import Watch from '@/api/watch'
 import type { SideBarItem } from '@/components/SideBar/TSideBarList.vue'
 import TSidebarList from '@/components/SideBar/TSideBarList.vue'
+import { getContext } from '@/context'
 import ClusterSideBar from '@/views/cluster/SideBar.vue'
-import Watch from '@/api/watch'
 
 const node = ref()
 const context = getContext()
@@ -90,3 +79,14 @@ onMounted(async () => {
   node.value = nodename.spec.nodename
 })
 </script>
+
+<template>
+  <div>
+    <div class="border-b border-naturals-N4">
+      <ClusterSideBar />
+    </div>
+    <p class="mb-2 mt-5 px-6 text-xs text-naturals-N8">Node</p>
+    <p class="truncate px-6 text-xs text-naturals-N13">{{ node }}</p>
+    <TSidebarList :items="items" />
+  </div>
+</template>

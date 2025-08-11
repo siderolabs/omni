@@ -4,67 +4,19 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="text-naturals-N13">Machine Template</div>
-  <div class="rounded bg-naturals-N2">
-    <div class="text-naturals-N13 px-4 pt-4 pb-2 text-sm">Talos Config</div>
-    <div
-      class="machine-template text-xs flex flex-col divide-y divide-naturals-N4 border-t-8 border-naturals-N4"
-    >
-      <div>
-        <span> Kernel Arguments </span>
-        <t-input
-          class="h-7 w-56"
-          :model-value="kernelArguments"
-          @update:model-value="(value) => $emit('update:kernel-arguments', value)"
-        />
-      </div>
-      <div>
-        <span> Initial Labels </span>
-        <labels
-          :model-value="initialLabels"
-          @update:model-value="(value) => $emit('update:initial-labels', value)"
-        />
-      </div>
-      <div>
-        <span> Use gRPC Tunnel </span>
-        <t-select-list
-          menu-align="right"
-          class="h-6"
-          :values="[GRPCTunnelMode.Default, GRPCTunnelMode.Enabled, GRPCTunnelMode.Disabled]"
-          :default-value="defaultTunnelMode"
-          @checked-value="updateGRPCTunnelMode"
-        />
-      </div>
-    </div>
-  </div>
-  <div class="rounded bg-naturals-N2" v-if="infraProviderStatus?.spec.schema">
-    <div class="text-naturals-N13 px-4 pt-4 pb-2 text-sm">
-      {{ infraProviderStatus.spec.name }} Provider Config
-    </div>
-    <div class="text-xs flex flex-col divide-y divide-naturals-N4 border-t-8 border-naturals-N4">
-      <json-form
-        :model-value="providerConfig"
-        @update:model-value="(value) => $emit('update:provider-config', value)"
-        :json-schema="infraProviderStatus.spec.schema"
-      />
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import type { Resource } from '@/api/grpc'
+import { computed, ref, toRefs } from 'vue'
+
 import { Runtime } from '@/api/common/omni.pb'
+import type { Resource } from '@/api/grpc'
 import type { InfraProviderStatusSpec } from '@/api/omni/specs/infra.pb'
 import { GrpcTunnelMode } from '@/api/omni/specs/omni.pb'
-import { InfraProviderStatusType, InfraProviderNamespace } from '@/api/resources'
-import { computed, ref, toRefs } from 'vue'
-import TInput from '@/components/common/TInput/TInput.vue'
-
+import { InfraProviderNamespace, InfraProviderStatusType } from '@/api/resources'
 import WatchResource from '@/api/watch'
-import TSelectList from '@/components/common/SelectList/TSelectList.vue'
-import Labels from '@/components/common/Labels/Labels.vue'
 import JsonForm from '@/components/common/Form/JsonForm.vue'
+import Labels from '@/components/common/Labels/Labels.vue'
+import TSelectList from '@/components/common/SelectList/TSelectList.vue'
+import TInput from '@/components/common/TInput/TInput.vue'
 
 enum GRPCTunnelMode {
   Default = 'Account Default',
@@ -137,9 +89,57 @@ const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
 }
 </script>
 
+<template>
+  <div class="text-naturals-N13">Machine Template</div>
+  <div class="rounded bg-naturals-N2">
+    <div class="px-4 pb-2 pt-4 text-sm text-naturals-N13">Talos Config</div>
+    <div
+      class="machine-template flex flex-col divide-y divide-naturals-N4 border-t-8 border-naturals-N4 text-xs"
+    >
+      <div>
+        <span> Kernel Arguments </span>
+        <TInput
+          class="h-7 w-56"
+          :model-value="kernelArguments"
+          @update:model-value="(value) => $emit('update:kernel-arguments', value)"
+        />
+      </div>
+      <div>
+        <span> Initial Labels </span>
+        <Labels
+          :model-value="initialLabels"
+          @update:model-value="(value) => $emit('update:initial-labels', value)"
+        />
+      </div>
+      <div>
+        <span> Use gRPC Tunnel </span>
+        <TSelectList
+          menu-align="right"
+          class="h-6"
+          :values="[GRPCTunnelMode.Default, GRPCTunnelMode.Enabled, GRPCTunnelMode.Disabled]"
+          :default-value="defaultTunnelMode"
+          @checked-value="updateGRPCTunnelMode"
+        />
+      </div>
+    </div>
+  </div>
+  <div v-if="infraProviderStatus?.spec.schema" class="rounded bg-naturals-N2">
+    <div class="px-4 pb-2 pt-4 text-sm text-naturals-N13">
+      {{ infraProviderStatus.spec.name }} Provider Config
+    </div>
+    <div class="flex flex-col divide-y divide-naturals-N4 border-t-8 border-naturals-N4 text-xs">
+      <JsonForm
+        :model-value="providerConfig"
+        :json-schema="infraProviderStatus.spec.schema"
+        @update:model-value="(value) => $emit('update:provider-config', value)"
+      />
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .condition {
-  @apply border border-opacity-0 rounded-md border-transparent transition-colors;
+  @apply rounded-md border border-transparent border-opacity-0 transition-colors;
 }
 
 .condition:focus-within {
@@ -147,11 +147,11 @@ const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
 }
 
 code {
-  @apply font-roboto rounded bg-naturals-N6 px-1 py-0.5 text-naturals-N13;
+  @apply rounded bg-naturals-N6 px-1 py-0.5 font-roboto text-naturals-N13;
 }
 
 .machine-template > * {
-  @apply px-4 py-2 flex justify-between items-center gap-2;
+  @apply flex items-center justify-between gap-2 px-4 py-2;
 }
 
 .machine-template > * > *:first-child {

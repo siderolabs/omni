@@ -4,43 +4,11 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="list-item-box">
-    <t-slide-down-wrapper :isSliderOpened="!collapsed">
-      <template #head>
-        <div
-          @click="
-            () => {
-              collapsed = !collapsed
-            }
-          "
-          class="flex items-center bg-naturals-N1 pl-2 pr-4 py-4 hover:bg-naturals-N3 cursor-pointer gap-2"
-        >
-          <div class="mx-2" v-if="$slots.title">
-            <slot name="title"></slot>
-          </div>
-          <div class="expand-button" v-if="$slots.details">
-            <t-icon
-              :class="{ 'rotate-180': !collapsed }"
-              class="w-5 h-5 hover:text-naturals-N13 transition-color transition-transform duration-250"
-              icon="drop-up"
-            />
-          </div>
-          <slot></slot>
-        </div>
-      </template>
-      <template #body v-if="!collapsed && $slots.details">
-        <slot name="details"></slot>
-      </template>
-    </t-slide-down-wrapper>
-  </div>
-</template>
-
 <script setup lang="ts">
-import TSlideDownWrapper from '../SlideDownWrapper/TSlideDownWrapper.vue'
-import TIcon from '../Icon/TIcon.vue'
-
 import storageRef from '@/methods/storage'
+
+import TIcon from '../Icon/TIcon.vue'
+import TSlideDownWrapper from '../SlideDownWrapper/TSlideDownWrapper.vue'
 
 const props = defineProps<{
   listID: string
@@ -59,13 +27,45 @@ defineExpose({
 })
 </script>
 
+<template>
+  <div class="list-item-box">
+    <TSlideDownWrapper :is-slider-opened="!collapsed">
+      <template #head>
+        <div
+          class="flex cursor-pointer items-center gap-2 bg-naturals-N1 py-4 pl-2 pr-4 hover:bg-naturals-N3"
+          @click="
+            () => {
+              collapsed = !collapsed
+            }
+          "
+        >
+          <div v-if="$slots.title" class="mx-2">
+            <slot name="title"></slot>
+          </div>
+          <div v-if="$slots.details" class="expand-button">
+            <TIcon
+              :class="{ 'rotate-180': !collapsed }"
+              class="transition-color duration-250 h-5 w-5 transition-transform hover:text-naturals-N13"
+              icon="drop-up"
+            />
+          </div>
+          <slot></slot>
+        </div>
+      </template>
+      <template v-if="!collapsed && $slots.details" #body>
+        <slot name="details"></slot>
+      </template>
+    </TSlideDownWrapper>
+  </div>
+</template>
+
 <style>
 .list-item-box {
-  @apply border border-naturals-N5 rounded overflow-hidden;
+  @apply overflow-hidden rounded border border-naturals-N5;
 }
 
 .collapse-button {
-  @apply fill-current text-naturals-N11 hover:bg-naturals-N7 transition-all rounded duration-300 cursor-pointer mr-1;
+  @apply mr-1 cursor-pointer rounded fill-current text-naturals-N11 transition-all duration-300 hover:bg-naturals-N7;
   transform: rotate(-180deg);
   width: 24px;
   height: 24px;
@@ -76,6 +76,6 @@ defineExpose({
 }
 
 .expand-button {
-  @apply rounded-md bg-naturals-N4 -my-1 transition-colors duration-200 border border-transparent hover:border-naturals-N7 flex items-center justify-center;
+  @apply -my-1 flex items-center justify-center rounded-md border border-transparent bg-naturals-N4 transition-colors duration-200 hover:border-naturals-N7;
 }
 </style>

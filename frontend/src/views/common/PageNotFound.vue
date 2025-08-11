@@ -4,19 +4,19 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
+<script setup lang="ts">
+import TButton from '@/components/common/Button/TButton.vue'
+</script>
+
 <template>
   <div class="flex items-center justify-center">
     <div class="flex flex-col items-center">
       <div class="code">404</div>
-      <div class="text-xl text-center">Page not found</div>
-      <t-button class="mt-4" @click="() => $router.push({ path: '/' })">Go Back</t-button>
+      <div class="text-center text-xl">Page not found</div>
+      <TButton class="mt-4" @click="() => $router.push({ path: '/' })">Go Back</TButton>
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import TButton from '@/components/common/Button/TButton.vue'
-</script>
 
 <style scoped>
 .code {

@@ -4,120 +4,18 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div>
-    <slot
-      name="header"
-      :itemsCount="itemsCount"
-      :filtered="searchState.searchFor?.length || searchState.selectors?.length"
-    />
-    <div class="flex flex-col gap-4">
-      <div
-        class="flex gap-2"
-        v-if="pagination || search || (pagination && itemsPerPage?.length > 1)"
-      >
-        <slot v-if="$slots.input" name="input" />
-        <t-input v-else-if="search" class="flex-1" icon="search" v-model="filterValueInternal" />
-        <div class="flex-1" v-else />
-        <t-select-list
-          @checkedValue="
-            (value: string) => {
-              selectedFilterOption = value
-            }
-          "
-          v-if="filterOptions"
-          :title="filterCaption ?? 'Filter'"
-          :defaultValue="selectedFilterOption || ''"
-          :values="filterOptionsVariants"
-        />
-        <t-select-list
-          @checkedValue="
-            (value: string) => {
-              selectedSortOption = value
-            }
-          "
-          v-if="sortOptions"
-          title="Sort by"
-          :defaultValue="selectedSortOption || ''"
-          :values="sortOptionsVariants"
-        />
-        <t-select-list
-          @checkedValue="
-            (value: number) => {
-              selectedItemsPerPage = value
-              currentPage = 1
-            }
-          "
-          v-if="itemsPerPage?.length > 1 && pagination"
-          title="Items per Page"
-          :defaultValue="selectedItemsPerPage"
-          :values="itemsPerPage"
-        />
-      </div>
-      <div class="flex-1">
-        <div v-if="loading" class="flex flex-row justify-center items-center w-full h-full">
-          <t-spinner class="loading-spinner" />
-        </div>
-        <template v-else-if="err">
-          <t-alert v-if="!$slots.error" title="Failed to Fetch Data" type="error">
-            {{ err }}.
-          </t-alert>
-          <slot name="error" v-else err="err" />
-        </template>
-        <template v-else-if="items?.length === 0">
-          <t-alert v-if="!$slots.norecords" type="info" title="No Records"
-            >No entries of the requested resource type are found on the server.</t-alert
-          >
-          <slot name="norecords" />
-        </template>
-        <div class="w-full h-full" v-show="!loading && !err && items?.length > 0">
-          <slot :items="items" :watch="watch" :searchQuery="searchQuery" />
-        </div>
-      </div>
-      <div class="flex items-center justify-end gap-2" v-if="showPageSelector">
-        <t-icon
-          icon="arrow-left"
-          class="pagination-icon"
-          :class="{ 'pagination-icon-disabled': currentPage === 1 }"
-          @click="prevPage"
-        />
-        <div class="pagination-pages">
-          <span
-            @click="() => openPage(item)"
-            class="pagination-page-number"
-            :class="{
-              'pagination-page-number-active': item === currentPage,
-              unhovered: item === dots,
-            }"
-            v-for="(item, index) in paginationRange ?? []"
-            :key="index"
-          >
-            {{ item }}</span
-          >
-        </div>
-        <t-icon
-          icon="arrow-right"
-          class="pagination-icon"
-          :class="{ 'pagination-icon-disabled': currentPage === totalPageCount }"
-          @click="nextPage"
-        />
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts" generic="T extends Resource">
+import type { Ref } from 'vue'
+import { computed, ref, toRefs, watch as vueWatch } from 'vue'
+
 import type { Resource } from '@/api/grpc'
 import type { WatchJoinOptions, WatchOptions } from '@/api/watch'
 import Watch, { WatchJoin } from '@/api/watch'
-import TInput from '@/components/common/TInput/TInput.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import TInput from '@/components/common/TInput/TInput.vue'
 import TAlert from '@/components/TAlert.vue'
-
-import type { Ref } from 'vue'
-import { computed, ref, toRefs, watch as vueWatch } from 'vue'
 import storageRef from '@/methods/storage'
 
 defineExpose({
@@ -243,7 +141,7 @@ const searchState = computed(() => {
   }
 
   // do not proceed if the pagination is not reset yet - when the currentPage is reset, this will get triggered again
-  if (currentPage.value != 1) {
+  if (currentPage.value !== 1) {
     return {}
   }
 
@@ -406,27 +304,129 @@ const openPage = (page: number | string) => {
 }
 </script>
 
+<template>
+  <div>
+    <slot
+      name="header"
+      :items-count="itemsCount"
+      :filtered="searchState.searchFor?.length || searchState.selectors?.length"
+    />
+    <div class="flex flex-col gap-4">
+      <div
+        v-if="pagination || search || (pagination && itemsPerPage?.length > 1)"
+        class="flex gap-2"
+      >
+        <slot v-if="$slots.input" name="input" />
+        <TInput v-else-if="search" v-model="filterValueInternal" class="flex-1" icon="search" />
+        <div v-else class="flex-1" />
+        <TSelectList
+          v-if="filterOptions"
+          :title="filterCaption ?? 'Filter'"
+          :default-value="selectedFilterOption || ''"
+          :values="filterOptionsVariants"
+          @checked-value="
+            (value: string) => {
+              selectedFilterOption = value
+            }
+          "
+        />
+        <TSelectList
+          v-if="sortOptions"
+          title="Sort by"
+          :default-value="selectedSortOption || ''"
+          :values="sortOptionsVariants"
+          @checked-value="
+            (value: string) => {
+              selectedSortOption = value
+            }
+          "
+        />
+        <TSelectList
+          v-if="itemsPerPage?.length > 1 && pagination"
+          title="Items per Page"
+          :default-value="selectedItemsPerPage"
+          :values="itemsPerPage"
+          @checked-value="
+            (value: number) => {
+              selectedItemsPerPage = value
+              currentPage = 1
+            }
+          "
+        />
+      </div>
+      <div class="flex-1">
+        <div v-if="loading" class="flex h-full w-full flex-row items-center justify-center">
+          <TSpinner class="loading-spinner" />
+        </div>
+        <template v-else-if="err">
+          <TAlert v-if="!$slots.error" title="Failed to Fetch Data" type="error">
+            {{ err }}.
+          </TAlert>
+          <slot v-else name="error" err="err" />
+        </template>
+        <template v-else-if="items?.length === 0">
+          <TAlert v-if="!$slots.norecords" type="info" title="No Records"
+            >No entries of the requested resource type are found on the server.</TAlert
+          >
+          <slot name="norecords" />
+        </template>
+        <div v-show="!loading && !err && items?.length > 0" class="h-full w-full">
+          <slot :items="items" :watch="watch" :search-query="searchQuery" />
+        </div>
+      </div>
+      <div v-if="showPageSelector" class="flex items-center justify-end gap-2">
+        <TIcon
+          icon="arrow-left"
+          class="pagination-icon"
+          :class="{ 'pagination-icon-disabled': currentPage === 1 }"
+          @click="prevPage"
+        />
+        <div class="pagination-pages">
+          <span
+            v-for="(item, index) in paginationRange ?? []"
+            :key="index"
+            class="pagination-page-number"
+            :class="{
+              'pagination-page-number-active': item === currentPage,
+              unhovered: item === dots,
+            }"
+            @click="() => openPage(item)"
+          >
+            {{ item }}</span
+          >
+        </div>
+        <TIcon
+          icon="arrow-right"
+          class="pagination-icon"
+          :class="{ 'pagination-icon-disabled': currentPage === totalPageCount }"
+          @click="nextPage"
+        />
+      </div>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .pagination-icon {
-  @apply fill-current text-naturals-N8 cursor-pointer transition-all duration-200 hover:text-naturals-N10 w-5 h-5;
+  @apply h-5 w-5 cursor-pointer fill-current text-naturals-N8 transition-all duration-200 hover:text-naturals-N10;
 }
 .pagination-icon-disabled {
   @apply text-naturals-N6;
 }
 .pagination-pages {
-  @apply flex items-center transition-all duration-200 gap-2;
+  @apply flex items-center gap-2 transition-all duration-200;
 }
 .pagination-page-number {
-  @apply w-7 h-7 rounded text-naturals-N8 transition-all duration-200 flex items-center justify-center cursor-pointer hover:text-naturals-N9 select-none;
+  @apply flex h-7 w-7 cursor-pointer select-none items-center justify-center rounded text-naturals-N8 transition-all duration-200 hover:text-naturals-N9;
 }
 .unhovered {
-  @apply hover:text-naturals-N8 cursor-default;
+  @apply cursor-default hover:text-naturals-N8;
 }
 .pagination-page-number-active {
-  @apply text-naturals-N12 bg-naturals-N4;
+  @apply bg-naturals-N4 text-naturals-N12;
 }
 
 .loading-spinner {
-  @apply absolute top-2/4 w-6 h-6;
+  @apply absolute top-2/4 h-6 w-6;
 }
 </style>

@@ -4,26 +4,18 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <component v-if="cluster" :is="inner" :currentCluster="cluster" />
-  <div v-else-if="bootstrapped" class="flex-1 font-sm">
-    <t-alert title="Cluster Not Found" type="error">
-      Cluster {{ route.params.cluster as string }} does not exist.
-    </t-alert>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { type Component, computed, ref, type Ref } from 'vue'
-import type { Resource } from '@/api/grpc'
-import type { ClusterSpec } from '@/api/omni/specs/omni.pb'
-import Watch from '@/api/watch'
-import { getContext } from '@/context'
-import { Runtime } from '@/api/common/omni.pb'
-import { ClusterType, DefaultNamespace } from '@/api/resources'
+import { type Component, computed, type Ref, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import TAlert from '@/components/TAlert.vue'
+
+import { Runtime } from '@/api/common/omni.pb'
+import type { Resource } from '@/api/grpc'
 import { EventType } from '@/api/omni/resources/resources.pb'
+import type { ClusterSpec } from '@/api/omni/specs/omni.pb'
+import { ClusterType, DefaultNamespace } from '@/api/resources'
+import Watch from '@/api/watch'
+import TAlert from '@/components/TAlert.vue'
+import { getContext } from '@/context'
 
 const bootstrapped = ref(false)
 const cluster: Ref<Resource<ClusterSpec> | undefined> = ref()
@@ -57,3 +49,12 @@ type Props = {
 
 defineProps<Props>()
 </script>
+
+<template>
+  <component :is="inner" v-if="cluster" :current-cluster="cluster" />
+  <div v-else-if="bootstrapped" class="font-sm flex-1">
+    <TAlert title="Cluster Not Found" type="error">
+      Cluster {{ route.params.cluster as string }} does not exist.
+    </TAlert>
+  </div>
+</template>

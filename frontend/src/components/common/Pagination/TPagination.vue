@@ -4,43 +4,11 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <slot :paginatedItems="filteredItems" />
-  <div class="pagination" :style="{ opacity: isInvisible ? 0 : 1 }">
-    <t-icon
-      icon="arrow-left"
-      class="pagination__icon"
-      :class="{ 'pagination__icon--passive': currentPage === 1 }"
-      @click="onPrevious"
-    />
-
-    <div class="pagination__pages">
-      <span
-        @click="() => onPageClick(item)"
-        class="pagination__page-number"
-        :class="{
-          'pagination__page-number--active': item === currentPage,
-          unhovered: item === DOTS,
-        }"
-        v-for="item in paginationRange || []"
-        :key="item"
-      >
-        {{ item }}</span
-      >
-    </div>
-    <t-icon
-      icon="arrow-right"
-      class="pagination__icon"
-      :class="{ 'pagination__icon--passive': currentPage === totalPageCount }"
-      @click="onNext"
-    />
-  </div>
-</template>
-
 <script setup lang="ts">
-import TIcon from '@/components/common/Icon/TIcon.vue'
 import { computed, ref, toRefs } from 'vue'
 import { watch } from 'vue'
+
+import TIcon from '@/components/common/Icon/TIcon.vue'
 
 type Props = {
   items: any[]
@@ -129,12 +97,45 @@ const filteredItems = computed(() => {
 })
 </script>
 
+<template>
+  <slot :paginated-items="filteredItems" />
+  <div class="pagination" :style="{ opacity: isInvisible ? 0 : 1 }">
+    <TIcon
+      icon="arrow-left"
+      class="pagination__icon"
+      :class="{ 'pagination__icon--passive': currentPage === 1 }"
+      @click="onPrevious"
+    />
+
+    <div class="pagination__pages">
+      <span
+        v-for="item in paginationRange || []"
+        :key="item"
+        class="pagination__page-number"
+        :class="{
+          'pagination__page-number--active': item === currentPage,
+          unhovered: item === DOTS,
+        }"
+        @click="() => onPageClick(item)"
+      >
+        {{ item }}</span
+      >
+    </div>
+    <TIcon
+      icon="arrow-right"
+      class="pagination__icon"
+      :class="{ 'pagination__icon--passive': currentPage === totalPageCount }"
+      @click="onNext"
+    />
+  </div>
+</template>
+
 <style scoped>
 .pagination {
   @apply flex items-center justify-end pt-6;
 }
 .pagination__icon {
-  @apply fill-current text-naturals-N8 cursor-pointer transition-all duration-200 hover:text-naturals-N10;
+  @apply cursor-pointer fill-current text-naturals-N8 transition-all duration-200 hover:text-naturals-N10;
   width: 18px;
   height: 18px;
 }
@@ -149,16 +150,16 @@ const filteredItems = computed(() => {
   margin-right: 20px;
 }
 .pagination__page-number {
-  @apply w-7 h-7 rounded text-naturals-N8 transition-all duration-200 flex items-center justify-center cursor-pointer hover:text-naturals-N9;
+  @apply flex h-7 w-7 cursor-pointer items-center justify-center rounded text-naturals-N8 transition-all duration-200 hover:text-naturals-N9;
   margin-right: 20px;
 }
 .unhovered {
-  @apply hover:text-naturals-N8 cursor-default;
+  @apply cursor-default hover:text-naturals-N8;
 }
 .pagination__page-number:last-of-type {
   margin: 0;
 }
 .pagination__page-number--active {
-  @apply text-naturals-N12 bg-naturals-N4;
+  @apply bg-naturals-N4 text-naturals-N12;
 }
 </style>

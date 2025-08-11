@@ -4,36 +4,13 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window">
-    <div class="heading">
-      <h3 class="text-base text-naturals-N14">Accept the Machine {{ $route.query.machine }} ?</h3>
-      <close-button @click="close" />
-    </div>
-
-    <p class="text-xs py-2">Please confirm the action.</p>
-
-    <div class="text-xs">
-      <p class="text-primary-P3 py-2 font-bold">
-        Accepting the machine will wipe ALL of its disks.
-      </p>
-    </div>
-
-    <div class="flex justify-end gap-4 mt-8">
-      <t-button @click="reject" class="w-32 h-9" icon="check" iconPosition="left">
-        Accept
-      </t-button>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
-import { showError, showSuccess } from '@/notification'
 
-import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
 import { acceptMachine } from '@/methods/machine'
+import { showError, showSuccess } from '@/notification'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -63,8 +40,29 @@ const reject = async () => {
 }
 </script>
 
+<template>
+  <div class="modal-window">
+    <div class="heading">
+      <h3 class="text-base text-naturals-N14">Accept the Machine {{ $route.query.machine }} ?</h3>
+      <CloseButton @click="close" />
+    </div>
+
+    <p class="py-2 text-xs">Please confirm the action.</p>
+
+    <div class="text-xs">
+      <p class="py-2 font-bold text-primary-P3">
+        Accepting the machine will wipe ALL of its disks.
+      </p>
+    </div>
+
+    <div class="mt-8 flex justify-end gap-4">
+      <TButton class="h-9 w-32" icon="check" icon-position="left" @click="reject"> Accept </TButton>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .heading {
-  @apply flex justify-between items-center mb-5 text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
 }
 </style>

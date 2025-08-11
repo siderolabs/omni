@@ -4,39 +4,19 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window">
-    <div class="heading">
-      <h3 class="text-base text-naturals-N14">
-        Destroy the Machine Set {{ $route.query.machineSet }} ?
-      </h3>
-      <close-button @click="close(true)" />
-    </div>
-    <managed-by-templates-warning warning-style="popup" />
-    <p class="text-xs mb-2">Please confirm the action.</p>
-    <div v-if="warning" class="text-yellow-Y1 text-xs mt-3">{{ warning }}</div>
-    <div class="flex items-end gap-4 mt-2">
-      <div class="flex-1" />
-      <t-button @click="destroyMachineSet" class="w-32 h-9">
-        <span>Destroy</span>
-      </t-button>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import type { Ref } from 'vue'
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { showError, showSuccess } from '@/notification'
 
-import CloseButton from '@/views/omni/Modals/CloseButton.vue'
-import TButton from '@/components/common/Button/TButton.vue'
-import { ResourceService } from '@/api/grpc'
-import { DefaultNamespace, MachineSetType } from '@/api/resources'
 import { Runtime } from '@/api/common/omni.pb'
+import { ResourceService } from '@/api/grpc'
 import { withRuntime } from '@/api/options'
+import { DefaultNamespace, MachineSetType } from '@/api/resources'
+import TButton from '@/components/common/Button/TButton.vue'
+import { showError, showSuccess } from '@/notification'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -87,8 +67,28 @@ const destroyMachineSet = async () => {
 }
 </script>
 
+<template>
+  <div class="modal-window">
+    <div class="heading">
+      <h3 class="text-base text-naturals-N14">
+        Destroy the Machine Set {{ $route.query.machineSet }} ?
+      </h3>
+      <CloseButton @click="close(true)" />
+    </div>
+    <ManagedByTemplatesWarning warning-style="popup" />
+    <p class="mb-2 text-xs">Please confirm the action.</p>
+    <div v-if="warning" class="mt-3 text-xs text-yellow-Y1">{{ warning }}</div>
+    <div class="mt-2 flex items-end gap-4">
+      <div class="flex-1" />
+      <TButton class="h-9 w-32" @click="destroyMachineSet">
+        <span>Destroy</span>
+      </TButton>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .heading {
-  @apply flex justify-between items-center mb-5 text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
 }
 </style>

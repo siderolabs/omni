@@ -4,70 +4,15 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window">
-    <div class="heading">
-      <h3 class="text-base text-naturals-N14">Download Talosctl</h3>
-      <close-button @click="close" />
-    </div>
-
-    <div class="flex flex-wrap gap-4 mb-5">
-      <div v-if="selectedOption" class="flex flex-wrap gap-4">
-        <t-select-list
-          @checkedValue="setVersion"
-          title="version"
-          :defaultValue="defaultVersion"
-          :values="Object.keys(talosctlRelease?.release_data.available_versions ?? {})"
-          :searcheable="true"
-        />
-        <t-select-list
-          @checkedValue="setOption"
-          title="talosctl"
-          :defaultValue="defaultValue"
-          :values="versionBinaries"
-          :searcheable="true"
-        />
-      </div>
-      <div v-else>
-        <t-spinner class="w-6 h-6" />
-      </div>
-    </div>
-
-    <div>
-      <p class="text-xs">
-        <code>talosctl</code> can be used to access cluster nodes using Talos machine API.
-      </p>
-      <p class="text-xs">
-        More downloads links can be found
-        <a
-          target="_blank"
-          rel="noopener noreferrer"
-          class="download-link text-xs"
-          href="https://github.com/siderolabs/talos/releases"
-          >here</a
-        >.
-      </p>
-    </div>
-
-    <div class="flex justify-end gap-4 mt-8">
-      <t-button @click="close" class="w-32 h-9">
-        <span>Cancel</span>
-      </t-button>
-      <t-button @click="download" class="w-32 h-9">
-        <span>Download</span>
-      </t-button>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+
 import TButton from '@/components/common/Button/TButton.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
-import CloseButton from '@/views/omni/Modals/CloseButton.vue'
-import { computed, onMounted, ref } from 'vue'
-import { showError } from '@/notification'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import { showError } from '@/notification'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const router = useRouter()
 let closed = false
@@ -120,7 +65,7 @@ const download = async () => {
   if (!selectedVersion.value) return
 
   const link = talosctlRelease.value?.release_data.available_versions[selectedVersion.value].find(
-    (item) => item.name == selectedOption.value,
+    (item) => item.name === selectedOption.value,
   )
   if (!link) {
     return
@@ -159,13 +104,69 @@ interface Asset {
 }
 </script>
 
+<template>
+  <div class="modal-window">
+    <div class="heading">
+      <h3 class="text-base text-naturals-N14">Download Talosctl</h3>
+      <CloseButton @click="close" />
+    </div>
+
+    <div class="mb-5 flex flex-wrap gap-4">
+      <div v-if="selectedOption" class="flex flex-wrap gap-4">
+        <TSelectList
+          title="version"
+          :default-value="defaultVersion"
+          :values="Object.keys(talosctlRelease?.release_data.available_versions ?? {})"
+          :searcheable="true"
+          @checked-value="setVersion"
+        />
+        <TSelectList
+          title="talosctl"
+          :default-value="defaultValue"
+          :values="versionBinaries"
+          :searcheable="true"
+          @checked-value="setOption"
+        />
+      </div>
+      <div v-else>
+        <TSpinner class="h-6 w-6" />
+      </div>
+    </div>
+
+    <div>
+      <p class="text-xs">
+        <code>talosctl</code> can be used to access cluster nodes using Talos machine API.
+      </p>
+      <p class="text-xs">
+        More downloads links can be found
+        <a
+          target="_blank"
+          rel="noopener noreferrer"
+          class="download-link text-xs"
+          href="https://github.com/siderolabs/talos/releases"
+          >here</a
+        >.
+      </p>
+    </div>
+
+    <div class="mt-8 flex justify-end gap-4">
+      <TButton class="h-9 w-32" @click="close">
+        <span>Cancel</span>
+      </TButton>
+      <TButton class="h-9 w-32" @click="download">
+        <span>Download</span>
+      </TButton>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .modal-window {
-  @apply w-1/3 h-auto p-8;
+  @apply h-auto w-1/3 p-8;
 }
 
 .heading {
-  @apply flex justify-between items-center mb-5 text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
 }
 
 .download-link {

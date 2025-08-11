@@ -4,32 +4,18 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="modal-window">
-    <div class="heading">
-      <h3 class="text-base text-naturals-N14">Destroy the Config Patch {{ route.query.id }} ?</h3>
-      <close-button @click="close" />
-    </div>
-    <managed-by-templates-warning warning-style="popup" />
-    <p class="text-xs">Please confirm the action.</p>
-    <div class="flex justify-end gap-4 mt-8">
-      <t-button @click="destroyPatch" class="w-32 h-9" :disabled="scalingDown"> Destroy </t-button>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { DefaultNamespace, ConfigPatchType } from '@/api/resources'
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { showError, showSuccess } from '@/notification'
-import { withRuntime } from '@/api/options'
+
 import { Runtime } from '@/api/common/omni.pb'
 import { ResourceService } from '@/api/grpc'
-
+import { withRuntime } from '@/api/options'
+import { ConfigPatchType, DefaultNamespace } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
-import CloseButton from '@/views/omni/Modals/CloseButton.vue'
+import { showError, showSuccess } from '@/notification'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -69,8 +55,22 @@ const destroyPatch = async () => {
 }
 </script>
 
+<template>
+  <div class="modal-window">
+    <div class="heading">
+      <h3 class="text-base text-naturals-N14">Destroy the Config Patch {{ route.query.id }} ?</h3>
+      <CloseButton @click="close" />
+    </div>
+    <ManagedByTemplatesWarning warning-style="popup" />
+    <p class="text-xs">Please confirm the action.</p>
+    <div class="mt-8 flex justify-end gap-4">
+      <TButton class="h-9 w-32" :disabled="scalingDown" @click="destroyPatch"> Destroy </TButton>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .heading {
-  @apply flex justify-between items-center mb-5 text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
 }
 </style>

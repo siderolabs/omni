@@ -3,12 +3,13 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { Runtime } from '@/api/common/omni.pb'
 import { ResourceService } from '@/api/grpc'
 import { withRuntime } from '@/api/options'
 import { ClusterType, DefaultNamespace } from '@/api/resources'
 import { nextAvailableClusterName } from '@/methods/cluster'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/api/grpc', () => ({
   ResourceService: {

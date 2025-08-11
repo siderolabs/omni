@@ -4,6 +4,8 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
+<script setup lang="ts"></script>
+
 <template>
   <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
     <path
@@ -18,4 +20,3 @@ included in the LICENSE file.
     />
   </svg>
 </template>
-<script setup lang="ts"></script>

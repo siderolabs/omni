@@ -4,42 +4,18 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<template>
-  <div class="flex flex-wrap gap-1.5 items-center text-xs">
-    <item-label
-      @filterLabel="(label) => $emit('filterLabel', label)"
-      v-for="label in labels"
-      :label="label"
-      :key="label.key"
-      :remove-label="removeLabelFunc ? destroyUserLabel : undefined"
-    />
-    <t-input
-      @keydown.enter="addUserLabel"
-      v-model="currentLabel"
-      compact
-      @click.stop
-      @blur="addUserLabel"
-      :focus="addingLabel"
-      v-if="addingLabel"
-      class="w-24 h-6"
-    />
-    <t-button icon="tag" type="compact" @click.stop="editLabels" v-else-if="addLabelFunc"
-      >new label</t-button
-    >
-  </div>
-</template>
-
 <script setup lang="ts">
 import { computed, ref, toRefs } from 'vue'
-import type { Resource } from '@/api/grpc'
 
-import ItemLabel from './ItemLabel.vue'
+import type { Resource } from '@/api/grpc'
+import { SystemLabelPrefix } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
-import { showError } from '@/notification'
-import { SystemLabelPrefix } from '@/api/resources'
 import type { Label } from '@/methods/labels'
 import { getLabelFromID } from '@/methods/labels'
+import { showError } from '@/notification'
+
+import ItemLabel from './ItemLabel.vue'
 
 const props = defineProps<{
   resource: Resource
@@ -170,3 +146,28 @@ const destroyUserLabel = async (key: string) => {
   currentLabel.value = ''
 }
 </script>
+
+<template>
+  <div class="flex flex-wrap items-center gap-1.5 text-xs">
+    <ItemLabel
+      v-for="label in labels"
+      :key="label.key"
+      :label="label"
+      :remove-label="removeLabelFunc ? destroyUserLabel : undefined"
+      @filter-label="(label) => $emit('filterLabel', label)"
+    />
+    <TInput
+      v-if="addingLabel"
+      v-model="currentLabel"
+      compact
+      :focus="addingLabel"
+      class="h-6 w-24"
+      @keydown.enter="addUserLabel"
+      @click.stop
+      @blur="addUserLabel"
+    />
+    <TButton v-else-if="addLabelFunc" icon="tag" type="compact" @click.stop="editLabels"
+      >new label</TButton
+    >
+  </div>
+</template>
