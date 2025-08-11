@@ -20,10 +20,10 @@ defineProps<{
   <div class="flex flex-wrap gap-1">
     <Tooltip v-for="condition in conditions" :key="condition.name" :description="condition.reason">
       <div
-        class="flex cursor-pointer items-center gap-1 rounded-md bg-naturals-N8 bg-opacity-25 px-3 py-1 text-xs font-bold text-naturals-N12"
+        class="flex cursor-pointer items-center gap-1 rounded-md bg-naturals-n8/25 px-3 py-1 text-xs font-bold text-naturals-n12"
       >
         {{ condition.name }}
-        <TIcon icon="warning" class="-mr-1 h-3 w-3 text-yellow-Y1" />
+        <TIcon icon="warning" class="-mr-1 h-3 w-3 text-yellow-y1" />
       </div>
     </Tooltip>
   </div>

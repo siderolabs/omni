@@ -26,8 +26,10 @@ const isSidebarVisible = computed(() => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .shell {
-  @apply flex w-full bg-naturals-N0;
+  @apply flex w-full bg-naturals-n0;
 }
 .shell__content {
   @apply flex w-full items-start justify-end overflow-y-auto px-2 px-6 py-6;

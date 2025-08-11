@@ -88,7 +88,7 @@ const saveAndClose = async () => {
       <div class="heading">Machine Set Scaling Configuration</div>
     </div>
     <div class="flex flex-1 flex-col">
-      <div class="flex flex-wrap items-center gap-2 border-b border-naturals-N4 px-8 py-2 text-sm">
+      <div class="flex flex-wrap items-center gap-2 border-b border-naturals-n4 px-8 py-2 text-sm">
         <div class="w-32">Update Strategy</div>
         <TButtonGroup v-model="updateStrategy" :options="options" class="flex-1" />
         <template v-if="updateStrategy !== MachineSetSpecUpdateStrategy.Unset">
@@ -99,7 +99,7 @@ const saveAndClose = async () => {
         </template>
         <div v-else class="flex h-7 items-center">Update All Simultaneously</div>
       </div>
-      <div class="flex flex-wrap items-center gap-2 border-b border-naturals-N4 px-8 py-2 text-sm">
+      <div class="flex flex-wrap items-center gap-2 border-b border-naturals-n4 px-8 py-2 text-sm">
         <div class="w-32">Delete Strategy</div>
         <TButtonGroup v-model="deleteStrategy" :options="options" class="flex-1" />
         <template v-if="deleteStrategy !== MachineSetSpecUpdateStrategy.Unset">
@@ -113,7 +113,7 @@ const saveAndClose = async () => {
         </div>
       </div>
     </div>
-    <div class="flex justify-between gap-4 rounded-b bg-naturals-N3 p-4">
+    <div class="flex justify-between gap-4 rounded-b bg-naturals-n3 p-4">
       <TButton type="secondary" @click="close">Cancel</TButton>
       <TButton @click="saveAndClose">Save</TButton>
     </div>
@@ -121,10 +121,12 @@ const saveAndClose = async () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .modal-window {
   @apply p-0;
 }
 .heading {
-  @apply text-xl text-naturals-N14;
+  @apply text-xl text-naturals-n14;
 }
 </style>

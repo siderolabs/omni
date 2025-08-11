@@ -55,11 +55,11 @@ const close = () => {
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">Delete Infra Provider {{ $route.query.provider }}</h3>
+      <h3 class="text-base text-naturals-n14">Delete Infra Provider {{ $route.query.provider }}</h3>
       <CloseButton @click="close" />
     </div>
     <p class="text-xs">Please confirm the action.</p>
-    <div class="my-3 text-xs text-yellow-Y1">
+    <div class="my-3 text-xs text-yellow-y1">
       The infra provider service will no longer be able to connect to Omni. And it's service account
       key will be removed.
     </div>
@@ -70,15 +70,17 @@ const close = () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .window {
-  @apply z-30 flex w-1/3 flex-col rounded bg-naturals-N2 p-8;
+  @apply z-30 flex w-1/3 flex-col rounded bg-naturals-n2 p-8;
 }
 
 .heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
 }
 
 code {
-  @apply break-all rounded bg-naturals-N4;
+  @apply rounded bg-naturals-n4 break-all;
 }
 </style>

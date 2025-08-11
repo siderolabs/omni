@@ -15,8 +15,7 @@ import type { Runtime } from '@/api/common/omni.pb'
 import type { WatchResponse } from '@/api/omni/resources/resources.pb'
 import { EventType } from '@/api/omni/resources/resources.pb'
 import type { Metadata } from '@/api/v1alpha1/resource.pb'
-import type { WatchContext } from '@/api/watch'
-import type { WatchEventSpec } from '@/api/watch'
+import type { WatchContext, WatchEventSpec } from '@/api/watch'
 import { WatchFunc } from '@/api/watch'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 
@@ -263,7 +262,7 @@ const loading = w.loading
 <template>
   <div class="flex flex-col">
     <div class="flex justify-between">
-      <div v-if="title" class="w-full pl-3 text-left text-xs text-naturals-N13">
+      <div v-if="title" class="w-full pl-3 text-left text-xs text-naturals-n13">
         {{ title }}
       </div>
       <div v-if="total" class="w-full pr-3 text-right text-xs">
@@ -274,7 +273,7 @@ const loading = w.loading
       <div v-if="err || loading" class="flex h-full w-full flex-row items-center justify-center">
         <div
           v-if="err"
-          class="flex w-1/2 items-center justify-center gap-4 text-sm text-talos-gray-500"
+          class="flex w-1/2 items-center justify-center gap-4 text-sm text-neutral-500"
         >
           <div class="flex-0">
             <ExclamationCircleIcon class="h-6 w-6" />

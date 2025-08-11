@@ -154,12 +154,14 @@ const filterOptions = [
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .clusters-grid {
   @apply grid flex-1 grid-cols-4 pr-2;
 }
 
 .clusters-header {
-  @apply mb-1 flex items-center bg-naturals-N2 px-3 py-2.5;
+  @apply mb-1 flex items-center bg-naturals-n2 px-3 py-2.5;
 }
 
 .clusters-header > * {

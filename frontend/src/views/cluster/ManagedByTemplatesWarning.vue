@@ -65,13 +65,13 @@ const clusterIsManagedByTemplates = computed(() => {
       </TAlert>
     </div>
     <div v-else-if="warningStyle === 'popup'" class="pb-5 text-xs">
-      <p class="py-2 text-primary-P3">This cluster is managed using cluster templates.</p>
-      <p class="py-2 font-bold text-primary-P3">
+      <p class="py-2 text-primary-p3">This cluster is managed using cluster templates.</p>
+      <p class="py-2 font-bold text-primary-p3">
         It is recommended to manage it using its template and not through this UI.
       </p>
     </div>
     <div v-else class="text-xs">
-      <p class="py-2 text-primary-P3">Managed using cluster templates</p>
+      <p class="py-2 text-primary-p3">Managed using cluster templates</p>
     </div>
   </template>
 </template>

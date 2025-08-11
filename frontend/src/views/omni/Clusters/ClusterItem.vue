@@ -110,14 +110,14 @@ machineNodesWatch.setup(
     <template #default>
       <div class="clusters-grid flex-1">
         <div class="list-item-link">
-          <router-link :to="{ name: 'ClusterOverview', params: { cluster: item?.metadata.id } }">
+          <RouterLink :to="{ name: 'ClusterOverview', params: { cluster: item?.metadata.id } }">
             <WordHighlighter
               :query="searchQuery ?? ''"
               :text-to-highlight="item.metadata.id"
               split-by-space
-              highlight-class="bg-naturals-N14"
+              highlight-class="bg-naturals-n14"
             />
-          </router-link>
+          </RouterLink>
         </div>
         <div id="machine-count" class="ml-3">
           {{ item?.spec?.machines?.healthy ?? 0 }}/{{ item?.spec?.machines?.total ?? 0 }}
@@ -193,6 +193,8 @@ machineNodesWatch.setup(
 </template>
 
 <style>
+@reference "../../../index.css";
+
 .clusters-grid {
   @apply grid grid-cols-4 items-center gap-2 pr-2;
 }

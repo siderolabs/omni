@@ -10,7 +10,6 @@ import { configureMonacoYaml } from 'monaco-yaml'
 import { ref, toRefs, watch } from 'vue'
 
 import configSchema from '@/schemas/config.schema.json'
-import { naturals } from '@/vars/colors'
 
 type Props = {
   value: string
@@ -70,28 +69,6 @@ if (!window.monacoConfigured) {
     ],
   })
 }
-
-monaco.editor.defineTheme('sidero', {
-  base: 'vs-dark',
-  inherit: true,
-  rules: [],
-  colors: {
-    'dropdown.background': naturals.N3,
-
-    'editor.background': '#00000000',
-
-    'editorHoverWidget.background': naturals.N3,
-    'editorHoverWidget.border': naturals.N7,
-
-    'editorOverviewRuler.border': '#00000000',
-
-    'editorWidget.background': naturals.N3,
-    'editorWidget.border': naturals.N7,
-
-    'input.background': naturals.N1,
-    'input.border': naturals.N7,
-  },
-})
 
 watch(value, (val: string) => {
   const model = instance?.getModel()
@@ -172,27 +149,30 @@ monaco.editor.onDidCreateModel(function (model) {
   })
 })
 
+// Can't use CSS variables inside monaco https://github.com/microsoft/monaco-editor/issues/2427
+const styles = getComputedStyle(document.documentElement)
+
 monaco.editor.defineTheme('sidero', {
   base: 'vs-dark',
   inherit: true,
   rules: [],
   colors: {
-    'dropdown.background': naturals.N3,
+    'dropdown.background': styles.getPropertyValue('--color-naturals-n3'),
 
-    'editorStickyScroll.background': naturals.N0,
+    'editorStickyScroll.background': styles.getPropertyValue('--color-naturals-n0'),
 
     'editor.background': '#00000000',
 
-    'editorHoverWidget.background': naturals.N3,
-    'editorHoverWidget.border': naturals.N7,
+    'editorHoverWidget.background': styles.getPropertyValue('--color-naturals-n3'),
+    'editorHoverWidget.border': styles.getPropertyValue('--color-naturals-n7'),
 
     'editorOverviewRuler.border': '#00000000',
 
-    'editorWidget.background': naturals.N3,
-    'editorWidget.border': naturals.N7,
+    'editorWidget.background': styles.getPropertyValue('--color-naturals-n3'),
+    'editorWidget.border': styles.getPropertyValue('--color-naturals-n7'),
 
-    'input.background': naturals.N1,
-    'input.border': naturals.N7,
+    'input.background': styles.getPropertyValue('--color-naturals-n1'),
+    'input.border': styles.getPropertyValue('--color-naturals-n7'),
   },
 })
 </script>
@@ -202,6 +182,8 @@ monaco.editor.defineTheme('sidero', {
 </template>
 
 <style>
+@reference "../../../index.css";
+
 .editor h4 {
   @apply font-bold;
 }

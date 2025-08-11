@@ -22,20 +22,22 @@ const onContinue = (untaint: boolean) => {
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">Untaint single node cluster</h3>
+      <h3 class="text-base text-naturals-n14">Untaint single node cluster</h3>
       <CloseButton @click="closeModal" />
     </div>
     <p class="text-xs">Apply patch that will enable scheduling user workloads on this node?</p>
 
     <div class="mt-8 flex justify-end gap-2">
-      <TButton class="secondary w-15 h-9" @click="onContinue(false)">No</TButton>
-      <TButton type="highlighted" class="w-15 h-9" @click="onContinue(true)">Yes</TButton>
+      <TButton class="secondary h-9 w-15" @click="onContinue(false)">No</TButton>
+      <TButton type="highlighted" class="h-9 w-15" @click="onContinue(true)">Yes</TButton>
     </div>
   </div>
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
 }
 </style>

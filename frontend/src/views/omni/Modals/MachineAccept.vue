@@ -43,14 +43,14 @@ const reject = async () => {
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">Accept the Machine {{ $route.query.machine }} ?</h3>
+      <h3 class="text-base text-naturals-n14">Accept the Machine {{ $route.query.machine }} ?</h3>
       <CloseButton @click="close" />
     </div>
 
     <p class="py-2 text-xs">Please confirm the action.</p>
 
     <div class="text-xs">
-      <p class="py-2 font-bold text-primary-P3">
+      <p class="py-2 font-bold text-primary-p3">
         Accepting the machine will wipe ALL of its disks.
       </p>
     </div>
@@ -62,7 +62,9 @@ const reject = async () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
 }
 </style>

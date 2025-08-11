@@ -180,32 +180,32 @@ const openExtensionsUpdate = () => {
           </div>
           <TListItem v-for="item in extensionsState" :key="item.name">
             <div class="flex gap-2 px-3">
-              <div class="list-grid flex-1 text-naturals-N12">
+              <div class="list-grid flex-1 text-naturals-n12">
                 <WordHighlighter
                   :query="searchString"
                   :text-to-highlight="item.name"
-                  highlight-class="bg-naturals-N14"
-                  class="text-naturals-N14"
+                  highlight-class="bg-naturals-n14"
+                  class="text-naturals-n14"
                 />
                 <div class="flex">
                   <div
-                    class="flex items-center gap-2 rounded bg-naturals-N3 px-2 py-1 text-xs text-naturals-N13"
+                    class="flex items-center gap-2 rounded bg-naturals-n3 px-2 py-1 text-xs text-naturals-n13"
                   >
                     <template v-if="item.phase === MachineExtensionsStatusSpecItemPhase.Installing">
-                      <TIcon icon="loading" class="h-4 w-4 animate-spin text-yellow-Y1" />
+                      <TIcon icon="loading" class="h-4 w-4 animate-spin text-yellow-y1" />
                       <span>Installing</span>
                     </template>
                     <template
                       v-else-if="item.phase === MachineExtensionsStatusSpecItemPhase.Removing"
                     >
-                      <TIcon icon="delete" class="h-4 w-4 animate-pulse text-red-R1" />
+                      <TIcon icon="delete" class="h-4 w-4 animate-pulse text-red-r1" />
                       <span>Removing</span>
                     </template>
 
                     <template
                       v-else-if="item.phase === MachineExtensionsStatusSpecItemPhase.Installed"
                     >
-                      <TIcon icon="check-in-circle" class="h-4 w-4 text-green-G1" />
+                      <TIcon icon="check-in-circle" class="h-4 w-4 text-green-g1" />
                       <span>Installed</span>
                     </template>
                   </div>
@@ -226,7 +226,7 @@ const openExtensionsUpdate = () => {
       </div>
     </div>
     <div
-      class="sticky -bottom-6 -mx-6 -my-6 flex h-16 items-center justify-end gap-2 border-t border-naturals-N5 bg-naturals-N1 px-12 py-6 text-xs"
+      class="sticky -bottom-6 -mx-6 -my-6 flex h-16 items-center justify-end gap-2 border-t border-naturals-n5 bg-naturals-n1 px-12 py-6 text-xs"
     >
       <TButton type="highlighted" :disabled="!canUpdateTalos" @click="openExtensionsUpdate">
         Update Extensions
@@ -236,11 +236,13 @@ const openExtensionsUpdate = () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .list-grid {
   @apply grid grid-cols-3 items-center justify-center;
 }
 
 .header {
-  @apply mb-1 bg-naturals-N2 px-6 py-2 text-xs;
+  @apply mb-1 bg-naturals-n2 px-6 py-2 text-xs;
 }
 </style>

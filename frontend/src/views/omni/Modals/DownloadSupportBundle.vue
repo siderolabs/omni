@@ -26,7 +26,6 @@ import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import { setupClusterPermissions } from '@/methods/auth'
 import { showError } from '@/notification'
-import { green, red, yellow } from '@/vars/colors'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const route = useRoute()
@@ -122,7 +121,7 @@ const download = async () => {
               currentNum: 0,
               progress: 0,
               icon: 'loading',
-              color: yellow.Y1,
+              color: 'var(--color-yellow-y1)',
             }
 
             sourceToProgress.value[resp.progress.source] = current
@@ -139,10 +138,10 @@ const download = async () => {
           }
 
           if (resp.progress.error) {
-            current.color = red.R1
+            current.color = 'var(--color-red-r1)'
             current.icon = 'warning'
-          } else if (current.progress === 100 && current.color !== red.R1) {
-            current.color = green.G1
+          } else if (current.progress === 100 && current.color !== 'var(--color-red-r1)') {
+            current.color = 'var(--color-green-g1)'
             current.icon = 'check-in-circle-classic'
           }
         }
@@ -191,9 +190,9 @@ const { canDownloadSupportBundle } = setupClusterPermissions(
     class="z-30 flex h-screen items-center justify-center gap-2 overflow-hidden py-4"
     :class="{ 'w-3/5': Object.keys(sourceToProgress).length > 0 }"
   >
-    <div class="flex max-h-full w-full min-w-fit flex-col gap-2 rounded bg-naturals-N2 p-8">
+    <div class="flex max-h-full w-full min-w-fit flex-col gap-2 rounded bg-naturals-n2 p-8">
       <div class="heading">
-        <h3 class="text-base text-naturals-N14">Download Support Bundle</h3>
+        <h3 class="text-base text-naturals-n14">Download Support Bundle</h3>
         <CloseButton @click="close" />
       </div>
 
@@ -202,16 +201,16 @@ const { canDownloadSupportBundle } = setupClusterPermissions(
           <div
             v-for="source in sortedSources"
             :key="source"
-            class="my-1 flex flex-col divide-y divide-naturals-N6 overflow-hidden rounded-md border border-naturals-N6 text-xs"
+            class="my-1 flex flex-col divide-y divide-naturals-n6 overflow-hidden rounded-md border border-naturals-n6 text-xs"
           >
-            <div class="flex gap-2 bg-naturals-N3 p-3 px-3">
+            <div class="flex gap-2 bg-naturals-n3 p-3 px-3">
               <IconButton
                 icon="arrow-up"
                 class="transition-transform"
                 :class="{ 'rotate-180': expanded[source] }"
                 @click="() => (expanded[source] = !expanded[source])"
               />
-              <div class="list-grid flex-1 text-naturals-N12">
+              <div class="list-grid flex-1 text-naturals-n12">
                 <div class="truncate">{{ source }}</div>
                 <div class="col-span-2 flex items-center gap-2">
                   <TIcon
@@ -234,13 +233,13 @@ const { canDownloadSupportBundle } = setupClusterPermissions(
                 :description="state.error"
               >
                 <div
-                  class="flex cursor-pointer items-center gap-2 px-4 py-0.5 hover:bg-naturals-N4"
+                  class="flex cursor-pointer items-center gap-2 px-4 py-0.5 hover:bg-naturals-n4"
                 >
                   <TIcon
                     class="h-4 w-4"
                     :class="{
-                      'text-green-G1': state.error === undefined,
-                      'text-red-R1': state.error,
+                      'text-green-g1': state.error === undefined,
+                      'text-red-r1': state.error,
                     }"
                     :icon="state.error ? 'warning' : 'check'"
                   />
@@ -272,12 +271,14 @@ const { canDownloadSupportBundle } = setupClusterPermissions(
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
 }
 
 optgroup {
-  @apply font-bold text-naturals-N14;
+  @apply font-bold text-naturals-n14;
 }
 
 .list-grid {
@@ -285,6 +286,6 @@ optgroup {
 }
 
 .header {
-  @apply mb-1 bg-naturals-N2 px-6 py-2 text-xs;
+  @apply mb-1 bg-naturals-n2 px-6 py-2 text-xs;
 }
 </style>

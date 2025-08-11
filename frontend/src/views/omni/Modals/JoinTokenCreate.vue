@@ -74,7 +74,7 @@ const close = () => {
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">Create Join Token</h3>
+      <h3 class="text-base text-naturals-n14">Create Join Token</h3>
       <CloseButton @click="close" />
     </div>
 
@@ -122,15 +122,17 @@ const close = () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .window {
-  @apply z-30 flex w-1/3 flex-col rounded bg-naturals-N2 p-8;
+  @apply z-30 flex w-1/3 flex-col rounded bg-naturals-n2 p-8;
 }
 
 .heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
 }
 
 code {
-  @apply break-all rounded bg-naturals-N4;
+  @apply rounded bg-naturals-n4 break-all;
 }
 </style>

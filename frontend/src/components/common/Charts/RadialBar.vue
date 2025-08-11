@@ -10,8 +10,6 @@ import type { Ref } from 'vue'
 import { computed, toRefs } from 'vue'
 import ApexChart from 'vue3-apexcharts'
 
-import { green, naturals, primary, red, yellow } from '@/vars/colors'
-
 type Props = {
   name: string
   labels?: string[]
@@ -37,7 +35,12 @@ const normalized = computed(() => {
   })
 })
 
-const colors = [primary.P3, red.R1, green.G1, yellow.Y1]
+const colors = [
+  'var(--color-primary-p3)',
+  'var(--color-red-r1)',
+  'var(--color-green-g1)',
+  'var(--color-yelow-y1)',
+]
 
 const options: Ref<ApexOptions> = computed(() => {
   return {
@@ -51,7 +54,7 @@ const options: Ref<ApexOptions> = computed(() => {
           size: `${80 - series.value.length * 20}`,
         },
         track: {
-          background: naturals.N0,
+          background: 'var(--color-naturals-n0)',
         },
         dataLabels: {
           show: false,
@@ -82,7 +85,7 @@ const options: Ref<ApexOptions> = computed(() => {
 
 <template>
   <div class="flex flex-col items-center justify-center gap-1 text-xs font-medium">
-    <h4 class="text-naturals-N13">{{ name }}</h4>
+    <h4 class="text-naturals-n13">{{ name }}</h4>
     <ApexChart
       class="flex-1"
       :height="200"
@@ -95,7 +98,7 @@ const options: Ref<ApexOptions> = computed(() => {
       <div
         v-for="(label, index) in labels"
         :key="label"
-        class="flex items-center gap-1 text-naturals-N13"
+        class="flex items-center gap-1 text-naturals-n13"
       >
         <div class="h-2.5 w-2.5 rounded-sm" :style="{ 'background-color': colors[index] }" />
         <div class="flex-1">{{ label }}</div>

@@ -117,22 +117,22 @@ const openDocs = () => {
               </div>
               <TListItem v-for="item in items" :key="item.metadata.id!">
                 <div
-                  class="relative pr-3 text-naturals-N12"
+                  class="relative pr-3 text-naturals-n12"
                   :class="{ 'pl-7': !item.spec.description }"
                 >
                   <div class="list-grid">
                     <WordHighlighter
                       :query="searchQuery"
                       :text-to-highlight="item.metadata.id"
-                      highlight-class="bg-naturals-N14"
+                      highlight-class="bg-naturals-n14"
                     />
-                    <div class="text-naturals-N14">
+                    <div class="text-naturals-n14">
                       {{ formatISO(item.spec.created_at as string, dateFormat) }}
                     </div>
-                    <div class="text-naturals-N14">
+                    <div class="text-naturals-n14">
                       {{ formatBytes(parseInt(item.spec.size ?? '0')) }}
                     </div>
-                    <div class="flex items-center gap-2 text-naturals-N14">
+                    <div class="flex items-center gap-2 text-naturals-n14">
                       {{ item.spec.snapshot }}
                       <IconButton
                         icon="copy"
@@ -151,8 +151,10 @@ const openDocs = () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .header {
-  @apply mb-1 bg-naturals-N2 px-6 py-2 pl-10 text-xs;
+  @apply mb-1 bg-naturals-n2 px-6 py-2 pl-10 text-xs;
 }
 
 .list-grid {

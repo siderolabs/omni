@@ -38,19 +38,21 @@ const { name, usageName, totalLegend, usagePercents, usageTotal, chartFillPercen
 </template>
 
 <style scoped>
+@reference "../../../../../index.css";
+
 .item {
   @apply mb-10 flex flex-col items-center justify-start 2xl:mb-0;
 }
 .item__name {
-  @apply text-xs font-medium text-naturals-N13;
+  @apply text-xs font-medium text-naturals-n13;
 }
 .item__use {
-  @apply mb-4 text-xs font-medium text-naturals-N13;
+  @apply mb-4 text-xs font-medium text-naturals-n13;
 }
 .item__use-percents {
-  @apply pl-2 text-xs font-medium text-naturals-N10;
+  @apply pl-2 text-xs font-medium text-naturals-n10;
 }
 .item__total {
-  @apply text-xs font-medium text-naturals-N10;
+  @apply text-xs font-medium text-naturals-n10;
 }
 </style>

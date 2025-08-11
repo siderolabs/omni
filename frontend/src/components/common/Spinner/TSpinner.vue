@@ -21,6 +21,8 @@ included in the LICENSE file.
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .spinner {
   @apply h-full w-full;
   animation: rotator 1.4s linear infinite;
@@ -38,7 +40,7 @@ included in the LICENSE file.
   stroke-dashoffset: 0;
   transform-origin: center;
   animation: dash 1.4s ease-in-out infinite;
-  @apply stroke-primary-P3;
+  @apply stroke-primary-p3;
 }
 
 @keyframes dash {

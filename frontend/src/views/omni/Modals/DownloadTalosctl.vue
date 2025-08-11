@@ -107,7 +107,7 @@ interface Asset {
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">Download Talosctl</h3>
+      <h3 class="text-base text-naturals-n14">Download Talosctl</h3>
       <CloseButton @click="close" />
     </div>
 
@@ -161,12 +161,14 @@ interface Asset {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .modal-window {
   @apply h-auto w-1/3 p-8;
 }
 
 .heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
 }
 
 .download-link {

@@ -14,12 +14,12 @@ import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import {
   ClusterMachineStatusLabelNodeName,
   ClusterMachineStatusType,
+  DefaultNamespace,
   kubernetes,
   LabelCluster,
   TalosClusterNamespace,
   TalosMemberType,
 } from '@/api/resources'
-import { DefaultNamespace } from '@/api/resources'
 import TGroupAnimation from '@/components/common/Animation/TGroupAnimation.vue'
 import TList from '@/components/common/List/TList.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -93,11 +93,13 @@ const opts = [
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .nodes-list-heading {
-  @apply flex items-center bg-naturals-N2;
+  @apply flex items-center bg-naturals-n2;
   padding: 10px 16px;
 }
 .nodes-list-heading > p {
-  @apply w-1/5 text-xs text-naturals-N13;
+  @apply w-1/5 text-xs text-naturals-n13;
 }
 </style>

@@ -92,7 +92,7 @@ const items = computed(() => {
       route: getRoute('/manifests'),
       icon: 'bootstrap-manifests',
       label: pendingManifests.value,
-      labelColor: pendingManifests.value === '!' ? 'red-R1' : undefined,
+      labelColor: pendingManifests.value === '!' ? 'red-r1' : undefined,
     })
   }
 
@@ -112,9 +112,9 @@ const workloadProxyingEnabled = setupWorkloadProxyingEnabledFeatureWatch()
 
 <template>
   <div class="flex-1">
-    <OmniSideBar class="border-b border-naturals-N4" />
-    <p class="mb-2 mt-5 px-6 text-xs text-naturals-N8">Cluster</p>
-    <p class="truncate px-6 text-xs text-naturals-N13">
+    <OmniSideBar class="border-b border-naturals-n4" />
+    <p class="mt-5 mb-2 px-6 text-xs text-naturals-n8">Cluster</p>
+    <p class="truncate px-6 text-xs text-naturals-n13">
       {{ $route.params.cluster }}
     </p>
     <TSidebarList :items="items" />

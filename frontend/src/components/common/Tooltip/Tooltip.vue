@@ -49,7 +49,7 @@ const show = ref(false)
   >
     <template #content>
       <div
-        class="z-50 rounded border border-naturals-N4 bg-naturals-N3 p-4 text-xs text-naturals-N12"
+        class="z-50 rounded border border-naturals-n4 bg-naturals-n3 p-4 text-xs text-naturals-n12"
       >
         <p v-if="description" class="whitespace-pre">{{ description }}</p>
         <slot v-else name="description" />

@@ -21,21 +21,23 @@ defineProps<Props>()
     <div class="flex items-start gap-1">
       <PageHeader title="Settings" class="flex-1" :subtitle="`${$route.meta.title}`" />
     </div>
-    <router-view name="inner" />
+    <RouterView name="inner" />
   </div>
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .content {
-  @apply flex w-full border-b border-naturals-N4;
+  @apply flex w-full border-b border-naturals-n4;
 }
 
 .router-link-active {
-  @apply relative text-naturals-N13;
+  @apply relative text-naturals-n13;
 }
 
 .router-link-active::before {
-  @apply absolute block w-full animate-fadein bg-primary-P3;
+  @apply absolute block w-full animate-fadein bg-primary-p3;
   content: '';
   height: 2px;
   bottom: -15px;

@@ -152,7 +152,7 @@ const openDeleteToken = (token: string) => {
                 <span class="truncate">{{ item.spec.name ?? 'initial token' }}</span>
                 <div
                   v-if="item.spec.is_default"
-                  class="rounded bg-primary-P3 bg-opacity-10 px-2 py-1 text-primary-P3"
+                  class="rounded bg-primary-p3/10 px-2 py-1 text-primary-p3"
                 >
                   Default
                 </div>
@@ -192,7 +192,7 @@ const openDeleteToken = (token: string) => {
                 >
                   Download Installation Media
                 </TActionsBoxItem>
-                <div class="my-0.5 w-full border-b border-naturals-N5" />
+                <div class="my-0.5 w-full border-b border-naturals-n5" />
                 <TActionsBoxItem
                   v-if="!item.spec.is_default"
                   icon="check"
@@ -230,12 +230,14 @@ const openDeleteToken = (token: string) => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .tokens-grid {
   @apply grid grid-cols-5 items-center gap-4 pr-10;
 }
 
 .tokens-header {
-  @apply mb-1 bg-naturals-N2 px-3 py-2 pr-12;
+  @apply mb-1 bg-naturals-n2 px-3 py-2 pr-12;
 }
 
 .tokens-header > * {

@@ -48,13 +48,13 @@ const deleteToken = async () => {
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="flex-1 truncate text-base text-naturals-N14">Delete the token {{ id }} ?</h3>
+      <h3 class="flex-1 truncate text-base text-naturals-n14">Delete the token {{ id }} ?</h3>
       <CloseButton @click="close" />
     </div>
 
     <JoinTokenWarnings :id="id" class="mb-2 flex-1" @ready="isReady = true" />
 
-    <p class="text-xs text-primary-P2">
+    <p class="text-xs text-primary-p2">
       This action CANNOT be undone. This will permanently delete the Join Token.
     </p>
 
@@ -67,7 +67,9 @@ const deleteToken = async () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .heading {
-  @apply mb-5 flex items-center gap-2 text-xl text-naturals-N14;
+  @apply mb-5 flex items-center gap-2 text-xl text-naturals-n14;
 }
 </style>

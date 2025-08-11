@@ -11,8 +11,8 @@
     "build": "npm run tsc && vite build",
     "tsc": "vue-tsc --build",
     "test": "vitest",
-    "lint": "eslint . --flag unstable_native_nodejs_ts_config && prettier -c .",
-    "lint:fix": "eslint . --fix --flag unstable_native_nodejs_ts_config && prettier -wl ."
+    "lint": "eslint . && prettier -c .",
+    "lint:fix": "eslint . --fix && prettier -wl ."
   },
   "dependencies": {
     "@auth0/auth0-vue": "^2.4.0",
@@ -40,6 +40,7 @@
     "whatwg-fetch": "^3.6.20"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.1.11",
     "@tsconfig/node22": "^22.0.2",
     "@types/js-yaml": "^4.0.9",
     "@types/jsdom": "^21.1.7",
@@ -54,17 +55,15 @@
     "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/eslint-config-typescript": "^14.6.0",
     "@vue/tsconfig": "^0.7.0",
-    "autoprefixer": "^10.4.21",
     "eslint": "^9.33.0",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-vue": "^10.1.0",
     "jsdom": "^26.1.0",
     "lodash": "^4.17.21",
     "openpgp": "^6.1.0",
-    "postcss": "^8.5.3",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
-    "tailwindcss": "^3.4.17",
+    "tailwindcss": "^4.1.11",
     "typescript": "~5.8",
     "vite": "^5.4.19",
     "vite-plugin-monaco-editor-esm": "^2.0.2",

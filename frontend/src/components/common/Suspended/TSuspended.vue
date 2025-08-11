@@ -22,10 +22,11 @@ import TIcon from '@/components/common/Icon/TIcon.vue'
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .suspended {
-  @apply flex w-full items-center justify-between rounded border border-l-4 border-naturals-N5 bg-naturals-N0 px-6 py-4 text-red-R1;
+  @apply flex w-full items-center justify-between rounded border border-l-4 border-red-r2 bg-naturals-n0 px-6 py-4 text-red-r1;
   min-height: 65px;
-  border-color: rgba(110, 47, 48, var(--tw-border-opacity));
 }
 .suspended__wrapper {
   @apply flex items-center;

@@ -7,6 +7,7 @@
 
 import { fileURLToPath, URL } from 'node:url'
 
+import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig, type UserConfig } from 'vite'
 import monacoEditorPlugin from 'vite-plugin-monaco-editor-esm'
@@ -16,7 +17,7 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => {
   const config: UserConfig = {
-    plugins: [vue(), vueDevTools(), nodePolyfills({ include: ['stream'] })],
+    plugins: [vue(), vueDevTools(), tailwindcss(), nodePolyfills({ include: ['stream'] })],
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),

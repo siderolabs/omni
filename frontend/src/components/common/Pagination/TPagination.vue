@@ -5,8 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, ref, toRefs } from 'vue'
-import { watch } from 'vue'
+import { computed, ref, toRefs, watch } from 'vue'
 
 import TIcon from '@/components/common/Icon/TIcon.vue'
 
@@ -131,16 +130,18 @@ const filteredItems = computed(() => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .pagination {
   @apply flex items-center justify-end pt-6;
 }
 .pagination__icon {
-  @apply cursor-pointer fill-current text-naturals-N8 transition-all duration-200 hover:text-naturals-N10;
+  @apply cursor-pointer fill-current text-naturals-n8 transition-all duration-200 hover:text-naturals-n10;
   width: 18px;
   height: 18px;
 }
 .pagination__icon--passive {
-  @apply text-naturals-N6;
+  @apply text-naturals-n6;
 }
 .pagination__icon:nth-child(1) {
   margin-right: 20px;
@@ -150,16 +151,16 @@ const filteredItems = computed(() => {
   margin-right: 20px;
 }
 .pagination__page-number {
-  @apply flex h-7 w-7 cursor-pointer items-center justify-center rounded text-naturals-N8 transition-all duration-200 hover:text-naturals-N9;
+  @apply flex h-7 w-7 cursor-pointer items-center justify-center rounded text-naturals-n8 transition-all duration-200 hover:text-naturals-n9;
   margin-right: 20px;
 }
 .unhovered {
-  @apply cursor-default hover:text-naturals-N8;
+  @apply cursor-default hover:text-naturals-n8;
 }
 .pagination__page-number:last-of-type {
   margin: 0;
 }
 .pagination__page-number--active {
-  @apply bg-naturals-N4 text-naturals-N12;
+  @apply bg-naturals-n4 text-naturals-n12;
 }
 </style>

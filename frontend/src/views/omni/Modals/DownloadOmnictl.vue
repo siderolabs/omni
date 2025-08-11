@@ -57,7 +57,7 @@ const defaultValue = options[2]
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">Download Omnictl</h3>
+      <h3 class="text-base text-naturals-n14">Download Omnictl</h3>
       <CloseButton @click="close" />
     </div>
 
@@ -87,11 +87,13 @@ const defaultValue = options[2]
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .modal-window {
   @apply h-auto w-1/3 p-8;
 }
 
 .heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
 }
 </style>

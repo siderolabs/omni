@@ -23,11 +23,12 @@ import {
 } from '@/api/omni/specs/omni.pb'
 import {
   ClusterStatusType,
+  DefaultNamespace,
+  KubernetesUpgradeStatusType,
   KubernetesUsageType,
   TalosUpgradeStatusType,
   VirtualNamespace,
 } from '@/api/resources'
-import { DefaultNamespace, KubernetesUpgradeStatusType } from '@/api/resources'
 import Watch from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import RadialBar from '@/components/common/Charts/RadialBar.vue'
@@ -213,10 +214,10 @@ onMounted(async () => {
           </div>
           <div
             v-if="!showStats"
-            class="absolute bottom-0 left-0 right-0 top-0 flex items-center justify-center text-sm"
+            class="absolute top-0 right-0 bottom-0 left-0 flex items-center justify-center text-sm"
           >
             <div class="flex flex-col gap-2">
-              <div class="text-naturals-N13">
+              <div class="text-naturals-n13">
                 Kubernetes stats are disabled due to the size of the cluster
               </div>
             </div>
@@ -244,8 +245,8 @@ onMounted(async () => {
               </span>
             </template>
           </div>
-          <div class="flex items-center gap-2 border-t-8 border-naturals-N4 p-4 text-xs">
-            <TIcon icon="loading" class="h-6 w-6 animate-spin text-yellow-Y1" />
+          <div class="flex items-center gap-2 border-t-8 border-naturals-n4 p-4 text-xs">
+            <TIcon icon="loading" class="h-6 w-6 animate-spin text-yellow-y1" />
             <div class="flex-1">
               {{ kubernetesUpgradeStatus.spec.step }}
               <template v-if="kubernetesUpgradeStatus.spec.status">
@@ -295,8 +296,8 @@ onMounted(async () => {
               <span class="overview-box-title"> Installing Extensions </span>
             </template>
           </div>
-          <div class="flex items-center gap-2 border-t-8 border-naturals-N4 p-4 text-xs">
-            <TIcon icon="loading" class="h-6 w-6 animate-spin text-yellow-Y1" />
+          <div class="flex items-center gap-2 border-t-8 border-naturals-n4 p-4 text-xs">
+            <TIcon icon="loading" class="h-6 w-6 animate-spin text-yellow-y1" />
             <div class="flex-1">
               {{ talosUpgradeStatus.spec.status }}
               <template v-if="talosUpgradeStatus.spec.status">
@@ -367,11 +368,13 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+@reference "../../../../index.css";
+
 .overview-card {
-  @apply rounded bg-naturals-N2 py-5;
+  @apply rounded bg-naturals-n2 py-5;
 }
 .divider {
-  @apply w-full bg-naturals-N4;
+  @apply w-full bg-naturals-n4;
   height: 1px;
 }
 .overview {
@@ -391,38 +394,38 @@ onMounted(async () => {
   margin-bottom: 35px;
 }
 .overview-title {
-  @apply mr-2 text-xl text-naturals-N14;
+  @apply mr-2 text-xl text-naturals-n14;
 }
 .overview-icon {
-  @apply h-5 w-5 cursor-pointer fill-current text-naturals-N14;
+  @apply h-5 w-5 cursor-pointer fill-current text-naturals-n14;
 }
 .overview-machines-list {
-  @apply overview-card flex-col;
+  @apply flex-col;
   padding-bottom: 0;
 }
 .overview-kubernetes-upgrade {
-  @apply mb-5 rounded bg-naturals-N2 py-5 pb-0;
+  @apply mb-5 rounded bg-naturals-n2 py-5 pb-0;
 }
 .overview-upgrade-progress {
-  @apply mb-5 rounded bg-naturals-N2 py-5 pb-0;
+  @apply mb-5 rounded bg-naturals-n2 py-5 pb-0;
 }
 .overview-box-header {
   @apply flex px-6 pb-4;
 }
 .overview-box-title {
-  @apply text-sm text-naturals-N13;
+  @apply text-sm text-naturals-n13;
 }
 .overview-usage-subtitle {
-  @apply text-xs text-naturals-N10;
+  @apply text-xs text-naturals-n10;
 }
 .overview-status-box {
-  @apply w-full flex-col rounded bg-naturals-N2 py-5 pb-0;
+  @apply w-full flex-col rounded bg-naturals-n2 py-5 pb-0;
 }
 .overview-charts-box {
-  @apply mb-6 bg-naturals-N2 p-5;
+  @apply mb-6 bg-naturals-n2 p-5;
   min-height: 100px;
 }
 .overview-upgrade-version {
-  @apply rounded bg-naturals-N4 px-2 text-sm font-bold text-naturals-N13;
+  @apply rounded bg-naturals-n4 px-2 text-sm font-bold text-naturals-n13;
 }
 </style>

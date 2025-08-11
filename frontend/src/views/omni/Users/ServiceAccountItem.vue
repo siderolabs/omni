@@ -62,9 +62,9 @@ const renewKey = () => {
   <TListItem>
     <template #default>
       <div class="flex items-center gap-2">
-        <div class="users-grid flex-1 text-naturals-N13">
+        <div class="users-grid flex-1 text-naturals-n13">
           <div class="font-bold">{{ item.metadata.id }}</div>
-          <div class="max-w-min rounded bg-naturals-N3 px-2 py-1 text-naturals-N10">
+          <div class="max-w-min rounded bg-naturals-n3 px-2 py-1 text-naturals-n10">
             {{ props.item.spec.role ?? 'None' }}
           </div>
           <div>{{ expiration }}</div>
@@ -89,6 +89,8 @@ const renewKey = () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .users-grid {
   @apply grid grid-cols-3 items-center pr-2;
 }

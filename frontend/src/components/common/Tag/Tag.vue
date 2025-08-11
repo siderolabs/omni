@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <template>
   <div
-    class="rounded border border-naturals-N6 bg-naturals-N4 px-1.5 py-1 text-xs text-naturals-N12"
+    class="rounded border border-naturals-n6 bg-naturals-n4 px-1.5 py-1 text-xs text-naturals-n12"
   >
     <slot />
   </div>

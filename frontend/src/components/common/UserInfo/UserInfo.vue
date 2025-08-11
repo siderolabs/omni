@@ -79,12 +79,12 @@ const doLogout = async () => {
       referrerpolicy="no-referrer"
     />
     <div class="flex flex-1 flex-col truncate">
-      <div class="truncate text-naturals-N13">{{ fullname }}</div>
+      <div class="truncate text-naturals-n13">{{ fullname }}</div>
       {{ identity }}
     </div>
     <TActionsBox v-if="withLogoutControls" placement="top">
       <div @click="doLogout">
-        <div class="cursor-pointer px-4 py-2 hover:text-naturals-N12">Log Out</div>
+        <div class="cursor-pointer px-4 py-2 hover:text-naturals-n12">Log Out</div>
       </div>
     </TActionsBox>
   </div>

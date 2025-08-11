@@ -137,6 +137,8 @@ defineProps<Props>()
 </template>
 
 <style>
+@reference "../../../index.css";
+
 .cluster-stage-box {
   @apply flex items-center gap-1;
 }

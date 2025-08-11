@@ -22,16 +22,18 @@ defineProps<{
 </template>
 
 <style scoped>
+@reference "../../../../../index.css";
+
 .overview-details-item {
   @apply flex w-full justify-between;
   align-items: flex-start !important;
 }
 .overview-item-name {
-  @apply text-xs text-naturals-N11;
+  @apply text-xs text-naturals-n11;
   min-width: 40px;
 }
 .overview-item-value {
-  @apply flex items-center gap-1 text-xs text-naturals-N13;
+  @apply flex items-center gap-1 text-xs text-naturals-n13;
 }
 .overview-item-text {
   margin-right: 2px;

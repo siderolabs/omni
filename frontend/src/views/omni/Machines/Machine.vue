@@ -5,8 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed } from 'vue'
-import { onBeforeMount, ref, watch } from 'vue'
+import { computed, onBeforeMount, ref, watch } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 import { useRoute } from 'vue-router'
 
@@ -59,7 +58,7 @@ watch(() => route.params, getMachineName)
     <div class="flex h-9 justify-between">
       <PageHeader :title="`${machine}`" />
     </div>
-    <TabsHeader class="border-b border-naturals-N4 pb-3.5">
+    <TabsHeader class="border-b border-naturals-n4 pb-3.5">
       <TabButton
         is="router-link"
         v-for="route in routes"
@@ -70,21 +69,23 @@ watch(() => route.params, getMachineName)
         {{ route.name }}
       </TabButton>
     </TabsHeader>
-    <router-view name="inner" class="flex-1" />
+    <RouterView name="inner" class="flex-1" />
   </div>
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .content {
-  @apply flex w-full border-b border-naturals-N4;
+  @apply flex w-full border-b border-naturals-n4;
 }
 
 .router-link-active {
-  @apply relative text-naturals-N13;
+  @apply relative text-naturals-n13;
 }
 
 .router-link-active::before {
-  @apply absolute block w-full animate-fadein bg-primary-P3;
+  @apply absolute block w-full animate-fadein bg-primary-p3;
   content: '';
   height: 2px;
   bottom: -15px;

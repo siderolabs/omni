@@ -7,8 +7,6 @@ included in the LICENSE file.
 <script setup lang="ts">
 import pluralize from 'pluralize'
 
-import { primary } from '@/vars/colors'
-
 import type { IconType } from '../Icon/TIcon.vue'
 import TIcon from '../Icon/TIcon.vue'
 
@@ -23,7 +21,7 @@ withDefaults(
     hideZero?: boolean
   }>(),
   {
-    color: primary.P2,
+    color: 'var(--color-primary-p2)',
   },
 )
 </script>
@@ -31,8 +29,8 @@ withDefaults(
 <template>
   <div v-if="!(hideZero && count === 0)" class="flex items-center gap-2">
     <TIcon class="h-5 w-5" :icon="icon" :style="{ color }" />
-    <div class="text-md whitespace-nowrap text-naturals-N10">
-      <span class="text-naturals-N13">{{ count }}{{ units }}</span>
+    <div class="text-md whitespace-nowrap text-naturals-n10">
+      <span class="text-naturals-n13">{{ count }}{{ units }}</span>
       {{ pluralizedText ? pluralize(pluralizedText, count, false) : '' }}{{ text }}
     </div>
   </div>

@@ -49,6 +49,8 @@ defineProps<Props>()
 </template>
 
 <style scoped>
+@reference "../../index.css";
+
 .nav {
   @apply pt-2;
 }

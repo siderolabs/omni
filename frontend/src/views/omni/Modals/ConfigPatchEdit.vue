@@ -98,7 +98,7 @@ const openDocs = () => {
     </div>
     <div v-if="err" class="relative px-8">
       <TAlert
-        class="absolute left-8 right-8 top-16 z-50"
+        class="absolute top-16 right-8 left-8 z-50"
         type="error"
         :title="err.title"
         :dismiss="{ action: () => (err = null), name: 'Close' }"
@@ -117,7 +117,7 @@ const openDocs = () => {
       </TabList>
       <TabPanels as="template">
         <TabPanel v-for="tab in tabs" :key="tab.id" as="template">
-          <div class="font-sm flex-1 overflow-y-auto bg-naturals-N2">
+          <div class="font-sm flex-1 overflow-y-auto bg-naturals-n2">
             <CodeEditor
               :value="configs[tab.id].value"
               @update:value="(updated) => (configs[tab.id].value = updated)"
@@ -126,7 +126,7 @@ const openDocs = () => {
         </TabPanel>
       </TabPanels>
     </TabGroup>
-    <div class="flex justify-between gap-4 rounded-b bg-naturals-N3 p-4">
+    <div class="flex justify-between gap-4 rounded-b bg-naturals-n3 p-4">
       <TButton type="secondary" @click="close">Cancel</TButton>
       <TButton @click="saveAndClose">Save</TButton>
     </div>
@@ -134,10 +134,12 @@ const openDocs = () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .modal-window {
   @apply h-2/3 w-2/3 p-0;
 }
 .heading {
-  @apply text-xl text-naturals-N14;
+  @apply text-xl text-naturals-n14;
 }
 </style>

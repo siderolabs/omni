@@ -35,19 +35,21 @@ onBeforeMount(async () => {
 
 <template>
   <div v-if="apiURL" class="flex flex-col gap-1 text-xs">
-    <span class="text-naturals-N13"
+    <span class="text-naturals-n13"
       >Set the following environment variables to use the service account:</span
     >
     <Code :text="`export OMNI_ENDPOINT=${apiURL}\nexport OMNI_SERVICE_ACCOUNT_KEY=${secretKey}`" />
 
-    <span class="font-bold text-primary-P2"
+    <span class="font-bold text-primary-p2"
       >Store the key securely as it will not be displayed again.</span
     >
   </div>
 </template>
 
 <style scoped>
+@reference "../../../../index.css";
+
 code {
-  @apply rounded bg-naturals-N4;
+  @apply rounded bg-naturals-n4;
 }
 </style>

@@ -165,13 +165,14 @@ const err = computed(() => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .logs {
   @apply flex h-full flex-col;
   max-height: calc(100vh - 150px);
   overflow: hidden;
 }
 .logs-container {
-  @apply flex flex-col;
-  flex-grow: 1;
+  @apply flex grow flex-col;
 }
 </style>

@@ -295,11 +295,11 @@ const sortBy = (id: string) => {
       </div>
     </div>
     <div class="monitor-data-wrapper">
-      <div class="grid select-none grid-cols-12 font-bold uppercase">
+      <div class="grid grid-cols-12 font-bold uppercase select-none">
         <div
           v-for="h in headers"
           :key="h.id"
-          class="flex cursor-pointer flex-row items-center gap-1 text-center text-xs capitalize transition-colors hover:text-naturals-N10"
+          class="flex cursor-pointer flex-row items-center gap-1 text-center text-xs capitalize transition-colors hover:text-naturals-n10"
           @click="() => sortBy(h.id)"
         >
           <span>{{ h.header || h.id }}</span>
@@ -314,7 +314,7 @@ const sortBy = (id: string) => {
         <div
           v-for="process in sortedProcesses"
           :key="process.pid"
-          class="grid grid-cols-12 py-2 text-xs text-naturals-N12"
+          class="grid grid-cols-12 py-2 text-xs text-naturals-n12"
           :title="process.command + ' ' + process.args"
         >
           <div>
@@ -349,6 +349,8 @@ const sortBy = (id: string) => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .monitor {
   @apply flex flex-col justify-start pb-5;
 }
@@ -363,7 +365,7 @@ const sortBy = (id: string) => {
   @apply mb-0;
 }
 .monitor-chart {
-  @apply flex-1 rounded bg-naturals-N2 p-3 pt-4;
+  @apply flex-1 rounded bg-naturals-n2 p-3 pt-4;
   min-height: 220px;
 }
 .monitor-chart:nth-child(1) {
@@ -373,15 +375,15 @@ const sortBy = (id: string) => {
   @apply ml-3;
 }
 .monitor-chart-wide {
-  @apply border-b border-naturals-N5;
+  @apply border-b border-naturals-n5;
   margin-right: 0 !important;
   padding-bottom: 29px;
   border-radius: 4px 4px 0 0;
 }
 .monitor-data-wrapper {
-  @apply flex w-full flex-1 flex-col overflow-hidden bg-naturals-N2 px-2 pt-5 text-xs text-naturals-N13 lg:px-8;
+  @apply flex w-full flex-1 flex-col overflow-hidden bg-naturals-n2 px-2 pt-5 text-xs text-naturals-n13 lg:px-8;
 }
 .monitor-data-box {
-  @apply flex-1 overflow-x-auto bg-naturals-N2 py-3;
+  @apply flex-1 overflow-x-auto bg-naturals-n2 py-3;
 }
 </style>

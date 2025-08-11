@@ -67,27 +67,27 @@ const route = useRoute()
 <template>
   <div class="nodes-list-item">
     <p class="node-name">
-      <router-link :to="{ name: 'NodeOverview', params: { machine: item.metadata.id } }">
+      <RouterLink :to="{ name: 'NodeOverview', params: { machine: item.metadata.id } }">
         <WordHighlighter
           :query="searchOption"
           :text-to-highlight="nodeName"
-          highlight-class="bg-naturals-N14"
+          highlight-class="bg-naturals-n14"
         />
-      </router-link>
+      </RouterLink>
     </p>
 
     <p>
       <WordHighlighter
         :query="searchOption"
         :text-to-highlight="ip"
-        highlight-class="bg-naturals-N14"
+        highlight-class="bg-naturals-n14"
       />
     </p>
     <p>
       <WordHighlighter
         :query="searchOption"
         :text-to-highlight="os"
-        highlight-class="bg-naturals-N14"
+        highlight-class="bg-naturals-n14"
       />
     </p>
     <p class="flex flex-wrap">
@@ -108,15 +108,17 @@ const route = useRoute()
 </template>
 
 <style scoped>
+@reference "../../../../index.css";
+
 .nodes-list-item {
-  @apply flex items-center border-b border-naturals-N4 px-4 py-4;
+  @apply flex items-center border-b border-naturals-n4 px-4 py-4;
 }
 
 .nodes-list-item > p {
-  @apply w-1/5 overflow-hidden overflow-ellipsis whitespace-nowrap text-xs;
+  @apply w-1/5 overflow-hidden text-xs text-ellipsis whitespace-nowrap;
 }
 
 .nodes-list-item > .node-name {
-  @apply text-xs font-medium text-naturals-N14 transition hover:text-naturals-N10;
+  @apply text-xs font-medium text-naturals-n14 transition hover:text-naturals-n10;
 }
 </style>

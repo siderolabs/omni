@@ -407,23 +407,25 @@ const openPage = (page: number | string) => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .pagination-icon {
-  @apply h-5 w-5 cursor-pointer fill-current text-naturals-N8 transition-all duration-200 hover:text-naturals-N10;
+  @apply h-5 w-5 cursor-pointer fill-current text-naturals-n8 transition-all duration-200 hover:text-naturals-n10;
 }
 .pagination-icon-disabled {
-  @apply text-naturals-N6;
+  @apply text-naturals-n6;
 }
 .pagination-pages {
   @apply flex items-center gap-2 transition-all duration-200;
 }
 .pagination-page-number {
-  @apply flex h-7 w-7 cursor-pointer select-none items-center justify-center rounded text-naturals-N8 transition-all duration-200 hover:text-naturals-N9;
+  @apply flex h-7 w-7 cursor-pointer items-center justify-center rounded text-naturals-n8 transition-all duration-200 select-none hover:text-naturals-n9;
 }
 .unhovered {
-  @apply cursor-default hover:text-naturals-N8;
+  @apply cursor-default hover:text-naturals-n8;
 }
 .pagination-page-number-active {
-  @apply bg-naturals-N4 text-naturals-N12;
+  @apply bg-naturals-n4 text-naturals-n12;
 }
 
 .loading-spinner {

@@ -96,7 +96,7 @@ componentAttributes.class = (componentAttributes.class ?? '') + ' item-container
 
           <div v-if="subItems?.length" class="expand-button">
             <TIcon
-              class="transition-color duration-250 h-6 w-6 transition-transform hover:text-naturals-N13"
+              class="transition-color h-6 w-6 transition-transform duration-250 hover:text-naturals-n13"
               :class="{ 'rotate-180': !expanded }"
               icon="drop-up"
               @click.stop.prevent="() => (expanded = !expanded)"
@@ -115,18 +115,18 @@ componentAttributes.class = (componentAttributes.class ?? '') + ' item-container
             class="relative flex gap-2 transition-all duration-200"
           >
             <div
-              class="transition-color absolute top-0 z-20 mx-5 h-4 border-b-2 border-l-2 border-naturals-N8 duration-200"
+              class="transition-color absolute top-0 z-20 mx-5 h-4 border-b-2 border-l-2 border-naturals-n8 duration-200"
               :class="{
                 'w-2': index === (subItems?.length || 0) - 1 || item.route === $route.path,
-                'border-primary-P2': index <= selectedIndex,
+                'border-primary-p2': index <= selectedIndex,
               }"
               :style="linePadding"
             />
             <div
               v-if="index !== (subItems?.length ?? 0) - 1"
-              class="transition-color absolute bottom-0 top-4 z-20 mx-5 w-2 border-l-2 border-naturals-N8 duration-200"
+              class="transition-color absolute top-4 bottom-0 z-20 mx-5 w-2 border-l-2 border-naturals-n8 duration-200"
               :class="{
-                'border-primary-P2': index < selectedIndex,
+                'border-primary-p2': index < selectedIndex,
               }"
               :style="linePadding"
             />
@@ -152,8 +152,10 @@ componentAttributes.class = (componentAttributes.class ?? '') + ' item-container
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .item {
-  @apply my-0.5 flex items-center justify-start border-transparent py-1.5 transition-all duration-200 hover:bg-naturals-N4;
+  @apply my-0.5 flex items-center justify-start border-transparent py-1.5 transition-all duration-200 hover:bg-naturals-n4;
 }
 
 .item.root {
@@ -161,37 +163,37 @@ componentAttributes.class = (componentAttributes.class ?? '') + ' item-container
 }
 
 .item:hover .item-icon {
-  @apply text-naturals-N13;
+  @apply text-naturals-n13;
 }
 
 .item:hover .item-name {
-  @apply text-naturals-N13;
+  @apply text-naturals-n13;
 }
 
 .item:hover .item-label {
-  @apply bg-naturals-N2;
+  @apply bg-naturals-n2;
 }
 
 .item-active .item {
-  @apply border-primary-P3;
+  @apply border-primary-p3;
 }
 
 .item-active .item-icon {
-  @apply text-naturals-N13;
+  @apply text-naturals-n13;
 }
 
 .item-active .item-name {
-  @apply text-naturals-N13;
+  @apply text-naturals-n13;
 }
 
 .item-icon {
-  @apply text-naturals-N11 transition-all duration-200;
+  @apply text-naturals-n11 transition-all duration-200;
   width: 16px;
   height: 16px;
 }
 
 .item-name {
-  @apply flex-1 truncate text-xs text-naturals-N11 transition-colors duration-200;
+  @apply flex-1 truncate text-xs text-naturals-n11 transition-colors duration-200;
 }
 
 .item.sub-item {
@@ -199,19 +201,19 @@ componentAttributes.class = (componentAttributes.class ?? '') + ' item-container
 }
 
 .item-label {
-  @apply -my-2 flex min-w-5 items-center justify-center rounded-md bg-naturals-N4 px-1.5 py-0.5 text-center text-xs font-bold text-naturals-N13 transition-colors duration-200;
+  @apply -my-2 flex min-w-5 items-center justify-center rounded-md bg-naturals-n4 px-1.5 py-0.5 text-center text-xs font-bold text-naturals-n13 transition-colors duration-200;
 }
 
 .expand-button {
-  @apply -my-1 flex h-5 w-5 items-center justify-center rounded-md border border-transparent bg-naturals-N4 transition-colors duration-200 hover:border-naturals-N7;
+  @apply -my-1 flex h-5 w-5 items-center justify-center rounded-md border border-transparent bg-naturals-n4 transition-colors duration-200 hover:border-naturals-n7;
 }
 
 .item:hover .expand-button {
-  @apply bg-naturals-N2;
+  @apply bg-naturals-n2;
 }
 
 .submenu-bg {
-  @apply border-t border-naturals-N4 bg-naturals-N0;
+  @apply border-t border-naturals-n4 bg-naturals-n0;
 }
 
 .item-container:not(:last-child) .submenu-bg {

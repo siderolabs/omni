@@ -10,7 +10,7 @@ defineProps<{ machineSetId: string; color: string; disabled?: boolean }>()
 
 <template>
   <div
-    class="flex select-none items-center text-center"
+    class="flex items-center text-center select-none"
     :class="{ 'cursor-pointer': !disabled, 'cursor-not-allowed': disabled }"
   >
     <div

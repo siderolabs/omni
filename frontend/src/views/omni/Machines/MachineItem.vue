@@ -167,11 +167,11 @@ const maintenanceUpdateDescription = computed(() => {
   <TListItem>
     <template #default>
       <div
-        class="flex items-center text-xs text-naturals-N13"
+        class="flex items-center text-xs text-naturals-n13"
         :class="{ 'opacity-50': machine.spec.tearing_down }"
       >
         <div class="flex flex-1 items-center gap-2">
-          <router-link
+          <RouterLink
             :to="{ name: 'MachineLogs', params: { machine: machine?.metadata?.id } }"
             class="list-item-link pr-2"
           >
@@ -179,9 +179,9 @@ const maintenanceUpdateDescription = computed(() => {
               :query="searchQuery ?? ''"
               split-by-space
               :text-to-highlight="machineName"
-              highlight-class="bg-naturals-N14"
+              highlight-class="bg-naturals-n14"
             />
-          </router-link>
+          </RouterLink>
           <ItemLabels
             :resource="machine"
             :add-label-func="machine.spec.tearing_down ? undefined : addMachineLabels"
@@ -191,7 +191,7 @@ const maintenanceUpdateDescription = computed(() => {
         </div>
         <div v-if="machine.spec.tearing_down">
           <Tooltip description="The machine is being destroyed">
-            <TIcon icon="delete" class="h-4 w-4 text-red-R1" />
+            <TIcon icon="delete" class="h-4 w-4 text-red-r1" />
           </Tooltip>
         </div>
         <div v-else class="flex gap-1">
@@ -227,11 +227,11 @@ const maintenanceUpdateDescription = computed(() => {
     </template>
     <template #details>
       <div class="grid grid-cols-5 gap-1 pl-6">
-        <div class="mb-2 mt-4">Processors</div>
-        <div class="mb-2 mt-4">Memory</div>
-        <div class="mb-2 mt-4">Block Devices</div>
-        <div class="mb-2 mt-4">Addresses</div>
-        <div class="mb-2 mt-4">Network Interfaces</div>
+        <div class="mt-4 mb-2">Processors</div>
+        <div class="mt-4 mb-2">Memory</div>
+        <div class="mt-4 mb-2">Block Devices</div>
+        <div class="mt-4 mb-2">Addresses</div>
+        <div class="mt-4 mb-2">Network Interfaces</div>
         <div>
           <template v-if="processors.length > 0">
             <div v-for="(processor, index) in processors" :key="index">
@@ -273,11 +273,11 @@ const maintenanceUpdateDescription = computed(() => {
             {{ link.linux_name }} {{ link.hardware_address }} {{ link.link_up ? 'UP' : 'DOWN' }}
           </div>
         </div>
-        <div class="mb-2 mt-4">Talos Version</div>
-        <div class="mb-2 mt-4">UUID</div>
-        <div class="mb-2 mt-4">Bytes Received</div>
-        <div class="mb-2 mt-4">Bytes Sent</div>
-        <div class="mb-2 mt-4">Cluster</div>
+        <div class="mt-4 mb-2">Talos Version</div>
+        <div class="mt-4 mb-2">UUID</div>
+        <div class="mt-4 mb-2">Bytes Received</div>
+        <div class="mt-4 mb-2">Bytes Sent</div>
+        <div class="mt-4 mb-2">Cluster</div>
         <div>
           <div>{{ machine?.spec?.message_status?.talos_version }}</div>
         </div>
@@ -285,7 +285,7 @@ const maintenanceUpdateDescription = computed(() => {
           :query="searchQuery ?? ''"
           split-by-space
           :text-to-highlight="machine?.metadata?.id"
-          highlight-class="bg-naturals-N14"
+          highlight-class="bg-naturals-n14"
         />
         <div>
           <div>
@@ -306,18 +306,18 @@ const maintenanceUpdateDescription = computed(() => {
           </div>
         </div>
         <div>
-          <router-link
+          <RouterLink
             v-if="clusterName"
             :to="{ name: 'ClusterOverview', params: { cluster: clusterName } }"
             class="list-item-link"
           >
             {{ clusterName }}
-          </router-link>
+          </RouterLink>
         </div>
-        <div class="mb-2 mt-4">Last Active</div>
-        <div class="mb-2 mt-4">Created At</div>
-        <div class="mb-2 mt-4">Secure Boot</div>
-        <div class="col-span-2 mb-2 mt-4">Power State</div>
+        <div class="mt-4 mb-2">Last Active</div>
+        <div class="mt-4 mb-2">Created At</div>
+        <div class="mt-4 mb-2">Secure Boot</div>
+        <div class="col-span-2 mt-4 mb-2">Power State</div>
         <div>
           <div>{{ machineLastAlive }}</div>
         </div>
@@ -330,13 +330,13 @@ const maintenanceUpdateDescription = computed(() => {
         <div
           class="flex items-center gap-0.5"
           :class="{
-            'text-green-G1':
+            'text-green-g1':
               machine.spec.message_status?.power_state ===
               MachineStatusSpecPowerState.POWER_STATE_ON,
-            'text-naturals-N9':
+            'text-naturals-n9':
               machine.spec.message_status?.power_state ===
               MachineStatusSpecPowerState.POWER_STATE_OFF,
-            'text-naturals-N8':
+            'text-naturals-n8':
               machine.spec.message_status?.power_state === undefined ||
               machine.spec.message_status?.power_state ===
                 MachineStatusSpecPowerState.POWER_STATE_UNKNOWN ||
@@ -381,16 +381,18 @@ const maintenanceUpdateDescription = computed(() => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .content {
-  @apply flex w-full border-b border-naturals-N4;
+  @apply flex w-full border-b border-naturals-n4;
 }
 
 .router-link-active {
-  @apply relative text-naturals-N13;
+  @apply relative text-naturals-n13;
 }
 
 .router-link-active::before {
-  @apply absolute block w-full animate-fadein bg-primary-P3;
+  @apply absolute block w-full animate-fadein bg-primary-p3;
   content: '';
   height: 2px;
   bottom: -15px;

@@ -60,10 +60,10 @@ const copyCode = () => {
 
 <template>
   <div class="flex items-center justify-center">
-    <div class="flex flex-col gap-2 rounded-md bg-naturals-N3 px-8 py-8 drop-shadow-md">
+    <div class="flex flex-col gap-2 rounded-md bg-naturals-n3 px-8 py-8 drop-shadow-md">
       <div class="flex items-center gap-4">
         <TIcon icon="kubernetes" class="fill-color h-6 w-6" />
-        <div class="text-xl font-bold text-naturals-N13">
+        <div class="text-xl font-bold text-naturals-n13">
           <div>Authenticate Kubernetes Access</div>
         </div>
       </div>
@@ -75,18 +75,18 @@ const copyCode = () => {
           <UserInfo user="user" class="user-info" />
           <div
             v-if="authCode"
-            class="flex w-full items-center justify-center gap-0.5 rounded-lg border border-naturals-N4 p-1 pl-2"
+            class="flex w-full items-center justify-center gap-0.5 rounded-lg border border-naturals-n4 p-1 pl-2"
           >
-            <div class="mr-2 text-sm text-naturals-N14">Access Code</div>
+            <div class="mr-2 text-sm text-naturals-n14">Access Code</div>
             <div class="flex-1" />
             <div
-              class="cursor-pointer rounded-l-md bg-naturals-N6 px-2 py-0.5 font-roboto font-bold text-naturals-N14"
+              class="cursor-pointer rounded-l-md bg-naturals-n6 px-2 py-0.5 font-roboto font-bold text-naturals-n14"
               @click="copyCode"
             >
               {{ copied ? 'Copied' : authCode }}
             </div>
             <div
-              class="cursor-pointer rounded-r-md bg-naturals-N6 px-2 py-1 text-naturals-N14 transition-colors hover:bg-naturals-N8"
+              class="cursor-pointer rounded-r-md bg-naturals-n6 px-2 py-1 text-naturals-n14 transition-colors hover:bg-naturals-n8"
               @click="copyCode"
             >
               <TIcon icon="copy" class="h-5" />
@@ -104,7 +104,9 @@ const copyCode = () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .user-info {
-  @apply rounded-md bg-naturals-N6 px-6 py-2;
+  @apply rounded-md bg-naturals-n6 px-6 py-2;
 }
 </style>

@@ -85,7 +85,7 @@ const filteredValues = computed(() => {
                     <WordHighligher
                       :query="searchTerm"
                       :text-to-highlight="item.toString()"
-                      highlight-class="text-naturals-N14 font-medium bg-transparent truncate"
+                      highlight-class="text-naturals-n14 font-medium bg-transparent truncate"
                     />
                   </span>
                   <TIcon v-show="selected" icon="check" class="menu-check-icon" />
@@ -100,17 +100,19 @@ const filteredValues = computed(() => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .menu {
   @apply relative;
 }
 
 .menu-button {
-  @apply flex h-full w-full items-center justify-between rounded border border-naturals-N7 bg-naturals-N2 text-xs text-naturals-N14;
+  @apply flex h-full w-full items-center justify-between rounded border border-naturals-n7 bg-naturals-n2 text-xs text-naturals-n14;
   padding: 9px 12px;
 }
 
 .menu-title {
-  @apply mr-1 truncate whitespace-nowrap text-xs;
+  @apply mr-1 truncate text-xs whitespace-nowrap;
 }
 
 .menu-arrow {
@@ -120,16 +122,16 @@ const filteredValues = computed(() => {
 }
 
 .menu-items {
-  @apply absolute top-10 z-10 flex min-w-full flex-col gap-1 rounded border border-naturals-N4 bg-naturals-N3 p-1.5;
+  @apply absolute top-10 z-10 flex min-w-full flex-col gap-1 rounded border border-naturals-n4 bg-naturals-n3 p-1.5;
   max-height: 280px;
 }
 
 .search-box {
-  @apply h-8 text-xs text-naturals-N9;
+  @apply h-8 text-xs text-naturals-n9;
 }
 
 .menu-item {
-  @apply cursor-pointer text-xs text-naturals-N9;
+  @apply cursor-pointer text-xs text-naturals-n9;
   padding: 6px 12px;
 }
 
@@ -143,7 +145,7 @@ const filteredValues = computed(() => {
 }
 
 .active {
-  @apply text-naturals-N13;
+  @apply text-naturals-n13;
 }
 
 .menu-items-wrapper {
@@ -151,6 +153,6 @@ const filteredValues = computed(() => {
 }
 
 .menu-check-icon {
-  @apply h-3 w-3 fill-current text-naturals-N14;
+  @apply h-3 w-3 fill-current text-naturals-n14;
 }
 </style>

@@ -45,10 +45,10 @@ const open = ref(false)
       :placement="placement"
       :show="open"
       offset-skid="30"
-      class="popper"
+      class="z-auto! m-0! block! border-0!"
     >
       <template #content>
-        <div class="actions-list" @click.stop="open = false">
+        <div class="rounded border border-naturals-n4 bg-naturals-n3" @click.stop="open = false">
           <slot />
         </div>
       </template>
@@ -56,17 +56,3 @@ const open = ref(false)
     </Popper>
   </div>
 </template>
-
-<style scoped>
-.actions-list {
-  @apply rounded border border-naturals-N4 bg-naturals-N3;
-}
-
-.popper {
-  margin: 0 !important;
-  border: 0 !important;
-  display: block !important;
-  z-index: auto !important;
-  display: block !important;
-}
-</style>

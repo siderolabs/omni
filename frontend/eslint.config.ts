@@ -38,7 +38,11 @@ export default defineConfigWithVueTs(
       'vue/block-lang': ['error', { script: { lang: 'ts' } }],
       'vue/block-order': ['error', { order: ['script', 'template', 'style'] }],
       'vue/component-api-style': 'error',
-      'vue/component-name-in-template-casing': 'error',
+      'vue/component-name-in-template-casing': [
+        'error',
+        'PascalCase',
+        { registeredComponentsOnly: false },
+      ],
       'vue/component-options-name-casing': 'error',
       'vue/match-component-file-name': 'error',
       'vue/match-component-import-name': 'error',

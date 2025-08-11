@@ -142,11 +142,11 @@ const openRotateSecretKey = async (name: string) => {
             <template #default>
               <div class="flex w-full">
                 <div class="providers-grid">
-                  <div class="text-md flex items-center gap-3 text-naturals-N13">
+                  <div class="text-md flex items-center gap-3 text-naturals-n13">
                     <TIcon :svg-base-64="item.spec.icon" icon="cloud-connection" class="h-8 w-8" />
                     <div class="flex flex-col gap-0.5">
                       <div>{{ item.spec.name }}</div>
-                      <div class="text-xs font-bold text-naturals-N10">
+                      <div class="text-xs font-bold text-naturals-n10">
                         ID: {{ item.metadata.id! }}
                       </div>
                     </div>
@@ -172,7 +172,9 @@ const openRotateSecretKey = async (name: string) => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .providers-grid {
-  @apply -my-2 mx-1 grid flex-1 grid-cols-4 items-center;
+  @apply mx-1 -my-2 grid flex-1 grid-cols-4 items-center;
 }
 </style>

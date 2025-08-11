@@ -88,8 +88,8 @@ const moveDownClicked = (index: number) => {
 
 <template>
   <div v-if="control.visible" class="p-2">
-    <div class="relative flex-1 rounded border border-naturals-N5 pt-3 pt-4">
-      <div class="absolute -top-2 left-1 bg-naturals-N2 px-1 text-naturals-N13">
+    <div class="relative flex-1 rounded border border-naturals-n5 pt-3 pt-4">
+      <div class="absolute -top-2 left-1 bg-naturals-n2 px-1 text-naturals-n13">
         {{ control.label }}
       </div>
       <TButton
@@ -103,7 +103,7 @@ const moveDownClicked = (index: number) => {
       </TButton>
       <div
         v-if="control.data?.length"
-        class="flex flex-col divide-y divide-naturals-N4 border-t border-naturals-N4"
+        class="flex flex-col divide-y divide-naturals-n4 border-t border-naturals-n4"
       >
         <div
           v-for="(_, index) in control.data"

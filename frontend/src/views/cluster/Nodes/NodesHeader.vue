@@ -143,6 +143,8 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = setupClu
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .header-button:first-child {
   border-radius: 4px 0 0 4px;
 }
@@ -160,6 +162,6 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = setupClu
 }
 
 .delete-button {
-  @apply text-red-R1 hover:text-red-R1 active:text-red-R1;
+  @apply text-red-r1 hover:text-red-r1 active:text-red-r1;
 }
 </style>

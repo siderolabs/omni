@@ -81,7 +81,7 @@ const restore = async (clusterMachine: Resource<ClusterMachineSpec>) => {
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">
+      <h3 class="text-base text-naturals-n14">
         Cancel Destroy of Node {{ node ?? $route.query.machine }} ?
       </h3>
       <CloseButton @click="close(true)" />
@@ -120,7 +120,9 @@ const restore = async (clusterMachine: Resource<ClusterMachineSpec>) => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
 }
 </style>

@@ -30,7 +30,7 @@ watch(
       <div class="flex h-full flex-col">
         <component :is="sidebar" v-if="sidebar" class="flex-1 overflow-y-auto" />
         <UserInfo
-          class="h-16 w-full border-t border-naturals-N4 px-2"
+          class="h-16 w-full border-t border-naturals-n4 px-2"
           with-logout-controls
           size="small"
         />
@@ -40,7 +40,9 @@ watch(
 </template>
 
 <style scoped>
+@reference "../../index.css";
+
 .sidebar {
-  @apply relative h-full w-48 border-r border-naturals-N4 bg-naturals-N1 lg:w-64;
+  @apply relative h-full w-48 border-r border-naturals-n4 bg-naturals-n1 lg:w-64;
 }
 </style>

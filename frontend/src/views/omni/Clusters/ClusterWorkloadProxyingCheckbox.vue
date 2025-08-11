@@ -31,7 +31,7 @@ const workloadProxyingEnabled = setupWorkloadProxyingEnabledFeatureWatch()
         <p>Enable HTTP proxying to the Services in the cluster through Omni.</p>
         <p>When enabled, the Services annotated with the following annotations</p>
         <p>will be listed and accessible from the Omni Web interface:</p>
-        <div class="rounded bg-naturals-N5 px-2 py-1">
+        <div class="rounded bg-naturals-n5 px-2 py-1">
           <p class="font-roboto">{{ ExposedServicePortAnnotationKey }} (required)</p>
           <p class="font-roboto">{{ ExposedServiceLabelAnnotationKey }} (optional)</p>
           <p class="font-roboto">{{ ExposedServiceIconAnnotationKey }} (optional)</p>

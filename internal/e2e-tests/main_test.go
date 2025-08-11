@@ -401,7 +401,7 @@ func (s *E2ESuite) assertClusterCreation() {
 
 		s.click(page, `button:has-text("Create Cluster")`)
 
-		err = page.Locator(`h3[class="title"]:has-text("talos-default")`).WaitFor()
+		err = page.GetByRole("heading", playwright.PageGetByRoleOptions{Name: "talos-default"}).WaitFor()
 		s.Require().NoError(err)
 
 		navigateToClusters()

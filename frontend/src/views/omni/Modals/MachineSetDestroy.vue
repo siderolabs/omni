@@ -70,14 +70,14 @@ const destroyMachineSet = async () => {
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">
+      <h3 class="text-base text-naturals-n14">
         Destroy the Machine Set {{ $route.query.machineSet }} ?
       </h3>
       <CloseButton @click="close(true)" />
     </div>
     <ManagedByTemplatesWarning warning-style="popup" />
     <p class="mb-2 text-xs">Please confirm the action.</p>
-    <div v-if="warning" class="mt-3 text-xs text-yellow-Y1">{{ warning }}</div>
+    <div v-if="warning" class="mt-3 text-xs text-yellow-y1">{{ warning }}</div>
     <div class="mt-2 flex items-end gap-4">
       <div class="flex-1" />
       <TButton class="h-9 w-32" @click="destroyMachineSet">
@@ -88,7 +88,9 @@ const destroyMachineSet = async () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
 }
 </style>

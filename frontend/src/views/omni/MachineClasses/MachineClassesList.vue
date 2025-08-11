@@ -45,22 +45,22 @@ const openMachineClassDestroy = (id: string) => {
         </div>
       </div>
       <TListItem v-for="item in items" :key="item.metadata.id!">
-        <div class="relative pr-3 text-naturals-N12" :class="{ 'pl-7': !item.spec.description }">
+        <div class="relative pr-3 text-naturals-n12" :class="{ 'pl-7': !item.spec.description }">
           <IconButton
             icon="delete"
-            class="absolute bottom-0 right-0 top-0 my-auto"
+            class="absolute top-0 right-0 bottom-0 my-auto"
             @click="() => openMachineClassDestroy(item.metadata.id!)"
           />
           <div class="list-grid">
             <div>
-              <router-link
+              <RouterLink
                 :to="{ name: 'MachineClassEdit', params: { classname: item.metadata.id } }"
                 class="list-item-link"
               >
-                <WordHighlighter highlight-class="bg-naturals-N14" :query="searchQuery">
+                <WordHighlighter highlight-class="bg-naturals-n14" :query="searchQuery">
                   {{ item.metadata.id }}
                 </WordHighlighter>
-              </router-link>
+              </RouterLink>
             </div>
             <div class="flex">
               <Tag>
@@ -78,8 +78,10 @@ const openMachineClassDestroy = (id: string) => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .header {
-  @apply mb-1 bg-naturals-N2 px-6 py-2 pl-10 text-xs;
+  @apply mb-1 bg-naturals-n2 px-6 py-2 pl-10 text-xs;
 }
 
 .list-grid {

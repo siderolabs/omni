@@ -45,7 +45,7 @@ const copyKey = () => {
     <TAnimation>
       <div
         v-if="showCopyButton"
-        class="absolute left-0 right-0 top-0 flex h-14 justify-end rounded bg-opacity-25 bg-gradient-to-b from-naturals-N0 p-1"
+        class="absolute top-0 right-0 left-0 flex h-14 justify-end rounded bg-linear-to-b from-naturals-n0 p-1"
       >
         <span class="rounded">
           <button @click="copyKey">{{ copyState }}</button>
@@ -57,11 +57,13 @@ const copyKey = () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 code {
-  @apply relative whitespace-pre-line break-all rounded bg-naturals-N4 p-2;
+  @apply relative rounded bg-naturals-n4 p-2 break-all whitespace-pre-line;
 }
 
 button {
-  @apply rounded border border-naturals-N6 bg-naturals-N4 px-1 py-0.5 transition-colors duration-200 hover:border-naturals-N8 hover:bg-naturals-N6 hover:text-naturals-N13;
+  @apply rounded border border-naturals-n6 bg-naturals-n4 px-1 py-0.5 transition-colors duration-200 hover:border-naturals-n8 hover:bg-naturals-n6 hover:text-naturals-n13;
 }
 </style>

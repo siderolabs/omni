@@ -133,9 +133,9 @@ onMounted(async () => {
     <PageHeader :title="`Add Machines to Cluster ${$route.params.cluster}`" />
     <ManagedByTemplatesWarning :cluster="currentCluster" />
     <template v-if="existingResources.length > 0">
-      <div class="text-naturals-N13">Machine Sets</div>
+      <div class="text-naturals-n13">Machine Sets</div>
       <MachineSets />
-      <div class="text-naturals-N13">Available Machines</div>
+      <div class="text-naturals-n13">Available Machines</div>
       <Watch
         class="flex-1"
         :opts="[
@@ -179,7 +179,7 @@ onMounted(async () => {
         </template>
       </Watch>
       <div
-        class="-mx-6 -mb-6 flex h-16 items-center border-t border-naturals-N4 bg-naturals-N1 px-5 py-3"
+        class="-mx-6 -mb-6 flex h-16 items-center border-t border-naturals-n4 bg-naturals-n1 px-5 py-3"
       >
         <ClusterMenu
           class="w-full"

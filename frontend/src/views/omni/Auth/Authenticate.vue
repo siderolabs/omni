@@ -237,10 +237,10 @@ const Auth = {
 
 <template>
   <div class="flex items-center justify-center">
-    <div class="flex flex-col gap-2 rounded-md bg-naturals-N3 px-8 py-8 drop-shadow-md">
+    <div class="flex flex-col gap-2 rounded-md bg-naturals-n3 px-8 py-8 drop-shadow-md">
       <div class="flex items-center gap-4">
         <TIcon icon="key" class="fill-color h-6 w-6" />
-        <div class="text-xl font-bold text-naturals-N13">
+        <div class="text-xl font-bold text-naturals-n13">
           <div v-if="$route.query[AuthFlowQueryParam] === Auth.CLI">Authenticate CLI Access</div>
           <div v-else-if="$route.query[AuthFlowQueryParam] === Auth.Frontend">
             Authenticate UI Access
@@ -293,7 +293,9 @@ const Auth = {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .user-info {
-  @apply rounded-md bg-naturals-N6 px-6 py-2;
+  @apply rounded-md bg-naturals-n6 px-6 py-2;
 }
 </style>

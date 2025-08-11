@@ -92,7 +92,7 @@ defineProps<Props>()
       <TIcon :icon="phaseIcon(item)" class="h-4" />
       <div id="machine-set-phase-name">{{ phaseName(item) || '' }}</div>
     </div>
-    <div v-if="item.spec.locked_updates" class="flex items-center gap-1 text-light-blue-400">
+    <div v-if="item.spec.locked_updates" class="flex items-center gap-1 text-sky-400">
       <TIcon icon="time" class="h-4" />
       {{ pluralize('Pending Config Update', item.spec.locked_updates, true) }}
     </div>
@@ -100,6 +100,8 @@ defineProps<Props>()
 </template>
 
 <style>
+@reference "../../../index.css";
+
 .cluster-phase-box {
   @apply flex items-center gap-1;
 }

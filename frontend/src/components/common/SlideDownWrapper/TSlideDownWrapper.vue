@@ -65,6 +65,8 @@ const height = computed(() => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .wrapper {
   @apply flex w-full flex-col;
 }

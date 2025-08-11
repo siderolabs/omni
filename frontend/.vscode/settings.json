@@ -4,11 +4,6 @@
   },
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": true,
-  "eslint.lintTask.options": "--flag unstable_native_nodejs_ts_config .",
-  "eslint.options": {
-    "flags": ["unstable_native_nodejs_ts_config"]
-  },
-  "eslint.runtime": "node",
   "javascript.preferences.importModuleSpecifier": "non-relative",
   "tailwindCSS.classFunctions": ["clsx"],
   "typescript.preferences.preferTypeOnlyAutoImports": true

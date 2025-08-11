@@ -57,7 +57,7 @@ const destroy = async () => {
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">
+      <h3 class="text-base text-naturals-n14">
         Destroy the Machine Class {{ $route.query.classname }} ?
       </h3>
       <CloseButton @click="close" />
@@ -74,7 +74,9 @@ const destroy = async () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
 }
 </style>

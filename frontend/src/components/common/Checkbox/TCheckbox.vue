@@ -43,8 +43,10 @@ withDefaults(defineProps<Props>(), {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .checkbox {
-  @apply flex items-center justify-center border border-naturals-N7;
+  @apply flex items-center justify-center border border-naturals-n7;
   width: 14px;
   height: 14px;
   border-radius: 2px;
@@ -53,18 +55,18 @@ withDefaults(defineProps<Props>(), {
   @apply flex items-center gap-2;
 }
 .checkbox-label {
-  @apply block flex-1 select-none truncate text-xs text-naturals-N11;
+  @apply block flex-1 truncate text-xs text-naturals-n11 select-none;
 }
 .checked {
-  @apply border-primary-P6 bg-primary-P6;
+  @apply border-primary-p6 bg-primary-p6;
 }
 .checkbox-icon {
-  @apply fill-current text-primary-P3;
+  @apply fill-current text-primary-p3;
   width: 14px;
   height: 14px;
 }
 
 .disabled {
-  @apply border-naturals-N5 bg-naturals-N4;
+  @apply border-naturals-n5 bg-naturals-n4;
 }
 </style>

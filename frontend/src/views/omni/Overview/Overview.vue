@@ -120,16 +120,16 @@ onBeforeMount(async () => {
   <div v-if="hasRoleNone" class="flex flex-col items-center justify-center gap-2">
     <div class="relative mb-6 h-16 w-16">
       <div
-        class="absolute left-0 top-0 h-full w-full -translate-y-1.5 translate-x-1.5 rotate-12 rounded-lg bg-naturals-N2"
+        class="absolute top-0 left-0 h-full w-full translate-x-1.5 -translate-y-1.5 rotate-12 rounded-lg bg-naturals-n2"
       />
       <div
-        class="absolute left-0 top-0 flex h-full w-full items-center justify-center rounded-lg bg-naturals-N3"
+        class="absolute top-0 left-0 flex h-full w-full items-center justify-center rounded-lg bg-naturals-n3"
       >
-        <TIcon icon="warning" class="h-6 w-6 text-naturals-N11" />
+        <TIcon icon="warning" class="h-6 w-6 text-naturals-n11" />
       </div>
     </div>
-    <p class="text-lg text-naturals-N14">You don't have access to Omni Web</p>
-    <p class="text-xs text-naturals-N10">At least Reader role is required</p>
+    <p class="text-lg text-naturals-n14">You don't have access to Omni Web</p>
+    <p class="text-xs text-naturals-n10">At least Reader role is required</p>
     <div class="mt-3 flex gap-3">
       <TButton
         type="primary"
@@ -168,7 +168,7 @@ onBeforeMount(async () => {
           <div class="w-full space-y-6">
             <div class="overview-card flex flex-1 flex-wrap gap-3 p-6">
               <div class="flex flex-1 flex-col gap-3" style="min-width: 200px">
-                <div class="text-sm text-naturals-N14">General Information</div>
+                <div class="text-sm text-naturals-n14">General Information</div>
                 <div class="overview-general-info-grid">
                   <div>Backend Version</div>
                   <Watch
@@ -211,7 +211,7 @@ onBeforeMount(async () => {
                     <template #default="tokens">
                       <div class="flex items-center gap-1">
                         <div
-                          class="token flex-1 cursor-pointer select-none truncate text-right"
+                          class="token flex-1 cursor-pointer truncate text-right select-none"
                           @click="() => (showJoinToken = !showJoinToken)"
                         >
                           {{
@@ -234,7 +234,7 @@ onBeforeMount(async () => {
                 <Watch :opts="{ resource: machineStatusMetricsResource, runtime: Runtime.Omni }">
                   <template #default="{ items }">
                     <OverviewCircleChartItem
-                      class="text-sm text-naturals-N14"
+                      class="text-sm text-naturals-n14"
                       :chart-fill-percents="computePercentOfMachinesAssignedToClusters(items)"
                       name="Machines"
                       :usage-name="(items[0]?.spec.allocated_machines_count ?? 0) + ' Used'"
@@ -247,7 +247,7 @@ onBeforeMount(async () => {
             </div>
             <div v-if="canReadClusters" class="overview-card flex-1">
               <div class="flex flex-auto gap-6 p-6">
-                <div class="text-sm text-naturals-N14">Recent Clusters</div>
+                <div class="text-sm text-naturals-n14">Recent Clusters</div>
                 <div class="grow" />
                 <TButton
                   :disabled="!canCreateClusters"
@@ -279,12 +279,12 @@ onBeforeMount(async () => {
                     class="recent-clusters-row"
                   >
                     <div class="grid flex-1 grid-cols-3">
-                      <router-link
+                      <RouterLink
                         :to="{ name: 'ClusterOverview', params: { cluster: item.metadata.id } }"
                         class="list-item-link"
                       >
                         {{ item.metadata.id }}
-                      </router-link>
+                      </RouterLink>
                       <div>
                         {{ item.spec.machines.total }}
                         {{ pluralize('Node', item.spec.machines.total) }}
@@ -301,7 +301,7 @@ onBeforeMount(async () => {
               class="overview-card flex flex-col place-items-stretch gap-5 p-6"
               style="width: 350px"
             >
-              <div class="text-sm text-naturals-N14">Add Machines</div>
+              <div class="text-sm text-naturals-n14">Add Machines</div>
               <TButton icon="long-arrow-down" icon-position="left" @click="openDownloadIso"
                 >Download Installation Media</TButton
               >
@@ -319,7 +319,7 @@ onBeforeMount(async () => {
               class="overview-card flex flex-col place-items-stretch gap-5 p-6"
               style="width: 350px"
             >
-              <div class="text-sm text-naturals-N14">CLI</div>
+              <div class="text-sm text-naturals-n14">CLI</div>
               <TButton
                 type="primary"
                 icon="document"
@@ -358,7 +358,7 @@ onBeforeMount(async () => {
               class="overview-card flex flex-col place-items-stretch gap-5 p-6"
               style="width: 350px"
             >
-              <div class="text-sm text-naturals-N14">Tools</div>
+              <div class="text-sm text-naturals-n14">Tools</div>
               <TButton
                 type="primary"
                 icon="document"
@@ -376,17 +376,19 @@ onBeforeMount(async () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .overview-card {
   font-size: 12px;
-  @apply rounded bg-naturals-N2;
+  @apply rounded bg-naturals-n2;
 }
 
 .overview-copy-icon {
-  @apply h-5 w-5 cursor-pointer rounded p-0.5 text-primary-P2;
+  @apply h-5 w-5 cursor-pointer rounded p-0.5 text-primary-p2;
 }
 
 .overview-copy-icon:hover {
-  @apply bg-naturals-N5 text-primary-P1;
+  @apply bg-naturals-n5 text-primary-p1;
 }
 
 .overview-general-info-grid {
@@ -402,7 +404,7 @@ onBeforeMount(async () => {
 }
 
 .recent-clusters-row:not(:first-of-type) {
-  @apply border-t border-naturals-N4;
+  @apply border-t border-naturals-n4;
 }
 
 .token {

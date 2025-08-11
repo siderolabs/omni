@@ -115,7 +115,9 @@ const removeLabel = async (key: string) => {
 </template>
 
 <style>
+@reference "../../../index.css";
+
 .destroy-label-button {
-  @apply -mr-1 ml-1 inline-block h-3 w-3 cursor-pointer rounded-full transition-all hover:bg-naturals-N14 hover:text-naturals-N1;
+  @apply -mr-1 ml-1 inline-block h-3 w-3 cursor-pointer rounded-full transition-all hover:bg-naturals-n14 hover:text-naturals-n1;
 }
 </style>

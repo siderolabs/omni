@@ -26,8 +26,7 @@ import {
   MachineClassType,
   MachineStatusType,
 } from '@/api/resources'
-import ItemWatch, { itemID } from '@/api/watch'
-import WatchResource from '@/api/watch'
+import { default as ItemWatch, default as WatchResource, itemID } from '@/api/watch'
 import IconButton from '@/components/common/Button/IconButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
 import TButtonGroup from '@/components/common/Button/TButtonGroup.vue'
@@ -460,12 +459,12 @@ const submit = async () => {
           <TButtonGroup v-model="machineClassMode" :options="machineClassModeOptions" />
         </div>
         <template v-if="machineClassMode === MachineClassMode.Manual">
-          <div class="text-naturals-N13">Conditions</div>
+          <div class="text-naturals-n13">Conditions</div>
           <div class="flex flex-wrap items-center gap-2">
             <template v-for="(_, i) in conditions" :key="i">
               <div class="condition flex gap-0.5">
                 <div
-                  class="flex cursor-pointer items-center rounded-l-md bg-naturals-N3 px-2 transition-colors hover:bg-naturals-N7 hover:text-naturals-N14"
+                  class="flex cursor-pointer items-center rounded-l-md bg-naturals-n3 px-2 transition-colors hover:bg-naturals-n7 hover:text-naturals-n14"
                   @click="deleteCondition(i)"
                 >
                   <TIcon icon="delete" class="h-4 w-4" />
@@ -475,7 +474,7 @@ const submit = async () => {
                   role="textbox"
                   style="min-width: 28px"
                   spellcheck="false"
-                  class="whitespace-pre rounded-r-md bg-naturals-N3 px-2 py-1 font-roboto text-sm text-naturals-N14"
+                  class="rounded-r-md bg-naturals-n3 px-2 py-1 font-roboto text-sm whitespace-pre text-naturals-n14"
                   contenteditable
                   @focus="lastFocused = i"
                   @keyup="(event) => updateContent(i, event)"
@@ -516,7 +515,7 @@ const submit = async () => {
       </div>
       <div class="mb-6 flex flex-1 flex-col gap-2">
         <div v-if="machineClassMode === MachineClassMode.Manual">
-          <div class="text-naturals-N13">Matches</div>
+          <div class="text-naturals-n13">Matches</div>
           <Watch :opts="watchOpts" spinner no-records-alert errors-alert>
             <template #default="{ items }">
               <MachineMatchItem
@@ -546,7 +545,7 @@ const submit = async () => {
         </template>
       </div>
       <div
-        class="sticky -bottom-6 -mx-6 -my-6 flex h-16 items-center justify-end gap-2 border-t border-naturals-N5 bg-naturals-N1 px-12 py-6 text-xs"
+        class="sticky -bottom-6 -mx-6 -my-6 flex h-16 items-center justify-end gap-2 border-t border-naturals-n5 bg-naturals-n1 px-12 py-6 text-xs"
       >
         <TButton type="highlighted" :disabled="!canSubmit" @click="submit">
           {{ edit ? 'Update Machine Class' : 'Create Machine Class' }}
@@ -557,16 +556,18 @@ const submit = async () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .condition {
-  @apply rounded-md border border-transparent border-opacity-0 transition-colors;
+  @apply rounded-md border border-transparent transition-colors;
 }
 
 .condition:focus-within {
-  @apply border-naturals-N8;
+  @apply border-naturals-n8;
 }
 
 code {
-  @apply rounded bg-naturals-N6 px-1 py-0.5 font-roboto text-naturals-N13;
+  @apply rounded bg-naturals-n6 px-1 py-0.5 font-roboto text-naturals-n13;
 }
 
 .machine-template > * {

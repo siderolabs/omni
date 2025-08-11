@@ -91,6 +91,8 @@ const loading = resourceWatch!.loading
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .watch {
   @apply w-full;
 }

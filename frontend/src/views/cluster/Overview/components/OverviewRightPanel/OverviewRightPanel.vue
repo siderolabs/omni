@@ -266,7 +266,7 @@ const {
           <Tooltip
             description="Some machines have diagnostic warnings. See the machines section for details."
           >
-            <TIcon class="h-4 w-4 text-yellow-Y1" icon="warning" />
+            <TIcon class="h-4 w-4 text-yellow-y1" icon="warning" />
           </Tooltip>
         </div>
       </OverviewRightPanelItem>
@@ -306,7 +306,7 @@ const {
       <div class="overview-right-box-wrapper overview-right-box-wrapper-moved">
         <h3 class="overview-details-title">Control Plane</h3>
         <OverviewRightPanelItem name="Ready">
-          <span :class="currentCluster?.spec?.controlplaneReady ? '' : 'text-red-R1'">
+          <span :class="currentCluster?.spec?.controlplaneReady ? '' : 'text-red-r1'">
             {{ currentCluster?.spec?.controlplaneReady ? 'Yes' : 'No' }}
           </span>
         </OverviewRightPanelItem>
@@ -320,12 +320,12 @@ const {
               <template #description>
                 <div class="max-w-lg break-words">{{ lastBackupError }}</div>
               </template>
-              <TIcon class="h-4 w-4 text-yellow-Y1" icon="warning" />
+              <TIcon class="h-4 w-4 text-yellow-y1" icon="warning" />
             </Tooltip>
             {{ backupTime }}
             <Tooltip v-if="etcdBackups?.enabled" description="Trigger Etcd Backup">
               <TIcon
-                class="h-4 w-4 cursor-pointer text-green-G1"
+                class="h-4 w-4 cursor-pointer text-green-g1"
                 icon="play-circle"
                 @click="runEtcdBackup"
               />
@@ -469,13 +469,15 @@ const {
 </template>
 
 <style scoped>
+@reference "../../../../../index.css";
+
 .divider {
-  @apply my-3 w-full bg-naturals-N4;
+  @apply my-3 w-full bg-naturals-n4;
   height: 1px;
 }
 
 .overview-right-box {
-  @apply mb-4 h-auto w-full rounded bg-naturals-N2 py-5;
+  @apply mb-4 h-auto w-full rounded bg-naturals-n2 py-5;
   max-width: 20%;
   min-width: 270px;
 }
@@ -485,11 +487,11 @@ const {
 }
 
 .overview-details-title {
-  @apply text-sm text-naturals-N13;
+  @apply text-sm text-naturals-n13;
 }
 
 .overview-item-button-red {
-  @apply text-red-R1;
+  @apply text-red-r1;
 }
 
 .overview-details-item {

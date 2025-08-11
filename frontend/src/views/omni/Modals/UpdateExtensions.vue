@@ -176,7 +176,7 @@ const updateExtensionsConfig = async () => {
 <template>
   <div class="modal-window flex flex-col gap-4" style="height: 90%">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">Update Extensions</h3>
+      <h3 class="text-base text-naturals-n14">Update Extensions</h3>
       <CloseButton @click="close" />
     </div>
 
@@ -201,11 +201,13 @@ const updateExtensionsConfig = async () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .modal-window {
   @apply h-auto w-1/2 p-8;
 }
 
 .heading {
-  @apply flex items-center justify-between text-xl text-naturals-N14;
+  @apply flex items-center justify-between text-xl text-naturals-n14;
 }
 </style>

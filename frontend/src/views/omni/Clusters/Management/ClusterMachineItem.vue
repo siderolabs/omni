@@ -258,14 +258,14 @@ machine:
 <template>
   <TListItem>
     <template #default>
-      <div class="flex items-center text-naturals-N13">
+      <div class="flex items-center text-naturals-n13">
         <div class="flex flex-1 items-center gap-2 truncate">
           <span class="pr-2 font-bold">
             <WordHighlighter
               :query="searchQuery ?? ''"
               :text-to-highlight="item?.spec?.network?.hostname ?? item?.metadata?.id"
               split-by-space
-              highlight-class="bg-naturals-N14"
+              highlight-class="bg-naturals-n14"
             />
           </span>
           <MachineItemLabels
@@ -275,11 +275,11 @@ machine:
             @filter-label="(e) => $emit('filterLabel', e)"
           />
         </div>
-        <div class="w-128 flex flex-initial items-center justify-end gap-4">
+        <div class="flex w-lg flex-initial items-center justify-end gap-4">
           <template v-if="machineSetIndex !== undefined">
             <div
               v-if="systemDiskPath"
-              class="cursor-not-allowed rounded border border-naturals-N6 py-1.5 pl-3 pr-8 text-naturals-N11"
+              class="cursor-not-allowed rounded border border-naturals-n6 py-1.5 pr-8 pl-3 text-naturals-n11"
             >
               Install Disk: {{ systemDiskPath }}
             </div>
@@ -307,14 +307,14 @@ machine:
                   ? `extensions-${options?.[machineSetIndex]?.id}`
                   : undefined
               "
-              class="my-auto text-naturals-N14"
+              class="my-auto text-naturals-n14"
               :disabled="machineSetIndex === undefined || options?.[machineSetIndex]?.disabled"
               :icon="systemExtensions ? 'extensions-toggle' : 'extensions'"
               @click="openExtensionConfig"
             />
             <IconButton
               :id="machineSetIndex !== undefined ? options?.[machineSetIndex]?.id : undefined"
-              class="my-auto text-naturals-N14"
+              class="my-auto text-naturals-n14"
               :disabled="machineSetIndex === undefined || options?.[machineSetIndex]?.disabled"
               :icon="
                 machineSetNode.patches[machinePatchID] && machineSetIndex !== undefined
@@ -329,11 +329,11 @@ machine:
     </template>
     <template #details>
       <div class="grid grid-cols-5 pl-6">
-        <div class="mb-2 mt-4">Processors</div>
-        <div class="mb-2 mt-4">Memory</div>
-        <div class="mb-2 mt-4">Block Devices</div>
-        <div class="mb-2 mt-4">Addresses</div>
-        <div class="mb-2 mt-4">Network Interfaces</div>
+        <div class="mt-4 mb-2">Processors</div>
+        <div class="mt-4 mb-2">Memory</div>
+        <div class="mt-4 mb-2">Block Devices</div>
+        <div class="mt-4 mb-2">Addresses</div>
+        <div class="mt-4 mb-2">Network Interfaces</div>
         <div>
           <div v-for="(processor, index) in item?.spec?.hardware?.processors" :key="index">
             {{ (processor.frequency ?? 0) / 1000 }} GHz, {{ processor.core_count }}

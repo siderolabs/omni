@@ -19,9 +19,9 @@ const { name } = toRefs(props)
 </script>
 
 <template>
-  <transition :name="name">
+  <Transition :name="name">
     <slot class="slot" />
-  </transition>
+  </Transition>
 </template>
 
 <style scoped>

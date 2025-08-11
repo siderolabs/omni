@@ -90,11 +90,11 @@ const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
 </script>
 
 <template>
-  <div class="text-naturals-N13">Machine Template</div>
-  <div class="rounded bg-naturals-N2">
-    <div class="px-4 pb-2 pt-4 text-sm text-naturals-N13">Talos Config</div>
+  <div class="text-naturals-n13">Machine Template</div>
+  <div class="rounded bg-naturals-n2">
+    <div class="px-4 pt-4 pb-2 text-sm text-naturals-n13">Talos Config</div>
     <div
-      class="machine-template flex flex-col divide-y divide-naturals-N4 border-t-8 border-naturals-N4 text-xs"
+      class="machine-template flex flex-col divide-y divide-naturals-n4 border-t-8 border-naturals-n4 text-xs"
     >
       <div>
         <span> Kernel Arguments </span>
@@ -123,11 +123,11 @@ const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
       </div>
     </div>
   </div>
-  <div v-if="infraProviderStatus?.spec.schema" class="rounded bg-naturals-N2">
-    <div class="px-4 pb-2 pt-4 text-sm text-naturals-N13">
+  <div v-if="infraProviderStatus?.spec.schema" class="rounded bg-naturals-n2">
+    <div class="px-4 pt-4 pb-2 text-sm text-naturals-n13">
       {{ infraProviderStatus.spec.name }} Provider Config
     </div>
-    <div class="flex flex-col divide-y divide-naturals-N4 border-t-8 border-naturals-N4 text-xs">
+    <div class="flex flex-col divide-y divide-naturals-n4 border-t-8 border-naturals-n4 text-xs">
       <JsonForm
         :model-value="providerConfig"
         :json-schema="infraProviderStatus.spec.schema"
@@ -138,16 +138,18 @@ const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .condition {
-  @apply rounded-md border border-transparent border-opacity-0 transition-colors;
+  @apply rounded-md border border-transparent transition-colors;
 }
 
 .condition:focus-within {
-  @apply border-naturals-N8;
+  @apply border-naturals-n8;
 }
 
 code {
-  @apply rounded bg-naturals-N6 px-1 py-0.5 font-roboto text-naturals-N13;
+  @apply rounded bg-naturals-n6 px-1 py-0.5 font-roboto text-naturals-n13;
 }
 
 .machine-template > * {

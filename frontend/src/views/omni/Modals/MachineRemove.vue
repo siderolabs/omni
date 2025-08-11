@@ -52,28 +52,28 @@ const remove = async () => {
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">Destroy the Machine {{ $route.query.machine }} ?</h3>
+      <h3 class="text-base text-naturals-n14">Destroy the Machine {{ $route.query.machine }} ?</h3>
       <CloseButton @click="close" />
     </div>
 
     <p class="py-2 text-xs">Please confirm the action.</p>
 
     <div v-if="$route.query.cluster" class="text-xs">
-      <p class="py-2 text-primary-P3">
+      <p class="py-2 text-primary-p3">
         The machine <code>{{ $route.query.machine }}</code> is part of the cluster
         <code>{{ $route.query.cluster }}</code
         >. Destroying the machine should be only used as a last resort, e.g. in a case of a hardware
         failure.
       </p>
-      <p class="py-2 font-bold text-primary-P3">
+      <p class="py-2 font-bold text-primary-p3">
         The machine will need to wiped and reinstalled to be used again with Omni.
       </p>
 
       <p class="py-2">
         If you want to remove the machine from the cluster, please use the
-        <router-link
+        <RouterLink
           :to="{ name: 'ClusterOverview', params: { cluster: $route.query.cluster as string } }"
-          >cluster overview page</router-link
+          >cluster overview page</RouterLink
         >.
       </p>
     </div>
@@ -93,7 +93,9 @@ const remove = async () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
 }
 </style>

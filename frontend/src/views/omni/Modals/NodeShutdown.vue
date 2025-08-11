@@ -68,7 +68,7 @@ const shutdown = async () => {
     <div class="modal">
       <div class="modal-heading">
         <h3 id="modal-title" class="modal-name">Shutdown the machine {{ node }} ?</h3>
-        <t-icon class="modal-exit" icon="close" />
+        <TIcon class="modal-exit" icon="close" />
       </div>
       <p class="text-xs">Please confirm the action.</p>
 
@@ -86,12 +86,14 @@ const shutdown = async () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .modal {
-  @apply z-30 rounded bg-naturals-N3 p-8;
+  @apply z-30 rounded bg-naturals-n3 p-8;
   width: 500px;
 }
 .modal-wrapper {
-  @apply fixed bottom-0 left-0 right-0 top-0 z-30 flex h-full w-full items-center justify-center;
+  @apply fixed top-0 right-0 bottom-0 left-0 z-30 flex h-full w-full items-center justify-center;
   background-color: rgba(16, 17, 24, 0.5);
 }
 .modal-heading {
@@ -99,17 +101,17 @@ const shutdown = async () => {
   margin-bottom: 13px;
 }
 .modal-name {
-  @apply text-base text-naturals-N14;
+  @apply text-base text-naturals-n14;
 }
 .modal-subtitle {
   @apply text-xs;
   margin-bottom: 19px;
 }
 .modal-subtitle-light {
-  @apply text-xs text-naturals-N13;
+  @apply text-xs text-naturals-n13;
 }
 .modal-exit {
-  @apply h-6 w-6 cursor-pointer fill-current text-naturals-N7 transition-colors hover:text-naturals-N8;
+  @apply h-6 w-6 cursor-pointer fill-current text-naturals-n7 transition-colors hover:text-naturals-n8;
 }
 .modal-buttons-box {
   @apply flex w-full justify-end;

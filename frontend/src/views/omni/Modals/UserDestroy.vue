@@ -110,7 +110,7 @@ const destroy = async () => {
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="flex-1 truncate text-base text-naturals-N14">
+      <h3 class="flex-1 truncate text-base text-naturals-n14">
         Delete the {{ object }} {{ id }} ?
       </h3>
       <CloseButton @click="close" />
@@ -124,7 +124,9 @@ const destroy = async () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .heading {
-  @apply mb-5 flex items-center gap-2 text-xl text-naturals-N14;
+  @apply mb-5 flex items-center gap-2 text-xl text-naturals-n14;
 }
 </style>

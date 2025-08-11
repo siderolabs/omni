@@ -91,7 +91,7 @@ const itemLabel = (item: KubernetesSyncManifestResponse) => {
 
 const highlightDiff = (line: string) => {
   if (line.startsWith('@@')) {
-    return 'text-talos-gray-500'
+    return 'text-neutral-500'
   }
 
   if (line.startsWith('- ')) {
@@ -197,21 +197,21 @@ setupSyncStream()
           </span>
           <span
             :class="{
-              'text-primary-P3':
+              'text-primary-p3':
                 item.diff &&
                 syncParams.dry_run &&
                 item.response_type !== KubernetesSyncManifestResponseResponseType.UNKNOWN,
-              'text-green-G1':
+              'text-green-g1':
                 item.diff &&
                 !syncParams.dry_run &&
                 item.response_type !== KubernetesSyncManifestResponseResponseType.UNKNOWN,
-              'text-red-R1':
+              'text-red-r1':
                 item.response_type === KubernetesSyncManifestResponseResponseType.UNKNOWN,
             }"
             >{{ item.path }}</span
           >
-          <span v-if="!item.diff" class="text-naturals-N9"> (No changes) </span>
-          <span v-if="item.diff && !syncParams.dry_run" class="text-green-G1"> (Updated) </span>
+          <span v-if="!item.diff" class="text-naturals-n9"> (No changes) </span>
+          <span v-if="item.diff && !syncParams.dry_run" class="text-green-g1"> (Updated) </span>
         </template>
         <template
           v-if="
@@ -240,8 +240,10 @@ setupSyncStream()
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .diff {
-  @apply whitespace-pre pt-2 font-roboto;
+  @apply pt-2 font-roboto whitespace-pre;
 }
 
 .bottom-line {
@@ -249,6 +251,6 @@ setupSyncStream()
   border-radius: 4px 4px 0 0;
 }
 .label {
-  @apply mr-2 rounded-full bg-naturals-N3 px-2 py-1 text-xs font-bold uppercase text-naturals-N9;
+  @apply mr-2 rounded-full bg-naturals-n3 px-2 py-1 text-xs font-bold text-naturals-n9 uppercase;
 }
 </style>

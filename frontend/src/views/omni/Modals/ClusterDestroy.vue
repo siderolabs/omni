@@ -140,20 +140,20 @@ const destroying = ref(false)
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">Destroy the Cluster {{ $route.query.cluster }} ?</h3>
+      <h3 class="text-base text-naturals-n14">Destroy the Cluster {{ $route.query.cluster }} ?</h3>
       <CloseButton @click="close" />
     </div>
     <ManagedByTemplatesWarning warning-style="popup" />
     <p v-if="destroying" class="text-xs">{{ phase }}...</p>
     <p v-else-if="loading" class="text-xs">Checking the cluster status...</p>
     <div v-else-if="disconnectedMachines.length > 0" class="text-xs">
-      <p class="py-2 text-primary-P3">
+      <p class="py-2 text-primary-p3">
         Cluster <code>{{ $route.query.cluster }}</code> has
         {{ disconnectedMachines.length }} disconnected
         {{ pluralize('machine', disconnectedMachines.length, false) }}. Destroying the cluster now
         will also destroy disconnected machines.
       </p>
-      <p class="py-2 font-bold text-primary-P3">
+      <p class="py-2 font-bold text-primary-p3">
         These machines will need to be wiped and reinstalled to be used with Omni again. If the
         machines can be recovered, you may wish to recover them before destroying the cluster, to
         allow a graceful reset of the machines.
@@ -171,11 +171,13 @@ const destroying = ref(false)
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .window {
-  @apply z-30 flex w-1/3 flex-col rounded bg-naturals-N2 p-8;
+  @apply z-30 flex w-1/3 flex-col rounded bg-naturals-n2 p-8;
 }
 
 .heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
 }
 </style>

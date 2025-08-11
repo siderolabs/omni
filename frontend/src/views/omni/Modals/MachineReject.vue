@@ -43,12 +43,12 @@ const reject = async () => {
 <template>
   <div class="modal-window">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">Reject the Machine {{ $route.query.machine }} ?</h3>
+      <h3 class="text-base text-naturals-n14">Reject the Machine {{ $route.query.machine }} ?</h3>
       <CloseButton @click="close" />
     </div>
 
     <p class="py-2 text-xs">Please confirm the action.</p>
-    <p class="py-2 text-xs text-primary-P2">
+    <p class="py-2 text-xs text-primary-p2">
       Rejected machine will not appear in the UI anymore. You can use omnictl to accept it again.
     </p>
 
@@ -59,7 +59,9 @@ const reject = async () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
 }
 </style>

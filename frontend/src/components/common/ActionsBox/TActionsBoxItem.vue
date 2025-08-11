@@ -17,36 +17,13 @@ withDefaults(defineProps<Props>(), {})
 </script>
 
 <template>
-  <div class="action-item" :class="{ 'action-item-danger': danger }">
-    <TIcon class="action-item-icon" :icon="icon" />
-    <span class="action-item-text">
+  <div
+    class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 *:hover:text-naturals-n12"
+    :class="{ 'text-red-r1 *:hover:text-primary-p1': danger }"
+  >
+    <TIcon class="h-4 w-4 transition-colors" :icon="icon" />
+    <span class="text-xs transition-colors">
       <slot />
     </span>
   </div>
 </template>
-
-<style scoped>
-.action-item {
-  @apply flex w-full cursor-pointer items-center gap-2 px-3 py-2;
-}
-
-.action-item:hover > * {
-  @apply text-naturals-N12;
-}
-
-.action-item-icon {
-  @apply h-4 w-4 transition-colors;
-}
-
-.action-item-text {
-  @apply text-xs transition-colors;
-}
-
-.action-item-danger > * {
-  @apply text-red-R1;
-}
-
-.action-item-danger:hover > * {
-  @apply text-primary-P1;
-}
-</style>

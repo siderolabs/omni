@@ -14,7 +14,6 @@ import {
   ControlPlaneStatusSpecConditionStatus,
 } from '@/api/omni/specs/omni.pb'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
-import { naturals, red, yellow } from '@/vars/colors'
 import OverviewRightPanelItem from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanelItem.vue'
 
 const mapping: Record<ConditionType | number, string> = {}
@@ -45,12 +44,12 @@ const { condition } = toRefs(props)
 const color = computed(() => {
   switch (condition.value.severity) {
     case ControlPlaneStatusSpecConditionSeverity.Warning:
-      return yellow.Y1
+      return 'var(--color-yellow-y1)'
     case ControlPlaneStatusSpecConditionSeverity.Error:
-      return red.R1
+      return 'var(--color-red-r1)'
   }
 
-  return naturals.N12
+  return 'var(--color-naturals-n12)'
 })
 
 const text = computed(() => {

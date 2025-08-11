@@ -38,8 +38,12 @@ import TIcon from '@/components/common/Icon/TIcon.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import { setupClusterPermissions } from '@/methods/auth'
-import { machineSetTitle, scaleMachineSet } from '@/methods/machineset'
-import { controlPlaneMachineSetId, defaultWorkersMachineSetId } from '@/methods/machineset'
+import {
+  controlPlaneMachineSetId,
+  defaultWorkersMachineSetId,
+  machineSetTitle,
+  scaleMachineSet,
+} from '@/methods/machineset'
 import { showError } from '@/notification'
 
 import ClusterMachine from './ClusterMachine.vue'
@@ -218,12 +222,12 @@ const machineClassMachineCount = computed(() => {
 </script>
 
 <template>
-  <div v-if="machines.length > 0 || requests.length > 0" class="border-t-8 border-naturals-N4">
-    <div class="flex items-center border-b border-naturals-N4 pl-3 text-naturals-N14">
+  <div v-if="machines.length > 0 || requests.length > 0" class="border-t-8 border-naturals-n4">
+    <div class="flex items-center border-b border-naturals-n4 pl-3 text-naturals-n14">
       <div class="clusters-grid flex-1 items-center py-2">
         <div class="col-span-2 flex flex-wrap items-center justify-between gap-2">
           <div class="flex flex-1 items-center">
-            <div class="flex w-40 items-center gap-2 truncate rounded bg-naturals-N4 px-3 py-2">
+            <div class="flex w-40 items-center gap-2 truncate rounded bg-naturals-n4 px-3 py-2">
               <TIcon icon="server-stack" class="h-4 w-4" />
               <div class="flex-1 truncate">
                 {{ machineSetTitle(clusterID, machineSet?.metadata?.id) }}
@@ -274,14 +278,14 @@ const machineClassMachineCount = computed(() => {
         />
         <div
           v-if="machineSet.spec?.machine_allocation?.name"
-          class="max-w-min rounded bg-naturals-N4 px-3 py-2 max-md:col-span-4"
+          class="max-w-min rounded bg-naturals-n4 px-3 py-2 max-md:col-span-4"
         >
           Machine Class: {{ machineSet.spec?.machine_allocation?.name }} ({{
             machineClassMachineCount
           }})
         </div>
       </div>
-      <TActionsBox v-if="canRemoveMachineSet" class="-ml-4 mr-4 h-6" @click.stop>
+      <TActionsBox v-if="canRemoveMachineSet" class="mr-4 -ml-4 h-6" @click.stop>
         <TActionsBoxItem icon="delete" danger @click="() => openMachineSetDestroy(machineSet)"
           >Destroy Machine Set</TActionsBoxItem
         >
@@ -306,7 +310,7 @@ const machineClassMachineCount = computed(() => {
     />
     <div
       v-if="hiddenMachinesCount > 0"
-      class="flex items-center gap-1 border-t border-naturals-N4 p-4 pl-9 text-xs"
+      class="flex items-center gap-1 border-t border-naturals-n4 p-4 pl-9 text-xs"
     >
       {{ pluralize('machine', hiddenMachinesCount, true) }} are hidden
       <TButton type="subtle" @click="showMachinesCount = undefined"
@@ -317,8 +321,10 @@ const machineClassMachineCount = computed(() => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .machine-item:not(:last-of-type) {
-  @apply border-b border-naturals-N4;
+  @apply border-b border-naturals-n4;
 }
 
 .machine-item:last-of-type {

@@ -138,14 +138,14 @@ onMounted(() => {
       @focus="isFocused = true"
       @blur="blurHandler"
     />
-    <div v-if="type === 'number'" class="-my-1 flex select-none flex-col">
+    <div v-if="type === 'number'" class="-my-1 flex flex-col select-none">
       <TIcon
-        class="h-2 w-2 rotate-180 text-naturals-N12 hover:text-naturals-N14"
+        class="h-2 w-2 rotate-180 text-naturals-n12 hover:text-naturals-n14"
         icon="arrow-down"
         @click="updateValue(numberValue + step)"
       />
       <TIcon
-        class="h-2 w-2 text-naturals-N12 hover:text-naturals-N14"
+        class="h-2 w-2 text-naturals-n12 hover:text-naturals-n14"
         icon="arrow-down"
         @click="updateValue(numberValue - step)"
       />
@@ -157,8 +157,10 @@ onMounted(() => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .input-box {
-  @apply flex items-center justify-start gap-2 gap-y-3 rounded border border-naturals-N8 p-2 transition-colors;
+  @apply flex items-center justify-start gap-2 gap-y-3 rounded border border-naturals-n8 p-2 transition-colors;
 }
 
 .compact {
@@ -166,11 +168,11 @@ onMounted(() => {
 }
 
 .input-box-icon {
-  @apply h-4 w-4 cursor-pointer fill-current text-naturals-N8 transition-colors;
+  @apply h-4 w-4 cursor-pointer fill-current text-naturals-n8 transition-colors;
 }
 
 .input-box-input {
-  @apply flex-1 border-none bg-transparent text-xs text-naturals-N13 placeholder-naturals-N7 outline-none transition-colors focus:border-transparent focus:outline-none;
+  @apply flex-1 border-none bg-transparent text-xs text-naturals-n13 placeholder-naturals-n7 outline-hidden transition-colors focus:border-transparent focus:outline-hidden;
 
   min-width: 0.5rem;
 }
@@ -184,11 +186,11 @@ onMounted(() => {
 }
 
 .focused {
-  @apply border border-solid border-naturals-N5;
+  @apply border border-solid border-naturals-n5;
 }
 
 .focused .input-box-icon {
-  @apply text-naturals-N14;
+  @apply text-naturals-n14;
 }
 
 input::-webkit-outer-spin-button,
@@ -203,10 +205,10 @@ input[type='number'] {
 }
 
 .disabled {
-  @apply cursor-not-allowed border-naturals-N6 bg-naturals-N3;
+  @apply cursor-not-allowed border-naturals-n6 bg-naturals-n3;
 }
 
 .disabled * {
-  @apply pointer-events-none select-none text-naturals-N9;
+  @apply pointer-events-none text-naturals-n9 select-none;
 }
 </style>

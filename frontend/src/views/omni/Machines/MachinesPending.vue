@@ -77,7 +77,7 @@ const rejectMachine = (item: Resource) => {
               <WordHighlighter
                 :query="searchQuery"
                 :text-to-highlight="item.metadata.id"
-                highlight-class="bg-naturals-N14"
+                highlight-class="bg-naturals-n14"
               />
               <span>{{ item.metadata.labels?.[LabelInfraProviderID] }}</span>
             </div>
@@ -93,7 +93,9 @@ const rejectMachine = (item: Resource) => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .header {
-  @apply grid grid-cols-2 gap-2 bg-naturals-N2 p-2 pl-3 pr-56 text-xs text-naturals-N13;
+  @apply grid grid-cols-2 gap-2 bg-naturals-n2 p-2 pr-56 pl-3 text-xs text-naturals-n13;
 }
 </style>

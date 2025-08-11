@@ -62,7 +62,7 @@ const setInfraProvider = (item: Resource<InfraProviderStatusSpec>) => {
 </script>
 
 <template>
-  <div class="text-naturals-N13">Infrastructure Provider</div>
+  <div class="text-naturals-n13">Infrastructure Provider</div>
   <TList
     :key="infraProvider"
     :opts="infraProviderResources"
@@ -79,16 +79,16 @@ const setInfraProvider = (item: Resource<InfraProviderStatusSpec>) => {
           @click="() => setInfraProvider(item)"
         >
           <div class="flex items-center gap-2">
-            <div class="flex flex-1 items-center gap-3 text-sm text-naturals-N13">
+            <div class="flex flex-1 items-center gap-3 text-sm text-naturals-n13">
               <TIcon :svg-base-64="item.spec.icon" icon="cloud-connection" class="h-10 w-10" />
               <div class="flex flex-col gap-1">
                 <div>{{ item.spec.name }}</div>
-                <div class="rounded bg-naturals-N4 px-2 py-0.5 text-xs text-naturals-N11">
+                <div class="rounded bg-naturals-n4 px-2 py-0.5 text-xs text-naturals-n11">
                   id:
                   <WordHighlighter
                     :query="searchQuery"
                     :text-to-highlight="item.metadata.id"
-                    highlight-class="bg-naturals-N14"
+                    highlight-class="bg-naturals-n14"
                   />
                 </div>
               </div>
@@ -105,11 +105,13 @@ const setInfraProvider = (item: Resource<InfraProviderStatusSpec>) => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .provider-item {
-  @apply min-w-fit cursor-pointer rounded border border-naturals-N6 bg-naturals-N2 p-3 transition-colors duration-200 hover:border-naturals-N8 hover:bg-naturals-N3 max-md:flex-1;
+  @apply min-w-fit cursor-pointer rounded border border-naturals-n6 bg-naturals-n2 p-3 transition-colors duration-200 hover:border-naturals-n8 hover:bg-naturals-n3 max-md:flex-1;
 }
 
 .selected {
-  @apply border-naturals-N9 bg-naturals-N3;
+  @apply border-naturals-n9 bg-naturals-n3;
 }
 </style>

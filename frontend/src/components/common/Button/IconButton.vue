@@ -22,29 +22,12 @@ const { icon, disabled } = toRefs(props)
 </script>
 
 <template>
-  <button :disabled="disabled" class="icon-button" :class="{ danger }">
+  <button
+    :disabled="disabled"
+    class="h-6 w-6 rounded text-naturals-n11 transition-all duration-100 hover:bg-naturals-n7 hover:text-naturals-n13 disabled:pointer-events-none disabled:cursor-not-allowed disabled:text-naturals-n7"
+    :class="{ 'text-red-r1': danger }"
+  >
     <slot v-if="$slots.default" />
-    <TIcon v-else class="icon-button-icon" :class="iconClasses" :icon="icon" />
+    <TIcon v-else class="h-full w-full cursor-pointer p-1" :class="iconClasses" :icon="icon" />
   </button>
 </template>
-
-<style scoped>
-button {
-  @apply h-6 w-6;
-}
-.icon-button-icon {
-  @apply h-full w-full cursor-pointer p-1;
-}
-
-.icon-button {
-  @apply rounded text-naturals-N11 transition-all duration-100 hover:bg-naturals-N7 hover:text-naturals-N13 disabled:pointer-events-none disabled:cursor-not-allowed disabled:text-naturals-N7;
-}
-
-.icon-button.danger {
-  @apply text-red-R1;
-}
-
-.icon-button.highlighted {
-  @apply bg-naturals-N7;
-}
-</style>

@@ -25,16 +25,18 @@ const { selected } = toRefs(props)
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .tab {
-  @apply text-sm outline-none transition-colors hover:text-naturals-N13 focus:outline-none;
+  @apply text-sm outline-hidden transition-colors hover:text-naturals-n13 focus:outline-hidden;
 }
 
 .active {
-  @apply relative text-naturals-N13 outline-none focus:outline-none;
+  @apply relative text-naturals-n13 outline-hidden focus:outline-hidden;
 }
 
 .active::before {
-  @apply absolute block w-full animate-fadein bg-primary-P3;
+  @apply absolute block w-full animate-fadein bg-primary-p3;
   content: '';
   height: 2px;
   bottom: -15px;

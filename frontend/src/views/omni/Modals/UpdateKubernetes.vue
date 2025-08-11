@@ -140,7 +140,7 @@ const upgradeClick = async () => {
 <template>
   <div class="modal-window my-4 flex max-h-screen flex-col gap-2">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">Update Kubernetes</h3>
+      <h3 class="text-base text-naturals-n14">Update Kubernetes</h3>
       <CloseButton @click="close" />
     </div>
     <ManagedByTemplatesWarning warning-style="popup" />
@@ -148,10 +148,10 @@ const upgradeClick = async () => {
       <RadioGroup
         id="k8s-upgrade-version"
         v-model="selectedVersion"
-        class="flex flex-1 flex-col gap-2 overflow-y-auto text-naturals-N13"
+        class="flex flex-1 flex-col gap-2 overflow-y-auto text-naturals-n13"
       >
         <template v-for="(versions, group) in upgradeVersions" :key="group">
-          <RadioGroupLabel as="div" class="w-full bg-naturals-N4 p-1 pl-7 text-sm font-bold">{{
+          <RadioGroupLabel as="div" class="w-full bg-naturals-n4 p-1 pl-7 text-sm font-bold">{{
             group
           }}</RadioGroupLabel>
           <div class="flex flex-col gap-1">
@@ -162,8 +162,8 @@ const upgradeClick = async () => {
               :value="version"
             >
               <div
-                class="tranform transition-color flex cursor-pointer items-center gap-2 px-2 py-1 text-sm hover:bg-naturals-N4"
-                :class="{ 'bg-naturals-N4': checked }"
+                class="tranform transition-color flex cursor-pointer items-center gap-2 px-2 py-1 text-sm hover:bg-naturals-n4"
+                :class="{ 'bg-naturals-n4': checked }"
               >
                 <TCheckbox :checked="checked" />
                 {{ version }}
@@ -181,11 +181,11 @@ const upgradeClick = async () => {
     </p>
     <p class="text-xs">This operation starts immediately.</p>
 
-    <div v-if="runningPrechecks" class="text-xs text-primary-P3">
+    <div v-if="runningPrechecks" class="text-xs text-primary-p3">
       Running pre-checks to validate the upgrade...
     </div>
 
-    <div v-if="preCheckError" class="font-mono whitespace-pre-line text-xs text-primary-P3">
+    <div v-if="preCheckError" class="font-mono text-xs whitespace-pre-line text-primary-p3">
       {{ preCheckError }}
     </div>
 
@@ -206,10 +206,12 @@ const upgradeClick = async () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-N14;
+  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
 }
 optgroup {
-  @apply font-bold text-naturals-N14;
+  @apply font-bold text-naturals-n14;
 }
 </style>

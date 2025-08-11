@@ -41,78 +41,45 @@ const textOrder = computed((): StyleValue => {
   <button
     type="button"
     :disabled="disabled"
-    class="t-button"
+    class="flex items-center justify-center gap-1 rounded border px-4 py-1.5 text-sm transition-colors duration-200"
     :class="{
-      [type]: true,
-      lightHover: isLightHover,
-      toggle,
+      'border-naturals-n5 bg-naturals-n3 text-naturals-n12 hover:border-primary-p3 hover:bg-primary-p3 hover:text-naturals-n14 focus:border-primary-p2 focus:bg-primary-p2 focus:text-naturals-n14 active:border-primary-p4 active:bg-primary-p4 active:text-naturals-n14 disabled:cursor-not-allowed disabled:border-naturals-n6 disabled:bg-naturals-n4 disabled:text-naturals-n7':
+        type === 'primary',
+      'border-naturals-n5 bg-transparent text-naturals-n10 hover:bg-naturals-n5 hover:text-naturals-n14 focus:border-naturals-n7 focus:bg-naturals-n5 focus:text-naturals-n14 active:border-naturals-n5 active:bg-naturals-n4 active:text-naturals-n14 disabled:cursor-not-allowed disabled:border-naturals-n6 disabled:bg-transparent disabled:text-naturals-n6':
+        type === 'secondary',
+      'border-none bg-transparent p-0 text-naturals-n13 hover:text-primary-p3 focus:text-primary-p2 focus:underline active:text-primary-p4 active:no-underline disabled:cursor-not-allowed disabled:text-naturals-n6':
+        type === 'subtle',
+      'border-none bg-transparent p-0 text-xs text-naturals-n13 hover:text-primary-p3 focus:text-primary-p2 focus:underline active:text-primary-p4 active:no-underline disabled:cursor-not-allowed disabled:text-naturals-n6':
+        type === 'subtle-xs',
+      'h-6 border-naturals-n5 bg-naturals-n4 px-2 py-0.5 text-naturals-n10 hover:bg-naturals-n5 hover:text-naturals-n14 focus:border-naturals-n7 focus:bg-naturals-n5 focus:text-naturals-n14 active:border-primary-p4 active:bg-primary-p4 active:text-naturals-n14 disabled:cursor-not-allowed disabled:border-naturals-n6 disabled:bg-naturals-n4 disabled:text-naturals-n7':
+        type === 'compact',
+      'border-primary-p2 bg-primary-p4 text-naturals-n14 hover:border-primary-p3 hover:bg-primary-p3 hover:text-naturals-n14 focus:border-primary-p2 focus:bg-primary-p2 focus:text-naturals-n14 active:border-primary-p4 active:bg-primary-p4 active:text-naturals-n14 disabled:cursor-not-allowed disabled:border-naturals-n6 disabled:bg-naturals-n4 disabled:text-naturals-n7':
+        type === 'highlighted',
+      'border-primary-p4 bg-primary-p4 text-naturals-n14':
+        toggle && ['primary', 'compact'].includes(type),
+      'border-none bg-transparent p-0 hover:text-naturals-n12 focus:text-naturals-n13 focus:underline active:text-naturals-n13 active:no-underline disabled:cursor-not-allowed disabled:text-naturals-n6':
+        type === 'subtle' && isLightHover,
     }"
   >
     <span
       v-if="$slots.default"
       class="t-button-text whitespace-nowrap"
       :style="textOrder"
-      :class="{ 'text-red-R1': danger }"
+      :class="{ 'text-red-r1': danger }"
     >
       <slot />
     </span>
-    <TIcon v-if="icon" :icon="icon" class="button-icon" :class="{ 'text-red-R1': danger, type }" />
+    <TIcon
+      v-if="icon"
+      :icon="icon"
+      class="h-4 w-4"
+      :class="{ 'text-red-r1': danger, 'h-3 w-3': type === 'subtle-xs' }"
+    />
   </button>
 </template>
 
 <style scoped>
-.t-button {
-  @apply flex items-center justify-center gap-1 rounded border px-4 py-1.5 text-sm transition-colors duration-200;
-}
-
-.t-button.subtle-xs {
-  @apply border-none bg-transparent p-0 text-xs text-naturals-N13 hover:text-primary-P3 focus:text-primary-P2 focus:underline active:text-primary-P4 active:no-underline disabled:cursor-not-allowed disabled:text-naturals-N6;
-}
-
-.t-button._left {
-  padding-left: 14px;
-}
-
-.t-button._right {
-  padding-right: 14px;
-}
-
-.t-button._middle {
-  padding-right: 9px;
-  padding-left: 9px;
-}
-
-.t-button._middle:hover .button-icon._middle {
-  @apply text-naturals-N14;
-}
-
-.t-button.highlighted {
-  @apply border-primary-P2 bg-primary-P4 text-naturals-N14 hover:border-primary-P3 hover:bg-primary-P3 hover:text-naturals-N14 focus:border-primary-P2 focus:bg-primary-P2 focus:text-naturals-N14 active:border-primary-P4 active:bg-primary-P4 active:text-naturals-N14 disabled:cursor-not-allowed disabled:border-naturals-N6 disabled:bg-naturals-N4 disabled:text-naturals-N7;
-}
-
-.t-button.primary {
-  @apply border-naturals-N5 bg-naturals-N3 text-naturals-N12 hover:border-primary-P3 hover:bg-primary-P3 hover:text-naturals-N14 focus:border-primary-P2 focus:bg-primary-P2 focus:text-naturals-N14 active:border-primary-P4 active:bg-primary-P4 active:text-naturals-N14 disabled:cursor-not-allowed disabled:border-naturals-N6 disabled:bg-naturals-N4 disabled:text-naturals-N7;
-}
-
-.t-button.primary.toggle {
-  @apply border-primary-P4 bg-primary-P4 text-naturals-N14;
-}
-
-.t-button.secondary {
-  @apply border-naturals-N5 bg-transparent text-naturals-N10 hover:bg-naturals-N5 hover:text-naturals-N14 focus:border-naturals-N7 focus:bg-naturals-N5 focus:text-naturals-N14 active:border-naturals-N5 active:bg-naturals-N4 active:text-naturals-N14 disabled:cursor-not-allowed disabled:border-naturals-N6 disabled:bg-transparent disabled:text-naturals-N6;
-}
-
-.t-button.subtle {
-  @apply border-none bg-transparent p-0 text-naturals-N13 hover:text-primary-P3 focus:text-primary-P2 focus:underline active:text-primary-P4 active:no-underline disabled:cursor-not-allowed disabled:text-naturals-N6;
-}
-
-.t-button.compact {
-  @apply h-6 border-naturals-N5 bg-naturals-N4 px-2 py-0.5 text-naturals-N10 hover:bg-naturals-N5 hover:text-naturals-N14 focus:border-naturals-N7 focus:bg-naturals-N5 focus:text-naturals-N14 active:border-primary-P4 active:bg-primary-P4 active:text-naturals-N14 disabled:cursor-not-allowed disabled:border-naturals-N6 disabled:bg-naturals-N4 disabled:text-naturals-N7;
-}
-
-.t-button.compact.toggle {
-  @apply border-primary-P4 bg-primary-P4 text-naturals-N14;
-}
+@reference "../../../index.css";
 
 .t-button-group > * {
   @apply rounded-none border-r-0;
@@ -121,17 +88,5 @@ const textOrder = computed((): StyleValue => {
 
 .t-button-group > *:first-child {
   @apply rounded-l;
-}
-
-.t-button.subtle.lightHover {
-  @apply border-none bg-transparent p-0 hover:text-naturals-N12 focus:text-naturals-N13 focus:underline active:text-naturals-N13 active:no-underline disabled:cursor-not-allowed disabled:text-naturals-N6;
-}
-
-.button-icon {
-  @apply h-4 w-4;
-}
-
-.t-button.subtle-xs .button-icon {
-  @apply h-3 w-3;
 }
 </style>

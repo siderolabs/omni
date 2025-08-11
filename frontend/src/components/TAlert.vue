@@ -54,8 +54,10 @@ const icons: Record<AlertType, IconType> = {
 </template>
 
 <style>
+@reference "../index.css";
+
 .alert {
-  @apply rounded-md border border-l-4 border-naturals-N6 bg-naturals-N0 p-4;
+  @apply rounded-md border border-l-4 border-naturals-n6 bg-naturals-n0 p-4;
 }
 
 .alert-box {
@@ -82,9 +84,7 @@ const icons: Record<AlertType, IconType> = {
 }
 
 .alert-error {
-  border: 1px solid #272932;
-  border-left-width: 4px;
-  border-left-color: #6e2f30;
+  @apply border border-l-4 border-solid border-naturals-n5 border-l-red-r2;
 }
 
 .alert-error #title {
@@ -108,27 +108,27 @@ const icons: Record<AlertType, IconType> = {
 }
 
 .alert-success {
-  @apply border-l-green-G1;
+  @apply border-l-green-g1;
 }
 
 .alert-success #title {
-  @apply text-green-G1;
+  @apply text-green-g1;
 }
 
 .alert-success #icon {
-  @apply text-green-G1;
+  @apply text-green-g1;
 }
 
 .alert-warn {
   border: 1px solid #272932;
-  @apply border-l-4 border-l-yellow-Y1;
+  @apply border-l-4 border-l-yellow-y1;
 }
 
 .alert-warn #title {
-  @apply text-yellow-Y1;
+  @apply text-yellow-y1;
 }
 
 .alert-warn #icon {
-  @apply text-yellow-Y1;
+  @apply text-yellow-y1;
 }
 </style>

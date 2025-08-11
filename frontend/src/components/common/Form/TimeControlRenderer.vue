@@ -28,7 +28,7 @@ const dataTime = computed(() => (control.value.data ?? '').substr(0, 16))
   <ContentWrapper class="relative" :control="control">
     <input
       :id="control.id + '-input'"
-      class="-my-1 bg-transparent text-xs text-naturals-N13 placeholder-naturals-N7 outline-none transition-colors focus:border-transparent focus:outline-none"
+      class="-my-1 bg-transparent text-xs text-naturals-n13 placeholder-naturals-n7 outline-hidden transition-colors focus:border-transparent focus:outline-hidden"
       type="time"
       :value="dataTime"
       :disabled="!control.enabled"
@@ -36,7 +36,7 @@ const dataTime = computed(() => (control.value.data ?? '').substr(0, 16))
     />
     <div
       v-if="isChrome()"
-      class="pointer-events-none absolute bottom-0 right-0 top-0 flex w-16 flex-1 items-center justify-center"
+      class="pointer-events-none absolute top-0 right-0 bottom-0 flex w-16 flex-1 items-center justify-center"
     >
       <TIcon icon="time" class="h-4 w-4" />
     </div>
@@ -44,8 +44,10 @@ const dataTime = computed(() => (control.value.data ?? '').substr(0, 16))
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 input[type='time'] {
-  @apply rounded border border-naturals-N7 px-2 py-1;
+  @apply rounded border border-naturals-n7 px-2 py-1;
 }
 
 input[type='time']::-webkit-inner-spin-button {

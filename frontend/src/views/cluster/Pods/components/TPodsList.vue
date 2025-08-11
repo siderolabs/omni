@@ -75,9 +75,10 @@ const filteredItems = computed(() => {
 </template>
 
 <style scoped>
+@reference "../../../../index.css";
+
 .list {
-  overflow: visible;
-  flex-grow: 1;
+  @apply grow overflow-visible;
 }
 .list__wrapper {
   @apply flex h-full flex-col;

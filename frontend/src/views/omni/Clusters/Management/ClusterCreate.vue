@@ -367,20 +367,20 @@ const filterByLabel = (e: { key: string; value?: string }) => {
           Config Patches
         </TButton>
       </div>
-      <div class="text-naturals-N13">Cluster Labels</div>
+      <div class="text-naturals-n13">Cluster Labels</div>
       <ItemLabels
         :resource="labelContainer"
         :add-label-func="addLabels"
         :remove-label-func="removeLabels"
       />
-      <div class="text-naturals-N13">Cluster Features</div>
+      <div class="text-naturals-n13">Cluster Features</div>
       <div class="flex max-w-sm flex-col gap-3">
         <Tooltip placement="bottom">
           <template #description>
             <div class="flex flex-col gap-1 p-2">
               <p>Encrypt machine disks using Omni as a key management server.</p>
               <p>Once cluster is created it is not possible to update encryption settings.</p>
-              <p class="text-primary-P2">This feature is only available for Talos >= 1.5.0.</p>
+              <p class="text-primary-p2">This feature is only available for Talos >= 1.5.0.</p>
             </div>
           </template>
           <TCheckbox
@@ -419,9 +419,9 @@ const filterByLabel = (e: { key: string; value?: string }) => {
           "
         />
       </div>
-      <div class="text-naturals-N13">Machine Sets</div>
+      <div class="text-naturals-n13">Machine Sets</div>
       <MachineSets />
-      <div class="text-naturals-N13">Available Machines</div>
+      <div class="text-naturals-n13">Available Machines</div>
       <TList
         ref="list"
         :opts="[
@@ -469,7 +469,7 @@ const filterByLabel = (e: { key: string; value?: string }) => {
       </TList>
       <div
         v-if="state.controlPlanesCount !== 0"
-        class="-mx-6 -mb-6 flex h-16 items-center border-t border-naturals-N4 bg-naturals-N1 px-5 py-3"
+        class="-mx-6 -mb-6 flex h-16 items-center border-t border-naturals-n4 bg-naturals-n1 px-5 py-3"
       >
         <ClusterMenu
           class="w-full"

@@ -456,7 +456,7 @@ const downloaded = computed(() => {
 <template>
   <div class="modal-window flex flex-col gap-4 overflow-y-scroll" style="height: 90%">
     <div class="heading">
-      <h3 class="text-base text-naturals-N14">Download Installation Media</h3>
+      <h3 class="text-base text-naturals-n14">Download Installation Media</h3>
       <CloseButton @click="close" />
     </div>
 
@@ -504,7 +504,7 @@ const downloaded = computed(() => {
       </div>
 
       <div class="flex">
-        <h3 class="flex-1 text-sm text-naturals-N14">Pre-Install Extensions</h3>
+        <h3 class="flex-1 text-sm text-naturals-n14">Pre-Install Extensions</h3>
         <TCheckbox
           class="col-span-2"
           label="Show Descriptions"
@@ -520,13 +520,13 @@ const downloaded = computed(() => {
         :show-descriptions="showDescriptions"
       />
 
-      <h3 class="text-sm text-naturals-N14">Machine User Labels</h3>
+      <h3 class="text-sm text-naturals-n14">Machine User Labels</h3>
 
       <div class="flex items-center gap-2">
         <Labels v-model="labels" />
       </div>
 
-      <h3 class="text-sm text-naturals-N14">Additional Kernel Arguments</h3>
+      <h3 class="text-sm text-naturals-n14">Additional Kernel Arguments</h3>
 
       <TInput v-model="kernelArguments" />
 
@@ -559,10 +559,10 @@ const downloaded = computed(() => {
         />
       </Tooltip>
 
-      <h3 class="text-sm text-naturals-N14">PXE Boot URL</h3>
+      <h3 class="text-sm text-naturals-n14">PXE Boot URL</h3>
 
       <div
-        class="flex cursor-pointer items-center gap-2 rounded border border-naturals-N8 px-1.5 py-1.5 text-xs"
+        class="flex cursor-pointer items-center gap-2 rounded border border-naturals-n8 px-1.5 py-1.5 text-xs"
         :class="{ 'pointer-events-none': !supported }"
       >
         <IconButton
@@ -584,7 +584,7 @@ const downloaded = computed(() => {
           The generated image will include the kernel arguments required to register with Omni
           automatically.
         </p>
-        <p v-else class="text-xs text-primary-P2">
+        <p v-else class="text-xs text-primary-p2">
           {{ selectedOption }} supports only Talos version >= {{ minTalosVersion }}.
         </p>
       </div>
@@ -605,11 +605,13 @@ const downloaded = computed(() => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .modal-window {
   @apply h-auto w-1/2 p-8;
 }
 
 .heading {
-  @apply flex items-center justify-between text-xl text-naturals-N14;
+  @apply flex items-center justify-between text-xl text-naturals-n14;
 }
 </style>

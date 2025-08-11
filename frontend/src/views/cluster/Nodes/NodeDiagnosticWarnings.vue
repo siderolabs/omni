@@ -45,6 +45,8 @@ defineProps<Props>()
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .diagnostic-item {
   @apply flex flex-row transition-colors hover:brightness-125;
 }
@@ -54,6 +56,6 @@ defineProps<Props>()
 }
 
 .diagnostic-subitem {
-  @apply flex items-center text-naturals-N11;
+  @apply flex items-center text-naturals-n11;
 }
 </style>

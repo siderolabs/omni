@@ -182,21 +182,24 @@ const uiSchema = computed(() => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .vertical-layout {
-  @apply flex flex-col divide-y divide-naturals-N4;
+  @apply flex flex-col divide-y divide-naturals-n4;
 }
 </style>
 
 <style>
+@reference "../../../index.css";
 .group {
-  @apply m-2 rounded border border-naturals-N6;
+  @apply m-2 rounded border border-naturals-n6;
 }
 
 .group > .group-item:not(:first-of-type) {
-  @apply border-t border-naturals-N4;
+  @apply border-t border-naturals-n4;
 }
 
 .group-label {
-  @apply -mb-1.5 ml-1 mt-3 px-1 text-naturals-N13;
+  @apply mt-3 -mb-1.5 ml-1 px-1 text-naturals-n13;
 }
 </style>

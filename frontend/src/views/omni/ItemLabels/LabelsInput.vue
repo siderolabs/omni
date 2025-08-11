@@ -254,7 +254,7 @@ watch(filterValue, async (val: string, old: string) => {
     </TInput>
     <div
       v-if="matchedLabelsCompletion.length > 0 && showCompletions"
-      class="absolute left-0 top-full z-10 mt-1 flex min-w-full flex-col divide-y divide-naturals-N6 rounded border border-naturals-N4 bg-naturals-N2"
+      class="absolute top-full left-0 z-10 mt-1 flex min-w-full flex-col divide-y divide-naturals-n6 rounded border border-naturals-n4 bg-naturals-n2"
     >
       <div
         v-for="(suggestion, index) in matchedLabelsCompletion"
@@ -270,19 +270,17 @@ watch(filterValue, async (val: string, old: string) => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .label-suggestion {
-  @apply flex cursor-pointer px-2 py-2 text-xs hover:bg-naturals-N4;
+  @apply flex cursor-pointer px-2 py-2 text-xs hover:bg-naturals-n4;
 }
 
 .label-suggestion.selected {
-  @apply bg-naturals-N4;
+  @apply bg-naturals-n4;
 }
 
 .label {
-  @apply -mx-1 -my-2 rounded-md border border-white border-opacity-0 p-0.5 transition-all;
-}
-
-.label.selected {
-  @apply border-opacity-100;
+  @apply -mx-1 -my-2 rounded-md border border-white p-0.5 transition-all;
 }
 </style>

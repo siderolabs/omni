@@ -10,7 +10,6 @@ import { computed, toRefs } from 'vue'
 import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import { NodesViewFilterOptions, TCommonStatuses, TPodsViewFilterOptions } from '@/constants'
-import { naturals, red, yellow } from '@/vars/colors'
 
 type Props = {
   iconType?: IconType
@@ -57,12 +56,12 @@ const iconData = computed((): { iconColor?: string; iconTypeValue?: IconType } =
       case TCommonStatuses.DISCONNECTED:
         return {
           iconTypeValue: 'warning',
-          iconColor: red.R1,
+          iconColor: 'var(--color-red-r1)',
         }
       case TCommonStatuses.PROVISIONED:
         return {
           iconTypeValue: 'time',
-          iconColor: yellow.Y1,
+          iconColor: 'var(--color-yellow-y1)',
         }
       case TCommonStatuses.ACTIVE:
       case TCommonStatuses.COMPLETED:
@@ -79,12 +78,12 @@ const iconData = computed((): { iconColor?: string; iconTypeValue?: IconType } =
       case TCommonStatuses.EXPIRED:
         return {
           iconTypeValue: 'time',
-          iconColor: naturals.N10,
+          iconColor: 'var(--color-naturals-n10)',
         }
       case TCommonStatuses.REVOKED:
         return {
           iconTypeValue: 'error',
-          iconColor: naturals.N10,
+          iconColor: 'var(--color-naturals-n10)',
         }
       case TCommonStatuses.ERROR:
         return {
@@ -116,17 +115,17 @@ const iconData = computed((): { iconColor?: string; iconTypeValue?: IconType } =
       case TCommonStatuses.PROVISION_FAILED:
         return {
           iconTypeValue: 'error',
-          iconColor: red.R1,
+          iconColor: 'var(--color-red-r1)',
         }
       case TCommonStatuses.PROVISIONING:
         return {
           iconTypeValue: 'loading',
-          iconColor: yellow.Y1,
+          iconColor: 'var(--color-yellow-y1)',
         }
       case TCommonStatuses.DEPROVISIONING:
         return {
           iconTypeValue: 'delete',
-          iconColor: red.R1,
+          iconColor: 'var(--color-red-r1)',
         }
       case TCommonStatuses.HEALTHY:
         return {
@@ -237,6 +236,8 @@ const iconColor = computed(() => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .label {
   @apply flex items-center;
 }

@@ -94,25 +94,27 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+@reference "../../index.css";
+
 .logs {
   @apply w-full py-4;
 }
 .logs-title {
-  @apply mb-2 px-6 text-xs text-naturals-N8;
+  @apply mb-2 px-6 text-xs text-naturals-n8;
 }
 .logs-node-name {
-  @apply mb-6 px-6 text-xs text-naturals-N13;
+  @apply mb-6 px-6 text-xs text-naturals-n13;
   font-size: 13px;
 }
 .logs-item {
   @apply mb-4 flex w-full cursor-pointer items-center justify-start;
 }
 .logs-icon {
-  @apply mr-4 fill-current text-naturals-N10;
+  @apply mr-4 fill-current text-naturals-n10;
   width: 16px;
   height: 16px;
 }
 .logs-log-name {
-  @apply text-xs text-naturals-N10;
+  @apply text-xs text-naturals-n10;
 }
 </style>

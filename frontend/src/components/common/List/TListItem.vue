@@ -48,8 +48,10 @@ const isDropdownOpened = ref(isDefaultOpened?.value as boolean)
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .row {
-  @apply flex w-full flex-col items-center border border-transparent px-2 py-4 text-xs text-naturals-N13 transition-all duration-500;
+  @apply flex w-full flex-col items-center border border-transparent px-2 py-4 text-xs text-naturals-n13 transition-all duration-500;
   min-width: 450px;
   border-bottom: 1px solid rgba(39, 41, 50);
   border-radius: 4px 4px 0 0;
@@ -64,11 +66,11 @@ const isDropdownOpened = ref(isDefaultOpened?.value as boolean)
 }
 
 .opened {
-  @apply mt-1 rounded border-naturals-N5;
+  @apply mt-1 rounded border-naturals-n5;
 }
 
 .opened:last-of-type {
-  border-bottom: 1px solid rgba(44, 46, 56, var(--tw-border-opacity));
+  @apply border-b border-solid border-b-naturals-n6;
 }
 
 .row-wrapper {
@@ -76,7 +78,7 @@ const isDropdownOpened = ref(isDefaultOpened?.value as boolean)
 }
 
 .row-arrow {
-  @apply mr-1 cursor-pointer rounded fill-current text-naturals-N11 transition-all duration-300 hover:bg-naturals-N7;
+  @apply mr-1 cursor-pointer rounded fill-current text-naturals-n11 transition-all duration-300 hover:bg-naturals-n7;
   transform: rotate(-180deg);
   width: 24px;
   height: 24px;

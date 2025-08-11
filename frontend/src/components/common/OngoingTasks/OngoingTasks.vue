@@ -81,7 +81,7 @@ const onClickOutside = () => {
                         <span v-else>Upgrade Talos</span>
                         <div class="flex-1" />
                         <span
-                          class="rounded bg-naturals-N4 px-2 text-xs font-bold text-naturals-N13"
+                          class="rounded bg-naturals-n4 px-2 text-xs font-bold text-naturals-n13"
                         >
                           {{
                             (item.spec.kubernetes_upgrade ?? item.spec.talos_upgrade)
@@ -90,7 +90,7 @@ const onClickOutside = () => {
                         </span>
                         <span>⇾</span>
                         <span
-                          class="rounded bg-naturals-N4 px-2 text-xs font-bold text-naturals-N13"
+                          class="rounded bg-naturals-n4 px-2 text-xs font-bold text-naturals-n13"
                         >
                           {{
                             (item.spec.kubernetes_upgrade ?? item.spec.talos_upgrade)
@@ -108,7 +108,7 @@ const onClickOutside = () => {
                         <span>Reverting back to</span>
                         <div class="flex-1" />
                         <span
-                          class="rounded bg-naturals-N4 px-2 text-xs font-bold text-naturals-N13"
+                          class="rounded bg-naturals-n4 px-2 text-xs font-bold text-naturals-n13"
                         >
                           {{
                             (item.spec.kubernetes_upgrade ?? item.spec.talos_upgrade)
@@ -136,8 +136,10 @@ const onClickOutside = () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .dropdown {
-  @apply flex cursor-pointer items-center gap-1 text-naturals-N11 transition-colors hover:text-naturals-N14;
+  @apply flex cursor-pointer items-center gap-1 text-naturals-n11 transition-colors hover:text-naturals-n14;
 }
 .dropdown-wrapper {
   @apply relative flex items-center;
@@ -149,10 +151,10 @@ const onClickOutside = () => {
   transform: rotateX(-180deg);
 }
 .dropdown-name {
-  @apply select-none whitespace-nowrap text-xs font-normal;
+  @apply text-xs font-normal whitespace-nowrap select-none;
 }
 .dropdown-list {
-  @apply absolute -right-2 top-7 z-30 rounded border border-naturals-N4 bg-naturals-N2;
+  @apply absolute top-7 -right-2 z-30 rounded border border-naturals-n4 bg-naturals-n2;
 }
 
 .item {
@@ -160,19 +162,19 @@ const onClickOutside = () => {
 }
 
 .item:not(:last-child) {
-  @apply border-b border-naturals-N4;
+  @apply border-b border-naturals-n4;
 }
 
 .item-heading {
   @apply flex items-center justify-between gap-4;
 }
 .item-title {
-  @apply w-9/12 whitespace-nowrap text-xs text-naturals-N13;
+  @apply w-9/12 text-xs whitespace-nowrap text-naturals-n13;
 }
 .item-time {
-  @apply w-3/12 text-right text-xs text-naturals-N9;
+  @apply w-3/12 text-right text-xs text-naturals-n9;
 }
 .item-description {
-  @apply text-xs text-naturals-N9;
+  @apply text-xs text-naturals-n9;
 }
 </style>

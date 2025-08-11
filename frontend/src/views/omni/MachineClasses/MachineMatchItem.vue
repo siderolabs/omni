@@ -30,9 +30,9 @@ const machineName = computed(() => {
 <template>
   <TListItem>
     <template #default>
-      <div class="flex items-center text-xs text-naturals-N13">
+      <div class="flex items-center text-xs text-naturals-n13">
         <div class="flex flex-1 items-center gap-2">
-          <router-link
+          <RouterLink
             :to="{ name: 'MachineLogs', params: { machine: machine?.metadata?.id } }"
             class="list-item-link pr-2"
           >
@@ -40,9 +40,9 @@ const machineName = computed(() => {
               :query="searchQuery ?? ''"
               split-by-space
               :text-to-highlight="machineName"
-              highlight-class="bg-naturals-N14"
+              highlight-class="bg-naturals-n14"
             />
-          </router-link>
+          </RouterLink>
           <ItemLabels :resource="machine" @filter-label="(e) => $emit('filterLabels', e)" />
         </div>
         <div class="w-8 flex-initial">

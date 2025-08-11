@@ -43,6 +43,8 @@ const isInfoVisible = ref(false)
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .label {
   @apply flex cursor-default items-center justify-start;
 }
@@ -56,13 +58,13 @@ const isInfoVisible = ref(false)
   @apply relative flex items-center justify-start;
 }
 .label__info {
-  @apply relative flex items-center justify-center rounded border border-naturals-N4 bg-naturals-N3 px-3 py-2 text-xs text-naturals-N10;
+  @apply relative flex items-center justify-center rounded border border-naturals-n4 bg-naturals-n3 px-3 py-2 text-xs text-naturals-n10;
   width: 150px;
   z-index: 0;
 }
 .label__info::before {
   content: '';
-  @apply absolute block h-3 w-3 border border-r-0 border-t-0 border-naturals-N4 bg-naturals-N3;
+  @apply absolute block h-3 w-3 border border-t-0 border-r-0 border-naturals-n4 bg-naturals-n3;
   border-radius: 1px;
   transform: rotate(45deg);
   left: -6px;

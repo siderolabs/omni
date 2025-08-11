@@ -59,7 +59,10 @@ included in the LICENSE file.
     />
   </svg>
 </template>
+
 <style scoped>
+@reference "../../index.css";
+
 .icon {
   @apply origin-center;
 }

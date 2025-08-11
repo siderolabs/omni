@@ -33,6 +33,8 @@ defineProps<Props>()
 </template>
 
 <style scoped>
+@reference "../../index.css";
+
 .icon {
   @apply flex items-center justify-center fill-current transition-transform;
   width: 16px;

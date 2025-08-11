@@ -61,7 +61,7 @@ const menuHovered = ref(false)
     <RadioGroup
       v-if="options.length < 8"
       :model-value="machineSetIndex"
-      class="t-button-group flex gap-0.5 rounded bg-naturals-N3 p-1"
+      class="t-button-group flex gap-0.5 rounded bg-naturals-n3 p-1"
       @update:model-value="(value) => emit('update:machineSetIndex', value)"
     >
       <RadioGroupOption
@@ -80,7 +80,7 @@ const menuHovered = ref(false)
             offset-distance="10"
           >
             <template #content>
-              <div class="w-48 rounded bg-naturals-N4 px-4 py-2 text-naturals-N10 drop-shadow">
+              <div class="w-48 rounded bg-naturals-n4 px-4 py-2 text-naturals-n10 drop-shadow-sm">
                 {{ option.tooltip }}
               </div>
             </template>
@@ -98,7 +98,7 @@ const menuHovered = ref(false)
               />
               <div
                 v-if="machineSetIndex === index"
-                class="pointer-events-none absolute bottom-0 left-0 right-0 top-0 rounded border border-white bg-naturals-N12 mix-blend-overlay"
+                class="pointer-events-none absolute top-0 right-0 bottom-0 left-0 rounded border border-white bg-naturals-n12 mix-blend-overlay"
               />
             </div>
           </Popper>
@@ -106,10 +106,10 @@ const menuHovered = ref(false)
       </RadioGroupOption>
     </RadioGroup>
 
-    <div v-else class="relative flex h-8 items-center justify-center rounded bg-naturals-N3">
+    <div v-else class="relative flex h-8 items-center justify-center rounded bg-naturals-n3">
       <Popper v-click-outside="() => (showPicker = false)" :show="showPicker" placement="left">
         <template #content>
-          <div class="flex flex-col items-center gap-1 rounded bg-naturals-N3 p-1">
+          <div class="flex flex-col items-center gap-1 rounded bg-naturals-n3 p-1">
             <IconButton
               icon="arrow-up"
               @click="optionsView.$el.scrollBy({ top: -24, behavior: 'smooth' })"
@@ -139,7 +139,7 @@ const menuHovered = ref(false)
                   >
                     <template #content>
                       <div
-                        class="w-48 rounded bg-naturals-N4 px-4 py-2 text-naturals-N10 drop-shadow"
+                        class="w-48 rounded bg-naturals-n4 px-4 py-2 text-naturals-n10 drop-shadow-sm"
                       >
                         {{ option.tooltip }}
                       </div>
@@ -157,7 +157,7 @@ const menuHovered = ref(false)
                       />
                       <div
                         v-if="checked"
-                        class="pointer-events-none absolute bottom-0 left-0 right-0 top-0 rounded border border-white bg-naturals-N12 mix-blend-overlay"
+                        class="pointer-events-none absolute top-0 right-0 bottom-0 left-0 rounded border border-white bg-naturals-n12 mix-blend-overlay"
                       />
                     </div>
                   </Popper>
@@ -178,7 +178,7 @@ const menuHovered = ref(false)
         >
           <TIcon
             icon="arrow-left"
-            class="mx-1 h-3 w-3 text-naturals-N7 transition-all"
+            class="mx-1 h-3 w-3 text-naturals-n7 transition-all"
             :class="{ 'text-white': menuHovered, 'scale-125': menuHovered }"
           />
           <template v-if="pickedOption">
@@ -208,6 +208,8 @@ const menuHovered = ref(false)
 </style>
 
 <style>
+@reference "../../../../index.css";
+
 .picker {
   @apply flex flex-col items-center gap-0.5 overflow-y-auto;
   height: 120px;

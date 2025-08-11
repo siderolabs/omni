@@ -37,15 +37,23 @@ const breadcrumbs = computed(() => {
   <div v-if="breadcrumbs.length > 0" class="items-startflex-row flex flex-wrap">
     <template v-for="(crumb, idx) in breadcrumbs" :key="crumb.text">
       <div class="flex items-center">
-        <router-link v-if="idx !== breadcrumbs.length - 1" class="all transition" :to="crumb.to!">{{
-          crumb.text === $route.params.machine && !!nodeName ? nodeName : crumb.text
-        }}</router-link>
-        <p v-if="idx === breadcrumbs.length - 1" class="last">
+        <RouterLink
+          v-if="idx !== breadcrumbs.length - 1"
+          class="text-xl font-medium transition hover:opacity-50"
+          :to="crumb.to!"
+          >{{
+            crumb.text === $route.params.machine && !!nodeName ? nodeName : crumb.text
+          }}</RouterLink
+        >
+        <p
+          v-if="idx === breadcrumbs.length - 1"
+          class="cursor-default text-xl font-medium break-all text-naturals-n14"
+        >
           {{ crumb.text === $route.params.machine && !!nodeName ? nodeName : crumb.text }}
         </p>
         <svg
           v-if="idx < breadcrumbs.length - 1"
-          class="h-5 w-5 flex-shrink-0 text-opacity-50"
+          class="h-5 w-5 shrink-0 opacity-50"
           xmlns="http://www.w3.org/2000/svg"
           fill="currentColor"
           viewBox="0 0 20 20"
@@ -57,15 +65,3 @@ const breadcrumbs = computed(() => {
     </template>
   </div>
 </template>
-
-<style scoped>
-.all {
-  @apply text-xl font-medium hover:text-opacity-50;
-}
-.last {
-  @apply cursor-default break-all text-xl font-medium text-naturals-N14;
-}
-.nodeName__multiple {
-  @apply flex items-center;
-}
-</style>

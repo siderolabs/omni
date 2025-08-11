@@ -59,7 +59,7 @@ const getAge = (age: string) => {
               <WordHighlighter
                 :query="searchOption"
                 :text-to-highlight="item.metadata?.namespace"
-                highlight-class="bg-naturals-N14"
+                highlight-class="bg-naturals-n14"
               />
             </span>
           </li>
@@ -67,7 +67,7 @@ const getAge = (age: string) => {
             <WordHighlighter
               :query="searchOption"
               :text-to-highlight="item.metadata?.name"
-              highlight-class="bg-naturals-N14"
+              highlight-class="bg-naturals-n14"
             />
           </li>
           <li class="row-item">
@@ -78,7 +78,7 @@ const getAge = (age: string) => {
               <WordHighlighter
                 :query="searchOption"
                 :text-to-highlight="item.spec?.nodeName"
-                highlight-class="bg-naturals-N14"
+                highlight-class="bg-naturals-n14"
             /></span>
           </li>
         </ul>
@@ -110,7 +110,7 @@ const getAge = (age: string) => {
             <div
               v-for="container in item.spec?.containers"
               :key="container.name"
-              class="rounded bg-naturals-N4 p-1 px-2 text-xs text-naturals-N12"
+              class="rounded bg-naturals-n4 p-1 px-2 text-xs text-naturals-n12"
             >
               {{ container.image }}
             </div>
@@ -122,30 +122,31 @@ const getAge = (age: string) => {
 </template>
 
 <style scoped>
+@reference "../../../../index.css";
+
 .row {
-  @apply relative mb-1 flex w-full flex-col items-center border border-transparent transition-all duration-500;
+  @apply relative mb-1 flex w-full flex-col items-center border border-b border-solid border-transparent border-b-naturals-n5 transition-all duration-500;
   min-width: 450px;
   padding: 19px 14px 19px 8px;
-  border-bottom: 1px solid rgba(39, 41, 50, var(--tw-border-opacity));
   border-radius: 4px 4px 0 0;
 }
 
 .row:last-of-type {
-  border-bottom: transparent;
+  @apply border-b-transparent;
 }
 .opened {
-  @apply rounded border-naturals-N5;
+  @apply rounded border-naturals-n5;
 }
 
 .opened:last-of-type {
-  border-bottom: 1px solid rgba(44, 46, 56, var(--tw-border-opacity));
+  @apply border-b border-solid border-naturals-n6;
 }
 .row-wrapper {
   @apply flex w-full items-center justify-start;
 }
 
 .row-item {
-  @apply flex items-center text-xs text-naturals-N13;
+  @apply flex items-center text-xs text-naturals-n13;
 }
 .row-item:nth-child(1) {
   width: 18.1%;
@@ -163,7 +164,7 @@ const getAge = (age: string) => {
   @apply flex justify-between;
 }
 .row-arrow {
-  @apply mr-1 cursor-pointer rounded fill-current text-naturals-N11 transition-all duration-300 hover:bg-naturals-N7;
+  @apply mr-1 cursor-pointer rounded fill-current text-naturals-n11 transition-all duration-300 hover:bg-naturals-n7;
   transform: rotate(-180deg);
   width: 24px;
   height: 24px;
@@ -182,27 +183,27 @@ const getAge = (age: string) => {
   padding: 17px 14px 6.5px 14px;
 }
 .row-box-actions-item:last-of-type {
-  @apply border-t border-naturals-N4;
+  @apply border-t border-naturals-n4;
 }
 .row-actions-item-icon {
   @apply h-4 w-4 fill-current transition-colors;
   margin-right: 6px;
 }
 .row-actions-item-icon--delete {
-  @apply text-red-R1;
+  @apply text-red-r1;
 }
 .row-actions-item-text {
   @apply text-xs transition-colors;
 }
 .row-actions-item-text--delete {
-  @apply text-red-R1;
+  @apply text-red-r1;
 }
 
 .row-box-actions-item:hover .row-actions-item-icon {
-  @apply text-naturals-N12;
+  @apply text-naturals-n12;
 }
 .row-box-actions-item:hover .row-actions-item-text {
-  @apply text-naturals-N12;
+  @apply text-naturals-n12;
 }
 .row-box-actions-item:hover .row-actions-item-icon--delete {
   @apply text-red-600;
@@ -215,7 +216,7 @@ const getAge = (age: string) => {
   padding-top: 26px;
 }
 .row-info-item {
-  @apply flex flex-col text-xs text-naturals-N13;
+  @apply flex flex-col text-xs text-naturals-n13;
 }
 .row-info-item:nth-child(1) {
   width: 18.1%;
@@ -231,14 +232,14 @@ const getAge = (age: string) => {
   width: 33%;
 }
 .row-info-title {
-  @apply text-xs text-naturals-N12;
+  @apply text-xs text-naturals-n12;
   margin-bottom: 7px;
 }
 .row-info-value {
   @apply text-xs;
 }
 .box-actions-list {
-  @apply z-20 flex flex-col items-start justify-center rounded border border-naturals-N4 bg-naturals-N3;
+  @apply z-20 flex flex-col items-start justify-center rounded border border-naturals-n4 bg-naturals-n3;
   min-width: 161px;
 }
 </style>

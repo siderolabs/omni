@@ -10,7 +10,7 @@ import TIcon from '@/components/common/Icon/TIcon.vue'
 
 <template>
   <TIcon
-    class="h-6 w-6 cursor-pointer fill-current text-naturals-N10 transition-colors hover:text-naturals-N14"
+    class="h-6 w-6 cursor-pointer fill-current text-naturals-n10 transition-colors hover:text-naturals-n14"
     icon="close"
   />
 </template>

@@ -10,7 +10,6 @@ import type { ClusterStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterStatusSpecPhase } from '@/api/omni/specs/omni.pb'
 import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
-import { green, red, yellow } from '@/vars/colors'
 
 type Props = {
   cluster?: Resource<ClusterStatusSpec>
@@ -59,17 +58,17 @@ const phaseColor = (cluster?: Resource<ClusterStatusSpec>): string => {
   switch (cluster?.spec.phase) {
     case ClusterStatusSpecPhase.SCALING_UP:
     case ClusterStatusSpecPhase.SCALING_DOWN:
-      return yellow.Y1
+      return 'var(--color-yellow-y1)'
     case ClusterStatusSpecPhase.RUNNING:
       if (cluster?.spec.ready) {
-        return green.G1
+        return 'var(--color-green-g1)'
       } else {
-        return red.R1
+        return 'var(--color-red-r1)'
       }
     case ClusterStatusSpecPhase.DESTROYING:
-      return red.R1
+      return 'var(--color-red-r1)'
     default:
-      return yellow.Y1
+      return 'var(--color-yellow-y1)'
   }
 }
 </script>

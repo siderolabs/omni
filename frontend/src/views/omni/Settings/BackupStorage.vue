@@ -150,7 +150,7 @@ const updateConfig = async () => {
       {{ error }}
     </TAlert>
     <div v-else-if="ready && !saving" class="flex flex-col gap-5" @keydown.enter="updateConfig">
-      <div class="font-bold text-naturals-N14">
+      <div class="font-bold text-naturals-n14">
         Storage Type {{ `${store.charAt(0).toUpperCase()}${store.slice(1)}` }}
       </div>
       <template v-if="s3Spec">

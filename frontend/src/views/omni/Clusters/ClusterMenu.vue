@@ -48,7 +48,7 @@ const workersCount = computed(() => {
         <span class="menu-amount-box-light">{{ controlPlaneCount }},</span>
         <span class="menu-amount-box-light">{{ workersCount }}</span> selected
       </div>
-      <div v-if="warning" class="text-xs text-yellow-Y1">{{ warning }}</div>
+      <div v-if="warning" class="text-xs text-yellow-y1">{{ warning }}</div>
     </div>
     <TButton v-if="onReset" type="secondary" @click="onReset"> Cancel </TButton>
     <TButton icon-position="left" type="highlighted" :disabled="disabled" @click="onSubmit">
@@ -58,19 +58,21 @@ const workersCount = computed(() => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .menu {
   @apply flex gap-4;
 }
 .menu-amount-box {
-  @apply flex items-center text-xs text-naturals-N8;
+  @apply flex items-center text-xs text-naturals-n8;
 }
 .menu-amount-box-light {
-  @apply mr-1 text-naturals-N13;
+  @apply mr-1 text-naturals-n13;
 }
 .menu-buttons-box {
   @apply flex items-center;
 }
 .menu-exit-button {
-  @apply h-6 w-6 cursor-pointer fill-current text-naturals-N7 transition-colors hover:text-naturals-N8;
+  @apply h-6 w-6 cursor-pointer fill-current text-naturals-n7 transition-colors hover:text-naturals-n8;
 }
 </style>

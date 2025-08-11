@@ -415,7 +415,7 @@ const getSecureBootStatus = () => {
             v-if="talosMachineStatus.spec.status?.unmetConditions.length > 0"
             :conditions="talosMachineStatus.spec.status?.unmetConditions"
           />
-          <div v-else class="flex items-center gap-1 text-xs text-green-G1">
+          <div v-else class="flex items-center gap-1 text-xs text-green-g1">
             <TIcon icon="check-in-circle-classic" class="h-4" />None
           </div>
         </div>
@@ -450,14 +450,14 @@ const getSecureBootStatus = () => {
 
     <template v-if="machineStatus">
       <ul v-if="machineStatus.spec.message_status?.diagnostics" class="overview-data-list">
-        <li class="flex w-full flex-col rounded bg-naturals-N2">
+        <li class="flex w-full flex-col rounded bg-naturals-n2">
           <h4 class="overview-data-heading">Diagnostic Warnings</h4>
           <NodeDiagnosticWarnings :diagnostics="machineStatus?.spec?.message_status?.diagnostics" />
         </li>
       </ul>
 
       <ul class="overview-data-list">
-        <li class="flex w-full flex-col rounded bg-naturals-N2">
+        <li class="flex w-full flex-col rounded bg-naturals-n2">
           <h4 class="overview-data-heading">Labels</h4>
           <div class="overview-data-row">
             <ItemLabels
@@ -484,7 +484,7 @@ const getSecureBootStatus = () => {
         <TListItem v-for="service in services" :key="service.name">
           <template #default>
             <div class="grid grid-cols-4 p-1">
-              <router-link
+              <RouterLink
                 :id="service.name"
                 class="list-item-link col-span-2"
                 :to="{
@@ -501,7 +501,7 @@ const getSecureBootStatus = () => {
                 }"
               >
                 {{ service.name }}
-              </router-link>
+              </RouterLink>
               <TStatus class="overview-status" :title="service.state" />
               <TStatus class="overview-status" :title="service.status" />
             </div>
@@ -516,6 +516,8 @@ const getSecureBootStatus = () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .overview {
   @apply flex w-full flex-col gap-6;
 }
@@ -525,13 +527,13 @@ const getSecureBootStatus = () => {
 }
 
 .overview-data-item {
-  @apply w-full rounded bg-naturals-N2;
+  @apply w-full rounded bg-naturals-n2;
   align-self: stretch;
   max-width: 100%;
 }
 
 .overview-data-heading {
-  @apply w-full border-b border-naturals-N4 px-4 py-3 text-xs text-naturals-N13;
+  @apply w-full border-b border-naturals-n4 px-4 py-3 text-xs text-naturals-n13;
   font-size: 13px;
 }
 .overview-data-row {
@@ -542,10 +544,10 @@ const getSecureBootStatus = () => {
   padding-bottom: 12px;
 }
 .overview-data-name {
-  @apply text-xs text-naturals-N11;
+  @apply text-xs text-naturals-n11;
 }
 .overview-data {
-  @apply text-xs text-naturals-N13;
+  @apply text-xs text-naturals-n13;
 }
 .overview-data-roles {
   @apply flex;
@@ -557,17 +559,17 @@ const getSecureBootStatus = () => {
   @apply mb-4;
 }
 .overview-services-title {
-  @apply mr-2 text-base text-naturals-N13;
+  @apply mr-2 text-base text-naturals-n13;
 }
 .overview-services-amount {
-  @apply bg-naturals-N5 text-xs text-naturals-N12;
+  @apply bg-naturals-n5 text-xs text-naturals-n12;
   border-radius: 30px;
   padding: 3px 7px;
 }
 .overview-table-header {
-  @apply rounded-sm bg-naturals-N2 px-4 py-2 pl-11;
+  @apply rounded-sm bg-naturals-n2 px-4 py-2 pl-11;
 }
 .overview-table-name {
-  @apply w-full text-xs text-naturals-N13;
+  @apply w-full text-xs text-naturals-n13;
 }
 </style>

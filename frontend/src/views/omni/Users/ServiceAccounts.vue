@@ -76,12 +76,14 @@ const openUserCreate = () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .users-grid {
   @apply grid grid-cols-3 pr-10;
 }
 
 .users-header {
-  @apply mb-1 bg-naturals-N2;
+  @apply mb-1 bg-naturals-n2;
   padding: 10px 16px;
 }
 

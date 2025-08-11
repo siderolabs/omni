@@ -31,9 +31,9 @@ import {
   LabelHostname,
   LabelMachine,
   LabelMachineSet,
+  LabelSystemPatch,
   VirtualNamespace,
 } from '@/api/resources'
-import { LabelSystemPatch } from '@/api/resources'
 import type { WatchOptions } from '@/api/watch'
 import Watch from '@/api/watch'
 import IconButton from '@/components/common/Button/IconButton.vue'
@@ -295,14 +295,14 @@ onMounted(async () => {
           <DisclosureButton as="div" class="disclosure">
             <TIcon
               icon="arrow-up"
-              class="absolute bottom-0 right-4 top-0 m-auto h-4 w-4"
+              class="absolute top-0 right-4 bottom-0 m-auto h-4 w-4"
               :class="{ 'rotate-180': open }"
             />
             <div class="grid grid-cols-4">
               <WordHighlighter
                 :text-to-highlight="group.name"
                 :query="filter"
-                highlight-class="bg-naturals-N14"
+                highlight-class="bg-naturals-n14"
               />
               <div>ID</div>
               <div class="col-span-2">Description</div>
@@ -312,13 +312,13 @@ onMounted(async () => {
             <div
               v-for="item in group.items"
               :key="item.name"
-              class="relative my-2 grid w-full cursor-pointer grid-cols-4 items-center gap-2 px-4 py-2 text-xs transition-colors duration-200 hover:bg-naturals-N3 hover:text-naturals-N12"
+              class="relative my-2 grid w-full cursor-pointer grid-cols-4 items-center gap-2 px-4 py-2 text-xs transition-colors duration-200 hover:bg-naturals-n3 hover:text-naturals-n12"
               @click="() => $router.push(item.route)"
             >
               <IconButton
                 :disabled="!canManageConfigPatches"
                 icon="delete"
-                class="absolute bottom-0 right-3 top-0 m-auto h-4 w-4"
+                class="absolute top-0 right-3 bottom-0 m-auto h-4 w-4"
                 @click.stop="
                   () => {
                     $router.push({ query: { modal: 'configPatchDestroy', id: item.id } })
@@ -330,13 +330,13 @@ onMounted(async () => {
                 <WordHighlighter
                   :text-to-highlight="item.name"
                   :query="filter"
-                  highlight-class="bg-naturals-N14"
+                  highlight-class="bg-naturals-n14"
                 />
               </div>
               <WordHighlighter
                 :text-to-highlight="item.id"
                 :query="filter"
-                highlight-class="pointer-events-none bg-naturals-N14"
+                highlight-class="pointer-events-none bg-naturals-n14"
               />
               <div class="pointer-events-none col-span-2 truncate">
                 {{ item.description }}
@@ -350,7 +350,9 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .disclosure {
-  @apply relative cursor-pointer select-none bg-naturals-N1 px-4 py-3 text-xs font-bold text-naturals-N11 transition-colors duration-200 hover:text-naturals-N14;
+  @apply relative cursor-pointer bg-naturals-n1 px-4 py-3 text-xs font-bold text-naturals-n11 transition-colors duration-200 select-none hover:text-naturals-n14;
 }
 </style>

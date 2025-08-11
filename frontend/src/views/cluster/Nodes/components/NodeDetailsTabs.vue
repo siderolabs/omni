@@ -52,7 +52,7 @@ const routes = computed((): { name: string; to: RouteLocationRaw }[] => {
 </script>
 
 <template>
-  <TabsHeader class="border-b border-naturals-N4 pb-3.5">
+  <TabsHeader class="border-b border-naturals-n4 pb-3.5">
     <TabButton
       is="router-link"
       v-for="route in routes"
@@ -66,16 +66,18 @@ const routes = computed((): { name: string; to: RouteLocationRaw }[] => {
 </template>
 
 <style scoped>
+@reference "../../../../index.css";
+
 .content {
-  @apply flex w-full border-b border-naturals-N4;
+  @apply flex w-full border-b border-naturals-n4;
 }
 
 .router-link-active {
-  @apply relative text-naturals-N13;
+  @apply relative text-naturals-n13;
 }
 
 .router-link-active::before {
-  @apply absolute block w-full animate-fadein bg-primary-P3;
+  @apply absolute block w-full animate-fadein bg-primary-p3;
   content: '';
   height: 2px;
   bottom: -15px;

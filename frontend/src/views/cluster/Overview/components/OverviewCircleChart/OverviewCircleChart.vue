@@ -9,8 +9,6 @@ import type { ApexOptions } from 'apexcharts'
 import { computed, toRefs } from 'vue'
 import ApexChart from 'vue3-apexcharts'
 
-import { naturals, primary } from '@/vars/colors'
-
 const props = defineProps<{ chartFillPercents: number | string }>()
 
 const { chartFillPercents } = toRefs(props)
@@ -21,7 +19,7 @@ const options: ApexOptions = {
       top: 0,
       left: 0,
       blur: 5,
-      color: primary.P3,
+      color: 'var(--color-primary-p3)',
       opacity: 0.2,
     },
   },
@@ -32,7 +30,7 @@ const options: ApexOptions = {
         size: '60',
       },
       track: {
-        background: naturals.N0,
+        background: 'var(--color-naturals-n0)',
       },
       dataLabels: {
         show: false,
@@ -40,7 +38,7 @@ const options: ApexOptions = {
     },
   },
   fill: {
-    colors: [primary.P3],
+    colors: ['var(--color-primary-p3)'],
   },
   stroke: {
     lineCap: 'round',
@@ -63,7 +61,7 @@ const percentage = computed(() => chartFillPercents.value ?? 0)
 </script>
 
 <template>
-  <div class="chart-wrapper">
+  <div class="z-0 flex items-center justify-start">
     <ApexChart
       :height="200"
       :width="200"
@@ -73,9 +71,3 @@ const percentage = computed(() => chartFillPercents.value ?? 0)
     />
   </div>
 </template>
-
-<style scoped>
-.chart-wrapper {
-  @apply z-0 flex items-center justify-start;
-}
-</style>

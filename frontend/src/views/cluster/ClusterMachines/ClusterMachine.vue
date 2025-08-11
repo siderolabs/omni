@@ -11,6 +11,7 @@ import { useRouter } from 'vue-router'
 import type { Resource } from '@/api/grpc'
 import type { ClusterMachineStatusSpec, MachineSetStatusSpec } from '@/api/omni/specs/omni.pb'
 import {
+  ClusterMachineStatusLabelNodeName,
   LabelCluster,
   LabelHostname,
   LabelIsManagedByStaticInfraProvider,
@@ -18,7 +19,6 @@ import {
   MachineLocked,
   UpdateLocked,
 } from '@/api/resources'
-import { ClusterMachineStatusLabelNodeName } from '@/api/resources'
 import IconButton from '@/components/common/Button/IconButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
@@ -96,13 +96,13 @@ const updateLock = async () => {
 
 <template>
   <div
-    class="flex h-3 cursor-pointer items-center gap-1 py-6 pl-3 pr-4 text-xs text-naturals-N14 hover:bg-naturals-N3"
+    class="flex h-3 cursor-pointer items-center gap-1 py-6 pr-4 pl-3 text-xs text-naturals-n14 hover:bg-naturals-n3"
   >
     <div class="pointer-events-none w-5" />
     <div class="-mr-3 grid flex-1 grid-cols-4 items-center" @click="openNodeInfo">
       <div class="col-span-2 flex items-center gap-2">
         <TIcon :icon="icon" class="ml-2 h-4 w-4" />
-        <router-link
+        <RouterLink
           :to="{
             name: 'NodeOverview',
             params: { cluster: clusterName, machine: machine.metadata.id },
@@ -110,12 +110,12 @@ const updateLock = async () => {
           class="list-item-link truncate"
         >
           {{ nodeName }}
-        </router-link>
+        </RouterLink>
       </div>
       <div class="col-span-2 flex items-center justify-between gap-2 pr-2">
         <div class="flex items-center gap-2">
           <ClusterMachinePhase :machine="machine" />
-          <div v-if="lockedUpdate" class="flex items-center gap-1 truncate text-light-blue-400">
+          <div v-if="lockedUpdate" class="flex items-center gap-1 truncate text-sky-400">
             <TIcon icon="time" class="h-4 w-4 min-w-max" />
             <div class="flex-1 truncate">Pending Config Update</div>
           </div>

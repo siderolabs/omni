@@ -27,7 +27,7 @@ const emit = defineEmits(['update:modelValue'])
 <template>
   <RadioGroup
     :model-value="modelValue"
-    class="t-button-group flex gap-0.5 rounded bg-naturals-N3 p-1"
+    class="t-button-group flex gap-0.5 rounded bg-naturals-n3 p-1"
     @update:model-value="(value) => emit('update:modelValue', value)"
   >
     <RadioGroupOption
@@ -49,7 +49,7 @@ const emit = defineEmits(['update:modelValue'])
         >
           <template #content>
             <div
-              class="max-w-72 rounded border border-naturals-N6 bg-naturals-N4 px-4 py-2 text-xs text-naturals-N10 drop-shadow"
+              class="max-w-72 rounded border border-naturals-n6 bg-naturals-n4 px-4 py-2 text-xs text-naturals-n10 drop-shadow-sm"
             >
               {{ option.tooltip }}
             </div>
@@ -66,8 +66,10 @@ const emit = defineEmits(['update:modelValue'])
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .t-button-group button {
-  @apply flex items-center justify-center gap-1 border-naturals-N5 px-2 py-0.5 text-xs text-naturals-N10 transition-colors duration-200 hover:bg-naturals-N5 hover:text-naturals-N12;
+  @apply flex items-center justify-center gap-1 border-naturals-n5 px-2 py-0.5 text-xs text-naturals-n10 transition-colors duration-200 hover:bg-naturals-n5 hover:text-naturals-n12;
 }
 
 .t-button-group button {
@@ -75,15 +77,15 @@ const emit = defineEmits(['update:modelValue'])
 }
 
 .t-button-group button[disabled] {
-  @apply cursor-not-allowed text-naturals-N8 hover:bg-naturals-N3;
+  @apply cursor-not-allowed text-naturals-n8 hover:bg-naturals-n3;
 }
 
 .checked {
-  @apply bg-naturals-N4;
+  @apply bg-naturals-n4;
 }
 
 .checked span {
-  @apply text-naturals-N12;
+  @apply text-naturals-n12;
 }
 
 .popper {

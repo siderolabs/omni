@@ -63,6 +63,8 @@ const filterOptions = Object.keys(TPodsViewFilterOptions).map((key) => TPodsView
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .pods {
   @apply flex h-full flex-col pt-2;
 }
@@ -70,11 +72,11 @@ const filterOptions = Object.keys(TPodsViewFilterOptions).map((key) => TPodsView
   @apply mb-3 flex justify-between;
 }
 .pods__table-heading {
-  @apply mb-1 flex w-full items-center justify-between rounded bg-naturals-N2;
+  @apply mb-1 flex w-full items-center justify-between rounded bg-naturals-n2;
   padding: 10px 33px;
 }
 .pods__row-name {
-  @apply text-xs text-naturals-N13;
+  @apply text-xs text-naturals-n13;
 }
 .pods__row-name:nth-child(1) {
   width: 17%;

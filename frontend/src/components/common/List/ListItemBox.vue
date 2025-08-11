@@ -32,7 +32,7 @@ defineExpose({
     <TSlideDownWrapper :is-slider-opened="!collapsed">
       <template #head>
         <div
-          class="flex cursor-pointer items-center gap-2 bg-naturals-N1 py-4 pl-2 pr-4 hover:bg-naturals-N3"
+          class="flex cursor-pointer items-center gap-2 bg-naturals-n1 py-4 pr-4 pl-2 hover:bg-naturals-n3"
           @click="
             () => {
               collapsed = !collapsed
@@ -45,7 +45,7 @@ defineExpose({
           <div v-if="$slots.details" class="expand-button">
             <TIcon
               :class="{ 'rotate-180': !collapsed }"
-              class="transition-color duration-250 h-5 w-5 transition-transform hover:text-naturals-N13"
+              class="transition-color h-5 w-5 transition-transform duration-250 hover:text-naturals-n13"
               icon="drop-up"
             />
           </div>
@@ -60,12 +60,14 @@ defineExpose({
 </template>
 
 <style>
+@reference "../../../index.css";
+
 .list-item-box {
-  @apply overflow-hidden rounded border border-naturals-N5;
+  @apply overflow-hidden rounded border border-naturals-n5;
 }
 
 .collapse-button {
-  @apply mr-1 cursor-pointer rounded fill-current text-naturals-N11 transition-all duration-300 hover:bg-naturals-N7;
+  @apply mr-1 cursor-pointer rounded fill-current text-naturals-n11 transition-all duration-300 hover:bg-naturals-n7;
   transform: rotate(-180deg);
   width: 24px;
   height: 24px;
@@ -76,6 +78,6 @@ defineExpose({
 }
 
 .expand-button {
-  @apply -my-1 flex items-center justify-center rounded-md border border-transparent bg-naturals-N4 transition-colors duration-200 hover:border-naturals-N7;
+  @apply -my-1 flex items-center justify-center rounded-md border border-transparent bg-naturals-n4 transition-colors duration-200 hover:border-naturals-n7;
 }
 </style>

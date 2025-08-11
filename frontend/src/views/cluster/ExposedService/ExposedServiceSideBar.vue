@@ -46,14 +46,14 @@ const errors = computed(() => {
 </script>
 
 <template>
-  <Disclosure as="div" class="border-t border-naturals-N4" :default-open="true">
+  <Disclosure as="div" class="border-t border-naturals-n4" :default-open="true">
     <template #default="{ open }">
       <DisclosureButton as="div" class="disclosure">
         <div class="title">
           <p class="title-name truncate">Exposed Services</p>
           <div class="expand-button">
             <TIcon
-              class="transition-color duration-250 h-6 w-6 transition-transform hover:text-naturals-N13"
+              class="transition-color h-6 w-6 transition-transform duration-250 hover:text-naturals-n13"
               :class="{ 'rotate-180': !open }"
               icon="drop-up"
             />
@@ -71,9 +71,9 @@ const errors = computed(() => {
             icon="exposed-service"
             regular-link
           />
-          <div v-if="errors.length" class="flex items-center gap-4 pl-6 pr-5 text-xs">
-            <TIcon icon="warning" class="ml-0.5 text-yellow-Y1" />
-            <div class="flex-1 truncate text-yellow-Y1">
+          <div v-if="errors.length" class="flex items-center gap-4 pr-5 pl-6 text-xs">
+            <TIcon icon="warning" class="ml-0.5 text-yellow-y1" />
+            <div class="flex-1 truncate text-yellow-y1">
               {{ pluralize('service', errors.length, true) }}
               {{ errors.length === 1 ? 'has' : 'have' }} errors
             </div>
@@ -90,7 +90,7 @@ const errors = computed(() => {
           </div>
         </template>
         <template v-else>
-          <p class="my-1 items-center justify-start px-6 py-1.5 text-xs text-naturals-N7">
+          <p class="my-1 items-center justify-start px-6 py-1.5 text-xs text-naturals-n7">
             No exposed services
           </p>
         </template>
@@ -100,41 +100,43 @@ const errors = computed(() => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .title {
-  @apply my-1 flex items-center justify-start gap-4 border-l-2 border-transparent px-6 py-1.5 transition-all duration-200 hover:bg-naturals-N4;
+  @apply my-1 flex items-center justify-start gap-4 border-l-2 border-transparent px-6 py-1.5 transition-all duration-200 hover:bg-naturals-n4;
 }
 
 .title:hover .title-name {
-  @apply text-naturals-N12;
+  @apply text-naturals-n12;
 }
 
 .title-active .title {
-  @apply border-primary-P3;
+  @apply border-primary-p3;
 }
 
 .title-active .title-icon {
-  @apply text-naturals-N10;
+  @apply text-naturals-n10;
 }
 
 .title-active .title-name {
-  @apply text-naturals-N10;
+  @apply text-naturals-n10;
 }
 
 .title-icon {
-  @apply text-naturals-N10 transition-all duration-200;
+  @apply text-naturals-n10 transition-all duration-200;
   width: 16px;
   height: 16px;
 }
 
 .title-name {
-  @apply flex-1 text-xs text-naturals-N10 transition-all duration-200;
+  @apply flex-1 text-xs text-naturals-n10 transition-all duration-200;
 }
 
 .expand-button {
-  @apply -my-1 flex h-5 w-5 items-center justify-center rounded-md border border-transparent bg-naturals-N4 transition-colors duration-200 hover:border-naturals-N7;
+  @apply -my-1 flex h-5 w-5 items-center justify-center rounded-md border border-transparent bg-naturals-n4 transition-colors duration-200 hover:border-naturals-n7;
 }
 
 .title:hover .expand-button {
-  @apply bg-naturals-N2;
+  @apply bg-naturals-n2;
 }
 </style>

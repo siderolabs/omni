@@ -5,9 +5,9 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <transition-group>
+  <TransitionGroup>
     <slot />
-  </transition-group>
+  </TransitionGroup>
 </template>
 
 <style>

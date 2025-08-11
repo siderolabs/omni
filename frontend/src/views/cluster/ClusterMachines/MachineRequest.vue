@@ -40,9 +40,7 @@ const stage = computed(() => {
 </script>
 
 <template>
-  <div
-    class="flex h-3 items-center gap-1 bg-opacity-25 bg-center bg-no-repeat py-6 pl-3 pr-11 text-xs text-naturals-N14"
-  >
+  <div class="flex h-3 items-center gap-1 py-6 pr-11 pl-3 text-xs text-naturals-n14">
     <div class="pointer-events-none w-5" />
     <div class="-mr-3 grid flex-1 grid-cols-4 items-center">
       <div class="col-span-2 flex items-center gap-2">
@@ -57,7 +55,7 @@ const stage = computed(() => {
       <div>
         <TStatus :title="stage" />
       </div>
-      <div class="truncate text-xs text-naturals-N11" :title="requestStatus.spec.status">
+      <div class="text-naturals-N11 truncate text-xs" :title="requestStatus.spec.status">
         {{ requestStatus.spec.status }}
       </div>
     </div>

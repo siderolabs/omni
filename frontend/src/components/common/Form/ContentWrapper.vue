@@ -25,10 +25,10 @@ const description = computed(() => {
 
 <template>
   <div v-if="control.label" class="flex items-center justify-between gap-2 px-3 py-3">
-    <div class="flex items-center gap-2 text-xs text-naturals-N11">
+    <div class="flex items-center gap-2 text-xs text-naturals-n11">
       {{ control.label }}{{ description }}
       <Tooltip v-if="control.errors" :description="control.errors">
-        <TIcon icon="warning" class="h-4 w-4 text-yellow-Y1" />
+        <TIcon icon="warning" class="h-4 w-4 text-yellow-y1" />
       </Tooltip>
     </div>
     <slot />
@@ -38,7 +38,7 @@ const description = computed(() => {
       <slot />
     </div>
     <Tooltip v-if="control.errors" :description="control.errors">
-      <TIcon icon="warning" class="-my-1.5 h-4 w-4 text-yellow-Y1" />
+      <TIcon icon="warning" class="-my-1.5 h-4 w-4 text-yellow-y1" />
     </Tooltip>
   </div>
 </template>

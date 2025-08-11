@@ -19,8 +19,10 @@ import TButton from '@/components/common/Button/TButton.vue'
 </template>
 
 <style scoped>
+@reference "../../index.css";
+
 .code {
-  @apply font-bold text-naturals-N2;
+  @apply font-bold text-naturals-n2;
   font-size: 300px;
   line-height: 300px;
 }

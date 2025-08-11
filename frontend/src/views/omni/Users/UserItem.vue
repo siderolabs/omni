@@ -59,13 +59,13 @@ const editUser = () => {
   <TListItem>
     <template #default>
       <div class="flex items-center gap-2">
-        <div class="users-grid flex-1 text-naturals-N13">
+        <div class="users-grid flex-1 text-naturals-n13">
           <div class="font-bold">{{ item.metadata.id }}</div>
-          <div class="max-w-min rounded bg-naturals-N3 px-2 py-1 text-naturals-N10">
+          <div class="max-w-min rounded bg-naturals-n3 px-2 py-1 text-naturals-n10">
             {{ props.item.spec.role ?? 'None' }}
           </div>
           <div class="col-span-3 flex flex-wrap gap-1">
-            <div v-for="label in labels" :key="label" class="resource-label label-light6 text-xs">
+            <div v-for="label in labels" :key="label" class="label-light6 resource-label text-xs">
               {{ label }}
             </div>
           </div>
@@ -84,6 +84,8 @@ const editUser = () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .users-grid {
   @apply grid grid-cols-5 items-center pr-2;
 }
@@ -93,11 +95,11 @@ const editUser = () => {
 }
 
 .scope > * {
-  @apply bg-naturals-N4 p-0.5 px-1 text-naturals-N10;
+  @apply bg-naturals-n4 p-0.5 px-1 text-naturals-n10;
 }
 
 .scope-action-enabled {
-  @apply bg-naturals-N4 p-0.5 px-1 text-green-G1;
+  @apply bg-naturals-n4 p-0.5 px-1 text-green-g1;
 }
 
 .scope > *:first-child {
@@ -106,11 +108,5 @@ const editUser = () => {
 
 .scope > *:last-child {
   @apply rounded-r;
-}
-.label-light6 {
-  --label-h: 208;
-  --label-s: 70;
-  --label-l: 86;
-  --lighten-by: 0;
 }
 </style>

@@ -128,7 +128,7 @@ watch(logs, () => {
             <WordHighlighter
               :query="searchOption"
               :text-to-highlight="item.msg"
-              highlight-class="bg-naturals-N14"
+              highlight-class="bg-naturals-n14"
             />
           </div>
         </DynamicScrollerItem>
@@ -138,11 +138,13 @@ watch(logs, () => {
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .logs-list {
   @apply flex flex-col;
 }
 .logs-list-heading {
-  @apply flex w-full items-center justify-between bg-naturals-N2;
+  @apply flex w-full items-center justify-between bg-naturals-n2;
   padding: 10px 16px;
   border-radius: 2px;
 }
@@ -150,7 +152,7 @@ watch(logs, () => {
   @apply flex w-full;
 }
 .logs-list-heading-name {
-  @apply w-full text-xs text-naturals-N13;
+  @apply w-full text-xs text-naturals-n13;
   min-width: 100px;
   max-width: 300px;
 }
@@ -168,6 +170,6 @@ watch(logs, () => {
   max-width: 300px;
 }
 .logs-item-message {
-  @apply w-full break-all font-roboto text-xs;
+  @apply w-full font-roboto text-xs break-all;
 }
 </style>

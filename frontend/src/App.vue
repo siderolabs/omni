@@ -16,10 +16,10 @@ import { notification } from '@/notification'
 </script>
 
 <template>
-  <div class="root">
+  <div class="flex h-screen flex-col text-naturals-n11">
     <TModal />
     <THeader id="header" />
-    <TShell class="shell">
+    <TShell class="h-[calc(100%-52px)]">
       <template #menu>
         <TSideBar />
       </template>
@@ -27,19 +27,9 @@ import { notification } from '@/notification'
         <div class="flex h-full w-full flex-col gap-4">
           <TSuspended v-if="suspended" />
           <TNotification v-if="notification" v-bind="notification.props" />
-          <router-view class="h-full w-full" />
+          <RouterView class="h-full w-full" />
         </div>
       </template>
     </TShell>
   </div>
 </template>
-
-<style scoped>
-.root {
-  @apply flex h-screen flex-col text-naturals-N11;
-}
-
-.shell {
-  height: calc(100% - 52px);
-}
-</style>

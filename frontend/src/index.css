@@ -5,58 +5,115 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 */
 
-@import url('@/fonts.css');
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import url('./fonts.css') layer(base);
+@import 'tailwindcss';
 
-body {
-  font-family: 'Roboto', sans-serif;
+@theme {
+  --font-sans: Roboto, sans-serif;
+  --font-roboto: 'Roboto Mono', monospace;
+  --font-firasans: 'Fira Sans', Roboto, sans-serif;
+
+  --color-naturals-n0: #101118;
+  --color-naturals-n1: #13141c;
+  --color-naturals-n2: #15161e;
+  --color-naturals-n3: #191b24;
+  --color-naturals-n4: #1f222e;
+  --color-naturals-n5: #272932;
+  --color-naturals-n6: #2c2e38;
+  --color-naturals-n7: #3a3b45;
+  --color-naturals-n8: #5b5c64;
+  --color-naturals-n9: #7d7d85;
+  --color-naturals-n10: #878990;
+  --color-naturals-n11: #9fa1a6;
+  --color-naturals-n12: #c3c3c7;
+  --color-naturals-n13: #e8e8e9;
+  --color-naturals-n14: #ffffff;
+
+  --color-primary-p1: #ffbea9;
+  --color-primary-p2: #fe9e74;
+  --color-primary-p3: #ff8b59;
+  --color-primary-p4: #ff5f2a;
+  --color-primary-p5: #ce5027;
+  --color-primary-p6: #342321;
+
+  --color-green-g1: #69c297;
+  --color-green-g2: #2d9663;
+  --color-green-g3: #141f21;
+
+  --color-red-r1: #ff5c56;
+  --color-red-r2: #6e2f30;
+  --color-red-r3: #311c20;
+  --color-red-rlogo: #f62d2c;
+
+  --color-yellow-y1: #ffb200;
+  --color-yellow-y2: #c68a00;
+  --color-yellow-y3: #a97809;
+  --color-yellow-y4: #252115;
+
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  --animate-blink: blink-frames 3s cubic-bezier(0.6, 0.4, 0.4, 0.5) infinite;
+  --animate-fadein: fadein 300ms linear;
+
+  @keyframes fadein {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 100;
+    }
+  }
 }
 
-*:focus {
-  outline: none;
-}
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-naturals-n0);
+  }
 
-*::-webkit-scrollbar {
-  @apply h-1.5 w-1.5;
-  background-color: transparent;
-}
+  *::-webkit-scrollbar {
+    @apply h-1.5 w-1.5;
+    background-color: transparent;
+  }
 
-*::-webkit-scrollbar-thumb {
-  @apply h-1.5 w-1.5 rounded border border-naturals-N4 bg-naturals-N5;
-}
-
-body {
-  --tw-bg-opacity: 1;
-  background-color: rgba(16, 17, 24, var(--tw-bg-opacity));
-}
-
-.modal-window {
-  @apply z-30 flex w-1/3 flex-col rounded bg-naturals-N3 p-8;
-}
-
-.list-item-link {
-  @apply font-bold text-naturals-N14 transition hover:text-naturals-N9;
+  *::-webkit-scrollbar-thumb {
+    @apply h-1.5 w-1.5 rounded-sm border border-naturals-n4 bg-naturals-n5;
+  }
 }
 
 @layer components {
+  .modal-window {
+    @apply z-30 flex w-1/3 flex-col rounded-sm bg-naturals-n3 p-8;
+  }
+
+  .list-item-link {
+    @apply font-bold text-naturals-n14 transition hover:text-naturals-n9;
+  }
+
   .resource-label {
-    @apply rounded border px-2 py-0.5;
+    @apply rounded-sm border px-2 py-0.5;
+
     --background-alpha: 0.18;
     --border-alpha: 0.3;
     --lighten-by: 20;
+
     color: hsl(
       var(--label-h),
       calc(var(--label-s) * 1%),
       calc((var(--label-l) + var(--lighten-by)) * 1%)
     );
+
     background-color: hsla(
       var(--label-h),
       calc(var(--label-s) * 1%),
       calc((var(--label-l) + var(--lighten-by)) * 1%),
       var(--background-alpha)
     );
+
     border-color: hsla(
       var(--label-h),
       calc(var(--label-s) * 1%),
@@ -64,114 +121,114 @@ body {
       var(--border-alpha)
     );
   }
-}
 
-.label-green {
-  --label-h: 142;
-  --label-s: 100;
-  --label-l: 49;
-}
+  .label-green {
+    --label-h: 142;
+    --label-s: 100;
+    --label-l: 49;
+  }
 
-.label-red {
-  --label-h: 359;
-  --label-s: 97;
-  --label-l: 36;
-}
+  .label-red {
+    --label-h: 359;
+    --label-s: 97;
+    --label-l: 36;
+  }
 
-.label-orange {
-  --label-h: 15;
-  --label-s: 90;
-  --label-l: 44;
-}
+  .label-orange {
+    --label-h: 15;
+    --label-s: 90;
+    --label-l: 44;
+  }
 
-.label-violet {
-  --label-h: 313;
-  --label-s: 97;
-  --label-l: 58;
-}
+  .label-violet {
+    --label-h: 313;
+    --label-s: 97;
+    --label-l: 58;
+  }
 
-.label-yellow {
-  --label-h: 48;
-  --label-s: 96;
-  --label-l: 50;
-}
+  .label-yellow {
+    --label-h: 48;
+    --label-s: 96;
+    --label-l: 50;
+  }
 
-.label-cyan {
-  --label-h: 185;
-  --label-s: 100;
-  --label-l: 22;
-}
+  .label-cyan {
+    --label-h: 185;
+    --label-s: 100;
+    --label-l: 22;
+  }
 
-.label-blue1 {
-  --label-h: 211;
-  --label-s: 76;
-  --label-l: 48;
-}
+  .label-blue1 {
+    --label-h: 211;
+    --label-s: 76;
+    --label-l: 48;
+  }
 
-.label-blue2 {
-  --label-h: 215;
-  --label-s: 100;
-  --label-l: 40;
-}
+  .label-blue2 {
+    --label-h: 215;
+    --label-s: 100;
+    --label-l: 40;
+  }
 
-.label-blue3 {
-  --label-h: 256;
-  --label-s: 81;
-  --label-l: 50;
-}
+  .label-blue3 {
+    --label-h: 256;
+    --label-s: 81;
+    --label-l: 50;
+  }
 
-.label-light1 {
-  --label-h: 0;
-  --label-s: 65;
-  --label-l: 74;
-  --lighten-by: 0;
-}
+  .label-light1 {
+    --label-h: 0;
+    --label-s: 65;
+    --label-l: 74;
+    --lighten-by: 0;
+  }
 
-.label-light2 {
-  --label-h: 13;
-  --label-s: 81;
-  --label-l: 87;
-  --lighten-by: 0;
-}
+  .label-light2 {
+    --label-h: 13;
+    --label-s: 81;
+    --label-l: 87;
+    --lighten-by: 0;
+  }
 
-.label-light3 {
-  --label-h: 48;
-  --label-s: 96;
-  --label-l: 87;
-  --lighten-by: 0;
-}
+  .label-light3 {
+    --label-h: 48;
+    --label-s: 96;
+    --label-l: 87;
+    --lighten-by: 0;
+  }
 
-.label-light4 {
-  --label-h: 128;
-  --label-s: 32;
-  --label-l: 81;
-  --lighten-by: 0;
-}
+  .label-light4 {
+    --label-h: 128;
+    --label-s: 32;
+    --label-l: 81;
+    --lighten-by: 0;
+  }
 
-.label-light5 {
-  --label-h: 184;
-  --label-s: 29;
-  --label-l: 80;
-  --lighten-by: 0;
-}
+  .label-light5 {
+    --label-h: 184;
+    --label-s: 29;
+    --label-l: 80;
+    --lighten-by: 0;
+  }
 
-.label-light6 {
-  --label-h: 208;
-  --label-s: 70;
-  --label-l: 86;
-  --lighten-by: 0;
-}
+  .label-light6 {
+    --label-h: 208;
+    --label-s: 70;
+    --label-l: 86;
+    --lighten-by: 0;
+  }
 
-.label-light7 {
-  --label-h: 257;
-  --label-s: 81;
-  --label-l: 87;
-  --lighten-by: 0;
-}
+  .label-light7 {
+    --label-h: 257;
+    --label-s: 81;
+    --label-l: 87;
+    --lighten-by: 0;
+  }
 
-.label-grayed-out {
-  --label-h: 257;
-  --label-s: 81;
-  --label-l: 87;
-  --lighten-by: 100;
+  .label-grayed-out {
+    --label-h: 257;
+    --label-s: 81;
+    --label-l: 87;
+    --lighten-by: 100;
+  }
 }

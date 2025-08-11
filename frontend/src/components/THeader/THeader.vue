@@ -13,18 +13,18 @@ import OngoingTasks from '@/components/common/OngoingTasks/OngoingTasks.vue'
   <header class="t-header">
     <div class="t-header-nav-wrapper">
       <div class="t-header-logo-wrapper">
-        <router-link to="/" class="flex items-center gap-1 text-lg uppercase text-naturals-N13">
+        <RouterLink to="/" class="flex items-center gap-1 text-lg text-naturals-n13 uppercase">
           <TIcon class="t-header-icon h-7 w-7" icon="logo" />
           <span class="font-bold">Sidero</span>
           <span>Omni</span>
-        </router-link>
+        </RouterLink>
       </div>
       <div class="t-header-nav">
         <a
           href="https://omni.siderolabs.com/"
           target="_blank"
           rel="noopener noreferrer"
-          class="flex transition-colors hover:text-naturals-N14"
+          class="flex transition-colors hover:text-naturals-n14"
         >
           <TIcon class="t-header-nav-icon" icon="info" />
           <span class="t-header-nav-name max-sm:hidden">Documentation</span>
@@ -33,7 +33,7 @@ import OngoingTasks from '@/components/common/OngoingTasks/OngoingTasks.vue'
           href="https://github.com/siderolabs/omni/issues"
           target="_blank"
           rel="noopener noreferrer"
-          class="flex transition-colors hover:text-naturals-N14"
+          class="flex transition-colors hover:text-naturals-n14"
         >
           <TIcon class="t-header-nav-icon" icon="check-in-circle" />
           <span class="t-header-nav-name max-sm:hidden">Report an issue</span>
@@ -45,8 +45,10 @@ import OngoingTasks from '@/components/common/OngoingTasks/OngoingTasks.vue'
 </template>
 
 <style scoped>
+@reference "../../index.css";
+
 .t-header {
-  @apply flex items-center justify-between border-b border-naturals-N4 bg-naturals-N1 px-6 py-3;
+  @apply flex items-center justify-between border-b border-naturals-n4 bg-naturals-n1 px-6 py-3;
   max-height: 52px;
 }
 
@@ -59,7 +61,7 @@ import OngoingTasks from '@/components/common/OngoingTasks/OngoingTasks.vue'
 }
 
 .t-header-nav {
-  @apply flex items-center justify-end gap-2 text-naturals-N11;
+  @apply flex items-center justify-end gap-2 text-naturals-n11;
 }
 
 .t-header-nav-icon {

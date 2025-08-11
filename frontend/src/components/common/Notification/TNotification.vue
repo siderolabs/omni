@@ -90,23 +90,20 @@ watch(
 </template>
 
 <style scoped>
+@reference "../../../index.css";
+
 .notification {
-  @apply flex w-full items-center justify-between rounded border border-naturals-N5 bg-naturals-N0 px-6 py-4;
+  @apply flex w-full items-center justify-between rounded border border-naturals-n5 bg-naturals-n0 px-6 py-4;
   min-height: 65px;
 }
 .notification--in-progress {
-  @apply border-l-4;
-  --tw-border-opacity: 1;
-  border-left-color: rgba(169, 120, 9, var(--tw-border-opacity));
+  @apply border-l-4 border-l-yellow-y3;
 }
 .notification--error {
-  @apply border-l-4;
-  --tw-border-opacity: 1;
-  border-left-color: rgba(110, 47, 48, var(--tw-border-opacity));
+  @apply border-l-4 border-l-red-r2;
 }
 .notification--success {
-  @apply border-l-4;
-  border-left-color: #69c297;
+  @apply border-l-4 border-l-green-g1;
 }
 .notification__wrapper {
   @apply flex items-center;
@@ -120,20 +117,20 @@ watch(
   height: 20px;
 }
 .notification__in-progress-icon {
-  @apply animate-spin text-yellow-Y1;
+  @apply animate-spin text-yellow-y1;
 }
 .notification__error-icon {
-  @apply text-red-R1;
+  @apply text-red-r1;
 }
 .notification__success-icon {
-  @apply text-green-G1;
+  @apply text-green-g1;
 }
 
 .notification__title {
-  @apply text-sm font-medium text-naturals-N14;
+  @apply text-sm font-medium text-naturals-n14;
 }
 .notification__title--error {
-  @apply text-red-R1;
+  @apply text-red-r1;
 }
 .notification__description {
   @apply text-xs;
