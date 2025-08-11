@@ -21,9 +21,12 @@ import {
   CreateSchematicRequestSiderolinkGRPCTunnelMode,
   ManagementService,
 } from '@/api/omni/management/management.pb'
-import type { DefaultJoinTokenSpec, JoinTokenStatusSpec } from '@/api/omni/specs/auth.pb'
 import type { InstallationMediaSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
-import type { SiderolinkAPIConfigSpec } from '@/api/omni/specs/siderolink.pb'
+import type {
+  DefaultJoinTokenSpec,
+  JoinTokenStatusSpec,
+  SiderolinkAPIConfigSpec,
+} from '@/api/omni/specs/siderolink.pb'
 import { withRuntime } from '@/api/options'
 import {
   APIConfigType,
@@ -33,12 +36,12 @@ import {
   DefaultNamespace,
   DefaultTalosVersion,
   EphemeralNamespace,
+  InstallationMediaType,
   JoinTokenStatusType,
   LabelsMeta,
   SecureBoot,
   TalosVersionType,
 } from '@/api/resources'
-import { InstallationMediaType } from '@/api/resources'
 import WatchResource from '@/api/watch'
 import IconButton from '@/components/common/Button/IconButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'

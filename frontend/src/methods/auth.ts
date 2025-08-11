@@ -9,7 +9,7 @@ import { computed, onBeforeMount, ref, watch } from 'vue'
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
-import type { JoinTokenSpec } from '@/api/omni/specs/auth.pb'
+import type { JoinTokenSpec } from '@/api/omni/specs/siderolink.pb'
 import type {
   ClusterPermissionsSpec,
   CurrentUserSpec,

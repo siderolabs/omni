@@ -78,6 +78,58 @@ func (NodeUniqueTokenStatusSpec_State) EnumDescriptor() ([]byte, []int) {
 	return file_omni_specs_siderolink_proto_rawDescGZIP(), []int{11, 0}
 }
 
+type JoinTokenStatusSpec_State int32
+
+const (
+	JoinTokenStatusSpec_UNKNOWN JoinTokenStatusSpec_State = 0
+	JoinTokenStatusSpec_ACTIVE  JoinTokenStatusSpec_State = 1
+	JoinTokenStatusSpec_REVOKED JoinTokenStatusSpec_State = 2
+	JoinTokenStatusSpec_EXPIRED JoinTokenStatusSpec_State = 3
+)
+
+// Enum value maps for JoinTokenStatusSpec_State.
+var (
+	JoinTokenStatusSpec_State_name = map[int32]string{
+		0: "UNKNOWN",
+		1: "ACTIVE",
+		2: "REVOKED",
+		3: "EXPIRED",
+	}
+	JoinTokenStatusSpec_State_value = map[string]int32{
+		"UNKNOWN": 0,
+		"ACTIVE":  1,
+		"REVOKED": 2,
+		"EXPIRED": 3,
+	}
+)
+
+func (x JoinTokenStatusSpec_State) Enum() *JoinTokenStatusSpec_State {
+	p := new(JoinTokenStatusSpec_State)
+	*p = x
+	return p
+}
+
+func (x JoinTokenStatusSpec_State) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (JoinTokenStatusSpec_State) Descriptor() protoreflect.EnumDescriptor {
+	return file_omni_specs_siderolink_proto_enumTypes[1].Descriptor()
+}
+
+func (JoinTokenStatusSpec_State) Type() protoreflect.EnumType {
+	return &file_omni_specs_siderolink_proto_enumTypes[1]
+}
+
+func (x JoinTokenStatusSpec_State) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use JoinTokenStatusSpec_State.Descriptor instead.
+func (JoinTokenStatusSpec_State) EnumDescriptor() ([]byte, []int) {
+	return file_omni_specs_siderolink_proto_rawDescGZIP(), []int{13, 0}
+}
+
 // SiderolinkConfigSpec describes siderolink wireguard server state to persist it across restarts.
 type SiderolinkConfigSpec struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
@@ -874,6 +926,303 @@ func (x *NodeUniqueTokenStatusSpec) GetState() NodeUniqueTokenStatusSpec_State {
 	return NodeUniqueTokenStatusSpec_UNKNOWN
 }
 
+// JoinTokenSpec keeps the node join tokens.
+type JoinTokenSpec struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ExpirationTime is the lifetime of the token.
+	ExpirationTime *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=expiration_time,json=expirationTime,proto3" json:"expiration_time,omitempty"`
+	// Revoked allows to revoke the token before it expires.
+	Revoked bool `protobuf:"varint,2,opt,name=revoked,proto3" json:"revoked,omitempty"`
+	// Name is the human readable join token description.
+	Name          string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JoinTokenSpec) Reset() {
+	*x = JoinTokenSpec{}
+	mi := &file_omni_specs_siderolink_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinTokenSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinTokenSpec) ProtoMessage() {}
+
+func (x *JoinTokenSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_siderolink_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinTokenSpec.ProtoReflect.Descriptor instead.
+func (*JoinTokenSpec) Descriptor() ([]byte, []int) {
+	return file_omni_specs_siderolink_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *JoinTokenSpec) GetExpirationTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpirationTime
+	}
+	return nil
+}
+
+func (x *JoinTokenSpec) GetRevoked() bool {
+	if x != nil {
+		return x.Revoked
+	}
+	return false
+}
+
+func (x *JoinTokenSpec) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+// JoinTokenStatusSpec is the status of the join token.
+type JoinTokenStatusSpec struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// State of the token.
+	State JoinTokenStatusSpec_State `protobuf:"varint,1,opt,name=state,proto3,enum=specs.JoinTokenStatusSpec_State" json:"state,omitempty"`
+	// IsDefault is set on the join token which used by default.
+	IsDefault bool `protobuf:"varint,2,opt,name=is_default,json=isDefault,proto3" json:"is_default,omitempty"`
+	// UseCount is the number of links that are using the join token.
+	UseCount uint64 `protobuf:"varint,3,opt,name=use_count,json=useCount,proto3" json:"use_count,omitempty"`
+	// ExpirationTime is copied from the JoinTokenSpec.
+	ExpirationTime *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=expiration_time,json=expirationTime,proto3" json:"expiration_time,omitempty"`
+	// Name is copied from the JoinTokenSpec.
+	Name string `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`
+	// Warnings keeps the list of machines which might be broken if the token is revoked.
+	Warnings      []*JoinTokenStatusSpec_Warning `protobuf:"bytes,6,rep,name=warnings,proto3" json:"warnings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JoinTokenStatusSpec) Reset() {
+	*x = JoinTokenStatusSpec{}
+	mi := &file_omni_specs_siderolink_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinTokenStatusSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinTokenStatusSpec) ProtoMessage() {}
+
+func (x *JoinTokenStatusSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_siderolink_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinTokenStatusSpec.ProtoReflect.Descriptor instead.
+func (*JoinTokenStatusSpec) Descriptor() ([]byte, []int) {
+	return file_omni_specs_siderolink_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *JoinTokenStatusSpec) GetState() JoinTokenStatusSpec_State {
+	if x != nil {
+		return x.State
+	}
+	return JoinTokenStatusSpec_UNKNOWN
+}
+
+func (x *JoinTokenStatusSpec) GetIsDefault() bool {
+	if x != nil {
+		return x.IsDefault
+	}
+	return false
+}
+
+func (x *JoinTokenStatusSpec) GetUseCount() uint64 {
+	if x != nil {
+		return x.UseCount
+	}
+	return 0
+}
+
+func (x *JoinTokenStatusSpec) GetExpirationTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpirationTime
+	}
+	return nil
+}
+
+func (x *JoinTokenStatusSpec) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *JoinTokenStatusSpec) GetWarnings() []*JoinTokenStatusSpec_Warning {
+	if x != nil {
+		return x.Warnings
+	}
+	return nil
+}
+
+// JoinTokenUsageSpec creates a mapping that connects links and join tokens.
+type JoinTokenUsageSpec struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TokenId       string                 `protobuf:"bytes,1,opt,name=token_id,json=tokenId,proto3" json:"token_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JoinTokenUsageSpec) Reset() {
+	*x = JoinTokenUsageSpec{}
+	mi := &file_omni_specs_siderolink_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinTokenUsageSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinTokenUsageSpec) ProtoMessage() {}
+
+func (x *JoinTokenUsageSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_siderolink_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinTokenUsageSpec.ProtoReflect.Descriptor instead.
+func (*JoinTokenUsageSpec) Descriptor() ([]byte, []int) {
+	return file_omni_specs_siderolink_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *JoinTokenUsageSpec) GetTokenId() string {
+	if x != nil {
+		return x.TokenId
+	}
+	return ""
+}
+
+// DefaultJoinTokenSpec is used to mark some join token as the default one.
+type DefaultJoinTokenSpec struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TokenId       string                 `protobuf:"bytes,1,opt,name=token_id,json=tokenId,proto3" json:"token_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DefaultJoinTokenSpec) Reset() {
+	*x = DefaultJoinTokenSpec{}
+	mi := &file_omni_specs_siderolink_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DefaultJoinTokenSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DefaultJoinTokenSpec) ProtoMessage() {}
+
+func (x *DefaultJoinTokenSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_siderolink_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DefaultJoinTokenSpec.ProtoReflect.Descriptor instead.
+func (*DefaultJoinTokenSpec) Descriptor() ([]byte, []int) {
+	return file_omni_specs_siderolink_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *DefaultJoinTokenSpec) GetTokenId() string {
+	if x != nil {
+		return x.TokenId
+	}
+	return ""
+}
+
+type JoinTokenStatusSpec_Warning struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Machine       string                 `protobuf:"bytes,1,opt,name=machine,proto3" json:"machine,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JoinTokenStatusSpec_Warning) Reset() {
+	*x = JoinTokenStatusSpec_Warning{}
+	mi := &file_omni_specs_siderolink_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinTokenStatusSpec_Warning) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinTokenStatusSpec_Warning) ProtoMessage() {}
+
+func (x *JoinTokenStatusSpec_Warning) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_siderolink_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinTokenStatusSpec_Warning.ProtoReflect.Descriptor instead.
+func (*JoinTokenStatusSpec_Warning) Descriptor() ([]byte, []int) {
+	return file_omni_specs_siderolink_proto_rawDescGZIP(), []int{13, 0}
+}
+
+func (x *JoinTokenStatusSpec_Warning) GetMachine() string {
+	if x != nil {
+		return x.Machine
+	}
+	return ""
+}
+
+func (x *JoinTokenStatusSpec_Warning) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 var File_omni_specs_siderolink_proto protoreflect.FileDescriptor
 
 const file_omni_specs_siderolink_proto_rawDesc = "" +
@@ -953,7 +1302,32 @@ const file_omni_specs_siderolink_proto_rawDesc = "" +
 	"PERSISTENT\x10\x01\x12\r\n" +
 	"\tEPHEMERAL\x10\x02\x12\b\n" +
 	"\x04NONE\x10\x03\x12\x0f\n" +
-	"\vUNSUPPORTED\x10\x04B2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
+	"\vUNSUPPORTED\x10\x04\"\x82\x01\n" +
+	"\rJoinTokenSpec\x12C\n" +
+	"\x0fexpiration_time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x0eexpirationTime\x12\x18\n" +
+	"\arevoked\x18\x02 \x01(\bR\arevoked\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\"\x9d\x03\n" +
+	"\x13JoinTokenStatusSpec\x126\n" +
+	"\x05state\x18\x01 \x01(\x0e2 .specs.JoinTokenStatusSpec.StateR\x05state\x12\x1d\n" +
+	"\n" +
+	"is_default\x18\x02 \x01(\bR\tisDefault\x12\x1b\n" +
+	"\tuse_count\x18\x03 \x01(\x04R\buseCount\x12C\n" +
+	"\x0fexpiration_time\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x0eexpirationTime\x12\x12\n" +
+	"\x04name\x18\x05 \x01(\tR\x04name\x12>\n" +
+	"\bwarnings\x18\x06 \x03(\v2\".specs.JoinTokenStatusSpec.WarningR\bwarnings\x1a=\n" +
+	"\aWarning\x12\x18\n" +
+	"\amachine\x18\x01 \x01(\tR\amachine\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\":\n" +
+	"\x05State\x12\v\n" +
+	"\aUNKNOWN\x10\x00\x12\n" +
+	"\n" +
+	"\x06ACTIVE\x10\x01\x12\v\n" +
+	"\aREVOKED\x10\x02\x12\v\n" +
+	"\aEXPIRED\x10\x03\"/\n" +
+	"\x12JoinTokenUsageSpec\x12\x19\n" +
+	"\btoken_id\x18\x01 \x01(\tR\atokenId\"1\n" +
+	"\x14DefaultJoinTokenSpec\x12\x19\n" +
+	"\btoken_id\x18\x01 \x01(\tR\atokenIdB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
 
 var (
 	file_omni_specs_siderolink_proto_rawDescOnce sync.Once
@@ -967,34 +1341,44 @@ func file_omni_specs_siderolink_proto_rawDescGZIP() []byte {
 	return file_omni_specs_siderolink_proto_rawDescData
 }
 
-var file_omni_specs_siderolink_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_omni_specs_siderolink_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_omni_specs_siderolink_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_omni_specs_siderolink_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_omni_specs_siderolink_proto_goTypes = []any{
 	(NodeUniqueTokenStatusSpec_State)(0), // 0: specs.NodeUniqueTokenStatusSpec.State
-	(*SiderolinkConfigSpec)(nil),         // 1: specs.SiderolinkConfigSpec
-	(*SiderolinkSpec)(nil),               // 2: specs.SiderolinkSpec
-	(*LinkStatusSpec)(nil),               // 3: specs.LinkStatusSpec
-	(*SiderolinkCounterSpec)(nil),        // 4: specs.SiderolinkCounterSpec
-	(*ConnectionParamsSpec)(nil),         // 5: specs.ConnectionParamsSpec
-	(*PendingMachineStatusSpec)(nil),     // 6: specs.PendingMachineStatusSpec
-	(*JoinConfig)(nil),                   // 7: specs.JoinConfig
-	(*SiderolinkAPIConfigSpec)(nil),      // 8: specs.SiderolinkAPIConfigSpec
-	(*ProviderJoinConfigSpec)(nil),       // 9: specs.ProviderJoinConfigSpec
-	(*MachineJoinConfigSpec)(nil),        // 10: specs.MachineJoinConfigSpec
-	(*NodeUniqueTokenSpec)(nil),          // 11: specs.NodeUniqueTokenSpec
-	(*NodeUniqueTokenStatusSpec)(nil),    // 12: specs.NodeUniqueTokenStatusSpec
-	(*timestamppb.Timestamp)(nil),        // 13: google.protobuf.Timestamp
+	(JoinTokenStatusSpec_State)(0),       // 1: specs.JoinTokenStatusSpec.State
+	(*SiderolinkConfigSpec)(nil),         // 2: specs.SiderolinkConfigSpec
+	(*SiderolinkSpec)(nil),               // 3: specs.SiderolinkSpec
+	(*LinkStatusSpec)(nil),               // 4: specs.LinkStatusSpec
+	(*SiderolinkCounterSpec)(nil),        // 5: specs.SiderolinkCounterSpec
+	(*ConnectionParamsSpec)(nil),         // 6: specs.ConnectionParamsSpec
+	(*PendingMachineStatusSpec)(nil),     // 7: specs.PendingMachineStatusSpec
+	(*JoinConfig)(nil),                   // 8: specs.JoinConfig
+	(*SiderolinkAPIConfigSpec)(nil),      // 9: specs.SiderolinkAPIConfigSpec
+	(*ProviderJoinConfigSpec)(nil),       // 10: specs.ProviderJoinConfigSpec
+	(*MachineJoinConfigSpec)(nil),        // 11: specs.MachineJoinConfigSpec
+	(*NodeUniqueTokenSpec)(nil),          // 12: specs.NodeUniqueTokenSpec
+	(*NodeUniqueTokenStatusSpec)(nil),    // 13: specs.NodeUniqueTokenStatusSpec
+	(*JoinTokenSpec)(nil),                // 14: specs.JoinTokenSpec
+	(*JoinTokenStatusSpec)(nil),          // 15: specs.JoinTokenStatusSpec
+	(*JoinTokenUsageSpec)(nil),           // 16: specs.JoinTokenUsageSpec
+	(*DefaultJoinTokenSpec)(nil),         // 17: specs.DefaultJoinTokenSpec
+	(*JoinTokenStatusSpec_Warning)(nil),  // 18: specs.JoinTokenStatusSpec.Warning
+	(*timestamppb.Timestamp)(nil),        // 19: google.protobuf.Timestamp
 }
 var file_omni_specs_siderolink_proto_depIdxs = []int32{
-	13, // 0: specs.SiderolinkCounterSpec.last_alive:type_name -> google.protobuf.Timestamp
-	7,  // 1: specs.ProviderJoinConfigSpec.config:type_name -> specs.JoinConfig
-	7,  // 2: specs.MachineJoinConfigSpec.config:type_name -> specs.JoinConfig
+	19, // 0: specs.SiderolinkCounterSpec.last_alive:type_name -> google.protobuf.Timestamp
+	8,  // 1: specs.ProviderJoinConfigSpec.config:type_name -> specs.JoinConfig
+	8,  // 2: specs.MachineJoinConfigSpec.config:type_name -> specs.JoinConfig
 	0,  // 3: specs.NodeUniqueTokenStatusSpec.state:type_name -> specs.NodeUniqueTokenStatusSpec.State
-	4,  // [4:4] is the sub-list for method output_type
-	4,  // [4:4] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	19, // 4: specs.JoinTokenSpec.expiration_time:type_name -> google.protobuf.Timestamp
+	1,  // 5: specs.JoinTokenStatusSpec.state:type_name -> specs.JoinTokenStatusSpec.State
+	19, // 6: specs.JoinTokenStatusSpec.expiration_time:type_name -> google.protobuf.Timestamp
+	18, // 7: specs.JoinTokenStatusSpec.warnings:type_name -> specs.JoinTokenStatusSpec.Warning
+	8,  // [8:8] is the sub-list for method output_type
+	8,  // [8:8] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_omni_specs_siderolink_proto_init() }
@@ -1007,8 +1391,8 @@ func file_omni_specs_siderolink_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_omni_specs_siderolink_proto_rawDesc), len(file_omni_specs_siderolink_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   12,
+			NumEnums:      2,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

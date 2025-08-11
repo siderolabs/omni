@@ -28,6 +28,8 @@ type JoinTokenStatusController = qtransform.QController[*siderolink.JoinToken, *
 const joinTokenStatusControllerName = "JoinTokenStatusController"
 
 // NewJoinTokenStatusController instanciates the join token status controller.
+//
+//nolint:gocognit,gocyclo,cyclop
 func NewJoinTokenStatusController() *JoinTokenStatusController {
 	return qtransform.NewQController(
 		qtransform.Settings[*siderolink.JoinToken, *siderolink.JoinTokenStatus]{
@@ -51,11 +53,71 @@ func NewJoinTokenStatusController() *JoinTokenStatusController {
 					return err
 				}
 
+				joinTokenStatus.TypedSpec().Value.Warnings = nil
+
 				var useCount uint64
 
-				usages.ForEach(func(r *siderolink.JoinTokenUsage) {
-					if r.TypedSpec().Value.TokenId == joinToken.Metadata().ID() {
-						useCount++
+				usages.ForEach(func(res *siderolink.JoinTokenUsage) {
+					if res.TypedSpec().Value.TokenId != joinToken.Metadata().ID() {
+						return
+					}
+
+					useCount++
+
+					var nodeUniqueTokenStatus *siderolink.NodeUniqueTokenStatus
+
+					nodeUniqueTokenStatus, err = safe.ReaderGetByID[*siderolink.NodeUniqueTokenStatus](ctx, r, res.Metadata().ID())
+					if err != nil && !state.IsNotFoundError(err) {
+						return
+					}
+
+					if nodeUniqueTokenStatus == nil {
+						joinTokenStatus.TypedSpec().Value.Warnings = append(
+							joinTokenStatus.TypedSpec().Value.Warnings,
+							&specs.JoinTokenStatusSpec_Warning{
+								Machine: res.Metadata().ID(),
+								Message: "Does not have the node unique token",
+							},
+						)
+
+						return
+					}
+
+					switch nodeUniqueTokenStatus.TypedSpec().Value.State {
+					case specs.NodeUniqueTokenStatusSpec_EPHEMERAL:
+						joinTokenStatus.TypedSpec().Value.Warnings = append(
+							joinTokenStatus.TypedSpec().Value.Warnings,
+							&specs.JoinTokenStatusSpec_Warning{
+								Machine: res.Metadata().ID(),
+								Message: "Talos is not installed so the generated node unique token is ephemeral",
+							},
+						)
+					case specs.NodeUniqueTokenStatusSpec_NONE:
+						joinTokenStatus.TypedSpec().Value.Warnings = append(
+							joinTokenStatus.TypedSpec().Value.Warnings,
+							&specs.JoinTokenStatusSpec_Warning{
+								Machine: res.Metadata().ID(),
+								Message: "Does not have the node unique token",
+							},
+						)
+					case specs.NodeUniqueTokenStatusSpec_UNSUPPORTED:
+						joinTokenStatus.TypedSpec().Value.Warnings = append(
+							joinTokenStatus.TypedSpec().Value.Warnings,
+							&specs.JoinTokenStatusSpec_Warning{
+								Machine: res.Metadata().ID(),
+								Message: "Installed Talos version does not support unique node tokens",
+							},
+						)
+					case specs.NodeUniqueTokenStatusSpec_UNKNOWN:
+						joinTokenStatus.TypedSpec().Value.Warnings = append(
+							joinTokenStatus.TypedSpec().Value.Warnings,
+							&specs.JoinTokenStatusSpec_Warning{
+								Machine: res.Metadata().ID(),
+								Message: "The machine node unique token status is not determined",
+							},
+						)
+					case specs.NodeUniqueTokenStatusSpec_PERSISTENT:
+						// all good, can be rotated
 					}
 				})
 
@@ -105,6 +167,20 @@ func NewJoinTokenStatusController() *JoinTokenStatusController {
 				}
 
 				return safe.Map(items, func(item *siderolink.JoinToken) (resource.Pointer, error) { return item.Metadata(), nil })
+			},
+		),
+		qtransform.WithExtraMappedInput(
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, status *siderolink.NodeUniqueTokenStatus) ([]resource.Pointer, error) {
+				usage, err := safe.ReaderGetByID[*siderolink.JoinTokenUsage](ctx, r, status.Metadata().ID())
+				if err != nil {
+					if state.IsNotFoundError(err) {
+						return nil, nil
+					}
+
+					return nil, err
+				}
+
+				return []resource.Pointer{siderolink.NewJoinToken(resources.DefaultNamespace, usage.TypedSpec().Value.TokenId).Metadata()}, nil
 			},
 		),
 		qtransform.WithConcurrency(4),

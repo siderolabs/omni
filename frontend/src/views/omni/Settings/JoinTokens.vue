@@ -10,10 +10,8 @@ import { useRouter } from 'vue-router'
 import { copyText } from 'vue3-clipboard'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
-import { ResourceService } from '@/api/grpc'
-import type { DefaultJoinTokenSpec } from '@/api/omni/specs/auth.pb'
-import { JoinTokenStatusSpecState } from '@/api/omni/specs/auth.pb'
+import { type Resource, ResourceService } from '@/api/grpc'
+import { type DefaultJoinTokenSpec, JoinTokenStatusSpecState } from '@/api/omni/specs/siderolink.pb'
 import { withRuntime } from '@/api/options'
 import {
   DefaultJoinTokenID,
