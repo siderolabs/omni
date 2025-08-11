@@ -44,7 +44,7 @@ func (s *managementServer) CreateServiceAccount(ctx context.Context, req *manage
 
 	id, err := serviceaccount.Create(ctx, s.omniState, req.Name, req.Role, req.UseUserRole, []byte(req.ArmoredPgpPublicKey))
 	if err != nil {
-		return nil, err
+		return nil, wrapError(err)
 	}
 
 	return &management.CreateServiceAccountResponse{PublicKeyId: id}, nil
