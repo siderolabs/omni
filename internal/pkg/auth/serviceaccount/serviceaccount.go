@@ -60,7 +60,8 @@ func Create(ctx context.Context, st state.State, name, userRole string, useUserR
 	_, err := st.Get(ctx, ptr)
 	if err == nil {
 		return "", &eConflict{
-			res: ptr,
+			error: fmt.Errorf("service account %q already exists", id),
+			res:   ptr,
 		}
 	}
 

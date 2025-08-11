@@ -229,6 +229,12 @@ func AssertServiceAccountAPIFlow(testCtx context.Context, cli *client.Client) Te
 
 		assert.Equal(t, string(role.Admin), foundSA.Role)
 
+		// try to create a service account with the same name again
+		_, err = cli.Management().CreateServiceAccount(testCtx, name, armoredPublicKey, string(role.None), true)
+		assert.Equal(t, codes.AlreadyExists, status.Code(err), "error code should be codes.AlreadyExists")
+		assert.ErrorContains(t, err, "service account")
+		assert.ErrorContains(t, err, "already exists")
+
 		// destroy service account
 		err = cli.Management().DestroyServiceAccount(testCtx, name)
 		assert.NoError(t, err)
