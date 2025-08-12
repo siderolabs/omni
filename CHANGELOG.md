@@ -1,3 +1,37 @@
+## [Omni 1.0.1](https://github.com/siderolabs/omni/releases/tag/v1.0.1) (2025-08-12)
+
+Welcome to the v1.0.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Oguz Kilcan
+
+### Changes
+<details><summary>8 commits</summary>
+<p>
+
+* [`353f0cab`](https://github.com/siderolabs/omni/commit/353f0cabef743fce7de420e2e5a42a1280843dbf) test: fix asserting etcd members test
+* [`f42a94a6`](https://github.com/siderolabs/omni/commit/f42a94a64e36028eb10bf5e3a31fb85e96c7726c) fix: prevent service account creation if name is already in use
+* [`f8ad61f0`](https://github.com/siderolabs/omni/commit/f8ad61f0d2f812ce94cd099e350133f7affb3a0a) test: fix omni upgrade e2e test
+* [`562bd58d`](https://github.com/siderolabs/omni/commit/562bd58dbc06895cf6705b846cc59c55afee0557) test: run Omni upgrade tests against latest stable
+* [`092a0462`](https://github.com/siderolabs/omni/commit/092a0462c980350d592c6cf6ccd79c7807bd97be) chore: allow more than one commit for a PR
+* [`a221ba61`](https://github.com/siderolabs/omni/commit/a221ba61dc9d8bda3e92c226853d0bbcd5818ee6) fix: keep control plane status up to date
+* [`c6c8da2b`](https://github.com/siderolabs/omni/commit/c6c8da2b1c7bd3171eff5b2d3d64f878f5be738d) fix: install frontend dependencies from lockfile
+* [`898f83d3`](https://github.com/siderolabs/omni/commit/898f83d3817b084862a1f6de7e4187afbb1bf7bd) test: fix registry mirror config format in integration tests
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.0.0](https://github.com/siderolabs/omni/releases/tag/v1.0.0)
+
 ## [Omni 1.0.0](https://github.com/siderolabs/omni/releases/tag/v1.0.0) (2025-07-25)
 
 Welcome to the v1.0.0 release of Omni!
