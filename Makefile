@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-08-07T16:42:52Z by kres 1d1c1cb.
+# Generated on 2025-08-13T16:30:18Z by kres 9f63e23.
 
 # common variables
 
@@ -203,6 +203,9 @@ generate:  ## Generate .proto definitions.
 lint-golangci-lint-client:  ## Runs golangci-lint linter.
 	@$(MAKE) target-$@
 
+lint-golangci-lint-client-fmt:  ## Runs golangci-lint formatter and tries to fix issues automatically.
+	@$(MAKE) local-$@ DEST=.
+
 lint-gofumpt-client:  ## Runs gofumpt linter.
 	@$(MAKE) target-$@
 
@@ -219,6 +222,9 @@ lint-govulncheck-client:  ## Runs govulncheck linter.
 
 lint-golangci-lint:  ## Runs golangci-lint linter.
 	@$(MAKE) target-$@
+
+lint-golangci-lint-fmt:  ## Runs golangci-lint formatter and tries to fix issues automatically.
+	@$(MAKE) local-$@ DEST=.
 
 lint-gofumpt:  ## Runs gofumpt linter.
 	@$(MAKE) target-$@

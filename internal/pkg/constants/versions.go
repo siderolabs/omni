@@ -12,7 +12,7 @@ import (
 )
 
 // AnotherTalosVersion is used in the integration tests for Talos upgrade.
-const AnotherTalosVersion = "1.10.4"
+const AnotherTalosVersion = "1.11.0-beta.1"
 
 // MinDiscoveredTalosVersion makes Omni pull the versions from this point.
 const MinDiscoveredTalosVersion = "1.3.0"

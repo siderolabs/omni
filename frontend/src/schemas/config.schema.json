@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://talos.dev/v1.10/schemas/config.schema.json",
+  "$id": "https://talos.dev/v1.11/schemas/config.schema.json",
   "$defs": {
     "block.DiskSelector": {
       "properties": {
@@ -52,6 +52,13 @@
           "description": "Enable TPM based disk encryption.\n",
           "markdownDescription": "Enable TPM based disk encryption.",
           "x-intellij-html-description": "\u003cp\u003eEnable TPM based disk encryption.\u003c/p\u003e\n"
+        },
+        "lockToState": {
+          "type": "boolean",
+          "title": "lockToState",
+          "description": "Lock the disk encryption key to the random salt stored in the STATE partition. This is useful to prevent the volume from being unlocked if STATE partition is compromised or replaced. It is recommended to use this option with TPM disk encryption for non-STATE volumes.\n",
+          "markdownDescription": "Lock the disk encryption key to the random salt stored in the STATE partition. This is useful to prevent the volume from being unlocked if STATE partition is compromised or replaced. It is recommended to use this option with TPM disk encryption for non-STATE volumes.",
+          "x-intellij-html-description": "\u003cp\u003eLock the disk encryption key to the random salt stored in the STATE partition. This is useful to prevent the volume from being unlocked if STATE partition is compromised or replaced. It is recommended to use this option with TPM disk encryption for non-STATE volumes.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -168,6 +175,56 @@
       "type": "object",
       "description": "EncryptionSpec represents volume encryption settings."
     },
+    "block.ExistingVolumeConfigV1Alpha1": {
+      "properties": {
+        "apiVersion": {
+          "enum": [
+            "v1alpha1"
+          ],
+          "title": "apiVersion",
+          "description": "apiVersion is the API version of the resource.\n",
+          "markdownDescription": "apiVersion is the API version of the resource.",
+          "x-intellij-html-description": "\u003cp\u003eapiVersion is the API version of the resource.\u003c/p\u003e\n"
+        },
+        "kind": {
+          "enum": [
+            "ExistingVolumeConfig"
+          ],
+          "title": "kind",
+          "description": "kind is the kind of the resource.\n",
+          "markdownDescription": "kind is the kind of the resource.",
+          "x-intellij-html-description": "\u003cp\u003ekind is the kind of the resource.\u003c/p\u003e\n"
+        },
+        "name": {
+          "type": "string",
+          "title": "name",
+          "description": "Name of the volume.\n\nName can only contain:\nlowercase and uppercase ASCII letters, digits, and hyphens.\n",
+          "markdownDescription": "Name of the volume.\n\nName can only contain:\nlowercase and uppercase ASCII letters, digits, and hyphens.",
+          "x-intellij-html-description": "\u003cp\u003eName of the volume.\u003c/p\u003e\n\n\u003cp\u003eName can only contain:\nlowercase and uppercase ASCII letters, digits, and hyphens.\u003c/p\u003e\n"
+        },
+        "discovery": {
+          "$ref": "#/$defs/block.VolumeDiscoverySpec",
+          "title": "discovery",
+          "description": "The discovery describes how to find a volume.\n",
+          "markdownDescription": "The discovery describes how to find a volume.",
+          "x-intellij-html-description": "\u003cp\u003eThe discovery describes how to find a volume.\u003c/p\u003e\n"
+        },
+        "mount": {
+          "$ref": "#/$defs/block.MountSpec",
+          "title": "mount",
+          "description": "The mount describes additional mount options.\n",
+          "markdownDescription": "The mount describes additional mount options.",
+          "x-intellij-html-description": "\u003cp\u003eThe mount describes additional mount options.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind"
+      ],
+      "description": "ExistingVolumeConfig is an existing volume configuration document.\\nExisting volumes allow to mount partitions (or whole disks) that were created\\noutside of Talos. Volume will be mounted under `/var/mnt/\u003cname\u003e`.\\nThe existing volume config name should not conflict with user volume names.\\n"
+    },
     "block.FilesystemSpec": {
       "properties": {
         "type": {
@@ -179,11 +236,32 @@
           "description": "Filesystem type. Default is xfs.\n",
           "markdownDescription": "Filesystem type. Default is `xfs`.",
           "x-intellij-html-description": "\u003cp\u003eFilesystem type. Default is \u003ccode\u003exfs\u003c/code\u003e.\u003c/p\u003e\n"
+        },
+        "projectQuotaSupport": {
+          "type": "boolean",
+          "title": "projectQuotaSupport",
+          "description": "Enables project quota support, valid only for ‘xfs’ filesystem.\n\nNote: changing this value might require a full remount of the filesystem.\n",
+          "markdownDescription": "Enables project quota support, valid only for 'xfs' filesystem.\n\nNote: changing this value might require a full remount of the filesystem.",
+          "x-intellij-html-description": "\u003cp\u003eEnables project quota support, valid only for \u0026lsquo;xfs\u0026rsquo; filesystem.\u003c/p\u003e\n\n\u003cp\u003eNote: changing this value might require a full remount of the filesystem.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
       "type": "object",
       "description": "FilesystemSpec configures the filesystem for the volume."
+    },
+    "block.MountSpec": {
+      "properties": {
+        "readOnly": {
+          "type": "boolean",
+          "title": "readOnly",
+          "description": "Mount the volume read-only.\n",
+          "markdownDescription": "Mount the volume read-only.",
+          "x-intellij-html-description": "\u003cp\u003eMount the volume read-only.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "MountSpec describes how the volume is mounted."
     },
     "block.ProvisioningSpec": {
       "properties": {
@@ -219,6 +297,106 @@
       "additionalProperties": false,
       "type": "object",
       "description": "ProvisioningSpec describes how the volume is provisioned."
+    },
+    "block.RawVolumeConfigV1Alpha1": {
+      "properties": {
+        "apiVersion": {
+          "enum": [
+            "v1alpha1"
+          ],
+          "title": "apiVersion",
+          "description": "apiVersion is the API version of the resource.\n",
+          "markdownDescription": "apiVersion is the API version of the resource.",
+          "x-intellij-html-description": "\u003cp\u003eapiVersion is the API version of the resource.\u003c/p\u003e\n"
+        },
+        "kind": {
+          "enum": [
+            "RawVolumeConfig"
+          ],
+          "title": "kind",
+          "description": "kind is the kind of the resource.\n",
+          "markdownDescription": "kind is the kind of the resource.",
+          "x-intellij-html-description": "\u003cp\u003ekind is the kind of the resource.\u003c/p\u003e\n"
+        },
+        "name": {
+          "type": "string",
+          "title": "name",
+          "description": "Name of the volume.\n\nName might be between 1 and 34 characters long and can only contain:\nlowercase and uppercase ASCII letters, digits, and hyphens.\n",
+          "markdownDescription": "Name of the volume.\n\nName might be between 1 and 34 characters long and can only contain:\nlowercase and uppercase ASCII letters, digits, and hyphens.",
+          "x-intellij-html-description": "\u003cp\u003eName of the volume.\u003c/p\u003e\n\n\u003cp\u003eName might be between 1 and 34 characters long and can only contain:\nlowercase and uppercase ASCII letters, digits, and hyphens.\u003c/p\u003e\n"
+        },
+        "provisioning": {
+          "$ref": "#/$defs/block.ProvisioningSpec",
+          "title": "provisioning",
+          "description": "The provisioning describes how the volume is provisioned.\n",
+          "markdownDescription": "The provisioning describes how the volume is provisioned.",
+          "x-intellij-html-description": "\u003cp\u003eThe provisioning describes how the volume is provisioned.\u003c/p\u003e\n"
+        },
+        "encryption": {
+          "$ref": "#/$defs/block.EncryptionSpec",
+          "title": "encryption",
+          "description": "The encryption describes how the volume is encrypted.\n",
+          "markdownDescription": "The encryption describes how the volume is encrypted.",
+          "x-intellij-html-description": "\u003cp\u003eThe encryption describes how the volume is encrypted.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind"
+      ],
+      "description": "RawVolumeConfig is a raw volume configuration document.\\nRaw volumes allow to create partitions without formatting them.\\n If you want to use local storage, user volumes is a better choice,\\n raw volumes are intended to be used with CSI provisioners.\\nThe partition label is automatically generated as `r-\u003cname\u003e`.\\n"
+    },
+    "block.SwapVolumeConfigV1Alpha1": {
+      "properties": {
+        "apiVersion": {
+          "enum": [
+            "v1alpha1"
+          ],
+          "title": "apiVersion",
+          "description": "apiVersion is the API version of the resource.\n",
+          "markdownDescription": "apiVersion is the API version of the resource.",
+          "x-intellij-html-description": "\u003cp\u003eapiVersion is the API version of the resource.\u003c/p\u003e\n"
+        },
+        "kind": {
+          "enum": [
+            "SwapVolumeConfig"
+          ],
+          "title": "kind",
+          "description": "kind is the kind of the resource.\n",
+          "markdownDescription": "kind is the kind of the resource.",
+          "x-intellij-html-description": "\u003cp\u003ekind is the kind of the resource.\u003c/p\u003e\n"
+        },
+        "name": {
+          "type": "string",
+          "title": "name",
+          "description": "Name of the volume.\n\nName might be between 1 and 34 characters long and can only contain:\nlowercase and uppercase ASCII letters, digits, and hyphens.\n",
+          "markdownDescription": "Name of the volume.\n\nName might be between 1 and 34 characters long and can only contain:\nlowercase and uppercase ASCII letters, digits, and hyphens.",
+          "x-intellij-html-description": "\u003cp\u003eName of the volume.\u003c/p\u003e\n\n\u003cp\u003eName might be between 1 and 34 characters long and can only contain:\nlowercase and uppercase ASCII letters, digits, and hyphens.\u003c/p\u003e\n"
+        },
+        "provisioning": {
+          "$ref": "#/$defs/block.ProvisioningSpec",
+          "title": "provisioning",
+          "description": "The provisioning describes how the volume is provisioned.\n",
+          "markdownDescription": "The provisioning describes how the volume is provisioned.",
+          "x-intellij-html-description": "\u003cp\u003eThe provisioning describes how the volume is provisioned.\u003c/p\u003e\n"
+        },
+        "encryption": {
+          "$ref": "#/$defs/block.EncryptionSpec",
+          "title": "encryption",
+          "description": "The encryption describes how the volume is encrypted.\n",
+          "markdownDescription": "The encryption describes how the volume is encrypted.",
+          "x-intellij-html-description": "\u003cp\u003eThe encryption describes how the volume is encrypted.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind"
+      ],
+      "description": "SwapVolumeConfig is a disk swap volume configuration document.\\nSwap volume is automatically allocated as a partition on the specified disk\\nand activated as swap, removing a swap volume deactivates swap.\\nThe partition label is automatically generated as `s-\u003cname\u003e`.\\n"
     },
     "block.UserVolumeConfigV1Alpha1": {
       "properties": {
@@ -310,6 +488,13 @@
           "description": "The provisioning describes how the volume is provisioned.\n",
           "markdownDescription": "The provisioning describes how the volume is provisioned.",
           "x-intellij-html-description": "\u003cp\u003eThe provisioning describes how the volume is provisioned.\u003c/p\u003e\n"
+        },
+        "encryption": {
+          "$ref": "#/$defs/block.EncryptionSpec",
+          "title": "encryption",
+          "description": "The encryption describes how the volume is encrypted.\n",
+          "markdownDescription": "The encryption describes how the volume is encrypted.",
+          "x-intellij-html-description": "\u003cp\u003eThe encryption describes how the volume is encrypted.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -318,7 +503,78 @@
         "apiVersion",
         "kind"
       ],
-      "description": "VolumeConfig is a system volume configuration document.\\nNote: at the moment, only `EPHEMERAL` and `IMAGE-CACHE` system volumes are supported.\\n"
+      "description": "VolumeConfig is a system volume configuration document.\\nNote: at the moment, only `STATE`, `EPHEMERAL` and `IMAGE-CACHE` system volumes are supported.\\n"
+    },
+    "block.VolumeDiscoverySpec": {
+      "properties": {
+        "volumeSelector": {
+          "$ref": "#/$defs/block.VolumeSelector",
+          "title": "volumeSelector",
+          "description": "The volume selector expression.\n",
+          "markdownDescription": "The volume selector expression.",
+          "x-intellij-html-description": "\u003cp\u003eThe volume selector expression.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "VolumeDiscoverySpec describes how the volume is discovered."
+    },
+    "block.VolumeSelector": {
+      "properties": {
+        "match": {
+          "type": "string",
+          "title": "match",
+          "description": "The Common Expression Language (CEL) expression to match the volume.\n",
+          "markdownDescription": "The Common Expression Language (CEL) expression to match the volume.",
+          "x-intellij-html-description": "\u003cp\u003eThe Common Expression Language (CEL) expression to match the volume.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "VolumeSelector selects an existing volume."
+    },
+    "block.ZswapConfigV1Alpha1": {
+      "properties": {
+        "apiVersion": {
+          "enum": [
+            "v1alpha1"
+          ],
+          "title": "apiVersion",
+          "description": "apiVersion is the API version of the resource.\n",
+          "markdownDescription": "apiVersion is the API version of the resource.",
+          "x-intellij-html-description": "\u003cp\u003eapiVersion is the API version of the resource.\u003c/p\u003e\n"
+        },
+        "kind": {
+          "enum": [
+            "ZswapConfig"
+          ],
+          "title": "kind",
+          "description": "kind is the kind of the resource.\n",
+          "markdownDescription": "kind is the kind of the resource.",
+          "x-intellij-html-description": "\u003cp\u003ekind is the kind of the resource.\u003c/p\u003e\n"
+        },
+        "maxPoolPercent": {
+          "type": "integer",
+          "title": "maxPoolPercent",
+          "description": "The maximum percent of memory that zswap can use.\nThis is a percentage of the total system memory.\nThe value must be between 0 and 100.\n",
+          "markdownDescription": "The maximum percent of memory that zswap can use.\nThis is a percentage of the total system memory.\nThe value must be between 0 and 100.",
+          "x-intellij-html-description": "\u003cp\u003eThe maximum percent of memory that zswap can use.\nThis is a percentage of the total system memory.\nThe value must be between 0 and 100.\u003c/p\u003e\n"
+        },
+        "shrinkerEnabled": {
+          "type": "boolean",
+          "title": "shrinkerEnabled",
+          "description": "Enable the shrinker feature: kernel might move\ncold pages from zswap to swap device to free up memory\nfor other use cases.\n",
+          "markdownDescription": "Enable the shrinker feature: kernel might move\ncold pages from zswap to swap device to free up memory\nfor other use cases.",
+          "x-intellij-html-description": "\u003cp\u003eEnable the shrinker feature: kernel might move\ncold pages from zswap to swap device to free up memory\nfor other use cases.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind"
+      ],
+      "description": "ZswapConfig is a zswap (compressed memory) configuration document.\\nWhen zswap is enabled, Linux kernel compresses pages that would otherwise be swapped out to disk.\\nThe compressed pages are stored in a memory pool, which is used to avoid writing to disk\\nwhen the system is under memory pressure.\\n"
     },
     "extensions.ConfigFile": {
       "properties": {
@@ -2215,156 +2471,6 @@
       "type": "object",
       "description": "DiscoveryRegistriesConfig struct configures cluster membership discovery."
     },
-    "v1alpha1.EncryptionConfig": {
-      "properties": {
-        "provider": {
-          "type": "string",
-          "title": "provider",
-          "description": "Encryption provider to use for the encryption.\n",
-          "markdownDescription": "Encryption provider to use for the encryption.",
-          "x-intellij-html-description": "\u003cp\u003eEncryption provider to use for the encryption.\u003c/p\u003e\n"
-        },
-        "keys": {
-          "items": {
-            "$ref": "#/$defs/v1alpha1.EncryptionKey"
-          },
-          "type": "array",
-          "title": "keys",
-          "description": "Defines the encryption keys generation and storage method.\n",
-          "markdownDescription": "Defines the encryption keys generation and storage method.",
-          "x-intellij-html-description": "\u003cp\u003eDefines the encryption keys generation and storage method.\u003c/p\u003e\n"
-        },
-        "cipher": {
-          "enum": [
-            "aes-xts-plain64",
-            "xchacha12,aes-adiantum-plain64",
-            "xchacha20,aes-adiantum-plain64"
-          ],
-          "title": "cipher",
-          "description": "Cipher kind to use for the encryption. Depends on the encryption provider.\n",
-          "markdownDescription": "Cipher kind to use for the encryption. Depends on the encryption provider.",
-          "x-intellij-html-description": "\u003cp\u003eCipher kind to use for the encryption. Depends on the encryption provider.\u003c/p\u003e\n"
-        },
-        "keySize": {
-          "type": "integer",
-          "title": "keySize",
-          "description": "Defines the encryption key length.\n",
-          "markdownDescription": "Defines the encryption key length.",
-          "x-intellij-html-description": "\u003cp\u003eDefines the encryption key length.\u003c/p\u003e\n"
-        },
-        "blockSize": {
-          "type": "integer",
-          "title": "blockSize",
-          "description": "Defines the encryption sector size.\n",
-          "markdownDescription": "Defines the encryption sector size.",
-          "x-intellij-html-description": "\u003cp\u003eDefines the encryption sector size.\u003c/p\u003e\n"
-        },
-        "options": {
-          "enum": [
-            "no_read_workqueue",
-            "no_write_workqueue",
-            "same_cpu_crypt"
-          ],
-          "title": "options",
-          "description": "Additional –perf parameters for the LUKS2 encryption.\n",
-          "markdownDescription": "Additional --perf parameters for the LUKS2 encryption.",
-          "x-intellij-html-description": "\u003cp\u003eAdditional \u0026ndash;perf parameters for the LUKS2 encryption.\u003c/p\u003e\n"
-        }
-      },
-      "additionalProperties": false,
-      "type": "object",
-      "description": "EncryptionConfig represents partition encryption settings."
-    },
-    "v1alpha1.EncryptionKey": {
-      "properties": {
-        "static": {
-          "$ref": "#/$defs/v1alpha1.EncryptionKeyStatic",
-          "title": "static",
-          "description": "Key which value is stored in the configuration file.\n",
-          "markdownDescription": "Key which value is stored in the configuration file.",
-          "x-intellij-html-description": "\u003cp\u003eKey which value is stored in the configuration file.\u003c/p\u003e\n"
-        },
-        "nodeID": {
-          "$ref": "#/$defs/v1alpha1.EncryptionKeyNodeID",
-          "title": "nodeID",
-          "description": "Deterministically generated key from the node UUID and PartitionLabel.\n",
-          "markdownDescription": "Deterministically generated key from the node UUID and PartitionLabel.",
-          "x-intellij-html-description": "\u003cp\u003eDeterministically generated key from the node UUID and PartitionLabel.\u003c/p\u003e\n"
-        },
-        "kms": {
-          "$ref": "#/$defs/v1alpha1.EncryptionKeyKMS",
-          "title": "kms",
-          "description": "KMS managed encryption key.\n",
-          "markdownDescription": "KMS managed encryption key.",
-          "x-intellij-html-description": "\u003cp\u003eKMS managed encryption key.\u003c/p\u003e\n"
-        },
-        "slot": {
-          "type": "integer",
-          "title": "slot",
-          "description": "Key slot number for LUKS2 encryption.\n",
-          "markdownDescription": "Key slot number for LUKS2 encryption.",
-          "x-intellij-html-description": "\u003cp\u003eKey slot number for LUKS2 encryption.\u003c/p\u003e\n"
-        },
-        "tpm": {
-          "$ref": "#/$defs/v1alpha1.EncryptionKeyTPM",
-          "title": "tpm",
-          "description": "Enable TPM based disk encryption.\n",
-          "markdownDescription": "Enable TPM based disk encryption.",
-          "x-intellij-html-description": "\u003cp\u003eEnable TPM based disk encryption.\u003c/p\u003e\n"
-        }
-      },
-      "additionalProperties": false,
-      "type": "object",
-      "description": "EncryptionKey represents configuration for disk encryption key."
-    },
-    "v1alpha1.EncryptionKeyKMS": {
-      "properties": {
-        "endpoint": {
-          "type": "string",
-          "title": "endpoint",
-          "description": "KMS endpoint to Seal/Unseal the key.\n",
-          "markdownDescription": "KMS endpoint to Seal/Unseal the key.",
-          "x-intellij-html-description": "\u003cp\u003eKMS endpoint to Seal/Unseal the key.\u003c/p\u003e\n"
-        }
-      },
-      "additionalProperties": false,
-      "type": "object",
-      "description": "EncryptionKeyKMS represents a key that is generated and then sealed/unsealed by the KMS server."
-    },
-    "v1alpha1.EncryptionKeyNodeID": {
-      "properties": {},
-      "additionalProperties": false,
-      "type": "object",
-      "description": "EncryptionKeyNodeID represents deterministically generated key from the node UUID and PartitionLabel."
-    },
-    "v1alpha1.EncryptionKeyStatic": {
-      "properties": {
-        "passphrase": {
-          "type": "string",
-          "title": "passphrase",
-          "description": "Defines the static passphrase value.\n",
-          "markdownDescription": "Defines the static passphrase value.",
-          "x-intellij-html-description": "\u003cp\u003eDefines the static passphrase value.\u003c/p\u003e\n"
-        }
-      },
-      "additionalProperties": false,
-      "type": "object",
-      "description": "EncryptionKeyStatic represents throw away key type."
-    },
-    "v1alpha1.EncryptionKeyTPM": {
-      "properties": {
-        "checkSecurebootStatusOnEnroll": {
-          "type": "boolean",
-          "title": "checkSecurebootStatusOnEnroll",
-          "description": "Check that Secureboot is enabled in the EFI firmware.\nIf Secureboot is not enabled, the enrollment of the key will fail. As the TPM key is anyways bound to the value of PCR 7, changing Secureboot status or configuration after the initial enrollment will make the key unusable.\n",
-          "markdownDescription": "Check that Secureboot is enabled in the EFI firmware.\nIf Secureboot is not enabled, the enrollment of the key will fail. As the TPM key is anyways bound to the value of PCR 7, changing Secureboot status or configuration after the initial enrollment will make the key unusable.",
-          "x-intellij-html-description": "\u003cp\u003eCheck that Secureboot is enabled in the EFI firmware.\nIf Secureboot is not enabled, the enrollment of the key will fail. As the TPM key is anyways bound to the value of PCR 7, changing Secureboot status or configuration after the initial enrollment will make the key unusable.\u003c/p\u003e\n"
-        }
-      },
-      "additionalProperties": false,
-      "type": "object",
-      "description": "EncryptionKeyTPM represents a key that is generated and then sealed/unsealed by the TPM."
-    },
     "v1alpha1.Endpoint": {
       "properties": {},
       "additionalProperties": false,
@@ -3256,13 +3362,6 @@
           "markdownDescription": "Used to configure the machine's container image registry mirrors.\n\nAutomatically generates matching CRI configuration for registry mirrors.\n\nThe `mirrors` section allows to redirect requests for images to a non-default registry,\nwhich might be a local registry or a caching mirror.\n\nThe `config` section provides a way to authenticate to the registry with TLS client\nidentity, provide registry CA, or authentication information.\nAuthentication information has same meaning with the corresponding field in [`.docker/config.json`](https://docs.docker.com/engine/api/v1.41/#section/Authentication).\n\nSee also matching configuration for [CRI containerd plugin](https://github.com/containerd/cri/blob/master/docs/registry.md).",
           "x-intellij-html-description": "\u003cp\u003eUsed to configure the machine\u0026rsquo;s container image registry mirrors.\u003c/p\u003e\n\n\u003cp\u003eAutomatically generates matching CRI configuration for registry mirrors.\u003c/p\u003e\n\n\u003cp\u003eThe \u003ccode\u003emirrors\u003c/code\u003e section allows to redirect requests for images to a non-default registry,\nwhich might be a local registry or a caching mirror.\u003c/p\u003e\n\n\u003cp\u003eThe \u003ccode\u003econfig\u003c/code\u003e section provides a way to authenticate to the registry with TLS client\nidentity, provide registry CA, or authentication information.\nAuthentication information has same meaning with the corresponding field in \u003ca href=\"https://docs.docker.com/engine/api/v1.41/#section/Authentication\" target=\"_blank\"\u003e\u003ccode\u003e.docker/config.json\u003c/code\u003e\u003c/a\u003e.\u003c/p\u003e\n\n\u003cp\u003eSee also matching configuration for \u003ca href=\"https://github.com/containerd/cri/blob/master/docs/registry.md\" target=\"_blank\"\u003eCRI containerd plugin\u003c/a\u003e.\u003c/p\u003e\n"
         },
-        "systemDiskEncryption": {
-          "$ref": "#/$defs/v1alpha1.SystemDiskEncryptionConfig",
-          "title": "systemDiskEncryption",
-          "description": "Machine system disk encryption configuration.\nDefines each system partition encryption parameters.\n",
-          "markdownDescription": "Machine system disk encryption configuration.\nDefines each system partition encryption parameters.",
-          "x-intellij-html-description": "\u003cp\u003eMachine system disk encryption configuration.\nDefines each system partition encryption parameters.\u003c/p\u003e\n"
-        },
         "features": {
           "$ref": "#/$defs/v1alpha1.FeaturesConfig",
           "title": "features",
@@ -3993,27 +4092,6 @@
       "type": "object",
       "description": "SchedulerConfig represents the kube scheduler configuration options."
     },
-    "v1alpha1.SystemDiskEncryptionConfig": {
-      "properties": {
-        "state": {
-          "$ref": "#/$defs/v1alpha1.EncryptionConfig",
-          "title": "state",
-          "description": "State partition encryption.\n",
-          "markdownDescription": "State partition encryption.",
-          "x-intellij-html-description": "\u003cp\u003eState partition encryption.\u003c/p\u003e\n"
-        },
-        "ephemeral": {
-          "$ref": "#/$defs/v1alpha1.EncryptionConfig",
-          "title": "ephemeral",
-          "description": "Ephemeral partition encryption.\n",
-          "markdownDescription": "Ephemeral partition encryption.",
-          "x-intellij-html-description": "\u003cp\u003eEphemeral partition encryption.\u003c/p\u003e\n"
-        }
-      },
-      "additionalProperties": false,
-      "type": "object",
-      "description": "SystemDiskEncryptionConfig specifies system disk partitions encryption settings."
-    },
     "v1alpha1.TimeConfig": {
       "properties": {
         "disabled": {
@@ -4184,10 +4262,22 @@
   },
   "oneOf": [
     {
+      "$ref": "#/$defs/block.ExistingVolumeConfigV1Alpha1"
+    },
+    {
+      "$ref": "#/$defs/block.RawVolumeConfigV1Alpha1"
+    },
+    {
+      "$ref": "#/$defs/block.SwapVolumeConfigV1Alpha1"
+    },
+    {
       "$ref": "#/$defs/block.UserVolumeConfigV1Alpha1"
     },
     {
       "$ref": "#/$defs/block.VolumeConfigV1Alpha1"
+    },
+    {
+      "$ref": "#/$defs/block.ZswapConfigV1Alpha1"
     },
     {
       "$ref": "#/$defs/extensions.ServiceConfigV1Alpha1"
