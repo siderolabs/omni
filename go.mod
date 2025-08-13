@@ -29,7 +29,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v5 v5.0.2
 	github.com/containers/image/v5 v5.35.0
-	github.com/cosi-project/runtime v0.10.6
+	github.com/cosi-project/runtime v1.10.7
 	github.com/cosi-project/state-etcd v0.5.2
 	github.com/crewjam/saml v0.5.1
 	github.com/dustin/go-humanize v1.0.1
@@ -65,7 +65,7 @@ require (
 	github.com/siderolabs/discovery-api v0.1.6
 	github.com/siderolabs/discovery-client v0.1.11
 	github.com/siderolabs/discovery-service v1.0.10
-	github.com/siderolabs/gen v0.8.4
+	github.com/siderolabs/gen v0.8.5
 	github.com/siderolabs/go-api-signature v0.3.6
 	github.com/siderolabs/go-circular v0.2.3
 	github.com/siderolabs/go-debug v0.5.0
@@ -82,7 +82,7 @@ require (
 	github.com/siderolabs/omni/client v0.49.0
 	github.com/siderolabs/proto-codec v0.1.2
 	github.com/siderolabs/siderolink v0.3.15
-	github.com/siderolabs/talos/pkg/machinery v1.11.0-alpha.3.0.20250714094650-da5a4449f1a9
+	github.com/siderolabs/talos/pkg/machinery v1.11.0-beta.2
 	github.com/siderolabs/tcpproxy v0.1.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
@@ -118,7 +118,7 @@ require (
 require github.com/go-logr/logr v1.4.2
 
 require (
-	cel.dev/expr v0.23.1 // indirect
+	cel.dev/expr v0.24.0 // indirect
 	github.com/ProtonMail/go-crypto v1.2.0 // indirect
 	github.com/ProtonMail/go-mime v0.0.0-20230322103455-7d82a3887f2f // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
@@ -170,7 +170,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/btree v1.1.3 // indirect
-	github.com/google/cel-go v0.25.0 // indirect
+	github.com/google/cel-go v0.26.0 // indirect
 	github.com/google/gnostic-models v0.6.9 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
@@ -260,8 +260,8 @@ require (
 	golang.org/x/term v0.32.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	google.golang.org/genproto v0.0.0-20250505200425-f936aa4a68b2 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250603155806-513f23925822 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250715232539-7130f93afb79 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250715232539-7130f93afb79 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/go-jose/go-jose.v2 v2.6.3 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect

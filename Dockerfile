@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-08-11T09:10:19Z by kres 79636f7.
+# Generated on 2025-08-13T16:30:18Z by kres 9f63e23.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -47,8 +47,8 @@ ADD client/api/omni/specs/omni.proto /client/api/omni/specs/
 ADD client/api/omni/specs/siderolink.proto /client/api/omni/specs/
 ADD client/api/omni/specs/system.proto /client/api/omni/specs/
 ADD https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto /client/api/google/rpc/
-ADD https://raw.githubusercontent.com/siderolabs/talos/v1.10.0/api/common/common.proto /client/api/common/
-ADD https://raw.githubusercontent.com/siderolabs/talos/v1.10.0/api/machine/machine.proto /client/api/talos/machine/
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.0-beta.2/api/common/common.proto /client/api/common/
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.0-beta.2/api/machine/machine.proto /client/api/talos/machine/
 ADD https://raw.githubusercontent.com/cosi-project/specification/c644a4b0fd408ec41bd29193bcdbd1a5b7feead2/proto/v1alpha1/resource.proto /client/api/v1alpha1/
 
 # collects proto specs
@@ -66,13 +66,13 @@ ADD client/api/omni/specs/infra.proto /frontend/src/api/omni/specs/
 ADD client/api/omni/specs/virtual.proto /frontend/src/api/omni/specs/
 ADD client/api/omni/specs/ephemeral.proto /frontend/src/api/omni/specs/
 ADD https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto /frontend/src/api/google/rpc/
-ADD https://raw.githubusercontent.com/siderolabs/talos/v1.10.0/api/machine/machine.proto /frontend/src/api/talos/machine/
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.0-beta.2/api/machine/machine.proto /frontend/src/api/talos/machine/
 ADD https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/any.proto /frontend/src/api/google/protobuf/
 ADD https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/duration.proto /frontend/src/api/google/protobuf/
 ADD https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/empty.proto /frontend/src/api/google/protobuf/
 ADD https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/timestamp.proto /frontend/src/api/google/protobuf/
 ADD https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/code.proto /frontend/src/api/google/rpc/
-ADD https://raw.githubusercontent.com/siderolabs/talos/v1.10.0/api/common/common.proto /frontend/src/api/common/
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.0-beta.2/api/common/common.proto /frontend/src/api/common/
 ADD https://raw.githubusercontent.com/cosi-project/specification/5c734257bfa6a3acb01417809797dbfbe0e73c71/proto/v1alpha1/resource.proto /frontend/src/api/v1alpha1/
 
 # base toolchain image
@@ -239,7 +239,7 @@ RUN --mount=type=cache,target=/go/pkg,id=omni/go/pkg go list -mod=readonly all >
 
 # cleaned up specs and compiled versions
 FROM scratch AS generate-frontend
-ADD https://www.talos.dev/v1.10/schemas/config.schema.json frontend/src/schemas/config.schema.json
+ADD https://www.talos.dev/v1.11/schemas/config.schema.json frontend/src/schemas/config.schema.json
 COPY --from=proto-compile-frontend frontend/ frontend/
 
 FROM embed-generate AS embed-abbrev-generate
@@ -276,6 +276,22 @@ WORKDIR /src/client
 COPY client/.golangci.yml .
 ENV GOGC=50
 RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/root/.cache/golangci-lint,id=omni/root/.cache/golangci-lint,sharing=locked --mount=type=cache,target=/go/pkg,id=omni/go/pkg golangci-lint run --config .golangci.yml
+
+# runs golangci-lint fmt
+FROM base AS lint-golangci-lint-client-fmt-run
+WORKDIR /src/client
+COPY client/.golangci.yml .
+ENV GOGC=50
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/root/.cache/golangci-lint,id=omni/root/.cache/golangci-lint,sharing=locked --mount=type=cache,target=/go/pkg,id=omni/go/pkg golangci-lint fmt --config .golangci.yml
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/root/.cache/golangci-lint,id=omni/root/.cache/golangci-lint,sharing=locked --mount=type=cache,target=/go/pkg,id=omni/go/pkg golangci-lint run --fix --issues-exit-code 0 --config .golangci.yml
+
+# runs golangci-lint fmt
+FROM base AS lint-golangci-lint-fmt-run
+WORKDIR /src
+COPY .golangci.yml .
+ENV GOGC=50
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/root/.cache/golangci-lint,id=omni/root/.cache/golangci-lint,sharing=locked --mount=type=cache,target=/go/pkg,id=omni/go/pkg golangci-lint fmt --config .golangci.yml
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/root/.cache/golangci-lint,id=omni/root/.cache/golangci-lint,sharing=locked --mount=type=cache,target=/go/pkg,id=omni/go/pkg golangci-lint run --fix --issues-exit-code 0 --config .golangci.yml
 
 # runs govulncheck
 FROM base AS lint-govulncheck
@@ -317,6 +333,14 @@ COPY --from=proto-compile /client/api/ /client/api/
 COPY --from=go-generate-0 /src/frontend frontend
 COPY --from=go-generate-0 /src/internal/backend/runtime/omni/controllers/omni internal/backend/runtime/omni/controllers/omni
 COPY --from=embed-abbrev-generate /src/internal/version internal/version
+
+# clean golangci-lint fmt output
+FROM scratch AS lint-golangci-lint-client-fmt
+COPY --from=lint-golangci-lint-client-fmt-run /src/client client
+
+# clean golangci-lint fmt output
+FROM scratch AS lint-golangci-lint-fmt
+COPY --from=lint-golangci-lint-fmt-run /src .
 
 FROM scratch AS unit-tests-client
 COPY --from=unit-tests-client-run /src/client/coverage.txt /coverage-unit-tests-client.txt

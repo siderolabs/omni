@@ -1312,7 +1312,7 @@ func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client, cli
 
 		clusterUnauthorized := omni.NewCluster(resources.DefaultNamespace, "unauthorized-"+testID)
 		clusterUnauthorized.TypedSpec().Value.TalosVersion = constants.DefaultTalosVersion
-		clusterUnauthorized.TypedSpec().Value.KubernetesVersion = "1.28.3"
+		clusterUnauthorized.TypedSpec().Value.KubernetesVersion = "1.32.7"
 
 		userState := userCli.Omni().State()
 
@@ -1328,7 +1328,7 @@ func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client, cli
 		// create a cluster that is authorized to the user by the ACL
 		clusterAuthorized := omni.NewCluster(resources.DefaultNamespace, clusterAuthorizedID)
 		clusterAuthorized.TypedSpec().Value.TalosVersion = constants.DefaultTalosVersion
-		clusterAuthorized.TypedSpec().Value.KubernetesVersion = "1.28.3"
+		clusterAuthorized.TypedSpec().Value.KubernetesVersion = "1.32.7"
 
 		err = userState.Create(ctx, clusterAuthorized)
 		require.NoError(t, err)

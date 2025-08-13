@@ -936,6 +936,7 @@ export type EtcdStatus = {
 }
 
 export type EtcdMemberStatus = {
+  storage_version?: string
   member_id?: string
   protocol_version?: string
   db_size?: string
@@ -946,6 +947,45 @@ export type EtcdMemberStatus = {
   raft_applied_index?: string
   errors?: string[]
   is_learner?: boolean
+}
+
+export type EtcdDowngradeValidateRequest = {
+  version?: string
+}
+
+export type EtcdDowngradeValidateResponse = {
+  messages?: EtcdDowngradeValidate[]
+}
+
+export type EtcdDowngradeValidate = {
+  metadata?: CommonCommon.Metadata
+  cluster_downgrade?: EtcdClusterDowngrade
+}
+
+export type EtcdDowngradeEnableRequest = {
+  version?: string
+}
+
+export type EtcdDowngradeEnableResponse = {
+  messages?: EtcdDowngradeEnable[]
+}
+
+export type EtcdDowngradeEnable = {
+  metadata?: CommonCommon.Metadata
+  cluster_downgrade?: EtcdClusterDowngrade
+}
+
+export type EtcdDowngradeCancelResponse = {
+  messages?: EtcdDowngradeCancel[]
+}
+
+export type EtcdDowngradeCancel = {
+  metadata?: CommonCommon.Metadata
+  cluster_downgrade?: EtcdClusterDowngrade
+}
+
+export type EtcdClusterDowngrade = {
+  cluster_version?: string
 }
 
 export type RouteConfig = {
@@ -1221,6 +1261,15 @@ export class MachineService {
   }
   static EtcdStatus(req: GoogleProtobufEmpty.Empty, ...options: fm.fetchOption[]): Promise<EtcdStatusResponse> {
     return fm.fetchReq<GoogleProtobufEmpty.Empty, EtcdStatusResponse>("POST", `/machine.MachineService/EtcdStatus`, req, ...options)
+  }
+  static EtcdDowngradeValidate(req: EtcdDowngradeValidateRequest, ...options: fm.fetchOption[]): Promise<EtcdDowngradeValidateResponse> {
+    return fm.fetchReq<EtcdDowngradeValidateRequest, EtcdDowngradeValidateResponse>("POST", `/machine.MachineService/EtcdDowngradeValidate`, req, ...options)
+  }
+  static EtcdDowngradeEnable(req: EtcdDowngradeEnableRequest, ...options: fm.fetchOption[]): Promise<EtcdDowngradeEnableResponse> {
+    return fm.fetchReq<EtcdDowngradeEnableRequest, EtcdDowngradeEnableResponse>("POST", `/machine.MachineService/EtcdDowngradeEnable`, req, ...options)
+  }
+  static EtcdDowngradeCancel(req: GoogleProtobufEmpty.Empty, ...options: fm.fetchOption[]): Promise<EtcdDowngradeCancelResponse> {
+    return fm.fetchReq<GoogleProtobufEmpty.Empty, EtcdDowngradeCancelResponse>("POST", `/machine.MachineService/EtcdDowngradeCancel`, req, ...options)
   }
   static GenerateConfiguration(req: GenerateConfigurationRequest, ...options: fm.fetchOption[]): Promise<GenerateConfigurationResponse> {
     return fm.fetchReq<GenerateConfigurationRequest, GenerateConfigurationResponse>("POST", `/machine.MachineService/GenerateConfiguration`, req, ...options)

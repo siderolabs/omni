@@ -15,7 +15,7 @@ require (
 	github.com/adrg/xdg v0.5.3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
-	github.com/cosi-project/runtime v0.10.6
+	github.com/cosi-project/runtime v1.10.7
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.18.0
 	github.com/gertd/go-pluralize v0.2.1
@@ -29,21 +29,21 @@ require (
 	github.com/mattn/go-isatty v0.0.20
 	github.com/planetscale/vtprotobuf v0.6.1-0.20241121165744-79df5c4772f2
 	github.com/sergi/go-diff v1.3.1
-	github.com/siderolabs/gen v0.8.4
+	github.com/siderolabs/gen v0.8.5
 	github.com/siderolabs/go-api-signature v0.3.6
 	github.com/siderolabs/go-kubeconfig v0.1.1
 	github.com/siderolabs/go-pointer v1.0.1
 	github.com/siderolabs/image-factory v0.7.0
 	github.com/siderolabs/proto-codec v0.1.2
 	github.com/siderolabs/siderolink v0.3.15
-	github.com/siderolabs/talos/pkg/machinery v1.10.5
+	github.com/siderolabs/talos/pkg/machinery v1.11.0-beta.2
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	github.com/xlab/treeprint v1.2.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/sync v0.15.0
 	golang.org/x/term v0.32.0
-	google.golang.org/grpc v1.72.0
+	google.golang.org/grpc v1.73.0
 	google.golang.org/protobuf v1.36.6
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.3
@@ -51,7 +51,7 @@ require (
 )
 
 require (
-	cel.dev/expr v0.23.1 // indirect
+	cel.dev/expr v0.24.0 // indirect
 	github.com/ProtonMail/go-crypto v1.2.0 // indirect
 	github.com/ProtonMail/go-mime v0.0.0-20230322103455-7d82a3887f2f // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
@@ -66,13 +66,13 @@ require (
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-openapi/jsonpointer v0.21.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/google/cel-go v0.25.0 // indirect
+	github.com/google/cel-go v0.26.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/gosuri/uilive v0.0.4 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/josharian/native v1.1.0 // indirect
-	github.com/jsimonetti/rtnetlink/v2 v2.0.3 // indirect
+	github.com/jsimonetti/rtnetlink/v2 v2.0.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mdlayher/ethtool v0.4.0 // indirect
@@ -90,13 +90,12 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/sasha-s/go-deadlock v0.3.5 // indirect
-	github.com/siderolabs/crypto v0.6.0 // indirect
+	github.com/siderolabs/crypto v0.6.3 // indirect
 	github.com/siderolabs/net v0.4.0 // indirect
 	github.com/siderolabs/protoenc v0.2.2 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	go.opentelemetry.io/otel/sdk v1.35.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
 	golang.org/x/crypto v0.39.0 // indirect
@@ -109,8 +108,8 @@ require (
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	golang.zx2c4.com/wireguard v0.0.0-20250505131008-436f7fdc1670 // indirect
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20241231184526-a9ab2273dd10 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250512202823-5a2f75b736a9 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250512202823-5a2f75b736a9 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250715232539-7130f93afb79 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250715232539-7130f93afb79 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/apimachinery v0.34.0-alpha.0 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
