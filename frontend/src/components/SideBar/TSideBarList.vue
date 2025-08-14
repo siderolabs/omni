@@ -30,8 +30,8 @@ defineProps<Props>()
 </script>
 
 <template>
-  <nav class="nav">
-    <div class="nav-list">
+  <nav class="pt-2">
+    <div class="flex-col">
       <TMenuItem
         v-for="item of items"
         :key="item.name"
@@ -47,14 +47,3 @@ defineProps<Props>()
     </div>
   </nav>
 </template>
-
-<style scoped>
-@reference "../../index.css";
-
-.nav {
-  @apply pt-2;
-}
-.nav-list {
-  @apply flex-col;
-}
-</style>

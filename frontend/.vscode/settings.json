@@ -4,7 +4,9 @@
   },
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": true,
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
   "javascript.preferences.importModuleSpecifier": "non-relative",
-  "tailwindCSS.classFunctions": ["clsx"],
   "typescript.preferences.preferTypeOnlyAutoImports": true
 }

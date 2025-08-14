@@ -61,7 +61,7 @@ const menuHovered = ref(false)
     <RadioGroup
       v-if="options.length < 8"
       :model-value="machineSetIndex"
-      class="t-button-group flex gap-0.5 rounded bg-naturals-n3 p-1"
+      class="flex gap-0.5 rounded bg-naturals-n3 p-1"
       @update:model-value="(value) => emit('update:machineSetIndex', value)"
     >
       <RadioGroupOption
@@ -117,7 +117,7 @@ const menuHovered = ref(false)
             <RadioGroup
               ref="optionsView"
               :model-value="machineSetIndex"
-              class="no-scrollbar picker"
+              class="no-scrollbar scroll flex h-[7.5rem] flex-col items-center gap-0.5 overflow-y-auto"
               @update:model-value="(value) => emit('update:machineSetIndex', value)"
               @scroll.stop
             >
@@ -204,14 +204,5 @@ const menuHovered = ref(false)
 .no-scrollbar {
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
-}
-</style>
-
-<style>
-@reference "../../../../index.css";
-
-.picker {
-  @apply flex flex-col items-center gap-0.5 overflow-y-auto;
-  height: 120px;
 }
 </style>

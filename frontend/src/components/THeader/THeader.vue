@@ -5,70 +5,77 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import OngoingTasks from '@/components/common/OngoingTasks/OngoingTasks.vue'
+
+interface Props {
+  sidebarOpen?: boolean
+  onToggleSidebar?(): void
+}
+
+const props = defineProps<Props>()
 </script>
 
 <template>
-  <header class="t-header">
-    <div class="t-header-nav-wrapper">
-      <div class="t-header-logo-wrapper">
-        <RouterLink to="/" class="flex items-center gap-1 text-lg text-naturals-n13 uppercase">
-          <TIcon class="t-header-icon h-7 w-7" icon="logo" />
-          <span class="font-bold">Sidero</span>
-          <span>Omni</span>
-        </RouterLink>
-      </div>
-      <div class="t-header-nav">
-        <a
-          href="https://omni.siderolabs.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="flex transition-colors hover:text-naturals-n14"
-        >
-          <TIcon class="t-header-nav-icon" icon="info" />
-          <span class="t-header-nav-name max-sm:hidden">Documentation</span>
-        </a>
-        <a
-          href="https://github.com/siderolabs/omni/issues"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="flex transition-colors hover:text-naturals-n14"
-        >
-          <TIcon class="t-header-nav-icon" icon="check-in-circle" />
-          <span class="t-header-nav-name max-sm:hidden">Report an issue</span>
-        </a>
-        <OngoingTasks />
-      </div>
+  <header
+    class="flex h-12 items-center justify-between border-b border-naturals-n4 bg-naturals-n1 px-3 md:h-13 md:px-6"
+  >
+    <div class="flex items-center gap-4">
+      <TButton
+        class="relative size-6 p-0! md:hidden"
+        aria-controls="sidebar"
+        :aria-expanded="sidebarOpen"
+        @click="props.onToggleSidebar"
+      >
+        <TIcon
+          aria-label="open sidebar"
+          :aria-hidden="sidebarOpen"
+          icon="hamburger"
+          class="absolute inset-0 m-auto size-4 transition-all"
+          :class="sidebarOpen ? 'rotate-90 opacity-0' : 'opacity-100'"
+        />
+        <TIcon
+          aria-label="close sidebar"
+          :aria-hidden="!sidebarOpen"
+          icon="close"
+          class="absolute inset-0 m-auto size-4 transition-all"
+          :class="sidebarOpen ? 'opacity-100' : '-rotate-90 opacity-0'"
+        />
+      </TButton>
+
+      <RouterLink
+        to="/"
+        class="flex items-center gap-1 font-firasans text-lg text-naturals-n13 uppercase"
+      >
+        <TIcon class="t-header-icon size-6" icon="logo" />
+        <span class="font-bold">Sidero</span>
+        <span>Omni</span>
+      </RouterLink>
+    </div>
+
+    <div class="flex items-center gap-2 text-naturals-n11">
+      <a
+        href="https://omni.siderolabs.com/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="flex gap-1 transition-colors hover:text-naturals-n14"
+      >
+        <TIcon class="size-4" icon="info" />
+        <span class="truncate text-xs max-sm:hidden">Documentation</span>
+      </a>
+
+      <a
+        href="https://github.com/siderolabs/omni/issues"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="flex gap-1 transition-colors hover:text-naturals-n14"
+      >
+        <TIcon class="size-4" icon="check-in-circle" />
+        <span class="truncate text-xs max-sm:hidden">Report an issue</span>
+      </a>
+
+      <OngoingTasks />
     </div>
   </header>
 </template>
-
-<style scoped>
-@reference "../../index.css";
-
-.t-header {
-  @apply flex items-center justify-between border-b border-naturals-n4 bg-naturals-n1 px-6 py-3;
-  max-height: 52px;
-}
-
-.t-header-logo-wrapper {
-  @apply mr-12 flex flex-1 items-center self-center font-firasans;
-}
-
-.t-header-nav-wrapper {
-  @apply flex w-full justify-start;
-}
-
-.t-header-nav {
-  @apply flex items-center justify-end gap-2 text-naturals-n11;
-}
-
-.t-header-nav-icon {
-  @apply mr-1 h-4 w-4;
-}
-
-.t-header-nav-name {
-  @apply truncate text-xs;
-}
-</style>

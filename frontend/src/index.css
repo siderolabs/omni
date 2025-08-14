@@ -71,13 +71,11 @@ included in the LICENSE file.
 
 @layer base {
   body {
-    font-family: var(--font-sans);
-    background-color: var(--color-naturals-n0);
+    @apply bg-naturals-n0 font-sans text-naturals-n11;
   }
 
   *::-webkit-scrollbar {
-    @apply h-1.5 w-1.5;
-    background-color: transparent;
+    @apply h-1.5 w-1.5 bg-transparent;
   }
 
   *::-webkit-scrollbar-thumb {

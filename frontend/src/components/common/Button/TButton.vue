@@ -63,7 +63,7 @@ const textOrder = computed((): StyleValue => {
   >
     <span
       v-if="$slots.default"
-      class="t-button-text whitespace-nowrap"
+      class="whitespace-nowrap"
       :style="textOrder"
       :class="{ 'text-red-r1': danger }"
     >
@@ -77,16 +77,3 @@ const textOrder = computed((): StyleValue => {
     />
   </button>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.t-button-group > * {
-  @apply rounded-none border-r-0;
-  border-radius: 0;
-}
-
-.t-button-group > *:first-child {
-  @apply rounded-l;
-}
-</style>

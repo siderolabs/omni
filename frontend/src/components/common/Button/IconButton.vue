@@ -11,13 +11,13 @@ import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 
 type Props = {
-  icon: IconType
+  icon?: IconType
   disabled?: boolean
   danger?: boolean
-  iconClasses?: Record<string, boolean>
+  iconClasses?: unknown
 }
 
-const props = withDefaults(defineProps<Props>(), {})
+const props = defineProps<Props>()
 const { icon, disabled } = toRefs(props)
 </script>
 
@@ -27,7 +27,8 @@ const { icon, disabled } = toRefs(props)
     class="h-6 w-6 rounded text-naturals-n11 transition-all duration-100 hover:bg-naturals-n7 hover:text-naturals-n13 disabled:pointer-events-none disabled:cursor-not-allowed disabled:text-naturals-n7"
     :class="{ 'text-red-r1': danger }"
   >
-    <slot v-if="$slots.default" />
-    <TIcon v-else class="h-full w-full cursor-pointer p-1" :class="iconClasses" :icon="icon" />
+    <slot>
+      <TIcon class="h-full w-full cursor-pointer p-1" :class="iconClasses" :icon="icon" />
+    </slot>
   </button>
 </template>
