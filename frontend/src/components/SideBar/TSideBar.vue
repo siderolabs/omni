@@ -10,23 +10,25 @@ import { useRoute } from 'vue-router'
 
 import TAnimation from '@/components/common/Animation/TAnimation.vue'
 import UserInfo from '@/components/common/UserInfo/UserInfo.vue'
-import { getSidebar } from '@/router'
 
 const route = useRoute()
 
-const sidebar = shallowRef(getSidebar(route))
+const sidebar = shallowRef(route.meta.sidebar)
 
 watch(
   () => [route.query, route.params],
   () => {
-    sidebar.value = getSidebar(route)
+    sidebar.value = route.meta.sidebar
   },
 )
 </script>
 
 <template>
   <TAnimation>
-    <aside v-if="sidebar" class="sidebar">
+    <aside
+      v-if="sidebar"
+      class="relative h-full w-48 border-r border-naturals-n4 bg-naturals-n1 lg:w-64"
+    >
       <div class="flex h-full flex-col">
         <component :is="sidebar" v-if="sidebar" class="flex-1 overflow-y-auto" />
         <UserInfo
@@ -38,11 +40,3 @@ watch(
     </aside>
   </TAnimation>
 </template>
-
-<style scoped>
-@reference "../../index.css";
-
-.sidebar {
-  @apply relative h-full w-48 border-r border-naturals-n4 bg-naturals-n1 lg:w-64;
-}
-</style>

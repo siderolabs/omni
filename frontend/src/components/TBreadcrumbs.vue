@@ -6,9 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { computed, toRefs } from 'vue'
-import { useRoute } from 'vue-router'
-
-import { getBreadcrumbs } from '@/router'
+import { type LocationQuery, useRoute } from 'vue-router'
 
 type Props = {
   nodeName?: string
@@ -21,7 +19,20 @@ const { last } = toRefs(props)
 const route = useRoute()
 
 const breadcrumbs = computed(() => {
-  const res = getBreadcrumbs(route)
+  const res: { text: string; to?: { name: string; query: LocationQuery } }[] = []
+
+  if (route.params.cluster) {
+    res.push(
+      {
+        text: `${route.params.cluster}`,
+        to: { name: 'ClusterOverview', query: route.query },
+      },
+      {
+        text: `${route.params.machine}`,
+        to: { name: 'NodeOverview', query: route.query },
+      },
+    )
+  }
 
   if (last?.value) {
     res.push({

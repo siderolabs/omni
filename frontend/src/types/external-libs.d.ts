@@ -3,6 +3,17 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+import 'vue-router'
+
+import type { Component } from 'vue'
+
 declare module 'click-outside-vue3'
 declare module 'vue-virtual-scroller'
 declare module 'vue3-clipboard'
+
+declare module 'vue-router' {
+  interface RouteMeta {
+    title?: string
+    sidebar?: Component
+  }
+}

@@ -4,7 +4,7 @@
 // included in the LICENSE file.
 
 import { authGuard } from '@auth0/auth0-vue'
-import type { RouteLocation, RouteLocationRaw, RouteRecordRaw } from 'vue-router'
+import type { RouteLocation, RouteLocationRaw, RouteMeta, RouteRecordRaw } from 'vue-router'
 import { createRouter, createWebHistory } from 'vue-router'
 
 import { current } from '@/context'
@@ -90,7 +90,7 @@ import OmniUsers from '@/views/omni/Users/Users.vue'
 
 export const FrontendAuthFlow = 'frontend'
 
-const withPrefix = (prefix: string, routes: RouteRecordRaw[], meta?: Record<string, any>) =>
+const withPrefix = (prefix: string, routes: RouteRecordRaw[], meta?: RouteMeta) =>
   routes.map((route) => {
     if (meta) {
       route.meta = {
@@ -130,33 +130,6 @@ export const checkAuthorized = async (
   }
 
   return { name: 'Authenticate', query: { flow: FrontendAuthFlow, redirect: to.fullPath } }
-}
-
-export function getBreadcrumbs(route: RouteLocation) {
-  const crumbs: { text: string; to?: { name: string; query: any } }[] = []
-
-  if (route.params.cluster) {
-    crumbs.push(
-      {
-        text: `${route.params.cluster}`,
-        to: { name: 'ClusterOverview', query: route.query },
-      },
-      {
-        text: `${route.params.machine}`,
-        to: { name: 'NodeOverview', query: route.query },
-      },
-    )
-  }
-
-  return crumbs
-}
-
-export function getSidebar(route) {
-  if (route.meta.sidebar) {
-    return route.meta.sidebar
-  }
-
-  return null
 }
 
 const beforeEnter = async (to: RouteLocation) => {
