@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/fatih/color"
 	"github.com/gertd/go-pluralize"
 	"github.com/spf13/cobra"
@@ -36,6 +37,11 @@ var (
 
 	joinTokenRenewFlags struct {
 		ttl time.Duration
+	}
+
+	joinTokenMachineJoinConfigFlags struct {
+		role          string
+		useGRPCTunnel bool
 	}
 
 	joinTokenRevokeFlags struct {
@@ -202,6 +208,56 @@ var (
 		},
 	}
 
+	joinTokenMachineConfigCmd = &cobra.Command{
+		Use:     "machine-config <id>",
+		Aliases: []string{"mc"},
+		Short:   "Get partial machine config to make a machine join Omni",
+		Args:    cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			id := args[0]
+
+			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+				if err := checkJoinTokenExists(ctx, client, id); err != nil {
+					return err
+				}
+
+				resp, err := client.Management().GetMachineJoinConfig(ctx, id, joinTokenMachineJoinConfigFlags.useGRPCTunnel)
+				if err != nil {
+					return err
+				}
+
+				fmt.Println(resp.Config)
+
+				return nil
+			})
+		},
+	}
+
+	joinTokenKernelArgsCmd = &cobra.Command{
+		Use:     "kernel-args <id>",
+		Aliases: []string{"ka"},
+		Short:   "Get Talos kernel args to make a machine join Omni",
+		Args:    cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			id := args[0]
+
+			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+				if err := checkJoinTokenExists(ctx, client, id); err != nil {
+					return err
+				}
+
+				resp, err := client.Management().GetMachineJoinConfig(ctx, id, joinTokenMachineJoinConfigFlags.useGRPCTunnel)
+				if err != nil {
+					return err
+				}
+
+				fmt.Println(strings.Join(resp.KernelArgs, " "))
+
+				return nil
+			})
+		},
+	}
+
 	joinTokenListCmd = &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"l"},
@@ -286,6 +342,8 @@ func init() {
 	joinTokenCmd.AddCommand(joinTokenMakeDefaultCmd)
 	joinTokenCmd.AddCommand(joinTokenUnrevokeCmd)
 	joinTokenCmd.AddCommand(joinTokenRenewCmd)
+	joinTokenCmd.AddCommand(joinTokenMachineConfigCmd)
+	joinTokenCmd.AddCommand(joinTokenKernelArgsCmd)
 
 	joinTokenRevokeCmd.Flags().BoolVarP(&joinTokenRevokeFlags.force, "force", "f", false, "Revoke the token even if it is going to make the machines to disconnect")
 
@@ -294,6 +352,15 @@ func init() {
 	joinTokenCreateCmd.Flags().DurationVarP(&joinTokenCreateFlags.ttl, "ttl", "t", 0, "TTL for the join token")
 
 	joinTokenRenewCmd.Flags().DurationVarP(&joinTokenRenewFlags.ttl, "ttl", "t", 0, "TTL for the join token")
+
+	joinTokenMachineConfigCmd.Flags().BoolVar(
+		&joinTokenMachineJoinConfigFlags.useGRPCTunnel,
+		"use-grpc-tunnel", false, "Use gRPC tunnel in the config",
+	)
+	joinTokenKernelArgsCmd.Flags().BoolVar(
+		&joinTokenMachineJoinConfigFlags.useGRPCTunnel,
+		"use-grpc-tunnel", false, "Use gRPC tunnel in the config",
+	)
 
 	joinTokenRenewCmd.MarkFlagRequired("ttl") //nolint:errcheck
 }
@@ -365,4 +432,17 @@ func askConfirmation(prompt string) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func checkJoinTokenExists(ctx context.Context, client *client.Client, id string) error {
+	_, err := safe.ReaderGetByID[*siderolink.JoinToken](ctx, client.Omni().State(), id)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return fmt.Errorf("join token with ID %q was not found", id)
+		}
+
+		return err
+	}
+
+	return nil
 }

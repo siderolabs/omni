@@ -419,3 +419,16 @@ func (client *Client) CreateJoinToken(ctx context.Context, name string, ttl time
 
 	return resp.Id, nil
 }
+
+// GetMachineJoinConfig generates the partial machine config for joining Omni.
+func (client *Client) GetMachineJoinConfig(ctx context.Context, tokenID string, useGRPCTunnel bool) (*management.GetMachineJoinConfigResponse, error) {
+	resp, err := client.conn.GetMachineJoinConfig(ctx, &management.GetMachineJoinConfigRequest{
+		UseGrpcTunnel: useGRPCTunnel,
+		JoinToken:     tokenID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
