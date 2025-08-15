@@ -44,10 +44,7 @@ const props = defineProps<Props>()
         />
       </TButton>
 
-      <RouterLink
-        to="/"
-        class="flex items-center gap-1 font-firasans text-lg text-naturals-n13 uppercase"
-      >
+      <RouterLink to="/" class="flex items-center gap-1 text-lg text-naturals-n13 uppercase">
         <TIcon class="t-header-icon size-6" icon="logo" />
         <span class="font-bold">Sidero</span>
         <span>Omni</span>

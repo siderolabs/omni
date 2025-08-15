@@ -165,11 +165,11 @@ watch(logs, () => {
   padding: 5px 0px 5px 16px;
 }
 .logs-item-date {
-  @apply w-full font-roboto text-xs;
+  @apply w-full font-mono text-xs;
   min-width: 100px;
   max-width: 300px;
 }
 .logs-item-message {
-  @apply w-full font-roboto text-xs break-all;
+  @apply w-full font-mono text-xs break-all;
 }
 </style>

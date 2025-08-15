@@ -158,7 +158,7 @@ const openDeleteToken = (token: string) => {
                 </div>
               </div>
               <div
-                class="cursor-pointer truncate font-roboto"
+                class="cursor-pointer truncate font-mono"
                 @click="() => (showTokens = !showTokens)"
               >
                 {{ showTokens ? item.metadata.id : item.metadata.id?.replace(/./g, '•') }}

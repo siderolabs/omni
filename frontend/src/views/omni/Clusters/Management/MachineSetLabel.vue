@@ -14,7 +14,7 @@ defineProps<{ machineSetId: string; color: string; disabled?: boolean }>()
     :class="{ 'cursor-pointer': !disabled, 'cursor-not-allowed': disabled }"
   >
     <div
-      class="resource-label rounded px-1 py-0.5 font-roboto font-bold"
+      class="resource-label rounded px-1 py-0.5 font-mono font-bold"
       :class="{ [`label-${color}`]: true, 'label-grayed-out': disabled, 'opacity-50': disabled }"
     >
       {{ machineSetId }}

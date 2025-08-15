@@ -243,7 +243,7 @@ setupSyncStream()
 @reference "../../../index.css";
 
 .diff {
-  @apply pt-2 font-roboto whitespace-pre;
+  @apply pt-2 font-mono whitespace-pre;
 }
 
 .bottom-line {

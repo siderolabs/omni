@@ -20,7 +20,6 @@ import {
   MachineStatusMetricsType,
 } from '@/api/resources'
 import Watch from '@/api/watch'
-import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import type { SideBarItem } from '@/components/SideBar/TSideBarList.vue'
 import TSidebarList from '@/components/SideBar/TSideBarList.vue'
 import { setupBackupStatus } from '@/methods'
@@ -98,7 +97,7 @@ const items = computed(() => {
     {
       name: 'Home',
       route: getRoute('Overview', '/omni/'),
-      icon: 'home' as IconType,
+      icon: 'home',
     },
   ]
 

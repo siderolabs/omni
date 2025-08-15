@@ -158,25 +158,25 @@ const options = computed(() => {
   return {
     chart: {
       type: props.type,
-      background: '#00000000',
+      background: 'transparent',
       id: name.value,
       zoom: {
         enabled: false,
       },
       animations: {
-        enabled: animations?.value,
+        enabled: animations.value,
       },
       toolbar: {
         show: false,
       },
-      stacked: stacked?.value,
+      stacked: stacked.value,
     },
     legend: {
-      show: legend?.value,
-      formatter: formatter?.value,
+      show: legend.value,
+      formatter: formatter.value,
     },
     dataLabels: {
-      enabled: dataLabels?.value,
+      enabled: dataLabels.value,
     },
     stroke: stroke.value,
     tooltip: {
@@ -185,8 +185,8 @@ const options = computed(() => {
         format: 'HH:mm:ss',
       },
       style: {
-        fontSize: '12px',
-        fontFamily: 'Roboto',
+        fontSize: 'var(--text-xs)',
+        fontFamily: 'var(--font-sans)',
       },
     },
     colors: colors.value,
@@ -200,7 +200,7 @@ const options = computed(() => {
       },
     },
     grid: {
-      borderColor: '#272932',
+      borderColor: 'var(--color-naturals-n5)',
       strokeDashArray: 10,
       xaxis: {
         lines: {
@@ -223,9 +223,9 @@ const options = computed(() => {
           hour: 'HH:mm',
         },
         style: {
-          colors: '#5B5C64',
-          fontSize: '10px',
-          fontFamily: 'Roboto',
+          colors: 'var(--color-naturals-n8)',
+          fontSize: '0.625rem',
+          fontFamily: 'var(--font-sans)',
           fontWeight: 500,
         },
       },
@@ -245,9 +245,9 @@ const options = computed(() => {
       labels: {
         formatter: formatter?.value,
         style: {
-          colors: '#5B5C64',
-          fontSize: '10px',
-          fontFamily: 'Roboto',
+          colors: 'var(--color-naturals-n8)',
+          fontSize: '0.625rem',
+          fontFamily: 'var(--font-sans)',
           fontWeight: 500,
         },
       },

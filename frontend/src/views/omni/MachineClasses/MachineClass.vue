@@ -474,7 +474,7 @@ const submit = async () => {
                   role="textbox"
                   style="min-width: 28px"
                   spellcheck="false"
-                  class="rounded-r-md bg-naturals-n3 px-2 py-1 font-roboto text-sm whitespace-pre text-naturals-n14"
+                  class="rounded-r-md bg-naturals-n3 px-2 py-1 font-mono text-sm whitespace-pre text-naturals-n14"
                   contenteditable
                   @focus="lastFocused = i"
                   @keyup="(event) => updateContent(i, event)"
@@ -567,7 +567,7 @@ const submit = async () => {
 }
 
 code {
-  @apply rounded bg-naturals-n6 px-1 py-0.5 font-roboto text-naturals-n13;
+  @apply rounded bg-naturals-n6 px-1 py-0.5 font-mono text-naturals-n13;
 }
 
 .machine-template > * {

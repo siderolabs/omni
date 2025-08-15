@@ -211,7 +211,7 @@ onBeforeMount(async () => {
                     <template #default="tokens">
                       <div class="flex items-center gap-1">
                         <div
-                          class="token flex-1 cursor-pointer truncate text-right select-none"
+                          class="flex-1 cursor-pointer truncate text-right font-mono select-none"
                           @click="() => (showJoinToken = !showJoinToken)"
                         >
                           {{
@@ -405,9 +405,5 @@ onBeforeMount(async () => {
 
 .recent-clusters-row:not(:first-of-type) {
   @apply border-t border-naturals-n4;
-}
-
-.token {
-  font-family: 'Roboto Mono', 'consolas', monospace, sans-serif;
 }
 </style>

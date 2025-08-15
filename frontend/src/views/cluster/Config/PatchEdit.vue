@@ -581,12 +581,12 @@ onMounted(async () => {
 }
 
 .CodeMirror * {
-  font-family: 'Roboto Mono', 'consolas', sans-serif;
+  @apply font-mono;
 }
 
 .CodeMirror-lint-tooltip * {
   font-size: 12px;
-  font-family: 'Roboto Mono', 'consolas', sans-serif;
+  @apply font-mono;
 }
 
 /* The lint marker gutter */

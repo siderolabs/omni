@@ -149,7 +149,7 @@ const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
 }
 
 code {
-  @apply rounded bg-naturals-n6 px-1 py-0.5 font-roboto text-naturals-n13;
+  @apply rounded bg-naturals-n6 px-1 py-0.5 font-mono text-naturals-n13;
 }
 
 .machine-template > * {

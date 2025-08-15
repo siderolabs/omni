@@ -10,8 +10,7 @@ included in the LICENSE file.
 
 @theme {
   --font-sans: Roboto, sans-serif;
-  --font-roboto: 'Roboto Mono', monospace;
-  --font-firasans: 'Fira Sans', Roboto, sans-serif;
+  --font-mono: 'Roboto Mono', monospace;
 
   --color-naturals-n0: #101118;
   --color-naturals-n1: #13141c;
@@ -50,13 +49,6 @@ included in the LICENSE file.
   --color-yellow-y3: #a97809;
   --color-yellow-y4: #252115;
 
-  --breakpoint-sm: 640px;
-  --breakpoint-md: 768px;
-  --breakpoint-lg: 1024px;
-  --breakpoint-xl: 1280px;
-  --breakpoint-2xl: 1536px;
-
-  --animate-blink: blink-frames 3s cubic-bezier(0.6, 0.4, 0.4, 0.5) infinite;
   --animate-fadein: fadein 300ms linear;
 
   @keyframes fadein {

@@ -80,7 +80,7 @@ const copyCode = () => {
             <div class="mr-2 text-sm text-naturals-n14">Access Code</div>
             <div class="flex-1" />
             <div
-              class="cursor-pointer rounded-l-md bg-naturals-n6 px-2 py-0.5 font-roboto font-bold text-naturals-n14"
+              class="cursor-pointer rounded-l-md bg-naturals-n6 px-2 py-0.5 font-mono font-bold text-naturals-n14"
               @click="copyCode"
             >
               {{ copied ? 'Copied' : authCode }}

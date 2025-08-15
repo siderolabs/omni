@@ -32,9 +32,9 @@ const workloadProxyingEnabled = setupWorkloadProxyingEnabledFeatureWatch()
         <p>When enabled, the Services annotated with the following annotations</p>
         <p>will be listed and accessible from the Omni Web interface:</p>
         <div class="rounded bg-naturals-n5 px-2 py-1">
-          <p class="font-roboto">{{ ExposedServicePortAnnotationKey }} (required)</p>
-          <p class="font-roboto">{{ ExposedServiceLabelAnnotationKey }} (optional)</p>
-          <p class="font-roboto">{{ ExposedServiceIconAnnotationKey }} (optional)</p>
+          <p class="font-mono">{{ ExposedServicePortAnnotationKey }} (required)</p>
+          <p class="font-mono">{{ ExposedServiceLabelAnnotationKey }} (optional)</p>
+          <p class="font-mono">{{ ExposedServiceIconAnnotationKey }} (optional)</p>
         </div>
         <p>
           If the icon is specified, it must be a valid base64 of either a gzipped or uncompressed

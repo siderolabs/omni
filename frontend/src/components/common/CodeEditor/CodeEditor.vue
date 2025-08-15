@@ -84,6 +84,9 @@ watch(value, (val: string) => {
   model.setValue(val)
 })
 
+// Can't use CSS variables inside monaco https://github.com/microsoft/monaco-editor/issues/2427
+const styles = getComputedStyle(document.documentElement)
+
 watch(editor, () => {
   if (!editor.value) {
     return
@@ -94,7 +97,7 @@ watch(editor, () => {
     language: 'yaml',
     theme: 'sidero',
     fontSize: 14,
-    fontFamily: '"Roboto Mono", monospace',
+    fontFamily: styles.getPropertyValue('--font-mono'),
     automaticLayout: true,
     tabSize: 2,
     fixedOverflowWidgets: true,
@@ -148,9 +151,6 @@ monaco.editor.onDidCreateModel(function (model) {
     }
   })
 })
-
-// Can't use CSS variables inside monaco https://github.com/microsoft/monaco-editor/issues/2427
-const styles = getComputedStyle(document.documentElement)
 
 monaco.editor.defineTheme('sidero', {
   base: 'vs-dark',
