@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import type { V1Node } from '@kubernetes/client-node'
+import type { Node as V1Node } from 'kubernetes-types/core/v1'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'

@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import type { V1Pod } from '@kubernetes/client-node'
+import type { Pod as V1Pod } from 'kubernetes-types/core/v1'
 import { DateTime } from 'luxon'
 import { computed, ref, toRefs } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'

@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import type { V1NodeSpec } from '@kubernetes/client-node'
+import type { NodeSpec as V1NodeSpec } from 'kubernetes-types/core/v1'
 import { DateTime } from 'luxon'
 import type { Ref } from 'vue'
 import { computed, onBeforeUnmount, ref } from 'vue'

@@ -148,7 +148,7 @@ const download = async () => {
 
         if (resp.bundle_data) {
           const data = resp.bundle_data as unknown as string // bundle_data is actually not a Uint8Array, but a base64 string
-          const rawData = b64Decode(data)
+          const rawData = b64Decode(data) as Uint8Array<ArrayBuffer>
           const blob = new Blob([rawData], { type: 'application/zip' })
 
           const url = window.URL.createObjectURL(blob)

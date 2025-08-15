@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import type { V1NodeSpec, V1NodeStatus } from '@kubernetes/client-node'
+import type { NodeSpec as V1NodeSpec, NodeStatus as V1NodeStatus } from 'kubernetes-types/core/v1'
 import { computed, toRefs } from 'vue'
 import { useRoute } from 'vue-router'
 import WordHighlighter from 'vue-word-highlighter'

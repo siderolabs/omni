@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import type { V1Node } from '@kubernetes/client-node'
+import type { Node as V1Node } from 'kubernetes-types/core/v1'
 import type { ComputedRef, Ref } from 'vue'
 import { computed, ref } from 'vue'
 import { copyText } from 'vue3-clipboard'
@@ -136,12 +136,12 @@ export const downloadOmniconfig = async () => {
 
 export const downloadAuditLog = async () => {
   try {
-    const result: Uint8Array[] = []
+    const result: Uint8Array<ArrayBuffer>[] = []
 
     await ManagementService.ReadAuditLog({}, (resp) => {
       const data = resp.audit_log as unknown as string // audit_log is actually not a Uint8Array, but a base64 string
 
-      result.push(b64Decode(data))
+      result.push(b64Decode(data) as Uint8Array<ArrayBuffer>)
     })
 
     const link = document.createElement('a')

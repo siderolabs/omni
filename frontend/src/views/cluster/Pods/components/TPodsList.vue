@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import type { V1Pod } from '@kubernetes/client-node'
+import type { Pod as V1Pod } from 'kubernetes-types/core/v1'
 import { computed, toRefs } from 'vue'
 
 import TPagination from '@/components/common/Pagination/TPagination.vue'
