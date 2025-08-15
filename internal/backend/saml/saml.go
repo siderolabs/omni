@@ -61,6 +61,7 @@ func NewHandler(state state.State, cfg *specs.AuthConfigSpec_SAML, logger *zap.L
 			state,
 			requestTracker,
 			logger.With(logging.Component("saml_session")),
+			cfg.AttributeRules,
 		),
 		RequestTracker:   requestTracker,
 		AssertionHandler: samlsp.DefaultAssertionHandler(samlsp.Options{}),

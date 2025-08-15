@@ -922,10 +922,13 @@ type AuthConfigSpec_SAML struct {
 	Metadata string                 `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// LabelRules defines custom rules on how to extract SAML attributes from the
 	// saml assertion and turn them into labels.
-	LabelRules    map[string]string `protobuf:"bytes,4,rep,name=label_rules,json=labelRules,proto3" json:"label_rules,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	NameIdFormat  string            `protobuf:"bytes,5,opt,name=name_id_format,json=nameIdFormat,proto3" json:"name_id_format,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	LabelRules   map[string]string `protobuf:"bytes,4,rep,name=label_rules,json=labelRules,proto3" json:"label_rules,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	NameIdFormat string            `protobuf:"bytes,5,opt,name=name_id_format,json=nameIdFormat,proto3" json:"name_id_format,omitempty"`
+	// AttributeRules defines custom rules on how to extract the identity, fullname, firstname and lastname
+	// from the SAML assertion.
+	AttributeRules map[string]string `protobuf:"bytes,6,rep,name=attribute_rules,json=attributeRules,proto3" json:"attribute_rules,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *AuthConfigSpec_SAML) Reset() {
@@ -993,6 +996,13 @@ func (x *AuthConfigSpec_SAML) GetNameIdFormat() string {
 	return ""
 }
 
+func (x *AuthConfigSpec_SAML) GetAttributeRules() map[string]string {
+	if x != nil {
+		return x.AttributeRules
+	}
+	return nil
+}
+
 type AccessPolicyUserGroup_User struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Name           string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -1004,7 +1014,7 @@ type AccessPolicyUserGroup_User struct {
 
 func (x *AccessPolicyUserGroup_User) Reset() {
 	*x = AccessPolicyUserGroup_User{}
-	mi := &file_omni_specs_auth_proto_msgTypes[17]
+	mi := &file_omni_specs_auth_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1016,7 +1026,7 @@ func (x *AccessPolicyUserGroup_User) String() string {
 func (*AccessPolicyUserGroup_User) ProtoMessage() {}
 
 func (x *AccessPolicyUserGroup_User) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_auth_proto_msgTypes[17]
+	mi := &file_omni_specs_auth_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1063,7 +1073,7 @@ type AccessPolicyClusterGroup_Cluster struct {
 
 func (x *AccessPolicyClusterGroup_Cluster) Reset() {
 	*x = AccessPolicyClusterGroup_Cluster{}
-	mi := &file_omni_specs_auth_proto_msgTypes[18]
+	mi := &file_omni_specs_auth_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1075,7 +1085,7 @@ func (x *AccessPolicyClusterGroup_Cluster) String() string {
 func (*AccessPolicyClusterGroup_Cluster) ProtoMessage() {}
 
 func (x *AccessPolicyClusterGroup_Cluster) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_auth_proto_msgTypes[18]
+	mi := &file_omni_specs_auth_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1114,7 +1124,7 @@ type AccessPolicyRule_Kubernetes struct {
 
 func (x *AccessPolicyRule_Kubernetes) Reset() {
 	*x = AccessPolicyRule_Kubernetes{}
-	mi := &file_omni_specs_auth_proto_msgTypes[19]
+	mi := &file_omni_specs_auth_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1126,7 +1136,7 @@ func (x *AccessPolicyRule_Kubernetes) String() string {
 func (*AccessPolicyRule_Kubernetes) ProtoMessage() {}
 
 func (x *AccessPolicyRule_Kubernetes) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_auth_proto_msgTypes[19]
+	mi := &file_omni_specs_auth_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1158,7 +1168,7 @@ type AccessPolicyRule_Kubernetes_Impersonate struct {
 
 func (x *AccessPolicyRule_Kubernetes_Impersonate) Reset() {
 	*x = AccessPolicyRule_Kubernetes_Impersonate{}
-	mi := &file_omni_specs_auth_proto_msgTypes[20]
+	mi := &file_omni_specs_auth_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1170,7 +1180,7 @@ func (x *AccessPolicyRule_Kubernetes_Impersonate) String() string {
 func (*AccessPolicyRule_Kubernetes_Impersonate) ProtoMessage() {}
 
 func (x *AccessPolicyRule_Kubernetes_Impersonate) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_auth_proto_msgTypes[20]
+	mi := &file_omni_specs_auth_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1203,7 +1213,7 @@ type AccessPolicyTest_Expected struct {
 
 func (x *AccessPolicyTest_Expected) Reset() {
 	*x = AccessPolicyTest_Expected{}
-	mi := &file_omni_specs_auth_proto_msgTypes[21]
+	mi := &file_omni_specs_auth_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1215,7 +1225,7 @@ func (x *AccessPolicyTest_Expected) String() string {
 func (*AccessPolicyTest_Expected) ProtoMessage() {}
 
 func (x *AccessPolicyTest_Expected) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_auth_proto_msgTypes[21]
+	mi := &file_omni_specs_auth_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1255,7 +1265,7 @@ type AccessPolicyTest_User struct {
 
 func (x *AccessPolicyTest_User) Reset() {
 	*x = AccessPolicyTest_User{}
-	mi := &file_omni_specs_auth_proto_msgTypes[22]
+	mi := &file_omni_specs_auth_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1267,7 +1277,7 @@ func (x *AccessPolicyTest_User) String() string {
 func (*AccessPolicyTest_User) ProtoMessage() {}
 
 func (x *AccessPolicyTest_User) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_auth_proto_msgTypes[22]
+	mi := &file_omni_specs_auth_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1306,7 +1316,7 @@ type AccessPolicyTest_Cluster struct {
 
 func (x *AccessPolicyTest_Cluster) Reset() {
 	*x = AccessPolicyTest_Cluster{}
-	mi := &file_omni_specs_auth_proto_msgTypes[23]
+	mi := &file_omni_specs_auth_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1318,7 +1328,7 @@ func (x *AccessPolicyTest_Cluster) String() string {
 func (*AccessPolicyTest_Cluster) ProtoMessage() {}
 
 func (x *AccessPolicyTest_Cluster) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_auth_proto_msgTypes[23]
+	mi := &file_omni_specs_auth_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1350,7 +1360,7 @@ type AccessPolicyTest_Expected_Kubernetes struct {
 
 func (x *AccessPolicyTest_Expected_Kubernetes) Reset() {
 	*x = AccessPolicyTest_Expected_Kubernetes{}
-	mi := &file_omni_specs_auth_proto_msgTypes[24]
+	mi := &file_omni_specs_auth_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1362,7 +1372,7 @@ func (x *AccessPolicyTest_Expected_Kubernetes) String() string {
 func (*AccessPolicyTest_Expected_Kubernetes) ProtoMessage() {}
 
 func (x *AccessPolicyTest_Expected_Kubernetes) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_auth_proto_msgTypes[24]
+	mi := &file_omni_specs_auth_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1394,7 +1404,7 @@ type AccessPolicyTest_Expected_Kubernetes_Impersonate struct {
 
 func (x *AccessPolicyTest_Expected_Kubernetes_Impersonate) Reset() {
 	*x = AccessPolicyTest_Expected_Kubernetes_Impersonate{}
-	mi := &file_omni_specs_auth_proto_msgTypes[25]
+	mi := &file_omni_specs_auth_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1406,7 +1416,7 @@ func (x *AccessPolicyTest_Expected_Kubernetes_Impersonate) String() string {
 func (*AccessPolicyTest_Expected_Kubernetes_Impersonate) ProtoMessage() {}
 
 func (x *AccessPolicyTest_Expected_Kubernetes_Impersonate) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_auth_proto_msgTypes[25]
+	mi := &file_omni_specs_auth_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1440,7 +1450,7 @@ type ServiceAccountStatusSpec_PgpPublicKey struct {
 
 func (x *ServiceAccountStatusSpec_PgpPublicKey) Reset() {
 	*x = ServiceAccountStatusSpec_PgpPublicKey{}
-	mi := &file_omni_specs_auth_proto_msgTypes[29]
+	mi := &file_omni_specs_auth_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1452,7 +1462,7 @@ func (x *ServiceAccountStatusSpec_PgpPublicKey) String() string {
 func (*ServiceAccountStatusSpec_PgpPublicKey) ProtoMessage() {}
 
 func (x *ServiceAccountStatusSpec_PgpPublicKey) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_auth_proto_msgTypes[29]
+	mi := &file_omni_specs_auth_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1493,7 +1503,7 @@ var File_omni_specs_auth_proto protoreflect.FileDescriptor
 
 const file_omni_specs_auth_proto_rawDesc = "" +
 	"\n" +
-	"\x15omni/specs/auth.proto\x12\x05specs\x1a\x1btalos/machine/machine.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8c\x05\n" +
+	"\x15omni/specs/auth.proto\x12\x05specs\x1a\x1btalos/machine/machine.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa8\x06\n" +
 	"\x0eAuthConfigSpec\x121\n" +
 	"\x05auth0\x18\x01 \x01(\v2\x1b.specs.AuthConfigSpec.Auth0R\x05auth0\x12:\n" +
 	"\bwebauthn\x18\x02 \x01(\v2\x1e.specs.AuthConfigSpec.WebauthnR\bwebauthn\x12\x1c\n" +
@@ -1506,15 +1516,19 @@ const file_omni_specs_auth_proto_rawDesc = "" +
 	"\vuseFormData\x18\x04 \x01(\bR\vuseFormData\x1a@\n" +
 	"\bWebauthn\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x1a\n" +
-	"\brequired\x18\x02 \x01(\bR\brequired\x1a\x80\x02\n" +
+	"\brequired\x18\x02 \x01(\bR\brequired\x1a\x9c\x03\n" +
 	"\x04SAML\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x10\n" +
 	"\x03url\x18\x02 \x01(\tR\x03url\x12\x1a\n" +
 	"\bmetadata\x18\x03 \x01(\tR\bmetadata\x12K\n" +
 	"\vlabel_rules\x18\x04 \x03(\v2*.specs.AuthConfigSpec.SAML.LabelRulesEntryR\n" +
 	"labelRules\x12$\n" +
-	"\x0ename_id_format\x18\x05 \x01(\tR\fnameIdFormat\x1a=\n" +
+	"\x0ename_id_format\x18\x05 \x01(\tR\fnameIdFormat\x12W\n" +
+	"\x0fattribute_rules\x18\x06 \x03(\v2..specs.AuthConfigSpec.SAML.AttributeRulesEntryR\x0eattributeRules\x1a=\n" +
 	"\x0fLabelRulesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1aA\n" +
+	"\x13AttributeRulesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"Q\n" +
 	"\x11SAMLAssertionSpec\x12\x12\n" +
@@ -1622,7 +1636,7 @@ func file_omni_specs_auth_proto_rawDescGZIP() []byte {
 	return file_omni_specs_auth_proto_rawDescData
 }
 
-var file_omni_specs_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
+var file_omni_specs_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_omni_specs_auth_proto_goTypes = []any{
 	(*AuthConfigSpec)(nil),                                   // 0: specs.AuthConfigSpec
 	(*SAMLAssertionSpec)(nil),                                // 1: specs.SAMLAssertionSpec
@@ -1641,51 +1655,53 @@ var file_omni_specs_auth_proto_goTypes = []any{
 	(*AuthConfigSpec_Webauthn)(nil),                          // 14: specs.AuthConfigSpec.Webauthn
 	(*AuthConfigSpec_SAML)(nil),                              // 15: specs.AuthConfigSpec.SAML
 	nil,                                                      // 16: specs.AuthConfigSpec.SAML.LabelRulesEntry
-	(*AccessPolicyUserGroup_User)(nil),                       // 17: specs.AccessPolicyUserGroup.User
-	(*AccessPolicyClusterGroup_Cluster)(nil),                 // 18: specs.AccessPolicyClusterGroup.Cluster
-	(*AccessPolicyRule_Kubernetes)(nil),                      // 19: specs.AccessPolicyRule.Kubernetes
-	(*AccessPolicyRule_Kubernetes_Impersonate)(nil),          // 20: specs.AccessPolicyRule.Kubernetes.Impersonate
-	(*AccessPolicyTest_Expected)(nil),                        // 21: specs.AccessPolicyTest.Expected
-	(*AccessPolicyTest_User)(nil),                            // 22: specs.AccessPolicyTest.User
-	(*AccessPolicyTest_Cluster)(nil),                         // 23: specs.AccessPolicyTest.Cluster
-	(*AccessPolicyTest_Expected_Kubernetes)(nil),             // 24: specs.AccessPolicyTest.Expected.Kubernetes
-	(*AccessPolicyTest_Expected_Kubernetes_Impersonate)(nil), // 25: specs.AccessPolicyTest.Expected.Kubernetes.Impersonate
-	nil, // 26: specs.AccessPolicyTest.User.LabelsEntry
-	nil, // 27: specs.AccessPolicySpec.UserGroupsEntry
-	nil, // 28: specs.AccessPolicySpec.ClusterGroupsEntry
-	(*ServiceAccountStatusSpec_PgpPublicKey)(nil), // 29: specs.ServiceAccountStatusSpec.PgpPublicKey
-	(*timestamppb.Timestamp)(nil),                 // 30: google.protobuf.Timestamp
+	nil,                                                      // 17: specs.AuthConfigSpec.SAML.AttributeRulesEntry
+	(*AccessPolicyUserGroup_User)(nil),                       // 18: specs.AccessPolicyUserGroup.User
+	(*AccessPolicyClusterGroup_Cluster)(nil),                 // 19: specs.AccessPolicyClusterGroup.Cluster
+	(*AccessPolicyRule_Kubernetes)(nil),                      // 20: specs.AccessPolicyRule.Kubernetes
+	(*AccessPolicyRule_Kubernetes_Impersonate)(nil),          // 21: specs.AccessPolicyRule.Kubernetes.Impersonate
+	(*AccessPolicyTest_Expected)(nil),                        // 22: specs.AccessPolicyTest.Expected
+	(*AccessPolicyTest_User)(nil),                            // 23: specs.AccessPolicyTest.User
+	(*AccessPolicyTest_Cluster)(nil),                         // 24: specs.AccessPolicyTest.Cluster
+	(*AccessPolicyTest_Expected_Kubernetes)(nil),             // 25: specs.AccessPolicyTest.Expected.Kubernetes
+	(*AccessPolicyTest_Expected_Kubernetes_Impersonate)(nil), // 26: specs.AccessPolicyTest.Expected.Kubernetes.Impersonate
+	nil, // 27: specs.AccessPolicyTest.User.LabelsEntry
+	nil, // 28: specs.AccessPolicySpec.UserGroupsEntry
+	nil, // 29: specs.AccessPolicySpec.ClusterGroupsEntry
+	(*ServiceAccountStatusSpec_PgpPublicKey)(nil), // 30: specs.ServiceAccountStatusSpec.PgpPublicKey
+	(*timestamppb.Timestamp)(nil),                 // 31: google.protobuf.Timestamp
 }
 var file_omni_specs_auth_proto_depIdxs = []int32{
 	13, // 0: specs.AuthConfigSpec.auth0:type_name -> specs.AuthConfigSpec.Auth0
 	14, // 1: specs.AuthConfigSpec.webauthn:type_name -> specs.AuthConfigSpec.Webauthn
 	15, // 2: specs.AuthConfigSpec.saml:type_name -> specs.AuthConfigSpec.SAML
-	30, // 3: specs.PublicKeySpec.expiration:type_name -> google.protobuf.Timestamp
+	31, // 3: specs.PublicKeySpec.expiration:type_name -> google.protobuf.Timestamp
 	4,  // 4: specs.PublicKeySpec.identity:type_name -> specs.Identity
-	17, // 5: specs.AccessPolicyUserGroup.users:type_name -> specs.AccessPolicyUserGroup.User
-	18, // 6: specs.AccessPolicyClusterGroup.clusters:type_name -> specs.AccessPolicyClusterGroup.Cluster
-	19, // 7: specs.AccessPolicyRule.kubernetes:type_name -> specs.AccessPolicyRule.Kubernetes
-	22, // 8: specs.AccessPolicyTest.user:type_name -> specs.AccessPolicyTest.User
-	23, // 9: specs.AccessPolicyTest.cluster:type_name -> specs.AccessPolicyTest.Cluster
-	21, // 10: specs.AccessPolicyTest.expected:type_name -> specs.AccessPolicyTest.Expected
-	27, // 11: specs.AccessPolicySpec.user_groups:type_name -> specs.AccessPolicySpec.UserGroupsEntry
-	28, // 12: specs.AccessPolicySpec.cluster_groups:type_name -> specs.AccessPolicySpec.ClusterGroupsEntry
+	18, // 5: specs.AccessPolicyUserGroup.users:type_name -> specs.AccessPolicyUserGroup.User
+	19, // 6: specs.AccessPolicyClusterGroup.clusters:type_name -> specs.AccessPolicyClusterGroup.Cluster
+	20, // 7: specs.AccessPolicyRule.kubernetes:type_name -> specs.AccessPolicyRule.Kubernetes
+	23, // 8: specs.AccessPolicyTest.user:type_name -> specs.AccessPolicyTest.User
+	24, // 9: specs.AccessPolicyTest.cluster:type_name -> specs.AccessPolicyTest.Cluster
+	22, // 10: specs.AccessPolicyTest.expected:type_name -> specs.AccessPolicyTest.Expected
+	28, // 11: specs.AccessPolicySpec.user_groups:type_name -> specs.AccessPolicySpec.UserGroupsEntry
+	29, // 12: specs.AccessPolicySpec.cluster_groups:type_name -> specs.AccessPolicySpec.ClusterGroupsEntry
 	8,  // 13: specs.AccessPolicySpec.rules:type_name -> specs.AccessPolicyRule
 	9,  // 14: specs.AccessPolicySpec.tests:type_name -> specs.AccessPolicyTest
-	29, // 15: specs.ServiceAccountStatusSpec.public_keys:type_name -> specs.ServiceAccountStatusSpec.PgpPublicKey
+	30, // 15: specs.ServiceAccountStatusSpec.public_keys:type_name -> specs.ServiceAccountStatusSpec.PgpPublicKey
 	16, // 16: specs.AuthConfigSpec.SAML.label_rules:type_name -> specs.AuthConfigSpec.SAML.LabelRulesEntry
-	20, // 17: specs.AccessPolicyRule.Kubernetes.impersonate:type_name -> specs.AccessPolicyRule.Kubernetes.Impersonate
-	24, // 18: specs.AccessPolicyTest.Expected.kubernetes:type_name -> specs.AccessPolicyTest.Expected.Kubernetes
-	26, // 19: specs.AccessPolicyTest.User.labels:type_name -> specs.AccessPolicyTest.User.LabelsEntry
-	25, // 20: specs.AccessPolicyTest.Expected.Kubernetes.impersonate:type_name -> specs.AccessPolicyTest.Expected.Kubernetes.Impersonate
-	6,  // 21: specs.AccessPolicySpec.UserGroupsEntry.value:type_name -> specs.AccessPolicyUserGroup
-	7,  // 22: specs.AccessPolicySpec.ClusterGroupsEntry.value:type_name -> specs.AccessPolicyClusterGroup
-	30, // 23: specs.ServiceAccountStatusSpec.PgpPublicKey.expiration:type_name -> google.protobuf.Timestamp
-	24, // [24:24] is the sub-list for method output_type
-	24, // [24:24] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	17, // 17: specs.AuthConfigSpec.SAML.attribute_rules:type_name -> specs.AuthConfigSpec.SAML.AttributeRulesEntry
+	21, // 18: specs.AccessPolicyRule.Kubernetes.impersonate:type_name -> specs.AccessPolicyRule.Kubernetes.Impersonate
+	25, // 19: specs.AccessPolicyTest.Expected.kubernetes:type_name -> specs.AccessPolicyTest.Expected.Kubernetes
+	27, // 20: specs.AccessPolicyTest.User.labels:type_name -> specs.AccessPolicyTest.User.LabelsEntry
+	26, // 21: specs.AccessPolicyTest.Expected.Kubernetes.impersonate:type_name -> specs.AccessPolicyTest.Expected.Kubernetes.Impersonate
+	6,  // 22: specs.AccessPolicySpec.UserGroupsEntry.value:type_name -> specs.AccessPolicyUserGroup
+	7,  // 23: specs.AccessPolicySpec.ClusterGroupsEntry.value:type_name -> specs.AccessPolicyClusterGroup
+	31, // 24: specs.ServiceAccountStatusSpec.PgpPublicKey.expiration:type_name -> google.protobuf.Timestamp
+	25, // [25:25] is the sub-list for method output_type
+	25, // [25:25] is the sub-list for method input_type
+	25, // [25:25] is the sub-list for extension type_name
+	25, // [25:25] is the sub-list for extension extendee
+	0,  // [0:25] is the sub-list for field type_name
 }
 
 func init() { file_omni_specs_auth_proto_init() }
@@ -1699,7 +1715,7 @@ func file_omni_specs_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_omni_specs_auth_proto_rawDesc), len(file_omni_specs_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   30,
+			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

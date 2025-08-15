@@ -90,7 +90,7 @@ func TestUserInfo(t *testing.T) {
 			}, *rootURL)
 			require.NoError(t, err)
 
-			user, err := saml.LocateUserInfo(assertion)
+			user, err := saml.LocateUserInfo(assertion, nil)
 
 			if tt.shouldFail {
 				require.Error(t, err)
@@ -111,7 +111,9 @@ func TestReadLabelsFromAssertion(t *testing.T) {
 
 	s := state.WrapCore(namespaced.NewState(inmem.Build))
 
-	sp := saml.NewSessionProvider(s, nil, zaptest.NewLogger(t))
+	sp := saml.NewSessionProvider(s, nil, zaptest.NewLogger(t), map[string]string{
+		"identity": saml.IdentityAttribute,
+	})
 
 	authConfig := auth.NewAuthConfig()
 	authConfig.TypedSpec().Value.Saml = &specs.AuthConfigSpec_SAML{

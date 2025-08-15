@@ -23,6 +23,7 @@ export type AuthConfigSpecSAML = {
   metadata?: string
   label_rules?: {[key: string]: string}
   name_id_format?: string
+  attribute_rules?: {[key: string]: string}
 }
 
 export type AuthConfigSpec = {

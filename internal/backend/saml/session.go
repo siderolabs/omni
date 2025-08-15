@@ -13,7 +13,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
+	"net/mail"
 	"net/url"
 	"slices"
 	"strings"
@@ -45,20 +47,22 @@ type UserInfo struct {
 }
 
 // NewSessionProvider creates a new SessionProvider.
-func NewSessionProvider(state state.State, tracker samlsp.RequestTracker, logger *zap.Logger) *SessionProvider {
+func NewSessionProvider(state state.State, tracker samlsp.RequestTracker, logger *zap.Logger, attributeRules map[string]string) *SessionProvider {
 	return &SessionProvider{
-		state:   state,
-		tracker: tracker,
-		logger:  logger,
+		state:          state,
+		tracker:        tracker,
+		logger:         logger,
+		attributeRules: attributeRules,
 	}
 }
 
 // SessionProvider is an implementation of SessionProvider that stores
 // session tokens in the COSI state.
 type SessionProvider struct {
-	state   state.State
-	tracker samlsp.RequestTracker
-	logger  *zap.Logger
+	state          state.State
+	tracker        samlsp.RequestTracker
+	logger         *zap.Logger
+	attributeRules map[string]string
 }
 
 // CreateSession is called when we have received a valid SAML assertion and
@@ -131,7 +135,7 @@ func (sp *SessionProvider) CreateSession(w http.ResponseWriter, r *http.Request,
 
 	query.Set("session", session)
 
-	user, err := LocateUserInfo(assertion)
+	user, err := LocateUserInfo(assertion, sp.attributeRules)
 	if err != nil {
 		return err
 	}
@@ -353,29 +357,42 @@ func RoleInSAMLLabelRules(samlLabelRules []*auth.SAMLLabelRule, samlLabels map[s
 	return samlRole
 }
 
+const (
+	IdentityAttribute  = "identity"
+	FullNameAttribute  = "fullName"
+	FirstNameAttribute = "firstName"
+	LastNameAttribute  = "lastName"
+)
+
 // LocateUserInfo searches for user email and fullname in the ACS response.
-func LocateUserInfo(assertion *saml.Assertion) (UserInfo, error) {
+//
+//nolint:gocognit
+func LocateUserInfo(assertion *saml.Assertion, extraFields map[string]string) (UserInfo, error) {
 	var (
 		user      UserInfo
 		givenName string
 		surname   string
 	)
 
-	copyFields := map[string]*string{
+	copyFields := map[string]string{
 		// samltest.sp SAML.
-		"urn:oasis:names:tc:SAML:attribute:subject-id": &user.Identity,
-		"displayName": &user.Fullname,
+		"urn:oasis:names:tc:SAML:attribute:subject-id": IdentityAttribute,
+		"displayName": FullNameAttribute,
 		// Microsoft SAML.
-		"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name": &user.Identity,
-		"http://schemas.microsoft.com/identity/claims/displayname":   &user.Fullname,
+		"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name": IdentityAttribute,
+		"http://schemas.microsoft.com/identity/claims/displayname":   FullNameAttribute,
 		// keycloak X500 mapping
-		"email":     &user.Identity,
-		"givenName": &givenName,
-		"surname":   &surname,
+		"email":     IdentityAttribute,
+		"givenName": FirstNameAttribute,
+		"surname":   LastNameAttribute,
 		// Zitadel SAML
-		"UserName": &user.Identity,
-		"FullName": &user.Fullname,
+		"UserName": IdentityAttribute,
+		"FullName": FullNameAttribute,
+		// Fusion SAML
+		"full_name": FullNameAttribute,
 	}
+
+	maps.Copy(copyFields, extraFields)
 
 	// Google SAML keeps that info in Subject.
 	if strings.Contains(assertion.Issuer.Value, "google.com") {
@@ -402,7 +419,29 @@ func LocateUserInfo(assertion *saml.Assertion) (UserInfo, error) {
 				continue
 			}
 
-			*param = attr.Values[0].Value
+			val := attr.Values[0].Value
+
+			var dest *string
+
+			switch param {
+			case IdentityAttribute:
+				_, err := mail.ParseAddress(val)
+				if err == nil {
+					dest = &user.Identity
+				}
+			case FullNameAttribute:
+				dest = &user.Fullname
+			case FirstNameAttribute:
+				dest = &givenName
+			case LastNameAttribute:
+				dest = &surname
+			}
+
+			if dest == nil || *dest != "" {
+				continue
+			}
+
+			*dest = val
 		}
 	}
 
