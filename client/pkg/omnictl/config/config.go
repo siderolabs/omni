@@ -9,8 +9,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/adrg/xdg"
+	"github.com/siderolabs/go-api-signature/pkg/fileutils"
+	"github.com/siderolabs/talos/pkg/machinery/client/config"
+	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"gopkg.in/yaml.v3"
 )
 
@@ -18,7 +22,9 @@ const (
 	// OmniConfigEnvVar is the environment variable to override the default config path.
 	OmniConfigEnvVar = "OMNICONFIG"
 
-	relativePath       = "omni/config"
+	omniConfigFolder   = "omni"
+	omniConfigFile     = "config"
+	OmniRelativePath   = omniConfigFolder + "/" + omniConfigFile
 	defaultContextName = "default"
 )
 
@@ -70,7 +76,7 @@ func load(path string) (*Config, error) {
 	var err error
 
 	if path == "" {
-		path, err = defaultPath()
+		path, err = defaultPath(READ)
 		if err != nil {
 			return nil, err
 		}
@@ -100,7 +106,7 @@ func (c *Config) Save() error {
 
 	path := c.Path
 	if path == "" {
-		path, err = defaultPath()
+		path, err = defaultPath(WRITE)
 		if err != nil {
 			return err
 		}
@@ -194,11 +200,112 @@ func (c *Config) Merge(additionalConfigPath string) ([]Rename, error) {
 	return renames, nil
 }
 
-func defaultPath() (string, error) {
+type accessType int32
+
+const (
+	READ accessType = iota
+	WRITE
+)
+
+//nolint:gocognit
+func defaultPath(access accessType) (string, error) {
 	path := os.Getenv(OmniConfigEnvVar)
 	if path != "" {
 		return path, nil
 	}
 
-	return xdg.ConfigFile(relativePath)
+	baseDir, err := config.GetTalosDirectory()
+	if err == nil {
+		if access == WRITE {
+			if !fileutils.FileExists(filepath.Join(baseDir, OmniRelativePath)) && fileutils.FileExists(filepath.Join(xdg.ConfigHome, OmniRelativePath)) {
+				// Ensure the Talos home directory exists and is writable.
+				if _, err = ensurePath(filepath.Join(baseDir, omniConfigFolder)); err == nil {
+					if fileutils.IsWritable(filepath.Join(baseDir, omniConfigFolder)) {
+						// Attempt to copy the config from XDG config directory to Talos home directory when all the dependencies are satisfied.
+						// This normally shouldn't fail, but if it does, do not fall back to XDG config directory, and fail with error.
+						return copyConfig(filepath.Join(xdg.ConfigHome, OmniRelativePath), filepath.Join(baseDir, omniConfigFolder))
+					}
+				}
+
+				// Do not try to fall back to XDG config directory for WRITE access
+				return "", err
+			}
+
+			return ensurePath(filepath.Join(baseDir, omniConfigFolder))
+		}
+
+		if access == READ {
+			if !fileutils.FileExists(filepath.Join(baseDir, OmniRelativePath)) && fileutils.FileExists(filepath.Join(xdg.ConfigHome, OmniRelativePath)) {
+				// Ensure the Talos home directory exists and is writable.
+				if _, err = ensurePath(filepath.Join(baseDir, omniConfigFolder)); err == nil {
+					if fileutils.IsWritable(filepath.Join(baseDir, omniConfigFolder)) {
+						// Attempt to copy the config from XDG config directory to Talos home directory when all the dependencies are satisfied.
+						// This normally shouldn't fail, but if it does, do not fall back to XDG config directory, and fail with error.
+						return copyConfig(filepath.Join(xdg.ConfigHome, OmniRelativePath), filepath.Join(baseDir, omniConfigFolder))
+					}
+				}
+
+				fmt.Fprintf(os.Stderr, "WARN: Default Omni config location: '%s' is not writable, falling back to deprecated Omni config location: %s\n",
+					filepath.Join(baseDir, OmniRelativePath), filepath.Join(xdg.ConfigHome, OmniRelativePath))
+
+				// Talos home directory is not writable, but we can still read the config from XDG config directory
+				return xdg.ConfigFile(OmniRelativePath)
+			}
+
+			return ensurePath(filepath.Join(baseDir, omniConfigFolder))
+		}
+
+		return "", errors.New("unknown access type")
+	}
+
+	if access == READ && fileutils.FileExists(filepath.Join(xdg.ConfigHome, OmniRelativePath)) {
+		return xdg.ConfigFile(OmniRelativePath)
+	}
+
+	return "", err
+}
+
+func ensurePath(path string) (string, error) {
+	err := os.MkdirAll(path, os.ModeDir|0o700)
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(path, omniConfigFile), nil
+}
+
+func copyConfig(src, dstDir string) (string, error) {
+	dst, err := ensurePath(dstDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to ensure path %q: %w", dst, err)
+	}
+
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return "", fmt.Errorf("failed to read source config file %q: %w", src, err)
+	}
+
+	err = os.WriteFile(dst, data, 0o600)
+	if err != nil {
+		return "", fmt.Errorf("failed to write destination config file %q: %w", dst, err)
+	}
+
+	fmt.Fprintf(os.Stderr, "INFO: Omni config was copied from deprecated default location: '%s' to new default location: '%s'\n", src, dst)
+
+	return dst, nil
+}
+
+// CustomSideroV1KeysDirPath returns the custom SideroV1 auth keys directory path if it's provided as command line flag or with environment variable.
+// If not provided, it returns an empty string.
+func CustomSideroV1KeysDirPath(path string) string {
+	if path != "" {
+		return path
+	}
+
+	path = os.Getenv(constants.SideroV1KeysDirEnvVar)
+	if path != "" {
+		return path
+	}
+
+	return ""
 }
