@@ -265,7 +265,7 @@ func downloadImageTo(ctx context.Context, client *client.Client, media *omni.Ins
 		return err
 	}
 
-	err = signRequest(req)
+	err = signRequest(req, client.KeyProvider())
 	if err != nil {
 		return err
 	}
@@ -392,8 +392,8 @@ func createRequest(ctx context.Context, client *client.Client, schematic string,
 	return req, err
 }
 
-func signRequest(req *http.Request) error {
-	identity, signer, err := getSigner()
+func signRequest(req *http.Request, provider *pgpclient.KeyProvider) error {
+	identity, signer, err := getSigner(provider)
 	if err != nil {
 		return err
 	}
@@ -409,7 +409,7 @@ func signRequest(req *http.Request) error {
 // getSigner returns the identity and the signer to use for signing the request.
 //
 // It can be a service account or a user key.
-func getSigner() (identity string, signer message.Signer, err error) {
+func getSigner(provider *pgpclient.KeyProvider) (identity string, signer message.Signer, err error) {
 	envKey, valueBase64 := serviceaccount.GetFromEnv()
 	if envKey != "" {
 		sa, saErr := serviceaccount.Decode(valueBase64)
@@ -424,8 +424,6 @@ func getSigner() (identity string, signer message.Signer, err error) {
 	if err != nil {
 		return "", nil, err
 	}
-
-	provider := pgpclient.NewKeyProvider("omni/keys")
 
 	key, keyErr := provider.ReadValidKey(contextName, configCtx.Auth.SideroV1.Identity)
 	if keyErr != nil {

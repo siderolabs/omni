@@ -100,7 +100,7 @@ func WithClient(f func(ctx context.Context, client *client.Client) error, client
 				fmt.Fprintf(os.Stderr, "[WARN] basic auth is deprecated and has no effect\n")
 			}
 
-			opts = append(opts, client.WithUserAccount(contextName, configCtx.Auth.SideroV1.Identity))
+			opts = append(opts, client.WithUserAccount(contextName, configCtx.Auth.SideroV1.Identity), client.WithCustomKeysDir(CmdFlags.SideroV1KeysDir))
 
 			if configCtx.URL == config.PlaceholderURL {
 				return fmt.Errorf("context %q has not been configured, you will need to set it manually", contextName)

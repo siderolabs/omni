@@ -66,7 +66,7 @@ require (
 	github.com/siderolabs/discovery-client v0.1.11
 	github.com/siderolabs/discovery-service v1.0.10
 	github.com/siderolabs/gen v0.8.5
-	github.com/siderolabs/go-api-signature v0.3.6
+	github.com/siderolabs/go-api-signature v0.3.7
 	github.com/siderolabs/go-circular v0.2.3
 	github.com/siderolabs/go-debug v0.5.0
 	github.com/siderolabs/go-kubernetes v0.2.23
@@ -82,7 +82,7 @@ require (
 	github.com/siderolabs/omni/client v0.49.0
 	github.com/siderolabs/proto-codec v0.1.2
 	github.com/siderolabs/siderolink v0.3.15
-	github.com/siderolabs/talos/pkg/machinery v1.11.0-beta.2
+	github.com/siderolabs/talos/pkg/machinery v1.11.0-alpha.3.0.20250815132738-8817cc60cfaf
 	github.com/siderolabs/tcpproxy v0.1.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
@@ -106,7 +106,7 @@ require (
 	golang.zx2c4.com/wireguard v0.0.0-20250505131008-436f7fdc1670
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20241231184526-a9ab2273dd10
 	google.golang.org/grpc v1.73.0
-	google.golang.org/protobuf v1.36.6
+	google.golang.org/protobuf v1.36.7
 	gopkg.in/yaml.v3 v3.0.3
 	k8s.io/api v0.34.0-alpha.0
 	k8s.io/apimachinery v0.34.0-alpha.0
@@ -227,7 +227,7 @@ require (
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/siderolabs/go-kubeconfig v0.1.1 // indirect
 	github.com/siderolabs/net v0.4.0 // indirect
-	github.com/siderolabs/protoenc v0.2.2 // indirect
+	github.com/siderolabs/protoenc v0.2.3 // indirect
 	github.com/soheilhy/cmux v0.1.5 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect

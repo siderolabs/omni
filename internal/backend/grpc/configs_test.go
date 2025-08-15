@@ -19,6 +19,8 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/siderolabs/go-api-signature/pkg/message"
+	"github.com/siderolabs/go-api-signature/pkg/pgp"
+	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
 	machineryconfig "github.com/siderolabs/talos/pkg/machinery/config"
 	talossecrets "github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
@@ -33,6 +35,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
+	pkgaccess "github.com/siderolabs/omni/client/pkg/access"
 	"github.com/siderolabs/omni/client/pkg/client"
 	managementclient "github.com/siderolabs/omni/client/pkg/client/management"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -69,10 +72,18 @@ func TestGenerateConfigs(t *testing.T) {
 	runtime.Install(kubernetes.Name, k8s)
 
 	clusterName := "cluster1"
+	saName := "serviceaccount1"
+	serviceAccountEmail := saName + pkgaccess.ServiceAccountNameSuffix
+
+	key, err := pgp.GenerateKey(saName, "", serviceAccountEmail, auth.ServiceAccountMaxAllowedLifetime)
+	require.NoError(t, err)
+
+	encodedKey, err := serviceaccount.Encode(saName, key)
+	require.NoError(t, err)
 
 	address := runServer(t, st.Default())
 
-	c, err := client.New(address)
+	c, err := client.New(address, client.WithServiceAccount(encodedKey))
 	require.NoError(t, err)
 
 	client := c.Management().WithCluster(clusterName)

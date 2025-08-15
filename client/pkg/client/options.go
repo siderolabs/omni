@@ -7,21 +7,21 @@ package client
 
 import (
 	"github.com/siderolabs/go-api-signature/pkg/client/interceptor"
-	"github.com/siderolabs/go-api-signature/pkg/pgp/client"
 	"google.golang.org/grpc"
 
 	"github.com/siderolabs/omni/client/pkg/client/omni"
-	"github.com/siderolabs/omni/client/pkg/version"
 )
 
 // Options is the options for the client.
 type Options struct {
-	AuthInterceptor *interceptor.Interceptor
-
+	AuthInterceptor           *interceptor.Interceptor
+	serviceAccountBase64      string
+	contextName               string
+	identity                  string
+	customKeysDir             string
 	AdditionalGRPCDialOptions []grpc.DialOption
 	OmniClientOptions         []omni.Option
-
-	InsecureSkipTLSVerify bool
+	InsecureSkipTLSVerify     bool
 }
 
 // Option is a functional option for the client.
@@ -37,25 +37,23 @@ func WithInsecureSkipTLSVerify(insecureSkipTLSVerify bool) Option {
 // WithServiceAccount creates the client authenticating with the given service account.
 func WithServiceAccount(serviceAccountBase64 string) Option {
 	return func(options *Options) {
-		options.AuthInterceptor = signatureAuthInterceptor("", "", serviceAccountBase64)
+		options.serviceAccountBase64 = serviceAccountBase64
 	}
 }
 
 // WithUserAccount is used for accessing Omni by a human.
 func WithUserAccount(contextName, identity string) Option {
 	return func(options *Options) {
-		options.AuthInterceptor = signatureAuthInterceptor(contextName, identity, "")
+		options.contextName = contextName
+		options.identity = identity
 	}
 }
 
-func signatureAuthInterceptor(contextName, identity, serviceAccountBase64 string) *interceptor.Interceptor {
-	return interceptor.New(interceptor.Options{
-		UserKeyProvider:      client.NewKeyProvider("omni/keys"),
-		ContextName:          contextName,
-		Identity:             identity,
-		ClientName:           version.Name + " " + version.Tag,
-		ServiceAccountBase64: serviceAccountBase64,
-	})
+// WithCustomKeysDir is used to specify a custom directory for user PGP keys.
+func WithCustomKeysDir(customKeysDir string) Option {
+	return func(options *Options) {
+		options.customKeysDir = customKeysDir
+	}
 }
 
 // WithGrpcOpts adds additional gRPC dial options to the client.

@@ -9,8 +9,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/adrg/xdg"
+	"github.com/siderolabs/go-api-signature/pkg/fileutils"
+	"github.com/siderolabs/talos/pkg/machinery/client/config"
+	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"gopkg.in/yaml.v3"
 )
 
@@ -18,8 +22,10 @@ const (
 	// OmniConfigEnvVar is the environment variable to override the default config path.
 	OmniConfigEnvVar = "OMNICONFIG"
 
-	relativePath       = "omni/config"
-	defaultContextName = "default"
+	omniConfigDirectory = "omni"
+	omniConfigFile      = "config"
+	OmniRelativePath    = omniConfigDirectory + "/" + omniConfigFile
+	defaultContextName  = "default"
 )
 
 var (
@@ -70,7 +76,7 @@ func load(path string) (*Config, error) {
 	var err error
 
 	if path == "" {
-		path, err = defaultPath()
+		path, err = defaultPath(true)
 		if err != nil {
 			return nil, err
 		}
@@ -100,7 +106,7 @@ func (c *Config) Save() error {
 
 	path := c.Path
 	if path == "" {
-		path, err = defaultPath()
+		path, err = defaultPath(false)
 		if err != nil {
 			return err
 		}
@@ -194,11 +200,87 @@ func (c *Config) Merge(additionalConfigPath string) ([]Rename, error) {
 	return renames, nil
 }
 
-func defaultPath() (string, error) {
+//nolint:gocognit
+func defaultPath(readOnly bool) (string, error) {
 	path := os.Getenv(OmniConfigEnvVar)
 	if path != "" {
 		return path, nil
 	}
 
-	return xdg.ConfigFile(relativePath)
+	baseDir, err := config.GetTalosDirectory()
+	if err != nil {
+		if readOnly && fileutils.FileExists(filepath.Join(xdg.ConfigHome, OmniRelativePath)) {
+			fmt.Fprintf(os.Stderr, "WARN: Failed to determine Talos directory, falling back to deprecated Omni config location: '%s' for reading.\n",
+				filepath.Join(xdg.ConfigHome, OmniRelativePath))
+
+			return xdg.ConfigFile(OmniRelativePath)
+		}
+
+		return "", err
+	}
+
+	return evaluatePath(readOnly, baseDir)
+}
+
+func evaluatePath(readOnly bool, baseDir string) (string, error) {
+	if !fileutils.FileExists(filepath.Join(baseDir, OmniRelativePath)) && fileutils.FileExists(filepath.Join(xdg.ConfigHome, OmniRelativePath)) {
+		// Ensure the Talos home directory exists and is writable.
+		if _, err := ensurePath(filepath.Join(baseDir, omniConfigDirectory)); err != nil {
+			// Talos home directory is not writable, but we can still read the config from XDG config directory
+			if readOnly {
+				fmt.Fprintf(os.Stderr, "WARN: Default Omni config location: '%s' is not writable, falling back to deprecated Omni config location: '%s' for reading.\n",
+					filepath.Join(baseDir, OmniRelativePath), filepath.Join(xdg.ConfigHome, OmniRelativePath))
+
+				return xdg.ConfigFile(OmniRelativePath)
+			}
+
+			return "", err
+		}
+
+		if fileutils.IsWritable(filepath.Join(baseDir, omniConfigDirectory)) {
+			// Attempt to copy the config from XDG config directory to Talos home directory.
+			// This normally shouldn't fail, but if it does then fail with error instead of falling back to XDG config directory.
+			return copyConfig(filepath.Join(xdg.ConfigHome, OmniRelativePath), filepath.Join(baseDir, omniConfigDirectory))
+		}
+	}
+
+	return ensurePath(filepath.Join(baseDir, omniConfigDirectory))
+}
+
+func ensurePath(path string) (string, error) {
+	if err := os.MkdirAll(path, os.ModeDir|0o700); err != nil {
+		return "", err
+	}
+
+	return filepath.Join(path, omniConfigFile), nil
+}
+
+func copyConfig(src, dstDir string) (string, error) {
+	dst, err := ensurePath(dstDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to ensure path %q: %w", dst, err)
+	}
+
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return "", fmt.Errorf("failed to read source config file %q: %w", src, err)
+	}
+
+	err = os.WriteFile(dst, data, 0o600)
+	if err != nil {
+		return "", fmt.Errorf("failed to write destination config file %q: %w", dst, err)
+	}
+
+	fmt.Fprintf(os.Stderr, "INFO: Omni config was copied from deprecated default location: '%s' to new default location: '%s'\n", src, dst)
+
+	return dst, nil
+}
+
+// CustomSideroV1KeysDirPath returns the custom SideroV1 auth keys directory path if it's provided as command line flag or with environment variable.
+func CustomSideroV1KeysDirPath(path string) string {
+	if path != "" {
+		return path
+	}
+
+	return os.Getenv(constants.SideroV1KeysDirEnvVar)
 }

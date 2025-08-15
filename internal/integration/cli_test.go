@@ -107,7 +107,15 @@ func runCmd(path, endpoint, key string, args ...string) (bytes.Buffer, bytes.Buf
 	cmd.Stdin = nil
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+
+	tempHomeDir, err := os.MkdirTemp("", "cli-test")
+	if err != nil {
+		return stdout, stderr, fmt.Errorf("failed to create temp home dir: %w", err)
+	}
+	defer os.RemoveAll(tempHomeDir)
+
 	cmd.Env = []string{
+		fmt.Sprintf("HOME=%s", tempHomeDir),
 		fmt.Sprintf("OMNI_ENDPOINT=%s", endpoint),
 		fmt.Sprintf("OMNI_SERVICE_ACCOUNT_KEY=%s", key),
 	}
@@ -116,7 +124,7 @@ func runCmd(path, endpoint, key string, args ...string) (bytes.Buffer, bytes.Buf
 		return stdout, stderr, err
 	}
 
-	err := cmd.Wait()
+	err = cmd.Wait()
 
 	return stdout, stderr, err
 }

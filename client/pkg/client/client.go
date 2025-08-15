@@ -7,6 +7,7 @@ package client
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -14,7 +15,10 @@ import (
 	"time"
 
 	"github.com/siderolabs/go-api-signature/pkg/client/auth"
+	"github.com/siderolabs/go-api-signature/pkg/client/interceptor"
+	pgpclient "github.com/siderolabs/go-api-signature/pkg/pgp/client"
 	_ "github.com/siderolabs/proto-codec/codec" // for encoding.CodecV2
+	"github.com/siderolabs/talos/pkg/machinery/client/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -27,14 +31,15 @@ import (
 	"github.com/siderolabs/omni/client/pkg/client/talos"
 	"github.com/siderolabs/omni/client/pkg/compression"
 	"github.com/siderolabs/omni/client/pkg/constants"
+	"github.com/siderolabs/omni/client/pkg/version"
 )
 
 // Client is Omni API client.
 type Client struct {
-	conn    *grpc.ClientConn
-	options *Options
-
-	endpoint string
+	conn        *grpc.ClientConn
+	options     *Options
+	keyProvider *pgpclient.KeyProvider
+	endpoint    string
 }
 
 // New creates a new Omni API client.
@@ -63,10 +68,23 @@ func New(endpoint string, opts ...Option) (*Client, error) {
 	var (
 		options         Options
 		grpcDialOptions []grpc.DialOption
+		keyProvider     *pgpclient.KeyProvider
 	)
 
 	for _, opt := range opts {
 		opt(&options)
+	}
+
+	if options.identity != "" && options.serviceAccountBase64 != "" {
+		return nil, errors.New("can't determine if client is for user account or service account, because both identity and service account are set, only one is allowed")
+	}
+
+	if options.serviceAccountBase64 != "" {
+		options.AuthInterceptor, keyProvider = signatureAuthInterceptor("", "", "", options.serviceAccountBase64)
+	}
+
+	if options.contextName != "" && options.identity != "" {
+		options.AuthInterceptor, keyProvider = signatureAuthInterceptor(options.contextName, options.identity, options.customKeysDir, "")
 	}
 
 	if options.AuthInterceptor != nil {
@@ -98,8 +116,9 @@ func New(endpoint string, opts ...Option) (*Client, error) {
 	)
 
 	c := &Client{
-		endpoint: u.String(),
-		options:  &options,
+		endpoint:    u.String(),
+		options:     &options,
+		keyProvider: keyProvider,
 	}
 
 	c.conn, err = grpc.NewClient(u.Host, grpcDialOptions...)
@@ -143,4 +162,34 @@ func (c *Client) Talos() *talos.Client {
 // Endpoint returns the endpoint this client is configured to talk to.
 func (c *Client) Endpoint() string {
 	return c.endpoint
+}
+
+// KeyProvider returns the key provider used by this client.
+func (c *Client) KeyProvider() *pgpclient.KeyProvider {
+	return c.keyProvider
+}
+
+func signatureAuthInterceptor(contextName, identity, customKeysDir, serviceAccountBase64 string) (*interceptor.Interceptor, *pgpclient.KeyProvider) {
+	keyProvider := getNewKeyProvider(customKeysDir)
+
+	return interceptor.New(interceptor.Options{
+		UserKeyProvider:      keyProvider,
+		ContextName:          contextName,
+		Identity:             identity,
+		ClientName:           version.Name + " " + version.Tag,
+		ServiceAccountBase64: serviceAccountBase64,
+	}), keyProvider
+}
+
+func getNewKeyProvider(customKeysDir string) *pgpclient.KeyProvider {
+	if customKeysDir != "" {
+		return pgpclient.NewKeyProviderWithFallback("omni/keys", customKeysDir, "", true)
+	}
+
+	talosDir, err := config.GetTalosDirectory()
+	if err != nil {
+		return pgpclient.NewKeyProvider("omni/keys")
+	}
+
+	return pgpclient.NewKeyProviderWithFallback("omni/keys", talosDir, "keys", true)
 }

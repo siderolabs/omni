@@ -8,5 +8,6 @@ package access
 var CmdFlags struct {
 	Omniconfig            string
 	Context               string
+	SideroV1KeysDir       string
 	InsecureSkipTLSVerify bool
 }
