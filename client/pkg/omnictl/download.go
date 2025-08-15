@@ -19,7 +19,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-api-signature/pkg/message"
-	pgpclient "github.com/siderolabs/go-api-signature/pkg/pgp/client"
 	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -265,7 +264,7 @@ func downloadImageTo(ctx context.Context, client *client.Client, media *omni.Ins
 		return err
 	}
 
-	err = signRequest(req)
+	err = signRequest(req, config.CustomSideroV1KeysDirPath(access.CmdFlags.SideroV1KeysDir))
 	if err != nil {
 		return err
 	}
@@ -392,8 +391,8 @@ func createRequest(ctx context.Context, client *client.Client, schematic string,
 	return req, err
 }
 
-func signRequest(req *http.Request) error {
-	identity, signer, err := getSigner()
+func signRequest(req *http.Request, customKeysDir string) error {
+	identity, signer, err := getSigner(customKeysDir)
 	if err != nil {
 		return err
 	}
@@ -409,7 +408,7 @@ func signRequest(req *http.Request) error {
 // getSigner returns the identity and the signer to use for signing the request.
 //
 // It can be a service account or a user key.
-func getSigner() (identity string, signer message.Signer, err error) {
+func getSigner(customKeysDir string) (identity string, signer message.Signer, err error) {
 	envKey, valueBase64 := serviceaccount.GetFromEnv()
 	if envKey != "" {
 		sa, saErr := serviceaccount.Decode(valueBase64)
@@ -425,7 +424,7 @@ func getSigner() (identity string, signer message.Signer, err error) {
 		return "", nil, err
 	}
 
-	provider := pgpclient.NewKeyProvider("omni/keys")
+	provider := client.GetNewKeyProvider(customKeysDir)
 
 	key, keyErr := provider.ReadValidKey(contextName, configCtx.Auth.SideroV1.Identity)
 	if keyErr != nil {
