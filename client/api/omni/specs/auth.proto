@@ -28,6 +28,9 @@ message AuthConfigSpec {
     // saml assertion and turn them into labels.
     map<string, string> label_rules = 4;
     string name_id_format = 5;
+    // AttributeRules defines custom rules on how to extract the identity, fullname, firstname and lastname
+    // from the SAML assertion.
+    map<string, string> attribute_rules = 6;
   }
 
   Auth0 auth0 = 1;

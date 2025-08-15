@@ -49,6 +49,7 @@ func EnsureAuthConfigResource(ctx context.Context, st state.State, logger *zap.L
 		res.TypedSpec().Value.Saml.Url = authParams.SAML.MetadataURL
 		res.TypedSpec().Value.Saml.Metadata = authParams.SAML.Metadata
 		res.TypedSpec().Value.Saml.LabelRules = authParams.SAML.LabelRules
+		res.TypedSpec().Value.Saml.AttributeRules = authParams.SAML.AttributeRules
 		res.TypedSpec().Value.Saml.NameIdFormat = authParams.SAML.NameIDFormat
 
 		if res.TypedSpec().Value.Webauthn.Enabled && !authParams.WebAuthn.Enabled {
