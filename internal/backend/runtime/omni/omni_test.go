@@ -84,7 +84,7 @@ func (suite *OmniRuntimeSuite) SetupTest() {
 	clientFactory := talos.NewClientFactory(resourceState, logger)
 	dnsService := dns.NewService(resourceState, logger)
 	discoveryClientCache := &discoveryClientCacheMock{}
-	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zapcore.InfoLevel)
+	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zapcore.InfoLevel, 30*time.Second)
 
 	suite.runtime, err = omniruntime.NewRuntime(clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil, nil,
 		omniruntime.NewMockState(resourceState), prometheus.NewRegistry(), discoveryClientCache, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))

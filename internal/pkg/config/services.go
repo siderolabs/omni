@@ -227,8 +227,9 @@ type LoadBalancerService struct {
 
 // WorkloadProxy configures workload proxy.
 type WorkloadProxy struct {
-	Subdomain string `yaml:"subdomain"`
-	Enabled   bool   `yaml:"enabled"`
+	Subdomain    string        `yaml:"subdomain"`
+	Enabled      bool          `yaml:"enabled"`
+	StopLBsAfter time.Duration `yaml:"stopLBsAfter"`
 }
 
 const (
