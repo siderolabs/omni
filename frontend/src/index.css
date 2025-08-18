@@ -49,6 +49,8 @@ included in the LICENSE file.
   --color-yellow-y3: #a97809;
   --color-yellow-y4: #252115;
 
+  --color-blue-b1: #59a5ff;
+
   --animate-fadein: fadein 300ms linear;
 
   @keyframes fadein {
@@ -63,7 +65,7 @@ included in the LICENSE file.
 
 @layer base {
   body {
-    @apply bg-naturals-n0 font-sans text-naturals-n11;
+    @apply bg-naturals-n0 text-naturals-n11 antialiased;
   }
 
   *::-webkit-scrollbar {

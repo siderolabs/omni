@@ -96,7 +96,7 @@ const items = computed(() => {
   const result: SideBarItem[] = [
     {
       name: 'Home',
-      route: getRoute('Overview', '/omni/'),
+      route: getRoute('Home', '/omni/'),
       icon: 'home',
     },
   ]

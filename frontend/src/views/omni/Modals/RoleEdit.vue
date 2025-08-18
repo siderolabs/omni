@@ -88,7 +88,6 @@ const close = () => {
           },
           runtime: Runtime.Omni,
         }"
-        class="flex-1"
       >
         <template #default="{ items }">
           <TSelectList

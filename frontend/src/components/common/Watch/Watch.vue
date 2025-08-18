@@ -24,39 +24,22 @@ const { items, err, loading } = useWatch<T, any>(props.opts)
 </script>
 
 <template>
-  <div class="watch">
-    <div v-if="spinner && loading" class="flex h-full w-full flex-row items-center justify-center">
-      <TSpinner class="loading-spinner" />
-    </div>
-    <template v-else-if="errorsAlert && err">
-      <TAlert v-if="!$slots.error" title="Failed to Fetch Data" type="error"> {{ err }}. </TAlert>
-      <slot v-else name="error" err="err" />
-    </template>
-    <template v-else-if="noRecordsAlert && items.length === 0">
-      <TAlert v-if="!$slots.norecords" type="info" title="No Records"
-        >No entries of the requested resource type are found on the server.</TAlert
-      >
-      <slot name="norecords" />
-    </template>
-    <div
-      v-show="(!loading && !err && (items.length > 0 || !noRecordsAlert)) || displayAlways"
-      class="wrapper"
-    >
-      <slot :items="items" />
-    </div>
+  <div v-if="spinner && loading" class="flex size-full items-center justify-center">
+    <TSpinner class="size-6" />
   </div>
+
+  <slot v-else-if="errorsAlert && err" name="error" :err="err">
+    <TAlert title="Failed to Fetch Data" type="error">{{ err }}.</TAlert>
+  </slot>
+
+  <slot v-else-if="noRecordsAlert && !items.length" name="norecords">
+    <TAlert type="info" title="No Records">
+      No entries of the requested resource type are found on the server.
+    </TAlert>
+  </slot>
+
+  <slot
+    v-if="(!loading && !err && (items.length || !noRecordsAlert)) || displayAlways"
+    :items="items"
+  />
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.watch {
-  @apply w-full;
-}
-.wrapper {
-  @apply h-full w-full;
-}
-.loading-spinner {
-  @apply absolute top-2/4 h-6 w-6;
-}
-</style>

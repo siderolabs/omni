@@ -6,108 +6,134 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import type { ApexOptions } from 'apexcharts'
-import type { Ref } from 'vue'
-import { computed, toRefs } from 'vue'
+import { computed } from 'vue'
 import ApexChart from 'vue3-apexcharts'
 
-type Props = {
-  name: string
-  labels?: string[]
-  total: number
-  series: number[]
-
-  formatter?: (input: number) => string
+interface Props {
+  title: string
+  showHollowTotal?: boolean
+  vertical?: boolean
+  total?: number
+  items: {
+    label: string
+    value: number
+  }[]
+  legendFormatter?: (value: number) => string
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  formatter: (input: number) => input.toFixed(2),
+  total: undefined,
+  legendFormatter: (value: number) => value.toString(),
 })
 
-const { total, series } = toRefs(props)
+const total = computed(
+  () => props.total ?? props.items.reduce((prev, curr) => prev + curr.value, 0),
+)
 
-const normalized = computed(() => {
-  return series.value.map((value) => {
-    if (!total.value) {
-      return 0
-    }
+const series = computed(() =>
+  props.total === 0
+    ? Array<number>(props.items.length).fill(0)
+    : props.items.map((i) => Math.round((i.value / total.value) * 100)),
+)
 
-    return (value / total.value) * 100
-  })
-})
+const legendItems = computed(() => [
+  {
+    label: 'Total',
+    value: props.legendFormatter(total.value),
+    color: 'var(--color-naturals-n8)',
+  },
+  ...props.items.map((item, i) => ({
+    label: item.label,
+    value: props.legendFormatter(item.value),
+    color: colors[i],
+  })),
+])
 
 const colors = [
   'var(--color-primary-p3)',
   'var(--color-red-r1)',
   'var(--color-green-g1)',
-  'var(--color-yelow-y1)',
+  'var(--color-blue-b1)',
+  'var(--color-yellow-y1)',
 ]
 
-const options: Ref<ApexOptions> = computed(() => {
-  return {
-    chart: {},
-    yaxis: {
-      max: total?.value ?? 0,
-    },
-    plotOptions: {
-      radialBar: {
-        hollow: {
-          size: `${80 - series.value.length * 20}`,
+const options = computed<ApexOptions>(() => ({
+  plotOptions: {
+    radialBar: {
+      hollow: {
+        size: `${80 - props.items.length * 10}`,
+      },
+      track: {
+        margin: 2,
+        background: [
+          'var(--color-naturals-n8)',
+          ...Array<string>(props.items.length - 1).fill('transparent'),
+        ],
+      },
+      dataLabels: {
+        name: { show: false },
+        total: {
+          show: props.showHollowTotal,
+          formatter: () =>
+            props.legendFormatter(total.value) /* To prevent library's calculation */,
         },
-        track: {
-          background: 'var(--color-naturals-n0)',
-        },
-        dataLabels: {
-          show: false,
+        value: {
+          show: props.showHollowTotal,
+          offsetY: 5,
+          color: 'var(--color-naturals-n14)',
+          fontSize: 'var(--text-base)',
+          fontWeight: 'var(--font-weight-medium)',
+          formatter: () => props.legendFormatter(total.value), // To always show total instead of individual values
         },
       },
     },
-    fill: {
-      colors: colors,
-    },
-    stroke: {
-      lineCap: 'round',
-    },
-    states: {
-      hover: {
-        filter: {
-          type: 'none',
-        },
-      },
-      active: {
-        filter: {
-          type: 'none',
-        },
+  },
+  fill: {
+    colors: colors,
+  },
+  stroke: {
+    lineCap: 'round',
+  },
+  states: {
+    hover: {
+      filter: {
+        type: 'none',
       },
     },
-  }
-})
+    active: {
+      filter: {
+        type: 'none',
+      },
+    },
+  },
+}))
 </script>
 
 <template>
-  <div class="flex flex-col items-center justify-center gap-1 text-xs font-medium">
-    <h4 class="text-naturals-n13">{{ name }}</h4>
-    <ApexChart
-      class="flex-1"
-      :height="200"
-      :width="200"
-      type="radialBar"
-      :options="options"
-      :series="normalized"
-    />
-    <div class="-mt-4 flex w-full flex-col gap-1 px-4">
-      <div
-        v-for="(label, index) in labels"
-        :key="label"
-        class="flex items-center gap-1 text-naturals-n13"
-      >
-        <div class="h-2.5 w-2.5 rounded-sm" :style="{ 'background-color': colors[index] }" />
-        <div class="flex-1">{{ label }}</div>
-        <div>{{ formatter(series[index]) }}</div>
-      </div>
-      <div class="flex items-center gap-1">
-        <div class="flex-1">Capacity</div>
-        <div>{{ formatter(total) }}</div>
-      </div>
-    </div>
+  <div class="flex flex-col gap-2">
+    <h2 class="text-xl font-medium text-naturals-n14">{{ title }}</h2>
+
+    <figure
+      class="flex items-center gap-2 self-center py-2 not-visited:px-4"
+      :class="{ 'flex-col': vertical }"
+    >
+      <ApexChart type="radialBar" width="200" :options="options" :series="series" />
+
+      <figcaption class="flex flex-col gap-2">
+        <dl
+          v-for="item in legendItems"
+          :key="item.label"
+          class="flex items-center gap-2 text-xs whitespace-nowrap"
+        >
+          <span
+            aria-hidden="true"
+            class="size-2 rounded-xs"
+            :style="{ backgroundColor: item.color }"
+          />
+          <dt class="text-naturals-n11">{{ item.label }}</dt>
+          <dd class="text-naturals-n14">{{ item.value }}</dd>
+        </dl>
+      </figcaption>
+    </figure>
   </div>
 </template>
