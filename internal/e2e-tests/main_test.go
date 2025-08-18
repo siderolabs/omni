@@ -309,7 +309,9 @@ func (s *E2ESuite) TestAuditLog() {
 
 func (s *E2ESuite) TestClickViewAll() {
 	s.withPage(s.baseURL, loginUser, func(page playwright.Page) {
-		viewAllButton := page.Locator("text=View All")
+		viewAllButton := page.Locator("section").
+			Filter(playwright.LocatorFilterOptions{HasText: "Recent Clusters"}).
+			GetByRole("button", playwright.LocatorGetByRoleOptions{Name: "View All"})
 
 		err := viewAllButton.WaitFor()
 

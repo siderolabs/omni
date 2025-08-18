@@ -64,7 +64,6 @@ const updateExtension = (extension: TalosExtensionsSpecInfo) => {
 
     <Watch
       v-if="talosVersion"
-      class="flex-1 overflow-x-hidden overflow-y-auto"
       :opts="{
         resource: {
           id: talosVersion,
@@ -76,7 +75,7 @@ const updateExtension = (extension: TalosExtensionsSpecInfo) => {
       display-always
     >
       <template #default="{ data }">
-        <div v-if="data?.spec.items" class="flex flex-col">
+        <div v-if="data?.spec.items" class="flex flex-col overflow-auto">
           <div
             v-for="extension in filteredExtensions(data.spec.items)"
             :key="extension.name"

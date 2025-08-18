@@ -47,27 +47,23 @@ const hasData = computed(() => (Array.isArray(data.value) ? !!data.value.length 
 </script>
 
 <template>
-  <div class="w-full">
-    <div v-if="spinner && loading" class="flex h-full w-full flex-row items-center justify-center">
-      <TSpinner class="absolute top-2/4 h-6 w-6" />
-    </div>
-
-    <slot v-else-if="errorsAlert && err" name="error" :err="err">
-      <TAlert title="Failed to Fetch Data" type="error">{{ err }}.</TAlert>
-    </slot>
-
-    <slot v-else-if="noRecordsAlert && !hasData" name="norecords">
-      <TAlert type="info" title="No Records">
-        No entries of the requested resource type are found on the server.
-      </TAlert>
-    </slot>
-
-    <div
-      v-show="(!loading && !err && (hasData || !noRecordsAlert)) || displayAlways"
-      class="h-full w-full"
-    >
-      <!-- No idea how to type data correctly here but it works if you ✨believe✨ -->
-      <slot :data="data as any" />
-    </div>
+  <div v-if="spinner && loading" class="flex size-full items-center justify-center">
+    <TSpinner class="size-6" />
   </div>
+
+  <slot v-else-if="errorsAlert && err" name="error" :err="err">
+    <TAlert title="Failed to Fetch Data" type="error">{{ err }}.</TAlert>
+  </slot>
+
+  <slot v-else-if="noRecordsAlert && !hasData" name="norecords">
+    <TAlert type="info" title="No Records">
+      No entries of the requested resource type are found on the server.
+    </TAlert>
+  </slot>
+
+  <!-- No idea how to type data correctly here but it works if you ✨believe✨ -->
+  <slot
+    v-if="(!loading && !err && (hasData || !noRecordsAlert)) || displayAlways"
+    :data="data as any"
+  />
 </template>

@@ -137,7 +137,6 @@ onMounted(async () => {
       <MachineSets />
       <div class="text-naturals-n13">Available Machines</div>
       <Watch
-        class="flex-1"
         :opts="[
           {
             resource: resource,

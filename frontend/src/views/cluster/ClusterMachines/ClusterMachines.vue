@@ -102,7 +102,6 @@ machineNodesWatch.setup(
         },
         runtime: Runtime.Omni,
       }"
-      spinner
     >
       <template #default="{ data }">
         <MachineSet

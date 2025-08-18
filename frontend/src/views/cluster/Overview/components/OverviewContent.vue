@@ -135,10 +135,6 @@ usageWatch.setup(
   }),
 )
 
-const getNumber = (value?: number): number => {
-  return value ?? 0
-}
-
 const talosUpgradeStatus: Ref<Resource<TalosUpgradeStatusSpec> | undefined> = ref()
 const talosUpgradeStatusWatch = new Watch(talosUpgradeStatus)
 
@@ -178,38 +174,44 @@ onMounted(async () => {
       <div class="overview-container">
         <div class="overview-charts-box relative">
           <div
-            class="flex w-full flex-wrap items-stretch justify-around gap-2 transition-opacity duration-500"
+            class="flex w-full flex-wrap gap-2 transition-opacity duration-500 *:flex-1"
             :class="{ 'opacity-25': !showStats }"
           >
             <RadialBar
-              name="CPU"
-              :total="getNumber(usage?.spec?.cpu?.capacity)"
-              :labels="['Requests', 'Limits']"
-              :series="[getNumber(usage?.spec?.cpu?.requests), getNumber(usage?.spec?.cpu?.limits)]"
-            />
-            <RadialBar
-              name="Pods"
-              :total="getNumber(usage?.spec?.pods?.capacity)"
-              :labels="['Requests']"
-              :series="[getNumber(usage?.spec?.pods?.count)]"
-              :formatter="(value: number) => value.toFixed(0)"
-            />
-            <RadialBar
-              name="Memory"
-              :total="getNumber(usage?.spec?.mem?.capacity)"
-              :labels="['Requests', 'Limits']"
-              :series="[getNumber(usage?.spec?.mem?.requests), getNumber(usage?.spec?.mem?.limits)]"
-              :formatter="formatBytes"
-            />
-            <RadialBar
-              name="Ephemeral Storage"
-              :total="getNumber(usage?.spec?.storage?.capacity)"
-              :labels="['Requests', 'Limits']"
-              :series="[
-                getNumber(usage?.spec?.storage?.requests),
-                getNumber(usage?.spec?.storage?.limits),
+              title="CPU"
+              vertical
+              :total="usage?.spec?.cpu?.capacity ?? 0"
+              :items="[
+                { label: 'Requests', value: usage?.spec?.cpu?.requests ?? 0 },
+                { label: 'Limits', value: usage?.spec?.cpu?.limits ?? 0 },
               ]"
-              :formatter="formatBytes"
+              :legend-formatter="(input) => input.toFixed(2)"
+            />
+            <RadialBar
+              title="Pods"
+              vertical
+              :total="usage?.spec?.pods?.capacity ?? 0"
+              :items="[{ label: 'Requests', value: usage?.spec?.pods?.count ?? 0 }]"
+            />
+            <RadialBar
+              title="Memory"
+              vertical
+              :total="usage?.spec?.mem?.capacity ?? 0"
+              :items="[
+                { label: 'Requests', value: usage?.spec?.mem?.requests ?? 0 },
+                { label: 'Limits', value: usage?.spec?.mem?.limits ?? 0 },
+              ]"
+              :legend-formatter="formatBytes"
+            />
+            <RadialBar
+              title="Ephemeral Storage"
+              vertical
+              :total="usage?.spec?.storage?.capacity ?? 0"
+              :items="[
+                { label: 'Requests', value: usage?.spec?.storage?.requests ?? 0 },
+                { label: 'Limits', value: usage?.spec?.storage?.limits ?? 0 },
+              ]"
+              :legend-formatter="formatBytes"
             />
           </div>
           <div

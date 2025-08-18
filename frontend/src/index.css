@@ -49,6 +49,8 @@ included in the LICENSE file.
   --color-yellow-y3: #a97809;
   --color-yellow-y4: #252115;
 
+  --color-blue-b1: #59a5ff;
+
   --animate-fadein: fadein 300ms linear;
 
   @keyframes fadein {
@@ -63,7 +65,7 @@ included in the LICENSE file.
 
 @layer base {
   body {
-    @apply bg-naturals-n0 font-sans text-naturals-n11;
+    @apply bg-naturals-n0 text-naturals-n11 antialiased;
   }
 
   *::-webkit-scrollbar {
@@ -72,6 +74,11 @@ included in the LICENSE file.
 
   *::-webkit-scrollbar-thumb {
     @apply h-1.5 w-1.5 rounded-sm border border-naturals-n4 bg-naturals-n5;
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
   }
 }
 
@@ -87,138 +94,76 @@ included in the LICENSE file.
   .resource-label {
     @apply rounded-sm border px-2 py-0.5;
 
-    --background-alpha: 0.18;
-    --border-alpha: 0.3;
-    --lighten-by: 20;
-
-    color: hsl(
-      var(--label-h),
-      calc(var(--label-s) * 1%),
-      calc((var(--label-l) + var(--lighten-by)) * 1%)
-    );
-
-    background-color: hsla(
-      var(--label-h),
-      calc(var(--label-s) * 1%),
-      calc((var(--label-l) + var(--lighten-by)) * 1%),
-      var(--background-alpha)
-    );
-
-    border-color: hsla(
-      var(--label-h),
-      calc(var(--label-s) * 1%),
-      calc((var(--label-l) + var(--lighten-by)) * 1%),
-      var(--border-alpha)
-    );
+    color: var(--resource-label-color);
+    background-color: color-mix(in hsl, var(--resource-label-color) 18%, transparent);
+    border-color: color-mix(in hsl, var(--resource-label-color) 30%, transparent);
   }
 
   .label-green {
-    --label-h: 142;
-    --label-s: 100;
-    --label-l: 49;
+    --resource-label-color: hsl(142 100 69);
   }
 
   .label-red {
-    --label-h: 359;
-    --label-s: 97;
-    --label-l: 36;
+    --resource-label-color: hsl(359 97 56);
   }
 
   .label-orange {
-    --label-h: 15;
-    --label-s: 90;
-    --label-l: 44;
+    --resource-label-color: hsl(15 90 64);
   }
 
   .label-violet {
-    --label-h: 313;
-    --label-s: 97;
-    --label-l: 58;
+    --resource-label-color: hsl(313 97 78);
   }
 
   .label-yellow {
-    --label-h: 48;
-    --label-s: 96;
-    --label-l: 50;
+    --resource-label-color: hsl(48 96 70);
   }
 
   .label-cyan {
-    --label-h: 185;
-    --label-s: 100;
-    --label-l: 22;
+    --resource-label-color: hsl(185 100 42);
   }
 
   .label-blue1 {
-    --label-h: 211;
-    --label-s: 76;
-    --label-l: 48;
+    --resource-label-color: hsl(211 76 68);
   }
 
   .label-blue2 {
-    --label-h: 215;
-    --label-s: 100;
-    --label-l: 40;
+    --resource-label-color: hsl(215 100 60);
   }
 
   .label-blue3 {
-    --label-h: 256;
-    --label-s: 81;
-    --label-l: 50;
+    --resource-label-color: hsl(256 81 70);
   }
 
   .label-light1 {
-    --label-h: 0;
-    --label-s: 65;
-    --label-l: 74;
-    --lighten-by: 0;
+    --resource-label-color: hsl(0 65 74);
   }
 
   .label-light2 {
-    --label-h: 13;
-    --label-s: 81;
-    --label-l: 87;
-    --lighten-by: 0;
+    --resource-label-color: hsl(13 81 87);
   }
 
   .label-light3 {
-    --label-h: 48;
-    --label-s: 96;
-    --label-l: 87;
-    --lighten-by: 0;
+    --resource-label-color: hsl(48 96 87);
   }
 
   .label-light4 {
-    --label-h: 128;
-    --label-s: 32;
-    --label-l: 81;
-    --lighten-by: 0;
+    --resource-label-color: hsl(128 32 81);
   }
 
   .label-light5 {
-    --label-h: 184;
-    --label-s: 29;
-    --label-l: 80;
-    --lighten-by: 0;
+    --resource-label-color: hsl(184 29 80);
   }
 
   .label-light6 {
-    --label-h: 208;
-    --label-s: 70;
-    --label-l: 86;
-    --lighten-by: 0;
+    --resource-label-color: hsl(208 70 86);
   }
 
   .label-light7 {
-    --label-h: 257;
-    --label-s: 81;
-    --label-l: 87;
-    --lighten-by: 0;
+    --resource-label-color: hsl(257 81 87);
   }
 
   .label-grayed-out {
-    --label-h: 257;
-    --label-s: 81;
-    --label-l: 87;
-    --lighten-by: 100;
+    --resource-label-color: hsl(257 81 100);
   }
 }

@@ -162,12 +162,10 @@ const openDocs = () => {
             Download and boot the
             <TButton
               type="subtle"
-              @click="
-                () =>
-                  $router.push({ name: 'Overview', query: { modal: 'downloadInstallationMedia' } })
-              "
-              >installation media</TButton
+              @click="$router.push({ name: 'Home', query: { modal: 'downloadInstallationMedia' } })"
             >
+              installation media
+            </TButton>
             to connect machines to your Omni instance.
           </div>
         </TAlert>

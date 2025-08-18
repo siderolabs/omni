@@ -88,12 +88,11 @@ const close = () => {
           },
           runtime: Runtime.Omni,
         }"
-        class="flex-1"
       >
         <template #default="{ data }">
           <TSelectList
             v-if="data?.spec?.role"
-            class="h-full"
+            class="h-full grow"
             title="Role"
             :values="roles"
             :default-value="data.spec?.role"
