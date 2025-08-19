@@ -26,7 +26,7 @@ spec:
     {{- end }}
       labels: 
       {{- include "omni.labels" . | nindent 8 }}
-      app.kubernetes.io/component: omni
+        app.kubernetes.io/component: omni
       {{- with .Values.deployment.labels }}
       {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -71,6 +71,11 @@ spec:
             readOnly: {{ .Values.volumeMounts.omniAsc.readOnly }}
           - name: etcd
             mountPath: /_out
+          {{- if .Values.customVolumeMounts }}
+          {{- with .Values.customVolumeMounts }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+          {{- end }}
         args:
           - --account-id="{{ .Values.accountUuid }}"
           - --advertised-api-url={{ printf "https://%s/" .Values.domainName }} 
@@ -83,7 +88,7 @@ spec:
         {{- if .Values.auth.saml.enabled }}
           - --auth-saml-enabled=true
         {{- if .Values.auth.saml.url }}
-          - --auth-saml-url="{{ .Values.auth.saml.url }}"
+          - --auth-saml-url={{ .Values.auth.saml.url }}
         {{- end }}
         {{- end }}
         {{- if .Values.volumes.tls.secretName }}
@@ -113,3 +118,8 @@ spec:
         - name: etcd
           persistentVolumeClaim:
             claimName: {{ .Values.volumes.etcd.persistentVolumeClaimName }}
+        {{- if .Values.customVolumes }}
+        {{- with .Values.customVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- end }}

@@ -41,6 +41,7 @@ resources:
 extraArgs:
   # - --debug
   # - --image-factory-address=factory.talos.dev
+  # - --auth-saml-metadata=/etc/omni/saml/metadata.xml
 volumeMounts:
   tls:
     mountPath: null # "/etc/omni/tls"
@@ -56,3 +57,18 @@ volumes:
     secretName: null # tls
   gpg:
     secretName: gpg
+## Add custom volumes
+customVolumes:
+#  - name: saml-metadata
+#    configMap:
+#      name: saml-metadata
+#      items:
+#        - key: metadata.xml
+#          path: metadata.xml
+
+## Add custom volumesMounts
+customVolumeMounts:
+#  - name: saml-metadata
+#    mountPath: /etc/omni/saml/metadata.xml
+#    subPath: metadata.xml
+#    readOnly: true
