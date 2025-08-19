@@ -181,7 +181,7 @@ type Params struct {
 }
 
 // NewListener creates a new listener.
-func (p *Params) NewListener() (net.Listener, error) {
+func (p *Params) NewListener(ctx context.Context) (net.Listener, error) {
 	if p.MachineAPIEndpoint == "" {
 		return nil, errors.New("no siderolink API endpoint specified")
 	}
@@ -189,7 +189,7 @@ func (p *Params) NewListener() (net.Listener, error) {
 	switch {
 	case p.MachineAPITLSCert == "" && p.MachineAPITLSKey == "":
 		// no key, no cert - use plain TCP
-		return net.Listen("tcp", p.MachineAPIEndpoint)
+		return (&net.ListenConfig{}).Listen(ctx, "tcp", p.MachineAPIEndpoint)
 	case p.MachineAPITLSCert == "":
 		return nil, errors.New("siderolink cert is required")
 	case p.MachineAPITLSKey == "":
@@ -216,7 +216,7 @@ func createListener(ctx context.Context, host, port string) (net.Listener, error
 	)
 	if err = retry.Constant(20*time.Second, retry.WithUnits(100*time.Millisecond)).RetryWithContext(
 		ctx, func(context.Context) error {
-			listener, err = net.Listen("tcp", endpoint)
+			listener, err = (&net.ListenConfig{}).Listen(ctx, "tcp", endpoint)
 			if errors.Is(err, syscall.EADDRNOTAVAIL) {
 				return retry.ExpectedError(err)
 			}
@@ -474,7 +474,7 @@ func (manager *Manager) startTrustdGRPC(ctx context.Context, eg *errgroup.Group,
 func (manager *Manager) startLogServer(ctx context.Context, eg *errgroup.Group, serverAddr netip.Prefix, logServerPort string) error {
 	logServerBindAddr := net.JoinHostPort(serverAddr.Addr().String(), logServerPort)
 
-	logServer, err := logreceiver.MakeServer(logServerBindAddr, manager.logHandler, manager.logger)
+	logServer, err := logreceiver.MakeServer(ctx, logServerBindAddr, manager.logHandler, manager.logger)
 	if err != nil {
 		return err
 	}

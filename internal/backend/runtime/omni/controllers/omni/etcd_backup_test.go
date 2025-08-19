@@ -18,11 +18,12 @@ import (
 	"testing/synctest"
 	"time"
 
-	"github.com/cosi-project/runtime/pkg/controller"
+	"github.com/cosi-project/runtime/pkg/controller/runtime"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/johannesboyne/gofakes3"
 	"github.com/johannesboyne/gofakes3/backend/s3mem"
 	"github.com/siderolabs/gen/containers"
@@ -32,7 +33,6 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
@@ -43,6 +43,8 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	omniruntime "github.com/siderolabs/omni/internal/backend/runtime"
+	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
@@ -59,50 +61,45 @@ import (
 //go:generate mockgen -destination=etcd_backup_mock_3_test.go -package omni_test -typed -copyright_file ../../../../../../hack/.license-header.go.txt github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup Store
 //go:generate sed -i "s#// //#//#g" etcd_backup_mock_3_test.go
 
-func TestEtcdBackupControllerSuite(t *testing.T) {
-	t.Parallel()
-
-	synctest.Run(func() { suite.Run(t, new(EtcdBackupControllerSuite)) })
-}
-
 const description = "test"
 
-type EtcdBackupControllerSuite struct {
-	OmniSuite
+func beforeStart(st state.State, t *testing.T, rt *runtime.Runtime, fileStoreStoreFactory store.Factory) {
+	k8s, err := kubernetes.NewWithTTL(st, 0)
+	require.NoError(t, err)
+
+	omniruntime.Install(kubernetes.Name, k8s)
+
+	require.NoError(t, rt.RegisterController(omnictrl.NewClusterController()))
+	require.NoError(t, rt.RegisterQController(omnictrl.NewClusterUUIDController()))
+	require.NoError(t, rt.RegisterQController(omnictrl.NewEtcdBackupEncryptionController()))
+	require.NoError(t, rt.RegisterQController(omnictrl.NewSecretsController(fileStoreStoreFactory)))
+	require.NoError(t, rt.RegisterQController(omnictrl.NewBackupDataController()))
 }
 
-func (suite *EtcdBackupControllerSuite) register(ctrl controller.Controller) {
-	suite.Require().NoError(suite.runtime.RegisterController(ctrl))
+func TestEtcdBackup(t *testing.T) {
+	t.Parallel()
+
+	dir := filepath.Join(t.TempDir(), "omni-etcd-backups")
+	fileStoreStoreFactory := store.NewFileStoreStoreFactory(dir)
+	sb := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+
+	synctest.Test(t, func(t *testing.T) {
+		withRuntime(
+			t.Context(),
+			t,
+			sb.Builder,
+			func(_ context.Context, st state.State, rt *runtime.Runtime, _ *zap.Logger) { // prepare - register controllers
+				beforeStart(st, t, rt, fileStoreStoreFactory)
+			},
+			func(ctx context.Context, st state.State, rt *runtime.Runtime, _ *zap.Logger) {
+				testEtcdBackup(ctx, t, rt, st, fileStoreStoreFactory)
+			},
+		)
+	})
 }
 
-func (suite *EtcdBackupControllerSuite) qregister(ctrl controller.QController) {
-	suite.Require().NoError(suite.runtime.RegisterQController(ctrl))
-}
-
-func (suite *EtcdBackupControllerSuite) register2(ctrl controller.Controller, err error) {
-	suite.Require().NoError(err)
-	suite.register(ctrl)
-}
-
-func (suite *EtcdBackupControllerSuite) SetupTest() {
-	suite.ctx, suite.ctxCancel = context.WithCancel(context.Background())
-
-	suite.disableConnections = true
-
-	suite.OmniSuite.SetupTest()
-
-	suite.startRuntime()
-
-	suite.register(omnictrl.NewClusterController())
-	suite.qregister(omnictrl.NewClusterUUIDController())
-	suite.qregister(omnictrl.NewEtcdBackupEncryptionController())
-	suite.qregister(omnictrl.NewSecretsController(suite.fileStoreFactory()))
-	suite.qregister(omnictrl.NewBackupDataController())
-}
-
-func (suite *EtcdBackupControllerSuite) TestEtcdBackup() {
-	sf := suite.fileStoreFactory()
-	ctrl := gomock.NewController(suite.T())
+func testEtcdBackup(ctx context.Context, t *testing.T, rt *runtime.Runtime, st state.State, sf store.Factory) {
+	ctrl := gomock.NewController(t)
 	clientMock := NewMockTalosClient(ctrl)
 
 	clientMock.EXPECT().
@@ -111,25 +108,30 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackup() {
 			return io.NopCloser(strings.NewReader("Hello World")), nil
 		}).AnyTimes()
 
-	suite.register2(omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
+	etcdBackupController, err := omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
 		ClientMaker: func(context.Context, string) (omnictrl.TalosClient, error) {
 			return clientMock, nil
 		},
 		StoreFactory: sf,
 		TickInterval: 10 * time.Minute,
-	}))
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, rt.RegisterController(etcdBackupController))
 
 	clusterNames := []string{"talos-default-1", "talos-default-2"}
-	clustersData := createClusters(suite, clusterNames, time.Hour)
+
+	clustersData := createClusters(ctx, t, clusterNames, st, time.Hour)
+
 	start := time.Now()
 
 	// Wait for the first backup to be created.
 	synctest.Wait()
 
 	rtestutils.AssertResources(
-		suite.ctx,
-		suite.T(),
-		suite.state,
+		ctx,
+		t,
+		st,
 		xslices.Map(clustersData, func(cluster *omni.BackupData) resource.ID { return cluster.Metadata().ID() }),
 		func(r *omni.EtcdBackupStatus, assertion *assert.Assertions) {
 			ids := xslices.Map(clustersData, func(cluster *omni.BackupData) resource.ID { return cluster.Metadata().ID() })
@@ -148,31 +150,51 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackup() {
 
 	// Backups should be created for both clusters since those backups do not exist yet
 	for _, cd := range clustersData {
-		suite.findBackups(sf, cd.Metadata().ID(), 1)
+		findBackups(ctx, t, st, sf, cd.Metadata().ID(), 1)
 	}
 
 	time.Sleep(time.Hour)
 	synctest.Wait()
 
 	for _, cd := range clustersData {
-		suite.findBackups(sf, cd.Metadata().ID(), 2)
+		findBackups(ctx, t, st, sf, cd.Metadata().ID(), 2)
 	}
 
 	// Destroy the first cluster
-	suite.destroyClusterByID(clustersData[0].Metadata().ID())
+	rtestutils.Destroy[*omni.Cluster](ctx, t, st, []string{clustersData[0].Metadata().ID()})
 
 	time.Sleep(time.Hour)
 	synctest.Wait()
 
-	suite.findBackups(sf, clustersData[1].Metadata().ID(), 3)
+	findBackups(ctx, t, st, sf, clustersData[1].Metadata().ID(), 3)
 
-	// Destroy the second cluster
-	suite.destroyClusterByID(clustersData[1].Metadata().ID())
+	rtestutils.Destroy[*omni.Cluster](ctx, t, st, []string{clustersData[1].Metadata().ID()})
 }
 
-func (suite *EtcdBackupControllerSuite) TestEtcdBackupFactoryFails() {
-	sf := suite.fileStoreFactory()
-	ctrl := gomock.NewController(suite.T())
+func TestEtcdBackupFactoryFails(t *testing.T) {
+	t.Parallel()
+
+	dir := filepath.Join(t.TempDir(), "omni-etcd-backups")
+	fileStoreStoreFactory := store.NewFileStoreStoreFactory(dir)
+	sb := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+
+	synctest.Test(t, func(t *testing.T) {
+		withRuntime(
+			t.Context(),
+			t,
+			sb.Builder,
+			func(_ context.Context, st state.State, rt *runtime.Runtime, _ *zap.Logger) { // prepare - register controllers
+				beforeStart(st, t, rt, fileStoreStoreFactory)
+			},
+			func(ctx context.Context, st state.State, rt *runtime.Runtime, _ *zap.Logger) {
+				testEtcdBackupFactoryFails(ctx, t, rt, st, fileStoreStoreFactory)
+			},
+		)
+	})
+}
+
+func testEtcdBackupFactoryFails(ctx context.Context, t *testing.T, rt *runtime.Runtime, st state.State, sf store.Factory) {
+	ctrl := gomock.NewController(t)
 	clientMock := NewMockTalosClient(ctrl)
 
 	clientMock.EXPECT().
@@ -192,7 +214,7 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackupFactoryFails() {
 		})
 	}
 
-	suite.register2(omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
+	etcdBackupController, err := omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
 		ClientMaker: func(_ context.Context, clusterName string) (omnictrl.TalosClient, error) {
 			fn, _ := m.Get(clusterName)
 
@@ -200,16 +222,18 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackupFactoryFails() {
 		},
 		StoreFactory: sf,
 		TickInterval: 10 * time.Minute,
-	}))
+	})
+	require.NoError(t, err)
+	require.NoError(t, rt.RegisterController(etcdBackupController))
 
-	clustersData := createClusters(suite, clusterNames, time.Hour)
+	clustersData := createClusters(ctx, t, clusterNames, st, time.Hour)
 
 	time.Sleep(11 * time.Minute)
 	synctest.Wait()
 
 	// Backups should be created for both clusters since those backups do not exist yet
 	for _, cluster := range clustersData {
-		suite.findBackups(sf, cluster.Metadata().ID(), 1)
+		findBackups(ctx, t, st, sf, cluster.Metadata().ID(), 1)
 	}
 
 	start := time.Now()
@@ -221,9 +245,11 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackupFactoryFails() {
 	time.Sleep(time.Hour)
 	synctest.Wait()
 
-	assertResource(
-		&suite.OmniSuite,
-		clustersData[0].Metadata(),
+	rtestutils.AssertResources(
+		ctx,
+		t,
+		st,
+		[]resource.ID{clustersData[0].Metadata().ID()},
 		func(r *omni.EtcdBackupStatus, assertion *assert.Assertions) {
 			value := r.TypedSpec().Value
 
@@ -239,17 +265,38 @@ func (suite *EtcdBackupControllerSuite) TestEtcdBackupFactoryFails() {
 		},
 	)
 
-	suite.findBackups(sf, clustersData[0].Metadata().ID(), 1)
-	suite.findBackups(sf, clustersData[1].Metadata().ID(), 2)
+	findBackups(ctx, t, st, sf, clustersData[0].Metadata().ID(), 1)
+	findBackups(ctx, t, st, sf, clustersData[1].Metadata().ID(), 2)
 
 	for i := range clusterNames {
-		suite.destroyClusterByID(clustersData[i].Metadata().ID())
+		rtestutils.Destroy[*omni.Cluster](ctx, t, st, []string{clustersData[i].Metadata().ID()})
 	}
 }
 
-func (suite *EtcdBackupControllerSuite) TestDecryptEtcdBackup() {
-	sf := suite.fileStoreFactory()
-	ctrl := gomock.NewController(suite.T())
+func TestDecryptEtcdBackup(t *testing.T) {
+	t.Parallel()
+
+	dir := filepath.Join(t.TempDir(), "omni-etcd-backups")
+	fileStoreStoreFactory := store.NewFileStoreStoreFactory(dir)
+	sb := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+
+	synctest.Test(t, func(t *testing.T) {
+		withRuntime(
+			t.Context(),
+			t,
+			sb.Builder,
+			func(_ context.Context, st state.State, rt *runtime.Runtime, _ *zap.Logger) { // prepare - register controllers
+				beforeStart(st, t, rt, fileStoreStoreFactory)
+			},
+			func(ctx context.Context, st state.State, rt *runtime.Runtime, _ *zap.Logger) {
+				testDecryptEtcdBackup(ctx, t, rt, st, fileStoreStoreFactory)
+			},
+		)
+	})
+}
+
+func testDecryptEtcdBackup(ctx context.Context, t *testing.T, rt *runtime.Runtime, st state.State, sf store.Factory) {
+	ctrl := gomock.NewController(t)
 	clientMock := NewMockTalosClient(ctrl)
 
 	clientMock.EXPECT().
@@ -258,48 +305,72 @@ func (suite *EtcdBackupControllerSuite) TestDecryptEtcdBackup() {
 			return io.NopCloser(strings.NewReader("Hello World")), nil
 		})
 
-	suite.register2(omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
+	etcdBackupController, err := omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
 		ClientMaker: func(context.Context, string) (omnictrl.TalosClient, error) {
 			return clientMock, nil
 		},
 		StoreFactory: sf,
 		TickInterval: 10 * time.Minute,
-	}))
+	})
+	require.NoError(t, err)
+	require.NoError(t, rt.RegisterController(etcdBackupController))
 
 	clusterNames := []string{"talos-default-6"}
-	clusters := createClusters(suite, clusterNames, time.Hour)
+	clusters := createClusters(ctx, t, clusterNames, st, time.Hour)
 
 	time.Sleep(11 * time.Minute)
 	synctest.Wait()
 
-	clusterBackups := suite.findBackups(sf, clusters[0].Metadata().ID(), 1)
+	clusterBackups := findBackups(ctx, t, st, sf, clusters[0].Metadata().ID(), 1)
 
-	src := must.Value(clusterBackups[0].Reader())(suite.T())
+	src := must.Value(clusterBackups[0].Reader())(t)
 
-	suite.T().Cleanup(func() { suite.Require().NoError(src.Close()) })
+	t.Cleanup(func() { require.NoError(t, src.Close()) })
 
 	decryptedHeader, decrypter := must.Values(crypt.Decrypt(
 		src,
 		clusters[0].TypedSpec().Value.EncryptionKey,
-	))(suite.T())
+	))(t)
 
-	suite.Require().EqualValues(
+	require.EqualValues(t,
 		clusters[0].TypedSpec().Value.AesCbcEncryptionSecret,
 		decryptedHeader.AESCBCEncryptionSecret,
 	)
-	suite.Require().EqualValues(
+	require.EqualValues(t,
 		clusters[0].TypedSpec().Value.SecretboxEncryptionSecret,
 		decryptedHeader.SecretboxEncryptionSecret,
 	)
-	suite.Require().EqualValues("Hello World", string(must.Value(io.ReadAll(decrypter))(suite.T())))
+	require.EqualValues(t, "Hello World", string(must.Value(io.ReadAll(decrypter))(t)))
 
 	for i := range clusterNames {
-		suite.destroyClusterByID(clusters[i].Metadata().ID())
+		rtestutils.Destroy[*omni.Cluster](ctx, t, st, []string{clusters[i].Metadata().ID()})
 	}
 }
 
-func (suite *EtcdBackupControllerSuite) TestSingleListCall() {
-	ctrl := gomock.NewController(suite.T())
+func TestSingleListCall(t *testing.T) {
+	t.Parallel()
+
+	dir := filepath.Join(t.TempDir(), "omni-etcd-backups")
+	fileStoreStoreFactory := store.NewFileStoreStoreFactory(dir)
+	sb := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+
+	synctest.Test(t, func(t *testing.T) {
+		withRuntime(
+			t.Context(),
+			t,
+			sb.Builder,
+			func(_ context.Context, st state.State, rt *runtime.Runtime, _ *zap.Logger) { // prepare - register controllers
+				beforeStart(st, t, rt, fileStoreStoreFactory)
+			},
+			func(ctx context.Context, st state.State, rt *runtime.Runtime, _ *zap.Logger) {
+				testSingleListCall(ctx, t, rt, st)
+			},
+		)
+	})
+}
+
+func testSingleListCall(ctx context.Context, t *testing.T, rt *runtime.Runtime, st state.State) {
+	ctrl := gomock.NewController(t)
 	clientMock := NewMockTalosClient(ctrl)
 	sfm := NewMockFactory(ctrl)
 	sm := NewMockStore(ctrl)
@@ -326,7 +397,7 @@ func (suite *EtcdBackupControllerSuite) TestSingleListCall() {
 		DoAndReturn(
 			func(_ context.Context, description etcdbackup.Description, reader io.Reader) error {
 				ch <- description.ClusterName
-				must.Value(io.Copy(io.Discard, reader))(suite.T())
+				must.Value(io.Copy(io.Discard, reader))(t)
 
 				return nil
 			},
@@ -340,35 +411,59 @@ func (suite *EtcdBackupControllerSuite) TestSingleListCall() {
 		}).
 		AnyTimes()
 
-	suite.register2(omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
+	etcdBackupController, err := omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
 		ClientMaker: func(context.Context, string) (omnictrl.TalosClient, error) {
 			return clientMock, nil
 		},
 		StoreFactory: sfm,
 		TickInterval: 10 * time.Minute,
-	}))
+	})
+	require.NoError(t, err)
+	require.NoError(t, rt.RegisterController(etcdBackupController))
 
 	clusterNames := []string{"talos-default-7", "talos-default-8"}
-	clusters := createClusters(suite, clusterNames, time.Hour)
+	clusters := createClusters(ctx, t, clusterNames, st, time.Hour)
 
 	time.Sleep(11 * time.Minute)
 	synctest.Wait()
 
-	suite.destroyClusterByID(clusters[0].Metadata().ID())
+	rtestutils.Destroy[*omni.Cluster](ctx, t, st, []string{clusters[0].Metadata().ID()})
 
 	time.Sleep(time.Hour)
 	synctest.Wait()
 
 	for i := range clusterNames {
-		suite.destroyClusterByID(clusters[i].Metadata().ID())
+		rtestutils.Destroy[*omni.Cluster](ctx, t, st, []string{clusters[i].Metadata().ID()})
 	}
 }
 
-func (suite *EtcdBackupControllerSuite) TestListBackupsWithExistingData() {
-	clusterNames := []string{"talos-default-9", "talos-default-10"}
-	clusters := createClusters(suite, clusterNames, time.Hour)
+func TestListBackupsWithExistingData(t *testing.T) {
+	t.Parallel()
 
-	ctrl := gomock.NewController(suite.T())
+	dir := filepath.Join(t.TempDir(), "omni-etcd-backups")
+	fileStoreStoreFactory := store.NewFileStoreStoreFactory(dir)
+	sb := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+
+	synctest.Test(t, func(t *testing.T) {
+		withRuntime(
+			t.Context(),
+			t,
+			sb.Builder,
+			func(_ context.Context, st state.State, rt *runtime.Runtime, _ *zap.Logger) { // prepare - register controllers
+				beforeStart(st, t, rt, fileStoreStoreFactory)
+			},
+			func(ctx context.Context, st state.State, rt *runtime.Runtime, _ *zap.Logger) {
+				testListBackupsWithExistingData(ctx, t, rt, st)
+			},
+		)
+	})
+}
+
+func testListBackupsWithExistingData(ctx context.Context, t *testing.T, rt *runtime.Runtime, st state.State) {
+	clusterNames := []string{"talos-default-9", "talos-default-10"}
+	clusters := createClusters(ctx, t, clusterNames, st, time.Hour)
+
+	ctrl := gomock.NewController(t)
 	clientMock := NewMockTalosClient(ctrl)
 	sfm := NewMockFactory(ctrl)
 	store := NewMockStore(ctrl)
@@ -394,7 +489,7 @@ func (suite *EtcdBackupControllerSuite) TestListBackupsWithExistingData() {
 	store.EXPECT().
 		Upload(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(_ context.Context, _ etcdbackup.Description, reader io.Reader) error {
-			must.Value(io.Copy(io.Discard, reader))(suite.T())
+			must.Value(io.Copy(io.Discard, reader))(t)
 
 			return nil
 		}).
@@ -407,36 +502,58 @@ func (suite *EtcdBackupControllerSuite) TestListBackupsWithExistingData() {
 		}).
 		AnyTimes()
 
-	suite.register2(omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
+	etcdBackupController, err := omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
 		ClientMaker: func(context.Context, string) (omnictrl.TalosClient, error) {
 			return clientMock, nil
 		},
 		StoreFactory: sfm,
 		TickInterval: 10 * time.Minute,
-	}))
+	})
+	require.NoError(t, err)
+	require.NoError(t, rt.RegisterController(etcdBackupController))
 
 	time.Sleep(11 * time.Minute)
 	synctest.Wait()
 
-	suite.destroyClusterByID(clusters[0].Metadata().ID())
+	rtestutils.Destroy[*omni.Cluster](ctx, t, st, []string{clusters[0].Metadata().ID()})
 
 	time.Sleep(time.Hour)
 	synctest.Wait()
 	time.Sleep(time.Hour)
 	synctest.Wait()
 
-	suite.destroyClusterByID(clusters[1].Metadata().ID())
+	rtestutils.Destroy[*omni.Cluster](ctx, t, st, []string{clusters[1].Metadata().ID()})
 }
 
-func (suite *EtcdBackupControllerSuite) TestEtcdManualBackupFindResource() {
-	sf := suite.fileStoreFactory()
-	ctrl := gomock.NewController(suite.T())
-	clientMock := NewMockTalosClient(ctrl)
+func TestEtcdManualBackupFindResource(t *testing.T) {
+	t.Parallel()
 
-	suite.stateBuilder.Set(resources.ExternalNamespace, &external.State{
-		CoreState:    suite.state,
-		StoreFactory: sf,
+	dir := filepath.Join(t.TempDir(), "omni-etcd-backups")
+	fileStoreStoreFactory := store.NewFileStoreStoreFactory(dir)
+	stateBuilder := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+	stateBuilder.Set(resources.ExternalNamespace, &external.State{
+		CoreState:    state.WrapCore(namespaced.NewState(stateBuilder.Builder)),
+		StoreFactory: fileStoreStoreFactory,
 	})
+
+	synctest.Test(t, func(t *testing.T) {
+		withRuntime(
+			t.Context(),
+			t,
+			stateBuilder.Builder,
+			func(_ context.Context, st state.State, rt *runtime.Runtime, _ *zap.Logger) { // prepare - register controllers
+				beforeStart(st, t, rt, fileStoreStoreFactory)
+			},
+			func(ctx context.Context, st state.State, rt *runtime.Runtime, _ *zap.Logger) {
+				testEtcdManualBackupFindResource(ctx, t, rt, st, fileStoreStoreFactory)
+			},
+		)
+	})
+}
+
+func testEtcdManualBackupFindResource(ctx context.Context, t *testing.T, rt *runtime.Runtime, st state.State, sf store.Factory) {
+	ctrl := gomock.NewController(t)
+	clientMock := NewMockTalosClient(ctrl)
 
 	clientMock.EXPECT().
 		EtcdSnapshot(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -444,66 +561,89 @@ func (suite *EtcdBackupControllerSuite) TestEtcdManualBackupFindResource() {
 			return io.NopCloser(strings.NewReader("Hello World")), nil
 		})
 
-	suite.register2(omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
+	etcdBackupController, err := omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
 		ClientMaker: func(context.Context, string) (omnictrl.TalosClient, error) {
 			return clientMock, nil
 		},
 		StoreFactory: sf,
 		TickInterval: time.Minute,
-	}))
+	})
+	require.NoError(t, err)
+	require.NoError(t, rt.RegisterController(etcdBackupController))
 
 	clusterNames := []string{"talos-default-11"}
-	clustersData := createClusters(suite, clusterNames, 0) // 0 means that automatic backups are disabled
+	clustersData := createClusters(ctx, t, clusterNames, st, 0) // 0 means that automatic backups are disabled
 
 	manualBackup := omni.NewEtcdManualBackup(clustersData[0].Metadata().ID())
 	manualBackup.TypedSpec().Value.BackupAt = timestamppb.New(time.Now().Add(15 * time.Second))
 
-	err := suite.state.Create(suite.ctx, manualBackup)
-	suite.Require().NoError(err)
+	err = st.Create(ctx, manualBackup)
+	require.NoError(t, err)
 
 	time.Sleep(15 * time.Second)
 	synctest.Wait()
 
-	backups := suite.findBackups(sf, clustersData[0].Metadata().ID(), 1)
+	backups := findBackups(ctx, t, st, sf, clustersData[0].Metadata().ID(), 1)
 
 	// Should find backups by cluster ID
 
 	backupRes := must.Value(safe.StateListAll[*omni.EtcdBackup](
-		suite.ctx,
-		suite.state,
+		ctx,
+		st,
 		state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterNames[0])),
-	))(suite.T())
+	))(t)
 
-	suite.Assert().EqualValues(len(backups), backupRes.Len())
+	assert.EqualValues(t, len(backups), backupRes.Len())
 
-	suite.Assert().Equal(
+	assert.Equal(t,
 		omni.NewEtcdBackup(clusterNames[0], backups[0].Timestamp).Metadata().ID(),
 		backupRes.Get(0).Metadata().ID(),
 	)
 
-	suite.Assert().Equal(backups[0].Snapshot, backupRes.Get(0).TypedSpec().Value.Snapshot)
-	suite.Assert().Equal(backups[0].Timestamp.UTC(), backupRes.Get(0).TypedSpec().Value.CreatedAt.AsTime())
+	assert.Equal(t, backups[0].Snapshot, backupRes.Get(0).TypedSpec().Value.Snapshot)
+	assert.Equal(t, backups[0].Timestamp.UTC(), backupRes.Get(0).TypedSpec().Value.CreatedAt.AsTime())
 
 	// Should find backup by backup id
 
-	res := must.Value(safe.StateGetByID[*omni.EtcdBackup](suite.ctx, suite.state, backupRes.Get(0).Metadata().ID()))(suite.T())
+	res := must.Value(safe.StateGetByID[*omni.EtcdBackup](ctx, st, backupRes.Get(0).Metadata().ID()))(t)
 
-	suite.Assert().Equal(backups[0].Snapshot, res.TypedSpec().Value.Snapshot)
-	suite.Assert().Equal(backups[0].Timestamp.UTC(), res.TypedSpec().Value.CreatedAt.AsTime())
+	assert.Equal(t, backups[0].Snapshot, res.TypedSpec().Value.Snapshot)
+	assert.Equal(t, backups[0].Timestamp.UTC(), res.TypedSpec().Value.CreatedAt.AsTime())
 
 	// Should return an error if no query is provided
 
-	_, err = safe.StateList[*omni.EtcdBackup](suite.ctx, suite.state, omni.NewEtcdBackup("", time.Now()).Metadata())
-	suite.Require().Error(err)
+	_, err = safe.StateList[*omni.EtcdBackup](ctx, st, omni.NewEtcdBackup("", time.Now()).Metadata())
+	require.Error(t, err)
 
 	for _, clusterData := range clustersData {
-		suite.destroyClusterByID(clusterData.Metadata().ID())
+		rtestutils.Destroy[*omni.Cluster](ctx, t, st, []string{clusterData.Metadata().ID()})
 	}
 }
 
-func (suite *EtcdBackupControllerSuite) TestEtcdManualBackup() {
-	sf := suite.fileStoreFactory()
-	ctrl := gomock.NewController(suite.T())
+func TestEtcdManualBackup(t *testing.T) {
+	t.Parallel()
+
+	dir := filepath.Join(t.TempDir(), "omni-etcd-backups")
+	fileStoreStoreFactory := store.NewFileStoreStoreFactory(dir)
+	sb := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+
+	synctest.Test(t, func(t *testing.T) {
+		withRuntime(
+			t.Context(),
+			t,
+			sb.Builder,
+			func(_ context.Context, st state.State, rt *runtime.Runtime, _ *zap.Logger) { // prepare - register controllers
+				beforeStart(st, t, rt, fileStoreStoreFactory)
+			},
+			func(ctx context.Context, st state.State, rt *runtime.Runtime, _ *zap.Logger) {
+				testEtcdManualBackup(ctx, t, rt, st, fileStoreStoreFactory)
+			},
+		)
+	})
+}
+
+func testEtcdManualBackup(ctx context.Context, t *testing.T, rt *runtime.Runtime, st state.State, sf store.Factory) {
+	ctrl := gomock.NewController(t)
 	clientMock := NewMockTalosClient(ctrl)
 
 	clientMock.EXPECT().
@@ -512,40 +652,43 @@ func (suite *EtcdBackupControllerSuite) TestEtcdManualBackup() {
 			return io.NopCloser(strings.NewReader("Hello World")), nil
 		})
 
-	suite.register2(omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
+	etcdBackupController, err := omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
 		ClientMaker: func(context.Context, string) (omnictrl.TalosClient, error) {
 			return clientMock, nil
 		},
 		StoreFactory: sf,
 		TickInterval: time.Minute,
-	}))
+	})
+	require.NoError(t, err)
+	require.NoError(t, rt.RegisterController(etcdBackupController))
 
 	clusterNames := []string{"talos-default-12", "talos-default-13"}
-	clustersData := createClusters(suite, clusterNames, 0) // 0 means that automatic backups are disabled
+	clustersData := createClusters(ctx, t, clusterNames, st, 0) // 0 means that automatic backups are disabled
 
 	time.Sleep(15 * time.Second)
 	synctest.Wait()
 
-	assertNoResource(&suite.OmniSuite, omni.NewEtcdBackupStatus(clustersData[0].Metadata().ID()))
-	assertNoResource(&suite.OmniSuite, omni.NewEtcdBackupStatus(clustersData[1].Metadata().ID()))
+	rtestutils.AssertNoResource[*omni.EtcdBackupStatus](ctx, t, st, omni.NewEtcdBackupStatus(clustersData[0].Metadata().ID()).Metadata().ID())
+	rtestutils.AssertNoResource[*omni.EtcdBackupStatus](ctx, t, st, omni.NewEtcdBackupStatus(clustersData[1].Metadata().ID()).Metadata().ID())
 
 	manualBackup := omni.NewEtcdManualBackup(clustersData[0].Metadata().ID())
 	manualBackup.TypedSpec().Value.BackupAt = timestamppb.New(time.Now().Add(12 * time.Minute))
 
-	err := suite.state.Create(suite.ctx, manualBackup)
-	suite.Require().NoError(err)
+	err = st.Create(ctx, manualBackup)
+	require.NoError(t, err)
 
 	now := time.Now()
 
-	assertNoResource(&suite.OmniSuite, omni.NewEtcdBackupStatus(clustersData[0].Metadata().ID()))
-	suite.findBackups(sf, clustersData[0].Metadata().ID(), 0)
+	rtestutils.AssertNoResource[*omni.EtcdBackupStatus](ctx, t, st, omni.NewEtcdBackupStatus(clustersData[0].Metadata().ID()).Metadata().ID())
+	findBackups(ctx, t, st, sf, clustersData[0].Metadata().ID(), 0)
 
 	time.Sleep(12 * time.Minute)
 	synctest.Wait()
-
-	assertResource(
-		&suite.OmniSuite,
-		clustersData[0].Metadata(),
+	rtestutils.AssertResource(
+		ctx,
+		t,
+		st,
+		clustersData[0].Metadata().ID(),
 		func(r *omni.EtcdBackupStatus, assertion *assert.Assertions) {
 			value := r.TypedSpec().Value
 
@@ -568,28 +711,50 @@ func (suite *EtcdBackupControllerSuite) TestEtcdManualBackup() {
 		},
 	)
 
-	suite.findBackups(sf, clustersData[0].Metadata().ID(), 1)
+	findBackups(ctx, t, st, sf, clustersData[0].Metadata().ID(), 1)
 
 	time.Sleep(10 * time.Minute)
 	synctest.Wait()
 
 	// Should ignore this backup
-	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, manualBackup.Metadata(), func(b *omni.EtcdManualBackup) error {
+	_, err = safe.StateUpdateWithConflicts(ctx, st, manualBackup.Metadata(), func(b *omni.EtcdManualBackup) error {
 		b.TypedSpec().Value.BackupAt = timestamppb.New(time.Now().Add(-12 * time.Minute))
 
 		return nil
 	})
-	suite.Require().NoError(err)
+	require.NoError(t, err)
 
-	suite.findBackups(sf, clustersData[0].Metadata().ID(), 1)
+	findBackups(ctx, t, st, sf, clustersData[0].Metadata().ID(), 1)
 
 	for _, clusterData := range clustersData {
-		suite.destroyClusterByID(clusterData.Metadata().ID())
+		rtestutils.Destroy[*omni.Cluster](ctx, t, st, []string{clusterData.Metadata().ID()})
 	}
 }
 
-func (suite *EtcdBackupControllerSuite) TestS3Backup() {
-	logger := zaptest.NewLogger(suite.T())
+func TestS3Backup(t *testing.T) {
+	t.Parallel()
+
+	dir := filepath.Join(t.TempDir(), "omni-etcd-backups")
+	fileStoreStoreFactory := store.NewFileStoreStoreFactory(dir)
+	sb := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+
+	synctest.Test(t, func(t *testing.T) {
+		withRuntime(
+			t.Context(),
+			t,
+			sb.Builder,
+			func(_ context.Context, st state.State, rt *runtime.Runtime, _ *zap.Logger) { // prepare - register controllers
+				beforeStart(st, t, rt, fileStoreStoreFactory)
+			},
+			func(ctx context.Context, st state.State, rt *runtime.Runtime, _ *zap.Logger) {
+				testS3Backup(ctx, t, rt, st)
+			},
+		)
+	})
+}
+
+func testS3Backup(ctx context.Context, t *testing.T, rt *runtime.Runtime, st state.State) {
+	logger := zaptest.NewLogger(t)
 
 	backend := newFakeBackend(logger)
 	faker := gofakes3.New(backend)
@@ -599,7 +764,7 @@ func (suite *EtcdBackupControllerSuite) TestS3Backup() {
 
 	const bucket = "test-bucket"
 
-	suite.Require().NoError(backend.CreateBucket(bucket))
+	require.NoError(t, backend.CreateBucket(bucket))
 
 	conf := omni.NewEtcdBackupS3Conf()
 	conf.TypedSpec().Value.Bucket = bucket
@@ -608,18 +773,18 @@ func (suite *EtcdBackupControllerSuite) TestS3Backup() {
 	conf.TypedSpec().Value.AccessKeyId = "KEY"
 	conf.TypedSpec().Value.SecretAccessKey = "SECRET"
 
-	require.NoError(suite.T(), suite.state.Create(suite.ctx, conf))
+	require.NoError(t, st.Create(ctx, conf))
 
 	sf := store.NewS3StoreFactory()
 
 	go func() {
-		err := sf.Start(suite.ctx, suite.state, logger)
+		err := sf.Start(ctx, st, logger)
 		if err != nil {
 			panic(err)
 		}
 	}()
 
-	ctrl := gomock.NewController(suite.T())
+	ctrl := gomock.NewController(t)
 	clientMock := NewMockTalosClient(ctrl)
 
 	clientMock.EXPECT().
@@ -630,20 +795,24 @@ func (suite *EtcdBackupControllerSuite) TestS3Backup() {
 
 	now := time.Now()
 
-	suite.register2(omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
+	etcdBackupController, err := omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
 		ClientMaker: func(context.Context, string) (omnictrl.TalosClient, error) {
 			return clientMock, nil
 		},
 		StoreFactory: sf,
 		TickInterval: time.Minute,
-	}))
+	})
+	require.NoError(t, err)
+	require.NoError(t, rt.RegisterController(etcdBackupController))
 
 	clusterNames := []string{"talos-default-14"}
-	clusters := createClusters(suite, clusterNames, time.Hour)
+	clusters := createClusters(ctx, t, clusterNames, st, time.Hour)
 
-	assertResource(
-		&suite.OmniSuite,
-		clusters[0].Metadata(),
+	rtestutils.AssertResource(
+		ctx,
+		t,
+		st,
+		clusters[0].Metadata().ID(),
 		func(r *omni.EtcdBackupStatus, assertion *assert.Assertions) {
 			value := r.TypedSpec().Value
 
@@ -666,41 +835,62 @@ func (suite *EtcdBackupControllerSuite) TestS3Backup() {
 		},
 	)
 
-	buckets := must.Value(backend.ListBuckets())(suite.T())
+	buckets := must.Value(backend.ListBuckets())(t)
 
 	for _, b := range buckets {
-		suite.T().Logf("bucket: %s", b.Name)
+		t.Logf("bucket: %s", b.Name)
 	}
 
-	it, err := must.Value(sf.GetStore())(suite.T()).ListBackups(suite.ctx, clusters[0].TypedSpec().Value.ClusterUuid)
-	suite.Require().NoError(err)
+	it, err := must.Value(sf.GetStore())(t).ListBackups(ctx, clusters[0].TypedSpec().Value.ClusterUuid)
+	require.NoError(t, err)
 
-	backups := toSlice(it, suite.T())
-	suite.Require().Len(backups, 1)
+	backups := toSlice(t, it)
+	require.Len(t, backups, 1)
 
-	reader := must.Value(backups[0].Reader())(suite.T())
+	reader := must.Value(backups[0].Reader())(t)
 
-	suite.T().Cleanup(func() { suite.Require().NoError(reader.Close()) })
+	t.Cleanup(func() { require.NoError(t, reader.Close()) })
 
 	decryptedHeader, decrypter := must.Values(crypt.Decrypt(
 		reader,
 		clusters[0].TypedSpec().Value.EncryptionKey,
-	))(suite.T())
+	))(t)
 
-	suite.Require().EqualValues(
+	require.EqualValues(t,
 		clusters[0].TypedSpec().Value.AesCbcEncryptionSecret,
 		decryptedHeader.AESCBCEncryptionSecret,
 	)
-	suite.Require().EqualValues(
+	require.EqualValues(t,
 		clusters[0].TypedSpec().Value.SecretboxEncryptionSecret,
 		decryptedHeader.SecretboxEncryptionSecret,
 	)
-	suite.Require().EqualValues("Hello World", string(must.Value(io.ReadAll(decrypter))(suite.T())))
+	require.EqualValues(t, "Hello World", string(must.Value(io.ReadAll(decrypter))(t)))
 }
 
-func (suite *EtcdBackupControllerSuite) TestBackupJitter() {
-	sf := suite.fileStoreFactory()
-	ctrl := gomock.NewController(suite.T())
+func TestBackupJitter(t *testing.T) {
+	t.Parallel()
+
+	dir := filepath.Join(t.TempDir(), "omni-etcd-backups")
+	fileStoreStoreFactory := store.NewFileStoreStoreFactory(dir)
+	sb := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+
+	synctest.Test(t, func(t *testing.T) {
+		withRuntime(
+			t.Context(),
+			t,
+			sb.Builder,
+			func(_ context.Context, st state.State, rt *runtime.Runtime, _ *zap.Logger) { // prepare - register controllers
+				beforeStart(st, t, rt, fileStoreStoreFactory)
+			},
+			func(ctx context.Context, st state.State, rt *runtime.Runtime, _ *zap.Logger) {
+				testBackupJitter(ctx, t, rt, st, fileStoreStoreFactory)
+			},
+		)
+	})
+}
+
+func testBackupJitter(ctx context.Context, t *testing.T, rt *runtime.Runtime, st state.State, sf store.Factory) {
+	ctrl := gomock.NewController(t)
 	clientMock := NewMockTalosClient(ctrl)
 
 	clientMock.EXPECT().
@@ -711,18 +901,19 @@ func (suite *EtcdBackupControllerSuite) TestBackupJitter() {
 		Times(4) // 2 clusters * 2 backups
 
 	jitter := 20 * time.Minute
-
-	suite.register2(omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
+	etcdBackupController, err := omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
 		ClientMaker: func(context.Context, string) (omnictrl.TalosClient, error) {
 			return clientMock, nil
 		},
 		StoreFactory: sf,
 		TickInterval: 1 * time.Minute, // smaller tick, more chances for jitter to be applied
 		Jitter:       jitter,
-	}))
+	})
+	require.NoError(t, err)
+	require.NoError(t, rt.RegisterController(etcdBackupController))
 
 	clusterNames := []string{"talos-default-1", "talos-default-2"}
-	clustersData := createClusters(suite, clusterNames, time.Hour)
+	clustersData := createClusters(ctx, t, clusterNames, st, time.Hour)
 
 	synctest.Wait()                        // Wait for the first backup to be taken, it will be without jitter
 	time.Sleep(time.Hour + 10*time.Minute) // Sleep until the next backup is due
@@ -732,63 +923,56 @@ func (suite *EtcdBackupControllerSuite) TestBackupJitter() {
 	synctest.Wait() // Wait for the second backup to be taken, this one will have jitter
 
 	for _, cd := range clustersData {
-		st := must.Value(sf.GetStore())(suite.T())
-		backups := must.Value(st.ListBackups(suite.ctx, cd.TypedSpec().Value.ClusterUuid))(suite.T())
-		slc := toSlice(backups, suite.T())
+		st := must.Value(sf.GetStore())(t)
+		backups := must.Value(st.ListBackups(ctx, cd.TypedSpec().Value.ClusterUuid))(t)
+		slc := toSlice(t, backups)
 
-		suite.Require().Len(slc, 2)
+		require.Len(t, slc, 2)
 
 		for _, b := range slc[:1] { // we are only interested in the last backup (reverse order)
-			suite.Require().NotEqual(now, b.Timestamp.UTC())
-			suite.Require().WithinDuration(now, b.Timestamp, jitter)
+			require.NotEqual(t, now, b.Timestamp.UTC())
+			require.WithinDuration(t, now, b.Timestamp, jitter)
 		}
 	}
 
 	// Destroy the clusters
 	for _, clusterData := range clustersData {
-		suite.destroyClusterByID(clusterData.Metadata().ID())
+		rtestutils.Destroy[*omni.Cluster](ctx, t, st, []string{clusterData.Metadata().ID()})
 	}
 }
 
-func (suite *EtcdBackupControllerSuite) fileStoreFactory() store.Factory {
-	dir := filepath.Join(suite.T().TempDir(), "omni-etcd-backups")
+func createClusters(ctx context.Context, t *testing.T, clusterNames []string, st state.State, backupInterval time.Duration) []*omni.BackupData {
+	clustersData := make([]*omni.BackupData, 0, len(clusterNames))
 
-	return store.NewFileStoreStoreFactory(dir)
+	for _, name := range clusterNames {
+		cluster := omni.NewCluster(resources.DefaultNamespace, name)
+		cluster.TypedSpec().Value.TalosVersion = "1.3.0"
+		cluster.TypedSpec().Value.BackupConfiguration = &specs.EtcdBackupConf{Interval: durationpb.New(backupInterval), Enabled: true}
+
+		require.NoError(t, st.Create(ctx, cluster))
+		require.NoError(t, st.Create(ctx, omni.NewMachineSet(resources.DefaultNamespace, omni.ControlPlanesResourceID(name))))
+
+		var backupData *omni.BackupData
+
+		rtestutils.AssertResource[*omni.BackupData](ctx, t, st, name, func(r *omni.BackupData, assertion *assert.Assertions) {
+			backupData = r
+		})
+
+		clustersData = append(clustersData, backupData)
+	}
+
+	return clustersData
 }
 
-func (suite *EtcdBackupControllerSuite) findBackups(sf store.Factory, clusterID string, num int) []etcdbackup.Info {
-	st := must.Value(sf.GetStore())(suite.T())
-	bd := must.Value(safe.StateGetByID[*omni.BackupData](suite.ctx, suite.state, clusterID))(suite.T())
-	it := must.Value(st.ListBackups(suite.ctx, bd.TypedSpec().Value.ClusterUuid))(suite.T())
-	result := toSlice(it, suite.T())
+func findBackups(ctx context.Context, t *testing.T, st state.State, sf store.Factory, clusterID string, num int) []etcdbackup.Info {
+	backupStore := must.Value(sf.GetStore())(t)
+	bd := must.Value(safe.StateGetByID[*omni.BackupData](ctx, st, clusterID))(t)
+	it := must.Value(backupStore.ListBackups(ctx, bd.TypedSpec().Value.ClusterUuid))(t)
+	result := toSlice(t, it)
 
-	suite.Require().Len(result, num, "cluster %s", clusterID)
+	require.Len(t, result, num, "cluster %s", clusterID)
 
 	return result
-}
-
-func createClusters(suite *EtcdBackupControllerSuite, clusterNames []string, backupInterval time.Duration) []*omni.BackupData {
-	return xslices.Map(clusterNames, func(clusterName string) *omni.BackupData {
-		cluster, _ := suite.createCluster(clusterName, 1, 1)
-
-		must.Value(safe.StateUpdateWithConflicts(suite.ctx, suite.state, cluster.Metadata(), func(cl *omni.Cluster) error {
-			cl.TypedSpec().Value.BackupConfiguration = &specs.EtcdBackupConf{Interval: durationpb.New(backupInterval), Enabled: true}
-
-			return nil
-		}))(suite.T())
-
-		var result *omni.BackupData
-
-		assertResource(
-			&suite.OmniSuite,
-			cluster.Metadata(),
-			func(r *omni.BackupData, _ *assert.Assertions) {
-				result = r
-			},
-		)
-
-		return result
-	})
 }
 
 func toIter(infos []etcdbackup.Info) iter.Seq2[etcdbackup.Info, error] {
@@ -801,7 +985,7 @@ func toIter(infos []etcdbackup.Info) iter.Seq2[etcdbackup.Info, error] {
 	}
 }
 
-func toSlice(it iter.Seq2[etcdbackup.Info, error], t *testing.T) []etcdbackup.Info {
+func toSlice(t *testing.T, it iter.Seq2[etcdbackup.Info, error]) []etcdbackup.Info {
 	var result []etcdbackup.Info //nolint:prealloc
 
 	for v, err := range it {

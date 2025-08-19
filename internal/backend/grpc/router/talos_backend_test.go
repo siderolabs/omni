@@ -39,7 +39,7 @@ func TestTalosBackendRoles(t *testing.T) {
 	// Start mock server.
 	const serverEndpoint = "127.0.0.1:10501"
 
-	serverCloser := startTestServer(must.Value(net.Listen("tcp", serverEndpoint))(t))
+	serverCloser := startTestServer(must.Value((&net.ListenConfig{}).Listen(t.Context(), "tcp", serverEndpoint))(t))
 
 	t.Cleanup(func() { require.NoError(t, serverCloser()) })
 
@@ -145,7 +145,7 @@ func TestNodeResolution(t *testing.T) {
 func makeGRPCProxy(ctx context.Context, endpoint, serverEndpoint string) (func() error, error) {
 	grpcProxyServer := router.NewServer(&testDirector{serverEndpoint: serverEndpoint})
 
-	lis, err := net.Listen("tcp", endpoint)
+	lis, err := (&net.ListenConfig{}).Listen(ctx, "tcp", endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("failed to listen on %s: %w", endpoint, err)
 	}

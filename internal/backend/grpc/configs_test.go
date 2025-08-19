@@ -190,7 +190,7 @@ func TestGenerateConfigs(t *testing.T) {
 func runServer(t *testing.T, st state.State, opts ...grpc.ServerOption) string {
 	var err error
 
-	listener, err := net.Listen("tcp", "localhost:0")
+	listener, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", "localhost:0")
 	require.NoError(t, err)
 
 	grpcAddress := fmt.Sprintf("grpc://%s", listener.Addr())

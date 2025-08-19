@@ -1,4 +1,4 @@
-FROM ghcr.io/siderolabs/playwright-go:c3688e1
+FROM ghcr.io/siderolabs/playwright-go:953df82
 
 COPY go.* /tmp/test/
 WORKDIR /tmp/test

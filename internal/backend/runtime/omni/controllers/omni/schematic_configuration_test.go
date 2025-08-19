@@ -32,7 +32,7 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	defer cancel()
 
 	factory := imageFactoryMock{}
-	suite.Require().NoError(factory.run())
+	suite.Require().NoError(factory.run(suite.ctx))
 
 	factory.serve(ctx)
 

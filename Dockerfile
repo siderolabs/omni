@@ -2,14 +2,14 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-08-13T16:30:18Z by kres 9f63e23.
+# Generated on 2025-08-19T09:57:23Z by kres ff3b493-dirty.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
 
-FROM ghcr.io/siderolabs/ca-certificates:v1.10.0 AS image-ca-certificates
+FROM ghcr.io/siderolabs/ca-certificates:v1.11.0 AS image-ca-certificates
 
-FROM ghcr.io/siderolabs/fhs:v1.10.0 AS image-fhs
+FROM ghcr.io/siderolabs/fhs:v1.11.0 AS image-fhs
 
 # base toolchain image
 FROM --platform=${BUILDPLATFORM} ${JS_TOOLCHAIN} AS js-toolchain
@@ -20,7 +20,7 @@ ENV GOPATH=/go
 ENV PATH=${PATH}:/usr/local/go/bin
 
 # runs markdownlint
-FROM docker.io/oven/bun:1.2.18-alpine AS lint-markdown
+FROM docker.io/oven/bun:1.2.20-alpine AS lint-markdown
 WORKDIR /src
 RUN bun i markdownlint-cli@0.45.0 sentences-per-line@0.3.0
 COPY .markdownlint.json .
@@ -77,7 +77,7 @@ ADD https://raw.githubusercontent.com/cosi-project/specification/5c734257bfa6a3a
 
 # base toolchain image
 FROM --platform=${BUILDPLATFORM} ${TOOLCHAIN} AS toolchain
-RUN apk --update --no-cache add bash curl build-base protoc protobuf-dev
+RUN apk --update --no-cache add bash build-base curl jq protoc protobuf-dev
 
 # tools and sources
 FROM --platform=${BUILDPLATFORM} js-toolchain AS js
@@ -296,12 +296,14 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 # runs govulncheck
 FROM base AS lint-govulncheck
 WORKDIR /src
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg govulncheck ./...
+COPY --chmod=0755 hack/govulncheck.sh ./hack/govulncheck.sh
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg ./hack/govulncheck.sh ./...
 
 # runs govulncheck
 FROM base AS lint-govulncheck-client
 WORKDIR /src/client
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg govulncheck ./...
+COPY --chmod=0755 hack/govulncheck.sh ./hack/govulncheck.sh
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg ./hack/govulncheck.sh ./...
 
 # runs unit-tests with race detector
 FROM base AS unit-tests-client-race

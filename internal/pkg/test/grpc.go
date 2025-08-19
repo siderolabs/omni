@@ -30,7 +30,7 @@ type GRPCSuite struct {
 func (suite *GRPCSuite) InitServer(opts ...grpc.ServerOption) {
 	var err error
 
-	suite.listener, err = net.Listen("tcp", "localhost:0")
+	suite.listener, err = (&net.ListenConfig{}).Listen(suite.T().Context(), "tcp", "localhost:0")
 	suite.Require().NoError(err)
 
 	suite.Server = grpc.NewServer(opts...)

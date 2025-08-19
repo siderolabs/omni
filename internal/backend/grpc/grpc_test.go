@@ -82,7 +82,7 @@ func (suite *GrpcSuite) SetupTest() {
 
 	suite.imageFactory = &imageFactoryMock{}
 
-	suite.Require().NoError(suite.imageFactory.run())
+	suite.Require().NoError(suite.imageFactory.run(suite.ctx))
 	suite.imageFactory.serve(suite.ctx)
 
 	suite.T().Cleanup(func() {
@@ -304,7 +304,7 @@ func (suite *GrpcSuite) newServer(imageFactoryClient *imagefactory.Client, logge
 
 	suite.socketPath = filepath.Join(suite.T().TempDir(), "socket")
 
-	listener, err := net.Listen("unix", suite.socketPath)
+	listener, err := (&net.ListenConfig{}).Listen(suite.ctx, "unix", suite.socketPath)
 	if err != nil {
 		return err
 	}

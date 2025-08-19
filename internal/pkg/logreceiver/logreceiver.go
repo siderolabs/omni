@@ -8,6 +8,7 @@ package logreceiver
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -186,8 +187,8 @@ func isTimeout(err error) bool {
 }
 
 // MakeServer creates a listener on the given address and returns a struct which can be used to start and stop the server.
-func MakeServer(address string, handler Handler, logger *zap.Logger) (*Server, error) {
-	listener, err := net.Listen("tcp", address)
+func MakeServer(ctx context.Context, address string, handler Handler, logger *zap.Logger) (*Server, error) {
+	listener, err := (&net.ListenConfig{}).Listen(ctx, "tcp", address)
 	if err != nil {
 		return nil, fmt.Errorf("log server: error listening on %s: %w", address, err)
 	}

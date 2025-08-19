@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-08-11T08:26:36Z by kres 0b55a0b-dirty.
+# Generated on 2025-08-19T13:03:46Z by kres d1ef768.
 
 *
 !frontend/src
@@ -33,3 +33,5 @@
 !SECURITY.md
 !.markdownlint.json
 !.license-header.go.txt
+!hack/govulncheck.sh
+!hack/govulncheck.sh

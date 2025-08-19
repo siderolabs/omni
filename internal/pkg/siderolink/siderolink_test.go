@@ -167,7 +167,7 @@ func (suite *SiderolinkSuite) SetupTest() {
 func (suite *SiderolinkSuite) startManager(params sideromanager.Params) {
 	suite.wg.Add(1)
 
-	lis, err := params.NewListener()
+	lis, err := params.NewListener(suite.ctx)
 	suite.Require().NoError(err)
 
 	suite.address = lis.Addr().String()

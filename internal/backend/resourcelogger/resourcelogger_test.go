@@ -35,7 +35,7 @@ import (
 func TestResourceLogger(t *testing.T) {
 	t.Setenv("TZ", "UTC")
 
-	synctest.Run(func() {
+	synctest.Test(t, func(t *testing.T) {
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 

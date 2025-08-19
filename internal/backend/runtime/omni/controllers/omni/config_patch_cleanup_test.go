@@ -11,36 +11,44 @@ import (
 	"testing/synctest"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/controller/runtime"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
 
-type ConfigPatchCleanupSuite struct {
-	OmniSuite
+func TestConfigPatchCleanup(t *testing.T) {
+	t.Parallel()
+
+	sb := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+
+	synctest.Test(t, func(t *testing.T) {
+		withRuntime(
+			t.Context(),
+			t,
+			sb.Builder,
+			func(_ context.Context, _ state.State, rt *runtime.Runtime, _ *zap.Logger) { // prepare - register controllers
+				require.NoError(t, rt.RegisterController(&omnictrl.ConfigPatchCleanupController{}))
+			},
+			func(ctx context.Context, st state.State, _ *runtime.Runtime, _ *zap.Logger) {
+				testConfigPatchCleanup(ctx, t, st)
+			},
+		)
+	})
 }
 
-func (suite *ConfigPatchCleanupSuite) SetupTest() {
-	suite.ctx, suite.ctxCancel = context.WithCancel(context.Background())
-	suite.disableConnections = true
-	suite.OmniSuite.SetupTest()
-	suite.startRuntime()
-}
-
-func (suite *ConfigPatchCleanupSuite) TestReconcile() {
-	suite.Require().NoError(suite.runtime.RegisterController(&omnictrl.ConfigPatchCleanupController{}))
-
+func testConfigPatchCleanup(ctx context.Context, t *testing.T, st state.State) {
 	// create the initial orphan patch
-
 	earlyPatch := omni.NewConfigPatch(resources.DefaultNamespace, "test-early-patch")
-	suite.Require().NoError(suite.state.Create(suite.ctx, earlyPatch))
+	require.NoError(t, st.Create(ctx, earlyPatch))
 
 	time.Sleep(15 * 24 * time.Hour) // advance, then create all other resources
 
@@ -49,10 +57,10 @@ func (suite *ConfigPatchCleanupSuite) TestReconcile() {
 	clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, "test-cluster-machine")
 	machine := omni.NewMachine(resources.DefaultNamespace, "test-machine")
 
-	suite.Require().NoError(suite.state.Create(suite.ctx, cluster))
-	suite.Require().NoError(suite.state.Create(suite.ctx, machineSet))
-	suite.Require().NoError(suite.state.Create(suite.ctx, clusterMachine))
-	suite.Require().NoError(suite.state.Create(suite.ctx, machine))
+	require.NoError(t, st.Create(ctx, cluster))
+	require.NoError(t, st.Create(ctx, machineSet))
+	require.NoError(t, st.Create(ctx, clusterMachine))
+	require.NoError(t, st.Create(ctx, machine))
 
 	clusterPatch := omni.NewConfigPatch(resources.DefaultNamespace, "test-cluster-patch")
 	clusterPatch.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
@@ -92,32 +100,32 @@ func (suite *ConfigPatchCleanupSuite) TestReconcile() {
 	patchWithOwner := omni.NewConfigPatch(resources.DefaultNamespace, "test-patch-with-owner")
 
 	patchWithOwner.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
-	suite.Require().NoError(patchWithOwner.Metadata().SetOwner("some-owner"))
+	require.NoError(t, patchWithOwner.Metadata().SetOwner("some-owner"))
 
 	patchWithFinalizer := omni.NewConfigPatch(resources.DefaultNamespace, "test-patch-with-finalizer")
 	patchWithFinalizer.Metadata().Finalizers().Add("some-finalizer")
 
-	suite.Require().NoError(suite.state.Create(suite.ctx, clusterPatch))
-	suite.Require().NoError(suite.state.Create(suite.ctx, machineSetPatch))
-	suite.Require().NoError(suite.state.Create(suite.ctx, clusterMachinePatch))
-	suite.Require().NoError(suite.state.Create(suite.ctx, machinePatch))
-	suite.Require().NoError(suite.state.Create(suite.ctx, nonExistentClusterPatch))
-	suite.Require().NoError(suite.state.Create(suite.ctx, nonExistentMachineSetPatch))
-	suite.Require().NoError(suite.state.Create(suite.ctx, nonExistentClusterMachinePatch))
-	suite.Require().NoError(suite.state.Create(suite.ctx, nonExistentMachinePatch))
-	suite.Require().NoError(suite.state.Create(suite.ctx, unassociatedPatch))
-	suite.Require().NoError(suite.state.Create(suite.ctx, tearingDownPatch))
-	suite.Require().NoError(suite.state.Create(suite.ctx, patchWithOwner, state.WithCreateOwner("some-owner")))
-	suite.Require().NoError(suite.state.Create(suite.ctx, patchWithFinalizer))
-	suite.Require().NoError(suite.state.Create(suite.ctx, clusterWithNonExistentMachinePatch))
+	require.NoError(t, st.Create(ctx, clusterPatch))
+	require.NoError(t, st.Create(ctx, machineSetPatch))
+	require.NoError(t, st.Create(ctx, clusterMachinePatch))
+	require.NoError(t, st.Create(ctx, machinePatch))
+	require.NoError(t, st.Create(ctx, nonExistentClusterPatch))
+	require.NoError(t, st.Create(ctx, nonExistentMachineSetPatch))
+	require.NoError(t, st.Create(ctx, nonExistentClusterMachinePatch))
+	require.NoError(t, st.Create(ctx, nonExistentMachinePatch))
+	require.NoError(t, st.Create(ctx, unassociatedPatch))
+	require.NoError(t, st.Create(ctx, tearingDownPatch))
+	require.NoError(t, st.Create(ctx, patchWithOwner, state.WithCreateOwner("some-owner")))
+	require.NoError(t, st.Create(ctx, patchWithFinalizer))
+	require.NoError(t, st.Create(ctx, clusterWithNonExistentMachinePatch))
 
 	// advance until the early patch is deleted (so we know that we triggered the cleanup, and it worked as expected)
 
-	rtestutils.AssertNoResource[*omni.ConfigPatch](suite.ctx, suite.T(), suite.state, earlyPatch.Metadata().ID())
+	rtestutils.AssertNoResource[*omni.ConfigPatch](ctx, t, st, earlyPatch.Metadata().ID())
 
 	// assert that other resources are still there, as none of them reached the deadline yet
 
-	rtestutils.AssertResources[*omni.ConfigPatch](suite.ctx, suite.T(), suite.state, []string{
+	rtestutils.AssertResources[*omni.ConfigPatch](ctx, t, st, []string{
 		clusterPatch.Metadata().ID(),
 		machineSetPatch.Metadata().ID(),
 		clusterMachinePatch.Metadata().ID(),
@@ -141,32 +149,32 @@ func (suite *ConfigPatchCleanupSuite) TestReconcile() {
 
 	// advance until the patch with finalizer gets into the tearing down phase, and other orphans get deleted
 
-	rtestutils.AssertResource[*omni.ConfigPatch](suite.ctx, suite.T(), suite.state, patchWithFinalizer.Metadata().ID(), func(r *omni.ConfigPatch, assertion *assert.Assertions) {
+	rtestutils.AssertResource[*omni.ConfigPatch](ctx, t, st, patchWithFinalizer.Metadata().ID(), func(r *omni.ConfigPatch, assertion *assert.Assertions) {
 		assertion.Equal(resource.PhaseTearingDown, r.Metadata().Phase())
 	})
 
-	rtestutils.AssertNoResource[*omni.ConfigPatch](suite.ctx, suite.T(), suite.state, nonExistentClusterPatch.Metadata().ID())
-	rtestutils.AssertNoResource[*omni.ConfigPatch](suite.ctx, suite.T(), suite.state, nonExistentMachineSetPatch.Metadata().ID())
-	rtestutils.AssertNoResource[*omni.ConfigPatch](suite.ctx, suite.T(), suite.state, nonExistentClusterMachinePatch.Metadata().ID())
-	rtestutils.AssertNoResource[*omni.ConfigPatch](suite.ctx, suite.T(), suite.state, nonExistentMachinePatch.Metadata().ID())
-	rtestutils.AssertNoResource[*omni.ConfigPatch](suite.ctx, suite.T(), suite.state, unassociatedPatch.Metadata().ID())
-	rtestutils.AssertNoResource[*omni.ConfigPatch](suite.ctx, suite.T(), suite.state, tearingDownPatch.Metadata().ID())
+	rtestutils.AssertNoResource[*omni.ConfigPatch](ctx, t, st, nonExistentClusterPatch.Metadata().ID())
+	rtestutils.AssertNoResource[*omni.ConfigPatch](ctx, t, st, nonExistentMachineSetPatch.Metadata().ID())
+	rtestutils.AssertNoResource[*omni.ConfigPatch](ctx, t, st, nonExistentClusterMachinePatch.Metadata().ID())
+	rtestutils.AssertNoResource[*omni.ConfigPatch](ctx, t, st, nonExistentMachinePatch.Metadata().ID())
+	rtestutils.AssertNoResource[*omni.ConfigPatch](ctx, t, st, unassociatedPatch.Metadata().ID())
+	rtestutils.AssertNoResource[*omni.ConfigPatch](ctx, t, st, tearingDownPatch.Metadata().ID())
 
 	// remove the finalizer from the patch with the finalizer
 
-	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, patchWithFinalizer.Metadata(), func(r *omni.ConfigPatch) error {
+	_, err := safe.StateUpdateWithConflicts(ctx, st, patchWithFinalizer.Metadata(), func(r *omni.ConfigPatch) error {
 		r.Metadata().Finalizers().Remove("some-finalizer")
 
 		return nil
 	}, state.WithExpectedPhaseAny())
-	suite.Require().NoError(err)
+	require.NoError(t, err)
 
 	// advance further until it is deleted as well
 
-	rtestutils.AssertNoResource[*omni.ConfigPatch](suite.ctx, suite.T(), suite.state, patchWithFinalizer.Metadata().ID())
+	rtestutils.AssertNoResource[*omni.ConfigPatch](ctx, t, st, patchWithFinalizer.Metadata().ID())
 
 	// assert that the non-orphans were left untouched during the process
-	rtestutils.AssertResources[*omni.ConfigPatch](suite.ctx, suite.T(), suite.state, []string{
+	rtestutils.AssertResources[*omni.ConfigPatch](ctx, t, st, []string{
 		clusterPatch.Metadata().ID(),
 		machineSetPatch.Metadata().ID(),
 		clusterMachinePatch.Metadata().ID(),
@@ -175,13 +183,5 @@ func (suite *ConfigPatchCleanupSuite) TestReconcile() {
 		clusterWithNonExistentMachinePatch.Metadata().ID(),
 	}, func(r *omni.ConfigPatch, assertion *assert.Assertions) {
 		assertion.Equal(resource.PhaseRunning, r.Metadata().Phase())
-	})
-}
-
-func TestConfigPatchCleanupSuite(t *testing.T) {
-	t.Parallel()
-
-	synctest.Run(func() {
-		suite.Run(t, new(ConfigPatchCleanupSuite))
 	})
 }

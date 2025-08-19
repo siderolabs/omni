@@ -43,10 +43,10 @@ type imageFactoryMock struct {
 	schematicMu sync.Mutex
 }
 
-func (m *imageFactoryMock) run() error {
+func (m *imageFactoryMock) run(ctx context.Context) error {
 	var err error
 
-	m.listener, err = net.Listen("tcp", ":0")
+	m.listener, err = (&net.ListenConfig{}).Listen(ctx, "tcp", ":0")
 	if err != nil {
 		return err
 	}

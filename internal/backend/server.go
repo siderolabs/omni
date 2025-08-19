@@ -605,7 +605,7 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 	prometheus.MustRegister(slink)
 
 	// start API listener
-	lis, err := params.NewListener()
+	lis, err := params.NewListener(ctx)
 	if err != nil {
 		return fmt.Errorf("error listening for Siderolink gRPC API: %w", err)
 	}
@@ -956,7 +956,7 @@ func setRealIPRequest(req *http.Request) *http.Request {
 }
 
 func runLocalResourceServer(ctx context.Context, st state.CoreState, serverOptions []grpc.ServerOption, eg *errgroup.Group, logger *zap.Logger) error {
-	listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", config.Config.Services.LocalResourceService.Port))
+	listener, err := (&net.ListenConfig{}).Listen(ctx, "tcp", fmt.Sprintf("127.0.0.1:%d", config.Config.Services.LocalResourceService.Port))
 	if err != nil {
 		return fmt.Errorf("failed to listen: %w", err)
 	}

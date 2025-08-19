@@ -45,10 +45,10 @@ type imageFactoryMock struct {
 	schematics  map[string]schematic.Schematic
 }
 
-func (m *imageFactoryMock) run() error {
+func (m *imageFactoryMock) run(ctx context.Context) error {
 	var err error
 
-	m.listener, err = net.Listen("tcp", ":0")
+	m.listener, err = (&net.ListenConfig{}).Listen(ctx, "tcp", ":0")
 	if err != nil {
 		return err
 	}
@@ -216,7 +216,7 @@ func (suite *TalosExtensionsSuite) TestReconcile() {
 			},
 		},
 	}
-	suite.Require().NoError(factory.run())
+	suite.Require().NoError(factory.run(suite.ctx))
 
 	factory.serve(ctx)
 

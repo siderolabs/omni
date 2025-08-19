@@ -17,6 +17,7 @@ import (
 	"slices"
 	"sync"
 	"sync/atomic"
+	"testing"
 	"time"
 
 	cosiv1alpha1 "github.com/cosi-project/runtime/api/v1alpha1"
@@ -38,9 +39,11 @@ import (
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/resources/etcd"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -374,7 +377,7 @@ func (suite *OmniSuite) newServer(suffix string) (*machineService, error) {
 func (suite *OmniSuite) newServerWithTalosVersion(suffix, talosVersion string) (*machineService, error) {
 	address := suite.socketPath + suffix
 
-	listener, err := net.Listen("unix", address)
+	listener, err := (&net.ListenConfig{}).Listen(suite.ctx, "unix", address)
 	if err != nil {
 		return nil, err
 	}
@@ -737,4 +740,42 @@ func newMockJoinTokenUsageController[T generic.ResourceWithRD]() *qtransform.QCo
 		qtransform.WithExtraMappedInput(qtransform.MapperNone[*siderolink.DefaultJoinToken]()),
 		qtransform.WithConcurrency(4),
 	)
+}
+
+// testFunc is a test helper function that provides the state and the runtime to the test.
+type testFunc func(ctx context.Context, st state.State, rt *runtime.Runtime, logger *zap.Logger)
+
+// withRuntime is a test helper function that starts the COSI runtime with the provided beforeStart and afterStart functions.
+//
+// beforeStart can be used to register the controllers and other do other preparation work before the runtime starts.
+//
+// afterStart can be used to do the actual assertions on the controllers' expected behavior after the runtime has started.
+func withRuntime(ctx context.Context, t *testing.T, stateBuilder func(resource.Namespace) state.CoreState, beforeStart, afterStart testFunc) {
+	ctx, cancel := context.WithCancel(ctx)
+	t.Cleanup(cancel)
+
+	logger := zaptest.NewLogger(t)
+	st := state.WrapCore(namespaced.NewState(stateBuilder))
+
+	cosiRuntime, err := runtime.NewRuntime(st, logger)
+	require.NoError(t, err)
+
+	beforeStart(ctx, st, cosiRuntime, logger)
+
+	eg, ctx := errgroup.WithContext(ctx)
+
+	eg.Go(func() error {
+		logger.Debug("start runtime")
+		defer logger.Info("runtime stopped")
+
+		return cosiRuntime.Run(ctx)
+	})
+
+	afterStart(ctx, st, cosiRuntime, logger)
+
+	cancel()
+
+	logger.Info("context canceled, wait for the runtime to stop")
+
+	require.NoError(t, eg.Wait())
 }
