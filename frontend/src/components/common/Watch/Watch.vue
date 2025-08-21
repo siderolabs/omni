@@ -4,17 +4,14 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<script setup lang="ts" generic="T extends Resource">
-import { computed, ref, toRefs } from 'vue'
-
-import type { Resource } from '@/api/grpc'
+<script setup lang="ts" generic="T = any">
 import type { WatchJoinOptions, WatchOptions } from '@/api/watch'
-import Watch, { WatchJoin } from '@/api/watch'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import { useWatch } from '@/components/common/Watch/useWatch'
 import TAlert from '@/components/TAlert.vue'
 
 type Props = {
-  opts: WatchJoinOptions[] | (WatchOptions & object) | undefined // & Object is used to make Vue validator happy
+  opts: WatchJoinOptions[] | WatchOptions
   spinner?: boolean
   noRecordsAlert?: boolean
   errorsAlert?: boolean
@@ -22,48 +19,8 @@ type Props = {
 }
 
 const props = defineProps<Props>()
-const items = ref<T[]>([])
 
-const watchSingle = !Array.isArray(props.opts) ? new Watch(items) : undefined
-const watchJoin = Array.isArray(props.opts) ? new WatchJoin(items) : undefined
-
-const resourceWatch = watchSingle ?? watchJoin
-
-const { opts } = toRefs(props)
-
-if (watchJoin) {
-  watchJoin.setup(
-    computed(() => {
-      if (!opts?.value) {
-        return
-      }
-
-      return (opts.value as WatchJoinOptions[])[0]
-    }),
-    computed(() => {
-      if (!opts?.value) {
-        return
-      }
-
-      const o = opts.value as WatchJoinOptions[]
-
-      return o.slice(1, o.length)
-    }),
-  )
-} else if (watchSingle) {
-  watchSingle.setup(
-    computed(() => {
-      if (!opts?.value) {
-        return
-      }
-
-      return opts.value as WatchOptions
-    }),
-  )
-}
-
-const err = resourceWatch!.err
-const loading = resourceWatch!.loading
+const { items, err, loading } = useWatch<T, any>(props.opts)
 </script>
 
 <template>
@@ -85,7 +42,7 @@ const loading = resourceWatch!.loading
       v-show="(!loading && !err && (items.length > 0 || !noRecordsAlert)) || displayAlways"
       class="wrapper"
     >
-      <slot :items="items" :watch="resourceWatch" />
+      <slot :items="items" />
     </div>
   </div>
 </template>

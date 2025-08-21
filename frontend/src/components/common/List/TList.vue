@@ -4,7 +4,7 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<script setup lang="ts" generic="T extends Resource">
+<script setup lang="ts">
 import type { Ref } from 'vue'
 import { computed, ref, toRefs, watch as vueWatch } from 'vue'
 

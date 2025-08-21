@@ -502,7 +502,7 @@ interface WatchSource<T> {
 
 export class WatchJoin<T extends Resource> {
   private watches: WatchFunc[] = []
-  private items: Ref<Resource<T>[]>
+  private items: Ref<T[]>
   private watchItems?: WatchItems<T>
   private itemMap: Record<string, Record<string, Record<string, ResourceSort<T>>>> = {}
   private primaryResourceType?: string
@@ -512,7 +512,7 @@ export class WatchJoin<T extends Resource> {
   public readonly err: Ref<string | null> = ref(null)
   public readonly total: Ref<number> = ref(0)
 
-  constructor(items: Ref<Resource<T>[]>) {
+  constructor(items: Ref<T[]>) {
     this.items = items
   }
 
