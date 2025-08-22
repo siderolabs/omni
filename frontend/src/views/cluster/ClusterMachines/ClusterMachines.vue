@@ -100,9 +100,9 @@ machineNodesWatch.setup(
       }"
       spinner
     >
-      <template #default="{ items }">
+      <template #default="{ data }">
         <MachineSet
-          v-for="item in items"
+          v-for="item in data"
           :id="item.metadata.id"
           :key="itemID(item)"
           :machine-set="item"

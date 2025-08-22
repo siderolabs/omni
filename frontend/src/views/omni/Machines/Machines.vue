@@ -100,7 +100,7 @@ const watchOpts = computed<WatchOptions>(() => {
   }
 })
 
-const getCapacity = (item: Resource<MachineStatusMetricsSpec>) => {
+const getCapacity = (item?: Resource<MachineStatusMetricsSpec>) => {
   const registered = item?.spec.registered_machines_count ?? 0
   if (registered === 0) {
     return 0
@@ -200,19 +200,14 @@ const openDocs = () => {
                 runtime: Runtime.Omni,
               }"
             >
-              <template #default="{ items }">
+              <template #default="{ data }">
                 <div class="flex items-center gap-6">
                   <StatsItem
                     text="Allocated"
-                    :count="items[0]?.spec.allocated_machines_count ?? 0"
+                    :count="data?.spec.allocated_machines_count ?? 0"
                     icon="arrow-right-square"
                   />
-                  <StatsItem
-                    text="Capacity Free"
-                    units="%"
-                    :count="getCapacity(items[0])"
-                    icon="box"
-                  />
+                  <StatsItem text="Capacity Free" units="%" :count="getCapacity(data)" icon="box" />
                 </div>
               </template>
             </Watch>
