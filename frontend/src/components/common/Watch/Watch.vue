@@ -4,14 +4,25 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<script setup lang="ts" generic="T = any">
-import type { WatchJoinOptions, WatchOptions } from '@/api/watch'
+<script
+  setup
+  lang="ts"
+  generic="
+    TSpec = any,
+    TStatus = any,
+    TOptions extends WatchJoinOptions[] | WatchOptions = WatchJoinOptions[] | WatchOptions
+  "
+>
+import { computed } from 'vue'
+
+import type { Resource } from '@/api/grpc'
+import type { WatchJoinOptions, WatchOptions, WatchOptionsSingle } from '@/api/watch'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import { useWatch } from '@/components/common/Watch/useWatch'
 import TAlert from '@/components/TAlert.vue'
 
 type Props = {
-  opts: WatchJoinOptions[] | WatchOptions
+  opts: TOptions
   spinner?: boolean
   noRecordsAlert?: boolean
   errorsAlert?: boolean
@@ -20,43 +31,43 @@ type Props = {
 
 const props = defineProps<Props>()
 
-const { items, err, loading } = useWatch<T, any>(props.opts)
+defineSlots<{
+  error(props: { err: string | null }): unknown
+  norecords(): unknown
+  default(props: {
+    data: TOptions extends WatchOptionsSingle
+      ? Resource<TSpec, TStatus> | undefined
+      : Resource<TSpec, TStatus>[]
+  }): unknown
+}>()
+
+const { data, err, loading } = useWatch<TSpec, TStatus>(props.opts)
+
+const hasData = computed(() => (Array.isArray(data.value) ? !!data.value.length : !!data.value))
 </script>
 
 <template>
-  <div class="watch">
+  <div class="w-full">
     <div v-if="spinner && loading" class="flex h-full w-full flex-row items-center justify-center">
-      <TSpinner class="loading-spinner" />
+      <TSpinner class="absolute top-2/4 h-6 w-6" />
     </div>
-    <template v-else-if="errorsAlert && err">
-      <TAlert v-if="!$slots.error" title="Failed to Fetch Data" type="error"> {{ err }}. </TAlert>
-      <slot v-else name="error" err="err" />
-    </template>
-    <template v-else-if="noRecordsAlert && items.length === 0">
-      <TAlert v-if="!$slots.norecords" type="info" title="No Records"
-        >No entries of the requested resource type are found on the server.</TAlert
-      >
-      <slot name="norecords" />
-    </template>
+
+    <slot v-else-if="errorsAlert && err" name="error" :err="err">
+      <TAlert title="Failed to Fetch Data" type="error">{{ err }}.</TAlert>
+    </slot>
+
+    <slot v-else-if="noRecordsAlert && !hasData" name="norecords">
+      <TAlert type="info" title="No Records">
+        No entries of the requested resource type are found on the server.
+      </TAlert>
+    </slot>
+
     <div
-      v-show="(!loading && !err && (items.length > 0 || !noRecordsAlert)) || displayAlways"
-      class="wrapper"
+      v-show="(!loading && !err && (hasData || !noRecordsAlert)) || displayAlways"
+      class="h-full w-full"
     >
-      <slot :items="items" />
+      <!-- No idea how to type data correctly here but it works if you ✨believe✨ -->
+      <slot :data="data as any" />
     </div>
   </div>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.watch {
-  @apply w-full;
-}
-.wrapper {
-  @apply h-full w-full;
-}
-.loading-spinner {
-  @apply absolute top-2/4 h-6 w-6;
-}
-</style>

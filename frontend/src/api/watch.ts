@@ -125,7 +125,7 @@ export class WatchFunc {
 
     this.stream = await ResourceService.Watch(
       {
-        id: opts.resource.id,
+        id: 'id' in opts.resource ? opts.resource.id : undefined,
         namespace: opts.resource.namespace,
         type: opts.resource.type,
         tail_events: opts.tailEvents,
@@ -178,9 +178,10 @@ export type WatchContext = {
   nodes?: string[]
 }
 
-export type WatchOptions = {
+export type WatchOptions = WatchOptionsSingle | WatchOptionsMulti
+
+interface WatchOptionsBase {
   runtime: Runtime
-  resource: Metadata
   context?: WatchContext
   selectors?: string[]
   selectUsingOR?: boolean
@@ -192,25 +193,28 @@ export type WatchOptions = {
   searchFor?: string[]
 }
 
+export interface WatchOptionsSingle extends WatchOptionsBase {
+  resource: Metadata & { id: string }
+}
+
+export interface WatchOptionsMulti extends WatchOptionsBase {
+  resource: Omit<Metadata, 'id'>
+}
+
 export default class Watch<T extends Resource> extends WatchFunc {
-  public readonly items?: Ref<Resource<T>[]>
-  public readonly item?: Ref<Resource<T> | undefined>
-  public readonly total: Ref<number> = ref(0)
+  public readonly items?: Ref<T[]>
+  public readonly item?: Ref<T | undefined>
+  public readonly total = ref(0)
 
   private watchItems?: WatchItems<T>
-  private lastTotal: number = 0
+  private lastTotal = 0
 
   constructor(target: Ref<T[]> | Ref<T | undefined>, callback?: Callback) {
     let handler: Callback | undefined
 
-    super((event: WatchResponse, spec: WatchEventSpec) => {
-      if (callback) {
-        callback(event, spec)
-      }
-
-      if (handler) {
-        handler(event, spec)
-      }
+    super((event, spec) => {
+      callback?.(event, spec)
+      handler?.(event, spec)
 
       if (
         event.total !== undefined ||
@@ -226,18 +230,22 @@ export default class Watch<T extends Resource> extends WatchFunc {
       }
     })
 
-    if (target.value && (<Resource<T>[]>target.value).push !== undefined) {
+    if (this.isItemsRef(target)) {
       handler = this.listHandler.bind(this)
 
-      this.items = <Ref<Resource<T>[]>>target
+      this.items = target
     } else {
       handler = this.singleItemHandler.bind(this)
 
-      this.item = <Ref<Resource<T> | undefined>>target
+      this.item = target
     }
   }
 
-  public async start(opts: WatchOptions): Promise<void> {
+  private isItemsRef(target: Ref<T[]> | Ref<T | undefined>): target is Ref<T[]> {
+    return Array.isArray(target.value)
+  }
+
+  public async start(opts: WatchOptions) {
     if (this.items) {
       this.watchItems = new WatchItems(this.items.value)
 
@@ -296,7 +304,7 @@ export default class Watch<T extends Resource> extends WatchFunc {
     switch (message.event?.event_type) {
       case EventType.UPDATED:
       case EventType.CREATED:
-        this.item.value = spec.res
+        this.item.value = spec.res as T
         break
       case EventType.DESTROYED:
         this.item.value = undefined

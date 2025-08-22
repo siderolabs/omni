@@ -79,11 +79,11 @@ const openClusters = () => {
 }
 
 const computePercentOfMachinesAssignedToClusters = (
-  items: Resource<MachineStatusMetricsSpec>[],
+  item?: Resource<MachineStatusMetricsSpec>,
 ): string => {
   return (
-    (100 / Math.max(items[0]?.spec.registered_machines_count ?? 0, 1)) *
-    (items[0]?.spec.allocated_machines_count ?? 0)
+    (100 / Math.max(item?.spec.registered_machines_count ?? 0, 1)) *
+    (item?.spec.allocated_machines_count ?? 0)
   ).toFixed(0)
 }
 
@@ -163,7 +163,7 @@ onBeforeMount(async () => {
       errors-alert
       spinner
     >
-      <template #default="{ items }">
+      <template #default="{ data }">
         <div class="flex gap-6">
           <div class="w-full space-y-6">
             <div class="overview-card flex flex-1 flex-wrap gap-3 p-6">
@@ -172,29 +172,33 @@ onBeforeMount(async () => {
                 <div class="overview-general-info-grid">
                   <div>Backend Version</div>
                   <Watch
-                    :opts="{ resource: sysVersionResource, runtime: Runtime.Omni }"
+                    :opts="{
+                      resource: sysVersionResource,
+                      runtime: Runtime.Omni,
+                    }"
+                    :spinner="false"
                     class="text-right"
                   >
-                    <template #default="{ items }">
-                      {{ items[0]?.spec?.backend_version }}
+                    <template #default="{ data }">
+                      {{ data?.spec?.backend_version }}
                     </template>
                   </Watch>
                   <div>API Endpoint</div>
                   <div>
-                    {{ items[0]?.spec?.machine_api_advertised_url }}
+                    {{ data?.spec?.machine_api_advertised_url }}
                     <TIcon
                       icon="copy"
                       class="overview-copy-icon"
-                      @click="() => copyValue(items[0]?.spec?.machine_api_advertised_url)"
+                      @click="() => copyValue(data?.spec?.machine_api_advertised_url)"
                     />
                   </div>
                   <div>WireGuard Endpoint</div>
                   <div>
-                    {{ items[0]?.spec?.wireguard_advertised_endpoint }}
+                    {{ data?.spec?.wireguard_advertised_endpoint }}
                     <TIcon
                       icon="copy"
                       class="overview-copy-icon"
-                      @click="() => copyValue(items[0]?.spec?.wireguard_advertised_endpoint)"
+                      @click="() => copyValue(data?.spec?.wireguard_advertised_endpoint)"
                     />
                   </div>
                   <div>Default Join Token</div>
@@ -208,7 +212,7 @@ onBeforeMount(async () => {
                       runtime: Runtime.Omni,
                     }"
                   >
-                    <template #default="tokens">
+                    <template #default="{ data }">
                       <div class="flex items-center gap-1">
                         <div
                           class="flex-1 cursor-pointer truncate text-right font-mono select-none"
@@ -216,14 +220,14 @@ onBeforeMount(async () => {
                         >
                           {{
                             showJoinToken
-                              ? tokens.items[0]?.spec?.token_id
-                              : tokens.items[0]?.spec?.token_id.replace(/./g, '•')
+                              ? data?.spec?.token_id
+                              : data?.spec?.token_id.replace(/./g, '•')
                           }}
                         </div>
                         <TIcon
                           icon="copy"
                           class="overview-copy-icon"
-                          @click="() => copyValue(tokens.items[0]?.spec?.token_id)"
+                          @click="() => copyValue(data?.spec?.token_id)"
                         />
                       </div>
                     </template>
@@ -232,14 +236,14 @@ onBeforeMount(async () => {
               </div>
               <div v-if="canReadClusters" class="flex px-12">
                 <Watch :opts="{ resource: machineStatusMetricsResource, runtime: Runtime.Omni }">
-                  <template #default="{ items }">
+                  <template #default="{ data }">
                     <OverviewCircleChartItem
                       class="text-sm text-naturals-n14"
-                      :chart-fill-percents="computePercentOfMachinesAssignedToClusters(items)"
+                      :chart-fill-percents="computePercentOfMachinesAssignedToClusters(data)"
                       name="Machines"
-                      :usage-name="(items[0]?.spec.allocated_machines_count ?? 0) + ' Used'"
-                      :usage-percents="computePercentOfMachinesAssignedToClusters(items)"
-                      :usage-total="items[0]?.spec.registered_machines_count ?? 0"
+                      :usage-name="(data?.spec.allocated_machines_count ?? 0) + ' Used'"
+                      :usage-percents="computePercentOfMachinesAssignedToClusters(data)"
+                      :usage-total="data?.spec.registered_machines_count ?? 0"
                     />
                   </template>
                 </Watch>
@@ -272,9 +276,9 @@ onBeforeMount(async () => {
                 <template #norecords>
                   <div class="px-6 pb-6">No clusters</div>
                 </template>
-                <template #default="{ items }">
+                <template #default="{ data }">
                   <div
-                    v-for="item in items.slice(0, 5)"
+                    v-for="item in data.slice(0, 5)"
                     :key="itemID(item)"
                     class="recent-clusters-row"
                   >

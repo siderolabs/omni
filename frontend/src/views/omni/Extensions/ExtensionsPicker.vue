@@ -75,10 +75,10 @@ const updateExtension = (extension: TalosExtensionsSpecInfo) => {
       }"
       display-always
     >
-      <template #default="{ items }">
-        <div v-if="items[0]?.spec.items" class="flex flex-col">
+      <template #default="{ data }">
+        <div v-if="data?.spec.items" class="flex flex-col">
           <div
-            v-for="extension in filteredExtensions(items[0].spec.items!)"
+            v-for="extension in filteredExtensions(data.spec.items)"
             :key="extension.name"
             class="flex cursor-pointer items-center gap-2 border-b border-naturals-n6 p-2 transition-colors hover:bg-naturals-n5"
             @click="() => updateExtension(extension)"

@@ -95,17 +95,21 @@ machineNodesWatch.setup(
       v-for="id in watches"
       :key="id"
       :opts="{
-        resource: { namespace: DefaultNamespace, type: MachineSetStatusType, id: id },
+        resource: {
+          namespace: DefaultNamespace,
+          type: MachineSetStatusType,
+          id,
+        },
         runtime: Runtime.Omni,
       }"
       spinner
     >
-      <template #default="{ items }">
+      <template #default="{ data }">
         <MachineSet
-          v-for="item in items"
-          :id="item.metadata.id"
-          :key="itemID(item)"
-          :machine-set="item"
+          v-if="data"
+          :id="data.metadata.id"
+          :key="itemID(data)"
+          :machine-set="data"
           :nodes-with-diagnostics="nodesWithDiagnostics"
         />
       </template>

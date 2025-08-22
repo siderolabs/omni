@@ -45,12 +45,12 @@ const onClickOutside = () => {
 <template>
   <div v-click-outside="onClickOutside" class="relative flex items-center">
     <Watch v-if="watchOpts" :opts="watchOpts" display-always>
-      <template #default="{ items }">
+      <template #default="{ data }">
         <div
           class="flex cursor-pointer items-center gap-1 text-naturals-n11 transition-colors hover:text-naturals-n14"
           @click="() => toggleDropdown()"
         >
-          <IconHeaderDropdownLoading :active="items.length > 0" />
+          <IconHeaderDropdownLoading :active="data.length > 0" />
           <span class="text-xs font-normal whitespace-nowrap select-none">
             <span class="contents sm:hidden">Tasks</span>
             <span class="hidden sm:contents">Ongoing Tasks</span>
@@ -68,7 +68,7 @@ const onClickOutside = () => {
             class="absolute top-7 -right-2 z-30 rounded border border-naturals-n4 bg-naturals-n2"
           >
             <div
-              v-for="item in items"
+              v-for="item in data"
               :key="itemID(item)"
               class="flex flex-col gap-2 p-6 not-last:border-b not-last:border-naturals-n4"
             >
@@ -137,7 +137,7 @@ const onClickOutside = () => {
             </div>
 
             <div
-              v-if="!items.length"
+              v-if="!data.length"
               class="flex w-32 items-center justify-center gap-2 p-4 text-xs"
             >
               <TIcon icon="check" class="h-4 w-4" />

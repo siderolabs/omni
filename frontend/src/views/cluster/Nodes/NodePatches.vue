@@ -30,8 +30,8 @@ const opts = computed(() => {
 
 <template>
   <Watch spinner :opts="opts">
-    <template #default="{ items }">
-      <Patches :machine="items[0]" />
+    <template #default="{ data }">
+      <Patches :machine="data" />
     </template>
   </Watch>
 </template>

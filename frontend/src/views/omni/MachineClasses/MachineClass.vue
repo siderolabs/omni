@@ -366,9 +366,9 @@ const canSubmit = computed(() => {
       return nonEmptyConditions.value.length !== 0
     case MachineClassMode.AutoProvision:
       return infraProvider.value !== undefined
+    default:
+      return false
   }
-
-  return false
 })
 
 const submit = async () => {
@@ -517,9 +517,9 @@ const submit = async () => {
         <div v-if="machineClassMode === MachineClassMode.Manual">
           <div class="text-naturals-n13">Matches</div>
           <Watch :opts="watchOpts" spinner no-records-alert errors-alert>
-            <template #default="{ items }">
+            <template #default="{ data }">
               <MachineMatchItem
-                v-for="item in items"
+                v-for="item in data"
                 :key="itemID(item)"
                 :machine="item"
                 @filter-labels="copyLabel"

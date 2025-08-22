@@ -20,7 +20,6 @@ import {
   LabelCluster,
   MetricsNamespace,
 } from '@/api/resources'
-import type { WatchOptions } from '@/api/watch'
 import IconButton from '@/components/common/Button/IconButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
 import TList from '@/components/common/List/TList.vue'
@@ -39,7 +38,7 @@ const sortOptions = [
   { id: 'id', desc: 'Creation Time ⬆' },
 ]
 
-const watchStatusOpts = computed((): WatchOptions => {
+const watchStatusOpts = computed(() => {
   return {
     resource: {
       namespace: MetricsNamespace,
@@ -50,7 +49,7 @@ const watchStatusOpts = computed((): WatchOptions => {
   }
 })
 
-const watchOverallStatusOpts = computed((): WatchOptions => {
+const watchOverallStatusOpts = computed(() => {
   return {
     resource: {
       namespace: MetricsNamespace,
@@ -61,7 +60,7 @@ const watchOverallStatusOpts = computed((): WatchOptions => {
   }
 })
 
-const watchOpts = computed((): WatchOptions => {
+const watchOpts = computed(() => {
   return {
     resource: {
       namespace: ExternalNamespace,
@@ -81,11 +80,11 @@ const openDocs = () => {
 
 <template>
   <Watch :opts="watchOverallStatusOpts" spinner no-records-alert errors-alert>
-    <template #default="overallStatus">
+    <template #default="{ data }">
       <TAlert
-        v-if="overallStatus.items[0]?.spec?.configuration_error"
+        v-if="data?.spec?.configuration_error"
         type="warn"
-        :title="`The backups storage is not properly configured: ${overallStatus.items[0]?.spec?.configuration_error}`"
+        :title="`The backups storage is not properly configured: ${data.spec?.configuration_error}`"
       >
         <div class="flex gap-1">
           Check the
@@ -99,9 +98,9 @@ const openDocs = () => {
         </div>
       </TAlert>
       <Watch v-else :opts="watchStatusOpts" spinner no-records-alert errors-alert>
-        <template #default="status">
+        <template #default="{ data }">
           <TList
-            :key="status.items[0]?.metadata?.updated"
+            :key="data?.metadata?.updated"
             :opts="watchOpts"
             search
             :sort-options="sortOptions"

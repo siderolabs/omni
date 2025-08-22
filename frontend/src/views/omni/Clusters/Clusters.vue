@@ -99,11 +99,11 @@ const filterOptions = [
                 runtime: Runtime.Omni,
               }"
             >
-              <template #default="{ items }">
+              <template #default="{ data }">
                 <StatsItem
                   hide-zero
                   icon="warning"
-                  :count="items[0]?.spec.not_ready_count ?? 0"
+                  :count="data?.spec.not_ready_count ?? 0"
                   text=" Not Ready"
                 />
               </template>

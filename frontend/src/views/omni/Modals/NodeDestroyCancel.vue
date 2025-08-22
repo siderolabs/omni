@@ -39,10 +39,6 @@ const close = (goBack?: boolean) => {
   router.go(-1)
 }
 
-const canRestore = (items: Resource[]) => {
-  return items.length === 0 || items[0].metadata.phase !== 'Running'
-}
-
 const node = setupNodenameWatch(route.query.machine as string)
 
 const restore = async (clusterMachine: Resource<ClusterMachineSpec>) => {
@@ -97,13 +93,13 @@ const restore = async (clusterMachine: Resource<ClusterMachineSpec>) => {
       }"
       spinner
     >
-      <template #default="{ items }">
-        <template v-if="canRestore(items)">
+      <template #default="{ data }">
+        <template v-if="data && data.metadata.phase !== 'Running'">
           <p class="mb-2 text-xs">Please confirm the action.</p>
 
           <div class="mt-2 flex items-end gap-4">
             <div class="flex-1" />
-            <TButton class="h-9" @click="() => restore(items[0])"> Restore Machine </TButton>
+            <TButton class="h-9" @click="() => restore(data)"> Restore Machine </TButton>
           </div>
         </template>
         <template v-else>
