@@ -47,17 +47,17 @@ const textOrder = computed((): StyleValue => {
         type === 'primary',
       'border-naturals-n5 bg-transparent text-naturals-n10 hover:bg-naturals-n5 hover:text-naturals-n14 focus:border-naturals-n7 focus:bg-naturals-n5 focus:text-naturals-n14 active:border-naturals-n5 active:bg-naturals-n4 active:text-naturals-n14 disabled:cursor-not-allowed disabled:border-naturals-n6 disabled:bg-transparent disabled:text-naturals-n6':
         type === 'secondary',
-      'border-none bg-transparent p-0 text-naturals-n13 hover:text-primary-p3 focus:text-primary-p2 focus:underline active:text-primary-p4 active:no-underline disabled:cursor-not-allowed disabled:text-naturals-n6':
+      'border-none bg-transparent p-0! text-naturals-n13 hover:text-primary-p3 focus:text-primary-p2 focus:underline active:text-primary-p4 active:no-underline disabled:cursor-not-allowed disabled:text-naturals-n6':
         type === 'subtle',
-      'border-none bg-transparent p-0 text-xs text-naturals-n13 hover:text-primary-p3 focus:text-primary-p2 focus:underline active:text-primary-p4 active:no-underline disabled:cursor-not-allowed disabled:text-naturals-n6':
+      'border-none bg-transparent p-0! text-xs! text-naturals-n13 hover:text-primary-p3 focus:text-primary-p2 focus:underline active:text-primary-p4 active:no-underline disabled:cursor-not-allowed disabled:text-naturals-n6':
         type === 'subtle-xs',
-      'h-6 border-naturals-n5 bg-naturals-n4 px-2 py-0.5 text-naturals-n10 hover:bg-naturals-n5 hover:text-naturals-n14 focus:border-naturals-n7 focus:bg-naturals-n5 focus:text-naturals-n14 active:border-primary-p4 active:bg-primary-p4 active:text-naturals-n14 disabled:cursor-not-allowed disabled:border-naturals-n6 disabled:bg-naturals-n4 disabled:text-naturals-n7':
+      'h-6 border-naturals-n5 bg-naturals-n4 px-2! py-0.5! text-naturals-n10 hover:bg-naturals-n5 hover:text-naturals-n14 focus:border-naturals-n7 focus:bg-naturals-n5 focus:text-naturals-n14 active:border-primary-p4 active:bg-primary-p4 active:text-naturals-n14 disabled:cursor-not-allowed disabled:border-naturals-n6 disabled:bg-naturals-n4 disabled:text-naturals-n7':
         type === 'compact',
       'border-primary-p2 bg-primary-p4 text-naturals-n14 hover:border-primary-p3 hover:bg-primary-p3 hover:text-naturals-n14 focus:border-primary-p2 focus:bg-primary-p2 focus:text-naturals-n14 active:border-primary-p4 active:bg-primary-p4 active:text-naturals-n14 disabled:cursor-not-allowed disabled:border-naturals-n6 disabled:bg-naturals-n4 disabled:text-naturals-n7':
         type === 'highlighted',
       'border-primary-p4 bg-primary-p4 text-naturals-n14':
         toggle && ['primary', 'compact'].includes(type),
-      'border-none bg-transparent p-0 hover:text-naturals-n12 focus:text-naturals-n13 focus:underline active:text-naturals-n13 active:no-underline disabled:cursor-not-allowed disabled:text-naturals-n6':
+      'border-none bg-transparent p-0! hover:text-naturals-n12 focus:text-naturals-n13 focus:underline active:text-naturals-n13 active:no-underline disabled:cursor-not-allowed disabled:text-naturals-n6':
         type === 'subtle' && isLightHover,
     }"
   >
