@@ -7,7 +7,7 @@ require (
 	github.com/mittwald/go-helm-client v0.12.18
 	go.uber.org/zap v1.27.0
 	gopkg.in/yaml.v3 v3.0.1
-	helm.sh/helm/v3 v3.18.5
+	helm.sh/helm/v3 v3.18.6
 )
 
 require (
