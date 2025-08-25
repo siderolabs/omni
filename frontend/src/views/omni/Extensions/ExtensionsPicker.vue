@@ -64,7 +64,6 @@ const updateExtension = (extension: TalosExtensionsSpecInfo) => {
 
     <Watch
       v-if="talosVersion"
-      class="flex-1 overflow-x-hidden overflow-y-auto"
       :opts="{
         resource: {
           id: talosVersion,

@@ -14,7 +14,6 @@ import { getAuthCookies, isAuthorized } from '@/methods/key'
 import { MachineFilterOption } from '@/methods/machine'
 import { refreshTitle } from '@/methods/title'
 import ClusterBackups from '@/views/cluster/Backups/Backups.vue'
-// Cluster level routes
 import ClusterScoped from '@/views/cluster/ClusterScoped.vue'
 import ClusterPatches from '@/views/cluster/Config/ClusterPatches.vue'
 import PatchEdit from '@/views/cluster/Config/PatchEdit.vue'
@@ -40,6 +39,7 @@ import OIDC from '@/views/omni/Auth/OIDC.vue'
 import OmniClusters from '@/views/omni/Clusters/Clusters.vue'
 import OmniClusterCreate from '@/views/omni/Clusters/Management/ClusterCreate.vue'
 import OmniClusterScale from '@/views/omni/Clusters/Management/ClusterScale.vue'
+import Home from '@/views/omni/Home/Home.vue'
 import OmniMachineClass from '@/views/omni/MachineClasses/MachineClass.vue'
 import OmniMachineClasses from '@/views/omni/MachineClasses/MachineClasses.vue'
 import OmniMachine from '@/views/omni/Machines/Machine.vue'
@@ -66,7 +66,6 @@ import MachineSetDestroy from '@/views/omni/Modals/MachineSetDestroy.vue'
 import MaintenanceUpdate from '@/views/omni/Modals/MaintenanceUpdate.vue'
 import NodeDestroy from '@/views/omni/Modals/NodeDestroy.vue'
 import NodeDestroyCancel from '@/views/omni/Modals/NodeDestroyCancel.vue'
-// modal windows
 import NodeReboot from '@/views/omni/Modals/NodeReboot.vue'
 import NodeShutdown from '@/views/omni/Modals/NodeShutdown.vue'
 import RoleEdit from '@/views/omni/Modals/RoleEdit.vue'
@@ -77,13 +76,10 @@ import UpdateKubernetes from '@/views/omni/Modals/UpdateKubernetes.vue'
 import UpdateTalos from '@/views/omni/Modals/UpdateTalos.vue'
 import UserCreate from '@/views/omni/Modals/UserCreate.vue'
 import UserDestroy from '@/views/omni/Modals/UserDestroy.vue'
-// Root level routes
-import OmniOverview from '@/views/omni/Overview/Overview.vue'
 import OmniBackupStorageSettings from '@/views/omni/Settings/BackupStorage.vue'
 import OmniInfraProviders from '@/views/omni/Settings/InfraProviders.vue'
 import OmniJoinTokens from '@/views/omni/Settings/JoinTokens.vue'
 import OmniSettings from '@/views/omni/Settings/Settings.vue'
-// sidebars
 import OmniSidebar from '@/views/omni/SideBar.vue'
 import OmniServiceAccounts from '@/views/omni/Users/ServiceAccounts.vue'
 import OmniUsers from '@/views/omni/Users/Users.vue'
@@ -162,8 +158,8 @@ const routes: RouteRecordRaw[] = [
     [
       {
         path: '/',
-        name: 'Overview',
-        component: OmniOverview,
+        name: 'Home',
+        component: Home,
       },
       {
         path: '/clusters',

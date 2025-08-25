@@ -33,7 +33,6 @@ const filterOptions = Object.keys(TPodsViewFilterOptions).map((key) => TPodsView
     <PageHeader title="All Pods" />
     <Watch
       :opts="{ resource: { type: kubernetes.pod }, runtime: Runtime.Kubernetes, context }"
-      class="flex-1"
       no-records-alert
       errors-alert
       spinner
