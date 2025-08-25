@@ -272,6 +272,10 @@ func (s *managementServer) collectClusterResources(ctx context.Context, cluster 
 			id: cluster,
 		},
 		{
+			rt: omni.ClusterOperationStatusType,
+			id: cluster,
+		},
+		{
 			rt:          omni.MachineSetType,
 			listOptions: clusterQuery,
 		},
