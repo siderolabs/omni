@@ -90,13 +90,13 @@ const close = () => {
         }"
         class="flex-1"
       >
-        <template #default="{ items }">
+        <template #default="{ data }">
           <TSelectList
-            v-if="items[0]?.spec?.role"
+            v-if="data?.spec?.role"
             class="h-full"
             title="Role"
             :values="roles"
-            :default-value="items[0]?.spec?.role"
+            :default-value="data.spec?.role"
             @checked-value="(value) => (role = value)"
           />
         </template>

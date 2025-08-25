@@ -2,33 +2,98 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { computed, ref } from 'vue'
+import { computed, type ComputedRef, type Ref, ref } from 'vue'
 
 import type { Resource } from '@/api/grpc'
-import type { WatchJoinOptions, WatchOptions } from '@/api/watch'
+import type {
+  WatchJoinOptions,
+  WatchOptions,
+  WatchOptionsMulti,
+  WatchOptionsSingle,
+} from '@/api/watch'
 import Watch, { WatchJoin } from '@/api/watch'
 
+interface WatchBase {
+  err: Ref<string | null>
+  loading: Ref<boolean>
+}
+
+interface WatchSingle<TSpec, TStatus> extends WatchBase {
+  item: ComputedRef<Resource<TSpec, TStatus> | undefined>
+}
+
+interface WatchMulti<TSpec, TStatus> extends WatchBase {
+  items: Ref<Resource<TSpec, TStatus>[]>
+}
+
 export function useWatch<TSpec = unknown, TStatus = unknown>(
-  opts: WatchJoinOptions[] | WatchOptions,
-) {
+  opts: WatchOptionsSingle,
+): WatchSingle<TSpec, TStatus>
+
+export function useWatch<TSpec = unknown, TStatus = unknown>(
+  opts: WatchOptionsMulti,
+): WatchMulti<TSpec, TStatus>
+
+export function useWatch<TSpec = unknown, TStatus = unknown>(
+  opts: WatchJoinOptions[],
+): WatchMulti<TSpec, TStatus>
+
+export function useWatch<TSpec = unknown, TStatus = unknown>(
+  opts: WatchOptions | WatchJoinOptions[],
+): WatchSingle<TSpec, TStatus> | WatchMulti<TSpec, TStatus>
+
+export function useWatch<TSpec, TStatus>(opts: WatchOptions | WatchJoinOptions[]) {
+  if (Array.isArray(opts)) return useWatchJoin<TSpec, TStatus>(opts)
+
+  return isWatchOptionsSingle(opts)
+    ? useWatchSingle<TSpec, TStatus>(opts)
+    : useWatchMulti<TSpec, TStatus>(opts)
+}
+
+function useWatchSingle<TSpec = unknown, TStatus = unknown>(opts: WatchOptionsSingle) {
+  const items = ref<Resource<TSpec, TStatus>[]>([])
+  // Testing if watch(item) is an issue vs watch(items)
+  const item = computed(() => items.value[0] as Resource<TSpec, TStatus> | undefined)
+
+  const watch = new Watch(items)
+  watch.setup(computed(() => opts))
+
+  return {
+    item,
+    err: watch.err,
+    loading: watch.loading,
+  }
+}
+
+function useWatchMulti<TSpec = unknown, TStatus = unknown>(opts: WatchOptionsMulti) {
   const items = ref<Resource<TSpec, TStatus>[]>([])
 
-  let watch: Watch<Resource> | WatchJoin<Resource>
-
-  if (Array.isArray(opts)) {
-    watch = new WatchJoin(items)
-    watch.setup(
-      computed(() => opts[0]),
-      computed(() => opts.slice(1, opts.length)),
-    )
-  } else {
-    watch = new Watch(items)
-    watch.setup(computed(() => opts))
-  }
+  const watch = new Watch(items)
+  watch.setup(computed(() => opts))
 
   return {
     items,
     err: watch.err,
     loading: watch.loading,
   }
+}
+
+function useWatchJoin<TSpec = unknown, TStatus = unknown>(opts: WatchJoinOptions[]) {
+  const items = ref<Resource<TSpec, TStatus>[]>([])
+
+  const watch = new WatchJoin(items)
+  watch.setup(
+    computed(() => opts[0]),
+    computed(() => opts.slice(1, opts.length)),
+  )
+
+  return {
+    items,
+    err: watch.err,
+    loading: watch.loading,
+  }
+}
+
+function isWatchOptionsSingle(opts: WatchOptions): opts is WatchOptionsSingle {
+  return 'id' in opts.resource
 }

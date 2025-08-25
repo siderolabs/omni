@@ -38,7 +38,7 @@ const filterOptions = Object.keys(TPodsViewFilterOptions).map((key) => TPodsView
       errors-alert
       spinner
     >
-      <template #default="{ items }">
+      <template #default="{ data }">
         <div class="pods">
           <div class="pods__search-box">
             <TInput v-model="inputValue" secondary placeholder="Search..." />
@@ -55,7 +55,7 @@ const filterOptions = Object.keys(TPodsViewFilterOptions).map((key) => TPodsView
             <li class="pods__row-name">Phase</li>
             <li class="pods__row-name">Node</li>
           </ul>
-          <TPodsList :items="items" :filter-option="filterOption" :search-option="inputValue" />
+          <TPodsList :items="data" :filter-option="filterOption" :search-option="inputValue" />
         </div>
       </template>
     </Watch>

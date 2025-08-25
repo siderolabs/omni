@@ -125,7 +125,7 @@ export class WatchFunc {
 
     this.stream = await ResourceService.Watch(
       {
-        id: opts.resource.id,
+        id: 'id' in opts.resource ? opts.resource.id : undefined,
         namespace: opts.resource.namespace,
         type: opts.resource.type,
         tail_events: opts.tailEvents,
@@ -178,9 +178,10 @@ export type WatchContext = {
   nodes?: string[]
 }
 
-export type WatchOptions = {
+export type WatchOptions = WatchOptionsSingle | WatchOptionsMulti
+
+interface WatchOptionsBase {
   runtime: Runtime
-  resource: Metadata
   context?: WatchContext
   selectors?: string[]
   selectUsingOR?: boolean
@@ -190,6 +191,14 @@ export type WatchOptions = {
   sortByField?: string
   sortDescending?: boolean
   searchFor?: string[]
+}
+
+export interface WatchOptionsSingle extends WatchOptionsBase {
+  resource: Metadata & { id: string }
+}
+
+export interface WatchOptionsMulti extends WatchOptionsBase {
+  resource: Omit<Metadata, 'id'>
 }
 
 export default class Watch<T extends Resource> extends WatchFunc {

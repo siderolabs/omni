@@ -169,9 +169,9 @@ onMounted(async () => {
             events.</TAlert
           >
         </template>
-        <template #default="{ items }">
+        <template #default="{ data }">
           <ClusterMachineItem
-            v-for="item in items"
+            v-for="item in data"
             :key="itemID(item)"
             :item="item"
             :version-mismatch="detectVersionMismatch(item)"
