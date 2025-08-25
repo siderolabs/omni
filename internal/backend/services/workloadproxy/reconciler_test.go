@@ -7,6 +7,7 @@ package workloadproxy_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zapcore"
@@ -18,7 +19,7 @@ import (
 func TestReconciler(t *testing.T) {
 	t.Parallel()
 
-	reconciler := workloadproxy.NewReconciler(zaptest.NewLogger(t), zapcore.InfoLevel)
+	reconciler := workloadproxy.NewReconciler(zaptest.NewLogger(t), zapcore.InfoLevel, 30*time.Second)
 
 	err := reconciler.Reconcile("cluster1", map[string][]string{
 		"alias1": {

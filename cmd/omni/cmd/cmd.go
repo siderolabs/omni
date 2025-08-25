@@ -655,6 +655,13 @@ func defineFeatureFlags() {
 		"workload proxying subdomain.",
 	)
 
+	rootCmd.Flags().DurationVar(
+		&cmdConfig.Services.WorkloadProxy.StopLBsAfter,
+		"workload-proxying-stop-lbs-after",
+		cmdConfig.Services.WorkloadProxy.StopLBsAfter,
+		"stop load balancers after this duration when workload proxying is enabled. Set to 0 to disable.",
+	)
+
 	rootCmd.Flags().BoolVar(
 		&cmdConfig.Features.EnableBreakGlassConfigs,
 		"enable-break-glass-configs",
