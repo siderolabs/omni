@@ -4,6 +4,7 @@
 // included in the LICENSE file.
 
 import { authGuard } from '@auth0/auth0-vue'
+import { Userpilot } from 'userpilot'
 import type { RouteLocation, RouteLocationRaw, RouteMeta, RouteRecordRaw } from 'vue-router'
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -460,6 +461,10 @@ router.beforeEach((to) => {
   current.value = to.params.cluster
 
   return true
+})
+
+router.afterEach(() => {
+  Userpilot.reload()
 })
 
 const modals = {

@@ -297,6 +297,16 @@ type Account struct {
 	// Omni will use to present some information to the user.
 	// Name can be changed at any time.
 	Name string `yaml:"name" validate:"required"`
+
+	// UserPilot configuration.
+	UserPilot UserPilot `yaml:"userPilot"`
+}
+
+// UserPilot describes user pilot credentials.
+// If not set it is disabled.
+type UserPilot struct {
+	// AppToken is the token used to report metrics to the userpilot service.
+	AppToken string `yaml:"appToken"`
 }
 
 // Registries configures docker registries to be used for the Talos and Kubernetes images.

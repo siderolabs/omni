@@ -185,6 +185,17 @@ func (v *State) currentUser(ctx context.Context) (*virtual.CurrentUser, error) {
 
 	user.Metadata().SetVersion(version)
 
+	identity, err := safe.ReaderGetByID[*authres.Identity](ctx, v.PrimaryState, identityVal.Identity)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return user, nil
+		}
+
+		return nil, err
+	}
+
+	user.TypedSpec().Value.UserId = identity.TypedSpec().Value.UserId
+
 	return user, nil
 }
 

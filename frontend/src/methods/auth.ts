@@ -27,6 +27,8 @@ import {
   VirtualNamespace,
 } from '@/api/resources'
 
+import { initializeUserPilot } from './features'
+
 export const currentUser: Ref<Resource<CurrentUserSpec> | undefined> = ref()
 export const permissions: Ref<Resource<PermissionsSpec> | undefined> = ref()
 
@@ -166,6 +168,8 @@ const refreshCurrentUser = async () => {
       },
       withRuntime(Runtime.Omni),
     )
+
+    await initializeUserPilot(currentUser.value)
   } catch {
     currentUser.value = undefined
   }

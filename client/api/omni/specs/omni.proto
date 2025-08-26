@@ -1023,6 +1023,13 @@ message FeaturesConfigSpec {
 
   // ImageFactoryBaseUrl is the base URL of the image factory.
   string image_factory_base_url = 5;
+
+  // UserPilotSettings enables UserPilot on the frontend side.
+  UserPilotSettings user_pilot_settings = 6;
+}
+
+message UserPilotSettings {
+  string app_token = 1;
 }
 
 message EtcdBackupSettings {
