@@ -15,6 +15,14 @@ message AuthConfigSpec {
     bool useFormData = 4;
   }
 
+  message OIDC {
+    bool enabled = 1;
+    string provider_url = 2;
+    string client_id = 3;
+    string client_secret = 4;
+    repeated string scopes = 5;
+  }
+
   message Webauthn {
     bool enabled = 1;
     bool required = 2;
@@ -37,6 +45,7 @@ message AuthConfigSpec {
   Webauthn webauthn = 2;
   bool suspended = 3;
   SAML saml = 4;
+  OIDC oidc = 5;
 }
 
 // SAMLAssertionSpec describes SAML assertion.

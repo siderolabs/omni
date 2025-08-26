@@ -24,6 +24,7 @@
     "click-outside-vue3": "^4.0.1",
     "fetch-intercept": "^2.4.0",
     "js-yaml": "^4.1.0",
+    "jwt-decode": "^4.0.0",
     "luxon": "^3.6.1",
     "monaco-editor": "^0.52.2",
     "monaco-yaml": "^5.3.1",

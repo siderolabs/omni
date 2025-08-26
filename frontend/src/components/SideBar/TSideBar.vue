@@ -6,6 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import UserInfo from '@/components/common/UserInfo/UserInfo.vue'
+import { avatar, fullname, identity } from '@/methods/key'
 
 defineOptions({ inheritAttrs: false })
 </script>
@@ -23,6 +24,9 @@ defineOptions({ inheritAttrs: false })
         class="h-16 w-full shrink-0 border-t border-inherit px-2"
         with-logout-controls
         size="small"
+        :avatar="avatar"
+        :fullname="fullname"
+        :email="identity"
       />
     </aside>
   </RouterView>

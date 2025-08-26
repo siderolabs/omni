@@ -58,6 +58,7 @@ func TestEnsureAuthConfigResource(t *testing.T) {
 				},
 				Webauthn: &specs.AuthConfigSpec_Webauthn{},
 				Saml:     &specs.AuthConfigSpec_SAML{},
+				Oidc:     &specs.AuthConfigSpec_OIDC{},
 			},
 		},
 		{
@@ -73,6 +74,7 @@ func TestEnsureAuthConfigResource(t *testing.T) {
 				},
 				Auth0: &specs.AuthConfigSpec_Auth0{},
 				Saml:  &specs.AuthConfigSpec_SAML{},
+				Oidc:  &specs.AuthConfigSpec_OIDC{},
 			},
 		},
 		{
@@ -95,6 +97,7 @@ func TestEnsureAuthConfigResource(t *testing.T) {
 				},
 				Auth0: &specs.AuthConfigSpec_Auth0{},
 				Saml:  &specs.AuthConfigSpec_SAML{},
+				Oidc:  &specs.AuthConfigSpec_OIDC{},
 			},
 		},
 		{
@@ -146,6 +149,7 @@ func TestEnsureAuthConfigResource(t *testing.T) {
 					Enabled: true,
 					Url:     "http://samltest.sp/idp",
 				},
+				Oidc: &specs.AuthConfigSpec_OIDC{},
 			},
 		},
 		{

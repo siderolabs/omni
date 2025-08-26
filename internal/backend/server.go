@@ -25,6 +25,7 @@ import (
 	"time"
 
 	pgpcrypto "github.com/ProtonMail/gopenpgp/v2/crypto"
+	coidc "github.com/coreos/go-oidc/v3/oidc"
 	"github.com/cosi-project/runtime/api/v1alpha1"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/meta"
@@ -85,6 +86,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/auth0"
 	"github.com/siderolabs/omni/internal/pkg/auth/handler"
 	"github.com/siderolabs/omni/internal/pkg/auth/interceptor"
+	oidcauth "github.com/siderolabs/omni/internal/pkg/auth/oidc"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	serviceaccountmgmt "github.com/siderolabs/omni/internal/pkg/auth/serviceaccount"
 	"github.com/siderolabs/omni/internal/pkg/cache"
@@ -100,25 +102,24 @@ import (
 
 // Server is main backend entrypoint that starts REST API, WebSocket and Serves static contents.
 type Server struct {
-	state                   *omni.State
-	omniRuntime             *omni.Runtime
+	linkCounterDeltaCh      chan<- siderolink.LinkCounterDeltas
+	installEventCh          chan<- resource.ID
 	logger                  *zap.Logger
-	logHandler              *siderolink.LogHandler
+	siderolinkEventsCh      chan<- *omnires.MachineStatusSnapshot
 	authConfig              *authres.Config
 	dnsService              *dns.Service
 	workloadProxyReconciler *workloadproxy.Reconciler
 	imageFactoryClient      *imagefactory.Client
-
-	linkCounterDeltaCh chan<- siderolink.LinkCounterDeltas
-	siderolinkEventsCh chan<- *omnires.MachineStatusSnapshot
-	installEventCh     chan<- resource.ID
-
-	pprofBindAddress string
-	apiService       *config.Service
-	metricsService   *config.Service
-	devServerProxy   *config.DevServerProxyService
-	k8sProxyService  *config.KubernetesProxyService
-	workloadProxyKey []byte
+	omniRuntime             *omni.Runtime
+	state                   *omni.State
+	logHandler              *siderolink.LogHandler
+	oidcProvider            *coidc.Provider
+	apiService              *config.Service
+	metricsService          *config.Service
+	devServerProxy          *config.DevServerProxyService
+	k8sProxyService         *config.KubernetesProxyService
+	pprofBindAddress        string
+	workloadProxyKey        []byte
 }
 
 // NewServer creates new HTTP server.
@@ -195,12 +196,19 @@ func (s *Server) Run(ctx context.Context) error {
 		return err
 	}
 
+	if config.Config.Auth.OIDC.Enabled {
+		s.oidcProvider, err = coidc.NewProvider(ctx, config.Config.Auth.OIDC.ProviderURL)
+		if err != nil {
+			return err
+		}
+	}
+
 	mux, err := s.makeMux(oidcProvider) //nolint:contextcheck
 	if err != nil {
 		return err
 	}
 
-	serverOptions, err := s.buildServerOptions() //nolint:contextcheck
+	serverOptions, err := s.buildServerOptions(ctx) //nolint:contextcheck
 	if err != nil {
 		return err
 	}
@@ -335,7 +343,7 @@ func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
 		return nil, err
 	}
 
-	mux, err := makeMux(imageFactoryHandler, oidcProvider, workloadProxyRedirect, samlHandler, s.state, s.omniRuntime, s.logger)
+	mux, err := makeMux(imageFactoryHandler, oidcProvider, workloadProxyRedirect, s.oidcProvider, samlHandler, s.state, s.omniRuntime, s.logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create mux: %w", err)
 	}
@@ -407,10 +415,10 @@ func (s *Server) makeProxyServer(ctx context.Context, eg *errgroup.Group) (*grpc
 // Logging is installed as the first middleware (even before recovery middleware) in the chain
 // so that request in the form it was received and status sent on the wire is logged (error/success).
 // It also tracks the whole duration of the request, including other middleware overhead.
-func (s *Server) buildServerOptions() ([]grpc.ServerOption, error) {
+func (s *Server) buildServerOptions(ctx context.Context) ([]grpc.ServerOption, error) {
 	recoveryOpt := grpc_recovery.WithRecoveryHandler(recoveryHandler(s.logger))
 	messageProducer := grpcutil.LogLevelOverridingMessageProducer(grpc_zap.DefaultMessageProducer)
-	logLevelOverrideUnaryInterceptor, logLevelOverrideStreamInterceptor := grpcutil.LogLevelInterceptors()
+	logLevelOverrideUnaryInterceptor, logLevelOverrideStreamInterceptor := grpcutil.LogLevelInterceptors() //nolint:contextcheck
 
 	unaryInterceptors := []grpc.UnaryServerInterceptor{
 		grpc_ctxtags.UnaryServerInterceptor(),
@@ -456,7 +464,7 @@ func (s *Server) buildServerOptions() ([]grpc.ServerOption, error) {
 		grpc_recovery.StreamServerInterceptor(recoveryOpt),
 	}
 
-	authInterceptors, err := s.getAuthInterceptors()
+	authInterceptors, err := s.getAuthInterceptors(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -479,7 +487,7 @@ type interceptorCreator interface {
 	Stream() grpc.StreamServerInterceptor
 }
 
-func (s *Server) getAuthInterceptors() ([]interceptorCreator, error) {
+func (s *Server) getAuthInterceptors(ctx context.Context) ([]interceptorCreator, error) {
 	authEnabled := authres.Enabled(s.authConfig)
 
 	result := []interceptorCreator{interceptor.NewAuthConfig(authEnabled, s.logger)}
@@ -499,7 +507,17 @@ func (s *Server) getAuthInterceptors() ([]interceptorCreator, error) {
 		}
 
 		result = append(result, interceptor.NewJWT(verifier, s.logger))
+	case s.authConfig.TypedSpec().Value.Oidc.Enabled:
+		verifier, err := oidcauth.NewIDTokenVerifier(
+			ctx,
+			s.oidcProvider,
+			config.Config.Auth.OIDC.ClientID,
+		)
+		if err != nil {
+			return nil, err
+		}
 
+		result = append(result, interceptor.NewJWT(verifier, s.logger))
 	case s.authConfig.TypedSpec().Value.Saml.Enabled:
 		result = append(result, interceptor.NewSAML(s.state.Default(), s.logger))
 	}
@@ -793,6 +811,7 @@ func isSensitiveSpec(resource *resapi.Resource) bool {
 
 func makeMux(
 	imageHandler, oidcHandler, workloadProxyRedirect http.Handler,
+	oidcProvider *coidc.Provider,
 	samlHandler *samlsp.Middleware,
 	state *omni.State,
 	omniRuntime *omni.Runtime,
@@ -818,6 +837,12 @@ func makeMux(
 
 	if samlHandler != nil {
 		saml.RegisterHandlers(samlHandler, mux, logger)
+	}
+
+	if oidcProvider != nil {
+		if err := oidc.RegisterHandlers(config.Config.Services.API.AdvertisedURL, config.Config.Auth.OIDC, mux, oidcProvider); err != nil {
+			return nil, err
+		}
 	}
 
 	muxHandle("/image/", imageHandler, "image")

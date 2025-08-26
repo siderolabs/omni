@@ -13,6 +13,7 @@ import { OIDCService } from '@/api/omni/oidc/oidc.pb'
 import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import UserInfo from '@/components/common/UserInfo/UserInfo.vue'
+import { avatar, fullname, identity } from '@/methods/key'
 import { showError } from '@/notification'
 
 const route = useRoute()
@@ -72,7 +73,13 @@ const copyCode = () => {
       <template v-else>
         <div class="flex w-full flex-col gap-4">
           <div>The Kubernetes access is going to be granted for the user:</div>
-          <UserInfo user="user" class="user-info" />
+          <UserInfo
+            user="user"
+            class="user-info"
+            :avatar="avatar"
+            :fullname="fullname"
+            :email="identity"
+          />
           <div
             v-if="authCode"
             class="flex w-full items-center justify-center gap-0.5 rounded-lg border border-naturals-n4 p-1 pl-2"

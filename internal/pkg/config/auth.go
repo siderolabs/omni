@@ -20,6 +20,11 @@ type Auth struct {
 	WebAuthn WebAuthn `yaml:"webauthn"`
 	// SAML auth type configuration.
 	SAML SAML `yaml:"saml"`
+	// OIDC auth type configuration.
+	OIDC OIDC `yaml:"oidc"`
+
+	// InitialUsers adds the user to the account on the first Omni start up.
+	InitialUsers []string `yaml:"initialUsers"`
 
 	// KeyPruner automatically removes the unused public keys registered in Omni.
 	KeyPruner KeyPrunerConfig `yaml:"keyPruner"`
@@ -40,6 +45,7 @@ type Auth struct {
 //nolint:govet
 type Auth0 struct {
 	// InitialUsers adds the user to the account on the first Omni start up.
+	// Deprecated: use config.Auth.InitialUsers instead
 	InitialUsers []string `yaml:"initialUsers"`
 	Domain       string   `yaml:"domain"`
 	ClientID     string   `yaml:"clientID"`
@@ -51,6 +57,16 @@ type Auth0 struct {
 type WebAuthn struct {
 	Enabled  bool `yaml:"enabled"`
 	Required bool `yaml:"required"`
+}
+
+// OIDC holds the configuration parameters for OIDC auth.
+type OIDC struct {
+	ProviderURL  string   `yaml:"providerURL"`
+	ClientID     string   `yaml:"clientID"`
+	ClientSecret string   `yaml:"clientSecret"`
+	LogoutURL    string   `yaml:"logoutURL"`
+	Scopes       []string `yaml:"scopes"`
+	Enabled      bool     `yaml:"enabled"`
 }
 
 // SAML holds configuration parameters for SAML auth.

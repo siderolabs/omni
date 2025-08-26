@@ -104,7 +104,7 @@ func Run(ctx context.Context, state *omni.State, config *config.Params, logger *
 
 	talosRuntime := talos.New(talosClientFactory, logger)
 
-	err = user.EnsureInitialResources(ctx, state.Default(), logger, config.Auth.Auth0.InitialUsers)
+	err = user.EnsureInitialResources(ctx, state.Default(), logger, config.Auth.InitialUsers)
 	if err != nil {
 		return fmt.Errorf("failed to write initial user resources to state: %w", err)
 	}

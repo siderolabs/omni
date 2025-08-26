@@ -159,6 +159,7 @@ export enum AuthType {
   None = 0,
   Auth0 = 1,
   SAML = 2,
+  OIDC = 3,
 }
 
 export const authType: Ref<AuthType> = ref(AuthType.None)

@@ -60,6 +60,8 @@ const setupApp = async () => {
 
   if (authConfigSpec?.saml?.enabled) {
     authType.value = AuthType.SAML
+  } else if (authConfigSpec?.oidc?.enabled) {
+    authType.value = AuthType.OIDC
   } else if (authConfigSpec?.auth0?.enabled) {
     authType.value = AuthType.Auth0
   }
