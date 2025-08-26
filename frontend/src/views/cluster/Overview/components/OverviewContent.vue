@@ -351,7 +351,7 @@ onMounted(async () => {
             />
           </div>
         </div>
-        <div class="overview-machines-list">
+        <div class="overview-card overview-machines-list">
           <div class="overview-box-header">
             <span class="overview-box-title">Machines</span>
           </div>
