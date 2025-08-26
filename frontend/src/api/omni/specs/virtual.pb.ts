@@ -6,6 +6,7 @@
 export type CurrentUserSpec = {
   identity?: string
   role?: string
+  user_id?: string
 }
 
 export type PermissionsSpec = {

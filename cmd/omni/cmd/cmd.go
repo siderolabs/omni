@@ -138,6 +138,7 @@ func newCommand() *cobra.Command {
 
 	rootCmd.Flags().StringVar(&cmdConfig.Account.ID, "account-id", cmdConfig.Account.ID, "instance account ID, should never be changed.")
 	rootCmd.Flags().StringVar(&cmdConfig.Account.Name, "name", cmdConfig.Account.Name, "instance user-facing name.")
+	rootCmd.Flags().StringVar(&cmdConfig.Account.UserPilot.AppToken, "user-pilot-app-token", cmdConfig.Account.UserPilot.AppToken, "user pilot app token.")
 
 	defineServiceFlags()
 	defineAuthFlags()
