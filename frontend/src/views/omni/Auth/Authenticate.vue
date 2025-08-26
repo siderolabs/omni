@@ -8,6 +8,7 @@ included in the LICENSE file.
 import type { User } from '@auth0/auth0-spa-js'
 import type { Auth0VueClient } from '@auth0/auth0-vue'
 import { useAuth0 } from '@auth0/auth0-vue'
+import { jwtDecode } from 'jwt-decode'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -55,36 +56,51 @@ const redirectToURL = (url: string) => {
 let auth0: Auth0VueClient | undefined
 
 onMounted(() => {
-  if (authType.value === AuthType.Auth0) {
-    auth0 = useAuth0()
+  switch (authType.value) {
+    case AuthType.Auth0:
+      auth0 = useAuth0()
 
-    user.value = auth0.user.value
-    idToken = auth0.idTokenClaims.value!.__raw
+      user.value = auth0.user.value
+      idToken = auth0.idTokenClaims.value!.__raw
 
-    logout = async () => {
-      if (auth0) {
-        await auth0.logout({
-          logoutParams: {
-            returnTo: window.location.origin,
-          },
-        })
+      logout = async () => {
+        if (auth0) {
+          await auth0.logout({
+            logoutParams: {
+              returnTo: window.location.origin,
+            },
+          })
+        }
       }
-    }
-  } else {
-    const navigateToLogin = () => {
-      const query: string[] = []
-      for (const key in route.query) {
-        query.push(`${key}=${route.query[key]}`)
+    case AuthType.OIDC:
+    case AuthType.SAML:
+      const navigateToLogin = () => {
+        const query: string[] = []
+        for (const key in route.query) {
+          query.push(`${key}=${route.query[key]}`)
+        }
+
+        redirectToURL(`/login?${query.join('&')}`)
       }
 
-      redirectToURL(`/login?${query.join('&')}`)
-    }
+      if (!identity.value) {
+        navigateToLogin()
+      }
 
-    if (!identity.value) {
-      navigateToLogin()
-    }
+      if (authType.value === AuthType.OIDC) {
+        logout = () => {
+          const query: string[] = []
+          for (const key in route.query) {
+            query.push(`${key}=${route.query[key]}`)
+          }
 
-    logout = () => navigateToLogin()
+          redirectToURL(`/logout?flow=frontend`)
+        }
+
+        return
+      }
+
+      logout = () => navigateToLogin()
   }
 })
 
@@ -93,34 +109,50 @@ const authenticated = computed(() => {
 })
 
 const identity = computed(() => {
-  if (authType.value === AuthType.Auth0) {
-    return user.value?.email
-  }
-
-  if (authType.value === AuthType.SAML) {
-    return route.query.identity as string
+  switch (authType.value) {
+    case AuthType.Auth0:
+      return user.value?.email
+    case AuthType.SAML:
+      return route.query.identity as string
+    case AuthType.OIDC:
+      return tokenData.value?.email
   }
 
   return undefined
 })
 
-const name = computed(() => {
-  if (authType.value === AuthType.Auth0) {
-    return user.value?.name
-  }
+const route = useRoute()
 
-  if (authType.value === AuthType.SAML) {
-    return (route.query.fullname ?? route.query.identity) as string
+const tokenData = ref<{
+  email?: string
+  picture?: string
+  name?: string
+}>(route.query.token ? jwtDecode(route.query.token as string) : {})
+
+const name = computed(() => {
+  switch (authType.value) {
+    case AuthType.Auth0:
+      return user.value?.name
+    case AuthType.OIDC:
+      return tokenData.value.name
+    case AuthType.SAML:
+      return (route.query.fullname ?? route.query.identity) as string
   }
 
   return ''
 })
 
 const picture = computed(() => {
-  return user?.value?.picture
+  switch (authType.value) {
+    case AuthType.Auth0:
+      return user?.value?.picture
+    case AuthType.OIDC:
+      return tokenData.value.picture
+  }
+
+  return undefined
 })
 
-const route = useRoute()
 const router = useRouter()
 
 let publicKeyId = route.query[authPublicKeyIDQueryParam] as string
@@ -197,6 +229,8 @@ const confirmPublicKey = async () => {
 
     if (authType.value === AuthType.Auth0) {
       options.push(withMetadata({ [authHeader]: authBearerHeaderPrefix + idToken }))
+    } else if (authType.value === AuthType.OIDC) {
+      options.push(withMetadata({ [authHeader]: authBearerHeaderPrefix + route.query.token }))
     } else if (authType.value === AuthType.SAML) {
       if (!route.query.session) {
         throw new Error('no session')
@@ -265,7 +299,13 @@ const Auth = {
           </div>
           <div v-else class="flex w-full flex-col gap-4">
             <div>The keys are going to be issued for the user:</div>
-            <UserInfo user="user" class="user-info" />
+            <UserInfo
+              user="user"
+              class="user-info"
+              :email="identity"
+              :avatar="picture"
+              :fullname="name"
+            />
             <div class="flex w-full flex-col gap-3">
               <TButton type="secondary" class="w-full" @click="switchUser">Switch User</TButton>
               <TButton

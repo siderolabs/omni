@@ -10,6 +10,7 @@ import { useRoute } from 'vue-router'
 
 import TAnimation from '@/components/common/Animation/TAnimation.vue'
 import UserInfo from '@/components/common/UserInfo/UserInfo.vue'
+import { avatar, fullname, identity } from '@/methods/key'
 
 const route = useRoute()
 
@@ -32,6 +33,9 @@ watch(
         class="h-16 w-full shrink-0 border-t border-inherit px-2"
         with-logout-controls
         size="small"
+        :avatar="avatar"
+        :fullname="fullname"
+        :email="identity"
       />
     </aside>
   </TAnimation>

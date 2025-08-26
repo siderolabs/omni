@@ -405,9 +405,9 @@ func defineAuthFlags() {
 		"allows setting name ID format for the account",
 	)
 	rootCmd.Flags().StringSliceVar(
-		&cmdConfig.Auth.Auth0.InitialUsers,
+		&cmdConfig.Auth.InitialUsers,
 		"initial-users",
-		cmdConfig.Auth.Auth0.InitialUsers,
+		cmdConfig.Auth.InitialUsers,
 		"initial set of user emails. these users will be created on startup.",
 	)
 	rootCmd.Flags().DurationVar(
@@ -452,6 +452,25 @@ func defineAuthFlags() {
 	)
 
 	rootCmd.MarkFlagsMutuallyExclusive("auth-saml-url", "auth-saml-metadata")
+
+	// OIDC
+	rootCmd.Flags().BoolVar(&cmdConfig.Auth.OIDC.Enabled, "auth-oidc-enabled", cmdConfig.Auth.OIDC.Enabled,
+		"enable OIDC authentication.")
+
+	rootCmd.Flags().StringVar(&cmdConfig.Auth.OIDC.ProviderURL, "auth-oidc-provider-url", cmdConfig.Auth.OIDC.ProviderURL,
+		"OIDC authentication provider URL.")
+
+	rootCmd.Flags().StringVar(&cmdConfig.Auth.OIDC.ClientID, "auth-oidc-client-id", cmdConfig.Auth.OIDC.ClientID,
+		"OIDC authentication client ID.")
+
+	rootCmd.Flags().StringVar(&cmdConfig.Auth.OIDC.ClientSecret, "auth-oidc-client-secret", cmdConfig.Auth.OIDC.ClientSecret,
+		"OIDC authentication client secret.")
+
+	rootCmd.Flags().StringSliceVar(&cmdConfig.Auth.OIDC.Scopes, "auth-oidc-scopes", cmdConfig.Auth.OIDC.Scopes,
+		"OIDC authentication scopes.")
+
+	rootCmd.Flags().StringVar(&cmdConfig.Auth.OIDC.LogoutURL, "auth-oidc-logout-url", cmdConfig.Auth.OIDC.LogoutURL,
+		"OIDC logout URL.")
 }
 
 func defineLogsFlags() {

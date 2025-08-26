@@ -13,7 +13,7 @@ import {
   readPrivateKey,
   sign,
 } from 'openpgp/lightweight'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import { b64Encode } from '@/api/fetch.pb'
 import { AuthService } from '@/api/omni/auth/auth.pb'
@@ -29,6 +29,17 @@ import {
 
 let interceptorsRegistered = false
 let keysReloadTimeout: number
+
+const storageRef = (key: string) => {
+  return computed<string | undefined>({
+    get: () => localStorage.getItem(key) ?? undefined,
+    set: (v?: string) => (!!v ? localStorage.setItem(key, v) : localStorage.removeItem(key)),
+  })
+}
+
+export const identity = storageRef('identity')
+export const fullname = storageRef('fullname')
+export const avatar = storageRef('avatar')
 
 export let keys: {
   privateKey: PrivateKey
@@ -154,9 +165,10 @@ export const saveKeys = async (
 
   window.localStorage.setItem('publicKey', publicKey)
   window.localStorage.setItem('privateKey', privateKey)
-  window.localStorage.setItem('identity', user.email.toLowerCase())
-  window.localStorage.setItem('avatar', user.picture)
-  window.localStorage.setItem('fullname', user.fullname)
+
+  identity.value = user.email.toLowerCase()
+  avatar.value = user.picture
+  fullname.value = user.fullname
 
   const loadedKeys = await loadKeys()
 
@@ -174,9 +186,10 @@ export const resetKeys = () => {
 
   window.localStorage.removeItem('publicKey')
   window.localStorage.removeItem('privateKey')
-  window.localStorage.removeItem('identity')
-  window.localStorage.removeItem('avatar')
-  window.localStorage.removeItem('fullname')
+
+  identity.value = undefined
+  avatar.value = undefined
+  fullname.value = undefined
 
   removeAuthCookies()
 

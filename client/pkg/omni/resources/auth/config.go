@@ -60,5 +60,5 @@ func (ConfigExtension) ResourceDefinition() meta.ResourceDefinitionSpec {
 func Enabled(res *Config) bool {
 	spec := res.TypedSpec().Value
 
-	return spec.Auth0.Enabled || spec.Webauthn.Enabled || spec.Saml.Enabled
+	return spec.Auth0.Enabled || spec.Webauthn.Enabled || spec.Saml.Enabled || spec.Oidc.Enabled
 }
