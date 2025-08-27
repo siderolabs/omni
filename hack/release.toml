@@ -5,10 +5,16 @@ project_name = "Omni"
 github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
-pre_release = true
+pre_release = false
 previous = "v1.0.0"
 
 [notes]
+
+[notes.homepage-design-update]
+title = "Home Page Design Update"
+description = """\
+Omni home page design was changed to have more useful information about the whole account status.
+"""
 
 [notes.config-location]
 title = "Default Config Location Change"
