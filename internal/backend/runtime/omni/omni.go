@@ -214,7 +214,6 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		omnictrl.NewCertRefreshTickController(constants.CertificateValidityTime / 10), // issue ticks at 10% of the validity, as we refresh certificates at 50% of the validity
 		omnictrl.NewClusterController(),
 		omnictrl.NewMachineSetController(),
-		&omnictrl.ClusterDestroyStatusController{},
 		&omnictrl.ClusterMachineIdentityController{},
 		&omnictrl.ClusterMachineStatusMetricsController{},
 		omnictrl.NewClusterMachineController(),
@@ -232,7 +231,6 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		omnictrl.NewKubernetesStatusController(config.Config.Services.API.URL(), config.Config.Services.WorkloadProxy.Subdomain),
 		&omnictrl.LoadBalancerController{},
 		&omnictrl.MachineSetNodeController{},
-		&omnictrl.MachineSetDestroyStatusController{},
 		omnictrl.NewMachineCleanupController(),
 		omnictrl.NewMachineStatusLinkController(linkCounterDeltaCh),
 		&omnictrl.MachineStatusMetricsController{},
@@ -256,10 +254,14 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 
 	qcontrollers := []controller.QController{
 		destroy.NewController[*siderolinkres.Link](optional.Some[uint](4)),
+		destroy.NewController[*omni.Cluster](optional.Some[uint](4)),
+		destroy.NewController[*omni.MachineSet](optional.Some[uint](4)),
 
 		omnictrl.NewBackupDataController(),
 		omnictrl.NewClusterBootstrapStatusController(storeFactory),
 		omnictrl.NewClusterConfigVersionController(),
+		omnictrl.NewClusterDestroyStatusController(),
+		omnictrl.NewMachineSetDestroyStatusController(),
 		omnictrl.NewClusterEndpointController(),
 		omnictrl.NewClusterKubernetesNodesController(),
 		omnictrl.NewClusterMachineConfigController(

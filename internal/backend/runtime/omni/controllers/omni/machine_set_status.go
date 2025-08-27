@@ -212,34 +212,45 @@ func (handler *machineSetStatusHandler) reconcileTearingDown(ctx context.Context
 		return err
 	}
 
+	updateStatus := func(clusterMachinesCount uint32) error {
+		return safe.WriterModify(ctx, r, omni.NewMachineSetStatus(resources.DefaultNamespace, machineSet.Metadata().ID()), func(status *omni.MachineSetStatus) error {
+			status.TypedSpec().Value.Phase = specs.MachineSetPhase_Destroying
+			status.TypedSpec().Value.Ready = false
+			status.TypedSpec().Value.Machines = &specs.Machines{
+				Total:   clusterMachinesCount,
+				Healthy: 0,
+			}
+
+			return nil
+		}, controller.WithExpectedPhaseAny())
+	}
+
 	clusterMachinesCount := uint32(len(rc.GetClusterMachines()))
 	// no cluster machines release the finalizer
 	if clusterMachinesCount == 0 && len(rc.GetMachineSetNodes()) == 0 {
 		logger.Info("machineset torn down", zap.String("machineset", machineSet.Metadata().ID()))
 
-		return nil
-	}
-
-	err = safe.WriterModify(ctx, r, omni.NewMachineSetStatus(resources.DefaultNamespace, machineSet.Metadata().ID()), func(status *omni.MachineSetStatus) error {
-		status.TypedSpec().Value.Phase = specs.MachineSetPhase_Destroying
-		status.TypedSpec().Value.Ready = false
-		status.TypedSpec().Value.Machines = &specs.Machines{
-			Total:   clusterMachinesCount,
-			Healthy: 0,
+		if err = updateStatus(0); err != nil {
+			return err
 		}
 
 		return nil
-	})
-	if err != nil {
+	}
+
+	if err = updateStatus(clusterMachinesCount); err != nil {
 		return err
 	}
 
-	if _, err := handler.reconcileMachines(ctx, r, logger, rc); err != nil {
+	if _, err = handler.reconcileMachines(ctx, r, logger, rc); err != nil {
 		return err
 	}
 
 	// teardown complete, ignore requeue and unlock the finalizer now
 	if len(rc.GetRunningClusterMachines()) == 0 {
+		if err = updateStatus(0); err != nil {
+			return err
+		}
+
 		return nil
 	}
 

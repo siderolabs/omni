@@ -8,141 +8,131 @@ package omni
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/cosi-project/runtime/pkg/controller"
+	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/resource"
-	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/gertd/go-pluralize"
+	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 )
 
-// ClusterDestroyStatusController manages ClusterStatus resource lifecycle.
+// ClusterDestroyStatusController manages ClusterDestroyStatus resource.
 //
 // ClusterDestroyStatusController aggregates the cluster state based on the cluster machines states.
-type ClusterDestroyStatusController struct{}
+type ClusterDestroyStatusController = qtransform.QController[*omni.Cluster, *omni.ClusterDestroyStatus]
 
-// Name implements controller.Controller interface.
-func (ctrl *ClusterDestroyStatusController) Name() string {
-	return "ClusterDestroyStatusController"
-}
+// ClusterDestroyStatusControllerName is the name of the ClusterDestroyStatusController.
+const ClusterDestroyStatusControllerName = "ClusterDestroyStatusController"
 
-// Inputs implements controller.Controller interface.
-func (ctrl *ClusterDestroyStatusController) Inputs() []controller.Input {
-	return []controller.Input{
-		{
-			Type:      omni.ClusterType,
-			Kind:      controller.InputDestroyReady,
-			Namespace: resources.DefaultNamespace,
-		},
-		{
-			Type:      omni.MachineSetStatusType,
-			Kind:      controller.InputWeak,
-			Namespace: resources.DefaultNamespace,
-		},
-		{
-			Type:      omni.ClusterMachineStatusType,
-			Kind:      controller.InputWeak,
-			Namespace: resources.DefaultNamespace,
-		},
-	}
-}
-
-// Outputs implements controller.Controller interface.
-func (ctrl *ClusterDestroyStatusController) Outputs() []controller.Output {
-	return []controller.Output{
-		{
-			Type: omni.ClusterDestroyStatusType,
-			Kind: controller.OutputExclusive,
-		},
-		{
-			Type: omni.ClusterType,
-			Kind: controller.OutputShared,
-		},
-	}
-}
-
-// Run implements controller.Controller interface.
+// NewClusterDestroyStatusController initializes ClusterDestroyStatusController.
 //
-//nolint:dupl
-func (ctrl *ClusterDestroyStatusController) Run(ctx context.Context, r controller.Runtime, _ *zap.Logger) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-r.EventCh():
-		}
+//nolint:gocognit,gocyclo,cyclop
+func NewClusterDestroyStatusController() *ClusterDestroyStatusController {
+	return qtransform.NewQController(
+		qtransform.Settings[*omni.Cluster, *omni.ClusterDestroyStatus]{
+			Name: ClusterDestroyStatusControllerName,
+			MapMetadataFunc: func(cluster *omni.Cluster) *omni.ClusterDestroyStatus {
+				return omni.NewClusterDestroyStatus(resources.DefaultNamespace, cluster.Metadata().ID())
+			},
+			UnmapMetadataFunc: func(clusterDestroyStatus *omni.ClusterDestroyStatus) *omni.Cluster {
+				return omni.NewCluster(resources.DefaultNamespace, clusterDestroyStatus.Metadata().ID())
+			},
+			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, cluster *omni.Cluster, clusterDestroyStatus *omni.ClusterDestroyStatus) error {
+				remainingMachines := 0
 
-		tracker := trackResource(r, resources.DefaultNamespace, omni.ClusterDestroyStatusType)
-
-		clusters, err := safe.ReaderListAll[*omni.Cluster](ctx, r)
-		if err != nil {
-			return fmt.Errorf("error listing Cluster resources: %w", err)
-		}
-
-		for cluster := range clusters.All() {
-			if cluster.Metadata().Phase() != resource.PhaseTearingDown {
-				continue
-			}
-
-			tracker.keep(cluster)
-
-			if err = ctrl.collectDestroyStatus(ctx, cluster, r); err != nil {
-				return err
-			}
-
-			if cluster.Metadata().Finalizers().Empty() {
-				if err = r.Destroy(ctx, cluster.Metadata(), controller.WithOwner("")); err != nil {
-					if state.IsNotFoundError(err) {
-						continue
-					}
-
-					return fmt.Errorf("failed to destroy cluster %w", err)
+				msStatuses, err := r.List(ctx, omni.NewMachineSetStatus(resources.DefaultNamespace, "").Metadata(), state.WithLabelQuery(
+					resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID()),
+				))
+				if err != nil {
+					return fmt.Errorf("failed to list control planes %w", err)
 				}
-			}
-		}
 
-		if err = tracker.cleanup(ctx); err != nil {
-			return err
-		}
-	}
-}
+				remainingMachineSetIDs := make(map[resource.ID]struct{}, len(msStatuses.Items))
+				for _, status := range msStatuses.Items {
+					switch status.Metadata().Phase() {
+					case resource.PhaseRunning:
+						if !status.Metadata().Finalizers().Has(ClusterDestroyStatusControllerName) {
+							if err = r.AddFinalizer(ctx, status.Metadata(), ClusterDestroyStatusControllerName); err != nil {
+								return err
+							}
+						}
+						remainingMachineSetIDs[status.Metadata().ID()] = struct{}{}
+					case resource.PhaseTearingDown:
+						if status.Metadata().Finalizers().Has(ClusterDestroyStatusControllerName) {
+							if len(*status.Metadata().Finalizers()) == 1 {
+								log.Printf("Removing finalizer for cluster %s", status.Metadata().ID())
+								if err = r.RemoveFinalizer(ctx, status.Metadata(), ClusterDestroyStatusControllerName); err != nil {
+									return err
+								}
 
-func (ctrl *ClusterDestroyStatusController) collectDestroyStatus(ctx context.Context, cluster *omni.Cluster, r controller.Runtime) error {
-	var err error
+								continue
+							}
+							remainingMachineSetIDs[status.Metadata().ID()] = struct{}{}
+						}
+					}
+				}
 
-	machineSets, err := r.List(ctx, omni.NewMachineSetStatus(resources.DefaultNamespace, "").Metadata(), state.WithLabelQuery(
-		resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID()),
-	))
-	if err != nil {
-		return fmt.Errorf("failed to list control planes %w", err)
-	}
+				cmStatuses, err := r.List(ctx, omni.NewClusterMachineStatus(resources.DefaultNamespace, "").Metadata(),
+					state.WithLabelQuery(resource.LabelEqual(
+						omni.LabelCluster, cluster.Metadata().ID()),
+					),
+				)
+				if err != nil {
+					return err
+				}
 
-	remainingMachines := 0
-	remainingMachineSets := len(machineSets.Items)
+				incrementRemainingMachines := func(cmStatus resource.Resource) {
+					if msId, ok := cmStatus.Metadata().Labels().Get(omni.LabelMachineSet); ok {
+						if _, ok = remainingMachineSetIDs[msId]; ok {
+							remainingMachines++
+						}
+					}
+				}
 
-	for _, machineSet := range machineSets.Items {
-		machines, err := r.List(ctx, omni.NewClusterMachineStatus(resources.DefaultNamespace, "").Metadata(),
-			state.WithLabelQuery(resource.LabelEqual(
-				omni.LabelMachineSet, machineSet.Metadata().ID()),
-			),
-		)
-		if err != nil {
-			return err
-		}
+				for _, cmStatus := range cmStatuses.Items {
+					switch cmStatus.Metadata().Phase() {
+					case resource.PhaseRunning:
+						if !cmStatus.Metadata().Finalizers().Has(ClusterDestroyStatusControllerName) {
+							if err = r.AddFinalizer(ctx, cmStatus.Metadata(), ClusterDestroyStatusControllerName); err != nil {
+								return err
+							}
+						}
+						incrementRemainingMachines(cmStatus)
+					case resource.PhaseTearingDown:
+						if cmStatus.Metadata().Finalizers().Has(ClusterDestroyStatusControllerName) {
+							if hasOnlyDestroyStatusFinalizers(cmStatus.Metadata()) {
+								if err = r.RemoveFinalizer(ctx, cmStatus.Metadata(), ClusterDestroyStatusControllerName); err != nil {
+									return err
+								}
 
-		remainingMachines += len(machines.Items)
-	}
+								continue
+							}
+							incrementRemainingMachines(cmStatus)
+						}
+					}
+				}
 
-	return safe.WriterModify(ctx, r, omni.NewClusterDestroyStatus(resources.DefaultNamespace, cluster.Metadata().ID()), func(status *omni.ClusterDestroyStatus) error {
-		status.TypedSpec().Value.Phase = fmt.Sprintf("Destroying: %s, %s",
-			pluralize.NewClient().Pluralize("machine set", remainingMachineSets, true),
-			pluralize.NewClient().Pluralize("machine", remainingMachines, true),
-		)
+				if cluster.Metadata().Phase() != resource.PhaseTearingDown {
+					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("not tearing down")
+				}
 
-		return nil
-	})
+				clusterDestroyStatus.TypedSpec().Value.Phase = fmt.Sprintf("Destroying: %s, %s",
+					pluralize.NewClient().Pluralize("machine set", len(remainingMachineSetIDs), true),
+					pluralize.NewClient().Pluralize("machine", remainingMachines, true),
+				)
+
+				return nil
+			},
+		},
+		qtransform.WithExtraMappedInput(mappers.MapByClusterLabel[*omni.MachineSetStatus, *omni.Cluster]()),
+		qtransform.WithExtraMappedInput(mappers.MapByClusterLabel[*omni.ClusterMachineStatus, *omni.Cluster]()),
+		qtransform.WithIgnoreTeardownUntil(ClusterStatusControllerName),
+	)
 }

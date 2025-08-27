@@ -29,20 +29,23 @@ import (
 // ClusterStatusController aggregates the cluster state based on the cluster machines states.
 type ClusterStatusController = qtransform.QController[*omni.Cluster, *omni.ClusterStatus]
 
+// ClusterStatusControllerName is the name of the ClusterStatusController.
+const ClusterStatusControllerName = "ClusterStatusController"
+
 // NewClusterStatusController initializes ClusterStatusController.
 //
-//nolint:gocognit,gocyclo,cyclop
+//nolint:gocognit,gocyclo,cyclop,maintidx
 func NewClusterStatusController(embeddedDiscoveryServiceEnabled bool) *ClusterStatusController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.Cluster, *omni.ClusterStatus]{
-			Name: "ClusterStatusController",
+			Name: ClusterStatusControllerName,
 			MapMetadataFunc: func(cluster *omni.Cluster) *omni.ClusterStatus {
 				return omni.NewClusterStatus(resources.DefaultNamespace, cluster.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(clusterStatus *omni.ClusterStatus) *omni.Cluster {
 				return omni.NewCluster(resources.DefaultNamespace, clusterStatus.Metadata().ID())
 			},
-			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, cluster *omni.Cluster, clusterStatus *omni.ClusterStatus) error {
+			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, cluster *omni.Cluster, clusterStatus *omni.ClusterStatus) error {
 				shouldUseEmbeddedDiscoveryService := func() (bool, error) {
 					if !embeddedDiscoveryServiceEnabled {
 						return false, nil
@@ -68,6 +71,23 @@ func NewClusterStatusController(embeddedDiscoveryServiceEnabled bool) *ClusterSt
 					return err
 				}
 
+				for status := range list.All() {
+					switch status.Metadata().Phase() {
+					case resource.PhaseRunning:
+						if !status.Metadata().Finalizers().Has(ClusterStatusControllerName) {
+							if err = r.AddFinalizer(ctx, status.Metadata(), ClusterStatusControllerName); err != nil {
+								return err
+							}
+						}
+					case resource.PhaseTearingDown:
+						if status.Metadata().Finalizers().Has(ClusterStatusControllerName) {
+							if err = r.RemoveFinalizer(ctx, status.Metadata(), ClusterStatusControllerName); err != nil {
+								return err
+							}
+						}
+					}
+				}
+
 				lbStatus, err := safe.ReaderGetByID[*omni.LoadBalancerStatus](ctx, r, cluster.Metadata().ID())
 				if err != nil && !state.IsNotFoundError(err) {
 					return err
@@ -91,6 +111,10 @@ func NewClusterStatusController(embeddedDiscoveryServiceEnabled bool) *ClusterSt
 
 				for mss := range list.All() {
 					machineSetStatus := mss.TypedSpec().Value
+					// If machineset is being destroyed or scaled down and has zero machines, treat it as if it does not exist.
+					if machineSetStatus.GetMachines().Total == 0 && (machineSetStatus.Phase == specs.MachineSetPhase_Destroying || machineSetStatus.Phase == specs.MachineSetPhase_ScalingDown) {
+						continue
+					}
 
 					machines.Total += machineSetStatus.GetMachines().GetTotal()
 					machines.Healthy += machineSetStatus.GetMachines().GetHealthy()

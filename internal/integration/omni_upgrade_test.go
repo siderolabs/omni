@@ -31,19 +31,8 @@ import (
 const annotationSnapshot = "snapshot"
 
 type clusterSnapshot struct {
-	Versions  map[string]string // TODO: remove after we switch to sha sums
 	BootTimes map[string]time.Time
 	ShaSums   map[string]string
-}
-
-func (vs clusterSnapshot) saveVersion(res resource.Resource) {
-	vs.Versions[res.Metadata().Type()+"/"+res.Metadata().ID()] = res.Metadata().Version().Next().String()
-}
-
-func (vs clusterSnapshot) getVersion(res resource.Resource) (string, bool) {
-	val, ok := vs.Versions[res.Metadata().Type()+"/"+res.Metadata().ID()]
-
-	return val, ok
 }
 
 func (vs clusterSnapshot) saveShaSum(res resource.Resource, shaSum string) {
@@ -65,18 +54,9 @@ func SaveClusterSnapshot(testCtx context.Context, client *client.Client, cluster
 		st := client.Omni().State()
 
 		snapshot := clusterSnapshot{
-			Versions:  map[string]string{},
 			BootTimes: map[string]time.Time{},
 			ShaSums:   map[string]string{},
 		}
-
-		ids := rtestutils.ResourceIDs[*omni.RedactedClusterMachineConfig](ctx, t, st,
-			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
-		)
-
-		rtestutils.AssertResources(ctx, t, st, ids, func(res *omni.RedactedClusterMachineConfig, _ *assert.Assertions) {
-			snapshot.saveVersion(res)
-		})
 
 		cmcss := rtestutils.ResourceIDs[*omni.ClusterMachineConfigStatus](ctx, t, st,
 			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
@@ -160,15 +140,15 @@ func AssertClusterSnapshot(testCtx context.Context, client *client.Client, clust
 
 		require.NoError(json.Unmarshal([]byte(snapshotData), &snapshot))
 
-		ids := rtestutils.ResourceIDs[*omni.RedactedClusterMachineConfig](ctx, t, st,
+		ids := rtestutils.ResourceIDs[*omni.ClusterMachineConfigStatus](ctx, t, st,
 			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
 		)
 
-		rtestutils.AssertResources(ctx, t, st, ids, func(res *omni.RedactedClusterMachineConfig, assert *assert.Assertions) {
-			version, ok := snapshot.getVersion(res)
+		rtestutils.AssertResources(ctx, t, st, ids, func(res *omni.ClusterMachineConfigStatus, assert *assert.Assertions) {
+			shaSum, ok := snapshot.getShaSum(res)
 
 			assert.True(ok)
-			require.Equal(version, res.Metadata().Version().String())
+			require.Equal(shaSum, res.TypedSpec().Value.ClusterMachineConfigSha256, "ClusterMachineConfigStatus sha sums do not match")
 		})
 
 		data, err := client.Management().Talosconfig(ctx)
