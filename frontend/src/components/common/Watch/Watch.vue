@@ -41,7 +41,7 @@ defineSlots<{
   }): unknown
 }>()
 
-const { data, err, loading } = useWatch<TSpec, TStatus>(props.opts)
+const { data, err, loading } = useWatch<TSpec, TStatus>(() => props.opts)
 
 const hasData = computed(() => (Array.isArray(data.value) ? !!data.value.length : !!data.value))
 </script>
