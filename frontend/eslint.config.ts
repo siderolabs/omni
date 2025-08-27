@@ -31,8 +31,6 @@ export default defineConfigWithVueTs(
       'simple-import-sort': simpleImportSort,
     },
     rules: {
-      'dot-notation': 'error',
-      eqeqeq: 'error',
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
       'vue/block-lang': ['error', { script: { lang: 'ts' } }],
@@ -44,6 +42,8 @@ export default defineConfigWithVueTs(
         { registeredComponentsOnly: false },
       ],
       'vue/component-options-name-casing': 'error',
+      'vue/dot-notation': 'error',
+      'vue/eqeqeq': 'error',
       'vue/match-component-file-name': 'error',
       'vue/match-component-import-name': 'error',
       'vue/next-tick-style': 'error',

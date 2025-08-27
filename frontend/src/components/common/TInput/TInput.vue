@@ -134,7 +134,7 @@ onMounted(() => {
       :type="type"
       class="input-box-input"
       :placeholder="placeholder"
-      @input="updateValue($event.target?.['value'].trim())"
+      @input="updateValue(($event.target as HTMLInputElement)?.value.trim())"
       @focus="isFocused = true"
       @blur="blurHandler"
     />
