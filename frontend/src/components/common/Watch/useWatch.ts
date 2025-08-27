@@ -2,7 +2,7 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { computed, type Ref, ref } from 'vue'
+import { type MaybeRefOrGetter, type Ref, ref, toRef, toValue } from 'vue'
 
 import type { Resource } from '@/api/grpc'
 import type {
@@ -27,34 +27,39 @@ interface WatchMulti<TSpec, TStatus> extends WatchBase {
 }
 
 export function useWatch<TSpec = unknown, TStatus = unknown>(
-  opts: WatchOptionsSingle,
+  opts: MaybeRefOrGetter<WatchOptionsSingle>,
 ): WatchSingle<TSpec, TStatus>
 
 export function useWatch<TSpec = unknown, TStatus = unknown>(
-  opts: WatchOptionsMulti,
+  opts: MaybeRefOrGetter<WatchOptionsMulti>,
 ): WatchMulti<TSpec, TStatus>
 
 export function useWatch<TSpec = unknown, TStatus = unknown>(
-  opts: WatchJoinOptions[],
+  opts: MaybeRefOrGetter<WatchJoinOptions[]>,
 ): WatchMulti<TSpec, TStatus>
 
 export function useWatch<TSpec = unknown, TStatus = unknown>(
-  opts: WatchOptions | WatchJoinOptions[],
+  opts: MaybeRefOrGetter<WatchOptions | WatchJoinOptions[]>,
 ): WatchSingle<TSpec, TStatus> | WatchMulti<TSpec, TStatus>
 
-export function useWatch<TSpec, TStatus>(opts: WatchOptions | WatchJoinOptions[]) {
-  if (Array.isArray(opts)) return useWatchJoin<TSpec, TStatus>(opts)
+export function useWatch<TSpec, TStatus>(
+  opts: MaybeRefOrGetter<WatchOptions | WatchJoinOptions[]>,
+) {
+  if (isWatchJoinOptions(opts)) return useWatchJoin<TSpec, TStatus>(opts)
 
-  return isWatchOptionsSingle(opts)
-    ? useWatchSingle<TSpec, TStatus>(opts)
-    : useWatchMulti<TSpec, TStatus>(opts)
+  // Type guards unfortunately don't narrow generic types
+  return isWatchOptionsSingle(opts as MaybeRefOrGetter<WatchOptions>)
+    ? useWatchSingle<TSpec, TStatus>(opts as MaybeRefOrGetter<WatchOptionsSingle>)
+    : useWatchMulti<TSpec, TStatus>(opts as MaybeRefOrGetter<WatchOptionsMulti>)
 }
 
-function useWatchSingle<TSpec = unknown, TStatus = unknown>(opts: WatchOptionsSingle) {
+function useWatchSingle<TSpec = unknown, TStatus = unknown>(
+  opts: MaybeRefOrGetter<WatchOptionsSingle>,
+) {
   const data = ref<Resource<TSpec, TStatus>>()
 
   const watch = new Watch(data)
-  watch.setup(computed(() => opts))
+  watch.setup(toRef(opts))
 
   return {
     data,
@@ -63,11 +68,13 @@ function useWatchSingle<TSpec = unknown, TStatus = unknown>(opts: WatchOptionsSi
   }
 }
 
-function useWatchMulti<TSpec = unknown, TStatus = unknown>(opts: WatchOptionsMulti) {
+function useWatchMulti<TSpec = unknown, TStatus = unknown>(
+  opts: MaybeRefOrGetter<WatchOptionsMulti>,
+) {
   const data = ref<Resource<TSpec, TStatus>[]>([])
 
   const watch = new Watch(data)
-  watch.setup(computed(() => opts))
+  watch.setup(toRef(opts))
 
   return {
     data,
@@ -76,13 +83,18 @@ function useWatchMulti<TSpec = unknown, TStatus = unknown>(opts: WatchOptionsMul
   }
 }
 
-function useWatchJoin<TSpec = unknown, TStatus = unknown>(opts: WatchJoinOptions[]) {
+function useWatchJoin<TSpec = unknown, TStatus = unknown>(
+  opts: MaybeRefOrGetter<WatchJoinOptions[]>,
+) {
   const data = ref<Resource<TSpec, TStatus>[]>([])
 
   const watch = new WatchJoin(data)
   watch.setup(
-    computed(() => opts[0]),
-    computed(() => opts.slice(1, opts.length)),
+    toRef(() => toValue(opts)[0]),
+    toRef(() => {
+      const [, ...rest] = toValue(opts)
+      return rest
+    }),
   )
 
   return {
@@ -92,6 +104,14 @@ function useWatchJoin<TSpec = unknown, TStatus = unknown>(opts: WatchJoinOptions
   }
 }
 
-function isWatchOptionsSingle(opts: WatchOptions): opts is WatchOptionsSingle {
-  return 'id' in opts.resource
+function isWatchOptionsSingle(
+  opts: MaybeRefOrGetter<WatchOptions>,
+): opts is MaybeRefOrGetter<WatchOptionsSingle> {
+  return 'id' in toValue(opts).resource
+}
+
+function isWatchJoinOptions(
+  opts: MaybeRefOrGetter<WatchOptions | WatchJoinOptions[]>,
+): opts is MaybeRefOrGetter<WatchJoinOptions[]> {
+  return Array.isArray(toValue(opts))
 }
