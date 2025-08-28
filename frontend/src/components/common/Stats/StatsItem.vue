@@ -5,33 +5,18 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import pluralize from 'pluralize'
+import TIcon, { type IconType } from '@/components/common/Icon/TIcon.vue'
 
-import type { IconType } from '../Icon/TIcon.vue'
-import TIcon from '../Icon/TIcon.vue'
-
-withDefaults(
-  defineProps<{
-    icon: IconType
-    count: number
-    units?: string
-    text?: string
-    pluralizedText?: string
-    color?: string
-    hideZero?: boolean
-  }>(),
-  {
-    color: 'var(--color-primary-p2)',
-  },
-)
+defineProps<{
+  icon: IconType
+  title: string
+  value: string | number
+}>()
 </script>
 
 <template>
-  <div v-if="!(hideZero && count === 0)" class="flex items-center gap-2">
-    <TIcon class="h-5 w-5" :icon="icon" :style="{ color }" />
-    <div class="text-md whitespace-nowrap text-naturals-n10">
-      <span class="text-naturals-n13">{{ count }}{{ units }}</span>
-      {{ pluralizedText ? pluralize(pluralizedText, count, false) : '' }}{{ text }}
-    </div>
+  <div class="flex items-center gap-2">
+    <TIcon class="size-5 text-primary-p2" aria-hidden="true" :icon="icon" />
+    <span class="text-base whitespace-nowrap text-naturals-n14">{{ title }}: {{ value }}</span>
   </div>
 </template>

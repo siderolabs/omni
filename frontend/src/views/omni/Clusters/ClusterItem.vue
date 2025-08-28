@@ -31,6 +31,7 @@ import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import { downloadKubeconfig, downloadTalosconfig } from '@/methods'
 import { setupClusterPermissions } from '@/methods/auth'
 import { addClusterLabels, removeClusterLabels } from '@/methods/cluster'
+import type { Label } from '@/methods/labels'
 import { controlPlaneMachineSetId } from '@/methods/machineset'
 import ClusterMachines from '@/views/cluster/ClusterMachines/ClusterMachines.vue'
 import ClusterStatus from '@/views/omni/Clusters/ClusterStatus.vue'
@@ -44,7 +45,9 @@ const props = defineProps<{
   searchQuery?: string
 }>()
 
-defineEmits(['filterLabels'])
+defineEmits<{
+  filterLabels: [Label]
+}>()
 
 const { item } = toRefs(props)
 
@@ -142,7 +145,7 @@ const locked = computed(() => {
           :resource="item"
           :add-label-func="addClusterLabels"
           :remove-label-func="removeClusterLabels"
-          @filter-label="(e) => $emit('filterLabels', e)"
+          @filter-label="(label) => $emit('filterLabels', label)"
         />
       </div>
       <Tooltip description="Open Cluster Dashboard" class="h-6">

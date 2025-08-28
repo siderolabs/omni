@@ -25,7 +25,9 @@ const props = defineProps<{
 
 const { resource } = toRefs(props)
 
-defineEmits(['filterLabel'])
+defineEmits<{
+  filterLabel: [Label]
+}>()
 
 const labelOrder = {
   'is-managed-by-static-infra-provider': -1,

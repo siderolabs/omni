@@ -111,6 +111,7 @@ const icons = {
   plus: defineAsyncComponent(() => import('../../icons/IconPlus.vue')),
   pods: defineAsyncComponent(() => import('../../icons/IconPods.vue')),
   power: PowerIcon,
+  'power-off': defineAsyncComponent(() => import('../../icons/IconPowerOff.vue')),
   question: defineAsyncComponent(() => import('../../icons/IconQuestion.vue')),
   reboot: defineAsyncComponent(() => import('../../icons/IconReboot.vue')),
   refresh: defineAsyncComponent(() => import('../../icons/IconRefresh.vue')),

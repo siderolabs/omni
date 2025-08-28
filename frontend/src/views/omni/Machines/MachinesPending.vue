@@ -54,15 +54,10 @@ const rejectMachine = (item: Resource) => {
 <template>
   <div>
     <TList :opts="watchOpts" search pagination>
-      <template #header="{ itemsCount, filtered }">
+      <template #header="{ itemsCount }">
         <div class="flex gap-4">
           <PageHeader title="Pending Machines">
-            <StatsItem
-              pluralized-text="Machine"
-              :count="itemsCount"
-              icon="nodes"
-              :text="filtered ? ' Found' : ' Total'"
-            />
+            <StatsItem title="Machines" :value="itemsCount" icon="nodes" />
           </PageHeader>
         </div>
       </template>

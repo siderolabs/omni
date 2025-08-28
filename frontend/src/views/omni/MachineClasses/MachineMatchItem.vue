@@ -11,6 +11,7 @@ import WordHighlighter from 'vue-word-highlighter'
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import TListItem from '@/components/common/List/TListItem.vue'
+import type { Label } from '@/methods/labels'
 import ItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
 
 const props = defineProps<{
@@ -18,7 +19,9 @@ const props = defineProps<{
   searchQuery?: string
 }>()
 
-defineEmits(['filterLabels'])
+defineEmits<{
+  filterLabels: [Label]
+}>()
 
 const { machine } = toRefs(props)
 
@@ -43,7 +46,7 @@ const machineName = computed(() => {
               highlight-class="bg-naturals-n14"
             />
           </RouterLink>
-          <ItemLabels :resource="machine" @filter-label="(e) => $emit('filterLabels', e)" />
+          <ItemLabels :resource="machine" @filter-label="(label) => $emit('filterLabels', label)" />
         </div>
         <div class="w-8 flex-initial">
           <div class="flex justify-end" />
