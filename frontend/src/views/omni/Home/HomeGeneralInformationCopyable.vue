@@ -6,9 +6,8 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { copyText } from 'vue3-clipboard'
 
-import TIcon from '@/components/common/Icon/TIcon.vue'
+import CopyButton from '@/components/common/CopyButton/CopyButton.vue'
 
 interface Props {
   title: string
@@ -40,13 +39,7 @@ const props = withDefaults(defineProps<Props>(), {
         {{ displayValue }}
       </span>
 
-      <button
-        aria-label="copy"
-        class="shrink-0 rounded p-0.5 text-primary-p2 hover:bg-naturals-n5 hover:text-primary-p1"
-        @click="copyText(value, undefined, () => {})"
-      >
-        <TIcon icon="copy" class="size-4 p-px" />
-      </button>
+      <CopyButton class="shrink-0" :text="value" />
     </div>
   </div>
 </template>

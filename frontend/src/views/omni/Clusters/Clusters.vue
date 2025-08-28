@@ -80,15 +80,10 @@ const filterOptions = [
       :filter-options="filterOptions"
       :filter-value="filterValue"
     >
-      <template #header="{ itemsCount, filtered }">
+      <template #header="{ itemsCount }">
         <div class="flex items-start gap-1">
           <PageHeader title="Clusters" class="flex-1">
-            <StatsItem
-              icon="clusters"
-              pluralized-text="Cluster"
-              :count="itemsCount"
-              :text="filtered ? ' Found' : ' Total'"
-            />
+            <StatsItem title="Clusters" :value="itemsCount" icon="clusters" />
             <Watch
               :opts="{
                 resource: {
@@ -101,10 +96,10 @@ const filterOptions = [
             >
               <template #default="{ data }">
                 <StatsItem
-                  hide-zero
+                  v-if="data?.spec.not_ready_count"
+                  title="Not Ready"
+                  :value="data.spec.not_ready_count"
                   icon="warning"
-                  :count="data?.spec.not_ready_count ?? 0"
-                  text=" Not Ready"
                 />
               </template>
             </Watch>

@@ -7,8 +7,8 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { DateTime } from 'luxon'
 import pluralize from 'pluralize'
-import { computed, toRefs } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, h } from 'vue'
+import { RouterLink } from 'vue-router'
 import WordHighlighter from 'vue-word-highlighter'
 import { copyText } from 'vue3-clipboard'
 
@@ -18,7 +18,7 @@ import { MachineStatusSpecPowerState } from '@/api/omni/specs/omni.pb'
 import { MachineStatusLabelInstalled } from '@/api/resources'
 import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/common/ActionsBox/TActionsBoxItem.vue'
-import IconButton from '@/components/common/Button/IconButton.vue'
+import CopyButton from '@/components/common/CopyButton/CopyButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import TListItem from '@/components/common/List/TListItem.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
@@ -29,40 +29,28 @@ import {
   canReadMachineLogs,
   canRemoveMachines,
 } from '@/methods/auth'
+import type { Label } from '@/methods/labels'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
 import ItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
+import MachineItemInfoCard from '@/views/omni/Machines/MachineItemInfoCard.vue'
 
-type MachineWithLinkCounter = Resource<MachineStatusLinkSpec>
-const props = defineProps<{
-  machine: MachineWithLinkCounter
+const { machine, searchQuery = '' } = defineProps<{
+  machine: Resource<MachineStatusLinkSpec>
   searchQuery?: string
 }>()
 
-defineEmits(['filterLabels'])
+defineEmits<{
+  filterLabels: [Label]
+}>()
 
-const { machine } = toRefs(props)
-const router = useRouter()
+const selected = defineModel<boolean>('selected')
 
 const machineName = computed(() => {
-  return machine?.value?.spec?.message_status?.network?.hostname ?? machine?.value?.metadata?.id
+  return machine.spec.message_status?.network?.hostname ?? machine.metadata.id
 })
 
-const openConfigPatches = () => {
-  router.push({ name: 'MachineConfigPatches', params: { machine: machine.value.metadata.id } })
-}
-
-const openMaintenanceUpdate = () => {
-  router.push({
-    query: {
-      modal: 'maintenanceUpdate',
-      machine: machine.value.metadata.id,
-      cluster: clusterName.value,
-    },
-  })
-}
-
 const processors = computed(() => {
-  const processors = machine?.value?.spec?.message_status?.hardware?.processors || []
+  const processors = machine.spec.message_status?.hardware?.processors || []
 
   const format = (proc: { frequency?: number; core_count?: number; description?: string }) => {
     return `${proc.frequency! / 1000} GHz, ${pluralize('core', proc.core_count, true)}, ${proc.description}`
@@ -72,7 +60,7 @@ const processors = computed(() => {
 })
 
 const memorymodules = computed(() => {
-  const memorymodules = machine?.value?.spec?.message_status?.hardware?.memory_modules || []
+  const memorymodules = machine.spec.message_status?.hardware?.memory_modules || []
 
   const format = (mem: { description?: string; size_mb?: number }) => {
     let description = mem.description
@@ -86,31 +74,7 @@ const memorymodules = computed(() => {
   return memorymodules.filter((mem: { size_mb?: number }) => mem.size_mb !== 0).map(format)
 })
 
-const clusterName = computed(() => machine.value?.spec?.message_status?.cluster)
-
-const removeMachine = () => {
-  router.push({
-    query: {
-      modal: 'machineRemove',
-      machine: machine.value.metadata.id,
-      cluster: clusterName.value,
-    },
-  })
-}
-
-const machineLogs = () => {
-  router.push({
-    name: 'MachineLogs',
-    params: { machine: machine.value.metadata.id },
-  })
-}
-
-const showCluster = () => {
-  router.push({
-    name: 'ClusterOverview',
-    params: { cluster: clusterName.value },
-  })
-}
+const clusterName = computed(() => machine.spec.message_status?.cluster)
 
 const timeGetter = (fn: () => string | undefined) => {
   return computed(() => {
@@ -127,10 +91,10 @@ const timeGetter = (fn: () => string | undefined) => {
   })
 }
 
-const machineLastAlive = timeGetter(() => machine.value?.spec?.siderolink_counter?.last_alive)
-const machineCreatedAt = timeGetter(() => machine.value?.spec?.machine_created_at)
+const machineLastAlive = timeGetter(() => machine.spec.siderolink_counter?.last_alive)
+const machineCreatedAt = timeGetter(() => machine.spec.machine_created_at)
 const secureBoot = computed(() => {
-  const securityState = machine.value.spec.message_status?.security_state
+  const securityState = machine.spec.message_status?.security_state
   if (!securityState) {
     return 'Unknown'
   }
@@ -138,20 +102,16 @@ const secureBoot = computed(() => {
   return securityState.secure_boot ? 'Enabled' : 'Disabled'
 })
 
-const copyMachineID = () => {
-  copyText(machine.value.metadata.id!, undefined, () => {})
-}
-
 const canDoMaintenanceUpdate = computed(() => {
-  if (machine.value.spec.message_status?.cluster) {
+  if (machine.spec.message_status?.cluster) {
     return false
   }
 
-  return machine.value.metadata.labels?.[MachineStatusLabelInstalled] !== undefined
+  return machine.metadata.labels?.[MachineStatusLabelInstalled] !== undefined
 })
 
 const maintenanceUpdateDescription = computed(() => {
-  if (machine.value.spec.message_status?.cluster) {
+  if (machine.spec.message_status?.cluster) {
     return 'Maintenance upgrade is not possible: machine is a part of a cluster'
   }
 
@@ -164,237 +124,223 @@ const maintenanceUpdateDescription = computed(() => {
 </script>
 
 <template>
-  <TListItem>
+  <TListItem v-model:selected="selected" is-selectable>
     <template #default>
-      <div
-        class="flex items-center text-xs text-naturals-n13"
-        :class="{ 'opacity-50': machine.spec.tearing_down }"
-      >
-        <div class="flex flex-1 items-center gap-2">
-          <RouterLink
-            :to="{ name: 'MachineLogs', params: { machine: machine?.metadata?.id } }"
-            class="list-item-link pr-2"
-          >
-            <WordHighlighter
-              :query="searchQuery ?? ''"
-              split-by-space
-              :text-to-highlight="machineName"
-              highlight-class="bg-naturals-n14"
-            />
-          </RouterLink>
-          <ItemLabels
-            :resource="machine"
-            :add-label-func="machine.spec.tearing_down ? undefined : addMachineLabels"
-            :remove-label-func="removeMachineLabels"
-            @filter-label="(e) => $emit('filterLabels', e)"
+      <div class="flex flex-col gap-1">
+        <div
+          class="flex items-center gap-2 text-xs text-naturals-n13"
+          :class="{ 'opacity-50': machine.spec.tearing_down }"
+        >
+          <h2 class="list-item-link truncate">
+            <RouterLink :to="{ name: 'MachineLogs', params: { machine: machine.metadata.id } }">
+              <WordHighlighter
+                :query="searchQuery"
+                split-by-space
+                highlight-class="bg-naturals-n14"
+              >
+                {{ machineName }}
+              </WordHighlighter>
+            </RouterLink>
+          </h2>
+
+          <CopyButton :text="machineName" />
+
+          <TIcon
+            v-if="
+              machine.spec.message_status?.power_state ===
+              MachineStatusSpecPowerState.POWER_STATE_ON
+            "
+            icon="power"
+            class="size-4 shrink-0 text-green-g1"
+            aria-label="machine powered on"
           />
-        </div>
-        <div v-if="machine.spec.tearing_down">
-          <Tooltip description="The machine is being destroyed">
+
+          <TIcon
+            v-if="
+              machine.spec.message_status?.power_state ===
+              MachineStatusSpecPowerState.POWER_STATE_OFF
+            "
+            icon="power-off"
+            class="size-4 shrink-0 text-red-r1"
+            aria-label="machine powered off"
+          />
+
+          <div class="grow" />
+
+          <Tooltip v-if="machine.spec.tearing_down" description="The machine is being destroyed">
             <TIcon icon="delete" class="h-4 w-4 text-red-r1" />
           </Tooltip>
-        </div>
-        <div v-else class="flex gap-1">
-          <Tooltip v-if="canAccessMaintenanceNodes" :description="maintenanceUpdateDescription">
-            <IconButton
-              icon="upgrade"
-              :disabled="!canDoMaintenanceUpdate"
-              @click="openMaintenanceUpdate"
-            />
-          </Tooltip>
-          <div class="flex justify-end">
-            <TActionsBox style="height: 24px">
-              <TActionsBoxItem icon="settings" @click="openConfigPatches"
-                >Config Patches</TActionsBoxItem
+
+          <div v-else class="flex items-center gap-1">
+            <RouterLink
+              v-if="clusterName && canReadClusters"
+              :to="{ name: 'ClusterOverview', params: { cluster: clusterName } }"
+              class="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap text-naturals-n11 hover:bg-naturals-n4 hover:text-naturals-n14"
+            >
+              <span class="max-md:hidden">{{ clusterName }}</span>
+              <TIcon icon="clusters" aria-hidden="true" />
+            </RouterLink>
+
+            <RouterLink
+              v-if="canReadMachineLogs"
+              :to="{ name: 'MachineLogs', params: { machine: machine.metadata.id } }"
+              class="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap text-naturals-n11 hover:bg-naturals-n4 hover:text-naturals-n14"
+            >
+              <span class="max-md:hidden">Logs</span>
+              <TIcon icon="log" aria-hidden="true" />
+            </RouterLink>
+
+            <Tooltip v-if="canAccessMaintenanceNodes" :description="maintenanceUpdateDescription">
+              <button
+                :disabled="!canDoMaintenanceUpdate"
+                class="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap text-naturals-n11 hover:not-disabled:bg-naturals-n4 hover:not-disabled:text-naturals-n14 disabled:opacity-40"
+                @click="
+                  $router.push({
+                    query: {
+                      modal: 'maintenanceUpdate',
+                      machine: machine.metadata.id,
+                      cluster: clusterName,
+                    },
+                  })
+                "
               >
-              <TActionsBoxItem v-if="canReadMachineLogs" icon="log" @click="machineLogs"
-                >Logs</TActionsBoxItem
-              >
-              <TActionsBoxItem icon="copy" @click="copyMachineID">Copy Machine ID</TActionsBoxItem>
+                <span class="max-md:hidden">Update Talos</span>
+                <TIcon icon="upgrade" aria-hidden="true" />
+              </button>
+            </Tooltip>
+
+            <TActionsBox class="h-6">
               <TActionsBoxItem
-                v-if="clusterName && canReadClusters"
-                icon="overview"
-                @click="showCluster"
-                >Show Cluster</TActionsBoxItem
+                icon="settings"
+                @click="
+                  $router.push({
+                    name: 'MachineConfigPatches',
+                    params: { machine: machine.metadata.id },
+                  })
+                "
               >
-              <TActionsBoxItem v-if="canRemoveMachines" icon="delete" danger @click="removeMachine"
-                >Remove Machine</TActionsBoxItem
+                Config Patches
+              </TActionsBoxItem>
+
+              <TActionsBoxItem
+                icon="copy"
+                @click="copyText(machine.metadata.id, undefined, () => {})"
               >
+                Copy Machine ID
+              </TActionsBoxItem>
+
+              <TActionsBoxItem
+                v-if="canRemoveMachines"
+                icon="delete"
+                danger
+                @click="
+                  $router.push({
+                    query: {
+                      modal: 'machineRemove',
+                      machine: machine.metadata.id,
+                      cluster: clusterName,
+                    },
+                  })
+                "
+              >
+                Remove Machine
+              </TActionsBoxItem>
             </TActionsBox>
           </div>
         </div>
+
+        <ItemLabels
+          :resource="machine"
+          :add-label-func="machine.spec.tearing_down ? undefined : addMachineLabels"
+          :remove-label-func="removeMachineLabels"
+          @filter-label="(label) => $emit('filterLabels', label)"
+        />
       </div>
     </template>
+
     <template #details>
-      <div class="grid grid-cols-5 gap-1 pl-6">
-        <div class="mt-4 mb-2">Processors</div>
-        <div class="mt-4 mb-2">Memory</div>
-        <div class="mt-4 mb-2">Block Devices</div>
-        <div class="mt-4 mb-2">Addresses</div>
-        <div class="mt-4 mb-2">Network Interfaces</div>
-        <div>
-          <template v-if="processors.length > 0">
-            <div v-for="(processor, index) in processors" :key="index">
-              {{ processor }}
-            </div>
-          </template>
-          <template v-else>
-            <div>No processors detected</div>
-          </template>
-        </div>
-        <div>
-          <template v-if="memorymodules.length > 0">
-            <div v-for="(memorymodule, index) in memorymodules" :key="index">
-              {{ memorymodule }}
-            </div>
-          </template>
-          <template v-else>
-            <div>No memory modules detected</div>
-          </template>
-        </div>
-        <div>
-          <div
-            v-for="(dev, index) in machine?.spec?.message_status?.hardware?.blockdevices"
-            :key="index"
-          >
-            {{ dev.linux_name }} {{ formatBytes(dev.size) }} {{ dev.type }}
-          </div>
-        </div>
-        <div>
-          <div>
-            {{ machine.spec?.message_status?.network?.addresses?.join(', ') }}
-          </div>
-        </div>
-        <div>
-          <div
-            v-for="(link, index) in machine?.spec?.message_status?.network?.network_links"
-            :key="index"
-          >
-            {{ link.linux_name }} {{ link.hardware_address }} {{ link.link_up ? 'UP' : 'DOWN' }}
-          </div>
-        </div>
-        <div class="mt-4 mb-2">Talos Version</div>
-        <div class="mt-4 mb-2">UUID</div>
-        <div class="mt-4 mb-2">Bytes Received</div>
-        <div class="mt-4 mb-2">Bytes Sent</div>
-        <div class="mt-4 mb-2">Cluster</div>
-        <div>
-          <div>{{ machine?.spec?.message_status?.talos_version }}</div>
-        </div>
-        <WordHighlighter
-          :query="searchQuery ?? ''"
-          split-by-space
-          :text-to-highlight="machine?.metadata?.id"
-          highlight-class="bg-naturals-n14"
+      <div class="grid grid-cols-4 gap-2 pl-6 max-lg:grid-cols-2 max-md:grid-cols-1">
+        <MachineItemInfoCard
+          title="Hardware"
+          :sections="[
+            { title: 'Processors', value: processors, emptyText: 'No processors detected' },
+            { title: 'Memory', value: memorymodules, emptyText: 'No memory modules detected' },
+            {
+              title: 'Block devices',
+              value: machine.spec.message_status?.hardware?.blockdevices?.map(
+                (dev) => `${dev.linux_name} ${formatBytes(dev.size)} ${dev.type}`,
+              ),
+            },
+            {
+              title: 'UUID',
+              value: () =>
+                h(WordHighlighter, {
+                  query: searchQuery ?? '',
+                  splitBySpace: true,
+                  textToHighlight: machine?.metadata?.id,
+                  highlightClass: 'bg-naturals-n14',
+                }),
+            },
+          ]"
         />
-        <div>
-          <div>
-            {{
-              machine.spec.siderolink_counter?.bytes_received
-                ? formatBytes(machine.spec.siderolink_counter.bytes_received)
-                : '0B'
-            }}
-          </div>
-        </div>
-        <div>
-          <div>
-            {{
-              machine.spec.siderolink_counter?.bytes_sent
+
+        <MachineItemInfoCard
+          title="Network"
+          :sections="[
+            {
+              title: 'Network interfaces',
+              value: machine.spec.message_status?.network?.network_links?.map(
+                (link) =>
+                  `${link.linux_name} ${link.hardware_address} ${link.link_up ? 'UP' : 'DOWN'}`,
+              ),
+            },
+            { title: 'Addresses', value: machine.spec.message_status?.network?.addresses },
+            {
+              title: 'Bytes sent',
+              value: machine.spec.siderolink_counter?.bytes_sent
                 ? formatBytes(machine.spec.siderolink_counter.bytes_sent)
-                : '0B'
-            }}
-          </div>
-        </div>
-        <div>
-          <RouterLink
-            v-if="clusterName"
-            :to="{ name: 'ClusterOverview', params: { cluster: clusterName } }"
-            class="list-item-link"
-          >
-            {{ clusterName }}
-          </RouterLink>
-        </div>
-        <div class="mt-4 mb-2">Last Active</div>
-        <div class="mt-4 mb-2">Created At</div>
-        <div class="mt-4 mb-2">Secure Boot</div>
-        <div class="col-span-2 mt-4 mb-2">Power State</div>
-        <div>
-          <div>{{ machineLastAlive }}</div>
-        </div>
-        <div>
-          <div>{{ machineCreatedAt }}</div>
-        </div>
-        <div>
-          <div>{{ secureBoot }}</div>
-        </div>
-        <div
-          class="flex items-center gap-0.5"
-          :class="{
-            'text-green-g1':
-              machine.spec.message_status?.power_state ===
-              MachineStatusSpecPowerState.POWER_STATE_ON,
-            'text-naturals-n9':
-              machine.spec.message_status?.power_state ===
-              MachineStatusSpecPowerState.POWER_STATE_OFF,
-            'text-naturals-n8':
-              machine.spec.message_status?.power_state === undefined ||
-              machine.spec.message_status?.power_state ===
-                MachineStatusSpecPowerState.POWER_STATE_UNKNOWN ||
-              machine.spec.message_status?.power_state ===
-                MachineStatusSpecPowerState.POWER_STATE_UNSUPPORTED,
-          }"
-        >
-          <template
-            v-if="
-              machine.spec.message_status?.power_state === undefined ||
-              machine.spec.message_status?.power_state ===
-                MachineStatusSpecPowerState.POWER_STATE_UNSUPPORTED ||
-              machine.spec.message_status?.power_state ===
-                MachineStatusSpecPowerState.POWER_STATE_UNKNOWN
-            "
-          >
-            <TIcon icon="question" class="mr-1 h-4 w-4" />
-            <div>
-              {{
-                machine.spec.message_status?.power_state ===
-                MachineStatusSpecPowerState.POWER_STATE_UNSUPPORTED
-                  ? 'Unsupported'
-                  : 'Unknown'
-              }}
-            </div>
-          </template>
-          <template v-else>
-            <TIcon icon="dot" class="-ml-1 h-5 w-5" />
-            <div>
-              {{
-                machine.spec.message_status?.power_state ===
-                MachineStatusSpecPowerState.POWER_STATE_ON
-                  ? 'On'
-                  : 'Off'
-              }}
-            </div>
-          </template>
-        </div>
+                : '0B',
+            },
+            {
+              title: 'Bytes received',
+              value: machine.spec.siderolink_counter?.bytes_received
+                ? formatBytes(machine.spec.siderolink_counter.bytes_received)
+                : '0B',
+            },
+          ]"
+        />
+
+        <MachineItemInfoCard
+          title="System"
+          :sections="[
+            { title: 'Extensions', value: machine.spec.message_status?.schematic?.extensions },
+          ]"
+        />
+
+        <MachineItemInfoCard
+          title="State"
+          :sections="[
+            { title: 'Created at', value: machineCreatedAt },
+            { title: 'Last active', value: machineLastAlive },
+            { title: 'Talos version', value: machine.spec.message_status?.talos_version },
+            { title: 'Secure boot', value: secureBoot },
+            {
+              title: 'Cluster',
+              value:
+                clusterName &&
+                (() =>
+                  h(
+                    RouterLink,
+                    {
+                      to: { name: 'ClusterOverview', params: { cluster: clusterName } },
+                      class: 'list-item-link resource-label text-naturals-n12',
+                    },
+                    clusterName,
+                  )),
+            },
+          ]"
+        />
       </div>
     </template>
   </TListItem>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.content {
-  @apply flex w-full border-b border-naturals-n4;
-}
-
-.router-link-active {
-  @apply relative text-naturals-n13;
-}
-
-.router-link-active::before {
-  @apply absolute block w-full animate-fadein bg-primary-p3;
-  content: '';
-  height: 2px;
-  bottom: -15px;
-}
-</style>

@@ -31,8 +31,6 @@ defineExpose({
 
 const dots = '...'
 
-const emit = defineEmits(['itemsUpdate'])
-
 const props = defineProps<{
   pagination?: boolean
   search?: boolean
@@ -83,10 +81,6 @@ const filterValueComputed = computed(() => {
 
 const offset = computed(() => {
   return (currentPage.value - 1) * selectedItemsPerPage.value
-})
-
-vueWatch(items.value, () => {
-  emit('itemsUpdate', items.value)
 })
 
 const sortByState = computed(() => {
@@ -311,124 +305,111 @@ const openPage = (page: number | string) => {
       :items-count="itemsCount"
       :filtered="searchState.searchFor?.length || searchState.selectors?.length"
     />
+
     <div class="flex flex-col gap-4">
-      <div
-        v-if="pagination || search || (pagination && itemsPerPage?.length > 1)"
-        class="flex gap-2"
-      >
-        <slot v-if="$slots.input" name="input" />
-        <TInput v-else-if="search" v-model="filterValueInternal" class="flex-1" icon="search" />
-        <div v-else class="flex-1" />
-        <TSelectList
-          v-if="filterOptions"
-          :title="filterCaption ?? 'Filter'"
-          :default-value="selectedFilterOption || ''"
-          :values="filterOptionsVariants"
-          @checked-value="
-            (value: string) => {
-              selectedFilterOption = value
-            }
-          "
-        />
-        <TSelectList
-          v-if="sortOptions"
-          title="Sort by"
-          :default-value="selectedSortOption || ''"
-          :values="sortOptionsVariants"
-          @checked-value="
-            (value: string) => {
-              selectedSortOption = value
-            }
-          "
-        />
-        <TSelectList
-          v-if="itemsPerPage?.length > 1 && pagination"
-          title="Items per Page"
-          :default-value="selectedItemsPerPage"
-          :values="itemsPerPage"
-          @checked-value="
-            (value: number) => {
-              selectedItemsPerPage = value
-              currentPage = 1
-            }
-          "
-        />
-      </div>
-      <div class="flex-1">
-        <div v-if="loading" class="flex h-full w-full flex-row items-center justify-center">
-          <TSpinner class="loading-spinner" />
+      <template v-if="pagination || search || (pagination && itemsPerPage?.length > 1)">
+        <slot name="input">
+          <TInput v-if="search" v-model="filterValueInternal" class="grow" icon="search" />
+          <div v-else class="grow" />
+        </slot>
+
+        <div class="flex items-center gap-2">
+          <slot name="extra-controls" />
+
+          <div class="grow" />
+
+          <TSelectList
+            v-if="filterOptions"
+            :title="filterCaption ?? 'Filter'"
+            :default-value="selectedFilterOption || ''"
+            :values="filterOptionsVariants"
+            @checked-value="
+              (value: string) => {
+                selectedFilterOption = value
+              }
+            "
+          />
+
+          <TSelectList
+            v-if="sortOptions"
+            title="Sort by"
+            hide-selected-small-screens
+            :default-value="selectedSortOption || ''"
+            :values="sortOptionsVariants"
+            @checked-value="
+              (value: string) => {
+                selectedSortOption = value
+              }
+            "
+          />
+
+          <TSelectList
+            v-if="itemsPerPage?.length > 1 && pagination"
+            title="Items per Page"
+            :default-value="selectedItemsPerPage"
+            :values="itemsPerPage"
+            @checked-value="
+              (value: number) => {
+                selectedItemsPerPage = value
+                currentPage = 1
+              }
+            "
+          />
         </div>
-        <template v-else-if="err">
-          <TAlert v-if="!$slots.error" title="Failed to Fetch Data" type="error">
-            {{ err }}.
+      </template>
+
+      <div class="grow">
+        <div v-if="loading" class="flex size-full flex-row items-center justify-center">
+          <TSpinner class="absolute top-2/4 size-6" />
+        </div>
+
+        <slot v-else-if="err" name="error" :err="err">
+          <TAlert title="Failed to Fetch Data" type="error">{{ err }}.</TAlert>
+        </slot>
+
+        <slot v-else-if="items.length === 0" name="norecords">
+          <TAlert type="info" title="No Records">
+            No entries of the requested resource type are found on the server.
           </TAlert>
-          <slot v-else name="error" err="err" />
-        </template>
-        <template v-else-if="items?.length === 0">
-          <TAlert v-if="!$slots.norecords" type="info" title="No Records"
-            >No entries of the requested resource type are found on the server.</TAlert
-          >
-          <slot name="norecords" />
-        </template>
-        <div v-show="!loading && !err && items?.length > 0" class="h-full w-full">
+        </slot>
+
+        <div v-show="!loading && !err && items.length > 0" class="size-full">
           <slot :items="items" :watch="watch" :search-query="searchQuery" />
         </div>
       </div>
+
       <div v-if="showPageSelector" class="flex items-center justify-end gap-2">
         <TIcon
           icon="arrow-left"
-          class="pagination-icon"
-          :class="{ 'pagination-icon-disabled': currentPage === 1 }"
+          class="size-5 cursor-pointer fill-current transition-all duration-200 hover:text-naturals-n10"
+          :class="currentPage === 1 ? 'text-naturals-n6' : 'text-naturals-n8'"
           @click="prevPage"
         />
-        <div class="pagination-pages">
+
+        <div class="flex items-center gap-2 transition-all duration-200">
           <span
             v-for="(item, index) in paginationRange ?? []"
             :key="index"
-            class="pagination-page-number"
-            :class="{
-              'pagination-page-number-active': item === currentPage,
-              unhovered: item === dots,
-            }"
+            class="flex size-7 items-center justify-center rounded transition-all duration-200 select-none"
+            :class="[
+              item === currentPage ? 'bg-naturals-n4 text-naturals-n12' : 'text-naturals-n8',
+              item === dots
+                ? 'cursor-default hover:text-naturals-n8'
+                : 'cursor-pointer hover:text-naturals-n9',
+            ]"
             @click="() => openPage(item)"
           >
-            {{ item }}</span
-          >
+            {{ item }}
+          </span>
         </div>
+
         <TIcon
           icon="arrow-right"
-          class="pagination-icon"
-          :class="{ 'pagination-icon-disabled': currentPage === totalPageCount }"
+          class="size-5 cursor-pointer fill-current transition-all duration-200 hover:text-naturals-n10"
+          :class="[currentPage === totalPageCount ? 'text-naturals-n6' : 'text-naturals-n8']"
           @click="nextPage"
         />
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.pagination-icon {
-  @apply h-5 w-5 cursor-pointer fill-current text-naturals-n8 transition-all duration-200 hover:text-naturals-n10;
-}
-.pagination-icon-disabled {
-  @apply text-naturals-n6;
-}
-.pagination-pages {
-  @apply flex items-center gap-2 transition-all duration-200;
-}
-.pagination-page-number {
-  @apply flex h-7 w-7 cursor-pointer items-center justify-center rounded text-naturals-n8 transition-all duration-200 select-none hover:text-naturals-n9;
-}
-.unhovered {
-  @apply cursor-default hover:text-naturals-n8;
-}
-.pagination-page-number-active {
-  @apply bg-naturals-n4 text-naturals-n12;
-}
-
-.loading-spinner {
-  @apply absolute top-2/4 h-6 w-6;
-}
-</style>
