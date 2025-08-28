@@ -1,3 +1,30 @@
+## [Omni 1.1.1](https://github.com/siderolabs/omni/releases/tag/v1.1.1) (2025-08-28)
+
+Welcome to the v1.1.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Edward Sammut Alessi
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`07d4cec7`](https://github.com/siderolabs/omni/commit/07d4cec7514f6d7ff02e22adb33d2d6f5a9e0152) fix: make useWatch respect reactivity
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.1.0](https://github.com/siderolabs/omni/releases/tag/v1.1.0)
+
 ## [Omni 1.1.0](https://github.com/siderolabs/omni/releases/tag/v1.1.0) (2025-08-27)
 
 Welcome to the v1.1.0 release of Omni!
