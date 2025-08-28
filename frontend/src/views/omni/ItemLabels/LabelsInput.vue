@@ -31,6 +31,7 @@ const props = defineProps<{
   }
   filterValue: string
   filterLabels: Label[]
+  placeholder?: string
 }>()
 
 const showCompletions = ref(false)
@@ -228,6 +229,7 @@ watch(filterValue, async (val: string, old: string) => {
           $emit('update:filter-labels', [])
         }
       "
+      :placeholder
       @update:model-value="(value) => $emit('update:filter-value', value)"
       @click="showCompletions = true"
     >
@@ -235,8 +237,7 @@ watch(filterValue, async (val: string, old: string) => {
         <div
           v-for="(label, index) in filterLabels"
           :key="label.key"
-          class="label"
-          :class="{ selected: selectedLabel === index }"
+          class="-mx-1 -my-2 rounded-md border border-white p-0.5 transition-all"
         >
           <ItemLabel
             :label="{
@@ -259,8 +260,8 @@ watch(filterValue, async (val: string, old: string) => {
       <div
         v-for="(suggestion, index) in matchedLabelsCompletion"
         :key="index"
-        class="label-suggestion"
-        :class="{ selected: index === selectedSuggestion }"
+        class="flex cursor-pointer px-2 py-2 text-xs hover:bg-naturals-n4"
+        :class="{ 'bg-naturals-n4': index === selectedSuggestion }"
         @click="autoComplete(index)"
       >
         <ItemLabel :label="suggestion" class="pointer-events-none" />
@@ -268,19 +269,3 @@ watch(filterValue, async (val: string, old: string) => {
     </div>
   </div>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.label-suggestion {
-  @apply flex cursor-pointer px-2 py-2 text-xs hover:bg-naturals-n4;
-}
-
-.label-suggestion.selected {
-  @apply bg-naturals-n4;
-}
-
-.label {
-  @apply -mx-1 -my-2 rounded-md border border-white p-0.5 transition-all;
-}
-</style>

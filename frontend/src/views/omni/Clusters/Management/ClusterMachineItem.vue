@@ -27,6 +27,7 @@ import IconButton from '@/components/common/Button/IconButton.vue'
 import TListItem from '@/components/common/List/TListItem.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import { formatBytes } from '@/methods'
+import type { Label } from '@/methods/labels'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
 import { showModal } from '@/modal'
 import type { MachineSet, MachineSetNode } from '@/states/cluster-management'
@@ -43,7 +44,9 @@ type MemModule = {
   description?: string
 }
 
-defineEmits(['filterLabel'])
+defineEmits<{
+  filterLabel: [Label]
+}>()
 
 const props = defineProps<{
   item: Resource<MachineStatusSpec & SiderolinkSpec & MachineConfigGenOptionsSpec>
@@ -272,7 +275,7 @@ machine:
             :resource="item"
             :add-label-func="addMachineLabels"
             :remove-label-func="removeMachineLabels"
-            @filter-label="(e) => $emit('filterLabel', e)"
+            @filter-label="(label) => $emit('filterLabel', label)"
           />
         </div>
         <div class="flex w-lg flex-initial items-center justify-end gap-4">
