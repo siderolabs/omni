@@ -91,7 +91,7 @@ func CreateCluster(testCtx context.Context, cli *client.Client, options ClusterO
 
 		pickUnallocatedMachines(ctx, t, st, options.ControlPlanes+options.Workers, func(machineIDs []resource.ID) {
 			if !options.SkipExtensionCheckOnCreate {
-				checkExtensionWithRetries(ctx, t, cli, HelloWorldServiceExtensionName, machineIDs...)
+				checkExtensionsWithRetries(ctx, t, cli, []string{HelloWorldServiceExtensionName}, machineIDs)
 			}
 
 			if options.BeforeClusterCreateFunc != nil {

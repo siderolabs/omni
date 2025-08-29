@@ -864,19 +864,32 @@ Tests upgrading Talos version, including reverting a failed upgrade.`)
 		if !options.SkipExtensionsCheckOnCreate {
 			t.Run(
 				"HelloWorldServiceExtensionShouldBePresent",
-				AssertExtensionIsPresent(t.Context(), options.omniClient, clusterName, HelloWorldServiceExtensionName),
+				AssertExtensionsAreEqual(t.Context(), options.omniClient, clusterName, []string{HelloWorldServiceExtensionName}),
 			)
 		}
 
+		extensions := []string{"siderolabs/hello-world-service", "siderolabs/qemu-guest-agent"}
+		extraKernelArgs := []string{"foo=bar", "bar=baz"}
+
 		t.Run(
-			"TalosSchematicUpdateShouldSucceed",
-			AssertTalosSchematicUpdateFlow(t.Context(), options.omniClient, clusterName),
+			"TalosExtensionsUpdateShouldSucceed",
+			AssertTalosExtensionsUpdateFlow(t.Context(), options.omniClient, clusterName, extensions),
 		)
 
 		t.Run(
-			"QemuGuestAgentExtensionShouldBePresent",
-			AssertExtensionIsPresent(t.Context(), options.omniClient, clusterName, QemuGuestAgentExtensionName),
+			"TalosExtraKernelArgsUpdateShouldSucceed",
+			AssertTalosExtraKernelArgsUpdateFlow(t.Context(), options.omniClient, clusterName, extraKernelArgs),
 		)
+
+		t.Run(
+			"UpdatedExtensionsShouldBePresent",
+			AssertExtensionsAreEqual(t.Context(), options.omniClient, clusterName, extensions),
+		)
+
+		t.Run(
+			"UpdatedExtraKernelArgsShouldBePresent",
+			AssertExtraKernelArgsArePresent(t.Context(), options.omniClient, clusterName, extraKernelArgs),
+			)
 
 		t.Run(
 			"ClusterBootstrapManifestSyncShouldBeSuccessful",
@@ -896,7 +909,7 @@ Tests upgrading Talos version, including reverting a failed upgrade.`)
 		if !options.SkipExtensionsCheckOnCreate {
 			t.Run(
 				"HelloWorldServiceExtensionShouldBePresent",
-				AssertExtensionIsPresent(t.Context(), options.omniClient, clusterName, HelloWorldServiceExtensionName),
+				AssertExtensionsAreEqual(t.Context(), options.omniClient, clusterName, []string{HelloWorldServiceExtensionName}),
 			)
 		}
 
