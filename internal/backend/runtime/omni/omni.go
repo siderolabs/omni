@@ -288,6 +288,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		omnictrl.NewKubernetesUpgradeStatusController(),
 		omnictrl.NewMachineController(),
 		omnictrl.NewMachineExtensionsController(),
+		omnictrl.NewMachineExtraKernelArgsController(),
 		omnictrl.NewMachineSetStatusController(),
 		omnictrl.NewMachineSetEtcdAuditController(talosClientFactory, time.Minute),
 		omnictrl.NewRedactedClusterMachineConfigController(omnictrl.RedactedClusterMachineConfigControllerOptions{}),

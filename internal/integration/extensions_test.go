@@ -10,6 +10,8 @@ package integration_test
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -17,23 +19,21 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/go-retry/retry"
-	talosclient "github.com/siderolabs/talos/pkg/machinery/client"
+	"github.com/siderolabs/image-factory/pkg/constants"
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/extensions"
 )
 
 // HelloWorldServiceExtensionName is the name of the sample hello world extension used for testing.
-const HelloWorldServiceExtensionName = "hello-world-service"
+const HelloWorldServiceExtensionName = extensions.OfficialPrefix + "hello-world-service"
 
-// QemuGuestAgentExtensionName is the name of the qemu guest agent extension used for testing.
-const QemuGuestAgentExtensionName = "qemu-guest-agent"
-
-// AssertExtensionIsPresent asserts that the extension "hello-world-service" is present on all machines in the cluster.
-func AssertExtensionIsPresent(ctx context.Context, cli *client.Client, cluster, extension string) TestFunc {
+// AssertExtensionsAreEqual asserts that the given extensions are all present on all machines of the given cluster.
+func AssertExtensionsArePresent(ctx context.Context, cli *client.Client, cluster string, extensions []string) TestFunc {
 	return func(t *testing.T) {
 		clusterMachineList, err := safe.StateListAll[*omni.ClusterMachine](ctx, cli.Omni().State(), state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster)))
 		require.NoError(t, err)
@@ -44,26 +44,26 @@ func AssertExtensionIsPresent(ctx context.Context, cli *client.Client, cluster, 
 			machineIDs = append(machineIDs, clusterMachine.Metadata().ID())
 		})
 
-		checkExtensionWithRetries(ctx, t, cli, extension, machineIDs...)
+		checkExtensionsWithRetries(ctx, t, cli, extensions, machineIDs)
 	}
 }
 
-func checkExtensionWithRetries(ctx context.Context, t *testing.T, cli *client.Client, extension string, machineIDs ...resource.ID) {
+func checkExtensionsWithRetries(ctx context.Context, t *testing.T, cli *client.Client, extensions []string, machineIDs []resource.ID) {
 	for _, machineID := range machineIDs {
 		numErrs := 0
 
 		err := retry.Constant(3*time.Minute, retry.WithUnits(time.Second), retry.WithAttemptTimeout(3*time.Second)).RetryWithContext(ctx, func(ctx context.Context) error {
-			if err := checkExtension(ctx, cli, machineID, extension); err != nil {
+			if err := checkExtensions(ctx, cli, machineID, extensions); err != nil {
 				numErrs++
 
 				if numErrs%10 == 0 {
-					t.Logf("failed to check extension %q on machine %q: %v", extension, machineID, err)
+					t.Logf("failed to check extensions on machine %q: %v", machineID, err)
 				}
 
 				return retry.ExpectedError(err)
 			}
 
-			t.Logf("found extension %q on machine %q", extension, machineID)
+			t.Logf("found extensions %q on machine %q", extensions, machineID)
 
 			return nil
 		})
@@ -71,41 +71,117 @@ func checkExtensionWithRetries(ctx context.Context, t *testing.T, cli *client.Cl
 	}
 }
 
-func checkExtension(ctx context.Context, cli *client.Client, machineID resource.ID, extension string) error {
-	machineStatus, err := safe.StateGet[*omni.MachineStatus](ctx, cli.Omni().State(), omni.NewMachineStatus(resources.DefaultNamespace, machineID).Metadata())
+// checkExtensions checks that the given extensions are all present on the machine with the given ID.
+//
+// The order of the extensions is also checked.
+//
+// It is assumed that neither of the input slices will contain duplicates.
+func checkExtensions(ctx context.Context, cli *client.Client, machineID string, extensions []string) error {
+	collectedExtensions, err := fetchExtensions(ctx, cli, machineID)
 	if err != nil {
 		return err
 	}
 
-	var talosCli *talosclient.Client
-
-	if machineStatus.TypedSpec().Value.GetMaintenance() {
-		if talosCli, err = talosClientMaintenance(ctx, machineStatus.TypedSpec().Value.GetManagementAddress()); err != nil {
-			return err
+	pos := 0
+	for _, ext := range extensions {
+		i := slices.Index(collectedExtensions[pos:], ext)
+		if i < 0 {
+			return fmt.Errorf("extensions/order mismatch on %q: expected %q to be a subsequence of %q", machineID, extensions, collectedExtensions)
 		}
-	} else {
-		cluster, ok := machineStatus.Metadata().Labels().Get(omni.LabelCluster)
-		if !ok {
-			return fmt.Errorf("machine %q is not in maintenance mode but does not have a cluster label", machineStatus.Metadata().ID())
-		}
-
-		if talosCli, err = talosClient(ctx, cli, cluster); err != nil {
-			return err
-		}
+		pos += i + 1
 	}
 
-	extensionStatusList, err := safe.StateListAll[*runtime.ExtensionStatus](ctx, talosCli.COSI)
+	return nil
+}
+
+func fetchExtensions(ctx context.Context, cli *client.Client, machineID resource.ID) ([]string, error) {
+	talosCli, err := talosClientForMachine(ctx, cli, machineID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for extensionStatus := range extensionStatusList.All() {
-		if extensionStatus.TypedSpec().Metadata.Name == extension {
+	list, err := safe.StateListAll[*runtime.ExtensionStatus](ctx, talosCli.COSI)
+	if err != nil {
+		return nil, err
+	}
+
+	exts := make([]string, 0, list.Len())
+
+	for extensionStatus := range list.All() {
+		name := extensionStatus.TypedSpec().Metadata.Name
+		if name == constants.SchematicIDExtensionName {
+			continue
+		}
+
+		exts = append(exts, extensions.OfficialPrefix+name)
+	}
+
+	return exts, nil
+}
+
+func AssertExtraKernelArgsArePresent(ctx context.Context, cli *client.Client, cluster string, extraKernelArgs []string) TestFunc {
+	return func(t *testing.T) {
+		clusterMachineList, err := safe.StateListAll[*omni.ClusterMachine](ctx, cli.Omni().State(), state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster)))
+		require.NoError(t, err)
+
+		machineIDs := make([]resource.ID, 0, clusterMachineList.Len())
+
+		clusterMachineList.ForEach(func(clusterMachine *omni.ClusterMachine) {
+			machineIDs = append(machineIDs, clusterMachine.Metadata().ID())
+		})
+
+		checkExtraKernelArgsWithRetries(ctx, t, cli, extraKernelArgs, machineIDs)
+	}
+}
+
+func checkExtraKernelArgsWithRetries(ctx context.Context, t *testing.T, cli *client.Client, extraKernelArgs []string, machineIDs []resource.ID) {
+	for _, machineID := range machineIDs {
+		numErrs := 0
+
+		err := retry.Constant(3*time.Minute, retry.WithUnits(time.Second), retry.WithAttemptTimeout(3*time.Second)).RetryWithContext(ctx, func(ctx context.Context) error {
+			if err := checkExtraKernelArgs(ctx, cli, machineID, extraKernelArgs); err != nil {
+				numErrs++
+
+				if numErrs%10 == 0 {
+					t.Logf("failed to check extra kernel args on machine %q: %v", machineID, err)
+				}
+				return retry.ExpectedError(err)
+			}
+
+			t.Logf("found extra kernel args %q on machine %q", extraKernelArgs, machineID)
+
 			return nil
-		}
+		})
+		require.NoError(t, err)
+	}
+}
+
+func checkExtraKernelArgs(ctx context.Context, cli *client.Client, machineID resource.ID, extraKernelArgs []string) error {
+	kernelCmdline, err := fetchKernelCmdline(ctx, cli, machineID)
+	if err != nil {
+		return err
 	}
 
-	return fmt.Errorf("extension %q is not found on machine %q", extension, machineStatus.Metadata().ID())
+	extraKernelArgsStr := strings.Join(extraKernelArgs, " ")
+	if !strings.Contains(kernelCmdline, extraKernelArgsStr) {
+		return fmt.Errorf("extra kernel args are not present in machine %q: expected to find %q in %q", machineID, extraKernelArgsStr, kernelCmdline)
+	}
+
+	return nil
+}
+
+func fetchKernelCmdline(ctx context.Context, cli *client.Client, machineID resource.ID) (string, error) {
+	talosCli, err := talosClientForMachine(ctx, cli, machineID)
+	if err != nil {
+		return "", err
+	}
+
+	cmdline, err := safe.StateGetByID[*runtime.KernelCmdline](ctx, talosCli.COSI, runtime.KernelCmdlineID)
+	if err != nil {
+		return "", err
+	}
+
+	return cmdline.TypedSpec().Cmdline, nil
 }
 
 // UpdateExtensions updates the extensions on all the machines of the given cluster.

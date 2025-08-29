@@ -132,7 +132,7 @@ const onClickOutside = () => {
                     </span>
                   </template>
 
-                  <span v-else>Installing extensions</span>
+                  <span v-else>Updating machine schematics</span>
                 </div>
               </div>
             </div>
