@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+import { Userpilot } from 'userpilot'
 import type { Ref } from 'vue'
 import { computed, ref } from 'vue'
 
@@ -10,7 +11,8 @@ import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
 import type { FeaturesConfigSpec } from '@/api/omni/specs/omni.pb'
-import { withRuntime } from '@/api/options'
+import type { CurrentUserSpec } from '@/api/omni/specs/virtual.pb'
+import { withAbortController, withRuntime } from '@/api/options'
 import { DefaultNamespace, FeaturesConfigID, FeaturesConfigType } from '@/api/resources'
 import Watch from '@/api/watch'
 
@@ -28,6 +30,40 @@ export const setupWorkloadProxyingEnabledFeatureWatch = (): Ref<boolean> => {
 
   return computed(() => {
     return featuresConfig?.value?.spec?.enable_workload_proxying ?? false
+  })
+}
+
+let userPilotInitialized = false
+let userPilotInitializeAbortController: AbortController | null = null
+
+export const initializeUserPilot = async (user: Resource<CurrentUserSpec>) => {
+  if (!userPilotInitialized) {
+    userPilotInitializeAbortController?.abort()
+
+    userPilotInitializeAbortController = new AbortController()
+
+    const featuresConfig = await ResourceService.Get<Resource<FeaturesConfigSpec>>(
+      {
+        type: FeaturesConfigType,
+        namespace: DefaultNamespace,
+        id: FeaturesConfigID,
+      },
+      withRuntime(Runtime.Omni),
+      withAbortController(userPilotInitializeAbortController),
+    )
+
+    const token = featuresConfig.spec?.user_pilot_settings?.app_token
+    if (!token) {
+      return
+    }
+
+    Userpilot.initialize(token)
+
+    userPilotInitialized = true
+  }
+
+  Userpilot.identify(user.spec.user_id!, {
+    role: user.spec.role!,
   })
 }
 

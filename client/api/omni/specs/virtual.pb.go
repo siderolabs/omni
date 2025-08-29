@@ -26,6 +26,7 @@ type CurrentUserSpec struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Identity      string                 `protobuf:"bytes,1,opt,name=identity,proto3" json:"identity,omitempty"`
 	Role          string                 `protobuf:"bytes,3,opt,name=role,proto3" json:"role,omitempty"`
+	UserId        string                 `protobuf:"bytes,4,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -70,6 +71,13 @@ func (x *CurrentUserSpec) GetIdentity() string {
 func (x *CurrentUserSpec) GetRole() string {
 	if x != nil {
 		return x.Role
+	}
+	return ""
+}
+
+func (x *CurrentUserSpec) GetUserId() string {
+	if x != nil {
+		return x.UserId
 	}
 	return ""
 }
@@ -466,10 +474,11 @@ var File_omni_specs_virtual_proto protoreflect.FileDescriptor
 
 const file_omni_specs_virtual_proto_rawDesc = "" +
 	"\n" +
-	"\x18omni/specs/virtual.proto\x12\x05specs\"G\n" +
+	"\x18omni/specs/virtual.proto\x12\x05specs\"`\n" +
 	"\x0fCurrentUserSpec\x12\x1a\n" +
 	"\bidentity\x18\x01 \x01(\tR\bidentity\x12\x12\n" +
-	"\x04role\x18\x03 \x01(\tR\x04roleJ\x04\b\x02\x10\x03\"\xdb\x04\n" +
+	"\x04role\x18\x03 \x01(\tR\x04role\x12\x17\n" +
+	"\auser_id\x18\x04 \x01(\tR\x06userIdJ\x04\b\x02\x10\x03\"\xdb\x04\n" +
 	"\x0fPermissionsSpec\x12*\n" +
 	"\x11can_read_clusters\x18\x01 \x01(\bR\x0fcanReadClusters\x12.\n" +
 	"\x13can_create_clusters\x18\x02 \x01(\bR\x11canCreateClusters\x12(\n" +

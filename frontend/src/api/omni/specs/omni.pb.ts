@@ -671,6 +671,11 @@ export type FeaturesConfigSpec = {
   embedded_discovery_service?: boolean
   audit_log_enabled?: boolean
   image_factory_base_url?: string
+  user_pilot_settings?: UserPilotSettings
+}
+
+export type UserPilotSettings = {
+  app_token?: string
 }
 
 export type EtcdBackupSettings = {
