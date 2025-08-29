@@ -28,7 +28,7 @@ const (
 	ClusterMachineConfigType = resource.Type("ClusterMachineConfigs.omni.sidero.dev")
 )
 
-// ClusterMachineConfig is the final machine config generated from the template, cluster machine, loadbalancer status
+// ClusterMachineConfig is the intermediate machine config generated from the template, cluster machine, loadbalancer status
 // and siderolink config.
 type ClusterMachineConfig = typed.Resource[ClusterMachineConfigSpec, ClusterMachineConfigExtension]
 

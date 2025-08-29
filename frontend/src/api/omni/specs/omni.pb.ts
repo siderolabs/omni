@@ -692,7 +692,7 @@ export type MachineClassSpec = {
   auto_provision?: MachineClassSpecProvision
 }
 
-export type MachineConfigGenOptionsSpecInstallImage = {
+export type InstallImage = {
   talos_version?: string
   schematic_id?: string
   schematic_initialized?: boolean
@@ -703,7 +703,7 @@ export type MachineConfigGenOptionsSpecInstallImage = {
 
 export type MachineConfigGenOptionsSpec = {
   install_disk?: string
-  install_image?: MachineConfigGenOptionsSpecInstallImage
+  install_image?: InstallImage
 }
 
 export type EtcdAuditResultSpec = {
@@ -901,4 +901,12 @@ export type InfraProviderCombinedStatusSpec = {
 
 export type MachineConfigDiffSpec = {
   diff?: string
+}
+
+export type ClusterMachineExtendedConfigSpec = {
+  config_spec?: ClusterMachineConfigSpec
+  install_image?: InstallImage
+}
+
+export type ClusterOperationStatusSpec = {
 }
