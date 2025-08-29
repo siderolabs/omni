@@ -261,6 +261,7 @@ func reconcileClusterMachineConfig(
 		return err
 	}
 
+	machineConfig.TypedSpec().Value.ExtraKernelArgs = machineConfigGenOptions.TypedSpec().Value.ExtraKernelArgs
 	machineConfig.TypedSpec().Value.ClusterMachineVersion = clusterMachine.Metadata().Version().String()
 	machineConfig.TypedSpec().Value.GenerationError = ""
 
@@ -304,6 +305,7 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 
 	genOptions := []generate.Option{
 		generate.WithInstallImage(installImage),
+		generate.WithInstallExtraKernelArgs(configGenOptions.TypedSpec().Value.ExtraKernelArgs),
 	}
 
 	genOptions = append(genOptions, extraGenOptions...)
