@@ -94,76 +94,84 @@ included in the LICENSE file.
   .resource-label {
     @apply rounded-sm border px-2 py-0.5;
 
-    color: var(--resource-label-color);
-    background-color: color-mix(in hsl, var(--resource-label-color) 18%, transparent);
-    border-color: color-mix(in hsl, var(--resource-label-color) 30%, transparent);
+    background-color: color-mix(in hsl, currentColor 18%, transparent);
+    border-color: color-mix(in hsl, currentColor 30%, transparent);
+
+    &:is(a:not(:disabled), button:not(:disabled), [role='button']:not(:disabled)) {
+      &:hover {
+        filter: brightness(120%);
+      }
+      &:active {
+        filter: brightness(80%);
+      }
+    }
   }
 
   .label-green {
-    --resource-label-color: hsl(142 100 69);
+    color: hsl(142 100 69);
   }
 
   .label-red {
-    --resource-label-color: hsl(359 97 56);
+    color: hsl(359 97 56);
   }
 
   .label-orange {
-    --resource-label-color: hsl(15 90 64);
+    color: hsl(15 90 64);
   }
 
   .label-violet {
-    --resource-label-color: hsl(313 97 78);
+    color: hsl(313 97 78);
   }
 
   .label-yellow {
-    --resource-label-color: hsl(48 96 70);
+    color: hsl(48 96 70);
   }
 
   .label-cyan {
-    --resource-label-color: hsl(185 100 42);
+    color: hsl(185 100 42);
   }
 
   .label-blue1 {
-    --resource-label-color: hsl(211 76 68);
+    color: hsl(211 76 68);
   }
 
   .label-blue2 {
-    --resource-label-color: hsl(215 100 60);
+    color: hsl(215 100 60);
   }
 
   .label-blue3 {
-    --resource-label-color: hsl(256 81 70);
+    color: hsl(256 81 70);
   }
 
   .label-light1 {
-    --resource-label-color: hsl(0 65 74);
+    color: hsl(0 65 74);
   }
 
   .label-light2 {
-    --resource-label-color: hsl(13 81 87);
+    color: hsl(13 81 87);
   }
 
   .label-light3 {
-    --resource-label-color: hsl(48 96 87);
+    color: hsl(48 96 87);
   }
 
   .label-light4 {
-    --resource-label-color: hsl(128 32 81);
+    color: hsl(128 32 81);
   }
 
   .label-light5 {
-    --resource-label-color: hsl(184 29 80);
+    color: hsl(184 29 80);
   }
 
   .label-light6 {
-    --resource-label-color: hsl(208 70 86);
+    color: hsl(208 70 86);
   }
 
   .label-light7 {
-    --resource-label-color: hsl(257 81 87);
+    color: hsl(257 81 87);
   }
 
   .label-grayed-out {
-    --resource-label-color: hsl(257 81 100);
+    color: hsl(0 0 100);
   }
 }

@@ -8,18 +8,15 @@ included in the LICENSE file.
 import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
+import type { Label } from '@/methods/labels'
 
 defineProps<{
-  label: {
-    key: string
-    id: string
-    value: string
-    color: string
-    description?: string
-    removable?: boolean
-    icon?: string
-  }
+  label: Label
   removeLabel?: (key: string) => Promise<void>
+}>()
+
+defineEmits<{
+  filterLabel: [Label]
 }>()
 </script>
 
@@ -29,10 +26,10 @@ defineProps<{
     :description="label.description"
     placement="bottom-start"
   >
-    <span
+    <button
       class="flex cursor-pointer items-center transition-all"
       :class="`resource-label label-${label.color}`"
-      @click.stop="() => $emit('filterLabel', label)"
+      @click.stop="$emit('filterLabel', label)"
     >
       <TIcon v-if="label.icon" :icon="label.icon as IconType" class="mr-1 -ml-1 h-3.5 w-3.5" />
       <template v-if="label.value">
@@ -47,7 +44,7 @@ defineProps<{
         class="destroy-label-button"
         @click.stop="() => removeLabel?.(label.key)"
       />
-    </span>
+    </button>
   </component>
 </template>
 
