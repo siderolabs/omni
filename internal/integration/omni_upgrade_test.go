@@ -31,8 +31,9 @@ import (
 const annotationSnapshot = "snapshot"
 
 type clusterSnapshot struct {
-	Versions  map[string]string
+	Versions  map[string]string // TODO: remove after we switch to sha sums
 	BootTimes map[string]time.Time
+	ShaSums   map[string]string
 }
 
 func (vs clusterSnapshot) saveVersion(res resource.Resource) {
@@ -41,6 +42,16 @@ func (vs clusterSnapshot) saveVersion(res resource.Resource) {
 
 func (vs clusterSnapshot) getVersion(res resource.Resource) (string, bool) {
 	val, ok := vs.Versions[res.Metadata().Type()+"/"+res.Metadata().ID()]
+
+	return val, ok
+}
+
+func (vs clusterSnapshot) saveShaSum(res resource.Resource, shaSum string) {
+	vs.ShaSums[res.Metadata().Type()+"/"+res.Metadata().ID()] = shaSum
+}
+
+func (vs clusterSnapshot) getShaSum(res resource.Resource) (string, bool) {
+	val, ok := vs.ShaSums[res.Metadata().Type()+"/"+res.Metadata().ID()]
 
 	return val, ok
 }
@@ -56,6 +67,7 @@ func SaveClusterSnapshot(testCtx context.Context, client *client.Client, cluster
 		snapshot := clusterSnapshot{
 			Versions:  map[string]string{},
 			BootTimes: map[string]time.Time{},
+			ShaSums:   map[string]string{},
 		}
 
 		ids := rtestutils.ResourceIDs[*omni.RedactedClusterMachineConfig](ctx, t, st,
@@ -64,6 +76,14 @@ func SaveClusterSnapshot(testCtx context.Context, client *client.Client, cluster
 
 		rtestutils.AssertResources(ctx, t, st, ids, func(res *omni.RedactedClusterMachineConfig, _ *assert.Assertions) {
 			snapshot.saveVersion(res)
+		})
+
+		cmcss := rtestutils.ResourceIDs[*omni.ClusterMachineConfigStatus](ctx, t, st,
+			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
+		)
+
+		rtestutils.AssertResources(ctx, t, st, cmcss, func(res *omni.ClusterMachineConfigStatus, _ *assert.Assertions) {
+			snapshot.saveShaSum(res, res.TypedSpec().Value.ClusterMachineConfigSha256)
 		})
 
 		require := require.New(t)

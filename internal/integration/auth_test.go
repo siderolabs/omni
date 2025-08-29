@@ -805,6 +805,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
+				resource:       omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, uuid.New().String()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
 				resource:       omni.NewClusterMachineRequestStatus(resources.DefaultNamespace, uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
@@ -1081,9 +1085,6 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource: authres.NewPublicKey(resources.DefaultNamespace, uuid.New().String()),
-			},
-			{
-				resource: omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, uuid.New().String()),
 			},
 			{
 				resource: omni.NewEtcdAuditResult(resources.DefaultNamespace, uuid.New().String()),
