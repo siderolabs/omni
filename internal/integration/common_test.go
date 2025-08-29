@@ -253,6 +253,7 @@ type Options struct {
 	AnotherKubernetesVersion string
 	OmnictlPath              string
 	ScalingTimeout           time.Duration
+	SleepAfterFailure        time.Duration
 	StaticInfraProvider      string
 	OutputDir                string
 }

@@ -6,6 +6,7 @@ package models
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -27,6 +28,7 @@ const KindCluster = "Cluster"
 type Cluster struct { //nolint:govet
 	Meta             `yaml:",inline"`
 	SystemExtensions `yaml:",inline"`
+	ExtraKernelArgs  `yaml:",inline"`
 
 	// Name is the name of the cluster.
 	Name string `yaml:"name"`
@@ -141,12 +143,17 @@ func (cluster *Cluster) Translate(ctx TranslateContext) ([]resource.Resource, er
 
 	resourceList := append([]resource.Resource{clusterResource}, patches...)
 
-	schematicConfigurations := cluster.translate(
+	extensionsConfigurations := cluster.translateExtensions(
 		ctx,
 		cluster.Name,
 	)
 
-	return append(resourceList, schematicConfigurations...), nil
+	extraKernelArgsConfigurations := cluster.translateExtraKernelArgs(
+		ctx,
+		cluster.Name,
+	)
+
+	return slices.Concat(resourceList, extensionsConfigurations, extraKernelArgsConfigurations), nil
 }
 
 func init() {
