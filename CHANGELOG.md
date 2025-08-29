@@ -1,3 +1,30 @@
+## [Omni 1.1.2](https://github.com/siderolabs/omni/releases/tag/v1.1.2) (2025-08-29)
+
+Welcome to the v1.1.2 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Oguz Kilcan
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`7bcea756`](https://github.com/siderolabs/omni/commit/7bcea756b9cd624701491c6d6bebc11fd0960196) test: use clustermachineconfig sha for omni upgrade e2e test
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.1.1](https://github.com/siderolabs/omni/releases/tag/v1.1.1)
+
 ## [Omni 1.1.1](https://github.com/siderolabs/omni/releases/tag/v1.1.1) (2025-08-28)
 
 Welcome to the v1.1.1 release of Omni!
