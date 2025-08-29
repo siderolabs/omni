@@ -57,7 +57,6 @@ var (
 	// clusterLabelTypeSet is the set of resource types which have the related cluster's ID as a label.
 	clusterLabelTypeSet = xslices.ToSet([]resource.Type{
 		omni.ClusterMachineConfigType,
-		omni.ClusterMachineConfigStatusType,
 		omni.ClusterMachineIdentityType,
 		omni.ClusterMachineType,
 		omni.ClusterMachineConfigPatchesType,
@@ -382,6 +381,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.ClusterMachineTalosVersionType,
 		omni.ClusterMachineType,
 		omni.ClusterMachineConfigPatchesType,
+		omni.ClusterMachineConfigStatusType,
 		omni.ClusterMachineTemplateType,
 		omni.ClusterStatusType,
 		omni.ClusterDiagnosticsType,
@@ -546,6 +546,7 @@ func filterAccessByType(access state.Access) error {
 		omni.ClusterMachineTalosVersionType,
 		omni.ClusterMachineType,
 		omni.ClusterMachineConfigPatchesType,
+		omni.ClusterMachineConfigStatusType,
 		omni.ClusterMachineTemplateType,
 		omni.ClusterStatusMetricsType,
 		omni.ClusterStatusType,
