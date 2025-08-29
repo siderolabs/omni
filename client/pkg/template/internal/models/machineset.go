@@ -6,6 +6,7 @@ package models
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -22,6 +23,7 @@ import (
 type MachineSet struct {
 	Meta             `yaml:",inline"`
 	SystemExtensions `yaml:",inline"`
+	ExtraKernelArgs  `yaml:",inline"`
 
 	// Name is the name of the machine set. When empty, the default name will be used.
 	Name string `yaml:"name,omitempty"`
@@ -247,11 +249,17 @@ func (machineset *MachineSet) translate(ctx TranslateContext, nameSuffix, roleLa
 
 	resourceList = append(resourceList, patches...)
 
-	schematicConfigurations := machineset.SystemExtensions.translate(
+	extensionsConfigurations := machineset.translateExtensions(
 		ctx,
 		id,
 		pair.MakePair(omni.LabelMachineSet, id),
 	)
 
-	return append(resourceList, schematicConfigurations...), nil
+	extraKernelArgsConfigurations := machineset.translateExtraKernelArgs(
+		ctx,
+		id,
+		pair.MakePair(omni.LabelMachineSet, id),
+	)
+
+	return slices.Concat(resourceList, extensionsConfigurations, extraKernelArgsConfigurations), nil
 }

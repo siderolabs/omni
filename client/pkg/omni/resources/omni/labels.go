@@ -228,4 +228,9 @@ const (
 	// from which MachineExtensions resource was generated.
 	// tsgen:ExtensionsConfigurationLabel
 	ExtensionsConfigurationLabel = SystemLabelPrefix + "root-configuration"
+
+	// ExtraKernelArgsConfigurationLabel defines the source ExtraKernelArgs resource
+	// from which MachineExtraKernelArgs resource was generated.
+	// tsgen:ExtraKernelArgsConfigurationLabel
+	ExtraKernelArgsConfigurationLabel = SystemLabelPrefix + "root-configuration"
 )

@@ -953,7 +953,7 @@ func machineInstallDiskPatches(ctx context.Context, st state.State, _ *zap.Logge
 		}
 
 		if err = createOrUpdate(ctx, st, omni.NewMachineConfigGenOptions(resources.DefaultNamespace, item.Metadata().ID()), func(res *omni.MachineConfigGenOptions) error {
-			omnictrl.GenInstallConfig(machineStatus, nil, res)
+			omnictrl.GenInstallConfig(machineStatus, nil, res, nil, true)
 
 			return nil
 		}, omnictrl.MachineConfigGenOptionsControllerName); err != nil {
@@ -1233,7 +1233,7 @@ func migrateInstallImageConfigIntoGenOptions(ctx context.Context, st state.State
 		}
 
 		if _, err = safe.StateUpdateWithConflicts(ctx, st, genOptions.Metadata(), func(res *omni.MachineConfigGenOptions) error {
-			omnictrl.GenInstallConfig(machineStatus, talosVersion, res)
+			omnictrl.GenInstallConfig(machineStatus, talosVersion, res, nil, true)
 
 			return nil
 		}, state.WithUpdateOwner(genOptions.Metadata().Owner())); err != nil {

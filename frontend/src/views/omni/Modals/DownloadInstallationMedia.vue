@@ -313,6 +313,8 @@ const createSchematic = async () => {
       }
     }
 
+    schematic.extensions?.sort()
+
     schematic.extra_kernel_args = kernelArguments.value.split(' ').filter((item) => item.trim())
 
     const resp = await ManagementService.CreateSchematic(schematic)

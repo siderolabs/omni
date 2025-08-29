@@ -14,7 +14,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 )
 
-// NewExtensionsConfiguration creates new extensions configuration resource.
+// NewExtensionsConfiguration creates new ExtensionsConfiguration resource.
 func NewExtensionsConfiguration(ns string, id resource.ID) *ExtensionsConfiguration {
 	return typed.NewResource[ExtensionsConfigurationSpec, ExtensionsConfigurationExtension](
 		resource.NewMetadata(ns, ExtensionsConfigurationType, id, resource.VersionUndefined),
@@ -28,7 +28,7 @@ const (
 	ExtensionsConfigurationType = resource.Type("ExtensionsConfigurations.omni.sidero.dev")
 )
 
-// ExtensionsConfiguration describes desired machine extensions list for a particular machine, machine set or cluster.
+// ExtensionsConfiguration describes desired machine Extensions list for a particular machine, machine set or cluster.
 type ExtensionsConfiguration = typed.Resource[ExtensionsConfigurationSpec, ExtensionsConfigurationExtension]
 
 // ExtensionsConfigurationSpec wraps specs.ExtensionsConfigurationSpec.
