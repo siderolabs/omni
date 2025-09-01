@@ -5,42 +5,23 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import type { StyleValue } from 'vue'
-import { computed, toRefs } from 'vue'
+import type { ButtonHTMLAttributes } from 'vue'
 
 import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 
-type Props = {
+interface Props extends /* @vue-ignore */ Omit<ButtonHTMLAttributes, 'type'> {
   type?: 'primary' | 'secondary' | 'subtle' | 'subtle-xs' | 'compact' | 'highlighted'
-  toggle?: boolean
-  disabled?: boolean
   icon?: IconType
-  danger?: boolean
-  iconPosition?: 'left' | 'middle' | 'right'
-  isLightHover?: boolean
+  iconPosition?: 'left' | 'right'
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  type: 'primary',
-  iconPosition: 'right',
-})
-
-const { type, toggle, disabled, icon, danger, iconPosition, isLightHover } = toRefs(props)
-
-const textOrder = computed((): StyleValue => {
-  if (iconPosition.value === 'left') {
-    return { order: 1 }
-  }
-
-  return {}
-})
+const { type = 'primary', iconPosition = 'right', icon = undefined } = defineProps<Props>()
 </script>
 
 <template>
   <button
     type="button"
-    :disabled="disabled"
     class="flex items-center justify-center gap-1 rounded border px-4 py-1.5 text-sm transition-colors duration-200"
     :class="{
       'border-naturals-n5 bg-naturals-n3 text-naturals-n12 hover:border-primary-p3 hover:bg-primary-p3 hover:text-naturals-n14 focus:border-primary-p2 focus:bg-primary-p2 focus:text-naturals-n14 active:border-primary-p4 active:bg-primary-p4 active:text-naturals-n14 disabled:cursor-not-allowed disabled:border-naturals-n6 disabled:bg-naturals-n4 disabled:text-naturals-n7':
@@ -55,25 +36,19 @@ const textOrder = computed((): StyleValue => {
         type === 'compact',
       'border-primary-p2 bg-primary-p4 text-naturals-n14 hover:border-primary-p3 hover:bg-primary-p3 hover:text-naturals-n14 focus:border-primary-p2 focus:bg-primary-p2 focus:text-naturals-n14 active:border-primary-p4 active:bg-primary-p4 active:text-naturals-n14 disabled:cursor-not-allowed disabled:border-naturals-n6 disabled:bg-naturals-n4 disabled:text-naturals-n7':
         type === 'highlighted',
-      'border-primary-p4 bg-primary-p4 text-naturals-n14':
-        toggle && ['primary', 'compact'].includes(type),
-      'border-none bg-transparent p-0! hover:text-naturals-n12 focus:text-naturals-n13 focus:underline active:text-naturals-n13 active:no-underline disabled:cursor-not-allowed disabled:text-naturals-n6':
-        type === 'subtle' && isLightHover,
     }"
   >
-    <span
-      v-if="$slots.default"
-      class="whitespace-nowrap"
-      :style="textOrder"
-      :class="{ 'text-red-r1': danger }"
-    >
+    <span v-if="$slots.default" class="whitespace-nowrap">
       <slot />
     </span>
     <TIcon
       v-if="icon"
       :icon="icon"
       class="h-4 w-4"
-      :class="{ 'text-red-r1': danger, 'h-3 w-3': type === 'subtle-xs' }"
+      :class="{
+        'h-3 w-3': type === 'subtle-xs',
+        'order-first': iconPosition === 'left',
+      }"
     />
   </button>
 </template>
