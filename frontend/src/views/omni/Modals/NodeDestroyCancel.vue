@@ -107,7 +107,7 @@ const restore = async (clusterMachine: Resource<ClusterMachineSpec>) => {
 
           <div class="mt-2 flex items-end gap-4">
             <div class="flex-1" />
-            <TButton class="h-9" @click="close"> Close </TButton>
+            <TButton class="h-9" @click="close(true)">Close</TButton>
           </div>
         </template>
       </template>

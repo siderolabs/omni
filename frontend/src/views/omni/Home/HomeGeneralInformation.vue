@@ -118,11 +118,11 @@ onBeforeMount(async () => {
         Download Installation Media
       </TButton>
 
-      <TButton icon="long-arrow-down" icon-position="left" @click="downloadMachineJoinConfig">
+      <TButton icon="long-arrow-down" icon-position="left" @click="downloadMachineJoinConfig()">
         Download Machine Join Config
       </TButton>
 
-      <TButton icon="copy" icon-position="left" @click="copyKernelArgs">
+      <TButton icon="copy" icon-position="left" @click="copyKernelArgs()">
         Copy Kernel Parameters
       </TButton>
     </section>
@@ -130,7 +130,7 @@ onBeforeMount(async () => {
     <section class="flex flex-col gap-2">
       <h3 class="text-sm font-medium">CLI</h3>
 
-      <TButton type="primary" icon="document" icon-position="left" @click="downloadTalosconfig">
+      <TButton type="primary" icon="document" icon-position="left" @click="downloadTalosconfig()">
         Download <code>talosconfig</code>
       </TButton>
 
