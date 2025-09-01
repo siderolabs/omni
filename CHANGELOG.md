@@ -1,3 +1,30 @@
+## [Omni 1.1.3](https://github.com/siderolabs/omni/releases/tag/v1.1.3) (2025-09-01)
+
+Welcome to the v1.1.3 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Edward Sammut Alessi
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`af9fd360`](https://github.com/siderolabs/omni/commit/af9fd360886213c0472e3ef67af6a939614aee4f) fix: fix copy buttons on omni home page
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.1.2](https://github.com/siderolabs/omni/releases/tag/v1.1.2)
+
 ## [Omni 1.1.2](https://github.com/siderolabs/omni/releases/tag/v1.1.2) (2025-08-29)
 
 Welcome to the v1.1.2 release of Omni!
