@@ -181,6 +181,7 @@ func getEmbeddedEtcdState(params *config.EtcdParams, logger *zap.Logger) (EtcdSt
 	cfg.ExperimentalCompactHashCheckEnabled = true
 	cfg.ExperimentalInitialCorruptCheck = true
 	cfg.UnsafeNoFsync = params.EmbeddedUnsafeFsync
+	cfg.WarningUnaryRequestDuration = embed.DefaultWarningUnaryRequestDuration
 
 	peerURL, err := url.Parse("http://localhost:0")
 	if err != nil {
