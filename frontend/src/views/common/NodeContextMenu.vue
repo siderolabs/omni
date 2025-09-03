@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { copyText } from 'vue3-clipboard'
 
@@ -22,9 +23,9 @@ const props = defineProps<{
   clusterMachineStatus: Resource<ClusterMachineStatusSpec>
 }>()
 
-const { canRebootMachines, canAddClusterMachines, canRemoveMachines } = setupClusterPermissions({
-  value: props.clusterName,
-})
+const { canRebootMachines, canAddClusterMachines, canRemoveMachines } = setupClusterPermissions(
+  computed(() => props.clusterName),
+)
 
 const deleteNode = () => {
   router.push({

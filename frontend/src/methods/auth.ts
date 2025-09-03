@@ -34,7 +34,7 @@ export const permissions: Ref<Resource<PermissionsSpec> | undefined> = ref()
 
 const clusterPermissionsCache: Record<string, Resource<ClusterPermissionsSpec>> = {}
 
-export const setupClusterPermissions = (cluster: { value: string }) => {
+export const setupClusterPermissions = (cluster: Ref<string>) => {
   const result = {
     canUpdateKubernetes: ref(false),
     canUpdateTalos: ref(false),
