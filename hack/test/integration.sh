@@ -268,14 +268,16 @@ EOF
 )
 PARTIAL_CONFIG_DIR="${ARTIFACTS}/partial-config"
 mkdir -p "${PARTIAL_CONFIG_DIR}"
-echo "${PARTIAL_CONFIG}" >"${PARTIAL_CONFIG_DIR}/controlplane.yaml"
-echo "${PARTIAL_CONFIG}" >"${PARTIAL_CONFIG_DIR}/worker.yaml"
+echo "${PARTIAL_CONFIG}" >"${PARTIAL_CONFIG_DIR}/config.yaml"
+
+PARTIAL_CONFIG_CONTROLPLANES=1
+PARTIAL_CONFIG_WORKERS=2
 
 # Partial config, no secure boot
 ${ARTIFACTS}/talosctl cluster create \
   --provisioner=qemu \
-  --controlplanes=1 \
-  --workers=2 \
+  --controlplanes="${PARTIAL_CONFIG_CONTROLPLANES}" \
+  --workers="${PARTIAL_CONFIG_WORKERS}" \
   --wait=false \
   --mtu=1430 \
   --memory=3072 \
@@ -287,9 +289,18 @@ ${ARTIFACTS}/talosctl cluster create \
   --name test-1 \
   --cidr=172.20.0.0/24 \
   --no-masquerade-cidrs=172.21.0.0/24,172.22.0.0/24 \
-  --input-dir="${PARTIAL_CONFIG_DIR}" \
+  --skip-injecting-config \
+  --wait=false \
   --vmlinuz-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/kernel-amd64" \
   --initrd-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/initramfs-amd64.xz"
+
+sleep 10
+
+total_nodes=$((PARTIAL_CONFIG_CONTROLPLANES + PARTIAL_CONFIG_WORKERS))
+for i in $(seq 1 "${total_nodes}"); do
+  node_ip="172.20.0.$((i+1))"
+  ${ARTIFACTS}/talosctl apply-config --insecure --nodes "$node_ip" --file "${PARTIAL_CONFIG_DIR}/config.yaml"
+done
 
 # Kernel Args, no secure boot
 ${ARTIFACTS}/talosctl cluster create \
