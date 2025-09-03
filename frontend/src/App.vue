@@ -50,7 +50,7 @@ router.afterEach(() => (isSidebarOpen.value = false))
       >
         <TSuspended v-if="suspended" />
         <TNotification v-if="notification" v-bind="notification.props" />
-        <RouterView class="size-full" />
+        <RouterView />
       </div>
     </div>
   </main>
