@@ -75,6 +75,6 @@ func NewClusterKubernetesNodesController() *ClusterKubernetesNodesController {
 			},
 		},
 		qtransform.WithConcurrency(2),
-		qtransform.WithExtraMappedInput(mappers.MapByClusterLabel[*omni.ClusterMachineIdentity, *omni.ClusterUUID]()),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineIdentity](mappers.MapByClusterLabel[*omni.ClusterUUID]()),
 	)
 }

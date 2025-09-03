@@ -66,13 +66,13 @@ func (ctrl *MachineTeardownController) Settings() controller.QSettings {
 }
 
 // MapInput implements controller.QController interface.
-func (ctrl *MachineTeardownController) MapInput(ctx context.Context, logger *zap.Logger, r controller.QRuntime, ptr resource.Pointer) ([]resource.Pointer, error) {
+func (ctrl *MachineTeardownController) MapInput(ctx context.Context, logger *zap.Logger, r controller.QRuntime, ptr controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 	if ptr.Type() == omni.MachineStatusSnapshotType {
-		return qtransform.MapperSameID[*omni.MachineStatusSnapshot, *omni.MachineStatus]()(
+		return qtransform.MapperSameID[*omni.MachineStatus]()(
 			ctx,
 			logger,
 			r,
-			omni.NewMachineStatusSnapshot(resources.DefaultNamespace, ptr.ID()),
+			ptr,
 		)
 	}
 

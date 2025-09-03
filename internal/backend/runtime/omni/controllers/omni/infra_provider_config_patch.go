@@ -67,10 +67,10 @@ func NewInfraProviderConfigPatchController() *InfraProviderConfigPatchController
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, machineRequestStatus *infra.MachineRequestStatus) ([]resource.Pointer, error) {
+		qtransform.WithExtraMappedInput[*infra.MachineRequestStatus](
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, machineRequestStatus controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 				patchRequests, err := safe.ReaderListAll[*infra.ConfigPatchRequest](ctx, r, state.WithLabelQuery(
-					resource.LabelEqual(omni.LabelMachineRequest, machineRequestStatus.Metadata().ID())),
+					resource.LabelEqual(omni.LabelMachineRequest, machineRequestStatus.ID())),
 				)
 				if err != nil {
 					return nil, err

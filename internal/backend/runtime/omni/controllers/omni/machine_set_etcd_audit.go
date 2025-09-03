@@ -158,34 +158,34 @@ func NewMachineSetEtcdAuditController(talosClientFactory *talos.ClientFactory, m
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(
+		qtransform.WithExtraMappedInput[*omni.ClusterStatus](
 			// Map the cluster ID to the control planes machine set resource ID:
 			// Example: my-cluster -> my-cluster-control-planes
-			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, cs *omni.ClusterStatus) ([]resource.Pointer, error) {
-				id := omni.ControlPlanesResourceID(cs.Metadata().ID())
+			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, cs controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				id := omni.ControlPlanesResourceID(cs.ID())
 
-				return []resource.Pointer{omni.NewMachineSet(cs.Metadata().Namespace(), id).Metadata()}, nil
+				return []resource.Pointer{omni.NewMachineSet(cs.Namespace(), id).Metadata()}, nil
 			},
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByMachineSetLabel[*omni.MachineSetNode, *omni.MachineSet](),
+		qtransform.WithExtraMappedInput[*omni.MachineSetNode](
+			mappers.MapByMachineSetLabel[*omni.MachineSet](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByMachineSetLabel[*omni.ClusterMachineStatus, *omni.MachineSet](),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineStatus](
+			mappers.MapByMachineSetLabel[*omni.MachineSet](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByMachineSetLabelOnlyControlplane[*omni.ClusterMachineIdentity, *omni.MachineSet](),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineIdentity](
+			mappers.MapByMachineSetLabelOnlyControlplane[*omni.MachineSet](),
 		),
-		qtransform.WithExtraMappedDestroyReadyInput(
-			mappers.MapByMachineSetLabel[*omni.ClusterMachine, *omni.MachineSet](),
+		qtransform.WithExtraMappedDestroyReadyInput[*omni.ClusterMachine](
+			mappers.MapByMachineSetLabel[*omni.MachineSet](),
 		),
-		qtransform.WithExtraMappedInput(
+		qtransform.WithExtraMappedInput[*omni.TalosConfig](
 			// Map the cluster ID to the control planes machine set resource ID:
 			// Example: my-cluster -> my-cluster-control-planes
-			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, tc *omni.TalosConfig) ([]resource.Pointer, error) {
-				id := omni.ControlPlanesResourceID(tc.Metadata().ID())
+			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, tc controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				id := omni.ControlPlanesResourceID(tc.ID())
 
-				return []resource.Pointer{omni.NewMachineSet(tc.Metadata().Namespace(), id).Metadata()}, nil
+				return []resource.Pointer{omni.NewMachineSet(tc.Namespace(), id).Metadata()}, nil
 			},
 		),
 		qtransform.WithConcurrency(4),

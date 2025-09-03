@@ -311,7 +311,7 @@ func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMac
 }
 
 // MapInput implements the controller.QController interface.
-func (ctrl *InfraMachineController) MapInput(ctx context.Context, _ *zap.Logger, runtime controller.QRuntime, ptr resource.Pointer) ([]resource.Pointer, error) {
+func (ctrl *InfraMachineController) MapInput(ctx context.Context, _ *zap.Logger, runtime controller.QRuntime, ptr controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 	switch ptr.Type() {
 	case siderolink.LinkType,
 		siderolink.NodeUniqueTokenType,

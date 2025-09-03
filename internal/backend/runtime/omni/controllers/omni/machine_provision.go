@@ -101,37 +101,39 @@ func NewMachineProvisionController() *MachineProvisionController {
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			mappers.MapByClusterLabel[*omni.Cluster, *omni.MachineSet](),
+		qtransform.WithExtraMappedInput[*omni.Cluster](
+			mappers.MapByClusterLabel[*omni.MachineSet](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.MachineSetStatus, *omni.MachineSet](),
+		qtransform.WithExtraMappedInput[*omni.MachineSetStatus](
+			qtransform.MapperSameID[*omni.MachineSet](),
 		),
-		qtransform.WithExtraMappedInput(
-			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, res *omni.MachineClass) ([]resource.Pointer, error) {
-				if res.TypedSpec().Value.AutoProvision == nil {
-					return nil, nil
-				}
-
-				machineSets, err := safe.ReaderListAll[*omni.MachineSet](ctx, r)
-				if err != nil {
-					return nil, err
-				}
-
-				resources := make([]resource.Pointer, 0, machineSets.Len())
-
-				for machineSet := range machineSets.All() {
-					allocation := omni.GetMachineAllocation(machineSet)
-
-					if allocation == nil || allocation.Name != res.Metadata().ID() {
-						continue
+		qtransform.WithExtraMappedInput[*omni.MachineClass](
+			qtransform.MapperFuncFromTyped[*omni.MachineClass](
+				func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, res *omni.MachineClass) ([]resource.Pointer, error) {
+					if res.TypedSpec().Value.AutoProvision == nil {
+						return nil, nil
 					}
 
-					resources = append(resources, machineSet.Metadata())
-				}
+					machineSets, err := safe.ReaderListAll[*omni.MachineSet](ctx, r)
+					if err != nil {
+						return nil, err
+					}
 
-				return resources, nil
-			},
+					resources := make([]resource.Pointer, 0, machineSets.Len())
+
+					for machineSet := range machineSets.All() {
+						allocation := omni.GetMachineAllocation(machineSet)
+
+						if allocation == nil || allocation.Name != res.Metadata().ID() {
+							continue
+						}
+
+						resources = append(resources, machineSet.Metadata())
+					}
+
+					return resources, nil
+				},
+			),
 		),
 		qtransform.WithConcurrency(4),
 	)

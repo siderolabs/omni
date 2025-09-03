@@ -29,7 +29,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/containers/image/v5 v5.36.1
-	github.com/cosi-project/runtime v1.10.7
+	github.com/cosi-project/runtime v1.11.0
 	github.com/cosi-project/state-etcd v0.5.2
 	github.com/crewjam/saml v0.5.1
 	github.com/dustin/go-humanize v1.0.1
@@ -46,7 +46,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.1
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/golang-lru/v2 v2.0.7
@@ -86,11 +86,11 @@ require (
 	github.com/siderolabs/tcpproxy v0.1.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/stripe/stripe-go/v76 v76.25.0
 	github.com/zitadel/logging v0.6.2
 	github.com/zitadel/oidc/v3 v3.44.0
-	go.etcd.io/bbolt v1.4.2
+	go.etcd.io/bbolt v1.4.3
 	go.etcd.io/etcd/client/pkg/v3 v3.6.4
 	go.etcd.io/etcd/client/v3 v3.6.4
 	go.etcd.io/etcd/server/v3 v3.6.4
@@ -105,8 +105,8 @@ require (
 	golang.org/x/tools v0.36.0
 	golang.zx2c4.com/wireguard v0.0.0-20250521234502-f333402bd9cb
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20241231184526-a9ab2273dd10
-	google.golang.org/grpc v1.74.2
-	google.golang.org/protobuf v1.36.7
+	google.golang.org/grpc v1.75.0
+	google.golang.org/protobuf v1.36.8
 	gopkg.in/yaml.v3 v3.0.3
 	k8s.io/api v0.35.0-alpha.0
 	k8s.io/apimachinery v0.35.0-alpha.0

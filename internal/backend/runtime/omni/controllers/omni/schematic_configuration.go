@@ -89,17 +89,17 @@ func NewSchematicConfigurationController(imageFactoryClient SchematicEnsurer) *S
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.MachineStatus, *omni.ClusterMachine](),
+		qtransform.WithExtraMappedInput[*omni.MachineStatus](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapClusterResourceToLabeledResources[*omni.Cluster, *omni.ClusterMachine](),
+		qtransform.WithExtraMappedInput[*omni.Cluster](
+			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachine](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperNone[*omni.Schematic](),
+		qtransform.WithExtraMappedInput[*omni.Schematic](
+			qtransform.MapperNone(),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.MachineExtensions, *omni.ClusterMachine](),
+		qtransform.WithExtraMappedInput[*omni.MachineExtensions](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
 		qtransform.WithExtraOutputs(
 			controller.Output{

@@ -54,8 +54,8 @@ func NewMachineConfigGenOptionsController() *MachineConfigGenOptionsController {
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.ClusterMachineTalosVersion, *omni.MachineStatus](),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineTalosVersion](
+			qtransform.MapperSameID[*omni.MachineStatus](),
 		),
 		qtransform.WithIgnoreTeardownUntil(), // keep the resource until everyone else is done with Machine
 	)

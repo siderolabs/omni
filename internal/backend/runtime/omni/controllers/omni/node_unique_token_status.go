@@ -50,11 +50,11 @@ func NewNodeUniqueTokenStatusController() *NodeUniqueTokenStatusController {
 			},
 			TransformFunc: handler.reconcileRunning,
 		},
-		qtransform.WithExtraMappedInput(qtransform.MapperSameID[*siderolinkres.NodeUniqueToken, *machineStatusLabels]()),
-		qtransform.WithExtraMappedInput(qtransform.MapperSameID[*omni.ClusterMachine, *machineStatusLabels]()),
-		qtransform.WithExtraMappedInput(qtransform.MapperSameID[*omni.MachineStatusSnapshot, *machineStatusLabels]()),
-		qtransform.WithExtraMappedInput(qtransform.MapperSameID[*omni.Machine, *machineStatusLabels]()),
-		qtransform.WithExtraMappedInput(mappers.MapClusterResourceToLabeledResources[*omni.TalosConfig, *machineStatusLabels]()),
+		qtransform.WithExtraMappedInput[*siderolinkres.NodeUniqueToken](qtransform.MapperSameID[*machineStatusLabels]()),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachine](qtransform.MapperSameID[*machineStatusLabels]()),
+		qtransform.WithExtraMappedInput[*omni.MachineStatusSnapshot](qtransform.MapperSameID[*machineStatusLabels]()),
+		qtransform.WithExtraMappedInput[*omni.Machine](qtransform.MapperSameID[*machineStatusLabels]()),
+		qtransform.WithExtraMappedInput[*omni.TalosConfig](mappers.MapClusterResourceToLabeledResources[*machineStatusLabels]()),
 		qtransform.WithConcurrency(32),
 	)
 }

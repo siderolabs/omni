@@ -33,8 +33,8 @@ const requeueInterval = time.Second * 30
 
 // NewMachineSetStatusController creates new MachineSetStatusController.
 func NewMachineSetStatusController() *MachineSetStatusController {
-	mapMachineIDToMachineSet := func(ctx context.Context, r controller.QRuntime, res resource.Resource, label string) ([]resource.Pointer, error) {
-		id, ok := res.Metadata().Labels().Get(label)
+	mapMachineIDToMachineSet := func(ctx context.Context, r controller.QRuntime, res controller.ReducedResourceMetadata, label string) ([]resource.Pointer, error) {
+		id, ok := res.Labels().Get(label)
 		if !ok {
 			return nil, nil
 		}
@@ -71,40 +71,40 @@ func NewMachineSetStatusController() *MachineSetStatusController {
 			FinalizerRemovalExtraOutputFunc: handler.reconcileTearingDown,
 		},
 		qtransform.WithConcurrency(16),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.ControlPlaneStatus, *omni.MachineSet](),
+		qtransform.WithExtraMappedInput[*omni.ControlPlaneStatus](
+			qtransform.MapperSameID[*omni.MachineSet](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByMachineSetLabel[*omni.MachineSetNode, *omni.MachineSet](),
+		qtransform.WithExtraMappedInput[*omni.MachineSetNode](
+			mappers.MapByMachineSetLabel[*omni.MachineSet](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByMachineSetLabel[*omni.ClusterMachineStatus, *omni.MachineSet](),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineStatus](
+			mappers.MapByMachineSetLabel[*omni.MachineSet](),
 		),
-		qtransform.WithExtraMappedDestroyReadyInput(
-			mappers.MapByMachineSetLabel[*omni.ClusterMachine, *omni.MachineSet](),
+		qtransform.WithExtraMappedDestroyReadyInput[*omni.ClusterMachine](
+			mappers.MapByMachineSetLabel[*omni.MachineSet](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByMachineSetLabel[*omni.ClusterMachineConfigStatus, *omni.MachineSet](),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineConfigStatus](
+			mappers.MapByMachineSetLabel[*omni.MachineSet](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapClusterResourceToLabeledResources[*omni.ClusterSecrets, *omni.MachineSet](),
+		qtransform.WithExtraMappedInput[*omni.ClusterSecrets](
+			mappers.MapClusterResourceToLabeledResources[*omni.MachineSet](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapClusterResourceToLabeledResources[*omni.Cluster, *omni.MachineSet](),
+		qtransform.WithExtraMappedInput[*omni.Cluster](
+			mappers.MapClusterResourceToLabeledResources[*omni.MachineSet](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapClusterResourceToLabeledResources[*omni.TalosConfig, *omni.MachineSet](),
+		qtransform.WithExtraMappedInput[*omni.TalosConfig](
+			mappers.MapClusterResourceToLabeledResources[*omni.MachineSet](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByMachineSetLabel[*omni.ClusterMachineIdentity, *omni.MachineSet](),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineIdentity](
+			mappers.MapByMachineSetLabel[*omni.MachineSet](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapClusterResourceToLabeledResources[*omni.LoadBalancerStatus, *omni.MachineSet](),
+		qtransform.WithExtraMappedInput[*omni.LoadBalancerStatus](
+			mappers.MapClusterResourceToLabeledResources[*omni.MachineSet](),
 		),
-		qtransform.WithExtraMappedInput(
+		qtransform.WithExtraMappedInput[*omni.Machine](
 			// machine to machine set, if the machine is allocated
-			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, machine *omni.Machine) ([]resource.Pointer, error) {
-				clusterMachine, err := r.Get(ctx, omni.NewClusterMachine(resources.DefaultNamespace, machine.Metadata().ID()).Metadata())
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, machine controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				clusterMachine, err := r.Get(ctx, omni.NewClusterMachine(resources.DefaultNamespace, machine.ID()).Metadata())
 				if err != nil {
 					if state.IsNotFoundError(err) {
 						return nil, nil
@@ -121,11 +121,11 @@ func NewMachineSetStatusController() *MachineSetStatusController {
 				}, nil
 			},
 		),
-		qtransform.WithExtraMappedInput(
+		qtransform.WithExtraMappedInput[*omni.ConfigPatch](
 			// config patch to machine set if the machine is allocated, checks by different layers, if is on the cluster layer,
 			// matches all machine sets
-			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, patch *omni.ConfigPatch) ([]resource.Pointer, error) {
-				clusterName, ok := patch.Metadata().Labels().Get(omni.LabelCluster)
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, patch controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				clusterName, ok := patch.Labels().Get(omni.LabelCluster)
 				if !ok {
 					// no cluster, map by the machine ID
 					return mapMachineIDToMachineSet(ctx, r, patch, omni.LabelMachine)
@@ -142,7 +142,7 @@ func NewMachineSetStatusController() *MachineSetStatusController {
 				}
 
 				// machine set level patch
-				machineSetID, ok := patch.Metadata().Labels().Get(omni.LabelMachineSet)
+				machineSetID, ok := patch.Labels().Get(omni.LabelMachineSet)
 				if ok {
 					return []resource.Pointer{
 						omni.NewMachineSet(resources.DefaultNamespace, machineSetID).Metadata(),

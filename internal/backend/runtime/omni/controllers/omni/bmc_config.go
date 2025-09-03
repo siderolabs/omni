@@ -64,6 +64,6 @@ func NewBMCConfigController() *BMCConfigController {
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(qtransform.MapperSameID[*siderolink.Link, *omni.InfraMachineBMCConfig]()),
+		qtransform.WithExtraMappedInput[*siderolink.Link](qtransform.MapperSameID[*omni.InfraMachineBMCConfig]()),
 	)
 }

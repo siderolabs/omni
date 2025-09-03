@@ -71,8 +71,8 @@ func NewMachineJoinConfigController() *MachineJoinConfigController {
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(qtransform.MapperNone[*siderolinkres.APIConfig]()),
-		qtransform.WithExtraMappedInput(qtransform.MapperSameID[*siderolinkres.JoinTokenUsage, *omni.Machine]()),
+		qtransform.WithExtraMappedInput[*siderolinkres.APIConfig](qtransform.MapperNone()),
+		qtransform.WithExtraMappedInput[*siderolinkres.JoinTokenUsage](qtransform.MapperSameID[*omni.Machine]()),
 		qtransform.WithConcurrency(4),
 	)
 }

@@ -139,22 +139,22 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsControll
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			mappers.MapByClusterLabel[*omni.ClusterMachine, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachine](
+			mappers.MapByClusterLabel[*omni.Cluster](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByClusterLabelOnlyControlplane[*omni.MachineSet, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.MachineSet](
+			mappers.MapByClusterLabelOnlyControlplane[*omni.Cluster](),
 		),
-		qtransform.WithExtraMappedInput(
+		qtransform.WithExtraMappedInput[*omni.ClusterUUID](
 			// no need to requeue anything, just allow the controller to read data (when restoring from another cluster backup)
-			qtransform.MapperNone[*omni.ClusterUUID](),
+			qtransform.MapperNone(),
 		),
-		qtransform.WithExtraMappedInput(
+		qtransform.WithExtraMappedInput[*omni.BackupData](
 			// no need to requeue anything, just allow the controller to read data (when restoring from another cluster backup)
-			qtransform.MapperNone[*omni.BackupData](),
+			qtransform.MapperNone(),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.ImportedClusterSecrets, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.ImportedClusterSecrets](
+			qtransform.MapperSameID[*omni.Cluster](),
 		),
 	)
 }

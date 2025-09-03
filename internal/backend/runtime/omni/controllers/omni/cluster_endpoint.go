@@ -62,9 +62,9 @@ func NewClusterEndpointController() *ClusterEndpointController {
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineStatus](
 			// reconcile on controlplane MachineSet changes
-			mappers.MapByClusterLabelOnlyControlplane[*omni.ClusterMachineStatus, *omni.Cluster](),
+			mappers.MapByClusterLabelOnlyControlplane[*omni.Cluster](),
 		),
 	)
 }

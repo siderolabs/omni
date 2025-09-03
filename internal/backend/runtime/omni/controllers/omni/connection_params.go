@@ -76,8 +76,8 @@ func NewConnectionParamsController() *ConnectionParamsController {
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			func(context.Context, *zap.Logger, controller.QRuntime, *siderolinkres.DefaultJoinToken) ([]resource.Pointer, error) {
+		qtransform.WithExtraMappedInput[*siderolinkres.DefaultJoinToken](
+			func(context.Context, *zap.Logger, controller.QRuntime, controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 				return []resource.Pointer{
 					siderolinkres.NewConfig().Metadata(),
 				}, nil

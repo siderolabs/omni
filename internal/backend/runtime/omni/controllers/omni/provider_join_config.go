@@ -79,7 +79,7 @@ func NewProviderJoinConfigController() *ProviderJoinConfigController {
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(qtransform.MapperNone[*siderolinkres.APIConfig]()),
+		qtransform.WithExtraMappedInput[*siderolinkres.APIConfig](qtransform.MapperNone()),
 		qtransform.WithConcurrency(4),
 	)
 }

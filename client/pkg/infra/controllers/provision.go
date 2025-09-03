@@ -149,7 +149,7 @@ func (ctrl *ProvisionController[T]) Settings() controller.QSettings {
 
 // MapInput implements controller.QController interface.
 func (ctrl *ProvisionController[T]) MapInput(ctx context.Context, _ *zap.Logger,
-	r controller.QRuntime, ptr resource.Pointer,
+	r controller.QRuntime, ptr controller.ReducedResourceMetadata,
 ) ([]resource.Pointer, error) {
 	var t T
 
@@ -158,16 +158,7 @@ func (ctrl *ProvisionController[T]) MapInput(ctx context.Context, _ *zap.Logger,
 		siderolinkres.APIConfigType:
 		return nil, nil
 	case infra.MachineRegistrationType:
-		mr, err := safe.ReaderGetByID[*infra.MachineRegistration](ctx, r, ptr.ID())
-		if err != nil {
-			if state.IsNotFoundError(err) {
-				return nil, nil
-			}
-
-			return nil, err
-		}
-
-		machineRequest, ok := mr.Metadata().Labels().Get(omni.LabelMachineRequest)
+		machineRequest, ok := ptr.Labels().Get(omni.LabelMachineRequest)
 		if !ok {
 			return nil, nil
 		}
@@ -176,18 +167,9 @@ func (ctrl *ProvisionController[T]) MapInput(ctx context.Context, _ *zap.Logger,
 			infra.NewMachineRequest(machineRequest).Metadata(),
 		}, nil
 	case infra.ConfigPatchRequestType:
-		configPatchRequest, err := safe.ReaderGetByID[*infra.ConfigPatchRequest](ctx, r, ptr.ID())
-		if err != nil {
-			if state.IsNotFoundError(err) {
-				return nil, nil
-			}
-
-			return nil, err
-		}
-
-		id, ok := configPatchRequest.Metadata().Labels().Get(omni.LabelMachineRequest)
+		id, ok := ptr.Labels().Get(omni.LabelMachineRequest)
 		if !ok {
-			return nil, err
+			return nil, fmt.Errorf("label %q not found", omni.LabelMachineRequest)
 		}
 
 		return []resource.Pointer{

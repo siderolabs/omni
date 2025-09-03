@@ -260,37 +260,37 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 			},
 		},
 		qtransform.WithConcurrency(8),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.ClusterMachine, *omni.ClusterMachineConfig](),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachine](
+			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.MachineStatus, *omni.ClusterMachineConfig](),
+		qtransform.WithExtraMappedInput[*omni.MachineStatus](
+			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.MachineStatusSnapshot, *omni.ClusterMachineConfig](),
+		qtransform.WithExtraMappedInput[*omni.MachineStatusSnapshot](
+			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.MachineConfigGenOptions, *omni.ClusterMachineConfig](),
+		qtransform.WithExtraMappedInput[*omni.MachineConfigGenOptions](
+			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.Machine, *omni.ClusterMachineConfig](),
+		qtransform.WithExtraMappedInput[*omni.Machine](
+			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.NodeForceDestroyRequest, *omni.ClusterMachineConfig](),
+		qtransform.WithExtraMappedInput[*omni.NodeForceDestroyRequest](
+			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
 		),
-		qtransform.WithExtraMappedInput(
-			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, infraMachineStatus *infra.MachineStatus) ([]resource.Pointer, error) {
-				return []resource.Pointer{omni.NewClusterMachineConfig(resources.DefaultNamespace, infraMachineStatus.Metadata().ID()).Metadata()}, nil
+		qtransform.WithExtraMappedInput[*infra.MachineStatus](
+			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, infraMachineStatus controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				return []resource.Pointer{omni.NewClusterMachineConfig(resources.DefaultNamespace, infraMachineStatus.ID()).Metadata()}, nil
 			},
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapClusterResourceToLabeledResources[*omni.TalosConfig, *omni.ClusterMachineConfig](),
+		qtransform.WithExtraMappedInput[*omni.TalosConfig](
+			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachineConfig](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*siderolink.MachineJoinConfig, *omni.ClusterMachineConfig](),
+		qtransform.WithExtraMappedInput[*siderolink.MachineJoinConfig](
+			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperNone[*omni.MachineSet](),
+		qtransform.WithExtraMappedInput[*omni.MachineSet](
+			qtransform.MapperNone(),
 		),
 		qtransform.WithExtraOutputs(controller.Output{
 			Type: omni.NodeForceDestroyRequestType,

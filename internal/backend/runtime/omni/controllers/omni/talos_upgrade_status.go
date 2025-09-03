@@ -99,8 +99,8 @@ func NewTalosUpgradeStatusController() *TalosUpgradeStatusController {
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, _ *omni.TalosVersion) ([]resource.Pointer, error) {
+		qtransform.WithExtraMappedInput[*omni.TalosVersion](
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, _ controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 				// reconcile all cluster TalosUpgradeStatus on TalosVersion changes
 				clusters, err := safe.ReaderListAll[*omni.Cluster](ctx, r)
 				if err != nil {
@@ -110,42 +110,44 @@ func NewTalosUpgradeStatusController() *TalosUpgradeStatusController {
 				return slices.Collect(clusters.Pointers()), nil
 			},
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.ClusterStatus, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.ClusterStatus](
+			qtransform.MapperSameID[*omni.Cluster](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByClusterLabel[*omni.ClusterMachineIdentity, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineIdentity](
+			mappers.MapByClusterLabel[*omni.Cluster](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByClusterLabel[*omni.MachineSetNode, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.MachineSetNode](
+			mappers.MapByClusterLabel[*omni.Cluster](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByClusterLabel[*omni.ClusterMachine, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachine](
+			mappers.MapByClusterLabel[*omni.Cluster](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByClusterLabel[*omni.MachineStatus, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.MachineStatus](
+			mappers.MapByClusterLabel[*omni.Cluster](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByClusterLabel[*omni.SchematicConfiguration, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.SchematicConfiguration](
+			mappers.MapByClusterLabel[*omni.Cluster](),
 		),
-		qtransform.WithExtraMappedInput(
-			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, cmcs *omni.ClusterMachineConfigStatus) ([]resource.Pointer, error) {
-				cm, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, cmcs.Metadata().ID())
-				if err != nil {
-					if state.IsNotFoundError(err) {
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineConfigStatus](
+			qtransform.MapperFuncFromTyped[*omni.ClusterMachineConfigStatus](
+				func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, cmcs *omni.ClusterMachineConfigStatus) ([]resource.Pointer, error) {
+					cm, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, cmcs.Metadata().ID())
+					if err != nil {
+						if state.IsNotFoundError(err) {
+							return nil, nil
+						}
+
+						return nil, err
+					}
+
+					clusterName, ok := cm.Metadata().Labels().Get(omni.LabelCluster)
+					if !ok {
 						return nil, nil
 					}
 
-					return nil, err
-				}
-
-				clusterName, ok := cm.Metadata().Labels().Get(omni.LabelCluster)
-				if !ok {
-					return nil, nil
-				}
-
-				return []resource.Pointer{omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata()}, nil
-			},
+					return []resource.Pointer{omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata()}, nil
+				},
+			),
 		),
 		qtransform.WithExtraOutputs(
 			controller.Output{

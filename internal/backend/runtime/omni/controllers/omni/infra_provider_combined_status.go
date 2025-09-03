@@ -67,11 +67,11 @@ func NewInfraProviderCombinedStatusController() *InfraProviderCombinedStatusCont
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*infra.ProviderHealthStatus, *infra.Provider](),
+		qtransform.WithExtraMappedInput[*infra.ProviderHealthStatus](
+			qtransform.MapperSameID[*infra.Provider](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*infra.ProviderStatus, *infra.Provider](),
+		qtransform.WithExtraMappedInput[*infra.ProviderStatus](
+			qtransform.MapperSameID[*infra.Provider](),
 		),
 		qtransform.WithOutputKind(controller.OutputShared),
 	)

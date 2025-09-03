@@ -88,8 +88,8 @@ func NewKubeconfigController(certificateValidity time.Duration) *KubeconfigContr
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, _ *system.CertRefreshTick) ([]resource.Pointer, error) {
+		qtransform.WithExtraMappedInput[*system.CertRefreshTick](
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, _ controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 				// on cert refresh, queue updates for all cluster
 				secrets, err := safe.ReaderListAll[*omni.ClusterSecrets](ctx, r)
 				if err != nil {
@@ -99,8 +99,8 @@ func NewKubeconfigController(certificateValidity time.Duration) *KubeconfigContr
 				return slices.Collect(secrets.Pointers()), nil
 			},
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.LoadBalancerConfig, *omni.ClusterSecrets](),
+		qtransform.WithExtraMappedInput[*omni.LoadBalancerConfig](
+			qtransform.MapperSameID[*omni.ClusterSecrets](),
 		),
 	)
 }

@@ -154,13 +154,15 @@ func NewJoinTokenStatusController() *JoinTokenStatusController {
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, usage *siderolink.JoinTokenUsage) ([]resource.Pointer, error) {
-				return []resource.Pointer{siderolink.NewJoinToken(resources.DefaultNamespace, usage.TypedSpec().Value.TokenId).Metadata()}, nil
-			},
+		qtransform.WithExtraMappedInput[*siderolink.JoinTokenUsage](
+			qtransform.MapperFuncFromTyped[*siderolink.JoinTokenUsage](
+				func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, usage *siderolink.JoinTokenUsage) ([]resource.Pointer, error) {
+					return []resource.Pointer{siderolink.NewJoinToken(resources.DefaultNamespace, usage.TypedSpec().Value.TokenId).Metadata()}, nil
+				},
+			),
 		),
-		qtransform.WithExtraMappedInput(
-			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, _ *siderolink.DefaultJoinToken) ([]resource.Pointer, error) {
+		qtransform.WithExtraMappedInput[*siderolink.DefaultJoinToken](
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, _ controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 				items, err := safe.ReaderListAll[*siderolink.JoinToken](ctx, r)
 				if err != nil {
 					return nil, err
@@ -169,9 +171,9 @@ func NewJoinTokenStatusController() *JoinTokenStatusController {
 				return safe.Map(items, func(item *siderolink.JoinToken) (resource.Pointer, error) { return item.Metadata(), nil })
 			},
 		),
-		qtransform.WithExtraMappedInput(
-			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, status *siderolink.NodeUniqueTokenStatus) ([]resource.Pointer, error) {
-				usage, err := safe.ReaderGetByID[*siderolink.JoinTokenUsage](ctx, r, status.Metadata().ID())
+		qtransform.WithExtraMappedInput[*siderolink.NodeUniqueTokenStatus](
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, status controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				usage, err := safe.ReaderGetByID[*siderolink.JoinTokenUsage](ctx, r, status.ID())
 				if err != nil {
 					if state.IsNotFoundError(err) {
 						return nil, nil

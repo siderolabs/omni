@@ -140,22 +140,22 @@ func NewClusterBootstrapStatusController(etcdBackupStoreFactory store.Factory) *
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.TalosConfig, *omni.ClusterStatus](),
+		qtransform.WithExtraMappedInput[*omni.TalosConfig](
+			qtransform.MapperSameID[*omni.ClusterStatus](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.ClusterEndpoint, *omni.ClusterStatus](),
+		qtransform.WithExtraMappedInput[*omni.ClusterEndpoint](
+			qtransform.MapperSameID[*omni.ClusterStatus](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByClusterLabelOnlyControlplane[*omni.MachineSet, *omni.ClusterStatus](),
+		qtransform.WithExtraMappedInput[*omni.MachineSet](
+			mappers.MapByClusterLabelOnlyControlplane[*omni.ClusterStatus](),
 		),
-		qtransform.WithExtraMappedInput(
+		qtransform.WithExtraMappedInput[*omni.ClusterUUID](
 			// no need to requeue anything, just allow the controller to read data (when restoring from another cluster backup)
-			qtransform.MapperNone[*omni.ClusterUUID](),
+			qtransform.MapperNone(),
 		),
-		qtransform.WithExtraMappedInput(
+		qtransform.WithExtraMappedInput[*omni.BackupData](
 			// no need to requeue anything, just allow the controller to read data (when restoring from another cluster backup)
-			qtransform.MapperNone[*omni.BackupData](),
+			qtransform.MapperNone(),
 		),
 		qtransform.WithConcurrency(4),
 	)

@@ -59,7 +59,7 @@ func (ctrl *MachineRequestLinkController) Settings() controller.QSettings {
 
 // MapInput implements controller.QController interface.
 func (ctrl *MachineRequestLinkController) MapInput(context.Context, *zap.Logger,
-	controller.QRuntime, resource.Pointer,
+	controller.QRuntime, controller.ReducedResourceMetadata,
 ) ([]resource.Pointer, error) {
 	return nil, nil
 }

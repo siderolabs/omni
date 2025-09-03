@@ -131,8 +131,8 @@ func NewClusterDestroyStatusController() *ClusterDestroyStatusController {
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(mappers.MapByClusterLabel[*omni.MachineSetStatus, *omni.Cluster]()),
-		qtransform.WithExtraMappedInput(mappers.MapByClusterLabel[*omni.ClusterMachineStatus, *omni.Cluster]()),
+		qtransform.WithExtraMappedInput[*omni.MachineSetStatus](mappers.MapByClusterLabel[*omni.Cluster]()),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineStatus](mappers.MapByClusterLabel[*omni.Cluster]()),
 		qtransform.WithIgnoreTeardownUntil(ClusterStatusControllerName),
 	)
 }

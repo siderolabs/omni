@@ -235,40 +235,42 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.MachineStatusSnapshot, *omni.ClusterMachine](),
+		qtransform.WithExtraMappedInput[*omni.MachineStatusSnapshot](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.Machine, *omni.ClusterMachine](),
+		qtransform.WithExtraMappedInput[*omni.Machine](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.MachineStatus, *omni.ClusterMachine](),
+		qtransform.WithExtraMappedInput[*omni.MachineStatus](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.ClusterMachineConfigStatus, *omni.ClusterMachine](),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineConfigStatus](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.ClusterMachineIdentity, *omni.ClusterMachine](),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineIdentity](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.MachineSetNode, *omni.ClusterMachine](),
+		qtransform.WithExtraMappedInput[*omni.MachineSetNode](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*infra.Machine, *omni.ClusterMachine](),
+		qtransform.WithExtraMappedInput[*infra.Machine](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*infra.MachineStatus, *omni.ClusterMachine](),
+		qtransform.WithExtraMappedInput[*infra.MachineStatus](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
-		qtransform.WithExtraMappedInput(
-			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, request *infra.MachineRequestStatus) ([]resource.Pointer, error) {
-				if request.TypedSpec().Value.Id == "" {
-					return nil, nil
-				}
+		qtransform.WithExtraMappedInput[*infra.MachineRequestStatus](
+			qtransform.MapperFuncFromTyped[*infra.MachineRequestStatus](
+				func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, request *infra.MachineRequestStatus) ([]resource.Pointer, error) {
+					if request.TypedSpec().Value.Id == "" {
+						return nil, nil
+					}
 
-				return []resource.Pointer{
-					omni.NewClusterMachine(resources.DefaultNamespace, request.TypedSpec().Value.Id).Metadata(),
-				}, nil
-			},
+					return []resource.Pointer{
+						omni.NewClusterMachine(resources.DefaultNamespace, request.TypedSpec().Value.Id).Metadata(),
+					}, nil
+				},
+			),
 		),
 		qtransform.WithIgnoreTeardownUntil(ClusterMachineEncryptionKeyControllerName), // destroy the ClusterMachineStatus after the ClusterMachineEncryptionKey is destroyed
 		qtransform.WithConcurrency(2),

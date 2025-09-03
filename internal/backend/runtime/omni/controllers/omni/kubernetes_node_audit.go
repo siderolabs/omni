@@ -125,7 +125,7 @@ func NewKubernetesNodeAuditController(getKubernetesClientFunc GetKubernetesClien
 			},
 		},
 		qtransform.WithConcurrency(2),
-		qtransform.WithExtraMappedInput(qtransform.MapperSameID[*omni.KubernetesStatus, *omni.ClusterKubernetesNodes]()),
+		qtransform.WithExtraMappedInput[*omni.KubernetesStatus](qtransform.MapperSameID[*omni.ClusterKubernetesNodes]()),
 	)
 }
 

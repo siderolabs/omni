@@ -79,20 +79,20 @@ func (ctrl *ClusterMachineTeardownController) Settings() controller.QSettings {
 }
 
 // MapInput implements controller.QController interface.
-func (ctrl *ClusterMachineTeardownController) MapInput(ctx context.Context, logger *zap.Logger, r controller.QRuntime, ptr resource.Pointer) ([]resource.Pointer, error) {
+func (ctrl *ClusterMachineTeardownController) MapInput(ctx context.Context, logger *zap.Logger, r controller.QRuntime, ptr controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 	switch ptr.Type() {
 	case omni.ClusterType:
-		mapper := mappers.MapByClusterLabel[*omni.Cluster, *omni.ClusterMachine]()
+		mapper := mappers.MapByClusterLabel[*omni.ClusterMachine]()
 
-		return mapper(ctx, logger, r, omni.NewCluster(ptr.Namespace(), ptr.ID()))
+		return mapper(ctx, logger, r, ptr)
 	case omni.ClusterMachineIdentityType:
-		mapper := qtransform.MapperSameID[*omni.ClusterMachineIdentity, *omni.ClusterMachine]()
+		mapper := qtransform.MapperSameID[*omni.ClusterMachine]()
 
-		return mapper(ctx, logger, r, omni.NewClusterMachineIdentity(ptr.Namespace(), ptr.ID()))
+		return mapper(ctx, logger, r, ptr)
 	case omni.ClusterSecretsType:
-		mapper := mappers.MapByClusterLabel[*omni.ClusterSecrets, *omni.ClusterMachine]()
+		mapper := mappers.MapByClusterLabel[*omni.ClusterMachine]()
 
-		return mapper(ctx, logger, r, omni.NewClusterSecrets(ptr.Namespace(), ptr.ID()))
+		return mapper(ctx, logger, r, ptr)
 	case omni.MachineSetType:
 		machines, err := safe.ReaderListAll[*omni.ClusterMachine](ctx, r, state.WithLabelQuery(
 			resource.LabelEqual(omni.LabelMachineSet, ptr.ID()),

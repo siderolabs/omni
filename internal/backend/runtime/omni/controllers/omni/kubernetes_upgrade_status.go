@@ -242,17 +242,17 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.ClusterStatus, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.ClusterStatus](
+			qtransform.MapperSameID[*omni.Cluster](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.KubernetesStatus, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.KubernetesStatus](
+			qtransform.MapperSameID[*omni.Cluster](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.ImagePullStatus, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.ImagePullStatus](
+			qtransform.MapperSameID[*omni.Cluster](),
 		),
-		qtransform.WithExtraMappedInput(
-			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, _ *omni.KubernetesVersion) ([]resource.Pointer, error) {
+		qtransform.WithExtraMappedInput[*omni.KubernetesVersion](
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, _ controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 				// reconcile all cluster on KubernetesVersion changes
 				clusters, err := safe.ReaderListAll[*omni.Cluster](ctx, r)
 				if err != nil {
@@ -262,11 +262,11 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 				return slices.Collect(clusters.Pointers()), nil
 			},
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByClusterLabel[*omni.ClusterMachineIdentity, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineIdentity](
+			mappers.MapByClusterLabel[*omni.Cluster](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByClusterLabel[*omni.MachineSetNode, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.MachineSetNode](
+			mappers.MapByClusterLabel[*omni.Cluster](),
 		),
 		qtransform.WithExtraOutputs(
 			controller.Output{

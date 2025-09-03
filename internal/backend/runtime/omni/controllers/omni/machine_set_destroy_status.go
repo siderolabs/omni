@@ -87,7 +87,7 @@ func NewMachineSetDestroyStatusController() *MachineSetDestroyStatusController {
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(mappers.MapByMachineSetLabel[*omni.ClusterMachineStatus, *omni.MachineSet]()),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineStatus](mappers.MapByMachineSetLabel[*omni.MachineSet]()),
 		qtransform.WithIgnoreTeardownUntil(),
 	)
 }

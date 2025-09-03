@@ -104,7 +104,7 @@ func (ctrl *MachineStatusSnapshotController) Settings() controller.QSettings {
 
 // MapInput implements controller.QController interface.
 func (ctrl *MachineStatusSnapshotController) MapInput(ctx context.Context, _ *zap.Logger,
-	r controller.QRuntime, ptr resource.Pointer,
+	r controller.QRuntime, ptr controller.ReducedResourceMetadata,
 ) ([]resource.Pointer, error) {
 	_, err := r.Get(ctx, ptr)
 	if err != nil {

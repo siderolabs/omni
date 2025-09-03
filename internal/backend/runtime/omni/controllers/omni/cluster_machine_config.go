@@ -61,29 +61,29 @@ func NewClusterMachineConfigController(imageFactoryHost string, registryMirrors 
 				return reconcileClusterMachineConfig(ctx, r, logger, clusterMachine, machineConfig, registryMirrors, imageFactoryHost)
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.ClusterMachineConfigPatches, *omni.ClusterMachine](),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineConfigPatches](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.MachineSetNode, *omni.ClusterMachine](),
+		qtransform.WithExtraMappedInput[*omni.MachineSetNode](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.MachineConfigGenOptions, *omni.ClusterMachine](),
+		qtransform.WithExtraMappedInput[*omni.MachineConfigGenOptions](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapClusterResourceToLabeledResources[*omni.Cluster, *omni.ClusterMachine](),
+		qtransform.WithExtraMappedInput[*omni.Cluster](
+			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachine](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapClusterResourceToLabeledResources[*omni.ClusterSecrets, *omni.ClusterMachine](),
+		qtransform.WithExtraMappedInput[*omni.ClusterSecrets](
+			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachine](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapClusterResourceToLabeledResources[*omni.ClusterConfigVersion, *omni.ClusterMachine](),
+		qtransform.WithExtraMappedInput[*omni.ClusterConfigVersion](
+			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachine](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapClusterResourceToLabeledResources[*omni.LoadBalancerConfig, *omni.ClusterMachine](),
+		qtransform.WithExtraMappedInput[*omni.LoadBalancerConfig](
+			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachine](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*siderolink.MachineJoinConfig, *omni.ClusterMachine](),
+		qtransform.WithExtraMappedInput[*siderolink.MachineJoinConfig](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
 		qtransform.WithConcurrency(2),
 	)

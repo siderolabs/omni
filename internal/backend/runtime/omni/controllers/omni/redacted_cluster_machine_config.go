@@ -130,7 +130,7 @@ func (ctrl *RedactedClusterMachineConfigController) Reconcile(ctx context.Contex
 }
 
 // MapInput implements controller.QController interface.
-func (ctrl *RedactedClusterMachineConfigController) MapInput(_ context.Context, _ *zap.Logger, _ controller.QRuntime, pointer resource.Pointer) ([]resource.Pointer, error) {
+func (ctrl *RedactedClusterMachineConfigController) MapInput(_ context.Context, _ *zap.Logger, _ controller.QRuntime, pointer controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 	switch pointer.Type() {
 	case omni.ClusterMachineConfigType:
 		return []resource.Pointer{

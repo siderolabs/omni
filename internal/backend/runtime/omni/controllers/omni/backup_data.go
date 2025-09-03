@@ -84,14 +84,14 @@ func NewBackupDataController() *BackupDataController {
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.EtcdBackupEncryption, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.EtcdBackupEncryption](
+			qtransform.MapperSameID[*omni.Cluster](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.ClusterSecrets, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.ClusterSecrets](
+			qtransform.MapperSameID[*omni.Cluster](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.ClusterUUID, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.ClusterUUID](
+			qtransform.MapperSameID[*omni.Cluster](),
 		),
 	)
 }

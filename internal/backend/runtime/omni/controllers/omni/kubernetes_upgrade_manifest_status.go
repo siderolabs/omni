@@ -237,23 +237,23 @@ func NewKubernetesUpgradeManifestStatusController() *KubernetesUpgradeManifestSt
 				}
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.LoadBalancerStatus, *omni.ClusterSecrets](),
+		qtransform.WithExtraMappedInput[*omni.LoadBalancerStatus](
+			qtransform.MapperSameID[*omni.ClusterSecrets](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.ClusterStatus, *omni.ClusterSecrets](),
+		qtransform.WithExtraMappedInput[*omni.ClusterStatus](
+			qtransform.MapperSameID[*omni.ClusterSecrets](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.KubernetesUpgradeStatus, *omni.ClusterSecrets](),
+		qtransform.WithExtraMappedInput[*omni.KubernetesUpgradeStatus](
+			qtransform.MapperSameID[*omni.ClusterSecrets](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.TalosUpgradeStatus, *omni.ClusterSecrets](),
+		qtransform.WithExtraMappedInput[*omni.TalosUpgradeStatus](
+			qtransform.MapperSameID[*omni.ClusterSecrets](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByClusterLabelOnlyControlplane[*omni.MachineSetStatus, *omni.ClusterSecrets](),
+		qtransform.WithExtraMappedInput[*omni.MachineSetStatus](
+			mappers.MapByClusterLabelOnlyControlplane[*omni.ClusterSecrets](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperNone[*omni.MachineSet](),
+		qtransform.WithExtraMappedInput[*omni.MachineSet](
+			qtransform.MapperNone(),
 		),
 		qtransform.WithConcurrency(4),
 	)

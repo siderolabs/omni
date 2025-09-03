@@ -205,17 +205,17 @@ func NewClusterStatusController(embeddedDiscoveryServiceEnabled bool) *ClusterSt
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.LoadBalancerStatus, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.LoadBalancerStatus](
+			qtransform.MapperSameID[*omni.Cluster](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByClusterLabel[*omni.MachineSetStatus, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.MachineSetStatus](
+			mappers.MapByClusterLabel[*omni.Cluster](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByClusterLabel[*omni.ControlPlaneStatus, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.ControlPlaneStatus](
+			mappers.MapByClusterLabel[*omni.Cluster](),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.ClusterSecrets, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.ClusterSecrets](
+			qtransform.MapperSameID[*omni.Cluster](),
 		),
 		qtransform.WithIgnoreTeardownUntil(), // keep ClusterStatus alive until every other controller is done with Cluster
 	)

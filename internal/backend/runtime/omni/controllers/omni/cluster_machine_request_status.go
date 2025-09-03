@@ -102,10 +102,10 @@ func NewClusterMachineRequestStatusController() *ClusterMachineRequestStatusCont
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, res *omni.MachineSet) ([]resource.Pointer, error) {
+		qtransform.WithExtraMappedInput[*omni.MachineSet](
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, res controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 				list, err := safe.ReaderListAll[*infra.MachineRequest](ctx, r, state.WithLabelQuery(
-					resource.LabelEqual(omni.LabelMachineRequestSet, res.Metadata().ID()),
+					resource.LabelEqual(omni.LabelMachineRequestSet, res.ID()),
 				))
 				if err != nil {
 					return nil, err
@@ -114,13 +114,13 @@ func NewClusterMachineRequestStatusController() *ClusterMachineRequestStatusCont
 				return slices.Collect(list.Pointers()), nil
 			},
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*infra.MachineRequestStatus, *infra.MachineRequest](),
+		qtransform.WithExtraMappedInput[*infra.MachineRequestStatus](
+			qtransform.MapperSameID[*infra.MachineRequest](),
 		),
-		qtransform.WithExtraMappedInput(
-			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, res *infra.ProviderStatus) ([]resource.Pointer, error) {
+		qtransform.WithExtraMappedInput[*infra.ProviderStatus](
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, res controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 				list, err := safe.ReaderListAll[*infra.MachineRequest](ctx, r, state.WithLabelQuery(
-					resource.LabelEqual(omni.LabelInfraProviderID, res.Metadata().ID()),
+					resource.LabelEqual(omni.LabelInfraProviderID, res.ID()),
 				))
 				if err != nil {
 					return nil, err

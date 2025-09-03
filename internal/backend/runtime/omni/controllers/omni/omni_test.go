@@ -737,7 +737,7 @@ func newMockJoinTokenUsageController[T generic.ResourceWithRD]() *qtransform.QCo
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(qtransform.MapperNone[*siderolink.DefaultJoinToken]()),
+		qtransform.WithExtraMappedInput[*siderolink.DefaultJoinToken](qtransform.MapperNone()),
 		qtransform.WithConcurrency(4),
 	)
 }

@@ -120,10 +120,10 @@ func NewServiceAccountStatusController() *ServiceAccountStatusController {
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, user *auth.User) ([]resource.Pointer, error) {
+		qtransform.WithExtraMappedInput[*auth.User](
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, user controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 				identities, err := safe.ReaderListAll[*auth.Identity](ctx, r, state.WithLabelQuery(
-					resource.LabelEqual(auth.LabelIdentityUserID, user.Metadata().ID())),
+					resource.LabelEqual(auth.LabelIdentityUserID, user.ID())),
 				)
 				if err != nil {
 					return nil, err
@@ -134,12 +134,14 @@ func NewServiceAccountStatusController() *ServiceAccountStatusController {
 				})
 			},
 		),
-		qtransform.WithExtraMappedInput(
-			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, key *auth.PublicKey) ([]resource.Pointer, error) {
-				return []resource.Pointer{
-					auth.NewIdentity(resources.DefaultNamespace, key.TypedSpec().Value.Identity.Email).Metadata(),
-				}, nil
-			},
+		qtransform.WithExtraMappedInput[*auth.PublicKey](
+			qtransform.MapperFuncFromTyped[*auth.PublicKey](
+				func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, key *auth.PublicKey) ([]resource.Pointer, error) {
+					return []resource.Pointer{
+						auth.NewIdentity(resources.DefaultNamespace, key.TypedSpec().Value.Identity.Email).Metadata(),
+					}, nil
+				},
+			),
 		),
 	)
 }

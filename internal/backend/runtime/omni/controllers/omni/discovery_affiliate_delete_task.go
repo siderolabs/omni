@@ -129,7 +129,7 @@ func (ctrl *DiscoveryAffiliateDeleteTaskController) Reconcile(ctx context.Contex
 }
 
 // MapInput implements controller.QController interface.
-func (ctrl *DiscoveryAffiliateDeleteTaskController) MapInput(_ context.Context, _ *zap.Logger, _ controller.QRuntime, ptr resource.Pointer) ([]resource.Pointer, error) {
+func (ctrl *DiscoveryAffiliateDeleteTaskController) MapInput(_ context.Context, _ *zap.Logger, _ controller.QRuntime, ptr controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 	if ptr.Type() == omni.DiscoveryAffiliateDeleteTaskType {
 		return []resource.Pointer{ptr}, nil
 	}

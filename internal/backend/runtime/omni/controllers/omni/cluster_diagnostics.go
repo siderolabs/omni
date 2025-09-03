@@ -73,8 +73,8 @@ func NewClusterDiagnosticsController() *ClusterDiagnosticsController {
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			mappers.MapByClusterLabel[*omni.MachineStatus, *omni.ClusterUUID](),
+		qtransform.WithExtraMappedInput[*omni.MachineStatus](
+			mappers.MapByClusterLabel[*omni.ClusterUUID](),
 		),
 	)
 }

@@ -55,11 +55,11 @@ func NewClusterWorkloadProxyStatusController(workloadProxyReconciler WorkloadPro
 			TransformExtraOutputFunc:        helper.transform,
 			FinalizerRemovalExtraOutputFunc: helper.teardown,
 		},
-		qtransform.WithExtraMappedInput(
-			mappers.MapByClusterLabel[*omni.ExposedService, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.ExposedService](
+			mappers.MapByClusterLabel[*omni.Cluster](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByClusterLabel[*omni.ClusterMachineStatus, *omni.Cluster](),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineStatus](
+			mappers.MapByClusterLabel[*omni.Cluster](),
 		),
 
 		qtransform.WithConcurrency(2),

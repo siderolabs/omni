@@ -47,14 +47,18 @@ func NewPendingMachineStatusController() *PendingMachineStatusController {
 			},
 			TransformFunc: handler.reconcileRunning,
 		},
-		qtransform.WithExtraMappedInput(func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, res *siderolink.LinkStatus) ([]resource.Pointer, error) {
-			return []resource.Pointer{
-				siderolink.NewPendingMachine(res.TypedSpec().Value.LinkId, nil).Metadata(),
-			}, nil
-		}),
-		qtransform.WithExtraMappedInput(qtransform.MapperNone[*omni.ClusterMachine]()),
-		qtransform.WithExtraMappedInput(qtransform.MapperNone[*omni.TalosConfig]()),
-		qtransform.WithExtraMappedInput(qtransform.MapperNone[*omni.MachineStatusSnapshot]()),
+		qtransform.WithExtraMappedInput[*siderolink.LinkStatus](
+			qtransform.MapperFuncFromTyped[*siderolink.LinkStatus](
+				func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, res *siderolink.LinkStatus) ([]resource.Pointer, error) {
+					return []resource.Pointer{
+						siderolink.NewPendingMachine(res.TypedSpec().Value.LinkId, nil).Metadata(),
+					}, nil
+				},
+			),
+		),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachine](qtransform.MapperNone()),
+		qtransform.WithExtraMappedInput[*omni.TalosConfig](qtransform.MapperNone()),
+		qtransform.WithExtraMappedInput[*omni.MachineStatusSnapshot](qtransform.MapperNone()),
 		qtransform.WithConcurrency(32),
 	)
 }

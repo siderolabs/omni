@@ -69,17 +69,8 @@ func (ctrl *NodeUniqueTokenCleanupController) Settings() controller.QSettings {
 
 // MapInput implements controller.QController interface.
 func (ctrl *NodeUniqueTokenCleanupController) MapInput(ctx context.Context, _ *zap.Logger,
-	r controller.QRuntime, ptr resource.Pointer,
+	r controller.QRuntime, ptr controller.ReducedResourceMetadata,
 ) ([]resource.Pointer, error) {
-	_, err := r.Get(ctx, ptr)
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return nil, nil
-		}
-
-		return nil, err
-	}
-
 	if ptr.Type() == siderolink.LinkType {
 		return []resource.Pointer{
 			siderolink.NewNodeUniqueToken(ptr.ID()).Metadata(),

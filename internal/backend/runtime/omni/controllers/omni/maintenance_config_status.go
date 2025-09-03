@@ -80,8 +80,8 @@ func NewMaintenanceConfigStatusController(maintenanceClientFactory MaintenanceCl
 			},
 			TransformFunc: helper.transform,
 		},
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperSameID[*omni.MachineStatus, *siderolinkres.Link](),
+		qtransform.WithExtraMappedInput[*omni.MachineStatus](
+			qtransform.MapperSameID[*siderolinkres.Link](),
 		),
 		qtransform.WithConcurrency(32),
 	)

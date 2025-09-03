@@ -124,18 +124,18 @@ func NewControlPlaneStatusController() *ControlPlaneStatusController {
 				return controller.NewRequeueInterval(requeueTimeout)
 			},
 		},
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperNone[*omni.TalosConfig](),
+		qtransform.WithExtraMappedInput[*omni.TalosConfig](
+			qtransform.MapperNone(),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByMachineSetLabelOnlyControlplane[*omni.ClusterMachineStatus, *omni.MachineSet](),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineStatus](
+			mappers.MapByMachineSetLabelOnlyControlplane[*omni.MachineSet](),
 		),
-		qtransform.WithExtraMappedInput(
-			mappers.MapByMachineSetLabelOnlyControlplane[*omni.ClusterMachine, *omni.MachineSet](),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachine](
+			mappers.MapByMachineSetLabelOnlyControlplane[*omni.MachineSet](),
 		),
-		qtransform.WithExtraMappedInput(
-			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, etcdAuditResult *omni.EtcdAuditResult) ([]resource.Pointer, error) {
-				clusterName := etcdAuditResult.Metadata().ID()
+		qtransform.WithExtraMappedInput[*omni.EtcdAuditResult](
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, etcdAuditResult controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				clusterName := etcdAuditResult.ID()
 
 				items, err := safe.ReaderListAll[*omni.MachineSet](ctx, r,
 					state.WithLabelQuery(

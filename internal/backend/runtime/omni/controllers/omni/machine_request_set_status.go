@@ -23,7 +23,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 )
 
 // MachineRequestSetStatusControllerName is the name of the MachineRequestSetStatusController.
@@ -48,10 +47,10 @@ func NewMachineRequestSetStatusController() *MachineRequestSetStatusController {
 			TransformExtraOutputFunc:        h.reconcileRunning,
 			FinalizerRemovalExtraOutputFunc: h.reconcileTearingDown,
 		},
-		qtransform.WithExtraMappedDestroyReadyInput(
-			mappers.MapExtractLabelValue[*infra.MachineRequest, *omni.MachineRequestSet](omni.LabelMachineRequestSet),
+		qtransform.WithExtraMappedDestroyReadyInput[*infra.MachineRequest](
+			qtransform.MapExtractLabelValue[*omni.MachineRequestSet](omni.LabelMachineRequestSet),
 		),
-		qtransform.WithExtraMappedInput(
+		qtransform.WithExtraMappedInput[*machineStatusLabels](
 			mapMachineToMachineRequest,
 		),
 		qtransform.WithExtraOutputs(controller.Output{
@@ -293,8 +292,8 @@ func (h *machineRequestSetStatusHandler) reconcileTearingDown(ctx context.Contex
 	return nil
 }
 
-func mapMachineToMachineRequest(ctx context.Context, _ *zap.Logger, r controller.QRuntime, machine *machineStatusLabels) ([]resource.Pointer, error) {
-	machineRequest, ok := machine.Metadata().Labels().Get(omni.LabelMachineRequest)
+func mapMachineToMachineRequest(ctx context.Context, _ *zap.Logger, r controller.QRuntime, machine controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+	machineRequest, ok := machine.Labels().Get(omni.LabelMachineRequest)
 	if !ok {
 		return nil, nil
 	}

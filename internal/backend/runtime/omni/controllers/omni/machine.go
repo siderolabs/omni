@@ -45,29 +45,31 @@ func NewMachineController() *MachineController {
 			},
 			TransformFunc: helper.transform,
 		},
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperNone[*omni.MachineRequestSet](),
+		qtransform.WithExtraMappedInput[*omni.MachineRequestSet](
+			qtransform.MapperNone(),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperNone[*infra.MachineRequest](),
+		qtransform.WithExtraMappedInput[*infra.MachineRequest](
+			qtransform.MapperNone(),
 		),
-		qtransform.WithExtraMappedInput(
-			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, res *infra.MachineRequestStatus) ([]resource.Pointer, error) {
-				if res.TypedSpec().Value.Id == "" {
-					return nil, nil
-				}
+		qtransform.WithExtraMappedInput[*infra.MachineRequestStatus](
+			qtransform.MapperFuncFromTyped[*infra.MachineRequestStatus](
+				func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, res *infra.MachineRequestStatus) ([]resource.Pointer, error) {
+					if res.TypedSpec().Value.Id == "" {
+						return nil, nil
+					}
 
-				return []resource.Pointer{
-					siderolink.NewLink(resources.DefaultNamespace, res.TypedSpec().Value.Id, nil).Metadata(),
-				}, nil
-			},
+					return []resource.Pointer{
+						siderolink.NewLink(resources.DefaultNamespace, res.TypedSpec().Value.Id, nil).Metadata(),
+					}, nil
+				},
+			),
 		),
-		qtransform.WithExtraMappedInput(
-			qtransform.MapperNone[*infra.ProviderStatus](),
+		qtransform.WithExtraMappedInput[*infra.ProviderStatus](
+			qtransform.MapperNone(),
 		),
-		qtransform.WithExtraMappedInput(
-			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, infraMachine *infra.Machine) ([]resource.Pointer, error) {
-				ptr := siderolink.NewLink(resources.DefaultNamespace, infraMachine.Metadata().ID(), nil).Metadata()
+		qtransform.WithExtraMappedInput[*infra.Machine](
+			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, infraMachine controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				ptr := siderolink.NewLink(resources.DefaultNamespace, infraMachine.ID(), nil).Metadata()
 
 				return []resource.Pointer{ptr}, nil
 			},
