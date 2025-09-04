@@ -65,10 +65,6 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
 
-	assertResource(&suite.OmniSuite, machineStatus.Metadata(), func(r *omni.MachineStatus, assertion *assert.Assertions) {
-		assertion.True(r.Metadata().Finalizers().Has(controller.Name()))
-	})
-
 	assertResource(&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
 		assertion.Equal(specs.InfraMachineSpec_POWER_STATE_OFF, r.TypedSpec().Value.PreferredPowerState) // expect the default state of "OFF"
 	})
@@ -81,11 +77,7 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, config))
 
-	assertResource(&suite.OmniSuite, config.Metadata(), func(r *omni.InfraMachineConfig, assertion *assert.Assertions) {
-		assertion.True(r.Metadata().Finalizers().Has(controller.Name()))
-	})
-
-	assertResource(&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
+	assertResource[*infra.Machine](&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
 		assertion.Equal(specs.InfraMachineConfigSpec_ACCEPTED, r.TypedSpec().Value.AcceptanceStatus)
 		assertion.Equal(specs.InfraMachineSpec_POWER_STATE_ON, r.TypedSpec().Value.PreferredPowerState)
 		assertion.Equal("foo=bar bar=baz", r.TypedSpec().Value.ExtraKernelArgs)
@@ -95,11 +87,6 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 	clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, "machine-1")
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, clusterMachine))
-
-	// assert that the finalizer is added
-	assertResource(&suite.OmniSuite, clusterMachine.Metadata(), func(r *omni.ClusterMachine, assertion *assert.Assertions) {
-		assertion.True(r.Metadata().Finalizers().Has(controller.Name()))
-	})
 
 	// create schematic configuration
 	schematicConfig := omni.NewSchematicConfiguration(resources.DefaultNamespace, "machine-1")
@@ -119,10 +106,6 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, extensions))
 
-	assertResource(&suite.OmniSuite, extensions.Metadata(), func(r *omni.MachineExtensions, assertion *assert.Assertions) {
-		assertion.True(r.Metadata().Finalizers().Has(controller.Name()))
-	})
-
 	// assert that the cluster machine has the correct extensions
 	assertResource(&suite.OmniSuite, clusterMachine.Metadata(), func(r *infra.Machine, assertion *assert.Assertions) {
 		assertion.ElementsMatch([]string{"foo", "bar"}, r.TypedSpec().Value.Extensions)
@@ -134,10 +117,6 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, extraKernelArgs))
 
-	assertResource(&suite.OmniSuite, extraKernelArgs.Metadata(), func(r *omni.MachineExtraKernelArgs, assertion *assert.Assertions) {
-		assertion.True(r.Metadata().Finalizers().Has(controller.Name()))
-	})
-
 	assertResource(&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
 		assertion.Equal("override=1 override=2", r.TypedSpec().Value.ExtraKernelArgs)
 	})
@@ -145,10 +124,8 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 	// deallocate the machine from the cluster
 	rtestutils.Destroy[*omni.ClusterMachine](suite.ctx, suite.T(), suite.state, []string{clusterMachine.Metadata().ID()})
 
-	// assert that the finalizer is removed, cluster related fields are cleared, and a new wipe ID is generated
-	assertResource(&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
-		assertion.False(r.Metadata().Finalizers().Has(controller.Name()))
-
+	// assert that cluster related fields are cleared, and a new wipe ID is generated
+	assertResource[*infra.Machine](&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
 		assertion.Empty(r.TypedSpec().Value.ClusterTalosVersion)
 		assertion.Empty(r.TypedSpec().Value.Extensions)
 		assertion.NotEmpty(r.TypedSpec().Value.WipeId)
@@ -170,35 +147,11 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 		assertion.Equal(uint64(2), r.TypedSpec().Value.InstallEventId)
 	})
 
-	// test finalizers
-
 	// reallocate the machine to a cluster
 	suite.Require().NoError(suite.state.Create(suite.ctx, clusterMachine))
 
-	// assert that the finalizer is added
-	assertResource(&suite.OmniSuite, clusterMachine.Metadata(), func(r *omni.ClusterMachine, assertion *assert.Assertions) {
-		assertion.True(r.Metadata().Finalizers().Has(controller.Name()))
-	})
-
 	// destroy the link
 	rtestutils.Destroy[*siderolink.Link](suite.ctx, suite.T(), suite.state, []string{link.Metadata().ID()})
-
-	// assert that the finalizers are removed
-	assertResource(&suite.OmniSuite, infraMachineMD, func(r *omni.ClusterMachine, assertion *assert.Assertions) {
-		assertion.False(r.Metadata().Finalizers().Has(controller.Name()))
-	})
-
-	assertResource(&suite.OmniSuite, infraMachineMD, func(r *omni.InfraMachineConfig, assertion *assert.Assertions) {
-		assertion.False(r.Metadata().Finalizers().Has(controller.Name()))
-	})
-
-	assertResource(&suite.OmniSuite, infraMachineMD, func(r *omni.MachineExtensions, assertion *assert.Assertions) {
-		assertion.False(r.Metadata().Finalizers().Has(controller.Name()))
-	})
-
-	assertResource(&suite.OmniSuite, infraMachineMD, func(r *omni.MachineStatus, assertion *assert.Assertions) {
-		assertion.False(r.Metadata().Finalizers().Has(controller.Name()))
-	})
 
 	// assert that infra.Machine is removed
 	assertNoResource[*infra.Machine](&suite.OmniSuite, infraMachine)

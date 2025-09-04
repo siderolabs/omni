@@ -148,31 +148,6 @@ func (ctrl *InfraMachineController) Reconcile(ctx context.Context, _ *zap.Logger
 }
 
 func (ctrl *InfraMachineController) reconcileTearingDown(ctx context.Context, r controller.QRuntime, link *siderolink.Link) error {
-	if _, err := helpers.HandleInput[*omni.InfraMachineConfig](ctx, r, ctrl.Name(), link); err != nil {
-		return err
-	}
-
-	if _, err := helpers.HandleInput[*omni.MachineExtensions](ctx, r, ctrl.Name(), link); err != nil {
-		return err
-	}
-
-	if _, err := helpers.HandleInput[*omni.MachineExtraKernelArgs](ctx, r, ctrl.Name(), link); err != nil {
-		return err
-	}
-
-	if _, err := helpers.HandleInput[*omni.ClusterMachine](ctx, r, ctrl.Name(), link); err != nil {
-		return err
-	}
-
-	if _, err := helpers.HandleInput[*omni.MachineStatus](ctx, r, ctrl.Name(), link); err != nil {
-		return err
-	}
-
-	_, err := helpers.HandleInput[*siderolink.NodeUniqueToken](ctx, r, ctrl.Name(), link)
-	if err != nil {
-		return err
-	}
-
 	md := infra.NewMachine(link.Metadata().ID()).Metadata()
 
 	ready, err := helpers.TeardownAndDestroy(ctx, r, md)
@@ -188,28 +163,28 @@ func (ctrl *InfraMachineController) reconcileTearingDown(ctx context.Context, r 
 }
 
 func (ctrl *InfraMachineController) reconcileRunning(ctx context.Context, r controller.QRuntime, link *siderolink.Link) error {
-	config, err := helpers.HandleInput[*omni.InfraMachineConfig](ctx, r, ctrl.Name(), link)
-	if err != nil {
+	config, err := safe.ReaderGetByID[*omni.InfraMachineConfig](ctx, r, link.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
 		return err
 	}
 
-	machineExts, err := helpers.HandleInput[*omni.MachineExtensions](ctx, r, ctrl.Name(), link)
-	if err != nil {
+	machineExts, err := safe.ReaderGetByID[*omni.MachineExtensions](ctx, r, link.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
 		return err
 	}
 
-	machineExtraKernelArgs, err := helpers.HandleInput[*omni.MachineExtraKernelArgs](ctx, r, ctrl.Name(), link)
-	if err != nil {
+	machineExtraKernelArgs, err := safe.ReaderGetByID[*omni.MachineExtraKernelArgs](ctx, r, link.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
 		return err
 	}
 
-	machineStatus, err := helpers.HandleInput[*omni.MachineStatus](ctx, r, ctrl.Name(), link)
-	if err != nil {
+	machineStatus, err := safe.ReaderGetByID[*omni.MachineStatus](ctx, r, link.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
 		return err
 	}
 
-	nodeUniqueToken, err := helpers.HandleInput[*siderolink.NodeUniqueToken](ctx, r, ctrl.Name(), link)
-	if err != nil {
+	nodeUniqueToken, err := safe.ReaderGetByID[*siderolink.NodeUniqueToken](ctx, r, link.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
 		return err
 	}
 
@@ -286,7 +261,6 @@ func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMac
 		}
 
 		// the machine is deallocated, clear the cluster information and mark it for wipe by assigning it a new wipe ID
-
 		if infraMachine.TypedSpec().Value.ClusterTalosVersion != "" {
 			infraMachine.TypedSpec().Value.WipeId = uuid.NewString()
 		}
@@ -294,9 +268,11 @@ func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMac
 		infraMachine.TypedSpec().Value.ClusterTalosVersion = ""
 		infraMachine.TypedSpec().Value.Extensions = nil
 
-		_, err = helpers.HandleInput[*omni.ClusterMachine](ctx, helper.runtime, helper.controllerName, helper.link)
+		if err = helper.runtime.RemoveFinalizer(ctx, clusterMachine.Metadata(), helper.controllerName); err != nil {
+			return err
+		}
 
-		return err
+		return nil
 	}
 
 	if err = helper.runtime.AddFinalizer(ctx, clusterMachine.Metadata(), helper.controllerName); err != nil {

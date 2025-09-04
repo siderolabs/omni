@@ -8,7 +8,9 @@ package migration
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -46,6 +48,35 @@ func createOrUpdate[T resource.Resource](ctx context.Context, s state.State, res
 		}
 
 		return err
+	}
+
+	return nil
+}
+
+func dropFinalizers[R generic.ResourceWithRD](ctx context.Context, st state.State, finalizers ...resource.Finalizer) error {
+	list, err := safe.StateListAll[R](ctx, st)
+	if err != nil {
+		return fmt.Errorf("failed to list resources: %w", err)
+	}
+
+	for res := range list.All() {
+		hasAny := false
+
+		for _, finalizer := range finalizers {
+			if res.Metadata().Finalizers().Has(finalizer) {
+				hasAny = true
+
+				break
+			}
+		}
+
+		if !hasAny {
+			continue
+		}
+
+		if err = st.RemoveFinalizer(ctx, res.Metadata(), finalizers...); err != nil {
+			return fmt.Errorf("failed to remove finalizers from %s: %w", res.Metadata().ID(), err)
+		}
 	}
 
 	return nil

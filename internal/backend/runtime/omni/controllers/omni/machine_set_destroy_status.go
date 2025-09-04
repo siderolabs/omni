@@ -8,7 +8,6 @@ package omni
 import (
 	"context"
 	"fmt"
-	"slices"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
@@ -44,7 +43,11 @@ func NewMachineSetDestroyStatusController() *MachineSetDestroyStatusController {
 			UnmapMetadataFunc: func(machineSetDestroyStatus *omni.MachineSetDestroyStatus) *omni.MachineSet {
 				return omni.NewMachineSet(resources.DefaultNamespace, machineSetDestroyStatus.Metadata().ID())
 			},
-			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, machineSet *omni.MachineSet, machineSetDestroyStatus *omni.MachineSetDestroyStatus) error {
+			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, machineSet *omni.MachineSet, machineSetDestroyStatus *omni.MachineSetDestroyStatus) error {
+				if machineSet.Metadata().Phase() != resource.PhaseTearingDown {
+					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("not tearing down")
+				}
+
 				cmStatuses, err := r.List(ctx, omni.NewClusterMachineStatus(resources.DefaultNamespace, "").Metadata(),
 					state.WithLabelQuery(resource.LabelEqual(
 						omni.LabelMachineSet, machineSet.Metadata().ID()),
@@ -54,38 +57,7 @@ func NewMachineSetDestroyStatusController() *MachineSetDestroyStatusController {
 					return err
 				}
 
-				remainingMachines := 0
-
-				for _, cmStatus := range cmStatuses.Items {
-					switch cmStatus.Metadata().Phase() {
-					case resource.PhaseRunning:
-						if !cmStatus.Metadata().Finalizers().Has(MachineSetDestroyStatusControllerName) {
-							if err = r.AddFinalizer(ctx, cmStatus.Metadata(), MachineSetDestroyStatusControllerName); err != nil {
-								return err
-							}
-						}
-
-						remainingMachines++
-					case resource.PhaseTearingDown:
-						if cmStatus.Metadata().Finalizers().Has(MachineSetDestroyStatusControllerName) {
-							if hasOnlyDestroyStatusFinalizers(cmStatus.Metadata()) {
-								if err = r.RemoveFinalizer(ctx, cmStatus.Metadata(), MachineSetDestroyStatusControllerName); err != nil {
-									return err
-								}
-
-								continue
-							}
-
-							remainingMachines++
-						}
-					}
-				}
-
-				if machineSet.Metadata().Phase() != resource.PhaseTearingDown {
-					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("not tearing down")
-				}
-
-				machineSetDestroyStatus.TypedSpec().Value.Phase = fmt.Sprintf("Destroying: %s", pluralize.NewClient().Pluralize("machine", remainingMachines, true))
+				machineSetDestroyStatus.TypedSpec().Value.Phase = fmt.Sprintf("Destroying: %s", pluralize.NewClient().Pluralize("machine", len(cmStatuses.Items), true))
 
 				return nil
 			},
@@ -93,17 +65,4 @@ func NewMachineSetDestroyStatusController() *MachineSetDestroyStatusController {
 		qtransform.WithExtraMappedInput[*omni.ClusterMachineStatus](mappers.MapByMachineSetLabel[*omni.MachineSet]()),
 		qtransform.WithIgnoreTeardownUntil(),
 	)
-}
-
-// hasOnlyDestroyStatusFinalizers reports if ClusterMachineStatus resource has only specified DestroyStatusControllers* as finalizer.
-func hasOnlyDestroyStatusFinalizers(clusterMachineStatusMD *resource.Metadata) bool {
-	destroyStatusControllers := []string{ClusterDestroyStatusControllerName, MachineSetDestroyStatusControllerName}
-
-	for _, fin := range *clusterMachineStatusMD.Finalizers() {
-		if !slices.Contains(destroyStatusControllers, fin) { // there is a finalizer that is not a destroy status controller
-			return false
-		}
-	}
-
-	return true
 }

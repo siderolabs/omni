@@ -142,15 +142,6 @@ func (ctrl *MachineStatusController) Settings() controller.QSettings {
 func (ctrl *MachineStatusController) MapInput(ctx context.Context, _ *zap.Logger,
 	r controller.QRuntime, ptr controller.ReducedResourceMetadata,
 ) ([]resource.Pointer, error) {
-	_, err := r.Get(ctx, ptr)
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return nil, nil
-		}
-
-		return nil, err
-	}
-
 	switch ptr.Type() {
 	case omni.MachineStatusType,
 		omni.MachineType,
@@ -380,11 +371,6 @@ func (ctrl *MachineStatusController) updateMachineConnectionStatus(machine *omni
 func (ctrl *MachineStatusController) reconcileTearingDown(ctx context.Context, r controller.QRuntime, logger *zap.Logger, machine *omni.Machine) error {
 	ctrl.runner.StopTask(logger, machine.Metadata().ID())
 
-	_, err := ctrl.handleInputs(ctx, r, machine)
-	if err != nil {
-		return err
-	}
-
 	md := omni.NewMachineStatus(resources.DefaultNamespace, machine.Metadata().ID()).Metadata()
 
 	ready, err := helpers.TeardownAndDestroy(ctx, r, md)
@@ -593,34 +579,34 @@ type inputs struct {
 	infraMachineStatus    *infra.MachineStatus
 }
 
-func (ctrl *MachineStatusController) handleInputs(ctx context.Context, r controller.QRuntime, machine *omni.Machine) (inputs, error) {
+func (ctrl *MachineStatusController) handleInputs(ctx context.Context, r controller.Reader, machine *omni.Machine) (inputs, error) {
 	var (
 		in  inputs
 		err error
 	)
 
-	in.machineStatusSnapshot, err = helpers.HandleInput[*omni.MachineStatusSnapshot](ctx, r, ctrl.Name(), machine)
-	if err != nil {
+	in.machineStatusSnapshot, err = safe.ReaderGetByID[*omni.MachineStatusSnapshot](ctx, r, machine.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
 		return in, err
 	}
 
-	in.machineLabels, err = helpers.HandleInput[*omni.MachineLabels](ctx, r, ctrl.Name(), machine)
-	if err != nil {
+	in.machineLabels, err = safe.ReaderGetByID[*omni.MachineLabels](ctx, r, machine.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
 		return in, err
 	}
 
-	in.clusterMachineStatus, err = helpers.HandleInput[*omni.ClusterMachineStatus](ctx, r, ctrl.Name(), machine)
-	if err != nil {
+	in.clusterMachineStatus, err = safe.ReaderGetByID[*omni.ClusterMachineStatus](ctx, r, machine.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
 		return in, err
 	}
 
-	in.machineSetNode, err = helpers.HandleInput[*omni.MachineSetNode](ctx, r, ctrl.Name(), machine)
-	if err != nil {
+	in.machineSetNode, err = safe.ReaderGetByID[*omni.MachineSetNode](ctx, r, machine.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
 		return in, err
 	}
 
-	in.infraMachineStatus, err = helpers.HandleInput[*infra.MachineStatus](ctx, r, ctrl.Name(), machine)
-	if err != nil {
+	in.infraMachineStatus, err = safe.ReaderGetByID[*infra.MachineStatus](ctx, r, machine.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
 		return in, err
 	}
 
