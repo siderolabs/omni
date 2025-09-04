@@ -41,14 +41,14 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 			UnmapMetadataFunc: func(clusterMachineStatus *omni.ClusterMachineStatus) *omni.ClusterMachine {
 				return omni.NewClusterMachine(resources.DefaultNamespace, clusterMachineStatus.Metadata().ID())
 			},
-			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, clusterMachine *omni.ClusterMachine, clusterMachineStatus *omni.ClusterMachineStatus) error {
+			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, clusterMachine *omni.ClusterMachine, clusterMachineStatus *omni.ClusterMachineStatus) error {
 				machine, err := safe.ReaderGet[*omni.Machine](ctx, r, resource.NewMetadata(resources.DefaultNamespace, omni.MachineType, clusterMachine.Metadata().ID(), resource.VersionUndefined))
 				if err != nil && !state.IsNotFoundError(err) {
 					return err
 				}
 
-				machineSetNode, err := helpers.HandleInput[*omni.MachineSetNode](ctx, r, clusterMachineStatusControllerName, clusterMachine)
-				if err != nil {
+				machineSetNode, err := safe.ReaderGetByID[*omni.MachineSetNode](ctx, r, clusterMachine.Metadata().ID())
+				if err != nil && !state.IsNotFoundError(err) {
 					return err
 				}
 
@@ -222,14 +222,6 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 
 				if clusterMachineIdentity != nil {
 					clusterMachineStatus.Metadata().Labels().Set(omni.ClusterMachineStatusLabelNodeName, clusterMachineIdentity.TypedSpec().Value.Nodename)
-				}
-
-				return nil
-			},
-			FinalizerRemovalExtraOutputFunc: func(ctx context.Context, rw controller.ReaderWriter, _ *zap.Logger, clusterMachine *omni.ClusterMachine) error {
-				_, err := helpers.HandleInput[*omni.MachineSetNode](ctx, rw, clusterMachineStatusControllerName, clusterMachine)
-				if err != nil {
-					return err
 				}
 
 				return nil
