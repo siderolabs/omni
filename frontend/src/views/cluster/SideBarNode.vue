@@ -22,7 +22,6 @@ import Watch from '@/api/watch'
 import type { SideBarItem } from '@/components/SideBar/TSideBarList.vue'
 import TSidebarList from '@/components/SideBar/TSideBarList.vue'
 import { getContext } from '@/context'
-import ClusterSideBar from '@/views/cluster/SideBar.vue'
 
 const node = ref()
 const context = getContext()
@@ -82,9 +81,6 @@ onMounted(async () => {
 
 <template>
   <div>
-    <div class="border-b border-naturals-n4">
-      <ClusterSideBar />
-    </div>
     <p class="mt-5 mb-2 px-6 text-xs text-naturals-n8">Node</p>
     <p class="truncate px-6 text-xs text-naturals-n13">{{ node }}</p>
     <TSidebarList :items="items" />

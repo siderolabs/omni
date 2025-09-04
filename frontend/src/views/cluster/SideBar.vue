@@ -122,5 +122,7 @@ const workloadProxyingEnabled = setupWorkloadProxyingEnabledFeatureWatch()
     <ExposedServiceSideBar
       v-if="workloadProxyingEnabled && cluster?.spec?.features?.enable_workload_proxy"
     />
+
+    <RouterView name="nodeSidebar" class="border-t border-naturals-n4" />
   </div>
 </template>
