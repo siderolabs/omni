@@ -13,6 +13,6 @@ import NodesHeader from '@/views/cluster/Nodes/NodesHeader.vue'
   <div class="flex h-full flex-col">
     <NodesHeader />
     <NodeDetailsTabs :machine="$route.params.machine as string" class="mb-4" />
-    <RouterView name="nodeDetails" class="grow" />
+    <RouterView class="grow" />
   </div>
 </template>

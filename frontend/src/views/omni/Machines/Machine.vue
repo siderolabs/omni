@@ -69,7 +69,7 @@ watch(() => route.params, getMachineName)
         {{ route.name }}
       </TabButton>
     </TabsHeader>
-    <RouterView name="inner" class="grow" />
+    <RouterView class="grow" />
   </div>
 </template>
 
