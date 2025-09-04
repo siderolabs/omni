@@ -6,7 +6,6 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import pluralize from 'pluralize'
-import { copyText } from 'vue3-clipboard'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { ClusterStatusSpec } from '@/api/omni/specs/omni.pb'
@@ -14,7 +13,7 @@ import { ClusterStatusType, DefaultNamespace } from '@/api/resources'
 import { itemID } from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import Card from '@/components/common/Card/Card.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
+import CopyButton from '@/components/common/CopyButton/CopyButton.vue'
 import { useWatch } from '@/components/common/Watch/useWatch'
 import ClusterStatus from '@/views/omni/Clusters/ClusterStatus.vue'
 
@@ -57,13 +56,7 @@ const { data } = useWatch<ClusterStatusSpec>({
           {{ item.metadata.id }}
         </RouterLink>
 
-        <button
-          aria-label="copy"
-          class="rounded p-0.5 text-primary-p2 hover:bg-naturals-n5 hover:text-primary-p1"
-          @click="copyText(item.metadata.id, undefined, () => {})"
-        >
-          <TIcon icon="copy" class="size-4 p-px" />
-        </button>
+        <CopyButton :text="item.metadata.id" />
       </div>
 
       <div class="flex min-w-0 justify-center">

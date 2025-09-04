@@ -20,6 +20,7 @@ const props = withDefaults(
     values: (string | number)[]
     searcheable?: boolean
     menuAlign?: 'left' | 'right'
+    hideSelectedSmallScreens?: boolean
   }>(),
   {
     menuAlign: 'left',
@@ -57,7 +58,9 @@ const filteredValues = computed(() => {
       <ListboxButton class="menu-button flex items-center gap-1">
         <div class="flex overflow-hidden">
           <div v-if="title" class="menu-title">{{ title }}:</div>
-          <div class="flex-1 truncate">{{ selectedItem }}</div>
+          <div class="flex-1 truncate" :class="{ 'max-md:hidden': hideSelectedSmallScreens }">
+            {{ selectedItem }}
+          </div>
         </div>
         <TIcon class="menu-arrow" icon="arrow-down" />
       </ListboxButton>

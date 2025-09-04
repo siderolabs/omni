@@ -24,15 +24,16 @@ const isDropdownOpened = ref(isDefaultOpened?.value as boolean)
   <div class="row" :class="{ opened: isDropdownOpened && !disableBorderOnExpand }">
     <TSlideDownWrapper :is-slider-opened="isDropdownOpened">
       <template #head>
-        <div class="flex items-center">
-          <span v-if="$slots.details">
+        <div class="flex items-center gap-1">
+          <div v-if="$slots.details" class="flex flex-col items-center gap-2">
             <TIcon
               class="row-arrow"
               :class="{ pushed: isDropdownOpened }"
               icon="drop-up"
               @click="() => (isDropdownOpened = !isDropdownOpened)"
             />
-          </span>
+          </div>
+
           <div class="row-head">
             <slot></slot>
           </div>
@@ -51,14 +52,13 @@ const isDropdownOpened = ref(isDefaultOpened?.value as boolean)
 @reference "../../../index.css";
 
 .row {
-  @apply flex w-full flex-col items-center border border-transparent px-2 py-4 text-xs text-naturals-n13 transition-all duration-500;
-  min-width: 450px;
+  @apply flex w-full flex-col border border-transparent px-2 py-4 text-xs text-naturals-n13 transition-all duration-500;
   border-bottom: 1px solid rgba(39, 41, 50);
   border-radius: 4px 4px 0 0;
 }
 
 .row-head {
-  @apply flex-1 px-1;
+  @apply min-w-0 flex-1 px-1;
 }
 
 .row:last-of-type {
@@ -78,7 +78,7 @@ const isDropdownOpened = ref(isDefaultOpened?.value as boolean)
 }
 
 .row-arrow {
-  @apply mr-1 cursor-pointer rounded fill-current text-naturals-n11 transition-all duration-300 hover:bg-naturals-n7;
+  @apply cursor-pointer rounded fill-current text-naturals-n11 transition-all duration-300 hover:bg-naturals-n7;
   transform: rotate(-180deg);
   width: 24px;
   height: 24px;
