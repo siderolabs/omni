@@ -6,22 +6,18 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import type { Ref } from 'vue'
-import { ref, shallowRef } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { RoleAdmin, RoleNone, RoleOperator, RoleReader } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
-import TNotification from '@/components/common/Notification/TNotification.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import { AuthType, authType } from '@/methods'
 import { canManageUsers } from '@/methods/auth'
 import { createUser } from '@/methods/user'
-import type { Notification } from '@/notification'
 import { showError, showSuccess } from '@/notification'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
-
-const notification: Ref<Notification | null> = shallowRef(null)
 
 const identity = ref('')
 const router = useRouter()
@@ -32,7 +28,7 @@ const role: Ref<string> = ref(RoleReader)
 
 const handleUserCreate = async () => {
   if (identity.value === '') {
-    showError('Failed to Create User', 'User email is not defined', notification)
+    showError('Failed to Create User', 'User email is not defined')
 
     return
   }
@@ -40,7 +36,7 @@ const handleUserCreate = async () => {
   try {
     await createUser(identity.value, role.value)
   } catch (e) {
-    showError('Failed to Create User', e.message, notification)
+    showError('Failed to Create User', e.message)
 
     return
   }
@@ -70,26 +66,22 @@ const close = () => {
       <CloseButton @click="close" />
     </div>
 
-    <div class="flex h-full w-full flex-col gap-4">
-      <TNotification v-if="notification" v-bind="notification.props" />
-
-      <div class="flex flex-wrap items-center gap-2">
-        <TInput v-model="identity" title="User Email" class="h-full flex-1" placeholder="..." />
-        <TSelectList
-          class="h-full"
-          title="Role"
-          :values="roles"
-          :default-value="RoleReader"
-          @checked-value="(value) => (role = value)"
-        />
-        <TButton
-          type="highlighted"
-          :disabled="!canManageUsers && authType !== AuthType.SAML"
-          class="h-9 w-32"
-          @click="handleUserCreate"
-          >Create User</TButton
-        >
-      </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <TInput v-model="identity" title="User Email" class="h-full flex-1" placeholder="..." />
+      <TSelectList
+        class="h-full"
+        title="Role"
+        :values="roles"
+        :default-value="RoleReader"
+        @checked-value="(value) => (role = value)"
+      />
+      <TButton
+        type="highlighted"
+        :disabled="!canManageUsers && authType !== AuthType.SAML"
+        class="h-9 w-32"
+        @click="handleUserCreate"
+        >Create User</TButton
+      >
     </div>
   </div>
 </template>
