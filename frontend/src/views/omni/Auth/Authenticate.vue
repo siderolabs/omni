@@ -236,7 +236,7 @@ const Auth = {
 </script>
 
 <template>
-  <div class="flex items-center justify-center">
+  <div class="flex h-full items-center justify-center">
     <div class="flex flex-col gap-2 rounded-md bg-naturals-n3 px-8 py-8 drop-shadow-md">
       <div class="flex items-center gap-4">
         <TIcon icon="key" class="fill-color h-6 w-6" />

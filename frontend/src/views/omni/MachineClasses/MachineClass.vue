@@ -437,7 +437,7 @@ const submit = async () => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div class="flex h-full flex-col gap-4">
     <div class="flex items-start gap-1">
       <PageHeader
         :title="`${edit ? 'Edit Machine Class' : 'Create Machine Class'}`"

@@ -20,7 +20,7 @@ const openMachineClassCreate = () => {
 </script>
 
 <template>
-  <div class="flex flex-col">
+  <div class="flex h-full flex-col">
     <div class="flex items-start gap-1">
       <PageHeader title="Machine Classes" class="flex-1" />
       <TButton :disabled="!canRemoveMachines" type="highlighted" @click="openMachineClassCreate"
