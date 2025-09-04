@@ -10,9 +10,9 @@ import NodesHeader from '@/views/cluster/Nodes/NodesHeader.vue'
 </script>
 
 <template>
-  <div class="flex flex-col">
+  <div class="flex h-full flex-col">
     <NodesHeader />
     <NodeDetailsTabs :machine="$route.params.machine as string" class="mb-4" />
-    <RouterView name="nodeDetails" />
+    <RouterView name="nodeDetails" class="grow" />
   </div>
 </template>

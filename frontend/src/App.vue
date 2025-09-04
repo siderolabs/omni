@@ -45,7 +45,7 @@ router.afterEach(() => (isSidebarOpen.value = false))
       />
 
       <div
-        class="relative flex size-full grow flex-col gap-4 overflow-auto p-6"
+        class="relative flex grow flex-col gap-4 overflow-auto p-6"
         :class="{ 'max-md:pointer-events-none max-md:select-none': isSidebarOpen }"
       >
         <TSuspended v-if="suspended" />

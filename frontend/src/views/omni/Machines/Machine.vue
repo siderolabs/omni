@@ -54,7 +54,7 @@ watch(() => route.params, getMachineName)
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div class="flex h-full flex-col gap-4">
     <div class="flex h-9 justify-between">
       <PageHeader :title="`${machine}`" />
     </div>
@@ -69,7 +69,7 @@ watch(() => route.params, getMachineName)
         {{ route.name }}
       </TabButton>
     </TabsHeader>
-    <RouterView name="inner" class="flex-1" />
+    <RouterView name="inner" class="grow" />
   </div>
 </template>
 
