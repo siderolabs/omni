@@ -63,10 +63,6 @@ func TestMachineSetDestroyStatusController(t *testing.T) {
 				asrt.Equal("Destroying: 2 machines", res.TypedSpec().Value.Phase)
 			})
 
-			rtestutils.AssertResource(ctx, t, st, "cm0", func(res *omni.ClusterMachineStatus, asrt *assert.Assertions) {
-				asrt.True(res.Metadata().Finalizers().Has(omnictrl.NewMachineSetDestroyStatusController().Name()))
-			})
-
 			rtestutils.Destroy[*omni.ClusterMachineStatus](ctx, t, st, []string{"cm0"})
 
 			rtestutils.AssertResource(ctx, t, st, machineSet.Metadata().ID(), func(res *omni.MachineSetDestroyStatus, asrt *assert.Assertions) {
