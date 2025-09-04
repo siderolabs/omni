@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { type Component, computed, type Ref, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -18,7 +18,7 @@ import TAlert from '@/components/TAlert.vue'
 import { getContext } from '@/context'
 
 const bootstrapped = ref(false)
-const cluster: Ref<Resource<ClusterSpec> | undefined> = ref()
+const cluster = ref<Resource<ClusterSpec>>()
 
 const watch = new Watch(cluster, (message) => {
   if (message.event?.event_type === EventType.BOOTSTRAPPED) {
@@ -42,16 +42,10 @@ watch.setup(
     }
   }),
 )
-
-type Props = {
-  inner: Component
-}
-
-defineProps<Props>()
 </script>
 
 <template>
-  <component :is="inner" v-if="cluster" :current-cluster="cluster" />
+  <RouterView v-if="cluster" :current-cluster="cluster" />
   <div v-else-if="bootstrapped" class="font-sm flex-1">
     <TAlert title="Cluster Not Found" type="error">
       Cluster {{ route.params.cluster as string }} does not exist.

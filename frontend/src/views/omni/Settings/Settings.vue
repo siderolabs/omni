@@ -19,9 +19,9 @@ defineProps<Props>()
 <template>
   <div class="flex h-full flex-col gap-4">
     <div class="flex items-start gap-1">
-      <PageHeader title="Settings" class="flex-1" :subtitle="`${$route.meta.title}`" />
+      <PageHeader title="Settings" class="flex-1" :subtitle="$route.meta.title" />
     </div>
-    <RouterView name="inner" class="grow" />
+    <RouterView class="grow" />
   </div>
 </template>
 
