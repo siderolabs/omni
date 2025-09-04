@@ -8,13 +8,12 @@ included in the LICENSE file.
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-import TNotification from '@/components/common/Notification/TNotification.vue'
+import AppToast from '@/components/common/AppToast/AppToast.vue'
 import TSuspended from '@/components/common/Suspended/TSuspended.vue'
 import TSideBar from '@/components/SideBar/TSideBar.vue'
 import THeader from '@/components/THeader/THeader.vue'
 import TModal from '@/components/TModal.vue'
 import { suspended } from '@/methods'
-import { notification } from '@/notification'
 
 const isSidebarOpen = ref(false)
 const router = useRouter()
@@ -24,6 +23,8 @@ router.afterEach(() => (isSidebarOpen.value = false))
 
 <template>
   <main class="flex h-screen flex-col">
+    <AppToast />
+
     <THeader
       class="shrink-0"
       :sidebar-open="isSidebarOpen"
@@ -49,7 +50,6 @@ router.afterEach(() => (isSidebarOpen.value = false))
         :class="{ 'max-md:pointer-events-none max-md:select-none': isSidebarOpen }"
       >
         <TSuspended v-if="suspended" />
-        <TNotification v-if="notification" v-bind="notification.props" />
         <RouterView />
       </div>
     </div>

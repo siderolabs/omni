@@ -6,17 +6,15 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import type { Ref } from 'vue'
-import { ref, shallowRef } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import TButton from '@/components/common/Button/TButton.vue'
 import TButtonGroup from '@/components/common/Button/TButtonGroup.vue'
-import TNotification from '@/components/common/Notification/TNotification.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import { AuthType, authType } from '@/methods'
 import { canManageUsers } from '@/methods/auth'
 import { createJoinToken } from '@/methods/user'
-import type { Notification } from '@/notification'
 import { showError, showSuccess } from '@/notification'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
@@ -24,8 +22,6 @@ enum Lifetime {
   NeverExpire = 'Never Expire',
   Limited = 'Limited',
 }
-
-const notification: Ref<Notification | null> = shallowRef(null)
 
 const expiration = ref(365)
 const router = useRouter()
@@ -37,7 +33,7 @@ const name = ref<string>('')
 
 const handleCreate = async () => {
   if (name.value === '') {
-    showError('Failed to Create Join Token', 'Name is not defined', notification)
+    showError('Failed to Create Join Token', 'Name is not defined')
 
     return
   }
@@ -48,14 +44,14 @@ const handleCreate = async () => {
       lifetime.value === Lifetime.Limited ? expiration.value : undefined,
     )
   } catch (e) {
-    showError('Failed to Create Join Token', e.message, notification)
+    showError('Failed to Create Join Token', e.message)
 
     return
   }
 
   close()
 
-  showSuccess('Join Token Was Created', undefined, notification)
+  showSuccess('Join Token Was Created', undefined)
 }
 
 let closed = false
@@ -78,46 +74,42 @@ const close = () => {
       <CloseButton @click="close" />
     </div>
 
-    <div class="flex h-full w-full flex-col gap-4">
-      <TNotification v-if="notification" v-bind="notification.props" />
-
-      <template v-if="!key">
-        <div class="flex flex-col gap-2">
-          <TInput v-model="name" title="Name" class="h-full flex-1" :on-clear="() => (name = '')" />
-          <div class="flex items-center gap-1 text-xs">
-            Lifetime:
-            <TButtonGroup
-              v-model="lifetime"
-              :options="[
-                {
-                  label: 'No Expiration',
-                  value: Lifetime.NeverExpire,
-                },
-                {
-                  label: 'Limited',
-                  value: Lifetime.Limited,
-                },
-              ]"
-            />
-          </div>
-          <TInput
-            v-model="expiration"
-            :disabled="lifetime === Lifetime.NeverExpire"
-            title="Expiration Days"
-            type="number"
-            :min="1"
-            class="flex-1"
+    <template v-if="!key">
+      <div class="flex flex-col gap-2">
+        <TInput v-model="name" title="Name" class="h-full flex-1" :on-clear="() => (name = '')" />
+        <div class="flex items-center gap-1 text-xs">
+          Lifetime:
+          <TButtonGroup
+            v-model="lifetime"
+            :options="[
+              {
+                label: 'No Expiration',
+                value: Lifetime.NeverExpire,
+              },
+              {
+                label: 'Limited',
+                value: Lifetime.Limited,
+              },
+            ]"
           />
         </div>
-        <TButton
-          type="highlighted"
-          :disabled="!canManageUsers && authType !== AuthType.SAML"
-          class="h-9"
-          @click="handleCreate"
-          >Create Join Token</TButton
-        >
-      </template>
-    </div>
+        <TInput
+          v-model="expiration"
+          :disabled="lifetime === Lifetime.NeverExpire"
+          title="Expiration Days"
+          type="number"
+          :min="1"
+          class="flex-1"
+        />
+      </div>
+      <TButton
+        type="highlighted"
+        :disabled="!canManageUsers && authType !== AuthType.SAML"
+        class="h-9"
+        @click="handleCreate"
+        >Create Join Token</TButton
+      >
+    </template>
   </div>
 </template>
 
