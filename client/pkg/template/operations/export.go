@@ -28,8 +28,9 @@ import (
 )
 
 type clusterResources struct {
-	patches    *layeredResources[*omni.ConfigPatch]
-	extensions *layeredResources[*omni.ExtensionsConfiguration]
+	patches         *layeredResources[*omni.ConfigPatch]
+	extensions      *layeredResources[*omni.ExtensionsConfiguration]
+	extraKernelArgs *layeredResources[*omni.ExtraKernelArgsConfiguration]
 
 	machineSetNodes            map[string][]*omni.MachineSetNode
 	clusterMachineInstallDisks map[string]string
@@ -52,6 +53,7 @@ func ExportTemplate(ctx context.Context, st state.State, clusterID string, write
 	}
 
 	clusterModel.SystemExtensions = transformExtensions(resources.extensions.cluster)
+	clusterModel.ExtraKernelArgs = transformExtraKernelArgs(resources.extraKernelArgs.cluster)
 
 	var controlPlaneMachineSetModel models.ControlPlane
 
@@ -66,6 +68,7 @@ func ExportTemplate(ctx context.Context, st state.State, clusterID string, write
 		}
 
 		machineSetModel.SystemExtensions = transformExtensions(resources.extensions.machineSet[machineSet.Metadata().ID()])
+		machineSetModel.ExtraKernelArgs = transformExtraKernelArgs(resources.extraKernelArgs.machineSet[machineSet.Metadata().ID()])
 
 		if _, isControlPlane := machineSet.Metadata().Labels().Get(omni.LabelControlPlaneRole); isControlPlane {
 			controlPlaneMachineSetModel = models.ControlPlane{MachineSet: machineSetModel}
@@ -89,6 +92,7 @@ func ExportTemplate(ctx context.Context, st state.State, clusterID string, write
 			}
 
 			machineModel.SystemExtensions = transformExtensions(resources.extensions.clusterMachine[machineSetNode.Metadata().ID()])
+			machineModel.ExtraKernelArgs = transformExtraKernelArgs(resources.extraKernelArgs.clusterMachine[machineSetNode.Metadata().ID()])
 
 			machineModels = append(machineModels, machineModel)
 		}
@@ -446,12 +450,18 @@ func collectClusterResources(ctx context.Context, st state.State, clusterID stri
 		return clusterResources{}, err
 	}
 
+	extraKernelArgs, err := collectResourceLayers[*omni.ExtraKernelArgsConfiguration](ctx, st, clusterID, nil)
+	if err != nil {
+		return clusterResources{}, err
+	}
+
 	return clusterResources{
 		cluster:                    cluster,
 		machineSets:                slices.AppendSeq(make([]*omni.MachineSet, 0, machineSetList.Len()), machineSetList.All()),
 		machineSetNodes:            machineSetNodes,
 		patches:                    patches,
 		extensions:                 extensions,
+		extraKernelArgs:            extraKernelArgs,
 		clusterMachineInstallDisks: clusterMachineInstallDisks,
 	}, nil
 }
@@ -462,6 +472,14 @@ func transformExtensions(extensions []*omni.ExtensionsConfiguration) models.Syst
 	}
 
 	return models.SystemExtensions{SystemExtensions: extensions[0].TypedSpec().Value.Extensions}
+}
+
+func transformExtraKernelArgs(extraKernelArgs []*omni.ExtraKernelArgsConfiguration) models.ExtraKernelArgs {
+	if len(extraKernelArgs) == 0 {
+		return models.ExtraKernelArgs{}
+	}
+
+	return models.ExtraKernelArgs{ExtraKernelArgs: extraKernelArgs[0].TypedSpec().Value.Args}
 }
 
 type layeredResources[T meta.ResourceWithRD] struct {

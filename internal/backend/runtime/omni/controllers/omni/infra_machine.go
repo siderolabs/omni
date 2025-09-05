@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
@@ -86,6 +87,11 @@ func (ctrl *InfraMachineController) Settings() controller.QSettings {
 			},
 			{
 				Namespace: resources.DefaultNamespace,
+				Type:      omni.MachineExtraKernelArgsType,
+				Kind:      controller.InputQMapped,
+			},
+			{
+				Namespace: resources.DefaultNamespace,
 				Type:      omni.ClusterMachineType,
 				Kind:      controller.InputQMapped,
 			},
@@ -150,6 +156,10 @@ func (ctrl *InfraMachineController) reconcileTearingDown(ctx context.Context, r 
 		return err
 	}
 
+	if _, err := helpers.HandleInput[*omni.MachineExtraKernelArgs](ctx, r, ctrl.Name(), link); err != nil {
+		return err
+	}
+
 	if _, err := helpers.HandleInput[*omni.ClusterMachine](ctx, r, ctrl.Name(), link); err != nil {
 		return err
 	}
@@ -188,6 +198,11 @@ func (ctrl *InfraMachineController) reconcileRunning(ctx context.Context, r cont
 		return err
 	}
 
+	machineExtraKernelArgs, err := helpers.HandleInput[*omni.MachineExtraKernelArgs](ctx, r, ctrl.Name(), link)
+	if err != nil {
+		return err
+	}
+
 	machineStatus, err := helpers.HandleInput[*omni.MachineStatus](ctx, r, ctrl.Name(), link)
 	if err != nil {
 		return err
@@ -215,14 +230,15 @@ func (ctrl *InfraMachineController) reconcileRunning(ctx context.Context, r cont
 	machineInfoCollected := machineStatus != nil && machineStatus.TypedSpec().Value.SecurityState != nil
 
 	helper := &infraMachineControllerHelper{
-		config:               config,
-		machineExts:          machineExts,
-		link:                 link,
-		nodeUniqueToken:      nodeUniqueToken,
-		runtime:              r,
-		machineInfoCollected: machineInfoCollected,
-		providerID:           providerID,
-		controllerName:       ctrl.Name(),
+		config:                 config,
+		machineExts:            machineExts,
+		machineExtraKernelArgs: machineExtraKernelArgs,
+		link:                   link,
+		nodeUniqueToken:        nodeUniqueToken,
+		runtime:                r,
+		machineInfoCollected:   machineInfoCollected,
+		providerID:             providerID,
+		controllerName:         ctrl.Name(),
 	}
 
 	return safe.WriterModify[*infra.Machine](ctx, r, infra.NewMachine(link.Metadata().ID()), func(res *infra.Machine) error {
@@ -231,14 +247,15 @@ func (ctrl *InfraMachineController) reconcileRunning(ctx context.Context, r cont
 }
 
 type infraMachineControllerHelper struct {
-	runtime              controller.QRuntime
-	config               *omni.InfraMachineConfig
-	machineExts          *omni.MachineExtensions
-	link                 *siderolink.Link
-	nodeUniqueToken      *siderolink.NodeUniqueToken
-	providerID           string
-	controllerName       string
-	machineInfoCollected bool
+	runtime                controller.QRuntime
+	config                 *omni.InfraMachineConfig
+	machineExts            *omni.MachineExtensions
+	machineExtraKernelArgs *omni.MachineExtraKernelArgs
+	link                   *siderolink.Link
+	nodeUniqueToken        *siderolink.NodeUniqueToken
+	providerID             string
+	controllerName         string
+	machineInfoCollected   bool
 }
 
 func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMachine *infra.Machine) error {
@@ -296,16 +313,20 @@ func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMac
 		return err
 	}
 
-	var extensions []string
+	// set the cluster allocation information
+	infraMachine.TypedSpec().Value.ClusterTalosVersion = schematicConfig.TypedSpec().Value.TalosVersion
 
+	// set the extensions information
 	if helper.machineExts != nil {
-		extensions = helper.machineExts.TypedSpec().Value.Extensions
+		infraMachine.TypedSpec().Value.Extensions = helper.machineExts.TypedSpec().Value.Extensions
+	} else {
+		infraMachine.TypedSpec().Value.Extensions = nil
 	}
 
-	// set the cluster allocation information
-
-	infraMachine.TypedSpec().Value.ClusterTalosVersion = schematicConfig.TypedSpec().Value.TalosVersion
-	infraMachine.TypedSpec().Value.Extensions = extensions
+	// set the extra kernel args information
+	if helper.machineExtraKernelArgs != nil { // if there is a machineExtraKernelArgs defined, it wins over the one in infraMachineConfig
+		infraMachine.TypedSpec().Value.ExtraKernelArgs = strings.Join(helper.machineExtraKernelArgs.TypedSpec().Value.Args, " ")
+	} // here, we do not reset the field back to empty, so it will have the value in the infraMachineConfig
 
 	return nil
 }
@@ -319,6 +340,7 @@ func (ctrl *InfraMachineController) MapInput(ctx context.Context, _ *zap.Logger,
 		omni.InfraMachineConfigType,
 		omni.SchematicConfigurationType,
 		omni.MachineExtensionsType,
+		omni.MachineExtraKernelArgsType,
 		omni.ClusterMachineType,
 		omni.MachineStatusType:
 		return []resource.Pointer{siderolink.NewLink(resources.DefaultNamespace, ptr.ID(), nil).Metadata()}, nil

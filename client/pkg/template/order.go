@@ -16,11 +16,12 @@ import (
 
 // Canonical order of resources in the generated list.
 var canonicalResourceOrder = map[resource.Type]int{
-	omni.ClusterType:                 1,
-	omni.ExtensionsConfigurationType: 2,
-	omni.ConfigPatchType:             3,
-	omni.MachineSetType:              4,
-	omni.MachineSetNodeType:          5,
+	omni.ClusterType:                      1,
+	omni.ExtensionsConfigurationType:      2,
+	omni.ExtraKernelArgsConfigurationType: 3,
+	omni.ConfigPatchType:                  4,
+	omni.MachineSetType:                   5,
+	omni.MachineSetNodeType:               6,
 }
 
 func sortResources[T any](s []T, mapper func(T) resource.Metadata) {
