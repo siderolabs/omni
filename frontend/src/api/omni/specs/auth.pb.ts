@@ -12,6 +12,14 @@ export type AuthConfigSpecAuth0 = {
   useFormData?: boolean
 }
 
+export type AuthConfigSpecOIDC = {
+  enabled?: boolean
+  provider_url?: string
+  client_id?: string
+  client_secret?: string
+  scopes?: string[]
+}
+
 export type AuthConfigSpecWebauthn = {
   enabled?: boolean
   required?: boolean
@@ -31,6 +39,7 @@ export type AuthConfigSpec = {
   webauthn?: AuthConfigSpecWebauthn
   suspended?: boolean
   saml?: AuthConfigSpecSAML
+  oidc?: AuthConfigSpecOIDC
 }
 
 export type SAMLAssertionSpec = {

@@ -6,8 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useAuth0 } from '@auth0/auth0-vue'
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, toRefs } from 'vue'
 
 import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
 import { AuthType, authType } from '@/methods'
@@ -17,28 +16,27 @@ import { resetKeys } from '@/methods/key'
 type Props = {
   withLogoutControls?: boolean
   size?: 'normal' | 'small'
+  avatar?: string
+  fullname?: string
+  email?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   size: 'normal',
 })
 
-const auth0 = useAuth0()
+const { avatar, fullname } = toRefs(props)
 
-const route = useRoute()
+const auth0 = useAuth0()
 
 const identity = computed(
   () =>
-    route.query.identity ||
+    props.email ||
     auth0?.user?.value?.email?.toLowerCase() ||
     window.localStorage.getItem('identity'),
 )
-const avatar = computed(
-  () => route.query.avatar || auth0?.user?.value?.picture || window.localStorage.getItem('avatar'),
-)
-const fullname = computed(
-  () => route.query.fullname || auth0?.user?.value?.name || window.localStorage.getItem('fullname'),
-)
+const picture = computed(() => avatar.value ?? auth0?.user?.value?.picture)
+const name = computed(() => fullname.value ?? auth0?.user?.value?.name)
 
 const fontSize = computed(() => {
   if (props.size === 'small') {
@@ -63,7 +61,7 @@ const doLogout = async () => {
 
   currentUser.value = undefined
 
-  if (authType.value === AuthType.SAML) {
+  if (authType.value !== AuthType.Auth0) {
     location.reload()
   }
 }
@@ -72,14 +70,14 @@ const doLogout = async () => {
 <template>
   <div class="flex items-center gap-2" :class="fontSize">
     <img
-      v-if="avatar"
+      v-if="picture"
       class="rounded-full"
       :class="imageSize"
-      :src="avatar as string"
+      :src="picture"
       referrerpolicy="no-referrer"
     />
     <div class="flex flex-1 flex-col truncate">
-      <div class="truncate text-naturals-n13">{{ fullname }}</div>
+      <div class="truncate text-naturals-n13">{{ name }}</div>
       {{ identity }}
     </div>
     <TActionsBox v-if="withLogoutControls" placement="top">
