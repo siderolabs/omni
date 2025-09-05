@@ -22,6 +22,7 @@ import {
   TalosUpgradeStatusSpecPhase,
 } from '@/api/omni/specs/omni.pb'
 import {
+  ClusterLocked,
   ClusterStatusType,
   DefaultNamespace,
   KubernetesUpgradeStatusType,
@@ -33,6 +34,7 @@ import Watch from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import RadialBar from '@/components/common/Charts/RadialBar.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
+import TAlert from '@/components/TAlert.vue'
 import { getContext } from '@/context'
 import { formatBytes, setupBackupStatus } from '@/methods'
 import { setupClusterPermissions } from '@/methods/auth'
@@ -163,6 +165,18 @@ const toggleUseEmbeddedDiscoveryService = async () => {
   await setUseEmbeddedDiscoveryService(context.cluster ?? '', newValue)
 }
 
+const clusterLocked = computed(() => {
+  return currentCluster?.value?.metadata.annotations?.[ClusterLocked] !== undefined
+})
+
+const machineLockedForTalosUpgrade = computed(() => {
+  return talosUpgradeStatus.value?.spec.status === 'upgrade paused'
+})
+
+const machineLockedForKubernetesUpgrade = computed(() => {
+  return kubernetesUpgradeStatus.value?.spec.status === 'waiting for machine to be unlocked'
+})
+
 onMounted(async () => {
   isEmbeddedDiscoveryServiceAvailable.value = await embeddedDiscoveryServiceFeatureAvailable()
 })
@@ -171,7 +185,11 @@ onMounted(async () => {
 <template>
   <div>
     <div class="overview">
-      <div class="overview-container">
+      <div class="overview-container margin">
+        <TAlert v-if="clusterLocked" title="Cluster is Locked" type="warn" class="mb-4">
+          All operations on this cluster are currently disabled. Config patches can be created,
+          updated or deleted but these changes will not be applied while the cluster is locked.
+        </TAlert>
         <div class="overview-charts-box relative">
           <div
             class="flex w-full flex-wrap gap-2 transition-opacity duration-500 *:flex-1"
@@ -247,17 +265,24 @@ onMounted(async () => {
               </span>
             </template>
           </div>
-          <div class="flex items-center gap-2 border-t-8 border-naturals-n4 p-4 text-xs">
-            <TIcon icon="loading" class="h-6 w-6 animate-spin text-yellow-y1" />
+          <div class="flex min-h-20 items-center gap-2 border-t-8 border-naturals-n4 p-4 text-xs">
+            <TIcon
+              v-if="clusterLocked || machineLockedForKubernetesUpgrade"
+              icon="pause-circle"
+              class="h-6 w-6"
+            />
+            <TIcon v-else icon="loading" class="h-6 w-6 animate-spin text-yellow-y1" />
             <div class="flex-1">
               {{ kubernetesUpgradeStatus.spec.step }}
-              <template v-if="kubernetesUpgradeStatus.spec.status">
+              <template v-if="kubernetesUpgradeStatus.spec.status && !clusterLocked">
                 - {{ kubernetesUpgradeStatus.spec.status }}
               </template>
+              <template v-if="clusterLocked"> - waiting for cluster to be unlocked </template>
             </div>
             <TButton
               v-if="
-                kubernetesUpgradeStatus.spec.phase === KubernetesUpgradeStatusSpecPhase.Upgrading
+                kubernetesUpgradeStatus.spec.phase === KubernetesUpgradeStatusSpecPhase.Upgrading &&
+                !clusterLocked
               "
               type="secondary"
               class="place-self-end"
@@ -298,18 +323,25 @@ onMounted(async () => {
               <span class="overview-box-title"> Installing Extensions </span>
             </template>
           </div>
-          <div class="flex items-center gap-2 border-t-8 border-naturals-n4 p-4 text-xs">
-            <TIcon icon="loading" class="h-6 w-6 animate-spin text-yellow-y1" />
+          <div class="flex min-h-20 items-center gap-2 border-t-8 border-naturals-n4 p-4 text-xs">
+            <TIcon
+              v-if="clusterLocked || machineLockedForTalosUpgrade"
+              icon="pause-circle"
+              class="h-6 w-6"
+            />
+            <TIcon v-else icon="loading" class="h-6 w-6 animate-spin text-yellow-y1" />
             <div class="flex-1">
               {{ talosUpgradeStatus.spec.status }}
-              <template v-if="talosUpgradeStatus.spec.status">
+              <template v-if="talosUpgradeStatus.spec.status && !clusterLocked">
                 - {{ talosUpgradeStatus.spec.step }}
               </template>
+              <template v-if="clusterLocked"> - waiting for cluster to be unlocked </template>
             </div>
             <TButton
               v-if="
                 talosUpgradeStatus.spec.phase === TalosUpgradeStatusSpecPhase.Upgrading &&
-                talosUpgradeStatus.spec.current_upgrade_version
+                talosUpgradeStatus.spec.current_upgrade_version &&
+                !clusterLocked
               "
               type="secondary"
               class="place-self-end"

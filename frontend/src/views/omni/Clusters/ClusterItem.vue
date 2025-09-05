@@ -14,6 +14,7 @@ import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import type { ClusterStatusSpec, MachineSetSpec } from '@/api/omni/specs/omni.pb'
 import {
+  ClusterLocked,
   DefaultNamespace,
   LabelCluster,
   LabelMachineSet,
@@ -24,6 +25,7 @@ import WatchResource from '@/api/watch'
 import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/common/ActionsBox/TActionsBoxItem.vue'
 import IconButton from '@/components/common/Button/IconButton.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
 import ListItemBox from '@/components/common/List/ListItemBox.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import { downloadKubeconfig, downloadTalosconfig } from '@/methods'
@@ -31,6 +33,7 @@ import { setupClusterPermissions } from '@/methods/auth'
 import { addClusterLabels, removeClusterLabels } from '@/methods/cluster'
 import { controlPlaneMachineSetId } from '@/methods/machineset'
 import ClusterMachines from '@/views/cluster/ClusterMachines/ClusterMachines.vue'
+import ClusterStatus from '@/views/omni/Clusters/ClusterStatus.vue'
 import ItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
 
 const box = ref<{ collapsed: boolean }>()
@@ -98,6 +101,10 @@ machineNodesWatch.setup(
     }
   }),
 )
+
+const locked = computed(() => {
+  return item?.value?.metadata.annotations?.[ClusterLocked] !== undefined
+})
 </script>
 
 <template>
@@ -109,8 +116,11 @@ machineNodesWatch.setup(
   >
     <template #default>
       <div class="clusters-grid flex-1">
-        <div class="list-item-link">
-          <RouterLink :to="{ name: 'ClusterOverview', params: { cluster: item?.metadata.id } }">
+        <div class="flex items-center gap-1">
+          <RouterLink
+            :to="{ name: 'ClusterOverview', params: { cluster: item?.metadata.id } }"
+            class="list-item-link"
+          >
             <WordHighlighter
               :query="searchQuery ?? ''"
               :text-to-highlight="item.metadata.id"
@@ -118,11 +128,14 @@ machineNodesWatch.setup(
               highlight-class="bg-naturals-n14"
             />
           </RouterLink>
+          <TIcon v-if="locked" class="size-3.5 cursor-pointer" icon="locked" />
         </div>
         <div id="machine-count" class="ml-3">
           {{ item?.spec?.machines?.healthy ?? 0 }}/{{ item?.spec?.machines?.total ?? 0 }}
         </div>
-        <div />
+        <div>
+          <ClusterStatus :cluster="item" />
+        </div>
         <ItemLabels
           v-if="item"
           class="ml-5"

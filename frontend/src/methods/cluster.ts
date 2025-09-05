@@ -22,6 +22,7 @@ import type {
 } from '@/api/omni/specs/omni.pb'
 import { withRuntime, withSelectors, withTimeout } from '@/api/options'
 import {
+  ClusterLocked,
   ClusterType,
   ConfigPatchType,
   DefaultNamespace,
@@ -587,4 +588,25 @@ export const embeddedDiscoveryServiceAvailable = async (
   }
 
   return await embeddedDiscoveryServiceFeatureAvailable()
+}
+
+export const updateClusterLock = async (id: string, locked: boolean) => {
+  const cluster = await ResourceService.Get(
+    {
+      namespace: DefaultNamespace,
+      type: ClusterType,
+      id: id,
+    },
+    withRuntime(Runtime.Omni),
+  )
+
+  if (!cluster.metadata.annotations) cluster.metadata.annotations = {}
+
+  if (locked) {
+    cluster.metadata.annotations[ClusterLocked] = ''
+  } else {
+    delete cluster.metadata.annotations[ClusterLocked]
+  }
+
+  await ResourceService.Update(cluster, undefined, withRuntime(Runtime.Omni))
 }

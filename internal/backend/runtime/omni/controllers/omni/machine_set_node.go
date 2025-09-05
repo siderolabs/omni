@@ -7,6 +7,7 @@ package omni
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"slices"
@@ -28,6 +29,8 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 )
+
+var errClusterLocked = errors.New("cluster is locked")
 
 type machineStatusLabels = system.ResourceLabels[*omni.MachineStatus]
 
@@ -171,6 +174,10 @@ func (ctrl *MachineSetNodeController) Run(ctx context.Context, r controller.Runt
 			return ctrl.reconcileMachineSet(ctx, r, machineSet, allMachineStatuses, allMachineSetNodes, machineStatusMap, visited, logger)
 		})
 		if err != nil {
+			if errors.Is(err, errClusterLocked) {
+				continue
+			}
+
 			return err
 		}
 
@@ -278,13 +285,33 @@ func (ctrl *MachineSetNodeController) reconcileMachineSet(
 		return nil
 	}
 
+	clusterName, ok := machineSet.Metadata().Labels().Get(omni.LabelCluster)
+	if !ok {
+		return fmt.Errorf("failed to get cluster name of the machine set %q", machineSet.Metadata().ID())
+	}
+
+	cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, r, clusterName)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil
+		}
+
+		return err
+	}
+
+	if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked {
+		logger.Warn("cluster is locked, skip reconcile", zap.String("cluster", cluster.Metadata().ID()))
+
+		return errClusterLocked
+	}
+
 	visited[machineSet.Metadata().ID()] = struct{}{}
 
 	existingMachineSetNodes := allMachineSetNodes.FilterLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID()))
 
 	switch allocation.allocationType {
 	case specs.MachineSetSpec_MachineAllocation_Unlimited:
-		err = ctrl.createNodes(ctx, r, machineSet, allocation, allMachineStatuses, math.MaxInt32, logger)
+		err = ctrl.createNodes(ctx, r, cluster, machineSet, allocation, allMachineStatuses, math.MaxInt32, logger)
 
 		return err // unlimited allocation mode does not cause any machine pressure
 	case specs.MachineSetSpec_MachineAllocation_Static:
@@ -302,7 +329,7 @@ func (ctrl *MachineSetNodeController) reconcileMachineSet(
 
 		logger.Info("scaling machine set up", zap.Int("pending", diff), zap.String("machine_set", machineSet.Metadata().ID()))
 
-		return ctrl.createNodes(ctx, r, machineSet, allocation, allMachineStatuses, diff, logger)
+		return ctrl.createNodes(ctx, r, cluster, machineSet, allocation, allMachineStatuses, diff, logger)
 	}
 
 	return nil
@@ -312,6 +339,7 @@ func (ctrl *MachineSetNodeController) reconcileMachineSet(
 func (ctrl *MachineSetNodeController) createNodes(
 	ctx context.Context,
 	r controller.Runtime,
+	cluster *omni.Cluster,
 	machineSet *omni.MachineSet,
 	allocation *allocationConfig,
 	allMachineStatuses safe.List[*machineStatusLabels],
@@ -319,20 +347,6 @@ func (ctrl *MachineSetNodeController) createNodes(
 	logger *zap.Logger,
 ) (err error) {
 	created := 0
-
-	clusterName, ok := machineSet.Metadata().Labels().Get(omni.LabelCluster)
-	if !ok {
-		return fmt.Errorf("failed to get cluster name of the machine set %q", machineSet.Metadata().ID())
-	}
-
-	cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, r, clusterName)
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return nil
-		}
-
-		return err
-	}
 
 	clusterVersion, err := semver.Parse(cluster.TypedSpec().Value.TalosVersion)
 	if err != nil {
@@ -395,7 +409,7 @@ func (ctrl *MachineSetNodeController) createNodes(
 
 			id := machine.Metadata().ID()
 
-			if err := r.Create(ctx, omni.NewMachineSetNode(resources.DefaultNamespace, id, machineSet)); err != nil {
+			if err = r.Create(ctx, omni.NewMachineSetNode(resources.DefaultNamespace, id, machineSet)); err != nil {
 				if state.IsConflictError(err) {
 					continue
 				}

@@ -49,7 +49,13 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 			UnmapMetadataFunc: func(upgradeStatus *omni.KubernetesUpgradeStatus) *omni.Cluster {
 				return omni.NewCluster(resources.DefaultNamespace, upgradeStatus.Metadata().ID())
 			},
-			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, cluster *omni.Cluster, upgradeStatus *omni.KubernetesUpgradeStatus) error {
+			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, cluster *omni.Cluster, upgradeStatus *omni.KubernetesUpgradeStatus) error {
+				if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked {
+					logger.Warn("cluster is locked, skip reconcile", zap.String("cluster", cluster.Metadata().ID()))
+
+					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("kubernetes upgrades are not allowed: the cluster is locked")
+				}
+
 				kubernetesStatus, err := safe.ReaderGet[*omni.KubernetesStatus](ctx, r, omni.NewKubernetesStatus(resources.DefaultNamespace, cluster.Metadata().ID()).Metadata())
 				if err != nil {
 					if state.IsNotFoundError(err) {
