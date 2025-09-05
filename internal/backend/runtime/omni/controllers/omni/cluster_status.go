@@ -202,6 +202,12 @@ func NewClusterStatusController(embeddedDiscoveryServiceEnabled bool) *ClusterSt
 					clusterStatus.Metadata().Labels().Delete(omni.LabelClusterTainted)
 				}
 
+				if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked {
+					clusterStatus.Metadata().Annotations().Set(omni.ClusterLocked, "")
+				} else {
+					clusterStatus.Metadata().Annotations().Delete(omni.ClusterLocked)
+				}
+
 				return nil
 			},
 		},

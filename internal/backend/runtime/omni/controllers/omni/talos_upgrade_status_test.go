@@ -258,7 +258,7 @@ func (suite *TalosUpgradeStatusSuite) TestReconcileLocked() {
 
 	clusterName := "talos-upgrade-locked"
 
-	cluster, machines := suite.createCluster(clusterName, 3, 1)
+	cluster, machines := suite.createCluster(clusterName, 1, 3)
 
 	clusterStatus := omni.NewClusterStatus(resources.DefaultNamespace, clusterName)
 	clusterStatus.TypedSpec().Value.Available = true
@@ -268,45 +268,47 @@ func (suite *TalosUpgradeStatusSuite) TestReconcileLocked() {
 	suite.Require().NoError(suite.state.Create(suite.ctx, clusterStatus))
 
 	for _, res := range machines {
-		_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, resource.NewMetadata(resources.DefaultNamespace, omni.MachineSetNodeType, res.Metadata().ID(), resource.VersionUndefined), func(
-			r *omni.MachineSetNode,
-		) error {
-			r.Metadata().Annotations().Set(omni.MachineLocked, "")
+		if _, ok := res.Metadata().Labels().Get(omni.LabelWorkerRole); ok {
+			_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, resource.NewMetadata(
+				resources.DefaultNamespace, omni.MachineSetNodeType, res.Metadata().ID(), resource.VersionUndefined,
+			), func(r *omni.MachineSetNode,
+			) error {
+				r.Metadata().Annotations().Set(omni.MachineLocked, "")
 
-			return nil
-		})
+				return nil
+			})
 
-		suite.Require().NoError(err)
+			suite.Require().NoError(err)
+		}
 
 		cmtv := omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, res.Metadata().ID())
 
-		cmtv.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+		helpers.CopyAllLabels(res, cmtv)
 
 		cmtv.TypedSpec().Value.TalosVersion = cluster.TypedSpec().Value.TalosVersion
 
 		suite.Require().NoError(suite.state.Create(suite.ctx, cmtv, state.WithCreateOwner(omnictrl.NewTalosUpgradeStatusController().ControllerName)))
+
+		configStatus := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, res.Metadata().ID())
+
+		helpers.CopyAllLabels(res, configStatus)
+
+		configStatus.TypedSpec().Value.ClusterMachineConfigSha256 = "dddd"
+		configStatus.TypedSpec().Value.TalosVersion = cluster.TypedSpec().Value.TalosVersion
+		configStatus.TypedSpec().Value.SchematicId = defaultSchematic
+
+		suite.Require().NoError(suite.state.Create(suite.ctx, configStatus))
 	}
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
 
-	for _, res := range machines {
-		assertResource(
-			&suite.OmniSuite,
-			*omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, res.Metadata().ID()).Metadata(),
-			func(version *omni.ClusterMachineTalosVersion, assertions *assert.Assertions) {
-				versionSpec := version.TypedSpec().Value
-
-				assertions.Equal(defaultSchematic, versionSpec.SchematicId)
-			},
-		)
-	}
-
 	assertResource(
 		&suite.OmniSuite,
 		*omni.NewTalosUpgradeStatus(resources.DefaultNamespace, clusterName).Metadata(),
 		func(res *omni.TalosUpgradeStatus, assertions *assert.Assertions) {
-			assertions.Equal(specs.TalosUpgradeStatusSpec_Done, res.TypedSpec().Value.Phase)
+			assertions.Contains(res.TypedSpec().Value.Status, "upgrade paused")
+			assertions.Contains(res.TypedSpec().Value.Step, "waiting for the machine")
 		},
 	)
 }

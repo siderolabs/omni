@@ -36,4 +36,8 @@ const (
 	// CreatedWithUniqueToken is set on the link resource when it was created with the provision request
 	// that has node unique token set.
 	CreatedWithUniqueToken = SystemLabelPrefix + "created-with-unique-token"
+
+	// ClusterLocked locks any updates on a cluster.
+	// tsgen:ClusterLocked
+	ClusterLocked = SystemLabelPrefix + "cluster-locked"
 )
