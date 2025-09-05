@@ -22,6 +22,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
+	"github.com/google/uuid"
 	"github.com/siderolabs/gen/xiter"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -444,15 +445,21 @@ func TestRelationLabelsValidation(t *testing.T) {
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	st := validated.NewState(innerSt, omni.RelationLabelsValidationOptions()...)
 
-	// MachineSet -> Cluster
+	clusterID := "test-cluster" //nolint:goconst
+	differentClusterID := "different-cluster"
+	machineSetID := "test-machine-set"
+	differentMachineSetID := "different-machine-set"
+	machineSetNodeId := "test-machine-set-node"
 
-	machineSet := omnires.NewMachineSet(resources.DefaultNamespace, "test-machine-set")
+	// MachineSet
+
+	machineSet := omnires.NewMachineSet(resources.DefaultNamespace, machineSetID)
 
 	err := st.Create(ctx, machineSet)
 	assert.True(t, validated.IsValidationError(err), "expected validation error")
 	assert.ErrorContains(t, err, fmt.Sprintf(`label "%s" does not exist`, omnires.LabelCluster))
 
-	machineSet.Metadata().Labels().Set(omnires.LabelCluster, "test-cluster")
+	machineSet.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
 
 	assert.NoError(t, st.Create(ctx, machineSet))
 
@@ -462,28 +469,56 @@ func TestRelationLabelsValidation(t *testing.T) {
 	assert.True(t, validated.IsValidationError(err), "expected validation error")
 	assert.ErrorContains(t, err, fmt.Sprintf(`label "%s" does not exist`, omnires.LabelCluster))
 
-	machineSet.Metadata().Labels().Set(omnires.LabelCluster, "test-cluster")
+	machineSet.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
 
-	// MachineSetNode -> MachineSet
+	assert.NoError(t, st.Update(ctx, machineSet))
 
-	machineSetNode := omnires.NewMachineSetNode(resources.DefaultNamespace, "test-machine-set", machineSet)
+	machineSet.Metadata().Labels().Set(omnires.LabelCluster, differentClusterID)
 
+	err = st.Update(ctx, machineSet)
+	assert.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, fmt.Sprintf(`changing value of label "%s" from "%s" to "%s"`, omnires.LabelCluster, clusterID, differentClusterID))
+
+	// MachineSetNode
+
+	machineSet.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
+
+	machineSetNode := omnires.NewMachineSetNode(resources.DefaultNamespace, machineSetNodeId, machineSet)
+
+	machineSetNode.Metadata().Labels().Delete(omnires.LabelCluster)
 	machineSetNode.Metadata().Labels().Delete(omnires.LabelMachineSet)
 
 	err = st.Create(ctx, machineSetNode)
 
 	assert.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, fmt.Sprintf(`label "%s" does not exist`, omnires.LabelCluster))
 	assert.ErrorContains(t, err, fmt.Sprintf(`label "%s" does not exist`, omnires.LabelMachineSet))
 
-	machineSetNode.Metadata().Labels().Set(omnires.LabelMachineSet, "test-machine-set")
+	machineSetNode.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
+	machineSetNode.Metadata().Labels().Set(omnires.LabelMachineSet, machineSetID)
 
 	assert.NoError(t, st.Create(ctx, machineSetNode))
 
+	machineSetNode.Metadata().Labels().Delete(omnires.LabelCluster)
 	machineSetNode.Metadata().Labels().Delete(omnires.LabelMachineSet)
 
 	err = st.Update(ctx, machineSetNode)
 	assert.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, fmt.Sprintf(`label "%s" does not exist`, omnires.LabelCluster))
 	assert.ErrorContains(t, err, fmt.Sprintf(`label "%s" does not exist`, omnires.LabelMachineSet))
+
+	machineSetNode.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
+	machineSetNode.Metadata().Labels().Set(omnires.LabelMachineSet, machineSetID)
+
+	assert.NoError(t, st.Update(ctx, machineSetNode))
+
+	machineSetNode.Metadata().Labels().Set(omnires.LabelCluster, differentClusterID)
+	machineSetNode.Metadata().Labels().Set(omnires.LabelMachineSet, differentMachineSetID)
+
+	err = st.Update(ctx, machineSetNode)
+	assert.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, fmt.Sprintf(`changing value of label "%s" from "%s" to "%s"`, omnires.LabelCluster, clusterID, differentClusterID))
+	assert.ErrorContains(t, err, fmt.Sprintf(`changing value of label "%s" from "%s" to "%s"`, omnires.LabelMachineSet, machineSetID, differentMachineSetID))
 }
 
 func TestMachineSetValidation(t *testing.T) {
@@ -500,13 +535,13 @@ func TestMachineSetValidation(t *testing.T) {
 
 	machineSet1 := omnires.NewMachineSet(resources.DefaultNamespace, "test-cluster-wrong-suffix")
 
-	require.NoError(t, st.Create(ctx, omnires.NewCluster(resources.DefaultNamespace, "test-cluster")))
-
-	// no cluster label
+	// cluster doesn't exist
 
 	err = st.Create(ctx, machineSet1)
 	assert.True(t, validated.IsValidationError(err), "expected validation error")
-	assert.ErrorContains(t, err, "cluster label is missing")
+	assert.ErrorContains(t, err, "does not exist")
+
+	require.NoError(t, st.Create(ctx, omnires.NewCluster(resources.DefaultNamespace, "test-cluster")))
 
 	machineSet1.Metadata().Labels().Set(omnires.LabelCluster, "test-cluster")
 
@@ -516,6 +551,7 @@ func TestMachineSetValidation(t *testing.T) {
 	assert.True(t, validated.IsValidationError(err), "expected validation error")
 	assert.ErrorContains(t, err, "machine set must have either")
 
+	require.NoError(t, st.Create(ctx, omnires.NewCluster(resources.DefaultNamespace, "wrong-cluster")))
 	machineSet1.Metadata().Labels().Set(omnires.LabelControlPlaneRole, "")
 	machineSet1.Metadata().Labels().Set(omnires.LabelCluster, "wrong-cluster")
 
@@ -713,15 +749,18 @@ func TestMachineSetLockedAnnotation(t *testing.T) {
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	st := validated.NewState(innerSt, omni.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...)
 
+	cluster := omnires.NewCluster(resources.DefaultNamespace, "test-cluster")
 	machineSet := omnires.NewMachineSet(resources.DefaultNamespace, "test-machine-set")
+	machineSet.Metadata().Labels().Set(omnires.LabelCluster, "test-cluster")
 	machineSetNode := omnires.NewMachineSetNode(resources.DefaultNamespace, "test-machine-set", machineSet)
 
 	machineSetNode.Metadata().Annotations().Set(omnires.MachineLocked, "")
 
 	assert := assert.New(t)
 
-	assert.NoError(st.Create(ctx, machineSetNode))
+	require.NoError(t, st.Create(ctx, cluster))
 	assert.NoError(st.Create(ctx, machineSet))
+	assert.NoError(st.Create(ctx, machineSetNode))
 
 	err := st.Destroy(ctx, machineSetNode.Metadata())
 	assert.Error(err)
@@ -752,6 +791,119 @@ func TestMachineSetLockedAnnotation(t *testing.T) {
 	machineSetNode = omnires.NewMachineSetNode(resources.DefaultNamespace, "test-machine-set-2", machineSet)
 	machineSetNode.Metadata().Annotations().Set(omnires.MachineLocked, "")
 	assert.ErrorContains(st.Create(ctx, machineSetNode), "locking controlplanes is not allowed")
+}
+
+func TestClusterLockedAnnotation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	etcdBackupStoreFactory, err := store.NewStoreFactory()
+	etcdBackupConfig := config.EtcdBackup{
+		TickInterval: time.Minute,
+		MinInterval:  time.Hour,
+		MaxInterval:  24 * time.Hour,
+	}
+
+	require.NoError(t, err)
+
+	var validationOptions []validated.StateOption
+
+	validationOptions = append(validationOptions, omni.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, &config.EmbeddedDiscoveryService{})...)
+	validationOptions = append(validationOptions, omni.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...)
+	validationOptions = append(validationOptions, omni.MachineSetValidationOptions(state.WrapCore(innerSt), etcdBackupStoreFactory)...)
+
+	st := validated.NewState(innerSt, validationOptions...)
+
+	clusterID := "test-cluster"
+	machineSetID := "test-cluster-control-planes"
+	newMachineSetID := fmt.Sprintf("test-cluster-workers-%s", uuid.New())
+	machineSetNodeID := fmt.Sprintf("machine-%s", uuid.New())
+	newMachineSetNodeID := fmt.Sprintf("machine-%s", uuid.New())
+
+	cluster := omnires.NewCluster(resources.DefaultNamespace, clusterID)
+	cluster.TypedSpec().Value.KubernetesVersion = "1.32.7"
+	cluster.TypedSpec().Value.TalosVersion = "1.10.6"
+	talosVersion := omnires.NewTalosVersion(resources.DefaultNamespace, "1.10.6")
+	talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.32.7", "1.32.8"}
+	machineSet := omnires.NewMachineSet(resources.DefaultNamespace, machineSetID)
+	machineSet.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
+	machineSet.Metadata().Labels().Set(omnires.LabelControlPlaneRole, "")
+	machineSetNode := omnires.NewMachineSetNode(resources.DefaultNamespace, machineSetNodeID, machineSet)
+
+	assert := assert.New(t)
+
+	assert.NoError(st.Create(ctx, talosVersion))
+	assert.NoError(st.Create(ctx, cluster))
+	assert.NoError(st.Create(ctx, machineSet))
+	assert.NoError(st.Create(ctx, machineSetNode))
+
+	cluster.Metadata().Annotations().Set(omnires.ClusterLocked, "")
+	assert.NoError(st.Update(ctx, cluster))
+
+	newMachineSet := omnires.NewMachineSet(resources.DefaultNamespace, newMachineSetID)
+	newMachineSet.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
+	newMachineSet.Metadata().Labels().Set(omnires.LabelWorkerRole, "")
+
+	err = st.Create(ctx, newMachineSet)
+	assert.Error(err)
+	assert.True(validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(err, fmt.Sprintf(`adding machine set "%s" to the cluster "%s" is not allowed: the cluster is locked`, newMachineSetID, clusterID))
+
+	err = st.Update(ctx, machineSet)
+	assert.Error(err)
+	assert.True(validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(err, fmt.Sprintf(`updating machine set "%s" on the cluster "%s" is not allowed: the cluster is locked`, machineSetID, clusterID))
+
+	err = st.Destroy(ctx, machineSet.Metadata())
+	assert.Error(err)
+	assert.True(validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(err, fmt.Sprintf(`removing machine set "%s" from the cluster "%s" is not allowed: the cluster is locked`, machineSetID, clusterID))
+
+	newMachineSetNode := omnires.NewMachineSetNode(resources.DefaultNamespace, newMachineSetNodeID, machineSet)
+	newMachineSetNode.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
+	newMachineSetNode.Metadata().Labels().Set(omnires.LabelMachineSet, machineSetID)
+
+	err = st.Create(ctx, newMachineSetNode)
+	assert.Error(err)
+	assert.True(validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(err, fmt.Sprintf(`adding machine set node to the machine set "%s" is not allowed: the cluster "%s" is locked`, machineSetID, clusterID))
+
+	err = st.Update(ctx, machineSetNode)
+	assert.Error(err)
+	assert.True(validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(err, fmt.Sprintf(`updating machine set node on the machine set "%s" is not allowed: the cluster "%s" is locked`, machineSetID, clusterID))
+
+	err = st.Destroy(ctx, machineSetNode.Metadata())
+	assert.Error(err)
+	assert.True(validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(err, fmt.Sprintf("removing machine set node from the machine set \"%s\" is not allowed: the cluster \"%s\" is locked", machineSetID, clusterID))
+
+	err = st.Update(ctx, cluster)
+	assert.Error(err)
+	assert.True(validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(err, fmt.Sprintf(`updating cluster configuration is not allowed: the cluster "%s" is locked`, clusterID))
+
+	err = st.Destroy(ctx, cluster.Metadata())
+	assert.Error(err)
+	assert.True(validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(err, fmt.Sprintf(`deletion is not allowed: the cluster "%s" is locked`, clusterID))
+
+	cluster.Metadata().Annotations().Delete(omnires.ClusterLocked)
+	assert.NoError(st.Update(ctx, cluster))
+
+	cluster.TypedSpec().Value.KubernetesVersion = "1.32.8"
+
+	assert.NoError(st.Update(ctx, cluster))
+	assert.NoError(st.Create(ctx, newMachineSet))
+	assert.NoError(st.Create(ctx, newMachineSetNode))
+	assert.NoError(st.Update(ctx, machineSet))
+	assert.NoError(st.Update(ctx, machineSetNode))
+	assert.NoError(st.Destroy(ctx, machineSetNode.Metadata()))
+	assert.NoError(st.Destroy(ctx, machineSet.Metadata()))
+	assert.NoError(st.Destroy(ctx, cluster.Metadata()))
 }
 
 func TestIdentitySAMLValidation(t *testing.T) {

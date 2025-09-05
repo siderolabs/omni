@@ -87,6 +87,22 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 					return nil
 				}
 
+				clusterName, ok := machineConfig.Metadata().Labels().Get(omni.LabelCluster)
+				if !ok {
+					return fmt.Errorf("failed to determine the cluster name from the cluster machine config %q", machineConfig.Metadata().ID())
+				}
+
+				cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, r, clusterName)
+				if err != nil {
+					return err
+				}
+
+				if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked {
+					logger.Warn("cluster is locked, skip reconcile", zap.String("cluster", cluster.Metadata().ID()))
+
+					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("reconciling cluster machine config is not allowed: the cluster is locked")
+				}
+
 				statusSnapshot, err := safe.ReaderGet[*omni.MachineStatusSnapshot](ctx, r, omni.NewMachineStatusSnapshot(resources.DefaultNamespace, machineConfig.Metadata().ID()).Metadata())
 				if err != nil {
 					if state.IsNotFoundError(err) {
@@ -291,6 +307,9 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 		),
 		qtransform.WithExtraMappedInput[*omni.MachineSet](
 			qtransform.MapperNone(),
+		),
+		qtransform.WithExtraMappedInput[*omni.Cluster](
+			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachineConfig](),
 		),
 		qtransform.WithExtraOutputs(controller.Output{
 			Type: omni.NodeForceDestroyRequestType,

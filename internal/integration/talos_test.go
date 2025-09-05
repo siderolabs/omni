@@ -490,10 +490,37 @@ func AssertTalosUpgradeFlow(testCtx context.Context, st state.State, clusterName
 			asrt.Contains(r.TypedSpec().Value.UpgradeVersions, newTalosVersion, resourceDetails(r))
 		})
 
+		cluster, err := safe.StateGet[*omni.Cluster](ctx, st, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata())
+		require.NoError(t, err)
+
+		// lock the cluster
+		_, err = safe.StateUpdateWithConflicts(ctx, st, cluster.Metadata(), func(cluster *omni.Cluster) error {
+			cluster.Metadata().Annotations().Set(omni.ClusterLocked, "")
+
+			return nil
+		})
+		require.NoError(t, err)
+
+		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata(), func(cluster *omni.Cluster) error {
+			cluster.TypedSpec().Value.TalosVersion = newTalosVersion
+
+			return nil
+		})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "locked")
+
+		// unlock the cluster
+		_, err = safe.StateUpdateWithConflicts(ctx, st, cluster.Metadata(), func(cluster *omni.Cluster) error {
+			cluster.Metadata().Annotations().Delete(omni.ClusterLocked)
+
+			return nil
+		})
+		require.NoError(t, err)
+
 		t.Logf("upgrading cluster %q to %q", clusterName, newTalosVersion)
 
 		// trigger an upgrade
-		_, err := safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata(), func(cluster *omni.Cluster) error {
+		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata(), func(cluster *omni.Cluster) error {
 			cluster.TypedSpec().Value.TalosVersion = newTalosVersion
 
 			return nil

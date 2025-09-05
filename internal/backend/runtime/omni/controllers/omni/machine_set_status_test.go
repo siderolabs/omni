@@ -295,6 +295,7 @@ func (suite *MachineSetStatusSuite) TestEmptyTeardown() {
 	msn := omni.NewMachineSetNode(resources.DefaultNamespace, "1", ms)
 	msn.Metadata().Finalizers().Add(machineset.ControllerName)
 
+	suite.Require().NoError(suite.state.Create(suite.ctx, cluster))
 	suite.Require().NoError(suite.state.Create(suite.ctx, msn))
 	suite.Require().NoError(suite.state.Create(suite.ctx, ms))
 
@@ -828,7 +829,7 @@ func (suite *MachineSetStatusSuite) TestTeardown() {
 
 // TestMachineLocks verifies machine locks block patch updates, deletions, do not block cluster deletion.
 func (suite *MachineSetStatusSuite) TestMachineLocks() {
-	clusterName := "cluster-locks"
+	clusterName := "cluster-locks" //nolint:goconst
 
 	machines := []string{
 		"node01",
@@ -937,6 +938,110 @@ func (suite *MachineSetStatusSuite) TestMachineLocks() {
 		assertions.NoError(patchesErr)
 
 		assertions.Lenf(patches, 2, "machine %s is not locked but was not updated", machine.Metadata().ID())
+	})
+}
+
+func (suite *MachineSetStatusSuite) TestClusterLocks() {
+	clusterName := "cluster-locks"
+
+	machines := []string{
+		"node01",
+		"node02",
+		"node03",
+	}
+
+	machineSet := suite.createMachineSet(clusterName, "machine-set-locks", machines)
+
+	suite.assertMachinesState(machines, clusterName, machineSet.Metadata().ID())
+
+	suite.updateStage(machines, specs.ClusterMachineStatusSpec_RUNNING, true)
+
+	rtestutils.AssertResource[*omni.MachineSetStatus](suite.ctx, suite.T(), suite.state, machineSet.Metadata().ID(), func(r *omni.MachineSetStatus, assertion *assert.Assertions) {
+		assertion.True(
+			r.TypedSpec().Value.Machines.EqualVT(
+				&specs.Machines{
+					Total:     3,
+					Healthy:   3,
+					Connected: 3,
+					Requested: 3,
+				},
+			),
+			"status %#v", r.TypedSpec().Value.Machines,
+		)
+	})
+
+	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata(), func(res *omni.Cluster) error {
+		res.Metadata().Annotations().Set(omni.ClusterLocked, "")
+
+		return nil
+	})
+
+	suite.Require().NoError(err)
+
+	patch := omni.NewConfigPatch(
+		resources.DefaultNamespace,
+		machineSet.Metadata().ID()+"-patch",
+		pair.MakePair(
+			omni.LabelCluster, clusterName,
+		),
+		pair.MakePair(
+			omni.LabelMachineSet, machineSet.Metadata().ID(),
+		),
+	)
+
+	err = patch.TypedSpec().Value.SetUncompressedData([]byte(`cluster:
+  allowSchedulingOnControlPlanes: true`))
+	suite.Require().NoError(err)
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, patch))
+
+	var eg errgroup.Group
+
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*10)
+
+	defer func() {
+		cancel()
+
+		suite.Require().NoError(eg.Wait())
+	}()
+
+	eg.Go(func() error {
+		events := make(chan safe.WrappedStateEvent[*omni.ClusterMachine])
+
+		if e := safe.StateWatchKind(ctx, suite.state, omni.NewClusterMachine(resources.DefaultNamespace, "").Metadata(), events); e != nil {
+			return e
+		}
+
+		for {
+			select {
+			case <-ctx.Done():
+				return suite.ctx.Err()
+			case <-events:
+			}
+
+			suite.syncConfig(machines)
+		}
+	})
+
+	suite.assertMachinePatches(machines, func(machine *omni.ClusterMachineConfigPatches, assertions *assert.Assertions) {
+		patches, patchesErr := machine.TypedSpec().Value.GetUncompressedPatches()
+		assertions.NoError(patchesErr)
+
+		assertions.Lenf(patches, 1, "cluster is locked but machine %s was updated", machine.Metadata().ID())
+	})
+
+	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata(), func(res *omni.Cluster) error {
+		res.Metadata().Annotations().Delete(omni.ClusterLocked)
+
+		return nil
+	})
+
+	suite.Require().NoError(err)
+	suite.assertMachinePatches(machines, func(machine *omni.ClusterMachineConfigPatches, assertions *assert.Assertions) {
+		patches, patchesErr := machine.TypedSpec().Value.GetUncompressedPatches()
+		assertions.NoError(patchesErr)
+
+		assertions.Lenf(patches, 2, "cluster is not locked but machine %s was not updated", machine.Metadata().ID())
 	})
 }
 

@@ -11,9 +11,11 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
+	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -36,6 +38,12 @@ func toSlice[T resource.Resource](list safe.List[T]) []T {
 
 // ReconcileMachines creates, updates and tears down the machines using the ReconciliationContext.
 func ReconcileMachines(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, rc *ReconciliationContext) (bool, error) {
+	if _, locked := rc.cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked {
+		logger.Warn("cluster is locked, skip reconcile", zap.String("cluster", rc.cluster.Metadata().ID()))
+
+		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("reconciling machines are not allowed: the cluster is locked")
+	}
+
 	var operations []Operation
 
 	machineSet := rc.GetMachineSet()

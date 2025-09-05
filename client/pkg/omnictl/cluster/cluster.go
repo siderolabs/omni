@@ -6,11 +6,69 @@
 package cluster
 
 import (
+	"context"
+	"fmt"
+	"os"
+
+	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/spf13/cobra"
 
+	"github.com/siderolabs/omni/client/pkg/client"
+	omniresources "github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omnictl/cluster/kubernetes"
 	"github.com/siderolabs/omni/client/pkg/omnictl/cluster/template"
+	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
+
+var lockClusterCmd = &cobra.Command{
+	Use:   "lock cluster-id",
+	Short: "Lock the cluster",
+	Long:  `When locked, no config updates, upgrades and downgrades will be performed on the cluster nodes.`,
+	Args:  cobra.ExactArgs(1),
+	RunE: func(_ *cobra.Command, args []string) error {
+		return access.WithClient(setClusterLocked(args[0], true))
+	},
+}
+
+var unlockClusterCmd = &cobra.Command{
+	Use:   "unlock cluster-id",
+	Short: "Unlock the cluster",
+	Long:  `Removes locked annotation from the cluster.`,
+	Args:  cobra.ExactArgs(1),
+	RunE: func(_ *cobra.Command, args []string) error {
+		return access.WithClient(setClusterLocked(args[0], false))
+	},
+}
+
+func setClusterLocked(clusterID resource.ID, lock bool) func(context.Context, *client.Client) error {
+	return func(ctx context.Context, client *client.Client) error {
+		st := client.Omni().State()
+
+		cluster, err := safe.StateGet[*omni.Cluster](ctx, st, omni.NewCluster(omniresources.DefaultNamespace, clusterID).Metadata())
+		if err != nil {
+			return err
+		}
+
+		_, err = safe.StateUpdateWithConflicts(ctx, st, cluster.Metadata(), func(res *omni.Cluster) error {
+			if lock {
+				res.Metadata().Annotations().Set(omni.ClusterLocked, "")
+			} else {
+				res.Metadata().Annotations().Delete(omni.ClusterLocked)
+			}
+
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintf(os.Stderr, "cluster %q lock status: %t\n", clusterID, lock)
+
+		return nil
+	}
+}
 
 // clusterCmd represents the cluster sub-command.
 var clusterCmd = &cobra.Command{
@@ -29,4 +87,6 @@ func RootCmd() *cobra.Command {
 func init() {
 	clusterCmd.AddCommand(template.RootCmd())
 	clusterCmd.AddCommand(kubernetes.RootCmd())
+	clusterCmd.AddCommand(lockClusterCmd)
+	clusterCmd.AddCommand(unlockClusterCmd)
 }

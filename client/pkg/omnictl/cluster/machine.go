@@ -78,8 +78,13 @@ func setLocked(machineID resource.ID, lock bool) func(context.Context, *client.C
 
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 
-		return err
+		fmt.Fprintf(os.Stderr, "machine %q lock status: %t\n", machineID, lock)
+
+		return nil
 	}
 }
 

@@ -24,6 +24,7 @@ import type {
 } from '@/api/omni/specs/omni.pb'
 import {
   ClusterDiagnosticsType,
+  ClusterLocked,
   ClusterStatusType,
   ControlPlaneStatusType,
   DefaultNamespace,
@@ -39,7 +40,7 @@ import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import type { BackupsStatus } from '@/methods'
 import { downloadKubeconfig, downloadTalosconfig } from '@/methods'
 import { setupClusterPermissions } from '@/methods/auth'
-import { triggerEtcdBackup } from '@/methods/cluster'
+import { triggerEtcdBackup, updateClusterLock } from '@/methods/cluster'
 import { controlPlaneMachineSetId } from '@/methods/machineset'
 import { formatISO } from '@/methods/time'
 import { showError } from '@/notification'
@@ -207,7 +208,11 @@ const getVersion = (spec: { last_upgrade_version?: string; current_upgrade_versi
   return spec.last_upgrade_version
 }
 
-const openClusterUpdate = (type: Update) => {
+const openClusterUpdate = (type: Update, locked: boolean) => {
+  if (locked) {
+    return
+  }
+
   if (type === Update.Kubernetes && !canUpdateKubernetes.value) {
     return
   }
@@ -229,6 +234,22 @@ const openDownloadSupportBundle = () => {
   router.push({
     query: { modal: 'downloadSupportBundle', cluster: currentCluster?.value?.metadata?.id },
   })
+}
+
+const locked = computed(() => {
+  return currentCluster?.value?.metadata.annotations?.[ClusterLocked] !== undefined
+})
+
+const updateLock = async () => {
+  if (!currentCluster?.value?.metadata.id) {
+    return
+  }
+
+  try {
+    await updateClusterLock(currentCluster.value.metadata.id, !locked.value)
+  } catch (e) {
+    showError('Failed To Update Cluster Lock', e.message)
+  }
 }
 
 const {
@@ -270,34 +291,39 @@ const {
           </Tooltip>
         </div>
       </OverviewRightPanelItem>
-      <OverviewRightPanelItem
-        v-if="talosUpgradeStatus"
-        name="Talos Version"
-        @click="openClusterUpdate(Update.Talos)"
-      >
+      <OverviewRightPanelItem v-if="talosUpgradeStatus" name="Talos Version">
         <div>{{ talosVersion }}</div>
         <Tooltip
           v-if="newTalosVersionsAvailable?.length"
-          :description="`Newer Talos versions are avalable: ${newTalosVersionsAvailable.join(', ')}`"
+          :description="
+            locked
+              ? `Newer Talos versions are available: ${newTalosVersionsAvailable.join(', ')}. However, Talos updates are disabled when the cluster is locked.`
+              : `Newer Talos versions are available: ${newTalosVersionsAvailable.join(', ')}`
+          "
         >
           <TIcon
             v-if="newTalosVersionsAvailable"
             class="h-4 w-4 cursor-pointer"
             icon="upgrade-available"
+            @click="openClusterUpdate(Update.Talos, locked)"
           />
         </Tooltip>
       </OverviewRightPanelItem>
-      <OverviewRightPanelItem
-        v-if="kubernetesUpgradeStatus"
-        name="Kubernetes Version"
-        @click="openClusterUpdate(Update.Kubernetes)"
-      >
+      <OverviewRightPanelItem v-if="kubernetesUpgradeStatus" name="Kubernetes Version">
         <div>{{ kubernetesVersion }}</div>
         <Tooltip
           v-if="newKubernetesVersionsAvailable?.length"
-          :description="`Newer Kubernetes versions are avalable: ${newKubernetesVersionsAvailable.join(', ')}`"
+          :description="
+            locked
+              ? `Newer Kubernetes versions are available: ${newKubernetesVersionsAvailable.join(', ')}. However, Kubernetes updates are disabled when the cluster is locked.`
+              : `Newer Kubernetes versions are available: ${newKubernetesVersionsAvailable.join(', ')}`
+          "
         >
-          <TIcon class="h-4 w-4 cursor-pointer" icon="upgrade-available" />
+          <TIcon
+            class="h-4 w-4 cursor-pointer"
+            icon="upgrade-available"
+            @click="openClusterUpdate(Update.Kubernetes, locked)"
+          />
         </Tooltip>
       </OverviewRightPanelItem>
     </div>
@@ -390,43 +416,61 @@ const {
       <div class="divider" />
       <div class="overview-right-box-wrapper overview-right-box-wrapper-moved">
         <div class="overview-details-item">
-          <TButton
-            class="overview-item-button w-full"
-            type="highlighted"
-            icon="nodes"
-            icon-position="left"
-            :disabled="!canAddClusterMachines"
-            @click="
-              () =>
-                $router.push({
-                  name: 'ClusterScale',
-                  params: { cluster: currentCluster?.metadata?.id },
-                })
-            "
-            >Cluster Scaling</TButton
+          <Tooltip
+            class="grow"
+            :disabled="!locked"
+            :description="`Cluster scaling is disabled when the cluster is locked.`"
           >
+            <TButton
+              class="overview-item-button w-full"
+              type="highlighted"
+              icon="nodes"
+              icon-position="left"
+              :disabled="!canAddClusterMachines || locked"
+              @click="
+                () =>
+                  $router.push({
+                    name: 'ClusterScale',
+                    params: { cluster: currentCluster?.metadata?.id },
+                  })
+              "
+              >Cluster Scaling</TButton
+            >
+          </Tooltip>
         </div>
         <div class="overview-details-item">
-          <TButton
-            class="overview-item-button w-full"
-            type="primary"
-            icon="kubernetes"
-            icon-position="left"
-            :disabled="!canUpdateKubernetes || !kubernetesUpgradeAvailable()"
-            @click="openClusterUpdate(Update.Kubernetes)"
-            >Update Kubernetes</TButton
+          <Tooltip
+            class="grow"
+            :disabled="!locked"
+            :description="`Kubernetes updates are disabled when the cluster is locked.`"
           >
+            <TButton
+              class="overview-item-button w-full"
+              type="primary"
+              icon="kubernetes"
+              icon-position="left"
+              :disabled="!canUpdateKubernetes || !kubernetesUpgradeAvailable() || locked"
+              @click="openClusterUpdate(Update.Kubernetes, locked)"
+              >Update Kubernetes</TButton
+            >
+          </Tooltip>
         </div>
         <div class="overview-details-item">
-          <TButton
-            class="overview-item-button w-full"
-            type="primary"
-            icon="sidero-monochrome"
-            icon-position="left"
-            :disabled="!canUpdateTalos || !talosUpdateAvailable()"
-            @click="openClusterUpdate(Update.Talos)"
-            >Update Talos</TButton
+          <Tooltip
+            class="grow"
+            :disabled="!locked"
+            :description="`Talos updates are disabled when the cluster is locked.`"
           >
+            <TButton
+              class="overview-item-button w-full"
+              type="primary"
+              icon="sidero-monochrome"
+              icon-position="left"
+              :disabled="!canUpdateTalos || !talosUpdateAvailable() || locked"
+              @click="openClusterUpdate(Update.Talos, locked)"
+              >Update Talos</TButton
+            >
+          </Tooltip>
         </div>
         <div class="overview-details-item">
           <TButton
@@ -446,19 +490,35 @@ const {
         </div>
         <div class="overview-details-item">
           <TButton
-            class="overview-item-button-red w-full"
-            type="secondary"
-            icon="delete"
+            class="overview-item-button w-full"
+            type="primary"
+            :icon="locked ? 'locked' : 'unlocked'"
             icon-position="left"
-            :disabled="!canRemoveClusterMachines"
-            @click="
-              () =>
-                $router.push({
-                  query: { modal: 'clusterDestroy', cluster: currentCluster?.metadata?.id },
-                })
-            "
-            >Destroy Cluster</TButton
+            @click="updateLock"
+            >{{ locked ? 'Unlock Cluster' : 'Lock Cluster' }}</TButton
           >
+        </div>
+        <div class="overview-details-item">
+          <Tooltip
+            class="grow"
+            :disabled="!locked"
+            :description="`Cluster deletion is disabled when the cluster is locked.`"
+          >
+            <TButton
+              class="overview-item-button-red w-full"
+              type="secondary"
+              icon="delete"
+              icon-position="left"
+              :disabled="!canRemoveClusterMachines || locked"
+              @click="
+                () =>
+                  $router.push({
+                    query: { modal: 'clusterDestroy', cluster: currentCluster?.metadata?.id },
+                  })
+              "
+              >Destroy Cluster</TButton
+            >
+          </Tooltip>
         </div>
       </div>
     </template>

@@ -163,6 +163,13 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 				return nil
 			}
 
+			_, wasLocked := existingRes.Metadata().Annotations().Get(omni.ClusterLocked)
+
+			_, stillLocked := newRes.Metadata().Annotations().Get(omni.ClusterLocked)
+			if wasLocked && stillLocked {
+				return fmt.Errorf("updating cluster configuration is not allowed: the cluster %q is locked", newRes.Metadata().ID())
+			}
+
 			var multiErr error
 
 			skipTalosVersion := existingRes.TypedSpec().Value.TalosVersion == newRes.TypedSpec().Value.TalosVersion
@@ -201,6 +208,17 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 
 			return multiErr
 		})),
+		validated.WithDestroyValidations(validated.NewDestroyValidationForType(func(ctx context.Context, _ resource.Pointer, res *omni.Cluster, option ...state.DestroyOption) error {
+			if res == nil {
+				return nil
+			}
+
+			if _, locked := res.Metadata().Annotations().Get(omni.ClusterLocked); locked {
+				return fmt.Errorf("deletion is not allowed: the cluster %q is locked", res.Metadata().ID())
+			}
+
+			return nil
+		})),
 	}
 }
 
@@ -219,8 +237,22 @@ func relationLabelsValidationOptions() []validated.StateOption {
 		return nil
 	}
 
+	validateLabelIsNotChanged := func(oldRes resource.Resource, newRes resource.Resource, key string) error {
+		oldVal, _ := oldRes.Metadata().Labels().Get(key)
+		val, _ := newRes.Metadata().Labels().Get(key)
+
+		if oldVal != "" && oldVal != val {
+			return fmt.Errorf("changing value of label %q from %q to %q", key, oldVal, val)
+		}
+
+		return nil
+	}
+
 	return []validated.StateOption{
 		validated.WithCreateValidations(
+			validated.NewCreateValidationForType(func(_ context.Context, res *omni.MachineSetNode, _ ...state.CreateOption) error {
+				return validateLabelIsSet(res, omni.LabelCluster)
+			}),
 			validated.NewCreateValidationForType(func(_ context.Context, res *omni.MachineSetNode, _ ...state.CreateOption) error {
 				return validateLabelIsSet(res, omni.LabelMachineSet)
 			}),
@@ -233,6 +265,9 @@ func relationLabelsValidationOptions() []validated.StateOption {
 		),
 		validated.WithUpdateValidations(
 			validated.NewUpdateValidationForType(func(_ context.Context, _ *omni.MachineSetNode, newRes *omni.MachineSetNode, _ ...state.UpdateOption) error {
+				return validateLabelIsSet(newRes, omni.LabelCluster)
+			}),
+			validated.NewUpdateValidationForType(func(_ context.Context, _ *omni.MachineSetNode, newRes *omni.MachineSetNode, _ ...state.UpdateOption) error {
 				return validateLabelIsSet(newRes, omni.LabelMachineSet)
 			}),
 			validated.NewUpdateValidationForType(func(_ context.Context, _ *omni.MachineSet, newRes *omni.MachineSet, _ ...state.UpdateOption) error {
@@ -240,6 +275,18 @@ func relationLabelsValidationOptions() []validated.StateOption {
 			}),
 			validated.NewUpdateValidationForType(func(_ context.Context, _ *omni.ExposedService, newRes *omni.ExposedService, _ ...state.UpdateOption) error {
 				return validateLabelIsSet(newRes, omni.LabelCluster)
+			}),
+			validated.NewUpdateValidationForType(func(_ context.Context, oldRes *omni.MachineSetNode, newRes *omni.MachineSetNode, _ ...state.UpdateOption) error {
+				return validateLabelIsNotChanged(oldRes, newRes, omni.LabelCluster)
+			}),
+			validated.NewUpdateValidationForType(func(_ context.Context, oldRes *omni.MachineSetNode, newRes *omni.MachineSetNode, _ ...state.UpdateOption) error {
+				return validateLabelIsNotChanged(oldRes, newRes, omni.LabelMachineSet)
+			}),
+			validated.NewUpdateValidationForType(func(_ context.Context, oldRes *omni.MachineSet, newRes *omni.MachineSet, _ ...state.UpdateOption) error {
+				return validateLabelIsNotChanged(oldRes, newRes, omni.LabelCluster)
+			}),
+			validated.NewUpdateValidationForType(func(_ context.Context, oldRes *omni.ExposedService, newRes *omni.ExposedService, _ ...state.UpdateOption) error {
+				return validateLabelIsNotChanged(oldRes, newRes, omni.LabelCluster)
 			}),
 		),
 	}
@@ -283,24 +330,39 @@ func roleValidationOptions() []validated.StateOption {
 
 // machineSetValidationOptions returns the validation options for the machine set resource.
 //
-//nolint:gocognit,gocyclo,cyclop
+//nolint:gocognit,gocyclo,cyclop,maintidx
 func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Factory) []validated.StateOption {
 	validate := func(ctx context.Context, oldRes *omni.MachineSet, res *omni.MachineSet) error {
-		// label validations
-		clusterName, ok := res.Metadata().Labels().Get(omni.LabelCluster)
-		if !ok {
-			return errors.New("cluster label is missing")
+		// relation label validations are done at relationLabelsValidationOptions
+		clusterName, _ := res.Metadata().Labels().Get(omni.LabelCluster)
+
+		cluster, err := safe.StateGetByID[*omni.Cluster](ctx, st, clusterName)
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
 		}
 
-		if oldRes == nil {
-			cluster, err := safe.StateGetByID[*omni.Cluster](ctx, st, clusterName)
-			if err != nil && !state.IsNotFoundError(err) {
-				return err
+		// if cluster doesn't exist and machine set is being destroyed, skip the rest of the validations
+		if cluster == nil {
+			if res.Metadata().Phase() == resource.PhaseTearingDown {
+				return nil
 			}
 
-			if cluster != nil && cluster.Metadata().Phase() == resource.PhaseTearingDown {
+			return fmt.Errorf("the cluster %q does not exist", clusterName)
+		}
+
+		_, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked)
+		if oldRes == nil {
+			if cluster.Metadata().Phase() == resource.PhaseTearingDown {
 				return fmt.Errorf("the cluster %q is tearing down", clusterName)
 			}
+
+			if locked {
+				return fmt.Errorf("adding machine set %q to the cluster %q is not allowed: the cluster is locked", res.Metadata().ID(), clusterName)
+			}
+		}
+
+		if locked && res.Metadata().Phase() == resource.PhaseRunning {
+			return fmt.Errorf("updating machine set %q on the cluster %q is not allowed: the cluster is locked", res.Metadata().ID(), clusterName)
 		}
 
 		_, isControlPlane := res.Metadata().Labels().Get(omni.LabelControlPlaneRole)
@@ -413,12 +475,39 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 		return nil
 	}
 
+	validateDelete := func(ctx context.Context, res *omni.MachineSet) error {
+		if res == nil {
+			return nil
+		}
+
+		// relation label validations are done at relationLabelsValidationOptions
+		clusterName, _ := res.Metadata().Labels().Get(omni.LabelCluster)
+
+		cluster, err := safe.StateGetByID[*omni.Cluster](ctx, st, clusterName)
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		if cluster == nil {
+			return nil
+		}
+
+		if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked && cluster.Metadata().Phase() == resource.PhaseRunning {
+			return fmt.Errorf("removing machine set %q from the cluster %q is not allowed: the cluster is locked", res.Metadata().ID(), clusterName)
+		}
+
+		return nil
+	}
+
 	return []validated.StateOption{
 		validated.WithCreateValidations(validated.NewCreateValidationForType(func(ctx context.Context, res *omni.MachineSet, _ ...state.CreateOption) error {
 			return validate(ctx, nil, res)
 		})),
 		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(ctx context.Context, oldRes *omni.MachineSet, newRes *omni.MachineSet, _ ...state.UpdateOption) error {
 			return validate(ctx, oldRes, newRes)
+		})),
+		validated.WithDestroyValidations(validated.NewDestroyValidationForType(func(ctx context.Context, _ resource.Pointer, existingRes *omni.MachineSet, option ...state.DestroyOption) error {
+			return validateDelete(ctx, existingRes)
 		})),
 	}
 }
@@ -562,41 +651,41 @@ func validateBootstrapSpec(ctx context.Context, st state.State, etcdBackupStoreF
 
 // machineSetNodeValidationOptions returns the validation options for the machine set node resource.
 //
-//nolint:gocognit,gocyclo,cyclop
+//nolint:gocognit,gocyclo,cyclop,maintidx
 func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
-	getMachineSet := func(ctx context.Context, res *omni.MachineSetNode) (*omni.MachineSet, error) {
-		machineSetName, ok := res.Metadata().Labels().Get(omni.LabelMachineSet)
-		if !ok {
-			return nil, nil //nolint:nilnil
-		}
+	getMachineSet := func(ctx context.Context, res *omni.MachineSetNode) (*omni.MachineSet, string, error) {
+		// relation label validations are done at relationLabelsValidationOptions
+		machineSetName, _ := res.Metadata().Labels().Get(omni.LabelMachineSet)
 
 		machineSet, err := safe.ReaderGet[*omni.MachineSet](ctx, st, omni.NewMachineSet(resources.DefaultNamespace, machineSetName).Metadata())
 		if err != nil {
 			if state.IsNotFoundError(err) {
-				return nil, nil //nolint:nilnil
+				return nil, machineSetName, nil
 			}
 
-			return nil, err
+			return nil, machineSetName, err
 		}
 
-		return machineSet, nil
+		return machineSet, machineSetName, nil
 	}
 
-	validateTalosVersion := func(ctx context.Context, res *omni.MachineSetNode) error {
-		clusterName, ok := res.Metadata().Labels().Get(omni.LabelCluster)
-		if !ok {
-			return nil
-		}
+	getCluster := func(ctx context.Context, res *omni.MachineSetNode) (*omni.Cluster, string, error) {
+		// relation label validations are done at relationLabelsValidationOptions
+		clusterName, _ := res.Metadata().Labels().Get(omni.LabelCluster)
 
-		cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, st, clusterName)
+		cluster, err := safe.ReaderGet[*omni.Cluster](ctx, st, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata())
 		if err != nil {
 			if state.IsNotFoundError(err) {
-				return nil
+				return nil, clusterName, nil
 			}
 
-			return err
+			return nil, clusterName, err
 		}
 
+		return cluster, clusterName, nil
+	}
+
+	validateTalosVersion := func(ctx context.Context, res *omni.MachineSetNode, cluster *omni.Cluster) error {
 		machineStatus, err := safe.ReaderGetByID[*omni.MachineStatus](ctx, st, res.Metadata().ID())
 		if err != nil {
 			if state.IsNotFoundError(err) {
@@ -622,7 +711,7 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 		if !inAgentMode && (machineTalosVersion.Major > clusterTalosVersion.Major || machineTalosVersion.Minor > clusterTalosVersion.Minor) {
 			return fmt.Errorf(
 				"cannot add machine set node to the cluster %s as it will trigger Talos downgrade on the node (%s -> %s)",
-				clusterName,
+				cluster.Metadata().ID(),
 				machineTalosVersion.String(),
 				clusterTalosVersion.String(),
 			)
@@ -641,56 +730,119 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 
 	return []validated.StateOption{
 		validated.WithCreateValidations(validated.NewCreateValidationForType(func(ctx context.Context, res *omni.MachineSetNode, _ ...state.CreateOption) error {
-			machineSet, err := getMachineSet(ctx, res)
+			machineSet, machineSetName, err := getMachineSet(ctx, res)
 			if err != nil {
 				return err
 			}
 
-			if machineSet != nil && machineSet.Metadata().Phase() == resource.PhaseTearingDown {
-				return fmt.Errorf("the machine set %q is tearing down", machineSet.Metadata().ID())
+			if machineSet == nil {
+				return fmt.Errorf("adding machine set node to the machine set %q is not allowed: the machine set does not exist", machineSetName)
 			}
 
-			if machineSet != nil && omni.GetMachineAllocation(machineSet) != nil {
+			if machineSet.Metadata().Phase() == resource.PhaseTearingDown {
+				return fmt.Errorf("adding machine set node to the machine set %q is not allowed: the machine set is tearing down", machineSet.Metadata().ID())
+			}
+
+			if omni.GetMachineAllocation(machineSet) != nil {
 				return fmt.Errorf("adding machine set node to the machine set %q is not allowed: the machine set is using automated machine allocation", machineSet.Metadata().ID())
 			}
 
-			if err = validateTalosVersion(ctx, res); err != nil {
+			cluster, clusterName, err := getCluster(ctx, res)
+			if err != nil {
+				return err
+			}
+
+			if cluster == nil {
+				return fmt.Errorf("adding machine set node to the machine set %q is not allowed: the cluster %q does not exist", machineSet.Metadata().ID(), clusterName)
+			}
+
+			if cluster.Metadata().Phase() == resource.PhaseRunning {
+				if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked {
+					return fmt.Errorf("adding machine set node to the machine set %q is not allowed: the cluster %q is locked", machineSet.Metadata().ID(), cluster.Metadata().ID())
+				}
+			}
+
+			if cluster.Metadata().Phase() == resource.PhaseTearingDown {
+				return fmt.Errorf("adding machine set node to the machine set %q is not allowed: the cluster %q is tearing down", machineSet.Metadata().ID(), cluster.Metadata().ID())
+			}
+
+			if err = validateTalosVersion(ctx, res, cluster); err != nil {
 				return err
 			}
 
 			return validateNotControlplane(machineSet, res)
 		})),
 		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(ctx context.Context, res *omni.MachineSetNode, newRes *omni.MachineSetNode, _ ...state.UpdateOption) error {
-			// don't allow tearing down machine set nodes with locked annotation
 			if newRes.Metadata().Phase() == resource.PhaseTearingDown {
-				if _, locked := res.Metadata().Annotations().Get(omni.MachineLocked); locked {
-					return errors.New("machine set node is locked")
+				// tearing down validations are done at destroy validations
+				return nil
+			}
+
+			machineSet, machineSetName, err := getMachineSet(ctx, res)
+			if err != nil {
+				return err
+			}
+
+			if machineSet == nil {
+				return fmt.Errorf("updating machine set node on the machine set %q is not allowed: the machine set does not exist", machineSetName)
+			}
+
+			if machineSet.Metadata().Phase() == resource.PhaseTearingDown {
+				return fmt.Errorf("updating machine set node on the machine set %q is not allowed: the machine set is tearing down", machineSet.Metadata().ID())
+			}
+
+			cluster, clusterName, err := getCluster(ctx, res)
+			if err != nil {
+				return err
+			}
+
+			if cluster == nil {
+				return fmt.Errorf("updating machine set node on the machine set %q is not allowed: the cluster %q does not exist", machineSet.Metadata().ID(), clusterName)
+			}
+
+			if cluster.Metadata().Phase() == resource.PhaseRunning {
+				if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked {
+					return fmt.Errorf("updating machine set node on the machine set %q is not allowed: the cluster %q is locked", machineSet.Metadata().ID(), cluster.Metadata().ID())
 				}
 			}
 
-			machineSet, err := getMachineSet(ctx, res)
-			if err != nil {
+			if cluster.Metadata().Phase() == resource.PhaseTearingDown {
+				return fmt.Errorf("updating machine set node on the machine set %q is not allowed: the cluster %q is tearing down", machineSet.Metadata().ID(), cluster.Metadata().ID())
+			}
+
+			if err = validateTalosVersion(ctx, res, cluster); err != nil {
 				return err
 			}
 
 			return validateNotControlplane(machineSet, newRes)
 		})),
 		validated.WithDestroyValidations(validated.NewDestroyValidationForType(func(ctx context.Context, _ resource.Pointer, res *omni.MachineSetNode, _ ...state.DestroyOption) error {
-			machineSetName, ok := res.Metadata().Labels().Get(omni.LabelMachineSet)
-			if ok {
-				machineSet, err := safe.StateGet[*omni.MachineSet](ctx, st, omni.NewMachineSet(resources.DefaultNamespace, machineSetName).Metadata())
-				if err != nil && !state.IsNotFoundError(err) {
-					return err
-				}
+			machineSet, machineSetName, err := getMachineSet(ctx, res)
+			if err != nil {
+				return err
+			}
 
-				// if the machine set is being torn down or doesn't exist disable machine locks
-				if machineSet == nil || machineSet.Metadata().Phase() == resource.PhaseTearingDown {
-					return nil
-				}
+			cluster, clusterName, err := getCluster(ctx, res)
+			if err != nil {
+				return err
+			}
+
+			// machine set doesn't exist or being destroyed, do not block the deletion
+			if machineSet == nil || machineSet.Metadata().Phase() == resource.PhaseTearingDown {
+				return nil
+			}
+
+			// cluster doesn't exist or being destroyed, do not block the deletion
+			if cluster == nil || cluster.Metadata().Phase() == resource.PhaseTearingDown {
+				return nil
 			}
 
 			if _, locked := res.Metadata().Annotations().Get(omni.MachineLocked); locked {
-				return errors.New("machine set node is locked")
+				return fmt.Errorf("removing machine set node from the machine set %q is not allowed: machine set node is locked", machineSetName)
+			}
+
+			if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked {
+				return fmt.Errorf("removing machine set node from the machine set %q is not allowed: the cluster %q is locked", machineSetName, clusterName)
 			}
 
 			return nil
