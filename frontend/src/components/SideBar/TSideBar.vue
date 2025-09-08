@@ -9,18 +9,13 @@ import UserInfo from '@/components/common/UserInfo/UserInfo.vue'
 </script>
 
 <template>
-  <RouterView v-slot="{ Component }" name="sidebar">
-    <aside
-      v-if="Component"
-      class="flex max-w-64 flex-col border-r border-naturals-n4 bg-naturals-n1"
-    >
-      <component :is="Component" class="grow overflow-auto" />
+  <aside class="flex max-w-64 flex-col border-r border-naturals-n4 bg-naturals-n1">
+    <RouterView name="sidebar" class="grow overflow-auto" />
 
-      <UserInfo
-        class="h-16 w-full shrink-0 border-t border-inherit px-2"
-        with-logout-controls
-        size="small"
-      />
-    </aside>
-  </RouterView>
+    <UserInfo
+      class="h-16 w-full shrink-0 border-t border-inherit px-2"
+      with-logout-controls
+      size="small"
+    />
+  </aside>
 </template>
