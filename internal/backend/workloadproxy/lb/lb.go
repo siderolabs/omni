@@ -57,11 +57,7 @@ func (lb *LB) Reconcile(upstreamAddresses []string) error {
 }
 
 // PickAddress picks a healthy upstream address from the load balancer.
-func (lb *LB) PickAddress(ctx context.Context) (string, error) {
-	if err := lb.upstreams.WaitForInitialHealthcheck(ctx); err != nil {
-		return "", err
-	}
-
+func (lb *LB) PickAddress() (string, error) {
 	pickedNode, err := lb.upstreams.Pick()
 	if err != nil {
 		return "", err
