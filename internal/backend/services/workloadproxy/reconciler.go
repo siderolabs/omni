@@ -266,7 +266,7 @@ func (registry *Reconciler) dialProxy(ctx context.Context, network, address stri
 	alias := parts[0]
 	clusterID := parts[1]
 
-	pickCtx, cancel := context.WithTimeout(ctx, time.Second)
+	pickCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	destAddress, err := registry.pickDestAddress(pickCtx, clusterID, alias)
