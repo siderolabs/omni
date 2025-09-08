@@ -29,7 +29,7 @@ import (
 
 type loadBalancer interface {
 	Reconcile(upstreamAddresses []string) error
-	PickAddress(ctx context.Context) (string, error)
+	PickAddress() (string, error)
 	Notify() error
 	Shutdown()
 }
@@ -266,10 +266,7 @@ func (registry *Reconciler) dialProxy(ctx context.Context, network, address stri
 	alias := parts[0]
 	clusterID := parts[1]
 
-	pickCtx, cancel := context.WithTimeout(ctx, time.Second)
-	defer cancel()
-
-	destAddress, err := registry.pickDestAddress(pickCtx, clusterID, alias)
+	destAddress, err := registry.pickDestAddress(clusterID, alias)
 	if err != nil {
 		return nil, fmt.Errorf("failed to pick destination address for alias %s in cluster %s: %w", alias, clusterID, err)
 	}
@@ -277,7 +274,7 @@ func (registry *Reconciler) dialProxy(ctx context.Context, network, address stri
 	return registry.proxyDialer.DialContext(ctx, network, destAddress)
 }
 
-func (registry *Reconciler) pickDestAddress(ctx context.Context, cluster resource.ID, alias string) (string, error) {
+func (registry *Reconciler) pickDestAddress(cluster resource.ID, alias string) (string, error) {
 	registry.mu.Lock()
 	defer registry.mu.Unlock()
 
@@ -286,7 +283,7 @@ func (registry *Reconciler) pickDestAddress(ctx context.Context, cluster resourc
 		return "", fmt.Errorf("no load balancer found for cluster %s and alias %s", cluster, alias)
 	}
 
-	destAddress, err := aliasLB.PickAddress(ctx)
+	destAddress, err := aliasLB.PickAddress()
 	if err != nil {
 		return "", fmt.Errorf("failed to pick address for alias %s: %w", alias, err)
 	}

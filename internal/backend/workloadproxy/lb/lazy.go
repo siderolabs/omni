@@ -6,7 +6,6 @@
 package lb
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -72,7 +71,7 @@ func (l *Lazy) Reconcile(upstreamAddresses []string) error {
 }
 
 // PickAddress picks an upstream address from the load balancer, initializing it if necessary.
-func (l *Lazy) PickAddress(ctx context.Context) (string, error) {
+func (l *Lazy) PickAddress() (string, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -94,7 +93,7 @@ func (l *Lazy) PickAddress(ctx context.Context) (string, error) {
 		return "", err
 	}
 
-	return l.lb.PickAddress(ctx)
+	return l.lb.PickAddress()
 }
 
 // Notify notifies the load balancer to refresh its internal state.
