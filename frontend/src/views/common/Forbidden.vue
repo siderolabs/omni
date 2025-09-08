@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts"></script>
 
 <template>
-  <div class="flex items-center justify-center">
+  <div class="flex h-full items-center justify-center">
     <div class="flex flex-col items-center">
       <div class="code">403</div>
       <div class="text-center text-xl">Access Denied</div>

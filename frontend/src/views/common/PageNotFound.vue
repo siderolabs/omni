@@ -9,7 +9,7 @@ import TButton from '@/components/common/Button/TButton.vue'
 </script>
 
 <template>
-  <div class="flex items-center justify-center">
+  <div class="flex h-full items-center justify-center">
     <div class="flex flex-col items-center">
       <div class="code">404</div>
       <div class="text-center text-xl">Page not found</div>
