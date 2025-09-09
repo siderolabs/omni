@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-08-19T09:57:23Z by kres ff3b493-dirty.
+# Generated on 2025-09-09T11:07:14Z by kres 9ebde93.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -144,9 +144,13 @@ RUN npm run build ${JS_BUILD_ARGS}
 RUN mkdir -p /internal/frontend/dist
 RUN cp -rf ./dist/* /internal/frontend/dist
 
-# runs eslint
+# runs eslint & prettier
 FROM js AS lint-eslint
 RUN npm run lint
+
+# runs eslint & prettier with autofix.
+FROM js AS lint-eslint-fmt-run
+RUN npm run lint:fix
 
 # runs protobuf compiler
 FROM js AS proto-compile-frontend
@@ -236,6 +240,10 @@ COPY ./cmd ./cmd
 COPY ./internal ./internal
 COPY --from=frontend /internal/frontend/dist ./internal/frontend/dist
 RUN --mount=type=cache,target=/go/pkg,id=omni/go/pkg go list -mod=readonly all >/dev/null
+
+# trim down lint-eslint-fmt-run output to contain only source files
+FROM scratch AS lint-eslint-fmt
+COPY --exclude=node_modules --from=lint-eslint-fmt-run /src /frontend
 
 # cleaned up specs and compiled versions
 FROM scratch AS generate-frontend

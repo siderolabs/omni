@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-08-20T08:50:33Z by kres 18c31cf.
+# Generated on 2025-09-09T11:07:14Z by kres 9ebde93.
 
 # common variables
 
@@ -186,8 +186,11 @@ js:  ## Prepare js base toolchain.
 unit-tests-frontend:  ## Performs unit tests
 	@$(MAKE) target-$@
 
-lint-eslint:  ## Runs eslint linter.
+lint-eslint:  ## Runs eslint linter & prettier style check.
 	@$(MAKE) target-$@
+
+lint-eslint-fmt:  ## Runs eslint & prettier and tries to fix issues automatically, updating the source tree.
+	@$(MAKE) local-$@ DEST=.
 
 .PHONY: $(ARTIFACTS)/frontend-js
 $(ARTIFACTS)/frontend-js:
