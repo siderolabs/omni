@@ -24,7 +24,7 @@ type Props = {
 }
 
 const props = withDefaults(defineProps<Props>(), {})
-const { copy } = useClipboard()
+const { copy, copied } = useClipboard()
 
 const follow = ref(true)
 const logView: Component = ref(null)
@@ -98,7 +98,9 @@ watch(logs, () => {
         <p class="logs-list-heading-name">Message</p>
       </div>
       <div class="flex gap-6">
-        <TButton icon="copy" type="compact" @click="copyLogs">Copy</TButton>
+        <TButton :icon="copied ? 'check' : 'copy'" type="compact" @click="copyLogs">
+          {{ copied ? 'Copied' : 'Copy' }}
+        </TButton>
         <TCheckbox label="Follow Logs" :checked="follow" @click="() => (follow = !follow)" />
       </div>
     </div>

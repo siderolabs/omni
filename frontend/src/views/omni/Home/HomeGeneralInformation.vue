@@ -34,7 +34,7 @@ import { auditLogEnabled } from '@/methods/features'
 import HomeGeneralInformationCopyable from '@/views/omni/Home/HomeGeneralInformationCopyable.vue'
 
 const auditLogAvailable = ref(false)
-const { copy } = useClipboard()
+const { copy, copied } = useClipboard()
 
 onBeforeMount(async () => {
   auditLogAvailable.value = await auditLogEnabled()
@@ -128,7 +128,7 @@ async function copyKernelArgs() {
         Download Machine Join Config
       </TButton>
 
-      <TButton icon="copy" icon-position="left" @click="copyKernelArgs">
+      <TButton :icon="copied ? 'check' : 'copy'" icon-position="left" @click="copyKernelArgs">
         Copy Kernel Parameters
       </TButton>
     </section>
