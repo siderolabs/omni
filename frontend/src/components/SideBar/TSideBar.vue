@@ -6,16 +6,24 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import UserInfo from '@/components/common/UserInfo/UserInfo.vue'
+
+defineOptions({ inheritAttrs: false })
 </script>
 
 <template>
-  <aside class="flex max-w-64 flex-col border-r border-naturals-n4 bg-naturals-n1">
-    <RouterView name="sidebar" class="grow overflow-auto" />
+  <RouterView v-slot="{ Component }" name="sidebar">
+    <aside
+      v-if="Component"
+      v-bind="$attrs"
+      class="flex max-w-64 flex-col border-r border-naturals-n4 bg-naturals-n1"
+    >
+      <component :is="Component" class="grow overflow-auto" />
 
-    <UserInfo
-      class="h-16 w-full shrink-0 border-t border-inherit px-2"
-      with-logout-controls
-      size="small"
-    />
-  </aside>
+      <UserInfo
+        class="h-16 w-full shrink-0 border-t border-inherit px-2"
+        with-logout-controls
+        size="small"
+      />
+    </aside>
+  </RouterView>
 </template>
