@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-09-09T11:07:14Z by kres 9ebde93.
+# Generated on 2025-09-09T14:12:27Z by kres ba56673.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -192,6 +192,25 @@ RUN rm /frontend/src/api/omni/specs/ephemeral.proto
 FROM js AS unit-tests-frontend
 RUN CI=true npm test
 
+# tools and sources
+FROM tools AS base
+WORKDIR /src
+COPY client/go.mod client/go.mod
+COPY client/go.sum client/go.sum
+COPY go.mod go.mod
+COPY go.sum go.sum
+RUN cd client
+RUN --mount=type=cache,target=/go/pkg,id=omni/go/pkg go mod download
+RUN --mount=type=cache,target=/go/pkg,id=omni/go/pkg go mod verify
+RUN cd .
+RUN --mount=type=cache,target=/go/pkg,id=omni/go/pkg go mod download
+RUN --mount=type=cache,target=/go/pkg,id=omni/go/pkg go mod verify
+COPY ./client/api ./client/api
+COPY ./client/pkg ./client/pkg
+COPY ./cmd ./cmd
+COPY ./internal ./internal
+RUN --mount=type=cache,target=/go/pkg,id=omni/go/pkg go list -mod=readonly all >/dev/null
+
 FROM tools AS embed-generate
 ARG SHA
 ARG TAG
@@ -221,26 +240,6 @@ RUN rm /client/api/omni/specs/system.proto
 RUN goimports -w -local github.com/siderolabs/omni/client,github.com/siderolabs/omni /client/api
 RUN gofumpt -w /client/api
 
-# tools and sources
-FROM tools AS base
-WORKDIR /src
-COPY client/go.mod client/go.mod
-COPY client/go.sum client/go.sum
-COPY go.mod go.mod
-COPY go.sum go.sum
-RUN cd client
-RUN --mount=type=cache,target=/go/pkg,id=omni/go/pkg go mod download
-RUN --mount=type=cache,target=/go/pkg,id=omni/go/pkg go mod verify
-RUN cd .
-RUN --mount=type=cache,target=/go/pkg,id=omni/go/pkg go mod download
-RUN --mount=type=cache,target=/go/pkg,id=omni/go/pkg go mod verify
-COPY ./client/api ./client/api
-COPY ./client/pkg ./client/pkg
-COPY ./cmd ./cmd
-COPY ./internal ./internal
-COPY --from=frontend /internal/frontend/dist ./internal/frontend/dist
-RUN --mount=type=cache,target=/go/pkg,id=omni/go/pkg go list -mod=readonly all >/dev/null
-
 # trim down lint-eslint-fmt-run output to contain only source files
 FROM scratch AS lint-eslint-fmt
 COPY --exclude=node_modules --from=lint-eslint-fmt-run /src /frontend
@@ -249,12 +248,6 @@ COPY --exclude=node_modules --from=lint-eslint-fmt-run /src /frontend
 FROM scratch AS generate-frontend
 ADD https://www.talos.dev/v1.11/schemas/config.schema.json frontend/src/schemas/config.schema.json
 COPY --from=proto-compile-frontend frontend/ frontend/
-
-FROM embed-generate AS embed-abbrev-generate
-WORKDIR /src
-ARG ABBREV_TAG
-RUN echo -n 'undefined' > internal/version/data/sha && \
-    echo -n ${ABBREV_TAG} > internal/version/data/tag
 
 # run go generate
 FROM base AS go-generate-0
@@ -337,12 +330,11 @@ WORKDIR /src
 ARG TESTPKGS
 RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg --mount=type=cache,target=/tmp,id=omni/tmp go test -covermode=atomic -coverprofile=coverage.txt -coverpkg=${TESTPKGS} ${TESTPKGS}
 
-# cleaned up specs and compiled versions
-FROM scratch AS generate
-COPY --from=proto-compile /client/api/ /client/api/
-COPY --from=go-generate-0 /src/frontend frontend
-COPY --from=go-generate-0 /src/internal/backend/runtime/omni/controllers/omni internal/backend/runtime/omni/controllers/omni
-COPY --from=embed-abbrev-generate /src/internal/version internal/version
+FROM embed-generate AS embed-abbrev-generate
+WORKDIR /src
+ARG ABBREV_TAG
+RUN echo -n 'undefined' > internal/version/data/sha && \
+    echo -n ${ABBREV_TAG} > internal/version/data/tag
 
 # clean golangci-lint fmt output
 FROM scratch AS lint-golangci-lint-client-fmt
@@ -358,10 +350,18 @@ COPY --from=unit-tests-client-run /src/client/coverage.txt /coverage-unit-tests-
 FROM scratch AS unit-tests
 COPY --from=unit-tests-run /src/coverage.txt /coverage-unit-tests.txt
 
+# cleaned up specs and compiled versions
+FROM scratch AS generate
+COPY --from=proto-compile /client/api/ /client/api/
+COPY --from=go-generate-0 /src/frontend frontend
+COPY --from=go-generate-0 /src/internal/backend/runtime/omni/controllers/omni internal/backend/runtime/omni/controllers/omni
+COPY --from=embed-abbrev-generate /src/internal/version internal/version
+
 # builds acompat-linux-amd64
 FROM base AS acompat-linux-amd64-build
 COPY --from=generate / /
 COPY --from=embed-generate / /
+COPY --from=frontend /internal/frontend/dist ./internal/frontend/dist
 WORKDIR /src/cmd/acompat
 ARG GO_BUILDFLAGS
 ARG GO_LDFLAGS
@@ -374,6 +374,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 FROM base AS integration-test-darwin-amd64-build
 COPY --from=generate / /
 COPY --from=embed-generate / /
+COPY --from=frontend /internal/frontend/dist ./internal/frontend/dist
 WORKDIR /src/internal/integration
 ARG GO_BUILDFLAGS
 ARG GO_LDFLAGS
@@ -386,6 +387,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 FROM base AS integration-test-darwin-arm64-build
 COPY --from=generate / /
 COPY --from=embed-generate / /
+COPY --from=frontend /internal/frontend/dist ./internal/frontend/dist
 WORKDIR /src/internal/integration
 ARG GO_BUILDFLAGS
 ARG GO_LDFLAGS
@@ -398,6 +400,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 FROM base AS integration-test-linux-amd64-build
 COPY --from=generate / /
 COPY --from=embed-generate / /
+COPY --from=frontend /internal/frontend/dist ./internal/frontend/dist
 WORKDIR /src/internal/integration
 ARG GO_BUILDFLAGS
 ARG GO_LDFLAGS
@@ -410,6 +413,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 FROM base AS integration-test-linux-arm64-build
 COPY --from=generate / /
 COPY --from=embed-generate / /
+COPY --from=frontend /internal/frontend/dist ./internal/frontend/dist
 WORKDIR /src/internal/integration
 ARG GO_BUILDFLAGS
 ARG GO_LDFLAGS
@@ -422,6 +426,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 FROM base AS make-cookies-linux-amd64-build
 COPY --from=generate / /
 COPY --from=embed-generate / /
+COPY --from=frontend /internal/frontend/dist ./internal/frontend/dist
 WORKDIR /src/cmd/make-cookies
 ARG GO_BUILDFLAGS
 ARG GO_LDFLAGS
@@ -434,6 +439,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 FROM base AS omni-darwin-amd64-build
 COPY --from=generate / /
 COPY --from=embed-generate / /
+COPY --from=frontend /internal/frontend/dist ./internal/frontend/dist
 WORKDIR /src/cmd/omni
 ARG GO_BUILDFLAGS
 ARG GO_LDFLAGS
@@ -446,6 +452,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 FROM base AS omni-darwin-arm64-build
 COPY --from=generate / /
 COPY --from=embed-generate / /
+COPY --from=frontend /internal/frontend/dist ./internal/frontend/dist
 WORKDIR /src/cmd/omni
 ARG GO_BUILDFLAGS
 ARG GO_LDFLAGS
@@ -458,6 +465,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 FROM base AS omni-linux-amd64-build
 COPY --from=generate / /
 COPY --from=embed-generate / /
+COPY --from=frontend /internal/frontend/dist ./internal/frontend/dist
 WORKDIR /src/cmd/omni
 ARG GO_BUILDFLAGS
 ARG GO_LDFLAGS
@@ -470,6 +478,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 FROM base AS omni-linux-arm64-build
 COPY --from=generate / /
 COPY --from=embed-generate / /
+COPY --from=frontend /internal/frontend/dist ./internal/frontend/dist
 WORKDIR /src/cmd/omni
 ARG GO_BUILDFLAGS
 ARG GO_LDFLAGS
@@ -482,6 +491,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 FROM base AS omnictl-darwin-amd64-build
 COPY --from=generate / /
 COPY --from=embed-generate / /
+COPY --from=frontend /internal/frontend/dist ./internal/frontend/dist
 WORKDIR /src/cmd/omnictl
 ARG GO_BUILDFLAGS
 ARG GO_LDFLAGS
@@ -494,6 +504,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 FROM base AS omnictl-darwin-arm64-build
 COPY --from=generate / /
 COPY --from=embed-generate / /
+COPY --from=frontend /internal/frontend/dist ./internal/frontend/dist
 WORKDIR /src/cmd/omnictl
 ARG GO_BUILDFLAGS
 ARG GO_LDFLAGS
@@ -506,6 +517,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 FROM base AS omnictl-linux-amd64-build
 COPY --from=generate / /
 COPY --from=embed-generate / /
+COPY --from=frontend /internal/frontend/dist ./internal/frontend/dist
 WORKDIR /src/cmd/omnictl
 ARG GO_BUILDFLAGS
 ARG GO_LDFLAGS
@@ -518,6 +530,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 FROM base AS omnictl-linux-arm64-build
 COPY --from=generate / /
 COPY --from=embed-generate / /
+COPY --from=frontend /internal/frontend/dist ./internal/frontend/dist
 WORKDIR /src/cmd/omnictl
 ARG GO_BUILDFLAGS
 ARG GO_LDFLAGS
@@ -530,6 +543,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 FROM base AS omnictl-windows-amd64.exe-build
 COPY --from=generate / /
 COPY --from=embed-generate / /
+COPY --from=frontend /internal/frontend/dist ./internal/frontend/dist
 WORKDIR /src/cmd/omnictl
 ARG GO_BUILDFLAGS
 ARG GO_LDFLAGS
