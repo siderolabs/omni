@@ -37,7 +37,7 @@ import (
 )
 
 const (
-	loginPath = "/omni/authenticate"
+	loginPath = "/authenticate"
 
 	// tsgen:authPublicKeyIDQueryParam
 	publicKeyIDQueryParam = "public-key-id"

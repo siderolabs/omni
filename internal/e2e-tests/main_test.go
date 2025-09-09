@@ -319,7 +319,7 @@ func (s *E2ESuite) TestClickViewAll() {
 
 		s.Require().NoError(viewAllButton.Click(), "error clicking button")
 
-		expectedURL, err := url.JoinPath(s.baseURL, "/omni/clusters")
+		expectedURL, err := url.JoinPath(s.baseURL, "/clusters")
 		s.Require().NoError(err)
 
 		s.Equal(expectedURL, page.MainFrame().URL())
@@ -350,7 +350,7 @@ func (s *E2ESuite) assertClusterCreation() {
 
 			s.Require().NoError(err)
 
-			clustersURL, err := url.JoinPath(s.baseURL, "/omni/clusters")
+			clustersURL, err := url.JoinPath(s.baseURL, "/clusters")
 			s.Require().NoError(err)
 
 			s.navigate(page, `#sidebar-menu-clusters`, clustersURL)
@@ -359,7 +359,7 @@ func (s *E2ESuite) assertClusterCreation() {
 		navigateToClusters()
 
 		// create cluster
-		clusterCreateURL, err := url.JoinPath(s.baseURL, "/omni/cluster/create")
+		clusterCreateURL, err := url.JoinPath(s.baseURL, "/clusters/create")
 		s.Require().NoError(err)
 
 		s.navigate(page, `button[type="button"]:has-text("Create Cluster")`, clusterCreateURL)
@@ -411,13 +411,10 @@ func (s *E2ESuite) assertClusterCreation() {
 		err = page.Locator("#talos-default-cluster-box").WaitFor()
 		s.Require().NoError(err)
 
-		clusterURL, err := url.JoinPath(s.baseURL, "/cluster/talos-default")
+		clusterURL, err := url.JoinPath(s.baseURL, "/clusters/talos-default")
 		s.Require().NoError(err)
 
-		clusterOverviewURL, err := url.JoinPath(clusterURL, "/overview")
-		s.Require().NoError(err)
-
-		s.navigate(page, `div.clusters-grid a`, clusterOverviewURL)
+		s.navigate(page, `div.clusters-grid a`, clusterURL)
 
 		scaleURL, err := url.JoinPath(clusterURL, "/scale")
 		s.Require().NoError(err)
@@ -630,7 +627,7 @@ func splitJSONObjects(t *testing.T, input string) []string {
 }
 
 func (s *E2ESuite) TestOpenMachine() {
-	clustersURL, err := url.JoinPath(s.baseURL, "/omni/clusters")
+	clustersURL, err := url.JoinPath(s.baseURL, "/clusters")
 	s.Require().NoError(err)
 
 	s.withPage(clustersURL, loginUser, func(page playwright.Page) {

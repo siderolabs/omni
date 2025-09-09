@@ -96,7 +96,7 @@ const items = computed(() => {
   const result: SideBarItem[] = [
     {
       name: 'Home',
-      route: getRoute('Home', '/omni/'),
+      route: getRoute('Home', '/'),
       icon: 'home',
     },
   ]
@@ -104,7 +104,7 @@ const items = computed(() => {
   if (canReadClusters.value) {
     result.push({
       name: 'Clusters',
-      route: getRoute('Clusters', '/omni/clusters'),
+      route: getRoute('Clusters', '/clusters'),
       icon: 'clusters',
     })
   }
@@ -113,7 +113,7 @@ const items = computed(() => {
     const autoprovisionedMenuItem: SideBarItem = {
       name: 'Auto-Provisioned',
       icon: 'machines-autoprovisioned',
-      route: getRoute('MachinesManaged', '/omni/machines/managed'),
+      route: getRoute('MachinesManaged', '/machines/managed'),
     }
 
     if (infraProviderStatuses.value.length > 0) {
@@ -141,14 +141,14 @@ const items = computed(() => {
               name: provider.metadata.id!,
               route: getRoute(
                 'MachinesManagedProvider',
-                `/omni/machines/managed/${provider.metadata.id!}`,
+                `/machines/managed/${provider.metadata.id!}`,
               ),
             })
           }
         } else {
           item.route = getRoute(
             'MachinesManagedProvider',
-            `/omni/machines/managed/${values[0].metadata.id}`,
+            `/machines/managed/${values[0].metadata.id}`,
           )
         }
 
@@ -158,12 +158,12 @@ const items = computed(() => {
 
     const item: SideBarItem = {
       name: 'Machines',
-      route: getRoute('Machines', '/omni/machines'),
+      route: getRoute('Machines', '/machines'),
       icon: 'nodes',
       subItems: [
         {
           name: 'Self-Managed',
-          route: getRoute('MachinesManual', '/omni/machines/manual'),
+          route: getRoute('MachinesManual', '/machines/manual'),
           icon: 'machines-manual',
         },
         autoprovisionedMenuItem,
@@ -173,7 +173,7 @@ const items = computed(() => {
     if (machineMetrics.value?.spec.pending_machines_count) {
       item.subItems!.push({
         name: 'Pending',
-        route: getRoute('MachinesPending', '/omni/machines/pending'),
+        route: getRoute('MachinesPending', '/machines/pending'),
         icon: 'question',
         label: machineMetrics.value.spec.pending_machines_count,
       })
@@ -189,12 +189,12 @@ const items = computed(() => {
       subItems: [
         {
           name: 'Classes',
-          route: getRoute('MachineClasses', '/omni/machine-classes'),
+          route: getRoute('MachineClasses', '/machine-classes'),
           icon: 'code-bracket',
         },
         {
           name: 'Join Tokens',
-          route: getRoute('JoinTokens', '/omni/machine/jointokens'),
+          route: getRoute('JoinTokens', '/machine/jointokens'),
           icon: 'key',
         },
       ],
@@ -208,22 +208,22 @@ const items = computed(() => {
       subItems: [
         {
           name: 'Users',
-          route: getRoute('Users', '/omni/settings/users'),
+          route: getRoute('Users', '/settings/users'),
           icon: 'users',
         },
         {
           name: 'Service Accounts',
-          route: getRoute('ServiceAccounts', '/omni/settings/serviceaccounts'),
+          route: getRoute('ServiceAccounts', '/settings/serviceaccounts'),
           icon: 'users',
         },
         {
           name: 'Infra Providers',
-          route: getRoute('InfraProviders', '/omni/settings/infraproviders'),
+          route: getRoute('InfraProviders', '/settings/infraproviders'),
           icon: 'machines-autoprovisioned',
         },
         {
           name: 'Backups',
-          route: getRoute('Backups', '/omni/settings/backups'),
+          route: getRoute('Backups', '/settings/backups'),
           icon: 'rollback',
         },
       ],
@@ -235,5 +235,9 @@ const items = computed(() => {
 </script>
 
 <template>
-  <TSidebarList :items="items" />
+  <div>
+    <TSidebarList :items="items" />
+
+    <RouterView name="clusterSidebar" class="border-t border-naturals-n4" />
+  </div>
 </template>

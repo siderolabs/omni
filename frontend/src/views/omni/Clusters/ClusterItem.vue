@@ -151,7 +151,7 @@ const locked = computed(() => {
       <Tooltip description="Open Cluster Dashboard" class="h-6">
         <IconButton
           icon="dashboard"
-          @click.stop="() => $router.push({ path: '/cluster/' + item?.metadata.id + '/overview' })"
+          @click.stop="$router.push({ path: `/clusters/${item?.metadata.id}` })"
         />
       </Tooltip>
       <TActionsBox style="height: 24px" @click.stop>

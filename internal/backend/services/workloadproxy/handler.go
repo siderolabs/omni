@@ -237,7 +237,7 @@ func (h *HTTPHandler) redirectToLogin(writer http.ResponseWriter, request *http.
 		reqURL.Host = fmt.Sprintf("%s:%s", request.Host, loginURL.Port())
 	}
 
-	loginURL.Path = "/omni/authenticate"
+	loginURL.Path = "/authenticate"
 	q := loginURL.Query()
 	q.Set(auth.RedirectQueryParam, EncodeRedirectURL(reqURL.String(), h.redirectKey))
 	q.Set(auth.FlowQueryParam, auth.ProxyAuthFlow)

@@ -171,7 +171,7 @@ func (sp *SessionProvider) CreateSession(w http.ResponseWriter, r *http.Request,
 		return err
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("/omni/authenticate?%s", query.Encode()), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/authenticate?%s", query.Encode()), http.StatusSeeOther)
 
 	return nil
 }

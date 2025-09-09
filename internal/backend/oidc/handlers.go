@@ -223,7 +223,7 @@ func RegisterHandlers(endpoint string, config config.OIDC, mux *http.ServeMux, p
 
 		query.Set("token", rawIDToken)
 
-		http.Redirect(w, r, "/omni/authenticate?"+query.Encode(), http.StatusSeeOther)
+		http.Redirect(w, r, "/authenticate?"+query.Encode(), http.StatusSeeOther)
 	})
 
 	return nil

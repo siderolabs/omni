@@ -94,23 +94,27 @@ const routes: RouteRecordRaw[] = [
   { path: '/badrequest', component: BadRequest },
   { path: '/:catchAll(.*)', component: PageNotFound },
   {
-    path: '/omni',
-    children: [
-      {
-        path: 'authenticate',
-        name: 'Authenticate',
-        component: Authenticate,
-        beforeEnter: async (to) => {
-          return authType.value === AuthType.Auth0 ? await authGuard(to) : true
-        },
-      },
-    ],
+    path: '/authenticate',
+    name: 'Authenticate',
+    component: Authenticate,
+    beforeEnter: async (to) => {
+      return authType.value === AuthType.Auth0 ? await authGuard(to) : true
+    },
   },
+
+  // Redirects for legacy routes
+  { path: '/omni', redirect: '/' },
+  { path: '/omni/:catchAll(.*)', redirect: (to) => `/${to.params.catchAll}` },
+  { path: '/cluster', redirect: '/clusters' },
+  { path: '/cluster/:catchAll(.*)', redirect: (to) => `/clusters/${to.params.catchAll}` },
 
   // Authenticated routes
   {
     path: '/',
-    redirect: '/omni/',
+    components: {
+      default: RouterView,
+      sidebar: OmniSidebar,
+    },
     beforeEnter: async (to) => {
       let authorized = await isAuthorized()
 
@@ -132,257 +136,253 @@ const routes: RouteRecordRaw[] = [
     },
     children: [
       {
-        path: 'omni',
-        components: {
-          default: RouterView,
-          sidebar: OmniSidebar,
-        },
+        path: '',
+        name: 'Home',
+        component: Home,
+      },
+      {
+        path: 'oidc-login/:authRequestId',
+        name: 'OIDC Login',
+        component: OIDC,
+      },
+      {
+        path: 'clusters',
         children: [
           {
             path: '',
-            name: 'Home',
-            component: Home,
-          },
-          {
-            path: 'oidc-login/:authRequestId',
-            name: 'OIDC Login',
-            component: OIDC,
-          },
-          {
-            path: 'clusters',
             name: 'Clusters',
             component: OmniClusters,
           },
           {
-            path: 'cluster/create',
+            path: 'create',
             name: 'ClusterCreate',
             component: OmniClusterCreate,
           },
           {
-            path: 'machines',
-            name: 'Machines',
-            component: OmniMachines,
-          },
-          {
-            path: 'machines/manual',
-            name: 'MachinesManual',
-            component: OmniMachines,
-            props: {
-              filter: MachineFilterOption.Manual,
-            },
-          },
-          {
-            path: 'machines/managed',
-            name: 'MachinesManaged',
-            component: OmniMachines,
-            props: {
-              filter: MachineFilterOption.Managed,
-            },
-          },
-          {
-            path: 'machines/managed/:provider',
-            name: 'MachinesManagedProvider',
-            component: OmniMachines,
-          },
-          {
-            path: 'machines/pending',
-            name: 'MachinesPending',
-            component: OmniMachinesPending,
-          },
-          {
-            path: 'machine-classes',
-            name: 'MachineClasses',
-            component: OmniMachineClasses,
-          },
-          {
-            path: 'machine-classes/create',
-            name: 'MachineClassCreate',
-            component: OmniMachineClass,
-          },
-          {
-            path: 'machine-classes/:classname',
-            name: 'MachineClassEdit',
-            component: OmniMachineClass,
-            props: {
-              edit: true,
-            },
-          },
-          {
-            path: 'machine/:machine/patches/:patch',
-            name: 'MachinePatchEdit',
-            component: PatchEdit,
-          },
-          {
-            path: 'machine/jointokens',
-            name: 'JoinTokens',
-            component: OmniJoinTokens,
-          },
-          {
-            path: 'settings',
-            name: 'Settings',
-            component: OmniSettings,
-            redirect: {
-              name: 'Users',
+            path: ':cluster',
+            components: {
+              default: ClusterScoped,
+              clusterSidebar: ClusterSidebar,
             },
             children: [
               {
-                path: 'users',
-                name: 'Users',
-                component: OmniUsers,
-                meta: {
-                  title: 'Users',
-                },
+                path: '',
+                name: 'ClusterOverview',
+                component: ClusterOverview,
               },
               {
-                path: 'serviceaccounts',
-                name: 'ServiceAccounts',
-                component: OmniServiceAccounts,
-                meta: {
-                  title: 'Service Accounts',
-                },
+                path: 'nodes',
+                name: 'Nodes',
+                component: NodesList,
               },
               {
-                path: 'infraproviders',
-                name: 'InfraProviders',
-                component: OmniInfraProviders,
-                meta: {
-                  title: 'Infra Providers',
-                },
+                path: 'scale',
+                name: 'ClusterScale',
+                component: OmniClusterScale,
               },
               {
-                path: 'backups',
-                name: 'BackupStorage',
-                component: OmniBackupStorageSettings,
-                meta: {
-                  title: 'Backup Storage',
-                },
-              },
-            ],
-          },
-          {
-            path: 'machine/:machine',
-            name: 'Machine',
-            component: OmniMachine,
-            redirect: {
-              name: 'MachineLogs',
-            },
-            children: [
-              {
-                path: 'logs',
-                name: 'MachineLogs',
-                component: OmniMachineLogs,
+                path: 'pods',
+                name: 'Pods',
+                component: TPods,
               },
               {
                 path: 'patches',
-                name: 'MachineConfigPatches',
-                component: OmniMachinePatches,
+                name: 'ClusterConfigPatches',
+                component: ClusterPatches,
+              },
+              {
+                path: 'patches/:patch',
+                name: 'ClusterPatchEdit',
+                component: PatchEdit,
+              },
+              {
+                path: 'manifests',
+                name: 'KubernetesManifestSync',
+                component: KubernetesManifestSync,
+              },
+              {
+                path: 'backups',
+                name: 'Backups',
+                component: ClusterBackups,
+              },
+              {
+                path: 'machine/:machine',
+                components: {
+                  default: RouterView,
+                  nodeSidebar: ClusterSidebarNode,
+                },
+                children: [
+                  {
+                    path: 'patches/:patch',
+                    name: 'ClusterMachinePatchEdit',
+                    component: PatchEdit,
+                  },
+                  {
+                    path: '',
+                    name: 'NodeDetails',
+                    component: NodeDetails,
+                    children: [
+                      {
+                        path: '',
+                        name: 'NodeOverview',
+                        component: NodeOverview,
+                      },
+                      {
+                        path: 'monitor',
+                        name: 'NodeMonitor',
+                        component: NodeMonitor,
+                      },
+                      {
+                        path: 'logs/:service',
+                        name: 'NodeLogs',
+                        component: NodeLogs,
+                      },
+                      {
+                        path: 'config',
+                        name: 'NodeConfig',
+                        component: NodeConfig,
+                      },
+                      {
+                        path: 'patches',
+                        name: 'NodePatches',
+                        component: NodePatches,
+                      },
+                      {
+                        path: 'mounts',
+                        name: 'NodeMounts',
+                        component: NodeMounts,
+                      },
+                      {
+                        path: 'extensions',
+                        name: 'NodeExtensions',
+                        component: NodeExtensions,
+                      },
+                    ],
+                  },
+                ],
               },
             ],
           },
         ],
       },
       {
-        path: 'cluster/:cluster',
-        components: {
-          default: ClusterScoped,
-          sidebar: ClusterSidebar,
+        path: 'machines',
+        name: 'Machines',
+        component: OmniMachines,
+      },
+      {
+        path: 'machines/manual',
+        name: 'MachinesManual',
+        component: OmniMachines,
+        props: {
+          filter: MachineFilterOption.Manual,
+        },
+      },
+      {
+        path: 'machines/managed',
+        name: 'MachinesManaged',
+        component: OmniMachines,
+        props: {
+          filter: MachineFilterOption.Managed,
+        },
+      },
+      {
+        path: 'machines/managed/:provider',
+        name: 'MachinesManagedProvider',
+        component: OmniMachines,
+      },
+      {
+        path: 'machines/pending',
+        name: 'MachinesPending',
+        component: OmniMachinesPending,
+      },
+      {
+        path: 'machine-classes',
+        name: 'MachineClasses',
+        component: OmniMachineClasses,
+      },
+      {
+        path: 'machine-classes/create',
+        name: 'MachineClassCreate',
+        component: OmniMachineClass,
+      },
+      {
+        path: 'machine-classes/:classname',
+        name: 'MachineClassEdit',
+        component: OmniMachineClass,
+        props: {
+          edit: true,
+        },
+      },
+      {
+        path: 'machine/:machine/patches/:patch',
+        name: 'MachinePatchEdit',
+        component: PatchEdit,
+      },
+      {
+        path: 'machine/jointokens',
+        name: 'JoinTokens',
+        component: OmniJoinTokens,
+      },
+      {
+        path: 'settings',
+        name: 'Settings',
+        component: OmniSettings,
+        redirect: {
+          name: 'Users',
         },
         children: [
           {
-            path: 'nodes',
-            name: 'Nodes',
-            component: NodesList,
+            path: 'users',
+            name: 'Users',
+            component: OmniUsers,
+            meta: {
+              title: 'Users',
+            },
           },
           {
-            path: 'scale',
-            name: 'ClusterScale',
-            component: OmniClusterScale,
+            path: 'serviceaccounts',
+            name: 'ServiceAccounts',
+            component: OmniServiceAccounts,
+            meta: {
+              title: 'Service Accounts',
+            },
           },
           {
-            path: 'pods',
-            name: 'Pods',
-            component: TPods,
-          },
-          {
-            path: 'overview',
-            name: 'ClusterOverview',
-            component: ClusterOverview,
-          },
-          {
-            path: 'patches',
-            name: 'ClusterConfigPatches',
-            component: ClusterPatches,
-          },
-          {
-            path: 'patches/:patch',
-            name: 'ClusterPatchEdit',
-            component: PatchEdit,
-          },
-          {
-            path: 'manifests',
-            name: 'KubernetesManifestSync',
-            component: KubernetesManifestSync,
+            path: 'infraproviders',
+            name: 'InfraProviders',
+            component: OmniInfraProviders,
+            meta: {
+              title: 'Infra Providers',
+            },
           },
           {
             path: 'backups',
-            name: 'Backups',
-            component: ClusterBackups,
+            name: 'BackupStorage',
+            component: OmniBackupStorageSettings,
+            meta: {
+              title: 'Backup Storage',
+            },
+          },
+        ],
+      },
+      {
+        path: 'machine/:machine',
+        name: 'Machine',
+        component: OmniMachine,
+        redirect: {
+          name: 'MachineLogs',
+        },
+        children: [
+          {
+            path: 'logs',
+            name: 'MachineLogs',
+            component: OmniMachineLogs,
           },
           {
-            path: 'machine/:machine',
-            components: {
-              default: RouterView,
-              nodeSidebar: ClusterSidebarNode,
-            },
-            children: [
-              {
-                path: 'patches/:patch',
-                name: 'ClusterMachinePatchEdit',
-                component: PatchEdit,
-              },
-              {
-                path: '',
-                name: 'NodeDetails',
-                component: NodeDetails,
-                children: [
-                  {
-                    path: 'overview',
-                    name: 'NodeOverview',
-                    component: NodeOverview,
-                  },
-                  {
-                    path: 'monitor',
-                    name: 'NodeMonitor',
-                    component: NodeMonitor,
-                  },
-                  {
-                    path: 'logs/:service',
-                    name: 'NodeLogs',
-                    component: NodeLogs,
-                  },
-                  {
-                    path: 'config',
-                    name: 'NodeConfig',
-                    component: NodeConfig,
-                  },
-                  {
-                    path: 'patches',
-                    name: 'NodePatches',
-                    component: NodePatches,
-                  },
-                  {
-                    path: 'mounts',
-                    name: 'NodeMounts',
-                    component: NodeMounts,
-                  },
-                  {
-                    path: 'extensions',
-                    name: 'NodeExtensions',
-                    component: NodeExtensions,
-                  },
-                ],
-              },
-            ],
+            path: 'patches',
+            name: 'MachineConfigPatches',
+            component: OmniMachinePatches,
           },
         ],
       },

@@ -19,11 +19,10 @@ import { default as TSidebarList } from '@/components/SideBar/TSideBarList.vue'
 import { setupClusterPermissions } from '@/methods/auth'
 import { setupWorkloadProxyingEnabledFeatureWatch } from '@/methods/features'
 import ExposedServiceSideBar from '@/views/cluster/ExposedService/ExposedServiceSideBar.vue'
-import OmniSideBar from '@/views/omni/SideBar.vue'
 
 const route = useRoute()
 
-const getRoute = (path: string) => `/cluster/${route.params.cluster}${path}`
+const getRoute = (path: string) => `/clusters/${route.params.cluster}${path}`
 
 const kubernetesUpgradeManifestStatus: Ref<
   Resource<KubernetesUpgradeManifestStatusSpec> | undefined
@@ -66,7 +65,7 @@ const items = computed(() => {
   const result: SideBarItem[] = [
     {
       name: 'Overview',
-      route: getRoute('/overview'),
+      route: getRoute(''),
       icon: 'overview',
     },
     {
@@ -111,8 +110,7 @@ const workloadProxyingEnabled = setupWorkloadProxyingEnabledFeatureWatch()
 </script>
 
 <template>
-  <div class="flex-1">
-    <OmniSideBar class="border-b border-naturals-n4" />
+  <div>
     <p class="mt-5 mb-2 px-6 text-xs text-naturals-n8">Cluster</p>
     <p class="truncate px-6 text-xs text-naturals-n13">
       {{ $route.params.cluster }}
