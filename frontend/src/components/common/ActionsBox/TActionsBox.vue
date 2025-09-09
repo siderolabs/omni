@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { vOnClickOutside } from '@vueuse/components'
 import { ref } from 'vue'
 import Popper from 'vue3-popper'
 
@@ -39,7 +40,7 @@ const open = ref(false)
 </script>
 
 <template>
-  <div v-click-outside="() => (open = false)" class="actions-box">
+  <div v-on-click-outside="() => (open = false)" class="actions-box">
     <Popper
       offset-distance="10"
       :placement="placement"

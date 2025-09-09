@@ -5,10 +5,10 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useClipboard } from '@vueuse/core'
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import WordHighlighter from 'vue-word-highlighter'
-import { copyText } from 'vue3-clipboard'
 
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
@@ -42,6 +42,8 @@ defineEmits<{
 }>()
 
 const selected = defineModel<boolean>('selected')
+
+const { copy } = useClipboard()
 
 const machineName = computed(() => {
   return machine.spec.message_status?.network?.hostname ?? machine.metadata.id
@@ -171,10 +173,7 @@ const maintenanceUpdateDescription = computed(() => {
               Config Patches
             </TActionsBoxItem>
 
-            <TActionsBoxItem
-              icon="copy"
-              @click="copyText(machine.metadata.id, undefined, () => {})"
-            >
+            <TActionsBoxItem icon="copy" @click="copy(machine.metadata.id!)">
               Copy Machine ID
             </TActionsBoxItem>
 

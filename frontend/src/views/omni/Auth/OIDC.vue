@@ -5,9 +5,9 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useClipboard } from '@vueuse/core'
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { copyText } from 'vue3-clipboard'
 
 import { OIDCService } from '@/api/omni/oidc/oidc.pb'
 import TButton from '@/components/common/Button/TButton.vue'
@@ -17,6 +17,7 @@ import { avatar, fullname, identity } from '@/methods/key'
 import { showError } from '@/notification'
 
 const route = useRoute()
+const { copy, copied } = useClipboard({ copiedDuring: 1000 })
 
 const authRequestId = route.params.authRequestId as string
 
@@ -42,20 +43,8 @@ const confirmOIDCRequest = async () => {
   }
 }
 
-const copied = ref(false)
-
-let timeout: number
-
 const copyCode = () => {
-  clearTimeout(timeout)
-
-  copied.value = true
-
-  timeout = setTimeout(() => {
-    copied.value = false
-  }, 1000)
-
-  copyText(authCode.value, undefined, () => {})
+  if (authCode.value) copy(authCode.value)
 }
 </script>
 

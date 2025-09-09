@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { vOnClickOutside } from '@vueuse/components'
 import { Duration } from 'luxon'
 import pluralize from 'pluralize'
 import { computed, ref, toRefs } from 'vue'
@@ -120,7 +121,7 @@ const updateBackupInterval = () => {
         <div class="w-12">
           <TInput
             v-model="backupIntervalPreview"
-            v-click-outside="() => (editingBackupConfig = false)"
+            v-on-click-outside="() => (editingBackupConfig = false)"
             type="number"
             compact
             focus

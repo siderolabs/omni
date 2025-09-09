@@ -5,9 +5,9 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useClipboard } from '@vueuse/core'
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { copyText } from 'vue3-clipboard'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -22,6 +22,8 @@ import { setupBackupStatus } from '@/methods'
 import { triggerEtcdBackup } from '@/methods/cluster'
 import { showError } from '@/notification'
 import BackupsList from '@/views/cluster/Backups/BackupsList.vue'
+
+const { copy } = useClipboard()
 
 const startingEtcdBackup = ref(false)
 const route = useRoute()
@@ -61,7 +63,7 @@ const runEtcdBackup = async () => {
       <div class="flex items-center gap-1 text-xs">
         Cluster UUID:
         <div>{{ clusterUUID }}</div>
-        <IconButton icon="copy" @click="() => copyText(clusterUUID, undefined, () => {})" />
+        <IconButton icon="copy" @click="() => copy(clusterUUID)" />
         <TButton
           type="highlighted"
           class="ml-2"

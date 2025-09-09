@@ -2,11 +2,9 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-
 import type { Node as V1Node } from 'kubernetes-types/core/v1'
 import type { ComputedRef, Ref } from 'vue'
 import { computed, ref } from 'vue'
-import { copyText } from 'vue3-clipboard'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { fetchOption } from '@/api/fetch.pb'
@@ -218,13 +216,13 @@ export const isChrome = () => {
   return navigator.userAgent.toLowerCase().includes('chrome')
 }
 
-export const copyKernelArgs = async (joinToken?: string, useGRPCTunnel: boolean = false) => {
+export const getKernelArgs = async (joinToken?: string, useGRPCTunnel: boolean = false) => {
   const response = await ManagementService.GetMachineJoinConfig({
     join_token: joinToken,
     use_grpc_tunnel: useGRPCTunnel,
   })
 
-  copyText(response.kernel_args!.join(' '), undefined, () => {})
+  return response.kernel_args?.join(' ') ?? ''
 }
 
 export const downloadMachineJoinConfig = async (

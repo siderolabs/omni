@@ -5,10 +5,10 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useClipboard } from '@vueuse/core'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import WordHighlighter from 'vue-word-highlighter'
-import { copyText } from 'vue3-clipboard'
 
 import { Runtime } from '@/api/common/omni.pb'
 import {
@@ -32,6 +32,7 @@ import { formatISO } from '@/methods/time'
 
 const dateFormat = 'HH:mm MMM d y'
 const route = useRoute()
+const { copy } = useClipboard()
 
 const sortOptions = [
   { id: 'id', desc: 'Creation Time ⬇', descending: true },
@@ -133,10 +134,7 @@ const openDocs = () => {
                     </div>
                     <div class="flex items-center gap-2 text-naturals-n14">
                       {{ item.spec.snapshot }}
-                      <IconButton
-                        icon="copy"
-                        @click="copyText(item.spec.snapshot, undefined, () => {})"
-                      />
+                      <IconButton icon="copy" @click="copy(item.spec.snapshot)" />
                     </div>
                   </div>
                 </div>

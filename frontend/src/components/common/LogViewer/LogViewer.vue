@@ -7,11 +7,11 @@ included in the LICENSE file.
 <script setup lang="ts">
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 
+import { useClipboard } from '@vueuse/core'
 import type { Component } from 'vue'
 import { computed, nextTick, onMounted, onUpdated, ref, toRefs, watch } from 'vue'
 import { DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller'
 import WordHighlighter from 'vue-word-highlighter'
-import { copyText } from 'vue3-clipboard'
 
 import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
@@ -24,6 +24,7 @@ type Props = {
 }
 
 const props = withDefaults(defineProps<Props>(), {})
+const { copy } = useClipboard()
 
 const follow = ref(true)
 const logView: Component = ref(null)
@@ -62,7 +63,7 @@ const filteredLogs = computed(() => {
 })
 
 const copyLogs = () => {
-  return copyText(
+  return copy(
     filteredLogs.value
       .map((item: LogLine) => {
         const arr: string[] = []
@@ -75,8 +76,6 @@ const copyLogs = () => {
         return arr.join(' ')
       })
       .join('\n'),
-    undefined,
-    () => {},
   )
 }
 

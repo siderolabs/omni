@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { vOnClickOutside } from '@vueuse/components'
 import { computed, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -43,7 +44,7 @@ const onClickOutside = () => {
 </script>
 
 <template>
-  <div v-click-outside="onClickOutside" class="relative flex items-center">
+  <div v-on-click-outside="onClickOutside" class="relative flex items-center">
     <Watch v-if="watchOpts" :opts="watchOpts" display-always>
       <template #default="{ data }">
         <div

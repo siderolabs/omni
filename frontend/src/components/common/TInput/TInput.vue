@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { vOnClickOutside } from '@vueuse/components'
 import type { Ref } from 'vue'
 import { computed, onMounted, ref, toRefs, watch } from 'vue'
 
@@ -113,7 +114,7 @@ onMounted(() => {
 
 <template>
   <label
-    v-click-outside="() => (isFocused = false)"
+    v-on-click-outside="() => (isFocused = false)"
     class="input-box"
     :class="[{ focused: isFocused, secondary, primary: !secondary, compact, disabled }]"
     @click.prevent="

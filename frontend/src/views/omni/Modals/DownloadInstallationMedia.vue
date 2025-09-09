@@ -6,12 +6,12 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { DocumentArrowDownIcon } from '@heroicons/vue/24/outline'
+import { useClipboard } from '@vueuse/core'
 import yaml from 'js-yaml'
 import * as semver from 'semver'
 import type { Ref } from 'vue'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { copyText } from 'vue3-clipboard'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -65,6 +65,8 @@ enum Phase {
 const installExtensions = ref<Record<string, boolean>>({})
 const router = useRouter()
 const route = useRoute()
+const { copy, copied: copiedPXEURL } = useClipboard({ copiedDuring: 2000 })
+
 const phase = ref(Phase.Idle)
 const showDescriptions = ref(false)
 const fileSizeLoaded = ref(0)
@@ -435,17 +437,12 @@ const setTalosVersion = (value: string) => {
   selectedTalosVersion.value = value
 }
 
-const copiedPXEURL = ref(false)
-
 const copyPXEURL = async () => {
   if (!pxeURL.value) {
     await createSchematic()
   }
 
-  copyText(pxeURL.value, undefined, () => {})
-
-  copiedPXEURL.value = true
-  setTimeout(() => (copiedPXEURL.value = false), 2000)
+  if (pxeURL.value) copy(pxeURL.value)
 }
 
 const downloaded = computed(() => {

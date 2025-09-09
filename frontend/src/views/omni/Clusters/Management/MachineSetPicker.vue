@@ -6,6 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { RadioGroup, RadioGroupOption } from '@headlessui/vue'
+import { vOnClickOutside } from '@vueuse/components'
 import { computed, ref, toRefs, watch } from 'vue'
 import Popper from 'vue3-popper'
 
@@ -107,7 +108,7 @@ const menuHovered = ref(false)
     </RadioGroup>
 
     <div v-else class="relative flex h-8 items-center justify-center rounded bg-naturals-n3">
-      <Popper v-click-outside="() => (showPicker = false)" :show="showPicker" placement="left">
+      <Popper v-on-click-outside="() => (showPicker = false)" :show="showPicker" placement="left">
         <template #content>
           <div class="flex flex-col items-center gap-1 rounded bg-naturals-n3 p-1">
             <IconButton

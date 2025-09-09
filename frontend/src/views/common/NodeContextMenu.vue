@@ -5,9 +5,9 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useClipboard } from '@vueuse/core'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { copyText } from 'vue3-clipboard'
 
 import type { Resource } from '@/api/grpc'
 import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
@@ -17,6 +17,8 @@ import TActionsBoxItem from '@/components/common/ActionsBox/TActionsBoxItem.vue'
 import { setupClusterPermissions } from '@/methods/auth'
 
 const router = useRouter()
+const { copy } = useClipboard()
+
 const props = defineProps<{
   clusterName: string
   deleteDisabled?: boolean
@@ -72,7 +74,7 @@ const restoreNode = () => {
 }
 
 const copyMachineID = () => {
-  copyText(props.clusterMachineStatus.metadata.id!, undefined, () => {})
+  copy(props.clusterMachineStatus.metadata.id!)
 }
 </script>
 

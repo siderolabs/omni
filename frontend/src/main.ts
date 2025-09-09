@@ -6,11 +6,9 @@
 import '@/index.css'
 
 import { createAuth0 } from '@auth0/auth0-vue'
-import vClickOutside from 'click-outside-vue3'
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 import yamlWorker from 'monaco-yaml/yaml.worker?worker'
 import { createApp } from 'vue'
-import VueClipboard from 'vue3-clipboard'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -66,10 +64,7 @@ const setupApp = async () => {
     authType.value = AuthType.Auth0
   }
 
-  let app = createApp(App).use(router).use(VueClipboard, {
-    autoSetContainer: true,
-    appendToBody: true,
-  })
+  let app = createApp(App).use(router)
 
   if (authType.value === AuthType.Auth0) {
     app = app.use(
@@ -84,7 +79,6 @@ const setupApp = async () => {
     )
   }
 
-  app.use(vClickOutside)
   app.mount('#app')
 }
 

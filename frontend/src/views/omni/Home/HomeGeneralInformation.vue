@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useClipboard } from '@vueuse/core'
 import { onBeforeMount, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -22,21 +23,26 @@ import TButton from '@/components/common/Button/TButton.vue'
 import Card from '@/components/common/Card/Card.vue'
 import Watch from '@/components/common/Watch/Watch.vue'
 import {
-  copyKernelArgs,
   downloadAuditLog,
   downloadMachineJoinConfig,
   downloadOmniconfig,
   downloadTalosconfig,
+  getKernelArgs,
 } from '@/methods'
 import { canReadAuditLog } from '@/methods/auth'
 import { auditLogEnabled } from '@/methods/features'
 import HomeGeneralInformationCopyable from '@/views/omni/Home/HomeGeneralInformationCopyable.vue'
 
 const auditLogAvailable = ref(false)
+const { copy } = useClipboard()
 
 onBeforeMount(async () => {
   auditLogAvailable.value = await auditLogEnabled()
 })
+
+async function copyKernelArgs() {
+  copy(await getKernelArgs())
+}
 </script>
 
 <template>
@@ -122,7 +128,7 @@ onBeforeMount(async () => {
         Download Machine Join Config
       </TButton>
 
-      <TButton icon="copy" icon-position="left" @click="copyKernelArgs()">
+      <TButton icon="copy" icon-position="left" @click="copyKernelArgs">
         Copy Kernel Parameters
       </TButton>
     </section>

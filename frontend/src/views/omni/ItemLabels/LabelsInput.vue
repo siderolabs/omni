@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { vOnClickOutside } from '@vueuse/components'
 import { ref, toRefs, watch } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -220,7 +221,7 @@ watch(filterValue, async (val: string, old: string) => {
   >
     <TInput
       ref="input"
-      v-click-outside="() => (showCompletions = false)"
+      v-on-click-outside="() => (showCompletions = false)"
       class="h-full flex-1 flex-wrap text-xs"
       icon="search"
       :model-value="filterValue"

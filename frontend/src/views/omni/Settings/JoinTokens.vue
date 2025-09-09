@@ -5,9 +5,9 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useClipboard } from '@vueuse/core'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { copyText } from 'vue3-clipboard'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { type Resource, ResourceService } from '@/api/grpc'
@@ -28,12 +28,14 @@ import TListItem from '@/components/common/List/TListItem.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import TStatus from '@/components/common/Status/TStatus.vue'
 import { TCommonStatuses } from '@/constants'
-import { copyKernelArgs, downloadMachineJoinConfig } from '@/methods'
+import { downloadMachineJoinConfig, getKernelArgs } from '@/methods'
 import { canManageUsers, unrevokeJoinToken } from '@/methods/auth'
 import { relativeISO } from '@/methods/time'
 import { showError } from '@/notification'
 
 const router = useRouter()
+const { copy } = useClipboard()
+
 const showTokens = ref(false)
 
 const watchOpts = [
@@ -66,11 +68,11 @@ const openUserCreate = () => {
 }
 
 const copyValue = (value: string) => {
-  return copyText(value, undefined, () => {})
+  return copy(value)
 }
 
-const copyKernelParams = (token: string) => {
-  copyKernelArgs(token)
+const copyKernelParams = async (token: string) => {
+  copy(await getKernelArgs(token))
 }
 
 const makeDefault = async (token: string) => {
