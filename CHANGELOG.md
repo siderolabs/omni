@@ -1,3 +1,31 @@
+## [Omni 1.1.4](https://github.com/siderolabs/omni/releases/tag/v1.1.4) (2025-09-09)
+
+Welcome to the v1.1.4 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`4be8e10c`](https://github.com/siderolabs/omni/commit/4be8e10c27ebda9e53dfebe7eeecf911b1afcfbc) fix: do not make not running lazy workload proxy healthchecker block
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.1.3](https://github.com/siderolabs/omni/releases/tag/v1.1.3)
+
+
 ## [Omni 1.1.3](https://github.com/siderolabs/omni/releases/tag/v1.1.3) (2025-09-01)
 
 Welcome to the v1.1.3 release of Omni!
