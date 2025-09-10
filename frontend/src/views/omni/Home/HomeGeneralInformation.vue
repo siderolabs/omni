@@ -6,9 +6,11 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useClipboard } from '@vueuse/core'
-import { onBeforeMount, ref } from 'vue'
+import { onBeforeMount, ref, watch } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
+import type { DefaultJoinTokenSpec, SiderolinkAPIConfigSpec } from '@/api/omni/specs/siderolink.pb'
+import type { SysVersionSpec } from '@/api/omni/specs/system.pb'
 import {
   APIConfigType,
   ConfigID,
@@ -21,7 +23,8 @@ import {
 } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
 import Card from '@/components/common/Card/Card.vue'
-import Watch from '@/components/common/Watch/Watch.vue'
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import { useWatch } from '@/components/common/Watch/useWatch'
 import {
   downloadAuditLog,
   downloadMachineJoinConfig,
@@ -31,6 +34,7 @@ import {
 } from '@/methods'
 import { canReadAuditLog } from '@/methods/auth'
 import { auditLogEnabled } from '@/methods/features'
+import { showError } from '@/notification'
 import HomeGeneralInformationCopyable from '@/views/omni/Home/HomeGeneralInformationCopyable.vue'
 
 const auditLogAvailable = ref(false)
@@ -43,72 +47,69 @@ onBeforeMount(async () => {
 async function copyKernelArgs() {
   copy(await getKernelArgs())
 }
+
+const { data: sysData } = useWatch<SysVersionSpec>({
+  resource: {
+    type: SysVersionType,
+    namespace: EphemeralNamespace,
+    id: SysVersionID,
+  },
+  runtime: Runtime.Omni,
+})
+
+const { data: joinTokenData } = useWatch<DefaultJoinTokenSpec>({
+  resource: {
+    type: DefaultJoinTokenType,
+    namespace: DefaultNamespace,
+    id: DefaultJoinTokenID,
+  },
+  runtime: Runtime.Omni,
+})
+
+const {
+  data: apiConfigData,
+  err: apiConfigErr,
+  loading: apiConfigLoading,
+} = useWatch<SiderolinkAPIConfigSpec>({
+  resource: {
+    type: APIConfigType,
+    namespace: DefaultNamespace,
+    id: ConfigID,
+  },
+  runtime: Runtime.Omni,
+})
+
+watch(apiConfigErr, (err) => err && showError(err))
 </script>
 
 <template>
   <Card class="flex flex-col gap-6 p-4 text-naturals-n14">
-    <header>
+    <header class="flex items-center justify-between">
       <h2 class="text-sm font-medium">General Information</h2>
+      <TSpinner v-if="apiConfigLoading" class="size-4" />
     </header>
 
     <div class="flex flex-col gap-4">
-      <Watch
-        :opts="{
-          resource: {
-            type: SysVersionType,
-            namespace: EphemeralNamespace,
-            id: SysVersionID,
-          },
-          runtime: Runtime.Omni,
-        }"
-      >
-        <template #default="{ data }">
-          <HomeGeneralInformationCopyable
-            title="Backend Version"
-            :value="data?.spec.backend_version"
-          />
-        </template>
-      </Watch>
+      <HomeGeneralInformationCopyable
+        title="Backend Version"
+        :value="sysData?.spec.backend_version"
+      />
 
-      <Watch
-        :opts="{
-          resource: {
-            type: APIConfigType,
-            namespace: DefaultNamespace,
-            id: ConfigID,
-          },
-          runtime: Runtime.Omni,
-        }"
-        errors-alert
-        spinner
-      >
-        <template #default="{ data }">
-          <HomeGeneralInformationCopyable
-            title="API Endpoint"
-            :value="data?.spec.machine_api_advertised_url"
-          />
+      <HomeGeneralInformationCopyable
+        title="API Endpoint"
+        :value="apiConfigData?.spec.machine_api_advertised_url"
+      />
 
-          <HomeGeneralInformationCopyable
-            title="WireGuard Endpoint"
-            :value="data?.spec.wireguard_advertised_endpoint"
-          />
-        </template>
-      </Watch>
+      <HomeGeneralInformationCopyable
+        title="WireGuard Endpoint"
+        :value="apiConfigData?.spec.wireguard_advertised_endpoint"
+      />
 
-      <Watch
-        :opts="{
-          resource: {
-            type: DefaultJoinTokenType,
-            namespace: DefaultNamespace,
-            id: DefaultJoinTokenID,
-          },
-          runtime: Runtime.Omni,
-        }"
-      >
-        <template #default="{ data }">
-          <HomeGeneralInformationCopyable title="Join Token" secret :value="data?.spec.token_id" />
-        </template>
-      </Watch>
+      <HomeGeneralInformationCopyable
+        title="Join Token"
+        secret
+        :value="joinTokenData?.spec.token_id"
+      />
     </div>
 
     <hr class="border border-naturals-n4" />

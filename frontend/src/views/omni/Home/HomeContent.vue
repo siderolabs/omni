@@ -49,7 +49,7 @@ const showReleaseNotes = false
         <div v-if="showReleaseNotes" class="bg-yellow-y1 p-2">Release notes</div>
       </div>
 
-      <HomeGeneralInformation />
+      <HomeGeneralInformation class="lg:w-72" />
     </div>
   </div>
 </template>
