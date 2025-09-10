@@ -322,7 +322,7 @@ func (s *E2ESuite) TestClickViewAll() {
 		expectedURL, err := url.JoinPath(s.baseURL, "/clusters")
 		s.Require().NoError(err)
 
-		s.Equal(expectedURL, page.MainFrame().URL())
+		s.Require().NoError(page.WaitForURL(expectedURL))
 	})
 }
 

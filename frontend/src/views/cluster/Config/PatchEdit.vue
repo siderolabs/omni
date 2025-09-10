@@ -5,9 +5,10 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
+import type monaco from 'monaco-editor/esm/vs/editor/editor.api'
+import { MarkerSeverity, MarkerTag } from 'monaco-editor/esm/vs/editor/editor.api'
 import type { Ref } from 'vue'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Popper from 'vue3-popper'
 
@@ -36,7 +37,6 @@ import {
   VirtualNamespace,
 } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
-import CodeEditor from '@/components/common/CodeEditor/CodeEditor.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
@@ -48,6 +48,10 @@ import { showError } from '@/notification'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 
 import Watch from '../../../api/watch'
+
+const CodeEditor = defineAsyncComponent(
+  () => import('@/components/common/CodeEditor/CodeEditor.vue'),
+)
 
 type Props = {
   currentCluster?: Resource<ClusterSpec>
@@ -163,10 +167,10 @@ const checkEncryption = (model: monaco.editor.ITextModel, tokens: monaco.Token[]
         endColumn: word.endColumn,
         message:
           'Will have no effect: KMS encryption is enabled.\nKMS encryption config patch always has a higher priority.',
-        severity: monaco.MarkerSeverity.Info,
+        severity: MarkerSeverity.Info,
         endLineNumber: pos.lineNumber,
         startLineNumber: pos.lineNumber,
-        tags: [monaco.MarkerTag.Unnecessary],
+        tags: [MarkerTag.Unnecessary],
       })
 
       break

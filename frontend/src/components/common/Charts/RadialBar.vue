@@ -6,8 +6,9 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import type { ApexOptions } from 'apexcharts'
-import { computed } from 'vue'
-import ApexChart from 'vue3-apexcharts'
+import { computed, defineAsyncComponent } from 'vue'
+
+const ApexChart = defineAsyncComponent(() => import('vue3-apexcharts'))
 
 interface Props {
   title: string

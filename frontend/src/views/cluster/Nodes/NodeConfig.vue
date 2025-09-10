@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import type { Ref } from 'vue'
-import { computed, ref } from 'vue'
+import { computed, defineAsyncComponent, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -14,8 +14,11 @@ import type { Resource } from '@/api/grpc'
 import type { RedactedClusterMachineConfigSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, RedactedClusterMachineConfigType } from '@/api/resources'
 import Watch from '@/api/watch'
-import CodeEditor from '@/components/common/CodeEditor/CodeEditor.vue'
 import { getContext } from '@/context'
+
+const CodeEditor = defineAsyncComponent(
+  () => import('@/components/common/CodeEditor/CodeEditor.vue'),
+)
 
 const route = useRoute()
 

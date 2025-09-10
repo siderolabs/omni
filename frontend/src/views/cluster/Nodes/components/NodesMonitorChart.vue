@@ -8,8 +8,7 @@ included in the LICENSE file.
 import { ExclamationCircleIcon } from '@heroicons/vue/24/outline'
 import { DateTime } from 'luxon'
 import type { Ref } from 'vue'
-import { computed, ref, toRefs } from 'vue'
-import ApexChart from 'vue3-apexcharts'
+import { computed, defineAsyncComponent, ref, toRefs } from 'vue'
 
 import type { Runtime } from '@/api/common/omni.pb'
 import type { WatchResponse } from '@/api/omni/resources/resources.pb'
@@ -18,6 +17,8 @@ import type { Metadata } from '@/api/v1alpha1/resource.pb'
 import type { WatchContext, WatchEventSpec } from '@/api/watch'
 import { WatchFunc } from '@/api/watch'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+
+const ApexChart = defineAsyncComponent(() => import('vue3-apexcharts'))
 
 type Props<T> = {
   name: string

@@ -7,17 +7,20 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { Tab, TabGroup, TabPanel, TabPanels } from '@headlessui/vue'
 import type { Ref } from 'vue'
-import { ref, toRefs } from 'vue'
+import { defineAsyncComponent, ref, toRefs } from 'vue'
 
 import { Code } from '@/api/google/rpc/code.pb'
 import { ManagementService } from '@/api/omni/management/management.pb'
 import TButton from '@/components/common/Button/TButton.vue'
-import CodeEditor from '@/components/common/CodeEditor/CodeEditor.vue'
 import TabButton from '@/components/common/Tabs/TabButton.vue'
 import TabList from '@/components/common/Tabs/TabList.vue'
 import TabsHeader from '@/components/common/Tabs/TabsHeader.vue'
 import TAlert from '@/components/TAlert.vue'
 import { closeModal } from '@/modal'
+
+const CodeEditor = defineAsyncComponent(
+  () => import('@/components/common/CodeEditor/CodeEditor.vue'),
+)
 
 interface Props {
   onSave: (config: string, id?: string) => void
