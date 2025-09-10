@@ -68,7 +68,7 @@
     "prettier-plugin-tailwindcss": "^0.6.14",
     "tailwindcss": "^4.1.11",
     "typescript": "^5.9.2",
-    "vite": "^7.1.2",
+    "vite": "^7.1.5",
     "vite-plugin-monaco-editor-esm": "^2.0.2",
     "vite-plugin-node-polyfills": "^0.24.0",
     "vite-plugin-vue-devtools": "^8.0.0",
