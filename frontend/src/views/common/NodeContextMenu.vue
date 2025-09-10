@@ -92,12 +92,12 @@ const copyMachineID = () => {
       Logs
     </TActionsBoxItem>
     <TActionsBoxItem icon="copy" @click="copyMachineID">Copy Machine ID</TActionsBoxItem>
-    <TActionsBoxItem v-if="canRebootMachines" icon="power" @click="shutdownNode"
-      >Shutdown</TActionsBoxItem
-    >
-    <TActionsBoxItem v-if="canRebootMachines" icon="reboot" @click="rebootNode"
-      >Reboot</TActionsBoxItem
-    >
+    <TActionsBoxItem v-if="canRebootMachines" icon="power" @click="shutdownNode">
+      Shutdown
+    </TActionsBoxItem>
+    <TActionsBoxItem v-if="canRebootMachines" icon="reboot" @click="rebootNode">
+      Reboot
+    </TActionsBoxItem>
     <TActionsBoxItem
       v-if="
         clusterMachineStatus.spec.stage === ClusterMachineStatusSpecStage.BEFORE_DESTROY &&

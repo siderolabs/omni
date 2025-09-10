@@ -230,8 +230,9 @@ const iconColor = computed(() => {
       :style="{
         color: !!color ? color : iconData?.iconColor || iconColor.color,
       }"
-      >{{ title }}</span
     >
+      {{ title }}
+    </span>
   </div>
 </template>
 

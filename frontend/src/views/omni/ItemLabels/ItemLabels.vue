@@ -168,8 +168,8 @@ const destroyUserLabel = async (key: string) => {
       @click.stop
       @blur="addUserLabel"
     />
-    <TButton v-else-if="addLabelFunc" icon="tag" type="compact" @click.stop="editLabels"
-      >new label</TButton
-    >
+    <TButton v-else-if="addLabelFunc" icon="tag" type="compact" @click.stop="editLabels">
+      new label
+    </TButton>
   </div>
 </template>

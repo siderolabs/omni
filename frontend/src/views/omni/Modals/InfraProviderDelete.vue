@@ -64,7 +64,7 @@ const close = () => {
       key will be removed.
     </div>
     <div class="flex justify-end">
-      <TButton class="h-9 w-32" @click="deleteProvider"> Delete </TButton>
+      <TButton class="h-9 w-32" @click="deleteProvider">Delete</TButton>
     </div>
   </div>
 </template>

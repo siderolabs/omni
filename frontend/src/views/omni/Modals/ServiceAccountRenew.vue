@@ -72,8 +72,9 @@ const close = () => {
         :disabled="!canManageUsers && authType !== AuthType.SAML"
         class="h-9"
         @click="handleRenew"
-        >Generate New Key</TButton
       >
+        Generate New Key
+      </TButton>
     </div>
 
     <ServiceAccountKey v-if="key" :secret-key="key" />

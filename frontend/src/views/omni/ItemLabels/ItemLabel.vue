@@ -33,7 +33,8 @@ defineEmits<{
     >
       <TIcon v-if="label.icon" :icon="label.icon as IconType" class="mr-1 -ml-1 h-3.5 w-3.5" />
       <template v-if="label.value">
-        {{ label.id }}:<span class="font-semibold">{{ label.value }}</span>
+        {{ label.id }}:
+        <span class="font-semibold">{{ label.value }}</span>
       </template>
       <span v-else class="font-semibold">
         {{ label.id }}

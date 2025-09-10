@@ -138,7 +138,8 @@ watch(apiConfigErr, (err) => err && showError(err))
       <h3 class="text-sm font-medium">CLI</h3>
 
       <TButton type="primary" icon="document" icon-position="left" @click="downloadTalosconfig()">
-        Download <code>talosconfig</code>
+        Download
+        <code>talosconfig</code>
       </TButton>
 
       <TButton
@@ -151,7 +152,8 @@ watch(apiConfigErr, (err) => err && showError(err))
       </TButton>
 
       <TButton type="primary" icon="document" icon-position="left" @click="downloadOmniconfig">
-        Download <code>omniconfig</code>
+        Download
+        <code>omniconfig</code>
       </TButton>
 
       <TButton

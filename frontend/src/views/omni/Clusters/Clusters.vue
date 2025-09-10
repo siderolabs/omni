@@ -104,9 +104,9 @@ const filterOptions = [
               </template>
             </Watch>
           </PageHeader>
-          <TButton :disabled="!canCreateClusters" type="highlighted" @click="openClusterCreate"
-            >Create Cluster</TButton
-          >
+          <TButton :disabled="!canCreateClusters" type="highlighted" @click="openClusterCreate">
+            Create Cluster
+          </TButton>
         </div>
       </template>
       <template #input>

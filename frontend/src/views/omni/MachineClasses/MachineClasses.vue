@@ -23,9 +23,9 @@ const openMachineClassCreate = () => {
   <div class="flex h-full flex-col">
     <div class="flex items-start gap-1">
       <PageHeader title="Machine Classes" class="flex-1" />
-      <TButton :disabled="!canRemoveMachines" type="highlighted" @click="openMachineClassCreate"
-        >Create Machine Class</TButton
-      >
+      <TButton :disabled="!canRemoveMachines" type="highlighted" @click="openMachineClassCreate">
+        Create Machine Class
+      </TButton>
     </div>
     <MachineClassesList class="mb-6" />
   </div>

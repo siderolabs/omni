@@ -100,8 +100,9 @@ const close = () => {
         :disabled="!canManageUsers && authType !== AuthType.SAML"
         class="h-9"
         @click="handleCreate"
-        >Create Service Account</TButton
       >
+        Create Service Account
+      </TButton>
     </template>
 
     <ServiceAccountKey v-if="key" :secret-key="key" />

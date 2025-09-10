@@ -52,10 +52,9 @@ const breadcrumbs = computed(() => {
           v-if="idx !== breadcrumbs.length - 1"
           class="text-xl font-medium transition hover:opacity-50"
           :to="crumb.to!"
-          >{{
-            crumb.text === $route.params.machine && !!nodeName ? nodeName : crumb.text
-          }}</RouterLink
         >
+          {{ crumb.text === $route.params.machine && !!nodeName ? nodeName : crumb.text }}
+        </RouterLink>
         <p
           v-if="idx === breadcrumbs.length - 1"
           class="cursor-default text-xl font-medium break-all text-naturals-n14"

@@ -62,8 +62,9 @@ const openUserCreate = () => {
         type="highlighted"
         :disabled="!canManageUsers || authType === AuthType.SAML"
         @click="openUserCreate"
-        >Add User</TButton
       >
+        Add User
+      </TButton>
     </div>
     <TList :opts="watchOpts" pagination class="flex-1" search>
       <template #default="{ items }">

@@ -135,17 +135,20 @@ interface Asset {
 
     <div>
       <p class="text-xs">
-        <code>talosctl</code> can be used to access cluster nodes using Talos machine API.
+        <code>talosctl</code>
+        can be used to access cluster nodes using Talos machine API.
       </p>
-      <p class="text-xs">
-        More downloads links can be found
+      <p class="flex text-xs">
+        More downloads links can be found&nbsp;
         <a
           target="_blank"
           rel="noopener noreferrer"
           class="download-link text-xs"
           href="https://github.com/siderolabs/talos/releases"
-          >here</a
-        >.
+        >
+          here
+        </a>
+        .
       </p>
     </div>
 

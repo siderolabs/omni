@@ -190,8 +190,8 @@ const updateExtensionsConfig = async () => {
       />
 
       <div class="flex justify-between gap-4">
-        <TButton type="secondary" @click="close"> Cancel </TButton>
-        <TButton type="highlighted" @click="updateExtensions"> Update </TButton>
+        <TButton type="secondary" @click="close">Cancel</TButton>
+        <TButton type="highlighted" @click="updateExtensions">Update</TButton>
       </div>
     </div>
     <div v-else class="flex items-center justify-center">

@@ -459,7 +459,8 @@ const downloaded = computed(() => {
 
     <div v-if="phase !== Phase.Idle" class="flex flex-col items-center">
       <div class="flex items-center gap-2">
-        <DocumentArrowDownIcon class="h-5 w-5" />{{ installationMedia?.spec.name }}
+        <DocumentArrowDownIcon class="h-5 w-5" />
+        {{ installationMedia?.spec.name }}
       </div>
       <div class="flex items-center gap-2">
         <TSpinner class="h-5 w-5" />
@@ -570,9 +571,9 @@ const downloaded = computed(() => {
           @click="createSchematic"
         />
         <span v-if="copiedPXEURL" class="flex-1 text-sm">Copied!</span>
-        <span v-else class="flex-1 break-all" @click="createSchematic">{{
-          pxeURL ? pxeURL : 'Click to generate'
-        }}</span>
+        <span v-else class="flex-1 break-all" @click="createSchematic">
+          {{ pxeURL ? pxeURL : 'Click to generate' }}
+        </span>
         <IconButton class="min-w-min" icon="copy" @click="copyPXEURL" />
       </div>
 
@@ -587,7 +588,7 @@ const downloaded = computed(() => {
       </div>
 
       <div class="flex justify-end gap-4">
-        <TButton class="h-9 w-32" @click="close"> Cancel </TButton>
+        <TButton class="h-9 w-32" @click="close">Cancel</TButton>
         <TButton
           class="h-9 w-32"
           type="highlighted"

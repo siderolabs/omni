@@ -105,7 +105,8 @@ const updateExtension = (extension: TalosExtensionsSpecInfo) => {
           </div>
         </div>
         <div v-else class="flex items-center gap-1 p-4 text-xs text-primary-p2">
-          <TIcon class="h-3 w-3" icon="warning" />No extensions available for this Talos version
+          <TIcon class="h-3 w-3" icon="warning" />
+          No extensions available for this Talos version
         </div>
       </template>
     </Watch>

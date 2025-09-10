@@ -119,8 +119,9 @@ const openRotateSecretKey = async (name: string) => {
         type="highlighted"
         :disabled="!canManageUsers"
         @click="openInfraProviderSetup"
-        >New Infra Provider Setup</TButton
       >
+        New Infra Provider Setup
+      </TButton>
     </div>
     <TList
       :opts="watchOpts"

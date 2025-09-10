@@ -89,13 +89,14 @@ const openDocs = () => {
       >
         <div class="flex gap-1">
           Check the
-          <TButton type="subtle" @click="openDocs">documentation</TButton> on how to configure s3
-          backups using CLI.
+          <TButton type="subtle" @click="openDocs">documentation</TButton>
+          on how to configure s3 backups using CLI.
         </div>
         <div v-if="canManageBackupStore" class="flex gap-1">
-          Or<TButton type="subtle" @click="$router.push({ name: 'BackupStorage' })"
-            >configure backups in the UI.</TButton
-          >
+          Or
+          <TButton type="subtle" @click="$router.push({ name: 'BackupStorage' })">
+            configure backups in the UI.
+          </TButton>
         </div>
       </TAlert>
       <Watch v-else :opts="watchStatusOpts" spinner no-records-alert errors-alert>

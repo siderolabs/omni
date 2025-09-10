@@ -107,8 +107,9 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = setupClu
         type="secondary"
         :disabled="!canRebootMachines"
         @click="shutdownNode"
-        >Shutdown</TButton
       >
+        Shutdown
+      </TButton>
       <TButton
         class="header-button"
         icon="reboot"
@@ -116,8 +117,9 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = setupClu
         type="secondary"
         :disabled="!canRebootMachines"
         @click="rebootNode"
-        >Reboot</TButton
       >
+        Reboot
+      </TButton>
       <TButton
         v-if="machineSetNode"
         class="header-button delete-button"
@@ -126,8 +128,9 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = setupClu
         type="secondary"
         :disabled="!canRemoveMachines"
         @click="destroyNode"
-        >Destroy</TButton
       >
+        Destroy
+      </TButton>
       <TButton
         v-else-if="!loading"
         class="header-button"
@@ -136,8 +139,9 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = setupClu
         type="secondary"
         :disabled="!canAddClusterMachines"
         @click="restoreNode"
-        >Cancel Destroy</TButton
       >
+        Cancel Destroy
+      </TButton>
     </div>
   </div>
 </template>

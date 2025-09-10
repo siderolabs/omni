@@ -450,10 +450,9 @@ const filterByLabel = (e: { key: string; value?: string }) => {
         class="flex-1"
       >
         <template #norecords>
-          <TAlert v-if="!$slots.norecords" type="info" title="No Machines Available"
-            >Machine is available when it is connected, not allocated and is reporting Talos
-            events.</TAlert
-          >
+          <TAlert v-if="!$slots.norecords" type="info" title="No Machines Available">
+            Machine is available when it is connected, not allocated and is reporting Talos events.
+          </TAlert>
         </template>
         <template #default="{ items, searchQuery }">
           <ClusterMachineItem

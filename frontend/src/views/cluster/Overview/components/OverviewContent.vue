@@ -259,7 +259,7 @@ onMounted(async () => {
               </span>
             </template>
             <template v-else>
-              <span class="overview-box-title"> Reverting back to </span>
+              <span class="overview-box-title">Reverting back to</span>
               <span class="overview-upgrade-version">
                 {{ kubernetesUpgradeStatus.spec.last_upgrade_version }}
               </span>
@@ -277,7 +277,7 @@ onMounted(async () => {
               <template v-if="kubernetesUpgradeStatus.spec.status && !clusterLocked">
                 - {{ kubernetesUpgradeStatus.spec.status }}
               </template>
-              <template v-if="clusterLocked"> - waiting for cluster to be unlocked </template>
+              <template v-if="clusterLocked">- waiting for cluster to be unlocked</template>
             </div>
             <TButton
               v-if="
@@ -288,8 +288,9 @@ onMounted(async () => {
               class="place-self-end"
               icon="close"
               @click="revertKubernetesUpgrade(context.cluster ?? '')"
-              >Cancel</TButton
             >
+              Cancel
+            </TButton>
           </div>
         </div>
         <div
@@ -310,7 +311,7 @@ onMounted(async () => {
             <template
               v-else-if="talosUpgradeStatus.spec.phase === TalosUpgradeStatusSpecPhase.Reverting"
             >
-              <span class="overview-box-title"> Reverting back to </span>
+              <span class="overview-box-title">Reverting back to</span>
               <span class="overview-upgrade-version">
                 {{ talosUpgradeStatus.spec.last_upgrade_version }}
               </span>
@@ -320,7 +321,7 @@ onMounted(async () => {
                 talosUpgradeStatus.spec.phase === TalosUpgradeStatusSpecPhase.InstallingExtensions
               "
             >
-              <span class="overview-box-title"> Installing Extensions </span>
+              <span class="overview-box-title">Installing Extensions</span>
             </template>
           </div>
           <div class="flex min-h-20 items-center gap-2 border-t-8 border-naturals-n4 p-4 text-xs">
@@ -335,7 +336,7 @@ onMounted(async () => {
               <template v-if="talosUpgradeStatus.spec.status && !clusterLocked">
                 - {{ talosUpgradeStatus.spec.step }}
               </template>
-              <template v-if="clusterLocked"> - waiting for cluster to be unlocked </template>
+              <template v-if="clusterLocked">- waiting for cluster to be unlocked</template>
             </div>
             <TButton
               v-if="
@@ -347,8 +348,9 @@ onMounted(async () => {
               class="place-self-end"
               icon="close"
               @click="revertTalosUpgrade(context.cluster ?? '')"
-              >Cancel</TButton
             >
+              Cancel
+            </TButton>
           </div>
         </div>
         <div class="flex gap-5">

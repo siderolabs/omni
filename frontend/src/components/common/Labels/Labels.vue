@@ -86,7 +86,8 @@ const removeLabel = async (key: string) => {
       :class="`resource-label label-${label.color ?? defaultColor}`"
     >
       <template v-if="label.value">
-        {{ key }}:<span class="font-semibold">{{ label.value }}</span>
+        {{ key }}:
+        <span class="font-semibold">{{ label.value }}</span>
       </template>
       <span v-else class="font-semibold">
         {{ key }}
@@ -108,9 +109,9 @@ const removeLabel = async (key: string) => {
       @click.stop
       @blur="addLabel"
     />
-    <TButton v-else-if="!readonly" icon="tag" type="compact" @click.stop="editLabels"
-      >new label</TButton
-    >
+    <TButton v-else-if="!readonly" icon="tag" type="compact" @click.stop="editLabels">
+      new label
+    </TButton>
   </div>
 </template>
 

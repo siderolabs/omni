@@ -286,9 +286,9 @@ const machineClassMachineCount = computed(() => {
         </div>
       </div>
       <TActionsBox v-if="canRemoveMachineSet" class="mr-4 -ml-4 h-6" @click.stop>
-        <TActionsBoxItem icon="delete" danger @click="() => openMachineSetDestroy(machineSet)"
-          >Destroy Machine Set</TActionsBoxItem
-        >
+        <TActionsBoxItem icon="delete" danger @click="() => openMachineSetDestroy(machineSet)">
+          Destroy Machine Set
+        </TActionsBoxItem>
       </TActionsBox>
       <div v-else class="w-6" />
     </div>
@@ -313,9 +313,9 @@ const machineClassMachineCount = computed(() => {
       class="flex items-center gap-1 border-t border-naturals-n4 p-4 pl-9 text-xs"
     >
       {{ pluralize('machine', hiddenMachinesCount, true) }} are hidden
-      <TButton type="subtle" @click="showMachinesCount = undefined"
-        ><span class="text-xs">Show all...</span></TButton
-      >
+      <TButton type="subtle" @click="showMachinesCount = undefined">
+        <span class="text-xs">Show all...</span>
+      </TButton>
     </div>
   </div>
 </template>

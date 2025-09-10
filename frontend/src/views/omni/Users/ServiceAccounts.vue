@@ -52,8 +52,9 @@ const openUserCreate = () => {
         type="highlighted"
         :disabled="!canManageUsers"
         @click="openUserCreate"
-        >Create Service Account</TButton
       >
+        Create Service Account
+      </TButton>
     </div>
     <TList :opts="watchOpts" pagination class="flex-1" search>
       <template #default="{ items }">

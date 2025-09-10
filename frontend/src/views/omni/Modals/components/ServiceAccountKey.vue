@@ -35,14 +35,14 @@ onBeforeMount(async () => {
 
 <template>
   <div v-if="apiURL" class="flex flex-col gap-1 text-xs">
-    <span class="text-naturals-n13"
-      >Set the following environment variables to use the service account:</span
-    >
+    <span class="text-naturals-n13">
+      Set the following environment variables to use the service account:
+    </span>
     <Code :text="`export OMNI_ENDPOINT=${apiURL}\nexport OMNI_SERVICE_ACCOUNT_KEY=${secretKey}`" />
 
-    <span class="font-bold text-primary-p2"
-      >Store the key securely as it will not be displayed again.</span
-    >
+    <span class="font-bold text-primary-p2">
+      Store the key securely as it will not be displayed again.
+    </span>
   </div>
 </template>
 

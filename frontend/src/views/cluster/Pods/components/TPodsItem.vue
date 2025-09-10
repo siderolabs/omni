@@ -46,8 +46,8 @@ const getAge = (age: string) => {
 <template>
   <div class="row" :class="{ opened: isDropdownOpened }">
     <TSlideDownWrapper :is-slider-opened="isDropdownOpened">
-      <template #head
-        ><ul class="row-wrapper">
+      <template #head>
+        <ul class="row-wrapper">
           <li class="row-item">
             <TIcon
               class="row-arrow"
@@ -79,7 +79,8 @@ const getAge = (age: string) => {
                 :query="searchOption"
                 :text-to-highlight="item.spec?.nodeName"
                 highlight-class="bg-naturals-n14"
-            /></span>
+              />
+            </span>
           </li>
         </ul>
       </template>

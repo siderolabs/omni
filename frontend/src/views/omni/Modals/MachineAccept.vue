@@ -56,7 +56,7 @@ const reject = async () => {
     </div>
 
     <div class="mt-8 flex justify-end gap-4">
-      <TButton class="h-9 w-32" icon="check" icon-position="left" @click="reject"> Accept </TButton>
+      <TButton class="h-9 w-32" icon="check" icon-position="left" @click="reject">Accept</TButton>
     </div>
   </div>
 </template>

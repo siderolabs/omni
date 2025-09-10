@@ -161,7 +161,8 @@ const locked = computed(() => {
           @click="
             () => $router.push({ name: 'ClusterScale', params: { cluster: item?.metadata?.id } })
           "
-          >Cluster Scaling
+        >
+          Cluster Scaling
         </TActionsBoxItem>
         <TActionsBoxItem
           icon="settings"
@@ -172,34 +173,41 @@ const locked = computed(() => {
                 params: { cluster: item?.metadata?.id },
               })
           "
-          >Config Patches
+        >
+          Config Patches
         </TActionsBoxItem>
         <TActionsBoxItem
           icon="dashboard"
           @click="
             () => $router.push({ name: 'ClusterOverview', params: { cluster: item?.metadata?.id } })
           "
-          >Open Dashboard
+        >
+          Open Dashboard
         </TActionsBoxItem>
         <TActionsBoxItem
           v-if="canDownloadKubeconfig"
           icon="kube-config"
           @click="() => downloadKubeconfig(item?.metadata?.id as string)"
-          >Download <code>kubeconfig</code></TActionsBoxItem
         >
+          Download
+          <code>kubeconfig</code>
+        </TActionsBoxItem>
         <TActionsBoxItem
           v-if="canDownloadTalosconfig"
           icon="talos-config"
           @click="() => downloadTalosconfig(item?.metadata?.id)"
-          >Download <code>talosconfig</code></TActionsBoxItem
         >
+          Download
+          <code>talosconfig</code>
+        </TActionsBoxItem>
         <TActionsBoxItem
           v-if="canRemoveClusterMachines"
           icon="delete"
           danger
           @click="openClusterDestroy"
-          >Destroy Cluster</TActionsBoxItem
         >
+          Destroy Cluster
+        </TActionsBoxItem>
       </TActionsBox>
     </template>
     <template #details>

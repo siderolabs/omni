@@ -72,15 +72,18 @@ const defaultValue = options[2]
     </div>
 
     <div>
-      <p class="text-xs"><code>omnictl</code> can be used to access omni resources.</p>
+      <p class="text-xs">
+        <code>omnictl</code>
+        can be used to access omni resources.
+      </p>
     </div>
 
     <div class="mt-8 flex justify-end gap-4">
       <TButton class="h-9 w-32" @click="close">
-        <span> Cancel </span>
+        <span>Cancel</span>
       </TButton>
       <TButton class="h-9 w-32" @click="download">
-        <span> Download </span>
+        <span>Download</span>
       </TButton>
     </div>
   </div>

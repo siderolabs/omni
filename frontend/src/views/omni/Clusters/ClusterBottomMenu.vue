@@ -27,9 +27,9 @@ defineProps<{
       <div class="flex flex-col">
         <div class="menu__amount-box flex-1">
           <span class="menu__amount-box--light">{{ controlPlanes }}</span>
-          <span class="menu__amount-box--light"
-            >Control {{ pluralize('Plane', controlPlanes, false) }},</span
-          >
+          <span class="menu__amount-box--light">
+            Control {{ pluralize('Plane', controlPlanes, false) }},
+          </span>
           <span class="menu__amount-box--light">{{ workers }}</span>
           <span class="menu__amount-box--light">{{ pluralize('Worker', workers, false) }}</span>
           selected

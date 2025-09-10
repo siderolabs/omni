@@ -416,7 +416,8 @@ const getSecureBootStatus = () => {
             :conditions="talosMachineStatus.spec.status?.unmetConditions"
           />
           <div v-else class="flex items-center gap-1 text-xs text-green-g1">
-            <TIcon icon="check-in-circle-classic" class="h-4" />None
+            <TIcon icon="check-in-circle-classic" class="h-4" />
+            None
           </div>
         </div>
         <template v-if="machineStatus">

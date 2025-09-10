@@ -117,8 +117,8 @@ const filteredItems = computed(() => {
         }"
         @click="() => onPageClick(item)"
       >
-        {{ item }}</span
-      >
+        {{ item }}
+      </span>
     </div>
     <TIcon
       icon="arrow-right"

@@ -15,8 +15,8 @@ defineProps<{
   <div class="overview-details-item">
     <div class="overview-item-name">{{ name }}</div>
     <div class="overview-item-value">
-      <span v-if="value" class="overview-item-text">{{ value }}</span
-      ><slot />
+      <span v-if="value" class="overview-item-text">{{ value }}</span>
+      <slot />
     </div>
   </div>
 </template>

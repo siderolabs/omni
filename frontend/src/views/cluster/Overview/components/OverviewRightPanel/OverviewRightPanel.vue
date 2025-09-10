@@ -387,8 +387,10 @@ const {
             icon="kube-config"
             icon-position="left"
             @click="() => downloadKubeconfig(currentCluster!.metadata.id!)"
-            >Download <code>kubeconfig</code></TButton
           >
+            Download
+            <code>kubeconfig</code>
+          </TButton>
         </div>
         <div class="overview-details-item">
           <TButton
@@ -398,8 +400,10 @@ const {
             icon="talos-config"
             icon-position="left"
             @click="() => downloadTalosconfig(currentCluster!.metadata.id!)"
-            >Download <code>talosconfig</code></TButton
           >
+            Download
+            <code>talosconfig</code>
+          </TButton>
         </div>
         <div class="overview-details-item">
           <TButton
@@ -409,8 +413,9 @@ const {
             icon="lifebuoy"
             icon-position="left"
             @click="openDownloadSupportBundle"
-            >Download Support Bundle</TButton
           >
+            Download Support Bundle
+          </TButton>
         </div>
       </div>
       <div class="divider" />
@@ -434,8 +439,9 @@ const {
                     params: { cluster: currentCluster?.metadata?.id },
                   })
               "
-              >Cluster Scaling</TButton
             >
+              Cluster Scaling
+            </TButton>
           </Tooltip>
         </div>
         <div class="overview-details-item">
@@ -451,8 +457,9 @@ const {
               icon-position="left"
               :disabled="!canUpdateKubernetes || !kubernetesUpgradeAvailable() || locked"
               @click="openClusterUpdate(Update.Kubernetes, locked)"
-              >Update Kubernetes</TButton
             >
+              Update Kubernetes
+            </TButton>
           </Tooltip>
         </div>
         <div class="overview-details-item">
@@ -468,8 +475,9 @@ const {
               icon-position="left"
               :disabled="!canUpdateTalos || !talosUpdateAvailable() || locked"
               @click="openClusterUpdate(Update.Talos, locked)"
-              >Update Talos</TButton
             >
+              Update Talos
+            </TButton>
           </Tooltip>
         </div>
         <div class="overview-details-item">
@@ -485,8 +493,9 @@ const {
                   params: { cluster: currentCluster?.metadata?.id },
                 })
             "
-            >Config Patches</TButton
           >
+            Config Patches
+          </TButton>
         </div>
         <div class="overview-details-item">
           <TButton
@@ -495,8 +504,9 @@ const {
             :icon="locked ? 'locked' : 'unlocked'"
             icon-position="left"
             @click="updateLock"
-            >{{ locked ? 'Unlock Cluster' : 'Lock Cluster' }}</TButton
           >
+            {{ locked ? 'Unlock Cluster' : 'Lock Cluster' }}
+          </TButton>
         </div>
         <div class="overview-details-item">
           <Tooltip
@@ -516,8 +526,9 @@ const {
                     query: { modal: 'clusterDestroy', cluster: currentCluster?.metadata?.id },
                   })
               "
-              >Destroy Cluster</TButton
             >
+              Destroy Cluster
+            </TButton>
           </Tooltip>
         </div>
       </div>

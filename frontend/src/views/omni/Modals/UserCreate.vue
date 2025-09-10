@@ -80,8 +80,9 @@ const close = () => {
         :disabled="!canManageUsers && authType !== AuthType.SAML"
         class="h-9 w-32"
         @click="handleUserCreate"
-        >Create User</TButton
       >
+        Create User
+      </TButton>
     </div>
   </div>
 </template>

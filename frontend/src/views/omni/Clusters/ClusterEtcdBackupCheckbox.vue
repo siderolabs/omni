@@ -107,8 +107,9 @@ const updateBackupInterval = () => {
         icon-position="left"
         class="text-xs"
         @click="$router.push({ name: 'BackupStorage' })"
-        >Configure Storage</TButton
       >
+        Configure Storage
+      </TButton>
       <div v-else class="flex-1 truncate">Backup Storage Disabled</div>
     </div>
     <div v-else-if="enabled" class="flex h-6 items-center gap-2 text-xs">

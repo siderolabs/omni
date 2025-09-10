@@ -133,8 +133,9 @@ const openDeleteToken = (token: string) => {
         type="highlighted"
         :disabled="!canManageUsers"
         @click="openUserCreate"
-        >Create Join Token</TButton
       >
+        Create Join Token
+      </TButton>
     </div>
     <TList :opts="watchOpts" pagination class="flex-1" search>
       <template #default="{ items }">

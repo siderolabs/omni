@@ -148,8 +148,9 @@ const destroying = ref(false)
     <p v-else-if="loading" class="text-xs">Checking the cluster status...</p>
     <div v-else-if="disconnectedMachines.length > 0" class="text-xs">
       <p class="py-2 text-primary-p3">
-        Cluster <code>{{ $route.query.cluster }}</code> has
-        {{ disconnectedMachines.length }} disconnected
+        Cluster
+        <code>{{ $route.query.cluster }}</code>
+        has {{ disconnectedMachines.length }} disconnected
         {{ pluralize('machine', disconnectedMachines.length, false) }}. Destroying the cluster now
         will also destroy disconnected machines.
       </p>
@@ -164,7 +165,7 @@ const destroying = ref(false)
     <div class="mt-8 flex justify-end gap-4">
       <TButton :disabled="destroying || loading" class="h-9 w-32" @click="destroyCluster">
         <TSpinner v-if="destroying" class="h-5 w-5" />
-        <span v-else> Destroy </span>
+        <span v-else>Destroy</span>
       </TButton>
     </div>
   </div>

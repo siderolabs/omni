@@ -4,6 +4,7 @@
   "singleQuote": true,
   "printWidth": 100,
   "plugins": ["prettier-plugin-tailwindcss"],
+  "htmlWhitespaceSensitivity": "ignore",
   "tailwindAttributes": ["toast-options"],
   "tailwindStylesheet": "./src/index.css"
 }

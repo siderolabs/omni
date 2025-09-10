@@ -272,9 +272,9 @@ onMounted(async () => {
     <ManagedByTemplatesWarning :cluster="cluster" />
     <div class="flex gap-4">
       <TInput v-model="filter" class="flex-1" placeholder="Search..." icon="search" />
-      <TButton type="highlighted" :disabled="!canManageConfigPatches" @click="openPatchCreate"
-        >Create Patch</TButton
-      >
+      <TButton type="highlighted" :disabled="!canManageConfigPatches" @click="openPatchCreate">
+        Create Patch
+      </TButton>
     </div>
     <div class="font-sm flex-1">
       <div v-if="loading" class="flex h-full w-full items-center justify-center">

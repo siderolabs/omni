@@ -17,11 +17,12 @@ import THeader from '@/components/THeader/THeader.vue'
         <TIcon icon="warning" class="h-12 w-12 fill-current text-naturals-n14" />
         <div class="flex flex-col text-naturals-n13">
           <div>It appears we are experiencing some issues.</div>
-          <div>
-            Please try later again or
-            <a class="text-naturals-n12 underline" href="https://www.siderolabs.com/contact/"
-              >contact us</a
-            >.
+          <div class="flex">
+            Please try later again or&nbsp;
+            <a class="text-naturals-n12 underline" href="https://www.siderolabs.com/contact/">
+              contact us
+            </a>
+            .
           </div>
         </div>
       </div>

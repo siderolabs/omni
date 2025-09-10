@@ -29,7 +29,8 @@ import { downloadOmniconfig } from '@/methods'
 
     <div class="mt-3 flex gap-3">
       <TButton type="primary" icon="talos-config" icon-position="left" @click="downloadOmniconfig">
-        Download <code>omniconfig</code>
+        Download
+        <code>omniconfig</code>
       </TButton>
 
       <TButton

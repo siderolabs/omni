@@ -191,7 +191,7 @@ const updateConfig = async () => {
           @update:model-value="(value) => (s3Spec.session_token = value)"
         />
         <div class="flex gap-2 place-self-end">
-          <TButton :disabled="!canManageBackupStore" @click="resetConfig"> Reset </TButton>
+          <TButton :disabled="!canManageBackupStore" @click="resetConfig">Reset</TButton>
           <TButton :disabled="!canManageBackupStore" type="highlighted" @click="updateConfig">
             Save
           </TButton>

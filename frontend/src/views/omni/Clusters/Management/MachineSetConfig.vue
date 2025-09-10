@@ -163,7 +163,8 @@ const openPatchConfig = () => {
         {{ modelValue.name }}
       </div>
       <div class="flex items-center gap-2">
-        Allocation Mode: <TButtonGroup v-model="allocationMode" :options="allocationModes" />
+        Allocation Mode:
+        <TButtonGroup v-model="allocationMode" :options="allocationModes" />
       </div>
       <template v-if="useMachineClasses">
         <TSelectList

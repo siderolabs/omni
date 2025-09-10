@@ -46,11 +46,12 @@ const workersCount = computed(() => {
     <div class="flex flex-1 flex-col">
       <div class="menu-amount-box flex-1">
         <span class="menu-amount-box-light">{{ controlPlaneCount }},</span>
-        <span class="menu-amount-box-light">{{ workersCount }}</span> selected
+        <span class="menu-amount-box-light">{{ workersCount }}</span>
+        selected
       </div>
       <div v-if="warning" class="text-xs text-yellow-y1">{{ warning }}</div>
     </div>
-    <TButton v-if="onReset" type="secondary" @click="onReset"> Cancel </TButton>
+    <TButton v-if="onReset" type="secondary" @click="onReset">Cancel</TButton>
     <TButton icon-position="left" type="highlighted" :disabled="disabled" @click="onSubmit">
       {{ action }}
     </TButton>

@@ -49,7 +49,8 @@ watch(joinTokenStatusWatch.running, () => {
     <TSpinner v-if="loading" class="h-4 w-4" />
     <template v-else-if="joinTokenStatus?.spec.warnings">
       <div class="flex items-center gap-1 text-yellow-y1">
-        <TIcon icon="warning" class="h-5 w-5" />Warning
+        <TIcon icon="warning" class="h-5 w-5" />
+        Warning
       </div>
       <div class="flex items-center gap-1 text-xs text-yellow-y1">
         {{ joinTokenStatus.spec.warnings.length }} of
@@ -63,7 +64,8 @@ watch(joinTokenStatusWatch.running, () => {
           class="my-1 rounded border-l-2 border-yellow-y1 bg-naturals-n4 px-4 py-2"
         >
           <div class="truncate">
-            ID: <span class="font-mono font-bold text-naturals-n13">{{ warning.machine }}</span>
+            ID:
+            <span class="font-mono font-bold text-naturals-n13">{{ warning.machine }}</span>
           </div>
           <div class="col-span-2 truncate">Details: {{ warning.message }}</div>
         </div>

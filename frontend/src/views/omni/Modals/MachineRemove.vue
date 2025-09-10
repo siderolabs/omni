@@ -80,10 +80,11 @@ const remove = async () => {
         <code
           v-for="cluster in clusters"
           :key="cluster"
-          class="not-last-of-type:after:content-[',']"
+          class="not-last-of-type:after:content-[','] last-of-type:after:content-['.']"
         >
-          {{ cluster }}</code
-        >. Destroying the {{ pluralize('machine', machines.length) }} should be only used as a last
+          {{ cluster }}
+        </code>
+        Destroying the {{ pluralize('machine', machines.length) }} should be only used as a last
         resort, e.g. in a case of a hardware failure.
       </p>
 

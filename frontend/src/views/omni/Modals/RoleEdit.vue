@@ -110,8 +110,9 @@ const close = () => {
             close()
           }
         "
-        >Update {{ object }}</TButton
       >
+        Update {{ object }}
+      </TButton>
     </div>
   </div>
 </template>

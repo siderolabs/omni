@@ -449,7 +449,9 @@ const submit = async () => {
       <TSpinner class="h-6 w-6" />
     </div>
     <TAlert v-else-if="notFound" title="Not Found" type="error">
-      The <code>MachineClass</code> {{ route.params.classname }} does not exist
+      The
+      <code>MachineClass</code>
+      {{ route.params.classname }} does not exist
     </TAlert>
     <template v-else>
       <div class="flex flex-col gap-2">
@@ -490,22 +492,55 @@ const submit = async () => {
           </div>
           <div class="flex flex-col gap-1 text-xs">
             <p>
-              Using <code>,</code> in a single condition will match them using
-              <code>AND</code> operator.
+              Using
+              <code>,</code>
+              in a single condition will match them using
+              <code>AND</code>
+              operator.
             </p>
             <p>
-              Values containing <code>,</code> needs to be surrounded by <code>"</code>. If they
-              value also contain <code>"</code>, they need to be escaped using <code>\</code>.
+              Values containing
+              <code>,</code>
+              needs to be surrounded by
+              <code>"</code>
+              . If they value also contain
+              <code>"</code>
+              , they need to be escaped using
+              <code>\</code>
+              .
             </p>
-            <p>Separate conditions are matched using <code>OR</code>.</p>
             <p>
-              Allowed binary operators are <code>&gt;</code>, <code>&gt;=</code>, <code>&lt;</code>,
-              <code>&lt;=</code>, <code>=</code>, <code>==</code>, <code>!=</code>, <code>in</code>,
-              <code>notin</code>.
+              Separate conditions are matched using
+              <code>OR</code>
+              .
             </p>
             <p>
-              Excluding a label can be done by prepending <code>!</code> to the label key, example:
-              <code>!omni.sidero.dev/available</code>.
+              Allowed binary operators are
+              <code>&gt;</code>
+              ,
+              <code>&gt;=</code>
+              ,
+              <code>&lt;</code>
+              ,
+              <code>&lt;=</code>
+              ,
+              <code>=</code>
+              ,
+              <code>==</code>
+              ,
+              <code>!=</code>
+              ,
+              <code>in</code>
+              ,
+              <code>notin</code>
+              .
+            </p>
+            <p>
+              Excluding a label can be done by prepending
+              <code>!</code>
+              to the label key, example:
+              <code>!omni.sidero.dev/available</code>
+              .
             </p>
           </div>
         </template>

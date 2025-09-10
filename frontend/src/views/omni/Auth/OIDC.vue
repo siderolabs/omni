@@ -89,9 +89,9 @@ const copyCode = () => {
             </div>
           </div>
           <div v-else class="my-0.5 flex w-full flex-col gap-3">
-            <TButton class="w-full" type="highlighted" @click="confirmOIDCRequest"
-              >Grant Access</TButton
-            >
+            <TButton class="w-full" type="highlighted" @click="confirmOIDCRequest">
+              Grant Access
+            </TButton>
           </div>
         </div>
       </template>

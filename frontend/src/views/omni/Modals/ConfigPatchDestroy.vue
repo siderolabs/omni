@@ -64,7 +64,7 @@ const destroyPatch = async () => {
     <ManagedByTemplatesWarning warning-style="popup" />
     <p class="text-xs">Please confirm the action.</p>
     <div class="mt-8 flex justify-end gap-4">
-      <TButton class="h-9 w-32" :disabled="scalingDown" @click="destroyPatch"> Destroy </TButton>
+      <TButton class="h-9 w-32" :disabled="scalingDown" @click="destroyPatch">Destroy</TButton>
     </div>
   </div>
 </template>

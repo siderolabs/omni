@@ -314,16 +314,18 @@ const Auth = {
                 class="w-full"
                 type="highlighted"
                 @click="confirmPublicKey"
-                >Grant Access</TButton
               >
+                Grant Access
+              </TButton>
               <TButton
                 v-else
                 id="login"
                 class="w-full"
                 type="highlighted"
                 @click="generatePublicKey"
-                >Log In</TButton
               >
+                Log In
+              </TButton>
             </div>
           </div>
         </template>

@@ -13,8 +13,11 @@ import TIcon from '@/components/common/Icon/TIcon.vue'
     <div class="suspended__wrapper">
       <TIcon class="suspended__icon" icon="attention" />
       <div class="suspended__content-box">
-        This account is currently <b>suspended</b> and in read-only mode. You can still access your
-        resources but will not be able to make any changes.<br />
+        This account is currently
+        <b>suspended</b>
+        and in read-only mode. You can still access your resources but will not be able to make any
+        changes.
+        <br />
         Please contact support to resolve this issue.
       </div>
     </div>

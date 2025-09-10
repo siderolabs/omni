@@ -77,8 +77,9 @@ const reboot = async () => {
           :disabled="!canRebootMachines || state === 'Rebooting'"
           class="modal-button"
           @click="reboot"
-          >{{ state }}</TButton
         >
+          {{ state }}
+        </TButton>
       </div>
     </div>
   </div>

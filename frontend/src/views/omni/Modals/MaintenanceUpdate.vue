@@ -145,9 +145,9 @@ const upgradeClick = async () => {
         class="flex flex-1 flex-col gap-2 overflow-y-auto text-naturals-n13"
       >
         <template v-for="(versions, group) in upgradeVersions" :key="group">
-          <RadioGroupLabel as="div" class="w-full bg-naturals-n4 p-1 pl-7 text-sm font-bold">{{
-            group
-          }}</RadioGroupLabel>
+          <RadioGroupLabel as="div" class="w-full bg-naturals-n4 p-1 pl-7 text-sm font-bold">
+            {{ group }}
+          </RadioGroupLabel>
           <div class="flex flex-col gap-1">
             <RadioGroupOption
               v-for="version in versions"

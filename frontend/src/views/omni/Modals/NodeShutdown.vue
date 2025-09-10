@@ -78,8 +78,9 @@ const shutdown = async () => {
           :disabled="!canRebootMachines || state === 'Shutdown in progress'"
           class="modal-button"
           @click="shutdown"
-          >{{ state }}</TButton
         >
+          {{ state }}
+        </TButton>
       </div>
     </div>
   </div>

@@ -177,11 +177,11 @@ setupSyncStream()
   <div class="flex flex-col gap-2">
     <div class="flex items-start">
       <PageHeader class="flex-1" :title="title" />
-      <TButton type="highlighted" :disabled="applyChangesDisabled" @click="applyChanges"
-        >Apply Changes ({{ numChanges }})</TButton
-      >
+      <TButton type="highlighted" :disabled="applyChangesDisabled" @click="applyChanges">
+        Apply Changes ({{ numChanges }})
+      </TButton>
     </div>
-    <TAlert v-if="error" title="Manifest Sync Error" type="error"> {{ error }}. </TAlert>
+    <TAlert v-if="error" title="Manifest Sync Error" type="error">{{ error }}.</TAlert>
     <div ref="resultsComponent" class="font-sm flex-1 overflow-y-auto">
       <div v-if="loading" class="flex h-full w-full items-center justify-center">
         <TSpinner class="h-6 w-6" />
@@ -208,10 +208,11 @@ setupSyncStream()
               'text-red-r1':
                 item.response_type === KubernetesSyncManifestResponseResponseType.UNKNOWN,
             }"
-            >{{ item.path }}</span
           >
-          <span v-if="!item.diff" class="text-naturals-n9"> (No changes) </span>
-          <span v-if="item.diff && !syncParams.dry_run" class="text-green-g1"> (Updated) </span>
+            {{ item.path }}
+          </span>
+          <span v-if="!item.diff" class="text-naturals-n9">(No changes)</span>
+          <span v-if="item.diff && !syncParams.dry_run" class="text-green-g1">(Updated)</span>
         </template>
         <template
           v-if="

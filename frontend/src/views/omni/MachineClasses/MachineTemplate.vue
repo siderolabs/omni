@@ -97,7 +97,7 @@ const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
       class="machine-template flex flex-col divide-y divide-naturals-n4 border-t-8 border-naturals-n4 text-xs"
     >
       <div>
-        <span> Kernel Arguments </span>
+        <span>Kernel Arguments</span>
         <TInput
           class="h-7 w-56"
           :model-value="kernelArguments"
@@ -105,14 +105,14 @@ const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
         />
       </div>
       <div>
-        <span> Initial Labels </span>
+        <span>Initial Labels</span>
         <Labels
           :model-value="initialLabels"
           @update:model-value="(value) => $emit('update:initial-labels', value)"
         />
       </div>
       <div>
-        <span> Use gRPC Tunnel </span>
+        <span>Use gRPC Tunnel</span>
         <TSelectList
           menu-align="right"
           class="h-6"

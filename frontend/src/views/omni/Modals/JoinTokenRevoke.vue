@@ -61,7 +61,7 @@ const revoke = async () => {
     <p class="text-xs">Please confirm the action.</p>
 
     <div class="mt-8 flex justify-end gap-4">
-      <TButton class="h-9 w-32" :disabled="!isReady" @click="revoke"> Revoke </TButton>
+      <TButton class="h-9 w-32" :disabled="!isReady" @click="revoke">Revoke</TButton>
     </div>
   </div>
 </template>

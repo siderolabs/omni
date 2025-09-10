@@ -76,9 +76,9 @@ const rejectMachine = (item: Resource) => {
               />
               <span>{{ item.metadata.labels?.[LabelInfraProviderID] }}</span>
             </div>
-            <TButton icon="check" type="highlighted" @click="() => acceptMachine(item)"
-              >Accept</TButton
-            >
+            <TButton icon="check" type="highlighted" @click="() => acceptMachine(item)">
+              Accept
+            </TButton>
             <TButton icon="close" @click="() => rejectMachine(item)">Reject</TButton>
           </div>
         </TListItem>

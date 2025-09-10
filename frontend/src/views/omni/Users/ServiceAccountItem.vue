@@ -76,11 +76,12 @@ const renewKey = () => {
               v-if="item.spec.role !== RoleInfraProvider"
               icon="edit"
               @click.stop="editUser"
-              >Edit Service Account</TActionsBoxItem
             >
-            <TActionsBoxItem icon="delete" danger @click.stop="deleteUser"
-              >Delete Service Account</TActionsBoxItem
-            >
+              Edit Service Account
+            </TActionsBoxItem>
+            <TActionsBoxItem icon="delete" danger @click.stop="deleteUser">
+              Delete Service Account
+            </TActionsBoxItem>
           </TActionsBox>
         </div>
       </div>

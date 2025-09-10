@@ -91,9 +91,9 @@ const openDocs = () => {
     <div class="my-7 flex items-center px-8">
       <div class="heading">Edit Config Patch</div>
       <div class="flex flex-1 justify-end">
-        <TButton icon="question" type="subtle" icon-position="left" @click="openDocs"
-          >Config Reference</TButton
-        >
+        <TButton icon="question" type="subtle" icon-position="left" @click="openDocs">
+          Config Reference
+        </TButton>
       </div>
     </div>
     <div v-if="err" class="relative px-8">
@@ -102,8 +102,9 @@ const openDocs = () => {
         type="error"
         :title="err.title"
         :dismiss="{ action: () => (err = null), name: 'Close' }"
-        >{{ err.message }}</TAlert
       >
+        {{ err.message }}
+      </TAlert>
     </div>
     <TabGroup as="div" class="flex flex-1 flex-col overflow-hidden">
       <TabList>

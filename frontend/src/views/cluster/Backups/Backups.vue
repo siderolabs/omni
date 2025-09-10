@@ -69,8 +69,9 @@ const runEtcdBackup = async () => {
           class="ml-2"
           :disabled="startingEtcdBackup || !backupStatus.enabled"
           @click="runEtcdBackup"
-          >Trigger Etcd Backup</TButton
         >
+          Trigger Etcd Backup
+        </TButton>
       </div>
     </div>
     <BackupsList class="mb-6" />
