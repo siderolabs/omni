@@ -41,6 +41,8 @@ var (
 
 	joinTokenMachineJoinConfigFlags struct {
 		role          string
+		tokenID       string
+		tokenName     string
 		useGRPCTunnel bool
 	}
 
@@ -212,16 +214,15 @@ var (
 		Use:     "machine-config <id>",
 		Aliases: []string{"mc"},
 		Short:   "Get partial machine config to make a machine join Omni",
-		Args:    cobra.ExactArgs(1),
+		Args:    cobra.NoArgs,
 		RunE: func(_ *cobra.Command, args []string) error {
-			id := args[0]
-
 			return access.WithClient(func(ctx context.Context, client *client.Client) error {
-				if err := checkJoinTokenExists(ctx, client, id); err != nil {
+				tokenID, err := getJoinToken(ctx, client)
+				if err != nil {
 					return err
 				}
 
-				resp, err := client.Management().GetMachineJoinConfig(ctx, id, joinTokenMachineJoinConfigFlags.useGRPCTunnel)
+				resp, err := client.Management().GetMachineJoinConfig(ctx, tokenID, joinTokenMachineJoinConfigFlags.useGRPCTunnel)
 				if err != nil {
 					return err
 				}
@@ -234,19 +235,18 @@ var (
 	}
 
 	joinTokenKernelArgsCmd = &cobra.Command{
-		Use:     "kernel-args <id>",
+		Use:     "kernel-args",
 		Aliases: []string{"ka"},
 		Short:   "Get Talos kernel args to make a machine join Omni",
-		Args:    cobra.ExactArgs(1),
-		RunE: func(_ *cobra.Command, args []string) error {
-			id := args[0]
-
+		Args:    cobra.NoArgs,
+		RunE: func(*cobra.Command, []string) error {
 			return access.WithClient(func(ctx context.Context, client *client.Client) error {
-				if err := checkJoinTokenExists(ctx, client, id); err != nil {
+				tokenID, err := getJoinToken(ctx, client)
+				if err != nil {
 					return err
 				}
 
-				resp, err := client.Management().GetMachineJoinConfig(ctx, id, joinTokenMachineJoinConfigFlags.useGRPCTunnel)
+				resp, err := client.Management().GetMachineJoinConfig(ctx, tokenID, joinTokenMachineJoinConfigFlags.useGRPCTunnel)
 				if err != nil {
 					return err
 				}
@@ -353,14 +353,27 @@ func init() {
 
 	joinTokenRenewCmd.Flags().DurationVarP(&joinTokenRenewFlags.ttl, "ttl", "t", 0, "TTL for the join token")
 
-	joinTokenMachineConfigCmd.Flags().BoolVar(
-		&joinTokenMachineJoinConfigFlags.useGRPCTunnel,
-		"use-grpc-tunnel", false, "Use gRPC tunnel in the config",
-	)
-	joinTokenKernelArgsCmd.Flags().BoolVar(
-		&joinTokenMachineJoinConfigFlags.useGRPCTunnel,
-		"use-grpc-tunnel", false, "Use gRPC tunnel in the config",
-	)
+	addConfigFlags := func(c *cobra.Command) {
+		c.Flags().BoolVar(
+			&joinTokenMachineJoinConfigFlags.useGRPCTunnel,
+			"use-grpc-tunnel", false, "Use gRPC tunnel in the config",
+		)
+
+		c.Flags().StringVar(
+			&joinTokenMachineJoinConfigFlags.tokenID,
+			"token-id", "", "Generate using specific token ID (uses default if empty)",
+		)
+
+		c.Flags().StringVar(
+			&joinTokenMachineJoinConfigFlags.tokenName,
+			"token-name", "", "Looks up the token by name and generates the config using the token (uses default if empty)",
+		)
+
+		c.MarkFlagsMutuallyExclusive("token-id", "token-name")
+	}
+
+	addConfigFlags(joinTokenMachineConfigCmd)
+	addConfigFlags(joinTokenKernelArgsCmd)
 
 	joinTokenRenewCmd.MarkFlagRequired("ttl") //nolint:errcheck
 }
@@ -434,15 +447,46 @@ func askConfirmation(prompt string) (bool, error) {
 	return false, nil
 }
 
-func checkJoinTokenExists(ctx context.Context, client *client.Client, id string) error {
-	_, err := safe.ReaderGetByID[*siderolink.JoinToken](ctx, client.Omni().State(), id)
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return fmt.Errorf("join token with ID %q was not found", id)
+func getJoinToken(ctx context.Context, client *client.Client) (string, error) {
+	tokenID := joinTokenMachineJoinConfigFlags.tokenID
+	if tokenID == "" {
+		// fallback to the default join token
+		if joinTokenMachineJoinConfigFlags.tokenName == "" {
+			defaultJoinToken, err := safe.ReaderGetByID[*siderolink.DefaultJoinToken](ctx, client.Omni().State(), siderolink.DefaultJoinTokenID)
+			if err != nil {
+				return "", err
+			}
+
+			return defaultJoinToken.TypedSpec().Value.TokenId, nil
 		}
 
-		return err
+		// find token by name
+		tokens, err := safe.ReaderListAll[*siderolink.JoinToken](ctx, client.Omni().State())
+		if err != nil {
+			return "", err
+		}
+
+		for token := range tokens.All() {
+			if token.TypedSpec().Value.Name == joinTokenMachineJoinConfigFlags.tokenName {
+				return token.Metadata().ID(), nil
+			}
+
+			if joinTokenMachineJoinConfigFlags.tokenName == "initial" && token.TypedSpec().Value.Name == "" {
+				return token.Metadata().ID(), nil
+			}
+		}
+
+		return "", fmt.Errorf("join token with name %q was not found", joinTokenMachineJoinConfigFlags.tokenName)
 	}
 
-	return nil
+	_, err := safe.ReaderGetByID[*siderolink.JoinToken](ctx, client.Omni().State(), tokenID)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return "", fmt.Errorf("join token with ID %q was not found", tokenID)
+		}
+
+		return "", err
+	}
+
+	return tokenID, nil
 }
