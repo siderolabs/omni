@@ -28,7 +28,6 @@ const router = useRouter()
 
 const lifetime: Ref<string> = ref(Lifetime.NeverExpire)
 
-const key = ref<string>()
 const name = ref<string>('')
 
 const handleCreate = async () => {
@@ -69,62 +68,47 @@ const close = () => {
 
 <template>
   <div class="modal-window">
-    <div class="heading">
+    <div class="mb-5 flex items-center justify-between text-xl text-naturals-n14">
       <h3 class="text-base text-naturals-n14">Create Join Token</h3>
       <CloseButton @click="close" />
     </div>
 
-    <template v-if="!key">
-      <div class="flex flex-col gap-2">
-        <TInput v-model="name" title="Name" class="h-full flex-1" :on-clear="() => (name = '')" />
-        <div class="flex items-center gap-1 text-xs">
-          Lifetime:
-          <TButtonGroup
-            v-model="lifetime"
-            :options="[
-              {
-                label: 'No Expiration',
-                value: Lifetime.NeverExpire,
-              },
-              {
-                label: 'Limited',
-                value: Lifetime.Limited,
-              },
-            ]"
-          />
-        </div>
-        <TInput
-          v-model="expiration"
-          :disabled="lifetime === Lifetime.NeverExpire"
-          title="Expiration Days"
-          type="number"
-          :min="1"
-          class="flex-1"
+    <div class="mb-4 flex flex-col gap-2">
+      <TInput v-model="name" title="Name" class="h-full flex-1" :on-clear="() => (name = '')" />
+
+      <div class="flex items-center gap-1 text-xs">
+        Lifetime:
+        <TButtonGroup
+          v-model="lifetime"
+          :options="[
+            {
+              label: 'No Expiration',
+              value: Lifetime.NeverExpire,
+            },
+            {
+              label: 'Limited',
+              value: Lifetime.Limited,
+            },
+          ]"
         />
       </div>
-      <TButton
-        type="highlighted"
-        :disabled="!canManageUsers && authType !== AuthType.SAML"
-        class="h-9"
-        @click="handleCreate"
-        >Create Join Token</TButton
-      >
-    </template>
+
+      <TInput
+        v-model="expiration"
+        :disabled="lifetime === Lifetime.NeverExpire"
+        title="Expiration Days"
+        type="number"
+        :min="1"
+        class="flex-1"
+      />
+    </div>
+
+    <TButton
+      type="highlighted"
+      :disabled="!canManageUsers && authType !== AuthType.SAML"
+      @click="handleCreate"
+    >
+      Create Join Token
+    </TButton>
   </div>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.window {
-  @apply z-30 flex w-1/3 flex-col rounded bg-naturals-n2 p-8;
-}
-
-.heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
-}
-
-code {
-  @apply rounded bg-naturals-n4 break-all;
-}
-</style>
