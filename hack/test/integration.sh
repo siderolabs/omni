@@ -41,6 +41,9 @@ mkdir -p $TEST_OUTPUTS_DIR
 # Download required artifacts.
 
 mkdir -p ${ARTIFACTS}
+chown -R ${SUDO_USER:-$(whoami)} ${ARTIFACTS}
+
+[ -f ${ARTIFACTS}/integration-test-linux-amd64 ] || curl -L
 
 [ -f ${ARTIFACTS}/talosctl ] || (crane export ghcr.io/siderolabs/talosctl:latest | tar x -C ${ARTIFACTS})
 

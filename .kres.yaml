@@ -44,12 +44,6 @@ kind: common.GHWorkflow
 spec:
   customRunnerGroup: large
 ---
-kind: service.CodeCov
-spec:
-  inputPaths:
-    - coverage-emulator.txt
-    - coverage-integration.txt
----
 kind: auto.CustomSteps
 spec:
   steps:
@@ -194,6 +188,13 @@ spec:
     condition: on-pull-request
     enabled: true
     sops: true
+    parallelJob:
+      name: integration-test
+      runnerGroup: large
+    coverage:
+      inputPaths:
+        - coverage-emulator.txt
+        - coverage-integration.txt
     artifacts:
       enabled: true
       extraPaths:
