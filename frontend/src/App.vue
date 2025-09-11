@@ -10,6 +10,7 @@ import { useRouter } from 'vue-router'
 
 import AppToast from '@/components/common/AppToast/AppToast.vue'
 import TSuspended from '@/components/common/Suspended/TSuspended.vue'
+import UserConsent from '@/components/common/UserConsent/UserConsent.vue'
 import TSideBar from '@/components/SideBar/TSideBar.vue'
 import THeader from '@/components/THeader/THeader.vue'
 import TModal from '@/components/TModal.vue'
@@ -23,6 +24,7 @@ router.afterEach(() => (isSidebarOpen.value = false))
 
 <template>
   <main class="flex h-screen flex-col">
+    <UserConsent />
     <AppToast />
 
     <THeader

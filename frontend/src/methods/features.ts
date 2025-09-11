@@ -36,24 +36,48 @@ export const setupWorkloadProxyingEnabledFeatureWatch = (): Ref<boolean> => {
 let userPilotInitialized = false
 let userPilotInitializeAbortController: AbortController | null = null
 
+const trackingRef = ref(
+  localStorage.getItem('tracking') === null
+    ? undefined
+    : localStorage.getItem('tracking') === 'true',
+)
+
+export const trackingState = computed({
+  get: () => trackingRef.value,
+  set: (v: boolean) => {
+    trackingRef.value = v
+    localStorage.setItem('tracking', v.toString())
+  },
+})
+
+export const getUserPilotToken = async () => {
+  userPilotInitializeAbortController?.abort()
+
+  userPilotInitializeAbortController = new AbortController()
+
+  const featuresConfig = await ResourceService.Get<Resource<FeaturesConfigSpec>>(
+    {
+      type: FeaturesConfigType,
+      namespace: DefaultNamespace,
+      id: FeaturesConfigID,
+    },
+    withRuntime(Runtime.Omni),
+    withAbortController(userPilotInitializeAbortController),
+  )
+
+  return featuresConfig.spec?.user_pilot_settings?.app_token
+}
+
 export const initializeUserPilot = async (user: Resource<CurrentUserSpec>) => {
+  if (!trackingState.value) {
+    return
+  }
+
   if (!userPilotInitialized) {
-    userPilotInitializeAbortController?.abort()
-
-    userPilotInitializeAbortController = new AbortController()
-
-    const featuresConfig = await ResourceService.Get<Resource<FeaturesConfigSpec>>(
-      {
-        type: FeaturesConfigType,
-        namespace: DefaultNamespace,
-        id: FeaturesConfigID,
-      },
-      withRuntime(Runtime.Omni),
-      withAbortController(userPilotInitializeAbortController),
-    )
-
-    const token = featuresConfig.spec?.user_pilot_settings?.app_token
+    const token = await getUserPilotToken()
     if (!token) {
+      userPilotInitialized = true
+
       return
     }
 
