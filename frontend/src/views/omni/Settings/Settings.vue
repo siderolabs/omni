@@ -24,22 +24,3 @@ defineProps<Props>()
     <RouterView class="grow" />
   </div>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.content {
-  @apply flex w-full border-b border-naturals-n4;
-}
-
-.router-link-active {
-  @apply relative text-naturals-n13;
-}
-
-.router-link-active::before {
-  @apply absolute block w-full animate-fadein bg-primary-p3;
-  content: '';
-  height: 2px;
-  bottom: -15px;
-}
-</style>

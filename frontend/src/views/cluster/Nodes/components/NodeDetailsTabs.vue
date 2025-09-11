@@ -6,7 +6,6 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { computed, toRefs } from 'vue'
-import type { RouteLocationRaw } from 'vue-router'
 
 import TabButton from '@/components/common/Tabs/TabButton.vue'
 import TabsHeader from '@/components/common/Tabs/TabsHeader.vue'
@@ -17,7 +16,7 @@ const props = defineProps<{
 
 const { machine } = toRefs(props)
 
-const routes = computed((): { name: string; to: RouteLocationRaw }[] => {
+const routes = computed(() => {
   return [
     {
       name: 'Overview',
@@ -58,28 +57,9 @@ const routes = computed((): { name: string; to: RouteLocationRaw }[] => {
       v-for="route in routes"
       :key="route.name"
       :to="route.to"
-      :selected="$route.name === route.to"
+      :selected="$route.name === route.to.name"
     >
       {{ route.name }}
     </TabButton>
   </TabsHeader>
 </template>
-
-<style scoped>
-@reference "../../../../index.css";
-
-.content {
-  @apply flex w-full border-b border-naturals-n4;
-}
-
-.router-link-active {
-  @apply relative text-naturals-n13;
-}
-
-.router-link-active::before {
-  @apply absolute block w-full animate-fadein bg-primary-p3;
-  content: '';
-  height: 2px;
-  bottom: -15px;
-}
-</style>
