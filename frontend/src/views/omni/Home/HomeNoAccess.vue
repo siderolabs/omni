@@ -11,7 +11,7 @@ import { downloadOmniconfig } from '@/methods'
 </script>
 
 <template>
-  <div class="flex flex-col items-center justify-center gap-2">
+  <div class="flex h-full flex-col items-center justify-center gap-2">
     <div class="relative mb-6 h-16 w-16">
       <div
         class="absolute top-0 left-0 h-full w-full translate-x-1.5 -translate-y-1.5 rotate-12 rounded-lg bg-naturals-n2"
