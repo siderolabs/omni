@@ -169,7 +169,11 @@ const refreshCurrentUser = async () => {
       withRuntime(Runtime.Omni),
     )
 
-    await initializeUserPilot(currentUser.value)
+    try {
+      await initializeUserPilot(currentUser.value)
+    } catch (e) {
+      console.error('failed to initialize user pilot', e)
+    }
   } catch {
     currentUser.value = undefined
   }
