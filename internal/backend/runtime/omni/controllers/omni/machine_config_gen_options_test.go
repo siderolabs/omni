@@ -175,7 +175,7 @@ func TestGenInstallConfig(t *testing.T) {
 
 			genOptions := omni.NewMachineConfigGenOptions(resources.DefaultNamespace, "id")
 
-			omnictrl.GenInstallConfig(ms, talosVersion, genOptions)
+			omnictrl.GenInstallConfig(ms, talosVersion, genOptions, nil, true)
 
 			assert.Equal(t, tt.expectedInstallDisk, genOptions.TypedSpec().Value.InstallDisk)
 		})
