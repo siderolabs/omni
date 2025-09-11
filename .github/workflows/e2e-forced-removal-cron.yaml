@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-09-09T11:07:14Z by kres 9ebde93.
+# Generated on 2025-09-11T11:31:45Z by kres 953994c.
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -12,8 +12,7 @@ name: e2e-forced-removal-cron
 jobs:
   default:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     steps:
       - name: gather-system-info
         id: system-info

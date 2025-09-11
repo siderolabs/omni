@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-09-09T11:07:14Z by kres 9ebde93.
+# Generated on 2025-09-11T11:31:45Z by kres 953994c.
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -26,8 +26,7 @@ jobs:
       packages: write
       pull-requests: read
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: (!startsWith(github.head_ref, 'renovate/') && !startsWith(github.head_ref, 'dependabot/'))
     outputs:
       labels: ${{ steps.retrieve-pr-labels.outputs.result }}
@@ -239,8 +238,7 @@ jobs:
             _out/sha*.txt
   e2e-backups:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-backups')
     needs:
       - default
@@ -319,8 +317,7 @@ jobs:
         continue-on-error: true
   e2e-cluster-import:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-cluster-import')
     needs:
       - default
@@ -399,8 +396,7 @@ jobs:
         continue-on-error: true
   e2e-forced-removal:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-forced-removal')
     needs:
       - default
@@ -479,8 +475,7 @@ jobs:
         continue-on-error: true
   e2e-omni-upgrade:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-omni-upgrade')
     needs:
       - default
@@ -560,8 +555,7 @@ jobs:
         continue-on-error: true
   e2e-scaling:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-scaling')
     needs:
       - default
@@ -640,8 +634,7 @@ jobs:
         continue-on-error: true
   e2e-short:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-short')
     needs:
       - default
@@ -720,8 +713,7 @@ jobs:
         continue-on-error: true
   e2e-short-secureboot:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-short-secureboot')
     needs:
       - default
@@ -801,8 +793,7 @@ jobs:
         continue-on-error: true
   e2e-templates:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-templates')
     needs:
       - default
@@ -881,8 +872,7 @@ jobs:
         continue-on-error: true
   e2e-upgrades:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-upgrades')
     needs:
       - default
@@ -961,8 +951,7 @@ jobs:
         continue-on-error: true
   e2e-workload-proxy:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-workload-proxy')
     needs:
       - default
