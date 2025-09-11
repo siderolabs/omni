@@ -4,5 +4,4 @@ use (
 	.
 	./client
 	./hack/zstd-dict
-	./internal/e2e-tests
 )

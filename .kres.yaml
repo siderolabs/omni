@@ -207,7 +207,7 @@ spec:
           paths:
             - "~/.talos/clusters/**/*.log"
             - "!~/.talos/clusters/**/swtpm.log"
-            - "/tmp/integration-test"
+            - ${{ github.workspace }}/integration-test
     environment:
       WITH_DEBUG: "true"
       WITH_RACE: "true"

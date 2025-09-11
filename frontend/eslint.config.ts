@@ -7,6 +7,7 @@ import pluginVitest from '@vitest/eslint-plugin'
 import skipFormatting from '@vue/eslint-config-prettier/skip-formatting'
 import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
 import { globalIgnores } from 'eslint/config'
+import pluginPlaywright from 'eslint-plugin-playwright'
 import simpleImportSort from 'eslint-plugin-simple-import-sort'
 import pluginVue from 'eslint-plugin-vue'
 
@@ -20,7 +21,15 @@ export default defineConfigWithVueTs(
 
   {
     ...pluginVitest.configs.recommended,
-    files: ['test/*'],
+    files: ['test/**/*'],
+  },
+  {
+    ...pluginPlaywright.configs['flat/recommended'],
+    files: ['e2e/**/*'],
+    rules: {
+      ...pluginPlaywright.configs['flat/recommended'].rules,
+      '@typescript-eslint/no-floating-promises': 'error',
+    },
   },
   skipFormatting,
 

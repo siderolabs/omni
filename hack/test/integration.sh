@@ -33,7 +33,7 @@ ENABLE_SECUREBOOT=${ENABLE_SECUREBOOT:-false}
 KERNEL_ARGS_WORKERS_COUNT=2
 TALEMU_CONTAINER_NAME=talemu
 TALEMU_INFRA_PROVIDER_IMAGE=ghcr.io/siderolabs/talemu-infra-provider:latest
-TEST_OUTPUTS_DIR=/tmp/integration-test
+TEST_OUTPUTS_DIR=${GITHUB_WORKSPACE}/integration-test
 INTEGRATION_PREPARE_TEST_ARGS="${INTEGRATION_PREPARE_TEST_ARGS:-}"
 
 mkdir -p $TEST_OUTPUTS_DIR
@@ -131,12 +131,12 @@ chmod +x ${ARTIFACTS}/mc && ${ARTIFACTS}/mc alias set myminio http://127.0.0.1:9
 
 # Launch Omni in the background.
 
+export CI="${CI}"
 export VAULT_ADDR='http://127.0.0.1:8200'
 export VAULT_TOKEN=dev-o-token
 export AUTH_USERNAME="${AUTH0_TEST_USERNAME}"
 export AUTH_PASSWORD="${AUTH0_TEST_PASSWORD}"
 export BASE_URL=https://my-instance.localhost:8099/
-export VIDEO_DIR=""
 export AUTH0_CLIENT_ID="${AUTH0_CLIENT_ID}"
 export AUTH0_DOMAIN="${AUTH0_DOMAIN}"
 export OMNI_CONFIG="${TEST_OUTPUTS_DIR}/config.yaml"
@@ -428,13 +428,14 @@ if [ "${INTEGRATION_RUN_E2E_TEST:-true}" == "true" ]; then
 
   # Run the e2e test.
   # the e2e tests are in a submodule and need to be executed in a container with playwright dependencies
-  cd internal/e2e-tests/
+  cd frontend/
   docker buildx build --load . -t e2etest
   docker run --rm \
+    -e CI="$CI" \
     -e AUTH_PASSWORD="$AUTH_PASSWORD" \
     -e AUTH_USERNAME="$AUTH_USERNAME" \
     -e BASE_URL=$BASE_URL \
-    -e VIDEO_DIR="$VIDEO_DIR" \
+    -v ${TEST_OUTPUTS_DIR}/e2e/playwright-report:/tmp/test/playwright-report \
     --network=host \
     e2etest
 fi

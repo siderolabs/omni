@@ -9,8 +9,10 @@
   "scripts": {
     "serve": "vite",
     "build": "npm run tsc && vite build",
+    "preview": "vite preview",
     "tsc": "vue-tsc --build",
     "test": "vitest",
+    "test:e2e": "playwright test",
     "lint": "eslint . && prettier -c .",
     "lint:fix": "eslint . --fix && prettier -wl ."
   },
@@ -23,6 +25,7 @@
     "@vueuse/components": "^13.9.0",
     "@vueuse/core": "^13.9.0",
     "apexcharts": "^5.3.2",
+    "date-fns": "^4.1.0",
     "fetch-intercept": "^2.4.0",
     "js-yaml": "^4.1.0",
     "jwt-decode": "^4.0.0",
@@ -42,6 +45,7 @@
     "whatwg-fetch": "^3.6.20"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@tailwindcss/vite": "^4.1.12",
     "@tsconfig/node22": "^22.0.2",
     "@types/js-yaml": "^4.0.9",
@@ -57,10 +61,13 @@
     "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/eslint-config-typescript": "^14.6.0",
     "@vue/tsconfig": "^0.7.0",
+    "dotenv": "^17.2.2",
     "eslint": "^9.33.0",
+    "eslint-plugin-playwright": "^2.2.2",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-vue": "^10.1.0",
     "jsdom": "^26.1.0",
+    "json-diff-ts": "^4.8.2",
     "kubernetes-types": "^1.30.0",
     "lodash": "^4.17.21",
     "openpgp": "^6.1.0",
@@ -73,6 +80,7 @@
     "vite-plugin-node-polyfills": "^0.24.0",
     "vite-plugin-vue-devtools": "^8.0.0",
     "vitest": "^3.2.4",
-    "vue-tsc": "^3.0.5"
+    "vue-tsc": "^3.0.5",
+    "yaml": "^2.8.1"
   }
 }

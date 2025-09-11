@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-09-12T14:10:54Z by kres d1c95db.
+# Generated on 2025-09-16T08:08:47Z by kres 06e6a5f.
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -240,7 +240,7 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-cluster-import:
@@ -319,7 +319,7 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-forced-removal:
@@ -398,7 +398,7 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-omni-upgrade:
@@ -478,7 +478,7 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-scaling:
@@ -557,7 +557,7 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-short:
@@ -636,7 +636,7 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-short-secureboot:
@@ -716,7 +716,7 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-templates:
@@ -795,7 +795,7 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-upgrades:
@@ -874,7 +874,7 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-workload-proxy:
@@ -953,7 +953,7 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   integration-test:
@@ -1052,7 +1052,7 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
       - name: coverage
         uses: codecov/codecov-action@v5
