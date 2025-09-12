@@ -432,3 +432,13 @@ func (client *Client) GetMachineJoinConfig(ctx context.Context, tokenID string, 
 
 	return resp, nil
 }
+
+func (client *Client) TearDownLockedCluster(ctx context.Context, clusterId string) (*management.TearDownLockedClusterResponse, error) {
+	ctx = metadata.AppendToOutgoingContext(ctx, "context", clusterId)
+
+	request := management.TearDownLockedClusterRequest{
+		ClusterId: clusterId,
+	}
+
+	return client.conn.TearDownLockedCluster(ctx, &request)
+}

@@ -1918,3 +1918,27 @@ func populateNodeUniqueTokens(ctx context.Context, st state.State, _ *zap.Logger
 
 	return err
 }
+
+func moveClusterTaintFromResourceToLabel(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
+	clusterTaints, err := safe.ReaderListAll[*omni.ClusterTaint](ctx, st)
+	if err != nil {
+		return err
+	}
+
+	for taint := range clusterTaints.All() {
+		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewClusterStatus(resources.DefaultNamespace, taint.Metadata().ID()).Metadata(), func(res *omni.ClusterStatus) error {
+			res.Metadata().Labels().Set(omni.LabelClusterTaintedByBreakGlass, "")
+
+			return nil
+		}, state.WithExpectedPhaseAny(), state.WithUpdateOwner(omnictrl.ClusterStatusControllerName))
+		if err != nil {
+			return err
+		}
+
+		if err = st.TeardownAndDestroy(ctx, taint.Metadata()); err != nil {
+			return err
+		}
+	}
+
+	return err
+}

@@ -38,7 +38,8 @@ func toSlice[T resource.Resource](list safe.List[T]) []T {
 
 // ReconcileMachines creates, updates and tears down the machines using the ReconciliationContext.
 func ReconcileMachines(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, rc *ReconciliationContext) (bool, error) {
-	if _, locked := rc.cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked {
+	// if a cluster has become tearing down while it's locked that means that the import process was aborted so we should not skip reconciling
+	if _, locked := rc.cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked && rc.cluster.Metadata().Phase() == resource.PhaseRunning {
 		logger.Warn("cluster is locked, skip reconcile", zap.String("cluster", rc.cluster.Metadata().ID()))
 
 		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("reconciling machines are not allowed: the cluster is locked")

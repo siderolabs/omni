@@ -2194,6 +2194,35 @@ func (suite *MigrationSuite) TestUniqueTokenResource() {
 	suite.Require().True(state.IsNotFoundError(err))
 }
 
+func (suite *MigrationSuite) TestMoveClusterTaintFromResourceToLabel() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	clusterID := "cluster1"
+
+	taint := omni.NewClusterTaint(resources.DefaultNamespace, clusterID)
+	suite.Require().NoError(suite.state.Create(ctx, taint))
+
+	clusterStatus := omni.NewClusterStatus(resources.DefaultNamespace, clusterID)
+	suite.Require().NoError(suite.state.Create(ctx, clusterStatus, state.WithCreateOwner(omnictrl.ClusterStatusControllerName)))
+
+	_, taintBreakGlass := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByBreakGlass)
+	suite.Require().False(taintBreakGlass)
+
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("moveClusterTaintFromResourceToLabel"))))
+
+	clusterStatusMigrated, err := safe.ReaderGetByID[*omni.ClusterStatus](ctx, suite.state, clusterID)
+	suite.Require().NoError(err)
+
+	_, taintBreakGlass = clusterStatusMigrated.Metadata().Labels().Get(omni.LabelClusterTaintedByBreakGlass)
+	suite.Require().True(taintBreakGlass)
+
+	taintDeleted, err := safe.ReaderGetByID[*omni.ClusterTaint](ctx, suite.state, clusterID)
+	suite.Require().Error(err)
+	suite.Require().True(state.IsNotFoundError(err), "ClusterTaint resource should not exist after migration")
+	suite.Require().Nil(taintDeleted, "ClusterTaint resource should not exist after migration")
+}
+
 func startMigration[
 	R interface {
 		generic.ResourceWithRD

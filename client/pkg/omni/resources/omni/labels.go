@@ -102,9 +102,18 @@ const (
 	// InfraProviderLabelPrefixFormat is the prefix of all labels which are managed by the infra providers.
 	InfraProviderLabelPrefixFormat = InfraProviderLabelPrefix + "/%s/"
 
-	// LabelClusterTainted is added to the ClusterStatus and is used to relay if the cluster secrets are sourced from ImportedClusterSecrets.
-	// tsgen:LabelClusterTainted
-	LabelClusterTainted = SystemLabelPrefix + "tainted"
+	// LabelClusterTaintedByImporting is added to the ClusterStatus and is used to relay that the cluster secrets are sourced from ImportedClusterSecrets.
+	// tsgen:LabelClusterTaintedByImporting
+	LabelClusterTaintedByImporting = SystemLabelPrefix + "tainted-by-importing"
+
+	// LabelClusterTaintedByExporting is added to the ClusterStatus and is used to relay that admin Talos config has been generated using ClusterSecrets.
+	// tsgen:LabelClusterTaintedByExporting
+	LabelClusterTaintedByExporting = SystemLabelPrefix + "tainted-by-exporting"
+
+	// LabelClusterTaintedByBreakGlass is added to the ClusterStatus and is used to signal that Talos or Kubernetes configs are no longer under full control of Omni
+	// as break-glass configs that bypass Omni were generated.
+	// tsgen:LabelClusterTaintedByBreakGlass
+	LabelClusterTaintedByBreakGlass = SystemLabelPrefix + "tainted-by-break-glass"
 )
 
 const (

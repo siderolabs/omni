@@ -13,14 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/siderolabs/talos/pkg/machinery/config"
-	talossecrets "github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
-	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
-	"gopkg.in/yaml.v3"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/integration/workloadproxy"
 	"github.com/siderolabs/omni/internal/pkg/clientconfig"
@@ -1479,27 +1474,7 @@ Create a single node imported cluster, assert that the cluster is ready and acce
 
 		t.Parallel()
 
-		clusterOptions := ClusterOptions{
-			Name:          "integration-imported-cluster",
-			ControlPlanes: 1,
-			Workers:       0,
-
-			MachineOptions:             options.MachineOptions,
-			SkipExtensionCheckOnCreate: true,
-		}
-
-		bundle, err := talossecrets.NewBundle(talossecrets.NewFixedClock(time.Now()), config.TalosVersion1_10)
-		require.NoError(t, err)
-
-		bundleYaml, err := yaml.Marshal(bundle)
-		require.NoError(t, err)
-
-		ics := omni.NewImportedClusterSecrets(resources.DefaultNamespace, clusterOptions.Name)
-		ics.TypedSpec().Value.Data = string(bundleYaml)
-
-		require.NoError(t, options.omniClient.Omni().State().Create(t.Context(), ics))
-
-		options.claimMachines(t, clusterOptions.ControlPlanes+clusterOptions.Workers)
+		clusterOptions, bundleYaml := prepareClusterImport(t, "integration-cluster-import", options)
 
 		t.Run(
 			"ClusterShouldBeCreated",
@@ -1507,11 +1482,32 @@ Create a single node imported cluster, assert that the cluster is ready and acce
 		)
 
 		assertClusterAndAPIReady(t, clusterOptions.Name, options)
-		assertClusterIsImported(t.Context(), t, options.omniClient.Omni().State(), clusterOptions.Name, bundleYaml)
+		t.Run(
+			"ClusterShouldBeImported",
+			AssertClusterIsImported(t.Context(), options.omniClient.Omni().State(), clusterOptions.Name, bundleYaml),
+		)
 
 		t.Run(
 			"ClusterShouldBeDestroyed",
 			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterOptions.Name, false, false),
+		)
+
+		clusterOptions, bundleYaml = prepareClusterImport(t, "integration-cluster-import-abort", options)
+
+		t.Run(
+			"ClusterShouldBeCreated",
+			CreateCluster(t.Context(), options.omniClient, clusterOptions),
+		)
+
+		assertClusterAndAPIReady(t, clusterOptions.Name, options)
+		t.Run(
+			"ClusterShouldBeImported",
+			AssertClusterIsImported(t.Context(), options.omniClient.Omni().State(), clusterOptions.Name, bundleYaml),
+		)
+
+		t.Run(
+			"ClusterImportShouldBeAborted",
+			AssertClusterImportIsAborted(t.Context(), options, clusterOptions.Name, bundleYaml),
 		)
 	}
 }

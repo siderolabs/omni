@@ -295,7 +295,17 @@ func (s *managementServer) ValidateConfig(ctx context.Context, request *manageme
 func (s *managementServer) markClusterAsTainted(ctx context.Context, name string) error {
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	if err := s.omniState.Create(ctx, omnires.NewClusterTaint(resources.DefaultNamespace, name)); err != nil && !state.IsConflictError(err) {
+	if _, err := safe.StateUpdateWithConflicts(
+		ctx,
+		s.omniState,
+		omnires.NewClusterStatus(resources.DefaultNamespace, name).Metadata(),
+		func(res *omnires.ClusterStatus) error {
+			res.Metadata().Labels().Set(omnires.LabelClusterTaintedByBreakGlass, "")
+
+			return nil
+		},
+		state.WithUpdateOwner(omniCtrl.ClusterStatusControllerName),
+	); err != nil {
 		return err
 	}
 
@@ -818,6 +828,51 @@ func (s *managementServer) CreateJoinToken(ctx context.Context, request *managem
 	return &management.CreateJoinTokenResponse{
 		Id: token,
 	}, nil
+}
+
+func (s *managementServer) TearDownLockedCluster(ctx context.Context, request *management.TearDownLockedClusterRequest) (*management.TearDownLockedClusterResponse, error) {
+	_, err := auth.CheckGRPC(ctx, auth.WithRole(role.Admin))
+	if err != nil {
+		return nil, err
+	}
+
+	clusterMD := omnires.NewCluster(resources.DefaultNamespace, request.ClusterId).Metadata()
+
+	cluster, err := safe.StateGetByID[*omnires.Cluster](ctx, s.omniState, clusterMD.ID())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil, status.Errorf(codes.NotFound, "cluster %q not found", clusterMD.ID())
+		}
+
+		return nil, fmt.Errorf("failed to get cluster: %w", err)
+	}
+
+	clusterStatus, err := safe.StateGetByID[*omnires.ClusterStatus](ctx, s.omniState, clusterMD.ID())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil, status.Errorf(codes.NotFound, "cluster status %q not found", clusterMD.ID())
+		}
+
+		return nil, fmt.Errorf("failed to get cluster status: %w", err)
+	}
+
+	if _, locked := cluster.Metadata().Annotations().Get(omnires.ClusterLocked); !locked {
+		return nil, status.Errorf(codes.FailedPrecondition, "cluster %q is not locked", clusterMD.ID())
+	}
+
+	_, taintImporting := clusterStatus.Metadata().Labels().Get(omnires.LabelClusterTaintedByImporting)
+	_, taintExporting := clusterStatus.Metadata().Labels().Get(omnires.LabelClusterTaintedByExporting)
+
+	if !taintImporting && !taintExporting {
+		return nil, status.Errorf(codes.FailedPrecondition, "cluster %q is not tainted by importing or exporting", clusterMD.ID())
+	}
+
+	_, err = s.omniState.Teardown(ctx, clusterMD)
+	if err != nil {
+		return nil, fmt.Errorf("failed to tear down cluster: %q: %w", clusterMD.ID(), err)
+	}
+
+	return &management.TearDownLockedClusterResponse{}, nil
 }
 
 func parseTime(date string, fallback time.Time) (time.Time, error) {

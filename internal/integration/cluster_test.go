@@ -23,12 +23,14 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/google/uuid"
 	"github.com/siderolabs/gen/pair"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-retry/retry"
 	talosclient "github.com/siderolabs/talos/pkg/machinery/client"
+	"github.com/siderolabs/talos/pkg/machinery/config"
 	talossecrets "github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
-	"github.com/siderolabs/talos/pkg/machinery/role"
+	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
@@ -40,6 +42,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
+	"github.com/siderolabs/omni/internal/pkg/auth/role"
 )
 
 // BeforeClusterCreateFunc is a function that is called before a cluster is created.
@@ -950,33 +953,129 @@ func updateMachineClassMachineSets(ctx context.Context, t *testing.T, st state.S
 	}
 }
 
-func assertClusterIsImported(ctx context.Context, t *testing.T, st state.State, clusterID string, secretsBundle []byte) {
-	clusterStatus, err := safe.StateGetByID[*omni.ClusterStatus](ctx, st, clusterID)
+func AssertClusterIsImported(ctx context.Context, st state.State, clusterID string, secretsBundle []byte) TestFunc {
+	return func(t *testing.T) {
+		rtestutils.AssertResource[*omni.ClusterStatus](ctx, t, st, clusterID, func(status *omni.ClusterStatus, assert *assert.Assertions) {
+			_, ok := status.Metadata().Labels().Get(omni.LabelClusterTaintedByImporting)
+			assert.True(ok, "cluster status doesn't have cluster tainted label")
+		})
+
+		var bundle *talossecrets.Bundle
+		require.NoError(t, yaml.Unmarshal(secretsBundle, &bundle))
+
+		talosConfig := omni.NewTalosConfig(resources.DefaultNamespace, clusterID)
+		clientCert, err := talossecrets.NewAdminCertificateAndKey(time.Now(), bundle.Certs.OS, talosrole.MakeSet(talosrole.Admin), time.Hour)
+		require.NoError(t, err)
+
+		talosConfig.TypedSpec().Value.Key = base64.StdEncoding.EncodeToString(clientCert.Key)
+		talosConfig.TypedSpec().Value.Crt = base64.StdEncoding.EncodeToString(clientCert.Crt)
+		talosConfig.TypedSpec().Value.Ca = base64.StdEncoding.EncodeToString(bundle.Certs.OS.Crt)
+
+		endpoints, err := safe.ReaderGetByID[*omni.ClusterEndpoint](ctx, st, clusterID)
+		require.NoError(t, err)
+
+		talosCli, err := talosclient.New(ctx,
+			talosclient.WithCluster(clusterID),
+			talosclient.WithConfig(omni.NewTalosClientConfig(talosConfig, endpoints.TypedSpec().Value.ManagementAddresses...)),
+		)
+		require.NoError(t, err)
+
+		_, err = talosCli.Version(ctx)
+		require.NoError(t, err)
+	}
+}
+
+func AssertClusterImportIsAborted(ctx context.Context, options *TestOptions, clusterID string, secretsBundle []byte) TestFunc {
+	return func(t *testing.T) {
+		st := options.omniClient.Omni().State()
+		httpEndpoint := options.HTTPEndpoint
+		c := options.omniClient
+
+		cluster, err := safe.StateGetByID[*omni.Cluster](ctx, st, clusterID)
+		require.NoError(t, err)
+
+		_, err = st.UpdateWithConflicts(ctx, cluster.Metadata(), func(r resource.Resource) error {
+			r.Metadata().Annotations().Set(omni.ClusterLocked, "")
+
+			return nil
+		})
+		require.NoError(t, err)
+
+		clusterStatus, err := safe.StateGetByID[*omni.ClusterStatus](ctx, st, clusterID)
+		require.NoError(t, err)
+
+		_, ok := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByImporting)
+		require.True(t, ok, "cluster status doesn't have cluster tainted label")
+
+		clusterMachines, err := safe.StateListAll[*omni.ClusterMachine](ctx, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterID)))
+		require.NoError(t, err)
+		require.NotEmpty(t, clusterMachines.Len(), "no cluster machines found for imported cluster %q", clusterID)
+
+		var bundle *talossecrets.Bundle
+		require.NoError(t, yaml.Unmarshal(secretsBundle, &bundle))
+
+		talosConfig := omni.NewTalosConfig(resources.DefaultNamespace, clusterID)
+		clientCert, err := talossecrets.NewAdminCertificateAndKey(time.Now(), bundle.Certs.OS, talosrole.MakeSet(talosrole.Admin), time.Hour)
+		require.NoError(t, err)
+
+		talosConfig.TypedSpec().Value.Key = base64.StdEncoding.EncodeToString(clientCert.Key)
+		talosConfig.TypedSpec().Value.Crt = base64.StdEncoding.EncodeToString(clientCert.Crt)
+		talosConfig.TypedSpec().Value.Ca = base64.StdEncoding.EncodeToString(bundle.Certs.OS.Crt)
+
+		endpoints, err := safe.ReaderGetByID[*omni.ClusterEndpoint](ctx, st, clusterID)
+		require.NoError(t, err)
+
+		talosCli, err := talosclient.New(ctx,
+			talosclient.WithCluster(clusterID),
+			talosclient.WithConfig(omni.NewTalosClientConfig(talosConfig, endpoints.TypedSpec().Value.ManagementAddresses...)),
+		)
+		require.NoError(t, err)
+
+		_, err = talosCli.Version(ctx)
+		require.NoError(t, err)
+
+		saName := "test-" + uuid.NewString()
+		key := createServiceAccount(t.Context(), t, c, saName, role.Admin)
+
+		_, stderr, err := runCmd(omnictlPath, httpEndpoint, key, "cluster", "import", "abort", clusterID)
+		require.NotNil(t, stderr)
+		stderrStr := stderr.String()
+		require.Contains(t, stderrStr, "Aborting import operation for cluster")
+		require.Contains(t, stderrStr, "Import operation was aborted successfully for cluster")
+
+		rtestutils.AssertNoResource[*omni.Cluster](ctx, t, st, clusterID)
+
+		_, err = talosCli.Version(ctx)
+		require.NoError(t, err)
+
+		for cm := range clusterMachines.All() {
+			wipeMachine(ctx, t, st, cm.Metadata().ID(), options.WipeAMachineFunc)
+		}
+	}
+}
+
+func prepareClusterImport(t *testing.T, name string, options *TestOptions) (ClusterOptions, []byte) {
+	clusterOptions := ClusterOptions{
+		Name:          name,
+		ControlPlanes: 1,
+		Workers:       0,
+
+		MachineOptions:             options.MachineOptions,
+		SkipExtensionCheckOnCreate: true,
+	}
+
+	bundle, err := talossecrets.NewBundle(talossecrets.NewFixedClock(time.Now()), config.TalosVersion1_11)
 	require.NoError(t, err)
 
-	_, ok := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTainted)
-	require.True(t, ok, "cluster status doesn't have cluster tainted label")
-
-	var bundle *talossecrets.Bundle
-	require.NoError(t, yaml.Unmarshal(secretsBundle, &bundle))
-
-	talosConfig := omni.NewTalosConfig(resources.DefaultNamespace, clusterID)
-	clientCert, err := talossecrets.NewAdminCertificateAndKey(time.Now(), bundle.Certs.OS, role.MakeSet(role.Admin), time.Hour)
+	bundleYaml, err := yaml.Marshal(bundle)
 	require.NoError(t, err)
 
-	talosConfig.TypedSpec().Value.Key = base64.StdEncoding.EncodeToString(clientCert.Key)
-	talosConfig.TypedSpec().Value.Crt = base64.StdEncoding.EncodeToString(clientCert.Crt)
-	talosConfig.TypedSpec().Value.Ca = base64.StdEncoding.EncodeToString(bundle.Certs.OS.Crt)
+	ics := omni.NewImportedClusterSecrets(resources.DefaultNamespace, clusterOptions.Name)
+	ics.TypedSpec().Value.Data = string(bundleYaml)
 
-	endpoints, err := safe.ReaderGetByID[*omni.ClusterEndpoint](ctx, st, clusterID)
-	require.NoError(t, err)
+	require.NoError(t, options.omniClient.Omni().State().Create(t.Context(), ics))
 
-	talosCli, err := talosclient.New(ctx,
-		talosclient.WithCluster(clusterID),
-		talosclient.WithConfig(omni.NewTalosClientConfig(talosConfig, endpoints.TypedSpec().Value.ManagementAddresses...)),
-	)
-	require.NoError(t, err)
+	options.claimMachines(t, clusterOptions.ControlPlanes+clusterOptions.Workers)
 
-	_, err = talosCli.Version(ctx)
-	require.NoError(t, err)
+	return clusterOptions, bundleYaml
 }
