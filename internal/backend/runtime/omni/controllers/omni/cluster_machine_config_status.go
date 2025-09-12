@@ -97,7 +97,8 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 					return err
 				}
 
-				if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked {
+				// if a cluster has become tearing down while it's locked that means that the import process was aborted so we should not skip reconciling
+				if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked && cluster.Metadata().Phase() == resource.PhaseRunning {
 					logger.Warn("cluster is locked, skip reconcile", zap.String("cluster", cluster.Metadata().ID()))
 
 					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("reconciling cluster machine config is not allowed: the cluster is locked")
@@ -250,13 +251,23 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 					imageFactoryHost: imageFactoryHost,
 				}
 
+				clusterName, ok := machineConfig.Metadata().Labels().Get(omni.LabelCluster)
+				if !ok {
+					return fmt.Errorf("failed to determine the cluster name from the cluster machine config %q", machineConfig.Metadata().ID())
+				}
+
+				clusterStatus, err := safe.ReaderGet[*omni.ClusterStatus](ctx, r, omni.NewClusterStatus(resources.DefaultNamespace, clusterName).Metadata())
+				if err != nil {
+					return fmt.Errorf("finalizer: failed to get cluster status '%s': %w", clusterName, err)
+				}
+
 				clusterMachine, err := safe.ReaderGet[*omni.ClusterMachine](ctx, r, omni.NewClusterMachine(resources.DefaultNamespace, machineConfig.Metadata().ID()).Metadata())
 				if err != nil {
 					return fmt.Errorf("finalizer: failed to get cluster machine '%s': %w", machineConfig.Metadata().ID(), err)
 				}
 
 				// perform reset of the node
-				err = handler.reset(ctx, machineConfig, clusterMachine)
+				err = handler.reset(ctx, machineConfig, clusterMachine, clusterStatus)
 				if err != nil {
 					return err
 				}
@@ -309,6 +320,9 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 			qtransform.MapperNone(),
 		),
 		qtransform.WithExtraMappedInput[*omni.Cluster](
+			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachineConfig](),
+		),
+		qtransform.WithExtraMappedInput[*omni.ClusterStatus](
 			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachineConfig](),
 		),
 		qtransform.WithExtraOutputs(controller.Output{
@@ -623,6 +637,7 @@ func (h *clusterMachineConfigStatusControllerHandler) reset(
 	ctx context.Context,
 	machineConfig *omni.ClusterMachineConfig,
 	clusterMachine *omni.ClusterMachine,
+	clusterStatus *omni.ClusterStatus,
 ) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -645,6 +660,20 @@ func (h *clusterMachineConfigStatusControllerHandler) reset(
 
 	if machine.Metadata().Phase() == resource.PhaseTearingDown {
 		// Machine is tearing down, means that we should just let it go
+		logger.Info("removed without reset")
+
+		return nil
+	}
+
+	if _, ok := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByImporting); ok {
+		// Aborting Cluster import, means that we should just let it go
+		logger.Info("removed without reset")
+
+		return nil
+	}
+
+	if _, ok := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByExporting); ok {
+		// Finalizing Cluster export, means that we should just let it go
 		logger.Info("removed without reset")
 
 		return nil

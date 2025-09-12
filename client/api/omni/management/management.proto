@@ -222,6 +222,14 @@ message CreateJoinTokenResponse {
   string id = 1;
 }
 
+message TearDownLockedClusterRequest {
+  string cluster_id = 1;
+}
+
+message TearDownLockedClusterResponse {
+
+}
+
 service ManagementService {
   rpc Kubeconfig(KubeconfigRequest) returns (KubeconfigResponse);
   rpc Talosconfig(TalosconfigRequest) returns (TalosconfigResponse);
@@ -241,4 +249,5 @@ service ManagementService {
   rpc MaintenanceUpgrade(MaintenanceUpgradeRequest) returns (MaintenanceUpgradeResponse);
   rpc GetMachineJoinConfig(GetMachineJoinConfigRequest) returns (GetMachineJoinConfigResponse);
   rpc CreateJoinToken(CreateJoinTokenRequest) returns (CreateJoinTokenResponse);
+  rpc TearDownLockedCluster(TearDownLockedClusterRequest) returns (TearDownLockedClusterResponse);
 }

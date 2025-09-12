@@ -30,3 +30,10 @@ rm "${disk}"
 truncate -s "${size}" "${disk}"
 
 echo "q" | socat - "unix-connect:${dir}/machine-$1.monitor"
+
+# connect the VM to omni
+cluster=$(basename "${dir}")
+if [ "$cluster" == "test-1" ]; then
+  sleep 10
+  $3 apply-config --insecure --nodes "$2" --file "$4"
+fi

@@ -44,6 +44,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
+	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -115,8 +116,13 @@ func TestGenerateConfigs(t *testing.T) {
 	})
 
 	t.Run("kubeconfig enabled success", func(t *testing.T) {
-		kubeconfigResource := omni.NewKubeconfig(resources.DefaultNamespace, "cluster1")
+		cluster := omni.NewCluster(resources.DefaultNamespace, clusterName)
+		require.NoError(t, st.Default().Create(ctx, cluster))
 
+		clusterStatus := omni.NewClusterStatus(resources.DefaultNamespace, clusterName)
+		require.NoError(t, st.Default().Create(ctx, clusterStatus, state.WithCreateOwner(omnictrl.ClusterStatusControllerName)))
+
+		kubeconfigResource := omni.NewKubeconfig(resources.DefaultNamespace, clusterName)
 		kubeconfigResource.TypedSpec().Value.Data = adminKubeconfig
 
 		require.NoError(t, st.Default().Create(ctx, kubeconfigResource))
@@ -129,12 +135,14 @@ func TestGenerateConfigs(t *testing.T) {
 		_, err = clientcmd.Load(kubeconfig)
 		require.NoError(t, err)
 
-		var taint *omni.ClusterTaint
-
-		taint, err = safe.ReaderGetByID[*omni.ClusterTaint](ctx, st.Default(), clusterName)
+		updatedClusterStatus, err := safe.ReaderGetByID[*omni.ClusterStatus](ctx, st.Default(), clusterName) // nolint:govet
 		require.NoError(t, err)
 
-		require.NoError(t, st.Default().Destroy(ctx, taint.Metadata()))
+		_, taintBreakGlass := updatedClusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByBreakGlass)
+		require.True(t, taintBreakGlass)
+
+		require.NoError(t, st.Default().Destroy(ctx, cluster.Metadata()))
+		require.NoError(t, st.Default().Destroy(ctx, clusterStatus.Metadata(), state.WithDestroyOwner(omnictrl.ClusterStatusControllerName)))
 	})
 
 	t.Run("kubeconfig enabled no auth", func(t *testing.T) {
@@ -152,7 +160,13 @@ func TestGenerateConfigs(t *testing.T) {
 	})
 
 	t.Run("talosconfig enabled success", func(t *testing.T) {
-		secrets := omni.NewClusterSecrets(resources.DefaultNamespace, "cluster1")
+		cluster := omni.NewCluster(resources.DefaultNamespace, clusterName)
+		require.NoError(t, st.Default().Create(ctx, cluster))
+
+		clusterStatus := omni.NewClusterStatus(resources.DefaultNamespace, clusterName)
+		require.NoError(t, st.Default().Create(ctx, clusterStatus, state.WithCreateOwner(omnictrl.ClusterStatusControllerName)))
+
+		secrets := omni.NewClusterSecrets(resources.DefaultNamespace, clusterName)
 
 		bundle, err := talossecrets.NewBundle(talossecrets.NewFixedClock(time.Now()), machineryconfig.TalosVersion1_7)
 		require.NoError(t, err)
@@ -178,12 +192,14 @@ func TestGenerateConfigs(t *testing.T) {
 
 		require.NotEmpty(t, config.Contexts)
 
-		var taint *omni.ClusterTaint
-
-		taint, err = safe.ReaderGetByID[*omni.ClusterTaint](ctx, st.Default(), clusterName)
+		updatedClusterStatus, err := safe.ReaderGetByID[*omni.ClusterStatus](ctx, st.Default(), clusterName)
 		require.NoError(t, err)
 
-		require.NoError(t, st.Default().Destroy(ctx, taint.Metadata()))
+		_, taintBreakGlass := updatedClusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByBreakGlass)
+		require.True(t, taintBreakGlass)
+
+		require.NoError(t, st.Default().Destroy(ctx, cluster.Metadata()))
+		require.NoError(t, st.Default().Destroy(ctx, clusterStatus.Metadata(), state.WithDestroyOwner(omnictrl.ClusterStatusControllerName)))
 	})
 }
 
