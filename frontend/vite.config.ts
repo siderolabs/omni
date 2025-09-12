@@ -3,8 +3,6 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-/// <reference types="vitest/config" />
-
 import { fileURLToPath, URL } from 'node:url'
 
 import tailwindcss from '@tailwindcss/vite'
@@ -13,6 +11,7 @@ import { defineConfig, type UserConfig } from 'vite'
 import monacoEditorPlugin from 'vite-plugin-monaco-editor-esm'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import vueDevTools from 'vite-plugin-vue-devtools'
+import { configDefaults } from 'vitest/config'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => {
@@ -25,6 +24,7 @@ export default defineConfig(({ command }) => {
     },
     test: {
       environment: 'jsdom',
+      exclude: [...configDefaults.exclude, 'e2e/**'],
       root: fileURLToPath(new URL('./', import.meta.url)),
     },
     server: {

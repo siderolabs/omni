@@ -44,6 +44,12 @@ npm run tsc
 npm run test
 ```
 
+### Run E2E Tests with [Playwright](https://playwright.dev/)
+
+```sh
+npm run test:e2e
+```
+
 ### Lint with [ESLint](https://eslint.org/) and [Prettier](https://prettier.io/)
 
 ```sh
