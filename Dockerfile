@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-09-09T14:12:27Z by kres ba56673.
+# Generated on 2025-09-15T08:45:14Z by kres d1c95db.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -47,8 +47,8 @@ ADD client/api/omni/specs/omni.proto /client/api/omni/specs/
 ADD client/api/omni/specs/siderolink.proto /client/api/omni/specs/
 ADD client/api/omni/specs/system.proto /client/api/omni/specs/
 ADD https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto /client/api/google/rpc/
-ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.0-beta.2/api/common/common.proto /client/api/common/
-ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.0-beta.2/api/machine/machine.proto /client/api/talos/machine/
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.1/api/common/common.proto /client/api/common/
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.1/api/machine/machine.proto /client/api/talos/machine/
 ADD https://raw.githubusercontent.com/cosi-project/specification/c644a4b0fd408ec41bd29193bcdbd1a5b7feead2/proto/v1alpha1/resource.proto /client/api/v1alpha1/
 
 # collects proto specs
@@ -66,13 +66,13 @@ ADD client/api/omni/specs/infra.proto /frontend/src/api/omni/specs/
 ADD client/api/omni/specs/virtual.proto /frontend/src/api/omni/specs/
 ADD client/api/omni/specs/ephemeral.proto /frontend/src/api/omni/specs/
 ADD https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto /frontend/src/api/google/rpc/
-ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.0-beta.2/api/machine/machine.proto /frontend/src/api/talos/machine/
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.1/api/machine/machine.proto /frontend/src/api/talos/machine/
 ADD https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/any.proto /frontend/src/api/google/protobuf/
 ADD https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/duration.proto /frontend/src/api/google/protobuf/
 ADD https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/empty.proto /frontend/src/api/google/protobuf/
 ADD https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/timestamp.proto /frontend/src/api/google/protobuf/
 ADD https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/code.proto /frontend/src/api/google/rpc/
-ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.0-beta.2/api/common/common.proto /frontend/src/api/common/
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.1/api/common/common.proto /frontend/src/api/common/
 ADD https://raw.githubusercontent.com/cosi-project/specification/5c734257bfa6a3acb01417809797dbfbe0e73c71/proto/v1alpha1/resource.proto /frontend/src/api/v1alpha1/
 
 # base toolchain image

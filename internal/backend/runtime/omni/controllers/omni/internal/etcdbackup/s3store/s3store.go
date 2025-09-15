@@ -14,6 +14,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
@@ -53,7 +54,9 @@ func NewStore(client *s3.Client, bucket string, upRate, downRate uint64) *Store 
 
 // Upload stores the data from [io.Reader] in a file. Implements [Store].
 func (s *Store) Upload(ctx context.Context, descr etcdbackup.Description, r io.Reader) error {
-	uploader := manager.NewUploader(s.client)
+	uploader := manager.NewUploader(s.client, func(u *manager.Uploader) {
+		u.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
+	})
 
 	_, err := uploader.Upload(ctx, &s3.PutObjectInput{
 		Bucket: pointer.To(s.bucket),

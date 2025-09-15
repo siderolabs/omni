@@ -1015,10 +1015,10 @@ func (f *fakeBackend) BucketExists(name string) (exists bool, err error) {
 	return f.Backend.BucketExists(name)
 }
 
-func (f *fakeBackend) PutObject(bucketName, key string, meta map[string]string, input io.Reader, size int64) (gofakes3.PutObjectResult, error) {
+func (f *fakeBackend) PutObject(bucketName, key string, meta map[string]string, input io.Reader, size int64, conditions *gofakes3.PutConditions) (gofakes3.PutObjectResult, error) {
 	f.logger.Info("PutObject", zap.String("bucket_name", bucketName), zap.String("key", key), zap.Any("meta", meta), zap.Int64("size", size))
 
-	return f.Backend.PutObject(bucketName, key, meta, input, size)
+	return f.Backend.PutObject(bucketName, key, meta, input, size, conditions)
 }
 
 func newFakeBackend(logger *zap.Logger) *fakeBackend {
