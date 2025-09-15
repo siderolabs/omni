@@ -1918,3 +1918,19 @@ func populateNodeUniqueTokens(ctx context.Context, st state.State, _ *zap.Logger
 
 	return err
 }
+
+func dropExtraInputFinalizers(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
+	logger.Info("dropping extra finalizers from MachineSetStatus resources")
+
+	if err := dropFinalizers[*omni.MachineSetStatus](ctx, st, "ClusterDestroyStatusController"); err != nil {
+		return fmt.Errorf("failed to remove finalizers from MachineSetStatus resources: %w", err)
+	}
+
+	logger.Info("dropping extra finalizers from ClusterMachineStatus resources")
+
+	if err := dropFinalizers[*omni.ClusterMachineStatus](ctx, st, "ClusterDestroyStatusController", "MachineSetDestroyStatusController"); err != nil {
+		return fmt.Errorf("failed to remove finalizers from ClusterMachineStatus resources: %w", err)
+	}
+
+	return nil
+}
