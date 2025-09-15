@@ -277,10 +277,19 @@ func copyConfig(src, dstDir string) (string, error) {
 }
 
 // CustomSideroV1KeysDirPath returns the custom SideroV1 auth keys directory path if it's provided as command line flag or with environment variable.
-func CustomSideroV1KeysDirPath(path string) string {
-	if path != "" {
+func CustomSideroV1KeysDirPath(customPath string) string {
+	if path, ok := os.LookupEnv(constants.SideroV1KeysDirEnvVar); ok {
 		return path
 	}
 
-	return os.Getenv(constants.SideroV1KeysDirEnvVar)
+	if customPath != "" {
+		return customPath
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+
+	return filepath.Join(home, constants.TalosDir, constants.SideroV1KeysDir)
 }
