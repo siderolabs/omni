@@ -1037,11 +1037,11 @@ func AssertClusterImportIsAborted(ctx context.Context, options *TestOptions, clu
 		saName := "test-" + uuid.NewString()
 		key := createServiceAccount(t.Context(), t, c, saName, role.Admin)
 
-		_, stderr, err := runCmd(omnictlPath, httpEndpoint, key, "cluster", "import", "abort", clusterID)
-		require.NotNil(t, stderr)
-		stderrStr := stderr.String()
-		require.Contains(t, stderrStr, "Aborting import operation for cluster")
-		require.Contains(t, stderrStr, "Import operation was aborted successfully for cluster")
+		stdout, _, err := runCmd(omnictlPath, httpEndpoint, key, "cluster", "import", "abort", clusterID)
+		require.NotNil(t, stdout)
+		stdoutStr := stdout.String()
+		require.Contains(t, stdoutStr, "Aborting import operation for cluster")
+		require.Contains(t, stdoutStr, "Import operation was aborted successfully for cluster")
 
 		rtestutils.AssertNoResource[*omni.Cluster](ctx, t, st, clusterID)
 
