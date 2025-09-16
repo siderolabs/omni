@@ -72,6 +72,8 @@ onMounted(() => {
           })
         }
       }
+
+      break
     case AuthType.OIDC:
     case AuthType.SAML:
       const navigateToLogin = () => {
