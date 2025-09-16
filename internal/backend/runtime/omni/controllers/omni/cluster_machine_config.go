@@ -262,7 +262,7 @@ func reconcileClusterMachineConfig(
 
 	skipUpdate := false
 
-	// skip comparing existing config to generated config if existing config has it's comments stripped to avoid unnecessary decompression/unmarshalling
+	// skip comparing existing config to generated config if existing config has its comments stripped to avoid unnecessary decompression/unmarshalling
 	if !machineConfig.TypedSpec().Value.WithoutComments {
 		if skipUpdate, err = helper.configsEqual(machineConfig, data); err != nil {
 			return err

@@ -83,6 +83,21 @@ jobs:
       - name: base
         run: |
           make base
+      - name: Retrieve PR labels
+        id: retrieve-pr-labels
+        uses: actions/github-script@v7
+        with:
+          retries: "3"
+          script: |
+            if (context.eventName != "pull_request") { return "[]" }
+
+            const resp = await github.rest.issues.get({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+            })
+
+            return resp.data.labels.map(label => label.name)
       - name: acompat
         run: |
           make acompat
@@ -214,14 +229,6 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: _out
-      - name: Fix artifact permissions
-        run: |
-          xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
@@ -293,14 +300,6 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: _out
-      - name: Fix artifact permissions
-        run: |
-          xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
@@ -372,14 +371,6 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: _out
-      - name: Fix artifact permissions
-        run: |
-          xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
@@ -451,14 +442,6 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: _out
-      - name: Fix artifact permissions
-        run: |
-          xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
           INTEGRATION_PREPARE_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|OmniUpgradePrepare)$
@@ -531,14 +514,6 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: _out
-      - name: Fix artifact permissions
-        run: |
-          xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
@@ -610,14 +585,6 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: _out
-      - name: Fix artifact permissions
-        run: |
-          xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
@@ -689,14 +656,6 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: _out
-      - name: Fix artifact permissions
-        run: |
-          xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
           ENABLE_SECUREBOOT: "true"
@@ -769,14 +728,6 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: _out
-      - name: Fix artifact permissions
-        run: |
-          xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
@@ -848,14 +799,6 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: _out
-      - name: Fix artifact permissions
-        run: |
-          xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
@@ -927,14 +870,6 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: _out
-      - name: Fix artifact permissions
-        run: |
-          xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
@@ -1017,21 +952,6 @@ jobs:
           WITH_RACE: "true"
         run: |
           sudo -E make run-integration-test
-      - name: Retrieve PR labels
-        id: retrieve-pr-labels
-        uses: actions/github-script@v7
-        with:
-          retries: "3"
-          script: |
-            if (context.eventName != "pull_request") { return "[]" }
-
-            const resp = await github.rest.issues.get({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-            })
-
-            return resp.data.labels.map(label => label.name)
       - name: Generate executable list
         run: |
           find _out -type f -executable > _out/executable-artifacts
