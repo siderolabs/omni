@@ -6,6 +6,7 @@
 package omni
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -20,8 +21,10 @@ import (
 	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/talos/pkg/machinery/config"
 	documentconfig "github.com/siderolabs/talos/pkg/machinery/config/config"
+	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
 	"github.com/siderolabs/talos/pkg/machinery/config/configpatcher"
 	"github.com/siderolabs/talos/pkg/machinery/config/container"
+	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"github.com/siderolabs/talos/pkg/machinery/config/generate"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/config/machine"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
@@ -89,7 +92,7 @@ func NewClusterMachineConfigController(imageFactoryHost string, registryMirrors 
 	)
 }
 
-//nolint:gocognit,cyclop,gocyclo
+//nolint:gocognit,cyclop,gocyclo,maintidx
 func reconcileClusterMachineConfig(
 	ctx context.Context,
 	r controller.Reader,
@@ -257,8 +260,22 @@ func reconcileClusterMachineConfig(
 		return nil //nolint:nilerr
 	}
 
-	if err = machineConfig.TypedSpec().Value.SetUncompressedData(data); err != nil {
-		return err
+	skipUpdate := false
+
+	// skip comparing existing config to generated config if existing config has it's comments stripped to avoid unnecessary decompression/unmarshalling
+	if !machineConfig.TypedSpec().Value.WithoutComments {
+		if skipUpdate, err = helper.configsEqual(machineConfig, data); err != nil {
+			return err
+		}
+	}
+
+	// skip updating the config if the existing config is effectively equal to the generated one
+	if !skipUpdate {
+		if err = machineConfig.TypedSpec().Value.SetUncompressedData(data); err != nil {
+			return err
+		}
+
+		machineConfig.TypedSpec().Value.WithoutComments = true
 	}
 
 	machineConfig.TypedSpec().Value.ClusterMachineVersion = clusterMachine.Metadata().Version().String()
@@ -269,6 +286,32 @@ func reconcileClusterMachineConfig(
 
 type clusterMachineConfigControllerHelper struct {
 	imageFactoryHost string
+}
+
+func (helper clusterMachineConfigControllerHelper) configsEqual(old *omni.ClusterMachineConfig, data []byte) (bool, error) {
+	oldConfig, err := old.TypedSpec().Value.GetUncompressedData()
+	if err != nil {
+		return false, err
+	}
+
+	defer oldConfig.Free()
+
+	oldConfigData := oldConfig.Data()
+	if len(oldConfigData) == 0 {
+		return false, nil
+	}
+
+	oldConf, err := configloader.NewFromBytes(oldConfigData)
+	if err != nil {
+		return false, err
+	}
+
+	oldBytes, err := oldConf.EncodeBytes(encoder.WithComments(encoder.CommentsDisabled))
+	if err != nil {
+		return false, err
+	}
+
+	return bytes.Equal(oldBytes, data), nil
 }
 
 func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.ClusterMachine, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, secrets *omni.ClusterSecrets,
@@ -398,7 +441,7 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		return nil, fmt.Errorf("failed to build talos api access feature allowed roles patch: %w", err)
 	}
 
-	return strippedConfig.Bytes()
+	return strippedConfig.EncodeBytes(encoder.WithComments(encoder.CommentsDisabled))
 }
 
 // stripTalosAPIAccessOSAdminRole ensures that the OS admin role is never included in the allowed roles of the

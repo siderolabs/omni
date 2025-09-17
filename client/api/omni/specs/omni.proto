@@ -441,6 +441,9 @@ message ClusterMachineConfigSpec {
   //
   // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
   bytes compressed_data = 4;
+
+  // WithoutComments indicates that the config was generated without comments.
+  bool without_comments = 5;
 }
 
 // ClusterMachineConfigSpec stores generated Talos node machine config.

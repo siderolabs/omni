@@ -392,6 +392,7 @@ export type ClusterMachineConfigSpec = {
   cluster_machine_version?: string
   generation_error?: string
   compressed_data?: Uint8Array
+  without_comments?: boolean
 }
 
 export type RedactedClusterMachineConfigSpec = {

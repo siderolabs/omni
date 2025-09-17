@@ -734,6 +734,7 @@ func (m *ClusterMachineConfigSpec) CloneVT() *ClusterMachineConfigSpec {
 	r := new(ClusterMachineConfigSpec)
 	r.ClusterMachineVersion = m.ClusterMachineVersion
 	r.GenerationError = m.GenerationError
+	r.WithoutComments = m.WithoutComments
 	if rhs := m.Data; rhs != nil {
 		tmpBytes := make([]byte, len(rhs))
 		copy(tmpBytes, rhs)
@@ -3616,6 +3617,9 @@ func (this *ClusterMachineConfigSpec) EqualVT(that *ClusterMachineConfigSpec) bo
 		return false
 	}
 	if string(this.CompressedData) != string(that.CompressedData) {
+		return false
+	}
+	if this.WithoutComments != that.WithoutComments {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -8157,6 +8161,16 @@ func (m *ClusterMachineConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.WithoutComments {
+		i--
+		if m.WithoutComments {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x28
 	}
 	if len(m.CompressedData) > 0 {
 		i -= len(m.CompressedData)
@@ -13887,6 +13901,9 @@ func (m *ClusterMachineConfigSpec) SizeVT() (n int) {
 	l = len(m.CompressedData)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.WithoutComments {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -21251,6 +21268,26 @@ func (m *ClusterMachineConfigSpec) UnmarshalVT(dAtA []byte) error {
 				m.CompressedData = []byte{}
 			}
 			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WithoutComments", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.WithoutComments = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
