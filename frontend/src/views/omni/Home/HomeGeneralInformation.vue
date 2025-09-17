@@ -89,7 +89,7 @@ watch(apiConfigErr, (err) => err && showError(err))
       <TSpinner v-if="apiConfigLoading" class="size-4" />
     </header>
 
-    <div class="flex flex-col gap-4">
+    <dl class="flex flex-col gap-4">
       <HomeGeneralInformationCopyable
         title="Backend Version"
         :value="sysData?.spec.backend_version"
@@ -110,7 +110,7 @@ watch(apiConfigErr, (err) => err && showError(err))
         secret
         :value="joinTokenData?.spec.token_id"
       />
-    </div>
+    </dl>
 
     <hr class="border border-naturals-n4" />
 

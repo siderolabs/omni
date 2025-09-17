@@ -27,17 +27,17 @@ const props = withDefaults(defineProps<Props>(), {
 
 <template>
   <div class="flex flex-col gap-1 text-xs">
-    <div class="text-naturals-n11">{{ title }}</div>
+    <dt class="text-naturals-n11">{{ title }}</dt>
 
     <div class="flex items-center justify-between gap-1">
-      <span
+      <dd
         class="grow truncate"
         :class="{ 'font-mono': secret }"
         :title="displayValue"
         @click="secretVisible = !secretVisible"
       >
         {{ displayValue }}
-      </span>
+      </dd>
 
       <CopyButton class="shrink-0" :text="value" />
     </div>

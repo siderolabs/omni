@@ -4,8 +4,8 @@
 // included in the LICENSE file.
 import { milliseconds } from 'date-fns'
 import { diff as diffJSON } from 'json-diff-ts'
-import { parse as parseUUID } from 'uuid'
-import { parse as parseYAML } from 'yaml'
+import * as uuid from 'uuid'
+import * as yaml from 'yaml'
 
 import { expect, test } from './omnictl_fixtures.js'
 
@@ -118,7 +118,7 @@ test('cluster template export and sync', async ({ omnictl }, testInfo) => {
   expect.soft(secondLine).toMatch(reg)
 
   const machineID = secondLine.match(reg)?.[1]
-  expect.soft(() => parseUUID(machineID ?? ''), 'Expect a valid UUID').not.toThrow()
+  expect.soft(() => uuid.parse(machineID ?? ''), 'Expect a valid UUID').not.toThrow()
 
   // assert the resource manifests are semantically equal before and after export
   const { stdout: clusterAfter } = await omnictl(['get', 'cluster', 'talos-default', '-ojson'])
@@ -159,8 +159,8 @@ test('cluster template export and sync', async ({ omnictl }, testInfo) => {
       }),
     ).toHaveLength(0)
 
-    const ymlObjBefore = parseYAML(configPatchBefore.spec.data)
-    const ymlObjAfter = parseYAML(configPatchAfter.spec.data)
+    const ymlObjBefore = yaml.parse(configPatchBefore.spec.data)
+    const ymlObjAfter = yaml.parse(configPatchAfter.spec.data)
 
     expect(ymlObjBefore).toStrictEqual(ymlObjAfter)
   })

@@ -21,19 +21,18 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 2 : undefined,
   reporter: process.env.CI ? [['html'], ['list'], ['github']] : [['html'], ['list']],
   use: {
     baseURL: process.env.BASE_URL,
+    permissions: ['clipboard-read', 'clipboard-write'],
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
     ignoreHTTPSErrors: true,
-    video: !process.env.CI
-      ? {
-          mode: 'on',
-          size: { width: 1280, height: 720 },
-        }
-      : undefined,
+    video: {
+      mode: process.env.CI ? 'retain-on-failure' : 'on',
+      size: { width: 1280, height: 720 },
+    },
   },
 
   projects: [
