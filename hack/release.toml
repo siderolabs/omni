@@ -6,54 +6,54 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v1.0.0"
+previous = "v1.1.0"
 
 [notes]
 
-[notes.config-location]
-title = "Default Config Location Change"
+[notes.user-consent-form-for-userpilot]
+title = "User Consent Form for Userpilot"
 description = """\
-The default location for storing Omni configuration files and user PGP keys has been changed.
+Added a user consent form for Userpilot to allow opting in/out for data collection.
 """
 
-[notes.helm-custom-volumes]
-title = "Custom Volumes in Helm Chart"
+[notes.join-config-by-token-name]
+title = "Generate Join Config for a Specific Join Token"
 description = """\
-Added support for specifying custom volumes and volume mounts in the Omni Helm chart.
+Added the ability to generate a join configuration for a specific join token.
 """
 
-[notes.sidebar-mobile]
-title = "Collapsible Sidebar on Mobile"
+[notes.copy-visual-feedback]
+title = "Visual Feedback on Copy"
 description = """\
-The sidebar can now be collapsed when viewed on mobile devices, improving usability on smaller screens.
+Added visual feedback when copying text to the clipboard.
 """
 
-[notes.cli-kernel-args]
-title = "CLI Support for Kernel Args and Join Configs"
+[notes.oidc-auth-support]
+title = "OIDC Authentication Support"
 description = """\
-`omnictl` now supports commands to retrieve SideroLink kernel arguments and join configurations.
+Added support for OIDC authentication in Omni.
 """
 
-[notes.join-token-warning]
-title = "Join Token Usage Warning"
+[notes.machines-page-redesign]
+title = "Redesigned Machine List Page"
 description = """\
-Omni now warns users when a join token is currently in use during revoke or delete operations.
+The Machines list page has been redesigned to provide a better user experience.
 """
 
-[notes.breadcrumbs]
-title = "Improved Clusters Page Breadcrumbs"
+[notes.cluster-locking]
+title = "Cluster Locking"
 description = """\
-Breadcrumbs on the clusters page have been redesigned for better navigation.
+Cluster locking is a feature that pauses/disables all cluster related operations on a cluster.
 """
 
-[notes.unique-token-status]
-title = "Unique Token Status per Node"
+[notes.toast-messages]
+title = "Toast Messages"
 description = """\
-Omni now computes and displays a unique join token status for each node.
+Replaced the notification banner feature with toast messages.
 """
 
-[notes.token-management-cli]
-title = "Join Tokens CLI"
+[notes.userpilot-reporting]
+title = "Userpilot Reporting Integration"
 description = """\
-A new CLI feature has been added to manage SideroLink join tokens directly using `omnictl`.
+Integrated Userpilot reporting to help track user interactions.
 """
