@@ -75,7 +75,7 @@ const phaseColor = (cluster?: Resource<ClusterStatusSpec>): string => {
 
 <template>
   <div :style="'color: ' + phaseColor(cluster)" class="flex items-center gap-1">
-    <TIcon :icon="phaseIcon(cluster)" class="h-4" />
-    <span class="contents max-sm:hidden">{{ phaseName(cluster) || '' }}</span>
+    <TIcon :icon="phaseIcon(cluster)" class="h-4" aria-hidden="true" />
+    <span class="contents max-sm:sr-only">{{ phaseName(cluster) }}</span>
   </div>
 </template>

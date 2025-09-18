@@ -9,14 +9,21 @@ import * as yaml from 'yaml'
 
 import { expect, test } from './omnictl_fixtures.js'
 
-// These tests are slow, serial and non-retryable
-test.describe.configure({ mode: 'serial', retries: 0, timeout: milliseconds({ minutes: 15 }) })
+test.describe.configure({ mode: 'serial', retries: 0 })
+
+const clusterName = 'talos-test-cluster'
 
 test('create cluster', async ({ page }) => {
+  test.setTimeout(milliseconds({ minutes: 15 }))
+
   await page.goto('/')
 
   await page.getByRole('link', { name: 'Clusters' }).click()
   await page.getByRole('button', { name: 'Create Cluster' }).click()
+
+  // There is some code to put a default value in the input which we must wait for to prevent being overridden
+  await expect(page.getByRole('textbox', { name: 'Cluster Name:' })).toHaveValue(/^talos-default/)
+  await page.getByRole('textbox', { name: 'Cluster Name' }).fill(clusterName)
 
   // Add 1 CP and 1 worker
   await page.getByRole('radio', { name: 'CP' }).first().click()
@@ -57,10 +64,7 @@ test('create cluster', async ({ page }) => {
   await page.getByRole('link', { name: 'Clusters' }).click()
 
   // Expand cluster to show machines
-  await page
-    .locator('div')
-    .filter({ hasText: /^talos-default$/ })
-    .click()
+  await page.getByRole('button', { name: clusterName }).click()
 
   await expect(async () => {
     await expect(page.locator('#machine-count')).toHaveText(/\d\/3/)
@@ -79,22 +83,44 @@ test('create cluster', async ({ page }) => {
   await expect(page.getByText('siderolabs/usb-modem-drivers')).toBeVisible()
 })
 
-// TODO: Make a cluster fixture? As the template test requires the cluster from the previous test to be created
+test('open machine', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('link', { name: 'Clusters' }).click()
+
+  // Expand cluster
+  await page.getByRole('button', { name: clusterName }).click()
+
+  const servicesList = page.getByRole('region', { name: 'Services' })
+
+  // Open control plane machine
+  await page.getByRole('region', { name: 'Control Planes' }).getByRole('link').last().click()
+  await expect(servicesList.getByRole('link', { name: 'etcd' })).toBeVisible()
+
+  await page.getByRole('link', { name: 'Clusters' }).click()
+
+  // Open worker machine
+  await page.getByRole('region', { name: 'Workers' }).getByRole('link').last().click()
+  await expect(servicesList.getByRole('link', { name: 'machined' })).toBeVisible()
+  await expect(servicesList.getByRole('link', { name: 'etcd' })).toBeHidden()
+})
+
 test('cluster template export and sync', async ({ omnictl }, testInfo) => {
+  test.setTimeout(milliseconds({ minutes: 5 }))
+
   const templatePath = testInfo.outputPath('cluster.yaml')
 
   // export a template
   await expect(
-    omnictl(['cluster', 'template', 'export', '-c', 'talos-default', '-o', templatePath, '-f']),
+    omnictl(['cluster', 'template', 'export', '-c', clusterName, '-o', templatePath, '-f']),
   ).resolves.not.toThrow()
 
   // collect resources before syncing the template back to the cluster
-  const { stdout: clusterBefore } = await omnictl(['get', 'cluster', 'talos-default', '-ojson'])
+  const { stdout: clusterBefore } = await omnictl(['get', 'cluster', clusterName, '-ojson'])
   const { stdout: configPatchesBefore } = await omnictl([
     'get',
     'configpatch',
     '-l',
-    'omni.sidero.dev/cluster=talos-default',
+    `omni.sidero.dev/cluster=${clusterName}`,
     '-ojson',
   ])
 
@@ -112,7 +138,7 @@ test('cluster template export and sync', async ({ omnictl }, testInfo) => {
   expect.soft(outputLines).toHaveLength(2)
 
   const [firstLine, secondLine] = outputLines
-  expect.soft(firstLine).toBe('* updating Clusters.omni.sidero.dev(talos-default)')
+  expect.soft(firstLine).toBe(`* updating Clusters.omni.sidero.dev(${clusterName})`)
 
   const reg = /\* updating ConfigPatches\.omni\.sidero\.dev\(400-cm-(.*?)\)/
   expect.soft(secondLine).toMatch(reg)
@@ -121,12 +147,12 @@ test('cluster template export and sync', async ({ omnictl }, testInfo) => {
   expect.soft(() => uuid.parse(machineID ?? ''), 'Expect a valid UUID').not.toThrow()
 
   // assert the resource manifests are semantically equal before and after export
-  const { stdout: clusterAfter } = await omnictl(['get', 'cluster', 'talos-default', '-ojson'])
+  const { stdout: clusterAfter } = await omnictl(['get', 'cluster', clusterName, '-ojson'])
   const { stdout: configPatchesAfter } = await omnictl([
     'get',
     'configpatch',
     '-l',
-    'omni.sidero.dev/cluster=talos-default',
+    `omni.sidero.dev/cluster=${clusterName}`,
     '-ojson',
   ])
 

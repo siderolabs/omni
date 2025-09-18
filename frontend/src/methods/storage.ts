@@ -5,6 +5,9 @@
 
 import { customRef } from 'vue'
 
+/**
+ * @deprecated use useSessionStorage from @vueuse
+ */
 export default <T>(storage: Storage, key: string, defaultValue: T) => {
   return customRef<T>((track, trigger) => ({
     get: () => {

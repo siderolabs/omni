@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import pluralize from 'pluralize'
-import { computed, ref, toRefs, watch } from 'vue'
+import { computed, ref, toRefs, useId, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -219,20 +219,26 @@ const machineClassMachineCount = computed(() => {
 
   return pluralize('Machine', machineSet.value.spec?.machine_allocation?.machine_count ?? 0, true)
 })
+
+const sectionHeadingId = useId()
 </script>
 
 <template>
-  <div v-if="machines.length > 0 || requests.length > 0" class="border-t-8 border-naturals-n4">
+  <section
+    v-if="machines.length > 0 || requests.length > 0"
+    class="border-t-8 border-naturals-n4"
+    :aria-labelledby="sectionHeadingId"
+  >
     <div class="flex items-center border-b border-naturals-n4 pl-3 text-naturals-n14">
       <div class="clusters-grid flex-1 items-center py-2">
         <div class="col-span-2 flex flex-wrap items-center justify-between gap-2">
           <div class="flex flex-1 items-center">
-            <div class="flex w-40 items-center gap-2 truncate rounded bg-naturals-n4 px-3 py-2">
+            <header class="flex w-40 items-center gap-2 truncate rounded bg-naturals-n4 px-3 py-2">
               <TIcon icon="server-stack" class="h-4 w-4" />
-              <div class="flex-1 truncate">
+              <h3 :id="sectionHeadingId" class="flex-1 truncate">
                 {{ machineSetTitle(clusterID, machineSet?.metadata?.id) }}
-              </div>
-            </div>
+              </h3>
+            </header>
           </div>
           <div class="flex flex-1 max-md:ml-1 md:ml-10">
             <TSpinner v-if="scaling" class="h-4 w-4" />
@@ -317,7 +323,7 @@ const machineClassMachineCount = computed(() => {
         <span class="text-xs">Show all...</span>
       </TButton>
     </div>
-  </div>
+  </section>
 </template>
 
 <style scoped>

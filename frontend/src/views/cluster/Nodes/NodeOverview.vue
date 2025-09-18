@@ -8,7 +8,7 @@ included in the LICENSE file.
 import type { NodeSpec as V1NodeSpec } from 'kubernetes-types/core/v1'
 import { DateTime } from 'luxon'
 import type { Ref } from 'vue'
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, useId } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -313,6 +313,8 @@ const getSecureBootStatus = () => {
 
   return TCommonStatuses.DISABLED
 }
+
+const servicesSectionHeadingId = useId()
 </script>
 
 <template>
@@ -471,11 +473,11 @@ const getSecureBootStatus = () => {
       </ul>
     </template>
 
-    <div class="overview-services">
-      <div class="overview-services-heading">
-        <span class="overview-services-title">Services</span>
+    <section class="overview-services" :aria-labelledby="servicesSectionHeadingId">
+      <header class="overview-services-heading">
+        <h2 :id="servicesSectionHeadingId" class="overview-services-title">Services</h2>
         <span class="overview-services-amount">{{ services.length }}</span>
-      </div>
+      </header>
       <ul class="overview-table-header grid grid-cols-4">
         <li class="overview-table-name col-span-2">ID</li>
         <li class="overview-table-name">Running</li>
@@ -486,7 +488,6 @@ const getSecureBootStatus = () => {
           <template #default>
             <div class="grid grid-cols-4 p-1">
               <RouterLink
-                :id="service.name"
                 class="list-item-link col-span-2"
                 :to="{
                   name: 'NodeLogs',
@@ -512,7 +513,7 @@ const getSecureBootStatus = () => {
           </template>
         </TListItem>
       </TGroupAnimation>
-    </div>
+    </section>
   </div>
 </template>
 
@@ -557,7 +558,7 @@ const getSecureBootStatus = () => {
   margin-right: 6px;
 }
 .overview-services-heading {
-  @apply mb-4;
+  @apply mb-4 flex items-center;
 }
 .overview-services-title {
   @apply mr-2 text-base text-naturals-n13;

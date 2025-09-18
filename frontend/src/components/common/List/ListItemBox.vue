@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import storageRef from '@/methods/storage'
+import { useSessionStorage } from '@vueuse/core'
 
 import TIcon from '../Icon/TIcon.vue'
 import TSlideDownWrapper from '../SlideDownWrapper/TSlideDownWrapper.vue'
@@ -13,46 +13,43 @@ import TSlideDownWrapper from '../SlideDownWrapper/TSlideDownWrapper.vue'
 const props = defineProps<{
   listID: string
   itemID: string
+  regionId?: string
+  labelId?: string
   defaultOpen?: boolean
 }>()
 
-const collapsed = storageRef(
-  sessionStorage,
-  `${props.listID}-collapsed-${props.itemID}`,
-  !props.defaultOpen,
-)
+const expanded = useSessionStorage(`${props.listID}-expanded-${props.itemID}`, props.defaultOpen)
 
 defineExpose({
-  collapsed,
+  collapsed: !expanded,
 })
 </script>
 
 <template>
   <div class="list-item-box">
-    <TSlideDownWrapper :is-slider-opened="!collapsed">
+    <TSlideDownWrapper :is-slider-opened="expanded">
       <template #head>
         <div
+          tabindex="0"
+          role="button"
+          :aria-expanded="expanded"
+          :aria-controls="regionId"
+          :aria-labelledby="labelId"
           class="flex cursor-pointer items-center gap-2 bg-naturals-n1 py-4 pr-4 pl-2 hover:bg-naturals-n3"
-          @click="
-            () => {
-              collapsed = !collapsed
-            }
-          "
+          @click="expanded = !expanded"
         >
-          <div v-if="$slots.title" class="mx-2">
-            <slot name="title"></slot>
-          </div>
           <div v-if="$slots.details" class="expand-button">
             <TIcon
-              :class="{ 'rotate-180': !collapsed }"
+              :class="{ 'rotate-180': expanded }"
               class="transition-color h-5 w-5 transition-transform duration-250 hover:text-naturals-n13"
               icon="drop-up"
+              aria-hidden="true"
             />
           </div>
           <slot></slot>
         </div>
       </template>
-      <template v-if="!collapsed && $slots.details" #body>
+      <template v-if="expanded && $slots.details" #body>
         <slot name="details"></slot>
       </template>
     </TSlideDownWrapper>

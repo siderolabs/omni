@@ -106,7 +106,6 @@ machineNodesWatch.setup(
       <template #default="{ data }">
         <MachineSet
           v-if="data"
-          :id="data.metadata.id"
           :key="itemID(data)"
           :machine-set="data"
           :nodes-with-diagnostics="nodesWithDiagnostics"

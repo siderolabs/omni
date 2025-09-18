@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import type { Ref } from 'vue'
-import { computed, ref, toRefs } from 'vue'
+import { computed, ref, toRefs, useId, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
 import WordHighlighter from 'vue-word-highlighter'
 
@@ -37,7 +37,7 @@ import ClusterMachines from '@/views/cluster/ClusterMachines/ClusterMachines.vue
 import ClusterStatus from '@/views/omni/Clusters/ClusterStatus.vue'
 import ItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
 
-const box = ref<{ collapsed: boolean }>()
+const boxRef = useTemplateRef('box')
 
 const props = defineProps<{
   item: Resource<ClusterStatusSpec>
@@ -63,7 +63,7 @@ const machineSets: Ref<Resource<MachineSetSpec>[]> = ref([])
 const machineSetsWatch = new WatchResource(machineSets)
 machineSetsWatch.setup(
   computed(() => {
-    if (box.value?.collapsed) {
+    if (boxRef.value?.collapsed) {
       return undefined
     }
 
@@ -90,7 +90,7 @@ const controlPlaneNodes = ref<Resource[]>([])
 const machineNodesWatch = new WatchResource(controlPlaneNodes)
 machineNodesWatch.setup(
   computed(() => {
-    if (box.value?.collapsed) {
+    if (boxRef.value?.collapsed) {
       return undefined
     }
 
@@ -108,6 +108,9 @@ machineNodesWatch.setup(
 const locked = computed(() => {
   return item?.value?.metadata.annotations?.[ClusterLocked] !== undefined
 })
+
+const regionId = useId()
+const labelId = useId()
 </script>
 
 <template>
@@ -116,11 +119,14 @@ const locked = computed(() => {
     ref="box"
     :item-i-d="item.metadata.id!"
     list-i-d="cluster"
+    :region-id
+    :label-id="labelId"
   >
     <template #default>
       <div class="clusters-grid flex-1">
         <div class="flex items-center gap-1">
           <RouterLink
+            :id="labelId"
             :to="{ name: 'ClusterOverview', params: { cluster: item?.metadata.id } }"
             class="list-item-link"
           >
@@ -131,7 +137,7 @@ const locked = computed(() => {
               highlight-class="bg-naturals-n14"
             />
           </RouterLink>
-          <TIcon v-if="locked" class="size-3.5 cursor-pointer" icon="locked" />
+          <TIcon v-if="locked" class="size-3.5 cursor-pointer" icon="locked" aria-label="locked" />
         </div>
         <div id="machine-count" class="ml-3">
           {{ item?.spec?.machines?.healthy ?? 0 }}/{{ item?.spec?.machines?.total ?? 0 }}
@@ -151,10 +157,11 @@ const locked = computed(() => {
       <Tooltip description="Open Cluster Dashboard" class="h-6">
         <IconButton
           icon="dashboard"
+          aria-label="open dashboard"
           @click.stop="$router.push({ path: `/clusters/${item?.metadata.id}` })"
         />
       </Tooltip>
-      <TActionsBox style="height: 24px" @click.stop>
+      <TActionsBox style="height: 24px" aria-label="cluster actions" @click.stop>
         <TActionsBoxItem
           v-if="canAddClusterMachines"
           icon="nodes"
@@ -211,7 +218,9 @@ const locked = computed(() => {
       </TActionsBox>
     </template>
     <template #details>
-      <ClusterMachines :cluster-i-d="item.metadata.id!" />
+      <div :id="regionId" role="region" :aria-labelledby="labelId" class="contents">
+        <ClusterMachines :cluster-i-d="item.metadata.id!" />
+      </div>
     </template>
   </ListItemBox>
 </template>
