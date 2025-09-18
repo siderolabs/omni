@@ -30,11 +30,29 @@ ARTIFACTS=_out
 JOIN_TOKEN=testonly
 RUN_DIR=$(pwd)
 ENABLE_SECUREBOOT=${ENABLE_SECUREBOOT:-false}
-KERNEL_ARGS_WORKERS_COUNT=2
 TALEMU_CONTAINER_NAME=talemu
 TALEMU_INFRA_PROVIDER_IMAGE=ghcr.io/siderolabs/talemu-infra-provider:latest
 TEST_OUTPUTS_DIR=${GITHUB_WORKSPACE:-/tmp}/integration-test
 INTEGRATION_PREPARE_TEST_ARGS="${INTEGRATION_PREPARE_TEST_ARGS:-}"
+
+# Machine Counts: 8 machines in total
+TOTAL_MACHINES=8
+
+PARTIAL_CONFIG_MACHINES=3 # 3 machines: siderolink via partial config, UKI, no secure boot
+NON_UKI_MACHINES=2        # 2 machines: siderolink via kernel args, non-UKI, no secure boot
+
+KERNEL_ARGS_MACHINES=3 # 3 machines: siderolink via kernel args, UKI, no secure boot
+SECURE_BOOT_MACHINES=0 # 0 machines: secure boot, UKI, siderolink via kernel args
+
+if [[ "${ENABLE_SECUREBOOT}" == "true" ]]; then
+  KERNEL_ARGS_MACHINES=1 # 1 machine: siderolink via kernel args, UKI, no secure boot
+  SECURE_BOOT_MACHINES=2 # 2 machines: siderolink via kernel args, UKI, secure boot
+fi
+
+if [[ $((PARTIAL_CONFIG_MACHINES + NON_UKI_MACHINES + KERNEL_ARGS_MACHINES + SECURE_BOOT_MACHINES)) -ne $TOTAL_MACHINES ]]; then
+  echo "Error: unexpected total machine count, exiting" >&2
+  exit 1
+fi
 
 mkdir -p $TEST_OUTPUTS_DIR
 
@@ -51,7 +69,7 @@ chown -R ${SUDO_USER:-$(whoami)} ${ARTIFACTS}
 LOCAL_IP=$(ip -o route get to 8.8.8.8 | sed -n 's/.*src \([0-9.]\+\).*/\1/p')
 
 # Prepare schematic with kernel args
-SCHEMATIC=$(
+KERNEL_ARGS_SCHEMATIC=$(
   cat <<EOF
 customization:
   extraKernelArgs:
@@ -63,15 +81,9 @@ customization:
       - siderolabs/hello-world-service
 EOF
 )
-
-SCHEMATIC_ID=$(curl -X POST --data-binary "${SCHEMATIC}" https://factory.talos.dev/schematics | jq -r '.id')
+KERNEL_ARGS_SCHEMATIC_ID=$(curl -X POST --data-binary "${KERNEL_ARGS_SCHEMATIC}" https://factory.talos.dev/schematics | jq -r '.id')
 
 # Build registry mirror args.
-
-if [[ "${ENABLE_SECUREBOOT}" == "false" ]]; then
-  KERNEL_ARGS_WORKERS_COUNT=4
-fi
-
 if [[ "${CI:-false}" == "true" ]]; then
   REGISTRY_MIRROR_FLAGS=()
   REGISTRY_MIRROR_CONFIG="
@@ -93,6 +105,8 @@ else
   REGISTRY_MIRROR_CONFIG="${REGISTRY_MIRROR_CONFIG:-}"
 fi
 
+PARTIAL_CONFIG_SERVER_PID=0
+
 function cleanup() {
   cd "${RUN_DIR}"
   rm -rf ${ARTIFACTS}/omni.db ${ARTIFACTS}/etcd/
@@ -101,6 +115,10 @@ function cleanup() {
     docker stop ${TALEMU_CONTAINER_NAME} || true
     docker logs ${TALEMU_CONTAINER_NAME} &>$TEST_OUTPUTS_DIR/${TALEMU_CONTAINER_NAME}.log || true
     docker rm -f ${TALEMU_CONTAINER_NAME} || true
+  fi
+
+  if [ $PARTIAL_CONFIG_SERVER_PID -ne 0 ]; then
+    kill -9 $PARTIAL_CONFIG_SERVER_PID || true
   fi
 }
 
@@ -216,7 +234,7 @@ features:
   enableBreakGlassConfigs: true
   enableClusterImport: true
   disableControllerRuntimeCache: false
-" > ${OMNI_CONFIG}
+" >${OMNI_CONFIG}
 
 if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
   PROMETHEUS_CONTAINER=$(docker run --network host -p "9090:9090" -v "$(pwd)/hack/compose/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml" -it --rm -d prom/prometheus)
@@ -230,7 +248,7 @@ if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
     --omni-api-endpoint="https://$LOCAL_IP:8099"
 
   SIDEROLINK_DEV_JOIN_TOKEN=${JOIN_TOKEN} \
-  SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
+    SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
     ${ARTIFACTS}/integration-test-linux-amd64 \
     --omni.talos-version=${TALOS_VERSION} \
     --omni.kubernetes-version=${KUBERNETES_VERSION} \
@@ -240,8 +258,8 @@ if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
     --omni.output-dir="${TEST_OUTPUTS_DIR}" \
     --omni.run-stats-check \
     --omni.embedded \
-    --omni.config-path ${OMNI_CONFIG} \
-    --omni.log-output ${TEST_OUTPUTS_DIR}/omni-emulator.log \
+    --omni.config-path=${OMNI_CONFIG} \
+    --omni.log-output=${TEST_OUTPUTS_DIR}/omni-emulator.log \
     --test.coverprofile=${ARTIFACTS}/coverage-emulator.txt \
     --test.timeout 10m \
     --test.parallel 10 \
@@ -252,9 +270,13 @@ if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
   docker rm -f "$PROMETHEUS_CONTAINER"
 fi
 
-# Prepare partial machine config
-PARTIAL_CONFIG=$(
-  cat <<EOF
+function prepare_partial_config() {
+  # Prepare partial machine config
+  local port=12345
+
+  local partial_config
+  partial_config=$(
+    cat <<EOF
 apiVersion: v1alpha1
 kind: SideroLinkConfig
 apiUrl: grpc://$LOCAL_IP:8090?jointoken=${JOIN_TOKEN}
@@ -268,88 +290,131 @@ kind: KmsgLogConfig
 name: omni-kmsg
 url: 'tcp://[fdae:41e4:649b:9303::1]:8092'
 EOF
-)
-PARTIAL_CONFIG_DIR="${ARTIFACTS}/partial-config"
-mkdir -p "${PARTIAL_CONFIG_DIR}"
-echo "${PARTIAL_CONFIG}" >"${PARTIAL_CONFIG_DIR}/config.yaml"
+  )
 
-PARTIAL_CONFIG_CONTROLPLANES=1
-PARTIAL_CONFIG_WORKERS=2
+  local partial_config_dir="${ARTIFACTS}/partial-config"
+  mkdir -p "${partial_config_dir}"
+  echo "${partial_config}" >"${partial_config_dir}/config.yaml"
 
-# Partial config, no secure boot
-${ARTIFACTS}/talosctl cluster create \
-  --provisioner=qemu \
-  --controlplanes="${PARTIAL_CONFIG_CONTROLPLANES}" \
-  --workers="${PARTIAL_CONFIG_WORKERS}" \
-  --wait=false \
-  --mtu=1430 \
-  --memory=3072 \
-  --memory-workers=3072 \
-  --cpus=3 \
-  --cpus-workers=3 \
-  --with-uuid-hostnames \
-  \
-  --name test-1 \
-  --cidr=172.20.0.0/24 \
-  --no-masquerade-cidrs=172.21.0.0/24,172.22.0.0/24 \
-  --skip-injecting-config \
-  --wait=false \
-  --vmlinuz-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/kernel-amd64" \
-  --initrd-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/initramfs-amd64.xz"
+  # Start a simple HTTP server to serve the partial config
+  python3 -m http.server $port --bind "$LOCAL_IP" --directory "$partial_config_dir" >/dev/null 2>&1 &
+  PARTIAL_CONFIG_SERVER_PID=$! # capture the PID to kill it in cleanup
 
-sleep 10
+  local schematic
+  schematic=$(
+    cat <<EOF
+customization:
+  extraKernelArgs:
+    - talos.config=http://$LOCAL_IP:$port/config.yaml
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/hello-world-service
+EOF
+  )
 
-total_nodes=$((PARTIAL_CONFIG_CONTROLPLANES + PARTIAL_CONFIG_WORKERS))
-for i in $(seq 1 "${total_nodes}"); do
-  node_ip="172.20.0.$((i+1))"
-  ${ARTIFACTS}/talosctl apply-config --insecure --nodes "$node_ip" --file "${PARTIAL_CONFIG_DIR}/config.yaml"
-done
+  curl -X POST --data-binary "${schematic}" https://factory.talos.dev/schematics | jq -r '.id'
+}
 
-# Kernel Args, no secure boot
-${ARTIFACTS}/talosctl cluster create \
-  --provisioner=qemu \
-  --controlplanes=1 \
-  --workers=${KERNEL_ARGS_WORKERS_COUNT} \
-  --wait=false \
-  --mtu=1430 \
-  --memory=3072 \
-  --memory-workers=3072 \
-  --cpus=3 \
-  --cpus-workers=3 \
-  --with-uuid-hostnames \
-  \
-  --name test-2 \
-  --skip-injecting-config \
-  --with-init-node \
-  --cidr=172.21.0.0/24 \
-  --no-masquerade-cidrs=172.20.0.0/24,172.22.0.0/24 \
-  --extra-boot-kernel-args "siderolink.api=grpc://$LOCAL_IP:8090?jointoken=${JOIN_TOKEN} talos.events.sink=[fdae:41e4:649b:9303::1]:8090 talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092" \
-  --vmlinuz-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/kernel-amd64" \
-  --initrd-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/initramfs-amd64.xz"
+PARTIAL_CONFIG_SCHEMATIC_ID=$(prepare_partial_config)
 
-if [[ "${ENABLE_SECUREBOOT}" == "true" ]]; then
-  # Kernel args, secure boot
+function generate_non_masquerade_cidrs() {
+  local exclude="$1"
+  local found=false
+  local result=()
+
+  for i in {20..29}; do
+    cidr="172.$i.0.0/24"
+    if [[ "$cidr" == "$exclude" ]]; then
+      found=true
+      continue
+    fi
+    result+=("$cidr")
+  done
+
+  if [[ $found == false ]]; then
+    echo "Error: '$exclude' is not in the 172.20.0.0/24..172.29.0.0/24 range" >&2
+    return 1
+  fi
+
+  (
+    IFS=,
+    echo "${result[*]}"
+  )
+}
+
+function create_machines() { # args: name, count, cidr, secure_boot (true/false), uki (true/false), use_partial_config (true/false)
+  declare -A args
+  for arg in "$@"; do
+    key="${arg%%=*}"
+    val="${arg#*=}"
+    args["$key"]="$val"
+  done
+
+  local name="${args[name]}"
+  local count="${args[count]}"
+  local cidr="${args[cidr]}"
+  local secure_boot="${args[secure_boot]}"
+  local uki="${args[uki]}"
+  local use_partial_config="${args[use_partial_config]}"
+
+  local schematic_id="${KERNEL_ARGS_SCHEMATIC_ID}"
+  if [[ "${use_partial_config}" == "true" ]]; then
+    schematic_id="${PARTIAL_CONFIG_SCHEMATIC_ID}"
+  fi
+
+  if [[ "${secure_boot}" == "true" && "${uki}" == "false" ]]; then
+    echo "Error: secure_boot cannot be true when uki is false, as it always uses UKI" >&2
+    return 1
+  fi
+
+  if [[ "${count}" -le 0 ]]; then
+    return
+  fi
+
+  local non_masquerade_cidrs
+  non_masquerade_cidrs=$(generate_non_masquerade_cidrs "${cidr}")
+
+  local cluster_create_args=(
+    "--provisioner=qemu"
+    "--name=${name}"
+    "--controlplanes=${count}"
+    "--workers=0"
+    "--wait=false"
+    "--mtu=1430"
+    "--memory=3072"
+    "--memory-workers=3072"
+    "--cpus=3"
+    "--cpus-workers=3"
+    "--with-uuid-hostnames"
+    "--cidr=${cidr}"
+    "--no-masquerade-cidrs=${non_masquerade_cidrs}"
+    "--skip-injecting-config"
+    "--wait=false"
+  )
+
+  if [[ "${uki}" == "false" ]]; then
+    cluster_create_args+=("--with-uefi=false")
+  fi
+
+  if [[ "${secure_boot}" == "true" ]]; then
+    cluster_create_args+=(
+      "--with-tpm2"
+      "--disk-encryption-key-types=tpm"
+      "--iso-path=https://factory.talos.dev/image/${schematic_id}/v${TALOS_VERSION}/metal-amd64-secureboot.iso"
+    )
+  else
+    cluster_create_args+=("--iso-path=https://factory.talos.dev/image/${schematic_id}/v${TALOS_VERSION}/metal-amd64.iso")
+  fi
+
   ${ARTIFACTS}/talosctl cluster create \
-    --provisioner=qemu \
-    --controlplanes=1 \
-    --workers=1 \
-    --wait=false \
-    --mtu=1430 \
-    --memory=3072 \
-    --memory-workers=3072 \
-    --cpus=3 \
-    --cpus-workers=3 \
-    --with-uuid-hostnames \
-    \
-    --name test-3 \
-    --skip-injecting-config \
-    --with-init-node \
-    --cidr=172.22.0.0/24 \
-    --no-masquerade-cidrs=172.20.0.0/24,172.21.0.0/24 \
-    --with-tpm2 \
-    --iso-path="https://factory.talos.dev/image/${SCHEMATIC_ID}/v${TALOS_VERSION}/metal-amd64-secureboot.iso" \
-    --disk-encryption-key-types=tpm
-fi
+    "${cluster_create_args[@]:-}"
+}
+
+# Create machines.
+create_machines name=test-partial-config count=${PARTIAL_CONFIG_MACHINES} cidr=172.20.0.0/24 secure_boot=false uki=true use_partial_config=true
+create_machines name=test-kernel-args count=${KERNEL_ARGS_MACHINES} cidr=172.21.0.0/24 secure_boot=false uki=true use_partial_config=false
+create_machines name=test-secure-boot count=${SECURE_BOOT_MACHINES} cidr=172.22.0.0/24 secure_boot=true uki=true use_partial_config=false
+create_machines name=test-non-uki count=${NON_UKI_MACHINES} cidr=172.23.0.0/24 secure_boot=false uki=false use_partial_config=false
 
 if [ -n "$ANOTHER_OMNI_VERSION" ] && [ -n "$INTEGRATION_PREPARE_TEST_ARGS" ]; then
   docker run \
@@ -368,28 +433,27 @@ if [ -n "$ANOTHER_OMNI_VERSION" ] && [ -n "$INTEGRATION_PREPARE_TEST_ARGS" ]; th
     --omni.talos-version=${TALOS_VERSION} \
     --omni.kubernetes-version=${KUBERNETES_VERSION} \
     --omni.omnictl-path=/_out/omnictl-linux-amd64 \
-    --omni.expected-machines=8 \
+    --omni.expected-machines=${TOTAL_MACHINES} \
     --omni.embedded \
-    --omni.config-path /config.yaml \
+    --omni.config-path=/config.yaml \
     --omni.log-output=/outputs/omni-upgrade-prepare.log \
+    --omni.ignore-unknown-fields \
     --test.failfast \
     --test.v \
-    --omni.ignore-unknown-fields \
     ${INTEGRATION_PREPARE_TEST_ARGS:-}
 
 fi
 
 # Run the integration test.
-
 SIDEROLINK_DEV_JOIN_TOKEN=${JOIN_TOKEN} \
-SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
+  SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
   ${ARTIFACTS}/integration-test-linux-amd64 \
   --omni.talos-version=${TALOS_VERSION} \
   --omni.kubernetes-version=${KUBERNETES_VERSION} \
   --omni.omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
-  --omni.expected-machines=8 `# equal to the masters+workers above` \
+  --omni.expected-machines=${TOTAL_MACHINES} \
   --omni.embedded \
-  --omni.config-path ${OMNI_CONFIG} \
+  --omni.config-path=${OMNI_CONFIG} \
   --omni.log-output=${TEST_OUTPUTS_DIR}/omni-integration.log \
   --test.failfast \
   --test.coverprofile=${ARTIFACTS}/coverage-integration.txt \
@@ -404,8 +468,7 @@ if [ "${INTEGRATION_RUN_E2E_TEST:-true}" == "true" ]; then
       endpoint: 0.0.0.0:8099
       advertisedURL: ${BASE_URL}
       certFile: hack/certs/localhost.pem
-      keyFile: hack/certs/localhost-key.pem" > ${TEST_OUTPUTS_DIR}/e2e-config.yaml
-
+      keyFile: hack/certs/localhost-key.pem" >${TEST_OUTPUTS_DIR}/e2e-config.yaml
 
   SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
     nice -n 10 ${ARTIFACTS}/omni-linux-amd64 --config-path ${TEST_OUTPUTS_DIR}/e2e-config.yaml \
@@ -424,7 +487,7 @@ if [ "${INTEGRATION_RUN_E2E_TEST:-true}" == "true" ]; then
     --config-data-compression-enabled \
     --enable-talos-pre-release-versions="${ENABLE_TALOS_PRERELEASE_VERSIONS}" \
     --enable-cluster-import \
-    "${REGISTRY_MIRROR_FLAGS[@]}"&
+    "${REGISTRY_MIRROR_FLAGS[@]}" &
 
   # Run the e2e test.
   # the e2e tests are in a submodule and need to be executed in a container with playwright dependencies

@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"strings"
 	"testing"
 	"time"
 
@@ -25,7 +24,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/siderolabs/omni/client/pkg/client/management"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
@@ -255,9 +253,6 @@ func freezeMachine(ctx context.Context, t *testing.T, st state.State, clusterNam
 }
 
 func wipeMachine(ctx context.Context, t *testing.T, st state.State, id string, wipeAMachineFunc WipeAMachineFunc) {
-	machineStatus, err := st.Get(ctx, omni.NewMachineStatus(resources.DefaultNamespace, id).Metadata())
-	require.NoError(t, err)
-
 	// force delete a machine
 	rtestutils.Teardown[*siderolink.Link](ctx, t, st, []string{id})
 	rtestutils.Destroy[*omni.MachineSetNode](ctx, t, st, []string{id})
@@ -268,8 +263,7 @@ func wipeMachine(ctx context.Context, t *testing.T, st state.State, id string, w
 	rtestutils.AssertNoResource[*omni.ClusterMachine](ctx, t, st, id)
 
 	// wipe and reboot a machine
-	ip := strings.Split(machineStatus.(*omni.MachineStatus).TypedSpec().Value.Network.Addresses[0], "/")[0]
-	require.NoError(t, wipeAMachineFunc(ctx, id, ip))
+	require.NoError(t, wipeAMachineFunc(ctx, id))
 
 	// machine should re-register
 	rtestutils.AssertResources(ctx, t, st, []string{id}, func(*omni.Machine, *assert.Assertions) {})

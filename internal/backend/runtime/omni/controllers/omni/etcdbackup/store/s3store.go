@@ -202,6 +202,7 @@ func S3ClientFromResource(ctx context.Context, s3Conf *omni.EtcdBackupS3Conf) (*
 		o.UsePathStyle = true
 		o.BaseEndpoint = aws.String(baseEndpoint)
 		o.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
+		o.DisableLogOutputChecksumValidationSkipped = true
 	})
 
 	_, err = client.ListObjects(ctx, &s3.ListObjectsInput{Bucket: pointer.To(bucket)})

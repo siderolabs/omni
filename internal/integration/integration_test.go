@@ -53,7 +53,6 @@ var (
 	wipeAMachineScript       string
 	freezeAMachineScript     string
 	omnictlPath              string
-	talosctlPath             string
 	talosVersion             string
 	anotherTalosVersion      string
 	kubernetesVersion        string
@@ -72,7 +71,6 @@ var (
 	runStatsCheck               bool
 	skipExtensionsCheckOnCreate bool
 	artifactsOutputDir          string
-	partialConfigPath           string
 
 	runEmbeddedOmni     bool
 	ignoreUnknownFields bool
@@ -96,10 +94,8 @@ func TestIntegration(t *testing.T) {
 		AnotherTalosVersion:      anotherTalosVersion,
 		AnotherKubernetesVersion: anotherKubernetesVersion,
 		OmnictlPath:              omnictlPath,
-		TalosctlPath:             talosctlPath,
 		ScalingTimeout:           scalingTimeout,
 		OutputDir:                artifactsOutputDir,
-		PartialConfigPath:        partialConfigPath,
 	}
 
 	var serviceAccount string
@@ -157,8 +153,8 @@ func TestIntegration(t *testing.T) {
 		parsedScript, err := shellwords.Parse(wipeAMachineScript)
 		require.NoError(t, err, "failed to parse wipe-a-machine-script file")
 
-		options.WipeAMachineFunc = func(ctx context.Context, uuid, ip string) error {
-			return execCmd(ctx, parsedScript, uuid, ip, options.TalosctlPath, options.PartialConfigPath)
+		options.WipeAMachineFunc = func(ctx context.Context, uuid string) error {
+			return execCmd(ctx, parsedScript, uuid)
 		}
 	}
 
@@ -253,8 +249,6 @@ func init() {
 	flag.StringVar(&wipeAMachineScript, "omni.wipe-a-machine-script", "hack/test/wipe-a-vm.sh", "a script to run to wipe a machine by UUID (optional)")
 	flag.StringVar(&freezeAMachineScript, "omni.freeze-a-machine-script", "hack/test/freeze-a-vm.sh", "a script to run to freeze a machine by UUID (optional)")
 	flag.StringVar(&omnictlPath, "omni.omnictl-path", "_out/omnictl-linux-amd64", "omnictl CLI script path (optional)")
-	flag.StringVar(&talosctlPath, "omni.talosctl-path", "_out/talosctl", "talosctl CLI script path (optional)")
-	flag.StringVar(&partialConfigPath, "omni.partial-config-path", "_out/partial-config/config.yaml", "path to partial configs that configure a machine's connection to omni (optional)")
 	flag.StringVar(&anotherTalosVersion, "omni.another-talos-version",
 		constants.AnotherTalosVersion,
 		"omni.Talos version for upgrade test",

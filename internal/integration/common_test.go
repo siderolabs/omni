@@ -223,8 +223,8 @@ type TestFunc func(t *testing.T)
 // RestartAMachineFunc is a function to restart a machine by UUID.
 type RestartAMachineFunc func(ctx context.Context, uuid string) error
 
-// WipeAMachineFunc is a function to wipe a machine by UUID. It also takes an IP address to reconnect the machine back to omni.
-type WipeAMachineFunc func(ctx context.Context, uuid, ip string) error
+// WipeAMachineFunc is a function to wipe a machine by UUID.
+type WipeAMachineFunc func(ctx context.Context, uuid string) error
 
 // FreezeAMachineFunc is a function to freeze a machine by UUID.
 type FreezeAMachineFunc func(ctx context.Context, uuid string) error
@@ -255,8 +255,6 @@ type Options struct {
 	ScalingTimeout           time.Duration
 	StaticInfraProvider      string
 	OutputDir                string
-	TalosctlPath             string
-	PartialConfigPath        string
 }
 
 func (o Options) defaultInfraProvider() string {
