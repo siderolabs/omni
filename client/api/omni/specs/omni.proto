@@ -1227,6 +1227,14 @@ message MachineStatusMetricsSpec {
   uint32 pending_machines_count = 4;
 
   map<string, int32> versions_map = 5;
+  map<string, uint32> platforms = 6;
+  map<string, uint32> secure_boot_status = 7;
+  map<string, uint32> uki_status = 8;
+}
+
+// ClusterMetricsSpec contains metrics about the clusters in the Omni instance.
+message ClusterMetricsSpec {
+  map<string, uint32> features = 3;
 }
 
 // ClusterStatusMetricsSpec provides aggregated state of the number of clusters in not ready phase.

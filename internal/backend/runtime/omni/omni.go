@@ -218,6 +218,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		&omnictrl.ClusterMachineStatusMetricsController{},
 		omnictrl.NewClusterMachineController(),
 		&omnictrl.ClusterMachineEncryptionController{},
+		&omnictrl.ClusterMetricsController{},
 		&omnictrl.ClusterStatusMetricsController{},
 		&omnictrl.ClusterWorkloadProxyController{},
 		&omnictrl.ConfigPatchCleanupController{},
