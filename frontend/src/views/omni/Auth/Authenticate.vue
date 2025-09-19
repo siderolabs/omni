@@ -72,12 +72,7 @@ onMounted(() => {
     }
   } else {
     const navigateToLogin = () => {
-      const query: string[] = []
-      for (const key in route.query) {
-        query.push(`${key}=${route.query[key]}`)
-      }
-
-      redirectToURL(`/login?${query.join('&')}`)
+      redirectToURL(`/login${window.location.search}`)
     }
 
     if (!identity.value) {
