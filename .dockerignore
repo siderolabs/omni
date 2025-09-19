@@ -1,10 +1,9 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-08-19T13:03:46Z by kres d1ef768.
+# Generated on 2025-09-19T14:51:46Z by kres 80c0e43.
 
 *
 !frontend/src
-!frontend/test
 !frontend/public
 !client/api
 !client/pkg

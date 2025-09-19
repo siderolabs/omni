@@ -1,8 +1,8 @@
-# syntax = docker/dockerfile-upstream:1.17.1-labs
+# syntax = docker/dockerfile-upstream:1.18.0-labs
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-09-15T08:45:14Z by kres d1c95db.
+# Generated on 2025-09-19T14:51:46Z by kres 80c0e43.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -20,7 +20,7 @@ ENV GOPATH=/go
 ENV PATH=${PATH}:/usr/local/go/bin
 
 # runs markdownlint
-FROM docker.io/oven/bun:1.2.20-alpine AS lint-markdown
+FROM docker.io/oven/bun:1.2.22-alpine AS lint-markdown
 WORKDIR /src
 RUN bun i markdownlint-cli@0.45.0 sentences-per-line@0.3.0
 COPY .markdownlint.json .
@@ -93,7 +93,6 @@ COPY frontend/.npmrc ./
 COPY frontend/.editorconfig ./
 COPY frontend/.prettier* ./
 COPY ./frontend/src ./src
-COPY ./frontend/test ./test
 COPY ./frontend/public ./public
 RUN --mount=type=cache,target=/root/.npm,id=omni/root/.npm,sharing=locked npm ci
 
