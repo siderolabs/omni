@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useLocalStorage } from '@vueuse/core'
 import type { Ref } from 'vue'
 import { computed, ref, toRefs, watch as vueWatch } from 'vue'
 
@@ -16,7 +17,6 @@ import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import TAlert from '@/components/TAlert.vue'
-import storageRef from '@/methods/storage'
 
 defineExpose({
   addFilterLabel: (label: { key: string; value?: string }) => {
@@ -71,9 +71,9 @@ const optsList = props.opts as WatchJoinOptions[]
 
 const filterValueInternal = ref('')
 const currentPage = ref(1)
-const selectedItemsPerPage: Ref<number> = storageRef(localStorage, 'itemsPerPage', 10)
-const selectedSortOption: Ref<string | undefined> = ref(sortOptionsVariants?.value?.[0])
-const selectedFilterOption: Ref<string | undefined> = ref(filterOptionsVariants.value?.[0])
+const selectedItemsPerPage = useLocalStorage('itemsPerPage', 10)
+const selectedSortOption = ref<string | undefined>(sortOptionsVariants?.value?.[0])
+const selectedFilterOption = ref<string | undefined>(filterOptionsVariants.value?.[0])
 const sidePanelOpen = ref(false)
 const sidePanelSelectedItemId = ref<string>()
 

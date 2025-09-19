@@ -12,6 +12,7 @@ import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
 import { AuthType, authType } from '@/methods'
 import { currentUser } from '@/methods/auth'
 import { resetKeys } from '@/methods/key'
+import { identity as identityStorage } from '@/methods/key'
 
 type Props = {
   withLogoutControls?: boolean
@@ -30,10 +31,7 @@ const { avatar, fullname } = toRefs(props)
 const auth0 = useAuth0()
 
 const identity = computed(
-  () =>
-    props.email ||
-    auth0?.user?.value?.email?.toLowerCase() ||
-    window.localStorage.getItem('identity'),
+  () => props.email || auth0?.user?.value?.email?.toLowerCase() || identityStorage.value,
 )
 const picture = computed(() => avatar.value ?? auth0?.user?.value?.picture)
 const name = computed(() => fullname.value ?? auth0?.user?.value?.name)

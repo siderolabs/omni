@@ -5,12 +5,12 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useSessionStorage } from '@vueuse/core'
 import { computed, toRefs } from 'vue'
 import { useRoute } from 'vue-router'
 
 import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
-import storageRef from '@/methods/storage'
 
 import Tooltip from '../Tooltip/Tooltip.vue'
 
@@ -31,7 +31,7 @@ const props = withDefaults(defineProps<Props>(), {
   level: 0,
 })
 
-const expanded = storageRef(sessionStorage, `sidebar-expanded-${props.level}-${props.name}`, false)
+const expanded = useSessionStorage(`sidebar-expanded-${props.level}-${props.name}`, false)
 const vueroute = useRoute()
 const { subItems, level } = toRefs(props)
 

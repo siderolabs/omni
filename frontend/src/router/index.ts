@@ -330,7 +330,7 @@ router.beforeEach((to) => {
     return true
   }
 
-  current.value = to.params.cluster
+  current.value = to.params.cluster as string
 
   return true
 })

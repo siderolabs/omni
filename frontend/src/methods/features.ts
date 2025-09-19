@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+import { useLocalStorage } from '@vueuse/core'
 import { Userpilot } from 'userpilot'
 import type { Ref } from 'vue'
 import { computed, ref } from 'vue'
@@ -36,19 +37,7 @@ export const setupWorkloadProxyingEnabledFeatureWatch = (): Ref<boolean> => {
 let userPilotInitialized = false
 let userPilotInitializeAbortController: AbortController | null = null
 
-const trackingRef = ref(
-  localStorage.getItem('tracking') === null
-    ? undefined
-    : localStorage.getItem('tracking') === 'true',
-)
-
-export const trackingState = computed({
-  get: () => trackingRef.value,
-  set: (v: boolean) => {
-    trackingRef.value = v
-    localStorage.setItem('tracking', v.toString())
-  },
-})
+export const trackingState = useLocalStorage<boolean>('tracking', null)
 
 export const getUserPilotToken = async () => {
   userPilotInitializeAbortController?.abort()

@@ -26,6 +26,7 @@ import {
   PermissionsType,
   VirtualNamespace,
 } from '@/api/resources'
+import { identity } from '@/methods/key'
 
 import { initializeUserPilot } from './features'
 
@@ -154,7 +155,7 @@ export const loadCurrentUser = async () => {
 }
 
 const refreshCurrentUser = async () => {
-  if (!window.localStorage.getItem('identity')) {
+  if (!identity.value) {
     currentUser.value = undefined
     return
   }

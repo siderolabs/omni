@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+import { useLocalStorage } from '@vueuse/core'
 import * as fetchIntercept from 'fetch-intercept'
 import type { Key, PrivateKey } from 'openpgp/lightweight'
 import {
@@ -13,7 +14,7 @@ import {
   readPrivateKey,
   sign,
 } from 'openpgp/lightweight'
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 
 import { b64Encode } from '@/api/fetch.pb'
 import { AuthService } from '@/api/omni/auth/auth.pb'
@@ -30,16 +31,12 @@ import {
 let interceptorsRegistered = false
 let keysReloadTimeout: number
 
-const storageRef = (key: string) => {
-  return computed<string | undefined>({
-    get: () => localStorage.getItem(key) ?? undefined,
-    set: (v?: string) => (!!v ? localStorage.setItem(key, v) : localStorage.removeItem(key)),
-  })
-}
+const privateKeyArmored = useLocalStorage<string>('privateKey', null)
+const publicKeyArmored = useLocalStorage<string>('publicKey', null)
 
-export const identity = storageRef('identity')
-export const fullname = storageRef('fullname')
-export const avatar = storageRef('avatar')
+export const identity = useLocalStorage<string>('identity', null)
+export const fullname = useLocalStorage<string>('fullname', null)
+export const avatar = useLocalStorage<string>('avatar', null)
 
 export let keys: {
   privateKey: PrivateKey
@@ -76,20 +73,16 @@ export const isAuthorized = async (): Promise<boolean> => {
   return true
 }
 
-export const loadKeys = async (): Promise<{ privateKey: PrivateKey; publicKey: Key }> => {
+const loadKeys = async (): Promise<{ privateKey: PrivateKey; publicKey: Key }> => {
   if (!keys) {
-    const privateKeyArmored = window.localStorage.getItem('privateKey')
-    const publicKeyArmored = window.localStorage.getItem('publicKey')
-    const identity = window.localStorage.getItem('identity')
-
-    if (!privateKeyArmored || !publicKeyArmored || !identity) {
+    if (!privateKeyArmored.value || !publicKeyArmored.value || !identity.value) {
       throw new KeysInvalidError(`failed to load keys: keys not initialized`)
     }
 
     keys = {
-      privateKey: await readPrivateKey({ armoredKey: privateKeyArmored }),
-      publicKey: await readKey({ armoredKey: publicKeyArmored }),
-      identity: identity.toLowerCase(),
+      privateKey: await readPrivateKey({ armoredKey: privateKeyArmored.value }),
+      publicKey: await readKey({ armoredKey: publicKeyArmored.value }),
+      identity: identity.value.toLowerCase(),
     }
   }
 
@@ -163,8 +156,8 @@ export const saveKeys = async (
 ) => {
   keys = null
 
-  window.localStorage.setItem('publicKey', publicKey)
-  window.localStorage.setItem('privateKey', privateKey)
+  publicKeyArmored.value = publicKey
+  privateKeyArmored.value = privateKey
 
   identity.value = user.email.toLowerCase()
   avatar.value = user.picture
@@ -184,8 +177,8 @@ export const saveKeys = async (
 export const resetKeys = () => {
   keys = null
 
-  window.localStorage.removeItem('publicKey')
-  window.localStorage.removeItem('privateKey')
+  publicKeyArmored.value = undefined
+  privateKeyArmored.value = undefined
 
   identity.value = undefined
   avatar.value = undefined
