@@ -101,7 +101,7 @@ watch(apiConfigErr, (err) => err && showError(err))
       />
 
       <HomeGeneralInformationCopyable
-        title="WireGuard Endpoint"
+        title="SideroLink Endpoint"
         :value="apiConfigData?.spec.wireguard_advertised_endpoint"
       />
 
