@@ -93,8 +93,7 @@ const reboot = async () => {
   width: 390px;
 }
 .modal-wrapper {
-  @apply fixed top-0 right-0 bottom-0 left-0 z-30 flex h-full w-full items-center justify-center;
-  background-color: rgba(16, 17, 24, 0.5);
+  @apply fixed top-0 right-0 bottom-0 left-0 z-30 flex h-full w-full items-center justify-center bg-naturals-n0/50;
 }
 .modal-heading {
   @apply flex items-center justify-between;

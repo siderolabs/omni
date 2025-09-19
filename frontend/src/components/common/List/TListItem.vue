@@ -52,17 +52,11 @@ const isDropdownOpened = ref(isDefaultOpened?.value as boolean)
 @reference "../../../index.css";
 
 .row {
-  @apply flex w-full flex-col border border-transparent px-2 py-4 text-xs text-naturals-n13 transition-all duration-500;
-  border-bottom: 1px solid rgba(39, 41, 50);
-  border-radius: 4px 4px 0 0;
+  @apply flex w-full flex-col rounded-t-sm border border-transparent border-b-naturals-n5 px-2 py-4 text-xs text-naturals-n13 transition-all duration-500 last-of-type:border-b-transparent;
 }
 
 .row-head {
   @apply min-w-0 flex-1 px-1;
-}
-
-.row:last-of-type {
-  border-bottom: transparent;
 }
 
 .opened {

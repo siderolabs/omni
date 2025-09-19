@@ -84,7 +84,7 @@ const icons: Record<AlertType, IconType> = {
 }
 
 .alert-error {
-  @apply border border-l-4 border-solid border-naturals-n5 border-l-red-r2;
+  @apply border border-l-4 border-naturals-n5 border-l-red-r2;
 }
 
 .alert-error #title {
@@ -120,8 +120,7 @@ const icons: Record<AlertType, IconType> = {
 }
 
 .alert-warn {
-  border: 1px solid #272932;
-  @apply border-l-4 border-l-yellow-y1;
+  @apply border border-l-4 border-naturals-n5 border-l-yellow-y1;
 }
 
 .alert-warn #title {

@@ -83,8 +83,6 @@ const stageIcon = (machine: Resource<ClusterMachineStatusSpec>): IconType => {
 }
 
 const stageColor = (machine: Resource<ClusterMachineStatusSpec>): string => {
-  const Y1 = '#FFB200'
-
   switch (machine?.spec.stage) {
     case ClusterMachineStatusSpecStage.BOOTING:
     case ClusterMachineStatusSpecStage.INSTALLING:
@@ -92,19 +90,19 @@ const stageColor = (machine: Resource<ClusterMachineStatusSpec>): string => {
     case ClusterMachineStatusSpecStage.CONFIGURING:
     case ClusterMachineStatusSpecStage.REBOOTING:
     case ClusterMachineStatusSpecStage.POWERING_ON:
-      return Y1
+      return 'var(--color-yellow-y1)'
     case ClusterMachineStatusSpecStage.RUNNING:
       if (machine?.spec.ready || !connected(machine)) {
-        return '#69C297'
+        return 'var(--color-green-g1)'
       } else {
-        return '#FF5F2A'
+        return 'var(--color-red-r1)'
       }
     case ClusterMachineStatusSpecStage.SHUTTING_DOWN:
     case ClusterMachineStatusSpecStage.BEFORE_DESTROY:
     case ClusterMachineStatusSpecStage.DESTROYING:
-      return '#FF5F2A'
+      return 'var(--color-red-r1)'
     default:
-      return Y1
+      return 'var(--color-yellow-y1)'
   }
 }
 

@@ -232,7 +232,6 @@ const sortBy = (id: string) => {
             name="cpu"
             title="CPU usage"
             type="area"
-            :colors="['#FFB103', '#FF8B59']"
             :runtime="Runtime.Talos"
             :resource="{
               type: TalosCPUType,
@@ -253,7 +252,11 @@ const sortBy = (id: string) => {
             title="Memory"
             type="area"
             :stroke="{ curve: 'smooth', width: [2, 0.5, 0.5], dashArray: [0, 2, 2] }"
-            :colors="['#FF8B59', '#AAAAAA', '#AAAAAA']"
+            :colors="[
+              'var(--color-primary-p3)',
+              'var(--color-naturals-n11)',
+              'var(--color-naturals-n11)',
+            ]"
             :runtime="Runtime.Talos"
             :resource="{
               type: TalosMemoryType,
@@ -281,7 +284,7 @@ const sortBy = (id: string) => {
             name="procs"
             title="Processes"
             type="area"
-            :colors="['#5DA8D1', '#69C197', '#FFB103']"
+            :colors="['var(--color-blue-b1)', 'var(--color-green-g1)', 'var(--color-yellow-y1)']"
             :runtime="Runtime.Talos"
             :resource="{
               type: TalosCPUType,

@@ -4,7 +4,7 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<script setup lang="ts">
+<script setup lang="ts" generic="T = unknown">
 import { ExclamationCircleIcon } from '@heroicons/vue/24/outline'
 import { DateTime } from 'luxon'
 import type { Ref } from 'vue'
@@ -41,11 +41,11 @@ type Props<T> = {
   formatter?: (value: number) => string
 }
 
-const props = withDefaults(defineProps<Props<any>>(), {
+const props = withDefaults(defineProps<Props<T>>(), {
   stroke: () => {
     return { curve: 'smooth', width: 2, dashArray: 0 }
   },
-  colors: () => ['#FFB103', '#FF8B59'],
+  colors: () => ['var(--color-yellow-y1)', 'var(--color-primary-p3)'],
   tailEvents: () => 25,
 })
 
@@ -296,19 +296,18 @@ const loading = w.loading
 </template>
 
 <style>
+@reference "../../../../index.css";
+
 #chartContainer .apexcharts-tooltip {
-  padding: 10px 12px;
-  color: #ffff;
-  background-color: #191b24;
+  @apply bg-naturals-n3 px-3 py-2.5 text-naturals-n14;
 }
 #chartContainer .apexcharts-tooltip-title {
-  color: #ffff;
-  background-color: #191b24;
+  @apply bg-naturals-n3 text-naturals-n14;
 }
 #chartContainer .apexcharts-xaxistooltip-bottom {
-  display: none;
+  @apply hidden;
 }
 #chartContainer .apexcharts-tooltip .apexcharts-tooltip-series-group.active {
-  background-color: #191b24;
+  @apply bg-naturals-n3;
 }
 </style>

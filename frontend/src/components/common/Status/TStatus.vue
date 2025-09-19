@@ -26,32 +26,32 @@ const iconData = computed((): { iconColor?: string; iconTypeValue?: IconType } =
       case TPodsViewFilterOptions.RUNNING:
         return {
           iconTypeValue: 'check-in-circle-classic',
-          iconColor: '#69C297',
+          iconColor: 'var(--color-green-g1)',
         }
       case NodesViewFilterOptions.READY:
         return {
           iconTypeValue: 'check-in-circle-classic',
-          iconColor: '#69C297',
+          iconColor: 'var(--color-green-g1)',
         }
       case TPodsViewFilterOptions.PENDING:
         return {
           iconTypeValue: 'time',
-          iconColor: '#FFB200',
+          iconColor: 'var(--color-yellow-y1)',
         }
       case TPodsViewFilterOptions.FAILED:
         return {
           iconTypeValue: 'error',
-          iconColor: '#FF5C56',
+          iconColor: 'var(--color-red-r1)',
         }
       case TPodsViewFilterOptions.UNKNOWN:
         return {
           iconTypeValue: 'unknown',
-          iconColor: '#FF8B59',
+          iconColor: 'var(--color-primary-p3)',
         }
       case TPodsViewFilterOptions.SUCCEEDED:
         return {
           iconTypeValue: 'check-in-circle-classic',
-          iconColor: '#69C297',
+          iconColor: 'var(--color-green-g1)',
         }
       case TCommonStatuses.DISCONNECTED:
         return {
@@ -67,13 +67,13 @@ const iconData = computed((): { iconColor?: string; iconTypeValue?: IconType } =
       case TCommonStatuses.COMPLETED:
         return {
           iconTypeValue: 'check-in-circle-classic',
-          iconColor: '#69C297',
+          iconColor: 'var(--color-green-g1)',
         }
       case TCommonStatuses.FINISHED:
       case TCommonStatuses.FAILED:
         return {
           iconTypeValue: 'error',
-          iconColor: '#FF5C56',
+          iconColor: 'var(--color-red-r1)',
         }
       case TCommonStatuses.EXPIRED:
         return {
@@ -88,29 +88,29 @@ const iconData = computed((): { iconColor?: string; iconTypeValue?: IconType } =
       case TCommonStatuses.ERROR:
         return {
           iconTypeValue: 'error',
-          iconColor: '#FF5C56',
+          iconColor: 'var(--color-red-r1)',
         }
       case NodesViewFilterOptions.NOT_READY:
         return {
           iconTypeValue: 'time',
-          iconColor: '#FF5C56',
+          iconColor: 'var(--color-red-r1)',
         }
       case TCommonStatuses.STOPPING:
       case TCommonStatuses.WAITING:
       case TCommonStatuses.LOADING:
         return {
           iconTypeValue: 'time',
-          iconColor: '#FF8B59',
+          iconColor: 'var(--color-primary-p3)',
         }
       case TCommonStatuses.UNKNOWN:
         return {
           iconTypeValue: 'unknown',
-          iconColor: '#FF8B59',
+          iconColor: 'var(--color-primary-p3)',
         }
       case TCommonStatuses.HEALTH_UNKNOWN:
         return {
           iconTypeValue: 'question',
-          iconColor: '#7D7D85',
+          iconColor: 'var(--color-naturals-n9)',
         }
       case TCommonStatuses.PROVISION_FAILED:
         return {
@@ -130,64 +130,64 @@ const iconData = computed((): { iconColor?: string; iconTypeValue?: IconType } =
       case TCommonStatuses.HEALTHY:
         return {
           iconTypeValue: 'check-in-circle-classic',
-          iconColor: '#69C297',
+          iconColor: 'var(--color--green-g1)',
         }
       case TCommonStatuses.UNHEALTHY:
         return {
           iconTypeValue: 'error',
-          iconColor: '#FF5C56',
+          iconColor: 'var(--color-red-r1)',
         }
       case TCommonStatuses.ENABLED:
       case TCommonStatuses.ON:
         return {
           iconTypeValue: 'dot',
-          iconColor: '#69C297',
+          iconColor: 'var(--color--green-g1)',
         }
       case TCommonStatuses.DISABLED:
       case TCommonStatuses.OFF:
         return {
           iconTypeValue: 'dot',
-          iconColor: '#7D7D85',
+          iconColor: 'var(--color-naturals-n9)',
         }
       case TCommonStatuses.TRUE:
         return {
           iconTypeValue: 'check-in-circle-classic',
-          iconColor: '#7D7D85',
+          iconColor: 'var(--color-naturals-n9)',
         }
       case TCommonStatuses.FALSE:
         return {
           iconTypeValue: 'error',
-          iconColor: '#7D7D85',
+          iconColor: 'var(--color-naturals-n9)',
         }
       case TCommonStatuses.UP_TO_DATE:
         return {
           iconTypeValue: 'check-in-circle-classic',
-          iconColor: '#69C297',
+          iconColor: 'var(--color--green-g1)',
         }
       case TCommonStatuses.OUTDATED:
         return {
           iconTypeValue: 'error',
-          iconColor: '#FF5C56',
+          iconColor: 'var(--color-red-r1)',
         }
       case TCommonStatuses.APPLIED:
         return {
           iconTypeValue: 'check-in-circle-classic',
-          iconColor: '#69C297',
+          iconColor: 'var(--color--green-g1)',
         }
       case TCommonStatuses.PENDING:
         return {
           iconTypeValue: 'time',
-          iconColor: '#FFB200',
+          iconColor: 'var(--color--yellow-y1)',
         }
       case TCommonStatuses.AWAITING_CONNECTION:
         return {
           iconTypeValue: 'question',
-          iconColor: '#7D7D85',
+          iconColor: 'var(--color-naturals-n9)',
         }
       default:
         return {
           iconTypeValue: 'unknown',
-          iconColor: '#FF8B59',
+          iconColor: 'var(--color-primary-p3)',
         }
     }
   }
@@ -199,15 +199,15 @@ const iconColor = computed(() => {
   if (iconType.value) {
     switch (iconType.value) {
       case 'check-in-circle-classic':
-        return { color: '#69C297' }
+        return { color: 'var(--color--green-g1)' }
       case 'loading':
-        return { color: '#FFB200' }
+        return { color: 'var(--color--yellow-y1)' }
       case 'time':
-        return { color: '#7D7D85' }
+        return { color: 'var(--color-naturals-n9)' }
       case 'refresh':
-        return { color: '#59A5FF' }
+        return { color: 'var(--color-blue-b1)' }
       default:
-        return { color: '#7D7D85' }
+        return { color: 'var(--color-naturals-n9)' }
     }
   }
 

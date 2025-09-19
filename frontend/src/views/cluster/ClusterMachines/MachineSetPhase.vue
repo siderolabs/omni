@@ -58,24 +58,22 @@ const phaseIcon = (machineset: Resource<MachineSetStatusSpec>): IconType => {
 }
 
 const phaseColor = (machineset): string => {
-  const Y1 = '#FFB200'
-
   switch (machineset?.spec.phase) {
     case MachineSetPhase.ScalingUp:
     case MachineSetPhase.ScalingDown:
     case MachineSetPhase.Reconfiguring:
-      return Y1
+      return 'var(--color-yellow-y1)'
     case MachineSetPhase.Running:
       if (machineset?.spec.ready) {
-        return '#69C297'
+        return 'var(--color-green-g1)'
       } else {
-        return '#FF5F2A'
+        return 'var(--color-red-r1)'
       }
     case MachineSetPhase.Failed:
     case MachineSetPhase.Destroying:
-      return '#FF5F2A'
+      return 'var(--color-red-r1)'
     default:
-      return Y1
+      return 'var(--color-yellow-y1)'
   }
 }
 
