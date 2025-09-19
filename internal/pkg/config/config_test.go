@@ -7,12 +7,21 @@
 package config_test
 
 import (
+	"context"
 	_ "embed"
 	"testing"
+	"time"
 
+	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
+	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
+	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
@@ -59,6 +68,39 @@ func TestMergeConfig(t *testing.T) {
 
 	require.NoError(t, err)
 	require.True(t, cfg.Services.EmbeddedDiscoveryService.Enabled)
+}
+
+func TestValidateStateConfig(t *testing.T) {
+	state := state.WrapCore(namespaced.NewState(inmem.Build))
+
+	cfg, err := config.FromBytes(configFull)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+	defer cancel()
+
+	// no machines
+
+	assert.NoError(t, cfg.ValidateState(ctx, state))
+
+	// fail with machines below 1.6, pass with above 1.6
+
+	machine := omni.NewMachineStatus(resources.DefaultNamespace, "1")
+	machine.TypedSpec().Value.TalosVersion = "v1.5.5"
+
+	require.NoError(t, state.Create(ctx, machine))
+
+	assert.Error(t, cfg.ValidateState(ctx, state))
+
+	_, err = safe.StateUpdateWithConflicts(ctx, state, machine.Metadata(), func(res *omni.MachineStatus) error {
+		res.TypedSpec().Value.TalosVersion = "v1.6.0"
+
+		return nil
+	})
+
+	require.NoError(t, err)
+
+	assert.NoError(t, cfg.ValidateState(ctx, state))
 }
 
 func TestValidateConfig(t *testing.T) {

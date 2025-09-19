@@ -27,7 +27,7 @@ import (
 //nolint:govet
 type MachineStatusMetricsController struct {
 	versionsMu  sync.Mutex
-	versionsMap map[string]int
+	versionsMap map[string]int32
 
 	metricsOnce                 sync.Once
 	metricNumMachines           prometheus.Gauge
@@ -120,7 +120,7 @@ func (ctrl *MachineStatusMetricsController) Run(ctx context.Context, r controlle
 		var machines, connectedMachines, allocatedMachines int
 
 		ctrl.versionsMu.Lock()
-		ctrl.versionsMap = map[string]int{}
+		ctrl.versionsMap = map[string]int32{}
 
 		for ms := range list.All() {
 			machines++
@@ -149,6 +149,7 @@ func (ctrl *MachineStatusMetricsController) Run(ctx context.Context, r controlle
 				res.TypedSpec().Value.RegisteredMachinesCount = uint32(machines)
 				res.TypedSpec().Value.AllocatedMachinesCount = uint32(allocatedMachines)
 				res.TypedSpec().Value.PendingMachinesCount = uint32(pendingMachines)
+				res.TypedSpec().Value.VersionsMap = ctrl.versionsMap
 
 				return nil
 			},

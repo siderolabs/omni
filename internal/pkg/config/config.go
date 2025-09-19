@@ -8,6 +8,7 @@ package config
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -16,6 +17,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/go-playground/validator/v10"
 	"github.com/siderolabs/gen/xyaml"
 	"github.com/siderolabs/talos/pkg/machinery/config/merge"
@@ -27,6 +29,7 @@ import (
 	consts "github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
+	"github.com/siderolabs/omni/internal/pkg/config/validations"
 )
 
 const (
@@ -269,6 +272,18 @@ type Params struct {
 	Registries Registries `yaml:"registries" validate:"required"`
 	Debug      Debug      `yaml:"debug"`
 	Features   Features   `yaml:"features"`
+}
+
+// ValidateState validate Omni params against the current state of Omni instance.
+// Add any hooks that would need to validate the config against the state here.
+func (p *Params) ValidateState(ctx context.Context, st state.State) error {
+	if p.Services.Siderolink.JoinTokensMode == JoinTokensModeStrict {
+		if err := validations.EnsureAllMachinesSupportStrictTokens(ctx, st); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Validate Omni params.

@@ -1225,6 +1225,8 @@ message MachineStatusMetricsSpec {
   uint32 connected_machines_count = 2;
   uint32 allocated_machines_count = 3;
   uint32 pending_machines_count = 4;
+
+  map<string, int32> versions_map = 5;
 }
 
 // ClusterStatusMetricsSpec provides aggregated state of the number of clusters in not ready phase.

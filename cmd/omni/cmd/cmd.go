@@ -93,6 +93,10 @@ var rootCmd = &cobra.Command{
 			}
 		}()
 
+		if err = config.ValidateState(ctx, state.Default()); err != nil {
+			return err
+		}
+
 		if constants.IsDebugBuild {
 			logger.Warn("running debug build")
 		}

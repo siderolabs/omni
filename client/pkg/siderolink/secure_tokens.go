@@ -10,7 +10,9 @@ import (
 	"github.com/blang/semver"
 )
 
-var minSupportedSecureTokensVersion = semver.MustParse("1.6.0")
+// MinSupportedSecureTokensVersion is 1.6.0.
+// Below 1.6.0 Talos doesn't properly report node unique tokens to Omni.
+var MinSupportedSecureTokensVersion = semver.MustParse("1.6.0")
 
 // SupportsSecureJoinTokens checks if the Talos version supports secure join tokens.
 func SupportsSecureJoinTokens(talosVersion string) bool {
@@ -19,5 +21,5 @@ func SupportsSecureJoinTokens(talosVersion string) bool {
 		return false
 	}
 
-	return v.GTE(minSupportedSecureTokensVersion)
+	return v.GTE(MinSupportedSecureTokensVersion)
 }
