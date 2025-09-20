@@ -97,7 +97,7 @@ const loadKeys = async (): Promise<{ privateKey: PrivateKey; publicKey: Key }> =
   registerInterceptors()
 
   clearTimeout(keysReloadTimeout)
-  keysReloadTimeout = setTimeout(
+  keysReloadTimeout = window.setTimeout(
     () => {
       location.reload()
     },

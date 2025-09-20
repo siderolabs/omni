@@ -1,11 +1,11 @@
 {
   "extends": "./tsconfig.app.json",
-  "include": ["src/**/*.spec.*", "env.d.ts"],
+  "include": ["src/**/*.spec.*", "src/types/**/*", "env.d.ts"],
   "exclude": [],
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.vitest.tsbuildinfo",
 
     "lib": [],
-    "types": ["node", "jsdom"]
+    "types": ["node", "jsdom", "@testing-library/jest-dom"]
   }
 }

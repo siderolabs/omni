@@ -131,7 +131,7 @@ const handlePoint = (message: WatchResponse, spec: WatchEventSpec) => {
     points[meta.index].push(point)
     meta.version = version
 
-    flush[meta.index] = setTimeout(() => {
+    flush[meta.index] = window.setTimeout(() => {
       let dst = series.value[meta.index].data
 
       dst = dst.concat(points[meta.index])

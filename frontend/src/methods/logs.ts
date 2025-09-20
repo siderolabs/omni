@@ -136,7 +136,7 @@ export const setupLogStream = <R extends Data, T>(
         }
 
         // accumulate frequent updates and then flush them in a single call
-        flush = setTimeout(() => {
+        flush = window.setTimeout(() => {
           logs.value = logs.value.concat(buffer)
           buffer = []
         }, 50)

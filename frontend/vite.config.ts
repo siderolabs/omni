@@ -18,14 +18,19 @@ dotenv.config({ quiet: true })
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => {
+  const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST
+
   const config: UserConfig = {
     plugins: [vue(), vueDevTools(), tailwindcss(), nodePolyfills({ include: ['stream'] })],
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
+        // The lightweight package can't get resolved in tests
+        ...(isTest && { 'openpgp/lightweight': 'openpgp' }),
       },
     },
     test: {
+      setupFiles: ['vitest.setup.ts'],
       environment: 'jsdom',
       exclude: [...configDefaults.exclude, 'e2e/**'],
       root: fileURLToPath(new URL('./', import.meta.url)),

@@ -147,7 +147,7 @@ monaco.editor.onDidCreateModel(function (model) {
     emit('update:value', model.getValue())
 
     if (validate) {
-      handle = setTimeout(() => validate(), 500)
+      handle = window.setTimeout(() => validate(), 500)
     }
   })
 })

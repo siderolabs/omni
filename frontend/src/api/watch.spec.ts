@@ -42,7 +42,7 @@ class fakeStream extends EventTarget {
         this.removeEventListener('run', onRunning)
       }
 
-      setTimeout(() => {
+      window.setTimeout(() => {
         reject(new Error(`stream is not running after ${timeout}ms`))
         this.removeEventListener('run', onRunning)
       }, timeout)

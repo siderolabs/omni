@@ -53,7 +53,7 @@ export const subscribe = <R, T>(
 
 const delay = (value: number): Promise<void> => {
   return new Promise<void>((resolve: (value: void | PromiseLike<void>) => void) => {
-    setTimeout(resolve, value)
+    window.setTimeout(resolve, value)
   })
 }
 

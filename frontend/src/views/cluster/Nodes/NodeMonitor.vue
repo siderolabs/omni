@@ -137,7 +137,7 @@ const loadProcs = async () => {
 
 onMounted(() => {
   loadProcs()
-  interval = setInterval(loadProcs, 5000)
+  interval = window.setInterval(loadProcs, 5000)
 })
 
 onUnmounted(() => {

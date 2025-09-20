@@ -79,7 +79,7 @@ export const withTimeout = (timeout: number) => {
       req.controller = controller
     }
 
-    setTimeout(() => {
+    window.setTimeout(() => {
       req.controller?.abort()
     }, timeout)
   }
