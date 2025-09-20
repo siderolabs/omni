@@ -1,0 +1,7 @@
+# Notify for frontend
+/frontend/ @Slessi
+
+# Ignored
+/frontend/**/*.pb.ts
+/frontend/**/*.proto
+/frontend/src/api/resources.ts
