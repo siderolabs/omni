@@ -2,177 +2,56 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-
+import { waitFor } from '@testing-library/vue'
 import { describe, expect, test } from 'vitest'
 import { type Ref, ref } from 'vue'
 
-import { Runtime } from '@/api/common/omni.pb'
-import type { fetchOption, NotifyStreamEntityArrival, RequestOptions } from '@/api/fetch.pb'
-import type { Resource } from '@/api/grpc'
 import {
-  type Event,
-  EventType,
-  ResourceService,
-  type WatchRequest,
-  type WatchResponse,
-} from '@/api/omni/resources/resources.pb'
+  createBootstrapEvent,
+  createCreatedEvent,
+  createDestroyedEvent,
+  createUpdatedEvent,
+  createWatchStreamMock,
+} from '@/../msw'
+import { Runtime } from '@/api/common/omni.pb'
+import type { Resource } from '@/api/grpc'
 import type { MachineSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, MachineType } from '@/api/resources'
-import type { Metadata } from '@/api/v1alpha1/resource.pb'
 import Watch from '@/api/watch'
-
-class fakeStream extends EventTarget {
-  private resolve?: (value: void | PromiseLike<void>) => void
-  private reject?: (value: Error | PromiseLike<void>) => void
-
-  public run(): Promise<void> {
-    this.dispatchEvent(new Event('run'))
-
-    return new Promise<void>((resolve, reject) => {
-      this.resolve = resolve
-      this.reject = reject
-    })
-  }
-
-  public waitRunning(timeout: number): Promise<any> {
-    return new Promise<any>((resolve, reject) => {
-      const onRunning = () => {
-        resolve(null)
-
-        this.removeEventListener('run', onRunning)
-      }
-
-      window.setTimeout(() => {
-        reject(new Error(`stream is not running after ${timeout}ms`))
-        this.removeEventListener('run', onRunning)
-      }, timeout)
-
-      this.addEventListener('run', onRunning)
-    })
-  }
-
-  public close(err?: Error) {
-    if (!this.resolve || !this.reject) {
-      throw new Error('fake stream is not running')
-    }
-
-    return err ? this.reject(err) : this.resolve()
-  }
-}
 
 describe('watch', () => {
   const items: Ref<Resource<MachineSpec>[]> = ref([])
   const watch = new Watch(items)
-  const stream = new fakeStream()
-
-  let callback: NotifyStreamEntityArrival<WatchResponse> | undefined
-
-  ResourceService.Watch = async (
-    req: WatchRequest,
-    entityNotifier?: NotifyStreamEntityArrival<WatchResponse>,
-    ...options: fetchOption[]
-  ): Promise<void> => {
-    callback = entityNotifier
-
-    const opts: RequestOptions = {} as RequestOptions
-    for (const opt of options) {
-      opt(opts)
-    }
-
-    if (opts?.signal) {
-      opts.signal.onabort = () => {
-        stream.close()
-      }
-    }
-
-    await stream.run()
-  }
-
-  const pushEvents = (
-    ...events: { type: EventType; metadata?: Metadata; resource?: MachineSpec }[]
-  ) => {
-    if (!callback) {
-      throw new Error("the watch is hasn't been started: the callback is null")
-    }
-
-    for (const e of events) {
-      const event: Event = {
-        event_type: e.type,
-      }
-
-      if (e.metadata && e.resource) {
-        event.resource = JSON.stringify({
-          metadata: e.metadata,
-          spec: e.resource,
-        })
-      }
-
-      if (e.type === EventType.UPDATED) {
-        event.old = JSON.stringify({
-          metadata: e.metadata,
-          spec: e.resource,
-        })
-      }
-
-      callback({ event: event })
-    }
-  }
 
   test('event handling', async () => {
+    const { pushEvents } = createWatchStreamMock()
+
     await watch.start({
       runtime: Runtime.Omni,
       resource: { type: MachineType, namespace: DefaultNamespace },
     })
 
+    const machine1: Resource<MachineSpec> = {
+      metadata: { id: '1', namespace: 'default', type: MachineType },
+      spec: { connected: true, management_address: 'localhost' },
+    }
+
+    const machine2: Resource<MachineSpec> = {
+      metadata: { id: '2', namespace: 'default', type: MachineType },
+      spec: { connected: true, management_address: 'localhost' },
+    }
+
     pushEvents(
-      {
-        type: EventType.CREATED,
-        metadata: {
-          id: '1',
-          namespace: 'default',
-          type: MachineType,
+      createCreatedEvent(machine1),
+      createCreatedEvent(machine2),
+      createDestroyedEvent(machine2),
+      createUpdatedEvent(
+        {
+          ...machine1,
+          spec: { ...machine1.spec, connected: false },
         },
-        resource: {
-          connected: true,
-          management_address: 'localhost',
-        },
-      },
-      {
-        type: EventType.CREATED,
-        metadata: {
-          id: '2',
-          namespace: 'default',
-          type: MachineType,
-        },
-        resource: {
-          connected: true,
-          management_address: 'localhost',
-        },
-      },
-      {
-        type: EventType.DESTROYED,
-        metadata: {
-          id: '2',
-          namespace: 'default',
-          type: MachineType,
-        },
-        resource: {
-          connected: true,
-          management_address: 'localhost',
-        },
-      },
-      {
-        type: EventType.UPDATED,
-        metadata: {
-          id: '1',
-          namespace: 'default',
-          type: MachineType,
-        },
-        resource: {
-          connected: false,
-          management_address: 'localhost',
-        },
-      },
+        machine1,
+      ),
     )
 
     // not yet bootstrapped
@@ -181,31 +60,19 @@ describe('watch', () => {
     // still loading
     expect(watch.loading.value).toBeTruthy()
 
-    pushEvents({
-      type: EventType.BOOTSTRAPPED,
-    })
+    // Bootstrap event triggers the loading of queued events
+    pushEvents(createBootstrapEvent())
 
-    expect(items.value).toHaveLength(1)
+    await waitFor(() => expect(items.value).toHaveLength(1))
 
     const machine = items.value[0]
     expect(machine.metadata.id).toBe('1')
     expect(machine.spec.connected).toBeFalsy()
     expect(watch.loading.value).toBeFalsy()
 
-    pushEvents({
-      type: EventType.CREATED,
-      metadata: {
-        id: '2',
-        namespace: 'default',
-        type: MachineType,
-      },
-      resource: {
-        connected: true,
-        management_address: 'localhost',
-      },
-    })
+    pushEvents(createCreatedEvent(machine2))
 
-    expect(items.value).toHaveLength(2)
+    await waitFor(() => expect(items.value).toHaveLength(2))
 
     watch.stop()
 
@@ -213,80 +80,40 @@ describe('watch', () => {
   })
 
   test('restarts handling', async () => {
+    const { pushEvents, closeStream } = createWatchStreamMock()
+
     await watch.start({
       runtime: Runtime.Omni,
       resource: { type: MachineType, namespace: DefaultNamespace },
     })
 
-    const populate = () => {
+    function populate(count: number) {
       pushEvents(
-        {
-          type: EventType.CREATED,
-          metadata: {
-            id: '1',
-            namespace: 'default',
-            type: MachineType,
-          },
-          resource: {
-            connected: true,
-            management_address: 'localhost',
-          },
-        },
-        {
-          type: EventType.CREATED,
-          metadata: {
-            id: '2',
-            namespace: 'default',
-            type: MachineType,
-          },
-          resource: {
-            connected: true,
-            management_address: 'localhost',
-          },
-        },
-        {
-          type: EventType.CREATED,
-          metadata: {
-            id: '3',
-            namespace: 'default',
-            type: MachineType,
-          },
-          resource: {
-            connected: true,
-            management_address: 'localhost',
-          },
-        },
-        {
-          type: EventType.CREATED,
-          metadata: {
-            id: '4',
-            namespace: 'default',
-            type: MachineType,
-          },
-          resource: {
-            connected: false,
-            management_address: 'localhost',
-          },
-        },
-        {
-          type: EventType.BOOTSTRAPPED,
-        },
+        ...new Array(count).fill(null).map((_, i) =>
+          createCreatedEvent<MachineSpec>({
+            metadata: { id: i.toString(), namespace: 'default', type: MachineType },
+            spec: { connected: true, management_address: 'localhost' },
+          }),
+        ),
+        createBootstrapEvent(),
       )
     }
 
-    populate()
+    populate(4)
 
-    expect(watch.loading.value).toBeFalsy()
-    expect(items.value).toHaveLength(4)
+    await waitFor(() => {
+      expect(watch.loading.value).toBeFalsy()
+      expect(items.value).toHaveLength(4)
+    })
 
-    stream.close(new Error('network error'))
+    closeStream(new Error('network error'))
 
-    await stream.waitRunning(6000)
+    populate(2)
 
-    populate()
-
-    expect(watch.loading.value).toBeFalsy()
-    expect(items.value).toHaveLength(4)
+    await waitFor(() => {
+      expect(watch.loading.value).toBeFalsy()
+      expect(items.value).toHaveLength(2)
+    })
 
     watch.stop()
   })

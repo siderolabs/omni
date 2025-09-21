@@ -1,10 +1,11 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-09-19T14:51:46Z by kres 80c0e43.
+# Generated on 2025-09-21T19:32:04Z by kres d7ffba2.
 
 *
 !frontend/src
 !frontend/public
+!frontend/msw
 !client/api
 !client/pkg
 !cmd

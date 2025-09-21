@@ -1,6 +1,6 @@
 {
   "extends": "@tsconfig/node22/tsconfig.json",
-  "include": ["vite.config.*", "vitest.setup.*", "playwright.config.*", "eslint.config.*"],
+  "include": ["vite.config.*", "playwright.config.*", "eslint.config.*"],
   "compilerOptions": {
     "noEmit": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",

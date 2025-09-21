@@ -72,6 +72,7 @@
     "json-diff-ts": "^4.8.2",
     "kubernetes-types": "^1.30.0",
     "lodash": "^4.17.21",
+    "msw": "^2.10.5",
     "openpgp": "^6.1.0",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",

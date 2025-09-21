@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-09-19T14:51:46Z by kres 80c0e43.
+# Generated on 2025-09-21T19:32:04Z by kres d7ffba2.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -94,6 +94,7 @@ COPY frontend/.editorconfig ./
 COPY frontend/.prettier* ./
 COPY ./frontend/src ./src
 COPY ./frontend/public ./public
+COPY ./frontend/msw ./msw
 RUN --mount=type=cache,target=/root/.npm,id=omni/root/.npm,sharing=locked npm ci
 
 # build tools
