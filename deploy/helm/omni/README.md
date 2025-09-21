@@ -42,7 +42,16 @@ Omni is a SaaS-native Talos Linux cluster fleet management platform that provide
   - [Common Issues](#common-issues)
   - [Logs](#logs)
   - [Debug Mode](#debug-mode)
+- [Migration Guide](#migration-guide)
+  - [Migrating from Deployment to StatefulSet](#migrating-from-deployment-to-statefulset)
+  - [Migrating to External etcd](#migrating-to-external-etcd)
+- [Configuration Examples](#configuration-examples)
+  - [Minimal Embedded etcd (StatefulSet)](#minimal-embedded-etcd-statefulset)
+  - [Minimal External etcd (Deployment)](#minimal-external-etcd-deployment)
+  - [Production with Ingress](#production-with-ingress)
+  - [Development/Testing](#developmenttesting)
 - [Upgrading](#upgrading)
+  - [Backwards Compatibility](#backwards-compatibility)
   - [Backup](#backup)
   - [Upgrade Process](#upgrade-process)
 - [Uninstalling](#uninstalling)
@@ -567,6 +576,263 @@ kubectl logs -n omni-system deployment/omni
 
 Enable debug logging:
 ```yaml
+extraArgs:
+  - --debug
+```
+
+## Migration Guide
+
+### Migrating from Deployment to StatefulSet
+
+To migrate an existing Deployment-based installation to StatefulSet (for better storage management):
+
+1. **Backup etcd data**:
+```bash
+kubectl exec -n omni-system deployment/omni -- tar -czf /tmp/etcd-backup.tar.gz /_out
+kubectl cp omni-system/$(kubectl get pod -n omni-system -l app.kubernetes.io/name=omni -o jsonpath='{.items[0].metadata.name}'):/tmp/etcd-backup.tar.gz ./etcd-backup.tar.gz
+```
+
+2. **Delete existing Deployment** (this will cause downtime):
+```bash
+helm uninstall omni --namespace omni-system
+kubectl delete pvc omni-pvc --namespace omni-system
+```
+
+3. **Reinstall with StatefulSet**:
+```bash
+helm install omni sidero/omni \
+  --namespace omni-system \
+  --create-namespace \
+  --set etcd.external=false \
+  --set domainName=your-domain.com \
+  --set accountUuid=your-account-uuid
+```
+
+4. **Restore etcd data**:
+```bash
+kubectl cp ./etcd-backup.tar.gz omni-system/omni-0:/tmp/etcd-backup.tar.gz
+kubectl exec -n omni-system omni-0 -- tar -xzf /tmp/etcd-backup.tar.gz -C /
+```
+
+### Migrating to External etcd
+
+To migrate from embedded etcd to external etcd:
+
+1. **Set up external etcd cluster** (outside scope of this guide)
+
+2. **Backup embedded etcd data**:
+```bash
+kubectl exec -n omni-system deployment/omni -- tar -czf /tmp/etcd-backup.tar.gz /_out
+kubectl cp omni-system/$(kubectl get pod -n omni-system -l app.kubernetes.io/name=omni -o jsonpath='{.items[0].metadata.name}'):/tmp/etcd-backup.tar.gz ./etcd-backup.tar.gz
+```
+
+3. **Restore data to external etcd** (use etcd restore tools)
+
+4. **Update Helm values**:
+```yaml
+etcd:
+  external: true
+  endpoints:
+    - "https://etcd-1.example.com:2379"
+    - "https://etcd-2.example.com:2379"
+    - "https://etcd-3.example.com:2379"
+deployment:
+  replicaCount: 3  # Now supports multiple replicas
+```
+
+5. **Upgrade deployment**:
+```bash
+helm upgrade omni sidero/omni \
+  --namespace omni-system \
+  --values values.yaml
+```
+
+## Configuration Examples
+
+### Minimal Embedded etcd (StatefulSet)
+
+```yaml
+# values-embedded.yaml
+domainName: omni.example.com
+accountUuid: "12345678-1234-1234-1234-123456789012"
+
+auth:
+  auth0:
+    enabled: true
+    clientId: "your-auth0-client-id"
+    domain: "https://your-auth0-domain"
+
+etcd:
+  external: false
+
+volumes:
+  etcd:
+    size: "100Gi"
+    storageClass: "fast-ssd"
+  gpg:
+    secretName: "omni-gpg"
+```
+
+### Minimal External etcd (Deployment)
+
+```yaml
+# values-external-etcd.yaml
+domainName: omni.example.com
+accountUuid: "12345678-1234-1234-1234-123456789012"
+
+deployment:
+  replicaCount: 3
+
+auth:
+  auth0:
+    enabled: true
+    clientId: "your-auth0-client-id"
+    domain: "https://your-auth0-domain"
+
+etcd:
+  external: true
+  endpoints:
+    - "https://etcd-1.example.com:2379"
+    - "https://etcd-2.example.com:2379"
+    - "https://etcd-3.example.com:2379"
+  username: "omni"
+  password: "secure-password"
+  tls:
+    enabled: true
+    certFile: "/etc/etcd/tls/client.crt"
+    keyFile: "/etc/etcd/tls/client.key"
+    caFile: "/etc/etcd/tls/ca.crt"
+
+volumes:
+  gpg:
+    secretName: "omni-gpg"
+```
+
+### Production with Ingress
+
+```yaml
+# values-production.yaml
+domainName: omni.example.com
+accountUuid: "12345678-1234-1234-1234-123456789012"
+
+deployment:
+  replicaCount: 3
+
+auth:
+  auth0:
+    enabled: true
+    clientId: "your-auth0-client-id"
+    domain: "https://your-auth0-domain"
+
+etcd:
+  external: true
+  endpoints:
+    - "https://etcd-1.example.com:2379"
+    - "https://etcd-2.example.com:2379"
+    - "https://etcd-3.example.com:2379"
+  auth:
+    secretName: "etcd-credentials"
+  tls:
+    enabled: true
+    secretName: "etcd-tls"
+
+service:
+  siderolink:
+    wireguard:
+      type: LoadBalancer
+      externalTrafficPolicy: Local
+
+ingress:
+  api:
+    enabled: true
+    host: omni.example.com
+    ingressClassName: nginx
+    certManager:
+      enabled: true
+      issuer: letsencrypt-prod
+    tls:
+      enabled: true
+      secretName: omni-api-tls
+  ui:
+    enabled: true
+    host: omni.example.com
+    ingressClassName: nginx
+    certManager:
+      enabled: true
+      issuer: letsencrypt-prod
+    tls:
+      enabled: true
+      secretName: omni-ui-tls
+  siderolink:
+    enabled: true
+    host: siderolink.omni.example.com
+    ingressClassName: nginx
+    certManager:
+      enabled: true
+      issuer: letsencrypt-prod
+    tls:
+      enabled: true
+      secretName: omni-siderolink-tls
+  kubernetesProxy:
+    enabled: true
+    host: kubernetes.omni.example.com
+    ingressClassName: nginx
+    certManager:
+      enabled: true
+      issuer: letsencrypt-prod
+    tls:
+      enabled: true
+      secretName: omni-kubernetes-proxy-tls
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+volumes:
+  gpg:
+    secretName: "omni-gpg"
+  tls:
+    secretName: "omni-tls"
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+```
+
+### Development/Testing
+
+```yaml
+# values-dev.yaml
+domainName: omni-dev.example.com
+accountUuid: "12345678-1234-1234-1234-123456789012"
+
+auth:
+  auth0:
+    enabled: true
+    clientId: "your-dev-auth0-client-id"
+    domain: "https://your-dev-auth0-domain"
+
+etcd:
+  external: false
+
+volumes:
+  etcd:
+    size: "10Gi"
+  gpg:
+    secretName: "omni-gpg-dev"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
 extraArgs:
   - --debug
 ```
