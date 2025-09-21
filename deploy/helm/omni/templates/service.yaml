@@ -5,8 +5,15 @@ metadata:
   name: internal
   namespace: {{ .Release.Namespace }}
   annotations:
+  {{- if .Values.service.annotations }}
   {{- range $key, $value := .Values.service.annotations }}
     {{ $key }}: {{ tpl ($value | toString) $ | quote }}
+  {{- end }}
+  {{- end }}
+  {{- if and .Values.service.internal .Values.service.internal.annotations }}
+  {{- range $key, $value := .Values.service.internal.annotations }}
+    {{ $key }}: {{ tpl ($value | toString) $ | quote }}
+  {{- end }}
   {{- end }}
   labels:
     {{- include "omni.labels" . | nindent 4 }}
@@ -15,7 +22,9 @@ metadata:
     {{- end }}
 spec:
   type: {{ .Values.service.type }}
+  {{- if .Values.service.clusterIP }}
   clusterIP: {{ .Values.service.clusterIP }}
+  {{- end }}
   ports:
     - name: omni
       port: 8080
@@ -38,8 +47,15 @@ metadata:
   name: internal-grpc
   namespace: {{ .Release.Namespace }}
   annotations:
+  {{- if .Values.service.annotations }}
   {{- range $key, $value := .Values.service.annotations }}
     {{ $key }}: {{ tpl ($value | toString) $ | quote }}
+  {{- end }}
+  {{- end }}
+  {{- if and .Values.service.internalGrpc .Values.service.internalGrpc.annotations }}
+  {{- range $key, $value := .Values.service.internalGrpc.annotations }}
+    {{ $key }}: {{ tpl ($value | toString) $ | quote }}
+  {{- end }}
   {{- end }}
   labels:
     {{- include "omni.labels" . | nindent 4 }}
@@ -48,7 +64,9 @@ metadata:
     {{- end }}
 spec:
   type: {{ .Values.service.type }}
+  {{- if .Values.service.clusterIP }}
   clusterIP: {{ .Values.service.clusterIP }}
+  {{- end }}
   ports:
     - name: omni
       port: 8080
@@ -67,8 +85,15 @@ metadata:
   name: wireguard
   namespace: {{ .Release.Namespace }}
   annotations:
+  {{- if .Values.service.annotations }}
   {{- range $key, $value := .Values.service.annotations }}
     {{ $key }}: {{ tpl ($value | toString) $ | quote }}
+  {{- end }}
+  {{- end }}
+  {{- if and .Values.service.siderolink.wireguard .Values.service.siderolink.wireguard.annotations }}
+  {{- range $key, $value := .Values.service.siderolink.wireguard.annotations }}
+    {{ $key }}: {{ tpl ($value | toString) $ | quote }}
+  {{- end }}
   {{- end }}
   labels:
     {{- include "omni.labels" . | nindent 4 }}
@@ -76,8 +101,11 @@ metadata:
     {{- toYaml .Values.service.labels | nindent 4 }}
     {{- end }}
 spec:
-  type: NodePort
+  type: {{ .Values.service.siderolink.wireguard.type | default "NodePort" }}
+  externalTrafficPolicy: {{ .Values.service.siderolink.wireguard.externalTrafficPolicy | default "Cluster" }}
+  {{- if .Values.service.clusterIP }}
   clusterIP: {{ .Values.service.clusterIP }}
+  {{- end }}
   ports:
     - name: wireguard
       nodePort: {{ .Values.service.siderolink.wireguard.port }}
