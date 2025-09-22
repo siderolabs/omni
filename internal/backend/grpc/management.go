@@ -166,7 +166,8 @@ func (s *managementServer) Kubeconfig(ctx context.Context, req *management.Kubec
 		}
 
 		extraOptions = []string{
-			fmt.Sprintf("grant-type=%s", req.GrantType),
+			"grant-type=" + req.GrantType,
+			"oidc-redirect-url=urn:ietf:wg:oauth:2.0:oob",
 		}
 	}
 
