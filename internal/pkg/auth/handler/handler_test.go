@@ -32,7 +32,7 @@ func testHandler(t *testing.T, authEnabled bool) {
 
 	logger := zaptest.NewLogger(t)
 
-	authenticatorFunc := func(context.Context, string) (*auth.Authenticator, error) {
+	authenticatorFunc := func(context.Context, string) (*auth.Authenticator, error) { //nolint:unparam
 		return &auth.Authenticator{
 			Verifier: mockSignerVerifier{},
 			Identity: "user@example.com",
@@ -41,12 +41,15 @@ func testHandler(t *testing.T, authEnabled bool) {
 		}, nil
 	}
 
-	wrapWithAuth := func(h http.Handler) http.Handler {
-		return handler.NewAuthConfig(handler.NewSignature(h, authenticatorFunc, logger), authEnabled, logger)
-	}
+	testServer := func(signatureRequired message.SignatureRequiredCheckFunc) *httptest.Server {
+		wrapWithAuth := func(h http.Handler) http.Handler {
+			signatureHandler := handler.NewSignature(h, authenticatorFunc, logger, message.WithSignatureRequiredCheck(signatureRequired))
 
-	ts := httptest.NewServer(wrapWithAuth(coreHandler))
-	defer ts.Close()
+			return handler.NewAuthConfig(signatureHandler, authEnabled, logger)
+		}
+
+		return httptest.NewServer(wrapWithAuth(coreHandler))
+	}
 
 	ctx := t.Context()
 
@@ -59,6 +62,7 @@ func testHandler(t *testing.T, authEnabled bool) {
 		verifyContext   bool
 
 		expectedCode int
+		public       bool
 	}
 
 	var testCases []testCase
@@ -69,6 +73,7 @@ func testHandler(t *testing.T, authEnabled bool) {
 				name:         "no signature",
 				expectedCode: http.StatusOK,
 				uri:          "/ok",
+				public:       true,
 			},
 			{
 				name:         "correct signature",
@@ -101,6 +106,11 @@ func testHandler(t *testing.T, authEnabled bool) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			ts := testServer(func() (bool, error) {
+				return authEnabled && !tc.public, nil
+			})
+			defer ts.Close()
+
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, ts.URL+tc.uri, nil)
 			require.NoError(t, err)
 

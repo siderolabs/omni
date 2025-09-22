@@ -317,7 +317,7 @@ func (s *ResourceServer) Teardown(ctx context.Context, in *resources.DeleteReque
 
 func getSource(ctx context.Context) common.Runtime {
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		source := md.Get(message.RuntimeHeaderHey)
+		source := md.Get(message.RuntimeHeaderKey)
 		if source != nil {
 			if res, ok := common.Runtime_value[source[0]]; ok {
 				return common.Runtime(res)
@@ -361,6 +361,14 @@ func withResource(r res) []runtime.QueryOption {
 
 // CreateResource creates a resource from a resource proto representation.
 func CreateResource(resource *resources.Resource) (cosiresource.Resource, error) { //nolint:ireturn
+	if resource == nil {
+		return nil, errors.New("resource is nil")
+	}
+
+	if resource.Metadata == nil {
+		return nil, errors.New("resource metadata is nil")
+	}
+
 	if resource.Metadata.Version == "" {
 		resource.Metadata.Version = "1"
 	}
