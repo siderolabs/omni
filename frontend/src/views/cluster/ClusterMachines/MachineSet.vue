@@ -230,7 +230,7 @@ const sectionHeadingId = useId()
     :aria-labelledby="sectionHeadingId"
   >
     <div class="flex items-center border-b border-naturals-n4 pl-3 text-naturals-n14">
-      <div class="clusters-grid flex-1 items-center py-2">
+      <div class="grid flex-1 grid-cols-4 items-center gap-2 py-2 pr-2 *:truncate *:text-xs">
         <div class="col-span-2 flex flex-wrap items-center justify-between gap-2">
           <div class="flex flex-1 items-center">
             <header class="flex w-40 items-center gap-2 truncate rounded bg-naturals-n4 px-3 py-2">
@@ -302,7 +302,7 @@ const sectionHeadingId = useId()
       v-for="machine in machines"
       :id="machine.metadata.id"
       :key="itemID(machine)"
-      class="machine-item"
+      class="border-naturals-n4 not-last-of-type:border-b last-of-type:rounded-b-md"
       :machine-set="machineSet"
       :has-diagnostic-info="nodesWithDiagnostics?.has(machine.metadata.id!)"
       :machine="machine"
@@ -311,7 +311,7 @@ const sectionHeadingId = useId()
     <MachineRequest
       v-for="request in pendingRequests"
       :key="itemID(request)"
-      class="machine-item"
+      class="border-naturals-n4 not-last-of-type:border-b last-of-type:rounded-b-md"
       :request-status="request"
     />
     <div
@@ -325,15 +325,3 @@ const sectionHeadingId = useId()
     </div>
   </section>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.machine-item:not(:last-of-type) {
-  @apply border-b border-naturals-n4;
-}
-
-.machine-item:last-of-type {
-  @apply rounded-b-md;
-}
-</style>

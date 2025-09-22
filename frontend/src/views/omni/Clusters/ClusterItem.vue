@@ -123,7 +123,7 @@ const labelId = useId()
     :label-id="labelId"
   >
     <template #default>
-      <div class="clusters-grid flex-1">
+      <div class="grid flex-1 grid-cols-4 items-center gap-2 pr-2 *:truncate *:text-xs">
         <div class="flex items-center gap-1">
           <RouterLink
             :id="labelId"
@@ -224,15 +224,3 @@ const labelId = useId()
     </template>
   </ListItemBox>
 </template>
-
-<style>
-@reference "../../../index.css";
-
-.clusters-grid {
-  @apply grid grid-cols-4 items-center gap-2 pr-2;
-}
-
-.clusters-grid > * {
-  @apply truncate text-xs;
-}
-</style>

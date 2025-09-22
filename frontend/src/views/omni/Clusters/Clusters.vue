@@ -124,8 +124,8 @@ const filterOptions = [
       <template #default="{ items, searchQuery }">
         <div class="flex flex-col gap-2">
           <div class="max-lg:hidden">
-            <div class="clusters-header">
-              <div class="clusters-grid">
+            <div class="mb-1 flex items-center bg-naturals-n2 px-3 py-2.5 *:text-xs">
+              <div class="grid flex-1 grid-cols-4 items-center gap-2 pr-2 *:truncate *:text-xs">
                 <div class="pl-6">Name</div>
                 <div class="pl-6">Machines Healthy</div>
                 <div class="pl-6">Phase</div>
@@ -147,19 +147,3 @@ const filterOptions = [
     </TList>
   </div>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.clusters-grid {
-  @apply grid flex-1 grid-cols-4 pr-2;
-}
-
-.clusters-header {
-  @apply mb-1 flex items-center bg-naturals-n2 px-3 py-2.5;
-}
-
-.clusters-header > * {
-  @apply text-xs;
-}
-</style>
