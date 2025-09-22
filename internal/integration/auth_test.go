@@ -941,11 +941,6 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       authres.NewAuthConfig(),
-				allowedVerbSet: readOnlyVerbSet,
-				isPublic:       true,
-			},
-			{
 				resource:       siderolink.NewConnectionParams(resources.DefaultNamespace, uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
@@ -1149,6 +1144,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		// delete excluded resources from the untested set
 		delete(untestedResourceTypes, k8s.KubernetesResourceType)
 		delete(untestedResourceTypes, siderolink.DeprecatedLinkCounterType)
+		delete(untestedResourceTypes, authres.AuthConfigType)
 
 		for _, tc := range testCases {
 			for _, testVerb := range allVerbs {
@@ -1173,17 +1169,17 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 
 						accessErr := accessResource(noSignatureCtx, t, rootCli, scopedCli, tc.resource, testVerb)
 
+						if !tc.isPublic {
+							assert.ErrorContains(t, accessErr, "invalid signature")
+
+							// refresh the error but with a signature this time
+							accessErr = accessResource(rootCtx, t, rootCli, scopedCli, tc.resource, testVerb)
+						}
+
 						if len(tc.allowedVerbSet) == 0 {
 							assert.ErrorContains(t, accessErr, "no access is permitted")
 
 							return
-						}
-
-						if !tc.isPublic {
-							assert.ErrorContains(t, accessErr, "missing valid signature")
-
-							// refresh the error but with a signature this time
-							accessErr = accessResource(rootCtx, t, rootCli, scopedCli, tc.resource, testVerb)
 						}
 
 						isVerbError := accessErr != nil && strings.Contains(accessErr.Error(), "only") && strings.Contains(accessErr.Error(), "access is permitted")

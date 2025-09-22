@@ -66,7 +66,7 @@ require (
 	github.com/siderolabs/discovery-client v0.1.11
 	github.com/siderolabs/discovery-service v1.0.10
 	github.com/siderolabs/gen v0.8.4
-	github.com/siderolabs/go-api-signature v0.3.6
+	github.com/siderolabs/go-api-signature v0.3.8
 	github.com/siderolabs/go-circular v0.2.3
 	github.com/siderolabs/go-debug v0.5.0
 	github.com/siderolabs/go-kubernetes v0.2.23

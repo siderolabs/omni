@@ -14,6 +14,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
+	resapi "github.com/siderolabs/omni/client/api/omni/resources"
+	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
@@ -36,7 +38,15 @@ func NewAuthConfig(enabled bool, logger *zap.Logger) *AuthConfig {
 // Unary returns a new unary GRPC interceptor.
 func (c *AuthConfig) Unary() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		ctx = c.intercept(ctx, info.FullMethod)
+		isGetAuthConfigRequest := false
+
+		if req != nil && info != nil && info.FullMethod == resapi.ResourceService_Get_FullMethodName {
+			if getReq, getReqOk := req.(*resapi.GetRequest); getReqOk && getReq.Type == authres.AuthConfigType {
+				isGetAuthConfigRequest = true
+			}
+		}
+
+		ctx = c.intercept(ctx, isGetAuthConfigRequest, info.FullMethod)
 
 		return handler(ctx, req)
 	}
@@ -45,7 +55,7 @@ func (c *AuthConfig) Unary() grpc.UnaryServerInterceptor {
 // Stream returns a new streaming GRPC interceptor.
 func (c *AuthConfig) Stream() grpc.StreamServerInterceptor {
 	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		ctx := c.intercept(ss.Context(), info.FullMethod)
+		ctx := c.intercept(ss.Context(), false, info.FullMethod)
 
 		return handler(srv, &grpc_middleware.WrappedServerStream{
 			ServerStream:   ss,
@@ -54,7 +64,7 @@ func (c *AuthConfig) Stream() grpc.StreamServerInterceptor {
 	}
 }
 
-func (c *AuthConfig) intercept(ctx context.Context, method string) context.Context {
+func (c *AuthConfig) intercept(ctx context.Context, isGetAuthConfigRequest bool, method string) context.Context {
 	ctx = ctxstore.WithValue(ctx, auth.EnabledAuthContextKey{Enabled: c.enabled})
 
 	if !c.enabled {
@@ -66,7 +76,9 @@ func (c *AuthConfig) intercept(ctx context.Context, method string) context.Conte
 		md = metadata.New(nil)
 	}
 
-	msg := message.NewGRPC(md, method)
+	msg := message.NewGRPC(md, method, message.WithSignatureRequiredCheck(func() (bool, error) {
+		return !isGetAuthConfigRequest, nil
+	}))
 
 	auditData, ok := ctxstore.Value[*audit.Data](ctx)
 	if ok {

@@ -157,7 +157,7 @@ func generate() (err error) {
 }
 
 func runApp(app string, args ...string) error {
-	cmd := exec.Command(app, args...)
+	cmd := exec.Command(app, args...) //nolint:noctx
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin

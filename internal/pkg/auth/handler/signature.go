@@ -25,14 +25,16 @@ type Signature struct {
 	authenticatorFunc auth.AuthenticatorFunc
 	next              http.Handler
 	logger            *zap.Logger
+	options           []message.Option
 }
 
 // NewSignature returns a new signature handler.
-func NewSignature(handler http.Handler, authenticatorFunc auth.AuthenticatorFunc, logger *zap.Logger) *Signature {
+func NewSignature(handler http.Handler, authenticatorFunc auth.AuthenticatorFunc, logger *zap.Logger, messageOptions ...message.Option) *Signature {
 	return &Signature{
 		next:              handler,
 		authenticatorFunc: authenticatorFunc,
 		logger:            logger,
+		options:           messageOptions,
 	}
 }
 
@@ -57,7 +59,7 @@ func (s *Signature) ServeHTTP(writer http.ResponseWriter, request *http.Request)
 }
 
 func (s *Signature) intercept(request *http.Request) (*http.Request, error) {
-	msg, err := message.NewHTTP(request)
+	msg, err := message.NewHTTP(request, s.options...)
 	if err != nil {
 		return nil, err
 	}

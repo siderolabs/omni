@@ -416,6 +416,8 @@ func (s *Server) buildServerOptions() ([]grpc.ServerOption, error) {
 		grpc_ctxtags.UnaryServerInterceptor(),
 		logLevelOverrideUnaryInterceptor,
 		grpc_zap.UnaryServerInterceptor(s.logger, grpc_zap.WithMessageProducer(messageProducer)),
+		grpc_prometheus.UnaryServerInterceptor,
+		grpc_recovery.UnaryServerInterceptor(recoveryOpt),
 		grpcutil.SetUserAgent(),
 		grpcutil.SetRealPeerAddress(),
 		grpcutil.SetAuditData(),
@@ -428,14 +430,14 @@ func (s *Server) buildServerOptions() ([]grpc.ServerOption, error) {
 			),
 			1024,
 		),
-		grpc_prometheus.UnaryServerInterceptor,
-		grpc_recovery.UnaryServerInterceptor(recoveryOpt),
 	}
 
 	streamInterceptors := []grpc.StreamServerInterceptor{
 		grpc_ctxtags.StreamServerInterceptor(),
 		logLevelOverrideStreamInterceptor,
 		grpc_zap.StreamServerInterceptor(s.logger, grpc_zap.WithMessageProducer(messageProducer)),
+		grpc_prometheus.StreamServerInterceptor,
+		grpc_recovery.StreamServerInterceptor(recoveryOpt),
 		grpcutil.StreamSetUserAgent(),
 		grpcutil.StreamSetRealPeerAddress(),
 		grpcutil.StreamSetAuditData(),
@@ -452,8 +454,6 @@ func (s *Server) buildServerOptions() ([]grpc.ServerOption, error) {
 				),
 			},
 		),
-		grpc_prometheus.StreamServerInterceptor,
-		grpc_recovery.StreamServerInterceptor(recoveryOpt),
 	}
 
 	authInterceptors, err := s.getAuthInterceptors()
@@ -759,12 +759,12 @@ func resourceServerUpdate(resCopy *resapi.UpdateRequest) (*resapi.UpdateRequest,
 func isSensitiveResource(res *v1alpha1.Resource) bool {
 	protoR, err := protobuf.Unmarshal(res)
 	if err != nil {
-		return false
+		return true
 	}
 
 	properResource, err := protobuf.UnmarshalResource(protoR)
 	if err != nil {
-		return false
+		return true
 	}
 
 	resDef, ok := properResource.(meta.ResourceDefinitionProvider)
@@ -779,7 +779,7 @@ func isSensitiveResource(res *v1alpha1.Resource) bool {
 func isSensitiveSpec(resource *resapi.Resource) bool {
 	res, err := grpcomni.CreateResource(resource)
 	if err != nil {
-		return false
+		return true
 	}
 
 	resDef, ok := res.(meta.ResourceDefinitionProvider)
