@@ -11,11 +11,11 @@ metadata:
     nginx.ingress.kubernetes.io/backend-protocol: GRPC
     nginx.ingress.kubernetes.io/proxy-body-size: 32m
     nginx.ingress.kubernetes.io/service-upstream: "true"
-    {{- if .Values.ingress.api.certManager.enabled }}
+    {{- if and .Values.ingress.api.certManager .Values.ingress.api.certManager.enabled }}
     cert-manager.io/cluster-issuer: {{ .Values.ingress.api.certManager.issuer }}
     {{- end }}
-    {{- with .Values.ingress.api.annotations }}
-    {{- toYaml . | nindent 4 }}
+    {{- if .Values.ingress.api.annotations }}
+    {{- toYaml .Values.ingress.api.annotations | nindent 4 }}
     {{- end }}
 spec:
   {{- if .Values.ingress.api.ingressClassName }}
@@ -113,11 +113,11 @@ metadata:
   labels:
     {{- include "omni.labels" . | nindent 4 }}
   annotations:
-    {{- if .Values.ingress.ui.certManager.enabled }}
+    {{- if and .Values.ingress.ui.certManager .Values.ingress.ui.certManager.enabled }}
     cert-manager.io/cluster-issuer: {{ .Values.ingress.ui.certManager.issuer }}
     {{- end }}
-    {{- with .Values.ingress.ui.annotations }}
-    {{- toYaml . | nindent 4 }}
+    {{- if .Values.ingress.ui.annotations }}
+    {{- toYaml .Values.ingress.ui.annotations | nindent 4 }}
     {{- end }}
 spec:
   {{- if .Values.ingress.ui.ingressClassName }}
@@ -153,11 +153,11 @@ metadata:
     {{- include "omni.labels" . | nindent 4 }}
   annotations:
     nginx.ingress.kubernetes.io/backend-protocol: GRPC
-    {{- if .Values.ingress.siderolink.certManager.enabled }}
+    {{- if and .Values.ingress.siderolink.certManager .Values.ingress.siderolink.certManager.enabled }}
     cert-manager.io/cluster-issuer: {{ .Values.ingress.siderolink.certManager.issuer }}
     {{- end }}
-    {{- with .Values.ingress.siderolink.annotations }}
-    {{- toYaml . | nindent 4 }}
+    {{- if .Values.ingress.siderolink.annotations }}
+    {{- toYaml .Values.ingress.siderolink.annotations | nindent 4 }}
     {{- end }}
 spec:
   {{- if .Values.ingress.siderolink.ingressClassName }}
@@ -192,11 +192,11 @@ metadata:
   labels:
     {{- include "omni.labels" . | nindent 4 }}
   annotations:
-    {{- if .Values.ingress.kubernetesProxy.certManager.enabled }}
+    {{- if and .Values.ingress.kubernetesProxy.certManager .Values.ingress.kubernetesProxy.certManager.enabled }}
     cert-manager.io/cluster-issuer: {{ .Values.ingress.kubernetesProxy.certManager.issuer }}
     {{- end }}
-    {{- with .Values.ingress.kubernetesProxy.annotations }}
-    {{- toYaml . | nindent 4 }}
+    {{- if .Values.ingress.kubernetesProxy.annotations }}
+    {{- toYaml .Values.ingress.kubernetesProxy.annotations | nindent 4 }}
     {{- end }}
 spec:
   {{- if .Values.ingress.kubernetesProxy.ingressClassName }}
