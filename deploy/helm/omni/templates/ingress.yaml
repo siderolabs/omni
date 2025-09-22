@@ -18,7 +18,7 @@ metadata:
     {{- toYaml .Values.ingress.api.annotations | nindent 4 }}
     {{- end }}
 spec:
-  {{- if .Values.ingress.api.ingressClassName }}
+  {{- if and .Values.ingress.api.ingressClassName (ne .Values.ingress.api.ingressClassName "") }}
   ingressClassName: {{ .Values.ingress.api.ingressClassName }}
   {{- end }}
   rules:
@@ -95,7 +95,7 @@ spec:
               number: 8080
         path: /oicd.
         pathType: ImplementationSpecific
-  {{- if .Values.ingress.api.tls.enabled }}
+  {{- if and .Values.ingress.api.tls .Values.ingress.api.tls.enabled }}
   tls:
   - hosts:
     - {{ .Values.ingress.api.host }}
@@ -120,7 +120,7 @@ metadata:
     {{- toYaml .Values.ingress.ui.annotations | nindent 4 }}
     {{- end }}
 spec:
-  {{- if .Values.ingress.ui.ingressClassName }}
+  {{- if and .Values.ingress.ui.ingressClassName (ne .Values.ingress.ui.ingressClassName "") }}
   ingressClassName: {{ .Values.ingress.ui.ingressClassName }}
   {{- end }}
   rules:
@@ -134,7 +134,7 @@ spec:
               number: 8080
         path: /
         pathType: Prefix
-  {{- if .Values.ingress.ui.tls.enabled }}
+  {{- if and .Values.ingress.ui.tls .Values.ingress.ui.tls.enabled }}
   tls:
   - hosts:
     - {{ .Values.ingress.ui.host }}
@@ -160,7 +160,7 @@ metadata:
     {{- toYaml .Values.ingress.siderolink.annotations | nindent 4 }}
     {{- end }}
 spec:
-  {{- if .Values.ingress.siderolink.ingressClassName }}
+  {{- if and .Values.ingress.siderolink.ingressClassName (ne .Values.ingress.siderolink.ingressClassName "") }}
   ingressClassName: {{ .Values.ingress.siderolink.ingressClassName }}
   {{- end }}
   rules:
@@ -174,7 +174,7 @@ spec:
               number: 8090
         path: /
         pathType: ImplementationSpecific
-  {{- if .Values.ingress.siderolink.tls.enabled }}
+  {{- if and .Values.ingress.siderolink.tls .Values.ingress.siderolink.tls.enabled }}
   tls:
   - hosts:
     - {{ .Values.ingress.siderolink.host }}
@@ -199,7 +199,7 @@ metadata:
     {{- toYaml .Values.ingress.kubernetesProxy.annotations | nindent 4 }}
     {{- end }}
 spec:
-  {{- if .Values.ingress.kubernetesProxy.ingressClassName }}
+  {{- if and .Values.ingress.kubernetesProxy.ingressClassName (ne .Values.ingress.kubernetesProxy.ingressClassName "") }}
   ingressClassName: {{ .Values.ingress.kubernetesProxy.ingressClassName }}
   {{- end }}
   rules:
@@ -213,7 +213,7 @@ spec:
               number: 8095
         path: /
         pathType: ImplementationSpecific
-  - host: {{ printf "*.%s" .Values.ingress.kubernetesProxy.host }}
+  - host: "{{ printf "*.%s" .Values.ingress.kubernetesProxy.host }}"
     http:
       paths:
       - backend:
@@ -223,11 +223,11 @@ spec:
               number: 8095
         path: /
         pathType: ImplementationSpecific
-  {{- if .Values.ingress.kubernetesProxy.tls.enabled }}
+  {{- if and .Values.ingress.kubernetesProxy.tls .Values.ingress.kubernetesProxy.tls.enabled }}
   tls:
   - hosts:
     - {{ .Values.ingress.kubernetesProxy.host }}
-    - {{ printf "*.%s" .Values.ingress.kubernetesProxy.host }}
+    - "{{ printf "*.%s" .Values.ingress.kubernetesProxy.host }}"
     secretName: {{ .Values.ingress.kubernetesProxy.tls.secretName }}
   {{- end }}
 {{- end }}
