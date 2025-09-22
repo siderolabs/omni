@@ -154,7 +154,7 @@ func (r *Router) Director(ctx context.Context, fullMethodName string) (proxy.Mod
 		return proxy.One2One, []proxy.Backend{r.omniBackend}, nil
 	}
 
-	if runtime := md.Get(message.RuntimeHeaderHey); runtime != nil && runtime[0] == common.Runtime_Talos.String() {
+	if runtime := md.Get(message.RuntimeHeaderKey); runtime != nil && runtime[0] == common.Runtime_Talos.String() {
 		backends, err := r.getTalosBackend(ctx, md)
 		if err != nil {
 			return proxy.One2One, nil, err

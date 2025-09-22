@@ -22,10 +22,11 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/interop/grpc_testing"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
+	"github.com/siderolabs/omni/client/api/omni/resources"
+	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/interceptor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
@@ -33,17 +34,17 @@ import (
 )
 
 type testServer struct {
-	grpc_testing.UnimplementedTestServiceServer
+	resources.UnimplementedResourceServiceServer
 
 	t *testing.T
 }
 
-func (s testServer) UnaryCall(_ context.Context, _ *grpc_testing.SimpleRequest) (*grpc_testing.SimpleResponse, error) {
-	return &grpc_testing.SimpleResponse{}, nil
+func (s testServer) Get(context.Context, *resources.GetRequest) (*resources.GetResponse, error) {
+	return &resources.GetResponse{}, nil
 }
 
 type SignatureTestSuite struct {
-	testServiceClient grpc_testing.TestServiceClient
+	testServiceClient resources.ResourceServiceClient
 	clientConn        *grpc.ClientConn
 	key               *pgp.Key
 	test.GRPCSuite
@@ -81,7 +82,7 @@ func (suite *SignatureTestSuite) SetupSuite() {
 		),
 	)
 
-	grpc_testing.RegisterTestServiceServer(suite.Server, testServer{
+	resources.RegisterResourceServiceServer(suite.Server, testServer{
 		t: suite.T(),
 	})
 
@@ -94,7 +95,7 @@ func (suite *SignatureTestSuite) SetupSuite() {
 	suite.clientConn, err = grpc.NewClient(suite.Target, dialOptions...)
 	suite.Require().NoError(err)
 
-	suite.testServiceClient = grpc_testing.NewTestServiceClient(suite.clientConn)
+	suite.testServiceClient = resources.NewResourceServiceClient(suite.clientConn)
 }
 
 func (suite *SignatureTestSuite) TearDownSuite() {
@@ -103,7 +104,9 @@ func (suite *SignatureTestSuite) TearDownSuite() {
 }
 
 func (suite *SignatureTestSuite) TestMissingSignaturePassthrough() {
-	_, err := suite.testServiceClient.UnaryCall(suite.T().Context(), &grpc_testing.SimpleRequest{})
+	_, err := suite.testServiceClient.Get(suite.T().Context(), &resources.GetRequest{
+		Type: authres.AuthConfigType,
+	})
 
 	suite.Assert().NoError(err)
 }
@@ -113,7 +116,7 @@ func (suite *SignatureTestSuite) TestInvalidSignatureVersion() {
 		message.SignatureHeaderKey, "invalid",
 	))
 
-	_, err := suite.testServiceClient.UnaryCall(ctx, &grpc_testing.SimpleRequest{})
+	_, err := suite.testServiceClient.Get(ctx, &resources.GetRequest{})
 
 	suite.Assert().Error(err)
 	suite.Assert().Equal(codes.Unauthenticated, status.Code(err), "error code should be codes.Unauthenticated")
@@ -127,7 +130,7 @@ func (suite *SignatureTestSuite) TestMissingTimestamp() {
 		message.SignatureHeaderKey, fmt.Sprintf("%s test@example.org signer-1 %s", message.SignatureVersionV1, payload),
 	))
 
-	_, err := suite.testServiceClient.UnaryCall(ctx, &grpc_testing.SimpleRequest{})
+	_, err := suite.testServiceClient.Get(ctx, &resources.GetRequest{})
 
 	suite.Assert().Error(err)
 	suite.Assert().Equal(codes.Unauthenticated, status.Code(err), "error code should be codes.Unauthenticated")
@@ -141,7 +144,7 @@ func (suite *SignatureTestSuite) TestValidSignature() {
 		Headers: map[string][]string{
 			message.TimestampHeaderKey: {epochTimestamp},
 		},
-		Method: "/grpc.testing.TestService/UnaryCall",
+		Method: resources.ResourceService_Get_FullMethodName,
 	}
 
 	payloadJSON, err := json.Marshal(payload)
@@ -163,7 +166,7 @@ func (suite *SignatureTestSuite) TestValidSignature() {
 		message.PayloadHeaderKey, string(payloadJSON),
 	))
 
-	_, err = suite.testServiceClient.UnaryCall(ctx, &grpc_testing.SimpleRequest{})
+	_, err = suite.testServiceClient.Get(ctx, &resources.GetRequest{})
 
 	assert.NoError(suite.T(), err)
 }
