@@ -28,6 +28,7 @@ import MachineSet from './MachineSet.vue'
 
 const props = defineProps<{
   clusterID: string
+  isSubgrid?: boolean
 }>()
 
 const { clusterID } = toRefs(props)
@@ -90,27 +91,26 @@ machineNodesWatch.setup(
 </script>
 
 <template>
-  <div>
-    <Watch
-      v-for="id in watches"
-      :key="id"
-      :opts="{
-        resource: {
-          namespace: DefaultNamespace,
-          type: MachineSetStatusType,
-          id,
-        },
-        runtime: Runtime.Omni,
-      }"
-    >
-      <template #default="{ data }">
-        <MachineSet
-          v-if="data"
-          :key="itemID(data)"
-          :machine-set="data"
-          :nodes-with-diagnostics="nodesWithDiagnostics"
-        />
-      </template>
-    </Watch>
-  </div>
+  <Watch
+    v-for="id in watches"
+    :key="id"
+    :opts="{
+      resource: {
+        namespace: DefaultNamespace,
+        type: MachineSetStatusType,
+        id,
+      },
+      runtime: Runtime.Omni,
+    }"
+  >
+    <template #default="{ data }">
+      <MachineSet
+        v-if="data"
+        :key="itemID(data)"
+        :machine-set="data"
+        :nodes-with-diagnostics="nodesWithDiagnostics"
+        :is-subgrid
+      />
+    </template>
+  </Watch>
 </template>

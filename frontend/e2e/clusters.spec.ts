@@ -12,6 +12,7 @@ import { expect, test } from './omnictl_fixtures.js'
 test.describe.configure({ mode: 'serial', retries: 0 })
 
 const clusterName = 'talos-test-cluster'
+const machineName = 'deadbeef'
 
 test('create cluster', async ({ page }) => {
   test.setTimeout(milliseconds({ minutes: 15 }))
@@ -38,7 +39,7 @@ test('create cluster', async ({ page }) => {
     await editor.press('Delete')
     await editor.fill(`machine:
  network:
-   hostname: deadbeef`)
+   hostname: ${machineName}`)
 
     await page.getByRole('button', { name: 'Save' }).click()
   })
@@ -63,12 +64,9 @@ test('create cluster', async ({ page }) => {
 
   await page.getByRole('link', { name: 'Clusters' }).click()
 
-  // Expand cluster to show machines
-  await page.getByRole('button', { name: clusterName }).click()
-
   await expect(async () => {
     await expect(page.locator('#machine-count')).toHaveText(/\d\/3/)
-    await expect(page.getByText('deadbeef')).toBeVisible()
+    await expect(page.getByText(machineName)).toBeVisible()
     await expect(page.locator('#machine-set-phase-name').getByText('Running')).toHaveCount(2)
     await expect(page.locator('#cluster-machine-stage-name').getByText('Running')).toHaveCount(3)
   }, 'Wait for cluster to be running').toPass({
@@ -77,18 +75,28 @@ test('create cluster', async ({ page }) => {
   })
 
   // Check that extensions are added
-  await page.getByRole('link', { name: 'deadbeef' }).click()
+  await page.getByRole('link', { name: machineName }).click()
   await page.getByRole('link', { name: 'Extensions' }).click()
 
   await expect(page.getByText('siderolabs/usb-modem-drivers')).toBeVisible()
 })
 
-test('open machine', async ({ page }) => {
+test('expand and collapse cluster', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('link', { name: 'Clusters' }).click()
 
-  // Expand cluster
+  await expect(page.getByText(machineName)).toBeInViewport()
+
   await page.getByRole('button', { name: clusterName }).click()
+  await expect(page.getByText(machineName)).not.toBeInViewport()
+
+  await page.getByRole('button', { name: clusterName }).click()
+  await expect(page.getByText(machineName)).toBeInViewport()
+})
+
+test('open machine', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('link', { name: 'Clusters' }).click()
 
   const servicesList = page.getByRole('region', { name: 'Services' })
 

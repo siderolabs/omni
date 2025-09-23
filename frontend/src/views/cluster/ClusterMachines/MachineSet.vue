@@ -55,6 +55,7 @@ const showMachinesCount = ref<number | undefined>(25)
 const props = defineProps<{
   machineSet: Resource<MachineSetStatusSpec>
   nodesWithDiagnostics: Set<string>
+  isSubgrid?: boolean
 }>()
 
 const { machineSet } = toRefs(props)
@@ -226,97 +227,97 @@ const sectionHeadingId = useId()
 <template>
   <section
     v-if="machines.length > 0 || requests.length > 0"
-    class="border-t-8 border-naturals-n4"
+    class="grid border-t-8 border-naturals-n4 text-naturals-n14"
+    :class="
+      isSubgrid ? 'col-span-full grid-cols-subgrid' : 'grid-cols-[repeat(4,1fr)_--spacing(18)]'
+    "
     :aria-labelledby="sectionHeadingId"
   >
-    <div class="flex items-center border-b border-naturals-n4 pl-3 text-naturals-n14">
-      <div class="grid flex-1 grid-cols-4 items-center gap-2 py-2 pr-2 *:truncate *:text-xs">
-        <div class="col-span-2 flex flex-wrap items-center justify-between gap-2">
-          <div class="flex flex-1 items-center">
-            <header class="flex w-40 items-center gap-2 truncate rounded bg-naturals-n4 px-3 py-2">
-              <TIcon icon="server-stack" class="h-4 w-4" />
-              <h3 :id="sectionHeadingId" class="flex-1 truncate">
-                {{ machineSetTitle(clusterID, machineSet?.metadata?.id) }}
-              </h3>
-            </header>
-          </div>
-          <div class="flex flex-1 max-md:ml-1 md:ml-10">
-            <TSpinner v-if="scaling" class="h-4 w-4" />
-            <div v-else-if="!editingMachinesCount" class="flex items-center gap-1">
-              <div class="flex items-center">
-                {{ machineSet?.spec?.machines?.healthy || 0 }}/
-                <div :class="{ 'mt-0.5 text-lg': requestedMachines === '∞' }">
-                  {{ requestedMachines }}
-                </div>
-              </div>
-              <IconButton
-                v-if="machineSet.spec.machine_allocation?.name"
-                icon="edit"
-                @click="editingMachinesCount = !editingMachinesCount"
-              />
-            </div>
-            <div v-else class="flex items-center gap-1">
-              <div class="w-12">
-                <TInput
-                  v-model="machineCount"
-                  :min="0"
-                  class="h-6"
-                  compact
-                  type="number"
-                  @keydown.enter="() => updateMachineCount()"
-                />
-              </div>
-              <IconButton icon="check" @click="() => updateMachineCount()" />
-              <TButton
-                v-if="canUseAll"
-                type="subtle"
-                @click="() => updateMachineCount(MachineSetSpecMachineAllocationType.Unlimited)"
-              >
-                Use All
-              </TButton>
-            </div>
+    <div class="col-span-full grid grid-cols-subgrid items-center p-2 pr-4 text-xs">
+      <header class="flex max-w-40 items-center gap-2 truncate rounded bg-naturals-n4 px-3 py-2">
+        <TIcon icon="server-stack" class="size-4 shrink-0" aria-hidden="true" />
+        <h3 :id="sectionHeadingId" class="flex-1 truncate">
+          {{ machineSetTitle(clusterID, machineSet?.metadata?.id) }}
+        </h3>
+      </header>
+
+      <TSpinner v-if="scaling" class="size-4 shrink-0" aria-label="loading" />
+      <div v-else-if="!editingMachinesCount" class="flex items-center gap-1">
+        <div class="flex items-center">
+          {{ machineSet?.spec?.machines?.healthy || 0 }}/
+          <div :class="{ 'mt-0.5 text-lg': requestedMachines === '∞' }">
+            {{ requestedMachines }}
           </div>
         </div>
-        <MachineSetPhase
-          :item="machineSet"
-          :class="{ 'col-span-2': !machineSet.spec?.machine_allocation?.name }"
-          class="ml-2"
+        <IconButton
+          v-if="machineSet.spec.machine_allocation?.name"
+          icon="edit"
+          @click="editingMachinesCount = !editingMachinesCount"
         />
-        <div
-          v-if="machineSet.spec?.machine_allocation?.name"
-          class="max-w-min rounded bg-naturals-n4 px-3 py-2 max-md:col-span-4"
-        >
-          Machine Class: {{ machineSet.spec?.machine_allocation?.name }} ({{
-            machineClassMachineCount
-          }})
-        </div>
       </div>
-      <TActionsBox v-if="canRemoveMachineSet" class="mr-4 -ml-4 h-6" @click.stop>
+      <div v-else class="flex items-center gap-1">
+        <div class="w-12">
+          <TInput
+            v-model="machineCount"
+            :min="0"
+            class="h-6"
+            compact
+            type="number"
+            @keydown.enter="() => updateMachineCount()"
+          />
+        </div>
+        <IconButton icon="check" @click="() => updateMachineCount()" />
+        <TButton
+          v-if="canUseAll"
+          type="subtle"
+          @click="() => updateMachineCount(MachineSetSpecMachineAllocationType.Unlimited)"
+        >
+          Use All
+        </TButton>
+      </div>
+
+      <MachineSetPhase
+        :item="machineSet"
+        :class="{ 'col-span-2': !machineSet.spec.machine_allocation?.name }"
+      />
+
+      <div
+        v-if="machineSet.spec.machine_allocation?.name"
+        class="max-w-min rounded bg-naturals-n4 px-3 py-2 whitespace-nowrap"
+      >
+        Machine Class: {{ machineSet.spec.machine_allocation?.name }} ({{
+          machineClassMachineCount
+        }})
+      </div>
+
+      <TActionsBox v-if="canRemoveMachineSet" class="h-6 self-center justify-self-end" @click.stop>
         <TActionsBoxItem icon="delete" danger @click="() => openMachineSetDestroy(machineSet)">
           Destroy Machine Set
         </TActionsBoxItem>
       </TActionsBox>
-      <div v-else class="w-6" />
     </div>
+
     <ClusterMachine
       v-for="machine in machines"
       :id="machine.metadata.id"
       :key="itemID(machine)"
-      class="border-naturals-n4 not-last-of-type:border-b last-of-type:rounded-b-md"
+      class="border-t border-naturals-n4 last-of-type:rounded-b-md"
       :machine-set="machineSet"
       :has-diagnostic-info="nodesWithDiagnostics?.has(machine.metadata.id!)"
       :machine="machine"
       :delete-disabled="!canRemoveMachine"
     />
+
     <MachineRequest
       v-for="request in pendingRequests"
       :key="itemID(request)"
-      class="border-naturals-n4 not-last-of-type:border-b last-of-type:rounded-b-md"
+      class="border-t border-naturals-n4 last-of-type:rounded-b-md"
       :request-status="request"
     />
+
     <div
       v-if="hiddenMachinesCount > 0"
-      class="flex items-center gap-1 border-t border-naturals-n4 p-4 pl-9 text-xs"
+      class="col-span-full flex items-center gap-1 border-t border-naturals-n4 p-4 pl-9 text-xs"
     >
       {{ pluralize('machine', hiddenMachinesCount, true) }} are hidden
       <TButton type="subtle" @click="showMachinesCount = undefined">

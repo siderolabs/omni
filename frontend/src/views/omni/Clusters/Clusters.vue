@@ -122,18 +122,17 @@ const filterOptions = [
         />
       </template>
       <template #default="{ items, searchQuery }">
-        <div class="flex flex-col gap-2">
-          <div class="max-lg:hidden">
-            <div class="mb-1 flex items-center bg-naturals-n2 px-3 py-2.5 *:text-xs">
-              <div class="grid flex-1 grid-cols-4 items-center gap-2 pr-2 *:truncate *:text-xs">
-                <div class="pl-6">Name</div>
-                <div class="pl-6">Machines Healthy</div>
-                <div class="pl-6">Phase</div>
-                <div class="pl-5">Labels</div>
-              </div>
-              <div>Actions</div>
-            </div>
+        <div class="grid grid-cols-[repeat(4,1fr)_--spacing(18)] gap-3">
+          <div
+            class="col-span-full grid grid-cols-subgrid bg-naturals-n2 px-3 py-2.5 text-xs max-lg:hidden"
+          >
+            <div class="pl-6">Name</div>
+            <div>Machines Healthy</div>
+            <div>Phase</div>
+            <div>Labels</div>
+            <div>Actions</div>
           </div>
+
           <ClusterItem
             v-for="(item, index) in items"
             :key="itemID(item)"
