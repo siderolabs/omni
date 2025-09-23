@@ -1116,7 +1116,12 @@ Test authorization on accessing Omni API, some tests run without a cluster, some
 
 		t.Run(
 			"AnonymousRequestShouldBeDenied",
-			AssertAnonymousAuthenication(t.Context(), options.omniClient),
+			AssertAnonymousAuthentication(t.Context(), options.omniClient),
+		)
+
+		t.Run(
+			"UnauthenticatedRequestsShouldBeAllowedByLocalResourceServer",
+			AssertUnauthenticatedLocalResourceServerAccess(t.Context()),
 		)
 
 		t.Run(

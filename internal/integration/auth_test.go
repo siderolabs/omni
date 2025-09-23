@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"runtime"
 	"slices"
 	"strings"
@@ -66,8 +67,8 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
 )
 
-// AssertAnonymousAuthenication tests the authentication without any credentials.
-func AssertAnonymousAuthenication(testCtx context.Context, client *client.Client) TestFunc {
+// AssertAnonymousAuthentication tests the authentication without any credentials.
+func AssertAnonymousAuthentication(testCtx context.Context, client *client.Client) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, 300*time.Second)
 		defer cancel()
@@ -78,6 +79,29 @@ func AssertAnonymousAuthenication(testCtx context.Context, client *client.Client
 		assert.Error(t, err)
 
 		assert.Equalf(t, codes.Unauthenticated, status.Code(err), "%s != %s", codes.Unauthenticated, status.Code(err))
+	}
+}
+
+// AssertUnauthenticatedLocalResourceServerAccess tests the authentication without any credentials.
+func AssertUnauthenticatedLocalResourceServerAccess(testCtx context.Context) TestFunc {
+	return func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(testCtx, 300*time.Second)
+		defer cancel()
+
+		ctx = context.WithValue(ctx, interceptor.SkipInterceptorContextKey{}, struct{}{})
+
+		port := "8081" // todo: get this from the test args or embedded omni config
+
+		client, err := client.New("http://" + net.JoinHostPort("127.0.0.1", port))
+		require.NoError(t, err)
+
+		defer client.Close() //nolint:errcheck
+
+		_, err = client.Omni().State().List(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.ClusterType, "", resource.VersionUndefined))
+		assert.NoError(t, err)
+
+		_, err = client.Omni().State().List(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.MachineStatusType, "", resource.VersionUndefined))
+		assert.NoError(t, err)
 	}
 }
 
