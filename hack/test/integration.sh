@@ -23,7 +23,7 @@ LATEST_STABLE_OMNI=$(git tag -l --sort=-version:refname HEAD "v*" | grep -E '^v?
 
 TALOS_VERSION=1.10.2
 ENABLE_TALOS_PRERELEASE_VERSIONS=false
-ANOTHER_OMNI_VERSION="${ANOTHER_OMNI_VERSION:-$LATEST_STABLE_OMNI}"
+ANOTHER_OMNI_VERSION=v1.0.1
 KUBERNETES_VERSION=1.33.3
 
 ARTIFACTS=_out
@@ -33,7 +33,7 @@ ENABLE_SECUREBOOT=${ENABLE_SECUREBOOT:-false}
 KERNEL_ARGS_WORKERS_COUNT=2
 TALEMU_CONTAINER_NAME=talemu
 TALEMU_INFRA_PROVIDER_IMAGE=ghcr.io/siderolabs/talemu-infra-provider:latest
-TEST_OUTPUTS_DIR=/tmp/integration-test
+TEST_OUTPUTS_DIR=${GITHUB_WORKSPACE:-/tmp}/integration-test
 INTEGRATION_PREPARE_TEST_ARGS="${INTEGRATION_PREPARE_TEST_ARGS:-}"
 
 mkdir -p $TEST_OUTPUTS_DIR
@@ -41,8 +41,10 @@ mkdir -p $TEST_OUTPUTS_DIR
 # Download required artifacts.
 
 mkdir -p ${ARTIFACTS}
+chown -R ${SUDO_USER:-$(whoami)} ${ARTIFACTS}
 
-[ -f ${ARTIFACTS}/talosctl ] || (crane export ghcr.io/siderolabs/talosctl:latest | tar x -C ${ARTIFACTS})
+rm -rf ${ARTIFACTS}/talosctl
+[ -f ${ARTIFACTS}/talosctl ] || (crane export ghcr.io/siderolabs/talosctl:v1.11.1 | tar x -C ${ARTIFACTS})
 
 # Determine the local IP SideroLink API will listen on
 LOCAL_IP=$(ip -o route get to 8.8.8.8 | sed -n 's/.*src \([0-9.]\+\).*/\1/p')

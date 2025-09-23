@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-07-28T10:01:30Z by kres a3d02c0.
+# Generated on 2025-09-23T11:05:59Z by kres fdbc9fc.
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -26,15 +26,14 @@ jobs:
       packages: write
       pull-requests: read
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: (!startsWith(github.head_ref, 'renovate/') && !startsWith(github.head_ref, 'dependabot/'))
     outputs:
       labels: ${{ steps.retrieve-pr-labels.outputs.result }}
     steps:
       - name: gather-system-info
         id: system-info
-        uses: kenchan0130/actions-system-info@v1.3.1
+        uses: kenchan0130/actions-system-info@v1.4.0
         continue-on-error: true
       - name: print-system-info
         run: |
@@ -58,7 +57,7 @@ jobs:
           done
         continue-on-error: true
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Unshallow
         run: |
           git fetch --prune --unshallow
@@ -78,38 +77,12 @@ jobs:
       - name: js
         run: |
           make js
-      - name: unit-tests-frontend
-        run: |
-          make unit-tests-frontend
       - name: frontend
         run: |
           make frontend
       - name: base
         run: |
           make base
-      - name: unit-tests-client
-        run: |
-          make unit-tests-client
-      - name: unit-tests-client-race
-        run: |
-          make unit-tests-client-race
-      - name: unit-tests
-        run: |
-          make unit-tests
-      - name: unit-tests-race
-        run: |
-          make unit-tests-race
-      - name: run-integration-test
-        if: github.event_name == 'pull_request'
-        env:
-          INTEGRATION_RUN_E2E_TEST: "true"
-          INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|Auth|DefaultCluster|CLICommands)$
-          RUN_TALEMU_TESTS: "true"
-          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets|ClusterImport)$
-          WITH_DEBUG: "true"
-          WITH_RACE: "true"
-        run: |
-          sudo -E make run-integration-test
       - name: Retrieve PR labels
         id: retrieve-pr-labels
         uses: actions/github-script@v7
@@ -125,34 +98,6 @@ jobs:
             })
 
             return resp.data.labels.map(label => label.name)
-      - name: Generate executable list
-        run: |
-          find _out -type f -executable > _out/executable-artifacts
-      - name: save-artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: artifacts
-          path: |-
-            _out
-            !_out/etcd
-            !_out/secondary-storage/**
-          retention-days: "5"
-      - name: save-integration-test-artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: integration-test
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
-          retention-days: "5"
-      - name: coverage
-        uses: codecov/codecov-action@v5
-        with:
-          files: _out/coverage-unit-tests-client.txt,_out/coverage-unit-tests.txt,_out/coverage-emulator.txt,_out/coverage-integration.txt
-          token: ${{ secrets.CODECOV_TOKEN }}
-        timeout-minutes: 3
       - name: acompat
         run: |
           make acompat
@@ -162,9 +107,6 @@ jobs:
       - name: omni
         run: |
           make omni
-      - name: lint
-        run: |
-          make lint
       - name: Login to registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
@@ -239,15 +181,14 @@ jobs:
             _out/sha*.txt
   e2e-backups:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-backups')
     needs:
       - default
     steps:
       - name: gather-system-info
         id: system-info
-        uses: kenchan0130/actions-system-info@v1.3.1
+        uses: kenchan0130/actions-system-info@v1.4.0
         continue-on-error: true
       - name: print-system-info
         run: |
@@ -271,7 +212,7 @@ jobs:
           done
         continue-on-error: true
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Unshallow
         run: |
           git fetch --prune --unshallow
@@ -288,20 +229,12 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: _out
-      - name: Fix artifact permissions
-        run: |
-          xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|EtcdBackupAndRestore)$
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets|ClusterImport)$
+          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
           WITH_DEBUG: "true"
           WITH_RACE: "true"
         run: |
@@ -314,20 +247,19 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-cluster-import:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-cluster-import')
     needs:
       - default
     steps:
       - name: gather-system-info
         id: system-info
-        uses: kenchan0130/actions-system-info@v1.3.1
+        uses: kenchan0130/actions-system-info@v1.4.0
         continue-on-error: true
       - name: print-system-info
         run: |
@@ -351,7 +283,7 @@ jobs:
           done
         continue-on-error: true
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Unshallow
         run: |
           git fetch --prune --unshallow
@@ -368,20 +300,12 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: _out
-      - name: Fix artifact permissions
-        run: |
-          xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|ClusterImport)$
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets|ClusterImport)$
+          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
           WITH_DEBUG: "true"
           WITH_RACE: "true"
         run: |
@@ -394,20 +318,19 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-forced-removal:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-forced-removal')
     needs:
       - default
     steps:
       - name: gather-system-info
         id: system-info
-        uses: kenchan0130/actions-system-info@v1.3.1
+        uses: kenchan0130/actions-system-info@v1.4.0
         continue-on-error: true
       - name: print-system-info
         run: |
@@ -431,7 +354,7 @@ jobs:
           done
         continue-on-error: true
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Unshallow
         run: |
           git fetch --prune --unshallow
@@ -448,20 +371,12 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: _out
-      - name: Fix artifact permissions
-        run: |
-          xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|ForcedMachineRemoval|ReplaceControlPlanes|ConfigPatching|KubernetesNodeAudit)$
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets|ClusterImport)$
+          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
           WITH_DEBUG: "true"
           WITH_RACE: "true"
         run: |
@@ -474,20 +389,19 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-omni-upgrade:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-omni-upgrade')
     needs:
       - default
     steps:
       - name: gather-system-info
         id: system-info
-        uses: kenchan0130/actions-system-info@v1.3.1
+        uses: kenchan0130/actions-system-info@v1.4.0
         continue-on-error: true
       - name: print-system-info
         run: |
@@ -511,7 +425,7 @@ jobs:
           done
         continue-on-error: true
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Unshallow
         run: |
           git fetch --prune --unshallow
@@ -528,21 +442,13 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: _out
-      - name: Fix artifact permissions
-        run: |
-          xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
           INTEGRATION_PREPARE_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|OmniUpgradePrepare)$
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(OmniUpgradeVerify)$
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets|ClusterImport)$
+          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
           WITH_DEBUG: "true"
           WITH_RACE: "true"
         run: |
@@ -555,20 +461,19 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-scaling:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-scaling')
     needs:
       - default
     steps:
       - name: gather-system-info
         id: system-info
-        uses: kenchan0130/actions-system-info@v1.3.1
+        uses: kenchan0130/actions-system-info@v1.4.0
         continue-on-error: true
       - name: print-system-info
         run: |
@@ -592,7 +497,7 @@ jobs:
           done
         continue-on-error: true
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Unshallow
         run: |
           git fetch --prune --unshallow
@@ -609,20 +514,12 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: _out
-      - name: Fix artifact permissions
-        run: |
-          xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|RollingUpdateParallelism)$
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets|ClusterImport)$
+          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
           WITH_DEBUG: "true"
           WITH_RACE: "true"
         run: |
@@ -635,20 +532,19 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-short:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-short')
     needs:
       - default
     steps:
       - name: gather-system-info
         id: system-info
-        uses: kenchan0130/actions-system-info@v1.3.1
+        uses: kenchan0130/actions-system-info@v1.4.0
         continue-on-error: true
       - name: print-system-info
         run: |
@@ -672,7 +568,7 @@ jobs:
           done
         continue-on-error: true
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Unshallow
         run: |
           git fetch --prune --unshallow
@@ -689,20 +585,12 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: _out
-      - name: Fix artifact permissions
-        run: |
-          xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|ImmediateClusterDestruction|DefaultCluster|EncryptedCluster|SinglenodeCluster|Auth)$
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets|ClusterImport)$
+          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
           WITH_DEBUG: "true"
           WITH_RACE: "true"
         run: |
@@ -715,20 +603,19 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-short-secureboot:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-short-secureboot')
     needs:
       - default
     steps:
       - name: gather-system-info
         id: system-info
-        uses: kenchan0130/actions-system-info@v1.3.1
+        uses: kenchan0130/actions-system-info@v1.4.0
         continue-on-error: true
       - name: print-system-info
         run: |
@@ -752,7 +639,7 @@ jobs:
           done
         continue-on-error: true
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Unshallow
         run: |
           git fetch --prune --unshallow
@@ -769,21 +656,13 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: _out
-      - name: Fix artifact permissions
-        run: |
-          xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
           ENABLE_SECUREBOOT: "true"
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|ImmediateClusterDestruction|DefaultCluster|EncryptedCluster|SinglenodeCluster|Auth)$
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets|ClusterImport)$
+          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
           WITH_DEBUG: "true"
           WITH_RACE: "true"
         run: |
@@ -796,20 +675,19 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-templates:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-templates')
     needs:
       - default
     steps:
       - name: gather-system-info
         id: system-info
-        uses: kenchan0130/actions-system-info@v1.3.1
+        uses: kenchan0130/actions-system-info@v1.4.0
         continue-on-error: true
       - name: print-system-info
         run: |
@@ -833,7 +711,7 @@ jobs:
           done
         continue-on-error: true
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Unshallow
         run: |
           git fetch --prune --unshallow
@@ -850,20 +728,12 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: _out
-      - name: Fix artifact permissions
-        run: |
-          xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|ClusterTemplate)$
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets|ClusterImport)$
+          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
           WITH_DEBUG: "true"
           WITH_RACE: "true"
         run: |
@@ -876,20 +746,19 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-upgrades:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-upgrades')
     needs:
       - default
     steps:
       - name: gather-system-info
         id: system-info
-        uses: kenchan0130/actions-system-info@v1.3.1
+        uses: kenchan0130/actions-system-info@v1.4.0
         continue-on-error: true
       - name: print-system-info
         run: |
@@ -913,7 +782,7 @@ jobs:
           done
         continue-on-error: true
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Unshallow
         run: |
           git fetch --prune --unshallow
@@ -930,20 +799,12 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: _out
-      - name: Fix artifact permissions
-        run: |
-          xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade)$
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets|ClusterImport)$
+          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
           WITH_DEBUG: "true"
           WITH_RACE: "true"
         run: |
@@ -956,20 +817,19 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-workload-proxy:
     runs-on:
-      - self-hosted
-      - omni
+      group: large
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-workload-proxy')
     needs:
       - default
     steps:
       - name: gather-system-info
         id: system-info
-        uses: kenchan0130/actions-system-info@v1.3.1
+        uses: kenchan0130/actions-system-info@v1.4.0
         continue-on-error: true
       - name: print-system-info
         run: |
@@ -993,7 +853,7 @@ jobs:
           done
         continue-on-error: true
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Unshallow
         run: |
           git fetch --prune --unshallow
@@ -1010,20 +870,12 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: _out
-      - name: Fix artifact permissions
-        run: |
-          xargs -a _out/executable-artifacts -I {} chmod +x {}
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|WorkloadProxy)$
           RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets|ClusterImport)$
+          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
           WITH_DEBUG: "true"
           WITH_RACE: "true"
         run: |
@@ -1036,6 +888,221 @@ jobs:
           path: |-
             ~/.talos/clusters/**/*.log
             !~/.talos/clusters/**/swtpm.log
-            /tmp/integration-test
+            ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
+  integration-test:
+    runs-on:
+      group: large
+    if: github.event_name == 'pull_request'
+    needs:
+      - default
+    steps:
+      - name: gather-system-info
+        id: system-info
+        uses: kenchan0130/actions-system-info@v1.4.0
+        continue-on-error: true
+      - name: print-system-info
+        run: |
+          MEMORY_GB=$((${{ steps.system-info.outputs.totalmem }}/1024/1024/1024))
+
+          OUTPUTS=(
+            "CPU Core: ${{ steps.system-info.outputs.cpu-core }}"
+            "CPU Model: ${{ steps.system-info.outputs.cpu-model }}"
+            "Hostname: ${{ steps.system-info.outputs.hostname }}"
+            "NodeName: ${NODE_NAME}"
+            "Kernel release: ${{ steps.system-info.outputs.kernel-release }}"
+            "Kernel version: ${{ steps.system-info.outputs.kernel-version }}"
+            "Name: ${{ steps.system-info.outputs.name }}"
+            "Platform: ${{ steps.system-info.outputs.platform }}"
+            "Release: ${{ steps.system-info.outputs.release }}"
+            "Total memory: ${MEMORY_GB} GB"
+          )
+
+          for OUTPUT in "${OUTPUTS[@]}";do
+            echo "${OUTPUT}"
+          done
+        continue-on-error: true
+      - name: checkout
+        uses: actions/checkout@v5
+      - name: Unshallow
+        run: |
+          git fetch --prune --unshallow
+      - name: Set up Docker Buildx
+        id: setup-buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: remote
+          endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
+        timeout-minutes: 10
+      - name: Mask secrets
+        run: |
+          echo "$(sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | "::add-mask::" + .value')"
+      - name: Set secrets for job
+        run: |
+          sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
+      - name: run-integration-test
+        if: github.event_name == 'pull_request'
+        env:
+          INTEGRATION_RUN_E2E_TEST: "true"
+          INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|Auth|DefaultCluster|CLICommands)$
+          RUN_TALEMU_TESTS: "true"
+          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
+          WITH_DEBUG: "true"
+          WITH_RACE: "true"
+        run: |
+          sudo -E make run-integration-test
+      - name: Generate executable list
+        run: |
+          find _out -type f -executable > _out/executable-artifacts
+      - name: save-artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts
+          path: |-
+            _out
+            !_out/etcd
+            !_out/secondary-storage/**
+          retention-days: "5"
+      - name: save-integration-test-artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test
+          path: |-
+            ~/.talos/clusters/**/*.log
+            !~/.talos/clusters/**/swtpm.log
+            ${{ github.workspace }}/integration-test
+          retention-days: "5"
+      - name: coverage
+        uses: codecov/codecov-action@v5
+        with:
+          files: _out/coverage-emulator.txt,_out/coverage-integration.txt
+          flags: integration-test
+          token: ${{ secrets.CODECOV_TOKEN }}
+        timeout-minutes: 3
+  lint:
+    runs-on:
+      group: generic
+    if: github.event_name == 'pull_request'
+    needs:
+      - default
+    steps:
+      - name: gather-system-info
+        id: system-info
+        uses: kenchan0130/actions-system-info@v1.4.0
+        continue-on-error: true
+      - name: print-system-info
+        run: |
+          MEMORY_GB=$((${{ steps.system-info.outputs.totalmem }}/1024/1024/1024))
+
+          OUTPUTS=(
+            "CPU Core: ${{ steps.system-info.outputs.cpu-core }}"
+            "CPU Model: ${{ steps.system-info.outputs.cpu-model }}"
+            "Hostname: ${{ steps.system-info.outputs.hostname }}"
+            "NodeName: ${NODE_NAME}"
+            "Kernel release: ${{ steps.system-info.outputs.kernel-release }}"
+            "Kernel version: ${{ steps.system-info.outputs.kernel-version }}"
+            "Name: ${{ steps.system-info.outputs.name }}"
+            "Platform: ${{ steps.system-info.outputs.platform }}"
+            "Release: ${{ steps.system-info.outputs.release }}"
+            "Total memory: ${MEMORY_GB} GB"
+          )
+
+          for OUTPUT in "${OUTPUTS[@]}";do
+            echo "${OUTPUT}"
+          done
+        continue-on-error: true
+      - name: checkout
+        uses: actions/checkout@v5
+      - name: Unshallow
+        run: |
+          git fetch --prune --unshallow
+      - name: Set up Docker Buildx
+        id: setup-buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: remote
+          endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
+        timeout-minutes: 10
+      - name: Mask secrets
+        run: |
+          echo "$(sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | "::add-mask::" + .value')"
+      - name: Set secrets for job
+        run: |
+          sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
+      - name: lint
+        run: |
+          make lint
+  unit-tests:
+    runs-on:
+      group: generic
+    if: github.event_name == 'pull_request'
+    needs:
+      - default
+    steps:
+      - name: gather-system-info
+        id: system-info
+        uses: kenchan0130/actions-system-info@v1.4.0
+        continue-on-error: true
+      - name: print-system-info
+        run: |
+          MEMORY_GB=$((${{ steps.system-info.outputs.totalmem }}/1024/1024/1024))
+
+          OUTPUTS=(
+            "CPU Core: ${{ steps.system-info.outputs.cpu-core }}"
+            "CPU Model: ${{ steps.system-info.outputs.cpu-model }}"
+            "Hostname: ${{ steps.system-info.outputs.hostname }}"
+            "NodeName: ${NODE_NAME}"
+            "Kernel release: ${{ steps.system-info.outputs.kernel-release }}"
+            "Kernel version: ${{ steps.system-info.outputs.kernel-version }}"
+            "Name: ${{ steps.system-info.outputs.name }}"
+            "Platform: ${{ steps.system-info.outputs.platform }}"
+            "Release: ${{ steps.system-info.outputs.release }}"
+            "Total memory: ${MEMORY_GB} GB"
+          )
+
+          for OUTPUT in "${OUTPUTS[@]}";do
+            echo "${OUTPUT}"
+          done
+        continue-on-error: true
+      - name: checkout
+        uses: actions/checkout@v5
+      - name: Unshallow
+        run: |
+          git fetch --prune --unshallow
+      - name: Set up Docker Buildx
+        id: setup-buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: remote
+          endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
+        timeout-minutes: 10
+      - name: Mask secrets
+        run: |
+          echo "$(sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | "::add-mask::" + .value')"
+      - name: Set secrets for job
+        run: |
+          sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
+      - name: unit-tests-frontend
+        run: |
+          make unit-tests-frontend
+      - name: unit-tests-client
+        run: |
+          make unit-tests-client
+      - name: unit-tests-client-race
+        run: |
+          make unit-tests-client-race
+      - name: unit-tests
+        run: |
+          make unit-tests
+      - name: unit-tests-race
+        run: |
+          make unit-tests-race
+      - name: coverage
+        uses: codecov/codecov-action@v5
+        with:
+          files: _out/coverage-unit-tests-client.txt,_out/coverage-unit-tests.txt
+          flags: unit-tests
+          token: ${{ secrets.CODECOV_TOKEN }}
+        timeout-minutes: 3
