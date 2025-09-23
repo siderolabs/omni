@@ -1,3 +1,47 @@
+## [Omni 1.1.5](https://github.com/siderolabs/omni/releases/tag/v1.1.5) (2025-09-23)
+
+Welcome to the v1.1.5 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Utku Ozdemir
+* Artem Chernyshev
+* Oguz Kilcan
+
+### Changes
+<details><summary>8 commits</summary>
+<p>
+
+* [`206adc0`](https://github.com/siderolabs/omni/commit/206adc0c71e87ac4b7199e4dac8f4219d99bab90) release(v1.1.5): prepare release
+* [`243abea`](https://github.com/siderolabs/omni/commit/243abea7f02964fdfe6d0ea8c61e7bb660300e49) fix: fix local resource server access auth check
+* [`8242b61`](https://github.com/siderolabs/omni/commit/8242b61975abf89b7d30cc94ff7b5a1c887ac2e0) test: bring in the GHA runner changes and compatible talosctl version
+* [`1396083`](https://github.com/siderolabs/omni/commit/1396083f766a1b0380e9949968d7fc17b7afecaa) fix: fix the order in the grpc interceptor chain
+* [`0181162`](https://github.com/siderolabs/omni/commit/0181162143e3e23b2bf537f2c57af3256086ab21) fix: add `oidc-redirect-url` arg to the generated kubeconfigs
+* [`9ef8377`](https://github.com/siderolabs/omni/commit/9ef8377126eb9efa0868b97d3cb12d8580edf876) fix: use correct order to determine SideroV1 keys directory path
+* [`e47b861`](https://github.com/siderolabs/omni/commit/e47b8615cd0bc090a7692fde849203bdd1f5e6ab) fix: keep query parameters encoded in the oidc/saml login flows
+* [`3089572`](https://github.com/siderolabs/omni/commit/30895722ed26d2b79485f1b24353427000624524) chore: allow more than one commit for a PR
+</p>
+</details>
+
+### Changes from siderolabs/go-api-signature
+<details><summary>1 commit</summary>
+<p>
+
+* [`68478e2`](https://github.com/siderolabs/go-api-signature/commit/68478e2f57a3bca4345c6e189c0a4216dfb9b1ed) fix: return `invalid signature` error when a signature is required
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/siderolabs/go-api-signature**  v0.3.7 -> v0.3.8
+
+Previous release can be found at [v1.1.4](https://github.com/siderolabs/omni/releases/tag/v1.1.4)
+
 ## [Omni 1.1.4](https://github.com/siderolabs/omni/releases/tag/v1.1.4) (2025-09-09)
 
 Welcome to the v1.1.4 release of Omni!
