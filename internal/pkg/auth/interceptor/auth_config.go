@@ -18,6 +18,7 @@ import (
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
 	"github.com/siderolabs/omni/internal/pkg/auth"
+	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
@@ -77,6 +78,10 @@ func (c *AuthConfig) intercept(ctx context.Context, isGetAuthConfigRequest bool,
 	}
 
 	msg := message.NewGRPC(md, method, message.WithSignatureRequiredCheck(func() (bool, error) {
+		if actor.ContextIsInternalActor(ctx) {
+			return false, nil
+		}
+
 		return !isGetAuthConfigRequest, nil
 	}))
 
