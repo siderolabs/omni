@@ -1,9 +1,9 @@
 {{- $existingDeployment := lookup "apps/v1" "Deployment" .Release.Namespace (include "omni.name" .) }}
 {{- $existingStatefulSet := lookup "apps/v1" "StatefulSet" .Release.Namespace (include "omni.name" .) }}
-{{- if or $existingDeployment (and .Values.etcd.external (not $existingStatefulSet)) }}
+{{- if or $existingStatefulSet (and (not .Values.etcd.external) (not $existingDeployment)) }}
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "omni.name" . }}
   namespace: {{ .Release.Namespace }}
@@ -16,9 +16,8 @@ metadata:
   annotations:
     {{- toYaml .Values.deployment.annotations | nindent 4 }}
 spec:
-  strategy:
-    type: Recreate
-  replicas: {{ .Values.deployment.replicaCount }}
+  serviceName: {{ include "omni.name" . }}
+  replicas: 1  # Embedded etcd only supports single instance
   selector:
     matchLabels: {{- include "omni.selectorLabels" . | nindent 6 }}
   template:
@@ -62,19 +61,6 @@ spec:
               - ALL
             add:
               - NET_ADMIN
-        env:
-        {{- if and .Values.etcd.external .Values.etcd.auth .Values.etcd.auth.secretName }}
-          - name: ETCD_USERNAME
-            valueFrom:
-              secretKeyRef:
-                name: {{ .Values.etcd.auth.secretName }}
-                key: {{ .Values.etcd.auth.usernameKey | default "username" }}
-          - name: ETCD_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: {{ .Values.etcd.auth.secretName }}
-                key: {{ .Values.etcd.auth.passwordKey | default "password" }}
-        {{- end }}
         volumeMounts:
           {{- if .Values.volumeMounts.tls.mountPath }}
           - name: tls
@@ -85,13 +71,8 @@ spec:
             mountPath: {{ .Values.volumeMounts.omniAsc.mountPath }}
             subPath: {{ .Values.volumeMounts.omniAsc.subPath }}
             readOnly: {{ .Values.volumeMounts.omniAsc.readOnly }}
-          - name: etcd
+          - name: etcd-data
             mountPath: /_out
-          {{- if and .Values.etcd.external .Values.etcd.tls .Values.etcd.tls.secretName }}
-          - name: etcd-tls
-            mountPath: /etc/etcd/tls
-            readOnly: true
-          {{- end }}
           {{- if .Values.customVolumeMounts }}
           {{- with .Values.customVolumeMounts }}
           {{- toYaml . | nindent 10 }}
@@ -116,35 +97,7 @@ spec:
           - --cert=/etc/omni/tls/tls.crt
           - --key=/etc/omni/tls/tls.key
         {{- end }}
-        {{- if .Values.etcd.external }}
-          - --etcd-endpoints={{ join "," .Values.etcd.endpoints }}
-        {{- if .Values.etcd.username }}
-          - --etcd-username={{ .Values.etcd.username }}
-        {{- else if and .Values.etcd.auth .Values.etcd.auth.secretName }}
-          - --etcd-username=$(ETCD_USERNAME)
-        {{- end }}
-        {{- if .Values.etcd.password }}
-          - --etcd-password={{ .Values.etcd.password }}
-        {{- else if and .Values.etcd.auth .Values.etcd.auth.secretName }}
-          - --etcd-password=$(ETCD_PASSWORD)
-        {{- end }}
-        {{- if and .Values.etcd.tls .Values.etcd.tls.enabled }}
-          {{- if .Values.etcd.tls.secretName }}
-          - --etcd-tls-cert-file=/etc/etcd/tls/{{ .Values.etcd.tls.certKey | default "client.crt" }}
-          - --etcd-tls-key-file=/etc/etcd/tls/{{ .Values.etcd.tls.keyKey | default "client.key" }}
-          - --etcd-tls-ca-file=/etc/etcd/tls/{{ .Values.etcd.tls.caKey | default "ca.crt" }}
-          {{- else }}
-          - --etcd-tls-cert-file={{ .Values.etcd.tls.certFile }}
-          - --etcd-tls-key-file={{ .Values.etcd.tls.keyFile }}
-          - --etcd-tls-ca-file={{ .Values.etcd.tls.caFile }}
-          {{- end }}
-          {{- if .Values.etcd.tls.insecureSkipVerify }}
-          - --etcd-tls-insecure-skip-verify
-          {{- end }}
-        {{- end }}
-        {{- else }}
           - --etcd-embedded=true
-        {{- end }}
         {{- if and .Values.initialUsers (gt (len .Values.initialUsers) 0) }}
           - --initial-users={{ join "," .Values.initialUsers }}
         {{- end }}
@@ -164,17 +117,20 @@ spec:
         - name: omni-asc
           secret:
             secretName: {{ .Values.volumes.gpg.secretName }}
-        - name: etcd
-          persistentVolumeClaim:
-            claimName: {{ .Values.volumes.etcd.persistentVolumeClaimName }}
-        {{- if and .Values.etcd.external .Values.etcd.tls .Values.etcd.tls.secretName }}
-        - name: etcd-tls
-          secret:
-            secretName: {{ .Values.etcd.tls.secretName }}
-        {{- end }}
         {{- if .Values.customVolumes }}
         {{- with .Values.customVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
         {{- end }}
+  volumeClaimTemplates:
+  - metadata:
+      name: etcd-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.volumes.etcd.storageClass }}
+      storageClassName: {{ .Values.volumes.etcd.storageClass }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.volumes.etcd.size | default "50Gi" }}
 {{- end }}

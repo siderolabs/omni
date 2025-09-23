@@ -24,8 +24,11 @@ service:
   siderolink:
     domainName: omni.siderolink.example.com
     wireguard:
-      address: "" #<ip address of the host running Omni>
+      # Optional: explicit address to advertise (if empty, uses wireguard.namespace.svc.cluster.local)
+      address: ""
       port: 30180
+      type: NodePort  # NodePort, LoadBalancer, or ClusterIP
+      externalTrafficPolicy: Cluster  # Local or Cluster (for NodePort/LoadBalancer)
   k8sProxy:
     domainName: omni.kubernetes.example.com
 resources:
@@ -38,6 +41,55 @@ resources:
     # Required for /dev/net/tun
     # https://www.talos.dev/v1.8/kubernetes-guides/configuration/device-plugins/
     squat.ai/tun: 1
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+ingress:
+  api:
+    enabled: false
+    host: omni.example.com
+    ingressClassName: nginx
+    annotations: {}
+    certManager:
+      enabled: false
+      issuer: letsencrypt-prod
+    tls:
+      enabled: false
+      secretName: omni-api-tls
+  ui:
+    enabled: false
+    host: omni.example.com
+    ingressClassName: nginx
+    annotations: {}
+    certManager:
+      enabled: false
+      issuer: letsencrypt-prod
+    tls:
+      enabled: false
+      secretName: omni-ui-tls
+  siderolink:
+    enabled: false
+    host: siderolink.omni.example.com
+    ingressClassName: nginx
+    annotations: {}
+    certManager:
+      enabled: false
+      issuer: letsencrypt-prod
+    tls:
+      enabled: false
+      secretName: omni-siderolink-tls
+  kubernetesProxy:
+    enabled: false
+    host: kubernetes.omni.example.com
+    ingressClassName: nginx
+    annotations: {}
+    certManager:
+      enabled: false
+      issuer: letsencrypt-prod
+    tls:
+      enabled: false
+      secretName: omni-kubernetes-proxy-tls
 extraArgs:
   # - --debug
   # - --image-factory-address=factory.talos.dev
@@ -50,9 +102,42 @@ volumeMounts:
     mountPath: "/omni.asc"
     subPath: "omni.asc"
     readOnly: true
+etcd:
+  # Set to true to use external etcd cluster (enables Deployment with multiple replicas)
+  # Set to false to use embedded etcd (forces StatefulSet with 1 replica)
+  external: false
+  # External etcd configuration (only used when external: true)
+  endpoints: []
+    # - "https://etcd-1.example.com:2379"
+    # - "https://etcd-2.example.com:2379"
+    # - "https://etcd-3.example.com:2379"
+  # Optional: etcd authentication
+  # username: ""
+  # password: ""
+  # Optional: etcd authentication from secret
+  # auth:
+  #   secretName: "etcd-auth"
+  #   usernameKey: "username"
+  #   passwordKey: "password"
+  # Optional: TLS configuration for etcd
+  # tls:
+  #   enabled: false
+  #   certFile: "/etc/etcd/tls/client.crt"
+  #   keyFile: "/etc/etcd/tls/client.key"
+  #   caFile: "/etc/etcd/tls/ca.crt"
+  #   insecureSkipVerify: false
+  #   # Optional: TLS certificates from secret
+  #   secretName: "etcd-tls"
+  #   certKey: "client.crt"
+  #   keyKey: "client.key"
+  #   caKey: "ca.crt"
 volumes:
   etcd:
+    # For Deployment (backwards compatibility): manual PVC name
     persistentVolumeClaimName: omni-pvc
+    # For StatefulSet (embedded etcd): automatic PVC provisioning
+    size: "50Gi"
+    # storageClass: ""  # Use default storage class if not specified
   tls:
     secretName: null # tls
   gpg:
