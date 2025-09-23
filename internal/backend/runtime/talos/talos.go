@@ -15,7 +15,12 @@ import (
 	taloscommon "github.com/siderolabs/talos/pkg/machinery/api/common"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
+	"github.com/siderolabs/talos/pkg/machinery/constants"
+	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
@@ -73,6 +78,8 @@ func (r *Runtime) watch(ctx context.Context, events chan<- runtime.WatchResponse
 		return err
 	}
 
+	ctx = metadata.AppendToOutgoingContext(ctx, constants.APIAuthzRoleMetadataKey, string(talosrole.Reader))
+
 	var queries []cosiresource.LabelQuery
 
 	if len(opts.LabelSelectors) > 0 {
@@ -120,6 +127,8 @@ func (r *Runtime) Get(ctx context.Context, setters ...runtime.QueryOption) (any,
 		return nil, err
 	}
 
+	ctx = metadata.AppendToOutgoingContext(ctx, constants.APIAuthzRoleMetadataKey, string(talosrole.Reader))
+
 	res, err := c.COSI.Get(ctx, cosiresource.NewMetadata(opts.Namespace, opts.Resource, opts.Name, cosiresource.VersionUndefined))
 	if err != nil {
 		return nil, err
@@ -155,6 +164,8 @@ func (r *Runtime) List(ctx context.Context, setters ...runtime.QueryOption) (run
 			}
 		}
 
+		nodeCtx = metadata.AppendToOutgoingContext(nodeCtx, constants.APIAuthzRoleMetadataKey, string(talosrole.Reader))
+
 		items, err := c.COSI.List(nodeCtx, cosiresource.NewMetadata(opts.Namespace, opts.Resource, "", cosiresource.VersionUndefined))
 		if err != nil {
 			return runtime.ListResult{}, err
@@ -178,17 +189,17 @@ func (r *Runtime) List(ctx context.Context, setters ...runtime.QueryOption) (run
 
 // Create implements runtime.Runtime.
 func (r *Runtime) Create(context.Context, cosiresource.Resource, ...runtime.QueryOption) error {
-	return errors.New("not implemented")
+	return status.Error(codes.Unimplemented, "not implemented")
 }
 
 // Update implements runtime.Runtime.
 func (r *Runtime) Update(context.Context, cosiresource.Resource, ...runtime.QueryOption) error {
-	return errors.New("not implemented")
+	return status.Error(codes.Unimplemented, "not implemented")
 }
 
 // Delete implements runtime.Runtime.
 func (r *Runtime) Delete(context.Context, ...runtime.QueryOption) error {
-	return errors.New("not implemented")
+	return status.Error(codes.Unimplemented, "not implemented")
 }
 
 // GetTalosconfigRaw returns raw talosconfig for the cluster (or for whole instance if the cluster is not specified).

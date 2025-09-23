@@ -9,7 +9,6 @@ import type { Ref } from 'vue'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
-import { Runtime } from '@/api/common/omni.pb'
 import { b64Decode } from '@/api/fetch.pb'
 import type { Stream } from '@/api/grpc'
 import { subscribe } from '@/api/grpc'
@@ -21,7 +20,7 @@ import {
   KubernetesSyncManifestResponseResponseType,
   ManagementService,
 } from '@/api/omni/management/management.pb'
-import { withContext, withRuntime } from '@/api/options'
+import { withContext } from '@/api/options'
 import TButton from '@/components/common/Button/TButton.vue'
 import TListItem from '@/components/common/List/TListItem.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -142,7 +141,7 @@ const setupSyncStream = () => {
       ManagementService.KubernetesSyncManifests,
       syncParams.value,
       processItem,
-      [withRuntime(Runtime.Talos), withContext(context)],
+      [withContext(context)],
       undefined,
       (e: Error) => {
         error.value = e.message

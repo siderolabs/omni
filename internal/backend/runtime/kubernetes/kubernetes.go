@@ -26,6 +26,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/siderolabs/gen/channel"
 	"golang.org/x/sync/singleflight"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -190,52 +192,17 @@ func (r *Runtime) List(ctx context.Context, setters ...runtime.QueryOption) (run
 
 // Create implements runtime.Runtime.
 func (r *Runtime) Create(ctx context.Context, resource cosiresource.Resource, setters ...runtime.QueryOption) error {
-	opts := runtime.NewQueryOptions(setters...)
-
-	client, err := r.getOrCreateClient(ctx, opts)
-	if err != nil {
-		return err
-	}
-
-	obj, err := UnstructuredFromResource(resource)
-	if err != nil {
-		return err
-	}
-
-	_, err = client.Create(ctx, obj, metav1.CreateOptions{})
-
-	return wrapError(err, opts)
+	return status.Error(codes.Unimplemented, "not implemented")
 }
 
 // Update implements runtime.Runtime.
 func (r *Runtime) Update(ctx context.Context, resource cosiresource.Resource, setters ...runtime.QueryOption) error {
-	opts := runtime.NewQueryOptions(setters...)
-
-	client, err := r.getOrCreateClient(ctx, opts)
-	if err != nil {
-		return err
-	}
-
-	obj, err := UnstructuredFromResource(resource)
-	if err != nil {
-		return err
-	}
-
-	_, err = client.Update(ctx, obj, metav1.UpdateOptions{})
-
-	return wrapError(err, opts)
+	return status.Error(codes.Unimplemented, "not implemented")
 }
 
 // Delete implements runtime.Runtime.
 func (r *Runtime) Delete(ctx context.Context, setters ...runtime.QueryOption) error {
-	opts := runtime.NewQueryOptions(setters...)
-
-	client, err := r.getOrCreateClient(ctx, opts)
-	if err != nil {
-		return err
-	}
-
-	return wrapError(client.Delete(ctx, opts.Resource, opts.Name, opts.Namespace, metav1.DeleteOptions{}), opts)
+	return status.Error(codes.Unimplemented, "not implemented")
 }
 
 // DestroyClient closes Kubernetes client and deletes it from the client cache.
@@ -477,6 +444,15 @@ func (w *Watch) run(ctx context.Context, client *Client) error {
 
 	gvr, err := client.getGVR(w.resource.Type)
 	if err != nil {
+		return err
+	}
+
+	gvk, err := client.kindFor(*gvr)
+	if err != nil {
+		return err
+	}
+
+	if err = filterGVK(gvk); err != nil {
 		return err
 	}
 
