@@ -53,11 +53,11 @@ const counts = computed(() => {
       show-hollow-total
       :total="counts.totalCount"
       :items="[
-        { label: 'Connected', value: counts.connectedCount },
-        { label: 'Not Connected', value: counts.notConnectedCount },
-        { label: 'In Cluster', value: counts.inClusterCount },
-        { label: 'Free Machine', value: counts.freeMachineCount },
-        { label: 'Pending', value: counts.pendingCount },
+        { label: 'Connected', value: counts.connectedCount, color: 'var(--color-green-g1)' },
+        { label: 'Not Connected', value: counts.notConnectedCount, color: 'var(--color-red-r1)' },
+        { label: 'In Cluster', value: counts.inClusterCount, color: 'var(--color-blue-b1)' },
+        { label: 'Free Machine', value: counts.freeMachineCount, color: 'var(--color-primary-p3)' },
+        { label: 'Pending', value: counts.pendingCount, color: 'var(--color-yellow-y1)' },
       ]"
     />
   </Card>

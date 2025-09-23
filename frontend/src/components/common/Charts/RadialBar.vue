@@ -18,6 +18,7 @@ interface Props {
   items: {
     label: string
     value: number
+    color?: string
   }[]
   legendFormatter?: (value: number) => string
 }
@@ -46,7 +47,7 @@ const legendItems = computed(() => [
   ...props.items.map((item, i) => ({
     label: item.label,
     value: props.legendFormatter(item.value),
-    color: colors[i],
+    color: item.color || colors[i],
   })),
 ])
 
@@ -90,7 +91,7 @@ const options = computed<ApexOptions>(() => ({
     },
   },
   fill: {
-    colors: colors,
+    colors: props.items.map((item, i) => item.color || colors[i]),
   },
   stroke: {
     lineCap: 'round',
