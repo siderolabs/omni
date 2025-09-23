@@ -1,3 +1,44 @@
+## [Omni 1.0.2](https://github.com/siderolabs/omni/releases/tag/v1.0.2) (2025-09-23)
+
+Welcome to the v1.0.2 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Utku Ozdemir
+* Oguz Kilcan
+
+### Changes
+<details><summary>4 commits</summary>
+<p>
+
+* [`62e2630`](https://github.com/siderolabs/omni/commit/62e2630b8b2bbd091228ca480a896c661cb6a486) test: bring in the GHA runner changes and compatible talosctl version
+* [`a94c58d`](https://github.com/siderolabs/omni/commit/a94c58dfcd286164875a4ce31b4513c8ee2f41cf) fix: fix local resource server access auth check
+* [`1fd954a`](https://github.com/siderolabs/omni/commit/1fd954af64985a8b3dbf5b11deddbf7cd953f5ae) fix: fix the order in the grpc interceptor chain
+* [`a467f3b`](https://github.com/siderolabs/omni/commit/a467f3be129a4a979193ceae47d44f18c986ba07) fix: keep query parameters encoded in the oidc/saml login flows
+</p>
+</details>
+
+### Changes from siderolabs/go-api-signature
+<details><summary>3 commits</summary>
+<p>
+
+* [`68478e2`](https://github.com/siderolabs/go-api-signature/commit/68478e2f57a3bca4345c6e189c0a4216dfb9b1ed) fix: return `invalid signature` error when a signature is required
+* [`d22e33d`](https://github.com/siderolabs/go-api-signature/commit/d22e33d809218fcc1492c2f5431929a05b18cf18) feat: clarify fallback logic for fallback capable key provider
+* [`dea3048`](https://github.com/siderolabs/go-api-signature/commit/dea304833f839d1bd3e70ffe710db8c81c15f7e0) feat: allow configuring the provider with fallback location
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/siderolabs/go-api-signature**  v0.3.6 -> v0.3.8
+
+Previous release can be found at [v1.0.1](https://github.com/siderolabs/omni/releases/tag/v1.0.1)
+
 ## [Omni 1.0.1](https://github.com/siderolabs/omni/releases/tag/v1.0.1) (2025-08-12)
 
 Welcome to the v1.0.1 release of Omni!
