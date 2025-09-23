@@ -45,79 +45,76 @@ const getAge = (age: string) => {
 
 <template>
   <div class="row" :class="{ opened: isDropdownOpened }">
-    <TSlideDownWrapper :is-slider-opened="isDropdownOpened">
-      <template #head>
-        <ul class="row-wrapper">
-          <li class="row-item">
-            <TIcon
-              class="row-arrow"
-              :class="{ 'row-arrow-right--pushed': isDropdownOpened }"
-              icon="drop-up"
-              @click="() => (isDropdownOpened = !isDropdownOpened)"
-            />
-            <span>
-              <WordHighlighter
-                :query="searchOption"
-                :text-to-highlight="item.metadata?.namespace"
-                highlight-class="bg-naturals-n14"
-              />
-            </span>
-          </li>
-          <li class="row-item">
-            <WordHighlighter
-              :query="searchOption"
-              :text-to-highlight="item.metadata?.name"
-              highlight-class="bg-naturals-n14"
-            />
-          </li>
-          <li class="row-item">
-            <TStatus :title="item.status?.phase" />
-          </li>
-          <li class="row-item row-item--spaced">
-            <span>
-              <WordHighlighter
-                :query="searchOption"
-                :text-to-highlight="item.spec?.nodeName"
-                highlight-class="bg-naturals-n14"
-              />
-            </span>
-          </li>
-        </ul>
-      </template>
-      <template #body>
-        <div class="row-info-box">
-          <div class="row-info-item">
-            <p class="row-info-title">Restarts</p>
-            <p class="row-info-value">{{ restartCount }}</p>
-          </div>
-          <div class="row-info-item">
-            <p class="row-info-title">Ready Containers</p>
-            <p class="row-info-value">{{ readyContainers?.length }}</p>
-          </div>
-          <div class="row-info-item">
-            <p class="row-info-title">Age</p>
-            <p class="row-info-value">
-              {{ item.status?.startTime ? getAge(String(item.status?.startTime)) : '' }}
-            </p>
-          </div>
-          <div class="row-info-item">
-            <p class="row-info-title">Pod IP</p>
-            <p class="row-info-value">{{ item.status?.podIP }}</p>
+    <ul class="row-wrapper">
+      <li class="row-item">
+        <TIcon
+          class="row-arrow"
+          :class="{ 'row-arrow-right--pushed': isDropdownOpened }"
+          icon="drop-up"
+          @click="() => (isDropdownOpened = !isDropdownOpened)"
+        />
+        <span>
+          <WordHighlighter
+            :query="searchOption"
+            :text-to-highlight="item.metadata?.namespace"
+            highlight-class="bg-naturals-n14"
+          />
+        </span>
+      </li>
+      <li class="row-item">
+        <WordHighlighter
+          :query="searchOption"
+          :text-to-highlight="item.metadata?.name"
+          highlight-class="bg-naturals-n14"
+        />
+      </li>
+      <li class="row-item">
+        <TStatus :title="item.status?.phase" />
+      </li>
+      <li class="row-item row-item--spaced">
+        <span>
+          <WordHighlighter
+            :query="searchOption"
+            :text-to-highlight="item.spec?.nodeName"
+            highlight-class="bg-naturals-n14"
+          />
+        </span>
+      </li>
+    </ul>
+
+    <TSlideDownWrapper :expanded="isDropdownOpened">
+      <div class="row-info-box">
+        <div class="row-info-item">
+          <p class="row-info-title">Restarts</p>
+          <p class="row-info-value">{{ restartCount }}</p>
+        </div>
+        <div class="row-info-item">
+          <p class="row-info-title">Ready Containers</p>
+          <p class="row-info-value">{{ readyContainers?.length }}</p>
+        </div>
+        <div class="row-info-item">
+          <p class="row-info-title">Age</p>
+          <p class="row-info-value">
+            {{ item.status?.startTime ? getAge(String(item.status?.startTime)) : '' }}
+          </p>
+        </div>
+        <div class="row-info-item">
+          <p class="row-info-title">Pod IP</p>
+          <p class="row-info-value">{{ item.status?.podIP }}</p>
+        </div>
+      </div>
+      <div class="mt-5 flex flex-col gap-2 px-7">
+        <div class="row-info-title font-bold">Containers</div>
+        <div class="flex flex-wrap gap-2">
+          <div
+            v-for="container in item.spec?.containers"
+            :key="container.name"
+            class="rounded bg-naturals-n4 p-1 px-2 text-xs text-naturals-n12"
+          >
+            {{ container.image }}
           </div>
         </div>
-        <div class="mt-5 flex flex-col gap-2 px-7">
-          <div class="row-info-title font-bold">Containers</div>
-          <div class="flex flex-wrap gap-2">
-            <div
-              v-for="container in item.spec?.containers"
-              :key="container.name"
-              class="rounded bg-naturals-n4 p-1 px-2 text-xs text-naturals-n12"
-            >
-              {{ container.image }}
-            </div>
-          </div>
-        </div>
-      </template>
+      </div>
     </TSlideDownWrapper>
   </div>
 </template>
@@ -126,7 +123,7 @@ const getAge = (age: string) => {
 @reference "../../../../index.css";
 
 .row {
-  @apply relative mb-1 flex w-full flex-col items-center border border-b border-solid border-transparent border-b-naturals-n5 transition-all duration-500;
+  @apply relative mb-1 flex w-full flex-col border border-b border-solid border-transparent border-b-naturals-n5 transition-all duration-500;
   min-width: 450px;
   padding: 19px 14px 19px 8px;
   border-radius: 4px 4px 0 0;

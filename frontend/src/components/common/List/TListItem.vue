@@ -22,28 +22,25 @@ const isDropdownOpened = ref(isDefaultOpened?.value as boolean)
 
 <template>
   <div class="row" :class="{ opened: isDropdownOpened && !disableBorderOnExpand }">
-    <TSlideDownWrapper :is-slider-opened="isDropdownOpened">
-      <template #head>
-        <div class="flex items-center gap-1">
-          <div v-if="$slots.details" class="flex flex-col items-center gap-2">
-            <TIcon
-              class="row-arrow"
-              :class="{ pushed: isDropdownOpened }"
-              icon="drop-up"
-              @click="() => (isDropdownOpened = !isDropdownOpened)"
-            />
-          </div>
+    <div class="flex items-center gap-1">
+      <div v-if="$slots.details" class="flex flex-col items-center gap-2">
+        <TIcon
+          class="row-arrow"
+          :class="{ pushed: isDropdownOpened }"
+          icon="drop-up"
+          @click="() => (isDropdownOpened = !isDropdownOpened)"
+        />
+      </div>
 
-          <div class="row-head">
-            <slot></slot>
-          </div>
-        </div>
-      </template>
-      <template #body>
-        <div class="row-details">
-          <slot name="details"></slot>
-        </div>
-      </template>
+      <div class="row-head">
+        <slot></slot>
+      </div>
+    </div>
+
+    <TSlideDownWrapper :expanded="isDropdownOpened">
+      <div class="row-details">
+        <slot name="details"></slot>
+      </div>
     </TSlideDownWrapper>
   </div>
 </template>
