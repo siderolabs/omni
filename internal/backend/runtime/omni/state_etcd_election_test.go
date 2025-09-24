@@ -7,6 +7,7 @@ package omni_test
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -54,14 +55,18 @@ func TestEtcdElectionsLost(t *testing.T) {
 	errCh := make(chan error, 1)
 	electionKey := uuid.NewString()
 
+	var wg sync.WaitGroup
+
+	defer wg.Wait()
+
 	// run mock runner, it should win the elections and keep running
-	go func() {
+	wg.Go(func() {
 		errCh <- state.RunElections(ctx, electionKey, logger)
 
 		defer state.StopElections(electionKey) //nolint:errcheck
 
 		mockRunner(ctx, 1, started, nil)
-	}()
+	})
 
 	select {
 	case id := <-started:
