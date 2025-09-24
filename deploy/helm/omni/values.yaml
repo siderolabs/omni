@@ -119,18 +119,24 @@ etcd:
   #   secretName: "etcd-auth"
   #   usernameKey: "username"
   #   passwordKey: "password"
+  # Optional: etcd client connection timeouts
+  # dialKeepAliveTime: "30s"
+  # dialKeepAliveTimeout: "5s"
   # Optional: TLS configuration for etcd
   # tls:
   #   enabled: false
   #   certFile: "/etc/etcd/tls/client.crt"
   #   keyFile: "/etc/etcd/tls/client.key"
   #   caFile: "/etc/etcd/tls/ca.crt"
-  #   insecureSkipVerify: false
   #   # Optional: TLS certificates from secret
   #   secretName: "etcd-tls"
   #   certKey: "client.crt"
   #   keyKey: "client.key"
   #   caKey: "ca.crt"
+  # Optional: public key files for encryption
+  # publicKeyFiles: []
+  #   # - "/etc/omni/keys/public1.pem"
+  #   # - "/etc/omni/keys/public2.pem"
 volumes:
   etcd:
     # For Deployment (backwards compatibility): manual PVC name

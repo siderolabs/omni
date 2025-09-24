@@ -321,8 +321,11 @@ service:
 | `etcd.username` | etcd username (direct) | `""` |
 | `etcd.password` | etcd password (direct) | `""` |
 | `etcd.auth.secretName` | Secret containing etcd credentials | `""` |
+| `etcd.dialKeepAliveTime` | etcd client keep-alive time | `""` |
+| `etcd.dialKeepAliveTimeout` | etcd client keep-alive timeout | `""` |
 | `etcd.tls.enabled` | Enable TLS for etcd | `false` |
 | `etcd.tls.secretName` | Secret containing TLS certificates | `""` |
+| `etcd.publicKeyFiles` | List of public key files for encryption | `[]` |
 
 #### etcd Authentication
 
@@ -740,9 +743,14 @@ etcd:
     - "https://etcd-3.example.com:2379"
   auth:
     secretName: "etcd-credentials"
+  dialKeepAliveTime: "30s"
+  dialKeepAliveTimeout: "5s"
   tls:
     enabled: true
     secretName: "etcd-tls"
+  publicKeyFiles:
+    - "/etc/omni/keys/public1.pem"
+    - "/etc/omni/keys/public2.pem"
 
 service:
   siderolink:

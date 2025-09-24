@@ -133,17 +133,20 @@ spec:
         {{- end }}
         {{- if and .Values.etcd.tls .Values.etcd.tls.enabled }}
           {{- if .Values.etcd.tls.secretName }}
-          - --etcd-tls-cert-file=/etc/etcd/tls/{{ .Values.etcd.tls.certKey | default "client.crt" }}
-          - --etcd-tls-key-file=/etc/etcd/tls/{{ .Values.etcd.tls.keyKey | default "client.key" }}
-          - --etcd-tls-ca-file=/etc/etcd/tls/{{ .Values.etcd.tls.caKey | default "ca.crt" }}
+          - --etcd-client-cert-path=/etc/etcd/tls/{{ .Values.etcd.tls.certKey | default "client.crt" }}
+          - --etcd-client-key-path=/etc/etcd/tls/{{ .Values.etcd.tls.keyKey | default "client.key" }}
+          - --etcd-ca-path=/etc/etcd/tls/{{ .Values.etcd.tls.caKey | default "ca.crt" }}
           {{- else }}
-          - --etcd-tls-cert-file={{ .Values.etcd.tls.certFile }}
-          - --etcd-tls-key-file={{ .Values.etcd.tls.keyFile }}
-          - --etcd-tls-ca-file={{ .Values.etcd.tls.caFile }}
+          - --etcd-client-cert-path={{ .Values.etcd.tls.certFile }}
+          - --etcd-client-key-path={{ .Values.etcd.tls.keyFile }}
+          - --etcd-ca-path={{ .Values.etcd.tls.caFile }}
           {{- end }}
-          {{- if .Values.etcd.tls.insecureSkipVerify }}
-          - --etcd-tls-insecure-skip-verify
-          {{- end }}
+        {{- end }}
+        {{- if .Values.etcd.dialKeepAliveTime }}
+          - --etcd-dial-keepalive-time={{ .Values.etcd.dialKeepAliveTime }}
+        {{- end }}
+        {{- if .Values.etcd.dialKeepAliveTimeout }}
+          - --etcd-dial-keepalive-timeout={{ .Values.etcd.dialKeepAliveTimeout }}
         {{- end }}
         {{- else }}
           - --etcd-embedded=true
@@ -153,6 +156,9 @@ spec:
         {{- end }}
           - --name={{ .Values.name}}
           - --private-key-source={{ .Values.privateKeySource }}
+        {{- if and .Values.etcd.external .Values.etcd.publicKeyFiles }}
+          - --public-key-files={{ join "," .Values.etcd.publicKeyFiles }}
+        {{- end }}
           - --siderolink-api-advertised-url={{ printf "https://%s" .Values.service.siderolink.domainName }}
           - --siderolink-wireguard-advertised-addr={{ if .Values.service.siderolink.wireguard.address }}{{ .Values.service.siderolink.wireguard.address }}{{ else }}{{ printf "%s.%s.svc.cluster.local" "wireguard" .Release.Namespace }}{{ end }}:{{ .Values.service.siderolink.wireguard.port }}
         {{- range $value := .Values.extraArgs }}
