@@ -54,6 +54,9 @@ spec:
           - name: wireguard
             containerPort: 50180
             protocol: UDP
+          - name: embedded-etcd
+            containerPort: 2379
+            protocol: TCP
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

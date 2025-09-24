@@ -588,8 +588,14 @@ To migrate an existing Deployment-based installation to StatefulSet (for better 
 
 1. **Backup etcd data**:
 ```bash
-kubectl exec -n omni-system deployment/omni -- tar -czf /tmp/etcd-backup.tar.gz /_out
-kubectl cp omni-system/$(kubectl get pod -n omni-system -l app.kubernetes.io/name=omni -o jsonpath='{.items[0].metadata.name}'):/tmp/etcd-backup.tar.gz ./etcd-backup.tar.gz
+# Forward the etcd port
+kubectl port-forward -n omni-system pod/omni-0 2379:2379 &
+
+# Create etcd snapshot using local etcdctl
+etcdctl snapshot save omni-etcd-backup.db --endpoints=http://localhost:2379
+
+# Stop port forwarding
+kill %1
 ```
 
 2. **Delete existing Deployment** (this will cause downtime):
@@ -608,11 +614,7 @@ helm install omni sidero/omni \
   --set accountUuid=your-account-uuid
 ```
 
-4. **Restore etcd data**:
-```bash
-kubectl cp ./etcd-backup.tar.gz omni-system/omni-0:/tmp/etcd-backup.tar.gz
-kubectl exec -n omni-system omni-0 -- tar -xzf /tmp/etcd-backup.tar.gz -C /
-```
+4. **Restore etcd data** (use etcd restore tools with the snapshot file)
 
 ### Migrating to External etcd
 
@@ -622,8 +624,14 @@ To migrate from embedded etcd to external etcd:
 
 2. **Backup embedded etcd data**:
 ```bash
-kubectl exec -n omni-system deployment/omni -- tar -czf /tmp/etcd-backup.tar.gz /_out
-kubectl cp omni-system/$(kubectl get pod -n omni-system -l app.kubernetes.io/name=omni -o jsonpath='{.items[0].metadata.name}'):/tmp/etcd-backup.tar.gz ./etcd-backup.tar.gz
+# Forward the etcd port
+kubectl port-forward -n omni-system pod/omni-0 2379:2379 &
+
+# Create etcd snapshot using local etcdctl
+etcdctl snapshot save omni-etcd-backup.db --endpoints=http://localhost:2379
+
+# Stop port forwarding
+kill %1
 ```
 
 3. **Restore data to external etcd** (use etcd restore tools)
@@ -849,19 +857,21 @@ Upgrading from previous chart versions is fully supported:
 
 ### Backup
 
-Before upgrading, backup the etcd data:
+Before upgrading, backup the embedded etcd data:
 
-**For Deployment-based installations**:
+**For embedded etcd (recommended method)**:
 ```bash
-kubectl exec -n omni-system deployment/omni -- tar -czf /tmp/etcd-backup.tar.gz /_out
-kubectl cp omni-system/$(kubectl get pod -n omni-system -l app.kubernetes.io/name=omni -o jsonpath='{.items[0].metadata.name}'):/tmp/etcd-backup.tar.gz ./etcd-backup.tar.gz
+# Forward the etcd port
+kubectl port-forward -n omni-system pod/omni-0 2379:2379 &
+
+# Create etcd snapshot using local etcdctl
+etcdctl snapshot save omni-etcd-backup.db --endpoints=http://localhost:2379
+
+# Stop port forwarding
+kill %1
 ```
 
-**For StatefulSet-based installations**:
-```bash
-kubectl exec -n omni-system statefulset/omni -- tar -czf /tmp/etcd-backup.tar.gz /_out
-kubectl cp omni-system/omni-0:/tmp/etcd-backup.tar.gz ./etcd-backup.tar.gz
-```
+
 
 ### Upgrade Process
 
