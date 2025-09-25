@@ -70,3 +70,11 @@ title = "Userpilot Reporting Integration"
 description = """\
 Integrated Userpilot reporting to help track user interactions.
 """
+
+[notes.new-metrics]
+title = "New exported metrics for cluster features and machine details"
+description = """\
+New prometheus metrics are added for:
+- Enabled cluster features: disk encryption, embedded discovery service, workload proxying.
+- Machines' platforms, their secure boot status and whether they were booted with UKI.
+"""

@@ -1,3 +1,246 @@
+## [Omni 1.2.0-beta.3](https://github.com/siderolabs/omni/releases/tag/v1.2.0-beta.3) (2025-09-25)
+
+Welcome to the v1.2.0-beta.3 release of Omni!  
+*This is a pre-release of Omni*
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Cluster Locking
+
+Cluster locking is a feature that pauses/disables all cluster related operations on a cluster.
+
+
+### Visual Feedback on Copy
+
+Added visual feedback when copying text to the clipboard.
+
+
+### Generate Join Config for a Specific Join Token
+
+Added the ability to generate a join configuration for a specific join token.
+
+
+### `kubeconfig` with `grant-type=authcode-keyboard`
+
+New configs generated with the latest Omni version and `authcode-keyboard`
+enabled now work for `oidc-login` `v1.33+`.
+See https://github.com/int128/kubelogin/pull/1263
+
+Newly generated configs won't work for `oidc-login` below `v1.33`. You can:
+- keep using the old configs.
+- generate the new configs and drop `oidc-redirect-url` param.
+- update the `oidc-login` module.
+
+
+### Redesigned Machine List Page
+
+The Machines list page has been redesigned to provide a better user experience.
+
+
+### New exported metrics for cluster features and machine details
+
+New prometheus metrics are added for:
+- Enabled cluster features: disk encryption, embedded discovery service, workload proxying.
+- Machines' platforms, their secure boot status and whether they were booted with UKI.
+
+
+### OIDC Authentication Support
+
+Added support for OIDC authentication in Omni.
+
+
+### Toast Messages
+
+Replaced the notification banner feature with toast messages.
+
+
+### User Consent Form for Userpilot
+
+Added a user consent form for Userpilot to allow opting in/out for data collection.
+
+
+### Userpilot Reporting Integration
+
+Integrated Userpilot reporting to help track user interactions.
+
+
+### Contributors
+
+* Edward Sammut Alessi
+* Oguz Kilcan
+* Andrey Smirnov
+* Artem Chernyshev
+* Utku Ozdemir
+* Mateusz Urbanek
+* Noel Georgi
+* Orzelius
+
+### Changes
+<details><summary>74 commits</summary>
+<p>
+
+* [`0a30aea`](https://github.com/siderolabs/omni/commit/0a30aea6f754006dc1a23e1e970d7eef54683e62) fix(frontend): adjust spacing of items in infraproviders
+* [`3f1b96d`](https://github.com/siderolabs/omni/commit/3f1b96d47b553cb2aece32959f4a906695182f33) test: fix the data race in TestEtcdElectionsLost
+* [`17d0394`](https://github.com/siderolabs/omni/commit/17d039435546771abbebf44483282f7beb66f4c4) feat: add more cluster and machine metrics
+* [`442e0a2`](https://github.com/siderolabs/omni/commit/442e0a25ca072c411d255e08711336365031a296) chore: add codeowners file
+* [`48daa1e`](https://github.com/siderolabs/omni/commit/48daa1e224d9785e4f13c3cb5831ff3a89fdbf3f) refactor: resource server runtimes
+* [`d060544`](https://github.com/siderolabs/omni/commit/d060544c33260d005cac4a0e6f968f36292dbf4d) refactor: remove listitembox
+* [`ad9481c`](https://github.com/siderolabs/omni/commit/ad9481c08e6d17a5f3233032c315c201d8389f26) refactor: simplify tslidedownwrapper
+* [`9a13ba5`](https://github.com/siderolabs/omni/commit/9a13ba57582a24b310595f0c28bec74e8200a28d) release(1.2.0-beta.2): prepare release
+* [`10829fa`](https://github.com/siderolabs/omni/commit/10829fafbdbcba6a2acf11e18188608cf104bcf3) fix: fix local resource server access auth check
+* [`789913f`](https://github.com/siderolabs/omni/commit/789913ff6b6e468e920a22d67d5cedd4cc10eb65) fix: adjust the grid alignment for clusters to have all phases lined up
+* [`ff35c35`](https://github.com/siderolabs/omni/commit/ff35c35a13552b0f507aa070ee2d88c7cd45ad1b) fix: alignment of oidc login not being centered
+* [`d215877`](https://github.com/siderolabs/omni/commit/d2158773bc87ef84c64c853653bf37ee02a63ec4) release(v1.2.0-beta.1): prepare release
+* [`5beb24f`](https://github.com/siderolabs/omni/commit/5beb24f7d04e2e2469f796a2f32cf3a56b087528) fix: fix the order in the grpc interceptor chain
+* [`ecb9e7d`](https://github.com/siderolabs/omni/commit/ecb9e7d1a8526fcbfe9607287971d7b58cd1003f) fix: add `oidc-redirect-url` arg to the generated kubeconfigs
+* [`958d1ee`](https://github.com/siderolabs/omni/commit/958d1ee0ee537b1c56dcd4b8f24014477ec29680) fix: inline the css from clusters-grid
+* [`7856de3`](https://github.com/siderolabs/omni/commit/7856de3e7ff3b6d3d097e9c376c0b1e0c4cf63d0) fix: use correct indentation in the `generate-certs` scripts
+* [`d01738e`](https://github.com/siderolabs/omni/commit/d01738eab6fc350211d434d89c3bcf39ac47f35b) test: introduce msw to mock api calls
+* [`b801f68`](https://github.com/siderolabs/omni/commit/b801f6882fe3526a31b02bfa11a3c9fcfac1f887) test: query string for saml login is forwarded
+* [`120d9b2`](https://github.com/siderolabs/omni/commit/120d9b24119540a9138fabb747fe20052d4aded1) chore: colocate tests with their tested components
+* [`dbe39ea`](https://github.com/siderolabs/omni/commit/dbe39ea1fcf811d3d66df48cc8a2bdfe2ce5dea4) feat: check on start up if the account has Talos < 1.6 and strict tokens
+* [`99f1506`](https://github.com/siderolabs/omni/commit/99f1506f01339f581ef5ac265459071a2b9ffbc6) fix: keep query parameters encoded in the oidc/saml login flows
+* [`a1cd472`](https://github.com/siderolabs/omni/commit/a1cd47298260a3c4b52dce7f2761923255bf8476) chore: use storage composables from vueuse
+* [`4c03a10`](https://github.com/siderolabs/omni/commit/4c03a10aec661b2ccffe6b40e03e605bc630ada5) chore: replace hardcoded colors with vars
+* [`95f1f87`](https://github.com/siderolabs/omni/commit/95f1f87955e61ce52baf0c2f546bf5cf397b26a5) chore: improve e2e selectors
+* [`db939c6`](https://github.com/siderolabs/omni/commit/db939c6ececcddb6648f42674a7d9c2c1322a0c9) release(1.2.0-beta.0): prepare release
+* [`1f098cf`](https://github.com/siderolabs/omni/commit/1f098cfafe6dad4713806b733751696746ce0b6b) test: improve test cluster creation for e2e tests
+* [`a035908`](https://github.com/siderolabs/omni/commit/a035908ae2b57c3b8f56fba9b8ea95cf1cd60244) test: write more comprehensive e2e tests for home page
+* [`21cd391`](https://github.com/siderolabs/omni/commit/21cd39155c8a44d90e21c3f8d3fef02bfbee25d1) chore: rekres and fix e2e test runs
+* [`900e5e9`](https://github.com/siderolabs/omni/commit/900e5e95730d3ea24c82f109128125e7cad75192) chore: strip comments from generated ClusterMachineConfig
+* [`5ab4fe4`](https://github.com/siderolabs/omni/commit/5ab4fe415662bdea53dd780ed9c4635f94669c42) chore: migrate omni e2e tests to javascript
+* [`ca93da3`](https://github.com/siderolabs/omni/commit/ca93da3e47feee95aca0501793aa31bb5abd4c3b) fix: fix switch user button for Auth0
+* [`fbf89ac`](https://github.com/siderolabs/omni/commit/fbf89ac537ec9110acb37449d30c91dacc4cb964) test: fix cluster-import e2e test
+* [`58217d6`](https://github.com/siderolabs/omni/commit/58217d6f2e871124a802e340a0f71a3a189f362c) feat: implement user consent form for the `UserPilot`
+* [`1b4de5b`](https://github.com/siderolabs/omni/commit/1b4de5b798a9dd15262bdf711998d46dc2834ef6) feat: abort ongoing cluster import process
+* [`3908993`](https://github.com/siderolabs/omni/commit/39089938e2f74317a8c322d8b711ca5cca77a496) fix: use correct order to determine SideroV1 keys directory path
+* [`9b5e552`](https://github.com/siderolabs/omni/commit/9b5e55235314adca44e6f6b6a50e36d5c46a1ae1) chore: rekres and bump deps
+* [`1ca61f2`](https://github.com/siderolabs/omni/commit/1ca61f2ae01940240a852dca6f32e904a954c5d3) fix: alignment on home no access
+* [`2d30614`](https://github.com/siderolabs/omni/commit/2d30614cc7f45973df5eeacad6452036970176ab) chore(ci): rekres to use action runner groups
+* [`c505479`](https://github.com/siderolabs/omni/commit/c5054794e07fc05b96a27445b74826bbed017668) fix: active link style for nodes and machines
+* [`5298efb`](https://github.com/siderolabs/omni/commit/5298efbe138a0fabdc9dcf51882aaaf0e7901345) chore(ci): rekres to use action runner groups
+* [`8cd15f0`](https://github.com/siderolabs/omni/commit/8cd15f01a506a9f6524c117c5295a9e35a42e8de) chore: lazy load routes, modals, and code editor
+* [`977c316`](https://github.com/siderolabs/omni/commit/977c316d54db0037d542f4afcee66037bab8f979) chore: ignore html whitespace
+* [`4e63cc8`](https://github.com/siderolabs/omni/commit/4e63cc800ca83ce88b8fa87ed4dddd184655ad09) fix: create join token modal margin
+* [`c87b45b`](https://github.com/siderolabs/omni/commit/c87b45b6f3637714b1723d4b9788597fc311b4f5) fix: home general info error & loading
+* [`672e410`](https://github.com/siderolabs/omni/commit/672e410d7cdbdf410da83cef55f21f0e5eccf302) feat: support generating join configs with searching join tokens by name
+* [`f675205`](https://github.com/siderolabs/omni/commit/f675205b8ada545d2bfcb456d073de429d6c87cf) chore: update vite to 7.1.5
+* [`cc231e5`](https://github.com/siderolabs/omni/commit/cc231e5ebdd54d6011edcac752efd98088d4bbbe) chore: remove /omni root route
+* [`906df9a`](https://github.com/siderolabs/omni/commit/906df9a6a40afd7ce2b3aa48bf5d04fe17e1509b) chore: remove the usage of --input-dir flag in tests
+* [`7e1ec6b`](https://github.com/siderolabs/omni/commit/7e1ec6b1b3ad095ef966e5eade8043b19d94fc82) feat: add visual feedback when copying
+* [`7a6ba5f`](https://github.com/siderolabs/omni/commit/7a6ba5f9fb3f54a1ff81b3f84328f99455451ee6) chore: replace deprecated libraries with vueuse
+* [`b70560c`](https://github.com/siderolabs/omni/commit/b70560c1661387c5c34224140789f4e6df2304f9) feat: implement OIDC auth support
+* [`5529607`](https://github.com/siderolabs/omni/commit/552960733f81d9923a5cbd403ee15ffeae62fc03) chore: rekres providing `lint-fmt` and fixing frontend
+* [`7b1f426`](https://github.com/siderolabs/omni/commit/7b1f4260ae3d3f5eaf1a7279e70fb7b01bfd3948) feat: redesign machines page
+* [`43ec5b0`](https://github.com/siderolabs/omni/commit/43ec5b041d2162a6a827dc74463d059c428dc669) fix: do not make not running lazy workload proxy healthchecker block
+* [`122903f`](https://github.com/siderolabs/omni/commit/122903f29a2dc87abb698de0b4b6ff312db5e619) chore: rekres to bring in lint-eslint-fmt
+* [`b867332`](https://github.com/siderolabs/omni/commit/b867332e6746efb1818d8e72a6c80e2503b5762c) fix: sidebar showing when it should not
+* [`cc03488`](https://github.com/siderolabs/omni/commit/cc03488ab1f045f307466ff45a3d350cd487201c) feat: implement cluster locking
+* [`e9aba45`](https://github.com/siderolabs/omni/commit/e9aba459cee5302a8c6e25569ab4a22474501d1e) fix: sidebar styles missing on mobile
+* [`0603af9`](https://github.com/siderolabs/omni/commit/0603af9eb75a6f95634f374d793d4b1743835831) chore: refactor routes to remove withPrefix
+* [`bbeebd7`](https://github.com/siderolabs/omni/commit/bbeebd7e29cac3fabf4371250336092c8385d332) feat: implement toast messages
+* [`6e6c30c`](https://github.com/siderolabs/omni/commit/6e6c30cdc510176a8e9e991be23e76d455257b14) fix: alignment on error pages
+* [`a6ed371`](https://github.com/siderolabs/omni/commit/a6ed371a635e5e0562c3f039e079fc9a08e7b5c2) fix: route size on login and machine classes
+* [`e215b37`](https://github.com/siderolabs/omni/commit/e215b37c076866612d57972545928bc678959f09) fix: route resizing issue
+* [`faf5432`](https://github.com/siderolabs/omni/commit/faf5432552c345e6204ef9b448bdd1e29be954b5) refactor: use new qruntime with mapping of destroyed resources
+* [`ef3eac7`](https://github.com/siderolabs/omni/commit/ef3eac7c411d4d8e0c383117d999faa9a3455984) fix: respect app.vue padding in routes
+* [`ffd9859`](https://github.com/siderolabs/omni/commit/ffd985936e250c54725ad9d8a65099f0a82f793d) fix: console warning about invalid watch value
+* [`b5c6825`](https://github.com/siderolabs/omni/commit/b5c68259c4f578d39f691538488df1a23c86ec97) fix: fix the log spam caused by the expensive reqs to embedded etcd
+* [`bce3ba2`](https://github.com/siderolabs/omni/commit/bce3ba27b05eb99ef17c4fa6b5fd4c043f9fe663) chore: improve tbutton typings
+* [`de144e3`](https://github.com/siderolabs/omni/commit/de144e3f6bb7beb3c1b0e4ebebe729ef446f0ba4) feat: support Userpilot reports
+* [`9f0f15a`](https://github.com/siderolabs/omni/commit/9f0f15aafb1700a8917ed808ef62530f787b0523) fix: copy buttons on omni home page
+* [`c76b003`](https://github.com/siderolabs/omni/commit/c76b003b86e8d604c1008d3035322c2eaf956e81) refactor: make cluster/machineset destroy status controllers QController
+* [`a40500e`](https://github.com/siderolabs/omni/commit/a40500e6df95daf1610233ad467f9c773e1e7e4d) test: use clustermachineconfig sha for omni upgrade e2e test
+* [`6f98fca`](https://github.com/siderolabs/omni/commit/6f98fca0bd193757371c0cc26c0748432df820f8) fix: make useWatch respect reactivity
+* [`825e669`](https://github.com/siderolabs/omni/commit/825e669caef22a9cc22bda9a66c01def9229c572) chore: use vue specific rules for dot-notation and eqeqeq
+</p>
+</details>
+
+### Changes since v1.2.0-beta.2
+<details><summary>7 commits</summary>
+<p>
+
+* [`0a30aea`](https://github.com/siderolabs/omni/commit/0a30aea6f754006dc1a23e1e970d7eef54683e62) fix(frontend): adjust spacing of items in infraproviders
+* [`3f1b96d`](https://github.com/siderolabs/omni/commit/3f1b96d47b553cb2aece32959f4a906695182f33) test: fix the data race in TestEtcdElectionsLost
+* [`17d0394`](https://github.com/siderolabs/omni/commit/17d039435546771abbebf44483282f7beb66f4c4) feat: add more cluster and machine metrics
+* [`442e0a2`](https://github.com/siderolabs/omni/commit/442e0a25ca072c411d255e08711336365031a296) chore: add codeowners file
+* [`48daa1e`](https://github.com/siderolabs/omni/commit/48daa1e224d9785e4f13c3cb5831ff3a89fdbf3f) refactor: resource server runtimes
+* [`d060544`](https://github.com/siderolabs/omni/commit/d060544c33260d005cac4a0e6f968f36292dbf4d) refactor: remove listitembox
+* [`ad9481c`](https://github.com/siderolabs/omni/commit/ad9481c08e6d17a5f3233032c315c201d8389f26) refactor: simplify tslidedownwrapper
+</p>
+</details>
+
+### Changes from siderolabs/go-api-signature
+<details><summary>1 commit</summary>
+<p>
+
+* [`68478e2`](https://github.com/siderolabs/go-api-signature/commit/68478e2f57a3bca4345c6e189c0a4216dfb9b1ed) fix: return `invalid signature` error when a signature is required
+</p>
+</details>
+
+### Changes from siderolabs/go-kubernetes
+<details><summary>1 commit</summary>
+<p>
+
+* [`40e5536`](https://github.com/siderolabs/go-kubernetes/commit/40e553628047372649925a84f76b8b7a89771487) feat: update checks for Kubernetes 1.34
+</p>
+</details>
+
+### Changes from siderolabs/image-factory
+<details><summary>7 commits</summary>
+<p>
+
+* [`a3a7661`](https://github.com/siderolabs/image-factory/commit/a3a7661df37083c3af0a929265a424f003c9db1a) release(v0.8.4): prepare release
+* [`075aa3f`](https://github.com/siderolabs/image-factory/commit/075aa3fa0c10abc4e06d2be1d3f3a394e56d1947) fix: update Talos to 1.11.1
+* [`02723cd`](https://github.com/siderolabs/image-factory/commit/02723cdf6b96b106b3a961f1eb88731366e0cecb) fix: translation ID
+* [`94c6df1`](https://github.com/siderolabs/image-factory/commit/94c6df1f3497c5a4173fa3ddfd3169b65d70dc15) release(v0.8.3): prepare release
+* [`7254abf`](https://github.com/siderolabs/image-factory/commit/7254abf251c3a1140a220969ac9bd684c55f8774) fix: disable redirects to PXE
+* [`251aee0`](https://github.com/siderolabs/image-factory/commit/251aee03710e8c3603a9f4cf9677353a62e860ea) release(v0.8.2): prepare release
+* [`418eebb`](https://github.com/siderolabs/image-factory/commit/418eebb19ff7a6948a8125db2461f257612fcd23) fix: don't filter out `rc` versions
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/aws/aws-sdk-go-v2**                     v1.38.0 -> v1.39.0
+* **github.com/aws/aws-sdk-go-v2/config**              v1.29.17 -> v1.31.8
+* **github.com/aws/aws-sdk-go-v2/credentials**         v1.17.70 -> v1.18.12
+* **github.com/aws/aws-sdk-go-v2/feature/s3/manager**  v1.17.49 -> v1.19.6
+* **github.com/aws/aws-sdk-go-v2/service/s3**          v1.72.3 -> v1.88.1
+* **github.com/aws/smithy-go**                         v1.22.5 -> v1.23.0
+* **github.com/containers/image/v5**                   v5.36.1 -> v5.36.2
+* **github.com/coreos/go-oidc/v3**                     v3.15.0 **_new_**
+* **github.com/cosi-project/runtime**                  v1.10.7 -> v1.11.0
+* **github.com/emicklei/dot**                          v1.9.0 -> v1.9.1
+* **github.com/grpc-ecosystem/grpc-gateway/v2**        v2.27.1 -> v2.27.2
+* **github.com/hashicorp/vault/api**                   v1.20.0 -> v1.21.0
+* **github.com/johannesboyne/gofakes3**                ed9094be7668 -> 6555d310c473
+* **github.com/prometheus/client_golang**              v1.23.0 -> v1.23.2
+* **github.com/prometheus/common**                     v0.65.0 -> v0.66.1
+* **github.com/siderolabs/go-api-signature**           v0.3.7 -> v0.3.8
+* **github.com/siderolabs/go-kubernetes**              v0.2.25 -> v0.2.26
+* **github.com/siderolabs/image-factory**              v0.8.1 -> v0.8.4
+* **github.com/siderolabs/omni/client**                v1.0.1 -> v1.1.2
+* **github.com/siderolabs/talos/pkg/machinery**        v1.11.0-rc.0 -> v1.11.1
+* **github.com/spf13/cobra**                           v1.9.1 -> v1.10.1
+* **github.com/stretchr/testify**                      v1.10.0 -> v1.11.1
+* **go.etcd.io/bbolt**                                 v1.4.2 -> v1.4.3
+* **golang.org/x/crypto**                              v0.41.0 -> v0.42.0
+* **golang.org/x/net**                                 v0.43.0 -> v0.44.0
+* **golang.org/x/oauth2**                              v0.31.0 **_new_**
+* **golang.org/x/sync**                                v0.16.0 -> v0.17.0
+* **golang.org/x/text**                                v0.28.0 -> v0.29.0
+* **golang.org/x/time**                                v0.12.0 -> v0.13.0
+* **golang.org/x/tools**                               v0.36.0 -> v0.37.0
+* **google.golang.org/grpc**                           v1.74.2 -> v1.75.1
+* **google.golang.org/protobuf**                       v1.36.7 -> v1.36.9
+* **sigs.k8s.io/controller-runtime**                   v0.21.0 -> v0.22.1
+
+Previous release can be found at [v1.1.0](https://github.com/siderolabs/omni/releases/tag/v1.1.0)
+
 ## [Omni 1.2.0-beta.2](https://github.com/siderolabs/omni/releases/tag/v1.2.0-beta.2) (2025-09-23)
 
 Welcome to the 1.2.0-beta.2 release of Omni!  
