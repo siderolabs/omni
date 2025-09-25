@@ -5,7 +5,7 @@ project_name = "Omni"
 github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
-pre_release = true
+pre_release = false
 previous = "v1.1.0"
 
 [notes]
@@ -69,4 +69,12 @@ Replaced the notification banner feature with toast messages.
 title = "Userpilot Reporting Integration"
 description = """\
 Integrated Userpilot reporting to help track user interactions.
+"""
+
+[notes.new-metrics]
+title = "New exported metrics for cluster features and machine details"
+description = """\
+New prometheus metrics are added for:
+- Enabled cluster features: disk encrpytion, embedded discovery service, workload proxying.
+- Machines' platforms, their secure boot status and whether they were booted with UKI.
 """
