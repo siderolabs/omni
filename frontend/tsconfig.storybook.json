@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.app.json",
+  "include": [".storybook/**/*", "msw/**/*", "src/**/*.stories.*", "src/types/**/*", "env.d.ts"],
+  "exclude": ["src/**/*.spec.*"],
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.storybook.tsbuildinfo",
+
+    "types": ["node"],
+
+    "paths": {
+      "@/*": ["./src/*"],
+      "@msw/*": ["./msw/*"]
+    }
+  }
+}

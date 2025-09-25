@@ -9,6 +9,7 @@ import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescri
 import { globalIgnores } from 'eslint/config'
 import pluginPlaywright from 'eslint-plugin-playwright'
 import simpleImportSort from 'eslint-plugin-simple-import-sort'
+import storybook from 'eslint-plugin-storybook'
 import pluginVue from 'eslint-plugin-vue'
 
 export default defineConfigWithVueTs(
@@ -31,6 +32,11 @@ export default defineConfigWithVueTs(
       '@typescript-eslint/no-floating-promises': 'error',
     },
   },
+  // By default, ESLint ignores all dot-files
+  { ignores: ['!.storybook', '.storybook/public/mockServiceWorker.js'] },
+  ...storybook.configs['flat/recommended'],
+  ...storybook.configs['flat/csf-strict'],
+
   skipFormatting,
 
   {
