@@ -135,7 +135,7 @@ const openRotateSecretKey = async (name: string) => {
           <div
             v-for="item in items"
             :key="itemID(item)"
-            class="flex items-center rounded border border-naturals-n5 bg-naturals-n1 p-3"
+            class="grid grid-cols-4 items-center rounded border border-naturals-n5 bg-naturals-n1 p-3"
             :class="{ 'border-dashed': !item.spec.name }"
           >
             <div class="flex items-center gap-3">
@@ -154,21 +154,19 @@ const openRotateSecretKey = async (name: string) => {
               </div>
             </div>
 
-            <div class="flex-1"></div>
-
             <TStatus :title="getStatus(item)" />
             <div class="truncate text-xs">
               {{ item.spec.description }}
             </div>
 
-            <div class="flex-3"></div>
-
-            <IconButton icon="key" @click="() => openRotateSecretKey(item.metadata.id!)" />
-            <IconButton
-              icon="delete"
-              danger
-              @click="() => openInfraProviderDelete(item.metadata.id!)"
-            />
+            <div class="justify-self-end">
+              <IconButton icon="key" @click="() => openRotateSecretKey(item.metadata.id!)" />
+              <IconButton
+                icon="delete"
+                danger
+                @click="() => openInfraProviderDelete(item.metadata.id!)"
+              />
+            </div>
           </div>
         </div>
       </template>
