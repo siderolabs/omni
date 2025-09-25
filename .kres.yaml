@@ -630,7 +630,7 @@ spec:
         - .pb.go
         - .pb.gw.go
         - .pb.ts
-        - babel.config.js
+        - mockServiceWorker.js
       skipPaths:
         - .git
         - testdata/

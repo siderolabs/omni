@@ -20,6 +20,10 @@ dist-ssr
 /playwright/.cache/
 /e2e/.auth
 
+# Storybook
+*storybook.log
+storybook-static
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

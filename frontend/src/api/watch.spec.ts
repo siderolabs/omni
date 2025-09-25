@@ -2,17 +2,17 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { waitFor } from '@testing-library/vue'
-import { describe, expect, test } from 'vitest'
-import { type Ref, ref } from 'vue'
-
 import {
   createBootstrapEvent,
   createCreatedEvent,
   createDestroyedEvent,
   createUpdatedEvent,
-  createWatchStreamMock,
-} from '@/../msw'
+} from '@msw/helpers'
+import { createWatchStreamMock } from '@msw/server'
+import { waitFor } from '@testing-library/vue'
+import { describe, expect, test } from 'vitest'
+import { type Ref, ref } from 'vue'
+
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import type { MachineSpec } from '@/api/omni/specs/omni.pb'
