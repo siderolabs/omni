@@ -52,11 +52,11 @@ const counts = computed(() => {
       title="Clusters"
       show-hollow-total
       :items="[
-        { label: 'Healthy', value: counts.healthyCount },
-        { label: 'Unhealthy', value: counts.unhealthyCount },
-        { label: 'Scaling Up', value: counts.scalingUpCount },
-        { label: 'Scaling Down', value: counts.scalingDownCount },
-        { label: 'Destroying', value: counts.destroyingCount },
+        { label: 'Healthy', value: counts.healthyCount, color: 'var(--color-green-g1)' },
+        { label: 'Unhealthy', value: counts.unhealthyCount, color: 'var(--color-red-r1)' },
+        { label: 'Scaling Up', value: counts.scalingUpCount, color: 'var(--color-blue-b1)' },
+        { label: 'Scaling Down', value: counts.scalingDownCount, color: 'var(--color-yellow-y1)' },
+        { label: 'Destroying', value: counts.destroyingCount, color: 'var(--color-red-r2)' },
       ]"
     />
   </Card>
