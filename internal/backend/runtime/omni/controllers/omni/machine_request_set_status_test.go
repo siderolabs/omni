@@ -260,24 +260,15 @@ func (suite *MachineRequestSetStatusSuite) reconcileLabels(ctx context.Context) 
 
 				res := system.NewResourceLabels[*omni.MachineStatus](status.TypedSpec().Value.Id)
 
-				res.Metadata().Labels().Set(omni.LabelMachineRequest, status.Metadata().ID())
+				err = safe.StateModify(ctx, suite.state, res, func(r *system.ResourceLabels[*omni.MachineStatus]) error {
+					res.Metadata().Labels().Set(omni.LabelMachineRequest, status.Metadata().ID())
 
-				helpers.CopyAllLabels(status, res)
+					helpers.CopyAllLabels(status, r)
 
-				err = suite.state.Create(ctx, res)
+					return nil
+				})
 				if err != nil {
-					if !state.IsConflictError(err) {
-						return err
-					}
-
-					_, err = safe.StateUpdateWithConflicts(ctx, suite.state, res.Metadata(), func(r *system.ResourceLabels[*omni.MachineStatus]) error {
-						helpers.CopyAllLabels(status, r)
-
-						return nil
-					})
-					if err != nil {
-						return err
-					}
+					return err
 				}
 			}
 		}
