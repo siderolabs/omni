@@ -1,11 +1,16 @@
 {
   "extends": "./tsconfig.app.json",
   "include": ["vitest.setup.*", "msw/**/*", "src/**/*.spec.*", "src/types/**/*", "env.d.ts"],
-  "exclude": [],
+  "exclude": ["src/**/*.stories.*"],
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.vitest.tsbuildinfo",
 
     "lib": [],
-    "types": ["node", "jsdom", "@testing-library/jest-dom"]
+    "types": ["node", "jsdom", "@testing-library/jest-dom"],
+
+    "paths": {
+      "@/*": ["./src/*"],
+      "@msw/*": ["./msw/*"]
+    }
   }
 }

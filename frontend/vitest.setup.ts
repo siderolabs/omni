@@ -4,9 +4,8 @@
 // included in the LICENSE file.
 import '@testing-library/jest-dom/vitest'
 
+import { server } from '@msw/server'
 import { afterAll, afterEach, beforeAll } from 'vitest'
-
-import { server } from './msw'
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => server.resetHandlers())
