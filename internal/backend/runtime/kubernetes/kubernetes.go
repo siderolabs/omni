@@ -169,8 +169,11 @@ func (r *Runtime) List(ctx context.Context, setters ...runtime.QueryOption) (run
 	}
 
 	listOpts := metav1.ListOptions{
-		LabelSelector: opts.LabelSelectors[0],
 		FieldSelector: opts.FieldSelector,
+	}
+
+	if len(opts.LabelSelectors) > 0 {
+		listOpts.LabelSelector = opts.LabelSelectors[0]
 	}
 
 	list, err := client.List(ctx, opts.Resource, opts.Namespace, listOpts)

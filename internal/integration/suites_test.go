@@ -1192,6 +1192,11 @@ Test authorization on accessing Omni API, some tests run without a cluster, some
 		)
 
 		t.Run(
+			"FrontendAPIShouldBeTested",
+			AssertFrontendResourceAPI(t.Context(), options.omniClient, options.clientConfig, options.HTTPEndpoint, clusterName),
+		)
+
+		t.Run(
 			"ClusterShouldBeDestroyed",
 			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, false),
 		)

@@ -83,7 +83,15 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 		suite.Require().NoError(eg.Wait())
 	}()
 
-	eg.Go(suite.reconcileLabels(reconcilerCtx))
+	eg.Go(func() error {
+		if err := suite.reconcileLabels(reconcilerCtx); err != nil {
+			suite.T().Logf("machine status labels reconciler crashed with error %s", err)
+
+			return err
+		}
+
+		return nil
+	})
 
 	require.NoError(suite.runtime.RegisterQController(omnictrl.NewMachineRequestSetStatusController()))
 	require.NoError(suite.runtime.RegisterQController(newTestInfraProvider()))
@@ -210,59 +218,65 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 }
 
 //nolint:gocognit
-func (suite *MachineRequestSetStatusSuite) reconcileLabels(ctx context.Context) func() error {
-	return func() error {
-		ch := make(chan state.Event)
+func (suite *MachineRequestSetStatusSuite) reconcileLabels(ctx context.Context) error {
+	ch := make(chan state.Event)
 
-		err := suite.state.WatchKind(ctx, infra.NewMachineRequestStatus("").Metadata(), ch)
-		if err != nil {
+	err := suite.state.WatchKind(ctx, infra.NewMachineRequestStatus("").Metadata(), ch)
+	if err != nil {
+		return err
+	}
+
+	deleteLabels := func(id string) error {
+		res := system.NewResourceLabels[*omni.MachineStatus](id)
+
+		deleteCtx, cancel := context.WithTimeout(ctx, time.Second*10)
+		defer cancel()
+
+		err = suite.state.TeardownAndDestroy(deleteCtx, res.Metadata())
+		if err != nil && !state.IsNotFoundError(err) {
 			return err
 		}
 
-		for {
-			select {
-			case <-ctx.Done():
-				return nil
-			case event := <-ch:
-				switch event.Type {
-				case state.Bootstrapped, state.Noop:
-				case state.Errored:
-					return event.Error
-				case state.Destroyed:
-					status := event.Resource.(*infra.MachineRequestStatus) //nolint:errcheck,forcetypeassert
-					res := system.NewResourceLabels[*omni.MachineStatus](status.TypedSpec().Value.Id)
+		return nil
+	}
 
-					err = suite.state.TeardownAndDestroy(ctx, res.Metadata())
-					if err != nil {
-						if state.IsNotFoundError(err) {
-							continue
-						}
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case event := <-ch:
+			switch event.Type {
+			case state.Bootstrapped, state.Noop:
+			case state.Errored:
+				return event.Error
+			case state.Destroyed:
+				status := event.Resource.(*infra.MachineRequestStatus) //nolint:errcheck,forcetypeassert
 
+				if err = deleteLabels(status.TypedSpec().Value.Id); err != nil {
+					return err
+				}
+			case state.Created, state.Updated:
+				status := event.Resource.(*infra.MachineRequestStatus) //nolint:errcheck,forcetypeassert
+
+				res := system.NewResourceLabels[*omni.MachineStatus](status.TypedSpec().Value.Id)
+
+				res.Metadata().Labels().Set(omni.LabelMachineRequest, status.Metadata().ID())
+
+				helpers.CopyAllLabels(status, res)
+
+				err = suite.state.Create(ctx, res)
+				if err != nil {
+					if !state.IsConflictError(err) {
 						return err
 					}
-				case state.Created, state.Updated:
-					status := event.Resource.(*infra.MachineRequestStatus) //nolint:errcheck,forcetypeassert
 
-					res := system.NewResourceLabels[*omni.MachineStatus](status.TypedSpec().Value.Id)
+					_, err = safe.StateUpdateWithConflicts(ctx, suite.state, res.Metadata(), func(r *system.ResourceLabels[*omni.MachineStatus]) error {
+						helpers.CopyAllLabels(status, r)
 
-					res.Metadata().Labels().Set(omni.LabelMachineRequest, status.Metadata().ID())
-
-					helpers.CopyAllLabels(status, res)
-
-					err = suite.state.Create(ctx, res)
+						return nil
+					})
 					if err != nil {
-						if !state.IsConflictError(err) {
-							return err
-						}
-
-						_, err = safe.StateUpdateWithConflicts(ctx, suite.state, res.Metadata(), func(r *system.ResourceLabels[*omni.MachineStatus]) error {
-							helpers.CopyAllLabels(status, r)
-
-							return nil
-						})
-						if err != nil {
-							return err
-						}
+						return err
 					}
 				}
 			}

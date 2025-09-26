@@ -36,7 +36,7 @@ import (
 )
 
 const (
-	defaultServiceAccount = "integration" + access.ServiceAccountNameSuffix
+	DefaultServiceAccount = "integration" + access.ServiceAccountNameSuffix
 	defaultEmail          = "test-user@siderolabs.com"
 )
 
@@ -46,8 +46,9 @@ type clientCacheKey struct {
 	skipUserRole bool
 }
 
-type clientOrError struct {
+type clientCacheValue struct {
 	client *client.Client
+	key    *pgp.Key
 	err    error
 }
 
@@ -55,7 +56,7 @@ type clientOrError struct {
 type ClientConfig struct {
 	endpoint          string
 	serviceAccountKey string
-	clientCache       containers.ConcurrentMap[clientCacheKey, clientOrError]
+	clientCache       containers.ConcurrentMap[clientCacheKey, clientCacheValue]
 }
 
 // New creates a new test client config.
@@ -71,7 +72,7 @@ func New(endpoint, serviceAccountKey string) *ClientConfig {
 // Clients are cached by their configuration, so if a client with the
 // given configuration was created before, the cached one will be returned.
 func (t *ClientConfig) GetClient(ctx context.Context, publicKeyOpts ...authcli.RegisterPGPPublicKeyOption) (*client.Client, error) {
-	return t.GetClientForEmail(ctx, defaultServiceAccount, publicKeyOpts...)
+	return t.GetClientForEmail(ctx, DefaultServiceAccount, publicKeyOpts...)
 }
 
 // GetClientForEmail returns a test client for the given email.
@@ -82,23 +83,47 @@ func (t *ClientConfig) GetClientForEmail(ctx context.Context, email string, publ
 	cacheKey := t.buildCacheKey(email, publicKeyOpts)
 
 	// The client is created by the cache callback, and will be closed by the cache on [ClientConfig.Close].
-	cliOrErr, _ := t.clientCache.GetOrCall(cacheKey, func() clientOrError {
-		cli, err := createServiceAccountClient(ctx, t.endpoint, t.serviceAccountKey, cacheKey)
+	cliValue, _ := t.clientCache.GetOrCall(cacheKey, func() clientCacheValue {
+		cli, key, err := createServiceAccountClient(ctx, t.endpoint, t.serviceAccountKey, cacheKey)
 
-		return clientOrError{
+		return clientCacheValue{
 			client: cli,
+			key:    key,
 			err:    err,
 		}
 	})
 
-	return cliOrErr.client, cliOrErr.err
+	return cliValue.client, cliValue.err
+}
+
+// GetKey fetches service account key for the default email.
+func (t *ClientConfig) GetKey(ctx context.Context, publicKeyOpts ...authcli.RegisterPGPPublicKeyOption) (*pgp.Key, error) {
+	return t.GetKeyForEmail(ctx, DefaultServiceAccount, publicKeyOpts...)
+}
+
+// GetKeyForEmail fetches service account key for the specified email.
+func (t *ClientConfig) GetKeyForEmail(ctx context.Context, email string, publicKeyOpts ...authcli.RegisterPGPPublicKeyOption) (*pgp.Key, error) {
+	cacheKey := t.buildCacheKey(email, publicKeyOpts)
+
+	// The client is created by the cache callback, and will be closed by the cache on [ClientConfig.Close].
+	cliOrErr, _ := t.clientCache.GetOrCall(cacheKey, func() clientCacheValue {
+		cli, key, err := createServiceAccountClient(ctx, t.endpoint, t.serviceAccountKey, cacheKey)
+
+		return clientCacheValue{
+			client: cli,
+			key:    key,
+			err:    err,
+		}
+	})
+
+	return cliOrErr.key, cliOrErr.err
 }
 
 // Close closes all the clients created by this config.
 func (t *ClientConfig) Close() error {
 	var multiErr error
 
-	t.clientCache.ForEach(func(_ clientCacheKey, cliOrErr clientOrError) {
+	t.clientCache.ForEach(func(_ clientCacheKey, cliOrErr clientCacheValue) {
 		if cliOrErr.client != nil {
 			if err := cliOrErr.client.Close(); err != nil {
 				multiErr = multierror.Append(multiErr, err)
@@ -209,10 +234,10 @@ func CreateServiceAccount(ctx context.Context, name string, st state.State) (str
 	return serviceaccount.Encode(name, key)
 }
 
-func createServiceAccountClient(ctx context.Context, endpoint, serviceAccountKey string, cacheKey clientCacheKey) (*client.Client, error) {
+func createServiceAccountClient(ctx context.Context, endpoint, serviceAccountKey string, cacheKey clientCacheKey) (*client.Client, *pgp.Key, error) {
 	rootClient, err := client.New(endpoint, client.WithServiceAccount(serviceAccountKey))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	defer rootClient.Close() //nolint:errcheck
@@ -232,7 +257,7 @@ func createServiceAccountClient(ctx context.Context, endpoint, serviceAccountKey
 
 	key, err := pgp.GenerateKey(name, comment, serviceAccountEmail, auth.ServiceAccountMaxAllowedLifetime)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if cacheKey.role == string(role.InfraProvider) {
@@ -241,32 +266,37 @@ func createServiceAccountClient(ctx context.Context, endpoint, serviceAccountKey
 
 	armoredPublicKey, err := key.ArmorPublic()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	serviceAccounts, err := rootClient.Management().ListServiceAccounts(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if slices.IndexFunc(serviceAccounts, func(account *management.ListServiceAccountsResponse_ServiceAccount) bool {
 		return account.Name == name
 	}) != -1 {
 		if err = rootClient.Management().DestroyServiceAccount(ctx, name); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	// create service account with the generated key
 	_, err = rootClient.Management().CreateServiceAccount(ctx, name, armoredPublicKey, cacheKey.role, cacheKey.role == "")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	encodedKey, err := serviceaccount.Encode(name, key)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return client.New(endpoint, client.WithServiceAccount(encodedKey))
+	cli, err := client.New(endpoint, client.WithServiceAccount(encodedKey))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return cli, key, nil
 }

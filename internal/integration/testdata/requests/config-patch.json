@@ -1,0 +1,16 @@
+{
+  "resource": {
+    "metadata": {
+      "namespace": "default",
+      "type": "ConfigPatches.omni.sidero.dev",
+      "labels": {
+        "omni.sidero.dev/machine": "689aa1fa-e877-43fe-9abb-9ce7ab7da5e9"
+      },
+      "annotations": {
+        "name": "User defined patch"
+      },
+      "id": "500-4351e26f-faf0-4101-ae36-4d4f4d3f8f29"
+    },
+    "spec": "{}"
+  }
+}

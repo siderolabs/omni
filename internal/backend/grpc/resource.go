@@ -349,11 +349,11 @@ func withResource(r res) []runtime.QueryOption {
 // CreateResource creates a resource from a resource proto representation.
 func CreateResource(resource *resources.Resource) (cosiresource.Resource, error) { //nolint:ireturn
 	if resource == nil {
-		return nil, errors.New("resource is nil")
+		return nil, status.Error(codes.InvalidArgument, "resource is nil")
 	}
 
 	if resource.Metadata == nil {
-		return nil, errors.New("resource metadata is nil")
+		return nil, status.Error(codes.InvalidArgument, "resource metadata is nil")
 	}
 
 	if resource.Metadata.Version == "" {

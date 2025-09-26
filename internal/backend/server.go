@@ -795,6 +795,10 @@ func isSensitiveResource(res *v1alpha1.Resource) bool {
 }
 
 func isSensitiveSpec(resource *resapi.Resource) bool {
+	if resource == nil {
+		return false
+	}
+
 	res, err := grpcomni.CreateResource(resource)
 	if err != nil {
 		return true

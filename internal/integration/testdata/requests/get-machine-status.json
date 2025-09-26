@@ -1,0 +1,5 @@
+{
+  "namespace": "runtime",
+  "type": "MachineStatuses.runtime.talos.dev",
+  "id": "machine"
+}
