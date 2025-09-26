@@ -51,7 +51,7 @@ func PodRequestsAndLimits(pod *corev1.Pod) (reqs, limits corev1.ResourceList) {
 		}
 	}
 
-	return
+	return reqs, limits
 }
 
 // addResourceList adds the resources in newList to list.
