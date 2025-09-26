@@ -14,6 +14,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/talos/pkg/machinery/api/storage"
 	"go.uber.org/zap"
@@ -21,6 +22,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
 // MachineConfigGenOptionsControllerName is the name of the MachineConfigGenOptionsController.
@@ -43,13 +45,44 @@ func NewMachineConfigGenOptionsController() *MachineConfigGenOptionsController {
 			UnmapMetadataFunc: func(machineConfigGenOptions *omni.MachineConfigGenOptions) *omni.MachineStatus {
 				return omni.NewMachineStatus(resources.DefaultNamespace, machineConfigGenOptions.Metadata().ID())
 			},
-			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, machineStatus *omni.MachineStatus, options *omni.MachineConfigGenOptions) error {
+			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, machineStatus *omni.MachineStatus, options *omni.MachineConfigGenOptions) error {
 				clusterMachineTalosVersion, err := safe.ReaderGetByID[*omni.ClusterMachineTalosVersion](ctx, r, machineStatus.Metadata().ID())
 				if err != nil && !state.IsNotFoundError(err) {
 					return err
 				}
 
-				GenInstallConfig(machineStatus, clusterMachineTalosVersion, options)
+				extraKernelArgsRes, err := helpers.HandleInput[*omni.MachineExtraKernelArgs](ctx, r, MachineConfigGenOptionsControllerName, machineStatus)
+				if err != nil {
+					return err
+				}
+
+				configStatus, err := safe.ReaderGetByID[*omni.ClusterMachineConfigStatus](ctx, r, machineStatus.Metadata().ID())
+				if err != nil && !state.IsNotFoundError(err) {
+					return err
+				}
+
+				securityState := machineStatus.TypedSpec().Value.SecurityState
+				if securityState == nil {
+					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("security state is not known yet")
+				}
+
+				var extraKernelArgs []string
+
+				if extraKernelArgsRes != nil {
+					extraKernelArgs = extraKernelArgsRes.TypedSpec().Value.Args
+
+					// alwaysInclude is used to track whether extra kernel args were defined explicitly at least once in this cluster machine's lifetime.
+					//
+					// If they were, from that moment on, we need to work with the "full" schematic ID to decide if we want to upgrade the machine or not.
+					options.TypedSpec().Value.AlwaysIncludeKernelArgs = true
+				}
+
+				extraKernelArgsInSync := configStatus == nil || slices.Equal(extraKernelArgs, configStatus.TypedSpec().Value.ExtraKernelArgs)
+				if !extraKernelArgsInSync {
+					logger.Info("kernel args out of sync, skipping install image update until they get in sync")
+				}
+
+				GenInstallConfig(machineStatus, clusterMachineTalosVersion, options, extraKernelArgs, extraKernelArgsInSync)
 
 				return nil
 			},
@@ -57,13 +90,27 @@ func NewMachineConfigGenOptionsController() *MachineConfigGenOptionsController {
 		qtransform.WithExtraMappedInput[*omni.ClusterMachineTalosVersion](
 			qtransform.MapperSameID[*omni.MachineStatus](),
 		),
+		qtransform.WithExtraMappedInput[*omni.MachineExtraKernelArgs](
+			qtransform.MapperSameID[*omni.MachineStatus](),
+		),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineConfigStatus](
+			qtransform.MapperSameID[*omni.MachineStatus](),
+		),
 		qtransform.WithIgnoreTeardownUntil(), // keep the resource until everyone else is done with Machine
 	)
 }
 
 // GenInstallConfig creates a config patch with an automatically picked install disk.
-func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVersion *omni.ClusterMachineTalosVersion, genOptions *omni.MachineConfigGenOptions) {
-	if clusterMachineTalosVersion != nil {
+//
+// InstallImage will be updated only if the kernel args are in sync, i.e., they are applied via the ClusterMachineConfig, and can be observed on the ClusterMachineConfigStatus.
+//
+// This ensures that any changes in the schematic are held back until the machine config has the correct .machine.install.extraKernelArgs.
+//
+// By doing so, we trigger a schematic upgrade only after updating the kernel args, making them take effect (in non-UKI systems).
+func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVersion *omni.ClusterMachineTalosVersion,
+	genOptions *omni.MachineConfigGenOptions, extraKernelArgs []string, kernelArgsInSync bool,
+) {
+	if clusterMachineTalosVersion != nil && kernelArgsInSync {
 		if genOptions.TypedSpec().Value.InstallImage == nil {
 			genOptions.TypedSpec().Value.InstallImage = &specs.MachineConfigGenOptionsSpec_InstallImage{}
 		}
@@ -113,4 +160,5 @@ func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVers
 	}
 
 	genOptions.TypedSpec().Value.InstallDisk = installDisk
+	genOptions.TypedSpec().Value.ExtraKernelArgs = extraKernelArgs
 }
