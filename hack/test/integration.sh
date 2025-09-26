@@ -67,14 +67,19 @@ chown -R ${SUDO_USER:-$(whoami)} ${ARTIFACTS}
 
 # Determine the local IP SideroLink API will listen on
 LOCAL_IP=$(ip -o route get to 8.8.8.8 | sed -n 's/.*src \([0-9.]\+\).*/\1/p')
+WIREGUARD_IP=$LOCAL_IP
+
+if [[ "${CI:-false}" == "true" ]]; then
+  WIREGUARD_IP=172.20.0.1
+fi
 
 # Prepare schematic with kernel args
 KERNEL_ARGS_SCHEMATIC=$(
   cat <<EOF
 customization:
   extraKernelArgs:
-    - siderolink.api=grpc://$LOCAL_IP:8090?jointoken=${JOIN_TOKEN}
-    - talos.events.sink=[fdae:41e4:649b:9303::1]:8090
+    - siderolink.api=grpc://${WIREGUARD_IP}:8090?jointoken=${JOIN_TOKEN}
+    - talos.events.sink=[fdae:41e4:649b:9303::1]:8091
     - talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092
   systemExtensions:
     officialExtensions:
@@ -181,8 +186,9 @@ services:
       endpoint: ${LOCAL_IP}:50180
       advertisedEndpoint: ${LOCAL_IP}:50180
     joinTokensMode: strict
+    eventSinkPort: 8091
   machineAPI:
-    endpoint: ${LOCAL_IP}:8090
+    endpoint: 0.0.0.0:8090
     advertisedURL: grpc://${LOCAL_IP}:8090
   workloadProxy:
     enabled: true
@@ -281,7 +287,7 @@ function prepare_partial_config() {
     cat <<EOF
 apiVersion: v1alpha1
 kind: SideroLinkConfig
-apiUrl: grpc://$LOCAL_IP:8090?jointoken=${JOIN_TOKEN}
+apiUrl: grpc://${LOCAL_IP}:8090?jointoken=${JOIN_TOKEN}
 ---
 apiVersion: v1alpha1
 kind: EventSinkConfig
@@ -299,7 +305,7 @@ EOF
   echo "${partial_config}" >"${partial_config_dir}/config.yaml"
 
   # Start a simple HTTP server to serve the partial config
-  python3 -m http.server $port --bind "$LOCAL_IP" --directory "$partial_config_dir" >/dev/null 2>&1 &
+  python3 -m http.server $port --bind "0.0.0.0" --directory "$partial_config_dir" >/dev/null 2>&1 &
   PARTIAL_CONFIG_SERVER_PID=$! # capture the PID to kill it in cleanup
 
   local schematic
@@ -307,7 +313,7 @@ EOF
     cat <<EOF
 customization:
   extraKernelArgs:
-    - talos.config=http://$LOCAL_IP:$port/config.yaml
+    - talos.config=http://${WIREGUARD_IP}:$port/config.yaml
   systemExtensions:
     officialExtensions:
       - siderolabs/hello-world-service
@@ -552,6 +558,7 @@ if [ "${INTEGRATION_RUN_E2E_TEST:-true}" == "true" ]; then
     nice -n 10 ${ARTIFACTS}/omni-linux-amd64 --config-path ${TEST_OUTPUTS_DIR}/e2e-config.yaml \
     --siderolink-wireguard-advertised-addr $LOCAL_IP:50180 \
     --siderolink-api-advertised-url "grpc://$LOCAL_IP:8090" \
+    --event-sink-port 8091 \
     --auth-auth0-enabled true \
     --auth-auth0-client-id "${AUTH0_CLIENT_ID}" \
     --auth-auth0-domain "${AUTH0_DOMAIN}" \

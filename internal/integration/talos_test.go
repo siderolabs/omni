@@ -852,10 +852,14 @@ func AssertTalosServiceIsRestarted(testCtx context.Context, cli *client.Client, 
 // AssertSupportBundleContents tries to upgrade get Talos/Omni support bundle, and verifies that it has some contents.
 func AssertSupportBundleContents(testCtx context.Context, cli *client.Client, clusterName string) TestFunc {
 	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, 10*time.Second)
+		ctx, cancel := context.WithTimeout(testCtx, 30*time.Second)
 		defer cancel()
 
 		require := require.New(t)
+
+		// check that all machines have logs using Omni API
+		machines, err := safe.ReaderListAll[*omni.ClusterMachine](ctx, cli.Omni().State(), state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
+		require.NoError(err)
 
 		progress := make(chan *management.GetSupportBundleResponse_Progress)
 
@@ -905,10 +909,6 @@ func AssertSupportBundleContents(testCtx context.Context, cli *client.Client, cl
 
 		// check some resource that always exists
 		require.NotEmpty(readArchiveFile(fmt.Sprintf("omni/resources/Clusters.omni.sidero.dev-%s.yaml", clusterName)))
-
-		// check that all machines have logs
-		machines, err := safe.ReaderListAll[*omni.ClusterMachine](ctx, cli.Omni().State(), state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
-		require.NoError(err)
 
 		machines.ForEach(func(cm *omni.ClusterMachine) {
 			require.NotEmpty(readArchiveFile(fmt.Sprintf("omni/machine-logs/%s.log", cm.Metadata().ID())))
