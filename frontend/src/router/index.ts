@@ -8,6 +8,7 @@ import { Userpilot } from 'userpilot'
 import type { RouteRecordRaw } from 'vue-router'
 import { createRouter, createWebHistory, RouterView } from 'vue-router'
 
+import { AuthFlowQueryParam, RedirectQueryParam } from '@/api/resources'
 import { current } from '@/context'
 import { AuthType, authType } from '@/methods'
 import { loadCurrentUser } from '@/methods/auth'
@@ -62,7 +63,10 @@ const routes: RouteRecordRaw[] = [
         return true
       }
 
-      return { name: 'Authenticate', query: { flow: FrontendAuthFlow, redirect: to.fullPath } }
+      return {
+        name: 'Authenticate',
+        query: { [AuthFlowQueryParam]: FrontendAuthFlow, [RedirectQueryParam]: to.fullPath },
+      }
     },
     children: [
       {

@@ -86,7 +86,7 @@ onMounted(() => {
 
       if (authType.value === AuthType.OIDC) {
         logout = () => {
-          redirectToURL(`/logout?flow=frontend`)
+          redirectToURL(`/logout?${AuthFlowQueryParam}=${FrontendAuthFlow}`)
         }
 
         return
