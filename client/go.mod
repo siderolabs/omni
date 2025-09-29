@@ -13,7 +13,6 @@ replace (
 require (
 	github.com/ProtonMail/gopenpgp/v2 v2.9.0
 	github.com/adrg/xdg v0.5.3
-	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cosi-project/runtime v1.11.0
 	github.com/dustin/go-humanize v1.0.1
@@ -30,7 +29,7 @@ require (
 	github.com/planetscale/vtprotobuf v0.6.1-0.20241121165744-79df5c4772f2
 	github.com/sergi/go-diff v1.4.0
 	github.com/siderolabs/gen v0.8.5
-	github.com/siderolabs/go-api-signature v0.3.7
+	github.com/siderolabs/go-api-signature v0.3.8
 	github.com/siderolabs/go-kubeconfig v0.1.1
 	github.com/siderolabs/go-pointer v1.0.1
 	github.com/siderolabs/image-factory v0.8.4
@@ -61,9 +60,10 @@ require (
 	github.com/containernetworking/cni v1.3.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 //indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
-	github.com/go-openapi/jsonpointer v0.21.1 // indirect
+	github.com/go-openapi/jsonpointer v0.21.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/cel-go v0.26.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
@@ -106,13 +106,15 @@ require (
 	golang.org/x/text v0.29.0 // indirect
 	golang.org/x/time v0.13.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
-	golang.zx2c4.com/wireguard v0.0.0-20250505131008-436f7fdc1670 // indirect
+	golang.zx2c4.com/wireguard v0.0.0-20250521234502-f333402bd9cb // indirect
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20241231184526-a9ab2273dd10 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250818200422-3122310a409c // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250908214217-97024824d090 // indirect
+	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/apimachinery v0.35.0-alpha.0 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
+	k8s.io/kube-openapi v0.0.0-20250814151709-d7b6acb124c3 // indirect
 	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect

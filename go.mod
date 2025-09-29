@@ -25,7 +25,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.88.1
 	github.com/aws/smithy-go v1.23.0
 	github.com/benbjohnson/clock v1.3.5
-	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/containers/image/v5 v5.36.2
