@@ -8,7 +8,7 @@ package router
 import (
 	"context"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-api-signature/pkg/message"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"

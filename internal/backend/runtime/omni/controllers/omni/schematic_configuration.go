@@ -10,7 +10,7 @@ import (
 	"errors"
 	"slices"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/resource"
