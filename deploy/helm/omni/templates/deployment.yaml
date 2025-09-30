@@ -88,9 +88,11 @@ spec:
             mountPath: {{ .Values.volumeMounts.omniAsc.mountPath }}
             subPath: {{ .Values.volumeMounts.omniAsc.subPath }}
             readOnly: {{ .Values.volumeMounts.omniAsc.readOnly }}
+          {{- if .Values.volumes.etcd.persistentVolumeClaimName }}
           - name: etcd
             mountPath: /_out
-          {{- if and .Values.etcd.external .Values.etcd.tls .Values.etcd.tls.secretName }}
+          {{- end }}
+          {{- if and .Values.etcd.external .Values.etcd.tls.enabled .Values.etcd.tls.secretName }}
           - name: etcd-tls
             mountPath: /etc/etcd/tls
             readOnly: true
@@ -120,6 +122,7 @@ spec:
           - --key=/etc/omni/tls/tls.key
         {{- end }}
         {{- if .Values.etcd.external }}
+          - --etcd-embedded=false
           - --etcd-endpoints={{ join "," .Values.etcd.endpoints }}
         {{- if .Values.etcd.username }}
           - --etcd-username={{ .Values.etcd.username }}
@@ -131,16 +134,14 @@ spec:
         {{- else if and .Values.etcd.auth .Values.etcd.auth.secretName }}
           - --etcd-password=$(ETCD_PASSWORD)
         {{- end }}
-        {{- if and .Values.etcd.tls .Values.etcd.tls.enabled }}
-          {{- if .Values.etcd.tls.secretName }}
-          - --etcd-client-cert-path=/etc/etcd/tls/{{ .Values.etcd.tls.certKey | default "client.crt" }}
-          - --etcd-client-key-path=/etc/etcd/tls/{{ .Values.etcd.tls.keyKey | default "client.key" }}
+        {{- if and .Values.etcd.tls.enabled .Values.etcd.tls.secretName }}
+          - --etcd-client-cert-path=/etc/etcd/tls/{{ .Values.etcd.tls.certKey | default "tls.crt" }}
+          - --etcd-client-key-path=/etc/etcd/tls/{{ .Values.etcd.tls.keyKey | default "tls.key" }}
           - --etcd-ca-path=/etc/etcd/tls/{{ .Values.etcd.tls.caKey | default "ca.crt" }}
-          {{- else }}
+        {{- else if and .Values.etcd.tls.enabled .Values.etcd.tls.certFile }}
           - --etcd-client-cert-path={{ .Values.etcd.tls.certFile }}
           - --etcd-client-key-path={{ .Values.etcd.tls.keyFile }}
           - --etcd-ca-path={{ .Values.etcd.tls.caFile }}
-          {{- end }}
         {{- end }}
         {{- if .Values.etcd.dialKeepAliveTime }}
           - --etcd-dial-keepalive-time={{ .Values.etcd.dialKeepAliveTime }}
@@ -173,10 +174,12 @@ spec:
         - name: omni-asc
           secret:
             secretName: {{ .Values.volumes.gpg.secretName }}
+        {{- if .Values.volumes.etcd.persistentVolumeClaimName }}
         - name: etcd
           persistentVolumeClaim:
             claimName: {{ .Values.volumes.etcd.persistentVolumeClaimName }}
-        {{- if and .Values.etcd.external .Values.etcd.tls .Values.etcd.tls.secretName }}
+        {{- end }}
+        {{- if and .Values.etcd.external .Values.etcd.tls.enabled .Values.etcd.tls.secretName }}
         - name: etcd-tls
           secret:
             secretName: {{ .Values.etcd.tls.secretName }}

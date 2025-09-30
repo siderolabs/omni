@@ -143,7 +143,7 @@ volumes:
 ```yaml
 volumes:
   etcd:
-    persistentVolumeClaimName: omni-pvc  # Must exist before deployment
+    persistentVolumeClaimName: omni-pvc  # Set to your existing PVC name
 ```
 
 **Critical Limitation**: Embedded etcd is hardcoded to 1 replica because Omni's embedded etcd does not support clustering. The `deployment.replicaCount` setting is ignored when using embedded etcd. Attempting to scale beyond 1 replica would result in data corruption and split-brain scenarios.
@@ -304,7 +304,7 @@ service:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `volumes.etcd.persistentVolumeClaimName` | etcd PVC name (existing deployments) | `omni-pvc` |
+| `volumes.etcd.persistentVolumeClaimName` | etcd PVC name (existing deployments only) | `null` |
 | `volumes.etcd.size` | etcd storage size (StatefulSet only) | `"50Gi"` |
 | `volumes.etcd.storageClass` | Storage class for etcd PVC (optional) | `""` |
 | `volumes.tls.secretName` | TLS secret name | `null` |
@@ -363,8 +363,8 @@ etcd:
   tls:
     enabled: true
     secretName: "etcd-tls"
-    certKey: "client.crt"  # optional, defaults to "client.crt"
-    keyKey: "client.key"   # optional, defaults to "client.key"
+    certKey: "tls.crt"     # optional, defaults to "tls.crt"
+    keyKey: "tls.key"      # optional, defaults to "tls.key"
     caKey: "ca.crt"        # optional, defaults to "ca.crt"
 ```
 

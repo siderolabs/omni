@@ -111,6 +111,7 @@ etcd:
     # - "https://etcd-1.example.com:2379"
     # - "https://etcd-2.example.com:2379"
     # - "https://etcd-3.example.com:2379"
+    # - "etcd.omni-etcd.svc.cluster.local:2379"  # Internal service example
   # Optional: etcd authentication
   # username: ""
   # password: ""
@@ -130,9 +131,9 @@ etcd:
   #   caFile: "/etc/etcd/tls/ca.crt"
   #   # Optional: TLS certificates from secret
   #   secretName: "etcd-tls"
-  #   certKey: "client.crt"
-  #   keyKey: "client.key"
-  #   caKey: "ca.crt"
+  #   certKey: "tls.crt"  # defaults to "tls.crt"
+  #   keyKey: "tls.key"   # defaults to "tls.key"
+  #   caKey: "ca.crt"     # defaults to "ca.crt"
   # Optional: public key files for encryption
   # publicKeyFiles: []
   #   # - "/etc/omni/keys/public1.pem"
@@ -140,7 +141,7 @@ etcd:
 volumes:
   etcd:
     # For Deployment (backwards compatibility): manual PVC name
-    persistentVolumeClaimName: omni-pvc
+    persistentVolumeClaimName: null  # Set to PVC name if using existing Deployment with manual PVC
     # For StatefulSet (embedded etcd): automatic PVC provisioning
     size: "50Gi"
     # storageClass: ""  # Use default storage class if not specified
