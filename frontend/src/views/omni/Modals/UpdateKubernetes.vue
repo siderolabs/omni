@@ -7,20 +7,18 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { RadioGroup, RadioGroupLabel, RadioGroupOption } from '@headlessui/vue'
 import * as semver from 'semver'
-import type { Ref } from 'vue'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
 import { ManagementService } from '@/api/omni/management/management.pb'
 import type { KubernetesUpgradeStatusSpec } from '@/api/omni/specs/omni.pb'
 import { withContext } from '@/api/options'
 import { DefaultNamespace, KubernetesUpgradeStatusType } from '@/api/resources'
-import Watch from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import { useWatch } from '@/components/common/Watch/useWatch'
 import { upgradeKubernetes } from '@/methods/cluster'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
@@ -34,18 +32,12 @@ const selectedVersion = ref('')
 
 const clusterName = route.params.cluster as string
 
-const resource = {
-  namespace: DefaultNamespace,
-  type: KubernetesUpgradeStatusType,
-  id: clusterName,
-}
-
-const status: Ref<Resource<KubernetesUpgradeStatusSpec> | undefined> = ref()
-
-const upgradeStatusWatch = new Watch(status)
-
-upgradeStatusWatch.setup({
-  resource: resource,
+const { data: status } = useWatch<KubernetesUpgradeStatusSpec>({
+  resource: {
+    namespace: DefaultNamespace,
+    type: KubernetesUpgradeStatusType,
+    id: clusterName,
+  },
   runtime: Runtime.Omni,
 })
 
@@ -165,7 +157,7 @@ const upgradeClick = async () => {
                 class="tranform transition-color flex cursor-pointer items-center gap-2 px-2 py-1 text-sm hover:bg-naturals-n4"
                 :class="{ 'bg-naturals-n4': checked }"
               >
-                <TCheckbox :checked="checked" />
+                <TCheckbox :model-value="checked" class="pointer-events-none" />
                 {{ version }}
                 <span v-if="version === status.spec.last_upgrade_version">(current)</span>
               </div>

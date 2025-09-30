@@ -7,19 +7,17 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { RadioGroup, RadioGroupLabel, RadioGroupOption } from '@headlessui/vue'
 import * as semver from 'semver'
-import type { Ref } from 'vue'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
 import { ManagementService } from '@/api/omni/management/management.pb'
 import type { MachineStatusSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, MachineStatusType, TalosVersionType } from '@/api/resources'
-import Watch from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import { useWatch } from '@/components/common/Watch/useWatch'
 import { showError, showSuccess } from '@/notification'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
@@ -29,11 +27,7 @@ const route = useRoute()
 
 const selectedVersion = ref('')
 
-const versions: Ref<Resource<TalosVersionSpec>[]> = ref([])
-
-const versionsWatch = new Watch(versions)
-
-versionsWatch.setup({
+const { data: versions, loading } = useWatch<TalosVersionSpec>({
   resource: {
     type: TalosVersionType,
     namespace: DefaultNamespace,
@@ -41,11 +35,7 @@ versionsWatch.setup({
   runtime: Runtime.Omni,
 })
 
-const machine = ref<Resource<MachineStatusSpec>>()
-
-const machineWatch = new Watch(machine)
-
-machineWatch.setup({
+const { data: machine } = useWatch<MachineStatusSpec>({
   resource: {
     type: MachineStatusType,
     namespace: DefaultNamespace,
@@ -58,36 +48,25 @@ watch(machine, () => {
   selectedVersion.value = machine.value?.spec.talos_version?.slice(1) ?? ''
 })
 
-const loading = versionsWatch.loading
 const updating = ref(false)
 
 const upgradeVersions = computed(() => {
-  const sorted = new Array<Resource<TalosVersionSpec>>(...versions.value)
+  return versions.value
+    .filter((v) => !v.spec.deprecated)
+    .sort((a, b) => semver.compare(a.metadata.id ?? '', b.metadata.id ?? ''))
+    .reduce<Record<string, string[]>>((result, version) => {
+      const versionId = version.metadata.id ?? ''
+      const parsed = semver.parse(versionId)
 
-  sorted.sort((a, b) => {
-    return semver.compare(a.metadata.id ?? '', b.metadata.id ?? '')
-  })
+      if (parsed) {
+        const majorMinor = `${parsed.major}.${parsed.minor}`
 
-  const result: Record<string, string[]> = {}
+        result[majorMinor] ??= []
+        result[majorMinor].push(versionId)
+      }
 
-  for (const version of sorted) {
-    if (version.spec.deprecated) {
-      continue
-    }
-
-    const major = semver.major(version.metadata.id ?? '')
-    const minor = semver.minor(version.metadata.id ?? '')
-
-    const majorMinor = `${major}.${minor}`
-
-    if (!result[majorMinor]) {
-      result[majorMinor] = []
-    }
-
-    result[majorMinor].push(version.metadata.id!)
-  }
-
-  return result
+      return result
+    }, {})
 })
 
 let closed = false
@@ -159,7 +138,7 @@ const upgradeClick = async () => {
                 class="tranform transition-color flex cursor-pointer items-center gap-2 px-2 py-1 text-sm hover:bg-naturals-n4"
                 :class="{ 'bg-naturals-n4': checked }"
               >
-                <TCheckbox :checked="checked" />
+                <TCheckbox :model-value="checked" class="pointer-events-none" />
                 {{ version }}
                 <span v-if="version === machine.spec.talos_version?.slice(1)">(current)</span>
               </div>

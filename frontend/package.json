@@ -54,6 +54,7 @@
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^4.1.1",
+    "@eslint/compat": "^1.4.0",
     "@faker-js/faker": "^10.0.0",
     "@playwright/test": "^1.55.1",
     "@storybook/addon-a11y": "^9.1.8",

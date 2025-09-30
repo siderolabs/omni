@@ -15,12 +15,12 @@ import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import { setupWorkloadProxyingEnabledFeatureWatch } from '@/methods/features'
 
 type Props = {
-  checked?: boolean
   disabled?: boolean
 }
 
 defineProps<Props>()
 
+const checked = defineModel<boolean>({ default: false })
 const workloadProxyingEnabled = setupWorkloadProxyingEnabledFeatureWatch()
 </script>
 
@@ -42,6 +42,6 @@ const workloadProxyingEnabled = setupWorkloadProxyingEnabledFeatureWatch()
         </p>
       </div>
     </template>
-    <TCheckbox :checked="checked" label="Workload Service Proxying" :disabled="disabled" />
+    <TCheckbox v-model="checked" label="Workload Service Proxying" :disabled="disabled" />
   </Tooltip>
 </template>

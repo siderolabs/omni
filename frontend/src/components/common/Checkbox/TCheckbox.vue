@@ -6,67 +6,37 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import TAnimation from '@/components/common/Animation/TAnimation.vue'
-import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 
 type Props = {
-  checked?: boolean | number
   label?: string
   disabled?: boolean
-  displayCheckedStatusWhenDisabled?: boolean
-  icon?: IconType
+  indeterminate?: boolean
 }
 
-withDefaults(defineProps<Props>(), {
-  icon: 'check',
-})
+const { label = '' } = defineProps<Props>()
+
+const checked = defineModel<boolean>({ default: false })
 </script>
 
 <template>
-  <div
-    class="checkbox-wrapper"
-    :class="{ 'cursor-not-allowed': disabled, 'cursor-pointer': !disabled }"
-    @click="(e) => (disabled ? e.stopImmediatePropagation() : null)"
-  >
-    <div class="checkbox" :class="{ checked: checked, disabled: disabled }">
+  <label class="flex cursor-pointer items-center gap-2 has-disabled:cursor-not-allowed">
+    <input v-model="checked" type="checkbox" :disabled="disabled" class="peer sr-only" />
+
+    <div
+      class="flex size-3.5 items-center justify-center rounded-xs border border-naturals-n7 peer-checked:border-primary-p6 peer-checked:bg-primary-p6 peer-disabled:border-naturals-n5 peer-disabled:bg-naturals-n4"
+    >
       <TAnimation>
         <TIcon
-          v-show="checked && (!disabled || displayCheckedStatusWhenDisabled)"
-          class="checkbox-icon"
-          :icon="icon"
+          v-show="checked"
+          class="size-full fill-current text-primary-p3"
+          :icon="indeterminate ? 'minus' : 'check'"
         />
       </TAnimation>
-      <input type="checkbox" hidden :value="checked" />
     </div>
-    <span v-if="!!label" class="checkbox-label">{{ label }}</span>
-  </div>
+
+    <span v-if="label" class="block flex-1 truncate text-xs text-naturals-n11 select-none">
+      {{ label }}
+    </span>
+  </label>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.checkbox {
-  @apply flex items-center justify-center border border-naturals-n7;
-  width: 14px;
-  height: 14px;
-  border-radius: 2px;
-}
-.checkbox-wrapper {
-  @apply flex items-center gap-2;
-}
-.checkbox-label {
-  @apply block flex-1 truncate text-xs text-naturals-n11 select-none;
-}
-.checked {
-  @apply border-primary-p6 bg-primary-p6;
-}
-.checkbox-icon {
-  @apply fill-current text-primary-p3;
-  width: 14px;
-  height: 14px;
-}
-
-.disabled {
-  @apply border-naturals-n5 bg-naturals-n4;
-}
-</style>

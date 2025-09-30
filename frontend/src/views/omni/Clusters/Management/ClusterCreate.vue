@@ -384,23 +384,12 @@ const filterByLabel = (e: { key: string; value?: string }) => {
             </div>
           </template>
           <TCheckbox
-            :checked="state.cluster.features?.encryptDisks"
+            v-model="state.cluster.features.encryptDisks"
             label="Encrypt Disks"
             :disabled="!supportsEncryption"
-            @click="
-              state.cluster.features.encryptDisks =
-                !state.cluster.features.encryptDisks && supportsEncryption
-            "
           />
         </Tooltip>
-        <ClusterWorkloadProxyingCheckbox
-          :checked="state.cluster.features.enableWorkloadProxy"
-          @click="
-            () =>
-              (state.cluster.features.enableWorkloadProxy =
-                !state.cluster.features.enableWorkloadProxy)
-          "
-        />
+        <ClusterWorkloadProxyingCheckbox v-model="state.cluster.features.enableWorkloadProxy" />
         <EmbeddedDiscoveryServiceCheckbox
           :checked="state.cluster.features.useEmbeddedDiscoveryService"
           :disabled="!isEmbeddedDiscoveryServiceAvailable"

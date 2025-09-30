@@ -157,12 +157,8 @@ const workloadProxyingEnabled = setupWorkloadProxyingEnabledFeatureWatch()
 
 const isEmbeddedDiscoveryServiceAvailable = ref(false)
 
-const toggleUseEmbeddedDiscoveryService = async () => {
-  const newValue = isEmbeddedDiscoveryServiceAvailable.value
-    ? !useEmbeddedDiscoveryService.value
-    : false
-
-  await setUseEmbeddedDiscoveryService(context.cluster ?? '', newValue)
+const toggleUseEmbeddedDiscoveryService = async (value: boolean) => {
+  await setUseEmbeddedDiscoveryService(context.cluster ?? '', value)
 }
 
 const clusterLocked = computed(() => {
@@ -360,14 +356,16 @@ onMounted(async () => {
             </div>
             <div class="flex flex-col gap-2">
               <ClusterWorkloadProxyingCheckbox
-                :checked="enableWorkloadProxy"
+                :model-value="enableWorkloadProxy"
                 :disabled="!canManageClusterFeatures"
-                @click="setClusterWorkloadProxy(context.cluster ?? '', !enableWorkloadProxy)"
+                @update:model-value="
+                  (value) => setClusterWorkloadProxy(context.cluster ?? '', value)
+                "
               />
               <EmbeddedDiscoveryServiceCheckbox
-                :checked="useEmbeddedDiscoveryService"
+                :model-value="useEmbeddedDiscoveryService"
                 :disabled="!canManageClusterFeatures || !isEmbeddedDiscoveryServiceAvailable"
-                @click="toggleUseEmbeddedDiscoveryService"
+                @update:model-value="(value) => toggleUseEmbeddedDiscoveryService(value)"
               />
               <ClusterEtcdBackupCheckbox
                 :backup-status="backupStatus"

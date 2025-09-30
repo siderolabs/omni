@@ -183,10 +183,9 @@ const openPatchConfig = () => {
       </template>
       <TCheckbox
         v-if="useMachineClasses && !selectedMachineClass?.spec.auto_provision"
-        :checked="unlimited"
+        v-model="unlimited"
         label="Use All Available Machines"
         class="h-6"
-        @click="unlimited = !unlimited"
       />
       <div v-if="!allMachines" class="w-32">
         <TInput

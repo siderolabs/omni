@@ -24,9 +24,9 @@ const control = p.control
   <ContentWrapper :control="control">
     <TCheckbox
       :id="control.id + '-input'"
-      :checked="control.data"
+      :model-value="control.data"
       :disabled="!control.enabled"
-      @click="() => p.handleChange(control.path, !control.data)"
+      @update:model-value="(value) => p.handleChange(control.path, value)"
     />
   </ContentWrapper>
 </template>

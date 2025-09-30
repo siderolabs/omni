@@ -3,6 +3,9 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+import { fileURLToPath } from 'node:url'
+
+import { includeIgnoreFile } from '@eslint/compat'
 import pluginVitest from '@vitest/eslint-plugin'
 import skipFormatting from '@vue/eslint-config-prettier/skip-formatting'
 import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
@@ -13,7 +16,8 @@ import storybook from 'eslint-plugin-storybook'
 import pluginVue from 'eslint-plugin-vue'
 
 export default defineConfigWithVueTs(
-  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**', 'src/api/resources.ts']),
+  includeIgnoreFile(fileURLToPath(new URL('.gitignore', import.meta.url))),
+  globalIgnores(['src/api/resources.ts']),
 
   pluginVue.configs['flat/essential'],
   pluginVue.configs['flat/strongly-recommended'],

@@ -9,12 +9,13 @@ import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 
 type Props = {
-  checked?: boolean
   talosVersion?: string
   disabled?: boolean
 }
 
 defineProps<Props>()
+
+const checked = defineModel<boolean>({ default: false })
 </script>
 
 <template>
@@ -30,6 +31,6 @@ defineProps<Props>()
         <p>- Cluster's Talos version which supports connecting to it (>= v1.5.0).</p>
       </div>
     </template>
-    <TCheckbox :checked="checked" :disabled="disabled" label="Use Embedded Discovery Service" />
+    <TCheckbox v-model="checked" :disabled="disabled" label="Use Embedded Discovery Service" />
   </Tooltip>
 </template>
