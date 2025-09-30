@@ -251,7 +251,7 @@ func (suite *MachineRequestSetStatusSuite) reconcileLabels(ctx context.Context) 
 
 					err = suite.state.Create(ctx, res)
 					if err != nil {
-						if !state.IsConflictError(err) {
+						if !state.IsConflictError(err) && !state.IsPhaseConflictError(err) {
 							return err
 						}
 
