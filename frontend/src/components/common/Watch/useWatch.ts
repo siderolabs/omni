@@ -2,7 +2,7 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { type MaybeRefOrGetter, type Ref, ref, toRef, toValue } from 'vue'
+import { type MaybeRefOrGetter, type Ref, ref, toValue } from 'vue'
 
 import type { Resource } from '@/api/grpc'
 import type {
@@ -59,7 +59,7 @@ function useWatchSingle<TSpec = unknown, TStatus = unknown>(
   const data = ref<Resource<TSpec, TStatus>>()
 
   const watch = new Watch(data)
-  watch.setup(toRef(opts))
+  watch.setup(opts)
 
   return {
     data,
@@ -74,7 +74,7 @@ function useWatchMulti<TSpec = unknown, TStatus = unknown>(
   const data = ref<Resource<TSpec, TStatus>[]>([])
 
   const watch = new Watch(data)
-  watch.setup(toRef(opts))
+  watch.setup(opts)
 
   return {
     data,
@@ -90,11 +90,11 @@ function useWatchJoin<TSpec = unknown, TStatus = unknown>(
 
   const watch = new WatchJoin(data)
   watch.setup(
-    toRef(() => toValue(opts)[0]),
-    toRef(() => {
+    () => toValue(opts)[0],
+    () => {
       const [, ...rest] = toValue(opts)
       return rest
-    }),
+    },
   )
 
   return {
