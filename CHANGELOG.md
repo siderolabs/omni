@@ -1,3 +1,30 @@
+## [Omni 1.2.1](https://github.com/siderolabs/omni/releases/tag/v1.2.1) (2025-10-02)
+
+Welcome to the v1.2.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Oguz Kilcan
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`9cfcc245`](https://github.com/siderolabs/omni/commit/9cfcc2456174ef6e88be7065bf9f7e869f5267c8) fix: remove dangling cluster taints
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.2.0](https://github.com/siderolabs/omni/releases/tag/v1.2.0)
+
 ## [Omni 1.2.0](https://github.com/siderolabs/omni/releases/tag/v1.2.0) (2025-09-30)
 
 Welcome to the v1.2.0 release of Omni!
