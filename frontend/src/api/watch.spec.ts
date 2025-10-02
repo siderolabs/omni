@@ -24,7 +24,7 @@ describe('watch', () => {
   const watch = new Watch(items)
 
   test('event handling', async () => {
-    const { pushEvents } = createWatchStreamMock()
+    const { pushEvents } = createWatchStreamMock({ skipBootstrap: true })
 
     await watch.start({
       runtime: Runtime.Omni,
@@ -41,7 +41,7 @@ describe('watch', () => {
       spec: { connected: true, management_address: 'localhost' },
     }
 
-    pushEvents(
+    await pushEvents(
       createCreatedEvent(machine1),
       createCreatedEvent(machine2),
       createDestroyedEvent(machine2),
@@ -61,7 +61,7 @@ describe('watch', () => {
     expect(watch.loading.value).toBeTruthy()
 
     // Bootstrap event triggers the loading of queued events
-    pushEvents(createBootstrapEvent())
+    await pushEvents(createBootstrapEvent())
 
     await waitFor(() => expect(items.value).toHaveLength(1))
 
@@ -70,7 +70,7 @@ describe('watch', () => {
     expect(machine.spec.connected).toBeFalsy()
     expect(watch.loading.value).toBeFalsy()
 
-    pushEvents(createCreatedEvent(machine2))
+    await pushEvents(createCreatedEvent(machine2))
 
     await waitFor(() => expect(items.value).toHaveLength(2))
 
@@ -80,15 +80,15 @@ describe('watch', () => {
   })
 
   test('restarts handling', async () => {
-    const { pushEvents, closeStream } = createWatchStreamMock()
+    const { pushEvents, closeStream } = createWatchStreamMock({ skipBootstrap: true })
 
     await watch.start({
       runtime: Runtime.Omni,
       resource: { type: MachineType, namespace: DefaultNamespace },
     })
 
-    function populate(count: number) {
-      pushEvents(
+    async function populate(count: number) {
+      await pushEvents(
         ...new Array(count).fill(null).map((_, i) =>
           createCreatedEvent<MachineSpec>({
             metadata: { id: i.toString(), namespace: 'default', type: MachineType },
@@ -99,16 +99,16 @@ describe('watch', () => {
       )
     }
 
-    populate(4)
+    await populate(4)
 
     await waitFor(() => {
       expect(watch.loading.value).toBeFalsy()
       expect(items.value).toHaveLength(4)
     })
 
-    closeStream(new Error('network error'))
+    await closeStream(new Error('network error'))
 
-    populate(2)
+    await populate(2)
 
     await waitFor(() => {
       expect(watch.loading.value).toBeFalsy()

@@ -19,6 +19,9 @@ setup((app) => {
       routes: [{ path: '/:catchAll(.*)', component: RouterView }],
     }),
   )
+
+  // Stub out RouterLink to prevent "Not Found" errors when creating links
+  app.component('RouterLink', { template: `<a><slot></slot></a>` })
 })
 
 const preview: Preview = {
