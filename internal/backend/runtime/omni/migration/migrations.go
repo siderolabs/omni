@@ -1931,9 +1931,10 @@ func moveClusterTaintFromResourceToLabel(ctx context.Context, st state.State, _ 
 
 			return nil
 		}, state.WithExpectedPhaseAny(), state.WithUpdateOwner(omnictrl.ClusterStatusControllerName))
-		if err != nil {
+		if err != nil && !state.IsNotFoundError(err) {
 			return err
 		}
+		// cluster status does not exist, taint is dangling, just remove it
 
 		if err = st.TeardownAndDestroy(ctx, taint.Metadata()); err != nil {
 			return err
