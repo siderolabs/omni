@@ -15,8 +15,6 @@ import {
   CpuChipIcon,
   DocumentIcon,
   DocumentTextIcon,
-  LockClosedIcon,
-  LockOpenIcon,
   PauseCircleIcon,
   PlayCircleIcon,
   PowerIcon,
@@ -29,7 +27,7 @@ import {
   WindowIcon,
 } from '@heroicons/vue/24/outline'
 import { LifebuoyIcon } from '@heroicons/vue/24/solid'
-import { type Component, computed, defineAsyncComponent, toRefs } from 'vue'
+import { type Component, computed, defineAsyncComponent } from 'vue'
 
 const icons = {
   'action-horizontal': defineAsyncComponent(() => import('../../icons/IconActionHorizontal.vue')),
@@ -89,7 +87,7 @@ const icons = {
   'link-down': defineAsyncComponent(() => import('../../icons/IconLinkDown.vue')),
   loading: defineAsyncComponent(() => import('../../icons/IconLoading.vue')),
   'locked-toggle': defineAsyncComponent(() => import('../../icons/IconLockClosedToggle.vue')),
-  locked: LockClosedIcon,
+  locked: defineAsyncComponent(() => import('../../icons/IconLocked.vue')),
   log: defineAsyncComponent(() => import('../../icons/IconLog.vue')),
   logo: defineAsyncComponent(() => import('../../icons/IconLogo.vue')),
   'long-arrow-down': defineAsyncComponent(() => import('../../icons/IconLongArrowDown.vue')),
@@ -131,7 +129,7 @@ const icons = {
   time: defineAsyncComponent(() => import('../../icons/IconTime.vue')),
   unknown: defineAsyncComponent(() => import('../../icons/IconUnknown.vue')),
   unlink: defineAsyncComponent(() => import('../../icons/IconUnlink.vue')),
-  unlocked: LockOpenIcon,
+  unlocked: defineAsyncComponent(() => import('../../icons/IconUnlocked.vue')),
   'upgrade-available': defineAsyncComponent(() => import('../../icons/IconUpgradeAvailable.vue')),
   'upgrade-empty-state': defineAsyncComponent(
     () => import('../../icons/IconUpgradeEmptyState.vue'),
@@ -157,15 +155,9 @@ type Props = {
   icon?: IconType
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  icon: 'action-horizontal',
-})
+const { svgBase64 = '', icon = 'action-horizontal' } = defineProps<Props>()
 
-const { icon } = toRefs(props)
-
-const component = computed(() => {
-  return getComponent(icon.value)
-})
+const component = computed(() => getComponent(icon))
 </script>
 
 <template>

@@ -19,7 +19,7 @@ import { refreshTitle } from '@/methods/title'
 export const FrontendAuthFlow = 'frontend'
 const requireCookies = false
 
-const routes: RouteRecordRaw[] = [
+export const routes: RouteRecordRaw[] = [
   // Unauthenticated routes
   { path: '/forbidden', component: () => import('@/views/common/Forbidden.vue') },
   { path: '/badrequest', component: () => import('@/views/common/BadRequest.vue') },

@@ -6,13 +6,13 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
-import { LockClosedIcon, LockOpenIcon } from '@heroicons/vue/24/solid'
 import { computed } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import { TalosMountStatusType, TalosRuntimeNamespace } from '@/api/resources'
 import type { WatchOptions } from '@/api/watch'
+import TIcon from '@/components/common/Icon/TIcon.vue'
 import TList from '@/components/common/List/TList.vue'
 import TListItem from '@/components/common/List/TListItem.vue'
 import { getContext } from '@/context'
@@ -77,8 +77,16 @@ const encryptionColor = (item: Resource) => {
               class="flex items-center gap-1 rounded bg-naturals-n4 px-2 py-1"
               :style="{ color: encryptionColor(item) }"
             >
-              <LockClosedIcon v-if="isEncrypted(item) === Encryption.Enabled" class="h-3 w-3" />
-              <LockOpenIcon v-else-if="isEncrypted(item) === Encryption.Disabled" class="h-3 w-3" />
+              <TIcon
+                v-if="isEncrypted(item) === Encryption.Enabled"
+                icon="locked"
+                class="h-3 w-3"
+              />
+              <TIcon
+                v-else-if="isEncrypted(item) === Encryption.Disabled"
+                icon="unlocked"
+                class="h-3 w-3"
+              />
               <QuestionMarkCircleIcon
                 v-else-if="isEncrypted(item) === Encryption.Unknown"
                 class="h-4 w-4"

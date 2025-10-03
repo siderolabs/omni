@@ -100,7 +100,7 @@ machineNodesWatch.setup(
   }),
 )
 
-const locked = computed(() => !!item.value.metadata.annotations?.[ClusterLocked])
+const locked = computed(() => item.value.metadata.annotations?.[ClusterLocked] !== undefined)
 
 const regionId = useId()
 const labelId = useId()
