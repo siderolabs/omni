@@ -4,6 +4,7 @@
 // included in the LICENSE file.
 import '../src/index.css'
 
+import { faker } from '@faker-js/faker'
 import { type Preview, setup } from '@storybook/vue3-vite'
 import { initialize, mswLoader } from 'msw-storybook-addon'
 import { createRouter, createWebHistory, RouterView } from 'vue-router'
@@ -25,6 +26,9 @@ setup((app) => {
 })
 
 const preview: Preview = {
+  beforeEach() {
+    faker.seed(0)
+  },
   loaders: [mswLoader],
   parameters: {
     controls: {

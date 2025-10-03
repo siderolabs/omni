@@ -11,7 +11,6 @@ import { DefaultNamespace, DefaultTalosVersion, TalosExtensionsType } from '@/ap
 
 import ExtensionsPicker from './ExtensionsPicker.vue'
 
-faker.seed(0)
 const fakeExtensions = faker.helpers.multiple(
   () => ({
     name: `siderolabs/${faker.helpers.slugify(faker.word.words({ count: { min: 1, max: 3 } }).toLowerCase())}`,

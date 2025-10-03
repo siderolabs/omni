@@ -12,7 +12,6 @@ import { DefaultNamespace, MachineStatusType, TalosVersionType } from '@/api/res
 
 import MaintenanceUpdate from './MaintenanceUpdate.vue'
 
-faker.seed(0)
 const talosVersions = faker.helpers.multiple<Resource<TalosVersionSpec>>(
   () => {
     const version = faker.system.semver()

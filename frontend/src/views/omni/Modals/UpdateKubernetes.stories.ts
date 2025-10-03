@@ -23,8 +23,10 @@ export const Data: Story = {
     msw: {
       handlers: [
         createWatchStreamHandler<KubernetesUpgradeStatusSpec>({
-          expectedOptions: { type: KubernetesUpgradeStatusType, namespace: DefaultNamespace },
-
+          expectedOptions: {
+            type: KubernetesUpgradeStatusType,
+            namespace: DefaultNamespace,
+          },
           initialResources: () => {
             faker.seed(0)
 
