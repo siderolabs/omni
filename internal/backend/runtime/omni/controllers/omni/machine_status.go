@@ -27,7 +27,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	machinetask "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task/machine"
@@ -104,7 +104,7 @@ func (ctrl *MachineStatusController) Settings() controller.QSettings {
 			},
 			{
 				Namespace: resources.DefaultNamespace,
-				Type:      siderolink.MachineJoinConfigType,
+				Type:      siderolinkres.MachineJoinConfigType,
 				Kind:      controller.InputQMapped,
 			},
 			{
@@ -159,7 +159,7 @@ func (ctrl *MachineStatusController) MapInput(ctx context.Context, _ *zap.Logger
 		omni.MachineLabelsType,
 		infra.InfraMachineStatusType,
 		omni.MachineStatusSnapshotType,
-		siderolink.MachineJoinConfigType:
+		siderolinkres.MachineJoinConfigType:
 		return []resource.Pointer{
 			omni.NewMachine(resources.DefaultNamespace, ptr.ID()).Metadata(),
 		}, nil
@@ -224,9 +224,9 @@ func (ctrl *MachineStatusController) reconcileRunning(ctx context.Context, r con
 		maintenanceMode = inputs.machineStatusSnapshot.TypedSpec().Value.MachineStatus.GetStage() == machineapi.MachineStatusEvent_MAINTENANCE
 	}
 
-	var config *siderolink.MachineJoinConfig
+	var config *siderolinkres.MachineJoinConfig
 
-	config, err = safe.ReaderGetByID[*siderolink.MachineJoinConfig](ctx, r, machine.Metadata().ID())
+	config, err = safe.ReaderGetByID[*siderolinkres.MachineJoinConfig](ctx, r, machine.Metadata().ID())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil
@@ -500,6 +500,7 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 			spec.Schematic.Extensions = event.Schematic.Extensions
 			spec.Schematic.Invalid = event.Schematic.Invalid
 			spec.Schematic.KernelArgs = event.Schematic.KernelArgs
+
 			spec.Schematic.MetaValues = xslices.Map(event.Schematic.MetaValues, func(value schematic.MetaValue) *specs.MetaValue {
 				return &specs.MetaValue{
 					Key:   uint32(value.Key),
@@ -514,13 +515,26 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 				}
 			}
 
-			if spec.Schematic.Invalid {
-				spec.Schematic.InitialSchematic = ""
-			} else if spec.Schematic.InitialSchematic == "" {
+			if spec.Schematic.InitialSchematic == "" {
 				spec.Schematic.InitialSchematic = spec.Schematic.FullId
 			}
 
 			spec.Schematic.InAgentMode = event.Schematic.InAgentMode
+
+			// We can populate the initial set of extensions and kernel args only if the current schematic ID matches the initial schematic ID.
+			// Otherwise, we missed the moment to capture them.
+			if spec.Schematic.InitialState == nil && !spec.Schematic.Invalid && spec.Schematic.FullId == spec.Schematic.InitialSchematic {
+				spec.Schematic.InitialState = &specs.MachineStatusSpec_Schematic_InitialState{
+					Extensions: event.Schematic.Extensions,
+					KernelArgs: event.Schematic.KernelArgs,
+				}
+			}
+
+			// if the schematic is invalid or the machine is in agent mode, we reset the initial schematic information
+			if spec.Schematic.Invalid || spec.Schematic.InAgentMode {
+				spec.Schematic.InitialSchematic = ""
+				spec.Schematic.InitialState = nil
+			}
 		}
 
 		spec.Maintenance = event.MaintenanceMode

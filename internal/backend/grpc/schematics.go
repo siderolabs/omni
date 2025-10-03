@@ -41,6 +41,9 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 		return nil, err
 	}
 
+	slices.Sort(request.Extensions)
+	request.Extensions = slices.Compact(request.Extensions)
+
 	customization := schematic.Customization{
 		ExtraKernelArgs: append(baseKernelArgs, request.ExtraKernelArgs...),
 		SystemExtensions: schematic.SystemExtensions{
