@@ -5,88 +5,57 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import type { Ref } from 'vue'
-import { computed, ref, toRefs } from 'vue'
+import { computed } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
 import type { ClusterDiagnosticsSpec, MachineSetSpec } from '@/api/omni/specs/omni.pb'
 import {
   ClusterDiagnosticsType,
   DefaultNamespace,
   LabelCluster,
-  LabelControlPlaneRole,
-  MachineSetNodeType,
   MachineSetStatusType,
   MachineSetType,
 } from '@/api/resources'
-import WatchResource, { itemID } from '@/api/watch'
+import { itemID } from '@/api/watch'
+import { useWatch } from '@/components/common/Watch/useWatch'
 import Watch from '@/components/common/Watch/Watch.vue'
 import { sortMachineSetIds } from '@/methods/machineset'
 
 import MachineSet from './MachineSet.vue'
 
-const props = defineProps<{
+const { clusterID } = defineProps<{
   clusterID: string
   isSubgrid?: boolean
 }>()
 
-const { clusterID } = toRefs(props)
+const { data: machineSets } = useWatch<MachineSetSpec>(() => ({
+  resource: {
+    type: MachineSetType,
+    namespace: DefaultNamespace,
+  },
+  runtime: Runtime.Omni,
+  selectors: [`${LabelCluster}=${clusterID}`],
+}))
 
-const machineSets: Ref<Resource<MachineSetSpec>[]> = ref([])
-const clusterDiagnostics: Ref<Resource<ClusterDiagnosticsSpec> | undefined> = ref()
-
-const machineSetsWatch = new WatchResource(machineSets)
-const clusterDiagnosticsWatch = new WatchResource(clusterDiagnostics)
-
-machineSetsWatch.setup(
-  computed(() => {
-    return {
-      resource: {
-        type: MachineSetType,
-        namespace: DefaultNamespace,
-      },
-      runtime: Runtime.Omni,
-      selectors: [`${LabelCluster}=${clusterID.value}`],
-    }
-  }),
-)
-
-clusterDiagnosticsWatch.setup({
+const { data: clusterDiagnostics } = useWatch<ClusterDiagnosticsSpec>(() => ({
   runtime: Runtime.Omni,
   resource: {
     namespace: DefaultNamespace,
     type: ClusterDiagnosticsType,
-    id: clusterID.value,
+    id: clusterID,
   },
-})
+}))
 
 const nodesWithDiagnostics = computed(() => {
-  const nodes = clusterDiagnostics.value?.spec?.nodes?.map((node) => node.id ?? '') ?? []
+  const nodes = clusterDiagnostics.value?.spec.nodes?.map((node) => node.id ?? '') ?? []
   return new Set(nodes)
 })
 
 const watches = computed(() =>
   sortMachineSetIds(
-    clusterID.value,
-    machineSets.value.map((machineSet) => machineSet?.metadata?.id ?? ''),
+    clusterID,
+    machineSets.value.map((machineSet) => machineSet.metadata.id ?? ''),
   ),
-)
-
-const controlPlaneNodes = ref<Resource[]>([])
-
-const machineNodesWatch = new WatchResource(controlPlaneNodes)
-machineNodesWatch.setup(
-  computed(() => {
-    return {
-      resource: {
-        type: MachineSetNodeType,
-        namespace: DefaultNamespace,
-      },
-      runtime: Runtime.Omni,
-      selectors: [`${LabelControlPlaneRole}`],
-    }
-  }),
 )
 </script>
 

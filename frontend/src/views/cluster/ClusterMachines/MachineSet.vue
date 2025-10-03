@@ -29,7 +29,7 @@ import {
   LabelMachineSet,
   MachineClassType,
 } from '@/api/resources'
-import Watch, { itemID } from '@/api/watch'
+import { itemID } from '@/api/watch'
 import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/common/ActionsBox/TActionsBoxItem.vue'
 import IconButton from '@/components/common/Button/IconButton.vue'
@@ -37,6 +37,7 @@ import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
+import { useWatch } from '@/components/common/Watch/useWatch'
 import { setupClusterPermissions } from '@/methods/auth'
 import {
   controlPlaneMachineSetId,
@@ -59,12 +60,6 @@ const props = defineProps<{
 }>()
 
 const { machineSet } = toRefs(props)
-
-const machines = ref<Resource<ClusterMachineStatusSpec>[]>([])
-const machinesWatch = new Watch(machines)
-
-const requests = ref<Resource<ClusterMachineRequestStatusSpec>[]>([])
-const requestsWatch = new Watch(requests)
 
 const clusterID = computed(() => machineSet.value.metadata.labels?.[LabelCluster] ?? '')
 const editingMachinesCount = ref(false)
@@ -99,43 +94,32 @@ const hiddenMachinesCount = computed(() => {
   return Math.max(0, (machineSet.value.spec.machines?.total || 0) - showMachinesCount.value)
 })
 
-machinesWatch.setup(
-  computed(() => {
-    return {
-      resource: {
-        namespace: DefaultNamespace,
-        type: ClusterMachineStatusType,
-      },
-      runtime: Runtime.Omni,
-      selectors: [
-        `${LabelCluster}=${clusterID.value}`,
-        `${LabelMachineSet}=${machineSet.value.metadata.id!}`,
-      ],
-      limit: showMachinesCount.value,
-    }
-  }),
-)
+const { data: machines } = useWatch<ClusterMachineStatusSpec>(() => ({
+  resource: {
+    namespace: DefaultNamespace,
+    type: ClusterMachineStatusType,
+  },
+  runtime: Runtime.Omni,
+  selectors: [
+    `${LabelCluster}=${clusterID.value}`,
+    `${LabelMachineSet}=${machineSet.value.metadata.id}`,
+  ],
+  limit: showMachinesCount.value,
+}))
 
-requestsWatch.setup(
-  computed(() => {
-    if (!machineSet.value.spec.machine_allocation) {
-      return
-    }
-
-    return {
-      resource: {
-        namespace: DefaultNamespace,
-        type: ClusterMachineRequestStatusType,
-      },
-      selectors: [
-        `${LabelCluster}=${clusterID.value}`,
-        `${LabelMachineSet}=${machineSet.value.metadata.id!}`,
-      ],
-      runtime: Runtime.Omni,
-      limit: showMachinesCount.value,
-    }
-  }),
-)
+const { data: requests } = useWatch<ClusterMachineRequestStatusSpec>(() => ({
+  skip: !machineSet.value.spec.machine_allocation,
+  resource: {
+    namespace: DefaultNamespace,
+    type: ClusterMachineRequestStatusType,
+  },
+  selectors: [
+    `${LabelCluster}=${clusterID.value}`,
+    `${LabelMachineSet}=${machineSet.value.metadata.id}`,
+  ],
+  runtime: Runtime.Omni,
+  limit: showMachinesCount.value,
+}))
 
 const pendingRequests = computed(() => {
   return requests.value.filter(

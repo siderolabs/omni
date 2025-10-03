@@ -6,23 +6,12 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useElementSize, useSessionStorage } from '@vueuse/core'
-import type { Ref } from 'vue'
-import { computed, ref, toRefs, useId, useTemplateRef } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, useId, useTemplateRef } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'
 
-import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
-import type { ClusterStatusSpec, MachineSetSpec } from '@/api/omni/specs/omni.pb'
-import {
-  ClusterLocked,
-  DefaultNamespace,
-  LabelCluster,
-  LabelMachineSet,
-  MachineSetNodeType,
-  MachineSetType,
-} from '@/api/resources'
-import WatchResource from '@/api/watch'
+import type { ClusterStatusSpec } from '@/api/omni/specs/omni.pb'
+import { ClusterLocked } from '@/api/resources'
 import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/common/ActionsBox/TActionsBoxItem.vue'
 import IconButton from '@/components/common/Button/IconButton.vue'
@@ -32,12 +21,15 @@ import { downloadKubeconfig, downloadTalosconfig } from '@/methods'
 import { setupClusterPermissions } from '@/methods/auth'
 import { addClusterLabels, removeClusterLabels } from '@/methods/cluster'
 import type { Label } from '@/methods/labels'
-import { controlPlaneMachineSetId } from '@/methods/machineset'
 import ClusterMachines from '@/views/cluster/ClusterMachines/ClusterMachines.vue'
 import ClusterStatus from '@/views/omni/Clusters/ClusterStatus.vue'
 import ItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
 
-const props = defineProps<{
+const {
+  item,
+  defaultOpen,
+  searchQuery = '',
+} = defineProps<{
   item: Resource<ClusterStatusSpec>
   defaultOpen?: boolean
   searchQuery?: string
@@ -47,60 +39,16 @@ defineEmits<{
   filterLabels: [Label]
 }>()
 
-const { item } = toRefs(props)
-const expanded = useSessionStorage(`cluster-expanded-${item.value.metadata.id}`, props.defaultOpen)
-
-const router = useRouter()
-
-const openClusterDestroy = () => {
-  router.push({
-    query: { modal: 'clusterDestroy', cluster: item.value.metadata.id },
-  })
-}
-
-const machineSets: Ref<Resource<MachineSetSpec>[]> = ref([])
-const machineSetsWatch = new WatchResource(machineSets)
-machineSetsWatch.setup(
-  computed(() => {
-    if (!expanded) return
-
-    return {
-      resource: {
-        type: MachineSetType,
-        namespace: DefaultNamespace,
-      },
-      runtime: Runtime.Omni,
-      selectors: [`${LabelCluster}=${item.value.metadata.id!}`],
-    }
-  }),
-)
+const expanded = useSessionStorage(() => `cluster-expanded-${item.metadata.id}`, defaultOpen)
 
 const {
   canDownloadKubeconfig,
   canDownloadTalosconfig,
   canAddClusterMachines,
   canRemoveClusterMachines,
-} = setupClusterPermissions(computed(() => item.value.metadata.id!))
+} = setupClusterPermissions(computed(() => item.metadata.id!))
 
-const controlPlaneNodes = ref<Resource[]>([])
-
-const machineNodesWatch = new WatchResource(controlPlaneNodes)
-machineNodesWatch.setup(
-  computed(() => {
-    if (!expanded) return
-
-    return {
-      resource: {
-        type: MachineSetNodeType,
-        namespace: DefaultNamespace,
-      },
-      runtime: Runtime.Omni,
-      selectors: [`${LabelMachineSet}=${controlPlaneMachineSetId(item.value.metadata.id!)}`],
-    }
-  }),
-)
-
-const locked = computed(() => item.value.metadata.annotations?.[ClusterLocked] !== undefined)
+const locked = computed(() => item.metadata.annotations?.[ClusterLocked] !== undefined)
 
 const regionId = useId()
 const labelId = useId()
@@ -136,7 +84,7 @@ const { height } = useElementSize(slider)
           class="list-item-link grow truncate"
         >
           <WordHighlighter
-            :query="searchQuery ?? ''"
+            :query="searchQuery"
             :text-to-highlight="item.metadata.id"
             split-by-space
             highlight-class="bg-naturals-n14"
@@ -216,7 +164,7 @@ const { height } = useElementSize(slider)
             v-if="canRemoveClusterMachines"
             icon="delete"
             danger
-            @click="openClusterDestroy"
+            @click="$router.push({ query: { modal: 'clusterDestroy', cluster: item.metadata.id } })"
           >
             Destroy Cluster
           </TActionsBoxItem>

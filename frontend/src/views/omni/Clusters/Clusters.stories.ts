@@ -12,6 +12,7 @@ import type { GetRequest } from '@/api/omni/resources/resources.pb'
 import {
   type ClusterDiagnosticsSpec,
   type ClusterMachineRequestStatusSpec,
+  ClusterMachineRequestStatusSpecStage,
   type ClusterMachineStatusSpec,
   ClusterMachineStatusSpecStage,
   type ClusterStatusMetricsSpec,
@@ -19,6 +20,8 @@ import {
   ClusterStatusSpecPhase,
   ConfigApplyStatus,
   type MachineSetSpec,
+  type MachineSetSpecMachineAllocation,
+  MachineSetSpecMachineAllocationType,
   type MachineSetStatusSpec,
 } from '@/api/omni/specs/omni.pb'
 import {
@@ -140,17 +143,7 @@ export const Data: Story = {
           type: ClusterDiagnosticsType,
           namespace: DefaultNamespace,
         },
-        // TODO: get ids from existing nodes ... ?
-        initialResources: [
-          {
-            spec: {
-              nodes: [
-                /*{ id: 'id' }*/
-              ],
-            },
-            metadata: {},
-          },
-        ],
+        initialResources: [{ spec: { nodes: [] }, metadata: {} }],
       }).handler,
 
       createWatchStreamHandler<MachineSetStatusSpec>({
@@ -171,6 +164,13 @@ export const Data: Story = {
                 phase: faker.helpers.enumValue(MachineSetPhase),
                 ready: faker.datatype.boolean(),
                 machines: { total: machineCount, healthy: healthyCount },
+                machine_allocation: faker.helpers.maybe<MachineSetSpecMachineAllocation>(() => ({
+                  allocation_type: faker.helpers.enumValue(MachineSetSpecMachineAllocationType),
+                  machine_count: faker.number.int({ min: 1, max: 5 }),
+                  name: faker.helpers
+                    .slugify(faker.word.words({ count: { min: 1, max: 3 } }))
+                    .toLocaleLowerCase(),
+                })),
               },
               metadata: {
                 id,
@@ -224,6 +224,25 @@ export const Data: Story = {
         expectedOptions: {
           type: ClusterMachineRequestStatusType,
           namespace: DefaultNamespace,
+        },
+        initialResources: ({ selectors: { [LabelMachineSet]: machineSetLabel = '' } = {} }) => {
+          faker.seed(machineSetLabel.split('').reduce((prev, curr) => prev + curr.charCodeAt(0), 0))
+
+          return faker.helpers.multiple<Resource<ClusterMachineRequestStatusSpec>>(
+            () => ({
+              spec: {
+                machine_uuid: faker.string.uuid(),
+                stage: faker.helpers.enumValue(ClusterMachineRequestStatusSpecStage),
+                status: faker.word.words(3),
+              },
+              metadata: {
+                id: faker.string.uuid(),
+              },
+            }),
+            {
+              count: { min: 1, max: 5 },
+            },
+          )
         },
       }).handler,
 

@@ -40,16 +40,14 @@ const stage = computed(() => {
 </script>
 
 <template>
-  <div
-    class="col-span-full grid grid-cols-subgrid items-center gap-1 py-6 pr-11 pl-3 text-xs text-naturals-n14"
-  >
-    <div class="col-span-2 ml-5 flex items-center gap-2">
+  <div class="col-span-full grid grid-cols-subgrid items-center p-2 pr-4 text-xs text-naturals-n14">
+    <div class="col-span-2 ml-6 flex items-center gap-2">
       <IconHeaderDropdownLoading
         v-if="stage !== TCommonStatuses.PROVISIONED"
         active
-        class="ml-2 h-4 w-4"
+        class="size-4"
       />
-      <TIcon v-else icon="cloud-connection" class="ml-2 h-4 w-4" />
+      <TIcon v-else icon="cloud-connection" class="size-4" />
       {{ requestStatus.metadata.id }}
     </div>
 
