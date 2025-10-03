@@ -75,7 +75,7 @@ spec:
       paths:
       - backend:
           service:
-            name: omni-internal-grpc
+            name: internal-grpc
             port:
               number: 8080
         path: /cosi.resource.State
