@@ -17,7 +17,7 @@ import Watch from '@/api/watch'
 import type { SideBarItem } from '@/components/SideBar/TSideBarList.vue'
 import { default as TSidebarList } from '@/components/SideBar/TSideBarList.vue'
 import { setupClusterPermissions } from '@/methods/auth'
-import { setupWorkloadProxyingEnabledFeatureWatch } from '@/methods/features'
+import { useFeatures } from '@/methods/features'
 import ExposedServiceSideBar from '@/views/cluster/ExposedService/ExposedServiceSideBar.vue'
 
 const route = useRoute()
@@ -106,7 +106,7 @@ const items = computed(() => {
   return result
 })
 
-const workloadProxyingEnabled = setupWorkloadProxyingEnabledFeatureWatch()
+const { data: featuresConfig } = useFeatures()
 </script>
 
 <template>
@@ -118,7 +118,10 @@ const workloadProxyingEnabled = setupWorkloadProxyingEnabledFeatureWatch()
     <TSidebarList :items="items" />
 
     <ExposedServiceSideBar
-      v-if="workloadProxyingEnabled && cluster?.spec?.features?.enable_workload_proxy"
+      v-if="
+        featuresConfig?.spec.enable_workload_proxying &&
+        cluster?.spec?.features?.enable_workload_proxy
+      "
     />
 
     <RouterView name="nodeSidebar" class="border-t border-naturals-n4" />

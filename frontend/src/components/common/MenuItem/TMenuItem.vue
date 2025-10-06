@@ -35,14 +35,8 @@ const expanded = useSessionStorage(`sidebar-expanded-${props.level}-${props.name
 const vueroute = useRoute()
 const { subItems, level } = toRefs(props)
 
-const handleClick = (event: Event) => {
-  if (props.regularLink) {
-    return // Don't prevent default for regular links
-  }
-
-  event.preventDefault()
-
-  if (!props.route) {
+const toggleSubmenu = () => {
+  if (subItems.value?.length) {
     expanded.value = !expanded.value
   }
 }
@@ -67,7 +61,7 @@ const componentType = props.route ? (props.regularLink ? 'a' : 'router-link') : 
 
 const componentAttributes = props.route
   ? props.regularLink
-    ? { href: props.route, target: '_blank' }
+    ? { href: props.route, target: '_blank', rel: 'noopener noreferrer' }
     : { to: props.route, exactActiveClass: 'item-active' }
   : { class: 'select-none cursor-pointer' }
 
@@ -75,13 +69,14 @@ componentAttributes.class = (componentAttributes.class ?? '') + ' item-container
 </script>
 
 <template>
-  <component :is="componentType" v-bind="componentAttributes" @click="handleClick">
+  <component :is="componentType" v-bind="componentAttributes">
     <Tooltip placement="right" :description="tooltip" :offset-distance="10" :offset-skid="0">
       <div class="flex w-full flex-col">
         <div
           class="item w-full"
           :class="{ 'sub-item': level > 0, root: level === 0 }"
           :style="{ 'padding-left': `${24 * (level + 1)}px` }"
+          @click="toggleSubmenu"
         >
           <TIcon
             v-if="icon || iconSvgBase64"
@@ -99,7 +94,6 @@ componentAttributes.class = (componentAttributes.class ?? '') + ' item-container
               class="transition-color h-6 w-6 transition-transform duration-250 hover:text-naturals-n13"
               :class="{ 'rotate-180': !expanded }"
               icon="drop-up"
-              @click.stop.prevent="() => (expanded = !expanded)"
             />
           </div>
         </div>
@@ -107,7 +101,6 @@ componentAttributes.class = (componentAttributes.class ?? '') + ' item-container
           v-if="expanded"
           class="relative overflow-hidden"
           :class="{ 'submenu-bg': level === 0 }"
-          @click.stop.prevent
         >
           <div
             v-for="(item, index) in subItems ?? []"

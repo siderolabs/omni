@@ -47,10 +47,7 @@ import {
   setClusterWorkloadProxy,
   setUseEmbeddedDiscoveryService,
 } from '@/methods/cluster'
-import {
-  embeddedDiscoveryServiceFeatureAvailable,
-  setupWorkloadProxyingEnabledFeatureWatch,
-} from '@/methods/features'
+import { embeddedDiscoveryServiceFeatureAvailable, useFeatures } from '@/methods/features'
 import ClusterMachines from '@/views/cluster/ClusterMachines/ClusterMachines.vue'
 import OverviewRightPanel from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanel.vue'
 import ClusterEtcdBackupCheckbox from '@/views/omni/Clusters/ClusterEtcdBackupCheckbox.vue'
@@ -153,7 +150,7 @@ const { canManageClusterFeatures } = setupClusterPermissions(
   computed(() => currentCluster.value.metadata.id as string),
 )
 
-const workloadProxyingEnabled = setupWorkloadProxyingEnabledFeatureWatch()
+const { data: features } = useFeatures()
 
 const isEmbeddedDiscoveryServiceAvailable = ref(false)
 
@@ -350,7 +347,10 @@ onMounted(async () => {
           </div>
         </div>
         <div class="flex gap-5">
-          <div v-if="workloadProxyingEnabled" class="overview-card mb-5 flex-1 px-6">
+          <div
+            v-if="features?.spec.enable_workload_proxying"
+            class="overview-card mb-5 flex-1 px-6"
+          >
             <div class="mb-3">
               <span class="overview-box-title">Features</span>
             </div>

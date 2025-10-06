@@ -37,6 +37,9 @@ func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger) er
 		res.TypedSpec().Value.UserPilotSettings = &specs.UserPilotSettings{
 			AppToken: config.Config.Account.UserPilot.AppToken,
 		}
+		res.TypedSpec().Value.StripeSettings = &specs.StripeSettings{
+			Enabled: config.Config.Logs.Stripe.Enabled,
+		}
 
 		return nil
 	}

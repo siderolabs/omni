@@ -673,10 +673,15 @@ export type FeaturesConfigSpec = {
   audit_log_enabled?: boolean
   image_factory_base_url?: string
   user_pilot_settings?: UserPilotSettings
+  stripe_settings?: StripeSettings
 }
 
 export type UserPilotSettings = {
   app_token?: string
+}
+
+export type StripeSettings = {
+  enabled?: boolean
 }
 
 export type EtcdBackupSettings = {

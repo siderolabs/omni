@@ -29,6 +29,7 @@ import {
   canReadClusters,
   canReadMachines,
 } from '@/methods/auth'
+import { useFeatures } from '@/methods/features'
 
 const machineMetrics = ref<Resource<MachineStatusMetricsSpec>>()
 const machineMetricsWatch = new Watch(machineMetrics)
@@ -91,6 +92,8 @@ const groupProviders = (
 
   return res
 }
+
+const { data: featuresConfig } = useFeatures()
 
 const items = computed(() => {
   const result: SideBarItem[] = [
@@ -202,31 +205,42 @@ const items = computed(() => {
   }
 
   if (canManageUsers.value || (backupStatus.value.configurable && canManageBackupStore.value)) {
+    const subItems: SideBarItem[] = [
+      {
+        name: 'Users',
+        route: getRoute('Users', '/settings/users'),
+        icon: 'users',
+      },
+      {
+        name: 'Service Accounts',
+        route: getRoute('ServiceAccounts', '/settings/serviceaccounts'),
+        icon: 'users',
+      },
+      {
+        name: 'Infra Providers',
+        route: getRoute('InfraProviders', '/settings/infraproviders'),
+        icon: 'machines-autoprovisioned',
+      },
+      {
+        name: 'Backups',
+        route: getRoute('Backups', '/settings/backups'),
+        icon: 'rollback',
+      },
+    ]
+
+    if (featuresConfig.value?.spec.stripe_settings?.enabled) {
+      subItems.push({
+        name: 'Stripe',
+        route: 'https://billing.stripe.com/p/login/8wMcOC8z51GgdPi144',
+        regularLink: true,
+        icon: 'dashboard',
+      })
+    }
+
     result.push({
       name: 'Settings',
       icon: 'settings',
-      subItems: [
-        {
-          name: 'Users',
-          route: getRoute('Users', '/settings/users'),
-          icon: 'users',
-        },
-        {
-          name: 'Service Accounts',
-          route: getRoute('ServiceAccounts', '/settings/serviceaccounts'),
-          icon: 'users',
-        },
-        {
-          name: 'Infra Providers',
-          route: getRoute('InfraProviders', '/settings/infraproviders'),
-          icon: 'machines-autoprovisioned',
-        },
-        {
-          name: 'Backups',
-          route: getRoute('Backups', '/settings/backups'),
-          icon: 'rollback',
-        },
-      ],
+      subItems,
     })
   }
 

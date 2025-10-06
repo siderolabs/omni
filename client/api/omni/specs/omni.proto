@@ -1029,10 +1029,17 @@ message FeaturesConfigSpec {
 
   // UserPilotSettings enables UserPilot on the frontend side.
   UserPilotSettings user_pilot_settings = 6;
+
+  // StripeSettings enables Stripe on the frontend side.
+  StripeSettings stripe_settings = 7;
 }
 
 message UserPilotSettings {
   string app_token = 1;
+}
+
+message StripeSettings {
+  bool enabled = 1;
 }
 
 message EtcdBackupSettings {
