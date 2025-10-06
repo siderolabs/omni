@@ -156,7 +156,7 @@ const maintenanceUpdateDescription = computed(() => {
             </button>
           </Tooltip>
 
-          <TActionsBox class="h-6">
+          <TActionsBox>
             <TActionsBoxItem
               icon="settings"
               @click="

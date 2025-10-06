@@ -71,7 +71,7 @@ const editUser = () => {
           </div>
         </div>
         <div class="flex justify-between">
-          <TActionsBox v-if="canManageUsers" style="height: 24px">
+          <TActionsBox v-if="canManageUsers">
             <TActionsBoxItem icon="edit" @click.stop="editUser">Edit User</TActionsBoxItem>
             <TActionsBoxItem icon="delete" danger @click.stop="deleteUser">
               Delete User

@@ -274,7 +274,7 @@ const sectionHeadingId = useId()
         }})
       </div>
 
-      <TActionsBox v-if="canRemoveMachineSet" class="h-6 self-center justify-self-end" @click.stop>
+      <TActionsBox v-if="canRemoveMachineSet" class="self-center justify-self-end" @click.stop>
         <TActionsBoxItem icon="delete" danger @click="() => openMachineSetDestroy(machineSet)">
           Destroy Machine Set
         </TActionsBoxItem>

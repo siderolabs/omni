@@ -81,7 +81,7 @@ const { height } = useElementSize(slider)
         <RouterLink
           :id="labelId"
           :to="{ name: 'ClusterOverview', params: { cluster: item.metadata.id } }"
-          class="list-item-link grow truncate"
+          class="list-item-link truncate"
         >
           <WordHighlighter
             :query="searchQuery"
@@ -117,7 +117,7 @@ const { height } = useElementSize(slider)
           />
         </Tooltip>
 
-        <TActionsBox class="size-6" aria-label="cluster actions" @click.stop>
+        <TActionsBox aria-label="cluster actions" @click.stop>
           <TActionsBoxItem
             v-if="canAddClusterMachines"
             icon="nodes"
@@ -175,12 +175,10 @@ const { height } = useElementSize(slider)
     <section
       :id="regionId"
       :aria-labelledby="labelId"
-      class="col-span-full grid origin-top grid-cols-subgrid transition-all duration-300"
+      class="col-span-full grid grid-cols-subgrid transition-all duration-300"
       :style="{ height: expanded ? `${height}px` : '0' }"
     >
-      <div ref="slider" class="col-span-full grid grid-cols-subgrid">
-        <ClusterMachines :cluster-i-d="item.metadata.id!" is-subgrid />
-      </div>
+      <ClusterMachines ref="slider" class="h-min" :cluster-i-d="item.metadata.id!" is-subgrid />
     </section>
   </div>
 </template>

@@ -60,26 +60,28 @@ const watches = computed(() =>
 </script>
 
 <template>
-  <Watch
-    v-for="id in watches"
-    :key="id"
-    :opts="{
-      resource: {
-        namespace: DefaultNamespace,
-        type: MachineSetStatusType,
-        id,
-      },
-      runtime: Runtime.Omni,
-    }"
-  >
-    <template #default="{ data }">
-      <MachineSet
-        v-if="data"
-        :key="itemID(data)"
-        :machine-set="data"
-        :nodes-with-diagnostics="nodesWithDiagnostics"
-        :is-subgrid
-      />
-    </template>
-  </Watch>
+  <div :class="isSubgrid && 'col-span-full grid grid-cols-subgrid'">
+    <Watch
+      v-for="id in watches"
+      :key="id"
+      :opts="{
+        resource: {
+          namespace: DefaultNamespace,
+          type: MachineSetStatusType,
+          id,
+        },
+        runtime: Runtime.Omni,
+      }"
+    >
+      <template #default="{ data }">
+        <MachineSet
+          v-if="data"
+          :key="itemID(data)"
+          :machine-set="data"
+          :nodes-with-diagnostics="nodesWithDiagnostics"
+          :is-subgrid
+        />
+      </template>
+    </Watch>
+  </div>
 </template>
