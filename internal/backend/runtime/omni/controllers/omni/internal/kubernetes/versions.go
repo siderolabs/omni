@@ -15,31 +15,22 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/siderolabs/gen/maps"
 	"github.com/siderolabs/go-kubernetes/kubernetes/upgrade"
-	"github.com/siderolabs/talos/pkg/machinery/api/machine"
-	"github.com/siderolabs/talos/pkg/machinery/compatibility"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
 // CalculateUpgradeVersions calculates the list of versions available for upgrade.
 func CalculateUpgradeVersions(ctx context.Context, r controller.Reader, currentVersion, talosTag string) ([]string, error) {
-	talosVersion, err := compatibility.ParseTalosVersion(&machine.VersionInfo{
-		Tag: talosTag,
-	})
+	talosVersion, err := safe.ReaderGetByID[*omni.TalosVersion](ctx, r, talosTag)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing Talos version: %w", err)
-	}
-
-	k8sVersions, err := safe.ReaderListAll[*omni.KubernetesVersion](ctx, r)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error fetching Talos version: %w", err)
 	}
 
 	availableVersions := map[string]semver.Version{}
 
-	for val := range k8sVersions.All() {
-		if val.TypedSpec().Value.Version != currentVersion {
-			availableVersions[val.TypedSpec().Value.Version], err = semver.ParseTolerant(val.TypedSpec().Value.Version)
+	for _, k8sVer := range talosVersion.TypedSpec().Value.CompatibleKubernetesVersions {
+		if k8sVer != currentVersion {
+			availableVersions[k8sVer], err = semver.ParseTolerant(k8sVer)
 			if err != nil {
 				return nil, err
 			}
@@ -54,18 +45,6 @@ func CalculateUpgradeVersions(ctx context.Context, r controller.Reader, currentV
 		}
 
 		if !path.IsSupported() {
-			delete(availableVersions, version)
-		}
-	}
-
-	// skip versions which are not supported with the current version of Talos
-	for version := range availableVersions {
-		k8sVersion, err := compatibility.ParseKubernetesVersion(version)
-		if err != nil {
-			return nil, err
-		}
-
-		if k8sVersion.SupportedWith(talosVersion) != nil {
 			delete(availableVersions, version)
 		}
 	}

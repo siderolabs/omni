@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"slices"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
@@ -257,15 +256,26 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 		qtransform.WithExtraMappedInput[*omni.ImagePullStatus](
 			qtransform.MapperSameID[*omni.Cluster](),
 		),
-		qtransform.WithExtraMappedInput[*omni.KubernetesVersion](
-			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, _ controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
-				// reconcile all cluster on KubernetesVersion changes
+		qtransform.WithExtraMappedInput[*omni.TalosVersion](
+			// if TalosVersion changes, it might be that CompatibleKubernetesVersions field changed
+			// as the new Kubernetes version was released
+			//
+			// we reconcile clusters which run this Talos version, as it might change Kubernetes upgrade candidates
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, md controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 				clusters, err := safe.ReaderListAll[*omni.Cluster](ctx, r)
 				if err != nil {
 					return nil, err
 				}
 
-				return slices.Collect(clusters.Pointers()), nil
+				var affectedClusters []resource.Pointer
+
+				for cluster := range clusters.All() {
+					if cluster.TypedSpec().Value.TalosVersion == md.ID() {
+						affectedClusters = append(affectedClusters, cluster.Metadata())
+					}
+				}
+
+				return affectedClusters, nil
 			},
 		),
 		qtransform.WithExtraMappedInput[*omni.ClusterMachineIdentity](
