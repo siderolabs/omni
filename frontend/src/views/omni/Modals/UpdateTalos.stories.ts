@@ -5,11 +5,19 @@
 import { faker } from '@faker-js/faker'
 import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
+import * as semver from 'semver'
 
 import type { TalosUpgradeStatusSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, TalosUpgradeStatusType } from '@/api/resources'
 
 import UpdateTalos from './UpdateTalos.vue'
+
+const upgrade_versions = faker.helpers
+  .uniqueArray(
+    () => `1.${faker.number.int({ min: 28, max: 32 })}.${faker.number.int({ min: 0, max: 10 })}`,
+    40,
+  )
+  .sort(semver.compare)
 
 const meta: Meta<typeof UpdateTalos> = {
   component: UpdateTalos,
@@ -28,12 +36,6 @@ export const Data: Story = {
             namespace: DefaultNamespace,
           },
           initialResources: () => {
-            faker.seed(0)
-
-            const upgrade_versions = faker.helpers
-              .multiple(() => faker.system.semver(), { count: 10 })
-              .sort()
-
             const [last_upgrade_version] = upgrade_versions.splice(
               Math.round(upgrade_versions.length / 2),
               1,

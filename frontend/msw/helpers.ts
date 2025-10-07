@@ -56,7 +56,7 @@ export function createWatchStreamHandler<T = unknown, S = unknown>({
       const events = resources.map((r, i) => createCreatedEvent(r, i + 1))
 
       if (!skipBootstrap) {
-        events.push(createBootstrapEvent(totalResults ?? initialResources.length))
+        events.push(createBootstrapEvent(totalResults ?? resources.length))
       }
 
       events.forEach((event) => controller.enqueue(encodeResponse(event)))

@@ -5,11 +5,24 @@
 import { faker } from '@faker-js/faker'
 import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
+import * as semver from 'semver'
 
-import type { KubernetesUpgradeStatusSpec } from '@/api/omni/specs/omni.pb'
-import { DefaultNamespace, KubernetesUpgradeStatusType } from '@/api/resources'
+import type { Resource } from '@/api/grpc'
+import type { KubernetesUpgradeStatusSpec, KubernetesVersionSpec } from '@/api/omni/specs/omni.pb'
+import {
+  DefaultNamespace,
+  KubernetesUpgradeStatusType,
+  KubernetesVersionType,
+} from '@/api/resources'
 
 import UpdateKubernetes from './UpdateKubernetes.vue'
+
+const versions = faker.helpers
+  .uniqueArray(
+    () => `1.${faker.number.int({ min: 28, max: 32 })}.${faker.number.int({ min: 0, max: 10 })}`,
+    40,
+  )
+  .sort(semver.compare)
 
 const meta: Meta<typeof UpdateKubernetes> = {
   component: UpdateKubernetes,
@@ -28,16 +41,13 @@ export const Data: Story = {
             namespace: DefaultNamespace,
           },
           initialResources: () => {
-            faker.seed(0)
-
-            const upgrade_versions = faker.helpers
-              .multiple(() => faker.system.semver(), { count: 10 })
-              .sort()
-
-            const [last_upgrade_version] = upgrade_versions.splice(
-              Math.round(upgrade_versions.length / 2),
-              1,
+            const upgrade_versions = versions.filter((v) =>
+              [30, 31].includes(semver.parse(v)!.minor),
             )
+
+            const [last_upgrade_version] = upgrade_versions
+              .filter((v) => semver.parse(v)?.minor === 30)
+              .splice(-3, 1)
 
             return [
               {
@@ -46,6 +56,17 @@ export const Data: Story = {
               },
             ]
           },
+        }).handler,
+
+        createWatchStreamHandler<KubernetesVersionSpec>({
+          expectedOptions: {
+            namespace: DefaultNamespace,
+            type: KubernetesVersionType,
+          },
+          initialResources: versions.map<Resource<KubernetesVersionSpec>>((version) => ({
+            spec: { version },
+            metadata: { id: version },
+          })),
         }).handler,
       ],
     },

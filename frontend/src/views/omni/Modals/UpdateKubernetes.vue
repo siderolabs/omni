@@ -12,9 +12,13 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { ManagementService } from '@/api/omni/management/management.pb'
-import type { KubernetesUpgradeStatusSpec } from '@/api/omni/specs/omni.pb'
+import type { KubernetesUpgradeStatusSpec, KubernetesVersionSpec } from '@/api/omni/specs/omni.pb'
 import { withContext } from '@/api/options'
-import { DefaultNamespace, KubernetesUpgradeStatusType } from '@/api/resources'
+import {
+  DefaultNamespace,
+  KubernetesUpgradeStatusType,
+  KubernetesVersionType,
+} from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
@@ -41,39 +45,49 @@ const { data: status } = useWatch<KubernetesUpgradeStatusSpec>({
   runtime: Runtime.Omni,
 })
 
+const { data: allVersions } = useWatch<KubernetesVersionSpec>({
+  resource: {
+    namespace: DefaultNamespace,
+    type: KubernetesVersionType,
+  },
+  runtime: Runtime.Omni,
+})
+
 watch(status, () => {
   if (selectedVersion.value === '') {
     selectedVersion.value = status.value?.spec.last_upgrade_version || ''
   }
 })
 
-const upgradeVersions = computed(() => {
-  if (!status?.value?.spec?.upgrade_versions) {
-    return []
-  }
+const supportedVersions = computed(() =>
+  (status.value?.spec.upgrade_versions ?? [])
+    .concat(status.value?.spec.last_upgrade_version ?? '')
+    .filter((v) => !!v)
+    .sort(semver.compare),
+)
 
-  const sorted = [
-    ...status.value.spec.upgrade_versions,
-    status.value.spec.last_upgrade_version ?? '',
-  ].sort(semver.compare)
+const groupedVersions = computed(() => {
+  const oldestSupportedVersion = supportedVersions.value[0]
 
-  const result = {}
+  return allVersions.value
+    .map((v) => semver.parse(v.spec.version, false, true))
+    .sort(semver.compare)
+    .filter((v) => semver.gte(v, oldestSupportedVersion))
+    .reduce<Record<string, string[]>>((result, version) => {
+      const { major, minor } = version
 
-  for (const version of sorted) {
-    const major = semver.major(version)
-    const minor = semver.minor(version)
+      const majorMinor = `${major}.${minor}`
 
-    const majorMinor = `${major}.${minor}`
+      result[majorMinor] ||= []
+      result[majorMinor].push(version.format())
 
-    if (!result[majorMinor]) {
-      result[majorMinor] = []
-    }
-
-    result[majorMinor].push(version)
-  }
-
-  return result
+      return result
+    }, {})
 })
+
+function isVersionSelectable(version: string) {
+  return supportedVersions.value.includes(version)
+}
 
 const action = computed(() => {
   if (!status.value) {
@@ -131,7 +145,7 @@ const upgradeClick = async () => {
 
 <template>
   <div class="modal-window my-4 flex max-h-screen flex-col gap-2">
-    <div class="heading">
+    <div class="mb-5 flex items-center justify-between text-xl text-naturals-n14">
       <h3 class="text-base text-naturals-n14">Update Kubernetes</h3>
       <CloseButton @click="close" />
     </div>
@@ -140,11 +154,15 @@ const upgradeClick = async () => {
       <RadioGroup
         id="k8s-upgrade-version"
         v-model="selectedVersion"
-        class="flex flex-1 flex-col gap-2 overflow-y-auto text-naturals-n13"
+        class="flex max-h-64 flex-1 flex-col gap-2 overflow-y-auto text-naturals-n13"
       >
-        <template v-for="(versions, group) in upgradeVersions" :key="group">
-          <RadioGroupLabel as="div" class="w-full bg-naturals-n4 p-1 pl-7 text-sm font-bold">
+        <template v-for="(versions, group) in groupedVersions" :key="group">
+          <RadioGroupLabel
+            as="div"
+            class="sticky top-0 w-full bg-naturals-n4 p-1 pl-7 text-sm font-bold"
+          >
             {{ group }}
+            {{ isVersionSelectable(`${group}.0`) ? '' : '(not yet upgradeable)' }}
           </RadioGroupLabel>
           <div class="flex flex-col gap-1">
             <RadioGroupOption
@@ -152,12 +170,21 @@ const upgradeClick = async () => {
               :key="version"
               v-slot="{ checked }"
               :value="version"
+              :disabled="!isVersionSelectable(version)"
             >
               <div
                 class="tranform transition-color flex cursor-pointer items-center gap-2 px-2 py-1 text-sm hover:bg-naturals-n4"
                 :class="{ 'bg-naturals-n4': checked }"
               >
-                <TCheckbox :model-value="checked" class="pointer-events-none" />
+                <TCheckbox
+                  :model-value="checked"
+                  class="pointer-events-none"
+                  :disabled="!isVersionSelectable(version)"
+                  @vue:mounted="
+                    ($event) =>
+                      checked && ($event.el as HTMLElement).scrollIntoView({ block: 'center' })
+                  "
+                />
                 {{ version }}
                 <span v-if="version === status.spec.last_upgrade_version">(current)</span>
               </div>
@@ -166,6 +193,11 @@ const upgradeClick = async () => {
         </template>
       </RadioGroup>
     </template>
+
+    <p class="text-xs">
+      Downgrading minor versions is not supported. You can only upgrade to versions supported by
+      your talos version. You can not skip minor version upgrades.
+    </p>
 
     <p class="text-xs">
       Changing the Kubernetes version can result in control plane downtime. During this change you
@@ -196,14 +228,3 @@ const upgradeClick = async () => {
     </div>
   </div>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
-}
-optgroup {
-  @apply font-bold text-naturals-n14;
-}
-</style>
