@@ -110,7 +110,7 @@ func (handler *StaticHandler) serveFile(w http.ResponseWriter, r *http.Request, 
 		} else {
 			w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 
-			w.Header().Set("Content-Security-Policy", "default-src 'self' https://*.userpilot.io; img-src * data: ; "+
+			w.Header().Set("Content-Security-Policy", "script-src 'self' https://*.userpilot.io 'unsafe-inline'; img-src * data: ; "+
 				";connect-src 'self' https://*.auth0.com https://*.userpilot.io wss://*.userpilot.io ;font-src 'self' data: "+
 				";style-src 'self' 'unsafe-inline' https://fonts.googleapis.com data: ;upgrade-insecure-requests;"+
 				";frame-src https://*.auth0.com",
