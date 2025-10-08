@@ -26,59 +26,45 @@ defineEmits<{
   close: []
 }>()
 
-const machineName = computed(() => {
-  return machine?.spec.message_status?.network?.hostname ?? machine?.metadata.id
-})
+const machineName = computed(
+  () => machine?.spec.message_status?.network?.hostname ?? machine?.metadata.id,
+)
 
-const processors = computed(() => {
-  const processors = machine?.spec.message_status?.hardware?.processors || []
+const processors = computed(() =>
+  machine?.spec.message_status?.hardware?.processors?.map(
+    ({ frequency, core_count, description }) => {
+      const parts: string[] = []
 
-  const format = (proc: { frequency?: number; core_count?: number; description?: string }) => {
-    return `${proc.frequency! / 1000} GHz, ${pluralize('core', proc.core_count, true)}, ${proc.description}`
-  }
+      if (frequency) parts.push(`${frequency / 1000} GHz`)
+      if (core_count) parts.push(pluralize('core', core_count, true))
+      if (description?.trim()) parts.push(description.trim())
 
-  return processors.map(format)
-})
+      return parts.join(', ')
+    },
+  ),
+)
 
-const memorymodules = computed(() => {
-  const memorymodules = machine?.spec.message_status?.hardware?.memory_modules || []
-
-  const format = (mem: { description?: string; size_mb?: number }) => {
-    let description = mem.description
-
-    if (mem.description === undefined) {
-      description = ''
-    }
-    return `${formatBytes(mem.size_mb! * 1024 * 1024)} ${description}`
-  }
-
-  return memorymodules.filter((mem: { size_mb?: number }) => mem.size_mb !== 0).map(format)
-})
+const memorymodules = computed(() =>
+  machine?.spec.message_status?.hardware?.memory_modules
+    ?.filter((mem) => !!mem.size_mb)
+    .map(({ description, size_mb = 0 }) => `${formatBytes(size_mb * 1024 * 1024)} ${description}`),
+)
 
 const clusterName = computed(() => machine?.spec.message_status?.cluster)
 
-const timeGetter = (fn: () => string | undefined) => {
-  return computed(() => {
-    const time = fn()
-    if (time) {
-      const dt: DateTime = /^\d+$/.exec(time)
-        ? DateTime.fromSeconds(parseInt(time))
-        : DateTime.fromISO(time)
+const formatTime = (time?: string) => {
+  if (!time) return 'Never'
 
-      return dt.setLocale('en').toLocaleString(DateTime.DATETIME_FULL_WITH_SECONDS)
-    }
+  const dt = /^\d+$/.test(time) ? DateTime.fromSeconds(parseInt(time)) : DateTime.fromISO(time)
 
-    return 'Never'
-  })
+  return dt.setLocale('en').toLocaleString(DateTime.DATETIME_FULL_WITH_SECONDS)
 }
 
-const machineLastAlive = timeGetter(() => machine?.spec.siderolink_counter?.last_alive)
-const machineCreatedAt = timeGetter(() => machine?.spec.machine_created_at)
+const machineLastAlive = computed(() => formatTime(machine?.spec.siderolink_counter?.last_alive))
+const machineCreatedAt = computed(() => formatTime(machine?.spec.machine_created_at))
 const secureBoot = computed(() => {
   const securityState = machine?.spec.message_status?.security_state
-  if (!securityState) {
-    return 'Unknown'
-  }
+  if (!securityState) return 'Unknown'
 
   return securityState.secure_boot ? 'Enabled' : 'Disabled'
 })
