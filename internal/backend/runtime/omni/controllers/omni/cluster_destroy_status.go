@@ -63,17 +63,20 @@ func NewClusterDestroyStatusController() *ClusterDestroyStatusController {
 								return err
 							}
 						}
+
 						remainingMachineSetIDs[status.Metadata().ID()] = struct{}{}
 					case resource.PhaseTearingDown:
 						if status.Metadata().Finalizers().Has(ClusterDestroyStatusControllerName) {
 							if len(*status.Metadata().Finalizers()) == 1 {
 								log.Printf("Removing finalizer for cluster %s", status.Metadata().ID())
+
 								if err = r.RemoveFinalizer(ctx, status.Metadata(), ClusterDestroyStatusControllerName); err != nil {
 									return err
 								}
 
 								continue
 							}
+
 							remainingMachineSetIDs[status.Metadata().ID()] = struct{}{}
 						}
 					}
@@ -104,6 +107,7 @@ func NewClusterDestroyStatusController() *ClusterDestroyStatusController {
 								return err
 							}
 						}
+
 						incrementRemainingMachines(cmStatus)
 					case resource.PhaseTearingDown:
 						if cmStatus.Metadata().Finalizers().Has(ClusterDestroyStatusControllerName) {
@@ -114,6 +118,7 @@ func NewClusterDestroyStatusController() *ClusterDestroyStatusController {
 
 								continue
 							}
+
 							incrementRemainingMachines(cmStatus)
 						}
 					}

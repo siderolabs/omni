@@ -1,6 +1,6 @@
 module github.com/siderolabs/omni
 
-go 1.25.0
+go 1.25.2
 
 replace (
 	// forked saml library that has the fix for Fusion Auth ACS parsing
@@ -67,9 +67,9 @@ require (
 	github.com/siderolabs/discovery-client v0.1.13
 	github.com/siderolabs/discovery-service v1.0.11
 	github.com/siderolabs/gen v0.8.5
-	github.com/siderolabs/go-api-signature v0.3.8
+	github.com/siderolabs/go-api-signature v0.3.9
 	github.com/siderolabs/go-circular v0.2.3
-	github.com/siderolabs/go-debug v0.6.0
+	github.com/siderolabs/go-debug v0.6.1
 	github.com/siderolabs/go-kubernetes v0.2.26
 	github.com/siderolabs/go-loadbalancer v0.5.0
 	github.com/siderolabs/go-pointer v1.0.1
@@ -80,7 +80,7 @@ require (
 	github.com/siderolabs/grpc-proxy v0.5.1
 	github.com/siderolabs/image-factory v0.8.4
 	github.com/siderolabs/kms-client v0.1.0
-	github.com/siderolabs/omni/client v1.1.2
+	github.com/siderolabs/omni/client v1.2.1
 	github.com/siderolabs/proto-codec v0.1.2
 	github.com/siderolabs/siderolink v0.3.15
 	github.com/siderolabs/talos/pkg/machinery v1.11.1
@@ -99,7 +99,7 @@ require (
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.42.0
-	golang.org/x/net v0.44.0
+	golang.org/x/net v0.45.0
 	golang.org/x/oauth2 v0.31.0
 	golang.org/x/sync v0.17.0
 	golang.org/x/text v0.29.0
@@ -115,6 +115,11 @@ require (
 	k8s.io/client-go v0.35.0-alpha.0
 	k8s.io/klog/v2 v2.130.1
 	sigs.k8s.io/controller-runtime v0.22.1
+)
+
+require (
+	github.com/evanphx/json-patch v5.9.11+incompatible
+	github.com/ghodss/yaml v1.0.0
 )
 
 require (
@@ -153,11 +158,9 @@ require (
 	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.3 // indirect
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
-	github.com/evanphx/json-patch v5.9.11+incompatible // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.10 // indirect
-	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-chi/chi/v5 v5.2.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.22.0 // indirect

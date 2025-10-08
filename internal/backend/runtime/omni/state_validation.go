@@ -1275,6 +1275,7 @@ func nodeForceDestroyRequestValidationOptions(st state.State) []validated.StateO
 }
 
 const (
+	// MaxJoinTokenNameLength is the maximum length of the join token name.
 	// tsgen:MaxJoinTokenNameLength
 	MaxJoinTokenNameLength = 16
 )

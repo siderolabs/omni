@@ -397,6 +397,7 @@ func testSingleListCall(ctx context.Context, t *testing.T, rt *runtime.Runtime, 
 		DoAndReturn(
 			func(_ context.Context, description etcdbackup.Description, reader io.Reader) error {
 				ch <- description.ClusterName
+
 				must.Value(io.Copy(io.Discard, reader))(t)
 
 				return nil

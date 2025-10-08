@@ -3,7 +3,6 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-// Package saml contains SAML setup handlers.
 package saml
 
 import (

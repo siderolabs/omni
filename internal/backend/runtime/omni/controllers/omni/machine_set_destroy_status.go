@@ -55,6 +55,7 @@ func NewMachineSetDestroyStatusController() *MachineSetDestroyStatusController {
 				}
 
 				remainingMachines := 0
+
 				for _, cmStatus := range cmStatuses.Items {
 					switch cmStatus.Metadata().Phase() {
 					case resource.PhaseRunning:
@@ -63,6 +64,7 @@ func NewMachineSetDestroyStatusController() *MachineSetDestroyStatusController {
 								return err
 							}
 						}
+
 						remainingMachines++
 					case resource.PhaseTearingDown:
 						if cmStatus.Metadata().Finalizers().Has(MachineSetDestroyStatusControllerName) {
@@ -73,6 +75,7 @@ func NewMachineSetDestroyStatusController() *MachineSetDestroyStatusController {
 
 								continue
 							}
+
 							remainingMachines++
 						}
 					}
