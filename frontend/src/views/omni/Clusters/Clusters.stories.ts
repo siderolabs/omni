@@ -247,7 +247,7 @@ export const Data: Story = {
       }).handler,
 
       http.post<never, GetRequest>('/omni.resources.ResourceService/Get', async ({ request }) => {
-        const { type, namespace } = await (request.clone() as typeof request).json()
+        const { type, namespace } = await request.clone().json()
 
         if (type !== ClusterPermissionsType || namespace !== VirtualNamespace) return
 

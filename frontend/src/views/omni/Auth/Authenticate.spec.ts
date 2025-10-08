@@ -55,5 +55,5 @@ test('Forwards query string for SAML auth', async () => {
   })
 
   expect(router.currentRoute.value.fullPath).toBe(`/${expectedQueryString}`)
-  expect(locationHrefSpy).toHaveBeenCalledWith(`/login${expectedQueryString}`)
+  expect(locationHrefSpy).toHaveBeenCalledExactlyOnceWith(`/login${expectedQueryString}`)
 })

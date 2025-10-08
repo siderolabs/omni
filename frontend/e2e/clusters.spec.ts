@@ -37,7 +37,7 @@ test('create cluster', async ({ page }) => {
 
     await editor.press('Control+a')
     await editor.press('Delete')
-    await editor.fill(`machine:
+    await editor.pressSequentially(`machine:
  network:
    hostname: ${machineName}`)
 

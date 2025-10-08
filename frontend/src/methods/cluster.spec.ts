@@ -57,7 +57,7 @@ describe('nextAvailableClusterName', () => {
     const name = await nextAvailableClusterName('test-cluster')
 
     expect(name).toBe('test-cluster')
-    expect(ResourceService.List).toHaveBeenCalledWith(
+    expect(ResourceService.List).toHaveBeenCalledExactlyOnceWith(
       { namespace: DefaultNamespace, type: ClusterType },
       { runtime: Runtime.Omni },
     )
@@ -114,11 +114,11 @@ describe('nextAvailableClusterName', () => {
     await nextAvailableClusterName('test-prefix')
 
     expect(ResourceService.List).toHaveBeenCalledTimes(1)
-    expect(ResourceService.List).toHaveBeenCalledWith(
+    expect(ResourceService.List).toHaveBeenCalledExactlyOnceWith(
       { namespace: DefaultNamespace, type: ClusterType },
       { runtime: Runtime.Omni },
     )
-    expect(withRuntime).toHaveBeenCalledWith(Runtime.Omni)
+    expect(withRuntime).toHaveBeenCalledExactlyOnceWith(Runtime.Omni)
   })
 
   it('should handle edge case when cluster names have numbers but in a different format', async () => {
