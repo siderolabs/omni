@@ -12,12 +12,20 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { ManagementService } from '@/api/omni/management/management.pb'
-import type { KubernetesUpgradeStatusSpec, KubernetesVersionSpec } from '@/api/omni/specs/omni.pb'
+import type {
+  ClusterSpec,
+  KubernetesUpgradeStatusSpec,
+  KubernetesVersionSpec,
+  TalosVersionSpec,
+} from '@/api/omni/specs/omni.pb'
 import { withContext } from '@/api/options'
 import {
+  ClusterType,
   DefaultNamespace,
+  DefaultTalosVersion,
   KubernetesUpgradeStatusType,
   KubernetesVersionType,
+  TalosVersionType,
 } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
@@ -36,6 +44,15 @@ const selectedVersion = ref('')
 
 const clusterName = route.params.cluster as string
 
+const { data: cluster } = useWatch<ClusterSpec>({
+  resource: {
+    type: ClusterType,
+    namespace: DefaultNamespace,
+    id: clusterName,
+  },
+  runtime: Runtime.Omni,
+})
+
 const { data: status } = useWatch<KubernetesUpgradeStatusSpec>({
   resource: {
     namespace: DefaultNamespace,
@@ -45,10 +62,18 @@ const { data: status } = useWatch<KubernetesUpgradeStatusSpec>({
   runtime: Runtime.Omni,
 })
 
-const { data: allVersions } = useWatch<KubernetesVersionSpec>({
+const { data: allK8sVersions } = useWatch<KubernetesVersionSpec>({
   resource: {
     namespace: DefaultNamespace,
     type: KubernetesVersionType,
+  },
+  runtime: Runtime.Omni,
+})
+
+const { data: allTalosVersionsUnsorted } = useWatch<TalosVersionSpec>({
+  resource: {
+    type: TalosVersionType,
+    namespace: DefaultNamespace,
   },
   runtime: Runtime.Omni,
 })
@@ -59,35 +84,70 @@ watch(status, () => {
   }
 })
 
-const supportedVersions = computed(() =>
+const supportedK8sVersions = computed(() =>
   (status.value?.spec.upgrade_versions ?? [])
     .concat(status.value?.spec.last_upgrade_version ?? '')
     .filter((v) => !!v)
     .sort(semver.compare),
 )
 
-const groupedVersions = computed(() => {
-  const oldestSupportedVersion = supportedVersions.value[0]
+interface VersionGroup {
+  upgradeable: boolean
+  versions: {
+    upgradeable: boolean
+    version: string
+  }[]
+}
 
-  return allVersions.value
+const groupedK8sVersions = computed(() => {
+  const oldestSupportedVersion = supportedK8sVersions.value[0]
+
+  return allK8sVersions.value
     .map((v) => semver.parse(v.spec.version, false, true))
     .sort(semver.compare)
     .filter((v) => semver.gte(v, oldestSupportedVersion))
-    .reduce<Record<string, string[]>>((result, version) => {
-      const { major, minor } = version
+    .reduce<Record<string, VersionGroup>>((result, parsed) => {
+      const { major, minor } = parsed
+      const version = parsed.format()
 
       const majorMinor = `${major}.${minor}`
 
-      result[majorMinor] ||= []
-      result[majorMinor].push(version.format())
+      result[majorMinor] ||= {
+        upgradeable: isVersionUpgradeable(`${major}.${minor}.0`),
+        versions: [],
+      }
+
+      // Only show individual versions if part of an upgradeable group
+      if (result[majorMinor].upgradeable) {
+        result[majorMinor].versions.push({
+          upgradeable: isVersionUpgradeable(version),
+          version,
+        })
+      }
 
       return result
     }, {})
 })
 
-function isVersionSelectable(version: string) {
-  return supportedVersions.value.includes(version)
+const allTalosVersions = computed(() =>
+  allTalosVersionsUnsorted.value
+    .slice()
+    .sort((a, b) => semver.compare(a.spec.version!, b.spec.version!)),
+)
+
+function isVersionUpgradeable(version: string) {
+  return supportedK8sVersions.value.includes(version)
 }
+
+const docsTalosVersion = computed(() => {
+  const { major, minor } = semver.parse(
+    cluster.value?.spec.talos_version || DefaultTalosVersion,
+    {},
+    true,
+  )
+
+  return `v${major}.${minor}`
+})
 
 const action = computed(() => {
   if (!status.value) {
@@ -156,21 +216,32 @@ const upgradeClick = async () => {
         v-model="selectedVersion"
         class="flex max-h-64 flex-1 flex-col gap-2 overflow-y-auto text-naturals-n13"
       >
-        <template v-for="(versions, group) in groupedVersions" :key="group">
+        <template
+          v-for="({ upgradeable: groupUpgradeable, versions }, group) in groupedK8sVersions"
+          :key="group"
+        >
           <RadioGroupLabel
             as="div"
             class="sticky top-0 w-full bg-naturals-n4 p-1 pl-7 text-sm font-bold"
           >
             {{ group }}
-            {{ isVersionSelectable(`${group}.0`) ? '' : '(not yet upgradeable)' }}
+            {{
+              groupUpgradeable
+                ? ''
+                : allTalosVersions
+                      .find((v) => v.spec.version === cluster?.spec.talos_version)
+                      ?.spec.compatible_kubernetes_versions?.some((v) => semver.satisfies(v, group))
+                  ? " - Can't skip minor version upgrades"
+                  : ` - Requires Talos version ${allTalosVersions.find((v) => v.spec.compatible_kubernetes_versions?.some((v) => semver.satisfies(v, group)))?.spec.version}`
+            }}
           </RadioGroupLabel>
           <div class="flex flex-col gap-1">
             <RadioGroupOption
-              v-for="version in versions"
+              v-for="{ upgradeable, version } in versions"
               :key="version"
               v-slot="{ checked }"
               :value="version"
-              :disabled="!isVersionSelectable(version)"
+              :disabled="!upgradeable"
             >
               <div
                 class="tranform transition-color flex cursor-pointer items-center gap-2 px-2 py-1 text-sm hover:bg-naturals-n4"
@@ -179,7 +250,7 @@ const upgradeClick = async () => {
                 <TCheckbox
                   :model-value="checked"
                   class="pointer-events-none"
-                  :disabled="!isVersionSelectable(version)"
+                  :disabled="!upgradeable"
                   @vue:mounted="
                     ($event) =>
                       checked && ($event.el as HTMLElement).scrollIntoView({ block: 'center' })
@@ -195,8 +266,15 @@ const upgradeClick = async () => {
     </template>
 
     <p class="text-xs">
-      Downgrading minor versions is not supported. You can only upgrade to versions supported by
-      your talos version. You can not skip minor version upgrades.
+      Downgrading minor versions is not supported. You can not skip minor version upgrades. You can
+      only upgrade to versions supported by your talos version. See the
+      <a
+        class="inline-block underline hover:mix-blend-lighten"
+        :href="`https://docs.siderolabs.com/talos/v${docsTalosVersion}/getting-started/support-matrix`"
+      >
+        support matrix
+      </a>
+      for which versions are supported by your talos version.
     </p>
 
     <p class="text-xs">

@@ -8,19 +8,36 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import * as semver from 'semver'
 
 import type { Resource } from '@/api/grpc'
-import type { KubernetesUpgradeStatusSpec, KubernetesVersionSpec } from '@/api/omni/specs/omni.pb'
+import type {
+  ClusterSpec,
+  KubernetesUpgradeStatusSpec,
+  KubernetesVersionSpec,
+  TalosVersionSpec,
+} from '@/api/omni/specs/omni.pb'
 import {
+  ClusterType,
   DefaultNamespace,
   KubernetesUpgradeStatusType,
   KubernetesVersionType,
+  TalosVersionType,
 } from '@/api/resources'
 
 import UpdateKubernetes from './UpdateKubernetes.vue'
 
-const versions = faker.helpers
+const k8sVersions = faker.helpers
   .uniqueArray(
     () => `1.${faker.number.int({ min: 28, max: 32 })}.${faker.number.int({ min: 0, max: 10 })}`,
     40,
+  )
+  .sort(semver.compare)
+
+const minTalos = 10
+const maxTalos = 11
+const talosVersions = faker.helpers
+  .uniqueArray(
+    () =>
+      `1.${faker.number.int({ min: minTalos, max: maxTalos })}.${faker.number.int({ min: 0, max: 10 })}`,
+    10,
   )
   .sort(semver.compare)
 
@@ -35,18 +52,29 @@ export const Data: Story = {
   parameters: {
     msw: {
       handlers: [
+        createWatchStreamHandler<ClusterSpec>({
+          expectedOptions: {
+            type: ClusterType,
+            namespace: DefaultNamespace,
+          },
+          initialResources: [
+            {
+              spec: { talos_version: talosVersions.find((v) => semver.minor(v) === minTalos) },
+              metadata: {},
+            },
+          ],
+        }).handler,
+
         createWatchStreamHandler<KubernetesUpgradeStatusSpec>({
           expectedOptions: {
             type: KubernetesUpgradeStatusType,
             namespace: DefaultNamespace,
           },
           initialResources: () => {
-            const upgrade_versions = versions.filter((v) =>
-              [30, 31].includes(semver.parse(v)!.minor),
-            )
+            const upgrade_versions = k8sVersions.filter((v) => [28, 29].includes(semver.minor(v)))
 
             const [last_upgrade_version] = upgrade_versions
-              .filter((v) => semver.parse(v)?.minor === 30)
+              .filter((v) => semver.minor(v) === 28)
               .splice(-3, 1)
 
             return [
@@ -63,10 +91,31 @@ export const Data: Story = {
             namespace: DefaultNamespace,
             type: KubernetesVersionType,
           },
-          initialResources: versions.map<Resource<KubernetesVersionSpec>>((version) => ({
+          initialResources: k8sVersions.map<Resource<KubernetesVersionSpec>>((version) => ({
             spec: { version },
             metadata: { id: version },
           })),
+        }).handler,
+
+        createWatchStreamHandler<TalosVersionSpec>({
+          expectedOptions: {
+            type: TalosVersionType,
+            namespace: DefaultNamespace,
+          },
+          initialResources: talosVersions.map<Resource<TalosVersionSpec>>((version) => {
+            const minor = semver.minor(version)
+
+            return {
+              spec: {
+                version,
+                compatible_kubernetes_versions:
+                  minor === minTalos
+                    ? k8sVersions.slice(0, Math.floor(k8sVersions.length / 2))
+                    : k8sVersions.slice(Math.ceil(k8sVersions.length / 2)),
+              },
+              metadata: { id: version },
+            }
+          }),
         }).handler,
       ],
     },
