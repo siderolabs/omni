@@ -5,31 +5,29 @@
 import '../src/index.css'
 
 import { faker } from '@faker-js/faker'
-import { type Preview, setup } from '@storybook/vue3-vite'
+import { type Preview } from '@storybook/vue3-vite'
 import { initialize, mswLoader } from 'msw-storybook-addon'
-import { createRouter, createWebHistory, RouterView } from 'vue-router'
+import { vueRouter } from 'storybook-vue3-router'
+import { createMemoryHistory } from 'vue-router'
+
+import { routes } from '../src/router/index.ts'
 
 // Initialize MSW
 initialize({ onUnhandledRequest: 'bypass' })
-
-// Add a blank router
-setup((app) => {
-  app.use(
-    createRouter({
-      history: createWebHistory(),
-      routes: [{ path: '/:catchAll(.*)', component: RouterView }],
-    }),
-  )
-
-  // Stub out RouterLink to prevent "Not Found" errors when creating links
-  app.component('RouterLink', { template: `<a><slot></slot></a>` })
-})
 
 const preview: Preview = {
   beforeEach() {
     faker.seed(0)
   },
   loaders: [mswLoader],
+  decorators: [
+    vueRouter(undefined, {
+      vueRouterOptions: {
+        history: createMemoryHistory(),
+        routes,
+      },
+    }),
+  ],
   parameters: {
     controls: {
       matchers: {

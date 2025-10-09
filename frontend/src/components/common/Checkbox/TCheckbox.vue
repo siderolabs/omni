@@ -20,7 +20,7 @@ const checked = defineModel<boolean>({ default: false })
 </script>
 
 <template>
-  <label class="flex cursor-pointer items-center gap-2 has-disabled:cursor-not-allowed">
+  <label class="inline-flex cursor-pointer items-center gap-2 has-disabled:cursor-not-allowed">
     <input v-model="checked" type="checkbox" :disabled="disabled" class="peer sr-only" />
 
     <div
