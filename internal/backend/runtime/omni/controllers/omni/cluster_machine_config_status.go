@@ -266,6 +266,11 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 					return fmt.Errorf("failed to determine the cluster name from the cluster machine config %q", machineConfig.Metadata().ID())
 				}
 
+				cluster, err := safe.ReaderGet[*omni.Cluster](ctx, r, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata())
+				if err != nil {
+					return fmt.Errorf("finalizer: failed to get cluster '%s': %w", clusterName, err)
+				}
+
 				clusterStatus, err := safe.ReaderGet[*omni.ClusterStatus](ctx, r, omni.NewClusterStatus(resources.DefaultNamespace, clusterName).Metadata())
 				if err != nil {
 					return fmt.Errorf("finalizer: failed to get cluster status '%s': %w", clusterName, err)
@@ -277,7 +282,7 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 				}
 
 				// perform reset of the node
-				err = handler.reset(ctx, machineConfig, clusterMachine, clusterStatus)
+				err = handler.reset(ctx, cluster, machineConfig, clusterMachine, clusterStatus)
 				if err != nil {
 					return err
 				}
@@ -647,9 +652,10 @@ func logClose(c io.Closer, logger *zap.Logger, additional string) {
 	}
 }
 
-//nolint:gocyclo,cyclop,gocognit
+//nolint:gocyclo,cyclop,gocognit,maintidx
 func (h *clusterMachineConfigStatusControllerHandler) reset(
 	ctx context.Context,
+	cluster *omni.Cluster,
 	machineConfig *omni.ClusterMachineConfig,
 	clusterMachine *omni.ClusterMachine,
 	clusterStatus *omni.ClusterStatus,
@@ -680,14 +686,18 @@ func (h *clusterMachineConfigStatusControllerHandler) reset(
 		return nil
 	}
 
-	if _, ok := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByImporting); ok {
+	_, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked)
+	_, importing := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByImporting)
+	_, exporting := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByExporting)
+
+	if locked && importing && cluster.Metadata().Phase() == resource.PhaseTearingDown {
 		// Aborting Cluster import, means that we should just let it go
 		logger.Info("removed without reset")
 
 		return nil
 	}
 
-	if _, ok := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByExporting); ok {
+	if locked && exporting && cluster.Metadata().Phase() == resource.PhaseTearingDown {
 		// Finalizing Cluster export, means that we should just let it go
 		logger.Info("removed without reset")
 

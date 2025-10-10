@@ -56,6 +56,7 @@ func setClusterLocked(clusterID resource.ID, lock bool) func(context.Context, *c
 				res.Metadata().Annotations().Set(omni.ClusterLocked, "")
 			} else {
 				res.Metadata().Annotations().Delete(omni.ClusterLocked)
+				res.Metadata().Annotations().Delete(omni.ClusterImportIsInProgress)
 			}
 
 			return nil

@@ -40,4 +40,9 @@ const (
 	// ClusterLocked locks any updates on a cluster.
 	// tsgen:ClusterLocked
 	ClusterLocked = SystemLabelPrefix + "cluster-locked"
+
+	// ClusterImportIsInProgress indicates that the cluster import process is in progress.
+	// This annotation is temporarily set on the cluster during initial import to allow resource creation that's normally blocked by ClusterLocked.
+	// tsgen:ClusterImportIsInProgress
+	ClusterImportIsInProgress = SystemLabelPrefix + "cluster-import-is-in-progress"
 )

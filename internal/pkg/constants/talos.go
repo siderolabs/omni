@@ -17,6 +17,3 @@ const (
 	// In Omni we only reset and STATE and EPHEMERAL partitions.
 	TaskResetSystemDiskSpec = "resetSystemDiskSpec"
 )
-
-// KubePrismPort is the port for the API server load balancer (KubePrism) in Talos.
-const KubePrismPort = 7445
