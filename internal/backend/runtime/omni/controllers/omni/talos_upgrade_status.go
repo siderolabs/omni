@@ -53,7 +53,10 @@ func NewTalosUpgradeStatusController() *TalosUpgradeStatusController {
 				return omni.NewCluster(resources.DefaultNamespace, upgradeStatus.Metadata().ID())
 			},
 			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, cluster *omni.Cluster, upgradeStatus *omni.TalosUpgradeStatus) error {
-				if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked {
+				_, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked)
+
+				_, importIsInProgress := cluster.Metadata().Annotations().Get(omni.ClusterImportIsInProgress)
+				if locked && !importIsInProgress {
 					logger.Warn("cluster is locked, skip reconcile", zap.String("cluster", cluster.Metadata().ID()))
 
 					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("talos upgrades are not allowed: the cluster is locked")

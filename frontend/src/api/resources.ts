@@ -71,6 +71,7 @@ export const ResourceManagedByClusterTemplates = "omni.sidero.dev/managed-by-clu
 export const ConfigPatchName = "name";
 export const ConfigPatchDescription = "description";
 export const ClusterLocked = "omni.sidero.dev/cluster-locked";
+export const ClusterImportIsInProgress = "omni.sidero.dev/cluster-import-is-in-progress";
 export const EtcdBackupS3ConfID = "etcd-backup-s3-conf";
 export const EtcdBackupS3ConfType = "EtcdBackupS3Configs.omni.sidero.dev";
 export const BackupDataType = "BackupDatas.omni.sidero.dev";

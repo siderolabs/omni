@@ -140,6 +140,8 @@ function cleanup() {
   if [ $PARTIAL_CONFIG_SERVER_PID -ne 0 ]; then
     kill -9 $PARTIAL_CONFIG_SERVER_PID || true
   fi
+
+  chown -R "${SUDO_USER:-$(whoami)}" "${TEST_OUTPUTS_DIR}"
 }
 
 trap cleanup EXIT SIGINT
@@ -338,6 +340,24 @@ EOF
 
 PARTIAL_CONFIG_SCHEMATIC_ID=$(prepare_partial_config)
 
+function prepare_talos_image() {
+
+  local schematic
+  schematic=$(
+    cat <<EOF
+customization:
+  extraKernelArgs:
+    - console=tty0
+    - console=ttyS0
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/hello-world-service
+EOF
+  )
+
+  curl -X POST --data-binary "${schematic}" https://factory.talos.dev/schematics | jq -r '.id'
+}
+
 function generate_non_masquerade_cidrs() {
   local exclude="$1"
   local found=false
@@ -400,7 +420,6 @@ function create_machines() { # args: name, count, cidr, secure_boot (true/false)
     "--name=${name}"
     "--controlplanes=${count}"
     "--workers=0"
-    "--wait=false"
     "--mtu=1430"
     "--memory=3072"
     "--memory-workers=3072"
@@ -431,11 +450,68 @@ function create_machines() { # args: name, count, cidr, secure_boot (true/false)
     "${cluster_create_args[@]:-}"
 }
 
+IMPORTED_CLUSTER_ARGS=()
+
+function create_talos_cluster { # args: name, cp_count, wk_count, cidr
+    declare -A args
+    for arg in "$@"; do
+      key="${arg%%=*}"
+      val="${arg#*=}"
+      args["$key"]="$val"
+    done
+
+    local name="${args[name]}"
+    local cp_count="${args[cp_count]}"
+    local wk_count="${args[wk_count]:-0}"
+    local cidr="${args[cidr]}"
+
+    local non_masquerade_cidrs
+    non_masquerade_cidrs=$(generate_non_masquerade_cidrs "${cidr}")
+
+    local schematic_id
+    schematic_id=$(prepare_talos_image)
+
+    local cluster_create_args=(
+      "--provisioner=qemu"
+      "--name=${name}"
+      "--controlplanes=${cp_count}"
+      "--workers=${wk_count}"
+      "--mtu=1430"
+      "--memory=3072"
+      "--memory-workers=3072"
+      "--cpus=3"
+      "--cpus-workers=3"
+      "--with-uuid-hostnames"
+      "--cidr=${cidr}"
+      "--no-masquerade-cidrs=${non_masquerade_cidrs}"
+      "--talosconfig=$TEST_OUTPUTS_DIR/$name/talosconfig"
+      "--skip-kubeconfig"
+      "--with-apply-config"
+      "--with-bootloader"
+      "--kubernetes-version=$KUBERNETES_VERSION"
+      "--talos-version=$TALOS_VERSION"
+      "--install-image=factory.talos.dev/metal-installer/${schematic_id}:v$TALOS_VERSION"
+      "--iso-path=https://factory.talos.dev/image/${schematic_id}/v$TALOS_VERSION/metal-amd64.iso"
+    )
+
+    # shellcheck disable=SC2068
+    ${ARTIFACTS}/talosctl cluster create \
+      ${cluster_create_args[@]:-} \
+      ${REGISTRY_MIRROR_FLAGS[@]:-}
+
+    IMPORTED_CLUSTER_ARGS+=("--talos.config-path=$TEST_OUTPUTS_DIR/$name/talosconfig")
+    IMPORTED_CLUSTER_ARGS+=("--talos.cluster-state-path=$HOME/.talos/clusters/$name/state.yaml")
+}
+
 # Create machines.
 create_machines name=test-partial-config count=${PARTIAL_CONFIG_MACHINES} cidr=172.20.0.0/24 secure_boot=false uki=true use_partial_config=true
 create_machines name=test-kernel-args count=${KERNEL_ARGS_MACHINES} cidr=172.21.0.0/24 secure_boot=false uki=true use_partial_config=false
 create_machines name=test-secure-boot count=${SECURE_BOOT_MACHINES} cidr=172.22.0.0/24 secure_boot=true uki=true use_partial_config=false
 create_machines name=test-non-uki count=${NON_UKI_MACHINES} cidr=172.23.0.0/24 secure_boot=false uki=false use_partial_config=false
+
+if [ "${CREATE_TALOS_CLUSTER:-false}" == "true" ]; then
+  create_talos_cluster name=test-cluster-import cp_count=1 wk_count=1 cidr=172.28.0.0/24
+fi
 
 # todo: add --omni.sleep-after-failure="${SLEEP_AFTER_FAILURE}" \ below when ANOTHER_OMNI_VERSION starts to support it
 if [ -n "$ANOTHER_OMNI_VERSION" ] && [ -n "$INTEGRATION_PREPARE_TEST_ARGS" ]; then
@@ -481,6 +557,7 @@ SIDEROLINK_DEV_JOIN_TOKEN=${JOIN_TOKEN} \
   --test.failfast \
   --test.coverprofile=${ARTIFACTS}/coverage-integration.txt \
   --test.v \
+  ${IMPORTED_CLUSTER_ARGS[@]:-} \
   ${INTEGRATION_TEST_ARGS:-}
 
 if [ "${INTEGRATION_RUN_E2E_TEST:-true}" == "true" ]; then

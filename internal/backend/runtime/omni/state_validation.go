@@ -42,7 +42,7 @@ import (
 // clusterValidationOptions returns the validation options for the Talos and Kubernetes versions on the cluster resource.
 // Validation is only syntactic - they are checked whether they are valid semver strings.
 //
-//nolint:gocognit,gocyclo,cyclop
+//nolint:gocognit,gocyclo,cyclop,maintidx
 func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup, embeddedDiscoveryServiceConfig *config.EmbeddedDiscoveryService) []validated.StateOption {
 	validateVersions := func(ctx context.Context, existingRes *omni.Cluster, res *omni.Cluster, skipTalosVersion, skipKubernetesVersion bool) error {
 		if skipTalosVersion && skipKubernetesVersion {
@@ -163,10 +163,17 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 				return nil
 			}
 
-			_, wasLocked := existingRes.Metadata().Annotations().Get(omni.ClusterLocked)
+			if newRes.Metadata().Phase() == resource.PhaseTearingDown {
+				// tearing down validations are done at destroy validations
+				return nil
+			}
 
+			_, wasLocked := existingRes.Metadata().Annotations().Get(omni.ClusterLocked)
 			_, stillLocked := newRes.Metadata().Annotations().Get(omni.ClusterLocked)
-			if wasLocked && stillLocked {
+			_, wasImporting := existingRes.Metadata().Annotations().Get(omni.ClusterImportIsInProgress)
+
+			_, stillImporting := newRes.Metadata().Annotations().Get(omni.ClusterImportIsInProgress)
+			if wasLocked && stillLocked && !wasImporting && !stillImporting {
 				return fmt.Errorf("updating cluster configuration is not allowed: the cluster %q is locked", newRes.Metadata().ID())
 			}
 
@@ -213,7 +220,19 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 				return nil
 			}
 
-			if _, locked := res.Metadata().Annotations().Get(omni.ClusterLocked); locked {
+			clusterStatus, err := safe.StateGetByID[*omni.ClusterStatus](ctx, st, res.Metadata().ID())
+			if err != nil && !state.IsNotFoundError(err) {
+				return err
+			}
+
+			if clusterStatus == nil {
+				return nil
+			}
+
+			_, locked := res.Metadata().Annotations().Get(omni.ClusterLocked)
+			_, importing := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByImporting)
+
+			if locked && !importing {
 				return fmt.Errorf("deletion is not allowed: the cluster %q is locked", res.Metadata().ID())
 			}
 
@@ -351,17 +370,19 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 		}
 
 		_, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked)
+
+		_, importIsInProgress := cluster.Metadata().Annotations().Get(omni.ClusterImportIsInProgress)
 		if oldRes == nil {
 			if cluster.Metadata().Phase() == resource.PhaseTearingDown {
 				return fmt.Errorf("the cluster %q is tearing down", clusterName)
 			}
 
-			if locked {
+			if locked && !importIsInProgress {
 				return fmt.Errorf("adding machine set %q to the cluster %q is not allowed: the cluster is locked", res.Metadata().ID(), clusterName)
 			}
 		}
 
-		if locked && res.Metadata().Phase() == resource.PhaseRunning {
+		if locked && !importIsInProgress && res.Metadata().Phase() == resource.PhaseRunning {
 			return fmt.Errorf("updating machine set %q on the cluster %q is not allowed: the cluster is locked", res.Metadata().ID(), clusterName)
 		}
 
@@ -757,7 +778,10 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 			}
 
 			if cluster.Metadata().Phase() == resource.PhaseRunning {
-				if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked {
+				_, importIsInProgress := cluster.Metadata().Annotations().Get(omni.ClusterImportIsInProgress)
+
+				_, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked)
+				if locked && !importIsInProgress {
 					return fmt.Errorf("adding machine set node to the machine set %q is not allowed: the cluster %q is locked", machineSet.Metadata().ID(), cluster.Metadata().ID())
 				}
 			}
@@ -801,7 +825,10 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 			}
 
 			if cluster.Metadata().Phase() == resource.PhaseRunning {
-				if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked {
+				_, importIsInProgress := cluster.Metadata().Annotations().Get(omni.ClusterImportIsInProgress)
+
+				_, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked)
+				if locked && !importIsInProgress {
 					return fmt.Errorf("updating machine set node on the machine set %q is not allowed: the cluster %q is locked", machineSet.Metadata().ID(), cluster.Metadata().ID())
 				}
 			}

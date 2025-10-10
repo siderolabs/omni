@@ -54,7 +54,7 @@ func (suite *ClusterSuite) TestReconcile() {
 
 	assertResource(
 		&suite.OmniSuite,
-		*omni.NewCluster(resources.DefaultNamespace, cluster.Metadata().ID()).Metadata(),
+		omni.NewCluster(resources.DefaultNamespace, cluster.Metadata().ID()).Metadata(),
 		func(res *omni.Cluster, assertions *assert.Assertions) {
 			assertions.False(res.Metadata().Finalizers().Empty())
 		},

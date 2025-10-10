@@ -704,7 +704,7 @@ func defineFeatureFlags() {
 		&cmdConfig.Features.EnableClusterImport,
 		"enable-cluster-import",
 		cmdConfig.Features.EnableClusterImport,
-		"enable cluster import feature.",
+		"enable EXPERIMENTAL cluster import feature.",
 	)
 }
 

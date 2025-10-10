@@ -294,6 +294,8 @@ type Options struct {
 	SleepAfterFailure        time.Duration
 	StaticInfraProvider      string
 	OutputDir                string
+	TalosconfigPath          string
+	ImportedClusterStatePath string
 }
 
 func (o Options) defaultInfraProvider() string {

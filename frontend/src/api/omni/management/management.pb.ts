@@ -209,13 +209,6 @@ export type CreateJoinTokenResponse = {
   id?: string
 }
 
-export type TearDownLockedClusterRequest = {
-  cluster_id?: string
-}
-
-export type TearDownLockedClusterResponse = {
-}
-
 export class ManagementService {
   static Kubeconfig(req: KubeconfigRequest, ...options: fm.fetchOption[]): Promise<KubeconfigResponse> {
     return fm.fetchReq<KubeconfigRequest, KubeconfigResponse>("POST", `/management.ManagementService/Kubeconfig`, req, ...options)
@@ -270,8 +263,5 @@ export class ManagementService {
   }
   static CreateJoinToken(req: CreateJoinTokenRequest, ...options: fm.fetchOption[]): Promise<CreateJoinTokenResponse> {
     return fm.fetchReq<CreateJoinTokenRequest, CreateJoinTokenResponse>("POST", `/management.ManagementService/CreateJoinToken`, req, ...options)
-  }
-  static TearDownLockedCluster(req: TearDownLockedClusterRequest, ...options: fm.fetchOption[]): Promise<TearDownLockedClusterResponse> {
-    return fm.fetchReq<TearDownLockedClusterRequest, TearDownLockedClusterResponse>("POST", `/management.ManagementService/TearDownLockedCluster`, req, ...options)
   }
 }

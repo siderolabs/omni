@@ -16,6 +16,9 @@ const SecureBoot = "secureboot"
 // tsgen:DefaultTalosVersion
 const DefaultTalosVersion = "1.11.2"
 
+// MinTalosVersion allowed to be used when creating the cluster.
+const MinTalosVersion = "1.6.0"
+
 const (
 	// TalosRegistry is the default Talos repository URL.
 	TalosRegistry = "ghcr.io/siderolabs/installer"

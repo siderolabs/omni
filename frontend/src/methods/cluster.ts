@@ -22,6 +22,7 @@ import type {
 } from '@/api/omni/specs/omni.pb'
 import { withRuntime, withSelectors, withTimeout } from '@/api/options'
 import {
+  ClusterImportIsInProgress,
   ClusterLocked,
   ClusterType,
   ConfigPatchType,
@@ -606,6 +607,7 @@ export const updateClusterLock = async (id: string, locked: boolean) => {
     cluster.metadata.annotations[ClusterLocked] = ''
   } else {
     delete cluster.metadata.annotations[ClusterLocked]
+    delete cluster.metadata.annotations[ClusterImportIsInProgress]
   }
 
   await ResourceService.Update(cluster, undefined, withRuntime(Runtime.Omni))

@@ -22,6 +22,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/compatibility"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -35,7 +36,7 @@ var (
 	// minDiscoveredTalosVersion sets minimum Talos version for building the list of versions.
 	minDiscoveredTalosVersion = semver.MustParse(consts.MinDiscoveredTalosVersion)
 	// minTalosVersion sets minimum Talos version which are not deprecated.
-	minTalosVersion = semver.MustParse(consts.MinTalosVersion)
+	minTalosVersion = semver.MustParse(constants.MinTalosVersion)
 )
 
 // VersionRefreshInterval is the interval in which the kubernetes version is refreshed.
