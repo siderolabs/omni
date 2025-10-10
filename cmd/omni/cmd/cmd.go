@@ -703,8 +703,8 @@ func defineFeatureFlags() {
 	rootCmd.Flags().BoolVar(
 		&cmdConfig.Features.EnableClusterImport,
 		"enable-cluster-import",
-		cmdConfig.Features.EnableClusterImport,
-		"enable cluster import feature.",
+		true,
+		"enable EXPERIMENTAL cluster import feature.",
 	)
 }
 

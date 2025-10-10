@@ -73,10 +73,12 @@ var (
 	skipExtensionsCheckOnCreate bool
 	artifactsOutputDir          string
 
-	runEmbeddedOmni     bool
-	ignoreUnknownFields bool
-	omniConfigPath      string
-	omniLogOutput       string
+	runEmbeddedOmni       bool
+	ignoreUnknownFields   bool
+	omniConfigPath        string
+	talosConfigPath       string
+	talosClusterStatePath string
+	omniLogOutput         string
 )
 
 func TestIntegration(t *testing.T) {
@@ -98,6 +100,8 @@ func TestIntegration(t *testing.T) {
 		ScalingTimeout:           scalingTimeout,
 		SleepAfterFailure:        sleepAfterFailure,
 		OutputDir:                artifactsOutputDir,
+		TalosconfigPath:          talosConfigPath,
+		ImportedClusterStatePath: talosClusterStatePath,
 	}
 
 	var serviceAccount string
@@ -238,7 +242,7 @@ func TestIntegration(t *testing.T) {
 		t.Run("StaticInfraProvider", testStaticInfraProvider(testOptions))
 		t.Run("OmniUpgradePrepare", testOmniUpgradePrepare(testOptions))
 		t.Run("OmniUpgradeVerify", testOmniUpgradeVerify(testOptions))
-		t.Run("ClusterImport", testClusterImport(testOptions))
+		t.Run("ClusterImport", func(t *testing.T) { testClusterImport(t, testOptions) })
 	})
 
 	postRunHooks(t, testOptions)
@@ -278,6 +282,8 @@ func init() {
 	flag.StringVar(&omniConfigPath, "omni.config-path", "", "embedded Omni config path")
 	flag.StringVar(&omniLogOutput, "omni.log-output", "_out/omni-test.log", "output logs directory")
 	flag.BoolVar(&ignoreUnknownFields, "omni.ignore-unknown-fields", false, "makes Omni config loader ignore unknown fields")
+	flag.StringVar(&talosConfigPath, "talos.config-path", "", "path for talosconfig")
+	flag.StringVar(&talosClusterStatePath, "talos.cluster-state-path", "", "path for imported talos cluster state")
 }
 
 func execCmd(ctx context.Context, parsedScript []string, args ...string) error {

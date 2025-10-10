@@ -826,6 +826,7 @@ func TestClusterLockedAnnotation(t *testing.T) {
 	cluster := omnires.NewCluster(resources.DefaultNamespace, clusterID)
 	cluster.TypedSpec().Value.KubernetesVersion = "1.32.7"
 	cluster.TypedSpec().Value.TalosVersion = "1.10.6"
+	clusterStatus := omnires.NewClusterStatus(resources.DefaultNamespace, clusterID)
 	talosVersion := omnires.NewTalosVersion(resources.DefaultNamespace, "1.10.6")
 	talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.32.7", "1.32.8"}
 	machineSet := omnires.NewMachineSet(resources.DefaultNamespace, machineSetID)
@@ -839,6 +840,7 @@ func TestClusterLockedAnnotation(t *testing.T) {
 	assert.NoError(st.Create(ctx, cluster))
 	assert.NoError(st.Create(ctx, machineSet))
 	assert.NoError(st.Create(ctx, machineSetNode))
+	assert.NoError(st.Create(ctx, clusterStatus))
 
 	cluster.Metadata().Annotations().Set(omnires.ClusterLocked, "")
 	assert.NoError(st.Update(ctx, cluster))
@@ -903,6 +905,71 @@ func TestClusterLockedAnnotation(t *testing.T) {
 	assert.NoError(st.Update(ctx, machineSetNode))
 	assert.NoError(st.Destroy(ctx, machineSetNode.Metadata()))
 	assert.NoError(st.Destroy(ctx, machineSet.Metadata()))
+	assert.NoError(st.Destroy(ctx, cluster.Metadata()))
+}
+
+func TestClusterImport(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	etcdBackupStoreFactory, err := store.NewStoreFactory()
+	etcdBackupConfig := config.EtcdBackup{
+		TickInterval: time.Minute,
+		MinInterval:  time.Hour,
+		MaxInterval:  24 * time.Hour,
+	}
+
+	require.NoError(t, err)
+
+	var validationOptions []validated.StateOption
+
+	validationOptions = append(validationOptions, omni.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, &config.EmbeddedDiscoveryService{})...)
+	validationOptions = append(validationOptions, omni.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...)
+	validationOptions = append(validationOptions, omni.MachineSetValidationOptions(state.WrapCore(innerSt), etcdBackupStoreFactory)...)
+
+	st := validated.NewState(innerSt, validationOptions...)
+
+	clusterID := "test-cluster"
+	machineSetID := "test-cluster-control-planes"
+	machineSetNodeID := fmt.Sprintf("machine-%s", uuid.New())
+
+	cluster := omnires.NewCluster(resources.DefaultNamespace, clusterID)
+	cluster.Metadata().Annotations().Set(omnires.ClusterLocked, "")
+	cluster.Metadata().Annotations().Set(omnires.ClusterImportIsInProgress, "")
+	cluster.TypedSpec().Value.KubernetesVersion = "1.32.7"
+	cluster.TypedSpec().Value.TalosVersion = "1.10.6"
+	clusterStatus := omnires.NewClusterStatus(resources.DefaultNamespace, clusterID)
+	clusterStatus.Metadata().Labels().Set(omnires.LabelClusterTaintedByImporting, "")
+	talosVersion := omnires.NewTalosVersion(resources.DefaultNamespace, "1.10.6")
+	talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.32.7", "1.32.8"}
+	machineSet := omnires.NewMachineSet(resources.DefaultNamespace, machineSetID)
+	machineSet.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
+	machineSet.Metadata().Labels().Set(omnires.LabelControlPlaneRole, "")
+	machineSetNode := omnires.NewMachineSetNode(resources.DefaultNamespace, machineSetNodeID, machineSet)
+
+	assert := assert.New(t)
+
+	assert.NoError(st.Create(ctx, talosVersion))
+	assert.NoError(st.Create(ctx, cluster))
+	assert.NoError(st.Create(ctx, machineSet))
+	assert.NoError(st.Create(ctx, machineSetNode))
+	assert.NoError(st.Create(ctx, clusterStatus))
+
+	assert.Error(st.Destroy(ctx, machineSetNode.Metadata()))
+
+	err = st.Destroy(ctx, machineSet.Metadata())
+	assert.Error(err)
+	assert.True(validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(err, fmt.Sprintf(`removing machine set "%s" from the cluster "%s" is not allowed: the cluster is locked`, machineSetID, clusterID))
+
+	err = st.Destroy(ctx, machineSetNode.Metadata())
+	assert.Error(err)
+	assert.True(validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(err, fmt.Sprintf("removing machine set node from the machine set \"%s\" is not allowed: the cluster \"%s\" is locked", machineSetID, clusterID))
+
 	assert.NoError(st.Destroy(ctx, cluster.Metadata()))
 }
 

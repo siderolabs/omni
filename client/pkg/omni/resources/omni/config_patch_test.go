@@ -13,7 +13,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
-func TestValidateConfigPatchValidate(t *testing.T) {
+func TestValidateConfigPatch(t *testing.T) {
 	for _, tt := range []struct {
 		name          string
 		config        string
@@ -90,6 +90,106 @@ machine:
 			} else {
 				require.NoError(t, err)
 			}
+		})
+	}
+}
+
+func TestSanitizeConfigPatch(t *testing.T) {
+	for _, tt := range []struct {
+		name            string
+		config          string
+		sanitizedConfig string
+	}{
+		{
+			name: "valid",
+			config: strings.TrimSpace(`
+machine:
+  network:
+    hostname: abcd
+`),
+			sanitizedConfig: strings.TrimSpace(`
+machine:
+  network:
+    hostname: abcd
+`),
+		},
+		{
+			name: "token",
+			config: strings.TrimSpace(`
+machine:
+  token: aaa
+`),
+			sanitizedConfig: strings.TrimSpace(`
+{}
+`),
+		},
+		{
+			name: "several fields",
+			config: strings.TrimSpace(`
+machine:
+  env:
+    FOO: BAR
+  acceptedCAs:
+    - crt: YWFhCg==
+  token: bab
+  ca:
+    crt: YWFhCg==
+cluster:
+  acceptedCAs:
+    - crt: YWFhCg==
+    - crt: YmJiCg==
+  controlPlane:
+    endpoint: https://172.20.0.1:6443
+`),
+			sanitizedConfig: strings.TrimSpace(`
+cluster:
+  controlPlane: {}
+machine:
+  env:
+    FOO: BAR
+`),
+		},
+		{
+			name: "different configs",
+			config: strings.TrimSpace(`
+machine:
+  ca:
+    crt: YWFhCg==
+cluster:
+  network:
+    dnsDomain: cluster.local
+`),
+			sanitizedConfig: strings.TrimSpace(`
+cluster:
+  network:
+    dnsDomain: cluster.local
+`),
+		},
+		{
+			name: "os admin talos API access",
+			config: strings.TrimSpace(`
+machine:
+  features:
+    kubernetesTalosAPIAccess:
+      allowedRoles:
+        - os:reader
+        - os:admin
+        - os:operator
+`),
+			sanitizedConfig: strings.TrimSpace(`
+machine:
+  features:
+    kubernetesTalosAPIAccess:
+      allowedRoles:
+        - os:reader
+        - os:operator
+`),
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			sanitizedPatch, err := omni.SanitizeConfigPatch([]byte(tt.config))
+			require.NoError(t, err)
+			require.Equal(t, tt.sanitizedConfig, strings.TrimSpace(string(sanitizedPatch)))
 		})
 	}
 }
