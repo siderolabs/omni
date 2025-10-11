@@ -68,7 +68,7 @@
     "@types/jsdom": "^27.0.0",
     "@types/lodash": "^4.17.20",
     "@types/luxon": "^3.7.1",
-    "@types/node": "^22.18.8",
+    "@types/node": "^24.0.0",
     "@types/pluralize": "^0.0.33",
     "@types/semver": "^7.7.1",
     "@vitejs/plugin-vue": "^6.0.1",
