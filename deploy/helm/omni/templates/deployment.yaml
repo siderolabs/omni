@@ -18,7 +18,7 @@ metadata:
 spec:
   strategy:
     type: Recreate
-  replicas: {{ .Values.deployment.replicaCount }}
+  replicas: 1
   selector:
     matchLabels: {{- include "omni.selectorLabels" . | nindent 6 }}
   template:

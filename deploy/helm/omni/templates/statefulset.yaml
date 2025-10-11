@@ -17,7 +17,7 @@ metadata:
     {{- toYaml .Values.deployment.annotations | nindent 4 }}
 spec:
   serviceName: {{ include "omni.name" . }}
-  replicas: 1  # Embedded etcd only supports single instance
+  replicas: 1
   selector:
     matchLabels: {{- include "omni.selectorLabels" . | nindent 6 }}
   template:

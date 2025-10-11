@@ -4,7 +4,7 @@ A Helm chart for deploying Sidero Omni on Kubernetes clusters.
 
 ## Overview
 
-Omni is a SaaS-native Talos Linux cluster fleet management platform that provides centralized management, monitoring, and orchestration capabilities for Talos Linux clusters. This Helm chart deploys Omni as a containerized application on Kubernetes with support for both embedded and external etcd configurations, automatic scaling, and comprehensive ingress management.
+Omni is a SaaS-native Talos Linux cluster fleet management platform that provides centralized management, monitoring, and orchestration capabilities for Talos Linux clusters. This Helm chart deploys Omni as a containerized application on Kubernetes with support for both embedded and external etcd configurations and comprehensive ingress management. Note: Omni only supports single-replica deployments due to WireGuard networking requirements.
 
 ## Table of Contents
 
@@ -146,17 +146,17 @@ volumes:
     persistentVolumeClaimName: omni-pvc  # Set to your existing PVC name
 ```
 
-**Critical Limitation**: Embedded etcd is hardcoded to 1 replica because Omni's embedded etcd does not support clustering. The `deployment.replicaCount` setting is ignored when using embedded etcd. Attempting to scale beyond 1 replica would result in data corruption and split-brain scenarios.
+**Critical Limitation**: Omni is hardcoded to 1 replica due to WireGuard networking requirements. Omni does not support high availability or horizontal scaling regardless of etcd configuration.
 
 **When to use embedded etcd**:
-- Single-instance deployments
+- Simple deployments with automatic storage provisioning
 - Development and testing environments
-- Small-scale production deployments where high availability is provided at the infrastructure level
+- Production deployments where external etcd is not required
 
 **When to use external etcd**:
-- Multi-replica deployments for high availability
-- Large-scale production environments
-- When you need horizontal scaling capabilities
+- When you need to manage etcd separately from Omni
+- Shared etcd clusters across multiple applications
+- Advanced etcd configurations
 
 #### External etcd
 
@@ -171,7 +171,7 @@ etcd:
     - "https://etcd-3.example.com:2379"
 ```
 
-This configuration enables horizontal scaling with `deployment.replicaCount > 1`.
+Note: Omni still runs as a single replica even with external etcd due to WireGuard limitations.
 
 ### Security Configuration
 
@@ -235,7 +235,7 @@ kubectl create secret tls tls-secret \
 |-----------|-------------|---------|
 | `deployment.image` | Container image repository | `ghcr.io/siderolabs/omni` |
 | `deployment.tag` | Container image tag | `"latest"` |
-| `deployment.replicaCount` | Number of replicas | `1` |
+
 | `deployment.imagePullPolicy` | Image pull policy | `IfNotPresent` |
 | `deployment.annotations` | Deployment annotations | `{}` |
 
@@ -409,11 +409,7 @@ The Kubernetes proxy ingress automatically creates a wildcard rule (`*.kubernete
 
 ### Pod Disruption Budget
 
-```yaml
-podDisruptionBudget:
-  enabled: true
-  minAvailable: 1  # or use maxUnavailable
-```
+Pod Disruption Budget is not applicable since Omni only supports single-replica deployments.
 
 ### Per-Service Annotations
 
@@ -471,14 +467,12 @@ The chart automatically chooses the appropriate Kubernetes resource based on dep
 5. **Resource type changes** → Only occur when switching etcd modes and no existing resource conflicts
 
 **StatefulSet Benefits** (new deployments only):
-- Automatic PVC provisioning per replica
+- Automatic PVC provisioning
 - Stable network identities
 - Ordered deployment and scaling
-- Limited to 1 replica (embedded etcd constraint)
 
 **Deployment Benefits**:
 - Backwards compatibility with existing installations
-- Horizontal scaling when using external etcd
 - Simpler storage management for external etcd scenarios
 
 ### WireGuard Address Resolution
@@ -548,10 +542,9 @@ Consider implementing network policies to restrict traffic to Omni services base
 
 #### Scaling Issues
 
-1. **StatefulSet Scaling**: Cannot scale beyond 1 replica with embedded etcd - this is enforced by the chart
-2. **Replica Count Ignored**: `deployment.replicaCount > 1` is ignored when `etcd.external: false`
-3. **External etcd Required**: Use `etcd.external: true` for multiple replicas
-4. **Data Corruption Risk**: Never attempt to manually scale the StatefulSet beyond 1 replica
+1. **Single Replica Only**: Omni only supports 1 replica due to WireGuard networking limitations
+2. **No High Availability**: Omni cannot be deployed in a highly available configuration
+3. **StatefulSet/Deployment**: Both resource types are limited to 1 replica
 
 #### Service Connectivity
 
@@ -647,8 +640,6 @@ etcd:
     - "https://etcd-1.example.com:2379"
     - "https://etcd-2.example.com:2379"
     - "https://etcd-3.example.com:2379"
-deployment:
-  replicaCount: 3  # Now supports multiple replicas
 ```
 
 5. **Upgrade deployment**:
@@ -691,9 +682,6 @@ volumes:
 domainName: omni.example.com
 accountUuid: "12345678-1234-1234-1234-123456789012"
 
-deployment:
-  replicaCount: 3
-
 auth:
   auth0:
     enabled: true
@@ -725,9 +713,6 @@ volumes:
 # values-production.yaml
 domainName: omni.example.com
 accountUuid: "12345678-1234-1234-1234-123456789012"
-
-deployment:
-  replicaCount: 3
 
 auth:
   auth0:
@@ -800,9 +785,7 @@ ingress:
       enabled: true
       secretName: omni-kubernetes-proxy-tls
 
-podDisruptionBudget:
-  enabled: true
-  minAvailable: 2
+# Pod disruption budget not applicable for single-replica deployments
 
 volumes:
   gpg:

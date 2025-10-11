@@ -5,7 +5,6 @@ privateKeySource: "file:///omni.asc"
 deployment:
   image: ghcr.io/siderolabs/omni
   tag: "latest"
-  replicaCount: 1
   annotations: {}
   imagePullPolicy: IfNotPresent
 auth:
@@ -41,10 +40,7 @@ resources:
     # Required for /dev/net/tun
     # https://www.talos.dev/v1.8/kubernetes-guides/configuration/device-plugins/
     squat.ai/tun: 1
-podDisruptionBudget:
-  enabled: false
-  minAvailable: 1
-  # maxUnavailable: 1
+
 ingress:
   api:
     enabled: false
@@ -103,8 +99,8 @@ volumeMounts:
     subPath: "omni.asc"
     readOnly: true
 etcd:
-  # Set to true to use external etcd cluster (enables Deployment with multiple replicas)
-  # Set to false to use embedded etcd (forces StatefulSet with 1 replica)
+  # Set to true to use external etcd cluster
+  # Set to false to use embedded etcd (default)
   external: false
   # External etcd configuration (only used when external: true)
   endpoints: []
