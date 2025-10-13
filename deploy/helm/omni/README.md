@@ -127,7 +127,7 @@ auth:
 
 #### Embedded etcd (Default)
 
-**New Deployments**: When using embedded etcd (`etcd.external: false`), Omni is deployed as a StatefulSet with automatic PVC provisioning:
+**Automatic PVC Provisioning** (for embedded etcd):
 
 ```yaml
 etcd:
@@ -138,12 +138,12 @@ volumes:
     storageClass: "fast-ssd"  # optional
 ```
 
-**Existing Deployments**: Continue using Deployment with manual PVC management:
+**Manual PVC Management** (for external etcd or existing deployments):
 
 ```yaml
 volumes:
   etcd:
-    persistentVolumeClaimName: omni-pvc  # Set to your existing PVC name
+    persistentVolumeClaimName: omni-pvc  # Set to your PVC name
 ```
 
 **Critical Limitation**: Omni is hardcoded to 1 replica due to WireGuard networking requirements. Omni does not support high availability or horizontal scaling regardless of etcd configuration.
@@ -436,22 +436,14 @@ service:
 | `customVolumes` | Additional volumes | `[]` |
 | `customVolumeMounts` | Additional volume mounts | `[]` |
 
-## Backwards Compatibility
+## Resource Selection
 
-The chart maintains full backwards compatibility with existing deployments:
+The chart automatically chooses the appropriate Kubernetes resource based on etcd configuration:
 
-**Existing Deployments**:
-- Charts deployed with previous versions continue using Deployment resources
-- Storage configuration remains unchanged (manual PVC management)
-- No disruption during upgrades
-- `etcd.external` setting is ignored for existing deployments
-
-**New Deployments**:
-- `etcd.external: false` (default) → StatefulSet with automatic PVC provisioning
+- `etcd.external: false` (default) → StatefulSet with embedded etcd and automatic PVC provisioning
 - `etcd.external: true` → Deployment for external etcd clusters
 
-**Detection Logic**:
-The chart uses Helm's `lookup` function to detect existing Deployment resources and automatically maintains compatibility.
+The chart uses Helm's `lookup` function to detect existing resources and maintains compatibility with previous deployments.
 
 ## Architecture Decisions
 
@@ -460,19 +452,18 @@ The chart uses Helm's `lookup` function to detect existing Deployment resources 
 The chart automatically chooses the appropriate Kubernetes resource based on deployment history and etcd configuration:
 
 **Resource Selection Logic**:
-1. **Existing Deployment detected** → Continue using Deployment (backwards compatibility)
-2. **Existing StatefulSet detected** → Continue using StatefulSet (backwards compatibility)
+1. **Existing Deployment detected** → Continue using Deployment
+2. **Existing StatefulSet detected** → Continue using StatefulSet
 3. **New deployment + `etcd.external: false`** → Use StatefulSet with embedded etcd
 4. **New deployment + `etcd.external: true`** → Use Deployment with external etcd
-5. **Resource type changes** → Only occur when switching etcd modes and no existing resource conflicts
 
-**StatefulSet Benefits** (new deployments only):
+**StatefulSet Benefits**:
 - Automatic PVC provisioning
 - Stable network identities
 - Ordered deployment and scaling
 
 **Deployment Benefits**:
-- Backwards compatibility with existing installations
+- Compatibility with existing installations
 - Simpler storage management for external etcd scenarios
 
 ### WireGuard Address Resolution
@@ -838,12 +829,11 @@ extraArgs:
 
 ## Upgrading
 
-### Backwards Compatibility
+### Compatibility
 
-Upgrading from previous chart versions is fully supported:
+The chart maintains compatibility with existing deployments:
 
-- **Existing Deployments**: Continue using the same Deployment resource and storage configuration
-- **No Resource Changes**: The chart automatically detects existing deployments and maintains compatibility
+- **Resource Detection**: Automatically detects existing Deployment or StatefulSet resources
 - **Configuration Preserved**: All existing values and storage remain unchanged
 
 ### Backup
