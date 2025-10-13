@@ -12,7 +12,7 @@ import (
 )
 
 // AnotherTalosVersion is used in the integration tests for Talos upgrade.
-const AnotherTalosVersion = "1.11.0"
+const AnotherTalosVersion = "1.11.1"
 
 // MinDiscoveredTalosVersion makes Omni pull the versions from this point.
 const MinDiscoveredTalosVersion = "1.3.0"
@@ -26,7 +26,7 @@ const MinTalosVersion = "1.6.0"
 const DefaultKubernetesVersion = "1.34.1"
 
 // AnotherKubernetesVersion is used in the integration tests for Kubernetes upgrade.
-const AnotherKubernetesVersion = "1.33.3"
+const AnotherKubernetesVersion = "1.33.5"
 
 // MinKubernetesVersion allowed to be used when creating the cluster.
 const MinKubernetesVersion = "1.24.0"

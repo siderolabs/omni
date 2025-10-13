@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-10-08T08:56:59Z by kres 97ccf82.
+# Generated on 2025-10-13T09:22:55Z by kres 063080a.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -47,9 +47,9 @@ ADD client/api/omni/specs/omni.proto /client/api/omni/specs/
 ADD client/api/omni/specs/siderolink.proto /client/api/omni/specs/
 ADD client/api/omni/specs/system.proto /client/api/omni/specs/
 ADD https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto /client/api/google/rpc/
-ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.1/api/common/common.proto /client/api/common/
-ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.1/api/machine/machine.proto /client/api/talos/machine/
-ADD https://raw.githubusercontent.com/cosi-project/specification/c644a4b0fd408ec41bd29193bcdbd1a5b7feead2/proto/v1alpha1/resource.proto /client/api/v1alpha1/
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.2/api/common/common.proto /client/api/common/
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.2/api/machine/machine.proto /client/api/talos/machine/
+ADD https://raw.githubusercontent.com/cosi-project/specification/a25fac056c642b32468b030387ab94c17bc3ba1d/proto/v1alpha1/resource.proto /client/api/v1alpha1/
 
 # collects proto specs
 FROM scratch AS proto-specs-frontend
@@ -57,7 +57,7 @@ ADD client/api/common/omni.proto /frontend/src/api/common/
 ADD client/api/omni/resources/resources.proto /frontend/src/api/omni/resources/
 ADD client/api/omni/management/management.proto /frontend/src/api/omni/management/
 ADD client/api/omni/oidc/oidc.proto /frontend/src/api/omni/oidc/
-ADD https://raw.githubusercontent.com/siderolabs/go-api-signature/a034e9ff315ba4a56115acc7ad0fb99d0dc77800/api/auth/auth.proto /frontend/src/api/omni/auth/
+ADD https://raw.githubusercontent.com/siderolabs/go-api-signature/184f94d36cdd4d8bf8770ef629191f63187d63da/api/auth/auth.proto /frontend/src/api/omni/auth/
 ADD client/api/omni/specs/omni.proto /frontend/src/api/omni/specs/
 ADD client/api/omni/specs/siderolink.proto /frontend/src/api/omni/specs/
 ADD client/api/omni/specs/system.proto /frontend/src/api/omni/specs/
@@ -66,14 +66,14 @@ ADD client/api/omni/specs/infra.proto /frontend/src/api/omni/specs/
 ADD client/api/omni/specs/virtual.proto /frontend/src/api/omni/specs/
 ADD client/api/omni/specs/ephemeral.proto /frontend/src/api/omni/specs/
 ADD https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto /frontend/src/api/google/rpc/
-ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.1/api/machine/machine.proto /frontend/src/api/talos/machine/
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.2/api/machine/machine.proto /frontend/src/api/talos/machine/
 ADD https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/any.proto /frontend/src/api/google/protobuf/
 ADD https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/duration.proto /frontend/src/api/google/protobuf/
 ADD https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/empty.proto /frontend/src/api/google/protobuf/
 ADD https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/timestamp.proto /frontend/src/api/google/protobuf/
 ADD https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/code.proto /frontend/src/api/google/rpc/
-ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.1/api/common/common.proto /frontend/src/api/common/
-ADD https://raw.githubusercontent.com/cosi-project/specification/5c734257bfa6a3acb01417809797dbfbe0e73c71/proto/v1alpha1/resource.proto /frontend/src/api/v1alpha1/
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.2/api/common/common.proto /frontend/src/api/common/
+ADD https://raw.githubusercontent.com/cosi-project/specification/a25fac056c642b32468b030387ab94c17bc3ba1d/proto/v1alpha1/resource.proto /frontend/src/api/v1alpha1/
 
 # base toolchain image
 FROM --platform=${BUILDPLATFORM} ${TOOLCHAIN} AS toolchain
@@ -248,7 +248,7 @@ COPY --exclude=node_modules --from=lint-eslint-fmt-run /src /frontend
 
 # cleaned up specs and compiled versions
 FROM scratch AS generate-frontend
-ADD https://www.talos.dev/v1.11/schemas/config.schema.json frontend/src/schemas/config.schema.json
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.2/pkg/machinery/config/schemas/config.schema.json frontend/src/schemas/config.schema.json
 COPY --from=proto-compile-frontend frontend/ frontend/
 
 # run go generate
