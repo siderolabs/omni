@@ -45,7 +45,7 @@ const icons: Record<AlertType, IconType> = {
         </div>
       </div>
       <div v-if="dismiss" class="flex flex-1 justify-end pr-2">
-        <TButton type="compact" class="notification-right-button" @click="dismiss?.action">
+        <TButton size="sm" class="notification-right-button" @click="dismiss?.action">
           {{ dismiss.name }}
         </TButton>
       </div>

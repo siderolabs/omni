@@ -97,7 +97,8 @@ const updateBackupInterval = () => {
     >
       <TButton
         v-if="canManageBackupStore"
-        type="subtle-xs"
+        type="subtle"
+        size="xxs"
         icon="settings"
         icon-position="left"
         class="text-xs"

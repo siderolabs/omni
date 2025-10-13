@@ -170,7 +170,7 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
       >
         <div class="flex gap-1">
           Check the
-          <TButton type="subtle" @click="openDocs">documentation</TButton>
+          <TButton type="subtle" size="xs" @click="openDocs">documentation</TButton>
           on how to configure and use infrastructure providers.
         </div>
       </TAlert>
@@ -184,6 +184,7 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
           Download and boot the
           <TButton
             type="subtle"
+            size="xs"
             @click="$router.push({ name: 'Home', query: { modal: 'downloadInstallationMedia' } })"
           >
             installation media

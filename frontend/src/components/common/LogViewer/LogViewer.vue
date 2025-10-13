@@ -98,7 +98,7 @@ watch(logs, () => {
         <p class="logs-list-heading-name">Message</p>
       </div>
       <div class="flex gap-6">
-        <TButton :icon="copied ? 'check' : 'copy'" type="compact" @click="copyLogs">
+        <TButton :icon="copied ? 'check' : 'copy'" size="sm" @click="copyLogs">
           {{ copied ? 'Copied' : 'Copy' }}
         </TButton>
         <TCheckbox v-model="follow" label="Follow Logs" />

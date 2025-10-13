@@ -201,7 +201,7 @@ const openPatchConfig = () => {
       </div>
     </div>
     <div class="flex w-24 items-center justify-end gap-2">
-      <TButton v-if="!noRemove" class="h-6" type="compact" @click="onRemove">Remove</TButton>
+      <TButton v-if="!noRemove" class="h-6" size="sm" @click="onRemove">Remove</TButton>
       <div class="flex justify-center gap-1">
         <IconButton
           v-if="modelValue.role === LabelWorkerRole"

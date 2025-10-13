@@ -94,7 +94,7 @@ const openDocs = () => {
     <div class="my-7 flex items-center px-8">
       <div class="heading">Edit Config Patch</div>
       <div class="flex flex-1 justify-end">
-        <TButton icon="question" type="subtle" icon-position="left" @click="openDocs">
+        <TButton icon="question" type="subtle" size="xs" icon-position="left" @click="openDocs">
           Config Reference
         </TButton>
       </div>

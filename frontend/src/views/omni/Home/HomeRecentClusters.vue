@@ -37,6 +37,7 @@ const { data } = useWatch<ClusterStatusSpec>({
         icon-position="left"
         icon="clusters"
         type="subtle"
+        size="xs"
         @click="$router.push({ name: 'Clusters' })"
       >
         View All
