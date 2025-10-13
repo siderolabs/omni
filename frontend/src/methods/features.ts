@@ -105,3 +105,7 @@ const getFeaturesConfig = async (): Promise<Resource<FeaturesConfigSpec>> => {
 
   return cachedFeaturesConfig
 }
+
+export function useInstallationMediaEnabled() {
+  return useLocalStorage('_installation_media_enabled', false)
+}

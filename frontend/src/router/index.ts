@@ -241,6 +241,11 @@ export const routes: RouteRecordRaw[] = [
             component: () => import('@/views/omni/Machines/MachinesPending.vue'),
           },
           {
+            path: 'installation-media',
+            name: 'InstallationMedia',
+            component: () => import('@/views/omni/InstallationMedia/InstallationMedia.vue'),
+          },
+          {
             path: 'jointokens',
             name: 'JoinTokens',
             component: () => import('@/views/omni/Settings/JoinTokens.vue'),
