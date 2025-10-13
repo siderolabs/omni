@@ -7,7 +7,7 @@
 package extensions
 
 import (
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/siderolabs/gen/containers"
 	"github.com/siderolabs/gen/xslices"
 )

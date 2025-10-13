@@ -16,7 +16,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -1275,6 +1275,7 @@ func nodeForceDestroyRequestValidationOptions(st state.State) []validated.StateO
 }
 
 const (
+	// MaxJoinTokenNameLength is the maximum length of the join token name.
 	// tsgen:MaxJoinTokenNameLength
 	MaxJoinTokenNameLength = 16
 )

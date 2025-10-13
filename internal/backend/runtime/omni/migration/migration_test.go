@@ -2199,9 +2199,13 @@ func (suite *MigrationSuite) TestMoveClusterTaintFromResourceToLabel() {
 	defer cancel()
 
 	clusterID := "cluster1"
+	deletedClusterID := "cluster2"
 
 	taint := omni.NewClusterTaint(resources.DefaultNamespace, clusterID)
 	suite.Require().NoError(suite.state.Create(ctx, taint))
+
+	danglingTaint := omni.NewClusterTaint(resources.DefaultNamespace, deletedClusterID)
+	suite.Require().NoError(suite.state.Create(ctx, danglingTaint))
 
 	clusterStatus := omni.NewClusterStatus(resources.DefaultNamespace, clusterID)
 	suite.Require().NoError(suite.state.Create(ctx, clusterStatus, state.WithCreateOwner(omnictrl.ClusterStatusControllerName)))
@@ -2221,6 +2225,11 @@ func (suite *MigrationSuite) TestMoveClusterTaintFromResourceToLabel() {
 	suite.Require().Error(err)
 	suite.Require().True(state.IsNotFoundError(err), "ClusterTaint resource should not exist after migration")
 	suite.Require().Nil(taintDeleted, "ClusterTaint resource should not exist after migration")
+
+	danglingTaintDeleted, err := safe.ReaderGetByID[*omni.ClusterTaint](ctx, suite.state, deletedClusterID)
+	suite.Require().Error(err)
+	suite.Require().True(state.IsNotFoundError(err), "ClusterTaint resource should not exist after migration")
+	suite.Require().Nil(danglingTaintDeleted, "ClusterTaint resource should not exist after migration")
 }
 
 func startMigration[

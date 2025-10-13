@@ -18,6 +18,8 @@ import (
 	cosiresource "github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/typed"
 	"github.com/siderolabs/gen/xslices"
+	"github.com/siderolabs/go-api-signature/pkg/message"
+	"google.golang.org/grpc/metadata"
 	"k8s.io/client-go/rest"
 
 	"github.com/siderolabs/omni/client/api/common"
@@ -117,6 +119,26 @@ func Get(name string) (Runtime, error) { //nolint:ireturn
 	}
 
 	return nil, fmt.Errorf("failed to find the runtime %v", name)
+}
+
+// LookupFromContext looks up the runtime based on the context metadata.
+func LookupFromContext(ctx context.Context) (Runtime, error) { //nolint:ireturn
+	runtime := common.Runtime(-1)
+
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		source := md.Get(message.RuntimeHeaderKey)
+		if len(source) > 0 {
+			if res, ok := common.Runtime_value[source[0]]; ok {
+				runtime = common.Runtime(res)
+			}
+		}
+	}
+
+	if runtime == -1 {
+		return nil, errors.New("missing runtime metadata")
+	}
+
+	return Get(runtime.String())
 }
 
 // LookupInterface looks for a specific implementation in runtimes.

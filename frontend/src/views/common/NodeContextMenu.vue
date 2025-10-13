@@ -79,7 +79,7 @@ const copyMachineID = () => {
 </script>
 
 <template>
-  <TActionsBox style="height: 24px">
+  <TActionsBox>
     <TActionsBoxItem
       icon="log"
       @click="

@@ -216,38 +216,18 @@ const iconColor = computed(() => {
 </script>
 
 <template>
-  <div class="label">
+  <div class="flex items-center gap-1">
     <TIcon
-      class="label-icon"
-      :style="{
-        fill: !!color ? color : iconData?.iconColor || iconColor.color,
-      }"
-      :icon="!!iconType ? iconType : iconData?.iconTypeValue"
+      class="size-4 fill-current"
+      :style="{ fill: color ? color : iconData.iconColor || iconColor.color }"
+      :icon="iconType ? iconType : iconData.iconTypeValue"
     />
     <span
       v-if="title"
-      class="label-title"
-      :style="{
-        color: !!color ? color : iconData?.iconColor || iconColor.color,
-      }"
+      class="text-xs"
+      :style="{ color: color ? color : iconData.iconColor || iconColor.color }"
     >
       {{ title }}
     </span>
   </div>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.label {
-  @apply flex items-center;
-}
-.label-icon {
-  @apply fill-current;
-  width: 16px;
-  height: 16px;
-}
-.label-title {
-  @apply pl-1 text-xs;
-}
-</style>

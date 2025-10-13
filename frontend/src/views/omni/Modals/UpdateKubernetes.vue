@@ -7,20 +7,30 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { RadioGroup, RadioGroupLabel, RadioGroupOption } from '@headlessui/vue'
 import * as semver from 'semver'
-import type { Ref } from 'vue'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
 import { ManagementService } from '@/api/omni/management/management.pb'
-import type { KubernetesUpgradeStatusSpec } from '@/api/omni/specs/omni.pb'
+import type {
+  ClusterSpec,
+  KubernetesUpgradeStatusSpec,
+  KubernetesVersionSpec,
+  TalosVersionSpec,
+} from '@/api/omni/specs/omni.pb'
 import { withContext } from '@/api/options'
-import { DefaultNamespace, KubernetesUpgradeStatusType } from '@/api/resources'
-import Watch from '@/api/watch'
+import {
+  ClusterType,
+  DefaultNamespace,
+  DefaultTalosVersion,
+  KubernetesUpgradeStatusType,
+  KubernetesVersionType,
+  TalosVersionType,
+} from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import { useWatch } from '@/components/common/Watch/useWatch'
 import { upgradeKubernetes } from '@/methods/cluster'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
@@ -34,18 +44,37 @@ const selectedVersion = ref('')
 
 const clusterName = route.params.cluster as string
 
-const resource = {
-  namespace: DefaultNamespace,
-  type: KubernetesUpgradeStatusType,
-  id: clusterName,
-}
+const { data: cluster } = useWatch<ClusterSpec>({
+  resource: {
+    type: ClusterType,
+    namespace: DefaultNamespace,
+    id: clusterName,
+  },
+  runtime: Runtime.Omni,
+})
 
-const status: Ref<Resource<KubernetesUpgradeStatusSpec> | undefined> = ref()
+const { data: status } = useWatch<KubernetesUpgradeStatusSpec>({
+  resource: {
+    namespace: DefaultNamespace,
+    type: KubernetesUpgradeStatusType,
+    id: clusterName,
+  },
+  runtime: Runtime.Omni,
+})
 
-const upgradeStatusWatch = new Watch(status)
+const { data: allK8sVersions } = useWatch<KubernetesVersionSpec>({
+  resource: {
+    namespace: DefaultNamespace,
+    type: KubernetesVersionType,
+  },
+  runtime: Runtime.Omni,
+})
 
-upgradeStatusWatch.setup({
-  resource: resource,
+const { data: allTalosVersionsUnsorted } = useWatch<TalosVersionSpec>({
+  resource: {
+    type: TalosVersionType,
+    namespace: DefaultNamespace,
+  },
   runtime: Runtime.Omni,
 })
 
@@ -55,32 +84,69 @@ watch(status, () => {
   }
 })
 
-const upgradeVersions = computed(() => {
-  if (!status?.value?.spec?.upgrade_versions) {
-    return []
-  }
+const supportedK8sVersions = computed(() =>
+  (status.value?.spec.upgrade_versions ?? [])
+    .concat(status.value?.spec.last_upgrade_version ?? '')
+    .filter((v) => !!v)
+    .sort(semver.compare),
+)
 
-  const sorted = [
-    ...status.value.spec.upgrade_versions,
-    status.value.spec.last_upgrade_version ?? '',
-  ].sort(semver.compare)
+interface VersionGroup {
+  upgradeable: boolean
+  versions: {
+    upgradeable: boolean
+    version: string
+  }[]
+}
 
-  const result = {}
+const groupedK8sVersions = computed(() => {
+  const oldestSupportedVersion = supportedK8sVersions.value[0]
 
-  for (const version of sorted) {
-    const major = semver.major(version)
-    const minor = semver.minor(version)
+  return allK8sVersions.value
+    .map((v) => semver.parse(v.spec.version, false, true))
+    .sort(semver.compare)
+    .filter((v) => semver.gte(v, oldestSupportedVersion))
+    .reduce<Record<string, VersionGroup>>((result, parsed) => {
+      const { major, minor } = parsed
+      const version = parsed.format()
 
-    const majorMinor = `${major}.${minor}`
+      const majorMinor = `${major}.${minor}`
 
-    if (!result[majorMinor]) {
-      result[majorMinor] = []
-    }
+      result[majorMinor] ||= {
+        upgradeable: isVersionUpgradeable(`${major}.${minor}.0`),
+        versions: [],
+      }
 
-    result[majorMinor].push(version)
-  }
+      // Only show individual versions if part of an upgradeable group
+      if (result[majorMinor].upgradeable) {
+        result[majorMinor].versions.push({
+          upgradeable: isVersionUpgradeable(version),
+          version,
+        })
+      }
 
-  return result
+      return result
+    }, {})
+})
+
+const allTalosVersions = computed(() =>
+  allTalosVersionsUnsorted.value
+    .slice()
+    .sort((a, b) => semver.compare(a.spec.version!, b.spec.version!)),
+)
+
+function isVersionUpgradeable(version: string) {
+  return supportedK8sVersions.value.includes(version)
+}
+
+const docsTalosVersion = computed(() => {
+  const { major, minor } = semver.parse(
+    cluster.value?.spec.talos_version || DefaultTalosVersion,
+    {},
+    true,
+  )
+
+  return `v${major}.${minor}`
 })
 
 const action = computed(() => {
@@ -139,7 +205,7 @@ const upgradeClick = async () => {
 
 <template>
   <div class="modal-window my-4 flex max-h-screen flex-col gap-2">
-    <div class="heading">
+    <div class="mb-5 flex items-center justify-between text-xl text-naturals-n14">
       <h3 class="text-base text-naturals-n14">Update Kubernetes</h3>
       <CloseButton @click="close" />
     </div>
@@ -148,24 +214,48 @@ const upgradeClick = async () => {
       <RadioGroup
         id="k8s-upgrade-version"
         v-model="selectedVersion"
-        class="flex flex-1 flex-col gap-2 overflow-y-auto text-naturals-n13"
+        class="flex max-h-64 flex-1 flex-col gap-2 overflow-y-auto text-naturals-n13"
       >
-        <template v-for="(versions, group) in upgradeVersions" :key="group">
-          <RadioGroupLabel as="div" class="w-full bg-naturals-n4 p-1 pl-7 text-sm font-bold">
+        <template
+          v-for="({ upgradeable: groupUpgradeable, versions }, group) in groupedK8sVersions"
+          :key="group"
+        >
+          <RadioGroupLabel
+            as="div"
+            class="sticky top-0 w-full bg-naturals-n4 p-1 pl-7 text-sm font-bold"
+          >
             {{ group }}
+            {{
+              groupUpgradeable
+                ? ''
+                : allTalosVersions
+                      .find((v) => v.spec.version === cluster?.spec.talos_version)
+                      ?.spec.compatible_kubernetes_versions?.some((v) => semver.satisfies(v, group))
+                  ? " - Can't skip minor version upgrades"
+                  : ` - Requires Talos version ${allTalosVersions.find((v) => v.spec.compatible_kubernetes_versions?.some((v) => semver.satisfies(v, group)))?.spec.version}`
+            }}
           </RadioGroupLabel>
           <div class="flex flex-col gap-1">
             <RadioGroupOption
-              v-for="version in versions"
+              v-for="{ upgradeable, version } in versions"
               :key="version"
               v-slot="{ checked }"
               :value="version"
+              :disabled="!upgradeable"
             >
               <div
                 class="tranform transition-color flex cursor-pointer items-center gap-2 px-2 py-1 text-sm hover:bg-naturals-n4"
                 :class="{ 'bg-naturals-n4': checked }"
               >
-                <TCheckbox :checked="checked" />
+                <TCheckbox
+                  :model-value="checked"
+                  class="pointer-events-none"
+                  :disabled="!upgradeable"
+                  @vue:mounted="
+                    ($event) =>
+                      checked && ($event.el as HTMLElement).scrollIntoView({ block: 'center' })
+                  "
+                />
                 {{ version }}
                 <span v-if="version === status.spec.last_upgrade_version">(current)</span>
               </div>
@@ -174,6 +264,18 @@ const upgradeClick = async () => {
         </template>
       </RadioGroup>
     </template>
+
+    <p class="text-xs">
+      Downgrading minor versions is not supported. You can not skip minor version upgrades. You can
+      only upgrade to versions supported by your talos version. See the
+      <a
+        class="inline-block underline hover:mix-blend-lighten"
+        :href="`https://docs.siderolabs.com/talos/v${docsTalosVersion}/getting-started/support-matrix`"
+      >
+        support matrix
+      </a>
+      for which versions are supported by your talos version.
+    </p>
 
     <p class="text-xs">
       Changing the Kubernetes version can result in control plane downtime. During this change you
@@ -204,14 +306,3 @@ const upgradeClick = async () => {
     </div>
   </div>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
-}
-optgroup {
-  @apply font-bold text-naturals-n14;
-}
-</style>

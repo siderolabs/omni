@@ -363,13 +363,13 @@ spec:
   config: |-
     creation_rules:
       - age: age1xrpa9ujxxcj2u2gzfrzv8mxak4rts94a6y60ypurv6rs5cpr4e4sg95f0k
-        # order: Andrey, Noel, Artem, Utku, Dmitriy
+        # order: Andrey, Noel, Artem, Utku, Edward
         pgp: >-
-          15D5721F5F5BAF121495363EFE042E3D4085A811,
+          4F8E31286D7997C9625C6F7B322C6F63F594CE7C,
           CC51116A94490FA6FB3C18EB2401FCAE863A06CA,
-          4919F560F0D35F80CF382D76E084A2DF1143C14D,
-          966BC282A680D8BB3E8363E865933E76F0549B0D,
-          AA5213AF261C1977AF38B03A94B473337258BFD5
+          77D901DDCB59376D9E4131279BAC0E08F5067BB8,
+          11177A43C6E3752E682AC690DBD13117B0A14E93,
+          484DF208A16D4E209D686E9D65558E016966977A
 ---
 kind: golang.Build
 name: omni
@@ -465,13 +465,13 @@ spec:
     - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto
       subdirectory: google/rpc/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.11.1/api/common/common.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.11.2/api/common/common.proto
       subdirectory: common/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.11.1/api/machine/machine.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.11.2/api/machine/machine.proto
       subdirectory: talos/machine/
       genGateway: true
-    - source: https://raw.githubusercontent.com/cosi-project/specification/c644a4b0fd408ec41bd29193bcdbd1a5b7feead2/proto/v1alpha1/resource.proto
+    - source: https://raw.githubusercontent.com/cosi-project/specification/a25fac056c642b32468b030387ab94c17bc3ba1d/proto/v1alpha1/resource.proto
       subdirectory: v1alpha1
       genGateway: true
 ---
@@ -502,7 +502,7 @@ kind: js.Protobuf
 spec:
   baseSpecPath: /client/api
   files:
-     - source: https://www.talos.dev/v1.11/schemas/config.schema.json
+     - source: https://raw.githubusercontent.com/siderolabs/talos/v1.11.2/pkg/machinery/config/schemas/config.schema.json
        destination: frontend/src/schemas/config.schema.json
   destinationRoot: src/api
   specs:
@@ -518,7 +518,7 @@ spec:
     - source: client/api/omni/oidc/oidc.proto
       subdirectory: omni/oidc
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/go-api-signature/a034e9ff315ba4a56115acc7ad0fb99d0dc77800/api/auth/auth.proto
+    - source: https://raw.githubusercontent.com/siderolabs/go-api-signature/184f94d36cdd4d8bf8770ef629191f63187d63da/api/auth/auth.proto
       subdirectory: omni/auth
       genGateway: true
     - source: client/api/omni/specs/omni.proto
@@ -545,7 +545,7 @@ spec:
     - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto
       subdirectory: google/rpc/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.11.1/api/machine/machine.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.11.2/api/machine/machine.proto
       subdirectory: talos/machine
       genGateway: true
     - source: https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/any.proto
@@ -563,10 +563,10 @@ spec:
     - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/code.proto
       subdirectory: google/rpc/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.11.1/api/common/common.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.11.2/api/common/common.proto
       subdirectory: common/
       genGateway: true
-    - source: https://raw.githubusercontent.com/cosi-project/specification/5c734257bfa6a3acb01417809797dbfbe0e73c71/proto/v1alpha1/resource.proto
+    - source: https://raw.githubusercontent.com/cosi-project/specification/a25fac056c642b32468b030387ab94c17bc3ba1d/proto/v1alpha1/resource.proto
       subdirectory: v1alpha1
       genGateway: true
 ---
@@ -600,7 +600,7 @@ spec:
         Licensor: Sidero Labs, Inc.
         LicensedWork: Omni
         Copyright: (c) 2025 Sidero Labs, Inc.
-        ChangeDate: "2029-09-18"
+        ChangeDate: "2029-09-25"
         ChangeLicense: Mozilla Public License, version 2.0
         EnterpriseLink: https://www.siderolabs.com/contact/
       header: |
@@ -630,7 +630,7 @@ spec:
         - .pb.go
         - .pb.gw.go
         - .pb.ts
-        - babel.config.js
+        - mockServiceWorker.js
       skipPaths:
         - .git
         - testdata/

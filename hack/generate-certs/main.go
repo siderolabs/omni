@@ -7,6 +7,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -157,7 +158,7 @@ func generate() (err error) {
 }
 
 func runApp(app string, args ...string) error {
-	cmd := exec.Command(app, args...)
+	cmd := exec.CommandContext(context.Background(), app, args...) //nolint:noctx
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -280,7 +281,7 @@ services:
       {{- if ne .PprofBindAddress ""}}
       --pprof-bind-addr {{ .PprofBindAddress }}
       {{- end}}
-	omni-inspector:
-		environment:
-			- OMNI_ENDPOINT={{ .BindAddr }}
+  omni-inspector:
+    environment:
+      - OMNI_ENDPOINT={{ .BindAddr }}
 `

@@ -1,3 +1,4 @@
 src/api/**/*.pb.ts
 src/api/resources.ts
 src/schemas/config.schema.json
+.storybook/public/mockServiceWorker.js

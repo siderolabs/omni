@@ -223,7 +223,7 @@ func pollProcessors(ctx context.Context, c *client.Client, info *Info) error {
 		hardware.NamespaceName,
 		hardware.ProcessorType,
 		func(r *hardware.Processor) error {
-			if r.TypedSpec().CoreCount == 0 || r.TypedSpec().MaxSpeed == 0 {
+			if r.TypedSpec().CoreCount == 0 && r.TypedSpec().MaxSpeed == 0 {
 				return nil
 			}
 

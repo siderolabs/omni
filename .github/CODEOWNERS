@@ -1,0 +1,8 @@
+# Notify for frontend
+/frontend/ @Slessi
+/.github/workflows/chromatic.yml @Slessi
+
+# Ignored
+/frontend/**/*.pb.ts
+/frontend/**/*.proto
+/frontend/src/api/resources.ts

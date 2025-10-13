@@ -25,7 +25,7 @@ import (
 	pkgruntime "github.com/siderolabs/omni/client/pkg/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/cosi"
-	omni2 "github.com/siderolabs/omni/internal/backend/runtime/omni"
+	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 )
 
 type runtimeMock struct {
@@ -359,7 +359,7 @@ func toListResult(machines []*omni.MachineStatus) runtime.ListResult {
 	items := make([]pkgruntime.ListItem, 0, len(machines))
 
 	for _, machine := range machines {
-		items = append(items, omni2.NewItem(ensure.Value(runtime.NewResource(machine))))
+		items = append(items, omniruntime.NewItem(ensure.Value(runtime.NewResource(machine))))
 	}
 
 	return runtime.ListResult{

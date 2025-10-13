@@ -335,6 +335,22 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 	}).ID()
 	suite.Require().NoError(err)
 
+	buildRawSchematic := func(exts, args []string) string {
+		sch := schematic.Schematic{
+			Customization: schematic.Customization{
+				ExtraKernelArgs: args,
+				SystemExtensions: schematic.SystemExtensions{
+					OfficialExtensions: exts,
+				},
+			},
+		}
+
+		marshaled, marshalErr := sch.Marshal()
+		suite.Require().NoError(marshalErr)
+
+		return string(marshaled)
+	}
+
 	for _, tt := range []struct {
 		expected   *specs.MachineStatusSpec_Schematic
 		name       string
@@ -366,18 +382,24 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 						Name:        constants.SchematicIDExtensionName,
 						Description: "3",
 						Version:     "full-id",
+						ExtraInfo: buildRawSchematic([]string{
+							"siderolabs/gvisor",
+							"siderolabs/hello-world-service",
+							"siderolabs/mdadm",
+						}, []string{"foo=bar", "bar=baz"}),
 					},
 				},
 			},
 			expected: &specs.MachineStatusSpec_Schematic{
 				Id:               "7d79f1ce28d7e6c099bc89ccf02238fb574165eb4834c2abf2a61eab998d4dc6",
 				InitialSchematic: "full-id",
-				Extensions: []string{
-					"siderolabs/gvisor",
-					"siderolabs/hello-world-service",
-					"siderolabs/mdadm",
+				Extensions:       []string{"siderolabs/gvisor", "siderolabs/hello-world-service", "siderolabs/mdadm"},
+				KernelArgs:       []string{"foo=bar", "bar=baz"},
+				FullId:           "full-id",
+				InitialState: &specs.MachineStatusSpec_Schematic_InitialState{
+					Extensions: []string{"siderolabs/gvisor", "siderolabs/hello-world-service", "siderolabs/mdadm"},
+					KernelArgs: []string{"foo=bar", "bar=baz"},
 				},
-				FullId: "full-id",
 			},
 		},
 		{
@@ -402,6 +424,9 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 				InitialSchematic: vanillaID,
 				FullId:           vanillaID,
 				KernelArgs:       kernelArgs,
+				InitialState: &specs.MachineStatusSpec_Schematic_InitialState{
+					KernelArgs: kernelArgs,
+				},
 			},
 		},
 		{
@@ -429,7 +454,7 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 			},
 			expected: &specs.MachineStatusSpec_Schematic{
 				Id:               defaultSchematic,
-				InitialSchematic: defaultSchematic,
+				InitialSchematic: "",
 				FullId:           defaultSchematic,
 				InAgentMode:      true,
 			},

@@ -7,6 +7,8 @@ package omni
 
 import (
 	"context"
+	"iter"
+	"strconv"
 	"sync"
 	"time"
 
@@ -15,8 +17,10 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/siderolabs/talos/pkg/machinery/platforms"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -29,10 +33,16 @@ type MachineStatusMetricsController struct {
 	versionsMu  sync.Mutex
 	versionsMap map[string]int32
 
-	metricsOnce                 sync.Once
-	metricNumMachines           prometheus.Gauge
-	metricNumConnectedMachines  prometheus.Gauge
-	metricNumMachinesPerVersion *prometheus.Desc
+	metricsOnce sync.Once
+
+	platformNames []string
+
+	metricNumMachines             prometheus.Gauge
+	metricNumConnectedMachines    prometheus.Gauge
+	metricNumMachinesPerVersion   *prometheus.Desc
+	metricMachinePlatforms        *prometheus.GaugeVec
+	metricMachineSecureBootStatus *prometheus.GaugeVec
+	metricMachineUKIStatus        *prometheus.GaugeVec
 }
 
 // Name implements controller.Controller interface.
@@ -84,6 +94,29 @@ func (ctrl *MachineStatusMetricsController) initMetrics() {
 			[]string{"talos_version"},
 			nil,
 		)
+
+		ctrl.metricMachinePlatforms = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "omni_machine_platforms",
+			Help: "Number of machines in the instance by platform.",
+		}, []string{"platform"})
+
+		ctrl.metricMachineSecureBootStatus = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "omni_machine_secure_boot_status",
+			Help: "Number of machines in the instance by secure boot status.",
+		}, []string{"enabled"})
+
+		ctrl.metricMachineUKIStatus = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "omni_machine_uki_status",
+			Help: "Number of machines in the instance by UKI (Unified Kernel Image) status.",
+		}, []string{"booted_with_uki"})
+
+		allPlatforms := platforms.CloudPlatforms()
+		allPlatforms = append(allPlatforms, platforms.MetalPlatform())
+
+		ctrl.platformNames = make([]string, 0, len(allPlatforms))
+		for _, p := range allPlatforms {
+			ctrl.platformNames = append(ctrl.platformNames, p.Name)
+		}
 	})
 }
 
@@ -98,58 +131,23 @@ func (ctrl *MachineStatusMetricsController) Run(ctx context.Context, r controlle
 		case <-r.EventCh():
 		}
 
-		pendingInfraMachines, err := safe.ReaderListAll[*infra.Machine](
-			ctx,
-			r,
-			state.WithLabelQuery(resource.LabelExists(omni.LabelMachinePendingAccept)),
-		)
+		pendingInfraMachines, err := safe.ReaderListAll[*infra.Machine](ctx, r, state.WithLabelQuery(resource.LabelExists(omni.LabelMachinePendingAccept)))
 		if err != nil {
 			return err
 		}
 
 		pendingMachines := pendingInfraMachines.Len()
 
-		list, err := safe.ReaderListAll[*omni.MachineStatus](
-			ctx,
-			r,
-		)
+		machineStatuses, err := safe.ReaderListAll[*omni.MachineStatus](ctx, r)
 		if err != nil {
 			return err
 		}
 
-		var machines, connectedMachines, allocatedMachines int
-
-		ctrl.versionsMu.Lock()
-		ctrl.versionsMap = map[string]int32{}
-
-		for ms := range list.All() {
-			machines++
-
-			if ms.TypedSpec().Value.Connected {
-				connectedMachines++
-			}
-
-			if ms.TypedSpec().Value.TalosVersion != "" {
-				ctrl.versionsMap[ms.TypedSpec().Value.TalosVersion]++
-			}
-
-			if ms.TypedSpec().Value.Cluster != "" {
-				allocatedMachines++
-			}
-		}
-
-		ctrl.versionsMu.Unlock()
-
-		ctrl.metricNumMachines.Set(float64(machines))
-		ctrl.metricNumConnectedMachines.Set(float64(connectedMachines))
+		metricsSpec := ctrl.gatherMetrics(machineStatuses.All(), pendingMachines)
 
 		if err = safe.WriterModify(ctx, r, omni.NewMachineStatusMetrics(resources.EphemeralNamespace, omni.MachineStatusMetricsID),
 			func(res *omni.MachineStatusMetrics) error {
-				res.TypedSpec().Value.ConnectedMachinesCount = uint32(connectedMachines)
-				res.TypedSpec().Value.RegisteredMachinesCount = uint32(machines)
-				res.TypedSpec().Value.AllocatedMachinesCount = uint32(allocatedMachines)
-				res.TypedSpec().Value.PendingMachinesCount = uint32(pendingMachines)
-				res.TypedSpec().Value.VersionsMap = ctrl.versionsMap
+				res.TypedSpec().Value = metricsSpec
 
 				return nil
 			},
@@ -162,6 +160,89 @@ func (ctrl *MachineStatusMetricsController) Run(ctx context.Context, r controlle
 			return nil
 		case <-time.After(10 * time.Second): // don't reconcile too often, as metrics are not scraped that often
 		}
+	}
+}
+
+func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omni.MachineStatus], numPendingMachines int) *specs.MachineStatusMetricsSpec {
+	platformMetrics := make(map[string]uint32, len(ctrl.platformNames))
+	for _, p := range ctrl.platformNames {
+		platformMetrics[p] = 0
+	}
+
+	const statusUnknown = "unknown"
+
+	secureBootStatusMetrics := map[string]uint32{
+		statusUnknown: 0,
+		"true":        0,
+		"false":       0,
+	}
+	ukiMetrics := map[string]uint32{
+		statusUnknown: 0,
+		"true":        0,
+		"false":       0,
+	}
+
+	var machines, connectedMachines, allocatedMachines int
+
+	ctrl.versionsMu.Lock()
+	ctrl.versionsMap = map[string]int32{}
+
+	for ms := range statuses {
+		machines++
+
+		if ms.TypedSpec().Value.Connected {
+			connectedMachines++
+		}
+
+		if ms.TypedSpec().Value.TalosVersion != "" {
+			ctrl.versionsMap[ms.TypedSpec().Value.TalosVersion]++
+		}
+
+		if ms.TypedSpec().Value.Cluster != "" {
+			allocatedMachines++
+		}
+
+		platform := ms.TypedSpec().Value.PlatformMetadata.GetPlatform()
+		if platform != "" {
+			platformMetrics[platform]++
+		}
+
+		securityState := ms.TypedSpec().Value.SecurityState
+		if securityState != nil {
+			secureBootStatusMetrics[strconv.FormatBool(securityState.SecureBoot)]++
+			ukiMetrics[strconv.FormatBool(securityState.BootedWithUki)]++
+		} else {
+			secureBootStatusMetrics[statusUnknown]++
+			ukiMetrics[statusUnknown]++
+		}
+	}
+
+	ctrl.versionsMu.Unlock()
+
+	ctrl.metricNumMachines.Set(float64(machines))
+	ctrl.metricNumConnectedMachines.Set(float64(connectedMachines))
+
+	for key, num := range platformMetrics {
+		ctrl.metricMachinePlatforms.WithLabelValues(key).Set(float64(num))
+	}
+
+	for key, num := range secureBootStatusMetrics {
+		ctrl.metricMachineSecureBootStatus.WithLabelValues(key).Set(float64(num))
+	}
+
+	for key, num := range ukiMetrics {
+		ctrl.metricMachineUKIStatus.WithLabelValues(key).Set(float64(num))
+	}
+
+	return &specs.MachineStatusMetricsSpec{
+		ConnectedMachinesCount:  uint32(connectedMachines),
+		RegisteredMachinesCount: uint32(machines),
+		AllocatedMachinesCount:  uint32(allocatedMachines),
+		PendingMachinesCount:    uint32(numPendingMachines),
+		VersionsMap:             ctrl.versionsMap,
+		Platforms:               platformMetrics,
+		SecureBootStatus:        secureBootStatusMetrics,
+		UkiStatus:               ukiMetrics,
 	}
 }
 
@@ -184,6 +265,9 @@ func (ctrl *MachineStatusMetricsController) Collect(ch chan<- prometheus.Metric)
 
 	ctrl.metricNumMachines.Collect(ch)
 	ctrl.metricNumConnectedMachines.Collect(ch)
+	ctrl.metricMachinePlatforms.Collect(ch)
+	ctrl.metricMachineSecureBootStatus.Collect(ch)
+	ctrl.metricMachineUKIStatus.Collect(ch)
 }
 
 var _ prometheus.Collector = &MachineStatusMetricsController{}

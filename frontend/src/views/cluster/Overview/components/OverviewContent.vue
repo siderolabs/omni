@@ -47,10 +47,7 @@ import {
   setClusterWorkloadProxy,
   setUseEmbeddedDiscoveryService,
 } from '@/methods/cluster'
-import {
-  embeddedDiscoveryServiceFeatureAvailable,
-  setupWorkloadProxyingEnabledFeatureWatch,
-} from '@/methods/features'
+import { embeddedDiscoveryServiceFeatureAvailable, useFeatures } from '@/methods/features'
 import ClusterMachines from '@/views/cluster/ClusterMachines/ClusterMachines.vue'
 import OverviewRightPanel from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanel.vue'
 import ClusterEtcdBackupCheckbox from '@/views/omni/Clusters/ClusterEtcdBackupCheckbox.vue'
@@ -153,16 +150,12 @@ const { canManageClusterFeatures } = setupClusterPermissions(
   computed(() => currentCluster.value.metadata.id as string),
 )
 
-const workloadProxyingEnabled = setupWorkloadProxyingEnabledFeatureWatch()
+const { data: features } = useFeatures()
 
 const isEmbeddedDiscoveryServiceAvailable = ref(false)
 
-const toggleUseEmbeddedDiscoveryService = async () => {
-  const newValue = isEmbeddedDiscoveryServiceAvailable.value
-    ? !useEmbeddedDiscoveryService.value
-    : false
-
-  await setUseEmbeddedDiscoveryService(context.cluster ?? '', newValue)
+const toggleUseEmbeddedDiscoveryService = async (value: boolean) => {
+  await setUseEmbeddedDiscoveryService(context.cluster ?? '', value)
 }
 
 const clusterLocked = computed(() => {
@@ -318,10 +311,11 @@ onMounted(async () => {
             </template>
             <template
               v-else-if="
-                talosUpgradeStatus.spec.phase === TalosUpgradeStatusSpecPhase.InstallingExtensions
+                talosUpgradeStatus.spec.phase ===
+                TalosUpgradeStatusSpecPhase.UpdatingMachineSchematics
               "
             >
-              <span class="overview-box-title">Installing Extensions</span>
+              <span class="overview-box-title">Updating Machine Schematics</span>
             </template>
           </div>
           <div class="flex min-h-20 items-center gap-2 border-t-8 border-naturals-n4 p-4 text-xs">
@@ -354,20 +348,25 @@ onMounted(async () => {
           </div>
         </div>
         <div class="flex gap-5">
-          <div v-if="workloadProxyingEnabled" class="overview-card mb-5 flex-1 px-6">
+          <div
+            v-if="features?.spec.enable_workload_proxying"
+            class="overview-card mb-5 flex-1 px-6"
+          >
             <div class="mb-3">
               <span class="overview-box-title">Features</span>
             </div>
             <div class="flex flex-col gap-2">
               <ClusterWorkloadProxyingCheckbox
-                :checked="enableWorkloadProxy"
+                :model-value="enableWorkloadProxy"
                 :disabled="!canManageClusterFeatures"
-                @click="setClusterWorkloadProxy(context.cluster ?? '', !enableWorkloadProxy)"
+                @update:model-value="
+                  (value) => setClusterWorkloadProxy(context.cluster ?? '', value)
+                "
               />
               <EmbeddedDiscoveryServiceCheckbox
-                :checked="useEmbeddedDiscoveryService"
+                :model-value="useEmbeddedDiscoveryService"
                 :disabled="!canManageClusterFeatures || !isEmbeddedDiscoveryServiceAvailable"
-                @click="toggleUseEmbeddedDiscoveryService"
+                @update:model-value="(value) => toggleUseEmbeddedDiscoveryService(value)"
               />
               <ClusterEtcdBackupCheckbox
                 :backup-status="backupStatus"

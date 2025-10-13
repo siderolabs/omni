@@ -5,8 +5,6 @@
 
 import { useLocalStorage } from '@vueuse/core'
 import { Userpilot } from 'userpilot'
-import type { Ref } from 'vue'
-import { computed, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -15,22 +13,18 @@ import type { FeaturesConfigSpec } from '@/api/omni/specs/omni.pb'
 import type { CurrentUserSpec } from '@/api/omni/specs/virtual.pb'
 import { withAbortController, withRuntime } from '@/api/options'
 import { DefaultNamespace, FeaturesConfigID, FeaturesConfigType } from '@/api/resources'
-import Watch from '@/api/watch'
+import { useWatch } from '@/components/common/Watch/useWatch'
 
-export const setupWorkloadProxyingEnabledFeatureWatch = (): Ref<boolean> => {
-  const featuresConfig: Ref<Resource<FeaturesConfigSpec> | undefined> = ref()
-  const featuresConfigWatch = new Watch(featuresConfig)
-  featuresConfigWatch.setup({
-    resource: {
-      type: FeaturesConfigType,
-      namespace: DefaultNamespace,
-      id: FeaturesConfigID,
-    },
+const resource = {
+  type: FeaturesConfigType,
+  namespace: DefaultNamespace,
+  id: FeaturesConfigID,
+}
+
+export function useFeatures() {
+  return useWatch<FeaturesConfigSpec>({
+    resource,
     runtime: Runtime.Omni,
-  })
-
-  return computed(() => {
-    return featuresConfig?.value?.spec?.enable_workload_proxying ?? false
   })
 }
 
@@ -106,14 +100,7 @@ export const getImageFactoryBaseURL = async (): Promise<string> => {
 
 const getFeaturesConfig = async (): Promise<Resource<FeaturesConfigSpec>> => {
   if (!cachedFeaturesConfig) {
-    cachedFeaturesConfig = await ResourceService.Get(
-      {
-        type: FeaturesConfigType,
-        namespace: DefaultNamespace,
-        id: FeaturesConfigID,
-      },
-      withRuntime(Runtime.Omni),
-    )
+    cachedFeaturesConfig = await ResourceService.Get(resource, withRuntime(Runtime.Omni))
   }
 
   return cachedFeaturesConfig

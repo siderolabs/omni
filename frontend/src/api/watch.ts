@@ -3,8 +3,8 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import type { Ref } from 'vue'
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import type { MaybeRefOrGetter, Ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, toRef, toValue, watch } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { fetchOption } from '@/api/fetch.pb'
@@ -55,32 +55,28 @@ export class WatchFunc {
   }
 
   // setup is meant to be called from the component setup method
-  public setup(opts: WatchSource<WatchOptions | undefined> | WatchOptions) {
+  public setup(opts: MaybeRefOrGetter<WatchOptions | undefined>) {
     let unmounted = false
-
-    const reactiveOpts = isRef(opts) ? (opts as WatchSource<WatchOptions>) : null
 
     const startWatch = async () => {
       stopWatch()
 
-      const watchOptions = reactiveOpts ? reactiveOpts.value : opts
+      const watchOptions = toValue(opts)
 
-      if (!watchOptions) return
+      if (!watchOptions || watchOptions.skip) return
 
-      await this.start(watchOptions as WatchOptions)
+      await this.start(watchOptions)
 
       if (unmounted) {
         stopWatch()
       }
     }
 
-    if (reactiveOpts) {
-      watch(reactiveOpts, (newval, oldval) => {
-        if (JSON.stringify(newval) !== JSON.stringify(oldval)) {
-          startWatch()
-        }
-      })
-    }
+    watch(toRef(opts), (newval, oldval) => {
+      if (JSON.stringify(newval) !== JSON.stringify(oldval)) {
+        startWatch()
+      }
+    })
 
     const stopWatch = async () => {
       this.stop()
@@ -191,6 +187,10 @@ interface WatchOptionsBase {
   sortByField?: string
   sortDescending?: boolean
   searchFor?: string[]
+  /**
+   * Disables watch while true
+   */
+  skip?: boolean
 }
 
 export interface WatchOptionsSingle extends WatchOptionsBase {
@@ -504,10 +504,6 @@ class WatchItems<T> {
 
 export type WatchJoinOptions = WatchOptions & { idFunc?: <T>(res: Resource<T>) => string }
 
-interface WatchSource<T> {
-  value: T
-}
-
 export class WatchJoin<T extends Resource> {
   private watches: WatchFunc[] = []
   private items: Ref<T[]>
@@ -525,19 +521,14 @@ export class WatchJoin<T extends Resource> {
   }
 
   public setup(
-    primary: WatchSource<WatchJoinOptions | undefined> | WatchJoinOptions,
-    resources: WatchSource<WatchJoinOptions[] | undefined> | WatchJoinOptions[],
+    primary: MaybeRefOrGetter<WatchJoinOptions | undefined>,
+    resources: MaybeRefOrGetter<WatchJoinOptions[] | undefined>,
   ) {
     let unmounted = false
 
-    const reactivePrimary = isRef(primary) ? (primary as WatchSource<WatchJoinOptions>) : null
-    const reactiveResources = isRef(resources)
-      ? (resources as WatchSource<WatchJoinOptions[]>)
-      : null
-
     const restartIfDiff = (
-      newval: WatchJoinOptions | WatchJoinOptions[],
-      oldval: WatchJoinOptions | WatchJoinOptions[],
+      newval: WatchJoinOptions | WatchJoinOptions[] | undefined,
+      oldval: WatchJoinOptions | WatchJoinOptions[] | undefined,
     ) => {
       if (JSON.stringify(newval) === JSON.stringify(oldval)) {
         return
@@ -549,12 +540,8 @@ export class WatchJoin<T extends Resource> {
     const startWatch = async () => {
       stopWatch()
 
-      const primaryOpts: WatchJoinOptions = reactivePrimary
-        ? reactivePrimary.value
-        : (primary as WatchJoinOptions)
-      const resourcesOpts: WatchJoinOptions[] = reactiveResources
-        ? reactiveResources.value
-        : (resources as WatchJoinOptions[])
+      const primaryOpts = toValue(primary)
+      const resourcesOpts = toValue(resources)
 
       if (!primaryOpts || !resourcesOpts) return
 
@@ -564,13 +551,8 @@ export class WatchJoin<T extends Resource> {
         stopWatch()
       }
     }
-    if (reactivePrimary) {
-      watch(reactivePrimary as Ref<WatchJoinOptions | WatchJoinOptions[]>, restartIfDiff)
-    }
-
-    if (reactiveResources) {
-      watch(reactiveResources as Ref<WatchJoinOptions | WatchJoinOptions[]>, restartIfDiff)
-    }
+    watch(toRef(primary), restartIfDiff)
+    watch(toRef(resources), restartIfDiff)
 
     const stopWatch = async () => {
       this.stop()
@@ -773,8 +755,4 @@ export class WatchJoin<T extends Resource> {
 
     this.watchItems.createOrUpdate(item)
   }
-}
-
-const isRef = <T extends object>(value: T | WatchSource<T>) => {
-  return 'value' in value
 }

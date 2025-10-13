@@ -5,6 +5,8 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import pluralize from 'pluralize'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import TButton from '@/components/common/Button/TButton.vue'
@@ -14,6 +16,13 @@ import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const router = useRouter()
 const route = useRoute()
+
+const machines = computed(() => {
+  const { machine } = route.query
+
+  const arr = Array.isArray(machine) ? machine : [machine]
+  return arr.filter((m) => typeof m === 'string')
+})
 
 let closed = false
 
@@ -28,24 +37,35 @@ const close = () => {
 }
 
 const reject = async () => {
-  try {
-    await rejectMachine(route.query.machine as string)
-  } catch (e) {
-    showError(`Failed to Reject the Machine ${route.query.machine}`, e.message)
-  }
+  await Promise.all(
+    machines.value.map(async (machine) => {
+      try {
+        await rejectMachine(machine)
+        showSuccess(`The Machine ${machine} was Rejected`)
+      } catch (e) {
+        showError(`Failed to Reject the Machine ${machine}`, e)
+      }
+    }),
+  )
 
   close()
-
-  showSuccess(`The Machine ${route.query.machine} was Rejected`)
 }
 </script>
 
 <template>
   <div class="modal-window">
-    <div class="heading">
-      <h3 class="text-base text-naturals-n14">Reject the Machine {{ $route.query.machine }} ?</h3>
+    <div class="mb-5 flex items-center justify-between text-xl text-naturals-n14">
+      <h3 class="text-base text-naturals-n14">
+        Reject {{ pluralize('Machine', machines.length, true) }}
+      </h3>
       <CloseButton @click="close" />
     </div>
+
+    <ul class="list-inside list-disc">
+      <li v-for="machine in machines" :key="machine">
+        <code>{{ machine }}</code>
+      </li>
+    </ul>
 
     <p class="py-2 text-xs">Please confirm the action.</p>
     <p class="py-2 text-xs text-primary-p2">
@@ -57,11 +77,3 @@ const reject = async () => {
     </div>
   </div>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
-}
-</style>

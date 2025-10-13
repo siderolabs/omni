@@ -62,7 +62,7 @@ type node struct {
 }
 
 func nodes(ctx context.Context, cli *client.Client, clusterName string, labels ...resource.LabelQueryOption) ([]node, error) {
-	talosCli, err := talosClient(ctx, cli, clusterName)
+	talosCli, err := talosClientForCluster(ctx, cli, clusterName)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,45 @@ func nodes(ctx context.Context, cli *client.Client, clusterName string, labels .
 	return nodeList, nil
 }
 
-func talosClient(ctx context.Context, cli *client.Client, clusterName string) (*talosclient.Client, error) {
+func talosClientForMachine(ctx context.Context, cli *client.Client, machineID resource.ID) (*talosclient.Client, error) {
+	machineStatus, err := safe.StateGet[*omni.MachineStatus](ctx, cli.Omni().State(), omni.NewMachineStatus(resources.DefaultNamespace, machineID).Metadata())
+	if err != nil {
+		return nil, err
+	}
+
+	if machineStatus.TypedSpec().Value.GetMaintenance() {
+		return talosClientMaintenance(ctx, machineStatus.TypedSpec().Value.GetManagementAddress())
+	}
+
+	cluster, ok := machineStatus.Metadata().Labels().Get(omni.LabelCluster)
+	if !ok {
+		return nil, fmt.Errorf("machine status %q is not in maintenance and has no cluster label", machineID)
+	}
+
+	data, err := cli.Management().Talosconfig(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(data) == 0 {
+		return nil, errors.New("empty talosconfig")
+	}
+
+	config, err := talosclientconfig.FromBytes(data)
+	if err != nil {
+		return nil, err
+	}
+
+	config.Contexts[config.Context].Nodes = []string{machineID}
+
+	return talosclient.New(
+		ctx,
+		talosclient.WithConfig(config),
+		talosclient.WithCluster(cluster),
+	)
+}
+
+func talosClientForCluster(ctx context.Context, cli *client.Client, clusterName string) (*talosclient.Client, error) {
 	data, err := cli.Management().Talosconfig(ctx)
 	if err != nil {
 		return nil, err
@@ -253,6 +291,7 @@ type Options struct {
 	AnotherKubernetesVersion string
 	OmnictlPath              string
 	ScalingTimeout           time.Duration
+	SleepAfterFailure        time.Duration
 	StaticInfraProvider      string
 	OutputDir                string
 }

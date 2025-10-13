@@ -12,20 +12,20 @@ import {
 } from '@/api/resources'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
-import { setupWorkloadProxyingEnabledFeatureWatch } from '@/methods/features'
+import { useFeatures } from '@/methods/features'
 
 type Props = {
-  checked?: boolean
   disabled?: boolean
 }
 
 defineProps<Props>()
 
-const workloadProxyingEnabled = setupWorkloadProxyingEnabledFeatureWatch()
+const checked = defineModel<boolean>({ default: false })
+const { data: features } = useFeatures()
 </script>
 
 <template>
-  <Tooltip v-if="workloadProxyingEnabled" placement="bottom">
+  <Tooltip v-if="features?.spec.enable_workload_proxying" placement="bottom">
     <template #description>
       <div class="flex flex-col gap-1 p-2">
         <p>Enable HTTP proxying to the Services in the cluster through Omni.</p>
@@ -42,6 +42,6 @@ const workloadProxyingEnabled = setupWorkloadProxyingEnabledFeatureWatch()
         </p>
       </div>
     </template>
-    <TCheckbox :checked="checked" label="Workload Service Proxying" :disabled="disabled" />
+    <TCheckbox v-model="checked" label="Workload Service Proxying" :disabled="disabled" />
   </Tooltip>
 </template>

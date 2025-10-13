@@ -40,8 +40,7 @@ type OngoingTaskExtension struct{}
 func (OngoingTaskExtension) ResourceDefinition() meta.ResourceDefinitionSpec {
 	return meta.ResourceDefinitionSpec{
 		Type:             OngoingTaskType,
-		Aliases:          []resource.Type{},
-		DefaultNamespace: resources.DefaultNamespace,
+		DefaultNamespace: resources.EphemeralNamespace,
 		PrintColumns: []meta.PrintColumn{
 			{
 				Name:     "Title",

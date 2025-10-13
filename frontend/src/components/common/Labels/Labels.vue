@@ -109,9 +109,7 @@ const removeLabel = async (key: string) => {
       @click.stop
       @blur="addLabel"
     />
-    <TButton v-else-if="!readonly" icon="tag" type="compact" @click.stop="editLabels">
-      new label
-    </TButton>
+    <TButton v-else-if="!readonly" icon="tag" size="sm" @click.stop="editLabels">new label</TButton>
   </div>
 </template>
 

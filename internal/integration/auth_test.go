@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"runtime"
 	"slices"
 	"strings"
@@ -66,8 +67,8 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
 )
 
-// AssertAnonymousAuthenication tests the authentication without any credentials.
-func AssertAnonymousAuthenication(testCtx context.Context, client *client.Client) TestFunc {
+// AssertAnonymousAuthentication tests the authentication without any credentials.
+func AssertAnonymousAuthentication(testCtx context.Context, client *client.Client) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, 300*time.Second)
 		defer cancel()
@@ -78,6 +79,29 @@ func AssertAnonymousAuthenication(testCtx context.Context, client *client.Client
 		assert.Error(t, err)
 
 		assert.Equalf(t, codes.Unauthenticated, status.Code(err), "%s != %s", codes.Unauthenticated, status.Code(err))
+	}
+}
+
+// AssertUnauthenticatedLocalResourceServerAccess tests the authentication without any credentials.
+func AssertUnauthenticatedLocalResourceServerAccess(testCtx context.Context) TestFunc {
+	return func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(testCtx, 300*time.Second)
+		defer cancel()
+
+		ctx = context.WithValue(ctx, interceptor.SkipInterceptorContextKey{}, struct{}{})
+
+		port := "8081" // todo: get this from the test args or embedded omni config
+
+		client, err := client.New("http://" + net.JoinHostPort("127.0.0.1", port))
+		require.NoError(t, err)
+
+		defer client.Close() //nolint:errcheck
+
+		_, err = client.Omni().State().List(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.ClusterType, "", resource.VersionUndefined))
+		assert.NoError(t, err)
+
+		_, err = client.Omni().State().List(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.MachineStatusType, "", resource.VersionUndefined))
+		assert.NoError(t, err)
 	}
 }
 
@@ -642,6 +666,15 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		machineExtensionsStatus := omni.NewMachineExtensionsStatus(resources.DefaultNamespace, uuid.New().String())
 		machineExtensionsStatus.Metadata().Labels().Set(omni.LabelCluster, uuid.New().String())
 
+		extraKernelArgsConfiguration := omni.NewExtraKernelArgsConfiguration(resources.DefaultNamespace, uuid.New().String())
+		extraKernelArgsConfiguration.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
+
+		machineExtraKernelArgs := omni.NewMachineExtraKernelArgs(resources.DefaultNamespace, uuid.New().String())
+		machineExtraKernelArgs.Metadata().Labels().Set(omni.LabelCluster, uuid.New().String())
+
+		machineExtraKernelArgsStatus := omni.NewMachineExtraKernelArgsStatus(resources.DefaultNamespace, uuid.New().String())
+		machineExtraKernelArgsStatus.Metadata().Labels().Set(omni.LabelCluster, uuid.New().String())
+
 		joinToken := siderolink.NewJoinToken(resources.DefaultNamespace, uuid.New().String())
 
 		defaultJoinToken, err := safe.StateGetByID[*siderolink.DefaultJoinToken](rootCtx, rootCli.Omni().State(), siderolink.DefaultJoinTokenID)
@@ -742,6 +775,18 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource:       machineExtensionsStatus,
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
+				resource:       extraKernelArgsConfiguration,
+				allowedVerbSet: allVerbsSet,
+			},
+			{
+				resource:       machineExtraKernelArgs,
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
+				resource:       machineExtraKernelArgsStatus,
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
@@ -946,11 +991,6 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       authres.NewAuthConfig(),
-				allowedVerbSet: readOnlyVerbSet,
-				isPublic:       true,
-			},
-			{
 				resource:       siderolink.NewConnectionParams(resources.DefaultNamespace, uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
@@ -1014,6 +1054,11 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource:              omni.NewMachineStatusMetrics(resources.EphemeralNamespace, uuid.New().String()),
+				allowedVerbSet:        readOnlyVerbSet,
+				isSignatureSufficient: true,
+			},
+			{
+				resource:              omni.NewClusterMetrics(resources.EphemeralNamespace, uuid.New().String()),
 				allowedVerbSet:        readOnlyVerbSet,
 				isSignatureSufficient: true,
 			},
@@ -1155,6 +1200,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		// delete excluded resources from the untested set
 		delete(untestedResourceTypes, k8s.KubernetesResourceType)
 		delete(untestedResourceTypes, siderolink.DeprecatedLinkCounterType)
+		delete(untestedResourceTypes, authres.AuthConfigType)
 
 		for _, tc := range testCases {
 			for _, testVerb := range allVerbs {
@@ -1179,17 +1225,17 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 
 						accessErr := accessResource(noSignatureCtx, t, rootCli, scopedCli, tc.resource, testVerb)
 
+						if !tc.isPublic {
+							assert.ErrorContains(t, accessErr, "invalid signature")
+
+							// refresh the error but with a signature this time
+							accessErr = accessResource(rootCtx, t, rootCli, scopedCli, tc.resource, testVerb)
+						}
+
 						if len(tc.allowedVerbSet) == 0 {
 							assert.ErrorContains(t, accessErr, "no access is permitted")
 
 							return
-						}
-
-						if !tc.isPublic {
-							assert.ErrorContains(t, accessErr, "missing valid signature")
-
-							// refresh the error but with a signature this time
-							accessErr = accessResource(rootCtx, t, rootCli, scopedCli, tc.resource, testVerb)
 						}
 
 						isVerbError := accessErr != nil && strings.Contains(accessErr.Error(), "only") && strings.Contains(accessErr.Error(), "access is permitted")

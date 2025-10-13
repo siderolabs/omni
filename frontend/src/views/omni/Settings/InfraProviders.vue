@@ -28,7 +28,6 @@ import { itemID } from '@/api/watch'
 import IconButton from '@/components/common/Button/IconButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
-import ListItemBox from '@/components/common/List/ListItemBox.vue'
 import TList from '@/components/common/List/TList.vue'
 import TStatus from '@/components/common/Status/TStatus.vue'
 import { TCommonStatuses } from '@/constants'
@@ -133,49 +132,44 @@ const openRotateSecretKey = async (name: string) => {
     >
       <template #default="{ items }">
         <div class="flex flex-col gap-2">
-          <ListItemBox
+          <div
             v-for="item in items"
             :key="itemID(item)"
-            list-i-d="providers"
-            :item-i-d="item.metadata.id!"
+            class="grid grid-cols-4 items-center rounded border border-naturals-n5 bg-naturals-n1 p-3"
             :class="{ 'border-dashed': !item.spec.name }"
           >
-            <template #default>
-              <div class="flex w-full">
-                <div class="providers-grid">
-                  <div class="text-md flex items-center gap-3 text-naturals-n13">
-                    <TIcon :svg-base-64="item.spec.icon" icon="cloud-connection" class="h-8 w-8" />
-                    <div class="flex flex-col gap-0.5">
-                      <div>{{ item.spec.name }}</div>
-                      <div class="text-xs font-bold text-naturals-n10">
-                        ID: {{ item.metadata.id! }}
-                      </div>
-                    </div>
-                  </div>
-                  <TStatus :title="getStatus(item)" />
-                  <div class="truncate text-xs">
-                    {{ item.spec.description }}
-                  </div>
-                </div>
-                <IconButton icon="key" @click="() => openRotateSecretKey(item.metadata.id!)" />
-                <IconButton
-                  icon="delete"
-                  danger
-                  @click="() => openInfraProviderDelete(item.metadata.id!)"
-                />
+            <div class="flex items-center gap-3">
+              <TIcon
+                :svg-base-64="item.spec.icon"
+                icon="cloud-connection"
+                class="size-8 text-naturals-n13"
+              />
+
+              <div class="flex flex-col gap-0.5">
+                <span v-if="item.spec.name" class="text-md text-naturals-n13">
+                  {{ item.spec.name }}
+                </span>
+
+                <span class="text-xs font-bold text-naturals-n10">ID: {{ item.metadata.id }}</span>
               </div>
-            </template>
-          </ListItemBox>
+            </div>
+
+            <TStatus :title="getStatus(item)" />
+            <div class="truncate text-xs">
+              {{ item.spec.description }}
+            </div>
+
+            <div class="justify-self-end">
+              <IconButton icon="key" @click="() => openRotateSecretKey(item.metadata.id!)" />
+              <IconButton
+                icon="delete"
+                danger
+                @click="() => openInfraProviderDelete(item.metadata.id!)"
+              />
+            </div>
+          </div>
         </div>
       </template>
     </TList>
   </div>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.providers-grid {
-  @apply mx-1 -my-2 grid flex-1 grid-cols-4 items-center;
-}
-</style>

@@ -96,54 +96,55 @@ const updateLock = async () => {
 
 <template>
   <div
-    class="flex h-3 cursor-pointer items-center gap-1 py-6 pr-4 pl-3 text-xs text-naturals-n14 hover:bg-naturals-n3"
+    class="col-span-full grid cursor-pointer grid-cols-subgrid p-2 pr-4 text-xs text-naturals-n14 hover:bg-naturals-n3"
+    @click="openNodeInfo"
   >
-    <div class="pointer-events-none w-5" />
-    <div class="-mr-3 grid flex-1 grid-cols-4 items-center" @click="openNodeInfo">
-      <div class="col-span-2 flex items-center gap-2">
-        <TIcon :icon="icon" class="ml-2 h-4 w-4" />
-        <RouterLink
-          :to="{
-            name: 'NodeOverview',
-            params: { cluster: clusterName, machine: machine.metadata.id },
-          }"
-          class="list-item-link truncate"
-        >
-          {{ nodeName }}
-        </RouterLink>
-      </div>
-      <div class="col-span-2 flex items-center justify-between gap-2 pr-2">
-        <div class="flex items-center gap-2">
-          <ClusterMachinePhase :machine="machine" />
-          <div v-if="lockedUpdate" class="flex items-center gap-1 truncate text-sky-400">
-            <TIcon icon="time" class="h-4 w-4 min-w-max" />
-            <div class="flex-1 truncate">Pending Config Update</div>
-          </div>
-        </div>
-        <div class="flex items-center">
-          <Tooltip
-            v-if="hasDiagnosticInfo"
-            description="This node has diagnostic warnings. Click to see the details."
-          >
-            <TIcon icon="warning" class="mx-1.5 h-4 w-4 text-yellow-400" />
-          </Tooltip>
-          <Tooltip
-            v-if="lockable"
-            description="Lock machine config. Pause Kubernetes and Talos updates on the machine."
-          >
-            <IconButton
-              :icon="locked ? (lockedUpdate ? 'locked-toggle' : 'locked') : 'unlocked'"
-              class="mt-0.5 h-4 w-4"
-              @click.stop="updateLock"
-            />
-          </Tooltip>
-        </div>
+    <div class="col-span-2 ml-6 flex items-center gap-2">
+      <TIcon :icon="icon" class="h-4 w-4" />
+      <RouterLink
+        :to="{
+          name: 'NodeOverview',
+          params: { cluster: clusterName, machine: machine.metadata.id },
+        }"
+        class="list-item-link truncate"
+      >
+        {{ nodeName }}
+      </RouterLink>
+    </div>
+
+    <div class="col-span-2 flex items-center gap-2">
+      <ClusterMachinePhase :machine="machine" />
+      <div v-if="lockedUpdate" class="flex items-center gap-1 truncate text-sky-400">
+        <TIcon icon="time" class="h-4 w-4 min-w-max" />
+        <div class="flex-1 truncate">Pending Config Update</div>
       </div>
     </div>
-    <NodeContextMenu
-      :cluster-machine-status="machine"
-      :cluster-name="clusterName"
-      :delete-disabled="deleteDisabled!"
-    />
+
+    <div class="flex items-center justify-end">
+      <Tooltip
+        v-if="hasDiagnosticInfo"
+        description="This node has diagnostic warnings. Click to see the details."
+      >
+        <TIcon icon="warning" class="mx-1.5 h-4 w-4 text-yellow-400" />
+      </Tooltip>
+
+      <Tooltip
+        v-if="lockable"
+        description="Lock machine config. Pause Kubernetes and Talos updates on the machine."
+      >
+        <IconButton
+          :icon="locked ? (lockedUpdate ? 'locked-toggle' : 'locked') : 'unlocked'"
+          class="mt-0.5 h-4 w-4"
+          @click.stop="updateLock"
+        />
+      </Tooltip>
+
+      <NodeContextMenu
+        :cluster-machine-status="machine"
+        :cluster-name="clusterName"
+        :delete-disabled="deleteDisabled!"
+        @click.stop
+      />
+    </div>
   </div>
 </template>

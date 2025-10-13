@@ -8,6 +8,7 @@ import { Userpilot } from 'userpilot'
 import type { RouteRecordRaw } from 'vue-router'
 import { createRouter, createWebHistory, RouterView } from 'vue-router'
 
+import { AuthFlowQueryParam, RedirectQueryParam } from '@/api/resources'
 import { current } from '@/context'
 import { AuthType, authType } from '@/methods'
 import { loadCurrentUser } from '@/methods/auth'
@@ -18,7 +19,7 @@ import { refreshTitle } from '@/methods/title'
 export const FrontendAuthFlow = 'frontend'
 const requireCookies = false
 
-const routes: RouteRecordRaw[] = [
+export const routes: RouteRecordRaw[] = [
   // Unauthenticated routes
   { path: '/forbidden', component: () => import('@/views/common/Forbidden.vue') },
   { path: '/badrequest', component: () => import('@/views/common/BadRequest.vue') },
@@ -37,6 +38,8 @@ const routes: RouteRecordRaw[] = [
   { path: '/omni/:catchAll(.*)', redirect: (to) => `/${to.params.catchAll}` },
   { path: '/cluster', redirect: '/clusters' },
   { path: '/cluster/:catchAll(.*)', redirect: (to) => `/clusters/${to.params.catchAll}` },
+  { path: '/machine', redirect: '/machines' },
+  { path: '/machine/:catchAll(.*)', redirect: (to) => `/machines/${to.params.catchAll}` },
 
   // Authenticated routes
   {
@@ -62,7 +65,10 @@ const routes: RouteRecordRaw[] = [
         return true
       }
 
-      return { name: 'Authenticate', query: { flow: FrontendAuthFlow, redirect: to.fullPath } }
+      return {
+        name: 'Authenticate',
+        query: { [AuthFlowQueryParam]: FrontendAuthFlow, [RedirectQueryParam]: to.fullPath },
+      }
     },
     children: [
       {
@@ -197,62 +203,102 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'machines',
-        name: 'Machines',
-        component: () => import('@/views/omni/Machines/Machines.vue'),
-      },
-      {
-        path: 'machines/manual',
-        name: 'MachinesManual',
-        component: () => import('@/views/omni/Machines/Machines.vue'),
-        props: {
-          filter: MachineFilterOption.Manual,
-        },
-      },
-      {
-        path: 'machines/managed',
-        name: 'MachinesManaged',
-        component: () => import('@/views/omni/Machines/Machines.vue'),
-        props: {
-          filter: MachineFilterOption.Managed,
-        },
-      },
-      {
-        path: 'machines/managed/:provider',
-        name: 'MachinesManagedProvider',
-        component: () => import('@/views/omni/Machines/Machines.vue'),
-      },
-      {
-        path: 'machines/pending',
-        name: 'MachinesPending',
-        component: () => import('@/views/omni/Machines/MachinesPending.vue'),
+        children: [
+          {
+            path: '',
+            name: 'Machines',
+            component: () => import('@/views/omni/Machines/Machines.vue'),
+          },
+          {
+            path: 'manual',
+            name: 'MachinesManual',
+            component: () => import('@/views/omni/Machines/Machines.vue'),
+            props: {
+              filter: MachineFilterOption.Manual,
+            },
+          },
+          {
+            path: 'managed',
+            children: [
+              {
+                path: '',
+                name: 'MachinesManaged',
+                component: () => import('@/views/omni/Machines/Machines.vue'),
+                props: {
+                  filter: MachineFilterOption.Managed,
+                },
+              },
+              {
+                path: ':provider',
+                name: 'MachinesManagedProvider',
+                component: () => import('@/views/omni/Machines/Machines.vue'),
+              },
+            ],
+          },
+          {
+            path: 'pending',
+            name: 'MachinesPending',
+            component: () => import('@/views/omni/Machines/MachinesPending.vue'),
+          },
+          {
+            path: 'jointokens',
+            name: 'JoinTokens',
+            component: () => import('@/views/omni/Settings/JoinTokens.vue'),
+          },
+          {
+            path: ':machine',
+            name: 'Machine',
+            component: () => import('@/views/omni/Machines/Machine.vue'),
+            redirect: {
+              name: 'MachineLogs',
+            },
+            children: [
+              {
+                path: 'logs',
+                name: 'MachineLogs',
+                component: () => import('@/views/omni/Machines/MachineLogs.vue'),
+              },
+              {
+                path: 'patches',
+                children: [
+                  {
+                    path: '',
+                    name: 'MachineConfigPatches',
+                    component: () => import('@/views/omni/Machines/MachinePatches.vue'),
+                  },
+                  {
+                    path: ':patch',
+                    name: 'MachinePatchEdit',
+                    component: () => import('@/views/cluster/Config/PatchEdit.vue'),
+                  },
+                ],
+              },
+            ],
+          },
+        ],
       },
       {
         path: 'machine-classes',
-        name: 'MachineClasses',
-        component: () => import('@/views/omni/MachineClasses/MachineClasses.vue'),
-      },
-      {
-        path: 'machine-classes/create',
-        name: 'MachineClassCreate',
-        component: () => import('@/views/omni/MachineClasses/MachineClass.vue'),
-      },
-      {
-        path: 'machine-classes/:classname',
-        name: 'MachineClassEdit',
-        component: () => import('@/views/omni/MachineClasses/MachineClass.vue'),
-        props: {
-          edit: true,
-        },
-      },
-      {
-        path: 'machine/:machine/patches/:patch',
-        name: 'MachinePatchEdit',
-        component: () => import('@/views/cluster/Config/PatchEdit.vue'),
-      },
-      {
-        path: 'machine/jointokens',
-        name: 'JoinTokens',
-        component: () => import('@/views/omni/Settings/JoinTokens.vue'),
+        children: [
+          {
+            path: '',
+            name: 'MachineClasses',
+            component: () => import('@/views/omni/MachineClasses/MachineClasses.vue'),
+          },
+          {
+            path: 'create',
+            name: 'MachineClassCreate',
+            component: () => import('@/views/omni/MachineClasses/MachineClass.vue'),
+          },
+          {
+            path: ':classname',
+            name: 'MachineClassEdit',
+            component: () => import('@/views/omni/MachineClasses/MachineClass.vue'),
+            props: {
+              edit: true,
+            },
+          },
+        ],
       },
       {
         path: 'settings',
@@ -293,26 +339,6 @@ const routes: RouteRecordRaw[] = [
             meta: {
               title: 'Backup Storage',
             },
-          },
-        ],
-      },
-      {
-        path: 'machine/:machine',
-        name: 'Machine',
-        component: () => import('@/views/omni/Machines/Machine.vue'),
-        redirect: {
-          name: 'MachineLogs',
-        },
-        children: [
-          {
-            path: 'logs',
-            name: 'MachineLogs',
-            component: () => import('@/views/omni/Machines/MachineLogs.vue'),
-          },
-          {
-            path: 'patches',
-            name: 'MachineConfigPatches',
-            component: () => import('@/views/omni/Machines/MachinePatches.vue'),
           },
         ],
       },

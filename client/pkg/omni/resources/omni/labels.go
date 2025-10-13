@@ -2,7 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-// Package omni provides resources describing the Machines, Clusters, etc.
 package omni
 
 const (
@@ -228,4 +227,9 @@ const (
 	// from which MachineExtensions resource was generated.
 	// tsgen:ExtensionsConfigurationLabel
 	ExtensionsConfigurationLabel = SystemLabelPrefix + "root-configuration"
+
+	// ExtraKernelArgsConfigurationLabel defines the source ExtraKernelArgs resource
+	// from which MachineExtraKernelArgs resource was generated.
+	// tsgen:ExtraKernelArgsConfigurationLabel
+	ExtraKernelArgsConfigurationLabel = SystemLabelPrefix + "root-configuration"
 )

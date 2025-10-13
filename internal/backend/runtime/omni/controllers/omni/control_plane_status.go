@@ -85,6 +85,7 @@ func NewControlPlaneStatusController() *ControlPlaneStatusController {
 				)
 
 				var checkErr error
+
 				for _, handler := range handlers {
 					if interrupted {
 						spec.SetCondition(

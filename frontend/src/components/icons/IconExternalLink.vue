@@ -7,7 +7,13 @@ included in the LICENSE file.
 <script setup lang="ts"></script>
 
 <template>
-  <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 16 16"
+    fill="currentColor"
+    xmlns="http://www.w3.org/2000/svg"
+  >
     <path
       fill-rule="evenodd"
       clip-rule="evenodd"

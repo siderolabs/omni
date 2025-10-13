@@ -84,14 +84,11 @@ func (ctrl *ClusterStatusMetricsController) Run(ctx context.Context, r controlle
 
 		res.TypedSpec().Value.Phases = make(map[int32]uint32, len(specs.ClusterStatusSpec_Phase_name))
 
-		// it is important to enumerate here all status values, as otherwise metric might not be cleared properly
-		// when there are no cluster in a given status
-		clustersByStatus := map[specs.ClusterStatusSpec_Phase]int{
-			specs.ClusterStatusSpec_UNKNOWN:      0,
-			specs.ClusterStatusSpec_SCALING_UP:   0,
-			specs.ClusterStatusSpec_SCALING_DOWN: 0,
-			specs.ClusterStatusSpec_RUNNING:      0,
-			specs.ClusterStatusSpec_DESTROYING:   0,
+		clustersByStatus := make(map[specs.ClusterStatusSpec_Phase]uint32, len(specs.ClusterStatusSpec_Phase_name))
+
+		// initialize all possible phases to 0 to include all of them in the metrics
+		for phase := range specs.ClusterStatusSpec_Phase_name {
+			clustersByStatus[specs.ClusterStatusSpec_Phase(phase)] = 0
 		}
 
 		for val := range list.All() {

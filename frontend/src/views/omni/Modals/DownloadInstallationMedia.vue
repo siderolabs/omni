@@ -223,8 +223,8 @@ onMounted(async () => {
     withRuntime(Runtime.Omni),
   )
 
-  useGrpcTunnel.value = siderolinkAPIConfig.spec.enforce_grpc_tunnel || false
   useGrpcTunnelDefault.value = siderolinkAPIConfig.spec.enforce_grpc_tunnel || false
+  useGrpcTunnel.value = useGrpcTunnelDefault.value
   ready.value = true
 
   if (!joinToken.value) {
@@ -312,6 +312,8 @@ const createSchematic = async () => {
         schematic.extensions?.push(key)
       }
     }
+
+    schematic.extensions?.sort()
 
     schematic.extra_kernel_args = kernelArguments.value.split(' ').filter((item) => item.trim())
 
@@ -503,13 +505,10 @@ const downloaded = computed(() => {
 
       <div class="flex">
         <h3 class="flex-1 text-sm text-naturals-n14">Pre-Install Extensions</h3>
-        <TCheckbox
-          class="col-span-2"
-          label="Show Descriptions"
-          :checked="showDescriptions"
-          @click="showDescriptions = !showDescriptions"
-        />
+        <TCheckbox v-model="showDescriptions" class="col-span-2" label="Show Descriptions" />
       </div>
+
+      <pre>{{ JSON.stringify(installExtensions, null, 2) }}</pre>
 
       <ExtensionsPicker
         v-model="installExtensions"
@@ -529,10 +528,9 @@ const downloaded = computed(() => {
       <TInput v-model="kernelArguments" />
 
       <TCheckbox
+        v-model="secureBoot"
         label="Secure Boot"
         :disabled="installationMedia?.spec?.no_secure_boot"
-        :checked="secureBoot && !installationMedia?.spec?.no_secure_boot"
-        @click="secureBoot = !secureBoot"
       />
 
       <Tooltip>
@@ -549,11 +547,9 @@ const downloaded = computed(() => {
           </div>
         </template>
         <TCheckbox
+          v-model="useGrpcTunnel"
           :disabled="useGrpcTunnelDefault"
-          :checked="useGrpcTunnel"
-          display-checked-status-when-disabled
           label="Tunnel Omni management traffic over HTTP2"
-          @click="useGrpcTunnel = !useGrpcTunnel"
         />
       </Tooltip>
 

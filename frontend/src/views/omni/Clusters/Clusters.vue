@@ -9,6 +9,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
+import type { ClusterStatusMetricsSpec } from '@/api/omni/specs/omni.pb'
 import {
   ClusterStatusMetricsID,
   ClusterStatusMetricsType,
@@ -24,7 +25,7 @@ import TButton from '@/components/common/Button/TButton.vue'
 import TList from '@/components/common/List/TList.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatsItem from '@/components/common/Stats/StatsItem.vue'
-import Watch from '@/components/common/Watch/Watch.vue'
+import { useWatch } from '@/components/common/Watch/useWatch'
 import { canCreateClusters } from '@/methods/auth'
 import type { Label } from '@/methods/labels'
 import { addLabel, selectors } from '@/methods/labels'
@@ -44,6 +45,15 @@ const watchOpts = computed<WatchOptions>(() => {
     selectors: selectors(filterLabels.value),
     sortByField: 'created',
   }
+})
+
+const { data } = useWatch<ClusterStatusMetricsSpec>({
+  resource: {
+    type: ClusterStatusMetricsType,
+    id: ClusterStatusMetricsID,
+    namespace: EphemeralNamespace,
+  },
+  runtime: Runtime.Omni,
 })
 
 const filterValue = ref('')
@@ -84,25 +94,12 @@ const filterOptions = [
         <div class="flex items-start gap-1">
           <PageHeader title="Clusters" class="flex-1">
             <StatsItem title="Clusters" :value="itemsCount" icon="clusters" />
-            <Watch
-              :opts="{
-                resource: {
-                  type: ClusterStatusMetricsType,
-                  id: ClusterStatusMetricsID,
-                  namespace: EphemeralNamespace,
-                },
-                runtime: Runtime.Omni,
-              }"
-            >
-              <template #default="{ data }">
-                <StatsItem
-                  v-if="data?.spec.not_ready_count"
-                  title="Not Ready"
-                  :value="data.spec.not_ready_count"
-                  icon="warning"
-                />
-              </template>
-            </Watch>
+            <StatsItem
+              v-if="data?.spec.not_ready_count"
+              title="Not Ready"
+              :value="data.spec.not_ready_count"
+              icon="warning"
+            />
           </PageHeader>
           <TButton :disabled="!canCreateClusters" type="highlighted" @click="openClusterCreate">
             Create Cluster
@@ -122,18 +119,17 @@ const filterOptions = [
         />
       </template>
       <template #default="{ items, searchQuery }">
-        <div class="flex flex-col gap-2">
-          <div class="max-lg:hidden">
-            <div class="clusters-header">
-              <div class="clusters-grid">
-                <div class="pl-6">Name</div>
-                <div class="pl-6">Machines Healthy</div>
-                <div class="pl-6">Phase</div>
-                <div class="pl-5">Labels</div>
-              </div>
-              <div>Actions</div>
-            </div>
+        <div class="grid grid-cols-[repeat(4,1fr)_--spacing(18)] gap-3">
+          <div
+            class="col-span-full grid grid-cols-subgrid bg-naturals-n2 px-3 py-2.5 text-xs max-lg:hidden"
+          >
+            <div class="pl-6">Name</div>
+            <div>Machines Healthy</div>
+            <div>Phase</div>
+            <div>Labels</div>
+            <div>Actions</div>
           </div>
+
           <ClusterItem
             v-for="(item, index) in items"
             :key="itemID(item)"
@@ -147,19 +143,3 @@ const filterOptions = [
     </TList>
   </div>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.clusters-grid {
-  @apply grid flex-1 grid-cols-4 pr-2;
-}
-
-.clusters-header {
-  @apply mb-1 flex items-center bg-naturals-n2 px-3 py-2.5;
-}
-
-.clusters-header > * {
-  @apply text-xs;
-}
-</style>

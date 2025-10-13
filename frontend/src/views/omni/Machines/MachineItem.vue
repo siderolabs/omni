@@ -78,11 +78,7 @@ const maintenanceUpdateDescription = computed(() => {
       class="grid grid-cols-[auto_1fr] gap-1 border-l-4 px-2 py-4"
       :class="panelOpen ? 'border-l-primary-p2' : 'border-l-transparent'"
     >
-      <TCheckbox
-        class="shrink-0 justify-self-center"
-        :checked="selected"
-        @click="selected = !selected"
-      />
+      <TCheckbox v-model="selected" class="shrink-0 justify-self-center" />
 
       <div
         class="flex items-center gap-2 overflow-hidden text-xs text-naturals-n13"
@@ -160,7 +156,7 @@ const maintenanceUpdateDescription = computed(() => {
             </button>
           </Tooltip>
 
-          <TActionsBox class="h-6">
+          <TActionsBox>
             <TActionsBoxItem
               icon="settings"
               @click="

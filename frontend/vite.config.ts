@@ -21,7 +21,7 @@ export default defineConfig(({ command }) => {
   const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST
 
   const config: UserConfig = {
-    plugins: [vue(), vueDevTools(), tailwindcss(), nodePolyfills({ include: ['stream'] })],
+    plugins: [vue(), tailwindcss(), nodePolyfills({ include: ['stream'] })],
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -34,11 +34,18 @@ export default defineConfig(({ command }) => {
       environment: 'jsdom',
       exclude: [...configDefaults.exclude, 'e2e/**'],
       root: fileURLToPath(new URL('./', import.meta.url)),
+      alias: {
+        '@msw': fileURLToPath(new URL('./msw', import.meta.url)),
+      },
     },
     server: {
       port: 8121,
       host: '127.0.0.1',
     },
+  }
+
+  if (process.env.ENABLE_DEVTOOLS) {
+    config.plugins?.push(vueDevTools())
   }
 
   if (command === 'serve') {

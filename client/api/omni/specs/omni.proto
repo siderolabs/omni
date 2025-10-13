@@ -151,6 +151,11 @@ message MachineStatusSpec {
   }
 
   message Schematic {
+    message InitialState {
+      repeated string extensions = 1;
+      repeated string kernel_args = 2;
+    }
+
     // Id is the image factory schematic id used for the image generation.
     //
     // This must be be plain id computed solely from the system extensions, not including the kernel command line arguments, META content etc.
@@ -187,6 +192,9 @@ message MachineStatusSpec {
 
     // InAgentMode indicates that the machine is running in agent mode.
     bool in_agent_mode = 10;
+
+    // InitialState is the initial schematic configuration of the machine.
+    InitialState initial_state = 11;
   }
 
   message Diagnostic {
@@ -444,6 +452,9 @@ message ClusterMachineConfigSpec {
 
   // WithoutComments indicates that the config was generated without comments.
   bool without_comments = 5;
+
+  // ExtraKernelArgs contains the list of extra kernel command line arguments used during the config generation.
+  repeated string extra_kernel_args = 6;
 }
 
 // ClusterMachineConfigSpec stores generated Talos node machine config.
@@ -605,6 +616,9 @@ message ClusterMachineConfigStatusSpec {
   string last_config_error = 6;
   string talos_version = 7;
   string schematic_id = 8;
+
+  // ExtraKernelArgs are the last applied extra kernel args from the ClusterMachineConfig resource.
+  repeated string extra_kernel_args = 9;
 }
 
 // ClusterBootstrapStatusSpec keeps track of bootstrap calls for a cluster.
@@ -801,7 +815,7 @@ message TalosUpgradeStatusSpec {
     Done = 2;
     Failed = 3;
     Reverting = 4;
-    InstallingExtensions = 5;
+    UpdatingMachineSchematics = 5;
   }
 
   // Current upgrade phase.
@@ -1029,10 +1043,17 @@ message FeaturesConfigSpec {
 
   // UserPilotSettings enables UserPilot on the frontend side.
   UserPilotSettings user_pilot_settings = 6;
+
+  // StripeSettings enables Stripe on the frontend side.
+  StripeSettings stripe_settings = 7;
 }
 
 message UserPilotSettings {
   string app_token = 1;
+}
+
+message StripeSettings {
+  bool enabled = 1;
 }
 
 message EtcdBackupSettings {
@@ -1060,6 +1081,7 @@ message MachineClassSpec {
     string provider_data = 4;
 
     GrpcTunnelMode grpc_tunnel = 5;
+    repeated string extensions = 6;
   }
 
   // MatchLabels is the list of labels to match the machine to make it part of the machine class.
@@ -1091,6 +1113,15 @@ message MachineConfigGenOptionsSpec {
 
   // InstallImage contains the information needed to build the install image URL of a machine to be used by the Talos installer.
   InstallImage install_image = 2;
+
+  // ExtraKernelArgs are the list of extra kernel args to be included in the machine.install.extraKernelArgs field of the machine config.
+  repeated string extra_kernel_args = 3;
+
+  // AlwaysIncludeKernelArgs indicates if the kernel args for this machine were explicitly set ever. If true,
+  // the schematic comparisons for this machine will always include kernel args, i.e., will use "full schematic id".
+  //
+  // This boolean exists for the backward compatibility reasons, to avoid triggering a Talos upgrade for all machines due to schematic updates.
+  bool always_include_kernel_args = 8;
 }
 
 // EtcdAuditResult is updated when the etcd audit removes a member.
@@ -1182,6 +1213,10 @@ message ExtensionsConfigurationSpec {
   repeated string extensions = 1;
 }
 
+message ExtraKernelArgsConfigurationSpec {
+  repeated string args = 1;
+}
+
 // ExtensionsConfigurationStatusSpec is the status of the generated schematic.
 // Deprecated: to be removed.
 message ExtensionsConfigurationStatusSpec {
@@ -1199,6 +1234,10 @@ message ExtensionsConfigurationStatusSpec {
 // MachineExtensionsSpec is the extensions list to be used for a machine.
 message MachineExtensionsSpec {
   repeated string extensions = 1;
+}
+
+message MachineExtraKernelArgsSpec {
+  repeated string args = 1;
 }
 
 // MachineExtensionsStatusSpec defines status of each extension on the machine.
@@ -1219,6 +1258,17 @@ message MachineExtensionsStatusSpec {
   string talos_version = 2;
 }
 
+// MachineExtraKernelArgsStatusSpec defines status of each extra kernel arg on the machine.
+message MachineExtraKernelArgsStatusSpec {
+  enum Phase {
+    Configured = 0;
+    Configuring = 1;
+  }
+
+  repeated string args = 1;
+  Phase phase = 2;
+}
+
 // MachineStatusMetricsSpec provides aggregated state of the number of registered and connected machines for the Omni instance.
 message MachineStatusMetricsSpec {
   uint32 registered_machines_count = 1;
@@ -1227,6 +1277,14 @@ message MachineStatusMetricsSpec {
   uint32 pending_machines_count = 4;
 
   map<string, int32> versions_map = 5;
+  map<string, uint32> platforms = 6;
+  map<string, uint32> secure_boot_status = 7;
+  map<string, uint32> uki_status = 8;
+}
+
+// ClusterMetricsSpec contains metrics about the clusters in the Omni instance.
+message ClusterMetricsSpec {
+  map<string, uint32> features = 3;
 }
 
 // ClusterStatusMetricsSpec provides aggregated state of the number of clusters in not ready phase.

@@ -33,9 +33,7 @@ const addWorkers = () => {
 
 <template>
   <div>
-    <TButton icon="plus" class="h-8" type="compact" @click="addWorkers">
-      Add Worker Machine Sets
-    </TButton>
+    <TButton icon="plus" class="h-8" size="sm" @click="addWorkers">Add Worker Machine Sets</TButton>
     <MachineSetConfig
       v-for="(machineSet, index) in state.machineSets"
       :key="machineSet.name"

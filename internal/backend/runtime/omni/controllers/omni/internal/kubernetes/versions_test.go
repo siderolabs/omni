@@ -24,29 +24,29 @@ func TestCalculateUpgradeVersions(t *testing.T) {
 
 	for _, test := range []struct {
 		name           string
-		k8sVersions    []string
 		talosVersion   string
+		compatibleK8s  []string
 		currentVersion string
 
 		expected []string
 	}{
 		{
 			name:           "to previous",
-			k8sVersions:    []string{"1.25.0", "1.25.1", "1.25.2", "1.26.0", "1.26.1"},
 			talosVersion:   "1.3.5",
+			compatibleK8s:  []string{"1.25.0", "1.25.1", "1.25.2", "1.26.0", "1.26.1"},
 			currentVersion: "1.26.1",
 			expected:       []string{"1.26.0"},
 		},
 		{
 			name:           "many versions",
-			k8sVersions:    []string{"1.24.0", "1.25.0", "1.25.1", "1.25.2", "1.26.0", "1.26.1", "1.27.0"},
 			talosVersion:   "1.3.5",
+			compatibleK8s:  []string{"1.24.0", "1.25.0", "1.25.1", "1.25.2", "1.26.0", "1.26.1", "1.27.0"},
 			currentVersion: "1.25.1",
 			expected:       []string{"1.25.0", "1.25.2", "1.26.0", "1.26.1"},
 		},
 		{
 			name:           "no compatible versions",
-			k8sVersions:    []string{"1.22.1", "1.23.1", "1.24.1"},
+			compatibleK8s:  []string{"1.22.1"},
 			talosVersion:   "1.3.5",
 			currentVersion: "1.22.1", // upgrade path only to 1.23, but Talos 1.3 doesn't support it
 			expected:       nil,
@@ -59,12 +59,11 @@ func TestCalculateUpgradeVersions(t *testing.T) {
 
 			st := state.WrapCore(namespaced.NewState(inmem.Build))
 
-			for _, version := range test.k8sVersions {
-				v := omni.NewKubernetesVersion(resources.DefaultNamespace, version)
-				v.TypedSpec().Value.Version = version
+			tv := omni.NewTalosVersion(resources.DefaultNamespace, test.talosVersion)
+			tv.TypedSpec().Value.Version = test.talosVersion
+			tv.TypedSpec().Value.CompatibleKubernetesVersions = test.compatibleK8s
 
-				require.NoError(t, st.Create(ctx, v))
-			}
+			require.NoError(t, st.Create(ctx, tv))
 
 			versions, err := kubernetes.CalculateUpgradeVersions(ctx, st, test.currentVersion, test.talosVersion)
 			require.NoError(t, err)

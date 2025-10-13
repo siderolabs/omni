@@ -409,10 +409,10 @@ func reconcileTalosUpdateStatus(ctx context.Context, r controller.ReaderWriter,
 
 	switch {
 	case !versionMismatch && schematicUpdates:
-		upgradeStatus.TypedSpec().Value.Phase = specs.TalosUpgradeStatusSpec_InstallingExtensions
+		upgradeStatus.TypedSpec().Value.Phase = specs.TalosUpgradeStatusSpec_UpdatingMachineSchematics
 
 		fallthrough
-	case versionMismatch || schematicUpdates:
+	case versionMismatch:
 		upgradeStatus.TypedSpec().Value.Status = fmt.Sprintf("updating machines %d/%d", pendingMachines, totalMachines)
 	default:
 		upgradeStatus.TypedSpec().Value.Phase = specs.TalosUpgradeStatusSpec_Reverting

@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -58,35 +60,25 @@ func (c *Client) Resource(res *unstructured.Unstructured) (dynamic.ResourceInter
 	return dr, nil
 }
 
-// Create saves the object obj in the Kubernetes cluster.
-func (c *Client) Create(ctx context.Context, res *unstructured.Unstructured, opts metav1.CreateOptions, subresources ...string) (*unstructured.Unstructured, error) {
-	dr, err := c.Resource(res)
-	if err != nil {
-		return nil, err
+func filterGVK(gvk schema.GroupVersionKind) error {
+	switch gvk.String() {
+	case "/v1, Kind=Node":
+	case "/v1, Kind=Pod":
+	default:
+		return status.Errorf(codes.Unimplemented, "unsupported resource kind %q", gvk.String())
 	}
 
-	return dr.Create(ctx, res, opts, subresources...)
-}
-
-// Delete deletes the given obj from Kubernetes cluster.
-func (c *Client) Delete(ctx context.Context, resource, name, namespace string, opts metav1.DeleteOptions, subresources ...string) error {
-	res, err := c.parseResource(resource, namespace)
-	if err != nil {
-		return err
-	}
-
-	dr, err := c.Resource(res)
-	if err != nil {
-		return err
-	}
-
-	return dr.Delete(ctx, name, opts, subresources...)
+	return nil
 }
 
 // Get retrieves an obj for the given object key from the Kubernetes Cluster.
 func (c *Client) Get(ctx context.Context, resource, name, namespace string, opts metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error) {
 	res, err := c.parseResource(resource, namespace)
 	if err != nil {
+		return nil, err
+	}
+
+	if err = filterGVK(res.GroupVersionKind()); err != nil {
 		return nil, err
 	}
 
@@ -105,22 +97,16 @@ func (c *Client) List(ctx context.Context, resource, namespace string, opts meta
 		return nil, err
 	}
 
+	if err = filterGVK(res.GroupVersionKind()); err != nil {
+		return nil, err
+	}
+
 	dr, err := c.Resource(res)
 	if err != nil {
 		return nil, err
 	}
 
 	return dr.List(ctx, opts)
-}
-
-// Update updates the resource.
-func (c *Client) Update(ctx context.Context, res *unstructured.Unstructured, opts metav1.UpdateOptions, subresources ...string) (*unstructured.Unstructured, error) {
-	dr, err := c.Resource(res)
-	if err != nil {
-		return nil, err
-	}
-
-	return dr.Update(ctx, res, opts, subresources...)
 }
 
 // Dynamic returns the underlying dynamic client.

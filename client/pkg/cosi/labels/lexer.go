@@ -271,7 +271,7 @@ func (l *lexer) lex() (tok lexerToken, lit string) {
 		l.hasOperator = false
 	}
 
-	return
+	return tok, lit
 }
 
 func (l *lexer) scanQuotedString() (lexerToken, string) {

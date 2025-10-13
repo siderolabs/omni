@@ -21,7 +21,7 @@ defineProps<Props>()
 
 <template>
   <button
-    class="h-6 w-6 rounded text-naturals-n11 transition-all duration-100 hover:bg-naturals-n7 hover:text-naturals-n13 disabled:pointer-events-none disabled:cursor-not-allowed disabled:text-naturals-n7"
+    class="h-6 w-6 rounded align-top text-naturals-n11 transition-all duration-100 hover:bg-naturals-n7 hover:text-naturals-n13 disabled:pointer-events-none disabled:cursor-not-allowed disabled:text-naturals-n7"
     :class="{ 'text-red-r1': danger }"
   >
     <slot>

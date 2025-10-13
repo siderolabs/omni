@@ -11,7 +11,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/kvutils"
@@ -953,7 +953,7 @@ func machineInstallDiskPatches(ctx context.Context, st state.State, _ *zap.Logge
 		}
 
 		if err = createOrUpdate(ctx, st, omni.NewMachineConfigGenOptions(resources.DefaultNamespace, item.Metadata().ID()), func(res *omni.MachineConfigGenOptions) error {
-			omnictrl.GenInstallConfig(machineStatus, nil, res)
+			omnictrl.GenInstallConfig(machineStatus, nil, res, nil, true)
 
 			return nil
 		}, omnictrl.MachineConfigGenOptionsControllerName); err != nil {
@@ -1233,7 +1233,7 @@ func migrateInstallImageConfigIntoGenOptions(ctx context.Context, st state.State
 		}
 
 		if _, err = safe.StateUpdateWithConflicts(ctx, st, genOptions.Metadata(), func(res *omni.MachineConfigGenOptions) error {
-			omnictrl.GenInstallConfig(machineStatus, talosVersion, res)
+			omnictrl.GenInstallConfig(machineStatus, talosVersion, res, nil, true)
 
 			return nil
 		}, state.WithUpdateOwner(genOptions.Metadata().Owner())); err != nil {
@@ -1931,9 +1931,10 @@ func moveClusterTaintFromResourceToLabel(ctx context.Context, st state.State, _ 
 
 			return nil
 		}, state.WithExpectedPhaseAny(), state.WithUpdateOwner(omnictrl.ClusterStatusControllerName))
-		if err != nil {
+		if err != nil && !state.IsNotFoundError(err) {
 			return err
 		}
+		// cluster status does not exist, taint is dangling, just remove it
 
 		if err = st.TeardownAndDestroy(ctx, taint.Metadata()); err != nil {
 			return err

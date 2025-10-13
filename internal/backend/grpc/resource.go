@@ -54,7 +54,7 @@ func (s *ResourceServer) gateway(ctx context.Context, mux *gateway.ServeMux, add
 
 // Get returns resource from cluster using Talos or Kubernetes.
 func (s *ResourceServer) Get(ctx context.Context, in *resources.GetRequest) (*resources.GetResponse, error) {
-	r, err := runtime.Get(getSource(ctx).String())
+	r, err := runtime.LookupFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (s *ResourceServer) Get(ctx context.Context, in *resources.GetRequest) (*re
 
 // List returns resources from cluster using Talos or Kubernetes.
 func (s *ResourceServer) List(ctx context.Context, in *resources.ListRequest) (*resources.ListResponse, error) {
-	r, err := runtime.Get(getSource(ctx).String())
+	r, err := runtime.LookupFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +154,7 @@ func (s *ResourceServer) Watch(in *resources.WatchRequest, serv grpc.ServerStrea
 	ctx, cancel := context.WithCancel(serv.Context())
 	defer cancel()
 
-	r, err := runtime.Get(getSource(ctx).String())
+	r, err := runtime.LookupFromContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -226,7 +226,7 @@ func (s *ResourceServer) Watch(in *resources.WatchRequest, serv grpc.ServerStrea
 
 // Create a new resource in Omni runtime or Kubernetes.
 func (s *ResourceServer) Create(ctx context.Context, in *resources.CreateRequest) (*resources.CreateResponse, error) {
-	r, err := runtime.Get(getSource(ctx).String())
+	r, err := runtime.LookupFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +247,7 @@ func (s *ResourceServer) Create(ctx context.Context, in *resources.CreateRequest
 
 // Update a resource in Omni runtime or Kubernetes.
 func (s *ResourceServer) Update(ctx context.Context, in *resources.UpdateRequest) (*resources.UpdateResponse, error) {
-	r, err := runtime.Get(getSource(ctx).String())
+	r, err := runtime.LookupFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +272,7 @@ func (s *ResourceServer) Update(ctx context.Context, in *resources.UpdateRequest
 
 // Delete a resource in Omni runtime or Kubernetes.
 func (s *ResourceServer) Delete(ctx context.Context, in *resources.DeleteRequest) (*resources.DeleteResponse, error) {
-	r, err := runtime.Get(getSource(ctx).String())
+	r, err := runtime.LookupFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -294,7 +294,7 @@ func (s *ResourceServer) Delete(ctx context.Context, in *resources.DeleteRequest
 
 // Teardown a resource in Omni runtime.
 func (s *ResourceServer) Teardown(ctx context.Context, in *resources.DeleteRequest) (*resources.DeleteResponse, error) {
-	r, err := runtime.Get(getSource(ctx).String())
+	r, err := runtime.LookupFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -313,19 +313,6 @@ func (s *ResourceServer) Teardown(ctx context.Context, in *resources.DeleteReque
 	}
 
 	return &resources.DeleteResponse{}, nil
-}
-
-func getSource(ctx context.Context) common.Runtime {
-	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		source := md.Get(message.RuntimeHeaderHey)
-		if source != nil {
-			if res, ok := common.Runtime_value[source[0]]; ok {
-				return common.Runtime(res)
-			}
-		}
-	}
-
-	return common.Runtime_Kubernetes
 }
 
 type res interface {
@@ -361,6 +348,14 @@ func withResource(r res) []runtime.QueryOption {
 
 // CreateResource creates a resource from a resource proto representation.
 func CreateResource(resource *resources.Resource) (cosiresource.Resource, error) { //nolint:ireturn
+	if resource == nil {
+		return nil, errors.New("resource is nil")
+	}
+
+	if resource.Metadata == nil {
+		return nil, errors.New("resource metadata is nil")
+	}
+
 	if resource.Metadata.Version == "" {
 		resource.Metadata.Version = "1"
 	}

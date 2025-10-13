@@ -47,20 +47,15 @@ const interval = computed(() => {
 const backupIntervalPreview = ref(interval.value?.hours ?? 1)
 const backupIntervalHours = ref(backupIntervalPreview.value)
 
-const toggleBackupsEnabled = () => {
-  const c = { ...cluster.value }
-
-  if (!c.backup_configuration) {
-    c.backup_configuration = {}
-  }
-
-  c.backup_configuration.enabled = !c.backup_configuration.enabled
-
-  if (!c.backup_configuration.interval) {
-    c.backup_configuration.interval = `${60 * 60}s`
-  }
-
-  emit('update:cluster', c)
+const toggleBackupsEnabled = (enabled: boolean) => {
+  emit('update:cluster', {
+    ...cluster.value,
+    backup_configuration: {
+      ...cluster.value.backup_configuration,
+      interval: cluster.value.backup_configuration?.interval || `${60 * 60}s`,
+      enabled,
+    },
+  })
 }
 
 const startEditingBackupInterval = () => {
@@ -90,11 +85,11 @@ const updateBackupInterval = () => {
 <template>
   <div class="flex items-center gap-1">
     <TCheckbox
-      :checked="enabled"
+      :model-value="enabled"
       label="Control Plane Backups"
       class="flex-1"
       :disabled="!backupStatus.enabled"
-      @click="toggleBackupsEnabled"
+      @update:model-value="toggleBackupsEnabled"
     />
     <div
       v-if="!backupStatus.enabled && backupStatus.configurable"
@@ -102,7 +97,8 @@ const updateBackupInterval = () => {
     >
       <TButton
         v-if="canManageBackupStore"
-        type="subtle-xs"
+        type="subtle"
+        size="xxs"
         icon="settings"
         icon-position="left"
         class="text-xs"

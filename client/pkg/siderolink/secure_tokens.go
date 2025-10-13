@@ -7,7 +7,7 @@ package siderolink
 import (
 	"strings"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 // MinSupportedSecureTokensVersion is 1.6.0.

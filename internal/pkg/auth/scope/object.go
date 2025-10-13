@@ -10,12 +10,12 @@ type Object string
 
 // Object constants.
 const (
-	// Cluster and everything below it.
+	// ObjectCluster holds Cluster and everything below it.
 	ObjectCluster = "cluster"
-	// Machines.
+	// ObjectMachine is the constant for Machines.
 	ObjectMachine = "machine"
-	// Users.
+	// ObjectUser is the constant for Users.
 	ObjectUser = "user"
-	// Service accounts.
+	// ObjectServiceAccount is the constant for Service accounts.
 	ObjectServiceAccount = "service-account"
 )

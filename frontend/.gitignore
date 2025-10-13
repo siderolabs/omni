@@ -18,6 +18,11 @@ dist-ssr
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+/e2e/.auth
+
+# Storybook
+*storybook.log
+storybook-static
 
 # Editor directories and files
 .vscode/*

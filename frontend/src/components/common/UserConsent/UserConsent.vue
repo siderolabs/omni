@@ -46,7 +46,6 @@ watch(() => currentUser.value, fetchTrackingToken)
             We use cookies to improve our website's interface and onboarding experience. We don't
             use them for ads or share your data with third parties.
             <a
-              type="subtle"
               class="list-item-link cursor-pointer"
               rel="noopener noreferrer"
               href="https://www.siderolabs.com/privacy-policy/"

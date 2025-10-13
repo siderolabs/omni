@@ -70,7 +70,7 @@ const renewKey = () => {
           <div>{{ expiration }}</div>
         </div>
         <div class="flex justify-between">
-          <TActionsBox v-if="canManageUsers" style="height: 24px">
+          <TActionsBox v-if="canManageUsers">
             <TActionsBoxItem icon="refresh" @click.stop="renewKey">Renew Key</TActionsBoxItem>
             <TActionsBoxItem
               v-if="item.spec.role !== RoleInfraProvider"

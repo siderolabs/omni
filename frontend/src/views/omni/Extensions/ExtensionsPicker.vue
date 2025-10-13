@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { ref, toRefs } from 'vue'
+import { ref } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -16,17 +16,14 @@ import TIcon from '@/components/common/Icon/TIcon.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import Watch from '@/components/common/Watch/Watch.vue'
 
-const emit = defineEmits(['update:model-value'])
-
-const props = defineProps<{
+const { immutableExtensions = {} } = defineProps<{
   talosVersion: string
-  modelValue: Record<string, boolean>
   immutableExtensions?: Record<string, boolean>
   indeterminate?: boolean
   showDescriptions?: boolean
 }>()
 
-const { modelValue } = toRefs(props)
+const modelValue = defineModel<Record<string, boolean>>({ required: true })
 const filterExtensions = ref<string>('')
 
 const filteredExtensions = (items: TalosExtensionsSpecInfo[]) => {
@@ -39,14 +36,13 @@ const filteredExtensions = (items: TalosExtensionsSpecInfo[]) => {
 
 const changed = ref(false)
 
-const updateExtension = (extension: TalosExtensionsSpecInfo) => {
-  const newState = {
+const updateExtension = (extension: TalosExtensionsSpecInfo, enabled: boolean) => {
+  if (immutableExtensions[extension.name!]) return
+
+  modelValue.value = {
     ...modelValue.value,
+    [extension.name!]: enabled,
   }
-
-  newState[extension.name!] = !newState[extension.name!]
-
-  emit('update:model-value', newState)
 
   changed.value = true
 }
@@ -79,28 +75,28 @@ const updateExtension = (extension: TalosExtensionsSpecInfo) => {
           <div
             v-for="extension in filteredExtensions(data.spec.items)"
             :key="extension.name"
-            class="flex cursor-pointer items-center gap-2 border-b border-naturals-n6 p-2 transition-colors hover:bg-naturals-n5"
-            @click="() => updateExtension(extension)"
+            class="grid grid-cols-4 gap-1 border-b border-naturals-n6 p-2 transition-colors hover:bg-naturals-n5"
+            role="button"
+            @click="updateExtension(extension, !modelValue[extension.name!])"
           >
-            <TCheckbox
-              :icon="indeterminate && !changed ? 'minus' : 'check'"
-              class="col-span-2"
-              :disabled="immutableExtensions?.[extension.name!]"
-              :checked="modelValue[extension.name!]"
-            />
-            <div class="grid flex-1 grid-cols-4 items-center gap-1">
-              <div class="col-span-2 text-xs text-naturals-n13">
-                <WordHighlighter
-                  :query="filterExtensions"
-                  :text-to-highlight="extension.name!.slice('siderolabs/'.length)"
-                  highlight-class="bg-naturals-n14"
-                />
-              </div>
-              <div class="text-xs text-naturals-n13">{{ extension.version }}</div>
-              <div class="text-xs text-naturals-n13">{{ extension.author }}</div>
-              <div v-if="extension.description && showDescriptions" class="col-span-4 text-xs">
-                {{ extension.description }}
-              </div>
+            <div class="col-span-2 flex items-center gap-2 text-xs text-naturals-n13">
+              <TCheckbox
+                :indeterminate="indeterminate && !changed"
+                :disabled="immutableExtensions[extension.name!]"
+                :model-value="modelValue[extension.name!]"
+                class="pointer-events-none"
+              />
+
+              <WordHighlighter
+                :query="filterExtensions"
+                :text-to-highlight="extension.name!.slice('siderolabs/'.length)"
+                highlight-class="bg-naturals-n14"
+              />
+            </div>
+            <div class="text-xs text-naturals-n13">{{ extension.version }}</div>
+            <div class="text-xs text-naturals-n13">{{ extension.author }}</div>
+            <div v-if="extension.description && showDescriptions" class="col-span-4 text-xs">
+              {{ extension.description }}
             </div>
           </div>
         </div>

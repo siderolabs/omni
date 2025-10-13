@@ -35,6 +35,7 @@ const { data } = useWatch<MachineStatusSpec>({
         icon-position="left"
         icon="nodes"
         type="subtle"
+        size="xs"
         @click="$router.push({ name: 'Machines' })"
       >
         View All

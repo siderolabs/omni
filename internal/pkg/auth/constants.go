@@ -27,9 +27,11 @@ const (
 	// tsgen:authBearerHeaderPrefix
 	bearerPrefix = message.BearerPrefix
 
+	// SignatureVersionV1 is the signature version 1
 	// tsgen:SignatureVersionV1
 	SignatureVersionV1 message.SignatureVersion = message.SignatureVersionV1
 
+	// SamlSessionHeaderKey is the header key for the SAML session token.
 	// tsgen:samlSessionHeader
 	SamlSessionHeaderKey = "saml-session"
 )

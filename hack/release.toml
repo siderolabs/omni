@@ -10,6 +10,19 @@ previous = "v1.1.0"
 
 [notes]
 
+[notes.kubeconfig]
+title = "`kubeconfig` with `grant-type=authcode-keyboard`"
+description = """\
+New configs generated with the latest Omni version and `authcode-keyboard`
+enabled now work for `oidc-login` `v1.33+`.
+See https://github.com/int128/kubelogin/pull/1263
+
+Newly generated configs won't work for `oidc-login` below `v1.33`. You can:
+- keep using the old configs.
+- generate the new configs and drop `oidc-redirect-url` param.
+- update the `oidc-login` module.
+"""
+
 [notes.user-consent-form-for-userpilot]
 title = "User Consent Form for Userpilot"
 description = """\
@@ -56,4 +69,12 @@ Replaced the notification banner feature with toast messages.
 title = "Userpilot Reporting Integration"
 description = """\
 Integrated Userpilot reporting to help track user interactions.
+"""
+
+[notes.new-metrics]
+title = "New exported metrics for cluster features and machine details"
+description = """\
+New prometheus metrics are added for:
+- Enabled cluster features: disk encryption, embedded discovery service, workload proxying.
+- Machines' platforms, their secure boot status and whether they were booted with UKI.
 """

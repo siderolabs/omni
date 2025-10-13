@@ -14,7 +14,7 @@ const SecureBoot = "secureboot"
 // DefaultTalosVersion is pre-selected in the UI, default image and used in the integration tests.
 //
 // tsgen:DefaultTalosVersion
-const DefaultTalosVersion = "1.11.1"
+const DefaultTalosVersion = "1.11.2"
 
 const (
 	// TalosRegistry is the default Talos repository URL.

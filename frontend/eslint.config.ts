@@ -3,16 +3,21 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+import { fileURLToPath } from 'node:url'
+
+import { includeIgnoreFile } from '@eslint/compat'
 import pluginVitest from '@vitest/eslint-plugin'
 import skipFormatting from '@vue/eslint-config-prettier/skip-formatting'
 import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
 import { globalIgnores } from 'eslint/config'
 import pluginPlaywright from 'eslint-plugin-playwright'
 import simpleImportSort from 'eslint-plugin-simple-import-sort'
+import storybook from 'eslint-plugin-storybook'
 import pluginVue from 'eslint-plugin-vue'
 
 export default defineConfigWithVueTs(
-  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**', 'src/api/resources.ts']),
+  includeIgnoreFile(fileURLToPath(new URL('.gitignore', import.meta.url))),
+  globalIgnores(['src/api/resources.ts']),
 
   pluginVue.configs['flat/essential'],
   pluginVue.configs['flat/strongly-recommended'],
@@ -31,6 +36,11 @@ export default defineConfigWithVueTs(
       '@typescript-eslint/no-floating-promises': 'error',
     },
   },
+  // By default, ESLint ignores all dot-files
+  { ignores: ['!.storybook', '.storybook/public/mockServiceWorker.js'] },
+  ...storybook.configs['flat/recommended'],
+  ...storybook.configs['flat/csf-strict'],
+
   skipFormatting,
 
   {

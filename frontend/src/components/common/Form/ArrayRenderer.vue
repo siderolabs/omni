@@ -93,7 +93,8 @@ const moveDownClicked = (index: number) => {
         {{ control.label }}
       </div>
       <TButton
-        type="subtle-xs"
+        type="subtle"
+        size="xxs"
         class="mx-4 mb-3 text-xs"
         icon="plus"
         :disabled="!control.enabled || maxItemsReached"

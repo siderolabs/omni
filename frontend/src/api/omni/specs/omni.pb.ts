@@ -110,7 +110,7 @@ export enum TalosUpgradeStatusSpecPhase {
   Done = 2,
   Failed = 3,
   Reverting = 4,
-  InstallingExtensions = 5,
+  UpdatingMachineSchematics = 5,
 }
 
 export enum MachineStatusSnapshotSpecPowerStage {
@@ -149,6 +149,11 @@ export enum MachineExtensionsStatusSpecItemPhase {
   Installed = 0,
   Installing = 1,
   Removing = 2,
+}
+
+export enum MachineExtraKernelArgsStatusSpecPhase {
+  Configured = 0,
+  Configuring = 1,
 }
 
 export enum ClusterMachineRequestStatusSpecStage {
@@ -255,6 +260,11 @@ export type MachineStatusSpecPlatformMetadata = {
   spot?: boolean
 }
 
+export type MachineStatusSpecSchematicInitialState = {
+  extensions?: string[]
+  kernel_args?: string[]
+}
+
 export type MachineStatusSpecSchematic = {
   id?: string
   invalid?: boolean
@@ -265,6 +275,7 @@ export type MachineStatusSpecSchematic = {
   meta_values?: MetaValue[]
   full_id?: string
   in_agent_mode?: boolean
+  initial_state?: MachineStatusSpecSchematicInitialState
 }
 
 export type MachineStatusSpecDiagnostic = {
@@ -393,6 +404,7 @@ export type ClusterMachineConfigSpec = {
   generation_error?: string
   compressed_data?: Uint8Array
   without_comments?: boolean
+  extra_kernel_args?: string[]
 }
 
 export type RedactedClusterMachineConfigSpec = {
@@ -465,6 +477,7 @@ export type ClusterMachineConfigStatusSpec = {
   last_config_error?: string
   talos_version?: string
   schematic_id?: string
+  extra_kernel_args?: string[]
 }
 
 export type ClusterBootstrapStatusSpec = {
@@ -673,10 +686,15 @@ export type FeaturesConfigSpec = {
   audit_log_enabled?: boolean
   image_factory_base_url?: string
   user_pilot_settings?: UserPilotSettings
+  stripe_settings?: StripeSettings
 }
 
 export type UserPilotSettings = {
   app_token?: string
+}
+
+export type StripeSettings = {
+  enabled?: boolean
 }
 
 export type EtcdBackupSettings = {
@@ -691,6 +709,7 @@ export type MachineClassSpecProvision = {
   meta_values?: MetaValue[]
   provider_data?: string
   grpc_tunnel?: GrpcTunnelMode
+  extensions?: string[]
 }
 
 export type MachineClassSpec = {
@@ -710,6 +729,8 @@ export type MachineConfigGenOptionsSpecInstallImage = {
 export type MachineConfigGenOptionsSpec = {
   install_disk?: string
   install_image?: MachineConfigGenOptionsSpecInstallImage
+  extra_kernel_args?: string[]
+  always_include_kernel_args?: boolean
 }
 
 export type EtcdAuditResultSpec = {
@@ -781,6 +802,10 @@ export type ExtensionsConfigurationSpec = {
   extensions?: string[]
 }
 
+export type ExtraKernelArgsConfigurationSpec = {
+  args?: string[]
+}
+
 export type ExtensionsConfigurationStatusSpec = {
   phase?: ExtensionsConfigurationStatusSpecPhase
   error?: string
@@ -789,6 +814,10 @@ export type ExtensionsConfigurationStatusSpec = {
 
 export type MachineExtensionsSpec = {
   extensions?: string[]
+}
+
+export type MachineExtraKernelArgsSpec = {
+  args?: string[]
 }
 
 export type MachineExtensionsStatusSpecItem = {
@@ -802,12 +831,24 @@ export type MachineExtensionsStatusSpec = {
   talos_version?: string
 }
 
+export type MachineExtraKernelArgsStatusSpec = {
+  args?: string[]
+  phase?: MachineExtraKernelArgsStatusSpecPhase
+}
+
 export type MachineStatusMetricsSpec = {
   registered_machines_count?: number
   connected_machines_count?: number
   allocated_machines_count?: number
   pending_machines_count?: number
   versions_map?: {[key: string]: number}
+  platforms?: {[key: string]: number}
+  secure_boot_status?: {[key: string]: number}
+  uki_status?: {[key: string]: number}
+}
+
+export type ClusterMetricsSpec = {
+  features?: {[key: string]: number}
 }
 
 export type ClusterStatusMetricsSpec = {

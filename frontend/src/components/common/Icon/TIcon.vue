@@ -5,150 +5,9 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import {
-  ArrowUpCircleIcon,
-  ArrowUpTrayIcon,
-  CalendarIcon,
-  ChartBarIcon,
-  CircleStackIcon,
-  CodeBracketIcon,
-  CpuChipIcon,
-  DocumentIcon,
-  DocumentTextIcon,
-  LockClosedIcon,
-  LockOpenIcon,
-  PauseCircleIcon,
-  PlayCircleIcon,
-  PowerIcon,
-  ServerIcon,
-  ServerStackIcon,
-  TagIcon,
-  UserIcon,
-  UserPlusIcon,
-  UsersIcon,
-  WindowIcon,
-} from '@heroicons/vue/24/outline'
-import { LifebuoyIcon } from '@heroicons/vue/24/solid'
-import { type Component, computed, defineAsyncComponent, toRefs } from 'vue'
+import { computed } from 'vue'
 
-const icons = {
-  'action-horizontal': defineAsyncComponent(() => import('../../icons/IconActionHorizontal.vue')),
-  'action-vertical': defineAsyncComponent(() => import('../../icons/IconActionVertical.vue')),
-  'arrow-down': defineAsyncComponent(() => import('../../icons/IconArrowDown.vue')),
-  'arrow-left': defineAsyncComponent(() => import('../../icons/IconArrowLeft.vue')),
-  'arrow-right-square': defineAsyncComponent(() => import('../../icons/IconArrowRightSquare.vue')),
-  'arrow-right': defineAsyncComponent(() => import('../../icons/IconArrowRight.vue')),
-  'arrow-up-circle': ArrowUpCircleIcon,
-  'arrow-up-tray': ArrowUpTrayIcon,
-  'arrow-up': defineAsyncComponent(() => import('../../icons/IconArrowUp.vue')),
-  attention: defineAsyncComponent(() => import('../../icons/IconAttention.vue')),
-  aws: defineAsyncComponent(() => import('../../icons/IconAWS.vue')),
-  'bootstrap-manifests': DocumentTextIcon,
-  box: defineAsyncComponent(() => import('../../icons/IconBox.vue')),
-  calendar: CalendarIcon,
-  change: defineAsyncComponent(() => import('../../icons/IconChange.vue')),
-  'chart-bar': ChartBarIcon,
-  'check-in-circle-classic': defineAsyncComponent(
-    () => import('../../icons/IconCheckInCircleClassic.vue'),
-  ),
-  'check-in-circle': defineAsyncComponent(() => import('../../icons/IconCheckInCircle.vue')),
-  check: defineAsyncComponent(() => import('../../icons/IconCheck.vue')),
-  'circle-stack': CircleStackIcon,
-  close: defineAsyncComponent(() => import('../../icons/IconClose.vue')),
-  'cloud-connection': defineAsyncComponent(() => import('../../icons/IconCloudConnection.vue')),
-  'clusters-big': defineAsyncComponent(() => import('../../icons/IconClustersBig.vue')),
-  clusters: defineAsyncComponent(() => import('../../icons/IconClusters.vue')),
-  'code-bracket': CodeBracketIcon,
-  complete: defineAsyncComponent(() => import('../../icons/IconComplete.vue')),
-  copy: defineAsyncComponent(() => import('../../icons/IconCopy.vue')),
-  'cpu-chip': CpuChipIcon,
-  dashboard: defineAsyncComponent(() => import('../../icons/IconDashboard.vue')),
-  delete: defineAsyncComponent(() => import('../../icons/IconDelete.vue')),
-  document: DocumentIcon,
-  dot: defineAsyncComponent(() => import('../../icons/IconDot.vue')),
-  'drop-right': defineAsyncComponent(() => import('../../icons/IconDropRight.vue')),
-  'drop-up': defineAsyncComponent(() => import('../../icons/IconDropUp.vue')),
-  dropdown: defineAsyncComponent(() => import('../../icons/IconDropdown.vue')),
-  edit: defineAsyncComponent(() => import('../../icons/IconEdit.vue')),
-  error: defineAsyncComponent(() => import('../../icons/IconError.vue')),
-  'exposed-service': WindowIcon,
-  'extensions-toggle': defineAsyncComponent(() => import('../../icons/IconExtensionsToggle.vue')),
-  extensions: defineAsyncComponent(() => import('../../icons/IconExtensions.vue')),
-  'external-link': defineAsyncComponent(() => import('../../icons/IconExternalLink.vue')),
-  'fail-auth': defineAsyncComponent(() => import('../../icons/IconFailAuth.vue')),
-  gcp: defineAsyncComponent(() => import('../../icons/IconGCP.vue')),
-  hamburger: defineAsyncComponent(() => import('../../icons/IconHamburger.vue')),
-  'header-logo': defineAsyncComponent(() => import('../../icons/IconHeaderLogo.vue')),
-  home: defineAsyncComponent(() => import('../../icons/IconHome.vue')),
-  'in-progress': defineAsyncComponent(() => import('../../icons/IconInProgress.vue')),
-  info: defineAsyncComponent(() => import('../../icons/IconInfo.vue')),
-  key: defineAsyncComponent(() => import('../../icons/IconKey.vue')),
-  'kube-config': defineAsyncComponent(() => import('../../icons/IconKubeConfig.vue')),
-  kubernetes: defineAsyncComponent(() => import('../../icons/IconKubernetes.vue')),
-  lifebuoy: LifebuoyIcon,
-  'link-down': defineAsyncComponent(() => import('../../icons/IconLinkDown.vue')),
-  loading: defineAsyncComponent(() => import('../../icons/IconLoading.vue')),
-  'locked-toggle': defineAsyncComponent(() => import('../../icons/IconLockClosedToggle.vue')),
-  locked: LockClosedIcon,
-  log: defineAsyncComponent(() => import('../../icons/IconLog.vue')),
-  logo: defineAsyncComponent(() => import('../../icons/IconLogo.vue')),
-  'long-arrow-down': defineAsyncComponent(() => import('../../icons/IconLongArrowDown.vue')),
-  'long-arrow-left': defineAsyncComponent(() => import('../../icons/IconLongArrowLeft.vue')),
-  'long-arrow-right': defineAsyncComponent(() => import('../../icons/IconLongArrowRight.vue')),
-  'long-arrow-top': defineAsyncComponent(() => import('../../icons/IconLongArrowTop.vue')),
-  'machines-autoprovisioned': defineAsyncComponent(
-    () => import('../../icons/IconMachinesAutoprovisioned.vue'),
-  ),
-  'machines-manual': defineAsyncComponent(() => import('../../icons/IconMachinesManual.vue')),
-  minus: defineAsyncComponent(() => import('../../icons/IconMinus.vue')),
-  'no-connection': defineAsyncComponent(() => import('../../icons/IconNoConnection.vue')),
-  nodes: defineAsyncComponent(() => import('../../icons/IconNodes.vue')),
-  'ongoing-tasks': defineAsyncComponent(() => import('../../icons/IconOngoingTasks.vue')),
-  overview: defineAsyncComponent(() => import('../../icons/IconOverview.vue')),
-  'pause-circle': PauseCircleIcon,
-  pin: defineAsyncComponent(() => import('../../icons/IconPin.vue')),
-  'play-circle': PlayCircleIcon,
-  plus: defineAsyncComponent(() => import('../../icons/IconPlus.vue')),
-  pods: defineAsyncComponent(() => import('../../icons/IconPods.vue')),
-  power: PowerIcon,
-  'power-off': defineAsyncComponent(() => import('../../icons/IconPowerOff.vue')),
-  question: defineAsyncComponent(() => import('../../icons/IconQuestion.vue')),
-  reboot: defineAsyncComponent(() => import('../../icons/IconReboot.vue')),
-  refresh: defineAsyncComponent(() => import('../../icons/IconRefresh.vue')),
-  reset: defineAsyncComponent(() => import('../../icons/IconReset.vue')),
-  rollback: defineAsyncComponent(() => import('../../icons/IconRollback.vue')),
-  search: defineAsyncComponent(() => import('../../icons/IconSearch.vue')),
-  'server-network': defineAsyncComponent(() => import('../../icons/IconServerNetwork.vue')),
-  'server-stack': ServerStackIcon,
-  server: ServerIcon,
-  'settings-toggle': defineAsyncComponent(() => import('../../icons/IconSettingsToggle.vue')),
-  settings: defineAsyncComponent(() => import('../../icons/IconSettings.vue')),
-  'sidero-monochrome': defineAsyncComponent(() => import('../../icons/IconSideroMonochrome.vue')),
-  sidero: defineAsyncComponent(() => import('../../icons/IconSidero.vue')),
-  tag: TagIcon,
-  'talos-config': defineAsyncComponent(() => import('../../icons/IconTalosConfig.vue')),
-  terminal: defineAsyncComponent(() => import('../../icons/IconTerminal.vue')),
-  time: defineAsyncComponent(() => import('../../icons/IconTime.vue')),
-  unknown: defineAsyncComponent(() => import('../../icons/IconUnknown.vue')),
-  unlink: defineAsyncComponent(() => import('../../icons/IconUnlink.vue')),
-  unlocked: LockOpenIcon,
-  'upgrade-available': defineAsyncComponent(() => import('../../icons/IconUpgradeAvailable.vue')),
-  'upgrade-empty-state': defineAsyncComponent(
-    () => import('../../icons/IconUpgradeEmptyState.vue'),
-  ),
-  upgrade: defineAsyncComponent(() => import('../../icons/IconUpgrade.vue')),
-  upload: defineAsyncComponent(() => import('../../icons/IconUpload.vue')),
-  'user-add': UserPlusIcon,
-  user: UserIcon,
-  users: UsersIcon,
-  waiting: defineAsyncComponent(() => import('../../icons/IconWaiting.vue')),
-  'warning-clear': defineAsyncComponent(() => import('../../icons/IconWarningClear.vue')),
-  warning: defineAsyncComponent(() => import('../../icons/IconWarning.vue')),
-}
-
-const getComponent = (icon: string): Component | undefined => {
-  return icons[icon]
-}
+import { icons } from './icons'
 
 export type IconType = keyof typeof icons
 
@@ -157,15 +16,9 @@ type Props = {
   icon?: IconType
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  icon: 'action-horizontal',
-})
+const { svgBase64 = '', icon = 'action-horizontal' } = defineProps<Props>()
 
-const { icon } = toRefs(props)
-
-const component = computed(() => {
-  return getComponent(icon.value)
-})
+const component = computed(() => icons[icon])
 </script>
 
 <template>

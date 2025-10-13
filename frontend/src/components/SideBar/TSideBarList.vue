@@ -20,6 +20,7 @@ export type SideBarItem = {
   tooltip?: string
   iconSvgBase64?: string
   subItems?: SideBarItem[]
+  regularLink?: boolean
 }
 
 type Props = {
@@ -36,6 +37,7 @@ defineProps<Props>()
         v-for="item of items"
         :key="item.name"
         :route="item.route"
+        :regular-link="item.regularLink"
         :name="item.name"
         :icon="item.icon"
         :icon-svg-base64="item.iconSvgBase64"

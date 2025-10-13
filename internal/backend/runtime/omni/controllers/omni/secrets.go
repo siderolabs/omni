@@ -74,12 +74,14 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsControll
 					}
 				} else {
 					var bundle *talossecrets.Bundle
+
 					bundle, err = omni.FromImportedSecretsToSecretsBundle(ics)
 					if err != nil {
 						return fmt.Errorf("failed to decode imported cluster secrets: %w", err)
 					}
 
 					var data []byte
+
 					data, err = json.Marshal(bundle)
 					if err != nil {
 						return fmt.Errorf("error marshaling secrets: %w", err)
