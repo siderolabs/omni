@@ -56,7 +56,7 @@ func machineProvisionHook(t *testing.T, client *client.Client, cfg MachineProvis
 	machineRequestSet = omni.NewMachineRequestSet(resources.DefaultNamespace, machineRequestSetName)
 
 	machineRequestSet.TypedSpec().Value.Extensions = []string{
-		HelloWorldServiceExtensionName,
+		"siderolabs/" + HelloWorldServiceExtensionName,
 	}
 
 	machineRequestSet.TypedSpec().Value.ProviderId = cfg.Provider.ID

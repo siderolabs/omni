@@ -46,7 +46,7 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 	infraMachine := infra.NewMachine("machine-1")
 	infraMachineMD := infraMachine.Metadata()
 
-	assertResource(&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
+	assertResource[*infra.Machine](&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
 		infraProviderID, ok := r.Metadata().Labels().Get(omni.LabelInfraProviderID)
 		assertion.True(ok)
 		assertion.Equal("bare-metal", infraProviderID)
@@ -55,7 +55,6 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 		assertion.Equal(specs.InfraMachineConfigSpec_PENDING, r.TypedSpec().Value.AcceptanceStatus)
 		assertion.Empty(r.TypedSpec().Value.ClusterTalosVersion)
 		assertion.Empty(r.TypedSpec().Value.Extensions)
-		assertion.Empty(r.TypedSpec().Value.ExtraKernelArgs)
 		assertion.Empty(r.TypedSpec().Value.WipeId)
 		assertion.Zero(r.TypedSpec().Value.InstallEventId)
 	})
@@ -77,7 +76,7 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, config))
 
-	assertResource[*infra.Machine](&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
+	assertResource(&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
 		assertion.Equal(specs.InfraMachineConfigSpec_ACCEPTED, r.TypedSpec().Value.AcceptanceStatus)
 		assertion.Equal(specs.InfraMachineSpec_POWER_STATE_ON, r.TypedSpec().Value.PreferredPowerState)
 		assertion.Equal("foo=bar bar=baz", r.TypedSpec().Value.ExtraKernelArgs)
@@ -96,29 +95,20 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 	suite.Require().NoError(suite.state.Create(suite.ctx, schematicConfig))
 
 	// assert that the cluster machine has the correct talos version
-	assertResource(&suite.OmniSuite, clusterMachine.Metadata(), func(r *infra.Machine, assertion *assert.Assertions) {
+	assertResource[*infra.Machine](&suite.OmniSuite, clusterMachine.Metadata(), func(r *infra.Machine, assertion *assert.Assertions) {
 		assertion.Equal("v42.0.0", r.TypedSpec().Value.ClusterTalosVersion)
 	})
 
 	// add some extensions
 	extensions := omni.NewMachineExtensions(resources.DefaultNamespace, "machine-1")
+
 	extensions.TypedSpec().Value.Extensions = []string{"foo", "bar"}
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, extensions))
 
 	// assert that the cluster machine has the correct extensions
-	assertResource(&suite.OmniSuite, clusterMachine.Metadata(), func(r *infra.Machine, assertion *assert.Assertions) {
+	assertResource[*infra.Machine](&suite.OmniSuite, clusterMachine.Metadata(), func(r *infra.Machine, assertion *assert.Assertions) {
 		assertion.ElementsMatch([]string{"foo", "bar"}, r.TypedSpec().Value.Extensions)
-	})
-
-	// override the extra kernel args
-	extraKernelArgs := omni.NewMachineExtraKernelArgs(resources.DefaultNamespace, "machine-1")
-	extraKernelArgs.TypedSpec().Value.Args = []string{"override=1", "override=2"}
-
-	suite.Require().NoError(suite.state.Create(suite.ctx, extraKernelArgs))
-
-	assertResource(&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
-		assertion.Equal("override=1 override=2", r.TypedSpec().Value.ExtraKernelArgs)
 	})
 
 	// deallocate the machine from the cluster
@@ -135,7 +125,7 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 
 	// assert that install id is incremented
 
-	assertResource(&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
+	assertResource[*infra.Machine](&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
 		assertion.Equal(uint64(1), r.TypedSpec().Value.InstallEventId)
 	})
 
@@ -143,7 +133,7 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 
 	// assert that install id is incremented again
 
-	assertResource(&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
+	assertResource[*infra.Machine](&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
 		assertion.Equal(uint64(2), r.TypedSpec().Value.InstallEventId)
 	})
 

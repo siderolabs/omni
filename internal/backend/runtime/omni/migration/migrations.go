@@ -953,7 +953,7 @@ func machineInstallDiskPatches(ctx context.Context, st state.State, _ *zap.Logge
 		}
 
 		if err = createOrUpdate(ctx, st, omni.NewMachineConfigGenOptions(resources.DefaultNamespace, item.Metadata().ID()), func(res *omni.MachineConfigGenOptions) error {
-			omnictrl.GenInstallConfig(machineStatus, nil, res, nil, true)
+			omnictrl.GenInstallConfig(machineStatus, nil, res)
 
 			return nil
 		}, omnictrl.MachineConfigGenOptionsControllerName); err != nil {
@@ -1233,7 +1233,7 @@ func migrateInstallImageConfigIntoGenOptions(ctx context.Context, st state.State
 		}
 
 		if _, err = safe.StateUpdateWithConflicts(ctx, st, genOptions.Metadata(), func(res *omni.MachineConfigGenOptions) error {
-			omnictrl.GenInstallConfig(machineStatus, talosVersion, res, nil, true)
+			omnictrl.GenInstallConfig(machineStatus, talosVersion, res)
 
 			return nil
 		}, state.WithUpdateOwner(genOptions.Metadata().Owner())); err != nil {
@@ -2015,12 +2015,6 @@ func dropExtraInputFinalizers(ctx context.Context, st state.State, logger *zap.L
 
 	if err := dropFinalizers[*infra.MachineStatus](ctx, st, "MachineStatusController"); err != nil {
 		return fmt.Errorf("failed to remove finalizers from infra.MachineStatus resources: %w", err)
-	}
-
-	logger.Info("dropping extra finalizers from MachineExtraKernelArgs resources")
-
-	if err := dropFinalizers[*omni.MachineExtraKernelArgs](ctx, st, "InfraMachineController"); err != nil {
-		return fmt.Errorf("failed to remove finalizers from MachineExtraKernelArgs resources: %w", err)
 	}
 
 	return nil

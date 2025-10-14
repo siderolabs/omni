@@ -14,7 +14,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 )
 
-// NewExtensionsConfigurationStatus creates a new ExtensionsConfigurationStatus resource.
+// NewExtensionsConfigurationStatus creates new extensions configuration resource.
 func NewExtensionsConfigurationStatus(ns string, id resource.ID) *ExtensionsConfigurationStatus {
 	return typed.NewResource[ExtensionsConfigurationStatusSpec, ExtensionsConfigurationStatusExtension](
 		resource.NewMetadata(ns, ExtensionsConfigurationStatusType, id, resource.VersionUndefined),

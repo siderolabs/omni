@@ -84,7 +84,7 @@ func CreateCluster(testCtx context.Context, cli *client.Client, options ClusterO
 
 		pickUnallocatedMachines(ctx, t, st, options.ControlPlanes+options.Workers, func(machineIDs []resource.ID) {
 			if !options.SkipExtensionCheckOnCreate {
-				checkExtensionsWithRetries(ctx, t, cli, []string{HelloWorldServiceExtensionName}, machineIDs)
+				checkExtensionWithRetries(ctx, t, cli, HelloWorldServiceExtensionName, machineIDs...)
 			}
 
 			if options.BeforeClusterCreateFunc != nil {
@@ -179,7 +179,6 @@ func CreateClusterWithMachineClass(testCtx context.Context, st state.State, opti
 				r.TypedSpec().Value.AutoProvision = &specs.MachineClassSpec_Provision{
 					ProviderId:   options.InfraProvider,
 					ProviderData: options.ProviderData,
-					Extensions:   []string{HelloWorldServiceExtensionName},
 				}
 
 				return nil
@@ -587,14 +586,6 @@ func AssertDestroyCluster(testCtx context.Context, omniState state.State, cluste
 			resource.LabelEqual(omni.LabelCluster, clusterName),
 		))
 
-		extensionsConfigurations := rtestutils.ResourceIDs[*omni.ExtensionsConfiguration](ctx, t, omniState, state.WithLabelQuery(
-			resource.LabelEqual(omni.LabelCluster, clusterName),
-		))
-
-		extraKernelArgsConfigurations := rtestutils.ResourceIDs[*omni.ExtraKernelArgsConfiguration](ctx, t, omniState, state.WithLabelQuery(
-			resource.LabelEqual(omni.LabelCluster, clusterName),
-		))
-
 		machineSets := rtestutils.ResourceIDs[*omni.MachineSet](ctx, t, omniState, state.WithLabelQuery(
 			resource.LabelEqual(omni.LabelCluster, clusterName),
 		))
@@ -614,14 +605,6 @@ func AssertDestroyCluster(testCtx context.Context, omniState state.State, cluste
 
 		for _, id := range patches {
 			rtestutils.AssertNoResource[*omni.ConfigPatch](ctx, t, omniState, id)
-		}
-
-		for _, id := range extensionsConfigurations {
-			rtestutils.AssertNoResource[*omni.ExtensionsConfiguration](ctx, t, omniState, id)
-		}
-
-		for _, id := range extraKernelArgsConfigurations {
-			rtestutils.AssertNoResource[*omni.ExtraKernelArgsConfiguration](ctx, t, omniState, id)
 		}
 
 		for _, id := range machineSets {

@@ -278,7 +278,6 @@ func reconcileClusterMachineConfig(
 		machineConfig.TypedSpec().Value.WithoutComments = true
 	}
 
-	machineConfig.TypedSpec().Value.ExtraKernelArgs = machineConfigGenOptions.TypedSpec().Value.ExtraKernelArgs
 	machineConfig.TypedSpec().Value.ClusterMachineVersion = clusterMachine.Metadata().Version().String()
 	machineConfig.TypedSpec().Value.GenerationError = ""
 
@@ -368,7 +367,6 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		InstallDisk:              configGenOptions.TypedSpec().Value.InstallDisk,
 		InstallImage:             installImage,
 		Secrets:                  secretBundle,
-		ExtraKernelArgs:          configGenOptions.TypedSpec().Value.ExtraKernelArgs,
 	})
 	if err != nil {
 		return nil, err

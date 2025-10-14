@@ -545,8 +545,8 @@ func AssertTalosUpgradeFlow(testCtx context.Context, st state.State, clusterName
 	}
 }
 
-// AssertTalosExtensionsUpdateFlow verifies Talos schematic update flow.
-func AssertTalosExtensionsUpdateFlow(testCtx context.Context, client *client.Client, clusterName string, extensions []string) TestFunc {
+// AssertTalosSchematicUpdateFlow verifies Talos schematic update flow.
+func AssertTalosSchematicUpdateFlow(testCtx context.Context, client *client.Client, clusterName string) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, 15*time.Minute)
 		defer cancel()
@@ -555,7 +555,10 @@ func AssertTalosExtensionsUpdateFlow(testCtx context.Context, client *client.Cli
 
 		res.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 
-		res.TypedSpec().Value.Extensions = extensions
+		res.TypedSpec().Value.Extensions = []string{
+			"siderolabs/hello-world-service",
+			"siderolabs/qemu-guest-agent",
+		}
 
 		t.Logf("upgrading cluster schematic %q to have extensions %#v", clusterName, res.TypedSpec().Value.Extensions)
 
@@ -564,41 +567,7 @@ func AssertTalosExtensionsUpdateFlow(testCtx context.Context, client *client.Cli
 
 		// upgrade should start
 		rtestutils.AssertResources(ctx, t, client.Omni().State(), []resource.ID{clusterName}, func(r *omni.TalosUpgradeStatus, assert *assert.Assertions) {
-			assert.Equal(specs.TalosUpgradeStatusSpec_UpdatingMachineSchematics, r.TypedSpec().Value.Phase, resourceDetails(r))
-			assert.NotEmpty(r.TypedSpec().Value.Step, resourceDetails(r))
-			assert.NotEmpty(r.TypedSpec().Value.Status, resourceDetails(r))
-		})
-
-		t.Log("upgrade is going")
-
-		// upgrade should finish successfully
-		rtestutils.AssertResources(ctx, t, client.Omni().State(), []resource.ID{clusterName}, func(r *omni.TalosUpgradeStatus, assert *assert.Assertions) {
-			assert.Equal(specs.TalosUpgradeStatusSpec_Done, r.TypedSpec().Value.Phase, resourceDetails(r))
-			assert.Empty(r.TypedSpec().Value.Step, resourceDetails(r))
-		})
-	}
-}
-
-// AssertTalosSchematicUpdateFlow verifies Talos schematic update flow.
-func AssertTalosExtraKernelArgsUpdateFlow(testCtx context.Context, client *client.Client, clusterName string, extraKernelArgs []string) TestFunc {
-	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, 15*time.Minute)
-		defer cancel()
-
-		res := omni.NewExtraKernelArgsConfiguration(resources.DefaultNamespace, clusterName)
-
-		res.Metadata().Labels().Set(omni.LabelCluster, clusterName)
-
-		res.TypedSpec().Value.Args = extraKernelArgs
-
-		t.Logf("upgrading cluster schematic %q to have extra kernel args %#v", clusterName, res.TypedSpec().Value.Args)
-
-		err := client.Omni().State().Create(ctx, res)
-		require.NoError(t, err)
-
-		// upgrade should start
-		rtestutils.AssertResources(ctx, t, client.Omni().State(), []resource.ID{clusterName}, func(r *omni.TalosUpgradeStatus, assert *assert.Assertions) {
-			assert.Equal(specs.TalosUpgradeStatusSpec_UpdatingMachineSchematics, r.TypedSpec().Value.Phase, resourceDetails(r))
+			assert.Equal(specs.TalosUpgradeStatusSpec_InstallingExtensions, r.TypedSpec().Value.Phase, resourceDetails(r))
 			assert.NotEmpty(r.TypedSpec().Value.Step, resourceDetails(r))
 			assert.NotEmpty(r.TypedSpec().Value.Status, resourceDetails(r))
 		})
@@ -859,7 +828,7 @@ func AssertTalosServiceIsRestarted(testCtx context.Context, cli *client.Client, 
 		ctx, cancel := context.WithTimeout(testCtx, 1*time.Minute)
 		defer cancel()
 
-		talosCli, err := talosClientForCluster(ctx, cli, clusterName)
+		talosCli, err := talosClient(ctx, cli, clusterName)
 		require.NoError(t, err)
 
 		labelQueryOpts = append(labelQueryOpts, resource.LabelEqual(omni.LabelCluster, clusterName))

@@ -6,7 +6,6 @@ package models
 
 import (
 	"fmt"
-	"slices"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/google/uuid"
@@ -30,7 +29,6 @@ const KindMachine = "Machine"
 type Machine struct { //nolint:govet
 	Meta             `yaml:",inline"`
 	SystemExtensions `yaml:",inline"`
-	ExtraKernelArgs  `yaml:",inline"`
 
 	// Machine name (ID).
 	Name MachineID `yaml:"name"`
@@ -141,19 +139,13 @@ func (machine *Machine) Translate(ctx TranslateContext) ([]resource.Resource, er
 
 	resourceList = append(resourceList, patches...)
 
-	extensionsConfigurations := machine.translateExtensions(
+	schematicConfigurations := machine.translate(
 		ctx,
 		string(machine.Name),
 		pair.MakePair(omni.LabelClusterMachine, string(machine.Name)),
 	)
 
-	extraKernelArgsConfigurations := machine.translateExtraKernelArgs(
-		ctx,
-		string(machine.Name),
-		pair.MakePair(omni.LabelClusterMachine, string(machine.Name)),
-	)
-
-	return slices.Concat(resourceList, extensionsConfigurations, extraKernelArgsConfigurations), nil
+	return append(resourceList, schematicConfigurations...), nil
 }
 
 func init() {

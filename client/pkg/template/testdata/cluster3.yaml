@@ -6,9 +6,6 @@ talos:
   version: v1.3.1
 systemExtensions:
   - siderolabs/my-custom-extension
-extraKernelArgs:
-  - console=ttyS1
-  - console=ttyS2
 
 # control plane
 ---
@@ -29,16 +26,12 @@ machines:
   - 947f7a99-0f46-4a9e-ab02-205f4e1b7009
 systemExtensions:
   - siderolabs/hello-world-service
-extraKernelArgs:
-  - console=ttyS3
 # additional workers 1
 ---
 kind: Machine
 name: b1ed45d8-4e79-4a07-a29a-b1b075843d41
 systemExtensions:
   - siderolabs/some-extension
-extraKernelArgs:
-  - console=ttyS4
 ---
 kind: Machine
 name: 7d75e61c-ebc8-4faa-a763-6e2b14714720

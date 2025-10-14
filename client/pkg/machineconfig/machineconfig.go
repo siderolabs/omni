@@ -24,7 +24,6 @@ type GenerateInput struct {
 	InstallDisk              string
 	InstallImage             string
 	ExtraGenOptions          []generate.Option
-	ExtraKernelArgs          []string
 	IsControlPlane           bool
 }
 
@@ -37,7 +36,6 @@ type GenerateOutput struct {
 func Generate(input GenerateInput) (GenerateOutput, error) {
 	genOptions := []generate.Option{
 		generate.WithInstallImage(input.InstallImage),
-		generate.WithInstallExtraKernelArgs(input.ExtraKernelArgs),
 	}
 
 	genOptions = append(genOptions, input.ExtraGenOptions...)

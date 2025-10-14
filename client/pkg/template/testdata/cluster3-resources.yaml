@@ -36,22 +36,6 @@ spec:
 ---
 metadata:
     namespace: default
-    type: ExtraKernelArgsConfigurations.omni.sidero.dev
-    id: schematic-my-first-cluster
-    version: undefined
-    owner:
-    phase: running
-    created: 0001-01-01T00:00:00Z
-    updated: 0001-01-01T00:00:00Z
-    labels:
-        omni.sidero.dev/cluster: my-first-cluster
-spec:
-    args:
-        - console=ttyS1
-        - console=ttyS2
----
-metadata:
-    namespace: default
     type: MachineSets.omni.sidero.dev
     id: my-first-cluster-control-planes
     version: undefined
@@ -140,22 +124,6 @@ spec:
 ---
 metadata:
     namespace: default
-    type: ExtraKernelArgsConfigurations.omni.sidero.dev
-    id: schematic-my-first-cluster-workers
-    version: undefined
-    owner:
-    phase: running
-    created: 0001-01-01T00:00:00Z
-    updated: 0001-01-01T00:00:00Z
-    labels:
-        omni.sidero.dev/cluster: my-first-cluster
-        omni.sidero.dev/machine-set: my-first-cluster-workers
-spec:
-    args:
-        - console=ttyS3
----
-metadata:
-    namespace: default
     type: ExtensionsConfigurations.omni.sidero.dev
     id: schematic-b1ed45d8-4e79-4a07-a29a-b1b075843d41
     version: undefined
@@ -169,22 +137,6 @@ metadata:
 spec:
     extensions:
         - siderolabs/some-extension
----
-metadata:
-    namespace: default
-    type: ExtraKernelArgsConfigurations.omni.sidero.dev
-    id: schematic-b1ed45d8-4e79-4a07-a29a-b1b075843d41
-    version: undefined
-    owner:
-    phase: running
-    created: 0001-01-01T00:00:00Z
-    updated: 0001-01-01T00:00:00Z
-    labels:
-        omni.sidero.dev/cluster: my-first-cluster
-        omni.sidero.dev/cluster-machine: b1ed45d8-4e79-4a07-a29a-b1b075843d41
-spec:
-    args:
-        - console=ttyS4
 ---
 metadata:
     namespace: default

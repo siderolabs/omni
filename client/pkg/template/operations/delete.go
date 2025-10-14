@@ -84,14 +84,7 @@ func deleteTemplate(ctx context.Context, tmpl *template.Template, out io.Writer,
 			return err
 		}
 
-		extraKernelArgsConfigurations, err := st.List(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.ExtraKernelArgsConfigurationType, "", resource.VersionUndefined),
-			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
-		)
-		if err != nil {
-			return err
-		}
-
-		syncResult.Destroy = slices.Insert(syncResult.Destroy, 0, slices.Concat(extensionsConfigurations.Items, extraKernelArgsConfigurations.Items), links, allPatches)
+		syncResult.Destroy = slices.Insert(syncResult.Destroy, 0, extensionsConfigurations.Items, links, allPatches)
 	}
 
 	return syncDelete(ctx, syncResult, out, st, syncOptions)

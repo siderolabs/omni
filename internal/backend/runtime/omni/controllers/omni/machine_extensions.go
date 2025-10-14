@@ -23,81 +23,31 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
-// MachineExtraKernelArgsControllerName is the name of the MachineExtraKernelArgsController.
-const MachineExtraKernelArgsControllerName = "MachineExtraKernelArgsController"
-
-// MachineExtraKernelArgsController splits a single extraKernelArgs configuration resource defined for cluster/machine set
-// to the MachineExtraKernelArgs resource for each machine.
-type MachineExtraKernelArgsController struct {
-	machineCustomizationController[*omni.ExtraKernelArgsConfiguration, *omni.MachineExtraKernelArgs]
-}
-
-// NewMachineExtraKernelArgsController initializes MachineExtraKernelArgsController.
-func NewMachineExtraKernelArgsController() *MachineExtraKernelArgsController {
-	return &MachineExtraKernelArgsController{
-		machineCustomizationController: machineCustomizationController[*omni.ExtraKernelArgsConfiguration, *omni.MachineExtraKernelArgs]{
-			NamedController: generic.NamedController{
-				ControllerName: MachineExtraKernelArgsControllerName,
-			},
-			configLabel: omni.ExtraKernelArgsConfigurationLabel,
-			newFunc: func(id resource.ID) *omni.MachineExtraKernelArgs {
-				return omni.NewMachineExtraKernelArgs(resources.DefaultNamespace, id)
-			},
-			modifyFunc: func(i *omni.ExtraKernelArgsConfiguration, r *omni.MachineExtraKernelArgs) {
-				r.TypedSpec().Value.Args = i.TypedSpec().Value.Args
-			},
-		},
-	}
-}
-
 // MachineExtensionsControllerName is the name of the MachineExtensionsController.
 const MachineExtensionsControllerName = "MachineExtensionsController"
 
 // MachineExtensionsController splits a single extensions configuration resource defined for cluster/machine set
 // to the MachineExtensions resource for each machine.
 type MachineExtensionsController struct {
-	machineCustomizationController[*omni.ExtensionsConfiguration, *omni.MachineExtensions]
+	generic.NamedController
 }
 
 // NewMachineExtensionsController initializes MachineExtensionsController.
 func NewMachineExtensionsController() *MachineExtensionsController {
 	return &MachineExtensionsController{
-		machineCustomizationController: machineCustomizationController[*omni.ExtensionsConfiguration, *omni.MachineExtensions]{
-			NamedController: generic.NamedController{
-				ControllerName: MachineExtensionsControllerName,
-			},
-			configLabel: omni.ExtensionsConfigurationLabel,
-			newFunc: func(id resource.ID) *omni.MachineExtensions {
-				return omni.NewMachineExtensions(resources.DefaultNamespace, id)
-			},
-			modifyFunc: func(i *omni.ExtensionsConfiguration, r *omni.MachineExtensions) {
-				r.TypedSpec().Value.Extensions = i.TypedSpec().Value.Extensions
-			},
+		NamedController: generic.NamedController{
+			ControllerName: MachineExtensionsControllerName,
 		},
 	}
 }
 
-type machineCustomizationController[I, O generic.ResourceWithRD] struct {
-	newFunc    func(resource.ID) O
-	modifyFunc func(I, O)
-	generic.NamedController
-	configLabel string
-}
-
 // Settings implements controller.QController interface.
-func (ctrl *machineCustomizationController[I, O]) Settings() controller.QSettings {
-	var (
-		input      I
-		output     O
-		inputType  = input.ResourceDefinition().Type
-		outputType = output.ResourceDefinition().Type
-	)
-
+func (ctrl *MachineExtensionsController) Settings() controller.QSettings {
 	return controller.QSettings{
 		Inputs: []controller.Input{
 			{
 				Namespace: resources.DefaultNamespace,
-				Type:      inputType,
+				Type:      omni.ExtensionsConfigurationType,
 				Kind:      controller.InputQPrimary,
 			},
 			{
@@ -107,14 +57,14 @@ func (ctrl *machineCustomizationController[I, O]) Settings() controller.QSetting
 			},
 			{
 				Namespace: resources.DefaultNamespace,
-				Type:      outputType,
+				Type:      omni.MachineExtensionsType,
 				Kind:      controller.InputQMappedDestroyReady,
 			},
 		},
 		Outputs: []controller.Output{
 			{
 				Kind: controller.OutputExclusive,
-				Type: outputType,
+				Type: omni.MachineExtensionsType,
 			},
 		},
 		Concurrency: optional.Some[uint](4),
@@ -122,7 +72,9 @@ func (ctrl *machineCustomizationController[I, O]) Settings() controller.QSetting
 }
 
 // MapInput implements controller.QController interface.
-func (ctrl *machineCustomizationController[I, O]) MapInput(ctx context.Context, _ *zap.Logger, r controller.QRuntime, ptr controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+func (ctrl *MachineExtensionsController) MapInput(ctx context.Context, _ *zap.Logger,
+	r controller.QRuntime, ptr controller.ReducedResourceMetadata,
+) ([]resource.Pointer, error) {
 	res, err := r.Get(ctx, ptr)
 	if err != nil {
 		if state.IsNotFoundError(err) {
@@ -132,28 +84,23 @@ func (ctrl *machineCustomizationController[I, O]) MapInput(ctx context.Context, 
 		return nil, err
 	}
 
-	var (
-		output     O
-		outputType = output.ResourceDefinition().Type
-	)
-
 	switch ptr.Type() {
-	case outputType:
+	case omni.MachineExtensionsType:
 		clusterName, ok := res.Metadata().Labels().Get(omni.LabelCluster)
 		if !ok {
 			return nil, nil
 		}
 
-		var list safe.List[I]
+		var list safe.List[*omni.ExtensionsConfiguration]
 
-		list, err = safe.ReaderListAll[I](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
+		list, err = safe.ReaderListAll[*omni.ExtensionsConfiguration](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
 		if err != nil {
 			return nil, err
 		}
 
 		resources := make([]resource.Pointer, 0, list.Len())
 
-		list.ForEach(func(r I) {
+		list.ForEach(func(r *omni.ExtensionsConfiguration) {
 			resources = append(resources, r.Metadata())
 		})
 
@@ -182,9 +129,9 @@ func (ctrl *machineCustomizationController[I, O]) MapInput(ctx context.Context, 
 				resource.LabelExists(omni.LabelMachineSet, resource.NotMatches),
 			},
 		} {
-			var matching safe.List[I]
+			var matching safe.List[*omni.ExtensionsConfiguration]
 
-			matching, err = safe.ReaderListAll[I](ctx, r, state.WithLabelQuery(queries...))
+			matching, err = safe.ReaderListAll[*omni.ExtensionsConfiguration](ctx, r, state.WithLabelQuery(queries...))
 			if err != nil {
 				return nil, err
 			}
@@ -209,15 +156,10 @@ func (ctrl *machineCustomizationController[I, O]) MapInput(ctx context.Context, 
 }
 
 // Reconcile implements controller.QController interface.
-func (ctrl *machineCustomizationController[I, O]) Reconcile(ctx context.Context,
+func (ctrl *MachineExtensionsController) Reconcile(ctx context.Context,
 	_ *zap.Logger, r controller.QRuntime, ptr resource.Pointer,
 ) error {
-	var (
-		output     O
-		outputType = output.ResourceDefinition().Type
-	)
-
-	configuration, err := safe.ReaderGetByID[I](ctx, r, ptr.ID())
+	configuration, err := safe.ReaderGetByID[*omni.ExtensionsConfiguration](ctx, r, ptr.ID())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil
@@ -226,8 +168,8 @@ func (ctrl *machineCustomizationController[I, O]) Reconcile(ctx context.Context,
 		return err
 	}
 
-	tracker := trackResource(r, resources.DefaultNamespace, outputType, state.WithLabelQuery(
-		resource.LabelEqual(ctrl.configLabel, configuration.Metadata().ID()),
+	tracker := trackResource(r, resources.DefaultNamespace, omni.MachineExtensionsType, state.WithLabelQuery(
+		resource.LabelEqual(omni.ExtensionsConfigurationLabel, configuration.Metadata().ID()),
 	))
 
 	clusterMachines, err := ctrl.getRelatedClusterMachines(ctx, r, configuration)
@@ -237,25 +179,26 @@ func (ctrl *machineCustomizationController[I, O]) Reconcile(ctx context.Context,
 
 	if configuration.Metadata().Phase() == resource.PhaseTearingDown {
 		return tracker.cleanup(ctx, withDestroyReadyCallback(func() error {
-			return r.RemoveFinalizer(ctx, configuration.Metadata(), ctrl.Name())
+			return r.RemoveFinalizer(ctx, configuration.Metadata(), MachineExtensionsControllerName)
 		}))
 	}
 
-	if !configuration.Metadata().Finalizers().Has(ctrl.Name()) {
-		if err = r.AddFinalizer(ctx, configuration.Metadata(), ctrl.Name()); err != nil {
+	if !configuration.Metadata().Finalizers().Has(MachineExtensionsControllerName) {
+		if err = r.AddFinalizer(ctx, configuration.Metadata(), MachineExtensionsControllerName); err != nil {
 			return err
 		}
 	}
 
 	for _, clusterMachine := range clusterMachines {
-		res := ctrl.newFunc(clusterMachine.Metadata().ID())
+		status := omni.NewMachineExtensions(resources.DefaultNamespace, clusterMachine.Metadata().ID())
 
-		tracker.keep(res)
+		tracker.keep(status)
 
-		if err = safe.WriterModify[O](ctx, r, res, func(r O) error {
-			r.Metadata().Labels().Set(ctrl.configLabel, configuration.Metadata().ID())
+		if err = safe.WriterModify[*omni.MachineExtensions](ctx, r, status, func(r *omni.MachineExtensions) error {
+			r.TypedSpec().Value.Extensions = configuration.TypedSpec().Value.Extensions
+			r.Metadata().Labels().Set(omni.ExtensionsConfigurationLabel, configuration.Metadata().ID())
+
 			helpers.CopyLabels(clusterMachine, r, omni.LabelCluster)
-			ctrl.modifyFunc(configuration, r)
 
 			return nil
 		}); err != nil {
@@ -270,8 +213,8 @@ func (ctrl *machineCustomizationController[I, O]) Reconcile(ctx context.Context,
 	return tracker.cleanup(ctx)
 }
 
-func (ctrl *machineCustomizationController[I, O]) getRelatedClusterMachines(ctx context.Context,
-	r controller.QRuntime, configuration I,
+func (ctrl *MachineExtensionsController) getRelatedClusterMachines(ctx context.Context,
+	r controller.QRuntime, configuration *omni.ExtensionsConfiguration,
 ) ([]*omni.ClusterMachine, error) {
 	for _, label := range []string{
 		omni.LabelClusterMachine,

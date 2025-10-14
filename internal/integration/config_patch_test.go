@@ -54,7 +54,7 @@ func AssertLargeImmediateConfigApplied(testCtx context.Context, cli *client.Clie
 		ctx, cancel := context.WithTimeout(testCtx, 3*time.Minute)
 		defer cancel()
 
-		talosCli, err := talosClientForCluster(ctx, cli, clusterName)
+		talosCli, err := talosClient(ctx, cli, clusterName)
 		require.NoError(t, err)
 
 		nodeIPs, err := talosNodeIPs(ctx, talosCli.COSI)
@@ -152,7 +152,7 @@ func AssertConfigPatchWithReboot(testCtx context.Context, cli *client.Client, cl
 		ctx, cancel := context.WithTimeout(testCtx, 3*time.Minute)
 		defer cancel()
 
-		talosCli, err := talosClientForCluster(ctx, cli, clusterName)
+		talosCli, err := talosClient(ctx, cli, clusterName)
 		require.NoError(t, err)
 
 		st := cli.Omni().State()

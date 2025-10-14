@@ -14,7 +14,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 )
 
-// NewMachineExtensions creates new MachineExtensions resource.
+// NewMachineExtensions creates new extensions configuration resource.
 func NewMachineExtensions(ns string, id resource.ID) *MachineExtensions {
 	return typed.NewResource[MachineExtensionsSpec, MachineExtensionsExtension](
 		resource.NewMetadata(ns, MachineExtensionsType, id, resource.VersionUndefined),
