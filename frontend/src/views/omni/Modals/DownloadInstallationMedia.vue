@@ -508,8 +508,6 @@ const downloaded = computed(() => {
         <TCheckbox v-model="showDescriptions" class="col-span-2" label="Show Descriptions" />
       </div>
 
-      <pre>{{ JSON.stringify(installExtensions, null, 2) }}</pre>
-
       <ExtensionsPicker
         v-model="installExtensions"
         :talos-version="selectedTalosVersion"
