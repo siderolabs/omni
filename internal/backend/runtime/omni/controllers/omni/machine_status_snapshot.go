@@ -106,15 +106,6 @@ func (ctrl *MachineStatusSnapshotController) Settings() controller.QSettings {
 func (ctrl *MachineStatusSnapshotController) MapInput(ctx context.Context, _ *zap.Logger,
 	r controller.QRuntime, ptr controller.ReducedResourceMetadata,
 ) ([]resource.Pointer, error) {
-	_, err := r.Get(ctx, ptr)
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return nil, nil
-		}
-
-		return nil, err
-	}
-
 	switch ptr.Type() {
 	case omni.ClusterMachineType:
 		fallthrough
@@ -167,8 +158,8 @@ func (ctrl *MachineStatusSnapshotController) reconcileRunning(ctx context.Contex
 		}
 	}
 
-	clusterMachine, err := helpers.HandleInput[*omni.ClusterMachine](ctx, r, ctrl.Name(), machine)
-	if err != nil {
+	clusterMachine, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, machine.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
 		return err
 	}
 
@@ -201,11 +192,6 @@ func (ctrl *MachineStatusSnapshotController) reconcileRunning(ctx context.Contex
 
 func (ctrl *MachineStatusSnapshotController) reconcileTearingDown(ctx context.Context, r controller.QRuntime, logger *zap.Logger, machine *omni.Machine) error {
 	ctrl.runner.StopTask(logger, machine.Metadata().ID())
-
-	_, err := helpers.HandleInput[*omni.ClusterMachine](ctx, r, ctrl.Name(), machine)
-	if err != nil {
-		return err
-	}
 
 	md := omni.NewMachineStatusSnapshot(resources.DefaultNamespace, machine.Metadata().ID()).Metadata()
 

@@ -32,13 +32,13 @@ import (
 	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/pkg/machineconfig"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/installimage"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
-	"github.com/siderolabs/omni/internal/pkg/constants"
 )
 
 // ClusterMachineConfigControllerName is the name of the ClusterMachineConfigController.
@@ -278,7 +278,6 @@ func reconcileClusterMachineConfig(
 		machineConfig.TypedSpec().Value.WithoutComments = true
 	}
 
-	machineConfig.TypedSpec().Value.ExtraKernelArgs = machineConfigGenOptions.TypedSpec().Value.ExtraKernelArgs
 	machineConfig.TypedSpec().Value.ClusterMachineVersion = clusterMachine.Metadata().Version().String()
 	machineConfig.TypedSpec().Value.GenerationError = ""
 
@@ -346,42 +345,7 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		return nil, err
 	}
 
-	genOptions := []generate.Option{
-		generate.WithInstallImage(installImage),
-		generate.WithInstallExtraKernelArgs(configGenOptions.TypedSpec().Value.ExtraKernelArgs),
-	}
-
-	genOptions = append(genOptions, extraGenOptions...)
-
-	if configGenOptions.TypedSpec().Value.InstallDisk != "" {
-		genOptions = append(genOptions, generate.WithInstallDisk(configGenOptions.TypedSpec().Value.InstallDisk))
-	}
-
-	versionContract, parseErr := config.ParseContractFromVersion(initialTalosVersion)
-	if parseErr != nil {
-		return nil, parseErr
-	}
-
-	genOptions = append(genOptions, generate.WithVersionContract(versionContract))
-
-	// For Talos 1.5+, enable KubePrism feature. It's not enabled by default in the machine generation.
-	if versionContract.Greater(config.TalosVersion1_4) {
-		genOptions = append(genOptions, generate.WithKubePrismPort(constants.KubePrismPort))
-	}
-
 	secretBundle, err := omni.ToSecretsBundle(secrets)
-	if err != nil {
-		return nil, err
-	}
-
-	genOptions = append(genOptions, generate.WithSecretsBundle(secretBundle))
-
-	input, err := generate.NewInput(
-		clusterName,
-		loadbalancer.TypedSpec().Value.SiderolinkEndpoint,
-		initialKubernetesVersion,
-		genOptions...,
-	)
 	if err != nil {
 		return nil, err
 	}
@@ -392,10 +356,23 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		machineType = machineapi.TypeControlPlane
 	}
 
-	cfg, err := input.Config(machineType)
+	genOutput, err := machineconfig.Generate(machineconfig.GenerateInput{
+		ClusterID:                clusterName,
+		MachineID:                clusterMachine.Metadata().ID(),
+		InitialTalosVersion:      initialTalosVersion,
+		InitialKubernetesVersion: initialKubernetesVersion,
+		ExtraGenOptions:          extraGenOptions,
+		IsControlPlane:           machineType == machineapi.TypeControlPlane,
+		SiderolinkEndpoint:       loadbalancer.TypedSpec().Value.SiderolinkEndpoint,
+		InstallDisk:              configGenOptions.TypedSpec().Value.InstallDisk,
+		InstallImage:             installImage,
+		Secrets:                  secretBundle,
+	})
 	if err != nil {
 		return nil, err
 	}
+
+	cfg := genOutput.Config
 
 	patchList, err := clusterMachineConfigPatches.TypedSpec().Value.GetUncompressedPatches()
 	if err != nil {

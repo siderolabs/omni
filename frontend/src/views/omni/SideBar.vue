@@ -29,7 +29,7 @@ import {
   canReadClusters,
   canReadMachines,
 } from '@/methods/auth'
-import { useFeatures } from '@/methods/features'
+import { useFeatures, useInstallationMediaEnabled } from '@/methods/features'
 
 const machineMetrics = ref<Resource<MachineStatusMetricsSpec>>()
 const machineMetricsWatch = new Watch(machineMetrics)
@@ -94,6 +94,7 @@ const groupProviders = (
 }
 
 const { data: featuresConfig } = useFeatures()
+const { value: installationMediaEnabled } = useInstallationMediaEnabled()
 
 const items = computed(() => {
   const result: SideBarItem[] = [
@@ -159,7 +160,7 @@ const items = computed(() => {
       }
     }
 
-    const item: SideBarItem = {
+    const item = {
       name: 'Machines',
       route: getRoute('Machines', '/machines'),
       icon: 'nodes',
@@ -171,14 +172,22 @@ const items = computed(() => {
         },
         autoprovisionedMenuItem,
       ],
-    }
+    } satisfies SideBarItem
 
     if (machineMetrics.value?.spec.pending_machines_count) {
-      item.subItems!.push({
+      item.subItems.push({
         name: 'Pending',
         route: getRoute('MachinesPending', '/machines/pending'),
         icon: 'question',
         label: machineMetrics.value.spec.pending_machines_count,
+      })
+    }
+
+    if (installationMediaEnabled) {
+      item.subItems.push({
+        name: 'Installation Media',
+        route: getRoute('InstallationMedia', '/machines/installation-media'),
+        icon: 'kube-config',
       })
     }
 
@@ -197,7 +206,7 @@ const items = computed(() => {
         },
         {
           name: 'Join Tokens',
-          route: getRoute('JoinTokens', '/machine/jointokens'),
+          route: getRoute('JoinTokens', '/machines/jointokens'),
           icon: 'key',
         },
       ],

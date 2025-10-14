@@ -953,7 +953,7 @@ func machineInstallDiskPatches(ctx context.Context, st state.State, _ *zap.Logge
 		}
 
 		if err = createOrUpdate(ctx, st, omni.NewMachineConfigGenOptions(resources.DefaultNamespace, item.Metadata().ID()), func(res *omni.MachineConfigGenOptions) error {
-			omnictrl.GenInstallConfig(machineStatus, nil, res, nil, true)
+			omnictrl.GenInstallConfig(machineStatus, nil, res)
 
 			return nil
 		}, omnictrl.MachineConfigGenOptionsControllerName); err != nil {
@@ -1233,7 +1233,7 @@ func migrateInstallImageConfigIntoGenOptions(ctx context.Context, st state.State
 		}
 
 		if _, err = safe.StateUpdateWithConflicts(ctx, st, genOptions.Metadata(), func(res *omni.MachineConfigGenOptions) error {
-			omnictrl.GenInstallConfig(machineStatus, talosVersion, res, nil, true)
+			omnictrl.GenInstallConfig(machineStatus, talosVersion, res)
 
 			return nil
 		}, state.WithUpdateOwner(genOptions.Metadata().Owner())); err != nil {
@@ -1942,4 +1942,80 @@ func moveClusterTaintFromResourceToLabel(ctx context.Context, st state.State, _ 
 	}
 
 	return err
+}
+
+func dropExtraInputFinalizers(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
+	logger.Info("dropping extra finalizers from MachineSetStatus resources")
+
+	if err := dropFinalizers[*omni.MachineSetStatus](ctx, st, "ClusterDestroyStatusController"); err != nil {
+		return fmt.Errorf("failed to remove finalizers from MachineSetStatus resources: %w", err)
+	}
+
+	logger.Info("dropping extra finalizers from ClusterMachineStatus resources")
+
+	if err := dropFinalizers[*omni.ClusterMachineStatus](ctx, st, "ClusterDestroyStatusController", "MachineSetDestroyStatusController", "MachineStatusController"); err != nil {
+		return fmt.Errorf("failed to remove finalizers from ClusterMachineStatus resources: %w", err)
+	}
+
+	logger.Info("dropping extra finalizers from Link resources")
+
+	if err := dropFinalizers[*siderolink.Link](ctx, st, "BMCConfigController"); err != nil {
+		return fmt.Errorf("failed to remove finalizers from Link resources: %w", err)
+	}
+
+	logger.Info("dropping extra finalizers from MachineSetNode resources")
+
+	if err := dropFinalizers[*omni.MachineSetNode](ctx, st, "ClusterMachineStatusController", "MachineStatusController"); err != nil {
+		return fmt.Errorf("failed to remove finalizers from MachineSetNode resources: %w", err)
+	}
+
+	logger.Info("dropping extra finalizers from ClusterMachine resources")
+
+	if err := dropFinalizers[*omni.ClusterMachine](ctx, st, "MachineStatusSnapshotController", "InfraMachineController"); err != nil {
+		return fmt.Errorf("failed to remove finalizers from ClusterMachine resources: %w", err)
+	}
+
+	logger.Info("dropping extra finalizers from InfraMachineConfig resources")
+
+	if err := dropFinalizers[*omni.InfraMachineConfig](ctx, st, "InfraMachineController"); err != nil {
+		return fmt.Errorf("failed to remove finalizers from InfraMachineConfig resources: %w", err)
+	}
+
+	logger.Info("dropping extra finalizers from MachineExtensions resources")
+
+	if err := dropFinalizers[*omni.MachineExtensions](ctx, st, "InfraMachineController"); err != nil {
+		return fmt.Errorf("failed to remove finalizers from MachineExtensions resources: %w", err)
+	}
+
+	logger.Info("dropping extra finalizers from MachineStatus resources")
+
+	if err := dropFinalizers[*omni.MachineStatus](ctx, st, "InfraMachineController"); err != nil {
+		return fmt.Errorf("failed to remove finalizers from MachineStatus resources: %w", err)
+	}
+
+	logger.Info("dropping extra finalizers from NodeUniqueToken resources")
+
+	if err := dropFinalizers[*siderolink.NodeUniqueToken](ctx, st, "InfraMachineController"); err != nil {
+		return fmt.Errorf("failed to remove finalizers from NodeUniqueToken resources: %w", err)
+	}
+
+	logger.Info("dropping extra finalizers from MachineStatusSnapshot resources")
+
+	if err := dropFinalizers[*omni.MachineStatusSnapshot](ctx, st, "MachineStatusController"); err != nil {
+		return fmt.Errorf("failed to remove finalizers from MachineStatusSnapshot resources: %w", err)
+	}
+
+	logger.Info("dropping extra finalizers from MachineLabels resources")
+
+	if err := dropFinalizers[*omni.MachineLabels](ctx, st, "MachineStatusController"); err != nil {
+		return fmt.Errorf("failed to remove finalizers from MachineLabels resources: %w", err)
+	}
+
+	logger.Info("dropping extra finalizers from infra.MachineStatus resources")
+
+	if err := dropFinalizers[*infra.MachineStatus](ctx, st, "MachineStatusController"); err != nil {
+		return fmt.Errorf("failed to remove finalizers from infra.MachineStatus resources: %w", err)
+	}
+
+	return nil
 }

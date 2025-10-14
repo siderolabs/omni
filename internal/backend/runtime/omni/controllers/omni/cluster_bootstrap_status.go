@@ -84,6 +84,14 @@ func NewClusterBootstrapStatusController(etcdBackupStoreFactory store.Factory) *
 					return nil
 				}
 
+				if _, ok := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByImporting); ok {
+					logger.Info("cluster is being imported, therefore it's already been bootstrapped", zap.String("cluster_id", clusterStatus.Metadata().ID()))
+
+					bootstrapStatus.TypedSpec().Value.Bootstrapped = true
+
+					return nil
+				}
+
 				talosCli, err := getTalosClientForBootstrap(ctx, r, clusterStatus.Metadata().ID())
 				if err != nil {
 					if talos.IsClientNotReadyError(err) {

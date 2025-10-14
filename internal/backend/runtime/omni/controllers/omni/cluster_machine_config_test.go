@@ -118,7 +118,7 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 				)
 
 				if i == 0 {
-					assertions.Equal(machineconfig.Machine().Network().Hostname(), "patched-node")
+					assertions.Equal(machineconfig.NetworkHostnameConfig().Hostname(), "patched-node")
 				}
 			},
 		)
@@ -205,7 +205,6 @@ func (suite *ClusterMachineConfigSuite) TestGeneratePreserveFeatures() {
 			machineconfig, configErr := configloader.NewFromBytes(configData)
 			suite.Require().NoError(configErr)
 
-			assertions.True(machineconfig.Machine().Features().ApidCheckExtKeyUsageEnabled())
 			assertions.True(machineconfig.Machine().Features().DiskQuotaSupportEnabled())
 		},
 	)
@@ -470,7 +469,6 @@ func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityFrom(talosVer
 	// initialize the default feature values for assertions
 	manifestDirectoryDisabled := true
 	legacyMirrorRemoved := true
-	apidCheckExtKeyUsageEnabled := true
 	diskQuotaSupportEnabled := true
 	kubePrismEnabled := true
 	hostDNSEnabled := true
@@ -482,7 +480,6 @@ func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityFrom(talosVer
 	case "1.2.1":
 		manifestDirectoryDisabled = false
 		legacyMirrorRemoved = false
-		apidCheckExtKeyUsageEnabled = false
 
 		fallthrough
 	case "1.3.1":
@@ -510,13 +507,14 @@ func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityFrom(talosVer
 	case "1.10.1":
 		fallthrough
 	case "1.11.1":
+		fallthrough
+	case "1.12.1":
 	default:
 		suite.T().Fatalf("untested initial version: %s", initialVersion)
 	}
 
 	suite.Equal(manifestDirectoryDisabled, finalConfig.Machine().Kubelet().DisableManifestsDirectory(), "disableManifestsDirectory value has changed unexpectedly")
 	suite.Equal(legacyMirrorRemoved, len(finalConfig.Machine().Registries().Mirrors()) == 0, "legacy registry mirror value has changed unexpectedly")
-	suite.Equal(apidCheckExtKeyUsageEnabled, finalConfig.Machine().Features().ApidCheckExtKeyUsageEnabled(), "apidCheckExtKeyUsage feature value has changed unexpectedly")
 	suite.Equal(diskQuotaSupportEnabled, finalConfig.Machine().Features().DiskQuotaSupportEnabled(), "diskQuotaSupport feature value has changed unexpectedly")
 	suite.Equal(hostDNSEnabled, finalConfig.Machine().Features().HostDNS().Enabled(), "hostDNS feature value has changed unexpectedly")
 	suite.Equal(hostDNSForwardKubeDNSToHost, finalConfig.Machine().Features().HostDNS().ForwardKubeDNSToHost(), "hostDNS.forwardKubeDNSToHost value has changed unexpectedly")

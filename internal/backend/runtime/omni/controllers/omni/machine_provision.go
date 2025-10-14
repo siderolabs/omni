@@ -72,7 +72,6 @@ func NewMachineProvisionController() *MachineProvisionController {
 				machineRequestSet.TypedSpec().Value.TalosVersion = cluster.TypedSpec().Value.TalosVersion
 				machineRequestSet.TypedSpec().Value.ProviderData = provision.ProviderData
 				machineRequestSet.TypedSpec().Value.GrpcTunnel = provision.GrpcTunnel
-				machineRequestSet.TypedSpec().Value.Extensions = provision.Extensions
 
 				expectMachines := machineAllocation.MachineCount
 

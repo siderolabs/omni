@@ -17,7 +17,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/extensions"
 	"github.com/siderolabs/omni/internal/integration/workloadproxy"
 	"github.com/siderolabs/omni/internal/pkg/clientconfig"
 )
@@ -865,31 +864,18 @@ Tests upgrading Talos version, including reverting a failed upgrade.`)
 		if !options.SkipExtensionsCheckOnCreate {
 			t.Run(
 				"HelloWorldServiceExtensionShouldBePresent",
-				AssertExtensionsArePresent(t.Context(), options.omniClient, clusterName, []string{HelloWorldServiceExtensionName}),
+				AssertExtensionIsPresent(t.Context(), options.omniClient, clusterName, HelloWorldServiceExtensionName),
 			)
 		}
 
-		extensions := []string{HelloWorldServiceExtensionName, extensions.OfficialPrefix + "qemu-guest-agent"}
-		extraKernelArgs := []string{"foo=bar", "bar=baz"}
-
 		t.Run(
-			"TalosExtensionsUpdateShouldSucceed",
-			AssertTalosExtensionsUpdateFlow(t.Context(), options.omniClient, clusterName, extensions),
+			"TalosSchematicUpdateShouldSucceed",
+			AssertTalosSchematicUpdateFlow(t.Context(), options.omniClient, clusterName),
 		)
 
 		t.Run(
-			"TalosExtraKernelArgsUpdateShouldSucceed",
-			AssertTalosExtraKernelArgsUpdateFlow(t.Context(), options.omniClient, clusterName, extraKernelArgs),
-		)
-
-		t.Run(
-			"UpdatedExtensionsShouldBePresent",
-			AssertExtensionsArePresent(t.Context(), options.omniClient, clusterName, extensions),
-		)
-
-		t.Run(
-			"UpdatedExtraKernelArgsShouldBePresent",
-			AssertExtraKernelArgsArePresent(t.Context(), options.omniClient, clusterName, extraKernelArgs),
+			"QemuGuestAgentExtensionShouldBePresent",
+			AssertExtensionIsPresent(t.Context(), options.omniClient, clusterName, QemuGuestAgentExtensionName),
 		)
 
 		t.Run(
@@ -910,7 +896,7 @@ Tests upgrading Talos version, including reverting a failed upgrade.`)
 		if !options.SkipExtensionsCheckOnCreate {
 			t.Run(
 				"HelloWorldServiceExtensionShouldBePresent",
-				AssertExtensionsArePresent(t.Context(), options.omniClient, clusterName, []string{HelloWorldServiceExtensionName}),
+				AssertExtensionIsPresent(t.Context(), options.omniClient, clusterName, HelloWorldServiceExtensionName),
 			)
 		}
 
@@ -1340,13 +1326,13 @@ Note: this test expects all machines to be provisioned by the bare-metal infra p
 
 		t.Run(
 			"ExtensionsShouldBeUpdated",
-			UpdateExtensions(t.Context(), options.omniClient, clusterName, []string{extensions.OfficialPrefix + "binfmt-misc", extensions.OfficialPrefix + "glibc"}),
+			UpdateExtensions(t.Context(), options.omniClient, clusterName, []string{"siderolabs/binfmt-misc", "siderolabs/glibc"}),
 		)
 
 		t.Run(
 			"MachinesShouldBeAllocated",
 			AssertInfraMachinesAreAllocated(t.Context(), options.omniClient.Omni().State(), clusterName,
-				options.MachineOptions.TalosVersion, []string{extensions.OfficialPrefix + "binfmt-misc", extensions.OfficialPrefix + "glibc"}),
+				options.MachineOptions.TalosVersion, []string{"siderolabs/binfmt-misc", "siderolabs/glibc"}),
 		)
 
 		t.Run(
@@ -1482,51 +1468,6 @@ Test Omni upgrades, the second half that runs on the current Omni version
 		t.Run(
 			"ClusterShouldBeDestroyed",
 			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, false),
-		)
-	}
-}
-
-func testClusterImport(options *TestOptions) TestFunc {
-	return func(t *testing.T) {
-		t.Log(`
-Create a single node imported cluster, assert that the cluster is ready and accessible and using the imported secrets bundle.`)
-
-		t.Parallel()
-
-		clusterOptions, bundleYaml := prepareClusterImport(t, "integration-cluster-import", options)
-
-		t.Run(
-			"ClusterShouldBeCreated",
-			CreateCluster(t.Context(), options.omniClient, clusterOptions),
-		)
-
-		assertClusterAndAPIReady(t, clusterOptions.Name, options)
-		t.Run(
-			"ClusterShouldBeImported",
-			AssertClusterIsImported(t.Context(), options.omniClient.Omni().State(), clusterOptions.Name, bundleYaml),
-		)
-
-		t.Run(
-			"ClusterShouldBeDestroyed",
-			AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterOptions.Name, false, false),
-		)
-
-		clusterOptions, bundleYaml = prepareClusterImport(t, "integration-cluster-import-abort", options)
-
-		t.Run(
-			"ClusterShouldBeCreated",
-			CreateCluster(t.Context(), options.omniClient, clusterOptions),
-		)
-
-		assertClusterAndAPIReady(t, clusterOptions.Name, options)
-		t.Run(
-			"ClusterShouldBeImported",
-			AssertClusterIsImported(t.Context(), options.omniClient.Omni().State(), clusterOptions.Name, bundleYaml),
-		)
-
-		t.Run(
-			"ClusterImportShouldBeAborted",
-			AssertClusterImportIsAborted(t.Context(), options, clusterOptions.Name, bundleYaml),
 		)
 	}
 }

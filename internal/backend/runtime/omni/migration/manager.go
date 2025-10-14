@@ -240,6 +240,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: moveClusterTaintFromResourceToLabel,
 				name:     "moveClusterTaintFromResourceToLabel",
 			},
+			{
+				callback: dropExtraInputFinalizers,
+				name:     "dropExtraInputFinalizers",
+			},
 		},
 	}
 }

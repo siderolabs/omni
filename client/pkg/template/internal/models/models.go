@@ -38,7 +38,7 @@ type SystemExtensions struct {
 	SystemExtensions []string `yaml:"systemExtensions,omitempty"`
 }
 
-func (s *SystemExtensions) translateExtensions(ctx TranslateContext, nameSuffix string, labels ...pair.Pair[string, string]) []resource.Resource {
+func (s *SystemExtensions) translate(ctx TranslateContext, nameSuffix string, labels ...pair.Pair[string, string]) []resource.Resource {
 	if len(s.SystemExtensions) == 0 {
 		return nil
 	}
@@ -54,33 +54,6 @@ func (s *SystemExtensions) translateExtensions(ctx TranslateContext, nameSuffix 
 	})
 
 	configuration.TypedSpec().Value.Extensions = s.SystemExtensions
-
-	return []resource.Resource{
-		configuration,
-	}
-}
-
-// ExtraKernelArgs is embedded in Cluster, MachineSet and Machine objects.
-type ExtraKernelArgs struct {
-	ExtraKernelArgs []string `yaml:"extraKernelArgs,omitempty"`
-}
-
-func (a *ExtraKernelArgs) translateExtraKernelArgs(ctx TranslateContext, nameSuffix string, labels ...pair.Pair[string, string]) []resource.Resource {
-	if len(a.ExtraKernelArgs) == 0 {
-		return nil
-	}
-
-	configuration := omni.NewExtraKernelArgsConfiguration(resources.DefaultNamespace, fmt.Sprintf("schematic-%s", nameSuffix))
-
-	configuration.Metadata().Labels().Set(omni.LabelCluster, ctx.ClusterName)
-
-	configuration.Metadata().Labels().Do(func(temp kvutils.TempKV) {
-		for _, l := range labels {
-			temp.Set(l.F1, l.F2)
-		}
-	})
-
-	configuration.TypedSpec().Value.Args = a.ExtraKernelArgs
 
 	return []resource.Resource{
 		configuration,

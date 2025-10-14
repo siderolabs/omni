@@ -2232,6 +2232,28 @@ func (suite *MigrationSuite) TestMoveClusterTaintFromResourceToLabel() {
 	suite.Require().Nil(danglingTaintDeleted, "ClusterTaint resource should not exist after migration")
 }
 
+func (suite *MigrationSuite) TestDropExtraInputFinalizers() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	const resourceID = "cms1"
+
+	cms := omni.NewClusterMachineStatus(resources.DefaultNamespace, resourceID)
+	cms.Metadata().Finalizers().Add("MachineSetDestroyStatusController")
+	cms.Metadata().Finalizers().Add("MachineStatusController")
+	cms.Metadata().Finalizers().Add("SomeOtherFinalizer")
+	suite.Require().NoError(suite.state.Create(ctx, cms))
+
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("dropExtraInputFinalizers"))))
+
+	cmdMigrated, err := safe.ReaderGetByID[*omni.ClusterMachineStatus](ctx, suite.state, resourceID)
+	suite.Require().NoError(err)
+
+	suite.Require().False(cmdMigrated.Metadata().Finalizers().Has("MachineSetDestroyStatusController"))
+	suite.Require().False(cmdMigrated.Metadata().Finalizers().Has("MachineStatusController"))
+	suite.Require().True(cmdMigrated.Metadata().Finalizers().Has("SomeOtherFinalizer"))
+}
+
 func startMigration[
 	R interface {
 		generic.ResourceWithRD

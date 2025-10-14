@@ -313,8 +313,6 @@ const createSchematic = async () => {
       }
     }
 
-    schematic.extensions?.sort()
-
     schematic.extra_kernel_args = kernelArguments.value.split(' ').filter((item) => item.trim())
 
     const resp = await ManagementService.CreateSchematic(schematic)
@@ -507,8 +505,6 @@ const downloaded = computed(() => {
         <h3 class="flex-1 text-sm text-naturals-n14">Pre-Install Extensions</h3>
         <TCheckbox v-model="showDescriptions" class="col-span-2" label="Show Descriptions" />
       </div>
-
-      <pre>{{ JSON.stringify(installExtensions, null, 2) }}</pre>
 
       <ExtensionsPicker
         v-model="installExtensions"

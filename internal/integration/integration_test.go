@@ -65,18 +65,19 @@ var (
 	providerData           string
 	provisionConfigFile    string
 
-	scalingTimeout    time.Duration
-	sleepAfterFailure time.Duration
+	scalingTimeout time.Duration
 
 	cleanupLinks                bool
 	runStatsCheck               bool
 	skipExtensionsCheckOnCreate bool
 	artifactsOutputDir          string
 
-	runEmbeddedOmni     bool
-	ignoreUnknownFields bool
-	omniConfigPath      string
-	omniLogOutput       string
+	runEmbeddedOmni       bool
+	ignoreUnknownFields   bool
+	omniConfigPath        string
+	talosConfigPath       string
+	talosClusterStatePath string
+	omniLogOutput         string
 )
 
 func TestIntegration(t *testing.T) {
@@ -96,8 +97,9 @@ func TestIntegration(t *testing.T) {
 		AnotherKubernetesVersion: anotherKubernetesVersion,
 		OmnictlPath:              omnictlPath,
 		ScalingTimeout:           scalingTimeout,
-		SleepAfterFailure:        sleepAfterFailure,
 		OutputDir:                artifactsOutputDir,
+		TalosconfigPath:          talosConfigPath,
+		ImportedClusterStatePath: talosClusterStatePath,
 	}
 
 	var serviceAccount string
@@ -238,7 +240,7 @@ func TestIntegration(t *testing.T) {
 		t.Run("StaticInfraProvider", testStaticInfraProvider(testOptions))
 		t.Run("OmniUpgradePrepare", testOmniUpgradePrepare(testOptions))
 		t.Run("OmniUpgradeVerify", testOmniUpgradeVerify(testOptions))
-		t.Run("ClusterImport", testClusterImport(testOptions))
+		t.Run("ClusterImport", func(t *testing.T) { testClusterImport(t, testOptions) })
 	})
 
 	postRunHooks(t, testOptions)
@@ -269,7 +271,6 @@ func init() {
 	flag.StringVar(&infraProvider, "omni.infra-provider", "talemu", "use infra provider with the specified ID when provisioning the machines")
 	flag.StringVar(&providerData, "omni.provider-data", "{}", "the infra provider machine template data to use")
 	flag.DurationVar(&scalingTimeout, "omni.scale-timeout", time.Second*150, "scale up test timeout")
-	flag.DurationVar(&sleepAfterFailure, "omni.sleep-after-failure", 0, "sleep duration after a test failure to keep embedded Omni alive for debugging purposes")
 	flag.StringVar(&provisionConfigFile, "omni.provision-config-file", "", "provision machines with the more complicated configuration")
 	flag.BoolVar(&skipExtensionsCheckOnCreate, "omni.skip-extensions-check-on-create", false,
 		"omni.disables checking for hello-world-service extension on the machine allocation and in the upgrade tests")
@@ -278,6 +279,8 @@ func init() {
 	flag.StringVar(&omniConfigPath, "omni.config-path", "", "embedded Omni config path")
 	flag.StringVar(&omniLogOutput, "omni.log-output", "_out/omni-test.log", "output logs directory")
 	flag.BoolVar(&ignoreUnknownFields, "omni.ignore-unknown-fields", false, "makes Omni config loader ignore unknown fields")
+	flag.StringVar(&talosConfigPath, "talos.config-path", "", "path for talosconfig")
+	flag.StringVar(&talosClusterStatePath, "talos.cluster-state-path", "", "path for imported talos cluster state")
 }
 
 func execCmd(ctx context.Context, parsedScript []string, args ...string) error {
@@ -345,11 +348,6 @@ func postRunHooks(t *testing.T, options *TestOptions) {
 		t.Logf("there are failed tests, save support bundle for all cluster")
 
 		saveAllSupportBundles(t, options.omniClient, options.OutputDir)
-
-		if options.SleepAfterFailure > 0 {
-			t.Logf("sleep for %s to keep embedded Omni alive for debugging purposes", options.SleepAfterFailure)
-			time.Sleep(options.SleepAfterFailure)
-		}
 	}
 
 	if options.provisionMachines() {

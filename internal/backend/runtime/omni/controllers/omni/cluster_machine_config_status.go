@@ -171,7 +171,7 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 
 				installImage := genOptions.TypedSpec().Value.InstallImage
 				if installImage == nil {
-					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("%q install image not found", machineConfig.Metadata().ID())
+					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("'%s' install image not found", machineConfig.Metadata().ID())
 				}
 
 				// compatibility code for the machines having extensions that bypass the image factory
@@ -181,23 +181,14 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 					expectedSchematic = ""
 				}
 
-				schematicMismatch := configStatus.TypedSpec().Value.SchematicId != expectedSchematic
-
-				compareFullSchematicID := genOptions.TypedSpec().Value.AlwaysIncludeKernelArgs
-				if compareFullSchematicID {
-					schematicMismatch = schematicMismatch || machineStatus.TypedSpec().Value.Schematic.FullId != expectedSchematic
-				} else {
-					schematicMismatch = schematicMismatch || machineStatus.TypedSpec().Value.Schematic.Id != expectedSchematic
-				}
-
-				talosVersionMismatch := strings.TrimLeft(machineStatus.TypedSpec().Value.TalosVersion, "v") != configStatus.TypedSpec().Value.TalosVersion ||
-					configStatus.TypedSpec().Value.TalosVersion != installImage.TalosVersion
-
-				customizationMismatch := schematicMismatch || talosVersionMismatch
+				versionMismatch := strings.TrimLeft(machineStatus.TypedSpec().Value.TalosVersion, "v") != configStatus.TypedSpec().Value.TalosVersion ||
+					configStatus.TypedSpec().Value.TalosVersion != installImage.TalosVersion ||
+					configStatus.TypedSpec().Value.SchematicId != expectedSchematic ||
+					machineStatus.TypedSpec().Value.Schematic.Id != expectedSchematic
 
 				// don't run the upgrade check if the running version and expected versions match
-				if customizationMismatch {
-					inSync, syncErr := handler.syncInstallImageAndSchematic(ctx, configStatus, machineStatus, machineConfig, statusSnapshot, installImage, compareFullSchematicID)
+				if versionMismatch {
+					inSync, syncErr := handler.syncInstallImageAndSchematic(ctx, configStatus, machineStatus, machineConfig, statusSnapshot, installImage)
 					if syncErr != nil {
 						return syncErr
 					}
@@ -246,7 +237,6 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 				configStatus.TypedSpec().Value.ClusterMachineVersion = machineConfig.TypedSpec().Value.ClusterMachineVersion
 				configStatus.TypedSpec().Value.ClusterMachineConfigVersion = machineConfig.Metadata().Version().String()
 				configStatus.TypedSpec().Value.ClusterMachineConfigSha256 = shaSumString
-				configStatus.TypedSpec().Value.ExtraKernelArgs = machineConfig.TypedSpec().Value.ExtraKernelArgs
 
 				configStatus.TypedSpec().Value.LastConfigError = ""
 
@@ -266,6 +256,11 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 					return fmt.Errorf("failed to determine the cluster name from the cluster machine config %q", machineConfig.Metadata().ID())
 				}
 
+				cluster, err := safe.ReaderGet[*omni.Cluster](ctx, r, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata())
+				if err != nil {
+					return fmt.Errorf("finalizer: failed to get cluster '%s': %w", clusterName, err)
+				}
+
 				clusterStatus, err := safe.ReaderGet[*omni.ClusterStatus](ctx, r, omni.NewClusterStatus(resources.DefaultNamespace, clusterName).Metadata())
 				if err != nil {
 					return fmt.Errorf("finalizer: failed to get cluster status '%s': %w", clusterName, err)
@@ -277,7 +272,7 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 				}
 
 				// perform reset of the node
-				err = handler.reset(ctx, machineConfig, clusterMachine, clusterStatus)
+				err = handler.reset(ctx, cluster, machineConfig, clusterMachine, clusterStatus)
 				if err != nil {
 					return err
 				}
@@ -432,8 +427,8 @@ type clusterMachineConfigStatusControllerHandler struct {
 	imageFactoryHost string
 }
 
-func (h *clusterMachineConfigStatusControllerHandler) syncInstallImageAndSchematic(inputCtx context.Context, configStatus *omni.ClusterMachineConfigStatus, machineStatus *omni.MachineStatus,
-	machineConfig *omni.ClusterMachineConfig, statusSnapshot *omni.MachineStatusSnapshot, installImage *specs.MachineConfigGenOptionsSpec_InstallImage, compareFullSchematicID bool,
+func (h *clusterMachineConfigStatusControllerHandler) syncInstallImageAndSchematic(inputCtx context.Context, configStatus *omni.ClusterMachineConfigStatus,
+	machineStatus *omni.MachineStatus, machineConfig *omni.ClusterMachineConfig, statusSnapshot *omni.MachineStatusSnapshot, installImage *specs.MachineConfigGenOptionsSpec_InstallImage,
 ) (bool, error) {
 	// use short timeout for the all API calls but upgrade to quickly skip "dead" nodes
 	ctx, cancel := context.WithTimeout(inputCtx, 5*time.Second)
@@ -490,12 +485,7 @@ func (h *clusterMachineConfigStatusControllerHandler) syncInstallImageAndSchemat
 		expectedSchematic = ""
 	}
 
-	schematicInSync := schematicInfo.Equal(expectedSchematic)
-	if compareFullSchematicID {
-		schematicInSync = schematicInfo.FullID == expectedSchematic
-	}
-
-	if actualVersion == expectedVersion && schematicInSync {
+	if actualVersion == expectedVersion && schematicInfo.Equal(expectedSchematic) {
 		configStatus.TypedSpec().Value.TalosVersion = actualVersion
 		configStatus.TypedSpec().Value.SchematicId = expectedSchematic
 
@@ -647,9 +637,10 @@ func logClose(c io.Closer, logger *zap.Logger, additional string) {
 	}
 }
 
-//nolint:gocyclo,cyclop,gocognit
+//nolint:gocyclo,cyclop,gocognit,maintidx
 func (h *clusterMachineConfigStatusControllerHandler) reset(
 	ctx context.Context,
+	cluster *omni.Cluster,
 	machineConfig *omni.ClusterMachineConfig,
 	clusterMachine *omni.ClusterMachine,
 	clusterStatus *omni.ClusterStatus,
@@ -680,14 +671,18 @@ func (h *clusterMachineConfigStatusControllerHandler) reset(
 		return nil
 	}
 
-	if _, ok := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByImporting); ok {
+	_, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked)
+	_, importing := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByImporting)
+	_, exporting := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByExporting)
+
+	if locked && importing && cluster.Metadata().Phase() == resource.PhaseTearingDown {
 		// Aborting Cluster import, means that we should just let it go
 		logger.Info("removed without reset")
 
 		return nil
 	}
 
-	if _, ok := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByExporting); ok {
+	if locked && exporting && cluster.Metadata().Phase() == resource.PhaseTearingDown {
 		// Finalizing Cluster export, means that we should just let it go
 		logger.Info("removed without reset")
 

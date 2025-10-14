@@ -17,9 +17,6 @@ const AnotherTalosVersion = "1.11.1"
 // MinDiscoveredTalosVersion makes Omni pull the versions from this point.
 const MinDiscoveredTalosVersion = "1.3.0"
 
-// MinTalosVersion allowed to be used when creating the cluster.
-const MinTalosVersion = "1.6.0"
-
 // DefaultKubernetesVersion is pre-selected in the UI and used in the integration tests.
 //
 // tsgen:DefaultKubernetesVersion

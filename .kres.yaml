@@ -345,8 +345,9 @@ spec:
           skipArtifactDownload: true
         environmentOverride:
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|ClusterImport)$"
+          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/ClusterImport"
           RUN_TALEMU_TESTS: false
+          CREATE_TALOS_CLUSTER: true
 ---
 kind: common.Build
 spec:

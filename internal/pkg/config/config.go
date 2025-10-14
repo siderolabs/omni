@@ -192,6 +192,7 @@ func Default() *Params {
 		},
 		Features: Features{
 			EnableConfigDataCompression: true,
+			EnableClusterImport:         true,
 		},
 		EtcdBackup: EtcdBackup{
 			TickInterval: time.Minute,
