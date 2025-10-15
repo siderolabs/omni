@@ -11,7 +11,8 @@ included in the LICENSE file.
     viewBox="0 0 24 24"
     stroke-width="1.5"
     stroke="currentColor"
-    class="size-6"
+    width="24"
+    height="24"
   >
     <path
       stroke-linecap="round"
