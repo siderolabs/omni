@@ -38,6 +38,21 @@ type UpgradePath struct {
 	AllComponentsReady bool
 }
 
+// BlockedNodes returns the nodes that are pending update but locked in alphabetical order.
+func (path *UpgradePath) BlockedNodes() []string {
+	var blocked []string
+
+	for _, step := range path.Steps {
+		if step.Blocked {
+			blocked = append(blocked, step.Node)
+		}
+	}
+
+	slices.Sort(blocked)
+
+	return slices.Compact(blocked)
+}
+
 // CalculateUpgradePath calculates the upgrade path for the cluster.
 //
 //nolint:gocyclo,cyclop,gocognit
@@ -95,12 +110,14 @@ func CalculateUpgradePath(nodenameToMachineMap *MachineMap, kubernetesStatus *om
 		addImagesToNode(nodename, patch.UsedImages)
 
 		if pending {
+			_, locked := nodenameToMachineMap.Locked[nodename]
 			upgradePath.Steps = append(upgradePath.Steps, UpgradeStep{
 				MachineID:   machineID,
 				Patch:       patch,
 				Description: fmt.Sprintf("%s: updating %s to %s", nodename, Kubelet, desiredVersion),
 				Node:        nodename,
 				Component:   Kubelet,
+				Blocked:     locked, // Upgrade step is blocked from progressing because the machine is locked
 			})
 		}
 	}

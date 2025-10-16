@@ -933,7 +933,7 @@ Tests upgrading Kubernetes version, including reverting a failed upgrade.`)
 
 		t.Parallel()
 
-		options.claimMachines(t, 4)
+		options.claimMachines(t, 5)
 
 		clusterName := "integration-k8s-upgrade"
 
@@ -942,7 +942,7 @@ Tests upgrading Kubernetes version, including reverting a failed upgrade.`)
 			CreateCluster(t.Context(), options.omniClient, ClusterOptions{
 				Name:          clusterName,
 				ControlPlanes: 3,
-				Workers:       1,
+				Workers:       2,
 
 				MachineOptions: MachineOptions{
 					TalosVersion:      options.MachineOptions.TalosVersion,

@@ -20,14 +20,22 @@ type UpgradeStep struct {
 	Node        string
 	Component   Component
 	Patch       Patcher
+	Blocked     bool
 }
 
 // Less returns true if the patch should be applied before the other one.
 //
-// Order is based on the upgrade order.
+// Order is based on the upgrade order. Blocked steps are handled last.
 func (p UpgradeStep) Less(other UpgradeStep) bool {
 	if p.Component == other.Component {
-		return p.Node < other.Node
+		switch {
+		case p.Blocked && !other.Blocked:
+			return false
+		case !p.Blocked && other.Blocked:
+			return true
+		default:
+			return p.Node < other.Node
+		}
 	}
 
 	return p.Component.Less(other.Component)

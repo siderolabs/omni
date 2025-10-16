@@ -7,6 +7,7 @@ package kubernetes
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -20,19 +21,21 @@ import (
 //
 // It helps to connect resources based on Kubernetes data with Omni internals based on machine IDs.
 type MachineMap struct {
-	// both maps are nodename -> machine ID
+	// maps are nodename -> machine ID
 	ControlPlanes map[string]string
 	Workers       map[string]string
+	Locked        map[string]string
 }
 
-// NewMachineMap creates a new MachineMap based on ClusterMachineIdentity resources.
+// NewMachineMap creates a new MachineMap based on ClusterMachineStatus resources.
 func NewMachineMap(ctx context.Context, r controller.Reader, cluster *omni.Cluster) (*MachineMap, error) {
 	nodenameToMachineMap := MachineMap{
 		ControlPlanes: map[string]string{},
 		Workers:       map[string]string{},
+		Locked:        map[string]string{},
 	}
 
-	clusterMachineIdentities, err := safe.ReaderListAll[*omni.ClusterMachineIdentity](
+	clusterMachineStatuses, err := safe.ReaderListAll[*omni.ClusterMachineStatus](
 		ctx,
 		r,
 		state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID())),
@@ -41,11 +44,20 @@ func NewMachineMap(ctx context.Context, r controller.Reader, cluster *omni.Clust
 		return nil, err
 	}
 
-	for cmi := range clusterMachineIdentities.All() {
-		if _, controlplane := cmi.Metadata().Labels().Get(omni.LabelControlPlaneRole); controlplane {
-			nodenameToMachineMap.ControlPlanes[cmi.TypedSpec().Value.Nodename] = cmi.Metadata().ID()
+	for cms := range clusterMachineStatuses.All() {
+		nodename, ok := cms.Metadata().Labels().Get(omni.ClusterMachineStatusLabelNodeName)
+		if !ok {
+			return nil, fmt.Errorf("failed to fetch node name from %s ClusterMachineStatus", cms.Metadata().ID())
+		}
+
+		if _, locked := cms.Metadata().Annotations().Get(omni.MachineLocked); locked {
+			nodenameToMachineMap.Locked[nodename] = cms.Metadata().ID()
+		}
+
+		if _, controlplane := cms.Metadata().Labels().Get(omni.LabelControlPlaneRole); controlplane {
+			nodenameToMachineMap.ControlPlanes[nodename] = cms.Metadata().ID()
 		} else {
-			nodenameToMachineMap.Workers[cmi.TypedSpec().Value.Nodename] = cmi.Metadata().ID()
+			nodenameToMachineMap.Workers[nodename] = cms.Metadata().ID()
 		}
 	}
 
