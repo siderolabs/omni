@@ -5,7 +5,6 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import * as semver from 'semver'
 import type { Ref } from 'vue'
 import { computed, onMounted, ref, toRefs, watch } from 'vue'
 
@@ -174,12 +173,6 @@ const machineLockedForKubernetesUpgrade = computed(() => {
 onMounted(async () => {
   isEmbeddedDiscoveryServiceAvailable.value = await embeddedDiscoveryServiceFeatureAvailable()
 })
-
-const isMinorDowngrade = (fromVersion?: string, toVersion?: string): boolean => {
-  if (!fromVersion || !toVersion) return true
-
-  return semver.minor(fromVersion) > semver.minor(toVersion)
-}
 </script>
 
 <template>
@@ -282,11 +275,7 @@ const isMinorDowngrade = (fromVersion?: string, toVersion?: string): boolean => 
             <TButton
               v-if="
                 kubernetesUpgradeStatus.spec.phase === KubernetesUpgradeStatusSpecPhase.Upgrading &&
-                !clusterLocked &&
-                !isMinorDowngrade(
-                  kubernetesUpgradeStatus.spec.current_upgrade_version,
-                  kubernetesUpgradeStatus.spec.last_upgrade_version,
-                )
+                !clusterLocked
               "
               type="secondary"
               class="place-self-end"
