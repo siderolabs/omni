@@ -10,6 +10,7 @@ require (
 	github.com/ProtonMail/gopenpgp/v2 v2.9.0
 	github.com/adrg/xdg v0.5.3
 	github.com/blang/semver/v4 v4.0.0
+	github.com/containers/image/v5 v5.36.2
 	github.com/cosi-project/runtime v1.11.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.18.0
@@ -29,10 +30,8 @@ require (
 	github.com/siderolabs/go-kubeconfig v0.1.1
 	github.com/siderolabs/go-pointer v1.0.1
 	github.com/siderolabs/image-factory v0.8.4
-	github.com/siderolabs/omni v1.2.1
 	github.com/siderolabs/proto-codec v0.1.2
 	github.com/siderolabs/siderolink v0.3.15
-	github.com/siderolabs/talos/pkg/machinery v1.12.0-alpha.1.0.20251003150035-ec3bd878f977
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
 	github.com/xlab/treeprint v1.2.0
@@ -46,6 +45,8 @@ require (
 	k8s.io/client-go v0.35.0-alpha.1
 )
 
+require github.com/siderolabs/talos/pkg/machinery v1.12.0-alpha.1.0.20251017073026-8124efb42fd5
+
 require (
 	cel.dev/expr v0.24.0 // indirect
 	github.com/ProtonMail/go-crypto v1.3.0 // indirect
@@ -55,14 +56,16 @@ require (
 	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/containerd/go-cni v1.1.13 // indirect
 	github.com/containernetworking/cni v1.3.0 // indirect
-	github.com/containers/image/v5 v5.36.2 // indirect
 	github.com/containers/storage v1.59.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 //indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
 	github.com/evanphx/json-patch v5.9.11+incompatible // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
+	github.com/go-openapi/jsonreference v0.21.1 // indirect
+	github.com/go-openapi/swag v0.24.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/cel-go v0.26.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
@@ -95,6 +98,8 @@ require (
 	github.com/stoewer/go-strcase v1.3.1 // indirect
 	github.com/vishvananda/netns v0.0.5 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
+	go.opentelemetry.io/auto/sdk v1.2.0 // indirect
+	go.opentelemetry.io/otel v1.38.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.38.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect

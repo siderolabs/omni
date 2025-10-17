@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-10-10T14:11:15Z by kres 063080a.
+# Generated on 2025-10-17T10:42:53Z by kres 46e133d.
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -185,6 +185,8 @@ jobs:
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-backups')
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -256,6 +258,8 @@ jobs:
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-cluster-import')
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -328,6 +332,8 @@ jobs:
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-forced-removal')
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -399,6 +405,8 @@ jobs:
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-omni-upgrade')
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -471,6 +479,8 @@ jobs:
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-scaling')
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -542,6 +552,8 @@ jobs:
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-short')
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -613,6 +625,8 @@ jobs:
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-short-secureboot')
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -685,6 +699,8 @@ jobs:
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-templates')
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -756,6 +772,8 @@ jobs:
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-upgrades')
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -827,6 +845,8 @@ jobs:
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-workload-proxy')
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -898,6 +918,8 @@ jobs:
     if: github.event_name == 'pull_request'
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info

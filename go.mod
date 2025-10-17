@@ -18,16 +18,16 @@ require (
 	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/akutz/memconn v0.1.1-0.20211110233653-dae351d188b3
 	github.com/auth0/go-jwt-middleware/v2 v2.3.0
-	github.com/aws/aws-sdk-go-v2 v1.39.2
+	github.com/aws/aws-sdk-go-v2 v1.39.3
 	github.com/aws/aws-sdk-go-v2/config v1.31.12
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.16
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.19.12
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.88.4
-	github.com/aws/smithy-go v1.23.0
+	github.com/aws/smithy-go v1.23.1
 	github.com/benbjohnson/clock v1.3.5
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v5 v5.0.3
-	github.com/containers/image/v5 v5.36.2
+	github.com/containers/image/v5 v5.36.2 // indirect
 	github.com/coreos/go-oidc/v3 v3.16.0
 	github.com/cosi-project/runtime v1.11.0
 	github.com/cosi-project/state-etcd v0.5.2
@@ -83,7 +83,6 @@ require (
 	github.com/siderolabs/omni/client v1.2.1
 	github.com/siderolabs/proto-codec v0.1.2
 	github.com/siderolabs/siderolink v0.3.15
-	github.com/siderolabs/talos/pkg/machinery v1.12.0-alpha.1.0.20251003150035-ec3bd878f977
 	github.com/siderolabs/tcpproxy v0.1.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.10.1
@@ -118,9 +117,8 @@ require (
 )
 
 require (
-	github.com/evanphx/json-patch v5.9.11+incompatible
-	github.com/ghodss/yaml v1.0.0
-	github.com/siderolabs/talos v1.11.1
+	github.com/siderolabs/talos v1.11.3
+	github.com/siderolabs/talos/pkg/machinery v1.12.0-alpha.1.0.20251017073026-8124efb42fd5
 )
 
 require (
@@ -163,10 +161,12 @@ require (
 	github.com/docker/docker v28.3.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.4 // indirect
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
+	github.com/evanphx/json-patch v5.9.11+incompatible // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/florianl/go-tc v0.4.5 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.10 // indirect
+	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-chi/chi/v5 v5.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.22.1 // indirect

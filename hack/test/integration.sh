@@ -21,7 +21,7 @@ echo "127.0.0.1 my-instance.localhost" | tee -a /etc/hosts
 # Settings.
 LATEST_STABLE_OMNI=$(git tag -l --sort=-version:refname HEAD "v*" | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
 
-TALOS_VERSION=1.11.2
+TALOS_VERSION=1.11.3
 ENABLE_TALOS_PRERELEASE_VERSIONS=false
 ANOTHER_OMNI_VERSION="${ANOTHER_OMNI_VERSION:-$LATEST_STABLE_OMNI}"
 KUBERNETES_VERSION=1.34.1

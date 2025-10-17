@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-10-13T09:22:55Z by kres 063080a.
+# Generated on 2025-10-17T10:27:59Z by kres 46e133d.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -20,7 +20,7 @@ ENV GOPATH=/go
 ENV PATH=${PATH}:/usr/local/go/bin
 
 # runs markdownlint
-FROM docker.io/oven/bun:1.2.23-alpine AS lint-markdown
+FROM docker.io/oven/bun:1.3.0-alpine AS lint-markdown
 WORKDIR /src
 RUN bun i markdownlint-cli@0.45.0 sentences-per-line@0.3.0
 COPY .markdownlint.json .
@@ -47,8 +47,8 @@ ADD client/api/omni/specs/omni.proto /client/api/omni/specs/
 ADD client/api/omni/specs/siderolink.proto /client/api/omni/specs/
 ADD client/api/omni/specs/system.proto /client/api/omni/specs/
 ADD https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto /client/api/google/rpc/
-ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.2/api/common/common.proto /client/api/common/
-ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.2/api/machine/machine.proto /client/api/talos/machine/
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.3/api/common/common.proto /client/api/common/
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.3/api/machine/machine.proto /client/api/talos/machine/
 ADD https://raw.githubusercontent.com/cosi-project/specification/a25fac056c642b32468b030387ab94c17bc3ba1d/proto/v1alpha1/resource.proto /client/api/v1alpha1/
 
 # collects proto specs
@@ -66,13 +66,13 @@ ADD client/api/omni/specs/infra.proto /frontend/src/api/omni/specs/
 ADD client/api/omni/specs/virtual.proto /frontend/src/api/omni/specs/
 ADD client/api/omni/specs/ephemeral.proto /frontend/src/api/omni/specs/
 ADD https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto /frontend/src/api/google/rpc/
-ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.2/api/machine/machine.proto /frontend/src/api/talos/machine/
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.3/api/machine/machine.proto /frontend/src/api/talos/machine/
 ADD https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/any.proto /frontend/src/api/google/protobuf/
 ADD https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/duration.proto /frontend/src/api/google/protobuf/
 ADD https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/empty.proto /frontend/src/api/google/protobuf/
 ADD https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/timestamp.proto /frontend/src/api/google/protobuf/
 ADD https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/code.proto /frontend/src/api/google/rpc/
-ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.2/api/common/common.proto /frontend/src/api/common/
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.3/api/common/common.proto /frontend/src/api/common/
 ADD https://raw.githubusercontent.com/cosi-project/specification/a25fac056c642b32468b030387ab94c17bc3ba1d/proto/v1alpha1/resource.proto /frontend/src/api/v1alpha1/
 
 # base toolchain image
@@ -248,7 +248,7 @@ COPY --exclude=node_modules --from=lint-eslint-fmt-run /src /frontend
 
 # cleaned up specs and compiled versions
 FROM scratch AS generate-frontend
-ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.2/pkg/machinery/config/schemas/config.schema.json frontend/src/schemas/config.schema.json
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.3/pkg/machinery/config/schemas/config.schema.json frontend/src/schemas/config.schema.json
 COPY --from=proto-compile-frontend frontend/ frontend/
 
 # run go generate
