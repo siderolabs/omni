@@ -6,15 +6,12 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { vOnClickOutside } from '@vueuse/components'
-import type { Ref } from 'vue'
-import { computed, onMounted, ref, toRefs, watch } from 'vue'
+import { computed, onMounted, ref, useTemplateRef, watch } from 'vue'
 
 import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 
-const emit = defineEmits(['update:model-value', 'blur'])
-
-type propsType = {
+interface Props {
   icon?: IconType
   title?: string
   modelValue: string | number
@@ -30,66 +27,53 @@ type propsType = {
   onClear?: () => void
 }
 
-const props = withDefaults(defineProps<propsType>(), {
-  type: 'text',
-  step: 1,
+const {
+  icon = undefined,
+  title = '',
+  modelValue,
+  placeholder = '',
+  focus,
+  type = 'text',
+  max = undefined,
+  min = undefined,
+  step = 1,
+  onClear = undefined,
+} = defineProps<Props>()
+
+const emit = defineEmits(['update:model-value', 'blur'])
+
+defineExpose({
+  getCaretPosition: () => inputRef.value?.selectionStart,
 })
 
-const { modelValue, focus } = toRefs(props)
-
-const numberValue = computed(() => {
-  return parseFloat(modelValue.value as string) ?? 0
-})
+const numberValue = computed(() =>
+  typeof modelValue === 'number' ? modelValue : parseFloat(modelValue),
+)
 
 const updateValue = (value: string | number) => {
-  if (props.type === 'number') {
-    if (value === undefined || value === '') {
-      return
-    }
-
-    let numberValue = typeof value === 'number' ? (value as number) : parseFloat(value)
-
-    numberValue = Number(numberValue.toFixed(1))
-
-    if (isNaN(numberValue)) {
-      numberValue = 0
-    }
-
-    if (props.max !== undefined) {
-      numberValue = Math.min(props.max, numberValue)
-    }
-
-    if (props.min !== undefined) {
-      numberValue = Math.max(props.min, numberValue)
-    }
-
-    emit('update:model-value', numberValue)
-
+  if (type !== 'number') {
+    emit('update:model-value', value)
     return
   }
 
-  emit('update:model-value', value)
+  if (value === undefined || value === '') return
+
+  let numberValue = Number((typeof value === 'number' ? value : parseFloat(value)).toFixed(1))
+
+  if (isNaN(numberValue)) numberValue = 0
+
+  emit(
+    'update:model-value',
+    Math.max(min ?? numberValue, Math.min(max ?? numberValue, numberValue)),
+  )
 }
 
-defineExpose({
-  getCaretPosition(): number | void {
-    if (!input.value) {
-      return
-    }
-
-    return input.value.selectionStart
-  },
-})
-
 const isFocused = ref(false)
-const input: Ref<{ focus: () => void; selectionStart: number } | null> = ref(null)
+const inputRef = useTemplateRef('input')
 
 const clearInput = () => {
   updateValue('')
-
-  if (props.onClear) {
-    props.onClear()
-  }
+  onClear?.()
 }
 
 const blurHandler = () => {
@@ -97,19 +81,12 @@ const blurHandler = () => {
   emit('blur', '')
 }
 
-if (focus.value) {
-  watch(focus, () => {
-    if (focus.value && input.value) {
-      input.value?.focus()
-    }
-  })
-}
+watch(
+  () => focus,
+  () => focus && inputRef.value?.focus(),
+)
 
-onMounted(() => {
-  if (focus?.value && input.value) {
-    input.value.focus()
-  }
-})
+onMounted(() => focus && inputRef.value?.focus())
 </script>
 
 <template>
@@ -120,7 +97,7 @@ onMounted(() => {
     @click.prevent="
       () => {
         isFocused = true
-        if ($refs.input) ($refs.input as any).focus()
+        inputRef?.focus()
       }
     "
   >
@@ -173,13 +150,11 @@ onMounted(() => {
 }
 
 .input-box-input {
-  @apply flex-1 border-none bg-transparent text-xs text-naturals-n13 placeholder-naturals-n7 outline-hidden transition-colors focus:border-transparent focus:outline-hidden;
-
-  min-width: 0.5rem;
+  @apply min-w-2 flex-1 border-none bg-transparent text-xs text-naturals-n13 placeholder-naturals-n7 outline-hidden transition-colors focus:border-transparent focus:outline-hidden;
 }
 
 .input-box-icon-wrapper {
-  min-width: 16px;
+  @apply min-w-4;
 }
 
 .secondary {
@@ -196,13 +171,12 @@ onMounted(() => {
 
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+  @apply m-0 appearance-none;
 }
 
 /* Firefox */
 input[type='number'] {
-  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .disabled {
