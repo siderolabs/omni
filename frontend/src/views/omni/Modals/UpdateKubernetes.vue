@@ -278,8 +278,8 @@ const upgradeClick = async () => {
     </p>
 
     <p class="text-xs">
-      Changing the Kubernetes version can result in control plane downtime. During this change you
-      will be able to cancel the upgrade.
+      Changing the Kubernetes version can result in control plane downtime. It's only possible to
+      cancel the upgrade if you are changing the patch version.
     </p>
     <p class="text-xs">This operation starts immediately.</p>
 
