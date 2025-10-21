@@ -45,4 +45,11 @@ const (
 	// This annotation is temporarily set on the cluster during initial import to allow resource creation that's normally blocked by ClusterLocked.
 	// tsgen:ClusterImportIsInProgress
 	ClusterImportIsInProgress = SystemLabelPrefix + "cluster-import-is-in-progress"
+
+	// KernelArgsInitialized indicates that KernelArgs resource has been initialized for the machine.
+	//
+	// This annotation is set on MachineStatus resource.
+	//
+	// tsgen:KernelArgsInitialized
+	KernelArgsInitialized = SystemLabelPrefix + "kernel-args-initialized"
 )

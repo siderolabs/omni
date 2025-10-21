@@ -34,6 +34,26 @@ TALEMU_CONTAINER_NAME=talemu
 TALEMU_INFRA_PROVIDER_IMAGE=ghcr.io/siderolabs/talemu-infra-provider:latest
 TEST_OUTPUTS_DIR=${GITHUB_WORKSPACE:-/tmp}/integration-test
 INTEGRATION_PREPARE_TEST_ARGS="${INTEGRATION_PREPARE_TEST_ARGS:-}"
+SLEEP_AFTER_FAILURE=${SLEEP_AFTER_FAILURE:-0}
+
+# Machine Counts: 8 machines in total
+TOTAL_MACHINES=8
+
+PARTIAL_CONFIG_MACHINES=3 # 3 machines: siderolink via partial config, UKI, no secure boot
+NON_UKI_MACHINES=2        # 2 machines: siderolink via kernel args, non-UKI, no secure boot
+
+KERNEL_ARGS_MACHINES=3 # 3 machines: siderolink via kernel args, UKI, no secure boot
+SECURE_BOOT_MACHINES=0 # 0 machines: secure boot, UKI, siderolink via kernel args
+
+if [[ "${ENABLE_SECUREBOOT}" == "true" ]]; then
+  KERNEL_ARGS_MACHINES=1 # 1 machine: siderolink via kernel args, UKI, no secure boot
+  SECURE_BOOT_MACHINES=2 # 2 machines: siderolink via kernel args, UKI, secure boot
+fi
+
+if [[ $((PARTIAL_CONFIG_MACHINES + NON_UKI_MACHINES + KERNEL_ARGS_MACHINES + SECURE_BOOT_MACHINES)) -ne $TOTAL_MACHINES ]]; then
+  echo "Error: unexpected total machine count, exiting" >&2
+  exit 1
+fi
 
 # Machine Counts: 8 machines in total
 TOTAL_MACHINES=8
@@ -278,6 +298,7 @@ if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
     --omni.config-path="${OMNI_CONFIG}" \
     --omni.output-dir="${TEST_OUTPUTS_DIR}" \
     --omni.log-output="${TEST_OUTPUTS_DIR}/omni-emulator.log" \
+    --omni.sleep-after-failure="${SLEEP_AFTER_FAILURE}" \
     --test.coverprofile=${ARTIFACTS}/coverage-emulator.txt \
     --test.timeout 10m \
     --test.parallel 10 \
@@ -553,6 +574,7 @@ SIDEROLINK_DEV_JOIN_TOKEN=${JOIN_TOKEN} \
   --omni.config-path="${OMNI_CONFIG}" \
   --omni.output-dir="${TEST_OUTPUTS_DIR}" \
   --omni.log-output="${TEST_OUTPUTS_DIR}/omni-integration.log" \
+  --omni.sleep-after-failure="${SLEEP_AFTER_FAILURE}" \
   --test.failfast \
   --test.coverprofile=${ARTIFACTS}/coverage-integration.txt \
   --test.v \

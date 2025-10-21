@@ -110,7 +110,7 @@ export enum TalosUpgradeStatusSpecPhase {
   Done = 2,
   Failed = 3,
   Reverting = 4,
-  InstallingExtensions = 5,
+  UpdatingMachineSchematics = 5,
 }
 
 export enum MachineStatusSnapshotSpecPowerStage {
@@ -137,6 +137,13 @@ export enum KubernetesUpgradeStatusSpecPhase {
   Done = 2,
   Failed = 3,
   Reverting = 4,
+}
+
+export enum MachineUpgradeStatusSpecPhase {
+  Unknown = 0,
+  Pending = 1,
+  Upgrading = 2,
+  UpToDate = 3,
 }
 
 export enum ExtensionsConfigurationStatusSpecPhase {
@@ -255,6 +262,10 @@ export type MachineStatusSpecPlatformMetadata = {
   spot?: boolean
 }
 
+export type MachineStatusSpecSchematicInitialState = {
+  extensions?: string[]
+}
+
 export type MachineStatusSpecSchematic = {
   id?: string
   invalid?: boolean
@@ -265,6 +276,8 @@ export type MachineStatusSpecSchematic = {
   meta_values?: MetaValue[]
   full_id?: string
   in_agent_mode?: boolean
+  raw?: string
+  initial_state?: MachineStatusSpecSchematicInitialState
 }
 
 export type MachineStatusSpecDiagnostic = {
@@ -290,6 +303,7 @@ export type MachineStatusSpec = {
   diagnostics?: MachineStatusSpecDiagnostic[]
   power_state?: MachineStatusSpecPowerState
   security_state?: SecurityState
+  kernel_cmdline?: string
 }
 
 export type TalosConfigSpec = {
@@ -644,10 +658,11 @@ export type DestroyStatusSpec = {
 
 type BaseOngoingTaskSpec = {
   title?: string
+  resource_id?: string
 }
 
 export type OngoingTaskSpec = BaseOngoingTaskSpec
-  & OneOf<{ talos_upgrade: TalosUpgradeStatusSpec; kubernetes_upgrade: KubernetesUpgradeStatusSpec; destroy: DestroyStatusSpec }>
+  & OneOf<{ talos_upgrade: TalosUpgradeStatusSpec; kubernetes_upgrade: KubernetesUpgradeStatusSpec; destroy: DestroyStatusSpec; machine_upgrade: MachineUpgradeStatusSpec }>
 
 export type ClusterMachineEncryptionKeySpec = {
   data?: Uint8Array
@@ -784,6 +799,28 @@ export type SchematicConfigurationSpec = {
 
 export type ExtensionsConfigurationSpec = {
   extensions?: string[]
+}
+
+export type KernelArgsSpec = {
+  args?: string[]
+}
+
+export type KernelArgsStatusSpec = {
+  args?: string[]
+  current_args?: string[]
+  unmet_conditions?: string[]
+  current_cmdline?: string
+}
+
+export type MachineUpgradeStatusSpec = {
+  schematic_id?: string
+  talos_version?: string
+  current_schematic_id?: string
+  current_talos_version?: string
+  phase?: MachineUpgradeStatusSpecPhase
+  status?: string
+  error?: string
+  is_maintenance?: boolean
 }
 
 export type ExtensionsConfigurationStatusSpec = {

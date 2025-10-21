@@ -239,7 +239,13 @@ func (registry *Reconciler) GetProxy(alias string) (http.Handler, resource.ID, e
 		Host:   hostPort,
 	}
 
+	proxyErrorLogger, err := zap.NewStdLogAt(registry.logger.With(zap.String("sub_component", "reverse_proxy")), zapcore.InfoLevel)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to create proxy error logger: %w", err)
+	}
+
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+	proxy.ErrorLog = proxyErrorLogger
 	proxy.Transport = &http.Transport{
 		DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
 			return registry.dialProxy(ctx, network, address)

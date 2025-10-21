@@ -41,6 +41,8 @@ import (
 // BeforeClusterCreateFunc is a function that is called before a cluster is created.
 type BeforeClusterCreateFunc func(ctx context.Context, t *testing.T, cli *client.Client, machineIDs []resource.ID)
 
+type PickFilterFunc func(machineStatus *omni.MachineStatus) bool
+
 // ClusterOptions are the options for cluster creation.
 //
 //nolint:govet
@@ -58,6 +60,7 @@ type ClusterOptions struct {
 	MachineOptions MachineOptions
 
 	BeforeClusterCreateFunc BeforeClusterCreateFunc
+	PickFilterFunc          PickFilterFunc
 
 	InfraProvider string
 	ProviderData  string
@@ -82,9 +85,9 @@ func CreateCluster(testCtx context.Context, cli *client.Client, options ClusterO
 		st := cli.Omni().State()
 		require := require.New(t)
 
-		pickUnallocatedMachines(ctx, t, st, options.ControlPlanes+options.Workers, func(machineIDs []resource.ID) {
+		pickUnallocatedMachines(ctx, t, st, options.ControlPlanes+options.Workers, options.PickFilterFunc, func(machineIDs []resource.ID) {
 			if !options.SkipExtensionCheckOnCreate {
-				checkExtensionWithRetries(ctx, t, cli, HelloWorldServiceExtensionName, machineIDs...)
+				checkExtensionsWithRetries(ctx, t, cli, []string{HelloWorldServiceExtensionName}, machineIDs)
 			}
 
 			if options.BeforeClusterCreateFunc != nil {
@@ -231,7 +234,7 @@ func ScaleClusterUp(testCtx context.Context, st state.State, options ClusterOpti
 		ctx, cancel := context.WithTimeout(testCtx, options.ScalingTimeout)
 		defer cancel()
 
-		pickUnallocatedMachines(ctx, t, st, options.ControlPlanes+options.Workers, func(machineIDs []resource.ID) {
+		pickUnallocatedMachines(ctx, t, st, options.ControlPlanes+options.Workers, options.PickFilterFunc, func(machineIDs []resource.ID) {
 			for i := range options.ControlPlanes {
 				t.Logf("Adding machine '%s' to control plane (cluster %q)", machineIDs[i], options.Name)
 
@@ -318,7 +321,7 @@ func ReplaceControlPlanes(testCtx context.Context, st state.State, options Clust
 			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, options.Name), resource.LabelExists(omni.LabelControlPlaneRole)),
 		)
 
-		pickUnallocatedMachines(ctx, t, st, len(existingControlPlanes), func(machineIDs []resource.ID) {
+		pickUnallocatedMachines(ctx, t, st, len(existingControlPlanes), options.PickFilterFunc, func(machineIDs []resource.ID) {
 			for _, machineID := range machineIDs {
 				t.Logf("Adding machine '%s' to control plane (cluster %q)", machineID, options.Name)
 
@@ -586,6 +589,10 @@ func AssertDestroyCluster(testCtx context.Context, omniState state.State, cluste
 			resource.LabelEqual(omni.LabelCluster, clusterName),
 		))
 
+		extensionsConfigurations := rtestutils.ResourceIDs[*omni.ExtensionsConfiguration](ctx, t, omniState, state.WithLabelQuery(
+			resource.LabelEqual(omni.LabelCluster, clusterName),
+		))
+
 		machineSets := rtestutils.ResourceIDs[*omni.MachineSet](ctx, t, omniState, state.WithLabelQuery(
 			resource.LabelEqual(omni.LabelCluster, clusterName),
 		))
@@ -605,6 +612,10 @@ func AssertDestroyCluster(testCtx context.Context, omniState state.State, cluste
 
 		for _, id := range patches {
 			rtestutils.AssertNoResource[*omni.ConfigPatch](ctx, t, omniState, id)
+		}
+
+		for _, id := range extensionsConfigurations {
+			rtestutils.AssertNoResource[*omni.ExtensionsConfiguration](ctx, t, omniState, id)
 		}
 
 		for _, id := range machineSets {
@@ -802,14 +813,28 @@ func getMachineSetNodes(ctx context.Context, t *testing.T, st state.State, clust
 // machineAllocationLock makes sure that only one test allocates machines at a time.
 var machineAllocationLock sync.Mutex
 
-func pickUnallocatedMachines(ctx context.Context, t *testing.T, st state.State, count int, f func([]resource.ID)) {
+func pickUnallocatedMachines(ctx context.Context, t *testing.T, st state.State, count int, filterFunc func(*omni.MachineStatus) bool, f func([]resource.ID)) {
 	machineAllocationLock.Lock()
 	defer machineAllocationLock.Unlock()
 
 	result := make([]resource.ID, 0, count)
 
+	if filterFunc == nil {
+		filterFunc = func(_ *omni.MachineStatus) bool { return true }
+	}
+
 	err := retry.Constant(time.Minute).RetryWithContext(ctx, func(ctx context.Context) error {
-		machineIDs := rtestutils.ResourceIDs[*omni.MachineStatus](ctx, t, st, state.WithLabelQuery(resource.LabelExists(omni.MachineStatusLabelAvailable)))
+		machineStatuses, err := safe.StateListAll[*omni.MachineStatus](ctx, st, state.WithLabelQuery(resource.LabelExists(omni.MachineStatusLabelAvailable)))
+		if err != nil {
+			return err
+		}
+
+		machineIDs := make([]resource.ID, 0, machineStatuses.Len())
+		for machineStatus := range machineStatuses.All() {
+			if filterFunc(machineStatus) {
+				machineIDs = append(machineIDs, machineStatus.Metadata().ID())
+			}
+		}
 
 		if len(machineIDs) < count {
 			return retry.ExpectedErrorf("not enough machines: available %d, requested %d", len(machineIDs), count)

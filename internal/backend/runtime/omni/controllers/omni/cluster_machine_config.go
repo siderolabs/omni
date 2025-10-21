@@ -420,6 +420,10 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		return nil, fmt.Errorf("failed to build talos api access feature allowed roles patch: %w", err)
 	}
 
+	// todo: for Talos 1.12 and above, if .machine.install.kernelArgs is empty,
+	// we will add the new document to tell Talos to always use the kernel args in the UKI, in other words, make it "act like UKI".
+	// this will allow that machine to support customizing extra kernel args.
+
 	return strippedConfig.EncodeBytes(encoder.WithComments(encoder.CommentsDisabled))
 }
 

@@ -283,7 +283,7 @@ spec:
           skipArtifactDownload: true
         environmentOverride:
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade)$"
+          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|KernelArgsUpdate|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade)$"
           RUN_TALEMU_TESTS: false
       - name: e2e-templates
         needsOverride: [default, lint, unit-tests]

@@ -15,10 +15,18 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller/generic/cleanup"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/image-factory/pkg/schematic"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 )
+
+// ImageFactoryClient ensures that the given schematic exists in the image factory.
+type ImageFactoryClient interface {
+	EnsureSchematic(ctx context.Context, inputSchematic schematic.Schematic) (imagefactory.EnsuredSchematic, error)
+	Host() string
+}
 
 type cleanupOptions struct {
 	destroyReadyCallback func() error

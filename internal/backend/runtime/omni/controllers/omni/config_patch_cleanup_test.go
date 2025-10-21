@@ -23,15 +23,16 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 )
 
 func TestConfigPatchCleanup(t *testing.T) {
 	t.Parallel()
 
-	sb := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+	sb := testutils.DynamicStateBuilder{M: map[resource.Namespace]state.CoreState{}}
 
 	synctest.Test(t, func(t *testing.T) {
-		withRuntime(
+		testutils.WithRuntime(
 			t.Context(),
 			t,
 			sb.Builder,

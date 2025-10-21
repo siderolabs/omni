@@ -676,6 +676,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		machineExtensionsStatus := omni.NewMachineExtensionsStatus(resources.DefaultNamespace, uuid.New().String())
 		machineExtensionsStatus.Metadata().Labels().Set(omni.LabelCluster, uuid.New().String())
 
+		kernelArgs := omni.NewKernelArgs(uuid.New().String())
+		kernelArgsStatus := omni.NewKernelArgsStatus(uuid.New().String())
+
 		joinToken := siderolink.NewJoinToken(resources.DefaultNamespace, uuid.New().String())
 
 		defaultJoinToken, err := safe.StateGetByID[*siderolink.DefaultJoinToken](rootCtx, rootCli.Omni().State(), siderolink.DefaultJoinTokenID)
@@ -776,6 +779,14 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource:       machineExtensionsStatus,
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
+				resource:       kernelArgs,
+				allowedVerbSet: allVerbsSet,
+			},
+			{
+				resource:       kernelArgsStatus,
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
@@ -1074,6 +1085,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource:       omni.NewMaintenanceConfigStatus(uuid.NewString()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
+				resource:       omni.NewMachineUpgradeStatus(uuid.NewString()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{

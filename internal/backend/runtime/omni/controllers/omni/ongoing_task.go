@@ -44,6 +44,11 @@ func (ctrl *OngoingTaskController) Inputs() []controller.Input {
 			Namespace: resources.DefaultNamespace,
 			Kind:      controller.InputWeak,
 		},
+		{
+			Type:      omni.MachineUpgradeStatusType,
+			Namespace: resources.DefaultNamespace,
+			Kind:      controller.InputWeak,
+		},
 	}
 }
 
@@ -58,6 +63,8 @@ func (ctrl *OngoingTaskController) Outputs() []controller.Output {
 }
 
 // Run implements controller.Controller interface.
+//
+//nolint:gocognit
 func (ctrl *OngoingTaskController) Run(ctx context.Context, r controller.Runtime, _ *zap.Logger) error {
 	for {
 		select {
@@ -83,14 +90,48 @@ func (ctrl *OngoingTaskController) Run(ctx context.Context, r controller.Runtime
 			return err
 		}
 
+		machineUpgradeStatuses, err := safe.ReaderListAll[*omni.MachineUpgradeStatus](ctx, r)
+		if err != nil {
+			return err
+		}
+
+		for machineUpgradeStatus := range machineUpgradeStatuses.All() {
+			spec := machineUpgradeStatus.TypedSpec().Value
+
+			if !spec.IsMaintenance {
+				continue
+			}
+
+			if spec.Phase != specs.MachineUpgradeStatusSpec_Upgrading {
+				continue
+			}
+
+			id := fmt.Sprintf("machine-%s-maintenance-upgrade", machineUpgradeStatus.Metadata().ID())
+			task := omni.NewOngoingTask(resources.EphemeralNamespace, id)
+
+			tracker.keep(task)
+
+			if err = safe.WriterModify(ctx, r, task, func(res *omni.OngoingTask) error {
+				res.TypedSpec().Value.ResourceId = machineUpgradeStatus.Metadata().ID()
+				res.TypedSpec().Value.Title = "Updating Machine " + machineUpgradeStatus.Metadata().ID()
+				res.TypedSpec().Value.Details = &specs.OngoingTaskSpec_MachineUpgrade{
+					MachineUpgrade: spec,
+				}
+
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+
 		if err = destroyStatuses.ForEachErr(func(s *omni.ClusterDestroyStatus) error {
 			id := fmt.Sprintf("%s-destroy", s.Metadata().ID())
-
 			task := omni.NewOngoingTask(resources.EphemeralNamespace, id)
 
 			tracker.keep(task)
 
 			return safe.WriterModify(ctx, r, task, func(res *omni.OngoingTask) error {
+				res.TypedSpec().Value.ResourceId = s.Metadata().ID()
 				res.TypedSpec().Value.Title = "Destroying Cluster " + s.Metadata().ID()
 				res.TypedSpec().Value.Details = &specs.OngoingTaskSpec_Destroy{
 					Destroy: s.TypedSpec().Value,
@@ -108,12 +149,12 @@ func (ctrl *OngoingTaskController) Run(ctx context.Context, r controller.Runtime
 			}
 
 			id := fmt.Sprintf("%s-talos-update", s.Metadata().ID())
-
 			task := omni.NewOngoingTask(resources.EphemeralNamespace, id)
 
 			tracker.keep(task)
 
 			return safe.WriterModify(ctx, r, task, func(res *omni.OngoingTask) error {
+				res.TypedSpec().Value.ResourceId = s.Metadata().ID()
 				res.TypedSpec().Value.Title = "Updating Cluster " + s.Metadata().ID()
 				res.TypedSpec().Value.Details = &specs.OngoingTaskSpec_TalosUpgrade{
 					TalosUpgrade: s.TypedSpec().Value,
@@ -131,12 +172,12 @@ func (ctrl *OngoingTaskController) Run(ctx context.Context, r controller.Runtime
 			}
 
 			id := fmt.Sprintf("%s-kubernetes-update", s.Metadata().ID())
-
 			task := omni.NewOngoingTask(resources.EphemeralNamespace, id)
 
 			tracker.keep(task)
 
 			return safe.WriterModify(ctx, r, task, func(res *omni.OngoingTask) error {
+				res.TypedSpec().Value.ResourceId = s.Metadata().ID()
 				res.TypedSpec().Value.Title = "Updating Cluster " + s.Metadata().ID()
 				res.TypedSpec().Value.Details = &specs.OngoingTaskSpec_KubernetesUpgrade{
 					KubernetesUpgrade: s.TypedSpec().Value,

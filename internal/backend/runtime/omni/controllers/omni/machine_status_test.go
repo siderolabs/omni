@@ -21,6 +21,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/meta"
@@ -28,6 +29,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
+	"github.com/siderolabs/omni/internal/backend/kernelargs"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
 
@@ -58,6 +60,10 @@ func (i *imageFactoryClientMock) EnsureSchematic(_ context.Context, sch schemati
 	}, nil
 }
 
+func (i *imageFactoryClientMock) Host() string {
+	return "image.factory.test"
+}
+
 type MachineStatusSuite struct {
 	OmniSuite
 }
@@ -78,7 +84,12 @@ func (suite *MachineStatusSuite) setup() {
 
 	createJoinParams(suite.ctx, suite.state, suite.T())
 
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineStatusController(&imageFactoryClientMock{})))
+	logger := zaptest.NewLogger(suite.T())
+
+	exraKernelArgsInitializer, err := kernelargs.NewInitializer(suite.state, logger)
+	suite.Require().NoError(err)
+
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineStatusController(&imageFactoryClientMock{}, exraKernelArgsInitializer)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(newMockJoinTokenUsageController[*omni.Machine]()))
 }
@@ -372,12 +383,11 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 			expected: &specs.MachineStatusSpec_Schematic{
 				Id:               "7d79f1ce28d7e6c099bc89ccf02238fb574165eb4834c2abf2a61eab998d4dc6",
 				InitialSchematic: "full-id",
-				Extensions: []string{
-					"siderolabs/gvisor",
-					"siderolabs/hello-world-service",
-					"siderolabs/mdadm",
+				Extensions:       []string{"siderolabs/gvisor", "siderolabs/hello-world-service", "siderolabs/mdadm"},
+				FullId:           "full-id",
+				InitialState: &specs.MachineStatusSpec_Schematic_InitialState{
+					Extensions: []string{"siderolabs/gvisor", "siderolabs/hello-world-service", "siderolabs/mdadm"},
 				},
-				FullId: "full-id",
 			},
 		},
 		{
@@ -402,6 +412,7 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 				InitialSchematic: vanillaID,
 				FullId:           vanillaID,
 				KernelArgs:       kernelArgs,
+				InitialState:     &specs.MachineStatusSpec_Schematic_InitialState{},
 			},
 		},
 		{
@@ -429,7 +440,7 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 			},
 			expected: &specs.MachineStatusSpec_Schematic{
 				Id:               defaultSchematic,
-				InitialSchematic: defaultSchematic,
+				InitialSchematic: "",
 				FullId:           defaultSchematic,
 				InAgentMode:      true,
 			},
