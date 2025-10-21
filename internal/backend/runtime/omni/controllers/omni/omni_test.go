@@ -17,7 +17,6 @@ import (
 	"slices"
 	"sync"
 	"sync/atomic"
-	"testing"
 	"time"
 
 	cosiv1alpha1 "github.com/cosi-project/runtime/api/v1alpha1"
@@ -30,7 +29,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/runtime/pkg/state/protobuf/server"
 	"github.com/siderolabs/go-retry/retry"
@@ -39,11 +37,9 @@ import (
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/resources/etcd"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -55,6 +51,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	rt "github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 )
 
 const (
@@ -343,7 +340,7 @@ type OmniSuite struct { //nolint:govet
 	suite.Suite
 
 	state        state.State
-	stateBuilder dynamicStateBuilder
+	stateBuilder testutils.DynamicStateBuilder
 
 	runtime *runtime.Runtime
 	wg      sync.WaitGroup
@@ -428,10 +425,10 @@ func (suite *OmniSuite) SetupTest() {
 		// before the test is actually finished. There are two test suites that currently
 		// need their separate contexts: [ConfigPatchCleanupSuite] and
 		// [EtcdBackupControllerSuite] in which we create context explicitly.
-		suite.ctx, suite.ctxCancel = context.WithTimeout(suite.T().Context(), 20*time.Second)
+		suite.ctx, suite.ctxCancel = context.WithTimeout(suite.T().Context(), 60*time.Second)
 	}
 
-	suite.stateBuilder = dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+	suite.stateBuilder = testutils.DynamicStateBuilder{M: map[resource.Namespace]state.CoreState{}}
 
 	suite.state = state.WrapCore(namespaced.NewState(suite.stateBuilder.Builder))
 
@@ -571,14 +568,13 @@ func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, contro
 			clusterMachine.Metadata().ID(),
 		)
 
-		machineState := omni.NewMachine(
-			resources.DefaultNamespace,
-			clusterMachine.Metadata().ID(),
-		)
+		machineStatus.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
+		machineStatus.TypedSpec().Value.TalosVersion = talosVersion
 
 		machineStatus.TypedSpec().Value.ManagementAddress = suite.socketConnectionString
 		machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
-			Id: defaultSchematic,
+			Id:           defaultSchematic,
+			InitialState: &specs.MachineStatusSpec_Schematic_InitialState{},
 		}
 		machineStatus.TypedSpec().Value.InitialTalosVersion = cluster.TypedSpec().Value.TalosVersion
 		machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{}
@@ -612,10 +608,15 @@ func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, contro
 			Connected: true,
 		})
 
+		machine := omni.NewMachine(
+			resources.DefaultNamespace,
+			clusterMachine.Metadata().ID(),
+		)
+
 		suite.Require().NoError(suite.state.Create(suite.ctx, clusterMachineConfigPatches))
 		suite.Require().NoError(suite.state.Create(suite.ctx, clusterMachine))
 		suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
-		suite.Require().NoError(suite.state.Create(suite.ctx, machineState))
+		suite.Require().NoError(suite.state.Create(suite.ctx, machine))
 		suite.Require().NoError(suite.state.Create(suite.ctx, machineSetNode))
 		suite.Require().NoError(suite.state.Create(suite.ctx, link))
 	}
@@ -674,37 +675,6 @@ func (suite *OmniSuite) destroyClusterByID(clusterID string) {
 	assertNoResource[*omni.EtcdBackupStatus](suite, omni.NewEtcdBackupStatus(clusterID))
 }
 
-type dynamicStateBuilder struct { //nolint:govet
-	mx sync.Mutex
-	m  map[resource.Namespace]state.CoreState
-}
-
-func (b *dynamicStateBuilder) Builder(ns resource.Namespace) state.CoreState {
-	b.mx.Lock()
-	defer b.mx.Unlock()
-
-	if s, ok := b.m[ns]; ok {
-		return s
-	}
-
-	s := inmem.Build(ns)
-
-	b.m[ns] = s
-
-	return s
-}
-
-func (b *dynamicStateBuilder) Set(ns resource.Namespace, state state.CoreState) {
-	b.mx.Lock()
-	defer b.mx.Unlock()
-
-	if _, ok := b.m[ns]; ok {
-		panic(fmt.Errorf("state for namespace %s already exists", ns))
-	}
-
-	b.m[ns] = state
-}
-
 func newMockJoinTokenUsageController[T generic.ResourceWithRD]() *qtransform.QController[T, *siderolink.JoinTokenUsage] {
 	return qtransform.NewQController(
 		qtransform.Settings[T, *siderolink.JoinTokenUsage]{
@@ -740,42 +710,4 @@ func newMockJoinTokenUsageController[T generic.ResourceWithRD]() *qtransform.QCo
 		qtransform.WithExtraMappedInput[*siderolink.DefaultJoinToken](qtransform.MapperNone()),
 		qtransform.WithConcurrency(4),
 	)
-}
-
-// testFunc is a test helper function that provides the state and the runtime to the test.
-type testFunc func(ctx context.Context, st state.State, rt *runtime.Runtime, logger *zap.Logger)
-
-// withRuntime is a test helper function that starts the COSI runtime with the provided beforeStart and afterStart functions.
-//
-// beforeStart can be used to register the controllers and other do other preparation work before the runtime starts.
-//
-// afterStart can be used to do the actual assertions on the controllers' expected behavior after the runtime has started.
-func withRuntime(ctx context.Context, t *testing.T, stateBuilder func(resource.Namespace) state.CoreState, beforeStart, afterStart testFunc) {
-	ctx, cancel := context.WithCancel(ctx)
-	t.Cleanup(cancel)
-
-	logger := zaptest.NewLogger(t)
-	st := state.WrapCore(namespaced.NewState(stateBuilder))
-
-	cosiRuntime, err := runtime.NewRuntime(st, logger)
-	require.NoError(t, err)
-
-	beforeStart(ctx, st, cosiRuntime, logger)
-
-	eg, ctx := errgroup.WithContext(ctx)
-
-	eg.Go(func() error {
-		logger.Debug("start runtime")
-		defer logger.Info("runtime stopped")
-
-		return cosiRuntime.Run(ctx)
-	})
-
-	afterStart(ctx, st, cosiRuntime, logger)
-
-	cancel()
-
-	logger.Info("context canceled, wait for the runtime to stop")
-
-	require.NoError(t, eg.Wait())
 }

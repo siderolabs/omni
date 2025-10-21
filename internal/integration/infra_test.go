@@ -56,7 +56,7 @@ func machineProvisionHook(t *testing.T, client *client.Client, cfg MachineProvis
 	machineRequestSet = omni.NewMachineRequestSet(resources.DefaultNamespace, machineRequestSetName)
 
 	machineRequestSet.TypedSpec().Value.Extensions = []string{
-		"siderolabs/" + HelloWorldServiceExtensionName,
+		HelloWorldServiceExtensionName,
 	}
 
 	machineRequestSet.TypedSpec().Value.ProviderId = cfg.Provider.ID
@@ -163,7 +163,7 @@ func machineDeprovisionHook(t *testing.T, client *client.Client, machineRequestS
 func infraMachinesAcceptHook(t *testing.T, omniState state.State, infraProviderID string, expectedCount int, disableKexec bool) {
 	const disableKexecConfigPatch = `machine:
   install:
-    extraKernelArgs:
+    kernelArgs:
       - kexec_load_disabled=1
   sysctls:
     kernel.kexec_load_disabled: "1"`

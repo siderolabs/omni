@@ -17,6 +17,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/extensions"
 	"github.com/siderolabs/omni/internal/integration/workloadproxy"
 	"github.com/siderolabs/omni/internal/pkg/clientconfig"
 )
@@ -230,7 +231,7 @@ In the tests, we wipe and reboot the VMs to bring them back as available for the
 
 		t.Run(
 			"UnallocatedMachinesShouldBeDestroyable",
-			AssertUnallocatedMachineDestroyFlow(t.Context(), options.omniClient.Omni().State(), options.RestartAMachineFunc),
+			AssertUnallocatedMachineDestroyFlow(t.Context(), options, options.omniClient.Omni().State(), options.RestartAMachineFunc),
 		)
 
 		t.Run(
@@ -864,18 +865,20 @@ Tests upgrading Talos version, including reverting a failed upgrade.`)
 		if !options.SkipExtensionsCheckOnCreate {
 			t.Run(
 				"HelloWorldServiceExtensionShouldBePresent",
-				AssertExtensionIsPresent(t.Context(), options.omniClient, clusterName, HelloWorldServiceExtensionName),
+				AssertExtensionsArePresent(t.Context(), options.omniClient, clusterName, []string{HelloWorldServiceExtensionName}),
 			)
 		}
 
+		extensions := []string{HelloWorldServiceExtensionName, extensions.OfficialPrefix + "qemu-guest-agent"}
+
 		t.Run(
-			"TalosSchematicUpdateShouldSucceed",
-			AssertTalosSchematicUpdateFlow(t.Context(), options.omniClient, clusterName),
+			"TalosExtensionsUpdateShouldSucceed",
+			AssertTalosExtensionsUpdateFlow(t.Context(), options.omniClient, clusterName, extensions),
 		)
 
 		t.Run(
-			"QemuGuestAgentExtensionShouldBePresent",
-			AssertExtensionIsPresent(t.Context(), options.omniClient, clusterName, QemuGuestAgentExtensionName),
+			"UpdatedExtensionsShouldBePresent",
+			AssertExtensionsArePresent(t.Context(), options.omniClient, clusterName, extensions),
 		)
 
 		t.Run(
@@ -896,7 +899,7 @@ Tests upgrading Talos version, including reverting a failed upgrade.`)
 		if !options.SkipExtensionsCheckOnCreate {
 			t.Run(
 				"HelloWorldServiceExtensionShouldBePresent",
-				AssertExtensionIsPresent(t.Context(), options.omniClient, clusterName, HelloWorldServiceExtensionName),
+				AssertExtensionsArePresent(t.Context(), options.omniClient, clusterName, []string{HelloWorldServiceExtensionName}),
 			)
 		}
 
@@ -1331,13 +1334,13 @@ Note: this test expects all machines to be provisioned by the bare-metal infra p
 
 		t.Run(
 			"ExtensionsShouldBeUpdated",
-			UpdateExtensions(t.Context(), options.omniClient, clusterName, []string{"siderolabs/binfmt-misc", "siderolabs/glibc"}),
+			UpdateExtensions(t.Context(), options.omniClient, clusterName, []string{extensions.OfficialPrefix + "binfmt-misc", extensions.OfficialPrefix + "glibc"}),
 		)
 
 		t.Run(
 			"MachinesShouldBeAllocated",
 			AssertInfraMachinesAreAllocated(t.Context(), options.omniClient.Omni().State(), clusterName,
-				options.MachineOptions.TalosVersion, []string{"siderolabs/binfmt-misc", "siderolabs/glibc"}),
+				options.MachineOptions.TalosVersion, []string{extensions.OfficialPrefix + "binfmt-misc", extensions.OfficialPrefix + "glibc"}),
 		)
 
 		t.Run(

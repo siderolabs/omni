@@ -19,13 +19,13 @@ import (
 	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/image-factory/pkg/schematic"
-	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/extensions"
+	"github.com/siderolabs/omni/internal/backend/kernelargs"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/set"
@@ -39,7 +39,7 @@ const SchematicConfigurationControllerName = "SchematicConfigurationController"
 type SchematicConfigurationController = qtransform.QController[*omni.ClusterMachine, *omni.SchematicConfiguration]
 
 // NewSchematicConfigurationController initializes SchematicConfigurationController.
-func NewSchematicConfigurationController(imageFactoryClient SchematicEnsurer) *SchematicConfigurationController {
+func NewSchematicConfigurationController(imageFactoryClient ImageFactoryClient) *SchematicConfigurationController {
 	helper := &schematicConfigurationHelper{
 		imageFactoryClient: imageFactoryClient,
 	}
@@ -101,6 +101,9 @@ func NewSchematicConfigurationController(imageFactoryClient SchematicEnsurer) *S
 		qtransform.WithExtraMappedInput[*omni.MachineExtensions](
 			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
+		qtransform.WithExtraMappedInput[*omni.KernelArgs](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
+		),
 		qtransform.WithExtraOutputs(
 			controller.Output{
 				Type: omni.MachineExtensionsStatusType,
@@ -111,10 +114,12 @@ func NewSchematicConfigurationController(imageFactoryClient SchematicEnsurer) *S
 }
 
 type schematicConfigurationHelper struct {
-	imageFactoryClient SchematicEnsurer
+	imageFactoryClient ImageFactoryClient
 }
 
 // Reconcile implements controller.QController interface.
+//
+//nolint:gocognit
 func (helper *schematicConfigurationHelper) reconcile(
 	ctx context.Context,
 	r controller.ReaderWriter,
@@ -139,8 +144,6 @@ func (helper *schematicConfigurationHelper) reconcile(
 
 	var (
 		overlay                 schematic.Overlay
-		initialSchematic        string
-		currentSchematic        string
 		machineExtensionsStatus = omni.NewMachineExtensionsStatus(resources.DefaultNamespace, clusterMachine.Metadata().ID())
 	)
 
@@ -166,13 +169,6 @@ func (helper *schematicConfigurationHelper) reconcile(
 
 	if schematicInitialized {
 		overlay = getOverlay(ms)
-		initialSchematic = ms.TypedSpec().Value.Schematic.InitialSchematic
-
-		if securityState.BootedWithUki {
-			currentSchematic = ms.TypedSpec().Value.Schematic.FullId
-		} else {
-			currentSchematic = ms.TypedSpec().Value.Schematic.Id
-		}
 	}
 
 	cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, r, clusterName)
@@ -180,38 +176,25 @@ func (helper *schematicConfigurationHelper) reconcile(
 		return nil, err
 	}
 
-	machineExtensions, err := newMachineExtensions(cluster, ms, extensions, securityState.BootedWithUki)
+	kernelArgsRes, err := safe.ReaderGetByID[*omni.KernelArgs](ctx, r, clusterMachine.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
+		return nil, err
+	}
+
+	customization, err := newMachineCustomization(cluster, ms, extensions, kernelArgsRes, securityState.BootedWithUki)
 	if err != nil {
 		return nil, err
 	}
 
 	schematicConfiguration.TypedSpec().Value.TalosVersion = cluster.TypedSpec().Value.TalosVersion
 
-	if !shouldGenerateSchematicID(cluster, machineExtensions, ms, overlay) {
-		// if extensions config is not set, fall back to the initial schematic id and exit
-		id := initialSchematic
-
-		if id == "" {
-			id = currentSchematic
-		}
-
-		schematicConfiguration.TypedSpec().Value.SchematicId = id
-		helpers.CopyLabels(clusterMachine, schematicConfiguration, omni.LabelCluster)
-
-		if schematicInitialized {
-			machineExtensionsStatus.TypedSpec().Value.Extensions = computeMachineExtensionsStatus(ms, nil)
-		}
-
-		return machineExtensionsStatus, nil
-	}
-
 	config := schematic.Schematic{
 		Customization: schematic.Customization{
 			SystemExtensions: schematic.SystemExtensions{
-				OfficialExtensions: machineExtensions.extensionsList,
+				OfficialExtensions: customization.extensionsList,
 			},
-			ExtraKernelArgs: machineExtensions.kernelArgs,
-			Meta:            machineExtensions.meta,
+			ExtraKernelArgs: customization.kernelArgsList,
+			Meta:            customization.meta,
 		},
 		Overlay: overlay,
 	}
@@ -221,7 +204,7 @@ func (helper *schematicConfigurationHelper) reconcile(
 		return nil, err
 	}
 
-	if _, err := safe.ReaderGetByID[*omni.Schematic](ctx, r, id); err != nil {
+	if _, err = safe.ReaderGetByID[*omni.Schematic](ctx, r, id); err != nil {
 		if !state.IsNotFoundError(err) {
 			return nil, err
 		}
@@ -235,20 +218,9 @@ func (helper *schematicConfigurationHelper) reconcile(
 
 	helpers.CopyLabels(clusterMachine, schematicConfiguration, omni.LabelCluster)
 
-	machineExtensionsStatus.TypedSpec().Value.Extensions = computeMachineExtensionsStatus(ms, &machineExtensions)
+	machineExtensionsStatus.TypedSpec().Value.Extensions = computeMachineExtensionsStatus(ms, &customization)
 
 	return machineExtensionsStatus, nil
-}
-
-func shouldGenerateSchematicID(cluster *omni.Cluster, extensionsList machineExtensions, machineStatus *omni.MachineStatus, overlay schematic.Overlay) bool {
-	// migrating SBC running Talos < 1.7.0, overlay was detected, but is not applied yet, should generate a schematic
-	if overlay.Name != "" &&
-		!quirks.New(machineStatus.TypedSpec().Value.InitialTalosVersion).SupportsOverlay() &&
-		quirks.New(cluster.TypedSpec().Value.TalosVersion).SupportsOverlay() {
-		return true
-	}
-
-	return extensionsList.shouldGenerateSchematic()
 }
 
 func getOverlay(ms *omni.MachineStatus) schematic.Overlay {
@@ -276,31 +248,23 @@ func updateFinalizers(ctx context.Context, r controller.ReaderWriter, extensions
 	return r.AddFinalizer(ctx, extensions.Metadata(), SchematicConfigurationControllerName)
 }
 
-//nolint:recvcheck
-type machineExtensions struct {
-	machineStatus      *omni.MachineStatus
-	machineExtensions  *omni.MachineExtensions
-	cluster            *omni.Cluster
-	extensionsList     []string
-	detectedExtensions []string
-	kernelArgs         []string
-	meta               []schematic.MetaValue
-}
-
-func newMachineExtensions(cluster *omni.Cluster, machineStatus *omni.MachineStatus, exts *omni.MachineExtensions, isUKI bool) (machineExtensions, error) {
-	me := machineExtensions{
+func newMachineCustomization(cluster *omni.Cluster, machineStatus *omni.MachineStatus, exts *omni.MachineExtensions, args *omni.KernelArgs, isUKI bool) (machineCustomization, error) {
+	mc := machineCustomization{
 		machineStatus: machineStatus,
 		cluster:       cluster,
+	}
+
+	if err := mc.initializeKernelArgs(machineStatus, args); err != nil {
+		return machineCustomization{}, err
 	}
 
 	if isUKI {
 		schematicConfig := machineStatus.TypedSpec().Value.Schematic
 		if schematicConfig == nil {
-			return me, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("secure boot is enabled but the schematic information is not yet available")
+			return mc, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine is booted with UKI but the schematic information is not yet available")
 		}
 
-		me.kernelArgs = schematicConfig.KernelArgs
-		me.meta = xslices.Map(schematicConfig.MetaValues,
+		mc.meta = xslices.Map(schematicConfig.MetaValues,
 			func(v *specs.MetaValue) schematic.MetaValue {
 				return schematic.MetaValue{
 					Key:   uint8(v.GetKey()),
@@ -309,49 +273,96 @@ func newMachineExtensions(cluster *omni.Cluster, machineStatus *omni.MachineStat
 			})
 	}
 
-	if exts != nil && exts.Metadata().Phase() == resource.PhaseRunning {
-		me.machineExtensions = exts
+	extensionsExplicitlyDefined := exts != nil && exts.Metadata().Phase() == resource.PhaseRunning
+	if extensionsExplicitlyDefined {
+		mc.machineExtensions = exts
 	}
 
 	detected, err := getDetectedExtensions(cluster, machineStatus)
 	if err != nil {
-		return me, err
+		return mc, err
 	}
 
-	me.detectedExtensions = detected
+	mc.detectedExtensions = detected
 
-	me.extensionsList = append(me.extensionsList, detected...)
+	mc.extensionsList = append(mc.extensionsList, detected...)
 
 	clusterVersion, err := semver.ParseTolerant(cluster.TypedSpec().Value.TalosVersion)
 	if err != nil {
-		return me, err
+		return mc, err
 	}
 
-	if me.machineExtensions != nil {
-		for _, e := range me.machineExtensions.TypedSpec().Value.Extensions {
-			if slices.Contains(me.extensionsList, e) {
+	if mc.machineExtensions != nil {
+		for _, e := range mc.machineExtensions.TypedSpec().Value.Extensions {
+			if slices.Contains(mc.extensionsList, e) {
 				continue
 			}
 
-			me.extensionsList = append(me.extensionsList, e)
+			mc.extensionsList = append(mc.extensionsList, e)
 		}
 	}
 
-	me.extensionsList = extensions.MapNamesByVersion(me.extensionsList, clusterVersion)
+	mc.extensionsList = extensions.MapNamesByVersion(mc.extensionsList, clusterVersion)
 
-	slices.Sort(me.extensionsList)
+	slices.Sort(mc.extensionsList)
 
-	return me, nil
+	if !extensionsExplicitlyDefined && len(mc.extensionsList) == 0 { // extensions are not explicitly set, we should revert them to their initial state
+		initialState := machineStatus.TypedSpec().Value.Schematic.GetInitialState()
+		if initialState == nil {
+			return mc, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine initial schematic state is not yet set")
+		}
+
+		mc.extensionsList = initialState.Extensions
+	}
+
+	return mc, nil
 }
 
-func (m machineExtensions) shouldGenerateSchematic() bool {
-	// generate schematic for the machine extensions when either machine extensions exists
-	// and contains the explicit empty list for the schematics, or when schematic list is not empty
-	return m.machineExtensions != nil || len(m.extensionsList) != 0
+//nolint:recvcheck
+type machineCustomization struct {
+	machineStatus      *omni.MachineStatus
+	machineExtensions  *omni.MachineExtensions
+	cluster            *omni.Cluster
+	extensionsList     []string
+	kernelArgsList     []string
+	detectedExtensions []string
+	meta               []schematic.MetaValue
 }
 
-func (m *machineExtensions) isDetected(value string) bool {
-	return slices.Contains(m.detectedExtensions, value)
+func (mc *machineCustomization) initializeKernelArgs(machineStatus *omni.MachineStatus, kernelArgs *omni.KernelArgs) error {
+	updateSupported, err := kernelargs.UpdateSupported(machineStatus)
+	if err != nil {
+		return err
+	}
+
+	if !updateSupported {
+		if machineStatus.TypedSpec().Value.Schematic == nil {
+			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine schematic is not yet initialized")
+		}
+
+		// initialize them to be unchanged - take the current args as-is
+		mc.kernelArgsList = machineStatus.TypedSpec().Value.Schematic.KernelArgs
+
+		return nil
+	}
+
+	// todo: centralize this...
+	args, ok, err := kernelargs.Calculate(machineStatus, kernelArgs)
+	if err != nil {
+		return err
+	}
+
+	if !ok {
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("extra kernel args for machine %q are not yet initialized", machineStatus.Metadata().ID())
+	}
+
+	mc.kernelArgsList = args
+
+	return nil
+}
+
+func (mc *machineCustomization) isDetected(value string) bool {
+	return slices.Contains(mc.detectedExtensions, value)
 }
 
 func getDetectedExtensions(cluster *omni.Cluster, machineStatus *omni.MachineStatus) ([]string, error) {
@@ -388,7 +399,7 @@ func detectExtensions(initialVersion, currentVersion semver.Version) ([]string, 
 	return nil, nil
 }
 
-func computeMachineExtensionsStatus(ms *omni.MachineStatus, me *machineExtensions) []*specs.MachineExtensionsStatusSpec_Item {
+func computeMachineExtensionsStatus(ms *omni.MachineStatus, customization *machineCustomization) []*specs.MachineExtensionsStatusSpec_Item {
 	var (
 		installedExtensions set.Set[string]
 		requestedExtensions set.Set[string]
@@ -398,8 +409,8 @@ func computeMachineExtensionsStatus(ms *omni.MachineStatus, me *machineExtension
 		installedExtensions = xslices.ToSet(ms.TypedSpec().Value.Schematic.Extensions)
 	}
 
-	if me != nil {
-		requestedExtensions = xslices.ToSet(me.extensionsList)
+	if customization != nil {
+		requestedExtensions = xslices.ToSet(customization.extensionsList)
 	}
 
 	allExtensions := set.Values(set.Union(
@@ -415,10 +426,10 @@ func computeMachineExtensionsStatus(ms *omni.MachineStatus, me *machineExtension
 			phase     specs.MachineExtensionsStatusSpec_Item_Phase
 		)
 
-		if me != nil {
+		if customization != nil {
 			switch {
 			// detected extensions should always be pre installed
-			case me.isDetected(extension):
+			case customization.isDetected(extension):
 				phase = specs.MachineExtensionsStatusSpec_Item_Installed
 
 				immutable = true

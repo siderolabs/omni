@@ -90,4 +90,7 @@ func init() {
 	registry.MustRegisterResource(TalosExtensionsType, &TalosExtensions{})
 	registry.MustRegisterResource(TalosVersionType, &TalosVersion{})
 	registry.MustRegisterResource(TalosUpgradeStatusType, &TalosUpgradeStatus{})
+	registry.MustRegisterResource(MachineUpgradeStatusType, &MachineUpgradeStatus{})
+	registry.MustRegisterResource(KernelArgsType, &KernelArgs{})
+	registry.MustRegisterResource(KernelArgsStatusType, &KernelArgsStatus{})
 }

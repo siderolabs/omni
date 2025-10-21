@@ -311,10 +311,11 @@ onMounted(async () => {
             </template>
             <template
               v-else-if="
-                talosUpgradeStatus.spec.phase === TalosUpgradeStatusSpecPhase.InstallingExtensions
+                talosUpgradeStatus.spec.phase ===
+                TalosUpgradeStatusSpecPhase.UpdatingMachineSchematics
               "
             >
-              <span class="overview-box-title">Installing Extensions</span>
+              <span class="overview-box-title">Updating Machine Schematics</span>
             </template>
           </div>
           <div class="flex min-h-20 items-center gap-2 border-t-8 border-naturals-n4 p-4 text-xs">

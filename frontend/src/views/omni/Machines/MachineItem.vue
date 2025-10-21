@@ -169,6 +169,20 @@ const maintenanceUpdateDescription = computed(() => {
               Config Patches
             </TActionsBoxItem>
 
+            <TActionsBoxItem
+              icon="settings"
+              @click="
+                $router.push({
+                  query: {
+                    modal: 'updateKernelArgs',
+                    machine: machine.metadata.id,
+                  },
+                })
+              "
+            >
+              Update Kernel Args
+            </TActionsBoxItem>
+
             <TActionsBoxItem icon="copy" @click="copy(machine.metadata.id!)">
               Copy Machine ID
             </TActionsBoxItem>
