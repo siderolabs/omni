@@ -12,7 +12,9 @@ import TInput from './TInput.vue'
 type Props = ComponentProps<typeof TInput>
 
 const meta: Meta<typeof TInput> = {
-  component: TInput,
+  // https://github.com/storybookjs/storybook/issues/24238
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  component: TInput as any,
   args: {
     title: 'Title',
     placeholder: 'Placeholder',
@@ -22,7 +24,7 @@ const meta: Meta<typeof TInput> = {
     focus: false,
     compact: false,
     onClear: fn(),
-    'onUpdate:model-value': fn(),
+    'onUpdate:modelValue': fn(),
   },
   argTypes: {
     type: {
