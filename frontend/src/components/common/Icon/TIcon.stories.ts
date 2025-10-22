@@ -4,6 +4,7 @@
 // included in the LICENSE file.
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 
+import Tooltip from '../Tooltip/Tooltip.vue'
 import { icons } from './icons'
 import TIcon from './TIcon.vue'
 
@@ -34,9 +35,15 @@ export const Default: Story = {
 export const AllIcons: Story = {
   decorators: [() => ({ template: '<div class="grid grid-cols-8 gap-2"><story/></div>' })],
   render: () => ({
-    components: { TIcon },
+    components: { TIcon, Tooltip },
     template: iconKeys
-      .map((icon) => `<TIcon icon="${icon}" class="size-6" aria-label="${icon}" />`)
+      .map(
+        (icon) => `
+        <Tooltip description="${icon}">
+          <TIcon icon="${icon}" class="size-6" aria-label="${icon}" />
+        </Tooltip>
+      `,
+      )
       .join(''),
   }),
 }
