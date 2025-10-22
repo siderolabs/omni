@@ -10,15 +10,29 @@
 npm install
 ```
 
-### Compile and Hot-Reload for Development
+### Run dev server
 
 ```sh
 npm run serve
 ```
 
-If you want to access the dev server from a host that is not `localhost` or `*.localhost`, create a `.env` file in the frontend root and add `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=your.server`. If you want to enable the vue dev tools, add `ENABLE_DEVTOOLS=true`.
+#### Customizing the dev server
 
-### Run storybook
+The dev server can be configured with a `.env` file in the frontend root.
+
+If you want to enable the [Vue dev tools](https://devtools.vuejs.org/)
+
+```sh
+ENABLE_DEVTOOLS=true
+```
+
+If you want to configure [`server.allowedHosts`](https://vite.dev/config/server-options.html#server-allowedhosts) to access the dev server from a host that is not `localhost` or `*.localhost`
+
+```sh
+__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS="my.custom.omni"
+```
+
+### Run [Storybook](storybook.js.org/)
 
 The latest storybook from `main` will always be available at [https://main--68d664245076e2bb623d98f3.chromatic.com/](https://main--68d664245076e2bb623d98f3.chromatic.com/). To run storybook locally, you can use the command:
 
