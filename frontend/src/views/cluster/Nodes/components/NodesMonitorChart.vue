@@ -6,9 +6,11 @@ included in the LICENSE file.
 -->
 <script setup lang="ts" generic="T = unknown">
 import { ExclamationCircleIcon } from '@heroicons/vue/24/outline'
+import type { ApexOptions } from 'apexcharts'
 import { DateTime } from 'luxon'
 import type { Ref } from 'vue'
 import { computed, defineAsyncComponent, ref, toRefs } from 'vue'
+import type { VueApexChartsComponentProps } from 'vue3-apexcharts'
 
 import type { Runtime } from '@/api/common/omni.pb'
 import type { WatchResponse } from '@/api/omni/resources/resources.pb'
@@ -18,11 +20,11 @@ import type { WatchContext, WatchEventSpec } from '@/api/watch'
 import { WatchFunc } from '@/api/watch'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 
-const ApexChart = defineAsyncComponent(() => import('vue3-apexcharts'))
+const VueApexCharts = defineAsyncComponent(() => import('vue3-apexcharts'))
 
 type Props<T> = {
   name: string
-  type: string
+  type: ApexChart['type'] & VueApexChartsComponentProps['type']
   title: string
   resource: Metadata
   runtime: Runtime
@@ -31,14 +33,14 @@ type Props<T> = {
   legend?: boolean
   dataLabels?: boolean
   stacked?: boolean
-  stroke?: { curve: string; width: number | number[]; dashArray?: number | number[] }
+  stroke?: ApexStroke
   colors?: string[]
   tailEvents?: number
   context?: WatchContext
   totalFn?: (spec: T, old: T) => string
   minFn?: (spec: T, old: T) => number
   maxFn?: (spec: T, old: T) => number
-  formatter?: (value: number) => string
+  formatter?: (value: string | number) => string
 }
 
 const props = withDefaults(defineProps<Props<T>>(), {
@@ -253,7 +255,7 @@ const options = computed(() => {
         },
       },
     },
-  }
+  } satisfies ApexOptions
 })
 
 const err = w.err
@@ -283,7 +285,7 @@ const loading = w.loading
         </div>
         <TSpinner v-else class="h-5 w-5" />
       </div>
-      <ApexChart
+      <VueApexCharts
         v-else
         width="100%"
         height="100%"
