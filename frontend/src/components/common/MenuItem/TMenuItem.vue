@@ -76,7 +76,6 @@ componentAttributes.class = (componentAttributes.class ?? '') + ' item-container
           class="item w-full"
           :class="{ 'sub-item': level > 0, root: level === 0 }"
           :style="{ 'padding-left': `${24 * (level + 1)}px` }"
-          @click="toggleSubmenu"
         >
           <TIcon
             v-if="icon || iconSvgBase64"
@@ -89,7 +88,12 @@ componentAttributes.class = (componentAttributes.class ?? '') + ' item-container
             <span>{{ label }}</span>
           </div>
 
-          <div v-if="subItems?.length" class="expand-button">
+          <div
+            v-if="subItems?.length"
+            class="expand-button"
+            role="button"
+            @click.prevent="toggleSubmenu"
+          >
             <TIcon
               class="transition-color h-6 w-6 transition-transform duration-250 hover:text-naturals-n13"
               :class="{ 'rotate-180': !expanded }"
