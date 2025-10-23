@@ -11,7 +11,6 @@ import { useRouter } from 'vue-router'
 import AppToast from '@/components/common/AppToast/AppToast.vue'
 import TSuspended from '@/components/common/Suspended/TSuspended.vue'
 import UserConsent from '@/components/common/UserConsent/UserConsent.vue'
-import TSideBar from '@/components/SideBar/TSideBar.vue'
 import THeader from '@/components/THeader/THeader.vue'
 import TModal from '@/components/TModal.vue'
 import { suspended } from '@/methods'
@@ -39,13 +38,17 @@ router.afterEach(() => (isSidebarOpen.value = false))
         :class="{ 'max-md:pointer-events-auto max-md:opacity-100': isSidebarOpen }"
         @click="isSidebarOpen = false"
       ></div>
-      <TSideBar
-        id="sidebar"
-        class="top-0 bottom-0 left-0 z-10 transition-all duration-300 max-md:absolute"
-        :class="{
-          'max-md:pointer-events-none max-md:invisible max-md:-translate-x-full': !isSidebarOpen,
-        }"
-      />
+
+      <RouterView v-slot="{ Component }" name="sidebar">
+        <component
+          :is="Component"
+          id="sidebar"
+          class="top-0 bottom-0 left-0 z-10 transition-all duration-300 max-md:absolute"
+          :class="{
+            'max-md:pointer-events-none max-md:invisible max-md:-translate-x-full': !isSidebarOpen,
+          }"
+        />
+      </RouterView>
 
       <div
         class="relative flex grow flex-col gap-4 overflow-auto p-6"

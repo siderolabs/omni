@@ -61,7 +61,7 @@ export const routes: RouteRecordRaw[] = [
     path: '/',
     components: {
       default: RouterView,
-      sidebar: () => import('@/views/omni/SideBar.vue'),
+      sidebar: () => import('@/components/SideBar/TSideBar.vue'),
     },
     beforeEnter: async (to) => {
       let authorized = await isAuthorized()
@@ -106,10 +106,7 @@ export const routes: RouteRecordRaw[] = [
           },
           {
             path: ':cluster',
-            components: {
-              default: () => import('@/views/cluster/ClusterScoped.vue'),
-              clusterSidebar: () => import('@/views/cluster/SideBar.vue'),
-            },
+            component: () => import('@/views/cluster/ClusterScoped.vue'),
             children: [
               {
                 path: '',
@@ -153,10 +150,6 @@ export const routes: RouteRecordRaw[] = [
               },
               {
                 path: 'machine/:machine',
-                components: {
-                  default: RouterView,
-                  nodeSidebar: () => import('@/views/cluster/SideBarNode.vue'),
-                },
                 children: [
                   {
                     path: 'patches/:patch',
