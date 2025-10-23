@@ -35,6 +35,10 @@ export type ConfirmPublicKeyRequest = {
   public_key_id?: string
 }
 
+export type RevokePublicKeyRequest = {
+  public_key_id?: string
+}
+
 export class AuthService {
   static RegisterPublicKey(req: RegisterPublicKeyRequest, ...options: fm.fetchOption[]): Promise<RegisterPublicKeyResponse> {
     return fm.fetchReq<RegisterPublicKeyRequest, RegisterPublicKeyResponse>("POST", `/auth.AuthService/RegisterPublicKey`, req, ...options)
@@ -44,5 +48,8 @@ export class AuthService {
   }
   static ConfirmPublicKey(req: ConfirmPublicKeyRequest, ...options: fm.fetchOption[]): Promise<GoogleProtobufEmpty.Empty> {
     return fm.fetchReq<ConfirmPublicKeyRequest, GoogleProtobufEmpty.Empty>("POST", `/auth.AuthService/ConfirmPublicKey`, req, ...options)
+  }
+  static RevokePublicKey(req: RevokePublicKeyRequest, ...options: fm.fetchOption[]): Promise<GoogleProtobufEmpty.Empty> {
+    return fm.fetchReq<RevokePublicKeyRequest, GoogleProtobufEmpty.Empty>("POST", `/auth.AuthService/RevokePublicKey`, req, ...options)
   }
 }

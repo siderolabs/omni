@@ -530,7 +530,7 @@ spec:
     - source: client/api/omni/oidc/oidc.proto
       subdirectory: omni/oidc
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/go-api-signature/184f94d36cdd4d8bf8770ef629191f63187d63da/api/auth/auth.proto
+    - source: https://raw.githubusercontent.com/siderolabs/go-api-signature/v0.3.10/api/auth/auth.proto
       subdirectory: omni/auth
       genGateway: true
     - source: client/api/omni/specs/omni.proto

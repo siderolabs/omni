@@ -12,12 +12,11 @@ import { AuthFlowQueryParam, RedirectQueryParam } from '@/api/resources'
 import { current } from '@/context'
 import { AuthType, authType } from '@/methods'
 import { loadCurrentUser } from '@/methods/auth'
-import { getAuthCookies, isAuthorized } from '@/methods/key'
+import { isAuthorized } from '@/methods/key'
 import { MachineFilterOption } from '@/methods/machine'
 import { refreshTitle } from '@/methods/title'
 
 export const FrontendAuthFlow = 'frontend'
-const requireCookies = false
 
 export const routes: RouteRecordRaw[] = [
   // Unauthenticated routes
@@ -64,17 +63,10 @@ export const routes: RouteRecordRaw[] = [
       sidebar: () => import('@/components/SideBar/TSideBar.vue'),
     },
     beforeEnter: async (to) => {
-      let authorized = await isAuthorized()
-
-      if (requireCookies && !getAuthCookies()) {
-        authorized = false
-      }
+      const authorized = await isAuthorized()
 
       if (authorized) {
         await loadCurrentUser()
-      }
-
-      if (authorized) {
         await refreshTitle()
 
         return true

@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-10-17T13:27:48Z by kres 46e133d.
+# Generated on 2025-10-23T09:04:40Z by kres 46e133d.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN
@@ -57,7 +57,7 @@ ADD client/api/common/omni.proto /frontend/src/api/common/
 ADD client/api/omni/resources/resources.proto /frontend/src/api/omni/resources/
 ADD client/api/omni/management/management.proto /frontend/src/api/omni/management/
 ADD client/api/omni/oidc/oidc.proto /frontend/src/api/omni/oidc/
-ADD https://raw.githubusercontent.com/siderolabs/go-api-signature/184f94d36cdd4d8bf8770ef629191f63187d63da/api/auth/auth.proto /frontend/src/api/omni/auth/
+ADD https://raw.githubusercontent.com/siderolabs/go-api-signature/v0.3.10/api/auth/auth.proto /frontend/src/api/omni/auth/
 ADD client/api/omni/specs/omni.proto /frontend/src/api/omni/specs/
 ADD client/api/omni/specs/siderolink.proto /frontend/src/api/omni/specs/
 ADD client/api/omni/specs/system.proto /frontend/src/api/omni/specs/

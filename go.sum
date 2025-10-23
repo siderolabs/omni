@@ -485,8 +485,8 @@ github.com/siderolabs/discovery-service v1.0.11 h1:+ymDXKhPL2f1c5MIO559wciA38PcQ
 github.com/siderolabs/discovery-service v1.0.11/go.mod h1:pUTOYgtYasO/T02zJNNfw0SCP8hDbIgFIvdm+Fn1UKo=
 github.com/siderolabs/gen v0.8.5 h1:xlWXTynnGD/epaj7uplvKvmAkBH+Fp51bLnw1JC0xME=
 github.com/siderolabs/gen v0.8.5/go.mod h1:CRrktDXQf3yDJI7xKv+cDYhBbKdfd/YE16OpgcHoT9E=
-github.com/siderolabs/go-api-signature v0.3.9 h1:JfXTR0J9LOsvQXT0kIdnSm+F3qe+ustLnBuC65H0qvc=
-github.com/siderolabs/go-api-signature v0.3.9/go.mod h1:VcilCqp2k2bYjFhzsxdc2JPqGIcOkHjeG2bLLm1NGeA=
+github.com/siderolabs/go-api-signature v0.3.10 h1:4E3p577ARO4n/s/uSmPSOuVDosQw048LjxRdQa7vAyg=
+github.com/siderolabs/go-api-signature v0.3.10/go.mod h1:dPLiXohup4qHX7KUgF/wwOE3lRU5uAr3ssEomNxiyxY=
 github.com/siderolabs/go-circular v0.2.3 h1:GKkA1Tw79kEFGtWdl7WTxEUTbwtklITeiRT0V1McHrA=
 github.com/siderolabs/go-circular v0.2.3/go.mod h1:YBN/q9YpQphUYnBtBgPsngauSHj1TEZfgQZWZVjk1WE=
 github.com/siderolabs/go-debug v0.6.1 h1:LAkM2ADz+naL3PA6Mv0SzyXYx7aCxYlKdO2dSiZmhRc=

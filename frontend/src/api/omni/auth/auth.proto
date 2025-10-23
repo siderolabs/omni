@@ -38,8 +38,13 @@ message ConfirmPublicKeyRequest {
   string public_key_id = 1;
 }
 
+message RevokePublicKeyRequest {
+  string public_key_id = 1;
+}
+
 service AuthService {
   rpc RegisterPublicKey(RegisterPublicKeyRequest) returns (RegisterPublicKeyResponse);
   rpc AwaitPublicKeyConfirmation(AwaitPublicKeyConfirmationRequest) returns (google.protobuf.Empty);
   rpc ConfirmPublicKey(ConfirmPublicKeyRequest) returns (google.protobuf.Empty);
+  rpc RevokePublicKey(RevokePublicKeyRequest) returns (google.protobuf.Empty);
 }

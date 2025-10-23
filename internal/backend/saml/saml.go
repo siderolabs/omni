@@ -73,9 +73,6 @@ func NewHandler(state state.State, cfg *specs.AuthConfigSpec_SAML, logger *zap.L
 // RegisterHandlers adds login and logout handlers.
 func RegisterHandlers(saml *samlsp.Middleware, mux *http.ServeMux, logger *zap.Logger) {
 	logger = logger.With(zap.String("handler", "saml"))
-	login := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		saml.HandleStartAuthFlow(w, r)
-	})
 
 	md := http.HandlerFunc(saml.ServeMetadata)
 	promLabel := prometheus.Labels{"handler": "saml"}
@@ -87,11 +84,6 @@ func RegisterHandlers(saml *samlsp.Middleware, mux *http.ServeMux, logger *zap.L
 
 	mux.Handle("/saml/metadata", monitoring.NewHandler(
 		logging.NewHandler(md, logger),
-		promLabel,
-	))
-
-	mux.Handle("/login", monitoring.NewHandler(
-		logging.NewHandler(login, logger),
 		promLabel,
 	))
 }

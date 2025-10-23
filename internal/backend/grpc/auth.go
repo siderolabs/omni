@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -29,7 +31,9 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
+	"github.com/siderolabs/omni/internal/backend/grpc/cookies"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
@@ -48,8 +52,38 @@ const (
 type authServer struct {
 	authpb.UnimplementedAuthServiceServer
 
-	state  state.State
-	logger *zap.Logger
+	logger                    *zap.Logger
+	loginURL                  *url.URL
+	state                     state.State
+	workloadProxyCookieDomain string
+}
+
+func newAuthServer(state state.State, services config.Services, logger *zap.Logger) (*authServer, error) {
+	advertisedURL, err := url.Parse(services.API.URL())
+	if err != nil {
+		return nil, err
+	}
+
+	var workloadProxyCookieDomain string
+
+	domainParts := strings.Split(advertisedURL.Hostname(), ".")
+	if len(domainParts) < 2 {
+		workloadProxyCookieDomain = domainParts[0]
+	} else {
+		workloadProxyCookieDomain = "." + strings.Join(domainParts[1:], ".")
+	}
+
+	loginURL, err := url.Parse(services.API.URL())
+	if err != nil {
+		return nil, err
+	}
+
+	return &authServer{
+		state:                     state,
+		logger:                    logger,
+		workloadProxyCookieDomain: workloadProxyCookieDomain,
+		loginURL:                  loginURL,
+	}, nil
 }
 
 func (s *authServer) register(server grpc.ServiceRegistrar) {
@@ -72,14 +106,9 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 		return nil, err
 	}
 
-	loginURL, err := s.buildLoginURL(pubKey.id)
-	if err != nil {
-		return nil, err
-	}
-
 	result := &authpb.RegisterPublicKeyResponse{
 		PublicKeyId: pubKey.id,
-		LoginUrl:    loginURL,
+		LoginUrl:    s.buildLoginURL(pubKey.id),
 	}
 
 	identity, err := safe.StateGet[*authres.Identity](ctx, s.state, authres.NewIdentity(resources.DefaultNamespace, email).Metadata())
@@ -197,6 +226,67 @@ func (s *authServer) AwaitPublicKeyConfirmation(ctx context.Context, request *au
 	return &emptypb.Empty{}, nil
 }
 
+// RevokePublicKey deletes public key by ID.
+// Only authenticated user keys can be removed.
+func (s *authServer) RevokePublicKey(ctx context.Context, request *authpb.RevokePublicKeyRequest) (*emptypb.Empty, error) {
+	creds, err := auth.CheckGRPC(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if !creds.HasValidSignature {
+		return nil, status.Error(codes.PermissionDenied, "permission denied")
+	}
+
+	ctx = actor.MarkContextAsInternalActor(ctx)
+
+	pubKey, err := safe.StateGetByID[*authres.PublicKey](ctx, s.state, request.PublicKeyId)
+	if err != nil {
+		return nil, err
+	}
+
+	if pubKey.TypedSpec().Value.Identity == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid argument")
+	}
+
+	if pubKey.TypedSpec().Value.Identity.Email != creds.Identity {
+		return nil, status.Error(codes.PermissionDenied, "permission denied")
+	}
+
+	// resetting the workload proxy cookies
+	if err = cookies.Set(
+		ctx,
+		&http.Cookie{
+			Name:     workloadproxy.PublicKeyIDCookie,
+			Path:     "/",
+			Expires:  time.Unix(0, 0),
+			HttpOnly: true,
+			Secure:   true,
+			Domain:   s.workloadProxyCookieDomain,
+			SameSite: http.SameSiteStrictMode,
+		},
+		&http.Cookie{
+			Name:     workloadproxy.PublicKeyIDSignatureBase64Cookie,
+			Path:     "/",
+			Expires:  time.Unix(0, 0),
+			HttpOnly: true,
+			Secure:   true,
+			Domain:   s.workloadProxyCookieDomain,
+			SameSite: http.SameSiteStrictMode,
+		},
+	); err != nil {
+		return nil, err
+	}
+
+	if err = s.state.TeardownAndDestroy(ctx, pubKey.Metadata(),
+		state.WithTeardownAndDestroyOwner((&omni.KeyPrunerController{}).Name()),
+	); err != nil {
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
 // ConfirmPublicKey confirms the public key with the given ID.
 // It uses the ID token in the request metadata to validate the user identity.
 func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.ConfirmPublicKeyRequest) (*emptypb.Empty, error) {
@@ -252,6 +342,38 @@ func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.Confi
 		zap.String("role", pubKey.TypedSpec().Value.GetRole()),
 	)
 
+	md, ok := metadata.FromIncomingContext(ctx)
+	if ok {
+		values := md.Get(workloadproxy.PublicKeyIDSignatureBase64Cookie)
+		if len(values) > 0 {
+			if err = cookies.Set(
+				ctx,
+				&http.Cookie{
+					Name:     workloadproxy.PublicKeyIDCookie,
+					Value:    request.PublicKeyId,
+					Path:     "/",
+					Expires:  pubKey.TypedSpec().Value.Expiration.AsTime(),
+					HttpOnly: true,
+					Secure:   true,
+					Domain:   s.workloadProxyCookieDomain,
+					SameSite: http.SameSiteStrictMode,
+				},
+				&http.Cookie{
+					Name:     workloadproxy.PublicKeyIDSignatureBase64Cookie,
+					Value:    values[0],
+					Path:     "/",
+					Expires:  pubKey.TypedSpec().Value.Expiration.AsTime(),
+					HttpOnly: true,
+					Secure:   true,
+					Domain:   s.workloadProxyCookieDomain,
+					SameSite: http.SameSiteStrictMode,
+				},
+			); err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	return &emptypb.Empty{}, nil
 }
 
@@ -268,11 +390,8 @@ func verifiedEmail(ctx context.Context) (string, error) {
 	return authCheckResult.VerifiedEmail, nil
 }
 
-func (s *authServer) buildLoginURL(pgpKeyID string) (string, error) {
-	loginURL, err := url.Parse(config.Config.Services.API.URL())
-	if err != nil {
-		return "", err
-	}
+func (s *authServer) buildLoginURL(pgpKeyID string) string {
+	loginURL := *s.loginURL
 
 	loginURL.Path = loginPath
 
@@ -282,5 +401,5 @@ func (s *authServer) buildLoginURL(pgpKeyID string) (string, error) {
 
 	loginURL.RawQuery = query.Encode()
 
-	return loginURL.String(), nil
+	return loginURL.String()
 }
