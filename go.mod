@@ -4,25 +4,25 @@ go 1.25.2
 
 replace (
 	// forked saml library that has the fix for Fusion Auth ACS parsing
-	github.com/crewjam/saml => github.com/unix4ever/saml v0.0.0-20250630213700-66b137182abe
+	github.com/crewjam/saml => github.com/unix4ever/saml 34930b26d33b
 	// use nested module
 	github.com/siderolabs/omni/client => ./client
 	// forked go-yaml that introduces RawYAML interface, which can be used to populate YAML fields using bytes
 	// which are then encoded as a valid YAML blocks with proper indentiation
-	gopkg.in/yaml.v3 => github.com/unix4ever/yaml v0.0.0-20220527175918-f17b0f05cf2c
+	gopkg.in/yaml.v3 => github.com/unix4ever/yaml/v2 v2.4.0
 )
 
 require (
 	filippo.io/age v1.2.1
-	github.com/ProtonMail/gopenpgp/v2 v2.9.0
+	github.com/ProtonMail/gopenpgp/v3 v3.3.0
 	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/akutz/memconn v0.1.1-0.20211110233653-dae351d188b3
 	github.com/auth0/go-jwt-middleware/v2 v2.3.0
-	github.com/aws/aws-sdk-go-v2 v1.39.3
-	github.com/aws/aws-sdk-go-v2/config v1.31.12
-	github.com/aws/aws-sdk-go-v2/credentials v1.18.16
-	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.19.12
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.88.4
+	github.com/aws/aws-sdk-go-v2 v1.39.4
+	github.com/aws/aws-sdk-go-v2/config v1.31.15
+	github.com/aws/aws-sdk-go-v2/credentials v1.18.19
+	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.19.15
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.88.7
 	github.com/aws/smithy-go v1.23.1
 	github.com/benbjohnson/clock v1.3.5
 	github.com/blang/semver/v4 v4.0.0
@@ -41,11 +41,11 @@ require (
 	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/zapr v1.3.0
 	github.com/go-playground/validator/v10 v10.28.0
-	github.com/golang-jwt/jwt/v4 v4.5.2
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-containerregistry v0.20.6
 	github.com/google/uuid v1.6.0
-	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
+	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.2
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.3
 	github.com/hashicorp/go-cleanhttp v0.5.2
@@ -57,7 +57,7 @@ require (
 	github.com/johannesboyne/gofakes3 v0.0.0-20250916175020-ebf3e50324d3
 	github.com/jonboulle/clockwork v0.5.0
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/klauspost/compress v1.18.0
+	github.com/klauspost/compress v1.18.1
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/common v0.67.1
@@ -70,7 +70,7 @@ require (
 	github.com/siderolabs/go-api-signature v0.3.10
 	github.com/siderolabs/go-circular v0.2.3
 	github.com/siderolabs/go-debug v0.6.1
-	github.com/siderolabs/go-kubernetes v0.2.26
+	github.com/siderolabs/go-kubernetes v0.2.27
 	github.com/siderolabs/go-loadbalancer v0.5.0
 	github.com/siderolabs/go-pointer v1.0.1
 	github.com/siderolabs/go-procfs v0.1.2
@@ -109,9 +109,9 @@ require (
 	google.golang.org/grpc v1.76.0
 	google.golang.org/protobuf v1.36.10
 	gopkg.in/yaml.v3 v3.0.3
-	k8s.io/api v0.35.0-alpha.1
-	k8s.io/apimachinery v0.35.0-alpha.1
-	k8s.io/client-go v0.35.0-alpha.1
+	k8s.io/api v0.35.0-alpha.2
+	k8s.io/apimachinery v0.35.0-alpha.2
+	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/klog/v2 v2.130.1
 	sigs.k8s.io/controller-runtime v0.22.3
 )
