@@ -51,8 +51,11 @@ router.afterEach(() => (isSidebarOpen.value = false))
       </RouterView>
 
       <div
-        class="relative flex grow flex-col gap-4 overflow-auto p-6"
-        :class="{ 'max-md:pointer-events-none max-md:select-none': isSidebarOpen }"
+        class="relative flex grow flex-col gap-4 overflow-auto"
+        :class="{
+          'max-md:pointer-events-none max-md:select-none': isSidebarOpen,
+          'p-6': !$route.meta.disablePadding,
+        }"
       >
         <TSuspended v-if="suspended" />
         <RouterView />
