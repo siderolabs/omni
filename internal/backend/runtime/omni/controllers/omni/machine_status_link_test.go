@@ -15,9 +15,11 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/kernelargs"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	siderolinkmanager "github.com/siderolabs/omni/internal/pkg/siderolink"
 )
@@ -37,9 +39,12 @@ func (suite *MachineStatusLinkSuite) SetupTest() {
 
 	suite.deltaCh = make(chan siderolinkmanager.LinkCounterDeltas)
 
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineStatusController(
-		&imageFactoryClientMock{},
-	)))
+	logger := zaptest.NewLogger(suite.T())
+
+	exraKernelArgsInitializer, err := kernelargs.NewInitializer(suite.state, logger)
+	suite.Require().NoError(err)
+
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineStatusController(&imageFactoryClientMock{}, exraKernelArgsInitializer)))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineStatusLinkController(suite.deltaCh)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(serviceConfig)))

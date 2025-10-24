@@ -545,8 +545,8 @@ func AssertTalosUpgradeFlow(testCtx context.Context, st state.State, clusterName
 	}
 }
 
-// AssertTalosSchematicUpdateFlow verifies Talos schematic update flow.
-func AssertTalosSchematicUpdateFlow(testCtx context.Context, client *client.Client, clusterName string) TestFunc {
+// AssertTalosExtensionsUpdateFlow verifies Talos schematic update flow.
+func AssertTalosExtensionsUpdateFlow(testCtx context.Context, client *client.Client, clusterName string, extensions []string) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, 15*time.Minute)
 		defer cancel()
@@ -555,10 +555,7 @@ func AssertTalosSchematicUpdateFlow(testCtx context.Context, client *client.Clie
 
 		res.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 
-		res.TypedSpec().Value.Extensions = []string{
-			"siderolabs/hello-world-service",
-			"siderolabs/qemu-guest-agent",
-		}
+		res.TypedSpec().Value.Extensions = extensions
 
 		t.Logf("upgrading cluster schematic %q to have extensions %#v", clusterName, res.TypedSpec().Value.Extensions)
 
@@ -567,7 +564,7 @@ func AssertTalosSchematicUpdateFlow(testCtx context.Context, client *client.Clie
 
 		// upgrade should start
 		rtestutils.AssertResources(ctx, t, client.Omni().State(), []resource.ID{clusterName}, func(r *omni.TalosUpgradeStatus, assert *assert.Assertions) {
-			assert.Equal(specs.TalosUpgradeStatusSpec_InstallingExtensions, r.TypedSpec().Value.Phase, resourceDetails(r))
+			assert.Equal(specs.TalosUpgradeStatusSpec_UpdatingMachineSchematics, r.TypedSpec().Value.Phase, resourceDetails(r))
 			assert.NotEmpty(r.TypedSpec().Value.Step, resourceDetails(r))
 			assert.NotEmpty(r.TypedSpec().Value.Status, resourceDetails(r))
 		})
@@ -756,7 +753,7 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 
 		t.Logf("creating a cluster on version %q", talosVersion1)
 
-		pickUnallocatedMachines(ctx, t, st, 1, func(machineIDs []resource.ID) {
+		pickUnallocatedMachines(ctx, t, st, 1, nil, func(machineIDs []resource.ID) {
 			allocatedMachineIDs = machineIDs
 
 			cluster := omni.NewCluster(resources.DefaultNamespace, clusterName)
@@ -828,7 +825,7 @@ func AssertTalosServiceIsRestarted(testCtx context.Context, cli *client.Client, 
 		ctx, cancel := context.WithTimeout(testCtx, 1*time.Minute)
 		defer cancel()
 
-		talosCli, err := talosClient(ctx, cli, clusterName)
+		talosCli, err := talosClientForCluster(ctx, cli, clusterName)
 		require.NoError(t, err)
 
 		labelQueryOpts = append(labelQueryOpts, resource.LabelEqual(omni.LabelCluster, clusterName))

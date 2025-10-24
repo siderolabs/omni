@@ -151,6 +151,10 @@ message MachineStatusSpec {
   }
 
   message Schematic {
+    message InitialState {
+      repeated string extensions = 1;
+    }
+
     // Id is the image factory schematic id used for the image generation.
     //
     // This must be be plain id computed solely from the system extensions, not including the kernel command line arguments, META content etc.
@@ -165,7 +169,6 @@ message MachineStatusSpec {
     repeated string extensions = 3;
 
     // InitialSchematic is the one first schematic the machine was using when it was connected to Omni for the first time.
-    // Omni will always reset schematic configuration to this default value when no explicit schematic configuration is set.
     string initial_schematic = 4;
 
     reserved 5;
@@ -187,6 +190,12 @@ message MachineStatusSpec {
 
     // InAgentMode indicates that the machine is running in agent mode.
     bool in_agent_mode = 10;
+
+    // Raw contains the raw schematic data YAML as a string.
+    string raw = 11;
+
+    // InitialState is the initial schematic configuration of the machine.
+    InitialState initial_state = 12;
   }
 
   message Diagnostic {
@@ -259,6 +268,8 @@ message MachineStatusSpec {
   PowerState power_state = 20;
 
   SecurityState security_state = 21;
+
+  string kernel_cmdline = 22;
 }
 
 // TalosConfigSpec describes a Talos cluster config.
@@ -801,7 +812,7 @@ message TalosUpgradeStatusSpec {
     Done = 2;
     Failed = 3;
     Reverting = 4;
-    InstallingExtensions = 5;
+    UpdatingMachineSchematics = 5;
   }
 
   // Current upgrade phase.
@@ -976,7 +987,11 @@ message OngoingTaskSpec {
     TalosUpgradeStatusSpec talos_upgrade = 2;
     KubernetesUpgradeStatusSpec kubernetes_upgrade = 3;
     DestroyStatusSpec destroy = 4;
+    MachineUpgradeStatusSpec machine_upgrade = 5;
   }
+
+  // ResourceId is the ID of the resource the task is being performed on.
+  string resource_id = 6;
 }
 
 // ClusterMachineEncryptionKeySpec keeps generated encryption key for the machine disk encryption.
@@ -1187,6 +1202,36 @@ message SchematicConfigurationSpec {
 // ExtensionsConfigurationSpec is the desired list of extensions to be installed on the machine or the set of machines.
 message ExtensionsConfigurationSpec {
   repeated string extensions = 1;
+}
+
+// KernelArgsSpec is the desired list of extra kernel args to be added to the machine or the set of machines.
+message KernelArgsSpec {
+  repeated string args = 1;
+}
+
+message KernelArgsStatusSpec {
+  repeated string args = 1;
+  repeated string current_args = 2;
+  repeated string unmet_conditions = 3;
+  string current_cmdline = 4;
+}
+
+message MachineUpgradeStatusSpec {
+  enum Phase {
+    Unknown = 0;
+    Pending = 1;
+    Upgrading = 2;
+    UpToDate = 3;
+  }
+
+  string schematic_id = 1;
+  string talos_version = 2;
+  string current_schematic_id = 3;
+  string current_talos_version = 4;
+  Phase phase = 5;
+  string status = 6;
+  string error = 7;
+  bool is_maintenance = 8;
 }
 
 // ExtensionsConfigurationStatusSpec is the status of the generated schematic.

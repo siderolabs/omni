@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
@@ -101,7 +102,13 @@ func NewFrontendHandler(config *config.DevServerProxyService, logger *zap.Logger
 		return nil, fmt.Errorf("failed to parse proxy destination: %w", err)
 	}
 
+	proxyErrorLogger, err := zap.NewStdLogAt(logger, zapcore.WarnLevel)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create proxy error logger: %w", err)
+	}
+
 	proxy := httputil.NewSingleHostReverseProxy(parse)
+	proxy.ErrorLog = proxyErrorLogger
 
 	// Some basic client settings so that the proxy works as expected even in dev mode.
 	proxy.Transport = &http.Transport{

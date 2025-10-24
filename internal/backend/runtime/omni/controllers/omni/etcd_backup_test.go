@@ -49,6 +49,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/etcdbackup/crypt"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/external"
 )
 
@@ -81,10 +82,10 @@ func TestEtcdBackup(t *testing.T) {
 
 	dir := filepath.Join(t.TempDir(), "omni-etcd-backups")
 	fileStoreStoreFactory := store.NewFileStoreStoreFactory(dir)
-	sb := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+	sb := testutils.DynamicStateBuilder{M: map[resource.Namespace]state.CoreState{}}
 
 	synctest.Test(t, func(t *testing.T) {
-		withRuntime(
+		testutils.WithRuntime(
 			t.Context(),
 			t,
 			sb.Builder,
@@ -176,10 +177,10 @@ func TestEtcdBackupFactoryFails(t *testing.T) {
 
 	dir := filepath.Join(t.TempDir(), "omni-etcd-backups")
 	fileStoreStoreFactory := store.NewFileStoreStoreFactory(dir)
-	sb := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+	sb := testutils.DynamicStateBuilder{M: map[resource.Namespace]state.CoreState{}}
 
 	synctest.Test(t, func(t *testing.T) {
-		withRuntime(
+		testutils.WithRuntime(
 			t.Context(),
 			t,
 			sb.Builder,
@@ -278,10 +279,10 @@ func TestDecryptEtcdBackup(t *testing.T) {
 
 	dir := filepath.Join(t.TempDir(), "omni-etcd-backups")
 	fileStoreStoreFactory := store.NewFileStoreStoreFactory(dir)
-	sb := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+	sb := testutils.DynamicStateBuilder{M: map[resource.Namespace]state.CoreState{}}
 
 	synctest.Test(t, func(t *testing.T) {
-		withRuntime(
+		testutils.WithRuntime(
 			t.Context(),
 			t,
 			sb.Builder,
@@ -352,10 +353,10 @@ func TestSingleListCall(t *testing.T) {
 
 	dir := filepath.Join(t.TempDir(), "omni-etcd-backups")
 	fileStoreStoreFactory := store.NewFileStoreStoreFactory(dir)
-	sb := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+	sb := testutils.DynamicStateBuilder{M: map[resource.Namespace]state.CoreState{}}
 
 	synctest.Test(t, func(t *testing.T) {
-		withRuntime(
+		testutils.WithRuntime(
 			t.Context(),
 			t,
 			sb.Builder,
@@ -443,10 +444,10 @@ func TestListBackupsWithExistingData(t *testing.T) {
 
 	dir := filepath.Join(t.TempDir(), "omni-etcd-backups")
 	fileStoreStoreFactory := store.NewFileStoreStoreFactory(dir)
-	sb := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+	sb := testutils.DynamicStateBuilder{M: map[resource.Namespace]state.CoreState{}}
 
 	synctest.Test(t, func(t *testing.T) {
-		withRuntime(
+		testutils.WithRuntime(
 			t.Context(),
 			t,
 			sb.Builder,
@@ -531,14 +532,14 @@ func TestEtcdManualBackupFindResource(t *testing.T) {
 
 	dir := filepath.Join(t.TempDir(), "omni-etcd-backups")
 	fileStoreStoreFactory := store.NewFileStoreStoreFactory(dir)
-	stateBuilder := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+	stateBuilder := testutils.DynamicStateBuilder{M: map[resource.Namespace]state.CoreState{}}
 	stateBuilder.Set(resources.ExternalNamespace, &external.State{
 		CoreState:    state.WrapCore(namespaced.NewState(stateBuilder.Builder)),
 		StoreFactory: fileStoreStoreFactory,
 	})
 
 	synctest.Test(t, func(t *testing.T) {
-		withRuntime(
+		testutils.WithRuntime(
 			t.Context(),
 			t,
 			stateBuilder.Builder,
@@ -626,10 +627,10 @@ func TestEtcdManualBackup(t *testing.T) {
 
 	dir := filepath.Join(t.TempDir(), "omni-etcd-backups")
 	fileStoreStoreFactory := store.NewFileStoreStoreFactory(dir)
-	sb := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+	sb := testutils.DynamicStateBuilder{M: map[resource.Namespace]state.CoreState{}}
 
 	synctest.Test(t, func(t *testing.T) {
-		withRuntime(
+		testutils.WithRuntime(
 			t.Context(),
 			t,
 			sb.Builder,
@@ -737,10 +738,10 @@ func TestS3Backup(t *testing.T) {
 
 	dir := filepath.Join(t.TempDir(), "omni-etcd-backups")
 	fileStoreStoreFactory := store.NewFileStoreStoreFactory(dir)
-	sb := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+	sb := testutils.DynamicStateBuilder{M: map[resource.Namespace]state.CoreState{}}
 
 	synctest.Test(t, func(t *testing.T) {
-		withRuntime(
+		testutils.WithRuntime(
 			t.Context(),
 			t,
 			sb.Builder,
@@ -873,10 +874,10 @@ func TestBackupJitter(t *testing.T) {
 
 	dir := filepath.Join(t.TempDir(), "omni-etcd-backups")
 	fileStoreStoreFactory := store.NewFileStoreStoreFactory(dir)
-	sb := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+	sb := testutils.DynamicStateBuilder{M: map[resource.Namespace]state.CoreState{}}
 
 	synctest.Test(t, func(t *testing.T) {
-		withRuntime(
+		testutils.WithRuntime(
 			t.Context(),
 			t,
 			sb.Builder,

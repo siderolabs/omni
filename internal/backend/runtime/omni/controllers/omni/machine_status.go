@@ -28,14 +28,12 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
-	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	machinetask "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task/machine"
 )
 
-// SchematicEnsurer ensures that the given schematic exists in the image factory.
-type SchematicEnsurer interface {
-	EnsureSchematic(ctx context.Context, inputSchematic schematic.Schematic) (imagefactory.EnsuredSchematic, error)
+type KernelArgsInitializer interface {
+	Init(ctx context.Context, id resource.ID, args []string) error
 }
 
 // MachineStatusControllerName is the name of the MachineStatusController.
@@ -43,21 +41,23 @@ const MachineStatusControllerName = "MachineStatusController"
 
 // MachineStatusController manages omni.MachineStatuses based on information from Talos API.
 type MachineStatusController struct {
-	ImageFactoryClient SchematicEnsurer
-	runner             *task.Runner[machinetask.InfoChan, machinetask.CollectTaskSpec]
-	notifyCh           chan machinetask.Info
+	ImageFactoryClient    ImageFactoryClient
+	kernelArgsInitializer KernelArgsInitializer
+	runner                *task.Runner[machinetask.InfoChan, machinetask.CollectTaskSpec]
+	notifyCh              chan machinetask.Info
 	generic.NamedController
 }
 
 // NewMachineStatusController initializes MachineStatusController.
-func NewMachineStatusController(imageFactoryClient SchematicEnsurer) *MachineStatusController {
+func NewMachineStatusController(imageFactoryClient ImageFactoryClient, kernelArgsInitializer KernelArgsInitializer) *MachineStatusController {
 	return &MachineStatusController{
 		NamedController: generic.NamedController{
 			ControllerName: MachineStatusControllerName,
 		},
-		notifyCh:           make(chan machinetask.Info),
-		runner:             task.NewEqualRunner[machinetask.CollectTaskSpec](),
-		ImageFactoryClient: imageFactoryClient,
+		notifyCh:              make(chan machinetask.Info),
+		runner:                task.NewEqualRunner[machinetask.CollectTaskSpec](),
+		ImageFactoryClient:    imageFactoryClient,
+		kernelArgsInitializer: kernelArgsInitializer,
 	}
 }
 
@@ -456,6 +456,10 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 			spec.PlatformMetadata = event.PlatformMetadata
 		}
 
+		if event.KernelCmdline != "" {
+			spec.KernelCmdline = event.KernelCmdline
+		}
+
 		if event.ImageLabels != nil {
 			spec.ImageLabels = event.ImageLabels
 
@@ -481,11 +485,13 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 				spec.Schematic = &specs.MachineStatusSpec_Schematic{}
 			}
 
+			spec.Schematic.Raw = event.Schematic.Raw
 			spec.Schematic.Id = event.Schematic.ID
 			spec.Schematic.FullId = event.Schematic.FullID
 			spec.Schematic.Extensions = event.Schematic.Extensions
 			spec.Schematic.Invalid = event.Schematic.Invalid
 			spec.Schematic.KernelArgs = event.Schematic.KernelArgs
+
 			spec.Schematic.MetaValues = xslices.Map(event.Schematic.MetaValues, func(value schematic.MetaValue) *specs.MetaValue {
 				return &specs.MetaValue{
 					Key:   uint32(value.Key),
@@ -500,13 +506,33 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 				}
 			}
 
-			if spec.Schematic.Invalid {
-				spec.Schematic.InitialSchematic = ""
-			} else if spec.Schematic.InitialSchematic == "" {
+			if spec.Schematic.InitialSchematic == "" {
 				spec.Schematic.InitialSchematic = spec.Schematic.FullId
 			}
 
 			spec.Schematic.InAgentMode = event.Schematic.InAgentMode
+
+			// We populate the initial state on a best-effort basis: we might have missed the moment to capture it, but it is acceptable.
+			if spec.Schematic.InitialState == nil {
+				spec.Schematic.InitialState = &specs.MachineStatusSpec_Schematic_InitialState{
+					Extensions: event.Schematic.Extensions,
+				}
+			}
+
+			// if the schematic is invalid or the machine is in agent mode, we reset the initial schematic information
+			if spec.Schematic.Invalid || spec.Schematic.InAgentMode {
+				spec.Schematic.InitialSchematic = ""
+				spec.Schematic.InitialState = nil
+			}
+
+			_, kernelArgsInitialized := m.Metadata().Annotations().Get(omni.KernelArgsInitialized)
+			if !kernelArgsInitialized {
+				if err := ctrl.kernelArgsInitializer.Init(ctx, m.Metadata().ID(), event.Schematic.KernelArgs); err != nil {
+					return fmt.Errorf("failed to initialize extra kernel args: %w", err)
+				}
+
+				m.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
+			}
 		}
 
 		spec.Maintenance = event.MaintenanceMode
