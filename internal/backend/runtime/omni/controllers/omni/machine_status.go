@@ -371,6 +371,11 @@ func (ctrl *MachineStatusController) updateMachineConnectionStatus(machine *omni
 func (ctrl *MachineStatusController) reconcileTearingDown(ctx context.Context, r controller.QRuntime, logger *zap.Logger, machine *omni.Machine) error {
 	ctrl.runner.StopTask(logger, machine.Metadata().ID())
 
+	// Hold tearing down MachineStatus until the Machine has only this controller as a finalizer.
+	if machine.Metadata().Finalizers().Has(ctrl.Name()) && len(*machine.Metadata().Finalizers()) > 1 {
+		return nil
+	}
+
 	md := omni.NewMachineStatus(resources.DefaultNamespace, machine.Metadata().ID()).Metadata()
 
 	ready, err := helpers.TeardownAndDestroy(ctx, r, md)

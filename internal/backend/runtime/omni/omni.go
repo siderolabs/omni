@@ -413,6 +413,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		joinTokenValidationOptions(cachedState),
 		defaultJoinTokenValidationOptions(cachedState),
 		importedClusterSecretValidationOptions(cachedState, config.Config.Features.EnableClusterImport),
+		infraProviderValidationOptions(cachedState),
 	)
 
 	return &Runtime{

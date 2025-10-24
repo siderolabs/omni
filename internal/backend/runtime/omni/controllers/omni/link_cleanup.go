@@ -17,7 +17,7 @@ import (
 type LinkCleanupController = cleanup.Controller[*siderolink.Link]
 
 // NewLinkCleanupController returns a new LinkCleanup controller.
-// Removes corresponding JoinTokenUsage resource when the link is removed.
+// Removes the corresponding JoinTokenUsage resource when the link is removed.
 func NewLinkCleanupController() *LinkCleanupController {
 	return cleanup.NewController(
 		cleanup.Settings[*siderolink.Link]{
