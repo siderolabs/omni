@@ -32,6 +32,21 @@ export const routes: RouteRecordRaw[] = [
       return authType.value === AuthType.Auth0 ? await authGuard(to) : true
     },
   },
+  {
+    path: '/oidc-login/:authRequestId',
+    name: 'OIDC Login',
+    component: () => import('@/views/omni/Auth/OIDC.vue'),
+    beforeEnter: async (to) => {
+      if (await isAuthorized()) {
+        return true
+      }
+
+      return {
+        name: 'Authenticate',
+        query: { [AuthFlowQueryParam]: FrontendAuthFlow, [RedirectQueryParam]: to.fullPath },
+      }
+    },
+  },
 
   // Redirects for legacy routes
   { path: '/omni', redirect: '/' },
@@ -75,11 +90,6 @@ export const routes: RouteRecordRaw[] = [
         path: '',
         name: 'Home',
         component: () => import('@/views/omni/Home/Home.vue'),
-      },
-      {
-        path: 'oidc-login/:authRequestId',
-        name: 'OIDC Login',
-        component: () => import('@/views/omni/Auth/OIDC.vue'),
       },
       {
         path: 'clusters',
