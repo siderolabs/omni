@@ -101,3 +101,7 @@ func DefaultJoinTokenValidationOptions(st state.State) []validated.StateOption {
 func ImportedClusterSecretValidationOptions(st state.State, clusterImportEnabled bool) []validated.StateOption {
 	return importedClusterSecretValidationOptions(st, clusterImportEnabled)
 }
+
+func InfraProviderValidationOptions(st state.State) []validated.StateOption {
+	return infraProviderValidationOptions(st)
+}

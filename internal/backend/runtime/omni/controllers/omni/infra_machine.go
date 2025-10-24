@@ -129,7 +129,7 @@ func (ctrl *InfraMachineController) Reconcile(ctx context.Context, _ *zap.Logger
 			return err
 		}
 
-		// link is not found, so we prepare a fake link resource to trigger teardown logic
+		// the link is not found, so we prepare a fake link resource to trigger teardown logic
 		link = siderolink.NewLink(ptr.Namespace(), ptr.ID(), nil)
 		link.Metadata().SetPhase(resource.PhaseTearingDown)
 	}
@@ -143,6 +143,21 @@ func (ctrl *InfraMachineController) Reconcile(ctx context.Context, _ *zap.Logger
 
 func (ctrl *InfraMachineController) reconcileTearingDown(ctx context.Context, r controller.QRuntime, link *siderolink.Link) error {
 	md := infra.NewMachine(link.Metadata().ID()).Metadata()
+
+	clusterMachine, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, link.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
+
+	if clusterMachine != nil && clusterMachine.Metadata().Phase() == resource.PhaseTearingDown {
+		if clusterMachine.Metadata().Finalizers().Has(ClusterMachineConfigControllerName) {
+			return nil // the cluster machine is not reset yet
+		}
+
+		if err = r.RemoveFinalizer(ctx, clusterMachine.Metadata(), ctrl.Name()); err != nil {
+			return err
+		}
+	}
 
 	ready, err := helpers.TeardownAndDestroy(ctx, r, md)
 	if err != nil {
@@ -225,6 +240,10 @@ func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMac
 		return err
 	}
 
+	if err := helper.runtime.AddFinalizer(ctx, helper.link.Metadata(), helper.controllerName); err != nil {
+		return err
+	}
+
 	infraMachine.Metadata().Labels().Set(omni.LabelInfraProviderID, helper.providerID)
 
 	if helper.nodeUniqueToken != nil {
@@ -244,7 +263,7 @@ func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMac
 
 	if clusterMachine.Metadata().Phase() == resource.PhaseTearingDown {
 		if clusterMachine.Metadata().Finalizers().Has(ClusterMachineConfigControllerName) {
-			return nil // cluster machine is not reset yet
+			return nil // the cluster machine is not reset yet
 		}
 
 		// the machine is deallocated, clear the cluster information and mark it for wipe by assigning it a new wipe ID
@@ -254,6 +273,11 @@ func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMac
 
 		infraMachine.TypedSpec().Value.ClusterTalosVersion = ""
 		infraMachine.TypedSpec().Value.Extensions = nil
+
+		infraMachine.Metadata().Labels().Delete(omni.LabelCluster)
+		infraMachine.Metadata().Labels().Delete(omni.LabelMachineSet)
+		infraMachine.Metadata().Labels().Delete(omni.LabelControlPlaneRole)
+		infraMachine.Metadata().Labels().Delete(omni.LabelWorkerRole)
 
 		if err = helper.runtime.RemoveFinalizer(ctx, clusterMachine.Metadata(), helper.controllerName); err != nil {
 			return err

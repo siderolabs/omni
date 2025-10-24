@@ -84,6 +84,9 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 
 	// allocate the machine to a cluster
 	clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, "machine-1")
+	clusterMachine.Metadata().Labels().Set(omni.LabelCluster, "test-cluster")
+	clusterMachine.Metadata().Labels().Set(omni.LabelMachineSet, "test-cluster-control-planes")
+	clusterMachine.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, clusterMachine))
 
@@ -116,6 +119,9 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 
 	// assert that cluster related fields are cleared, and a new wipe ID is generated
 	assertResource[*infra.Machine](&suite.OmniSuite, infraMachineMD, func(r *infra.Machine, assertion *assert.Assertions) {
+		assertion.False(r.Metadata().Labels().Matches(resource.LabelTerm{Key: omni.LabelCluster, Value: []string{"test-cluster"}, Op: resource.LabelOpEqual}))
+		assertion.False(r.Metadata().Labels().Matches(resource.LabelTerm{Key: omni.LabelMachineSet, Value: []string{"test-cluster-control-planes"}, Op: resource.LabelOpEqual}))
+		assertion.False(r.Metadata().Labels().Matches(resource.LabelTerm{Key: omni.LabelControlPlaneRole, Op: resource.LabelOpExists}))
 		assertion.Empty(r.TypedSpec().Value.ClusterTalosVersion)
 		assertion.Empty(r.TypedSpec().Value.Extensions)
 		assertion.NotEmpty(r.TypedSpec().Value.WipeId)
