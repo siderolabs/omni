@@ -399,6 +399,23 @@ func establishLink[T res](ctx context.Context, logger *zap.Logger, st state.Stat
 		}
 	}
 
+	if infraProviderId, ok := link.Metadata().Labels().Get(omni.LabelInfraProviderID); ok {
+		logger.Debug("the link is originating from an infra provider", zap.String("infra_provider_id", infraProviderId))
+		// the link is originating from an infra provider, reject the request if the infra provider doesn't exist or being deleted
+		infraProvider, infraErr := safe.ReaderGetByID[*infra.Provider](ctx, st, infraProviderId)
+		if infraErr != nil && !state.IsNotFoundError(infraErr) {
+			logger.Warn("failed to fetch infra provider", zap.String("infra_provider_id", infraProviderId), zap.Error(infraErr))
+
+			return nil, status.Errorf(codes.Internal, "failed to fetch infra provider %s", infraProviderId)
+		}
+
+		if infraProvider == nil || infraProvider.Metadata().Phase() != resource.PhaseRunning {
+			logger.Warn("the infra provider is being deleted or doesn't exist", zap.String("infra_provider_id", infraProviderId))
+
+			return nil, status.Errorf(codes.NotFound, "the infra provider is being deleted or doesn't exist")
+		}
+	}
+
 	if err = st.Create(ctx, link); err != nil {
 		if !state.IsConflictError(err) {
 			return nil, err

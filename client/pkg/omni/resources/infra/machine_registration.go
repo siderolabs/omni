@@ -29,7 +29,7 @@ const (
 	MachineRegistrationType = resource.Type("InfraMachineRegistrations.omni.sidero.dev")
 )
 
-// MachineRegistration contains the mininum data extracted from the machine resource required by the infra providers.
+// MachineRegistration contains the minimum data extracted from the machine resource required by the infra providers.
 type MachineRegistration = typed.Resource[MachineRegistrationSpec, MachineRegistrationExtension]
 
 // MachineRegistrationExtension providers auxiliary methods for MachineRegistration resource.

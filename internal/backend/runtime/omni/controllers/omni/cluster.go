@@ -15,7 +15,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
+	customcleanup "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/cleanup"
 )
 
 // ClusterController manages Cluster resource lifecycle.
@@ -90,7 +90,7 @@ func NewClusterController(kubernetesRuntime KubernetesRuntime) *ClusterControlle
 					cleanup.HasNoOutputs[*omni.ClusterMachineConfig](func(cluster *omni.Cluster) state.ListOption {
 						return state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID()))
 					}),
-					&helpers.SameIDHandler[*omni.Cluster, *omni.ImportedClusterSecrets]{},
+					&customcleanup.SameIDHandler[*omni.Cluster, *omni.ImportedClusterSecrets]{},
 				),
 			},
 		},

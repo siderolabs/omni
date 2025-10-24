@@ -99,6 +99,11 @@ func (ctrl *InfraMachineController) Settings() controller.QSettings {
 				Type:      infra.InfraProviderStatusType,
 				Kind:      controller.InputQMapped,
 			},
+			{
+				Namespace: resources.InfraProviderNamespace,
+				Type:      infra.ProviderType,
+				Kind:      controller.InputQMapped,
+			},
 		},
 		Outputs: []controller.Output{
 			{
@@ -129,7 +134,7 @@ func (ctrl *InfraMachineController) Reconcile(ctx context.Context, _ *zap.Logger
 			return err
 		}
 
-		// link is not found, so we prepare a fake link resource to trigger teardown logic
+		// the link is not found, so we prepare a fake link resource to trigger teardown logic
 		link = siderolink.NewLink(ptr.Namespace(), ptr.ID(), nil)
 		link.Metadata().SetPhase(resource.PhaseTearingDown)
 	}
@@ -144,6 +149,25 @@ func (ctrl *InfraMachineController) Reconcile(ctx context.Context, _ *zap.Logger
 func (ctrl *InfraMachineController) reconcileTearingDown(ctx context.Context, r controller.QRuntime, link *siderolink.Link) error {
 	md := infra.NewMachine(link.Metadata().ID()).Metadata()
 
+	clusterMachine, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, link.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
+
+	if clusterMachine != nil && clusterMachine.Metadata().Phase() == resource.PhaseTearingDown {
+		if clusterMachine.Metadata().Finalizers().Has(ClusterMachineConfigControllerName) {
+			return nil // the cluster machine is not reset yet
+		}
+
+		if err = r.RemoveFinalizer(ctx, clusterMachine.Metadata(), ctrl.Name()); err != nil {
+			return err
+		}
+	}
+
+	if err = ctrl.handleInfraProviderDeletion(ctx, r, link); err != nil {
+		return err
+	}
+
 	ready, err := helpers.TeardownAndDestroy(ctx, r, md)
 	if err != nil {
 		return err
@@ -154,6 +178,40 @@ func (ctrl *InfraMachineController) reconcileTearingDown(ctx context.Context, r 
 	}
 
 	return r.RemoveFinalizer(ctx, link.Metadata(), ctrl.Name())
+}
+
+func (ctrl *InfraMachineController) handleInfraProviderDeletion(ctx context.Context, r controller.QRuntime, link *siderolink.Link) error {
+	infraProviderId, ok := link.Metadata().Labels().Get(omni.LabelInfraProviderID)
+	if !ok {
+		return nil
+	}
+
+	infraProvider, err := safe.ReaderGetByID[*infra.Provider](ctx, r, infraProviderId)
+	if err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
+
+	// Remove all finalizers from the infra machine if the infra provider is being deleted or not found.
+	if infraProvider != nil && infraProvider.Metadata().Phase() == resource.PhaseRunning {
+		return nil
+	}
+
+	machine, err := safe.ReaderGetByID[*infra.Machine](ctx, r, link.Metadata().ID())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil
+		}
+
+		return err
+	}
+
+	return safe.WriterModify[*infra.Machine](ctx, r, machine, func(r *infra.Machine) error {
+		for _, finalizer := range *machine.Metadata().Finalizers() {
+			r.Metadata().Finalizers().Remove(finalizer)
+		}
+
+		return nil
+	}, controller.WithExpectedPhaseAny())
 }
 
 func (ctrl *InfraMachineController) reconcileRunning(ctx context.Context, r controller.QRuntime, link *siderolink.Link) error {
@@ -225,6 +283,10 @@ func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMac
 		return err
 	}
 
+	if err := helper.runtime.AddFinalizer(ctx, helper.link.Metadata(), helper.controllerName); err != nil {
+		return err
+	}
+
 	infraMachine.Metadata().Labels().Set(omni.LabelInfraProviderID, helper.providerID)
 
 	if helper.nodeUniqueToken != nil {
@@ -244,7 +306,7 @@ func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMac
 
 	if clusterMachine.Metadata().Phase() == resource.PhaseTearingDown {
 		if clusterMachine.Metadata().Finalizers().Has(ClusterMachineConfigControllerName) {
-			return nil // cluster machine is not reset yet
+			return nil // the cluster machine is not reset yet
 		}
 
 		// the machine is deallocated, clear the cluster information and mark it for wipe by assigning it a new wipe ID
@@ -254,6 +316,11 @@ func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMac
 
 		infraMachine.TypedSpec().Value.ClusterTalosVersion = ""
 		infraMachine.TypedSpec().Value.Extensions = nil
+
+		infraMachine.Metadata().Labels().Delete(omni.LabelCluster)
+		infraMachine.Metadata().Labels().Delete(omni.LabelMachineSet)
+		infraMachine.Metadata().Labels().Delete(omni.LabelControlPlaneRole)
+		infraMachine.Metadata().Labels().Delete(omni.LabelWorkerRole)
 
 		if err = helper.runtime.RemoveFinalizer(ctx, clusterMachine.Metadata(), helper.controllerName); err != nil {
 			return err
@@ -302,7 +369,7 @@ func (ctrl *InfraMachineController) MapInput(ctx context.Context, _ *zap.Logger,
 		omni.ClusterMachineType,
 		omni.MachineStatusType:
 		return []resource.Pointer{siderolink.NewLink(resources.DefaultNamespace, ptr.ID(), nil).Metadata()}, nil
-	case infra.InfraProviderStatusType:
+	case infra.InfraProviderStatusType, infra.ProviderType:
 		linkList, err := safe.ReaderListAll[*siderolink.Link](ctx, runtime, state.WithLabelQuery(resource.LabelEqual(omni.LabelInfraProviderID, ptr.ID())))
 		if err != nil {
 			return nil, err
@@ -323,6 +390,8 @@ func (ctrl *InfraMachineController) handleInstallEvent(ctx context.Context, r co
 		if state.IsNotFoundError(err) {
 			return nil // if there is no infra machine, there is nothing to do
 		}
+
+		return err
 	}
 
 	return safe.WriterModify(ctx, r, infra.NewMachine(machineID), func(machine *infra.Machine) error {

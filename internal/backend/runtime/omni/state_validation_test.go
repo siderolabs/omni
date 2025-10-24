@@ -1867,6 +1867,43 @@ func TestImportedClusterSecretValidation(t *testing.T) {
 	assert.ErrorContains(t, err, "cannot create/update an ImportedClusterSecrets, as there is already an existing cluster with name")
 }
 
+func TestInfraProviderValidation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	t.Cleanup(cancel)
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := validated.NewState(innerSt, omni.InfraProviderValidationOptions(innerSt)...)
+
+	provider := infra.NewProvider("test")
+	require.NoError(t, st.Create(ctx, provider))
+
+	machine := omnires.NewMachine(resources.DefaultNamespace, "machine")
+	machine.Metadata().Labels().Set(omnires.LabelIsManagedByStaticInfraProvider, "")
+	machine.Metadata().Labels().Set(omnires.LabelInfraProviderID, provider.Metadata().ID())
+	require.NoError(t, st.Create(ctx, machine))
+
+	machine2 := omnires.NewMachine(resources.DefaultNamespace, "machine2")
+	machine2.Metadata().Labels().Set(omnires.LabelIsManagedByStaticInfraProvider, "")
+	machine2.Metadata().Labels().Set(omnires.LabelInfraProviderID, "different-provider")
+	require.NoError(t, st.Create(ctx, machine2))
+
+	machine3 := omnires.NewMachine(resources.DefaultNamespace, "machine3")
+	machine3.Metadata().Labels().Set(omnires.LabelInfraProviderID, "non-static-provider")
+	require.NoError(t, st.Create(ctx, machine3))
+
+	machine4 := omnires.NewMachine(resources.DefaultNamespace, "machine4")
+	require.NoError(t, st.Create(ctx, machine4))
+
+	err := st.Destroy(ctx, provider.Metadata())
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	require.ErrorContains(t, err, "cannot delete the infra provider")
+
+	require.NoError(t, st.Destroy(ctx, machine.Metadata()))
+	require.NoError(t, st.Destroy(ctx, provider.Metadata()))
+}
+
 type mockEtcdBackupStoreFactory struct {
 	store etcdbackup.Store
 }

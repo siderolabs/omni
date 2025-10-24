@@ -19,7 +19,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
+	customcleanup "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/cleanup"
 )
 
 // MachineRequestStatusCleanupController manages MachineRequestStatusStatus resource lifecycle.
@@ -32,14 +32,14 @@ func NewMachineRequestStatusCleanupController() *MachineRequestStatusCleanupCont
 		cleanup.Settings[*infra.MachineRequestStatus]{
 			Name: "MachineRequestStatusCleanupController",
 			Handler: cleanup.Combine(
-				helpers.NewCustomHandler[*infra.MachineRequestStatus, *omni.MachineSetNode](
-					helpers.MapID[*infra.MachineRequestStatus, *omni.MachineSetNode](func(req *infra.MachineRequestStatus) resource.ID {
+				customcleanup.NewHandler[*infra.MachineRequestStatus, *omni.MachineSetNode](
+					customcleanup.IDHandleFunc[*infra.MachineRequestStatus, *omni.MachineSetNode](func(req *infra.MachineRequestStatus) resource.ID {
 						return req.TypedSpec().Value.Id
 					}, true),
-					false,
+					customcleanup.HandlerOptions{},
 				),
-				helpers.NewCustomHandler[*infra.MachineRequestStatus, *omni.ClusterMachine](
-					func(ctx context.Context, r controller.Runtime, req *infra.MachineRequestStatus, _ string) error {
+				customcleanup.NewHandler[*infra.MachineRequestStatus, *omni.ClusterMachine](
+					func(ctx context.Context, r controller.Runtime, req *infra.MachineRequestStatus) error {
 						_, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, req.TypedSpec().Value.Id)
 						if err != nil {
 							if state.IsNotFoundError(err) {
@@ -51,10 +51,12 @@ func NewMachineRequestStatusCleanupController() *MachineRequestStatusCleanupCont
 
 						return xerrors.NewTaggedf[cleanup.SkipReconcileTag]("cluster machine is still present")
 					},
-					true,
+					customcleanup.HandlerOptions{
+						NoOutputs: true,
+					},
 				),
-				helpers.NewCustomHandler[*infra.MachineRequestStatus, *siderolink.Link](
-					func(ctx context.Context, r controller.Runtime, req *infra.MachineRequestStatus, _ string) error {
+				customcleanup.NewHandler[*infra.MachineRequestStatus, *siderolink.Link](
+					func(ctx context.Context, r controller.Runtime, req *infra.MachineRequestStatus) error {
 						_, err := r.Teardown(ctx, siderolink.NewLink(resources.DefaultNamespace, req.TypedSpec().Value.Id, nil).Metadata(), controller.WithOwner(""))
 						if err != nil {
 							if state.IsNotFoundError(err) {
@@ -66,7 +68,7 @@ func NewMachineRequestStatusCleanupController() *MachineRequestStatusCleanupCont
 
 						return nil
 					},
-					false,
+					customcleanup.HandlerOptions{},
 				),
 			),
 		},

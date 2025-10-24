@@ -9,7 +9,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller/generic/cleanup"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
+	customcleanup "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/cleanup"
 )
 
 // MachineCleanupController manages MachineCleanup resource lifecycle.
@@ -23,10 +23,10 @@ func NewMachineCleanupController() *MachineCleanupController {
 		cleanup.Settings[*omni.Machine]{
 			Name: "MachineCleanupController",
 			Handler: cleanup.Combine(
-				&helpers.SameIDHandler[*omni.Machine, *omni.MachineSetNode]{},
-				&helpers.SameIDHandler[*omni.Machine, *omni.InfraMachineConfig]{},
-				&helpers.SameIDHandler[*omni.Machine, *omni.InfraMachineBMCConfig]{},
-				&helpers.SameIDHandler[*omni.Machine, *omni.KernelArgs]{},
+				&customcleanup.SameIDHandler[*omni.Machine, *omni.MachineSetNode]{},
+				&customcleanup.SameIDHandler[*omni.Machine, *omni.InfraMachineConfig]{},
+				&customcleanup.SameIDHandler[*omni.Machine, *omni.InfraMachineBMCConfig]{},
+				&customcleanup.SameIDHandler[*omni.Machine, *omni.KernelArgs]{},
 			),
 		},
 	)

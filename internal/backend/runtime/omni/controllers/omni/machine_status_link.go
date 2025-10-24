@@ -8,13 +8,16 @@ package omni
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
+	xmaps "github.com/siderolabs/gen/maps"
 	"github.com/siderolabs/gen/xiter"
+	"github.com/siderolabs/gen/xslices"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -22,6 +25,8 @@ import (
 	"github.com/siderolabs/omni/client/pkg/cosi/helpers"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	ctrlhelpers "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	siderolinkmanager "github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
@@ -47,6 +52,7 @@ func (ctrl *MachineStatusLinkController) Name() string {
 func (ctrl *MachineStatusLinkController) Inputs() []controller.Input {
 	return []controller.Input{
 		safe.Input[*omni.MachineStatus](controller.InputWeak),
+		safe.Input[*siderolink.Link](controller.InputWeak),
 	}
 }
 
@@ -79,37 +85,43 @@ func (ctrl *MachineStatusLinkController) Run(ctx context.Context, rt controller.
 			return fmt.Errorf("error listing MachineStatus resources: %w", err)
 		}
 
-		for ms := range msList.All() {
-			if ms.Metadata().Phase() == resource.PhaseTearingDown {
+		links, err := safe.ReaderListAll[*siderolink.Link](ctx, rt)
+		if err != nil {
+			return fmt.Errorf("error listing SideroLink resources: %w", err)
+		}
+
+		machineStatusMap := xslices.ToMap(slices.Collect(msList.All()), func(r *omni.MachineStatus) (resource.ID, *omni.MachineStatus) {
+			return r.Metadata().ID(), r
+		})
+
+		linkMap := xslices.ToMap(slices.Collect(links.All()), func(r *siderolink.Link) (resource.ID, *siderolink.Link) {
+			return r.Metadata().ID(), r
+		})
+
+		var finalIDs []resource.ID
+
+		finalIDs = append(finalIDs, xmaps.Keys(machineStatusMap)...)
+		finalIDs = append(finalIDs, xmaps.Keys(linkMap)...)
+		finalIDsSet := xslices.ToSet(finalIDs)
+
+		for id := range finalIDsSet {
+			ms, msOK := machineStatusMap[id]
+			link, linkOK := linkMap[id]
+
+			switch {
+			// Skip creating MachineStatusLink resources for machines that are being torn down.
+			case msOK && ms.Metadata().Phase() == resource.PhaseTearingDown && !linkOK:
 				continue
-			}
-
-			emptyResource := omni.NewMachineStatusLink(resources.MetricsNamespace, ms.Metadata().ID())
-
-			err = safe.WriterModify(ctx, rt, emptyResource, func(msl *omni.MachineStatusLink) error {
-				// Just copy labels and metadata from MachineStatus resource.
-				// This should be safe since Labels are copy-on-write.
-				*msl.Metadata().Labels() = *ms.Metadata().Labels()
-
-				msl.TypedSpec().Value.MessageStatus = ms.TypedSpec().Value
-				msl.TypedSpec().Value.MachineCreatedAt = ms.Metadata().Created().Unix()
-
-				msl.TypedSpec().Value.TearingDown = ms.Metadata().Phase() == resource.PhaseTearingDown
-
-				if delta, ok := deltas[ms.Metadata().ID()]; ok {
-					if msl.TypedSpec().Value.SiderolinkCounter == nil {
-						msl.TypedSpec().Value.SiderolinkCounter = &specs.SiderolinkCounterSpec{}
-					}
-
-					msl.TypedSpec().Value.SiderolinkCounter.BytesReceived += delta.BytesReceived
-					msl.TypedSpec().Value.SiderolinkCounter.BytesSent += delta.BytesSent
-					msl.TypedSpec().Value.SiderolinkCounter.LastAlive = pickTime(delta.LastAlive, msl.TypedSpec().Value.SiderolinkCounter.LastAlive)
+			// Create or update MachineStatusLink resource.
+			case msOK:
+				if err = ctrl.createMachineStatusLink(ctx, rt, ms, deltas); err != nil {
+					return err
 				}
-
-				return nil
-			})
-			if err != nil {
-				return fmt.Errorf("error creating MachineStatusLink (id: %s) resource: %w", ms.Metadata().ID(), err)
+			// Create a placeholder MachineStatusLink resource for links that are being torn down.
+			case linkOK && link.Metadata().Phase() == resource.PhaseTearingDown:
+				if err = ctrl.keepTearingDownMachineStatusLink(ctx, rt, link, deltas); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -117,6 +129,65 @@ func (ctrl *MachineStatusLinkController) Run(ctx context.Context, rt controller.
 			return fmt.Errorf("error cleaning up MachineStatusLink resources: %w", err)
 		}
 	}
+}
+
+func (ctrl *MachineStatusLinkController) createMachineStatusLink(ctx context.Context, rt controller.Runtime, ms *omni.MachineStatus, deltas siderolinkmanager.LinkCounterDeltas) error {
+	emptyResource := omni.NewMachineStatusLink(resources.MetricsNamespace, ms.Metadata().ID())
+
+	err := safe.WriterModify(ctx, rt, emptyResource, func(msl *omni.MachineStatusLink) error {
+		// Just copy labels and metadata from MachineStatus resource.
+		// This should be safe since Labels are copy-on-write.
+		*msl.Metadata().Labels() = *ms.Metadata().Labels()
+
+		msl.TypedSpec().Value.MessageStatus = ms.TypedSpec().Value
+		msl.TypedSpec().Value.MachineCreatedAt = ms.Metadata().Created().Unix()
+
+		msl.TypedSpec().Value.TearingDown = ms.Metadata().Phase() == resource.PhaseTearingDown
+
+		if delta, ok := deltas[ms.Metadata().ID()]; ok {
+			if msl.TypedSpec().Value.SiderolinkCounter == nil {
+				msl.TypedSpec().Value.SiderolinkCounter = &specs.SiderolinkCounterSpec{}
+			}
+
+			msl.TypedSpec().Value.SiderolinkCounter.BytesReceived += delta.BytesReceived
+			msl.TypedSpec().Value.SiderolinkCounter.BytesSent += delta.BytesSent
+			msl.TypedSpec().Value.SiderolinkCounter.LastAlive = pickTime(delta.LastAlive, msl.TypedSpec().Value.SiderolinkCounter.LastAlive)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("error creating MachineStatusLink (id: %s) resource: %w", ms.Metadata().ID(), err)
+	}
+
+	return nil
+}
+
+func (ctrl *MachineStatusLinkController) keepTearingDownMachineStatusLink(ctx context.Context, rt controller.Runtime, link *siderolink.Link, deltas siderolinkmanager.LinkCounterDeltas) error {
+	emptyResource := omni.NewMachineStatusLink(resources.MetricsNamespace, link.Metadata().ID())
+
+	err := safe.WriterModify(ctx, rt, emptyResource, func(msl *omni.MachineStatusLink) error {
+		ctrlhelpers.CopyLabels(msl, link)
+
+		msl.TypedSpec().Value.TearingDown = true
+
+		if delta, ok := deltas[link.Metadata().ID()]; ok {
+			if msl.TypedSpec().Value.SiderolinkCounter == nil {
+				msl.TypedSpec().Value.SiderolinkCounter = &specs.SiderolinkCounterSpec{}
+			}
+
+			msl.TypedSpec().Value.SiderolinkCounter.BytesReceived += delta.BytesReceived
+			msl.TypedSpec().Value.SiderolinkCounter.BytesSent += delta.BytesSent
+			msl.TypedSpec().Value.SiderolinkCounter.LastAlive = pickTime(delta.LastAlive, msl.TypedSpec().Value.SiderolinkCounter.LastAlive)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("error creating MachineStatusLink (id: %s) resource: %w", link.Metadata().ID(), err)
+	}
+
+	return nil
 }
 
 // Almost exact copy from transform.Controller, only as a standalone function.
