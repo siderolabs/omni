@@ -69,7 +69,7 @@
     "@types/jsdom": "^27.0.0",
     "@types/lodash": "^4.17.20",
     "@types/luxon": "^3.7.1",
-    "@types/node": "^22.18.12",
+    "@types/node": "^24.0.0",
     "@types/pluralize": "^0.0.33",
     "@types/semver": "^7.7.1",
     "@vitejs/plugin-vue": "^6.0.1",
@@ -100,7 +100,7 @@
     "vite-plugin-monaco-editor-esm": "^2.0.2",
     "vite-plugin-node-polyfills": "^0.24.0",
     "vite-plugin-vue-devtools": "^8.0.3",
-    "vitest": "^3.2.4",
+    "vitest": "^4.0.0",
     "vue-component-type-helpers": "^3.1.1",
     "vue-tsc": "^3.1.1",
     "yaml": "^2.8.1"
