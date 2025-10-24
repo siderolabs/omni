@@ -7,13 +7,10 @@ import '../src/index.css'
 import { faker } from '@faker-js/faker'
 import { type Preview } from '@storybook/vue3-vite'
 import { initialize, mswLoader } from 'msw-storybook-addon'
-import { sb } from 'storybook/test'
 import { vueRouter } from 'storybook-vue3-router'
 import { createMemoryHistory } from 'vue-router'
 
 import { routes } from '../src/router/index.ts'
-
-sb.mock('@auth0/auth0-vue')
 
 // Initialize MSW
 initialize({ onUnhandledRequest: 'bypass' })

@@ -245,8 +245,20 @@ export const routes: RouteRecordRaw[] = [
           },
           {
             path: 'installation-media',
-            name: 'InstallationMedia',
-            component: () => import('@/views/omni/InstallationMedia/InstallationMedia.vue'),
+            children: [
+              {
+                path: '',
+                name: 'InstallationMedia',
+                component: () => import('@/views/omni/InstallationMedia/InstallationMedia.vue'),
+              },
+              {
+                path: 'create',
+                name: 'InstallationMediaCreate',
+                meta: { disablePadding: true },
+                component: () =>
+                  import('@/views/omni/InstallationMedia/InstallationMediaCreate.vue'),
+              },
+            ],
           },
           {
             path: 'jointokens',

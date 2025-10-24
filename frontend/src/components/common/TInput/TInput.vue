@@ -85,7 +85,7 @@ onMounted(() => focus && inputRef.value?.focus())
 </script>
 
 <template>
-  <label class="flex flex-col gap-1 text-sm font-medium text-naturals-n14">
+  <label class="flex flex-col gap-4 text-sm font-medium text-naturals-n14">
     <span v-if="title && overheadTitle" class="text-sm">
       {{ title }}
     </span>

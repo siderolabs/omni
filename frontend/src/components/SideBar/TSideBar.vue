@@ -245,19 +245,11 @@ const rootItems = computed(() => {
       })
     }
 
-    if (installationMediaEnabled) {
-      item.subItems.push({
-        name: 'Installation Media',
-        route: getRoute('InstallationMedia', '/machines/installation-media'),
-        icon: 'kube-config',
-      })
-    }
-
     result.push(item)
   }
 
   if (canReadMachines.value) {
-    result.push({
+    const item = {
       name: 'Machine Management',
       icon: 'nodes',
       subItems: [
@@ -271,8 +263,18 @@ const rootItems = computed(() => {
           route: getRoute('JoinTokens', '/machines/jointokens'),
           icon: 'key',
         },
-      ],
-    })
+      ] as SideBarItem[],
+    } satisfies SideBarItem
+
+    if (installationMediaEnabled) {
+      item.subItems.push({
+        name: 'Installation Media',
+        route: getRoute('InstallationMedia', '/machines/installation-media'),
+        icon: 'kube-config',
+      })
+    }
+
+    result.push(item)
   }
 
   if (canManageUsers.value || (backupStatus.value.configurable && canManageBackupStore.value)) {
