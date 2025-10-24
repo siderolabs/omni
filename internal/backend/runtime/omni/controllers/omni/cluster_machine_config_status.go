@@ -325,9 +325,7 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
 		),
 		qtransform.WithExtraMappedInput[*infra.MachineStatus](
-			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, infraMachineStatus controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
-				return []resource.Pointer{omni.NewClusterMachineConfig(resources.DefaultNamespace, infraMachineStatus.ID()).Metadata()}, nil
-			},
+			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
 		),
 		qtransform.WithExtraMappedInput[*omni.TalosConfig](
 			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachineConfig](),
@@ -784,7 +782,7 @@ func (h *clusterMachineConfigStatusControllerHandler) reset(
 	_, isControlPlane := clusterMachine.Metadata().Labels().Get(omni.LabelControlPlaneRole)
 
 	switch {
-	// check that machine is ready to be reset
+	// check that the machine is ready to be reset
 	// if running allow reset always
 	case machineStage == machineapi.MachineStatusEvent_RUNNING:
 	// if booting allow only non-graceful reset for control plane nodes

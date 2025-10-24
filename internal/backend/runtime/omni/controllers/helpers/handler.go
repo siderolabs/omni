@@ -86,8 +86,8 @@ func (h *SameIDHandler[I, O]) Outputs() []controller.Output {
 }
 
 // MapID finalizer removal.
-func MapID[I, O generic.ResourceWithRD](idGetter func(I) resource.ID, blockIfOwnerDiffers bool) func(context.Context, controller.Runtime, I, string) error {
-	return func(ctx context.Context, r controller.Runtime, input I, owner string) error {
+func MapID[I, O generic.ResourceWithRD](idGetter func(I) resource.ID, blockIfOwnerDiffers bool) func(context.Context, controller.Runtime, *zap.Logger, I, string) error {
+	return func(ctx context.Context, r controller.Runtime, _ *zap.Logger, input I, owner string) error {
 		var zeroOut O
 
 		md := resource.NewMetadata(
@@ -131,34 +131,73 @@ func MapID[I, O generic.ResourceWithRD](idGetter func(I) resource.ID, blockIfOwn
 //
 // It defines the input resource with the given InputKind, and skips the removal if the output resource is not owned by the given owner.
 type CustomHandler[I, O generic.ResourceWithRD] struct {
-	handler      func(ctx context.Context, r controller.Runtime, input I, owner string) error
+	handler      func(ctx context.Context, r controller.Runtime, logger *zap.Logger, input I, owner string) error
 	Owner        string
+	extraInputs  []controller.Input
 	extraOutputs []controller.Output
-	InputKind    controller.InputKind
+	inputKind    controller.InputKind
 	noOutputs    bool
 }
 
+type CustomHandlerOptions struct {
+	extraInputs  []controller.Input
+	extraOutputs []controller.Output
+	noOutputs    bool
+	inputKind    controller.InputKind
+}
+
+type CustomHandlerOption func(*CustomHandlerOptions)
+
+func WithExtraInputs(inputs []controller.Input) CustomHandlerOption {
+	return func(options *CustomHandlerOptions) {
+		options.extraInputs = inputs
+	}
+}
+
+func WithExtraOutputs(outputs []controller.Output) CustomHandlerOption {
+	return func(options *CustomHandlerOptions) {
+		options.extraOutputs = outputs
+	}
+}
+
+func WithNoOutputs() CustomHandlerOption {
+	return func(options *CustomHandlerOptions) {
+		options.noOutputs = true
+	}
+}
+
+func WithInputKind(kind controller.InputKind) CustomHandlerOption {
+	return func(options *CustomHandlerOptions) {
+		options.inputKind = kind
+	}
+}
+
 // NewCustomHandler creates a new custom cleanup handler.
-func NewCustomHandler[I, O generic.ResourceWithRD](handler func(ctx context.Context, r controller.Runtime, input I, owner string) error, noOutputs bool,
-	extraOutputs ...controller.Output,
+func NewCustomHandler[I, O generic.ResourceWithRD](handler func(ctx context.Context, r controller.Runtime, logger *zap.Logger, input I, owner string) error, opts ...CustomHandlerOption,
 ) *CustomHandler[I, O] {
-	return &CustomHandler[I, O]{handler: handler, noOutputs: noOutputs, extraOutputs: extraOutputs}
+	var options CustomHandlerOptions
+
+	for _, opt := range opts {
+		opt(&options)
+	}
+
+	return &CustomHandler[I, O]{handler: handler, noOutputs: options.noOutputs, extraInputs: options.extraInputs, extraOutputs: options.extraOutputs, inputKind: options.inputKind}
 }
 
 // FinalizerRemoval implements cleanup.Handler.
-func (h *CustomHandler[I, O]) FinalizerRemoval(ctx context.Context, r controller.Runtime, _ *zap.Logger, input I) error {
-	return h.handler(ctx, r, input, h.Owner)
+func (h *CustomHandler[I, O]) FinalizerRemoval(ctx context.Context, r controller.Runtime, logger *zap.Logger, input I) error {
+	return h.handler(ctx, r, logger, input, h.Owner)
 }
 
 // Inputs implements cleanup.Handler.
 func (h *CustomHandler[I, O]) Inputs() []controller.Input {
 	var zeroOut O
 
-	return []controller.Input{{
+	return append(h.extraInputs, controller.Input{
 		Namespace: zeroOut.ResourceDefinition().DefaultNamespace,
 		Type:      zeroOut.ResourceDefinition().Type,
-		Kind:      h.InputKind,
-	}}
+		Kind:      h.inputKind,
+	})
 }
 
 // Outputs implements cleanup.Handler.
