@@ -12,11 +12,11 @@ auth:
   auth0:
     enabled: true
     clientId: "123456"
-    domain: "https://www.auth0.example"
+    domain: "example.auth0.com"
   saml:
     enabled: false
     url: "https://www.saml.example"
-includeGenericDevicePlugin: true # 
+includeGenericDevicePlugin: true #
 initialUsers: []
 name: "My Omni instance"
 service:
