@@ -35,7 +35,17 @@ const expanded = useSessionStorage(`sidebar-expanded-${props.level}-${props.name
 const vueroute = useRoute()
 const { subItems, level } = toRefs(props)
 
-const toggleSubmenu = () => {
+/**
+ * The force logic here is to cater for routes with children.
+ * For routes with children, you can only toggle the submenu
+ * by clicking the arrow icon.
+ *
+ * If the parent is not itself a route, clicking the title
+ * is enough.
+ */
+const toggleSubmenu = (force = false) => {
+  if (!force && props.route) return
+
   if (subItems.value?.length) {
     expanded.value = !expanded.value
   }
@@ -76,6 +86,7 @@ componentAttributes.class = (componentAttributes.class ?? '') + ' item-container
           class="item w-full"
           :class="{ 'sub-item': level > 0, root: level === 0 }"
           :style="{ 'padding-left': `${24 * (level + 1)}px` }"
+          @click="() => toggleSubmenu()"
         >
           <TIcon
             v-if="icon || iconSvgBase64"
@@ -92,7 +103,7 @@ componentAttributes.class = (componentAttributes.class ?? '') + ' item-container
             v-if="subItems?.length"
             class="expand-button"
             role="button"
-            @click.prevent="toggleSubmenu"
+            @click.stop.prevent="() => toggleSubmenu(true)"
           >
             <TIcon
               class="transition-color h-6 w-6 transition-transform duration-250 hover:text-naturals-n13"
