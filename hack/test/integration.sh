@@ -54,16 +54,18 @@ if [[ $((PARTIAL_CONFIG_MACHINES + NON_UKI_MACHINES + KERNEL_ARGS_MACHINES + SEC
   exit 1
 fi
 
-mkdir -p $TEST_OUTPUTS_DIR
+mkdir -p "$TEST_OUTPUTS_DIR"
 
 # Download required artifacts.
 
 mkdir -p ${ARTIFACTS}
-chown -R ${SUDO_USER:-$(whoami)} ${ARTIFACTS}
 
 [ -f ${ARTIFACTS}/integration-test-linux-amd64 ] || curl -L
 
 [ -f ${ARTIFACTS}/talosctl ] || (crane export ghcr.io/siderolabs/talosctl:latest | tar x -C ${ARTIFACTS})
+
+echo "Talosctl Version:"
+${ARTIFACTS}/talosctl version --client
 
 # Determine the local IP SideroLink API will listen on
 LOCAL_IP=$(ip -o route get to 8.8.8.8 | sed -n 's/.*src \([0-9.]\+\).*/\1/p')
@@ -81,6 +83,8 @@ customization:
     - siderolink.api=grpc://${WIREGUARD_IP}:8090?jointoken=${JOIN_TOKEN}
     - talos.events.sink=[fdae:41e4:649b:9303::1]:8091
     - talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092
+    - console=tty0
+    - console=ttyS0
   systemExtensions:
     officialExtensions:
       - siderolabs/hello-world-service
@@ -118,7 +122,7 @@ function cleanup() {
 
   if docker ps -a --format '{{.Names}}' | grep -q "^${TALEMU_CONTAINER_NAME}$"; then
     docker stop ${TALEMU_CONTAINER_NAME} || true
-    docker logs ${TALEMU_CONTAINER_NAME} &>$TEST_OUTPUTS_DIR/${TALEMU_CONTAINER_NAME}.log || true
+    docker logs ${TALEMU_CONTAINER_NAME} &>"$TEST_OUTPUTS_DIR/${TALEMU_CONTAINER_NAME}.log" || true
     docker rm -f ${TALEMU_CONTAINER_NAME} || true
   fi
 
@@ -126,7 +130,13 @@ function cleanup() {
     kill -9 $PARTIAL_CONFIG_SERVER_PID || true
   fi
 
+  # Copy the machine and related logs from ~/.talos/clusters to the test outputs dir.
+  mkdir -p "${TEST_OUTPUTS_DIR}/clusters/"
+  (cd ~/.talos/clusters && find . -name "*.log" -print0 | xargs -0 cp -p --parents -t "${TEST_OUTPUTS_DIR}/clusters") || true
+
+  # In CI, SUDO_USER is set to be "worker", and these output directories are used in the subsequent job steps.
   chown -R "${SUDO_USER:-$(whoami)}" "${TEST_OUTPUTS_DIR}"
+  chown -R "${SUDO_USER:-$(whoami)}" "${ARTIFACTS}"
 }
 
 trap cleanup EXIT SIGINT
@@ -263,11 +273,11 @@ if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
     --omni.omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
     --omni.expected-machines=30 \
     --omni.provision-config-file=hack/test/provisionconfig.yaml \
-    --omni.output-dir="${TEST_OUTPUTS_DIR}" \
     --omni.run-stats-check \
     --omni.embedded \
-    --omni.config-path=${OMNI_CONFIG} \
-    --omni.log-output=${TEST_OUTPUTS_DIR}/omni-emulator.log \
+    --omni.config-path="${OMNI_CONFIG}" \
+    --omni.output-dir="${TEST_OUTPUTS_DIR}" \
+    --omni.log-output="${TEST_OUTPUTS_DIR}/omni-emulator.log" \
     --test.coverprofile=${ARTIFACTS}/coverage-emulator.txt \
     --test.timeout 10m \
     --test.parallel 10 \
@@ -314,6 +324,8 @@ EOF
 customization:
   extraKernelArgs:
     - talos.config=http://${WIREGUARD_IP}:$port/config.yaml
+    - console=tty0
+    - console=ttyS0
   systemExtensions:
     officialExtensions:
       - siderolabs/hello-world-service
@@ -326,7 +338,6 @@ EOF
 PARTIAL_CONFIG_SCHEMATIC_ID=$(prepare_partial_config)
 
 function prepare_talos_image() {
-
   local schematic
   schematic=$(
     cat <<EOF
@@ -414,6 +425,7 @@ function create_machines() { # args: name, count, cidr, secure_boot (true/false)
     "--cidr=${cidr}"
     "--no-masquerade-cidrs=${non_masquerade_cidrs}"
     "--skip-injecting-config"
+    "--skip-injecting-extra-cmdline"
     "--wait=false"
   )
 
@@ -438,54 +450,55 @@ function create_machines() { # args: name, count, cidr, secure_boot (true/false)
 IMPORTED_CLUSTER_ARGS=()
 
 function create_talos_cluster { # args: name, cp_count, wk_count, cidr
-    declare -A args
-    for arg in "$@"; do
-      key="${arg%%=*}"
-      val="${arg#*=}"
-      args["$key"]="$val"
-    done
+  declare -A args
+  for arg in "$@"; do
+    key="${arg%%=*}"
+    val="${arg#*=}"
+    args["$key"]="$val"
+  done
 
-    local name="${args[name]}"
-    local cp_count="${args[cp_count]}"
-    local wk_count="${args[wk_count]:-0}"
-    local cidr="${args[cidr]}"
+  local name="${args[name]}"
+  local cp_count="${args[cp_count]}"
+  local wk_count="${args[wk_count]:-0}"
+  local cidr="${args[cidr]}"
 
-    local non_masquerade_cidrs
-    non_masquerade_cidrs=$(generate_non_masquerade_cidrs "${cidr}")
+  local non_masquerade_cidrs
+  non_masquerade_cidrs=$(generate_non_masquerade_cidrs "${cidr}")
 
-    local schematic_id
-    schematic_id=$(prepare_talos_image)
+  local schematic_id
+  schematic_id=$(prepare_talos_image)
 
-    local cluster_create_args=(
-      "--provisioner=qemu"
-      "--name=${name}"
-      "--controlplanes=${cp_count}"
-      "--workers=${wk_count}"
-      "--mtu=1430"
-      "--memory=3072"
-      "--memory-workers=3072"
-      "--cpus=3"
-      "--cpus-workers=3"
-      "--with-uuid-hostnames"
-      "--cidr=${cidr}"
-      "--no-masquerade-cidrs=${non_masquerade_cidrs}"
-      "--talosconfig=$TEST_OUTPUTS_DIR/$name/talosconfig"
-      "--skip-kubeconfig"
-      "--with-apply-config"
-      "--with-bootloader"
-      "--kubernetes-version=$KUBERNETES_VERSION"
-      "--talos-version=$TALOS_VERSION"
-      "--install-image=factory.talos.dev/metal-installer/${schematic_id}:v$TALOS_VERSION"
-      "--iso-path=https://factory.talos.dev/image/${schematic_id}/v$TALOS_VERSION/metal-amd64.iso"
-    )
+  local cluster_create_args=(
+    "--provisioner=qemu"
+    "--name=${name}"
+    "--controlplanes=${cp_count}"
+    "--workers=${wk_count}"
+    "--mtu=1430"
+    "--memory=3072"
+    "--memory-workers=3072"
+    "--cpus=3"
+    "--cpus-workers=3"
+    "--with-uuid-hostnames"
+    "--cidr=${cidr}"
+    "--no-masquerade-cidrs=${non_masquerade_cidrs}"
+    "--talosconfig=$TEST_OUTPUTS_DIR/$name/talosconfig"
+    "--skip-kubeconfig"
+    "--skip-injecting-extra-cmdline"
+    "--with-apply-config"
+    "--with-bootloader"
+    "--kubernetes-version=$KUBERNETES_VERSION"
+    "--talos-version=$TALOS_VERSION"
+    "--install-image=factory.talos.dev/metal-installer/${schematic_id}:v$TALOS_VERSION"
+    "--iso-path=https://factory.talos.dev/image/${schematic_id}/v$TALOS_VERSION/metal-amd64.iso"
+  )
 
-    # shellcheck disable=SC2068
-    ${ARTIFACTS}/talosctl cluster create \
-      ${cluster_create_args[@]:-} \
-      ${REGISTRY_MIRROR_FLAGS[@]:-}
+  # shellcheck disable=SC2068
+  ${ARTIFACTS}/talosctl cluster create \
+    ${cluster_create_args[@]:-} \
+    ${REGISTRY_MIRROR_FLAGS[@]:-}
 
-    IMPORTED_CLUSTER_ARGS+=("--talos.config-path=$TEST_OUTPUTS_DIR/$name/talosconfig")
-    IMPORTED_CLUSTER_ARGS+=("--talos.cluster-state-path=$HOME/.talos/clusters/$name/state.yaml")
+  IMPORTED_CLUSTER_ARGS+=("--talos.config-path=$TEST_OUTPUTS_DIR/$name/talosconfig")
+  IMPORTED_CLUSTER_ARGS+=("--talos.cluster-state-path=$HOME/.talos/clusters/$name/state.yaml")
 }
 
 # Create machines.
@@ -503,22 +516,23 @@ if [ -n "$ANOTHER_OMNI_VERSION" ] && [ -n "$INTEGRATION_PREPARE_TEST_ARGS" ]; th
   docker run \
     --cap-add=NET_ADMIN \
     --device=/dev/net/tun \
-    -v $(pwd)/hack/certs:/hack/certs \
-    -v $(pwd)/${ARTIFACTS}:/_out/ \
-    -v ${TEST_OUTPUTS_DIR}:/outputs/ \
-    -v ${OMNI_CONFIG}:/config.yaml \
-    -v $(pwd)/omnictl/:/omnictl/ \
-    -v $(pwd)/internal/backend/runtime/omni/testdata/pgp/:/internal/backend/runtime/omni/testdata/pgp/ \
+    -v "$(pwd)/hack/certs:/hack/certs" \
+    -v "$(pwd)/${ARTIFACTS}:/_out/" \
+    -v "${TEST_OUTPUTS_DIR}:/outputs/" \
+    -v "${OMNI_CONFIG}:/config.yaml" \
+    -v "$(pwd)/omnictl/:/omnictl/" \
+    -v "$(pwd)/internal/backend/runtime/omni/testdata/pgp/:/internal/backend/runtime/omni/testdata/pgp/" \
     -e SIDEROLINK_DEV_JOIN_TOKEN=${JOIN_TOKEN} \
     -e SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
     --network host \
-    ghcr.io/siderolabs/omni-integration-test:${ANOTHER_OMNI_VERSION} \
+    "ghcr.io/siderolabs/omni-integration-test:${ANOTHER_OMNI_VERSION}" \
     --omni.talos-version=${TALOS_VERSION} \
     --omni.kubernetes-version=${KUBERNETES_VERSION} \
     --omni.omnictl-path=/_out/omnictl-linux-amd64 \
     --omni.expected-machines=${TOTAL_MACHINES} \
     --omni.embedded \
     --omni.config-path=/config.yaml \
+    --omni.output-dir=/outputs \
     --omni.log-output=/outputs/omni-upgrade-prepare.log \
     --omni.ignore-unknown-fields \
     --test.failfast \
@@ -536,8 +550,9 @@ SIDEROLINK_DEV_JOIN_TOKEN=${JOIN_TOKEN} \
   --omni.omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
   --omni.expected-machines=${TOTAL_MACHINES} \
   --omni.embedded \
-  --omni.config-path=${OMNI_CONFIG} \
-  --omni.log-output=${TEST_OUTPUTS_DIR}/omni-integration.log \
+  --omni.config-path="${OMNI_CONFIG}" \
+  --omni.output-dir="${TEST_OUTPUTS_DIR}" \
+  --omni.log-output="${TEST_OUTPUTS_DIR}/omni-integration.log" \
   --test.failfast \
   --test.coverprofile=${ARTIFACTS}/coverage-integration.txt \
   --test.v \
@@ -552,10 +567,10 @@ if [ "${INTEGRATION_RUN_E2E_TEST:-true}" == "true" ]; then
       endpoint: 0.0.0.0:8099
       advertisedURL: ${BASE_URL}
       certFile: hack/certs/localhost.pem
-      keyFile: hack/certs/localhost-key.pem" >${TEST_OUTPUTS_DIR}/e2e-config.yaml
+      keyFile: hack/certs/localhost-key.pem" >"${TEST_OUTPUTS_DIR}/e2e-config.yaml"
 
   SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
-    nice -n 10 ${ARTIFACTS}/omni-linux-amd64 --config-path ${TEST_OUTPUTS_DIR}/e2e-config.yaml \
+    nice -n 10 ${ARTIFACTS}/omni-linux-amd64 --config-path "${TEST_OUTPUTS_DIR}/e2e-config.yaml" \
     --siderolink-wireguard-advertised-addr $LOCAL_IP:50180 \
     --siderolink-api-advertised-url "grpc://$LOCAL_IP:8090" \
     --event-sink-port 8091 \
@@ -568,7 +583,7 @@ if [ "${INTEGRATION_RUN_E2E_TEST:-true}" == "true" ]; then
     --etcd-embedded-unsafe-fsync=true \
     --etcd-backup-s3 \
     --join-tokens-mode strict \
-    --audit-log-dir ${TEST_OUTPUTS_DIR}/audit-log \
+    --audit-log-dir "${TEST_OUTPUTS_DIR}/audit-log" \
     --config-data-compression-enabled \
     --enable-talos-pre-release-versions="${ENABLE_TALOS_PRERELEASE_VERSIONS}" \
     --enable-cluster-import \
@@ -583,7 +598,7 @@ if [ "${INTEGRATION_RUN_E2E_TEST:-true}" == "true" ]; then
     -e AUTH_PASSWORD="$AUTH_PASSWORD" \
     -e AUTH_USERNAME="$AUTH_USERNAME" \
     -e BASE_URL=$BASE_URL \
-    -v ${TEST_OUTPUTS_DIR}/e2e/playwright-report:/tmp/test/playwright-report \
+    -v "${TEST_OUTPUTS_DIR}/e2e/playwright-report:/tmp/test/playwright-report" \
     --network=host \
     e2etest
 fi

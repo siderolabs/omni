@@ -78,6 +78,7 @@ var (
 	talosConfigPath       string
 	talosClusterStatePath string
 	omniLogOutput         string
+	omniLogLevel          string
 )
 
 func TestIntegration(t *testing.T) {
@@ -278,6 +279,7 @@ func init() {
 	flag.BoolVar(&runEmbeddedOmni, "omni.embedded", false, "runs embedded Omni in the tests")
 	flag.StringVar(&omniConfigPath, "omni.config-path", "", "embedded Omni config path")
 	flag.StringVar(&omniLogOutput, "omni.log-output", "_out/omni-test.log", "output logs directory")
+	flag.StringVar(&omniLogLevel, "omni.log-level", zapcore.InfoLevel.String(), "log level for embedded Omni logger")
 	flag.BoolVar(&ignoreUnknownFields, "omni.ignore-unknown-fields", false, "makes Omni config loader ignore unknown fields")
 	flag.StringVar(&talosConfigPath, "talos.config-path", "", "path for talosconfig")
 	flag.StringVar(&talosClusterStatePath, "talos.cluster-state-path", "", "path for imported talos cluster state")
@@ -442,10 +444,15 @@ func runOmni(t *testing.T) (string, error) {
 		require.NoError(t, err)
 
 		encoder := zap.NewDevelopmentEncoderConfig()
-
 		fileEncoder := zapcore.NewConsoleEncoder(encoder)
 
-		core := zapcore.NewCore(fileEncoder, zapcore.AddSync(logFile), zap.DebugLevel)
+		var level zapcore.Level
+
+		if level, err = zapcore.ParseLevel(omniLogLevel); err != nil {
+			return "", fmt.Errorf("failed to parse log level %q: %w", omniLogLevel, err)
+		}
+
+		core := zapcore.NewCore(fileEncoder, zapcore.AddSync(logFile), level)
 
 		logger = zap.New(core)
 	}

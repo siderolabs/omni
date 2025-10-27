@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-09-26T09:19:58Z by kres fdbc9fc.
+# Generated on 2025-10-27T13:48:49Z by kres 46e133d.
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -73,8 +73,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"

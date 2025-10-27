@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-10-17T13:27:48Z by kres 46e133d.
+# Generated on 2025-10-27T13:48:49Z by kres 46e133d.
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -246,10 +246,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-e2e-backups
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-cluster-import:
@@ -320,10 +317,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-e2e-cluster-import
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-forced-removal:
@@ -393,10 +387,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-e2e-forced-removal
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-omni-upgrade:
@@ -467,10 +458,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-e2e-omni-upgrade
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-scaling:
@@ -540,10 +528,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-e2e-scaling
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-short:
@@ -613,10 +598,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-e2e-short
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-short-secureboot:
@@ -687,10 +669,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-e2e-short-secureboot
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-templates:
@@ -760,10 +739,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-e2e-templates
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-upgrades:
@@ -833,10 +809,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-e2e-upgrades
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-workload-proxy:
@@ -906,10 +879,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-e2e-workload-proxy
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   integration-test:
@@ -992,10 +962,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
       - name: coverage
         uses: codecov/codecov-action@v5
