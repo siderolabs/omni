@@ -36,7 +36,7 @@ watch(() => currentUser.value, fetchTrackingToken)
 </script>
 
 <template>
-  <div v-if="trackingState === undefined && trackerToken">
+  <div v-if="trackingState === null && trackerToken">
     <div class="absolute top-0 left-0 z-50 flex h-screen w-screen flex-col justify-stretch">
       <div class="flex-1 bg-black opacity-25" />
       <div class="border-t border-primary-p3 bg-naturals-n6 p-4">
