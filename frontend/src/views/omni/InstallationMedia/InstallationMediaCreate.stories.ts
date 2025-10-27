@@ -11,6 +11,9 @@ const meta: Meta<typeof InstallationMediaCreate> = {
   parameters: {
     layout: 'fullscreen',
   },
+  args: {
+    class: 'h-screen',
+  },
 }
 
 export default meta

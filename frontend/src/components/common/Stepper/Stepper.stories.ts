@@ -8,9 +8,6 @@ import Stepper from './Stepper.vue'
 
 const meta: Meta<typeof Stepper> = {
   component: Stepper,
-  parameters: {
-    layout: 'centered',
-  },
   args: {
     stepCount: 5,
   },
