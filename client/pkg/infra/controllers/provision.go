@@ -223,7 +223,7 @@ func (ctrl *ProvisionController[T]) Reconcile(ctx context.Context,
 	})
 }
 
-//nolint:gocognit
+//nolint:gocognit,gocyclo,cyclop
 func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r controller.QRuntime, logger *zap.Logger,
 	machineRequest *infra.MachineRequest, machineRequestStatus *infra.MachineRequestStatus,
 ) error {
@@ -259,6 +259,14 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 				return err
 			}
 		}
+	}
+
+	// always create an empty provider machine state to make deprovision call more predictable
+	// so it won't receive an empty machine state there
+	if err = safe.WriterModify(ctx, r, res.(T), func(st T) error { //nolint:forcetypeassert,errcheck
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	if machineRequestStatus.TypedSpec().Value.Id == "" {
@@ -470,6 +478,10 @@ func (ctrl *ProvisionController[T]) reconcileTearingDown(ctx context.Context, r 
 		}
 	}
 
+	if err = ctrl.provisioner.Deprovision(ctx, logger, t, machineRequest); err != nil {
+		return err
+	}
+
 	resources := []resource.Pointer{
 		resource.NewMetadata(t.ResourceDefinition().DefaultNamespace, t.ResourceDefinition().Type, machineRequest.Metadata().ID(), resource.VersionUndefined),
 		infra.NewMachineRequestStatus(machineRequest.Metadata().ID()).Metadata(),
@@ -482,10 +494,6 @@ func (ctrl *ProvisionController[T]) reconcileTearingDown(ctx context.Context, r 
 
 	if !destroyReady {
 		return nil
-	}
-
-	if err = ctrl.provisioner.Deprovision(ctx, logger, t, machineRequest); err != nil {
-		return err
 	}
 
 	logger.Info("machine deprovisioned", zap.String("request_id", machineRequest.Metadata().ID()))
