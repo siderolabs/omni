@@ -29,22 +29,25 @@ import (
 
 // operatorMethodSet is the set of methods that are allowed to be called by the minimum role of os:operator.
 var operatorMethodSet = xslices.ToSet([]string{
-	grpcutil.MustFullMethodName(&machine.MachineService_ServiceDesc, "EtcdAlarmList"),
-	grpcutil.MustFullMethodName(&machine.MachineService_ServiceDesc, "EtcdAlarmDisarm"),
-	grpcutil.MustFullMethodName(&machine.MachineService_ServiceDesc, "EtcdDefragment"),
-	grpcutil.MustFullMethodName(&machine.MachineService_ServiceDesc, "EtcdStatus"),
-	grpcutil.MustFullMethodName(&machine.MachineService_ServiceDesc, "PacketCapture"),
-	grpcutil.MustFullMethodName(&machine.MachineService_ServiceDesc, "Reboot"),
-	grpcutil.MustFullMethodName(&machine.MachineService_ServiceDesc, "Restart"),
-	grpcutil.MustFullMethodName(&machine.MachineService_ServiceDesc, "ServiceRestart"),
-	grpcutil.MustFullMethodName(&machine.MachineService_ServiceDesc, "ServiceStart"),
-	grpcutil.MustFullMethodName(&machine.MachineService_ServiceDesc, "ServiceStop"),
-	grpcutil.MustFullMethodName(&machine.MachineService_ServiceDesc, "Shutdown"),
+	machine.MachineService_EtcdAlarmList_FullMethodName,
+	machine.MachineService_EtcdAlarmDisarm_FullMethodName,
+	machine.MachineService_EtcdDefragment_FullMethodName,
+	machine.MachineService_EtcdStatus_FullMethodName,
+	machine.MachineService_PacketCapture_FullMethodName,
+	machine.MachineService_Reboot_FullMethodName,
+	machine.MachineService_Restart_FullMethodName,
+	machine.MachineService_ServiceRestart_FullMethodName,
+	machine.MachineService_ServiceStart_FullMethodName,
+	machine.MachineService_ServiceStop_FullMethodName,
+	machine.MachineService_Shutdown_FullMethodName,
 })
 
 // adminMethodSet is the set of methods that are allowed to be called by the minimum role of os:admin.
 var adminMethodSet = xslices.ToSet([]string{
-	grpcutil.MustFullMethodName(&storage.StorageService_ServiceDesc, "BlockDeviceWipe"),
+	storage.StorageService_BlockDeviceWipe_FullMethodName,
+
+	machine.MachineService_MetaWrite_FullMethodName,
+	machine.MachineService_MetaDelete_FullMethodName,
 })
 
 // TalosBackend implements a backend (proxying one2one to a Talos node).
