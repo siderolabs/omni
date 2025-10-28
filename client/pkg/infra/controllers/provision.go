@@ -478,16 +478,40 @@ func (ctrl *ProvisionController[T]) reconcileTearingDown(ctx context.Context, r 
 		}
 	}
 
-	if err = ctrl.provisioner.Deprovision(ctx, logger, t, machineRequest); err != nil {
-		return err
-	}
-
 	resources := []resource.Pointer{
-		resource.NewMetadata(t.ResourceDefinition().DefaultNamespace, t.ResourceDefinition().Type, machineRequest.Metadata().ID(), resource.VersionUndefined),
 		infra.NewMachineRequestStatus(machineRequest.Metadata().ID()).Metadata(),
 	}
 
 	destroyReady, err := helpers.TeardownAndDestroyAll(ctx, r, slices.Values(resources))
+	if err != nil {
+		return err
+	}
+
+	if !destroyReady {
+		return nil
+	}
+
+	// if there is no machine state do not call deprovision API
+	machineMD := resource.NewMetadata(t.ResourceDefinition().DefaultNamespace, t.ResourceDefinition().Type, machineRequest.Metadata().ID(), resource.VersionUndefined)
+
+	_, err = r.Get(ctx, machineMD)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil
+		}
+
+		return err
+	}
+
+	if err = ctrl.provisioner.Deprovision(ctx, logger, t, machineRequest); err != nil {
+		return err
+	}
+
+	resources = []resource.Pointer{
+		machineMD,
+	}
+
+	destroyReady, err = helpers.TeardownAndDestroyAll(ctx, r, slices.Values(resources))
 	if err != nil {
 		return err
 	}
