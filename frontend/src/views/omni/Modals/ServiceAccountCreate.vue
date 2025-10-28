@@ -71,7 +71,7 @@ const close = () => {
     </div>
 
     <template v-if="!key">
-      <div class="flex flex-col gap-2">
+      <div class="mb-4 flex flex-col gap-2">
         <TInput
           v-if="!route.query.name"
           v-model="name"
