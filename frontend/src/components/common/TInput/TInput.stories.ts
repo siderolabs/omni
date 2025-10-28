@@ -4,6 +4,7 @@
 // included in the LICENSE file.
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { fn } from 'storybook/test'
+import { ref } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
 
 import { icons } from '../Icon/icons'
@@ -42,3 +43,15 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
+
+const minMaxModel = ref<string | number>(2048)
+export const MinMax: Story = {
+  args: {
+    type: 'number',
+    min: 2048,
+    max: 4096,
+    // Type issue, but passing a ref is actually allowed here
+    modelValue: minMaxModel as never,
+    'onUpdate:modelValue': (val) => (minMaxModel.value = val),
+  },
+}

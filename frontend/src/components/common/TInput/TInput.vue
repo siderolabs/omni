@@ -38,7 +38,7 @@ const {
   onClear = undefined,
 } = defineProps<Props>()
 
-defineEmits<{
+const emit = defineEmits<{
   blur: []
 }>()
 
@@ -52,16 +52,6 @@ const numberValue = computed(() =>
 
 const modelValue = defineModel<T>({
   required: true,
-  set(value) {
-    if (type !== 'number') return value
-    if (value === '') return
-
-    const numberValue = Number((typeof value === 'number' ? value : parseFloat(value)).toFixed(1))
-
-    if (isNaN(numberValue)) return 0
-
-    return Math.max(min ?? numberValue, Math.min(max ?? numberValue, numberValue))
-  },
 })
 
 // This function only exists to handle generic typing issues based on how this component works
@@ -74,6 +64,22 @@ const inputRef = useTemplateRef('input')
 const clearInput = () => {
   updateValue('')
   onClear?.()
+}
+
+const blurHandler = () => {
+  const value = modelValue.value
+
+  if (type === 'number' && value !== '') {
+    const numberValue = Number((typeof value === 'number' ? value : parseFloat(value)).toFixed(1))
+
+    updateValue(
+      isNaN(numberValue)
+        ? 0
+        : Math.max(min ?? numberValue, Math.min(max ?? numberValue, numberValue)),
+    )
+  }
+
+  emit('blur')
 }
 
 watch(
@@ -108,7 +114,7 @@ onMounted(() => focus && inputRef.value?.focus())
         :type="type"
         class="peer min-w-2 flex-1 border-none bg-transparent text-xs text-naturals-n13 placeholder-naturals-n7 outline-hidden transition-colors focus:border-transparent focus:outline-hidden disabled:opacity-0"
         :placeholder="placeholder"
-        @blur="$emit('blur')"
+        @blur="blurHandler"
       />
 
       <TIcon
