@@ -130,7 +130,7 @@ const iconData = computed((): { iconColor?: string; iconTypeValue?: IconType } =
       case TCommonStatuses.HEALTHY:
         return {
           iconTypeValue: 'check-in-circle-classic',
-          iconColor: 'var(--color--green-g1)',
+          iconColor: 'var(--color-green-g1)',
         }
       case TCommonStatuses.UNHEALTHY:
         return {
@@ -141,7 +141,7 @@ const iconData = computed((): { iconColor?: string; iconTypeValue?: IconType } =
       case TCommonStatuses.ON:
         return {
           iconTypeValue: 'dot',
-          iconColor: 'var(--color--green-g1)',
+          iconColor: 'var(--color-green-g1)',
         }
       case TCommonStatuses.DISABLED:
       case TCommonStatuses.OFF:
@@ -162,7 +162,7 @@ const iconData = computed((): { iconColor?: string; iconTypeValue?: IconType } =
       case TCommonStatuses.UP_TO_DATE:
         return {
           iconTypeValue: 'check-in-circle-classic',
-          iconColor: 'var(--color--green-g1)',
+          iconColor: 'var(--color-green-g1)',
         }
       case TCommonStatuses.OUTDATED:
         return {
@@ -172,12 +172,12 @@ const iconData = computed((): { iconColor?: string; iconTypeValue?: IconType } =
       case TCommonStatuses.APPLIED:
         return {
           iconTypeValue: 'check-in-circle-classic',
-          iconColor: 'var(--color--green-g1)',
+          iconColor: 'var(--color-green-g1)',
         }
       case TCommonStatuses.PENDING:
         return {
           iconTypeValue: 'time',
-          iconColor: 'var(--color--yellow-y1)',
+          iconColor: 'var(--color-yellow-y1)',
         }
       case TCommonStatuses.AWAITING_CONNECTION:
         return {
@@ -199,9 +199,9 @@ const iconColor = computed(() => {
   if (iconType.value) {
     switch (iconType.value) {
       case 'check-in-circle-classic':
-        return { color: 'var(--color--green-g1)' }
+        return { color: 'var(--color-green-g1)' }
       case 'loading':
-        return { color: 'var(--color--yellow-y1)' }
+        return { color: 'var(--color-yellow-y1)' }
       case 'time':
         return { color: 'var(--color-naturals-n9)' }
       case 'refresh':
