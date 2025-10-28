@@ -47,12 +47,10 @@ defineExpose({
 })
 
 const numberValue = computed(() =>
-  typeof modelValue.value === 'number' ? modelValue.value : parseFloat(modelValue.value),
+  typeof modelValue.value === 'number' ? modelValue.value : parseFloat(modelValue.value ?? ''),
 )
 
-const modelValue = defineModel<T>({
-  required: true,
-})
+const modelValue = defineModel<T>()
 
 // This function only exists to handle generic typing issues based on how this component works
 function updateValue(value: unknown) {
@@ -70,7 +68,9 @@ const blurHandler = () => {
   const value = modelValue.value
 
   if (type === 'number' && value !== '') {
-    const numberValue = Number((typeof value === 'number' ? value : parseFloat(value)).toFixed(1))
+    const numberValue = Number(
+      (typeof value === 'number' ? value : parseFloat(value ?? '')).toFixed(1),
+    )
 
     updateValue(
       isNaN(numberValue)

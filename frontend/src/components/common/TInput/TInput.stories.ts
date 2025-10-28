@@ -44,7 +44,7 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
 
-const minMaxModel = ref<string | number>(2048)
+const minMaxModel = ref<string | number | undefined>(2048)
 export const MinMax: Story = {
   args: {
     type: 'number',

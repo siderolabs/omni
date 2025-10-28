@@ -5,41 +5,41 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { ref } from 'vue'
-
 import RadioGroup from '@/components/common/Radio/RadioGroup.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
+import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
 
-const name = ref('')
-const hardwareType = ref<string>()
+const formState = defineModel<FormState>({ required: true })
 </script>
 
 <template>
   <div class="flex flex-col gap-4">
-    <TInput v-model="name" title="Name" overhead-title />
+    <TInput v-model="formState.name" title="Name" overhead-title />
 
     <RadioGroup
-      v-model="hardwareType"
+      v-model="formState.hardwareType"
       label="Hardware Type"
-      :options="[
-        {
-          label: 'Bare-metal Machine',
-          description:
-            'Suitable for x86-64 and arm64 bare-metal machines, as well as generic virtual machines. If unsure, choose this option.',
-          value: 'metal',
-        },
-        {
-          label: 'Cloud Server',
-          description:
-            'Compatible with AWS, GCP, Azure, VMWare, Equinix Metal, and other platforms, including homelab environments like Proxmox.',
-          value: 'cloud',
-        },
-        {
-          label: 'Single Board Computer',
-          description: 'Supports Raspberry Pi, Pine64, Jetson Nano, and similar devices.',
-          value: 'sbc',
-        },
-      ]"
+      :options="
+        [
+          {
+            label: 'Bare-metal Machine',
+            description:
+              'Suitable for x86-64 and arm64 bare-metal machines, as well as generic virtual machines. If unsure, choose this option.',
+            value: 'metal',
+          },
+          {
+            label: 'Cloud Server',
+            description:
+              'Compatible with AWS, GCP, Azure, VMWare, Equinix Metal, and other platforms, including homelab environments like Proxmox.',
+            value: 'cloud',
+          },
+          {
+            label: 'Single Board Computer',
+            description: 'Supports Raspberry Pi, Pine64, Jetson Nano, and similar devices.',
+            value: 'sbc',
+          },
+        ] satisfies { [key: string]: any; value: typeof formState.hardwareType }[]
+      "
     />
   </div>
 </template>
