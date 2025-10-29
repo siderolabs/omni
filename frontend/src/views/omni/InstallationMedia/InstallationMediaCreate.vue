@@ -30,6 +30,7 @@ export interface FormState {
   currentStep: number
   name?: string
   hardwareType?: FlowType
+  talosVersion?: string
 }
 </script>
 
