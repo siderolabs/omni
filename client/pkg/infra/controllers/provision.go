@@ -218,9 +218,7 @@ func (ctrl *ProvisionController[T]) Reconcile(ctx context.Context,
 		return err
 	}
 
-	return safe.WriterModify(ctx, r, machineRequestStatus, func(res *infra.MachineRequestStatus) error {
-		return ctrl.reconcileRunning(ctx, r, logger, machineRequest, res)
-	})
+	return ctrl.reconcileRunning(ctx, r, logger, machineRequest, machineRequestStatus)
 }
 
 //nolint:gocognit,gocyclo,cyclop
@@ -353,12 +351,18 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 		}
 	}
 
-	machineRequestStatus.TypedSpec().Value.Stage = specs.MachineRequestStatusSpec_PROVISIONED
-	machineRequestStatus.TypedSpec().Value.Status = "Provision Complete"
-
-	*machineRequestStatus.Metadata().Labels() = *machineRequest.Metadata().Labels()
-
 	logger.Info("machine provision finished")
+
+	if err = safe.WriterModify(ctx, r, machineRequestStatus, func(res *infra.MachineRequestStatus) error {
+		res.TypedSpec().Value.Stage = specs.MachineRequestStatusSpec_PROVISIONED
+		res.TypedSpec().Value.Status = "Provision Complete"
+
+		*res.Metadata().Labels() = *machineRequest.Metadata().Labels()
+
+		return nil
+	}); err != nil {
+		return err
+	}
 
 	return nil
 }
