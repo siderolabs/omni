@@ -1,6 +1,12 @@
 {
   "extends": "@tsconfig/node24/tsconfig.json",
-  "include": ["vite.config.*", "playwright.config.*", "eslint.config.*", "e2e/**/*"],
+  "include": [
+    "vite.config.*",
+    "playwright.config.*",
+    "eslint.config.*",
+    "prettier.config.*",
+    "e2e/**/*"
+  ],
   "compilerOptions": {
     "noEmit": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
