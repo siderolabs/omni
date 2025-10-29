@@ -7,7 +7,6 @@ import '@storybook/vue3-vite'
 import type { MswParameters } from 'msw-storybook-addon'
 
 declare module '@storybook/vue3-vite' {
-  interface Parameters {
-    msw?: MswParameters['msw']
-  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  interface Parameters extends MswParameters {}
 }

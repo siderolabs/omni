@@ -5,9 +5,120 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { watchOnce } from '@vueuse/core'
+import { compare } from 'semver'
+import { computed, onBeforeMount } from 'vue'
+
+import { Runtime } from '@/api/common/omni.pb'
+import type { TalosVersionSpec } from '@/api/omni/specs/omni.pb'
+import type { JoinTokenStatusSpec } from '@/api/omni/specs/siderolink.pb'
+import {
+  DefaultNamespace,
+  DefaultTalosVersion,
+  JoinTokenStatusType,
+  TalosVersionType,
+} from '@/api/resources'
+import TSelectList from '@/components/common/SelectList/TSelectList.vue'
+import { useWatch } from '@/components/common/Watch/useWatch'
+import { useDocsLink } from '@/methods'
+import { useFeatures } from '@/methods/features'
 import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
 
-defineModel<FormState>({ required: true })
+const formState = defineModel<FormState>({ required: true })
+
+const { data: features } = useFeatures()
+
+const { data: talosVersionList, loading: talosVersionsLoading } = useWatch<TalosVersionSpec>({
+  runtime: Runtime.Omni,
+  resource: {
+    type: TalosVersionType,
+    namespace: DefaultNamespace,
+  },
+})
+
+const { data: joinTokenList, loading: joinTokensLoading } = useWatch<JoinTokenStatusSpec>({
+  runtime: Runtime.Omni,
+  resource: {
+    type: JoinTokenStatusType,
+    namespace: DefaultNamespace,
+  },
+})
+
+const talosVersions = computed(() =>
+  talosVersionList.value
+    .filter((v) => !v.spec.deprecated)
+    .map((v) => v.spec.version!)
+    .sort(compare),
+)
+
+const joinTokens = computed(() => joinTokenList.value.map((t) => t.metadata.id!))
+
+// Form defaults
+onBeforeMount(() => (formState.value.talosVersion ??= DefaultTalosVersion))
+watchOnce(joinTokens, (v) => (formState.value.joinToken ??= v[0]))
+
+const whatsNewDocsLink = useDocsLink('talos', "/getting-started/what's-new-in-talos", () => ({
+  talosVersion: formState.value.talosVersion,
+}))
+const k8sSupportMatrixDocsLink = useDocsLink('talos', '/getting-started/support-matrix', () => ({
+  talosVersion: formState.value.talosVersion,
+}))
 </script>
 
-<template>Talos Version</template>
+<template>
+  <div class="space-y-4">
+    <TSelectList
+      v-model="formState.talosVersion"
+      :disabled="talosVersionsLoading"
+      :values="talosVersions"
+      title="Choose Talos Linux Version"
+      overhead-title
+    />
+
+    <p class="text-xs">
+      We strongly recommend using the latest stable version of Talos Linux ({{
+        DefaultTalosVersion
+      }}).
+      <template v-if="features?.spec.talos_pre_release_versions_enabled">
+        <br />
+        Pre-release versions are suitable for testing purposes but are not advised for production
+        environments.
+      </template>
+    </p>
+
+    <div class="space-y-2">
+      <h2 id="docs-label-id" class="text-xs font-medium text-naturals-n14 after:content-[':']">
+        Documentation for Talos Linux {{ formState.talosVersion }}
+      </h2>
+      <ul
+        class="list-inside list-disc space-y-2 text-xs text-primary-p3"
+        aria-labelledby="docs-label-id"
+      >
+        <li>
+          <a :href="whatsNewDocsLink" rel="noopener noreferrer" target="_blank" class="underline">
+            What's New
+          </a>
+        </li>
+
+        <li>
+          <a
+            :href="k8sSupportMatrixDocsLink"
+            rel="noopener noreferrer"
+            target="_blank"
+            class="underline"
+          >
+            Support Matrix
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <TSelectList
+      v-model="formState.joinToken"
+      :disabled="joinTokensLoading"
+      :values="joinTokens"
+      title="Join Token"
+      overhead-title
+    />
+  </div>
+</template>
