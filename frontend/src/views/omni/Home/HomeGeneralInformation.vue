@@ -33,12 +33,13 @@ import {
   getKernelArgs,
 } from '@/methods'
 import { canReadAuditLog } from '@/methods/auth'
-import { auditLogEnabled } from '@/methods/features'
+import { auditLogEnabled, useInstallationMediaEnabled } from '@/methods/features'
 import { showError } from '@/notification'
 import HomeGeneralInformationCopyable from '@/views/omni/Home/HomeGeneralInformationCopyable.vue'
 
 const auditLogAvailable = ref(false)
 const { copy, copied } = useClipboard()
+const { value: installationMediaEnabled } = useInstallationMediaEnabled()
 
 onBeforeMount(async () => {
   auditLogAvailable.value = await auditLogEnabled()
@@ -120,7 +121,13 @@ watch(apiConfigErr, (err) => err && showError(err))
       <TButton
         icon="long-arrow-down"
         icon-position="left"
-        @click="$router.push({ query: { modal: 'downloadInstallationMedia' } })"
+        @click="
+          $router.push(
+            installationMediaEnabled
+              ? { name: 'InstallationMedia' }
+              : { query: { modal: 'downloadInstallationMedia' } },
+          )
+        "
       >
         Download Installation Media
       </TButton>
