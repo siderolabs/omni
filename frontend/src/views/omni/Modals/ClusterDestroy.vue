@@ -25,7 +25,7 @@ import {
 import Watch from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
-import { clusterDestroy } from '@/methods/cluster'
+import { ClusterCommandError, clusterDestroy } from '@/methods/cluster'
 import { showError, showSuccess } from '@/notification'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
@@ -93,7 +93,7 @@ const destroyCluster = async () => {
   } catch (e) {
     close()
 
-    if (e.errorNotification) {
+    if (e instanceof ClusterCommandError) {
       showError(e.errorNotification.title, e.errorNotification.details)
 
       return

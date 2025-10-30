@@ -26,7 +26,7 @@ import {
 } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
-import { destroyNodes } from '@/methods/cluster'
+import { ClusterCommandError, destroyNodes } from '@/methods/cluster'
 import { controlPlaneMachineSetId } from '@/methods/machineset'
 import { setupNodenameWatch } from '@/methods/node'
 import { showError, showSuccess } from '@/notification'
@@ -163,7 +163,7 @@ const destroyNode = async () => {
       forceDestroy.value,
     )
   } catch (e) {
-    if (e.errorNotification) {
+    if (e instanceof ClusterCommandError) {
       showError(e.errorNotification.title, e.errorNotification.details)
 
       close(true)

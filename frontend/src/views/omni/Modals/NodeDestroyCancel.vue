@@ -13,7 +13,7 @@ import type { ClusterMachineSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterMachineType, DefaultNamespace } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
 import Watch from '@/components/common/Watch/Watch.vue'
-import { restoreNode } from '@/methods/cluster'
+import { ClusterCommandError, restoreNode } from '@/methods/cluster'
 import { setupNodenameWatch } from '@/methods/node'
 import { showError, showSuccess } from '@/notification'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
@@ -53,7 +53,7 @@ const restore = async (clusterMachine: Resource<ClusterMachineSpec>) => {
   try {
     await restoreNode(clusterMachine)
   } catch (e) {
-    if (e.errorNotification) {
+    if (e instanceof ClusterCommandError) {
       showError(e.errorNotification.title, e.errorNotification.details)
 
       close(true)

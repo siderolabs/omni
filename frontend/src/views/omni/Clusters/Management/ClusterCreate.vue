@@ -41,6 +41,7 @@ import TAlert from '@/components/TAlert.vue'
 import { setupBackupStatus } from '@/methods'
 import { canCreateClusters } from '@/methods/auth'
 import {
+  ClusterCommandError,
   clusterSync,
   embeddedDiscoveryServiceAvailable,
   nextAvailableClusterName,
@@ -249,7 +250,7 @@ const createCluster_ = async (untaint: boolean) => {
       state.value.cluster.name = await nextAvailableClusterName('talos-default')
     }
 
-    if (e.errorNotification) {
+    if (e instanceof ClusterCommandError) {
       showError(e.errorNotification.title, e.errorNotification.details)
 
       return

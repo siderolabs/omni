@@ -29,7 +29,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import Watch from '@/components/common/Watch/Watch.vue'
 import TAlert from '@/components/TAlert.vue'
-import { clusterSync } from '@/methods/cluster'
+import { ClusterCommandError, clusterSync } from '@/methods/cluster'
 import { showError, showSuccess } from '@/notification'
 import { populateExisting, state } from '@/states/cluster-management'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
@@ -66,7 +66,7 @@ const scaleCluster = async () => {
   try {
     await clusterSync(state.value.resources(), existingResources.value)
   } catch (e) {
-    if (e.errorNotification) {
+    if (e instanceof ClusterCommandError) {
       showError(e.errorNotification.title, e.errorNotification.details)
 
       return

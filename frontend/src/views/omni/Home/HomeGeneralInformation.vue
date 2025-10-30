@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useClipboard } from '@vueuse/core'
-import { onBeforeMount, ref, watch } from 'vue'
+import { onBeforeMount, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { DefaultJoinTokenSpec, SiderolinkAPIConfigSpec } from '@/api/omni/specs/siderolink.pb'
@@ -25,6 +25,7 @@ import TButton from '@/components/common/Button/TButton.vue'
 import Card from '@/components/common/Card/Card.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import { useWatch } from '@/components/common/Watch/useWatch'
+import TAlert from '@/components/TAlert.vue'
 import {
   downloadAuditLog,
   downloadMachineJoinConfig,
@@ -34,7 +35,6 @@ import {
 } from '@/methods'
 import { canReadAuditLog } from '@/methods/auth'
 import { auditLogEnabled, useInstallationMediaEnabled } from '@/methods/features'
-import { showError } from '@/notification'
 import HomeGeneralInformationCopyable from '@/views/omni/Home/HomeGeneralInformationCopyable.vue'
 
 const auditLogAvailable = ref(false)
@@ -79,8 +79,6 @@ const {
   },
   runtime: Runtime.Omni,
 })
-
-watch(apiConfigErr, (err) => err && showError(err))
 </script>
 
 <template>
@@ -89,6 +87,8 @@ watch(apiConfigErr, (err) => err && showError(err))
       <h2 class="text-sm font-medium">General Information</h2>
       <TSpinner v-if="apiConfigLoading" class="size-4" />
     </header>
+
+    <TAlert v-if="apiConfigErr" type="error" :title="apiConfigErr" />
 
     <dl class="flex flex-col gap-4">
       <HomeGeneralInformationCopyable
