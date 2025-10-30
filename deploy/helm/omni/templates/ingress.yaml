@@ -93,7 +93,7 @@ spec:
             name: internal-grpc
             port:
               number: 8080
-        path: /oicd.
+        path: /oidc.
         pathType: ImplementationSpecific
   {{- if and .Values.ingress.api.tls .Values.ingress.api.tls.enabled }}
   tls:
