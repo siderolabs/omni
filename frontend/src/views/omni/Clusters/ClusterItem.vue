@@ -91,7 +91,7 @@ const { height } = useElementSize(slider)
           />
         </RouterLink>
 
-        <TIcon v-if="locked" class="size-3.5" icon="locked" aria-label="locked" />
+        <TIcon v-if="locked" class="size-3.5 shrink-0" icon="locked" aria-label="locked" />
       </div>
 
       <div id="machine-count">

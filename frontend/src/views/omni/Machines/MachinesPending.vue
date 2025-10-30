@@ -22,6 +22,9 @@ import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import TList from '@/components/common/List/TList.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatsItem from '@/components/common/Stats/StatsItem.vue'
+import TableCell from '@/components/common/Table/TableCell.vue'
+import TableRoot from '@/components/common/Table/TableRoot.vue'
+import TableRow from '@/components/common/Table/TableRow.vue'
 
 const router = useRouter()
 
@@ -76,19 +79,18 @@ function rejectMachines(...ids: string[]) {
       </template>
 
       <template #default="{ items, searchQuery }">
-        <table class="w-full text-xs text-naturals-n13">
-          <thead class="bg-naturals-n2 text-left">
-            <tr class="[&>th]:p-2">
-              <th>ID</th>
-              <th>Provider</th>
-            </tr>
-          </thead>
+        <TableRoot class="w-full">
+          <template #head>
+            <TableRow>
+              <TableCell th>ID</TableCell>
+              <TableCell th>Provider</TableCell>
+            </TableRow>
+          </template>
 
-          <tbody>
-            <tr
+          <template #body>
+            <TableRow
               v-for="item in items"
               :key="itemID(item)"
-              class="border-b border-naturals-n5 last-of-type:border-none hover:bg-white/5 [&>td]:px-2 [&>td]:py-4"
               role="button"
               :aria-label="item.metadata.id"
               @click="
@@ -98,7 +100,7 @@ function rejectMachines(...ids: string[]) {
                     : selectedMachines.add(item.metadata.id!)
               "
             >
-              <td>
+              <TableCell>
                 <div class="flex items-center gap-2">
                   <TCheckbox
                     :model-value="selectedMachines.has(item.metadata.id!)"
@@ -111,12 +113,12 @@ function rejectMachines(...ids: string[]) {
                     highlight-class="bg-naturals-n14"
                   />
                 </div>
-              </td>
+              </TableCell>
 
-              <td>{{ item.metadata.labels?.[LabelInfraProviderID] }}</td>
-            </tr>
-          </tbody>
-        </table>
+              <TableCell>{{ item.metadata.labels?.[LabelInfraProviderID] }}</TableCell>
+            </TableRow>
+          </template>
+        </TableRoot>
       </template>
     </TList>
   </div>

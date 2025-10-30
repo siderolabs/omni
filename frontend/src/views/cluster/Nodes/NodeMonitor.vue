@@ -270,9 +270,10 @@ const sortBy = (id: string) => {
             :min-fn="() => 0"
             :max-fn="handleMaxMem"
             :formatter="
-              (input: number) => {
-                return formatBytes(input * 1024)
-              }
+              (input) =>
+                typeof input === 'number'
+                  ? formatBytes(input * 1024)
+                  : formatBytes(Number(input) * 1024)
             "
           />
         </div>

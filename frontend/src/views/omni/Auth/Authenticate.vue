@@ -26,18 +26,19 @@ import {
   samlSessionHeader,
   SignedRedirect,
   WorkloadProxyAuthFlow,
+  workloadProxyPublicKeyIdSignatureBase64Cookie,
 } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import UserInfo from '@/components/common/UserInfo/UserInfo.vue'
 import { AuthType, authType } from '@/methods'
-import { createKeys, saveKeys } from '@/methods/key'
+import { logout } from '@/methods/auth'
+import { createKeys, saveKeys, signDetached } from '@/methods/key'
 import { showError } from '@/notification'
 import { FrontendAuthFlow } from '@/router'
 
 const user = ref<User | undefined>(undefined)
 let idToken = ''
-let logout: (value: any) => void
 
 /** @description Redirect the user's top-most window to the given URL.
  *
@@ -63,16 +64,6 @@ onMounted(() => {
       user.value = auth0.user.value
       idToken = auth0.idTokenClaims.value!.__raw
 
-      logout = async () => {
-        if (auth0) {
-          await auth0.logout({
-            logoutParams: {
-              returnTo: window.location.origin,
-            },
-          })
-        }
-      }
-
       break
     case AuthType.OIDC:
     case AuthType.SAML:
@@ -83,16 +74,6 @@ onMounted(() => {
       if (!identity.value) {
         navigateToLogin()
       }
-
-      if (authType.value === AuthType.OIDC) {
-        logout = () => {
-          redirectToURL(`/logout?${AuthFlowQueryParam}=${FrontendAuthFlow}`)
-        }
-
-        return
-      }
-
-      logout = () => navigateToLogin()
   }
 })
 
@@ -163,7 +144,7 @@ const generatePublicKey = async () => {
   publicKeyId = res.publicKeyId
 
   try {
-    await confirmPublicKey()
+    await confirmPublicKey(res.privateKey)
   } catch {
     return
   }
@@ -204,7 +185,7 @@ const generatePublicKey = async () => {
 
 let renewIdToken = false
 
-const confirmPublicKey = async () => {
+const confirmPublicKey = async (privateKey?: string) => {
   try {
     if (renewIdToken && auth0) {
       renewIdToken = false
@@ -219,17 +200,27 @@ const confirmPublicKey = async () => {
 
     const options: fetchOption[] = []
 
+    const metadata: Record<string, string> = {}
+
+    if (privateKey) {
+      const publicKeyIdSignatureBase64 = await signDetached(publicKeyId, privateKey)
+
+      metadata[workloadProxyPublicKeyIdSignatureBase64Cookie] = publicKeyIdSignatureBase64
+    }
+
     if (authType.value === AuthType.Auth0) {
-      options.push(withMetadata({ [authHeader]: authBearerHeaderPrefix + idToken }))
+      metadata[authHeader] = authBearerHeaderPrefix + idToken
     } else if (authType.value === AuthType.OIDC) {
-      options.push(withMetadata({ [authHeader]: authBearerHeaderPrefix + route.query.token }))
+      metadata[authHeader] = authBearerHeaderPrefix + route.query.token
     } else if (authType.value === AuthType.SAML) {
       if (!route.query.session) {
         throw new Error('no session')
       }
 
-      options.push(withMetadata({ [samlSessionHeader]: route.query.session as string }))
+      metadata[samlSessionHeader] = route.query.session as string
     }
+
+    options.push(withMetadata(metadata))
 
     await AuthService.ConfirmPublicKey(
       {
@@ -251,7 +242,7 @@ const confirmPublicKey = async () => {
 }
 
 const switchUser = () => {
-  logout({ returnTo: window.location.origin })
+  logout(auth0)
 }
 
 const Auth = {
@@ -305,7 +296,7 @@ const Auth = {
                 id="confirm"
                 class="w-full"
                 type="highlighted"
-                @click="confirmPublicKey"
+                @click="() => confirmPublicKey()"
               >
                 Grant Access
               </TButton>

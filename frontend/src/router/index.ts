@@ -12,12 +12,11 @@ import { AuthFlowQueryParam, RedirectQueryParam } from '@/api/resources'
 import { current } from '@/context'
 import { AuthType, authType } from '@/methods'
 import { loadCurrentUser } from '@/methods/auth'
-import { getAuthCookies, isAuthorized } from '@/methods/key'
+import { isAuthorized } from '@/methods/key'
 import { MachineFilterOption } from '@/methods/machine'
 import { refreshTitle } from '@/methods/title'
 
 export const FrontendAuthFlow = 'frontend'
-const requireCookies = false
 
 export const routes: RouteRecordRaw[] = [
   // Unauthenticated routes
@@ -30,6 +29,21 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/omni/Auth/Authenticate.vue'),
     beforeEnter: async (to) => {
       return authType.value === AuthType.Auth0 ? await authGuard(to) : true
+    },
+  },
+  {
+    path: '/oidc-login/:authRequestId',
+    name: 'OIDC Login',
+    component: () => import('@/views/omni/Auth/OIDC.vue'),
+    beforeEnter: async (to) => {
+      if (await isAuthorized()) {
+        return true
+      }
+
+      return {
+        name: 'Authenticate',
+        query: { [AuthFlowQueryParam]: FrontendAuthFlow, [RedirectQueryParam]: to.fullPath },
+      }
     },
   },
 
@@ -46,20 +60,13 @@ export const routes: RouteRecordRaw[] = [
     path: '/',
     components: {
       default: RouterView,
-      sidebar: () => import('@/views/omni/SideBar.vue'),
+      sidebar: () => import('@/components/SideBar/TSideBar.vue'),
     },
     beforeEnter: async (to) => {
-      let authorized = await isAuthorized()
-
-      if (requireCookies && !getAuthCookies()) {
-        authorized = false
-      }
+      const authorized = await isAuthorized()
 
       if (authorized) {
         await loadCurrentUser()
-      }
-
-      if (authorized) {
         await refreshTitle()
 
         return true
@@ -77,11 +84,6 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/views/omni/Home/Home.vue'),
       },
       {
-        path: 'oidc-login/:authRequestId',
-        name: 'OIDC Login',
-        component: () => import('@/views/omni/Auth/OIDC.vue'),
-      },
-      {
         path: 'clusters',
         children: [
           {
@@ -96,10 +98,7 @@ export const routes: RouteRecordRaw[] = [
           },
           {
             path: ':cluster',
-            components: {
-              default: () => import('@/views/cluster/ClusterScoped.vue'),
-              clusterSidebar: () => import('@/views/cluster/SideBar.vue'),
-            },
+            component: () => import('@/views/cluster/ClusterScoped.vue'),
             children: [
               {
                 path: '',
@@ -143,10 +142,6 @@ export const routes: RouteRecordRaw[] = [
               },
               {
                 path: 'machine/:machine',
-                components: {
-                  default: RouterView,
-                  nodeSidebar: () => import('@/views/cluster/SideBarNode.vue'),
-                },
                 children: [
                   {
                     path: 'patches/:patch',
@@ -242,8 +237,20 @@ export const routes: RouteRecordRaw[] = [
           },
           {
             path: 'installation-media',
-            name: 'InstallationMedia',
-            component: () => import('@/views/omni/InstallationMedia/InstallationMedia.vue'),
+            children: [
+              {
+                path: '',
+                name: 'InstallationMedia',
+                component: () => import('@/views/omni/InstallationMedia/InstallationMedia.vue'),
+              },
+              {
+                path: 'create',
+                name: 'InstallationMediaCreate',
+                meta: { disablePadding: true },
+                component: () =>
+                  import('@/views/omni/InstallationMedia/InstallationMediaCreate.vue'),
+              },
+            ],
           },
           {
             path: 'jointokens',

@@ -795,6 +795,10 @@ func isSensitiveResource(res *v1alpha1.Resource) bool {
 }
 
 func isSensitiveSpec(resource *resapi.Resource) bool {
+	if resource == nil {
+		return false
+	}
+
 	res, err := grpcomni.CreateResource(resource)
 	if err != nil {
 		return true
@@ -835,14 +839,13 @@ func makeMux(
 		"static",
 	)
 
-	if samlHandler != nil {
-		saml.RegisterHandlers(samlHandler, mux, logger)
-	}
-
-	if oidcProvider != nil {
-		if err := oidc.RegisterHandlers(config.Config.Services.API.AdvertisedURL, config.Config.Auth.OIDC, mux, oidcProvider); err != nil {
-			return nil, err
-		}
+	if err := registerAuthHandlers(
+		mux,
+		samlHandler,
+		oidcProvider,
+		logger,
+	); err != nil {
+		return nil, err
 	}
 
 	muxHandle("/image/", imageHandler, "image")
@@ -880,6 +883,51 @@ func makeMux(
 	muxHandle("/healthz", health.NewHandler(state.Default(), logger), "health")
 
 	return mux, nil
+}
+
+func registerAuthHandlers(mux *http.ServeMux, samlHandler *samlsp.Middleware, oidcProvider *coidc.Provider, logger *zap.Logger) error {
+	var (
+		loginHandler  http.HandlerFunc
+		logoutHandler http.HandlerFunc
+	)
+
+	switch {
+	case samlHandler != nil:
+		saml.RegisterHandlers(samlHandler, mux, logger)
+
+		loginHandler = samlHandler.HandleStartAuthFlow
+		logoutHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, config.Config.Services.API.AdvertisedURL, http.StatusSeeOther)
+		})
+	case oidcProvider != nil:
+		handler, err := oidc.NewOIDCHandler(config.Config.Services.API.AdvertisedURL, config.Config.Auth.OIDC, oidcProvider)
+		if err != nil {
+			return err
+		}
+
+		loginHandler = handler.Login
+		logoutHandler = handler.Logout
+
+		mux.HandleFunc(oidc.RedirectURL, handler.OIDCConsume)
+	}
+
+	promLabel := prometheus.Labels{"handler": "auth"}
+
+	if loginHandler != nil {
+		mux.Handle("/login", monitoring.NewHandler(
+			logging.NewHandler(loginHandler, logger),
+			promLabel,
+		))
+	}
+
+	if logoutHandler != nil {
+		mux.Handle("/logout", monitoring.NewHandler(
+			logging.NewHandler(logoutHandler, logger),
+			promLabel,
+		))
+	}
+
+	return nil
 }
 
 func getOmnictlDownloads(dir string) (http.Handler, error) {

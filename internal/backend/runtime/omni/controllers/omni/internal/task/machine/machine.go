@@ -73,6 +73,8 @@ type Info struct { //nolint:govet
 	SecurityState     *specs.SecurityState
 
 	Diagnostics []*specs.MachineStatusSpec_Diagnostic
+
+	KernelCmdline string
 }
 
 // InfoChan is a channel for sending machine info from tasks back to the controller.

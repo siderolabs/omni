@@ -9,7 +9,8 @@ import { vOnClickOutside } from '@vueuse/components'
 import { computed, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
-import { KubernetesUpgradeStatusSpecPhase } from '@/api/omni/specs/omni.pb'
+import { type Resource } from '@/api/grpc'
+import { KubernetesUpgradeStatusSpecPhase, type OngoingTaskSpec } from '@/api/omni/specs/omni.pb'
 import { EphemeralNamespace, OngoingTaskType } from '@/api/resources'
 import { itemID } from '@/api/watch'
 import TAnimation from '@/components/common/Animation/TAnimation.vue'
@@ -32,6 +33,30 @@ const dropdownOpen = ref(false)
 const resource = {
   namespace: EphemeralNamespace,
   type: OngoingTaskType,
+}
+
+const getPreviousVersion = (item: Resource<OngoingTaskSpec>) => {
+  if (item.spec.kubernetes_upgrade) {
+    return item.spec.kubernetes_upgrade.last_upgrade_version
+  }
+
+  if (item.spec.talos_upgrade) {
+    return item.spec.talos_upgrade.last_upgrade_version
+  }
+
+  return item.spec.machine_upgrade?.current_schematic_id
+}
+
+const getCurrentVersion = (item: Resource<OngoingTaskSpec>) => {
+  if (item.spec.kubernetes_upgrade) {
+    return item.spec.kubernetes_upgrade.current_upgrade_version
+  }
+
+  if (item.spec.talos_upgrade) {
+    return item.spec.talos_upgrade.current_upgrade_version
+  }
+
+  return item.spec.machine_upgrade?.schematic_id
 }
 
 const toggleDropdown = () => {
@@ -92,27 +117,17 @@ const onClickOutside = () => {
                 </template>
 
                 <div v-else class="flex items-center gap-2 text-xs">
-                  <template
-                    v-if="
-                      (item.spec.kubernetes_upgrade ?? item.spec.talos_upgrade)
-                        .current_upgrade_version
-                    "
-                  >
+                  <template v-if="getCurrentVersion(item)">
                     <span v-if="item.spec.kubernetes_upgrade">Upgrade Kubernetes</span>
+                    <span v-else-if="item.spec.machine_upgrade">Upgrade Machine</span>
                     <span v-else>Upgrade Talos</span>
                     <div class="flex-1" />
                     <span class="rounded bg-naturals-n4 px-2 text-xs font-bold text-naturals-n13">
-                      {{
-                        (item.spec.kubernetes_upgrade ?? item.spec.talos_upgrade)
-                          .last_upgrade_version
-                      }}
+                      {{ getPreviousVersion(item) }}
                     </span>
                     <span>⇾</span>
                     <span class="rounded bg-naturals-n4 px-2 text-xs font-bold text-naturals-n13">
-                      {{
-                        (item.spec.kubernetes_upgrade ?? item.spec.talos_upgrade)
-                          .current_upgrade_version
-                      }}
+                      {{ getCurrentVersion(item) }}
                     </span>
                   </template>
 
@@ -132,7 +147,7 @@ const onClickOutside = () => {
                     </span>
                   </template>
 
-                  <span v-else>Installing extensions</span>
+                  <span v-else>Updating machine schematics</span>
                 </div>
               </div>
             </div>

@@ -24,7 +24,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	xmaps "github.com/siderolabs/gen/maps"
 	"github.com/siderolabs/image-factory/pkg/schematic"
-	"github.com/siderolabs/omni/internal/pkg/image"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	talosclient "github.com/siderolabs/talos/pkg/machinery/client"
 	"github.com/siderolabs/talos/pkg/machinery/config/configdiff"
@@ -38,6 +37,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
+	"github.com/siderolabs/omni/client/pkg/image"
 	"github.com/siderolabs/omni/client/pkg/machineconfig"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"

@@ -87,7 +87,7 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 		{"1.3.0", []string{"1.26.0", "1.27.1"}, true},
 		{"1.3.4", []string{"1.26.0", "1.27.1"}, true},
 		{"1.4.0", []string{"1.27.0", "1.27.1"}, false},
-		{"1.5.0", []string{"1.28.0", "1.28.1", "1.29.0", "1.30.0"}, false},
+		{"1.5.0", []string{"1.28.0", "1.28.1", "1.29.0", "1.30.0", "1.30.1", "1.30.2"}, false},
 	} {
 		talosVersion := omnires.NewTalosVersion(resources.DefaultNamespace, prep.version)
 		talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = prep.compatibleK8s
@@ -208,6 +208,11 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 			kubernetesVersion string
 		}
 
+		type ongoingUpgrade struct {
+			fromVersion string
+			toVersion   string
+		}
+
 		defaultVersions := clusterVersions{
 			talosVersion:      "1.4.0",
 			kubernetesVersion: "1.27.0",
@@ -216,8 +221,9 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 		updateTests := []struct { //nolint:govet
 			name string
 
-			from clusterVersions
-			to   clusterVersions
+			from      clusterVersions
+			to        clusterVersions
+			upgrading *ongoingUpgrade
 
 			shouldFail    bool
 			errorIs       func(error) bool
@@ -294,6 +300,68 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 				errorIs:       validated.IsValidationError,
 				errorContains: "kubernetes version is not supported for upgrade",
 			},
+			{
+				name: "minor downgrade",
+				from: clusterVersions{
+					talosVersion:      "1.5.0",
+					kubernetesVersion: "1.30.0",
+				},
+				to: clusterVersions{
+					talosVersion:      "1.5.0",
+					kubernetesVersion: "1.29.0",
+				},
+				shouldFail:    true,
+				errorIs:       validated.IsValidationError,
+				errorContains: "kubernetes version is not supported for upgrade",
+			},
+			{
+				name: "minor downgrade during ongoing upgrade",
+				from: clusterVersions{
+					talosVersion:      "1.5.0",
+					kubernetesVersion: "1.30.0",
+				},
+				to: clusterVersions{
+					talosVersion:      "1.5.0",
+					kubernetesVersion: "1.29.0",
+				},
+				upgrading: &ongoingUpgrade{
+					fromVersion: "1.29.0",
+					toVersion:   "1.30.0",
+				},
+			},
+			{
+				name: "minor downgrade to different version during ongoing upgrade",
+				from: clusterVersions{
+					talosVersion:      "1.5.0",
+					kubernetesVersion: "1.30.0",
+				},
+				to: clusterVersions{
+					talosVersion:      "1.5.0",
+					kubernetesVersion: "1.29.1",
+				},
+				upgrading: &ongoingUpgrade{
+					fromVersion: "1.29.0",
+					toVersion:   "1.30.0",
+				},
+				shouldFail:    true,
+				errorIs:       validated.IsValidationError,
+				errorContains: "kubernetes version is not supported for upgrade",
+			},
+			{
+				name: "patch upgrade during ongoing upgrade",
+				from: clusterVersions{
+					talosVersion:      "1.5.0",
+					kubernetesVersion: "1.30.0",
+				},
+				to: clusterVersions{
+					talosVersion:      "1.5.0",
+					kubernetesVersion: "1.30.2",
+				},
+				upgrading: &ongoingUpgrade{
+					fromVersion: "1.30.0",
+					toVersion:   "1.30.1",
+				},
+			},
 		}
 
 		// update
@@ -315,6 +383,18 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 				cluster.TypedSpec().Value.Features = tc.from.features
 
 				require.NoError(t, innerSt.Create(ctx, cluster))
+
+				if tc.upgrading != nil {
+					kubernetesUpgrade := omnires.NewKubernetesUpgradeStatus(resources.DefaultNamespace, clusterName)
+
+					t.Cleanup(func() {
+						_ = innerSt.Destroy(ctx, kubernetesUpgrade.Metadata()) //nolint:errcheck // ignore error on cleanup
+					})
+
+					kubernetesUpgrade.TypedSpec().Value.LastUpgradeVersion = tc.upgrading.fromVersion
+					kubernetesUpgrade.TypedSpec().Value.CurrentUpgradeVersion = tc.upgrading.toVersion
+					require.NoError(t, innerSt.Create(ctx, kubernetesUpgrade))
+				}
 
 				if tc.to.talosVersion != "" {
 					cluster.TypedSpec().Value.TalosVersion = tc.to.talosVersion

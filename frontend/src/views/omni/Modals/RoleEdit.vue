@@ -6,12 +6,16 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import type { Ref } from 'vue'
-import { ref } from 'vue'
+import { onBeforeMount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
+import { type Resource, ResourceService } from '@/api/grpc'
+import type { IdentitySpec, UserSpec } from '@/api/omni/specs/auth.pb'
+import { withRuntime } from '@/api/options'
 import {
   DefaultNamespace,
+  IdentityType,
   RoleAdmin,
   RoleNone,
   RoleOperator,
@@ -20,7 +24,7 @@ import {
 } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
-import Watch from '@/components/common/Watch/Watch.vue'
+import { useWatch } from '@/components/common/Watch/useWatch'
 import { canManageUsers } from '@/methods/auth'
 import { updateRole } from '@/methods/user'
 import { showError, showSuccess } from '@/notification'
@@ -35,20 +39,50 @@ const role: Ref<string | undefined> = ref()
 
 const object = route.query.serviceAccount ? 'Service Account' : 'User'
 const id = route.query.identity ?? route.query.serviceAccount
+const userID = ref(route.query.user as string)
+
+const { data: user } = useWatch<UserSpec>(() => ({
+  resource: {
+    id: userID.value,
+    namespace: DefaultNamespace,
+    type: UserType,
+  },
+  runtime: Runtime.Omni,
+  skip: !userID.value,
+}))
+
+onBeforeMount(async () => {
+  if (!route.query.serviceAccount) {
+    return
+  }
+
+  try {
+    const identity: Resource<IdentitySpec> = await ResourceService.Get(
+      {
+        id: route.query.serviceAccount as string,
+        namespace: DefaultNamespace,
+        type: IdentityType,
+      },
+      withRuntime(Runtime.Omni),
+    )
+
+    userID.value = identity.spec.user_id!
+  } catch (e) {
+    showError('Failed to fetch service account', e.message)
+  }
+})
 
 const handleRoleUpdate = async () => {
   if (!role.value) {
     return
   }
 
-  if (!route.query.user) {
+  if (!userID.value) {
     showError(`Failed to Update ${object}`, 'User id is not defined')
-
-    return
   }
 
   try {
-    await updateRole(route.query.user as string, role.value)
+    await updateRole(userID.value, role.value)
   } catch (e) {
     showError(`Failed to Update ${object}`, e.message)
 
@@ -79,27 +113,14 @@ const close = () => {
     </div>
 
     <div class="flex flex-wrap gap-4">
-      <Watch
-        :opts="{
-          resource: {
-            type: UserType,
-            namespace: DefaultNamespace,
-            id: $route.query.user as string,
-          },
-          runtime: Runtime.Omni,
-        }"
-      >
-        <template #default="{ data }">
-          <TSelectList
-            v-if="data?.spec?.role"
-            class="h-full grow"
-            title="Role"
-            :values="roles"
-            :default-value="data.spec?.role"
-            @checked-value="(value) => (role = value)"
-          />
-        </template>
-      </Watch>
+      <TSelectList
+        v-if="user?.spec?.role"
+        class="h-full grow"
+        title="Role"
+        :values="roles"
+        :default-value="user.spec?.role"
+        @checked-value="(value) => (role = value)"
+      />
       <TButton
         type="highlighted"
         :disabled="!canManageUsers"

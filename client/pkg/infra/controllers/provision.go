@@ -218,12 +218,10 @@ func (ctrl *ProvisionController[T]) Reconcile(ctx context.Context,
 		return err
 	}
 
-	return safe.WriterModify(ctx, r, machineRequestStatus, func(res *infra.MachineRequestStatus) error {
-		return ctrl.reconcileRunning(ctx, r, logger, machineRequest, res)
-	})
+	return ctrl.reconcileRunning(ctx, r, logger, machineRequest, machineRequestStatus)
 }
 
-//nolint:gocognit
+//nolint:gocognit,gocyclo,cyclop
 func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r controller.QRuntime, logger *zap.Logger,
 	machineRequest *infra.MachineRequest, machineRequestStatus *infra.MachineRequestStatus,
 ) error {
@@ -259,6 +257,14 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 				return err
 			}
 		}
+	}
+
+	// always create an empty provider machine state to make deprovision call more predictable
+	// so it won't receive an empty machine state there
+	if err = safe.WriterModify(ctx, r, res.(T), func(st T) error { //nolint:forcetypeassert,errcheck
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	if machineRequestStatus.TypedSpec().Value.Id == "" {
@@ -345,12 +351,18 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 		}
 	}
 
-	machineRequestStatus.TypedSpec().Value.Stage = specs.MachineRequestStatusSpec_PROVISIONED
-	machineRequestStatus.TypedSpec().Value.Status = "Provision Complete"
-
-	*machineRequestStatus.Metadata().Labels() = *machineRequest.Metadata().Labels()
-
 	logger.Info("machine provision finished")
+
+	if err = safe.WriterModify(ctx, r, machineRequestStatus, func(res *infra.MachineRequestStatus) error {
+		res.TypedSpec().Value.Stage = specs.MachineRequestStatusSpec_PROVISIONED
+		res.TypedSpec().Value.Status = "Provision Complete"
+
+		*res.Metadata().Labels() = *machineRequest.Metadata().Labels()
+
+		return nil
+	}); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -471,7 +483,6 @@ func (ctrl *ProvisionController[T]) reconcileTearingDown(ctx context.Context, r 
 	}
 
 	resources := []resource.Pointer{
-		resource.NewMetadata(t.ResourceDefinition().DefaultNamespace, t.ResourceDefinition().Type, machineRequest.Metadata().ID(), resource.VersionUndefined),
 		infra.NewMachineRequestStatus(machineRequest.Metadata().ID()).Metadata(),
 	}
 
@@ -484,8 +495,33 @@ func (ctrl *ProvisionController[T]) reconcileTearingDown(ctx context.Context, r 
 		return nil
 	}
 
+	// if there is no machine state do not call deprovision API
+	machineMD := resource.NewMetadata(t.ResourceDefinition().DefaultNamespace, t.ResourceDefinition().Type, machineRequest.Metadata().ID(), resource.VersionUndefined)
+
+	_, err = r.Get(ctx, machineMD)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil
+		}
+
+		return err
+	}
+
 	if err = ctrl.provisioner.Deprovision(ctx, logger, t, machineRequest); err != nil {
 		return err
+	}
+
+	resources = []resource.Pointer{
+		machineMD,
+	}
+
+	destroyReady, err = helpers.TeardownAndDestroyAll(ctx, r, slices.Values(resources))
+	if err != nil {
+		return err
+	}
+
+	if !destroyReady {
+		return nil
 	}
 
 	logger.Info("machine deprovisioned", zap.String("request_id", machineRequest.Metadata().ID()))

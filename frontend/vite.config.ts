@@ -41,6 +41,7 @@ export default defineConfig(({ command }) => {
     server: {
       port: 8121,
       host: '127.0.0.1',
+      // See customizing the dev server in the readme for allowedHosts
     },
   }
 

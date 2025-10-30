@@ -124,7 +124,7 @@ func AssertMachinesHaveLogs(testCtx context.Context, st state.State, managementC
 // AssertUnallocatedMachineDestroyFlow destroys a siderolink.Link resource and verifies that unallocated Machine is removed.
 //
 // Once the Machine is removed, it reboots the VM and asserts that machine re-registers itself.
-func AssertUnallocatedMachineDestroyFlow(testCtx context.Context, st state.State, restartAMachineFunc RestartAMachineFunc) TestFunc {
+func AssertUnallocatedMachineDestroyFlow(testCtx context.Context, options *TestOptions, st state.State, restartAMachineFunc RestartAMachineFunc) TestFunc {
 	return func(t *testing.T) {
 		if restartAMachineFunc == nil {
 			t.Skip("restartAMachineFunc is nil")
@@ -135,7 +135,7 @@ func AssertUnallocatedMachineDestroyFlow(testCtx context.Context, st state.State
 
 		require := require.New(t)
 
-		pickUnallocatedMachines(ctx, t, st, 1, func(machineIDs []string) {
+		pickUnallocatedMachines(ctx, t, st, 1, nil, func(machineIDs []string) {
 			rtestutils.Destroy[*siderolink.Link](ctx, t, st, machineIDs)
 
 			rtestutils.AssertNoResource[*omni.Machine](ctx, t, st, machineIDs[0])
@@ -195,7 +195,7 @@ func AssertControlPlaneForceReplaceMachine(testCtx context.Context, st state.Sta
 
 		id := freezeMachine(ctx, t, st, clusterName, options.FreezeAMachineFunc, omni.LabelControlPlaneRole)
 
-		pickUnallocatedMachines(ctx, t, st, 1, func(machineIDs []resource.ID) {
+		pickUnallocatedMachines(ctx, t, st, 1, nil, func(machineIDs []resource.ID) {
 			t.Logf("Adding machine '%s' to control plane", machineIDs[0])
 
 			bindMachine(ctx, t, st, bindMachineOptions{

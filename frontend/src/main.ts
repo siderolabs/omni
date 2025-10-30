@@ -6,6 +6,7 @@
 import '@/index.css'
 
 import { createAuth0 } from '@auth0/auth0-vue'
+import { milliseconds, millisecondsToSeconds } from 'date-fns'
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 import yamlWorker from 'monaco-yaml/yaml.worker?worker'
 import { createApp } from 'vue'
@@ -73,6 +74,7 @@ const setupApp = async () => {
         clientId: authConfigSpec!.auth0!.client_id!,
         authorizationParams: {
           redirect_uri: window.location.origin,
+          max_age: millisecondsToSeconds(milliseconds({ minutes: 2 })),
         },
         useFormData: !!authConfigSpec!.auth0?.useFormData,
       }),

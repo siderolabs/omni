@@ -455,6 +455,194 @@ func TestUpgradePath(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "upgrade plan with locked nodes",
+			machineMap: &kubernetes.MachineMap{
+				ControlPlanes: map[string]string{
+					"cp1": "node-cp-1",
+				},
+				Workers: map[string]string{
+					"worker1": "node-worker-1",
+					"worker2": "node-worker-2",
+					"worker3": "node-worker-3",
+				},
+				Locked: map[string]string{
+					"worker1": "node-worker-1",
+					"worker3": "node-worker-3",
+				},
+			},
+			kubernetesStatus: kubernetesStatus("cluster5", &specs.KubernetesStatusSpec{
+				Nodes: []*specs.KubernetesStatusSpec_NodeStatus{
+					{
+						Nodename:       "cp1",
+						KubeletVersion: "1.33.2",
+						Ready:          true,
+					},
+					{
+						Nodename:       "worker1",
+						KubeletVersion: "1.33.1",
+						Ready:          true,
+					},
+					{
+						Nodename:       "worker2",
+						KubeletVersion: "1.33.1",
+						Ready:          true,
+					},
+					{
+						Nodename:       "worker3",
+						KubeletVersion: "1.33.1",
+						Ready:          true,
+					},
+				},
+				StaticPods: []*specs.KubernetesStatusSpec_NodeStaticPods{
+					{
+						Nodename: "cp1",
+						StaticPods: []*specs.KubernetesStatusSpec_StaticPodStatus{
+							{
+								App:     "kube-apiserver",
+								Version: "1.33.2",
+								Ready:   true,
+							},
+							{
+								App:     "kube-controller-manager",
+								Version: "1.33.2",
+								Ready:   true,
+							},
+							{
+								App:     "kube-scheduler",
+								Version: "1.33.2",
+								Ready:   true,
+							},
+						},
+					},
+				},
+			}),
+			desiredVersion: "1.33.2",
+			expected: &kubernetes.UpgradePath{
+				ClusterID:          "cluster5",
+				AllComponentsReady: true,
+				AllNodes:           []string{"cp1", "worker1", "worker2", "worker3"},
+				AllNodesToRequiredImages: map[string][]string{
+					"cp1":     requiredImages("1.33.2", true),
+					"worker1": requiredImages("1.33.2", false),
+					"worker2": requiredImages("1.33.2", false),
+					"worker3": requiredImages("1.33.2", false),
+				},
+				Steps: []kubernetes.UpgradeStep{
+					{
+						MachineID:   "node-worker-2",
+						Description: "worker2: updating kubelet to 1.33.2",
+						Node:        "worker2",
+						Component:   kubernetes.Kubelet,
+					},
+					{
+						MachineID:   "node-worker-1",
+						Description: "worker1: updating kubelet to 1.33.2",
+						Node:        "worker1",
+						Component:   kubernetes.Kubelet,
+						Blocked:     true,
+					},
+					{
+						MachineID:   "node-worker-3",
+						Description: "worker3: updating kubelet to 1.33.2",
+						Node:        "worker3",
+						Component:   kubernetes.Kubelet,
+						Blocked:     true,
+					},
+				},
+			},
+		},
+		{
+			name: "upgrade plan waiting for locked nodes to be unlocked",
+			machineMap: &kubernetes.MachineMap{
+				ControlPlanes: map[string]string{
+					"cp1": "node-cp-1",
+				},
+				Workers: map[string]string{
+					"worker1": "node-worker-1",
+					"worker2": "node-worker-2",
+					"worker3": "node-worker-3",
+				},
+				Locked: map[string]string{
+					"worker1": "node-worker-1",
+					"worker3": "node-worker-3",
+				},
+			},
+			kubernetesStatus: kubernetesStatus("cluster5", &specs.KubernetesStatusSpec{
+				Nodes: []*specs.KubernetesStatusSpec_NodeStatus{
+					{
+						Nodename:       "cp1",
+						KubeletVersion: "1.33.2",
+						Ready:          true,
+					},
+					{
+						Nodename:       "worker1",
+						KubeletVersion: "1.33.1",
+						Ready:          true,
+					},
+					{
+						Nodename:       "worker2",
+						KubeletVersion: "1.33.2",
+						Ready:          true,
+					},
+					{
+						Nodename:       "worker3",
+						KubeletVersion: "1.33.1",
+						Ready:          true,
+					},
+				},
+				StaticPods: []*specs.KubernetesStatusSpec_NodeStaticPods{
+					{
+						Nodename: "cp1",
+						StaticPods: []*specs.KubernetesStatusSpec_StaticPodStatus{
+							{
+								App:     "kube-apiserver",
+								Version: "1.33.2",
+								Ready:   true,
+							},
+							{
+								App:     "kube-controller-manager",
+								Version: "1.33.2",
+								Ready:   true,
+							},
+							{
+								App:     "kube-scheduler",
+								Version: "1.33.2",
+								Ready:   true,
+							},
+						},
+					},
+				},
+			}),
+			desiredVersion: "1.33.2",
+			expected: &kubernetes.UpgradePath{
+				ClusterID:          "cluster5",
+				AllComponentsReady: true,
+				AllNodes:           []string{"cp1", "worker1", "worker2", "worker3"},
+				AllNodesToRequiredImages: map[string][]string{
+					"cp1":     requiredImages("1.33.2", true),
+					"worker1": requiredImages("1.33.2", false),
+					"worker2": requiredImages("1.33.2", false),
+					"worker3": requiredImages("1.33.2", false),
+				},
+				Steps: []kubernetes.UpgradeStep{
+					{
+						MachineID:   "node-worker-1",
+						Description: "worker1: updating kubelet to 1.33.2",
+						Node:        "worker1",
+						Component:   kubernetes.Kubelet,
+						Blocked:     true,
+					},
+					{
+						MachineID:   "node-worker-3",
+						Description: "worker3: updating kubelet to 1.33.2",
+						Node:        "worker3",
+						Component:   kubernetes.Kubelet,
+						Blocked:     true,
+					},
+				},
+			},
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
@@ -462,6 +650,7 @@ func TestUpgradePath(t *testing.T) {
 			upgradePath := kubernetes.CalculateUpgradePath(test.machineMap, test.kubernetesStatus, test.desiredVersion)
 			assert.Equal(t, test.expected.AllComponentsReady, upgradePath.AllComponentsReady)
 			assert.Equal(t, test.expected.NotReadyStatus, upgradePath.NotReadyStatus)
+			assert.Equal(t, test.expected.BlockedNodes(), upgradePath.BlockedNodes())
 
 			require.Len(t, upgradePath.Steps, len(test.expected.Steps))
 

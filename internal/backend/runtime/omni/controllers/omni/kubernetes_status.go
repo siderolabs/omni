@@ -30,6 +30,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	cosihelpers "github.com/siderolabs/omni/client/pkg/cosi/helpers"
+	"github.com/siderolabs/omni/client/pkg/image"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
@@ -38,7 +39,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/exposedservice"
 	"github.com/siderolabs/omni/internal/pkg/config"
-	"github.com/siderolabs/omni/internal/pkg/image"
 )
 
 // KubernetesStatusController manages KubernetesStatus resource lifecycle.

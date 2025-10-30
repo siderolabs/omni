@@ -18,8 +18,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/siderolabs/omni/client/pkg/image"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/kubernetes"
-	"github.com/siderolabs/omni/internal/pkg/image"
 )
 
 func TestComponentLess(t *testing.T) {

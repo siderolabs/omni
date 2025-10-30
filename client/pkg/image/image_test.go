@@ -1,7 +1,6 @@
-// Copyright (c) 2025 Sidero Labs, Inc.
-//
-// Use of this software is governed by the Business Source License
-// included in the LICENSE file.
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 package image_test
 
@@ -11,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/siderolabs/omni/internal/pkg/image"
+	"github.com/siderolabs/omni/client/pkg/image"
 )
 
 func TestGetTag(t *testing.T) {

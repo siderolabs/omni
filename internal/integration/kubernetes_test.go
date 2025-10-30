@@ -155,8 +155,10 @@ func AssertKubernetesUpgradeFlow(testCtx context.Context, st state.State, manage
 		require.NoError(t, err)
 		require.True(t, machineSetNodes.Len() > 0)
 
-		// lock a machine in the machine set
-		_, err = safe.StateUpdateWithConflicts(ctx, st, machineSetNodes.Get(0).Metadata(), func(res *omni.MachineSetNode) error {
+		firstMachineSetNode := machineSetNodes.Get(0)
+
+		// lock the first machine in the machine set
+		_, err = safe.StateUpdateWithConflicts(ctx, st, firstMachineSetNode.Metadata(), func(res *omni.MachineSetNode) error {
 			res.Metadata().Annotations().Set(omni.MachineLocked, "")
 
 			return nil
@@ -206,7 +208,7 @@ func AssertKubernetesUpgradeFlow(testCtx context.Context, st state.State, manage
 			assert.NotEmpty(specs.KubernetesUpgradeStatusSpec_Upgrading, r.TypedSpec().Value.Status, resourceDetails(r))
 		})
 
-		t.Log("waiting until upgrade reaches the locked machine")
+		t.Log("waiting until upgrade processes all machines except the locked machine")
 
 		// upgrade should start
 		rtestutils.AssertResources(ctx, t, st, []resource.ID{clusterName}, func(r *omni.KubernetesUpgradeStatus, assert *assert.Assertions) {
@@ -215,8 +217,24 @@ func AssertKubernetesUpgradeFlow(testCtx context.Context, st state.State, manage
 			assert.Contains(r.TypedSpec().Value.Status, "locked", resourceDetails(r))
 		})
 
+		rtestutils.AssertResource(ctx, t, st, clusterName, func(r *omni.KubernetesStatus, assert *assert.Assertions) {
+			upgradedKubeletCount := 0
+			pendingKubeletCount := 0
+
+			for _, status := range r.TypedSpec().Value.Nodes {
+				if status.Ready && status.KubeletVersion == kubernetesVersion {
+					upgradedKubeletCount++
+					continue
+				}
+				pendingKubeletCount++
+			}
+
+			assert.Equal(1, pendingKubeletCount, "there should only one node pending upgrade for kubelet")
+			assert.Equal(4, upgradedKubeletCount, "there should be four nodes with upgraded kubelet")
+		})
+
 		// remove the lock from the machine in the machine set
-		_, err = safe.StateUpdateWithConflicts(ctx, st, machineSetNodes.Get(0).Metadata(), func(res *omni.MachineSetNode) error {
+		_, err = safe.StateUpdateWithConflicts(ctx, st, firstMachineSetNode.Metadata(), func(res *omni.MachineSetNode) error {
 			res.Metadata().Annotations().Delete(omni.MachineLocked)
 
 			return nil

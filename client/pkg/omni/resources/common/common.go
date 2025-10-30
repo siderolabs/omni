@@ -31,6 +31,7 @@ var UserManagedResourceTypes = []resource.Type{
 	omni.MachineSetNodeType,
 	omni.EtcdBackupS3ConfType,
 	omni.ExtensionsConfigurationType,
+	omni.KernelArgsType,
 	omni.MachineRequestSetType,
 	omni.ImportedClusterSecretsType,
 	omni.InfraMachineBMCConfigType,

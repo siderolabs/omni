@@ -171,14 +171,12 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 					// ready to apply the next patch
 					patch := upgradePath.Steps[0]
 
-					var skip bool
+					if _, locked := nodenameToMachineMap.Locked[patch.Node]; locked {
+						upgradeStatus.TypedSpec().Value.Phase = specs.KubernetesUpgradeStatusSpec_Upgrading
+						upgradeStatus.TypedSpec().Value.Step = fmt.Sprintf("updating %s to %s", kubernetes.Kubelet, cluster.TypedSpec().Value.KubernetesVersion)
+						upgradeStatus.TypedSpec().Value.Status = fmt.Sprintf("waiting for a machine from %q to be unlocked", upgradePath.BlockedNodes())
+						upgradeStatus.TypedSpec().Value.Error = ""
 
-					skip, err = skipLocked(ctx, r, patch, upgradeStatus)
-					if err != nil {
-						return err
-					}
-
-					if skip {
 						return nil
 					}
 
@@ -278,10 +276,7 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 				return affectedClusters, nil
 			},
 		),
-		qtransform.WithExtraMappedInput[*omni.ClusterMachineIdentity](
-			mappers.MapByClusterLabel[*omni.Cluster](),
-		),
-		qtransform.WithExtraMappedInput[*omni.MachineSetNode](
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineStatus](
 			mappers.MapByClusterLabel[*omni.Cluster](),
 		),
 		qtransform.WithExtraOutputs(
@@ -395,24 +390,4 @@ func applyUpgradePatches(ctx context.Context, r controller.Writer, cluster *omni
 	}
 
 	return anyPatchApplied, nil
-}
-
-func skipLocked(ctx context.Context, r controller.Reader, patch kubernetes.UpgradeStep, upgradeStatus *omni.KubernetesUpgradeStatus) (bool, error) {
-	machineSetNode, err := r.Get(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.MachineSetNodeType, patch.MachineID, resource.VersionUndefined))
-	if err != nil && !state.IsNotFoundError(err) {
-		return false, err
-	}
-
-	if machineSetNode != nil {
-		if _, locked := machineSetNode.Metadata().Annotations().Get(omni.MachineLocked); locked {
-			upgradeStatus.TypedSpec().Value.Phase = specs.KubernetesUpgradeStatusSpec_Upgrading
-			upgradeStatus.TypedSpec().Value.Step = patch.Description
-			upgradeStatus.TypedSpec().Value.Status = "waiting for machine to be unlocked"
-			upgradeStatus.TypedSpec().Value.Error = ""
-
-			return true, nil
-		}
-	}
-
-	return false, nil
 }

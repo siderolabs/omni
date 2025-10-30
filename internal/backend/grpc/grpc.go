@@ -25,6 +25,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/talos/machine"
 	"github.com/siderolabs/omni/internal/backend/dns"
+	"github.com/siderolabs/omni/internal/backend/grpc/cookies"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/monitoring"
@@ -60,6 +61,17 @@ func MakeServiceServers(
 		}
 	}
 
+	auth, err := newAuthServer(
+		state,
+		config.Config.Services,
+		logger.With(logging.Component("auth_server")),
+	)
+	if err != nil {
+		return func(yield func(ServiceServer, error) bool) {
+			yield(nil, fmt.Errorf("error creating auth server: %w", err))
+		}
+	}
+
 	servers := []ServiceServer{
 		newResourceServer(
 			state,
@@ -78,10 +90,7 @@ func MakeServiceServers(
 			auditor,
 			dest,
 		),
-		&authServer{
-			state:  state,
-			logger: logger.With(logging.Component("auth_server")),
-		},
+		auth,
 		&COSIResourceServer{
 			State: omniRuntime.CachedState(),
 		},
@@ -112,6 +121,7 @@ func RegisterGateway(
 	}
 	runtimeMux := gateway.NewServeMux(
 		gateway.WithMarshalerOption(gateway.MIMEWildcard, marshaller),
+		gateway.WithForwardResponseOption(cookies.Handler),
 	)
 	memtrans := memconn.NewTransport("gateway-conn")
 	opts := []grpc.DialOption{

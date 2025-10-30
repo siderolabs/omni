@@ -4,4 +4,3 @@ description: A helm chart to deploy Omni on a Kubernetes cluster
 type: application
 version: 1.0.0
 appVersion: "v1.2.1"
-

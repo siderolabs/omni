@@ -28,6 +28,7 @@ var ErrInvalidSchematic = fmt.Errorf("invalid schematic")
 type SchematicInfo struct {
 	ID          string
 	FullID      string
+	Raw         string
 	Overlay     schematic.Overlay
 	Extensions  []string
 	KernelArgs  []string
@@ -153,5 +154,6 @@ func GetSchematicInfo(ctx context.Context, c *client.Client, defaultKernelArgs [
 		KernelArgs: kernelArgs,
 		MetaValues: metaValues,
 		Overlay:    overlay,
+		Raw:        manifest,
 	}, nil
 }

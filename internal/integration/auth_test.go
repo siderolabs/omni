@@ -8,13 +8,20 @@
 package integration_test
 
 import (
+	"bytes"
 	"context"
+	_ "embed"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net"
+	"net/http"
+	"net/url"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -31,6 +38,7 @@ import (
 	"github.com/siderolabs/gen/xslices"
 	authcli "github.com/siderolabs/go-api-signature/pkg/client/auth"
 	"github.com/siderolabs/go-api-signature/pkg/client/interceptor"
+	"github.com/siderolabs/go-api-signature/pkg/message"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
 	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	"github.com/siderolabs/go-retry/retry"
@@ -43,7 +51,9 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 
+	"github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/client/api/omni/management"
+	resapi "github.com/siderolabs/omni/client/api/omni/resources"
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/access"
 	pkgaccess "github.com/siderolabs/omni/client/pkg/access"
@@ -666,6 +676,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		machineExtensionsStatus := omni.NewMachineExtensionsStatus(resources.DefaultNamespace, uuid.New().String())
 		machineExtensionsStatus.Metadata().Labels().Set(omni.LabelCluster, uuid.New().String())
 
+		kernelArgs := omni.NewKernelArgs(uuid.New().String())
+		kernelArgsStatus := omni.NewKernelArgsStatus(uuid.New().String())
+
 		joinToken := siderolink.NewJoinToken(resources.DefaultNamespace, uuid.New().String())
 
 		defaultJoinToken, err := safe.StateGetByID[*siderolink.DefaultJoinToken](rootCtx, rootCli.Omni().State(), siderolink.DefaultJoinTokenID)
@@ -766,6 +779,14 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource:       machineExtensionsStatus,
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
+				resource:       kernelArgs,
+				allowedVerbSet: allVerbsSet,
+			},
+			{
+				resource:       kernelArgsStatus,
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
@@ -1067,6 +1088,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
+				resource:       omni.NewMachineUpgradeStatus(uuid.NewString()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
 				resource:       omni.NewDiscoveryAffiliateDeleteTask(uuid.NewString()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
@@ -1288,6 +1313,301 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		// ensure that all resources are tested
 		for untestedResourceType := range untestedResourceTypes {
 			assert.Failf(t, "resource-authz", "resource type %s is not tested", untestedResourceType)
+		}
+	}
+}
+
+var (
+	//go:embed testdata/requests/config-patch.json
+	configPatch []byte
+
+	//go:embed testdata/requests/members-request.json
+	membersRequest []byte
+
+	//go:embed testdata/requests/machines-request.json
+	machinesRequest []byte
+
+	nodesRequest = []byte(`{"type": "nodes.v1"}`)
+
+	emptyJSON = []byte("{}")
+
+	mockResource = configPatch
+
+	//go:embed testdata/requests/delete-config-patch.json
+	deleteConfigPatchRequest []byte
+
+	//go:embed testdata/requests/get-machine-status.json
+	getMachineStatusRequest []byte
+
+	//go:embed testdata/requests/get-current-user.json
+	getCurrentUserRequest []byte
+)
+
+const grpcMetadataPrefix = "Grpc-Metadata-"
+
+func AssertFrontendResourceAPI(ctx context.Context, rootCli *client.Client, clientConfig *clientconfig.ClientConfig, httpEndpoint, clusterName string) TestFunc {
+	return func(t *testing.T) {
+		key, err := clientConfig.GetKey(ctx)
+		require.NoError(t, err)
+
+		email := clientconfig.DefaultServiceAccount
+
+		// do the same flow for the signature as in the JS code
+		signRequest := func(request *http.Request) error {
+			request.Header.Set(grpcMetadataPrefix+message.TimestampHeaderKey, strconv.FormatInt(time.Now().Unix(), 10))
+
+			md := metadata.MD{}
+
+			for key, values := range request.Header {
+				md.Set(strings.ToLower(key)[len(grpcMetadataPrefix):], values...)
+			}
+
+			payload := message.GRPCPayload{
+				Headers: md,
+				Method:  request.URL.Path[len("/api"):],
+			}
+
+			payloadJSON, err := json.Marshal(payload)
+			if err != nil {
+				return fmt.Errorf("failed to encode payload: %w", err)
+			}
+
+			request.Header.Set(grpcMetadataPrefix+message.PayloadHeaderKey, string(payloadJSON))
+
+			signature, err := key.Sign(payloadJSON)
+			if err != nil {
+				return fmt.Errorf("failed to sign: %w", err)
+			}
+
+			signatureBase64 := base64.StdEncoding.EncodeToString(signature)
+
+			//nolint:canonicalheader
+			request.Header.Set(grpcMetadataPrefix+message.SignatureHeaderKey,
+				fmt.Sprintf("%s %s %s %s", message.SignatureVersionV1, email, key.Fingerprint(), signatureBase64))
+
+			return nil
+		}
+
+		nodes, err := safe.ReaderListAll[*omni.ClusterMachineStatus](ctx, rootCli.Omni().State(),
+			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
+		)
+
+		require.NoError(t, err)
+
+		require.Greater(t, nodes.Len(), 0)
+
+		hostname, ok := nodes.Get(0).Metadata().Labels().Get(omni.LabelHostname)
+
+		require.True(t, ok)
+
+		getNodeRequest, err := json.Marshal(map[string]string{
+			"type": "nodes.v1",
+			"id":   hostname,
+		})
+
+		require.NoError(t, err)
+
+		for _, tt := range []struct {
+			requestBody    []byte
+			method         string
+			expectedStatus int
+			backend        common.Runtime
+		}{
+			{
+				backend:        common.Runtime_Kubernetes,
+				method:         resapi.ResourceService_Create_FullMethodName,
+				requestBody:    emptyJSON,
+				expectedStatus: http.StatusBadRequest,
+			},
+			{
+				backend:        common.Runtime_Kubernetes,
+				method:         resapi.ResourceService_Create_FullMethodName,
+				requestBody:    mockResource,
+				expectedStatus: http.StatusNotImplemented,
+			},
+			{
+				backend:        common.Runtime_Talos,
+				method:         resapi.ResourceService_Create_FullMethodName,
+				requestBody:    emptyJSON,
+				expectedStatus: http.StatusBadRequest,
+			},
+			{
+				backend:        common.Runtime_Talos,
+				method:         resapi.ResourceService_Create_FullMethodName,
+				requestBody:    mockResource,
+				expectedStatus: http.StatusNotImplemented,
+			},
+			{
+				backend:        common.Runtime_Omni,
+				method:         resapi.ResourceService_Create_FullMethodName,
+				requestBody:    configPatch,
+				expectedStatus: http.StatusBadRequest,
+			},
+			{
+				backend:        common.Runtime_Kubernetes,
+				method:         resapi.ResourceService_Watch_FullMethodName,
+				requestBody:    nodesRequest,
+				expectedStatus: http.StatusOK,
+			},
+			{
+				backend:        common.Runtime_Talos,
+				method:         resapi.ResourceService_Watch_FullMethodName,
+				requestBody:    membersRequest,
+				expectedStatus: http.StatusOK,
+			},
+			{
+				backend:        common.Runtime_Omni,
+				method:         resapi.ResourceService_Watch_FullMethodName,
+				requestBody:    machinesRequest,
+				expectedStatus: http.StatusOK,
+			},
+			{
+				backend:        common.Runtime_Kubernetes,
+				method:         resapi.ResourceService_List_FullMethodName,
+				requestBody:    nodesRequest,
+				expectedStatus: http.StatusOK,
+			},
+			{
+				backend:        common.Runtime_Talos,
+				method:         resapi.ResourceService_List_FullMethodName,
+				requestBody:    membersRequest,
+				expectedStatus: http.StatusOK,
+			},
+			{
+				backend:        common.Runtime_Omni,
+				method:         resapi.ResourceService_List_FullMethodName,
+				requestBody:    machinesRequest,
+				expectedStatus: http.StatusOK,
+			},
+			{
+				backend:        common.Runtime_Kubernetes,
+				method:         resapi.ResourceService_Update_FullMethodName,
+				requestBody:    configPatch,
+				expectedStatus: http.StatusNotImplemented,
+			},
+			{
+				backend:        common.Runtime_Talos,
+				method:         resapi.ResourceService_Update_FullMethodName,
+				requestBody:    configPatch,
+				expectedStatus: http.StatusNotImplemented,
+			},
+			{
+				backend:        common.Runtime_Omni,
+				method:         resapi.ResourceService_Update_FullMethodName,
+				requestBody:    configPatch,
+				expectedStatus: http.StatusNotFound,
+			},
+			{
+				backend:        common.Runtime_Kubernetes,
+				method:         resapi.ResourceService_Delete_FullMethodName,
+				requestBody:    deleteConfigPatchRequest,
+				expectedStatus: http.StatusNotImplemented,
+			},
+			{
+				backend:        common.Runtime_Talos,
+				method:         resapi.ResourceService_Delete_FullMethodName,
+				requestBody:    deleteConfigPatchRequest,
+				expectedStatus: http.StatusNotImplemented,
+			},
+			{
+				backend:        common.Runtime_Omni,
+				method:         resapi.ResourceService_Delete_FullMethodName,
+				requestBody:    deleteConfigPatchRequest,
+				expectedStatus: http.StatusNotFound,
+			},
+			{
+				backend:        common.Runtime_Kubernetes,
+				method:         resapi.ResourceService_Teardown_FullMethodName,
+				requestBody:    deleteConfigPatchRequest,
+				expectedStatus: http.StatusNotImplemented,
+			},
+			{
+				backend:        common.Runtime_Talos,
+				method:         resapi.ResourceService_Teardown_FullMethodName,
+				requestBody:    deleteConfigPatchRequest,
+				expectedStatus: http.StatusNotImplemented,
+			},
+			{
+				backend:        common.Runtime_Omni,
+				method:         resapi.ResourceService_Teardown_FullMethodName,
+				requestBody:    deleteConfigPatchRequest,
+				expectedStatus: http.StatusNotFound,
+			},
+			{
+				backend:        common.Runtime_Kubernetes,
+				method:         resapi.ResourceService_Get_FullMethodName,
+				requestBody:    getNodeRequest,
+				expectedStatus: http.StatusOK,
+			},
+			{
+				backend:        common.Runtime_Talos,
+				method:         resapi.ResourceService_Get_FullMethodName,
+				requestBody:    getMachineStatusRequest,
+				expectedStatus: http.StatusOK,
+			},
+			{
+				backend:        common.Runtime_Omni,
+				method:         resapi.ResourceService_Get_FullMethodName,
+				requestBody:    getCurrentUserRequest,
+				expectedStatus: http.StatusOK,
+			},
+		} {
+			client := &http.Client{
+				Timeout: 5 * time.Second,
+			}
+
+			for _, sign := range []bool{true, false} {
+				nameSuffix := "no_signature"
+				if sign {
+					nameSuffix = "signed"
+				}
+
+				t.Run(tt.method+"_"+tt.backend.String()+"_"+nameSuffix, func(t *testing.T) {
+					fullURL, err := url.JoinPath(httpEndpoint, "api", tt.method)
+					require.NoError(t, err)
+
+					request, err := http.NewRequestWithContext(ctx, "POST",
+						fullURL, bytes.NewBuffer(tt.requestBody),
+					)
+					require.NoError(t, err)
+					request.Header.Set(grpcMetadataPrefix+"Runtime", tt.backend.String())
+
+					switch tt.backend {
+					case common.Runtime_Talos:
+						request.Header.Set(grpcMetadataPrefix+"Nodes", nodes.Get(0).Metadata().ID())
+						request.Header.Set(grpcMetadataPrefix+"Cluster", clusterName)
+					case common.Runtime_Kubernetes:
+						request.Header.Set(grpcMetadataPrefix+"Cluster", clusterName)
+					}
+
+					if sign {
+						require.NoError(t, signRequest(request))
+					}
+
+					var resp *http.Response
+
+					resp, err = client.Do(request)
+					require.NoError(t, err)
+
+					t.Cleanup(func() {
+						require.NoError(t, resp.Body.Close())
+					})
+
+					decoder := json.NewDecoder(resp.Body)
+
+					var data any
+
+					require.NoError(t, decoder.Decode(&data))
+
+					if !sign {
+						require.Equal(t, http.StatusUnauthorized, resp.StatusCode, data)
+
+						return
+					}
+
+					require.Equal(t, tt.expectedStatus, resp.StatusCode, data)
+				})
+			}
 		}
 	}
 }

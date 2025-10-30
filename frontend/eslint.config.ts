@@ -65,13 +65,13 @@ export default defineConfigWithVueTs(
       'vue/eqeqeq': 'error',
       'vue/match-component-file-name': 'error',
       'vue/match-component-import-name': 'error',
+      'vue/multi-word-component-names': 'off',
       'vue/next-tick-style': 'error',
       'vue/no-boolean-default': 'error',
       'vue/no-template-target-blank': 'error',
       'vue/no-useless-mustaches': 'error',
 
       // Temporarily disabled rules
-      'vue/multi-word-component-names': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',
     },
   },

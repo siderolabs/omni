@@ -27,8 +27,9 @@ type SchematicConfigurationSuite struct {
 	OmniSuite
 }
 
+//nolint:maintidx
 func (suite *SchematicConfigurationSuite) TestReconcile() {
-	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*10)
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*45)
 	defer cancel()
 
 	factory := imageFactoryMock{}
@@ -51,21 +52,36 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineExtensionsController()))
 
 	machineName := "machine1"
-	initialSchematic := "00000"
 	clusterName := "cluster"
 	machineSet := "machineset"
 
+	const talosVersion = "1.7.0"
+
 	cluster := omni.NewCluster(resources.DefaultNamespace, clusterName)
-	cluster.TypedSpec().Value.TalosVersion = "1.7.0"
+	cluster.TypedSpec().Value.TalosVersion = talosVersion
 
 	suite.Require().NoError(suite.state.Create(ctx, cluster))
 
 	machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, machineName)
+	machineStatus.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
+
+	// customization:
+	//   systemExtensions:
+	//     officialExtensions:
+	//       - siderolabs/hello-world-service
+	expectedSchematic := "cf9b7aab9ed7c365d5384509b4d31c02fdaa06d2b3ac6cc0bc806f28130eff1f"
+
+	machineStatus.TypedSpec().Value.TalosVersion = talosVersion
 	machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
-		InitialSchematic: initialSchematic,
+		InitialSchematic: expectedSchematic,
+		InitialState: &specs.MachineStatusSpec_Schematic_InitialState{
+			Extensions: []string{"siderolabs/hello-world-service"},
+		},
 	}
-	machineStatus.TypedSpec().Value.InitialTalosVersion = "1.7.0"
-	machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{}
+	machineStatus.TypedSpec().Value.InitialTalosVersion = talosVersion
+	machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{
+		BootedWithUki: true,
+	}
 	machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
 		Platform: talosconstants.PlatformMetal,
 	}
@@ -79,20 +95,23 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-			assertion.Equal(initialSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 		},
 	)
 
 	// set empty extensions list for the cluster
 	extensionsConfiguration := omni.NewExtensionsConfiguration(resources.DefaultNamespace, "test")
-	extensionsConfiguration.TypedSpec().Value.Extensions = []string{}
+	extensionsConfiguration.TypedSpec().Value.Extensions = nil
 	extensionsConfiguration.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 
 	suite.Require().NoError(suite.state.Create(ctx, extensionsConfiguration))
 
+	// customization: {}
+	expectedSchematic = "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"
+
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-			assertion.Equal("376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba", schematicConfiguration.TypedSpec().Value.SchematicId)
+			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 		},
 	)
 
@@ -106,9 +125,15 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.state.Create(ctx, extensionsConfiguration))
 
+	// customization:
+	//   systemExtensions:
+	//     officialExtensions:
+	//       - siderolabs/something
+	expectedSchematic = "df7c842f133b05c875f2139ea94b09eae3d425e00a95e6f9f54552f442d9f8c0"
+
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-			assertion.Equal("df7c842f133b05c875f2139ea94b09eae3d425e00a95e6f9f54552f442d9f8c0", schematicConfiguration.TypedSpec().Value.SchematicId)
+			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 		},
 	)
 
@@ -124,9 +149,18 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 
 	suite.Require().NoError(err)
 
+	// overlay:
+	//   image: something
+	//   name: rpi_generic
+	// customization:
+	//   systemExtensions:
+	//     officialExtensions:
+	//       - siderolabs/something
+	expectedSchematic = "f6a68c47512b4f3c50ccbd6d57873d2194dcac15f3a79d7703c05538a83429d7"
+
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-			assertion.Equal("f6a68c47512b4f3c50ccbd6d57873d2194dcac15f3a79d7703c05538a83429d7", schematicConfiguration.TypedSpec().Value.SchematicId)
+			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 		},
 	)
 
@@ -140,9 +174,18 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.state.Create(ctx, extensionsConfiguration))
 
+	// overlay:
+	//   image: something
+	//   name: rpi_generic
+	// customization:
+	//   systemExtensions:
+	//     officialExtensions:
+	//       - siderolabs/something-else
+	expectedSchematic = "d7eb0c567b0b108e9b69ee0217c0fed99847175549b48d7b41ec6ef45d993965"
+
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-			assertion.Equal("d7eb0c567b0b108e9b69ee0217c0fed99847175549b48d7b41ec6ef45d993965", schematicConfiguration.TypedSpec().Value.SchematicId)
+			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 		},
 	)
 
@@ -155,21 +198,36 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 
 	suite.Require().NoError(err)
 
+	// overlay:
+	//   image: something
+	//   name: rpi_generic
+	// customization: {}
+	expectedSchematic = "2611e4c1b6b8de906c9ad8f2248145d034ce8f657706407fe2f6a01086331a7d"
+
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-			assertion.Equal("2611e4c1b6b8de906c9ad8f2248145d034ce8f657706407fe2f6a01086331a7d", schematicConfiguration.TypedSpec().Value.SchematicId)
+			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 		},
 	)
 
-	// reset everything to the default state, should revert back to the initial schematic
+	// reset everything to the default state, should revert back to the initial set of extensions
 
 	rtestutils.DestroyAll[*omni.ExtensionsConfiguration](ctx, suite.T(), suite.state)
 
 	suite.Require().NoError(err)
 
+	// overlay:
+	//   image: something
+	//   name: rpi_generic
+	// customization:
+	//   systemExtensions:
+	//     officialExtensions:
+	//       - siderolabs/something
+	expectedSchematic = "8ac31bbb181769d0963b217bb48f92839059ce90bc9e8b08836892c0182f8cb8"
+
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-			assertion.Equal(initialSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 		},
 	)
 
@@ -181,9 +239,19 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 
 	suite.Require().NoError(err)
 
+	// overlay:
+	//   image: something
+	//   name: rpi_generic
+	// customization:
+	//   systemExtensions:
+	//     officialExtensions:
+	//       - siderolabs/bnx2-bnx2x
+	//       - siderolabs/intel-ice-firmware
+	expectedSchematic = "35a502528a50b5c9d264a152545c4b02c2b82a2a5c8fd7398baa9fe78abfb1a2"
+
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-			assertion.Equal("35a502528a50b5c9d264a152545c4b02c2b82a2a5c8fd7398baa9fe78abfb1a2", schematicConfiguration.TypedSpec().Value.SchematicId)
+			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 		},
 	)
 
@@ -195,7 +263,7 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-			assertion.Equal("35a502528a50b5c9d264a152545c4b02c2b82a2a5c8fd7398baa9fe78abfb1a2", schematicConfiguration.TypedSpec().Value.SchematicId)
+			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 		},
 	)
 
@@ -210,7 +278,7 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-			assertion.Equal("35a502528a50b5c9d264a152545c4b02c2b82a2a5c8fd7398baa9fe78abfb1a2", schematicConfiguration.TypedSpec().Value.SchematicId)
+			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 		},
 	)
 
@@ -226,11 +294,74 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 
 	suite.Require().NoError(err)
 
+	// overlay:
+	//   image: something
+	//   name: rpi_generic
+	// customization:
+	//   systemExtensions:
+	//     officialExtensions:
+	//       - siderolabs/bnx2-bnx2x
+	//       - siderolabs/intel-ice-firmware
+	//       - siderolabs/x11
+	expectedSchematic = "5fd4ef8a66795a9aba2520a2be1bb4fb64ef7405a775e40965cf6d7aa417665f"
+
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-			assertion.Equal("5fd4ef8a66795a9aba2520a2be1bb4fb64ef7405a775e40965cf6d7aa417665f", schematicConfiguration.TypedSpec().Value.SchematicId)
+			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 		},
 	)
+
+	// create kernel args, should change the schematic ID
+
+	kernelArgs := omni.NewKernelArgs(machineName)
+	kernelArgs.TypedSpec().Value.Args = []string{"foo=bar", "baz=qux"}
+
+	suite.Require().NoError(suite.state.Create(ctx, kernelArgs))
+
+	// overlay:
+	//   image: something
+	//   name: rpi_generic
+	// customization:
+	//   extraKernelArgs:
+	//     - foo=bar
+	//     - baz=qux
+	//   systemExtensions:
+	//     officialExtensions:
+	//       - siderolabs/bnx2-bnx2x
+	//       - siderolabs/intel-ice-firmware
+	//       - siderolabs/x11
+	expectedSchematic = "17b419c0d747bbd2399e2d06d16def170636569e9116e3e015b5be0015dd82c7"
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
+		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+		},
+	)
+
+	// set the UKI to false, the schematic should no more contain the kernel args (as updating them is not supported)
+
+	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, machineStatus.Metadata(), func(res *omni.MachineStatus) error {
+		res.TypedSpec().Value.SecurityState.BootedWithUki = false
+
+		return nil
+	})
+	suite.Require().NoError(err)
+
+	// overlay:
+	//   image: something
+	//   name: rpi_generic
+	// customization:
+	//   systemExtensions:
+	//     officialExtensions:
+	//       - siderolabs/bnx2-bnx2x
+	//       - siderolabs/intel-ice-firmware
+	//       - siderolabs/x11
+	expectedSchematic = "5fd4ef8a66795a9aba2520a2be1bb4fb64ef7405a775e40965cf6d7aa417665f"
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
+		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+		})
 }
 
 func TestSchematicConfigurationSuite(t *testing.T) {

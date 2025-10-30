@@ -52,6 +52,7 @@ var resourcePollers = map[string]machinePollFunction{
 	runtime.MetaKeyType:          pollMeta,
 	runtime.ExtensionStatusType:  pollExtensions,
 	runtime.DiagnosticType:       pollDiagnostics,
+	runtime.KernelCmdlineType:    pollKernelCmdline,
 	block.DiskType:               pollDisks,
 }
 
@@ -533,4 +534,19 @@ func pollDiagnostics(ctx context.Context, c *client.Client, info *Info) error {
 	}
 
 	return nil
+}
+
+func pollKernelCmdline(ctx context.Context, c *client.Client, info *Info) error {
+	info.KernelCmdline = ""
+
+	return forEachResource(
+		ctx,
+		c,
+		runtime.NamespaceName,
+		runtime.KernelCmdlineType,
+		func(r *runtime.KernelCmdline) error {
+			info.KernelCmdline = r.TypedSpec().Cmdline
+
+			return nil
+		})
 }

@@ -189,7 +189,7 @@ func (s *managementServer) collectLogs(machineID string) *collectors.Collector {
 		r, err := s.logHandler.GetReader(slink.MachineID(machineID), false, optional.None[int32]())
 		if err != nil {
 			if slink.IsBufferNotFoundError(err) {
-				return nil, nil
+				return []byte{}, nil
 			}
 
 			return nil, err
@@ -313,6 +313,14 @@ func (s *managementServer) collectClusterResources(ctx context.Context, cluster 
 		},
 		{
 			rt:          omni.ExtensionsConfigurationType,
+			listOptions: clusterQuery,
+		},
+		{
+			rt:          omni.KernelArgsType,
+			listOptions: clusterQuery,
+		},
+		{
+			rt:          omni.KernelArgsStatusType,
 			listOptions: clusterQuery,
 		},
 		{

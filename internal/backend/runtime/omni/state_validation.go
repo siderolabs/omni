@@ -78,7 +78,12 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 			currentKubernetesVersion = existingRes.TypedSpec().Value.KubernetesVersion
 		}
 
-		if err = validateKubernetesVersion(currentKubernetesVersion, res.TypedSpec().Value.KubernetesVersion); err != nil {
+		upgradeStatus, err := safe.ReaderGetByID[*omni.KubernetesUpgradeStatus](ctx, st, res.Metadata().ID())
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		if err = validateKubernetesVersion(currentKubernetesVersion, res.TypedSpec().Value.KubernetesVersion, upgradeStatus); err != nil {
 			return err
 		}
 
@@ -1204,9 +1209,21 @@ func validateTalosVersion(ctx context.Context, st state.State, current, newVersi
 	return nil
 }
 
-func validateKubernetesVersion(current, newVersion string) error {
+func validateKubernetesVersion(current, newVersion string, upgradeStatus *omni.KubernetesUpgradeStatus) error {
 	if current == "" {
 		return nil
+	}
+
+	// Allow aborting ongoing upgrade
+	if upgradeStatus != nil && upgradeStatus.TypedSpec().Value.CurrentUpgradeVersion != "" {
+		previousVersion := semver.MustParse(current)
+		futureVersion := semver.MustParse(newVersion)
+		currentUpgradeVersion := semver.MustParse(upgradeStatus.TypedSpec().Value.CurrentUpgradeVersion)
+		lastUpgradeVersion := semver.MustParse(upgradeStatus.TypedSpec().Value.LastUpgradeVersion)
+
+		if futureVersion.EQ(lastUpgradeVersion) && previousVersion.EQ(currentUpgradeVersion) {
+			return nil
+		}
 	}
 
 	upgradePath, err := upgrade.NewPath(current, newVersion)

@@ -24,7 +24,7 @@ import (
 
 const testPatch = `apiVersion: v1alpha1
 kind: EventSinkConfig
-endpoint: '[fdae:41e4:649b:9303::1]:8090'`
+endpoint: '[fdae:41e4:649b:9303::1]:8091'`
 
 // AssertMaintenanceTestConfigIsPresent asserts that the test configuration is present on a machine in maintenance mode.
 func AssertMaintenanceTestConfigIsPresent(ctx context.Context, omniState state.State, cluster resource.ID, machineIndex int) TestFunc {

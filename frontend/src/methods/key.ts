@@ -24,8 +24,6 @@ import {
   SignatureHeaderKey,
   SignatureVersionV1,
   TimestampHeaderKey,
-  workloadProxyPublicKeyIdCookie,
-  workloadProxyPublicKeyIdSignatureBase64Cookie,
 } from '@/api/resources'
 
 let interceptorsRegistered = false
@@ -33,6 +31,7 @@ let keysReloadTimeout: number
 
 const privateKeyArmored = useLocalStorage<string>('privateKey', null)
 const publicKeyArmored = useLocalStorage<string>('publicKey', null)
+const publicKeyID = useLocalStorage<string>('publicKeyID', null)
 
 export const identity = useLocalStorage<string>('identity', null)
 export const fullname = useLocalStorage<string>('fullname', null)
@@ -133,8 +132,28 @@ export const createKeys = async (
   }
 }
 
-export const signDetached = async (data: string): Promise<string> => {
-  const keys = await loadKeys()
+export const revokePublicKey = async () => {
+  if (!publicKeyID.value) {
+    return
+  }
+
+  await AuthService.RevokePublicKey({
+    public_key_id: publicKeyID.value,
+  })
+}
+
+export const signDetached = async (data: string, privateKey?: string): Promise<string> => {
+  let keys: {
+    privateKey: PrivateKey
+  }
+
+  if (privateKey) {
+    keys = {
+      privateKey: await readPrivateKey({ armoredKey: privateKey }),
+    }
+  } else {
+    keys = await loadKeys()
+  }
 
   const stream = await sign({
     message: await createMessage({ text: data }),
@@ -158,6 +177,7 @@ export const saveKeys = async (
 
   publicKeyArmored.value = publicKey
   privateKeyArmored.value = privateKey
+  publicKeyID.value = publicKeyId
 
   identity.value = user.email.toLowerCase()
   avatar.value = user.picture
@@ -170,8 +190,6 @@ export const saveKeys = async (
   if (!(expirationTime instanceof Date)) {
     throw new KeysInvalidError('failed to save keys: invalid expiration time')
   }
-
-  await saveAuthCookies(publicKeyId, expirationTime)
 }
 
 export const resetKeys = () => {
@@ -179,12 +197,11 @@ export const resetKeys = () => {
 
   publicKeyArmored.value = undefined
   privateKeyArmored.value = undefined
+  publicKeyID.value = undefined
 
   identity.value = undefined
   avatar.value = undefined
   fullname.value = undefined
-
-  removeAuthCookies()
 
   authorized.value = false
 }
@@ -257,7 +274,10 @@ const registerInterceptors = () => {
     request: async (url, config?: { headers?: Headers; method?: string }) => {
       url = encodeURI(url)
 
-      if (!/^\/(api|image)/.test(url) || url.indexOf('/api/auth.') !== -1) {
+      if (
+        !/^\/(api|image)/.test(url) ||
+        (url.startsWith('/api/auth.') && !url.startsWith('/api/auth.AuthService/RevokePublicKey'))
+      ) {
         return [url, config]
       }
 
@@ -320,47 +340,4 @@ export const getParentDomain = () => {
   }
 
   return domainParts.slice(1).join('.')
-}
-
-export const getAuthCookies = ():
-  | { publicKeyId: string; publicKeyIdSignatureBase64: string }
-  | undefined => {
-  const getCookie = (name: string): string | undefined => {
-    const value = `; ${document.cookie}`
-    const parts = value.split(`; ${name}=`)
-
-    if (parts.length !== 2) {
-      return undefined
-    }
-
-    return parts.pop()!.split(';').shift()
-  }
-
-  const publicKeyIdCookie = getCookie(workloadProxyPublicKeyIdCookie)
-  const publicKeyIdSignatureBase64Cookie = getCookie(workloadProxyPublicKeyIdSignatureBase64Cookie)
-
-  if (!publicKeyIdCookie || !publicKeyIdSignatureBase64Cookie) {
-    return undefined
-  }
-
-  return {
-    publicKeyId: publicKeyIdCookie,
-    publicKeyIdSignatureBase64: publicKeyIdSignatureBase64Cookie,
-  }
-}
-
-const saveAuthCookies = async (publicKeyId: string, expirationTime: Date) => {
-  const publicKeyIdSignatureBase64 = await signDetached(publicKeyId)
-
-  const parentDomain = getParentDomain()
-
-  window.document.cookie = `${workloadProxyPublicKeyIdCookie}=${publicKeyId}; path=/; expires=${expirationTime.toUTCString()}; domain=.${parentDomain}`
-  window.document.cookie = `${workloadProxyPublicKeyIdSignatureBase64Cookie}=${publicKeyIdSignatureBase64}; path=/; expires=${expirationTime.toUTCString()}; domain=.${parentDomain}`
-}
-
-const removeAuthCookies = () => {
-  const parentDomain = getParentDomain()
-
-  window.document.cookie = `${workloadProxyPublicKeyIdCookie}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=.${parentDomain}`
-  window.document.cookie = `${workloadProxyPublicKeyIdSignatureBase64Cookie}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=.${parentDomain}`
 }

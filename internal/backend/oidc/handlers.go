@@ -22,6 +22,9 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
+// RedirectURL is the URL where OIDC flow consumes the resulting token.
+const RedirectURL = "/oidc/consume"
+
 func randString(nByte int) (string, error) {
 	b := make([]byte, nByte)
 	if _, err := io.ReadFull(rand.Reader, b); err != nil {
@@ -101,18 +104,127 @@ func parseAuthState(data string) (authState, error) {
 	return state, nil
 }
 
-// RegisterHandlers adds HTTP handlers to use OIDC authentication for Omni access.
-func RegisterHandlers(endpoint string, config config.OIDC, mux *http.ServeMux, provider *oidc.Provider) error {
-	redirectURL := "/oidc/consume"
+// Handler is the collection of HTTP routes required for the OIDC auth.
+type Handler struct {
+	oauth2Config oauth2.Config
+	key          string
+	logoutURL    string
+	endpoint     string
+}
 
-	key, err := randString(16)
+// Login handles the login flow of OIDC auth.
+func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	s, err := newAuthState(r.URL.RawQuery, h.key)
 	if err != nil {
-		return err
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
 	}
 
-	fullRedirectURL, err := url.JoinPath(endpoint + redirectURL)
+	state, err := s.encode()
 	if err != nil {
-		return err
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	setCallbackCookie(w, r, "state", state)
+
+	http.Redirect(w, r, h.oauth2Config.AuthCodeURL(state), http.StatusFound)
+}
+
+// Logout handles the logout flow of OIDC auth.
+func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	if h.logoutURL == "" {
+		http.Redirect(w, r, h.endpoint, http.StatusFound)
+
+		return
+	}
+
+	logoutURL, err := url.Parse(h.logoutURL)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	query := logoutURL.Query()
+
+	query.Add("post_logout_redirect_uri", h.endpoint)
+
+	logoutURL.RawQuery = query.Encode()
+
+	http.Redirect(w, r, logoutURL.String(), http.StatusFound)
+}
+
+// OIDCConsume handles the final stage of the OIDC login flow.
+func (h *Handler) OIDCConsume(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	state, err := r.Cookie("state")
+	if err != nil {
+		http.Redirect(w, r, "/forbidden", http.StatusSeeOther)
+
+		return
+	}
+
+	if r.URL.Query().Get("state") != state.Value {
+		http.Redirect(w, r, "/forbidden", http.StatusSeeOther)
+
+		return
+	}
+
+	var st authState
+
+	st, err = parseAuthState(r.URL.Query().Get("state"))
+	if err != nil {
+		http.Redirect(w, r, "/forbidden", http.StatusSeeOther)
+
+		return
+	}
+
+	if !st.verify(h.key) {
+		http.Redirect(w, r, "/forbidden", http.StatusSeeOther)
+
+		return
+	}
+
+	oauth2Token, err := h.oauth2Config.Exchange(ctx, r.URL.Query().Get("code"))
+	if err != nil {
+		http.Error(w, "failed to exchange token: "+err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
+	if !ok {
+		http.Error(w, "no id_token field in oauth2 token.", http.StatusInternalServerError)
+
+		return
+	}
+
+	query, err := url.ParseQuery(st.Query)
+	if err != nil {
+		http.Redirect(w, r, "/forbidden", http.StatusSeeOther)
+
+		return
+	}
+
+	query.Set("token", rawIDToken)
+
+	http.Redirect(w, r, "/authenticate?"+query.Encode(), http.StatusSeeOther)
+}
+
+// NewOIDCHandler creates a new OIDC handler.
+func NewOIDCHandler(endpoint string, config config.OIDC, provider *oidc.Provider) (*Handler, error) {
+	key, err := randString(16)
+	if err != nil {
+		return nil, err
+	}
+
+	fullRedirectURL, err := url.JoinPath(endpoint + RedirectURL)
+	if err != nil {
+		return nil, err
 	}
 
 	oauth2Config := oauth2.Config{
@@ -126,105 +238,10 @@ func RegisterHandlers(endpoint string, config config.OIDC, mux *http.ServeMux, p
 		Scopes: config.Scopes,
 	}
 
-	mux.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {
-		if config.LogoutURL == "" {
-			http.Redirect(w, r, endpoint, http.StatusFound)
-
-			return
-		}
-
-		logoutURL, err := url.Parse(config.LogoutURL)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-
-			return
-		}
-
-		query := logoutURL.Query()
-
-		query.Add("post_logout_redirect_uri", endpoint)
-
-		logoutURL.RawQuery = query.Encode()
-
-		http.Redirect(w, r, logoutURL.String(), http.StatusFound)
-	})
-
-	mux.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-		s, err := newAuthState(r.URL.RawQuery, key)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-
-			return
-		}
-
-		state, err := s.encode()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-
-			return
-		}
-
-		setCallbackCookie(w, r, "state", state)
-
-		http.Redirect(w, r, oauth2Config.AuthCodeURL(state), http.StatusFound)
-	})
-
-	mux.HandleFunc(redirectURL, func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-
-		state, err := r.Cookie("state")
-		if err != nil {
-			http.Redirect(w, r, "/forbidden", http.StatusSeeOther)
-
-			return
-		}
-
-		if r.URL.Query().Get("state") != state.Value {
-			http.Redirect(w, r, "/forbidden", http.StatusSeeOther)
-
-			return
-		}
-
-		var st authState
-
-		st, err = parseAuthState(r.URL.Query().Get("state"))
-		if err != nil {
-			http.Redirect(w, r, "/forbidden", http.StatusSeeOther)
-
-			return
-		}
-
-		if !st.verify(key) {
-			http.Redirect(w, r, "/forbidden", http.StatusSeeOther)
-
-			return
-		}
-
-		oauth2Token, err := oauth2Config.Exchange(ctx, r.URL.Query().Get("code"))
-		if err != nil {
-			http.Error(w, "failed to exchange token: "+err.Error(), http.StatusInternalServerError)
-
-			return
-		}
-
-		rawIDToken, ok := oauth2Token.Extra("id_token").(string)
-		if !ok {
-			http.Error(w, "no id_token field in oauth2 token.", http.StatusInternalServerError)
-
-			return
-		}
-
-		query, err := url.ParseQuery(st.Query)
-		if err != nil {
-			http.Redirect(w, r, "/forbidden", http.StatusSeeOther)
-
-			return
-		}
-
-		query.Set("token", rawIDToken)
-
-		http.Redirect(w, r, "/authenticate?"+query.Encode(), http.StatusSeeOther)
-	})
-
-	return nil
+	return &Handler{
+		key:          key,
+		endpoint:     endpoint,
+		logoutURL:    config.LogoutURL,
+		oauth2Config: oauth2Config,
+	}, nil
 }

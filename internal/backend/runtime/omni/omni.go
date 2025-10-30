@@ -41,6 +41,7 @@ import (
 	pkgruntime "github.com/siderolabs/omni/client/pkg/runtime"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
+	"github.com/siderolabs/omni/internal/backend/kernelargs"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/powerstage"
 	"github.com/siderolabs/omni/internal/backend/resourcelogger"
@@ -50,6 +51,8 @@ import (
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/image"
+	kernelargsctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/kernelargs"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineupgrade"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual/pkg/producers"
@@ -123,6 +126,8 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 			safe.WithResourceCache[*omni.EtcdBackupStatus](),
 			safe.WithResourceCache[*omni.ExposedService](),
 			safe.WithResourceCache[*omni.ExtensionsConfiguration](),
+			safe.WithResourceCache[*omni.KernelArgs](),
+			safe.WithResourceCache[*omni.KernelArgsStatus](),
 			safe.WithResourceCache[*omni.ImagePullRequest](),
 			safe.WithResourceCache[*omni.ImagePullStatus](),
 			safe.WithResourceCache[*omni.ImportedClusterSecrets](),
@@ -156,6 +161,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 			safe.WithResourceCache[*omni.TalosUpgradeStatus](),
 			safe.WithResourceCache[*omni.TalosVersion](),
 			safe.WithResourceCache[*omni.MaintenanceConfigStatus](),
+			safe.WithResourceCache[*omni.MachineUpgradeStatus](),
 			safe.WithResourceCache[*omni.MachineConfigDiff](),
 			safe.WithResourceCache[*siderolinkres.Config](),
 			safe.WithResourceCache[*siderolinkres.ConnectionParams](),
@@ -253,6 +259,11 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 	imageFactoryHost := imageFactoryClient.Host()
 	peers := siderolink.NewPeersPool(logger, siderolink.DefaultWireguardHandler)
 
+	exraKernelArgsInitializer, err := kernelargs.NewInitializer(cachedState, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create extra kernel args initializer: %w", err)
+	}
+
 	qcontrollers := []controller.QController{
 		destroy.NewController[*siderolinkres.Link](optional.Some[uint](4)),
 		destroy.NewController[*omni.Cluster](optional.Some[uint](4)),
@@ -271,7 +282,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		),
 		omnictrl.NewClusterMachineTeardownController(),
 		omnictrl.NewMachineConfigGenOptionsController(),
-		omnictrl.NewMachineStatusController(imageFactoryClient),
+		omnictrl.NewMachineStatusController(imageFactoryClient, exraKernelArgsInitializer),
 		omnictrl.NewClusterMachineConfigStatusController(imageFactoryHost),
 		omnictrl.NewClusterMachineEncryptionKeyController(),
 		omnictrl.NewClusterMachineStatusController(),
@@ -320,6 +331,8 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		omnictrl.NewConnectionParamsController(),
 		omnictrl.NewJoinTokenStatusController(),
 		omnictrl.NewNodeUniqueTokenCleanupController(time.Minute),
+		machineupgrade.NewStatusController(imageFactoryClient, nil),
+		kernelargsctrl.NewStatusController(),
 	}
 
 	if config.Config.Auth.SAML.Enabled {

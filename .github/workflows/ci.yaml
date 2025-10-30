@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-10-10T14:11:15Z by kres 063080a.
+# Generated on 2025-10-27T13:48:49Z by kres 46e133d.
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -185,6 +185,8 @@ jobs:
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-backups')
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -244,10 +246,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-e2e-backups
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-cluster-import:
@@ -256,6 +255,8 @@ jobs:
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-cluster-import')
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -316,10 +317,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-e2e-cluster-import
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-forced-removal:
@@ -328,6 +326,8 @@ jobs:
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-forced-removal')
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -387,10 +387,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-e2e-forced-removal
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-omni-upgrade:
@@ -399,6 +396,8 @@ jobs:
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-omni-upgrade')
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -459,10 +458,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-e2e-omni-upgrade
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-scaling:
@@ -471,6 +467,8 @@ jobs:
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-scaling')
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -530,10 +528,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-e2e-scaling
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-short:
@@ -542,6 +537,8 @@ jobs:
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-short')
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -601,10 +598,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-e2e-short
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-short-secureboot:
@@ -613,6 +607,8 @@ jobs:
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-short-secureboot')
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -673,10 +669,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-e2e-short-secureboot
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-templates:
@@ -685,6 +678,8 @@ jobs:
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-templates')
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -744,10 +739,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-e2e-templates
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-upgrades:
@@ -756,6 +748,8 @@ jobs:
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-upgrades')
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -803,7 +797,7 @@ jobs:
       - name: run-integration-test
         env:
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade)$
+          INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|KernelArgsUpdate|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade)$
           RUN_TALEMU_TESTS: "false"
           TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
           WITH_DEBUG: "true"
@@ -815,10 +809,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-e2e-upgrades
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   e2e-workload-proxy:
@@ -827,6 +818,8 @@ jobs:
     if: contains(fromJSON(needs.default.outputs.labels), 'integration/e2e') || contains(fromJSON(needs.default.outputs.labels), 'integration/e2e-workload-proxy')
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -886,10 +879,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-e2e-workload-proxy
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
         continue-on-error: true
   integration-test:
@@ -898,6 +888,8 @@ jobs:
     if: github.event_name == 'pull_request'
     needs:
       - default
+      - lint
+      - unit-tests
     steps:
       - name: gather-system-info
         id: system-info
@@ -970,10 +962,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test
-          path: |-
-            ~/.talos/clusters/**/*.log
-            !~/.talos/clusters/**/swtpm.log
-            ${{ github.workspace }}/integration-test
+          path: ${{ github.workspace }}/integration-test
           retention-days: "5"
       - name: coverage
         uses: codecov/codecov-action@v5

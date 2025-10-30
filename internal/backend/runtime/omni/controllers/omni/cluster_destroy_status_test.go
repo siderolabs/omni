@@ -22,17 +22,18 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 )
 
 func TestClusterDestroyStatusController(t *testing.T) {
 	t.Parallel()
 
-	sb := dynamicStateBuilder{m: map[resource.Namespace]state.CoreState{}}
+	sb := testutils.DynamicStateBuilder{M: map[resource.Namespace]state.CoreState{}}
 
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	t.Cleanup(cancel)
 
-	withRuntime(
+	testutils.WithRuntime(
 		ctx,
 		t,
 		sb.Builder,

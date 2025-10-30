@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+import { type Auth0VueClient } from '@auth0/auth0-vue'
 import type { ComputedRef, Ref } from 'vue'
 import { computed, onBeforeMount, ref, watch } from 'vue'
 
@@ -17,6 +18,7 @@ import type {
 } from '@/api/omni/specs/virtual.pb'
 import { withRuntime } from '@/api/options'
 import {
+  AuthFlowQueryParam,
   ClusterPermissionsType,
   CurrentUserID,
   CurrentUserType,
@@ -26,8 +28,10 @@ import {
   PermissionsType,
   VirtualNamespace,
 } from '@/api/resources'
-import { identity } from '@/methods/key'
+import { identity, resetKeys, revokePublicKey } from '@/methods/key'
+import { FrontendAuthFlow } from '@/router'
 
+import { AuthType, authType } from '.'
 import { initializeUserPilot } from './features'
 
 export const currentUser: Ref<Resource<CurrentUserSpec> | undefined> = ref()
@@ -236,4 +240,30 @@ const updateToken = async (tokenID: string, update: (token: Resource<JoinTokenSp
   update(token)
 
   await ResourceService.Update(token, token.metadata.version, withRuntime(Runtime.Omni))
+}
+
+const redirectToURL = (url: string) => {
+  if (window.top) {
+    window.top.location.href = url
+  } else {
+    window.location.href = url
+  }
+}
+
+export const logout = async (auth0?: Auth0VueClient) => {
+  await revokePublicKey()
+
+  await auth0?.logout({
+    logoutParams: {
+      returnTo: window.location.origin,
+    },
+  })
+
+  resetKeys()
+
+  currentUser.value = undefined
+
+  if (authType.value !== AuthType.Auth0) {
+    redirectToURL(`/logout?${AuthFlowQueryParam}=${FrontendAuthFlow}`)
+  }
 }

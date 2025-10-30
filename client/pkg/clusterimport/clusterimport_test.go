@@ -401,7 +401,11 @@ func (data *testData) createExtensionStatuses(ctx context.Context, t *testing.T,
 func (data *testData) generateMachineConfig(t *testing.T, machineType machinetype.Type) *config.MachineConfig {
 	t.Helper()
 
-	input, err := generate.NewInput(data.clusterID, "https://localhost:6443", constants.DefaultKubernetesVersion, generate.WithSecretsBundle(data.bundle))
+	versionContract, err := machineryconfig.ParseContractFromVersion(data.talosVersion)
+	require.NoError(t, err)
+
+	input, err := generate.NewInput(data.clusterID, "https://localhost:6443", constants.DefaultKubernetesVersion,
+		generate.WithSecretsBundle(data.bundle), generate.WithVersionContract(versionContract))
 	require.NoError(t, err)
 
 	conf, err := input.Config(machineType)

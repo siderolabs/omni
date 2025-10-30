@@ -68,7 +68,7 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State, options 
 			tmpl1      []byte
 		)
 
-		pickUnallocatedMachines(ctx, t, st, 5, func(mIDs []resource.ID) {
+		pickUnallocatedMachines(ctx, t, st, 5, nil, func(mIDs []resource.ID) {
 			machineIDs = mIDs
 
 			opts = tmplOptions{
