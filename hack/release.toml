@@ -6,75 +6,58 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v1.1.0"
+previous = "v1.2.0"
 
 [notes]
 
-[notes.kubeconfig]
-title = "`kubeconfig` with `grant-type=authcode-keyboard`"
+[notes.modify-kernel-arguments]
+title = "Support for Modifying Kernel Arguments"
 description = """\
-New configs generated with the latest Omni version and `authcode-keyboard`
-enabled now work for `oidc-login` `v1.33+`.
-See https://github.com/int128/kubelogin/pull/1263
+Omni now supports modifying kernel arguments for the existing machines.
 
-Newly generated configs won't work for `oidc-login` below `v1.33`. You can:
-- keep using the old configs.
-- generate the new configs and drop `oidc-redirect-url` param.
-- update the `oidc-login` module.
+Documentation on how to use this feature can be found here: https://docs.siderolabs.com/omni/infrastructure-and-extensions/modify-kernel-arguments
 """
 
-[notes.user-consent-form-for-userpilot]
-title = "User Consent Form for Userpilot"
+[notes.experimental-cluster-import]
+title = "Cluster Import (Experimental)"
 description = """\
-Added a user consent form for Userpilot to allow opting in/out for data collection.
+Omni introduces an experimental feature that allows users to import existing Talos clusters to be managed by Omni.
+
+Documentation on how to use this feature can be found here: https://docs.siderolabs.com/omni/cluster-management/importing-talos-clusters
 """
 
-[notes.join-config-by-token-name]
-title = "Generate Join Config for a Specific Join Token"
+[notes.auth-token-expiry]
+title = "Shortened Auth0 Token Lifetime"
 description = """\
-Added the ability to generate a join configuration for a specific join token.
+Auth0 authentication tokens now expire after 2 minutes. Users without valid PGP keys will need to reauthenticate once tokens expire.
 """
 
-[notes.copy-visual-feedback]
-title = "Visual Feedback on Copy"
+[notes.frontend-update-k8s-modal]
+title = "Improved Kubernetes Update Modal"
 description = """\
-Added visual feedback when copying text to the clipboard.
+The Kubernetes update modal now displays only upgradeable minor versions and explains why certain versions are not upgradeable.
 """
 
-[notes.oidc-auth-support]
-title = "OIDC Authentication Support"
+[notes.frontend-multi-select-pending-machines]
+title = "Multi-Select for Pending Machines"
 description = """\
-Added support for OIDC authentication in Omni.
+You can now accept or reject multiple pending machines at once, simplifying large-scale approvals.
 """
 
-[notes.machines-page-redesign]
-title = "Redesigned Machine List Page"
+[notes.frontend-unsupported-k8s-version]
+title = "Display Unsupported Kubernetes Versions"
 description = """\
-The Machines list page has been redesigned to provide a better user experience.
+Unsupported Kubernetes versions are now shown in the update modal as disabled entries with explanatory messages.
 """
 
-[notes.cluster-locking]
-title = "Cluster Locking"
+[notes.machine-status-cpus]
+title = "Enhanced CPU Information in Machine Status"
 description = """\
-Cluster locking is a feature that pauses/disables all cluster related operations on a cluster.
+Machines now report processor details when either core count or frequency is available, improving visibility into hardware specs.
 """
 
-[notes.toast-messages]
-title = "Toast Messages"
+[notes.frontend-stripe-link]
+title = "Stripe Link in Settings Sidebar"
 description = """\
-Replaced the notification banner feature with toast messages.
-"""
-
-[notes.userpilot-reporting]
-title = "Userpilot Reporting Integration"
-description = """\
-Integrated Userpilot reporting to help track user interactions.
-"""
-
-[notes.new-metrics]
-title = "New exported metrics for cluster features and machine details"
-description = """\
-New prometheus metrics are added for:
-- Enabled cluster features: disk encryption, embedded discovery service, workload proxying.
-- Machines' platforms, their secure boot status and whether they were booted with UKI.
+A Stripe link is now shown in the Omni settings sidebar when Stripe integration is enabled.
 """
