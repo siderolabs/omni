@@ -9,6 +9,7 @@ package integration_test
 
 import (
 	"context"
+	"net/netip"
 	"os"
 	"slices"
 	"testing"
@@ -20,7 +21,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/talos/pkg/machinery/client"
-	"github.com/siderolabs/talos/pkg/provision/providers/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zapio"
@@ -43,7 +43,7 @@ func testClusterImport(t *testing.T, options *TestOptions) {
 
 		require.NoError(t, err, "failed to open talos cluster state")
 
-		var st vm.State
+		var st vmState
 
 		err = yaml.Unmarshal(f, &st)
 		require.NoError(t, err, "failed to parse talos cluster state file")
@@ -194,4 +194,14 @@ func testImportAbort(t *testing.T, options *TestOptions, clusterID string, clust
 
 	_, err = talosClient.Version(client.WithNode(ctx, clusterNodes[0]))
 	require.NoError(t, err)
+}
+
+// vmState has the structure of "github.com/siderolabs/talos/pkg/provision/providers/vm".State, but we copy its needed parts to avoid importing talos as a dependency for it.
+type vmState struct {
+	ClusterInfo struct {
+		ClusterName string
+		Nodes       []struct {
+			IPs []netip.Addr
+		}
+	}
 }

@@ -1,6 +1,6 @@
 module github.com/siderolabs/omni/client
 
-go 1.25.2
+go 1.25.3
 
 // forked go-yaml that introduces RawYAML interface, which can be used to populate YAML fields using bytes
 // which are then encoded as a valid YAML blocks with proper indentiation
@@ -32,6 +32,7 @@ require (
 	github.com/siderolabs/image-factory v0.8.4
 	github.com/siderolabs/proto-codec v0.1.2
 	github.com/siderolabs/siderolink v0.3.15
+	github.com/siderolabs/talos/pkg/machinery v1.12.0-alpha.2
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
 	github.com/xlab/treeprint v1.2.0
@@ -44,8 +45,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.3
 	k8s.io/client-go v0.35.0-alpha.1
 )
-
-require github.com/siderolabs/talos/pkg/machinery v1.12.0-alpha.1.0.20251017073026-8124efb42fd5
 
 require (
 	cel.dev/expr v0.24.0 // indirect
@@ -114,8 +113,8 @@ require (
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	golang.zx2c4.com/wireguard v0.0.0-20250521234502-f333402bd9cb // indirect
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20241231184526-a9ab2273dd10 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20251007200510-49b9836ed3ff // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20251007200510-49b9836ed3ff // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20251020155222-88f65dc88635 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251020155222-88f65dc88635 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/apimachinery v0.35.0-alpha.1 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
