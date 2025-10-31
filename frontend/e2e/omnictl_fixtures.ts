@@ -31,7 +31,7 @@ const test = base.extend<OmnictlFixtures>({
 
     await page.getByRole('button', { name: 'Download omnictl' }).click()
 
-    await page.getByRole('button', { name: 'omnictl:' }).click()
+    await page.getByRole('combobox', { name: 'omnictl:' }).click()
     await page.getByRole('option', { name: `omnictl-${getPlatform()}-${getArch()}` }).click()
 
     const [downloadOmnictl] = await Promise.all([
