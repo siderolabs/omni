@@ -14,6 +14,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xerrors"
+	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
@@ -36,10 +37,9 @@ func NewMachineRequestStatusCleanupController() *MachineRequestStatusCleanupCont
 					helpers.MapID[*infra.MachineRequestStatus, *omni.MachineSetNode](func(req *infra.MachineRequestStatus) resource.ID {
 						return req.TypedSpec().Value.Id
 					}, true),
-					false,
 				),
 				helpers.NewCustomHandler[*infra.MachineRequestStatus, *omni.ClusterMachine](
-					func(ctx context.Context, r controller.Runtime, req *infra.MachineRequestStatus, _ string) error {
+					func(ctx context.Context, r controller.Runtime, _ *zap.Logger, req *infra.MachineRequestStatus, _ string) error {
 						_, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, req.TypedSpec().Value.Id)
 						if err != nil {
 							if state.IsNotFoundError(err) {
@@ -51,10 +51,10 @@ func NewMachineRequestStatusCleanupController() *MachineRequestStatusCleanupCont
 
 						return xerrors.NewTaggedf[cleanup.SkipReconcileTag]("cluster machine is still present")
 					},
-					true,
+					helpers.WithNoOutputs(),
 				),
 				helpers.NewCustomHandler[*infra.MachineRequestStatus, *siderolink.Link](
-					func(ctx context.Context, r controller.Runtime, req *infra.MachineRequestStatus, _ string) error {
+					func(ctx context.Context, r controller.Runtime, _ *zap.Logger, req *infra.MachineRequestStatus, _ string) error {
 						_, err := r.Teardown(ctx, siderolink.NewLink(resources.DefaultNamespace, req.TypedSpec().Value.Id, nil).Metadata(), controller.WithOwner(""))
 						if err != nil {
 							if state.IsNotFoundError(err) {
@@ -66,7 +66,6 @@ func NewMachineRequestStatusCleanupController() *MachineRequestStatusCleanupCont
 
 						return nil
 					},
-					false,
 				),
 			),
 		},
