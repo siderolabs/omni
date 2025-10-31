@@ -5,7 +5,6 @@ privateKeySource: "file:///omni.asc"
 deployment:
   image: ghcr.io/siderolabs/omni
   tag: "latest"
-  replicaCount: 1
   annotations: {}
   imagePullPolicy: IfNotPresent
 auth:
@@ -24,8 +23,11 @@ service:
   siderolink:
     domainName: omni.siderolink.example.com
     wireguard:
-      address: "" #<ip address of the host running Omni>
+      # Optional: explicit address to advertise (if empty, uses wireguard.namespace.svc.cluster.local)
+      address: ""
       port: 30180
+      type: NodePort  # NodePort, LoadBalancer, or ClusterIP
+      externalTrafficPolicy: Cluster  # Local or Cluster (for NodePort/LoadBalancer)
   k8sProxy:
     domainName: omni.kubernetes.example.com
 resources:
@@ -38,6 +40,52 @@ resources:
     # Required for /dev/net/tun
     # https://www.talos.dev/v1.8/kubernetes-guides/configuration/device-plugins/
     squat.ai/tun: 1
+
+ingress:
+  api:
+    enabled: false
+    host: omni.example.com
+    ingressClassName: nginx
+    annotations: {}
+    certManager:
+      enabled: false
+      issuer: letsencrypt-prod
+    tls:
+      enabled: false
+      secretName: omni-api-tls
+  ui:
+    enabled: false
+    host: omni.example.com
+    ingressClassName: nginx
+    annotations: {}
+    certManager:
+      enabled: false
+      issuer: letsencrypt-prod
+    tls:
+      enabled: false
+      secretName: omni-ui-tls
+  siderolink:
+    enabled: false
+    host: siderolink.omni.example.com
+    ingressClassName: nginx
+    annotations: {}
+    certManager:
+      enabled: false
+      issuer: letsencrypt-prod
+    tls:
+      enabled: false
+      secretName: omni-siderolink-tls
+  kubernetesProxy:
+    enabled: false
+    host: kubernetes.omni.example.com
+    ingressClassName: nginx
+    annotations: {}
+    certManager:
+      enabled: false
+      issuer: letsencrypt-prod
+    tls:
+      enabled: false
+      secretName: omni-kubernetes-proxy-tls
 extraArgs:
   # - --debug
   # - --image-factory-address=factory.talos.dev
@@ -50,9 +98,49 @@ volumeMounts:
     mountPath: "/omni.asc"
     subPath: "omni.asc"
     readOnly: true
+etcd:
+  # Set to true to use external etcd cluster
+  # Set to false to use embedded etcd (default)
+  external: false
+  # External etcd configuration (only used when external: true)
+  endpoints: []
+    # - "https://etcd-1.example.com:2379"
+    # - "https://etcd-2.example.com:2379"
+    # - "https://etcd-3.example.com:2379"
+    # - "etcd.omni-etcd.svc.cluster.local:2379"  # Internal service example
+  # Optional: etcd authentication
+  # username: ""
+  # password: ""
+  # Optional: etcd authentication from secret
+  # auth:
+  #   secretName: "etcd-auth"
+  #   usernameKey: "username"
+  #   passwordKey: "password"
+  # Optional: etcd client connection timeouts
+  # dialKeepAliveTime: "30s"
+  # dialKeepAliveTimeout: "5s"
+  # Optional: TLS configuration for etcd
+  # tls:
+  #   enabled: false
+  #   certFile: "/etc/etcd/tls/client.crt"
+  #   keyFile: "/etc/etcd/tls/client.key"
+  #   caFile: "/etc/etcd/tls/ca.crt"
+  #   # Optional: TLS certificates from secret
+  #   secretName: "etcd-tls"
+  #   certKey: "tls.crt"  # defaults to "tls.crt"
+  #   keyKey: "tls.key"   # defaults to "tls.key"
+  #   caKey: "ca.crt"     # defaults to "ca.crt"
+  # Optional: public key files for encryption
+  # publicKeyFiles: []
+  #   # - "/etc/omni/keys/public1.pem"
+  #   # - "/etc/omni/keys/public2.pem"
 volumes:
   etcd:
-    persistentVolumeClaimName: omni-pvc
+    # For Deployment (backwards compatibility): manual PVC name
+    persistentVolumeClaimName: null  # Set to PVC name if using existing Deployment with manual PVC
+    # For StatefulSet (embedded etcd): automatic PVC provisioning
+    size: "50Gi"
+    # storageClass: ""  # Use default storage class if not specified
   tls:
     secretName: null # tls
   gpg:
