@@ -36,7 +36,7 @@ const { selected } = toRefs(props)
 }
 
 .active::before {
-  @apply absolute block w-full animate-fadein bg-primary-p3;
+  @apply absolute block w-full animate-in bg-primary-p3 duration-300 ease-linear fade-in;
   content: '';
   height: 2px;
   bottom: -15px;

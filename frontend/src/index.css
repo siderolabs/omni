@@ -7,6 +7,7 @@ included in the LICENSE file.
 
 @import url('./fonts.css') layer(base);
 @import 'tailwindcss';
+@import 'tw-animate-css';
 
 @theme {
   --font-sans: Roboto, sans-serif;
@@ -50,17 +51,6 @@ included in the LICENSE file.
   --color-yellow-y4: #252115;
 
   --color-blue-b1: #59a5ff;
-
-  --animate-fadein: fadein 300ms linear;
-
-  @keyframes fadein {
-    0% {
-      opacity: 0;
-    }
-    100% {
-      opacity: 100;
-    }
-  }
 }
 
 @layer base {
