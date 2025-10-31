@@ -8,7 +8,7 @@ included in the LICENSE file.
 import yaml from 'js-yaml'
 import * as semver from 'semver'
 import type { Ref } from 'vue'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -88,7 +88,7 @@ const supportsEncryption = computed(() => {
 
 const router = useRouter()
 
-const kubernetesVersionSelector: Ref<{ selectItem: (s: string) => void } | undefined> = ref()
+const kubernetesVersionSelector = useTemplateRef('kubernetesVersionSelector')
 
 const talosVersionsList: Ref<Resource<TalosVersionSpec>[]> = ref([])
 const talosVersionsWatch = new WatchResource(talosVersionsList)
