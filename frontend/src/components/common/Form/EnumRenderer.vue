@@ -29,7 +29,6 @@ const values = computed(() => {
     <TSelectList
       :id="control.id + '-input'"
       class="h-6"
-      menu-align="right"
       :default-value="control.data ?? 'unset'"
       :disabled="!control.enabled"
       :values="values"
