@@ -21,7 +21,7 @@ import (
 	"github.com/siderolabs/gen/maps"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 type eventHandler func(event state.Event) error

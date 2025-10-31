@@ -30,8 +30,8 @@ storage:
   vault:
     url: http://127.0.0.1:8200
     token: dev-o-token
-  secondary:
-    path: "_out/secondary-storage/bolt.db"
+  sqlite:
+    path: "_out/secondary-storage/sqlite.db"
   default:
     kind: etcd
     boltdb:

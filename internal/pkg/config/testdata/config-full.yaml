@@ -78,6 +78,8 @@ storage:
   vault:
     url: http://127.0.0.1:8200
     token: dev-o-token
+  sqlite:
+    path: "_out/secondary-storage/sqlite.db"
   secondary:
     path: "_out/secondary-storage/bolt.db"
   default:

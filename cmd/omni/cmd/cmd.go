@@ -609,10 +609,16 @@ func defineStorageFlags() {
 		"list of paths to files containing public keys to use for encrypting keys slots.",
 	)
 	rootCmd.Flags().StringVar(
-		&cmdConfig.Storage.Secondary.Path,
+		&cmdConfig.Storage.Secondary.Path, //nolint:staticcheck // backwards compatibility, remove when migration from boltdb to sqlite is done
 		"secondary-storage-path",
-		cmdConfig.Storage.Secondary.Path,
-		"path of the file for boltdb-backed secondary storage for frequently updated data.",
+		cmdConfig.Storage.Secondary.Path, //nolint:staticcheck // backwards compatibility, remove when migration from boltdb to sqlite is done
+		"path of the file for boltdb-backed secondary storage for frequently updated data (deprecated, see sqlite-storage-path).",
+	)
+	rootCmd.Flags().StringVar(
+		&cmdConfig.Storage.SQLite.Path,
+		"sqlite-storage-path",
+		cmdConfig.Storage.SQLite.Path,
+		"path of the file for sqlite-backed secondary storage for frequently updated data, machine and audit logs.",
 	)
 }
 

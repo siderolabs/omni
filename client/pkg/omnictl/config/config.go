@@ -15,7 +15,7 @@ import (
 	"github.com/siderolabs/go-api-signature/pkg/fileutils"
 	"github.com/siderolabs/talos/pkg/machinery/client/config"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 const (

@@ -18,7 +18,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"

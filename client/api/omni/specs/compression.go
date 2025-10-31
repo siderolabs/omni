@@ -12,9 +12,9 @@ import (
 	"github.com/klauspost/compress/zstd"
 	"github.com/siderolabs/gen/ensure"
 	"github.com/siderolabs/gen/optional"
+	"go.yaml.in/yaml/v4"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
-	"gopkg.in/yaml.v3"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
 )

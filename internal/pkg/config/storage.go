@@ -9,13 +9,19 @@ import "time"
 
 // Storage defines Omni COSI state storage configuration.
 type Storage struct {
+	// Default is the storage used for the default resource namespace in Omni.
 	Default *StorageDefault `yaml:"default" validate:"required"`
 	// Vault configuration where the state encryption keys are present.
 	Vault Vault `yaml:"vault"`
 	// Secondary storage is used to store the metrics and any frequently changed resources
 	// which might overflow etcd resource history.
-	Secondary BoltDB `yaml:"secondary" validate:"required"`
-	// Default is the storage used for the default resource namespace in Omni.
+	//
+	// If still set, Omni will attempt to migrate from BoltDB to SQLite storage.
+	//
+	// Deprecated: use SQLite as secondary storage.
+	Secondary BoltDB `yaml:"secondary"`
+	// SQLite storage can be used as a secondary storage for frequently changed resources.
+	SQLite SQLite `yaml:"sqlite" validate:"required"`
 }
 
 // Vault allows setting vault configuration through the config file.
@@ -34,6 +40,11 @@ type StorageDefault struct {
 
 // BoltDB defines boltdb storage configs.
 type BoltDB struct {
+	Path string `yaml:"path"`
+}
+
+// SQLite defines sqlite storage configs.
+type SQLite struct {
 	Path string `yaml:"path"`
 }
 

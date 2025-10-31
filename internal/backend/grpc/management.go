@@ -29,11 +29,11 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	"github.com/zitadel/oidc/v3/pkg/op"
 	"go.uber.org/zap"
+	"go.yaml.in/yaml/v4"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
-	"gopkg.in/yaml.v3"
 	"k8s.io/client-go/rest"
 
 	commonOmni "github.com/siderolabs/omni/client/api/common"

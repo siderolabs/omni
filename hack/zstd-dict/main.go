@@ -23,7 +23,7 @@ import (
 	helmclient "github.com/mittwald/go-helm-client"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapio"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/repo"
 )

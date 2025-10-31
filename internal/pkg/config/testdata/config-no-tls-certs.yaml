@@ -19,8 +19,8 @@ logs:
     path:  _out/audit
 
 storage:
-  secondary:
-    path:  _out/secondary-storage/bolt.db
+  sqlite:
+    path: "_out/secondary-storage/sqlite.db"
   default:
     kind:  etcd
     etcd:

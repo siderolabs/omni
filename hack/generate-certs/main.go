@@ -17,7 +17,7 @@ import (
 	"text/template"
 
 	"github.com/siderolabs/gen/ensure"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 var cfgFile = flag.String("config", "", "config file path")

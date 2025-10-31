@@ -18,7 +18,7 @@ import (
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/siderolabs/gen/ensure"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"

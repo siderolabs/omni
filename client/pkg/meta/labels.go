@@ -4,7 +4,7 @@
 
 package meta
 
-import "gopkg.in/yaml.v3"
+import "go.yaml.in/yaml/v4"
 
 // ImageLabels describes structure that is stored in the Talos metadata and keeps machine labels
 // that are initially assigned to the machine when it connects to Omni.

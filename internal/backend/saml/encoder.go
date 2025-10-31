@@ -9,7 +9,7 @@ import (
 	"encoding/base64"
 
 	"github.com/crewjam/saml/samlsp"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // Encoder serializes tracked request cookies as base64 encoded YAML.

@@ -8,7 +8,7 @@ package specs
 import (
 	"errors"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // MarshalJSON implements json.Marshaler interface.

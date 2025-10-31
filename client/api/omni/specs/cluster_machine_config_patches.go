@@ -11,7 +11,7 @@ import (
 	"iter"
 
 	"github.com/siderolabs/gen/xslices"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
 )

@@ -241,6 +241,8 @@ storage:
     token: dev-o-token
   secondary:
     path: ${ARTIFACTS}/secondary-storage/bolt.db
+  sqlite:
+    path: ${ARTIFACTS}/secondary-storage/sqlite.db
   default:
     kind: etcd
     etcd:

@@ -23,7 +23,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/merge"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/pkg/compression"
 	consts "github.com/siderolabs/omni/client/pkg/constants"
@@ -170,6 +170,9 @@ func Default() *Params {
 		Storage: Storage{
 			Secondary: BoltDB{
 				Path: "_out/secondary-storage/bolt.db",
+			},
+			SQLite: SQLite{
+				Path: "_out/secondary-storage/sqlite.db",
 			},
 			Default: &StorageDefault{
 				Kind: "etcd",

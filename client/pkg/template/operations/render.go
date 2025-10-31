@@ -9,7 +9,7 @@ import (
 	"io"
 
 	"github.com/cosi-project/runtime/pkg/resource"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/pkg/template"
 )

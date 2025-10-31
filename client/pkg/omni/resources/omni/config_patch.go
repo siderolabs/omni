@@ -19,7 +19,7 @@ import (
 	"github.com/siderolabs/gen/pair"
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
 	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"

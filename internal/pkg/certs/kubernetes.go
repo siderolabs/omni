@@ -13,7 +13,7 @@ import (
 
 	"github.com/siderolabs/crypto/x509"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"

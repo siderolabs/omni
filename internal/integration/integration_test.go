@@ -30,9 +30,9 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
+	"go.yaml.in/yaml/v4"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
-	"gopkg.in/yaml.v3"
 
 	clientconsts "github.com/siderolabs/omni/client/pkg/constants"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"

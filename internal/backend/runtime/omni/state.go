@@ -21,7 +21,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/runtime/pkg/state/registry"
 	"github.com/prometheus/client_golang/prometheus"
-	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -127,12 +126,22 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 
 	virtualState := virtual.NewState(state.WrapCore(defaultPersistentState.State))
 
-	secondaryPersistentState, err := newBoltPersistentState(
-		params.Storage.Secondary.Path, &bbolt.Options{
-			NoSync: true, // we do not need fsync for the secondary storage
-		}, true, logger)
+	secondaryPersistentState, err := newSQLitePersistentState(
+		ctx, params.Storage.SQLite.Path, logger)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create BoltDB state for secondary storage: %w", err)
+		return nil, fmt.Errorf("failed to create SQLite state for secondary storage: %w", err)
+	}
+
+	if params.Storage.Secondary.Path != "" { //nolint:staticcheck // migration only
+		// perform a one-time migration from BoltDB to SQLite
+		if err = migrateBoltDBToSQLite(
+			ctx,
+			logger,
+			params.Storage.Secondary.Path, //nolint:staticcheck // migration only
+			secondaryPersistentState.State,
+		); err != nil {
+			return nil, fmt.Errorf("failed to migrate secondary storage from BoltDB to SQLite: %w", err)
+		}
 	}
 
 	namespacedState, err := newNamespacedState(

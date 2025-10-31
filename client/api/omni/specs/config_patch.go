@@ -8,7 +8,7 @@ package specs
 import (
 	"errors"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // MarshalJSON marshals the ConfigPatchSpec to JSON, representing the compressed data as the regular data field.

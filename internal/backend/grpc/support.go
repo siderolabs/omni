@@ -23,8 +23,8 @@ import (
 	"github.com/siderolabs/go-talos-support/support/bundle"
 	"github.com/siderolabs/go-talos-support/support/collectors"
 	"github.com/siderolabs/talos/pkg/machinery/client"
+	"go.yaml.in/yaml/v4"
 	"google.golang.org/grpc"
-	"gopkg.in/yaml.v3"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
