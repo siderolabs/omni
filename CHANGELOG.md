@@ -1,6 +1,6 @@
-## [Omni 1.3.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v1.3.0-beta.0) (2025-10-30)
+## [Omni 1.3.0-beta.1](https://github.com/siderolabs/omni/releases/tag/v1.3.0-beta.1) (2025-10-31)
 
-Welcome to the v1.3.0-beta.0 release of Omni!  
+Welcome to the v1.3.0-beta.1 release of Omni!  
 *This is a pre-release of Omni*
 
 
@@ -65,10 +65,11 @@ Documentation on how to use this feature can be found here: https://docs.siderol
 * niklasfrick
 
 ### Changes
-<details><summary>73 commits</summary>
+<details><summary>74 commits</summary>
 <p>
 
-* [`e9e6325`](https://github.com/siderolabs/omni/commit/e9e6325f8fc468add3a810e158b4f0848b1f1abc) chore: fix the changelog
+* [`3f2021b`](https://github.com/siderolabs/omni/commit/3f2021b05f621a6976da0b71de27de240c84ac93) fix(frontend): remove network error toasts
+* [`31d4213`](https://github.com/siderolabs/omni/commit/31d4213035fefefea3a71581bf88fc7878cf0ebf) fix: remove non-machinery Talos import, fix changelog
 * [`bb58235`](https://github.com/siderolabs/omni/commit/bb582359dac443cc94be5eced77be868ed9c0efe) release(v1.3.0-beta.0): prepare release
 * [`c2cbf34`](https://github.com/siderolabs/omni/commit/c2cbf34b02e1288cf7d55bc0ed444513fa912d18) fix: get rid of an extra call of the final provision step
 * [`ff79e02`](https://github.com/siderolabs/omni/commit/ff79e024c76d3ecb0377d906204e0318802005f9) feat(installation-media): replace modal with link
