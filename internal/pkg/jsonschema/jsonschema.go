@@ -40,7 +40,7 @@ func Validate(data string, schema *jsonschema.Schema) error {
 	// NaN type causes jsonschema validator to crash with nil reference error
 	data = nanRegexp().ReplaceAllString(data, "null")
 
-	var v interface{}
+	var v any
 	if err := yaml.Unmarshal([]byte(data), &v); err != nil {
 		return fmt.Errorf("failed to unmarshal YAML %w", err)
 	}

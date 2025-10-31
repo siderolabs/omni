@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -639,15 +640,11 @@ func (ctrl *MachineStatusController) mergeLabels(m *omni.MachineStatus, machineL
 	labels := map[string]string{}
 
 	if m.TypedSpec().Value.ImageLabels != nil {
-		for k, v := range m.TypedSpec().Value.ImageLabels {
-			labels[k] = v
-		}
+		maps.Copy(labels, m.TypedSpec().Value.ImageLabels)
 	}
 
 	if machineLabels != nil {
-		for k, v := range machineLabels.Metadata().Labels().Raw() {
-			labels[k] = v
-		}
+		maps.Copy(labels, machineLabels.Metadata().Labels().Raw())
 	}
 
 	return labels

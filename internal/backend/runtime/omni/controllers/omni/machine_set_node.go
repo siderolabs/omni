@@ -467,10 +467,7 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 		return err
 	}
 
-	iterations := len(usedMachineSetNodes)
-	if machinesToDestroyCount < iterations {
-		iterations = machinesToDestroyCount
-	}
+	iterations := min(machinesToDestroyCount, len(usedMachineSetNodes))
 
 	for i := range iterations {
 		var (

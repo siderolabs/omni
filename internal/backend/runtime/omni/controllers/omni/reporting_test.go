@@ -57,7 +57,7 @@ func (suite *StripeMetricsReporterControllerSuite) TestReconcile() {
 			mu.Unlock()
 
 			w.WriteHeader(http.StatusOK)
-			err := json.NewEncoder(w).Encode(map[string]interface{}{
+			err := json.NewEncoder(w).Encode(map[string]any{
 				"id":       "sub_item_id",
 				"quantity": count,
 			})
@@ -84,7 +84,7 @@ func (suite *StripeMetricsReporterControllerSuite) TestReconcile() {
 					mu.Unlock()
 
 					w.WriteHeader(http.StatusOK)
-					err = json.NewEncoder(w).Encode(map[string]interface{}{
+					err = json.NewEncoder(w).Encode(map[string]any{
 						"id":       "sub_item_id",
 						"quantity": machineCount,
 					})
@@ -125,7 +125,7 @@ func (suite *StripeMetricsReporterControllerSuite) TestReconcile() {
 	// Allow time for the controller to reconcile
 	time.Sleep(1 * time.Second)
 
-	var result map[string]interface{}
+	var result map[string]any
 
 	// Verify the mock server reflects the updated machine count
 	req, err := http.NewRequestWithContext(suite.ctx, http.MethodGet, mockServer.URL+"/v1/subscription_items/sub_item_id", nil)

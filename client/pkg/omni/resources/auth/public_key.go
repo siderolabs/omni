@@ -5,10 +5,16 @@
 package auth
 
 import (
+	"fmt"
+
+	pgpcrypto "github.com/ProtonMail/gopenpgp/v2/crypto"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
 	"github.com/cosi-project/runtime/pkg/resource/typed"
+	"github.com/siderolabs/go-api-signature/pkg/message"
+	"github.com/siderolabs/go-api-signature/pkg/pgp"
+	"github.com/siderolabs/go-api-signature/pkg/plain"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -46,4 +52,21 @@ func (PublicKeyExtension) ResourceDefinition() meta.ResourceDefinitionSpec {
 		DefaultNamespace: resources.DefaultNamespace,
 		PrintColumns:     []meta.PrintColumn{},
 	}
+}
+
+// GetSignatureVerifier from the public key resource.
+func GetSignatureVerifier(pubKey *PublicKey) (message.SignatureVerifier, error) {
+	switch pubKey.TypedSpec().Value.Type {
+	case specs.PublicKeySpec_PGP, specs.PublicKeySpec_UNKNOWN:
+		key, err := pgpcrypto.NewKeyFromArmored(string(pubKey.TypedSpec().Value.GetPublicKey()))
+		if err != nil {
+			return nil, err
+		}
+
+		return pgp.NewKey(key)
+	case specs.PublicKeySpec_PLAIN:
+		return plain.ParseKey(pubKey.TypedSpec().Value.PublicKey)
+	}
+
+	return nil, fmt.Errorf("unsupported key type %s", pubKey.TypedSpec().Value.Type)
 }

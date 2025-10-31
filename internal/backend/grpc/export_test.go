@@ -10,9 +10,12 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
+	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 type ManagementServer = managementServer
+
+type AuthServer = authServer
 
 //nolint:revive
 func NewManagementServer(st state.State, imageFactoryClient *imagefactory.Client, logger *zap.Logger) *ManagementServer {
@@ -21,6 +24,10 @@ func NewManagementServer(st state.State, imageFactoryClient *imagefactory.Client
 		imageFactoryClient: imageFactoryClient,
 		logger:             logger,
 	}
+}
+
+func NewAuthServer(st state.State, services config.Services, logger *zap.Logger) (*AuthServer, error) {
+	return newAuthServer(st, services, logger)
 }
 
 func GenerateDest(apiurl string) (string, error) {

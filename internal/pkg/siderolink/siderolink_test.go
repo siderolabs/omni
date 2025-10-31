@@ -299,19 +299,14 @@ func (suite *SiderolinkSuite) TestNodes() {
 }
 
 func (suite *SiderolinkSuite) TestNodeWithSeveralAdvertisedIPs() {
-	var spec *specs.ConnectionParamsSpec
+	var spec *specs.DefaultJoinTokenSpec
 
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*2)
 	defer cancel()
 
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{
-		siderolink.ConfigID,
-	}, func(r *siderolink.ConnectionParams, assertion *assert.Assertions) {
-		assertion.NotEmpty(r.TypedSpec().Value.Args)
-		assertion.NotEmpty(r.TypedSpec().Value.ApiEndpoint)
-		assertion.NotEmpty(r.TypedSpec().Value.JoinToken)
-		assertion.NotEmpty(r.TypedSpec().Value.WireguardEndpoint)
-
+		siderolink.DefaultJoinTokenID,
+	}, func(r *siderolink.DefaultJoinToken, assertion *assert.Assertions) {
 		spec = r.TypedSpec().Value
 	})
 
@@ -323,7 +318,7 @@ func (suite *SiderolinkSuite) TestNodeWithSeveralAdvertisedIPs() {
 		&pb.ProvisionRequest{
 			NodeUuid:        "testnode",
 			NodePublicKey:   privateKey.PublicKey().String(),
-			JoinToken:       &spec.JoinToken,
+			JoinToken:       &spec.TokenId,
 			TalosVersion:    pointer.To("v1.9.0"),
 			NodeUniqueToken: suite.nodeUniqueToken,
 		},

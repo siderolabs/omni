@@ -93,7 +93,7 @@ func encodeToString(maxChars int) (string, error) {
 		return "", err
 	}
 
-	for i := 0; i < len(b); i++ {
+	for i := range b {
 		b[i] = table[int(b[i])%len(table)]
 	}
 

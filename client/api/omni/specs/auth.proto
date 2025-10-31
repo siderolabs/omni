@@ -82,6 +82,12 @@ message Identity {
 
 // PublicKeySpec describes a user or service account public key.
 message PublicKeySpec {
+  enum Type {
+    UNKNOWN = 0;
+    PGP = 1;
+    PLAIN = 2;
+  }
+
   bytes public_key = 1;
   // Scopes are deprecated, use roles instead.
   //
@@ -92,6 +98,7 @@ message PublicKeySpec {
   bool confirmed = 4;
   Identity identity = 5;
   string role = 6;
+  Type type = 7;
 }
 
 // AccessPolicyUserGroup describes a user group in the ACLs context.

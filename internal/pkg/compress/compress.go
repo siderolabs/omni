@@ -68,7 +68,7 @@ func Handler(next http.Handler, level int) http.Handler {
 }
 
 func encoding(r *http.Request) string {
-	for _, encPart := range strings.Split(r.Header.Get(acceptEncoding), ",") {
+	for encPart := range strings.SplitSeq(r.Header.Get(acceptEncoding), ",") {
 		encPart = strings.TrimSpace(encPart)
 
 		if encPart == gzipEncoding || encPart == flateEncoding {

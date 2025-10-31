@@ -44,15 +44,7 @@ func ParseScopes(scopes []string) (Scopes, error) {
 // Check checks if the given scopes are contained in the scope set.
 func (s Scopes) Check(requiredScopes ...Scope) error {
 	for _, scope := range requiredScopes {
-		matched := false
-
-		for _, actorScope := range s.scopeList {
-			if scope.Matches(actorScope) {
-				matched = true
-
-				break
-			}
-		}
+		matched := slices.ContainsFunc(s.scopeList, scope.Matches)
 
 		if !matched {
 			return fmt.Errorf("missing required scope: %s", scope)

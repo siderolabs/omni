@@ -6,9 +6,17 @@
 
 import * as fm from "../../fetch.pb"
 import * as GoogleProtobufEmpty from "../../google/protobuf/empty.pb"
+import * as GoogleProtobufTimestamp from "../../google/protobuf/timestamp.pb"
+export type PublicKeyPlain = {
+  key_pem?: string
+  not_before?: GoogleProtobufTimestamp.Timestamp
+  not_after?: GoogleProtobufTimestamp.Timestamp
+}
+
 export type PublicKey = {
   pgp_data?: Uint8Array
   webauthn_data?: Uint8Array
+  plain_key?: PublicKeyPlain
 }
 
 export type Identity = {

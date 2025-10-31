@@ -431,7 +431,7 @@ func (ctrl *ProvisionController[T]) getConnectionArgs(ctx context.Context, r con
 		}
 	} else {
 		// legacy flow
-		connectionParams, err := safe.ReaderGetByID[*siderolinkres.ConnectionParams](ctx, r, siderolinkres.ConfigID)
+		connectionParams, err := safe.ReaderGetByID[*siderolinkres.ConnectionParams](ctx, r, siderolinkres.ConfigID) //nolint:staticcheck
 		if err != nil {
 			return provision.ConnectionParams{}, err
 		}

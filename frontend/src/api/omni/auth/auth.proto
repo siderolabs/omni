@@ -4,10 +4,18 @@ package auth;
 option go_package = "github.com/siderolabs/go-api-signature/api/auth";
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 
 message PublicKey {
+  message Plain {
+    string key_pem = 1;
+    google.protobuf.Timestamp not_before = 2;
+    google.protobuf.Timestamp not_after = 3;
+  }
+
   bytes pgp_data = 1;
   bytes webauthn_data = 2;
+  Plain plain_key = 3;
 }
 
 message Identity {

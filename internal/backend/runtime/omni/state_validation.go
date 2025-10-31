@@ -87,10 +87,8 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 			return err
 		}
 
-		for _, compatibleKubernetesVersion := range talosVersion.TypedSpec().Value.CompatibleKubernetesVersions {
-			if compatibleKubernetesVersion == res.TypedSpec().Value.KubernetesVersion {
-				return nil
-			}
+		if slices.Contains(talosVersion.TypedSpec().Value.CompatibleKubernetesVersions, res.TypedSpec().Value.KubernetesVersion) {
+			return nil
 		}
 
 		return fmt.Errorf("invalid kubernetes version %q: is not compatible with talos version %q", res.TypedSpec().Value.KubernetesVersion, res.TypedSpec().Value.TalosVersion)

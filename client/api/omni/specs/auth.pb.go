@@ -24,6 +24,55 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type PublicKeySpec_Type int32
+
+const (
+	PublicKeySpec_UNKNOWN PublicKeySpec_Type = 0
+	PublicKeySpec_PGP     PublicKeySpec_Type = 1
+	PublicKeySpec_PLAIN   PublicKeySpec_Type = 2
+)
+
+// Enum value maps for PublicKeySpec_Type.
+var (
+	PublicKeySpec_Type_name = map[int32]string{
+		0: "UNKNOWN",
+		1: "PGP",
+		2: "PLAIN",
+	}
+	PublicKeySpec_Type_value = map[string]int32{
+		"UNKNOWN": 0,
+		"PGP":     1,
+		"PLAIN":   2,
+	}
+)
+
+func (x PublicKeySpec_Type) Enum() *PublicKeySpec_Type {
+	p := new(PublicKeySpec_Type)
+	*p = x
+	return p
+}
+
+func (x PublicKeySpec_Type) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PublicKeySpec_Type) Descriptor() protoreflect.EnumDescriptor {
+	return file_omni_specs_auth_proto_enumTypes[0].Descriptor()
+}
+
+func (PublicKeySpec_Type) Type() protoreflect.EnumType {
+	return &file_omni_specs_auth_proto_enumTypes[0]
+}
+
+func (x PublicKeySpec_Type) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PublicKeySpec_Type.Descriptor instead.
+func (PublicKeySpec_Type) EnumDescriptor() ([]byte, []int) {
+	return file_omni_specs_auth_proto_rawDescGZIP(), []int{5, 0}
+}
+
 // AuthConfigSpec describes the authentication configuration.
 type AuthConfigSpec struct {
 	state         protoimpl.MessageState   `protogen:"open.v1"`
@@ -324,6 +373,7 @@ type PublicKeySpec struct {
 	Confirmed     bool                   `protobuf:"varint,4,opt,name=confirmed,proto3" json:"confirmed,omitempty"`
 	Identity      *Identity              `protobuf:"bytes,5,opt,name=identity,proto3" json:"identity,omitempty"`
 	Role          string                 `protobuf:"bytes,6,opt,name=role,proto3" json:"role,omitempty"`
+	Type          PublicKeySpec_Type     `protobuf:"varint,7,opt,name=type,proto3,enum=specs.PublicKeySpec_Type" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -398,6 +448,13 @@ func (x *PublicKeySpec) GetRole() string {
 		return x.Role
 	}
 	return ""
+}
+
+func (x *PublicKeySpec) GetType() PublicKeySpec_Type {
+	if x != nil {
+		return x.Type
+	}
+	return PublicKeySpec_UNKNOWN
 }
 
 // AccessPolicyUserGroup describes a user group in the ACLs context.
@@ -1632,7 +1689,7 @@ const file_omni_specs_auth_proto_rawDesc = "" +
 	"\fIdentitySpec\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\" \n" +
 	"\bIdentity\x12\x14\n" +
-	"\x05email\x18\x01 \x01(\tR\x05email\"\xe1\x01\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\"\xb9\x02\n" +
 	"\rPublicKeySpec\x12\x1d\n" +
 	"\n" +
 	"public_key\x18\x01 \x01(\fR\tpublicKey\x12\x16\n" +
@@ -1642,7 +1699,12 @@ const file_omni_specs_auth_proto_rawDesc = "" +
 	"expiration\x12\x1c\n" +
 	"\tconfirmed\x18\x04 \x01(\bR\tconfirmed\x12+\n" +
 	"\bidentity\x18\x05 \x01(\v2\x0f.specs.IdentityR\bidentity\x12\x12\n" +
-	"\x04role\x18\x06 \x01(\tR\x04role\"\xab\x01\n" +
+	"\x04role\x18\x06 \x01(\tR\x04role\x12-\n" +
+	"\x04type\x18\a \x01(\x0e2\x19.specs.PublicKeySpec.TypeR\x04type\"'\n" +
+	"\x04Type\x12\v\n" +
+	"\aUNKNOWN\x10\x00\x12\a\n" +
+	"\x03PGP\x10\x01\x12\t\n" +
+	"\x05PLAIN\x10\x02\"\xab\x01\n" +
 	"\x15AccessPolicyUserGroup\x127\n" +
 	"\x05users\x18\x01 \x03(\v2!.specs.AccessPolicyUserGroup.UserR\x05users\x1aY\n" +
 	"\x04User\x12\x12\n" +
@@ -1727,74 +1789,77 @@ func file_omni_specs_auth_proto_rawDescGZIP() []byte {
 	return file_omni_specs_auth_proto_rawDescData
 }
 
+var file_omni_specs_auth_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_omni_specs_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_omni_specs_auth_proto_goTypes = []any{
-	(*AuthConfigSpec)(nil),                                   // 0: specs.AuthConfigSpec
-	(*SAMLAssertionSpec)(nil),                                // 1: specs.SAMLAssertionSpec
-	(*UserSpec)(nil),                                         // 2: specs.UserSpec
-	(*IdentitySpec)(nil),                                     // 3: specs.IdentitySpec
-	(*Identity)(nil),                                         // 4: specs.Identity
-	(*PublicKeySpec)(nil),                                    // 5: specs.PublicKeySpec
-	(*AccessPolicyUserGroup)(nil),                            // 6: specs.AccessPolicyUserGroup
-	(*AccessPolicyClusterGroup)(nil),                         // 7: specs.AccessPolicyClusterGroup
-	(*AccessPolicyRule)(nil),                                 // 8: specs.AccessPolicyRule
-	(*AccessPolicyTest)(nil),                                 // 9: specs.AccessPolicyTest
-	(*AccessPolicySpec)(nil),                                 // 10: specs.AccessPolicySpec
-	(*SAMLLabelRuleSpec)(nil),                                // 11: specs.SAMLLabelRuleSpec
-	(*ServiceAccountStatusSpec)(nil),                         // 12: specs.ServiceAccountStatusSpec
-	(*AuthConfigSpec_Auth0)(nil),                             // 13: specs.AuthConfigSpec.Auth0
-	(*AuthConfigSpec_OIDC)(nil),                              // 14: specs.AuthConfigSpec.OIDC
-	(*AuthConfigSpec_Webauthn)(nil),                          // 15: specs.AuthConfigSpec.Webauthn
-	(*AuthConfigSpec_SAML)(nil),                              // 16: specs.AuthConfigSpec.SAML
-	nil,                                                      // 17: specs.AuthConfigSpec.SAML.LabelRulesEntry
-	nil,                                                      // 18: specs.AuthConfigSpec.SAML.AttributeRulesEntry
-	(*AccessPolicyUserGroup_User)(nil),                       // 19: specs.AccessPolicyUserGroup.User
-	(*AccessPolicyClusterGroup_Cluster)(nil),                 // 20: specs.AccessPolicyClusterGroup.Cluster
-	(*AccessPolicyRule_Kubernetes)(nil),                      // 21: specs.AccessPolicyRule.Kubernetes
-	(*AccessPolicyRule_Kubernetes_Impersonate)(nil),          // 22: specs.AccessPolicyRule.Kubernetes.Impersonate
-	(*AccessPolicyTest_Expected)(nil),                        // 23: specs.AccessPolicyTest.Expected
-	(*AccessPolicyTest_User)(nil),                            // 24: specs.AccessPolicyTest.User
-	(*AccessPolicyTest_Cluster)(nil),                         // 25: specs.AccessPolicyTest.Cluster
-	(*AccessPolicyTest_Expected_Kubernetes)(nil),             // 26: specs.AccessPolicyTest.Expected.Kubernetes
-	(*AccessPolicyTest_Expected_Kubernetes_Impersonate)(nil), // 27: specs.AccessPolicyTest.Expected.Kubernetes.Impersonate
-	nil, // 28: specs.AccessPolicyTest.User.LabelsEntry
-	nil, // 29: specs.AccessPolicySpec.UserGroupsEntry
-	nil, // 30: specs.AccessPolicySpec.ClusterGroupsEntry
-	(*ServiceAccountStatusSpec_PgpPublicKey)(nil), // 31: specs.ServiceAccountStatusSpec.PgpPublicKey
-	(*timestamppb.Timestamp)(nil),                 // 32: google.protobuf.Timestamp
+	(PublicKeySpec_Type)(0),                                  // 0: specs.PublicKeySpec.Type
+	(*AuthConfigSpec)(nil),                                   // 1: specs.AuthConfigSpec
+	(*SAMLAssertionSpec)(nil),                                // 2: specs.SAMLAssertionSpec
+	(*UserSpec)(nil),                                         // 3: specs.UserSpec
+	(*IdentitySpec)(nil),                                     // 4: specs.IdentitySpec
+	(*Identity)(nil),                                         // 5: specs.Identity
+	(*PublicKeySpec)(nil),                                    // 6: specs.PublicKeySpec
+	(*AccessPolicyUserGroup)(nil),                            // 7: specs.AccessPolicyUserGroup
+	(*AccessPolicyClusterGroup)(nil),                         // 8: specs.AccessPolicyClusterGroup
+	(*AccessPolicyRule)(nil),                                 // 9: specs.AccessPolicyRule
+	(*AccessPolicyTest)(nil),                                 // 10: specs.AccessPolicyTest
+	(*AccessPolicySpec)(nil),                                 // 11: specs.AccessPolicySpec
+	(*SAMLLabelRuleSpec)(nil),                                // 12: specs.SAMLLabelRuleSpec
+	(*ServiceAccountStatusSpec)(nil),                         // 13: specs.ServiceAccountStatusSpec
+	(*AuthConfigSpec_Auth0)(nil),                             // 14: specs.AuthConfigSpec.Auth0
+	(*AuthConfigSpec_OIDC)(nil),                              // 15: specs.AuthConfigSpec.OIDC
+	(*AuthConfigSpec_Webauthn)(nil),                          // 16: specs.AuthConfigSpec.Webauthn
+	(*AuthConfigSpec_SAML)(nil),                              // 17: specs.AuthConfigSpec.SAML
+	nil,                                                      // 18: specs.AuthConfigSpec.SAML.LabelRulesEntry
+	nil,                                                      // 19: specs.AuthConfigSpec.SAML.AttributeRulesEntry
+	(*AccessPolicyUserGroup_User)(nil),                       // 20: specs.AccessPolicyUserGroup.User
+	(*AccessPolicyClusterGroup_Cluster)(nil),                 // 21: specs.AccessPolicyClusterGroup.Cluster
+	(*AccessPolicyRule_Kubernetes)(nil),                      // 22: specs.AccessPolicyRule.Kubernetes
+	(*AccessPolicyRule_Kubernetes_Impersonate)(nil),          // 23: specs.AccessPolicyRule.Kubernetes.Impersonate
+	(*AccessPolicyTest_Expected)(nil),                        // 24: specs.AccessPolicyTest.Expected
+	(*AccessPolicyTest_User)(nil),                            // 25: specs.AccessPolicyTest.User
+	(*AccessPolicyTest_Cluster)(nil),                         // 26: specs.AccessPolicyTest.Cluster
+	(*AccessPolicyTest_Expected_Kubernetes)(nil),             // 27: specs.AccessPolicyTest.Expected.Kubernetes
+	(*AccessPolicyTest_Expected_Kubernetes_Impersonate)(nil), // 28: specs.AccessPolicyTest.Expected.Kubernetes.Impersonate
+	nil, // 29: specs.AccessPolicyTest.User.LabelsEntry
+	nil, // 30: specs.AccessPolicySpec.UserGroupsEntry
+	nil, // 31: specs.AccessPolicySpec.ClusterGroupsEntry
+	(*ServiceAccountStatusSpec_PgpPublicKey)(nil), // 32: specs.ServiceAccountStatusSpec.PgpPublicKey
+	(*timestamppb.Timestamp)(nil),                 // 33: google.protobuf.Timestamp
 }
 var file_omni_specs_auth_proto_depIdxs = []int32{
-	13, // 0: specs.AuthConfigSpec.auth0:type_name -> specs.AuthConfigSpec.Auth0
-	15, // 1: specs.AuthConfigSpec.webauthn:type_name -> specs.AuthConfigSpec.Webauthn
-	16, // 2: specs.AuthConfigSpec.saml:type_name -> specs.AuthConfigSpec.SAML
-	14, // 3: specs.AuthConfigSpec.oidc:type_name -> specs.AuthConfigSpec.OIDC
-	32, // 4: specs.PublicKeySpec.expiration:type_name -> google.protobuf.Timestamp
-	4,  // 5: specs.PublicKeySpec.identity:type_name -> specs.Identity
-	19, // 6: specs.AccessPolicyUserGroup.users:type_name -> specs.AccessPolicyUserGroup.User
-	20, // 7: specs.AccessPolicyClusterGroup.clusters:type_name -> specs.AccessPolicyClusterGroup.Cluster
-	21, // 8: specs.AccessPolicyRule.kubernetes:type_name -> specs.AccessPolicyRule.Kubernetes
-	24, // 9: specs.AccessPolicyTest.user:type_name -> specs.AccessPolicyTest.User
-	25, // 10: specs.AccessPolicyTest.cluster:type_name -> specs.AccessPolicyTest.Cluster
-	23, // 11: specs.AccessPolicyTest.expected:type_name -> specs.AccessPolicyTest.Expected
-	29, // 12: specs.AccessPolicySpec.user_groups:type_name -> specs.AccessPolicySpec.UserGroupsEntry
-	30, // 13: specs.AccessPolicySpec.cluster_groups:type_name -> specs.AccessPolicySpec.ClusterGroupsEntry
-	8,  // 14: specs.AccessPolicySpec.rules:type_name -> specs.AccessPolicyRule
-	9,  // 15: specs.AccessPolicySpec.tests:type_name -> specs.AccessPolicyTest
-	31, // 16: specs.ServiceAccountStatusSpec.public_keys:type_name -> specs.ServiceAccountStatusSpec.PgpPublicKey
-	17, // 17: specs.AuthConfigSpec.SAML.label_rules:type_name -> specs.AuthConfigSpec.SAML.LabelRulesEntry
-	18, // 18: specs.AuthConfigSpec.SAML.attribute_rules:type_name -> specs.AuthConfigSpec.SAML.AttributeRulesEntry
-	22, // 19: specs.AccessPolicyRule.Kubernetes.impersonate:type_name -> specs.AccessPolicyRule.Kubernetes.Impersonate
-	26, // 20: specs.AccessPolicyTest.Expected.kubernetes:type_name -> specs.AccessPolicyTest.Expected.Kubernetes
-	28, // 21: specs.AccessPolicyTest.User.labels:type_name -> specs.AccessPolicyTest.User.LabelsEntry
-	27, // 22: specs.AccessPolicyTest.Expected.Kubernetes.impersonate:type_name -> specs.AccessPolicyTest.Expected.Kubernetes.Impersonate
-	6,  // 23: specs.AccessPolicySpec.UserGroupsEntry.value:type_name -> specs.AccessPolicyUserGroup
-	7,  // 24: specs.AccessPolicySpec.ClusterGroupsEntry.value:type_name -> specs.AccessPolicyClusterGroup
-	32, // 25: specs.ServiceAccountStatusSpec.PgpPublicKey.expiration:type_name -> google.protobuf.Timestamp
-	26, // [26:26] is the sub-list for method output_type
-	26, // [26:26] is the sub-list for method input_type
-	26, // [26:26] is the sub-list for extension type_name
-	26, // [26:26] is the sub-list for extension extendee
-	0,  // [0:26] is the sub-list for field type_name
+	14, // 0: specs.AuthConfigSpec.auth0:type_name -> specs.AuthConfigSpec.Auth0
+	16, // 1: specs.AuthConfigSpec.webauthn:type_name -> specs.AuthConfigSpec.Webauthn
+	17, // 2: specs.AuthConfigSpec.saml:type_name -> specs.AuthConfigSpec.SAML
+	15, // 3: specs.AuthConfigSpec.oidc:type_name -> specs.AuthConfigSpec.OIDC
+	33, // 4: specs.PublicKeySpec.expiration:type_name -> google.protobuf.Timestamp
+	5,  // 5: specs.PublicKeySpec.identity:type_name -> specs.Identity
+	0,  // 6: specs.PublicKeySpec.type:type_name -> specs.PublicKeySpec.Type
+	20, // 7: specs.AccessPolicyUserGroup.users:type_name -> specs.AccessPolicyUserGroup.User
+	21, // 8: specs.AccessPolicyClusterGroup.clusters:type_name -> specs.AccessPolicyClusterGroup.Cluster
+	22, // 9: specs.AccessPolicyRule.kubernetes:type_name -> specs.AccessPolicyRule.Kubernetes
+	25, // 10: specs.AccessPolicyTest.user:type_name -> specs.AccessPolicyTest.User
+	26, // 11: specs.AccessPolicyTest.cluster:type_name -> specs.AccessPolicyTest.Cluster
+	24, // 12: specs.AccessPolicyTest.expected:type_name -> specs.AccessPolicyTest.Expected
+	30, // 13: specs.AccessPolicySpec.user_groups:type_name -> specs.AccessPolicySpec.UserGroupsEntry
+	31, // 14: specs.AccessPolicySpec.cluster_groups:type_name -> specs.AccessPolicySpec.ClusterGroupsEntry
+	9,  // 15: specs.AccessPolicySpec.rules:type_name -> specs.AccessPolicyRule
+	10, // 16: specs.AccessPolicySpec.tests:type_name -> specs.AccessPolicyTest
+	32, // 17: specs.ServiceAccountStatusSpec.public_keys:type_name -> specs.ServiceAccountStatusSpec.PgpPublicKey
+	18, // 18: specs.AuthConfigSpec.SAML.label_rules:type_name -> specs.AuthConfigSpec.SAML.LabelRulesEntry
+	19, // 19: specs.AuthConfigSpec.SAML.attribute_rules:type_name -> specs.AuthConfigSpec.SAML.AttributeRulesEntry
+	23, // 20: specs.AccessPolicyRule.Kubernetes.impersonate:type_name -> specs.AccessPolicyRule.Kubernetes.Impersonate
+	27, // 21: specs.AccessPolicyTest.Expected.kubernetes:type_name -> specs.AccessPolicyTest.Expected.Kubernetes
+	29, // 22: specs.AccessPolicyTest.User.labels:type_name -> specs.AccessPolicyTest.User.LabelsEntry
+	28, // 23: specs.AccessPolicyTest.Expected.Kubernetes.impersonate:type_name -> specs.AccessPolicyTest.Expected.Kubernetes.Impersonate
+	7,  // 24: specs.AccessPolicySpec.UserGroupsEntry.value:type_name -> specs.AccessPolicyUserGroup
+	8,  // 25: specs.AccessPolicySpec.ClusterGroupsEntry.value:type_name -> specs.AccessPolicyClusterGroup
+	33, // 26: specs.ServiceAccountStatusSpec.PgpPublicKey.expiration:type_name -> google.protobuf.Timestamp
+	27, // [27:27] is the sub-list for method output_type
+	27, // [27:27] is the sub-list for method input_type
+	27, // [27:27] is the sub-list for extension type_name
+	27, // [27:27] is the sub-list for extension extendee
+	0,  // [0:27] is the sub-list for field type_name
 }
 
 func init() { file_omni_specs_auth_proto_init() }
@@ -1807,13 +1872,14 @@ func file_omni_specs_auth_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_omni_specs_auth_proto_rawDesc), len(file_omni_specs_auth_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_omni_specs_auth_proto_goTypes,
 		DependencyIndexes: file_omni_specs_auth_proto_depIdxs,
+		EnumInfos:         file_omni_specs_auth_proto_enumTypes,
 		MessageInfos:      file_omni_specs_auth_proto_msgTypes,
 	}.Build()
 	File_omni_specs_auth_proto = out.File

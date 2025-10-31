@@ -18,12 +18,14 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v6/kind"
 	authpb "github.com/siderolabs/go-api-signature/api/auth"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
+	"github.com/siderolabs/go-api-signature/pkg/plain"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	omnijsonschema "github.com/siderolabs/omni/internal/pkg/jsonschema"
 )
@@ -31,21 +33,58 @@ import (
 type publicKey struct {
 	expiration time.Time
 	id         string
-	username   string
 	data       []byte
+	keyType    specs.PublicKeySpec_Type
 }
 
 // validatePublicKey validates the public key in the request and returns a publicKey.
-func validatePublicKey(keypb *authpb.PublicKey, opts ...pgp.ValidationOption) (publicKey, error) {
-	if keypb.GetPgpData() == nil && keypb.GetWebauthnData() == nil {
-		return publicKey{}, errors.New("no public key data provided")
-	}
-
-	if keypb.GetWebauthnData() != nil {
+func validatePublicKey(keypb *authpb.PublicKey) (publicKey, error) {
+	switch {
+	case keypb.GetWebauthnData() != nil:
 		return publicKey{}, status.Error(codes.Unimplemented, "unimplemented") // todo: implement webauthn
+	case keypb.GetPlainKey() != nil:
+		return validatePlainKey(keypb)
+	case keypb.GetPgpData() != nil:
+		return validatePGPPublicKey(keypb.PgpData)
 	}
 
-	return validatePGPPublicKey(keypb.GetPgpData(), opts...)
+	return publicKey{}, status.Error(codes.InvalidArgument, "no public key data provided")
+}
+
+func validatePlainKey(keypb *authpb.PublicKey) (publicKey, error) {
+	key, err := plain.ParseKey([]byte(keypb.PlainKey.KeyPem))
+	if err != nil {
+		return publicKey{}, err
+	}
+
+	now := time.Now()
+	notBefore := keypb.PlainKey.NotBefore.AsTime()
+	notAfter := keypb.PlainKey.NotAfter.AsTime()
+
+	if !notBefore.Before(notAfter) {
+		return publicKey{}, status.Error(codes.InvalidArgument, "public key 'not_before' is after 'not_after'")
+	}
+
+	if now.Before(notBefore.Add(-pgp.DefaultAllowedClockSkew)) {
+		return publicKey{}, status.Error(codes.InvalidArgument, "public key 'not_before' > now")
+	}
+
+	if !now.Before(notAfter.Add(pgp.DefaultAllowedClockSkew)) {
+		return publicKey{}, status.Error(codes.InvalidArgument, "public key is expired")
+	}
+
+	lifespan := notAfter.Sub(notBefore)
+
+	if lifespan > pgp.DefaultMaxAllowedLifetime {
+		return publicKey{}, status.Error(codes.InvalidArgument, "public key expiration time exceeds max allowed lifetime")
+	}
+
+	return publicKey{
+		data:       []byte(keypb.PlainKey.KeyPem),
+		id:         key.ID(),
+		expiration: notAfter,
+		keyType:    specs.PublicKeySpec_PLAIN,
+	}, nil
 }
 
 func validatePGPPublicKey(armored []byte, opts ...pgp.ValidationOption) (publicKey, error) {
@@ -78,8 +117,8 @@ func validatePGPPublicKey(armored []byte, opts ...pgp.ValidationOption) (publicK
 	return publicKey{
 		data:       armored,
 		id:         pgpKey.GetFingerprint(),
-		username:   pgpKey.GetEntity().PrimaryIdentity().UserId.Name,
 		expiration: expiration,
+		keyType:    specs.PublicKeySpec_PGP,
 	}, nil
 }
 

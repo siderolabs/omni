@@ -32,7 +32,7 @@ func TestAllClusterFeaturesReported(t *testing.T) {
 }
 
 func getFeatures() []string {
-	t := reflect.TypeOf(specs.ClusterSpec_Features{})
+	t := reflect.TypeFor[specs.ClusterSpec_Features]()
 
 	var names []string
 

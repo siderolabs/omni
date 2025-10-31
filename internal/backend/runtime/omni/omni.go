@@ -430,7 +430,7 @@ func RuntimeCacheOptions() []options.Option {
 		safe.WithResourceCache[*omni.MachineUpgradeStatus](),
 		safe.WithResourceCache[*omni.MachineConfigDiff](),
 		safe.WithResourceCache[*siderolinkres.Config](),
-		safe.WithResourceCache[*siderolinkres.ConnectionParams](),
+		safe.WithResourceCache[*siderolinkres.ConnectionParams](), //nolint:staticcheck
 		safe.WithResourceCache[*siderolinkres.Link](),
 		safe.WithResourceCache[*siderolinkres.NodeUniqueToken](),
 		safe.WithResourceCache[*siderolinkres.NodeUniqueTokenStatus](),

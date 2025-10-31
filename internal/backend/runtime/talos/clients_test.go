@@ -54,13 +54,9 @@ func (suite *ClientsSuite) SetupTest() {
 	suite.runtime, err = runtime.NewRuntime(suite.state, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)), omniruntime.RuntimeCacheOptions()...)
 	suite.Require().NoError(err)
 
-	suite.wg.Add(1)
-
-	go func() {
-		defer suite.wg.Done()
-
+	suite.wg.Go(func() {
 		suite.Assert().NoError(suite.runtime.Run(suite.ctx))
-	}()
+	})
 }
 
 func (suite *ClientsSuite) TestGetClient() {

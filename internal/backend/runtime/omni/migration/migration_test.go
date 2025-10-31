@@ -10,6 +10,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -1484,7 +1485,7 @@ func (suite *MigrationSuite) TestDropAllMaintenanceConfigs() {
 
 	defer cancel()
 
-	connectionParams := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
+	connectionParams := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID) //nolint:staticcheck
 	connectionParams.TypedSpec().Value.ApiEndpoint = "grpc://127.0.0.1:8080"
 
 	suite.Require().NoError(suite.state.Create(ctx, connectionParams))
@@ -2123,7 +2124,7 @@ func (suite *MigrationSuite) TestMigrateConnectionParamsToController() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
-	params := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
+	params := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID) //nolint:staticcheck
 
 	suite.Require().NoError(suite.state.Create(ctx, params))
 
@@ -2131,7 +2132,7 @@ func (suite *MigrationSuite) TestMigrateConnectionParamsToController() {
 
 	var err error
 
-	params, err = safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, suite.state, params.Metadata().ID())
+	params, err = safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, suite.state, params.Metadata().ID()) //nolint:staticcheck
 
 	suite.Require().NoError(err)
 
@@ -2142,7 +2143,7 @@ func (suite *MigrationSuite) TestPopulateJoinTokenUsage() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
-	params := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID)
+	params := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID) //nolint:staticcheck
 	params.TypedSpec().Value.JoinToken = "defaulttoken"
 
 	suite.Require().NoError(suite.state.Create(ctx, params))
@@ -2343,12 +2344,6 @@ func TestMigrationSuite(t *testing.T) {
 
 func filterWith(vals ...string) func(string) bool {
 	return func(cur string) bool {
-		for _, val := range vals {
-			if cur == val {
-				return true
-			}
-		}
-
-		return false
+		return slices.Contains(vals, cur)
 	}
 }

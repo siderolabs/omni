@@ -24,7 +24,7 @@ import (
 )
 
 // ConnectionParamsController turns siderolink config resource into a ConnectionParams.
-type ConnectionParamsController = qtransform.QController[*siderolinkres.Config, *siderolinkres.ConnectionParams]
+type ConnectionParamsController = qtransform.QController[*siderolinkres.Config, *siderolinkres.ConnectionParams] //nolint:staticcheck
 
 // ConnectionParamsControllerName is the name of the connection params controller.
 const ConnectionParamsControllerName = "ConnectionParamsController"
@@ -32,14 +32,15 @@ const ConnectionParamsControllerName = "ConnectionParamsController"
 // NewConnectionParamsController instanciates the connection params controller.
 func NewConnectionParamsController() *ConnectionParamsController {
 	return qtransform.NewQController(
-		qtransform.Settings[*siderolinkres.Config, *siderolinkres.ConnectionParams]{
+		qtransform.Settings[*siderolinkres.Config, *siderolinkres.ConnectionParams]{ //nolint:staticcheck
 			Name: ConnectionParamsControllerName,
-			MapMetadataFunc: func(res *siderolinkres.Config) *siderolinkres.ConnectionParams {
-				return siderolinkres.NewConnectionParams(resources.DefaultNamespace, res.Metadata().ID())
+			MapMetadataFunc: func(res *siderolinkres.Config) *siderolinkres.ConnectionParams { //nolint:staticcheck
+				return siderolinkres.NewConnectionParams(resources.DefaultNamespace, res.Metadata().ID()) //nolint:staticcheck
 			},
-			UnmapMetadataFunc: func(*siderolinkres.ConnectionParams) *siderolinkres.Config {
+			UnmapMetadataFunc: func(*siderolinkres.ConnectionParams) *siderolinkres.Config { //nolint:staticcheck
 				return siderolinkres.NewConfig()
 			},
+			//nolint:staticcheck
 			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, siderolinkConfig *siderolinkres.Config, params *siderolinkres.ConnectionParams) error {
 				spec := params.TypedSpec().Value
 

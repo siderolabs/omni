@@ -32,7 +32,7 @@ type Data struct {
 	MachineConfigDiff *MachineConfigDiff `json:"machine_config_diff,omitempty"`
 	TalosAccess       *TalosAccess       `json:"talos_access,omitempty"`
 	K8SAccess         *K8SAccess         `json:"k8s_access,omitempty"`
-	Session           Session            `json:"session,omitempty"`
+	Session           Session            `json:"session"`
 }
 
 // Session contains information about the current session.

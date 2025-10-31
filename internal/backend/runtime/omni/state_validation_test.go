@@ -1023,6 +1023,7 @@ func TestClusterImport(t *testing.T) {
 	cluster.TypedSpec().Value.TalosVersion = "1.10.6"
 	clusterStatus := omnires.NewClusterStatus(resources.DefaultNamespace, clusterID)
 	clusterStatus.Metadata().Labels().Set(omnires.LabelClusterTaintedByImporting, "")
+
 	talosVersion := omnires.NewTalosVersion(resources.DefaultNamespace, "1.10.6")
 	talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.32.7", "1.32.8"}
 	machineSet := omnires.NewMachineSet(resources.DefaultNamespace, machineSetID)

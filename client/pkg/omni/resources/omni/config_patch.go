@@ -316,6 +316,7 @@ func decodeFromYAML(data []byte) ([]map[string]any, error) {
 	dec := yaml.NewDecoder(input)
 
 	documents := make([]map[string]any, 0)
+
 	for {
 		var document map[string]any
 		if err := dec.Decode(&document); err != nil {

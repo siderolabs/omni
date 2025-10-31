@@ -393,8 +393,8 @@ func (p *Params) PopulateFallbacks() {
 		p.Services.DevServerProxy.KeyFile = p.Services.API.KeyFile
 	}
 
-	if p.Auth.Auth0.InitialUsers != nil && p.Auth.InitialUsers == nil {
-		p.Auth.InitialUsers = p.Auth.Auth0.InitialUsers
+	if p.Auth.Auth0.InitialUsers != nil && p.Auth.InitialUsers == nil { //nolint:staticcheck
+		p.Auth.InitialUsers = p.Auth.Auth0.InitialUsers //nolint:staticcheck
 	}
 }
 

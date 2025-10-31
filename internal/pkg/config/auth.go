@@ -45,6 +45,7 @@ type Auth struct {
 //nolint:govet
 type Auth0 struct {
 	// InitialUsers adds the user to the account on the first Omni start up.
+	//
 	// Deprecated: use config.Auth.InitialUsers instead
 	InitialUsers []string `yaml:"initialUsers"`
 	Domain       string   `yaml:"domain"`

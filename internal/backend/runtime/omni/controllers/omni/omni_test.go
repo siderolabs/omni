@@ -474,13 +474,9 @@ func (suite *OmniSuite) SetupTest() {
 }
 
 func (suite *OmniSuite) startRuntime() {
-	suite.wg.Add(1)
-
-	go func() {
-		defer suite.wg.Done()
-
+	suite.wg.Go(func() {
 		suite.runtimeErr = suite.runtime.Run(suite.ctx)
-	}()
+	})
 }
 
 func (suite *OmniSuite) assertNoResource(md resource.Metadata) func() error {

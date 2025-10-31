@@ -159,7 +159,7 @@ func assertTemplate(ctx context.Context, t *testing.T, st state.State) string {
 // assertAllFieldsSet asserts that all fields of the models are set at least once.
 // This is to ensure that the exporter is handling all fields of the models as new fields are added.
 func assertAllFieldsSet(t *testing.T, modelList models.List) {
-	machineSetTypeName := reflect.TypeOf(models.MachineSet{}).String()
+	machineSetTypeName := reflect.TypeFor[models.MachineSet]().String()
 	modelFieldToIsZero := make(map[string]bool)
 
 	for _, model := range modelList {

@@ -274,7 +274,7 @@ func (reconciler *Reconciler) parseIcon(iconBase64 string) (string, error) {
 		decoder := xml.NewDecoder(bytes.NewReader(data))
 
 		for {
-			if decodeErr := decoder.Decode(new(interface{})); decodeErr != nil {
+			if decodeErr := decoder.Decode(new(any)); decodeErr != nil {
 				return errors.Is(decodeErr, io.EOF)
 			}
 		}

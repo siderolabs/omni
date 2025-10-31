@@ -5,6 +5,13 @@
 */
 
 import * as GoogleProtobufTimestamp from "../../google/protobuf/timestamp.pb"
+
+export enum PublicKeySpecType {
+  UNKNOWN = 0,
+  PGP = 1,
+  PLAIN = 2,
+}
+
 export type AuthConfigSpecAuth0 = {
   enabled?: boolean
   domain?: string
@@ -68,6 +75,7 @@ export type PublicKeySpec = {
   confirmed?: boolean
   identity?: Identity
   role?: string
+  type?: PublicKeySpecType
 }
 
 export type AccessPolicyUserGroupUser = {

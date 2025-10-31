@@ -65,7 +65,7 @@ require (
 	github.com/siderolabs/discovery-client v0.1.13
 	github.com/siderolabs/discovery-service v1.0.11
 	github.com/siderolabs/gen v0.8.6
-	github.com/siderolabs/go-api-signature v0.3.10
+	github.com/siderolabs/go-api-signature v0.3.12
 	github.com/siderolabs/go-circular v0.2.3
 	github.com/siderolabs/go-debug v0.6.1
 	github.com/siderolabs/go-kubernetes v0.2.26
@@ -139,6 +139,7 @@ require (
 	github.com/bmatcuk/doublestar/v4 v4.9.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/cilium/ebpf v0.20.0 // indirect
 	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/containerd/go-cni v1.1.13 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.17.0 // indirect

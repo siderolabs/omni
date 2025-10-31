@@ -9,6 +9,7 @@ package migration
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -60,15 +61,7 @@ func dropFinalizers[R generic.ResourceWithRD](ctx context.Context, st state.Stat
 	}
 
 	for res := range list.All() {
-		hasAny := false
-
-		for _, finalizer := range finalizers {
-			if res.Metadata().Finalizers().Has(finalizer) {
-				hasAny = true
-
-				break
-			}
-		}
+		hasAny := slices.ContainsFunc(finalizers, res.Metadata().Finalizers().Has)
 
 		if !hasAny {
 			continue

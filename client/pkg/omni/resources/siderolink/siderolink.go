@@ -19,7 +19,7 @@ const Namespace = resources.DefaultNamespace
 const CounterNamespace = resources.MetricsNamespace
 
 func init() {
-	registry.MustRegisterResource(ConnectionParamsType, &ConnectionParams{})
+	registry.MustRegisterResource(ConnectionParamsType, &ConnectionParams{}) //nolint:staticcheck
 	registry.MustRegisterResource(ConfigType, &Config{})
 	registry.MustRegisterResource(LinkType, &Link{})
 	registry.MustRegisterResource(PendingMachineType, &PendingMachine{})

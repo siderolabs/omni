@@ -22,6 +22,7 @@ const (
 )
 
 // NewConnectionParams creates new ConnectionParams state.
+//
 // Deprecated: replaced by DefaultJoinToken to store the default token and APIConfig to store the rest of the arguments.
 func NewConnectionParams(ns, id string) *ConnectionParams {
 	return typed.NewResource[ConnectionParamsSpec, ConnectionParamsExtension](
@@ -38,6 +39,7 @@ const ConnectionParamsType = resource.Type("ConnectionParams.omni.sidero.dev")
 // ConnectionParams resource keeps generated kernel arguments as a resource.
 //
 // ConnectionParams resource ID is a machine UUID.
+//
 // Deprecated: replaced by DefaultJoinToken to store the default token and APIConfig to store the rest of the arguments.
 type ConnectionParams = typed.Resource[ConnectionParamsSpec, ConnectionParamsExtension]
 

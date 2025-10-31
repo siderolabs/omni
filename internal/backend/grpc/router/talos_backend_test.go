@@ -76,7 +76,7 @@ func TestNodeResolution(t *testing.T) {
 		},
 	}
 
-	noOpVerifier := func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	noOpVerifier := func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		return handler(ctx, req)
 	}
 	talosBackend := router.NewTalosBackend("test-backend", "test-backend", resolver, nil, false, noOpVerifier)
@@ -185,7 +185,7 @@ func (t *testDirector) Director(context.Context, string) (proxy.Mode, []proxy.Ba
 		&testNodeResolver{},
 		conn,
 		false,
-		func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+		func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 			return handler(ctx, req)
 		},
 	)

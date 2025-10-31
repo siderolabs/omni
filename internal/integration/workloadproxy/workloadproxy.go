@@ -334,16 +334,12 @@ func testAccess(ctx context.Context, t *testing.T, logger *zap.Logger, omniClien
 			zap.Int("expectedStatusCode", expectedStatusCode),
 		)
 
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
+		wg.Go(func() {
 			if testErr := testAccessParallel(ctx, httpClient, exposedService, expectedStatusCode, cookies...); testErr != nil {
 				errs[i%parallelTestBatchSize] = fmt.Errorf("failed to access exposed service %q over %q [%d]: %w",
 					exposedService.Metadata().ID(), exposedService.TypedSpec().Value.Url, i, testErr)
 			}
-		}()
+		})
 
 		if i == len(exposedServices)-1 || ((i+1)%parallelTestBatchSize == 0) {
 			logger.Info("wait for the batch of exposed service tests to finish", zap.Int("batchSize", (i%parallelTestBatchSize)+1))

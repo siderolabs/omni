@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -152,15 +153,7 @@ func Check(ctx context.Context, opt ...CheckOption) (CheckResult, error) {
 	}
 
 	if len(opts.ExactRoles) > 0 {
-		found := false
-
-		for _, r := range opts.ExactRoles {
-			if ctxRole == r {
-				found = true
-
-				break
-			}
-		}
+		found := slices.Contains(opts.ExactRoles, ctxRole)
 
 		if !found {
 			return CheckResult{}, fmt.Errorf("%w: required exact roles not found", ErrUnauthorized)

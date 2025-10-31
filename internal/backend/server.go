@@ -24,7 +24,6 @@ import (
 	"syscall"
 	"time"
 
-	pgpcrypto "github.com/ProtonMail/gopenpgp/v2/crypto"
 	coidc "github.com/coreos/go-oidc/v3/oidc"
 	"github.com/cosi-project/runtime/api/v1alpha1"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -549,12 +548,7 @@ func (s *Server) authenticatorFunc() auth.AuthenticatorFunc {
 			return nil, errors.New("public key has no user ID label")
 		}
 
-		key, err := pgpcrypto.NewKeyFromArmored(string(pubKey.TypedSpec().Value.GetPublicKey()))
-		if err != nil {
-			return nil, err
-		}
-
-		verifier, err := pgp.NewKey(key)
+		verifier, err := authres.GetSignatureVerifier(pubKey)
 		if err != nil {
 			return nil, err
 		}
@@ -1034,7 +1028,7 @@ func runLocalResourceServer(ctx context.Context, st state.CoreState, serverOptio
 		return fmt.Errorf("failed to listen: %w", err)
 	}
 
-	unaryInterceptor := grpc.UnaryServerInterceptor(func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	unaryInterceptor := grpc.UnaryServerInterceptor(func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		md, ok := metadata.FromIncomingContext(ctx)
 		if ok && md.Get(constants.InfraProviderMetadataKey) != nil {
 			return handler(actor.MarkContextAsInfraProvider(
@@ -1046,7 +1040,7 @@ func runLocalResourceServer(ctx context.Context, st state.CoreState, serverOptio
 		return handler(actor.MarkContextAsInternalActor(ctx), req)
 	})
 
-	streamInterceptor := grpc.StreamServerInterceptor(func(srv interface{}, ss grpc.ServerStream, _ *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	streamInterceptor := grpc.StreamServerInterceptor(func(srv any, ss grpc.ServerStream, _ *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		md, ok := metadata.FromIncomingContext(ctx)
 		if ok && md.Get(constants.InfraProviderMetadataKey) != nil {
 			return handler(srv, &grpc_middleware.WrappedServerStream{

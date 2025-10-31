@@ -2,10 +2,10 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-10-23T09:04:40Z by kres 46e133d.
+# Generated on 2025-11-10T10:44:28Z by kres 911d166.
 
 ARG JS_TOOLCHAIN
-ARG TOOLCHAIN
+ARG TOOLCHAIN=scratch
 
 FROM ghcr.io/siderolabs/ca-certificates:v1.11.0 AS image-ca-certificates
 
@@ -20,7 +20,7 @@ ENV GOPATH=/go
 ENV PATH=${PATH}:/usr/local/go/bin
 
 # runs markdownlint
-FROM docker.io/oven/bun:1.3.0-alpine AS lint-markdown
+FROM docker.io/oven/bun:1.3.1-alpine AS lint-markdown
 WORKDIR /src
 RUN bun i markdownlint-cli@0.45.0 sentences-per-line@0.3.0
 COPY .markdownlint.json .
@@ -57,7 +57,7 @@ ADD client/api/common/omni.proto /frontend/src/api/common/
 ADD client/api/omni/resources/resources.proto /frontend/src/api/omni/resources/
 ADD client/api/omni/management/management.proto /frontend/src/api/omni/management/
 ADD client/api/omni/oidc/oidc.proto /frontend/src/api/omni/oidc/
-ADD https://raw.githubusercontent.com/siderolabs/go-api-signature/v0.3.10/api/auth/auth.proto /frontend/src/api/omni/auth/
+ADD https://raw.githubusercontent.com/siderolabs/go-api-signature/v0.3.12/api/auth/auth.proto /frontend/src/api/omni/auth/
 ADD client/api/omni/specs/omni.proto /frontend/src/api/omni/specs/
 ADD client/api/omni/specs/siderolink.proto /frontend/src/api/omni/specs/
 ADD client/api/omni/specs/system.proto /frontend/src/api/omni/specs/
