@@ -34,6 +34,7 @@ const props = defineProps<{
 
 const defaultTunnelMode = (() => {
   switch (props.grpcTunnel) {
+    default:
     case GrpcTunnelMode.UNSET:
       return GRPCTunnelMode.Default
     case GrpcTunnelMode.DISABLED:
@@ -41,8 +42,6 @@ const defaultTunnelMode = (() => {
     case GrpcTunnelMode.ENABLED:
       return GRPCTunnelMode.Enabled
   }
-
-  return GrpcTunnelMode.UNSET
 })()
 
 const emit = defineEmits([
@@ -114,7 +113,6 @@ const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
       <div>
         <span>Use gRPC Tunnel</span>
         <TSelectList
-          menu-align="right"
           class="h-6"
           :values="[GRPCTunnelMode.Default, GRPCTunnelMode.Enabled, GRPCTunnelMode.Disabled]"
           :default-value="defaultTunnelMode"
