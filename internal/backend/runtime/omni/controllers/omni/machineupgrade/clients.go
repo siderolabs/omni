@@ -11,11 +11,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/siderolabs/image-factory/pkg/schematic"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 
-	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
@@ -27,12 +25,6 @@ type TalosClientFactory interface {
 type TalosClient interface {
 	io.Closer
 	UpgradeWithOptions(ctx context.Context, opts ...client.UpgradeOption) (*machineapi.UpgradeResponse, error)
-}
-
-// ImageFactoryClient ensures that the given schematic exists in the image factory.
-type ImageFactoryClient interface {
-	EnsureSchematic(ctx context.Context, inputSchematic schematic.Schematic) (imagefactory.EnsuredSchematic, error)
-	Host() string
 }
 
 type talosCliFactory struct{}

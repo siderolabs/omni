@@ -43,6 +43,15 @@ func (SchematicConfigurationExtension) ResourceDefinition() meta.ResourceDefinit
 		Type:             SchematicConfigurationType,
 		Aliases:          []resource.Type{},
 		DefaultNamespace: resources.DefaultNamespace,
-		PrintColumns:     []meta.PrintColumn{},
+		PrintColumns: []meta.PrintColumn{
+			{
+				Name:     "Schematic ID",
+				JSONPath: "{.schematicid}",
+			},
+			{
+				Name:     "Talos Version",
+				JSONPath: "{.talosversion}",
+			},
+		},
 	}
 }

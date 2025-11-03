@@ -2049,3 +2049,45 @@ func moveInfraProviderAnnotationsToLabels(ctx context.Context, st state.State, _
 
 	return nil
 }
+
+func dropSchematicConfigFinalizerFromClusterMachines(ctx context.Context, s state.State, _ *zap.Logger, _ migrationContext) error {
+	list, err := safe.ReaderListAll[*omni.ClusterMachine](ctx, s)
+	if err != nil {
+		return err
+	}
+
+	for cm := range list.All() {
+		if cm.Metadata().Finalizers().Has(omnictrl.SchematicConfigurationControllerName) {
+			if _, err = safe.StateUpdateWithConflicts(ctx, s, cm.Metadata(), func(res *omni.ClusterMachine) error {
+				res.Metadata().Finalizers().Remove(omnictrl.SchematicConfigurationControllerName)
+
+				return nil
+			}, state.WithUpdateOwner(cm.Metadata().Owner()), state.WithExpectedPhaseAny()); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func dropTalosUpgradeStatusFinalizersFromSchematicConfigs(ctx context.Context, s state.State, _ *zap.Logger, _ migrationContext) error {
+	list, err := safe.ReaderListAll[*omni.SchematicConfiguration](ctx, s)
+	if err != nil {
+		return err
+	}
+
+	for sc := range list.All() {
+		if sc.Metadata().Finalizers().Has(omnictrl.TalosUpgradeStatusControllerName) {
+			if _, err = safe.StateUpdateWithConflicts(ctx, s, sc.Metadata(), func(res *omni.SchematicConfiguration) error {
+				res.Metadata().Finalizers().Remove(omnictrl.TalosUpgradeStatusControllerName)
+
+				return nil
+			}, state.WithUpdateOwner(sc.Metadata().Owner()), state.WithExpectedPhaseAny()); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}

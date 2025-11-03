@@ -248,6 +248,14 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: moveInfraProviderAnnotationsToLabels,
 				name:     "moveInfraProviderAnnotationsToLabels",
 			},
+			{
+				callback: dropSchematicConfigFinalizerFromClusterMachines,
+				name:     "dropSchematicConfigFinalizerFromClusterMachines",
+			},
+			{
+				callback: dropTalosUpgradeStatusFinalizersFromSchematicConfigs,
+				name:     "dropTalosUpgradeStatusFinalizersFromSchematicConfigs",
+			},
 		},
 	}
 }

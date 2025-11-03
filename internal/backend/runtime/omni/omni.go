@@ -248,7 +248,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		omnictrl.NewConnectionParamsController(),
 		omnictrl.NewJoinTokenStatusController(),
 		omnictrl.NewNodeUniqueTokenCleanupController(time.Minute),
-		machineupgrade.NewStatusController(imageFactoryClient, nil),
+		machineupgrade.NewStatusController(imageFactoryHost, nil),
 		kernelargsctrl.NewStatusController(),
 	}
 

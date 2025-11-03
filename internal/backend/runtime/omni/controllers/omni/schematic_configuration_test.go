@@ -73,6 +73,7 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 
 	machineStatus.TypedSpec().Value.TalosVersion = talosVersion
 	machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
+		Extensions:       []string{"siderolabs/hello-world-service"},
 		InitialSchematic: expectedSchematic,
 		InitialState: &specs.MachineStatusSpec_Schematic_InitialState{
 			Extensions: []string{"siderolabs/hello-world-service"},
@@ -91,10 +92,24 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	clusterMachine.Metadata().Labels().Set(omni.LabelMachineSet, machineSet)
 
 	suite.Require().NoError(suite.state.Create(ctx, machineStatus))
+
+	// a schematic should already be created with the current list of extensions, without requiring a cluster machine
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
+		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+			_, hasClusterLabel := schematicConfiguration.Metadata().Labels().Get(omni.LabelCluster)
+			assertion.False(hasClusterLabel)
+
+			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+		},
+	)
+
 	suite.Require().NoError(suite.state.Create(ctx, clusterMachine))
 
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+			_, hasClusterLabel := schematicConfiguration.Metadata().Labels().Get(omni.LabelCluster)
+			assertion.True(hasClusterLabel)
+
 			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 		},
 	)
@@ -204,10 +219,9 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	// customization: {}
 	expectedSchematic = "2611e4c1b6b8de906c9ad8f2248145d034ce8f657706407fe2f6a01086331a7d"
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
-		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
-		},
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+		assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+	},
 	)
 
 	// reset everything to the default state, should revert back to the initial set of extensions
@@ -225,10 +239,9 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	//       - siderolabs/something
 	expectedSchematic = "8ac31bbb181769d0963b217bb48f92839059ce90bc9e8b08836892c0182f8cb8"
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
-		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
-		},
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+		assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+	},
 	)
 
 	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, machineStatus.Metadata(), func(res *omni.MachineStatus) error {
@@ -305,10 +318,9 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	//       - siderolabs/x11
 	expectedSchematic = "5fd4ef8a66795a9aba2520a2be1bb4fb64ef7405a775e40965cf6d7aa417665f"
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
-		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
-		},
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+		assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+	},
 	)
 
 	// create kernel args, should change the schematic ID
@@ -332,10 +344,9 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	//       - siderolabs/x11
 	expectedSchematic = "17b419c0d747bbd2399e2d06d16def170636569e9116e3e015b5be0015dd82c7"
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
-		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
-		},
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+		assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+	},
 	)
 
 	// set the UKI to false, the schematic should no more contain the kernel args (as updating them is not supported)
@@ -358,10 +369,46 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	//       - siderolabs/x11
 	expectedSchematic = "5fd4ef8a66795a9aba2520a2be1bb4fb64ef7405a775e40965cf6d7aa417665f"
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
-		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
-		})
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+		assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+	})
+
+	// update the MachineStatus to simulate an actual change of the schematic (e.g., the schematic change caused an upgrade)
+	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, machineStatus.Metadata(), func(res *omni.MachineStatus) error {
+		res.TypedSpec().Value.Schematic.Extensions = []string{
+			"siderolabs/bnx2-bnx2x",
+			"siderolabs/intel-ice-firmware",
+			"siderolabs/x11",
+		}
+
+		return nil
+	})
+	suite.Require().NoError(err)
+
+	// destroy the ClusterMachine
+	rtestutils.Destroy[*omni.ClusterMachine](ctx, suite.T(), suite.state, []string{clusterMachine.Metadata().ID()})
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+		_, hasClusterLabel := schematicConfiguration.Metadata().Labels().Get(omni.LabelCluster)
+		assertion.False(hasClusterLabel)
+	})
+
+	// Change the extensions in the ExtensionsConfiguration: because the machine is no more allocated, it should be no-op, and the existing list of extensions should be preserved.
+	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, extensionsConfiguration.Metadata(), func(res *omni.ExtensionsConfiguration) error {
+		res.TypedSpec().Value.Extensions = []string{
+			"siderolabs/yet-another-extension",
+		}
+
+		return nil
+	})
+	suite.Require().NoError(err)
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+		_, hasClusterLabel := schematicConfiguration.Metadata().Labels().Get(omni.LabelCluster)
+		assertion.False(hasClusterLabel)
+
+		assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+	})
 }
 
 func TestSchematicConfigurationSuite(t *testing.T) {

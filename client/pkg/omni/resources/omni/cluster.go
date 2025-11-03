@@ -50,7 +50,16 @@ func (ClusterExtension) ResourceDefinition() meta.ResourceDefinitionSpec {
 		Type:             ClusterType,
 		Aliases:          []resource.Type{},
 		DefaultNamespace: resources.DefaultNamespace,
-		PrintColumns:     []meta.PrintColumn{},
+		PrintColumns: []meta.PrintColumn{
+			{
+				Name:     "Talos Version",
+				JSONPath: "{.talosversion}",
+			},
+			{
+				Name:     "Kubernetes Version",
+				JSONPath: "{.kubernetesversion}",
+			},
+		},
 	}
 }
 

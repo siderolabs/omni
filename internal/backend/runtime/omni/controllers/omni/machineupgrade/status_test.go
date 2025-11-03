@@ -13,6 +13,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/client"
@@ -23,24 +24,9 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineupgrade"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 )
-
-type mockImageFactoryClient struct{}
-
-func (m *mockImageFactoryClient) EnsureSchematic(_ context.Context, inputSchematic schematic.Schematic) (imagefactory.EnsuredSchematic, error) {
-	id, err := inputSchematic.ID()
-
-	return imagefactory.EnsuredSchematic{
-		FullID: id,
-	}, err
-}
-
-func (m *mockImageFactoryClient) Host() string {
-	return "mock-host"
-}
 
 type mockTalosClient struct {
 	upgradeImages []string
@@ -66,7 +52,7 @@ type mockTalosClientFactory struct {
 	talosClient *mockTalosClient
 }
 
-func (m *mockTalosClientFactory) New(_ context.Context, _ string) (machineupgrade.TalosClient, error) {
+func (m *mockTalosClientFactory) New(context.Context, string) (machineupgrade.TalosClient, error) {
 	return m.talosClient, nil
 }
 
@@ -74,24 +60,25 @@ func TestReconcile(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 
-	imageFactoryClient := &mockImageFactoryClient{}
 	talosClient := &mockTalosClient{}
 	talosClientFactory := &mockTalosClientFactory{
 		talosClient: talosClient,
 	}
 
 	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
-		ctrl := machineupgrade.NewStatusController(imageFactoryClient, talosClientFactory)
+		ctrl := machineupgrade.NewStatusController("mock-host", talosClientFactory)
 
 		require.NoError(t, testContext.Runtime.RegisterQController(ctrl))
 	}, func(ctx context.Context, testContext testutils.TestContext) {
 		const id = "test"
 
+		st := testContext.State
+
 		ms := omni.NewMachineStatus(resources.DefaultNamespace, id)
 
-		require.NoError(t, testContext.State.Create(ctx, ms))
+		require.NoError(t, st.Create(ctx, ms))
 
-		rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
+		rtestutils.AssertResource(ctx, t, st, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
 			assertion.Equal(specs.MachineUpgradeStatusSpec_Unknown, res.TypedSpec().Value.Phase)
 			assertion.Equal(res.TypedSpec().Value.Status, "schematic info is not available")
 			assertion.Empty(res.TypedSpec().Value.Error)
@@ -121,17 +108,22 @@ func TestReconcile(t *testing.T) {
 		currentSchematicID, err := initialSchematic.ID()
 		require.NoError(t, err)
 
+		schematicConfiguration := omni.NewSchematicConfiguration(resources.DefaultNamespace, id)
+		schematicConfiguration.TypedSpec().Value.SchematicId = currentSchematicID
+		schematicConfiguration.TypedSpec().Value.KernelArgs = initialSchematic.Customization.ExtraKernelArgs
+		require.NoError(t, st.Create(ctx, schematicConfiguration))
+
 		currentSchematicRaw, err := initialSchematic.Marshal()
 		require.NoError(t, err)
 
-		kernelArgs := omni.NewKernelArgs(id)
-		kernelArgs.TypedSpec().Value.Args = []string{"updated-arg1", "updated-arg2"}
+		updatedSchematic := updateKernelArgs(ctx, t, st, initialSchematic, id, []string{"updated-arg1", "updated-arg2"})
 
-		require.NoError(t, testContext.State.Create(ctx, kernelArgs))
+		updatedSchematicID, err := updatedSchematic.ID()
+		require.NoError(t, err)
 
 		const talosVersion = "v1.11.3"
 
-		_, err = safe.StateUpdateWithConflicts(ctx, testContext.State, ms.Metadata(), func(res *omni.MachineStatus) error {
+		_, err = safe.StateUpdateWithConflicts(ctx, st, ms.Metadata(), func(res *omni.MachineStatus) error {
 			res.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
 
 			res.TypedSpec().Value.Maintenance = true
@@ -170,8 +162,7 @@ func TestReconcile(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
-			assertion.True(res.TypedSpec().Value.IsMaintenance)
+		rtestutils.AssertResource(ctx, t, st, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
 			assertion.Equal(specs.MachineUpgradeStatusSpec_Upgrading, res.TypedSpec().Value.Phase)
 			assertion.Equal("Talos upgrade initiated", res.TypedSpec().Value.Status)
 			assertion.Empty(res.TypedSpec().Value.Error)
@@ -180,18 +171,12 @@ func TestReconcile(t *testing.T) {
 			assertion.Equal(talosVersion, res.TypedSpec().Value.CurrentTalosVersion)
 		})
 
-		updatedSchematic := initialSchematic
-		updatedSchematic.Customization.ExtraKernelArgs = kernelArgs.TypedSpec().Value.Args
-
-		updatedSchematicID, err := updatedSchematic.ID()
-		require.NoError(t, err)
-
 		updatedSchematicRaw, err := updatedSchematic.Marshal()
 		require.NoError(t, err)
 
 		// update MachineStatus to simulate upgrade completion
 
-		_, err = safe.StateUpdateWithConflicts(ctx, testContext.State, ms.Metadata(), func(res *omni.MachineStatus) error {
+		_, err = safe.StateUpdateWithConflicts(ctx, st, ms.Metadata(), func(res *omni.MachineStatus) error {
 			res.TypedSpec().Value.Schematic.FullId = updatedSchematicID
 			res.TypedSpec().Value.Schematic.Raw = string(updatedSchematicRaw)
 
@@ -199,7 +184,7 @@ func TestReconcile(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
+		rtestutils.AssertResource(ctx, t, st, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
 			assertion.Equal(specs.MachineUpgradeStatusSpec_UpToDate, res.TypedSpec().Value.Phase)
 			assertion.Equal("machine is up to date", res.TypedSpec().Value.Status)
 			assertion.Empty(res.TypedSpec().Value.Error)
@@ -213,7 +198,7 @@ func TestReconcile(t *testing.T) {
 		assert.Equal(t, expectedInstallImage, talosClient.upgradeImages[0])
 
 		// take it out of maintenance
-		_, err = safe.StateUpdateWithConflicts(ctx, testContext.State, ms.Metadata(), func(res *omni.MachineStatus) error {
+		_, err = safe.StateUpdateWithConflicts(ctx, st, ms.Metadata(), func(res *omni.MachineStatus) error {
 			res.TypedSpec().Value.Maintenance = false
 
 			return nil
@@ -226,15 +211,30 @@ func TestReconcile(t *testing.T) {
 		})
 
 		// update the args to trigger a pending update
-		_, err = safe.StateUpdateWithConflicts(ctx, testContext.State, kernelArgs.Metadata(), func(res *omni.KernelArgs) error {
-			res.TypedSpec().Value.Args = []string{"final-arg1", "final-arg2"}
+		updateKernelArgs(ctx, t, st, updatedSchematic, id, []string{"final-arg1", "final-arg2"})
 
-			return nil
-		})
-		require.NoError(t, err)
-
-		rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
+		rtestutils.AssertResource(ctx, t, st, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
 			assertion.Equal("not in maintenance mode", res.TypedSpec().Value.Status)
 		})
 	})
+}
+
+func updateKernelArgs(ctx context.Context, t *testing.T, st state.State, schematic schematic.Schematic, id string, args []string) schematic.Schematic {
+	t.Helper()
+
+	updatedSchematic := schematic
+	updatedSchematic.Customization.ExtraKernelArgs = args
+
+	updatedSchematicID, err := updatedSchematic.ID()
+	require.NoError(t, err)
+
+	_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewSchematicConfiguration(resources.DefaultNamespace, id).Metadata(), func(res *omni.SchematicConfiguration) error {
+		res.TypedSpec().Value.SchematicId = updatedSchematicID
+		res.TypedSpec().Value.KernelArgs = updatedSchematic.Customization.ExtraKernelArgs
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	return updatedSchematic
 }

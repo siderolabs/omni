@@ -796,6 +796,7 @@ export type TalosExtensionsSpec = {
 export type SchematicConfigurationSpec = {
   schematic_id?: string
   talos_version?: string
+  kernel_args?: string[]
 }
 
 export type ExtensionsConfigurationSpec = {
