@@ -367,7 +367,7 @@ func defineServiceFlags() {
 		&cmdConfig.Services.DevServerProxy.BindEndpoint,
 		"frontend-bind",
 		cmdConfig.Services.DevServerProxy.BindEndpoint,
-		"proxy server which will redirect all non API requests to the definied frontend server.")
+		"proxy server which will redirect all non API requests to the defined frontend server.")
 }
 
 func defineAuthFlags() {
@@ -558,6 +558,12 @@ func defineStorageFlags() {
 		"etcd-embedded-unsafe-fsync",
 		cmdConfig.Storage.Default.Etcd.EmbeddedUnsafeFsync,
 		"disable fsync in the embedded etcd server (dangerous).",
+	)
+	rootCmd.Flags().StringVar(
+		&cmdConfig.Storage.Default.Etcd.EmbeddedDBPath,
+		"etcd-embedded-db-path",
+		cmdConfig.Storage.Default.Etcd.EmbeddedDBPath,
+		"path to the embedded etcd database.",
 	)
 
 	ensure.NoError(rootCmd.Flags().MarkHidden("etcd-embedded-unsafe-fsync"))

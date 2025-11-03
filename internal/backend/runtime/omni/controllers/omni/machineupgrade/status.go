@@ -7,7 +7,6 @@
 package machineupgrade
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -16,6 +15,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	"github.com/siderolabs/talos/pkg/machinery/client"
@@ -32,17 +32,17 @@ import (
 
 type StatusController struct {
 	*qtransform.QController[*omni.MachineStatus, *omni.MachineUpgradeStatus]
-	imageFactoryClient ImageFactoryClient
 	talosClientFactory TalosClientFactory
+	imageFactoryHost   string
 }
 
-func NewStatusController(imageFactoryClient ImageFactoryClient, talosClientFactory TalosClientFactory) *StatusController {
+func NewStatusController(imageFactoryHost string, talosClientFactory TalosClientFactory) *StatusController {
 	if talosClientFactory == nil {
 		talosClientFactory = &talosCliFactory{}
 	}
 
 	ctrl := &StatusController{
-		imageFactoryClient: imageFactoryClient,
+		imageFactoryHost:   imageFactoryHost,
 		talosClientFactory: talosClientFactory,
 	}
 
@@ -58,6 +58,7 @@ func NewStatusController(imageFactoryClient ImageFactoryClient, talosClientFacto
 			TransformFunc: ctrl.transform,
 		},
 		qtransform.WithExtraMappedInput[*omni.KernelArgs](qtransform.MapperSameID[*omni.MachineStatus]()),
+		qtransform.WithExtraMappedInput[*omni.SchematicConfiguration](qtransform.MapperSameID[*omni.MachineStatus]()),
 	)
 
 	return ctrl
@@ -112,33 +113,20 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 		return nil
 	}
 
-	kernelArgsRes, err := kernelargs.GetUncached(ctx, r, ms.Metadata().ID())
+	schematicConfiguration, err := safe.ReaderGetByID[*omni.SchematicConfiguration](ctx, r, ms.Metadata().ID())
 	if err != nil && !state.IsNotFoundError(err) {
-		return fmt.Errorf("error getting extra kernel args: %w", err)
+		return fmt.Errorf("error getting schematic configuration: %w", err)
 	}
 
-	kernelArgs, kernelArgsOk, err := kernelargs.Calculate(ms, kernelArgsRes)
-	if err != nil {
-		return fmt.Errorf("error getting extra kernel args: %w", err)
-	}
-
-	if !kernelArgsOk {
+	if schematicConfiguration == nil {
 		status.TypedSpec().Value.Phase = specs.MachineUpgradeStatusSpec_Unknown
-		status.TypedSpec().Value.Status = "extra kernel args are not yet initialized"
+		status.TypedSpec().Value.Status = "schematic configuration is not available"
 		status.TypedSpec().Value.Error = ""
 
-		// if extra kernel args were not initialized yet by the MachineStatusController, we cannot determine the desired set of kernel args, skip
 		return nil
 	}
 
-	desiredSchematic := currentSchematic
-	desiredSchematic.Customization.ExtraKernelArgs = kernelArgs
-
-	desiredSchematicID, err := desiredSchematic.ID()
-	if err != nil {
-		return fmt.Errorf("failed to compute desired schematic ID: %w", err)
-	}
-
+	desiredSchematicID := schematicConfiguration.TypedSpec().Value.SchematicId
 	status.TypedSpec().Value.SchematicId = desiredSchematicID
 
 	talosVersion := ms.TypedSpec().Value.TalosVersion
@@ -150,7 +138,7 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 		return nil
 	}
 
-	schematicEqual, schematicEqualWithoutKernelArgs, err := ctrl.checkSchematicEquality(currentSchematic, desiredSchematic)
+	schematicEqual, schematicEqualWithoutKernelArgs, err := ctrl.checkSchematicEquality(currentSchematic, schematicConfiguration)
 	if err != nil {
 		return fmt.Errorf("failed to get schematic diff: %w", err)
 	}
@@ -215,21 +203,6 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 		}
 	}
 
-	ensuredSchematic, err := ctrl.imageFactoryClient.EnsureSchematic(ctx, desiredSchematic)
-	if err != nil {
-		return fmt.Errorf("failed to ensure schematic in image factory: %w", err)
-	}
-
-	if desiredSchematicID != ensuredSchematic.FullID {
-		logger.Error("schematic ID returned from image factory does not match desired schematic ID",
-			zap.String("desired", desiredSchematicID), zap.String("returned", ensuredSchematic.FullID))
-
-		status.TypedSpec().Value.Status = ""
-		status.TypedSpec().Value.Error = "schematic ID returned from image factory does not match desired schematic ID"
-
-		return nil
-	}
-
 	platform := ms.TypedSpec().Value.GetPlatformMetadata().GetPlatform()
 	if platform == "" {
 		status.TypedSpec().Value.Status = "platform metadata is not available"
@@ -253,7 +226,7 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 		SecurityState:        securityState,
 	}
 
-	installImageStr, err := installimage.Build(ctrl.imageFactoryClient.Host(), ms.Metadata().ID(), installImage)
+	installImageStr, err := installimage.Build(ctrl.imageFactoryHost, ms.Metadata().ID(), installImage)
 	if err != nil {
 		return fmt.Errorf("failed to build install image: %w", err)
 	}
@@ -324,22 +297,17 @@ func (ctrl *StatusController) doUpgrade(ctx context.Context, machineStatus *omni
 	return nil
 }
 
-func (ctrl *StatusController) checkSchematicEquality(currentSchematic, desiredSchematic schematic.Schematic) (equal, equalWithoutKernelArgs bool, err error) {
-	kernelArgsMismatch := !slices.Equal(currentSchematic.Customization.ExtraKernelArgs, desiredSchematic.Customization.ExtraKernelArgs)
+func (ctrl *StatusController) checkSchematicEquality(currentSchematic schematic.Schematic, schematicConfig *omni.SchematicConfiguration) (equal, equalWithoutKernelArgs bool, err error) {
+	kernelArgsMismatch := !slices.Equal(currentSchematic.Customization.ExtraKernelArgs, schematicConfig.TypedSpec().Value.KernelArgs)
 
-	currentSchematic.Customization.ExtraKernelArgs = desiredSchematic.Customization.ExtraKernelArgs
+	currentSchematic.Customization.ExtraKernelArgs = schematicConfig.TypedSpec().Value.KernelArgs
 
-	currentMarshaled, err := currentSchematic.Marshal()
+	currentID, err := currentSchematic.ID()
 	if err != nil {
-		return false, false, fmt.Errorf("failed to marshal current schematic: %w", err)
+		return false, false, fmt.Errorf("failed to calculate current schematic ID: %w", err)
 	}
 
-	desiredMarshaled, err := desiredSchematic.Marshal()
-	if err != nil {
-		return false, false, fmt.Errorf("failed to marshal desired schematic: %w", err)
-	}
-
-	equalWithoutKernelArgs = bytes.Equal(currentMarshaled, desiredMarshaled)
+	equalWithoutKernelArgs = currentID == schematicConfig.TypedSpec().Value.SchematicId
 	equal = equalWithoutKernelArgs && !kernelArgsMismatch
 
 	return equal, equalWithoutKernelArgs, nil

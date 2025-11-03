@@ -2313,6 +2313,78 @@ func (suite *MigrationSuite) TestMoveInfraProviderAnnotationsToLabels() {
 	suite.False(machine1AnnotationOk)
 }
 
+//nolint:dupl
+func (suite *MigrationSuite) TestDropSchematicConfigFinalizerFromClusterMachines() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	cm1 := omni.NewClusterMachine(resources.DefaultNamespace, "cm1")
+	cm1.Metadata().Finalizers().Add(omnictrl.SchematicConfigurationControllerName)
+	cm1.Metadata().SetPhase(resource.PhaseTearingDown)
+	suite.Require().NoError(suite.state.Create(ctx, cm1))
+
+	cm2 := omni.NewClusterMachine(resources.DefaultNamespace, "cm2")
+	cm2.Metadata().Finalizers().Add(omnictrl.SchematicConfigurationControllerName)
+	suite.Require().NoError(cm2.Metadata().SetOwner("some-owner"))
+	suite.Require().NoError(suite.state.Create(ctx, cm2, state.WithCreateOwner("some-owner")))
+
+	cm3 := omni.NewClusterMachine(resources.DefaultNamespace, "cm3")
+	suite.Require().NoError(suite.state.Create(ctx, cm3))
+
+	cm3VersionBefore := cm3.Metadata().Version()
+
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("dropSchematicConfigFinalizerFromClusterMachines"))))
+
+	cm1Migrated, err := suite.state.Get(ctx, cm1.Metadata())
+	suite.Require().NoError(err)
+
+	cm2Migrated, err := suite.state.Get(ctx, cm2.Metadata())
+	suite.Require().NoError(err)
+
+	cm3Migrated, err := suite.state.Get(ctx, cm3.Metadata())
+	suite.Require().NoError(err)
+
+	suite.False(cm1Migrated.Metadata().Finalizers().Has(omnictrl.SchematicConfigurationControllerName))
+	suite.False(cm2Migrated.Metadata().Finalizers().Has(omnictrl.SchematicConfigurationControllerName))
+	suite.True(cm3VersionBefore.Equal(cm3Migrated.Metadata().Version()), "expected cm3 to be left untouched")
+}
+
+//nolint:dupl
+func (suite *MigrationSuite) TestDropTalosUpgradeStatusFinalizersFromSchematicConfigs() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	sc1 := omni.NewSchematicConfiguration(resources.DefaultNamespace, "sc1")
+	sc1.Metadata().Finalizers().Add(omnictrl.TalosUpgradeStatusControllerName)
+	sc1.Metadata().SetPhase(resource.PhaseTearingDown)
+	suite.Require().NoError(suite.state.Create(ctx, sc1))
+
+	sc2 := omni.NewSchematicConfiguration(resources.DefaultNamespace, "sc2")
+	sc2.Metadata().Finalizers().Add(omnictrl.TalosUpgradeStatusControllerName)
+	suite.Require().NoError(sc2.Metadata().SetOwner("some-owner"))
+	suite.Require().NoError(suite.state.Create(ctx, sc2, state.WithCreateOwner("some-owner")))
+
+	sc3 := omni.NewSchematicConfiguration(resources.DefaultNamespace, "sc3")
+	suite.Require().NoError(suite.state.Create(ctx, sc3))
+
+	sc3VersionBefore := sc3.Metadata().Version()
+
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("dropTalosUpgradeStatusFinalizersFromSchematicConfigs"))))
+
+	sc1Migrated, err := suite.state.Get(ctx, sc1.Metadata())
+	suite.Require().NoError(err)
+
+	sc2Migrated, err := suite.state.Get(ctx, sc2.Metadata())
+	suite.Require().NoError(err)
+
+	sc3Migrated, err := suite.state.Get(ctx, sc3.Metadata())
+	suite.Require().NoError(err)
+
+	suite.False(sc1Migrated.Metadata().Finalizers().Has(omnictrl.TalosUpgradeStatusControllerName))
+	suite.False(sc2Migrated.Metadata().Finalizers().Has(omnictrl.TalosUpgradeStatusControllerName))
+	suite.True(sc3VersionBefore.Equal(sc3Migrated.Metadata().Version()), "expected sc3 to be left untouched")
+}
+
 func startMigration[
 	R interface {
 		generic.ResourceWithRD
