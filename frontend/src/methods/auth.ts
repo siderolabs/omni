@@ -8,6 +8,7 @@ import type { ComputedRef, Ref } from 'vue'
 import { computed, onBeforeMount, ref, watch } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
+import { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
 import type { JoinTokenSpec } from '@/api/omni/specs/siderolink.pb'
@@ -251,7 +252,12 @@ const redirectToURL = (url: string) => {
 }
 
 export const logout = async (auth0?: Auth0VueClient) => {
-  await revokePublicKey()
+  try {
+    await revokePublicKey()
+  } catch (error) {
+    // During a log out action being unauthenticated is fine
+    if (error.code !== Code.UNAUTHENTICATED) throw error
+  }
 
   await auth0?.logout({
     logoutParams: {
