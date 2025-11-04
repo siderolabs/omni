@@ -8,6 +8,7 @@ included in the LICENSE file.
 import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import OngoingTasks from '@/components/common/OngoingTasks/OngoingTasks.vue'
+import { useDocsLink } from '@/methods'
 
 interface Props {
   sidebarOpen?: boolean
@@ -15,6 +16,8 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+const docsLink = useDocsLink('omni')
 </script>
 
 <template>
@@ -53,7 +56,7 @@ const props = defineProps<Props>()
 
     <div class="flex items-center gap-2 text-naturals-n11">
       <a
-        href="https://omni.siderolabs.com/"
+        :href="docsLink"
         target="_blank"
         rel="noopener noreferrer"
         class="flex gap-1 transition-colors hover:text-naturals-n14"

@@ -22,7 +22,6 @@ import { withContext } from '@/api/options'
 import {
   ClusterType,
   DefaultNamespace,
-  DefaultTalosVersion,
   KubernetesUpgradeStatusType,
   KubernetesVersionType,
   TalosVersionType,
@@ -31,6 +30,7 @@ import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import { useWatch } from '@/components/common/Watch/useWatch'
+import { useDocsLink } from '@/methods'
 import { upgradeKubernetes } from '@/methods/cluster'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
@@ -139,15 +139,9 @@ function isVersionUpgradeable(version: string) {
   return supportedK8sVersions.value.includes(version)
 }
 
-const docsTalosVersion = computed(() => {
-  const { major, minor } = semver.parse(
-    cluster.value?.spec.talos_version || DefaultTalosVersion,
-    {},
-    true,
-  )
-
-  return `v${major}.${minor}`
-})
+const k8sSupportMatrixDocsLink = useDocsLink('talos', '/getting-started/support-matrix', () => ({
+  talosVersion: cluster.value?.spec.talos_version,
+}))
 
 const action = computed(() => {
   if (!status.value) {
@@ -267,14 +261,11 @@ const upgradeClick = async () => {
 
     <p class="text-xs">
       Downgrading minor versions is not supported. You can not skip minor version upgrades. You can
-      only upgrade to versions supported by your talos version. See the
-      <a
-        class="inline-block underline hover:mix-blend-lighten"
-        :href="`https://docs.siderolabs.com/talos/v${docsTalosVersion}/getting-started/support-matrix`"
-      >
+      only upgrade to versions supported by your Talos version. See the
+      <a class="inline-block underline hover:mix-blend-lighten" :href="k8sSupportMatrixDocsLink">
         support matrix
       </a>
-      for which versions are supported by your talos version.
+      for which versions are supported by your Talos version.
     </p>
 
     <p class="text-xs">

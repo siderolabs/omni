@@ -3,8 +3,9 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import type { Node as V1Node } from 'kubernetes-types/core/v1'
-import type { ComputedRef, Ref } from 'vue'
-import { computed, ref } from 'vue'
+import { coerce } from 'semver'
+import type { ComputedRef, MaybeRefOrGetter, Ref } from 'vue'
+import { computed, ref, toValue, watchEffect } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { fetchOption } from '@/api/fetch.pb'
@@ -14,6 +15,7 @@ import { ManagementService } from '@/api/omni/management/management.pb'
 import type { EtcdBackupOverallStatusSpec } from '@/api/omni/specs/omni.pb'
 import { withContext } from '@/api/options'
 import {
+  DefaultTalosVersion,
   EtcdBackupOverallStatusID,
   EtcdBackupOverallStatusType,
   MetricsNamespace,
@@ -32,47 +34,6 @@ export const getStatus = (item: V1Node) => {
   }
 
   return NodesViewFilterOptions.NOT_READY
-}
-
-export const getServiceHealthStatus = (service) => {
-  return service?.spec?.unknown
-    ? TCommonStatuses.HEALTH_UNKNOWN
-    : service?.spec?.healthy
-      ? TCommonStatuses.READY
-      : TCommonStatuses.UNHEALTHY
-}
-
-export const cpuParser = (input) => {
-  const milliMatch = input.match(/^([0-9]+)m$/)
-  if (milliMatch) {
-    return milliMatch[1] / 1000
-  }
-
-  return parseFloat(input)
-}
-
-const memoryMultipliers = {
-  k: 1000,
-  M: 1000 ** 2,
-  G: 1000 ** 3,
-  T: 1000 ** 4,
-  P: 1000 ** 5,
-  E: 1000 ** 6,
-  Ki: 1024,
-  Mi: 1024 ** 2,
-  Gi: 1024 ** 3,
-  Ti: 1024 ** 4,
-  Pi: 1024 ** 5,
-  Ei: 1024 ** 6,
-}
-
-export const memoryParser = (input) => {
-  const unitMatch = input.match(/^([0-9]+)([A-Za-z]{1,2})$/)
-  if (unitMatch) {
-    return parseInt(unitMatch[1], 10) * memoryMultipliers[unitMatch[2]]
-  }
-
-  return parseInt(input, 10)
 }
 
 export const formatBytes = (bytes, decimals = 2) => {
@@ -247,4 +208,58 @@ export const downloadMachineJoinConfig = async (
   element.click()
 
   document.body.removeChild(element)
+}
+
+type DocsType = 'talos' | 'omni' | 'k8s'
+
+export function useDocsLink(
+  type: 'talos',
+  path?: string,
+  options?: MaybeRefOrGetter<{ talosVersion?: string }>,
+): Ref<string>
+export function useDocsLink(type: 'omni', path?: string): Ref<string>
+export function useDocsLink(type: 'k8s', path?: string): Ref<string>
+export function useDocsLink(
+  type: DocsType,
+  path?: string,
+  options?: MaybeRefOrGetter<{ talosVersion?: string }>,
+) {
+  const link = ref('')
+
+  watchEffect(() => {
+    const parts = [getDocsBasePath(type)]
+
+    if (type === 'talos') {
+      const talosVersion = options
+        ? toValue(options).talosVersion || DefaultTalosVersion
+        : DefaultTalosVersion
+
+      const parsed = coerce(talosVersion)
+      if (!parsed) throw new Error(`Failed to parse talos version "${talosVersion}"`)
+
+      const { major, minor } = parsed
+      parts.push(`v${major}.${minor}`)
+    }
+
+    if (path) {
+      parts.push(path.replace(/^\//, ''))
+    }
+
+    link.value = parts.join('/')
+  })
+
+  return link
+}
+
+function getDocsBasePath(type: DocsType) {
+  const docsDomain = 'docs.siderolabs.com'
+
+  switch (type) {
+    case 'talos':
+      return `https://${docsDomain}/talos`
+    case 'omni':
+      return `https://${docsDomain}/omni`
+    case 'k8s':
+      return `https://${docsDomain}/kubernetes-guides`
+  }
 }
