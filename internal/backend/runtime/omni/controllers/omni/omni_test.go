@@ -51,6 +51,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	rt "github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
+	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 )
 
@@ -340,6 +341,7 @@ type OmniSuite struct { //nolint:govet
 	suite.Suite
 
 	state        state.State
+	cachedState  state.State
 	stateBuilder testutils.DynamicStateBuilder
 
 	runtime *runtime.Runtime
@@ -436,8 +438,10 @@ func (suite *OmniSuite) SetupTest() {
 
 	logger := zaptest.NewLogger(suite.T())
 
-	suite.runtime, err = runtime.NewRuntime(suite.state, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))
+	suite.runtime, err = runtime.NewRuntime(suite.state, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)), omniruntime.RuntimeCacheOptions()...)
 	suite.Require().NoError(err)
+
+	suite.cachedState = state.WrapCore(suite.runtime.CachedState())
 
 	k8s, err := kubernetes.NewWithTTL(suite.state, 0)
 	suite.Require().NoError(err)

@@ -20,6 +20,8 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup" //nolint:depguard // this is only used in tests
+
+	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 )
 
 type DynamicStateBuilder struct { //nolint:govet
@@ -68,7 +70,7 @@ func WithRuntime(ctx context.Context, t *testing.T, stateBuilder func(resource.N
 	logger := zaptest.NewLogger(t)
 	st := state.WrapCore(namespaced.NewState(stateBuilder))
 
-	cosiRuntime, err := runtime.NewRuntime(st, logger)
+	cosiRuntime, err := runtime.NewRuntime(st, logger, omniruntime.RuntimeCacheOptions()...)
 	require.NoError(t, err)
 
 	beforeStart(ctx, st, cosiRuntime, logger)

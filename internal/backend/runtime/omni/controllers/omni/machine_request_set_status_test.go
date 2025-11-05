@@ -258,14 +258,12 @@ func (suite *MachineRequestSetStatusSuite) reconcileLabels(ctx context.Context) 
 			case state.Created, state.Updated:
 				status := event.Resource.(*infra.MachineRequestStatus) //nolint:errcheck,forcetypeassert
 
-				res := system.NewResourceLabels[*omni.MachineStatus](status.TypedSpec().Value.Id)
-
-				err = safe.StateModify(ctx, suite.state, res, func(r *system.ResourceLabels[*omni.MachineStatus]) error {
+				err = safe.StateModify(ctx, suite.state, system.NewResourceLabels[*omni.MachineStatus](status.TypedSpec().Value.Id), func(r *system.ResourceLabels[*omni.MachineStatus]) error {
 					if r.Metadata().Phase() == resource.PhaseTearingDown {
 						return nil
 					}
 
-					res.Metadata().Labels().Set(omni.LabelMachineRequest, status.Metadata().ID())
+					r.Metadata().Labels().Set(omni.LabelMachineRequest, status.Metadata().ID())
 
 					helpers.CopyAllLabels(status, r)
 

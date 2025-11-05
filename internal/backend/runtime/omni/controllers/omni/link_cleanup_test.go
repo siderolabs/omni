@@ -22,6 +22,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
 
@@ -36,7 +37,7 @@ func TestLinkCleanup(t *testing.T) {
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 	logger := zaptest.NewLogger(t)
 
-	rt, err := runtime.NewRuntime(st, logger)
+	rt, err := runtime.NewRuntime(st, logger, omniruntime.RuntimeCacheOptions()...)
 	require.NoError(t, err)
 
 	require.NoError(t, rt.RegisterController(controller))

@@ -48,6 +48,9 @@ func (suite *MachineStatusSnapshotControllerSuite) TestReconcile() {
 
 	require.NoError(suite.state.Create(suite.ctx, m))
 
+	// make sure that the machine became visible in the cached state
+	rtestutils.AssertResource(ctx, suite.T(), suite.cachedState, m.Metadata().ID(), func(r *omni.Machine, assertion *assert.Assertions) {})
+
 	snapshot := omni.NewMachineStatusSnapshot(resources.DefaultNamespace, m.Metadata().ID())
 
 	snapshot.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{
