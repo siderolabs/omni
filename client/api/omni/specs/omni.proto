@@ -1047,6 +1047,9 @@ message FeaturesConfigSpec {
 
   // StripeSettings enables Stripe on the frontend side.
   StripeSettings stripe_settings = 7;
+
+  // TalosPreReleaseVersionsEnabled is true when --enable-talos-pre-release-versions is set.
+  bool talos_pre_release_versions_enabled = 8;
 }
 
 message UserPilotSettings {

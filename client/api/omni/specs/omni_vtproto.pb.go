@@ -1745,6 +1745,7 @@ func (m *FeaturesConfigSpec) CloneVT() *FeaturesConfigSpec {
 	r.ImageFactoryBaseUrl = m.ImageFactoryBaseUrl
 	r.UserPilotSettings = m.UserPilotSettings.CloneVT()
 	r.StripeSettings = m.StripeSettings.CloneVT()
+	r.TalosPreReleaseVersionsEnabled = m.TalosPreReleaseVersionsEnabled
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -5193,6 +5194,9 @@ func (this *FeaturesConfigSpec) EqualVT(that *FeaturesConfigSpec) bool {
 		return false
 	}
 	if !this.StripeSettings.EqualVT(that.StripeSettings) {
+		return false
+	}
+	if this.TalosPreReleaseVersionsEnabled != that.TalosPreReleaseVersionsEnabled {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -11326,6 +11330,16 @@ func (m *FeaturesConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.TalosPreReleaseVersionsEnabled {
+		i--
+		if m.TalosPreReleaseVersionsEnabled {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x40
+	}
 	if m.StripeSettings != nil {
 		size, err := m.StripeSettings.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -15897,6 +15911,9 @@ func (m *FeaturesConfigSpec) SizeVT() (n int) {
 	if m.StripeSettings != nil {
 		l = m.StripeSettings.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.TalosPreReleaseVersionsEnabled {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -29086,6 +29103,26 @@ func (m *FeaturesConfigSpec) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TalosPreReleaseVersionsEnabled", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.TalosPreReleaseVersionsEnabled = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
