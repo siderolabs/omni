@@ -163,7 +163,7 @@ func machineDeprovisionHook(t *testing.T, client *client.Client, machineRequestS
 func infraMachinesAcceptHook(t *testing.T, omniState state.State, infraProviderID string, expectedCount int, disableKexec bool) {
 	const disableKexecConfigPatch = `machine:
   install:
-    kernelArgs:
+    extraKernelArgs:
       - kexec_load_disabled=1
   sysctls:
     kernel.kexec_load_disabled: "1"`
