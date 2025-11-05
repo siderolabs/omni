@@ -43,14 +43,14 @@ func NewInitializer(state state.State, logger *zap.Logger) (*Initializer, error)
 }
 
 func (initializer *Initializer) Init(ctx context.Context, id resource.ID, args []string) error {
-	if len(args) == 0 {
+	extraArgs := xslices.Filter(args, func(value string) bool { return !isProtected(value) })
+
+	if len(extraArgs) == 0 {
 		return nil
 	}
 
 	kernelArgs := omni.NewKernelArgs(id)
-	kernelArgs.TypedSpec().Value.Args = xslices.Filter(args, func(value string) bool {
-		return !isProtected(value)
-	})
+	kernelArgs.TypedSpec().Value.Args = extraArgs
 
 	if err := initializer.state.Create(ctx, kernelArgs); err != nil && !state.IsConflictError(err) {
 		return fmt.Errorf("error creating extra kernel args configuration: %w", err)
