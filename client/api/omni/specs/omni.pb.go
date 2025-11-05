@@ -5019,8 +5019,10 @@ type FeaturesConfigSpec struct {
 	UserPilotSettings *UserPilotSettings `protobuf:"bytes,6,opt,name=user_pilot_settings,json=userPilotSettings,proto3" json:"user_pilot_settings,omitempty"`
 	// StripeSettings enables Stripe on the frontend side.
 	StripeSettings *StripeSettings `protobuf:"bytes,7,opt,name=stripe_settings,json=stripeSettings,proto3" json:"stripe_settings,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// TalosPreReleaseVersionsEnabled is true when --enable-talos-pre-release-versions is set.
+	TalosPreReleaseVersionsEnabled bool `protobuf:"varint,8,opt,name=talos_pre_release_versions_enabled,json=talosPreReleaseVersionsEnabled,proto3" json:"talos_pre_release_versions_enabled,omitempty"`
+	unknownFields                  protoimpl.UnknownFields
+	sizeCache                      protoimpl.SizeCache
 }
 
 func (x *FeaturesConfigSpec) Reset() {
@@ -5100,6 +5102,13 @@ func (x *FeaturesConfigSpec) GetStripeSettings() *StripeSettings {
 		return x.StripeSettings
 	}
 	return nil
+}
+
+func (x *FeaturesConfigSpec) GetTalosPreReleaseVersionsEnabled() bool {
+	if x != nil {
+		return x.TalosPreReleaseVersionsEnabled
+	}
+	return false
 }
 
 type UserPilotSettings struct {
@@ -9866,7 +9875,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x05error\x18\x05 \x01(\tR\x05error\x12,\n" +
 	"\x12has_explicit_alias\x18\x06 \x01(\bR\x10hasExplicitAlias\"R\n" +
 	"\x1eClusterWorkloadProxyStatusSpec\x120\n" +
-	"\x14num_exposed_services\x18\x01 \x01(\rR\x12numExposedServices\"\xc4\x03\n" +
+	"\x14num_exposed_services\x18\x01 \x01(\rR\x12numExposedServices\"\x90\x04\n" +
 	"\x12FeaturesConfigSpec\x128\n" +
 	"\x18enable_workload_proxying\x18\x01 \x01(\bR\x16enableWorkloadProxying\x12K\n" +
 	"\x14etcd_backup_settings\x18\x02 \x01(\v2\x19.specs.EtcdBackupSettingsR\x12etcdBackupSettings\x12<\n" +
@@ -9874,7 +9883,8 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x11audit_log_enabled\x18\x04 \x01(\bR\x0fauditLogEnabled\x123\n" +
 	"\x16image_factory_base_url\x18\x05 \x01(\tR\x13imageFactoryBaseUrl\x12H\n" +
 	"\x13user_pilot_settings\x18\x06 \x01(\v2\x18.specs.UserPilotSettingsR\x11userPilotSettings\x12>\n" +
-	"\x0fstripe_settings\x18\a \x01(\v2\x15.specs.StripeSettingsR\x0estripeSettings\"0\n" +
+	"\x0fstripe_settings\x18\a \x01(\v2\x15.specs.StripeSettingsR\x0estripeSettings\x12J\n" +
+	"\"talos_pre_release_versions_enabled\x18\b \x01(\bR\x1etalosPreReleaseVersionsEnabled\"0\n" +
 	"\x11UserPilotSettings\x12\x1b\n" +
 	"\tapp_token\x18\x01 \x01(\tR\bappToken\"*\n" +
 	"\x0eStripeSettings\x12\x18\n" +
