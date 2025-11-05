@@ -7,16 +7,11 @@ included in the LICENSE file.
 <script setup lang="ts">
 import yaml from 'js-yaml'
 import pluralize from 'pluralize'
-import type { Ref } from 'vue'
-import { computed, ref, toRefs, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'
 
 import type { Resource } from '@/api/grpc'
-import type {
-  MachineConfigGenOptionsSpec,
-  MachineStatusSpec,
-  MachineStatusSpecHardwareStatusBlockDevice,
-} from '@/api/omni/specs/omni.pb'
+import type { MachineConfigGenOptionsSpec, MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import type { SiderolinkSpec } from '@/api/omni/specs/siderolink.pb'
 import {
   LabelControlPlaneRole,
@@ -39,116 +34,86 @@ import CreateExtensions from '../../Modals/CreateExtensions.vue'
 import type { PickerOption } from './MachineSetPicker.vue'
 import MachineSetPicker from './MachineSetPicker.vue'
 
-type MemModule = {
-  size_mb?: number
-  description?: string
-}
-
 defineEmits<{
   filterLabel: [Label]
 }>()
 
-const props = defineProps<{
+const {
+  item,
+  reset = undefined,
+  searchQuery = undefined,
+  versionMismatch,
+} = defineProps<{
   item: Resource<MachineStatusSpec & SiderolinkSpec & MachineConfigGenOptionsSpec>
   reset?: number
   searchQuery?: string
   versionMismatch: string | null
 }>()
 
-const { item, reset, versionMismatch } = toRefs(props)
-
 const machineSetNode = ref<MachineSetNode>({
   patches: {},
 })
-const machineSetIndex = ref<number | undefined>()
-const systemDiskPath: Ref<string | undefined> = ref()
-const disks: Ref<string[]> = ref([])
+const machineSetIndex = ref<number>()
+const blockdevices = computed(() => item.spec.hardware?.blockdevices || [])
+const systemDiskPath = computed(
+  () => blockdevices.value.find((device) => device.system_disk)?.linux_name,
+)
+const disks = computed(() =>
+  blockdevices.value
+    .filter((device) => !device.readonly && device.type !== 'CD')
+    .map((device) => device.linux_name!),
+)
+const defaultInstallDisk = computed(() => item.spec.install_disk ?? disks.value[0])
 
-const computeState = () => {
-  const bds: MachineStatusSpecHardwareStatusBlockDevice[] =
-    item?.value?.spec?.hardware?.blockdevices || []
-  const diskPaths: string[] = []
+watch(
+  state.value,
+  () => {
+    const index = state.value.machineSets.findIndex(
+      (machineSet) => !!machineSet.machines[item.metadata.id!],
+    )
 
-  const index = bds?.findIndex(
-    (device: MachineStatusSpecHardwareStatusBlockDevice) => device.system_disk,
-  )
-  if (index >= 0) {
-    systemDiskPath.value = bds[index].linux_name
-  }
+    machineSetIndex.value = index === -1 ? undefined : index
+  },
+  { immediate: true },
+)
 
-  for (const device of bds) {
-    if (device.readonly || device.type === 'CD') {
-      continue
+watch(
+  () => versionMismatch,
+  (value) => {
+    if (value) {
+      machineSetIndex.value = undefined
     }
+  },
+)
 
-    diskPaths.push(device.linux_name!)
-  }
-
-  disks.value = diskPaths
-
-  computeMachineAssignment()
-}
-
-const computeMachineAssignment = () => {
-  for (let i = 0; i < state.value.machineSets.length; i++) {
-    const machineSet = state.value.machineSets[i]
-
-    for (const id in machineSet.machines) {
-      if (item.value.metadata.id === id) {
-        machineSetIndex.value = i
-
-        return
-      }
-    }
-  }
-
-  machineSetIndex.value = undefined
-}
-
-computeState()
-
-watch(item, computeState)
-watch(state.value, computeMachineAssignment)
-
-watch(versionMismatch, (value: string | null) => {
-  if (value) {
-    machineSetIndex.value = undefined
-  }
-})
-
-watch(machineSetIndex, (val?: number, old?: number) => {
+watch(machineSetIndex, (val, old) => {
   if (val !== undefined) {
-    state.value.setMachine(val, item.value.metadata.id!, machineSetNode.value)
+    state.value.setMachine(val, item.metadata.id!, machineSetNode.value)
   }
 
   if (old !== undefined) {
-    state.value.removeMachine(old, item.value.metadata.id!)
+    state.value.removeMachine(old, item.metadata.id!)
   }
 })
 
-if (reset.value) {
-  watch(reset, () => {
-    machineSetIndex.value = undefined
-  })
-}
+watch(
+  () => reset,
+  () => (machineSetIndex.value = undefined),
+)
 
 watch(machineSetNode, () => {
   if (!machineSetIndex.value) {
     return
   }
 
-  state.value.setMachine(machineSetIndex.value, item.value.metadata.id!, machineSetNode.value)
+  state.value.setMachine(machineSetIndex.value, item.metadata.id!, machineSetNode.value)
 })
 
-const filterValid = (modules: MemModule[]): MemModule[] => {
-  return modules.filter((mem) => mem.size_mb)
-}
+const memoryModules = computed(() =>
+  (item.spec.hardware?.memory_modules || []).filter((mem) => mem.size_mb),
+)
 
-const memoryModules = computed(() => {
-  return filterValid(item?.value?.spec?.hardware?.memory_modules || [])
-})
-
-const options: Ref<PickerOption[]> = computed(() => {
+const options = computed<PickerOption[]>(() => {
   let memoryCapacity = 0
   for (const mem of memoryModules.value) {
     memoryCapacity += mem.size_mb ?? 0
@@ -177,9 +142,9 @@ const options: Ref<PickerOption[]> = computed(() => {
       tooltip = `The machine class ${ms.id} is using machine class so no manual allocation is possible`
     }
 
-    if (versionMismatch.value) {
+    if (versionMismatch) {
       disabled = true
-      tooltip = versionMismatch.value
+      tooltip = versionMismatch
     }
 
     return {
@@ -191,11 +156,16 @@ const options: Ref<PickerOption[]> = computed(() => {
   })
 })
 
-const machinePatchID = `cm-${item.value.metadata.id!}`
-const installDiskPatchID = `cm-${item.value.metadata.id!}-${PatchID.InstallDisk}`
+const machinePatchID = computed(() => `cm-${item.metadata.id}`)
+const installDiskPatchID = computed(() => `cm-${item.metadata.id}-${PatchID.InstallDisk}`)
 
 const setInstallDisk = (value: string) => {
-  machineSetNode.value.patches[installDiskPatchID] = {
+  if (value === defaultInstallDisk.value) {
+    delete machineSetNode.value.patches[installDiskPatchID.value]
+    return
+  }
+
+  machineSetNode.value.patches[installDiskPatchID.value] = {
     data: yaml.dump({
       machine: {
         install: {
@@ -213,7 +183,7 @@ const systemExtensions = ref<string[]>()
 
 const openExtensionConfig = () => {
   showModal(CreateExtensions, {
-    machine: item.value.metadata.id!,
+    machine: item.metadata.id!,
     modelValue: systemExtensions.value,
     onSave(extensions?: string[]) {
       machineSetNode.value.systemExtensions = extensions
@@ -228,8 +198,8 @@ const openPatchConfig = () => {
     tabs: [
       {
         config:
-          machineSetNode.value.patches[machinePatchID]?.data ??
-          `# Machine config patch for node "${item.value.metadata.id}"
+          machineSetNode.value.patches[machinePatchID.value]?.data ??
+          `# Machine config patch for node "${item.metadata.id}"
 
 # You can write partial Talos machine config here which will override the default
 # Talos machine config for this machine generated by Omni.
@@ -237,19 +207,19 @@ const openPatchConfig = () => {
 # example (changing the node hostname):
 machine:
   network:
-    hostname: "${item.value.metadata.id}"
+    hostname: "${item.metadata.id}"
 `,
-        id: `Node ${item.value.metadata.id}`,
+        id: `Node ${item.metadata.id}`,
       },
     ],
     onSave(config: string) {
       if (!config) {
-        delete machineSetNode.value.patches[machinePatchID]
+        delete machineSetNode.value.patches[machinePatchID.value]
 
         return
       }
 
-      machineSetNode.value.patches[machinePatchID] = {
+      machineSetNode.value.patches[machinePatchID.value] = {
         data: config,
         weight: PatchBaseWeightClusterMachine,
       }
@@ -291,7 +261,7 @@ machine:
                 class="h-7"
                 title="Install Disk"
                 :values="disks"
-                :default-value="item.spec.install_disk ?? disks[0]"
+                :default-value="defaultInstallDisk"
                 @checked-value="setInstallDisk"
               />
             </div>
