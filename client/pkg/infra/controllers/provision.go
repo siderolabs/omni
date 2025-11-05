@@ -278,9 +278,15 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 		}
 
 		if machines.Len() == 1 {
-			logger.Info("setting machine request UUID", zap.String("machine", machines.Get(0).Metadata().ID()))
+			if err = safe.WriterModify(ctx, r, machineRequestStatus, func(res *infra.MachineRequestStatus) error {
+				logger.Info("setting machine request UUID", zap.String("machine", machines.Get(0).Metadata().ID()))
 
-			machineRequestStatus.TypedSpec().Value.Id = machines.Get(0).Metadata().ID()
+				res.TypedSpec().Value.Id = machines.Get(0).Metadata().ID()
+
+				return nil
+			}); err != nil {
+				return err
+			}
 		}
 	}
 
