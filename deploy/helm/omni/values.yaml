@@ -16,6 +16,15 @@ auth:
   saml:
     enabled: false
     url: "https://www.saml.example"
+  oidc:
+    enabled: false
+    providerURL: ""
+    clientId: ""
+    clientSecret: ""
+    scopes:
+      - openid
+      - email
+      - profile
 includeGenericDevicePlugin: true #
 initialUsers: []
 name: "My Omni instance"

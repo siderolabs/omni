@@ -91,6 +91,15 @@ spec:
           - --auth-saml-url={{ .Values.auth.saml.url }}
         {{- end }}
         {{- end }}
+        {{- if .Values.auth.oidc.enabled }}
+          - --auth-oidc-enabled=true
+          - --auth-oidc-provider-url={{ .Values.auth.oidc.providerURL }}
+          - --auth-oidc-client-id={{ .Values.auth.oidc.clientId | toString }}
+          - --auth-oidc-client-secret={{ .Values.auth.oidc.clientSecret | toString }}
+          {{- range $s := .Values.auth.oidc.scopes }}
+          - --auth-oidc-scopes={{ $s }}
+          {{- end }}
+        {{- end }}
         {{- if .Values.volumes.tls.secretName }}
           - --cert=/etc/omni/tls/tls.crt
           - --key=/etc/omni/tls/tls.key
