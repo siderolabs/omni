@@ -5,7 +5,8 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { ref } from 'vue'
+import { useLocalStorage, useMediaQuery } from '@vueuse/core'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import AppToast from '@/components/common/AppToast/AppToast.vue'
@@ -19,10 +20,21 @@ const isSidebarOpen = ref(false)
 const router = useRouter()
 
 router.afterEach(() => (isSidebarOpen.value = false))
+
+const themesFeatureEnabled = useLocalStorage('_themes_enabled', false)
+const themePreference = useLocalStorage<'dark' | 'light' | 'system'>('theme', 'system')
+const isPreferredDark = useMediaQuery('(prefers-color-scheme: dark)')
+
+const darkThemeEnabled = computed(() => {
+  if (!themesFeatureEnabled.value) return true
+  if (themePreference.value !== 'system') return themePreference.value
+
+  return isPreferredDark.value ? 'dark' : 'light'
+})
 </script>
 
 <template>
-  <main class="flex h-screen flex-col">
+  <main class="flex h-screen flex-col" :class="{ dark: darkThemeEnabled }">
     <UserConsent />
     <AppToast />
 

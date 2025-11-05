@@ -9,6 +9,8 @@ included in the LICENSE file.
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: Roboto, sans-serif;
   --font-mono: 'Roboto Mono', monospace;
