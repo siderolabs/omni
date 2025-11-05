@@ -54,6 +54,7 @@ func init() {
 	registry.MustRegisterResource(InfraMachineConfigType, &InfraMachineConfig{})
 	registry.MustRegisterResource(InfraProviderCombinedStatusType, &InfraProviderCombinedStatus{})
 	registry.MustRegisterResource(InstallationMediaType, &InstallationMedia{})
+	registry.MustRegisterResource(InstallationMediaConfigType, &InstallationMediaConfig{})
 	registry.MustRegisterResource(ControlPlaneStatusType, &ControlPlaneStatus{})
 	registry.MustRegisterResource(KubeconfigType, &Kubeconfig{})
 	registry.MustRegisterResource(KubernetesNodeAuditResultType, &KubernetesNodeAuditResult{})

@@ -131,6 +131,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 			safe.WithResourceCache[*omni.ImagePullRequest](),
 			safe.WithResourceCache[*omni.ImagePullStatus](),
 			safe.WithResourceCache[*omni.ImportedClusterSecrets](),
+			safe.WithResourceCache[*omni.InstallationMediaConfig](),
 			safe.WithResourceCache[*omni.InfraProviderCombinedStatus](),
 			safe.WithResourceCache[*omni.Kubeconfig](),
 			safe.WithResourceCache[*omni.KubernetesNodeAuditResult](),
@@ -426,6 +427,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		joinTokenValidationOptions(cachedState),
 		defaultJoinTokenValidationOptions(cachedState),
 		importedClusterSecretValidationOptions(cachedState, config.Config.Features.EnableClusterImport),
+		installationMediaConfigOptions(),
 	)
 
 	return &Runtime{

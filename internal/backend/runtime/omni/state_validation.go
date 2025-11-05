@@ -1459,3 +1459,23 @@ func validateImportedClusterSecrets(ctx context.Context, st state.State, res *om
 
 	return nil
 }
+
+func installationMediaConfigOptions() []validated.StateOption {
+	validateInstallationMedia := func(res *omni.InstallationMediaConfig) error {
+		if res.TypedSpec().Value.Cloud != nil && res.TypedSpec().Value.Sbc != nil {
+			return errors.New("invalid installation media config: both sbc and cloud field is set")
+		}
+
+		return nil
+	}
+
+	return []validated.StateOption{
+		validated.WithCreateValidations(validated.NewCreateValidationForType(func(ctx context.Context, res *omni.InstallationMediaConfig, _ ...state.CreateOption) error {
+			return validateInstallationMedia(res)
+		})),
+		validated.WithUpdateValidations(validated.NewUpdateValidationForType(
+			func(ctx context.Context, _, newRes *omni.InstallationMediaConfig, _ ...state.UpdateOption) error {
+				return validateInstallationMedia(newRes)
+			})),
+	}
+}
