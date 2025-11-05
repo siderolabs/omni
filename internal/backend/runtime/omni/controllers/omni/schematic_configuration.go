@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 
 	"github.com/blang/semver/v4"
@@ -176,12 +177,12 @@ func (helper *schematicConfigurationHelper) reconcile(
 		return nil, err
 	}
 
-	kernelArgsRes, err := safe.ReaderGetByID[*omni.KernelArgs](ctx, r, clusterMachine.Metadata().ID())
-	if err != nil && !state.IsNotFoundError(err) {
+	kernelArgs, err := determineKernelArgs(ctx, ms, r)
+	if err != nil {
 		return nil, err
 	}
 
-	customization, err := newMachineCustomization(cluster, ms, extensions, kernelArgsRes, securityState.BootedWithUki)
+	customization, err := newMachineCustomization(cluster, ms, extensions, securityState.BootedWithUki)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +194,7 @@ func (helper *schematicConfigurationHelper) reconcile(
 			SystemExtensions: schematic.SystemExtensions{
 				OfficialExtensions: customization.extensionsList,
 			},
-			ExtraKernelArgs: customization.kernelArgsList,
+			ExtraKernelArgs: kernelArgs,
 			Meta:            customization.meta,
 		},
 		Overlay: overlay,
@@ -248,14 +249,10 @@ func updateFinalizers(ctx context.Context, r controller.ReaderWriter, extensions
 	return r.AddFinalizer(ctx, extensions.Metadata(), SchematicConfigurationControllerName)
 }
 
-func newMachineCustomization(cluster *omni.Cluster, machineStatus *omni.MachineStatus, exts *omni.MachineExtensions, args *omni.KernelArgs, isUKI bool) (machineCustomization, error) {
+func newMachineCustomization(cluster *omni.Cluster, machineStatus *omni.MachineStatus, exts *omni.MachineExtensions, isUKI bool) (machineCustomization, error) {
 	mc := machineCustomization{
 		machineStatus: machineStatus,
 		cluster:       cluster,
-	}
-
-	if err := mc.initializeKernelArgs(machineStatus, args); err != nil {
-		return machineCustomization{}, err
 	}
 
 	if isUKI {
@@ -324,41 +321,62 @@ type machineCustomization struct {
 	machineExtensions  *omni.MachineExtensions
 	cluster            *omni.Cluster
 	extensionsList     []string
-	kernelArgsList     []string
 	detectedExtensions []string
 	meta               []schematic.MetaValue
 }
 
-func (mc *machineCustomization) initializeKernelArgs(machineStatus *omni.MachineStatus, kernelArgs *omni.KernelArgs) error {
+func determineKernelArgs(ctx context.Context, machineStatus *omni.MachineStatus, r controller.Reader) ([]string, error) {
+	if _, kernelArgsInitialized := machineStatus.Metadata().Annotations().Get(omni.KernelArgsInitialized); !kernelArgsInitialized {
+		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("kernel args are not yet initialized")
+	}
+
 	updateSupported, err := kernelargs.UpdateSupported(machineStatus)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !updateSupported {
 		if machineStatus.TypedSpec().Value.Schematic == nil {
-			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine schematic is not yet initialized")
+			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine schematic is not yet initialized")
 		}
 
-		// initialize them to be unchanged - take the current args as-is
-		mc.kernelArgsList = machineStatus.TypedSpec().Value.Schematic.KernelArgs
+		// keep them unchanged - take the current args as-is
+		return machineStatus.TypedSpec().Value.Schematic.KernelArgs, nil
+	}
 
-		return nil
+	// Here, we need to use an uncached reader. This is because we want to avoid
+	// stale reads of the KernelArgs resource: there can be cases where the omni.KernelArgsInitialized annotation
+	// is present in the MachineStatus, but the KernelArgs resource is not yet visible,
+	// which can cause unwanted Talos upgrades through a schematic id update.
+	uncachedReader, ok := r.(controller.UncachedReader)
+	if !ok {
+		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("reader does not support uncached reads")
+	}
+
+	kernelArgsRes, err := uncachedReader.GetUncached(ctx, omni.NewKernelArgs(machineStatus.Metadata().ID()).Metadata())
+	if err != nil && !state.IsNotFoundError(err) {
+		return nil, err
+	}
+
+	var kernelArgs *omni.KernelArgs
+
+	if kernelArgsRes != nil {
+		if kernelArgs, ok = kernelArgsRes.(*omni.KernelArgs); !ok {
+			return nil, fmt.Errorf("expected %q resource, got %T", omni.KernelArgsType, kernelArgsRes)
+		}
 	}
 
 	// todo: centralize this...
 	args, ok, err := kernelargs.Calculate(machineStatus, kernelArgs)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !ok {
-		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("extra kernel args for machine %q are not yet initialized", machineStatus.Metadata().ID())
+		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("extra kernel args for machine %q are not yet initialized", machineStatus.Metadata().ID())
 	}
 
-	mc.kernelArgsList = args
-
-	return nil
+	return args, nil
 }
 
 func (mc *machineCustomization) isDetected(value string) bool {
