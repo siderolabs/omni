@@ -26,6 +26,7 @@ func NewMachineCleanupController() *MachineCleanupController {
 				&helpers.SameIDHandler[*omni.Machine, *omni.MachineSetNode]{},
 				&helpers.SameIDHandler[*omni.Machine, *omni.InfraMachineConfig]{},
 				&helpers.SameIDHandler[*omni.Machine, *omni.InfraMachineBMCConfig]{},
+				&helpers.SameIDHandler[*omni.Machine, *omni.KernelArgs]{},
 			),
 		},
 	)
