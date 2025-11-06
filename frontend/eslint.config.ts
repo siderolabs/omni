@@ -70,6 +70,7 @@ export default defineConfigWithVueTs(
       'vue/no-boolean-default': 'error',
       'vue/no-template-target-blank': 'error',
       'vue/no-useless-mustaches': 'error',
+      'vue/require-default-prop': 'off',
 
       // Temporarily disabled rules
       '@typescript-eslint/no-explicit-any': 'warn',

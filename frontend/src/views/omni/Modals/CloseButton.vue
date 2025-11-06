@@ -9,7 +9,10 @@ import type { ButtonHTMLAttributes } from 'vue'
 
 import TIcon from '@/components/common/Icon/TIcon.vue'
 
-defineProps</* @vue-ignore */ ButtonHTMLAttributes>()
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+interface Props extends /* @vue-ignore */ ButtonHTMLAttributes {}
+
+defineProps<Props>()
 </script>
 
 <template>
