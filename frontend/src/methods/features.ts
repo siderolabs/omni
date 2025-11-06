@@ -88,16 +88,6 @@ export const auditLogEnabled = async (): Promise<boolean> => {
   return featuresConfig.spec?.audit_log_enabled ?? false
 }
 
-export const getImageFactoryBaseURL = async (): Promise<string> => {
-  const featuresConfig = await getFeaturesConfig()
-
-  if (!featuresConfig.spec?.image_factory_base_url) {
-    throw new Error('image_factory_base_url is not set in features config')
-  }
-
-  return featuresConfig.spec?.image_factory_base_url
-}
-
 const getFeaturesConfig = async (): Promise<Resource<FeaturesConfigSpec>> => {
   if (!cachedFeaturesConfig) {
     cachedFeaturesConfig = await ResourceService.Get(resource, withRuntime(Runtime.Omni))

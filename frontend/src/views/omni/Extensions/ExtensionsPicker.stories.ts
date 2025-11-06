@@ -32,7 +32,7 @@ const meta: Meta<typeof ExtensionsPicker> = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Data: Story = {
+export const Data = {
   args: {
     indeterminate: true,
     modelValue: {
@@ -62,7 +62,7 @@ export const Data: Story = {
       ],
     },
   },
-}
+} satisfies Story
 
 export const NoData: Story = {
   parameters: {

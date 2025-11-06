@@ -9,7 +9,6 @@ import { DocumentArrowDownIcon } from '@heroicons/vue/24/outline'
 import { useClipboard } from '@vueuse/core'
 import yaml from 'js-yaml'
 import * as semver from 'semver'
-import type { Ref } from 'vue'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -39,11 +38,10 @@ import {
   InstallationMediaType,
   JoinTokenStatusType,
   LabelsMeta,
-  SecureBoot,
   TalosVersionType,
 } from '@/api/resources'
-import WatchResource from '@/api/watch'
 import IconButton from '@/components/common/Button/IconButton.vue'
+import SplitButton from '@/components/common/Button/SplitButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import Labels from '@/components/common/Labels/Labels.vue'
@@ -51,8 +49,10 @@ import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
+import { useWatch } from '@/components/common/Watch/useWatch'
 import { formatBytes } from '@/methods'
-import { showError } from '@/notification'
+import { useFeatures } from '@/methods/features'
+import { showError, showSuccess } from '@/notification'
 import ExtensionsPicker from '@/views/omni/Extensions/ExtensionsPicker.vue'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
@@ -65,7 +65,8 @@ enum Phase {
 const installExtensions = ref<Record<string, boolean>>({})
 const router = useRouter()
 const route = useRoute()
-const { copy, copied: copiedPXEURL } = useClipboard({ copiedDuring: 2000 })
+const { data: features } = useFeatures()
+const { copy } = useClipboard()
 
 const phase = ref(Phase.Idle)
 const showDescriptions = ref(false)
@@ -96,37 +97,15 @@ const close = () => {
   router.go(-1)
 }
 
-const labels: Ref<
-  Record<
-    string,
-    {
-      value: string
-      canRemove: boolean
-    }
-  >
-> = ref({})
+const labels = ref<Record<string, { value: string; canRemove: boolean }>>({})
 
-const optionNames: Ref<string[]> = ref([])
+const optionNames = ref<string[]>([])
 
-const watchOptions: Ref<Resource<InstallationMediaSpec>[]> = ref([])
-
-const options: Ref<Map<string, Resource<InstallationMediaSpec>>> = ref(new Map<string, Resource>())
+const options = ref(new Map<string, Resource<InstallationMediaSpec>>())
 
 const defaultValue = ref('')
 
-const talosVersionsResources: Ref<Resource<TalosVersionSpec>[]> = ref([])
-
-const joinTokens: Ref<Resource<JoinTokenStatusSpec>[]> = ref([])
-
-const optionsWatch = new WatchResource(watchOptions)
-const talosVersionsWatch = new WatchResource(talosVersionsResources)
-const joinTokensWatch = new WatchResource(joinTokens)
-
-const schematicID = ref<string>()
-const pxeURL = ref<string>()
-const secureBoot = ref(false)
-
-optionsWatch.setup({
+const { data: watchOptions } = useWatch<InstallationMediaSpec>({
   runtime: Runtime.Omni,
   resource: {
     type: InstallationMediaType,
@@ -134,7 +113,7 @@ optionsWatch.setup({
   },
 })
 
-talosVersionsWatch.setup({
+const { data: talosVersionsResources } = useWatch<TalosVersionSpec>({
   runtime: Runtime.Omni,
   resource: {
     type: TalosVersionType,
@@ -142,12 +121,36 @@ talosVersionsWatch.setup({
   },
 })
 
-joinTokensWatch.setup({
+const { data: joinTokens } = useWatch<JoinTokenStatusSpec>({
   runtime: Runtime.Omni,
   resource: {
     type: JoinTokenStatusType,
     namespace: DefaultNamespace,
   },
+})
+
+const schematicID = ref<string>()
+const pxeURL = ref<string>()
+const secureBoot = ref(false)
+const downloadPath = computed(() => {
+  if (!schematicID.value || !installationMedia.value?.metadata.id) return
+
+  const url = `/image/${schematicID.value}/v${selectedTalosVersion.value}/${installationMedia.value.metadata.id}`
+
+  if (!secureBoot.value || installationMedia.value.spec.no_secure_boot) {
+    return url
+  }
+
+  const params = new URLSearchParams({ SecureBoot: 'true' })
+
+  return `${url}?${params}`
+})
+
+const factoryDownloadUrl = computed(() => {
+  if (!downloadPath.value) return
+  if (!features.value?.spec.image_factory_base_url) return downloadPath.value
+
+  return new URL(downloadPath.value, features.value.spec.image_factory_base_url)
 })
 
 const talosVersions = computed(() =>
@@ -195,7 +198,7 @@ const supported = computed(() => {
 })
 
 watch(
-  () => optionsWatch.items?.value.length,
+  () => watchOptions.value.length,
   () => {
     options.value = watchOptions.value.reduce((map, obj) => {
       return map.set(obj.spec.name!, obj)
@@ -207,11 +210,6 @@ watch(
     selectedOption.value = defaultValue.value
   },
 )
-
-watch([selectedOption, selectedTalosVersion, labels, installExtensions.value], () => {
-  pxeURL.value = undefined
-  schematicID.value = undefined
-})
 
 onMounted(async () => {
   const siderolinkAPIConfig: Resource<SiderolinkAPIConfigSpec> = await ResourceService.Get(
@@ -271,6 +269,48 @@ const fetchCurrentJoinTokenName = async () => {
 
 onUnmounted(abortDownload)
 
+const installationMedia = computed(() => options.value.get(selectedOption.value))
+
+const schematicReq = computed(() => {
+  const grpcTunnelMode = useGrpcTunnel.value
+    ? CreateSchematicRequestSiderolinkGRPCTunnelMode.ENABLED
+    : CreateSchematicRequestSiderolinkGRPCTunnelMode.DISABLED
+
+  const token = joinTokens.value.find((item) => item.spec.name === joinToken.value)
+
+  const schematic: CreateSchematicRequest = {
+    extensions: [],
+    extra_kernel_args: [],
+    meta_values: {},
+    media_id: installationMedia.value?.metadata.id,
+    talos_version: selectedTalosVersion.value,
+    secure_boot: secureBoot.value,
+    siderolink_grpc_tunnel_mode: grpcTunnelMode,
+    join_token: token?.metadata.id,
+  }
+
+  if (labels.value && Object.keys(labels.value).length > 0) {
+    const l: Record<string, string> = {}
+    for (const k in labels.value) {
+      l[k] = labels.value[k].value
+    }
+
+    schematic.meta_values![LabelsMeta] = yaml.dump({
+      machineLabels: l,
+    })
+  }
+
+  for (const key in installExtensions.value) {
+    if (installExtensions.value[key]) {
+      schematic.extensions?.push(key)
+    }
+  }
+
+  schematic.extra_kernel_args = kernelArguments.value.split(' ').filter((item) => item.trim())
+
+  return schematic
+})
+
 const createSchematic = async () => {
   if (creatingSchematic.value) {
     return
@@ -278,61 +318,19 @@ const createSchematic = async () => {
 
   creatingSchematic.value = true
 
-  const grpcTunnelMode = useGrpcTunnel.value
-    ? CreateSchematicRequestSiderolinkGRPCTunnelMode.ENABLED
-    : CreateSchematicRequestSiderolinkGRPCTunnelMode.DISABLED
-
-  const token = joinTokens.value.find((item) => item.spec.name === joinToken.value)
-
   try {
-    const schematic: CreateSchematicRequest = {
-      extensions: [],
-      extra_kernel_args: [],
-      meta_values: {},
-      media_id: installationMedia.value?.metadata.id,
-      talos_version: selectedTalosVersion.value,
-      secure_boot: secureBoot.value,
-      siderolink_grpc_tunnel_mode: grpcTunnelMode,
-      join_token: token?.metadata.id,
-    }
-
-    if (labels.value && Object.keys(labels.value).length > 0) {
-      const l: Record<string, string> = {}
-      for (const k in labels.value) {
-        l[k] = labels.value[k].value
-      }
-
-      schematic.meta_values![LabelsMeta] = yaml.dump({
-        machineLabels: l,
-      })
-    }
-
-    for (const key in installExtensions.value) {
-      if (installExtensions.value[key]) {
-        schematic.extensions?.push(key)
-      }
-    }
-
-    schematic.extra_kernel_args = kernelArguments.value.split(' ').filter((item) => item.trim())
-
-    const resp = await ManagementService.CreateSchematic(schematic)
+    const resp = await ManagementService.CreateSchematic(schematicReq.value)
 
     pxeURL.value = resp.pxe_url
     schematicID.value = resp.schematic_id
-
-    return resp
   } finally {
     creatingSchematic.value = false
   }
 }
 
-const installationMedia = computed(() => {
-  const downloadOption = options.value.get(selectedOption.value)
-  if (!downloadOption) {
-    return
-  }
-
-  return downloadOption
+watch(schematicReq, () => {
+  pxeURL.value = undefined
+  schematicID.value = undefined
 })
 
 const getFilename = (headers: Headers) => {
@@ -355,7 +353,7 @@ const download = async () => {
     return
   }
 
-  const doRequest = async (url: string, init?: any) => {
+  const doRequest = async (...[url, init]: Parameters<typeof fetch>) => {
     const resp = await fetch(url, init)
 
     if (!resp.ok) {
@@ -366,17 +364,12 @@ const download = async () => {
   }
 
   try {
-    const schematicResponse = await createSchematic()
-
-    let url = `/image/${schematicResponse!.schematic_id}/v${selectedTalosVersion.value}/${installationMedia.value.metadata.id}`
-
-    if (secureBoot.value && !installationMedia.value.spec.no_secure_boot) {
-      url += `?${SecureBoot}=true`
-    }
+    await createSchematic()
+    if (!downloadPath.value) throw new Error('Download URL not found')
 
     phase.value = Phase.Generating
 
-    await doRequest(url, {
+    await doRequest(downloadPath.value, {
       signal: controller.signal,
       method: 'HEAD',
       headers: new Headers({ 'Cache-Control': 'no-store' }),
@@ -384,7 +377,7 @@ const download = async () => {
 
     phase.value = Phase.Loading
 
-    const resp = await doRequest(url, { signal: controller.signal })
+    const resp = await doRequest(downloadPath.value, { signal: controller.signal })
 
     fileSizeLoaded.value = 0
 
@@ -429,6 +422,20 @@ const download = async () => {
   }
 }
 
+const copyLink = async () => {
+  try {
+    await createSchematic()
+    if (!factoryDownloadUrl.value) throw new Error('Factory URL not found')
+
+    copy(factoryDownloadUrl.value.toString())
+    showSuccess('Copied PXE Boot URL')
+  } catch (e) {
+    showError('Generate link failed', e.message)
+
+    throw e
+  }
+}
+
 const setOption = (value: string) => {
   selectedOption.value = value
 }
@@ -443,6 +450,7 @@ const copyPXEURL = async () => {
   }
 
   if (pxeURL.value) copy(pxeURL.value)
+  showSuccess('Copied factory link')
 }
 
 const downloaded = computed(() => {
@@ -480,7 +488,7 @@ const downloaded = computed(() => {
           />
         </div>
 
-        <div v-if="!!optionsWatch && defaultValue" class="flex flex-wrap gap-4">
+        <div v-if="defaultValue" class="flex flex-wrap gap-4">
           <TSelectList
             title="Options"
             :default-value="defaultValue"
@@ -562,8 +570,7 @@ const downloaded = computed(() => {
           :disabled="!ready"
           @click="createSchematic"
         />
-        <span v-if="copiedPXEURL" class="flex-1 text-sm">Copied!</span>
-        <span v-else class="flex-1 break-all" @click="createSchematic">
+        <span class="flex-1 break-all" @click="createSchematic">
           {{ pxeURL ? pxeURL : 'Click to generate' }}
         </span>
         <IconButton class="min-w-min" icon="copy" @click="copyPXEURL" />
@@ -581,14 +588,12 @@ const downloaded = computed(() => {
 
       <div class="flex justify-end gap-4">
         <TButton class="h-9 w-32" @click="close">Cancel</TButton>
-        <TButton
-          class="h-9 w-32"
-          type="highlighted"
+        <SplitButton
+          :actions="['Download', 'Copy factory link']"
+          variant="highlighted"
           :disabled="!ready || !supported"
-          @click="download"
-        >
-          Download
-        </TButton>
+          @click="(action) => (action === 'Download' ? download() : copyLink())"
+        />
       </div>
     </template>
   </div>
