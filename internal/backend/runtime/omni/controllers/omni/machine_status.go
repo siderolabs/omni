@@ -522,7 +522,7 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 			// if the schematic is invalid or the machine is in agent mode, we reset the initial schematic information
 			if spec.Schematic.Invalid || spec.Schematic.InAgentMode {
 				spec.Schematic.InitialSchematic = ""
-				spec.Schematic.InitialState = nil
+				spec.Schematic.InitialState = &specs.MachineStatusSpec_Schematic_InitialState{} // reset to be empty but leave it initialized
 			}
 
 			_, kernelArgsInitialized := m.Metadata().Annotations().Get(omni.KernelArgsInitialized)
