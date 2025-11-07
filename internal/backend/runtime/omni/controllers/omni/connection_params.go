@@ -30,6 +30,8 @@ type ConnectionParamsController = qtransform.QController[*siderolinkres.Config, 
 const ConnectionParamsControllerName = "ConnectionParamsController"
 
 // NewConnectionParamsController instanciates the connection params controller.
+//
+//nolint:staticcheck
 func NewConnectionParamsController() *ConnectionParamsController {
 	return qtransform.NewQController(
 		qtransform.Settings[*siderolinkres.Config, *siderolinkres.ConnectionParams]{ //nolint:staticcheck

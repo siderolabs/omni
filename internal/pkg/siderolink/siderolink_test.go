@@ -304,6 +304,7 @@ func (suite *SiderolinkSuite) TestNodeWithSeveralAdvertisedIPs() {
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*2)
 	defer cancel()
 
+	//nolint:staticcheck
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{
 		siderolink.DefaultJoinTokenID,
 	}, func(r *siderolink.DefaultJoinToken, assertion *assert.Assertions) {

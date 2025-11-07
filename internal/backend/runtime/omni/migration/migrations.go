@@ -1830,6 +1830,7 @@ func createProviders(ctx context.Context, st state.State, logger *zap.Logger, _ 
 	return nil
 }
 
+//nolint:staticcheck
 func migrateConnectionParamsToController(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
 	connectionParams, err := safe.ReaderGetByID[*siderolink.ConnectionParams](ctx, st, siderolink.ConfigID) //nolint:staticcheck
 	if err != nil {
