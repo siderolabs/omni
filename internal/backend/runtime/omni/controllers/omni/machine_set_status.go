@@ -7,6 +7,7 @@ package omni
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -213,7 +214,14 @@ func (handler *machineSetStatusHandler) reconcileTearingDown(ctx context.Context
 	}
 
 	updateStatus := func(clusterMachinesCount uint32) error {
-		return safe.WriterModify(ctx, r, omni.NewMachineSetStatus(resources.DefaultNamespace, machineSet.Metadata().ID()), func(status *omni.MachineSetStatus) error {
+		mss := omni.NewMachineSetStatus(resources.DefaultNamespace, machineSet.Metadata().ID())
+		notFoundErr := errors.New("not found")
+
+		modifyErr := safe.WriterModify(ctx, r, mss, func(status *omni.MachineSetStatus) error {
+			if status.Metadata().Version().Value() == 0 {
+				return notFoundErr
+			}
+
 			status.TypedSpec().Value.Phase = specs.MachineSetPhase_Destroying
 			status.TypedSpec().Value.Ready = false
 			status.TypedSpec().Value.Machines = &specs.Machines{
@@ -223,6 +231,11 @@ func (handler *machineSetStatusHandler) reconcileTearingDown(ctx context.Context
 
 			return nil
 		}, controller.WithExpectedPhaseAny())
+		if modifyErr != nil && !errors.Is(modifyErr, notFoundErr) {
+			return modifyErr
+		}
+
+		return nil
 	}
 
 	clusterMachinesCount := uint32(len(rc.GetClusterMachines()))
