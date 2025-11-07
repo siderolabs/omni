@@ -402,7 +402,8 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 				},
 			},
 			expected: &specs.MachineStatusSpec_Schematic{
-				Invalid: true,
+				Invalid:      true,
+				InitialState: &specs.MachineStatusSpec_Schematic_InitialState{},
 			},
 		},
 		{
@@ -443,6 +444,7 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 				InitialSchematic: "",
 				FullId:           defaultSchematic,
 				InAgentMode:      true,
+				InitialState:     &specs.MachineStatusSpec_Schematic_InitialState{},
 			},
 		},
 	} {

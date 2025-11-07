@@ -303,7 +303,8 @@ func newMachineCustomization(cluster *omni.Cluster, machineStatus *omni.MachineS
 
 	slices.Sort(mc.extensionsList)
 
-	if !extensionsExplicitlyDefined && len(mc.extensionsList) == 0 { // extensions are not explicitly set, we should revert them to their initial state
+	revertToInitialState := !extensionsExplicitlyDefined && len(mc.extensionsList) == 0 && !machineStatus.TypedSpec().Value.Schematic.GetInAgentMode()
+	if revertToInitialState { // extensions are not explicitly set, we should revert them to their initial state
 		initialState := machineStatus.TypedSpec().Value.Schematic.GetInitialState()
 		if initialState == nil {
 			return mc, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine initial schematic state is not yet set")
