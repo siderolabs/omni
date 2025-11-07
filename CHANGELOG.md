@@ -1,3 +1,33 @@
+## [Omni 1.3.1](https://github.com/siderolabs/omni/releases/tag/v1.3.1) (2025-11-07)
+
+Welcome to the v1.3.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Utku Ozdemir
+* Edward Sammut Alessi
+
+### Changes
+<details><summary>3 commits</summary>
+<p>
+
+* [`35d7574`](https://github.com/siderolabs/omni/commit/35d7574774f4951966824c0db2aeab5ac4a837a0) fix: prevent `MachineSetStatus` from going into create/destroy loop
+* [`cf3c84e`](https://github.com/siderolabs/omni/commit/cf3c84e1ee4e9aab8771a70d675ca7634afbb4e6) fix: do not skip creating schematic config in agent mode
+* [`50f6c04`](https://github.com/siderolabs/omni/commit/50f6c048a54a607be6cb9a1b5acd151ebce3b9e9) fix(frontend): only show label outline if selected
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.3.0](https://github.com/siderolabs/omni/releases/tag/v1.3.0)
+
 ## [Omni 1.3.0](https://github.com/siderolabs/omni/releases/tag/v1.3.0) (2025-11-07)
 
 Welcome to the v1.3.0 release of Omni!
