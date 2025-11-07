@@ -238,7 +238,8 @@ watch(filterValue, async (val: string, old: string) => {
         <div
           v-for="(label, index) in filterLabels"
           :key="label.key"
-          class="-mx-1 -my-2 rounded-md border border-white p-0.5 transition-all"
+          class="-mx-1 -my-2 rounded-md border p-0.5 transition-all"
+          :class="selectedLabel === index ? 'border-white' : 'border-transparent'"
         >
           <ItemLabel
             :label="{
