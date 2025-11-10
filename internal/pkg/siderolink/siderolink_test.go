@@ -307,8 +307,14 @@ func (suite *SiderolinkSuite) TestNodeWithSeveralAdvertisedIPs() {
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{
 		siderolink.DefaultJoinTokenID,
 	}, func(r *siderolink.DefaultJoinToken, assertion *assert.Assertions) {
+		assertion.NotEmpty(r.TypedSpec().Value.TokenId)
+
 		spec = r.TypedSpec().Value
 	})
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{
+		spec.TokenId,
+	}, func(r *siderolink.JoinTokenStatus, assertion *assert.Assertions) {})
 
 	conn := must.Value(grpc.NewClient(suite.address, grpc.WithTransportCredentials(insecure.NewCredentials())))(suite.T())
 	client := pb.NewProvisionServiceClient(conn)

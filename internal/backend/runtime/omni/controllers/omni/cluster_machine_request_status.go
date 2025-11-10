@@ -129,7 +129,7 @@ func NewClusterMachineRequestStatusController() *ClusterMachineRequestStatusCont
 				return slices.Collect(list.Pointers()), nil
 			},
 		),
-		qtransform.WithIgnoreTeardownUntil(ClusterMachineEncryptionKeyControllerName), // destroy the ClusterMachineRequestStatus after the ClusterMachineEncryptionKey is destroyed
+		qtransform.WithIgnoreTeardownUntil(),
 		qtransform.WithConcurrency(2),
 	)
 }
