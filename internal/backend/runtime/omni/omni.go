@@ -100,7 +100,9 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		opts = append(opts, RuntimeCacheOptions()...)
 	}
 
-	controllerRuntime, err := cosiruntime.NewRuntime(st.Default(), logger, opts...)
+	defaultState := st.Default()
+
+	controllerRuntime, err := cosiruntime.NewRuntime(defaultState, logger, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -110,11 +112,8 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		return nil, err
 	}
 
-	cachedCoreState := controllerRuntime.CachedState()
-	cachedState := state.WrapCore(cachedCoreState)
-
 	powerStageEventsCh := make(chan *omni.MachineStatusSnapshot)
-	powerStageWatcher := powerstage.NewWatcher(cachedState, powerStageEventsCh, logger.With(logging.Component("power_stage_watcher")), powerstage.WatcherOptions{})
+	powerStageWatcher := powerstage.NewWatcher(defaultState, powerStageEventsCh, logger.With(logging.Component("power_stage_watcher")), powerstage.WatcherOptions{})
 
 	uploadLimitPerSecondBytes := config.Config.EtcdBackup.UploadLimitMbps * 125000     // Mbit in bytes
 	downloadLimitPerSecondBytes := config.Config.EtcdBackup.DownloadLimitMbps * 125000 // Mbit in bytes
@@ -177,7 +176,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 	imageFactoryHost := imageFactoryClient.Host()
 	peers := siderolink.NewPeersPool(logger, siderolink.DefaultWireguardHandler)
 
-	exraKernelArgsInitializer, err := kernelargs.NewInitializer(cachedState, logger)
+	exraKernelArgsInitializer, err := kernelargs.NewInitializer(defaultState, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create extra kernel args initializer: %w", err)
 	}
@@ -227,7 +226,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		omnictrl.NewTalosUpgradeStatusController(),
 		omnictrl.NewMachineStatusSnapshotController(siderolinkEventsCh, powerStageEventsCh),
 		omnictrl.NewMachineProvisionController(),
-		omnictrl.NewMachineRequestLinkController(st.Default()),
+		omnictrl.NewMachineRequestLinkController(defaultState),
 		omnictrl.NewLabelsExtractorController[*omni.MachineStatus](),
 		omnictrl.NewMachineRequestSetStatusController(),
 		omnictrl.NewClusterMachineRequestStatusController(),
@@ -324,26 +323,26 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 	metricsRegistry.MustRegister(expvarCollector)
 
 	validationOptions := slices.Concat(
-		clusterValidationOptions(cachedState, config.Config.EtcdBackup, config.Config.Services.EmbeddedDiscoveryService),
+		clusterValidationOptions(defaultState, config.Config.EtcdBackup, config.Config.Services.EmbeddedDiscoveryService),
 		relationLabelsValidationOptions(),
 		accessPolicyValidationOptions(),
-		authorizationValidationOptions(cachedState),
+		authorizationValidationOptions(defaultState),
 		roleValidationOptions(),
-		machineSetNodeValidationOptions(cachedState),
-		machineSetValidationOptions(cachedState, storeFactory),
-		machineClassValidationOptions(cachedState),
+		machineSetNodeValidationOptions(defaultState),
+		machineSetValidationOptions(defaultState, storeFactory),
+		machineClassValidationOptions(defaultState),
 		identityValidationOptions(config.Config.Auth.SAML),
 		exposedServiceValidationOptions(),
-		configPatchValidationOptions(cachedState),
+		configPatchValidationOptions(defaultState),
 		etcdManualBackupValidationOptions(),
 		samlLabelRuleValidationOptions(),
 		s3ConfigValidationOptions(),
-		machineRequestSetValidationOptions(cachedState),
-		infraMachineConfigValidationOptions(cachedState),
-		nodeForceDestroyRequestValidationOptions(cachedState),
-		joinTokenValidationOptions(cachedState),
-		defaultJoinTokenValidationOptions(cachedState),
-		importedClusterSecretValidationOptions(cachedState, config.Config.Features.EnableClusterImport),
+		machineRequestSetValidationOptions(defaultState),
+		infraMachineConfigValidationOptions(defaultState),
+		nodeForceDestroyRequestValidationOptions(defaultState),
+		joinTokenValidationOptions(defaultState),
+		defaultJoinTokenValidationOptions(defaultState),
+		importedClusterSecretValidationOptions(defaultState, config.Config.Features.EnableClusterImport),
 	)
 
 	return &Runtime{
@@ -354,8 +353,8 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		workloadProxyReconciler: workloadProxyReconciler,
 		resourceLogger:          resourceLogger,
 		powerStageWatcher:       powerStageWatcher,
-		state:                   state.WrapCore(validated.NewState(st.Default(), validationOptions...)),
-		cachedState:             state.WrapCore(validated.NewState(cachedCoreState, validationOptions...)),
+		state:                   state.WrapCore(validated.NewState(defaultState, validationOptions...)),
+		cachedState:             state.WrapCore(validated.NewState(controllerRuntime.CachedState(), validationOptions...)),
 		virtual:                 st.Virtual(),
 		logger:                  logger,
 	}, nil
