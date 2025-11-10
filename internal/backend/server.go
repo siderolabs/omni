@@ -511,6 +511,7 @@ func (s *Server) getAuthInterceptors(ctx context.Context) ([]interceptorCreator,
 			ctx,
 			s.oidcProvider,
 			config.Config.Auth.OIDC.ClientID,
+			config.Config.Auth.OIDC.AllowUnverifiedEmail,
 		)
 		if err != nil {
 			return nil, err

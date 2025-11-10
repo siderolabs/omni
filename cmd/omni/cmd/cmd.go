@@ -475,6 +475,9 @@ func defineAuthFlags() {
 
 	rootCmd.Flags().StringVar(&cmdConfig.Auth.OIDC.LogoutURL, "auth-oidc-logout-url", cmdConfig.Auth.OIDC.LogoutURL,
 		"OIDC logout URL.")
+
+	rootCmd.Flags().BoolVar(&cmdConfig.Auth.OIDC.AllowUnverifiedEmail, "auth-oidc-allow-unverified-email", cmdConfig.Auth.OIDC.AllowUnverifiedEmail,
+		"Allow OIDC tokens without email_verified claim.")
 }
 
 func defineLogsFlags() {

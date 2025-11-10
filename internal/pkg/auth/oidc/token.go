@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"net/mail"
+	"strings"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/siderolabs/go-api-signature/pkg/jwt"
@@ -16,17 +17,21 @@ import (
 
 // IDTokenVerifier is an Auth0 ID token verifier.
 type IDTokenVerifier struct {
-	verifier *oidc.IDTokenVerifier
+	verifier             *oidc.IDTokenVerifier
+	allowUnverifiedEmail bool
 }
 
 // NewIDTokenVerifier creates a new ID token verifier.
-func NewIDTokenVerifier(ctx context.Context, provider *oidc.Provider, clientID string) (*IDTokenVerifier, error) {
+func NewIDTokenVerifier(ctx context.Context, provider *oidc.Provider, clientID string,
+	allowUnverifiedEmail bool,
+) (*IDTokenVerifier, error) {
 	verifier := provider.Verifier(&oidc.Config{
 		ClientID: clientID,
 	})
 
 	return &IDTokenVerifier{
-		verifier: verifier,
+		verifier:             verifier,
+		allowUnverifiedEmail: allowUnverifiedEmail,
 	}, nil
 }
 
@@ -51,12 +56,12 @@ func (v *IDTokenVerifier) Verify(ctx context.Context, token string) (*jwt.Claims
 		return nil, fmt.Errorf("email claim is not valid: %w: %s", err, claims.Email)
 	}
 
-	if !claims.EmailVerified {
+	if !claims.EmailVerified && !v.allowUnverifiedEmail {
 		return nil, &EmailNotVerifiedError{Email: claims.Email}
 	}
 
 	return &jwt.Claims{
-		VerifiedEmail: claims.Email,
+		VerifiedEmail: strings.ToLower(claims.Email),
 	}, nil
 }
 

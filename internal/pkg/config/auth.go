@@ -62,12 +62,13 @@ type WebAuthn struct {
 
 // OIDC holds the configuration parameters for OIDC auth.
 type OIDC struct {
-	ProviderURL  string   `yaml:"providerURL"`
-	ClientID     string   `yaml:"clientID"`
-	ClientSecret string   `yaml:"clientSecret"`
-	LogoutURL    string   `yaml:"logoutURL"`
-	Scopes       []string `yaml:"scopes"`
-	Enabled      bool     `yaml:"enabled"`
+	ProviderURL          string   `yaml:"providerURL"`
+	ClientID             string   `yaml:"clientID"`
+	ClientSecret         string   `yaml:"clientSecret"`
+	LogoutURL            string   `yaml:"logoutURL"`
+	Scopes               []string `yaml:"scopes"`
+	Enabled              bool     `yaml:"enabled"`
+	AllowUnverifiedEmail bool     `yaml:"allowUnverifiedEmail"`
 }
 
 // SAML holds configuration parameters for SAML auth.
