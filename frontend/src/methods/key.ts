@@ -25,6 +25,7 @@ import {
   SignatureVersionV1,
   TimestampHeaderKey,
 } from '@/api/resources'
+import { useIdentity } from '@/methods/identity'
 
 let interceptorsRegistered = false
 let keysReloadTimeout: number
@@ -33,17 +34,12 @@ const privateKeyArmored = useLocalStorage<string>('privateKey', null)
 const publicKeyArmored = useLocalStorage<string>('publicKey', null)
 const publicKeyID = useLocalStorage<string>('publicKeyID', null)
 
-export const identity = useLocalStorage<string>('identity', null)
-export const fullname = useLocalStorage<string>('fullname', null)
-export const avatar = useLocalStorage<string>('avatar', null)
-
-export let keys: {
+let keys: {
   privateKey: PrivateKey
   publicKey: Key
-  identity: string
 } | null
 
-export class KeysInvalidError extends Error {
+class KeysInvalidError extends Error {
   constructor(msg: string) {
     super(msg)
 
@@ -74,14 +70,13 @@ export const isAuthorized = async (): Promise<boolean> => {
 
 const loadKeys = async (): Promise<{ privateKey: PrivateKey; publicKey: Key }> => {
   if (!keys) {
-    if (!privateKeyArmored.value || !publicKeyArmored.value || !identity.value) {
+    if (!privateKeyArmored.value || !publicKeyArmored.value) {
       throw new KeysInvalidError(`failed to load keys: keys not initialized`)
     }
 
     keys = {
       privateKey: await readPrivateKey({ armoredKey: privateKeyArmored.value }),
       publicKey: await readKey({ armoredKey: publicKeyArmored.value }),
-      identity: identity.value.toLowerCase(),
     }
   }
 
@@ -167,21 +162,12 @@ export const signDetached = async (data: string, privateKey?: string): Promise<s
   return b64Encode(array, 0, array.length)
 }
 
-export const saveKeys = async (
-  user: { email: string; picture: string; fullname: string },
-  privateKey: string,
-  publicKey: string,
-  publicKeyId: string,
-) => {
+export const saveKeys = async (privateKey: string, publicKey: string, publicKeyId: string) => {
   keys = null
 
   publicKeyArmored.value = publicKey
   privateKeyArmored.value = privateKey
   publicKeyID.value = publicKeyId
-
-  identity.value = user.email.toLowerCase()
-  avatar.value = user.picture
-  fullname.value = user.fullname
 
   const loadedKeys = await loadKeys()
 
@@ -198,10 +184,6 @@ export const resetKeys = () => {
   publicKeyArmored.value = undefined
   privateKeyArmored.value = undefined
   publicKeyID.value = undefined
-
-  identity.value = undefined
-  avatar.value = undefined
-  fullname.value = undefined
 
   authorized.value = false
 }
@@ -270,6 +252,8 @@ const registerInterceptors = () => {
     return
   }
 
+  const { identity } = useIdentity()
+
   fetchIntercept.register({
     request: async (url, config?: { headers?: Headers; method?: string }) => {
       url = encodeURI(url)
@@ -302,7 +286,7 @@ const registerInterceptors = () => {
           config.headers.set(`Grpc-Metadata-${PayloadHeaderKey}`, payload)
           config.headers.set(
             `Grpc-Metadata-${SignatureHeaderKey}`,
-            `${SignatureVersionV1} ${keys?.identity} ${fingerprint} ${signature}`,
+            `${SignatureVersionV1} ${identity.value} ${fingerprint} ${signature}`,
           )
         } else if (url.indexOf('/image/') === 0) {
           config.headers.set(TimestampHeaderKey, ts)
@@ -314,7 +298,7 @@ const registerInterceptors = () => {
 
           config.headers.set(
             SignatureHeaderKey,
-            `${SignatureVersionV1} ${keys?.identity} ${fingerprint} ${signature}`,
+            `${SignatureVersionV1} ${identity.value} ${fingerprint} ${signature}`,
           )
         }
       } catch {

@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import { type Auth0VueClient } from '@auth0/auth0-vue'
+import { useAuth0 } from '@auth0/auth0-vue'
 import type { ComputedRef, Ref } from 'vue'
 import { computed, onBeforeMount, ref, watch } from 'vue'
 
@@ -29,11 +29,11 @@ import {
   PermissionsType,
   VirtualNamespace,
 } from '@/api/resources'
-import { identity, resetKeys, revokePublicKey } from '@/methods/key'
+import { AuthType, authType } from '@/methods'
+import { initializeUserPilot } from '@/methods/features'
+import { useIdentity } from '@/methods/identity'
+import { resetKeys, revokePublicKey } from '@/methods/key'
 import { FrontendAuthFlow } from '@/router'
-
-import { AuthType, authType } from '.'
-import { initializeUserPilot } from './features'
 
 export const currentUser: Ref<Resource<CurrentUserSpec> | undefined> = ref()
 export const permissions: Ref<Resource<PermissionsSpec> | undefined> = ref()
@@ -160,6 +160,8 @@ export const loadCurrentUser = async () => {
 }
 
 const refreshCurrentUser = async () => {
+  const { identity } = useIdentity()
+
   if (!identity.value) {
     currentUser.value = undefined
     return
@@ -251,25 +253,31 @@ const redirectToURL = (url: string) => {
   }
 }
 
-export const logout = async (auth0?: Auth0VueClient) => {
-  try {
-    await revokePublicKey()
-  } catch (error) {
-    // During a log out action being unauthenticated is fine
-    if (error.code !== Code.UNAUTHENTICATED) throw error
-  }
+export function useLogout() {
+  const auth0 = authType.value === AuthType.Auth0 ? useAuth0() : null
+  const identity = useIdentity()
 
-  await auth0?.logout({
-    logoutParams: {
-      returnTo: window.location.origin,
-    },
-  })
+  return async function () {
+    try {
+      await revokePublicKey()
+    } catch (error) {
+      // During a log out action being unauthenticated is fine
+      if (error.code !== Code.UNAUTHENTICATED) throw error
+    }
 
-  resetKeys()
+    await auth0?.logout({
+      logoutParams: {
+        returnTo: window.location.origin,
+      },
+    })
 
-  currentUser.value = undefined
+    resetKeys()
+    identity.clear()
 
-  if (authType.value !== AuthType.Auth0) {
-    redirectToURL(`/logout?${AuthFlowQueryParam}=${FrontendAuthFlow}`)
+    currentUser.value = undefined
+
+    if (authType.value !== AuthType.Auth0) {
+      redirectToURL(`/logout?${AuthFlowQueryParam}=${FrontendAuthFlow}`)
+    }
   }
 }

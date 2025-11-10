@@ -13,11 +13,12 @@ import { OIDCService } from '@/api/omni/oidc/oidc.pb'
 import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import UserInfo from '@/components/common/UserInfo/UserInfo.vue'
-import { avatar, fullname, identity } from '@/methods/key'
+import { useIdentity } from '@/methods/identity'
 import { showError } from '@/notification'
 
 const route = useRoute()
 const { copy, copied } = useClipboard({ copiedDuring: 1000 })
+const { avatar, fullname, identity } = useIdentity()
 
 const authRequestId = route.params.authRequestId as string
 

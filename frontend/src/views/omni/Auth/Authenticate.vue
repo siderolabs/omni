@@ -32,7 +32,8 @@ import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import UserInfo from '@/components/common/UserInfo/UserInfo.vue'
 import { AuthType, authType } from '@/methods'
-import { logout } from '@/methods/auth'
+import { useLogout } from '@/methods/auth'
+import { useIdentity } from '@/methods/identity'
 import { createKeys, saveKeys, signDetached } from '@/methods/key'
 import { showError } from '@/notification'
 import { FrontendAuthFlow } from '@/router'
@@ -134,6 +135,9 @@ const confirmed = ref(false)
 
 let redirect: string = route.query[RedirectQueryParam] as string
 
+const logout = useLogout()
+const identityStorage = useIdentity()
+
 const generatePublicKey = async () => {
   if (!identity.value) {
     return
@@ -150,21 +154,16 @@ const generatePublicKey = async () => {
   }
 
   try {
-    await saveKeys(
-      {
-        email: identity.value,
-        fullname: name.value ?? '',
-        picture: picture.value ?? '',
-      },
-      res.privateKey,
-      res.publicKey,
-      publicKeyId,
-    )
+    await saveKeys(res.privateKey, res.publicKey, publicKeyId)
   } catch (e) {
     showError('Failed to save the key', e.message)
 
     return
   }
+
+  identityStorage.identity.value = identity.value.toLowerCase()
+  identityStorage.fullname.value = name.value ?? ''
+  identityStorage.avatar.value = picture.value ?? ''
 
   if (!redirect) {
     return
@@ -241,10 +240,6 @@ const confirmPublicKey = async (privateKey?: string) => {
   }
 }
 
-const switchUser = () => {
-  logout(auth0)
-}
-
 const Auth = {
   CLI: CLIAuthFlow,
   Frontend: FrontendAuthFlow,
@@ -290,7 +285,7 @@ const Auth = {
               :fullname="name"
             />
             <div class="flex w-full flex-col gap-3">
-              <TButton type="secondary" class="w-full" @click="switchUser">Switch User</TButton>
+              <TButton type="secondary" class="w-full" @click="logout">Switch User</TButton>
               <TButton
                 v-if="$route.query[AuthFlowQueryParam] === Auth.CLI"
                 id="confirm"

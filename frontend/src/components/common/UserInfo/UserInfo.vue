@@ -9,8 +9,11 @@ import { useAuth0 } from '@auth0/auth0-vue'
 import { computed, toRefs } from 'vue'
 
 import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
-import { logout } from '@/methods/auth'
-import { identity as identityStorage } from '@/methods/key'
+import { useLogout } from '@/methods/auth'
+import { useIdentity } from '@/methods/identity'
+
+const { identity: identityStorage } = useIdentity()
+const logout = useLogout()
 
 type Props = {
   withLogoutControls?: boolean
@@ -65,7 +68,7 @@ const imageSize = computed(() => {
       {{ identity }}
     </div>
     <TActionsBox v-if="withLogoutControls" placement="top">
-      <div @click="() => logout(auth0)">
+      <div @click="logout">
         <div class="cursor-pointer px-4 py-2 hover:text-naturals-n12">Log Out</div>
       </div>
     </TActionsBox>

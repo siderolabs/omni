@@ -45,11 +45,12 @@ import {
   setupClusterPermissions,
 } from '@/methods/auth'
 import { useFeatures, useInstallationMediaEnabled } from '@/methods/features'
-import { avatar, fullname, identity } from '@/methods/key'
+import { useIdentity } from '@/methods/identity'
 import ExposedServiceSideBar from '@/views/cluster/ExposedService/ExposedServiceSideBar.vue'
 
 const route = useRoute()
 const context = getContext()
+const { avatar, fullname, identity } = useIdentity()
 
 const { data: featuresConfig } = useFeatures()
 const { value: installationMediaEnabled } = useInstallationMediaEnabled()

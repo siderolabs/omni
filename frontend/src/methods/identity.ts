@@ -1,0 +1,22 @@
+// Copyright (c) 2025 Sidero Labs, Inc.
+//
+// Use of this software is governed by the Business Source License
+// included in the LICENSE file.
+import { useLocalStorage } from '@vueuse/core'
+
+export function useIdentity() {
+  const identityRef = useLocalStorage<string>('identity', null)
+  const fullnameRef = useLocalStorage<string>('fullname', null)
+  const avatarRef = useLocalStorage<string>('avatar', null)
+
+  return {
+    identity: identityRef,
+    fullname: fullnameRef,
+    avatar: avatarRef,
+    clear() {
+      identityRef.value = undefined
+      fullnameRef.value = undefined
+      avatarRef.value = undefined
+    },
+  }
+}
