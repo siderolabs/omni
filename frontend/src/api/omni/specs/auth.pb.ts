@@ -151,6 +151,8 @@ export type AccessPolicySpec = {
 export type SAMLLabelRuleSpec = {
   match_labels?: string[]
   assign_role_on_registration?: string
+  assign_role?: string
+  update_on_each_login?: boolean
 }
 
 export type ServiceAccountStatusSpecPgpPublicKey = {
