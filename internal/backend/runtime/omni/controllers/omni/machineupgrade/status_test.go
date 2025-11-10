@@ -171,6 +171,7 @@ func TestReconcile(t *testing.T) {
 		require.NoError(t, err)
 
 		rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
+			assertion.True(res.TypedSpec().Value.IsMaintenance)
 			assertion.Equal(specs.MachineUpgradeStatusSpec_Upgrading, res.TypedSpec().Value.Phase)
 			assertion.Equal("Talos upgrade initiated", res.TypedSpec().Value.Status)
 			assertion.Empty(res.TypedSpec().Value.Error)
