@@ -1267,14 +1267,14 @@ func TestSAMLLabelRuleValidation(t *testing.T) {
 	st := validated.NewState(innerSt, omni.SAMLLabelRuleValidationOptions()...)
 
 	labelRule := auth.NewSAMLLabelRule(resources.DefaultNamespace, "test-label-rule")
-	labelRule.TypedSpec().Value.AssignRoleOnRegistration = "invalid"
+	labelRule.TypedSpec().Value.AssignRole = "invalid"
 	labelRule.TypedSpec().Value.MatchLabels = []string{"--invalid--- ===== 5"}
 
 	err := st.Create(ctx, labelRule)
 	assert.ErrorContains(t, err, "unknown role")
 	assert.ErrorContains(t, err, "invalid match labels")
 
-	labelRule.TypedSpec().Value.AssignRoleOnRegistration = string(role.Operator)
+	labelRule.TypedSpec().Value.AssignRole = string(role.Operator)
 
 	err = st.Create(ctx, labelRule)
 	assert.ErrorContains(t, err, "invalid match labels")

@@ -1068,7 +1068,11 @@ func samlLabelRuleValidationOptions() []validated.StateOption {
 	validate := func(res *authres.SAMLLabelRule) error {
 		var multiErr error
 
-		if _, err := role.Parse(res.TypedSpec().Value.GetAssignRoleOnRegistration()); err != nil {
+		if res.TypedSpec().Value.AssignRoleOnRegistration != "" { //nolint:staticcheck
+			return fmt.Errorf("assignroleonregistration is deprecated, please use assignrole instead")
+		}
+
+		if _, err := role.Parse(res.TypedSpec().Value.AssignRole); err != nil {
 			multiErr = multierror.Append(multiErr, err)
 		}
 

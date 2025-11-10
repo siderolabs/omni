@@ -759,9 +759,15 @@ type SAMLLabelRuleSpec struct {
 	// MatchLabels is the list of labels to match the user's Identity against this rule.
 	MatchLabels []string `protobuf:"bytes,1,rep,name=match_labels,json=matchLabels,proto3" json:"match_labels,omitempty"`
 	// AssignRoleOnRegistration is the role to be assigned to the user if this rule matches.
+	//
+	// Deprecated: use AssignRole instead.
 	AssignRoleOnRegistration string `protobuf:"bytes,2,opt,name=assign_role_on_registration,json=assignRoleOnRegistration,proto3" json:"assign_role_on_registration,omitempty"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	// AssignRole to the user matched by this rule.
+	AssignRole string `protobuf:"bytes,3,opt,name=assign_role,json=assignRole,proto3" json:"assign_role,omitempty"`
+	// UpdateOnEachLogin makes the rule to be applied every time user logs in.
+	UpdateOnEachLogin bool `protobuf:"varint,4,opt,name=update_on_each_login,json=updateOnEachLogin,proto3" json:"update_on_each_login,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *SAMLLabelRuleSpec) Reset() {
@@ -806,6 +812,20 @@ func (x *SAMLLabelRuleSpec) GetAssignRoleOnRegistration() string {
 		return x.AssignRoleOnRegistration
 	}
 	return ""
+}
+
+func (x *SAMLLabelRuleSpec) GetAssignRole() string {
+	if x != nil {
+		return x.AssignRole
+	}
+	return ""
+}
+
+func (x *SAMLLabelRuleSpec) GetUpdateOnEachLogin() bool {
+	if x != nil {
+		return x.UpdateOnEachLogin
+	}
+	return false
 }
 
 type ServiceAccountStatusSpec struct {
@@ -1762,10 +1782,13 @@ const file_omni_specs_auth_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v2\x1c.specs.AccessPolicyUserGroupR\x05value:\x028\x01\x1aa\n" +
 	"\x12ClusterGroupsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x125\n" +
-	"\x05value\x18\x02 \x01(\v2\x1f.specs.AccessPolicyClusterGroupR\x05value:\x028\x01\"u\n" +
+	"\x05value\x18\x02 \x01(\v2\x1f.specs.AccessPolicyClusterGroupR\x05value:\x028\x01\"\xc7\x01\n" +
 	"\x11SAMLLabelRuleSpec\x12!\n" +
 	"\fmatch_labels\x18\x01 \x03(\tR\vmatchLabels\x12=\n" +
-	"\x1bassign_role_on_registration\x18\x02 \x01(\tR\x18assignRoleOnRegistration\"\xf3\x01\n" +
+	"\x1bassign_role_on_registration\x18\x02 \x01(\tR\x18assignRoleOnRegistration\x12\x1f\n" +
+	"\vassign_role\x18\x03 \x01(\tR\n" +
+	"assignRole\x12/\n" +
+	"\x14update_on_each_login\x18\x04 \x01(\bR\x11updateOnEachLogin\"\xf3\x01\n" +
 	"\x18ServiceAccountStatusSpec\x12\x12\n" +
 	"\x04role\x18\x01 \x01(\tR\x04role\x12M\n" +
 	"\vpublic_keys\x18\x02 \x03(\v2,.specs.ServiceAccountStatusSpec.PgpPublicKeyR\n" +

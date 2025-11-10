@@ -219,44 +219,52 @@ func TestRoleInSAMLLabelRules(t *testing.T) {
 	operatorRoleToDeveloper := auth.NewSAMLLabelRule(resources.DefaultNamespace, "assign-operator-to-developer")
 
 	operatorRoleToDeveloper.TypedSpec().Value.MatchLabels = []string{"saml.omni.sidero.dev/role/developer"}
-	operatorRoleToDeveloper.TypedSpec().Value.AssignRoleOnRegistration = string(role.Operator)
+	operatorRoleToDeveloper.TypedSpec().Value.AssignRole = string(role.Operator)
 
 	readerRoleToDeveloper := auth.NewSAMLLabelRule(resources.DefaultNamespace, "assign-reader-to-developer")
 
 	readerRoleToDeveloper.TypedSpec().Value.MatchLabels = []string{"saml.omni.sidero.dev/role/developer"}
-	readerRoleToDeveloper.TypedSpec().Value.AssignRoleOnRegistration = string(role.Reader)
+	readerRoleToDeveloper.TypedSpec().Value.AssignRole = string(role.Reader)
 
 	adminRoleToManager := auth.NewSAMLLabelRule(resources.DefaultNamespace, "assign-admin-to-manager")
 
 	adminRoleToManager.TypedSpec().Value.MatchLabels = []string{"saml.omni.sidero.dev/role/manager"}
-	adminRoleToManager.TypedSpec().Value.AssignRoleOnRegistration = string(role.Admin)
+	adminRoleToManager.TypedSpec().Value.AssignRole = string(role.Admin)
 
 	invalidRoleToFoobar := auth.NewSAMLLabelRule(resources.DefaultNamespace, "assign-invalid-role-to-foobar")
 
 	invalidRoleToFoobar.TypedSpec().Value.MatchLabels = []string{"saml.omni.sidero.dev/role/foobar"}
-	invalidRoleToFoobar.TypedSpec().Value.AssignRoleOnRegistration = "invalid-role"
+	invalidRoleToFoobar.TypedSpec().Value.AssignRole = "invalid-role"
 
 	// match the role in the rules with the highest access level
 
-	matchedRole := saml.RoleInSAMLLabelRules(
+	matchedRole := saml.MatchSAMLLabelRule(
 		[]*auth.SAMLLabelRule{operatorRoleToDeveloper, readerRoleToDeveloper, adminRoleToManager, invalidRoleToFoobar},
 		map[string]string{
 			"saml.omni.sidero.dev/role/developer": "",
 		}, logger)
 
-	require.Equal(t, matchedRole, role.Operator)
+	require.EqualValues(t, matchedRole.TypedSpec().Value.AssignRole, role.Operator)
 
-	matchedRole = saml.RoleInSAMLLabelRules([]*auth.SAMLLabelRule{operatorRoleToDeveloper, invalidRoleToFoobar, adminRoleToManager}, map[string]string{
+	matchedRole = saml.MatchSAMLLabelRule([]*auth.SAMLLabelRule{operatorRoleToDeveloper, invalidRoleToFoobar, adminRoleToManager}, map[string]string{
 		"saml.omni.sidero.dev/role/manager": "",
 	}, logger)
 
-	require.Equal(t, matchedRole, role.Admin)
+	require.EqualValues(t, matchedRole.TypedSpec().Value.AssignRole, role.Admin)
 
 	// if the role in the rule is invalid, log it and return None
 
-	matchedRole = saml.RoleInSAMLLabelRules([]*auth.SAMLLabelRule{invalidRoleToFoobar}, map[string]string{
+	matchedRole = saml.MatchSAMLLabelRule([]*auth.SAMLLabelRule{invalidRoleToFoobar}, map[string]string{
 		"saml.omni.sidero.dev/role/foobar": "",
 	}, logger)
 
-	require.Equal(t, matchedRole, role.None)
+	require.Nil(t, matchedRole)
+}
+
+func TestRoleCompare(t *testing.T) {
+	require.Equal(t, 0, role.Admin.Compare(role.Admin)) //nolint:gocritic
+
+	require.Equal(t, 1, role.Admin.Compare(role.None))
+
+	require.Equal(t, -1, role.Operator.Compare(role.Admin))
 }

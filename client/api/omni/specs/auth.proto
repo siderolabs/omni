@@ -182,7 +182,15 @@ message SAMLLabelRuleSpec {
   repeated string match_labels = 1;
 
   // AssignRoleOnRegistration is the role to be assigned to the user if this rule matches.
+  //
+  // Deprecated: use AssignRole instead.
   string assign_role_on_registration = 2;
+
+  // AssignRole to the user matched by this rule.
+  string assign_role = 3;
+
+  // UpdateOnEachLogin makes the rule to be applied every time user logs in.
+  bool update_on_each_login = 4;
 }
 
 message ServiceAccountStatusSpec {

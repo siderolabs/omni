@@ -38,7 +38,7 @@ func EnsureInitialResources(ctx context.Context, st state.State, logger *zap.Log
 	var multiErr error
 
 	for _, email := range initialUsers {
-		if err := Ensure(ctx, st, email, role.Admin); err != nil {
+		if err := Ensure(ctx, st, email, role.Admin, false); err != nil {
 			multiErr = multierror.Append(multiErr, err)
 		}
 	}
@@ -47,7 +47,7 @@ func EnsureInitialResources(ctx context.Context, st state.State, logger *zap.Log
 }
 
 // Ensure creates the auth.User and auth.Identity resources with the given role if they are not already present.
-func Ensure(ctx context.Context, st state.State, email string, role role.Role) error {
+func Ensure(ctx context.Context, st state.State, email string, role role.Role, updateRole bool) error {
 	email = strings.ToLower(email)
 
 	identity, err := safe.StateGet[*auth.Identity](ctx, st, auth.NewIdentity(resources.DefaultNamespace, email).Metadata())
@@ -71,6 +71,14 @@ func Ensure(ctx context.Context, st state.State, email string, role role.Role) e
 	user := auth.NewUser(resources.DefaultNamespace, identity.TypedSpec().Value.UserId)
 
 	user.TypedSpec().Value.Role = string(role)
+
+	if updateRole {
+		return safe.StateModify(ctx, st, user, func(res *auth.User) error {
+			res.TypedSpec().Value = user.TypedSpec().Value
+
+			return nil
+		})
+	}
 
 	err = st.Create(ctx, user)
 	if err != nil && !state.IsConflictError(err) {

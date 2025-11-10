@@ -95,6 +95,28 @@ func (r Role) Previous() (Role, error) {
 	return roles[index-1], nil
 }
 
+// Compare the roles.
+func (r Role) Compare(another Role) int {
+	r1Index, ok := indexes[r]
+	if !ok {
+		panic(fmt.Sprintf("unknown role %s", r))
+	}
+
+	r2Index, ok := indexes[another]
+	if !ok {
+		panic(fmt.Sprintf("unknown role %s", another))
+	}
+
+	switch {
+	case r1Index < r2Index:
+		return -1
+	case r1Index > r2Index:
+		return 1
+	}
+
+	return 0
+}
+
 // Min returns the least capable role from the given roles.
 func Min(first Role, role ...Role) (Role, error) {
 	result := first

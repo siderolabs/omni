@@ -570,6 +570,8 @@ func (m *SAMLLabelRuleSpec) CloneVT() *SAMLLabelRuleSpec {
 	}
 	r := new(SAMLLabelRuleSpec)
 	r.AssignRoleOnRegistration = m.AssignRoleOnRegistration
+	r.AssignRole = m.AssignRole
+	r.UpdateOnEachLogin = m.UpdateOnEachLogin
 	if rhs := m.MatchLabels; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -1386,6 +1388,12 @@ func (this *SAMLLabelRuleSpec) EqualVT(that *SAMLLabelRuleSpec) bool {
 		}
 	}
 	if this.AssignRoleOnRegistration != that.AssignRoleOnRegistration {
+		return false
+	}
+	if this.AssignRole != that.AssignRole {
+		return false
+	}
+	if this.UpdateOnEachLogin != that.UpdateOnEachLogin {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2895,6 +2903,23 @@ func (m *SAMLLabelRuleSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.UpdateOnEachLogin {
+		i--
+		if m.UpdateOnEachLogin {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.AssignRole) > 0 {
+		i -= len(m.AssignRole)
+		copy(dAtA[i:], m.AssignRole)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.AssignRole)))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if len(m.AssignRoleOnRegistration) > 0 {
 		i -= len(m.AssignRoleOnRegistration)
 		copy(dAtA[i:], m.AssignRoleOnRegistration)
@@ -3578,6 +3603,13 @@ func (m *SAMLLabelRuleSpec) SizeVT() (n int) {
 	l = len(m.AssignRoleOnRegistration)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.AssignRole)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.UpdateOnEachLogin {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -7412,6 +7444,58 @@ func (m *SAMLLabelRuleSpec) UnmarshalVT(dAtA []byte) error {
 			}
 			m.AssignRoleOnRegistration = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AssignRole", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AssignRole = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UpdateOnEachLogin", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.UpdateOnEachLogin = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
