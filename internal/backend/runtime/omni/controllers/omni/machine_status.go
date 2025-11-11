@@ -250,7 +250,7 @@ func (ctrl *MachineStatusController) reconcileRunning(ctx context.Context, r con
 
 		helpers.CopyLabels(machine, m, omni.LabelMachineRequest, omni.LabelMachineRequestSet, omni.LabelNoManualAllocation, omni.LabelIsManagedByStaticInfraProvider)
 
-		infraProvider, ok := machine.Metadata().Annotations().Get(omni.LabelInfraProviderID)
+		infraProvider, ok := machine.Metadata().Labels().Get(omni.LabelInfraProviderID)
 		if ok {
 			m.Metadata().Labels().Set(omni.LabelInfraProviderID, infraProvider)
 		} else {

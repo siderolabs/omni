@@ -196,7 +196,7 @@ func newLink[T res](provisionContext *provisionContext,
 
 	if provisionContext.token != nil {
 		if value, ok := provisionContext.token.ExtraData[omni.LabelInfraProviderID]; ok {
-			link.Metadata().Annotations().Set(omni.LabelInfraProviderID, value)
+			link.Metadata().Labels().Set(omni.LabelInfraProviderID, value)
 		}
 
 		if value, ok := provisionContext.token.ExtraData[omni.LabelMachineRequest]; ok {

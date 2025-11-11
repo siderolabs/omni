@@ -91,9 +91,8 @@ func (h *machineControllerHelper) transform(ctx context.Context, r controller.Re
 		return err
 	}
 
-	helpers.CopyLabels(link, machine, omni.LabelMachineRequest, omni.LabelMachineRequestSet)
-
-	helpers.CopyAnnotations(link, machine, omni.LabelInfraProviderID, omni.CreatedWithUniqueToken)
+	helpers.CopyLabels(link, machine, omni.LabelMachineRequest, omni.LabelMachineRequestSet, omni.LabelInfraProviderID)
+	helpers.CopyAnnotations(link, machine, omni.CreatedWithUniqueToken)
 
 	spec := machine.TypedSpec().Value
 
@@ -109,7 +108,7 @@ func (h *machineControllerHelper) transform(ctx context.Context, r controller.Re
 
 // handleInfraProvider checks if the link has an infra provider ID annotation, and if so, runs the infra provider handling logic - static or provisioning (regular).
 func (h *machineControllerHelper) handleInfraProvider(ctx context.Context, r controller.Reader, link *siderolink.Link, machine *omni.Machine) error {
-	infraProviderID, ok := link.Metadata().Annotations().Get(omni.LabelInfraProviderID)
+	infraProviderID, ok := link.Metadata().Labels().Get(omni.LabelInfraProviderID)
 	if !ok { // not created by an infra provider, skip
 		return nil
 	}

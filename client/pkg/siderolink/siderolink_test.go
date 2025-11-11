@@ -156,7 +156,7 @@ func TestConnectionParamsKernelArgs(t *testing.T) {
 				}
 
 				if tt.machine.providerID != "" {
-					m.Metadata().Annotations().Set(omni.LabelInfraProviderID, tt.machine.providerID)
+					m.Metadata().Labels().Set(omni.LabelInfraProviderID, tt.machine.providerID)
 				}
 
 				options = append(options, siderolink.WithMachine(m))
@@ -362,7 +362,7 @@ certificates: ""
 				}
 
 				if tt.machine.providerID != "" {
-					m.Metadata().Annotations().Set(omni.LabelInfraProviderID, tt.machine.providerID)
+					m.Metadata().Labels().Set(omni.LabelInfraProviderID, tt.machine.providerID)
 				}
 
 				options = append(options, siderolink.WithMachine(m))

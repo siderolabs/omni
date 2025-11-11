@@ -2020,3 +2020,32 @@ func dropExtraInputFinalizers(ctx context.Context, st state.State, logger *zap.L
 
 	return nil
 }
+
+func moveInfraProviderAnnotationsToLabels(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
+	for _, resType := range []resource.Type{siderolink.LinkType, omni.MachineType} {
+		kind := resource.NewMetadata(resources.DefaultNamespace, resType, "", resource.VersionUndefined)
+
+		list, err := st.List(ctx, kind)
+		if err != nil {
+			return err
+		}
+
+		for _, item := range list.Items {
+			id, ok := item.Metadata().Annotations().Get(omni.LabelInfraProviderID)
+			if !ok {
+				continue
+			}
+
+			if _, err = st.UpdateWithConflicts(ctx, item.Metadata(), func(res resource.Resource) error {
+				res.Metadata().Labels().Set(omni.LabelInfraProviderID, id)
+				res.Metadata().Annotations().Delete(omni.LabelInfraProviderID)
+
+				return nil
+			}, state.WithUpdateOwner(item.Metadata().Owner()), state.WithExpectedPhaseAny()); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}

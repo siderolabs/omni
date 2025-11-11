@@ -184,7 +184,7 @@ func infraMachinesAcceptHook(t *testing.T, omniState state.State, infraProviderI
 		discoveredLinks := 0
 
 		for link := range links.All() {
-			providerID, ok := link.Metadata().Annotations().Get(omni.LabelInfraProviderID)
+			providerID, ok := link.Metadata().Labels().Get(omni.LabelInfraProviderID)
 			if !ok {
 				continue
 			}
@@ -279,7 +279,7 @@ func infraMachinesAcceptHook(t *testing.T, omniState state.State, infraProviderI
 	rtestutils.AssertResources(ctx, t, omniState, ids, func(res *omni.MachineStatus, assertion *assert.Assertions) {
 		link := linksMap[res.Metadata().ID()]
 
-		infraProviderID, _ := link.Metadata().Annotations().Get(omni.LabelInfraProviderID)
+		infraProviderID, _ := link.Metadata().Labels().Get(omni.LabelInfraProviderID)
 
 		aLabel := fmt.Sprintf(omni.InfraProviderLabelPrefixFormat, infraProviderID) + "a"
 		aVal, _ := res.Metadata().Labels().Get(aLabel)
@@ -304,7 +304,7 @@ func infraMachinesDestroyHook(t *testing.T, omniState state.State, providerID st
 	var deleted int
 
 	for link := range links.All() {
-		pid, ok := link.Metadata().Annotations().Get(omni.LabelInfraProviderID)
+		pid, ok := link.Metadata().Labels().Get(omni.LabelInfraProviderID)
 		if !ok {
 			continue
 		}

@@ -30,7 +30,7 @@ func NewInfraMachineRegistrationController() *InfraMachineRegistrationController
 		qtransform.Settings[*siderolink.Link, *infra.MachineRegistration]{
 			Name: "InfraMachineRegistrationController",
 			MapMetadataOptionalFunc: func(link *siderolink.Link) optional.Optional[*infra.MachineRegistration] {
-				if _, ok := link.Metadata().Annotations().Get(omni.LabelInfraProviderID); !ok {
+				if _, ok := link.Metadata().Labels().Get(omni.LabelInfraProviderID); !ok {
 					return optional.None[*infra.MachineRegistration]()
 				}
 
@@ -40,7 +40,7 @@ func NewInfraMachineRegistrationController() *InfraMachineRegistrationController
 				return siderolink.NewLink(resources.DefaultNamespace, machine.Metadata().ID(), nil)
 			},
 			TransformFunc: func(_ context.Context, _ controller.Reader, _ *zap.Logger, link *siderolink.Link, machine *infra.MachineRegistration) error {
-				providerID, ok := link.Metadata().Annotations().Get(omni.LabelInfraProviderID)
+				providerID, ok := link.Metadata().Labels().Get(omni.LabelInfraProviderID)
 				if !ok {
 					return xerrors.NewTaggedf[qtransform.DestroyOutputTag]("the link doesn't have the provider ID label")
 				}

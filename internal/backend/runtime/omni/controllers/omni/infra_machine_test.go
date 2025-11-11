@@ -40,7 +40,7 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 
 	link := siderolink.NewLink(resources.DefaultNamespace, "machine-1", &specs.SiderolinkSpec{})
 
-	link.Metadata().Annotations().Set(omni.LabelInfraProviderID, "bare-metal")
+	link.Metadata().Labels().Set(omni.LabelInfraProviderID, "bare-metal")
 	suite.Require().NoError(suite.state.Create(suite.ctx, link))
 
 	infraMachine := infra.NewMachine("machine-1")

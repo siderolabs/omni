@@ -70,7 +70,7 @@ func WithMachine(machine *omni.Machine) JoinConfigOption {
 			opts.extraTokenData[omni.LabelMachineRequest] = machineRequest
 		}
 
-		if providerID, ok := machine.Metadata().Annotations().Get(omni.LabelInfraProviderID); ok {
+		if providerID, ok := machine.Metadata().Labels().Get(omni.LabelInfraProviderID); ok {
 			opts.extraTokenData[omni.LabelInfraProviderID] = providerID
 		}
 	}

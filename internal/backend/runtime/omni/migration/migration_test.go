@@ -2255,6 +2255,64 @@ func (suite *MigrationSuite) TestDropExtraInputFinalizers() {
 	suite.Require().True(cmdMigrated.Metadata().Finalizers().Has("SomeOtherFinalizer"))
 }
 
+func (suite *MigrationSuite) TestMoveInfraProviderAnnotationsToLabels() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	link1 := siderolink.NewLink(resources.DefaultNamespace, "link1", &specs.SiderolinkSpec{})
+	link1.Metadata().Annotations().Set(omni.LabelInfraProviderID, "test-id-1")
+
+	link2 := siderolink.NewLink(resources.DefaultNamespace, "link2", &specs.SiderolinkSpec{})
+	link2.Metadata().Annotations().Set(omni.LabelInfraProviderID, "test-id-2")
+	link2.Metadata().SetPhase(resource.PhaseTearingDown)
+
+	link3 := siderolink.NewLink(resources.DefaultNamespace, "link3", &specs.SiderolinkSpec{})
+
+	machine1 := omni.NewMachine(resources.DefaultNamespace, "machine1")
+	machine1.Metadata().Annotations().Set(omni.LabelInfraProviderID, "test-id-3")
+
+	suite.Require().NoError(suite.state.Create(ctx, link1))
+	suite.Require().NoError(suite.state.Create(ctx, link2))
+	suite.Require().NoError(suite.state.Create(ctx, link3))
+	suite.Require().NoError(suite.state.Create(ctx, machine1))
+
+	link3VersionBefore := link3.Metadata().Version()
+
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("moveInfraProviderAnnotationsToLabels"))))
+
+	link1Migrated, err := suite.state.Get(ctx, link1.Metadata())
+	suite.Require().NoError(err)
+
+	link1Label, _ := link1Migrated.Metadata().Labels().Get(omni.LabelInfraProviderID)
+	_, link1AnnotationOk := link1Migrated.Metadata().Annotations().Get(omni.LabelInfraProviderID)
+
+	suite.Equal("test-id-1", link1Label)
+	suite.False(link1AnnotationOk)
+
+	link2Migrated, err := suite.state.Get(ctx, link2.Metadata())
+	suite.Require().NoError(err)
+
+	link2Label, _ := link2Migrated.Metadata().Labels().Get(omni.LabelInfraProviderID)
+	_, link2AnnotationOk := link2Migrated.Metadata().Annotations().Get(omni.LabelInfraProviderID)
+
+	suite.Equal("test-id-2", link2Label)
+	suite.False(link2AnnotationOk)
+
+	link3Migrated, err := suite.state.Get(ctx, link3.Metadata())
+	suite.Require().NoError(err)
+
+	suite.Equal(link3VersionBefore, link3Migrated.Metadata().Version(), "expected link3 to be left untouched")
+
+	machine1Migrated, err := suite.state.Get(ctx, machine1.Metadata())
+	suite.Require().NoError(err)
+
+	machine1Label, _ := machine1Migrated.Metadata().Labels().Get(omni.LabelInfraProviderID)
+	_, machine1AnnotationOk := machine1Migrated.Metadata().Annotations().Get(omni.LabelInfraProviderID)
+
+	suite.Equal("test-id-3", machine1Label)
+	suite.False(machine1AnnotationOk)
+}
+
 func startMigration[
 	R interface {
 		generic.ResourceWithRD

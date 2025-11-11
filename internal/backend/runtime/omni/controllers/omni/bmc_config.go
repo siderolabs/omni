@@ -44,7 +44,7 @@ func NewBMCConfigController() *BMCConfigController {
 					return err
 				}
 
-				providerID, ok := link.Metadata().Annotations().Get(omni.LabelInfraProviderID)
+				providerID, ok := link.Metadata().Labels().Get(omni.LabelInfraProviderID)
 				if !ok {
 					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the link is not created by an infra provider")
 				}

@@ -679,7 +679,7 @@ func TestProvision(t *testing.T) {
 			func(r *siderolinkres.Link, assertion *assert.Assertions) {
 				assertion.Equal(r.TypedSpec().Value.NodePublicKey, request.NodePublicKey)
 
-				providerID, ok := r.Metadata().Annotations().Get(omni.LabelInfraProviderID)
+				providerID, ok := r.Metadata().Labels().Get(omni.LabelInfraProviderID)
 				assertion.True(ok)
 				assertion.Equal("test", providerID)
 			},

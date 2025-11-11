@@ -244,6 +244,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: dropExtraInputFinalizers,
 				name:     "dropExtraInputFinalizers",
 			},
+			{
+				callback: moveInfraProviderAnnotationsToLabels,
+				name:     "moveInfraProviderAnnotationsToLabels",
+			},
 		},
 	}
 }

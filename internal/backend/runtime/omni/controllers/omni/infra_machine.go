@@ -177,7 +177,7 @@ func (ctrl *InfraMachineController) reconcileRunning(ctx context.Context, r cont
 		return err
 	}
 
-	providerID, ok := link.Metadata().Annotations().Get(omni.LabelInfraProviderID)
+	providerID, ok := link.Metadata().Labels().Get(omni.LabelInfraProviderID)
 	if !ok {
 		return nil // the link is not created by an infra provider
 	}
