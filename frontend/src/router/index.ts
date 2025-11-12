@@ -8,15 +8,13 @@ import { Userpilot } from 'userpilot'
 import type { RouteRecordRaw } from 'vue-router'
 import { createRouter, createWebHistory, RouterView } from 'vue-router'
 
-import { AuthFlowQueryParam, RedirectQueryParam } from '@/api/resources'
+import { AuthFlowQueryParam, FrontendAuthFlow, RedirectQueryParam } from '@/api/resources'
 import { current } from '@/context'
 import { AuthType, authType } from '@/methods'
 import { loadCurrentUser } from '@/methods/auth'
 import { isAuthorized } from '@/methods/key'
 import { MachineFilterOption } from '@/methods/machine'
 import { refreshTitle } from '@/methods/title'
-
-export const FrontendAuthFlow = 'frontend'
 
 export const routes: RouteRecordRaw[] = [
   // Unauthenticated routes

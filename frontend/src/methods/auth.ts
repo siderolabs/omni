@@ -24,6 +24,7 @@ import {
   CurrentUserID,
   CurrentUserType,
   DefaultNamespace,
+  FrontendAuthFlow,
   JoinTokenType,
   PermissionsID,
   PermissionsType,
@@ -33,7 +34,6 @@ import { AuthType, authType } from '@/methods'
 import { initializeUserPilot } from '@/methods/features'
 import { useIdentity } from '@/methods/identity'
 import { resetKeys, revokePublicKey } from '@/methods/key'
-import { FrontendAuthFlow } from '@/router'
 
 export const currentUser: Ref<Resource<CurrentUserSpec> | undefined> = ref()
 export const permissions: Ref<Resource<PermissionsSpec> | undefined> = ref()

@@ -13,6 +13,7 @@ export const RoleAdmin = "Admin";
 export const RedirectQueryParam = "redirect";
 export const AuthFlowQueryParam = "flow";
 export const CLIAuthFlow = "cli";
+export const FrontendAuthFlow = "frontend";
 export const WorkloadProxyAuthFlow = "workload-proxy";
 export const SignatureHeaderKey = "x-sidero-signature";
 export const TimestampHeaderKey = "x-sidero-timestamp";

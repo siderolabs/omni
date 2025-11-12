@@ -27,6 +27,11 @@ const (
 	// tsgen:CLIAuthFlow
 	CLIAuthFlow = "cli"
 
+	// FrontendAuthFlow is the name of the authentication flow used for frontend authentication.
+	//
+	// tsgen:FrontendAuthFlow
+	FrontendAuthFlow = "frontend"
+
 	// ProxyAuthFlow is the name of the authentication flow used for proxy authentication.
 	//
 	// tsgen:WorkloadProxyAuthFlow

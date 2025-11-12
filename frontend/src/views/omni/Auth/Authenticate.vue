@@ -22,6 +22,7 @@ import {
   authHeader,
   authPublicKeyIDQueryParam,
   CLIAuthFlow,
+  FrontendAuthFlow,
   RedirectQueryParam,
   samlSessionHeader,
   SignedRedirect,
@@ -36,7 +37,6 @@ import { useLogout } from '@/methods/auth'
 import { useIdentity } from '@/methods/identity'
 import { createKeys, saveKeys, signDetached } from '@/methods/key'
 import { showError } from '@/notification'
-import { FrontendAuthFlow } from '@/router'
 
 const user = ref<User | undefined>(undefined)
 let idToken = ''
