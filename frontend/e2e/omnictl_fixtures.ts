@@ -6,8 +6,7 @@ import { execFile } from 'node:child_process'
 import { chmod } from 'node:fs/promises'
 import os from 'node:os'
 
-import { expect, test as base } from '@playwright/test'
-import { milliseconds } from 'date-fns'
+import { expect, test as base } from './auth_fixtures'
 
 interface OmnictlFixtures {
   omnictl(
@@ -63,39 +62,8 @@ const test = base.extend<OmnictlFixtures>({
           if (authURL) {
             await page.goto(authURL)
 
-            await expect
-              .poll(
-                async () => {
-                  async function tryLogin() {
-                    if (!process.env.AUTH_USERNAME) throw new Error('username is not set')
-                    if (!process.env.AUTH_PASSWORD) throw new Error('password is not set')
-
-                    try {
-                      // If we can't use the grant access button, it may be because we need to re-auth
-                      await page
-                        .getByRole('textbox', { name: 'Email address' })
-                        .fill(process.env.AUTH_USERNAME, { timeout: milliseconds({ seconds: 1 }) })
-                      await page
-                        .getByRole('textbox', { name: 'Password' })
-                        .fill(process.env.AUTH_PASSWORD)
-                      await page.getByRole('button', { name: 'Continue', exact: true }).click()
-                    } catch {}
-                  }
-
-                  try {
-                    await page
-                      .getByRole('button', { name: 'Grant Access' })
-                      .click({ timeout: milliseconds({ seconds: 1 }) })
-                    await page.getByText('Successfully logged in').waitFor()
-
-                    return true
-                  } catch {
-                    await tryLogin()
-                  }
-                },
-                { message: 'Wait for CLI authentication', timeout: milliseconds({ seconds: 30 }) },
-              )
-              .toBeTruthy()
+            await page.getByRole('button', { name: 'Grant Access' }).click()
+            await page.getByText('Successfully logged in').waitFor()
           }
         },
       })

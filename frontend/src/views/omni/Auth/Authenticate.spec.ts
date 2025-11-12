@@ -9,7 +9,6 @@ import { createRouter, createWebHistory, RouterView } from 'vue-router'
 
 import Authenticate from './Authenticate.vue'
 
-vi.mock('openpgp', () => ({}))
 vi.mock(import('@/methods'), async (importOriginal) => {
   const original = await importOriginal()
 

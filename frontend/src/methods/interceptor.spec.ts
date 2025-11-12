@@ -10,7 +10,6 @@ import { defineComponent, ref } from 'vue'
 
 import { useRegisterAPIInterceptor } from './interceptor'
 
-vi.mock('openpgp', () => ({}))
 vi.mock('fetch-intercept')
 vi.mock('@/methods/identity', () => ({
   useIdentity() {
@@ -20,15 +19,11 @@ vi.mock('@/methods/identity', () => ({
 vi.mock('@/methods/key', () => ({
   useKeys() {
     return {
-      publicKey: ref(
-        Promise.resolve({
-          getFingerprint: () => 'secret-fingerprint',
-        }),
-      ),
+      publicKeyID: ref('public_key_id'),
     }
   },
   useSignDetached() {
-    return () => 'secret-signature'
+    return () => new ArrayBuffer(10)
   },
 }))
 
@@ -82,10 +77,7 @@ describe('useRegisterAPIInterceptor', () => {
             method: originalUrl.replace('/api', ''),
           }),
         ],
-        [
-          'grpc-metadata-x-sidero-signature',
-          'siderov1 testuser secret-fingerprint secret-signature',
-        ],
+        ['grpc-metadata-x-sidero-signature', 'siderov1 testuser public_key_id AAAAAAAAAAAAAA=='],
         ['grpc-metadata-x-sidero-timestamp', getUnixTime(now).toString()],
       ])
     },
@@ -112,7 +104,7 @@ describe('useRegisterAPIInterceptor', () => {
 
       expect(url).toBe(originalUrl)
       expect(headers).toMatchObject([
-        ['x-sidero-signature', 'siderov1 testuser secret-fingerprint secret-signature'],
+        ['x-sidero-signature', 'siderov1 testuser public_key_id AAAAAAAAAAAAAA=='],
         ['x-sidero-timestamp', getUnixTime(now).toString()],
       ])
     },

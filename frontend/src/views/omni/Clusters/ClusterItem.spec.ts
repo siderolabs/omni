@@ -4,15 +4,13 @@
 // included in the LICENSE file.
 import { createGetMock, createWatchStreamMock } from '@msw/server'
 import { render, screen, waitFor } from '@testing-library/vue'
-import { expect, test, vi } from 'vitest'
+import { expect, test } from 'vitest'
 import { createRouter, createWebHistory } from 'vue-router'
 
 import { ClusterLocked } from '@/api/resources'
 import { routes } from '@/router'
 
 import ClusterItem from './ClusterItem.vue'
-
-vi.mock('openpgp', () => ({}))
 
 test('no lock if unlocked', async () => {
   createWatchStreamMock()
