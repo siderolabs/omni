@@ -11,6 +11,7 @@ import { Runtime } from '@/api/common/omni.pb'
 import { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
+import { AuthService } from '@/api/omni/auth/auth.pb'
 import type { JoinTokenSpec } from '@/api/omni/specs/siderolink.pb'
 import type {
   ClusterPermissionsSpec,
@@ -33,7 +34,7 @@ import {
 import { AuthType, authType } from '@/methods'
 import { initializeUserPilot } from '@/methods/features'
 import { useIdentity } from '@/methods/identity'
-import { resetKeys, revokePublicKey } from '@/methods/key'
+import { useKeys } from '@/methods/key'
 
 export const currentUser: Ref<Resource<CurrentUserSpec> | undefined> = ref()
 export const permissions: Ref<Resource<PermissionsSpec> | undefined> = ref()
@@ -255,14 +256,17 @@ const redirectToURL = (url: string) => {
 
 export function useLogout() {
   const auth0 = authType.value === AuthType.Auth0 ? useAuth0() : null
+  const keys = useKeys()
   const identity = useIdentity()
 
   return async function () {
-    try {
-      await revokePublicKey()
-    } catch (error) {
-      // During a log out action being unauthenticated is fine
-      if (error.code !== Code.UNAUTHENTICATED) throw error
+    if (keys.publicKeyID.value) {
+      try {
+        await AuthService.RevokePublicKey({ public_key_id: keys.publicKeyID.value })
+      } catch (error) {
+        // During a log out action being unauthenticated is fine
+        if (error.code !== Code.UNAUTHENTICATED) throw error
+      }
     }
 
     await auth0?.logout({
@@ -271,7 +275,7 @@ export function useLogout() {
       },
     })
 
-    resetKeys()
+    keys.clear()
     identity.clear()
 
     currentUser.value = undefined

@@ -35,7 +35,7 @@ import UserInfo from '@/components/common/UserInfo/UserInfo.vue'
 import { AuthType, authType } from '@/methods'
 import { useLogout } from '@/methods/auth'
 import { useIdentity } from '@/methods/identity'
-import { createKeys, saveKeys, signDetached } from '@/methods/key'
+import { createKeys, useKeys, useSignDetached } from '@/methods/key'
 import { showError } from '@/notification'
 
 const user = ref<User | undefined>(undefined)
@@ -136,6 +136,7 @@ const confirmed = ref(false)
 let redirect: string = route.query[RedirectQueryParam] as string
 
 const logout = useLogout()
+const keys = useKeys()
 const identityStorage = useIdentity()
 
 const generatePublicKey = async () => {
@@ -153,13 +154,9 @@ const generatePublicKey = async () => {
     return
   }
 
-  try {
-    await saveKeys(res.privateKey, res.publicKey, publicKeyId)
-  } catch (e) {
-    showError('Failed to save the key', e.message)
-
-    return
-  }
+  keys.privateKeyArmored.value = res.privateKey
+  keys.publicKeyArmored.value = res.publicKey
+  keys.publicKeyID.value = publicKeyId
 
   identityStorage.identity.value = identity.value.toLowerCase()
   identityStorage.fullname.value = name.value ?? ''
@@ -183,6 +180,7 @@ const generatePublicKey = async () => {
 }
 
 let renewIdToken = false
+const signDetached = useSignDetached()
 
 const confirmPublicKey = async (privateKey?: string) => {
   try {
@@ -279,7 +277,7 @@ const Auth = {
             <div>The keys are going to be issued for the user:</div>
             <UserInfo
               user="user"
-              class="user-info"
+              class="rounded-md bg-naturals-n6 px-6 py-2"
               :email="identity"
               :avatar="picture"
               :fullname="name"
@@ -311,11 +309,3 @@ const Auth = {
     </div>
   </div>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.user-info {
-  @apply rounded-md bg-naturals-n6 px-6 py-2;
-}
-</style>

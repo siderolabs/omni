@@ -15,6 +15,11 @@ import UserConsent from '@/components/common/UserConsent/UserConsent.vue'
 import THeader from '@/components/THeader/THeader.vue'
 import TModal from '@/components/TModal.vue'
 import { suspended } from '@/methods'
+import { useRegisterAPIInterceptor } from '@/methods/interceptor'
+import { useWatchKeyExpiry } from '@/methods/key'
+
+useRegisterAPIInterceptor()
+useWatchKeyExpiry()
 
 const isSidebarOpen = ref(false)
 const router = useRouter()

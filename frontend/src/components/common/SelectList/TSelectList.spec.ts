@@ -4,13 +4,15 @@
 // included in the LICENSE file.
 import userEvent from '@testing-library/user-event'
 import { render, screen, waitFor } from '@testing-library/vue'
-import { mount } from '@vue/test-utils'
-import { expect, test, vi } from 'vitest'
+import { enableAutoUnmount, mount } from '@vue/test-utils'
+import { afterEach, expect, test, vi } from 'vitest'
 
 import TSelectList from './TSelectList.vue'
 
 // Used by reka-ui select, test fails without it
 window.HTMLElement.prototype.hasPointerCapture = vi.fn()
+
+enableAutoUnmount(afterEach)
 
 test('is accessible with inline label', () => {
   render(TSelectList, {

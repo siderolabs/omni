@@ -12,7 +12,7 @@ import { AuthFlowQueryParam, FrontendAuthFlow, RedirectQueryParam } from '@/api/
 import { current } from '@/context'
 import { AuthType, authType } from '@/methods'
 import { loadCurrentUser } from '@/methods/auth'
-import { isAuthorized } from '@/methods/key'
+import { hasValidKeys } from '@/methods/key'
 import { MachineFilterOption } from '@/methods/machine'
 import { refreshTitle } from '@/methods/title'
 
@@ -34,7 +34,9 @@ export const routes: RouteRecordRaw[] = [
     name: 'OIDC Login',
     component: () => import('@/views/omni/Auth/OIDC.vue'),
     beforeEnter: async (to) => {
-      if (await isAuthorized()) {
+      const authorized = await hasValidKeys()
+
+      if (authorized) {
         return true
       }
 
@@ -61,7 +63,7 @@ export const routes: RouteRecordRaw[] = [
       sidebar: () => import('@/components/SideBar/TSideBar.vue'),
     },
     beforeEnter: async (to) => {
-      const authorized = await isAuthorized()
+      const authorized = await hasValidKeys()
 
       if (authorized) {
         await loadCurrentUser()

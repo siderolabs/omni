@@ -14,9 +14,9 @@ export function useIdentity() {
     fullname: fullnameRef,
     avatar: avatarRef,
     clear() {
-      identityRef.value = undefined
-      fullnameRef.value = undefined
-      avatarRef.value = undefined
+      identityRef.value = null
+      fullnameRef.value = null
+      avatarRef.value = null
     },
   }
 }
