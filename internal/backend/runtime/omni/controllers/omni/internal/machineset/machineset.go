@@ -38,6 +38,10 @@ func toSlice[T resource.Resource](list safe.List[T]) []T {
 
 // ReconcileMachines creates, updates and tears down the machines using the ReconciliationContext.
 func ReconcileMachines(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, rc *ReconciliationContext) (bool, error) {
+	if rc.cluster == nil {
+		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine set cluster does not exist")
+	}
+
 	_, locked := rc.cluster.Metadata().Annotations().Get(omni.ClusterLocked)
 	_, importIsInProgress := rc.cluster.Metadata().Annotations().Get(omni.ClusterImportIsInProgress)
 
