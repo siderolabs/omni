@@ -8,14 +8,17 @@ package omni
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
+	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/optional"
+	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -156,9 +159,7 @@ func (ctrl *MachineExtensionsController) MapInput(ctx context.Context, _ *zap.Lo
 }
 
 // Reconcile implements controller.QController interface.
-func (ctrl *MachineExtensionsController) Reconcile(ctx context.Context,
-	_ *zap.Logger, r controller.QRuntime, ptr resource.Pointer,
-) error {
+func (ctrl *MachineExtensionsController) Reconcile(ctx context.Context, logger *zap.Logger, r controller.QRuntime, ptr resource.Pointer) error {
 	configuration, err := safe.ReaderGetByID[*omni.ExtensionsConfiguration](ctx, r, ptr.ID())
 	if err != nil {
 		if state.IsNotFoundError(err) {
@@ -189,13 +190,31 @@ func (ctrl *MachineExtensionsController) Reconcile(ctx context.Context,
 		}
 	}
 
+	cluster, ok := configuration.Metadata().Labels().Get(omni.LabelCluster)
+	if !ok {
+		logger.Warn("extensions configuration doesn't have cluster label set")
+
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("extensions configuration doesn't have cluster label set")
+	}
+
+	configList, err := safe.ReaderListAll[*omni.ExtensionsConfiguration](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster)))
+	if err != nil {
+		return err
+	}
+
+	configs := slices.Collect(configList.All())
+
 	for _, clusterMachine := range clusterMachines {
 		status := omni.NewMachineExtensions(resources.DefaultNamespace, clusterMachine.Metadata().ID())
 
 		tracker.keep(status)
 
 		if err = safe.WriterModify[*omni.MachineExtensions](ctx, r, status, func(r *omni.MachineExtensions) error {
-			r.TypedSpec().Value.Extensions = configuration.TypedSpec().Value.Extensions
+			if !ctrl.shouldRecalculateExtensions(r, configs) {
+				return nil
+			}
+
+			r.TypedSpec().Value.Extensions = ctrl.determineExtensions(clusterMachine, configs)
 			r.Metadata().Labels().Set(omni.ExtensionsConfigurationLabel, configuration.Metadata().ID())
 
 			helpers.CopyLabels(clusterMachine, r, omni.LabelCluster)
@@ -213,9 +232,88 @@ func (ctrl *MachineExtensionsController) Reconcile(ctx context.Context,
 	return tracker.cleanup(ctx)
 }
 
-func (ctrl *MachineExtensionsController) getRelatedClusterMachines(ctx context.Context,
-	r controller.QRuntime, configuration *omni.ExtensionsConfiguration,
-) ([]*omni.ClusterMachine, error) {
+// shouldRecalculateExtensions is a workaround built to preserve the existing wrong order of extensions to prevent machines from being upgraded unexpectedly.
+//
+// It does it by a clever trick:
+//
+// - If the version is zero, it means this is a create operation - calculate the extensions again.
+// - If the helpers.InputResourceVersionAnnotation were set AND they have changed on the update, calculate the extensions again.
+// - If the input versions are not yet set and if this is an update operation, we want to keep the existing extensions, even if they were calculated incorrectly.
+func (ctrl *MachineExtensionsController) shouldRecalculateExtensions(me *omni.MachineExtensions, configs []*omni.ExtensionsConfiguration) bool {
+	_, versionsWereSet := me.Metadata().Annotations().Get(helpers.InputResourceVersionAnnotation)
+	versionsAreUpdated := helpers.UpdateInputsVersions(me, configs...)
+
+	isCreate := me.Metadata().Version().Value() == 0
+	if isCreate {
+		return true
+	}
+
+	if versionsWereSet && versionsAreUpdated {
+		return true
+	}
+
+	return false
+}
+
+// determineExtensions determines the extensions for the given cluster machine.
+// The extensions are determined in the following order:
+// 1. Extensions defined for the cluster machine itself.
+// 2. Extensions defined for the machine set the cluster machine belongs to.
+// 3. Extensions defined for the cluster the machine belongs to.
+//
+// If there are multiple extensions defined for the same level, the one with the lexicographically highest ID is used.
+func (ctrl *MachineExtensionsController) determineExtensions(cm *omni.ClusterMachine, configs []*omni.ExtensionsConfiguration) []string {
+	cmID := cm.Metadata().ID()
+	msID, _ := cm.Metadata().Labels().Get(omni.LabelMachineSet)
+	clusterID, _ := cm.Metadata().Labels().Get(omni.LabelCluster)
+
+	var clusterMachineLevel, machineSetLevel, clusterLevel *omni.ExtensionsConfiguration
+
+	for _, config := range configs {
+		clusterMachine, ok := config.Metadata().Labels().Get(omni.LabelClusterMachine)
+		if ok && clusterMachine == cmID {
+			clusterMachineLevel = config
+
+			continue
+		}
+
+		if clusterMachineLevel != nil {
+			continue
+		}
+
+		machineSet, ok := config.Metadata().Labels().Get(omni.LabelMachineSet)
+		if ok && machineSet == msID {
+			machineSetLevel = config
+
+			continue
+		}
+
+		if machineSetLevel != nil {
+			continue
+		}
+
+		cluster, ok := config.Metadata().Labels().Get(omni.LabelCluster)
+		if ok && cluster == clusterID {
+			clusterLevel = config
+		}
+	}
+
+	if clusterMachineLevel != nil {
+		return clusterMachineLevel.TypedSpec().Value.Extensions
+	}
+
+	if machineSetLevel != nil {
+		return machineSetLevel.TypedSpec().Value.Extensions
+	}
+
+	if clusterLevel != nil {
+		return clusterLevel.TypedSpec().Value.Extensions
+	}
+
+	return nil
+}
+
+func (ctrl *MachineExtensionsController) getRelatedClusterMachines(ctx context.Context, r controller.QRuntime, configuration *omni.ExtensionsConfiguration) ([]*omni.ClusterMachine, error) {
 	for _, label := range []string{
 		omni.LabelClusterMachine,
 		omni.LabelMachineSet,
