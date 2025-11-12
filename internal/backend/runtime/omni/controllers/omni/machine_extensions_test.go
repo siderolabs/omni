@@ -10,14 +10,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/controller/runtime"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
+	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 )
 
 type ExtensionsConfigurationStatusSuite struct {
@@ -72,7 +78,7 @@ func (suite *ExtensionsConfigurationStatusSuite) TestReconcile() {
 			expectedExtensions: extensions,
 		},
 		{
-			name:       "defined for a differrent machine",
+			name:       "defined for a different machine",
 			extensions: someOtherMachineSchematic,
 			machine:    machine,
 		},
@@ -133,4 +139,105 @@ func TestExtensionsConfigurationStatusSuite(t *testing.T) {
 	t.Parallel()
 
 	suite.Run(t, new(ExtensionsConfigurationStatusSuite))
+}
+
+func TestMachineExtensionsPriority(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	testutils.WithRuntime(ctx, t, inmem.Build, func(ctx context.Context, st state.State, rt *runtime.Runtime, logger *zap.Logger) {
+		clusterLevelConfig := omni.NewExtensionsConfiguration(resources.DefaultNamespace, "cluster-level")
+		clusterLevelConfig.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+		clusterLevelConfig.TypedSpec().Value.Extensions = []string{"cluster-level"}
+
+		machineSetLevelConfig := omni.NewExtensionsConfiguration(resources.DefaultNamespace, "machine-set-level")
+		machineSetLevelConfig.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+		machineSetLevelConfig.Metadata().Labels().Set(omni.LabelMachineSet, "machine-set")
+		machineSetLevelConfig.TypedSpec().Value.Extensions = []string{"machine-set-level"}
+
+		clusterMachineLevel1 := omni.NewExtensionsConfiguration(resources.DefaultNamespace, "cluster-machine-level-1")
+		clusterMachineLevel1.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+		clusterMachineLevel1.Metadata().Labels().Set(omni.LabelClusterMachine, "cluster-machine")
+		clusterMachineLevel1.TypedSpec().Value.Extensions = []string{"cluster-machine-level-1"}
+
+		clusterMachineLevel2 := omni.NewExtensionsConfiguration(resources.DefaultNamespace, "cluster-machine-level-2")
+		clusterMachineLevel2.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+		clusterMachineLevel2.Metadata().Labels().Set(omni.LabelClusterMachine, "cluster-machine")
+		clusterMachineLevel2.TypedSpec().Value.Extensions = []string{"cluster-machine-level-2"}
+
+		require.NoError(t, st.Create(ctx, clusterLevelConfig))
+		require.NoError(t, st.Create(ctx, machineSetLevelConfig))
+		require.NoError(t, st.Create(ctx, clusterMachineLevel1))
+		require.NoError(t, st.Create(ctx, clusterMachineLevel2))
+
+		clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, "cluster-machine")
+		clusterMachine.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+		clusterMachine.Metadata().Labels().Set(omni.LabelMachineSet, "machine-set")
+
+		require.NoError(t, st.Create(ctx, clusterMachine))
+
+		controller := omnictrl.NewMachineExtensionsController()
+		require.NoError(t, rt.RegisterQController(controller))
+	}, func(ctx context.Context, st state.State, rt *runtime.Runtime, logger *zap.Logger) {
+		rtestutils.AssertResource(ctx, t, st, "cluster-machine", func(res *omni.MachineExtensions, assertion *assert.Assertions) {
+			assertion.Equal([]string{"cluster-machine-level-2"}, res.TypedSpec().Value.Extensions)
+		})
+	})
+}
+
+func TestPreserveLegacyOrder(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	testutils.WithRuntime(ctx, t, inmem.Build, func(ctx context.Context, st state.State, rt *runtime.Runtime, logger *zap.Logger) {
+		clusterLevelConfig := omni.NewExtensionsConfiguration(resources.DefaultNamespace, "cluster-level")
+		clusterLevelConfig.Metadata().Finalizers().Add(omnictrl.MachineExtensionsControllerName)
+		clusterLevelConfig.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+		clusterLevelConfig.TypedSpec().Value.Extensions = []string{"cluster-level"}
+
+		machineSetLevelConfig := omni.NewExtensionsConfiguration(resources.DefaultNamespace, "machine-set-level")
+		machineSetLevelConfig.Metadata().Finalizers().Add(omnictrl.MachineExtensionsControllerName)
+		machineSetLevelConfig.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+		machineSetLevelConfig.Metadata().Labels().Set(omni.LabelMachineSet, "machine-set")
+		machineSetLevelConfig.TypedSpec().Value.Extensions = []string{"machine-set-level"}
+
+		clusterMachineLevel1 := omni.NewExtensionsConfiguration(resources.DefaultNamespace, "cluster-machine-level-1")
+		clusterMachineLevel1.Metadata().Finalizers().Add(omnictrl.MachineExtensionsControllerName)
+		clusterMachineLevel1.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+		clusterMachineLevel1.Metadata().Labels().Set(omni.LabelClusterMachine, "cluster-machine")
+		clusterMachineLevel1.TypedSpec().Value.Extensions = []string{"cluster-machine-level-1"}
+
+		clusterMachineLevel2 := omni.NewExtensionsConfiguration(resources.DefaultNamespace, "cluster-machine-level-2")
+		clusterMachineLevel2.Metadata().Finalizers().Add(omnictrl.MachineExtensionsControllerName)
+		clusterMachineLevel2.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+		clusterMachineLevel2.Metadata().Labels().Set(omni.LabelClusterMachine, "cluster-machine")
+		clusterMachineLevel2.TypedSpec().Value.Extensions = []string{"cluster-machine-level-2"}
+
+		require.NoError(t, st.Create(ctx, clusterLevelConfig))
+		require.NoError(t, st.Create(ctx, machineSetLevelConfig))
+		require.NoError(t, st.Create(ctx, clusterMachineLevel1))
+		require.NoError(t, st.Create(ctx, clusterMachineLevel2))
+
+		clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, "cluster-machine")
+		clusterMachine.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+		clusterMachine.Metadata().Labels().Set(omni.LabelMachineSet, "machine-set")
+
+		require.NoError(t, st.Create(ctx, clusterMachine))
+
+		// prepare a MachineExtensions with the wrong extension list - assume that it picked the cluster level extensions instead of the cluster machine level ones.
+		machineExtensions := omni.NewMachineExtensions(resources.DefaultNamespace, "cluster-machine")
+		machineExtensions.TypedSpec().Value.Extensions = []string{"cluster-level"}
+
+		require.NoError(t, st.Create(ctx, machineExtensions, state.WithCreateOwner(omnictrl.MachineExtensionsControllerName)))
+
+		controller := omnictrl.NewMachineExtensionsController()
+		require.NoError(t, rt.RegisterQController(controller))
+	}, func(ctx context.Context, st state.State, rt *runtime.Runtime, logger *zap.Logger) {
+		rtestutils.AssertResource(ctx, t, st, "cluster-machine", func(res *omni.MachineExtensions, assertion *assert.Assertions) {
+			_, annotationOk := res.Metadata().Annotations().Get(helpers.InputResourceVersionAnnotation)
+			assertion.True(annotationOk)
+
+			assertion.Equal([]string{"cluster-level"}, res.TypedSpec().Value.Extensions)
+		})
+	})
 }
