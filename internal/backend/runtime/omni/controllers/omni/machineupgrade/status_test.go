@@ -225,6 +225,11 @@ func TestReconcile(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		// assert that it was observed by the controller
+		rtestutils.AssertResource(ctx, t, st, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
+			assertion.False(res.TypedSpec().Value.IsMaintenance)
+		})
+
 		// update the args to trigger a pending update
 		_, err = safe.StateUpdateWithConflicts(ctx, st, kernelArgs.Metadata(), func(res *omni.KernelArgs) error {
 			res.TypedSpec().Value.Args = []string{"final-arg1", "final-arg2"}

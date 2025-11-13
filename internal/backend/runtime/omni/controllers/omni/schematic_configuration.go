@@ -8,7 +8,6 @@ package omni
 import (
 	"context"
 	"errors"
-	"fmt"
 	"slices"
 
 	"github.com/blang/semver/v4"
@@ -345,26 +344,9 @@ func determineKernelArgs(ctx context.Context, machineStatus *omni.MachineStatus,
 		return machineStatus.TypedSpec().Value.Schematic.KernelArgs, nil
 	}
 
-	// Here, we need to use an uncached reader. This is because we want to avoid
-	// stale reads of the KernelArgs resource: there can be cases where the omni.KernelArgsInitialized annotation
-	// is present in the MachineStatus, but the KernelArgs resource is not yet visible,
-	// which can cause unwanted Talos upgrades through a schematic id update.
-	uncachedReader, ok := r.(controller.UncachedReader)
-	if !ok {
-		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("reader does not support uncached reads")
-	}
-
-	kernelArgsRes, err := uncachedReader.GetUncached(ctx, omni.NewKernelArgs(machineStatus.Metadata().ID()).Metadata())
+	kernelArgs, err := kernelargs.GetUncached(ctx, r, machineStatus.Metadata().ID())
 	if err != nil && !state.IsNotFoundError(err) {
 		return nil, err
-	}
-
-	var kernelArgs *omni.KernelArgs
-
-	if kernelArgsRes != nil {
-		if kernelArgs, ok = kernelArgsRes.(*omni.KernelArgs); !ok {
-			return nil, fmt.Errorf("expected %q resource, got %T", omni.KernelArgsType, kernelArgsRes)
-		}
 	}
 
 	// todo: centralize this...
