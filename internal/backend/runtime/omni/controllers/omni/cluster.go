@@ -15,8 +15,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/runtime"
-	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
@@ -28,8 +26,9 @@ type ClusterController = cleanup.Controller[*omni.Cluster]
 const clusterControllerName = "ClusterController"
 
 type handler struct {
-	handler   cleanup.Handler[*omni.Cluster]
-	finalizer string
+	handler           cleanup.Handler[*omni.Cluster]
+	kubernetesRuntime KubernetesRuntime
+	finalizer         string
 }
 
 func (c handler) FinalizerRemoval(ctx context.Context, r controller.Runtime, logger *zap.Logger, input *omni.Cluster) error {
@@ -37,17 +36,8 @@ func (c handler) FinalizerRemoval(ctx context.Context, r controller.Runtime, log
 		return err
 	}
 
-	type kubeRuntime interface {
-		DestroyClient(string)
-	}
-
 	// destroy client cache for the destroyed cluster
-	k8s, err := runtime.LookupInterface[kubeRuntime](kubernetes.Name)
-	if err != nil {
-		return err
-	}
-
-	k8s.DestroyClient(input.Metadata().ID())
+	c.kubernetesRuntime.DestroyClient(input.Metadata().ID())
 
 	return nil
 }
@@ -60,13 +50,18 @@ func (c handler) Outputs() []controller.Output {
 	return c.handler.Outputs()
 }
 
+type KubernetesRuntime interface {
+	DestroyClient(string)
+}
+
 // NewClusterController creates new ClusterController.
-func NewClusterController() *ClusterController {
+func NewClusterController(kubernetesRuntime KubernetesRuntime) *ClusterController {
 	return cleanup.NewController(
 		cleanup.Settings[*omni.Cluster]{
 			Name: clusterControllerName,
 			Handler: handler{
-				finalizer: clusterControllerName,
+				kubernetesRuntime: kubernetesRuntime,
+				finalizer:         clusterControllerName,
 				handler: cleanup.Combine(
 					cleanup.RemoveOutputs[*omni.MachineSet](func(cluster *omni.Cluster) state.ListOption {
 						return state.WithLabelQuery(

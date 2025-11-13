@@ -10,15 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cosi-project/runtime/pkg/controller/runtime"
-	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
-	"github.com/cosi-project/runtime/pkg/state"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -31,19 +27,17 @@ func TestReconcile(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 
-	sb := testutils.DynamicStateBuilder{M: map[resource.Namespace]state.CoreState{}}
-
-	testutils.WithRuntime(ctx, t, sb.Builder, func(ctx context.Context, st state.State, rt *runtime.Runtime, logger *zap.Logger) {
-		require.NoError(t, rt.RegisterQController(kernelargs.NewStatusController()))
-	}, func(ctx context.Context, st state.State, rt *runtime.Runtime, logger *zap.Logger) {
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
+		require.NoError(t, testContext.Runtime.RegisterQController(kernelargs.NewStatusController()))
+	}, func(ctx context.Context, testContext testutils.TestContext) {
 		const id = "test"
 
 		ms := omni.NewMachineStatus(resources.DefaultNamespace, id)
 		ms.TypedSpec().Value.KernelCmdline = "current cmdline"
 
-		require.NoError(t, st.Create(ctx, ms))
+		require.NoError(t, testContext.State.Create(ctx, ms))
 
-		rtestutils.AssertResource(ctx, t, st, id, func(res *omni.KernelArgsStatus, assertion *assert.Assertions) {
+		rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.KernelArgsStatus, assertion *assert.Assertions) {
 			assertion.Equal([]string{
 				"Schematic information is not yet known",
 				"Talos is not installed, kernel args cannot be updated yet",
@@ -54,7 +48,7 @@ func TestReconcile(t *testing.T) {
 
 		initialKernelArgs := []string{"arg-1", "arg-2"}
 
-		_, err := safe.StateUpdateWithConflicts(ctx, st, ms.Metadata(), func(res *omni.MachineStatus) error {
+		_, err := safe.StateUpdateWithConflicts(ctx, testContext.State, ms.Metadata(), func(res *omni.MachineStatus) error {
 			res.TypedSpec().Value.TalosVersion = "v1.11.3"
 
 			res.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
@@ -73,14 +67,14 @@ func TestReconcile(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		rtestutils.AssertResource(ctx, t, st, id, func(res *omni.KernelArgsStatus, assertion *assert.Assertions) {
+		rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.KernelArgsStatus, assertion *assert.Assertions) {
 			assertion.Equal([]string{
 				"Unsupported: machine is not booted with UKI and Talos version is < 1.12 or GrubUseUKICmdline is false",
 				"Extra kernel args are not yet initialized",
 			}, res.TypedSpec().Value.UnmetConditions)
 		})
 
-		_, err = safe.StateUpdateWithConflicts(ctx, st, ms.Metadata(), func(res *omni.MachineStatus) error {
+		_, err = safe.StateUpdateWithConflicts(ctx, testContext.State, ms.Metadata(), func(res *omni.MachineStatus) error {
 			res.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
 			res.TypedSpec().Value.SecurityState = &specs.SecurityState{BootedWithUki: true}
 
@@ -88,7 +82,7 @@ func TestReconcile(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		rtestutils.AssertResource(ctx, t, st, id, func(res *omni.KernelArgsStatus, assertion *assert.Assertions) {
+		rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.KernelArgsStatus, assertion *assert.Assertions) {
 			assertion.Empty(res.TypedSpec().Value.UnmetConditions)
 			assertion.Equal(initialKernelArgs, res.TypedSpec().Value.CurrentArgs)
 			assertion.Empty(res.TypedSpec().Value.Args)
@@ -98,9 +92,9 @@ func TestReconcile(t *testing.T) {
 		args := omni.NewKernelArgs(id)
 		args.TypedSpec().Value.Args = []string{"updated-arg-1", "updated-arg-2"}
 
-		require.NoError(t, st.Create(ctx, args))
+		require.NoError(t, testContext.State.Create(ctx, args))
 
-		rtestutils.AssertResource(ctx, t, st, id, func(res *omni.KernelArgsStatus, assertion *assert.Assertions) {
+		rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.KernelArgsStatus, assertion *assert.Assertions) {
 			assertion.Empty(res.TypedSpec().Value.UnmetConditions)
 			assertion.Equal(initialKernelArgs, res.TypedSpec().Value.CurrentArgs)
 			assertion.Equal([]string{"updated-arg-1", "updated-arg-2"}, res.TypedSpec().Value.Args)

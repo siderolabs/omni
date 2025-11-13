@@ -26,6 +26,8 @@ import (
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/resourcelogger"
+	"github.com/siderolabs/omni/internal/backend/runtime"
+	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
@@ -52,6 +54,20 @@ func PrepareConfig(logger *zap.Logger, params ...*config.Params) (*config.Params
 
 // Run the Omni service.
 func Run(ctx context.Context, state *omni.State, config *config.Params, logger *zap.Logger) error {
+	talosClientFactory := talos.NewClientFactory(state.Default(), logger)
+	talosRuntime := talos.New(talosClientFactory, logger)
+
+	kubernetesRuntime, err := kubernetes.New(state.Default())
+	if err != nil {
+		return err
+	}
+
+	prometheus.MustRegister(talosClientFactory)
+	prometheus.MustRegister(kubernetesRuntime)
+
+	runtime.Install(kubernetes.Name, kubernetesRuntime)
+	runtime.Install(talos.Name, talosRuntime)
+
 	grpc_prometheus.EnableHandlingTimeHistogram(grpc_prometheus.WithHistogramBuckets([]float64{0.001, 0.01, 0.1, 1, 10, 30, 60, 120, 300, 600}))
 
 	logger.Debug("using config", zap.Any("config", config))
@@ -60,17 +76,11 @@ func Run(ctx context.Context, state *omni.State, config *config.Params, logger *
 
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	talosClientFactory := talos.NewClientFactory(state.Default(), logger)
-	prometheus.MustRegister(talosClientFactory)
-
 	dnsService := dns.NewService(state.Default(), logger)
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger.With(logging.Component("workload_proxy_reconciler")),
 		zapcore.DebugLevel, config.Services.WorkloadProxy.StopLBsAfter)
 
-	var (
-		resourceLogger *resourcelogger.Logger
-		err            error
-	)
+	var resourceLogger *resourcelogger.Logger
 
 	if len(config.Logs.ResourceLogger.Types) > 0 {
 		resourceLogger, err = resourcelogger.New(ctx, state.Default(), logger.With(logging.Component("resourcelogger")),
@@ -96,13 +106,13 @@ func Run(ctx context.Context, state *omni.State, config *config.Params, logger *
 
 	omniRuntime, err := omni.NewRuntime(talosClientFactory, dnsService, workloadProxyReconciler, resourceLogger,
 		imageFactoryClient, linkCounterDeltaCh, siderolinkEventsCh, installEventCh, state,
-		prometheus.DefaultRegisterer, discoveryClientCache, logger.With(logging.Component("omni_runtime")),
+		prometheus.DefaultRegisterer, discoveryClientCache, kubernetesRuntime, logger.With(logging.Component("omni_runtime")),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to set up the controller runtime: %w", err)
 	}
 
-	talosRuntime := talos.New(talosClientFactory, logger)
+	runtime.Install(omni.Name, omniRuntime)
 
 	err = user.EnsureInitialResources(ctx, state.Default(), logger, config.Auth.InitialUsers)
 	if err != nil {

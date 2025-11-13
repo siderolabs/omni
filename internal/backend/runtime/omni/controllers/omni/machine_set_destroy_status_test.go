@@ -11,13 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cosi-project/runtime/pkg/controller/runtime"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -28,64 +26,62 @@ import (
 func TestMachineSetDestroyStatusController(t *testing.T) {
 	t.Parallel()
 
-	sb := testutils.DynamicStateBuilder{M: map[resource.Namespace]state.CoreState{}}
-
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	t.Cleanup(cancel)
 
 	testutils.WithRuntime(
 		ctx,
 		t,
-		sb.Builder,
-		func(_ context.Context, _ state.State, rt *runtime.Runtime, _ *zap.Logger) { // prepare - register controllers
-			require.NoError(t, rt.RegisterQController(omnictrl.NewMachineSetDestroyStatusController()))
+		testutils.TestOptions{},
+		func(_ context.Context, testContext testutils.TestContext) { // prepare - register controllers
+			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewMachineSetDestroyStatusController()))
 		},
-		func(ctx context.Context, st state.State, _ *runtime.Runtime, _ *zap.Logger) {
+		func(ctx context.Context, testContext testutils.TestContext) {
 			machineSet := omni.NewMachineSet(resources.DefaultNamespace, "ms1")
 			machineSet.Metadata().Finalizers().Add("foo") // put a finalizer to mimic the machine set teardown
-			require.NoError(t, st.Create(ctx, machineSet))
+			require.NoError(t, testContext.State.Create(ctx, machineSet))
 
 			for i := range 2 {
 				cms := omni.NewClusterMachineStatus(resources.DefaultNamespace, "cm"+strconv.Itoa(i))
 				cms.Metadata().Labels().Set(omni.LabelMachineSet, machineSet.Metadata().ID())
-				require.NoError(t, st.Create(ctx, cms))
+				require.NoError(t, testContext.State.Create(ctx, cms))
 			}
 
-			rtestutils.AssertResource(ctx, t, st, machineSet.Metadata().ID(), func(res *omni.MachineSet, asrt *assert.Assertions) {
+			rtestutils.AssertResource(ctx, t, testContext.State, machineSet.Metadata().ID(), func(res *omni.MachineSet, asrt *assert.Assertions) {
 				asrt.True(res.Metadata().Finalizers().Has(omnictrl.NewMachineSetDestroyStatusController().Name()))
 			})
 
-			rtestutils.AssertNoResource[*omni.MachineSetDestroyStatus](ctx, t, st, machineSet.Metadata().ID())
+			rtestutils.AssertNoResource[*omni.MachineSetDestroyStatus](ctx, t, testContext.State, machineSet.Metadata().ID())
 
-			_, err := st.Teardown(ctx, machineSet.Metadata())
+			_, err := testContext.State.Teardown(ctx, machineSet.Metadata())
 			require.NoError(t, err)
 
-			rtestutils.AssertResource(ctx, t, st, machineSet.Metadata().ID(), func(res *omni.MachineSetDestroyStatus, asrt *assert.Assertions) {
+			rtestutils.AssertResource(ctx, t, testContext.State, machineSet.Metadata().ID(), func(res *omni.MachineSetDestroyStatus, asrt *assert.Assertions) {
 				asrt.Equal("Destroying: 2 machines", res.TypedSpec().Value.Phase)
 			})
 
-			rtestutils.Destroy[*omni.ClusterMachineStatus](ctx, t, st, []string{"cm0"})
+			rtestutils.Destroy[*omni.ClusterMachineStatus](ctx, t, testContext.State, []string{"cm0"})
 
-			rtestutils.AssertResource(ctx, t, st, machineSet.Metadata().ID(), func(res *omni.MachineSetDestroyStatus, asrt *assert.Assertions) {
+			rtestutils.AssertResource(ctx, t, testContext.State, machineSet.Metadata().ID(), func(res *omni.MachineSetDestroyStatus, asrt *assert.Assertions) {
 				asrt.Equal("Destroying: 1 machine", res.TypedSpec().Value.Phase)
 			})
 
-			_, err = st.UpdateWithConflicts(ctx, machineSet.Metadata(), func(ms resource.Resource) error {
+			_, err = testContext.State.UpdateWithConflicts(ctx, machineSet.Metadata(), func(ms resource.Resource) error {
 				ms.Metadata().Labels().Set("foo", "bar")
 
 				return nil
 			}, state.WithExpectedPhaseAny())
 			require.NoError(t, err)
 
-			rtestutils.Destroy[*omni.ClusterMachineStatus](ctx, t, st, []string{"cm1"})
+			rtestutils.Destroy[*omni.ClusterMachineStatus](ctx, t, testContext.State, []string{"cm1"})
 
-			rtestutils.AssertResource(ctx, t, st, machineSet.Metadata().ID(), func(res *omni.MachineSetDestroyStatus, asrt *assert.Assertions) {
+			rtestutils.AssertResource(ctx, t, testContext.State, machineSet.Metadata().ID(), func(res *omni.MachineSetDestroyStatus, asrt *assert.Assertions) {
 				asrt.Equal("Destroying: 0 machines", res.TypedSpec().Value.Phase)
 			})
 
-			require.NoError(t, st.RemoveFinalizer(ctx, machineSet.Metadata(), "foo"))
+			require.NoError(t, testContext.State.RemoveFinalizer(ctx, machineSet.Metadata(), "foo"))
 
-			rtestutils.AssertNoResource[*omni.MachineSetDestroyStatus](ctx, t, st, machineSet.Metadata().ID())
+			rtestutils.AssertNoResource[*omni.MachineSetDestroyStatus](ctx, t, testContext.State, machineSet.Metadata().ID())
 		},
 	)
 }

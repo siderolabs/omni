@@ -44,6 +44,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/runtime"
+	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
@@ -94,9 +95,13 @@ func (suite *GrpcSuite) SetupTest() {
 
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zap.InfoLevel, 30*time.Second)
 
+	kubernetesRuntime, err := kubernetes.New(st.Default())
+	suite.Require().NoError(err)
+
 	suite.runtime, err = omniruntime.NewRuntime(
 		clientFactory, dnsService, workloadProxyReconciler, nil,
-		imageFactoryClient, nil, nil, nil, st, prometheus.NewRegistry(), discoveryClientCache, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)),
+		imageFactoryClient, nil, nil, nil, st,
+		prometheus.NewRegistry(), discoveryClientCache, kubernetesRuntime, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)),
 	)
 	suite.Require().NoError(err)
 	runtime.Install(omniruntime.Name, suite.runtime)

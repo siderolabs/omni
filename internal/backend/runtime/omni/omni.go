@@ -92,7 +92,7 @@ type Runtime struct {
 func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workloadProxyReconciler *workloadproxy.Reconciler,
 	resourceLogger *resourcelogger.Logger, imageFactoryClient *imagefactory.Client, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas,
 	siderolinkEventsCh <-chan *omni.MachineStatusSnapshot, installEventCh <-chan cosiresource.ID, st *State, metricsRegistry prometheus.Registerer,
-	discoveryClientCache omnictrl.DiscoveryClientCache, logger *zap.Logger,
+	discoveryClientCache omnictrl.DiscoveryClientCache, kubernetesRuntime omnictrl.KubernetesRuntime, logger *zap.Logger,
 ) (*Runtime, error) {
 	var opts []options.Option
 
@@ -136,7 +136,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 
 	controllers := []controller.Controller{
 		omnictrl.NewCertRefreshTickController(constants.CertificateValidityTime / 10), // issue ticks at 10% of the validity, as we refresh certificates at 50% of the validity
-		omnictrl.NewClusterController(),
+		omnictrl.NewClusterController(kubernetesRuntime),
 		omnictrl.NewMachineSetController(),
 		&omnictrl.ClusterMachineIdentityController{},
 		&omnictrl.ClusterMachineStatusMetricsController{},

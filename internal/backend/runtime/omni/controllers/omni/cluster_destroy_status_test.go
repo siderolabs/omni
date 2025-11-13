@@ -11,13 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cosi-project/runtime/pkg/controller/runtime"
-	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
-	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -28,19 +24,19 @@ import (
 func TestClusterDestroyStatusController(t *testing.T) {
 	t.Parallel()
 
-	sb := testutils.DynamicStateBuilder{M: map[resource.Namespace]state.CoreState{}}
-
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	t.Cleanup(cancel)
 
 	testutils.WithRuntime(
 		ctx,
 		t,
-		sb.Builder,
-		func(_ context.Context, _ state.State, rt *runtime.Runtime, _ *zap.Logger) { // prepare - register controllers
-			require.NoError(t, rt.RegisterQController(omnictrl.NewClusterDestroyStatusController()))
+		testutils.TestOptions{},
+		func(_ context.Context, testContext testutils.TestContext) { // prepare - register controllers
+			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterDestroyStatusController()))
 		},
-		func(ctx context.Context, st state.State, _ *runtime.Runtime, _ *zap.Logger) {
+		func(ctx context.Context, testContext testutils.TestContext) {
+			st := testContext.State
+
 			c := omni.NewCluster(resources.DefaultNamespace, "c1")
 			c.Metadata().Finalizers().Add("foo") // put a finalizer to mimic the cluster teardown
 			c.Metadata().Finalizers().Add(omnictrl.ClusterStatusControllerName)

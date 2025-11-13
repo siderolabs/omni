@@ -61,8 +61,12 @@ func TestGenerateConfigs(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 	st := omniruntime.NewTestState(logger)
 
+	kubernetesRuntime, err := kubernetes.New(st.Default())
+	require.NoError(t, err)
+
 	rt, err := omniruntime.NewRuntime(nil, nil, nil, nil,
-		nil, nil, nil, nil, st, prometheus.NewRegistry(), nil, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))
+		nil, nil, nil, nil, st, prometheus.NewRegistry(),
+		nil, kubernetesRuntime, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))
 	require.NoError(t, err)
 
 	runtime.Install(omniruntime.Name, rt)

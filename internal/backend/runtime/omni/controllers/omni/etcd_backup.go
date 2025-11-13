@@ -343,7 +343,7 @@ func (ctrl *EtcdBackupController) latestBackupTime(ctx context.Context, clusterU
 
 	for v, iterErr := range it {
 		if iterErr != nil {
-			return time.Time{}, fmt.Errorf("failed to get last backup: %w", err)
+			return time.Time{}, fmt.Errorf("failed to get last backup: %w", iterErr)
 		}
 
 		lastBackup = v
@@ -456,7 +456,7 @@ func (ctrl *EtcdBackupController) updateBackupStatus(
 		},
 	)
 	if err != nil {
-		logger.Warn("failed to update etcd backup status", zap.Error(backupErr))
+		logger.Warn("failed to update etcd backup status", zap.Error(err))
 	}
 }
 
