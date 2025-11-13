@@ -16,7 +16,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
-	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	"github.com/siderolabs/talos/pkg/machinery/client"
@@ -113,9 +112,9 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 		return nil
 	}
 
-	kernelArgsRes, err := safe.ReaderGetByID[*omni.KernelArgs](ctx, r, ms.Metadata().ID())
+	kernelArgsRes, err := kernelargs.GetUncached(ctx, r, ms.Metadata().ID())
 	if err != nil && !state.IsNotFoundError(err) {
-		return fmt.Errorf("error getting extra kernel args configuration: %w", err)
+		return fmt.Errorf("error getting extra kernel args: %w", err)
 	}
 
 	kernelArgs, kernelArgsOk, err := kernelargs.Calculate(ms, kernelArgsRes)

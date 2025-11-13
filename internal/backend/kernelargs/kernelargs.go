@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/blang/semver/v4"
+	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
@@ -118,4 +119,27 @@ func isProtected(arg string) bool {
 	}
 
 	return false
+}
+
+// GetUncached reads the KernelArgs resource with the given ID, bypassing the resource cache.
+//
+// We need this to avoid stale reads of the KernelArgs resource: there can be cases where the omni.KernelArgsInitialized annotation is present in the MachineStatus,
+// but the KernelArgs resource is not yet visible due to the resource cache, which can cause unwanted Talos upgrades through a schematic id update.
+func GetUncached(ctx context.Context, r controller.Reader, id resource.ID) (*omni.KernelArgs, error) {
+	uncachedReader, ok := r.(controller.UncachedReader)
+	if !ok {
+		return nil, fmt.Errorf("reader does not support uncached reads")
+	}
+
+	kernelArgs, err := uncachedReader.GetUncached(ctx, omni.NewKernelArgs(id).Metadata())
+	if err != nil {
+		return nil, fmt.Errorf("error getting extra kernel args configuration: %w", err)
+	}
+
+	kernelArgsTyped, ok := kernelArgs.(*omni.KernelArgs)
+	if !ok {
+		return nil, fmt.Errorf("unexpected resource type: %T", kernelArgs)
+	}
+
+	return kernelArgsTyped, nil
 }
