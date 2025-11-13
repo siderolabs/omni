@@ -133,6 +133,7 @@ export type Cluster = {
     enableWorkloadProxy?: boolean
     useEmbeddedDiscoveryService?: boolean
   }
+  systemExtensions?: string[]
   etcdBackupConfig?: EtcdBackupConf
   patches: Record<string, ConfigPatch>
 }
@@ -349,6 +350,26 @@ export class State {
     }
 
     let resources: Resource[] = [cluster]
+
+    if (this.cluster.systemExtensions) {
+      const systemExtensions = this.cluster.systemExtensions
+
+      if (systemExtensions) {
+        resources.push({
+          metadata: {
+            id: `schematic-${this.cluster.name}`,
+            namespace: DefaultNamespace,
+            type: ExtensionsConfigurationType,
+            labels: {
+              [LabelCluster]: this.cluster.name,
+            },
+          },
+          spec: {
+            extensions: systemExtensions,
+          },
+        })
+      }
+    }
 
     resources.push(
       ...this.getPatches(
@@ -690,6 +711,7 @@ export const populateExisting = async (clusterName: string) => {
       enabled: cluster.spec.backup_configuration?.enabled,
       interval: cluster.spec.backup_configuration?.interval,
     },
+    systemExtensions: systemExtensionsByID[`schematic-${cluster.metadata.id}`]?.spec?.extensions,
   }
 
   const clusterPatch = patchesByID[formatPatchID(clusterName, PatchBaseWeightCluster)]
