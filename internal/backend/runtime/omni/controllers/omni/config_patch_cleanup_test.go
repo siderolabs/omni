@@ -11,14 +11,12 @@ import (
 	"testing/synctest"
 	"time"
 
-	"github.com/cosi-project/runtime/pkg/controller/runtime"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -29,18 +27,16 @@ import (
 func TestConfigPatchCleanup(t *testing.T) {
 	t.Parallel()
 
-	sb := testutils.DynamicStateBuilder{M: map[resource.Namespace]state.CoreState{}}
-
 	synctest.Test(t, func(t *testing.T) {
 		testutils.WithRuntime(
 			t.Context(),
 			t,
-			sb.Builder,
-			func(_ context.Context, _ state.State, rt *runtime.Runtime, _ *zap.Logger) { // prepare - register controllers
-				require.NoError(t, rt.RegisterController(&omnictrl.ConfigPatchCleanupController{}))
+			testutils.TestOptions{},
+			func(_ context.Context, testContext testutils.TestContext) { // prepare - register controllers
+				require.NoError(t, testContext.Runtime.RegisterController(&omnictrl.ConfigPatchCleanupController{}))
 			},
-			func(ctx context.Context, st state.State, _ *runtime.Runtime, _ *zap.Logger) {
-				testConfigPatchCleanup(ctx, t, st)
+			func(ctx context.Context, testContext testutils.TestContext) {
+				testConfigPatchCleanup(ctx, t, testContext.State)
 			},
 		)
 	})

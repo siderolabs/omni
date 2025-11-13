@@ -164,7 +164,7 @@ func (suite *ClusterSecretsSuite) TestSecretsFromBackup() {
 		})
 }
 
-//go:embed data/secrets-valid.yaml
+//go:embed testdata/secrets-valid.yaml
 var validSecretsBundle string
 
 func (suite *ClusterSecretsSuite) TestImportedSecrets() {

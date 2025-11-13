@@ -11,18 +11,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cosi-project/runtime/pkg/controller/runtime"
-	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
-	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -78,26 +74,24 @@ func TestReconcile(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 
-	sb := testutils.DynamicStateBuilder{M: map[resource.Namespace]state.CoreState{}}
-
 	imageFactoryClient := &mockImageFactoryClient{}
 	talosClient := &mockTalosClient{}
 	talosClientFactory := &mockTalosClientFactory{
 		talosClient: talosClient,
 	}
 
-	testutils.WithRuntime(ctx, t, sb.Builder, func(ctx context.Context, st state.State, rt *runtime.Runtime, logger *zap.Logger) {
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
 		ctrl := machineupgrade.NewStatusController(imageFactoryClient, talosClientFactory)
 
-		require.NoError(t, rt.RegisterQController(ctrl))
-	}, func(ctx context.Context, st state.State, rt *runtime.Runtime, logger *zap.Logger) {
+		require.NoError(t, testContext.Runtime.RegisterQController(ctrl))
+	}, func(ctx context.Context, testContext testutils.TestContext) {
 		const id = "test"
 
 		ms := omni.NewMachineStatus(resources.DefaultNamespace, id)
 
-		require.NoError(t, st.Create(ctx, ms))
+		require.NoError(t, testContext.State.Create(ctx, ms))
 
-		rtestutils.AssertResource(ctx, t, st, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
+		rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
 			assertion.Equal(specs.MachineUpgradeStatusSpec_Unknown, res.TypedSpec().Value.Phase)
 			assertion.Equal(res.TypedSpec().Value.Status, "schematic info is not available")
 			assertion.Empty(res.TypedSpec().Value.Error)
@@ -133,11 +127,11 @@ func TestReconcile(t *testing.T) {
 		kernelArgs := omni.NewKernelArgs(id)
 		kernelArgs.TypedSpec().Value.Args = []string{"updated-arg1", "updated-arg2"}
 
-		require.NoError(t, st.Create(ctx, kernelArgs))
+		require.NoError(t, testContext.State.Create(ctx, kernelArgs))
 
 		const talosVersion = "v1.11.3"
 
-		_, err = safe.StateUpdateWithConflicts(ctx, st, ms.Metadata(), func(res *omni.MachineStatus) error {
+		_, err = safe.StateUpdateWithConflicts(ctx, testContext.State, ms.Metadata(), func(res *omni.MachineStatus) error {
 			res.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
 
 			res.TypedSpec().Value.Maintenance = true
@@ -176,7 +170,7 @@ func TestReconcile(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		rtestutils.AssertResource(ctx, t, st, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
+		rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
 			assertion.Equal(specs.MachineUpgradeStatusSpec_Upgrading, res.TypedSpec().Value.Phase)
 			assertion.Equal("Talos upgrade initiated", res.TypedSpec().Value.Status)
 			assertion.Empty(res.TypedSpec().Value.Error)
@@ -196,7 +190,7 @@ func TestReconcile(t *testing.T) {
 
 		// update MachineStatus to simulate upgrade completion
 
-		_, err = safe.StateUpdateWithConflicts(ctx, st, ms.Metadata(), func(res *omni.MachineStatus) error {
+		_, err = safe.StateUpdateWithConflicts(ctx, testContext.State, ms.Metadata(), func(res *omni.MachineStatus) error {
 			res.TypedSpec().Value.Schematic.FullId = updatedSchematicID
 			res.TypedSpec().Value.Schematic.Raw = string(updatedSchematicRaw)
 
@@ -204,7 +198,7 @@ func TestReconcile(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		rtestutils.AssertResource(ctx, t, st, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
+		rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
 			assertion.Equal(specs.MachineUpgradeStatusSpec_UpToDate, res.TypedSpec().Value.Phase)
 			assertion.Equal("machine is up to date", res.TypedSpec().Value.Status)
 			assertion.Empty(res.TypedSpec().Value.Error)
@@ -218,7 +212,7 @@ func TestReconcile(t *testing.T) {
 		assert.Equal(t, expectedInstallImage, talosClient.upgradeImages[0])
 
 		// take it out of maintenance
-		_, err = safe.StateUpdateWithConflicts(ctx, st, ms.Metadata(), func(res *omni.MachineStatus) error {
+		_, err = safe.StateUpdateWithConflicts(ctx, testContext.State, ms.Metadata(), func(res *omni.MachineStatus) error {
 			res.TypedSpec().Value.Maintenance = false
 
 			return nil
@@ -226,19 +220,19 @@ func TestReconcile(t *testing.T) {
 		require.NoError(t, err)
 
 		// assert that it was observed by the controller
-		rtestutils.AssertResource(ctx, t, st, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
+		rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
 			assertion.False(res.TypedSpec().Value.IsMaintenance)
 		})
 
 		// update the args to trigger a pending update
-		_, err = safe.StateUpdateWithConflicts(ctx, st, kernelArgs.Metadata(), func(res *omni.KernelArgs) error {
+		_, err = safe.StateUpdateWithConflicts(ctx, testContext.State, kernelArgs.Metadata(), func(res *omni.KernelArgs) error {
 			res.TypedSpec().Value.Args = []string{"final-arg1", "final-arg2"}
 
 			return nil
 		})
 		require.NoError(t, err)
 
-		rtestutils.AssertResource(ctx, t, st, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
+		rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
 			assertion.Equal("not in maintenance mode", res.TypedSpec().Value.Status)
 		})
 	})

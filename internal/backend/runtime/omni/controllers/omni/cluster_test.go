@@ -26,7 +26,7 @@ type ClusterSuite struct {
 func (suite *ClusterSuite) TestReconcile() {
 	suite.startRuntime()
 
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
+	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController(suite.kubernetesRuntime)))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
 

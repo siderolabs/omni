@@ -1816,13 +1816,13 @@ func TestDefaultJoinTokenValidation(t *testing.T) {
 }
 
 var (
-	//go:embed controllers/omni/data/secrets-valid.yaml
+	//go:embed controllers/omni/testdata/secrets-valid.yaml
 	validSecrets string
 
-	//go:embed controllers/omni/data/secrets-broken.yaml
+	//go:embed controllers/omni/testdata/secrets-broken.yaml
 	brokenSecrets string
 
-	//go:embed controllers/omni/data/secrets-invalid.yaml
+	//go:embed controllers/omni/testdata/secrets-invalid.yaml
 	invalidSecrets string
 )
 

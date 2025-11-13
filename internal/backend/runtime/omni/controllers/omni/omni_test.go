@@ -340,6 +340,7 @@ type OmniSuite struct { //nolint:govet
 	suite.Suite
 
 	state        state.State
+	cachedState  state.State
 	stateBuilder testutils.DynamicStateBuilder
 
 	runtime *runtime.Runtime
@@ -359,7 +360,8 @@ type OmniSuite struct { //nolint:govet
 	statesMu sync.Mutex
 	states   map[string]*server.State
 
-	runtimeErr error
+	runtimeErr        error
+	kubernetesRuntime *kubernetes.Runtime
 }
 
 // newServer starts a mock gRPC server on the unix socket which is using a temp file,
@@ -439,9 +441,12 @@ func (suite *OmniSuite) SetupTest() {
 	suite.runtime, err = runtime.NewRuntime(suite.state, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))
 	suite.Require().NoError(err)
 
-	k8s, err := kubernetes.NewWithTTL(suite.state, 0)
+	suite.cachedState = state.WrapCore(suite.runtime.CachedState())
+
+	suite.kubernetesRuntime, err = kubernetes.NewWithTTL(suite.state, 0)
 	suite.Require().NoError(err)
-	rt.Install(kubernetes.Name, k8s)
+
+	rt.Install(kubernetes.Name, suite.kubernetesRuntime)
 
 	if suite.disableConnections {
 		return
@@ -630,7 +635,7 @@ func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, contro
 		suite.Assert().NoError(err)
 	}
 
-	suite.Assert().NoError(suite.state.Create(suite.ctx, cluster))
+	suite.Require().NoError(suite.state.Create(suite.ctx, cluster))
 
 	return cluster, machines
 }

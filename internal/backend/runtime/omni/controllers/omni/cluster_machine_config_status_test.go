@@ -39,7 +39,7 @@ type ClusterMachineConfigStatusSuite struct {
 }
 
 func (suite *ClusterMachineConfigStatusSuite) registerControllers(withUpgradeStatusController bool) {
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController()))
+	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController(suite.kubernetesRuntime)))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))

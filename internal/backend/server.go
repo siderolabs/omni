@@ -73,7 +73,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/monitoring"
 	"github.com/siderolabs/omni/internal/backend/oidc"
 	"github.com/siderolabs/omni/internal/backend/runtime"
-	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/saml"
@@ -156,21 +155,12 @@ func NewServer(
 		k8sProxyService:         config.Config.Services.KubernetesProxy,
 	}
 
-	k8sruntime, err := kubernetes.New(state.Default())
-	if err != nil {
-		return nil, err
-	}
+	var err error
 
 	s.workloadProxyKey, err = workloadproxy.GenKey()
 	if err != nil {
 		return nil, err
 	}
-
-	prometheus.MustRegister(k8sruntime)
-
-	runtime.Install(kubernetes.Name, k8sruntime)
-	runtime.Install(talos.Name, talosRuntime)
-	runtime.Install(omni.Name, s.omniRuntime)
 
 	return s, nil
 }
