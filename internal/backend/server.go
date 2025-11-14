@@ -642,7 +642,7 @@ func (s *Server) workloadProxyHandler(next http.Handler) (http.Handler, error) {
 		return nil, fmt.Errorf("failed to create access policy role provider: %w", err)
 	}
 
-	pgpSignatureValidator, err := workloadproxy.NewPGPAccessValidator(s.state.Default(), roleProvider,
+	pgpSignatureValidator, err := workloadproxy.NewSignatureAccessValidator(s.state.Default(), roleProvider,
 		s.logger.With(logging.Component("pgp_access_validator")))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create pgp signature validator: %w", err)
