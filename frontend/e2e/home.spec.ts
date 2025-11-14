@@ -4,8 +4,9 @@
 // included in the LICENSE file.
 import { readFile, stat } from 'node:fs/promises'
 
-import { expect, test } from '@playwright/test'
 import * as yaml from 'yaml'
+
+import { expect, test } from './auth_fixtures'
 
 test.describe.configure({ mode: 'parallel' })
 

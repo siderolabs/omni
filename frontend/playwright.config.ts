@@ -36,18 +36,11 @@ export default defineConfig({
   },
 
   projects: [
-    /* See: https://playwright.dev/docs/test-global-setup-teardown */
-    {
-      name: 'setup',
-      testMatch: /.*\.setup\.ts/,
-    },
     {
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        storageState: path.join('e2e', '.auth', 'user.json'),
       },
-      dependencies: ['setup'],
     },
   ],
 })

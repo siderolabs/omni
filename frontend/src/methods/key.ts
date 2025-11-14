@@ -3,48 +3,30 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { useLocalStorage } from '@vueuse/core'
-import { differenceInMilliseconds, isAfter, milliseconds, millisecondsToSeconds } from 'date-fns'
-import {
-  createMessage,
-  enums,
-  generateKey,
-  readKey,
-  readPrivateKey,
-  sign,
-} from 'openpgp/lightweight'
-import { computed, watchEffect } from 'vue'
+import { useIDBKeyval } from '@vueuse/integrations/useIDBKeyval'
+import { add, differenceInMilliseconds, formatRFC3339, isAfter } from 'date-fns'
+import { watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { b64Encode } from '@/api/fetch.pb'
 import { AuthService } from '@/api/omni/auth/auth.pb'
 import { AuthFlowQueryParam, FrontendAuthFlow, RedirectQueryParam } from '@/api/resources'
 
-const privateKeyArmored = useLocalStorage<string>('privateKey', null)
-const publicKeyArmored = useLocalStorage<string>('publicKey', null)
-const publicKeyID = useLocalStorage<string>('publicKeyID', null)
-
-const privateKey = computed(() => {
-  if (!privateKeyArmored.value) return
-
-  return readPrivateKey({ armoredKey: privateKeyArmored.value })
-})
-
-const publicKey = computed(() => {
-  if (!publicKeyArmored.value) return
-
-  return readKey({ armoredKey: publicKeyArmored.value })
-})
+const { data: keyPair, isFinished: keyPairLoaded } = useIDBKeyval<CryptoKeyPair | null>(
+  'keyPair',
+  null,
+)
+const keyExpirationTime = useLocalStorage<Date | null>('keyExpirationTime', null)
+const publicKeyID = useLocalStorage<string | null>('publicKeyID', null)
 
 export function useKeys() {
   return {
-    privateKey,
-    privateKeyArmored,
-    publicKey,
-    publicKeyArmored,
+    keyPair,
+    keyExpirationTime,
     publicKeyID,
     clear() {
-      privateKeyArmored.value = null
-      publicKeyArmored.value = null
+      keyPair.value = null
+      keyExpirationTime.value = null
       publicKeyID.value = null
     },
   }
@@ -61,18 +43,15 @@ export function useWatchKeyExpiry() {
   const keys = useKeys()
 
   watchEffect(async (onCleanup) => {
-    if (!keys.privateKey.value) return
+    if (!keys.keyPair.value) return
 
-    const key = await keys.privateKey.value
-    const keyExpirationTime = await key.getExpirationTime()
-
-    if (!(keyExpirationTime instanceof Date) || isAfter(Date.now(), keyExpirationTime)) {
+    if (!keys.keyExpirationTime.value || isAfter(Date.now(), keys.keyExpirationTime.value)) {
       return clearKeysAndRedirect()
     }
 
     const keysReloadTimeout = window.setTimeout(
       clearKeysAndRedirect,
-      differenceInMilliseconds(keyExpirationTime, Date.now()) + 1000,
+      differenceInMilliseconds(keys.keyExpirationTime.value, Date.now()) + 1000,
     )
 
     onCleanup(() => clearTimeout(keysReloadTimeout))
@@ -91,66 +70,58 @@ export function useWatchKeyExpiry() {
 export function useSignDetached() {
   const keys = useKeys()
 
-  return async function (data: string, privateKey?: string) {
-    const signingKeys = privateKey
-      ? await readPrivateKey({ armoredKey: privateKey })
-      : await keys.privateKey.value
-
-    if (!signingKeys) {
+  return async function (data: string, keyPair = keys.keyPair.value) {
+    if (!keyPair) {
       throw new Error('failed to load keys: keys not initialized')
     }
 
-    const stream = await sign({
-      message: await createMessage({ text: data }),
-      detached: true,
-      signingKeys,
-      format: 'binary',
-    })
-
-    const array = stream as Uint8Array
-
-    return b64Encode(array, 0, array.length)
+    return await crypto.subtle.sign(
+      { name: 'ECDSA', hash: 'SHA-256' },
+      keyPair.privateKey,
+      new TextEncoder().encode(data),
+    )
   }
 }
 
 export async function hasValidKeys() {
-  if (!privateKey.value) return false
+  // IndexedDB is async storage, and might not yet have been initialised
+  if (!keyPairLoaded.value) return new Promise((r) => setTimeout(() => r(hasValidKeys()), 20))
 
-  const key = await privateKey.value
-  const keyExpirationTime = await key.getExpirationTime()
+  if (!keyPair.value || !keyExpirationTime.value) return false
 
-  if (!keyExpirationTime) return false
-
-  return isAfter(keyExpirationTime, Date.now())
+  return isAfter(keyExpirationTime.value, Date.now())
 }
 
 export async function createKeys(email: string) {
   email = email.toLowerCase()
 
-  const { privateKey, publicKey } = await generateKey({
-    type: 'ecc',
-    curve: 'ed25519Legacy',
-    userIDs: [{ email }],
-    keyExpirationTime: millisecondsToSeconds(milliseconds({ hours: 7, minutes: 50 })),
-    config: {
-      preferredCompressionAlgorithm: enums.compression.zlib,
-      preferredSymmetricAlgorithm: enums.symmetric.aes256,
-      preferredHashAlgorithm: enums.hash.sha256,
-    },
-  })
+  const keyPair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, false, [
+    'sign',
+    'verify',
+  ])
 
-  const enc = new TextEncoder()
+  const buffer = await crypto.subtle.exportKey('spki', keyPair.publicKey)
+  const array = new Uint8Array(buffer)
+  const publicKeyB64 = b64Encode(array, 0, array.length)
+    .match(/.{1,64}/g)
+    ?.join('\n')
+
+  const keyExpirationTime = add(new Date(), { hours: 7, minutes: 50 })
 
   const response = await AuthService.RegisterPublicKey({
     public_key: {
-      pgp_data: enc.encode(publicKey),
+      plain_key: {
+        key_pem: `-----BEGIN PUBLIC KEY-----\n${publicKeyB64}\n-----END PUBLIC KEY-----`,
+        not_before: formatRFC3339(new Date()),
+        not_after: formatRFC3339(keyExpirationTime),
+      },
     },
     identity: { email },
   })
 
   return {
-    privateKey,
-    publicKey,
+    keyPair,
+    keyExpirationTime,
     publicKeyId: response.public_key_id!,
   }
 }
