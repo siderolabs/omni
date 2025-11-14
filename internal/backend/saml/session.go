@@ -251,15 +251,27 @@ func (sp *SessionProvider) ensureUser(ctx context.Context, email string, samlLab
 		return err
 	}
 
+	var updateOnEachLogin bool
+
 	r := role.Admin
+
 	if len(users.Items) > 0 {
-		r, err = sp.getRoleInSAMLLabelRules(ctx, samlLabels)
+		var samlLabelRule *auth.SAMLLabelRule
+
+		samlLabelRule, err = sp.getSAMLLabelRule(ctx, samlLabels)
 		if err != nil {
 			return err
 		}
+
+		r = role.None
+
+		if samlLabelRule != nil {
+			r = role.Role(getRoleFromRule(samlLabelRule))
+			updateOnEachLogin = samlLabelRule.TypedSpec().Value.UpdateOnEachLogin
+		}
 	}
 
-	if err = user.Ensure(ctx, sp.state, email, r); err != nil {
+	if err = user.Ensure(ctx, sp.state, email, r, updateOnEachLogin); err != nil {
 		return err
 	}
 
@@ -302,22 +314,22 @@ func (sp *SessionProvider) updateIdentityLabels(ctx context.Context, identity st
 	return err
 }
 
-// getRoleInSAMLLabelRules returns the highest role found in the SAML label rules.
+// getSAMLLabelRule returns the rule with highest role found in the SAML label rules.
 //
-// If there is no rule matching the labels, role.None is returned.
-func (sp *SessionProvider) getRoleInSAMLLabelRules(ctx context.Context, samlLabels map[string]string) (role.Role, error) {
+// If there is no rule matching the labels, nil is returned.
+func (sp *SessionProvider) getSAMLLabelRule(ctx context.Context, samlLabels map[string]string) (*auth.SAMLLabelRule, error) {
 	labelRuleList, err := safe.ReaderListAll[*auth.SAMLLabelRule](ctx, sp.state)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	labelRules := slices.AppendSeq(make([]*auth.SAMLLabelRule, 0, labelRuleList.Len()), labelRuleList.All())
 
-	return RoleInSAMLLabelRules(labelRules, samlLabels, sp.logger), nil
+	return MatchSAMLLabelRule(labelRules, samlLabels, sp.logger), nil
 }
 
-// RoleInSAMLLabelRules returns the role on the SAMLLabelRules with the highest access level that matches the labels.
-func RoleInSAMLLabelRules(samlLabelRules []*auth.SAMLLabelRule, samlLabels map[string]string, logger *zap.Logger) role.Role {
+// MatchSAMLLabelRule returns the SAMLLabelRules with the highest access level that matches the labels.
+func MatchSAMLLabelRule(samlLabelRules []*auth.SAMLLabelRule, samlLabels map[string]string, logger *zap.Logger) *auth.SAMLLabelRule {
 	samlRole := role.None
 
 	resLabels := resource.Labels{}
@@ -325,6 +337,8 @@ func RoleInSAMLLabelRules(samlLabelRules []*auth.SAMLLabelRule, samlLabels map[s
 	for key, value := range samlLabels {
 		resLabels.Set(key, value)
 	}
+
+	var rule *auth.SAMLLabelRule
 
 	for _, labelRule := range samlLabelRules {
 		selectors, selectorsErr := labels.ParseSelectors(labelRule.TypedSpec().Value.GetMatchLabels())
@@ -335,7 +349,7 @@ func RoleInSAMLLabelRules(samlLabelRules []*auth.SAMLLabelRule, samlLabels map[s
 		}
 
 		if selectors.Matches(resLabels) {
-			parsedRole, parseErr := role.Parse(labelRule.TypedSpec().Value.GetAssignRoleOnRegistration())
+			parsedRole, parseErr := role.Parse(getRoleFromRule(labelRule))
 			if parseErr != nil {
 				logger.Warn("skip invalid role on identity label rule", zap.Error(parseErr))
 
@@ -349,11 +363,23 @@ func RoleInSAMLLabelRules(samlLabelRules []*auth.SAMLLabelRule, samlLabels map[s
 				continue
 			}
 
+			if samlRole.Compare(maxRole) == -1 {
+				rule = labelRule
+			}
+
 			samlRole = maxRole
 		}
 	}
 
-	return samlRole
+	return rule
+}
+
+func getRoleFromRule(r *auth.SAMLLabelRule) string {
+	if r.TypedSpec().Value.AssignRole != "" {
+		return r.TypedSpec().Value.AssignRole
+	}
+
+	return r.TypedSpec().Value.AssignRoleOnRegistration //nolint:staticcheck
 }
 
 const (
