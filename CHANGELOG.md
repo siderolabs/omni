@@ -1,3 +1,38 @@
+## [Omni 1.3.2](https://github.com/siderolabs/omni/releases/tag/v1.3.2) (2025-11-14)
+
+Welcome to the v1.3.2 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Utku Ozdemir
+* Artem Chernyshev
+* Edward Sammut Alessi
+
+### Changes
+<details><summary>7 commits</summary>
+<p>
+
+* [`5dfe4d55`](https://github.com/siderolabs/omni/commit/5dfe4d5544cb7b5a9b60a127479227865c580c37) fix: reduce usage of cached state to avoid stale reads
+* [`becf6bd6`](https://github.com/siderolabs/omni/commit/becf6bd67c9fde29df734229e06a0b74a4b5d45a) test: fix flaky etcd backup tests
+* [`11f3b039`](https://github.com/siderolabs/omni/commit/11f3b039e26c60ac0e07e259ecc4b99fecfc1cbe) test: fix flaky `MachineUpgradeStatusController` test
+* [`d7dc7788`](https://github.com/siderolabs/omni/commit/d7dc77880a1fa0fc1ff179b477cde24be9574d6c) fix: use deterministic order for machine extensions
+* [`8df8997a`](https://github.com/siderolabs/omni/commit/8df8997ab5f107582cdcb69946172603c4edc1ed) fix: keep existing cluster level system extensions config in the UI
+* [`394efd91`](https://github.com/siderolabs/omni/commit/394efd91340bda395b832cf4ab8fd923f1bad2d4) fix: ignore `MachineSets` which reference non-existing clusters
+* [`04f2f465`](https://github.com/siderolabs/omni/commit/04f2f465c82a349fd8af683add5997cceac8e425) fix(frontend): remove double scrollbar on machines list
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.3.1](https://github.com/siderolabs/omni/releases/tag/v1.3.1)
+
 ## [Omni 1.3.1](https://github.com/siderolabs/omni/releases/tag/v1.3.1) (2025-11-07)
 
 Welcome to the v1.3.1 release of Omni!
