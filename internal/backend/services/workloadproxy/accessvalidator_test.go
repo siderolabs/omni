@@ -18,6 +18,7 @@ import (
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
@@ -47,7 +48,7 @@ func TestAccessValidator(t *testing.T) {
 		role: role.Reader,
 	}
 
-	accessValidator, err := workloadproxy.NewPGPAccessValidator(st, roleProvider, zaptest.NewLogger(t))
+	accessValidator, err := workloadproxy.NewSignatureAccessValidator(st, roleProvider, zaptest.NewLogger(t))
 	require.NoError(t, err)
 
 	key, err := pgp.GenerateKey("test", "", "test@example.com", 8*time.Hour)
@@ -59,6 +60,7 @@ func TestAccessValidator(t *testing.T) {
 	require.NoError(t, err)
 
 	publicKey.TypedSpec().Value.PublicKey = []byte(armored)
+	publicKey.TypedSpec().Value.Expiration = timestamppb.New(time.Now().Add(8 * time.Hour))
 
 	require.NoError(t, st.Create(ctx, publicKey))
 

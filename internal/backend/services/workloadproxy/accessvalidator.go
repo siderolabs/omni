@@ -9,12 +9,12 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
+	"time"
 
-	pgpcrypto "github.com/ProtonMail/gopenpgp/v2/crypto"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/siderolabs/go-api-signature/pkg/pgp"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -52,15 +52,15 @@ func (a *AccessPolicyRoleProvider) RoleForCluster(ctx context.Context, clusterID
 	return accessRole, err
 }
 
-// PGPAccessValidator validates a signature using PGP keys and roles/ACLs.
-type PGPAccessValidator struct {
+// SignatureAccessValidator validates a signature using PGP keys and roles/ACLs.
+type SignatureAccessValidator struct {
 	logger       *zap.Logger
 	state        state.State
 	roleProvider RoleProvider
 }
 
-// NewPGPAccessValidator creates a new PGP signature validator.
-func NewPGPAccessValidator(state state.State, roleProvider RoleProvider, logger *zap.Logger) (*PGPAccessValidator, error) {
+// NewSignatureAccessValidator creates a new PGP signature validator.
+func NewSignatureAccessValidator(state state.State, roleProvider RoleProvider, logger *zap.Logger) (*SignatureAccessValidator, error) {
 	if state == nil {
 		return nil, errors.New("state is nil")
 	}
@@ -73,7 +73,7 @@ func NewPGPAccessValidator(state state.State, roleProvider RoleProvider, logger 
 		logger = zap.NewNop()
 	}
 
-	return &PGPAccessValidator{
+	return &SignatureAccessValidator{
 		logger:       logger,
 		state:        state,
 		roleProvider: roleProvider,
@@ -82,7 +82,7 @@ func NewPGPAccessValidator(state state.State, roleProvider RoleProvider, logger 
 
 // ValidateAccess validates the access to an exposed service in the given cluster ID,
 // using the PGP public keys in the Omni database.
-func (p *PGPAccessValidator) ValidateAccess(ctx context.Context, publicKeyID, publicKeyIDSignatureBase64 string, clusterID resource.ID) error {
+func (p *SignatureAccessValidator) ValidateAccess(ctx context.Context, publicKeyID, publicKeyIDSignatureBase64 string, clusterID resource.ID) error {
 	singatureBytes, err := base64.StdEncoding.DecodeString(publicKeyIDSignatureBase64)
 	if err != nil {
 		return err
@@ -95,21 +95,16 @@ func (p *PGPAccessValidator) ValidateAccess(ctx context.Context, publicKeyID, pu
 		return err
 	}
 
-	key, err := pgpcrypto.NewKeyFromArmored(string(publicKey.TypedSpec().Value.GetPublicKey()))
+	if publicKey.TypedSpec().Value.Expiration.AsTime().Before(time.Now()) {
+		return fmt.Errorf("key is expired")
+	}
+
+	verifier, err := authres.GetSignatureVerifier(publicKey)
 	if err != nil {
 		return err
 	}
 
-	pgpKey, err := pgp.NewKey(key)
-	if err != nil {
-		return err
-	}
-
-	if err = pgpKey.Validate(); err != nil {
-		return err
-	}
-
-	if err = pgpKey.Verify([]byte(publicKeyID), singatureBytes); err != nil {
+	if err = verifier.Verify([]byte(publicKeyID), singatureBytes); err != nil {
 		return err
 	}
 
