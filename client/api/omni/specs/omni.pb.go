@@ -5752,9 +5752,11 @@ func (x *TalosExtensionsSpec) GetItems() []*TalosExtensionsSpec_Info {
 
 // SchematicConfigurationSpec is the desired Image Factory schematic for a machine, machine set or a cluster.
 type SchematicConfigurationSpec struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SchematicId   string                 `protobuf:"bytes,1,opt,name=schematic_id,json=schematicId,proto3" json:"schematic_id,omitempty"`
-	TalosVersion  string                 `protobuf:"bytes,2,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	SchematicId  string                 `protobuf:"bytes,1,opt,name=schematic_id,json=schematicId,proto3" json:"schematic_id,omitempty"`
+	TalosVersion string                 `protobuf:"bytes,2,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
+	// KernelArgs are the kernel args which were used to compute the SchematicId.
+	KernelArgs    []string `protobuf:"bytes,3,rep,name=kernel_args,json=kernelArgs,proto3" json:"kernel_args,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5801,6 +5803,13 @@ func (x *SchematicConfigurationSpec) GetTalosVersion() string {
 		return x.TalosVersion
 	}
 	return ""
+}
+
+func (x *SchematicConfigurationSpec) GetKernelArgs() []string {
+	if x != nil {
+		return x.KernelArgs
+	}
+	return nil
 }
 
 // ExtensionsConfigurationSpec is the desired list of extensions to be installed on the machine or the set of machines.
@@ -9954,10 +9963,12 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\aversion\x18\x03 \x01(\tR\aversion\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x10\n" +
 	"\x03ref\x18\x05 \x01(\tR\x03ref\x12\x16\n" +
-	"\x06digest\x18\x06 \x01(\tR\x06digest\"d\n" +
+	"\x06digest\x18\x06 \x01(\tR\x06digest\"\x85\x01\n" +
 	"\x1aSchematicConfigurationSpec\x12!\n" +
 	"\fschematic_id\x18\x01 \x01(\tR\vschematicId\x12#\n" +
-	"\rtalos_version\x18\x02 \x01(\tR\ftalosVersion\"=\n" +
+	"\rtalos_version\x18\x02 \x01(\tR\ftalosVersion\x12\x1f\n" +
+	"\vkernel_args\x18\x03 \x03(\tR\n" +
+	"kernelArgs\"=\n" +
 	"\x1bExtensionsConfigurationSpec\x12\x1e\n" +
 	"\n" +
 	"extensions\x18\x01 \x03(\tR\n" +

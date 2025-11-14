@@ -62,10 +62,6 @@ func NewTalosUpgradeStatusController() *TalosUpgradeStatusController {
 					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("talos upgrades are not allowed: the cluster is locked")
 				}
 
-				if err := updateSchematicsFinalizers(ctx, r, cluster); err != nil {
-					return err
-				}
-
 				clusterMachines, err := safe.ReaderListAll[*omni.ClusterMachine](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID())))
 				if err != nil {
 					return err
@@ -87,10 +83,6 @@ func NewTalosUpgradeStatusController() *TalosUpgradeStatusController {
 				return reconcileTalosUpdateStatus(ctx, r, logger, upgradeStatus, cluster, clusterMachines, machineSetNodes)
 			},
 			FinalizerRemovalExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, cluster *omni.Cluster) error {
-				if err := updateSchematicsFinalizers(ctx, r, cluster); err != nil {
-					return err
-				}
-
 				clusterMachines, err := safe.ReaderListAll[*omni.ClusterMachine](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID())))
 				if err != nil {
 					return err
@@ -567,26 +559,5 @@ func populateEmptySchematics(ctx context.Context, r controller.ReaderWriter, clu
 
 			return nil
 		})
-	})
-}
-
-func updateSchematicsFinalizers(ctx context.Context, r controller.ReaderWriter, cluster *omni.Cluster) error {
-	schematicConfigurations, err := safe.ReaderListAll[*omni.SchematicConfiguration](ctx, r, state.WithLabelQuery(
-		resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID()),
-	))
-	if err != nil {
-		return err
-	}
-
-	return schematicConfigurations.ForEachErr(func(res *omni.SchematicConfiguration) error {
-		if res.Metadata().Phase() == resource.PhaseTearingDown {
-			return r.RemoveFinalizer(ctx, res.Metadata(), TalosUpgradeStatusControllerName)
-		}
-
-		if !res.Metadata().Finalizers().Has(TalosUpgradeStatusControllerName) {
-			return r.AddFinalizer(ctx, res.Metadata(), TalosUpgradeStatusControllerName)
-		}
-
-		return nil
 	})
 }

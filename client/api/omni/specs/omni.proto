@@ -1200,6 +1200,9 @@ message TalosExtensionsSpec {
 message SchematicConfigurationSpec {
   string schematic_id = 1;
   string talos_version = 2;
+
+  // KernelArgs are the kernel args which were used to compute the SchematicId.
+  repeated string kernel_args = 3;
 }
 
 // ExtensionsConfigurationSpec is the desired list of extensions to be installed on the machine or the set of machines.
