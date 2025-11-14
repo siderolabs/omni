@@ -78,17 +78,19 @@ const { data: infraProviderStatuses } = useWatch<InfraProviderStatusSpec>(() => 
   runtime: Runtime.Omni,
 }))
 
-const { data: kubernetesUpgradeManifestStatus } = useWatch<KubernetesUpgradeManifestStatusSpec>({
-  skip: !route.params.cluster,
-  runtime: Runtime.Omni,
-  resource: {
-    namespace: DefaultNamespace,
-    type: KubernetesUpgradeManifestStatusType,
-    id: route.params.cluster as string,
-  },
-})
+const { data: kubernetesUpgradeManifestStatus } = useWatch<KubernetesUpgradeManifestStatusSpec>(
+  () => ({
+    skip: !route.params.cluster,
+    runtime: Runtime.Omni,
+    resource: {
+      namespace: DefaultNamespace,
+      type: KubernetesUpgradeManifestStatusType,
+      id: route.params.cluster as string,
+    },
+  }),
+)
 
-const { data: cluster } = useWatch<ClusterSpec>({
+const { data: cluster } = useWatch<ClusterSpec>(() => ({
   skip: !route.params.cluster,
   runtime: Runtime.Omni,
   resource: {
@@ -96,7 +98,7 @@ const { data: cluster } = useWatch<ClusterSpec>({
     type: ClusterType,
     id: route.params.cluster as string,
   },
-})
+}))
 
 const { data: services } = useWatch(() => ({
   skip: !route.params.machine,

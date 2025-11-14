@@ -7,32 +7,28 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/vue'
 import pluralize from 'pluralize'
-import type { Ref } from 'vue'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
 import type { ExposedServiceSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, ExposedServiceType, LabelCluster } from '@/api/resources'
-import Watch from '@/api/watch'
 import IconButton from '@/components/common/Button/IconButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import TMenuItem from '@/components/common/MenuItem/TMenuItem.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
+import { useWatch } from '@/components/common/Watch/useWatch'
 
 const route = useRoute()
 
-const exposedServices: Ref<Resource<ExposedServiceSpec>[]> = ref([])
-const exposedServicesWatch = new Watch(exposedServices)
-exposedServicesWatch.setup({
+const { data: exposedServices } = useWatch<ExposedServiceSpec>(() => ({
   runtime: Runtime.Omni,
   resource: {
     namespace: DefaultNamespace,
     type: ExposedServiceType,
   },
   selectors: [`${LabelCluster}=${route.params.cluster}`],
-})
+}))
 
 const filteredExposedServices = computed(() => {
   return exposedServices.value.filter((item) => !item.spec.error)
@@ -46,7 +42,7 @@ const errors = computed(() => {
 </script>
 
 <template>
-  <Disclosure as="div" class="border-t border-naturals-n4" :default-open="true">
+  <Disclosure as="div" class="border-t border-naturals-n4" default-open>
     <template #default="{ open }">
       <DisclosureButton as="div" class="disclosure">
         <div class="title">
