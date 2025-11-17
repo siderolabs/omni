@@ -1,7 +1,7 @@
 # Developing Omni
 
 This guide assumes a MacOS or a Linux system.
-Using [OrbStack](https://orbstack.dev/) is reccommended on Macos.
+Using [OrbStack](https://orbstack.dev/) is recommended on Macos.
 
 Make sure you have a running [Talos development environment](https://www.talos.dev/latest/advanced/developing-talos/) before proceeding with this guide.
 

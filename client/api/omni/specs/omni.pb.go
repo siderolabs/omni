@@ -2314,7 +2314,7 @@ func (x *EtcdManualBackupSpec) GetBackupAt() *timestamppb.Timestamp {
 	return nil
 }
 
-// EtcdBackupStoreStatusSpec is internal resource that decribes store configuration name and configuration last error.
+// EtcdBackupStoreStatusSpec is internal resource that describes store configuration name and configuration last error.
 type EtcdBackupStoreStatusSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ConfigurationName is the name of the configuration (disabled|local|s3).
@@ -5420,7 +5420,7 @@ func (x *EtcdAuditResultSpec) GetEtcdMemberIds() []uint64 {
 	return nil
 }
 
-// KubeconfigSpec describes a Kubernetes client configuraiton for a cluster.
+// KubeconfigSpec describes a Kubernetes client configuration for a cluster.
 type KubeconfigSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Marshalled kubeconfig.

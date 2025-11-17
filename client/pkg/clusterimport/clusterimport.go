@@ -582,7 +582,7 @@ func (c *Context) ensureSchematic(ctx context.Context, info *nodeInfo) error {
 	}
 
 	if info.schematicID == "" {
-		return fmt.Errorf("schematic ID missing for node %q. talos was not instaled using an image factory", info.hostname)
+		return fmt.Errorf("schematic ID missing for node %q. talos was not installed using an image factory", info.hostname)
 	}
 
 	if _, ok := c.ensuredSchematicIDs[info.schematicID]; ok {

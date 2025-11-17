@@ -392,7 +392,7 @@ message EtcdManualBackupSpec {
   google.protobuf.Timestamp backup_at = 1;
 }
 
-// EtcdBackupStoreStatusSpec is internal resource that decribes store configuration name and configuration last error.
+// EtcdBackupStoreStatusSpec is internal resource that describes store configuration name and configuration last error.
 message EtcdBackupStoreStatusSpec {
   // ConfigurationName is the name of the configuration (disabled|local|s3).
   string configuration_name = 1;
@@ -1127,7 +1127,7 @@ message EtcdAuditResultSpec {
   repeated uint64 etcd_member_ids = 1;
 }
 
-// KubeconfigSpec describes a Kubernetes client configuraiton for a cluster.
+// KubeconfigSpec describes a Kubernetes client configuration for a cluster.
 message KubeconfigSpec {
   // Marshalled kubeconfig.
   bytes data = 1;
