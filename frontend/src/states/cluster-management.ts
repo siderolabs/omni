@@ -318,21 +318,21 @@ export class State {
     if (this.cluster.features.enableWorkloadProxy) {
       cluster.spec.features = {
         ...cluster.spec.features,
-        enable_workload_proxy: this.cluster.features?.enableWorkloadProxy,
+        enable_workload_proxy: this.cluster.features.enableWorkloadProxy,
       }
     }
 
     if (this.cluster.features.useEmbeddedDiscoveryService) {
       cluster.spec.features = {
         ...cluster.spec.features,
-        use_embedded_discovery_service: this.cluster.features?.useEmbeddedDiscoveryService,
+        use_embedded_discovery_service: this.cluster.features.useEmbeddedDiscoveryService,
       }
     }
 
     if (this.cluster.features.encryptDisks) {
       cluster.spec.features = {
         ...cluster.spec.features,
-        disk_encryption: this.cluster.features?.encryptDisks,
+        disk_encryption: this.cluster.features.encryptDisks,
       }
     }
 
@@ -706,6 +706,7 @@ export const populateExisting = async (clusterName: string) => {
     features: {
       enableWorkloadProxy: cluster.spec.features?.enable_workload_proxy,
       encryptDisks: cluster.spec.features?.disk_encryption,
+      useEmbeddedDiscoveryService: cluster.spec.features?.use_embedded_discovery_service,
     },
     etcdBackupConfig: {
       enabled: cluster.spec.backup_configuration?.enabled,
