@@ -187,7 +187,7 @@ func (h *machineControllerHelper) handleProvisioningInfraProvider(ctx context.Co
 		return err
 	}
 
-	if machineRequestSet != nil && machineRequestSet.Metadata().Owner() == machineProvisionControllerName {
+	if machineRequestSet != nil && machineRequestSet.Metadata().Owner() == MachineProvisionControllerName {
 		machine.Metadata().Labels().Set(omni.LabelNoManualAllocation, "")
 	}
 

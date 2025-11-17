@@ -53,6 +53,23 @@ func NewMachineRequestSetStatusController() *MachineRequestSetStatusController {
 		qtransform.WithExtraMappedInput[*machineStatusLabels](
 			mapMachineToMachineRequest,
 		),
+		qtransform.WithExtraMappedInput[*infra.Provider](
+			func(ctx context.Context, logger *zap.Logger, r controller.QRuntime, ptr controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				machineRequestSets, err := safe.ReaderListAll[*omni.MachineRequestSet](ctx, r)
+				if err != nil {
+					return nil, err
+				}
+
+				ptrs := make([]resource.Pointer, 0, machineRequestSets.Len())
+				for machineRequestSet := range machineRequestSets.All() {
+					if machineRequestSet.TypedSpec().Value.ProviderId == ptr.ID() {
+						ptrs = append(ptrs, machineRequestSet.Metadata())
+					}
+				}
+
+				return ptrs, nil
+			},
+		),
 		qtransform.WithExtraOutputs(controller.Output{
 			Type: infra.MachineRequestType,
 			Kind: controller.OutputShared,
@@ -268,6 +285,12 @@ func (h *machineRequestSetStatusHandler) reconcileTearingDown(ctx context.Contex
 		return err
 	}
 
+	for machineRequest := range machineRequests.All() {
+		if err = h.handleInfraProviderDeletion(ctx, r, machineRequest); err != nil {
+			return err
+		}
+	}
+
 	destroyReady, err := helpers.TeardownAndDestroyAll(ctx, r, machineRequests.Pointers())
 	if err != nil {
 		return err
@@ -287,6 +310,37 @@ func (h *machineRequestSetStatusHandler) reconcileTearingDown(ctx context.Contex
 
 	if !destroyReady {
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the machine request set still has tearing down machine requests")
+	}
+
+	return nil
+}
+
+func (h *machineRequestSetStatusHandler) handleInfraProviderDeletion(ctx context.Context, r controller.ReaderWriter, machine *infra.MachineRequest) error {
+	infraProviderID, ok := machine.Metadata().Labels().Get(omni.LabelInfraProviderID)
+	if !ok {
+		return nil
+	}
+
+	infraProvider, err := safe.ReaderGetByID[*infra.Provider](ctx, r, infraProviderID)
+	if err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
+
+	// Remove all finalizers from all MachineRequests if the infra provider is being deleted or not found.
+	if infraProvider != nil && infraProvider.Metadata().Phase() == resource.PhaseRunning {
+		return nil
+	}
+
+	if err = safe.WriterModify[*infra.MachineRequest](ctx, r, machine, func(res *infra.MachineRequest) error {
+		for _, finalizer := range *machine.Metadata().Finalizers() {
+			if finalizer != clusterMachineRequestStatusControllerName {
+				res.Metadata().Finalizers().Remove(finalizer)
+			}
+		}
+
+		return nil
+	}, controller.WithExpectedPhaseAny()); err != nil {
+		return err
 	}
 
 	return nil

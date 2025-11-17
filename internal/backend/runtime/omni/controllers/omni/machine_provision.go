@@ -22,18 +22,19 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 )
 
-// MachineProvisionController turns MachineProvision resources into a MachineRequestSets, scales them automatically on demand.
+// MachineProvisionController turns MachineProvision resources into MachineRequestSets, scales them automatically on demand.
 type MachineProvisionController = qtransform.QController[*omni.MachineSet, *omni.MachineRequestSet]
 
-const machineProvisionControllerName = "MachineProvisionController"
+// MachineProvisionControllerName is the name of the MachineProvisionController.
+const MachineProvisionControllerName = "MachineProvisionController"
 
-// NewMachineProvisionController instanciates the machine controller.
+// NewMachineProvisionController instantiates the machine controller.
 //
 //nolint:gocognit
 func NewMachineProvisionController() *MachineProvisionController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.MachineSet, *omni.MachineRequestSet]{
-			Name: machineProvisionControllerName,
+			Name: MachineProvisionControllerName,
 			MapMetadataFunc: func(res *omni.MachineSet) *omni.MachineRequestSet {
 				return omni.NewMachineRequestSet(resources.DefaultNamespace, res.Metadata().ID())
 			},
@@ -135,6 +136,7 @@ func NewMachineProvisionController() *MachineProvisionController {
 				},
 			),
 		),
+		qtransform.WithOutputKind(controller.OutputShared),
 		qtransform.WithConcurrency(4),
 	)
 }

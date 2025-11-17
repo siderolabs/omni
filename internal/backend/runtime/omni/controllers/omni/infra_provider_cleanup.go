@@ -7,7 +7,7 @@ package omni
 
 import (
 	"context"
-	"errors"
+	"slices"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/cleanup"
@@ -46,7 +46,7 @@ func NewInfraProviderCleanupController() *InfraProviderCleanupController {
 					}
 
 					if !ready {
-						return xerrors.NewTagged[cleanup.SkipReconcileTag](errors.New("the service account is still being destroyed"))
+						return xerrors.NewTaggedf[cleanup.SkipReconcileTag]("the service account is still being destroyed")
 					}
 
 					return nil
@@ -69,7 +69,7 @@ func NewInfraProviderCleanupController() *InfraProviderCleanupController {
 					}
 
 					for link := range links.All() {
-						if infraProviderId, ok := link.Metadata().Labels().Get(omni.LabelInfraProviderID); ok && infraProviderId == input.Metadata().ID() {
+						if infraProviderID, ok := link.Metadata().Labels().Get(omni.LabelInfraProviderID); ok && infraProviderID == input.Metadata().ID() {
 							_, teardownErr := r.Teardown(ctx, link.Metadata(), controller.WithOwner(""))
 							if teardownErr != nil {
 								return teardownErr
@@ -79,7 +79,7 @@ func NewInfraProviderCleanupController() *InfraProviderCleanupController {
 
 					return nil
 				}, customcleanup.HandlerOptions{}),
-				customcleanup.NewHandler[*infra.Provider, *infra.MachineStatus](func(ctx context.Context, r controller.Runtime, input *infra.Provider) error {
+				customcleanup.NewHandler[*infra.Provider, *infra.MachineStatus](func(ctx context.Context, r controller.Runtime, input *infra.Provider) error { //nolint:dupl
 					machineStatuses, err := safe.ReaderListAll[*infra.MachineStatus](ctx, r, state.WithLabelQuery(
 						resource.LabelEqual(omni.LabelInfraProviderID, input.Metadata().ID()),
 					))
@@ -87,19 +87,85 @@ func NewInfraProviderCleanupController() *InfraProviderCleanupController {
 						return err
 					}
 
+					destroyReadyMachineStatuses := make([]*infra.MachineStatus, 0, machineStatuses.Len())
+
 					for machineStatus := range machineStatuses.All() {
-						teardown, teardownErr := r.Teardown(ctx, machineStatus.Metadata(), controller.WithOwner(machineStatus.Metadata().Owner()))
+						destroyReady, teardownErr := r.Teardown(ctx, machineStatus.Metadata(), controller.WithOwner(machineStatus.Metadata().Owner()))
 						if teardownErr != nil {
 							return teardownErr
 						}
 
-						if !teardown {
-							return xerrors.NewTagged[cleanup.SkipReconcileTag](errors.New("the machine status is still being destroyed"))
+						if destroyReady {
+							destroyReadyMachineStatuses = append(destroyReadyMachineStatuses, machineStatus)
 						}
+					}
 
-						if err = r.Destroy(ctx, machineStatus.Metadata(), controller.WithOwner(machineStatus.Metadata().Owner())); err != nil {
+					for _, machineRequestStatus := range destroyReadyMachineStatuses {
+						if err = r.Destroy(ctx, machineRequestStatus.Metadata(), controller.WithOwner(machineRequestStatus.Metadata().Owner())); err != nil {
 							return err
 						}
+					}
+
+					if len(destroyReadyMachineStatuses) != machineStatuses.Len() {
+						return xerrors.NewTaggedf[cleanup.SkipReconcileTag]("the machine statuses are still being destroyed")
+					}
+
+					return nil
+				}, customcleanup.HandlerOptions{}),
+				customcleanup.NewHandler[*infra.Provider, *infra.MachineRequestStatus](func(ctx context.Context, r controller.Runtime, input *infra.Provider) error { //nolint:dupl
+					machineRequestStatuses, err := safe.ReaderListAll[*infra.MachineRequestStatus](ctx, r, state.WithLabelQuery(
+						resource.LabelEqual(omni.LabelInfraProviderID, input.Metadata().ID()),
+					))
+					if err != nil {
+						return err
+					}
+
+					destroyReadyMachineRequestStatuses := make([]*infra.MachineRequestStatus, 0, machineRequestStatuses.Len())
+
+					for machineRequestStatus := range machineRequestStatuses.All() {
+						destroyReady, teardownErr := r.Teardown(ctx, machineRequestStatus.Metadata(), controller.WithOwner(machineRequestStatus.Metadata().Owner()))
+						if teardownErr != nil {
+							return teardownErr
+						}
+
+						if destroyReady {
+							destroyReadyMachineRequestStatuses = append(destroyReadyMachineRequestStatuses, machineRequestStatus)
+						}
+					}
+
+					for _, machineRequestStatus := range destroyReadyMachineRequestStatuses {
+						if err = r.Destroy(ctx, machineRequestStatus.Metadata(), controller.WithOwner(machineRequestStatus.Metadata().Owner())); err != nil {
+							return err
+						}
+					}
+
+					if len(destroyReadyMachineRequestStatuses) != machineRequestStatuses.Len() {
+						return xerrors.NewTaggedf[cleanup.SkipReconcileTag]("the machine request statuses are still being destroyed")
+					}
+
+					return nil
+				}, customcleanup.HandlerOptions{}),
+				customcleanup.NewHandler[*infra.Provider, *omni.MachineRequestSet](func(ctx context.Context, r controller.Runtime, input *infra.Provider) error {
+					machineRequestSets, err := safe.ReaderListAll[*omni.MachineRequestSet](ctx, r)
+					if err != nil {
+						return err
+					}
+
+					var userOwnedMRSPointers []resource.Pointer
+
+					for msr := range machineRequestSets.All() {
+						if msr.Metadata().Owner() == "" {
+							userOwnedMRSPointers = append(userOwnedMRSPointers, msr.Metadata())
+						}
+					}
+
+					destroyReady, err := helpers.TeardownAndDestroyAll(ctx, r, slices.Values(userOwnedMRSPointers), controller.WithOwner(""))
+					if err != nil {
+						return err
+					}
+
+					if !destroyReady {
+						return xerrors.NewTaggedf[cleanup.SkipReconcileTag]("the machine request sets are still being destroyed")
 					}
 
 					return nil

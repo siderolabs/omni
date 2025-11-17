@@ -181,12 +181,12 @@ func (ctrl *InfraMachineController) reconcileTearingDown(ctx context.Context, r 
 }
 
 func (ctrl *InfraMachineController) handleInfraProviderDeletion(ctx context.Context, r controller.QRuntime, link *siderolink.Link) error {
-	infraProviderId, ok := link.Metadata().Labels().Get(omni.LabelInfraProviderID)
+	infraProviderID, ok := link.Metadata().Labels().Get(omni.LabelInfraProviderID)
 	if !ok {
 		return nil
 	}
 
-	infraProvider, err := safe.ReaderGetByID[*infra.Provider](ctx, r, infraProviderId)
+	infraProvider, err := safe.ReaderGetByID[*infra.Provider](ctx, r, infraProviderID)
 	if err != nil && !state.IsNotFoundError(err) {
 		return err
 	}

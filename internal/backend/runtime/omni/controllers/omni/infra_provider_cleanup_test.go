@@ -73,7 +73,7 @@ func TestStaticProviderCleanup(t *testing.T) {
 
 	helper := infraProviderCleanupTestHelper{}
 
-	providerID := "infra-provider"
+	providerID := "static-infra-provider"
 	userID := uuid.New().String()
 
 	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
@@ -101,6 +101,59 @@ func TestStaticProviderCleanup(t *testing.T) {
 			assertion.Equal(resource.PhaseTearingDown, r.Metadata().Phase())
 		})
 		rtestutils.AssertNoResource[*infra.MachineStatus](ctx, t, st, infraMachineStatus.Metadata().ID())
+
+		rtestutils.AssertResource[*infra.Provider](ctx, t, st, providerID, func(r *infra.Provider, assertion *assert.Assertions) {
+			assertion.Empty(r.Metadata().Finalizers())
+		})
+
+		require.NoError(t, st.Destroy(ctx, providerMD))
+
+		rtestutils.AssertNoResource[*infra.Provider](ctx, t, st, providerID)
+	})
+}
+
+func TestProvisioningProviderCleanup(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	helper := infraProviderCleanupTestHelper{}
+
+	providerID := "provisioning-infra-provider"
+	userID := uuid.New().String()
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
+		st := testContext.State
+
+		controller := omnictrl.NewInfraProviderCleanupController()
+		helper.prepareProvider(t, ctx, st, providerID, userID, controller.Name())
+
+		require.NoError(t, testContext.Runtime.RegisterController(controller))
+	}, func(ctx context.Context, testContext testutils.TestContext) {
+		st := testContext.State
+		providerMD := infra.NewProvider(providerID).Metadata()
+
+		machineRequestStatus := infra.NewMachineRequestStatus("test-machine-request")
+		machineRequestStatus.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
+
+		machineRequestSet := omni.NewMachineRequestSet(resources.DefaultNamespace, "test-machine-request-set")
+		machineRequestSet.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
+
+		omniOwnedMachineRequestSet := omni.NewMachineRequestSet(resources.DefaultNamespace, "test-machine-request-set-omni-owned")
+		omniOwnedMachineRequestSet.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
+
+		require.NoError(t, st.Create(ctx, machineRequestStatus))
+		require.NoError(t, st.Create(ctx, machineRequestSet))
+		require.NoError(t, st.Create(ctx, omniOwnedMachineRequestSet, state.WithCreateOwner(omnictrl.MachineProvisionControllerName)))
+
+		helper.assertProviderTeardown(t, ctx, st, userID, providerID)
+
+		rtestutils.AssertNoResource[*infra.MachineRequestStatus](ctx, t, st, machineRequestStatus.Metadata().ID())
+		rtestutils.AssertNoResource[*omni.MachineRequestSet](ctx, t, st, machineRequestSet.Metadata().ID())
+		rtestutils.AssertResource[*omni.MachineRequestSet](ctx, t, st, omniOwnedMachineRequestSet.Metadata().ID(), func(r *omni.MachineRequestSet, assertion *assert.Assertions) {
+			assertion.Equal(resource.PhaseRunning, r.Metadata().Phase())
+		})
 
 		rtestutils.AssertResource[*infra.Provider](ctx, t, st, providerID, func(r *infra.Provider, assertion *assert.Assertions) {
 			assertion.Empty(r.Metadata().Finalizers())

@@ -19,6 +19,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -30,6 +31,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 )
 
 type MachineRequestSetStatusSuite struct {
@@ -281,4 +283,102 @@ func TestMachineRequestSetStatusSuite(t *testing.T) {
 	t.Parallel()
 
 	suite.Run(t, new(MachineRequestSetStatusSuite))
+}
+
+func TestInfraProviderDeletion(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	providerID := "infra-provider"
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
+		st := testContext.State
+
+		infraProvider := infra.NewProvider(providerID)
+		require.NoError(t, st.Create(ctx, infraProvider))
+
+		require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewMachineRequestSetStatusController()))
+	}, func(ctx context.Context, testContext testutils.TestContext) {
+		st := testContext.State
+
+		machineRequestSet := omni.NewMachineRequestSet(resources.DefaultNamespace, "test-machine-request-set")
+		machineRequestSet.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
+		machineRequestSet.TypedSpec().Value.MachineCount = 1
+		machineRequestSet.TypedSpec().Value.ProviderId = providerID
+		machineRequestSet.TypedSpec().Value.TalosVersion = "v1.11.4"
+
+		require.NoError(t, st.Create(ctx, machineRequestSet))
+
+		var ids []resource.ID
+
+		err := retry.Constant(time.Second*5).RetryWithContext(ctx, func(ctx context.Context) error {
+			ids = rtestutils.ResourceIDs[*infra.MachineRequest](ctx, t, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
+
+			if len(ids) != int(machineRequestSet.TypedSpec().Value.MachineCount) {
+				return retry.ExpectedErrorf("expected %d requests got %d", machineRequestSet.TypedSpec().Value.MachineCount, len(ids))
+			}
+
+			return nil
+		})
+
+		require.NoError(t, err)
+
+		rtestutils.AssertResources(ctx, t, st, ids, func(r *infra.MachineRequest, assert *assert.Assertions) {
+			l, ok := r.Metadata().Labels().Get(omni.LabelMachineRequestSet)
+
+			assert.True(ok)
+			assert.Equal(l, machineRequestSet.Metadata().ID())
+
+			l, ok = r.Metadata().Labels().Get(omni.LabelInfraProviderID)
+
+			assert.True(ok)
+			assert.Equal(l, machineRequestSet.TypedSpec().Value.ProviderId)
+
+			assert.Equal(machineRequestSet.TypedSpec().Value.TalosVersion, r.TypedSpec().Value.TalosVersion)
+		})
+
+		// simulate infra provider operations
+		machineRequests, err := safe.ReaderListAll[*infra.MachineRequest](ctx, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
+		require.NoError(t, err)
+		require.Equal(t, machineRequests.Len(), int(machineRequestSet.TypedSpec().Value.MachineCount))
+
+		machineRequest := machineRequests.Get(0)
+		machineRequest.Metadata().Finalizers().Add(providerID)
+		require.NoError(t, st.Update(ctx, machineRequest, func(updateOptions *state.UpdateOptions) {
+			updateOptions.Owner = omnictrl.MachineRequestSetStatusControllerName
+		}))
+
+		rtestutils.AssertResources(ctx, t, st, ids, func(r *infra.MachineRequest, assert *assert.Assertions) {
+			require.True(t, r.Metadata().Finalizers().Has(providerID))
+		})
+
+		// tear down machine request set
+		_, err = st.Teardown(ctx, machineRequestSet.Metadata())
+		require.NoError(t, err)
+
+		// assert that all machine requests are tearing down but still has the infra provider finalizer
+		rtestutils.AssertResources[*infra.MachineRequest](ctx, t, st, ids, func(request *infra.MachineRequest, assert *assert.Assertions) {
+			assert.Equal(resource.PhaseTearingDown, request.Metadata().Phase())
+			assert.True(request.Metadata().Finalizers().Has(providerID))
+		})
+
+		// delete infra provider
+		rtestutils.Destroy[*infra.Provider](ctx, t, st, []string{providerID})
+
+		// assert that all machine requests are deleted after infra provider is deleted
+		err = retry.Constant(time.Second*5).RetryWithContext(ctx, func(ctx context.Context) error {
+			ids = rtestutils.ResourceIDs[*infra.MachineRequest](ctx, t, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
+
+			if len(ids) != 0 {
+				return retry.ExpectedErrorf("expected %d requests got %d", 0, len(ids))
+			}
+
+			return nil
+		})
+		require.NoError(t, err)
+
+		require.NoError(t, st.Destroy(ctx, machineRequestSet.Metadata()))
+	})
 }
