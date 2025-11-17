@@ -12,7 +12,7 @@ import { jwtDecode } from 'jwt-decode'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import type { fetchOption } from '@/api/fetch.pb'
+import { b64Encode, type fetchOption } from '@/api/fetch.pb'
 import { Code } from '@/api/google/rpc/code.pb'
 import { AuthService } from '@/api/omni/auth/auth.pb'
 import { withMetadata } from '@/api/options'
@@ -149,13 +149,13 @@ const generatePublicKey = async () => {
   publicKeyId = res.publicKeyId
 
   try {
-    await confirmPublicKey(res.privateKey)
+    await confirmPublicKey(res.keyPair)
   } catch {
     return
   }
 
-  keys.privateKeyArmored.value = res.privateKey
-  keys.publicKeyArmored.value = res.publicKey
+  keys.keyPair.value = res.keyPair
+  keys.keyExpirationTime.value = res.keyExpirationTime
   keys.publicKeyID.value = publicKeyId
 
   identityStorage.identity.value = identity.value.toLowerCase()
@@ -182,7 +182,7 @@ const generatePublicKey = async () => {
 let renewIdToken = false
 const signDetached = useSignDetached()
 
-const confirmPublicKey = async (privateKey?: string) => {
+const confirmPublicKey = async (keyPair?: CryptoKeyPair) => {
   try {
     if (renewIdToken && auth0) {
       renewIdToken = false
@@ -199,8 +199,9 @@ const confirmPublicKey = async (privateKey?: string) => {
 
     const metadata: Record<string, string> = {}
 
-    if (privateKey) {
-      const publicKeyIdSignatureBase64 = await signDetached(publicKeyId, privateKey)
+    if (keyPair) {
+      const array = new Uint8Array(await signDetached(publicKeyId, keyPair))
+      const publicKeyIdSignatureBase64 = b64Encode(array, 0, array.length)
 
       metadata[workloadProxyPublicKeyIdSignatureBase64Cookie] = publicKeyIdSignatureBase64
     }

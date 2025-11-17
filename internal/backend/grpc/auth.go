@@ -163,6 +163,7 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 
 		k.TypedSpec().Value.Confirmed = false
 		k.TypedSpec().Value.PublicKey = pubKey.data
+		k.TypedSpec().Value.Type = pubKey.keyType
 		k.TypedSpec().Value.Expiration = timestamppb.New(pubKey.expiration)
 		k.TypedSpec().Value.Role = string(pubKeyRole)
 		k.TypedSpec().Value.Identity = &specs.Identity{

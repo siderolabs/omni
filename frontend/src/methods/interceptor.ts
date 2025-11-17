@@ -6,6 +6,7 @@ import { getUnixTime } from 'date-fns'
 import fetchIntercept from 'fetch-intercept'
 import { onBeforeMount, onUnmounted, ref } from 'vue'
 
+import { b64Encode } from '@/api/fetch.pb'
 import {
   authHeader,
   PayloadHeaderKey,
@@ -68,8 +69,9 @@ export function useRegisterAPIInterceptor() {
   })
 
   async function generateSignatureHeader(payload: string) {
-    const signature = await signDetached(payload)
-    const fingerprint = (await keys.publicKey.value)?.getFingerprint()
+    const array = new Uint8Array(await signDetached(payload))
+    const signature = b64Encode(array, 0, array.length)
+    const fingerprint = keys.publicKeyID.value
 
     return `${SignatureVersionV1} ${identity.value} ${fingerprint} ${signature}`
   }

@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import '@testing-library/jest-dom/vitest'
+import 'fake-indexeddb/auto'
 
 import { server } from '@msw/server'
 import { cleanup } from '@testing-library/vue'

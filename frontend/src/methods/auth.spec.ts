@@ -13,8 +13,6 @@ import { currentUser, useLogout } from '@/methods/auth'
 import { useIdentity } from '@/methods/identity'
 import { useKeys } from '@/methods/key'
 
-vi.mock('openpgp', () => ({}))
-
 vi.mock('@auth0/auth0-vue', () => ({
   useAuth0: vi.fn(),
 }))
