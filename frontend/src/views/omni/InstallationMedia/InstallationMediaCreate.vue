@@ -32,6 +32,8 @@ export interface FormState {
   hardwareType?: FlowType
   talosVersion?: string
   joinToken?: string
+  machineArch?: 'amd64' | 'arm64'
+  secureBoot?: boolean
 }
 </script>
 

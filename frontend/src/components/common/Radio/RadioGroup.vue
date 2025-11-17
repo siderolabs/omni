@@ -30,7 +30,7 @@ const model = defineModel<T>()
       {{ label }}
     </RadioGroupLabel>
 
-    <div class="flex flex-col items-start gap-1">
+    <div class="flex flex-col items-start gap-4">
       <RadioGroupOption
         v-for="option in options"
         :key="option.label"
@@ -38,9 +38,9 @@ const model = defineModel<T>()
         as="template"
         :value="option.value"
       >
-        <div class="flex cursor-pointer items-center gap-2.5 rounded-md py-2">
+        <div class="flex cursor-pointer items-center gap-2.5 rounded-md">
           <div
-            class="size-3.5 rounded-full border bg-clip-content p-0.5 transition-colors duration-250"
+            class="size-3.5 shrink-0 rounded-full border bg-clip-content p-0.5 transition-colors duration-250"
             :class="
               checked ? 'border-primary-p4 bg-primary-p4' : 'border-naturals-n5 bg-transparent'
             "

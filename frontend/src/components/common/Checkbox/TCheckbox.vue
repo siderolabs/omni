@@ -35,8 +35,11 @@ const checked = defineModel<boolean>({ default: false })
       </TAnimation>
     </div>
 
-    <span v-if="label" class="block flex-1 truncate text-xs text-naturals-n11 select-none">
-      {{ label }}
+    <span
+      v-if="label || $slots.default"
+      class="block flex-1 truncate text-xs text-naturals-n11 select-none"
+    >
+      <slot>{{ label }}</slot>
     </span>
   </label>
 </template>
