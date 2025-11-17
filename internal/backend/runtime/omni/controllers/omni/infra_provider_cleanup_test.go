@@ -7,52 +7,107 @@ package omni_test
 
 import (
 	"context"
+	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
+	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"github.com/siderolabs/omni/client/pkg/access"
+	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 )
 
-type InfraProviderCleanupSuite struct {
-	OmniSuite
-}
+type infraProviderCleanupTestHelper struct{}
 
-func (suite *InfraProviderCleanupSuite) TestCleanup() {
-	require := suite.Require()
-
-	suite.ctx, suite.ctxCancel = context.WithTimeout(suite.ctx, time.Second*10)
-
-	suite.startRuntime()
-
-	controller := omnictrl.NewInfraProviderCleanupController()
-
-	require.NoError(suite.runtime.RegisterController(controller))
-
-	providerID := "infra-provider"
-
+func (c infraProviderCleanupTestHelper) prepareProvider(t *testing.T, ctx context.Context, st state.State, providerID, userID, controllerName string) {
 	provider := infra.NewProvider(providerID)
+	provider.Metadata().Finalizers().Add(controllerName)
+
 	providerStatus := infra.NewProviderStatus(providerID)
 	providerHealthStatus := infra.NewProviderHealthStatus(providerID)
 
-	provider.Metadata().Finalizers().Add(controller.Name())
+	user := auth.NewUser(resources.DefaultNamespace, userID)
+	user.TypedSpec().Value.Role = "Admin"
+	serviceAccount := auth.NewIdentity(resources.DefaultNamespace, providerID+access.InfraProviderServiceAccountNameSuffix)
+	serviceAccount.Metadata().Labels().Set(auth.LabelIdentityTypeServiceAccount, "")
+	serviceAccount.Metadata().Labels().Set(auth.LabelIdentityUserID, userID)
+	serviceAccount.TypedSpec().Value.UserId = userID
+	publicKey := auth.NewPublicKey(resources.DefaultNamespace, "test-public-key")
+	publicKey.Metadata().Labels().Set(auth.LabelIdentityUserID, userID)
 
-	require.NoError(suite.state.Create(suite.ctx, provider))
-	require.NoError(suite.state.Create(suite.ctx, providerStatus))
-	require.NoError(suite.state.Create(suite.ctx, providerHealthStatus))
+	require.NoError(t, st.Create(ctx, provider))
+	require.NoError(t, st.Create(ctx, providerStatus))
+	require.NoError(t, st.Create(ctx, providerHealthStatus))
+	require.NoError(t, st.Create(ctx, user))
+	require.NoError(t, st.Create(ctx, serviceAccount))
+	require.NoError(t, st.Create(ctx, publicKey))
+}
 
-	_, err := suite.state.Teardown(suite.ctx, provider.Metadata())
+func (c infraProviderCleanupTestHelper) assertProviderTeardown(t *testing.T, ctx context.Context, st state.State, userID, providerID string) {
+	providerMD := infra.NewProvider(providerID).Metadata()
+	_, err := st.Teardown(ctx, providerMD)
+	require.NoError(t, err)
 
-	require.NoError(err)
+	rtestutils.AssertNoResource[*infra.ProviderStatus](ctx, t, st, providerID)
+	rtestutils.AssertNoResource[*infra.ProviderHealthStatus](ctx, t, st, providerID)
+	rtestutils.AssertNoResource[*auth.PublicKey](ctx, t, st, "test-public-key")
+	rtestutils.AssertNoResource[*auth.User](ctx, t, st, userID)
+	rtestutils.AssertNoResource[*auth.Identity](ctx, t, st, access.InfraProviderServiceAccountPrefix+providerID)
+}
 
-	assertNoResource(&suite.OmniSuite, providerStatus)
-	assertNoResource(&suite.OmniSuite, providerHealthStatus)
+func TestStaticProviderCleanup(t *testing.T) {
+	t.Parallel()
 
-	assertResource[*omni.Machine](&suite.OmniSuite, provider.Metadata(), func(r *omni.Machine, assertion *assert.Assertions) {
-		assertion.Empty(r.Metadata().Finalizers())
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	helper := infraProviderCleanupTestHelper{}
+
+	providerID := "infra-provider"
+	userID := uuid.New().String()
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
+		st := testContext.State
+
+		controller := omnictrl.NewInfraProviderCleanupController()
+		helper.prepareProvider(t, ctx, st, providerID, userID, controller.Name())
+
+		require.NoError(t, testContext.Runtime.RegisterController(controller))
+	}, func(ctx context.Context, testContext testutils.TestContext) {
+		st := testContext.State
+		providerMD := infra.NewProvider(providerID).Metadata()
+
+		link := siderolink.NewLink(resources.DefaultNamespace, "test-machine", nil)
+		link.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
+		infraMachineStatus := infra.NewMachineStatus(link.Metadata().ID())
+		infraMachineStatus.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
+
+		require.NoError(t, st.Create(ctx, link))
+		require.NoError(t, st.Create(ctx, infraMachineStatus))
+
+		helper.assertProviderTeardown(t, ctx, st, userID, providerID)
+
+		rtestutils.AssertResource[*siderolink.Link](ctx, t, st, link.Metadata().ID(), func(r *siderolink.Link, assertion *assert.Assertions) {
+			assertion.Equal(resource.PhaseTearingDown, r.Metadata().Phase())
+		})
+		rtestutils.AssertNoResource[*infra.MachineStatus](ctx, t, st, infraMachineStatus.Metadata().ID())
+
+		rtestutils.AssertResource[*infra.Provider](ctx, t, st, providerID, func(r *infra.Provider, assertion *assert.Assertions) {
+			assertion.Empty(r.Metadata().Finalizers())
+		})
+
+		require.NoError(t, st.Destroy(ctx, providerMD))
+
+		rtestutils.AssertNoResource[*infra.Provider](ctx, t, st, providerID)
 	})
-
-	require.NoError(suite.state.Destroy(suite.ctx, provider.Metadata()))
 }

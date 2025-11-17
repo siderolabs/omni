@@ -66,12 +66,12 @@ func (h *Handler[I, O]) Outputs() []controller.Output {
 
 	var zeroOut O
 
-	return []controller.Output{
+	return append(h.options.ExtraOutputs, []controller.Output{
 		{
 			Type: zeroOut.ResourceDefinition().Type,
 			Kind: controller.OutputShared,
 		},
-	}
+	}...)
 }
 
 func NewHandler[I, O generic.ResourceWithRD](handleFunc HandlerFunc[I], options HandlerOptions) *Handler[I, O] {
