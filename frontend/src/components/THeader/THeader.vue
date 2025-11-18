@@ -10,7 +10,7 @@ import { computedAsync } from '@vueuse/core'
 import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import OngoingTasks from '@/components/common/OngoingTasks/OngoingTasks.vue'
-import { useDocsLink } from '@/methods'
+import { getDocsLink } from '@/methods'
 import { hasValidKeys } from '@/methods/key'
 
 interface Props {
@@ -20,7 +20,7 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const docsLink = useDocsLink('omni')
+const docsLink = getDocsLink('omni')
 
 // Used to prevent sub-queries being fired before keys are created
 const authorized = computedAsync(async () => await hasValidKeys())

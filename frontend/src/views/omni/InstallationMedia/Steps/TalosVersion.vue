@@ -20,7 +20,7 @@ import {
 } from '@/api/resources'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import { useWatch } from '@/components/common/Watch/useWatch'
-import { useDocsLink } from '@/methods'
+import { getDocsLink } from '@/methods'
 import { useFeatures } from '@/methods/features'
 import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
 
@@ -57,12 +57,17 @@ const joinTokens = computed(() => joinTokenList.value.map((t) => t.metadata.id!)
 onBeforeMount(() => (formState.value.talosVersion ??= DefaultTalosVersion))
 watchOnce(joinTokens, (v) => (formState.value.joinToken ??= v[0]))
 
-const whatsNewDocsLink = useDocsLink('talos', "/getting-started/what's-new-in-talos", () => ({
-  talosVersion: formState.value.talosVersion,
-}))
-const k8sSupportMatrixDocsLink = useDocsLink('talos', '/getting-started/support-matrix', () => ({
-  talosVersion: formState.value.talosVersion,
-}))
+const whatsNewDocsLink = computed(() =>
+  getDocsLink('talos', "/getting-started/what's-new-in-talos", {
+    talosVersion: formState.value.talosVersion,
+  }),
+)
+
+const k8sSupportMatrixDocsLink = computed(() =>
+  getDocsLink('talos', '/getting-started/support-matrix', {
+    talosVersion: formState.value.talosVersion,
+  }),
+)
 </script>
 
 <template>

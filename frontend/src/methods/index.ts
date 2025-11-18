@@ -4,8 +4,8 @@
 // included in the LICENSE file.
 import type { Node as V1Node } from 'kubernetes-types/core/v1'
 import { coerce } from 'semver'
-import type { ComputedRef, MaybeRefOrGetter, Ref } from 'vue'
-import { computed, ref, toValue, watchEffect } from 'vue'
+import type { ComputedRef, Ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { fetchOption } from '@/api/fetch.pb'
@@ -212,43 +212,31 @@ export const downloadMachineJoinConfig = async (
 
 type DocsType = 'talos' | 'omni' | 'k8s'
 
-export function useDocsLink(
+export function getDocsLink(
   type: 'talos',
   path?: string,
-  options?: MaybeRefOrGetter<{ talosVersion?: string }>,
-): Ref<string>
-export function useDocsLink(type: 'omni', path?: string): Ref<string>
-export function useDocsLink(type: 'k8s', path?: string): Ref<string>
-export function useDocsLink(
-  type: DocsType,
-  path?: string,
-  options?: MaybeRefOrGetter<{ talosVersion?: string }>,
-) {
-  const link = ref('')
+  options?: { talosVersion?: string },
+): string
+export function getDocsLink(type: 'omni', path?: string): string
+export function getDocsLink(type: 'k8s', path?: string): string
+export function getDocsLink(type: DocsType, path?: string, options?: { talosVersion?: string }) {
+  const parts = [getDocsBasePath(type)]
 
-  watchEffect(() => {
-    const parts = [getDocsBasePath(type)]
+  if (type === 'talos') {
+    const talosVersion = options?.talosVersion || DefaultTalosVersion
 
-    if (type === 'talos') {
-      const talosVersion = options
-        ? toValue(options).talosVersion || DefaultTalosVersion
-        : DefaultTalosVersion
+    const parsed = coerce(talosVersion)
+    if (!parsed) throw new Error(`Failed to parse talos version "${talosVersion}"`)
 
-      const parsed = coerce(talosVersion)
-      if (!parsed) throw new Error(`Failed to parse talos version "${talosVersion}"`)
+    const { major, minor } = parsed
+    parts.push(`v${major}.${minor}`)
+  }
 
-      const { major, minor } = parsed
-      parts.push(`v${major}.${minor}`)
-    }
+  if (path) {
+    parts.push(path.replace(/^\//, ''))
+  }
 
-    if (path) {
-      parts.push(path.replace(/^\//, ''))
-    }
-
-    link.value = parts.join('/')
-  })
-
-  return link
+  return parts.join('/')
 }
 
 function getDocsBasePath(type: DocsType) {

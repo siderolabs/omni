@@ -34,6 +34,8 @@ export interface FormState {
   joinToken?: string
   machineArch?: 'amd64' | 'arm64'
   secureBoot?: boolean
+  cloudPlatform?: string
+  sbcType?: string
 }
 </script>
 
@@ -72,16 +74,14 @@ const stepCount = computed(() => currentFlowSteps.value?.length ?? 0)
 
 <template>
   <div class="flex h-full flex-col">
-    <div class="p-6">
+    <div class="grow overflow-auto p-6">
       <h1 class="mb-6 text-xl font-medium text-naturals-n14">Create New Media</h1>
 
       <component :is="currentStepComponent" v-model="formState" />
     </div>
 
-    <div class="shrink grow"></div>
-
     <div
-      class="flex w-full items-center gap-4 border-t border-naturals-n4 bg-naturals-n1 px-4 max-md:flex-col max-md:p-4 md:h-16 md:justify-end"
+      class="flex w-full shrink-0 items-center gap-4 border-t border-naturals-n4 bg-naturals-n1 px-4 max-md:flex-col max-md:p-4 md:h-16 md:justify-end"
     >
       <Stepper
         v-if="currentFlowSteps && formState.currentStep > 0"

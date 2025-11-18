@@ -5,18 +5,20 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import RadioGroup from '@/components/common/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/common/Radio/RadioGroupOption.vue'
-import { useDocsLink } from '@/methods'
+import { getDocsLink } from '@/methods'
 import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
 
 const formState = defineModel<FormState>({ required: true })
 
-const secureBootDocsLink = useDocsLink(
-  'talos',
-  '/platform-specific-installations/bare-metal-platforms',
-  () => ({ talosVersion: formState.value.talosVersion }),
+const secureBootDocsLink = computed(() =>
+  getDocsLink('talos', '/platform-specific-installations/bare-metal-platforms', {
+    talosVersion: formState.value.talosVersion,
+  }),
 )
 </script>
 

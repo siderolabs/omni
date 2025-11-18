@@ -26,7 +26,7 @@ import TList from '@/components/common/List/TList.vue'
 import TListItem from '@/components/common/List/TListItem.vue'
 import Watch from '@/components/common/Watch/Watch.vue'
 import TAlert from '@/components/TAlert.vue'
-import { formatBytes, useDocsLink } from '@/methods'
+import { formatBytes, getDocsLink } from '@/methods'
 import { canManageBackupStore } from '@/methods/auth'
 import { formatISO } from '@/methods/time'
 
@@ -72,8 +72,8 @@ const watchOpts = computed(() => {
   }
 })
 
-const docsLink = useDocsLink('omni', '/how-to-guides/etcd-backups#s3-configuration')
-const openDocs = () => window.open(docsLink.value, '_blank')?.focus()
+const docsLink = getDocsLink('omni', '/how-to-guides/etcd-backups#s3-configuration')
+const openDocs = () => window.open(docsLink, '_blank')?.focus()
 </script>
 
 <template>

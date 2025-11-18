@@ -34,7 +34,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import StatsItem from '@/components/common/Stats/StatsItem.vue'
 import { useWatch } from '@/components/common/Watch/useWatch'
 import TAlert from '@/components/TAlert.vue'
-import { useDocsLink } from '@/methods'
+import { getDocsLink } from '@/methods'
 import type { Label } from '@/methods/labels'
 import { addLabel, selectors as labelsToSelectors } from '@/methods/labels'
 import { MachineFilterOption } from '@/methods/machine'
@@ -107,8 +107,8 @@ const sortOptions = [
 const filterLabels = ref<Label[]>([])
 const filterValue = ref('')
 
-const docsLink = useDocsLink('omni', '/explanation/infrastructure-providers')
-const openDocs = () => window.open(docsLink.value, '_blank')?.focus()
+const docsLink = getDocsLink('omni', '/explanation/infrastructure-providers')
+const openDocs = () => window.open(docsLink, '_blank')?.focus()
 
 const { data: machineStatusMetrics } = useWatch<MachineStatusMetricsSpec>({
   resource: {

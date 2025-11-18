@@ -30,7 +30,7 @@ import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import { useWatch } from '@/components/common/Watch/useWatch'
-import { useDocsLink } from '@/methods'
+import { getDocsLink } from '@/methods'
 import { upgradeKubernetes } from '@/methods/cluster'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
@@ -139,9 +139,11 @@ function isVersionUpgradeable(version: string) {
   return supportedK8sVersions.value.includes(version)
 }
 
-const k8sSupportMatrixDocsLink = useDocsLink('talos', '/getting-started/support-matrix', () => ({
-  talosVersion: cluster.value?.spec.talos_version,
-}))
+const k8sSupportMatrixDocsLink = computed(() =>
+  getDocsLink('talos', '/getting-started/support-matrix', {
+    talosVersion: cluster.value?.spec.talos_version,
+  }),
+)
 
 const action = computed(() => {
   if (!status.value) {
