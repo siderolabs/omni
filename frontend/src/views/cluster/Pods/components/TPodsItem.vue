@@ -7,109 +7,112 @@ included in the LICENSE file.
 <script setup lang="ts">
 import type { Pod as V1Pod } from 'kubernetes-types/core/v1'
 import { DateTime } from 'luxon'
-import { computed, ref, toRefs } from 'vue'
+import { computed, ref } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'
 
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import TSlideDownWrapper from '@/components/common/SlideDownWrapper/TSlideDownWrapper.vue'
 import TStatus from '@/components/common/Status/TStatus.vue'
 
-type Props = {
+const { item } = defineProps<{
   searchOption: string
   item: V1Pod
-}
-
-const props = defineProps<Props>()
-
-const { item } = toRefs(props)
+}>()
 
 const isDropdownOpened = ref(false)
 
 const readyContainers = computed(() =>
-  item.value?.status?.containerStatuses?.filter((item: any) => item?.ready === true),
+  item.status?.containerStatuses?.filter((item) => item?.ready),
 )
 
 const restartCount = computed(() =>
-  item.value?.status?.containerStatuses?.reduce((amount, reducer: any) => {
-    return amount + reducer.restartCount
-  }, 0),
+  item.status?.containerStatuses?.reduce((amount, reducer) => amount + reducer.restartCount, 0),
 )
 
-const getAge = (age: string) => {
-  const currentDate = DateTime.now()
-  const currentAge = DateTime.fromISO(age)
-
-  return currentDate.diff(currentAge, ['days', 'hours', 'minutes']).toFormat("dd'd' hh'h' mm'm'")
-}
+const getAge = (age: string) =>
+  DateTime.now()
+    .diff(DateTime.fromISO(age), ['days', 'hours', 'minutes'])
+    .toFormat("dd'd' hh'h' mm'm'")
 </script>
 
 <template>
-  <div class="row" :class="{ opened: isDropdownOpened }">
-    <ul class="row-wrapper">
-      <li class="row-item">
+  <div
+    class="relative mb-1 flex w-full min-w-md flex-col border py-4.75 pr-3.5 pl-2 transition-all duration-500"
+    :class="
+      isDropdownOpened
+        ? 'rounded border-naturals-n5'
+        : 'rounded-t-sm border-transparent border-b-naturals-n5 last-of-type:border-b-transparent'
+    "
+  >
+    <ul class="flex w-full items-center justify-start">
+      <li class="flex w-1/6 items-center text-xs text-naturals-n13">
         <TIcon
-          class="row-arrow"
-          :class="{ 'row-arrow-right--pushed': isDropdownOpened }"
+          class="mr-1 size-6 cursor-pointer rounded fill-current text-naturals-n11 transition-all duration-300 hover:bg-naturals-n7"
+          :class="isDropdownOpened && '-rotate-180'"
           icon="drop-up"
-          @click="() => (isDropdownOpened = !isDropdownOpened)"
+          @click="isDropdownOpened = !isDropdownOpened"
         />
-        <span>
-          <WordHighlighter
-            :query="searchOption"
-            :text-to-highlight="item.metadata?.namespace"
-            highlight-class="bg-naturals-n14"
-          />
-        </span>
+
+        <WordHighlighter
+          :query="searchOption"
+          :text-to-highlight="item.metadata?.namespace"
+          highlight-class="bg-naturals-n14"
+        />
       </li>
-      <li class="row-item">
+
+      <li class="flex w-1/3 items-center text-xs text-naturals-n13">
         <WordHighlighter
           :query="searchOption"
           :text-to-highlight="item.metadata?.name"
           highlight-class="bg-naturals-n14"
         />
       </li>
-      <li class="row-item">
+
+      <li class="flex w-1/6 items-center text-xs text-naturals-n13">
         <TStatus :title="item.status?.phase" />
       </li>
-      <li class="row-item row-item--spaced">
-        <span>
-          <WordHighlighter
-            :query="searchOption"
-            :text-to-highlight="item.spec?.nodeName"
-            highlight-class="bg-naturals-n14"
-          />
-        </span>
+
+      <li class="flex w-1/3 items-center justify-between text-xs text-naturals-n13">
+        <WordHighlighter
+          :query="searchOption"
+          :text-to-highlight="item.spec?.nodeName"
+          highlight-class="bg-naturals-n14"
+        />
       </li>
     </ul>
 
-    <TSlideDownWrapper :expanded="isDropdownOpened">
-      <div class="row-info-box">
-        <div class="row-info-item">
-          <p class="row-info-title">Restarts</p>
-          <p class="row-info-value">{{ restartCount }}</p>
+    <TSlideDownWrapper :expanded="isDropdownOpened" class="text-xs text-naturals-n12">
+      <div class="flex items-center pt-6.5">
+        <div class="flex w-1/6 flex-col gap-1.75 pl-7">
+          <p>Restarts</p>
+          <p class="text-naturals-n13">{{ restartCount }}</p>
         </div>
-        <div class="row-info-item">
-          <p class="row-info-title">Ready Containers</p>
-          <p class="row-info-value">{{ readyContainers?.length }}</p>
+
+        <div class="flex w-1/3 flex-col gap-1.75">
+          <p>Ready Containers</p>
+          <p class="text-naturals-n13">{{ readyContainers?.length }}</p>
         </div>
-        <div class="row-info-item">
-          <p class="row-info-title">Age</p>
-          <p class="row-info-value">
-            {{ item.status?.startTime ? getAge(String(item.status?.startTime)) : '' }}
+
+        <div class="flex w-1/6 flex-col gap-1.75">
+          <p>Age</p>
+          <p class="text-naturals-n13">
+            {{ item.status?.startTime ? getAge(item.status.startTime) : '' }}
           </p>
         </div>
-        <div class="row-info-item">
-          <p class="row-info-title">Pod IP</p>
-          <p class="row-info-value">{{ item.status?.podIP }}</p>
+
+        <div class="flex w-1/6 flex-col gap-1.75">
+          <p>Pod IP</p>
+          <p class="text-naturals-n13">{{ item.status?.podIP }}</p>
         </div>
       </div>
-      <div class="mt-5 flex flex-col gap-2 px-7">
-        <div class="row-info-title font-bold">Containers</div>
+
+      <div class="mt-5 flex flex-col gap-3.75 px-7">
+        <div class="font-bold">Containers</div>
         <div class="flex flex-wrap gap-2">
           <div
             v-for="container in item.spec?.containers"
             :key="container.name"
-            class="rounded bg-naturals-n4 p-1 px-2 text-xs text-naturals-n12"
+            class="rounded bg-naturals-n4 p-1 px-2"
           >
             {{ container.image }}
           </div>
@@ -118,126 +121,3 @@ const getAge = (age: string) => {
     </TSlideDownWrapper>
   </div>
 </template>
-
-<style scoped>
-@reference "../../../../index.css";
-
-.row {
-  @apply relative mb-1 flex w-full flex-col border border-b border-solid border-transparent border-b-naturals-n5 transition-all duration-500;
-  min-width: 450px;
-  padding: 19px 14px 19px 8px;
-  border-radius: 4px 4px 0 0;
-}
-
-.row:last-of-type {
-  @apply border-b-transparent;
-}
-.opened {
-  @apply rounded border-naturals-n5;
-}
-
-.opened:last-of-type {
-  @apply border-b border-solid border-naturals-n6;
-}
-.row-wrapper {
-  @apply flex w-full items-center justify-start;
-}
-
-.row-item {
-  @apply flex items-center text-xs text-naturals-n13;
-}
-.row-item:nth-child(1) {
-  width: 18.1%;
-}
-.row-item:nth-child(2) {
-  width: 32.1%;
-}
-.row-item:nth-child(3) {
-  width: 16.5%;
-}
-.row-item:nth-child(4) {
-  width: 33%;
-}
-.row-item--spaced {
-  @apply flex justify-between;
-}
-.row-arrow {
-  @apply mr-1 cursor-pointer rounded fill-current text-naturals-n11 transition-all duration-300 hover:bg-naturals-n7;
-  transform: rotate(-180deg);
-  width: 24px;
-  height: 24px;
-}
-.row-arrow-right--pushed {
-  transform: rotate(0deg);
-}
-.row-action-box {
-  @apply absolute right-4;
-}
-.row-box-actions-item {
-  @apply flex w-full cursor-pointer items-center;
-  padding: 17px 14px;
-}
-.row-box-actions-item:first-of-type {
-  padding: 17px 14px 6.5px 14px;
-}
-.row-box-actions-item:last-of-type {
-  @apply border-t border-naturals-n4;
-}
-.row-actions-item-icon {
-  @apply h-4 w-4 fill-current transition-colors;
-  margin-right: 6px;
-}
-.row-actions-item-icon--delete {
-  @apply text-red-r1;
-}
-.row-actions-item-text {
-  @apply text-xs transition-colors;
-}
-.row-actions-item-text--delete {
-  @apply text-red-r1;
-}
-
-.row-box-actions-item:hover .row-actions-item-icon {
-  @apply text-naturals-n12;
-}
-.row-box-actions-item:hover .row-actions-item-text {
-  @apply text-naturals-n12;
-}
-.row-box-actions-item:hover .row-actions-item-icon--delete {
-  @apply text-red-600;
-}
-.row-box-actions-item:hover .row-actions-item-text--delete {
-  @apply text-red-600;
-}
-.row-info-box {
-  @apply flex items-center;
-  padding-top: 26px;
-}
-.row-info-item {
-  @apply flex flex-col text-xs text-naturals-n13;
-}
-.row-info-item:nth-child(1) {
-  width: 18.1%;
-  padding-left: 28px;
-}
-.row-info-item:nth-child(2) {
-  width: 32.1%;
-}
-.row-info-item:nth-child(3) {
-  width: 16.5%;
-}
-.row-info-item:nth-child(4) {
-  width: 33%;
-}
-.row-info-title {
-  @apply text-xs text-naturals-n12;
-  margin-bottom: 7px;
-}
-.row-info-value {
-  @apply text-xs;
-}
-.box-actions-list {
-  @apply z-20 flex flex-col items-start justify-center rounded border border-naturals-n4 bg-naturals-n3;
-  min-width: 161px;
-}
-</style>

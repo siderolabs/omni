@@ -5,88 +5,93 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { ref } from 'vue'
+import type { PodSpec as V1PodSpec, PodStatus as V1PodStatus } from 'kubernetes-types/core/v1'
+import { computed, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { kubernetes } from '@/api/resources'
 import PageHeader from '@/components/common/PageHeader.vue'
+import TPagination from '@/components/common/Pagination/TPagination.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
-import Watch from '@/components/common/Watch/Watch.vue'
+import { useWatch } from '@/components/common/Watch/useWatch'
+import TAlert from '@/components/TAlert.vue'
 import { TPodsViewFilterOptions } from '@/constants'
 import { getContext } from '@/context'
-import TPodsList from '@/views/cluster/Pods/components/TPodsList.vue'
+import TPodsItem from '@/views/cluster/Pods/components/TPodsItem.vue'
 
 const context = getContext()
 const filterOption = ref(TPodsViewFilterOptions.ALL)
-const inputValue = ref('')
+const searchOption = ref('')
 
-const setFilterOption = (data: TPodsViewFilterOptions) => {
-  filterOption.value = data
-}
+const filterOptions = Object.values(TPodsViewFilterOptions)
 
-const filterOptions = Object.keys(TPodsViewFilterOptions).map((key) => TPodsViewFilterOptions[key])
+const {
+  data: items,
+  loading,
+  err,
+} = useWatch<V1PodSpec, V1PodStatus>({
+  resource: { type: kubernetes.pod },
+  runtime: Runtime.Kubernetes,
+  context,
+})
+
+const filteredItems = computed(() =>
+  items.value.filter(({ spec, metadata, status }) => {
+    if (filterOption.value !== TPodsViewFilterOptions.ALL && status?.phase !== filterOption.value) {
+      return false
+    }
+
+    if (!searchOption.value) return true
+
+    return [metadata.name, metadata.namespace, spec.nodeName]
+      .filter((o) => typeof o === 'string')
+      .some((o) => o.includes(searchOption.value))
+  }),
+)
 </script>
 
 <template>
   <div class="flex flex-col">
     <PageHeader title="All Pods" />
-    <Watch
-      :opts="{ resource: { type: kubernetes.pod }, runtime: Runtime.Kubernetes, context }"
-      no-records-alert
-      errors-alert
-      spinner
-    >
-      <template #default="{ data }">
-        <div class="pods">
-          <div class="pods__search-box">
-            <TInput v-model="inputValue" secondary placeholder="Search..." />
-            <TSelectList
-              title="Phase"
-              :default-value="TPodsViewFilterOptions.ALL"
-              :values="filterOptions"
-              @checked-value="setFilterOption"
+
+    <TSpinner v-if="loading" class="size-6 self-center" />
+    <TAlert v-else-if="err" title="Failed to Fetch Data" type="error">{{ err }}.</TAlert>
+    <TAlert v-else-if="!items.length" type="info" title="No Records">
+      No entries of the requested resource type are found on the server.
+    </TAlert>
+
+    <div v-else class="pt-2">
+      <div class="mb-3 flex justify-between">
+        <TInput v-model="searchOption" secondary placeholder="Search..." />
+        <TSelectList
+          title="Phase"
+          :default-value="TPodsViewFilterOptions.ALL"
+          :values="filterOptions"
+          @checked-value="filterOption = $event"
+        />
+      </div>
+
+      <ul class="mb-1 flex rounded bg-naturals-n2 px-8 py-2.5 text-xs text-naturals-n13">
+        <li class="w-1/6">Namespace</li>
+        <li class="w-1/3">Name</li>
+        <li class="w-1/6">Phase</li>
+        <li class="w-1/3">Node</li>
+      </ul>
+
+      <TPagination :items="filteredItems" :per-page="9" :search-option="searchOption">
+        <template #default="{ paginatedItems }">
+          <div>
+            <TPodsItem
+              v-for="(item, idx) in paginatedItems"
+              :key="`${item.metadata.namespace}/${item.metadata.name || idx}`"
+              :search-option="searchOption"
+              :item="item"
             />
           </div>
-          <ul class="pods__table-heading">
-            <li class="pods__row-name">Namespace</li>
-            <li class="pods__row-name">Name</li>
-            <li class="pods__row-name">Phase</li>
-            <li class="pods__row-name">Node</li>
-          </ul>
-          <TPodsList :items="data" :filter-option="filterOption" :search-option="inputValue" />
-        </div>
-      </template>
-    </Watch>
+        </template>
+      </TPagination>
+    </div>
   </div>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.pods {
-  @apply flex h-full flex-col pt-2;
-}
-.pods__search-box {
-  @apply mb-3 flex justify-between;
-}
-.pods__table-heading {
-  @apply mb-1 flex w-full items-center justify-between rounded bg-naturals-n2;
-  padding: 10px 33px;
-}
-.pods__row-name {
-  @apply text-xs text-naturals-n13;
-}
-.pods__row-name:nth-child(1) {
-  width: 17%;
-}
-.pods__row-name:nth-child(2) {
-  width: 33%;
-}
-.pods__row-name:nth-child(3) {
-  width: 17%;
-}
-.pods__row-name:nth-child(4) {
-  width: 33%;
-}
-</style>

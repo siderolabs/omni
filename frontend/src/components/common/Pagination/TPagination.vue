@@ -4,13 +4,13 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<script setup lang="ts">
+<script setup lang="ts" generic="T = unknown">
 import { computed, ref, toRefs, watch } from 'vue'
 
 import TIcon from '@/components/common/Icon/TIcon.vue'
 
 type Props = {
-  items: any[]
+  items: T[]
   perPage?: number
   searchOption: string
 }
