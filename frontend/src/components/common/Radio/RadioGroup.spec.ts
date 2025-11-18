@@ -7,6 +7,7 @@ import { render, screen, waitFor } from '@testing-library/vue'
 import { expect, test } from 'vitest'
 
 import RadioGroup from './RadioGroup.vue'
+import RadioGroupOption from './RadioGroupOption.vue'
 
 const options = Array(5)
   .fill(null)
@@ -22,7 +23,24 @@ test('allows selection', async () => {
   render(RadioGroup, {
     props: {
       label: 'My radio',
-      options,
+    },
+    global: {
+      components: { RadioGroupOption },
+    },
+    slots: {
+      default: options
+        .map(
+          (option) => `
+          <RadioGroupOption value="${option.value}">
+            ${option.label}
+
+            <template #description>
+              ${option.description}
+            </template>
+          </RadioGroupOption>
+        `,
+        )
+        .join(''),
     },
   })
 

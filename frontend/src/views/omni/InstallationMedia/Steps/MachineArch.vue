@@ -7,6 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import RadioGroup from '@/components/common/Radio/RadioGroup.vue'
+import RadioGroupOption from '@/components/common/Radio/RadioGroupOption.vue'
 import { useDocsLink } from '@/methods'
 import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
 
@@ -21,25 +22,25 @@ const secureBootDocsLink = useDocsLink(
 
 <template>
   <div class="flex flex-col gap-4">
-    <RadioGroup
-      v-model="formState.machineArch"
-      label="Machine Architecture"
-      :options="
-        [
-          {
-            label: 'amd64',
-            description:
-              'Compatible with Intel and AMD CPUs, also referred to as x86_64. If unsure, select this option.',
-            value: 'amd64',
-          },
-          {
-            label: 'arm64',
-            description: `Suitable for Ampere Computing and other arm64 CPUs. For Single Board Computers, choose the 'SBC' option on the first screen. For AWS and GCP arm64 VMs, use Cloud images.`,
-            value: 'arm64',
-          },
-        ] satisfies { [key: string]: any; value: typeof formState.machineArch }[]
-      "
-    />
+    <RadioGroup v-model="formState.machineArch" label="Machine Architecture">
+      <RadioGroupOption value="amd64">
+        amd64
+
+        <template #description>
+          Compatible with Intel and AMD CPUs, also referred to as x86_64. If unsure, select this
+          option.
+        </template>
+      </RadioGroupOption>
+
+      <RadioGroupOption value="arm64">
+        arm64
+
+        <template #description>
+          Suitable for Ampere Computing and other arm64 CPUs. For Single Board Computers, choose the
+          'SBC' option on the first screen. For AWS and GCP arm64 VMs, use Cloud images.
+        </template>
+      </RadioGroupOption>
+    </RadioGroup>
 
     <TCheckbox v-if="formState.hardwareType !== 'cloud'" v-model="formState.secureBoot">
       <div class="flex flex-col">
