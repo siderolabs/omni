@@ -154,7 +154,10 @@ const factoryDownloadUrl = computed(() => {
 })
 
 const talosVersions = computed(() =>
-  talosVersionsResources.value?.map((res) => res.metadata.id!).sort(semver.compare),
+  talosVersionsResources.value
+    ?.filter((res) => !res.spec.deprecated)
+    .map((res) => res.metadata.id!)
+    .sort(semver.compare),
 )
 
 const selectedOption = ref('')
