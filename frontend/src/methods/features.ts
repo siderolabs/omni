@@ -64,7 +64,9 @@ export const initializeUserPilot = async (user: Resource<CurrentUserSpec>) => {
       return
     }
 
-    Userpilot.initialize(token)
+    const nonce = document.querySelector<HTMLMetaElement>("meta[name='csp-nonce']")?.content
+
+    Userpilot.initialize(token, { nonce })
 
     userPilotInitialized = true
   }
