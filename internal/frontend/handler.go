@@ -7,9 +7,10 @@
 package frontend
 
 import (
-	"bytes"
+	"crypto/rand"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
 	"io/fs"
 	"net/http"
@@ -18,6 +19,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/jxskiss/base62"
 )
 
 const index = "/index.html"
@@ -148,10 +151,20 @@ func (handler *StaticHandler) serveFile(w http.ResponseWriter, r *http.Request, 
 				return
 			}
 
-			// Inject nonce into index.html
-			content = bytes.ReplaceAll(content, []byte("__NONCE__"), []byte(nonce))
+			tmpl, err := template.New("index.html").Parse(string(content))
+			if err != nil {
+				writeHTTPError(w, err)
 
-			http.ServeContent(w, r, file.Name(), handler.modTime, bytes.NewReader(content))
+				return
+			}
+
+			// Inject nonce into index.html
+			err = tmpl.Execute(w, struct{ Nonce string }{Nonce: nonce})
+			if err != nil {
+				writeHTTPError(w, err)
+
+				return
+			}
 		}
 
 		return
