@@ -5,6 +5,7 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 
 import InstallationMediaCreate from './InstallationMediaCreate.vue'
+import * as SystemExtensionsStories from './Steps/SystemExtensions.stories'
 import * as TalosVersionStories from './Steps/TalosVersion.stories'
 
 const meta: Meta<typeof InstallationMediaCreate> = {
@@ -23,7 +24,10 @@ type Story = StoryObj<typeof meta>
 export const Default: Story = {
   parameters: {
     msw: {
-      handlers: [...TalosVersionStories.Default.parameters.msw.handlers],
+      handlers: [
+        ...TalosVersionStories.Default.parameters.msw.handlers,
+        ...SystemExtensionsStories.Default.parameters.msw.handlers,
+      ],
     },
   },
 }

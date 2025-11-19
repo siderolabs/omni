@@ -36,6 +36,7 @@ export interface FormState {
   secureBoot?: boolean
   cloudPlatform?: string
   sbcType?: string
+  systemExtensions?: string[]
 }
 </script>
 
@@ -74,8 +75,8 @@ const stepCount = computed(() => currentFlowSteps.value?.length ?? 0)
 
 <template>
   <div class="flex h-full flex-col">
-    <div class="grow overflow-auto p-6">
-      <h1 class="mb-6 text-xl font-medium text-naturals-n14">Create New Media</h1>
+    <div class="flex grow flex-col gap-6 overflow-auto p-6">
+      <h1 class="shrink-0 text-xl font-medium text-naturals-n14">Create New Media</h1>
 
       <component :is="currentStepComponent" v-model="formState" />
     </div>
