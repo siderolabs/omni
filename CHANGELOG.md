@@ -1,3 +1,40 @@
+## [Omni 1.3.3](https://github.com/siderolabs/omni/releases/tag/v1.3.3) (2025-11-20)
+
+Welcome to the v1.3.3 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Edward Sammut Alessi
+* Utku Ozdemir
+* Artem Chernyshev
+* Oguz Kilcan
+
+### Changes
+<details><summary>8 commits</summary>
+<p>
+
+* [`ef68e7db`](https://github.com/siderolabs/omni/commit/ef68e7db63fb0c6ff2bb7fcf18564cb55f5c6474) test: pick UKI and non-UKI machines correctly
+* [`1e6843f7`](https://github.com/siderolabs/omni/commit/1e6843f79434bc1614118ed741afa8f9f6c78183) test: remove nonce CSP header test
+* [`85bf6a6d`](https://github.com/siderolabs/omni/commit/85bf6a6d216d51480ebbe9651ee72d8ba8dabeda) fix: do not allow downloading deprecated Talos versions in the UI
+* [`8fa28e76`](https://github.com/siderolabs/omni/commit/8fa28e76e5a718ea59aed28e4be8928895c1e32b) refactor: use template instead of bytes replace for nonce
+* [`f648ba20`](https://github.com/siderolabs/omni/commit/f648ba2052fc451424b937019bba9e1d18187abe) fix: add nonce for userpilot scripts
+* [`145a3ae5`](https://github.com/siderolabs/omni/commit/145a3ae55c273348f1f917a6c8ed75b3ea46d954) fix(frontend): keep use_embedded_discovery_service state when scaling
+* [`1b92fd1e`](https://github.com/siderolabs/omni/commit/1b92fd1e4cbf8bf59ad4b6cbe89770cf65e37010) fix: fix typos across the project
+* [`ef9c9861`](https://github.com/siderolabs/omni/commit/ef9c986145909e5240da3df520a51fad77570fc6) fix: do not clear schematic meta values for non-UKI machines
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.3.2](https://github.com/siderolabs/omni/releases/tag/v1.3.2)
+
 ## [Omni 1.3.2](https://github.com/siderolabs/omni/releases/tag/v1.3.2) (2025-11-14)
 
 Welcome to the v1.3.2 release of Omni!
