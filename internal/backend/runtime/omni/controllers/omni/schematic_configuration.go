@@ -53,10 +53,10 @@ func NewSchematicConfigurationController(imageFactoryClient ImageFactoryClient) 
 			UnmapMetadataFunc: func(schematicConfiguration *omni.SchematicConfiguration) *omni.MachineStatus {
 				return omni.NewMachineStatus(resources.DefaultNamespace, schematicConfiguration.Metadata().ID())
 			},
-			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger,
+			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger,
 				machineStatus *omni.MachineStatus, schematicConfiguration *omni.SchematicConfiguration,
 			) error {
-				status, err := helper.reconcile(ctx, r, machineStatus, schematicConfiguration)
+				status, err := helper.reconcile(ctx, r, machineStatus, schematicConfiguration, logger)
 				if err != nil {
 					return err
 				}
@@ -135,11 +135,8 @@ type schematicConfigurationHelper struct {
 // Reconcile implements controller.QController interface.
 //
 //nolint:gocognit,gocyclo,cyclop
-func (helper *schematicConfigurationHelper) reconcile(
-	ctx context.Context,
-	r controller.ReaderWriter,
-	ms *omni.MachineStatus,
-	schematicConfiguration *omni.SchematicConfiguration,
+func (helper *schematicConfigurationHelper) reconcile(ctx context.Context, r controller.ReaderWriter, ms *omni.MachineStatus,
+	schematicConfiguration *omni.SchematicConfiguration, logger *zap.Logger,
 ) (*omni.MachineExtensionsStatus, error) {
 	if ms.TypedSpec().Value.Schematic == nil {
 		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("schematic information is not yet available")
@@ -202,7 +199,7 @@ func (helper *schematicConfigurationHelper) reconcile(
 
 	overlay := getOverlay(ms.TypedSpec().Value.Schematic)
 
-	kernelArgs, err := determineKernelArgs(ctx, ms, r)
+	kernelArgs, kernelArgsUnchanged, err := determineKernelArgs(ctx, ms, r)
 	if err != nil {
 		return nil, err
 	}
@@ -230,6 +227,22 @@ func (helper *schematicConfigurationHelper) reconcile(
 		return nil, err
 	}
 
+	schematicUnchanged := customization.unchanged && kernelArgsUnchanged
+	idMismatch := id != ms.TypedSpec().Value.Schematic.FullId
+
+	// We do a safety check here: if we did not customize anything but the schematic ID appears to have changed,
+	// we preserve the existing schematic ID to avoid unnecessary machine reboot.
+	// This is an indicator of a bug, we should find out the cause of the discrepancy and fix it.
+	if schematicUnchanged && idMismatch {
+		logger.Warn("schematic ID mismatch detected despite no changes in schematic configuration, preserving existing schematic ID to avoid unnecessary machine reboot",
+			zap.String("machine_schematic_id", ms.TypedSpec().Value.Schematic.FullId),
+			zap.String("computed_schematic_id", id),
+		)
+
+		id = ms.TypedSpec().Value.Schematic.FullId
+		kernelArgs = ms.TypedSpec().Value.Schematic.KernelArgs
+	}
+
 	if _, err = safe.ReaderGetByID[*omni.Schematic](ctx, r, id); err != nil {
 		if !state.IsNotFoundError(err) {
 			return nil, err
@@ -242,7 +255,7 @@ func (helper *schematicConfigurationHelper) reconcile(
 
 	schematicConfiguration.TypedSpec().Value.SchematicId = id
 	schematicConfiguration.TypedSpec().Value.KernelArgs = kernelArgs
-	machineExtensionsStatus.TypedSpec().Value.Extensions = computeMachineExtensionsStatus(ms, &customization)
+	machineExtensionsStatus.TypedSpec().Value.Extensions = computeMachineExtensionsStatus(ms, customization.extensionsList, customization.detectedExtensions)
 
 	return machineExtensionsStatus, nil
 }
@@ -305,7 +318,7 @@ func newMachineCustomization(ms *omni.MachineStatus, cluster *omni.Cluster, exts
 
 	detected, err := getDetectedExtensions(cluster, ms)
 	if err != nil {
-		return mc, err
+		return machineCustomization{}, err
 	}
 
 	mc.detectedExtensions = detected
@@ -314,7 +327,7 @@ func newMachineCustomization(ms *omni.MachineStatus, cluster *omni.Cluster, exts
 
 	clusterVersion, err := semver.ParseTolerant(cluster.TypedSpec().Value.TalosVersion)
 	if err != nil {
-		return mc, err
+		return machineCustomization{}, err
 	}
 
 	if mc.machineExtensions != nil {
@@ -340,6 +353,8 @@ func newMachineCustomization(ms *omni.MachineStatus, cluster *omni.Cluster, exts
 		mc.extensionsList = initialState.Extensions
 	}
 
+	mc.unchanged = slices.Equal(ms.TypedSpec().Value.Schematic.Extensions, mc.extensionsList)
+
 	return mc, nil
 }
 
@@ -351,42 +366,43 @@ type machineCustomization struct {
 	extensionsList     []string
 	detectedExtensions []string
 	meta               []schematic.MetaValue
+	unchanged          bool
 }
 
-func determineKernelArgs(ctx context.Context, machineStatus *omni.MachineStatus, r controller.Reader) ([]string, error) {
+func determineKernelArgs(ctx context.Context, machineStatus *omni.MachineStatus, r controller.Reader) (args []string, unchanged bool, err error) {
 	if _, kernelArgsInitialized := machineStatus.Metadata().Annotations().Get(omni.KernelArgsInitialized); !kernelArgsInitialized {
-		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("kernel args are not yet initialized")
+		return nil, false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("kernel args are not yet initialized")
 	}
 
 	updateSupported, err := kernelargs.UpdateSupported(machineStatus)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	if !updateSupported {
 		if machineStatus.TypedSpec().Value.Schematic == nil {
-			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine schematic is not yet initialized")
+			return nil, false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine schematic is not yet initialized")
 		}
 
 		// keep them unchanged - take the current args as-is
-		return machineStatus.TypedSpec().Value.Schematic.KernelArgs, nil
+		return machineStatus.TypedSpec().Value.Schematic.KernelArgs, true, nil
 	}
 
 	kernelArgs, err := kernelargs.GetUncached(ctx, r, machineStatus.Metadata().ID())
 	if err != nil && !state.IsNotFoundError(err) {
-		return nil, err
+		return nil, false, err
 	}
 
 	args, ok, err := kernelargs.Calculate(machineStatus, kernelArgs)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	if !ok {
-		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("extra kernel args for machine %q are not yet initialized", machineStatus.Metadata().ID())
+		return nil, false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("extra kernel args for machine %q are not yet initialized", machineStatus.Metadata().ID())
 	}
 
-	return args, nil
+	return args, false, nil
 }
 
 func (mc *machineCustomization) isDetected(value string) bool {
@@ -427,19 +443,11 @@ func detectExtensions(initialVersion, currentVersion semver.Version) ([]string, 
 	return nil, nil
 }
 
-func computeMachineExtensionsStatus(ms *omni.MachineStatus, customization *machineCustomization) []*specs.MachineExtensionsStatusSpec_Item {
-	var (
-		installedExtensions set.Set[string]
-		requestedExtensions set.Set[string]
-	)
+func computeMachineExtensionsStatus(ms *omni.MachineStatus, extensionsList, detectedExtensions []string) []*specs.MachineExtensionsStatusSpec_Item {
+	var installedExtensions, requestedExtensions set.Set[string]
 
-	if ms.TypedSpec().Value.Schematic != nil {
-		installedExtensions = xslices.ToSet(ms.TypedSpec().Value.Schematic.Extensions)
-	}
-
-	if customization != nil {
-		requestedExtensions = xslices.ToSet(customization.extensionsList)
-	}
+	installedExtensions = xslices.ToSet(ms.TypedSpec().Value.Schematic.Extensions)
+	requestedExtensions = xslices.ToSet(extensionsList)
 
 	allExtensions := set.Values(set.Union(
 		installedExtensions,
@@ -454,18 +462,16 @@ func computeMachineExtensionsStatus(ms *omni.MachineStatus, customization *machi
 			phase     specs.MachineExtensionsStatusSpec_Item_Phase
 		)
 
-		if customization != nil {
-			switch {
-			// detected extensions should always be pre installed
-			case customization.isDetected(extension):
-				phase = specs.MachineExtensionsStatusSpec_Item_Installed
+		switch {
+		// detected extensions should always be pre installed
+		case slices.Contains(detectedExtensions, extension):
+			phase = specs.MachineExtensionsStatusSpec_Item_Installed
 
-				immutable = true
-			case installedExtensions.Contains(extension) && !requestedExtensions.Contains(extension):
-				phase = specs.MachineExtensionsStatusSpec_Item_Removing
-			case !installedExtensions.Contains(extension) && requestedExtensions.Contains(extension):
-				phase = specs.MachineExtensionsStatusSpec_Item_Installing
-			}
+			immutable = true
+		case installedExtensions.Contains(extension) && !requestedExtensions.Contains(extension):
+			phase = specs.MachineExtensionsStatusSpec_Item_Removing
+		case !installedExtensions.Contains(extension) && requestedExtensions.Contains(extension):
+			phase = specs.MachineExtensionsStatusSpec_Item_Installing
 		}
 
 		statusExtensions = append(statusExtensions,
