@@ -1400,8 +1400,6 @@ Test Omni upgrades, the first half that runs on the previous Omni version
 		omniClient := options.omniClient
 		clusterName := "integration-omni-upgrades"
 
-		pickedUKI, pickedNonUKI := false, false
-
 		t.Run("ClusterShouldBeCreated", CreateCluster(t.Context(), omniClient, ClusterOptions{
 			Name:          clusterName,
 			ControlPlanes: 3,
@@ -1420,22 +1418,27 @@ Test Omni upgrades, the first half that runs on the previous Omni version
 
 			// Pick at least one UKI and one non-UKI machine, so that we cover both flows during the upgrade tests.
 			// Schematic calculation differs between UKI and non-UKI machines, so it's important to test both.
-			PickFilterFunc: func(machineStatus *omni.MachineStatus) bool {
+			PickFilterFunc: func(machineStatus *omni.MachineStatus, alreadyPicked []*omni.MachineStatus) bool {
 				isUKI := machineStatus.TypedSpec().Value.SecurityState.GetBootedWithUki()
+				pickedUKI, pickedNonUKI := false, false
+
+				for _, ms := range alreadyPicked {
+					if ms.TypedSpec().Value.SecurityState.GetBootedWithUki() {
+						pickedUKI = true
+					} else {
+						pickedNonUKI = true
+					}
+				}
 
 				if isUKI && !pickedUKI { // if it's UKI, and we haven't picked one yet, pick it
-					pickedUKI = true
-
 					return true
 				}
 
 				if !isUKI && !pickedNonUKI { // if it's non-UKI, and we haven't picked one yet, pick it
-					pickedNonUKI = true
-
 					return true
 				}
 
-				return pickedUKI && pickedNonUKI // if we have already picked both types, allow any
+				return pickedUKI && pickedNonUKI // otherwise, pick only if we have both types already
 			},
 		}))
 

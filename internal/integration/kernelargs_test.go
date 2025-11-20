@@ -43,7 +43,7 @@ func testKernelArgsUpdate(t *testing.T, options *TestOptions) {
 			SkipExtensionCheckOnCreate: options.SkipExtensionsCheckOnCreate,
 
 			// Pick machines which are booted with UKI, as kernel args upgrades are only supported for them.
-			PickFilterFunc: func(ms *omni.MachineStatus) bool {
+			PickFilterFunc: func(ms *omni.MachineStatus, _ []*omni.MachineStatus) bool {
 				return ms.TypedSpec().Value.GetSecurityState().GetBootedWithUki()
 			},
 		}),
