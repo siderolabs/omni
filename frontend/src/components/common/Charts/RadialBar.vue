@@ -8,6 +8,8 @@ included in the LICENSE file.
 import type { ApexOptions } from 'apexcharts'
 import { computed, defineAsyncComponent } from 'vue'
 
+import { getNonce } from '@/methods'
+
 const ApexChart = defineAsyncComponent(() => import('vue3-apexcharts'))
 
 interface Props {
@@ -59,6 +61,9 @@ const colors = [
 ]
 
 const options = computed<ApexOptions>(() => ({
+  chart: {
+    nonce: getNonce(),
+  },
   plotOptions: {
     radialBar: {
       hollow: {

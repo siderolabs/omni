@@ -24,6 +24,10 @@ import Watch from '@/api/watch'
 import { NodesViewFilterOptions, TCommonStatuses } from '@/constants'
 import { showError } from '@/notification'
 
+export function getNonce() {
+  return document.querySelector<HTMLMetaElement>("meta[name='csp-nonce']")?.content ?? ''
+}
+
 export const getStatus = (item: V1Node) => {
   const conditions = item?.status?.conditions
   if (!conditions) return TCommonStatuses.LOADING

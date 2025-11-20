@@ -14,6 +14,7 @@ import type { CurrentUserSpec } from '@/api/omni/specs/virtual.pb'
 import { withAbortController, withRuntime } from '@/api/options'
 import { DefaultNamespace, FeaturesConfigID, FeaturesConfigType } from '@/api/resources'
 import { useWatch } from '@/components/common/Watch/useWatch'
+import { getNonce } from '@/methods'
 
 const resource = {
   type: FeaturesConfigType,
@@ -64,9 +65,7 @@ export const initializeUserPilot = async (user: Resource<CurrentUserSpec>) => {
       return
     }
 
-    const nonce = document.querySelector<HTMLMetaElement>("meta[name='csp-nonce']")?.content
-
-    Userpilot.initialize(token, { nonce })
+    Userpilot.initialize(token, { nonce: getNonce() })
 
     userPilotInitialized = true
   }

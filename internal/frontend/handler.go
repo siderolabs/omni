@@ -124,6 +124,9 @@ func (handler *StaticHandler) serveFile(w http.ResponseWriter, r *http.Request, 
 
 			nonce := base62.EncodeToString(b)
 
+			// If at all possible, when updating the CSP, please also update it for the dev server.
+			// This can be done in frontend/vite.config.ts and will ensure CSP issues are reproducible
+			// on both dev and prod.
 			w.Header().Set("Content-Security-Policy",
 				"upgrade-insecure-requests"+
 					fmt.Sprintf(";default-src 'self' 'nonce-%s'", nonce)+

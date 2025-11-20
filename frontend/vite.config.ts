@@ -2,9 +2,9 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-
 import { fileURLToPath, URL } from 'node:url'
 
+import { faker } from '@faker-js/faker'
 import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
 import dotenv from 'dotenv'
@@ -50,7 +50,40 @@ export default defineConfig(({ command }) => {
   }
 
   if (command === 'serve') {
-    config.plugins?.push(
+    const cspNonce = faker.string.alphanumeric(14)
+
+    // Dev only, required for vue dev tools
+    const devToolsHash = 'sha256-skqujXORqzxt1aE0NNXxujEanPTX6raoqSscTV/Ww/Y='
+
+    // Inject CSP for dev server for testing.
+    // Actual CSP in production is set in ../internal/frontend/handler.go
+    // Ideally these sources should match (except for devToolsHash).
+    config.server ||= {}
+    config.server.headers ||= {}
+    config.server.headers['content-security-policy'] = [
+      'upgrade-insecure-requests',
+      `default-src 'self' 'nonce-${cspNonce}'`,
+      'img-src * data:',
+      "connect-src 'self' https://*.auth0.com https://*.userpilot.io wss://*.userpilot.io",
+      "font-src 'self' data:",
+      `style-src 'self' 'nonce-${cspNonce}' '${devToolsHash}' data: https://fonts.googleapis.com https://fonts.gstatic.com`,
+      'frame-src https://*.auth0.com',
+    ].join(';')
+
+    // Adds nonce for dev server inline scripts.
+    // Note that it also adds an extra meta tag,
+    // but we should only rely on the one present in index.html
+    // as it is the only one present in production.
+    config.html ||= {}
+    config.html.cspNonce = cspNonce
+
+    config.plugins ||= []
+    config.plugins.push(
+      {
+        // Injects nonce into the placeholder as the backend handler usually would.
+        name: 'transformIndexHtml',
+        transformIndexHtml: (html) => html.replaceAll(/{{.Nonce}}/g, cspNonce),
+      },
       monacoEditorPlugin({
         languageWorkers: ['editorWorkerService'],
         customWorkers: [

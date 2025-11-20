@@ -19,6 +19,7 @@ import type { Metadata } from '@/api/v1alpha1/resource.pb'
 import type { WatchContext, WatchEventSpec } from '@/api/watch'
 import { WatchFunc } from '@/api/watch'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import { getNonce } from '@/methods'
 
 const VueApexCharts = defineAsyncComponent(() => import('vue3-apexcharts'))
 
@@ -160,6 +161,7 @@ w.setup({
 const options = computed(() => {
   return {
     chart: {
+      nonce: getNonce(),
       type: props.type,
       background: 'transparent',
       id: name.value,
