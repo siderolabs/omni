@@ -287,6 +287,10 @@ func (suite *TalosUpgradeStatusSuite) TestReconcileLocked() {
 
 		cmtv.TypedSpec().Value.TalosVersion = cluster.TypedSpec().Value.TalosVersion
 
+		if _, ok := res.Metadata().Labels().Get(omni.LabelWorkerRole); !ok {
+			cmtv.TypedSpec().Value.SchematicId = defaultSchematic
+		}
+
 		suite.Require().NoError(suite.state.Create(suite.ctx, cmtv, state.WithCreateOwner(omnictrl.NewTalosUpgradeStatusController().ControllerName)))
 
 		configStatus := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, res.Metadata().ID())

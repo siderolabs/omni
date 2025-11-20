@@ -50,3 +50,28 @@ message LabelsCompletionSpec {
 message AdvertisedEndpointsSpec {
   string grpc_api_url = 1;
 }
+
+message PlatformConfigSpec {
+  enum BootMethod {
+    UNKNOWN = 0;
+    DISK_IMAGE = 1;
+    ISO = 2;
+    PXE = 3;
+  }
+
+  string label = 1;
+  string description = 2;
+  repeated string architectures = 3;
+  string documentation = 4;
+  string disk_image_suffix = 5;
+  repeated BootMethod boot_methods = 6;
+  string min_version = 7;
+}
+
+message SBCConfigSpec {
+  string label = 1;
+  string overlay_name = 2;
+  string overlay_image = 3;
+  string documentation = 4;
+  string min_version = 5;
+}

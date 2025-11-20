@@ -3,7 +3,8 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package virtual
+// Package errors implements various COSI errors used in the virtual state.
+package errors
 
 import (
 	"fmt"
@@ -14,24 +15,25 @@ import (
 )
 
 //nolint:errname
-type eNotFound struct {
+type NotFound struct {
 	error
 }
 
-func (eNotFound) NotFoundError() {}
+func (NotFound) NotFoundError() {}
 
-func errNotFound(r resource.Pointer) error {
-	return eNotFound{
+// ErrNotFound creates new not found error.
+func ErrNotFound(r resource.Pointer) error {
+	return NotFound{
 		fmt.Errorf("resource %s doesn't exist", r),
 	}
 }
 
 //nolint:errname
-type eUnsupported struct {
+type Unsupported struct {
 	error
 }
 
-func (e eUnsupported) GRPCStatus() *status.Status {
+func (e Unsupported) GRPCStatus() *status.Status {
 	// if the wrapped error is already a status error, return it
 	if sts, ok := status.FromError(e.error); ok {
 		return sts
@@ -40,10 +42,11 @@ func (e eUnsupported) GRPCStatus() *status.Status {
 	return status.New(codes.Unimplemented, e.Error())
 }
 
-func (eUnsupported) UnsupportedError() {}
+func (Unsupported) UnsupportedError() {}
 
-func errUnsupported(err error) error {
-	return eUnsupported{
+// ErrUnsupported creates a new unsupported error.
+func ErrUnsupported(err error) error {
+	return Unsupported{
 		err,
 	}
 }

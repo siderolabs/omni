@@ -22,6 +22,8 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
+	stateerrors "github.com/siderolabs/omni/internal/backend/runtime/omni/virtual/pkg/errors"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual/pkg/factory/configs"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
@@ -59,7 +61,7 @@ func (v *State) RunComputed(ctx context.Context, t resource.Type, factory Produc
 // Get implements state.CoreState.
 func (v *State) Get(ctx context.Context, ptr resource.Pointer, opts ...state.GetOption) (resource.Resource, error) {
 	if len(opts) > 0 {
-		return nil, errUnsupported(errors.New("no get options are supported"))
+		return nil, stateerrors.ErrUnsupported(errors.New("no get options are supported"))
 	}
 
 	if err := v.validateKind(ptr); err != nil {
@@ -74,10 +76,31 @@ func (v *State) Get(ctx context.Context, ptr resource.Pointer, opts ...state.Get
 	switch ptr.Type() {
 	case virtual.CurrentUserType:
 		if ptr.ID() != virtual.CurrentUserID {
-			return nil, errNotFound(ptr)
+			return nil, stateerrors.ErrNotFound(ptr)
 		}
 
 		return v.currentUser(ctx)
+	case virtual.MetalPlatformConfigType:
+		res, err := configs.GetCloudPlatformConfig(ptr)
+		if err != nil {
+			return nil, err
+		}
+
+		return res, nil
+	case virtual.SBCConfigType:
+		res, err := configs.GetSBCConfig(ptr)
+		if err != nil {
+			return nil, err
+		}
+
+		return res, nil
+	case virtual.CloudPlatformConfigType:
+		res, err := configs.GetCloudPlatformConfig(ptr)
+		if err != nil {
+			return nil, err
+		}
+
+		return res, nil
 	case virtual.PermissionsType:
 		return v.permissions(ctx)
 	case virtual.ClusterPermissionsType:
@@ -87,14 +110,26 @@ func (v *State) Get(ctx context.Context, ptr resource.Pointer, opts ...state.Get
 	case virtual.AdvertisedEndpointsType:
 		return v.advertisedEndpoints(ctx, ptr)
 	default:
-		return nil, errUnsupported(fmt.Errorf("unsupported resource type for get %q", ptr.Type()))
+		return nil, stateerrors.ErrUnsupported(fmt.Errorf("unsupported resource type for get %q", ptr.Type()))
 	}
 }
 
 // List implements state.CoreState.
 func (v *State) List(ctx context.Context, kind resource.Kind, opts ...state.ListOption) (resource.List, error) {
 	if len(opts) > 0 {
-		return resource.List{}, errUnsupported(errors.New("no list options are supported"))
+		var options state.ListOptions
+
+		for _, o := range opts {
+			o(&options)
+		}
+
+		if len(options.LabelQueries) != 0 {
+			return resource.List{}, stateerrors.ErrUnsupported(errors.New("label queries are not supported"))
+		}
+
+		if options.IDQuery.Regexp != nil {
+			return resource.List{}, stateerrors.ErrUnsupported(errors.New("id query is not supported"))
+		}
 	}
 
 	if err := v.validateKind(kind); err != nil {
@@ -102,6 +137,12 @@ func (v *State) List(ctx context.Context, kind resource.Kind, opts ...state.List
 	}
 
 	switch kind.Type() {
+	case virtual.MetalPlatformConfigType:
+		return configs.ListMetalPlatformConfigs(), nil
+	case virtual.SBCConfigType:
+		return configs.ListSBCConfigs(), nil
+	case virtual.CloudPlatformConfigType:
+		return configs.ListCloudPlatformConfigs(), nil
 	case virtual.CurrentUserType:
 		user, err := v.currentUser(ctx)
 		if err != nil {
@@ -117,23 +158,23 @@ func (v *State) List(ctx context.Context, kind resource.Kind, opts ...state.List
 
 		return resource.List{Items: []resource.Resource{permissions}}, nil
 	default:
-		return resource.List{}, errUnsupported(fmt.Errorf("unsupported resource type for list %q", kind.Type()))
+		return resource.List{}, stateerrors.ErrUnsupported(fmt.Errorf("unsupported resource type for list %q", kind.Type()))
 	}
 }
 
 // Create implements state.CoreState.
 func (v *State) Create(_ context.Context, _ resource.Resource, _ ...state.CreateOption) error {
-	return errUnsupported(errors.New("create is not supported"))
+	return stateerrors.ErrUnsupported(errors.New("create is not supported"))
 }
 
 // Update implements state.CoreState.
 func (v *State) Update(_ context.Context, _ resource.Resource, _ ...state.UpdateOption) error {
-	return errUnsupported(errors.New("update is not supported"))
+	return stateerrors.ErrUnsupported(errors.New("update is not supported"))
 }
 
 // Destroy implements state.CoreState.
 func (v *State) Destroy(_ context.Context, _ resource.Pointer, _ ...state.DestroyOption) error {
-	return errUnsupported(errors.New("destroy is not supported"))
+	return stateerrors.ErrUnsupported(errors.New("destroy is not supported"))
 }
 
 // Watch implements state.CoreState.
@@ -143,22 +184,22 @@ func (v *State) Watch(ctx context.Context, ptr resource.Pointer, c chan<- state.
 		return computed.Watch(ctx, ptr, c, opts...)
 	}
 
-	return errUnsupported(fmt.Errorf("unsupported resource type for watch %q", ptr.Type()))
+	return stateerrors.ErrUnsupported(fmt.Errorf("unsupported resource type for watch %q", ptr.Type()))
 }
 
 // WatchKind implements state.CoreState.
 func (v *State) WatchKind(_ context.Context, ptr resource.Kind, _ chan<- state.Event, _ ...state.WatchKindOption) error {
-	return errUnsupported(fmt.Errorf("unsupported resource type for watch kind %q", ptr.Type()))
+	return stateerrors.ErrUnsupported(fmt.Errorf("unsupported resource type for watch kind %q", ptr.Type()))
 }
 
 // WatchKindAggregated implements state.CoreState.
 func (v *State) WatchKindAggregated(_ context.Context, _ resource.Kind, _ chan<- []state.Event, _ ...state.WatchKindOption) error {
-	return errUnsupported(errors.New("watch kind aggregated is not supported"))
+	return stateerrors.ErrUnsupported(errors.New("watch kind aggregated is not supported"))
 }
 
 func (v *State) validateKind(kind resource.Kind) error {
 	if kind.Namespace() != resources.VirtualNamespace {
-		return errUnsupported(fmt.Errorf("unsupported namespace: %s", kind.Namespace()))
+		return stateerrors.ErrUnsupported(fmt.Errorf("unsupported namespace: %s", kind.Namespace()))
 	}
 
 	return nil

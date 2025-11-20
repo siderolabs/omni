@@ -907,6 +907,18 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
+				resource:       virtual.NewSBCConfig(uuid.New().String()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
+				resource:       virtual.NewCloudPlatformConfig(uuid.New().String()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
+				resource:       virtual.NewMetalPlatformConfig(uuid.New().String()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
 				resource:       virtual.NewLabelsCompletion(resources.MetricsNamespace, uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},

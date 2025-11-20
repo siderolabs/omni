@@ -14,4 +14,7 @@ func init() {
 	registry.MustRegisterResource(PermissionsType, &Permissions{})
 	registry.MustRegisterResource(LabelsCompletionType, &LabelsCompletion{})
 	registry.MustRegisterResource(AdvertisedEndpointsType, &AdvertisedEndpoints{})
+	registry.MustRegisterResource(SBCConfigType, &SBCConfig{})
+	registry.MustRegisterResource(CloudPlatformConfigType, &CloudPlatformConfig{})
+	registry.MustRegisterResource(MetalPlatformConfigType, &MetalPlatformConfig{})
 }

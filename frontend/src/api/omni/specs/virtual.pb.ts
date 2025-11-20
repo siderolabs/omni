@@ -3,6 +3,14 @@
 /*
 * This file is a generated Typescript file for GRPC Gateway, DO NOT MODIFY
 */
+
+export enum PlatformConfigSpecBootMethod {
+  UNKNOWN = 0,
+  DISK_IMAGE = 1,
+  ISO = 2,
+  PXE = 3,
+}
+
 export type CurrentUserSpec = {
   identity?: string
   role?: string
@@ -48,4 +56,22 @@ export type LabelsCompletionSpec = {
 
 export type AdvertisedEndpointsSpec = {
   grpc_api_url?: string
+}
+
+export type PlatformConfigSpec = {
+  label?: string
+  description?: string
+  architectures?: string[]
+  documentation?: string
+  disk_image_suffix?: string
+  boot_methods?: PlatformConfigSpecBootMethod[]
+  min_version?: string
+}
+
+export type SBCConfigSpec = {
+  label?: string
+  overlay_name?: string
+  overlay_image?: string
+  documentation?: string
+  min_version?: string
 }

@@ -115,10 +115,20 @@ func getResources(cmd *cobra.Command, args []string) func(ctx context.Context, c
 
 		switch {
 		case resourceID == "" && !getCmdFlags.watch:
-			items, err := st.List(ctx, md,
-				state.WithLabelQuery(labelQuery...),
-				state.WithIDQuery(idQuery...),
+			opts := []state.ListOption{
 				state.WithListUnmarshalOptions(state.WithSkipProtobufUnmarshal()),
+			}
+
+			if len(labelQuery) > 0 {
+				opts = append(opts, state.WithLabelQuery(labelQuery...))
+			}
+
+			if len(idQuery) > 0 {
+				opts = append(opts, state.WithIDQuery(idQuery...))
+			}
+
+			items, err := st.List(ctx, md,
+				opts...,
 			)
 			if err != nil {
 				return err

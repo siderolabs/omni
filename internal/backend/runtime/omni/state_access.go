@@ -444,6 +444,9 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.KernelArgsStatusType,
 		system.ResourceLabelsType[*omni.MachineStatus](),
 		virtual.LabelsCompletionType,
+		virtual.SBCConfigType,
+		virtual.CloudPlatformConfigType,
+		virtual.MetalPlatformConfigType,
 		virtual.KubernetesUsageType:
 		_, err = auth.CheckGRPC(ctx, auth.WithRole(verbToRole(access.Verb)))
 	case
@@ -617,6 +620,9 @@ func filterAccessByType(access state.Access) error {
 		meta.ResourceDefinitionType,
 		virtual.AdvertisedEndpointsType,
 		virtual.CurrentUserType,
+		virtual.SBCConfigType,
+		virtual.CloudPlatformConfigType,
+		virtual.MetalPlatformConfigType,
 		virtual.PermissionsType,
 		virtual.KubernetesUsageType,
 		virtual.LabelsCompletionType,

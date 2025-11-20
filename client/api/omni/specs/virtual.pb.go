@@ -22,6 +22,58 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type PlatformConfigSpec_BootMethod int32
+
+const (
+	PlatformConfigSpec_UNKNOWN    PlatformConfigSpec_BootMethod = 0
+	PlatformConfigSpec_DISK_IMAGE PlatformConfigSpec_BootMethod = 1
+	PlatformConfigSpec_ISO        PlatformConfigSpec_BootMethod = 2
+	PlatformConfigSpec_PXE        PlatformConfigSpec_BootMethod = 3
+)
+
+// Enum value maps for PlatformConfigSpec_BootMethod.
+var (
+	PlatformConfigSpec_BootMethod_name = map[int32]string{
+		0: "UNKNOWN",
+		1: "DISK_IMAGE",
+		2: "ISO",
+		3: "PXE",
+	}
+	PlatformConfigSpec_BootMethod_value = map[string]int32{
+		"UNKNOWN":    0,
+		"DISK_IMAGE": 1,
+		"ISO":        2,
+		"PXE":        3,
+	}
+)
+
+func (x PlatformConfigSpec_BootMethod) Enum() *PlatformConfigSpec_BootMethod {
+	p := new(PlatformConfigSpec_BootMethod)
+	*p = x
+	return p
+}
+
+func (x PlatformConfigSpec_BootMethod) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PlatformConfigSpec_BootMethod) Descriptor() protoreflect.EnumDescriptor {
+	return file_omni_specs_virtual_proto_enumTypes[0].Descriptor()
+}
+
+func (PlatformConfigSpec_BootMethod) Type() protoreflect.EnumType {
+	return &file_omni_specs_virtual_proto_enumTypes[0]
+}
+
+func (x PlatformConfigSpec_BootMethod) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PlatformConfigSpec_BootMethod.Descriptor instead.
+func (PlatformConfigSpec_BootMethod) EnumDescriptor() ([]byte, []int) {
+	return file_omni_specs_virtual_proto_rawDescGZIP(), []int{5, 0}
+}
+
 type CurrentUserSpec struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Identity      string                 `protobuf:"bytes,1,opt,name=identity,proto3" json:"identity,omitempty"`
@@ -426,6 +478,174 @@ func (x *AdvertisedEndpointsSpec) GetGrpcApiUrl() string {
 	return ""
 }
 
+type PlatformConfigSpec struct {
+	state           protoimpl.MessageState          `protogen:"open.v1"`
+	Label           string                          `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
+	Description     string                          `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	Architectures   []string                        `protobuf:"bytes,3,rep,name=architectures,proto3" json:"architectures,omitempty"`
+	Documentation   string                          `protobuf:"bytes,4,opt,name=documentation,proto3" json:"documentation,omitempty"`
+	DiskImageSuffix string                          `protobuf:"bytes,5,opt,name=disk_image_suffix,json=diskImageSuffix,proto3" json:"disk_image_suffix,omitempty"`
+	BootMethods     []PlatformConfigSpec_BootMethod `protobuf:"varint,6,rep,packed,name=boot_methods,json=bootMethods,proto3,enum=specs.PlatformConfigSpec_BootMethod" json:"boot_methods,omitempty"`
+	MinVersion      string                          `protobuf:"bytes,7,opt,name=min_version,json=minVersion,proto3" json:"min_version,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *PlatformConfigSpec) Reset() {
+	*x = PlatformConfigSpec{}
+	mi := &file_omni_specs_virtual_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlatformConfigSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlatformConfigSpec) ProtoMessage() {}
+
+func (x *PlatformConfigSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_virtual_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlatformConfigSpec.ProtoReflect.Descriptor instead.
+func (*PlatformConfigSpec) Descriptor() ([]byte, []int) {
+	return file_omni_specs_virtual_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *PlatformConfigSpec) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *PlatformConfigSpec) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *PlatformConfigSpec) GetArchitectures() []string {
+	if x != nil {
+		return x.Architectures
+	}
+	return nil
+}
+
+func (x *PlatformConfigSpec) GetDocumentation() string {
+	if x != nil {
+		return x.Documentation
+	}
+	return ""
+}
+
+func (x *PlatformConfigSpec) GetDiskImageSuffix() string {
+	if x != nil {
+		return x.DiskImageSuffix
+	}
+	return ""
+}
+
+func (x *PlatformConfigSpec) GetBootMethods() []PlatformConfigSpec_BootMethod {
+	if x != nil {
+		return x.BootMethods
+	}
+	return nil
+}
+
+func (x *PlatformConfigSpec) GetMinVersion() string {
+	if x != nil {
+		return x.MinVersion
+	}
+	return ""
+}
+
+type SBCConfigSpec struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Label         string                 `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
+	OverlayName   string                 `protobuf:"bytes,2,opt,name=overlay_name,json=overlayName,proto3" json:"overlay_name,omitempty"`
+	OverlayImage  string                 `protobuf:"bytes,3,opt,name=overlay_image,json=overlayImage,proto3" json:"overlay_image,omitempty"`
+	Documentation string                 `protobuf:"bytes,4,opt,name=documentation,proto3" json:"documentation,omitempty"`
+	MinVersion    string                 `protobuf:"bytes,5,opt,name=min_version,json=minVersion,proto3" json:"min_version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SBCConfigSpec) Reset() {
+	*x = SBCConfigSpec{}
+	mi := &file_omni_specs_virtual_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SBCConfigSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SBCConfigSpec) ProtoMessage() {}
+
+func (x *SBCConfigSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_virtual_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SBCConfigSpec.ProtoReflect.Descriptor instead.
+func (*SBCConfigSpec) Descriptor() ([]byte, []int) {
+	return file_omni_specs_virtual_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *SBCConfigSpec) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *SBCConfigSpec) GetOverlayName() string {
+	if x != nil {
+		return x.OverlayName
+	}
+	return ""
+}
+
+func (x *SBCConfigSpec) GetOverlayImage() string {
+	if x != nil {
+		return x.OverlayImage
+	}
+	return ""
+}
+
+func (x *SBCConfigSpec) GetDocumentation() string {
+	if x != nil {
+		return x.Documentation
+	}
+	return ""
+}
+
+func (x *SBCConfigSpec) GetMinVersion() string {
+	if x != nil {
+		return x.MinVersion
+	}
+	return ""
+}
+
 type LabelsCompletionSpec_Values struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Items         []string               `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
@@ -435,7 +655,7 @@ type LabelsCompletionSpec_Values struct {
 
 func (x *LabelsCompletionSpec_Values) Reset() {
 	*x = LabelsCompletionSpec_Values{}
-	mi := &file_omni_specs_virtual_proto_msgTypes[5]
+	mi := &file_omni_specs_virtual_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -447,7 +667,7 @@ func (x *LabelsCompletionSpec_Values) String() string {
 func (*LabelsCompletionSpec_Values) ProtoMessage() {}
 
 func (x *LabelsCompletionSpec_Values) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_virtual_proto_msgTypes[5]
+	mi := &file_omni_specs_virtual_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -516,7 +736,30 @@ const file_omni_specs_virtual_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v2\".specs.LabelsCompletionSpec.ValuesR\x05value:\x028\x01\";\n" +
 	"\x17AdvertisedEndpointsSpec\x12 \n" +
 	"\fgrpc_api_url\x18\x01 \x01(\tR\n" +
-	"grpcApiUrlB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
+	"grpcApiUrl\"\xeb\x02\n" +
+	"\x12PlatformConfigSpec\x12\x14\n" +
+	"\x05label\x18\x01 \x01(\tR\x05label\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12$\n" +
+	"\rarchitectures\x18\x03 \x03(\tR\rarchitectures\x12$\n" +
+	"\rdocumentation\x18\x04 \x01(\tR\rdocumentation\x12*\n" +
+	"\x11disk_image_suffix\x18\x05 \x01(\tR\x0fdiskImageSuffix\x12G\n" +
+	"\fboot_methods\x18\x06 \x03(\x0e2$.specs.PlatformConfigSpec.BootMethodR\vbootMethods\x12\x1f\n" +
+	"\vmin_version\x18\a \x01(\tR\n" +
+	"minVersion\";\n" +
+	"\n" +
+	"BootMethod\x12\v\n" +
+	"\aUNKNOWN\x10\x00\x12\x0e\n" +
+	"\n" +
+	"DISK_IMAGE\x10\x01\x12\a\n" +
+	"\x03ISO\x10\x02\x12\a\n" +
+	"\x03PXE\x10\x03\"\xb4\x01\n" +
+	"\rSBCConfigSpec\x12\x14\n" +
+	"\x05label\x18\x01 \x01(\tR\x05label\x12!\n" +
+	"\foverlay_name\x18\x02 \x01(\tR\voverlayName\x12#\n" +
+	"\roverlay_image\x18\x03 \x01(\tR\foverlayImage\x12$\n" +
+	"\rdocumentation\x18\x04 \x01(\tR\rdocumentation\x12\x1f\n" +
+	"\vmin_version\x18\x05 \x01(\tR\n" +
+	"minVersionB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
 
 var (
 	file_omni_specs_virtual_proto_rawDescOnce sync.Once
@@ -530,24 +773,29 @@ func file_omni_specs_virtual_proto_rawDescGZIP() []byte {
 	return file_omni_specs_virtual_proto_rawDescData
 }
 
-var file_omni_specs_virtual_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_omni_specs_virtual_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_omni_specs_virtual_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_omni_specs_virtual_proto_goTypes = []any{
-	(*CurrentUserSpec)(nil),             // 0: specs.CurrentUserSpec
-	(*PermissionsSpec)(nil),             // 1: specs.PermissionsSpec
-	(*ClusterPermissionsSpec)(nil),      // 2: specs.ClusterPermissionsSpec
-	(*LabelsCompletionSpec)(nil),        // 3: specs.LabelsCompletionSpec
-	(*AdvertisedEndpointsSpec)(nil),     // 4: specs.AdvertisedEndpointsSpec
-	(*LabelsCompletionSpec_Values)(nil), // 5: specs.LabelsCompletionSpec.Values
-	nil,                                 // 6: specs.LabelsCompletionSpec.ItemsEntry
+	(PlatformConfigSpec_BootMethod)(0),  // 0: specs.PlatformConfigSpec.BootMethod
+	(*CurrentUserSpec)(nil),             // 1: specs.CurrentUserSpec
+	(*PermissionsSpec)(nil),             // 2: specs.PermissionsSpec
+	(*ClusterPermissionsSpec)(nil),      // 3: specs.ClusterPermissionsSpec
+	(*LabelsCompletionSpec)(nil),        // 4: specs.LabelsCompletionSpec
+	(*AdvertisedEndpointsSpec)(nil),     // 5: specs.AdvertisedEndpointsSpec
+	(*PlatformConfigSpec)(nil),          // 6: specs.PlatformConfigSpec
+	(*SBCConfigSpec)(nil),               // 7: specs.SBCConfigSpec
+	(*LabelsCompletionSpec_Values)(nil), // 8: specs.LabelsCompletionSpec.Values
+	nil,                                 // 9: specs.LabelsCompletionSpec.ItemsEntry
 }
 var file_omni_specs_virtual_proto_depIdxs = []int32{
-	6, // 0: specs.LabelsCompletionSpec.items:type_name -> specs.LabelsCompletionSpec.ItemsEntry
-	5, // 1: specs.LabelsCompletionSpec.ItemsEntry.value:type_name -> specs.LabelsCompletionSpec.Values
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	9, // 0: specs.LabelsCompletionSpec.items:type_name -> specs.LabelsCompletionSpec.ItemsEntry
+	0, // 1: specs.PlatformConfigSpec.boot_methods:type_name -> specs.PlatformConfigSpec.BootMethod
+	8, // 2: specs.LabelsCompletionSpec.ItemsEntry.value:type_name -> specs.LabelsCompletionSpec.Values
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_omni_specs_virtual_proto_init() }
@@ -560,13 +808,14 @@ func file_omni_specs_virtual_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_omni_specs_virtual_proto_rawDesc), len(file_omni_specs_virtual_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   7,
+			NumEnums:      1,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_omni_specs_virtual_proto_goTypes,
 		DependencyIndexes: file_omni_specs_virtual_proto_depIdxs,
+		EnumInfos:         file_omni_specs_virtual_proto_enumTypes,
 		MessageInfos:      file_omni_specs_virtual_proto_msgTypes,
 	}.Build()
 	File_omni_specs_virtual_proto = out.File
