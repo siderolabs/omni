@@ -5,7 +5,9 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computedAsync } from '@vueuse/core'
+import { compare } from 'semver'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import TButton from '@/components/common/Button/TButton.vue'
@@ -27,46 +29,44 @@ const close = () => {
   router.go(-1)
 }
 
-onMounted(async () => {
-  // Its sad that you cannot execute async function in computed
-  const url = '/talosctl/downloads'
-
+const talosctlRelease = computedAsync(async () => {
   try {
-    const res = await fetch(url)
-    talosctlRelease.value = await res.json()
+    const res = await fetch('/talosctl/downloads')
+    return (await res.json()) as ResponseData
   } catch (e) {
     showError(e.message)
-    return
   }
-
-  defaultVersion.value = talosctlRelease.value?.release_data.default_version
-  selectedVersion.value = defaultVersion.value
-
-  defaultValue.value =
-    defaultVersion.value &&
-    talosctlRelease.value?.release_data.available_versions[defaultVersion.value].find((item) =>
-      item.url.endsWith('linux-amd64'),
-    )?.name
-
-  selectedOption.value = defaultValue.value
 })
 
-const talosctlRelease = ref<ResponseData>()
-const defaultValue = ref<string>()
-const selectedOption = ref<string>()
-const setOption = (value: string) => (selectedOption.value = value)
-const defaultVersion = ref<string>()
+const availableVersions = computed(
+  () =>
+    new Map(
+      Object.entries(talosctlRelease.value?.release_data.available_versions ?? {}).sort(
+        ([a], [b]) => compare(a.replace('v', ''), b.replace('v', '')),
+      ),
+    ),
+)
+
+const defaultVersion = computed(() => Array.from(availableVersions.value.keys()).pop())
+const defaultPlatform = computed(
+  () =>
+    defaultVersion.value &&
+    availableVersions.value
+      .get(defaultVersion.value)
+      ?.find((item) => item.url.endsWith('linux-amd64'))?.name,
+)
+
 const selectedVersion = ref<string>()
-const setVersion = (value: string) => (selectedVersion.value = value)
+const selectedPlatform = ref<string>()
 
 const download = async () => {
   close()
 
   if (!selectedVersion.value) return
 
-  const link = talosctlRelease.value?.release_data.available_versions[selectedVersion.value].find(
-    (item) => item.name === selectedOption.value,
-  )
+  const link = availableVersions.value
+    .get(selectedVersion.value)
+    ?.find((item) => item.name === selectedPlatform.value)
   if (!link) {
     return
   }
@@ -81,11 +81,7 @@ const download = async () => {
 const versionBinaries = computed<string[]>(() => {
   if (!selectedVersion.value) return []
 
-  return (
-    talosctlRelease.value?.release_data.available_versions[selectedVersion.value]?.map(
-      (item) => item.name,
-    ) ?? []
-  )
+  return availableVersions.value.get(selectedVersion.value)?.map((item) => item.name) ?? []
 })
 
 interface ResponseData {
@@ -112,20 +108,20 @@ interface Asset {
     </div>
 
     <div class="mb-5 flex flex-wrap gap-4">
-      <div v-if="selectedOption" class="flex flex-wrap gap-4">
+      <div v-if="talosctlRelease" class="flex flex-wrap gap-4">
         <TSelectList
+          v-model="selectedVersion"
           title="version"
           :default-value="defaultVersion"
-          :values="Object.keys(talosctlRelease?.release_data.available_versions ?? {})"
-          :searcheable="true"
-          @checked-value="setVersion"
+          :values="Array.from(availableVersions.keys())"
+          searcheable
         />
         <TSelectList
+          v-model="selectedPlatform"
           title="talosctl"
-          :default-value="defaultValue"
+          :default-value="defaultPlatform"
           :values="versionBinaries"
-          :searcheable="true"
-          @checked-value="setOption"
+          searcheable
         />
       </div>
       <div v-else>
