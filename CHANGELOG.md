@@ -1,3 +1,30 @@
+## [Omni 1.3.4](https://github.com/siderolabs/omni/releases/tag/v1.3.4) (2025-11-20)
+
+Welcome to the v1.3.4 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`807b218b`](https://github.com/siderolabs/omni/commit/807b218bd0326e0f5095a5f474151896b6afbde7) chore: remove nonce from the index.html
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.3.3](https://github.com/siderolabs/omni/releases/tag/v1.3.3)
+
 ## [Omni 1.3.3](https://github.com/siderolabs/omni/releases/tag/v1.3.3) (2025-11-20)
 
 Welcome to the v1.3.3 release of Omni!
