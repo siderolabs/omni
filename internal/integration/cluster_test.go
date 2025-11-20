@@ -14,6 +14,7 @@ import (
 	"math/rand/v2"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -41,7 +42,7 @@ import (
 // BeforeClusterCreateFunc is a function that is called before a cluster is created.
 type BeforeClusterCreateFunc func(ctx context.Context, t *testing.T, cli *client.Client, machineIDs []resource.ID)
 
-type PickFilterFunc func(machineStatus *omni.MachineStatus) bool
+type PickFilterFunc func(machineStatus *omni.MachineStatus, alreadyPicked []*omni.MachineStatus) bool
 
 // ClusterOptions are the options for cluster creation.
 //
@@ -820,28 +821,40 @@ func pickUnallocatedMachines(ctx context.Context, t *testing.T, st state.State, 
 	result := make([]resource.ID, 0, count)
 
 	if filterFunc == nil {
-		filterFunc = func(*omni.MachineStatus) bool { return true }
+		filterFunc = func(*omni.MachineStatus, []*omni.MachineStatus) bool { return true }
 	}
 
 	err := retry.Constant(time.Minute).RetryWithContext(ctx, func(ctx context.Context) error {
+		result = result[:0] // clear the result between retries
+
 		machineStatuses, err := safe.StateListAll[*omni.MachineStatus](ctx, st, state.WithLabelQuery(resource.LabelExists(omni.MachineStatusLabelAvailable)))
 		if err != nil {
 			return err
 		}
 
-		machineIDs := make([]resource.ID, 0, machineStatuses.Len())
-		for machineStatus := range machineStatuses.All() {
-			if filterFunc(machineStatus) {
-				machineIDs = append(machineIDs, machineStatus.Metadata().ID())
+		shuffledMachineStatuses := slices.Collect(machineStatuses.All())
+		rand.Shuffle(len(shuffledMachineStatuses), func(i, j int) {
+			shuffledMachineStatuses[i], shuffledMachineStatuses[j] = shuffledMachineStatuses[j], shuffledMachineStatuses[i]
+		})
+
+		pickedMachineStatuses := make([]*omni.MachineStatus, 0, count)
+
+		for _, machineStatus := range shuffledMachineStatuses {
+			if filterFunc(machineStatus, pickedMachineStatuses) {
+				pickedMachineStatuses = append(pickedMachineStatuses, machineStatus)
+			}
+
+			if len(pickedMachineStatuses) >= count {
+				break
 			}
 		}
 
-		if len(machineIDs) < count {
-			return retry.ExpectedErrorf("not enough machines: available %d, requested %d", len(machineIDs), count)
+		if len(pickedMachineStatuses) < count {
+			return retry.ExpectedErrorf("not enough machines: available %d, requested %d", len(pickedMachineStatuses), count)
 		}
 
-		for _, j := range rand.Perm(len(machineIDs))[:count] {
-			result = append(result, machineIDs[j])
+		for _, ms := range pickedMachineStatuses {
+			result = append(result, ms.Metadata().ID())
 		}
 
 		return nil
