@@ -181,7 +181,7 @@ func (helper *schematicConfigurationHelper) reconcile(
 		return nil, err
 	}
 
-	customization, err := newMachineCustomization(cluster, ms, extensions, securityState.BootedWithUki)
+	customization, err := newMachineCustomization(cluster, ms, extensions)
 	if err != nil {
 		return nil, err
 	}
@@ -248,26 +248,26 @@ func updateFinalizers(ctx context.Context, r controller.ReaderWriter, extensions
 	return r.AddFinalizer(ctx, extensions.Metadata(), SchematicConfigurationControllerName)
 }
 
-func newMachineCustomization(cluster *omni.Cluster, machineStatus *omni.MachineStatus, exts *omni.MachineExtensions, isUKI bool) (machineCustomization, error) {
+func newMachineCustomization(cluster *omni.Cluster, machineStatus *omni.MachineStatus, exts *omni.MachineExtensions) (machineCustomization, error) {
 	mc := machineCustomization{
 		machineStatus: machineStatus,
 		cluster:       cluster,
 	}
 
-	if isUKI {
-		schematicConfig := machineStatus.TypedSpec().Value.Schematic
-		if schematicConfig == nil {
-			return mc, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine is booted with UKI but the schematic information is not yet available")
-		}
-
-		mc.meta = xslices.Map(schematicConfig.MetaValues,
-			func(v *specs.MetaValue) schematic.MetaValue {
-				return schematic.MetaValue{
-					Key:   uint8(v.GetKey()),
-					Value: v.GetValue(),
-				}
-			})
+	schematicConfig := machineStatus.TypedSpec().Value.Schematic
+	if schematicConfig == nil {
+		return mc, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine is booted with UKI but the schematic information is not yet available")
 	}
+
+	// Leave meta values as-is to prevent any unwanted upgrades.
+	// They are no-op for non-UKI machines, but we still preserve them to not cause a schematic ID change, which would upgrade (reboot) the machine.
+	mc.meta = xslices.Map(schematicConfig.MetaValues,
+		func(v *specs.MetaValue) schematic.MetaValue {
+			return schematic.MetaValue{
+				Key:   uint8(v.GetKey()),
+				Value: v.GetValue(),
+			}
+		})
 
 	extensionsExplicitlyDefined := exts != nil && exts.Metadata().Phase() == resource.PhaseRunning
 	if extensionsExplicitlyDefined {

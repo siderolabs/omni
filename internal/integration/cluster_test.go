@@ -813,14 +813,14 @@ func getMachineSetNodes(ctx context.Context, t *testing.T, st state.State, clust
 // machineAllocationLock makes sure that only one test allocates machines at a time.
 var machineAllocationLock sync.Mutex
 
-func pickUnallocatedMachines(ctx context.Context, t *testing.T, st state.State, count int, filterFunc func(*omni.MachineStatus) bool, f func([]resource.ID)) {
+func pickUnallocatedMachines(ctx context.Context, t *testing.T, st state.State, count int, filterFunc PickFilterFunc, f func([]resource.ID)) {
 	machineAllocationLock.Lock()
 	defer machineAllocationLock.Unlock()
 
 	result := make([]resource.ID, 0, count)
 
 	if filterFunc == nil {
-		filterFunc = func(_ *omni.MachineStatus) bool { return true }
+		filterFunc = func(*omni.MachineStatus) bool { return true }
 	}
 
 	err := retry.Constant(time.Minute).RetryWithContext(ctx, func(ctx context.Context) error {
