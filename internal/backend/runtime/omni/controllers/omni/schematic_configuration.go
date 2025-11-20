@@ -207,7 +207,7 @@ func (helper *schematicConfigurationHelper) reconcile(
 		return nil, err
 	}
 
-	customization, err := newMachineCustomization(ms, cluster, machineExtensions, securityState.BootedWithUki)
+	customization, err := newMachineCustomization(ms, cluster, machineExtensions)
 	if err != nil {
 		return nil, err
 	}
@@ -275,21 +275,21 @@ func updateFinalizers(ctx context.Context, r controller.ReaderWriter, extensions
 // newMachineCustomization creates a new machineCustomization based on the given machine status, cluster, and extensions.
 //
 // MachineStatus is required. All other parameters are optional.
-func newMachineCustomization(ms *omni.MachineStatus, cluster *omni.Cluster, exts *omni.MachineExtensions, isUKI bool) (machineCustomization, error) {
+func newMachineCustomization(ms *omni.MachineStatus, cluster *omni.Cluster, exts *omni.MachineExtensions) (machineCustomization, error) {
 	mc := machineCustomization{
 		machineStatus: ms,
 		cluster:       cluster,
 	}
 
-	if isUKI {
-		mc.meta = xslices.Map(ms.TypedSpec().Value.Schematic.MetaValues,
-			func(v *specs.MetaValue) schematic.MetaValue {
-				return schematic.MetaValue{
-					Key:   uint8(v.GetKey()),
-					Value: v.GetValue(),
-				}
-			})
-	}
+	// Leave meta values as-is to prevent any unwanted upgrades.
+	// They are no-op for non-UKI machines, but we still preserve them to not cause a schematic ID change, which would upgrade (reboot) the machine.
+	mc.meta = xslices.Map(ms.TypedSpec().Value.Schematic.MetaValues,
+		func(v *specs.MetaValue) schematic.MetaValue {
+			return schematic.MetaValue{
+				Key:   uint8(v.GetKey()),
+				Value: v.GetValue(),
+			}
+		})
 
 	if cluster == nil {
 		// The machine is not allocated to a cluster, we simply preserve the existing extensions of the machine.

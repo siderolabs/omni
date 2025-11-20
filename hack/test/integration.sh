@@ -99,6 +99,7 @@ fi
 KERNEL_ARGS_SCHEMATIC=$(
   cat <<EOF
 customization:
+  meta: [{ key: 42, value: test-1 }, { key: 41, value: test-2 }]
   extraKernelArgs:
     - siderolink.api=grpc://${WIREGUARD_IP}:8090?jointoken=${JOIN_TOKEN}
     - talos.events.sink=[fdae:41e4:649b:9303::1]:8091
@@ -345,6 +346,7 @@ EOF
   schematic=$(
     cat <<EOF
 customization:
+  meta: [{ key: 42, value: test-1 }, { key: 41, value: test-2 }]
   extraKernelArgs:
     - talos.config=http://${WIREGUARD_IP}:$port/config.yaml
     - console=tty0
@@ -365,6 +367,7 @@ function prepare_talos_image() {
   schematic=$(
     cat <<EOF
 customization:
+  meta: [{ key: 42, value: test-1 }, { key: 41, value: test-2 }]
   extraKernelArgs:
     - console=tty0
     - console=ttyS0

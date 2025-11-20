@@ -1400,6 +1400,8 @@ Test Omni upgrades, the first half that runs on the previous Omni version
 		omniClient := options.omniClient
 		clusterName := "integration-omni-upgrades"
 
+		pickedUKI, pickedNonUKI := false, false
+
 		t.Run("ClusterShouldBeCreated", CreateCluster(t.Context(), omniClient, ClusterOptions{
 			Name:          clusterName,
 			ControlPlanes: 3,
@@ -1415,6 +1417,26 @@ Test Omni upgrades, the first half that runs on the previous Omni version
 			SkipExtensionCheckOnCreate: options.SkipExtensionsCheckOnCreate,
 
 			AllowSchedulingOnControlPlanes: true,
+
+			// Pick at least one UKI and one non-UKI machine, so that we cover both flows during the upgrade tests.
+			// Schematic calculation differs between UKI and non-UKI machines, so it's important to test both.
+			PickFilterFunc: func(machineStatus *omni.MachineStatus) bool {
+				isUKI := machineStatus.TypedSpec().Value.SecurityState.GetBootedWithUki()
+
+				if isUKI && !pickedUKI { // if it's UKI, and we haven't picked one yet, pick it
+					pickedUKI = true
+
+					return true
+				}
+
+				if !isUKI && !pickedNonUKI { // if it's non-UKI, and we haven't picked one yet, pick it
+					pickedNonUKI = true
+
+					return true
+				}
+
+				return pickedUKI && pickedNonUKI // if we have already picked both types, allow any
+			},
 		}))
 
 		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), omniClient, clusterName, options.MachineOptions.TalosVersion,
