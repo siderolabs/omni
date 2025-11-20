@@ -258,42 +258,34 @@ export const Data: Story = {
 
           if (type !== ClusterPermissionsType || namespace !== VirtualNamespace) return
 
-          return HttpResponse.json(
-            {
-              body: JSON.stringify({
-                spec: {
-                  can_add_machines: true,
-                  can_remove_machines: true,
-                  can_reboot_machines: true,
-                  can_update_kubernetes: true,
-                  can_download_kubeconfig: true,
-                  can_sync_kubernetes_manifests: true,
-                  can_update_talos: true,
-                  can_download_talosconfig: true,
-                  can_read_config_patches: true,
-                  can_manage_config_patches: true,
-                  can_manage_cluster_features: true,
-                  can_download_support_bundle: true,
-                },
-                metadata: {
-                  created: '2025-10-01T18:42:13Z',
-                  updated: '2025-10-01T18:42:13Z',
-                  namespace: 'virtual',
-                  type: 'ClusterPermissions.omni.sidero.dev',
-                  id: 'talos-test-cluster',
-                  owner: '',
-                  phase: 'running',
-                  version: 1,
-                },
-              }),
-            },
-            {
-              headers: {
-                'content-type': 'application/json',
-                'Grpc-metadata-content-type': 'application/grpc',
+          return HttpResponse.json({
+            body: JSON.stringify({
+              spec: {
+                can_add_machines: true,
+                can_remove_machines: true,
+                can_reboot_machines: true,
+                can_update_kubernetes: true,
+                can_download_kubeconfig: true,
+                can_sync_kubernetes_manifests: true,
+                can_update_talos: true,
+                can_download_talosconfig: true,
+                can_read_config_patches: true,
+                can_manage_config_patches: true,
+                can_manage_cluster_features: true,
+                can_download_support_bundle: true,
               },
-            },
-          )
+              metadata: {
+                created: '2025-10-01T18:42:13Z',
+                updated: '2025-10-01T18:42:13Z',
+                namespace: 'virtual',
+                type: 'ClusterPermissions.omni.sidero.dev',
+                id: 'talos-test-cluster',
+                owner: '',
+                phase: 'running',
+                version: 1,
+              },
+            }),
+          })
         }),
       ],
     },

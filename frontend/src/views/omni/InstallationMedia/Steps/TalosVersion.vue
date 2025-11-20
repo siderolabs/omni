@@ -100,7 +100,12 @@ const k8sSupportMatrixDocsLink = computed(() =>
         aria-labelledby="docs-label-id"
       >
         <li>
-          <a :href="whatsNewDocsLink" rel="noopener noreferrer" target="_blank" class="underline">
+          <a
+            :href="whatsNewDocsLink"
+            rel="noopener noreferrer"
+            target="_blank"
+            class="link-primary"
+          >
             What's New
           </a>
         </li>
@@ -110,7 +115,7 @@ const k8sSupportMatrixDocsLink = computed(() =>
             :href="k8sSupportMatrixDocsLink"
             rel="noopener noreferrer"
             target="_blank"
-            class="underline"
+            class="link-primary"
           >
             Support Matrix
           </a>

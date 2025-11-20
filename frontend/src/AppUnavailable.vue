@@ -19,9 +19,7 @@ import THeader from '@/components/THeader/THeader.vue'
           <div>It appears we are experiencing some issues.</div>
           <div class="flex">
             Please try later again or&nbsp;
-            <a class="text-naturals-n12 underline" href="https://www.siderolabs.com/contact/">
-              contact us
-            </a>
+            <a class="link-primary" href="https://www.siderolabs.com/contact/">contact us</a>
             .
           </div>
         </div>

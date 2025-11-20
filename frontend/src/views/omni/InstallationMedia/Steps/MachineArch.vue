@@ -53,7 +53,7 @@ const secureBootDocsLink = computed(() =>
             :href="secureBootDocsLink"
             rel="noopener noreferrer"
             target="_blank"
-            class="inline-block text-primary-p3 underline"
+            class="link-primary"
             @click.stop
           >
             SecureBoot

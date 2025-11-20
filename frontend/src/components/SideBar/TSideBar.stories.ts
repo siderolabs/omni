@@ -400,42 +400,34 @@ export const Default: Story = {
 
           if (type !== ClusterPermissionsType || namespace !== VirtualNamespace) return
 
-          return HttpResponse.json(
-            {
-              body: JSON.stringify({
-                spec: {
-                  can_add_machines: true,
-                  can_remove_machines: true,
-                  can_reboot_machines: true,
-                  can_update_kubernetes: true,
-                  can_download_kubeconfig: true,
-                  can_sync_kubernetes_manifests: true,
-                  can_update_talos: true,
-                  can_download_talosconfig: true,
-                  can_read_config_patches: true,
-                  can_manage_config_patches: true,
-                  can_manage_cluster_features: true,
-                  can_download_support_bundle: true,
-                },
-                metadata: {
-                  created: '2025-10-23T09:34:12Z',
-                  updated: '2025-10-23T09:34:12Z',
-                  namespace: 'virtual',
-                  type: 'ClusterPermissions.omni.sidero.dev',
-                  id: 'talos-default',
-                  owner: '',
-                  phase: 'running',
-                  version: '1',
-                },
-              }),
-            },
-            {
-              headers: {
-                'content-type': 'application/json',
-                'Grpc-metadata-content-type': 'application/grpc',
+          return HttpResponse.json({
+            body: JSON.stringify({
+              spec: {
+                can_add_machines: true,
+                can_remove_machines: true,
+                can_reboot_machines: true,
+                can_update_kubernetes: true,
+                can_download_kubeconfig: true,
+                can_sync_kubernetes_manifests: true,
+                can_update_talos: true,
+                can_download_talosconfig: true,
+                can_read_config_patches: true,
+                can_manage_config_patches: true,
+                can_manage_cluster_features: true,
+                can_download_support_bundle: true,
               },
-            },
-          )
+              metadata: {
+                created: '2025-10-23T09:34:12Z',
+                updated: '2025-10-23T09:34:12Z',
+                namespace: 'virtual',
+                type: 'ClusterPermissions.omni.sidero.dev',
+                id: 'talos-default',
+                owner: '',
+                phase: 'running',
+                version: '1',
+              },
+            }),
+          })
         }),
 
         http.post<never, GetRequest>('/omni.resources.ResourceService/Get', async ({ request }) => {
@@ -443,40 +435,32 @@ export const Default: Story = {
 
           if (type !== ClusterMachineIdentityType || namespace !== DefaultNamespace) return
 
-          return HttpResponse.json(
-            {
-              body: JSON.stringify({
-                spec: {
-                  node_identity: 'xdwlmW302gaDjm7JaSQ4ZF6c67gAciYOZBsTZzkVoVE',
-                  etcd_member_id: '11861357848454170587',
-                  nodename: 'machine-cdecae49-a354-4931-bd7c-e4ca18410f10',
-                  node_ips: ['172.20.0.2'],
-                  discovery_service_endpoint: 'https://discovery.talos.dev:443',
-                },
-                metadata: {
-                  created: '2025-10-23T08:28:43Z',
-                  updated: '2025-10-23T08:29:04Z',
-                  namespace: 'default',
-                  type: 'ClusterMachineIdentities.omni.sidero.dev',
-                  id: 'cdecae49-a354-4931-bd7c-e4ca18410f10',
-                  owner: 'ClusterMachineIdentityController',
-                  phase: 'running',
-                  labels: {
-                    'omni.sidero.dev/cluster': 'talos-default',
-                    'omni.sidero.dev/machine-set': 'talos-default-control-planes',
-                    'omni.sidero.dev/role-controlplane': '',
-                  },
-                  version: 5,
-                },
-              }),
-            },
-            {
-              headers: {
-                'content-type': 'application/json',
-                'Grpc-metadata-content-type': 'application/grpc',
+          return HttpResponse.json({
+            body: JSON.stringify({
+              spec: {
+                node_identity: 'xdwlmW302gaDjm7JaSQ4ZF6c67gAciYOZBsTZzkVoVE',
+                etcd_member_id: '11861357848454170587',
+                nodename: 'machine-cdecae49-a354-4931-bd7c-e4ca18410f10',
+                node_ips: ['172.20.0.2'],
+                discovery_service_endpoint: 'https://discovery.talos.dev:443',
               },
-            },
-          )
+              metadata: {
+                created: '2025-10-23T08:28:43Z',
+                updated: '2025-10-23T08:29:04Z',
+                namespace: 'default',
+                type: 'ClusterMachineIdentities.omni.sidero.dev',
+                id: 'cdecae49-a354-4931-bd7c-e4ca18410f10',
+                owner: 'ClusterMachineIdentityController',
+                phase: 'running',
+                labels: {
+                  'omni.sidero.dev/cluster': 'talos-default',
+                  'omni.sidero.dev/machine-set': 'talos-default-control-planes',
+                  'omni.sidero.dev/role-controlplane': '',
+                },
+                version: 5,
+              },
+            }),
+          })
         }),
       ],
     },

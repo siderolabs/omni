@@ -143,7 +143,7 @@ interface Asset {
         <a
           target="_blank"
           rel="noopener noreferrer"
-          class="download-link text-xs"
+          class="link-primary"
           href="https://github.com/siderolabs/talos/releases"
         >
           here
@@ -172,9 +172,5 @@ interface Asset {
 
 .heading {
   @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
-}
-
-.download-link {
-  @apply underline;
 }
 </style>

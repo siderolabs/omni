@@ -264,9 +264,7 @@ const upgradeClick = async () => {
     <p class="text-xs">
       Downgrading minor versions is not supported. You can not skip minor version upgrades. You can
       only upgrade to versions supported by your Talos version. See the
-      <a class="inline-block underline hover:mix-blend-lighten" :href="k8sSupportMatrixDocsLink">
-        support matrix
-      </a>
+      <a class="link-primary" :href="k8sSupportMatrixDocsLink">support matrix</a>
       for which versions are supported by your Talos version.
     </p>
 

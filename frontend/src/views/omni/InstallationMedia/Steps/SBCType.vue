@@ -135,7 +135,7 @@ const SBCs = computed(() =>
 
         <!-- prettier-ignore -->
         <template v-if="sbc.documentation">
-          (<a class="text-primary-p3 underline" :href="sbc.documentation" @click.stop>documentation</a>).
+          (<a class="link-primary" :href="sbc.documentation" @click.stop>documentation</a>).
         </template>
       </template>
     </RadioGroupOption>

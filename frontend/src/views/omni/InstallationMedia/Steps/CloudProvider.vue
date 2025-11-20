@@ -135,7 +135,7 @@ const platforms = computed(() =>
 
       <!-- prettier-ignore -->
       <template #description>
-        {{ platform.description }} (<a class="text-primary-p3 underline" :href="platform.documentation" @click.stop>documentation</a>).
+        {{ platform.description }} (<a class="link-primary" :href="platform.documentation" @click.stop>documentation</a>).
       </template>
     </RadioGroupOption>
   </RadioGroup>

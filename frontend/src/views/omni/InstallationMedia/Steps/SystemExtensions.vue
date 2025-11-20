@@ -57,7 +57,7 @@ function toggleExtension(ref: string, enabled: boolean) {
         href="https://github.com/siderolabs/extensions"
         target="_blank"
         rel="noopener noreferrer"
-        class="inline-block text-primary-p3 underline"
+        class="link-primary"
       >
         System Extensions
       </a>
