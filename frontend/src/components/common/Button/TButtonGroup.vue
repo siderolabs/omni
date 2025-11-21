@@ -6,7 +6,8 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { RadioGroup, RadioGroupOption } from '@headlessui/vue'
-import Popper from 'vue3-popper'
+
+import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 
 type Props = {
   modelValue: any
@@ -39,27 +40,13 @@ const emit = defineEmits(['update:modelValue'])
       :disabled="option.disabled"
     >
       <div @click="() => (checked && deselectEnabled ? emit('update:modelValue', null) : null)">
-        <Popper
-          :disabled="!option.tooltip"
-          hover
-          placement="top"
-          :interactive="false"
-          offset-distance="10"
-          class="popper"
-        >
-          <template #content>
-            <div
-              class="max-w-72 rounded border border-naturals-n6 bg-naturals-n4 px-4 py-2 text-xs text-naturals-n10 drop-shadow-sm"
-            >
-              {{ option.tooltip }}
-            </div>
-          </template>
+        <Tooltip :description="option.tooltip" placement="top">
           <button type="button" :class="{ checked }" :disabled="option?.disabled">
             <span>
               {{ option?.label || option.value }}
             </span>
           </button>
-        </Popper>
+        </Tooltip>
       </div>
     </RadioGroupOption>
   </RadioGroup>
