@@ -82,7 +82,7 @@ const copyMachineID = () => {
   <TActionsBox>
     <TActionsBoxItem
       icon="log"
-      @click="
+      @select="
         $router.push({
           name: 'MachineLogs',
           params: { machine: clusterMachineStatus.metadata.id! },
@@ -91,11 +91,11 @@ const copyMachineID = () => {
     >
       Logs
     </TActionsBoxItem>
-    <TActionsBoxItem icon="copy" @click="copyMachineID">Copy Machine ID</TActionsBoxItem>
-    <TActionsBoxItem v-if="canRebootMachines" icon="power" @click="shutdownNode">
+    <TActionsBoxItem icon="copy" @select="copyMachineID">Copy Machine ID</TActionsBoxItem>
+    <TActionsBoxItem v-if="canRebootMachines" icon="power" @select="shutdownNode">
       Shutdown
     </TActionsBoxItem>
-    <TActionsBoxItem v-if="canRebootMachines" icon="reboot" @click="rebootNode">
+    <TActionsBoxItem v-if="canRebootMachines" icon="reboot" @select="rebootNode">
       Reboot
     </TActionsBoxItem>
     <TActionsBoxItem
@@ -104,7 +104,7 @@ const copyMachineID = () => {
         canAddClusterMachines
       "
       icon="rollback"
-      @click="restoreNode"
+      @select="restoreNode"
     >
       Cancel Destroy
     </TActionsBoxItem>
@@ -112,7 +112,7 @@ const copyMachineID = () => {
       v-else-if="!deleteDisabled && canRemoveMachines"
       icon="delete"
       danger
-      @click="deleteNode"
+      @select="deleteNode"
     >
       Destroy
     </TActionsBoxItem>
