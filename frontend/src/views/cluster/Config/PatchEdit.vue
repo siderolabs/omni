@@ -534,7 +534,7 @@ onMounted(async () => {
           :values="patchTypes"
           @checked-value="setPatchType"
         />
-        <Tooltip :show="weight < 100 || weight > 900" placement="bottom-start">
+        <Tooltip :open="weight < 100 || weight > 900" placement="bottom-start">
           <TInput v-model="weight" type="number" title="Weight" class="w-28" />
           <template #description>
             <div class="flex items-center gap-2 rounded bg-naturals-n3 p-2 text-xs">
