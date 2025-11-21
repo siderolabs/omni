@@ -6,12 +6,12 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { RadioGroup, RadioGroupOption } from '@headlessui/vue'
-import { vOnClickOutside } from '@vueuse/components'
+import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui'
 import { computed, ref, toRefs, watch } from 'vue'
-import Popper from 'vue3-popper'
 
 import IconButton from '@/components/common/Button/IconButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
+import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 
 import MachineSetLabel from './MachineSetLabel.vue'
 
@@ -53,8 +53,6 @@ const onSelect = (index: number) => {
 
   showPicker.value = false
 }
-
-const menuHovered = ref(false)
 </script>
 
 <template>
@@ -73,18 +71,7 @@ const menuHovered = ref(false)
         :disabled="option.disabled"
       >
         <div @click="() => onSelect(index)">
-          <Popper
-            :disabled="!option.tooltip"
-            hover
-            placement="left"
-            :interactive="false"
-            offset-distance="10"
-          >
-            <template #content>
-              <div class="w-48 rounded bg-naturals-n4 px-4 py-2 text-naturals-n10 drop-shadow-sm">
-                {{ option.tooltip }}
-              </div>
-            </template>
+          <Tooltip placement="left" :description="option.tooltip">
             <div class="relative">
               <MachineSetLabel
                 :id="option.id"
@@ -102,15 +89,18 @@ const menuHovered = ref(false)
                 class="pointer-events-none absolute top-0 right-0 bottom-0 left-0 rounded border border-white bg-naturals-n12 mix-blend-overlay"
               />
             </div>
-          </Popper>
+          </Tooltip>
         </div>
       </RadioGroupOption>
     </RadioGroup>
 
     <div v-else class="relative flex h-8 items-center justify-center rounded bg-naturals-n3">
-      <Popper v-on-click-outside="() => (showPicker = false)" :show="showPicker" placement="left">
-        <template #content>
-          <div class="flex flex-col items-center gap-1 rounded bg-naturals-n3 p-1">
+      <PopoverRoot v-model:open="showPicker">
+        <PopoverPortal>
+          <PopoverContent
+            side="left"
+            class="flex origin-(--reka-popover-content-transform-origin) flex-col items-center gap-1 rounded bg-naturals-n3 p-1 text-xs slide-in-from-right-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
+          >
             <IconButton
               icon="arrow-up"
               @click="optionsView.$el.scrollBy({ top: -24, behavior: 'smooth' })"
@@ -131,20 +121,7 @@ const menuHovered = ref(false)
                 :disabled="option.disabled"
               >
                 <div @click="() => onSelect(checked)">
-                  <Popper
-                    :disabled="!option.tooltip"
-                    hover
-                    placement="left"
-                    :interactive="false"
-                    offset-distance="10"
-                  >
-                    <template #content>
-                      <div
-                        class="w-48 rounded bg-naturals-n4 px-4 py-2 text-naturals-n10 drop-shadow-sm"
-                      >
-                        {{ option.tooltip }}
-                      </div>
-                    </template>
+                  <Tooltip :description="option.tooltip" placement="left">
                     <div class="relative">
                       <MachineSetLabel
                         class="machine-set-label opacity-75 transition-opacity hover:opacity-100"
@@ -161,7 +138,7 @@ const menuHovered = ref(false)
                         class="pointer-events-none absolute top-0 right-0 bottom-0 left-0 rounded border border-white bg-naturals-n12 mix-blend-overlay"
                       />
                     </div>
-                  </Popper>
+                  </Tooltip>
                 </div>
               </RadioGroupOption>
             </RadioGroup>
@@ -169,18 +146,13 @@ const menuHovered = ref(false)
               icon="arrow-down"
               @click="optionsView.$el.scrollBy({ top: 24, behavior: 'smooth' })"
             />
-          </div>
-        </template>
-        <div
-          class="flex h-6 items-center gap-1 px-1"
-          @click="() => (showPicker = !showPicker)"
-          @mouseover="menuHovered = true"
-          @mouseout="menuHovered = false"
-        >
+          </PopoverContent>
+        </PopoverPortal>
+
+        <PopoverTrigger class="group flex h-6 items-center gap-1 px-1">
           <TIcon
             icon="arrow-left"
-            class="mx-1 h-3 w-3 text-naturals-n7 transition-all"
-            :class="{ 'text-white': menuHovered, 'scale-125': menuHovered }"
+            class="mx-1 h-3 w-3 text-naturals-n7 transition-all group-hover:scale-125 group-hover:text-naturals-n14"
           />
           <template v-if="pickedOption">
             <MachineSetLabel :machine-set-id="pickedOption?.id" :color="pickedOption?.color" />
@@ -190,13 +162,13 @@ const menuHovered = ref(false)
             />
           </template>
           <IconButton v-else icon="action-horizontal" />
-        </div>
-      </Popper>
+        </PopoverTrigger>
+      </PopoverRoot>
     </div>
   </div>
 </template>
 
-<style>
+<style scoped>
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
