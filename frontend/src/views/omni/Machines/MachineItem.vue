@@ -159,7 +159,7 @@ const maintenanceUpdateDescription = computed(() => {
           <TActionsBox>
             <TActionsBoxItem
               icon="settings"
-              @click="
+              @select="
                 $router.push({
                   name: 'MachineConfigPatches',
                   params: { machine: machine.metadata.id },
@@ -171,7 +171,7 @@ const maintenanceUpdateDescription = computed(() => {
 
             <TActionsBoxItem
               icon="settings"
-              @click="
+              @select="
                 $router.push({
                   query: {
                     modal: 'updateKernelArgs',
@@ -183,7 +183,7 @@ const maintenanceUpdateDescription = computed(() => {
               Update Kernel Args
             </TActionsBoxItem>
 
-            <TActionsBoxItem icon="copy" @click="copy(machine.metadata.id!)">
+            <TActionsBoxItem icon="copy" @select="copy(machine.metadata.id!)">
               Copy Machine ID
             </TActionsBoxItem>
 
@@ -191,7 +191,7 @@ const maintenanceUpdateDescription = computed(() => {
               v-if="canRemoveMachines"
               icon="delete"
               danger
-              @click="
+              @select="
                 $router.push({
                   query: {
                     modal: 'machineRemove',

@@ -177,21 +177,21 @@ const openDeleteToken = (token: string) => {
             </div>
             <TActionsBox>
               <template v-if="item.spec.state === JoinTokenStatusSpecState.ACTIVE">
-                <TActionsBoxItem icon="copy" @click="() => copyValue(item.metadata.id!)">
+                <TActionsBoxItem icon="copy" @select="() => copyValue(item.metadata.id!)">
                   Copy Token
                 </TActionsBoxItem>
-                <TActionsBoxItem icon="copy" @click="() => copyKernelParams(item.metadata.id!)">
+                <TActionsBoxItem icon="copy" @select="() => copyKernelParams(item.metadata.id!)">
                   Copy Kernel Params
                 </TActionsBoxItem>
                 <TActionsBoxItem
                   icon="long-arrow-down"
-                  @click="() => getMachineJoinConfig(item.metadata.id!)"
+                  @select="() => getMachineJoinConfig(item.metadata.id!)"
                 >
                   Download Machine Join Config
                 </TActionsBoxItem>
                 <TActionsBoxItem
                   icon="long-arrow-down"
-                  @click="() => openDownloadInstallationMedia(item.metadata.id!)"
+                  @select="() => openDownloadInstallationMedia(item.metadata.id!)"
                 >
                   Download Installation Media
                 </TActionsBoxItem>
@@ -199,7 +199,7 @@ const openDeleteToken = (token: string) => {
                 <TActionsBoxItem
                   v-if="!item.spec.is_default"
                   icon="check"
-                  @click="() => makeDefault(item.metadata.id!)"
+                  @select="() => makeDefault(item.metadata.id!)"
                 >
                   Make Default
                 </TActionsBoxItem>
@@ -207,19 +207,19 @@ const openDeleteToken = (token: string) => {
                 <TActionsBoxItem
                   icon="error"
                   danger
-                  @click="() => openRevokeToken(item.metadata.id!)"
+                  @select="() => openRevokeToken(item.metadata.id!)"
                 >
                   Revoke
                 </TActionsBoxItem>
               </template>
               <template v-else>
-                <TActionsBoxItem icon="reset" @click="unrevokeJoinToken(item.metadata.id!)">
+                <TActionsBoxItem icon="reset" @select="unrevokeJoinToken(item.metadata.id!)">
                   Unrevoke
                 </TActionsBoxItem>
                 <TActionsBoxItem
                   icon="delete"
                   danger
-                  @click="() => openDeleteToken(item.metadata.id!)"
+                  @select="() => openDeleteToken(item.metadata.id!)"
                 >
                   Delete
                 </TActionsBoxItem>
