@@ -5,10 +5,24 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { ref } from 'vue'
-import Popper from 'vue3-popper'
+import {
+  TooltipContent,
+  TooltipPortal,
+  TooltipProvider,
+  TooltipRoot,
+  TooltipTrigger,
+} from 'reka-ui'
+import { computed } from 'vue'
 
-type props = {
+const {
+  // eslint-disable-next-line vue/no-boolean-default
+  open = undefined,
+  placement = 'auto-start',
+  offsetDistance = 10,
+  offsetSkid = 30,
+} = defineProps<{
+  open?: boolean
+  disabled?: boolean
   description?: string
   offsetDistance?: number
   offsetSkid?: number
@@ -28,44 +42,41 @@ type props = {
     | 'left'
     | 'left-start'
     | 'left-end'
-}
+}>()
 
-withDefaults(defineProps<props>(), {
-  placement: 'auto-start',
-  offsetDistance: 10,
-  offsetSkid: 30,
+defineOptions({ inheritAttrs: false })
+
+const side = computed(() => {
+  const [side] = placement.split('-')
+  return side === 'auto' ? undefined : (side as 'top' | 'bottom' | 'right' | 'left')
 })
 
-const show = ref(false)
+const align = computed(() => {
+  const [, align = 'center'] = placement.split('-')
+  return align as 'center' | 'start' | 'end'
+})
 </script>
 
 <template>
-  <Popper
-    :offset-distance="offsetDistance.toFixed()"
-    :offset-skid="offsetSkid.toFixed()"
-    :placement="placement"
-    :show="show && (!!description || !!$slots.description)"
-    class="popper"
-  >
-    <template #content>
-      <div
-        class="z-50 rounded border border-naturals-n4 bg-naturals-n3 p-4 text-xs text-naturals-n12"
-      >
-        <p v-if="description" class="whitespace-pre">{{ description }}</p>
-        <slot v-else name="description" />
-      </div>
-    </template>
-    <div @mouseover="show = true" @mouseleave="show = false">
-      <slot />
-    </div>
-  </Popper>
-</template>
+  <TooltipProvider :delay-duration="0">
+    <TooltipRoot :open :disabled="disabled || (!description && !$slots.description)">
+      <TooltipTrigger as-child>
+        <slot></slot>
+      </TooltipTrigger>
 
-<style scoped>
-.popper {
-  margin: 0 !important;
-  border: 0 !important;
-  display: block !important;
-  z-index: auto !important;
-}
-</style>
+      <TooltipPortal>
+        <TooltipContent
+          class="rounded border border-naturals-n4 bg-naturals-n3 p-4 text-xs text-naturals-n12"
+          :side-offset="offsetDistance"
+          :align-offset="offsetSkid"
+          :align
+          :side
+        >
+          <slot name="description">
+            <p class="whitespace-pre">{{ description }}</p>
+          </slot>
+        </TooltipContent>
+      </TooltipPortal>
+    </TooltipRoot>
+  </TooltipProvider>
+</template>
