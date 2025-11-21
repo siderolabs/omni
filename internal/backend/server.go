@@ -41,6 +41,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	service "github.com/siderolabs/discovery-service/pkg/service"
+	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
 	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	"github.com/siderolabs/go-retry/retry"
@@ -349,6 +350,12 @@ func (s *Server) serverAndGateway(
 	actualSrv, err := grpcomni.NewServer(services, serverOptions...)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	for svcName, info := range actualSrv.GetServiceInfo() {
+		methodNames := xslices.Map(info.Methods, func(m grpc.MethodInfo) string { return m.Name })
+
+		s.logger.Debug("registered gRPC service", zap.String("service", svcName), zap.Strings("methods", methodNames))
 	}
 
 	gtwyDialsTo, err := grpcomni.RegisterGateway(ctx, services, registerTo, s.logger)

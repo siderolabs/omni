@@ -47,24 +47,22 @@ var configNoTLSCerts []byte
 var enableSAML []byte
 
 func TestMergeConfig(t *testing.T) {
-	cfg, err := config.Init(zaptest.NewLogger(t),
-		&config.Params{
-			Services: config.Services{
-				API: &config.Service{
-					BindEndpoint: "0.0.0.0:80",
-					CertFile:     "crt",
-					KeyFile:      "key",
-				},
+	cfg, err := config.Init(false, zaptest.NewLogger(t), &config.Params{
+		Services: config.Services{
+			API: &config.Service{
+				BindEndpoint: "0.0.0.0:80",
+				CertFile:     "crt",
+				KeyFile:      "key",
 			},
-			Storage: config.Storage{
-				Default: &config.StorageDefault{
-					Etcd: config.EtcdParams{
-						PrivateKeySource: "vault",
-					},
+		},
+		Storage: config.Storage{
+			Default: &config.StorageDefault{
+				Etcd: config.EtcdParams{
+					PrivateKeySource: "vault",
 				},
 			},
 		},
-	)
+	})
 
 	require.NoError(t, err)
 	require.True(t, cfg.Services.EmbeddedDiscoveryService.Enabled)

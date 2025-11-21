@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "omni-v2.fullname" . }}
+  labels:
+    {{- include "omni-v2.labels" . | nindent 4 }}
+  {{- with .Values.service.main.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.main.type }}
+  {{- with .Values.service.main.clusterIP }}
+  clusterIP: {{ . | quote}}
+  {{- end }}
+  ports:
+    - name: omni
+      port: {{ .Values.service.main.omniPort }}
+      targetPort: omni
+      protocol: TCP
+    - name: k8s-proxy
+      port: {{ .Values.service.main.k8sProxyPort }}
+      targetPort: k8s-proxy
+      protocol: TCP
+    - name: siderolink
+      port: {{ .Values.service.main.siderolinkApiPort }}
+      targetPort: siderolink-api
+      protocol: TCP
+  selector:
+    {{- include "omni-v2.selectorLabels" . | nindent 4 }}
