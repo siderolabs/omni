@@ -10,7 +10,6 @@ import { MarkerSeverity, MarkerTag } from 'monaco-editor/esm/vs/editor/editor.ap
 import type { Ref } from 'vue'
 import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import Popper from 'vue3-popper'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { Code } from '@/api/google/rpc/code.pb'
@@ -42,6 +41,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
+import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import { canManageMachineConfigPatches, canReadMachineConfigPatches } from '@/methods/auth'
 import { machineSetTitle, sortMachineSetIds } from '@/methods/machineset'
 import { showError } from '@/notification'
@@ -522,7 +522,7 @@ onMounted(async () => {
 <template>
   <div class="relative -mx-6 -mb-6 flex flex-1 flex-col overflow-hidden" :style="{ width: 'auto' }">
     <div class="flex flex-1 flex-col overflow-hidden px-6 pb-16">
-      <PageHeader :title="title" :subtitle="subtitle as string" :notes="notes" />
+      <PageHeader :title="title" :subtitle="subtitle" :notes="notes" />
       <ManagedByTemplatesWarning :cluster="currentCluster" />
       <div v-if="state === State.NotExists" class="mb-4 flex items-center gap-3">
         <TInput v-model="patchName" title="Name" />
@@ -534,15 +534,15 @@ onMounted(async () => {
           :values="patchTypes"
           @checked-value="setPatchType"
         />
-        <Popper :show="weight < 100 || weight > 900" placement="bottom-start">
+        <Tooltip :show="weight < 100 || weight > 900" placement="bottom-start">
           <TInput v-model="weight" type="number" title="Weight" class="w-28" />
-          <template #content>
+          <template #description>
             <div class="flex items-center gap-2 rounded bg-naturals-n3 p-2 text-xs">
               <TIcon icon="warning" class="h-5 w-5 fill-current text-yellow-y1" />
               Weight should be in range of 100-900.
             </div>
           </template>
-        </Popper>
+        </Tooltip>
       </div>
       <div class="font-sm mb-7 flex-1 overflow-y-hidden rounded bg-naturals-n1 px-2 py-3">
         <div v-if="!ready" class="flex h-full w-full items-center justify-center">
