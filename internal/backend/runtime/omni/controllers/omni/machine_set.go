@@ -25,7 +25,12 @@ func NewMachineSetController() *MachineSetController {
 			Name: "MachineSetController",
 			Handler: cleanup.Combine(
 				cleanup.RemoveOutputs[*omni.MachineSetNode](func(machineSet *omni.MachineSet) state.ListOption {
-					return state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID()))
+					return state.WithLabelQuery(
+						resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID()),
+						// filter machine set nodes created by the MachineSetNode controller
+						// they also have no owner, but the controller will clean them up by itself
+						resource.LabelExists(omni.LabelManagedByMachineSetNodeController, resource.NotMatches),
+					)
 				}),
 				cleanup.RemoveOutputs[*omni.ExtensionsConfiguration](func(machineSet *omni.MachineSet) state.ListOption {
 					return state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID()))

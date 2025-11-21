@@ -592,7 +592,7 @@ message ReadRequest {
   string path = 1;
 }
 
-// LogsContainer describes all available registered log containers.
+// LogsContainer desribes all avalaible registered log containers.
 message LogsContainer {
   common.Metadata metadata = 1;
   repeated string ids = 2;

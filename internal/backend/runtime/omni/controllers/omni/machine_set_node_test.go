@@ -127,7 +127,9 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 			[]string{
 				machine.Metadata().ID(),
 			},
-			func(*omni.MachineSetNode, *assert.Assertions) {},
+			func(n *omni.MachineSetNode, assert *assert.Assertions) {
+				assert.Empty(n.Metadata().Owner())
+			},
 		)
 	}
 

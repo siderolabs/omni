@@ -2091,3 +2091,58 @@ func dropTalosUpgradeStatusFinalizersFromSchematicConfigs(ctx context.Context, s
 
 	return nil
 }
+
+func makeMachineSetNodesOwnerEmpty(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
+	machineSetNodes, err := safe.ReaderListAll[*omni.MachineSetNode](ctx, st)
+	if err != nil {
+		return err
+	}
+
+	for machineSetNode := range machineSetNodes.All() {
+		if machineSetNode.Metadata().Owner() != omnictrl.NewMachineSetNodeController().ControllerName {
+			continue
+		}
+
+		machineSet, ok := machineSetNode.Metadata().Labels().Get(omni.LabelMachineSet)
+		if !ok {
+			continue
+		}
+
+		updated := omni.NewMachineSetNode(resources.DefaultNamespace, machineSetNode.Metadata().ID(),
+			omni.NewMachineSet(resources.DefaultNamespace, machineSet),
+		)
+
+		for _, fin := range *machineSetNode.Metadata().Finalizers() {
+			updated.Metadata().Finalizers().Add(fin)
+		}
+
+		updated.TypedSpec().Value = machineSetNode.TypedSpec().Value
+
+		updated.Metadata().SetPhase(machineSetNode.Metadata().Phase())
+		updated.Metadata().SetVersion(machineSetNode.Metadata().Version())
+
+		updated.Metadata().Labels().Do(func(temp kvutils.TempKV) {
+			for key, value := range machineSetNode.Metadata().Labels().Raw() {
+				temp.Set(key, value)
+			}
+		})
+
+		updated.Metadata().Annotations().Do(func(temp kvutils.TempKV) {
+			for key, value := range machineSetNode.Metadata().Annotations().Raw() {
+				temp.Set(key, value)
+			}
+		})
+
+		updated.Metadata().Labels().Set(omni.LabelManagedByMachineSetNodeController, "")
+
+		if err = updated.Metadata().SetOwner(""); err != nil {
+			return err
+		}
+
+		if err = st.Update(ctx, updated, state.WithUpdateOwner(machineSetNode.Metadata().Owner()), state.WithExpectedPhaseAny()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

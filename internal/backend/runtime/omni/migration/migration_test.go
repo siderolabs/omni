@@ -2385,6 +2385,66 @@ func (suite *MigrationSuite) TestDropTalosUpgradeStatusFinalizersFromSchematicCo
 	suite.True(sc3VersionBefore.Equal(sc3Migrated.Metadata().Version()), "expected sc3 to be left untouched")
 }
 
+func (suite *MigrationSuite) TestMakeMachineSetNodeOwnerEmpty() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	labelID := "custom"
+
+	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "ms1")
+
+	msnRunning := omni.NewMachineSetNode(resources.DefaultNamespace, "running", machineSet)
+
+	msnOwned := omni.NewMachineSetNode(resources.DefaultNamespace, "owned", machineSet)
+
+	msnOwned.Metadata().Finalizers().Add("fin")
+	msnOwned.Metadata().Labels().Set(labelID, "val")
+	msnOwned.Metadata().Annotations().Set(labelID, "val")
+
+	msnTearingDown := omni.NewMachineSetNode(resources.DefaultNamespace, "tearingDown", machineSet)
+	msnTearingDown.Metadata().SetPhase(resource.PhaseTearingDown)
+
+	suite.Require().NoError(suite.state.Create(ctx, msnRunning))
+	suite.Require().NoError(suite.state.Create(ctx, msnOwned,
+		state.WithCreateOwner(omnictrl.NewMachineSetNodeController().ControllerName)),
+	)
+	suite.Require().NoError(suite.state.Create(ctx, msnTearingDown,
+		state.WithCreateOwner(omnictrl.NewMachineSetNodeController().ControllerName)),
+	)
+
+	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("makeMachineSetNodesOwnerEmpty"))))
+
+	var err error
+
+	msnRunning, err = safe.ReaderGetByID[*omni.MachineSetNode](ctx, suite.state, msnRunning.Metadata().ID())
+	suite.Require().NoError(err)
+
+	msnOwned, err = safe.ReaderGetByID[*omni.MachineSetNode](ctx, suite.state, msnOwned.Metadata().ID())
+	suite.Require().NoError(err)
+
+	msnTearingDown, err = safe.ReaderGetByID[*omni.MachineSetNode](ctx, suite.state, msnTearingDown.Metadata().ID())
+	suite.Require().NoError(err)
+
+	_, labelSet := msnRunning.Metadata().Labels().Get(omni.LabelManagedByMachineSetNodeController)
+	suite.Assert().False(labelSet)
+
+	_, labelSet = msnOwned.Metadata().Labels().Get(omni.LabelManagedByMachineSetNodeController)
+	suite.Assert().True(labelSet)
+	suite.Assert().Empty(msnOwned.Metadata().Owner())
+
+	val, _ := msnOwned.Metadata().Annotations().Get(labelID)
+	suite.Assert().Equal("val", val)
+	val, _ = msnOwned.Metadata().Annotations().Get(labelID)
+	suite.Assert().Equal("val", val)
+
+	suite.Assert().False(msnOwned.Metadata().Finalizers().Empty())
+
+	_, labelSet = msnTearingDown.Metadata().Labels().Get(omni.LabelManagedByMachineSetNodeController)
+	suite.Assert().True(labelSet)
+	suite.Assert().Empty(msnTearingDown.Metadata().Owner())
+	suite.Assert().Equal(resource.PhaseTearingDown, msnTearingDown.Metadata().Phase())
+}
+
 func startMigration[
 	R interface {
 		generic.ResourceWithRD

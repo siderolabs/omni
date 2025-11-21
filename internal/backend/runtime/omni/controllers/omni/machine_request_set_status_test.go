@@ -313,17 +313,17 @@ func TestInfraProviderDeletion(t *testing.T) {
 
 		var ids []resource.ID
 
-		err := retry.Constant(time.Second*5).RetryWithContext(ctx, func(ctx context.Context) error {
+		for range 10 {
 			ids = rtestutils.ResourceIDs[*infra.MachineRequest](ctx, t, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
 
-			if len(ids) != int(machineRequestSet.TypedSpec().Value.MachineCount) {
-				return retry.ExpectedErrorf("expected %d requests got %d", machineRequestSet.TypedSpec().Value.MachineCount, len(ids))
+			if len(ids) == int(machineRequestSet.TypedSpec().Value.MachineCount) {
+				break
 			}
 
-			return nil
-		})
+			time.Sleep(time.Millisecond * 500)
+		}
 
-		require.NoError(t, err)
+		require.Equal(t, int(machineRequestSet.TypedSpec().Value.MachineCount), len(ids))
 
 		rtestutils.AssertResources(ctx, t, st, ids, func(r *infra.MachineRequest, assert *assert.Assertions) {
 			l, ok := r.Metadata().Labels().Get(omni.LabelMachineRequestSet)
@@ -367,18 +367,10 @@ func TestInfraProviderDeletion(t *testing.T) {
 		// delete infra provider
 		rtestutils.Destroy[*infra.Provider](ctx, t, st, []string{providerID})
 
-		// assert that all machine requests are deleted after infra provider is deleted
-		err = retry.Constant(time.Second*5).RetryWithContext(ctx, func(ctx context.Context) error {
-			ids = rtestutils.ResourceIDs[*infra.MachineRequest](ctx, t, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
+		for _, id := range ids {
+			rtestutils.AssertNoResource[*infra.MachineRequest](ctx, t, st, id)
+		}
 
-			if len(ids) != 0 {
-				return retry.ExpectedErrorf("expected %d requests got %d", 0, len(ids))
-			}
-
-			return nil
-		})
-		require.NoError(t, err)
-
-		require.NoError(t, st.Destroy(ctx, machineRequestSet.Metadata()))
+		require.NoError(t, st.TeardownAndDestroy(ctx, machineRequestSet.Metadata()))
 	})
 }

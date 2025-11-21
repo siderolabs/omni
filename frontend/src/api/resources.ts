@@ -147,6 +147,7 @@ export const LabelIsStaticInfraProvider = "omni.sidero.dev/is-static-infra-provi
 export const LabelMachineRequest = "omni.sidero.dev/machine-request";
 export const LabelMachineRequestSet = "omni.sidero.dev/machine-request-set";
 export const LabelNoManualAllocation = "omni.sidero.dev/no-manual-allocation";
+export const LabelManagedByMachineSetNodeController = "omni.sidero.dev/managed-by-machine-set-node-controller";
 export const LabelIsManagedByStaticInfraProvider = "omni.sidero.dev/is-managed-by-static-infra-provider";
 export const LabelMachinePendingAccept = "omni.sidero.dev/accept-pending";
 export const InfraProviderLabelPrefix = "omni.sidero.dev/infra-provider";

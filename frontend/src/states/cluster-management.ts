@@ -38,6 +38,7 @@ import {
   LabelClusterMachine,
   LabelControlPlaneRole,
   LabelMachineSet,
+  LabelManagedByMachineSetNodeController,
   LabelSystemPatch,
   LabelWorkerRole,
   MachineSetNodeType,
@@ -873,7 +874,7 @@ export const populateExisting = async (clusterName: string) => {
       machineSetNode.systemExtensions = systemExtensions.spec.extensions ?? []
     }
 
-    if (!msn.metadata.owner) {
+    if (!msn.metadata.labels?.[LabelManagedByMachineSetNodeController]) {
       resources.push(msn)
     }
   }

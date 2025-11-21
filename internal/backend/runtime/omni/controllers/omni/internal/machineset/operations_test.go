@@ -33,7 +33,7 @@ type runtime struct {
 	state.State
 }
 
-func (rt *runtime) Create(ctx context.Context, r resource.Resource) error {
+func (rt *runtime) Create(ctx context.Context, r resource.Resource, _ ...controller.CreateOption) error {
 	return rt.State.Create(ctx, r)
 }
 

@@ -17,6 +17,7 @@ import type {
   EtcdManualBackupSpec,
   KubernetesUpgradeStatusSpec,
   MachineSetNodeSpec,
+  MachineSetSpec,
   NodeForceDestroyRequestSpec,
   TalosUpgradeStatusSpec,
 } from '@/api/omni/specs/omni.pb'
@@ -33,6 +34,7 @@ import {
   LabelCluster,
   LabelMachine,
   LabelMachineSet,
+  LabelManagedByMachineSetNodeController,
   MachineSetNodeType,
   MachineSetType,
   NodeForceDestroyRequestType,
@@ -335,6 +337,21 @@ export const restoreNode = async (clusterMachine: Resource) => {
       )
     }
 
+    const machineSet: Resource<MachineSetSpec> = await ResourceService.Get(
+      {
+        namespace: DefaultNamespace,
+        type: MachineSetType,
+        id: machineSetID,
+      },
+      withRuntime(Runtime.Omni),
+    )
+
+    const extraLabels: Record<string, string> = {}
+
+    if (machineSet.spec.machine_allocation?.name) {
+      extraLabels[LabelManagedByMachineSetNodeController] = ''
+    }
+
     await createResources([
       {
         metadata: {
@@ -344,6 +361,7 @@ export const restoreNode = async (clusterMachine: Resource) => {
           labels: {
             [LabelCluster]: clusterName,
             [LabelMachineSet]: machineSetID,
+            ...extraLabels,
           },
         },
         spec: {},

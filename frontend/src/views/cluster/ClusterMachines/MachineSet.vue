@@ -142,11 +142,6 @@ const canRemoveMachine = computed(() => {
     return false
   }
 
-  // don't allow destroying machines if the machine set is using automatic allocation
-  if (machineSet.value.spec.machine_allocation?.name) {
-    return false
-  }
-
   if (machineSet.value.metadata.labels?.[LabelControlPlaneRole] === undefined) {
     return true
   }
@@ -287,7 +282,6 @@ const sectionHeadingId = useId()
       :id="machine.metadata.id"
       :key="itemID(machine)"
       class="border-t border-naturals-n4 last-of-type:rounded-b-md"
-      :machine-set="machineSet"
       :has-diagnostic-info="nodesWithDiagnostics?.has(machine.metadata.id!)"
       :machine="machine"
       :delete-disabled="!canRemoveMachine"

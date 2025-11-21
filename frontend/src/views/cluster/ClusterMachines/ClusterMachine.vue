@@ -9,7 +9,7 @@ import { computed, toRefs } from 'vue'
 import { useRouter } from 'vue-router'
 
 import type { Resource } from '@/api/grpc'
-import type { ClusterMachineStatusSpec, MachineSetStatusSpec } from '@/api/omni/specs/omni.pb'
+import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import {
   ClusterMachineStatusLabelNodeName,
   LabelCluster,
@@ -29,13 +29,12 @@ import NodeContextMenu from '@/views/common/NodeContextMenu.vue'
 import ClusterMachinePhase from './ClusterMachinePhase.vue'
 
 const props = defineProps<{
-  machineSet: Resource<MachineSetStatusSpec>
   machine: Resource<ClusterMachineStatusSpec>
   deleteDisabled?: boolean
   hasDiagnosticInfo?: boolean
 }>()
 
-const { machine, machineSet } = toRefs(props)
+const { machine } = toRefs(props)
 
 const icon = computed(() => {
   if (machine.value.metadata.labels?.[LabelIsManagedByStaticInfraProvider] !== undefined) {
@@ -52,10 +51,7 @@ const locked = computed(() => {
 })
 
 const lockable = computed(() => {
-  return (
-    machineSet?.value.spec?.machine_allocation === undefined &&
-    machine?.value.metadata?.labels?.[LabelWorkerRole] !== undefined
-  )
+  return machine?.value.metadata?.labels?.[LabelWorkerRole] !== undefined
 })
 
 const router = useRouter()

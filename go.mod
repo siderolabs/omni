@@ -26,7 +26,7 @@ require (
 	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/containers/image/v5 v5.36.2 // indirect
 	github.com/coreos/go-oidc/v3 v3.16.0
-	github.com/cosi-project/runtime v1.12.0
+	github.com/cosi-project/runtime v1.13.0
 	github.com/cosi-project/state-etcd v0.5.3
 	github.com/cosi-project/state-sqlite v0.1.0
 	github.com/crewjam/saml v0.5.1
@@ -94,7 +94,6 @@ require (
 	go.etcd.io/etcd/client/v3 v3.6.5
 	go.etcd.io/etcd/server/v3 v3.6.5
 	go.uber.org/goleak v1.3.0
-	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.27.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.2
 	golang.org/x/crypto v0.43.0
@@ -115,6 +114,8 @@ require (
 	modernc.org/sqlite v1.40.0
 	sigs.k8s.io/controller-runtime v0.22.4
 )
+
+require github.com/jxskiss/base62 v1.1.0
 
 require (
 	cel.dev/expr v0.25.0 // indirect
@@ -198,7 +199,6 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jsimonetti/rtnetlink/v2 v2.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/jxskiss/base62 v1.1.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/mattermost/xml-roundtrip-validator v0.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect

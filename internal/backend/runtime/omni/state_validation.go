@@ -752,6 +752,26 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 		return nil
 	}
 
+	// if the machine is created by the MachineSetNode controller
+	// it means that the machine set is using a machine class and all MachineSetNodes are programmatically created
+	// the MachineSetNode can still be changed by the user, but the creation should fail, unless the MachineSetNode
+	// is re-created for an existing running ClusterMachine
+	// this is to allow canceling destroy
+	validateAutoMachineAllocation := func(ctx context.Context, st state.State, res *omni.MachineSetNode, machineSet *omni.MachineSet) error {
+		clusterMachine, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, st, res.Metadata().ID())
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		_, ok := res.Metadata().Labels().Get(omni.LabelManagedByMachineSetNodeController)
+		// allow when cluster machine exists and running and the MachineSetNode has correct labels
+		if clusterMachine != nil && ok && clusterMachine.Metadata().Phase() == resource.PhaseRunning {
+			return nil
+		}
+
+		return fmt.Errorf("adding machine set node to the machine set %q is not allowed: the machine set is using automated machine allocation", machineSet.Metadata().ID())
+	}
+
 	return []validated.StateOption{
 		validated.WithCreateValidations(validated.NewCreateValidationForType(func(ctx context.Context, res *omni.MachineSetNode, _ ...state.CreateOption) error {
 			machineSet, machineSetName, err := getMachineSet(ctx, res)
@@ -768,7 +788,9 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 			}
 
 			if omni.GetMachineAllocation(machineSet) != nil {
-				return fmt.Errorf("adding machine set node to the machine set %q is not allowed: the machine set is using automated machine allocation", machineSet.Metadata().ID())
+				if err = validateAutoMachineAllocation(ctx, st, res, machineSet); err != nil {
+					return err
+				}
 			}
 
 			cluster, clusterName, err := getCluster(ctx, res)

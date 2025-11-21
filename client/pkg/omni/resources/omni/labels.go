@@ -86,6 +86,12 @@ const (
 	// tsgen:LabelNoManualAllocation
 	LabelNoManualAllocation = SystemLabelPrefix + "no-manual-allocation"
 
+	// LabelManagedByMachineSetNodeController is set on the MachineSetNode resources which were dynamically created
+	// for a MachineSet which is using machine classes.
+	// It means that the MachineSetNode can be updated/removed by the controller too.
+	// tsgen:LabelManagedByMachineSetNodeController
+	LabelManagedByMachineSetNodeController = SystemLabelPrefix + "managed-by-machine-set-node-controller"
+
 	// LabelIsManagedByStaticInfraProvider is set on the machines managed by static infra providers.
 	// tsgen:LabelIsManagedByStaticInfraProvider
 	LabelIsManagedByStaticInfraProvider = SystemLabelPrefix + "is-managed-by-static-infra-provider"

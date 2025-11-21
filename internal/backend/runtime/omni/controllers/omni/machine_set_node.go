@@ -317,7 +317,7 @@ func (ctrl *MachineSetNodeController) reconcileTearingDown(ctx context.Context, 
 		return err
 	}
 
-	ready, err := helpers.TeardownAndDestroyAll(ctx, r, machineSetNodes.Pointers())
+	ready, err := helpers.TeardownAndDestroyAll(ctx, r, machineSetNodes.Pointers(), controller.WithOwner(""))
 	if err != nil {
 		return err
 	}
@@ -369,7 +369,7 @@ func (ctrl *MachineSetNodeController) destroyOrphaned(
 		}
 	}
 
-	_, err := helpers.TeardownAndDestroyAll(ctx, r, slices.Values(toDestroy))
+	_, err := helpers.TeardownAndDestroyAll(ctx, r, slices.Values(toDestroy), controller.WithOwner(""))
 
 	return err
 }
@@ -555,7 +555,11 @@ func (ctrl *MachineSetNodeController) createNodes(
 
 			id := machine.Metadata().ID()
 
-			if err = r.Create(ctx, omni.NewMachineSetNode(resources.DefaultNamespace, id, machineSet)); err != nil {
+			msn := omni.NewMachineSetNode(resources.DefaultNamespace, id, machineSet)
+
+			msn.Metadata().Labels().Set(omni.LabelManagedByMachineSetNodeController, "")
+
+			if err = r.Create(ctx, msn, controller.WithCreateNoOwner()); err != nil {
 				if state.IsConflictError(err) {
 					continue
 				}
@@ -605,7 +609,7 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 
 		machinesToDestroyCount--
 		if machineSetNode.Metadata().Finalizers().Empty() {
-			return r.Destroy(ctx, machineSetNode.Metadata())
+			return r.Destroy(ctx, machineSetNode.Metadata(), controller.WithOwner(""))
 		}
 
 		return nil
@@ -620,7 +624,10 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 			ready bool
 			err   error
 		)
-		if ready, err = helpers.TeardownAndDestroy(ctx, r, usedMachineSetNodes[i].Metadata()); err != nil {
+		if ready, err = helpers.TeardownAndDestroy(
+			ctx, r, usedMachineSetNodes[i].Metadata(),
+			controller.WithOwner(""),
+		); err != nil {
 			if state.IsNotFoundError(err) {
 				return nil
 			}
