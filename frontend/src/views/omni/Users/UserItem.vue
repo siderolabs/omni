@@ -72,10 +72,8 @@ const editUser = () => {
         </div>
         <div class="flex justify-between">
           <TActionsBox v-if="canManageUsers">
-            <TActionsBoxItem icon="edit" @click.stop="editUser">Edit User</TActionsBoxItem>
-            <TActionsBoxItem icon="delete" danger @click.stop="deleteUser">
-              Delete User
-            </TActionsBoxItem>
+            <TActionsBoxItem icon="edit" @select="editUser">Edit User</TActionsBoxItem>
+            <TActionsBoxItem icon="delete" danger @select="deleteUser">Delete User</TActionsBoxItem>
           </TActionsBox>
         </div>
       </div>

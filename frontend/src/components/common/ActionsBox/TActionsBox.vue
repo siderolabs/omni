@@ -5,55 +5,33 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { vOnClickOutside } from '@vueuse/components'
+import {
+  DropdownMenuContent,
+  DropdownMenuPortal,
+  DropdownMenuRoot,
+  DropdownMenuTrigger,
+} from 'reka-ui'
 import { ref } from 'vue'
-import Popper from 'vue3-popper'
 
 import IconButton from '@/components/common/Button/IconButton.vue'
 
-type PlacementType =
-  | 'auto'
-  | 'auto-start'
-  | 'auto-end'
-  | 'top'
-  | 'top-start'
-  | 'top-end'
-  | 'bottom'
-  | 'bottom-start'
-  | 'bottom-end'
-  | 'right'
-  | 'right-start'
-  | 'right-end'
-  | 'left'
-  | 'left-start'
-  | 'left-end'
-
-type Props = {
-  placement?: PlacementType
-}
-
-withDefaults(defineProps<Props>(), {
-  placement: 'left-start',
-})
-
-const open = ref(false)
+const toggleState = ref(false)
 </script>
 
 <template>
-  <div v-on-click-outside="() => (open = false)" class="actions-box">
-    <Popper
-      offset-distance="10"
-      :placement="placement"
-      :show="open"
-      offset-skid="30"
-      class="z-auto! m-0! block! border-0!"
-    >
-      <template #content>
-        <div class="rounded border border-naturals-n4 bg-naturals-n3" @click.stop="open = false">
-          <slot />
-        </div>
-      </template>
-      <IconButton icon="action-horizontal" @click="() => (open = !open)" />
-    </Popper>
-  </div>
+  <DropdownMenuRoot v-model:open="toggleState">
+    <DropdownMenuTrigger as-child @click.stop>
+      <IconButton icon="action-horizontal" />
+    </DropdownMenuTrigger>
+
+    <DropdownMenuPortal>
+      <DropdownMenuContent
+        class="bg-popover text-popover-foreground z-50 max-h-(--reka-dropdown-menu-content-available-height) origin-(--reka-dropdown-menu-content-transform-origin) rounded border border-naturals-n4 bg-naturals-n3 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
+        align="end"
+        side="bottom"
+      >
+        <slot></slot>
+      </DropdownMenuContent>
+    </DropdownMenuPortal>
+  </DropdownMenuRoot>
 </template>

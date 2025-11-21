@@ -9,6 +9,7 @@ import { useAuth0 } from '@auth0/auth0-vue'
 import { computed } from 'vue'
 
 import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
+import TActionsBoxItem from '@/components/common/ActionsBox/TActionsBoxItem.vue'
 import { useLogout } from '@/methods/auth'
 import { useIdentity } from '@/methods/identity'
 
@@ -50,10 +51,8 @@ const name = computed(() => fullname || auth0.user.value?.name)
       <span class="truncate text-naturals-n13">{{ name }}</span>
       <span class="truncate">{{ identity }}</span>
     </div>
-    <TActionsBox v-if="withLogoutControls" placement="top">
-      <div @click="logout">
-        <div class="cursor-pointer px-4 py-2 hover:text-naturals-n12">Log Out</div>
-      </div>
+    <TActionsBox v-if="withLogoutControls">
+      <TActionsBoxItem @select="logout">Log Out</TActionsBoxItem>
     </TActionsBox>
   </div>
 </template>

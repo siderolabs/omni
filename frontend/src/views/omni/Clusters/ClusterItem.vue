@@ -117,17 +117,17 @@ const { height } = useElementSize(slider)
           />
         </Tooltip>
 
-        <TActionsBox aria-label="cluster actions" @click.stop>
+        <TActionsBox aria-label="cluster actions">
           <TActionsBoxItem
             v-if="canAddClusterMachines"
             icon="nodes"
-            @click="$router.push({ name: 'ClusterScale', params: { cluster: item.metadata.id } })"
+            @select="$router.push({ name: 'ClusterScale', params: { cluster: item.metadata.id } })"
           >
             Cluster Scaling
           </TActionsBoxItem>
           <TActionsBoxItem
             icon="settings"
-            @click="
+            @select="
               $router.push({
                 name: 'ClusterConfigPatches',
                 params: { cluster: item.metadata.id },
@@ -138,7 +138,7 @@ const { height } = useElementSize(slider)
           </TActionsBoxItem>
           <TActionsBoxItem
             icon="dashboard"
-            @click="
+            @select="
               $router.push({ name: 'ClusterOverview', params: { cluster: item.metadata.id } })
             "
           >
@@ -147,7 +147,7 @@ const { height } = useElementSize(slider)
           <TActionsBoxItem
             v-if="canDownloadKubeconfig"
             icon="kube-config"
-            @click="downloadKubeconfig(item.metadata.id!)"
+            @select="downloadKubeconfig(item.metadata.id!)"
           >
             Download
             <code>kubeconfig</code>
@@ -155,7 +155,7 @@ const { height } = useElementSize(slider)
           <TActionsBoxItem
             v-if="canDownloadTalosconfig"
             icon="talos-config"
-            @click="downloadTalosconfig(item.metadata.id)"
+            @select="downloadTalosconfig(item.metadata.id)"
           >
             Download
             <code>talosconfig</code>
@@ -164,7 +164,9 @@ const { height } = useElementSize(slider)
             v-if="canRemoveClusterMachines"
             icon="delete"
             danger
-            @click="$router.push({ query: { modal: 'clusterDestroy', cluster: item.metadata.id } })"
+            @select="
+              $router.push({ query: { modal: 'clusterDestroy', cluster: item.metadata.id } })
+            "
           >
             Destroy Cluster
           </TActionsBoxItem>

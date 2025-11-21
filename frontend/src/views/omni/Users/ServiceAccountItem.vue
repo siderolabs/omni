@@ -71,15 +71,15 @@ const renewKey = () => {
         </div>
         <div class="flex justify-between">
           <TActionsBox v-if="canManageUsers">
-            <TActionsBoxItem icon="refresh" @click.stop="renewKey">Renew Key</TActionsBoxItem>
+            <TActionsBoxItem icon="refresh" @select="renewKey">Renew Key</TActionsBoxItem>
             <TActionsBoxItem
               v-if="item.spec.role !== RoleInfraProvider"
               icon="edit"
-              @click.stop="editUser"
+              @select="editUser"
             >
               Edit Service Account
             </TActionsBoxItem>
-            <TActionsBoxItem icon="delete" danger @click.stop="deleteUser">
+            <TActionsBoxItem icon="delete" danger @select="deleteUser">
               Delete Service Account
             </TActionsBoxItem>
           </TActionsBox>

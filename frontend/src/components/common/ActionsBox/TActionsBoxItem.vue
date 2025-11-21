@@ -5,25 +5,36 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import {
+  DropdownMenuItem,
+  type DropdownMenuItemEmits,
+  type DropdownMenuItemProps,
+  useEmitAsProps,
+} from 'reka-ui'
+
 import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 
-type Props = {
-  icon: IconType
-  danger?: boolean
-}
+const props = defineProps<
+  DropdownMenuItemProps & {
+    icon?: IconType
+    danger?: boolean
+  }
+>()
+const emits = defineEmits<DropdownMenuItemEmits>()
 
-withDefaults(defineProps<Props>(), {})
+const emitsAsProps = useEmitAsProps(emits)
 </script>
 
 <template>
-  <div
-    class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 *:hover:text-naturals-n12"
-    :class="{ 'text-red-r1 *:hover:text-primary-p1': danger }"
+  <DropdownMenuItem
+    class="flex w-full cursor-pointer items-center gap-2 px-3 py-2"
+    :class="danger ? 'text-red-r1 hover:text-primary-p1' : 'hover:text-naturals-n12'"
+    v-bind="{ ...props, ...emitsAsProps }"
   >
-    <TIcon class="h-4 w-4 transition-colors" :icon="icon" />
+    <TIcon v-if="icon" class="h-4 w-4 transition-colors" :icon />
     <span class="text-xs transition-colors">
-      <slot />
+      <slot></slot>
     </span>
-  </div>
+  </DropdownMenuItem>
 </template>
