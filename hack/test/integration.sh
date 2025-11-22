@@ -95,6 +95,8 @@ if [[ "${CI:-false}" == "true" ]]; then
   WIREGUARD_IP=172.20.0.1
 fi
 
+# TODO: to cover more cases of (unwanted) machine upgrades, populate all schematics in this test with as many different options as possible, e.g., overlays, SecureBootCustomization and so on.
+
 # Prepare schematic with kernel args
 KERNEL_ARGS_SCHEMATIC=$(
   cat <<EOF
