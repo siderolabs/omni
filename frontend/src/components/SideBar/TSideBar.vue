@@ -387,7 +387,7 @@ const nodeItems = computed(() =>
 </script>
 
 <template>
-  <aside class="flex max-w-64 flex-col border-r border-naturals-n4 bg-naturals-n1">
+  <aside class="flex flex-col border-r border-naturals-n4 bg-naturals-n1">
     <div class="grow overflow-auto">
       <TSidebarList :items="rootItems" />
 
@@ -415,7 +415,7 @@ const nodeItems = computed(() =>
     </div>
 
     <UserInfo
-      class="h-16 w-full shrink-0 border-t border-inherit px-2"
+      class="h-16 shrink-0 border-t border-inherit px-2"
       with-logout-controls
       size="small"
       :avatar="avatar"

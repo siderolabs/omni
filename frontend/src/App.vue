@@ -60,7 +60,7 @@ const darkThemeEnabled = computed(() => {
         <component
           :is="Component"
           id="sidebar"
-          class="top-0 bottom-0 left-0 z-10 transition-all duration-300 max-md:absolute"
+          class="top-0 bottom-0 left-0 z-10 w-64 shrink-0 transition-all duration-300 max-md:absolute"
           :class="{
             'max-md:pointer-events-none max-md:invisible max-md:-translate-x-full': !isSidebarOpen,
           }"

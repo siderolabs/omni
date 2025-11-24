@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useAuth0 } from '@auth0/auth0-vue'
-import { computed, toRefs } from 'vue'
+import { computed } from 'vue'
 
 import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
 import { useLogout } from '@/methods/auth'
@@ -15,57 +15,40 @@ import { useIdentity } from '@/methods/identity'
 const { identity: identityStorage } = useIdentity()
 const logout = useLogout()
 
-type Props = {
+const {
+  size = 'normal',
+  email,
+  avatar,
+  fullname,
+} = defineProps<{
   withLogoutControls?: boolean
   size?: 'normal' | 'small'
   avatar?: string
   fullname?: string
   email?: string
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  size: 'normal',
-})
-
-const { avatar, fullname } = toRefs(props)
+}>()
 
 const auth0 = useAuth0()
 
 const identity = computed(
-  () => props.email || auth0?.user?.value?.email?.toLowerCase() || identityStorage.value,
+  () => email || auth0.user.value?.email?.toLowerCase() || identityStorage.value,
 )
-const picture = computed(() => avatar.value ?? auth0?.user?.value?.picture)
-const name = computed(() => fullname.value ?? auth0?.user?.value?.name)
-
-const fontSize = computed(() => {
-  if (props.size === 'small') {
-    return { 'text-xs': true }
-  }
-
-  return ''
-})
-
-const imageSize = computed(() => {
-  if (props.size === 'small') {
-    return { 'w-8': true, 'h-8': true }
-  }
-
-  return { 'w-12': true, 'h-12': true }
-})
+const picture = computed(() => avatar || auth0.user.value?.picture)
+const name = computed(() => fullname || auth0.user.value?.name)
 </script>
 
 <template>
-  <div class="flex items-center gap-2" :class="fontSize">
+  <div class="flex items-center gap-2" :class="{ 'text-xs': size === 'small' }">
     <img
       v-if="picture"
       class="rounded-full"
-      :class="imageSize"
+      :class="size === 'small' ? 'size-8' : 'size-12'"
       :src="picture"
       referrerpolicy="no-referrer"
     />
-    <div class="flex flex-1 flex-col truncate">
-      <div class="truncate text-naturals-n13">{{ name }}</div>
-      {{ identity }}
+    <div class="flex grow flex-col overflow-hidden">
+      <span class="truncate text-naturals-n13">{{ name }}</span>
+      <span class="truncate">{{ identity }}</span>
     </div>
     <TActionsBox v-if="withLogoutControls" placement="top">
       <div @click="logout">
