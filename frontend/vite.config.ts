@@ -52,12 +52,9 @@ export default defineConfig(({ command }) => {
   if (command === 'serve') {
     const cspNonce = faker.string.alphanumeric(14)
 
-    // Dev only, required for vue dev tools
-    const devToolsHash = 'sha256-skqujXORqzxt1aE0NNXxujEanPTX6raoqSscTV/Ww/Y='
-
     // Inject CSP for dev server for testing.
     // Actual CSP in production is set in ../internal/frontend/handler.go
-    // Ideally these sources should match (except for devToolsHash).
+    // Ideally these sources should match.
     config.server ||= {}
     config.server.headers ||= {}
     config.server.headers['content-security-policy'] = [
@@ -66,7 +63,7 @@ export default defineConfig(({ command }) => {
       'img-src * data:',
       "connect-src 'self' https://*.auth0.com https://*.userpilot.io wss://*.userpilot.io",
       "font-src 'self' data:",
-      `style-src 'self' 'nonce-${cspNonce}' '${devToolsHash}' data: https://fonts.googleapis.com https://fonts.gstatic.com`,
+      `style-src 'self' 'unsafe-inline' data: https://fonts.googleapis.com https://fonts.gstatic.com`,
       'frame-src https://*.auth0.com',
     ].join(';')
 

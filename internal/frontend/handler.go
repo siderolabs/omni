@@ -133,7 +133,8 @@ func (handler *StaticHandler) serveFile(w http.ResponseWriter, r *http.Request, 
 					";img-src * data:"+
 					";connect-src 'self' https://*.auth0.com https://*.userpilot.io wss://*.userpilot.io"+
 					";font-src 'self' data:"+
-					fmt.Sprintf(";style-src 'self' 'nonce-%s' data: https://fonts.googleapis.com https://fonts.gstatic.com", nonce)+
+					// We are forced to use unsafe-inline for style-src due to monaco-editor https://github.com/microsoft/monaco-editor/issues/271
+					";style-src 'self' 'unsafe-inline' data: https://fonts.googleapis.com https://fonts.gstatic.com"+
 					";frame-src https://*.auth0.com",
 			)
 
