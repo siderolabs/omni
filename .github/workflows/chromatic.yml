@@ -21,12 +21,12 @@ jobs:
       group: generic
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
-          node-version: 24.11.0
+          node-version: 24.11.1
       - name: Install dependencies
         run: npm ci
         working-directory: frontend/

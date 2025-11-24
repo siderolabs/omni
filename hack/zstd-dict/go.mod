@@ -3,11 +3,11 @@ module github.com/siderolabs/omni-hack-zstd-dict
 go 1.25.4
 
 require (
-	github.com/klauspost/compress v1.18.0
-	github.com/mittwald/go-helm-client v0.12.18
-	go.uber.org/zap v1.27.0
+	github.com/klauspost/compress v1.18.1
+	github.com/mittwald/go-helm-client v0.12.19
+	go.uber.org/zap v1.27.1
 	gopkg.in/yaml.v3 v3.0.1
-	helm.sh/helm/v3 v3.19.0
+	helm.sh/helm/v4 v4.0.0
 )
 
 require (
