@@ -6,15 +6,9 @@
 package siderolink
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
-	"os"
-	"path/filepath"
 	"sync"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -22,24 +16,27 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/hashicorp/go-multierror"
 	"github.com/siderolabs/gen/containers"
-	"github.com/siderolabs/go-circular"
 	"github.com/siderolabs/go-circular/zstd"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/config"
+	"github.com/siderolabs/omni/internal/pkg/siderolink/logstore"
 )
 
-// MachineCache stores a map of machines to their circular log buffers. It also allows to access the buffers
-// using the machine IP.
+// ErrLogStoreNotFound is returned when the log store for a machine is not found.
+var ErrLogStoreNotFound = errors.New("log store not found")
+
+// MachineCache stores a map of machines to their circular log stores. It also allows to access the log stores using the machine IP.
 type MachineCache struct {
-	machineBuffers   containers.LazyMap[MachineID, *circular.Buffer]
-	logger           *zap.Logger
-	logStorageConfig *config.LogsMachine
-	compressor       *zstd.Compressor
-	mx               sync.Mutex
-	inited           bool
+	machineLogStoreManager LogStoreManager
+	machineLogStores       map[MachineID]logstore.LogStore
+	logger                 *zap.Logger
+	logStorageConfig       *config.LogsMachine
+	compressor             *zstd.Compressor
+	mx                     sync.Mutex
+	inited                 bool
 }
 
 // NewMachineCache returns a new MachineCache.
@@ -56,71 +53,52 @@ func NewMachineCache(logStorageConfig *config.LogsMachine, logger *zap.Logger) (
 	}, nil
 }
 
-// WriteMessage writes the message surrounded with '\n' to the circular buffer for the given machine ID.
-func (m *MachineCache) WriteMessage(id MachineID, rawData []byte) error {
-	buffer, err := m.GetWriter(id)
+// WriteMessage writes the message surrounded with '\n' to the log store for the given machine ID.
+func (m *MachineCache) WriteMessage(ctx context.Context, id MachineID, rawData []byte) error {
+	logWriter, err := m.initAndGetLogStore(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	_, err = buffer.Write([]byte("\n"))
-	if err != nil {
-		return err
-	}
-
-	_, err = buffer.Write(rawData)
-	if err != nil {
-		return err
-	}
-
-	_, err = buffer.Write([]byte("\n"))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return logWriter.WriteLine(ctx, rawData)
 }
 
-// GetBuffer returns the circular buffer for the given machine ID.
-func (m *MachineCache) GetBuffer(id MachineID) (*circular.Buffer, error) {
+// getLogStore returns the log backend for the given machine ID.
+func (m *MachineCache) getLogStore(ctx context.Context, id MachineID) (logstore.LogStore, error) {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 
-	m.init()
+	if err := m.init(); err != nil {
+		return nil, err
+	}
 
-	val, ok := m.machineBuffers.Get(id)
+	val, ok := m.machineLogStores[id]
 	if ok {
 		return val, nil
 	}
 
-	if !m.logStorageConfig.Storage.Enabled {
-		return nil, &BufferNotFoundError{id: id}
-	}
-
-	// Probe the file system to check if a log file exists for this machine.
-	// Check both for the old (/path/machine-id.log) and the new (/path/machine-id.log.NUM) format.
-	glob := filepath.Join(m.logStorageConfig.Storage.Path, string(id)+".log*")
-
-	matches, err := filepath.Glob(glob)
+	exists, err := m.machineLogStoreManager.Exists(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list log files for machine %q: %w", id, err)
+		return nil, fmt.Errorf("failed to check if log store exists for machine %q: %w", id, err)
 	}
 
-	if len(matches) == 0 {
-		return nil, &BufferNotFoundError{id: id}
+	if !exists {
+		return nil, fmt.Errorf("%w: %s", ErrLogStoreNotFound, id)
 	}
 
-	return m.machineBuffers.GetOrCreate(id)
+	return m.getOrCreateStore(ctx, id)
 }
 
-// GetWriter returns the circular buffer for the given machine ID. Creates buffer if it doesn't exist.
-func (m *MachineCache) GetWriter(id MachineID) (io.Writer, error) {
+// initAndGetLogStore returns the log store for the given machine ID, creating it if it does not exist.
+func (m *MachineCache) initAndGetLogStore(ctx context.Context, id MachineID) (logstore.LogStore, error) {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 
-	m.init()
+	if err := m.init(); err != nil {
+		return nil, err
+	}
 
-	val, err := m.machineBuffers.GetOrCreate(id)
+	val, err := m.getOrCreateStore(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -128,9 +106,10 @@ func (m *MachineCache) GetWriter(id MachineID) (io.Writer, error) {
 	return val, nil
 }
 
-// Remove removes the circular buffer for the given machine ID.
-// If storage is enabled, it also removes the logs from the storage i.e., the file system.
-func (m *MachineCache) Remove(id MachineID) error {
+// Remove removes the log store for the given machine ID.
+//
+// If storage is enabled, it also removes the logs from the storage.
+func (m *MachineCache) remove(ctx context.Context, id MachineID) error {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 
@@ -140,86 +119,87 @@ func (m *MachineCache) Remove(id MachineID) error {
 		return nil
 	}
 
-	buf, ok := m.machineBuffers.Get(id)
+	store, ok := m.machineLogStores[id]
 	if !ok {
 		return nil
 	}
 
-	if err := buf.Close(); err != nil {
-		m.logger.Error("failed to close buffer", zap.String("machine_id", string(id)), zap.Error(err))
+	if err := store.Close(); err != nil {
+		m.logger.Error("failed to close store", zap.String("machine_id", string(id)), zap.Error(err))
 	}
 
-	m.machineBuffers.Remove(id)
+	delete(m.machineLogStores, id)
 
-	matches, err := filepath.Glob(filepath.Join(m.logStorageConfig.Storage.Path, string(id)+".log*"))
-	if err != nil {
-		return fmt.Errorf("failed to list log files for machine %q: %w", id, err)
-	}
-
-	var errs error
-
-	for _, match := range matches {
-		if err = os.Remove(match); err != nil && !errors.Is(err, os.ErrNotExist) {
-			errs = multierror.Append(errs, err)
-		}
-	}
-
-	if errs != nil {
-		return fmt.Errorf("failed to remove log files for machine %q: %w", id, errs)
+	if err := m.machineLogStoreManager.Remove(ctx, id); err != nil {
+		return fmt.Errorf("failed to remove logs from storage for machine %q: %w", id, err)
 	}
 
 	return nil
 }
 
-// Close closes all the circular buffers, triggering a flush to the storage for each of them if they have persistence enabled.
+// Close closes all the log stores, triggering a flush to the storage for each of them if they have persistence enabled.
 func (m *MachineCache) Close() error {
+	m.mx.Lock()
+	defer m.mx.Unlock()
+
 	var errs error
 
-	m.machineBuffers.ForEach(func(_ MachineID, buffer *circular.Buffer) {
-		if err := buffer.Close(); err != nil {
+	for _, store := range m.machineLogStores {
+		if err := store.Close(); err != nil {
 			errs = multierror.Append(errs, err)
 		}
-	})
+	}
+
+	if err := m.machineLogStoreManager.Close(); err != nil {
+		errs = multierror.Append(errs, fmt.Errorf("failed to close machine log backend factory: %w", err))
+	}
 
 	return errs
 }
 
-func (m *MachineCache) init() {
+func (m *MachineCache) init() error {
 	if m.inited {
-		return
+		return nil
 	}
+
+	var logStoreManager LogStoreManager
+
+	if m.logStorageConfig.SQLite.Enabled {
+		m.logger.Info("using sqlite log store manager for machine logs")
+
+		var err error
+
+		if logStoreManager, err = newSQLiteStoreManager(m.logStorageConfig.SQLite, m.logger); err != nil {
+			return fmt.Errorf("failed to create machine log store manager: %w", err)
+		}
+	} else {
+		m.logger.Info("using circular log store manager for machine logs")
+
+		logStoreManager = newCircularLogStoreManager(m.logStorageConfig, m.compressor, m.logger)
+	}
+
+	m.machineLogStoreManager = logStoreManager
 
 	m.inited = true
-	m.machineBuffers = containers.LazyMap[MachineID, *circular.Buffer]{
-		Creator: func(id MachineID) (*circular.Buffer, error) {
-			bufferOpts := []circular.OptionFunc{
-				circular.WithInitialCapacity(m.logStorageConfig.BufferInitialCapacity),
-				circular.WithMaxCapacity(m.logStorageConfig.BufferMaxCapacity),
-				circular.WithSafetyGap(m.logStorageConfig.BufferSafetyGap),
-				circular.WithNumCompressedChunks(m.logStorageConfig.Storage.NumCompressedChunks, m.compressor),
-				circular.WithLogger(m.logger),
-			}
+	m.machineLogStores = map[MachineID]logstore.LogStore{}
 
-			if m.logStorageConfig.Storage.Enabled {
-				bufferOpts = append(bufferOpts, circular.WithPersistence(circular.PersistenceOptions{
-					ChunkPath:     filepath.Join(m.logStorageConfig.Storage.Path, string(id)+".log"),
-					FlushInterval: m.logStorageConfig.Storage.FlushPeriod,
-					FlushJitter:   m.logStorageConfig.Storage.FlushJitter,
-				}))
-			}
+	return nil
+}
 
-			buffer, err := circular.NewBuffer(bufferOpts...)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create circular buffer for machine '%s': %w", id, err)
-			}
-
-			if m.logStorageConfig.Storage.Enabled {
-				loadLegacyLogs(m.logStorageConfig, id, buffer, m.logger)
-			}
-
-			return buffer, nil
-		},
+func (m *MachineCache) getOrCreateStore(ctx context.Context, id MachineID) (logstore.LogStore, error) {
+	store, ok := m.machineLogStores[id]
+	if ok {
+		return store, nil
 	}
+
+	created, err := m.machineLogStoreManager.Create(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create log store for machine %q: %w", id, err)
+	}
+
+	m.machineLogStores[id] = created
+
+	return created, err
 }
 
 // NewMachineMap returns a new MachineMap.
@@ -305,77 +285,4 @@ func (s *StateStorage) GetMachine(machineIP string) (MachineID, error) {
 	}
 
 	return MachineID(machines.Get(0).Metadata().ID()), nil
-}
-
-// BufferNotFoundError is returned when the machine buffer is not found.
-type BufferNotFoundError struct {
-	id MachineID
-}
-
-// Error returns the error message.
-func (e *BufferNotFoundError) Error() string {
-	return fmt.Sprintf("no buffer found for machine '%s'", e.id)
-}
-
-// IsBufferNotFoundError returns true if the error is of type BufferNotFoundError.
-func IsBufferNotFoundError(err error) bool {
-	var target *BufferNotFoundError
-
-	return errors.As(err, &target)
-}
-
-// loadLegacyLogs loads logs stored of the machine with the given id in the old format, if exists, into the given writer.
-// It is used to migrate logs from the old format to the new format.
-// It removes the old log file and its hash file regardless of the result.
-//
-// It is a best-effort function and does not return any error.
-func loadLegacyLogs(config *config.LogsMachine, id MachineID, writer io.Writer, logger *zap.Logger) {
-	filePath := filepath.Join(config.Storage.Path, fmt.Sprintf("%s.log", id))
-	shaSumPath := filePath + ".sha256sum"
-
-	defer func() {
-		if err := os.Remove(filePath); err != nil && !errors.Is(err, os.ErrNotExist) {
-			logger.Error("failed to remove legacy log file", zap.String("path", filePath), zap.Error(err))
-		}
-
-		if err := os.Remove(shaSumPath); err != nil && !errors.Is(err, os.ErrNotExist) {
-			logger.Error("failed to remove legacy log hash file", zap.String("path", shaSumPath), zap.Error(err))
-		}
-	}()
-
-	bufferData, err := os.ReadFile(filePath)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return
-		}
-
-		logger.Error("failed to read legacy log buffer file", zap.String("path", filePath), zap.Error(err))
-
-		return
-	}
-
-	hashHexExpectedBytes, err := os.ReadFile(shaSumPath)
-	if err != nil {
-		logger.Error("failed to read legacy log buffer hash file", zap.String("path", shaSumPath), zap.Error(err))
-
-		return
-	}
-
-	hashHexExpected := string(hashHexExpectedBytes)
-
-	// verify the hash
-	hashActual := sha256.Sum256(bufferData)
-	hashHexActual := hex.EncodeToString(hashActual[:])
-
-	if hashHexExpected != hashHexActual {
-		logger.Error("invalid legacy log buffer hash in file", zap.String("expected", hashHexExpected), zap.String("actual", hashHexActual))
-
-		return
-	}
-
-	if _, err = io.Copy(writer, bytes.NewReader(bufferData)); err != nil {
-		logger.Error("failed to write legacy log buffer to writer", zap.Error(err))
-	}
-
-	logger.Info("loaded legacy log buffer", zap.String("path", filePath))
 }

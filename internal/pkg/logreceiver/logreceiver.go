@@ -27,6 +27,9 @@ import (
 //
 //nolint:govet
 type Server struct {
+	// ctx is the root context for all connections.
+	ctx context.Context //nolint:containedctx
+
 	listener net.Listener
 	handler  *ConnHandler
 	logger   *zap.Logger
@@ -40,14 +43,15 @@ type Server struct {
 
 // Handler handles a message or an error.
 type Handler interface {
-	HandleMessage(srcAddress netip.Addr, rawData []byte)
+	HandleMessage(ctx context.Context, srcAddress netip.Addr, rawData []byte)
 	HandleError(srcAddress netip.Addr, err error)
 	HasLink(srcAddress netip.Addr) bool
 }
 
 // NewServer initializes new Server.
-func NewServer(listener net.Listener, handler *ConnHandler, logger *zap.Logger) *Server {
+func NewServer(ctx context.Context, listener net.Listener, handler *ConnHandler, logger *zap.Logger) *Server {
 	return &Server{
+		ctx:      ctx,
 		listener: listener,
 		handler:  handler,
 		logger:   logger,
@@ -95,7 +99,7 @@ func (srv *Server) Serve() error {
 		panichandler.Go(func() {
 			defer srv.wg.Done()
 
-			srv.handler.HandleConn(remoteAddr, conn)
+			srv.handler.HandleConn(srv.ctx, remoteAddr, conn)
 			srv.m.Remove(remoteAddress)
 		}, srv.logger)
 	}
@@ -152,7 +156,7 @@ func NewConnHandler(msgHandler Handler, logger *zap.Logger) *ConnHandler {
 }
 
 // HandleConn handles a connection.
-func (ch *ConnHandler) HandleConn(addr netip.Addr, conn io.ReadCloser) {
+func (ch *ConnHandler) HandleConn(ctx context.Context, addr netip.Addr, conn io.ReadCloser) {
 	defer conn.Close() //nolint:errcheck
 
 	bufReader := bufio.NewReader(conn)
@@ -168,7 +172,7 @@ func (ch *ConnHandler) HandleConn(addr netip.Addr, conn io.ReadCloser) {
 			return
 		}
 
-		ch.msgHandler.HandleMessage(addr, slice[:len(slice)-1])
+		ch.msgHandler.HandleMessage(ctx, addr, slice[:len(slice)-1])
 	}
 }
 
@@ -193,5 +197,5 @@ func MakeServer(ctx context.Context, address string, handler Handler, logger *za
 		return nil, fmt.Errorf("log server: error listening on %s: %w", address, err)
 	}
 
-	return NewServer(listener, NewConnHandler(handler, logger), logger), nil
+	return NewServer(ctx, listener, NewConnHandler(handler, logger), logger), nil
 }

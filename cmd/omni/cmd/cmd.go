@@ -483,21 +483,35 @@ func defineAuthFlags() {
 func defineLogsFlags() {
 	rootCmd.Flags().IntVar(
 		&cmdConfig.Logs.Machine.BufferInitialCapacity, "machine-log-buffer-capacity",
-		cmdConfig.Logs.Machine.BufferInitialCapacity, "initial buffer capacity for machine logs in bytes")
+		cmdConfig.Logs.Machine.BufferInitialCapacity, "initial buffer capacity for machine logs in bytes, no-op if the sqlite storage is enabled")
 	rootCmd.Flags().IntVar(&cmdConfig.Logs.Machine.BufferMaxCapacity, "machine-log-buffer-max-capacity",
-		cmdConfig.Logs.Machine.BufferMaxCapacity, "max buffer capacity for machine logs in bytes")
+		cmdConfig.Logs.Machine.BufferMaxCapacity, "max buffer capacity for machine logs in bytes, no-op if the sqlite storage is enabled")
 	rootCmd.Flags().IntVar(&cmdConfig.Logs.Machine.BufferSafetyGap, "machine-log-buffer-safe-gap",
-		cmdConfig.Logs.Machine.BufferSafetyGap, "safety gap for machine log buffer in bytes")
+		cmdConfig.Logs.Machine.BufferSafetyGap, "safety gap for machine log buffer in bytes, no-op if the sqlite storage is enabled")
 	rootCmd.Flags().IntVar(&cmdConfig.Logs.Machine.Storage.NumCompressedChunks, "machine-log-num-compressed-chunks",
-		cmdConfig.Logs.Machine.Storage.NumCompressedChunks, "number of compressed log chunks to keep")
+		cmdConfig.Logs.Machine.Storage.NumCompressedChunks, "number of compressed log chunks to keep, no-op if the sqlite storage is enabled")
 	rootCmd.Flags().BoolVar(&cmdConfig.Logs.Machine.Storage.Enabled, "machine-log-storage-enabled",
-		cmdConfig.Logs.Machine.Storage.Enabled, "enable machine log storage")
+		cmdConfig.Logs.Machine.Storage.Enabled, "enable machine log storage, no-op if the sqlite storage is enabled")
 	rootCmd.Flags().StringVar(&cmdConfig.Logs.Machine.Storage.Path, "machine-log-storage-path",
-		cmdConfig.Logs.Machine.Storage.Path, "path of the directory for storing machine logs")
+		cmdConfig.Logs.Machine.Storage.Path, "path of the directory for storing machine logs, no-op if the sqlite storage is enabled")
 	rootCmd.Flags().DurationVar(&cmdConfig.Logs.Machine.Storage.FlushPeriod, "machine-log-storage-flush-period",
-		cmdConfig.Logs.Machine.Storage.FlushPeriod, "period for flushing machine logs to disk")
+		cmdConfig.Logs.Machine.Storage.FlushPeriod, "period for flushing machine logs to disk, no-op if the sqlite storage is enabled")
 	rootCmd.Flags().Float64Var(&cmdConfig.Logs.Machine.Storage.FlushJitter, "machine-log-storage-flush-jitter",
-		cmdConfig.Logs.Machine.Storage.FlushJitter, "jitter for the machine log storage flush period")
+		cmdConfig.Logs.Machine.Storage.FlushJitter, "jitter for the machine log storage flush period, no-op if the sqlite storage is enabled")
+
+	// todo: add mutual exclusion between above and sqlite below, and info on migration etc.
+	rootCmd.Flags().BoolVar(&cmdConfig.Logs.Machine.SQLite.Enabled, "machine-log-sqlite-enabled",
+		cmdConfig.Logs.Machine.SQLite.Enabled, "enable machine log storage in sqlite database")
+	rootCmd.Flags().StringVar(&cmdConfig.Logs.Machine.SQLite.Path, "machine-log-sqlite-path",
+		cmdConfig.Logs.Machine.SQLite.Path, "path to sqlite database file for machine logs")
+	rootCmd.Flags().IntVar(&cmdConfig.Logs.Machine.SQLite.CacheSize, "machine-log-sqlite-cache-size",
+		cmdConfig.Logs.Machine.SQLite.CacheSize, "sqlite cache size for machine logs in bytes, before they are flushed to disk")
+	rootCmd.Flags().IntVar(&cmdConfig.Logs.Machine.SQLite.ReadBatchSize, "machine-log-sqlite-read-batch-size",
+		cmdConfig.Logs.Machine.SQLite.ReadBatchSize, "sqlite read batch size (number of records) for machine logs")
+	rootCmd.Flags().DurationVar(&cmdConfig.Logs.Machine.SQLite.Timeout, "machine-log-sqlite-timeout",
+		cmdConfig.Logs.Machine.SQLite.Timeout, "sqlite timeout for machine logs")
+	rootCmd.Flags().DurationVar(&cmdConfig.Logs.Machine.SQLite.FlushInterval, "machine-log-sqlite-flush-interval",
+		cmdConfig.Logs.Machine.SQLite.FlushInterval, "interval for flushing machine logs to sqlite database")
 
 	rootCmd.Flags().StringSliceVar(
 		&cmdConfig.Logs.ResourceLogger.Types,
