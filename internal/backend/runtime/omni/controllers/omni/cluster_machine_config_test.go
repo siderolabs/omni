@@ -514,7 +514,7 @@ func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityFrom(talosVer
 	}
 
 	suite.Equal(manifestDirectoryDisabled, finalConfig.Machine().Kubelet().DisableManifestsDirectory(), "disableManifestsDirectory value has changed unexpectedly")
-	suite.Equal(legacyMirrorRemoved, len(finalConfig.Machine().Registries().Mirrors()) == 0, "legacy registry mirror value has changed unexpectedly")
+	suite.Equal(legacyMirrorRemoved, len(finalConfig.RegistryMirrorConfigs()) == 0, "legacy registry mirror value has changed unexpectedly")
 	suite.Equal(diskQuotaSupportEnabled, finalConfig.Machine().Features().DiskQuotaSupportEnabled(), "diskQuotaSupport feature value has changed unexpectedly")
 	suite.Equal(hostDNSEnabled, finalConfig.Machine().Features().HostDNS().Enabled(), "hostDNS feature value has changed unexpectedly")
 	suite.Equal(hostDNSForwardKubeDNSToHost, finalConfig.Machine().Features().HostDNS().ForwardKubeDNSToHost(), "hostDNS.forwardKubeDNSToHost value has changed unexpectedly")
