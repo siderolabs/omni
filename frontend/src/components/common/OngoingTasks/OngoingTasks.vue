@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { vOnClickOutside } from '@vueuse/components'
+import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui'
 import { ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -13,7 +13,6 @@ import { type Resource } from '@/api/grpc'
 import { KubernetesUpgradeStatusSpecPhase, type OngoingTaskSpec } from '@/api/omni/specs/omni.pb'
 import { EphemeralNamespace, OngoingTaskType } from '@/api/resources'
 import { itemID } from '@/api/watch'
-import TAnimation from '@/components/common/Animation/TAnimation.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import { useWatch } from '@/components/common/Watch/useWatch'
 import IconHeaderDropdownLoading from '@/components/icons/IconHeaderDropdownLoading.vue'
@@ -52,21 +51,12 @@ const getCurrentVersion = (item: Resource<OngoingTaskSpec>) => {
 
   return item.spec.machine_upgrade?.schematic_id
 }
-
-const toggleDropdown = () => {
-  dropdownOpen.value = !dropdownOpen.value
-}
-
-const onClickOutside = () => {
-  dropdownOpen.value = false
-}
 </script>
 
 <template>
-  <div v-on-click-outside="onClickOutside" class="relative flex items-center">
-    <div
-      class="flex cursor-pointer items-center gap-1 text-naturals-n11 transition-colors hover:text-naturals-n14"
-      @click="() => toggleDropdown()"
+  <PopoverRoot v-model:open="dropdownOpen">
+    <PopoverTrigger
+      class="flex items-center gap-1 text-naturals-n11 transition-colors hover:text-naturals-n14"
     >
       <IconHeaderDropdownLoading :active="data.length > 0" />
       <span class="text-xs font-normal whitespace-nowrap select-none">
@@ -78,44 +68,57 @@ const onClickOutside = () => {
         :class="{ '-rotate-180': dropdownOpen }"
         icon="arrow-down"
       />
-    </div>
+    </PopoverTrigger>
 
-    <TAnimation>
-      <div
-        v-show="dropdownOpen"
-        class="absolute top-7 -right-2 z-30 rounded border border-naturals-n4 bg-naturals-n2"
+    <PopoverPortal>
+      <PopoverContent
+        class="z-30 max-h-(--reka-popover-content-available-height) max-w-[min(--spacing(80),var(--reka-popover-content-available-width))] min-w-(--reka-popover-trigger-width) origin-(--reka-popover-content-transform-origin) overflow-auto rounded border border-naturals-n4 bg-naturals-n2 slide-in-from-top-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
+        :side-offset="10"
+        align="end"
+        side="bottom"
       >
         <div
           v-for="item in data"
           :key="itemID(item)"
-          class="flex flex-col gap-2 p-6 not-last:border-b not-last:border-naturals-n4"
+          class="flex flex-col gap-2 border-naturals-n4 p-6 not-last:border-b"
         >
           <div class="flex items-center justify-between gap-4">
-            <h3 class="w-9/12 text-xs whitespace-nowrap text-naturals-n13">
+            <h3 class="truncate text-xs text-naturals-n13">
               {{ item.spec.title }}
             </h3>
 
-            <span v-if="item.metadata.created" class="w-3/12 text-right text-xs text-naturals-n9">
+            <span
+              v-if="item.metadata.created"
+              class="shrink-0 text-right text-xs whitespace-nowrap text-naturals-n9"
+            >
               {{ formatISO(item.metadata.created, 'HH:mm:ss') }}
             </span>
           </div>
 
-          <div class="truncate text-xs text-naturals-n9">
-            <template v-if="item.spec.destroy">
+          <div class="text-xs text-naturals-n9">
+            <span v-if="item.spec.destroy" class="truncate">
               {{ item.spec.destroy.phase }}
-            </template>
+            </span>
 
             <div v-else class="flex items-center gap-2 text-xs">
               <template v-if="getCurrentVersion(item)">
-                <span v-if="item.spec.kubernetes_upgrade">Upgrade Kubernetes</span>
-                <span v-else-if="item.spec.machine_upgrade">Upgrade Machine</span>
-                <span v-else>Upgrade Talos</span>
+                <span v-if="item.spec.kubernetes_upgrade" class="whitespace-nowrap">
+                  Upgrade Kubernetes
+                </span>
+                <span v-else-if="item.spec.machine_upgrade" class="whitespace-nowrap">
+                  Upgrade Machine
+                </span>
+                <span v-else class="whitespace-nowrap">Upgrade Talos</span>
                 <div class="flex-1" />
-                <span class="rounded bg-naturals-n4 px-2 text-xs font-bold text-naturals-n13">
+                <span
+                  class="truncate rounded bg-naturals-n4 px-2 text-xs font-bold text-naturals-n13"
+                >
                   {{ getPreviousVersion(item) }}
                 </span>
                 <span>⇾</span>
-                <span class="rounded bg-naturals-n4 px-2 text-xs font-bold text-naturals-n13">
+                <span
+                  class="truncate rounded bg-naturals-n4 px-2 text-xs font-bold text-naturals-n13"
+                >
                   {{ getCurrentVersion(item) }}
                 </span>
               </template>
@@ -126,16 +129,18 @@ const onClickOutside = () => {
                   KubernetesUpgradeStatusSpecPhase.Reverting
                 "
               >
-                <span>Reverting back to</span>
+                <span class="whitespace-nowrap">Reverting back to</span>
                 <div class="flex-1" />
-                <span class="rounded bg-naturals-n4 px-2 text-xs font-bold text-naturals-n13">
+                <span
+                  class="rounded bg-naturals-n4 px-2 text-xs font-bold whitespace-nowrap text-naturals-n13"
+                >
                   {{
                     (item.spec.kubernetes_upgrade ?? item.spec.talos_upgrade)?.last_upgrade_version
                   }}
                 </span>
               </template>
 
-              <span v-else>Updating machine schematics</span>
+              <span v-else class="whitespace-nowrap">Updating machine schematics</span>
             </div>
           </div>
         </div>
@@ -144,7 +149,7 @@ const onClickOutside = () => {
           <TIcon icon="check" class="h-4 w-4" />
           No tasks
         </div>
-      </div>
-    </TAnimation>
-  </div>
+      </PopoverContent>
+    </PopoverPortal>
+  </PopoverRoot>
 </template>
