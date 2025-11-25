@@ -666,6 +666,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		machineClass := omni.NewMachineClass(resources.DefaultNamespace, uuid.New().String())
 		machineRequestSet := omni.NewMachineRequestSet(resources.DefaultNamespace, uuid.New().String())
 		infraMachineConfig := omni.NewInfraMachineConfig(resources.DefaultNamespace, uuid.New().String())
+		grpcTunnelConfig := siderolink.NewGRPCTunnelConfig(uuid.New().String())
 
 		extensionsConfiguration := omni.NewExtensionsConfiguration(resources.DefaultNamespace, uuid.New().String())
 		extensionsConfiguration.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
@@ -791,6 +792,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource:       importedClusterSecret,
+				allowedVerbSet: allVerbsSet,
+			},
+			{
+				resource:       grpcTunnelConfig,
 				allowedVerbSet: allVerbsSet,
 			},
 		}

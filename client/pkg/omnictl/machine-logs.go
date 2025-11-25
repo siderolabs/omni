@@ -32,7 +32,6 @@ var logsCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return access.WithClient(getLogs(cmd, args))
 	},
-	SilenceUsage: true,
 }
 
 func getLogs(_ *cobra.Command, args []string) func(ctx context.Context, client *client.Client) error {

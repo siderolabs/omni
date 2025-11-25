@@ -126,3 +126,7 @@ export type JoinTokenUsageSpec = {
 export type DefaultJoinTokenSpec = {
   token_id?: string
 }
+
+export type GRPCTunnelConfigSpec = {
+  enabled?: boolean
+}

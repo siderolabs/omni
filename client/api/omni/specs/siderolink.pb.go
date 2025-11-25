@@ -1171,6 +1171,51 @@ func (x *DefaultJoinTokenSpec) GetTokenId() string {
 	return ""
 }
 
+// GRPCTunnelConfig is the user managed resource that allows configuring gRPC tunnel per machine.
+type GRPCTunnelConfigSpec struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Enabled       bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GRPCTunnelConfigSpec) Reset() {
+	*x = GRPCTunnelConfigSpec{}
+	mi := &file_omni_specs_siderolink_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GRPCTunnelConfigSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GRPCTunnelConfigSpec) ProtoMessage() {}
+
+func (x *GRPCTunnelConfigSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_siderolink_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GRPCTunnelConfigSpec.ProtoReflect.Descriptor instead.
+func (*GRPCTunnelConfigSpec) Descriptor() ([]byte, []int) {
+	return file_omni_specs_siderolink_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *GRPCTunnelConfigSpec) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
 type JoinTokenStatusSpec_Warning struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Machine       string                 `protobuf:"bytes,1,opt,name=machine,proto3" json:"machine,omitempty"`
@@ -1181,7 +1226,7 @@ type JoinTokenStatusSpec_Warning struct {
 
 func (x *JoinTokenStatusSpec_Warning) Reset() {
 	*x = JoinTokenStatusSpec_Warning{}
-	mi := &file_omni_specs_siderolink_proto_msgTypes[16]
+	mi := &file_omni_specs_siderolink_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1193,7 +1238,7 @@ func (x *JoinTokenStatusSpec_Warning) String() string {
 func (*JoinTokenStatusSpec_Warning) ProtoMessage() {}
 
 func (x *JoinTokenStatusSpec_Warning) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_siderolink_proto_msgTypes[16]
+	mi := &file_omni_specs_siderolink_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1327,7 +1372,9 @@ const file_omni_specs_siderolink_proto_rawDesc = "" +
 	"\x12JoinTokenUsageSpec\x12\x19\n" +
 	"\btoken_id\x18\x01 \x01(\tR\atokenId\"1\n" +
 	"\x14DefaultJoinTokenSpec\x12\x19\n" +
-	"\btoken_id\x18\x01 \x01(\tR\atokenIdB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
+	"\btoken_id\x18\x01 \x01(\tR\atokenId\"0\n" +
+	"\x14GRPCTunnelConfigSpec\x12\x18\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabledB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
 
 var (
 	file_omni_specs_siderolink_proto_rawDescOnce sync.Once
@@ -1342,7 +1389,7 @@ func file_omni_specs_siderolink_proto_rawDescGZIP() []byte {
 }
 
 var file_omni_specs_siderolink_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_omni_specs_siderolink_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_omni_specs_siderolink_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_omni_specs_siderolink_proto_goTypes = []any{
 	(NodeUniqueTokenStatusSpec_State)(0), // 0: specs.NodeUniqueTokenStatusSpec.State
 	(JoinTokenStatusSpec_State)(0),       // 1: specs.JoinTokenStatusSpec.State
@@ -1362,18 +1409,19 @@ var file_omni_specs_siderolink_proto_goTypes = []any{
 	(*JoinTokenStatusSpec)(nil),          // 15: specs.JoinTokenStatusSpec
 	(*JoinTokenUsageSpec)(nil),           // 16: specs.JoinTokenUsageSpec
 	(*DefaultJoinTokenSpec)(nil),         // 17: specs.DefaultJoinTokenSpec
-	(*JoinTokenStatusSpec_Warning)(nil),  // 18: specs.JoinTokenStatusSpec.Warning
-	(*timestamppb.Timestamp)(nil),        // 19: google.protobuf.Timestamp
+	(*GRPCTunnelConfigSpec)(nil),         // 18: specs.GRPCTunnelConfigSpec
+	(*JoinTokenStatusSpec_Warning)(nil),  // 19: specs.JoinTokenStatusSpec.Warning
+	(*timestamppb.Timestamp)(nil),        // 20: google.protobuf.Timestamp
 }
 var file_omni_specs_siderolink_proto_depIdxs = []int32{
-	19, // 0: specs.SiderolinkCounterSpec.last_alive:type_name -> google.protobuf.Timestamp
+	20, // 0: specs.SiderolinkCounterSpec.last_alive:type_name -> google.protobuf.Timestamp
 	8,  // 1: specs.ProviderJoinConfigSpec.config:type_name -> specs.JoinConfig
 	8,  // 2: specs.MachineJoinConfigSpec.config:type_name -> specs.JoinConfig
 	0,  // 3: specs.NodeUniqueTokenStatusSpec.state:type_name -> specs.NodeUniqueTokenStatusSpec.State
-	19, // 4: specs.JoinTokenSpec.expiration_time:type_name -> google.protobuf.Timestamp
+	20, // 4: specs.JoinTokenSpec.expiration_time:type_name -> google.protobuf.Timestamp
 	1,  // 5: specs.JoinTokenStatusSpec.state:type_name -> specs.JoinTokenStatusSpec.State
-	19, // 6: specs.JoinTokenStatusSpec.expiration_time:type_name -> google.protobuf.Timestamp
-	18, // 7: specs.JoinTokenStatusSpec.warnings:type_name -> specs.JoinTokenStatusSpec.Warning
+	20, // 6: specs.JoinTokenStatusSpec.expiration_time:type_name -> google.protobuf.Timestamp
+	19, // 7: specs.JoinTokenStatusSpec.warnings:type_name -> specs.JoinTokenStatusSpec.Warning
 	8,  // [8:8] is the sub-list for method output_type
 	8,  // [8:8] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name
@@ -1392,7 +1440,7 @@ func file_omni_specs_siderolink_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_omni_specs_siderolink_proto_rawDesc), len(file_omni_specs_siderolink_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   17,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

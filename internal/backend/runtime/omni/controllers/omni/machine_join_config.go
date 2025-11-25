@@ -11,6 +11,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -45,13 +46,24 @@ func NewMachineJoinConfigController() *MachineJoinConfigController {
 					return err
 				}
 
-				joinOptions, err := siderolink.NewJoinOptions(
+				grpcTunnelConfig, err := safe.ReaderGetByID[*siderolinkres.GRPCTunnelConfig](ctx, r, machine.Metadata().ID())
+				if err != nil && !state.IsNotFoundError(err) {
+					return err
+				}
+
+				opts := []siderolink.JoinConfigOption{
 					siderolink.WithJoinToken(tokenUsage.TypedSpec().Value.TokenId),
 					siderolink.WithEventSinkPort(int(siderolinkAPIConfig.TypedSpec().Value.EventsPort)),
 					siderolink.WithLogServerPort(int(siderolinkAPIConfig.TypedSpec().Value.LogsPort)),
 					siderolink.WithMachineAPIURL(siderolinkAPIConfig.TypedSpec().Value.MachineApiAdvertisedUrl),
 					siderolink.WithMachine(machine),
-				)
+				}
+
+				if grpcTunnelConfig != nil {
+					opts = append(opts, siderolink.WithGRPCTunnel(grpcTunnelConfig.TypedSpec().Value.Enabled))
+				}
+
+				joinOptions, err := siderolink.NewJoinOptions(opts...)
 				if err != nil {
 					return err
 				}
@@ -73,6 +85,7 @@ func NewMachineJoinConfigController() *MachineJoinConfigController {
 		},
 		qtransform.WithExtraMappedInput[*siderolinkres.APIConfig](qtransform.MapperNone()),
 		qtransform.WithExtraMappedInput[*siderolinkres.JoinTokenUsage](qtransform.MapperSameID[*omni.Machine]()),
+		qtransform.WithExtraMappedInput[*siderolinkres.GRPCTunnelConfig](qtransform.MapperSameID[*omni.Machine]()),
 		qtransform.WithConcurrency(4),
 	)
 }

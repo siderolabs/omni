@@ -166,3 +166,8 @@ message JoinTokenUsageSpec {
 message DefaultJoinTokenSpec {
   string token_id = 1;
 }
+
+// GRPCTunnelConfig is the user managed resource that allows configuring gRPC tunnel per machine.
+message GRPCTunnelConfigSpec {
+  bool enabled = 1;
+}
