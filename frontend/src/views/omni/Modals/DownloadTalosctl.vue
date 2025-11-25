@@ -13,6 +13,7 @@ import { useRouter } from 'vue-router'
 import TButton from '@/components/common/Button/TButton.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import { getPlatform } from '@/methods'
 import { showError } from '@/notification'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
@@ -38,6 +39,8 @@ const talosctlRelease = computedAsync(async () => {
   }
 })
 
+const platform = computedAsync(getPlatform)
+
 const availableVersions = computed(
   () =>
     new Map(
@@ -48,18 +51,22 @@ const availableVersions = computed(
 )
 
 const defaultVersion = computed(() => Array.from(availableVersions.value.keys()).pop())
-const defaultPlatform = computed(
-  () =>
-    defaultVersion.value &&
-    availableVersions.value
-      .get(defaultVersion.value)
-      ?.find((item) => item.url.endsWith('linux-amd64'))?.name,
-)
+const defaultPlatform = computed(() => {
+  if (!defaultVersion.value || !platform.value) return
+
+  const [os, arch] = platform.value
+
+  const assets = availableVersions.value.get(defaultVersion.value)
+  const defaultAsset = assets?.find((item) => item.url.endsWith('linux-amd64'))
+  const preferredAsset = assets?.find((item) => item.url.endsWith(`${os}-${arch}`))
+
+  return (preferredAsset ?? defaultAsset)?.name
+})
 
 const selectedVersion = ref<string>()
 const selectedPlatform = ref<string>()
 
-const download = async () => {
+const download = () => {
   close()
 
   if (!selectedVersion.value) return
@@ -108,7 +115,7 @@ interface Asset {
     </div>
 
     <div class="mb-5 flex flex-wrap gap-4">
-      <div v-if="talosctlRelease" class="flex flex-wrap gap-4">
+      <div v-if="talosctlRelease && platform" class="flex flex-wrap gap-4">
         <TSelectList
           v-model="selectedVersion"
           title="version"

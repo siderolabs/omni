@@ -5,11 +5,13 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computedAsync } from '@vueuse/core'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import TButton from '@/components/common/Button/TButton.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
+import { getPlatform } from '@/methods'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const router = useRouter()
@@ -33,25 +35,27 @@ const options = [
   'omnictl-windows-amd64.exe',
 ]
 
-const selectedOption = ref(options[2])
+const platform = computedAsync(getPlatform)
 
-const download = async () => {
+const defaultValue = computed(() => {
+  if (!platform.value) return options[2]
+
+  const [os, arch] = platform.value
+
+  return options.find((o) => o === `omnictl-${os}-${arch}`) ?? options[2]
+})
+
+const selectedOption = ref(defaultValue)
+
+const download = () => {
   close()
 
-  const url: string = '/omnictl/' + selectedOption.value
-
   const a = document.createElement('a')
-  a.href = url
+  a.href = `/omnictl/${encodeURI(selectedOption.value)}`
   document.body.appendChild(a)
   a.click()
   a.remove()
 }
-
-const setOption = (value: string) => {
-  selectedOption.value = value
-}
-
-const defaultValue = options[2]
 </script>
 
 <template>
@@ -61,13 +65,13 @@ const defaultValue = options[2]
       <CloseButton @click="close" />
     </div>
 
-    <div class="mb-5 flex flex-wrap gap-4">
+    <div v-if="platform" class="mb-5 flex flex-wrap gap-4">
       <TSelectList
+        v-model="selectedOption"
         title="omnictl"
         :default-value="defaultValue"
         :values="options"
-        :searcheable="true"
-        @checked-value="setOption"
+        searcheable
       />
     </div>
 

@@ -4,6 +4,7 @@
 // included in the LICENSE file.
 import type { Node as V1Node } from 'kubernetes-types/core/v1'
 import { coerce } from 'semver'
+import { UAParser } from 'ua-parser-js'
 import type { ComputedRef, Ref } from 'vue'
 import { computed, ref } from 'vue'
 
@@ -26,6 +27,36 @@ import { showError } from '@/notification'
 
 export function getNonce() {
   return document.querySelector<HTMLMetaElement>("meta[name='csp-nonce']")?.content ?? ''
+}
+
+export async function getPlatform() {
+  try {
+    const result = await new UAParser().getResult().withClientHints()
+
+    const os = (() => {
+      switch (result.os.name?.toLowerCase()) {
+        case 'macos':
+          return 'darwin'
+        case 'windows':
+          return 'windows'
+        default:
+          return 'linux'
+      }
+    })()
+
+    const arch = (() => {
+      switch (result.cpu.architecture?.toLowerCase()) {
+        case 'arm64':
+          return 'arm64'
+        default:
+          return 'amd64'
+      }
+    })()
+
+    return [os, arch] as const
+  } catch {
+    return ['linux', 'amd64'] as const
+  }
 }
 
 export const getStatus = (item: V1Node) => {

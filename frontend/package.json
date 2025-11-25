@@ -47,6 +47,7 @@
     "reka-ui": "^2.6.0",
     "semver": "^7.7.3",
     "tailwind-merge": "^3.4.0",
+    "ua-parser-js": "^2.0.6",
     "userpilot": "^1.4.2",
     "uuid": "^13.0.0",
     "vue": "^3.5.24",
