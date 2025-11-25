@@ -32,7 +32,6 @@ import {
   VirtualNamespace,
 } from '@/api/resources'
 import { AuthType, authType } from '@/methods'
-import { initializeUserPilot } from '@/methods/features'
 import { useIdentity } from '@/methods/identity'
 import { useKeys } from '@/methods/key'
 
@@ -169,7 +168,7 @@ const refreshCurrentUser = async () => {
   }
 
   try {
-    currentUser.value = await ResourceService.Get(
+    currentUser.value = await ResourceService.Get<Resource<CurrentUserSpec>>(
       {
         namespace: VirtualNamespace,
         type: CurrentUserType,
@@ -177,12 +176,6 @@ const refreshCurrentUser = async () => {
       },
       withRuntime(Runtime.Omni),
     )
-
-    try {
-      await initializeUserPilot(currentUser.value)
-    } catch (e) {
-      console.error('failed to initialize user pilot', e)
-    }
   } catch {
     currentUser.value = undefined
   }

@@ -129,12 +129,14 @@ func (handler *StaticHandler) serveFile(w http.ResponseWriter, r *http.Request, 
 			// on both dev and prod.
 			w.Header().Set("Content-Security-Policy",
 				"upgrade-insecure-requests"+
-					fmt.Sprintf(";default-src 'self' 'nonce-%s'", nonce)+
+					";default-src 'self'"+
+					fmt.Sprintf(";script-src 'self' 'nonce-%s' https://*.userpilot.io", nonce)+
+					";media-src 'self' https://js.userpilot.io"+
 					";img-src * data:"+
 					";connect-src 'self' https://*.auth0.com https://*.userpilot.io wss://*.userpilot.io"+
-					";font-src 'self' data:"+
+					";font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com https://fonts.userpilot.io"+
 					// We are forced to use unsafe-inline for style-src due to monaco-editor https://github.com/microsoft/monaco-editor/issues/271
-					";style-src 'self' 'unsafe-inline' data: https://fonts.googleapis.com https://fonts.gstatic.com"+
+					";style-src 'self' 'unsafe-inline' data: https://fonts.googleapis.com"+
 					";frame-src https://*.auth0.com",
 			)
 

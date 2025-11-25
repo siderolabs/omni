@@ -4,17 +4,14 @@
 // included in the LICENSE file.
 
 import { useLocalStorage } from '@vueuse/core'
-import { Userpilot } from 'userpilot'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
 import type { FeaturesConfigSpec } from '@/api/omni/specs/omni.pb'
-import type { CurrentUserSpec } from '@/api/omni/specs/virtual.pb'
-import { withAbortController, withRuntime } from '@/api/options'
+import { withRuntime } from '@/api/options'
 import { DefaultNamespace, FeaturesConfigID, FeaturesConfigType } from '@/api/resources'
 import { useWatch } from '@/components/common/Watch/useWatch'
-import { getNonce } from '@/methods'
 
 const resource = {
   type: FeaturesConfigType,
@@ -26,52 +23,6 @@ export function useFeatures() {
   return useWatch<FeaturesConfigSpec>({
     resource,
     runtime: Runtime.Omni,
-  })
-}
-
-let userPilotInitialized = false
-let userPilotInitializeAbortController: AbortController | null = null
-
-export const trackingState = useLocalStorage<boolean>('tracking', null)
-
-export const getUserPilotToken = async () => {
-  userPilotInitializeAbortController?.abort()
-
-  userPilotInitializeAbortController = new AbortController()
-
-  const featuresConfig = await ResourceService.Get<Resource<FeaturesConfigSpec>>(
-    {
-      type: FeaturesConfigType,
-      namespace: DefaultNamespace,
-      id: FeaturesConfigID,
-    },
-    withRuntime(Runtime.Omni),
-    withAbortController(userPilotInitializeAbortController),
-  )
-
-  return featuresConfig.spec?.user_pilot_settings?.app_token
-}
-
-export const initializeUserPilot = async (user: Resource<CurrentUserSpec>) => {
-  if (!trackingState.value) {
-    return
-  }
-
-  if (!userPilotInitialized) {
-    const token = await getUserPilotToken()
-    if (!token) {
-      userPilotInitialized = true
-
-      return
-    }
-
-    Userpilot.initialize(token, { nonce: getNonce() })
-
-    userPilotInitialized = true
-  }
-
-  Userpilot.identify(user.spec.user_id!, {
-    role: user.spec.role!,
   })
 }
 

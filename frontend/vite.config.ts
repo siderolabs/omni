@@ -59,12 +59,15 @@ export default defineConfig(({ command }) => {
     config.server.headers ||= {}
     config.server.headers['content-security-policy'] = [
       'upgrade-insecure-requests',
-      `default-src 'self' 'nonce-${cspNonce}'`,
+      "default-src 'self'",
+      `script-src 'self' 'nonce-${cspNonce}' https://*.userpilot.io`,
+      "media-src 'self' https://js.userpilot.io",
       'img-src * data:',
       "connect-src 'self' https://*.auth0.com https://*.userpilot.io wss://*.userpilot.io",
-      "font-src 'self' data:",
-      `style-src 'self' 'unsafe-inline' data: https://fonts.googleapis.com https://fonts.gstatic.com`,
+      "font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com https://fonts.userpilot.io",
+      "style-src 'self' 'unsafe-inline' data: https://fonts.googleapis.com",
       'frame-src https://*.auth0.com',
+      'worker-src blob:', // Only for vite dev server
     ].join(';')
 
     // Adds nonce for dev server inline scripts.

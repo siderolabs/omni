@@ -17,9 +17,12 @@ import TModal from '@/components/TModal.vue'
 import { suspended } from '@/methods'
 import { useRegisterAPIInterceptor } from '@/methods/interceptor'
 import { useWatchKeyExpiry } from '@/methods/key'
+import { useUserpilot } from '@/methods/userpilot'
 
 useRegisterAPIInterceptor()
 useWatchKeyExpiry()
+
+const { trackingFeatureEnabled, trackingPending, enableTracking, disableTracking } = useUserpilot()
 
 const isSidebarOpen = ref(false)
 const router = useRouter()
@@ -40,7 +43,12 @@ const darkThemeEnabled = computed(() => {
 
 <template>
   <main class="flex h-screen flex-col" :class="{ dark: darkThemeEnabled }">
-    <UserConsent />
+    <UserConsent
+      v-if="trackingFeatureEnabled && trackingPending"
+      @decline="disableTracking"
+      @accept="enableTracking"
+    />
+
     <AppToast />
 
     <THeader
