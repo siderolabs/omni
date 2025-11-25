@@ -234,3 +234,14 @@ const (
 	// tsgen:ExtensionsConfigurationLabel
 	ExtensionsConfigurationLabel = SystemLabelPrefix + "root-configuration"
 )
+
+const (
+	// ClusterMachineRequestStatus labels.
+
+	// LabelMachineRequestInUse is set on the ClusterMachineRequestStatus to indicate that the MachineRequest
+	// has a corresponding ClusterMachineStatus created for it.
+	// It is a signal to the UI to stop showing the ClusterMachineRequestStatus in the UI as it will be replaced
+	// by the ClusterMachineStatus.
+	// tsgen:LabelMachineRequestInUse
+	LabelMachineRequestInUse = SystemLabelPrefix + "machine-request-in-use"
+)

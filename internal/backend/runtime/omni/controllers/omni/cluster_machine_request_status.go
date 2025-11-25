@@ -31,6 +31,8 @@ type ClusterMachineRequestStatusController = qtransform.QController[*infra.Machi
 const clusterMachineRequestStatusControllerName = "ClusterMachineRequestStatusController"
 
 // NewClusterMachineRequestStatusController initializes ClusterMachineRequestStatusController.
+//
+//nolint:gocognit,gocyclo,cyclop
 func NewClusterMachineRequestStatusController() *ClusterMachineRequestStatusController {
 	return qtransform.NewQController(
 		qtransform.Settings[*infra.MachineRequest, *omni.ClusterMachineRequestStatus]{
@@ -93,6 +95,19 @@ func NewClusterMachineRequestStatusController() *ClusterMachineRequestStatusCont
 					}
 				}
 
+				if machineRequestStatus != nil {
+					clusterMachineStatus, err := safe.ReaderGetByID[*omni.ClusterMachineStatus](ctx, r, machineRequestStatus.TypedSpec().Value.Id)
+					if err != nil && !state.IsNotFoundError(err) {
+						return err
+					}
+
+					if clusterMachineStatus != nil {
+						clusterMachineRequestStatus.Metadata().Labels().Set(omni.LabelMachineRequestInUse, "")
+					} else {
+						clusterMachineRequestStatus.Metadata().Labels().Delete(omni.LabelMachineRequestInUse)
+					}
+				}
+
 				clusterMachineRequestStatus.Metadata().Labels().Set(omni.LabelMachineSet, machineSetName)
 
 				clusterMachineRequestStatus.TypedSpec().Value.ProviderId, _ = machineRequest.Metadata().Labels().Get(omni.LabelInfraProviderID)
@@ -127,6 +142,39 @@ func NewClusterMachineRequestStatusController() *ClusterMachineRequestStatusCont
 				}
 
 				return slices.Collect(list.Pointers()), nil
+			},
+		),
+		qtransform.WithExtraMappedInput[*omni.Machine](
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, res controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				machineRequestID, ok := res.Labels().Get(omni.LabelMachineRequest)
+				if !ok {
+					return nil, nil
+				}
+
+				return []resource.Pointer{
+					infra.NewMachineRequest(machineRequestID).Metadata(),
+				}, nil
+			},
+		),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineStatus](
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, res controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				machine, err := safe.ReaderGetByID[*omni.Machine](ctx, r, res.ID())
+				if err != nil {
+					if state.IsNotFoundError(err) {
+						return nil, nil
+					}
+
+					return nil, err
+				}
+
+				machineRequestID, ok := machine.Metadata().Labels().Get(omni.LabelMachineRequest)
+				if !ok {
+					return nil, nil
+				}
+
+				return []resource.Pointer{
+					infra.NewMachineRequest(machineRequestID).Metadata(),
+				}, nil
 			},
 		),
 		qtransform.WithIgnoreTeardownUntil(),

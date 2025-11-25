@@ -26,6 +26,7 @@ import {
   DefaultNamespace,
   LabelCluster,
   LabelControlPlaneRole,
+  LabelMachineRequestInUse,
   LabelMachineSet,
   MachineClassType,
 } from '@/api/resources'
@@ -116,16 +117,11 @@ const { data: requests } = useWatch<ClusterMachineRequestStatusSpec>(() => ({
   selectors: [
     `${LabelCluster}=${clusterID.value}`,
     `${LabelMachineSet}=${machineSet.value.metadata.id}`,
+    `!${LabelMachineRequestInUse}`,
   ],
   runtime: Runtime.Omni,
   limit: showMachinesCount.value,
 }))
-
-const pendingRequests = computed(() => {
-  return requests.value.filter(
-    (item) => !machines.value.find((machine) => machine.metadata.id === item.spec.machine_uuid),
-  )
-})
 
 const router = useRouter()
 
@@ -288,7 +284,7 @@ const sectionHeadingId = useId()
     />
 
     <MachineRequest
-      v-for="request in pendingRequests"
+      v-for="request in requests"
       :key="itemID(request)"
       class="border-t border-naturals-n4 last-of-type:rounded-b-md"
       :request-status="request"
