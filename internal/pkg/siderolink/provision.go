@@ -482,6 +482,7 @@ func genProvisionResponse(ctx context.Context, logger *zap.Logger, st state.Stat
 		zap.String("node_address", spec.NodeSubnet),
 		zap.String("public_key", wgConfig.PublicKey),
 		zap.String("grpc_addr_port", spec.VirtualAddrport),
+		zap.Bool("grpc_tunnel_mode", spec.VirtualAddrport != ""),
 	)
 
 	return &pb.ProvisionResponse{
@@ -594,6 +595,20 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 		}
 	}
 
+	grpcTunnelConfig, err := safe.ReaderGetByID[*siderolinkres.GRPCTunnelConfig](ctx, h.state, req.NodeUuid)
+	if err != nil && !state.IsNotFoundError(err) {
+		return nil, err
+	}
+
+	useWireguardOverGRPC := pointer.SafeDeref(req.WireguardOverGrpc)
+	if grpcTunnelConfig != nil {
+		useWireguardOverGRPC = grpcTunnelConfig.TypedSpec().Value.Enabled
+	}
+
+	if h.forceWireguardOverGRPC {
+		useWireguardOverGRPC = true
+	}
+
 	if pendingMachine != nil {
 		pendingMachineStatus, err = safe.StateWatchFor[*siderolinkres.PendingMachineStatus](ctx,
 			h.state,
@@ -649,7 +664,7 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 		hasValidNodeUniqueToken:   linkNodeUniqueToken.Equal(requestNodeUniqueToken),
 		nodeUniqueTokensEnabled:   h.joinTokenMode != config.JoinTokensModeLegacyOnly,
 		supportsSecureJoinTokens:  siderolink.SupportsSecureJoinTokens(talosVersion),
-		useWireguardOverGRPC:      h.forceWireguardOverGRPC || pointer.SafeDeref(req.WireguardOverGrpc),
+		useWireguardOverGRPC:      useWireguardOverGRPC,
 	}, nil
 }
 
