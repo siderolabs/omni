@@ -35,7 +35,7 @@ import UserInfo from '@/components/common/UserInfo/UserInfo.vue'
 import { AuthType, authType } from '@/methods'
 import { useLogout } from '@/methods/auth'
 import { useIdentity } from '@/methods/identity'
-import { createKeys, useKeys, useSignDetached } from '@/methods/key'
+import { createKeys, signDetached, useKeys } from '@/methods/key'
 import { showError } from '@/notification'
 
 const user = ref<User | undefined>(undefined)
@@ -180,7 +180,6 @@ const generatePublicKey = async () => {
 }
 
 let renewIdToken = false
-const signDetached = useSignDetached()
 
 const confirmPublicKey = async (keyPair?: CryptoKeyPair) => {
   try {

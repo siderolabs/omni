@@ -4,7 +4,7 @@
 // included in the LICENSE file.
 import { getUnixTime } from 'date-fns'
 import fetchIntercept from 'fetch-intercept'
-import { onBeforeMount, onUnmounted, ref } from 'vue'
+import { onBeforeMount, onUnmounted, ref, watch } from 'vue'
 
 import { b64Encode } from '@/api/fetch.pb'
 import {
@@ -15,16 +15,15 @@ import {
   TimestampHeaderKey,
 } from '@/api/resources'
 import { useIdentity } from '@/methods/identity'
-import { useKeys, useSignDetached } from '@/methods/key'
+import { signDetached, useKeys } from '@/methods/key'
 
 /**
  * useRegisterAPIInterceptor registers an interceptor on the global fetch.
  * This will add the necessary authorization headers for Omni gRPC calls.
  */
 export function useRegisterAPIInterceptor() {
-  const keys = useKeys()
+  const { keyPair, publicKeyID } = useKeys()
   const { identity } = useIdentity()
-  const signDetached = useSignDetached()
 
   const unregisterInterceptor = ref<() => void>()
 
@@ -69,9 +68,25 @@ export function useRegisterAPIInterceptor() {
   })
 
   async function generateSignatureHeader(payload: string) {
-    const array = new Uint8Array(await signDetached(payload))
+    if (!keyPair.value) {
+      // Wait for keys to be created.
+      await new Promise<void>((resolve) => {
+        const handle = watch(
+          keyPair,
+          (keyPair) => {
+            if (!keyPair) return
+
+            handle.stop()
+            resolve()
+          },
+          { immediate: true },
+        )
+      })
+    }
+
+    const array = new Uint8Array(await signDetached(payload, keyPair.value!))
     const signature = b64Encode(array, 0, array.length)
-    const fingerprint = keys.publicKeyID.value
+    const fingerprint = publicKeyID.value
 
     return `${SignatureVersionV1} ${identity.value} ${fingerprint} ${signature}`
   }

@@ -67,20 +67,12 @@ export function useWatchKeyExpiry() {
   })
 }
 
-export function useSignDetached() {
-  const keys = useKeys()
-
-  return async function (data: string, keyPair = keys.keyPair.value) {
-    if (!keyPair) {
-      throw new Error('failed to load keys: keys not initialized')
-    }
-
-    return await crypto.subtle.sign(
-      { name: 'ECDSA', hash: 'SHA-256' },
-      keyPair.privateKey,
-      new TextEncoder().encode(data),
-    )
-  }
+export async function signDetached(data: string, keyPair: CryptoKeyPair) {
+  return await crypto.subtle.sign(
+    { name: 'ECDSA', hash: 'SHA-256' },
+    keyPair.privateKey,
+    new TextEncoder().encode(data),
+  )
 }
 
 export async function hasValidKeys() {

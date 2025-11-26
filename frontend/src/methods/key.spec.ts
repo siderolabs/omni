@@ -12,7 +12,7 @@ import { useRouter } from 'vue-router'
 
 import type { RegisterPublicKeyRequest, RegisterPublicKeyResponse } from '@/api/omni/auth/auth.pb'
 
-import { createKeys, hasValidKeys, useKeys, useSignDetached, useWatchKeyExpiry } from './key'
+import { createKeys, hasValidKeys, signDetached, useKeys, useWatchKeyExpiry } from './key'
 
 vi.mock('vue-router', () => ({
   useRoute: vi.fn().mockReturnValue({ fullPath: 'fullPath' }),
@@ -178,14 +178,8 @@ describe('useWatchKeyExpiry', () => {
   })
 })
 
-describe('useSignDetached', () => {
-  afterEach(() => {
-    useKeys().clear()
-  })
-
-  test('uses key from params if available', async () => {
-    const signDetached = useSignDetached()
-
+describe('signDetached', () => {
+  test('signs data', async () => {
     const signature = await signDetached('data', mockKey)
 
     await expect(
@@ -196,28 +190,6 @@ describe('useSignDetached', () => {
         new TextEncoder().encode('data'),
       ),
     ).resolves.toBeTruthy()
-  })
-
-  test('uses key from useKeys if no param', async () => {
-    useKeys().keyPair.value = mockKey
-    const signDetached = useSignDetached()
-
-    const signature = await signDetached('data', undefined)
-
-    await expect(
-      crypto.subtle.verify(
-        { name: 'ECDSA', hash: 'SHA-256' },
-        mockKey.publicKey,
-        signature,
-        new TextEncoder().encode('data'),
-      ),
-    ).resolves.toBeTruthy()
-  })
-
-  test('throws an error if no signing key is found', async () => {
-    const signDetached = useSignDetached()
-
-    await expect(signDetached('data')).rejects.toThrowError()
   })
 })
 
