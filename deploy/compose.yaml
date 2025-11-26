@@ -2,7 +2,7 @@ name: omni-on-prem
 services:
   omni:
     container_name: omni
-    image: "ghcr.io/siderolabs/omni:${OMNI_IMG_TAG}"
+    image: "ghcr.io/siderolabs/omni:v${OMNI_IMG_TAG}"
     devices:
       - /dev/net/tun
     volumes:
