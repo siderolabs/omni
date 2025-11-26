@@ -12,7 +12,14 @@ import { useRouter } from 'vue-router'
 
 import type { RegisterPublicKeyRequest, RegisterPublicKeyResponse } from '@/api/omni/auth/auth.pb'
 
-import { createKeys, hasValidKeys, useKeys, useSignDetached, useWatchKeyExpiry } from './key'
+import {
+  createKeys,
+  hasValidKeys,
+  KeysError,
+  useKeys,
+  useSignDetached,
+  useWatchKeyExpiry,
+} from './key'
 
 vi.mock('vue-router', () => ({
   useRoute: vi.fn().mockReturnValue({ fullPath: 'fullPath' }),
@@ -217,7 +224,7 @@ describe('useSignDetached', () => {
   test('throws an error if no signing key is found', async () => {
     const signDetached = useSignDetached()
 
-    await expect(signDetached('data')).rejects.toThrowError()
+    await expect(signDetached('data')).rejects.toThrowError(KeysError)
   })
 })
 

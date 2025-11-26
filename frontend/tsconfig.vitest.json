@@ -5,7 +5,7 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.vitest.tsbuildinfo",
 
-    "lib": [],
+    "lib": ["ES2022"],
     "types": ["node", "jsdom", "@testing-library/jest-dom"],
 
     "paths": {

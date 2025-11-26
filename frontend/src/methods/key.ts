@@ -67,12 +67,25 @@ export function useWatchKeyExpiry() {
   })
 }
 
+export enum KeysErrorCode {
+  NO_KEYS = 1,
+}
+
+export class KeysError extends Error {
+  constructor(
+    public code: KeysErrorCode,
+    options?: ErrorOptions,
+  ) {
+    super(`Code: ${code}`, options)
+  }
+}
+
 export function useSignDetached() {
   const keys = useKeys()
 
   return async function (data: string, keyPair = keys.keyPair.value) {
     if (!keyPair) {
-      throw new Error('failed to load keys: keys not initialized')
+      throw new KeysError(KeysErrorCode.NO_KEYS)
     }
 
     return await crypto.subtle.sign(

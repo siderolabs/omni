@@ -5,13 +5,10 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computedAsync } from '@vueuse/core'
-
 import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import OngoingTasks from '@/components/common/OngoingTasks/OngoingTasks.vue'
 import { getDocsLink } from '@/methods'
-import { hasValidKeys } from '@/methods/key'
 
 interface Props {
   sidebarOpen?: boolean
@@ -21,9 +18,6 @@ interface Props {
 const props = defineProps<Props>()
 
 const docsLink = getDocsLink('omni')
-
-// Used to prevent sub-queries being fired before keys are created
-const authorized = computedAsync(async () => await hasValidKeys())
 </script>
 
 <template>
@@ -81,7 +75,7 @@ const authorized = computedAsync(async () => await hasValidKeys())
         <span class="truncate text-xs max-sm:hidden">Report an issue</span>
       </a>
 
-      <OngoingTasks v-if="authorized" />
+      <OngoingTasks />
     </div>
   </header>
 </template>

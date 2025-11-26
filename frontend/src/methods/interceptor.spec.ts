@@ -8,24 +8,24 @@ import fetchIntercept, { type FetchInterceptor } from 'fetch-intercept'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { defineComponent, ref } from 'vue'
 
+import { KeysError, KeysErrorCode, useSignDetached } from '@/methods/key'
+
 import { useRegisterAPIInterceptor } from './interceptor'
 
 vi.mock('fetch-intercept')
 vi.mock('@/methods/identity', () => ({
-  useIdentity() {
-    return { identity: ref('testuser') }
-  },
+  useIdentity: vi.fn(() => ({ identity: ref('testuser') })),
 }))
-vi.mock('@/methods/key', () => ({
-  useKeys() {
-    return {
-      publicKeyID: ref('public_key_id'),
-    }
-  },
-  useSignDetached() {
-    return () => new ArrayBuffer(10)
-  },
-}))
+vi.mock(import('@/methods/key'), async (importOriginal) => {
+  const original = await importOriginal()
+  return {
+    ...original,
+    useKeys: vi.fn(
+      () => ({ publicKeyID: ref('public_key_id') }) as ReturnType<(typeof original)['useKeys']>,
+    ),
+    useSignDetached: vi.fn(() => async () => new ArrayBuffer(10)),
+  }
+})
 
 const fetchInterceptMock = vi.mocked(fetchIntercept)
 
@@ -52,10 +52,10 @@ describe('useRegisterAPIInterceptor', () => {
   test.each(['/api', '/api/auth.AuthService/RevokePublicKey'])(
     'intercepts api route: %s',
     async (originalUrl) => {
-      let interceptorMock: FetchInterceptor['request']
+      let interceptor: FetchInterceptor['request']
 
       fetchInterceptMock.register.mockImplementation(({ request }) => {
-        interceptorMock = request
+        interceptor = request
 
         return vi.fn()
       })
@@ -63,9 +63,9 @@ describe('useRegisterAPIInterceptor', () => {
       mount(TestComponent)
 
       expect(fetchInterceptMock.register).toHaveBeenCalledOnce()
-      expectToBeDefined(interceptorMock)
+      expectToBeDefined(interceptor)
 
-      const [url, config] = await interceptorMock(originalUrl, undefined)
+      const [url, config] = await interceptor(originalUrl, undefined)
       const headers = Array.from(config.headers) as [string, string]
 
       expect(url).toBe(originalUrl)
@@ -86,10 +86,10 @@ describe('useRegisterAPIInterceptor', () => {
   test.each(['/image/', '/image/thing/whatever'])(
     'intercepts image route: %s',
     async (originalUrl) => {
-      let interceptorMock: FetchInterceptor['request']
+      let interceptor: FetchInterceptor['request']
 
       fetchInterceptMock.register.mockImplementation(({ request }) => {
-        interceptorMock = request
+        interceptor = request
 
         return vi.fn()
       })
@@ -97,9 +97,9 @@ describe('useRegisterAPIInterceptor', () => {
       mount(TestComponent)
 
       expect(fetchInterceptMock.register).toHaveBeenCalledOnce()
-      expectToBeDefined(interceptorMock)
+      expectToBeDefined(interceptor)
 
-      const [url, config] = await interceptorMock(originalUrl, undefined)
+      const [url, config] = await interceptor(originalUrl, undefined)
       const headers = Array.from(config.headers) as [string, string]
 
       expect(url).toBe(originalUrl)
@@ -113,10 +113,10 @@ describe('useRegisterAPIInterceptor', () => {
   test.each(['/fake', '/api/auth.whatever'])(
     'does not intercept route: %s',
     async (originalUrl) => {
-      let interceptorMock: FetchInterceptor['request']
+      let interceptor: FetchInterceptor['request']
 
       fetchInterceptMock.register.mockImplementation(({ request }) => {
-        interceptorMock = request
+        interceptor = request
 
         return vi.fn()
       })
@@ -124,9 +124,9 @@ describe('useRegisterAPIInterceptor', () => {
       mount(TestComponent)
 
       expect(fetchInterceptMock.register).toHaveBeenCalledOnce()
-      expectToBeDefined(interceptorMock)
+      expectToBeDefined(interceptor)
 
-      const [url, config] = await interceptorMock(originalUrl, undefined)
+      const [url, config] = await interceptor(originalUrl, undefined)
 
       expect(url).toBe(originalUrl)
       expect(config).toBeUndefined()
@@ -143,6 +143,53 @@ describe('useRegisterAPIInterceptor', () => {
     expect(unregisterMock).not.toHaveBeenCalled()
     wrapper.unmount()
     expect(unregisterMock).toHaveBeenCalledOnce()
+  })
+
+  test('waits for keys to be ready', async () => {
+    let interceptor: FetchInterceptor['request']
+
+    fetchInterceptMock.register.mockImplementation(({ request }) => {
+      interceptor = request
+
+      return vi.fn()
+    })
+
+    const signMock = vi
+      .fn()
+      .mockRejectedValueOnce(new KeysError(KeysErrorCode.NO_KEYS))
+      .mockRejectedValueOnce(new KeysError(KeysErrorCode.NO_KEYS))
+      .mockResolvedValue(new ArrayBuffer(10))
+
+    vi.mocked(useSignDetached).mockReturnValue(signMock)
+
+    mount(TestComponent)
+
+    expect(fetchInterceptMock.register).toHaveBeenCalledOnce()
+    expectToBeDefined(interceptor)
+
+    expect(signMock).not.toHaveBeenCalled()
+    const interceptPromise = interceptor('/api', undefined)
+
+    // First error
+    expect(signMock).toHaveBeenCalledOnce()
+
+    // Second error
+    await vi.advanceTimersByTimeAsync(100)
+    expect(signMock).toHaveBeenCalledTimes(2)
+
+    // Keys resolved
+    await vi.advanceTimersByTimeAsync(100)
+    expect(signMock).toHaveBeenCalledTimes(3)
+
+    const [url, config] = await interceptPromise
+    const headers = Array.from(config.headers) as [string, string]
+
+    expect(url).toBe('/api')
+    expect(headers).toMatchObject(
+      expect.arrayContaining([
+        ['grpc-metadata-x-sidero-signature', 'siderov1 testuser public_key_id AAAAAAAAAAAAAA=='],
+      ]),
+    )
   })
 })
 
