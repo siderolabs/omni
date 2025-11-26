@@ -16,9 +16,9 @@ import {
 } from '@/api/resources'
 import Card from '@/components/common/Card/Card.vue'
 import RadialBar from '@/components/common/Charts/RadialBar.vue'
-import { useWatch } from '@/components/common/Watch/useWatch'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
-const { data } = useWatch<MachineStatusMetricsSpec>({
+const { data } = useResourceWatch<MachineStatusMetricsSpec>({
   resource: {
     namespace: EphemeralNamespace,
     type: MachineStatusMetricsType,

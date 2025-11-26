@@ -38,7 +38,6 @@ import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
-import { useWatch } from '@/components/common/Watch/useWatch'
 import { setupClusterPermissions } from '@/methods/auth'
 import {
   controlPlaneMachineSetId,
@@ -46,6 +45,7 @@ import {
   machineSetTitle,
   scaleMachineSet,
 } from '@/methods/machineset'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
 
 import ClusterMachine from './ClusterMachine.vue'
@@ -95,7 +95,7 @@ const hiddenMachinesCount = computed(() => {
   return Math.max(0, (machineSet.value.spec.machines?.total || 0) - showMachinesCount.value)
 })
 
-const { data: machines } = useWatch<ClusterMachineStatusSpec>(() => ({
+const { data: machines } = useResourceWatch<ClusterMachineStatusSpec>(() => ({
   resource: {
     namespace: DefaultNamespace,
     type: ClusterMachineStatusType,
@@ -108,7 +108,7 @@ const { data: machines } = useWatch<ClusterMachineStatusSpec>(() => ({
   limit: showMachinesCount.value,
 }))
 
-const { data: requests } = useWatch<ClusterMachineRequestStatusSpec>(() => ({
+const { data: requests } = useResourceWatch<ClusterMachineRequestStatusSpec>(() => ({
   skip: !machineSet.value.spec.machine_allocation,
   resource: {
     namespace: DefaultNamespace,

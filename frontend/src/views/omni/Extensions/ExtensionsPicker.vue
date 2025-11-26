@@ -14,7 +14,7 @@ import { DefaultNamespace, TalosExtensionsType } from '@/api/resources'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
-import { useWatch } from '@/components/common/Watch/useWatch'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
 const { talosVersion, immutableExtensions = {} } = defineProps<{
   talosVersion: string
@@ -26,7 +26,7 @@ const { talosVersion, immutableExtensions = {} } = defineProps<{
 const modelValue = defineModel<Record<string, boolean>>({ required: true })
 const filterExtensions = ref('')
 
-const { data } = useWatch<TalosExtensionsSpec>(() => ({
+const { data } = useResourceWatch<TalosExtensionsSpec>(() => ({
   skip: !talosVersion,
   resource: {
     id: talosVersion,

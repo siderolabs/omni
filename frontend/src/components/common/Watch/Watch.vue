@@ -18,8 +18,8 @@ import { computed } from 'vue'
 import type { Resource } from '@/api/grpc'
 import type { WatchJoinOptions, WatchOptions, WatchOptionsSingle } from '@/api/watch'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
-import { useWatch } from '@/components/common/Watch/useWatch'
 import TAlert from '@/components/TAlert.vue'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
 type Props = {
   opts: TOptions
@@ -41,7 +41,7 @@ defineSlots<{
   }): unknown
 }>()
 
-const { data, err, loading } = useWatch<TSpec, TStatus>(() => props.opts)
+const { data, err, loading } = useResourceWatch<TSpec, TStatus>(() => props.opts)
 
 const hasData = computed(() => (Array.isArray(data.value) ? !!data.value.length : !!data.value))
 </script>

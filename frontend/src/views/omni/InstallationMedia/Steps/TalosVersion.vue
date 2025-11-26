@@ -19,24 +19,25 @@ import {
   TalosVersionType,
 } from '@/api/resources'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
-import { useWatch } from '@/components/common/Watch/useWatch'
 import { getDocsLink } from '@/methods'
 import { useFeatures } from '@/methods/features'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
 
 const formState = defineModel<FormState>({ required: true })
 
 const { data: features } = useFeatures()
 
-const { data: talosVersionList, loading: talosVersionsLoading } = useWatch<TalosVersionSpec>({
-  runtime: Runtime.Omni,
-  resource: {
-    type: TalosVersionType,
-    namespace: DefaultNamespace,
-  },
-})
+const { data: talosVersionList, loading: talosVersionsLoading } =
+  useResourceWatch<TalosVersionSpec>({
+    runtime: Runtime.Omni,
+    resource: {
+      type: TalosVersionType,
+      namespace: DefaultNamespace,
+    },
+  })
 
-const { data: joinTokenList, loading: joinTokensLoading } = useWatch<JoinTokenStatusSpec>({
+const { data: joinTokenList, loading: joinTokensLoading } = useResourceWatch<JoinTokenStatusSpec>({
   runtime: Runtime.Omni,
   resource: {
     type: JoinTokenStatusType,
