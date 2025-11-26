@@ -24,7 +24,6 @@ import {
 import TButton from '@/components/common/Button/TButton.vue'
 import Card from '@/components/common/Card/Card.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
-import { useWatch } from '@/components/common/Watch/useWatch'
 import TAlert from '@/components/TAlert.vue'
 import {
   downloadAuditLog,
@@ -35,6 +34,7 @@ import {
 } from '@/methods'
 import { canReadAuditLog } from '@/methods/auth'
 import { auditLogEnabled, useInstallationMediaEnabled } from '@/methods/features'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import HomeGeneralInformationCopyable from '@/views/omni/Home/HomeGeneralInformationCopyable.vue'
 
 const auditLogAvailable = ref(false)
@@ -49,7 +49,7 @@ async function copyKernelArgs() {
   copy(await getKernelArgs())
 }
 
-const { data: sysData } = useWatch<SysVersionSpec>({
+const { data: sysData } = useResourceWatch<SysVersionSpec>({
   resource: {
     type: SysVersionType,
     namespace: EphemeralNamespace,
@@ -58,7 +58,7 @@ const { data: sysData } = useWatch<SysVersionSpec>({
   runtime: Runtime.Omni,
 })
 
-const { data: joinTokenData } = useWatch<DefaultJoinTokenSpec>({
+const { data: joinTokenData } = useResourceWatch<DefaultJoinTokenSpec>({
   resource: {
     type: DefaultJoinTokenType,
     namespace: DefaultNamespace,
@@ -71,7 +71,7 @@ const {
   data: apiConfigData,
   err: apiConfigErr,
   loading: apiConfigLoading,
-} = useWatch<SiderolinkAPIConfigSpec>({
+} = useResourceWatch<SiderolinkAPIConfigSpec>({
   resource: {
     type: APIConfigType,
     namespace: DefaultNamespace,

@@ -11,7 +11,7 @@ import { ResourceService } from '@/api/grpc'
 import type { FeaturesConfigSpec } from '@/api/omni/specs/omni.pb'
 import { withRuntime } from '@/api/options'
 import { DefaultNamespace, FeaturesConfigID, FeaturesConfigType } from '@/api/resources'
-import { useWatch } from '@/components/common/Watch/useWatch'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
 const resource = {
   type: FeaturesConfigType,
@@ -20,7 +20,7 @@ const resource = {
 }
 
 export function useFeatures() {
-  return useWatch<FeaturesConfigSpec>({
+  return useResourceWatch<FeaturesConfigSpec>({
     resource,
     runtime: Runtime.Omni,
   })

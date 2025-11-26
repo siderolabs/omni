@@ -24,9 +24,9 @@ import {
 } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
-import { useWatch } from '@/components/common/Watch/useWatch'
 import { canManageUsers } from '@/methods/auth'
 import { updateRole } from '@/methods/user'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
@@ -41,7 +41,7 @@ const object = route.query.serviceAccount ? 'Service Account' : 'User'
 const id = route.query.identity ?? route.query.serviceAccount
 const userID = ref(route.query.user as string)
 
-const { data: user } = useWatch<UserSpec>(() => ({
+const { data: user } = useResourceWatch<UserSpec>(() => ({
   resource: {
     id: userID.value,
     namespace: DefaultNamespace,

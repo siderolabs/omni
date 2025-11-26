@@ -17,7 +17,7 @@ import { DefaultNamespace, MachineStatusType, TalosVersionType } from '@/api/res
 import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
-import { useWatch } from '@/components/common/Watch/useWatch'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
@@ -27,7 +27,7 @@ const route = useRoute()
 
 const selectedVersion = ref('')
 
-const { data: versions, loading } = useWatch<TalosVersionSpec>({
+const { data: versions, loading } = useResourceWatch<TalosVersionSpec>({
   resource: {
     type: TalosVersionType,
     namespace: DefaultNamespace,
@@ -35,7 +35,7 @@ const { data: versions, loading } = useWatch<TalosVersionSpec>({
   runtime: Runtime.Omni,
 })
 
-const { data: machine } = useWatch<MachineStatusSpec>({
+const { data: machine } = useResourceWatch<MachineStatusSpec>({
   resource: {
     type: MachineStatusType,
     namespace: DefaultNamespace,

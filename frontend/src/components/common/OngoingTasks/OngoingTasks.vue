@@ -14,11 +14,11 @@ import { KubernetesUpgradeStatusSpecPhase, type OngoingTaskSpec } from '@/api/om
 import { EphemeralNamespace, OngoingTaskType } from '@/api/resources'
 import { itemID } from '@/api/watch'
 import TIcon from '@/components/common/Icon/TIcon.vue'
-import { useWatch } from '@/components/common/Watch/useWatch'
 import IconHeaderDropdownLoading from '@/components/icons/IconHeaderDropdownLoading.vue'
 import { formatISO } from '@/methods/time'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
-const { data } = useWatch<OngoingTaskSpec>(() => ({
+const { data } = useResourceWatch<OngoingTaskSpec>(() => ({
   resource: {
     namespace: EphemeralNamespace,
     type: OngoingTaskType,

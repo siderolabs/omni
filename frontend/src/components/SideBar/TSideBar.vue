@@ -32,7 +32,6 @@ import {
   TalosServiceType,
 } from '@/api/resources'
 import UserInfo from '@/components/common/UserInfo/UserInfo.vue'
-import { useWatch } from '@/components/common/Watch/useWatch'
 import type { SideBarItem } from '@/components/SideBar/TSideBarList.vue'
 import TSidebarList from '@/components/SideBar/TSideBarList.vue'
 import { getContext } from '@/context'
@@ -46,6 +45,7 @@ import {
 } from '@/methods/auth'
 import { useFeatures, useInstallationMediaEnabled } from '@/methods/features'
 import { useIdentity } from '@/methods/identity'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import ExposedServiceSideBar from '@/views/cluster/ExposedService/ExposedServiceSideBar.vue'
 
 const route = useRoute()
@@ -60,7 +60,7 @@ const { canSyncKubernetesManifests, canManageClusterFeatures } = setupClusterPer
   computed(() => route.params.cluster as string),
 )
 
-const { data: machineMetrics } = useWatch<MachineStatusMetricsSpec>({
+const { data: machineMetrics } = useResourceWatch<MachineStatusMetricsSpec>({
   resource: {
     namespace: EphemeralNamespace,
     type: MachineStatusMetricsType,
@@ -69,7 +69,7 @@ const { data: machineMetrics } = useWatch<MachineStatusMetricsSpec>({
   runtime: Runtime.Omni,
 })
 
-const { data: infraProviderStatuses } = useWatch<InfraProviderStatusSpec>(() => ({
+const { data: infraProviderStatuses } = useResourceWatch<InfraProviderStatusSpec>(() => ({
   skip: !canReadMachines.value,
   resource: {
     namespace: InfraProviderNamespace,
@@ -78,8 +78,8 @@ const { data: infraProviderStatuses } = useWatch<InfraProviderStatusSpec>(() => 
   runtime: Runtime.Omni,
 }))
 
-const { data: kubernetesUpgradeManifestStatus } = useWatch<KubernetesUpgradeManifestStatusSpec>(
-  () => ({
+const { data: kubernetesUpgradeManifestStatus } =
+  useResourceWatch<KubernetesUpgradeManifestStatusSpec>(() => ({
     skip: !route.params.cluster,
     runtime: Runtime.Omni,
     resource: {
@@ -87,10 +87,9 @@ const { data: kubernetesUpgradeManifestStatus } = useWatch<KubernetesUpgradeMani
       type: KubernetesUpgradeManifestStatusType,
       id: route.params.cluster as string,
     },
-  }),
-)
+  }))
 
-const { data: cluster } = useWatch<ClusterSpec>(() => ({
+const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({
   skip: !route.params.cluster,
   runtime: Runtime.Omni,
   resource: {
@@ -100,7 +99,7 @@ const { data: cluster } = useWatch<ClusterSpec>(() => ({
   },
 }))
 
-const { data: services } = useWatch(() => ({
+const { data: services } = useResourceWatch(() => ({
   skip: !route.params.machine,
   resource: {
     type: TalosServiceType,

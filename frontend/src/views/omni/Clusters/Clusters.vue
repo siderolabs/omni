@@ -25,10 +25,10 @@ import TButton from '@/components/common/Button/TButton.vue'
 import TList from '@/components/common/List/TList.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatsItem from '@/components/common/Stats/StatsItem.vue'
-import { useWatch } from '@/components/common/Watch/useWatch'
 import { canCreateClusters } from '@/methods/auth'
 import type { Label } from '@/methods/labels'
 import { addLabel, selectors } from '@/methods/labels'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterItem from '@/views/omni/Clusters/ClusterItem.vue'
 
 import LabelsInput from '../ItemLabels/LabelsInput.vue'
@@ -47,7 +47,7 @@ const watchOpts = computed<WatchOptions>(() => {
   }
 })
 
-const { data } = useWatch<ClusterStatusMetricsSpec>({
+const { data } = useResourceWatch<ClusterStatusMetricsSpec>({
   resource: {
     type: ClusterStatusMetricsType,
     id: ClusterStatusMetricsID,

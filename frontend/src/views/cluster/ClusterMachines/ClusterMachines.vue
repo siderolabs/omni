@@ -17,9 +17,9 @@ import {
   MachineSetType,
 } from '@/api/resources'
 import { itemID } from '@/api/watch'
-import { useWatch } from '@/components/common/Watch/useWatch'
 import Watch from '@/components/common/Watch/Watch.vue'
 import { sortMachineSetIds } from '@/methods/machineset'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
 import MachineSet from './MachineSet.vue'
 
@@ -28,7 +28,7 @@ const { clusterID } = defineProps<{
   isSubgrid?: boolean
 }>()
 
-const { data: machineSets } = useWatch<MachineSetSpec>(() => ({
+const { data: machineSets } = useResourceWatch<MachineSetSpec>(() => ({
   resource: {
     type: MachineSetType,
     namespace: DefaultNamespace,
@@ -37,7 +37,7 @@ const { data: machineSets } = useWatch<MachineSetSpec>(() => ({
   selectors: [`${LabelCluster}=${clusterID}`],
 }))
 
-const { data: clusterDiagnostics } = useWatch<ClusterDiagnosticsSpec>(() => ({
+const { data: clusterDiagnostics } = useResourceWatch<ClusterDiagnosticsSpec>(() => ({
   runtime: Runtime.Omni,
   resource: {
     namespace: DefaultNamespace,

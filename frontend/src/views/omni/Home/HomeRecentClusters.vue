@@ -14,10 +14,10 @@ import { itemID } from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import Card from '@/components/common/Card/Card.vue'
 import CopyButton from '@/components/common/CopyButton/CopyButton.vue'
-import { useWatch } from '@/components/common/Watch/useWatch'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterStatus from '@/views/omni/Clusters/ClusterStatus.vue'
 
-const { data } = useWatch<ClusterStatusSpec>({
+const { data } = useResourceWatch<ClusterStatusSpec>({
   resource: {
     namespace: DefaultNamespace,
     type: ClusterStatusType,

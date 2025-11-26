@@ -49,9 +49,9 @@ import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
-import { useWatch } from '@/components/common/Watch/useWatch'
 import { formatBytes } from '@/methods'
 import { useFeatures } from '@/methods/features'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
 import ExtensionsPicker from '@/views/omni/Extensions/ExtensionsPicker.vue'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
@@ -105,7 +105,7 @@ const options = ref(new Map<string, Resource<InstallationMediaSpec>>())
 
 const defaultValue = ref('')
 
-const { data: watchOptions } = useWatch<InstallationMediaSpec>({
+const { data: watchOptions } = useResourceWatch<InstallationMediaSpec>({
   runtime: Runtime.Omni,
   resource: {
     type: InstallationMediaType,
@@ -113,7 +113,7 @@ const { data: watchOptions } = useWatch<InstallationMediaSpec>({
   },
 })
 
-const { data: talosVersionsResources } = useWatch<TalosVersionSpec>({
+const { data: talosVersionsResources } = useResourceWatch<TalosVersionSpec>({
   runtime: Runtime.Omni,
   resource: {
     type: TalosVersionType,
@@ -121,7 +121,7 @@ const { data: talosVersionsResources } = useWatch<TalosVersionSpec>({
   },
 })
 
-const { data: joinTokens } = useWatch<JoinTokenStatusSpec>({
+const { data: joinTokens } = useResourceWatch<JoinTokenStatusSpec>({
   runtime: Runtime.Omni,
   resource: {
     type: JoinTokenStatusType,

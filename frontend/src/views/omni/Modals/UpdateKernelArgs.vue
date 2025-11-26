@@ -17,7 +17,7 @@ import { DefaultNamespace, KernelArgsStatusType, KernelArgsType } from '@/api/re
 import IconButton from '@/components/common/Button/IconButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
-import { useWatch } from '@/components/common/Watch/useWatch'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
@@ -25,7 +25,7 @@ const args = ref('')
 const route = useRoute()
 const router = useRouter()
 
-const { data: status } = useWatch<KernelArgsStatusSpec>({
+const { data: status } = useResourceWatch<KernelArgsStatusSpec>({
   runtime: Runtime.Omni,
   resource: {
     id: route.query.machine as string,

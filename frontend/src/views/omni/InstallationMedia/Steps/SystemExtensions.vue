@@ -12,13 +12,13 @@ import type { TalosExtensionsSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, TalosExtensionsType } from '@/api/resources'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
-import { useWatch } from '@/components/common/Watch/useWatch'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
 
 const formState = defineModel<FormState>({ required: true })
 const filterExtensions = ref('')
 
-const { data } = useWatch<TalosExtensionsSpec>(() => ({
+const { data } = useResourceWatch<TalosExtensionsSpec>(() => ({
   resource: {
     id: formState.value.talosVersion!,
     type: TalosExtensionsType,

@@ -17,11 +17,11 @@ import IconButton from '@/components/common/Button/IconButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import TMenuItem from '@/components/common/MenuItem/TMenuItem.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
-import { useWatch } from '@/components/common/Watch/useWatch'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
 const route = useRoute()
 
-const { data: exposedServices } = useWatch<ExposedServiceSpec>(() => ({
+const { data: exposedServices } = useResourceWatch<ExposedServiceSpec>(() => ({
   runtime: Runtime.Omni,
   resource: {
     namespace: DefaultNamespace,

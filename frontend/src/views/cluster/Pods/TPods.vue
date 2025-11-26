@@ -15,10 +15,10 @@ import TPagination from '@/components/common/Pagination/TPagination.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
-import { useWatch } from '@/components/common/Watch/useWatch'
 import TAlert from '@/components/TAlert.vue'
 import { TPodsViewFilterOptions } from '@/constants'
 import { getContext } from '@/context'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import TPodsItem from '@/views/cluster/Pods/components/TPodsItem.vue'
 
 const context = getContext()
@@ -31,7 +31,7 @@ const {
   data: items,
   loading,
   err,
-} = useWatch<V1PodSpec, V1PodStatus>({
+} = useResourceWatch<V1PodSpec, V1PodStatus>({
   resource: { type: kubernetes.pod },
   runtime: Runtime.Kubernetes,
   context,
