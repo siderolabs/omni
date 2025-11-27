@@ -172,7 +172,8 @@ func Default() *Params {
 				Path: "_out/secondary-storage/bolt.db",
 			},
 			SQLite: SQLite{
-				Path: "_out/secondary-storage/sqlite.db",
+				Path:                   "_out/secondary-storage/sqlite.db",
+				ExperimentalBaseParams: "_txlock=immediate&_pragma=busy_timeout(50000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)",
 			},
 			Default: &StorageDefault{
 				Kind: "etcd",

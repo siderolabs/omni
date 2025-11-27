@@ -7,10 +7,8 @@ package omni
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -22,18 +20,14 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	omnisqlite "github.com/siderolabs/omni/internal/backend/runtime/omni/sqlite"
+	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
-func newSQLitePersistentState(ctx context.Context, path string, logger *zap.Logger) (*PersistentState, error) {
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return nil, fmt.Errorf("failed to create directory for sqlite database %q: %w", path, err)
-	}
-
-	dsn := "file:" + path + "?_txlock=immediate&_pragma=busy_timeout(50000)&_pragma=journal_mode(WAL)"
-
-	db, err := sql.Open("sqlite", dsn)
+func newSQLitePersistentState(ctx context.Context, config config.SQLite, logger *zap.Logger) (*PersistentState, error) {
+	db, err := omnisqlite.OpenDB(config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open sqlite database %q: %w", dsn, err)
+		return nil, err
 	}
 
 	st, err := sqlite.NewState(ctx, db, store.ProtobufMarshaler{},
@@ -43,7 +37,7 @@ func newSQLitePersistentState(ctx context.Context, path string, logger *zap.Logg
 	if err != nil {
 		db.Close() //nolint:errcheck
 
-		return nil, fmt.Errorf("failed to create sqlite state (database %q): %w", dsn, err)
+		return nil, fmt.Errorf("failed to create sqlite state (path %q): %w", config.Path, err)
 	}
 
 	return &PersistentState{

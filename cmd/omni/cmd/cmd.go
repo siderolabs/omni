@@ -629,6 +629,20 @@ func defineStorageFlags() {
 		cmdConfig.Storage.SQLite.Path,
 		"path of the file for sqlite-backed secondary storage for frequently updated data, machine and audit logs.",
 	)
+	rootCmd.Flags().StringVar(
+		&cmdConfig.Storage.SQLite.ExperimentalBaseParams,
+		"sqlite-storage-experimental-base-params",
+		cmdConfig.Storage.SQLite.ExperimentalBaseParams,
+		"base DSN (connection string) parameters for sqlite database connection. they must not start with question mark (?). "+
+			"this flag is experimental and may be removed in future releases.",
+	)
+
+	rootCmd.Flags().StringVar(
+		&cmdConfig.Storage.SQLite.ExtraParams,
+		"sqlite-storage-extra-params",
+		cmdConfig.Storage.SQLite.ExtraParams,
+		"extra DSN (connection string) parameters for sqlite database connection. they will be appended to the base params. they must not start with ampersand (&).",
+	)
 }
 
 func defineRegistriesFlags() {

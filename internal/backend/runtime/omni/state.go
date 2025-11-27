@@ -127,7 +127,7 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 	virtualState := virtual.NewState(state.WrapCore(defaultPersistentState.State))
 
 	secondaryPersistentState, err := newSQLitePersistentState(
-		ctx, params.Storage.SQLite.Path, logger)
+		ctx, params.Storage.SQLite, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create SQLite state for secondary storage: %w", err)
 	}
