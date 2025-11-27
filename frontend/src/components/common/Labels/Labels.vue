@@ -53,8 +53,8 @@ const addLabel = async () => {
 
   emit('update:modelValue', {
     ...modelValue.value,
-    [parts[0]]: {
-      value: parts[1] ?? '',
+    [parts[0].trim()]: {
+      value: parts[1].trim() ?? '',
       canRemove: true,
     },
   })

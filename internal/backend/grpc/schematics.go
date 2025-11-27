@@ -75,7 +75,7 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 			}
 
 			if labels.LegacyLabels != nil {
-				return nil, status.Errorf(codes.InvalidArgument, "'machineInitialLabels' is deprecated")
+				return nil, status.Errorf(codes.InvalidArgument, "'initialMachineLabels' is deprecated")
 			}
 		}
 	}

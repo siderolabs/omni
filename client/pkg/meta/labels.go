@@ -4,7 +4,11 @@
 
 package meta
 
-import "go.yaml.in/yaml/v4"
+import (
+	"strings"
+
+	"go.yaml.in/yaml/v4"
+)
 
 // ImageLabels describes structure that is stored in the Talos metadata and keeps machine labels
 // that are initially assigned to the machine when it connects to Omni.
@@ -25,6 +29,24 @@ func ParseLabels(data []byte) (*ImageLabels, error) {
 	if err := yaml.Unmarshal(data, &labels); err != nil {
 		return nil, err
 	}
+
+	// fallback to the legacy labels
+	if labels.Labels == nil {
+		labels.Labels = labels.LegacyLabels
+	}
+
+	if labels.Labels == nil {
+		return labels, nil
+	}
+
+	// trim spaces on both keys and values and overwrite the final result
+	finalLabels := make(map[string]string, len(labels.Labels))
+
+	for key, value := range labels.Labels {
+		finalLabels[strings.TrimSpace(key)] = strings.TrimSpace(value)
+	}
+
+	labels.Labels = finalLabels
 
 	return labels, nil
 }
