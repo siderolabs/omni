@@ -26,23 +26,23 @@ interface WatchMulti<TSpec, TStatus> extends WatchBase {
   data: Ref<Resource<TSpec, TStatus>[]>
 }
 
-export function useWatch<TSpec = unknown, TStatus = unknown>(
+export function useResourceWatch<TSpec = unknown, TStatus = unknown>(
   opts: MaybeRefOrGetter<WatchOptionsSingle>,
 ): WatchSingle<TSpec, TStatus>
 
-export function useWatch<TSpec = unknown, TStatus = unknown>(
+export function useResourceWatch<TSpec = unknown, TStatus = unknown>(
   opts: MaybeRefOrGetter<WatchOptionsMulti>,
 ): WatchMulti<TSpec, TStatus>
 
-export function useWatch<TSpec = unknown, TStatus = unknown>(
+export function useResourceWatch<TSpec = unknown, TStatus = unknown>(
   opts: MaybeRefOrGetter<WatchJoinOptions[]>,
 ): WatchMulti<TSpec, TStatus>
 
-export function useWatch<TSpec = unknown, TStatus = unknown>(
+export function useResourceWatch<TSpec = unknown, TStatus = unknown>(
   opts: MaybeRefOrGetter<WatchOptions | WatchJoinOptions[]>,
 ): WatchSingle<TSpec, TStatus> | WatchMulti<TSpec, TStatus>
 
-export function useWatch<TSpec, TStatus>(
+export function useResourceWatch<TSpec, TStatus>(
   opts: MaybeRefOrGetter<WatchOptions | WatchJoinOptions[]>,
 ) {
   if (isWatchJoinOptions(opts)) return useWatchJoin<TSpec, TStatus>(opts)

@@ -13,9 +13,9 @@ import TButton from '@/components/common/Button/TButton.vue'
 import Card from '@/components/common/Card/Card.vue'
 import CopyButton from '@/components/common/CopyButton/CopyButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
-import { useWatch } from '@/components/common/Watch/useWatch'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
-const { data } = useWatch<MachineStatusSpec>({
+const { data } = useResourceWatch<MachineStatusSpec>({
   resource: {
     namespace: DefaultNamespace,
     type: MachineStatusType,

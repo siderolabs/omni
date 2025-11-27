@@ -32,12 +32,12 @@ import TButton from '@/components/common/Button/TButton.vue'
 import TList from '@/components/common/List/TList.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatsItem from '@/components/common/Stats/StatsItem.vue'
-import { useWatch } from '@/components/common/Watch/useWatch'
 import TAlert from '@/components/TAlert.vue'
 import { getDocsLink } from '@/methods'
 import type { Label } from '@/methods/labels'
 import { addLabel, selectors as labelsToSelectors } from '@/methods/labels'
 import { MachineFilterOption } from '@/methods/machine'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import LabelsInput from '@/views/omni/ItemLabels/LabelsInput.vue'
 import MachineDetailsPanel from '@/views/omni/Machines/MachineDetailsPanel.vue'
 import MachineItem from '@/views/omni/Machines/MachineItem.vue'
@@ -49,7 +49,7 @@ const { filter = undefined } = defineProps<{
 const route = useRoute()
 const router = useRouter()
 
-const { data: infraProviderStatuses } = useWatch<InfraProviderStatusSpec>({
+const { data: infraProviderStatuses } = useResourceWatch<InfraProviderStatusSpec>({
   resource: {
     type: InfraProviderStatusType,
     namespace: InfraProviderNamespace,
@@ -110,7 +110,7 @@ const filterValue = ref('')
 const docsLink = getDocsLink('omni', '/explanation/infrastructure-providers')
 const openDocs = () => window.open(docsLink, '_blank')?.focus()
 
-const { data: machineStatusMetrics } = useWatch<MachineStatusMetricsSpec>({
+const { data: machineStatusMetrics } = useResourceWatch<MachineStatusMetricsSpec>({
   resource: {
     type: MachineStatusMetricsType,
     id: MachineStatusMetricsID,

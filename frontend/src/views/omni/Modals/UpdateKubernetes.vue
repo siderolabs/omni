@@ -29,9 +29,9 @@ import {
 import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
-import { useWatch } from '@/components/common/Watch/useWatch'
 import { getDocsLink } from '@/methods'
 import { upgradeKubernetes } from '@/methods/cluster'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
@@ -44,7 +44,7 @@ const selectedVersion = ref('')
 
 const clusterName = route.params.cluster as string
 
-const { data: cluster } = useWatch<ClusterSpec>({
+const { data: cluster } = useResourceWatch<ClusterSpec>({
   resource: {
     type: ClusterType,
     namespace: DefaultNamespace,
@@ -53,7 +53,7 @@ const { data: cluster } = useWatch<ClusterSpec>({
   runtime: Runtime.Omni,
 })
 
-const { data: status } = useWatch<KubernetesUpgradeStatusSpec>({
+const { data: status } = useResourceWatch<KubernetesUpgradeStatusSpec>({
   resource: {
     namespace: DefaultNamespace,
     type: KubernetesUpgradeStatusType,
@@ -62,7 +62,7 @@ const { data: status } = useWatch<KubernetesUpgradeStatusSpec>({
   runtime: Runtime.Omni,
 })
 
-const { data: allK8sVersions } = useWatch<KubernetesVersionSpec>({
+const { data: allK8sVersions } = useResourceWatch<KubernetesVersionSpec>({
   resource: {
     namespace: DefaultNamespace,
     type: KubernetesVersionType,
@@ -70,7 +70,7 @@ const { data: allK8sVersions } = useWatch<KubernetesVersionSpec>({
   runtime: Runtime.Omni,
 })
 
-const { data: allTalosVersionsUnsorted } = useWatch<TalosVersionSpec>({
+const { data: allTalosVersionsUnsorted } = useResourceWatch<TalosVersionSpec>({
   resource: {
     type: TalosVersionType,
     namespace: DefaultNamespace,
