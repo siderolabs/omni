@@ -15,7 +15,7 @@ import {
   TimestampHeaderKey,
 } from '@/api/resources'
 import { useIdentity } from '@/methods/identity'
-import { useKeys, useSignDetached } from '@/methods/key'
+import { KeysError, KeysErrorCode, useKeys, useSignDetached } from '@/methods/key'
 
 /**
  * useRegisterAPIInterceptor registers an interceptor on the global fetch.
@@ -69,11 +69,25 @@ export function useRegisterAPIInterceptor() {
   })
 
   async function generateSignatureHeader(payload: string) {
-    const array = new Uint8Array(await signDetached(payload))
-    const signature = b64Encode(array, 0, array.length)
-    const fingerprint = keys.publicKeyID.value
+    try {
+      const array = new Uint8Array(await signDetached(payload))
+      const signature = b64Encode(array, 0, array.length)
+      const fingerprint = keys.publicKeyID.value
 
-    return `${SignatureVersionV1} ${identity.value} ${fingerprint} ${signature}`
+      return `${SignatureVersionV1} ${identity.value} ${fingerprint} ${signature}`
+    } catch (e) {
+      if (e instanceof KeysError && e.code === KeysErrorCode.NO_KEYS) {
+        // Enter a loop to wait for keys to be ready.
+        // Request will fire when we have keys.
+        return await new Promise<string>((resolve) => {
+          setTimeout(() => {
+            resolve(generateSignatureHeader(payload))
+          }, 100)
+        })
+      }
+
+      throw e
+    }
   }
 
   onUnmounted(() => unregisterInterceptor.value?.())
