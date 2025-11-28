@@ -8,6 +8,7 @@ package app
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -53,7 +54,7 @@ func PrepareConfig(logger *zap.Logger, params ...*config.Params) (*config.Params
 }
 
 // Run the Omni service.
-func Run(ctx context.Context, state *omni.State, config *config.Params, logger *zap.Logger) error {
+func Run(ctx context.Context, state *omni.State, secondaryStorageDB *sql.DB, config *config.Params, logger *zap.Logger) error {
 	talosClientFactory := talos.NewClientFactory(state.Default(), logger)
 	talosRuntime := talos.New(talosClientFactory, logger)
 
@@ -122,6 +123,7 @@ func Run(ctx context.Context, state *omni.State, config *config.Params, logger *
 	machineMap := siderolink.NewMachineMap(siderolink.NewStateStorage(state.Default()))
 
 	logHandler, err := siderolink.NewLogHandler(
+		secondaryStorageDB,
 		machineMap,
 		state.Default(),
 		&config.Logs.Machine,

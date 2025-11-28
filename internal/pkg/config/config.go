@@ -159,11 +159,17 @@ func Default() *Params {
 				BufferMaxCapacity:     131072,
 				BufferSafetyGap:       256,
 				Storage: LogsMachineStorage{
-					Enabled:             true,
+					Enabled:             false,
 					Path:                "_out/logs",
 					FlushPeriod:         10 * time.Minute,
 					FlushJitter:         0.1,
 					NumCompressedChunks: 5,
+				},
+				SQLite: LogsMachineSQLite{
+					Enabled:          true,
+					Timeout:          10 * time.Second,
+					CleanupInterval:  30 * time.Minute,
+					CleanupOlderThan: 24 * 30 * time.Hour,
 				},
 			},
 		},

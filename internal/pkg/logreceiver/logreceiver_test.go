@@ -7,9 +7,11 @@ package logreceiver_test
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/netip"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
@@ -27,7 +29,7 @@ type testLogHandler struct {
 
 var addr = netip.MustParseAddr("1.2.3.4")
 
-func (t *testLogHandler) HandleMessage(srcAddress netip.Addr, rawData []byte) {
+func (t *testLogHandler) HandleMessage(_ context.Context, srcAddress netip.Addr, rawData []byte) {
 	assert.Equal(t.t, addr, srcAddress)
 	t.b.Write(rawData)
 }
@@ -49,6 +51,9 @@ func TestConnHandler(t *testing.T) {
 	}
 	ch := logreceiver.NewConnHandler(handler, logger)
 
-	ch.HandleConn(addr, io.NopCloser(bytes.NewBufferString("{ hello: \"1\" }\n{ hello: \"2\" }\n")))
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	ch.HandleConn(ctx, addr, io.NopCloser(bytes.NewBufferString("{ hello: \"1\" }\n{ hello: \"2\" }\n")))
 	assert.Equal(t, "{ hello: \"1\" }{ hello: \"2\" }", handler.b.String())
 }
