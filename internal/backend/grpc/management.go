@@ -63,7 +63,6 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 	siderolinkinternal "github.com/siderolabs/omni/internal/pkg/siderolink"
-	"github.com/siderolabs/omni/internal/pkg/xcontext"
 )
 
 type talosRuntime interface {
@@ -238,9 +237,11 @@ func (s *managementServer) Omniconfig(ctx context.Context, _ *emptypb.Empty) (*m
 	}, nil
 }
 
-func (s *managementServer) MachineLogs(request *management.MachineLogsRequest, response grpc.ServerStreamingServer[common.Data]) error {
+func (s *managementServer) MachineLogs(request *management.MachineLogsRequest, serv grpc.ServerStreamingServer[common.Data]) error {
+	ctx := serv.Context()
+
 	// getting machine logs is equivalent to reading machine resource
-	if _, err := auth.CheckGRPC(response.Context(), auth.WithRole(role.Reader)); err != nil {
+	if _, err := auth.CheckGRPC(ctx, auth.WithRole(role.Reader)); err != nil {
 		return err
 	}
 
@@ -254,25 +255,20 @@ func (s *managementServer) MachineLogs(request *management.MachineLogsRequest, r
 		tailLines = optional.Some(request.TailLines)
 	}
 
-	logReader, err := s.logHandler.GetReader(siderolinkinternal.MachineID(machineID), request.Follow, tailLines)
+	logReader, err := s.logHandler.GetReader(ctx, siderolinkinternal.MachineID(machineID), request.Follow, tailLines)
 	if err != nil {
 		return handleError(err)
 	}
 
-	closeRdr := sync.OnceValue(logReader.Close)
-	defer closeRdr() //nolint:errcheck
-
-	// if connection closed, stop reading
-	stop := xcontext.AfterFuncSync(response.Context(), func() { closeRdr() }) //nolint:errcheck
-	defer stop()
+	defer logReader.Close() //nolint:errcheck
 
 	for {
-		line, err := logReader.ReadLine()
+		line, err := logReader.ReadLine(ctx)
 		if err != nil {
 			return handleError(err)
 		}
 
-		if err := response.Send(&common.Data{
+		if err := serv.Send(&common.Data{
 			Bytes: line,
 		}); err != nil {
 			return err
@@ -914,7 +910,7 @@ func handleError(err error) error {
 	switch {
 	case errors.Is(err, io.EOF):
 		return nil
-	case siderolinkinternal.IsBufferNotFoundError(err):
+	case errors.Is(err, siderolinkinternal.ErrLogStoreNotFound):
 		return status.Error(codes.NotFound, err.Error())
 	}
 

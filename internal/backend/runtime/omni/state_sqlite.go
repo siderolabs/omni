@@ -7,6 +7,7 @@ package omni
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"os"
 
@@ -20,24 +21,15 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	omnisqlite "github.com/siderolabs/omni/internal/backend/runtime/omni/sqlite"
-	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
-func newSQLitePersistentState(ctx context.Context, config config.SQLite, logger *zap.Logger) (*PersistentState, error) {
-	db, err := omnisqlite.OpenDB(config)
-	if err != nil {
-		return nil, err
-	}
-
+func newSQLitePersistentState(ctx context.Context, db *sql.DB, logger *zap.Logger) (*PersistentState, error) {
 	st, err := sqlite.NewState(ctx, db, store.ProtobufMarshaler{},
 		sqlite.WithLogger(logger),
 		sqlite.WithTablePrefix("metrics_"),
 	)
 	if err != nil {
-		db.Close() //nolint:errcheck
-
-		return nil, fmt.Errorf("failed to create sqlite state (path %q): %w", config.Path, err)
+		return nil, fmt.Errorf("failed to create sqlite state: %w", err)
 	}
 
 	return &PersistentState{
@@ -45,7 +37,7 @@ func newSQLitePersistentState(ctx context.Context, config config.SQLite, logger 
 		Close: func() error {
 			st.Close()
 
-			return db.Close()
+			return nil
 		},
 	}, nil
 }

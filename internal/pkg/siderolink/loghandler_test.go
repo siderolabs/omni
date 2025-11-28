@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"io"
 	"net/netip"
@@ -21,7 +22,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/siderolabs/gen/optional"
-	"github.com/siderolabs/gen/xtesting/must"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -30,6 +30,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/sqlite"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
@@ -48,13 +49,15 @@ func TestLogHandler_HandleMessage(t *testing.T) {
 
 	t.Run("empty log message", func(t *testing.T) {
 		machineMap := siderolink.NewMachineMap(&siderolink.MapStorage{})
-
 		st := state.WrapCore(namespaced.NewState(inmem.Build))
 
-		handler, err := siderolink.NewLogHandler(machineMap, st, &storageConfig, zaptest.NewLogger(t))
+		handler, err := siderolink.NewLogHandler(testDB(t), machineMap, st, &storageConfig, zaptest.NewLogger(t))
 		require.NoError(t, err)
 
-		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(""))
+		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+		t.Cleanup(cancel)
+
+		handler.HandleMessage(ctx, netip.MustParseAddr("1.2.3.4"), []byte(""))
 	})
 
 	t.Run("non-empty log message", func(t *testing.T) {
@@ -66,78 +69,30 @@ func TestLogHandler_HandleMessage(t *testing.T) {
 
 		st := state.WrapCore(namespaced.NewState(inmem.Build))
 
-		handler, err := siderolink.NewLogHandler(cache, st, &storageConfig, zaptest.NewLogger(t))
+		handler, err := siderolink.NewLogHandler(testDB(t), cache, st, &storageConfig, zaptest.NewLogger(t))
 		require.NoError(t, err)
 
-		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world"}`))
-		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world2"}`))
-		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world3"}`))
-		reader, err := handler.GetReader("machine1", false, optional.None[int32]())
-		require.NoError(t, err)
-		line, err := reader.ReadLine()
-		require.NoError(t, err)
-		require.Equal(t, `{"hello": "world"}`, string(line))
-		line, err = reader.ReadLine()
-		require.NoError(t, err)
-		require.Equal(t, `{"hello": "world2"}`, string(line))
-		line, err = reader.ReadLine()
-		require.NoError(t, err)
-		require.Equal(t, `{"hello": "world3"}`, string(line))
-	})
+		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+		t.Cleanup(cancel)
 
-	t.Run("non-empty log message with invalid data in the beginning", func(t *testing.T) {
-		cache := siderolink.NewMachineMap(&siderolink.MapStorage{
-			IPToMachine: map[string]siderolink.MachineID{
-				"1.2.3.4": "machine1",
-			},
+		handler.HandleMessage(ctx, netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world"}`))
+		handler.HandleMessage(ctx, netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world2"}`))
+		handler.HandleMessage(ctx, netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world3"}`))
+
+		reader, err := handler.GetReader(ctx, "machine1", false, optional.None[int32]())
+		require.NoError(t, err)
+
+		t.Cleanup(func() {
+			require.NoError(t, reader.Close())
 		})
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
-
-		handler, err := siderolink.NewLogHandler(cache, st, &storageConfig, zaptest.NewLogger(t))
-		require.NoError(t, err)
-
-		writeBytes(t, handler, "1.2.3.4", []byte(`{"hello": "first"}`))
-
-		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world"}`))
-		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world2"}`))
-		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world3"}`))
-		reader, err := handler.GetReader("machine1", false, optional.None[int32]())
-		require.NoError(t, err)
-		line, err := reader.ReadLine()
-		require.NoError(t, err)
-		require.Equal(t, `{"hello": "world2"}`, string(line))
-		line, err = reader.ReadLine()
-		require.NoError(t, err)
-		require.Equal(t, `{"hello": "world3"}`, string(line))
-	})
-
-	t.Run("non-empty log message with invalid message in the beginning", func(t *testing.T) {
-		cache := siderolink.NewMachineMap(&siderolink.MapStorage{
-			IPToMachine: map[string]siderolink.MachineID{
-				"1.2.3.4": "machine1",
-			},
-		})
-
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
-
-		handler, err := siderolink.NewLogHandler(cache, st, &storageConfig, zaptest.NewLogger(t))
-		require.NoError(t, err)
-
-		writeBytes(t, handler, "1.2.3.4", []byte(`{"hello": "first"}`+"\n"))
-
-		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world"}`))
-		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world2"}`))
-		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world3"}`))
-		reader, err := handler.GetReader("machine1", false, optional.None[int32]())
-		require.NoError(t, err)
-		line, err := reader.ReadLine()
+		line, err := reader.ReadLine(ctx)
 		require.NoError(t, err)
 		require.Equal(t, `{"hello": "world"}`, string(line))
-		line, err = reader.ReadLine()
+		line, err = reader.ReadLine(ctx)
 		require.NoError(t, err)
 		require.Equal(t, `{"hello": "world2"}`, string(line))
-		line, err = reader.ReadLine()
+		line, err = reader.ReadLine(ctx)
 		require.NoError(t, err)
 		require.Equal(t, `{"hello": "world3"}`, string(line))
 	})
@@ -151,21 +106,29 @@ func TestLogHandler_HandleMessage(t *testing.T) {
 
 		st := state.WrapCore(namespaced.NewState(inmem.Build))
 
-		handler, err := siderolink.NewLogHandler(cache, st, &storageConfig, zaptest.NewLogger(t))
+		handler, err := siderolink.NewLogHandler(testDB(t), cache, st, &storageConfig, zaptest.NewLogger(t))
 		require.NoError(t, err)
 
-		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world"}`))
-		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world2"}`))
-		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world3"}`))
-		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world4"}`))
-		handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world5"}`))
+		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+		t.Cleanup(cancel)
 
-		reader, err := handler.GetReader("machine1", false, optional.Some[int32](2))
+		handler.HandleMessage(ctx, netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world"}`))
+		handler.HandleMessage(ctx, netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world2"}`))
+		handler.HandleMessage(ctx, netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world3"}`))
+		handler.HandleMessage(ctx, netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world4"}`))
+		handler.HandleMessage(ctx, netip.MustParseAddr("1.2.3.4"), []byte(`{"hello": "world5"}`))
+
+		reader, err := handler.GetReader(ctx, "machine1", false, optional.Some[int32](2))
 		require.NoError(t, err)
-		line, err := reader.ReadLine()
+
+		t.Cleanup(func() {
+			require.NoError(t, reader.Close())
+		})
+
+		line, err := reader.ReadLine(ctx)
 		require.NoError(t, err)
 		require.Equal(t, `{"hello": "world4"}`, string(line))
-		line, err = reader.ReadLine()
+		line, err = reader.ReadLine(ctx)
 		require.NoError(t, err)
 		require.Equal(t, `{"hello": "world5"}`, string(line))
 	})
@@ -191,7 +154,7 @@ func TestLogHandlerStorage(t *testing.T) {
 	tempDir := t.TempDir()
 	logger := zaptest.NewLogger(t)
 
-	logHandler, err := siderolink.NewLogHandler(machineMap, st, &config.LogsMachine{
+	logHandler, err := siderolink.NewLogHandler(testDB(t), machineMap, st, &config.LogsMachine{
 		Storage: config.LogsMachineStorage{
 			Enabled:             true,
 			Path:                tempDir,
@@ -213,8 +176,8 @@ func TestLogHandlerStorage(t *testing.T) {
 	data, err := io.ReadAll(io.LimitReader(rand.Reader, 120))
 	require.NoError(t, err)
 
-	logHandler.HandleMessage(netip.MustParseAddr("1.2.3.4"), data)
-	logHandler.HandleMessage(netip.MustParseAddr("2.3.4.5"), data)
+	logHandler.HandleMessage(ctx, netip.MustParseAddr("1.2.3.4"), data)
+	logHandler.HandleMessage(ctx, netip.MustParseAddr("2.3.4.5"), data)
 
 	// wait for a log flush to happen
 	time.Sleep(2300 * time.Millisecond)
@@ -227,16 +190,16 @@ func TestLogHandlerStorage(t *testing.T) {
 	// send more logs
 	data = data[:16]
 
-	logHandler.HandleMessage(netip.MustParseAddr("1.2.3.4"), data)
-	logHandler.HandleMessage(netip.MustParseAddr("2.3.4.5"), data)
+	logHandler.HandleMessage(ctx, netip.MustParseAddr("1.2.3.4"), data)
+	logHandler.HandleMessage(ctx, netip.MustParseAddr("2.3.4.5"), data)
 
 	time.Sleep(2300 * time.Millisecond)
 
 	assert.FileExists(t, filepath.Join(tempDir, "machine-1.log.1"))
 	assert.FileExists(t, filepath.Join(tempDir, "machine-2.log.1"))
 
-	logHandler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte("bbbb"))
-	logHandler.HandleMessage(netip.MustParseAddr("2.3.4.5"), []byte("BBBB"))
+	logHandler.HandleMessage(ctx, netip.MustParseAddr("1.2.3.4"), []byte("bbbb"))
+	logHandler.HandleMessage(ctx, netip.MustParseAddr("2.3.4.5"), []byte("BBBB"))
 
 	// destroy machine-2
 	require.NoError(t, st.Destroy(ctx, omni.NewMachine(resources.DefaultNamespace, "machine-2").Metadata()))
@@ -278,7 +241,7 @@ func TestLogHandlerStorageLegacyMigration(t *testing.T) {
 	require.NoError(t, os.WriteFile(legacyLogPath, legacyLog, 0o644))
 	require.NoError(t, os.WriteFile(legacyLogHashPath, []byte(hex.EncodeToString(legacyHash[:])), 0o644))
 
-	logHandler, err := siderolink.NewLogHandler(machineMap, st, &config.LogsMachine{
+	logHandler, err := siderolink.NewLogHandler(testDB(t), machineMap, st, &config.LogsMachine{
 		Storage: config.LogsMachineStorage{
 			Enabled:             true,
 			Path:                tempDir,
@@ -296,7 +259,7 @@ func TestLogHandlerStorageLegacyMigration(t *testing.T) {
 	eg.Go(func() error { return logHandler.Start(ctx) })
 
 	// write a log to trigger migration
-	logHandler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte("foo\n"))
+	logHandler.HandleMessage(ctx, netip.MustParseAddr("1.2.3.4"), []byte("foo\n"))
 
 	// assert that the legacy log files are removed
 	require.EventuallyWithT(t, func(collect *assert.CollectT) {
@@ -304,12 +267,14 @@ func TestLogHandlerStorageLegacyMigration(t *testing.T) {
 		assert.NoFileExists(collect, legacyLogHashPath)
 	}, 2*time.Second, 50*time.Millisecond)
 
-	reader, err := logHandler.GetReader("machine-1", false, optional.None[int32]())
+	reader, err := logHandler.GetReader(ctx, "machine-1", false, optional.None[int32]())
 	require.NoError(t, err)
 
-	t.Cleanup(func() { require.NoError(t, reader.Close()) })
+	t.Cleanup(func() {
+		require.NoError(t, reader.Close())
+	})
 
-	line, err := reader.ReadLine()
+	line, err := reader.ReadLine(ctx)
 	require.NoError(t, err)
 
 	assert.Equal(t, "legacy log", string(line))
@@ -341,7 +306,7 @@ func TestLogHandlerStorageDisabled(t *testing.T) {
 		},
 	}
 
-	handler, err := siderolink.NewLogHandler(machineMap, st, &storageConfig, zaptest.NewLogger(t))
+	handler, err := siderolink.NewLogHandler(testDB(t), machineMap, st, &storageConfig, zaptest.NewLogger(t))
 	require.NoError(t, err)
 
 	var eg errgroup.Group
@@ -350,8 +315,8 @@ func TestLogHandlerStorageDisabled(t *testing.T) {
 
 	time.Sleep(300 * time.Millisecond)
 
-	handler.HandleMessage(netip.MustParseAddr("1.2.3.4"), []byte("aaaa"))
-	handler.HandleMessage(netip.MustParseAddr("2.3.4.5"), []byte("AAAA"))
+	handler.HandleMessage(ctx, netip.MustParseAddr("1.2.3.4"), []byte("aaaa"))
+	handler.HandleMessage(ctx, netip.MustParseAddr("2.3.4.5"), []byte("AAAA"))
 
 	ctxCancel()
 
@@ -364,8 +329,18 @@ func TestLogHandlerStorageDisabled(t *testing.T) {
 	assert.NoFileExists(t, filepath.Join(tempDir, "machine-2.log.sha256sum"))
 }
 
-func writeBytes(t *testing.T, handler *siderolink.LogHandler, ip string, bytes []byte) {
-	id := must.Value(handler.Map.GetMachineID(ip))(t)
-	writeTo := must.Value(handler.Cache.GetWriter(id))(t)
-	must.Value(writeTo.Write(bytes))(t)
+func testDB(t *testing.T) *sql.DB {
+	t.Helper()
+
+	conf := config.Default().Storage.SQLite
+	conf.Path = filepath.Join(t.TempDir(), "test.db")
+
+	db, err := sqlite.OpenDB(conf)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		require.NoError(t, db.Close())
+	})
+
+	return db
 }

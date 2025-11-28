@@ -23,27 +23,62 @@ type Logs struct {
 
 // LogsMachine configures Talos machine logs handler.
 type LogsMachine struct {
-	// Storage configures persistent machine log storage of the Omni instance.
+	// Storage configures the machine logs storage if SQLite storage is not enabled.
+	//
+	// Deprecated: use SQLite storage instead.
 	Storage LogsMachineStorage `yaml:"storage"`
-
+	SQLite  LogsMachineSQLite  `yaml:"sqlite"`
+	// BufferInitialCapacity is the initial capacity of the in-memory buffer for logs.
+	//
+	// It is used only if SQLite storage is not enabled.
+	//
+	// Deprecated: use SQLite storage instead.
 	BufferInitialCapacity int `yaml:"bufferInitialCapacity"`
-	BufferMaxCapacity     int `yaml:"bufferMaxCapacity"`
-	BufferSafetyGap       int `yaml:"bufferSafetyGap"`
+	// BufferMaxCapacity is the maximum capacity of the in-memory buffer for logs.
+	//
+	// It is used only if SQLite storage is not enabled.
+	//
+	// Deprecated: use SQLite storage instead.
+	BufferMaxCapacity int `yaml:"bufferMaxCapacity"`
+	// BufferSafetyGap is the safety gap to use when trimming the buffer.
+	//
+	// It is used only if SQLite storage is not enabled.
+	//
+	// Deprecated: use SQLite storage instead.
+	BufferSafetyGap int `yaml:"bufferSafetyGap"`
 }
 
-// LogsMachineStorage configures the machine logs storage.
+// LogsMachineStorage configures the machine logs storage if SQLite storage is not enabled.
 //
 //nolint:govet
 type LogsMachineStorage struct {
+	// Enabled indicates whether the storage is enabled.
+	//
+	// Deprecated: use SQLite storage instead.
 	Enabled bool `yaml:"enabled"`
 	// Path to store the logs in.
+	//
+	// Deprecated: use SQLite storage instead.
 	Path string `yaml:"path"`
 	// FlushPeriod is the period to use to flush the logs to disk.
+	//
+	// Deprecated: use SQLite storage instead.
 	FlushPeriod time.Duration `yaml:"flushPeriod"`
 	// FlushJitter flush period jitter.
+	//
+	// Deprecated: use SQLite storage instead.
 	FlushJitter float64 `yaml:"flushJitter"`
 	// NumCompressedChunks is the count of log chunks to keep in the logs history.
+	//
+	// Deprecated: use SQLite storage instead.
 	NumCompressedChunks int `yaml:"numCompressedChunks"`
+}
+
+type LogsMachineSQLite struct {
+	Enabled          bool          `yaml:"enabled"`
+	Timeout          time.Duration `yaml:"timeout"`
+	CleanupInterval  time.Duration `yaml:"cleanupInterval"`
+	CleanupOlderThan time.Duration `yaml:"cleanupOlderThan"`
 }
 
 // LogsAudit configures audit logs peristence.

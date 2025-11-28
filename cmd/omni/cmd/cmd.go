@@ -24,6 +24,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/cmd/omni/pkg/app"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/sqlite"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/version"
@@ -82,7 +83,18 @@ var rootCmd = &cobra.Command{
 
 		ctx = actor.MarkContextAsInternalActor(ctx)
 
-		state, err := omni.NewState(ctx, config, logger, prometheus.DefaultRegisterer)
+		secondaryStorageDB, err := sqlite.OpenDB(config.Storage.SQLite)
+		if err != nil {
+			return fmt.Errorf("failed to open secondary storage db: %w", err)
+		}
+
+		defer func() {
+			if closeErr := secondaryStorageDB.Close(); closeErr != nil {
+				logger.Error("failed to close secondary storage db", zap.Error(closeErr))
+			}
+		}()
+
+		state, err := omni.NewState(ctx, config, secondaryStorageDB, logger, prometheus.DefaultRegisterer)
 		if err != nil {
 			return err
 		}
@@ -101,7 +113,7 @@ var rootCmd = &cobra.Command{
 			logger.Warn("running debug build")
 		}
 
-		return app.Run(ctx, state, config, logger)
+		return app.Run(ctx, state, secondaryStorageDB, config, logger)
 	},
 }
 
@@ -480,24 +492,44 @@ func defineAuthFlags() {
 		"Allow OIDC tokens without email_verified claim.")
 }
 
+//nolint:staticcheck // defineLogsFlags uses deprecated fields for backwards-compatibility
 func defineLogsFlags() {
 	rootCmd.Flags().IntVar(
 		&cmdConfig.Logs.Machine.BufferInitialCapacity, "machine-log-buffer-capacity",
-		cmdConfig.Logs.Machine.BufferInitialCapacity, "initial buffer capacity for machine logs in bytes")
+		cmdConfig.Logs.Machine.BufferInitialCapacity, "initial buffer capacity for machine logs in bytes, no-op if the sqlite storage is enabled")
 	rootCmd.Flags().IntVar(&cmdConfig.Logs.Machine.BufferMaxCapacity, "machine-log-buffer-max-capacity",
-		cmdConfig.Logs.Machine.BufferMaxCapacity, "max buffer capacity for machine logs in bytes")
+		cmdConfig.Logs.Machine.BufferMaxCapacity, "max buffer capacity for machine logs in bytes, no-op if the sqlite storage is enabled")
 	rootCmd.Flags().IntVar(&cmdConfig.Logs.Machine.BufferSafetyGap, "machine-log-buffer-safe-gap",
-		cmdConfig.Logs.Machine.BufferSafetyGap, "safety gap for machine log buffer in bytes")
+		cmdConfig.Logs.Machine.BufferSafetyGap, "safety gap for machine log buffer in bytes, no-op if the sqlite storage is enabled")
 	rootCmd.Flags().IntVar(&cmdConfig.Logs.Machine.Storage.NumCompressedChunks, "machine-log-num-compressed-chunks",
-		cmdConfig.Logs.Machine.Storage.NumCompressedChunks, "number of compressed log chunks to keep")
+		cmdConfig.Logs.Machine.Storage.NumCompressedChunks, "number of compressed log chunks to keep, no-op if the sqlite storage is enabled")
 	rootCmd.Flags().BoolVar(&cmdConfig.Logs.Machine.Storage.Enabled, "machine-log-storage-enabled",
-		cmdConfig.Logs.Machine.Storage.Enabled, "enable machine log storage")
+		cmdConfig.Logs.Machine.Storage.Enabled, "enable machine log storage, no-op if the sqlite storage is enabled")
 	rootCmd.Flags().StringVar(&cmdConfig.Logs.Machine.Storage.Path, "machine-log-storage-path",
-		cmdConfig.Logs.Machine.Storage.Path, "path of the directory for storing machine logs")
+		cmdConfig.Logs.Machine.Storage.Path, "path of the directory for storing machine logs, no-op if the sqlite storage is enabled")
 	rootCmd.Flags().DurationVar(&cmdConfig.Logs.Machine.Storage.FlushPeriod, "machine-log-storage-flush-period",
-		cmdConfig.Logs.Machine.Storage.FlushPeriod, "period for flushing machine logs to disk")
+		cmdConfig.Logs.Machine.Storage.FlushPeriod, "period for flushing machine logs to disk, no-op if the sqlite storage is enabled")
 	rootCmd.Flags().Float64Var(&cmdConfig.Logs.Machine.Storage.FlushJitter, "machine-log-storage-flush-jitter",
-		cmdConfig.Logs.Machine.Storage.FlushJitter, "jitter for the machine log storage flush period")
+		cmdConfig.Logs.Machine.Storage.FlushJitter, "jitter for the machine log storage flush period, no-op if the sqlite storage is enabled")
+
+	rootCmd.Flags().MarkDeprecated("machine-log-buffer-capacity", "use --machine-log-sqlite-* flags instead")       //nolint:errcheck
+	rootCmd.Flags().MarkDeprecated("machine-log-buffer-max-capacity", "use --machine-log-sqlite-* flags instead")   //nolint:errcheck
+	rootCmd.Flags().MarkDeprecated("machine-log-buffer-safe-gap", "use --machine-log-sqlite-* flags instead")       //nolint:errcheck
+	rootCmd.Flags().MarkDeprecated("machine-log-num-compressed-chunks", "use --machine-log-sqlite-* flags instead") //nolint:errcheck
+	rootCmd.Flags().MarkDeprecated("machine-log-storage-enabled", "use --machine-log-sqlite-* flags instead")       //nolint:errcheck
+	rootCmd.Flags().MarkDeprecated("machine-log-storage-path", "use --machine-log-sqlite-* flags instead")          //nolint:errcheck
+	rootCmd.Flags().MarkDeprecated("machine-log-storage-flush-period", "use --machine-log-sqlite-* flags instead")  //nolint:errcheck
+	rootCmd.Flags().MarkDeprecated("machine-log-storage-flush-jitter", "use --machine-log-sqlite-* flags instead")  //nolint:errcheck
+
+	rootCmd.Flags().BoolVar(&cmdConfig.Logs.Machine.SQLite.Enabled, "machine-log-sqlite-enabled",
+		cmdConfig.Logs.Machine.SQLite.Enabled,
+		fmt.Sprintf("enable machine log storage in sqlite database. when enabled, they will be written to --%s", sqliteStoragePathFlag))
+	rootCmd.Flags().DurationVar(&cmdConfig.Logs.Machine.SQLite.Timeout, "machine-log-sqlite-timeout",
+		cmdConfig.Logs.Machine.SQLite.Timeout, "sqlite timeout for machine logs")
+	rootCmd.Flags().DurationVar(&cmdConfig.Logs.Machine.SQLite.CleanupInterval, "machine-log-sqlite-cleanup-interval",
+		cmdConfig.Logs.Machine.SQLite.CleanupInterval, "interval between machine log cleanup runs")
+	rootCmd.Flags().DurationVar(&cmdConfig.Logs.Machine.SQLite.CleanupOlderThan, "machine-log-sqlite-cleanup-older-than",
+		cmdConfig.Logs.Machine.SQLite.CleanupOlderThan, "age threshold for machine log entries to be cleaned up")
 
 	rootCmd.Flags().StringSliceVar(
 		&cmdConfig.Logs.ResourceLogger.Types,
@@ -539,6 +571,8 @@ func defineLogsFlags() {
 		rootCmd.Flags().MarkDeprecated("log-storage-flush-period", "use --machine-log-storage-flush-period") //nolint:errcheck
 	}
 }
+
+const sqliteStoragePathFlag = "sqlite-storage-path"
 
 func defineStorageFlags() {
 	rootCmd.Flags().StringVar(
@@ -621,11 +655,11 @@ func defineStorageFlags() {
 		&cmdConfig.Storage.Secondary.Path, //nolint:staticcheck // backwards compatibility, remove when migration from boltdb to sqlite is done
 		"secondary-storage-path",
 		cmdConfig.Storage.Secondary.Path, //nolint:staticcheck // backwards compatibility, remove when migration from boltdb to sqlite is done
-		"path of the file for boltdb-backed secondary storage for frequently updated data (deprecated, see sqlite-storage-path).",
+		fmt.Sprintf("path of the file for boltdb-backed secondary storage for frequently updated data (deprecated, see --%s).", sqliteStoragePathFlag),
 	)
 	rootCmd.Flags().StringVar(
 		&cmdConfig.Storage.SQLite.Path,
-		"sqlite-storage-path",
+		sqliteStoragePathFlag,
 		cmdConfig.Storage.SQLite.Path,
 		"path of the file for sqlite-backed secondary storage for frequently updated data, machine and audit logs.",
 	)
