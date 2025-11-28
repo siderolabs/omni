@@ -7,6 +7,7 @@ package omni
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"io"
@@ -105,7 +106,7 @@ func (s *State) HandleErrors(ctx context.Context) error {
 }
 
 // NewState creates a production Omni state.
-func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, metricsRegistry prometheus.Registerer) (*State, error) {
+func NewState(ctx context.Context, params *config.Params, secondaryStorageDB *sql.DB, logger *zap.Logger, metricsRegistry prometheus.Registerer) (*State, error) {
 	var (
 		defaultPersistentState *PersistentState
 		err                    error
@@ -126,8 +127,7 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 
 	virtualState := virtual.NewState(state.WrapCore(defaultPersistentState.State))
 
-	secondaryPersistentState, err := newSQLitePersistentState(
-		ctx, params.Storage.SQLite, logger)
+	secondaryPersistentState, err := newSQLitePersistentState(ctx, secondaryStorageDB, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create SQLite state for secondary storage: %w", err)
 	}

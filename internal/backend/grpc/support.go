@@ -42,11 +42,13 @@ import (
 )
 
 func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequest, serv grpc.ServerStreamingServer[management.GetSupportBundleResponse]) error {
-	if _, err := auth.CheckGRPC(serv.Context(), auth.WithRole(role.Operator)); err != nil {
+	ctx := serv.Context()
+
+	if _, err := auth.CheckGRPC(ctx, auth.WithRole(role.Operator)); err != nil {
 		return err
 	}
 
-	resources, err := s.collectClusterResources(serv.Context(), req.Cluster)
+	resources, err := s.collectClusterResources(ctx, req.Cluster)
 	if err != nil {
 		return err
 	}
@@ -76,7 +78,7 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 		cols = collectors.WithSource(cols, "omni")
 	}
 
-	ctx := actor.MarkContextAsInternalActor(serv.Context())
+	ctx = actor.MarkContextAsInternalActor(ctx)
 
 	talosClient, err := s.getTalosClient(ctx, req.Cluster)
 	if err != nil {
@@ -116,7 +118,7 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 		bundle.WithLogOutput(io.Discard),
 	)
 
-	talosCollectors, err := collectors.GetForOptions(serv.Context(), options)
+	talosCollectors, err := collectors.GetForOptions(ctx, options)
 	if err != nil {
 		if err = serv.Send(&management.GetSupportBundleResponse{
 			Progress: &management.GetSupportBundleResponse_Progress{
@@ -157,7 +159,7 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 	eg.Go(func() error {
 		defer close(progress)
 
-		return support.CreateSupportBundle(serv.Context(), options, cols...)
+		return support.CreateSupportBundle(ctx, options, cols...)
 	})
 
 	if err = eg.Wait(); err != nil {
@@ -185,10 +187,10 @@ func (s *managementServer) writeResource(res resource.Resource) *collectors.Coll
 func (s *managementServer) collectLogs(machineID string) *collectors.Collector {
 	filename := fmt.Sprintf("omni/machine-logs/%s.log", machineID)
 
-	return collectors.NewCollector(filename, func(context.Context, *bundle.Options) ([]byte, error) {
-		r, err := s.logHandler.GetReader(slink.MachineID(machineID), false, optional.None[int32]())
+	return collectors.NewCollector(filename, func(ctx context.Context, _ *bundle.Options) ([]byte, error) {
+		r, err := s.logHandler.GetReader(ctx, slink.MachineID(machineID), false, optional.None[int32]())
 		if err != nil {
-			if slink.IsBufferNotFoundError(err) {
+			if errors.Is(err, slink.ErrLogStoreNotFound) {
 				return []byte{}, nil
 			}
 
@@ -202,7 +204,7 @@ func (s *managementServer) collectLogs(machineID string) *collectors.Collector {
 		w := bufio.NewWriter(&b)
 
 		for {
-			l, err := r.ReadLine()
+			l, err := r.ReadLine(ctx)
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					break
