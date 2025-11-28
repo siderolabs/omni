@@ -14,6 +14,9 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
+	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -59,6 +62,9 @@ func NewLinkStatusController[T siderolinkSpecWrapper](peers *siderolink.PeersPoo
 			TransformFunc:        handler.reconcileRunning,
 			FinalizerRemovalFunc: handler.reconcileTearingDown,
 		},
+		qtransform.WithExtraMappedInput[*siderolinkres.GRPCTunnelConfig](
+			qtransform.MapperSameID[T](),
+		),
 		qtransform.WithOutputKind(controller.OutputShared),
 		qtransform.WithConcurrency(32),
 	)
@@ -68,7 +74,33 @@ type linkStatusHandler[T siderolinkSpecWrapper] struct {
 	peers *siderolink.PeersPool
 }
 
-func (handler *linkStatusHandler[T]) reconcileRunning(ctx context.Context, _ controller.Reader, _ *zap.Logger, link T, linkStatus *siderolinkres.LinkStatus) error {
+func (handler *linkStatusHandler[T]) reconcileRunning(ctx context.Context, r controller.Reader, _ *zap.Logger, link T, linkStatus *siderolinkres.LinkStatus) error {
+	grpcTunnelConfig, err := safe.ReaderGetByID[*siderolinkres.GRPCTunnelConfig](ctx, r, link.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
+
+	if grpcTunnelConfig != nil {
+		// If link.TypedSpec().Value.VirtualAddrport != "" then the machine is expected to use
+		// a WireGuard over gRPC tunnel.
+		//
+		// If the existing link's tunnel mode does not match grpcTunnelConfig, we remove the
+		// peer without recreating it. This forces the machine to reconnect after 4 minutes
+		// and 35 seconds. During that reconnect, the machine will call the provision API again,
+		// this time sending the correct gRPC tunnel mode, which updates the link resource.
+		// The controller will then add the new peer.
+		//
+		// If grpcTunnelConfig is reverted within that 4 minute 35 second window, the controller
+		// will recreate the peer using the old mode, and the machine will become reachable again.
+		if err := handler.peers.Remove(ctx, siderolink.GetPeerID(linkStatus.TypedSpec().Value), link.Metadata()); err != nil {
+			return err
+		}
+
+		if (link.TypedSpec().Value.VirtualAddrport != "") != grpcTunnelConfig.TypedSpec().Value.Enabled {
+			return xerrors.NewTaggedf[qtransform.DestroyOutputTag]("removed peer")
+		}
+	}
+
 	if handler.needsPeerUpdate(linkStatus.TypedSpec().Value, link.TypedSpec().Value) {
 		// remove the old peer to re-create it
 		if err := handler.peers.Remove(ctx, siderolink.GetPeerID(linkStatus.TypedSpec().Value), link.Metadata()); err != nil {

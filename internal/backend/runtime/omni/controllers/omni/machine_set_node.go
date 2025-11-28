@@ -125,6 +125,8 @@ func (ctrl *MachineSetNodeController) Settings() controller.QSettings {
 }
 
 // MapInput implements controller.QController interface.
+//
+//nolint:gocognit,gocyclo,cyclop
 func (ctrl *MachineSetNodeController) MapInput(
 	ctx context.Context, _ *zap.Logger, r controller.QRuntime, ptr controller.ReducedResourceMetadata,
 ) ([]resource.Pointer, error) {
@@ -141,6 +143,10 @@ func (ctrl *MachineSetNodeController) MapInput(
 	case system.ResourceLabelsType[*omni.MachineStatus]():
 		status, err := safe.ReaderGetByID[*machineStatusLabels](ctx, r, ptr.ID())
 		if err != nil {
+			if state.IsNotFoundError(err) {
+				return nil, nil
+			}
+
 			return nil, err
 		}
 

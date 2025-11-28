@@ -22,6 +22,7 @@ var UserManagedResourceTypes = []resource.Type{
 	authres.SAMLLabelRuleType,
 	siderolink.JoinTokenType,
 	siderolink.DefaultJoinTokenType,
+	siderolink.GRPCTunnelConfigType,
 	omni.ClusterType,
 	omni.ConfigPatchType,
 	omni.EtcdManualBackupType,

@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-package omnictl
+package machine
 
 import (
 	"context"
@@ -23,22 +23,20 @@ var logsCmdFlags struct {
 
 // getCmd represents the get logs command.
 var logsCmd = &cobra.Command{
-	Use:     "machine-logs machineID",
+	Use:     "logs",
 	Aliases: []string{"l"},
 	Short:   "Get logs for a machine",
 	Long:    `Get logs for a provided machine id`,
 	Example: "",
-	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return access.WithClient(getLogs(cmd, args))
+		return access.WithClient(getLogs(cmd))
 	},
 	SilenceUsage: true,
-	Deprecated:   "use \"omnictl machine logs --id <id>\"",
 }
 
-func getLogs(_ *cobra.Command, args []string) func(ctx context.Context, client *client.Client) error {
+func getLogs(_ *cobra.Command) func(ctx context.Context, client *client.Client) error {
 	return func(ctx context.Context, client *client.Client) error {
-		machineID := args[0]
+		machineID := machineCmdFlags.machine
 
 		logReader, err := client.Management().LogsReader(ctx, machineID, logsCmdFlags.follow, logsCmdFlags.tailLines)
 		if err != nil {
@@ -66,5 +64,5 @@ func init() {
 	logsCmd.Flags().BoolVarP(&logsCmdFlags.follow, "follow", "f", false, "specify if the logs should be streamed")
 	logsCmd.Flags().Int32Var(&logsCmdFlags.tailLines, "tail", -1, "lines of log file to display (default is to show from the beginning)")
 	logsCmd.Flags().StringVar(&logsCmdFlags.logFormat, "log-format", "raw", "log format (raw, omni, dmesg) to display (default is to display in raw format)")
-	RootCmd.AddCommand(logsCmd)
+	machineCmd.AddCommand(logsCmd)
 }

@@ -427,6 +427,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		siderolink.LinkStatusType,
 		siderolink.JoinTokenStatusType,
 		siderolink.NodeUniqueTokenStatusType,
+		siderolink.GRPCTunnelConfigType,
 		omni.MachineClassType,
 		omni.MachineExtensionsStatusType,
 		omni.MachineExtensionsType,
