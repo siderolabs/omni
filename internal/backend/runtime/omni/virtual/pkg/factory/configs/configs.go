@@ -120,6 +120,7 @@ func newPlatformConfig(platform platforms.Platform) *specs.PlatformConfigSpec {
 	spec := &specs.PlatformConfigSpec{}
 
 	spec.Label = platform.Label
+	spec.Description = platform.Description
 	spec.Documentation = platform.Documentation
 	spec.Architectures = platform.Architectures
 	spec.DiskImageSuffix = platform.DiskImageSuffix
