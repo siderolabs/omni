@@ -28,7 +28,7 @@ require (
 	github.com/siderolabs/image-factory v0.8.4
 	github.com/siderolabs/proto-codec v0.1.2
 	github.com/siderolabs/siderolink v0.3.15
-	github.com/siderolabs/talos/pkg/machinery v1.12.0-beta.0
+	github.com/siderolabs/talos/pkg/machinery v1.12.0-beta.1
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
 	github.com/xlab/treeprint v1.2.0
@@ -38,7 +38,6 @@ require (
 	golang.org/x/term v0.37.0
 	google.golang.org/grpc v1.77.0
 	google.golang.org/protobuf v1.36.10
-	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/client-go v0.35.0-beta.0
 )
 
@@ -109,6 +108,7 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251111163417-95abcf5c77ba // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apimachinery v0.35.0-beta.0 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20251121143641-b6aabc6c6745 // indirect

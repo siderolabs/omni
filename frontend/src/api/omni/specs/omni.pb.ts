@@ -407,6 +407,7 @@ export type ClusterMachineConfigSpec = {
   generation_error?: string
   compressed_data?: Uint8Array
   without_comments?: boolean
+  grub_use_uki_cmdline?: boolean
 }
 
 export type RedactedClusterMachineConfigSpec = {

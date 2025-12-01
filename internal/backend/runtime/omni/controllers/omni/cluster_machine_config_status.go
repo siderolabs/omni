@@ -184,7 +184,9 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 
 				schematicMismatch := configStatus.TypedSpec().Value.SchematicId != expectedSchematic
 
-				compareFullSchematicID, err := kernelargs.UpdateSupported(machineStatus)
+				compareFullSchematicID, err := kernelargs.UpdateSupported(machineStatus, func() (*omni.ClusterMachineConfig, error) {
+					return machineConfig, nil
+				})
 				if err != nil {
 					return fmt.Errorf("failed to determine if kernel args update is supported for machine %q: %w", machineConfig.Metadata().ID(), err)
 				}

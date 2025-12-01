@@ -92,6 +92,9 @@ func NewSchematicConfigurationController(imageFactoryClient ImageFactoryClient) 
 		qtransform.WithExtraMappedInput[*omni.ClusterMachine](
 			qtransform.MapperSameID[*omni.MachineStatus](),
 		),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineConfig](
+			qtransform.MapperSameID[*omni.MachineStatus](),
+		),
 		qtransform.WithExtraMappedInput[*omni.Cluster](
 			func(ctx context.Context, logger *zap.Logger, runtime controller.QRuntime, metadata controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 				clusterID := metadata.ID()
@@ -198,7 +201,7 @@ func (helper *schematicConfigurationHelper) reconcile(
 		machineExtensionsStatus.Metadata().Labels().Delete(omni.LabelMachineSet)
 	}
 
-	machineExtensionsStatus.TypedSpec().Value.TalosVersion = talosVersion
+	machineExtensionsStatus.TypedSpec().Value.TalosVersion = "v" + talosVersion
 
 	overlay := getOverlay(ms.TypedSpec().Value.Schematic)
 
@@ -358,7 +361,9 @@ func determineKernelArgs(ctx context.Context, machineStatus *omni.MachineStatus,
 		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("kernel args are not yet initialized")
 	}
 
-	updateSupported, err := kernelargs.UpdateSupported(machineStatus)
+	updateSupported, err := kernelargs.UpdateSupported(machineStatus, func() (*omni.ClusterMachineConfig, error) {
+		return safe.ReaderGetByID[*omni.ClusterMachineConfig](ctx, r, machineStatus.Metadata().ID())
+	})
 	if err != nil {
 		return nil, err
 	}

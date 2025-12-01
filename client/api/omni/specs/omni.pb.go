@@ -2606,8 +2606,10 @@ type ClusterMachineConfigSpec struct {
 	CompressedData []byte `protobuf:"bytes,4,opt,name=compressed_data,json=compressedData,proto3" json:"compressed_data,omitempty"`
 	// WithoutComments indicates that the config was generated without comments.
 	WithoutComments bool `protobuf:"varint,5,opt,name=without_comments,json=withoutComments,proto3" json:"without_comments,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// GrubUseUkiCmdline indicates the .machine.install.grubUseUKICmdline status.
+	GrubUseUkiCmdline bool `protobuf:"varint,6,opt,name=grub_use_uki_cmdline,json=grubUseUkiCmdline,proto3" json:"grub_use_uki_cmdline,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ClusterMachineConfigSpec) Reset() {
@@ -2671,6 +2673,13 @@ func (x *ClusterMachineConfigSpec) GetCompressedData() []byte {
 func (x *ClusterMachineConfigSpec) GetWithoutComments() bool {
 	if x != nil {
 		return x.WithoutComments
+	}
+	return false
+}
+
+func (x *ClusterMachineConfigSpec) GetGrubUseUkiCmdline() bool {
+	if x != nil {
+		return x.GrubUseUkiCmdline
 	}
 	return false
 }
@@ -9615,13 +9624,14 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x12compressed_patches\x18\x02 \x03(\fR\x11compressedPatches\"h\n" +
 	"\x1eClusterMachineTalosVersionSpec\x12#\n" +
 	"\rtalos_version\x18\x01 \x01(\tR\ftalosVersion\x12!\n" +
-	"\fschematic_id\x18\x02 \x01(\tR\vschematicId\"\xe5\x01\n" +
+	"\fschematic_id\x18\x02 \x01(\tR\vschematicId\"\x96\x02\n" +
 	"\x18ClusterMachineConfigSpec\x12\x12\n" +
 	"\x04data\x18\x01 \x01(\fR\x04data\x126\n" +
 	"\x17cluster_machine_version\x18\x02 \x01(\tR\x15clusterMachineVersion\x12)\n" +
 	"\x10generation_error\x18\x03 \x01(\tR\x0fgenerationError\x12'\n" +
 	"\x0fcompressed_data\x18\x04 \x01(\fR\x0ecompressedData\x12)\n" +
-	"\x10without_comments\x18\x05 \x01(\bR\x0fwithoutComments\"_\n" +
+	"\x10without_comments\x18\x05 \x01(\bR\x0fwithoutComments\x12/\n" +
+	"\x14grub_use_uki_cmdline\x18\x06 \x01(\bR\x11grubUseUkiCmdline\"_\n" +
 	" RedactedClusterMachineConfigSpec\x12\x12\n" +
 	"\x04data\x18\x01 \x01(\tR\x04data\x12'\n" +
 	"\x0fcompressed_data\x18\x02 \x01(\fR\x0ecompressedData\"\xdc\x01\n" +
