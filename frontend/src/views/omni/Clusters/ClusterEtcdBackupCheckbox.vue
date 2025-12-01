@@ -37,7 +37,7 @@ const enabled = computed(() => {
 const interval = computed(() => {
   const value = cluster.value.backup_configuration?.interval
 
-  if (!value) {
+  if (!value || value.trim() === '0') {
     return undefined
   }
 

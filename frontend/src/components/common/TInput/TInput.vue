@@ -115,6 +115,7 @@ onMounted(() => focus && inputRef.value?.focus())
         class="peer min-w-2 flex-1 border-none bg-transparent text-xs text-naturals-n13 placeholder-naturals-n7 outline-hidden transition-colors focus:border-transparent focus:outline-hidden disabled:opacity-0"
         :placeholder="placeholder"
         @blur="blurHandler"
+        @keydown.enter="blurHandler"
       />
 
       <TIcon
