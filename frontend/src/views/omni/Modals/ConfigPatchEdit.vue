@@ -85,7 +85,7 @@ const saveAndClose = async () => {
 }
 
 const openDocs = () => {
-  window.open('https://www.talos.dev/latest/reference/configuration/', '_blank')
+  window.open('https://docs.siderolabs.com', '_blank')
 }
 </script>
 

@@ -9,6 +9,7 @@ import * as monaco from 'monaco-editor'
 import { configureMonacoYaml } from 'monaco-yaml'
 import { ref, toRefs, watch } from 'vue'
 
+import { getDocsLink } from '@/methods'
 import configSchema from '@/schemas/config.schema.json'
 
 type Props = {
@@ -46,8 +47,7 @@ if (!window.monacoConfigured) {
           type: 'string',
           title: '$patch',
           enum: ['delete'],
-          description:
-            'Delete the configuration block with a strategic merge delete patch.\nSee https://www.talos.dev/latest/talos-guides/configuration/patching/',
+          description: `Delete the configuration block with a strategic merge delete patch.\nSee ${getDocsLink('talos', '/configure-your-talos-cluster/system-configuration/patching')}`,
         }
       }
     }

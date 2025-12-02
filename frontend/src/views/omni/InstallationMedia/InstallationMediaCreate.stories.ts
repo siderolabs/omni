@@ -5,6 +5,8 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 
 import InstallationMediaCreate from './InstallationMediaCreate.vue'
+import * as CloudProviderStories from './Steps/CloudProvider.stories'
+import * as SBCTypeStories from './Steps/SBCType.stories'
 import * as SystemExtensionsStories from './Steps/SystemExtensions.stories'
 import * as TalosVersionStories from './Steps/TalosVersion.stories'
 
@@ -25,8 +27,10 @@ export const Default: Story = {
   parameters: {
     msw: {
       handlers: [
-        ...TalosVersionStories.Default.parameters.msw.handlers,
+        ...CloudProviderStories.Default.parameters.msw.handlers,
+        ...SBCTypeStories.Default.parameters.msw.handlers,
         ...SystemExtensionsStories.Default.parameters.msw.handlers,
+        ...TalosVersionStories.Default.parameters.msw.handlers,
       ],
     },
   },

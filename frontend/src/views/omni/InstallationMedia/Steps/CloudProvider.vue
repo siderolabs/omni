@@ -9,10 +9,11 @@ import { computed } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { PlatformConfigSpec } from '@/api/omni/specs/virtual.pb'
-import { CloudPlatformConfigType, DefaultTalosVersion, VirtualNamespace } from '@/api/resources'
+import { CloudPlatformConfigType, VirtualNamespace } from '@/api/resources'
 import { itemID } from '@/api/watch'
 import RadioGroup from '@/components/common/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/common/Radio/RadioGroupOption.vue'
+import { getLegacyDocsLink } from '@/methods'
 import { useResourceList } from '@/methods/useResourceList'
 import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
 
@@ -31,7 +32,7 @@ const platforms = computed(() =>
     ...p,
     spec: {
       ...p.spec,
-      documentation: `https://www.talos.dev/v${DefaultTalosVersion}/${p.spec.documentation}`,
+      documentation: p.spec.documentation && getLegacyDocsLink(p.spec.documentation),
     },
   })),
 )
@@ -46,9 +47,15 @@ const platforms = computed(() =>
     >
       {{ platform.spec.label }}
 
-      <!-- prettier-ignore -->
       <template #description>
-        {{ platform.spec.description }} (<a class="link-primary" :href="platform.spec.documentation" @click.stop>documentation</a>).
+        <span :class="!platform.spec.documentation && 'after:content-[\'.\']'">
+          {{ platform.spec.description }}
+        </span>
+
+        <!-- prettier-ignore -->
+        <template v-if="platform.spec.documentation">
+          (<a class="link-primary" :href="platform.spec.documentation" @click.stop>documentation</a>).
+        </template>
       </template>
     </RadioGroupOption>
   </RadioGroup>

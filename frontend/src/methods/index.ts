@@ -247,6 +247,27 @@ export const downloadMachineJoinConfig = async (
 
 type DocsType = 'talos' | 'omni' | 'k8s'
 
+/**
+ * @deprecated Update links to use getDocsLink instead where possible.
+ */
+export function getLegacyDocsLink(path?: string, options?: { talosVersion?: string }) {
+  const parts = ['https://talos.dev']
+
+  const talosVersion = options?.talosVersion || DefaultTalosVersion
+
+  const parsed = coerce(talosVersion)
+  if (!parsed) throw new Error(`Failed to parse talos version "${talosVersion}"`)
+
+  const { major, minor } = parsed
+  parts.push(`v${major}.${minor}`)
+
+  if (path) {
+    parts.push(path.replace(/^\//, ''))
+  }
+
+  return parts.join('/')
+}
+
 export function getDocsLink(
   type: 'talos',
   path?: string,

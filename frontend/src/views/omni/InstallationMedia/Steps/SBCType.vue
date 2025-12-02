@@ -9,10 +9,11 @@ import { computed } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { SBCConfigSpec } from '@/api/omni/specs/virtual.pb'
-import { DefaultTalosVersion, SBCConfigType, VirtualNamespace } from '@/api/resources'
+import { SBCConfigType, VirtualNamespace } from '@/api/resources'
 import { itemID } from '@/api/watch'
 import RadioGroup from '@/components/common/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/common/Radio/RadioGroupOption.vue'
+import { getLegacyDocsLink } from '@/methods'
 import { useResourceList } from '@/methods/useResourceList'
 import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
 
@@ -31,9 +32,7 @@ const SBCs = computed(() =>
     ...sbc,
     spec: {
       ...sbc.spec,
-      documentation:
-        sbc.spec.documentation &&
-        `https://www.talos.dev/v${DefaultTalosVersion}/${sbc.spec.documentation}`,
+      documentation: sbc.spec.documentation && getLegacyDocsLink(sbc.spec.documentation),
     },
   })),
 )
