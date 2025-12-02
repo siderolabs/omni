@@ -67,7 +67,7 @@ export default defineConfig(({ command }) => {
       "font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com https://fonts.userpilot.io",
       "style-src 'self' 'unsafe-inline' data: https://fonts.googleapis.com",
       'frame-src https://*.auth0.com',
-      'worker-src blob:', // Only for vite dev server
+      "worker-src 'self' blob:", // "worker-src blob:" only required for vite dev server
     ].join(';')
 
     // Adds nonce for dev server inline scripts.
