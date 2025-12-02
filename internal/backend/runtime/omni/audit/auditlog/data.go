@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package audit
+package auditlog
 
 import (
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -32,7 +32,14 @@ type Data struct {
 	MachineConfigDiff *MachineConfigDiff `json:"machine_config_diff,omitempty"`
 	TalosAccess       *TalosAccess       `json:"talos_access,omitempty"`
 	K8SAccess         *K8SAccess         `json:"k8s_access,omitempty"`
+	MigrationError    *MigrationError    `json:"migration_error,omitempty"`
 	Session           Session            `json:"session"`
+}
+
+// MigrationError contains information about migration errors.
+type MigrationError struct {
+	RawData string `json:"raw_data,omitempty"`
+	Error   string `json:"error,omitempty"`
 }
 
 // Session contains information about the current session.

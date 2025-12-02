@@ -81,10 +81,23 @@ type LogsMachineSQLite struct {
 	CleanupOlderThan time.Duration `yaml:"cleanupOlderThan"`
 }
 
-// LogsAudit configures audit logs peristence.
+// LogsAudit configures audit logs persistence.
 type LogsAudit struct {
 	// Path to store the audit logs in.
 	Path string `yaml:"path"`
+
+	SQLite LogsAuditSQLite `yaml:"sqlite"`
+}
+
+// LogsAuditSQLite configures audit logs persistence in SQLite.
+type LogsAuditSQLite struct {
+	// Enabled indicates whether the SQLite storage is enabled.
+	//
+	// If it is enabled, the Path field in the LogsAudit config is ignored, and the logs are stored in the secondary storage SQLite database.
+	Enabled bool `yaml:"enabled"`
+
+	// Timeout is the timeout for SQLite operations.
+	Timeout time.Duration `yaml:"timeout"`
 }
 
 // ResourceLoggerConfig is the config for the Omni resource logger.
