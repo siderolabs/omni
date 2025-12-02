@@ -10,8 +10,9 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import TButton from '@/components/common/Button/TButton.vue'
+import CodeBlock from '@/components/common/CodeBlock/CodeBlock.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
-import { getPlatform } from '@/methods'
+import { getDocsLink, getPlatform } from '@/methods'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const router = useRouter()
@@ -65,7 +66,28 @@ const download = () => {
       <CloseButton @click="close" />
     </div>
 
-    <div v-if="platform" class="mb-5 flex flex-wrap gap-4">
+    <p class="mb-5 text-xs">
+      <code>omnictl</code>
+      can be used to access omni resources. Read the
+      <a
+        class="link-primary"
+        target="_blank"
+        rel="noopener noreferrer"
+        :href="getDocsLink('omni', '/getting-started/install-and-configure-omnictl')"
+      >
+        docs
+      </a>
+      for more information.
+    </p>
+
+    <div class="mb-5 flex flex-col gap-2">
+      <span class="text-xs text-naturals-n14">macOS and Linux (recommended)</span>
+      <CodeBlock code="brew install siderolabs/tap/sidero-tools" />
+    </div>
+
+    <span class="mb-2 text-xs text-naturals-n14">Manual installation</span>
+
+    <div v-if="platform" class="flex flex-wrap gap-4">
       <TSelectList
         v-model="selectedOption"
         title="omnictl"
@@ -73,13 +95,6 @@ const download = () => {
         :values="options"
         searcheable
       />
-    </div>
-
-    <div>
-      <p class="text-xs">
-        <code>omnictl</code>
-        can be used to access omni resources.
-      </p>
     </div>
 
     <div class="mt-8 flex justify-end gap-4">

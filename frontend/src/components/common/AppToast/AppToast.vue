@@ -28,6 +28,7 @@ import TIcon from '@/components/common/Icon/TIcon.vue'
 
         error: 'border-l-4 border-l-red-r1 text-red-r1',
         success: 'border-l-4 border-l-green-g1 text-green-g1',
+        warning: 'border-l-4 border-l-yellow-y1 text-yellow-y1',
       },
     }"
   >
