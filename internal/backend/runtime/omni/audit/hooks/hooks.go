@@ -17,6 +17,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 )
 
@@ -74,21 +75,21 @@ func Init(a *audit.Log) {
 	audit.ShouldLogCreate(a, machineConfigDiffCreate, audit.WithInternalAgent())
 }
 
-func publicKeyCreate(_ context.Context, data *audit.Data, res *auth.PublicKey, _ ...state.CreateOption) error {
+func publicKeyCreate(_ context.Context, data *auditlog.Data, res *auth.PublicKey, _ ...state.CreateOption) error {
 	return handlePublicKey(data, res)
 }
 
-func publicKeyUpdate(_ context.Context, data *audit.Data, _, newRes *auth.PublicKey, _ ...state.UpdateOption) error {
+func publicKeyUpdate(_ context.Context, data *auditlog.Data, _, newRes *auth.PublicKey, _ ...state.UpdateOption) error {
 	return handlePublicKey(data, newRes)
 }
 
-func publicKeyDestroy(_ context.Context, data *audit.Data, ptr resource.Pointer, _ ...state.DestroyOption) error {
+func publicKeyDestroy(_ context.Context, data *auditlog.Data, ptr resource.Pointer, _ ...state.DestroyOption) error {
 	data.Session.Fingerprint = ptr.ID()
 
 	return nil
 }
 
-func handlePublicKey(data *audit.Data, res *auth.PublicKey) error {
+func handlePublicKey(data *auditlog.Data, res *auth.PublicKey) error {
 	userID, ok := res.Metadata().Labels().Get(auth.LabelPublicKeyUserID)
 	if !ok {
 		return errors.New("missing user ID on public key creation")
@@ -108,15 +109,15 @@ func handlePublicKey(data *audit.Data, res *auth.PublicKey) error {
 	return nil
 }
 
-func userCreate(_ context.Context, data *audit.Data, res *auth.User, _ ...state.CreateOption) error {
+func userCreate(_ context.Context, data *auditlog.Data, res *auth.User, _ ...state.CreateOption) error {
 	return handleUser(data, res)
 }
 
-func userUpdate(_ context.Context, data *audit.Data, _, newRes *auth.User, _ ...state.UpdateOption) error {
+func userUpdate(_ context.Context, data *auditlog.Data, _, newRes *auth.User, _ ...state.UpdateOption) error {
 	return handleUser(data, newRes)
 }
 
-func handleUser(data *audit.Data, res *auth.User) error {
+func handleUser(data *auditlog.Data, res *auth.User) error {
 	initPtrField(&data.NewUser)
 
 	data.NewUser.Role = role.Role(res.TypedSpec().Value.Role)
@@ -125,7 +126,7 @@ func handleUser(data *audit.Data, res *auth.User) error {
 	return nil
 }
 
-func userDestroy(_ context.Context, data *audit.Data, ptr resource.Pointer, _ ...state.DestroyOption) error {
+func userDestroy(_ context.Context, data *auditlog.Data, ptr resource.Pointer, _ ...state.DestroyOption) error {
 	initPtrField(&data.NewUser)
 
 	data.NewUser.UserID = ptr.ID()
@@ -133,15 +134,15 @@ func userDestroy(_ context.Context, data *audit.Data, ptr resource.Pointer, _ ..
 	return nil
 }
 
-func identityCreate(_ context.Context, data *audit.Data, res *auth.Identity, _ ...state.CreateOption) error {
+func identityCreate(_ context.Context, data *auditlog.Data, res *auth.Identity, _ ...state.CreateOption) error {
 	return handleIdentity(data, res)
 }
 
-func identityUpdate(_ context.Context, data *audit.Data, _, newRes *auth.Identity, _ ...state.UpdateOption) error {
+func identityUpdate(_ context.Context, data *auditlog.Data, _, newRes *auth.Identity, _ ...state.UpdateOption) error {
 	return handleIdentity(data, newRes)
 }
 
-func handleIdentity(data *audit.Data, res *auth.Identity) error {
+func handleIdentity(data *auditlog.Data, res *auth.Identity) error {
 	initPtrField(&data.NewUser)
 
 	data.NewUser.Email = res.Metadata().ID()
@@ -151,7 +152,7 @@ func handleIdentity(data *audit.Data, res *auth.Identity) error {
 	return nil
 }
 
-func identityDestroy(_ context.Context, data *audit.Data, ptr resource.Pointer, _ ...state.DestroyOption) error {
+func identityDestroy(_ context.Context, data *auditlog.Data, ptr resource.Pointer, _ ...state.DestroyOption) error {
 	initPtrField(&data.NewUser)
 
 	data.NewUser.Email = ptr.ID()
@@ -172,11 +173,11 @@ func isServiceAccount(md *resource.Metadata) bool {
 	return isServiceAccount
 }
 
-func machineCreate(_ context.Context, data *audit.Data, res *omni.Machine, _ ...state.CreateOption) error {
+func machineCreate(_ context.Context, data *auditlog.Data, res *omni.Machine, _ ...state.CreateOption) error {
 	return handleMachine(data, res)
 }
 
-func machineUpdate(_ context.Context, data *audit.Data, _, newRes *omni.Machine, _ ...state.UpdateOption) error {
+func machineUpdate(_ context.Context, data *auditlog.Data, _, newRes *omni.Machine, _ ...state.UpdateOption) error {
 	if newRes.Metadata().Phase() != resource.PhaseTearingDown {
 		return audit.ErrNoLog
 	}
@@ -184,7 +185,7 @@ func machineUpdate(_ context.Context, data *audit.Data, _, newRes *omni.Machine,
 	return handleMachine(data, newRes)
 }
 
-func handleMachine(data *audit.Data, res *omni.Machine) error {
+func handleMachine(data *auditlog.Data, res *omni.Machine) error {
 	initPtrField(&data.Machine)
 
 	data.Machine.ID = res.Metadata().ID()
@@ -195,7 +196,7 @@ func handleMachine(data *audit.Data, res *omni.Machine) error {
 	return nil
 }
 
-func machineDestroy(_ context.Context, data *audit.Data, ptr resource.Pointer, _ ...state.DestroyOption) error {
+func machineDestroy(_ context.Context, data *auditlog.Data, ptr resource.Pointer, _ ...state.DestroyOption) error {
 	initPtrField(&data.Machine)
 
 	data.Machine.ID = ptr.ID()
@@ -210,7 +211,7 @@ func machineDestroy(_ context.Context, data *audit.Data, ptr resource.Pointer, _
 	return nil
 }
 
-func machineLabelsCreate(_ context.Context, data *audit.Data, res *omni.MachineLabels, _ ...state.CreateOption) error {
+func machineLabelsCreate(_ context.Context, data *auditlog.Data, res *omni.MachineLabels, _ ...state.CreateOption) error {
 	initPtrField(&data.MachineLabels)
 
 	data.MachineLabels.ID = res.Metadata().ID()
@@ -219,7 +220,7 @@ func machineLabelsCreate(_ context.Context, data *audit.Data, res *omni.MachineL
 	return nil
 }
 
-func machineLabelsUpdate(_ context.Context, data *audit.Data, _, newRes *omni.MachineLabels, _ ...state.UpdateOption) error {
+func machineLabelsUpdate(_ context.Context, data *auditlog.Data, _, newRes *omni.MachineLabels, _ ...state.UpdateOption) error {
 	initPtrField(&data.MachineLabels)
 
 	data.MachineLabels.ID = newRes.Metadata().ID()
@@ -228,7 +229,7 @@ func machineLabelsUpdate(_ context.Context, data *audit.Data, _, newRes *omni.Ma
 	return nil
 }
 
-func machineLabelsDestroy(_ context.Context, data *audit.Data, ptr resource.Pointer, _ ...state.DestroyOption) error {
+func machineLabelsDestroy(_ context.Context, data *auditlog.Data, ptr resource.Pointer, _ ...state.DestroyOption) error {
 	initPtrField(&data.MachineLabels)
 
 	data.MachineLabels.ID = ptr.ID()
@@ -236,15 +237,15 @@ func machineLabelsDestroy(_ context.Context, data *audit.Data, ptr resource.Poin
 	return nil
 }
 
-func accessPolicyCreate(_ context.Context, data *audit.Data, res *auth.AccessPolicy, _ ...state.CreateOption) error {
+func accessPolicyCreate(_ context.Context, data *auditlog.Data, res *auth.AccessPolicy, _ ...state.CreateOption) error {
 	return handleAccessPolicy(data, res)
 }
 
-func accessPolicyUpdate(_ context.Context, data *audit.Data, _, newRes *auth.AccessPolicy, _ ...state.UpdateOption) error {
+func accessPolicyUpdate(_ context.Context, data *auditlog.Data, _, newRes *auth.AccessPolicy, _ ...state.UpdateOption) error {
 	return handleAccessPolicy(data, newRes)
 }
 
-func handleAccessPolicy(data *audit.Data, res *auth.AccessPolicy) error {
+func handleAccessPolicy(data *auditlog.Data, res *auth.AccessPolicy) error {
 	initPtrField(&data.AccessPolicy)
 
 	data.AccessPolicy.ID = res.Metadata().ID()
@@ -256,7 +257,7 @@ func handleAccessPolicy(data *audit.Data, res *auth.AccessPolicy) error {
 	return nil
 }
 
-func accessPolicyDestroy(_ context.Context, data *audit.Data, ptr resource.Pointer, _ ...state.DestroyOption) error {
+func accessPolicyDestroy(_ context.Context, data *auditlog.Data, ptr resource.Pointer, _ ...state.DestroyOption) error {
 	initPtrField(&data.AccessPolicy)
 
 	data.AccessPolicy.ID = ptr.ID()
@@ -264,15 +265,15 @@ func accessPolicyDestroy(_ context.Context, data *audit.Data, ptr resource.Point
 	return nil
 }
 
-func clusterCreate(_ context.Context, data *audit.Data, res *omni.Cluster, _ ...state.CreateOption) error {
+func clusterCreate(_ context.Context, data *auditlog.Data, res *omni.Cluster, _ ...state.CreateOption) error {
 	return handleCluster(data, res)
 }
 
-func clusterUpdate(_ context.Context, data *audit.Data, _, newRes *omni.Cluster, _ ...state.UpdateOption) error {
+func clusterUpdate(_ context.Context, data *auditlog.Data, _, newRes *omni.Cluster, _ ...state.UpdateOption) error {
 	return handleCluster(data, newRes)
 }
 
-func handleCluster(data *audit.Data, res *omni.Cluster) error {
+func handleCluster(data *auditlog.Data, res *omni.Cluster) error {
 	initPtrField(&data.Cluster)
 
 	data.Cluster.ID = res.Metadata().ID()
@@ -285,7 +286,7 @@ func handleCluster(data *audit.Data, res *omni.Cluster) error {
 	return nil
 }
 
-func clusterDestroy(_ context.Context, data *audit.Data, ptr resource.Pointer, _ ...state.DestroyOption) error {
+func clusterDestroy(_ context.Context, data *auditlog.Data, ptr resource.Pointer, _ ...state.DestroyOption) error {
 	initPtrField(&data.Cluster)
 
 	data.Cluster.ID = ptr.ID()
@@ -293,15 +294,15 @@ func clusterDestroy(_ context.Context, data *audit.Data, ptr resource.Pointer, _
 	return nil
 }
 
-func machineSetCreate(_ context.Context, data *audit.Data, res *omni.MachineSet, _ ...state.CreateOption) error {
+func machineSetCreate(_ context.Context, data *auditlog.Data, res *omni.MachineSet, _ ...state.CreateOption) error {
 	return handleMachineSet(data, res, true)
 }
 
-func machineSetUpdate(_ context.Context, data *audit.Data, _, newRes *omni.MachineSet, _ ...state.UpdateOption) error {
+func machineSetUpdate(_ context.Context, data *auditlog.Data, _, newRes *omni.MachineSet, _ ...state.UpdateOption) error {
 	return handleMachineSet(data, newRes, newRes.Metadata().Owner() == "")
 }
 
-func handleMachineSet(data *audit.Data, res *omni.MachineSet, emptyOwner bool) error {
+func handleMachineSet(data *auditlog.Data, res *omni.MachineSet, emptyOwner bool) error {
 	if !emptyOwner {
 		return audit.ErrNoLog
 	}
@@ -316,27 +317,30 @@ func handleMachineSet(data *audit.Data, res *omni.MachineSet, emptyOwner bool) e
 	data.MachineSet.UpdateStrategyConfig = res.TypedSpec().Value.GetUpdateStrategyConfig()
 	data.MachineSet.DeleteStrategyConfig = res.TypedSpec().Value.GetDeleteStrategyConfig()
 	data.MachineSet.Labels = maps.Clone(res.Metadata().Labels().Raw())
+	data.MachineSet.ClusterID, _ = res.Metadata().Labels().Get(omni.LabelCluster)
 
 	return nil
 }
 
-func machineSetDestroy(_ context.Context, data *audit.Data, ptr resource.Pointer, _ ...state.DestroyOption) error {
+func machineSetDestroy(_ context.Context, data *auditlog.Data, ptr resource.Pointer, _ ...state.DestroyOption) error {
 	initPtrField(&data.MachineSet)
 
 	data.MachineSet.ID = ptr.ID()
 
+	// We cannot extract ClusterID without reading the resource, so we skip it here.
+
 	return nil
 }
 
-func machineSetNodeCreate(_ context.Context, data *audit.Data, res *omni.MachineSetNode, _ ...state.CreateOption) error {
+func machineSetNodeCreate(_ context.Context, data *auditlog.Data, res *omni.MachineSetNode, _ ...state.CreateOption) error {
 	return handleMachineSetNode(data, res, true)
 }
 
-func machineSetNodeUpdate(_ context.Context, data *audit.Data, _, newRes *omni.MachineSetNode, _ ...state.UpdateOption) error {
+func machineSetNodeUpdate(_ context.Context, data *auditlog.Data, _, newRes *omni.MachineSetNode, _ ...state.UpdateOption) error {
 	return handleMachineSetNode(data, newRes, newRes.Metadata().Owner() == "")
 }
 
-func handleMachineSetNode(data *audit.Data, res *omni.MachineSetNode, emptyOwner bool) error {
+func handleMachineSetNode(data *auditlog.Data, res *omni.MachineSetNode, emptyOwner bool) error {
 	if !emptyOwner {
 		return audit.ErrNoLog
 	}
@@ -345,31 +349,35 @@ func handleMachineSetNode(data *audit.Data, res *omni.MachineSetNode, emptyOwner
 
 	data.MachineSetNode.ID = res.Metadata().ID()
 	data.MachineSetNode.Labels = maps.Clone(res.Metadata().Labels().Raw())
+	data.MachineSetNode.ClusterID, _ = res.Metadata().Labels().Get(omni.LabelCluster)
 
 	return nil
 }
 
-func machineSetNodeDestroy(_ context.Context, data *audit.Data, ptr resource.Pointer, _ ...state.DestroyOption) error {
+func machineSetNodeDestroy(_ context.Context, data *auditlog.Data, ptr resource.Pointer, _ ...state.DestroyOption) error {
 	initPtrField(&data.MachineSetNode)
 
 	data.MachineSetNode.ID = ptr.ID()
 
+	// We cannot extract ClusterID without reading the resource, so we skip it here.
+
 	return nil
 }
 
-func configPatchCreate(_ context.Context, data *audit.Data, res *omni.ConfigPatch, _ ...state.CreateOption) error {
+func configPatchCreate(_ context.Context, data *auditlog.Data, res *omni.ConfigPatch, _ ...state.CreateOption) error {
 	return handleConfigPatch(data, res)
 }
 
-func configPatchUpdate(_ context.Context, data *audit.Data, _, newRes *omni.ConfigPatch, _ ...state.UpdateOption) error {
+func configPatchUpdate(_ context.Context, data *auditlog.Data, _, newRes *omni.ConfigPatch, _ ...state.UpdateOption) error {
 	return handleConfigPatch(data, newRes)
 }
 
-func handleConfigPatch(data *audit.Data, res *omni.ConfigPatch) error {
+func handleConfigPatch(data *auditlog.Data, res *omni.ConfigPatch) error {
 	initPtrField(&data.ConfigPatch)
 
 	data.ConfigPatch.ID = res.Metadata().ID()
 	data.ConfigPatch.Labels = maps.Clone(res.Metadata().Labels().Raw())
+	data.ConfigPatch.ClusterID, _ = res.Metadata().Labels().Get(omni.LabelCluster)
 
 	buffer, err := res.TypedSpec().Value.GetUncompressedData()
 	if err != nil {
@@ -383,19 +391,22 @@ func handleConfigPatch(data *audit.Data, res *omni.ConfigPatch) error {
 	return nil
 }
 
-func configPatchDestroy(_ context.Context, data *audit.Data, ptr resource.Pointer, _ ...state.DestroyOption) error {
+func configPatchDestroy(_ context.Context, data *auditlog.Data, ptr resource.Pointer, _ ...state.DestroyOption) error {
 	initPtrField(&data.ConfigPatch)
 
 	data.ConfigPatch.ID = ptr.ID()
 
+	// We cannot extract ClusterID without reading the resource, so we skip it here.
+
 	return nil
 }
 
-func machineConfigDiffCreate(_ context.Context, data *audit.Data, res *omni.MachineConfigDiff, _ ...state.CreateOption) error {
+func machineConfigDiffCreate(_ context.Context, data *auditlog.Data, res *omni.MachineConfigDiff, _ ...state.CreateOption) error {
 	initPtrField(&data.MachineConfigDiff)
 
 	data.MachineConfigDiff.ID = res.Metadata().ID()
 	data.MachineConfigDiff.Diff = res.TypedSpec().Value.Diff
+	data.MachineConfigDiff.ClusterID, _ = res.Metadata().Labels().Get(omni.LabelCluster)
 
 	return nil
 }

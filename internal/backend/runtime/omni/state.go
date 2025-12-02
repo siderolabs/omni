@@ -10,7 +10,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -29,6 +28,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/hooks"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/external"
@@ -161,7 +161,7 @@ func NewState(ctx context.Context, params *config.Params, secondaryStorageDB *sq
 		return nil, err
 	}
 
-	auditWrap, err := NewAuditWrap(defaultState, config.Config, logger)
+	auditWrap, err := NewAuditWrap(ctx, defaultState, config.Config, secondaryStorageDB, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -286,8 +286,8 @@ func stateWithMetrics(namespacedState *namespaced.State, metricsRegistry prometh
 }
 
 // NewAuditWrap creates a new audit wrap.
-func NewAuditWrap(resState state.State, params *config.Params, logger *zap.Logger) (*AuditWrap, error) {
-	if params.Logs.Audit.Path == "" {
+func NewAuditWrap(ctx context.Context, resState state.State, params *config.Params, auditLogDB *sql.DB, logger *zap.Logger) (*AuditWrap, error) {
+	if params.Logs.Audit.Path == "" && !params.Logs.Audit.SQLite.Enabled {
 		logger.Info("audit log disabled")
 
 		return &AuditWrap{state: resState}, nil
@@ -295,7 +295,7 @@ func NewAuditWrap(resState state.State, params *config.Params, logger *zap.Logge
 
 	logger.Info("audit log enabled", zap.String("dir", params.Logs.Audit.Path))
 
-	a, err := audit.NewLog(params.Logs.Audit.Path, logger)
+	a, err := audit.NewLog(ctx, params.Logs.Audit, auditLogDB, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -312,13 +312,13 @@ type AuditWrap struct {
 	dir   string
 }
 
-// ReadAuditLog reads the audit log file by file, oldest to newest.
-func (w *AuditWrap) ReadAuditLog(start, end time.Time) (io.ReadCloser, error) {
+// Reader reads the audit log file by file, oldest to newest.
+func (w *AuditWrap) Reader(ctx context.Context, start, end time.Time) (auditlog.Reader, error) {
 	if w.log == nil {
 		return nil, errors.New("audit log is disabled")
 	}
 
-	return w.log.ReadAuditLog(start, end)
+	return w.log.Reader(ctx, start, end)
 }
 
 // RunCleanup runs wrapped [audit.Log.RunCleanup] if the audit log is enabled. Otherwise, blocks until context is

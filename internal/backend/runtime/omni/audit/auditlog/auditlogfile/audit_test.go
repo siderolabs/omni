@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package audit_test
+package auditlogfile_test
 
 import (
 	"context"
@@ -28,6 +28,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/hooks"
+	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
@@ -36,7 +37,12 @@ var logDir embed.FS
 
 func TestAudit(t *testing.T) {
 	tempDir := t.TempDir()
-	l := must.Value(audit.NewLog(tempDir, zaptest.NewLogger(t)))(t)
+
+	config := config.LogsAudit{
+		Path: tempDir,
+	}
+
+	l := must.Value(audit.NewLog(t.Context(), config, nil, zaptest.NewLogger(t)))(t)
 
 	hooks.Init(l)
 

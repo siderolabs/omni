@@ -8,11 +8,10 @@ package audit
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
 	"reflect"
 	"sync"
 	"time"
@@ -22,18 +21,26 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
+	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
+type Logger interface {
+	Write(ctx context.Context, event auditlog.Event) error
+	Remove(ctx context.Context, start, end time.Time) error
+	Reader(ctx context.Context, start, end time.Time) (auditlog.Reader, error)
+}
+
 // NewLog creates a new audit logger.
-func NewLog(auditLogDir string, logger *zap.Logger) (*Log, error) {
-	err := os.MkdirAll(auditLogDir, 0o755)
+func NewLog(ctx context.Context, config config.LogsAudit, db *sql.DB, logger *zap.Logger) (*Log, error) {
+	auditLogger, err := initLogger(ctx, config, db, logger)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create audit logger: %w", err)
+		return nil, err
 	}
 
 	return &Log{
-		logFile:                  NewLogFile(auditLogDir),
+		auditLogger:              auditLogger,
 		logger:                   logger,
 		mu:                       sync.RWMutex{},
 		createHooks:              map[resource.Type]CreateHook{},
@@ -47,8 +54,8 @@ func NewLog(auditLogDir string, logger *zap.Logger) (*Log, error) {
 //
 //nolint:govet
 type Log struct {
-	logFile *LogFile
-	logger  *zap.Logger
+	auditLogger Logger
+	logger      *zap.Logger
 
 	mu                       sync.RWMutex
 	createHooks              map[resource.Type]CreateHook
@@ -57,10 +64,10 @@ type Log struct {
 	updateWithConflictsHooks map[resource.Type]UpdateWithConflictsHook
 }
 
-// ReadAuditLog reads the audit log file by file, oldest to newest within the given time range. The time range
+// Reader reads the audit log file by file, oldest to newest within the given time range. The time range
 // is inclusive, and truncated to the day.
-func (l *Log) ReadAuditLog(start, end time.Time) (io.ReadCloser, error) {
-	return l.logFile.ReadAuditLog(start, end)
+func (l *Log) Reader(ctx context.Context, start, end time.Time) (auditlog.Reader, error) {
+	return l.auditLogger.Reader(ctx, start, end)
 }
 
 // LogCreate logs the resource creation if there is a hook for this type.
@@ -106,17 +113,17 @@ func (l *Log) AuditTalosAccess(ctx context.Context, fullMethodName string, clust
 	}
 
 	if data.TalosAccess == nil {
-		data.TalosAccess = &TalosAccess{}
+		data.TalosAccess = &auditlog.TalosAccess{}
 	}
 
 	data.TalosAccess.FullMethodName = fullMethodName
 	data.TalosAccess.ClusterName = clusterID
 	data.TalosAccess.MachineIP = nodeID
 
-	return l.logFile.Dump(event{
-		Type: "talos_access",
-		Time: time.Now().UnixMilli(),
-		Data: data,
+	return l.auditLogger.Write(ctx, auditlog.Event{
+		Type:       "talos_access",
+		TimeMillis: time.Now().UnixMilli(),
+		Data:       data,
 	})
 }
 
@@ -129,7 +136,7 @@ func (l *Log) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
-		data, ok := ctxstore.Value[*Data](req.Context())
+		data, ok := ctxstore.Value[*auditlog.Data](req.Context())
 		if !ok {
 			next.ServeHTTP(w, req)
 
@@ -137,13 +144,13 @@ func (l *Log) Wrap(next http.Handler) http.Handler {
 		}
 
 		if data.K8SAccess == nil {
-			data.K8SAccess = &K8SAccess{}
+			data.K8SAccess = &auditlog.K8SAccess{}
 		}
 
-		err := l.logFile.Dump(event{
-			Type: "k8s_access",
-			Time: time.Now().UnixMilli(),
-			Data: data,
+		err := l.auditLogger.Write(req.Context(), auditlog.Event{
+			Type:       "k8s_access",
+			TimeMillis: time.Now().UnixMilli(),
+			Data:       data,
 		})
 		if err != nil {
 			l.logger.Error("failed to write audit log", zap.Error(err))
@@ -153,11 +160,11 @@ func (l *Log) Wrap(next http.Handler) http.Handler {
 	})
 }
 
-// RunCleanup runs [LogFile.RemoveFiles] once a minute, deleting all log files older than 30 days including
+// RunCleanup runs [LogFile.Remove] once a minute, deleting all log files older than 30 days including
 // current day.
 func (l *Log) RunCleanup(ctx context.Context) error {
 	for {
-		if err := l.logFile.RemoveFiles(
+		if err := l.auditLogger.Remove(ctx,
 			time.Unix(0, 0),
 			time.Now().AddDate(0, 0, -30),
 		); err != nil {
@@ -184,12 +191,6 @@ type (
 )
 
 //nolint:govet
-type event struct {
-	Type         string        `json:"event_type,omitempty"`
-	ResourceType resource.Type `json:"resource_type,omitempty"`
-	Time         int64         `json:"event_ts,omitempty"`
-	Data         *Data         `json:"event_data,omitempty"`
-}
 
 // Res is a resource type constraint.
 type Res interface {
@@ -198,7 +199,7 @@ type Res interface {
 }
 
 // ShouldLogCreate adds a creation hook to logger which informs what resource type should be logged and how to log it.
-func ShouldLogCreate[T Res](l *Log, before func(context.Context, *Data, T, ...state.CreateOption) error, opts ...Option) {
+func ShouldLogCreate[T Res](l *Log, before func(context.Context, *auditlog.Data, T, ...state.CreateOption) error, opts ...Option) {
 	resType, o := resourceType[T](), toOptions(opts...)
 
 	setHook(l, l.createHooks, resType, func(ctx context.Context, res resource.Resource, option ...state.CreateOption) error {
@@ -220,7 +221,7 @@ func ShouldLogCreate[T Res](l *Log, before func(context.Context, *Data, T, ...st
 			return err
 		}
 
-		if err := l.logFile.Dump(makeEvent("create", resType, data)); err != nil {
+		if err := l.auditLogger.Write(ctx, auditlog.MakeEvent("create", resType, data)); err != nil {
 			return fmt.Errorf("failed to write audit log for create event: %w", err)
 		}
 
@@ -229,7 +230,7 @@ func ShouldLogCreate[T Res](l *Log, before func(context.Context, *Data, T, ...st
 }
 
 // ShouldLogUpdate adds an update hook to logger which informs what resource type should be logged and how to log it.
-func ShouldLogUpdate[T Res](l *Log, before func(context.Context, *Data, T, T, ...state.UpdateOption) error, opts ...Option) {
+func ShouldLogUpdate[T Res](l *Log, before func(context.Context, *auditlog.Data, T, T, ...state.UpdateOption) error, opts ...Option) {
 	resType, o := resourceType[T](), toOptions(opts...)
 
 	setHook(l, l.updateHooks, resType, func(ctx context.Context, oldRes, newRes resource.Resource, opts ...state.UpdateOption) error {
@@ -265,7 +266,7 @@ func ShouldLogUpdate[T Res](l *Log, before func(context.Context, *Data, T, T, ..
 			return err
 		}
 
-		if err := l.logFile.Dump(makeEvent(eventType, resType, data)); err != nil {
+		if err := l.auditLogger.Write(ctx, auditlog.MakeEvent(eventType, resType, data)); err != nil {
 			return fmt.Errorf("failed to write audit log for update event: %w", err)
 		}
 
@@ -274,7 +275,7 @@ func ShouldLogUpdate[T Res](l *Log, before func(context.Context, *Data, T, T, ..
 }
 
 // ShouldLogDestroy adds a destruction hook to logger which informs what resource type should be logged and how to log it.
-func ShouldLogDestroy(l *Log, resType resource.Type, before func(context.Context, *Data, resource.Pointer, ...state.DestroyOption) error, opts ...Option) {
+func ShouldLogDestroy(l *Log, resType resource.Type, before func(context.Context, *auditlog.Data, resource.Pointer, ...state.DestroyOption) error, opts ...Option) {
 	o := toOptions(opts...)
 
 	setHook(l, l.destroyHooks, resType, func(ctx context.Context, ptr resource.Pointer, option ...state.DestroyOption) error {
@@ -287,7 +288,7 @@ func ShouldLogDestroy(l *Log, resType resource.Type, before func(context.Context
 			return err
 		}
 
-		if err := l.logFile.Dump(makeEvent("destroy", resType, data)); err != nil {
+		if err := l.auditLogger.Write(ctx, auditlog.MakeEvent("destroy", resType, data)); err != nil {
 			if errors.Is(err, ErrNoLog) {
 				return nil
 			}
@@ -300,7 +301,7 @@ func ShouldLogDestroy(l *Log, resType resource.Type, before func(context.Context
 }
 
 // ShouldLogUpdateWithConflicts adds an update with conflicts hook to logger which informs what resource type should be logged and how to log it.
-func ShouldLogUpdateWithConflicts[T Res](l *Log, before func(context.Context, *Data, T, T, ...state.UpdateOption) error, opts ...Option) {
+func ShouldLogUpdateWithConflicts[T Res](l *Log, before func(context.Context, *auditlog.Data, T, T, ...state.UpdateOption) error, opts ...Option) {
 	resType, o := resourceType[T](), toOptions(opts...)
 
 	setHook(l, l.updateWithConflictsHooks, resType, func(ctx context.Context, oldRes, newRes resource.Resource, option ...state.UpdateOption) error {
@@ -331,7 +332,7 @@ func ShouldLogUpdateWithConflicts[T Res](l *Log, before func(context.Context, *D
 			return err
 		}
 
-		if err := l.logFile.Dump(makeEvent("update_with_conflicts", resType, data)); err != nil {
+		if err := l.auditLogger.Write(ctx, auditlog.MakeEvent("update_with_conflicts", resType, data)); err != nil {
 			return fmt.Errorf("failed to write audit log for update with conflicts events: %w", err)
 		}
 
@@ -345,15 +346,6 @@ func resourceType[T meta.ResourceDefinitionProvider]() resource.Type {
 	return zero.ResourceDefinition().Type
 }
 
-func makeEvent(eventType string, resType resource.Type, data *Data) event {
-	return event{
-		Type:         eventType,
-		ResourceType: resType,
-		Time:         time.Now().UnixMilli(),
-		Data:         data,
-	}
-}
-
 func setHook[T any](l *Log, hooks map[resource.Type]T, resType resource.Type, hook T) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -365,8 +357,8 @@ func setHook[T any](l *Log, hooks map[resource.Type]T, resType resource.Type, ho
 	hooks[resType] = hook
 }
 
-func extractData(ctx context.Context, opts options) *Data {
-	data, ok := ctxstore.Value[*Data](ctx)
+func extractData(ctx context.Context, opts options) *auditlog.Data {
+	data, ok := ctxstore.Value[*auditlog.Data](ctx)
 	if ok {
 		return data
 	}
@@ -375,7 +367,7 @@ func extractData(ctx context.Context, opts options) *Data {
 		return nil
 	}
 
-	result := &Data{}
+	result := &auditlog.Data{}
 
 	if opts.userAgent != "" {
 		result.Session.UserAgent = opts.userAgent

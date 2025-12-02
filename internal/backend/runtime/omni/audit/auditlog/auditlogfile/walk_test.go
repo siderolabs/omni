@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package audit_test
+package auditlogfile_test
 
 import (
 	_ "embed"
@@ -20,14 +20,14 @@ import (
 	"github.com/siderolabs/gen/xtesting/must"
 	"github.com/stretchr/testify/require"
 
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog/auditlogfile"
 )
 
 //go:embed testdata/log/2012-01-01.jsonlog
 var logFile []byte
 
 func TestTruncateToDate(t *testing.T) {
-	truncated := audit.TruncateToDate(time.Date(2012, 1, 1, 23, 33, 0, 0, time.UTC))
+	truncated := auditlogfile.TruncateToDate(time.Date(2012, 1, 1, 23, 33, 0, 0, time.UTC))
 
 	require.Equal(t, "2012-01-01", truncated.Format("2006-01-02"))
 }
@@ -58,13 +58,13 @@ func TestFindOldFiles(t *testing.T) {
 	}
 
 	now := time.Date(2012, 1, 30, 0, 0, 0, 1, time.Local)
-	thirtyDays := audit.TruncateToDate(now.AddDate(0, 0, -30))
+	thirtyDays := auditlogfile.TruncateToDate(now.AddDate(0, 0, -30))
 
-	dirFiles := must.Value(audit.GetDirFiles(must.Value(mapFS.Sub("logdir"))(t).(fs.ReadDirFS)))(t) //nolint:forcetypeassert,errcheck
-	logFiles := audit.FilterLogFiles(dirFiles)
-	olderFiles := audit.FilterByTime(logFiles, time.Unix(0, 0), thirtyDays)
+	dirFiles := must.Value(auditlogfile.GetDirFiles(must.Value(mapFS.Sub("logdir"))(t).(fs.ReadDirFS)))(t) //nolint:forcetypeassert,errcheck
+	logFiles := auditlogfile.FilterLogFiles(dirFiles)
+	olderFiles := auditlogfile.FilterByTime(logFiles, time.Unix(0, 0), thirtyDays)
 
-	var entries []audit.LogEntry //nolint:prealloc
+	var entries []auditlogfile.LogEntry //nolint:prealloc
 
 	for entry, err := range olderFiles {
 		require.NoError(t, err)
@@ -111,7 +111,8 @@ func TestActualFS(t *testing.T) {
 
 	require.NoError(
 		t,
-		audit.NewLogFile(filepath.Join(tempDir, "logdir")).RemoveFiles(
+		auditlogfile.New(filepath.Join(tempDir, "logdir")).Remove(
+			t.Context(),
 			time.Unix(0, 0),
 			now.AddDate(0, 0, -30),
 		),

@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package audit
+package auditlog
 
 import (
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -32,7 +32,14 @@ type Data struct {
 	MachineConfigDiff *MachineConfigDiff `json:"machine_config_diff,omitempty"`
 	TalosAccess       *TalosAccess       `json:"talos_access,omitempty"`
 	K8SAccess         *K8SAccess         `json:"k8s_access,omitempty"`
+	MigrationError    *MigrationError    `json:"migration_error,omitempty"`
 	Session           Session            `json:"session"`
+}
+
+// MigrationError contains information about migration errors.
+type MigrationError struct {
+	RawData string `json:"raw_data,omitempty"`
+	Error   string `json:"error,omitempty"`
 }
 
 // Session contains information about the current session.
@@ -97,25 +104,29 @@ type MachineSet struct {
 	ID                   string                                     `json:"id,omitempty"`
 	UpdateStrategy       string                                     `json:"update_strategy,omitempty"`
 	DeleteStrategy       string                                     `json:"delete_strategy,omitempty"`
+	ClusterID            string                                     `json:"cluster_id,omitempty"`
 }
 
 // MachineSetNode struct contains information about the machine set node.
 type MachineSetNode struct {
-	Labels map[string]string `json:"labels,omitempty"`
-	ID     string            `json:"id,omitempty"`
+	Labels    map[string]string `json:"labels,omitempty"`
+	ID        string            `json:"id,omitempty"`
+	ClusterID string            `json:"cluster_id,omitempty"`
 }
 
 // ConfigPatch struct contains information about the config patch.
 type ConfigPatch struct {
-	Labels map[string]string `json:"labels,omitempty"`
-	ID     string            `json:"id,omitempty"`
-	Data   string            `json:"data,omitempty"`
+	Labels    map[string]string `json:"labels,omitempty"`
+	ID        string            `json:"id,omitempty"`
+	Data      string            `json:"data,omitempty"`
+	ClusterID string            `json:"cluster_id,omitempty"`
 }
 
 // MachineConfigDiff struct contains information about the machine configuration diff.
 type MachineConfigDiff struct {
-	ID   resource.ID `json:"id,omitempty"`
-	Diff string      `json:"diff,omitempty"`
+	ID        resource.ID `json:"id,omitempty"`
+	Diff      string      `json:"diff,omitempty"`
+	ClusterID string      `json:"cluster_id,omitempty"`
 }
 
 // TalosAccess struct contains information about the access to the Talos node.

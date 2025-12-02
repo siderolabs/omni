@@ -281,11 +281,15 @@ func (r *lineReader) fetchNextBatch(ctx context.Context) error {
 
 // Close implements the logstore.LineReader interface.
 func (r *lineReader) Close() error {
-	var closeErr error
+	var closeErr, rowsErr error
 
 	if r.rows != nil {
 		if err := r.rows.Close(); err != nil {
 			closeErr = fmt.Errorf("failed to close rows: %w", err)
+		}
+
+		if err := r.rows.Err(); err != nil {
+			rowsErr = fmt.Errorf("rows error: %w", err)
 		}
 	}
 
@@ -294,7 +298,7 @@ func (r *lineReader) Close() error {
 		close(r.closeCh)
 	})
 
-	return closeErr
+	return errors.Join(closeErr, rowsErr)
 }
 
 func (s *Store) readerRows(ctx context.Context, nLines int) (*sql.Rows, error) {
