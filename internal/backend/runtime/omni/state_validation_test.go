@@ -203,9 +203,10 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 		t.Parallel()
 
 		type clusterVersions struct {
-			features          *specs.ClusterSpec_Features
-			talosVersion      string
-			kubernetesVersion string
+			features            *specs.ClusterSpec_Features
+			initialTalosVersion string
+			talosVersion        string
+			kubernetesVersion   string
 		}
 
 		type ongoingUpgrade struct {
@@ -362,6 +363,21 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 					toVersion:   "1.30.1",
 				},
 			},
+			{
+				name: "minor downgrade to lower version than initial version",
+				from: clusterVersions{
+					talosVersion:        "1.5.0",
+					initialTalosVersion: "1.5.0",
+					kubernetesVersion:   "1.30.0",
+				},
+				to: clusterVersions{
+					talosVersion:      "1.4.0",
+					kubernetesVersion: "1.30.0",
+				},
+				shouldFail:    true,
+				errorIs:       validated.IsValidationError,
+				errorContains: "downgrading from version \"1.5.0\" to \"1.4.0\" is not supported",
+			},
 		}
 
 		// update
@@ -373,16 +389,26 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 				clusterName := "test-cluster-" + GenerateRandomString(t, 6)
 
 				cluster := omnires.NewCluster(resources.DefaultNamespace, clusterName)
+				clusterConfigVersion := omnires.NewClusterConfigVersion(resources.DefaultNamespace, clusterName)
 
 				t.Cleanup(func() {
-					_ = innerSt.Destroy(ctx, cluster.Metadata()) //nolint:errcheck // ignore error on cleanup
+					_ = innerSt.Destroy(ctx, cluster.Metadata())              //nolint:errcheck // ignore error on cleanup
+					_ = innerSt.Destroy(ctx, clusterConfigVersion.Metadata()) //nolint:errcheck // ignore error on cleanup
 				})
 
 				cluster.TypedSpec().Value.TalosVersion = tc.from.talosVersion
 				cluster.TypedSpec().Value.KubernetesVersion = tc.from.kubernetesVersion
 				cluster.TypedSpec().Value.Features = tc.from.features
 
+				initialTalosVersion := tc.from.initialTalosVersion
+				if initialTalosVersion == "" {
+					initialTalosVersion = tc.from.talosVersion
+				}
+
+				clusterConfigVersion.TypedSpec().Value.Version = fmt.Sprintf("v%s", initialTalosVersion)
+
 				require.NoError(t, innerSt.Create(ctx, cluster))
+				require.NoError(t, innerSt.Create(ctx, clusterConfigVersion))
 
 				if tc.upgrading != nil {
 					kubernetesUpgrade := omnires.NewKubernetesUpgradeStatus(resources.DefaultNamespace, clusterName)

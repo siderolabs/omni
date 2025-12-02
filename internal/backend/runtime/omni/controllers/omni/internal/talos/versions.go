@@ -22,10 +22,15 @@ import (
 )
 
 // CalculateUpgradeVersions calculates the list of versions available for upgrade.
-func CalculateUpgradeVersions(ctx context.Context, r controller.Reader, currentVersion, kubernetesVersion string) ([]string, error) {
+func CalculateUpgradeVersions(ctx context.Context, r controller.Reader, initialVersion, currentVersion, kubernetesVersion string) ([]string, error) {
 	currentTalosVersion, err := compatibility.ParseTalosVersion(&machine.VersionInfo{
 		Tag: currentVersion,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("error parsing Talos version: %w", err)
+	}
+
+	initialTalosVersion, err := semver.ParseTolerant(initialVersion)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing Talos version: %w", err)
 	}
@@ -63,6 +68,13 @@ func CalculateUpgradeVersions(ctx context.Context, r controller.Reader, currentV
 		}
 
 		if candidate.UpgradeableFrom(currentTalosVersion) != nil || k8sVersion.SupportedWith(candidate) != nil {
+			delete(availableVersions, version)
+		}
+	}
+
+	// skip versions which are not compatible with the initial version of Talos
+	for version, candidate := range availableVersions {
+		if candidate.Major < initialTalosVersion.Major || (candidate.Major == initialTalosVersion.Major && candidate.Minor < initialTalosVersion.Minor) {
 			delete(availableVersions, version)
 		}
 	}

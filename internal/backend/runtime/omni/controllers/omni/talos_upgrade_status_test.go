@@ -7,12 +7,14 @@ package omni_test
 
 import (
 	"fmt"
+	"slices"
 	"testing"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	xmaps "github.com/siderolabs/gen/maps"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
@@ -32,7 +34,7 @@ func (suite *TalosUpgradeStatusSuite) TestReconcile() {
 
 	clusterName := "talos-upgrade-cluster"
 
-	cluster, machines := suite.createCluster(clusterName, 3, 1)
+	cluster, machines := suite.createClusterWithTalosVersion(clusterName, 3, 1, "1.11.3")
 
 	clusterStatus := omni.NewClusterStatus(resources.DefaultNamespace, clusterName)
 	clusterStatus.TypedSpec().Value.Available = true
@@ -40,6 +42,15 @@ func (suite *TalosUpgradeStatusSuite) TestReconcile() {
 	clusterStatus.TypedSpec().Value.Phase = specs.ClusterStatusSpec_RUNNING
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, clusterStatus))
+
+	talosVersions := map[string][]string{"1.10.0": {"1.29.1", "1.32.0", "1.33.0"}, "1.11.3": {"1.32.0", "1.33.0"}, "1.11.5": {"1.32.0", "1.33.0", "1.34.2"}}
+
+	for version, k8sVersions := range talosVersions {
+		versionRes := omni.NewTalosVersion(resources.DefaultNamespace, version)
+		versionRes.TypedSpec().Value.Version = version
+		versionRes.TypedSpec().Value.CompatibleKubernetesVersions = k8sVersions
+		suite.Require().NoError(suite.state.Create(suite.ctx, versionRes))
+	}
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosUpgradeStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
@@ -70,7 +81,7 @@ func (suite *TalosUpgradeStatusSuite) TestReconcile() {
 		&suite.OmniSuite,
 		*omni.NewTalosUpgradeStatus(resources.DefaultNamespace, clusterName).Metadata(),
 		func(res *omni.TalosUpgradeStatus, assertions *assert.Assertions) {
-			assertions.Equal(TalosVersion, res.TypedSpec().Value.LastUpgradeVersion)
+			assertions.Equal("1.11.3", res.TypedSpec().Value.LastUpgradeVersion)
 		},
 	)
 
@@ -83,7 +94,7 @@ func (suite *TalosUpgradeStatusSuite) TestReconcile() {
 	suite.Require().NoError(err)
 
 	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, cluster.Metadata(), func(res *omni.Cluster) error {
-		res.TypedSpec().Value.TalosVersion = "1.3.6"
+		res.TypedSpec().Value.TalosVersion = "1.11.5"
 
 		return nil
 	})
@@ -95,8 +106,8 @@ func (suite *TalosUpgradeStatusSuite) TestReconcile() {
 		*omni.NewTalosUpgradeStatus(resources.DefaultNamespace, clusterName).Metadata(),
 		func(res *omni.TalosUpgradeStatus, assertions *assert.Assertions) {
 			assertions.Equal("waiting for the cluster to be ready", res.TypedSpec().Value.Status)
-			assertions.Equal("1.3.6", res.TypedSpec().Value.CurrentUpgradeVersion)
-			assertions.Equal(TalosVersion, res.TypedSpec().Value.LastUpgradeVersion)
+			assertions.Equal("1.11.5", res.TypedSpec().Value.CurrentUpgradeVersion)
+			assertions.Equal("1.11.3", res.TypedSpec().Value.LastUpgradeVersion)
 		},
 	)
 
@@ -113,8 +124,8 @@ func (suite *TalosUpgradeStatusSuite) TestReconcile() {
 		*omni.NewTalosUpgradeStatus(resources.DefaultNamespace, clusterName).Metadata(),
 		func(res *omni.TalosUpgradeStatus, assertions *assert.Assertions) {
 			assertions.Equal("updating machines 1/4", res.TypedSpec().Value.Status)
-			assertions.Equal("1.3.6", res.TypedSpec().Value.CurrentUpgradeVersion)
-			assertions.Equal(TalosVersion, res.TypedSpec().Value.LastUpgradeVersion)
+			assertions.Equal("1.11.5", res.TypedSpec().Value.CurrentUpgradeVersion)
+			assertions.Equal("1.11.3", res.TypedSpec().Value.LastUpgradeVersion)
 		},
 	)
 
@@ -139,7 +150,7 @@ func (suite *TalosUpgradeStatusSuite) TestReconcile() {
 		configStatus.TypedSpec().Value.ClusterMachineConfigSha256 = "aaaa"
 
 		_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, configStatus.Metadata(), func(res *omni.ClusterMachineConfigStatus) error {
-			res.TypedSpec().Value.TalosVersion = "1.3.6"
+			res.TypedSpec().Value.TalosVersion = "1.11.5"
 			res.TypedSpec().Value.SchematicId = expectedSchematic
 
 			return nil
@@ -153,22 +164,25 @@ func (suite *TalosUpgradeStatusSuite) TestReconcile() {
 			func(res *omni.TalosUpgradeStatus, assertions *assert.Assertions) {
 				if i < len(machines)-1 {
 					assertions.Equal(fmt.Sprintf("updating machines %d/4", i+2), res.TypedSpec().Value.Status)
-					assertions.Equal("1.3.6", res.TypedSpec().Value.CurrentUpgradeVersion)
-					assertions.Equal(TalosVersion, res.TypedSpec().Value.LastUpgradeVersion)
+					assertions.Equal("1.11.5", res.TypedSpec().Value.CurrentUpgradeVersion)
+					assertions.Equal("1.11.3", res.TypedSpec().Value.LastUpgradeVersion)
 					assertions.Equal(specs.TalosUpgradeStatusSpec_Upgrading, res.TypedSpec().Value.Phase)
 				} else {
 					assertions.Empty(res.TypedSpec().Value.Step)
 					assertions.Empty(res.TypedSpec().Value.Error)
 					assertions.Empty(res.TypedSpec().Value.Status)
 					assertions.Empty(res.TypedSpec().Value.CurrentUpgradeVersion)
-					assertions.Equal("1.3.6", res.TypedSpec().Value.LastUpgradeVersion)
+					assertions.Equal("1.11.5", res.TypedSpec().Value.LastUpgradeVersion)
 					assertions.Equal(specs.TalosUpgradeStatusSpec_Done, res.TypedSpec().Value.Phase)
+					assertions.True(slices.Contains(res.TypedSpec().Value.UpgradeVersions, "1.11.3"))
+					assertions.False(slices.Contains(res.TypedSpec().Value.UpgradeVersions, "1.10.0"))
 				}
 			},
 		)
 	}
 
 	rtestutils.Destroy[*omni.ClusterMachine](suite.ctx, suite.T(), suite.state, []resource.ID{machines[0].Metadata().ID()})
+	rtestutils.Destroy[*omni.TalosVersion](suite.ctx, suite.T(), suite.state, xmaps.Keys(talosVersions))
 
 	assertNoResource(
 		&suite.OmniSuite,

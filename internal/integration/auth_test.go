@@ -818,6 +818,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
+				resource:       omni.NewClusterConfigVersion(resources.DefaultNamespace, uuid.New().String()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
 				resource:       omni.NewClusterDestroyStatus(resources.DefaultNamespace, uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
@@ -1132,9 +1136,6 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 
 		// no access resources
 		testCases = append(testCases, []resourceAuthzTestCase{
-			{
-				resource: omni.NewClusterConfigVersion(resources.DefaultNamespace, uuid.New().String()),
-			},
 			{
 				resource: oidc.NewJWTPublicKey(resources.DefaultNamespace, uuid.New().String()),
 			},

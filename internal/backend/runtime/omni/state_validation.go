@@ -68,6 +68,27 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 			return err
 		}
 
+		clusterConfigVersion, err := safe.StateGetByID[*omni.ClusterConfigVersion](ctx, st, res.Metadata().ID())
+		if err != nil && !state.IsNotFoundError(err) {
+			return fmt.Errorf("failed to get cluster config version: %w", err)
+		}
+
+		if existingRes != nil && clusterConfigVersion != nil {
+			initialTalosVersion, initialVersionErr := semver.ParseTolerant(clusterConfigVersion.TypedSpec().Value.Version)
+			if initialVersionErr != nil {
+				return fmt.Errorf("invalid initial talos version %q: %w", clusterConfigVersion.TypedSpec().Value.Version, initialVersionErr)
+			}
+
+			newTalosVersion, newVersionErr := semver.ParseTolerant(res.TypedSpec().Value.TalosVersion)
+			if newVersionErr != nil {
+				return fmt.Errorf("invalid current talos version %q: %w", res.TypedSpec().Value.TalosVersion, newVersionErr)
+			}
+
+			if newTalosVersion.Major < initialTalosVersion.Major || (newTalosVersion.Major == initialTalosVersion.Major && newTalosVersion.Minor < initialTalosVersion.Minor) {
+				return fmt.Errorf("downgrading from version %q to %q is not supported", initialTalosVersion.String(), res.TypedSpec().Value.TalosVersion)
+			}
+		}
+
 		if skipKubernetesVersion {
 			return nil
 		}

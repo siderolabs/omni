@@ -527,7 +527,7 @@ func (suite *OmniSuite) createCluster(clusterName string, controlPlanes, workers
 func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, controlPlanes, workers int, talosVersion string) (*omni.Cluster, []*omni.ClusterMachine) {
 	cluster := omni.NewCluster(resources.DefaultNamespace, clusterName)
 	cluster.TypedSpec().Value.TalosVersion = talosVersion
-	cluster.TypedSpec().Value.KubernetesVersion = "1.24.1"
+	cluster.TypedSpec().Value.KubernetesVersion = "1.32.0"
 
 	machines := make([]*omni.ClusterMachine, controlPlanes+workers)
 
@@ -543,8 +543,12 @@ func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, contro
 	cpMachineSet.TypedSpec().Value.UpdateStrategy = specs.MachineSetSpec_Rolling
 	workersMachineSet.TypedSpec().Value.UpdateStrategy = specs.MachineSetSpec_Rolling
 
+	clusterConfigVersion := omni.NewClusterConfigVersion(resources.DefaultNamespace, clusterName)
+	clusterConfigVersion.TypedSpec().Value.Version = fmt.Sprintf("v%s", talosVersion)
+
 	suite.Require().NoError(suite.state.Create(suite.ctx, cpMachineSet))
 	suite.Require().NoError(suite.state.Create(suite.ctx, workersMachineSet))
+	suite.Require().NoError(suite.state.Create(suite.ctx, clusterConfigVersion))
 
 	for i := range machines {
 		clusterMachine := omni.NewClusterMachine(
@@ -671,6 +675,7 @@ func (suite *OmniSuite) destroyClusterByID(clusterID string) {
 		rtestutils.Destroy[*omni.MachineSet](ctx, suite.T(), suite.state, []string{ms.Metadata().ID()})
 	}
 
+	rtestutils.Destroy[*omni.ClusterConfigVersion](ctx, suite.T(), suite.state, []string{clusterID})
 	rtestutils.Destroy[*omni.Cluster](ctx, suite.T(), suite.state, []string{clusterID})
 
 	assertNoResource[*omni.BackupData](suite, omni.NewBackupData(clusterID))

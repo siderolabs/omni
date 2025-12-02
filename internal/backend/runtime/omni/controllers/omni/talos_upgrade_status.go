@@ -129,6 +129,9 @@ func NewTalosUpgradeStatusController() *TalosUpgradeStatusController {
 		qtransform.WithExtraMappedInput[*omni.SchematicConfiguration](
 			mappers.MapByClusterLabel[*omni.Cluster](),
 		),
+		qtransform.WithExtraMappedInput[*omni.ClusterConfigVersion](
+			qtransform.MapperNone(),
+		),
 		qtransform.WithExtraMappedInput[*omni.ClusterMachineConfigStatus](
 			qtransform.MapperFuncFromTyped[*omni.ClusterMachineConfigStatus](
 				func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, cmcs *omni.ClusterMachineConfigStatus) ([]resource.Pointer, error) {
@@ -361,9 +364,18 @@ func reconcileTalosUpdateStatus(ctx context.Context, r controller.ReaderWriter,
 		upgradeStatus.TypedSpec().Value.CurrentUpgradeVersion = ""
 		upgradeStatus.TypedSpec().Value.LastUpgradeVersion = talosVersion
 
+		clusterConfigVersion, err := safe.ReaderGetByID[*omni.ClusterConfigVersion](ctx, r, cluster.Metadata().ID())
+		if err != nil {
+			if state.IsNotFoundError(err) {
+				return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
+			}
+
+			return err
+		}
+
 		// upgrade is done, so calculate the upgrade versions
 		upgradeStatus.TypedSpec().Value.UpgradeVersions, err = talos.CalculateUpgradeVersions(
-			ctx, r, upgradeStatus.TypedSpec().Value.LastUpgradeVersion, cluster.TypedSpec().Value.KubernetesVersion)
+			ctx, r, clusterConfigVersion.TypedSpec().Value.Version, upgradeStatus.TypedSpec().Value.LastUpgradeVersion, cluster.TypedSpec().Value.KubernetesVersion)
 		if err != nil {
 			return err
 		}

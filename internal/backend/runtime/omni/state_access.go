@@ -375,6 +375,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 	case
 		omni.ClusterType,
 		omni.ClusterBootstrapStatusType,
+		omni.ClusterConfigVersionType,
 		omni.ClusterDestroyStatusType,
 		omni.ClusterEndpointType,
 		omni.ClusterKubernetesNodesType,
@@ -547,6 +548,7 @@ func filterAccessByType(access state.Access) error {
 		return status.Error(codes.PermissionDenied, "only read, update and delete access is permitted")
 	case
 		omni.ClusterBootstrapStatusType,
+		omni.ClusterConfigVersionType,
 		omni.ClusterDestroyStatusType,
 		omni.ClusterEndpointType,
 		omni.ClusterKubernetesNodesType,
