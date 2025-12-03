@@ -305,7 +305,7 @@ const rootItems = computed(() => {
 
     if (featuresConfig.value?.spec.stripe_settings?.enabled) {
       subItems.push({
-        name: 'Stripe',
+        name: 'Billing',
         route: 'https://billing.stripe.com/p/login/8wMcOC8z51GgdPi144',
         regularLink: true,
         icon: 'dashboard',
