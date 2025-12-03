@@ -124,6 +124,7 @@ func newPlatformConfig(platform platforms.Platform) *specs.PlatformConfigSpec {
 	spec.Documentation = platform.Documentation
 	spec.Architectures = platform.Architectures
 	spec.DiskImageSuffix = platform.DiskImageSuffix
+	spec.SecureBootSupported = platform.SecureBootSupported
 
 	for _, bootMethod := range platform.BootMethods {
 		switch bootMethod {

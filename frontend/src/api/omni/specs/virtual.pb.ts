@@ -66,6 +66,7 @@ export type PlatformConfigSpec = {
   disk_image_suffix?: string
   boot_methods?: PlatformConfigSpecBootMethod[]
   min_version?: string
+  secure_boot_supported?: boolean
 }
 
 export type SBCConfigSpec = {

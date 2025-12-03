@@ -165,6 +165,7 @@ func (m *PlatformConfigSpec) CloneVT() *PlatformConfigSpec {
 	r.Documentation = m.Documentation
 	r.DiskImageSuffix = m.DiskImageSuffix
 	r.MinVersion = m.MinVersion
+	r.SecureBootSupported = m.SecureBootSupported
 	if rhs := m.Architectures; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -450,6 +451,9 @@ func (this *PlatformConfigSpec) EqualVT(that *PlatformConfigSpec) bool {
 		}
 	}
 	if this.MinVersion != that.MinVersion {
+		return false
+	}
+	if this.SecureBootSupported != that.SecureBootSupported {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1010,6 +1014,16 @@ func (m *PlatformConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.SecureBootSupported {
+		i--
+		if m.SecureBootSupported {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x40
+	}
 	if len(m.MinVersion) > 0 {
 		i -= len(m.MinVersion)
 		copy(dAtA[i:], m.MinVersion)
@@ -1348,6 +1362,9 @@ func (m *PlatformConfigSpec) SizeVT() (n int) {
 	l = len(m.MinVersion)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.SecureBootSupported {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -2728,6 +2745,26 @@ func (m *PlatformConfigSpec) UnmarshalVT(dAtA []byte) error {
 			}
 			m.MinVersion = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SecureBootSupported", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.SecureBootSupported = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

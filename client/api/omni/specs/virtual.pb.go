@@ -479,16 +479,17 @@ func (x *AdvertisedEndpointsSpec) GetGrpcApiUrl() string {
 }
 
 type PlatformConfigSpec struct {
-	state           protoimpl.MessageState          `protogen:"open.v1"`
-	Label           string                          `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
-	Description     string                          `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	Architectures   []string                        `protobuf:"bytes,3,rep,name=architectures,proto3" json:"architectures,omitempty"`
-	Documentation   string                          `protobuf:"bytes,4,opt,name=documentation,proto3" json:"documentation,omitempty"`
-	DiskImageSuffix string                          `protobuf:"bytes,5,opt,name=disk_image_suffix,json=diskImageSuffix,proto3" json:"disk_image_suffix,omitempty"`
-	BootMethods     []PlatformConfigSpec_BootMethod `protobuf:"varint,6,rep,packed,name=boot_methods,json=bootMethods,proto3,enum=specs.PlatformConfigSpec_BootMethod" json:"boot_methods,omitempty"`
-	MinVersion      string                          `protobuf:"bytes,7,opt,name=min_version,json=minVersion,proto3" json:"min_version,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state               protoimpl.MessageState          `protogen:"open.v1"`
+	Label               string                          `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
+	Description         string                          `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	Architectures       []string                        `protobuf:"bytes,3,rep,name=architectures,proto3" json:"architectures,omitempty"`
+	Documentation       string                          `protobuf:"bytes,4,opt,name=documentation,proto3" json:"documentation,omitempty"`
+	DiskImageSuffix     string                          `protobuf:"bytes,5,opt,name=disk_image_suffix,json=diskImageSuffix,proto3" json:"disk_image_suffix,omitempty"`
+	BootMethods         []PlatformConfigSpec_BootMethod `protobuf:"varint,6,rep,packed,name=boot_methods,json=bootMethods,proto3,enum=specs.PlatformConfigSpec_BootMethod" json:"boot_methods,omitempty"`
+	MinVersion          string                          `protobuf:"bytes,7,opt,name=min_version,json=minVersion,proto3" json:"min_version,omitempty"`
+	SecureBootSupported bool                            `protobuf:"varint,8,opt,name=secure_boot_supported,json=secureBootSupported,proto3" json:"secure_boot_supported,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *PlatformConfigSpec) Reset() {
@@ -568,6 +569,13 @@ func (x *PlatformConfigSpec) GetMinVersion() string {
 		return x.MinVersion
 	}
 	return ""
+}
+
+func (x *PlatformConfigSpec) GetSecureBootSupported() bool {
+	if x != nil {
+		return x.SecureBootSupported
+	}
+	return false
 }
 
 type SBCConfigSpec struct {
@@ -736,7 +744,7 @@ const file_omni_specs_virtual_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v2\".specs.LabelsCompletionSpec.ValuesR\x05value:\x028\x01\";\n" +
 	"\x17AdvertisedEndpointsSpec\x12 \n" +
 	"\fgrpc_api_url\x18\x01 \x01(\tR\n" +
-	"grpcApiUrl\"\xeb\x02\n" +
+	"grpcApiUrl\"\x9f\x03\n" +
 	"\x12PlatformConfigSpec\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12$\n" +
@@ -745,7 +753,8 @@ const file_omni_specs_virtual_proto_rawDesc = "" +
 	"\x11disk_image_suffix\x18\x05 \x01(\tR\x0fdiskImageSuffix\x12G\n" +
 	"\fboot_methods\x18\x06 \x03(\x0e2$.specs.PlatformConfigSpec.BootMethodR\vbootMethods\x12\x1f\n" +
 	"\vmin_version\x18\a \x01(\tR\n" +
-	"minVersion\";\n" +
+	"minVersion\x122\n" +
+	"\x15secure_boot_supported\x18\b \x01(\bR\x13secureBootSupported\";\n" +
 	"\n" +
 	"BootMethod\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\x0e\n" +

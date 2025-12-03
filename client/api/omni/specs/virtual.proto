@@ -66,6 +66,7 @@ message PlatformConfigSpec {
   string disk_image_suffix = 5;
   repeated BootMethod boot_methods = 6;
   string min_version = 7;
+  bool secure_boot_supported = 8;
 }
 
 message SBCConfigSpec {

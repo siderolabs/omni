@@ -5,12 +5,17 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { gte } from 'semver'
 import { computed } from 'vue'
 
+import { Runtime } from '@/api/common/omni.pb'
+import type { PlatformConfigSpec } from '@/api/omni/specs/virtual.pb'
+import { CloudPlatformConfigType, VirtualNamespace } from '@/api/resources'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import RadioGroup from '@/components/common/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/common/Radio/RadioGroupOption.vue'
 import { getDocsLink } from '@/methods'
+import { useResourceList } from '@/methods/useResourceList'
 import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
 
 const formState = defineModel<FormState>({ required: true })
@@ -19,6 +24,30 @@ const secureBootDocsLink = computed(() =>
   getDocsLink('talos', '/platform-specific-installations/bare-metal-platforms', {
     talosVersion: formState.value.talosVersion,
   }),
+)
+
+const isGte1_5 = computed(
+  () => formState.value.talosVersion && gte(formState.value.talosVersion, '1.5.0'),
+)
+
+const { data: cloudProviders } = useResourceList<PlatformConfigSpec>(() => ({
+  skip: !isGte1_5.value || formState.value.hardwareType === 'sbc',
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: VirtualNamespace,
+    type: CloudPlatformConfigType,
+  },
+}))
+
+const selectedCloudProvider = computed(() =>
+  cloudProviders.value?.find((provider) => formState.value.cloudPlatform === provider.metadata.id),
+)
+
+const secureBootSupported = computed(
+  () =>
+    isGte1_5.value &&
+    (formState.value.hardwareType === 'metal' ||
+      selectedCloudProvider.value?.spec.secure_boot_supported),
 )
 </script>
 
@@ -44,7 +73,7 @@ const secureBootDocsLink = computed(() =>
       </RadioGroupOption>
     </RadioGroup>
 
-    <TCheckbox v-if="formState.hardwareType !== 'cloud'" v-model="formState.secureBoot">
+    <TCheckbox v-if="secureBootSupported" v-model="formState.secureBoot">
       <div class="flex flex-col">
         <span class="font-medium text-naturals-n14">SecureBoot</span>
         <span>
