@@ -6,22 +6,16 @@ included in the LICENSE file.
 -->
 <script lang="ts">
 const flows = {
-  metal: [
-    TalosVersionStep,
-    MachineArchStep,
-    SystemExtensionsStep,
-    ExternalArgsStep,
-    ConfirmationStep,
-  ],
+  metal: [TalosVersionStep, MachineArchStep, SystemExtensionsStep, ExtraArgsStep, ConfirmationStep],
   cloud: [
     TalosVersionStep,
     CloudProviderStep,
     MachineArchStep,
     SystemExtensionsStep,
-    ExternalArgsStep,
+    ExtraArgsStep,
     ConfirmationStep,
   ],
-  sbc: [TalosVersionStep, SBCTypeStep, SystemExtensionsStep, ExternalArgsStep, ConfirmationStep],
+  sbc: [TalosVersionStep, SBCTypeStep, SystemExtensionsStep, ExtraArgsStep, ConfirmationStep],
 } satisfies Record<string, Component[]>
 
 type FlowType = keyof typeof flows
@@ -52,7 +46,7 @@ import Stepper from '@/components/common/Stepper/Stepper.vue'
 import CloudProviderStep from '@/views/omni/InstallationMedia/Steps/CloudProvider.vue'
 import ConfirmationStep from '@/views/omni/InstallationMedia/Steps/Confirmation.vue'
 import EntryStep from '@/views/omni/InstallationMedia/Steps/Entry.vue'
-import ExternalArgsStep from '@/views/omni/InstallationMedia/Steps/ExternalArgs.vue'
+import ExtraArgsStep from '@/views/omni/InstallationMedia/Steps/ExtraArgs.vue'
 import MachineArchStep from '@/views/omni/InstallationMedia/Steps/MachineArch.vue'
 import SBCTypeStep from '@/views/omni/InstallationMedia/Steps/SBCType.vue'
 import SystemExtensionsStep from '@/views/omni/InstallationMedia/Steps/SystemExtensions.vue'
