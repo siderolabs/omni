@@ -37,6 +37,8 @@ export interface FormState {
   cloudPlatform?: string
   sbcType?: string
   systemExtensions?: string[]
+  selectedCmdline?: string
+  selectedOverlayOptions?: string
 }
 </script>
 
