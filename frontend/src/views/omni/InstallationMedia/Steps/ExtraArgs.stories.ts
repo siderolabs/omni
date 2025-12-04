@@ -11,7 +11,7 @@ import type { ListRequest } from '@/api/omni/resources/resources.pb'
 import type { SBCConfigSpec } from '@/api/omni/specs/virtual.pb'
 import { DefaultTalosVersion, SBCConfigType, VirtualNamespace } from '@/api/resources'
 
-import ExternalArgs from './ExternalArgs.vue'
+import ExtraArgs from './ExtraArgs.vue'
 
 const SBCs = faker.helpers.multiple<Resource<SBCConfigSpec>>(
   () => ({
@@ -28,8 +28,8 @@ const SBCs = faker.helpers.multiple<Resource<SBCConfigSpec>>(
   { count: 20 },
 )
 
-const meta: Meta<typeof ExternalArgs> = {
-  component: ExternalArgs,
+const meta: Meta<typeof ExtraArgs> = {
+  component: ExtraArgs,
   args: {
     modelValue: { currentStep: 0, talosVersion: DefaultTalosVersion },
   },
