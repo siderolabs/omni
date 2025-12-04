@@ -7,16 +7,37 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { http, HttpResponse } from 'msw'
 
 import type { Resource } from '@/api/grpc'
-import type { ListRequest } from '@/api/omni/resources/resources.pb'
-import type { PlatformConfigSpec } from '@/api/omni/specs/virtual.pb'
-import { CloudPlatformConfigType, VirtualNamespace } from '@/api/resources'
+import type { GetRequest, ListRequest } from '@/api/omni/resources/resources.pb'
+import { type PlatformConfigSpec, PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
+import { CloudPlatformConfigType, MetalPlatformConfigType, VirtualNamespace } from '@/api/resources'
 
 import MachineArch from './MachineArch.vue'
+
+const cloudProviders = faker.helpers.multiple<Resource<PlatformConfigSpec>>(
+  () => ({
+    metadata: {
+      namespace: VirtualNamespace,
+      type: CloudPlatformConfigType,
+      id: faker.string.uuid(),
+    },
+    spec: {
+      label: faker.commerce.productName(),
+      description: faker.commerce.productDescription(),
+      documentation: faker.helpers.maybe(() => faker.system.directoryPath()),
+      architectures: faker.helpers.arrayElements(
+        faker.helpers.uniqueArray(() => faker.helpers.enumValue(PlatformConfigSpecArch), 2),
+        { min: 1, max: 2 },
+      ),
+      secure_boot_supported: faker.datatype.boolean(),
+    },
+  }),
+  { count: 20 },
+)
 
 const meta: Meta<typeof MachineArch> = {
   component: MachineArch,
   args: {
-    modelValue: { currentStep: 0 },
+    modelValue: { currentStep: 0, hardwareType: 'metal' },
   },
 }
 
@@ -27,6 +48,29 @@ export const Default = {
   parameters: {
     msw: {
       handlers: [
+        http.post<never, GetRequest>('/omni.resources.ResourceService/Get', async ({ request }) => {
+          const { type, namespace } = await request.clone().json()
+
+          if (type !== MetalPlatformConfigType || namespace !== VirtualNamespace) return
+
+          return HttpResponse.json({
+            body: JSON.stringify({
+              metadata: {
+                namespace: VirtualNamespace,
+                type: MetalPlatformConfigType,
+                id: faker.string.uuid(),
+              },
+              spec: {
+                label: faker.commerce.productName(),
+                description: faker.commerce.productDescription(),
+                documentation: faker.system.directoryPath(),
+                architectures: [PlatformConfigSpecArch.AMD64, PlatformConfigSpecArch.ARM64],
+                secure_boot_supported: false,
+              },
+            } satisfies Resource<PlatformConfigSpec>),
+          })
+        }),
+
         http.post<never, ListRequest>(
           '/omni.resources.ResourceService/List',
           async ({ request }) => {
@@ -34,26 +78,9 @@ export const Default = {
 
             if (type !== CloudPlatformConfigType || namespace !== VirtualNamespace) return
 
-            const items = faker.helpers.multiple<Resource<PlatformConfigSpec>>(
-              () => ({
-                metadata: {
-                  namespace: VirtualNamespace,
-                  type: CloudPlatformConfigType,
-                  id: faker.string.uuid(),
-                },
-                spec: {
-                  label: faker.commerce.productName(),
-                  description: faker.commerce.productDescription(),
-                  documentation: faker.helpers.maybe(() => faker.system.directoryPath()),
-                  secure_boot_supported: faker.datatype.boolean(),
-                },
-              }),
-              { count: 20 },
-            )
-
             return HttpResponse.json({
-              items: items.map((item) => JSON.stringify(item)),
-              total: items.length,
+              items: cloudProviders.map((item) => JSON.stringify(item)),
+              total: cloudProviders.length,
             })
           },
         ),
@@ -63,10 +90,12 @@ export const Default = {
 } satisfies Story
 
 export const ForCloud: Story = {
+  ...Default,
   args: {
     modelValue: {
       currentStep: 0,
       hardwareType: 'cloud',
+      cloudPlatform: cloudProviders[0].metadata.id,
     },
   },
 }

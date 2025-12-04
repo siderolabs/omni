@@ -122,9 +122,17 @@ func newPlatformConfig(platform platforms.Platform) *specs.PlatformConfigSpec {
 	spec.Label = platform.Label
 	spec.Description = platform.Description
 	spec.Documentation = platform.Documentation
-	spec.Architectures = platform.Architectures
 	spec.DiskImageSuffix = platform.DiskImageSuffix
 	spec.SecureBootSupported = platform.SecureBootSupported
+
+	for _, arch := range platform.Architectures {
+		switch arch {
+		case platforms.ArchAmd64:
+			spec.Architectures = append(spec.Architectures, specs.PlatformConfigSpec_AMD64)
+		case platforms.ArchArm64:
+			spec.Architectures = append(spec.Architectures, specs.PlatformConfigSpec_ARM64)
+		}
+	}
 
 	for _, bootMethod := range platform.BootMethods {
 		switch bootMethod {

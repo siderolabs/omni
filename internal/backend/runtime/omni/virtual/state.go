@@ -81,7 +81,7 @@ func (v *State) Get(ctx context.Context, ptr resource.Pointer, opts ...state.Get
 
 		return v.currentUser(ctx)
 	case virtual.MetalPlatformConfigType:
-		res, err := configs.GetCloudPlatformConfig(ptr)
+		res, err := configs.GetMetalPlatformConfig(ptr)
 		if err != nil {
 			return nil, err
 		}

@@ -167,7 +167,7 @@ func (m *PlatformConfigSpec) CloneVT() *PlatformConfigSpec {
 	r.MinVersion = m.MinVersion
 	r.SecureBootSupported = m.SecureBootSupported
 	if rhs := m.Architectures; rhs != nil {
-		tmpContainer := make([]string, len(rhs))
+		tmpContainer := make([]PlatformConfigSpec_Arch, len(rhs))
 		copy(tmpContainer, rhs)
 		r.Architectures = tmpContainer
 	}
@@ -1067,13 +1067,25 @@ func (m *PlatformConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		dAtA[i] = 0x22
 	}
 	if len(m.Architectures) > 0 {
-		for iNdEx := len(m.Architectures) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Architectures[iNdEx])
-			copy(dAtA[i:], m.Architectures[iNdEx])
-			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Architectures[iNdEx])))
-			i--
-			dAtA[i] = 0x1a
+		var pksize4 int
+		for _, num := range m.Architectures {
+			pksize4 += protohelpers.SizeOfVarint(uint64(num))
 		}
+		i -= pksize4
+		j3 := i
+		for _, num1 := range m.Architectures {
+			num := uint64(num1)
+			for num >= 1<<7 {
+				dAtA[j3] = uint8(uint64(num)&0x7f | 0x80)
+				num >>= 7
+				j3++
+			}
+			dAtA[j3] = uint8(num)
+			j3++
+		}
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(pksize4))
+		i--
+		dAtA[i] = 0x1a
 	}
 	if len(m.Description) > 0 {
 		i -= len(m.Description)
@@ -1339,10 +1351,11 @@ func (m *PlatformConfigSpec) SizeVT() (n int) {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	if len(m.Architectures) > 0 {
-		for _, s := range m.Architectures {
-			l = len(s)
-			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		l = 0
+		for _, e := range m.Architectures {
+			l += protohelpers.SizeOfVarint(uint64(e))
 		}
+		n += 1 + protohelpers.SizeOfVarint(uint64(l)) + l
 	}
 	l = len(m.Documentation)
 	if l > 0 {
@@ -2549,37 +2562,74 @@ func (m *PlatformConfigSpec) UnmarshalVT(dAtA []byte) error {
 			m.Description = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Architectures", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
+			if wireType == 0 {
+				var v PlatformConfigSpec_Arch
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protohelpers.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					v |= PlatformConfigSpec_Arch(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
 				}
-				if iNdEx >= l {
+				m.Architectures = append(m.Architectures, v)
+			} else if wireType == 2 {
+				var packedLen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protohelpers.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					packedLen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if packedLen < 0 {
+					return protohelpers.ErrInvalidLength
+				}
+				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return protohelpers.ErrInvalidLength
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
+				var elementCount int
+				if elementCount != 0 && len(m.Architectures) == 0 {
+					m.Architectures = make([]PlatformConfigSpec_Arch, 0, elementCount)
 				}
+				for iNdEx < postIndex {
+					var v PlatformConfigSpec_Arch
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return protohelpers.ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						v |= PlatformConfigSpec_Arch(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					m.Architectures = append(m.Architectures, v)
+				}
+			} else {
+				return fmt.Errorf("proto: wrong wireType = %d for field Architectures", wireType)
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Architectures = append(m.Architectures, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Documentation", wireType)

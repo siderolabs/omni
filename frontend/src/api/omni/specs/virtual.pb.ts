@@ -11,6 +11,11 @@ export enum PlatformConfigSpecBootMethod {
   PXE = 3,
 }
 
+export enum PlatformConfigSpecArch {
+  AMD64 = 0,
+  ARM64 = 1,
+}
+
 export type CurrentUserSpec = {
   identity?: string
   role?: string
@@ -61,7 +66,7 @@ export type AdvertisedEndpointsSpec = {
 export type PlatformConfigSpec = {
   label?: string
   description?: string
-  architectures?: string[]
+  architectures?: PlatformConfigSpecArch[]
   documentation?: string
   disk_image_suffix?: string
   boot_methods?: PlatformConfigSpecBootMethod[]

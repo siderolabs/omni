@@ -32,7 +32,7 @@ export interface FormState {
   hardwareType?: FlowType
   talosVersion?: string
   joinToken?: string
-  machineArch?: 'amd64' | 'arm64'
+  machineArch?: PlatformConfigSpecArch
   secureBoot?: boolean
   cloudPlatform?: string
   sbcType?: string
@@ -44,6 +44,7 @@ export interface FormState {
 import { useSessionStorage } from '@vueuse/core'
 import { type Component, computed } from 'vue'
 
+import type { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
 import TButton from '@/components/common/Button/TButton.vue'
 import Stepper from '@/components/common/Stepper/Stepper.vue'
 import CloudProviderStep from '@/views/omni/InstallationMedia/Steps/CloudProvider.vue'

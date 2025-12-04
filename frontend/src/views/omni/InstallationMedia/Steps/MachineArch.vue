@@ -9,12 +9,13 @@ import { gte } from 'semver'
 import { computed } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { PlatformConfigSpec } from '@/api/omni/specs/virtual.pb'
-import { CloudPlatformConfigType, VirtualNamespace } from '@/api/resources'
+import { type PlatformConfigSpec, PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
+import { CloudPlatformConfigType, MetalPlatformConfigType, VirtualNamespace } from '@/api/resources'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import RadioGroup from '@/components/common/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/common/Radio/RadioGroupOption.vue'
 import { getDocsLink } from '@/methods'
+import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceList } from '@/methods/useResourceList'
 import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
 
@@ -26,12 +27,18 @@ const secureBootDocsLink = computed(() =>
   }),
 )
 
-const isGte1_5 = computed(
-  () => formState.value.talosVersion && gte(formState.value.talosVersion, '1.5.0'),
-)
+const { data: metalProvider } = useResourceGet<PlatformConfigSpec>(() => ({
+  skip: formState.value.hardwareType !== 'metal',
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: VirtualNamespace,
+    type: MetalPlatformConfigType,
+    id: 'metal',
+  },
+}))
 
 const { data: cloudProviders } = useResourceList<PlatformConfigSpec>(() => ({
-  skip: !isGte1_5.value || formState.value.hardwareType === 'sbc',
+  skip: formState.value.hardwareType !== 'cloud',
   runtime: Runtime.Omni,
   resource: {
     namespace: VirtualNamespace,
@@ -43,18 +50,38 @@ const selectedCloudProvider = computed(() =>
   cloudProviders.value?.find((provider) => formState.value.cloudPlatform === provider.metadata.id),
 )
 
+const isGte1_5 = computed(
+  () => formState.value.talosVersion && gte(formState.value.talosVersion, '1.5.0'),
+)
+
 const secureBootSupported = computed(
   () =>
     isGte1_5.value &&
     (formState.value.hardwareType === 'metal' ||
       selectedCloudProvider.value?.spec.secure_boot_supported),
 )
+
+const supportedArchitectures = computed(() => {
+  switch (formState.value.hardwareType) {
+    case 'sbc':
+      return [PlatformConfigSpecArch.ARM64]
+    case 'metal':
+      return metalProvider.value?.spec.architectures ?? []
+    case 'cloud':
+      return selectedCloudProvider.value?.spec.architectures ?? []
+    default:
+      return []
+  }
+})
 </script>
 
 <template>
   <div class="flex flex-col gap-4">
     <RadioGroup v-model="formState.machineArch" label="Machine Architecture">
-      <RadioGroupOption value="amd64">
+      <RadioGroupOption
+        v-if="supportedArchitectures.includes(PlatformConfigSpecArch.AMD64)"
+        :value="PlatformConfigSpecArch.AMD64"
+      >
         amd64
 
         <template #description>
@@ -63,7 +90,10 @@ const secureBootSupported = computed(
         </template>
       </RadioGroupOption>
 
-      <RadioGroupOption value="arm64">
+      <RadioGroupOption
+        v-if="supportedArchitectures.includes(PlatformConfigSpecArch.ARM64)"
+        :value="PlatformConfigSpecArch.ARM64"
+      >
         arm64
 
         <template #description>
