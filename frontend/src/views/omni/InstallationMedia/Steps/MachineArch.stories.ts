@@ -29,6 +29,9 @@ const cloudProviders = faker.helpers.multiple<Resource<PlatformConfigSpec>>(
         { min: 1, max: 2 },
       ),
       secure_boot_supported: faker.datatype.boolean(),
+      min_version: faker.helpers.maybe(
+        () => `1.${faker.number.int({ min: 6, max: 11 })}.${faker.number.int({ min: 0, max: 10 })}`,
+      ),
     },
   }),
   { count: 20 },

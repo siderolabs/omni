@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { gte } from 'semver'
 import { computed } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -28,13 +29,19 @@ const { data } = useResourceList<SBCConfigSpec>({
 })
 
 const SBCs = computed(() =>
-  data.value?.map((sbc) => ({
-    ...sbc,
-    spec: {
-      ...sbc.spec,
-      documentation: sbc.spec.documentation && getLegacyDocsLink(sbc.spec.documentation),
-    },
-  })),
+  data.value
+    ?.filter(
+      (sbc) =>
+        !sbc.spec.min_version ||
+        (formState.value.talosVersion && gte(formState.value.talosVersion, sbc.spec.min_version)),
+    )
+    .map((sbc) => ({
+      ...sbc,
+      spec: {
+        ...sbc.spec,
+        documentation: sbc.spec.documentation && getLegacyDocsLink(sbc.spec.documentation),
+      },
+    })),
 )
 </script>
 

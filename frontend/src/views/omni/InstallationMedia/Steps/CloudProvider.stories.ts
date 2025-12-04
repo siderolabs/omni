@@ -8,7 +8,7 @@ import { http, HttpResponse } from 'msw'
 
 import type { Resource } from '@/api/grpc'
 import type { ListRequest } from '@/api/omni/resources/resources.pb'
-import type { PlatformConfigSpec } from '@/api/omni/specs/virtual.pb'
+import { type PlatformConfigSpec, PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
 import { CloudPlatformConfigType, VirtualNamespace } from '@/api/resources'
 
 import CloudProvider from './CloudProvider.vue'
@@ -45,6 +45,18 @@ export const Default = {
                   label: faker.commerce.productName(),
                   description: faker.commerce.productDescription(),
                   documentation: faker.helpers.maybe(() => faker.system.directoryPath()),
+                  architectures: faker.helpers.arrayElements(
+                    faker.helpers.uniqueArray(
+                      () => faker.helpers.enumValue(PlatformConfigSpecArch),
+                      2,
+                    ),
+                    { min: 1, max: 2 },
+                  ),
+                  secure_boot_supported: faker.datatype.boolean(),
+                  min_version: faker.helpers.maybe(
+                    () =>
+                      `1.${faker.number.int({ min: 6, max: 11 })}.${faker.number.int({ min: 0, max: 10 })}`,
+                  ),
                 },
               }),
               { count: 20 },
