@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { gte } from 'semver'
 import { computed } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -28,13 +29,19 @@ const { data } = useResourceList<PlatformConfigSpec>({
 })
 
 const platforms = computed(() =>
-  data.value?.map((p) => ({
-    ...p,
-    spec: {
-      ...p.spec,
-      documentation: p.spec.documentation && getLegacyDocsLink(p.spec.documentation),
-    },
-  })),
+  data.value
+    ?.filter(
+      (p) =>
+        !p.spec.min_version ||
+        (formState.value.talosVersion && gte(formState.value.talosVersion, p.spec.min_version)),
+    )
+    .map((p) => ({
+      ...p,
+      spec: {
+        ...p.spec,
+        documentation: p.spec.documentation && getLegacyDocsLink(p.spec.documentation),
+      },
+    })),
 )
 </script>
 

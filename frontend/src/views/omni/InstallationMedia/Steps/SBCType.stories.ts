@@ -44,6 +44,10 @@ export const Default = {
                 spec: {
                   label: faker.commerce.productName(),
                   documentation: faker.helpers.maybe(() => faker.system.directoryPath()),
+                  min_version: faker.helpers.maybe(
+                    () =>
+                      `1.${faker.number.int({ min: 6, max: 11 })}.${faker.number.int({ min: 0, max: 10 })}`,
+                  ),
                 },
               }),
               { count: 20 },
