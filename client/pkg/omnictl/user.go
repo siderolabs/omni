@@ -4,8 +4,12 @@
 
 package omnictl
 
-import "github.com/siderolabs/omni/client/pkg/omnictl/user"
+import (
+	"github.com/siderolabs/omni/client/pkg/omnictl/machine"
+	"github.com/siderolabs/omni/client/pkg/omnictl/user"
+)
 
 func init() {
 	RootCmd.AddCommand(user.RootCmd())
+	RootCmd.AddCommand(machine.RootCmd())
 }
