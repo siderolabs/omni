@@ -33,6 +33,7 @@ export interface FormState {
   systemExtensions?: string[]
   selectedCmdline?: string
   selectedOverlayOptions?: string
+  bootloader?: string
 }
 </script>
 
