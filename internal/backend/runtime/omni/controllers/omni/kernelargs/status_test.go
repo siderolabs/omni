@@ -89,6 +89,30 @@ func TestReconcile(t *testing.T) {
 			assert.Equal(t, "current cmdline", res.TypedSpec().Value.CurrentCmdline)
 		})
 
+		// Make the machine non-UKI, add the machine to a cluster with GrubUseUkiCmdline set to false in its config.
+		// Assert that the machine does not support updating the kernel args.
+		cmc := omni.NewClusterMachineConfig(resources.DefaultNamespace, id)
+		require.NoError(t, testContext.State.Create(ctx, cmc))
+
+		_, err = safe.StateUpdateWithConflicts(ctx, testContext.State, ms.Metadata(), func(res *omni.MachineStatus) error {
+			res.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
+			res.TypedSpec().Value.TalosVersion = "1.12.0"
+			res.TypedSpec().Value.SecurityState = &specs.SecurityState{BootedWithUki: false}
+
+			return nil
+		})
+		require.NoError(t, err)
+
+		rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.KernelArgsStatus, assertion *assert.Assertions) {
+			assertion.Equal([]string{
+				"Unsupported: machine is not booted with UKI and Talos version is < 1.12 or GrubUseUKICmdline is false",
+			}, res.TypedSpec().Value.UnmetConditions)
+		})
+
+		// Update the cluster config to set GrubUseUkiCmdline to true. Assert that the machine now supports updating the kernel args, despite being non-UKI.
+		cmc.TypedSpec().Value.GrubUseUkiCmdline = true
+		require.NoError(t, testContext.State.Update(ctx, cmc))
+
 		args := omni.NewKernelArgs(id)
 		args.TypedSpec().Value.Args = []string{"updated-arg-1", "updated-arg-2"}
 

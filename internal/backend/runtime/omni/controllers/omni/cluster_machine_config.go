@@ -252,8 +252,15 @@ func reconcileClusterMachineConfig(
 		configGenOptions = append(configGenOptions, generate.WithRegistryMirror(hostname, endpoint))
 	}
 
-	data, err := helper.generateConfig(clusterMachine, clusterMachineConfigPatches, secrets, loadBalancerConfig,
+	conf, err := helper.generateConfig(clusterMachine, clusterMachineConfigPatches, secrets, loadBalancerConfig,
 		cluster, clusterConfigVersion, machineConfigGenOptions, configGenOptions, machineJoinConfig)
+	if err != nil {
+		machineConfig.TypedSpec().Value.GenerationError = err.Error()
+
+		return nil //nolint:nilerr
+	}
+
+	data, err := conf.EncodeBytes(encoder.WithComments(encoder.CommentsDisabled))
 	if err != nil {
 		machineConfig.TypedSpec().Value.GenerationError = err.Error()
 
@@ -280,6 +287,7 @@ func reconcileClusterMachineConfig(
 
 	machineConfig.TypedSpec().Value.ClusterMachineVersion = clusterMachine.Metadata().Version().String()
 	machineConfig.TypedSpec().Value.GenerationError = ""
+	machineConfig.TypedSpec().Value.GrubUseUkiCmdline = conf.Machine().Install().GrubUseUKICmdline()
 
 	return nil
 }
@@ -317,7 +325,7 @@ func (helper clusterMachineConfigControllerHelper) configsEqual(old *omni.Cluste
 func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.ClusterMachine, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, secrets *omni.ClusterSecrets,
 	loadbalancer *omni.LoadBalancerConfig, cluster *omni.Cluster, clusterConfigVersion *omni.ClusterConfigVersion, configGenOptions *omni.MachineConfigGenOptions, extraGenOptions []generate.Option,
 	machineJoinConfig *siderolink.MachineJoinConfig,
-) ([]byte, error) {
+) (config.Provider, error) {
 	clusterName := cluster.Metadata().ID()
 
 	// this is the version of Talos at the moment the cluster got created
@@ -420,11 +428,7 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		return nil, fmt.Errorf("failed to build talos api access feature allowed roles patch: %w", err)
 	}
 
-	// todo: for Talos 1.12 and above, if .machine.install.kernelArgs is empty,
-	// we will add the new document to tell Talos to always use the kernel args in the UKI, in other words, make it "act like UKI".
-	// this will allow that machine to support customizing extra kernel args.
-
-	return strippedConfig.EncodeBytes(encoder.WithComments(encoder.CommentsDisabled))
+	return strippedConfig, nil
 }
 
 // stripTalosAPIAccessOSAdminRole ensures that the OS admin role is never included in the allowed roles of the

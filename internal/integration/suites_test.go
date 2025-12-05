@@ -830,7 +830,7 @@ Tests applying various config patching, including "broken" config patches which 
 	}
 }
 
-func testTalosUpgrades(options *TestOptions) TestFunc {
+func testTalosUpgrades(options *TestOptions, currentVersion string) TestFunc {
 	return func(t *testing.T) {
 		t.Log(`
 Tests upgrading Talos version, including reverting a failed upgrade.`)
@@ -842,8 +842,8 @@ Tests upgrading Talos version, including reverting a failed upgrade.`)
 		clusterName := "integration-talos-upgrade"
 
 		machineOptions := MachineOptions{
-			TalosVersion:      options.AnotherTalosVersion,
-			KubernetesVersion: options.AnotherKubernetesVersion, // use older Kubernetes compatible with AnotherTalosVersion
+			TalosVersion:      currentVersion,
+			KubernetesVersion: options.AnotherKubernetesVersion, // use older Kubernetes compatible with the currentVersion
 		}
 
 		t.Run(
@@ -912,7 +912,7 @@ Tests upgrading Talos version, including reverting a failed upgrade.`)
 
 		t.Run(
 			"RunningTalosUpgradeShouldBeCancelable",
-			AssertTalosUpgradeIsCancelable(t.Context(), options.omniClient.Omni().State(), clusterName, options.MachineOptions.TalosVersion, options.AnotherTalosVersion),
+			AssertTalosUpgradeIsCancelable(t.Context(), options.omniClient.Omni().State(), clusterName, options.MachineOptions.TalosVersion, currentVersion),
 		)
 
 		assertClusterAndAPIReady(t, clusterName, options, withKubernetesVersion(machineOptions.KubernetesVersion))

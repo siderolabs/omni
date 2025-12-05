@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
@@ -114,15 +115,17 @@ func CreateCluster(testCtx context.Context, cli *client.Client, options ClusterO
 					role:                           omni.LabelControlPlaneRole,
 					machineID:                      machineIDs[i],
 					restoreFromEtcdBackupClusterID: options.RestoreFromEtcdBackupClusterID,
+					talosVersion:                   options.MachineOptions.TalosVersion,
 				})
 			}
 
 			for i := options.ControlPlanes; i < options.ControlPlanes+options.Workers; i++ {
 				t.Logf("Adding machine '%s' to workers (cluster %q)", machineIDs[i], options.Name)
 				bindMachine(ctx, t, st, bindMachineOptions{
-					clusterName: options.Name,
-					role:        omni.LabelWorkerRole,
-					machineID:   machineIDs[i],
+					clusterName:  options.Name,
+					role:         omni.LabelWorkerRole,
+					machineID:    machineIDs[i],
+					talosVersion: options.MachineOptions.TalosVersion,
 				})
 			}
 
@@ -240,9 +243,10 @@ func ScaleClusterUp(testCtx context.Context, st state.State, options ClusterOpti
 				t.Logf("Adding machine '%s' to control plane (cluster %q)", machineIDs[i], options.Name)
 
 				bindMachine(ctx, t, st, bindMachineOptions{
-					clusterName: options.Name,
-					role:        omni.LabelControlPlaneRole,
-					machineID:   machineIDs[i],
+					clusterName:  options.Name,
+					role:         omni.LabelControlPlaneRole,
+					machineID:    machineIDs[i],
+					talosVersion: options.MachineOptions.TalosVersion,
 				})
 			}
 
@@ -250,9 +254,10 @@ func ScaleClusterUp(testCtx context.Context, st state.State, options ClusterOpti
 				t.Logf("Adding machine '%s' to workers (cluster %q)", machineIDs[i], options.Name)
 
 				bindMachine(ctx, t, st, bindMachineOptions{
-					clusterName: options.Name,
-					role:        omni.LabelWorkerRole,
-					machineID:   machineIDs[i],
+					clusterName:  options.Name,
+					role:         omni.LabelWorkerRole,
+					machineID:    machineIDs[i],
+					talosVersion: options.MachineOptions.TalosVersion,
 				})
 			}
 
@@ -327,9 +332,10 @@ func ReplaceControlPlanes(testCtx context.Context, st state.State, options Clust
 				t.Logf("Adding machine '%s' to control plane (cluster %q)", machineID, options.Name)
 
 				bindMachine(ctx, t, st, bindMachineOptions{
-					clusterName: options.Name,
-					role:        omni.LabelControlPlaneRole,
-					machineID:   machineID,
+					clusterName:  options.Name,
+					role:         omni.LabelControlPlaneRole,
+					machineID:    machineID,
+					talosVersion: options.MachineOptions.TalosVersion,
 				})
 			}
 
@@ -696,18 +702,50 @@ func AssertBreakAndDestroyControlPlane(testCtx context.Context, st state.State, 
 const nodeLabel = "omni-uuid"
 
 type bindMachineOptions struct {
-	clusterName, role, machineID, restoreFromEtcdBackupClusterID string
+	clusterName, role, machineID, restoreFromEtcdBackupClusterID, talosVersion string
 }
 
 func bindMachine(ctx context.Context, t *testing.T, st state.State, bindOpts bindMachineOptions) {
-	configPatch := omni.NewConfigPatch(
+	configPatchInstallDisk := omni.NewConfigPatch(
 		resources.DefaultNamespace,
 		fmt.Sprintf("000-%s-%s-install-disk", bindOpts.clusterName, bindOpts.machineID),
 		pair.MakePair(omni.LabelCluster, bindOpts.clusterName),
 		pair.MakePair(omni.LabelClusterMachine, bindOpts.machineID),
 	)
 
-	createOrUpdate(ctx, t, st, configPatch, func(cps *omni.ConfigPatch) error {
+	configPatchHostname := omni.NewConfigPatch(
+		resources.DefaultNamespace,
+		fmt.Sprintf("001-%s-%s-hostname", bindOpts.clusterName, bindOpts.machineID),
+		pair.MakePair(omni.LabelCluster, bindOpts.clusterName),
+		pair.MakePair(omni.LabelClusterMachine, bindOpts.machineID),
+	)
+
+	createOrUpdate(ctx, t, st, configPatchInstallDisk, func(cps *omni.ConfigPatch) error {
+		cps.Metadata().Labels().Set(omni.LabelCluster, bindOpts.clusterName)
+		cps.Metadata().Labels().Set(omni.LabelClusterMachine, bindOpts.machineID)
+
+		patch := map[string]any{
+			"machine": map[string]any{
+				"install": map[string]any{
+					"disk": "/dev/vda",
+				},
+				"kubelet": map[string]any{
+					"extraArgs": map[string]any{
+						"node-labels": fmt.Sprintf("%s=%s", nodeLabel, bindOpts.machineID),
+					},
+				},
+			},
+		}
+
+		patchBytes, err := yaml.Marshal(patch)
+		if err != nil {
+			return err
+		}
+
+		return cps.TypedSpec().Value.SetUncompressedData(patchBytes)
+	})
+
+	createOrUpdate(ctx, t, st, configPatchHostname, func(cps *omni.ConfigPatch) error {
 		cps.Metadata().Labels().Set(omni.LabelCluster, bindOpts.clusterName)
 		cps.Metadata().Labels().Set(omni.LabelClusterMachine, bindOpts.machineID)
 
@@ -728,19 +766,25 @@ func bindMachine(ctx context.Context, t *testing.T, st state.State, bindOpts bin
 		}
 
 		patch := map[string]any{
-			"machine": map[string]any{
-				"install": map[string]any{
-					"disk": "/dev/vda",
-				},
-				"network": map[string]any{
-					"hostname": hostname,
-				},
-				"kubelet": map[string]any{
-					"extraArgs": map[string]any{
-						"node-labels": fmt.Sprintf("%s=%s", nodeLabel, bindOpts.machineID),
+			"apiVersion": "v1alpha1",
+			"kind":       "HostnameConfig",
+			"auto":       "off",
+			"hostname":   hostname,
+		}
+
+		version, err := semver.ParseTolerant(bindOpts.talosVersion)
+		if err != nil {
+			return fmt.Errorf("failed to parse Talos version %q: %w", bindOpts.talosVersion, err)
+		}
+
+		if version.Major == 1 && version.Minor < 12 {
+			patch = map[string]any{
+				"machine": map[string]any{
+					"network": map[string]any{
+						"hostname": hostname,
 					},
 				},
-			},
+			}
 		}
 
 		patchBytes, err := yaml.Marshal(patch)

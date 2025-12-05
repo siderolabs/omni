@@ -212,8 +212,8 @@ github.com/siderolabs/protoenc v0.2.4 h1:D3Fpn2nQSQOhl8ZlAxijZAf7K6F8CM1uZq0afIG
 github.com/siderolabs/protoenc v0.2.4/go.mod h1:i5XLHjfv5vyi7LhQrSEo19HCA+lYtDd7CWxsoWp9XE8=
 github.com/siderolabs/siderolink v0.3.15 h1:WSsgKQGJY/ObIKjTcYYGEaGfRMyox+r/Ft+9lIgJqOI=
 github.com/siderolabs/siderolink v0.3.15/go.mod h1:iWdlsHji90zotgDg4+a2zJL2ZMNJckQ8/VwqR39ThBM=
-github.com/siderolabs/talos/pkg/machinery v1.12.0-beta.0 h1:b6LDrvf0kr3ifYLLw4uvwhIaAtvuSFnglU0JDfDFc3I=
-github.com/siderolabs/talos/pkg/machinery v1.12.0-beta.0/go.mod h1:dNc4lG9yb2CzCwnJbfSUO9ZmkXE6P3BnVo1UsCITr/U=
+github.com/siderolabs/talos/pkg/machinery v1.12.0-beta.1 h1:3hrFuPa+KLsxqRs9d+GnYuSDW1FjJmRjvDzRw7Nr3Xg=
+github.com/siderolabs/talos/pkg/machinery v1.12.0-beta.1/go.mod h1:dNc4lG9yb2CzCwnJbfSUO9ZmkXE6P3BnVo1UsCITr/U=
 github.com/spf13/cobra v1.10.1 h1:lJeBwCfmrnXthfAupyUTzJ/J4Nc1RsHC/mSRU2dll/s=
 github.com/spf13/cobra v1.10.1/go.mod h1:7SmJGaTHFVBY0jW4NXGluQoLvhqFQM+6XSKD+P4XaB0=
 github.com/spf13/pflag v1.0.9/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=

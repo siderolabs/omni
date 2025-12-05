@@ -61,7 +61,9 @@ func NewStatusController() *StatusController {
 					return nil
 				}
 
-				updateSupported, err := kernelargs.UpdateSupported(ms)
+				updateSupported, err := kernelargs.UpdateSupported(ms, func() (*omni.ClusterMachineConfig, error) {
+					return safe.ReaderGetByID[*omni.ClusterMachineConfig](ctx, r, ms.Metadata().ID())
+				})
 				if err != nil {
 					return err
 				}
@@ -91,6 +93,9 @@ func NewStatusController() *StatusController {
 			},
 		},
 		qtransform.WithExtraMappedInput[*omni.KernelArgs](
+			qtransform.MapperSameID[*omni.MachineStatus](),
+		),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineConfig](
 			qtransform.MapperSameID[*omni.MachineStatus](),
 		),
 	)

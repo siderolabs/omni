@@ -759,6 +759,7 @@ func (m *ClusterMachineConfigSpec) CloneVT() *ClusterMachineConfigSpec {
 	r.ClusterMachineVersion = m.ClusterMachineVersion
 	r.GenerationError = m.GenerationError
 	r.WithoutComments = m.WithoutComments
+	r.GrubUseUkiCmdline = m.GrubUseUkiCmdline
 	if rhs := m.Data; rhs != nil {
 		tmpBytes := make([]byte, len(rhs))
 		copy(tmpBytes, rhs)
@@ -3840,6 +3841,9 @@ func (this *ClusterMachineConfigSpec) EqualVT(that *ClusterMachineConfigSpec) bo
 		return false
 	}
 	if this.WithoutComments != that.WithoutComments {
+		return false
+	}
+	if this.GrubUseUkiCmdline != that.GrubUseUkiCmdline {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -8698,6 +8702,16 @@ func (m *ClusterMachineConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.GrubUseUkiCmdline {
+		i--
+		if m.GrubUseUkiCmdline {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x30
 	}
 	if m.WithoutComments {
 		i--
@@ -14883,6 +14897,9 @@ func (m *ClusterMachineConfigSpec) SizeVT() (n int) {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	if m.WithoutComments {
+		n += 2
+	}
+	if m.GrubUseUkiCmdline {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -22631,6 +22648,26 @@ func (m *ClusterMachineConfigSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.WithoutComments = bool(v != 0)
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GrubUseUkiCmdline", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.GrubUseUkiCmdline = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

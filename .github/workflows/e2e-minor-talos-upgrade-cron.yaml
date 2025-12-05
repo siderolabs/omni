@@ -8,7 +8,7 @@ concurrency:
 "on":
   schedule:
     - cron: 30 1 * * *
-name: e2e-short-secureboot-cron
+name: e2e-minor-talos-upgrade-cron
 jobs:
   default:
     runs-on:
@@ -59,12 +59,12 @@ jobs:
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: run-integration-test
         env:
-          ENABLE_SECUREBOOT: "true"
           INTEGRATION_RUN_E2E_TEST: "false"
-          INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|ImmediateClusterDestruction|DefaultCluster|EncryptedCluster|SinglenodeCluster|Auth)$
+          INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|TalosUpgradesMinor)$
           RUN_TALEMU_TESTS: "false"
           TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
           WITH_DEBUG: "true"
+          WITH_QEMU_TALOS_VERSION_OVERRIDE: "true"
           WITH_RACE: "true"
         run: |
           sudo -E make run-integration-test

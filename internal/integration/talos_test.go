@@ -764,9 +764,10 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 
 			t.Logf("Adding machine %q to control plane (cluster %q, version %q)", machineIDs[0], clusterName, talosVersion1)
 			bindMachine(ctx, t, st, bindMachineOptions{
-				clusterName: clusterName,
-				role:        omni.LabelControlPlaneRole,
-				machineID:   machineIDs[0],
+				clusterName:  clusterName,
+				role:         omni.LabelControlPlaneRole,
+				machineID:    machineIDs[0],
+				talosVersion: talosVersion1,
 			})
 
 			// assert that machines got allocated (label available is removed)
@@ -805,9 +806,10 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 
 		t.Logf("Adding machine %q to control plane (cluster %q, version %q)", allocatedMachineIDs[0], clusterName, talosVersion2)
 		bindMachine(ctx, t, st, bindMachineOptions{
-			clusterName: clusterName,
-			role:        omni.LabelControlPlaneRole,
-			machineID:   allocatedMachineIDs[0],
+			clusterName:  clusterName,
+			role:         omni.LabelControlPlaneRole,
+			machineID:    allocatedMachineIDs[0],
+			talosVersion: talosVersion2,
 		})
 
 		// wait for cluster on talosVersion2 to be ready

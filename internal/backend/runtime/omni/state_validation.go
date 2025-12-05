@@ -1260,11 +1260,30 @@ func validateKubernetesVersion(current, newVersion string, upgradeStatus *omni.K
 	}
 
 	// Allow aborting ongoing upgrade
-	if upgradeStatus != nil && upgradeStatus.TypedSpec().Value.CurrentUpgradeVersion != "" {
-		previousVersion := semver.MustParse(current)
-		futureVersion := semver.MustParse(newVersion)
-		currentUpgradeVersion := semver.MustParse(upgradeStatus.TypedSpec().Value.CurrentUpgradeVersion)
-		lastUpgradeVersion := semver.MustParse(upgradeStatus.TypedSpec().Value.LastUpgradeVersion)
+	if upgradeStatus != nil && upgradeStatus.TypedSpec().Value.CurrentUpgradeVersion != "" && upgradeStatus.TypedSpec().Value.LastUpgradeVersion != "" {
+		previousVersion, err := semver.ParseTolerant(current)
+		if err != nil {
+			return err
+		}
+
+		futureVersion, err := semver.ParseTolerant(newVersion)
+		if err != nil {
+			return err
+		}
+
+		currentUpgradeVersion, err := semver.ParseTolerant(upgradeStatus.TypedSpec().Value.CurrentUpgradeVersion)
+		if err != nil {
+			return err
+		}
+
+		lastUpgradeVersion, err := semver.ParseTolerant(upgradeStatus.TypedSpec().Value.LastUpgradeVersion)
+		if err != nil {
+			return err
+		}
+
+		if previousVersion.LT(currentUpgradeVersion) && futureVersion.LT(lastUpgradeVersion) {
+			return nil
+		}
 
 		if futureVersion.EQ(lastUpgradeVersion) && previousVersion.EQ(currentUpgradeVersion) {
 			return nil

@@ -60,7 +60,7 @@ func (initializer *Initializer) Init(ctx context.Context, id resource.ID, args [
 	return nil
 }
 
-func UpdateSupported(machineStatus *omni.MachineStatus) (bool, error) {
+func UpdateSupported(machineStatus *omni.MachineStatus, getClusterMachineConfig func() (*omni.ClusterMachineConfig, error)) (bool, error) {
 	securityState := machineStatus.TypedSpec().Value.SecurityState
 	talosVersion := machineStatus.TypedSpec().Value.TalosVersion
 
@@ -77,7 +77,29 @@ func UpdateSupported(machineStatus *omni.MachineStatus) (bool, error) {
 		return false, fmt.Errorf("failed to parse Talos version %q: %w", talosVersion, err)
 	}
 
-	return parsedTalosVersion.GTE(semver.MustParse("1.12.0")), nil
+	// If the update is supported not because the machine is booted with UKI, but because it's version is >= 1.12,
+	// we need to additionally check that GrubUseUKICmdline is set to true if the machine is not in maintenance mode.
+	//
+	// This can happen with the machines which were allocated to a cluster that was created with an older version of Talos,
+	// and their .machine.install.extraKernelArgs field was populated via a ConfigPatch.
+	if parsedTalosVersion.Major == 1 && parsedTalosVersion.Minor < 12 {
+		return false, nil
+	}
+
+	if getClusterMachineConfig == nil {
+		return true, nil
+	}
+
+	clusterMachineConfig, err := getClusterMachineConfig()
+	if err != nil && !state.IsNotFoundError(err) {
+		return false, fmt.Errorf("failed to get cluster machine config: %w", err)
+	}
+
+	if clusterMachineConfig == nil {
+		return true, nil
+	}
+
+	return clusterMachineConfig.TypedSpec().Value.GrubUseUkiCmdline, nil
 }
 
 func Calculate(machineStatus *omni.MachineStatus, kernelArgs *omni.KernelArgs) (args []string, initialized bool, err error) {
