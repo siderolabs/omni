@@ -455,6 +455,9 @@ message ClusterMachineConfigSpec {
 
   // WithoutComments indicates that the config was generated without comments.
   bool without_comments = 5;
+
+  // GrubUseUkiCmdline indicates the .machine.install.grubUseUKICmdline status.
+  bool grub_use_uki_cmdline = 6;
 }
 
 // ClusterMachineConfigSpec stores generated Talos node machine config.

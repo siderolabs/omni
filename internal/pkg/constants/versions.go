@@ -14,6 +14,9 @@ import (
 // AnotherTalosVersion is used in the integration tests for Talos upgrade.
 const AnotherTalosVersion = "1.11.4"
 
+// StableTalosVersion is used in the integration tests for Talos upgrade between minor versions.
+const StableTalosVersion = "1.10.8"
+
 // MinDiscoveredTalosVersion makes Omni pull the versions from this point.
 const MinDiscoveredTalosVersion = "1.3.0"
 

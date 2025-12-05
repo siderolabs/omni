@@ -29,10 +29,12 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	talosclient "github.com/siderolabs/talos/pkg/machinery/client"
 	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
+	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/resources/cluster"
 	"github.com/siderolabs/talos/pkg/machinery/resources/etcd"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.yaml.in/yaml/v4"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/codes"
@@ -542,6 +544,39 @@ func AssertTalosUpgradeFlow(testCtx context.Context, st state.State, clusterName
 			assert.Equal(newTalosVersion, r.TypedSpec().Value.LastUpgradeVersion, resourceDetails(r))
 			assert.Empty(r.TypedSpec().Value.Step, resourceDetails(r))
 		})
+
+		// TODO: Remove below code block when this test starts testing upgrades from Talos 1.11 to 1.12.
+		// Pin etcd version with ConfigPatch for Talos 1.11
+		// This is needed for tests that downgrade Talos 1.11 to 1.10.
+		// Talos 1.11 comes with etcd 3.6 which introduced a new DB format that's not compatible with etcd 3.5 used by Talos 1.10.
+		if strings.HasPrefix(newTalosVersion, "1.11") {
+			t.Logf("Pinning etcd version to %s for Talos v1.11", talosconstants.DefaultEtcdVersion)
+
+			configPatchEtcd := omni.NewConfigPatch(
+				resources.DefaultNamespace,
+				fmt.Sprintf("001-%s-pin-etcd", clusterName),
+			)
+
+			createOrUpdate(ctx, t, st, configPatchEtcd, func(res *omni.ConfigPatch) error {
+				res.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+				res.Metadata().Labels().Set(omni.LabelMachineSet, omni.ControlPlanesResourceID(clusterName))
+
+				patch := map[string]any{
+					"cluster": map[string]any{
+						"etcd": map[string]any{
+							"image": fmt.Sprintf("%s:%s", talosconstants.EtcdImage, talosconstants.DefaultEtcdVersion),
+						},
+					},
+				}
+
+				patchBytes, yamlErr := yaml.Marshal(patch)
+				if yamlErr != nil {
+					return yamlErr
+				}
+
+				return res.TypedSpec().Value.SetUncompressedData(patchBytes)
+			})
+		}
 	}
 }
 
@@ -764,9 +799,10 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 
 			t.Logf("Adding machine %q to control plane (cluster %q, version %q)", machineIDs[0], clusterName, talosVersion1)
 			bindMachine(ctx, t, st, bindMachineOptions{
-				clusterName: clusterName,
-				role:        omni.LabelControlPlaneRole,
-				machineID:   machineIDs[0],
+				clusterName:  clusterName,
+				role:         omni.LabelControlPlaneRole,
+				machineID:    machineIDs[0],
+				talosVersion: talosVersion1,
 			})
 
 			// assert that machines got allocated (label available is removed)
@@ -805,9 +841,10 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 
 		t.Logf("Adding machine %q to control plane (cluster %q, version %q)", allocatedMachineIDs[0], clusterName, talosVersion2)
 		bindMachine(ctx, t, st, bindMachineOptions{
-			clusterName: clusterName,
-			role:        omni.LabelControlPlaneRole,
-			machineID:   allocatedMachineIDs[0],
+			clusterName:  clusterName,
+			role:         omni.LabelControlPlaneRole,
+			machineID:    allocatedMachineIDs[0],
+			talosVersion: talosVersion2,
 		})
 
 		// wait for cluster on talosVersion2 to be ready

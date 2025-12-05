@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-09-26T09:19:58Z by kres fdbc9fc.
+# Generated on 2025-12-01T11:50:57Z by kres a1a34ff.
 
 concurrency:
   group: helm-${{ github.head_ref || github.run_id }}
@@ -30,7 +30,7 @@ jobs:
     steps:
       - name: gather-system-info
         id: system-info
-        uses: kenchan0130/actions-system-info@v1.4.0
+        uses: kenchan0130/actions-system-info@59699597e84e80085a750998045983daa49274c4 # version: v1.4.0
         continue-on-error: true
       - name: print-system-info
         run: |
@@ -54,18 +54,18 @@ jobs:
           done
         continue-on-error: true
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # version: v6.0.0
       - name: Unshallow
         run: |
           git fetch --prune --unshallow
       - name: Install Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # version: v4.3.1
       - name: Install cosign
         if: github.event_name != 'pull_request'
-        uses: sigstore/cosign-installer@v3
+        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # version: v4.0.0
       - name: Login to registry
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # version: v3.6.0
         with:
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ghcr.io

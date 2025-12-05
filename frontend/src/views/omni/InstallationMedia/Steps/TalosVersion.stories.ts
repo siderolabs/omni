@@ -51,7 +51,7 @@ export const Default = {
             namespace: DefaultNamespace,
           },
           initialResources: faker.helpers
-            .uniqueArray(
+            .uniqueArray<string>(
               () =>
                 `1.${faker.number.int({ min: 6, max: 11 })}.${faker.number.int({ min: 0, max: 10 })}`,
               40,

@@ -22,6 +22,7 @@ export enum ApplyConfigurationRequestMode {
 export enum RebootRequestMode {
   DEFAULT = 0,
   POWERCYCLE = 1,
+  FORCE = 2,
 }
 
 export enum SequenceEventAction {
