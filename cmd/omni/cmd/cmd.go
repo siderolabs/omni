@@ -19,6 +19,7 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
@@ -38,27 +39,13 @@ var rootCmd = &cobra.Command{
 	SilenceUsage: true,
 	Version:      version.Tag,
 	RunE: func(*cobra.Command, []string) error {
-		var loggerConfig zap.Config
-
-		if constants.IsDebugBuild {
-			loggerConfig = zap.NewDevelopmentConfig()
-			loggerConfig.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-		} else {
-			loggerConfig = zap.NewProductionConfig()
-		}
-
-		if !rootCmdArgs.debug {
-			loggerConfig.Level.SetLevel(zap.InfoLevel)
-		} else {
-			loggerConfig.Level.SetLevel(zap.DebugLevel)
-		}
-
-		logger, err := loggerConfig.Build(
-			zap.AddStacktrace(zapcore.FatalLevel), // only print stack traces for fatal errors
-		)
+		logger, err := buildLogger()
 		if err != nil {
 			return fmt.Errorf("failed to set up logging: %w", err)
 		}
+
+		zap.ReplaceGlobals(logger)
+		zap.RedirectStdLog(logger)
 
 		signals := make(chan os.Signal, 1)
 
@@ -76,9 +63,22 @@ var rootCmd = &cobra.Command{
 			cancel()
 		}, logger)
 
-		config, err := app.PrepareConfig(logger, cmdConfig)
+		skipConfigValidation := rootCmdArgs.printConfigAndExit
+
+		config, err := app.PrepareConfig(skipConfigValidation, logger, cmdConfig)
 		if err != nil {
 			return err
+		}
+
+		if rootCmdArgs.printConfigAndExit {
+			encoder := yaml.NewEncoder(os.Stdout)
+			encoder.SetIndent(2)
+
+			if err := encoder.Encode(config); err != nil {
+				return err
+			}
+
+			return nil
 		}
 
 		ctx = actor.MarkContextAsInternalActor(ctx)
@@ -118,8 +118,9 @@ var rootCmd = &cobra.Command{
 }
 
 var rootCmdArgs struct {
-	configPath string
-	debug      bool
+	configPath         string
+	debug              bool
+	printConfigAndExit bool
 }
 
 // Execute the command.
@@ -152,6 +153,9 @@ var cmdConfig = config.Default()
 func newCommand() *cobra.Command {
 	rootCmd.Flags().BoolVar(&rootCmdArgs.debug, "debug", constants.IsDebugBuild, "enable debug logs.")
 
+	rootCmd.Flags().BoolVar(&rootCmdArgs.printConfigAndExit, "print-config-and-exit", false, "print the final configuration and exit.")
+	rootCmd.Flags().MarkHidden("print-config-and-exit") //nolint:errcheck
+
 	rootCmd.Flags().StringVar(&cmdConfig.Account.ID, "account-id", cmdConfig.Account.ID, "instance account ID, should never be changed.")
 	rootCmd.Flags().StringVar(&cmdConfig.Account.Name, "name", cmdConfig.Account.Name, "instance user-facing name.")
 	rootCmd.Flags().StringVar(&cmdConfig.Account.UserPilot.AppToken, "user-pilot-app-token", cmdConfig.Account.UserPilot.AppToken, "user pilot app token.")
@@ -166,6 +170,36 @@ func newCommand() *cobra.Command {
 	defineEtcdBackupsFlags()
 
 	return rootCmd
+}
+
+func buildLogger() (*zap.Logger, error) {
+	if rootCmdArgs.printConfigAndExit {
+		return zap.NewNop(), nil
+	}
+
+	var loggerConfig zap.Config
+
+	if constants.IsDebugBuild {
+		loggerConfig = zap.NewDevelopmentConfig()
+		loggerConfig.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	} else {
+		loggerConfig = zap.NewProductionConfig()
+	}
+
+	if !rootCmdArgs.debug {
+		loggerConfig.Level.SetLevel(zap.InfoLevel)
+	} else {
+		loggerConfig.Level.SetLevel(zap.DebugLevel)
+	}
+
+	logger, err := loggerConfig.Build(
+		zap.AddStacktrace(zapcore.FatalLevel), // only print stack traces for fatal errors
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set up logging: %w", err)
+	}
+
+	return logger, nil
 }
 
 func defineServiceFlags() {

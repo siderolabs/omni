@@ -469,7 +469,7 @@ func runOmni(t *testing.T) (string, error) {
 		logger = zap.New(core)
 	}
 
-	config, err := app.PrepareConfig(logger, params)
+	config, err := app.PrepareConfig(false, logger, params)
 	if err != nil {
 		return "", err
 	}
