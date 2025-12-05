@@ -30,8 +30,8 @@ See [Contributing](CONTRIBUTING.md) for our guidelines.
 
 ## License
 
-<a href="https://github.com/siderolabs/omni/client/blob/main/LICENSE">
-  <img alt="GitHub" src="https://img.shields.io/github/license/siderolabs/omni/client?style=flat-square">
+<a href="https://github.com/siderolabs/omni/blob/main/client/LICENSE">
+  <img alt="MPL 2.0" src="https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg">
 </a>
 
 Some software we distribute is under the General Public License family
