@@ -3,10 +3,12 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package audit
+package auditlogfile
 
 import (
+	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,6 +21,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/siderolabs/gen/pair/ordered"
 
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/pool"
 )
 
@@ -35,8 +38,8 @@ type LogFile struct {
 	pool pool.Pool[bytes.Buffer]
 }
 
-// NewLogFile creates a new rotating log file.
-func NewLogFile(dir string) *LogFile {
+// New creates a new rotating log file.
+func New(dir string) *LogFile {
 	return &LogFile{
 		dir: dir,
 		pool: pool.Pool[bytes.Buffer]{
@@ -47,8 +50,8 @@ func NewLogFile(dir string) *LogFile {
 	}
 }
 
-// Dump writes data to the log file, creating new one on demand.
-func (l *LogFile) Dump(data any) error {
+// Write writes data to the log file, creating new one on demand.
+func (l *LogFile) Write(_ context.Context, data auditlog.Event) error {
 	return l.dumpAt(data, time.Time{})
 }
 
@@ -110,8 +113,8 @@ func (l *LogFile) openFile(at time.Time) (*os.File, error) {
 	return f, nil
 }
 
-// RemoveFiles removes log files in the given time range (included). Time range is truncated to date.
-func (l *LogFile) RemoveFiles(start, end time.Time) error {
+// Remove removes log files in the given time range (included). Time range is truncated to date.
+func (l *LogFile) Remove(_ context.Context, start, end time.Time) error {
 	start, end = truncateToDate(start), truncateToDate(end)
 
 	if end.Before(start) {
@@ -137,9 +140,55 @@ func (l *LogFile) RemoveFiles(start, end time.Time) error {
 	return nil
 }
 
-// ReadAuditLog reads the audit log file by file, oldest to newest within the given time range. The time range
+// Reader reads the audit log file by file, oldest to newest within the given time range. The time range
 // is inclusive, and truncated to the day.
-func (l *LogFile) ReadAuditLog(start, end time.Time) (io.ReadCloser, error) {
+func (l *LogFile) Reader(_ context.Context, start, end time.Time) (auditlog.Reader, error) {
+	rdr, err := l.reader(start, end)
+	if err != nil {
+		return nil, err
+	}
+
+	return &logReader{
+		rdr:   rdr,
+		start: start,
+		end:   end,
+	}, nil
+}
+
+type logReader struct {
+	rdr     io.ReadCloser
+	scanner *bufio.Scanner
+	start   time.Time
+	end     time.Time
+}
+
+func (l *logReader) Close() error {
+	return l.rdr.Close()
+}
+
+func (l *logReader) Read() ([]byte, error) {
+	if l.scanner == nil {
+		l.scanner = bufio.NewScanner(l.rdr)
+	}
+
+	if !l.scanner.Scan() {
+		if err := l.scanner.Err(); err != nil {
+			return nil, err
+		}
+
+		return nil, io.EOF
+	}
+
+	src := l.scanner.Bytes()
+
+	data := make([]byte, len(src)+1)
+	copy(data, src)
+	data[len(src)] = '\n'
+
+	return data, nil
+}
+
+func (l *LogFile) reader(start, end time.Time) (io.ReadCloser, error) {
 	start, end = truncateToDate(start), truncateToDate(end)
 
 	if end.Before(start) {

@@ -22,7 +22,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
@@ -87,13 +87,13 @@ func (i *SAML) intercept(ctx context.Context) (context.Context, error) {
 		return nil, errGRPCInvalidSAML
 	}
 
-	auditData, ok := ctxstore.Value[*audit.Data](ctx)
+	auditData, ok := ctxstore.Value[*auditlog.Data](ctx)
 	if !ok {
 		return nil, status.Error(codes.Internal, "missing or invalid audit data")
 	}
 
 	auditData.Session.Email = session.TypedSpec().Value.Email
-	auditData.Session.ConfirmationType = audit.SAML
+	auditData.Session.ConfirmationType = auditlog.SAML
 
 	ctx = ctxstore.WithValue(ctx, auth.VerifiedEmailContextKey{Email: session.TypedSpec().Value.Email})
 

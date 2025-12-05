@@ -6,7 +6,6 @@
 package grpc
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -54,6 +53,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	omniCtrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/pkg/auth"
@@ -639,7 +639,9 @@ rolloutLoop:
 
 // ReadAuditLog reads the audit log from the backend.
 func (s *managementServer) ReadAuditLog(req *management.ReadAuditLogRequest, srv grpc.ServerStreamingServer[management.ReadAuditLogResponse]) error {
-	if _, err := s.authCheckGRPC(srv.Context(), auth.WithRole(role.Admin)); err != nil {
+	ctx := srv.Context()
+
+	if _, err := s.authCheckGRPC(ctx, auth.WithRole(role.Admin)); err != nil {
 		return err
 	}
 
@@ -655,7 +657,7 @@ func (s *managementServer) ReadAuditLog(req *management.ReadAuditLogRequest, srv
 		return status.Errorf(codes.InvalidArgument, "invalid end time: %v", err)
 	}
 
-	rdr, err := s.auditor.ReadAuditLog(start, end)
+	rdr, err := s.auditor.Reader(ctx, start, end)
 	if err != nil {
 		return err
 	}
@@ -663,10 +665,8 @@ func (s *managementServer) ReadAuditLog(req *management.ReadAuditLogRequest, srv
 	closeFn := sync.OnceValue(rdr.Close)
 	defer closeFn() //nolint:errcheck
 
-	buffer := make([]byte, 32*1024)
-
 	for {
-		n, err := rdr.Read(buffer)
+		data, err := rdr.Read()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
@@ -675,7 +675,7 @@ func (s *managementServer) ReadAuditLog(req *management.ReadAuditLogRequest, srv
 			return err
 		}
 
-		if err = srv.Send(&management.ReadAuditLogResponse{AuditLog: bytes.Clone(buffer[:n])}); err != nil {
+		if err = srv.Send(&management.ReadAuditLogResponse{AuditLog: data}); err != nil {
 			return err
 		}
 	}
@@ -958,5 +958,5 @@ func generateDest(apiurl string) (string, error) {
 
 // AuditLogger is an interface for reading the audit log.
 type AuditLogger interface {
-	ReadAuditLog(start, end time.Time) (io.ReadCloser, error)
+	Reader(ctx context.Context, start, end time.Time) (auditlog.Reader, error)
 }

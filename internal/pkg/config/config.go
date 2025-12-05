@@ -148,7 +148,14 @@ func Default() *Params {
 		},
 		Logs: Logs{
 			Audit: LogsAudit{
-				Path: "_out/audit",
+				// Path is the path to store the audit logs in.
+				//
+				// Deprecated: use SQLite storage instead.
+				Path: "_out/audit", // todo: Keeping this enabled to get the logs migrated to sqlite, drop this after a while, when all logs are supposedly in SQLite.
+				SQLite: LogsAuditSQLite{
+					Enabled: true,
+					Timeout: 30 * time.Second,
+				},
 			},
 			ResourceLogger: ResourceLoggerConfig{
 				LogLevel: zapcore.InfoLevel.String(),
@@ -167,7 +174,7 @@ func Default() *Params {
 				},
 				SQLite: LogsMachineSQLite{
 					Enabled:          true,
-					Timeout:          10 * time.Second,
+					Timeout:          30 * time.Second,
 					CleanupInterval:  30 * time.Minute,
 					CleanupOlderThan: 24 * 30 * time.Hour,
 				},

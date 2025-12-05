@@ -3,10 +3,11 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package audit_test
+package auditlogfile_test
 
 import (
 	"embed"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -20,7 +21,8 @@ import (
 	"github.com/siderolabs/gen/xtesting/must"
 	"github.com/stretchr/testify/require"
 
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog/auditlogfile"
 )
 
 //go:embed testdata/currentday
@@ -37,7 +39,7 @@ func TestLogFile_CurrentDay(t *testing.T) {
 
 	start := time.Date(2012, 1, 1, 23, 0, 0, 0, time.Local) //nolint:gosmopolitan
 	now := start
-	file := audit.NewLogFile(dir)
+	file := auditlogfile.New(dir)
 
 	for _, e := range entries {
 		now = now.Add(e.shift)
@@ -67,7 +69,7 @@ func TestLogFile_CurrentAndNewDay(t *testing.T) {
 
 	start := time.Date(2012, 1, 1, 23, 0, 0, 0, time.Local) //nolint:gosmopolitan
 	now := start
-	file := audit.NewLogFile(dir)
+	file := auditlogfile.New(dir)
 
 	for _, e := range entries {
 		now = now.Add(e.shift)
@@ -100,7 +102,7 @@ func TestLogFile_CurrentDayConcurrent(t *testing.T) {
 
 	start := time.Date(2012, 1, 1, 23, 0, 0, 0, time.Local) //nolint:gosmopolitan
 	now := start
-	file := audit.NewLogFile(dir)
+	file := auditlogfile.New(dir)
 
 	t.Run("concurrent", func(t *testing.T) {
 		for _, e := range entries {
@@ -128,7 +130,7 @@ func TestLogFile_CurrentDayConcurrent(t *testing.T) {
 //nolint:govet
 type entry struct {
 	shift time.Duration
-	data  audit.Data
+	data  auditlog.Data
 }
 
 type subFS interface {
@@ -182,9 +184,9 @@ func defaultCmp(t *testing.T, expected string, actual string) {
 }
 
 //nolint:unparam
-func makeAuditData(agent, _, email string) audit.Data {
-	return audit.Data{
-		Session: audit.Session{
+func makeAuditData(agent, _, email string) auditlog.Data {
+	return auditlog.Data{
+		Session: auditlog.Session{
 			UserAgent: agent,
 			Email:     email,
 		},
@@ -204,8 +206,21 @@ func TestStreamLogFiles(t *testing.T) {
 
 	at := time.Date(2012, 1, 30, 0, 0, 0, 0, time.Local) //nolint:gosmopolitan
 
-	_, err := io.Copy(&builder, must.Value(audit.NewLogFile(fullpath).ReadAuditLog30Days(at))(t))
+	logReader, err := auditlogfile.New(fullpath).Reader(t.Context(), at.AddDate(0, 0, -29), at)
 	require.NoError(t, err)
+
+	for {
+		data, err := logReader.Read()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			require.NoError(t, err)
+		}
+
+		builder.Write(data)
+	}
 
 	require.Equal(t, "Hello\nWorld\n!!!\n", builder.String())
 }

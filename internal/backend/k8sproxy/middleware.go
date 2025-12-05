@@ -19,7 +19,7 @@ import (
 	"go.uber.org/zap"
 	"k8s.io/client-go/transport"
 
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
@@ -122,15 +122,15 @@ func AuthorizeRequest(next http.Handler, keyFunc KeyProvider, clusterUUIDResolve
 		//nolint:contextcheck
 		req = req.WithContext(ctxstore.WithValue(
 			req.Context(),
-			&audit.Data{
-				K8SAccess: &audit.K8SAccess{
+			&auditlog.Data{
+				K8SAccess: &auditlog.K8SAccess{
 					FullMethodName: req.Method + " " + req.URL.Path,
 					Command:        req.Header.Get("Kubectl-Command"),
 					Session:        req.Header.Get("Kubectl-Session"),
 					ClusterName:    clusterName,
 					ClusterUUID:    clusterUUID,
 				},
-				Session: audit.Session{
+				Session: auditlog.Session{
 					UserAgent: req.Header.Get("User-Agent"),
 					Email:     claims.Subject,
 				},

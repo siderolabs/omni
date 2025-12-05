@@ -548,7 +548,22 @@ func defineLogsFlags() {
 		&cmdConfig.Logs.Audit.Path,
 		"audit-log-dir",
 		cmdConfig.Logs.Audit.Path,
-		"Directory for audit log storage",
+		"Directory for audit log storage, no-op if sqlite storage is enabled",
+	)
+
+	rootCmd.Flags().MarkDeprecated("audit-log-dir", "use --audit-log-sqlite-* flags instead") //nolint:errcheck
+
+	rootCmd.Flags().BoolVar(
+		&cmdConfig.Logs.Audit.SQLite.Enabled,
+		"audit-log-sqlite-enabled",
+		cmdConfig.Logs.Audit.SQLite.Enabled,
+		"enable audit log storage in sqlite database. when enabled, they will be written to --sqlite-storage-path",
+	)
+	rootCmd.Flags().DurationVar(
+		&cmdConfig.Logs.Audit.SQLite.Timeout,
+		"audit-log-sqlite-timeout",
+		cmdConfig.Logs.Audit.SQLite.Timeout,
+		"sqlite timeout for audit logs",
 	)
 
 	rootCmd.Flags().BoolVar(

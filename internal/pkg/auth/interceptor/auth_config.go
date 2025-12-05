@@ -16,7 +16,7 @@ import (
 
 	resapi "github.com/siderolabs/omni/client/api/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
@@ -85,7 +85,7 @@ func (c *AuthConfig) intercept(ctx context.Context, isGetAuthConfigRequest bool,
 		return !isGetAuthConfigRequest, nil
 	}))
 
-	auditData, ok := ctxstore.Value[*audit.Data](ctx)
+	auditData, ok := ctxstore.Value[*auditlog.Data](ctx)
 	if ok {
 		sig, err := msg.Signature()
 		if err == nil {

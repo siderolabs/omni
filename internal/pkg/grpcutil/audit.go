@@ -10,7 +10,7 @@ import (
 
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
@@ -18,8 +18,8 @@ import (
 func SetAuditInCtx(ctx context.Context) context.Context {
 	m := grpc_ctxtags.Extract(ctx).Values()
 
-	return ctxstore.WithValue(ctx, &audit.Data{
-		Session: audit.Session{
+	return ctxstore.WithValue(ctx, &auditlog.Data{
+		Session: auditlog.Session{
 			UserAgent: typeAssertOrZero[string](m["user_agent"]),
 		},
 	})
