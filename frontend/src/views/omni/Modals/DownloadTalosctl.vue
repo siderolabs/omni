@@ -11,9 +11,10 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import TButton from '@/components/common/Button/TButton.vue'
+import CodeBlock from '@/components/common/CodeBlock/CodeBlock.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
-import { getPlatform } from '@/methods'
+import { getDocsLink, getPlatform } from '@/methods'
 import { showError } from '@/notification'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
@@ -114,6 +115,27 @@ interface Asset {
       <CloseButton @click="close" />
     </div>
 
+    <p class="mb-5 text-xs">
+      <code>talosctl</code>
+      can be used to access cluster nodes using Talos machine API. Read the
+      <a
+        class="link-primary"
+        target="_blank"
+        rel="noopener noreferrer"
+        :href="getDocsLink('omni', '/getting-started/how-to-install-talosctl')"
+      >
+        docs
+      </a>
+      for more information.
+    </p>
+
+    <div class="mb-5 flex flex-col gap-2">
+      <span class="text-xs text-naturals-n14">macOS and Linux (recommended)</span>
+      <CodeBlock code="brew install siderolabs/tap/sidero-tools" />
+    </div>
+
+    <span class="mb-2 text-xs text-naturals-n14">Manual installation</span>
+
     <div class="mb-5 flex flex-wrap gap-4">
       <div v-if="talosctlRelease && platform" class="flex flex-wrap gap-4">
         <TSelectList
@@ -136,24 +158,18 @@ interface Asset {
       </div>
     </div>
 
-    <div>
-      <p class="text-xs">
-        <code>talosctl</code>
-        can be used to access cluster nodes using Talos machine API.
-      </p>
-      <p class="flex text-xs">
-        More downloads links can be found&nbsp;
-        <a
-          target="_blank"
-          rel="noopener noreferrer"
-          class="link-primary"
-          href="https://github.com/siderolabs/talos/releases"
-        >
-          here
-        </a>
-        .
-      </p>
-    </div>
+    <p class="flex text-xs">
+      More downloads links can be found&nbsp;
+      <a
+        target="_blank"
+        rel="noopener noreferrer"
+        class="link-primary"
+        href="https://github.com/siderolabs/talos/releases"
+      >
+        here
+      </a>
+      .
+    </p>
 
     <div class="mt-8 flex justify-end gap-4">
       <TButton class="h-9 w-32" @click="close">
