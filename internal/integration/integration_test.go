@@ -58,6 +58,7 @@ var (
 	omnictlPath              string
 	talosVersion             string
 	anotherTalosVersion      string
+	stableTalosVersion       string
 	kubernetesVersion        string
 	anotherKubernetesVersion string
 	expectedMachines         int
@@ -99,6 +100,7 @@ func TestIntegration(t *testing.T) {
 
 		MachineOptions:           machineOptions,
 		AnotherTalosVersion:      anotherTalosVersion,
+		StableTalosVersion:       stableTalosVersion,
 		AnotherKubernetesVersion: anotherKubernetesVersion,
 		OmnictlPath:              omnictlPath,
 		ScalingTimeout:           scalingTimeout,
@@ -236,7 +238,8 @@ func TestIntegration(t *testing.T) {
 		t.Run("RollingUpdateParallelism", testRollingUpdateParallelism(testOptions))
 		t.Run("ReplaceControlPlanes", testReplaceControlPlanes(testOptions))
 		t.Run("ConfigPatching", testConfigPatching(testOptions))
-		t.Run("TalosUpgrades", testTalosUpgrades(testOptions))
+		t.Run("TalosUpgrades", testTalosUpgrades(testOptions, testOptions.AnotherTalosVersion))
+		t.Run("TalosUpgradesMinor", testTalosUpgrades(testOptions, testOptions.StableTalosVersion))
 		t.Run("KubernetesUpgrades", testKubernetesUpgrades(testOptions))
 		t.Run("EtcdBackupAndRestore", testEtcdBackupAndRestore(testOptions))
 		t.Run("MaintenanceUpgrade", testMaintenanceUpgrade(testOptions))
@@ -260,15 +263,17 @@ func init() {
 	flag.StringVar(&wipeAMachineScript, "omni.wipe-a-machine-script", "hack/test/wipe-a-vm.sh", "a script to run to wipe a machine by UUID (optional)")
 	flag.StringVar(&freezeAMachineScript, "omni.freeze-a-machine-script", "hack/test/freeze-a-vm.sh", "a script to run to freeze a machine by UUID (optional)")
 	flag.StringVar(&omnictlPath, "omni.omnictl-path", "_out/omnictl-linux-amd64", "omnictl CLI script path (optional)")
+	flag.StringVar(&talosVersion, "omni.talos-version",
+		clientconsts.DefaultTalosVersion,
+		"talos version for workload clusters. this should point to the latest Talos version supported by Omni",
+	)
 	flag.StringVar(&anotherTalosVersion, "omni.another-talos-version",
 		constants.AnotherTalosVersion,
-		"omni.Talos version for upgrade test",
+		"talos version for upgrade test. this should point to an earlier Talos version under the same minor",
 	)
-	flag.StringVar(
-		&talosVersion,
-		"omni.talos-version",
-		clientconsts.DefaultTalosVersion,
-		"omni.installer version for workload clusters",
+	flag.StringVar(&stableTalosVersion, "omni.stable-talos-version",
+		constants.StableTalosVersion,
+		"talos version for upgrade test. this should point to the latest Talos version under the previous minor",
 	)
 	flag.StringVar(&kubernetesVersion, "omni.kubernetes-version", constants.DefaultKubernetesVersion, "Kubernetes version for workload clusters")
 	flag.StringVar(&anotherKubernetesVersion, "omni.another-kubernetes-version", constants.AnotherKubernetesVersion, "Kubernetes version for upgrade tests")

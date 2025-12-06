@@ -474,6 +474,7 @@ func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityFrom(talosVer
 	hostDNSEnabled := true
 	hostDNSForwardKubeDNSToHost := true
 	nodeHasLabelsSet := true
+	grubUseUkiCmdlineSet := true
 
 	// invert the features which were not available/default at the time of the initial version
 	switch initialVersion {
@@ -507,6 +508,8 @@ func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityFrom(talosVer
 	case "1.10.1":
 		fallthrough
 	case "1.11.1":
+		grubUseUkiCmdlineSet = false
+
 		fallthrough
 	case "1.12.1":
 	default:
@@ -520,6 +523,7 @@ func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityFrom(talosVer
 	suite.Equal(hostDNSForwardKubeDNSToHost, finalConfig.Machine().Features().HostDNS().ForwardKubeDNSToHost(), "hostDNS.forwardKubeDNSToHost value has changed unexpectedly")
 	suite.Equal(kubePrismEnabled, finalConfig.Machine().Features().KubePrism().Enabled(), "kubePrism feature value has changed unexpectedly")
 	suite.Equal(nodeHasLabelsSet, len(finalConfig.Machine().NodeLabels()) > 0, "node labels value has changed unexpectedly")
+	suite.Equal(grubUseUkiCmdlineSet, finalConfig.Machine().Install().GrubUseUKICmdline(), "grubUseUkiCmdline value has changed unexpectedly")
 }
 
 func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityTo(previousTalosVersion, upgradeTalosVersion string,

@@ -199,9 +199,10 @@ func AssertControlPlaneForceReplaceMachine(testCtx context.Context, st state.Sta
 			t.Logf("Adding machine '%s' to control plane", machineIDs[0])
 
 			bindMachine(ctx, t, st, bindMachineOptions{
-				clusterName: clusterName,
-				role:        omni.LabelControlPlaneRole,
-				machineID:   machineIDs[0],
+				clusterName:  clusterName,
+				role:         omni.LabelControlPlaneRole,
+				machineID:    machineIDs[0],
+				talosVersion: options.MachineOptions.TalosVersion,
 			})
 
 			// assert that machines got allocated (label available is removed)

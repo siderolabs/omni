@@ -830,7 +830,7 @@ Tests applying various config patching, including "broken" config patches which 
 	}
 }
 
-func testTalosUpgrades(options *TestOptions) TestFunc {
+func testTalosUpgrades(options *TestOptions, currentVersion string) TestFunc {
 	return func(t *testing.T) {
 		t.Log(`
 Tests upgrading Talos version, including reverting a failed upgrade.`)
@@ -842,8 +842,8 @@ Tests upgrading Talos version, including reverting a failed upgrade.`)
 		clusterName := "integration-talos-upgrade"
 
 		machineOptions := MachineOptions{
-			TalosVersion:      options.AnotherTalosVersion,
-			KubernetesVersion: options.AnotherKubernetesVersion, // use older Kubernetes compatible with AnotherTalosVersion
+			TalosVersion:      currentVersion,
+			KubernetesVersion: options.AnotherKubernetesVersion, // use older Kubernetes compatible with the currentVersion
 		}
 
 		t.Run(
@@ -912,7 +912,7 @@ Tests upgrading Talos version, including reverting a failed upgrade.`)
 
 		t.Run(
 			"RunningTalosUpgradeShouldBeCancelable",
-			AssertTalosUpgradeIsCancelable(t.Context(), options.omniClient.Omni().State(), clusterName, options.MachineOptions.TalosVersion, options.AnotherTalosVersion),
+			AssertTalosUpgradeIsCancelable(t.Context(), options.omniClient.Omni().State(), clusterName, options.MachineOptions.TalosVersion, currentVersion),
 		)
 
 		assertClusterAndAPIReady(t, clusterName, options, withKubernetesVersion(machineOptions.KubernetesVersion))
@@ -1400,6 +1400,11 @@ Test Omni upgrades, the first half that runs on the previous Omni version
 		omniClient := options.omniClient
 		clusterName := "integration-omni-upgrades"
 
+		machineOptions := MachineOptions{
+			TalosVersion:      options.StableTalosVersion,
+			KubernetesVersion: options.AnotherKubernetesVersion,
+		}
+
 		t.Run("ClusterShouldBeCreated", CreateCluster(t.Context(), omniClient, ClusterOptions{
 			Name:          clusterName,
 			ControlPlanes: 3,
@@ -1409,7 +1414,7 @@ Test Omni upgrades, the first half that runs on the previous Omni version
 				EnableWorkloadProxy: true,
 			},
 
-			MachineOptions: options.MachineOptions,
+			MachineOptions: machineOptions,
 			ScalingTimeout: options.ScalingTimeout,
 
 			SkipExtensionCheckOnCreate: options.SkipExtensionsCheckOnCreate,
@@ -1442,8 +1447,8 @@ Test Omni upgrades, the first half that runs on the previous Omni version
 			},
 		}))
 
-		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), omniClient, clusterName, options.MachineOptions.TalosVersion,
-			options.MachineOptions.KubernetesVersion))
+		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), omniClient, clusterName, machineOptions.TalosVersion,
+			machineOptions.KubernetesVersion))
 
 		parentCtx := t.Context()
 
@@ -1472,9 +1477,13 @@ Test Omni upgrades, the second half that runs on the current Omni version
 
 		omniClient := options.omniClient
 		clusterName := "integration-omni-upgrades"
+		machineOptions := MachineOptions{
+			TalosVersion:      options.StableTalosVersion,
+			KubernetesVersion: options.AnotherKubernetesVersion,
+		}
 
-		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), omniClient, clusterName, options.MachineOptions.TalosVersion,
-			options.MachineOptions.KubernetesVersion))
+		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), omniClient, clusterName, machineOptions.TalosVersion,
+			machineOptions.KubernetesVersion))
 
 		parentCtx := t.Context()
 
@@ -1490,13 +1499,13 @@ Test Omni upgrades, the second half that runs on the current Omni version
 				Name:           clusterName,
 				ControlPlanes:  0,
 				Workers:        1,
-				MachineOptions: options.MachineOptions,
+				MachineOptions: machineOptions,
 				ScalingTimeout: options.ScalingTimeout,
 			}),
 		)
 
-		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), omniClient, clusterName, options.MachineOptions.TalosVersion,
-			options.MachineOptions.KubernetesVersion))
+		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), omniClient, clusterName, machineOptions.TalosVersion,
+			machineOptions.KubernetesVersion))
 
 		t.Run(
 			"ClusterShouldBeDestroyed",

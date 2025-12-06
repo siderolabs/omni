@@ -288,6 +288,7 @@ type Options struct {
 
 	HTTPEndpoint             string
 	AnotherTalosVersion      string
+	StableTalosVersion       string
 	AnotherKubernetesVersion string
 	OmnictlPath              string
 	ScalingTimeout           time.Duration

@@ -44,9 +44,9 @@ func Generate(input GenerateInput) (GenerateOutput, error) {
 		genOptions = append(genOptions, generate.WithInstallDisk(input.InstallDisk))
 	}
 
-	versionContract, parseErr := config.ParseContractFromVersion(input.InitialTalosVersion)
-	if parseErr != nil {
-		return GenerateOutput{}, parseErr
+	versionContract, err := config.ParseContractFromVersion(input.InitialTalosVersion)
+	if err != nil {
+		return GenerateOutput{}, err
 	}
 
 	genOptions = append(genOptions, generate.WithVersionContract(versionContract))

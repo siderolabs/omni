@@ -342,6 +342,9 @@ spec:
           INTEGRATION_PREPARE_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|OmniUpgradePrepare)$"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(OmniUpgradeVerify)$"
           RUN_TALEMU_TESTS: false
+          WITH_KUBERNETES_VERSION_OVERRIDE: true
+          WITH_TALOS_VERSION_OVERRIDE: true
+          WITH_QEMU_TALOS_VERSION_OVERRIDE: true
       - name: e2e-cluster-import
         needsOverride: [default, lint, unit-tests]
         crons:
@@ -357,6 +360,21 @@ spec:
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/ClusterImport"
           RUN_TALEMU_TESTS: false
           CREATE_TALOS_CLUSTER: true
+      - name: e2e-minor-talos-upgrade
+        needsOverride: [default, lint, unit-tests]
+        crons:
+          - '30 1 * * *'
+        runnerGroup: large
+        triggerLabels:
+          - integration/e2e
+          - integration/e2e-upgrades
+        artifacts:
+          skipArtifactDownload: true
+        environmentOverride:
+          INTEGRATION_RUN_E2E_TEST: "false"
+          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosUpgradesMinor)$"
+          RUN_TALEMU_TESTS: false
+          WITH_QEMU_TALOS_VERSION_OVERRIDE: true
 ---
 kind: common.Build
 spec:
@@ -475,10 +493,10 @@ spec:
     - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto
       subdirectory: google/rpc/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.11.5/api/common/common.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.12.0-beta.1/api/common/common.proto
       subdirectory: common/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.11.5/api/machine/machine.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.12.0-beta.1/api/machine/machine.proto
       subdirectory: talos/machine/
       genGateway: true
     - source: https://raw.githubusercontent.com/cosi-project/specification/a25fac056c642b32468b030387ab94c17bc3ba1d/proto/v1alpha1/resource.proto
@@ -512,7 +530,7 @@ kind: js.Protobuf
 spec:
   baseSpecPath: /client/api
   files:
-     - source: https://raw.githubusercontent.com/siderolabs/talos/v1.11.5/pkg/machinery/config/schemas/config.schema.json
+     - source: https://raw.githubusercontent.com/siderolabs/talos/v1.12.0-beta.1/pkg/machinery/config/schemas/config.schema.json
        destination: frontend/src/schemas/config.schema.json
   destinationRoot: src/api
   specs:
@@ -555,7 +573,7 @@ spec:
     - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto
       subdirectory: google/rpc/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.11.5/api/machine/machine.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.12.0-beta.1/api/machine/machine.proto
       subdirectory: talos/machine
       genGateway: true
     - source: https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/any.proto
@@ -573,7 +591,7 @@ spec:
     - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/code.proto
       subdirectory: google/rpc/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.11.5/api/common/common.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.12.0-beta.1/api/common/common.proto
       subdirectory: common/
       genGateway: true
     - source: https://raw.githubusercontent.com/cosi-project/specification/a25fac056c642b32468b030387ab94c17bc3ba1d/proto/v1alpha1/resource.proto

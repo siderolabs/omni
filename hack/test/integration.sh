@@ -22,9 +22,27 @@ echo "127.0.0.1 my-instance.localhost" | tee -a /etc/hosts
 LATEST_STABLE_OMNI=$(git tag -l --sort=-version:refname HEAD "v*" | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
 
 TALOS_VERSION=1.11.5
-ENABLE_TALOS_PRERELEASE_VERSIONS=false
+QEMU_TALOS_VERSION=${TALOS_VERSION}
+ENABLE_TALOS_PRERELEASE_VERSIONS=true
 ANOTHER_OMNI_VERSION="${ANOTHER_OMNI_VERSION:-$LATEST_STABLE_OMNI}"
 KUBERNETES_VERSION=1.34.2
+ANOTHER_KUBERNETES_VERSION=1.33.6
+# To use in:
+# - Omni upgrade tests, to prevent Talos changes interfering with Omni changes
+# - Talos minor upgrade tests
+STABLE_TALOS_VERSION=1.10.8
+WITH_QEMU_TALOS_VERSION_OVERRIDE=${WITH_QEMU_TALOS_VERSION_OVERRIDE:-false}
+if [[ $WITH_QEMU_TALOS_VERSION_OVERRIDE == "true" ]]; then
+  QEMU_TALOS_VERSION=$STABLE_TALOS_VERSION
+fi
+WITH_TALOS_VERSION_OVERRIDE=${WITH_TALOS_VERSION_OVERRIDE:-false}
+if [[ $WITH_TALOS_VERSION_OVERRIDE == "true" ]]; then
+  TALOS_VERSION=$STABLE_TALOS_VERSION
+fi
+WITH_KUBERNETES_VERSION_OVERRIDE=${WITH_KUBERNETES_VERSION_OVERRIDE:-false}
+if [[ $WITH_KUBERNETES_VERSION_OVERRIDE == "true" ]]; then
+  KUBERNETES_VERSION=$ANOTHER_KUBERNETES_VERSION
+fi
 
 ARTIFACTS=_out
 JOIN_TOKEN=testonly
@@ -292,7 +310,9 @@ if [[ "${RUN_TALEMU_TESTS:-false}" == "true" ]]; then
     SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
     ${ARTIFACTS}/integration-test-linux-amd64 \
     --omni.talos-version=${TALOS_VERSION} \
+    --omni.stable-talos-version=${STABLE_TALOS_VERSION} \
     --omni.kubernetes-version=${KUBERNETES_VERSION} \
+    --omni.another-kubernetes-version=${ANOTHER_KUBERNETES_VERSION} \
     --omni.omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
     --omni.expected-machines=30 \
     --omni.provision-config-file=hack/test/provisionconfig.yaml \
@@ -463,10 +483,10 @@ function create_machines() { # args: name, count, cidr, secure_boot (true/false)
     cluster_create_args+=(
       "--with-tpm2"
       "--disk-encryption-key-types=tpm"
-      "--iso-path=https://factory.talos.dev/image/${schematic_id}/v${TALOS_VERSION}/metal-amd64-secureboot.iso"
+      "--iso-path=https://factory.talos.dev/image/${schematic_id}/v${QEMU_TALOS_VERSION}/metal-amd64-secureboot.iso"
     )
   else
-    cluster_create_args+=("--iso-path=https://factory.talos.dev/image/${schematic_id}/v${TALOS_VERSION}/metal-amd64.iso")
+    cluster_create_args+=("--iso-path=https://factory.talos.dev/image/${schematic_id}/v${QEMU_TALOS_VERSION}/metal-amd64.iso")
   fi
 
   ${ARTIFACTS}/talosctl cluster create \
@@ -507,15 +527,15 @@ function create_talos_cluster { # args: name, cp_count, wk_count, cidr
     "--with-uuid-hostnames"
     "--cidr=${cidr}"
     "--no-masquerade-cidrs=${non_masquerade_cidrs}"
-    "--talosconfig=$TEST_OUTPUTS_DIR/$name/talosconfig"
+    "--talosconfig=${TEST_OUTPUTS_DIR}/${name}/talosconfig"
     "--skip-kubeconfig"
     "--skip-injecting-extra-cmdline"
     "--with-apply-config"
     "--with-bootloader"
-    "--kubernetes-version=$KUBERNETES_VERSION"
-    "--talos-version=$TALOS_VERSION"
-    "--install-image=factory.talos.dev/metal-installer/${schematic_id}:v$TALOS_VERSION"
-    "--iso-path=https://factory.talos.dev/image/${schematic_id}/v$TALOS_VERSION/metal-amd64.iso"
+    "--kubernetes-version=${KUBERNETES_VERSION}"
+    "--talos-version=${QEMU_TALOS_VERSION}"
+    "--install-image=factory.talos.dev/metal-installer/${schematic_id}:v${QEMU_TALOS_VERSION}"
+    "--iso-path=https://factory.talos.dev/image/${schematic_id}/v${QEMU_TALOS_VERSION}/metal-amd64.iso"
   )
 
   # shellcheck disable=SC2068
@@ -537,7 +557,7 @@ if [ "${CREATE_TALOS_CLUSTER:-false}" == "true" ]; then
   create_talos_cluster name=test-cluster-import cp_count=1 wk_count=1 cidr=172.28.0.0/24
 fi
 
-# todo: add --omni.sleep-after-failure="${SLEEP_AFTER_FAILURE}" \ below when ANOTHER_OMNI_VERSION starts to support it
+# todo: add --omni.stable-talos-version=${STABLE_TALOS_VERSION} \ below when ANOTHER_OMNI_VERSION starts to support it
 if [ -n "$ANOTHER_OMNI_VERSION" ] && [ -n "$INTEGRATION_PREPARE_TEST_ARGS" ]; then
   docker run \
     --cap-add=NET_ADMIN \
@@ -554,12 +574,14 @@ if [ -n "$ANOTHER_OMNI_VERSION" ] && [ -n "$INTEGRATION_PREPARE_TEST_ARGS" ]; th
     "ghcr.io/siderolabs/omni-integration-test:${ANOTHER_OMNI_VERSION}" \
     --omni.talos-version=${TALOS_VERSION} \
     --omni.kubernetes-version=${KUBERNETES_VERSION} \
+    --omni.another-kubernetes-version=${ANOTHER_KUBERNETES_VERSION} \
     --omni.omnictl-path=/_out/omnictl-linux-amd64 \
     --omni.expected-machines=${TOTAL_MACHINES} \
     --omni.embedded \
     --omni.config-path=/config.yaml \
     --omni.output-dir=/outputs \
     --omni.log-output=/outputs/omni-upgrade-prepare.log \
+    --omni.sleep-after-failure="${SLEEP_AFTER_FAILURE}" \
     --omni.ignore-unknown-fields \
     --test.failfast \
     --test.v \
@@ -572,7 +594,9 @@ SIDEROLINK_DEV_JOIN_TOKEN=${JOIN_TOKEN} \
   SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
   ${ARTIFACTS}/integration-test-linux-amd64 \
   --omni.talos-version=${TALOS_VERSION} \
+  --omni.stable-talos-version=${STABLE_TALOS_VERSION} \
   --omni.kubernetes-version=${KUBERNETES_VERSION} \
+  --omni.another-kubernetes-version=${ANOTHER_KUBERNETES_VERSION} \
   --omni.omnictl-path=${ARTIFACTS}/omnictl-linux-amd64 \
   --omni.expected-machines=${TOTAL_MACHINES} \
   --omni.embedded \

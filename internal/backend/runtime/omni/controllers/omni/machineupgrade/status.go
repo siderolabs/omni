@@ -191,7 +191,8 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 	if schematicEqualWithoutKernelArgs {
 		var updateSupported bool
 
-		if updateSupported, err = kernelargs.UpdateSupported(ms); err != nil {
+		// We pass ClusterMachineConfig as nil, since this controller only handles maintenance mode upgrades at the moment.
+		if updateSupported, err = kernelargs.UpdateSupported(ms, nil); err != nil {
 			return fmt.Errorf("failed to check if kernel args update is supported: %w", err)
 		}
 

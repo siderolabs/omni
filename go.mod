@@ -55,6 +55,7 @@ require (
 	github.com/johannesboyne/gofakes3 v0.0.0-20250916175020-ebf3e50324d3
 	github.com/jonboulle/clockwork v0.5.0
 	github.com/julienschmidt/httprouter v1.3.0
+	github.com/jxskiss/base62 v1.1.0
 	github.com/klauspost/compress v1.18.1
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/prometheus/client_golang v1.23.2
@@ -81,7 +82,7 @@ require (
 	github.com/siderolabs/omni/client v1.3.4
 	github.com/siderolabs/proto-codec v0.1.2
 	github.com/siderolabs/siderolink v0.3.15
-	github.com/siderolabs/talos/pkg/machinery v1.12.0-beta.0
+	github.com/siderolabs/talos/pkg/machinery v1.12.0-beta.1
 	github.com/siderolabs/tcpproxy v0.1.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.10.1
@@ -114,8 +115,6 @@ require (
 	modernc.org/sqlite v1.40.1
 	sigs.k8s.io/controller-runtime v0.22.4
 )
-
-require github.com/jxskiss/base62 v1.1.0
 
 require (
 	cel.dev/expr v0.25.1 // indirect
