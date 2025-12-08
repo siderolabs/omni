@@ -11,8 +11,15 @@ const { code = '' } = defineProps<{ code?: string }>()
 </script>
 
 <template>
-  <div class="flex items-center justify-between gap-1 rounded border border-naturals-n8 px-4 py-2">
-    <pre class="font-mono text-xs whitespace-pre-wrap text-naturals-n11">{{ code }}</pre>
-    <CopyButton class="shrink-0" :text="code" />
+  <div
+    class="relative rounded border border-naturals-n7 bg-naturals-n2 px-4 py-2 text-naturals-n14"
+  >
+    <div
+      class="absolute top-2 right-2 z-10 flex items-center justify-center rounded-md p-1 backdrop-blur"
+    >
+      <CopyButton class="flex" aria-label="Copy" :text="code" />
+    </div>
+
+    <pre class="overflow-x-auto font-mono text-xs leading-6 whitespace-pre">{{ code }}</pre>
   </div>
 </template>

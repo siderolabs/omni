@@ -80,7 +80,7 @@ included in the LICENSE file.
   }
 
   .link-primary {
-    @apply inline-block text-primary-p3 not-hover:underline visited:text-primary-p1 hover:text-primary-p2 active:text-primary-p5;
+    @apply inline-block text-primary-p3 not-hover:underline hover:text-primary-p2 active:text-primary-p5;
   }
 
   .list-item-link {
