@@ -3,14 +3,33 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { milliseconds } from 'date-fns'
-import { toast } from 'vue-sonner'
+import type { Component } from 'vue'
+import { type ExternalToast, toast } from 'vue-sonner'
 
-export function showError(title: string, description?: string) {
-  console.error(`error occurred: title: ${title}, body: ${description}`)
+type TitleOrComponent = (() => string | Component) | string | Component
 
-  toast.error(title, { description, duration: milliseconds({ minutes: 1 }) })
+export function showError(title: TitleOrComponent, descOrOpts?: string | ExternalToast) {
+  console.error(`error occurred: title: ${title}, body: ${descOrOpts}`)
+
+  showToast('error', title, milliseconds({ minutes: 1 }), descOrOpts)
 }
 
-export function showSuccess(title: string, description?: string) {
-  toast.success(title, { description, duration: milliseconds({ seconds: 5 }) })
+export function showSuccess(title: TitleOrComponent, descOrOpts?: string | ExternalToast) {
+  showToast('success', title, milliseconds({ seconds: 5 }), descOrOpts)
+}
+
+export function showWarning(title: TitleOrComponent, descOrOpts?: string | ExternalToast) {
+  showToast('warning', title, milliseconds({ seconds: 5 }), descOrOpts)
+}
+
+function showToast(
+  type: 'error' | 'success' | 'warning',
+  title: TitleOrComponent,
+  duration: number,
+  descOrOpts?: string | ExternalToast,
+) {
+  const description = typeof descOrOpts === 'string' ? descOrOpts : undefined
+  const options = typeof descOrOpts !== 'string' ? descOrOpts : undefined
+
+  toast[type](title, { description, duration, ...options })
 }

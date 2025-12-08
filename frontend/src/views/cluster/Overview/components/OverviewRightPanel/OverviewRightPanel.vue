@@ -6,8 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import * as semver from 'semver'
-import type { Ref } from 'vue'
-import { computed, ref, toRefs } from 'vue'
+import { computed, markRaw, type Ref, ref, toRefs } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -43,8 +42,9 @@ import { setupClusterPermissions } from '@/methods/auth'
 import { triggerEtcdBackup, updateClusterLock } from '@/methods/cluster'
 import { controlPlaneMachineSetId } from '@/methods/machineset'
 import { formatISO } from '@/methods/time'
-import { showError } from '@/notification'
+import { showError, showWarning } from '@/notification'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
+import OverviewOIDCToast from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewOIDCToast.vue'
 import OverviewRightPanelCondition from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanelCondition.vue'
 import OverviewRightPanelItem from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanelItem.vue'
 import TClusterStatus from '@/views/omni/Clusters/ClusterStatus.vue'
@@ -386,7 +386,12 @@ const {
             type="primary"
             icon="kube-config"
             icon-position="left"
-            @click="() => downloadKubeconfig(currentCluster!.metadata.id!)"
+            @click="
+              () => {
+                downloadKubeconfig(currentCluster!.metadata.id!)
+                showWarning('Note on kubectl', { description: markRaw(OverviewOIDCToast) })
+              }
+            "
           >
             Download
             <code>kubeconfig</code>
