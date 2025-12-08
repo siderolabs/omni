@@ -8,7 +8,7 @@ import { computed } from 'vue'
 
 import { showError } from '@/notification'
 
-interface TalosctlDownloadsResponse {
+export interface TalosctlDownloadsResponse {
   status: string
   release_data: {
     /**
