@@ -51,7 +51,7 @@ const selectedSBC = computed(() =>
     <span class="text-sm font-medium text-naturals-n14">Customization</span>
 
     <TInput
-      v-model="formState.selectedCmdline"
+      v-model="formState.cmdline"
       placeholder="-console console=tty0"
       title="Extra kernel command line arguments"
       overhead-title
@@ -95,7 +95,7 @@ const selectedSBC = computed(() =>
 
     <template v-if="supportsOverlayOptions && selectedSBC">
       <TInput
-        v-model="formState.selectedOverlayOptions"
+        v-model="formState.overlayOptions"
         placeholder="configTxtAppend: 'dtoverlay=vc4-fkms-v3d'"
         title="Extra overlay options (advanced)"
         overhead-title
@@ -126,7 +126,7 @@ const selectedSBC = computed(() =>
       v-model="formState.bootloader"
       label="Bootloader"
     >
-      <RadioGroupOption value="">
+      <RadioGroupOption value="auto">
         auto
 
         <template #description>Automatic bootloader selection.</template>

@@ -9,7 +9,7 @@ import CodeBlock from './CodeBlock.vue'
 const meta: Meta<typeof CodeBlock> = {
   component: CodeBlock,
   args: {
-    code: 'brew install siderolabs/tap/sidero-tools',
+    code: 'brew install siderolabs/tap/sidero-toolsbrew install siderolabs/tap/sidero-toolsbrew install siderolabs/tap/sidero-toolsbrew install siderolabs/tap/sidero-toolsbrew install siderolabs/tap/sidero-tools',
   },
 }
 
