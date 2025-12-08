@@ -2348,13 +2348,6 @@ func (m *MachineStatusMetricsSpec) CloneVT() *MachineStatusMetricsSpec {
 	r.ConnectedMachinesCount = m.ConnectedMachinesCount
 	r.AllocatedMachinesCount = m.AllocatedMachinesCount
 	r.PendingMachinesCount = m.PendingMachinesCount
-	if rhs := m.VersionsMap; rhs != nil {
-		tmpContainer := make(map[string]int32, len(rhs))
-		for k, v := range rhs {
-			tmpContainer[k] = v
-		}
-		r.VersionsMap = tmpContainer
-	}
 	if rhs := m.Platforms; rhs != nil {
 		tmpContainer := make(map[string]uint32, len(rhs))
 		for k, v := range rhs {
@@ -6014,18 +6007,6 @@ func (this *MachineStatusMetricsSpec) EqualVT(that *MachineStatusMetricsSpec) bo
 	}
 	if this.PendingMachinesCount != that.PendingMachinesCount {
 		return false
-	}
-	if len(this.VersionsMap) != len(that.VersionsMap) {
-		return false
-	}
-	for i, vx := range this.VersionsMap {
-		vy, ok := that.VersionsMap[i]
-		if !ok {
-			return false
-		}
-		if vx != vy {
-			return false
-		}
 	}
 	if len(this.Platforms) != len(that.Platforms) {
 		return false
@@ -13002,23 +12983,6 @@ func (m *MachineStatusMetricsSpec) MarshalToSizedBufferVT(dAtA []byte) (int, err
 			dAtA[i] = 0x32
 		}
 	}
-	if len(m.VersionsMap) > 0 {
-		for k := range m.VersionsMap {
-			v := m.VersionsMap[k]
-			baseI := i
-			i = protohelpers.EncodeVarint(dAtA, i, uint64(v))
-			i--
-			dAtA[i] = 0x10
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = protohelpers.EncodeVarint(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x2a
-		}
-	}
 	if m.PendingMachinesCount != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.PendingMachinesCount))
 		i--
@@ -16555,14 +16519,6 @@ func (m *MachineStatusMetricsSpec) SizeVT() (n int) {
 	}
 	if m.PendingMachinesCount != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.PendingMachinesCount))
-	}
-	if len(m.VersionsMap) > 0 {
-		for k, v := range m.VersionsMap {
-			_ = k
-			_ = v
-			mapEntrySize := 1 + len(k) + protohelpers.SizeOfVarint(uint64(len(k))) + 1 + protohelpers.SizeOfVarint(uint64(v))
-			n += mapEntrySize + 1 + protohelpers.SizeOfVarint(uint64(mapEntrySize))
-		}
 	}
 	if len(m.Platforms) > 0 {
 		for k, v := range m.Platforms {
@@ -32896,119 +32852,6 @@ func (m *MachineStatusMetricsSpec) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field VersionsMap", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.VersionsMap == nil {
-				m.VersionsMap = make(map[string]int32)
-			}
-			var mapkey string
-			var mapvalue int32
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return protohelpers.ErrIntOverflow
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					wire |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return protohelpers.ErrIntOverflow
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapkey |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return protohelpers.ErrInvalidLength
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return protohelpers.ErrInvalidLength
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return protohelpers.ErrIntOverflow
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						mapvalue |= int32(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := protohelpers.Skip(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if (skippy < 0) || (iNdEx+skippy) < 0 {
-						return protohelpers.ErrInvalidLength
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
-			}
-			m.VersionsMap[mapkey] = mapvalue
-			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Platforms", wireType)

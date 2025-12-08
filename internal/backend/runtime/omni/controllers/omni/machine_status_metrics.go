@@ -26,12 +26,18 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
+type nodeInfo struct {
+	talosVersion string
+	cluster      string
+	connected    bool
+}
+
 // MachineStatusMetricsController provides metrics based on ClusterStatus.
 //
 //nolint:govet
 type MachineStatusMetricsController struct {
 	versionsMu  sync.Mutex
-	versionsMap map[string]int32
+	versionsMap map[nodeInfo]int32
 
 	metricsOnce sync.Once
 
@@ -91,7 +97,7 @@ func (ctrl *MachineStatusMetricsController) initMetrics() {
 		ctrl.metricNumMachinesPerVersion = prometheus.NewDesc(
 			"omni_machines_version",
 			"Number of machines in the instance by version.",
-			[]string{"talos_version"},
+			[]string{"talos_version", "cluster", "connected"},
 			nil,
 		)
 
@@ -185,7 +191,7 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 	var machines, connectedMachines, allocatedMachines int
 
 	ctrl.versionsMu.Lock()
-	ctrl.versionsMap = map[string]int32{}
+	ctrl.versionsMap = map[nodeInfo]int32{}
 
 	for ms := range statuses {
 		machines++
@@ -195,7 +201,11 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 		}
 
 		if ms.TypedSpec().Value.TalosVersion != "" {
-			ctrl.versionsMap[ms.TypedSpec().Value.TalosVersion]++
+			ctrl.versionsMap[nodeInfo{
+				talosVersion: ms.TypedSpec().Value.TalosVersion,
+				cluster:      ms.TypedSpec().Value.Cluster,
+				connected:    ms.TypedSpec().Value.Connected,
+			}]++
 		}
 
 		if ms.TypedSpec().Value.Cluster != "" {
@@ -239,7 +249,6 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 		RegisteredMachinesCount: uint32(machines),
 		AllocatedMachinesCount:  uint32(allocatedMachines),
 		PendingMachinesCount:    uint32(numPendingMachines),
-		VersionsMap:             ctrl.versionsMap,
 		Platforms:               platformMetrics,
 		SecureBootStatus:        secureBootStatusMetrics,
 		UkiStatus:               ukiMetrics,
@@ -257,8 +266,8 @@ func (ctrl *MachineStatusMetricsController) Collect(ch chan<- prometheus.Metric)
 
 	ctrl.versionsMu.Lock()
 
-	for version, count := range ctrl.versionsMap {
-		ch <- prometheus.MustNewConstMetric(ctrl.metricNumMachinesPerVersion, prometheus.GaugeValue, float64(count), version)
+	for info, count := range ctrl.versionsMap {
+		ch <- prometheus.MustNewConstMetric(ctrl.metricNumMachinesPerVersion, prometheus.GaugeValue, float64(count), info.talosVersion, info.cluster, strconv.FormatBool(info.connected))
 	}
 
 	ctrl.versionsMu.Unlock()

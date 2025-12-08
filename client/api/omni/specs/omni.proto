@@ -1282,12 +1282,13 @@ message MachineExtensionsStatusSpec {
 
 // MachineStatusMetricsSpec provides aggregated state of the number of registered and connected machines for the Omni instance.
 message MachineStatusMetricsSpec {
+  reserved 5;
+
   uint32 registered_machines_count = 1;
   uint32 connected_machines_count = 2;
   uint32 allocated_machines_count = 3;
   uint32 pending_machines_count = 4;
 
-  map<string, int32> versions_map = 5;
   map<string, uint32> platforms = 6;
   map<string, uint32> secure_boot_status = 7;
   map<string, uint32> uki_status = 8;
