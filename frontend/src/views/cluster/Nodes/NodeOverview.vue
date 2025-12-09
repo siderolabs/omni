@@ -56,8 +56,8 @@ import ItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
 
 const services = ref<
   {
-    name: string
-    state: string
+    name?: string
+    state?: string
     status: TCommonStatuses
     events?: ServiceEvent[]
   }[]
@@ -85,20 +85,20 @@ const fetchServices = async () => {
 
   services.value = []
 
-  for (const message of res.messages!) {
-    for (const service of message.services!) {
+  res.messages?.forEach((message) =>
+    message.services?.forEach((service) =>
       services.value.push({
-        name: service.id!,
-        state: service.state!,
+        name: service.id,
+        state: service.state,
         status: service.health?.unknown
           ? TCommonStatuses.HEALTH_UNKNOWN
           : service.health?.healthy
             ? TCommonStatuses.HEALTHY
             : TCommonStatuses.UNHEALTHY,
         events: service.events?.events,
-      })
-    }
-  }
+      }),
+    ),
+  )
 }
 
 fetchServices()
