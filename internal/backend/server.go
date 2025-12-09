@@ -9,6 +9,7 @@ package backend
 import (
 	"compress/gzip"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -41,6 +42,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	service "github.com/siderolabs/discovery-service/pkg/service"
+	"github.com/siderolabs/discovery-service/pkg/storage"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
 	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	"github.com/siderolabs/go-retry/retry"
@@ -61,6 +63,7 @@ import (
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/debug"
+	"github.com/siderolabs/omni/internal/backend/discovery"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/factory"
 	grpcomni "github.com/siderolabs/omni/internal/backend/grpc"
@@ -73,7 +76,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/oidc"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
-	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/saml"
 	"github.com/siderolabs/omni/internal/backend/services"
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
@@ -100,22 +102,23 @@ import (
 
 // Server is main backend entrypoint that starts REST API, WebSocket and Serves static contents.
 type Server struct {
-	linkCounterDeltaCh      chan<- siderolink.LinkCounterDeltas
-	installEventCh          chan<- resource.ID
+	omniRuntime             *omni.Runtime
+	logHandler              *siderolink.LogHandler
 	logger                  *zap.Logger
-	siderolinkEventsCh      chan<- *omnires.MachineStatusSnapshot
+	state                   *omni.State
 	authConfig              *authres.Config
 	dnsService              *dns.Service
 	workloadProxyReconciler *workloadproxy.Reconciler
 	imageFactoryClient      *imagefactory.Client
-	omniRuntime             *omni.Runtime
-	state                   *omni.State
-	logHandler              *siderolink.LogHandler
+	installEventCh          chan<- resource.ID
+	linkCounterDeltaCh      chan<- siderolink.LinkCounterDeltas
+	siderolinkEventsCh      chan<- *omnires.MachineStatusSnapshot
 	oidcProvider            *coidc.Provider
 	apiService              *config.Service
 	metricsService          *config.Service
 	devServerProxy          *config.DevServerProxyService
 	k8sProxyService         *config.KubernetesProxyService
+	secondaryStorageDB      *sql.DB
 	pprofBindAddress        string
 	workloadProxyKey        []byte
 }
@@ -130,9 +133,9 @@ func NewServer(
 	siderolinkEventsCh chan<- *omnires.MachineStatusSnapshot,
 	installEventCh chan<- resource.ID,
 	omniRuntime *omni.Runtime,
-	talosRuntime *talos.Runtime,
 	logHandler *siderolink.LogHandler,
 	authConfig *authres.Config,
+	secondaryStorageDB *sql.DB,
 	logger *zap.Logger,
 ) (*Server, error) {
 	s := &Server{
@@ -152,6 +155,7 @@ func NewServer(
 		metricsService:          config.Config.Services.Metrics,
 		pprofBindAddress:        config.Config.Debug.Pprof.Endpoint,
 		k8sProxyService:         config.Config.Services.KubernetesProxy,
+		secondaryStorageDB:      secondaryStorageDB,
 	}
 
 	var err error
@@ -284,7 +288,7 @@ func (s *Server) Run(ctx context.Context) error {
 
 	if config.Config.Services.EmbeddedDiscoveryService.Enabled {
 		eg.Go(func() error {
-			if err = runEmbeddedDiscoveryService(ctx, s.logger); err != nil {
+			if err = runEmbeddedDiscoveryService(ctx, s.secondaryStorageDB, s.logger); err != nil {
 				return fmt.Errorf("failed to run discovery server over Siderolink: %w", err)
 			}
 
@@ -1128,7 +1132,7 @@ func (s *Server) createInitialServiceAccount(ctx context.Context) error {
 }
 
 // runEmbeddedDiscoveryService runs an embedded discovery service over Siderolink.
-func runEmbeddedDiscoveryService(ctx context.Context, logger *zap.Logger) error {
+func runEmbeddedDiscoveryService(ctx context.Context, secondaryStorageDB *sql.DB, logger *zap.Logger) error {
 	logLevel, err := zapcore.ParseLevel(config.Config.Services.EmbeddedDiscoveryService.LogLevel)
 	if err != nil {
 		logLevel = zapcore.WarnLevel
@@ -1138,15 +1142,26 @@ func runEmbeddedDiscoveryService(ctx context.Context, logger *zap.Logger) error 
 
 	registerer := prometheus.WrapRegistererWithPrefix("discovery_", prometheus.DefaultRegisterer)
 
+	var snapshotStore storage.SnapshotStore
+
+	//nolint:staticcheck
+	snapshotsEnabled := config.Config.Services.EmbeddedDiscoveryService.SnapshotsEnabled || config.Config.Services.EmbeddedDiscoveryService.SQLiteSnapshotsEnabled
+	if snapshotsEnabled {
+		if snapshotStore, err = discovery.InitSQLiteSnapshotStore(ctx, config.Config.Services.EmbeddedDiscoveryService, secondaryStorageDB, logger); err != nil {
+			return fmt.Errorf("failed to initialize snapshot store: %w", err)
+		}
+	}
+
 	if err = retry.Constant(30*time.Second, retry.WithUnits(time.Second)).RetryWithContext(ctx, func(context.Context) error {
 		err = service.Run(ctx, service.Options{
 			ListenAddr:        net.JoinHostPort(siderolink.ListenHost, strconv.Itoa(config.Config.Services.EmbeddedDiscoveryService.Port)),
 			GCInterval:        time.Minute,
 			MetricsRegisterer: registerer,
 
-			SnapshotsEnabled: config.Config.Services.EmbeddedDiscoveryService.SnapshotsEnabled,
+			SnapshotsEnabled: snapshotsEnabled,
 			SnapshotInterval: config.Config.Services.EmbeddedDiscoveryService.SnapshotsInterval,
-			SnapshotPath:     config.Config.Services.EmbeddedDiscoveryService.SnapshotsPath,
+			SnapshotPath:     config.Config.Services.EmbeddedDiscoveryService.SnapshotsPath, //nolint:staticcheck
+			SnapshotStore:    snapshotStore,
 		}, logger.WithOptions(zap.IncreaseLevel(logLevel)).With(logging.Component("discovery_service")))
 
 		if errors.Is(err, syscall.EADDRNOTAVAIL) {

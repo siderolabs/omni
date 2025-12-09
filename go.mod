@@ -5,6 +5,7 @@ go 1.25.4
 replace (
 	// forked saml library that has the fix for Fusion Auth ACS parsing
 	github.com/crewjam/saml => github.com/unix4ever/saml v0.0.0-20250630213700-66b137182abe
+
 	// use nested module
 	github.com/siderolabs/omni/client => ./client
 )
@@ -64,7 +65,7 @@ require (
 	github.com/siderolabs/crypto v0.6.4
 	github.com/siderolabs/discovery-api v0.1.6
 	github.com/siderolabs/discovery-client v0.1.13
-	github.com/siderolabs/discovery-service v1.0.11
+	github.com/siderolabs/discovery-service v1.0.13
 	github.com/siderolabs/gen v0.8.6
 	github.com/siderolabs/go-api-signature v0.3.12
 	github.com/siderolabs/go-circular v0.2.3
@@ -80,7 +81,7 @@ require (
 	github.com/siderolabs/image-factory v0.8.4
 	github.com/siderolabs/kms-client v0.1.0
 	github.com/siderolabs/omni/client v1.3.4
-	github.com/siderolabs/proto-codec v0.1.2
+	github.com/siderolabs/proto-codec v0.1.3
 	github.com/siderolabs/siderolink v0.3.15
 	github.com/siderolabs/talos/pkg/machinery v1.12.0-beta.1
 	github.com/siderolabs/tcpproxy v0.1.0 // indirect
@@ -221,7 +222,7 @@ require (
 	github.com/petermattis/goid v0.0.0-20251121121749-a11dd1a45f9a // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/planetscale/vtprotobuf v0.6.1-0.20241121165744-79df5c4772f2 // indirect
+	github.com/planetscale/vtprotobuf v0.6.1-0.20250313105119-ba97887b0a25 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/procfs v0.19.2 // indirect

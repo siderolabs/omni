@@ -116,12 +116,13 @@ func Default() *Params {
 				Port:    8081,
 			},
 			EmbeddedDiscoveryService: &EmbeddedDiscoveryService{
-				Enabled:           true,
-				Port:              8093,
-				SnapshotsEnabled:  true,
-				SnapshotsPath:     "_out/secondary-storage/discovery-service-state.binpb",
-				SnapshotsInterval: 10 * time.Minute,
-				LogLevel:          zapcore.WarnLevel.String(),
+				Enabled:                true,
+				Port:                   8093,
+				SnapshotsEnabled:       true,
+				SnapshotsPath:          "_out/secondary-storage/discovery-service-state.binpb", // todo: Keeping this enabled to get it migrated to SQLite.
+				SQLiteSnapshotsEnabled: true,
+				SnapshotsInterval:      10 * time.Minute,
+				LogLevel:               zapcore.WarnLevel.String(),
 			},
 			WorkloadProxy: &WorkloadProxy{
 				Subdomain:    "proxy-us",

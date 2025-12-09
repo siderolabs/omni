@@ -153,9 +153,9 @@ func Run(ctx context.Context, state *omni.State, secondaryStorageDB *sql.DB, con
 		siderolinkEventsCh,
 		installEventCh,
 		omniRuntime,
-		talosRuntime,
 		logHandler,
 		authConfig,
+		secondaryStorageDB,
 		logger,
 	)
 	if err != nil {

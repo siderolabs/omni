@@ -344,18 +344,33 @@ func defineServiceFlags() {
 		cmdConfig.Services.EmbeddedDiscoveryService.Port,
 		"embedded discovery service port to listen on",
 	)
+
+	//nolint:staticcheck
 	rootCmd.Flags().BoolVar(
 		&cmdConfig.Services.EmbeddedDiscoveryService.SnapshotsEnabled,
 		"embedded-discovery-service-snapshots-enabled",
 		cmdConfig.Services.EmbeddedDiscoveryService.SnapshotsEnabled,
 		"enable snapshots for the embedded discovery service",
 	)
+
+	//nolint:staticcheck
 	rootCmd.Flags().StringVar(
 		&cmdConfig.Services.EmbeddedDiscoveryService.SnapshotsPath,
 		"embedded-discovery-service-snapshot-path",
 		cmdConfig.Services.EmbeddedDiscoveryService.SnapshotsPath,
 		"path to the file for storing the embedded discovery service state",
 	)
+
+	rootCmd.Flags().MarkDeprecated("embedded-discovery-service-snapshots-enabled", "use --embedded-discovery-service-sqlite-snapshots-enabled") //nolint:errcheck
+	rootCmd.Flags().MarkDeprecated("embedded-discovery-service-snapshot-path", "use --embedded-discovery-service-sqlite-snapshots-enabled")     //nolint:errcheck
+
+	rootCmd.Flags().BoolVar(
+		&cmdConfig.Services.EmbeddedDiscoveryService.SQLiteSnapshotsEnabled,
+		"embedded-discovery-service-sqlite-snapshots-enabled",
+		cmdConfig.Services.EmbeddedDiscoveryService.SQLiteSnapshotsEnabled,
+		"store embedded discovery service snapshots in the configured SQLite database, this will be the default behavior in the future",
+	)
+
 	rootCmd.Flags().DurationVar(
 		&cmdConfig.Services.EmbeddedDiscoveryService.SnapshotsInterval,
 		"embedded-discovery-service-snapshot-interval",
