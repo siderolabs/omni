@@ -1,9 +1,10 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-12-01T11:50:57Z by kres a1a34ff.
+# Generated on 2025-12-09T15:32:15Z by kres 4b09af7.
 
 *
 !frontend/src
+!frontend/e2e
 !frontend/public
 !frontend/msw
 !frontend/.storybook

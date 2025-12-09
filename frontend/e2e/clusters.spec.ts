@@ -37,14 +37,14 @@ test('create cluster', async ({ page }) => {
 
     await editor.press('Control+a')
     await editor.press('Delete')
- // Talos 1.12.0-alpha.0 and later use the HostnameConfig resource instead of the machine.network.hostname field
+    // Talos 1.12.0-alpha.0 and later use the HostnameConfig resource instead of the machine.network.hostname field
     await editor.pressSequentially(`machine:
  network:
    hostname: ${machineName}`)
-//     await editor.pressSequentially(`apiVersion: v1alpha1
-// kind: HostnameConfig
-// auto: off
-// hostname: ${machineName}`)
+    //     await editor.pressSequentially(`apiVersion: v1alpha1
+    // kind: HostnameConfig
+    // auto: off
+    // hostname: ${machineName}`)
 
     await page.getByRole('button', { name: 'Save' }).click()
   })

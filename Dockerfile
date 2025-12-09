@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-12-01T11:50:57Z by kres a1a34ff.
+# Generated on 2025-12-09T15:32:15Z by kres 4b09af7.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN=scratch
@@ -20,7 +20,7 @@ ENV GOPATH=/go
 ENV PATH=${PATH}:/usr/local/go/bin
 
 # runs markdownlint
-FROM docker.io/oven/bun:1.3.1-alpine AS lint-markdown
+FROM docker.io/oven/bun:1.3.3-alpine AS lint-markdown
 WORKDIR /src
 RUN bun i markdownlint-cli@0.46.0 sentences-per-line@0.3.0
 COPY .markdownlint.json .
@@ -94,6 +94,7 @@ COPY frontend/.editorconfig ./
 COPY frontend/.gitignore ./
 COPY frontend/.prettier* ./
 COPY ./frontend/src ./src
+COPY ./frontend/e2e ./e2e
 COPY ./frontend/public ./public
 COPY ./frontend/msw ./msw
 COPY ./frontend/.storybook ./.storybook
