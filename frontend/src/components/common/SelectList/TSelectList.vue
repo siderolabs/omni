@@ -35,7 +35,7 @@ const {
 } = defineProps<{
   title?: string
   defaultValue?: T
-  values: T[]
+  values: T[] | { label: string; value: T }[]
   disabled?: boolean
   searcheable?: boolean
   hideSelectedSmallScreens?: boolean
@@ -82,7 +82,7 @@ const filteredValues = computed(() => {
 
   const term = searchTerm.value.toLowerCase()
 
-  return values.filter((item) => item.toString().toLowerCase().includes(term))
+  return values.filter((item) => itemLabel(item).toLowerCase().includes(term))
 })
 
 // Focus is handled by reka-ui, using timeout to skip their focusing logic in this case
@@ -90,6 +90,45 @@ const onOpen = async (open: boolean) => {
   if (!searcheable) return
 
   setTimeout(() => (focusSearch.value = open))
+}
+
+function itemLabel(item: T | { label: string }) {
+  switch (typeof item) {
+    case 'string':
+      return item
+    case 'number':
+      return item.toString()
+    default:
+      return item.label
+  }
+}
+
+function itemValue(item: T | { value: T }) {
+  switch (typeof item) {
+    case 'string':
+    case 'number':
+      return item
+    default:
+      return item.value
+  }
+}
+
+function labelFromValue(value?: T) {
+  if (typeof value === 'undefined') return ''
+
+  const item = values.find((v) => {
+    switch (typeof v) {
+      case 'string':
+      case 'number':
+        return value === v
+      default:
+        return value === v.value
+    }
+  })
+
+  if (!item) return value
+
+  return itemLabel(item)
 }
 </script>
 
@@ -117,7 +156,7 @@ const onOpen = async (open: boolean) => {
             {{ title }}
           </Label>
           <span :class="{ 'max-md:hidden': hideSelectedSmallScreens }">
-            {{ selectedItem }}
+            {{ labelFromValue(selectedItem) }}
           </span>
         </SelectValue>
         <SelectIcon>
@@ -148,14 +187,14 @@ const onOpen = async (open: boolean) => {
           <SelectViewport>
             <SelectItem
               v-for="item in filteredValues"
-              :key="item"
+              :key="itemValue(item)"
               class="flex cursor-pointer items-center justify-between gap-2 px-3 py-1.5 text-naturals-n9 outline-none hover:text-naturals-n13 focus:text-naturals-n13 data-[state=checked]:text-naturals-n13"
-              :value="item"
+              :value="itemValue(item)"
             >
               <SelectItemText class="truncate transition-all">
                 <WordHighligher
                   :query="searchTerm"
-                  :text-to-highlight="item.toString()"
+                  :text-to-highlight="itemLabel(item)"
                   highlight-class="text-naturals-n14 font-medium bg-transparent truncate"
                 />
               </SelectItemText>

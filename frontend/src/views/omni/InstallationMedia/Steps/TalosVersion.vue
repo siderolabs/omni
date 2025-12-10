@@ -67,7 +67,13 @@ const talosVersions = computed(() =>
     .sort(compare),
 )
 
-const joinTokens = computed(() => joinTokenList.value.map((t) => t.metadata.id ?? ''))
+const joinTokens = computed(() =>
+  joinTokenList.value.map((t) => ({
+    label: t.spec.name || t.metadata.id || '',
+    value: t.metadata.id || '',
+  })),
+)
+
 const enforceGrpcTunnel = computed(
   () => siderolinkAPIConfig.value?.spec.enforce_grpc_tunnel ?? false,
 )
@@ -84,7 +90,7 @@ watch(
 
 // Form defaults
 onBeforeMount(() => (formState.value.talosVersion ??= DefaultTalosVersion))
-watchOnce(joinTokens, (v) => (formState.value.joinToken ??= v[0]))
+watchOnce(joinTokens, (v) => (formState.value.joinToken ??= v[0]?.value))
 </script>
 
 <template>
