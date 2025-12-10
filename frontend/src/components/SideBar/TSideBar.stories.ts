@@ -89,7 +89,6 @@ export const Default: Story = {
                 registered_machines_count: 3,
                 connected_machines_count: 3,
                 allocated_machines_count: 3,
-                versions_map: { 'v1.11.3': 3 },
                 platforms: {
                   akamai: 0,
                   aws: 0,

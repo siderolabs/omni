@@ -852,7 +852,6 @@ export type MachineStatusMetricsSpec = {
   connected_machines_count?: number
   allocated_machines_count?: number
   pending_machines_count?: number
-  versions_map?: {[key: string]: number}
   platforms?: {[key: string]: number}
   secure_boot_status?: {[key: string]: number}
   uki_status?: {[key: string]: number}
