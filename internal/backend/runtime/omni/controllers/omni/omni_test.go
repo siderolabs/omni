@@ -14,7 +14,6 @@ import (
 	"os"
 	"path/filepath"
 	stdruntime "runtime"
-	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -72,45 +71,17 @@ type machineService struct {
 	storage.UnimplementedStorageServiceServer
 
 	etcdMembers             *machine.EtcdMemberListResponse
-	resetChan               chan *machine.ResetRequest
-	applyRequests           []*machine.ApplyConfigurationRequest
 	bootstrapRequests       []*machine.BootstrapRequest
-	upgradeRequests         []*machine.UpgradeRequest
-	resetRequests           []*machine.ResetRequest
 	etcdRecoverRequestCount atomic.Uint64
 	files                   map[string][]string
 	serviceList             *machine.ServiceListResponse
 	etcdLeaveClusterHandler func(context.Context, *machine.EtcdLeaveClusterRequest) (*machine.EtcdLeaveClusterResponse, error)
 
-	metaDeleteKeyToCount map[uint32]int
-	metaKeys             map[uint32]string
+	metaKeys map[uint32]string
 
 	address      string
 	state        state.State
 	talosVersion string
-
-	onReset func(context.Context, *machine.ResetRequest) (*machine.ResetResponse, error)
-}
-
-func (ms *machineService) getUpgradeRequests() []*machine.UpgradeRequest {
-	ms.lock.Lock()
-	defer ms.lock.Unlock()
-
-	return slices.Clone(ms.upgradeRequests)
-}
-
-func (ms *machineService) clearUpgradeRequests() {
-	ms.lock.Lock()
-	defer ms.lock.Unlock()
-
-	ms.upgradeRequests = nil
-}
-
-func (ms *machineService) getMetaDeleteKeyToCount() map[uint32]int {
-	ms.lock.Lock()
-	defer ms.lock.Unlock()
-
-	return maps.Clone(ms.metaDeleteKeyToCount)
 }
 
 func (ms *machineService) getMetaKeys() map[uint32]string {
@@ -124,8 +95,6 @@ func (ms *machineService) ApplyConfiguration(_ context.Context, req *machine.App
 	ms.lock.Lock()
 	defer ms.lock.Unlock()
 
-	ms.applyRequests = append(ms.applyRequests, req)
-
 	return &machine.ApplyConfigurationResponse{
 		Messages: []*machine.ApplyConfiguration{
 			{
@@ -133,13 +102,6 @@ func (ms *machineService) ApplyConfiguration(_ context.Context, req *machine.App
 			},
 		},
 	}, nil
-}
-
-func (ms *machineService) getApplyRequests() []*machine.ApplyConfigurationRequest {
-	ms.lock.Lock()
-	defer ms.lock.Unlock()
-
-	return ms.applyRequests
 }
 
 func (ms *machineService) Bootstrap(_ context.Context, req *machine.BootstrapRequest) (*machine.BootstrapResponse, error) {
@@ -162,24 +124,7 @@ func (ms *machineService) Reset(ctx context.Context, req *machine.ResetRequest) 
 	ms.lock.Lock()
 	defer ms.lock.Unlock()
 
-	ms.resetRequests = append(ms.resetRequests, req)
-
-	select {
-	case ms.resetChan <- req:
-		if ms.onReset != nil {
-			return ms.onReset(ctx, req)
-		}
-	default:
-	}
-
 	return &machine.ResetResponse{}, nil
-}
-
-func (ms *machineService) getResetRequests() []*machine.ResetRequest {
-	ms.lock.Lock()
-	defer ms.lock.Unlock()
-
-	return ms.resetRequests
 }
 
 func (ms *machineService) EtcdMemberList(context.Context, *machine.EtcdMemberListRequest) (*machine.EtcdMemberListResponse, error) {
@@ -270,8 +215,6 @@ func (ms *machineService) Upgrade(_ context.Context, request *machine.UpgradeReq
 	ms.lock.Lock()
 	defer ms.lock.Unlock()
 
-	ms.upgradeRequests = append(ms.upgradeRequests, request)
-
 	return &machine.UpgradeResponse{}, nil
 }
 
@@ -325,12 +268,6 @@ func (ms *machineService) MetaWrite(_ context.Context, req *machine.MetaWriteReq
 func (ms *machineService) MetaDelete(_ context.Context, req *machine.MetaDeleteRequest) (*machine.MetaDeleteResponse, error) {
 	ms.lock.Lock()
 	defer ms.lock.Unlock()
-
-	if ms.metaDeleteKeyToCount == nil {
-		ms.metaDeleteKeyToCount = map[uint32]int{}
-	}
-
-	ms.metaDeleteKeyToCount[req.Key]++
 
 	delete(ms.metaKeys, req.Key)
 
@@ -389,7 +326,6 @@ func (suite *OmniSuite) newServerWithTalosVersion(suffix, talosVersion string) (
 	suite.Require().NoError(err)
 
 	machineService := &machineService{
-		resetChan:    make(chan *machine.ResetRequest, 10),
 		address:      address,
 		state:        st,
 		talosVersion: talosVersion,

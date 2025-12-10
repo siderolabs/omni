@@ -172,7 +172,7 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 	opts := talos.GetSocketOptions(spec.Endpoint)
 
 	if spec.MaintenanceMode {
-		opts = append(opts, client.WithTLSConfig(insecureTLSConfig), client.WithEndpoints(spec.Endpoint))
+		opts = append(opts, client.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}), client.WithEndpoints(spec.Endpoint))
 
 		c, err = client.New(ctx, opts...)
 	} else {
@@ -388,10 +388,6 @@ func (spec CollectTaskSpec) poll(ctx context.Context, c *client.Client, pollers 
 	}
 
 	return info, nil
-}
-
-var insecureTLSConfig = &tls.Config{
-	InsecureSkipVerify: true,
 }
 
 func typedFilter[T resource.Resource](fn func(T) bool) func(r resource.Resource) bool {

@@ -9,6 +9,8 @@ import (
 	"fmt"
 
 	"github.com/blang/semver/v4"
+
+	"github.com/siderolabs/omni/client/pkg/constants"
 )
 
 // AnotherTalosVersion is used in the integration tests for Talos upgrade.
@@ -24,6 +26,9 @@ const MinDiscoveredTalosVersion = "1.3.0"
 //
 // tsgen:DefaultKubernetesVersion
 const DefaultKubernetesVersion = "1.34.2"
+
+// DefaultTalosVersion to be used in the tests.
+const DefaultTalosVersion = constants.DefaultTalosVersion
 
 // AnotherKubernetesVersion is used in the integration tests for Kubernetes upgrade.
 const AnotherKubernetesVersion = "1.33.6"

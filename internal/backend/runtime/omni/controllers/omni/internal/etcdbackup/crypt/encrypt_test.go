@@ -280,6 +280,8 @@ func (r *repeatReader) Read(p []byte) (n int, err error) {
 }
 
 func TestCrypt_Upload_Blocked(t *testing.T) {
+	t.Parallel()
+
 	//nolint:govet
 	tests := []struct {
 		name       string
@@ -300,6 +302,8 @@ func TestCrypt_Upload_Blocked(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			encryptor := crypt.NewStore(&backupBlocker{block: tt.blocked})
 
 			ctx, cancel := context.WithTimeout(t.Context(), 1*time.Second)

@@ -7,6 +7,7 @@ package omni
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"sync"
 	"time"
@@ -96,7 +97,7 @@ func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory Mainten
 ) *maintenanceConfigStatusControllerHelper {
 	if maintenanceClientFactory == nil {
 		maintenanceClientFactory = func(ctx context.Context, managementAddress string) (MaintenanceClient, error) {
-			talosClient, err := client.New(ctx, client.WithTLSConfig(insecureTLSConfig), client.WithEndpoints(managementAddress))
+			talosClient, err := client.New(ctx, client.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}), client.WithEndpoints(managementAddress))
 			if err != nil {
 				return nil, fmt.Errorf("error creating maintenance client: %w", err)
 			}

@@ -27,7 +27,7 @@ require (
 	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/containers/image/v5 v5.36.2 // indirect
 	github.com/coreos/go-oidc/v3 v3.17.0
-	github.com/cosi-project/runtime v1.13.0
+	github.com/cosi-project/runtime v1.13.1-0.20251208192740-2b3357ea6788
 	github.com/cosi-project/state-etcd v0.5.3
 	github.com/cosi-project/state-sqlite v0.1.0
 	github.com/crewjam/saml v0.5.1
