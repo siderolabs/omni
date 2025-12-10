@@ -226,7 +226,7 @@ func Default() *Params {
 }
 
 // Init the config using defaults, merge with overrides, populate fallbacks and validate.
-func Init(logger *zap.Logger, params ...*Params) (*Params, error) {
+func Init(skipValidation bool, logger *zap.Logger, params ...*Params) (*Params, error) {
 	config := Default()
 
 	for _, override := range params {
@@ -237,8 +237,10 @@ func Init(logger *zap.Logger, params ...*Params) (*Params, error) {
 
 	config.PopulateFallbacks()
 
-	if err := config.Validate(); err != nil {
-		return nil, err
+	if !skipValidation {
+		if err := config.Validate(); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := compression.InitConfig(config.Features.EnableConfigDataCompression); err != nil {

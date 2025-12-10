@@ -42,10 +42,10 @@ import (
 )
 
 // PrepareConfig prepare the Omni configuration.
-func PrepareConfig(logger *zap.Logger, params ...*config.Params) (*config.Params, error) {
+func PrepareConfig(skipValidation bool, logger *zap.Logger, params ...*config.Params) (*config.Params, error) {
 	var err error
 
-	config.Config, err = config.Init(logger, params...)
+	config.Config, err = config.Init(skipValidation, logger, params...)
 	if err != nil {
 		return nil, err
 	}
