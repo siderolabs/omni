@@ -130,7 +130,7 @@ const { data: joinTokens } = useResourceWatch<JoinTokenStatusSpec>({
 })
 
 const schematicID = ref<string>()
-const pxeURL = ref<string>()
+const pxeBootUrl = ref<string>()
 const secureBoot = ref(false)
 const downloadPath = computed(() => {
   if (!schematicID.value || !installationMedia.value?.metadata.id) return
@@ -146,7 +146,7 @@ const downloadPath = computed(() => {
   return `${url}?${params}`
 })
 
-const factoryDownloadUrl = computed(() => {
+const imageDownloadUrl = computed(() => {
   if (!downloadPath.value) return
   if (!features.value?.spec.image_factory_base_url) return downloadPath.value
 
@@ -324,7 +324,7 @@ const createSchematic = async () => {
   try {
     const resp = await ManagementService.CreateSchematic(schematicReq.value)
 
-    pxeURL.value = resp.pxe_url
+    pxeBootUrl.value = resp.pxe_url
     schematicID.value = resp.schematic_id
   } finally {
     creatingSchematic.value = false
@@ -332,7 +332,7 @@ const createSchematic = async () => {
 }
 
 watch(schematicReq, () => {
-  pxeURL.value = undefined
+  pxeBootUrl.value = undefined
   schematicID.value = undefined
 })
 
@@ -428,10 +428,10 @@ const download = async () => {
 const copyLink = async () => {
   try {
     await createSchematic()
-    if (!factoryDownloadUrl.value) throw new Error('Factory URL not found')
+    if (!imageDownloadUrl.value) throw new Error('Image download URL not found')
 
-    copy(factoryDownloadUrl.value.toString())
-    showSuccess('Copied PXE Boot URL')
+    copy(imageDownloadUrl.value.toString())
+    showSuccess('Copied image download URL')
   } catch (e) {
     showError('Generate link failed', e.message)
 
@@ -447,13 +447,13 @@ const setTalosVersion = (value: string) => {
   selectedTalosVersion.value = value
 }
 
-const copyPXEURL = async () => {
-  if (!pxeURL.value) {
+const copyPxeBootUrl = async () => {
+  if (!pxeBootUrl.value) {
     await createSchematic()
   }
 
-  if (pxeURL.value) copy(pxeURL.value)
-  showSuccess('Copied factory link')
+  if (pxeBootUrl.value) copy(pxeBootUrl.value)
+  showSuccess('Copied PXE Boot URL')
 }
 
 const downloaded = computed(() => {
@@ -574,9 +574,9 @@ const downloaded = computed(() => {
           @click="createSchematic"
         />
         <span class="flex-1 break-all" @click="createSchematic">
-          {{ pxeURL ? pxeURL : 'Click to generate' }}
+          {{ pxeBootUrl ? pxeBootUrl : 'Click to generate' }}
         </span>
-        <IconButton class="min-w-min" icon="copy" @click="copyPXEURL" />
+        <IconButton class="min-w-min" icon="copy" @click="copyPxeBootUrl" />
       </div>
 
       <div>
@@ -592,7 +592,7 @@ const downloaded = computed(() => {
       <div class="flex justify-end gap-4">
         <TButton class="h-9 w-32" @click="close">Cancel</TButton>
         <SplitButton
-          :actions="['Download', 'Copy factory link']"
+          :actions="['Download', 'Copy image download URL']"
           variant="highlighted"
           :disabled="!ready || !supported"
           @click="(action) => (action === 'Download' ? download() : copyLink())"
