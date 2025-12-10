@@ -6,58 +6,71 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v1.2.0"
+previous = "v1.3.0"
 
 [notes]
 
-[notes.modify-kernel-arguments]
-title = "Support for Modifying Kernel Arguments"
+[notes.sqlite-storage-migration]
+title = "Migration to SQLite Storage"
 description = """\
-Omni now supports modifying kernel arguments for the existing machines.
-
-Documentation on how to use this feature can be found here: https://docs.siderolabs.com/omni/infrastructure-and-extensions/modify-kernel-arguments
+Discovery service state, audit logs, machine logs, and secondary resources have been migrated to use SQLite
+storage.
 """
 
-[notes.experimental-cluster-import]
-title = "Cluster Import (Experimental)"
+[notes.infra-provider-cleanup]
+title = "Force Deletion of Infra Provider Resources"
 description = """\
-Omni introduces an experimental feature that allows users to import existing Talos clusters to be managed by Omni.
-
-Documentation on how to use this feature can be found here: https://docs.siderolabs.com/omni/cluster-management/importing-talos-clusters
+Added the ability to force-delete `MachineRequests` and `InfraMachines` managed by Infra providers.
+This allows for the cleanup of resources and finalizers even if the underlying provider is unresponsive or deleted.
 """
 
-[notes.auth-token-expiry]
-title = "Shortened Auth0 Token Lifetime"
+[notes.auth-saml-dynamic-roles]
+title = "Dynamic SAML Label Role Updates"
 description = """\
-Auth0 authentication tokens now expire after 2 minutes. Users without valid PGP keys will need to reauthenticate once tokens expire.
+Added support for dynamically updating SAML label roles on every login via the new `update_on_each_login` field.
 """
 
-[notes.frontend-update-k8s-modal]
-title = "Improved Kubernetes Update Modal"
+[notes.auth-extend-oidc-support]
+title = "Support for OIDC Providers without Email Verified Claim"
 description = """\
-The Kubernetes update modal now displays only upgradeable minor versions and explains why certain versions are not upgradeable.
+Enabled support for OIDC providers, such as Azure, that do not provide the `email_verified` claim during authentication.
 """
 
-[notes.frontend-multi-select-pending-machines]
-title = "Multi-Select for Pending Machines"
+[notes.backend-platform-info]
+title = "Virtual Resources for Platform Information"
 description = """\
-You can now accept or reject multiple pending machines at once, simplifying large-scale approvals.
+Platform and SBC information is now pulled from Talos machinery and presented as virtual resources:
+`MetalPlatformConfig`, `CloudPlatformConfig`, and `SBCConfig`. They support `Get` and `List` operations.
 """
 
-[notes.frontend-unsupported-k8s-version]
-title = "Display Unsupported Kubernetes Versions"
+[notes.backend-machine-classes-logic]
+title = "Machine Class Logic Updates"
 description = """\
-Unsupported Kubernetes versions are now shown in the update modal as disabled entries with explanatory messages.
+Added support for locks, node deletion, and restore operations when using machine classes.
 """
 
-[notes.machine-status-cpus]
-title = "Enhanced CPU Information in Machine Status"
+[notes.talos-version-downgrade-prevention]
+title = "Prevent Talos Minor Version Downgrades"
 description = """\
-Machines now report processor details when either core count or frequency is available, improving visibility into hardware specs.
+Omni now prevents downgrading the Talos minor version below the initial version used to create the cluster.
+This safeguard prevents machine configurations from entering a broken state due to unsupported features in older versions.
 """
 
-[notes.frontend-stripe-link]
-title = "Stripe Link in Settings Sidebar"
+[notes.frontend-oidc-warning]
+title = "OIDC Warning for Kubeconfig Download"
 description = """\
-A Stripe link is now shown in the Omni settings sidebar when Stripe integration is enabled.
+A warning toast is now displayed when downloading kubeconfig to inform users that the OIDC plugin is required before using the file with kubectl.
+"""
+
+[notes.frontend-cli-install-options]
+title = "Automated CLI Install Options"
+description = """\
+Automated installation options have been added to the CLI section of the homepage, supplementing the existing manual options.
+"""
+
+[notes.frontend-ui-improvements]
+title = "UI/UX Improvements"
+description = """\
+Various UI improvements including pre-selecting the correct binary for the user's platform, truncating long items in the ongoing tasks list,
+hiding JSON schema descriptions behind tooltips, and standardizing link styling.
 """
