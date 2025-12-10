@@ -120,6 +120,7 @@ func (ctrl *VersionsController) reconcileAllVersions(ctx context.Context, r cont
 var allowedPreVersionStrings = map[string]struct{}{
 	"alpha": {},
 	"beta":  {},
+	"rc":    {},
 }
 
 func (ctrl *VersionsController) fetchVersionsFromRegistry(ctx context.Context, source string) ([]string, error) {
