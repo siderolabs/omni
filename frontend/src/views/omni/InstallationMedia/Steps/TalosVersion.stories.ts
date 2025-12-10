@@ -5,10 +5,15 @@
 import { faker } from '@faker-js/faker'
 import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
+import { http, HttpResponse } from 'msw'
 
+import type { Resource } from '@/api/grpc'
+import type { GetRequest } from '@/api/omni/resources/resources.pb'
 import type { FeaturesConfigSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
-import type { JoinTokenStatusSpec } from '@/api/omni/specs/siderolink.pb'
+import type { JoinTokenStatusSpec, SiderolinkAPIConfigSpec } from '@/api/omni/specs/siderolink.pb'
 import {
+  APIConfigType,
+  ConfigID,
   DefaultNamespace,
   DefaultTalosVersion,
   FeaturesConfigType,
@@ -75,6 +80,25 @@ export const Default = {
               spec: {},
             })),
         }).handler,
+
+        http.post<never, GetRequest>('/omni.resources.ResourceService/Get', async ({ request }) => {
+          const { id, type, namespace } = await request.clone().json()
+
+          if (id !== ConfigID || type !== APIConfigType || namespace !== DefaultNamespace) return
+
+          return HttpResponse.json({
+            body: JSON.stringify({
+              metadata: {
+                namespace: DefaultNamespace,
+                type: APIConfigType,
+                id: ConfigID,
+              },
+              spec: {
+                enforce_grpc_tunnel: true,
+              },
+            } satisfies Resource<SiderolinkAPIConfigSpec>),
+          })
+        }),
       ],
     },
   },
