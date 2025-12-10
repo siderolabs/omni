@@ -105,7 +105,7 @@ const onOpen = async (open: boolean) => {
     <SelectRoot v-model="selectedItem" :disabled @update:open="onOpen">
       <SelectTrigger
         :id="triggerId"
-        class="flex size-full items-center justify-between gap-1 rounded border border-naturals-n7 bg-naturals-n2 px-3 py-2.25 text-xs text-naturals-n14 disabled:cursor-not-allowed disabled:opacity-50"
+        class="flex w-full items-center justify-between gap-1 rounded border border-naturals-n7 bg-naturals-n2 px-3 py-2.25 text-xs text-naturals-n14 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <SelectValue class="flex gap-1 truncate select-none">
           <Label

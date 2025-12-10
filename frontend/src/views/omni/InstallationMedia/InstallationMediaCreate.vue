@@ -26,6 +26,7 @@ export interface FormState {
   hardwareType?: FlowType
   talosVersion?: string
   joinToken?: string
+  useGrpcTunnel?: boolean
   machineArch?: PlatformConfigSpecArch
   secureBoot?: boolean
   cloudPlatform?: string
