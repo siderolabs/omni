@@ -25,8 +25,9 @@ export interface FormState {
   name?: string
   hardwareType?: FlowType
   talosVersion?: string
-  joinToken?: string
   useGrpcTunnel?: boolean
+  joinToken?: string
+  machineUserLabels?: Record<string, LabelSelectItem>
   machineArch?: PlatformConfigSpecArch
   secureBoot?: boolean
   cloudPlatform?: string
@@ -44,6 +45,7 @@ import { type Component, computed } from 'vue'
 
 import type { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
 import TButton from '@/components/common/Button/TButton.vue'
+import type { LabelSelectItem } from '@/components/common/Labels/Labels.vue'
 import Stepper from '@/components/common/Stepper/Stepper.vue'
 import CloudProviderStep from '@/views/omni/InstallationMedia/Steps/CloudProvider.vue'
 import ConfirmationStep from '@/views/omni/InstallationMedia/Steps/Confirmation.vue'

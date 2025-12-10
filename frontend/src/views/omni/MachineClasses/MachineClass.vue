@@ -31,6 +31,7 @@ import IconButton from '@/components/common/Button/IconButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
 import TButtonGroup from '@/components/common/Button/TButtonGroup.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
+import type { LabelSelectItem } from '@/components/common/Labels/Labels.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
@@ -92,7 +93,7 @@ let notFound: Ref<boolean> | ComputedRef<boolean>
 
 const infraProvider = ref<string>()
 const kernelArguments = ref<string>('')
-const initialLabels = ref<Record<string, any>>({})
+const initialLabels = ref<Record<string, LabelSelectItem>>({})
 const grpcTunnelMode = ref<GrpcTunnelMode>(GrpcTunnelMode.UNSET)
 
 const providerConfigs: Ref<Record<string, Record<string, any>>> = ref({})
@@ -395,7 +396,7 @@ const submit = async () => {
       machineClass.spec.auto_provision.kernel_args = kernelArguments.value.split(' ')
     }
 
-    if (initialLabels.value.length > 0) {
+    if (Object.keys(initialLabels.value).length > 0) {
       const l: Record<string, string> = {}
       for (const k in initialLabels.value) {
         l[k] = initialLabels.value[k].value

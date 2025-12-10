@@ -14,7 +14,7 @@ import { GrpcTunnelMode } from '@/api/omni/specs/omni.pb'
 import { InfraProviderNamespace, InfraProviderStatusType } from '@/api/resources'
 import WatchResource from '@/api/watch'
 import JsonForm from '@/components/common/Form/JsonForm.vue'
-import Labels from '@/components/common/Labels/Labels.vue'
+import Labels, { type LabelSelectItem } from '@/components/common/Labels/Labels.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 
@@ -26,7 +26,7 @@ enum GRPCTunnelMode {
 
 const props = defineProps<{
   infraProvider: string
-  initialLabels: Record<string, any>
+  initialLabels: Record<string, LabelSelectItem>
   kernelArguments: string
   providerConfig: Record<string, any>
   grpcTunnel: GrpcTunnelMode

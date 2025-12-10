@@ -44,7 +44,7 @@ import IconButton from '@/components/common/Button/IconButton.vue'
 import SplitButton from '@/components/common/Button/SplitButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
-import Labels from '@/components/common/Labels/Labels.vue'
+import Labels, { type LabelSelectItem } from '@/components/common/Labels/Labels.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
@@ -97,7 +97,7 @@ const close = () => {
   router.go(-1)
 }
 
-const labels = ref<Record<string, { value: string; canRemove: boolean }>>({})
+const labels = ref<Record<string, LabelSelectItem>>({})
 
 const optionNames = ref<string[]>([])
 

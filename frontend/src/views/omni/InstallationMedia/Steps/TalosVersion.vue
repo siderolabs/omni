@@ -21,6 +21,7 @@ import {
   TalosVersionType,
 } from '@/api/resources'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
+import Labels from '@/components/common/Labels/Labels.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import { getDocsLink } from '@/methods'
@@ -147,15 +148,7 @@ watchOnce(joinTokens, (v) => (formState.value.joinToken ??= v[0]))
       </ul>
     </div>
 
-    <h2 class="text-sm font-medium text-naturals-n14">Omni settings</h2>
-
-    <TSelectList
-      v-model="formState.joinToken"
-      :disabled="joinTokensLoading"
-      :values="joinTokens"
-      title="Join Token"
-      overhead-title
-    />
+    <h2 class="text-base font-medium text-naturals-n14">Omni settings</h2>
 
     <Tooltip>
       <TCheckbox
@@ -177,5 +170,17 @@ watchOnce(joinTokens, (v) => (formState.value.joinToken ??= v[0]))
         </div>
       </template>
     </Tooltip>
+
+    <TSelectList
+      v-model="formState.joinToken"
+      :disabled="joinTokensLoading"
+      :values="joinTokens"
+      title="Join Token"
+      overhead-title
+    />
+
+    <h3 class="text-sm font-medium text-naturals-n14">Machine User Labels</h3>
+
+    <Labels v-model="formState.machineUserLabels" />
   </div>
 </template>

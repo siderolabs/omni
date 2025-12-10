@@ -4,22 +4,22 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
+<script lang="ts">
+export interface LabelSelectItem {
+  value: string
+  canRemove: boolean
+  color?: string
+}
+</script>
 <script setup lang="ts">
-import { ref, toRefs } from 'vue'
+import { ref } from 'vue'
 
 import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 
-type Label = {
-  value: string
-  canRemove: boolean
-  color?: string
-}
-
 const props = withDefaults(
   defineProps<{
-    modelValue: Record<string, Label>
     onAdd?: (value: string) => Promise<void>
     onRemove?: (value: string) => Promise<void>
     readonly?: boolean
@@ -30,8 +30,7 @@ const props = withDefaults(
   },
 )
 
-const { modelValue } = toRefs(props)
-const emit = defineEmits(['update:modelValue'])
+const modelValue = defineModel<Record<string, LabelSelectItem>>()
 
 const addingLabel = ref(false)
 const currentLabel = ref('')
@@ -47,17 +46,17 @@ const addLabel = async () => {
     return
   }
 
-  const parts = currentLabel.value.split(':')
+  const [key, value] = currentLabel.value.split(':')
 
   currentLabel.value = ''
 
-  emit('update:modelValue', {
+  modelValue.value = {
     ...modelValue.value,
-    [parts[0].trim()]: {
-      value: parts[1].trim() ?? '',
+    [key.trim()]: {
+      value: value.trim() ?? '',
       canRemove: true,
     },
-  })
+  }
 }
 
 const removeLabel = async (key: string) => {
@@ -73,7 +72,7 @@ const removeLabel = async (key: string) => {
 
   delete copied[key]
 
-  emit('update:modelValue', copied)
+  modelValue.value = copied
 }
 </script>
 

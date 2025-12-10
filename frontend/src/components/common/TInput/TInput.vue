@@ -97,7 +97,7 @@ onMounted(() => focus && inputRef.value?.focus())
     </span>
 
     <div
-      class="flex items-center justify-start gap-x-2 gap-y-3 rounded border transition-colors focus-within:border-naturals-n5 has-disabled:pointer-events-none has-disabled:cursor-not-allowed has-disabled:border-naturals-n6 has-disabled:bg-naturals-n3 has-disabled:text-naturals-n9 has-disabled:select-none"
+      class="flex max-h-full items-center justify-start gap-x-2 gap-y-3 rounded border transition-colors focus-within:border-naturals-n5 has-disabled:pointer-events-none has-disabled:cursor-not-allowed has-disabled:border-naturals-n6 has-disabled:bg-naturals-n3 has-disabled:text-naturals-n9 has-disabled:select-none"
       :class="[
         compact ? 'px-2 py-1' : 'p-2',
         secondary ? 'border-transparent' : 'border-naturals-n8',
