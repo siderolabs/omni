@@ -16,6 +16,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"go.uber.org/zap"
+	"go.yaml.in/yaml/v4"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -140,8 +141,14 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 
 	filename := media.TypedSpec().Value.GenerateFilename(!supportsOverlays, request.SecureBoot, false)
 
+	schematicYml, err := yaml.Marshal(schematicRequest)
+	if err != nil {
+		return nil, err
+	}
+
 	return &management.CreateSchematicResponse{
 		SchematicId:       schematicInfo.FullID,
+		SchematicYml:      string(schematicYml),
 		PxeUrl:            pxeURL.JoinPath("pxe", schematicInfo.FullID, request.TalosVersion, filename).String(),
 		GrpcTunnelEnabled: tunnelEnabled,
 	}, nil

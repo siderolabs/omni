@@ -1124,6 +1124,7 @@ type CreateSchematicResponse struct {
 	SchematicId       string                 `protobuf:"bytes,1,opt,name=schematic_id,json=schematicId,proto3" json:"schematic_id,omitempty"`
 	PxeUrl            string                 `protobuf:"bytes,2,opt,name=pxe_url,json=pxeUrl,proto3" json:"pxe_url,omitempty"`
 	GrpcTunnelEnabled bool                   `protobuf:"varint,3,opt,name=grpc_tunnel_enabled,json=grpcTunnelEnabled,proto3" json:"grpc_tunnel_enabled,omitempty"`
+	SchematicYml      string                 `protobuf:"bytes,4,opt,name=schematic_yml,json=schematicYml,proto3" json:"schematic_yml,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -1177,6 +1178,13 @@ func (x *CreateSchematicResponse) GetGrpcTunnelEnabled() bool {
 		return x.GrpcTunnelEnabled
 	}
 	return false
+}
+
+func (x *CreateSchematicResponse) GetSchematicYml() string {
+	if x != nil {
+		return x.SchematicYml
+	}
+	return ""
 }
 
 type GetSupportBundleRequest struct {
@@ -2165,11 +2173,12 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\x18SiderolinkGRPCTunnelMode\x12\b\n" +
 	"\x04AUTO\x10\x00\x12\f\n" +
 	"\bDISABLED\x10\x01\x12\v\n" +
-	"\aENABLED\x10\x02\"\x85\x01\n" +
+	"\aENABLED\x10\x02\"\xaa\x01\n" +
 	"\x17CreateSchematicResponse\x12!\n" +
 	"\fschematic_id\x18\x01 \x01(\tR\vschematicId\x12\x17\n" +
 	"\apxe_url\x18\x02 \x01(\tR\x06pxeUrl\x12.\n" +
-	"\x13grpc_tunnel_enabled\x18\x03 \x01(\bR\x11grpcTunnelEnabled\"3\n" +
+	"\x13grpc_tunnel_enabled\x18\x03 \x01(\bR\x11grpcTunnelEnabled\x12#\n" +
+	"\rschematic_yml\x18\x04 \x01(\tR\fschematicYml\"3\n" +
 	"\x17GetSupportBundleRequest\x12\x18\n" +
 	"\acluster\x18\x01 \x01(\tR\acluster\"\x82\x02\n" +
 	"\x18GetSupportBundleResponse\x12I\n" +

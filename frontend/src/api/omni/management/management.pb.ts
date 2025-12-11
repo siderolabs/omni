@@ -134,6 +134,7 @@ export type CreateSchematicResponse = {
   schematic_id?: string
   pxe_url?: string
   grpc_tunnel_enabled?: boolean
+  schematic_yml?: string
 }
 
 export type GetSupportBundleRequest = {
