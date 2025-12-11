@@ -126,7 +126,7 @@ func NewControlPlaneStatusController() *ControlPlaneStatusController {
 			},
 		},
 		qtransform.WithExtraMappedInput[*omni.TalosConfig](
-			qtransform.MapperNone(),
+			mappers.MapClusterResourceToLabeledResources[*omni.MachineSet](),
 		),
 		qtransform.WithExtraMappedInput[*omni.ClusterMachineStatus](
 			mappers.MapByMachineSetLabelOnlyControlplane[*omni.MachineSet](),

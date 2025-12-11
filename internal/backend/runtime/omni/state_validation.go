@@ -1574,3 +1574,59 @@ func installationMediaConfigOptions() []validated.StateOption {
 			})),
 	}
 }
+
+func rotateSecretsValidationOptions(st state.State) []validated.StateOption {
+	return []validated.StateOption{
+		validated.WithUpdateValidations(validated.NewUpdateValidationForType(
+			func(ctx context.Context, _ *omni.RotateTalosCA, newRes *omni.RotateTalosCA, _ ...state.UpdateOption) error {
+				return validateRotateSecretModify(ctx, st, newRes)
+			})),
+
+		validated.WithDestroyValidations(validated.NewDestroyValidationForType(
+			func(ctx context.Context, ptr resource.Pointer, existingRes *omni.RotateTalosCA, _ ...state.DestroyOption) error {
+				return validateRotateSecretDestroy(ctx, st, existingRes)
+			})),
+	}
+}
+
+func validateRotateSecretModify(ctx context.Context, st state.State, res resource.Resource) error {
+	if res.Metadata().Phase() == resource.PhaseTearingDown {
+		return nil
+	}
+
+	rotationStatus, err := safe.ReaderGetByID[*omni.ClusterSecretsRotationStatus](ctx, st, res.Metadata().ID())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil
+		}
+
+		return err
+	}
+
+	if rotationStatus.TypedSpec().Value.Phase != specs.ClusterSecretsRotationStatusSpec_OK {
+		return fmt.Errorf("cannot modify the %s %q while a secret rotation is in progress", res.Metadata().Type(), res.Metadata().ID())
+	}
+
+	return nil
+}
+
+func validateRotateSecretDestroy(ctx context.Context, st state.State, res resource.Resource) error {
+	if res == nil {
+		return nil
+	}
+
+	rotationStatus, err := safe.ReaderGetByID[*omni.ClusterSecretsRotationStatus](ctx, st, res.Metadata().ID())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil
+		}
+
+		return err
+	}
+
+	if rotationStatus.TypedSpec().Value.Phase != specs.ClusterSecretsRotationStatusSpec_OK {
+		return fmt.Errorf("cannot delete the %s %q while a secret rotation is in progress", res.Metadata().Type(), res.Metadata().ID())
+	}
+
+	return nil
+}

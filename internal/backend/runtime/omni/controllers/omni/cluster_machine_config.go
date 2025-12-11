@@ -18,6 +18,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/crypto/x509"
 	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/talos/pkg/machinery/config"
 	documentconfig "github.com/siderolabs/talos/pkg/machinery/config/config"
@@ -26,12 +27,14 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/container"
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"github.com/siderolabs/talos/pkg/machinery/config/generate"
+	"github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/config/machine"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
 	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/machineconfig"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -88,6 +91,9 @@ func NewClusterMachineConfigController(imageFactoryHost string, registryMirrors 
 		qtransform.WithExtraMappedInput[*siderolink.MachineJoinConfig](
 			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineSecretsRotation](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
+		),
 		qtransform.WithConcurrency(2),
 	)
 }
@@ -141,6 +147,23 @@ func reconcileClusterMachineConfig(
 		}
 
 		return err
+	}
+
+	var secretsRotation *omni.ClusterMachineSecretsRotation
+
+	if secrets.TypedSpec().Value.RotationPhase != specs.ClusterSecretsRotationStatusSpec_OK {
+		secretsRotation, err = safe.ReaderGetByID[*omni.ClusterMachineSecretsRotation](ctx, r, clusterMachine.Metadata().ID())
+		if err != nil {
+			if state.IsNotFoundError(err) {
+				return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
+			}
+
+			return err
+		}
+
+		if secretsRotation.TypedSpec().Value.ClusterSecretsVersion != secrets.Metadata().Version().String() {
+			return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
+		}
 	}
 
 	loadBalancerConfig, err := safe.ReaderGet[*omni.LoadBalancerConfig](ctx, r, omni.NewLoadBalancerConfig(resources.DefaultNamespace, clusterName).Metadata())
@@ -253,7 +276,7 @@ func reconcileClusterMachineConfig(
 	}
 
 	conf, err := helper.generateConfig(clusterMachine, clusterMachineConfigPatches, secrets, loadBalancerConfig,
-		cluster, clusterConfigVersion, machineConfigGenOptions, configGenOptions, machineJoinConfig)
+		cluster, clusterConfigVersion, machineConfigGenOptions, configGenOptions, machineJoinConfig, secretsRotation)
 	if err != nil {
 		machineConfig.TypedSpec().Value.GenerationError = err.Error()
 
@@ -324,7 +347,7 @@ func (helper clusterMachineConfigControllerHelper) configsEqual(old *omni.Cluste
 
 func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.ClusterMachine, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, secrets *omni.ClusterSecrets,
 	loadbalancer *omni.LoadBalancerConfig, cluster *omni.Cluster, clusterConfigVersion *omni.ClusterConfigVersion, configGenOptions *omni.MachineConfigGenOptions, extraGenOptions []generate.Option,
-	machineJoinConfig *siderolink.MachineJoinConfig,
+	machineJoinConfig *siderolink.MachineJoinConfig, secretsRotation *omni.ClusterMachineSecretsRotation,
 ) (config.Provider, error) {
 	clusterName := cluster.Metadata().ID()
 
@@ -353,7 +376,7 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		return nil, err
 	}
 
-	secretBundle, err := omni.ToSecretsBundle(secrets)
+	secretsBundle, err := omni.ToSecretsBundle(secrets.TypedSpec().Value.GetData())
 	if err != nil {
 		return nil, err
 	}
@@ -374,13 +397,20 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		SiderolinkEndpoint:       loadbalancer.TypedSpec().Value.SiderolinkEndpoint,
 		InstallDisk:              configGenOptions.TypedSpec().Value.InstallDisk,
 		InstallImage:             installImage,
-		Secrets:                  secretBundle,
+		Secrets:                  secretsBundle,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	cfg := genOutput.Config
+
+	if len(secrets.TypedSpec().Value.GetRotateData()) > 0 && secretsRotation != nil {
+		cfg, err = rotateSecrets(cfg, secrets, secretsBundle, machineType, secretsRotation)
+		if err != nil {
+			return nil, fmt.Errorf("failed to rotate secrets: %w", err)
+		}
+	}
 
 	patchList, err := clusterMachineConfigPatches.TypedSpec().Value.GetUncompressedPatches()
 	if err != nil {
@@ -478,4 +508,60 @@ func stripTalosAPIAccessOSAdminRole(cfg config.Provider) (config.Provider, error
 	}
 
 	return container.New(updatedDocs...)
+}
+
+func rotateSecrets(cfg config.Provider, secrets *omni.ClusterSecrets, secretsBundle *secrets.Bundle, machineType machineapi.Type, secretsRotation *omni.ClusterMachineSecretsRotation,
+) (config.Provider, error) {
+	rotateSecretsBundle, err := omni.ToSecretsBundle(secrets.TypedSpec().Value.GetRotateData())
+	if err != nil {
+		return nil, err
+	}
+
+	switch secretsRotation.TypedSpec().Value.Phase {
+	case specs.ClusterSecretsRotationStatusSpec_PRE_ROTATE:
+		cfg, err = cfg.PatchV1Alpha1(func(config *v1alpha1.Config) error {
+			config.MachineConfig.MachineAcceptedCAs = append(
+				config.MachineConfig.MachineAcceptedCAs,
+				&x509.PEMEncodedCertificate{
+					Crt: rotateSecretsBundle.Certs.OS.Crt,
+				},
+			)
+
+			return nil
+		})
+	case specs.ClusterSecretsRotationStatusSpec_ROTATE:
+		cfg, err = cfg.PatchV1Alpha1(func(config *v1alpha1.Config) error {
+			config.MachineConfig.MachineAcceptedCAs = append(
+				config.MachineConfig.MachineAcceptedCAs,
+				&x509.PEMEncodedCertificate{
+					Crt: secretsBundle.Certs.OS.Crt,
+				},
+			)
+			config.MachineConfig.MachineAcceptedCAs = slices.DeleteFunc(config.Machine().Security().AcceptedCAs(), func(ca *x509.PEMEncodedCertificate) bool {
+				return bytes.Equal(ca.Crt, rotateSecretsBundle.Certs.OS.Crt)
+			})
+
+			if machineType.IsControlPlane() {
+				config.MachineConfig.MachineCA = rotateSecretsBundle.Certs.OS
+			} else {
+				config.MachineConfig.MachineCA = &x509.PEMEncodedCertificateAndKey{
+					Crt: rotateSecretsBundle.Certs.OS.Crt,
+				}
+			}
+
+			return nil
+		})
+	case specs.ClusterSecretsRotationStatusSpec_POST_ROTATE:
+		cfg, err = cfg.PatchV1Alpha1(func(config *v1alpha1.Config) error {
+			config.MachineConfig.MachineAcceptedCAs = slices.DeleteFunc(config.Machine().Security().AcceptedCAs(), func(ca *x509.PEMEncodedCertificate) bool {
+				return bytes.Equal(ca.Crt, rotateSecretsBundle.Certs.OS.Crt)
+			})
+
+			return nil
+		})
+
+	case specs.ClusterSecretsRotationStatusSpec_OK: // nothing to do
+	}
+
+	return cfg, err
 }
