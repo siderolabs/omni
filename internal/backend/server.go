@@ -25,6 +25,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/blang/semver/v4"
 	coidc "github.com/coreos/go-oidc/v3/oidc"
 	"github.com/cosi-project/runtime/api/v1alpha1"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -1267,6 +1268,17 @@ func getGithubReleases(tags ...string) (releaseData, error) {
 		assets := make([]talosctlAsset, 0, len(assetsData))
 
 		for _, asset := range assetsData {
+			if asset.minTalosVersion != "" {
+				v, err := semver.ParseTolerant(tag)
+				if err != nil {
+					continue
+				}
+
+				if v.LT(semver.MustParse(asset.minTalosVersion)) {
+					continue
+				}
+			}
+
 			assets = append(assets, talosctlAsset{
 				Name: asset.name,
 				URL:  fmt.Sprintf("https://github.com/siderolabs/talos/releases/download/%s/%s", tag, asset.urlPart),
@@ -1293,32 +1305,54 @@ type talosctlAsset struct {
 }
 
 var assetsData = []struct {
-	name    string
-	urlPart string
+	name            string
+	urlPart         string
+	minTalosVersion string
 }{
 	{
 		"Apple",
 		"talosctl-darwin-amd64",
+		"",
 	},
 	{
 		"Apple Silicon",
 		"talosctl-darwin-arm64",
+		"",
+	},
+	{
+		"FreeBSD",
+		"talosctl-freebsd-amd64",
+		"",
+	},
+	{
+		"FreeBSD ARM64",
+		"talosctl-freebsd-arm64",
+		"",
 	},
 	{
 		"Linux",
 		"talosctl-linux-amd64",
+		"",
 	},
 	{
 		"Linux ARM",
 		"talosctl-linux-armv7",
+		"",
 	},
 	{
 		"Linux ARM64",
 		"talosctl-linux-arm64",
+		"",
 	},
 	{
 		"Windows",
 		"talosctl-windows-amd64.exe",
+		"",
+	},
+	{
+		"Windows ARM64",
+		"talosctl-windows-arm64.exe",
+		"1.9.0",
 	},
 }
 
