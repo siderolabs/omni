@@ -6,7 +6,6 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { computedAsync } from '@vueuse/core'
-import { compare } from 'semver'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -15,7 +14,7 @@ import CodeBlock from '@/components/common/CodeBlock/CodeBlock.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import { getDocsLink, getPlatform } from '@/methods'
-import { showError } from '@/notification'
+import { useTalosctlDownloads } from '@/methods/useTalosctlDownloads'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const router = useRouter()
@@ -31,33 +30,16 @@ const close = () => {
   router.go(-1)
 }
 
-const talosctlRelease = computedAsync(async () => {
-  try {
-    const res = await fetch('/talosctl/downloads')
-    return (await res.json()) as ResponseData
-  } catch (e) {
-    showError(e.message)
-  }
-})
-
 const platform = computedAsync(getPlatform)
 
-const availableVersions = computed(
-  () =>
-    new Map(
-      Object.entries(talosctlRelease.value?.release_data.available_versions ?? {}).sort(
-        ([a], [b]) => compare(a.replace('v', ''), b.replace('v', '')),
-      ),
-    ),
-)
+const { downloads: availableVersions, defaultVersion } = useTalosctlDownloads()
 
-const defaultVersion = computed(() => Array.from(availableVersions.value.keys()).pop())
 const defaultPlatform = computed(() => {
   if (!defaultVersion.value || !platform.value) return
 
   const [os, arch] = platform.value
 
-  const assets = availableVersions.value.get(defaultVersion.value)
+  const assets = availableVersions.value?.get(defaultVersion.value)
   const defaultAsset = assets?.find((item) => item.url.endsWith('linux-amd64'))
   const preferredAsset = assets?.find((item) => item.url.endsWith(`${os}-${arch}`))
 
@@ -73,7 +55,7 @@ const download = () => {
   if (!selectedVersion.value) return
 
   const link = availableVersions.value
-    .get(selectedVersion.value)
+    ?.get(selectedVersion.value)
     ?.find((item) => item.name === selectedPlatform.value)
   if (!link) {
     return
@@ -89,23 +71,8 @@ const download = () => {
 const versionBinaries = computed<string[]>(() => {
   if (!selectedVersion.value) return []
 
-  return availableVersions.value.get(selectedVersion.value)?.map((item) => item.name) ?? []
+  return availableVersions.value?.get(selectedVersion.value)?.map((item) => item.name) ?? []
 })
-
-interface ResponseData {
-  status: string
-  release_data: ReleaseData
-}
-
-interface ReleaseData {
-  default_version: string
-  available_versions: { [key: string]: Asset[] }
-}
-
-interface Asset {
-  name: string
-  url: string
-}
 </script>
 
 <template>
@@ -137,7 +104,7 @@ interface Asset {
     <span class="mb-2 text-xs text-naturals-n14">Manual installation</span>
 
     <div class="mb-5 flex flex-wrap gap-4">
-      <div v-if="talosctlRelease && platform" class="flex flex-wrap gap-4">
+      <div v-if="availableVersions && platform" class="flex flex-wrap gap-4">
         <TSelectList
           v-model="selectedVersion"
           title="version"
