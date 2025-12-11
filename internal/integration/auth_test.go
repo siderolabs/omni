@@ -686,6 +686,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		require.NoError(t, err)
 
 		importedClusterSecret := omni.NewImportedClusterSecrets(resources.DefaultNamespace, cluster.Metadata().ID())
+		rotateSecrets := omni.NewRotateTalosCA(cluster.Metadata().ID())
 
 		testCases := []resourceAuthzTestCase{
 			{
@@ -791,6 +792,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource:       importedClusterSecret,
+				allowedVerbSet: allVerbsSet,
+			},
+			{
+				resource:       rotateSecrets,
 				allowedVerbSet: allVerbsSet,
 			},
 		}
@@ -1130,6 +1135,14 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource:       siderolink.NewNodeUniqueTokenStatus(uuid.NewString()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
+				resource:       omni.NewClusterSecretsRotationStatus(uuid.NewString()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
+				resource:       omni.NewClusterMachineSecretsRotation(uuid.NewString()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 		}...)

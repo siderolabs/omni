@@ -13,6 +13,7 @@ import (
 	"io"
 	"iter"
 	"testing"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
@@ -20,7 +21,7 @@ import (
 	"github.com/siderolabs/gen/xiter"
 	"github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -28,56 +29,8 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 )
-
-type ClusterSecretsSuite struct {
-	OmniSuite
-}
-
-func (suite *ClusterSecretsSuite) TestNewSecrets() {
-	require := suite.Require()
-
-	suite.startRuntime()
-
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
-
-	cluster := omni.NewCluster(resources.DefaultNamespace, "clusterID")
-	cluster.TypedSpec().Value.TalosVersion = "1.2.3"
-	require.NoError(suite.state.Create(suite.ctx, cluster))
-
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, omni.ControlPlanesResourceID(cluster.Metadata().ID()))
-	require.NoError(suite.state.Create(suite.ctx, machineSet))
-
-	var foundClusterSecrets *omni.ClusterSecrets
-
-	// The only test I could think at this time, was simply to test bundle existence.
-	assertResource(
-		&suite.OmniSuite,
-		*omni.NewClusterSecrets(resources.DefaultNamespace, cluster.Metadata().ID()).Metadata(),
-		func(res *omni.ClusterSecrets, _ *assert.Assertions) {
-			foundClusterSecrets = res
-			clusterSecretsSpec := foundClusterSecrets.TypedSpec().Value
-			suite.Require().NotEmpty(clusterSecretsSpec.GetData())
-
-			var bundle secrets.Bundle
-
-			err := json.Unmarshal(clusterSecretsSpec.Data, &bundle)
-			suite.Require().NoError(err)
-			suite.Require().NotEmpty(bundle)
-			suite.Require().Equal(clusterSecretsSpec.Imported, false)
-		})
-
-	// Check that we can get cluster secrets by metadata.
-	assertResource(
-		&suite.OmniSuite,
-		*foundClusterSecrets.Metadata(),
-		func(*omni.ClusterSecrets, *assert.Assertions) {},
-	)
-
-	// Check that cluster secrets will be removed when cluster is removed.
-	rtestutils.Destroy[*omni.Cluster](suite.ctx, suite.T(), suite.state, []resource.ID{cluster.Metadata().ID()})
-	assertNoResource(&suite.OmniSuite, foundClusterSecrets)
-}
 
 type mockBackupStore struct{}
 
@@ -106,116 +59,239 @@ func (m *mockBackupStoreFactory) Start(context.Context, state.State, *zap.Logger
 
 func (m *mockBackupStoreFactory) Description() string { return "" }
 
-func (suite *ClusterSecretsSuite) TestSecretsFromBackup() {
-	require := suite.Require()
-
-	suite.startRuntime()
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(&mockBackupStoreFactory{})))
-
-	cluster := omni.NewCluster(resources.DefaultNamespace, "clusterID")
-	cluster.TypedSpec().Value.TalosVersion = "1.2.3"
-
-	require.NoError(suite.state.Create(suite.ctx, cluster))
-
-	// create ClusterUUID, as it will be looked up by SecretsController to find the source cluster ID
-	clusterUUID := omni.NewClusterUUID(cluster.Metadata().ID())
-	clusterUUID.TypedSpec().Value.Uuid = "test-uuid"
-
-	clusterUUID.Metadata().Labels().Set(omni.LabelClusterUUID, "test-uuid")
-
-	require.NoError(suite.state.Create(suite.ctx, clusterUUID))
-
-	// create BackupData, as it will be looked up by SecretsController to get the encryption key
-	backupData := omni.NewBackupData(cluster.Metadata().ID())
-
-	require.NoError(suite.state.Create(suite.ctx, backupData))
-
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, omni.ControlPlanesResourceID(cluster.Metadata().ID()))
-	machineSet.TypedSpec().Value.BootstrapSpec = &specs.MachineSetSpec_BootstrapSpec{
-		ClusterUuid: "test-uuid",
-		Snapshot:    "test-snapshot",
-	}
-
-	machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
-	machineSet.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
-
-	require.NoError(suite.state.Create(suite.ctx, machineSet))
-
-	var foundClusterSecrets *omni.ClusterSecrets
-
-	// The only test I could think at this time, was simply to test bundle existence.
-	assertResource(
-		&suite.OmniSuite,
-		*omni.NewClusterSecrets(resources.DefaultNamespace, cluster.Metadata().ID()).Metadata(),
-		func(res *omni.ClusterSecrets, _ *assert.Assertions) {
-			foundClusterSecrets = res
-			clusterSecretsSpec := foundClusterSecrets.TypedSpec().Value
-			suite.Require().NotEmpty(clusterSecretsSpec.GetData())
-
-			var bundle secrets.Bundle
-
-			err := json.Unmarshal(clusterSecretsSpec.Data, &bundle)
-			suite.Require().NoError(err)
-			suite.Require().NotEmpty(bundle)
-
-			// assert that the AES-CBC and Secretbox encryption secrets are set to the values from the backup data
-			suite.Require().Equal("aes-cbc-test", bundle.Secrets.AESCBCEncryptionSecret)
-			suite.Require().Equal("secretbox-test", bundle.Secrets.SecretboxEncryptionSecret)
-		})
-}
-
 //go:embed testdata/secrets-valid.yaml
 var validSecretsBundle string
 
-func (suite *ClusterSecretsSuite) TestImportedSecrets() {
-	require := suite.Require()
-
-	suite.startRuntime()
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(&mockBackupStoreFactory{})))
-
-	cluster := omni.NewCluster(resources.DefaultNamespace, "clusterID")
-	cluster.TypedSpec().Value.TalosVersion = "1.10.5"
-
-	require.NoError(suite.state.Create(suite.ctx, cluster))
-
-	// create ClusterUUID, as it will be looked up by SecretsController to find the source cluster ID
-	clusterUUID := omni.NewClusterUUID(cluster.Metadata().ID())
-	clusterUUID.TypedSpec().Value.Uuid = "test-uuid"
-
-	clusterUUID.Metadata().Labels().Set(omni.LabelClusterUUID, "test-uuid")
-
-	require.NoError(suite.state.Create(suite.ctx, clusterUUID))
-
-	// create ImportedClusterSecret, as it will be looked up by SecretsController to attempt importing secrets bundle
-	importedClusterSecrets := omni.NewImportedClusterSecrets(resources.DefaultNamespace, cluster.Metadata().ID())
-	importedClusterSecrets.TypedSpec().Value.Data = validSecretsBundle
-
-	require.NoError(suite.state.Create(suite.ctx, importedClusterSecrets))
-
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, omni.ControlPlanesResourceID(cluster.Metadata().ID()))
-	require.NoError(suite.state.Create(suite.ctx, machineSet))
-
-	var foundClusterSecrets *omni.ClusterSecrets
-
-	assertResource(
-		&suite.OmniSuite,
-		*omni.NewClusterSecrets(resources.DefaultNamespace, cluster.Metadata().ID()).Metadata(),
-		func(res *omni.ClusterSecrets, _ *assert.Assertions) {
-			foundClusterSecrets = res
-			clusterSecretsSpec := foundClusterSecrets.TypedSpec().Value
-			suite.Require().NotEmpty(clusterSecretsSpec.GetData())
-
-			var bundle secrets.Bundle
-
-			err := json.Unmarshal(clusterSecretsSpec.Data, &bundle)
-			suite.Require().NoError(err)
-			suite.Require().NotEmpty(bundle)
-			suite.Require().Equal(clusterSecretsSpec.Imported, true)
-		})
-}
-
-func TestClusterSecretsSuite(t *testing.T) {
+func TestNewSecrets(t *testing.T) {
 	t.Parallel()
 
-	suite.Run(t, new(ClusterSecretsSuite))
+	testutils.WithRuntime(
+		t.Context(),
+		t,
+		testutils.TestOptions{},
+		func(_ context.Context, testContext testutils.TestContext) { // prepare - register controllers
+			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
+		},
+		func(ctx context.Context, testContext testutils.TestContext) {
+			st := testContext.State
+			cluster := omni.NewCluster(resources.DefaultNamespace, "clusterID")
+			cluster.TypedSpec().Value.TalosVersion = "1.2.3"
+			require.NoError(t, st.Create(ctx, cluster))
+
+			machineSet := omni.NewMachineSet(resources.DefaultNamespace, omni.ControlPlanesResourceID(cluster.Metadata().ID()))
+			require.NoError(t, st.Create(ctx, machineSet))
+
+			var foundClusterSecrets *omni.ClusterSecrets
+
+			// The only test I could think at this time, was simply to test bundle existence.
+			rtestutils.AssertResource(
+				ctx,
+				t,
+				st,
+				cluster.Metadata().ID(),
+				func(res *omni.ClusterSecrets, assert *assert.Assertions) {
+					foundClusterSecrets = res
+					clusterSecretsSpec := foundClusterSecrets.TypedSpec().Value
+					assert.NotEmpty(clusterSecretsSpec.GetData())
+
+					var bundle secrets.Bundle
+
+					err := json.Unmarshal(clusterSecretsSpec.Data, &bundle)
+					assert.NoError(err)
+					assert.NotEmpty(bundle)
+					assert.Equal(clusterSecretsSpec.Imported, false)
+				})
+
+			// Check that we can get cluster secrets by metadata.
+			rtestutils.AssertResource(
+				ctx,
+				t,
+				st,
+				foundClusterSecrets.Metadata().ID(),
+				func(res *omni.ClusterSecrets, _ *assert.Assertions) {
+				})
+
+			// Check that cluster secrets will be removed when the cluster is removed.
+			rtestutils.Destroy[*omni.Cluster](ctx, t, st, []resource.ID{cluster.Metadata().ID()})
+			rtestutils.AssertNoResource[*omni.ClusterSecrets](ctx, t, st, foundClusterSecrets.Metadata().ID())
+		},
+	)
+}
+
+func TestSecretsFromBackup(t *testing.T) {
+	t.Parallel()
+
+	testutils.WithRuntime(
+		t.Context(),
+		t,
+		testutils.TestOptions{},
+		func(_ context.Context, testContext testutils.TestContext) { // prepare - register controllers
+			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewSecretsController(&mockBackupStoreFactory{})))
+		},
+		func(ctx context.Context, testContext testutils.TestContext) {
+			st := testContext.State
+
+			cluster := omni.NewCluster(resources.DefaultNamespace, "clusterID")
+			cluster.TypedSpec().Value.TalosVersion = "1.2.3"
+
+			require.NoError(t, st.Create(ctx, cluster))
+
+			// create ClusterUUID, as it will be looked up by SecretsController to find the source cluster ID
+			clusterUUID := omni.NewClusterUUID(cluster.Metadata().ID())
+			clusterUUID.TypedSpec().Value.Uuid = "test-uuid"
+
+			clusterUUID.Metadata().Labels().Set(omni.LabelClusterUUID, "test-uuid")
+
+			require.NoError(t, st.Create(ctx, clusterUUID))
+
+			// create BackupData, as it will be looked up by SecretsController to get the encryption key
+			backupData := omni.NewBackupData(cluster.Metadata().ID())
+
+			require.NoError(t, st.Create(ctx, backupData))
+
+			machineSet := omni.NewMachineSet(resources.DefaultNamespace, omni.ControlPlanesResourceID(cluster.Metadata().ID()))
+			machineSet.TypedSpec().Value.BootstrapSpec = &specs.MachineSetSpec_BootstrapSpec{
+				ClusterUuid: "test-uuid",
+				Snapshot:    "test-snapshot",
+			}
+
+			machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
+			machineSet.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
+
+			require.NoError(t, st.Create(ctx, machineSet))
+
+			var foundClusterSecrets *omni.ClusterSecrets
+
+			// The only test I could think at this time, was simply to test bundle existence.
+			rtestutils.AssertResource(ctx, t, st,
+				cluster.Metadata().ID(),
+				func(res *omni.ClusterSecrets, assert *assert.Assertions) {
+					foundClusterSecrets = res
+					clusterSecretsSpec := foundClusterSecrets.TypedSpec().Value
+					assert.NotEmpty(clusterSecretsSpec.GetData())
+
+					var bundle secrets.Bundle
+
+					err := json.Unmarshal(clusterSecretsSpec.Data, &bundle)
+					assert.NoError(err)
+					assert.NotEmpty(bundle)
+
+					// assert that the AES-CBC and Secretbox encryption secrets are set to the values from the backup data
+					assert.Equal("aes-cbc-test", bundle.Secrets.AESCBCEncryptionSecret)
+					assert.Equal("secretbox-test", bundle.Secrets.SecretboxEncryptionSecret)
+				})
+		},
+	)
+}
+
+func TestImportedSecrets(t *testing.T) {
+	t.Parallel()
+
+	testutils.WithRuntime(
+		t.Context(),
+		t,
+		testutils.TestOptions{},
+		func(_ context.Context, testContext testutils.TestContext) { // prepare - register controllers
+			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
+		},
+		func(ctx context.Context, testContext testutils.TestContext) {
+			st := testContext.State
+			cluster := omni.NewCluster(resources.DefaultNamespace, "clusterID")
+			cluster.TypedSpec().Value.TalosVersion = "1.10.5"
+
+			require.NoError(t, st.Create(ctx, cluster))
+
+			// create ClusterUUID, as it will be looked up by SecretsController to find the source cluster ID
+			clusterUUID := omni.NewClusterUUID(cluster.Metadata().ID())
+			clusterUUID.TypedSpec().Value.Uuid = "test-uuid"
+
+			clusterUUID.Metadata().Labels().Set(omni.LabelClusterUUID, "test-uuid")
+
+			require.NoError(t, st.Create(ctx, clusterUUID))
+
+			// create ImportedClusterSecret, as it will be looked up by SecretsController to attempt importing secrets bundle
+			importedClusterSecrets := omni.NewImportedClusterSecrets(resources.DefaultNamespace, cluster.Metadata().ID())
+			importedClusterSecrets.TypedSpec().Value.Data = validSecretsBundle
+
+			require.NoError(t, st.Create(ctx, importedClusterSecrets))
+
+			machineSet := omni.NewMachineSet(resources.DefaultNamespace, omni.ControlPlanesResourceID(cluster.Metadata().ID()))
+			require.NoError(t, st.Create(ctx, machineSet))
+
+			var foundClusterSecrets *omni.ClusterSecrets
+
+			rtestutils.AssertResource(ctx, t, st,
+				cluster.Metadata().ID(),
+				func(res *omni.ClusterSecrets, assert *assert.Assertions) {
+					foundClusterSecrets = res
+					clusterSecretsSpec := foundClusterSecrets.TypedSpec().Value
+					assert.NotEmpty(clusterSecretsSpec.GetData())
+
+					var bundle secrets.Bundle
+
+					err := json.Unmarshal(clusterSecretsSpec.Data, &bundle)
+					assert.NoError(err)
+					assert.NotEmpty(bundle)
+					assert.Equal(clusterSecretsSpec.Imported, true)
+				})
+		},
+	)
+}
+
+func TestTriggerSecretRotation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(
+		ctx,
+		t,
+		testutils.TestOptions{},
+		func(_ context.Context, testContext testutils.TestContext) { // prepare - register controllers
+			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
+		},
+		func(ctx context.Context, testContext testutils.TestContext) {
+			st := testContext.State
+			cluster := omni.NewCluster(resources.DefaultNamespace, "clusterID")
+			cluster.TypedSpec().Value.TalosVersion = "1.11.4"
+			require.NoError(t, st.Create(ctx, cluster))
+
+			machineSet := omni.NewMachineSet(resources.DefaultNamespace, omni.ControlPlanesResourceID(cluster.Metadata().ID()))
+			require.NoError(t, st.Create(ctx, machineSet))
+
+			secretRotationStatus := omni.NewClusterSecretsRotationStatus(cluster.Metadata().ID())
+			require.NoError(t, st.Create(ctx, secretRotationStatus))
+
+			rtestutils.AssertResource(
+				ctx,
+				t,
+				st,
+				cluster.Metadata().ID(),
+				func(res *omni.ClusterSecrets, assert *assert.Assertions) {
+					clusterSecretsSpec := res.TypedSpec().Value
+					assert.NotEmpty(clusterSecretsSpec.GetData())
+					assert.Equal(clusterSecretsSpec.Imported, false)
+					assert.Empty(clusterSecretsSpec.GetRotateData())
+					assert.Empty(clusterSecretsSpec.RotateTalosCaVersion)
+				})
+
+			// Create a new RotateTalosCA resource to trigger secret rotation
+			rotateTalosCA := omni.NewRotateTalosCA(cluster.Metadata().ID())
+			require.NoError(t, st.Create(ctx, rotateTalosCA))
+
+			rtestutils.AssertResource(
+				ctx,
+				t,
+				st,
+				cluster.Metadata().ID(),
+				func(res *omni.ClusterSecrets, assert *assert.Assertions) {
+					clusterSecretsSpec := res.TypedSpec().Value
+					assert.NotEmpty(clusterSecretsSpec.GetData())
+					assert.NotEmpty(clusterSecretsSpec.GetRotateData())
+				},
+			)
+		},
+	)
 }

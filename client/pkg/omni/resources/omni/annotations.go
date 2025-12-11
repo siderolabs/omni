@@ -52,4 +52,8 @@ const (
 	//
 	// tsgen:KernelArgsInitialized
 	KernelArgsInitialized = SystemLabelPrefix + "kernel-args-initialized"
+
+	// TaintedByBreakGlassTimestamp is set on the ClusterStatus when it was tainted by break glass.
+	// The presence of the taint is determined by the label LabelClusterTaintedByBreakGlass on the ClusterStatus resource.
+	TaintedByBreakGlassTimestamp = SystemLabelPrefix + "tainted-by-break-glass-timestamp"
 )
