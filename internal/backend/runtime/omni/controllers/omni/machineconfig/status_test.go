@@ -557,11 +557,11 @@ func createCluster(
 		options.EmptyLabel(omni.LabelWorkerRole),
 	)
 
-	getIDs := func(count int) []string {
+	getIDs := func(machineType string, count int) []string {
 		res := make([]string, 0, count)
 
 		for i := range count {
-			res = append(res, fmt.Sprintf("node-%d", i))
+			res = append(res, fmt.Sprintf("node-%s-%d", machineType, i))
 		}
 
 		return res
@@ -569,7 +569,7 @@ func createCluster(
 
 	// create control planes
 	rmock.MockList[*omni.MachineSetNode](ctx, t, st,
-		options.IDs(getIDs(controlPlanes)),
+		options.IDs(getIDs("cp", controlPlanes)),
 		options.ItemOptions(
 			options.LabelCluster(cluster),
 			options.LabelMachineSet(cpMachineSet),
@@ -580,7 +580,7 @@ func createCluster(
 	if workers > 0 {
 		// create workers
 		rmock.MockList[*omni.MachineSetNode](ctx, t, st,
-			options.IDs(getIDs(workers)),
+			options.IDs(getIDs("w", workers)),
 			options.ItemOptions(
 				options.LabelCluster(cluster),
 				options.LabelMachineSet(workersMachineSet),
