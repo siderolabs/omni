@@ -105,3 +105,7 @@ func ImportedClusterSecretValidationOptions(st state.State, clusterImportEnabled
 func InfraProviderValidationOptions(st state.State) []validated.StateOption {
 	return infraProviderValidationOptions(st)
 }
+
+func RotateSecretsValidationOptions(st state.State) []validated.StateOption {
+	return rotateSecretsValidationOptions(st)
+}

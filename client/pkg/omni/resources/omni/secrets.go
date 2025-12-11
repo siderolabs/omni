@@ -53,10 +53,10 @@ func (ClusterSecretsExtension) ResourceDefinition() meta.ResourceDefinitionSpec 
 }
 
 // ToSecretsBundle decodes the resource into generate.SecretsBundle resource.
-func ToSecretsBundle(clusterSecrets *ClusterSecrets) (*secrets.Bundle, error) {
+func ToSecretsBundle(secretsByte []byte) (*secrets.Bundle, error) {
 	secretBundle := &secrets.Bundle{}
 
-	err := json.Unmarshal(clusterSecrets.TypedSpec().Value.Data, secretBundle)
+	err := json.Unmarshal(secretsByte, secretBundle)
 	if err != nil {
 		return nil, err
 	}

@@ -52,6 +52,8 @@ var (
 		omni.EtcdBackupStatusType,
 		omni.EtcdManualBackupType,
 		omni.ImportedClusterSecretsType,
+		omni.ClusterSecretsRotationStatusType,
+		omni.RotateTalosCAType,
 	})
 
 	// clusterLabelTypeSet is the set of resource types which have the related cluster's ID as a label.
@@ -81,6 +83,7 @@ var (
 		omni.DiscoveryAffiliateDeleteTaskType,
 		omni.RedactedClusterMachineConfigType,
 		omni.MachineConfigDiffType,
+		omni.ClusterMachineSecretsRotationType,
 		infra.InfraMachineType,
 		infra.InfraMachineStatusType,
 	})
@@ -441,6 +444,9 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.MachineUpgradeStatusType,
 		omni.KernelArgsType,
 		omni.KernelArgsStatusType,
+		omni.ClusterSecretsRotationStatusType,
+		omni.ClusterMachineSecretsRotationType,
+		omni.RotateTalosCAType,
 		system.ResourceLabelsType[*omni.MachineStatus](),
 		virtual.LabelsCompletionType,
 		virtual.SBCConfigType,
@@ -557,6 +563,8 @@ func filterAccessByType(access state.Access) error {
 		omni.ClusterMachineType,
 		omni.ClusterMachineConfigPatchesType,
 		omni.ClusterMachineConfigStatusType,
+		omni.ClusterSecretsRotationStatusType,
+		omni.ClusterMachineSecretsRotationType,
 		omni.ClusterMetricsType,
 		omni.ClusterStatusMetricsType,
 		omni.ClusterStatusType,
@@ -626,7 +634,7 @@ func filterAccessByType(access state.Access) error {
 		virtual.KubernetesUsageType,
 		virtual.LabelsCompletionType,
 		virtual.ClusterPermissionsType:
-		// allow read access only, these resources are either managed by controllers or plugins (e.g., infra provider plugins)
+		// allow read access only. these resources are either managed by controllers or plugins (e.g., infra provider plugins)
 		if access.Verb.Readonly() {
 			return nil
 		}

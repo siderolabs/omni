@@ -6,6 +6,7 @@
 package trustd
 
 import (
+	"bytes"
 	"context"
 	stdx509 "crypto/x509"
 	"encoding/pem"
@@ -16,6 +17,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/siderolabs/crypto/x509"
+	"github.com/siderolabs/gen/xslices"
 	securityapi "github.com/siderolabs/talos/pkg/machinery/api/security"
 	"github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
 	"go.uber.org/zap"
@@ -24,6 +26,7 @@ import (
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
@@ -36,7 +39,7 @@ type handler struct {
 	logger *zap.Logger
 }
 
-func getSecretsBundle(ctx context.Context, st state.State, peerAddress string) (*secrets.Bundle, error) {
+func getSecrets(ctx context.Context, st state.State, peerAddress string) (*omni.ClusterSecrets, error) {
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
 	machines, err := safe.StateListAll[*omni.Machine](
@@ -71,7 +74,7 @@ func getSecretsBundle(ctx context.Context, st state.State, peerAddress string) (
 		return nil, status.Errorf(codes.PermissionDenied, "failed to get cluster secrets: %s", err)
 	}
 
-	return omni.ToSecretsBundle(clusterSecrets)
+	return clusterSecrets, nil
 }
 
 // Certificate implements the securityapi.SecurityServer interface.
@@ -89,9 +92,27 @@ func (h *handler) Certificate(ctx context.Context, in *securityapi.CertificateRe
 		return nil, status.Error(codes.PermissionDenied, "peer address is not TCP")
 	}
 
-	secretsBundle, err := getSecretsBundle(ctx, h.state, tcpAddr.IP.String())
+	clusterSecrets, err := getSecrets(ctx, h.state, tcpAddr.IP.String())
 	if err != nil {
 		return nil, err
+	}
+
+	secretsBundle, err := omni.ToSecretsBundle(clusterSecrets.TypedSpec().Value.GetData())
+	if err != nil {
+		return nil, err
+	}
+
+	acceptedCAs := []*x509.PEMEncodedCertificate{{Crt: secretsBundle.Certs.OS.Crt}}
+
+	if clusterSecrets.TypedSpec().Value.RotationPhase != specs.ClusterSecretsRotationStatusSpec_OK {
+		var rotateSecretsBundle *secrets.Bundle
+
+		rotateSecretsBundle, err = omni.ToSecretsBundle(clusterSecrets.TypedSpec().Value.GetRotateData())
+		if err != nil {
+			return nil, err
+		}
+
+		acceptedCAs = append(acceptedCAs, &x509.PEMEncodedCertificate{Crt: rotateSecretsBundle.Certs.OS.Crt})
 	}
 
 	// validate the token
@@ -140,7 +161,15 @@ func (h *handler) Certificate(ctx context.Context, in *securityapi.CertificateRe
 	}
 
 	resp = &securityapi.CertificateResponse{
-		Ca:  secretsBundle.Certs.OS.Crt,
+		Ca: bytes.Join(
+			xslices.Map(
+				acceptedCAs,
+				func(cert *x509.PEMEncodedCertificate) []byte {
+					return cert.Crt
+				},
+			),
+			nil,
+		),
 		Crt: signed.X509CertificatePEM,
 	}
 

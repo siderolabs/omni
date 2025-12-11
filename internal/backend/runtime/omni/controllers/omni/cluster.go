@@ -91,6 +91,7 @@ func NewClusterController(kubernetesRuntime KubernetesRuntime) *ClusterControlle
 						return state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID()))
 					}),
 					&customcleanup.SameIDHandler[*omni.Cluster, *omni.ImportedClusterSecrets]{},
+					&customcleanup.SameIDHandler[*omni.Cluster, *omni.RotateTalosCA]{},
 				),
 			},
 		},

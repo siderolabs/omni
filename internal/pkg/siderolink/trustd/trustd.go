@@ -28,6 +28,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
+
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
 func recoveryHandler(logger *zap.Logger) grpc_recovery.RecoveryHandlerFunc {
@@ -48,11 +50,15 @@ func getCertificate(st state.State, serverAddr net.IP) func(info *tls.ClientHell
 			return nil, errors.New("failed to get remote address")
 		}
 
-		secretsBundle, err := getSecretsBundle(info.Context(), st, tcpAddr.IP.String())
+		clusterSecrets, err := getSecrets(info.Context(), st, tcpAddr.IP.String())
 		if err != nil {
 			return nil, err
 		}
 
+		secretsBundle, err := omni.ToSecretsBundle(clusterSecrets.TypedSpec().Value.GetData())
+		if err != nil {
+			return nil, err
+		}
 		// issue a short-lived cert for trustd for this connection
 		ca, err := x509.NewCertificateAuthorityFromCertificateAndKey(secretsBundle.Certs.OS)
 		if err != nil {

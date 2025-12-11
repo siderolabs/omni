@@ -49,6 +49,11 @@ func (ctrl *OngoingTaskController) Inputs() []controller.Input {
 			Namespace: resources.DefaultNamespace,
 			Kind:      controller.InputWeak,
 		},
+		{
+			Type:      omni.ClusterSecretsRotationStatusType,
+			Namespace: resources.DefaultNamespace,
+			Kind:      controller.InputWeak,
+		},
 	}
 }
 
@@ -64,7 +69,7 @@ func (ctrl *OngoingTaskController) Outputs() []controller.Output {
 
 // Run implements controller.Controller interface.
 //
-//nolint:gocognit
+//nolint:gocognit,gocyclo,cyclop
 func (ctrl *OngoingTaskController) Run(ctx context.Context, r controller.Runtime, _ *zap.Logger) error {
 	for {
 		select {
@@ -91,6 +96,11 @@ func (ctrl *OngoingTaskController) Run(ctx context.Context, r controller.Runtime
 		}
 
 		machineUpgradeStatuses, err := safe.ReaderListAll[*omni.MachineUpgradeStatus](ctx, r)
+		if err != nil {
+			return err
+		}
+
+		secretRotationStatuses, err := safe.ReaderListAll[*omni.ClusterSecretsRotationStatus](ctx, r)
 		if err != nil {
 			return err
 		}
@@ -181,6 +191,29 @@ func (ctrl *OngoingTaskController) Run(ctx context.Context, r controller.Runtime
 				res.TypedSpec().Value.Title = "Updating Cluster " + s.Metadata().ID()
 				res.TypedSpec().Value.Details = &specs.OngoingTaskSpec_KubernetesUpgrade{
 					KubernetesUpgrade: s.TypedSpec().Value,
+				}
+
+				return nil
+			})
+		}); err != nil {
+			return err
+		}
+
+		if err = secretRotationStatuses.ForEachErr(func(s *omni.ClusterSecretsRotationStatus) error {
+			if s.TypedSpec().Value.Status == "" {
+				return nil
+			}
+
+			id := fmt.Sprintf("%s-secret-rotation", s.Metadata().ID())
+			task := omni.NewOngoingTask(resources.EphemeralNamespace, id)
+
+			tracker.keep(task)
+
+			return safe.WriterModify(ctx, r, task, func(res *omni.OngoingTask) error {
+				res.TypedSpec().Value.ResourceId = s.Metadata().ID()
+				res.TypedSpec().Value.Title = "Rotating Secret for Cluster " + s.Metadata().ID()
+				res.TypedSpec().Value.Details = &specs.OngoingTaskSpec_SecretRotation{
+					SecretRotation: s.TypedSpec().Value,
 				}
 
 				return nil

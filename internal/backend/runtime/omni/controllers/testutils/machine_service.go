@@ -152,6 +152,7 @@ type MachineServiceMock struct {
 	files                   map[string][]string
 	serviceList             *machine.ServiceListResponse
 	etcdLeaveClusterHandler func(context.Context, *machine.EtcdLeaveClusterRequest) (*machine.EtcdLeaveClusterResponse, error)
+	versionHandler          func(ctx context.Context, _ *emptypb.Empty) (*machine.VersionResponse, error)
 
 	metaDeleteKeyToCount map[uint32]int
 	metaKeys             map[uint32]string
@@ -170,6 +171,13 @@ func (ms *MachineServiceMock) SetEtcdLeaveHandler(callback func(context.Context,
 	defer ms.lock.Unlock()
 
 	ms.etcdLeaveClusterHandler = callback
+}
+
+func (ms *MachineServiceMock) SetVersionHandler(callback func(ctx context.Context, _ *emptypb.Empty) (*machine.VersionResponse, error)) {
+	ms.lock.Lock()
+	defer ms.lock.Unlock()
+
+	ms.versionHandler = callback
 }
 
 func (ms *MachineServiceMock) GetUpgradeRequests() []*machine.UpgradeRequest {
@@ -369,6 +377,10 @@ func (ms *MachineServiceMock) Version(ctx context.Context, _ *emptypb.Empty) (*m
 
 	if m != nil {
 		talosVersion = m.TypedSpec().Value.TalosVersion
+	}
+
+	if ms.versionHandler != nil {
+		return ms.versionHandler(ctx, nil)
 	}
 
 	return &machine.VersionResponse{

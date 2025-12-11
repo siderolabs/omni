@@ -7,6 +7,7 @@
 package certs
 
 import (
+	"bytes"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
@@ -15,9 +16,11 @@ import (
 	"time"
 
 	talosx509 "github.com/siderolabs/crypto/x509"
+	"github.com/siderolabs/gen/xslices"
 	talossecrets "github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
 	"github.com/siderolabs/talos/pkg/machinery/role"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -62,15 +65,44 @@ func IsPEMEncodedCertificateStale(certPEM []byte, expectedValidity time.Duration
 
 // TalosAPIClientCertificateFromSecrets generates a Talos API client certificate from the given secrets.
 func TalosAPIClientCertificateFromSecrets(secrets *omni.ClusterSecrets, certificateValidity time.Duration, roles role.Set) (*talosx509.PEMEncodedCertificateAndKey, []byte, error) {
-	secretBundle, err := omni.ToSecretsBundle(secrets)
+	secretsBundle, err := omni.ToSecretsBundle(secrets.TypedSpec().Value.GetData())
 	if err != nil {
 		return nil, nil, err
 	}
 
-	clientCert, err := talossecrets.NewAdminCertificateAndKey(time.Now(), secretBundle.Certs.OS, roles, certificateValidity)
+	clientCert, err := talossecrets.NewAdminCertificateAndKey(time.Now(), secretsBundle.Certs.OS, roles, certificateValidity)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error generating Talos API certificate: %w", err)
 	}
 
-	return clientCert, secretBundle.Certs.OS.Crt, nil
+	acceptedCAs := []*talosx509.PEMEncodedCertificate{{Crt: secretsBundle.Certs.OS.Crt}}
+
+	// While rotating secrets, use both the old and new CA certificates in Talosconfig
+	// This is to ensure that connectivity with Talos is never lost regardless of the issuing CA used for apid server certificate
+	if secrets.TypedSpec().Value.RotationPhase != specs.ClusterSecretsRotationStatusSpec_OK {
+		rotateSecretsBundle, rotateErr := omni.ToSecretsBundle(secrets.TypedSpec().Value.GetRotateData())
+		if rotateErr != nil {
+			return nil, nil, rotateErr
+		}
+
+		acceptedCAs = append(acceptedCAs, &talosx509.PEMEncodedCertificate{Crt: rotateSecretsBundle.Certs.OS.Crt})
+
+		// At this stage all Talos nodes should have their acceptedCAs field updated. So we can create the client cert using the new CA.
+		if secrets.TypedSpec().Value.RotationPhase == specs.ClusterSecretsRotationStatusSpec_ROTATE {
+			clientCert, rotateErr = talossecrets.NewAdminCertificateAndKey(time.Now(), rotateSecretsBundle.Certs.OS, roles, certificateValidity)
+			if rotateErr != nil {
+				return nil, nil, fmt.Errorf("error generating Talos API certificate: %w", rotateErr)
+			}
+		}
+	}
+
+	return clientCert, bytes.Join(
+		xslices.Map(
+			acceptedCAs,
+			func(cert *talosx509.PEMEncodedCertificate) []byte {
+				return cert.Crt
+			},
+		),
+		nil,
+	), nil
 }
