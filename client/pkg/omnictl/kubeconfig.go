@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/mattn/go-isatty"
 	"github.com/siderolabs/go-kubeconfig"
 	"github.com/spf13/cobra"
@@ -23,6 +25,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/client/management"
 	"github.com/siderolabs/omni/client/pkg/constants"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
 
@@ -63,7 +66,7 @@ Otherwise kubeconfig will be written to PWD or [local-path] if specified.`,
 	},
 }
 
-//nolint:gocognit
+//nolint:gocognit,gocyclo,cyclop
 func getKubeconfig(args []string) func(ctx context.Context, client *client.Client) error {
 	return func(ctx context.Context, client *client.Client) error {
 		var localPath string
@@ -116,6 +119,10 @@ func getKubeconfig(args []string) func(ctx context.Context, client *client.Clien
 			}
 		}
 
+		if validateErr := validateClusterExists(ctx, client, kubeconfigCmdFlags.cluster); validateErr != nil {
+			return validateErr
+		}
+
 		var opts []management.KubeconfigOption
 
 		if kubeconfigCmdFlags.serviceAccount {
@@ -150,6 +157,22 @@ func getKubeconfig(args []string) func(ctx context.Context, client *client.Clien
 
 		return os.WriteFile(localPath, data, 0o640)
 	}
+}
+
+// validateClusterExists checks if the specified cluster exists in Omni.
+func validateClusterExists(ctx context.Context, client *client.Client, clusterName string) error {
+	st := client.Omni().State()
+
+	// Get the cluster by ID
+	if _, err := safe.StateGetByID[*omni.Cluster](ctx, st, clusterName); err != nil {
+		if state.IsNotFoundError(err) {
+			return fmt.Errorf("cluster not found: %q", clusterName)
+		}
+
+		return fmt.Errorf("failed to check if cluster '%s' exists: %w", clusterName, err)
+	}
+
+	return nil
 }
 
 func extractAndMerge(data []byte, localPath string) error {
