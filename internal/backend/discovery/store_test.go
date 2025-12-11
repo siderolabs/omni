@@ -6,7 +6,6 @@ package discovery_test
 
 import (
 	"context"
-	"database/sql"
 	"io"
 	"os"
 	"path/filepath"
@@ -16,8 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
-	// Ensure SQLite driver is loaded.
-	_ "modernc.org/sqlite"
 
 	"github.com/siderolabs/omni/internal/backend/discovery"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -30,11 +27,7 @@ func TestInitSQLiteSnapshotStore_MigrateSuccess(t *testing.T) {
 	t.Cleanup(cancel)
 
 	logger := zaptest.NewLogger(t)
-	dbPath := filepath.Join(t.TempDir(), "test.db")
-
-	db, err := sql.Open("sqlite", dbPath)
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	_, db := setupStore(ctx, t)
 
 	// 1. Setup Legacy File State
 	// Create a temporary directory for the snapshot file
@@ -46,8 +39,8 @@ func TestInitSQLiteSnapshotStore_MigrateSuccess(t *testing.T) {
 
 	// 2. Trigger Init with Migration Enabled
 	conf := &config.EmbeddedDiscoveryService{
-		SQLiteSnapshotsEnabled: true,
-		SnapshotsPath:          snapshotPath, //nolint:staticcheck
+		SnapshotsEnabled: true,
+		SnapshotsPath:    snapshotPath, //nolint:staticcheck
 	}
 
 	store, err := discovery.InitSQLiteSnapshotStore(ctx, conf, db, logger)
@@ -78,15 +71,11 @@ func TestInitSQLiteSnapshotStore_SkipIfDataExists(t *testing.T) {
 	t.Cleanup(cancel)
 
 	logger := zaptest.NewLogger(t)
-	dbPath := filepath.Join(t.TempDir(), "test.db")
-
-	db, err := sql.Open("sqlite", dbPath)
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	_, db := setupStore(ctx, t)
 
 	// 1. Setup Pre-existing SQLite Data
 	// We manually initialize a store to write data before testing Init
-	preStore, err := discovery.NewSQLiteStore(ctx, db)
+	preStore, err := discovery.NewSQLiteStore(ctx, db, 0)
 	require.NoError(t, err)
 
 	dbData := []byte("existing-db-data")
@@ -105,8 +94,8 @@ func TestInitSQLiteSnapshotStore_SkipIfDataExists(t *testing.T) {
 
 	// 3. Trigger Init
 	conf := &config.EmbeddedDiscoveryService{
-		SQLiteSnapshotsEnabled: true,
-		SnapshotsPath:          snapshotPath, //nolint:staticcheck
+		SnapshotsEnabled: true,
+		SnapshotsPath:    snapshotPath, //nolint:staticcheck
 	}
 
 	store, err := discovery.InitSQLiteSnapshotStore(ctx, conf, db, logger)
@@ -134,11 +123,7 @@ func TestInitSQLiteSnapshotStore_NoFile(t *testing.T) {
 	t.Cleanup(cancel)
 
 	logger := zaptest.NewLogger(t)
-	dbPath := filepath.Join(t.TempDir(), "test.db")
-
-	db, err := sql.Open("sqlite", dbPath)
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	_, db := setupStore(ctx, t)
 
 	// 1. Setup Path to non-existent file
 	tmpDir := t.TempDir()
@@ -146,8 +131,8 @@ func TestInitSQLiteSnapshotStore_NoFile(t *testing.T) {
 
 	// 2. Trigger Init
 	conf := &config.EmbeddedDiscoveryService{
-		SQLiteSnapshotsEnabled: true,
-		SnapshotsPath:          snapshotPath,
+		SnapshotsEnabled: true,
+		SnapshotsPath:    snapshotPath,
 	}
 
 	store, err := discovery.InitSQLiteSnapshotStore(ctx, conf, db, logger)
@@ -161,43 +146,4 @@ func TestInitSQLiteSnapshotStore_NoFile(t *testing.T) {
 	data, err := io.ReadAll(rdr)
 	require.NoError(t, err)
 	assert.Empty(t, data)
-}
-
-func TestInitSQLiteSnapshotStore_Disabled(t *testing.T) {
-	t.Parallel()
-
-	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
-	t.Cleanup(cancel)
-
-	logger := zaptest.NewLogger(t)
-	db, err := sql.Open("sqlite", ":memory:")
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, db.Close()) })
-
-	tests := []struct {
-		conf *config.EmbeddedDiscoveryService
-		name string
-	}{
-		{
-			name: "Nil Config",
-			conf: nil,
-		},
-		{
-			name: "Disabled Flag",
-			conf: &config.EmbeddedDiscoveryService{
-				SQLiteSnapshotsEnabled: false,
-				SnapshotsPath:          "/some/path", //nolint:staticcheck
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			store, err := discovery.InitSQLiteSnapshotStore(ctx, tt.conf, db, logger)
-			require.NoError(t, err)
-			assert.Nil(t, store, "store should be nil when disabled or config is nil")
-		})
-	}
 }

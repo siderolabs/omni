@@ -20,6 +20,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/go-playground/validator/v10"
 	"github.com/siderolabs/gen/xyaml"
+	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/talos/pkg/machinery/config/merge"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -33,7 +34,8 @@ import (
 )
 
 const (
-	wireguardDefaultPort = "50180"
+	wireguardDefaultPort  = "50180"
+	SQLiteStoragePathFlag = "sqlite-storage-path"
 )
 
 // ParseOption describes an additional optional arg to the parseConfig function.
@@ -116,13 +118,13 @@ func Default() *Params {
 				Port:    8081,
 			},
 			EmbeddedDiscoveryService: &EmbeddedDiscoveryService{
-				Enabled:                true,
-				Port:                   8093,
-				SnapshotsEnabled:       true,
-				SnapshotsPath:          "_out/secondary-storage/discovery-service-state.binpb", // todo: Keeping this enabled to get it migrated to SQLite.
-				SQLiteSnapshotsEnabled: true,
-				SnapshotsInterval:      10 * time.Minute,
-				LogLevel:               zapcore.WarnLevel.String(),
+				Enabled:           true,
+				Port:              8093,
+				SnapshotsEnabled:  true,
+				SnapshotsPath:     "_out/secondary-storage/discovery-service-state.binpb", // todo: Keeping this enabled to get it migrated to SQLite.
+				SnapshotsInterval: 10 * time.Minute,
+				LogLevel:          zapcore.WarnLevel.String(),
+				SQLiteTimeout:     30 * time.Second,
 			},
 			WorkloadProxy: &WorkloadProxy{
 				Subdomain:    "proxy-us",
@@ -149,14 +151,9 @@ func Default() *Params {
 		},
 		Logs: Logs{
 			Audit: LogsAudit{
-				// Path is the path to store the audit logs in.
-				//
-				// Deprecated: use SQLite storage instead.
-				Path: "_out/audit", // todo: Keeping this enabled to get the logs migrated to sqlite, drop this after a while, when all logs are supposedly in SQLite.
-				SQLite: LogsAuditSQLite{
-					Enabled: true,
-					Timeout: 30 * time.Second,
-				},
+				Enabled:       pointer.To(true),
+				Path:          "_out/audit",
+				SQLiteTimeout: 30 * time.Second,
 			},
 			ResourceLogger: ResourceLoggerConfig{
 				LogLevel: zapcore.InfoLevel.String(),
@@ -167,15 +164,13 @@ func Default() *Params {
 				BufferMaxCapacity:     131072,
 				BufferSafetyGap:       256,
 				Storage: LogsMachineStorage{
-					Enabled:             true, // todo: Keeping this enabled to get the logs migrated to sqlite, drop this after a while, when all logs are supposedly in SQLite.
+					Enabled:             true,
 					Path:                "_out/logs",
 					FlushPeriod:         10 * time.Minute,
 					FlushJitter:         0.1,
 					NumCompressedChunks: 5,
-				},
-				SQLite: LogsMachineSQLite{
-					Enabled:          true,
-					Timeout:          30 * time.Second,
+
+					SQLiteTimeout:    30 * time.Second,
 					CleanupInterval:  30 * time.Minute,
 					CleanupOlderThan: 24 * 30 * time.Hour,
 				},
@@ -186,7 +181,6 @@ func Default() *Params {
 				Path: "_out/secondary-storage/bolt.db",
 			},
 			SQLite: SQLite{
-				Path:                   "_out/secondary-storage/sqlite.db",
 				ExperimentalBaseParams: "_txlock=immediate&_pragma=busy_timeout(50000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)",
 			},
 			Default: &StorageDefault{
@@ -310,7 +304,7 @@ func (p *Params) Validate() error {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 
 	if err := validate.Struct(p); err != nil {
-		return err
+		return p.handleValidationErrors(err)
 	}
 
 	if p.Auth.Auth0.Enabled && p.Auth.SAML.Enabled {
@@ -318,6 +312,46 @@ func (p *Params) Validate() error {
 	}
 
 	return nil
+}
+
+// handleValidationErrors customizes validation error messages returned by the validator.
+//
+// It is mainly used to provide more user-friendly error messages for required fields, e.g., by
+// suggesting the corresponding CLI flag to set the missing value.
+//
+// TODO: we should do this in a more generic, unified way in the future.
+func (p *Params) handleValidationErrors(err error) error {
+	var validationErrs validator.ValidationErrors
+
+	if !errors.As(err, &validationErrs) {
+		return err
+	}
+
+	for i, validationErr := range validationErrs {
+		if validationErr.Tag() != "required" {
+			continue
+		}
+
+		ns := validationErr.Namespace()
+		switch ns { //nolint:gocritic
+		case "Params.Storage.SQLite.Path":
+			validationErrs[i] = &fieldError{
+				FieldError: validationErr,
+				customErr:  fmt.Sprintf("missing required config value: %v, can be specified using --%s flag", ns, SQLiteStoragePathFlag),
+			}
+		}
+	}
+
+	return validationErrs
+}
+
+type fieldError struct {
+	validator.FieldError
+	customErr string
+}
+
+func (f fieldError) Error() string {
+	return f.customErr
 }
 
 // Account defines Omni account settings.

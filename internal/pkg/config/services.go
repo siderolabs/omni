@@ -203,17 +203,16 @@ type EmbeddedDiscoveryService struct {
 	Port    int  `yaml:"port"`
 
 	// SnapshotsEnabled turns on the discovery service persistence.
-	//
-	// Deprecated: use SQLiteSnapshotsEnabled instead.
 	SnapshotsEnabled bool `yaml:"snapshotsEnabled"`
 
-	SQLiteSnapshotsEnabled bool `yaml:"sqliteSnapshotsEnabled"`
 	// SnapshotsPath is the path on disk where to store the discovery service state.
 	//
-	// Deprecated: use SQLiteSnapshotsEnabled instead.
+	// Deprecated: this field is kept for the SQLite migration, and will be removed in future versions.
 	SnapshotsPath     string        `yaml:"snapshotsPath"`
 	SnapshotsInterval time.Duration `yaml:"snapshotsInterval"`
 	LogLevel          string        `yaml:"logLevel"`
+
+	SQLiteTimeout time.Duration `yaml:"sqliteTimeout"`
 }
 
 // LoadBalancerService configures Omni Kubernetes loadbalancer.

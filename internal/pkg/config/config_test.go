@@ -16,6 +16,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
+	"github.com/siderolabs/go-pointer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -62,12 +63,24 @@ func TestMergeConfig(t *testing.T) {
 						PrivateKeySource: "vault",
 					},
 				},
+				SQLite: config.SQLite{
+					Path: "/some/path", // set it, as it is required
+				},
+			},
+			Logs: config.Logs{
+				Audit: config.LogsAudit{
+					SQLiteTimeout: 5 * time.Second,
+				},
 			},
 		},
 	)
 
 	require.NoError(t, err)
-	require.True(t, cfg.Services.EmbeddedDiscoveryService.Enabled)
+	assert.True(t, cfg.Services.EmbeddedDiscoveryService.Enabled)
+	assert.Equal(t, 5*time.Second, cfg.Logs.Audit.SQLiteTimeout)
+
+	// assert that the default value of cfg.Logs.Audit.Enabled boolean value is preserved even when the config.LogsAudit struct was partially set as an override
+	assert.True(t, pointer.SafeDeref(cfg.Logs.Audit.Enabled))
 }
 
 func TestValidateStateConfig(t *testing.T) {

@@ -11,6 +11,8 @@ import (
 	"os"
 	"path/filepath"
 
+	_ "modernc.org/sqlite"
+
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 

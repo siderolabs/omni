@@ -17,7 +17,6 @@ import (
 	"github.com/cosi-project/state-sqlite/pkg/state/impl/sqlite"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
-	_ "modernc.org/sqlite"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"

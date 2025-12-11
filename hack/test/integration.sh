@@ -219,6 +219,8 @@ export OMNI_CONFIG="${TEST_OUTPUTS_DIR}/config.yaml"
 mkdir -p omnictl
 cp -p ${ARTIFACTS}/omnictl-* omnictl/
 
+sqlite_path="${TEST_OUTPUTS_DIR}/sqlite.db"
+
 echo "---
 services:
   api:
@@ -261,7 +263,7 @@ storage:
   secondary:
     path: ${ARTIFACTS}/secondary-storage/bolt.db
   sqlite:
-    path: ${ARTIFACTS}/secondary-storage/sqlite.db
+    path: ${sqlite_path}
   default:
     kind: etcd
     etcd:
@@ -613,6 +615,9 @@ SIDEROLINK_DEV_JOIN_TOKEN=${JOIN_TOKEN} \
 if [ "${INTEGRATION_RUN_E2E_TEST:-true}" == "true" ]; then
   # write partial omni config
   echo "---
+  storage:
+    sqlite:
+      path: ${sqlite_path}
   services:
     api:
       endpoint: 0.0.0.0:8099

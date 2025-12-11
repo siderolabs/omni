@@ -9,7 +9,6 @@ package integration_test
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"flag"
 	"fmt"
@@ -17,7 +16,6 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -42,7 +40,6 @@ import (
 	_ "github.com/siderolabs/omni/cmd/acompat" // this package should always be imported first for init->set env to work
 	"github.com/siderolabs/omni/cmd/omni/pkg/app"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/sqlite"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/clientconfig"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -481,9 +478,7 @@ func runOmni(t *testing.T) (string, error) {
 
 	omniCtx := actor.MarkContextAsInternalActor(t.Context())
 
-	secondaryStorageDB := testDB(t)
-
-	state, err := omni.NewState(omniCtx, config, secondaryStorageDB, logger, prometheus.DefaultRegisterer)
+	state, err := omni.NewState(omniCtx, config, logger, prometheus.DefaultRegisterer)
 	if err != nil {
 		return "", err
 	}
@@ -495,7 +490,7 @@ func runOmni(t *testing.T) (string, error) {
 	eg.Go(func() error {
 		defer cancel()
 
-		return app.Run(omniCtx, state, secondaryStorageDB, config, logger)
+		return app.Run(omniCtx, state, config, logger)
 	})
 
 	t.Log("waiting for Omni to start")
@@ -511,20 +506,4 @@ func runOmni(t *testing.T) (string, error) {
 	t.Logf("running integration tests using embedded Omni at %q", omniEndpoint)
 
 	return sa, nil
-}
-
-func testDB(t *testing.T) *sql.DB {
-	t.Helper()
-
-	conf := config.Default().Storage.SQLite
-	conf.Path = filepath.Join(t.TempDir(), "integration-test.db")
-
-	db, err := sqlite.OpenDB(conf)
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		require.NoError(t, db.Close())
-	})
-
-	return db
 }

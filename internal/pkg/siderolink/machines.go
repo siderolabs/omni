@@ -36,7 +36,7 @@ type MachineCache struct {
 	machineLogStoreManager LogStoreManager
 	machineLogStores       map[MachineID]logstore.LogStore
 	logger                 *zap.Logger
-	logStorageConfig       *config.LogsMachine
+	logsConfig             *config.LogsMachine
 	compressor             *zstd.Compressor
 	secondaryStorageDB     *sql.DB
 	mx                     sync.Mutex
@@ -51,7 +51,7 @@ func NewMachineCache(secondaryStorageDB *sql.DB, logStorageConfig *config.LogsMa
 	}
 
 	return &MachineCache{
-		logStorageConfig:   logStorageConfig,
+		logsConfig:         logStorageConfig,
 		compressor:         compressor,
 		secondaryStorageDB: secondaryStorageDB,
 		logger:             logger,
@@ -189,42 +189,19 @@ func (m *MachineCache) init(ctx context.Context) error {
 		return nil
 	}
 
-	var (
-		circularLogStoreManager *circularlog.StoreManager
-		sqliteLogStoreManager   *sqlitelog.StoreManager
-		err                     error
-	)
-
-	if m.logStorageConfig.Storage.Enabled { //nolint:staticcheck
-		circularLogStoreManager = circularlog.NewStoreManager(m.logStorageConfig, m.compressor, m.logger)
+	sqliteLogStoreManager, err := sqlitelog.NewStoreManager(ctx, m.secondaryStorageDB, m.logsConfig.Storage, m.logger)
+	if err != nil {
+		return fmt.Errorf("failed to create sqlite log store manager: %w", err)
 	}
 
-	if m.logStorageConfig.SQLite.Enabled {
-		if sqliteLogStoreManager, err = sqlitelog.NewStoreManager(ctx, m.secondaryStorageDB, m.logStorageConfig.SQLite, m.logger); err != nil {
-			return fmt.Errorf("failed to create sqlite log store manager: %w", err)
-		}
-	}
-
-	switch {
-	case m.logStorageConfig.Storage.Enabled && m.logStorageConfig.SQLite.Enabled: //nolint:staticcheck
-		m.logger.Info("both sqlite and persistent log storage are enabled, going to migrate from circular log store to sqlite log store")
-
-		if err = migrateLogStoreToSQLite(ctx, circularLogStoreManager, sqliteLogStoreManager, m.logger); err != nil { //nolint:staticcheck
+	if m.logsConfig.Storage.Enabled { //nolint:staticcheck
+		circularLogStoreManager := circularlog.NewStoreManager(m.logsConfig, m.compressor, m.logger)
+		if err = migrateLogStoreToSQLite(ctx, circularLogStoreManager, sqliteLogStoreManager, m.logger); err != nil {
 			return fmt.Errorf("failed to migrate log store from circular to sqlite: %w", err)
 		}
-
-		m.logger.Info("migration completed, using sqlite log store manager for machine logs")
-
-		m.machineLogStoreManager = sqliteLogStoreManager
-	case m.logStorageConfig.SQLite.Enabled:
-		m.logger.Info("using sqlite log store manager for machine logs")
-
-		m.machineLogStoreManager = sqliteLogStoreManager
-	default:
-		m.logger.Info("using circular log store manager for machine logs")
-
-		m.machineLogStoreManager = circularlog.NewStoreManager(m.logStorageConfig, m.compressor, m.logger)
 	}
+
+	m.machineLogStoreManager = sqliteLogStoreManager
 
 	m.inited = true
 	m.machineLogStores = map[MachineID]logstore.LogStore{}

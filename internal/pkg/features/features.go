@@ -32,7 +32,7 @@ func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger) er
 			MaxInterval:  durationpb.New(config.Config.EtcdBackup.MaxInterval),
 		}
 
-		res.TypedSpec().Value.AuditLogEnabled = config.Config.Logs.Audit.Path != ""
+		res.TypedSpec().Value.AuditLogEnabled = config.Config.Logs.Audit.Path != "" //nolint:staticcheck
 		res.TypedSpec().Value.ImageFactoryBaseUrl = config.Config.Registries.ImageFactoryBaseURL
 		res.TypedSpec().Value.UserPilotSettings = &specs.UserPilotSettings{
 			AppToken: config.Config.Account.UserPilot.AppToken,

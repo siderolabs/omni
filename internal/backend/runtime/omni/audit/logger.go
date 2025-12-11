@@ -15,6 +15,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/siderolabs/go-pointer"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
@@ -24,53 +25,42 @@ import (
 )
 
 func initLogger(ctx context.Context, config config.LogsAudit, db *sql.DB, logger *zap.Logger) (Logger, error) {
-	var (
-		fileAuditLogger *auditlogfile.LogFile
-		dbAuditLogger   *auditlogsqlite.Store
-	)
+	if !pointer.SafeDeref(config.Enabled) {
+		logger.Info("audit logging is disabled")
 
-	if config.Path != "" {
-		if err := os.MkdirAll(config.Path, 0o755); err != nil {
-			return nil, fmt.Errorf("failed to create audit logger: %w", err)
-		}
-
-		fileAuditLogger = auditlogfile.New(config.Path)
+		return &nopLogger{}, nil
 	}
 
-	if config.SQLite.Enabled {
-		if db == nil {
-			return nil, fmt.Errorf("database is required for sqlite audit logger")
-		}
-
-		if config.SQLite.Timeout <= 0 {
-			return nil, fmt.Errorf("sqlite audit logger timeout must be a positive number")
-		}
-
-		var err error
-
-		if dbAuditLogger, err = auditlogsqlite.NewStore(ctx, db, config.SQLite.Timeout); err != nil {
-			return nil, err
-		}
+	dbAuditLogger, err := auditlogsqlite.NewStore(ctx, db, config.SQLiteTimeout)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create sqlite audit logger: %w", err)
 	}
 
-	switch {
-	case config.Path != "" && config.SQLite.Enabled:
-		if err := migrateFromFileToSQLite(ctx, fileAuditLogger, dbAuditLogger, logger); err != nil {
-			return nil, fmt.Errorf("failed to migrate audit logs from file to sqlite: %w", err)
+	path := config.Path //nolint:staticcheck
+
+	if path == "" { // nothing to migrate, just use sqlite
+		return dbAuditLogger, nil
+	}
+
+	if _, err = os.Stat(path); err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			logger.Error("failed to read audit log path, skip migration", zap.Error(err))
 		}
 
+		return dbAuditLogger, nil
+	}
+
+	// migrate from file to sqlite
+
+	fileAuditLogger := auditlogfile.New(path)
+
+	if err = migrateFromFileToSQLite(ctx, fileAuditLogger, dbAuditLogger, logger); err != nil {
+		logger.Error("failed to migrate from audit log to sqlite", zap.Error(err))
+	} else {
 		logger.Info("audit logs migrated from file to sqlite, using sqlite logger going forward")
-
-		return dbAuditLogger, nil
-	case config.SQLite.Enabled:
-		logger.Info("using sqlite audit logger")
-
-		return dbAuditLogger, nil
-	default:
-		logger.Info("using file audit logger")
-
-		return fileAuditLogger, nil
 	}
+
+	return dbAuditLogger, nil
 }
 
 func migrateFromFileToSQLite(ctx context.Context, fileAuditLogger Logger, dbAuditLogger *auditlogsqlite.Store, logger *zap.Logger) error {
@@ -166,3 +156,19 @@ func migrateFromFileToSQLite(ctx context.Context, fileAuditLogger Logger, dbAudi
 
 	return nil
 }
+
+type nopLogger struct{}
+
+func (n *nopLogger) Write(context.Context, auditlog.Event) error { return nil }
+
+func (n *nopLogger) Remove(context.Context, time.Time, time.Time) error { return nil }
+
+func (n *nopLogger) Reader(context.Context, time.Time, time.Time) (auditlog.Reader, error) {
+	return &nopReader{}, nil
+}
+
+type nopReader struct{}
+
+func (n *nopReader) Close() error { return nil }
+
+func (n *nopReader) Read() ([]byte, error) { return nil, fmt.Errorf("audit logs are disabled") }

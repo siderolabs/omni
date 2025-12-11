@@ -516,7 +516,7 @@ func setupDB(ctx context.Context, t *testing.T, logger *zap.Logger) *sqlitelog.S
 		require.NoError(t, db.Close())
 	})
 
-	storeManager, err := sqlitelog.NewStoreManager(ctx, db, config.Default().Logs.Machine.SQLite, logger)
+	storeManager, err := sqlitelog.NewStoreManager(ctx, db, config.Default().Logs.Machine.Storage, logger)
 	require.NoError(t, err)
 
 	return storeManager

@@ -40,10 +40,6 @@ func (m *StoreManager) Run(ctx context.Context) error {
 
 // Exists implements the LogStoreManager interface.
 func (m *StoreManager) Exists(_ context.Context, id string) (bool, error) {
-	if !m.config.Storage.Enabled {
-		return false, nil
-	}
-
 	matches, err := m.logFiles(id)
 	if err != nil {
 		return false, fmt.Errorf("failed to list log files for machine %q: %w", id, err)

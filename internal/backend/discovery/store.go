@@ -20,18 +20,8 @@ import (
 )
 
 // InitSQLiteSnapshotStore initializes a SQLite snapshot store if enabled in the config.
-//
-//nolint:nilnil
 func InitSQLiteSnapshotStore(ctx context.Context, config *config.EmbeddedDiscoveryService, db *sql.DB, logger *zap.Logger) (storage.SnapshotStore, error) {
-	if config == nil {
-		return nil, nil
-	}
-
-	if !config.SQLiteSnapshotsEnabled { // file store is used, return a nil store to preserve the existing behavior
-		return nil, nil
-	}
-
-	store, err := NewSQLiteStore(ctx, db)
+	store, err := NewSQLiteStore(ctx, db, config.SQLiteTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize sqlite snapshot store: %w", err)
 	}

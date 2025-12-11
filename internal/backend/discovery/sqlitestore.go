@@ -13,8 +13,6 @@ import (
 	"fmt"
 	"io"
 	"time"
-
-	_ "modernc.org/sqlite"
 )
 
 const (
@@ -23,39 +21,47 @@ const (
 	dataColumn = "data"
 
 	id = "state"
-
-	queryTimeout = 30 * time.Second
 )
 
 type SQLiteStore struct {
-	db *sql.DB
+	db      *sql.DB
+	timeout time.Duration
 }
 
 func (s *SQLiteStore) Reader(ctx context.Context) (io.ReadCloser, error) {
 	return &reader{
-		db:  s.db,
-		ctx: ctx,
+		db:      s.db,
+		ctx:     ctx,
+		timeout: s.timeout,
 	}, nil
 }
 
 func (s *SQLiteStore) Writer(ctx context.Context) (io.WriteCloser, error) {
 	return &writer{
-		db:  s.db,
-		ctx: ctx,
+		db:      s.db,
+		ctx:     ctx,
+		timeout: s.timeout,
 	}, nil
 }
 
-func NewSQLiteStore(ctx context.Context, db *sql.DB) (*SQLiteStore, error) {
+func NewSQLiteStore(ctx context.Context, db *sql.DB, timeout time.Duration) (*SQLiteStore, error) {
+	if timeout <= 0 {
+		timeout = 30 * time.Second
+	}
+
 	schema := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
       %s TEXT PRIMARY KEY,
       %s BLOB
     ) STRICT;`, tableName, idColumn, dataColumn)
 
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
 	if _, err := db.ExecContext(ctx, schema); err != nil {
 		return nil, fmt.Errorf("failed to create discovery service state table: %w", err)
 	}
 
-	return &SQLiteStore{db: db}, nil
+	return &SQLiteStore{db: db, timeout: timeout}, nil
 }
 
 type writer struct {
@@ -65,7 +71,8 @@ type writer struct {
 
 	buf bytes.Buffer
 
-	closed bool
+	closed  bool
+	timeout time.Duration
 }
 
 func (w *writer) Write(p []byte) (n int, err error) {
@@ -83,7 +90,7 @@ func (w *writer) Close() error {
 
 	query := fmt.Sprintf("INSERT INTO %s (%s, %s) VALUES (?, ?) ON CONFLICT(%s) DO UPDATE SET %s=excluded.%s", tableName, idColumn, dataColumn, idColumn, dataColumn, dataColumn)
 
-	ctx, cancel := context.WithTimeout(w.ctx, queryTimeout)
+	ctx, cancel := context.WithTimeout(w.ctx, w.timeout)
 	defer cancel()
 
 	if _, err := w.db.ExecContext(ctx, query, id, w.buf.Bytes()); err != nil {
@@ -101,7 +108,8 @@ type reader struct {
 
 	reader *bytes.Reader
 
-	closed bool
+	closed  bool
+	timeout time.Duration
 }
 
 func (r *reader) Read(p []byte) (n int, err error) {
@@ -112,7 +120,7 @@ func (r *reader) Read(p []byte) (n int, err error) {
 	if r.reader == nil {
 		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s = ?", dataColumn, tableName, idColumn)
 
-		ctx, cancel := context.WithTimeout(r.ctx, queryTimeout)
+		ctx, cancel := context.WithTimeout(r.ctx, r.timeout)
 		defer cancel()
 
 		row := r.db.QueryRowContext(ctx, query, id)

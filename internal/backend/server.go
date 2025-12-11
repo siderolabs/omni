@@ -119,7 +119,6 @@ type Server struct {
 	metricsService          *config.Service
 	devServerProxy          *config.DevServerProxyService
 	k8sProxyService         *config.KubernetesProxyService
-	secondaryStorageDB      *sql.DB
 	pprofBindAddress        string
 	workloadProxyKey        []byte
 }
@@ -136,7 +135,6 @@ func NewServer(
 	omniRuntime *omni.Runtime,
 	logHandler *siderolink.LogHandler,
 	authConfig *authres.Config,
-	secondaryStorageDB *sql.DB,
 	logger *zap.Logger,
 ) (*Server, error) {
 	s := &Server{
@@ -156,7 +154,6 @@ func NewServer(
 		metricsService:          config.Config.Services.Metrics,
 		pprofBindAddress:        config.Config.Debug.Pprof.Endpoint,
 		k8sProxyService:         config.Config.Services.KubernetesProxy,
-		secondaryStorageDB:      secondaryStorageDB,
 	}
 
 	var err error
@@ -289,7 +286,7 @@ func (s *Server) Run(ctx context.Context) error {
 
 	if config.Config.Services.EmbeddedDiscoveryService.Enabled {
 		eg.Go(func() error {
-			if err = runEmbeddedDiscoveryService(ctx, s.secondaryStorageDB, s.logger); err != nil {
+			if err = runEmbeddedDiscoveryService(ctx, s.state.SecondaryStorageDB(), s.logger); err != nil {
 				return fmt.Errorf("failed to run discovery server over Siderolink: %w", err)
 			}
 
@@ -1145,8 +1142,7 @@ func runEmbeddedDiscoveryService(ctx context.Context, secondaryStorageDB *sql.DB
 
 	var snapshotStore storage.SnapshotStore
 
-	//nolint:staticcheck
-	snapshotsEnabled := config.Config.Services.EmbeddedDiscoveryService.SnapshotsEnabled || config.Config.Services.EmbeddedDiscoveryService.SQLiteSnapshotsEnabled
+	snapshotsEnabled := config.Config.Services.EmbeddedDiscoveryService.SnapshotsEnabled
 	if snapshotsEnabled {
 		if snapshotStore, err = discovery.InitSQLiteSnapshotStore(ctx, config.Config.Services.EmbeddedDiscoveryService, secondaryStorageDB, logger); err != nil {
 			return fmt.Errorf("failed to initialize snapshot store: %w", err)

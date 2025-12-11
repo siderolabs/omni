@@ -17,10 +17,8 @@ import (
 	"time"
 
 	"go.uber.org/zap"
-	_ "modernc.org/sqlite"
 
 	"github.com/siderolabs/omni/client/pkg/panichandler"
-	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/siderolink/logstore"
 )
 
@@ -39,12 +37,16 @@ const (
 )
 
 // NewStore creates a new Store.
-func NewStore(config config.LogsMachineSQLite, db *sql.DB, id string, logger *zap.Logger) (*Store, error) {
+func NewStore(timeout time.Duration, db *sql.DB, id string, logger *zap.Logger) (*Store, error) {
+	if timeout <= 0 {
+		timeout = 30 * time.Second
+	}
+
 	s := &Store{
-		id:     truncateMachineID(id),
-		config: config,
-		db:     db,
-		logger: logger,
+		id:      truncateMachineID(id),
+		timeout: timeout,
+		db:      db,
+		logger:  logger,
 	}
 
 	return s, nil
@@ -56,9 +58,10 @@ type Store struct {
 	logger      *zap.Logger
 	id          string
 	subscribers []chan struct{}
-	config      config.LogsMachineSQLite
 	mu          sync.Mutex
 	closed      bool
+
+	timeout time.Duration
 }
 
 // WriteLine implements the logstore.LogStore interface.
@@ -74,7 +77,7 @@ func (s *Store) WriteLine(ctx context.Context, message []byte) error {
 
 	query := fmt.Sprintf(`INSERT INTO %s (%s, %s, %s) VALUES (?, ?, ?)`, tableName, machineIDColumn, messageColumn, createdAtColumn)
 
-	ctx, cancel := context.WithTimeout(ctx, s.config.Timeout)
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	if _, err := s.db.ExecContext(ctx, query, s.id, message, time.Now().Unix()); err != nil {
@@ -344,7 +347,7 @@ func (s *Store) readerStartID(ctx context.Context, nLines int) (int64, error) {
 	query := fmt.Sprintf("SELECT COALESCE(MIN(id), 0) FROM (SELECT %s AS id FROM %s WHERE %s = ? ORDER BY %s DESC LIMIT ?)",
 		idColumn, tableName, machineIDColumn, idColumn)
 
-	ctx, cancel := context.WithTimeout(ctx, s.config.Timeout)
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	var startID int64
@@ -361,7 +364,7 @@ func (s *Store) readerStartID(ctx context.Context, nLines int) (int64, error) {
 func (s *Store) currentMaxID(ctx context.Context) (int64, error) {
 	query := fmt.Sprintf("SELECT COALESCE(MAX(%s), 0) FROM %s WHERE %s = ?", idColumn, tableName, machineIDColumn)
 
-	ctx, cancel := context.WithTimeout(ctx, s.config.Timeout)
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	var id int64

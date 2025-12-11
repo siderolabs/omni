@@ -45,7 +45,7 @@ type BoltDB struct {
 
 // SQLite defines sqlite storage configs.
 type SQLite struct {
-	Path                   string `yaml:"path"`
+	Path                   string `yaml:"path" validate:"required"`
 	ExperimentalBaseParams string `yaml:"experimentalBaseParams"`
 	ExtraParams            string `yaml:"extraParams"`
 }

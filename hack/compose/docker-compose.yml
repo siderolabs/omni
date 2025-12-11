@@ -55,6 +55,8 @@ services:
       - VAULT_ADDR=http://127.0.0.1:8200
       - VAULT_TOKEN=dev-o-token
       - SIDEROLINK_DEV_JOIN_TOKEN=w7uVuW3zbVKIYQuzEcyetAHeYMeo5q2L9RvkAVfCfSCD
+    command: >-
+      --sqlite-storage-path=/_out/secondary-storage/sqlite.db
 
   vault-dev:
     container_name: local-vault

@@ -32,17 +32,24 @@ const (
 type StoreManager struct {
 	db     *sql.DB
 	logger *zap.Logger
-	config config.LogsMachineSQLite
+	config config.LogsMachineStorage
 }
 
 // Run implements the LogStoreManager interface.
 func (m *StoreManager) Run(ctx context.Context) error {
-	ticker := time.NewTicker(m.config.CleanupInterval)
-	defer ticker.Stop()
+	tickerCh := make(<-chan time.Time)
 
-	// Do the initial cleanup immediately
-	if err := m.doCleanup(ctx); err != nil {
-		return err
+	if m.config.CleanupInterval <= 0 {
+		m.logger.Info("log cleanup is disabled")
+	} else {
+		ticker := time.NewTicker(m.config.CleanupInterval)
+		defer ticker.Stop()
+
+		tickerCh = ticker.C
+		// Do the initial cleanup immediately
+		if err := m.doCleanup(ctx); err != nil {
+			return err
+		}
 	}
 
 	for {
@@ -53,7 +60,7 @@ func (m *StoreManager) Run(ctx context.Context) error {
 			}
 
 			return ctx.Err()
-		case <-ticker.C:
+		case <-tickerCh:
 		}
 
 		if err := m.doCleanup(ctx); err != nil {
@@ -63,7 +70,7 @@ func (m *StoreManager) Run(ctx context.Context) error {
 }
 
 func (m *StoreManager) doCleanup(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(ctx, m.config.Timeout)
+	ctx, cancel := context.WithTimeout(ctx, m.config.SQLiteTimeout)
 	defer cancel()
 
 	query := fmt.Sprintf("DELETE FROM %s WHERE %s < ?", tableName, createdAtColumn)
@@ -93,7 +100,7 @@ func (m *StoreManager) doCleanup(ctx context.Context) error {
 func (m *StoreManager) Exists(ctx context.Context, id string) (bool, error) {
 	id = truncateMachineID(id)
 
-	ctx, cancel := context.WithTimeout(ctx, m.config.Timeout)
+	ctx, cancel := context.WithTimeout(ctx, m.config.SQLiteTimeout)
 	defer cancel()
 
 	var dummy int
@@ -114,7 +121,7 @@ func (m *StoreManager) Exists(ctx context.Context, id string) (bool, error) {
 func (m *StoreManager) Remove(ctx context.Context, id string) error {
 	id = truncateMachineID(id)
 
-	ctx, cancel := context.WithTimeout(ctx, m.config.Timeout)
+	ctx, cancel := context.WithTimeout(ctx, m.config.SQLiteTimeout)
 	defer cancel()
 
 	query := fmt.Sprintf("DELETE FROM %s WHERE %s=?", tableName, machineIDColumn)
@@ -155,7 +162,7 @@ type schemaParams struct {
 }
 
 // NewStoreManager creates a new StoreManager.
-func NewStoreManager(ctx context.Context, db *sql.DB, config config.LogsMachineSQLite, logger *zap.Logger) (*StoreManager, error) {
+func NewStoreManager(ctx context.Context, db *sql.DB, config config.LogsMachineStorage, logger *zap.Logger) (*StoreManager, error) {
 	templateParams := schemaParams{
 		TableName:       tableName,
 		IDColumn:        idColumn,
@@ -190,5 +197,5 @@ func NewStoreManager(ctx context.Context, db *sql.DB, config config.LogsMachineS
 
 // Create implements the LogStoreManager interface.
 func (m *StoreManager) Create(id string) (logstore.LogStore, error) {
-	return NewStore(m.config, m.db, id, m.logger)
+	return NewStore(m.config.SQLiteTimeout, m.db, id, m.logger)
 }

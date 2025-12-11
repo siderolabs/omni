@@ -21,6 +21,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/runtime/pkg/state/registry"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/siderolabs/go-pointer"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -34,6 +35,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/external"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/infraprovider"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/migration"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/sqlite"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/version"
@@ -56,11 +58,17 @@ type State struct {
 
 	defaultPersistentState   *PersistentState
 	secondaryPersistentState *PersistentState
+	secondaryStorageDB       *sql.DB
 }
 
 // Default returns the default state.
 func (s *State) Default() state.State {
 	return s.defaultState
+}
+
+// SecondaryStorageDB returns the secondary storage database.
+func (s *State) SecondaryStorageDB() *sql.DB {
+	return s.secondaryStorageDB
 }
 
 // Virtual returns the virtual state.
@@ -85,11 +93,21 @@ func (s *State) DefaultCore() state.CoreState {
 
 // Close closes the state.
 func (s *State) Close() error {
+	var secondaryPersistentStateErr, defaultPersistentStateErr, secondaryStorageDBErr error
+
 	if err := s.secondaryPersistentState.Close(); err != nil {
-		s.logger.Warn("failed to close secondary storage backing store", zap.Error(err))
+		secondaryPersistentStateErr = fmt.Errorf("failed to close secondary persistent state: %w", err)
 	}
 
-	return s.defaultPersistentState.Close()
+	if err := s.defaultPersistentState.Close(); err != nil {
+		defaultPersistentStateErr = fmt.Errorf("failed to close default persistent state: %w", err)
+	}
+
+	if err := s.secondaryStorageDB.Close(); err != nil {
+		secondaryStorageDBErr = fmt.Errorf("failed to close secondary storage database: %w", err)
+	}
+
+	return errors.Join(secondaryPersistentStateErr, defaultPersistentStateErr, secondaryStorageDBErr)
 }
 
 // HandleErrors must be called by the Omni server to be able to handle state errors that happen asynchronously.
@@ -106,11 +124,15 @@ func (s *State) HandleErrors(ctx context.Context) error {
 }
 
 // NewState creates a production Omni state.
-func NewState(ctx context.Context, params *config.Params, secondaryStorageDB *sql.DB, logger *zap.Logger, metricsRegistry prometheus.Registerer) (*State, error) {
-	var (
-		defaultPersistentState *PersistentState
-		err                    error
-	)
+func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, metricsRegistry prometheus.Registerer) (*State, error) {
+	logger.Info("using sqlite", zap.String("path", params.Storage.SQLite.Path))
+
+	secondaryStorageDB, err := sqlite.OpenDB(params.Storage.SQLite)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open sqlite database for secondary storage: %w", err)
+	}
+
+	var defaultPersistentState *PersistentState
 
 	switch params.Storage.Default.Kind {
 	case "boltdb":
@@ -175,6 +197,7 @@ func NewState(ctx context.Context, params *config.Params, secondaryStorageDB *sq
 
 		defaultPersistentState:   defaultPersistentState,
 		secondaryPersistentState: secondaryPersistentState,
+		secondaryStorageDB:       secondaryStorageDB,
 	}, nil
 }
 
@@ -287,13 +310,15 @@ func stateWithMetrics(namespacedState *namespaced.State, metricsRegistry prometh
 
 // NewAuditWrap creates a new audit wrap.
 func NewAuditWrap(ctx context.Context, resState state.State, params *config.Params, auditLogDB *sql.DB, logger *zap.Logger) (*AuditWrap, error) {
-	if params.Logs.Audit.Path == "" && !params.Logs.Audit.SQLite.Enabled {
+	path := params.Logs.Audit.Path //nolint:staticcheck
+
+	if path == "" && !pointer.SafeDeref(params.Logs.Audit.Enabled) {
 		logger.Info("audit log disabled")
 
 		return &AuditWrap{state: resState}, nil
 	}
 
-	logger.Info("audit log enabled", zap.String("dir", params.Logs.Audit.Path))
+	logger.Info("audit log enabled")
 
 	a, err := audit.NewLog(ctx, params.Logs.Audit, auditLogDB, logger)
 	if err != nil {
@@ -302,7 +327,7 @@ func NewAuditWrap(ctx context.Context, resState state.State, params *config.Para
 
 	hooks.Init(a)
 
-	return &AuditWrap{state: resState, log: a, dir: params.Logs.Audit.Path}, nil
+	return &AuditWrap{state: resState, log: a, dir: path}, nil
 }
 
 // AuditWrap is builder/wrapper for creating logged access to Omni and Talos nodes.

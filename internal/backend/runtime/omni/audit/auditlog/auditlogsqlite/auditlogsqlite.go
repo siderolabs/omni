@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
-	_ "modernc.org/sqlite"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 )
@@ -72,6 +71,10 @@ type Store struct {
 }
 
 func NewStore(ctx context.Context, db *sql.DB, timeout time.Duration) (*Store, error) {
+	if timeout <= 0 {
+		timeout = 30 * time.Second
+	}
+
 	templateParams := schemaParams{
 		TableName:           tableName,
 		IDColumn:            idColumn,

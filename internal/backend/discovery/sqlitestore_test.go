@@ -18,6 +18,8 @@ import (
 	"go.uber.org/goleak"
 
 	"github.com/siderolabs/omni/internal/backend/discovery"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/sqlite"
+	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 func TestMain(m *testing.M) {
@@ -214,16 +216,17 @@ func TestWriteAfterClose(t *testing.T) {
 func setupStore(ctx context.Context, t *testing.T) (*discovery.SQLiteStore, *sql.DB) {
 	t.Helper()
 
-	path := filepath.Join(t.TempDir(), "test.db")
+	conf := config.Default()
+	conf.Storage.SQLite.Path = filepath.Join(t.TempDir(), "test.db")
 
-	db, err := sql.Open("sqlite", path)
+	db, err := sqlite.OpenDB(conf.Storage.SQLite)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
 		require.NoError(t, db.Close())
 	})
 
-	store, err := discovery.NewSQLiteStore(ctx, db)
+	store, err := discovery.NewSQLiteStore(ctx, db, 0)
 	require.NoError(t, err)
 
 	return store, db

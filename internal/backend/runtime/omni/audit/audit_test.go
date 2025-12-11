@@ -3,15 +3,16 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package auditlogfile_test
+package audit_test
 
 import (
 	"context"
-	"embed"
+	"database/sql"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"io"
-	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -19,6 +20,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/siderolabs/gen/xtesting/must"
+	"github.com/siderolabs/go-pointer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -27,22 +29,24 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/hooks"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/sqlite"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
-//go:embed testdata/log
-var logDir embed.FS
+//go:embed auditlog/auditlogfile/testdata/log/2012-01-01.jsonlog
+var logData string
 
 func TestAudit(t *testing.T) {
-	tempDir := t.TempDir()
-
 	config := config.LogsAudit{
-		Path: tempDir,
+		Enabled: pointer.To(true),
 	}
 
-	l := must.Value(audit.NewLog(t.Context(), config, nil, zaptest.NewLogger(t)))(t)
+	db := testDB(t)
+
+	l := must.Value(audit.NewLog(t.Context(), config, db, zaptest.NewLogger(t)))(t)
 
 	hooks.Init(l)
 
@@ -101,25 +105,27 @@ func TestAudit(t *testing.T) {
 		action(t)
 	}
 
-	equalDirs(
-		t,
-		&wrapFS{
-			subFS: fsSub(t, logDir, "log"),
-			File:  "2012-01-01.jsonlog",
-		},
-		os.DirFS(tempDir).(subFS), //nolint:forcetypeassert,errcheck
-		cmpIgnoreTime,
-	)
-}
+	rdr, err := l.Reader(t.Context(), time.Time{}, time.Now().Add(5*time.Second))
+	require.NoError(t, err)
 
-type wrapFS struct {
-	subFS
+	t.Cleanup(func() {
+		require.NoError(t, rdr.Close())
+	})
 
-	File string
-}
+	var sb strings.Builder
 
-func (w *wrapFS) ReadFile(string) ([]byte, error) {
-	return w.subFS.ReadFile(w.File)
+	for {
+		data, err := rdr.Read()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+
+		require.NoError(t, err)
+
+		sb.Write(data)
+	}
+
+	cmpIgnoreTime(t, logData, sb.String())
 }
 
 func cmpIgnoreTime(t *testing.T, expected string, actual string) {
@@ -158,4 +164,29 @@ func loadEvents(t *testing.T, events string) []any {
 	}
 
 	return result
+}
+
+func makeAuditData(agent, _, email string) auditlog.Data {
+	return auditlog.Data{
+		Session: auditlog.Session{
+			UserAgent: agent,
+			Email:     email,
+		},
+	}
+}
+
+func testDB(t *testing.T) *sql.DB {
+	t.Helper()
+
+	conf := config.Default().Storage.SQLite
+	conf.Path = filepath.Join(t.TempDir(), "test.db")
+
+	db, err := sqlite.OpenDB(conf)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		require.NoError(t, db.Close())
+	})
+
+	return db
 }
