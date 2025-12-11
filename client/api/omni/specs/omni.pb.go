@@ -5167,6 +5167,7 @@ func (x *UserPilotSettings) GetAppToken() string {
 type StripeSettings struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Enabled       bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	MinCommit     uint32                 `protobuf:"varint,2,opt,name=min_commit,json=minCommit,proto3" json:"min_commit,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5206,6 +5207,13 @@ func (x *StripeSettings) GetEnabled() bool {
 		return x.Enabled
 	}
 	return false
+}
+
+func (x *StripeSettings) GetMinCommit() uint32 {
+	if x != nil {
+		return x.MinCommit
+	}
+	return 0
 }
 
 type EtcdBackupSettings struct {
@@ -9897,9 +9905,11 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x0fstripe_settings\x18\a \x01(\v2\x15.specs.StripeSettingsR\x0estripeSettings\x12J\n" +
 	"\"talos_pre_release_versions_enabled\x18\b \x01(\bR\x1etalosPreReleaseVersionsEnabled\"0\n" +
 	"\x11UserPilotSettings\x12\x1b\n" +
-	"\tapp_token\x18\x01 \x01(\tR\bappToken\"*\n" +
+	"\tapp_token\x18\x01 \x01(\tR\bappToken\"I\n" +
 	"\x0eStripeSettings\x12\x18\n" +
-	"\aenabled\x18\x01 \x01(\bR\aenabled\"\xd6\x01\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x1d\n" +
+	"\n" +
+	"min_commit\x18\x02 \x01(\rR\tminCommit\"\xd6\x01\n" +
 	"\x12EtcdBackupSettings\x12>\n" +
 	"\rtick_interval\x18\x01 \x01(\v2\x19.google.protobuf.DurationR\ftickInterval\x12<\n" +
 	"\fmin_interval\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\vminInterval\x12<\n" +

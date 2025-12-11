@@ -277,7 +277,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		}
 
 		controllers = append(controllers,
-			omnictrl.NewStripeMetricsReporterController(stripeAPIKey, subscriptionItemID),
+			omnictrl.NewStripeMetricsReporterController(stripeAPIKey, subscriptionItemID, config.Config.Logs.Stripe.MinCommit),
 		)
 	}
 

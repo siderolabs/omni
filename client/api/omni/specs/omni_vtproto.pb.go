@@ -1781,6 +1781,7 @@ func (m *StripeSettings) CloneVT() *StripeSettings {
 	}
 	r := new(StripeSettings)
 	r.Enabled = m.Enabled
+	r.MinCommit = m.MinCommit
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -5237,6 +5238,9 @@ func (this *StripeSettings) EqualVT(that *StripeSettings) bool {
 		return false
 	}
 	if this.Enabled != that.Enabled {
+		return false
+	}
+	if this.MinCommit != that.MinCommit {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -11489,6 +11493,11 @@ func (m *StripeSettings) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.MinCommit != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.MinCommit))
+		i--
+		dAtA[i] = 0x10
+	}
 	if m.Enabled {
 		i--
 		if m.Enabled {
@@ -15945,6 +15954,9 @@ func (m *StripeSettings) SizeVT() (n int) {
 	_ = l
 	if m.Enabled {
 		n += 2
+	}
+	if m.MinCommit != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.MinCommit))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -29299,6 +29311,25 @@ func (m *StripeSettings) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.Enabled = bool(v != 0)
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MinCommit", wireType)
+			}
+			m.MinCommit = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.MinCommit |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

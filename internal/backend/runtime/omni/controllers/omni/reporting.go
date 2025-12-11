@@ -36,6 +36,7 @@ type StripeMetricsReporterController struct {
 
 	stripeAPIKey             string
 	stripeSubscriptionItemID string
+	stripeMinCommit          uint32
 	debounceDuration         time.Duration
 }
 
@@ -55,7 +56,7 @@ func WithDebounceDuration(duration time.Duration) StripeMetricsReporterControlle
 }
 
 // NewStripeMetricsReporterController initializes StripeMetricsReporterController.
-func NewStripeMetricsReporterController(stripeAPIKey, stripeSubscriptionItemID string, opts ...StripeMetricsReporterControllerOption) *StripeMetricsReporterController {
+func NewStripeMetricsReporterController(stripeAPIKey, stripeSubscriptionItemID string, stripeMinCommit uint32, opts ...StripeMetricsReporterControllerOption) *StripeMetricsReporterController {
 	options := &StripeMetricsReporterControllerOptions{
 		DebounceDuration: DefaultDebounceDuration,
 	}
@@ -70,6 +71,7 @@ func NewStripeMetricsReporterController(stripeAPIKey, stripeSubscriptionItemID s
 		},
 		stripeAPIKey:             stripeAPIKey,
 		stripeSubscriptionItemID: stripeSubscriptionItemID,
+		stripeMinCommit:          stripeMinCommit,
 		debounceDuration:         options.DebounceDuration,
 	}
 }
@@ -106,6 +108,11 @@ func (ctrl *StripeMetricsReporterController) Run(ctx context.Context, r controll
 
 		count := pendingCount.ValueOr(0)
 		pendingCount = optional.Optional[uint32]{} // Reset to empty
+
+		if count < ctrl.stripeMinCommit {
+			log.Info("Committed machine count below minimum commit, sending minimum to stripe instead ", zap.Uint32("count", count), zap.Uint32("minimum_commit", ctrl.stripeMinCommit))
+			count = ctrl.stripeMinCommit
+		}
 
 		err := updateStripeSubscriptionItemQuantity(ctx, ctrl.stripeSubscriptionItemID, count, log)
 		if err != nil {

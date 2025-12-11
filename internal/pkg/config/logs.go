@@ -99,5 +99,6 @@ type ResourceLoggerConfig struct {
 
 // LogsStripe report usage metrics to stripe.
 type LogsStripe struct {
-	Enabled bool `yaml:"enabled"`
+	Enabled   bool   `yaml:"enabled"`
+	MinCommit uint32 `yaml:"minCommit"`
 }

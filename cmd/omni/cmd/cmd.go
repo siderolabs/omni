@@ -513,6 +513,8 @@ func defineLogsFlags() {
 
 	rootCmd.Flags().BoolVar(&cmdConfig.Logs.Stripe.Enabled, "enable-stripe-reporting", cmdConfig.Logs.Stripe.Enabled, "enable Stripe machine usage reporting")
 
+	rootCmd.Flags().Uint32Var(&cmdConfig.Logs.Stripe.MinCommit, "stripe-minimum-commit", cmdConfig.Logs.Stripe.MinCommit, "Minimum number of machines to report to Stripe for the given account")
+
 	// Deprecated logs flags, kept for backwards-compatibility
 	//
 	//nolint:staticcheck,errcheck

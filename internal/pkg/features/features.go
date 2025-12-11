@@ -38,7 +38,8 @@ func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger) er
 			AppToken: config.Config.Account.UserPilot.AppToken,
 		}
 		res.TypedSpec().Value.StripeSettings = &specs.StripeSettings{
-			Enabled: config.Config.Logs.Stripe.Enabled,
+			Enabled:   config.Config.Logs.Stripe.Enabled,
+			MinCommit: config.Config.Logs.Stripe.MinCommit,
 		}
 		res.TypedSpec().Value.TalosPreReleaseVersionsEnabled = config.Config.Features.EnableTalosPreReleaseVersions
 

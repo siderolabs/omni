@@ -1061,6 +1061,7 @@ message UserPilotSettings {
 
 message StripeSettings {
   bool enabled = 1;
+  uint32 min_commit =2;
 }
 
 message EtcdBackupSettings {

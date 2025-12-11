@@ -31,14 +31,15 @@ type StripeMetricsReporterControllerSuite struct {
 func (suite *StripeMetricsReporterControllerSuite) TestReconcile() {
 	suite.startRuntime()
 
+	// Register controller with a min commit of 4 machines
 	suite.Require().NoError(
 		suite.runtime.RegisterController(
-			omnictrl.NewStripeMetricsReporterController("test_api_key", "sub_item_id", omnictrl.WithDebounceDuration(2*time.Second)),
+			omnictrl.NewStripeMetricsReporterController("test_api_key", "sub_item_id", 4, omnictrl.WithDebounceDuration(2*time.Second)),
 		),
 	)
 
 	var (
-		machineCount int64 = 3 // Initial value must match the value in the test metrics.
+		machineCount int64 = 0
 		mu           sync.Mutex
 	)
 
@@ -109,25 +110,17 @@ func (suite *StripeMetricsReporterControllerSuite) TestReconcile() {
 	})
 	stripe.SetBackend(stripe.APIBackend, mockBackend)
 
-	// Create test metrics
+	// Register 1 machine and wait for the debounce so we can ensure that the min commit is what's actually reported
 	metrics := omni.NewMachineStatusMetrics(resources.EphemeralNamespace, omni.MachineStatusMetricsID)
-	metrics.TypedSpec().Value.RegisteredMachinesCount = 3
+	metrics.TypedSpec().Value.RegisteredMachinesCount = 1
 	suite.Require().NoError(suite.state.Create(suite.ctx, metrics))
 
-	// Simulate a change in machine count
-	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, metrics.Metadata(), func(r *omni.MachineStatusMetrics) error {
-		r.TypedSpec().Value.RegisteredMachinesCount = 6
-
-		return nil
-	})
-	suite.Require().NoError(err)
-
 	// Allow time for the controller to reconcile
-	time.Sleep(1 * time.Second)
+	time.Sleep(3 * time.Second)
 
 	var result map[string]any
 
-	// Verify the mock server reflects the updated machine count
+	// Verify the mock server returns the minimum machine count instead of the 1 we've registered.
 	req, err := http.NewRequestWithContext(suite.ctx, http.MethodGet, mockServer.URL+"/v1/subscription_items/sub_item_id", nil)
 	suite.Require().NoError(err)
 
@@ -140,10 +133,18 @@ func (suite *StripeMetricsReporterControllerSuite) TestReconcile() {
 	suite.Require().NoError(json.NewDecoder(resp.Body).Decode(&result))
 
 	//nolint: errcheck,forcetypeassert
-	suite.Assert().Equal(int64(3), int64(result["quantity"].(float64)))
+	suite.Assert().Equal(int64(4), int64(result["quantity"].(float64)))
+
+	// Update to count > min and ensure that is reflected
+	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, metrics.Metadata(), func(r *omni.MachineStatusMetrics) error {
+		r.TypedSpec().Value.RegisteredMachinesCount = 6
+
+		return nil
+	})
+	suite.Require().NoError(err)
 
 	// Allow time for the controller to reconcile
-	time.Sleep(2 * time.Second)
+	time.Sleep(3 * time.Second)
 
 	// Verify the mock server reflects the updated machine count
 	req, err = http.NewRequestWithContext(suite.ctx, http.MethodGet, mockServer.URL+"/v1/subscription_items/sub_item_id", nil)
