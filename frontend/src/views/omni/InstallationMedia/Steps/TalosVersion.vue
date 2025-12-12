@@ -7,26 +7,22 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { watchOnce } from '@vueuse/core'
 import { compare } from 'semver'
-import { computed, onBeforeMount, watch } from 'vue'
+import { computed, onBeforeMount } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { TalosVersionSpec } from '@/api/omni/specs/omni.pb'
-import type { JoinTokenStatusSpec, SiderolinkAPIConfigSpec } from '@/api/omni/specs/siderolink.pb'
+import type { JoinTokenStatusSpec } from '@/api/omni/specs/siderolink.pb'
 import {
-  APIConfigType,
-  ConfigID,
   DefaultNamespace,
   DefaultTalosVersion,
   JoinTokenStatusType,
   TalosVersionType,
 } from '@/api/resources'
-import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
+import GrpcTunnelCheckbox from '@/components/common/GrpcTunnelCheckbox/GrpcTunnelCheckbox.vue'
 import Labels from '@/components/common/Labels/Labels.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
-import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import { getDocsLink } from '@/methods'
 import { useFeatures } from '@/methods/features'
-import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
 
@@ -51,15 +47,6 @@ const { data: joinTokenList, loading: joinTokensLoading } = useResourceWatch<Joi
   },
 })
 
-const { data: siderolinkAPIConfig } = useResourceGet<SiderolinkAPIConfigSpec>({
-  runtime: Runtime.Omni,
-  resource: {
-    namespace: DefaultNamespace,
-    type: APIConfigType,
-    id: ConfigID,
-  },
-})
-
 const talosVersions = computed(() =>
   talosVersionList.value
     .filter((v) => !v.spec.deprecated)
@@ -72,20 +59,6 @@ const joinTokens = computed(() =>
     label: t.spec.name || t.metadata.id || '',
     value: t.metadata.id || '',
   })),
-)
-
-const enforceGrpcTunnel = computed(
-  () => siderolinkAPIConfig.value?.spec.enforce_grpc_tunnel ?? false,
-)
-
-watch(
-  enforceGrpcTunnel,
-  (enforced) => {
-    if (enforced) {
-      formState.value.useGrpcTunnel = true
-    }
-  },
-  { immediate: true },
 )
 
 // Form defaults
@@ -156,26 +129,7 @@ watchOnce(joinTokens, (v) => (formState.value.joinToken ??= v[0]?.value))
 
     <h2 class="text-base font-medium text-naturals-n14">Omni settings</h2>
 
-    <Tooltip>
-      <TCheckbox
-        v-model="formState.useGrpcTunnel"
-        :disabled="enforceGrpcTunnel"
-        label="Tunnel Omni management traffic over HTTP2"
-      />
-
-      <template #description>
-        <div class="flex flex-col gap-1 p-2">
-          <p>
-            Configure Talos to use the SideroLink (WireGuard) gRPC tunnel over HTTP2 for Omni
-            management traffic, instead of UDP. Note that this will add overhead to the traffic.
-          </p>
-          <p v-if="enforceGrpcTunnel">
-            As it is enabled in Omni on instance-level, it cannot be disabled for the installation
-            media.
-          </p>
-        </div>
-      </template>
-    </Tooltip>
+    <GrpcTunnelCheckbox v-model="formState.useGrpcTunnel" />
 
     <TSelectList
       v-model="formState.joinToken"

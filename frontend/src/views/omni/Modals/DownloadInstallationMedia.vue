@@ -21,15 +21,9 @@ import {
   ManagementService,
 } from '@/api/omni/management/management.pb'
 import type { InstallationMediaSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
-import type {
-  DefaultJoinTokenSpec,
-  JoinTokenStatusSpec,
-  SiderolinkAPIConfigSpec,
-} from '@/api/omni/specs/siderolink.pb'
+import type { DefaultJoinTokenSpec, JoinTokenStatusSpec } from '@/api/omni/specs/siderolink.pb'
 import { withRuntime } from '@/api/options'
 import {
-  APIConfigType,
-  ConfigID,
   DefaultJoinTokenID,
   DefaultJoinTokenType,
   DefaultNamespace,
@@ -44,11 +38,11 @@ import IconButton from '@/components/common/Button/IconButton.vue'
 import SplitButton from '@/components/common/Button/SplitButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
+import GrpcTunnelCheckbox from '@/components/common/GrpcTunnelCheckbox/GrpcTunnelCheckbox.vue'
 import Labels, { type LabelSelectItem } from '@/components/common/Labels/Labels.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
-import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import { formatBytes } from '@/methods'
 import { useFeatures } from '@/methods/features'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -163,8 +157,6 @@ const talosVersions = computed(() =>
 const selectedOption = ref('')
 const selectedTalosVersion = ref(DefaultTalosVersion)
 const useGrpcTunnel = ref(false)
-const useGrpcTunnelDefault = ref(false)
-const ready = ref(false)
 
 const joinTokenOptions = computed(() => {
   return joinTokens.value?.map((res) => res.spec.name!)
@@ -215,25 +207,6 @@ watch(
 )
 
 onMounted(async () => {
-  const siderolinkAPIConfig: Resource<SiderolinkAPIConfigSpec> = await ResourceService.Get(
-    {
-      namespace: DefaultNamespace,
-      type: APIConfigType,
-      id: ConfigID,
-    },
-    withRuntime(Runtime.Omni),
-  )
-
-  useGrpcTunnelDefault.value = siderolinkAPIConfig.spec.enforce_grpc_tunnel || false
-  useGrpcTunnel.value = useGrpcTunnelDefault.value
-  ready.value = true
-
-  if (!joinToken.value) {
-    fetchCurrentJoinTokenName()
-  }
-})
-
-const fetchCurrentJoinTokenName = async () => {
   if (route.query.joinToken) {
     const token = await ResourceService.Get(
       {
@@ -268,7 +241,7 @@ const fetchCurrentJoinTokenName = async () => {
   )
 
   joinToken.value = defaultTokenStatus.spec.name!
-}
+})
 
 onUnmounted(abortDownload)
 
@@ -540,25 +513,7 @@ const downloaded = computed(() => {
         :disabled="installationMedia?.spec?.no_secure_boot"
       />
 
-      <Tooltip>
-        <template #description>
-          <div class="flex flex-col gap-1 p-2">
-            <p>
-              Configure Talos to use the SideroLink (WireGuard) gRPC tunnel over HTTP2 for Omni
-              management traffic, instead of UDP. Note that this will add overhead to the traffic.
-            </p>
-            <p v-if="useGrpcTunnelDefault">
-              As it is enabled in Omni on instance-level, it cannot be disabled for the installation
-              media.
-            </p>
-          </div>
-        </template>
-        <TCheckbox
-          v-model="useGrpcTunnel"
-          :disabled="useGrpcTunnelDefault"
-          label="Tunnel Omni management traffic over HTTP2"
-        />
-      </Tooltip>
+      <GrpcTunnelCheckbox v-model="useGrpcTunnel" />
 
       <h3 class="text-sm text-naturals-n14">PXE Boot URL</h3>
 
@@ -570,7 +525,6 @@ const downloaded = computed(() => {
           class="min-w-min"
           icon="refresh"
           :icon-classes="{ 'animate-spin': creatingSchematic }"
-          :disabled="!ready"
           @click="createSchematic"
         />
         <span class="flex-1 break-all" @click="createSchematic">
@@ -594,7 +548,7 @@ const downloaded = computed(() => {
         <SplitButton
           :actions="['Download', 'Copy image download URL']"
           variant="highlighted"
-          :disabled="!ready || !supported"
+          :disabled="!supported"
           @click="(action) => (action === 'Download' ? download() : copyLink())"
         />
       </div>
