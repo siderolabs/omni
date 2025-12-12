@@ -179,6 +179,13 @@ export enum InfraMachineConfigSpecMachinePowerState {
   POWER_STATE_ON = 2,
 }
 
+export enum InstallationMediaConfigSpecBootloader {
+  BOOT_AUTO = 0,
+  BOOT_DUAL = 1,
+  BOOT_SD = 2,
+  BOOT_GRUB = 3,
+}
+
 export type MachineSpec = {
   management_address?: string
   connected?: boolean
@@ -961,4 +968,27 @@ export type InfraProviderCombinedStatusSpec = {
 
 export type MachineConfigDiffSpec = {
   diff?: string
+}
+
+export type InstallationMediaConfigSpecCloud = {
+  platform?: string
+}
+
+export type InstallationMediaConfigSpecSBC = {
+  overlay?: string
+  overlay_options?: {[key: string]: string}
+}
+
+export type InstallationMediaConfigSpec = {
+  talos_version?: string
+  architecture?: string
+  install_extensions?: string[]
+  kernel_args?: string
+  cloud?: InstallationMediaConfigSpecCloud
+  sbc?: InstallationMediaConfigSpecSBC
+  join_token?: string
+  secure_boot?: boolean
+  grpc_tunnel?: GrpcTunnelMode
+  machine_labels?: {[key: string]: string}
+  bootloader?: InstallationMediaConfigSpecBootloader
 }

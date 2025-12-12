@@ -1454,3 +1454,35 @@ message InfraProviderCombinedStatusSpec {
 message MachineConfigDiffSpec {
   string diff = 1;
 }
+
+message InstallationMediaConfigSpec {
+  enum Bootloader {
+    BOOT_AUTO = 0;
+    BOOT_DUAL = 1;
+    BOOT_SD = 2;
+    BOOT_GRUB = 3;
+  }
+
+  message Cloud {
+    string platform = 1;
+  }
+
+  message SBC {
+    string overlay = 1;
+    map<string, string> overlay_options = 2;
+  }
+
+  string talos_version = 1;
+  string architecture = 2;
+  repeated string install_extensions = 3;
+  string kernel_args = 4;
+
+  Cloud cloud = 5;
+  SBC sbc = 6;
+
+  string join_token = 7;
+  bool secure_boot = 8;
+  GrpcTunnelMode grpc_tunnel = 9;
+  map<string, string> machine_labels = 10;
+  Bootloader bootloader = 11;
+}
