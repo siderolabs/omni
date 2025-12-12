@@ -36,6 +36,7 @@ var UserManagedResourceTypes = []resource.Type{
 	omni.ImportedClusterSecretsType,
 	omni.InfraMachineBMCConfigType,
 	omni.InfraMachineConfigType,
+	omni.InstallationMediaConfigType,
 	omni.NodeForceDestroyRequestType,
 	infra.ProviderType,
 }

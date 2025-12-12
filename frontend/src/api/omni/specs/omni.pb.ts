@@ -699,6 +699,7 @@ export type UserPilotSettings = {
 
 export type StripeSettings = {
   enabled?: boolean
+  min_commit?: number
 }
 
 export type EtcdBackupSettings = {
@@ -959,4 +960,21 @@ export type InfraProviderCombinedStatusSpec = {
 
 export type MachineConfigDiffSpec = {
   diff?: string
+}
+
+export type InstallationMediaConfigSpecCloud = {
+  platform?: string
+}
+
+export type InstallationMediaConfigSpecSBC = {
+  overlay?: string
+  overlay_options?: {[key: string]: string}
+}
+
+export type InstallationMediaConfigSpec = {
+  architecture?: string
+  install_extensions?: string[]
+  kernel_args?: string
+  cloud?: InstallationMediaConfigSpecCloud
+  sbc?: InstallationMediaConfigSpecSBC
 }
