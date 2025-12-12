@@ -35,7 +35,7 @@ export interface FormState {
   systemExtensions?: string[]
   cmdline?: string
   overlayOptions?: string
-  bootloader?: 'auto' | 'sd-boot' | 'grub' | 'dual-boot'
+  bootloader?: CreateSchematicRequestSchematicBootloader
 }
 </script>
 
@@ -43,6 +43,7 @@ export interface FormState {
 import { useSessionStorage } from '@vueuse/core'
 import { type Component, computed } from 'vue'
 
+import type { CreateSchematicRequestSchematicBootloader } from '@/api/omni/management/management.pb'
 import type { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
 import TButton from '@/components/common/Button/TButton.vue'
 import type { LabelSelectItem } from '@/components/common/Labels/Labels.vue'

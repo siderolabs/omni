@@ -9,6 +9,7 @@ import { gte } from 'semver'
 import { computed } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
+import { CreateSchematicRequestSchematicBootloader } from '@/api/omni/management/management.pb'
 import type { SBCConfigSpec } from '@/api/omni/specs/virtual.pb'
 import { SBCConfigType, VirtualNamespace } from '@/api/resources'
 import RadioGroup from '@/components/common/Radio/RadioGroup.vue'
@@ -126,25 +127,28 @@ const selectedSBC = computed(() =>
       v-model="formState.bootloader"
       label="Bootloader"
     >
-      <RadioGroupOption value="auto">
+      <RadioGroupOption :value="CreateSchematicRequestSchematicBootloader.BOOT_AUTO">
         auto
 
         <template #description>Automatic bootloader selection.</template>
       </RadioGroupOption>
 
-      <RadioGroupOption value="sd-boot">
+      <RadioGroupOption :value="CreateSchematicRequestSchematicBootloader.BOOT_SD">
         sd-boot
 
         <template #description>Use systemd-boot as bootloader if supported.</template>
       </RadioGroupOption>
 
-      <RadioGroupOption v-if="!formState.secureBoot" value="grub">
+      <RadioGroupOption
+        v-if="!formState.secureBoot"
+        :value="CreateSchematicRequestSchematicBootloader.BOOT_GRUB"
+      >
         grub
 
         <template #description>Use GRUB as a bootloader (not supported with SecureBoot).</template>
       </RadioGroupOption>
 
-      <RadioGroupOption value="dual-boot">
+      <RadioGroupOption :value="CreateSchematicRequestSchematicBootloader.BOOT_DUAL">
         dual-boot
 
         <template #description>Use GRUB for BIOS and systemd-boot for UEFI systems.</template>
