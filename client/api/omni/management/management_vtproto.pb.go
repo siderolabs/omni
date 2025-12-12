@@ -430,6 +430,7 @@ func (m *CreateSchematicRequest) CloneVT() *CreateSchematicRequest {
 	r.SiderolinkGrpcTunnelMode = m.SiderolinkGrpcTunnelMode
 	r.JoinToken = m.JoinToken
 	r.Overlay = m.Overlay.CloneVT()
+	r.Bootloader = m.Bootloader
 	if rhs := m.Extensions; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -1305,6 +1306,9 @@ func (this *CreateSchematicRequest) EqualVT(that *CreateSchematicRequest) bool {
 		return false
 	}
 	if !this.Overlay.EqualVT(that.Overlay) {
+		return false
+	}
+	if this.Bootloader != that.Bootloader {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2735,6 +2739,11 @@ func (m *CreateSchematicRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Bootloader != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Bootloader))
+		i--
+		dAtA[i] = 0x50
+	}
 	if m.Overlay != nil {
 		size, err := m.Overlay.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -4005,6 +4014,9 @@ func (m *CreateSchematicRequest) SizeVT() (n int) {
 	if m.Overlay != nil {
 		l = m.Overlay.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.Bootloader != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Bootloader))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -6959,6 +6971,25 @@ func (m *CreateSchematicRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Bootloader", wireType)
+			}
+			m.Bootloader = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Bootloader |= CreateSchematicRequest_SchematicBootloader(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

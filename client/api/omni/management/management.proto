@@ -137,6 +137,13 @@ message CreateSchematicRequest {
     ENABLED = 2;
   }
 
+  enum SchematicBootloader {
+    BOOT_AUTO = 0;
+    BOOT_DUAL = 1;
+    BOOT_SD = 2;
+    BOOT_GRUB = 3;
+  }
+
   repeated string extensions = 1;
   repeated string extra_kernel_args = 2;
   map<uint32, string> meta_values = 3;
@@ -146,6 +153,7 @@ message CreateSchematicRequest {
   SiderolinkGRPCTunnelMode siderolink_grpc_tunnel_mode = 7;
   string join_token = 8;
   Overlay overlay = 9;
+  SchematicBootloader bootloader = 10;
 }
 
 message CreateSchematicResponse {

@@ -14,6 +14,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/siderolabs/image-factory/pkg/client"
 	"github.com/siderolabs/image-factory/pkg/schematic"
+	"github.com/siderolabs/talos/pkg/imager/profile"
 	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"go.uber.org/zap"
@@ -50,6 +51,10 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 		SystemExtensions: schematic.SystemExtensions{
 			OfficialExtensions: request.Extensions,
 		},
+	}
+
+	if request.Bootloader != management.CreateSchematicRequest_BOOT_AUTO {
+		customization.Bootloader = profile.BootloaderKind(request.Bootloader)
 	}
 
 	for key, value := range request.MetaValues {

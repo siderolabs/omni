@@ -161,6 +161,7 @@ const schematic = computedAsync(async () => {
         ? CreateSchematicRequestSiderolinkGRPCTunnelMode.ENABLED
         : CreateSchematicRequestSiderolinkGRPCTunnelMode.DISABLED,
       join_token: formState.value.joinToken,
+      bootloader: formState.value.bootloader,
     })
 
     return {
