@@ -1451,3 +1451,21 @@ message InfraProviderCombinedStatusSpec {
 message MachineConfigDiffSpec {
   string diff = 1;
 }
+
+message InstallationMediaConfigSpec {
+  message Cloud {
+    string platform = 1;
+  }
+
+  message SBC {
+    string overlay = 1;
+    map<string, string> overlay_options = 2;
+  }
+
+  string architecture = 1;
+  repeated string install_extensions = 2;
+  string kernel_args = 3;
+
+  Cloud cloud = 4;
+  SBC sbc = 5;
+}
