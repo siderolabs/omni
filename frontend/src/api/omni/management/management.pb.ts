@@ -22,6 +22,13 @@ export enum CreateSchematicRequestSiderolinkGRPCTunnelMode {
   ENABLED = 2,
 }
 
+export enum CreateSchematicRequestSchematicBootloader {
+  BOOT_AUTO = 0,
+  BOOT_DUAL = 1,
+  BOOT_SD = 2,
+  BOOT_GRUB = 3,
+}
+
 export type KubeconfigResponse = {
   kubeconfig?: Uint8Array
 }
@@ -128,6 +135,7 @@ export type CreateSchematicRequest = {
   secure_boot?: boolean
   siderolink_grpc_tunnel_mode?: CreateSchematicRequestSiderolinkGRPCTunnelMode
   join_token?: string
+  bootloader?: CreateSchematicRequestSchematicBootloader
 }
 
 export type CreateSchematicResponse = {

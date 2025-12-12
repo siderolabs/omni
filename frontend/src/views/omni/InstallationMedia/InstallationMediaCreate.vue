@@ -5,7 +5,9 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script lang="ts">
-const flows = {
+type HardwareType = 'metal' | 'cloud' | 'sbc'
+
+const flows: Record<HardwareType, Component[]> = {
   metal: [TalosVersionStep, MachineArchStep, SystemExtensionsStep, ExtraArgsStep, ConfirmationStep],
   cloud: [
     TalosVersionStep,
@@ -16,14 +18,12 @@ const flows = {
     ConfirmationStep,
   ],
   sbc: [TalosVersionStep, SBCTypeStep, SystemExtensionsStep, ExtraArgsStep, ConfirmationStep],
-} satisfies Record<string, Component[]>
-
-type FlowType = keyof typeof flows
+}
 
 export interface FormState {
   currentStep: number
   name?: string
-  hardwareType?: FlowType
+  hardwareType?: HardwareType
   talosVersion?: string
   useGrpcTunnel?: boolean
   joinToken?: string
@@ -33,9 +33,9 @@ export interface FormState {
   cloudPlatform?: string
   sbcType?: string
   systemExtensions?: string[]
-  selectedCmdline?: string
-  selectedOverlayOptions?: string
-  bootloader?: string
+  cmdline?: string
+  overlayOptions?: string
+  bootloader?: CreateSchematicRequestSchematicBootloader
 }
 </script>
 
@@ -43,6 +43,7 @@ export interface FormState {
 import { useSessionStorage } from '@vueuse/core'
 import { type Component, computed } from 'vue'
 
+import type { CreateSchematicRequestSchematicBootloader } from '@/api/omni/management/management.pb'
 import type { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
 import TButton from '@/components/common/Button/TButton.vue'
 import type { LabelSelectItem } from '@/components/common/Labels/Labels.vue'

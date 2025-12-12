@@ -699,6 +699,7 @@ export type UserPilotSettings = {
 
 export type StripeSettings = {
   enabled?: boolean
+  min_commit?: number
 }
 
 export type EtcdBackupSettings = {
