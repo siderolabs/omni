@@ -18,7 +18,7 @@ var userCmd = &cobra.Command{
 	Example: "",
 }
 
-// RootCmd exposes root cluster command.
+// RootCmd exposes root user command.
 func RootCmd() *cobra.Command {
 	return userCmd
 }
