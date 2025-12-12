@@ -4,6 +4,7 @@ package specs;
 option go_package = "github.com/siderolabs/omni/client/api/omni/specs";
 
 import "talos/machine/machine.proto";
+import "omni/management/management.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/duration.proto";
 
@@ -645,7 +646,7 @@ message LoadBalancerConfigSpec {
   reserved 1;
   string bind_port = 2;
   // Full URL of the loadbalancer inside Omni environment.
-  string  siderolink_endpoint = 4;
+  string siderolink_endpoint = 4;
   // IP adresses of the endpoints
   repeated string endpoints = 3;
 }
@@ -1064,7 +1065,7 @@ message UserPilotSettings {
 
 message StripeSettings {
   bool enabled = 1;
-  uint32 min_commit =2;
+  uint32 min_commit = 2;
 }
 
 message EtcdBackupSettings {
@@ -1453,4 +1454,29 @@ message InfraProviderCombinedStatusSpec {
 
 message MachineConfigDiffSpec {
   string diff = 1;
+}
+
+message InstallationMediaConfigSpec {
+  message Cloud {
+    string platform = 1;
+  }
+
+  message SBC {
+    string overlay = 1;
+    string overlay_options = 2;
+  }
+
+  string talos_version = 1;
+  string architecture = 2;
+  repeated string install_extensions = 3;
+  string kernel_args = 4;
+
+  Cloud cloud = 5;
+  SBC sbc = 6;
+
+  string join_token = 7;
+  bool secure_boot = 8;
+  GrpcTunnelMode grpc_tunnel = 9;
+  map<string, string> machine_labels = 10;
+  management.SchematicBootloader bootloader = 11;
 }

@@ -7,6 +7,7 @@
 import * as GoogleProtobufDuration from "../../google/protobuf/duration.pb"
 import * as GoogleProtobufTimestamp from "../../google/protobuf/timestamp.pb"
 import * as MachineMachine from "../../talos/machine/machine.pb"
+import * as ManagementManagement from "../management/management.pb"
 
 type Absent<T, K extends keyof T> = { [k in Exclude<keyof T, K>]?: undefined };
 type OneOf<T> =
@@ -961,4 +962,27 @@ export type InfraProviderCombinedStatusSpec = {
 
 export type MachineConfigDiffSpec = {
   diff?: string
+}
+
+export type InstallationMediaConfigSpecCloud = {
+  platform?: string
+}
+
+export type InstallationMediaConfigSpecSBC = {
+  overlay?: string
+  overlay_options?: string
+}
+
+export type InstallationMediaConfigSpec = {
+  talos_version?: string
+  architecture?: string
+  install_extensions?: string[]
+  kernel_args?: string
+  cloud?: InstallationMediaConfigSpecCloud
+  sbc?: InstallationMediaConfigSpecSBC
+  join_token?: string
+  secure_boot?: boolean
+  grpc_tunnel?: GrpcTunnelMode
+  machine_labels?: {[key: string]: string}
+  bootloader?: ManagementManagement.SchematicBootloader
 }

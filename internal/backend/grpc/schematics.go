@@ -52,7 +52,7 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 		},
 	}
 
-	if request.Bootloader != management.CreateSchematicRequest_BOOT_AUTO {
+	if request.Bootloader != management.SchematicBootloader_BOOT_AUTO {
 		customization.Bootloader = profile.BootloaderKind(request.Bootloader)
 	}
 

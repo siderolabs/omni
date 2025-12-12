@@ -10,6 +10,13 @@ import * as GoogleProtobufDuration from "../../google/protobuf/duration.pb"
 import * as GoogleProtobufEmpty from "../../google/protobuf/empty.pb"
 import * as GoogleProtobufTimestamp from "../../google/protobuf/timestamp.pb"
 
+export enum SchematicBootloader {
+  BOOT_AUTO = 0,
+  BOOT_DUAL = 1,
+  BOOT_SD = 2,
+  BOOT_GRUB = 3,
+}
+
 export enum KubernetesSyncManifestResponseResponseType {
   UNKNOWN = 0,
   MANIFEST = 1,
@@ -20,13 +27,6 @@ export enum CreateSchematicRequestSiderolinkGRPCTunnelMode {
   AUTO = 0,
   DISABLED = 1,
   ENABLED = 2,
-}
-
-export enum CreateSchematicRequestSchematicBootloader {
-  BOOT_AUTO = 0,
-  BOOT_DUAL = 1,
-  BOOT_SD = 2,
-  BOOT_GRUB = 3,
 }
 
 export type KubeconfigResponse = {
@@ -142,7 +142,7 @@ export type CreateSchematicRequest = {
   siderolink_grpc_tunnel_mode?: CreateSchematicRequestSiderolinkGRPCTunnelMode
   join_token?: string
   overlay?: CreateSchematicRequestOverlay
-  bootloader?: CreateSchematicRequestSchematicBootloader
+  bootloader?: SchematicBootloader
 }
 
 export type CreateSchematicResponse = {

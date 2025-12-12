@@ -124,6 +124,7 @@ export const InfraMachineBMCConfigType = "InfraMachineBMCConfigs.omni.sidero.dev
 export const InfraMachineConfigType = "InfraMachineConfigs.omni.sidero.dev";
 export const InfraProviderCombinedStatusType = "InfraProviderCombinedStatuses.omni.sidero.dev";
 export const InstallationMediaType = "InstallationMedias.omni.sidero.dev";
+export const InstallationMediaConfigType = "InstallationMediaConfigs.omni.sidero.dev";
 export const KernelArgsType = "KernelArgs.omni.sidero.dev";
 export const KernelArgsStatusType = "KernelArgsStatuses.omni.sidero.dev";
 export const KubernetesStatusType = "KubernetesStatuses.omni.sidero.dev";
