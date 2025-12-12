@@ -237,6 +237,7 @@ require (
 	github.com/siderolabs/go-kubeconfig v0.1.1 // indirect
 	github.com/siderolabs/net v0.4.0 // indirect
 	github.com/siderolabs/protoenc v0.2.4 // indirect
+	github.com/siderolabs/talos v1.11.1 // indirect
 	github.com/soheilhy/cmux v0.1.5 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/stoewer/go-strcase v1.3.1 // indirect

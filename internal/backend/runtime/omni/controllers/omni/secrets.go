@@ -9,6 +9,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
+	"strconv"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -16,6 +18,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/crypto/x509"
 	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/talos/pkg/machinery/config"
 	talossecrets "github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
@@ -31,14 +34,18 @@ import (
 
 // SecretsController creates omni.ClusterSecrets for each inputed omni.Cluster.
 //
-// SecretsController generates and stores cluster wide secrets.
-type SecretsController = qtransform.QController[*omni.Cluster, *omni.ClusterSecrets]
+// SecretsController generates and stores cluster-wide secrets. It also manages secret rotation.
+type SecretsController struct {
+	*qtransform.QController[*omni.Cluster, *omni.ClusterSecrets]
+}
 
-// NewSecretsController instantiates the secrets controller.
+// NewSecretsController instantiates the secrets' controller.
 //
-//nolint:gocognit
+//nolint:gocognit,gocyclo
 func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsController {
-	return qtransform.NewQController(
+	ctrl := &SecretsController{}
+
+	ctrl.QController = qtransform.NewQController(
 		qtransform.Settings[*omni.Cluster, *omni.ClusterSecrets]{
 			Name: "SecretsController",
 			MapMetadataFunc: func(cluster *omni.Cluster) *omni.ClusterSecrets {
@@ -47,9 +54,19 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsControll
 			UnmapMetadataFunc: func(secrets *omni.ClusterSecrets) *omni.Cluster {
 				return omni.NewCluster(resources.DefaultNamespace, secrets.Metadata().ID())
 			},
-			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, cluster *omni.Cluster, secrets *omni.ClusterSecrets) error {
+			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, cluster *omni.Cluster, secrets *omni.ClusterSecrets) error {
 				if len(secrets.TypedSpec().Value.GetData()) != 0 {
-					// cluster already has secrets, skipping
+					// the cluster already has secrets, skipping if Talos CA rotation is not required
+					rotateTalosCA, err := safe.ReaderGetByID[*omni.RotateTalosCA](ctx, r, cluster.Metadata().ID())
+					if err != nil && !state.IsNotFoundError(err) {
+						return err
+					}
+
+					if (rotateTalosCA != nil && secrets.TypedSpec().Value.RotateTalosCaVersion != rotateTalosCA.Metadata().Version().String()) ||
+						secrets.TypedSpec().Value.RotationPhase != specs.ClusterSecretsRotationStatusSpec_OK {
+						return ctrl.handleTalosCARotation(ctx, r, cluster, secrets, rotateTalosCA)
+					}
+
 					return nil
 				}
 
@@ -60,7 +77,7 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsControll
 
 				cpMachineSet, err := safe.ReaderGetByID[*omni.MachineSet](ctx, r, omni.ControlPlanesResourceID(cluster.Metadata().ID()))
 				if err != nil {
-					if state.IsNotFoundError(err) { // need to wait for control plane to be created, so we can decide if we need to get secrets from an etcd backup or not
+					if state.IsNotFoundError(err) { // need to wait for the control plane to be created, so we can decide if we need to get secrets from an etcd backup or not
 						return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
 					}
 
@@ -102,7 +119,7 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsControll
 				if bootstrapSpec != nil {
 					var backupData etcdbackup.BackupData
 
-					backupData, err = getBackupDataFromBootstrapSpec(ctx, r, etcdBackupStoreFactory, bootstrapSpec)
+					backupData, err = ctrl.getBackupDataFromBootstrapSpec(ctx, r, etcdBackupStoreFactory, bootstrapSpec)
 					if err != nil {
 						return err
 					}
@@ -158,10 +175,23 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsControll
 		qtransform.WithExtraMappedInput[*omni.ImportedClusterSecrets](
 			qtransform.MapperSameID[*omni.Cluster](),
 		),
+		qtransform.WithExtraMappedInput[*omni.RotateTalosCA](
+			qtransform.MapperSameID[*omni.Cluster](),
+		),
+		qtransform.WithExtraMappedInput[*omni.ClusterSecretsRotationStatus](
+			qtransform.MapperSameID[*omni.Cluster](),
+		),
 	)
+
+	return ctrl
 }
 
-func getBackupDataFromBootstrapSpec(ctx context.Context, r controller.Reader, etcdBackupStoreFactory store.Factory, spec *specs.MachineSetSpec_BootstrapSpec) (etcdbackup.BackupData, error) {
+func (s *SecretsController) getBackupDataFromBootstrapSpec(
+	ctx context.Context,
+	r controller.Reader,
+	etcdBackupStoreFactory store.Factory,
+	spec *specs.MachineSetSpec_BootstrapSpec,
+) (etcdbackup.BackupData, error) {
 	backupStore, err := etcdBackupStoreFactory.GetStore()
 	if err != nil {
 		return etcdbackup.BackupData{}, fmt.Errorf("failed to get backup store: %w", err)
@@ -194,4 +224,76 @@ func getBackupDataFromBootstrapSpec(ctx context.Context, r controller.Reader, et
 	defer readCloser.Close() //nolint:errcheck
 
 	return downloadedBackupData, nil
+}
+
+func (s *SecretsController) handleTalosCARotation(ctx context.Context, r controller.Reader, cluster *omni.Cluster, secrets *omni.ClusterSecrets, rotateTalosCA *omni.RotateTalosCA) error {
+	secrets.TypedSpec().Value.ComponentInRotation = specs.ClusterSecretsRotationStatusSpec_TALOS_CA
+
+	rotationStatus, err := safe.ReaderGetByID[*omni.ClusterSecretsRotationStatus](ctx, r, cluster.Metadata().ID())
+	if err != nil {
+		if state.IsNotFoundError(err) { // need to wait for the secret rotation status to be created
+			return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
+		}
+
+		return err
+	}
+
+	if len(secrets.TypedSpec().Value.GetRotateData()) == 0 {
+		bundle, rotateErr := omni.ToSecretsBundle(secrets.TypedSpec().Value.GetData())
+		if rotateErr != nil {
+			return fmt.Errorf("failed to decode secrets: %w", rotateErr)
+		}
+
+		talosCA, rotateErr := talossecrets.NewTalosCA(talossecrets.NewFixedClock(time.Now()).Now())
+		if rotateErr != nil {
+			return fmt.Errorf("failed to generate new Talos CA: %w", rotateErr)
+		}
+
+		bundle.Certs.OS = &x509.PEMEncodedCertificateAndKey{
+			Crt: talosCA.CrtPEM,
+			Key: talosCA.KeyPEM,
+		}
+
+		data, rotateErr := json.Marshal(bundle)
+		if rotateErr != nil {
+			return fmt.Errorf("error marshaling secrets: %w", rotateErr)
+		}
+
+		secrets.TypedSpec().Value.RotateData = data
+		// Kick-start the rotation, after this point the ClusterSecrets' rotation phase will follow the ClusterSecretsRotationStatus resource's phase.
+		secrets.TypedSpec().Value.RotationPhase = specs.ClusterSecretsRotationStatusSpec_PRE_ROTATE
+
+		return nil
+	}
+
+	if rotationStatus.TypedSpec().Value.Phase == secrets.TypedSpec().Value.RotationPhase {
+		return nil
+	}
+
+	// Progress the rotation phase by following the ClusterSecretsRotationStatus resource's phase.
+	switch rotationStatus.TypedSpec().Value.Phase {
+	case specs.ClusterSecretsRotationStatusSpec_PRE_ROTATE:
+		// Since we are kick-starting the rotation in this controller, normally we should never hit this case.
+		secrets.TypedSpec().Value.RotationPhase = rotationStatus.TypedSpec().Value.Phase
+	case specs.ClusterSecretsRotationStatusSpec_ROTATE:
+		secrets.TypedSpec().Value.RotationPhase = rotationStatus.TypedSpec().Value.Phase
+	case specs.ClusterSecretsRotationStatusSpec_POST_ROTATE:
+		data := slices.Clone(secrets.TypedSpec().Value.GetData())
+		secrets.TypedSpec().Value.Data = slices.Clone(secrets.TypedSpec().Value.GetRotateData())
+		secrets.TypedSpec().Value.RotateData = data
+		secrets.TypedSpec().Value.RotationPhase = rotationStatus.TypedSpec().Value.Phase
+	case specs.ClusterSecretsRotationStatusSpec_OK:
+		// Delayed cleanup of rotateData after rotation is fully complete
+		secrets.TypedSpec().Value.RotateData = nil
+		secrets.TypedSpec().Value.ComponentInRotation = specs.ClusterSecretsRotationStatusSpec_NONE
+		secrets.TypedSpec().Value.RotateTalosCaVersion = rotateTalosCA.Metadata().Version().String()
+		secrets.TypedSpec().Value.RotationPhase = rotationStatus.TypedSpec().Value.Phase
+		secrets.Metadata().Annotations().Set(rotationStatus.TypedSpec().Value.Component.String(), strconv.Itoa(int(time.Now().Unix())))
+	default:
+		return fmt.Errorf("unknown rotation phase: %s", rotationStatus.TypedSpec().Value.Phase.String())
+	}
+
+	// TODO: Check component annotations on ClusterSecret and set Imported flag to false when both Talos CA and Kubernetes CA rotations are completed
+
+	return nil
 }

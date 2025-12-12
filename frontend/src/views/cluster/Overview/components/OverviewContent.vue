@@ -11,6 +11,7 @@ import { computed, onMounted, ref, toRefs, watch } from 'vue'
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import type {
+  ClusterSecretsRotationStatusSpec,
   ClusterSpec,
   ClusterStatusSpec,
   KubernetesUpgradeStatusSpec,
@@ -23,6 +24,7 @@ import {
 } from '@/api/omni/specs/omni.pb'
 import {
   ClusterLocked,
+  ClusterSecretsRotationStatusType,
   ClusterStatusType,
   DefaultNamespace,
   KubernetesUpgradeStatusType,
@@ -158,6 +160,27 @@ const toggleUseEmbeddedDiscoveryService = async (value: boolean) => {
   await setUseEmbeddedDiscoveryService(context.cluster ?? '', value)
 }
 
+const getComponentInRotation = computed(() => {
+  switch (secretRotationStatus.value?.spec.component) {
+    case 1:
+      return 'Talos CA'
+    default:
+      return ''
+  }
+})
+
+const secretRotationStatus: Ref<Resource<ClusterSecretsRotationStatusSpec> | undefined> = ref()
+const secretRotationStatusWatch = new Watch(secretRotationStatus)
+
+secretRotationStatusWatch.setup({
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: DefaultNamespace,
+    type: ClusterSecretsRotationStatusType,
+    id: context.cluster,
+  },
+})
+
 const clusterLocked = computed(() => {
   return currentCluster?.value?.metadata.annotations?.[ClusterLocked] !== undefined
 })
@@ -168,6 +191,10 @@ const machineLockedForTalosUpgrade = computed(() => {
 
 const machineLockedForKubernetesUpgrade = computed(() => {
   return kubernetesUpgradeStatus.value?.spec.status === 'waiting for machine to be unlocked'
+})
+
+const machineLockedForSecretRotation = computed(() => {
+  return secretRotationStatus.value?.spec.status === 'rotation paused'
 })
 
 onMounted(async () => {
@@ -345,6 +372,30 @@ onMounted(async () => {
             >
               Cancel
             </TButton>
+          </div>
+        </div>
+        <div
+          v-if="secretRotationStatus && secretRotationStatus.spec.status"
+          class="overview-upgrade-progress"
+        >
+          <div class="overview-box-header flex items-center gap-1">
+            <span class="overview-box-title flex-1">Secret Rotation</span>
+            <span class="overview-box-title">{{ getComponentInRotation }}</span>
+          </div>
+          <div class="flex min-h-20 items-center gap-2 border-t-8 border-naturals-n4 p-4 text-xs">
+            <TIcon
+              v-if="clusterLocked || machineLockedForSecretRotation"
+              icon="pause-circle"
+              class="h-6 w-6"
+            />
+            <TIcon v-else icon="loading" class="h-6 w-6 animate-spin text-yellow-y1" />
+            <div class="flex-1">
+              {{ secretRotationStatus.spec.status }}
+              <template v-if="secretRotationStatus.spec.status && !clusterLocked">
+                - {{ secretRotationStatus.spec.step }}
+              </template>
+              <template v-if="clusterLocked">- waiting for cluster to be unlocked</template>
+            </div>
           </div>
         </div>
         <div class="flex gap-5">

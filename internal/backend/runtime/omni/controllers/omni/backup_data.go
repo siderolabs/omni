@@ -65,7 +65,7 @@ func NewBackupDataController() *BackupDataController {
 					return fmt.Errorf("failed to get cluster %q secrets: %w", clusterID, err)
 				}
 
-				bundle, err := omni.ToSecretsBundle(clusterSecrets)
+				bundle, err := omni.ToSecretsBundle(clusterSecrets.TypedSpec().Value.GetData())
 				if err != nil {
 					return fmt.Errorf("failed to decode cluster %q secrets: %w", clusterID, err)
 				}
