@@ -40,19 +40,15 @@ var applyCmd = &cobra.Command{
 	
 	If a file is specified, only that file will be processed.
 	If a directory is specified, all YAML files (*.yaml, *.yml) in the directory
-	and its subdirectories will be processed recursively.`,
+	and its subdirectories will be processed recursively and merged together
+	before applying as a single atomic operation.`,
 	Args:  cobra.NoArgs,
 	RunE: func(*cobra.Command, []string) error {
-		files, err := discoverFiles(applyCmdFlags.resFile)
-		if err != nil {
-			return fmt.Errorf("failed to discover yaml files from %q: %w", applyCmdFlags.resFile, err)
-		}
-
 		if applyCmdFlags.options.dryRun {
 			applyCmdFlags.options.verbose = true
 		}
 
-		return access.WithClient(applyConfigFiles(files))
+		return access.WithClient(applyConfigFiles)
 	},
 }
 
@@ -95,32 +91,45 @@ func discoverFiles(path string) ([]string, error) {
 	return files, nil
 }
 
-func applyConfigFiles(files []string) func(ctx context.Context, client *client.Client) error {
-	return func(ctx context.Context, client *client.Client) error {
-		for _, file := range files {
-			if applyCmdFlags.options.verbose {
-				fmt.Printf("Processing file: %s\n", file)
-			}
+func applyConfigFiles(ctx context.Context, client *client.Client) error {
+	files, err := discoverFiles(applyCmdFlags.resFile)
+	if err != nil {
+		return fmt.Errorf("failed to discover yaml files from %q: %w", applyCmdFlags.resFile, err)
+	}
 
-			yamlRaw, err := os.ReadFile(file)
-			if err != nil {
-				return fmt.Errorf("failed to read resource yaml file %q: %w", file, err)
-			}
+	if applyCmdFlags.options.verbose {
+		fmt.Printf("Total resource files to apply: %d\n", len(files))
+	}
 
-			err = applyConfigFromBytes(ctx, client, yamlRaw)
-			if err != nil {
-				return fmt.Errorf("failed to apply config from file %q: %w", file, err)
-			}
+	var allResources []resource.Resource
+	
+	for _, file := range files {
+		if applyCmdFlags.options.verbose {
+			fmt.Printf("Loading resources from file: %s\n", file)
 		}
 
-		return nil
+		yamlRaw, err := os.ReadFile(file)
+		if err != nil {
+			return fmt.Errorf("failed to read resource yaml file %q: %w", file, err)
+		}
+
+		resources, err := parseResourcesFromBytes(yamlRaw)
+		if err != nil {
+			return fmt.Errorf("failed to parse resources from file %q: %w", file, err)
+		}
+
+		allResources = append(allResources, resources...)
 	}
+
+	if applyCmdFlags.options.verbose {
+		fmt.Printf("Total resources to apply: %d\n", len(allResources))
+	}
+
+	return applyResources(ctx, client, allResources)
 }
 
-func applyConfigFromBytes(ctx context.Context, client *client.Client, yamlRaw []byte) error {
-	st := client.Omni().State()
+func parseResourcesFromBytes(yamlRaw []byte) ([]resource.Resource, error) {
 	dec := yaml.NewDecoder(bytes.NewReader(yamlRaw))
-
 	var resources []resource.Resource
 
 	for {
@@ -132,10 +141,26 @@ func applyConfigFromBytes(ctx context.Context, client *client.Client, yamlRaw []
 		}
 
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		resources = append(resources, res.Resource())
+	}
+
+	return resources, nil
+}
+
+func applyResources(ctx context.Context, client *client.Client, resources []resource.Resource) error {
+	st := client.Omni().State()
+
+	resourceMap := make(map[string]resource.Resource)
+	for _, res := range resources {
+		key := fmt.Sprintf("%s/%s", res.Metadata().Type(), res.Metadata().ID())
+		if _, exists := resourceMap[key]; exists {
+			return fmt.Errorf("duplicate resource found: %s (type: %s) defined in multiple files", 
+				res.Metadata().ID(), res.Metadata().Type())
+		}
+		resourceMap[key] = res
 	}
 
 	for _, res := range resources {
@@ -160,6 +185,15 @@ func applyConfigFromBytes(ctx context.Context, client *client.Client, yamlRaw []
 	}
 
 	return nil
+}
+
+func applyConfigFromBytes(ctx context.Context, client *client.Client, yamlRaw []byte) error {
+	resources, err := parseResourcesFromBytes(yamlRaw)
+	if err != nil {
+		return err
+	}
+
+	return applyResources(ctx, client, resources)
 }
 
 type options struct {
