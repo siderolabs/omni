@@ -91,6 +91,29 @@ func discoverFiles(path string) ([]string, error) {
 	return files, nil
 }
 
+func mergeFiles(files []string) ([]byte, error) {
+	if len(files) == 0 {
+		return nil, fmt.Errorf("no files to merge")
+	}
+
+	var merged strings.Builder
+
+	for i, file := range files {
+		content, err := os.ReadFile(file)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read file %q: %w", file, err)
+		}
+
+		if i > 0 {
+			merged.WriteString("\n---\n")
+		}
+		
+		merged.Write(content)
+	}
+
+	return []byte(merged.String()), nil
+}
+
 func applyConfigFiles(ctx context.Context, client *client.Client) error {
 	files, err := discoverFiles(applyCmdFlags.resFile)
 	if err != nil {
@@ -101,31 +124,16 @@ func applyConfigFiles(ctx context.Context, client *client.Client) error {
 		fmt.Printf("Total resource files to apply: %d\n", len(files))
 	}
 
-	var allResources []resource.Resource
-	
-	for _, file := range files {
-		if applyCmdFlags.options.verbose {
-			fmt.Printf("Loading resources from file: %s\n", file)
-		}
-
-		yamlRaw, err := os.ReadFile(file)
-		if err != nil {
-			return fmt.Errorf("failed to read resource yaml file %q: %w", file, err)
-		}
-
-		resources, err := parseResourcesFromBytes(yamlRaw)
-		if err != nil {
-			return fmt.Errorf("failed to parse resources from file %q: %w", file, err)
-		}
-
-		allResources = append(allResources, resources...)
+	mergedContent, err := mergeFiles(files)
+	if err != nil {
+		return fmt.Errorf("failed to merge resource files: %w", err)
 	}
 
 	if applyCmdFlags.options.verbose {
-		fmt.Printf("Total resources to apply: %d\n", len(allResources))
+		fmt.Printf("Merged %d files into single YAML document\n", len(files))
 	}
 
-	return applyResources(ctx, client, allResources)
+	return applyConfigFromBytes(ctx, client, mergedContent)
 }
 
 func parseResourcesFromBytes(yamlRaw []byte) ([]resource.Resource, error) {
