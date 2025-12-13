@@ -10,7 +10,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
@@ -32,67 +35,173 @@ var applyCmdFlags struct {
 // applyCmd represents apply config command.
 var applyCmd = &cobra.Command{
 	Use:   "apply",
-	Short: "Create or update resource using YAML file as an input",
+	Short: "Create or update resource using YAML file or directory as an input",
+	Long: `Create or update resources using YAML file(s) as input.
+	
+	If a file is specified, only that file will be processed.
+	If a directory is specified, all YAML files (*.yaml, *.yml) in the directory
+	and its subdirectories will be processed recursively and merged together
+	before applying as a single atomic operation.`,
 	Args:  cobra.NoArgs,
 	RunE: func(*cobra.Command, []string) error {
-		yamlRaw, err := os.ReadFile(applyCmdFlags.resFile)
-		if err != nil {
-			return fmt.Errorf("failed to read resource yaml file %q: %w", applyCmdFlags.resFile, err)
-		}
-
 		if applyCmdFlags.options.dryRun {
 			applyCmdFlags.options.verbose = true
 		}
 
-		return access.WithClient(applyConfig(yamlRaw))
+		return access.WithClient(applyConfigFiles)
 	},
 }
 
-func applyConfig(yamlRaw []byte) func(ctx context.Context, client *client.Client) error {
-	return func(ctx context.Context, client *client.Client) error {
-		st := client.Omni().State()
-		dec := yaml.NewDecoder(bytes.NewReader(yamlRaw))
+func discoverFiles(path string) ([]string, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
 
-		var resources []resource.Resource
+	if !info.IsDir() {
+		return []string{path}, nil
+	}
 
-		for {
-			var res protobuf.YAMLResource
+	var files []string
 
-			err := dec.Decode(&res)
-			if errors.Is(err, io.EOF) {
-				break
-			}
+	err = filepath.WalkDir(path, func(filePath string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
 
+		if d.IsDir() {
+			return nil
+		}
+
+		ext := strings.ToLower(filepath.Ext(filePath))
+		if ext == ".yaml" || ext == ".yml" {
+			files = append(files, filePath)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(files) == 0 {
+		return nil, fmt.Errorf("no YAML files found in directory %q", path)
+	}
+
+	return files, nil
+}
+
+func mergeFiles(files []string) ([]byte, error) {
+	if len(files) == 0 {
+		return nil, fmt.Errorf("no files to merge")
+	}
+
+	var merged strings.Builder
+
+	for i, file := range files {
+		content, err := os.ReadFile(file)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read file %q: %w", file, err)
+		}
+
+		if i > 0 {
+			merged.WriteString("\n---\n")
+		}
+		
+		merged.Write(content)
+	}
+
+	return []byte(merged.String()), nil
+}
+
+func applyConfigFiles(ctx context.Context, client *client.Client) error {
+	files, err := discoverFiles(applyCmdFlags.resFile)
+	if err != nil {
+		return fmt.Errorf("failed to discover yaml files from %q: %w", applyCmdFlags.resFile, err)
+	}
+
+	if applyCmdFlags.options.verbose {
+		fmt.Printf("Total resource files to apply: %d\n", len(files))
+	}
+
+	mergedContent, err := mergeFiles(files)
+	if err != nil {
+		return fmt.Errorf("failed to merge resource files: %w", err)
+	}
+
+	if applyCmdFlags.options.verbose {
+		fmt.Printf("Merged %d files into single YAML document\n", len(files))
+	}
+
+	return applyConfigFromBytes(ctx, client, mergedContent)
+}
+
+func parseResourcesFromBytes(yamlRaw []byte) ([]resource.Resource, error) {
+	dec := yaml.NewDecoder(bytes.NewReader(yamlRaw))
+	var resources []resource.Resource
+
+	for {
+		var res protobuf.YAMLResource
+
+		err := dec.Decode(&res)
+		if errors.Is(err, io.EOF) {
+			break
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		resources = append(resources, res.Resource())
+	}
+
+	return resources, nil
+}
+
+func applyResources(ctx context.Context, client *client.Client, resources []resource.Resource) error {
+	st := client.Omni().State()
+
+	resourceMap := make(map[string]resource.Resource)
+	for _, res := range resources {
+		key := fmt.Sprintf("%s/%s", res.Metadata().Type(), res.Metadata().ID())
+		if _, exists := resourceMap[key]; exists {
+			return fmt.Errorf("duplicate resource found: %s (type: %s) defined in multiple files", 
+				res.Metadata().ID(), res.Metadata().Type())
+		}
+		resourceMap[key] = res
+	}
+
+	for _, res := range resources {
+		got, err := st.Get(ctx, res.Metadata())
+		if err != nil && !state.IsNotFoundError(err) {
+			return fmt.Errorf("failed to get resource '%s' '%s': %w", res.Metadata().ID(), res.Metadata().Type(), err)
+		}
+
+		if state.IsNotFoundError(err) {
+			err = createResource(ctx, st, res, applyCmdFlags.options)
 			if err != nil {
 				return err
 			}
 
-			resources = append(resources, res.Resource())
+			continue
 		}
 
-		for _, res := range resources {
-			got, err := st.Get(ctx, res.Metadata())
-			if err != nil && !state.IsNotFoundError(err) {
-				return fmt.Errorf("failed to get resource '%s' '%s': %w", res.Metadata().ID(), res.Metadata().Type(), err)
-			}
-
-			if state.IsNotFoundError(err) {
-				err = createResource(ctx, st, res, applyCmdFlags.options)
-				if err != nil {
-					return err
-				}
-
-				continue
-			}
-
-			err = updateResource(ctx, st, got, res, applyCmdFlags.options)
-			if err != nil {
-				return fmt.Errorf("failed to update resource '%s' '%s': %w", res.Metadata().ID(), res.Metadata().Type(), err)
-			}
+		err = updateResource(ctx, st, got, res, applyCmdFlags.options)
+		if err != nil {
+			return fmt.Errorf("failed to update resource '%s' '%s': %w", res.Metadata().ID(), res.Metadata().Type(), err)
 		}
-
-		return nil
 	}
+
+	return nil
+}
+
+func applyConfigFromBytes(ctx context.Context, client *client.Client, yamlRaw []byte) error {
+	resources, err := parseResourcesFromBytes(yamlRaw)
+	if err != nil {
+		return err
+	}
+
+	return applyResources(ctx, client, resources)
 }
 
 type options struct {
@@ -167,7 +276,7 @@ func marshalResource(res resource.Resource) (string, error) {
 }
 
 func init() {
-	applyCmd.PersistentFlags().StringVarP(&applyCmdFlags.resFile, "file", "f", "", "Resource file to load and apply")
+	applyCmd.PersistentFlags().StringVarP(&applyCmdFlags.resFile, "file", "f", "", "Resource file or directory to load and apply")
 	applyCmd.PersistentFlags().BoolVarP(&applyCmdFlags.options.verbose, "verbose", "v", false, "Verbose output")
 	applyCmd.PersistentFlags().BoolVarP(&applyCmdFlags.options.dryRun, "dry-run", "d", false, "Dry run, implies verbose")
 	ensure.NoError(applyCmd.MarkPersistentFlagRequired("file"))
