@@ -259,32 +259,6 @@ const isoSecureBootPath = computed(() =>
     : undefined,
 )
 
-const ukiPath = computed(() =>
-  selectedPlatform.value
-    ? `${imageBaseURL.value}/${selectedPlatform.value.metadata.id}-${arch.value}-uki.efi`
-    : undefined,
-)
-
-const secureBootUKIPath = computed(() =>
-  selectedPlatform.value
-    ? `${imageBaseURL.value}/${selectedPlatform.value.metadata.id}-${arch.value}-secureboot-uki.efi`
-    : undefined,
-)
-
-const kernelPath = computed(() =>
-  selectedPlatform.value ? `${imageBaseURL.value}/kernel-${arch.value}` : undefined,
-)
-
-const cmdLinePath = computed(() =>
-  selectedPlatform.value
-    ? `${imageBaseURL.value}/cmdline-${selectedPlatform.value.metadata.id}-${arch.value}`
-    : undefined,
-)
-
-const initramfsPath = computed(() =>
-  selectedPlatform.value ? `${imageBaseURL.value}/initramfs-${arch.value}.xz` : undefined,
-)
-
 function shortVersion(version?: string) {
   if (!version) return
 
@@ -684,57 +658,17 @@ function shortVersion(version?: string) {
       </li>
     </ul>
 
-    <template v-if="formState.hardwareType === 'metal'">
+    <template
+      v-if="formState.hardwareType === 'metal' && !formState.secureBoot && talosctlAvailable"
+    >
       <h3 class="text-sm text-naturals-n14">Extra Assets</h3>
       <dl class="flex flex-col gap-2 [&_dd+dt]:mt-2 [&_dt]:font-medium [&_dt]:text-naturals-n14">
-        <template v-if="formState.secureBoot">
-          <dt>SecureBoot UKI</dt>
-          <dd>
-            <a
-              class="link-primary"
-              :href="secureBootUKIPath"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {{ secureBootUKIPath }}
-            </a>
-          </dd>
-        </template>
-        <template v-else>
-          <dt>Kernel Image</dt>
-          <dd>
-            <a class="link-primary" :href="kernelPath" target="_blank" rel="noopener noreferrer">
-              {{ kernelPath }}
-            </a>
-          </dd>
-          <dt>Kernel Command Line</dt>
-          <dd>
-            <a class="link-primary" :href="cmdLinePath" target="_blank" rel="noopener noreferrer">
-              {{ cmdLinePath }}
-            </a>
-          </dd>
-          <dt>Initramfs Image</dt>
-          <dd>
-            <a class="link-primary" :href="initramfsPath" target="_blank" rel="noopener noreferrer">
-              {{ initramfsPath }}
-            </a>
-          </dd>
-          <dt>UKI</dt>
-          <dd>
-            <a class="link-primary" :href="ukiPath" target="_blank" rel="noopener noreferrer">
-              {{ ukiPath }}
-            </a>
-          </dd>
-
-          <template v-if="talosctlAvailable">
-            <dt>Talosctl CLI</dt>
-            <dd v-for="path in talosctlPaths" :key="path">
-              <a class="link-primary" :href="path" target="_blank" rel="noopener noreferrer">
-                {{ path }}
-              </a>
-            </dd>
-          </template>
-        </template>
+        <dt>Talosctl CLI</dt>
+        <dd v-for="path in talosctlPaths" :key="path">
+          <a class="link-primary" :href="path" target="_blank" rel="noopener noreferrer">
+            {{ path }}
+          </a>
+        </dd>
       </dl>
     </template>
   </div>
